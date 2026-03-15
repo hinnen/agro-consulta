@@ -34,3 +34,19 @@ db["DtoEstoqueDepositoProduto"].create_index("Deposito")
 print("OK - índice em DtoEstoqueDepositoProduto.Deposito")
 
 print("Finalizado.")
+
+from pymongo import MongoClient
+from decouple import config
+
+client = MongoClient(config("VENDA_ERP_MONGO_URL"))
+db = client[config("VENDA_ERP_MONGO_DB")]
+
+print("Criando índices...")
+
+db["DtoProduto"].create_index("EAN_NFe")
+db["DtoProduto"].create_index("CodigoNFe")
+db["DtoProduto"].create_index("NomeNormalizado")
+
+db["DtoEstoqueDepositoProduto"].create_index("ProdutoID")
+
+print("Índices criados.")

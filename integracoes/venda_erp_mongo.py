@@ -4,6 +4,8 @@ from pymongo import MongoClient
 from django.conf import settings
 from django.core.cache import cache
 
+from integracoes.texto import tokens
+
 
 _mongo_client = None
 
@@ -41,10 +43,12 @@ class VendaERPMongoClient:
             "Categoria": 1,
             "PrecoVenda": 1,
             "CadastroInativo": 1,
+            "NomeNormalizado": 1,
         }
 
     def buscar_produtos(self, termo):
         termo = (termo or "").strip()
+
         if not termo:
             return []
 
@@ -55,7 +59,7 @@ class VendaERPMongoClient:
 
         projection = self._projection_produto()
 
-        # 1. tenta busca exata por código de barras
+        # 1. Busca exata por código de barras
         produto_exato = self.db["DtoProduto"].find_one(
             {
                 "EAN_NFe": termo,
@@ -68,7 +72,7 @@ class VendaERPMongoClient:
             cache.set(cache_key, resultado, self.cache_ttl)
             return resultado
 
-        # 2. tenta busca exata por código interno
+        # 2. Busca exata por código interno
         produto_exato = self.db["DtoProduto"].find_one(
             {
                 "$or": [
@@ -84,27 +88,32 @@ class VendaERPMongoClient:
             cache.set(cache_key, resultado, self.cache_ttl)
             return resultado
 
-        # 3. fallback para busca parcial
-        termo_regex = re.escape(termo)
+        # 3. Busca flexível por nome
+        tks = tokens(termo)
+
+        if not tks:
+            return []
+
+        condicoes = []
+        for t in tks:
+            condicoes.append({
+                "NomeNormalizado": {
+                    "$regex": f".*{re.escape(t)}.*"
+                }
+            })
 
         filtro = {
             "$and": [
                 {"CadastroInativo": False},
-                {
-                    "$or": [
-                        {"Nome": {"$regex": termo_regex, "$options": "i"}},
-                        {"CodigoNFe": {"$regex": termo_regex, "$options": "i"}},
-                        {"EAN_NFe": {"$regex": termo_regex, "$options": "i"}},
-                        {"Marca": {"$regex": termo_regex, "$options": "i"}},
-                    ]
-                },
+                *condicoes
             ]
         }
 
         resultados = list(
-            self.db["DtoProduto"]
-            .find(filtro, projection)
-            .limit(15)
+            self.db["DtoProduto"].find(
+                filtro,
+                projection
+            ).limit(20)
         )
 
         cache.set(cache_key, resultados, self.cache_ttl)

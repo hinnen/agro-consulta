@@ -312,22 +312,55 @@
     </div>
 
     <script>
-        let timer;
-        const campo = document.getElementById('busca');
+    let timer;
+    let ultimoValorEnviado = "{{ termo|escapejs }}";
+    const campo = document.getElementById('busca');
 
-        campo.addEventListener('keyup', function() {
-            clearTimeout(timer);
+    campo.addEventListener('keyup', function(event) {
+        clearTimeout(timer);
 
-            timer = setTimeout(function() {
+        const valorAtual = campo.value.trim();
+
+        // Enter pesquisa na hora
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            if (valorAtual !== ultimoValorEnviado) {
+                ultimoValorEnviado = valorAtual;
                 campo.form.submit();
-            }, 180);
-        });
+            }
+            return;
+        }
 
-        window.onload = function() {
-            const campo = document.getElementById('busca');
-            campo.focus();
-            campo.setSelectionRange(campo.value.length, campo.value.length);
-        };
-    </script>
-</body>
-</html>
+        // ESC limpa o campo
+        if (event.key === 'Escape') {
+            campo.value = '';
+            return;
+        }
+
+        // não pesquisar com texto muito curto
+        if (valorAtual.length < 2) {
+            return;
+        }
+
+        timer = setTimeout(function() {
+            const valorParaEnviar = campo.value.trim();
+
+            if (valorParaEnviar.length < 2) {
+                return;
+            }
+
+            if (valorParaEnviar === ultimoValorEnviado) {
+                return;
+            }
+
+            ultimoValorEnviado = valorParaEnviar;
+            campo.form.submit();
+        }, 800);
+    });
+
+    window.onload = function() {
+        const campo = document.getElementById('busca');
+        campo.focus();
+        campo.setSelectionRange(campo.value.length, campo.value.length);
+    };
+</script>
