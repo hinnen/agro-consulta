@@ -135,3 +135,12 @@ USE_TZ = True
 STATIC_URL = 'static/'
 VENDA_ERP_MONGO_URL = config('VENDA_ERP_MONGO_URL', default='')
 VENDA_ERP_MONGO_DB = config('VENDA_ERP_MONGO_DB', default='')
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'agro-consulta-cache',
+    }
+}
+
+CONSULTA_CACHE_TTL = 20

@@ -254,6 +254,11 @@
                             {{ produto_destaque.saldo_vila }}
                         </div>
                     </div>
+                    <div class="estoque-card">
+        <div class="estoque-loja">Estoque Total</div>
+        <div class="estoque-valor">
+            {{ produto_destaque.saldo_total|floatformat:3 }}
+        </div>
                 </div>
             </div>
         {% endif %}
@@ -265,32 +270,36 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Código</th>
-                            <th>Cód. Barras</th>
-                            <th>Produto</th>
-                            <th>Marca</th>
-                            <th>Categoria</th>
-                            <th>Preço</th>
-                            <th>Centro</th>
-                            <th>Vila Elias</th>
-                        </tr>
+        <th>Código</th>
+        <th>Cód. Barras</th>
+        <th>Produto</th>
+        <th>Marca</th>
+        <th>Categoria</th>
+        <th>Preço</th>
+        <th>Centro</th>
+        <th>Vila Elias</th>
+        <th>Total</th>
+    </tr>
                     </thead>
                     <tbody>
                         {% for item in resultados %}
                             <tr>
-                                <td>{{ item.codigo_interno }}</td>
-                                <td>{{ item.codigo_barras|default:"-" }}</td>
-                                <td>{{ item.nome }}</td>
-                                <td>{{ item.marca|default:"-" }}</td>
-                                <td>{{ item.categoria|default:"-" }}</td>
-                                <td class="preco-tabela">R$ {{ item.preco_venda }}</td>
-                                <td class="{% if item.saldo_centro <= 0 %}baixo{% else %}ok{% endif %}">
-                                    {{ item.saldo_centro }}
-                                </td>
-                                <td class="{% if item.saldo_vila <= 0 %}baixo{% else %}ok{% endif %}">
-                                    {{ item.saldo_vila }}
-                                </td>
-                            </tr>
+    <td>{{ item.codigo_interno }}</td>
+    <td>{{ item.codigo_barras|default:"-" }}</td>
+    <td>{{ item.nome }}</td>
+    <td>{{ item.marca|default:"-" }}</td>
+    <td>{{ item.categoria|default:"-" }}</td>
+    <td class="preco-tabela">R$ {{ item.preco_venda }}</td>
+    <td class="{% if item.saldo_centro <= 0 %}baixo{% else %}ok{% endif %}">
+        {{ item.saldo_centro|floatformat:3 }}
+    </td>
+    <td class="{% if item.saldo_vila <= 0 %}baixo{% else %}ok{% endif %}">
+        {{ item.saldo_vila|floatformat:3 }}
+    </td>
+    <td class="{% if item.saldo_total <= 0 %}baixo{% else %}ok{% endif %}">
+        {{ item.saldo_total|floatformat:3 }}
+    </td>
+</tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -311,7 +320,7 @@
 
             timer = setTimeout(function() {
                 campo.form.submit();
-            }, 400);
+            }, 180);
         });
 
         window.onload = function() {

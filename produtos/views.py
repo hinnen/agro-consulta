@@ -29,23 +29,24 @@ def consulta_produtos(request):
 
                 for estoque in estoques_por_produto.get(str(produto["_id"]), []):
                     deposito = str(estoque.get("Deposito", "")).strip().lower()
-                    saldo = estoque.get("Saldo", 0) or 0
+                    saldo = float(estoque.get("Saldo", 0) or 0)
 
                     if "centro" in deposito:
-                        saldo_centro = saldo
+                        saldo_centro += saldo
                     elif "vila" in deposito:
-                        saldo_vila = saldo
+                        saldo_vila += saldo
 
                 resultados.append({
                     "id": str(produto.get("_id")),
-                    "codigo_interno": produto.get("CodigoNFe") or produto.get("Codigo") or "",
+                    "codigo_interno": produto.get("CodigoNFe") or str(produto.get("Codigo") or ""),
                     "codigo_barras": produto.get("EAN_NFe") or "",
                     "nome": produto.get("Nome") or "",
                     "marca": produto.get("Marca") or "",
                     "categoria": produto.get("Categoria") or "",
-                    "preco_venda": produto.get("PrecoVenda") or 0,
+                    "preco_venda": float(produto.get("PrecoVenda") or 0),
                     "saldo_centro": saldo_centro,
                     "saldo_vila": saldo_vila,
+                    "saldo_total": saldo_centro + saldo_vila,
                 })
 
         except Exception as exc:
