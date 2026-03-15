@@ -37,10 +37,6 @@
             margin-bottom: 18px;
         }
 
-        form {
-            margin: 0;
-        }
-
         .campo-busca {
             width: 100%;
             box-sizing: border-box;
@@ -155,29 +151,29 @@
             color: #111827;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            padding: 12px;
+        .resultado-item {
+            padding: 14px 10px;
             border-bottom: 1px solid #e5e7eb;
-            text-align: left;
-            font-size: 14px;
         }
 
-        th {
-            background: #f9fafb;
-            color: #374151;
+        .resultado-item:last-child {
+            border-bottom: none;
         }
 
-        tr:hover {
-            background: #f9fafb;
+        .resultado-nome {
+            font-size: 22px;
+            font-weight: bold;
+            color: #111827;
+            margin-bottom: 6px;
         }
 
-        .preco-tabela {
-            color: #166534;
+        .resultado-meta {
+            color: #4b5563;
+            margin-bottom: 4px;
+        }
+
+        .resultado-saldos {
+            margin-top: 8px;
             font-weight: bold;
         }
 
@@ -189,6 +185,19 @@
             padding: 18px;
             margin-top: 20px;
         }
+
+        .erro-api {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+            border-radius: 12px;
+            padding: 18px;
+            margin-top: 20px;
+        }
+
+        .oculto {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -196,171 +205,218 @@
         <div class="cabecalho">
             <h1>Consulta Rápida de Produtos</h1>
             <div class="subtitulo">
-                Digite ou bipar código de barras para consultar preço e estoque.
+                Digite nome, código, marca ou bipar código de barras.
             </div>
 
-            <form method="get">
-                <input
-                    type="text"
-                    id="busca"
-                    name="q"
-                    class="campo-busca"
-                    placeholder="Digite nome, código, marca ou bipar código de barras"
-                    value="{{ termo }}"
-                    autofocus
-                >
-            </form>
+            <input
+                type="text"
+                id="busca"
+                class="campo-busca"
+                placeholder="Digite nome, código, marca ou bipar código de barras"
+                autocomplete="off"
+                autofocus
+            >
         </div>
 
-        {% if produto_destaque %}
-            <div class="destaque">
-                <div class="destaque-topo">
-                    <div>
-                        <div class="codigo">
-                            Código: {{ produto_destaque.codigo_interno }} |
-                            Barras: {{ produto_destaque.codigo_barras|default:"-" }}
-                        </div>
+        <div id="erro-api" class="erro-api oculto"></div>
 
-                        <div class="nome-produto">
-                            {{ produto_destaque.nome }}
-                        </div>
-
-                        <div class="meta">
-                            Marca: {{ produto_destaque.marca|default:"-" }}
-                        </div>
-
-                        <div class="meta">
-                            Categoria: {{ produto_destaque.categoria|default:"-" }}
-                        </div>
-                    </div>
-
-                    <div class="preco-box">
-                        Preço de Venda
-                        <span class="preco-valor">R$ {{ produto_destaque.preco_venda }}</span>
-                    </div>
-                </div>
-
-                <div class="estoques">
-                    <div class="estoque-card">
-                        <div class="estoque-loja">Estoque Centro</div>
-                        <div class="estoque-valor {% if produto_destaque.saldo_centro <= 0 %}baixo{% else %}ok{% endif %}">
-                            {{ produto_destaque.saldo_centro }}
-                        </div>
-                    </div>
-
-                    <div class="estoque-card">
-                        <div class="estoque-loja">Estoque Vila Elias</div>
-                        <div class="estoque-valor {% if produto_destaque.saldo_vila <= 0 %}baixo{% else %}ok{% endif %}">
-                            {{ produto_destaque.saldo_vila }}
-                        </div>
-                    </div>
-                    <div class="estoque-card">
-        <div class="estoque-loja">Estoque Total</div>
-        <div class="estoque-valor">
-            {{ produto_destaque.saldo_total|floatformat:3 }}
-        </div>
-                </div>
-            </div>
-        {% endif %}
+        <div id="destaque-container" class="oculto"></div>
 
         <div class="lista">
             <h2>Resultados</h2>
-
-            {% if resultados %}
-                <table>
-                    <thead>
-                        <tr>
-        <th>Código</th>
-        <th>Cód. Barras</th>
-        <th>Produto</th>
-        <th>Marca</th>
-        <th>Categoria</th>
-        <th>Preço</th>
-        <th>Centro</th>
-        <th>Vila Elias</th>
-        <th>Total</th>
-    </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in resultados %}
-                            <tr>
-    <td>{{ item.codigo_interno }}</td>
-    <td>{{ item.codigo_barras|default:"-" }}</td>
-    <td>{{ item.nome }}</td>
-    <td>{{ item.marca|default:"-" }}</td>
-    <td>{{ item.categoria|default:"-" }}</td>
-    <td class="preco-tabela">R$ {{ item.preco_venda }}</td>
-    <td class="{% if item.saldo_centro <= 0 %}baixo{% else %}ok{% endif %}">
-        {{ item.saldo_centro|floatformat:3 }}
-    </td>
-    <td class="{% if item.saldo_vila <= 0 %}baixo{% else %}ok{% endif %}">
-        {{ item.saldo_vila|floatformat:3 }}
-    </td>
-    <td class="{% if item.saldo_total <= 0 %}baixo{% else %}ok{% endif %}">
-        {{ item.saldo_total|floatformat:3 }}
-    </td>
-</tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <div class="sem-resultados">
-                    Nenhum produto encontrado.
-                </div>
-            {% endif %}
+            <div id="resultados"></div>
         </div>
     </div>
 
     <script>
-    let timer;
-    let ultimoValorEnviado = "{{ termo|escapejs }}";
-    const campo = document.getElementById('busca');
+        let timer = null;
 
-    campo.addEventListener('keyup', function(event) {
-        clearTimeout(timer);
+        const campo = document.getElementById("busca");
+        const resultados = document.getElementById("resultados");
+        const destaqueContainer = document.getElementById("destaque-container");
+        const erroApi = document.getElementById("erro-api");
 
-        const valorAtual = campo.value.trim();
-
-        // Enter pesquisa na hora
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            if (valorAtual !== ultimoValorEnviado) {
-                ultimoValorEnviado = valorAtual;
-                campo.form.submit();
-            }
-            return;
+        function formatarNumero(valor) {
+            const numero = Number(valor || 0);
+            return numero.toLocaleString("pt-BR", {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 3
+            });
         }
 
-        // ESC limpa o campo
-        if (event.key === 'Escape') {
-            campo.value = '';
-            return;
+        function formatarPreco(valor) {
+            const numero = Number(valor || 0);
+            return numero.toLocaleString("pt-BR", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
         }
 
-        // não pesquisar com texto muito curto
-        if (valorAtual.length < 2) {
-            return;
+        function montarDestaque(produto) {
+            destaqueContainer.classList.remove("oculto");
+
+            destaqueContainer.innerHTML = `
+                <div class="destaque">
+                    <div class="destaque-topo">
+                        <div>
+                            <div class="codigo">
+                                Código: ${produto.codigo_interno || "-"} |
+                                Barras: ${produto.codigo_barras || "-"}
+                            </div>
+
+                            <div class="nome-produto">
+                                ${produto.nome || ""}
+                            </div>
+
+                            <div class="meta">
+                                Marca: ${produto.marca || "-"}
+                            </div>
+
+                            <div class="meta">
+                                Categoria: ${produto.categoria || "-"}
+                            </div>
+                        </div>
+
+                        <div class="preco-box">
+                            Preço de Venda
+                            <span class="preco-valor">R$ ${formatarPreco(produto.preco_venda)}</span>
+                        </div>
+                    </div>
+
+                    <div class="estoques">
+                        <div class="estoque-card">
+                            <div class="estoque-loja">Estoque Centro</div>
+                            <div class="estoque-valor ${Number(produto.saldo_centro) <= 0 ? "baixo" : "ok"}">
+                                ${formatarNumero(produto.saldo_centro)}
+                            </div>
+                        </div>
+
+                        <div class="estoque-card">
+                            <div class="estoque-loja">Estoque Vila Elias</div>
+                            <div class="estoque-valor ${Number(produto.saldo_vila) <= 0 ? "baixo" : "ok"}">
+                                ${formatarNumero(produto.saldo_vila)}
+                            </div>
+                        </div>
+
+                        <div class="estoque-card">
+                            <div class="estoque-loja">Estoque Total</div>
+                            <div class="estoque-valor ${(Number(produto.saldo_centro) + Number(produto.saldo_vila)) <= 0 ? "baixo" : "ok"}">
+                                ${formatarNumero((Number(produto.saldo_centro) || 0) + (Number(produto.saldo_vila) || 0))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
-        timer = setTimeout(function() {
-            const valorParaEnviar = campo.value.trim();
+        function esconderDestaque() {
+            destaqueContainer.classList.add("oculto");
+            destaqueContainer.innerHTML = "";
+        }
 
-            if (valorParaEnviar.length < 2) {
+        function mostrarErro(texto) {
+            erroApi.classList.remove("oculto");
+            erroApi.textContent = texto;
+        }
+
+        function esconderErro() {
+            erroApi.classList.add("oculto");
+            erroApi.textContent = "";
+        }
+
+        function montarResultados(lista) {
+            resultados.innerHTML = "";
+
+            if (!lista.length) {
+                esconderDestaque();
+                resultados.innerHTML = `<div class="sem-resultados">Nenhum produto encontrado.</div>`;
                 return;
             }
 
-            if (valorParaEnviar === ultimoValorEnviado) {
+            if (lista.length === 1) {
+                montarDestaque(lista[0]);
+            } else {
+                esconderDestaque();
+            }
+
+            lista.forEach(p => {
+                const total = (Number(p.saldo_centro) || 0) + (Number(p.saldo_vila) || 0);
+
+                const item = document.createElement("div");
+                item.className = "resultado-item";
+
+                item.innerHTML = `
+                    <div class="resultado-nome">${p.nome || ""}</div>
+                    <div class="resultado-meta">Código: ${p.codigo_interno || "-"} | Barras: ${p.codigo_barras || "-"}</div>
+                    <div class="resultado-meta">Marca: ${p.marca || "-"} | Categoria: ${p.categoria || "-"}</div>
+                    <div class="resultado-meta">Preço: <strong>R$ ${formatarPreco(p.preco_venda)}</strong></div>
+                    <div class="resultado-saldos">
+                        <span class="${Number(p.saldo_centro) <= 0 ? "baixo" : "ok"}">Centro: ${formatarNumero(p.saldo_centro)}</span>
+                        &nbsp; | &nbsp;
+                        <span class="${Number(p.saldo_vila) <= 0 ? "baixo" : "ok"}">Vila Elias: ${formatarNumero(p.saldo_vila)}</span>
+                        &nbsp; | &nbsp;
+                        <span class="${total <= 0 ? "baixo" : "ok"}">Total: ${formatarNumero(total)}</span>
+                    </div>
+                `;
+
+                resultados.appendChild(item);
+            });
+        }
+
+        campo.addEventListener("keyup", function(event) {
+            clearTimeout(timer);
+
+            const termo = campo.value.trim();
+
+            if (event.key === "Escape") {
+                campo.value = "";
+                resultados.innerHTML = "";
+                esconderDestaque();
+                esconderErro();
                 return;
             }
 
-            ultimoValorEnviado = valorParaEnviar;
-            campo.form.submit();
-        }, 800);
-    });
+            if (event.key === "Enter") {
+                buscarAgora();
+                return;
+            }
 
-    window.onload = function() {
-        const campo = document.getElementById('busca');
-        campo.focus();
-        campo.setSelectionRange(campo.value.length, campo.value.length);
-    };
-</script>
+            if (termo.length < 2) {
+                resultados.innerHTML = "";
+                esconderDestaque();
+                esconderErro();
+                return;
+            }
+
+            timer = setTimeout(() => {
+                buscarAgora();
+            }, 800);
+        });
+
+        function buscarAgora() {
+            const termo = campo.value.trim();
+
+            if (termo.length < 2) {
+                resultados.innerHTML = "";
+                esconderDestaque();
+                esconderErro();
+                return;
+            }
+
+            fetch(`/produtos/api/buscar/?q=${encodeURIComponent(termo)}`)
+                .then(response => response.json())
+                .then(data => {
+                    esconderErro();
+                    montarResultados(data.produtos || []);
+                })
+                .catch(() => {
+                    mostrarErro("Erro ao buscar produtos.");
+                });
+        }
+
+        window.onload = function() {
+            campo.focus();
+        };
+    </script>
+</body>
+</html>

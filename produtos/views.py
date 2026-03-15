@@ -1,7 +1,58 @@
 from django.shortcuts import render
 
 from integracoes.venda_erp_mongo import VendaERPMongoClient
+from django.http import JsonResponse
+from integracoes.venda_erp_mongo import VendaERPMongoClient
 
+
+def api_buscar_produtos(request):
+    termo = request.GET.get("q", "").strip()
+
+    if not termo:
+        return JsonResponse({"produtos": []})
+
+    client = VendaERPMongoClient()
+
+    produtos = client.buscar_produtos(termo)
+
+    produto_ids = [p["_id"] for p in produtos]
+    estoques = client.buscar_estoques_por_produto_ids(produto_ids)
+
+    estoques_por_produto = {}
+
+    for estoque in estoques:
+        pid = str(estoque.get("ProdutoID"))
+
+        if pid not in estoques_por_produto:
+            estoques_por_produto[pid] = []
+
+        estoques_por_produto[pid].append(estoque)
+
+    resultados = []
+
+    for produto in produtos:
+        saldo_centro = 0
+        saldo_vila = 0
+
+        for estoque in estoques_por_produto.get(str(produto["_id"]), []):
+            deposito = str(estoque.get("Deposito", "")).lower()
+            saldo = estoque.get("Saldo", 0) or 0
+
+            if "centro" in deposito:
+                saldo_centro = saldo
+            elif "vila" in deposito:
+                saldo_vila = saldo
+
+        resultados.append({
+            "id": str(produto["_id"]),
+            "nome": produto.get("Nome") or "",
+            "marca": produto.get("Marca") or "",
+            "preco": produto.get("PrecoVenda") or 0,
+            "saldo_centro": saldo_centro,
+            "saldo_vila": saldo_vila,
+        })
+
+    return JsonResponse({"produtos": resultados})
 
 def consulta_produtos(request):
     termo = request.GET.get('q', '').strip()
