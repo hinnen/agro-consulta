@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Produtos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f4f6;
+            margin: 0;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .cabecalho {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0 0 8px 0;
+            color: #111827;
+            font-size: 32px;
+        }
+
+        .subtitulo {
+            color: #6b7280;
+            font-size: 15px;
+            margin-bottom: 18px;
+        }
+
+        form {
+            margin: 0;
+        }
+
+        .campo-busca {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 18px 20px;
+            font-size: 24px;
+            border: 2px solid #d1d5db;
+            border-radius: 12px;
+            outline: none;
+        }
+
+        .campo-busca:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10);
+        }
+
+        .destaque {
+            background: #ffffff;
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            border-left: 8px solid #f97316;
+        }
+
+        .destaque-topo {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .codigo {
+            color: #6b7280;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        .nome-produto {
+            font-size: 38px;
+            font-weight: bold;
+            color: #111827;
+            margin-bottom: 8px;
+        }
+
+        .meta {
+            color: #4b5563;
+            font-size: 18px;
+            margin-bottom: 6px;
+        }
+
+        .preco-box {
+            background: #ecfdf5;
+            color: #166534;
+            padding: 16px 22px;
+            border-radius: 14px;
+            font-size: 18px;
+            font-weight: bold;
+            min-width: 220px;
+            text-align: center;
+            border: 2px solid #bbf7d0;
+        }
+
+        .preco-valor {
+            display: block;
+            font-size: 42px;
+            margin-top: 6px;
+        }
+
+        .estoques {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 22px;
+        }
+
+        .estoque-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 18px;
+        }
+
+        .estoque-loja {
+            font-size: 16px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .estoque-valor {
+            font-size: 34px;
+            font-weight: bold;
+        }
+
+        .baixo {
+            color: #b91c1c;
+        }
+
+        .ok {
+            color: #166534;
+        }
+
+        .lista {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .lista h2 {
+            margin-top: 0;
+            color: #111827;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f9fafb;
+            color: #374151;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .preco-tabela {
+            color: #166534;
+            font-weight: bold;
+        }
+
+        .sem-resultados {
+            background: #fff7ed;
+            color: #9a3412;
+            border: 1px solid #fdba74;
+            border-radius: 12px;
+            padding: 18px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="cabecalho">
+            <h1>Consulta Rápida de Produtos</h1>
+            <div class="subtitulo">
+                Digite ou bipar código de barras para consultar preço e estoque.
+            </div>
+
+            <form method="get">
+                <input
+                    type="text"
+                    id="busca"
+                    name="q"
+                    class="campo-busca"
+                    placeholder="Digite nome, código, marca ou bipar código de barras"
+                    value="{{ termo }}"
+                    autofocus
+                >
+            </form>
+        </div>
+
+        {% if produto_destaque %}
+            <div class="destaque">
+                <div class="destaque-topo">
+                    <div>
+                        <div class="codigo">
+                            Código: {{ produto_destaque.codigo_interno }} |
+                            Barras: {{ produto_destaque.codigo_barras|default:"-" }}
+                        </div>
+
+                        <div class="nome-produto">
+                            {{ produto_destaque.nome }}
+                        </div>
+
+                        <div class="meta">
+                            Marca: {{ produto_destaque.marca|default:"-" }}
+                        </div>
+
+                        <div class="meta">
+                            Categoria: {{ produto_destaque.categoria|default:"-" }}
+                        </div>
+                    </div>
+
+                    <div class="preco-box">
+                        Preço de Venda
+                        <span class="preco-valor">R$ {{ produto_destaque.preco_venda }}</span>
+                    </div>
+                </div>
+
+                <div class="estoques">
+                    <div class="estoque-card">
+                        <div class="estoque-loja">Estoque Centro</div>
+                        <div class="estoque-valor {% if produto_destaque.saldo_centro <= 0 %}baixo{% else %}ok{% endif %}">
+                            {{ produto_destaque.saldo_centro }}
+                        </div>
+                    </div>
+
+                    <div class="estoque-card">
+                        <div class="estoque-loja">Estoque Vila Elias</div>
+                        <div class="estoque-valor {% if produto_destaque.saldo_vila <= 0 %}baixo{% else %}ok{% endif %}">
+                            {{ produto_destaque.saldo_vila }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="lista">
+            <h2>Resultados</h2>
+
+            {% if resultados %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Cód. Barras</th>
+                            <th>Produto</th>
+                            <th>Marca</th>
+                            <th>Categoria</th>
+                            <th>Preço</th>
+                            <th>Centro</th>
+                            <th>Vila Elias</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in resultados %}
+                            <tr>
+                                <td>{{ item.codigo_interno }}</td>
+                                <td>{{ item.codigo_barras|default:"-" }}</td>
+                                <td>{{ item.nome }}</td>
+                                <td>{{ item.marca|default:"-" }}</td>
+                                <td>{{ item.categoria|default:"-" }}</td>
+                                <td class="preco-tabela">R$ {{ item.preco_venda }}</td>
+                                <td class="{% if item.saldo_centro <= 0 %}baixo{% else %}ok{% endif %}">
+                                    {{ item.saldo_centro }}
+                                </td>
+                                <td class="{% if item.saldo_vila <= 0 %}baixo{% else %}ok{% endif %}">
+                                    {{ item.saldo_vila }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="sem-resultados">
+                    Nenhum produto encontrado.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        let timer;
+        const campo = document.getElementById('busca');
+
+        campo.addEventListener('keyup', function() {
+            clearTimeout(timer);
+
+            timer = setTimeout(function() {
+                campo.form.submit();
+            }, 400);
+        });
+
+        window.onload = function() {
+            const campo = document.getElementById('busca');
+            campo.focus();
+            campo.setSelectionRange(campo.value.length, campo.value.length);
+        };
+    </script>
+</body>
+</html>
