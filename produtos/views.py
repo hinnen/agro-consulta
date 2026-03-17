@@ -81,14 +81,17 @@ def api_buscar_produtos(request):
                 ajuste_centro = ajustes.get((produto_id, 'centro'))
                 ajuste_vila = ajustes.get((produto_id, 'vila'))
 
-                saldo_centro = saldo_centro_erp
-                saldo_vila = saldo_vila_erp
+                diferenca_centro = Decimal('0')
+                diferenca_vila = Decimal('0')
 
                 if ajuste_centro:
-                    saldo_centro = saldo_centro_erp + ajuste_centro.diferenca_saldo
+                    diferenca_centro = ajuste_centro.diferenca_saldo
 
                 if ajuste_vila:
-                    saldo_vila = saldo_vila_erp + ajuste_vila.diferenca_saldo
+                    diferenca_vila = ajuste_vila.diferenca_saldo
+
+                saldo_centro = saldo_centro_erp + diferenca_centro
+                saldo_vila = saldo_vila_erp + diferenca_vila
 
                 produtos_json.append({
                     "id": produto_id,
@@ -103,6 +106,8 @@ def api_buscar_produtos(request):
                     "saldo_total": float(saldo_centro + saldo_vila),
                     "saldo_centro_erp": float(saldo_centro_erp),
                     "saldo_vila_erp": float(saldo_vila_erp),
+                    "diferenca_centro": float(diferenca_centro),
+                    "diferenca_vila": float(diferenca_vila),
                 })
 
         except Exception as exc:

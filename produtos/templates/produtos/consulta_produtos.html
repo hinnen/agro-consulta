@@ -125,6 +125,12 @@
             font-size: 14px;
         }
 
+        .resultado-detalhe-ajuste {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #4b5563;
+        }
+
         .saldo-label {
             font-weight: 700;
         }
@@ -136,6 +142,11 @@
 
         .baixo {
             color: #b91c1c;
+            font-weight: 700;
+        }
+
+        .neutro {
+            color: #374151;
             font-weight: 700;
         }
 
@@ -243,6 +254,14 @@
             });
         }
 
+        function formatarDiferenca(valor) {
+            const numero = Number(valor || 0);
+            if (numero > 0) {
+                return "+" + formatarNumero(numero);
+            }
+            return formatarNumero(numero);
+        }
+
         function escaparHtml(texto) {
             return String(texto || "")
                 .replace(/&/g, "&amp;")
@@ -273,13 +292,13 @@
             }, 4000);
         }
 
-        async function ajustarSaldo(produtoId, codigoInterno, nomeProduto, deposito, saldoAtual) {
+        async function ajustarSaldo(produtoId, codigoInterno, nomeProduto, deposito, saldoErp) {
             const novoSaldo = prompt(
                 "Ajuste rápido\n\n" +
                 "Produto: " + nomeProduto + "\n" +
                 "Depósito: " + deposito + "\n" +
-                "Saldo atual: " + formatarNumero(saldoAtual) + "\n\n" +
-                "Digite o NOVO saldo:"
+                "Saldo ERP atual: " + formatarNumero(saldoErp) + "\n\n" +
+                "Digite o NOVO saldo desejado:"
             );
 
             if (novoSaldo === null || novoSaldo.trim() === "") {
@@ -293,7 +312,7 @@
             formData.append("codigo_interno", codigoInterno || "");
             formData.append("nome_produto", nomeProduto || "");
             formData.append("deposito", deposito);
-            formData.append("saldo_atual", String(saldoAtual ?? 0));
+            formData.append("saldo_atual", String(saldoErp ?? 0));
             formData.append("novo_saldo", novoSaldo);
             formData.append("observacao", observacao);
 
@@ -306,7 +325,14 @@
                     body: formData
                 });
 
-                const dados = await resposta.json();
+                const texto = await resposta.text();
+                let dados;
+
+                try {
+                    dados = JSON.parse(texto);
+                } catch (e) {
+                    throw new Error("O servidor retornou uma página de erro em vez de JSON.");
+                }
 
                 if (!resposta.ok || !dados.ok) {
                     throw new Error(dados.erro || "Não foi possível salvar o ajuste.");
@@ -331,6 +357,12 @@
                 const saldoCentro = Number(p.saldo_centro || 0);
                 const saldoVila = Number(p.saldo_vila || 0);
                 const total = Number(p.saldo_total ?? (saldoCentro + saldoVila));
+
+                const saldoCentroErp = Number(p.saldo_centro_erp || 0);
+                const saldoVilaErp = Number(p.saldo_vila_erp || 0);
+
+                const diferencaCentro = Number(p.diferenca_centro || 0);
+                const diferencaVila = Number(p.diferenca_vila || 0);
 
                 const nomeSeguroHtml = escaparHtml(p.nome || "");
                 const nomeSeguroJs = escaparJs(p.nome || "");
@@ -360,7 +392,7 @@
                             </span>
                             <button
                                 class="botao-ajuste"
-                                onclick="ajustarSaldo('${escaparJs(p.id)}', '${codigoInternoJs}', '${nomeSeguroJs}', 'centro', ${saldoCentro})"
+                                onclick="ajustarSaldo('${escaparJs(p.id)}', '${codigoInternoJs}', '${nomeSeguroJs}', 'centro', ${saldoCentroErp})"
                             >
                                 Ajustar
                             </button>
@@ -372,7 +404,7 @@
                             </span>
                             <button
                                 class="botao-ajuste"
-                                onclick="ajustarSaldo('${escaparJs(p.id)}', '${codigoInternoJs}', '${nomeSeguroJs}', 'vila', ${saldoVila})"
+                                onclick="ajustarSaldo('${escaparJs(p.id)}', '${codigoInternoJs}', '${nomeSeguroJs}', 'vila', ${saldoVilaErp})"
                             >
                                 Ajustar
                             </button>
@@ -382,6 +414,16 @@
                             <span class="${total <= 0 ? "baixo" : "ok"}">
                                 <span class="saldo-label">Total:</span> ${formatarNumero(total)}
                             </span>
+                        </div>
+
+                        <div class="resultado-detalhe-ajuste">
+                            Centro ERP: <span class="neutro">${formatarNumero(saldoCentroErp)}</span>
+                            <span class="separador">|</span>
+                            Ajuste Centro: <span class="neutro">${formatarDiferenca(diferencaCentro)}</span>
+                            <span class="separador">|</span>
+                            Vila ERP: <span class="neutro">${formatarNumero(saldoVilaErp)}</span>
+                            <span class="separador">|</span>
+                            Ajuste Vila: <span class="neutro">${formatarDiferenca(diferencaVila)}</span>
                         </div>
                     </div>
                 `;
