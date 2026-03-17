@@ -30,17 +30,7 @@
             margin-bottom: 24px;
         }
 
-        h1 {
-            margin: 0 0 10px 0;
-            font-size: 28px;
-            line-height: 1.2;
-        }
-
-        .subtitulo {
-            margin: 0 0 18px 0;
-            color: #6b7280;
-            font-size: 16px;
-        }
+        h1 { margin: 0 0 10px; font-size: 28px; }
 
         .campo-busca {
             width: 100%;
@@ -49,426 +39,154 @@
             font-size: 24px;
             border: 3px solid #2563eb;
             border-radius: 18px;
-            outline: none;
-            background: #fff;
         }
 
-        .campo-busca:focus {
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
-        }
+        .resultado-item { border-bottom: 1px solid #e5e7eb; padding: 14px 0; }
 
-        h2 {
-            margin: 0 0 22px 0;
-            font-size: 24px;
-        }
-
-        .mensagem {
-            font-size: 16px;
-            color: #6b7280;
-        }
-
-        .erro {
-            color: #b91c1c;
-            background: #fef2f2;
-            border: 1px solid #fecaca;
-            border-radius: 12px;
-            padding: 12px 14px;
-            margin-bottom: 16px;
-        }
-
-        .sucesso {
-            color: #166534;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 12px;
-            padding: 12px 14px;
-            margin-bottom: 16px;
-        }
-
-        .resultado-item {
-            padding: 14px 0 18px 0;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .resultado-item:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-
-        .resultado-nome {
-            margin: 0 0 8px 0;
-            font-size: 22px;
-            line-height: 1.25;
-        }
-
-        .resultado-info {
-            margin: 3px 0;
-            color: #4b5563;
-            font-size: 14px;
-        }
-
-        .resultado-preco {
-            margin-top: 8px;
-            font-size: 18px;
-        }
-
-        .resultado-preco strong {
-            color: #1f2937;
-        }
-
-        .resultado-saldos {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 12px;
-            font-size: 14px;
-        }
-
-        .resultado-detalhe-ajuste {
-            margin-top: 8px;
-            font-size: 13px;
-            color: #4b5563;
-        }
-
-        .saldo-label {
-            font-weight: 700;
-        }
-
-        .ok {
-            color: #166534;
-            font-weight: 700;
-        }
-
-        .baixo {
-            color: #b91c1c;
-            font-weight: 700;
-        }
-
-        .neutro {
-            color: #374151;
-            font-weight: 700;
-        }
-
-        .separador {
-            color: #6b7280;
-            margin: 0 4px;
-        }
+        .ok { color: #166534; font-weight: bold; }
+        .baixo { color: #b91c1c; font-weight: bold; }
 
         .botao-ajuste {
-            border: 1px solid #d1d5db;
-            background: #ffffff;
-            color: #374151;
-            border-radius: 10px;
-            padding: 6px 10px;
-            font-size: 13px;
-            font-weight: 700;
+            margin-left: 6px;
+            padding: 5px 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
             cursor: pointer;
-            transition: 0.15s;
         }
 
-        .botao-ajuste:hover {
-            background: #f3f4f6;
-            border-color: #9ca3af;
-        }
-
-        .loading {
-            color: #2563eb;
-            font-weight: 700;
-        }
-
-        @media (max-width: 768px) {
-            body { padding: 14px; }
-            .box { padding: 18px; border-radius: 16px; }
-            h1 { font-size: 22px; }
-            h2 { font-size: 22px; }
-            .campo-busca {
-                height: 58px;
-                font-size: 20px;
-                padding: 0 16px;
-            }
-            .resultado-nome { font-size: 18px; }
-            .resultado-saldos { gap: 6px; }
+        .destaque {
+            background: #f9fafb;
+            border: 2px solid #dbeafe;
+            border-radius: 18px;
+            padding: 24px;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="box">
-            <h1>Consulta Rápida de Produtos</h1>
-            <p class="subtitulo">Digite nome, código, marca ou bipar código de barras.</p>
-            <input
-                type="text"
-                id="busca"
-                class="campo-busca"
-                placeholder="Digite para buscar..."
-                autocomplete="off"
-                autofocus
-            />
-        </div>
 
-        <div class="box">
-            <h2>Resultados</h2>
-            <div id="mensagem-status"></div>
-            <div id="erro-api"></div>
-            <div id="resultados" class="mensagem">Digite algo para pesquisar.</div>
-        </div>
+<body>
+<div class="container">
+
+    <div class="box">
+        <h1>Consulta Rápida de Produtos</h1>
+        <input id="busca" class="campo-busca" placeholder="Digite para buscar..." autofocus />
     </div>
 
-    <script>
-        const campoBusca = document.getElementById("busca");
-        const resultadosEl = document.getElementById("resultados");
-        const erroApiEl = document.getElementById("erro-api");
-        const mensagemStatusEl = document.getElementById("mensagem-status");
+    <div class="box">
+        <div id="resultados">Digite algo para pesquisar.</div>
+    </div>
 
-        let timerBusca = null;
+</div>
 
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== "") {
-                const cookies = document.cookie.split(";");
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + "=")) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
+<script>
+const campoBusca = document.getElementById("busca");
+const resultadosEl = document.getElementById("resultados");
+
+function getCookie(name) {
+    let v = null;
+    document.cookie.split(";").forEach(c => {
+        c = c.trim();
+        if (c.startsWith(name + "=")) {
+            v = decodeURIComponent(c.substring(name.length + 1));
         }
+    });
+    return v;
+}
 
-        function formatarMoeda(valor) {
-            const numero = Number(valor || 0);
-            return numero.toLocaleString("pt-BR", {
-                style: "currency",
-                currency: "BRL"
-            });
-        }
+function fnum(v){ return Number(v||0).toLocaleString("pt-BR"); }
+function fmoeda(v){ return Number(v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
 
-        function formatarNumero(valor) {
-            const numero = Number(valor || 0);
-            return numero.toLocaleString("pt-BR", {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 3
-            });
-        }
+async function ajustarSaldo(id, codigo, nome, deposito, saldoErp){
+    const novo = prompt(`Novo saldo para ${nome}\n(ERP atual: ${fnum(saldoErp)})`);
+    if(!novo) return;
 
-        function formatarDiferenca(valor) {
-            const numero = Number(valor || 0);
-            if (numero > 0) {
-                return "+" + formatarNumero(numero);
-            }
-            return formatarNumero(numero);
-        }
+    const fd = new FormData();
+    fd.append("produto_id", id);
+    fd.append("codigo_interno", codigo);
+    fd.append("nome_produto", nome);
+    fd.append("deposito", deposito);
+    fd.append("saldo_atual", saldoErp);
+    fd.append("novo_saldo", novo);
 
-        function escaparHtml(texto) {
-            return String(texto || "")
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#39;");
-        }
+    const r = await fetch("/produtos/api/ajustar-estoque/", {
+        method:"POST",
+        headers:{ "X-CSRFToken": getCookie("csrftoken") },
+        body: fd
+    });
 
-        function escaparJs(texto) {
-            return String(texto || "")
-                .replace(/\\/g, "\\\\")
-                .replace(/'/g, "\\'")
-                .replace(/"/g, '\\"');
-        }
+    buscarProdutos(campoBusca.value);
+}
 
-        function mostrarSucesso(texto) {
-            mensagemStatusEl.innerHTML = `<div class="sucesso">${escaparHtml(texto)}</div>`;
-            setTimeout(() => {
-                mensagemStatusEl.innerHTML = "";
-            }, 3000);
-        }
+function montarResultados(produtos){
 
-        function mostrarErro(texto) {
-            mensagemStatusEl.innerHTML = `<div class="erro">${escaparHtml(texto)}</div>`;
-            setTimeout(() => {
-                mensagemStatusEl.innerHTML = "";
-            }, 4000);
-        }
+    if(!produtos.length){
+        resultadosEl.innerHTML = "Nenhum produto encontrado";
+        return;
+    }
 
-        async function ajustarSaldo(produtoId, codigoInterno, nomeProduto, deposito, saldoErp) {
-            const novoSaldo = prompt(
-                "Ajuste rápido\n\n" +
-                "Produto: " + nomeProduto + "\n" +
-                "Depósito: " + deposito + "\n" +
-                "Saldo ERP atual: " + formatarNumero(saldoErp) + "\n\n" +
-                "Digite o NOVO saldo desejado:"
-            );
+    // ⭐ DESTAQUE 1 PRODUTO
+    if(produtos.length === 1){
+        const p = produtos[0];
 
-            if (novoSaldo === null || novoSaldo.trim() === "") {
-                return;
-            }
+        resultadosEl.innerHTML = `
+        <div class="destaque">
+            <h2 style="font-size:32px;">${p.nome}</h2>
+            <p>Preço: <b>${fmoeda(p.preco_venda)}</b></p>
 
-            const observacao = prompt("Observação do ajuste (opcional):") || "";
+            <p>
+                Centro: <b>${fnum(p.saldo_centro)}</b>
+                <button class="botao-ajuste" onclick="ajustarSaldo('${p.id}','${p.codigo_interno}','${p.nome}','centro',${p.saldo_centro_erp})">Ajustar</button>
+            </p>
 
-            const formData = new FormData();
-            formData.append("produto_id", produtoId);
-            formData.append("codigo_interno", codigoInterno || "");
-            formData.append("nome_produto", nomeProduto || "");
-            formData.append("deposito", deposito);
-            formData.append("saldo_atual", String(saldoErp ?? 0));
-            formData.append("novo_saldo", novoSaldo);
-            formData.append("observacao", observacao);
+            <p>
+                Vila: <b>${fnum(p.saldo_vila)}</b>
+                <button class="botao-ajuste" onclick="ajustarSaldo('${p.id}','${p.codigo_interno}','${p.nome}','vila',${p.saldo_vila_erp})">Ajustar</button>
+            </p>
 
-            try {
-                const resposta = await fetch("/produtos/api/ajustar-estoque/", {
-                    method: "POST",
-                    headers: {
-                        "X-CSRFToken": getCookie("csrftoken")
-                    },
-                    body: formData
-                });
+            <p><b>Total: ${fnum(p.saldo_total)}</b></p>
 
-                const texto = await resposta.text();
-                let dados;
+            <p style="font-size:14px;">
+                ERP Centro: ${fnum(p.saldo_centro_erp)} |
+                Ajuste: ${fnum(p.diferenca_centro)}
+            </p>
+        </div>`;
+        return;
+    }
 
-                try {
-                    dados = JSON.parse(texto);
-                } catch (e) {
-                    throw new Error("O servidor retornou uma página de erro em vez de JSON.");
-                }
+    // lista normal
+    let html = "";
 
-                if (!resposta.ok || !dados.ok) {
-                    throw new Error(dados.erro || "Não foi possível salvar o ajuste.");
-                }
+    produtos.forEach(p=>{
+        html += `
+        <div class="resultado-item">
+            <b>${p.nome}</b><br>
+            Preço: ${fmoeda(p.preco_venda)}<br>
 
-                mostrarSucesso("Ajuste salvo com sucesso.");
-                buscarProdutos(campoBusca.value);
-            } catch (erro) {
-                mostrarErro(erro.message || "Erro ao salvar ajuste.");
-            }
-        }
+            Centro: ${fnum(p.saldo_centro)}
+            <button class="botao-ajuste" onclick="ajustarSaldo('${p.id}','${p.codigo_interno}','${p.nome}','centro',${p.saldo_centro_erp})">Ajustar</button>
 
-        function montarResultados(produtos) {
-            if (!produtos || produtos.length === 0) {
-                resultadosEl.innerHTML = '<div class="mensagem">Nenhum produto encontrado.</div>';
-                return;
-            }
+            | Vila: ${fnum(p.saldo_vila)}
+            <button class="botao-ajuste" onclick="ajustarSaldo('${p.id}','${p.codigo_interno}','${p.nome}','vila',${p.saldo_vila_erp})">Ajustar</button>
 
-            let html = "";
+            | Total: ${fnum(p.saldo_total)}
+        </div>`;
+    });
 
-            produtos.forEach((p) => {
-                const saldoCentro = Number(p.saldo_centro || 0);
-                const saldoVila = Number(p.saldo_vila || 0);
-                const total = Number(p.saldo_total ?? (saldoCentro + saldoVila));
+    resultadosEl.innerHTML = html;
+}
 
-                const saldoCentroErp = Number(p.saldo_centro_erp || 0);
-                const saldoVilaErp = Number(p.saldo_vila_erp || 0);
+async function buscarProdutos(q){
+    if(!q){ resultadosEl.innerHTML="Digite algo"; return; }
 
-                const diferencaCentro = Number(p.diferenca_centro || 0);
-                const diferencaVila = Number(p.diferenca_vila || 0);
+    const r = await fetch(`/produtos/api/buscar/?q=${encodeURIComponent(q)}`);
+    const d = await r.json();
+    montarResultados(d.produtos||[]);
+}
 
-                const nomeSeguroHtml = escaparHtml(p.nome || "");
-                const nomeSeguroJs = escaparJs(p.nome || "");
-                const codigoInternoJs = escaparJs(p.codigo_interno || "");
+campoBusca.addEventListener("input",()=>{
+    clearTimeout(window.t);
+    window.t = setTimeout(()=>buscarProdutos(campoBusca.value),200);
+});
+</script>
 
-                html += `
-                    <div class="resultado-item">
-                        <h3 class="resultado-nome">${nomeSeguroHtml}</h3>
-
-                        <p class="resultado-info">
-                            Código: ${escaparHtml(p.codigo_interno || "-")} |
-                            Barras: ${escaparHtml(p.codigo_barras || "-")}
-                        </p>
-
-                        <p class="resultado-info">
-                            Marca: ${escaparHtml(p.marca || "-")} |
-                            Categoria: ${escaparHtml(p.categoria || "-")}
-                        </p>
-
-                        <p class="resultado-preco">
-                            Preço: <strong>${formatarMoeda(p.preco_venda)}</strong>
-                        </p>
-
-                        <div class="resultado-saldos">
-                            <span class="${saldoCentro <= 0 ? "baixo" : "ok"}">
-                                <span class="saldo-label">Centro:</span> ${formatarNumero(saldoCentro)}
-                            </span>
-                            <button
-                                class="botao-ajuste"
-                                onclick="ajustarSaldo('${escaparJs(p.id)}', '${codigoInternoJs}', '${nomeSeguroJs}', 'centro', ${saldoCentroErp})"
-                            >
-                                Ajustar
-                            </button>
-
-                            <span class="separador">|</span>
-
-                            <span class="${saldoVila <= 0 ? "baixo" : "ok"}">
-                                <span class="saldo-label">Vila Elias:</span> ${formatarNumero(saldoVila)}
-                            </span>
-                            <button
-                                class="botao-ajuste"
-                                onclick="ajustarSaldo('${escaparJs(p.id)}', '${codigoInternoJs}', '${nomeSeguroJs}', 'vila', ${saldoVilaErp})"
-                            >
-                                Ajustar
-                            </button>
-
-                            <span class="separador">|</span>
-
-                            <span class="${total <= 0 ? "baixo" : "ok"}">
-                                <span class="saldo-label">Total:</span> ${formatarNumero(total)}
-                            </span>
-                        </div>
-
-                        <div class="resultado-detalhe-ajuste">
-                            Centro ERP: <span class="neutro">${formatarNumero(saldoCentroErp)}</span>
-                            <span class="separador">|</span>
-                            Ajuste Centro: <span class="neutro">${formatarDiferenca(diferencaCentro)}</span>
-                            <span class="separador">|</span>
-                            Vila ERP: <span class="neutro">${formatarNumero(saldoVilaErp)}</span>
-                            <span class="separador">|</span>
-                            Ajuste Vila: <span class="neutro">${formatarDiferenca(diferencaVila)}</span>
-                        </div>
-                    </div>
-                `;
-            });
-
-            resultadosEl.innerHTML = html;
-        }
-
-        async function buscarProdutos(termo) {
-            const busca = termo.trim();
-
-            if (!busca) {
-                erroApiEl.innerHTML = "";
-                resultadosEl.innerHTML = '<div class="mensagem">Digite algo para pesquisar.</div>';
-                return;
-            }
-
-            resultadosEl.innerHTML = '<div class="loading">Buscando...</div>';
-            erroApiEl.innerHTML = "";
-
-            try {
-                const resposta = await fetch(`/produtos/api/buscar/?q=${encodeURIComponent(busca)}`);
-                const dados = await resposta.json();
-
-                if (dados.erro_api) {
-                    erroApiEl.innerHTML = `<div class="erro">${escaparHtml(dados.erro_api)}</div>`;
-                } else {
-                    erroApiEl.innerHTML = "";
-                }
-
-                montarResultados(dados.produtos || []);
-            } catch (erro) {
-                erroApiEl.innerHTML = '<div class="erro">Erro ao buscar produtos. Tente novamente.</div>';
-                resultadosEl.innerHTML = '<div class="mensagem">Não foi possível carregar os resultados.</div>';
-            }
-        }
-
-        campoBusca.addEventListener("input", function () {
-            clearTimeout(timerBusca);
-            const valor = this.value;
-
-            timerBusca = setTimeout(() => {
-                buscarProdutos(valor);
-            }, 250);
-        });
-    </script>
 </body>
 </html>
