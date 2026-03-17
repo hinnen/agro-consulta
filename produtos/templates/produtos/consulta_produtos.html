@@ -7,215 +7,428 @@
     <link rel="icon" href="/static/favicon.ico" />
 
     <style>
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #f3f4f6;
+            --card: #ffffff;
+            --text: #111827;
+            --muted: #6b7280;
+            --line: #e5e7eb;
+            --primary: #2563eb;
+            --primary-soft: #dbeafe;
+            --success: #166534;
+            --success-soft: #f0fdf4;
+            --danger: #b91c1c;
+            --danger-soft: #fef2f2;
+            --neutral: #374151;
+            --shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+            --radius: 22px;
+        }
 
         body {
             margin: 0;
             padding: 24px;
             font-family: Arial, sans-serif;
-            background: #f3f4f6;
-            color: #111827;
+            background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+            color: var(--text);
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1240px;
             margin: 0 auto;
         }
 
         .box {
-            background: #ffffff;
-            border-radius: 20px;
+            background: var(--card);
+            border-radius: var(--radius);
             padding: 28px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            box-shadow: var(--shadow);
             margin-bottom: 24px;
+            border: 1px solid rgba(229, 231, 235, 0.8);
         }
 
-        h1 {
-            margin: 0 0 10px 0;
-            font-size: 28px;
-            line-height: 1.2;
+        .cabecalho {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .cabecalho-texto h1 {
+            margin: 0 0 8px 0;
+            font-size: 30px;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
         }
 
         .subtitulo {
-            margin: 0 0 18px 0;
-            color: #6b7280;
-            font-size: 16px;
+            margin: 0;
+            color: var(--muted);
+            font-size: 15px;
+        }
+
+        .selo-topo {
+            min-width: 110px;
+            text-align: center;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            color: #1d4ed8;
+            font-weight: 700;
+            font-size: 13px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid #bfdbfe;
+        }
+
+        .campo-wrap {
+            position: relative;
         }
 
         .campo-busca {
             width: 100%;
-            height: 72px;
+            height: 74px;
             padding: 0 22px;
             font-size: 24px;
-            border: 3px solid #2563eb;
-            border-radius: 18px;
+            border: 3px solid var(--primary);
+            border-radius: 20px;
             outline: none;
             background: #fff;
+            color: var(--text);
+            transition: 0.2s ease;
         }
 
         .campo-busca:focus {
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+            box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.12);
+            transform: translateY(-1px);
         }
 
-        h2 {
+        .campo-ajuda {
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .titulo-resultados {
             margin: 0 0 22px 0;
             font-size: 24px;
+            letter-spacing: -0.01em;
         }
 
         .mensagem {
             font-size: 16px;
-            color: #6b7280;
+            color: var(--muted);
         }
 
         .erro {
-            color: #b91c1c;
-            background: #fef2f2;
+            color: var(--danger);
+            background: var(--danger-soft);
             border: 1px solid #fecaca;
-            border-radius: 12px;
+            border-radius: 14px;
             padding: 12px 14px;
             margin-bottom: 16px;
         }
 
         .sucesso {
-            color: #166534;
-            background: #f0fdf4;
+            color: var(--success);
+            background: var(--success-soft);
             border: 1px solid #bbf7d0;
-            border-radius: 12px;
+            border-radius: 14px;
             padding: 12px 14px;
             margin-bottom: 16px;
         }
 
-        .resultado-item {
-            padding: 14px 0 18px 0;
-            border-bottom: 1px solid #e5e7eb;
+        .loading {
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 16px;
         }
 
-        .resultado-item:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
+        .lista-resultados {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .resultado-item {
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 18px;
+            background: #fff;
+            transition: 0.18s ease;
+        }
+
+        .resultado-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+        }
+
+        .resultado-topo {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .resultado-titulo {
+            min-width: 0;
+            flex: 1;
         }
 
         .resultado-nome {
             margin: 0 0 8px 0;
-            font-size: 22px;
-            line-height: 1.25;
+            font-size: 23px;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+            word-break: break-word;
         }
 
-        .resultado-info {
-            margin: 3px 0;
-            color: #4b5563;
+        .resultado-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            color: var(--muted);
             font-size: 14px;
         }
 
-        .resultado-preco {
-            margin-top: 8px;
-            font-size: 18px;
+        .resultado-preco-box {
+            flex-shrink: 0;
+            min-width: 170px;
+            background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+            border: 1px solid #dbeafe;
+            border-radius: 18px;
+            padding: 14px 16px;
+            text-align: right;
         }
 
-        .resultado-preco strong {
+        .resultado-preco-label {
+            display: block;
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .resultado-preco-valor {
+            font-size: 28px;
+            font-weight: 800;
             color: #1f2937;
+            letter-spacing: -0.02em;
         }
 
-        .resultado-saldos {
+        .estoques-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .estoque-card {
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 14px;
+            background: #fafafa;
+        }
+
+        .estoque-card.total {
+            background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+            border-color: #dbeafe;
+        }
+
+        .estoque-head {
             display: flex;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 12px;
-            font-size: 14px;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
         }
 
-        .resultado-detalhe-ajuste {
-            margin-top: 8px;
+        .estoque-loja {
             font-size: 13px;
-            color: #4b5563;
-        }
-
-        .saldo-label {
             font-weight: 700;
-        }
-
-        .ok {
-            color: #166534;
-            font-weight: 700;
-        }
-
-        .baixo {
-            color: #b91c1c;
-            font-weight: 700;
-        }
-
-        .neutro {
-            color: #374151;
-            font-weight: 700;
-        }
-
-        .separador {
-            color: #6b7280;
-            margin: 0 4px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
 
         .botao-ajuste {
-            border: 1px solid #d1d5db;
-            background: #ffffff;
-            color: #374151;
-            border-radius: 10px;
-            padding: 6px 10px;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: var(--neutral);
+            border-radius: 12px;
+            padding: 7px 12px;
             font-size: 13px;
             font-weight: 700;
             cursor: pointer;
-            transition: 0.15s;
+            transition: 0.15s ease;
         }
 
         .botao-ajuste:hover {
-            background: #f3f4f6;
-            border-color: #9ca3af;
+            background: #eff6ff;
+            border-color: #93c5fd;
+            color: #1d4ed8;
         }
 
-        .loading {
-            color: #2563eb;
+        .estoque-valor {
+            font-size: 29px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: 10px;
+        }
+
+        .ok {
+            color: var(--success);
+        }
+
+        .baixo {
+            color: var(--danger);
+        }
+
+        .neutro {
+            color: var(--neutral);
             font-weight: 700;
         }
 
+        .detalhe-ajuste {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 10px;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            background: #fff;
+            border: 1px solid var(--line);
+        }
+
         .destaque-unico {
-            background: #f9fafb;
-            border: 2px solid #dbeafe;
-            border-radius: 18px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid var(--primary-soft);
+            border-radius: 22px;
             padding: 24px;
+            box-shadow: 0 14px 30px rgba(37, 99, 235, 0.08);
+        }
+
+        .destaque-unico .resultado-nome {
+            font-size: 34px;
+        }
+
+        .destaque-unico .resultado-preco-box {
+            min-width: 210px;
+        }
+
+        .destaque-unico .resultado-preco-valor {
+            font-size: 34px;
+        }
+
+        .destaque-unico .estoque-valor {
+            font-size: 36px;
+        }
+
+        @media (max-width: 980px) {
+            .resultado-topo {
+                flex-direction: column;
+            }
+
+            .resultado-preco-box {
+                width: 100%;
+                text-align: left;
+            }
+
+            .estoques-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 768px) {
-            body { padding: 14px; }
-            .box { padding: 18px; border-radius: 16px; }
-            h1 { font-size: 22px; }
-            h2 { font-size: 22px; }
+            body {
+                padding: 14px;
+            }
+
+            .box {
+                padding: 18px;
+                border-radius: 18px;
+            }
+
+            .cabecalho {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .cabecalho-texto h1 {
+                font-size: 24px;
+            }
+
             .campo-busca {
-                height: 58px;
+                height: 60px;
                 font-size: 20px;
                 padding: 0 16px;
             }
-            .resultado-nome { font-size: 18px; }
-            .resultado-saldos { gap: 6px; }
+
+            .titulo-resultados {
+                font-size: 22px;
+            }
+
+            .resultado-nome {
+                font-size: 20px;
+            }
+
+            .destaque-unico .resultado-nome {
+                font-size: 26px;
+            }
+
+            .resultado-preco-valor,
+            .destaque-unico .resultado-preco-valor {
+                font-size: 28px;
+            }
+
+            .estoque-valor,
+            .destaque-unico .estoque-valor {
+                font-size: 30px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="box">
-            <h1>Consulta Rápida de Produtos</h1>
-            <p class="subtitulo">Digite nome, código, marca ou bipar código de barras.</p>
-            <input
-                type="text"
-                id="busca"
-                class="campo-busca"
-                placeholder="Digite para buscar..."
-                autocomplete="off"
-                autofocus
-            />
+            <div class="cabecalho">
+                <div class="cabecalho-texto">
+                    <h1>Consulta Rápida de Produtos</h1>
+                    <p class="subtitulo">Busque por nome, código interno, marca ou código de barras.</p>
+                </div>
+                <div class="selo-topo">Agro Consulta</div>
+            </div>
+
+            <div class="campo-wrap">
+                <input
+                    type="text"
+                    id="busca"
+                    class="campo-busca"
+                    placeholder="Digite para buscar..."
+                    autocomplete="off"
+                    autofocus
+                />
+            </div>
+
+            <div class="campo-ajuda">
+                Dica: quando encontrar apenas 1 item, ele aparece em destaque para facilitar a visualização no balcão.
+            </div>
         </div>
 
         <div class="box">
-            <h2>Resultados</h2>
+            <h2 class="titulo-resultados">Resultados</h2>
             <div id="mensagem-status"></div>
             <div id="erro-api"></div>
             <div id="resultados" class="mensagem">Digite algo para pesquisar.</div>
@@ -352,6 +565,53 @@
             }
         }
 
+        function montarCardEstoque(label, valor, valorErp, diferenca, deposito, p, isTotal = false) {
+            const valorClass = Number(valor) <= 0 ? "baixo" : "ok";
+            const idSeguroJs = escaparJs(p.id || "");
+            const codigoInternoJs = escaparJs(p.codigo_interno || "");
+            const nomeSeguroJs = escaparJs(p.nome || "");
+
+            return `
+                <div class="estoque-card ${isTotal ? 'total' : ''}">
+                    <div class="estoque-head">
+                        <div class="estoque-loja">${label}</div>
+                        ${
+                            isTotal
+                                ? `<span class="badge">Resumo</span>`
+                                : `<button
+                                        class="botao-ajuste"
+                                        onclick="ajustarSaldo('${idSeguroJs}', '${codigoInternoJs}', '${nomeSeguroJs}', '${deposito}', ${Number(valorErp || 0)})"
+                                   >
+                                        Ajustar
+                                   </button>`
+                        }
+                    </div>
+
+                    <div class="estoque-valor ${valorClass}">
+                        ${formatarNumero(valor)}
+                    </div>
+
+                    ${
+                        isTotal
+                            ? `
+                                <div class="detalhe-ajuste">
+                                    <span>Total Centro + Vila</span>
+                                </div>
+                              `
+                            : `
+                                <div class="detalhe-ajuste">
+                                    <span>ERP:</span>
+                                    <span class="neutro">${formatarNumero(valorErp)}</span>
+                                    <span>•</span>
+                                    <span>Ajuste:</span>
+                                    <span class="neutro">${formatarDiferenca(diferenca)}</span>
+                                </div>
+                              `
+                    }
+                </div>
+            `;
+        }
+
         function montarCardProduto(p, destaque = false) {
             const saldoCentro = Number(p.saldo_centro || 0);
             const saldoVila = Number(p.saldo_vila || 0);
@@ -363,69 +623,30 @@
             const diferencaCentro = Number(p.diferenca_centro || 0);
             const diferencaVila = Number(p.diferenca_vila || 0);
 
-            const nomeSeguroHtml = escaparHtml(p.nome || "");
-            const nomeSeguroJs = escaparJs(p.nome || "");
-            const codigoInternoJs = escaparJs(p.codigo_interno || "");
-            const idSeguroJs = escaparJs(p.id || "");
-
             return `
                 <div class="${destaque ? 'destaque-unico' : 'resultado-item'}">
-                    <h3 class="resultado-nome" style="${destaque ? 'font-size:32px;' : ''}">
-                        ${nomeSeguroHtml}
-                    </h3>
+                    <div class="resultado-topo">
+                        <div class="resultado-titulo">
+                            <h3 class="resultado-nome">${escaparHtml(p.nome || "")}</h3>
 
-                    <p class="resultado-info" style="${destaque ? 'font-size:16px;' : ''}">
-                        Código: ${escaparHtml(p.codigo_interno || "-")} |
-                        Barras: ${escaparHtml(p.codigo_barras || "-")}
-                    </p>
+                            <div class="resultado-meta">
+                                <span><strong>Código:</strong> ${escaparHtml(p.codigo_interno || "-")}</span>
+                                <span><strong>Barras:</strong> ${escaparHtml(p.codigo_barras || "-")}</span>
+                                <span><strong>Marca:</strong> ${escaparHtml(p.marca || "-")}</span>
+                                <span><strong>Categoria:</strong> ${escaparHtml(p.categoria || "-")}</span>
+                            </div>
+                        </div>
 
-                    <p class="resultado-info" style="${destaque ? 'font-size:16px;' : ''}">
-                        Marca: ${escaparHtml(p.marca || "-")} |
-                        Categoria: ${escaparHtml(p.categoria || "-")}
-                    </p>
-
-                    <p class="resultado-preco" style="${destaque ? 'font-size:28px; margin-top:16px;' : ''}">
-                        Preço: <strong>${formatarMoeda(p.preco_venda)}</strong>
-                    </p>
-
-                    <div class="resultado-saldos" style="${destaque ? 'margin-top:18px; font-size:18px; gap:12px;' : ''}">
-                        <span class="${saldoCentro <= 0 ? "baixo" : "ok"}">
-                            <span class="saldo-label">Centro:</span> ${formatarNumero(saldoCentro)}
-                        </span>
-                        <button
-                            class="botao-ajuste"
-                            onclick="ajustarSaldo('${idSeguroJs}', '${codigoInternoJs}', '${nomeSeguroJs}', 'centro', ${saldoCentroErp})"
-                        >
-                            Ajustar
-                        </button>
-
-                        <span class="separador">|</span>
-
-                        <span class="${saldoVila <= 0 ? "baixo" : "ok"}">
-                            <span class="saldo-label">Vila Elias:</span> ${formatarNumero(saldoVila)}
-                        </span>
-                        <button
-                            class="botao-ajuste"
-                            onclick="ajustarSaldo('${idSeguroJs}', '${codigoInternoJs}', '${nomeSeguroJs}', 'vila', ${saldoVilaErp})"
-                        >
-                            Ajustar
-                        </button>
-
-                        <span class="separador">|</span>
-
-                        <span class="${total <= 0 ? "baixo" : "ok"}">
-                            <span class="saldo-label">Total:</span> ${formatarNumero(total)}
-                        </span>
+                        <div class="resultado-preco-box">
+                            <span class="resultado-preco-label">Preço de venda</span>
+                            <span class="resultado-preco-valor">${formatarMoeda(p.preco_venda)}</span>
+                        </div>
                     </div>
 
-                    <div class="resultado-detalhe-ajuste" style="${destaque ? 'margin-top:14px; font-size:15px;' : ''}">
-                        Centro ERP: <span class="neutro">${formatarNumero(saldoCentroErp)}</span>
-                        <span class="separador">|</span>
-                        Ajuste Centro: <span class="neutro">${formatarDiferenca(diferencaCentro)}</span>
-                        <span class="separador">|</span>
-                        Vila ERP: <span class="neutro">${formatarNumero(saldoVilaErp)}</span>
-                        <span class="separador">|</span>
-                        Ajuste Vila: <span class="neutro">${formatarDiferenca(diferencaVila)}</span>
+                    <div class="estoques-grid">
+                        ${montarCardEstoque("Centro", saldoCentro, saldoCentroErp, diferencaCentro, "centro", p)}
+                        ${montarCardEstoque("Vila Elias", saldoVila, saldoVilaErp, diferencaVila, "vila", p)}
+                        ${montarCardEstoque("Estoque Total", total, total, 0, "", p, true)}
                     </div>
                 </div>
             `;
@@ -442,10 +663,12 @@
                 return;
             }
 
-            let html = "";
+            let html = '<div class="lista-resultados">';
             produtos.forEach((p) => {
                 html += montarCardProduto(p, false);
             });
+            html += '</div>';
+
             resultadosEl.innerHTML = html;
         }
 
