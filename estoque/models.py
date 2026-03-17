@@ -37,8 +37,9 @@ class AjusteRapidoEstoque(models.Model):
     nome_produto = models.CharField(max_length=255, blank=True, default='')
     deposito = models.CharField(max_length=20, choices=DEPOSITO_CHOICES, db_index=True)
 
-    saldo_erp_anterior = models.DecimalField(max_digits=12, decimal_places=3, default=0)
-    saldo_ajustado = models.DecimalField(max_digits=12, decimal_places=3)
+    saldo_erp_referencia = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    saldo_informado = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    diferenca_saldo = models.DecimalField(max_digits=12, decimal_places=3, default=0)
 
     observacao = models.CharField(max_length=255, blank=True, default='')
     criado_em = models.DateTimeField(auto_now_add=True)
@@ -49,4 +50,7 @@ class AjusteRapidoEstoque(models.Model):
         ordering = ['-criado_em']
 
     def __str__(self):
-        return f'{self.nome_produto} - {self.get_deposito_display()} - {self.saldo_ajustado}'
+        return (
+            f'{self.nome_produto} - {self.get_deposito_display()} - '
+            f'diferença {self.diferenca_saldo}'
+        )
