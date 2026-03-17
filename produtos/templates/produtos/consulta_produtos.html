@@ -1,425 +1,389 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Consulta de Produtos</title>
-    <link rel="icon" href="/static/favicon.ico?v=2">
-    
+    <link rel="icon" href="/static/favicon.ico" />
+
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background: #f3f4f6;
             margin: 0;
             padding: 24px;
+            font-family: Arial, sans-serif;
+            background: #f3f4f6;
+            color: #111827;
         }
 
         .container {
-            max-width: 1280px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
-        .cabecalho {
+        .box {
             background: #ffffff;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            margin-bottom: 24px;
         }
 
         h1 {
-            margin: 0 0 8px 0;
-            color: #111827;
-            font-size: 32px;
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            line-height: 1.2;
         }
 
         .subtitulo {
+            margin: 0 0 18px 0;
             color: #6b7280;
-            font-size: 15px;
-            margin-bottom: 18px;
+            font-size: 16px;
         }
 
         .campo-busca {
             width: 100%;
-            box-sizing: border-box;
-            padding: 18px 20px;
+            height: 72px;
+            padding: 0 22px;
             font-size: 24px;
-            border: 2px solid #d1d5db;
-            border-radius: 12px;
+            border: 3px solid #2563eb;
+            border-radius: 18px;
             outline: none;
+            background: #fff;
         }
 
         .campo-busca:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
         }
 
-        .destaque {
-            background: #ffffff;
-            border-radius: 18px;
-            padding: 28px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
-            border-left: 8px solid #f97316;
+        h2 {
+            margin: 0 0 22px 0;
+            font-size: 24px;
         }
 
-        .destaque-topo {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-
-        .codigo {
-            color: #6b7280;
-            font-size: 15px;
-            margin-bottom: 8px;
-        }
-
-        .nome-produto {
-            font-size: 38px;
-            font-weight: bold;
-            color: #111827;
-            margin-bottom: 8px;
-        }
-
-        .meta {
-            color: #4b5563;
-            font-size: 18px;
-            margin-bottom: 6px;
-        }
-
-        .preco-box {
-            background: #ecfdf5;
-            color: #166534;
-            padding: 16px 22px;
-            border-radius: 14px;
-            font-size: 18px;
-            font-weight: bold;
-            min-width: 220px;
-            text-align: center;
-            border: 2px solid #bbf7d0;
-        }
-
-        .preco-valor {
-            display: block;
-            font-size: 42px;
-            margin-top: 6px;
-        }
-
-        .estoques {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px;
-            margin-top: 22px;
-        }
-
-        .estoque-card {
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
-            padding: 18px;
-        }
-
-        .estoque-loja {
+        .mensagem {
             font-size: 16px;
             color: #6b7280;
-            margin-bottom: 8px;
         }
 
-        .estoque-valor {
-            font-size: 34px;
-            font-weight: bold;
-        }
-
-        .baixo {
+        .erro {
             color: #b91c1c;
-        }
-
-        .ok {
-            color: #166534;
-        }
-
-        .lista {
-            background: #ffffff;
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        }
-
-        .lista h2 {
-            margin-top: 0;
-            color: #111827;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
         }
 
         .resultado-item {
-            padding: 14px 10px;
+            padding: 14px 0 18px 0;
             border-bottom: 1px solid #e5e7eb;
         }
 
         .resultado-item:last-child {
             border-bottom: none;
+            padding-bottom: 0;
         }
 
         .resultado-nome {
+            margin: 0 0 8px 0;
             font-size: 22px;
-            font-weight: bold;
-            color: #111827;
-            margin-bottom: 6px;
+            line-height: 1.25;
         }
 
-        .resultado-meta {
+        .resultado-info {
+            margin: 3px 0;
             color: #4b5563;
-            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .resultado-preco {
+            margin-top: 8px;
+            font-size: 18px;
+        }
+
+        .resultado-preco strong {
+            color: #1f2937;
         }
 
         .resultado-saldos {
-            margin-top: 8px;
-            font-weight: bold;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 14px;
         }
 
-        .sem-resultados {
-            background: #fff7ed;
-            color: #9a3412;
-            border: 1px solid #fdba74;
-            border-radius: 12px;
-            padding: 18px;
-            margin-top: 20px;
+        .saldo-label {
+            font-weight: 700;
         }
 
-        .erro-api {
-            background: #fef2f2;
-            color: #991b1b;
-            border: 1px solid #fca5a5;
-            border-radius: 12px;
-            padding: 18px;
-            margin-top: 20px;
+        .ok {
+            color: #b91c1c;
+            font-weight: 700;
         }
 
-        .oculto {
-            display: none;
+        .baixo {
+            color: #b91c1c;
+            font-weight: 700;
+        }
+
+        .separador {
+            color: #6b7280;
+            margin: 0 4px;
+        }
+
+        .botao-ajuste {
+            border: 1px solid #d1d5db;
+            background: #ffffff;
+            color: #374151;
+            border-radius: 10px;
+            padding: 6px 10px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .botao-ajuste:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+
+        .loading {
+            color: #2563eb;
+            font-weight: 700;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 14px;
+            }
+
+            .box {
+                padding: 18px;
+                border-radius: 16px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            h2 {
+                font-size: 22px;
+            }
+
+            .campo-busca {
+                height: 58px;
+                font-size: 20px;
+                padding: 0 16px;
+            }
+
+            .resultado-nome {
+                font-size: 18px;
+            }
+
+            .resultado-saldos {
+                gap: 6px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="cabecalho">
+        <div class="box">
             <h1>Consulta Rápida de Produtos</h1>
-            <div class="subtitulo">
-                Digite nome, código, marca ou bipar código de barras.
-            </div>
-
+            <p class="subtitulo">Digite nome, código, marca ou bipar código de barras.</p>
             <input
                 type="text"
                 id="busca"
                 class="campo-busca"
-                placeholder="Digite nome, código, marca ou bipar código de barras"
+                placeholder="Digite para buscar..."
                 autocomplete="off"
                 autofocus
-            >
+            />
         </div>
 
-        <div id="erro-api" class="erro-api oculto"></div>
-
-        <div id="destaque-container" class="oculto"></div>
-
-        <div class="lista">
+        <div class="box">
             <h2>Resultados</h2>
-            <div id="resultados"></div>
+
+            <div id="erro-api"></div>
+            <div id="resultados" class="mensagem">Digite algo para pesquisar.</div>
         </div>
     </div>
 
     <script>
-        let timer = null;
+        const campoBusca = document.getElementById("busca");
+        const resultadosEl = document.getElementById("resultados");
+        const erroApiEl = document.getElementById("erro-api");
 
-        const campo = document.getElementById("busca");
-        const resultados = document.getElementById("resultados");
-        const destaqueContainer = document.getElementById("destaque-container");
-        const erroApi = document.getElementById("erro-api");
+        let timerBusca = null;
+
+        function formatarMoeda(valor) {
+            const numero = Number(valor || 0);
+            return numero.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL"
+            });
+        }
 
         function formatarNumero(valor) {
             const numero = Number(valor || 0);
             return numero.toLocaleString("pt-BR", {
                 minimumFractionDigits: 0,
-                maximumFractionDigits: 3
-            });
-        }
-
-        function formatarPreco(valor) {
-            const numero = Number(valor || 0);
-            return numero.toLocaleString("pt-BR", {
-                minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             });
         }
 
-        function montarDestaque(produto) {
-            destaqueContainer.classList.remove("oculto");
-
-            destaqueContainer.innerHTML = `
-                <div class="destaque">
-                    <div class="destaque-topo">
-                        <div>
-                            <div class="codigo">
-                                Código: ${produto.codigo_interno || "-"} |
-                                Barras: ${produto.codigo_barras || "-"}
-                            </div>
-
-                            <div class="nome-produto">
-                                ${produto.nome || ""}
-                            </div>
-
-                            <div class="meta">
-                                Marca: ${produto.marca || "-"}
-                            </div>
-
-                            <div class="meta">
-                                Categoria: ${produto.categoria || "-"}
-                            </div>
-                        </div>
-
-                        <div class="preco-box">
-                            Preço de Venda
-                            <span class="preco-valor">R$ ${formatarPreco(produto.preco_venda)}</span>
-                        </div>
-                    </div>
-
-                    <div class="estoques">
-                        <div class="estoque-card">
-                            <div class="estoque-loja">Estoque Centro</div>
-                            <div class="estoque-valor ${Number(produto.saldo_centro) <= 0 ? "baixo" : "ok"}">
-                                ${formatarNumero(produto.saldo_centro)}
-                            </div>
-                        </div>
-
-                        <div class="estoque-card">
-                            <div class="estoque-loja">Estoque Vila Elias</div>
-                            <div class="estoque-valor ${Number(produto.saldo_vila) <= 0 ? "baixo" : "ok"}">
-                                ${formatarNumero(produto.saldo_vila)}
-                            </div>
-                        </div>
-
-                        <div class="estoque-card">
-                            <div class="estoque-loja">Estoque Total</div>
-                            <div class="estoque-valor ${(Number(produto.saldo_centro) + Number(produto.saldo_vila)) <= 0 ? "baixo" : "ok"}">
-                                ${formatarNumero((Number(produto.saldo_centro) || 0) + (Number(produto.saldo_vila) || 0))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+        function escaparHtml(texto) {
+            return String(texto || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
         }
 
-        function esconderDestaque() {
-            destaqueContainer.classList.add("oculto");
-            destaqueContainer.innerHTML = "";
+        function escaparJs(texto) {
+            return String(texto || "")
+                .replace(/\\/g, "\\\\")
+                .replace(/'/g, "\\'")
+                .replace(/"/g, '\\"');
         }
 
-        function mostrarErro(texto) {
-            erroApi.classList.remove("oculto");
-            erroApi.textContent = texto;
-        }
+        function ajustarSaldo(produtoId, nomeProduto, deposito, saldoAtual) {
+            const valor = prompt(
+                "Ajuste rápido\n\n" +
+                "Produto: " + nomeProduto + "\n" +
+                "Depósito: " + deposito + "\n" +
+                "Saldo atual: " + formatarNumero(saldoAtual) + "\n\n" +
+                "Digite o novo saldo ou a variação:"
+            );
 
-        function esconderErro() {
-            erroApi.classList.add("oculto");
-            erroApi.textContent = "";
-        }
-
-        function montarResultados(lista) {
-            resultados.innerHTML = "";
-
-            if (!lista.length) {
-                esconderDestaque();
-                resultados.innerHTML = `<div class="sem-resultados">Nenhum produto encontrado.</div>`;
+            if (valor === null || valor.trim() === "") {
                 return;
             }
 
-            if (lista.length === 1) {
-                montarDestaque(lista[0]);
-            } else {
-                esconderDestaque();
+            alert(
+                "Ajuste provisório informado.\n\n" +
+                "Produto: " + nomeProduto + "\n" +
+                "Depósito: " + deposito + "\n" +
+                "Valor digitado: " + valor + "\n\n" +
+                "Na próxima etapa ligamos isso à gravação real."
+            );
+        }
+
+        function montarResultados(produtos) {
+            if (!produtos || produtos.length === 0) {
+                resultadosEl.innerHTML = '<div class="mensagem">Nenhum produto encontrado.</div>';
+                return;
             }
 
-            lista.forEach(p => {
-                const total = (Number(p.saldo_centro) || 0) + (Number(p.saldo_vila) || 0);
+            let html = "";
 
-                const item = document.createElement("div");
-                item.className = "resultado-item";
+            produtos.forEach((p) => {
+                const saldoCentro = Number(p.saldo_centro || 0);
+                const saldoVila = Number(p.saldo_vila || 0);
+                const total = Number(p.saldo_total ?? (saldoCentro + saldoVila));
 
-                item.innerHTML = `
-                    <div class="resultado-nome">${p.nome || ""}</div>
-                    <div class="resultado-meta">Código: ${p.codigo_interno || "-"} | Barras: ${p.codigo_barras || "-"}</div>
-                    <div class="resultado-meta">Marca: ${p.marca || "-"} | Categoria: ${p.categoria || "-"}</div>
-                    <div class="resultado-meta">Preço: <strong>R$ ${formatarPreco(p.preco_venda)}</strong></div>
-                    <div class="resultado-saldos">
-                        <span class="${Number(p.saldo_centro) <= 0 ? "baixo" : "ok"}">Centro: ${formatarNumero(p.saldo_centro)}</span>
-                        &nbsp; | &nbsp;
-                        <span class="${Number(p.saldo_vila) <= 0 ? "baixo" : "ok"}">Vila Elias: ${formatarNumero(p.saldo_vila)}</span>
-                        &nbsp; | &nbsp;
-                        <span class="${total <= 0 ? "baixo" : "ok"}">Total: ${formatarNumero(total)}</span>
+                const nomeSeguroHtml = escaparHtml(p.nome || "");
+                const nomeSeguroJs = escaparJs(p.nome || "");
+
+                html += `
+                    <div class="resultado-item">
+                        <h3 class="resultado-nome">${nomeSeguroHtml}</h3>
+
+                        <p class="resultado-info">
+                            Código: ${escaparHtml(p.codigo_interno || "-")} |
+                            Barras: ${escaparHtml(p.codigo_barras || "-")}
+                        </p>
+
+                        <p class="resultado-info">
+                            Marca: ${escaparHtml(p.marca || "-")} |
+                            Categoria: ${escaparHtml(p.categoria || "-")}
+                        </p>
+
+                        <p class="resultado-preco">
+                            Preço: <strong>${formatarMoeda(p.preco_venda)}</strong>
+                        </p>
+
+                        <div class="resultado-saldos">
+                            <span class="${saldoCentro <= 0 ? "baixo" : "ok"}">
+                                <span class="saldo-label">Centro:</span> ${formatarNumero(saldoCentro)}
+                            </span>
+                            <button
+                                class="botao-ajuste"
+                                onclick="ajustarSaldo('${escaparJs(p.id)}', '${nomeSeguroJs}', 'Centro', ${saldoCentro})"
+                            >
+                                Ajustar
+                            </button>
+
+                            <span class="separador">|</span>
+
+                            <span class="${saldoVila <= 0 ? "baixo" : "ok"}">
+                                <span class="saldo-label">Vila Elias:</span> ${formatarNumero(saldoVila)}
+                            </span>
+                            <button
+                                class="botao-ajuste"
+                                onclick="ajustarSaldo('${escaparJs(p.id)}', '${nomeSeguroJs}', 'Vila Elias', ${saldoVila})"
+                            >
+                                Ajustar
+                            </button>
+
+                            <span class="separador">|</span>
+
+                            <span class="${total <= 0 ? "baixo" : "ok"}">
+                                <span class="saldo-label">Total:</span> ${formatarNumero(total)}
+                            </span>
+                        </div>
                     </div>
                 `;
-
-                resultados.appendChild(item);
             });
+
+            resultadosEl.innerHTML = html;
         }
 
-        campo.addEventListener("keyup", function(event) {
-            clearTimeout(timer);
+        async function buscarProdutos(termo) {
+            const busca = termo.trim();
 
-            const termo = campo.value.trim();
-
-            if (event.key === "Escape") {
-                campo.value = "";
-                resultados.innerHTML = "";
-                esconderDestaque();
-                esconderErro();
+            if (!busca) {
+                erroApiEl.innerHTML = "";
+                resultadosEl.innerHTML = '<div class="mensagem">Digite algo para pesquisar.</div>';
                 return;
             }
 
-            if (event.key === "Enter") {
-                buscarAgora();
-                return;
-            }
+            resultadosEl.innerHTML = '<div class="loading">Buscando...</div>';
+            erroApiEl.innerHTML = "";
 
-            if (termo.length < 2) {
-                resultados.innerHTML = "";
-                esconderDestaque();
-                esconderErro();
-                return;
-            }
+            try {
+                const resposta = await fetch(`/api/buscar-produtos/?q=${encodeURIComponent(busca)}`);
+                const dados = await resposta.json();
 
-            timer = setTimeout(() => {
-                buscarAgora();
-            }, 800);
+                if (dados.erro_api) {
+                    erroApiEl.innerHTML = `<div class="erro">${escaparHtml(dados.erro_api)}</div>`;
+                } else {
+                    erroApiEl.innerHTML = "";
+                }
+
+                montarResultados(dados.produtos || []);
+            } catch (erro) {
+                erroApiEl.innerHTML = '<div class="erro">Erro ao buscar produtos. Tente novamente.</div>';
+                resultadosEl.innerHTML = '<div class="mensagem">Não foi possível carregar os resultados.</div>';
+            }
+        }
+
+        campoBusca.addEventListener("input", function () {
+            clearTimeout(timerBusca);
+
+            const valor = this.value;
+            timerBusca = setTimeout(() => {
+                buscarProdutos(valor);
+            }, 250);
         });
-
-        function buscarAgora() {
-            const termo = campo.value.trim();
-
-            if (termo.length < 2) {
-                resultados.innerHTML = "";
-                esconderDestaque();
-                esconderErro();
-                return;
-            }
-
-            fetch(`/produtos/api/buscar/?q=${encodeURIComponent(termo)}`)
-                .then(response => response.json())
-                .then(data => {
-                    esconderErro();
-                    montarResultados(data.produtos || []);
-                })
-                .catch(() => {
-                    mostrarErro("Erro ao buscar produtos.");
-                });
-        }
-
-        window.onload = function() {
-            campo.focus();
-        };
     </script>
 </body>
 </html>
