@@ -2,13 +2,14 @@ from decimal import Decimal, InvalidOperation
 
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
 from estoque.models import AjusteRapidoEstoque
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 
 
+@ensure_csrf_cookie
 def consulta_produtos(request):
     return render(request, 'produtos/consulta_produtos.html')
 
