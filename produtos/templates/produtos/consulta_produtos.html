@@ -360,7 +360,7 @@
             erroApiEl.innerHTML = "";
 
             try {
-                const resposta = await fetch(`/api/buscar-produtos/?q=${encodeURIComponent(busca)}`);
+                const resposta = await fetch(`/produtos/api/buscar-produtos/?q=${encodeURIComponent(busca)}`);
                 const dados = await resposta.json();
 
                 if (dados.erro_api) {
