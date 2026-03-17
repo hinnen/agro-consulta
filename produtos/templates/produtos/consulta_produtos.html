@@ -7,9 +7,7 @@
     <link rel="icon" href="/static/favicon.ico" />
 
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
@@ -78,6 +76,15 @@
             margin-bottom: 16px;
         }
 
+        .sucesso {
+            color: #166534;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 16px;
+        }
+
         .resultado-item {
             padding: 14px 0 18px 0;
             border-bottom: 1px solid #e5e7eb;
@@ -123,7 +130,7 @@
         }
 
         .ok {
-            color: #b91c1c;
+            color: #166534;
             font-weight: 700;
         }
 
@@ -160,36 +167,17 @@
         }
 
         @media (max-width: 768px) {
-            body {
-                padding: 14px;
-            }
-
-            .box {
-                padding: 18px;
-                border-radius: 16px;
-            }
-
-            h1 {
-                font-size: 22px;
-            }
-
-            h2 {
-                font-size: 22px;
-            }
-
+            body { padding: 14px; }
+            .box { padding: 18px; border-radius: 16px; }
+            h1 { font-size: 22px; }
+            h2 { font-size: 22px; }
             .campo-busca {
                 height: 58px;
                 font-size: 20px;
                 padding: 0 16px;
             }
-
-            .resultado-nome {
-                font-size: 18px;
-            }
-
-            .resultado-saldos {
-                gap: 6px;
-            }
+            .resultado-nome { font-size: 18px; }
+            .resultado-saldos { gap: 6px; }
         }
     </style>
 </head>
@@ -210,7 +198,7 @@
 
         <div class="box">
             <h2>Resultados</h2>
-
+            <div id="mensagem-status"></div>
             <div id="erro-api"></div>
             <div id="resultados" class="mensagem">Digite algo para pesquisar.</div>
         </div>
@@ -220,8 +208,24 @@
         const campoBusca = document.getElementById("busca");
         const resultadosEl = document.getElementById("resultados");
         const erroApiEl = document.getElementById("erro-api");
+        const mensagemStatusEl = document.getElementById("mensagem-status");
 
         let timerBusca = null;
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== "") {
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
 
         function formatarMoeda(valor) {
             const numero = Number(valor || 0);
@@ -235,7 +239,7 @@
             const numero = Number(valor || 0);
             return numero.toLocaleString("pt-BR", {
                 minimumFractionDigits: 0,
-                maximumFractionDigits: 2
+                maximumFractionDigits: 3
             });
         }
 
@@ -255,26 +259,64 @@
                 .replace(/"/g, '\\"');
         }
 
-        function ajustarSaldo(produtoId, nomeProduto, deposito, saldoAtual) {
-            const valor = prompt(
+        function mostrarSucesso(texto) {
+            mensagemStatusEl.innerHTML = `<div class="sucesso">${escaparHtml(texto)}</div>`;
+            setTimeout(() => {
+                mensagemStatusEl.innerHTML = "";
+            }, 3000);
+        }
+
+        function mostrarErro(texto) {
+            mensagemStatusEl.innerHTML = `<div class="erro">${escaparHtml(texto)}</div>`;
+            setTimeout(() => {
+                mensagemStatusEl.innerHTML = "";
+            }, 4000);
+        }
+
+        async function ajustarSaldo(produtoId, codigoInterno, nomeProduto, deposito, saldoAtual) {
+            const novoSaldo = prompt(
                 "Ajuste rápido\n\n" +
                 "Produto: " + nomeProduto + "\n" +
                 "Depósito: " + deposito + "\n" +
                 "Saldo atual: " + formatarNumero(saldoAtual) + "\n\n" +
-                "Digite o novo saldo ou a variação:"
+                "Digite o NOVO saldo:"
             );
 
-            if (valor === null || valor.trim() === "") {
+            if (novoSaldo === null || novoSaldo.trim() === "") {
                 return;
             }
 
-            alert(
-                "Ajuste provisório informado.\n\n" +
-                "Produto: " + nomeProduto + "\n" +
-                "Depósito: " + deposito + "\n" +
-                "Valor digitado: " + valor + "\n\n" +
-                "Na próxima etapa ligamos isso à gravação real."
-            );
+            const observacao = prompt("Observação do ajuste (opcional):") || "";
+
+            const formData = new FormData();
+            formData.append("produto_id", produtoId);
+            formData.append("codigo_interno", codigoInterno || "");
+            formData.append("nome_produto", nomeProduto || "");
+            formData.append("deposito", deposito);
+            formData.append("saldo_atual", String(saldoAtual ?? 0));
+            formData.append("novo_saldo", novoSaldo);
+            formData.append("observacao", observacao);
+
+            try {
+                const resposta = await fetch("/produtos/api/ajustar-estoque/", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCookie("csrftoken")
+                    },
+                    body: formData
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok || !dados.ok) {
+                    throw new Error(dados.erro || "Não foi possível salvar o ajuste.");
+                }
+
+                mostrarSucesso("Ajuste salvo com sucesso.");
+                buscarProdutos(campoBusca.value);
+            } catch (erro) {
+                mostrarErro(erro.message || "Erro ao salvar ajuste.");
+            }
         }
 
         function montarResultados(produtos) {
@@ -292,6 +334,7 @@
 
                 const nomeSeguroHtml = escaparHtml(p.nome || "");
                 const nomeSeguroJs = escaparJs(p.nome || "");
+                const codigoInternoJs = escaparJs(p.codigo_interno || "");
 
                 html += `
                     <div class="resultado-item">
@@ -317,7 +360,7 @@
                             </span>
                             <button
                                 class="botao-ajuste"
-                                onclick="ajustarSaldo('${escaparJs(p.id)}', '${nomeSeguroJs}', 'Centro', ${saldoCentro})"
+                                onclick="ajustarSaldo('${escaparJs(p.id)}', '${codigoInternoJs}', '${nomeSeguroJs}', 'centro', ${saldoCentro})"
                             >
                                 Ajustar
                             </button>
@@ -329,7 +372,7 @@
                             </span>
                             <button
                                 class="botao-ajuste"
-                                onclick="ajustarSaldo('${escaparJs(p.id)}', '${nomeSeguroJs}', 'Vila Elias', ${saldoVila})"
+                                onclick="ajustarSaldo('${escaparJs(p.id)}', '${codigoInternoJs}', '${nomeSeguroJs}', 'vila', ${saldoVila})"
                             >
                                 Ajustar
                             </button>
@@ -360,7 +403,7 @@
             erroApiEl.innerHTML = "";
 
             try {
-                const resposta = await fetch(`/produtos/api/buscar-produtos/?q=${encodeURIComponent(busca)}`);
+                const resposta = await fetch(`/produtos/api/buscar/?q=${encodeURIComponent(busca)}`);
                 const dados = await resposta.json();
 
                 if (dados.erro_api) {
@@ -378,8 +421,8 @@
 
         campoBusca.addEventListener("input", function () {
             clearTimeout(timerBusca);
-
             const valor = this.value;
+
             timerBusca = setTimeout(() => {
                 buscarProdutos(valor);
             }, 250);
