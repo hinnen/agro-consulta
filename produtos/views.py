@@ -2,11 +2,11 @@ from decimal import Decimal, InvalidOperation
 
 from django.http import JsonResponse
 from django.shortcuts import render
-from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.http import require_GET, require_POST
 
-from integracoes.venda_erp_mongo import VendaERPMongoClient
 from estoque.models import AjusteRapidoEstoque
+from integracoes.venda_erp_mongo import VendaERPMongoClient
 
 
 def consulta_produtos(request):
@@ -14,7 +14,16 @@ def consulta_produtos(request):
 
 
 def _normalizar_decimal(valor):
-    texto = str(valor).strip().replace('.', '').replace(',', '.')
+    texto = str(valor).strip().replace(' ', '')
+
+    if ',' in texto and '.' in texto:
+        if texto.rfind(',') > texto.rfind('.'):
+            texto = texto.replace('.', '').replace(',', '.')
+        else:
+            texto = texto.replace(',', '')
+    else:
+        texto = texto.replace(',', '.')
+
     return Decimal(texto)
 
 
@@ -30,6 +39,7 @@ def _buscar_ajustes_mais_recentes(produto_ids):
         chave = (ajuste.produto_externo_id, ajuste.deposito)
         if chave not in mapa:
             mapa[chave] = ajuste
+
     return mapa
 
 
@@ -55,25 +65,29 @@ def api_buscar_produtos(request):
 
             for produto in produtos:
                 produto_id = str(produto.get("_id"))
-                saldo_centro = Decimal('0')
-                saldo_vila = Decimal('0')
+                saldo_centro_erp = Decimal('0')
+                saldo_vila_erp = Decimal('0')
 
                 for estoque in estoques_por_produto.get(produto_id, []):
                     deposito = str(estoque.get("Deposito", "")).strip().lower()
                     saldo = Decimal(str(estoque.get("Saldo", 0) or 0))
 
                     if "centro" in deposito:
-                        saldo_centro += saldo
+                        saldo_centro_erp += saldo
                     elif "vila" in deposito:
-                        saldo_vila += saldo
+                        saldo_vila_erp += saldo
 
                 ajuste_centro = ajustes.get((produto_id, 'centro'))
                 ajuste_vila = ajustes.get((produto_id, 'vila'))
 
+                saldo_centro = saldo_centro_erp
+                saldo_vila = saldo_vila_erp
+
                 if ajuste_centro:
-                    saldo_centro = ajuste_centro.saldo_ajustado
+                    saldo_centro = saldo_centro_erp + ajuste_centro.diferenca_saldo
+
                 if ajuste_vila:
-                    saldo_vila = ajuste_vila.saldo_ajustado
+                    saldo_vila = saldo_vila_erp + ajuste_vila.diferenca_saldo
 
                 produtos_json.append({
                     "id": produto_id,
@@ -86,6 +100,8 @@ def api_buscar_produtos(request):
                     "saldo_centro": float(saldo_centro),
                     "saldo_vila": float(saldo_vila),
                     "saldo_total": float(saldo_centro + saldo_vila),
+                    "saldo_centro_erp": float(saldo_centro_erp),
+                    "saldo_vila_erp": float(saldo_vila_erp),
                 })
 
         except Exception as exc:
@@ -118,16 +134,18 @@ def api_ajustar_estoque(request):
         if novo_saldo == '':
             return JsonResponse({'ok': False, 'erro': 'Informe o novo saldo.'}, status=400)
 
-        saldo_atual_dec = _normalizar_decimal(saldo_atual)
-        novo_saldo_dec = _normalizar_decimal(novo_saldo)
+        saldo_erp_referencia = _normalizar_decimal(saldo_atual)
+        saldo_informado = _normalizar_decimal(novo_saldo)
+        diferenca_saldo = saldo_informado - saldo_erp_referencia
 
         ajuste = AjusteRapidoEstoque.objects.create(
             produto_externo_id=produto_id,
             codigo_interno=codigo_interno,
             nome_produto=nome_produto,
             deposito=deposito,
-            saldo_erp_anterior=saldo_atual_dec,
-            saldo_ajustado=novo_saldo_dec,
+            saldo_erp_referencia=saldo_erp_referencia,
+            saldo_informado=saldo_informado,
+            diferenca_saldo=diferenca_saldo,
             observacao=observacao,
         )
 
@@ -135,7 +153,9 @@ def api_ajustar_estoque(request):
             'ok': True,
             'mensagem': 'Ajuste salvo com sucesso.',
             'ajuste_id': ajuste.id,
-            'novo_saldo': float(ajuste.saldo_ajustado),
+            'saldo_erp_referencia': float(ajuste.saldo_erp_referencia),
+            'saldo_informado': float(ajuste.saldo_informado),
+            'diferenca_saldo': float(ajuste.diferenca_saldo),
         })
 
     except InvalidOperation:
