@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta Rápida de Produtos</title>
+    <title>Consulta de Produtos</title>
     <link rel="icon" href="/static/favicon.ico">
     <style>
         * { box-sizing: border-box; }
@@ -17,16 +17,16 @@
 
         .container {
             max-width: 1280px;
-            margin: 24px auto;
-            padding: 0 16px 48px;
+            margin: 14px auto;
+            padding: 0 14px 40px;
         }
 
         .card {
             background: #ffffff;
             border-radius: 24px;
             box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-            padding: 28px;
-            margin-bottom: 24px;
+            padding: 24px;
+            margin-bottom: 22px;
         }
 
         .header-top {
@@ -34,17 +34,17 @@
             justify-content: space-between;
             align-items: flex-start;
             gap: 16px;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
         }
 
         h1 {
             margin: 0 0 6px;
-            font-size: 28px;
+            font-size: 24px;
         }
 
         .subtitle {
             color: #64748b;
-            font-size: 16px;
+            font-size: 15px;
         }
 
         .brand-pill {
@@ -63,9 +63,9 @@
 
         .search-box {
             width: 100%;
-            font-size: 24px;
-            padding: 18px 22px;
-            border-radius: 24px;
+            font-size: 22px;
+            padding: 16px 20px;
+            border-radius: 22px;
             border: 3px solid #2563eb;
             outline: none;
         }
@@ -73,7 +73,7 @@
         .helper {
             margin-top: 10px;
             color: #64748b;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .autocomplete {
@@ -95,7 +95,7 @@
         }
 
         .suggestion {
-            padding: 14px 16px;
+            padding: 13px 15px;
             border-bottom: 1px solid #eef2f7;
             cursor: pointer;
         }
@@ -110,7 +110,7 @@
         }
 
         .suggestion-title {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 700;
             color: #0f172a;
             margin-bottom: 4px;
@@ -123,22 +123,23 @@
 
         .section-title {
             margin: 0 0 18px;
-            font-size: 24px;
+            font-size: 22px;
         }
 
         .subsection-title {
-            margin: 0 0 14px;
-            font-size: 18px;
+            margin: 0 0 12px;
+            font-size: 17px;
             color: #334155;
+            font-weight: 800;
         }
 
         .empty-state,
         .error-box,
         .loading-box,
         .success-box {
-            padding: 16px 18px;
+            padding: 14px 16px;
             border-radius: 16px;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
         .empty-state {
@@ -163,78 +164,56 @@
             border: 1px solid #86efac;
         }
 
-        .results-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
         .selected-wrapper {
-            margin-bottom: 26px;
+            margin-bottom: 18px;
         }
 
         .selected-product {
             border: 2px solid #2563eb;
             background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
             box-shadow: 0 14px 34px rgba(37, 99, 235, 0.14);
+            border-radius: 22px;
+            padding: 18px;
         }
 
         .selected-badge {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
             background: #dbeafe;
             color: #1d4ed8;
             border: 1px solid #bfdbfe;
             border-radius: 999px;
-            padding: 8px 12px;
-            font-size: 12px;
+            padding: 7px 11px;
+            font-size: 11px;
             font-weight: 800;
             letter-spacing: 0.06em;
             text-transform: uppercase;
-            margin-bottom: 12px;
-        }
-
-        .product-card {
-            border: 1px solid #e5e7eb;
-            border-radius: 22px;
-            padding: 18px;
-            background: #fff;
-        }
-
-        .product-card.compact {
-            padding: 12px 14px;
-            border-radius: 16px;
-        }
-
-        .product-card.compact .product-name {
-            font-size: 18px;
-            margin-bottom: 4px;
-        }
-
-        .product-card.compact .product-meta {
-            font-size: 12px;
-            gap: 6px 12px;
             margin-bottom: 10px;
         }
 
         .product-header {
             display: grid;
-            grid-template-columns: 1fr 180px;
+            grid-template-columns: 1fr 210px;
             gap: 16px;
             align-items: start;
-            margin-bottom: 18px;
-        }
-
-        .product-card.compact .product-header {
-            grid-template-columns: 1fr;
-            margin-bottom: 10px;
+            margin-bottom: 14px;
         }
 
         .product-name {
             margin: 0 0 6px;
-            font-size: 24px;
-            color: #475569;
+            color: #334155;
+            font-weight: 800;
+        }
+
+        .selected-product .product-name {
+            font-size: 36px;
+            line-height: 1.08;
+        }
+
+        .other-line .product-name {
+            font-size: 18px;
+            line-height: 1.1;
+            margin: 0;
         }
 
         .product-meta {
@@ -246,107 +225,96 @@
             font-weight: 600;
         }
 
+        .selected-product .product-meta {
+            font-size: 18px;
+            gap: 10px 20px;
+        }
+
+        .selected-product .product-meta strong {
+            color: #334155;
+        }
+
+        .codigo-destaque {
+            font-size: 22px;
+            color: #475569;
+            font-weight: 800;
+        }
+
         .price-box {
             background: #eff6ff;
             border: 1px solid #dbeafe;
             border-radius: 18px;
-            padding: 14px;
+            padding: 16px 14px;
             text-align: center;
         }
 
-        .product-card.compact .price-box {
-            display: none;
-        }
-
         .price-label {
-            font-size: 14px;
+            font-size: 16px;
             color: #64748b;
             margin-bottom: 8px;
+            font-weight: 700;
         }
 
         .price-value {
-            font-size: 28px;
-            font-weight: 800;
+            font-size: 48px;
+            font-weight: 900;
             color: #0f172a;
+            line-height: 1;
         }
 
         .stock-grid-selected {
             display: grid;
-            grid-template-columns: 1.55fr 0.7fr;
-            gap: 14px;
-            align-items: stretch;
-        }
-
-        .stock-grid-others {
-            display: grid;
-            grid-template-columns: 1.5fr 0.8fr 0.8fr auto;
-            gap: 10px;
+            grid-template-columns: 1.7fr 0.55fr;
+            gap: 12px;
             align-items: stretch;
         }
 
         .stock-card {
-            border: 1px solid #e5e7eb;
             border-radius: 18px;
-            padding: 16px;
-            background: #fff;
         }
 
         .stock-card.center {
             background: #f0fdf4;
             border: 2px solid #22c55e;
+            padding: 16px 18px;
         }
 
-        .stock-card.side {
-            background: #f8fbff;
-            padding: 12px 14px;
-        }
-
-        .stock-card.stack {
+        .side-stack {
             display: grid;
             grid-template-rows: 1fr 1fr;
-            gap: 10px;
-            background: transparent;
-            border: none;
-            padding: 0;
+            gap: 8px;
         }
 
         .mini-card {
             background: #f8fbff;
             border: 1px solid #e5e7eb;
             border-radius: 14px;
-            padding: 12px 14px;
+            padding: 10px 12px;
         }
 
         .stock-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 14px;
+            margin-bottom: 10px;
         }
 
         .stock-title {
             font-size: 14px;
-            font-weight: 800;
+            font-weight: 900;
             color: #475569;
             letter-spacing: 0.08em;
         }
 
-        .stock-value {
-            font-weight: 800;
+        .stock-card.center .stock-value {
+            font-size: 52px;
+            font-weight: 900;
             margin-bottom: 10px;
         }
 
-        .stock-card.center .stock-value {
-            font-size: 40px;
-        }
-
         .mini-card .stock-value {
-            font-size: 22px;
-            margin-bottom: 4px;
-        }
-
-        .stock-card.side .stock-value {
-            font-size: 24px;
+            font-size: 28px;
+            font-weight: 900;
             margin-bottom: 4px;
         }
 
@@ -359,8 +327,7 @@
             font-size: 14px;
         }
 
-        .mini-card .stock-details,
-        .stock-card.side .stock-details {
+        .mini-card .stock-details {
             font-size: 12px;
         }
 
@@ -382,8 +349,8 @@
         }
 
         .btn-ajustar.small {
-            padding: 6px 10px;
-            font-size: 11px;
+            padding: 5px 9px;
+            font-size: 10px;
         }
 
         .highlight {
@@ -396,22 +363,103 @@
         .muted-divider {
             height: 1px;
             background: #e5e7eb;
-            margin: 10px 0 20px;
+            margin: 12px 0 16px;
         }
 
-        @media (max-width: 900px) {
+        .results-list {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .other-line {
+            display: grid;
+            grid-template-columns: 1.8fr 0.65fr 0.5fr 0.5fr 0.55fr;
+            gap: 8px;
+            align-items: center;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            background: #fff;
+            padding: 10px 12px;
+        }
+
+        .other-main {
+            min-width: 0;
+        }
+
+        .other-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 12px;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .other-center-box {
+            background: #f0fdf4;
+            border: 1px solid #22c55e;
+            border-radius: 12px;
+            padding: 8px 10px;
+        }
+
+        .other-center-box .title,
+        .other-mini .title,
+        .other-price .title {
+            font-size: 11px;
+            font-weight: 900;
+            color: #475569;
+            letter-spacing: 0.06em;
+            margin-bottom: 4px;
+        }
+
+        .other-center-box .value {
+            font-size: 26px;
+            font-weight: 900;
+        }
+
+        .other-mini,
+        .other-price {
+            background: #f8fbff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 8px 10px;
+            text-align: center;
+        }
+
+        .other-mini .value,
+        .other-price .value {
+            font-size: 22px;
+            font-weight: 900;
+        }
+
+        .other-actions {
+            display: flex;
+            justify-content: center;
+        }
+
+        @media (max-width: 1000px) {
             .product-header,
             .stock-grid-selected,
-            .stock-grid-others {
+            .other-line {
                 grid-template-columns: 1fr;
             }
 
-            .search-box {
-                font-size: 20px;
+            .selected-product .product-name {
+                font-size: 28px;
+            }
+
+            .codigo-destaque {
+                font-size: 18px;
+            }
+
+            .price-value {
+                font-size: 38px;
             }
 
             .stock-card.center .stock-value {
-                font-size: 32px;
+                font-size: 38px;
             }
         }
     </style>
@@ -421,7 +469,7 @@
         <section class="card">
             <div class="header-top">
                 <div>
-                    <h1>Consulta Rápida de Produtos</h1>
+                    <h1>Consulta de Produtos</h1>
                     <div class="subtitle">Busque por nome, código interno, marca ou código de barras.</div>
                 </div>
                 <div class="brand-pill">Agro Consulta</div>
@@ -440,7 +488,7 @@
             </div>
 
             <div class="helper">
-                Dica: use ↑ ↓ e Enter para escolher a sugestão. Os detalhes completos aparecem após a seleção.
+                Dica: use ↑ ↓ e Enter para escolher a sugestão. Os detalhes aparecem após a seleção.
             </div>
         </section>
 
@@ -519,9 +567,9 @@
             if (!termoLimpo) return textoSeguro;
 
             const partes = termoLimpo
-                .split(/\\s+/)
+                .split(/\s+/)
                 .filter(Boolean)
-                .map(p => p.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&"));
+                .map(p => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
 
             if (!partes.length) return textoSeguro;
 
@@ -620,7 +668,7 @@
 
                 const contentType = resposta.headers.get("content-type") || "";
                 if (!contentType.includes("application/json")) {
-                    throw new Error("A rota /produtos/api/ajustar/ não está retornando JSON. Verifique o urls.py.");
+                    throw new Error("A rota /produtos/api/ajustar/ não está retornando JSON.");
                 }
 
                 const dados = await resposta.json();
@@ -643,14 +691,15 @@
             const saldoVilaErp = JSON.stringify(String(produto.saldo_vila_erp ?? 0));
 
             return `
-                <article class="product-card selected-product">
+                <article class="selected-product">
                     <div class="selected-badge">Selecionado</div>
+
                     <div class="product-header">
                         <div>
                             <h3 class="product-name">${destacarTexto(produto.nome, termo)}</h3>
                             <div class="product-meta">
-                                <span><strong>Código:</strong> ${escaparHtml(produto.codigo_interno || "")}</span>
-                                <span><strong>Barras:</strong> ${escaparHtml(produto.codigo_barras || "")}</span>
+                                <span class="codigo-destaque"><strong>Código:</strong> ${escaparHtml(produto.codigo_interno || "")}</span>
+                                <span class="codigo-destaque"><strong>Barras:</strong> ${escaparHtml(produto.codigo_barras || "")}</span>
                                 <span><strong>Marca:</strong> ${escaparHtml(produto.marca || "")}</span>
                                 <span><strong>Categoria:</strong> ${escaparHtml(produto.categoria || "")}</span>
                             </div>
@@ -682,7 +731,7 @@
                             </div>
                         </div>
 
-                        <div class="stock-card stack">
+                        <div class="side-stack">
                             <div class="mini-card">
                                 <div class="stock-top" style="margin-bottom:8px;">
                                     <div class="stock-title">VILA ELIAS</div>
@@ -712,57 +761,47 @@
             `;
         }
 
-        function criarCardCompacto(produto, termo) {
+        function criarLinhaCompacta(produto, termo) {
             const codigo = JSON.stringify(String(produto.codigo_interno || ""));
             const nome = JSON.stringify(String(produto.nome || ""));
             const saldoCentroErp = JSON.stringify(String(produto.saldo_centro_erp ?? 0));
 
             return `
-                <article class="product-card compact">
-                    <div class="product-header">
-                        <div>
-                            <h3 class="product-name">${destacarTexto(produto.nome, termo)}</h3>
-                            <div class="product-meta">
-                                <span><strong>Código:</strong> ${escaparHtml(produto.codigo_interno || "")}</span>
-                                <span><strong>Barras:</strong> ${escaparHtml(produto.codigo_barras || "")}</span>
-                                <span><strong>Marca:</strong> ${escaparHtml(produto.marca || "")}</span>
-                            </div>
+                <div class="other-line">
+                    <div class="other-main">
+                        <div class="product-name">${destacarTexto(produto.nome, termo)}</div>
+                        <div class="other-meta">
+                            <span><strong>Código:</strong> ${escaparHtml(produto.codigo_interno || "")}</span>
+                            <span><strong>Barras:</strong> ${escaparHtml(produto.codigo_barras || "")}</span>
+                            <span><strong>Marca:</strong> ${escaparHtml(produto.marca || "")}</span>
                         </div>
                     </div>
 
-                    <div class="stock-grid-others">
-                        <div class="stock-card center" style="padding:12px 14px;">
-                            <div class="stock-top" style="margin-bottom:8px;">
-                                <div class="stock-title">CENTRO</div>
-                                <button
-                                    type="button"
-                                    class="btn-ajustar small"
-                                    onclick='abrirAjuste("${String(produto.id)}", ${codigo}, ${nome}, "centro", ${saldoCentroErp})'
-                                >
-                                    Ajustar
-                                </button>
-                            </div>
-                            <div class="stock-value ${classeSaldo(produto.saldo_centro)}" style="font-size:28px;">${formatarNumero(produto.saldo_centro)}</div>
-                        </div>
-
-                        <div class="stock-card side">
-                            <div class="stock-title" style="margin-bottom:6px;">VILA</div>
-                            <div class="stock-value ${classeSaldo(produto.saldo_vila)}">${formatarNumero(produto.saldo_vila)}</div>
-                        </div>
-
-                        <div class="stock-card side">
-                            <div class="stock-title" style="margin-bottom:6px;">TOTAL</div>
-                            <div class="stock-value ${classeSaldo(produto.saldo_total)}">${formatarNumero(produto.saldo_total)}</div>
-                        </div>
-
-                        <div class="stock-card side" style="display:flex;align-items:center;justify-content:center;">
-                            <div style="text-align:center;">
-                                <div class="stock-title" style="margin-bottom:6px;">PREÇO</div>
-                                <div class="stock-value neutral" style="font-size:20px;">${formatarPreco(produto.preco_venda)}</div>
-                            </div>
-                        </div>
+                    <div class="other-center-box">
+                        <div class="title">CENTRO</div>
+                        <div class="value ${classeSaldo(produto.saldo_centro)}">${formatarNumero(produto.saldo_centro)}</div>
                     </div>
-                </article>
+
+                    <div class="other-mini">
+                        <div class="title">VILA</div>
+                        <div class="value ${classeSaldo(produto.saldo_vila)}">${formatarNumero(produto.saldo_vila)}</div>
+                    </div>
+
+                    <div class="other-mini">
+                        <div class="title">TOTAL</div>
+                        <div class="value ${classeSaldo(produto.saldo_total)}">${formatarNumero(produto.saldo_total)}</div>
+                    </div>
+
+                    <div class="other-actions">
+                        <button
+                            type="button"
+                            class="btn-ajustar small"
+                            onclick='abrirAjuste("${String(produto.id)}", ${codigo}, ${nome}, "centro", ${saldoCentroErp})'
+                        >
+                            Ajustar
+                        </button>
+                    </div>
+                </div>
             `;
         }
 
@@ -797,7 +836,7 @@
                 <div class="muted-divider"></div>
                 <h3 class="subsection-title">Outros resultados</h3>
                 <div class="results-list">
-                    ${demais.map(produto => criarCardCompacto(produto, campoBusca.value)).join("")}
+                    ${demais.map(produto => criarLinhaCompacta(produto, campoBusca.value)).join("")}
                 </div>
             ` : "";
 
