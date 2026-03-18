@@ -20,6 +20,7 @@ def get_mongo_client():
 
 
 class VendaERPMongoClient:
+
     DIAS_RANKING_VENDAS = 180
 
     def __init__(self):
@@ -44,99 +45,71 @@ class VendaERPMongoClient:
             return base
         return [t for t in self._normalizar(termo).split() if t]
 
-    def _texto_busca_produto(self, produto):
-        partes = [
-            produto.get("Nome"),
-            produto.get("BuscaTexto"),
-            produto.get("Categoria"),
-            produto.get("SubCategoria"),
-            produto.get("Subcategoria"),
-            produto.get("Marca"),
-        ]
-        return self._normalizar(" ".join(str(p or "") for p in partes))
-
     # =========================
-    # REGRAS DE PRODUTO
+    # GRANEL
     # =========================
 
     def _eh_granel(self, produto):
-        nome = self._normalizar(produto.get("Nome"))
-        categoria = self._normalizar(produto.get("Categoria"))
-        sub = self._normalizar(
-            produto.get("SubCategoria") or produto.get("Subcategoria")
+        texto = self._normalizar(
+            f"{produto.get('Nome')} {produto.get('Categoria')} {produto.get('SubCategoria')}"
         )
-
-        texto = f"{nome} {categoria} {sub}"
 
         if "granel" in texto:
             return True
 
         if any(x in texto for x in ["1kg", "1 kg"]):
-            if any(t in texto for t in ["milho", "racao", "ração", "farelo", "quirera", "soja"]):
+            if any(t in texto for t in ["milho", "racao", "ração", "farelo"]):
                 return True
 
         return False
 
+    # =========================
+    # PESO
+    # =========================
+
     def _peso_produto(self, produto):
         nome = self._normalizar(produto.get("Nome"))
+        match = re.search(r"(\\d+)(kg|g)", nome)
 
-        match = re.search(r"(\d+(?:[.,]\d+)?)\s*(kg|g)\b", nome)
         if not match:
             return 0
 
-        valor_str = match.group(1).replace(",", ".")
+        valor = int(match.group(1))
         unidade = match.group(2)
 
-        try:
-            valor = float(valor_str)
-        except ValueError:
-            return 0
+        return valor * 1000 if unidade == "kg" else valor
 
-        if unidade == "kg":
-            return int(valor * 1000)
+    def _peso_alvo(self, termo):
+        termo = self._normalizar(termo)
 
-        return int(valor)
-
-    def _peso_alvo_busca(self, termo):
-        termo_norm = self._normalizar(termo)
-
-        # regra simples e comercial para consultas genéricas de ração
-        if "turtle" in termo_norm:
+        if "turtle" in termo:
             return 300
 
-        if "racao" in termo_norm or "ração" in termo_norm:
+        if "racao" in termo or "ração" in termo:
             return 15000
 
         return None
 
     # =========================
-    # BUSCA
+    # BUSCA (COM MONGO INDEX)
     # =========================
 
     def _buscar(self, termo):
-        tks = self._tokens(termo)
-        if not tks:
-            return []
-
-        filtro = {
-            "$and": [
-                {"CadastroInativo": False},
+        return list(
+            self.db["DtoProduto"].find(
                 {
-                    "$and": [
-                        {
-                            "$or": [
-                                {"BuscaTexto": {"$regex": re.escape(t), "$options": "i"}},
-                                {"Nome": {"$regex": re.escape(t), "$options": "i"}},
-                                {"NomeNormalizado": {"$regex": re.escape(t), "$options": "i"}},
-                            ]
-                        }
-                        for t in tks
-                    ]
+                    "$text": {"$search": termo},
+                    "CadastroInativo": False
                 },
-            ]
-        }
-
-        return list(self.db["DtoProduto"].find(filtro).limit(200))
+                {
+                    "score": {"$meta": "textScore"},
+                    "Nome": 1,
+                    "Categoria": 1,
+                    "SubCategoria": 1,
+                    "PrecoVenda": 1,
+                }
+            ).sort([("score", {"$meta": "textScore"})]).limit(200)
+        )
 
     # =========================
     # SCORE
@@ -144,45 +117,23 @@ class VendaERPMongoClient:
 
     def _score(self, produto, termo):
         nome = self._normalizar(produto.get("Nome"))
-        texto_produto = self._texto_busca_produto(produto)
-        termo_norm = self._normalizar(termo)
-        tks = self._tokens(termo)
+        termo = self._normalizar(termo)
 
         score = 0
 
-        if termo_norm and termo_norm in nome:
+        if termo in nome:
             score += 1000
-        elif termo_norm and termo_norm in texto_produto:
-            score += 700
 
-        if termo_norm and nome.startswith(termo_norm):
+        if nome.startswith(termo):
             score += 500
 
-        tokens_encontrados = 0
-
-        for tk in tks:
-            encontrou = False
-
+        for tk in self._tokens(termo):
             if tk in nome:
-                score += 220
-                encontrou = True
-            elif tk in texto_produto:
-                score += 150
-                encontrou = True
+                score += 200
             else:
                 for palavra in nome.split():
-                    if SequenceMatcher(None, tk, palavra).ratio() >= 0.82:
+                    if SequenceMatcher(None, tk, palavra).ratio() > 0.8:
                         score += 100
-                        encontrou = True
-                        break
-
-            if encontrou:
-                tokens_encontrados += 1
-
-        if tks and tokens_encontrados == len(tks):
-            score += 900
-        elif len(tks) >= 2 and tokens_encontrados >= len(tks) - 1:
-            score += 300
 
         return score
 
@@ -213,38 +164,36 @@ class VendaERPMongoClient:
         ]
 
         dados = list(self.db["ReportViewDtoEstoqueSaida"].aggregate(pipeline))
-        return {str(d["_id"]): float(d.get("qtd", 0) or 0) for d in dados}
+        return {str(d["_id"]): d["qtd"] for d in dados}
 
     # =========================
-    # ORDENAÇÃO
+    # ORDENAÇÃO FINAL
     # =========================
 
     def _ordenar(self, produtos, termo):
         ids = [str(p["_id"]) for p in produtos if p.get("_id")]
         ranking = self._ranking_vendas(ids)
-        peso_alvo = self._peso_alvo_busca(termo)
+        peso_alvo = self._peso_alvo(termo)
 
         def chave(p):
             pid = str(p.get("_id"))
             vendidos = ranking.get(pid, 0)
             peso = self._peso_produto(p)
-            score = self._score(p, termo)
 
-            # se não houver peso alvo, não interfere
-            distancia_peso = abs(peso - peso_alvo) if peso_alvo and peso > 0 else 999999
+            distancia_peso = abs(peso - peso_alvo) if peso_alvo and peso else 999999
 
             return (
-                self._eh_granel(p),           # granel sempre por último
-                -score,                       # correspondência da busca primeiro
-                distancia_peso,               # tamanho comercial mais apropriado
-                -vendidos,                    # mais vendidos
+                self._eh_granel(p),
+                -self._score(p, termo),
+                distancia_peso,
+                -vendidos,
                 self._normalizar(p.get("Nome")),
             )
 
         return sorted(produtos, key=chave)
 
     # =========================
-    # PÚBLICO
+    # PUBLICO
     # =========================
 
     def buscar_produtos(self, termo):
@@ -253,6 +202,7 @@ class VendaERPMongoClient:
 
         produtos = self._buscar(termo)
         produtos = self._ordenar(produtos, termo)
+
         return produtos[:50]
 
     def buscar_estoques_por_produto_ids(self, produto_ids):
@@ -264,11 +214,8 @@ class VendaERPMongoClient:
                 {"ProdutoID": {"$in": [str(pid) for pid in produto_ids]}},
                 {
                     "ProdutoID": 1,
-                    "Produto": 1,
                     "Deposito": 1,
-                    "DepositoID": 1,
                     "Saldo": 1,
-                    "EstoqueMinimo": 1,
                 },
             )
         )
