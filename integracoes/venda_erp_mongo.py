@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 
 from pymongo import MongoClient
+from pymongo.errors import PyMongoError
 from django.conf import settings
 
 from integracoes.texto import tokens
@@ -15,12 +16,19 @@ _mongo_client = None
 def get_mongo_client():
     global _mongo_client
     if _mongo_client is None:
-        _mongo_client = MongoClient(settings.VENDA_ERP_MONGO_URL)
+        _mongo_client = MongoClient(
+            settings.VENDA_ERP_MONGO_URL,
+            maxPoolSize=20,
+            minPoolSize=1,
+            serverSelectionTimeoutMS=5000,
+            connectTimeoutMS=5000,
+            socketTimeoutMS=10000,
+            retryWrites=False,
+        )
     return _mongo_client
 
 
 class VendaERPMongoClient:
-
     DIAS_RANKING_VENDAS = 180
 
     def __init__(self):
@@ -45,71 +53,140 @@ class VendaERPMongoClient:
             return base
         return [t for t in self._normalizar(termo).split() if t]
 
+    def _texto_busca_produto(self, produto):
+        partes = [
+            produto.get("Nome"),
+            produto.get("BuscaTexto"),
+            produto.get("Categoria"),
+            produto.get("SubCategoria"),
+            produto.get("Subcategoria"),
+            produto.get("Marca"),
+        ]
+        return self._normalizar(" ".join(str(p or "") for p in partes))
+
     # =========================
-    # GRANEL
+    # REGRAS DE PRODUTO
     # =========================
 
     def _eh_granel(self, produto):
         texto = self._normalizar(
-            f"{produto.get('Nome')} {produto.get('Categoria')} {produto.get('SubCategoria')}"
+            f"{produto.get('Nome')} {produto.get('Categoria')} "
+            f"{produto.get('SubCategoria')} {produto.get('Subcategoria')}"
         )
 
         if "granel" in texto:
             return True
 
         if any(x in texto for x in ["1kg", "1 kg"]):
-            if any(t in texto for t in ["milho", "racao", "ração", "farelo"]):
+            if any(
+                t in texto
+                for t in ["milho", "racao", "ração", "farelo", "quirera", "soja"]
+            ):
                 return True
 
         return False
 
-    # =========================
-    # PESO
-    # =========================
-
     def _peso_produto(self, produto):
         nome = self._normalizar(produto.get("Nome"))
-        match = re.search(r"(\\d+)(kg|g)", nome)
+        match = re.search(r"(\d+(?:[.,]\d+)?)\s*(kg|g)\b", nome)
 
         if not match:
             return 0
 
-        valor = int(match.group(1))
+        valor_str = match.group(1).replace(",", ".")
         unidade = match.group(2)
 
-        return valor * 1000 if unidade == "kg" else valor
+        try:
+            valor = float(valor_str)
+        except ValueError:
+            return 0
+
+        if unidade == "kg":
+            return int(valor * 1000)
+
+        return int(valor)
 
     def _peso_alvo(self, termo):
-        termo = self._normalizar(termo)
+        termo_norm = self._normalizar(termo)
 
-        if "turtle" in termo:
+        if "turtle" in termo_norm:
             return 300
 
-        if "racao" in termo or "ração" in termo:
+        if "racao" in termo_norm or "ração" in termo_norm:
             return 15000
 
         return None
 
     # =========================
-    # BUSCA (COM MONGO INDEX)
+    # BUSCA
     # =========================
 
-    def _buscar(self, termo):
+    def _projection_busca(self):
+        return {
+            "Nome": 1,
+            "Categoria": 1,
+            "SubCategoria": 1,
+            "Subcategoria": 1,
+            "PrecoVenda": 1,
+            "BuscaTexto": 1,
+            "NomeNormalizado": 1,
+            "Marca": 1,
+            "CadastroInativo": 1,
+        }
+
+    def _buscar_text_index(self, termo):
         return list(
             self.db["DtoProduto"].find(
                 {
                     "$text": {"$search": termo},
-                    "CadastroInativo": False
+                    "CadastroInativo": False,
                 },
                 {
+                    **self._projection_busca(),
                     "score": {"$meta": "textScore"},
-                    "Nome": 1,
-                    "Categoria": 1,
-                    "SubCategoria": 1,
-                    "PrecoVenda": 1,
-                }
+                },
             ).sort([("score", {"$meta": "textScore"})]).limit(200)
         )
+
+    def _buscar_regex_fallback(self, termo):
+        tks = self._tokens(termo)
+        if not tks:
+            return []
+
+        filtro = {
+            "$and": [
+                {"CadastroInativo": False},
+                {
+                    "$and": [
+                        {
+                            "$or": [
+                                {"BuscaTexto": {"$regex": re.escape(t), "$options": "i"}},
+                                {"Nome": {"$regex": re.escape(t), "$options": "i"}},
+                                {"NomeNormalizado": {"$regex": re.escape(t), "$options": "i"}},
+                            ]
+                        }
+                        for t in tks
+                    ]
+                },
+            ]
+        }
+
+        return list(self.db["DtoProduto"].find(filtro, self._projection_busca()).limit(200))
+
+    def _buscar(self, termo):
+        try:
+            resultados = self._buscar_text_index(termo)
+            if resultados:
+                return resultados
+        except PyMongoError:
+            pass
+        except Exception:
+            pass
+
+        try:
+            return self._buscar_regex_fallback(termo)
+        except Exception:
+            return []
 
     # =========================
     # SCORE
@@ -117,23 +194,52 @@ class VendaERPMongoClient:
 
     def _score(self, produto, termo):
         nome = self._normalizar(produto.get("Nome"))
-        termo = self._normalizar(termo)
+        texto_produto = self._texto_busca_produto(produto)
+        termo_norm = self._normalizar(termo)
+        tks = self._tokens(termo)
 
         score = 0
 
-        if termo in nome:
-            score += 1000
+        mongo_text_score = produto.get("score")
+        try:
+            if mongo_text_score is not None:
+                score += int(float(mongo_text_score) * 100)
+        except (TypeError, ValueError):
+            pass
 
-        if nome.startswith(termo):
+        if termo_norm and termo_norm in nome:
+            score += 1000
+        elif termo_norm and termo_norm in texto_produto:
+            score += 700
+
+        if termo_norm and nome.startswith(termo_norm):
             score += 500
 
-        for tk in self._tokens(termo):
+        tokens_encontrados = 0
+
+        for tk in tks:
+            encontrou = False
+
             if tk in nome:
-                score += 200
+                score += 220
+                encontrou = True
+            elif tk in texto_produto:
+                score += 150
+                encontrou = True
             else:
                 for palavra in nome.split():
-                    if SequenceMatcher(None, tk, palavra).ratio() > 0.8:
+                    if SequenceMatcher(None, tk, palavra).ratio() >= 0.82:
                         score += 100
+                        encontrou = True
+                        break
+
+            if encontrou:
+                tokens_encontrados += 1
+
+        if tks and tokens_encontrados == len(tks):
+            score += 900
+        elif len(tks) >= 2 and tokens_encontrados >= len(tks) - 1:
+            score += 300
 
         return score
 
@@ -163,11 +269,14 @@ class VendaERPMongoClient:
             },
         ]
 
-        dados = list(self.db["ReportViewDtoEstoqueSaida"].aggregate(pipeline))
-        return {str(d["_id"]): d["qtd"] for d in dados}
+        try:
+            dados = list(self.db["ReportViewDtoEstoqueSaida"].aggregate(pipeline))
+            return {str(d["_id"]): float(d.get("qtd", 0) or 0) for d in dados}
+        except Exception:
+            return {}
 
     # =========================
-    # ORDENAÇÃO FINAL
+    # ORDENAÇÃO
     # =========================
 
     def _ordenar(self, produtos, termo):
@@ -179,12 +288,13 @@ class VendaERPMongoClient:
             pid = str(p.get("_id"))
             vendidos = ranking.get(pid, 0)
             peso = self._peso_produto(p)
+            score = self._score(p, termo)
 
-            distancia_peso = abs(peso - peso_alvo) if peso_alvo and peso else 999999
+            distancia_peso = abs(peso - peso_alvo) if peso_alvo and peso > 0 else 999999
 
             return (
                 self._eh_granel(p),
-                -self._score(p, termo),
+                -score,
                 distancia_peso,
                 -vendidos,
                 self._normalizar(p.get("Nome")),
@@ -193,7 +303,7 @@ class VendaERPMongoClient:
         return sorted(produtos, key=chave)
 
     # =========================
-    # PUBLICO
+    # PÚBLICO
     # =========================
 
     def buscar_produtos(self, termo):
@@ -202,20 +312,25 @@ class VendaERPMongoClient:
 
         produtos = self._buscar(termo)
         produtos = self._ordenar(produtos, termo)
-
         return produtos[:50]
 
     def buscar_estoques_por_produto_ids(self, produto_ids):
         if not produto_ids:
             return []
 
-        return list(
-            self.db["DtoEstoqueDepositoProduto"].find(
-                {"ProdutoID": {"$in": [str(pid) for pid in produto_ids]}},
-                {
-                    "ProdutoID": 1,
-                    "Deposito": 1,
-                    "Saldo": 1,
-                },
+        try:
+            return list(
+                self.db["DtoEstoqueDepositoProduto"].find(
+                    {"ProdutoID": {"$in": [str(pid) for pid in produto_ids]}},
+                    {
+                        "ProdutoID": 1,
+                        "Produto": 1,
+                        "Deposito": 1,
+                        "DepositoID": 1,
+                        "Saldo": 1,
+                        "EstoqueMinimo": 1,
+                    },
+                )
             )
-        )
+        except Exception:
+            return []
