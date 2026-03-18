@@ -122,17 +122,20 @@ class VendaERPMongoClient:
     # =========================
 
     def _projection_busca(self):
-        return {
-            "Nome": 1,
-            "Categoria": 1,
-            "SubCategoria": 1,
-            "Subcategoria": 1,
-            "PrecoVenda": 1,
-            "BuscaTexto": 1,
-            "NomeNormalizado": 1,
-            "Marca": 1,
-            "CadastroInativo": 1,
-        }
+     return {
+        "Nome": 1,
+        "Codigo": 1,
+        "CodigoNFe": 1,
+        "EAN_NFe": 1,
+        "Categoria": 1,
+        "SubCategoria": 1,
+        "Subcategoria": 1,
+        "PrecoVenda": 1,
+        "BuscaTexto": 1,
+        "NomeNormalizado": 1,
+        "Marca": 1,
+        "CadastroInativo": 1,
+    }
 
     def _buscar_text_index(self, termo):
         return list(
