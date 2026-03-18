@@ -46,49 +46,80 @@ class VendaERPMongoClient:
             "NomeNormalizado": 1,
         }
 
-    def buscar_produtos(self, termo):
+    def _normalizar_termo(self, termo):
         termo = (termo or "").strip()
+        termo_numerico = re.sub(r"\D", "", termo)
+        return termo, termo_numerico
 
-        if not termo:
+    def _buscar_barras_exato(self, termo, termo_numerico, projection):
+        # Busca exata por código de barras só quando parece realmente código de barras
+        candidatos = []
+
+        if termo and termo.isdigit() and len(termo) >= 8:
+            candidatos.append(termo)
+
+        if termo_numerico and len(termo_numerico) >= 8 and termo_numerico not in candidatos:
+            candidatos.append(termo_numerico)
+
+        for valor in candidatos:
+            produto = self.db["DtoProduto"].find_one(
+                {
+                    "EAN_NFe": valor,
+                    "CadastroInativo": False,
+                },
+                projection,
+            )
+            if produto:
+                return [produto]
+
+        return []
+
+    def _buscar_por_codigo_prefixo(self, termo, projection):
+        # Ex.: GM0090 deve trazer GM0090-1, GM0090-5, GM0090-24...
+        regex_prefixo = f"^{re.escape(termo)}"
+
+        filtro = {
+            "$and": [
+                {"CadastroInativo": False},
+                {
+                    "$or": [
+                        {"CodigoNFe": {"$regex": regex_prefixo, "$options": "i"}},
+                        {"Codigo": {"$regex": regex_prefixo, "$options": "i"}},
+                    ]
+                },
+            ]
+        }
+
+        resultados = list(
+            self.db["DtoProduto"].find(filtro, projection).limit(50)
+        )
+
+        return resultados
+
+    def _buscar_por_barras_parcial(self, termo, termo_numerico, projection):
+        if not termo_numerico:
             return []
 
-        cache_key = f"busca_produtos::{termo.lower()}"
-        cached = cache.get(cache_key)
-        if cached is not None:
-            return cached
+        regex_numerico = re.escape(termo_numerico)
 
-        projection = self._projection_produto()
+        filtro = {
+            "$and": [
+                {"CadastroInativo": False},
+                {
+                    "$or": [
+                        {"EAN_NFe": {"$regex": regex_numerico, "$options": "i"}},
+                        {"Codigo": {"$regex": regex_numerico, "$options": "i"}},
+                        {"CodigoNFe": {"$regex": regex_numerico, "$options": "i"}},
+                    ]
+                },
+            ]
+        }
 
-        # 1. Busca exata por código de barras
-        produto_exato = self.db["DtoProduto"].find_one(
-            {
-                "EAN_NFe": termo,
-                "CadastroInativo": False,
-            },
-            projection,
+        return list(
+            self.db["DtoProduto"].find(filtro, projection).limit(50)
         )
-        if produto_exato:
-            resultado = [produto_exato]
-            cache.set(cache_key, resultado, self.cache_ttl)
-            return resultado
 
-        # 2. Busca exata por código interno
-        produto_exato = self.db["DtoProduto"].find_one(
-            {
-                "$or": [
-                    {"CodigoNFe": termo},
-                    {"Codigo": termo},
-                ],
-                "CadastroInativo": False,
-            },
-            projection,
-        )
-        if produto_exato:
-            resultado = [produto_exato]
-            cache.set(cache_key, resultado, self.cache_ttl)
-            return resultado
-
-        # 3. Busca flexível por nome
+    def _buscar_por_nome(self, termo, projection):
         tks = tokens(termo)
 
         if not tks:
@@ -109,13 +140,43 @@ class VendaERPMongoClient:
             ]
         }
 
-        resultados = list(
-            self.db["DtoProduto"].find(
-                filtro,
-                projection
-            ).limit(20)
+        return list(
+            self.db["DtoProduto"].find(filtro, projection).limit(20)
         )
 
+    def buscar_produtos(self, termo):
+        termo, termo_numerico = self._normalizar_termo(termo)
+
+        if not termo:
+            return []
+
+        cache_key = f"busca_produtos::{termo.lower()}::{termo_numerico}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        projection = self._projection_produto()
+
+        # 1. Código de barras exato
+        resultados = self._buscar_barras_exato(termo, termo_numerico, projection)
+        if resultados:
+            cache.set(cache_key, resultados, self.cache_ttl)
+            return resultados
+
+        # 2. Código interno por prefixo
+        resultados = self._buscar_por_codigo_prefixo(termo, projection)
+        if resultados:
+            cache.set(cache_key, resultados, self.cache_ttl)
+            return resultados
+
+        # 3. Busca numérica parcial
+        resultados = self._buscar_por_barras_parcial(termo, termo_numerico, projection)
+        if resultados:
+            cache.set(cache_key, resultados, self.cache_ttl)
+            return resultados
+
+        # 4. Busca por nome
+        resultados = self._buscar_por_nome(termo, projection)
         cache.set(cache_key, resultados, self.cache_ttl)
         return resultados
 
