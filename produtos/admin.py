@@ -8,6 +8,7 @@ class ProdutoAdmin(admin.ModelAdmin):
         'id',
         'codigo_interno',
         'nome',
+        'empresa',
         'marca',
         'categoria',
         'preco_venda',
@@ -21,4 +22,4 @@ class ProdutoAdmin(admin.ModelAdmin):
         'marca'
     )
 
-    list_filter = ('categoria', 'marca', 'ativo')
+    list_filter = ('empresa', 'categoria', 'marca', 'ativo')

@@ -2,13 +2,21 @@ from django.db import models
 
 
 class Estoque(models.Model):
+    empresa = models.ForeignKey(
+        'base.Empresa',
+        on_delete=models.CASCADE,
+        related_name='estoques',
+        verbose_name='Empresa',
+        null=True,
+        blank=True,
+    )
     produto = models.ForeignKey(
         'produtos.Produto',
         on_delete=models.CASCADE,
         related_name='estoques'
     )
     loja = models.ForeignKey(
-        'lojas.Loja',
+        'base.Loja',
         on_delete=models.CASCADE,
         related_name='estoques'
     )
@@ -20,7 +28,12 @@ class Estoque(models.Model):
         verbose_name = 'Estoque'
         verbose_name_plural = 'Estoques'
         ordering = ['loja__nome', 'produto__nome']
-        unique_together = ('produto', 'loja')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['produto', 'loja'],
+                name='unique_produto_loja_estoque',
+            )
+        ]
 
     def __str__(self):
         return f'{self.produto.nome} - {self.loja.nome}'
@@ -32,6 +45,22 @@ class AjusteRapidoEstoque(models.Model):
         ('vila', 'Vila Elias'),
     ]
 
+    empresa = models.ForeignKey(
+        'base.Empresa',
+        on_delete=models.CASCADE,
+        related_name='ajustes_rapidos_estoque',
+        verbose_name='Empresa',
+        null=True,
+        blank=True,
+    )
+    loja = models.ForeignKey(
+        'base.Loja',
+        on_delete=models.CASCADE,
+        related_name='ajustes_rapidos',
+        verbose_name='Loja',
+        null=True,
+        blank=True,
+    )
     produto_externo_id = models.CharField(max_length=100, db_index=True)
     codigo_interno = models.CharField(max_length=100, blank=True, default='')
     nome_produto = models.CharField(max_length=255, blank=True, default='')
