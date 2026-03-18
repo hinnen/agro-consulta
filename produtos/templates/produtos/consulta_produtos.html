@@ -1,768 +1,649 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Consulta de Produtos</title>
-    <link rel="icon" href="/static/favicon.ico" />
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta Rápida de Produtos</title>
+    <link rel="icon" href="/static/favicon.ico">
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg: #f3f4f6;
-            --card: #ffffff;
-            --text: #111827;
-            --muted: #6b7280;
-            --line: #e5e7eb;
-            --primary: #2563eb;
-            --primary-soft: #dbeafe;
-            --success: #166534;
-            --success-soft: #f0fdf4;
-            --danger: #b91c1c;
-            --danger-soft: #fef2f2;
-            --neutral: #374151;
-            --shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
-            --radius: 22px;
-        }
-
+        * { box-sizing: border-box; }
         body {
             margin: 0;
-            padding: 24px;
             font-family: Arial, sans-serif;
-            background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
-            color: var(--text);
+            background: #f3f4f6;
+            color: #0f172a;
         }
 
         .container {
-            max-width: 1240px;
-            margin: 0 auto;
+            max-width: 1280px;
+            margin: 24px auto;
+            padding: 0 16px 48px;
         }
 
-        .box {
-            background: var(--card);
-            border-radius: var(--radius);
+        .card {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
             padding: 28px;
-            box-shadow: var(--shadow);
             margin-bottom: 24px;
-            border: 1px solid rgba(229, 231, 235, 0.8);
         }
 
-        .cabecalho {
+        .header-top {
             display: flex;
-            align-items: center;
             justify-content: space-between;
+            align-items: flex-start;
             gap: 16px;
-            margin-bottom: 18px;
+            margin-bottom: 14px;
         }
 
-        .cabecalho-texto h1 {
-            margin: 0 0 8px 0;
-            font-size: 30px;
-            line-height: 1.1;
-            letter-spacing: -0.02em;
+        h1 {
+            margin: 0 0 6px;
+            font-size: 28px;
         }
 
-        .subtitulo {
-            margin: 0;
-            color: var(--muted);
-            font-size: 15px;
+        .subtitle {
+            color: #64748b;
+            font-size: 16px;
         }
 
-        .selo-topo {
-            min-width: 110px;
-            text-align: center;
-            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-            color: #1d4ed8;
-            font-weight: 700;
-            font-size: 13px;
-            padding: 10px 14px;
+        .brand-pill {
+            background: #e8f0ff;
+            color: #2563eb;
+            border: 1px solid #c7d7fe;
+            padding: 10px 16px;
             border-radius: 999px;
-            border: 1px solid #bfdbfe;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
-        .campo-wrap {
+        .search-wrap {
             position: relative;
         }
 
-        .campo-busca {
+        .search-box {
             width: 100%;
-            height: 74px;
-            padding: 0 22px;
             font-size: 24px;
-            border: 3px solid var(--primary);
-            border-radius: 20px;
+            padding: 18px 22px;
+            border-radius: 24px;
+            border: 3px solid #2563eb;
             outline: none;
-            background: #fff;
-            color: var(--text);
-            transition: 0.2s ease;
         }
 
-        .campo-busca:focus {
-            box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.12);
-            transform: translateY(-1px);
-        }
-
-        .campo-ajuda {
+        .helper {
             margin-top: 10px;
-            font-size: 13px;
-            color: var(--muted);
-        }
-
-        .titulo-resultados {
-            margin: 0 0 22px 0;
-            font-size: 24px;
-            letter-spacing: -0.01em;
-        }
-
-        .mensagem {
-            font-size: 16px;
-            color: var(--muted);
-        }
-
-        .erro {
-            color: var(--danger);
-            background: var(--danger-soft);
-            border: 1px solid #fecaca;
-            border-radius: 14px;
-            padding: 12px 14px;
-            margin-bottom: 16px;
-        }
-
-        .sucesso {
-            color: var(--success);
-            background: var(--success-soft);
-            border: 1px solid #bbf7d0;
-            border-radius: 14px;
-            padding: 12px 14px;
-            margin-bottom: 16px;
-        }
-
-        .loading {
-            color: var(--primary);
-            font-weight: 700;
-            font-size: 16px;
-        }
-
-        .lista-resultados {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .resultado-item {
-            border: 1px solid var(--line);
-            border-radius: 18px;
-            padding: 18px;
-            background: #fff;
-            transition: 0.18s ease;
-        }
-
-        .resultado-item:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
-        }
-
-        .resultado-topo {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 12px;
-        }
-
-        .resultado-titulo {
-            min-width: 0;
-            flex: 1;
-        }
-
-        .resultado-nome {
-            margin: 0 0 8px 0;
-            font-size: 23px;
-            line-height: 1.2;
-            letter-spacing: -0.02em;
-            word-break: break-word;
-        }
-
-        .resultado-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px 16px;
-            color: var(--muted);
+            color: #64748b;
             font-size: 14px;
         }
 
-        .resultado-preco-box {
-            flex-shrink: 0;
-            min-width: 170px;
-            background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
-            border: 1px solid #dbeafe;
+        .autocomplete {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid #dbe3ef;
             border-radius: 18px;
-            padding: 14px 16px;
-            text-align: right;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+            overflow: hidden;
+            z-index: 50;
+            display: none;
         }
 
-        .resultado-preco-label {
+        .autocomplete.open {
             display: block;
-            color: var(--muted);
-            font-size: 12px;
+        }
+
+        .suggestion {
+            padding: 14px 16px;
+            border-bottom: 1px solid #eef2f7;
+            cursor: pointer;
+        }
+
+        .suggestion:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion.active,
+        .suggestion:hover {
+            background: #eff6ff;
+        }
+
+        .suggestion-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
             margin-bottom: 4px;
         }
 
-        .resultado-preco-valor {
-            font-size: 28px;
-            font-weight: 800;
-            color: #1f2937;
-            letter-spacing: -0.02em;
-        }
-
-        .estoques-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 12px;
-            margin-top: 14px;
-        }
-
-        .estoque-card {
-            border: 1px solid var(--line);
-            border-radius: 18px;
-            padding: 14px;
-            background: #fafafa;
-        }
-
-        .estoque-card.total {
-            background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
-            border-color: #dbeafe;
-        }
-
-        .estoque-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .estoque-loja {
+        .suggestion-meta {
             font-size: 13px;
-            font-weight: 700;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
+            color: #64748b;
         }
 
-        .botao-ajuste {
-            border: 1px solid #cbd5e1;
-            background: #fff;
-            color: var(--neutral);
-            border-radius: 12px;
-            padding: 7px 12px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.15s ease;
+        .section-title {
+            margin: 0 0 18px;
+            font-size: 24px;
         }
 
-        .botao-ajuste:hover {
+        .empty-state,
+        .error-box,
+        .loading-box {
+            padding: 16px 18px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state {
+            background: #f8fafc;
+            color: #64748b;
+        }
+
+        .loading-box {
             background: #eff6ff;
-            border-color: #93c5fd;
             color: #1d4ed8;
         }
 
-        .estoque-valor {
-            font-size: 29px;
+        .error-box {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        .results-list {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .product-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 22px;
+            padding: 18px;
+        }
+
+        .product-header {
+            display: grid;
+            grid-template-columns: 1fr 180px;
+            gap: 16px;
+            align-items: start;
+            margin-bottom: 18px;
+        }
+
+        .product-name {
+            margin: 0 0 6px;
+            font-size: 24px;
+            color: #475569;
+        }
+
+        .product-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 18px;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .price-box {
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            border-radius: 18px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .price-label {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .price-value {
+            font-size: 28px;
             font-weight: 800;
-            letter-spacing: -0.03em;
+            color: #0f172a;
+        }
+
+        .stock-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+
+        .stock-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            padding: 16px;
+            background: #fff;
+        }
+
+        .stock-card.total {
+            background: #f8fbff;
+        }
+
+        .stock-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .stock-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #475569;
+            letter-spacing: 0.08em;
+        }
+
+        .stock-tag {
+            font-size: 12px;
+            color: #64748b;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-weight: 700;
+        }
+
+        .stock-value {
+            font-size: 28px;
+            font-weight: 800;
             margin-bottom: 10px;
         }
 
-        .ok {
-            color: var(--success);
+        .stock-value.positive { color: #15803d; }
+        .stock-value.negative { color: #b91c1c; }
+        .stock-value.neutral { color: #0f172a; }
+
+        .stock-details {
+            color: #64748b;
+            font-size: 14px;
         }
 
-        .baixo {
-            color: var(--danger);
+        .highlight {
+            background: #fde047;
+            color: #111827;
+            padding: 0 2px;
+            border-radius: 4px;
         }
 
-        .neutro {
-            color: var(--neutral);
-            font-weight: 700;
-        }
-
-        .detalhe-ajuste {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px 10px;
-            font-size: 13px;
-            color: var(--muted);
-            line-height: 1.4;
-        }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            border-radius: 999px;
-            padding: 6px 10px;
-            font-size: 12px;
-            font-weight: 700;
-            background: #fff;
-            border: 1px solid var(--line);
-        }
-
-        .destaque-unico {
-            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-            border: 2px solid var(--primary-soft);
-            border-radius: 22px;
-            padding: 24px;
-            box-shadow: 0 14px 30px rgba(37, 99, 235, 0.08);
-        }
-
-        .destaque-unico .resultado-nome {
-            font-size: 34px;
-        }
-
-        .destaque-unico .resultado-preco-box {
-            min-width: 210px;
-        }
-
-        .destaque-unico .resultado-preco-valor {
-            font-size: 34px;
-        }
-
-        .destaque-unico .estoque-valor {
-            font-size: 36px;
-        }
-
-        @media (max-width: 980px) {
-            .resultado-topo {
-                flex-direction: column;
-            }
-
-            .resultado-preco-box {
-                width: 100%;
-                text-align: left;
-            }
-
-            .estoques-grid {
+        @media (max-width: 900px) {
+            .product-header {
                 grid-template-columns: 1fr;
             }
-        }
 
-        @media (max-width: 768px) {
-            body {
-                padding: 14px;
+            .stock-grid {
+                grid-template-columns: 1fr;
             }
 
-            .box {
-                padding: 18px;
-                border-radius: 18px;
-            }
-
-            .cabecalho {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .cabecalho-texto h1 {
-                font-size: 24px;
-            }
-
-            .campo-busca {
-                height: 60px;
+            .search-box {
                 font-size: 20px;
-                padding: 0 16px;
-            }
-
-            .titulo-resultados {
-                font-size: 22px;
-            }
-
-            .resultado-nome {
-                font-size: 20px;
-            }
-
-            .destaque-unico .resultado-nome {
-                font-size: 26px;
-            }
-
-            .resultado-preco-valor,
-            .destaque-unico .resultado-preco-valor {
-                font-size: 28px;
-            }
-
-            .estoque-valor,
-            .destaque-unico .estoque-valor {
-                font-size: 30px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="box">
-            <div class="cabecalho">
-                <div class="cabecalho-texto">
+        <section class="card">
+            <div class="header-top">
+                <div>
                     <h1>Consulta Rápida de Produtos</h1>
-                    <p class="subtitulo">Busque por nome, código interno, marca ou código de barras.</p>
+                    <div class="subtitle">Busque por nome, código interno, marca ou código de barras.</div>
                 </div>
-                <div class="selo-topo">Agro Consulta</div>
+                <div class="brand-pill">Agro Consulta</div>
             </div>
 
-            <div class="campo-wrap">
+            <div class="search-wrap">
                 <input
+                    id="campo-busca"
+                    class="search-box"
                     type="text"
-                    id="busca"
-                    class="campo-busca"
                     placeholder="Digite para buscar..."
                     autocomplete="off"
                     autofocus
-                />
+                >
+                <div id="autocomplete" class="autocomplete"></div>
             </div>
 
-            <div class="campo-ajuda">
-                Dica: quando encontrar apenas 1 item, ele aparece em destaque para facilitar a visualização no balcão.
+            <div class="helper">
+                Dica: use ↑ ↓ e Enter para escolher uma sugestão sem tirar a mão do teclado.
             </div>
-        </div>
+        </section>
 
-        <div class="box">
-            <h2 class="titulo-resultados">Resultados</h2>
-            <div id="mensagem-status"></div>
-            <div id="erro-api"></div>
-            <div id="resultados" class="mensagem">Digite algo para pesquisar.</div>
-        </div>
+        <section class="card">
+            <h2 class="section-title">Resultados</h2>
+            <div id="status-area"></div>
+            <div id="resultados" class="results-list">
+                <div class="empty-state">Digite algo para pesquisar.</div>
+            </div>
+        </section>
     </div>
 
     <script>
-        const campoBusca = document.getElementById("busca");
-        const resultadosEl = document.getElementById("resultados");
-        const erroApiEl = document.getElementById("erro-api");
-        const mensagemStatusEl = document.getElementById("mensagem-status");
+        const campoBusca = document.getElementById("campo-busca");
+        const autocomplete = document.getElementById("autocomplete");
+        const resultados = document.getElementById("resultados");
+        const statusArea = document.getElementById("status-area");
 
-        let timerBusca = null;
-
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== "") {
-                const cookies = document.cookie.split(";");
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + "=")) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-
-        function formatarMoeda(valor) {
-            const numero = Number(valor || 0);
-            return numero.toLocaleString("pt-BR", {
-                style: "currency",
-                currency: "BRL"
-            });
-        }
+        let debounceSugestao = null;
+        let debounceBusca = null;
+        let sugestoesAtuais = [];
+        let indiceAtivo = -1;
+        let ultimoTermoBuscado = "";
+        let controllerSugestao = null;
+        let controllerBusca = null;
 
         function formatarNumero(valor) {
-            const numero = Number(valor || 0);
-            return numero.toLocaleString("pt-BR", {
+            return Number(valor || 0).toLocaleString("pt-BR", {
                 minimumFractionDigits: 0,
-                maximumFractionDigits: 2
+                maximumFractionDigits: 2,
             });
         }
 
-        function formatarDiferenca(valor) {
+        function formatarPreco(valor) {
+            return Number(valor || 0).toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+            });
+        }
+
+        function classeSaldo(valor) {
             const numero = Number(valor || 0);
-            if (numero > 0) return "+" + formatarNumero(numero);
-            return formatarNumero(numero);
+            if (numero > 0) return "positive";
+            if (numero < 0) return "negative";
+            return "neutral";
         }
 
         function escaparHtml(texto) {
             return String(texto || "")
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#39;");
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
         }
 
-        function escaparJs(texto) {
-            return String(texto || "")
-                .replace(/\\/g, "\\\\")
-                .replace(/'/g, "\\'")
-                .replace(/"/g, '\\"')
-                .replace(/\n/g, " ")
-                .replace(/\r/g, " ");
+        function destacarTexto(texto, termo) {
+            const textoSeguro = escaparHtml(texto);
+            const termoLimpo = String(termo || "").trim();
+
+            if (!termoLimpo) return textoSeguro;
+
+            const partes = termoLimpo
+                .split(/\s+/)
+                .filter(Boolean)
+                .map(p => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
+            if (!partes.length) return textoSeguro;
+
+            const regex = new RegExp(`(${partes.join("|")})`, "gi");
+            return textoSeguro.replace(regex, '<span class="highlight">$1</span>');
         }
 
-        function mostrarSucesso(texto) {
-            mensagemStatusEl.innerHTML = `<div class="sucesso">${escaparHtml(texto)}</div>`;
-            setTimeout(() => {
-                mensagemStatusEl.innerHTML = "";
-            }, 3000);
+        function abrirAutocomplete() {
+            if (sugestoesAtuais.length) {
+                autocomplete.classList.add("open");
+            }
+        }
+
+        function fecharAutocomplete() {
+            autocomplete.classList.remove("open");
+            indiceAtivo = -1;
+        }
+
+        function renderizarSugestoes(termo) {
+            if (!sugestoesAtuais.length) {
+                autocomplete.innerHTML = "";
+                fecharAutocomplete();
+                return;
+            }
+
+            autocomplete.innerHTML = sugestoesAtuais.map((item, index) => `
+                <div class="suggestion ${index === indiceAtivo ? "active" : ""}" data-index="${index}">
+                    <div class="suggestion-title">${destacarTexto(item.nome, termo)}</div>
+                    <div class="suggestion-meta">
+                        Código: ${escaparHtml(item.codigo_interno || "")}
+                        ${item.codigo_barras ? `&nbsp;&nbsp;|&nbsp;&nbsp;Barras: ${escaparHtml(item.codigo_barras)}` : ""}
+                        ${item.marca ? `&nbsp;&nbsp;|&nbsp;&nbsp;Marca: ${escaparHtml(item.marca)}` : ""}
+                    </div>
+                </div>
+            `).join("");
+
+            abrirAutocomplete();
+
+            autocomplete.querySelectorAll(".suggestion").forEach(el => {
+                el.addEventListener("mousedown", (event) => {
+                    event.preventDefault();
+                    const index = Number(el.dataset.index);
+                    selecionarSugestao(index);
+                });
+            });
+        }
+
+        function selecionarSugestao(index) {
+            const item = sugestoesAtuais[index];
+            if (!item) return;
+
+            campoBusca.value = item.nome;
+            fecharAutocomplete();
+            buscarProdutos(item.nome);
+        }
+
+        function mostrarLoading(texto = "Buscando...") {
+            statusArea.innerHTML = `<div class="loading-box">${escaparHtml(texto)}</div>`;
+        }
+
+        function limparStatus() {
+            statusArea.innerHTML = "";
         }
 
         function mostrarErro(texto) {
-            mensagemStatusEl.innerHTML = `<div class="erro">${escaparHtml(texto)}</div>`;
-            setTimeout(() => {
-                mensagemStatusEl.innerHTML = "";
-            }, 4000);
+            statusArea.innerHTML = `<div class="error-box">${escaparHtml(texto)}</div>`;
         }
 
-        async function ajustarSaldo(produtoId, codigoInterno, nomeProduto, deposito, saldoErp) {
-            const novoSaldo = prompt(
-                "Ajuste rápido\n\n" +
-                "Produto: " + nomeProduto + "\n" +
-                "Depósito: " + deposito + "\n" +
-                "Saldo ERP atual: " + formatarNumero(saldoErp) + "\n\n" +
-                "Digite o NOVO saldo desejado:"
-            );
-
-            if (novoSaldo === null || novoSaldo.trim() === "") {
+        function renderizarResultados(lista) {
+            if (!lista.length) {
+                resultados.innerHTML = `<div class="empty-state">Nenhum produto encontrado.</div>`;
                 return;
             }
 
-            const observacao = prompt("Observação do ajuste (opcional):") || "";
-
-            const formData = new FormData();
-            formData.append("produto_id", produtoId);
-            formData.append("codigo_interno", codigoInterno || "");
-            formData.append("nome_produto", nomeProduto || "");
-            formData.append("deposito", deposito);
-            formData.append("saldo_atual", String(saldoErp ?? 0));
-            formData.append("novo_saldo", novoSaldo);
-            formData.append("observacao", observacao);
-
-            try {
-                const resposta = await fetch("/produtos/api/ajustar-estoque/", {
-                    method: "POST",
-                    headers: {
-                        "X-CSRFToken": getCookie("csrftoken")
-                    },
-                    body: formData
-                });
-
-                const texto = await resposta.text();
-                let dados;
-
-                try {
-                    dados = JSON.parse(texto);
-                } catch (e) {
-                    throw new Error("O servidor retornou uma página de erro em vez de JSON.");
-                }
-
-                if (!resposta.ok || !dados.ok) {
-                    throw new Error(dados.erro || "Não foi possível salvar o ajuste.");
-                }
-
-                mostrarSucesso("Ajuste salvo com sucesso.");
-                buscarProdutos(campoBusca.value);
-            } catch (erro) {
-                mostrarErro(erro.message || "Erro ao salvar ajuste.");
-            }
-        }
-
-        function montarCardEstoque(label, valor, valorErp, diferenca, deposito, p, isTotal = false) {
-            const valorClass = Number(valor) <= 0 ? "baixo" : "ok";
-            const idSeguroJs = escaparJs(p.id || "");
-            const codigoInternoJs = escaparJs(p.codigo_interno || "");
-            const nomeSeguroJs = escaparJs(p.nome || "");
-
-            return `
-                <div class="estoque-card ${isTotal ? 'total' : ''}">
-                    <div class="estoque-head">
-                        <div class="estoque-loja">${label}</div>
-                        ${
-                            isTotal
-                                ? `<span class="badge">Resumo</span>`
-                                : `<button
-                                        class="botao-ajuste"
-                                        onclick="ajustarSaldo('${idSeguroJs}', '${codigoInternoJs}', '${nomeSeguroJs}', '${deposito}', ${Number(valorErp || 0)})"
-                                   >
-                                        Ajustar
-                                   </button>`
-                        }
-                    </div>
-
-                    <div class="estoque-valor ${valorClass}">
-                        ${formatarNumero(valor)}
-                    </div>
-
-                    ${
-                        isTotal
-                            ? `
-                                <div class="detalhe-ajuste">
-                                    <span>Total Centro + Vila</span>
-                                </div>
-                              `
-                            : `
-                                <div class="detalhe-ajuste">
-                                    <span>ERP:</span>
-                                    <span class="neutro">${formatarNumero(valorErp)}</span>
-                                    <span>•</span>
-                                    <span>Ajuste:</span>
-                                    <span class="neutro">${formatarDiferenca(diferenca)}</span>
-                                </div>
-                              `
-                    }
-                </div>
-            `;
-        }
-
-        function montarCardProduto(p, destaque = false) {
-            const saldoCentro = Number(p.saldo_centro || 0);
-            const saldoVila = Number(p.saldo_vila || 0);
-            const total = Number(p.saldo_total ?? (saldoCentro + saldoVila));
-
-            const saldoCentroErp = Number(p.saldo_centro_erp || 0);
-            const saldoVilaErp = Number(p.saldo_vila_erp || 0);
-
-            const diferencaCentro = Number(p.diferenca_centro || 0);
-            const diferencaVila = Number(p.diferenca_vila || 0);
-
-            return `
-                <div class="${destaque ? 'destaque-unico' : 'resultado-item'}">
-                    <div class="resultado-topo">
-                        <div class="resultado-titulo">
-                            <h3 class="resultado-nome">${escaparHtml(p.nome || "")}</h3>
-
-                            <div class="resultado-meta">
-                                <span><strong>Código:</strong> ${escaparHtml(p.codigo_interno || "-")}</span>
-                                <span><strong>Barras:</strong> ${escaparHtml(p.codigo_barras || "-")}</span>
-                                <span><strong>Marca:</strong> ${escaparHtml(p.marca || "-")}</span>
-                                <span><strong>Categoria:</strong> ${escaparHtml(p.categoria || "-")}</span>
+            resultados.innerHTML = lista.map(produto => `
+                <article class="product-card">
+                    <div class="product-header">
+                        <div>
+                            <h3 class="product-name">${destacarTexto(produto.nome, campoBusca.value)}</h3>
+                            <div class="product-meta">
+                                <span><strong>Código:</strong> ${escaparHtml(produto.codigo_interno || "")}</span>
+                                <span><strong>Barras:</strong> ${escaparHtml(produto.codigo_barras || "")}</span>
+                                <span><strong>Marca:</strong> ${escaparHtml(produto.marca || "")}</span>
+                                <span><strong>Categoria:</strong> ${escaparHtml(produto.categoria || "")}</span>
                             </div>
                         </div>
 
-                        <div class="resultado-preco-box">
-                            <span class="resultado-preco-label">Preço de venda</span>
-                            <span class="resultado-preco-valor">${formatarMoeda(p.preco_venda)}</span>
+                        <div class="price-box">
+                            <div class="price-label">Preço de venda</div>
+                            <div class="price-value">${formatarPreco(produto.preco_venda)}</div>
                         </div>
                     </div>
 
-                    <div class="estoques-grid">
-                        ${montarCardEstoque("Centro", saldoCentro, saldoCentroErp, diferencaCentro, "centro", p)}
-                        ${montarCardEstoque("Vila Elias", saldoVila, saldoVilaErp, diferencaVila, "vila", p)}
-                        ${montarCardEstoque("Estoque Total", total, total, 0, "", p, true)}
+                    <div class="stock-grid">
+                        <div class="stock-card">
+                            <div class="stock-top">
+                                <div class="stock-title">CENTRO</div>
+                                <div class="stock-tag">Ajustar</div>
+                            </div>
+                            <div class="stock-value ${classeSaldo(produto.saldo_centro)}">${formatarNumero(produto.saldo_centro)}</div>
+                            <div class="stock-details">
+                                ERP: <strong>${formatarNumero(produto.saldo_centro_erp)}</strong>
+                                &nbsp;&nbsp;•&nbsp;&nbsp;
+                                Ajuste: <strong>${formatarNumero((produto.saldo_centro || 0) - (produto.saldo_centro_erp || 0))}</strong>
+                            </div>
+                        </div>
+
+                        <div class="stock-card">
+                            <div class="stock-top">
+                                <div class="stock-title">VILA ELIAS</div>
+                                <div class="stock-tag">Ajustar</div>
+                            </div>
+                            <div class="stock-value ${classeSaldo(produto.saldo_vila)}">${formatarNumero(produto.saldo_vila)}</div>
+                            <div class="stock-details">
+                                ERP: <strong>${formatarNumero(produto.saldo_vila_erp)}</strong>
+                                &nbsp;&nbsp;•&nbsp;&nbsp;
+                                Ajuste: <strong>${formatarNumero((produto.saldo_vila || 0) - (produto.saldo_vila_erp || 0))}</strong>
+                            </div>
+                        </div>
+
+                        <div class="stock-card total">
+                            <div class="stock-top">
+                                <div class="stock-title">ESTOQUE TOTAL</div>
+                                <div class="stock-tag">Resumo</div>
+                            </div>
+                            <div class="stock-value ${classeSaldo(produto.saldo_total)}">${formatarNumero(produto.saldo_total)}</div>
+                            <div class="stock-details">Total Centro + Vila</div>
+                        </div>
                     </div>
-                </div>
-            `;
+                </article>
+            `).join("");
         }
 
-        function montarResultados(produtos) {
-            if (!produtos || produtos.length === 0) {
-                resultadosEl.innerHTML = '<div class="mensagem">Nenhum produto encontrado.</div>';
-                return;
-            }
-
-            if (produtos.length === 1) {
-                resultadosEl.innerHTML = montarCardProduto(produtos[0], true);
-                return;
-            }
-
-            let html = '<div class="lista-resultados">';
-            produtos.forEach((p) => {
-                html += montarCardProduto(p, false);
-            });
-            html += '</div>';
-
-            resultadosEl.innerHTML = html;
-        }
-
-        async function buscarProdutos(termo) {
-            const busca = termo.trim();
-
-            if (!busca) {
-                erroApiEl.innerHTML = "";
-                resultadosEl.innerHTML = '<div class="mensagem">Digite algo para pesquisar.</div>';
-                return;
-            }
-
-            resultadosEl.innerHTML = '<div class="loading">Buscando...</div>';
-            erroApiEl.innerHTML = "";
+        async function buscarSugestoes(termo) {
+            if (controllerSugestao) controllerSugestao.abort();
+            controllerSugestao = new AbortController();
 
             try {
-                const resposta = await fetch(`/produtos/api/buscar/?q=${encodeURIComponent(busca)}`);
+                const resposta = await fetch(`/produtos/api/sugestoes/?q=${encodeURIComponent(termo)}`, {
+                    signal: controllerSugestao.signal
+                });
                 const dados = await resposta.json();
 
                 if (dados.erro_api) {
-                    erroApiEl.innerHTML = `<div class="erro">${escaparHtml(dados.erro_api)}</div>`;
-                } else {
-                    erroApiEl.innerHTML = "";
+                    sugestoesAtuais = [];
+                    renderizarSugestoes(termo);
+                    return;
                 }
 
-                montarResultados(dados.produtos || []);
+                sugestoesAtuais = dados.sugestoes || [];
+                indiceAtivo = -1;
+                renderizarSugestoes(termo);
             } catch (erro) {
-                erroApiEl.innerHTML = '<div class="erro">Erro ao buscar produtos. Tente novamente.</div>';
-                resultadosEl.innerHTML = '<div class="mensagem">Não foi possível carregar os resultados.</div>';
+                if (erro.name !== "AbortError") {
+                    sugestoesAtuais = [];
+                    renderizarSugestoes(termo);
+                }
             }
         }
 
-        campoBusca.addEventListener("input", function () {
-            clearTimeout(timerBusca);
-            const valor = this.value;
+        async function buscarProdutos(termo) {
+            const termoLimpo = String(termo || "").trim();
 
-            timerBusca = setTimeout(() => {
-                buscarProdutos(valor);
-            }, 250);
+            if (!termoLimpo) {
+                limparStatus();
+                resultados.innerHTML = `<div class="empty-state">Digite algo para pesquisar.</div>`;
+                return;
+            }
+
+            ultimoTermoBuscado = termoLimpo;
+
+            if (controllerBusca) controllerBusca.abort();
+            controllerBusca = new AbortController();
+
+            mostrarLoading("Buscando produtos...");
+
+            try {
+                const resposta = await fetch(`/produtos/api/buscar/?q=${encodeURIComponent(termoLimpo)}`, {
+                    signal: controllerBusca.signal
+                });
+
+                const dados = await resposta.json();
+
+                if (ultimoTermoBuscado !== termoLimpo) {
+                    return;
+                }
+
+                if (dados.erro_api) {
+                    mostrarErro(dados.erro_api);
+                } else {
+                    limparStatus();
+                }
+
+                renderizarResultados(dados.produtos || []);
+            } catch (erro) {
+                if (erro.name === "AbortError") return;
+                mostrarErro("Erro ao buscar produtos.");
+                resultados.innerHTML = `<div class="empty-state">Nenhum produto encontrado.</div>`;
+            }
+        }
+
+        campoBusca.addEventListener("input", () => {
+            const termo = campoBusca.value.trim();
+
+            clearTimeout(debounceSugestao);
+            clearTimeout(debounceBusca);
+
+            if (termo.length < 2) {
+                sugestoesAtuais = [];
+                fecharAutocomplete();
+
+                if (!termo) {
+                    limparStatus();
+                    resultados.innerHTML = `<div class="empty-state">Digite algo para pesquisar.</div>`;
+                }
+                return;
+            }
+
+            debounceSugestao = setTimeout(() => {
+                buscarSugestoes(termo);
+            }, 180);
+
+            debounceBusca = setTimeout(() => {
+                buscarProdutos(termo);
+            }, 260);
+        });
+
+        campoBusca.addEventListener("keydown", (event) => {
+            if (!sugestoesAtuais.length) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    buscarProdutos(campoBusca.value);
+                }
+                return;
+            }
+
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
+                indiceAtivo = (indiceAtivo + 1) % sugestoesAtuais.length;
+                renderizarSugestoes(campoBusca.value);
+                return;
+            }
+
+            if (event.key === "ArrowUp") {
+                event.preventDefault();
+                indiceAtivo = (indiceAtivo - 1 + sugestoesAtuais.length) % sugestoesAtuais.length;
+                renderizarSugestoes(campoBusca.value);
+                return;
+            }
+
+            if (event.key === "Enter") {
+                event.preventDefault();
+                if (indiceAtivo >= 0) {
+                    selecionarSugestao(indiceAtivo);
+                } else {
+                    fecharAutocomplete();
+                    buscarProdutos(campoBusca.value);
+                }
+                return;
+            }
+
+            if (event.key === "Escape") {
+                fecharAutocomplete();
+            }
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!autocomplete.contains(event.target) && event.target !== campoBusca) {
+                fecharAutocomplete();
+            }
         });
     </script>
-    <script>
-(function () {
-    const TEMPO_INATIVIDADE_MS = 5 * 60 * 1000; // 5 minutos
-    let temporizadorInatividade;
-
-    function resetarTemporizador() {
-        clearTimeout(temporizadorInatividade);
-        temporizadorInatividade = setTimeout(voltarParaInicio, TEMPO_INATIVIDADE_MS);
-    }
-
-    function voltarParaInicio() {
-        const rotaInicial = "/";
-
-        if (window.location.pathname !== rotaInicial) {
-            window.location.href = rotaInicial;
-            return;
-        }
-
-        const campoBusca =
-            document.querySelector('input[type="search"]') ||
-            document.querySelector('input[name="q"]') ||
-            document.querySelector('input[id*="busca"]') ||
-            document.querySelector('input[id*="pesquisa"]') ||
-            document.querySelector('input[type="text"]');
-
-        if (campoBusca) {
-            campoBusca.value = "";
-            campoBusca.focus();
-        }
-
-        const tabelaResultados =
-            document.querySelector("#resultado-busca") ||
-            document.querySelector("#resultados") ||
-            document.querySelector("tbody");
-
-        if (tabelaResultados) {
-            tabelaResultados.innerHTML = "";
-        }
-    }
-
-    [
-        "mousemove",
-        "mousedown",
-        "click",
-        "scroll",
-        "keypress",
-        "touchstart"
-    ].forEach(function (evento) {
-        document.addEventListener(evento, resetarTemporizador, true);
-    });
-
-    resetarTemporizador();
-})();
-</script>
 </body>
 </html>
