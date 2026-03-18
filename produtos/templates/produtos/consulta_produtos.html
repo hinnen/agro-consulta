@@ -1,649 +1,224 @@
+<!-- SUBSTITUA TUDO POR ISSO -->
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta Rápida de Produtos</title>
-    <link rel="icon" href="/static/favicon.ico">
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f3f4f6;
-            color: #0f172a;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consulta</title>
 
-        .container {
-            max-width: 1280px;
-            margin: 24px auto;
-            padding: 0 16px 48px;
-        }
+<style>
+body { font-family: Arial; background:#f3f4f6; margin:0; }
+.container { max-width:1100px; margin:20px auto; }
 
-        .card {
-            background: #ffffff;
-            border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-            padding: 28px;
-            margin-bottom: 24px;
-        }
+.search-box {
+    width:100%;
+    font-size:24px;
+    padding:18px;
+    border-radius:16px;
+    border:3px solid #2563eb;
+}
 
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 16px;
-            margin-bottom: 14px;
-        }
+.autocomplete {
+    background:#fff;
+    border-radius:12px;
+    margin-top:5px;
+    display:none;
+    box-shadow:0 10px 30px rgba(0,0,0,0.1);
+}
 
-        h1 {
-            margin: 0 0 6px;
-            font-size: 28px;
-        }
+.autocomplete.open { display:block; }
 
-        .subtitle {
-            color: #64748b;
-            font-size: 16px;
-        }
+.suggestion {
+    padding:12px;
+    cursor:pointer;
+}
 
-        .brand-pill {
-            background: #e8f0ff;
-            color: #2563eb;
-            border: 1px solid #c7d7fe;
-            padding: 10px 16px;
-            border-radius: 999px;
-            font-weight: 700;
-            white-space: nowrap;
-        }
+.suggestion:hover, .active {
+    background:#eff6ff;
+}
 
-        .search-wrap {
-            position: relative;
-        }
+.results { margin-top:20px; }
 
-        .search-box {
-            width: 100%;
-            font-size: 24px;
-            padding: 18px 22px;
-            border-radius: 24px;
-            border: 3px solid #2563eb;
-            outline: none;
-        }
+.card {
+    background:#fff;
+    padding:20px;
+    border-radius:16px;
+    margin-bottom:15px;
+}
 
-        .helper {
-            margin-top: 10px;
-            color: #64748b;
-            font-size: 14px;
-        }
+.nome {
+    font-size:22px;
+    font-weight:bold;
+}
 
-        .autocomplete {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            right: 0;
-            background: #ffffff;
-            border: 1px solid #dbe3ef;
-            border-radius: 18px;
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-            overflow: hidden;
-            z-index: 50;
-            display: none;
-        }
+.meta {
+    font-size:13px;
+    color:#555;
+    margin-bottom:10px;
+}
 
-        .autocomplete.open {
-            display: block;
-        }
+.estoques {
+    display:grid;
+    grid-template-columns:2fr 1fr 1fr;
+    gap:10px;
+}
 
-        .suggestion {
-            padding: 14px 16px;
-            border-bottom: 1px solid #eef2f7;
-            cursor: pointer;
-        }
+/* CENTRO destaque */
+.centro {
+    background:#ecfdf5;
+    border:2px solid #22c55e;
+    padding:15px;
+    border-radius:12px;
+}
 
-        .suggestion:last-child {
-            border-bottom: none;
-        }
+.centro .valor {
+    font-size:32px;
+    font-weight:bold;
+    color:#15803d;
+}
 
-        .suggestion.active,
-        .suggestion:hover {
-            background: #eff6ff;
-        }
+/* outros menores */
+.pequeno {
+    background:#f8fafc;
+    padding:10px;
+    border-radius:12px;
+    font-size:14px;
+}
 
-        .suggestion-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 4px;
-        }
-
-        .suggestion-meta {
-            font-size: 13px;
-            color: #64748b;
-        }
-
-        .section-title {
-            margin: 0 0 18px;
-            font-size: 24px;
-        }
-
-        .empty-state,
-        .error-box,
-        .loading-box {
-            padding: 16px 18px;
-            border-radius: 16px;
-            margin-bottom: 16px;
-        }
-
-        .empty-state {
-            background: #f8fafc;
-            color: #64748b;
-        }
-
-        .loading-box {
-            background: #eff6ff;
-            color: #1d4ed8;
-        }
-
-        .error-box {
-            background: #fef2f2;
-            color: #b91c1c;
-            border: 1px solid #fecaca;
-        }
-
-        .results-list {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-
-        .product-card {
-            border: 1px solid #e5e7eb;
-            border-radius: 22px;
-            padding: 18px;
-        }
-
-        .product-header {
-            display: grid;
-            grid-template-columns: 1fr 180px;
-            gap: 16px;
-            align-items: start;
-            margin-bottom: 18px;
-        }
-
-        .product-name {
-            margin: 0 0 6px;
-            font-size: 24px;
-            color: #475569;
-        }
-
-        .product-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px 18px;
-            color: #64748b;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .price-box {
-            background: #eff6ff;
-            border: 1px solid #dbeafe;
-            border-radius: 18px;
-            padding: 14px;
-            text-align: center;
-        }
-
-        .price-label {
-            font-size: 14px;
-            color: #64748b;
-            margin-bottom: 8px;
-        }
-
-        .price-value {
-            font-size: 28px;
-            font-weight: 800;
-            color: #0f172a;
-        }
-
-        .stock-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 14px;
-        }
-
-        .stock-card {
-            border: 1px solid #e5e7eb;
-            border-radius: 18px;
-            padding: 16px;
-            background: #fff;
-        }
-
-        .stock-card.total {
-            background: #f8fbff;
-        }
-
-        .stock-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 14px;
-        }
-
-        .stock-title {
-            font-size: 14px;
-            font-weight: 800;
-            color: #475569;
-            letter-spacing: 0.08em;
-        }
-
-        .stock-tag {
-            font-size: 12px;
-            color: #64748b;
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 999px;
-            padding: 6px 10px;
-            font-weight: 700;
-        }
-
-        .stock-value {
-            font-size: 28px;
-            font-weight: 800;
-            margin-bottom: 10px;
-        }
-
-        .stock-value.positive { color: #15803d; }
-        .stock-value.negative { color: #b91c1c; }
-        .stock-value.neutral { color: #0f172a; }
-
-        .stock-details {
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        .highlight {
-            background: #fde047;
-            color: #111827;
-            padding: 0 2px;
-            border-radius: 4px;
-        }
-
-        @media (max-width: 900px) {
-            .product-header {
-                grid-template-columns: 1fr;
-            }
-
-            .stock-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .search-box {
-                font-size: 20px;
-            }
-        }
-    </style>
+</style>
 </head>
+
 <body>
-    <div class="container">
-        <section class="card">
-            <div class="header-top">
-                <div>
-                    <h1>Consulta Rápida de Produtos</h1>
-                    <div class="subtitle">Busque por nome, código interno, marca ou código de barras.</div>
+
+<div class="container">
+
+<input id="busca" class="search-box" placeholder="Digite para buscar..." autofocus>
+
+<div id="autocomplete" class="autocomplete"></div>
+
+<div id="resultados" class="results"></div>
+
+</div>
+
+<script>
+
+const input = document.getElementById("busca");
+const auto = document.getElementById("autocomplete");
+const resultados = document.getElementById("resultados");
+
+let sugestoes = [];
+let selecionado = -1;
+let podeBuscar = false;
+
+function renderSugestoes(q){
+    if(!sugestoes.length){
+        auto.classList.remove("open");
+        return;
+    }
+
+    auto.innerHTML = sugestoes.map((s,i)=>`
+        <div class="suggestion ${i===selecionado?'active':''}" data-i="${i}">
+            ${s.nome}
+        </div>
+    `).join("");
+
+    auto.classList.add("open");
+
+    auto.querySelectorAll(".suggestion").forEach(el=>{
+        el.onclick = ()=>{
+            selecionar(el.dataset.i);
+        }
+    });
+}
+
+function selecionar(i){
+    const item = sugestoes[i];
+    if(!item) return;
+
+    input.value = item.nome;
+    auto.classList.remove("open");
+
+    podeBuscar = true;
+    buscar(item.nome);
+}
+
+async function buscar(q){
+    if(!podeBuscar) return;
+
+    resultados.innerHTML = "Carregando...";
+
+    const res = await fetch(`/produtos/api/buscar/?q=${q}`);
+    const data = await res.json();
+
+    resultados.innerHTML = data.produtos.map(p=>`
+        <div class="card">
+            <div class="nome">${p.nome}</div>
+            <div class="meta">
+                Código: ${p.codigo_interno} |
+                Barras: ${p.codigo_barras}
+            </div>
+
+            <div class="estoques">
+                <div class="centro">
+                    CENTRO
+                    <div class="valor">${p.saldo_centro}</div>
                 </div>
-                <div class="brand-pill">Agro Consulta</div>
-            </div>
 
-            <div class="search-wrap">
-                <input
-                    id="campo-busca"
-                    class="search-box"
-                    type="text"
-                    placeholder="Digite para buscar..."
-                    autocomplete="off"
-                    autofocus
-                >
-                <div id="autocomplete" class="autocomplete"></div>
-            </div>
-
-            <div class="helper">
-                Dica: use ↑ ↓ e Enter para escolher uma sugestão sem tirar a mão do teclado.
-            </div>
-        </section>
-
-        <section class="card">
-            <h2 class="section-title">Resultados</h2>
-            <div id="status-area"></div>
-            <div id="resultados" class="results-list">
-                <div class="empty-state">Digite algo para pesquisar.</div>
-            </div>
-        </section>
-    </div>
-
-    <script>
-        const campoBusca = document.getElementById("campo-busca");
-        const autocomplete = document.getElementById("autocomplete");
-        const resultados = document.getElementById("resultados");
-        const statusArea = document.getElementById("status-area");
-
-        let debounceSugestao = null;
-        let debounceBusca = null;
-        let sugestoesAtuais = [];
-        let indiceAtivo = -1;
-        let ultimoTermoBuscado = "";
-        let controllerSugestao = null;
-        let controllerBusca = null;
-
-        function formatarNumero(valor) {
-            return Number(valor || 0).toLocaleString("pt-BR", {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2,
-            });
-        }
-
-        function formatarPreco(valor) {
-            return Number(valor || 0).toLocaleString("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-            });
-        }
-
-        function classeSaldo(valor) {
-            const numero = Number(valor || 0);
-            if (numero > 0) return "positive";
-            if (numero < 0) return "negative";
-            return "neutral";
-        }
-
-        function escaparHtml(texto) {
-            return String(texto || "")
-                .replaceAll("&", "&amp;")
-                .replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;")
-                .replaceAll('"', "&quot;")
-                .replaceAll("'", "&#039;");
-        }
-
-        function destacarTexto(texto, termo) {
-            const textoSeguro = escaparHtml(texto);
-            const termoLimpo = String(termo || "").trim();
-
-            if (!termoLimpo) return textoSeguro;
-
-            const partes = termoLimpo
-                .split(/\s+/)
-                .filter(Boolean)
-                .map(p => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-
-            if (!partes.length) return textoSeguro;
-
-            const regex = new RegExp(`(${partes.join("|")})`, "gi");
-            return textoSeguro.replace(regex, '<span class="highlight">$1</span>');
-        }
-
-        function abrirAutocomplete() {
-            if (sugestoesAtuais.length) {
-                autocomplete.classList.add("open");
-            }
-        }
-
-        function fecharAutocomplete() {
-            autocomplete.classList.remove("open");
-            indiceAtivo = -1;
-        }
-
-        function renderizarSugestoes(termo) {
-            if (!sugestoesAtuais.length) {
-                autocomplete.innerHTML = "";
-                fecharAutocomplete();
-                return;
-            }
-
-            autocomplete.innerHTML = sugestoesAtuais.map((item, index) => `
-                <div class="suggestion ${index === indiceAtivo ? "active" : ""}" data-index="${index}">
-                    <div class="suggestion-title">${destacarTexto(item.nome, termo)}</div>
-                    <div class="suggestion-meta">
-                        Código: ${escaparHtml(item.codigo_interno || "")}
-                        ${item.codigo_barras ? `&nbsp;&nbsp;|&nbsp;&nbsp;Barras: ${escaparHtml(item.codigo_barras)}` : ""}
-                        ${item.marca ? `&nbsp;&nbsp;|&nbsp;&nbsp;Marca: ${escaparHtml(item.marca)}` : ""}
-                    </div>
+                <div class="pequeno">
+                    VILA<br>${p.saldo_vila}
                 </div>
-            `).join("");
 
-            abrirAutocomplete();
+                <div class="pequeno">
+                    TOTAL<br>${p.saldo_total}
+                </div>
+            </div>
+        </div>
+    `).join("");
 
-            autocomplete.querySelectorAll(".suggestion").forEach(el => {
-                el.addEventListener("mousedown", (event) => {
-                    event.preventDefault();
-                    const index = Number(el.dataset.index);
-                    selecionarSugestao(index);
-                });
-            });
-        }
+    podeBuscar = false;
+}
 
-        function selecionarSugestao(index) {
-            const item = sugestoesAtuais[index];
-            if (!item) return;
+input.addEventListener("input", async ()=>{
+    const q = input.value.trim();
 
-            campoBusca.value = item.nome;
-            fecharAutocomplete();
-            buscarProdutos(item.nome);
-        }
+    podeBuscar = false;
+    resultados.innerHTML = "";
 
-        function mostrarLoading(texto = "Buscando...") {
-            statusArea.innerHTML = `<div class="loading-box">${escaparHtml(texto)}</div>`;
-        }
+    if(q.length < 2){
+        auto.classList.remove("open");
+        return;
+    }
 
-        function limparStatus() {
-            statusArea.innerHTML = "";
-        }
+    const res = await fetch(`/produtos/api/sugestoes/?q=${q}`);
+    const data = await res.json();
 
-        function mostrarErro(texto) {
-            statusArea.innerHTML = `<div class="error-box">${escaparHtml(texto)}</div>`;
-        }
+    sugestoes = data.sugestoes;
+    selecionado = 0;
 
-        function renderizarResultados(lista) {
-            if (!lista.length) {
-                resultados.innerHTML = `<div class="empty-state">Nenhum produto encontrado.</div>`;
-                return;
-            }
+    renderSugestoes(q);
+});
 
-            resultados.innerHTML = lista.map(produto => `
-                <article class="product-card">
-                    <div class="product-header">
-                        <div>
-                            <h3 class="product-name">${destacarTexto(produto.nome, campoBusca.value)}</h3>
-                            <div class="product-meta">
-                                <span><strong>Código:</strong> ${escaparHtml(produto.codigo_interno || "")}</span>
-                                <span><strong>Barras:</strong> ${escaparHtml(produto.codigo_barras || "")}</span>
-                                <span><strong>Marca:</strong> ${escaparHtml(produto.marca || "")}</span>
-                                <span><strong>Categoria:</strong> ${escaparHtml(produto.categoria || "")}</span>
-                            </div>
-                        </div>
+input.addEventListener("keydown", e=>{
+    if(!sugestoes.length) return;
 
-                        <div class="price-box">
-                            <div class="price-label">Preço de venda</div>
-                            <div class="price-value">${formatarPreco(produto.preco_venda)}</div>
-                        </div>
-                    </div>
+    if(e.key === "ArrowDown"){
+        selecionado = (selecionado + 1) % sugestoes.length;
+        renderSugestoes(input.value);
+    }
 
-                    <div class="stock-grid">
-                        <div class="stock-card">
-                            <div class="stock-top">
-                                <div class="stock-title">CENTRO</div>
-                                <div class="stock-tag">Ajustar</div>
-                            </div>
-                            <div class="stock-value ${classeSaldo(produto.saldo_centro)}">${formatarNumero(produto.saldo_centro)}</div>
-                            <div class="stock-details">
-                                ERP: <strong>${formatarNumero(produto.saldo_centro_erp)}</strong>
-                                &nbsp;&nbsp;•&nbsp;&nbsp;
-                                Ajuste: <strong>${formatarNumero((produto.saldo_centro || 0) - (produto.saldo_centro_erp || 0))}</strong>
-                            </div>
-                        </div>
+    if(e.key === "ArrowUp"){
+        selecionado = (selecionado - 1 + sugestoes.length) % sugestoes.length;
+        renderSugestoes(input.value);
+    }
 
-                        <div class="stock-card">
-                            <div class="stock-top">
-                                <div class="stock-title">VILA ELIAS</div>
-                                <div class="stock-tag">Ajustar</div>
-                            </div>
-                            <div class="stock-value ${classeSaldo(produto.saldo_vila)}">${formatarNumero(produto.saldo_vila)}</div>
-                            <div class="stock-details">
-                                ERP: <strong>${formatarNumero(produto.saldo_vila_erp)}</strong>
-                                &nbsp;&nbsp;•&nbsp;&nbsp;
-                                Ajuste: <strong>${formatarNumero((produto.saldo_vila || 0) - (produto.saldo_vila_erp || 0))}</strong>
-                            </div>
-                        </div>
+    if(e.key === "Enter"){
+        e.preventDefault();
+        selecionar(selecionado);
+    }
+});
 
-                        <div class="stock-card total">
-                            <div class="stock-top">
-                                <div class="stock-title">ESTOQUE TOTAL</div>
-                                <div class="stock-tag">Resumo</div>
-                            </div>
-                            <div class="stock-value ${classeSaldo(produto.saldo_total)}">${formatarNumero(produto.saldo_total)}</div>
-                            <div class="stock-details">Total Centro + Vila</div>
-                        </div>
-                    </div>
-                </article>
-            `).join("");
-        }
+</script>
 
-        async function buscarSugestoes(termo) {
-            if (controllerSugestao) controllerSugestao.abort();
-            controllerSugestao = new AbortController();
-
-            try {
-                const resposta = await fetch(`/produtos/api/sugestoes/?q=${encodeURIComponent(termo)}`, {
-                    signal: controllerSugestao.signal
-                });
-                const dados = await resposta.json();
-
-                if (dados.erro_api) {
-                    sugestoesAtuais = [];
-                    renderizarSugestoes(termo);
-                    return;
-                }
-
-                sugestoesAtuais = dados.sugestoes || [];
-                indiceAtivo = -1;
-                renderizarSugestoes(termo);
-            } catch (erro) {
-                if (erro.name !== "AbortError") {
-                    sugestoesAtuais = [];
-                    renderizarSugestoes(termo);
-                }
-            }
-        }
-
-        async function buscarProdutos(termo) {
-            const termoLimpo = String(termo || "").trim();
-
-            if (!termoLimpo) {
-                limparStatus();
-                resultados.innerHTML = `<div class="empty-state">Digite algo para pesquisar.</div>`;
-                return;
-            }
-
-            ultimoTermoBuscado = termoLimpo;
-
-            if (controllerBusca) controllerBusca.abort();
-            controllerBusca = new AbortController();
-
-            mostrarLoading("Buscando produtos...");
-
-            try {
-                const resposta = await fetch(`/produtos/api/buscar/?q=${encodeURIComponent(termoLimpo)}`, {
-                    signal: controllerBusca.signal
-                });
-
-                const dados = await resposta.json();
-
-                if (ultimoTermoBuscado !== termoLimpo) {
-                    return;
-                }
-
-                if (dados.erro_api) {
-                    mostrarErro(dados.erro_api);
-                } else {
-                    limparStatus();
-                }
-
-                renderizarResultados(dados.produtos || []);
-            } catch (erro) {
-                if (erro.name === "AbortError") return;
-                mostrarErro("Erro ao buscar produtos.");
-                resultados.innerHTML = `<div class="empty-state">Nenhum produto encontrado.</div>`;
-            }
-        }
-
-        campoBusca.addEventListener("input", () => {
-            const termo = campoBusca.value.trim();
-
-            clearTimeout(debounceSugestao);
-            clearTimeout(debounceBusca);
-
-            if (termo.length < 2) {
-                sugestoesAtuais = [];
-                fecharAutocomplete();
-
-                if (!termo) {
-                    limparStatus();
-                    resultados.innerHTML = `<div class="empty-state">Digite algo para pesquisar.</div>`;
-                }
-                return;
-            }
-
-            debounceSugestao = setTimeout(() => {
-                buscarSugestoes(termo);
-            }, 180);
-
-            debounceBusca = setTimeout(() => {
-                buscarProdutos(termo);
-            }, 260);
-        });
-
-        campoBusca.addEventListener("keydown", (event) => {
-            if (!sugestoesAtuais.length) {
-                if (event.key === "Enter") {
-                    event.preventDefault();
-                    buscarProdutos(campoBusca.value);
-                }
-                return;
-            }
-
-            if (event.key === "ArrowDown") {
-                event.preventDefault();
-                indiceAtivo = (indiceAtivo + 1) % sugestoesAtuais.length;
-                renderizarSugestoes(campoBusca.value);
-                return;
-            }
-
-            if (event.key === "ArrowUp") {
-                event.preventDefault();
-                indiceAtivo = (indiceAtivo - 1 + sugestoesAtuais.length) % sugestoesAtuais.length;
-                renderizarSugestoes(campoBusca.value);
-                return;
-            }
-
-            if (event.key === "Enter") {
-                event.preventDefault();
-                if (indiceAtivo >= 0) {
-                    selecionarSugestao(indiceAtivo);
-                } else {
-                    fecharAutocomplete();
-                    buscarProdutos(campoBusca.value);
-                }
-                return;
-            }
-
-            if (event.key === "Escape") {
-                fecharAutocomplete();
-            }
-        });
-
-        document.addEventListener("click", (event) => {
-            if (!autocomplete.contains(event.target) && event.target !== campoBusca) {
-                fecharAutocomplete();
-            }
-        });
-    </script>
 </body>
 </html>
