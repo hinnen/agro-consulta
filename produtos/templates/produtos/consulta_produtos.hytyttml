@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Produtos</title>
+    <link rel="icon" href="/static/favicon.ico">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f3f4f6;
+            color: #0f172a;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 14px auto;
+            padding: 0 14px 40px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+            padding: 24px;
+            margin-bottom: 22px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            margin: 0 0 6px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 15px;
+        }
+
+        .brand-pill {
+            background: #e8f0ff;
+            color: #2563eb;
+            border: 1px solid #c7d7fe;
+            padding: 10px 16px;
+            border-radius: 999px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .search-wrap {
+            position: relative;
+        }
+
+        .search-box {
+            width: 100%;
+            font-size: 22px;
+            padding: 16px 20px;
+            border-radius: 22px;
+            border: 3px solid #2563eb;
+            outline: none;
+        }
+
+        .helper {
+            margin-top: 10px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .autocomplete {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border: 1px solid #dbe3ef;
+            border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+            overflow: hidden;
+            z-index: 50;
+            display: none;
+        }
+
+        .autocomplete.open {
+            display: block;
+        }
+
+        .suggestion {
+            padding: 13px 15px;
+            border-bottom: 1px solid #eef2f7;
+            cursor: pointer;
+        }
+
+        .suggestion:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion.active,
+        .suggestion:hover {
+            background: #eff6ff;
+        }
+
+        .suggestion-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+
+        .suggestion-meta {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .section-title {
+            margin: 0 0 18px;
+            font-size: 22px;
+        }
+
+        .subsection-title {
+            margin: 0 0 12px;
+            font-size: 17px;
+            color: #334155;
+            font-weight: 800;
+        }
+
+        .empty-state,
+        .error-box,
+        .loading-box,
+        .success-box {
+            padding: 14px 16px;
+            border-radius: 16px;
+            margin-bottom: 14px;
+        }
+
+        .empty-state {
+            background: #f8fafc;
+            color: #64748b;
+        }
+
+        .loading-box {
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .error-box {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        .success-box {
+            background: #ecfdf5;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+
+        .selected-wrapper {
+            margin-bottom: 18px;
+        }
+
+        .selected-product {
+            border: 2px solid #2563eb;
+            background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+            box-shadow: 0 14px 34px rgba(37, 99, 235, 0.14);
+            border-radius: 22px;
+            padding: 18px;
+        }
+
+        .selected-badge {
+            display: inline-flex;
+            align-items: center;
+            background: #dbeafe;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            border-radius: 999px;
+            padding: 7px 11px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .product-header {
+            display: grid;
+            grid-template-columns: 1fr 210px;
+            gap: 16px;
+            align-items: start;
+            margin-bottom: 14px;
+        }
+
+        .product-name {
+            margin: 0 0 6px;
+            color: #334155;
+            font-weight: 800;
+        }
+
+        .selected-product .product-name {
+            font-size: 36px;
+            line-height: 1.08;
+        }
+
+        .other-line .product-name {
+            font-size: 18px;
+            line-height: 1.1;
+            margin: 0;
+        }
+
+        .product-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 18px;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .selected-product .product-meta {
+            font-size: 18px;
+            gap: 10px 20px;
+        }
+
+        .selected-product .product-meta strong {
+            color: #334155;
+        }
+
+        .codigo-destaque {
+            font-size: 22px;
+            color: #475569;
+            font-weight: 800;
+        }
+
+        .price-box {
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            border-radius: 18px;
+            padding: 16px 14px;
+            text-align: center;
+        }
+
+        .price-label {
+            font-size: 16px;
+            color: #64748b;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .price-value {
+            font-size: 48px;
+            font-weight: 900;
+            color: #0f172a;
+            line-height: 1;
+        }
+
+        .stock-grid-selected {
+            display: grid;
+            grid-template-columns: 1.7fr 0.55fr;
+            gap: 12px;
+            align-items: stretch;
+        }
+
+        .stock-card {
+            border-radius: 18px;
+        }
+
+        .stock-card.center {
+            background: #f0fdf4;
+            border: 2px solid #22c55e;
+            padding: 16px 18px;
+        }
+
+        .side-stack {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .mini-card {
+            background: #f8fbff;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 10px 12px;
+        }
+
+        .stock-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .stock-title {
+            font-size: 14px;
+            font-weight: 900;
+            color: #475569;
+            letter-spacing: 0.08em;
+        }
+
+        .stock-card.center .stock-value {
+            font-size: 52px;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }
+
+        .mini-card .stock-value {
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 4px;
+        }
+
+        .stock-value.positive { color: #15803d; }
+        .stock-value.negative { color: #b91c1c; }
+        .stock-value.neutral { color: #0f172a; }
+
+        .stock-details {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .mini-card .stock-details {
+            font-size: 12px;
+        }
+
+        .btn-ajustar {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #334155;
+            border-radius: 999px;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .btn-ajustar:hover {
+            background: #eff6ff;
+            border-color: #93c5fd;
+            color: #1d4ed8;
+        }
+
+        .btn-ajustar.small {
+            padding: 5px 9px;
+            font-size: 10px;
+        }
+
+        .highlight {
+            background: #fde047;
+            color: #111827;
+            padding: 0 2px;
+            border-radius: 4px;
+        }
+
+        .muted-divider {
+            height: 1px;
+            background: #e5e7eb;
+            margin: 12px 0 16px;
+        }
+
+        .results-list {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .other-line {
+            display: grid;
+            grid-template-columns: 1.8fr 0.65fr 0.5fr 0.5fr 0.55fr;
+            gap: 8px;
+            align-items: center;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            background: #fff;
+            padding: 10px 12px;
+        }
+
+        .other-main {
+            min-width: 0;
+        }
+
+        .other-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 12px;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .other-center-box {
+            background: #f0fdf4;
+            border: 1px solid #22c55e;
+            border-radius: 12px;
+            padding: 8px 10px;
+        }
+
+        .other-center-box .title,
+        .other-mini .title,
+        .other-price .title {
+            font-size: 11px;
+            font-weight: 900;
+            color: #475569;
+            letter-spacing: 0.06em;
+            margin-bottom: 4px;
+        }
+
+        .other-center-box .value {
+            font-size: 26px;
+            font-weight: 900;
+        }
+
+        .other-mini,
+        .other-price {
+            background: #f8fbff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 8px 10px;
+            text-align: center;
+        }
+
+        .other-mini .value,
+        .other-price .value {
+            font-size: 22px;
+            font-weight: 900;
+        }
+
+        .other-actions {
+            display: flex;
+            justify-content: center;
+        }
+
+        @media (max-width: 1000px) {
+            .product-header,
+            .stock-grid-selected,
+            .other-line {
+                grid-template-columns: 1fr;
+            }
+
+            .selected-product .product-name {
+                font-size: 28px;
+            }
+
+            .codigo-destaque {
+                font-size: 18px;
+            }
+
+            .price-value {
+                font-size: 38px;
+            }
+
+            .stock-card.center .stock-value {
+                font-size: 38px;
+            }
+        }
+        /* Estilos Novos para o Modal de Ajuste */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px); z-index: 999; display: none;
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-content {
+            background: white; border-radius: 28px; width: 100%; max-width: 400px;
+            padding: 30px; shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        .input-ajuste {
+            width: 100%; padding: 15px; background: #f1f5f9; border-radius: 14px;
+            border: 2px solid transparent; font-size: 20px; font-weight: bold; outline: none;
+        }
+        .input-ajuste:focus { border-color: #2563eb; background: white; }
+        .btn-confirmar {
+            width: 100%; background: #22c55e; color: white; padding: 16px;
+            border-radius: 14px; border: none; font-weight: 800; margin-top: 20px; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="card">
+            <div class="header-top">
+                <div>
+                    <h1>Consulta de Produtos</h1>
+                    <div class="subtitle">Busque por nome, código interno, marca ou código de barras.</div>
+                </div>
+                <div class="brand-pill">Agro Consulta</div>
+            </div>
+
+            <div class="search-wrap">
+                <input
+                    id="campo-busca"
+                    class="search-box"
+                    type="text"
+                    placeholder="Digite para buscar..."
+                    autocomplete="off"
+                    autofocus
+                >
+                <div id="autocomplete" class="autocomplete"></div>
+            </div>
+
+            <div class="helper">
+                Dica: use ↑ ↓ e Enter para escolher a sugestão. Os detalhes aparecem após a seleção.
+            </div>
+        </section>
+
+        <section class="card">
+            <h2 class="section-title">Resultados</h2>
+            <div id="status-area"></div>
+            <div id="resultados">
+                <div class="empty-state">Digite algo para pesquisar.</div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const campoBusca = document.getElementById("campo-busca");
+        const autocomplete = document.getElementById("autocomplete");
+        const resultados = document.getElementById("resultados");
+        const statusArea = document.getElementById("status-area");
+
+        let debounceSugestao = null;
+        let sugestoesAtuais = [];
+        let indiceAtivo = -1;
+        let controllerSugestao = null;
+        let controllerBusca = null;
+        let ultimoTermoBuscado = "";
+        let produtoSelecionadoId = null;
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== "") {
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function formatarNumero(valor) {
+            return Number(valor || 0).toLocaleString("pt-BR", {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2,
+            });
+        }
+
+        function formatarPreco(valor) {
+            return Number(valor || 0).toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+            });
+        }
+
+        function classeSaldo(valor) {
+            const numero = Number(valor || 0);
+            if (numero > 0) return "positive";
+            if (numero < 0) return "negative";
+            return "neutral";
+        }
+
+        function escaparHtml(texto) {
+            return String(texto || "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function destacarTexto(texto, termo) {
+            const textoSeguro = escaparHtml(texto);
+            const termoLimpo = String(termo || "").trim();
+
+            if (!termoLimpo) return textoSeguro;
+
+            const partes = termoLimpo
+                .split(/\s+/)
+                .filter(Boolean)
+                .map(p => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
+            if (!partes.length) return textoSeguro;
+
+            const regex = new RegExp(`(${partes.join("|")})`, "gi");
+            return textoSeguro.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        function abrirAutocomplete() {
+            if (sugestoesAtuais.length) autocomplete.classList.add("open");
+        }
+
+        function fecharAutocomplete() {
+            autocomplete.classList.remove("open");
+            indiceAtivo = -1;
+        }
+
+        function renderizarSugestoes(termo) {
+            if (!sugestoesAtuais.length) {
+                autocomplete.innerHTML = "";
+                fecharAutocomplete();
+                return;
+            }
+
+            autocomplete.innerHTML = sugestoesAtuais.map((item, index) => `
+                <div class="suggestion ${index === indiceAtivo ? "active" : ""}" data-index="${index}">
+                    <div class="suggestion-title">${destacarTexto(item.nome, termo)}</div>
+                    <div class="suggestion-meta">
+                        Código: ${escaparHtml(item.codigo_interno || "")}
+                        ${item.codigo_barras ? `&nbsp;&nbsp;|&nbsp;&nbsp;Barras: ${escaparHtml(item.codigo_barras)}` : ""}
+                        ${item.marca ? `&nbsp;&nbsp;|&nbsp;&nbsp;Marca: ${escaparHtml(item.marca)}` : ""}
+                    </div>
+                </div>
+            `).join("");
+
+            abrirAutocomplete();
+
+            autocomplete.querySelectorAll(".suggestion").forEach(el => {
+                el.addEventListener("mousedown", (event) => {
+                    event.preventDefault();
+                    const index = Number(el.dataset.index);
+                    selecionarSugestao(index);
+                });
+            });
+        }
+
+        function mostrarLoading(texto = "Buscando...") {
+            statusArea.innerHTML = `<div class="loading-box">${escaparHtml(texto)}</div>`;
+        }
+
+        function limparStatus() {
+            statusArea.innerHTML = "";
+        }
+
+        function mostrarErro(texto) {
+            statusArea.innerHTML = `<div class="error-box">${escaparHtml(texto)}</div>`;
+        }
+
+        function mostrarSucesso(texto) {
+            statusArea.innerHTML = `<div class="success-box">${escaparHtml(texto)}</div>`;
+            setTimeout(() => limparStatus(), 2500);
+        }
+
+        // Dados globais para o ajuste atual
+        let dadosAjustePendente = {};
+
+        function abrirAjuste(produtoId, codigoInterno, nomeProduto, deposito, saldoAtualErp) {
+            dadosAjustePendente = { produtoId, codigoInterno, nomeProduto, deposito, saldoAtualErp };
+            
+            document.getElementById("ajusteProdutoNome").innerText = `${nomeProduto} (${deposito.toUpperCase()})`;
+            document.getElementById("inputNovoSaldo").value = "";
+            document.getElementById("inputPin").value = "";
+            document.getElementById("modalAjuste").classList.add("open");
+            
+            setTimeout(() => document.getElementById("inputNovoSaldo").focus(), 300);
+        }
+
+        function fecharModal() {
+            document.getElementById("modalAjuste").classList.remove("open");
+        }
+
+        async function processarAjusteBlindado() {
+            const novoSaldo = document.getElementById("inputNovoSaldo").value;
+            const pin = document.getElementById("inputPin").value;
+
+            if (!novoSaldo) return alert("Digite o novo saldo.");
+            if (pin !== "1234") return alert("PIN incorreto!"); // Exemplo, você pode validar no banco depois
+
+            fecharModal();
+            salvarAjuste(
+                dadosAjustePendente.produtoId,
+                dadosAjustePendente.codigoInterno,
+                dadosAjustePendente.nomeProduto,
+                dadosAjustePendente.deposito,
+                dadosAjustePendente.saldoAtualErp,
+                novoSaldo,
+                "Ajuste via Buscador Blindado"
+            );
+        }
+
+        async function salvarAjuste(produtoId, codigoInterno, nomeProduto, deposito, saldoAtualErp, novoSaldo, observacao) {
+         const pin = document.getElementById("inputPin").value; // PEGA O PIN DO MODAL
+
+         const formData = new URLSearchParams();
+         formData.append("produto_id", produtoId);
+         formData.append("codigo_interno", codigoInterno || "");
+          formData.append("nome_produto", nomeProduto || "");
+         formData.append("deposito", deposito);
+         formData.append("saldo_atual", String(saldoAtualErp ?? "0"));
+        formData.append("novo_saldo", String(novoSaldo ?? ""));
+         formData.append("observacao", observacao || "");
+        formData.append("pin", pin); // ENVIA O PIN PARA O DJANGO
+
+        try {
+             mostrarLoading("Salvando ajuste...");
+
+            const resposta = await fetch("/produtos/api/ajustar/", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                "X-CSRFToken": getCookie("csrftoken"),
+             },
+              body: formData.toString(),
+        });
+
+             const dados = await resposta.json();
+
+            if (!resposta.ok || !dados.ok) {
+             throw new Error(dados.erro || "Erro ao salvar ajuste.");
+        }
+
+             mostrarSucesso(dados.mensagem || "Ajuste salvo com sucesso.");
+             buscarProdutos(campoBusca.value);
+    }    catch (erro) {
+        mostrarErro(erro.message || "Erro ao salvar ajuste.");
+    }
+}
+
+        async function enviarPDV(codigo) {
+            try {
+                const codigoLimpo = String(codigo || "").trim();
+
+                if (!codigoLimpo) {
+                    throw new Error("Produto sem código para enviar ao PDV.");
+                }
+
+                const formData = new URLSearchParams();
+                formData.append("codigo", codigoLimpo);
+
+                const response = await fetch("/produtos/api/enviar-pdv/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                        "X-CSRFToken": getCookie("csrftoken"),
+                    },
+                    body: formData.toString(),
+                });
+
+                const contentType = response.headers.get("content-type") || "";
+                if (!contentType.includes("application/json")) {
+                    throw new Error("A rota /produtos/api/enviar-pdv/ não está retornando JSON.");
+                }
+
+                const data = await response.json();
+
+                if (!response.ok || !data.ok) {
+                    throw new Error(data.erro || "Erro ao enviar para o PDV.");
+                }
+
+                mostrarSucesso(data.mensagem || "Produto enviado para o PDV.");
+            } catch (e) {
+                mostrarErro(e.message || "Erro ao enviar para o PDV.");
+            }
+        }
+
+        function criarCardSelecionado(produto, termo) {
+            const codigo = JSON.stringify(String(produto.codigo_interno || ""));
+            const codigoPdv = JSON.stringify(String(produto.codigo_barras || produto.codigo_interno || ""));
+            const nome = JSON.stringify(String(produto.nome || ""));
+            const saldoCentroErp = JSON.stringify(String(produto.saldo_centro_erp ?? 0));
+            const saldoVilaErp = JSON.stringify(String(produto.saldo_vila_erp ?? 0));
+
+            return `
+                <article class="selected-product">
+                    <div class="selected-badge">Selecionado</div>
+
+                    <div class="product-header">
+                        <div>
+                            <h3 class="product-name">${destacarTexto(produto.nome, termo)}</h3>
+                            <div class="product-meta">
+                                <span class="codigo-destaque"><strong>Código:</strong> ${escaparHtml(produto.codigo_interno || "")}</span>
+                                <span class="codigo-destaque"><strong>Barras:</strong> ${escaparHtml(produto.codigo_barras || "")}</span>
+                                <span><strong>Marca:</strong> ${escaparHtml(produto.marca || "")}</span>
+                                <span><strong>Categoria:</strong> ${escaparHtml(produto.categoria || "")}</span>
+                            </div>
+                        </div>
+
+                        <div class="price-box">
+                            <div class="price-label">Preço de venda</div>
+                            <div class="price-value">${formatarPreco(produto.preco_venda)}</div>
+                        </div>
+                    </div>
+
+                    <div class="stock-grid-selected">
+                        <div class="stock-card center">
+                            <div class="stock-top">
+                                <div class="stock-title">CENTRO</div>
+                                <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                                    <button
+                                        type="button"
+                                        class="btn-ajustar"
+                                        onclick='enviarPDV(${codigoPdv})'
+                                    >
+                                        Enviar PDV
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="btn-ajustar"
+                                        onclick='abrirAjuste("${String(produto.id)}", ${codigo}, ${nome}, "centro", ${saldoCentroErp})'
+                                    >
+                                        Ajustar
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="stock-value ${classeSaldo(produto.saldo_centro)}">${formatarNumero(produto.saldo_centro)}</div>
+                            <div class="stock-details">
+                                ERP: <strong>${formatarNumero(produto.saldo_centro_erp)}</strong>
+                                &nbsp;&nbsp;•&nbsp;&nbsp;
+                                Ajuste: <strong>${formatarNumero((produto.saldo_centro || 0) - (produto.saldo_centro_erp || 0))}</strong>
+                            </div>
+                        </div>
+
+                        <div class="side-stack">
+                            <div class="mini-card">
+                                <div class="stock-top" style="margin-bottom:8px;">
+                                    <div class="stock-title">VILA ELIAS</div>
+                                    <button
+                                        type="button"
+                                        class="btn-ajustar small"
+                                        onclick='abrirAjuste("${String(produto.id)}", ${codigo}, ${nome}, "vila", ${saldoVilaErp})'
+                                    >
+                                        Ajustar
+                                    </button>
+                                </div>
+                                <div class="stock-value ${classeSaldo(produto.saldo_vila)}">${formatarNumero(produto.saldo_vila)}</div>
+                                <div class="stock-details">ERP: <strong>${formatarNumero(produto.saldo_vila_erp)}</strong></div>
+                            </div>
+
+                            <div class="mini-card">
+                                <div class="stock-top" style="margin-bottom:8px;">
+                                    <div class="stock-title">ESTOQUE TOTAL</div>
+                                    <div class="btn-ajustar small" style="cursor:default;">Resumo</div>
+                                </div>
+                                <div class="stock-value ${classeSaldo(produto.saldo_total)}">${formatarNumero(produto.saldo_total)}</div>
+                                <div class="stock-details">Centro + Vila</div>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function criarLinhaCompacta(produto, termo) {
+            const codigo = JSON.stringify(String(produto.codigo_interno || ""));
+            const codigoPdv = JSON.stringify(String(produto.codigo_barras || produto.codigo_interno || ""));
+            const nome = JSON.stringify(String(produto.nome || ""));
+            const saldoCentroErp = JSON.stringify(String(produto.saldo_centro_erp ?? 0));
+
+            return `
+                <div class="other-line">
+                    <div class="other-main">
+                        <div class="product-name">${destacarTexto(produto.nome, termo)}</div>
+                        <div class="other-meta">
+                            <span><strong>Código:</strong> ${escaparHtml(produto.codigo_interno || "")}</span>
+                            <span><strong>Barras:</strong> ${escaparHtml(produto.codigo_barras || "")}</span>
+                            <span><strong>Marca:</strong> ${escaparHtml(produto.marca || "")}</span>
+                        </div>
+                    </div>
+
+                    <div class="other-center-box">
+                        <div class="title">CENTRO</div>
+                        <div class="value ${classeSaldo(produto.saldo_centro)}">${formatarNumero(produto.saldo_centro)}</div>
+                    </div>
+
+                    <div class="other-mini">
+                        <div class="title">VILA</div>
+                        <div class="value ${classeSaldo(produto.saldo_vila)}">${formatarNumero(produto.saldo_vila)}</div>
+                    </div>
+
+                    <div class="other-mini">
+                        <div class="title">TOTAL</div>
+                        <div class="value ${classeSaldo(produto.saldo_total)}">${formatarNumero(produto.saldo_total)}</div>
+                    </div>
+
+                    <div class="other-actions" style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center;">
+                        <button
+                            type="button"
+                            class="btn-ajustar small"
+                            onclick='enviarPDV(${codigoPdv})'
+                        >
+                            PDV
+                        </button>
+                        <button
+                            type="button"
+                            class="btn-ajustar small"
+                            onclick='abrirAjuste("${String(produto.id)}", ${codigo}, ${nome}, "centro", ${saldoCentroErp})'
+                        >
+                            Ajustar
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderizarResultados(lista) {
+            if (!lista.length) {
+                resultados.innerHTML = `<div class="empty-state">Nenhum produto encontrado.</div>`;
+                return;
+            }
+
+            let selecionado = null;
+            let demais = [...lista];
+
+            if (produtoSelecionadoId) {
+                selecionado = lista.find(item => String(item.id) === String(produtoSelecionadoId)) || null;
+                demais = lista.filter(item => String(item.id) !== String(produtoSelecionadoId));
+            }
+
+            if (!selecionado && lista.length) {
+                selecionado = lista[0];
+                demais = lista.slice(1);
+                produtoSelecionadoId = selecionado.id;
+            }
+
+            const blocoSelecionado = selecionado ? `
+                <div class="selected-wrapper">
+                    <h3 class="subsection-title">Item selecionado</h3>
+                    ${criarCardSelecionado(selecionado, campoBusca.value)}
+                </div>
+            ` : "";
+
+            const blocoDemais = demais.length ? `
+                <div class="muted-divider"></div>
+                <h3 class="subsection-title">Outros resultados</h3>
+                <div class="results-list">
+                    ${demais.map(produto => criarLinhaCompacta(produto, campoBusca.value)).join("")}
+                </div>
+            ` : "";
+
+            resultados.innerHTML = blocoSelecionado + blocoDemais;
+        }
+
+        async function buscarSugestoes(termo) {
+            if (controllerSugestao) controllerSugestao.abort();
+            controllerSugestao = new AbortController();
+
+            try {
+                const resposta = await fetch(`/produtos/api/sugestoes/?q=${encodeURIComponent(termo)}`, {
+                    signal: controllerSugestao.signal
+                });
+                const dados = await resposta.json();
+                sugestoesAtuais = dados.sugestoes || [];
+                indiceAtivo = sugestoesAtuais.length ? 0 : -1;
+                renderizarSugestoes(termo);
+            } catch (erro) {
+                if (erro.name !== "AbortError") {
+                    sugestoesAtuais = [];
+                    renderizarSugestoes(termo);
+                }
+            }
+        }
+
+        async function buscarProdutos(termo) {
+            const termoLimpo = String(termo || "").trim();
+
+            if (!termoLimpo) {
+                limparStatus();
+                resultados.innerHTML = `<div class="empty-state">Digite algo para pesquisar.</div>`;
+                return;
+            }
+
+            ultimoTermoBuscado = termoLimpo;
+
+            if (controllerBusca) controllerBusca.abort();
+            controllerBusca = new AbortController();
+
+            mostrarLoading("Buscando produtos...");
+
+            try {
+                const resposta = await fetch(`/produtos/api/buscar/?q=${encodeURIComponent(termoLimpo)}`, {
+                    signal: controllerBusca.signal
+                });
+
+                const contentType = resposta.headers.get("content-type") || "";
+                if (!contentType.includes("application/json")) {
+                    throw new Error("A busca retornou HTML em vez de JSON.");
+                }
+
+                const dados = await resposta.json();
+
+                if (ultimoTermoBuscado !== termoLimpo) return;
+
+                if (dados.erro_api) {
+                    mostrarErro(dados.erro_api);
+                } else {
+                    limparStatus();
+                }
+
+                renderizarResultados(dados.produtos || []);
+            } catch (erro) {
+                if (erro.name === "AbortError") return;
+                mostrarErro(erro.message || "Erro ao buscar produtos.");
+                resultados.innerHTML = `<div class="empty-state">Nenhum produto encontrado.</div>`;
+            }
+        }
+
+        function selecionarSugestao(index) {
+            const item = sugestoesAtuais[index];
+            if (!item) return;
+
+            produtoSelecionadoId = item.id;
+            campoBusca.value = item.nome;
+            fecharAutocomplete();
+            buscarProdutos(item.nome);
+        }
+
+        campoBusca.addEventListener("input", () => {
+            const termo = campoBusca.value.trim();
+            clearTimeout(debounceSugestao);
+
+            if (!termo) {
+                sugestoesAtuais = [];
+                produtoSelecionadoId = null;
+                fecharAutocomplete();
+                limparStatus();
+                resultados.innerHTML = `<div class="empty-state">Digite algo para pesquisar.</div>`;
+                return;
+            }
+
+            resultados.innerHTML = `<div class="empty-state">Selecione uma sugestão ou aperte Enter para carregar os detalhes.</div>`;
+
+            if (termo.length < 2) {
+                sugestoesAtuais = [];
+                fecharAutocomplete();
+                return;
+            }
+
+            debounceSugestao = setTimeout(() => buscarSugestoes(termo), 180);
+        });
+
+        campoBusca.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowDown" && sugestoesAtuais.length) {
+                event.preventDefault();
+                indiceAtivo = (indiceAtivo + 1) % sugestoesAtuais.length;
+                renderizarSugestoes(campoBusca.value);
+                return;
+            }
+
+            if (event.key === "ArrowUp" && sugestoesAtuais.length) {
+                event.preventDefault();
+                indiceAtivo = (indiceAtivo - 1 + sugestoesAtuais.length) % sugestoesAtuais.length;
+                renderizarSugestoes(campoBusca.value);
+                return;
+            }
+
+            if (event.key === "Enter") {
+                event.preventDefault();
+
+                if (sugestoesAtuais.length && indiceAtivo >= 0) {
+                    selecionarSugestao(indiceAtivo);
+                } else {
+                    produtoSelecionadoId = null;
+                    fecharAutocomplete();
+                    buscarProdutos(campoBusca.value);
+                }
+                return;
+            }
+
+            if (event.key === "Escape") {
+                fecharAutocomplete();
+            }
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!autocomplete.contains(event.target) && event.target !== campoBusca) {
+                fecharAutocomplete();
+            }
+        });
+    </script>
+    <div id="modalAjuste" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin:0 0 5px; font-size:20px;">Ajustar Estoque</h3>
+            <p id="ajusteProdutoNome" style="color:#64748b; font-size:13px; margin-bottom:20px;"></p>
+            
+            <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase;">Novo Saldo Real</label>
+            <input type="number" id="inputNovoSaldo" class="input-ajuste" placeholder="0">
+            
+            <div style="margin-top:15px;">
+                <label style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase;">PIN de Segurança</label>
+                <input type="password" id="inputPin" class="input-ajuste" placeholder="****" maxlength="4" style="text-align:center; letter-spacing:10px;">
+            </div>
+
+            <button onclick="processarAjusteBlindado()" class="btn-confirmar">CONFIRMAR AJUSTE</button>
+            <button onclick="fecharModal()" style="width:100%; background:none; border:none; color:#94a3b8; margin-top:10px; font-weight:bold; cursor:pointer;">Cancelar</button>
+        </div>
+    </div>
+</body>
+</html>

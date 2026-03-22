@@ -150,3 +150,6 @@ CACHES = {
 }
 
 CONSULTA_CACHE_TTL = 20
+# Configurações da API Venda ERP
+VENDA_ERP_API_BASE_URL = config('VENDA_ERP_API_BASE_URL', default='https://cw.vendaerp.com.br')
+VENDA_ERP_API_TOKEN = config('VENDA_ERP_API_TOKEN', default='')
