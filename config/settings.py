@@ -77,7 +77,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'base' / 'templates'], # Caminho absoluto para a pasta que você criou
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
