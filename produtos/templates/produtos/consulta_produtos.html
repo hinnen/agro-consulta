@@ -55,21 +55,46 @@ let carrinho = [];
 let sugestoesAtuais = [];
 let indexSelecionado = -1;
 let debounceTimer;
+let produtoEmDestaque = null; // Para o Enter Duplo
 
 const inputBusca = document.getElementById('busca-produto');
 const autoList = document.getElementById('autocomplete-results');
 const destaqueContainer = document.getElementById('produto-destaque');
 const similaresContainer = document.getElementById('lista-similares');
 
-// NAVEGAÇÃO TECLADO
+// NAVEGAÇÃO TECLADO + ENTER DUPLO
 inputBusca.addEventListener('keydown', function(e) {
     const itens = autoList.querySelectorAll('.suggestion-item');
-    if (e.key === 'ArrowDown') { e.preventDefault(); indexSelecionado = (indexSelecionado + 1) % itens.length; atualizarSelecaoVisual(itens); } 
-    else if (e.key === 'ArrowUp') { e.preventDefault(); indexSelecionado = (indexSelecionado - 1 + itens.length) % itens.length; atualizarSelecaoVisual(itens); } 
+    
+    if (e.key === 'ArrowDown') { 
+        e.preventDefault(); 
+        indexSelecionado = (indexSelecionado + 1) % itens.length; 
+        atualizarSelecaoVisual(itens); 
+    } 
+    else if (e.key === 'ArrowUp') { 
+        e.preventDefault(); 
+        indexSelecionado = (indexSelecionado - 1 + itens.length) % itens.length; 
+        atualizarSelecaoVisual(itens); 
+    } 
     else if (e.key === 'Enter') {
         e.preventDefault();
-        if (indexSelecionado > -1 && itens[indexSelecionado]) itens[indexSelecionado].click();
-        else if (itens.length > 0) itens[0].click();
+        
+        // Se a lista de sugestões está aberta, seleciona o item
+        if (!autoList.classList.contains('hidden')) {
+            if (indexSelecionado > -1 && itens[indexSelecionado]) {
+                itens[indexSelecionado].click();
+            } else if (itens.length > 0) {
+                itens[0].click();
+            }
+        } 
+        // Se já existe um produto em destaque, o segundo Enter joga no carrinho
+        else if (produtoEmDestaque) {
+            addCarrinho(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.preco_venda);
+            inputBusca.value = ''; // Limpa para próxima busca
+            produtoEmDestaque = null;
+            destaqueContainer.innerHTML = '';
+            similaresContainer.innerHTML = '';
+        }
     }
 });
 
@@ -96,7 +121,8 @@ inputBusca.addEventListener('input', function(e) {
                     sugestoesAtuais = data.produtos;
                     renderizarSugestoes();
                 } else { autoList.classList.add('hidden'); }
-            });
+            })
+            .catch(err => console.error("Erro na busca:", err));
     }, 400); 
 });
 
@@ -119,27 +145,28 @@ function renderizarSugestoes() {
 }
 
 function renderDestaque(p) {
+    produtoEmDestaque = p; // Salva para o Enter Duplo
     const total = (p.saldo_centro + p.saldo_vila).toFixed(2);
     const marcaStr = p.marca ? `<span class="text-slate-400 font-bold uppercase text-xs italic">${p.marca}</span>` : '';
     const gmStr = p.codigo_nfe ? `<div class="text-orange-600 font-black text-lg">GM: ${p.codigo_nfe}</div>` : '';
 
     destaqueContainer.innerHTML = `
-        <div class="bg-white p-5 rounded-[2rem] shadow-xl border-2 border-emerald-500/20 flex flex-col md:flex-row justify-between items-center gap-4 animate-in fade-in duration-300">
-            <div class="flex-1 cursor-pointer" onclick="addCarrinho('${p.id}', '${p.nome.replace(/'/g, "")}', ${p.preco_venda})">
+        <div class="bg-white p-5 rounded-[2rem] shadow-xl border-2 border-emerald-500/20 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex-1 cursor-pointer" onclick="addCarrinho('${p.id}', '${p.nome}', ${p.preco_venda})">
                 <div class="flex items-center gap-2 mb-1">
-                    <span class="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest">Destaque</span>
+                    <span class="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black uppercase">Destaque (Enter p/ add)</span>
                     ${marcaStr}
                 </div>
                 <h4 class="text-2xl font-black text-slate-800 uppercase leading-tight">${p.nome}</h4>
                 ${gmStr}
-                <div class="mt-2 text-4xl font-black text-emerald-500 tracking-tighter font-black">R$ ${p.preco_venda.toFixed(2)}</div>
+                <div class="mt-2 text-4xl font-black text-emerald-500 tracking-tighter">R$ ${p.preco_venda.toFixed(2)}</div>
             </div>
             <div class="flex items-center gap-3">
                 <div class="bg-blue-600 px-6 py-4 rounded-[1.5rem] shadow-lg flex flex-col items-center min-w-[120px]">
                     <span class="text-[10px] font-black text-blue-200 mb-1 tracking-widest uppercase">Centro</span>
                     <div class="flex items-center gap-3">
                         <span class="text-4xl font-black text-white">${p.saldo_centro}</span>
-                        <button onclick="abrirAjuste('${p.id}','${p.nome.replace(/'/g, "")}',${p.saldo_centro},'${p.codigo_nfe||p.codigo_interno}','centro')" class="text-blue-300 text-2xl hover:text-white transition-colors">✎</button>
+                        <button onclick="abrirAjuste('${p.id}','${p.nome.replace(/'/g, "")}',${p.saldo_centro},'${p.codigo_nfe||p.codigo_interno}','centro')" class="text-blue-300 text-2xl">✎</button>
                     </div>
                 </div>
                 <div class="flex flex-col gap-2">
@@ -157,11 +184,11 @@ function renderDestaque(p) {
 }
 
 function renderSimilar(p) {
-    // Escapa o objeto para evitar erro de aspas no HTML
-    const pData = btoa(unescape(encodeURIComponent(JSON.stringify(p))));
+    // Escape simples para evitar erro de aspas no HTML
+    const pStr = encodeURIComponent(JSON.stringify(p));
     similaresContainer.innerHTML += `
         <div class="bg-white/70 p-3 rounded-2xl border border-slate-200 flex justify-between items-center hover:bg-white transition-all cursor-pointer group" 
-             onclick="renderDestaque(JSON.parse(decodeURIComponent(escape(atob('${pData}')))))">
+             onclick="renderDestaque(JSON.parse(decodeURIComponent('${pStr}')))">
             <div class="flex flex-col">
                 <span class="font-black text-slate-700 uppercase text-xs group-hover:text-emerald-600 transition-colors">${p.nome}</span>
                 <span class="text-[9px] text-slate-400 italic font-bold uppercase">${p.marca || 'GENÉRICO'}</span>
@@ -189,7 +216,7 @@ function atualizarCarrinho() {
         total += item.preco * item.qtd;
         container.innerHTML += `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl border border-slate-100">
             <span class="text-slate-700 truncate mr-2">${item.qtd}x ${item.nome}</span>
-            <button onclick="removerItem(${index})" class="text-red-400 px-1 font-bold hover:text-red-600">✕</button>
+            <button onclick="removerItem(${index})" class="text-red-400 px-1 font-bold">✕</button>
         </div>`;
     });
     document.getElementById('total-geral').innerText = `R$ ${total.toFixed(2)}`;
@@ -213,10 +240,31 @@ function abrirAjuste(id, nome, saldo, codigo, dep) {
         const fd = new FormData();
         fd.append('produto_id', id); fd.append('nome_produto', nome); fd.append('codigo_interno', codigo);
         fd.append('saldo_atual', saldo); fd.append('novo_saldo', novo); fd.append('deposito', dep); fd.append('pin', pin);
-        fetch("/api/ajustar/", { method: 'POST', body: fd, headers: {'X-CSRFToken': '{{ csrf_token }}'} })
-            .then(res => res.json()).then(d => { if(d.ok) { alert("Ajustado com sucesso!"); location.reload(); } else alert("Erro: "+d.erro); });
+        fetch("/api/ajustar/", { 
+            method: 'POST', 
+            body: fd, 
+            headers: {'X-CSRFToken': getCookie('csrftoken')} // Correção do CSRF para produção
+        })
+        .then(res => res.json()).then(d => { if(d.ok) { alert("Ajustado!"); location.reload(); } else alert("Erro: "+d.erro); });
     }
 }
+
+// Helper para pegar o CSRF Token no Render
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 document.addEventListener('click', (e) => { if (!inputBusca.contains(e.target)) autoList.classList.add('hidden'); });
 </script>
 </body>
