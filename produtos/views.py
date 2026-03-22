@@ -8,15 +8,21 @@ from base.models import Empresa, Loja, PerfilUsuario
 from estoque.models import AjusteRapidoEstoque
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 
+# --- VIEWS DE PÁGINA ---
+
 def consulta_produtos(request):
     return render(request, "produtos/consulta_produtos.html")
 
 def historico_ajustes(request):
+    # Para o botão "Ver Histórico"
     ajustes = AjusteRapidoEstoque.objects.all().order_by('-criado_em')
     return render(request, "produtos/historico_ajustes.html", {"ajustes": ajustes})
 
 def sugestao_transferencia(request):
+    # Para o botão "Logística"
     return render(request, "produtos/transferencias.html")
+
+# --- API DE PRODUTOS E ESTOQUE ---
 
 @require_GET
 def api_buscar_produtos(request):
@@ -27,18 +33,15 @@ def api_buscar_produtos(request):
         client = VendaERPMongoClient()
         db = client.db
         
-        # 1. Busca produtos
         query = {"$or": [
             {"Nome": {"$regex": termo, "$options": "i"}},
             {"CodigoProduto": {"$regex": termo, "$options": "i"}},
             {"CodigoBarras": termo}
         ]}
         produtos_mongo = list(db[client.col_p].find(query).limit(15))
-        
-        # Mapeia IDs (O Venda ERP usa o campo 'Id' como string para o estoque)
         p_ids = [str(p.get("Id") or p["_id"]) for p in produtos_mongo]
 
-        # 2. Busca estoque com os campos exatos: ProdutoID e Saldo
+        # Busca estoque com os campos reais que validamos no shell
         estoque_list = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
 
         res = []
@@ -57,10 +60,10 @@ def api_buscar_produtos(request):
                     elif did == client.DEPOSITO_VILA_ELIAS:
                         s_vila = val
                     elif s_centro == 0:
-                        s_centro = val # Se o ID não bater, joga no Centro
+                        s_centro = val
             
             res.append({
-                "id": str(p["_id"]), 
+                "id": pid, 
                 "nome": p.get("Nome") or "Sem Nome", 
                 "codigo_interno": p.get("CodigoProduto") or p.get("Codigo") or "",
                 "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
@@ -70,8 +73,9 @@ def api_buscar_produtos(request):
             
         return JsonResponse({"produtos": res})
     except Exception as e:
-        print(f"ERRO BUSCA: {str(e)}")
         return JsonResponse({"erro": str(e)}, status=500)
+
+# --- API DE CLIENTES ---
 
 @require_GET
 def api_buscar_clientes(request):
@@ -79,11 +83,20 @@ def api_buscar_clientes(request):
     if not termo: return JsonResponse({"clientes": []})
     try:
         client = VendaERPMongoClient()
-        clientes = client.buscar_clientes(termo)
-        res = [{"id": str(c["_id"]), "nome": c.get("Nome"), "documento": c.get("CpfCnpj")} for c in clientes]
+        # Busca na tabela DtoPessoa
+        query = {
+            "$or": [
+                {"Nome": {"$regex": termo, "$options": "i"}},
+                {"CpfCnpj": {"$regex": termo, "$options": "i"}}
+            ]
+        }
+        clientes_mongo = list(client.db[client.col_c].find(query).limit(10))
+        res = [{"id": str(c["_id"]), "nome": c.get("Nome"), "documento": c.get("CpfCnpj")} for c in clientes_mongo]
         return JsonResponse({"clientes": res})
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
+
+# --- AJUSTES E OPERAÇÕES ---
 
 @require_POST
 def api_ajustar_estoque(request):

@@ -2,112 +2,144 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Agro Mais | PDV Rápido</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agro Mais | PDV</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+    </style>
 </head>
-<body class="bg-slate-200 p-4 font-sans select-none">
-    <div class="max-w-5xl mx-auto">
-        <header class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-black text-slate-800 italic uppercase">Agro <span class="text-green-600">Mais</span></h1>
-            <div class="text-[10px] font-black text-slate-400 bg-white px-4 py-2 rounded-full border shadow-sm">BUSCADOR ATIVO</div>
-        </header>
+<body class="bg-slate-100 p-4 text-slate-800">
 
-        <div class="relative mb-6">
-            <input type="text" id="busca" autofocus placeholder="Digite ou Bipe o Produto..." 
-                   class="w-full p-6 rounded-[32px] border-4 border-white shadow-2xl text-2xl font-bold outline-none focus:ring-4 focus:ring-green-400">
+    <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between mb-6 gap-4">
+        <h1 class="text-3xl font-black italic tracking-tighter text-slate-900">
+            AGRO <span class="text-emerald-500">MAIS</span>
+        </h1>
+        
+        <div class="flex gap-2">
+            <a href="/transferencias/" class="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl shadow-sm border border-emerald-100 text-emerald-700 font-bold hover:bg-emerald-50 transition-all">
+                🚚 Logística
+            </a>
+            <a href="/historico/" class="bg-white px-4 py-2 rounded-2xl shadow-sm border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all">
+                Ver Histórico
+            </a>
         </div>
-
-        <div id="lista" class="space-y-4 pb-28"></div>
     </div>
 
-    <div id="modal_ajuste" class="fixed inset-0 bg-black/70 hidden flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-        <div class="bg-white rounded-[40px] p-8 w-full max-w-md shadow-2xl border-8 border-slate-100">
-            <h2 id="m_nome" class="text-xl font-black text-slate-800 uppercase text-center mb-6">Ajustar Estoque</h2>
-            <div class="space-y-4">
-                <input type="number" id="m_novo" placeholder="SALDO REAL" class="w-full p-5 rounded-2xl bg-slate-50 border-2 text-center text-4xl font-black text-blue-600 outline-none">
-                <input type="password" id="m_pin" placeholder="PIN VENDEDOR" class="w-full p-5 rounded-2xl bg-slate-50 border-2 text-center text-2xl font-black outline-none">
-                <div class="flex gap-2 pt-4">
-                    <button onclick="fechar()" class="flex-1 p-5 rounded-2xl font-black text-slate-400 uppercase">Sair</button>
-                    <button onclick="salvar()" class="flex-1 bg-slate-900 text-white p-5 rounded-2xl font-black uppercase shadow-xl">Salvar</button>
+    <div class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-2 space-y-4">
+            <input type="text" id="busca-produto" placeholder="Buscar milho, ração, código..." 
+                class="w-full p-5 rounded-3xl shadow-lg border-none text-xl font-medium outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all">
+
+            <div id="lista-produtos" class="space-y-4">
                 </div>
+        </div>
+
+        <div class="lg:col-span-1">
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 sticky top-4">
+                <h3 class="text-slate-400 font-bold uppercase tracking-wider text-sm mb-4">🛒 Orçamento</h3>
+                
+                <input type="text" id="nome-cliente" placeholder="Nome do Cliente" 
+                    class="w-full p-3 bg-slate-50 rounded-2xl border-none mb-4 outline-none focus:ring-2 focus:ring-emerald-500">
+
+                <div id="itens-carrinho" class="min-h-[100px] max-h-[400px] overflow-y-auto mb-4 space-y-2 hide-scroll">
+                    <p class="text-slate-300 text-center text-sm py-4">Carrinho vazio</p>
+                </div>
+
+                <div class="flex justify-between items-end mb-6 border-t pt-4">
+                    <span class="font-black text-slate-900 uppercase">Total</span>
+                    <span id="total-geral" class="font-black text-emerald-500 text-3xl">R$ 0,00</span>
+                </div>
+
+                <button onclick="finalizarNoWhatsApp()" 
+                    class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-5 rounded-3xl shadow-lg transition-all active:scale-95 uppercase tracking-widest">
+                    Finalizar e Enviar
+                </button>
             </div>
         </div>
     </div>
 
-    <script>
-        let cursor = -1;
-        let p_selecionado = null;
-        let produtos = [];
-        const input = document.getElementById('busca');
-        const lista = document.getElementById('lista');
+<script>
+let carrinho = [];
 
-        input.addEventListener('input', async (e) => {
-            const q = e.target.value;
-            if (q.length < 2) { lista.innerHTML = ''; return; }
-            
-            const res = await fetch(`/api/buscar/?q=${encodeURIComponent(q)}`);
-            const data = await res.json();
-            produtos = data.produtos || [];
-            lista.innerHTML = '';
-            cursor = -1;
-            
-            produtos.forEach((p, idx) => {
-                lista.innerHTML += `
-                <div id="item-${idx}" onclick="abrirAjuste(${idx})" class="card bg-white rounded-[40px] p-6 shadow-md border-4 border-transparent flex justify-between items-center cursor-pointer transition-all">
-                    <div class="flex-1">
-                        <h3 class="text-xl font-black text-slate-800 uppercase italic"><strong>${p.codigo_interno}</strong> - ${p.nome}</h3>
-                        <div class="mt-4"><span class="text-5xl font-black text-green-600">R$ ${p.preco_venda.toFixed(2)}</span></div>
-                    </div>
-                    <div class="flex flex-col items-end gap-2 text-right">
-                        <div class="bg-blue-50 p-4 rounded-[35px] border-2 border-blue-100 min-w-[150px]">
-                            <span class="block text-[10px] font-black text-blue-400 uppercase">CENTRO</span>
-                            <span class="text-6xl font-black text-blue-700">${p.saldo_centro}</span>
+// Busca de produtos - Usando a rota que o Django espera
+document.getElementById('busca-produto').addEventListener('input', function(e) {
+    const q = e.target.value;
+    if (q.length < 2) return;
+
+    // Tentamos a rota direta do seu app
+    fetch("/api/buscar/?q=" + q)
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('lista-produtos');
+            container.innerHTML = '';
+            if (!data.produtos || data.produtos.length === 0) return;
+
+            data.produtos.forEach(p => {
+                container.innerHTML += `
+                    <div onclick="addCarrinho('${p.id}', '${p.nome}', ${p.preco_venda})" 
+                         class="bg-white p-6 rounded-[2rem] shadow-sm hover:shadow-md border border-slate-100 transition-all cursor-pointer flex justify-between items-center group active:scale-[0.98]">
+                        <div>
+                            <h4 class="font-black text-slate-700 italic uppercase mb-1 group-hover:text-emerald-600">${p.codigo_interno} - ${p.nome}</h4>
+                            <span class="text-3xl font-black text-emerald-500">R$ ${p.preco_venda.toFixed(2)}</span>
                         </div>
-                        <div class="pr-2">
-                            <p class="text-xl font-bold text-slate-400">Vila: <b class="text-slate-700">${p.saldo_vila}</b></p>
-                            <p class="text-2xl font-black text-slate-500 italic underline">Total: ${p.saldo_centro + p.saldo_vila}</p>
+                        <div class="text-right">
+                             <div class="bg-blue-50 px-4 py-2 rounded-2xl">
+                                <span class="block text-[10px] uppercase font-bold text-blue-400 text-center">Centro</span>
+                                <span class="text-2xl font-black text-blue-600">${p.saldo_centro}</span>
+                             </div>
+                             <div class="mt-1 text-slate-400 font-bold text-xs">Vila: ${p.saldo_vila}</div>
                         </div>
-                    </div>
-                </div>`;
+                    </div>`;
             });
         });
+});
 
-        input.addEventListener('keydown', (e) => {
-            const cards = document.querySelectorAll('.card');
-            if (e.key === "ArrowDown") cursor = Math.min(cursor + 1, cards.length - 1);
-            else if (e.key === "ArrowUp") cursor = Math.max(cursor - 1, 0);
-            else if (e.key === "Enter" && cursor > -1) { abrirAjuste(cursor); return; }
-            
-            cards.forEach((c, i) => {
-                c.classList.toggle('border-green-400', i === cursor);
-                c.classList.toggle('bg-green-50', i === cursor);
-                if(i === cursor) c.scrollIntoView({ block: 'nearest' });
-            });
-        });
+function addCarrinho(id, nome, preco) {
+    const item = carrinho.find(i => i.id === id);
+    if (item) item.qtd++; else carrinho.push({id, nome, preco, qtd: 1});
+    atualizarCarrinho();
+}
 
-        function abrirAjuste(idx) {
-            p_selecionado = produtos[idx];
-            document.getElementById('m_nome').innerText = p_selecionado.nome;
-            document.getElementById('m_novo').value = '';
-            document.getElementById('m_pin').value = '';
-            document.getElementById('modal_ajuste').classList.remove('hidden');
-            setTimeout(() => document.getElementById('m_novo').focus(), 100);
-        }
+function atualizarCarrinho() {
+    const container = document.getElementById('itens-carrinho');
+    const totalDisplay = document.getElementById('total-geral');
+    let total = 0;
+    container.innerHTML = '';
 
-        async function salvar() {
-            const fd = new FormData();
-            fd.append('produto_id', p_selecionado.id);
-            fd.append('nome_produto', p_selecionado.nome);
-            fd.append('codigo_interno', p_selecionado.codigo_interno);
-            fd.append('saldo_atual', p_selecionado.saldo_centro);
-            fd.append('novo_saldo', document.getElementById('m_novo').value);
-            fd.append('pin', document.getElementById('m_pin').value);
-            const res = await fetch('/api/ajustar-estoque/', { method: 'POST', body: fd, headers: {'X-CSRFToken': '{{ csrf_token }}'} });
-            if(res.ok) location.reload(); else alert("ERRO NO PIN");
-        }
+    carrinho.forEach((item, index) => {
+        const subtotal = item.preco * item.qtd;
+        total += subtotal;
+        container.innerHTML += `
+            <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl mb-2">
+                <div class="text-xs font-bold text-slate-600">${item.qtd}x ${item.nome}</div>
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-600 font-bold">R$ ${subtotal.toFixed(2)}</span>
+                    <button onclick="event.stopPropagation(); removerItem(${index})" class="text-red-400 font-bold px-2">✕</button>
+                </div>
+            </div>`;
+    });
+    if (!carrinho.length) container.innerHTML = '<p class="text-slate-300 text-center text-sm py-4">Carrinho vazio</p>';
+    totalDisplay.innerText = `R$ ${total.toFixed(2)}`;
+}
 
-        function fechar() { document.getElementById('modal_ajuste').classList.add('hidden'); input.focus(); }
-    </script>
+function removerItem(i) { carrinho.splice(i, 1); atualizarCarrinho(); }
+
+function finalizarNoWhatsApp() {
+    if (!carrinho.length) return alert("Carrinho vazio!");
+    const cliente = document.getElementById('nome-cliente').value || "Consumidor";
+    let msg = `*ORÇAMENTO - AGRO MAIS*\n*Cliente:* ${cliente}\n----------------------------\n`;
+    let total = 0;
+    carrinho.forEach(i => {
+        msg += `${i.qtd}x ${i.nome} - R$ ${(i.preco * i.qtd).toFixed(2)}\n`;
+        total += i.preco * i.qtd;
+    });
+    msg += `----------------------------\n*TOTAL: R$ ${total.toFixed(2)}*`;
+    window.open(`https://wa.me/5513996727222?text=${encodeURIComponent(msg)}`, '_blank');
+}
+</script>
 </body>
 </html>
