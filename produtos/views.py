@@ -131,3 +131,25 @@ def api_buscar_clientes(request):
         res = [{"nome": c.get("Nome"), "documento": c.get("CpfCnpj") or "Sem Doc"} for c in clientes]
         return JsonResponse({"clientes": res})
     except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
+
+@require_POST
+def api_deletar_ajuste(request, id):
+    pin = request.POST.get("pin")
+    if pin != "1234": 
+        return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
+    try:
+        AjusteRapidoEstoque.objects.filter(id=id).delete()
+        return JsonResponse({"ok": True})
+    except Exception as e: 
+        return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+
+@require_POST
+def api_limpar_historico(request):
+    pin = request.POST.get("pin")
+    if pin != "1234": 
+        return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
+    try:
+        AjusteRapidoEstoque.objects.all().delete()
+        return JsonResponse({"ok": True})
+    except Exception as e: 
+        return JsonResponse({"ok": False, "erro": str(e)}, status=500)

@@ -788,6 +788,7 @@ function buscarProdutos(q, modo = 'normal') {
 inputBusca.addEventListener('input', function(e) {
     const q = e.target.value;
     indexSelecionado = -1;
+    produtoEmDestaque = null; // Evita adicionar o item anterior se o Enter for pressionado muito rápido
 
     const agora = Date.now();
     const diff = agora - ultimoInputTime;
