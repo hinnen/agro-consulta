@@ -73,6 +73,7 @@ let sugestoesAtuais = [];
 let indexSelecionado = -1;
 let debounceTimer;
 let produtoEmDestaque = null;
+let clienteSelecionado = null;
 
 const inputBusca = document.getElementById('busca-produto');
 const autoList = document.getElementById('autocomplete-results');
@@ -209,11 +210,14 @@ function fecharResumo() {
 }
 
 function confirmarEnvio() {
-    const cliente = document.getElementById('nome-cliente').value || "Consumidor";
-    let msg = `*ORÇAMENTO - AGRO MAIS*\n*Cliente:* ${cliente}\n----------------------------\n`;
+    const clienteNome = document.getElementById('nome-cliente').value || "Consumidor";
+    const numeroWhatsapp = (clienteSelecionado && clienteSelecionado.telefone) ? clienteSelecionado.telefone : "5513996727222";
+
+    let msg = `*ORÇAMENTO - AGRO MAIS*\n*Cliente:* ${clienteNome}\n----------------------------\n`;
     carrinho.forEach(i => { msg += `${i.qtd}x ${i.nome} - R$ ${(i.preco * i.qtd).toFixed(2)}\n`; });
     msg += `----------------------------\n*TOTAL: ${document.getElementById('total-geral').innerText}*`;
-    window.open(`https://wa.me/5513996727222?text=${encodeURIComponent(msg)}`, '_blank');
+    
+    window.open(`https://wa.me/${numeroWhatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 function abrirAjuste(id, nome, saldo, codigo, dep) {
@@ -235,6 +239,7 @@ let clienteDebounceTimer;
 
 inputCliente.addEventListener('input', function(e) {
     const q = e.target.value;
+    clienteSelecionado = null; // Reseta o cliente selecionado ao digitar
     clearTimeout(clienteDebounceTimer);
     if (q.length < 2) {
         clienteResults.classList.add('hidden');
@@ -261,6 +266,7 @@ function renderizarClientes(clientes) {
         div.innerHTML = `<div class="font-bold text-slate-700">${cliente.nome}</div><div class="text-[9px] text-slate-400 italic">${cliente.documento}</div>`;
         div.onclick = () => {
             inputCliente.value = cliente.nome;
+            clienteSelecionado = cliente; // Armazena o objeto completo do cliente
             clienteResults.classList.add('hidden');
         };
         clienteResults.appendChild(div);
