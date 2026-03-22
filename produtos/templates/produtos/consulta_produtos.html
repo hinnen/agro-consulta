@@ -1,984 +1,164 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consulta de Produtos</title>
-    <link rel="icon" href="/static/favicon.ico">
+    <meta charset="UTF-8"><title>Agro Mais | PDV Inteligente</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f3f4f6;
-            color: #0f172a;
-        }
-
-        .container {
-            max-width: 1280px;
-            margin: 14px auto;
-            padding: 0 14px 40px;
-        }
-
-        .card {
-            background: #ffffff;
-            border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-            padding: 24px;
-            margin-bottom: 22px;
-        }
-
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 16px;
-            margin-bottom: 12px;
-        }
-
-        h1 {
-            margin: 0 0 6px;
-            font-size: 24px;
-        }
-
-        .subtitle {
-            color: #64748b;
-            font-size: 15px;
-        }
-
-        .brand-pill {
-            background: #e8f0ff;
-            color: #2563eb;
-            border: 1px solid #c7d7fe;
-            padding: 10px 16px;
-            border-radius: 999px;
-            font-weight: 700;
-            white-space: nowrap;
-        }
-
-        .search-wrap {
-            position: relative;
-        }
-
-        .search-box {
-            width: 100%;
-            font-size: 22px;
-            padding: 16px 20px;
-            border-radius: 22px;
-            border: 3px solid #2563eb;
-            outline: none;
-        }
-
-        .helper {
-            margin-top: 10px;
-            color: #64748b;
-            font-size: 13px;
-        }
-
-        .autocomplete {
-            position: absolute;
-            top: calc(100% + 8px);
-            left: 0;
-            right: 0;
-            background: #ffffff;
-            border: 1px solid #dbe3ef;
-            border-radius: 18px;
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-            overflow: hidden;
-            z-index: 50;
-            display: none;
-        }
-
-        .autocomplete.open {
-            display: block;
-        }
-
-        .suggestion {
-            padding: 13px 15px;
-            border-bottom: 1px solid #eef2f7;
-            cursor: pointer;
-        }
-
-        .suggestion:last-child {
-            border-bottom: none;
-        }
-
-        .suggestion.active,
-        .suggestion:hover {
-            background: #eff6ff;
-        }
-
-        .suggestion-title {
-            font-size: 17px;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 4px;
-        }
-
-        .suggestion-meta {
-            font-size: 13px;
-            color: #64748b;
-        }
-
-        .section-title {
-            margin: 0 0 18px;
-            font-size: 22px;
-        }
-
-        .subsection-title {
-            margin: 0 0 12px;
-            font-size: 17px;
-            color: #334155;
-            font-weight: 800;
-        }
-
-        .empty-state,
-        .error-box,
-        .loading-box,
-        .success-box {
-            padding: 14px 16px;
-            border-radius: 16px;
-            margin-bottom: 14px;
-        }
-
-        .empty-state {
-            background: #f8fafc;
-            color: #64748b;
-        }
-
-        .loading-box {
-            background: #eff6ff;
-            color: #1d4ed8;
-        }
-
-        .error-box {
-            background: #fef2f2;
-            color: #b91c1c;
-            border: 1px solid #fecaca;
-        }
-
-        .success-box {
-            background: #ecfdf5;
-            color: #166534;
-            border: 1px solid #86efac;
-        }
-
-        .selected-wrapper {
-            margin-bottom: 18px;
-        }
-
-        .selected-product {
-            border: 2px solid #2563eb;
-            background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
-            box-shadow: 0 14px 34px rgba(37, 99, 235, 0.14);
-            border-radius: 22px;
-            padding: 18px;
-        }
-
-        .selected-badge {
-            display: inline-flex;
-            align-items: center;
-            background: #dbeafe;
-            color: #1d4ed8;
-            border: 1px solid #bfdbfe;
-            border-radius: 999px;
-            padding: 7px 11px;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-
-        .product-header {
-            display: grid;
-            grid-template-columns: 1fr 210px;
-            gap: 16px;
-            align-items: start;
-            margin-bottom: 14px;
-        }
-
-        .product-name {
-            margin: 0 0 6px;
-            color: #334155;
-            font-weight: 800;
-        }
-
-        .selected-product .product-name {
-            font-size: 36px;
-            line-height: 1.08;
-        }
-
-        .other-line .product-name {
-            font-size: 18px;
-            line-height: 1.1;
-            margin: 0;
-        }
-
-        .product-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px 18px;
-            color: #64748b;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .selected-product .product-meta {
-            font-size: 18px;
-            gap: 10px 20px;
-        }
-
-        .selected-product .product-meta strong {
-            color: #334155;
-        }
-
-        .codigo-destaque {
-            font-size: 22px;
-            color: #475569;
-            font-weight: 800;
-        }
-
-        .price-box {
-            background: #eff6ff;
-            border: 1px solid #dbeafe;
-            border-radius: 18px;
-            padding: 16px 14px;
-            text-align: center;
-        }
-
-        .price-label {
-            font-size: 16px;
-            color: #64748b;
-            margin-bottom: 8px;
-            font-weight: 700;
-        }
-
-        .price-value {
-            font-size: 48px;
-            font-weight: 900;
-            color: #0f172a;
-            line-height: 1;
-        }
-
-        .stock-grid-selected {
-            display: grid;
-            grid-template-columns: 1.7fr 0.55fr;
-            gap: 12px;
-            align-items: stretch;
-        }
-
-        .stock-card {
-            border-radius: 18px;
-        }
-
-        .stock-card.center {
-            background: #f0fdf4;
-            border: 2px solid #22c55e;
-            padding: 16px 18px;
-        }
-
-        .side-stack {
-            display: grid;
-            grid-template-rows: 1fr 1fr;
-            gap: 8px;
-        }
-
-        .mini-card {
-            background: #f8fbff;
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
-            padding: 10px 12px;
-        }
-
-        .stock-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .stock-title {
-            font-size: 14px;
-            font-weight: 900;
-            color: #475569;
-            letter-spacing: 0.08em;
-        }
-
-        .stock-card.center .stock-value {
-            font-size: 52px;
-            font-weight: 900;
-            margin-bottom: 10px;
-        }
-
-        .mini-card .stock-value {
-            font-size: 28px;
-            font-weight: 900;
-            margin-bottom: 4px;
-        }
-
-        .stock-value.positive { color: #15803d; }
-        .stock-value.negative { color: #b91c1c; }
-        .stock-value.neutral { color: #0f172a; }
-
-        .stock-details {
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        .mini-card .stock-details {
-            font-size: 12px;
-        }
-
-        .btn-ajustar {
-            border: 1px solid #cbd5e1;
-            background: #ffffff;
-            color: #334155;
-            border-radius: 999px;
-            padding: 7px 12px;
-            font-size: 12px;
-            font-weight: 800;
-            cursor: pointer;
-        }
-
-        .btn-ajustar:hover {
-            background: #eff6ff;
-            border-color: #93c5fd;
-            color: #1d4ed8;
-        }
-
-        .btn-ajustar.small {
-            padding: 5px 9px;
-            font-size: 10px;
-        }
-
-        .highlight {
-            background: #fde047;
-            color: #111827;
-            padding: 0 2px;
-            border-radius: 4px;
-        }
-
-        .muted-divider {
-            height: 1px;
-            background: #e5e7eb;
-            margin: 12px 0 16px;
-        }
-
-        .results-list {
-            display: flex;
-            flex-direction: column;
-            gap: 7px;
-        }
-
-        .other-line {
-            display: grid;
-            grid-template-columns: 1.8fr 0.65fr 0.5fr 0.5fr 0.55fr;
-            gap: 8px;
-            align-items: center;
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
-            background: #fff;
-            padding: 10px 12px;
-        }
-
-        .other-main {
-            min-width: 0;
-        }
-
-        .other-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px 12px;
-            color: #64748b;
-            font-size: 14px;
-            font-weight: 700;
-            margin-top: 4px;
-        }
-
-        .other-center-box {
-            background: #f0fdf4;
-            border: 1px solid #22c55e;
-            border-radius: 12px;
-            padding: 8px 10px;
-        }
-
-        .other-center-box .title,
-        .other-mini .title,
-        .other-price .title {
-            font-size: 11px;
-            font-weight: 900;
-            color: #475569;
-            letter-spacing: 0.06em;
-            margin-bottom: 4px;
-        }
-
-        .other-center-box .value {
-            font-size: 26px;
-            font-weight: 900;
-        }
-
-        .other-mini,
-        .other-price {
-            background: #f8fbff;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 8px 10px;
-            text-align: center;
-        }
-
-        .other-mini .value,
-        .other-price .value {
-            font-size: 22px;
-            font-weight: 900;
-        }
-
-        .other-actions {
-            display: flex;
-            justify-content: center;
-        }
-
-        @media (max-width: 1000px) {
-            .product-header,
-            .stock-grid-selected,
-            .other-line {
-                grid-template-columns: 1fr;
-            }
-
-            .selected-product .product-name {
-                font-size: 28px;
-            }
-
-            .codigo-destaque {
-                font-size: 18px;
-            }
-
-            .price-value {
-                font-size: 38px;
-            }
-
-            .stock-card.center .stock-value {
-                font-size: 38px;
-            }
-        }
+        .sugestao-ativa { background-color: #f1f5f9 !important; border-left: 4px solid #16a34a !important; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.open { display: flex; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <section class="card">
-            <div class="header-top">
-                <div>
-                    <h1>Consulta de Produtos</h1>
-                    <div class="subtitle">Busque por nome, código interno, marca ou código de barras.</div>
+<body class="bg-slate-100 pb-10">
+    <div class="container mx-auto p-4 max-w-6xl">
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-black italic text-slate-800 uppercase">Agro <span class="text-green-600">Mais</span></h1>
+            <div class="flex gap-2">
+                <a href="/transferencias/" class="text-xs font-bold bg-green-50 text-green-700 px-4 py-2 rounded-xl shadow-sm border border-green-100 hover:bg-green-100 transition-all">🚚 Logística</a>
+                
+                <a href="/historico-ajustes/" class="text-xs font-bold bg-white px-4 py-2 rounded-xl shadow-sm border hover:bg-slate-50 transition-all">Ver Histórico</a>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div class="lg:col-span-3">
+                <div class="relative mb-6">
+                    <input type="text" id="campo-busca" placeholder="Busca inteligente..." class="w-full p-5 rounded-2xl shadow-xl outline-none ring-4 ring-green-600/10 focus:ring-green-600/30 text-xl" autocomplete="off">
+                    <div id="autocomplete" class="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-b-2xl hidden z-50 overflow-hidden border-t"></div>
                 </div>
-                <div class="brand-pill">Agro Consulta</div>
+                <div id="resultados" class="space-y-4"></div>
             </div>
+            <div class="lg:col-span-1">
+                <div class="bg-white p-5 rounded-3xl shadow-xl border-2 border-green-600/10 sticky top-4">
+                    <h2 class="font-black mb-4 uppercase text-sm text-slate-400">🛒 Orçamento</h2>
+                    <input type="text" id="cliente-id" placeholder="Cliente" class="w-full p-3 bg-slate-50 rounded-xl mb-4 outline-none border focus:ring-2 focus:ring-green-500">
+                    <div id="lista-carrinho" class="space-y-2 mb-6 text-xs min-h-[50px]"></div>
+                    <div class="border-t pt-4">
+                        <div class="flex justify-between font-black text-lg mb-4"><span>TOTAL</span><span id="total-carrinho" class="text-green-600">R$ 0,00</span></div>
+                        <button onclick="gerarOrcamento()" class="w-full bg-green-600 text-white p-4 rounded-2xl font-black shadow-lg">FINALIZAR</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            <div class="search-wrap">
-                <input
-                    id="campo-busca"
-                    class="search-box"
-                    type="text"
-                    placeholder="Digite para buscar..."
-                    autocomplete="off"
-                    autofocus
-                >
-                <div id="autocomplete" class="autocomplete"></div>
+    <div id="modal-ajuste" class="modal-overlay">
+        <div class="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-md border-4 border-slate-100">
+            <h2 class="text-xl font-black mb-1 uppercase text-slate-800" id="modal-nome-produto">Ajustar</h2>
+            <p class="text-xs font-bold text-slate-400 mb-6 uppercase" id="modal-codigo-produto"></p>
+            <div class="space-y-4">
+                <select id="ajuste-deposito" class="w-full p-4 bg-slate-50 rounded-2xl border-2 font-bold outline-none focus:border-green-500">
+                    <option value="centro">📍 CENTRO</option>
+                    <option value="vila">📍 VILA ELIAS</option>
+                </select>
+                <input type="number" id="ajuste-novo-saldo" placeholder="Novo Saldo" class="w-full p-5 bg-slate-50 rounded-2xl border-2 text-3xl font-black outline-none focus:border-green-500 text-center" step="0.001">
+                <input type="password" id="ajuste-pin" placeholder="PIN" class="w-full p-4 bg-slate-50 rounded-2xl border-2 text-center font-bold outline-none focus:border-red-500">
             </div>
-
-            <div class="helper">
-                Dica: use ↑ ↓ e Enter para escolher a sugestão. Os detalhes aparecem após a seleção.
+            <div class="flex gap-3 mt-8">
+                <button onclick="fecharModal()" class="flex-1 p-4 rounded-2xl font-black text-slate-400">CANCELAR</button>
+                <button onclick="confirmarAjuste()" class="flex-1 bg-slate-800 text-white p-4 rounded-2xl font-black shadow-lg">SALVAR</button>
             </div>
-        </section>
-
-        <section class="card">
-            <h2 class="section-title">Resultados</h2>
-            <div id="status-area"></div>
-            <div id="resultados">
-                <div class="empty-state">Digite algo para pesquisar.</div>
-            </div>
-        </section>
+        </div>
     </div>
 
     <script>
-        const campoBusca = document.getElementById("campo-busca");
-        const autocomplete = document.getElementById("autocomplete");
-        const resultados = document.getElementById("resultados");
-        const statusArea = document.getElementById("status-area");
-
-        let debounceSugestao = null;
-        let sugestoesAtuais = [];
-        let indiceAtivo = -1;
-        let controllerSugestao = null;
-        let controllerBusca = null;
-        let ultimoTermoBuscado = "";
-        let produtoSelecionadoId = null;
-
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== "") {
-                const cookies = document.cookie.split(";");
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + "=")) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-
-        function formatarNumero(valor) {
-            return Number(valor || 0).toLocaleString("pt-BR", {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2,
-            });
-        }
-
-        function formatarPreco(valor) {
-            return Number(valor || 0).toLocaleString("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-            });
-        }
-
-        function classeSaldo(valor) {
-            const numero = Number(valor || 0);
-            if (numero > 0) return "positive";
-            if (numero < 0) return "negative";
-            return "neutral";
-        }
-
-        function escaparHtml(texto) {
-            return String(texto || "")
-                .replaceAll("&", "&amp;")
-                .replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;")
-                .replaceAll('"', "&quot;")
-                .replaceAll("'", "&#039;");
-        }
-
-        function destacarTexto(texto, termo) {
-            const textoSeguro = escaparHtml(texto);
-            const termoLimpo = String(termo || "").trim();
-
-            if (!termoLimpo) return textoSeguro;
-
-            const partes = termoLimpo
-                .split(/\s+/)
-                .filter(Boolean)
-                .map(p => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-
-            if (!partes.length) return textoSeguro;
-
-            const regex = new RegExp(`(${partes.join("|")})`, "gi");
-            return textoSeguro.replace(regex, '<span class="highlight">$1</span>');
-        }
-
-        function abrirAutocomplete() {
-            if (sugestoesAtuais.length) autocomplete.classList.add("open");
-        }
-
-        function fecharAutocomplete() {
-            autocomplete.classList.remove("open");
-            indiceAtivo = -1;
-        }
-
-        function renderizarSugestoes(termo) {
-            if (!sugestoesAtuais.length) {
-                autocomplete.innerHTML = "";
-                fecharAutocomplete();
-                return;
-            }
-
-            autocomplete.innerHTML = sugestoesAtuais.map((item, index) => `
-                <div class="suggestion ${index === indiceAtivo ? "active" : ""}" data-index="${index}">
-                    <div class="suggestion-title">${destacarTexto(item.nome, termo)}</div>
-                    <div class="suggestion-meta">
-                        Código: ${escaparHtml(item.codigo_interno || "")}
-                        ${item.codigo_barras ? `&nbsp;&nbsp;|&nbsp;&nbsp;Barras: ${escaparHtml(item.codigo_barras)}` : ""}
-                        ${item.marca ? `&nbsp;&nbsp;|&nbsp;&nbsp;Marca: ${escaparHtml(item.marca)}` : ""}
-                    </div>
-                </div>
-            `).join("");
-
-            abrirAutocomplete();
-
-            autocomplete.querySelectorAll(".suggestion").forEach(el => {
-                el.addEventListener("mousedown", (event) => {
-                    event.preventDefault();
-                    const index = Number(el.dataset.index);
-                    selecionarSugestao(index);
-                });
-            });
-        }
-
-        function mostrarLoading(texto = "Buscando...") {
-            statusArea.innerHTML = `<div class="loading-box">${escaparHtml(texto)}</div>`;
-        }
-
-        function limparStatus() {
-            statusArea.innerHTML = "";
-        }
-
-        function mostrarErro(texto) {
-            statusArea.innerHTML = `<div class="error-box">${escaparHtml(texto)}</div>`;
-        }
-
-        function mostrarSucesso(texto) {
-            statusArea.innerHTML = `<div class="success-box">${escaparHtml(texto)}</div>`;
-            setTimeout(() => limparStatus(), 2500);
-        }
-
-        function abrirAjuste(produtoId, codigoInterno, nomeProduto, deposito, saldoAtualErp) {
-            const depositoNome = deposito === "centro" ? "CENTRO" : "VILA ELIAS";
-            const novoSaldo = prompt(
-                `${nomeProduto}\n${depositoNome}\n\nSaldo ERP atual: ${saldoAtualErp}\n\nDigite o novo saldo:`
-            );
-
-            if (novoSaldo === null) return;
-
-            const observacao = prompt("Observação do ajuste (opcional):", "") || "";
-            salvarAjuste(produtoId, codigoInterno, nomeProduto, deposito, saldoAtualErp, novoSaldo, observacao);
-        }
-
-        async function salvarAjuste(produtoId, codigoInterno, nomeProduto, deposito, saldoAtualErp, novoSaldo, observacao) {
-            const formData = new URLSearchParams();
-            formData.append("produto_id", produtoId);
-            formData.append("codigo_interno", codigoInterno || "");
-            formData.append("nome_produto", nomeProduto || "");
-            formData.append("deposito", deposito);
-            formData.append("saldo_atual", String(saldoAtualErp ?? "0"));
-            formData.append("novo_saldo", String(novoSaldo ?? ""));
-            formData.append("observacao", observacao || "");
-
-            try {
-                mostrarLoading("Salvando ajuste...");
-
-                const resposta = await fetch("/produtos/api/ajustar/", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-                        "X-CSRFToken": getCookie("csrftoken"),
-                    },
-                    body: formData.toString(),
-                });
-
-                const contentType = resposta.headers.get("content-type") || "";
-                if (!contentType.includes("application/json")) {
-                    throw new Error("A rota /produtos/api/ajustar/ não está retornando JSON.");
-                }
-
-                const dados = await resposta.json();
-
-                if (!resposta.ok || !dados.ok) {
-                    throw new Error(dados.erro || "Erro ao salvar ajuste.");
-                }
-
-                mostrarSucesso(dados.mensagem || "Ajuste salvo com sucesso.");
-                buscarProdutos(campoBusca.value);
-            } catch (erro) {
-                mostrarErro(erro.message || "Erro ao salvar ajuste.");
-            }
-        }
-
-        function criarCardSelecionado(produto, termo) {
-            const codigo = JSON.stringify(String(produto.codigo_interno || ""));
-            const nome = JSON.stringify(String(produto.nome || ""));
-            const saldoCentroErp = JSON.stringify(String(produto.saldo_centro_erp ?? 0));
-            const saldoVilaErp = JSON.stringify(String(produto.saldo_vila_erp ?? 0));
-
-            return `
-                <article class="selected-product">
-                    <div class="selected-badge">Selecionado</div>
-
-                    <div class="product-header">
-                        <div>
-                            <h3 class="product-name">${destacarTexto(produto.nome, termo)}</h3>
-                            <div class="product-meta">
-                                <span class="codigo-destaque"><strong>Código:</strong> ${escaparHtml(produto.codigo_interno || "")}</span>
-                                <span class="codigo-destaque"><strong>Barras:</strong> ${escaparHtml(produto.codigo_barras || "")}</span>
-                                <span><strong>Marca:</strong> ${escaparHtml(produto.marca || "")}</span>
-                                <span><strong>Categoria:</strong> ${escaparHtml(produto.categoria || "")}</span>
-                            </div>
-                        </div>
-
-                        <div class="price-box">
-                            <div class="price-label">Preço de venda</div>
-                            <div class="price-value">${formatarPreco(produto.preco_venda)}</div>
-                        </div>
-                    </div>
-
-                    <div class="stock-grid-selected">
-                        <div class="stock-card center">
-                            <div class="stock-top">
-                                <div class="stock-title">CENTRO</div>
-                                <button
-                                    type="button"
-                                    class="btn-ajustar"
-                                    onclick='abrirAjuste("${String(produto.id)}", ${codigo}, ${nome}, "centro", ${saldoCentroErp})'
-                                >
-                                    Ajustar
-                                </button>
-                            </div>
-                            <div class="stock-value ${classeSaldo(produto.saldo_centro)}">${formatarNumero(produto.saldo_centro)}</div>
-                            <div class="stock-details">
-                                ERP: <strong>${formatarNumero(produto.saldo_centro_erp)}</strong>
-                                &nbsp;&nbsp;•&nbsp;&nbsp;
-                                Ajuste: <strong>${formatarNumero((produto.saldo_centro || 0) - (produto.saldo_centro_erp || 0))}</strong>
-                            </div>
-                        </div>
-
-                        <div class="side-stack">
-                            <div class="mini-card">
-                                <div class="stock-top" style="margin-bottom:8px;">
-                                    <div class="stock-title">VILA ELIAS</div>
-                                    <button
-                                        type="button"
-                                        class="btn-ajustar small"
-                                        onclick='abrirAjuste("${String(produto.id)}", ${codigo}, ${nome}, "vila", ${saldoVilaErp})'
-                                    >
-                                        Ajustar
-                                    </button>
-                                </div>
-                                <div class="stock-value ${classeSaldo(produto.saldo_vila)}">${formatarNumero(produto.saldo_vila)}</div>
-                                <div class="stock-details">ERP: <strong>${formatarNumero(produto.saldo_vila_erp)}</strong></div>
-                            </div>
-
-                            <div class="mini-card">
-                                <div class="stock-top" style="margin-bottom:8px;">
-                                    <div class="stock-title">ESTOQUE TOTAL</div>
-                                    <div class="btn-ajustar small" style="cursor:default;">Resumo</div>
-                                </div>
-                                <div class="stock-value ${classeSaldo(produto.saldo_total)}">${formatarNumero(produto.saldo_total)}</div>
-                                <div class="stock-details">Centro + Vila</div>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-            `;
-        }
-
-        function criarLinhaCompacta(produto, termo) {
-            const codigo = JSON.stringify(String(produto.codigo_interno || ""));
-            const nome = JSON.stringify(String(produto.nome || ""));
-            const saldoCentroErp = JSON.stringify(String(produto.saldo_centro_erp ?? 0));
-
-            return `
-                <div class="other-line">
-                    <div class="other-main">
-                        <div class="product-name">${destacarTexto(produto.nome, termo)}</div>
-                        <div class="other-meta">
-                            <span><strong>Código:</strong> ${escaparHtml(produto.codigo_interno || "")}</span>
-                            <span><strong>Barras:</strong> ${escaparHtml(produto.codigo_barras || "")}</span>
-                            <span><strong>Marca:</strong> ${escaparHtml(produto.marca || "")}</span>
-                        </div>
-                    </div>
-
-                    <div class="other-center-box">
-                        <div class="title">CENTRO</div>
-                        <div class="value ${classeSaldo(produto.saldo_centro)}">${formatarNumero(produto.saldo_centro)}</div>
-                    </div>
-
-                    <div class="other-mini">
-                        <div class="title">VILA</div>
-                        <div class="value ${classeSaldo(produto.saldo_vila)}">${formatarNumero(produto.saldo_vila)}</div>
-                    </div>
-
-                    <div class="other-mini">
-                        <div class="title">TOTAL</div>
-                        <div class="value ${classeSaldo(produto.saldo_total)}">${formatarNumero(produto.saldo_total)}</div>
-                    </div>
-
-                    <div class="other-actions">
-                        <button
-                            type="button"
-                            class="btn-ajustar small"
-                            onclick='abrirAjuste("${String(produto.id)}", ${codigo}, ${nome}, "centro", ${saldoCentroErp})'
-                        >
-                            Ajustar
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderizarResultados(lista) {
-            if (!lista.length) {
-                resultados.innerHTML = `<div class="empty-state">Nenhum produto encontrado.</div>`;
-                return;
-            }
-
-            let selecionado = null;
-            let demais = [...lista];
-
-            if (produtoSelecionadoId) {
-                selecionado = lista.find(item => String(item.id) === String(produtoSelecionadoId)) || null;
-                demais = lista.filter(item => String(item.id) !== String(produtoSelecionadoId));
-            }
-
-            if (!selecionado && lista.length) {
-                selecionado = lista[0];
-                demais = lista.slice(1);
-                produtoSelecionadoId = selecionado.id;
-            }
-
-            const blocoSelecionado = selecionado ? `
-                <div class="selected-wrapper">
-                    <h3 class="subsection-title">Item selecionado</h3>
-                    ${criarCardSelecionado(selecionado, campoBusca.value)}
-                </div>
-            ` : "";
-
-            const blocoDemais = demais.length ? `
-                <div class="muted-divider"></div>
-                <h3 class="subsection-title">Outros resultados</h3>
-                <div class="results-list">
-                    ${demais.map(produto => criarLinhaCompacta(produto, campoBusca.value)).join("")}
-                </div>
-            ` : "";
-
-            resultados.innerHTML = blocoSelecionado + blocoDemais;
-        }
-
-        async function buscarSugestoes(termo) {
-            if (controllerSugestao) controllerSugestao.abort();
-            controllerSugestao = new AbortController();
-
-            try {
-                const resposta = await fetch(`/produtos/api/sugestoes/?q=${encodeURIComponent(termo)}`, {
-                    signal: controllerSugestao.signal
-                });
-                const dados = await resposta.json();
-                sugestoesAtuais = dados.sugestoes || [];
-                indiceAtivo = sugestoesAtuais.length ? 0 : -1;
-                renderizarSugestoes(termo);
-            } catch (erro) {
-                if (erro.name !== "AbortError") {
-                    sugestoesAtuais = [];
-                    renderizarSugestoes(termo);
-                }
-            }
-        }
-
-        async function buscarProdutos(termo) {
-            const termoLimpo = String(termo || "").trim();
-
-            if (!termoLimpo) {
-                limparStatus();
-                resultados.innerHTML = `<div class="empty-state">Digite algo para pesquisar.</div>`;
-                return;
-            }
-
-            ultimoTermoBuscado = termoLimpo;
-
-            if (controllerBusca) controllerBusca.abort();
-            controllerBusca = new AbortController();
-
-            mostrarLoading("Buscando produtos...");
-
-            try {
-                const resposta = await fetch(`/produtos/api/buscar/?q=${encodeURIComponent(termoLimpo)}`, {
-                    signal: controllerBusca.signal
-                });
-
-                const contentType = resposta.headers.get("content-type") || "";
-                if (!contentType.includes("application/json")) {
-                    throw new Error("A busca retornou HTML em vez de JSON.");
-                }
-
-                const dados = await resposta.json();
-
-                if (ultimoTermoBuscado !== termoLimpo) return;
-
-                if (dados.erro_api) {
-                    mostrarErro(dados.erro_api);
-                } else {
-                    limparStatus();
-                }
-
-                renderizarResultados(dados.produtos || []);
-            } catch (erro) {
-                if (erro.name === "AbortError") return;
-                mostrarErro(erro.message || "Erro ao buscar produtos.");
-                resultados.innerHTML = `<div class="empty-state">Nenhum produto encontrado.</div>`;
-            }
-        }
-
-        function selecionarSugestao(index) {
-            const item = sugestoesAtuais[index];
-            if (!item) return;
-
-            produtoSelecionadoId = item.id;
-            campoBusca.value = item.nome;
-            fecharAutocomplete();
-            buscarProdutos(item.nome);
-        }
-
-        campoBusca.addEventListener("input", () => {
-            const termo = campoBusca.value.trim();
-            clearTimeout(debounceSugestao);
-
-            if (!termo) {
-                sugestoesAtuais = [];
-                produtoSelecionadoId = null;
-                fecharAutocomplete();
-                limparStatus();
-                resultados.innerHTML = `<div class="empty-state">Digite algo para pesquisar.</div>`;
-                return;
-            }
-
-            resultados.innerHTML = `<div class="empty-state">Selecione uma sugestão ou aperte Enter para carregar os detalhes.</div>`;
-
-            if (termo.length < 2) {
-                sugestoesAtuais = [];
-                fecharAutocomplete();
-                return;
-            }
-
-            debounceSugestao = setTimeout(() => buscarSugestoes(termo), 180);
+        let carrinho = [], produtoParaAjuste = null, saldoAtualParaAjuste = 0, indiceAtivo = -1;
+        const inputBusca = document.getElementById('campo-busca'), autocomplete = document.getElementById('autocomplete'), listaResultados = document.getElementById('resultados');
+
+        inputBusca.addEventListener('keydown', (e) => {
+            const itens = autocomplete.querySelectorAll('.item-sugestao');
+            if (e.key === 'ArrowDown') { e.preventDefault(); indiceAtivo = (indiceAtivo + 1) % itens.length; atualizarDestaque(itens); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); indiceAtivo = (indiceAtivo - 1 + itens.length) % itens.length; atualizarDestaque(itens); }
+            else if (e.key === 'Enter') { e.preventDefault(); indiceAtivo >= 0 ? itens[indiceAtivo].click() : buscar(inputBusca.value); }
         });
 
-        campoBusca.addEventListener("keydown", (event) => {
-            if (event.key === "ArrowDown" && sugestoesAtuais.length) {
-                event.preventDefault();
-                indiceAtivo = (indiceAtivo + 1) % sugestoesAtuais.length;
-                renderizarSugestoes(campoBusca.value);
-                return;
-            }
+        function atualizarDestaque(itens) { itens.forEach((it, i) => i === indiceAtivo ? it.classList.add('sugestao-ativa') : it.classList.remove('sugestao-ativa')); }
 
-            if (event.key === "ArrowUp" && sugestoesAtuais.length) {
-                event.preventDefault();
-                indiceAtivo = (indiceAtivo - 1 + sugestoesAtuais.length) % sugestoesAtuais.length;
-                renderizarSugestoes(campoBusca.value);
-                return;
-            }
-
-            if (event.key === "Enter") {
-                event.preventDefault();
-
-                if (sugestoesAtuais.length && indiceAtivo >= 0) {
-                    selecionarSugestao(indiceAtivo);
-                } else {
-                    produtoSelecionadoId = null;
-                    fecharAutocomplete();
-                    buscarProdutos(campoBusca.value);
-                }
-                return;
-            }
-
-            if (event.key === "Escape") {
-                fecharAutocomplete();
-            }
+        inputBusca.addEventListener('input', async () => {
+            if(inputBusca.value.length < 2) return autocomplete.classList.add('hidden');
+            const res = await fetch(`/api/sugestoes/?q=${encodeURIComponent(inputBusca.value)}`);
+            const data = await res.json();
+            autocomplete.innerHTML = data.sugestoes.map(i => `<div onclick="buscar('${i.nome}')" class="item-sugestao p-4 hover:bg-slate-50 cursor-pointer border-b flex justify-between font-bold text-slate-700"><span>${i.nome}</span><span class="text-slate-300 text-xs">${i.codigo_interno}</span></div>`).join('');
+            autocomplete.classList.toggle('hidden', data.sugestoes.length === 0);
         });
 
-        document.addEventListener("click", (event) => {
-            if (!autocomplete.contains(event.target) && event.target !== campoBusca) {
-                fecharAutocomplete();
-            }
-        });
+        async function buscar(t) {
+            autocomplete.classList.add('hidden'); inputBusca.value = t;
+            listaResultados.innerHTML = '<p class="text-center py-10 font-bold text-slate-400 uppercase text-xs">Consultando...</p>';
+            const res = await fetch(`/api/buscar/?q=${encodeURIComponent(t)}`);
+            const data = await res.json();
+            const highlight = (text, query) => {
+                if (!query) return text;
+                const words = query.split(' ').filter(w => w.length > 1);
+                let h = text;
+                words.forEach(w => h = h.replace(new RegExp(`(${w})`, 'gi'), '<mark class="bg-yellow-200 p-0">$1</mark>'));
+                return h;
+            };
+            listaResultados.innerHTML = data.produtos.map(p => `
+                <div class="bg-white p-6 rounded-[32px] shadow-sm flex justify-between items-center border hover:border-green-500/30 transition-all">
+                    <div class="flex-1">
+                        <h3 class="text-xl font-black text-slate-800">${highlight(p.nome, t)}</h3>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">${highlight(p.codigo_interno, t)} | ${p.marca}</p>
+                    </div>
+                    <div class="flex gap-4 items-center">
+                        <div onclick="abrirModal('${p.id}', '${p.nome}', '${p.codigo_interno}', 'centro', '${p.saldo_centro}')" class="relative bg-blue-50 p-4 rounded-3xl text-center min-w-[100px] border border-blue-200 cursor-pointer active:scale-95 transition-all group">
+                            <svg class="absolute top-2 right-2 h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            <span class="text-[10px] block font-black text-blue-400">CENTRO</span><span class="text-2xl font-black text-blue-600">${p.saldo_centro}</span>
+                        </div>
+                        <div onclick="abrirModal('${p.id}', '${p.nome}', '${p.codigo_interno}', 'vila', '${p.saldo_vila}')" class="relative bg-purple-50 p-4 rounded-3xl text-center min-w-[100px] border border-purple-200 cursor-pointer active:scale-95 transition-all group">
+                            <svg class="absolute top-2 right-2 h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            <span class="text-[10px] block font-black text-purple-400 tracking-tighter uppercase">Vila Elias</span><span class="text-2xl font-black text-purple-600">${p.saldo_vila}</span>
+                        </div>
+                        <button onclick="addCarrinho('${p.id}','${p.nome}',${p.preco_venda})" class="bg-green-600 text-white h-14 w-14 rounded-2xl font-black text-2xl shadow-lg hover:scale-110 active:scale-90 transition-all">+</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        function abrirModal(id, nome, codigo, deposito, saldoAtual) {
+            produtoParaAjuste = { id, nome, codigo };
+            saldoAtualParaAjuste = saldoAtual;
+            document.getElementById('modal-nome-produto').innerText = nome;
+            document.getElementById('modal-codigo-produto').innerText = codigo;
+            document.getElementById('ajuste-deposito').value = deposito;
+            document.getElementById('ajuste-novo-saldo').value = ''; document.getElementById('ajuste-pin').value = '';
+            document.getElementById('modal-ajuste').classList.add('open');
+            setTimeout(() => document.getElementById('ajuste-novo-saldo').focus(), 100);
+        }
+
+        function fecharModal() { document.getElementById('modal-ajuste').classList.remove('open'); }
+
+        async function confirmarAjuste() {
+            const fd = new FormData();
+            fd.append('produto_id', produtoParaAjuste.id); fd.append('nome_produto', produtoParaAjuste.nome); fd.append('codigo_interno', produtoParaAjuste.codigo);
+            fd.append('deposito', document.getElementById('ajuste-deposito').value); fd.append('saldo_atual', saldoAtualParaAjuste);
+            fd.append('novo_saldo', document.getElementById('ajuste-novo-saldo').value); fd.append('pin', document.getElementById('ajuste-pin').value);
+            fd.append('csrfmiddlewaretoken', '{{csrf_token}}');
+            try {
+                const res = await fetch('/api/ajustar-estoque/', { method: 'POST', body: fd });
+                const data = await res.json();
+                if(data.ok) { fecharModal(); buscar(inputBusca.value); } else { alert("Erro: " + data.erro); }
+            } catch (e) { alert("Erro de conexão!"); }
+        }
+
+        function addCarrinho(id, nome, preco) {
+            const ex = carrinho.find(c => c.id === id);
+            ex ? ex.quantidade++ : carrinho.push({id, nome, preco, quantidade: 1}); renderCarrinho();
+        }
+
+        function renderCarrinho() {
+            let total = 0;
+            document.getElementById('lista-carrinho').innerHTML = carrinho.map((c, i) => {
+                total += c.preco * c.quantidade;
+                return `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg border text-[11px]"><div class="flex-1 min-w-0"><p class="font-bold truncate text-slate-700">${c.nome}</p><p class="text-slate-400">R$ ${c.preco.toFixed(2)}</p></div><button onclick="carrinho.splice(${i},1);renderCarrinho()" class="ml-2 text-red-400 font-black px-2">✕</button></div>`;
+            }).join('');
+            document.getElementById('total-carrinho').innerText = `R$ ${total.toFixed(2)}`;
+        }
+
+        async function gerarOrcamento() {
+            const fd = new FormData(); fd.append('itens', JSON.stringify(carrinho)); fd.append('cliente_id', document.getElementById('cliente-id').value || "Balcão"); fd.append('csrfmiddlewaretoken', '{{csrf_token}}');
+            const res = await fetch('/api/gerar-orcamento/', {method:'POST', body: fd}); const d = await res.json();
+            if(d.ok) { carrinho = []; renderCarrinho(); document.getElementById('cliente-id').value = ''; } alert(d.mensagem);
+        }
     </script>
 </body>
 </html>

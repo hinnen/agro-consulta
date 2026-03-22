@@ -1,214 +1,189 @@
-from decimal import Decimal, InvalidOperation
-
+import json
+from datetime import datetime
+from decimal import Decimal
+from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET, require_POST
-
 from base.models import Empresa, Loja
-from estoque.models import AjusteRapidoEstoque
+from estoque.models import AjusteRapidoEstoque, ConfiguracaoProduto
 from integracoes.venda_erp_mongo import VendaERPMongoClient
-
+from integracoes.venda_erp_api import VendaERPAPIClient
 
 def consulta_produtos(request):
     return render(request, "produtos/consulta_produtos.html")
 
+def historico_ajustes(request):
+    ajustes = AjusteRapidoEstoque.objects.all().order_by('-criado_em')
+    return render(request, "produtos/historico_ajustes.html", {"ajustes": ajustes})
 
-def _normalizar_decimal(valor):
-    texto = str(valor).strip().replace(" ", "")
+def sugestao_transferencia(request):
+    try:
+        client = VendaERPMongoClient()
+        produtos = client.buscar_produtos("", limite=500) 
+        p_ids = [str(p["_id"]) for p in produtos]
+        estoques = client.buscar_estoques_por_produto_ids(p_ids)
+        
+        # Pega ajustes de hoje (inclui o retroativo de 12:00)
+        ajustes_hoje = AjusteRapidoEstoque.objects.filter(
+            criado_em__date=datetime.now().date()
+        )
+        
+        dif_map = {}
+        for a in ajustes_hoje:
+            pid = a.produto_externo_id
+            if pid not in dif_map: 
+                dif_map[pid] = {"centro": Decimal(0), "vila": Decimal(0)}
+            dif_map[pid][a.deposito] += a.diferenca_saldo
 
-    if "," in texto and "." in texto:
-        if texto.rfind(",") > texto.rfind("."):
-            texto = texto.replace(".", "").replace(",", ".")
-        else:
-            texto = texto.replace(",", "")
-    else:
-        texto = texto.replace(",", ".")
+        # Carrega limites personalizados do banco de dados
+        configs = {c.codigo_interno: c for c in ConfiguracaoProduto.objects.all()}
 
-    return Decimal(texto)
+        relatorio = []
+        for p in produtos:
+            pid, cod = str(p["_id"]), p.get("CodigoNFe")
+            centro, vila = Decimal(0), Decimal(0)
+            
+            for est in estoques:
+                if str(est.get("ProdutoID")) == pid:
+                    did, val = str(est.get("DepositoID")), Decimal(str(est.get("Saldo", 0)))
+                    if did == client.DEPOSITO_CENTRO: centro = val
+                    elif did == client.DEPOSITO_VILA_ELIAS: vila = val
+            
+            # Aplica correções manuais sobre o saldo vivo do ERP
+            difs = dif_map.get(pid, {"centro": Decimal(0), "vila": Decimal(0)})
+            centro += difs["centro"]
+            vila += difs["vila"]
 
+            # Parâmetros Logísticos (Segurança e Máximo)
+            c = configs.get(cod)
+            min_seguranca = c.estoque_seguranca if c else Decimal("1.0")
+            max_centro = c.estoque_maximo_centro if c else Decimal("15.0")
+            
+            falta_no_centro = max_centro - centro
+            status, cor, sugestao = "OK", "text-slate-400", 0
 
-def _buscar_ajustes_mais_recentes(produto_ids):
-    ajustes = (
-        AjusteRapidoEstoque.objects
-        .filter(produto_externo_id__in=produto_ids)
-        .order_by("produto_externo_id", "deposito", "-criado_em")
-    )
-
-    mapa = {}
-    for ajuste in ajustes:
-        chave = (ajuste.produto_externo_id, ajuste.deposito)
-        if chave not in mapa:
-            mapa[chave] = ajuste
-
-    return mapa
-
+            # Lógica da aba SISTEMA
+            if centro < min_seguranca:
+                if vila >= falta_no_centro:
+                    status, cor, sugestao = "TRANSFERIR", "text-blue-600", falta_no_centro
+                elif vila > 0:
+                    status, cor, sugestao = "TRANSFERIR + COMPRAR", "text-orange-600", vila
+                else:
+                    status, cor, sugestao = "COMPRAR", "text-red-600", 0
+            
+            if status != "OK" or centro > 0 or vila > 0:
+                relatorio.append({
+                    "nome": p.get("Nome"), "codigo": cod,
+                    "centro": float(centro), "vila": float(vila),
+                    "status": status, "cor": cor, "sugestao": float(sugestao),
+                    "min": float(min_seguranca), "max": float(max_centro)
+                })
+        
+        return render(request, "produtos/transferencias.html", {"relatorio": relatorio})
+    except Exception as e:
+        return render(request, "produtos/transferencias.html", {"erro": str(e)})
 
 @require_GET
 def api_sugestoes_produtos(request):
     termo = request.GET.get("q", "").strip()
-    sugestoes = []
-    erro_api = ""
-
-    if len(termo) < 2:
-        return JsonResponse({
-            "sugestoes": [],
-            "erro_api": "",
-        })
-
+    if len(termo) < 2: return JsonResponse({"sugestoes": []})
     try:
         client = VendaERPMongoClient()
-        produtos = client.buscar_produtos(termo)[:8]
-
-        for produto in produtos:
-            sugestoes.append({
-                "id": str(produto.get("_id")),
-                "nome": produto.get("Nome") or "",
-                "marca": produto.get("Marca") or "",
-                "categoria": produto.get("Categoria") or "",
-                "codigo_interno": produto.get("CodigoNFe") or str(produto.get("Codigo") or ""),
-                "codigo_barras": produto.get("EAN_NFe") or "",
-                "preco_venda": float(produto.get("PrecoVenda") or 0),
-            })
-
-    except Exception as exc:
-        erro_api = f"Erro ao consultar sugestões: {exc}"
-
-    return JsonResponse({
-        "sugestoes": sugestoes,
-        "erro_api": erro_api,
-    })
-
+        produtos = client.buscar_produtos(termo, limite=8)
+        sugestoes = [{"id": str(p["_id"]), "nome": p.get("Nome", ""), "codigo_interno": p.get("CodigoNFe") or str(p.get("Codigo", ""))} for p in produtos]
+        return JsonResponse({"sugestoes": sugestoes})
+    except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
 
 @require_GET
 def api_buscar_produtos(request):
     termo = request.GET.get("q", "").strip()
-    produtos_json = []
-    erro_api = ""
+    try:
+        client = VendaERPMongoClient()
+        produtos = client.buscar_produtos(termo)
+        p_ids = [str(p["_id"]) for p in produtos]
+        estoques = client.buscar_estoques_por_produto_ids(p_ids)
+        
+        # Importante: filtro por __date para aceitar ajustes manuais do shell
+        ajustes_hoje = AjusteRapidoEstoque.objects.filter(
+            produto_externo_id__in=p_ids, 
+            criado_em__date=datetime.now().date()
+        )
+        
+        dif_map = {}
+        for a in ajustes_hoje:
+            pid = a.produto_externo_id
+            if pid not in dif_map: dif_map[pid] = {"centro": Decimal(0), "vila": Decimal(0)}
+            dif_map[pid][a.deposito] += a.diferenca_saldo
 
-    if termo:
-        try:
-            client = VendaERPMongoClient()
-            produtos = client.buscar_produtos(termo)
-
-            produto_ids = [str(produto["_id"]) for produto in produtos]
-            estoques = client.buscar_estoques_por_produto_ids(produto_ids)
-            ajustes = _buscar_ajustes_mais_recentes(produto_ids)
-
-            estoques_por_produto = {}
-            for estoque in estoques:
-                produto_id = str(estoque.get("ProdutoID"))
-                estoques_por_produto.setdefault(produto_id, []).append(estoque)
-
-            for produto in produtos:
-                produto_id = str(produto.get("_id"))
-
-                saldo_centro_erp = Decimal("0")
-                saldo_vila_erp = Decimal("0")
-
-                for estoque in estoques_por_produto.get(produto_id, []):
-                    deposito = str(estoque.get("Deposito", "")).strip().lower()
-                    saldo = Decimal(str(estoque.get("Saldo", 0) or 0))
-
-                    if "centro" in deposito:
-                        saldo_centro_erp += saldo
-                    elif "vila" in deposito:
-                        saldo_vila_erp += saldo
-
-                ajuste_centro = ajustes.get((produto_id, "centro"))
-                ajuste_vila = ajustes.get((produto_id, "vila"))
-
-                saldo_centro = saldo_centro_erp
-                saldo_vila = saldo_vila_erp
-
-                if ajuste_centro:
-                    saldo_centro = saldo_centro_erp + ajuste_centro.diferenca_saldo
-
-                if ajuste_vila:
-                    saldo_vila = saldo_vila_erp + ajuste_vila.diferenca_saldo
-
-                produtos_json.append({
-                    "id": produto_id,
-                    "codigo_interno": produto.get("CodigoNFe") or str(produto.get("Codigo") or ""),
-                    "codigo_barras": produto.get("EAN_NFe") or "",
-                    "nome": produto.get("Nome") or "",
-                    "marca": produto.get("Marca") or "",
-                    "categoria": produto.get("Categoria") or "",
-                    "preco_venda": float(produto.get("PrecoVenda") or 0),
-                    "saldo_centro": float(saldo_centro),
-                    "saldo_vila": float(saldo_vila),
-                    "saldo_total": float(saldo_centro + saldo_vila),
-                    "saldo_centro_erp": float(saldo_centro_erp),
-                    "saldo_vila_erp": float(saldo_vila_erp),
-                })
-
-        except Exception as exc:
-            erro_api = f"Erro ao consultar MongoDB do Venda ERP: {exc}"
-
-    return JsonResponse({
-        "produtos": produtos_json,
-        "erro_api": erro_api,
-    })
-
+        res = []
+        for p in produtos:
+            pid = str(p["_id"])
+            saldos_erp = {"centro": Decimal(0), "vila": Decimal(0)}
+            for est in estoques:
+                if str(est.get("ProdutoID")) == pid:
+                    did, val = str(est.get("DepositoID")), Decimal(str(est.get("Saldo", 0)))
+                    if did == client.DEPOSITO_CENTRO: saldos_erp["centro"] = val
+                    elif did == client.DEPOSITO_VILA_ELIAS: saldos_erp["vila"] = val
+            
+            difs = dif_map.get(pid, {"centro": Decimal(0), "vila": Decimal(0)})
+            res.append({
+                "id": pid, "nome": p.get("Nome", ""), "marca": p.get("Marca", ""),
+                "codigo_interno": p.get("CodigoNFe") or str(p.get("Codigo", "")),
+                "preco_venda": float(p.get("PrecoVenda") or 0),
+                "saldo_centro": float(saldos_erp["centro"] + difs["centro"]),
+                "saldo_vila": float(saldos_erp["vila"] + difs["vila"])
+            })
+        return JsonResponse({"produtos": res})
+    except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
 
 @require_POST
-@csrf_protect
 def api_ajustar_estoque(request):
+    if request.POST.get("pin") != "1234": return JsonResponse({"ok": False, "erro": "PIN INVÁLIDO"}, status=403)
     try:
-        produto_id = request.POST.get("produto_id", "").strip()
-        codigo_interno = request.POST.get("codigo_interno", "").strip()
-        nome_produto = request.POST.get("nome_produto", "").strip()
-        deposito = request.POST.get("deposito", "").strip().lower()
-        saldo_atual = request.POST.get("saldo_atual", "0").strip()
-        novo_saldo = request.POST.get("novo_saldo", "").strip()
-        observacao = request.POST.get("observacao", "").strip()
-
-        if not produto_id:
-            return JsonResponse({"ok": False, "erro": "Produto inválido."}, status=400)
-
-        if deposito not in ["centro", "vila"]:
-            return JsonResponse({"ok": False, "erro": "Depósito inválido."}, status=400)
-
-        if novo_saldo == "":
-            return JsonResponse({"ok": False, "erro": "Informe o novo saldo."}, status=400)
-
-        saldo_erp_referencia = _normalizar_decimal(saldo_atual)
-        saldo_informado = _normalizar_decimal(novo_saldo)
-        diferenca_saldo = saldo_informado - saldo_erp_referencia
-
+        deposito_slug = request.POST.get("deposito", "centro")
         empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
-
-        loja = None
-        if deposito == "centro":
-            loja = Loja.objects.filter(nome="Agro Mais Centro").first()
-        elif deposito == "vila":
-            loja = Loja.objects.filter(nome="Agro Mais Vila Elias").first()
-
-        ajuste = AjusteRapidoEstoque.objects.create(
-            empresa=empresa,
-            loja=loja,
-            produto_externo_id=produto_id,
-            codigo_interno=codigo_interno,
-            nome_produto=nome_produto,
-            deposito=deposito,
-            saldo_erp_referencia=saldo_erp_referencia,
-            saldo_informado=saldo_informado,
-            diferenca_saldo=diferenca_saldo,
-            observacao=observacao,
+        loja = Loja.objects.filter(nome__icontains=deposito_slug).first()
+        AjusteRapidoEstoque.objects.create(
+            empresa=empresa, loja=loja, produto_externo_id=request.POST.get("produto_id"),
+            deposito=deposito_slug, nome_produto=request.POST.get("nome_produto", "Produto"),
+            codigo_interno=request.POST.get("codigo_interno", ""),
+            saldo_erp_referencia=Decimal(request.POST.get("saldo_atual", "0")),
+            saldo_informado=Decimal(request.POST.get("novo_saldo", "0"))
         )
+        return JsonResponse({"ok": True})
+    except Exception as e: return JsonResponse({"ok": False, "erro": str(e)}, status=500)
 
-        return JsonResponse({
-            "ok": True,
-            "mensagem": "Ajuste salvo com sucesso.",
-            "ajuste_id": ajuste.id,
-            "saldo_erp_referencia": float(ajuste.saldo_erp_referencia),
-            "saldo_informado": float(ajuste.saldo_informado),
-            "diferenca_saldo": float(ajuste.diferenca_saldo),
-            "empresa": empresa.nome_fantasia if empresa else "",
-            "loja": loja.nome if loja else "",
-        })
+@require_POST
+def api_salvar_config_logistica(request):
+    if request.POST.get("pin") != "1234": return JsonResponse({"ok": False}, status=403)
+    cod = request.POST.get("codigo")
+    ConfiguracaoProduto.objects.update_or_create(
+        codigo_interno=cod,
+        defaults={
+            'estoque_seguranca': Decimal(request.POST.get("min")),
+            'estoque_maximo_centro': Decimal(request.POST.get("max"))
+        }
+    )
+    return JsonResponse({"ok": True})
 
-    except InvalidOperation:
-        return JsonResponse({"ok": False, "erro": "Número inválido."}, status=400)
-    except Exception as exc:
-        return JsonResponse({"ok": False, "erro": f"Erro ao salvar ajuste: {exc}"}, status=500)
+@require_POST
+def api_deletar_ajuste(request, ajuste_id):
+    if request.POST.get("pin") != "1234": return JsonResponse({"ok": False, "erro": "PIN INVÁLIDO"}, status=403)
+    get_object_or_404(AjusteRapidoEstoque, id=ajuste_id).delete()
+    return JsonResponse({"ok": True})
+
+@require_POST
+def api_limpar_historico(request):
+    if request.POST.get("pin") != "1234": return JsonResponse({"ok": False, "erro": "PIN INVÁLIDO"}, status=403)
+    AjusteRapidoEstoque.objects.all().delete()
+    return JsonResponse({"ok": True})
+
+@require_POST
+def api_gerar_orcamento(request):
+    try:
+        itens = json.loads(request.POST.get("itens", "[]"))
+        client = VendaERPAPIClient()
+        payload = {"status": "Aberto", "data": datetime.now().isoformat(), "descricao": f"Orcamento: {request.POST.get('cliente_id', 'Balcao')}", "itens": [{"produtoID": i['id'], "quantidade": float(i['quantidade']), "valorUnitario": float(i['preco'])} for i in itens]}
+        ok, code, res = client.salvar_operacao_pdv(payload)
+        return JsonResponse({"ok": ok, "mensagem": "Orçamento Gerado!" if ok else f"Erro {code}"})
+    except Exception as e: return JsonResponse({"ok": False, "mensagem": str(e)})

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8"><title>Agro Mais | Histórico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 p-4 md:p-10">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-2xl font-black text-slate-800 uppercase italic tracking-tighter">Histórico de Ajustes</h1>
+                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest">{{ ajustes.count }} registros salvos</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="limparTudo()" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl font-black text-[10px] hover:bg-red-600 hover:text-white transition-all uppercase shadow-sm">Apagar Tudo</button>
+                <a href="/" class="bg-slate-800 text-white px-6 py-3 rounded-2xl font-black text-xs hover:bg-black transition-all shadow-lg uppercase">Voltar</a>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[40px] shadow-2xl overflow-hidden border-4 border-white">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-slate-50 border-b">
+                        <th class="p-5 text-[10px] font-black text-slate-400 uppercase">Data/Hora</th>
+                        <th class="p-5 text-[10px] font-black text-slate-400 uppercase">Produto</th>
+                        <th class="p-5 text-[10px] font-black text-slate-400 uppercase text-center">Depósito</th>
+                        <th class="p-5 text-[10px] font-black text-slate-400 uppercase text-right">Diferença</th>
+                        <th class="p-5 text-[10px] font-black text-slate-400 uppercase text-right">Saldo Final</th>
+                        <th class="p-5 text-center"></th>
+                    </tr>
+                </thead>
+                <tbody id="corpo-tabela" class="divide-y divide-slate-100">
+                    {% for ajuste in ajustes %}
+                    <tr id="ajuste-{{ ajuste.id }}" class="hover:bg-slate-50/50 transition-colors">
+                        <td class="p-5 whitespace-nowrap">
+                            <div class="text-slate-900 font-black text-sm">{{ ajuste.criado_em|date:"d/m" }}</div>
+                            <div class="text-slate-400 text-[10px] font-bold">{{ ajuste.criado_em|date:"H:i" }}</div>
+                        </td>
+                        <td class="p-5">
+                            <div class="font-black text-slate-700 uppercase text-sm leading-tight">{{ ajuste.nome_produto }}</div>
+                            <div class="text-[9px] text-slate-400 font-mono mt-1 tracking-tighter">{{ ajuste.codigo_interno }}</div>
+                        </td>
+                        <td class="p-5 text-center">
+                            <span class="inline-block px-3 py-1 rounded-full text-[9px] font-black uppercase {% if ajuste.deposito == 'centro' %}bg-blue-100 text-blue-600{% else %}bg-purple-100 text-purple-600{% endif %}">
+                                {{ ajuste.deposito }}
+                            </span>
+                        </td>
+                        <td class="p-5 text-right font-black">
+                            {% if ajuste.diferenca_saldo > 0 %} <span class="text-green-500">+{{ ajuste.diferenca_saldo }}</span>
+                            {% elif ajuste.diferenca_saldo < 0 %} <span class="text-red-500">{{ ajuste.diferenca_saldo }}</span>
+                            {% else %} <span class="text-slate-300">0.000</span> {% endif %}
+                        </td>
+                        <td class="p-5 text-right font-black text-slate-900 text-lg">{{ ajuste.saldo_informado }}</td>
+                        <td class="p-5 text-center">
+                            <button onclick="deletarAjuste('{{ ajuste.id }}')" class="text-red-300 hover:text-red-600 font-black text-lg transition-colors p-2">✕</button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="p-20 text-center font-black text-slate-300 uppercase italic tracking-widest">Nenhum ajuste registrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Salva o PIN na memória da aba para não pedir toda hora
+        let pinSessao = null;
+
+        function obterPin() {
+            if (pinSessao === "1234") return pinSessao;
+            const p = prompt("Digite o PIN (1234):");
+            if (p === "1234") {
+                pinSessao = p;
+                return p;
+            }
+            alert("PIN Incorreto!");
+            return null;
+        }
+
+        async function deletarAjuste(id) {
+            const pin = obterPin();
+            if (!pin) return;
+
+            const fd = new FormData();
+            fd.append('pin', pin);
+            fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            try {
+                const res = await fetch(`/api/deletar-ajuste/${id}/`, { method: 'POST', body: fd });
+                if (res.ok) document.getElementById(`ajuste-${id}`).remove();
+            } catch (e) { alert("Erro de conexão."); }
+        }
+
+        async function limparTudo() {
+            if (!confirm("Isso apagará TODO o histórico. Confirmar?")) return;
+            const pin = obterPin();
+            if (!pin) return;
+
+            const fd = new FormData();
+            fd.append('pin', pin);
+            fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            try {
+                const res = await fetch('/api/limpar-historico/', { method: 'POST', body: fd });
+                if (res.ok) window.location.reload();
+            } catch (e) { alert("Erro ao limpar."); }
+        }
+    </script>
+</body>
+</html>

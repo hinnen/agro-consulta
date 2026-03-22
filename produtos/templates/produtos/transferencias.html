@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8"><title>Agro Mais | Logística</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 p-4 md:p-10">
+    <div class="max-w-7xl mx-auto">
+        <header class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">Gestão de <span class="text-green-600">Carga</span></h1>
+                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest">Vila Elias → Centro (Edite Mín/Máx clicando nos números)</p>
+            </div>
+            <a href="/" class="bg-slate-800 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-black transition-all">Voltar</a>
+        </header>
+
+        <div class="bg-white rounded-[40px] shadow-2xl border-4 border-white overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 border-b">
+                    <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <th class="p-5">Produto</th>
+                        <th class="p-5 text-center">Centro</th>
+                        <th class="p-5 text-center">Vila</th>
+                        <th class="p-5 text-center text-blue-500">Segurança</th>
+                        <th class="p-5 text-center text-purple-500">Máx Centro</th>
+                        <th class="p-5 text-center">Ação</th>
+                        <th class="p-5 text-right text-green-600">Enviar</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for item in relatorio %}
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="p-5">
+                            <div class="font-black text-slate-800 text-sm uppercase leading-tight">{{ item.nome }}</div>
+                            <div class="text-[9px] text-slate-400 font-mono mt-1">{{ item.codigo }}</div>
+                        </td>
+                        <td class="p-5 text-center font-bold text-slate-600 text-lg">{{ item.centro|stringformat:".1f" }}</td>
+                        <td class="p-5 text-center font-bold text-slate-400 text-lg">{{ item.vila|stringformat:".1f" }}</td>
+                        
+                        <td class="p-5 text-center">
+                            <input type="number" value="{{ item.min }}" onchange="salvarConfig('{{ item.codigo }}', this.value, {{ item.max }})" class="w-16 p-1 text-center font-black text-blue-600 bg-blue-50 rounded-lg border border-blue-100 outline-none focus:ring-2 focus:ring-blue-400">
+                        </td>
+                        <td class="p-5 text-center">
+                            <input type="number" value="{{ item.max }}" onchange="salvarConfig('{{ item.codigo }}', {{ item.min }}, this.value)" class="w-16 p-1 text-center font-black text-purple-600 bg-purple-50 rounded-lg border border-purple-100 outline-none focus:ring-2 focus:ring-purple-400">
+                        </td>
+
+                        <td class="p-5 text-center">
+                            <span class="text-[9px] font-black uppercase px-3 py-1 rounded-full {{ item.cor }} bg-white border shadow-sm whitespace-nowrap">
+                                {{ item.status }}
+                            </span>
+                        </td>
+                        <td class="p-5 text-right">
+                            {% if item.sugestao > 0 %}
+                            <span class="inline-block bg-green-50 text-green-600 px-4 py-2 rounded-xl font-black text-xl border border-green-200">
+                                {{ item.sugestao|stringformat:".0f" }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-200 font-black">---</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="p-20 text-center font-black text-slate-200 uppercase italic text-2xl tracking-widest">Tudo OK!</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function salvarConfig(codigo, min, max) {
+            const pin = prompt("Confirme o PIN (1234) para alterar:");
+            if (pin !== "1234") return location.reload();
+
+            const fd = new FormData();
+            fd.append('codigo', codigo);
+            fd.append('min', min);
+            fd.append('max', max);
+            fd.append('pin', pin);
+            fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            try {
+                const res = await fetch('/api/config-logistica/', { method: 'POST', body: fd });
+                if (res.ok) {
+                    location.reload(); // Recarrega para recalcular a sugestão com os novos valores
+                } else { alert("Erro ao salvar!"); }
+            } catch (e) { alert("Erro de conexão."); }
+        }
+    </script>
+</body>
+</html>
