@@ -13,14 +13,19 @@ from estoque.models import AjusteRapidoEstoque
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 
 
+import traceback
+
 def obter_conexao_mongo():
     try:
         client = VendaERPMongoClient()
         client.client.admin.command("ping")
         return client, client.db
     except Exception as e:
-        print(f"--- ERRO MONGO: {e} ---")
-        return None, None
+        print("\n=== ERRO REAL DO MONGO ===")
+        print(repr(e))
+        traceback.print_exc()
+        print("=== FIM ERRO MONGO ===\n")
+        return None, NoneS
 
 
 def normalizar_termo(txt):
@@ -373,29 +378,26 @@ def api_ajustar_estoque(request):
 @require_GET
 def api_buscar_clientes(request):
     termo = request.GET.get("q", "").strip()
-
-    if not termo:
-        return JsonResponse({"clientes": []})
-
     client, db = obter_conexao_mongo()
-    if db is None:
+    
+    if not termo or db is None: 
         return JsonResponse({"clientes": []})
-
     try:
+        # CORREÇÃO: Usando os campos corretos 'NomeFantasia', 'RazaoSocial' e 'CNPJ_CPF'
         query = {
             "$or": [
-                {"Nome": {"$regex": termo, "$options": "i"}},
-                {"CpfCnpj": {"$regex": termo, "$options": "i"}},
+                {"NomeFantasia": {"$regex": termo, "$options": "i"}},
+                {"RazaoSocial": {"$regex": termo, "$options": "i"}},
+                {"CNPJ_CPF": {"$regex": termo, "$options": "i"}}
             ]
         }
-
         clientes = list(db[client.col_c].find(query).limit(10))
+        
+        # CORREÇÃO: Retornando os campos corretos
         res = [{
-            "nome": c.get("Nome"),
-            "documento": c.get("CpfCnpj"),
+            "nome": c.get("NomeFantasia") or c.get("RazaoSocial"), 
+            "documento": c.get("CNPJ_CPF") or "Sem Doc"
         } for c in clientes]
-
         return JsonResponse({"clientes": res})
-
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)

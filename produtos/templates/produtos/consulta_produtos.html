@@ -38,18 +38,23 @@
         </div>
 
         <div class="lg:col-span-1">
-            <div class="bg-white p-5 rounded-[2rem] shadow-xl sticky top-4 border border-slate-100 font-bold uppercase italic text-sm">
-                <h3 class="text-slate-400 text-[10px] mb-3 tracking-widest italic font-bold">🛒 Orçamento</h3>
-                <input type="text" id="nome-cliente" placeholder="Nome do Cliente" class="w-full p-3 bg-slate-50 rounded-xl mb-3 outline-none font-bold border-none">
-                <div id="itens-carrinho" class="max-h-[300px] overflow-y-auto mb-3 hide-scroll space-y-2 text-xs"></div>
-                <div class="flex justify-between items-end mb-4 border-t pt-3">
-                    <span class="text-slate-400 text-[10px]">Total</span>
-                    <span id="total-geral" class="text-emerald-500 text-2xl font-black">R$ 0,00</span>
-                </div>
-                <button onclick="abrirResumo()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-2xl shadow-lg transition-all active:scale-95 uppercase italic">Conferir e Enviar</button>
-            </div>
+    <div class="bg-white p-5 rounded-[2rem] shadow-xl sticky top-4 border border-slate-100 font-bold uppercase italic text-sm">
+        <h3 class="text-slate-400 text-[10px] mb-3 tracking-widest italic font-bold">🛒 Orçamento</h3>
+        
+        <div class="relative mb-3">
+            <input type="text" id="nome-cliente" placeholder="Buscar Cliente..." 
+                class="w-full p-3 bg-slate-50 rounded-xl outline-none font-bold border-none focus:ring-2 focus:ring-emerald-500/20" autocomplete="off">
+            <div id="cliente-results" class="absolute z-[60] w-full bg-white mt-1 rounded-xl shadow-2xl border border-slate-100 hidden overflow-hidden text-[10px]"></div>
         </div>
+
+        <div id="itens-carrinho" class="max-h-[300px] overflow-y-auto mb-3 hide-scroll space-y-2 text-xs"></div>
+        <div class="flex justify-between items-end mb-4 border-t pt-3">
+            <span class="text-slate-400 text-[10px]">Total</span>
+            <span id="total-geral" class="text-emerald-500 text-2xl font-black">R$ 0,00</span>
+        </div>
+        <button onclick="abrirResumo()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-2xl shadow-lg transition-all active:scale-95 uppercase italic">Conferir e Enviar</button>
     </div>
+</div>
 
     <div id="modal-resumo" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
         <div class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 animate-in zoom-in duration-200">
@@ -223,7 +228,50 @@ function abrirAjuste(id, nome, saldo, codigo, dep) {
     }
 }
 
-document.addEventListener('click', (e) => { if (!inputBusca.contains(e.target)) autoList.classList.add('hidden'); });
+// BUSCA CLIENTES
+const inputCliente = document.getElementById('nome-cliente');
+const clienteResults = document.getElementById('cliente-results');
+let clienteDebounceTimer;
+
+inputCliente.addEventListener('input', function(e) {
+    const q = e.target.value;
+    clearTimeout(clienteDebounceTimer);
+    if (q.length < 2) {
+        clienteResults.classList.add('hidden');
+        return;
+    }
+    clienteDebounceTimer = setTimeout(() => {
+        fetch(`/api/buscar-clientes/?q=${encodeURIComponent(q)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.clientes && data.clientes.length > 0) {
+                    renderizarClientes(data.clientes);
+                } else {
+                    clienteResults.classList.add('hidden');
+                }
+            });
+    }, 400);
+});
+
+function renderizarClientes(clientes) {
+    clienteResults.innerHTML = '';
+    clientes.forEach(cliente => {
+        const div = document.createElement('div');
+        div.className = "p-3 cursor-pointer border-b border-slate-50 hover:bg-slate-100 transition-all uppercase";
+        div.innerHTML = `<div class="font-bold text-slate-700">${cliente.nome}</div><div class="text-[9px] text-slate-400 italic">${cliente.documento}</div>`;
+        div.onclick = () => {
+            inputCliente.value = cliente.nome;
+            clienteResults.classList.add('hidden');
+        };
+        clienteResults.appendChild(div);
+    });
+    clienteResults.classList.remove('hidden');
+}
+
+document.addEventListener('click', (e) => { 
+    if (!inputBusca.contains(e.target)) autoList.classList.add('hidden'); 
+    if (!inputCliente.contains(e.target)) clienteResults.classList.add('hidden');
+});
 </script>
 </body>
 </html>

@@ -1,0 +1,10 @@
+📝 Nota Técnica: Conexão MongoDB (VendaERP)
+Problema: Erro SSL handshake failed / UNEXPECTED_EOF_WHILE_READING.
+
+Causa: O servidor está configurado para conectar sem SSL/TLS, mas o cliente (Python/Compass) tentava iniciar uma negociação segura por padrão.
+
+Diagnóstico: Ao desativar o SSL, o erro mudou de "Handshake" para "Authentication", provando que a rede estava alcançando o servidor, mas a segurança estava bloqueando o fluxo.
+
+Solução: Forçar ssl=false e tls=false explicitamente na URI de conexão, seguindo o padrão exato exportado pelo MongoDB Compass.
+
+Regra de Ouro: Se o servidor não espera SSL, qualquer tentativa de "Handshake" do cliente resulta em queda imediata da conexão (EOF).
