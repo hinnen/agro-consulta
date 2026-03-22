@@ -3,35 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agro Mais | Manutenção</title>
+    <title>Agro Mais | PDV</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Inter', sans-serif; }</style>
+    <style>
+        body { font-family: 'Inter', sans-serif; } 
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .selected-suggestion { background-color: #f1f5f9; border-left: 6px solid #10b981; }
+        .modal-open { overflow: hidden; }
+    </style>
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-6 text-slate-800">
+<body class="bg-slate-100 p-4 text-slate-800">
 
-    <div class="max-w-md w-full bg-white p-10 rounded-[3rem] shadow-2xl text-center border border-slate-200">
-        <h1 class="text-3xl font-black italic tracking-tighter text-slate-900 mb-4">
-            AGRO <span class="text-emerald-500">MAIS</span>
-        </h1>
-        
-        <div class="bg-orange-50 text-orange-600 font-black py-2 px-4 rounded-full text-[10px] uppercase tracking-widest mb-6 inline-block">
-            ⚠️ Sistema em Manutenção
+    <div class="max-w-6xl mx-auto flex items-center justify-between mb-4 gap-4">
+        <h1 class="text-2xl font-black italic tracking-tighter text-slate-900">AGRO <span class="text-emerald-500">MAIS</span></h1>
+        <div class="flex gap-4 text-sm font-bold">
+            <a href="/transferencias/" class="text-emerald-700 hover:underline">🚚 Logística</a>
+            <a href="/historico/" class="text-slate-600 hover:underline">Ver Histórico</a>
         </div>
-
-        <p class="text-slate-500 font-bold mb-8 leading-relaxed italic">
-            Estamos atualizando nosso sistema para ser mais rápido. Voltaremos em breve!
-        </p>
-
-        <a href="https://wa.me/5513997851403" 
-           class="block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-5 rounded-3xl shadow-lg transition-all active:scale-95 text-lg uppercase italic tracking-tighter">
-            💬 Falar no WhatsApp
-        </a>
-        
-        <p class="mt-8 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-            Equipe Técnica Agro Mais
-        </p>
     </div>
 
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div class="lg:col-span-3 space-y-4">
+            <div class="relative w-full">
+                <input type="text" id="busca-produto" autocomplete="off" placeholder="Busque por nome, marca ou GM..." 
+                    class="w-full p-4 rounded-2xl shadow-lg border-none text-xl font-bold outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all">
+                <div id="autocomplete-results" class="absolute z-50 w-full bg-white mt-1 rounded-xl shadow-2xl border border-slate-100 hidden overflow-hidden text-sm font-bold uppercase"></div>
+            </div>
+
+            <div id="area-resultados" class="space-y-4">
+                <div id="produto-destaque"></div>
+                <div id="lista-similares" class="grid gap-2"></div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-1">
+            <div class="bg-white p-5 rounded-[2rem] shadow-xl sticky top-4 border border-slate-100 font-bold uppercase italic text-sm">
+                <h3 class="text-slate-400 text-[10px] mb-3 tracking-widest italic font-bold">🛒 Orçamento</h3>
+                <input type="text" id="nome-cliente" placeholder="Nome do Cliente" class="w-full p-3 bg-slate-50 rounded-xl mb-3 outline-none font-bold border-none">
+                <div id="itens-carrinho" class="max-h-[300px] overflow-y-auto mb-3 hide-scroll space-y-2 text-xs"></div>
+                <div class="flex justify-between items-end mb-4 border-t pt-3">
+                    <span class="text-slate-400 text-[10px]">Total</span>
+                    <span id="total-geral" class="text-emerald-500 text-2xl font-black">R$ 0,00</span>
+                </div>
+                <button onclick="abrirResumo()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-2xl shadow-lg transition-all active:scale-95 uppercase italic">Conferir e Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-resumo" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 animate-in zoom-in duration-200">
+            <h2 class="text-2xl font-black text-slate-900 mb-6 italic uppercase tracking-tighter">📝 Resumo do Pedido</h2>
+            <div id="corpo-resumo" class="space-y-4 max-h-[50vh] overflow-y-auto pr-2 hide-scroll font-bold text-slate-700"></div>
+            <div class="mt-8 flex flex-col gap-3">
+                <button onclick="confirmarEnvio()" class="w-full bg-emerald-500 text-white font-black py-5 rounded-3xl shadow-lg text-lg uppercase italic">🚀 Enviar WhatsApp</button>
+                <button onclick="fecharResumo()" class="w-full bg-slate-100 text-slate-400 font-black py-3 rounded-2xl text-xs uppercase">Voltar e Ajustar</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+let carrinho = [];
+let sugestoesAtuais = [];
+let indexSelecionado = -1;
+let debounceTimer;
+let produtoEmDestaque = null;
+
+const inputBusca = document.getElementById('busca-produto');
+const autoList = document.getElementById('autocomplete-results');
+const destaqueContainer = document.getElementById('produto-destaque');
+const similaresContainer = document.getElementById('lista-similares');
+const modalResumo = document.getElementById('modal-resumo');
+
+// NAVEGAÇÃO TECLADO + ENTER DUPLO
+inputBusca.addEventListener('keydown', function(e) {
+    const itens = autoList.querySelectorAll('.suggestion-item');
+    if (e.key === 'ArrowDown') { e.preventDefault(); indexSelecionado = (indexSelecionado + 1) % itens.length; atualizarSelecaoVisual(itens); } 
+    else if (e.key === 'ArrowUp') { e.preventDefault(); indexSelecionado = (indexSelecionado - 1 + itens.length) % itens.length; atualizarSelecaoVisual(itens); } 
+    else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (!autoList.classList.contains('hidden')) {
+            if (indexSelecionado > -1 && itens[indexSelecionado]) itens[indexSelecionado].click();
+            else if (itens.length > 0) itens[0].click();
+        } else if (produtoEmDestaque) {
+            addCarrinho(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.preco_venda);
+            inputBusca.value = ''; produtoEmDestaque = null;
+            destaqueContainer.innerHTML = ''; similaresContainer.innerHTML = '';
+        }
+    }
+});
+
+function atualizarSelecaoVisual(itens) {
+    itens.forEach((item, idx) => {
+        if (idx === indexSelecionado) item.classList.add('selected-suggestion');
+        else item.classList.remove('selected-suggestion');
+    });
+}
+
+// BUSCA COM DEBOUNCE
+inputBusca.addEventListener('input', function(e) {
+    const q = e.target.value;
+    indexSelecionado = -1;
+    clearTimeout(debounceTimer);
+    if (q.length < 2) { autoList.classList.add('hidden'); return; }
+    debounceTimer = setTimeout(() => {
+        fetch("/api/buscar/?q=" + encodeURIComponent(q))
+            .then(res => res.json())
+            .then(data => {
+                if (data.produtos && data.produtos.length > 0) {
+                    sugestoesAtuais = data.produtos; renderizarSugestoes();
+                } else { autoList.classList.add('hidden'); }
+            });
+    }, 400); 
+});
+
+function renderizarSugestoes() {
+    autoList.innerHTML = '';
+    sugestoesAtuais.forEach((s) => {
+        const div = document.createElement('div');
+        div.className = "suggestion-item p-3 cursor-pointer border-b border-slate-50 flex justify-between items-center transition-all uppercase";
+        div.innerHTML = `<div><div class="text-slate-700 font-bold">${s.nome}</div><div class="text-[9px] text-slate-400 italic font-bold">${s.marca || 'GENÉRICO'}</div></div><div class="text-emerald-600 font-black text-sm">R$ ${s.preco_venda.toFixed(2)}</div>`;
+        div.onclick = () => {
+            inputBusca.value = s.nome;
+            autoList.classList.add('hidden');
+            renderDestaque(s);
+            similaresContainer.innerHTML = '';
+            sugestoesAtuais.filter(item => item.id !== s.id).slice(0, 5).forEach(p => renderSimilar(p));
+        };
+        autoList.appendChild(div);
+    });
+    autoList.classList.remove('hidden');
+}
+
+function renderDestaque(p) {
+    produtoEmDestaque = p;
+    const total = (p.saldo_centro + p.saldo_vila).toFixed(2);
+    destaqueContainer.innerHTML = `
+        <div class="bg-white p-5 rounded-[2rem] shadow-xl border-2 border-emerald-500/20 flex flex-col md:flex-row justify-between items-center gap-4 animate-in fade-in duration-300">
+            <div class="flex-1 cursor-pointer" onclick="addCarrinho('${p.id}', '${p.nome}', ${p.preco_venda})">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black uppercase italic tracking-widest">Destaque (Enter p/ Add)</span>
+                    <span class="text-slate-400 font-bold uppercase text-xs italic">${p.marca || ''}</span>
+                </div>
+                <h4 class="text-2xl font-black text-slate-800 uppercase leading-tight">${p.nome}</h4>
+                <div class="text-orange-600 font-black text-lg">${p.codigo_nfe ? 'GM: '+p.codigo_nfe : ''}</div>
+                <div class="mt-2 text-4xl font-black text-emerald-500 tracking-tighter">R$ ${p.preco_venda.toFixed(2)}</div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 px-8 py-5 rounded-[1.5rem] shadow-lg flex flex-col items-center min-w-[120px]">
+                    <span class="text-[10px] font-black text-blue-200 mb-1 tracking-widest uppercase italic font-bold">Centro</span>
+                    <div class="flex items-center gap-3"><span class="text-4xl font-black text-white">${p.saldo_centro}</span><button onclick="abrirAjuste('${p.id}','${p.nome.replace(/'/g, "")}',${p.saldo_centro},'${p.codigo_nfe||p.codigo_interno}','centro')" class="text-blue-300 text-2xl hover:text-white transition-colors">✎</button></div>
+                </div>
+                <div class="flex flex-col gap-2 font-black">
+                    <div class="bg-slate-100 px-4 py-2 rounded-xl flex justify-between items-center gap-4"><span class="text-[10px] text-slate-400 uppercase">Vila</span><span class="text-slate-600 text-xl">${p.saldo_vila}</span></div>
+                    <div class="bg-slate-900 px-4 py-2 rounded-xl flex justify-between items-center gap-4 text-white italic"><span class="text-[10px] text-slate-500 uppercase">Total</span><span class="text-xl text-emerald-400">${total}</span></div>
+                </div>
+            </div>
+        </div>`;
+}
+
+function renderSimilar(p) {
+    const pStr = encodeURIComponent(JSON.stringify(p));
+    similaresContainer.innerHTML += `<div class="bg-white/70 p-3 rounded-2xl border border-slate-200 flex justify-between items-center hover:bg-white transition-all cursor-pointer group font-bold" onclick="renderDestaque(JSON.parse(decodeURIComponent('${pStr}')))"><div class="flex flex-col"><span class="font-black text-slate-700 uppercase text-xs group-hover:text-emerald-600">${p.nome}</span><span class="text-[9px] text-slate-400 italic">${p.marca || 'GENÉRICO'}</span></div><div class="flex items-center gap-4 font-black"><span class="text-emerald-600 text-sm">R$ ${p.preco_venda.toFixed(2)}</span><div class="flex gap-2 text-[10px] uppercase"><span class="text-blue-600">C: ${p.saldo_centro}</span><span class="text-slate-400">V: ${p.saldo_vila}</span></div></div></div>`;
+}
+
+function addCarrinho(id, nome, preco) {
+    const item = carrinho.find(i => i.id === id);
+    if (item) item.qtd++; else carrinho.push({id, nome, preco, qtd: 1});
+    atualizarCarrinho();
+}
+
+function atualizarCarrinho() {
+    const container = document.getElementById('itens-carrinho');
+    let total = 0; container.innerHTML = '';
+    carrinho.forEach((item, index) => {
+        total += item.preco * item.qtd;
+        container.innerHTML += `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl border border-slate-100"><span class="text-slate-700 font-bold">${item.qtd}x ${item.nome}</span><button onclick="removerItem(${index})" class="text-red-400 px-1 font-bold">✕</button></div>`;
+    });
+    document.getElementById('total-geral').innerText = `R$ ${total.toFixed(2)}`;
+}
+
+function removerItem(i) { carrinho.splice(i, 1); atualizarCarrinho(); }
+
+function abrirResumo() {
+    if (!carrinho.length) return alert("Carrinho vazio!");
+    const cliente = document.getElementById('nome-cliente').value || "Consumidor";
+    const corpo = document.getElementById('corpo-resumo');
+    corpo.innerHTML = `<div class="bg-slate-50 p-4 rounded-2xl mb-4 border-l-4 border-emerald-500"><div class="text-[10px] uppercase text-slate-400">CLIENTE</div><div class="text-lg italic font-bold">${cliente}</div></div>`;
+    carrinho.forEach(item => {
+        corpo.innerHTML += `<div class="flex justify-between border-b border-slate-100 py-2"><span class="text-sm font-bold">${item.qtd}x ${item.nome}</span><span class="text-emerald-600 font-bold">R$ ${(item.preco * item.qtd).toFixed(2)}</span></div>`;
+    });
+    corpo.innerHTML += `<div class="flex justify-between pt-4 text-xl font-black text-slate-900 italic uppercase"><span>TOTAL</span><span>${document.getElementById('total-geral').innerText}</span></div>`;
+    modalResumo.classList.remove('hidden'); modalResumo.classList.add('flex');
+    document.body.classList.add('modal-open');
+}
+
+function fecharResumo() {
+    modalResumo.classList.add('hidden'); modalResumo.classList.remove('flex');
+    document.body.classList.remove('modal-open');
+}
+
+function confirmarEnvio() {
+    const cliente = document.getElementById('nome-cliente').value || "Consumidor";
+    let msg = `*ORÇAMENTO - AGRO MAIS*\n*Cliente:* ${cliente}\n----------------------------\n`;
+    carrinho.forEach(i => { msg += `${i.qtd}x ${i.nome} - R$ ${(i.preco * i.qtd).toFixed(2)}\n`; });
+    msg += `----------------------------\n*TOTAL: ${document.getElementById('total-geral').innerText}*`;
+    window.open(`https://wa.me/5513996727222?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function abrirAjuste(id, nome, saldo, codigo, dep) {
+    const novo = prompt(`AJUSTE ${dep.toUpperCase()}\n${nome}\nNovo Real:`);
+    if (novo) {
+        const pin = prompt("PIN:");
+        const fd = new FormData();
+        fd.append('produto_id', id); fd.append('nome_produto', nome); fd.append('codigo_interno', codigo);
+        fd.append('saldo_atual', saldo); fd.append('novo_saldo', novo); fd.append('deposito', dep); fd.append('pin', pin);
+        fetch("/api/ajustar/", { method: 'POST', body: fd, headers: {'X-CSRFToken': '{{ csrf_token }}'} })
+        .then(res => res.json()).then(d => { if(d.ok) { alert("Ok!"); location.reload(); } else alert("Erro: "+d.erro); });
+    }
+}
+
+document.addEventListener('click', (e) => { if (!inputBusca.contains(e.target)) autoList.classList.add('hidden'); });
+</script>
 </body>
 </html>
