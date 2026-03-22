@@ -52,7 +52,10 @@ def api_buscar_produtos(request):
         query = {"$or": [
             {"BuscaTexto": {"$regex": regex_final, "$options": "i"}},
             {"Nome": {"$regex": regex_final, "$options": "i"}},
-            {"CodigoNFe": termo_limpo}, {"CodigoBarras": termo_limpo}, {"EAN_NFe": termo_limpo}
+            {"CodigoNFe": {"$regex": termo_limpo, "$options": "i"}},
+            {"Codigo": {"$regex": termo_limpo, "$options": "i"}},
+            {"CodigoBarras": {"$regex": termo_limpo, "$options": "i"}},
+            {"EAN_NFe": {"$regex": termo_limpo, "$options": "i"}}
         ], "CadastroInativo": {"$ne": True}}
 
         produtos = list(db[client.col_p].find(query).limit(15))
@@ -84,7 +87,7 @@ def api_buscar_produtos(request):
             
             res.append({
                 "id": pid, "nome": p.get("Nome"), "marca": p.get("Marca") or "",
-                "codigo_nfe": p.get("CodigoNFe") or "", 
+                "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "", 
                 "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
                 "saldo_centro": round(saldo_f_c, 2), "saldo_vila": round(saldo_f_v, 2)
             })
@@ -126,9 +129,25 @@ def api_buscar_clientes(request):
     client, db = obter_conexao_mongo()
     if not termo or db is None: return JsonResponse({"clientes": []})
     try:
-        query = {"$or": [{"Nome": {"$regex": termo, "$options": "i"}}, {"CpfCnpj": {"$regex": termo, "$options": "i"}}]}
+        query = {"$or": [
+            {"Nome": {"$regex": termo, "$options": "i"}},
+            {"RazaoSocial": {"$regex": termo, "$options": "i"}},
+            {"NomeFantasia": {"$regex": termo, "$options": "i"}},
+            {"CpfCnpj": {"$regex": termo, "$options": "i"}}
+        ]}
+        
+        # Voltamos a utilizar o client.col_c correto do seu VendaERPMongoClient
         clientes = list(db[client.col_c].find(query).limit(10))
-        res = [{"nome": c.get("Nome"), "documento": c.get("CpfCnpj") or "Sem Doc"} for c in clientes]
+        
+        res = []
+        for c in clientes:
+            nome = c.get("Nome") or c.get("RazaoSocial") or c.get("NomeFantasia")
+            if nome:
+                res.append({
+                    "nome": nome, 
+                    "documento": c.get("CpfCnpj") or c.get("Cpf") or c.get("Cnpj") or "Sem Doc",
+                    "telefone": c.get("Celular") or c.get("Telefone") or c.get("Fone") or ""
+                })
         return JsonResponse({"clientes": res})
     except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
 

@@ -619,7 +619,16 @@ function gerarMensagemPedido() {
 }
 
 function confirmarEnvio() {
-    const numeroWhatsapp = (clienteSelecionado && clienteSelecionado.telefone) ? clienteSelecionado.telefone : "5513996727222";
+    let numeroWhatsapp = (clienteSelecionado && clienteSelecionado.telefone) ? String(clienteSelecionado.telefone) : "5513996727222";
+    
+    // Remove tudo que não for dígito numérico (espaços, parênteses, traços, etc)
+    numeroWhatsapp = numeroWhatsapp.replace(/\D/g, '');
+    
+    // Se o número tiver apenas 10 ou 11 dígitos, adicionamos o DDI do Brasil (55)
+    if (numeroWhatsapp.length === 10 || numeroWhatsapp.length === 11) {
+        numeroWhatsapp = '55' + numeroWhatsapp;
+    }
+
     const msg = gerarMensagemPedido();
     window.open(`https://wa.me/${numeroWhatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
 }
