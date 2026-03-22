@@ -1,164 +1,113 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8"><title>Agro Mais | PDV Inteligente</title>
+    <meta charset="UTF-8">
+    <title>Agro Mais | PDV Rápido</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .sugestao-ativa { background-color: #f1f5f9 !important; border-left: 4px solid #16a34a !important; }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; }
-        .modal-overlay.open { display: flex; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body class="bg-slate-100 pb-10">
-    <div class="container mx-auto p-4 max-w-6xl">
+<body class="bg-slate-200 p-4 font-sans select-none">
+    <div class="max-w-5xl mx-auto">
         <header class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-black italic text-slate-800 uppercase">Agro <span class="text-green-600">Mais</span></h1>
-            <div class="flex gap-2">
-                <a href="/transferencias/" class="text-xs font-bold bg-green-50 text-green-700 px-4 py-2 rounded-xl shadow-sm border border-green-100 hover:bg-green-100 transition-all">🚚 Logística</a>
-                
-                <a href="/historico-ajustes/" class="text-xs font-bold bg-white px-4 py-2 rounded-xl shadow-sm border hover:bg-slate-50 transition-all">Ver Histórico</a>
-            </div>
+            <h1 class="text-3xl font-black text-slate-800 italic uppercase">Agro <span class="text-green-600">Mais</span></h1>
+            <div class="text-[10px] font-black text-slate-400 bg-white px-4 py-2 rounded-full border shadow-sm">BUSCADOR ATIVO</div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div class="lg:col-span-3">
-                <div class="relative mb-6">
-                    <input type="text" id="campo-busca" placeholder="Busca inteligente..." class="w-full p-5 rounded-2xl shadow-xl outline-none ring-4 ring-green-600/10 focus:ring-green-600/30 text-xl" autocomplete="off">
-                    <div id="autocomplete" class="absolute top-full left-0 right-0 bg-white shadow-2xl rounded-b-2xl hidden z-50 overflow-hidden border-t"></div>
-                </div>
-                <div id="resultados" class="space-y-4"></div>
-            </div>
-            <div class="lg:col-span-1">
-                <div class="bg-white p-5 rounded-3xl shadow-xl border-2 border-green-600/10 sticky top-4">
-                    <h2 class="font-black mb-4 uppercase text-sm text-slate-400">🛒 Orçamento</h2>
-                    <input type="text" id="cliente-id" placeholder="Cliente" class="w-full p-3 bg-slate-50 rounded-xl mb-4 outline-none border focus:ring-2 focus:ring-green-500">
-                    <div id="lista-carrinho" class="space-y-2 mb-6 text-xs min-h-[50px]"></div>
-                    <div class="border-t pt-4">
-                        <div class="flex justify-between font-black text-lg mb-4"><span>TOTAL</span><span id="total-carrinho" class="text-green-600">R$ 0,00</span></div>
-                        <button onclick="gerarOrcamento()" class="w-full bg-green-600 text-white p-4 rounded-2xl font-black shadow-lg">FINALIZAR</button>
-                    </div>
-                </div>
-            </div>
+        <div class="relative mb-6">
+            <input type="text" id="busca" autofocus placeholder="Digite ou Bipe o Produto..." 
+                   class="w-full p-6 rounded-[32px] border-4 border-white shadow-2xl text-2xl font-bold outline-none focus:ring-4 focus:ring-green-400">
         </div>
+
+        <div id="lista" class="space-y-4 pb-28"></div>
     </div>
 
-    <div id="modal-ajuste" class="modal-overlay">
-        <div class="bg-white p-8 rounded-[40px] shadow-2xl w-full max-w-md border-4 border-slate-100">
-            <h2 class="text-xl font-black mb-1 uppercase text-slate-800" id="modal-nome-produto">Ajustar</h2>
-            <p class="text-xs font-bold text-slate-400 mb-6 uppercase" id="modal-codigo-produto"></p>
+    <div id="modal_ajuste" class="fixed inset-0 bg-black/70 hidden flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-[40px] p-8 w-full max-w-md shadow-2xl border-8 border-slate-100">
+            <h2 id="m_nome" class="text-xl font-black text-slate-800 uppercase text-center mb-6">Ajustar Estoque</h2>
             <div class="space-y-4">
-                <select id="ajuste-deposito" class="w-full p-4 bg-slate-50 rounded-2xl border-2 font-bold outline-none focus:border-green-500">
-                    <option value="centro">📍 CENTRO</option>
-                    <option value="vila">📍 VILA ELIAS</option>
-                </select>
-                <input type="number" id="ajuste-novo-saldo" placeholder="Novo Saldo" class="w-full p-5 bg-slate-50 rounded-2xl border-2 text-3xl font-black outline-none focus:border-green-500 text-center" step="0.001">
-                <input type="password" id="ajuste-pin" placeholder="PIN" class="w-full p-4 bg-slate-50 rounded-2xl border-2 text-center font-bold outline-none focus:border-red-500">
-            </div>
-            <div class="flex gap-3 mt-8">
-                <button onclick="fecharModal()" class="flex-1 p-4 rounded-2xl font-black text-slate-400">CANCELAR</button>
-                <button onclick="confirmarAjuste()" class="flex-1 bg-slate-800 text-white p-4 rounded-2xl font-black shadow-lg">SALVAR</button>
+                <input type="number" id="m_novo" placeholder="SALDO REAL" class="w-full p-5 rounded-2xl bg-slate-50 border-2 text-center text-4xl font-black text-blue-600 outline-none">
+                <input type="password" id="m_pin" placeholder="PIN VENDEDOR" class="w-full p-5 rounded-2xl bg-slate-50 border-2 text-center text-2xl font-black outline-none">
+                <div class="flex gap-2 pt-4">
+                    <button onclick="fechar()" class="flex-1 p-5 rounded-2xl font-black text-slate-400 uppercase">Sair</button>
+                    <button onclick="salvar()" class="flex-1 bg-slate-900 text-white p-5 rounded-2xl font-black uppercase shadow-xl">Salvar</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        let carrinho = [], produtoParaAjuste = null, saldoAtualParaAjuste = 0, indiceAtivo = -1;
-        const inputBusca = document.getElementById('campo-busca'), autocomplete = document.getElementById('autocomplete'), listaResultados = document.getElementById('resultados');
+        let cursor = -1;
+        let p_selecionado = null;
+        let produtos = [];
+        const input = document.getElementById('busca');
+        const lista = document.getElementById('lista');
 
-        inputBusca.addEventListener('keydown', (e) => {
-            const itens = autocomplete.querySelectorAll('.item-sugestao');
-            if (e.key === 'ArrowDown') { e.preventDefault(); indiceAtivo = (indiceAtivo + 1) % itens.length; atualizarDestaque(itens); }
-            else if (e.key === 'ArrowUp') { e.preventDefault(); indiceAtivo = (indiceAtivo - 1 + itens.length) % itens.length; atualizarDestaque(itens); }
-            else if (e.key === 'Enter') { e.preventDefault(); indiceAtivo >= 0 ? itens[indiceAtivo].click() : buscar(inputBusca.value); }
-        });
-
-        function atualizarDestaque(itens) { itens.forEach((it, i) => i === indiceAtivo ? it.classList.add('sugestao-ativa') : it.classList.remove('sugestao-ativa')); }
-
-        inputBusca.addEventListener('input', async () => {
-            if(inputBusca.value.length < 2) return autocomplete.classList.add('hidden');
-            const res = await fetch(`/api/sugestoes/?q=${encodeURIComponent(inputBusca.value)}`);
+        input.addEventListener('input', async (e) => {
+            const q = e.target.value;
+            if (q.length < 2) { lista.innerHTML = ''; return; }
+            
+            const res = await fetch(`/api/buscar/?q=${encodeURIComponent(q)}`);
             const data = await res.json();
-            autocomplete.innerHTML = data.sugestoes.map(i => `<div onclick="buscar('${i.nome}')" class="item-sugestao p-4 hover:bg-slate-50 cursor-pointer border-b flex justify-between font-bold text-slate-700"><span>${i.nome}</span><span class="text-slate-300 text-xs">${i.codigo_interno}</span></div>`).join('');
-            autocomplete.classList.toggle('hidden', data.sugestoes.length === 0);
-        });
-
-        async function buscar(t) {
-            autocomplete.classList.add('hidden'); inputBusca.value = t;
-            listaResultados.innerHTML = '<p class="text-center py-10 font-bold text-slate-400 uppercase text-xs">Consultando...</p>';
-            const res = await fetch(`/api/buscar/?q=${encodeURIComponent(t)}`);
-            const data = await res.json();
-            const highlight = (text, query) => {
-                if (!query) return text;
-                const words = query.split(' ').filter(w => w.length > 1);
-                let h = text;
-                words.forEach(w => h = h.replace(new RegExp(`(${w})`, 'gi'), '<mark class="bg-yellow-200 p-0">$1</mark>'));
-                return h;
-            };
-            listaResultados.innerHTML = data.produtos.map(p => `
-                <div class="bg-white p-6 rounded-[32px] shadow-sm flex justify-between items-center border hover:border-green-500/30 transition-all">
+            produtos = data.produtos || [];
+            lista.innerHTML = '';
+            cursor = -1;
+            
+            produtos.forEach((p, idx) => {
+                lista.innerHTML += `
+                <div id="item-${idx}" onclick="abrirAjuste(${idx})" class="card bg-white rounded-[40px] p-6 shadow-md border-4 border-transparent flex justify-between items-center cursor-pointer transition-all">
                     <div class="flex-1">
-                        <h3 class="text-xl font-black text-slate-800">${highlight(p.nome, t)}</h3>
-                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">${highlight(p.codigo_interno, t)} | ${p.marca}</p>
+                        <h3 class="text-xl font-black text-slate-800 uppercase italic"><strong>${p.codigo_interno}</strong> - ${p.nome}</h3>
+                        <div class="mt-4"><span class="text-5xl font-black text-green-600">R$ ${p.preco_venda.toFixed(2)}</span></div>
                     </div>
-                    <div class="flex gap-4 items-center">
-                        <div onclick="abrirModal('${p.id}', '${p.nome}', '${p.codigo_interno}', 'centro', '${p.saldo_centro}')" class="relative bg-blue-50 p-4 rounded-3xl text-center min-w-[100px] border border-blue-200 cursor-pointer active:scale-95 transition-all group">
-                            <svg class="absolute top-2 right-2 h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                            <span class="text-[10px] block font-black text-blue-400">CENTRO</span><span class="text-2xl font-black text-blue-600">${p.saldo_centro}</span>
+                    <div class="flex flex-col items-end gap-2 text-right">
+                        <div class="bg-blue-50 p-4 rounded-[35px] border-2 border-blue-100 min-w-[150px]">
+                            <span class="block text-[10px] font-black text-blue-400 uppercase">CENTRO</span>
+                            <span class="text-6xl font-black text-blue-700">${p.saldo_centro}</span>
                         </div>
-                        <div onclick="abrirModal('${p.id}', '${p.nome}', '${p.codigo_interno}', 'vila', '${p.saldo_vila}')" class="relative bg-purple-50 p-4 rounded-3xl text-center min-w-[100px] border border-purple-200 cursor-pointer active:scale-95 transition-all group">
-                            <svg class="absolute top-2 right-2 h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                            <span class="text-[10px] block font-black text-purple-400 tracking-tighter uppercase">Vila Elias</span><span class="text-2xl font-black text-purple-600">${p.saldo_vila}</span>
+                        <div class="pr-2">
+                            <p class="text-xl font-bold text-slate-400">Vila: <b class="text-slate-700">${p.saldo_vila}</b></p>
+                            <p class="text-2xl font-black text-slate-500 italic underline">Total: ${p.saldo_centro + p.saldo_vila}</p>
                         </div>
-                        <button onclick="addCarrinho('${p.id}','${p.nome}',${p.preco_venda})" class="bg-green-600 text-white h-14 w-14 rounded-2xl font-black text-2xl shadow-lg hover:scale-110 active:scale-90 transition-all">+</button>
                     </div>
-                </div>`).join('');
+                </div>`;
+            });
+        });
+
+        input.addEventListener('keydown', (e) => {
+            const cards = document.querySelectorAll('.card');
+            if (e.key === "ArrowDown") cursor = Math.min(cursor + 1, cards.length - 1);
+            else if (e.key === "ArrowUp") cursor = Math.max(cursor - 1, 0);
+            else if (e.key === "Enter" && cursor > -1) { abrirAjuste(cursor); return; }
+            
+            cards.forEach((c, i) => {
+                c.classList.toggle('border-green-400', i === cursor);
+                c.classList.toggle('bg-green-50', i === cursor);
+                if(i === cursor) c.scrollIntoView({ block: 'nearest' });
+            });
+        });
+
+        function abrirAjuste(idx) {
+            p_selecionado = produtos[idx];
+            document.getElementById('m_nome').innerText = p_selecionado.nome;
+            document.getElementById('m_novo').value = '';
+            document.getElementById('m_pin').value = '';
+            document.getElementById('modal_ajuste').classList.remove('hidden');
+            setTimeout(() => document.getElementById('m_novo').focus(), 100);
         }
 
-        function abrirModal(id, nome, codigo, deposito, saldoAtual) {
-            produtoParaAjuste = { id, nome, codigo };
-            saldoAtualParaAjuste = saldoAtual;
-            document.getElementById('modal-nome-produto').innerText = nome;
-            document.getElementById('modal-codigo-produto').innerText = codigo;
-            document.getElementById('ajuste-deposito').value = deposito;
-            document.getElementById('ajuste-novo-saldo').value = ''; document.getElementById('ajuste-pin').value = '';
-            document.getElementById('modal-ajuste').classList.add('open');
-            setTimeout(() => document.getElementById('ajuste-novo-saldo').focus(), 100);
-        }
-
-        function fecharModal() { document.getElementById('modal-ajuste').classList.remove('open'); }
-
-        async function confirmarAjuste() {
+        async function salvar() {
             const fd = new FormData();
-            fd.append('produto_id', produtoParaAjuste.id); fd.append('nome_produto', produtoParaAjuste.nome); fd.append('codigo_interno', produtoParaAjuste.codigo);
-            fd.append('deposito', document.getElementById('ajuste-deposito').value); fd.append('saldo_atual', saldoAtualParaAjuste);
-            fd.append('novo_saldo', document.getElementById('ajuste-novo-saldo').value); fd.append('pin', document.getElementById('ajuste-pin').value);
-            fd.append('csrfmiddlewaretoken', '{{csrf_token}}');
-            try {
-                const res = await fetch('/api/ajustar-estoque/', { method: 'POST', body: fd });
-                const data = await res.json();
-                if(data.ok) { fecharModal(); buscar(inputBusca.value); } else { alert("Erro: " + data.erro); }
-            } catch (e) { alert("Erro de conexão!"); }
+            fd.append('produto_id', p_selecionado.id);
+            fd.append('nome_produto', p_selecionado.nome);
+            fd.append('codigo_interno', p_selecionado.codigo_interno);
+            fd.append('saldo_atual', p_selecionado.saldo_centro);
+            fd.append('novo_saldo', document.getElementById('m_novo').value);
+            fd.append('pin', document.getElementById('m_pin').value);
+            const res = await fetch('/api/ajustar-estoque/', { method: 'POST', body: fd, headers: {'X-CSRFToken': '{{ csrf_token }}'} });
+            if(res.ok) location.reload(); else alert("ERRO NO PIN");
         }
 
-        function addCarrinho(id, nome, preco) {
-            const ex = carrinho.find(c => c.id === id);
-            ex ? ex.quantidade++ : carrinho.push({id, nome, preco, quantidade: 1}); renderCarrinho();
-        }
-
-        function renderCarrinho() {
-            let total = 0;
-            document.getElementById('lista-carrinho').innerHTML = carrinho.map((c, i) => {
-                total += c.preco * c.quantidade;
-                return `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg border text-[11px]"><div class="flex-1 min-w-0"><p class="font-bold truncate text-slate-700">${c.nome}</p><p class="text-slate-400">R$ ${c.preco.toFixed(2)}</p></div><button onclick="carrinho.splice(${i},1);renderCarrinho()" class="ml-2 text-red-400 font-black px-2">✕</button></div>`;
-            }).join('');
-            document.getElementById('total-carrinho').innerText = `R$ ${total.toFixed(2)}`;
-        }
-
-        async function gerarOrcamento() {
-            const fd = new FormData(); fd.append('itens', JSON.stringify(carrinho)); fd.append('cliente_id', document.getElementById('cliente-id').value || "Balcão"); fd.append('csrfmiddlewaretoken', '{{csrf_token}}');
-            const res = await fetch('/api/gerar-orcamento/', {method:'POST', body: fd}); const d = await res.json();
-            if(d.ok) { carrinho = []; renderCarrinho(); document.getElementById('cliente-id').value = ''; } alert(d.mensagem);
-        }
+        function fechar() { document.getElementById('modal_ajuste').classList.add('hidden'); input.focus(); }
     </script>
 </body>
 </html>

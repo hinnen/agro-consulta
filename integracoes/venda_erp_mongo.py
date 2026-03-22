@@ -1,36 +1,20 @@
 import pymongo
-from django.conf import settings
-import re
+from pymongo import MongoClient
 
 class VendaERPMongoClient:
     def __init__(self):
-        self.url = getattr(settings, "VENDA_ERP_MONGO_URL", "")
-        self.db_name = getattr(settings, "VENDA_ERP_MONGO_DB", "")
-        self.client = pymongo.MongoClient(self.url)
-        self.db = self.client[self.db_name]
+        self.uri = "mongodb+srv://Teste%20Sisvale:Hinnen9973%23@wl6.aprendaerp.com.br/admin?readPreference=primaryPreferred&tls=false" 
+        self.client = MongoClient(self.uri, serverSelectionTimeoutMS=10000)
+        self.db = self.client['9c6f91fb-04e9-42be-aa5d-ec29b43c9a10']
         
-        # IDs Oficiais mapeados pela Manus
-        self.DEPOSITO_VILA_ELIAS = "69960ed00a7abd17679e2ec7"
-        self.DEPOSITO_CENTRO = "698e36e0d34f9b3013b16da6"
-
-    def buscar_produtos(self, termo, limite=20):
-        # Lógica de Tokens: Busca produtos que contenham TODAS as palavras digitadas
-        palavras = termo.strip().split()
-        regex_parts = [f"(?=.*{re.escape(p)})" for p in palavras]
-        regex_final = "".join(regex_parts)
+        self.col_p = "DtoProduto"
+        self.col_e = "DtoEstoqueDepositoProduto"
+        self.col_c = "DtoPessoa"
         
-        filtro = {
-            "$or": [
-                {"Nome": {"$regex": regex_final, "$options": "i"}},
-                {"CodigoNFe": {"$regex": termo, "$options": "i"}}
-            ]
-        }
-        # Ordenação: Produtos normais primeiro, Granel depois
-        return list(self.db["DtoProduto"].find(filtro).sort([("EhGranel", 1), ("Nome", 1)]).limit(limite))
+        # IDs REAIS que o seu terminal mostrou:
+        self.DEPOSITO_CENTRO = "698e36e0d34f9b3013b16da6" # Deposito Centro
+        self.DEPOSITO_VILA_ELIAS = "8226b1e9-05a6-496f-8a21-751b345g0b21" # Ajustaremos se for outro
 
-    def buscar_estoques_por_produto_ids(self, ids):
-        # Busca apenas nos depósitos oficiais da Agro Mais
-        return list(self.db["DtoEstoqueDepositoProduto"].find({
-            "ProdutoID": {"$in": ids},
-            "DepositoID": {"$in": [self.DEPOSITO_CENTRO, self.DEPOSITO_VILA_ELIAS]}
-        }))
+    def buscar_clientes(self, termo, limite=10):
+        query = {"$or": [{"Nome": {"$regex": termo, "$options": "i"}}, {"CpfCnpj": {"$regex": termo, "$options": "i"}}]}
+        return list(self.db[self.col_c].find(query).limit(limite))

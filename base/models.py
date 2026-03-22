@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.contrib.auth.models import User
 
 class Empresa(models.Model):
     nome_fantasia = models.CharField("Nome fantasia", max_length=150)
@@ -15,6 +15,15 @@ class Empresa(models.Model):
 
     def __str__(self):
         return self.nome_fantasia
+    
+class PerfilUsuario(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    codigo_vendedor = models.CharField(max_length=4, unique=True) # 0001, 0002...
+    senha_rapida = models.CharField(max_length=100) # Senha para movimentações
+    primeiro_acesso = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.codigo_vendedor} - {self.user.first_name}"
 
 
 class Loja(models.Model):
