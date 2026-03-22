@@ -16,9 +16,9 @@
 
     <div class="max-w-6xl mx-auto flex items-center justify-between mb-4 gap-4">
         <h1 class="text-2xl font-black italic tracking-tighter text-slate-900">AGRO <span class="text-emerald-500">MAIS</span></h1>
-        <div class="flex gap-4 text-sm">
-            <a href="/transferencias/" class="font-bold text-emerald-700 hover:underline">🚚 Logística</a>
-            <a href="/historico/" class="font-bold text-slate-600 hover:underline">Ver Histórico</a>
+        <div class="flex gap-4 text-sm font-bold">
+            <a href="/transferencias/" class="text-emerald-700 hover:underline">🚚 Logística</a>
+            <a href="/historico/" class="text-slate-600 hover:underline">Ver Histórico</a>
         </div>
     </div>
 
@@ -38,7 +38,7 @@
 
         <div class="lg:col-span-1">
             <div class="bg-white p-5 rounded-[2rem] shadow-xl sticky top-4 border border-slate-100">
-                <h3 class="text-slate-400 font-bold uppercase text-xs mb-3 tracking-widest italic">🛒 Orçamento</h3>
+                <h3 class="text-slate-400 font-bold uppercase text-[10px] mb-3 tracking-widest italic">🛒 Orçamento</h3>
                 <input type="text" id="nome-cliente" placeholder="Nome do Cliente" class="w-full p-3 bg-slate-50 rounded-xl mb-3 outline-none text-sm font-bold">
                 <div id="itens-carrinho" class="max-h-[300px] overflow-y-auto mb-3 hide-scroll space-y-2 text-xs font-bold"></div>
                 <div class="flex justify-between items-end mb-4 border-t pt-3">
@@ -54,12 +54,14 @@
 let carrinho = [];
 let sugestoesAtuais = [];
 let indexSelecionado = -1;
+let debounceTimer; // Timer para controlar a velocidade das requisições
 
 const inputBusca = document.getElementById('busca-produto');
 const autoList = document.getElementById('autocomplete-results');
 const destaqueContainer = document.getElementById('produto-destaque');
 const similaresContainer = document.getElementById('lista-similares');
 
+// NAVEGAÇÃO TECLADO (Sem atraso para ser responsivo)
 inputBusca.addEventListener('keydown', function(e) {
     const itens = autoList.querySelectorAll('.suggestion-item');
     if (e.key === 'ArrowDown') {
@@ -89,19 +91,32 @@ function atualizarSelecaoVisual(itens) {
     });
 }
 
+// BUSCA COM DEBOUNCE (Só dispara após o usuário parar de digitar)
 inputBusca.addEventListener('input', function(e) {
     const q = e.target.value;
     indexSelecionado = -1;
-    if (q.length < 2) { autoList.classList.add('hidden'); return; }
+    
+    // Cancela o cronômetro anterior
+    clearTimeout(debounceTimer);
 
-    fetch("/api/buscar/?q=" + q)
-        .then(res => res.json())
-        .then(data => {
-            if (data.produtos && data.produtos.length > 0) {
-                sugestoesAtuais = data.produtos;
-                renderizarSugestoes();
-            } else { autoList.classList.add('hidden'); }
-        });
+    if (q.length < 2) { 
+        autoList.classList.add('hidden'); 
+        return; 
+    }
+
+    // Define novo cronômetro de 400ms
+    debounceTimer = setTimeout(() => {
+        fetch("/api/buscar/?q=" + q)
+            .then(res => res.json())
+            .then(data => {
+                if (data.produtos && data.produtos.length > 0) {
+                    sugestoesAtuais = data.produtos;
+                    renderizarSugestoes();
+                } else { 
+                    autoList.classList.add('hidden'); 
+                }
+            });
+    }, 400); // Aguarda 400ms de silêncio na digitação
 });
 
 function renderizarSugestoes() {
@@ -112,9 +127,9 @@ function renderizarSugestoes() {
         div.innerHTML = `
             <div>
                 <div class="font-black text-slate-700 uppercase text-sm">${s.nome}</div>
-                <div class="text-[10px] text-slate-400 font-bold uppercase">${s.marca || 'GENÉRICO'}</div>
+                <div class="text-[9px] text-slate-400 font-bold uppercase">${s.marca || 'GENÉRICO'}</div>
             </div>
-            <div class="text-emerald-600 font-black">R$ ${s.preco_venda.toFixed(2)}</div>
+            <div class="text-emerald-600 font-black text-sm">R$ ${s.preco_venda.toFixed(2)}</div>
         `;
         div.onclick = () => {
             inputBusca.value = s.nome;
@@ -146,7 +161,7 @@ function renderDestaque(p) {
             </div>
             <div class="flex items-center gap-3">
                 <div class="bg-blue-600 px-8 py-5 rounded-[1.5rem] shadow-lg flex flex-col items-center">
-                    <span class="text-[10px] font-black text-blue-200 mb-1 tracking-widest uppercase">Centro</span>
+                    <span class="text-[10px] font-black text-blue-200 mb-1 tracking-widest uppercase text-center">Centro</span>
                     <div class="flex items-center gap-3">
                         <span class="text-4xl font-black text-white">${p.saldo_centro}</span>
                         <button onclick="abrirAjuste('${p.id}','${p.nome}',${p.saldo_centro},'${p.codigo_nfe||p.codigo_interno}','centro')" class="text-blue-300 hover:text-white text-2xl">✎</button>
@@ -158,7 +173,7 @@ function renderDestaque(p) {
                         <span class="font-black text-slate-600 text-xl">${p.saldo_vila}</span>
                     </div>
                     <div class="bg-slate-900 px-4 py-2 rounded-xl flex justify-between items-center gap-4 text-white">
-                        <span class="text-[10px] font-black text-slate-500 uppercase">Total</span>
+                        <span class="text-[10px] font-black text-slate-500 uppercase font-bold">Total</span>
                         <span class="font-black text-xl text-emerald-400">${total}</span>
                     </div>
                 </div>
@@ -167,8 +182,9 @@ function renderDestaque(p) {
 }
 
 function renderSimilar(p) {
+    const pJson = JSON.stringify(p).replace(/'/g, "&apos;");
     similaresContainer.innerHTML += `
-        <div class="bg-white/70 p-3 rounded-2xl border border-slate-200 flex justify-between items-center hover:bg-white transition-all cursor-pointer" onclick='renderDestaque(${JSON.stringify(p)})'>
+        <div class="bg-white/70 p-3 rounded-2xl border border-slate-200 flex justify-between items-center hover:bg-white transition-all cursor-pointer" onclick='renderDestaque(${pJson})'>
             <div class="flex flex-col">
                 <span class="font-black text-slate-700 uppercase text-xs">${p.nome}</span>
                 <span class="text-[9px] text-slate-400 font-bold uppercase italic">${p.marca || 'GENÉRICO'}</span>
@@ -194,10 +210,11 @@ function atualizarCarrinho() {
     let total = 0; container.innerHTML = '';
     carrinho.forEach((item, index) => {
         total += item.preco * item.qtd;
-        container.innerHTML += `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl border border-slate-100">
-            <span class="text-slate-700">${item.qtd}x ${item.nome}</span>
-            <button onclick="removerItem(${index})" class="text-red-400 px-1">✕</button>
-        </div>`;
+        container.innerHTML += `
+            <div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl border border-slate-100">
+                <span class="text-slate-700 truncate mr-2">${item.qtd}x ${item.nome}</span>
+                <button onclick="removerItem(${index})" class="text-red-400 px-1 font-bold">✕</button>
+            </div>`;
     });
     document.getElementById('total-geral').innerText = `R$ ${total.toFixed(2)}`;
 }
