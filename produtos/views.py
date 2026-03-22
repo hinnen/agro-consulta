@@ -1,6 +1,4 @@
-import json
-import unicodedata
-import re
+import json, unicodedata, re
 from datetime import datetime
 from decimal import Decimal
 from django.shortcuts import render
@@ -10,17 +8,20 @@ from base.models import Empresa, Loja, PerfilUsuario
 from estoque.models import AjusteRapidoEstoque
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 
-# Instância Global com proteção para falha de conexão
-try:
-    CLIENT_MONGO = VendaERPMongoClient()
-    DB_MONGO = CLIENT_MONGO.db
-except Exception as e:
-    print(f"ERRO CRÍTICO MONGO: {e}")
-    CLIENT_MONGO = None
-    DB_MONGO = None
+# --- CONEXÃO SEGURA ---
+
+def obter_conexao_mongo():
+    """ Tenta conectar e testa com um ping rápido """
+    try:
+        client = VendaERPMongoClient()
+        # O ping força a verificação da conexão real
+        client.client.admin.command('ping')
+        return client, client.db
+    except Exception as e:
+        print(f"--- ERRO MONGO: {e} ---")
+        return None, None
 
 def normalizar_termo(txt):
-    """ Normaliza o termo de busca para bater com o BuscaTexto do banco """
     if not txt: return ""
     return ''.join(c for c in unicodedata.normalize('NFD', txt)
                   if unicodedata.category(c) != 'Mn').lower()
@@ -37,71 +38,67 @@ def historico_ajustes(request):
 def sugestao_transferencia(request):
     return render(request, "produtos/transferencias.html")
 
-# --- API DE PRODUTOS E ESTOQUE ---
+# --- API DE PRODUTOS ---
 
 @require_GET
 def api_buscar_produtos(request):
     termo_original = request.GET.get("q", "").strip()
-    if not termo_original or not DB_MONGO: 
-        return JsonResponse({"produtos": []})
+    client, db = obter_conexao_mongo()
     
-    # DEFINIÇÃO DAS VARIÁVEIS DE BUSCA
+    if db is None:
+        return JsonResponse({"erro": "Erro de conexao com o banco. Verifique o IP no Atlas."}, status=500)
+
     termo_norm = normalizar_termo(termo_original)
-    termo_limpo = termo_original.replace(" ", "") # <--- ESSENCIAL PARA CÓDIGO DE BARRAS
+    termo_limpo = termo_original.replace(" ", "") 
     palavras = termo_norm.split()
     
     try:
-        # Monta regex para o campo BuscaTexto (usa seus índices)
         regex_parts = [f"(?=.*{re.escape(p)})" for p in palavras]
         regex_final = "".join(regex_parts) + ".*"
 
         query = {"$or": [
             {"BuscaTexto": {"$regex": regex_final, "$options": "i"}},
-            {"Nome": {"$regex": regex_final, "$options": "i"}}, # Fallback caso BuscaTexto esteja vazio
+            {"Nome": {"$regex": regex_final, "$options": "i"}},
             {"CodigoNFe": termo_limpo},
             {"CodigoBarras": termo_limpo},
-            {"EAN_NFe": termo_limpo}, 
+            {"EAN_NFe": termo_limpo},
             {"CodigoProduto": termo_limpo}
-        ]}
+        ], "CadastroInativo": {"$ne": True}}
 
-        # Filtro de ativos
-        query["CadastroInativo"] = {"$ne": True}
-
-        col_p = DB_MONGO[CLIENT_MONGO.col_p]
+        col_p = db[client.col_p]
         produtos_mongo = list(col_p.find(query).limit(15))
-        
+
+        if not produtos_mongo:
+            return JsonResponse({"produtos": []})
+
         p_ids = [str(p.get("Id") or p["_id"]) for p in produtos_mongo]
-        
-        col_e = DB_MONGO[CLIENT_MONGO.col_e]
-        estoque_list = list(col_e.find({"ProdutoID": {"$in": p_ids}}))
+        estoque_list = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
 
         res = []
         for p in produtos_mongo:
             pid = str(p.get("Id") or p["_id"])
-            s_centro = 0.0
-            s_vila = 0.0
+            s_c = 0.0; s_v = 0.0
             
             for est in estoque_list:
                 if str(est.get("ProdutoID")) == pid:
                     val = float(est.get("Saldo") or 0)
                     did = str(est.get("DepositoID") or "")
-                    if did == CLIENT_MONGO.DEPOSITO_CENTRO: s_centro = val
-                    elif did == CLIENT_MONGO.DEPOSITO_VILA_ELIAS: s_vila = val
+                    if did == client.DEPOSITO_CENTRO: s_c = val
+                    elif did == client.DEPOSITO_VILA_ELIAS: s_v = val
 
-            # Lógica de Saldo Local + Variação ERP
-            ajuste_c = AjusteRapidoEstoque.objects.filter(produto_externo_id=pid, deposito='centro').order_by('-criado_em').first()
-            ajuste_v = AjusteRapidoEstoque.objects.filter(produto_externo_id=pid, deposito='vila').order_by('-criado_em').first()
+            aj_c = AjusteRapidoEstoque.objects.filter(produto_externo_id=pid, deposito='centro').order_by('-criado_em').first()
+            aj_v = AjusteRapidoEstoque.objects.filter(produto_externo_id=pid, deposito='vila').order_by('-criado_em').first()
 
-            saldo_f_c = float(ajuste_c.saldo_informado) + (s_centro - float(ajuste_c.saldo_erp_referencia)) if ajuste_c else s_centro
-            saldo_f_v = float(ajuste_v.saldo_informado) + (s_vila - float(ajuste_v.saldo_erp_referencia)) if ajuste_v else s_vila
+            saldo_f_c = float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia)) if aj_c else s_c
+            saldo_f_v = float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia)) if aj_v else s_v
             
             res.append({
                 "id": pid, 
-                "nome": p.get("Nome") or "Sem Nome", 
+                "nome": p.get("Nome"), 
                 "marca": p.get("Marca") or "",
-                "codigo_nfe": p.get("CodigoNFe") or "",
+                "codigo_nfe": p.get("CodigoNFe") or "", 
                 "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
-                "saldo_centro": round(saldo_f_c, 2),
+                "saldo_centro": round(saldo_f_c, 2), 
                 "saldo_vila": round(saldo_f_v, 2)
             })
             
@@ -112,12 +109,13 @@ def api_buscar_produtos(request):
 @require_GET
 def api_autocomplete_produtos(request):
     termo = request.GET.get("q", "").strip()
-    if len(termo) < 2 or not DB_MONGO: 
+    client, db = obter_conexao_mongo()
+    
+    if len(termo) < 2 or db is None: 
         return JsonResponse({"sugestoes": []})
     
     termo_norm = normalizar_termo(termo)
     try:
-        # Busca por prefixo ou termo contido (mais flexível para balcão)
         query = {
             "$or": [
                 {"BuscaTexto": {"$regex": f"^{termo_norm}", "$options": "i"}},
@@ -125,7 +123,7 @@ def api_autocomplete_produtos(request):
             ],
             "CadastroInativo": {"$ne": True}
         }
-        sugestoes = list(DB_MONGO[CLIENT_MONGO.col_p].find(query, {"Nome": 1, "Marca": 1, "ValorVenda": 1, "PrecoVenda": 1, "Id": 1}).limit(8))
+        sugestoes = list(db[client.col_p].find(query, {"Nome": 1, "Marca": 1, "ValorVenda": 1, "PrecoVenda": 1, "Id": 1}).limit(8))
         
         res = [{
             "id": str(s.get("Id") or s["_id"]), 
@@ -161,11 +159,13 @@ def api_ajustar_estoque(request):
 @require_GET
 def api_buscar_clientes(request):
     termo = request.GET.get("q", "").strip()
-    if not termo or not DB_MONGO: 
+    client, db = obter_conexao_mongo()
+    
+    if not termo or db is None: 
         return JsonResponse({"clientes": []})
     try:
-        query = {"Nome": {"$regex": termo, "$options": "i"}}
-        clientes = list(DB_MONGO[CLIENT_MONGO.col_c].find(query).limit(10))
+        query = {"$or": [{"Nome": {"$regex": termo, "$options": "i"}}, {"CpfCnpj": {"$regex": termo, "$options": "i"}}]}
+        clientes = list(db[client.col_c].find(query).limit(10))
         res = [{"nome": c.get("Nome"), "documento": c.get("CpfCnpj")} for c in clientes]
         return JsonResponse({"clientes": res})
     except Exception as e:
