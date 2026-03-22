@@ -40,3 +40,22 @@ class VendaERPAPIClient:
             return False, res.status_code, res.text
         except Exception as e:
             return False, 0, str(e)
+
+    def buscar_produtos(self, termo):
+        """Busca produtos na API do VendaERP"""
+        url = "https://api.vendaerp.com.br/produtos/GetTodos"
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Accept": "application/json"
+        }
+        params = {
+            "desc": termo,
+            "somenteAtivos": True
+        }
+        try:
+            res = requests.get(url, headers=headers, params=params, timeout=15)
+            if res.status_code == 200:
+                return True, res.json()
+            return False, res.text
+        except Exception as e:
+            return False, str(e)
