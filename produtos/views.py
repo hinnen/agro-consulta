@@ -55,9 +55,10 @@ def api_buscar_produtos(request):
 
         query = {"$or": [
             {"BuscaTexto": {"$regex": regex_final, "$options": "i"}},
-            {"CodigoNFe": termo_original},
-            {"CodigoBarras": termo_original},
-            {"CodigoProduto": termo_original}
+            {"CodigoNFe": termo_limpo},
+            {"CodigoBarras": termo_limpo},
+            {"EAN_NFe": termo_limpo}, # Campo extra para código de barras
+            {"CodigoProduto": termo_limpo}
         ]}
 
         # Filtro de ativos (essencial para performance com o índice que você criou)
