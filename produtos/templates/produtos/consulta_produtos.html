@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -7,29 +8,119 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; } 
+        body { font-family: 'Inter', sans-serif; }
         .hide-scroll::-webkit-scrollbar { display: none; }
-        .selected-suggestion { background-color: #f1f5f9; border-left: 6px solid #10b981; }
+        .selected-suggestion {
+            background: linear-gradient(90deg, rgba(16,185,129,0.10), rgba(249,115,22,0.06));
+            border-left: 6px solid #10b981;
+        }
         .modal-open { overflow: hidden; }
+        input::placeholder {
+            color: #94a3b8;
+            font-weight: 700;
+        }
+        .glass-card {
+            background: rgba(255,255,255,0.94);
+            backdrop-filter: blur(10px);
+        }
+        .brand-shadow {
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+        }
+        .brand-ring {
+            box-shadow:
+                0 0 0 1px rgba(16,185,129,0.08),
+                0 18px 35px rgba(15,23,42,0.08);
+        }
+        .pulse-fast {
+            animation: pulseFast 0.35s ease;
+        }
+        @keyframes pulseFast {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.015); }
+            100% { transform: scale(1); }
+        }
+        .scanner-flash {
+            animation: scannerFlash 0.55s ease;
+        }
+        @keyframes scannerFlash {
+            0%   { box-shadow: 0 0 0 0 rgba(249,115,22,0.00); }
+            20%  { box-shadow: 0 0 0 6px rgba(249,115,22,0.16), 0 0 0 12px rgba(16,185,129,0.08); }
+            100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.00); }
+        }
+        .scan-banner {
+            animation: scanBanner 0.5s ease;
+        }
+        @keyframes scanBanner {
+            0% { transform: translateY(-4px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        .soft-btn {
+            background: #f8fafc;
+            color: #64748b;
+        }
+        .soft-btn:hover {
+            background: #f1f5f9;
+        }
     </style>
 </head>
 <body class="bg-slate-100 p-4 text-slate-800">
 
-    <div class="max-w-6xl mx-auto flex items-center justify-between mb-4 gap-4">
-        <h1 class="text-2xl font-black italic tracking-tighter text-slate-900">AGRO <span class="text-emerald-500">MAIS</span></h1>
+    <div class="max-w-7xl mx-auto flex items-center justify-between mb-5 gap-4">
+        <div class="flex items-center gap-4 min-w-0">
+            <div class="w-20 h-20 rounded-3xl bg-white shadow-lg border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="Agro Mais" class="w-full h-full object-contain p-2">
+            </div>
+            <div class="min-w-0">
+                <div class="text-3xl font-black tracking-tight text-slate-900 leading-none">
+                    AGRO <span class="text-emerald-600">MAIS</span>
+                </div>
+                <div class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                    Busca rápida • PDV inteligente
+                </div>
+            </div>
+        </div>
+
+        <div class="hidden xl:flex items-center gap-2 text-[11px] font-black uppercase">
+            <span class="px-3 py-2 rounded-xl bg-white text-slate-500 brand-ring">F2 Produto</span>
+            <span class="px-3 py-2 rounded-xl bg-white text-slate-500 brand-ring">F3 Cliente</span>
+            <span class="px-3 py-2 rounded-xl bg-white text-slate-500 brand-ring">F4 Limpar</span>
+            <span class="px-3 py-2 rounded-xl bg-white text-slate-500 brand-ring">F7 Enviar</span>
+            <span class="px-3 py-2 rounded-xl bg-white text-slate-500 brand-ring">F8 Copiar</span>
+            <span class="px-3 py-2 rounded-xl bg-white text-slate-500 brand-ring">Enter Adiciona</span>
+        </div>
+
         <div class="flex gap-4 text-sm font-bold">
             <a href="/transferencias/" class="text-emerald-700 hover:underline">🚚 Logística</a>
             <a href="/historico/" class="text-slate-600 hover:underline">Ver Histórico</a>
         </div>
     </div>
 
-    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-4">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-5">
         <div class="lg:col-span-3 space-y-4">
-            <div class="relative w-full">
-                <input type="text" id="busca-produto" autocomplete="off" placeholder="Busque por nome, marca ou GM..." 
-                    class="w-full p-4 rounded-2xl shadow-lg border-none text-xl font-bold outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all">
-                <div id="autocomplete-results" class="absolute z-50 w-full bg-white mt-1 rounded-xl shadow-2xl border border-slate-100 hidden overflow-hidden text-sm font-bold uppercase"></div>
+            <div id="scan-banner" class="hidden scan-banner bg-gradient-to-r from-orange-500 to-emerald-500 text-white text-[11px] font-black uppercase tracking-widest px-4 py-3 rounded-2xl shadow-lg">
+                ✅ Código lido com sucesso
             </div>
+
+            <div class="relative w-full">
+                <input
+                    type="text"
+                    id="busca-produto"
+                    autocomplete="off"
+                    placeholder="🔍 Buscar ração, milho, marca, EAN ou código GM..."
+                    class="w-full p-5 rounded-[2rem] shadow-xl border-2 border-emerald-500/10 text-xl font-black outline-none focus:ring-4 focus:ring-emerald-500/25 focus:border-emerald-500 transition-all bg-white brand-ring"
+                >
+                <div class="absolute right-5 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <span class="px-2 py-1 rounded-lg bg-slate-100">Scanner</span>
+                    <span class="px-2 py-1 rounded-lg bg-orange-50 text-orange-500">Ultra Rápido</span>
+                </div>
+
+                <div
+                    id="autocomplete-results"
+                    class="absolute z-50 w-full bg-white mt-2 rounded-2xl shadow-2xl border border-slate-100 hidden overflow-hidden text-sm font-bold uppercase"
+                ></div>
+            </div>
+
+            <div id="status-busca" class="hidden text-[11px] font-black uppercase tracking-wider text-slate-400 px-2"></div>
 
             <div id="area-resultados" class="space-y-4">
                 <div id="produto-destaque"></div>
@@ -38,31 +129,81 @@
         </div>
 
         <div class="lg:col-span-1">
-    <div class="bg-white p-5 rounded-[2rem] shadow-xl sticky top-4 border border-slate-100 font-bold uppercase italic text-sm">
-        <h3 class="text-slate-400 text-[10px] mb-3 tracking-widest italic font-bold">🛒 Orçamento</h3>
-        
-        <div class="relative mb-3">
-            <input type="text" id="nome-cliente" placeholder="Buscar Cliente..." 
-                class="w-full p-3 bg-slate-50 rounded-xl outline-none font-bold border-none focus:ring-2 focus:ring-emerald-500/20" autocomplete="off">
-            <div id="cliente-results" class="absolute z-[60] w-full bg-white mt-1 rounded-xl shadow-2xl border border-slate-100 hidden overflow-hidden text-[10px]"></div>
-        </div>
+            <div class="glass-card p-5 rounded-[2rem] shadow-xl sticky top-4 border border-slate-100 font-bold uppercase italic text-sm brand-shadow">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-slate-400 text-[10px] tracking-widest italic font-bold">🛒 Orçamento</h3>
+                    <span id="itens-badge" class="px-2 py-1 rounded-full bg-orange-50 text-orange-500 text-[10px] font-black">0 itens</span>
+                </div>
 
-        <div id="itens-carrinho" class="max-h-[300px] overflow-y-auto mb-3 hide-scroll space-y-2 text-xs"></div>
-        <div class="flex justify-between items-end mb-4 border-t pt-3">
-            <span class="text-slate-400 text-[10px]">Total</span>
-            <span id="total-geral" class="text-emerald-500 text-2xl font-black">R$ 0,00</span>
+                <div class="relative mb-3">
+                    <input
+                        type="text"
+                        id="nome-cliente"
+                        placeholder="Buscar cliente..."
+                        class="w-full p-3 bg-slate-50 rounded-xl outline-none font-bold border-none focus:ring-2 focus:ring-emerald-500/20"
+                        autocomplete="off"
+                    >
+                    <div
+                        id="cliente-results"
+                        class="absolute z-[60] w-full bg-white mt-1 rounded-xl shadow-2xl border border-slate-100 hidden overflow-hidden text-[10px]"
+                    ></div>
+                </div>
+
+                <div class="text-[10px] text-slate-400 font-black uppercase tracking-wider mb-2 px-1">
+                    Quantidade rápida: digite <span class="text-orange-500">*3</span> ou <span class="text-orange-500">x3</span> após a busca
+                </div>
+
+                <div id="itens-carrinho" class="max-h-[340px] overflow-y-auto mb-3 hide-scroll space-y-2 text-xs"></div>
+
+                <div class="flex justify-between items-end mb-4 border-t pt-3">
+                    <span class="text-slate-400 text-[10px]">Total</span>
+                    <span id="total-geral" class="text-emerald-500 text-2xl font-black">R$ 0,00</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mb-2 text-[10px] font-black uppercase">
+                    <button onclick="limparCarrinho()" class="soft-btn py-3 rounded-2xl transition-all active:scale-95">F4 Limpar</button>
+                    <button onclick="focarBuscaProduto()" class="soft-btn py-3 rounded-2xl transition-all active:scale-95">F2 Produto</button>
+                </div>
+
+                <button
+                    onclick="abrirResumo()"
+                    class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-4 rounded-2xl shadow-lg transition-all active:scale-95 uppercase italic flex items-center justify-center gap-2"
+                >
+                    <span>Conferir</span>
+                    <span class="text-[10px] px-2 py-1 rounded-full bg-white/20">F7</span>
+                </button>
+            </div>
         </div>
-        <button onclick="abrirResumo()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-2xl shadow-lg transition-all active:scale-95 uppercase italic">Conferir e Enviar</button>
     </div>
-</div>
 
     <div id="modal-resumo" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 animate-in zoom-in duration-200">
-            <h2 class="text-2xl font-black text-slate-900 mb-6 italic uppercase tracking-tighter">📝 Resumo do Pedido</h2>
+        <div class="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl p-8 animate-in zoom-in duration-200">
+            <div class="flex items-start justify-between gap-4 mb-6">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 italic uppercase tracking-tighter">📝 Resumo do Pedido</h2>
+                    <div class="text-[10px] uppercase font-black tracking-widest text-slate-400 mt-1">F7 envia • F8 copia • Esc fecha</div>
+                </div>
+                <div class="w-14 h-14 rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="Agro Mais" class="w-full h-full object-contain p-2">
+                </div>
+            </div>
+
             <div id="corpo-resumo" class="space-y-4 max-h-[50vh] overflow-y-auto pr-2 hide-scroll font-bold text-slate-700"></div>
+
             <div class="mt-8 flex flex-col gap-3">
-                <button onclick="confirmarEnvio()" class="w-full bg-emerald-500 text-white font-black py-5 rounded-3xl shadow-lg text-lg uppercase italic">🚀 Enviar WhatsApp</button>
-                <button onclick="fecharResumo()" class="w-full bg-slate-100 text-slate-400 font-black py-3 rounded-2xl text-xs uppercase">Voltar e Ajustar</button>
+                <button onclick="confirmarEnvio()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-5 rounded-3xl shadow-lg text-lg uppercase italic flex items-center justify-center gap-2">
+                    <span>🚀 Enviar WhatsApp</span>
+                    <span class="text-[10px] px-2 py-1 rounded-full bg-white/20">F7</span>
+                </button>
+
+                <button onclick="copiarMensagemPedido()" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-500 font-black py-3 rounded-2xl text-xs uppercase border border-slate-200 flex items-center justify-center gap-2">
+                    <span>📋 Copiar mensagem</span>
+                    <span class="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200">F8</span>
+                </button>
+
+                <button onclick="fecharResumo()" class="w-full bg-slate-100 text-slate-400 font-black py-3 rounded-2xl text-xs uppercase">
+                    Voltar e Ajustar
+                </button>
             </div>
         </div>
     </div>
@@ -71,33 +212,127 @@
 let carrinho = [];
 let sugestoesAtuais = [];
 let indexSelecionado = -1;
+let indexSelecionadoCliente = -1;
 let debounceTimer;
+let clienteDebounceTimer;
 let produtoEmDestaque = null;
 let clienteSelecionado = null;
+
+let ultimoInputTime = 0;
+let bufferScanner = '';
+let scannerTimer = null;
+let quantidadeRapida = 1;
 
 const inputBusca = document.getElementById('busca-produto');
 const autoList = document.getElementById('autocomplete-results');
 const destaqueContainer = document.getElementById('produto-destaque');
 const similaresContainer = document.getElementById('lista-similares');
 const modalResumo = document.getElementById('modal-resumo');
+const statusBusca = document.getElementById('status-busca');
+const scanBanner = document.getElementById('scan-banner');
 
-// NAVEGAÇÃO TECLADO + ENTER DUPLO
-inputBusca.addEventListener('keydown', function(e) {
-    const itens = autoList.querySelectorAll('.suggestion-item');
-    if (e.key === 'ArrowDown') { e.preventDefault(); indexSelecionado = (indexSelecionado + 1) % itens.length; atualizarSelecaoVisual(itens); } 
-    else if (e.key === 'ArrowUp') { e.preventDefault(); indexSelecionado = (indexSelecionado - 1 + itens.length) % itens.length; atualizarSelecaoVisual(itens); } 
-    else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (!autoList.classList.contains('hidden')) {
-            if (indexSelecionado > -1 && itens[indexSelecionado]) itens[indexSelecionado].click();
-            else if (itens.length > 0) itens[0].click();
-        } else if (produtoEmDestaque) {
-            addCarrinho(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.preco_venda);
-            inputBusca.value = ''; produtoEmDestaque = null;
-            destaqueContainer.innerHTML = ''; similaresContainer.innerHTML = '';
+const inputCliente = document.getElementById('nome-cliente');
+const clienteResults = document.getElementById('cliente-results');
+
+function formatarMoeda(valor) {
+    return `R$ ${Number(valor || 0).toFixed(2)}`;
+}
+
+function escapeHtml(texto) {
+    return String(texto || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function tocarSom(tipo = 'add') {
+    try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        const ctx = new AudioContextClass();
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (tipo === 'add') {
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1240, ctx.currentTime + 0.08);
+            gain.gain.setValueAtTime(0.001, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + 0.12);
+        } else if (tipo === 'erro') {
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(240, ctx.currentTime);
+            gain.gain.setValueAtTime(0.001, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + 0.16);
         }
+    } catch (e) {
+        console.warn('Som indisponível:', e);
     }
-});
+}
+
+function mostrarStatusBusca(texto, cor = 'slate') {
+    statusBusca.classList.remove('hidden', 'text-slate-400', 'text-emerald-600', 'text-orange-500', 'text-red-500');
+
+    if (cor === 'emerald') statusBusca.classList.add('text-emerald-600');
+    else if (cor === 'orange') statusBusca.classList.add('text-orange-500');
+    else if (cor === 'red') statusBusca.classList.add('text-red-500');
+    else statusBusca.classList.add('text-slate-400');
+
+    statusBusca.textContent = texto;
+}
+
+function esconderStatusBusca() {
+    statusBusca.classList.add('hidden');
+    statusBusca.textContent = '';
+}
+
+function mostrarBannerScanner(texto) {
+    scanBanner.textContent = texto;
+    scanBanner.classList.remove('hidden');
+    scanBanner.classList.remove('scan-banner');
+    void scanBanner.offsetWidth;
+    scanBanner.classList.add('scan-banner');
+
+    setTimeout(() => {
+        scanBanner.classList.add('hidden');
+    }, 1600);
+}
+
+function flashScanner() {
+    inputBusca.classList.remove('scanner-flash');
+    void inputBusca.offsetWidth;
+    inputBusca.classList.add('scanner-flash');
+}
+
+function focarBuscaProduto() {
+    inputBusca.focus();
+    inputBusca.select();
+}
+
+function focarBuscaCliente() {
+    inputCliente.focus();
+    inputCliente.select();
+}
+
+function limparBuscaVisual() {
+    autoList.classList.add('hidden');
+    destaqueContainer.innerHTML = '';
+    similaresContainer.innerHTML = '';
+    produtoEmDestaque = null;
+    indexSelecionado = -1;
+}
 
 function atualizarSelecaoVisual(itens) {
     itens.forEach((item, idx) => {
@@ -106,118 +341,298 @@ function atualizarSelecaoVisual(itens) {
     });
 }
 
-// BUSCA COM DEBOUNCE
-inputBusca.addEventListener('input', function(e) {
-    const q = e.target.value;
-    indexSelecionado = -1;
-    clearTimeout(debounceTimer);
-    if (q.length < 2) { autoList.classList.add('hidden'); return; }
-    debounceTimer = setTimeout(() => {
-        fetch("/api/buscar/?q=" + encodeURIComponent(q))
-            .then(res => res.json())
-            .then(data => {
-                if (data.produtos && data.produtos.length > 0) {
-                    sugestoesAtuais = data.produtos; renderizarSugestoes();
-                } else { autoList.classList.add('hidden'); }
-            });
-    }, 400); 
-});
+function atualizarSelecaoVisualCliente(itens) {
+    itens.forEach((item, idx) => {
+        if (idx === indexSelecionadoCliente) item.classList.add('selected-suggestion');
+        else item.classList.remove('selected-suggestion');
+    });
+}
+
+function obterQuantidadeRapida(texto) {
+    const match = String(texto || '').trim().match(/(?:\*|x)(\d+)$/i);
+    if (!match) return 1;
+    const qtd = parseInt(match[1], 10);
+    return (!qtd || qtd < 1) ? 1 : qtd;
+}
+
+function removerSufixoQuantidade(texto) {
+    return String(texto || '').trim().replace(/(?:\*|x)\d+$/i, '').trim();
+}
 
 function renderizarSugestoes() {
     autoList.innerHTML = '';
+
     sugestoesAtuais.forEach((s) => {
         const div = document.createElement('div');
-        div.className = "suggestion-item p-3 cursor-pointer border-b border-slate-50 flex justify-between items-center transition-all uppercase";
-        div.innerHTML = `<div><div class="text-slate-700 font-bold">${s.nome}</div><div class="text-[9px] text-slate-400 italic font-bold">${s.marca || 'GENÉRICO'}</div></div><div class="text-emerald-600 font-black text-sm">R$ ${s.preco_venda.toFixed(2)}</div>`;
+        div.className = "suggestion-item p-3 cursor-pointer border-b border-slate-50 flex justify-between items-center transition-all uppercase hover:bg-slate-50";
+        div.innerHTML = `
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-xl bg-white shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="Agro Mais" class="w-full h-full object-contain p-1">
+                </div>
+                <div class="min-w-0">
+                    <div class="text-slate-700 font-black truncate">${escapeHtml(s.nome)}</div>
+                    <div class="text-[9px] text-slate-400 italic font-bold truncate">${escapeHtml(s.marca || 'GENÉRICO')}</div>
+                </div>
+            </div>
+            <div class="text-orange-500 font-black text-sm flex-shrink-0">${formatarMoeda(s.preco_venda)}</div>
+        `;
+
         div.onclick = () => {
             inputBusca.value = s.nome;
             autoList.classList.add('hidden');
             renderDestaque(s);
             similaresContainer.innerHTML = '';
-            sugestoesAtuais.filter(item => item.id !== s.id).slice(0, 5).forEach(p => renderSimilar(p));
+            sugestoesAtuais
+                .filter(item => item.id !== s.id)
+                .slice(0, 5)
+                .forEach(p => renderSimilar(p));
         };
+
         autoList.appendChild(div);
     });
+
     autoList.classList.remove('hidden');
 }
 
 function renderDestaque(p) {
     produtoEmDestaque = p;
-    const total = (p.saldo_centro + p.saldo_vila).toFixed(2);
+    const total = (Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(2);
+
     destaqueContainer.innerHTML = `
-        <div class="bg-white p-5 rounded-[2rem] shadow-xl border-2 border-emerald-500/20 flex flex-col md:flex-row justify-between items-center gap-4 animate-in fade-in duration-300">
-            <div class="flex-1 cursor-pointer" onclick="addCarrinho('${p.id}', '${p.nome}', ${p.preco_venda})">
-                <div class="flex items-center gap-2 mb-1">
-                    <span class="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black uppercase italic tracking-widest">Destaque (Enter p/ Add)</span>
-                    <span class="text-slate-400 font-bold uppercase text-xs italic">${p.marca || ''}</span>
+        <div class="bg-white p-5 rounded-[2rem] shadow-xl border-2 border-emerald-500/20 flex flex-col md:flex-row justify-between items-center gap-4 animate-in fade-in duration-300 pulse-fast brand-shadow">
+            <div class="flex-1 w-full">
+                <div class="cursor-pointer" onclick="adicionarProdutoComQuantidade('${escapeHtml(p.id)}', '${String(p.nome).replace(/'/g, "\\'")}', ${Number(p.preco_venda || 0)}, quantidadeRapida)">
+                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                        <span class="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[9px] font-black uppercase italic tracking-widest">Destaque</span>
+                        <span class="bg-orange-50 text-orange-500 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest">Enter adiciona</span>
+                        ${quantidadeRapida > 1 ? `<span class="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest">Qtd ${quantidadeRapida}</span>` : ``}
+                        <span class="text-slate-400 font-bold uppercase text-xs italic">${escapeHtml(p.marca || '')}</span>
+                    </div>
+
+                    <div class="flex items-start gap-3">
+                        <div class="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="Agro Mais" class="w-full h-full object-contain p-1">
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="text-2xl font-black text-slate-800 uppercase leading-tight">${escapeHtml(p.nome)}</h4>
+                            <div class="text-orange-600 font-black text-lg">${p.codigo_nfe ? 'GM: ' + escapeHtml(p.codigo_nfe) : ''}</div>
+                            <div class="mt-2 text-4xl font-black text-orange-500 tracking-tighter">${formatarMoeda(p.preco_venda)}</div>
+                        </div>
+                    </div>
                 </div>
-                <h4 class="text-2xl font-black text-slate-800 uppercase leading-tight">${p.nome}</h4>
-                <div class="text-orange-600 font-black text-lg">${p.codigo_nfe ? 'GM: '+p.codigo_nfe : ''}</div>
-                <div class="mt-2 text-4xl font-black text-emerald-500 tracking-tighter">R$ ${p.preco_venda.toFixed(2)}</div>
+
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <button onclick="forcarAtualizacao('${escapeHtml(p.id)}')" class="text-xs font-black text-sky-600 hover:underline">
+                        🔄 Forçar atualização de saldo/preço
+                    </button>
+                    <button onclick="adicionarProdutoComQuantidade('${escapeHtml(p.id)}', '${String(p.nome).replace(/'/g, "\\'")}', ${Number(p.preco_venda || 0)}, quantidadeRapida)" class="text-xs font-black text-emerald-600 hover:underline">
+                        ➕ Adicionar ao orçamento
+                    </button>
+                </div>
             </div>
+
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 px-8 py-5 rounded-[1.5rem] shadow-lg flex flex-col items-center min-w-[120px]">
-                    <span class="text-[10px] font-black text-blue-200 mb-1 tracking-widest uppercase italic font-bold">Centro</span>
-                    <div class="flex items-center gap-3"><span class="text-4xl font-black text-white">${p.saldo_centro}</span><button onclick="abrirAjuste('${p.id}','${p.nome.replace(/'/g, "")}',${p.saldo_centro},'${p.codigo_nfe||p.codigo_interno}','centro')" class="text-blue-300 text-2xl hover:text-white transition-colors">✎</button></div>
+                <div class="bg-emerald-600 px-8 py-5 rounded-[1.5rem] shadow-lg flex flex-col items-center min-w-[130px]">
+                    <span class="text-[10px] font-black text-emerald-200 mb-1 tracking-widest uppercase italic">Centro</span>
+                    <div class="flex items-center gap-3">
+                        <span class="text-4xl font-black text-white">${Number(p.saldo_centro || 0)}</span>
+                        <button onclick="abrirAjuste('${escapeHtml(p.id)}','${String(p.nome).replace(/'/g, "\\'")}',${Number(p.saldo_centro || 0)},'${escapeHtml(p.codigo_nfe || p.codigo_interno || '')}','centro')" class="text-emerald-200 text-2xl hover:text-white transition-colors">✎</button>
+                    </div>
                 </div>
+
                 <div class="flex flex-col gap-2 font-black">
-                    <div class="bg-slate-100 px-4 py-2 rounded-xl flex justify-between items-center gap-4"><span class="text-[10px] text-slate-400 uppercase">Vila</span><span class="text-slate-600 text-xl">${p.saldo_vila}</span></div>
-                    <div class="bg-slate-900 px-4 py-2 rounded-xl flex justify-between items-center gap-4 text-white italic"><span class="text-[10px] text-slate-500 uppercase">Total</span><span class="text-xl text-emerald-400">${total}</span></div>
+                    <div class="bg-slate-100 px-4 py-2 rounded-xl flex justify-between items-center gap-4">
+                        <span class="text-[10px] text-slate-400 uppercase">Vila</span>
+                        <span class="text-slate-600 text-xl">${Number(p.saldo_vila || 0)}</span>
+                    </div>
+                    <div class="bg-slate-900 px-4 py-2 rounded-xl flex justify-between items-center gap-4 text-white italic">
+                        <span class="text-[10px] text-slate-500 uppercase">Total</span>
+                        <span class="text-xl text-emerald-400">${total}</span>
+                    </div>
                 </div>
             </div>
-        </div>`;
+        </div>
+    `;
 }
 
 function renderSimilar(p) {
     const pStr = encodeURIComponent(JSON.stringify(p));
-    similaresContainer.innerHTML += `<div class="bg-white/70 p-3 rounded-2xl border border-slate-200 flex justify-between items-center hover:bg-white transition-all cursor-pointer group font-bold" onclick="renderDestaque(JSON.parse(decodeURIComponent('${pStr}')))"><div class="flex flex-col"><span class="font-black text-slate-700 uppercase text-xs group-hover:text-emerald-600">${p.nome}</span><span class="text-[9px] text-slate-400 italic">${p.marca || 'GENÉRICO'}</span></div><div class="flex items-center gap-4 font-black"><span class="text-emerald-600 text-sm">R$ ${p.preco_venda.toFixed(2)}</span><div class="flex gap-2 text-[10px] uppercase"><span class="text-blue-600">C: ${p.saldo_centro}</span><span class="text-slate-400">V: ${p.saldo_vila}</span></div></div></div>`;
+    similaresContainer.innerHTML += `
+        <div class="bg-white/80 p-3 rounded-2xl border border-slate-200 flex justify-between items-center hover:bg-white transition-all cursor-pointer group font-bold"
+             onclick="renderDestaque(JSON.parse(decodeURIComponent('${pStr}')))">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-xl bg-white shadow-sm border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="Agro Mais" class="w-full h-full object-contain p-1">
+                </div>
+                <div class="min-w-0">
+                    <span class="block font-black text-slate-700 uppercase text-xs group-hover:text-emerald-600 truncate">${escapeHtml(p.nome)}</span>
+                    <span class="block text-[9px] text-slate-400 italic truncate">${escapeHtml(p.marca || 'GENÉRICO')}</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 font-black">
+                <span class="text-orange-500 text-sm">${formatarMoeda(p.preco_venda)}</span>
+                <div class="flex gap-2 text-[10px] uppercase">
+                    <span class="text-emerald-600">C: ${Number(p.saldo_centro || 0)}</span>
+                    <span class="text-slate-400">V: ${Number(p.saldo_vila || 0)}</span>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
-function addCarrinho(id, nome, preco) {
+function addCarrinho(id, nome, preco, qtd = 1) {
     const item = carrinho.find(i => i.id === id);
-    if (item) item.qtd++; else carrinho.push({id, nome, preco, qtd: 1});
+    if (item) item.qtd += qtd;
+    else carrinho.push({ id, nome, preco: Number(preco || 0), qtd: qtd });
+
     atualizarCarrinho();
+    tocarSom('add');
+
+    inputBusca.value = '';
+    quantidadeRapida = 1;
+    limparBuscaVisual();
+    esconderStatusBusca();
+    focarBuscaProduto();
+}
+
+function adicionarProdutoComQuantidade(id, nome, preco, qtd = 1) {
+    addCarrinho(id, nome, preco, qtd);
+}
+
+function removerItem(i) {
+    carrinho.splice(i, 1);
+    atualizarCarrinho();
+}
+
+function removerUltimoItem() {
+    if (!carrinho.length) return;
+    carrinho.pop();
+    atualizarCarrinho();
+    tocarSom('erro');
+}
+
+function limparCarrinho() {
+    if (!carrinho.length) return;
+    if (!confirm('Limpar todo o orçamento?')) return;
+    carrinho = [];
+    atualizarCarrinho();
+    focarBuscaProduto();
 }
 
 function atualizarCarrinho() {
     const container = document.getElementById('itens-carrinho');
-    let total = 0; container.innerHTML = '';
+    const badge = document.getElementById('itens-badge');
+
+    let total = 0;
+    let qtdItens = 0;
+    container.innerHTML = '';
+
     carrinho.forEach((item, index) => {
         total += item.preco * item.qtd;
-        container.innerHTML += `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl border border-slate-100"><span class="text-slate-700 font-bold">${item.qtd}x ${item.nome}</span><button onclick="removerItem(${index})" class="text-red-400 px-1 font-bold">✕</button></div>`;
+        qtdItens += item.qtd;
+
+        container.innerHTML += `
+            <div class="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                <div class="min-w-0">
+                    <div class="text-slate-700 font-black truncate">${item.qtd}x ${escapeHtml(item.nome)}</div>
+                    <div class="text-[10px] text-slate-400">${formatarMoeda(item.preco)} cada</div>
+                </div>
+                <div class="flex items-center gap-3 flex-shrink-0">
+                    <span class="text-emerald-600 font-black">${formatarMoeda(item.preco * item.qtd)}</span>
+                    <button onclick="removerItem(${index})" class="text-red-400 px-1 font-bold">✕</button>
+                </div>
+            </div>
+        `;
     });
-    document.getElementById('total-geral').innerText = `R$ ${total.toFixed(2)}`;
+
+    document.getElementById('total-geral').innerText = formatarMoeda(total);
+    badge.textContent = `${qtdItens} item${qtdItens === 1 ? '' : 's'}`;
+
+    const card = document.querySelector('#itens-carrinho')?.parentElement;
+    if (card) {
+        card.classList.remove('pulse-fast');
+        void card.offsetWidth;
+        card.classList.add('pulse-fast');
+    }
 }
 
-function removerItem(i) { carrinho.splice(i, 1); atualizarCarrinho(); }
-
 function abrirResumo() {
-    if (!carrinho.length) return alert("Carrinho vazio!");
-    const cliente = document.getElementById('nome-cliente').value || "Consumidor";
+    if (!carrinho.length) {
+        tocarSom('erro');
+        return alert("Carrinho vazio!");
+    }
+
+    const cliente = document.getElementById('nome-cliente').value || "Consumidor Final";
     const corpo = document.getElementById('corpo-resumo');
-    corpo.innerHTML = `<div class="bg-slate-50 p-4 rounded-2xl mb-4 border-l-4 border-emerald-500"><div class="text-[10px] uppercase text-slate-400">CLIENTE</div><div class="text-lg italic font-bold">${cliente}</div></div>`;
+    corpo.innerHTML = `
+        <div class="bg-slate-50 p-4 rounded-2xl mb-4 border-l-4 border-emerald-500">
+            <div class="text-[10px] uppercase text-slate-400">Cliente</div>
+            <div class="text-lg italic font-bold">${escapeHtml(cliente)}</div>
+        </div>
+    `;
+
     carrinho.forEach(item => {
-        corpo.innerHTML += `<div class="flex justify-between border-b border-slate-100 py-2"><span class="text-sm font-bold">${item.qtd}x ${item.nome}</span><span class="text-emerald-600 font-bold">R$ ${(item.preco * item.qtd).toFixed(2)}</span></div>`;
+        corpo.innerHTML += `
+            <div class="flex justify-between border-b border-slate-100 py-2 gap-4">
+                <span class="text-sm font-bold">${item.qtd}x ${escapeHtml(item.nome)}</span>
+                <span class="text-emerald-600 font-bold flex-shrink-0">${formatarMoeda(item.preco * item.qtd)}</span>
+            </div>
+        `;
     });
-    corpo.innerHTML += `<div class="flex justify-between pt-4 text-xl font-black text-slate-900 italic uppercase"><span>TOTAL</span><span>${document.getElementById('total-geral').innerText}</span></div>`;
-    modalResumo.classList.remove('hidden'); modalResumo.classList.add('flex');
+
+    corpo.innerHTML += `
+        <div class="flex justify-between pt-4 text-xl font-black text-slate-900 italic uppercase">
+            <span>Total</span>
+            <span>${document.getElementById('total-geral').innerText}</span>
+        </div>
+    `;
+
+    modalResumo.classList.remove('hidden');
+    modalResumo.classList.add('flex');
     document.body.classList.add('modal-open');
 }
 
 function fecharResumo() {
-    modalResumo.classList.add('hidden'); modalResumo.classList.remove('flex');
+    modalResumo.classList.add('hidden');
+    modalResumo.classList.remove('flex');
     document.body.classList.remove('modal-open');
 }
 
-function confirmarEnvio() {
-    const clienteNome = document.getElementById('nome-cliente').value || "Consumidor";
-    const numeroWhatsapp = (clienteSelecionado && clienteSelecionado.telefone) ? clienteSelecionado.telefone : "5513996727222";
+function gerarMensagemPedido() {
+    const clienteNome = document.getElementById('nome-cliente').value || "Consumidor Final";
+    let msg = `🐎🌾 *ORÇAMENTO AGRO MAIS* 🌾🐔\n\n`;
+    msg += `👤 *Cliente:* ${clienteNome}\n`;
+    msg += `🛒 *Itens do pedido:*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━\n`;
 
-    let msg = `*ORÇAMENTO - AGRO MAIS*\n*Cliente:* ${clienteNome}\n----------------------------\n`;
-    carrinho.forEach(i => { msg += `${i.qtd}x ${i.nome} - R$ ${(i.preco * i.qtd).toFixed(2)}\n`; });
-    msg += `----------------------------\n*TOTAL: ${document.getElementById('total-geral').innerText}*`;
-    
+    carrinho.forEach(i => {
+        msg += `🔸 ${i.qtd}x ${i.nome}\n`;
+        msg += `   💰 ${formatarMoeda(i.preco * i.qtd)}\n`;
+    });
+
+    msg += `━━━━━━━━━━━━━━━━━━\n`;
+    msg += `💵 *TOTAL: ${document.getElementById('total-geral').innerText}*\n\n`;
+    msg += `✨ Obrigado por escolher a *Agro Mais*!\n`;
+    msg += `📍 Qualquer dúvida, estamos à disposição.`;
+    return msg;
+}
+
+function confirmarEnvio() {
+    const numeroWhatsapp = (clienteSelecionado && clienteSelecionado.telefone) ? clienteSelecionado.telefone : "5513996727222";
+    const msg = gerarMensagemPedido();
     window.open(`https://wa.me/${numeroWhatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+async function copiarMensagemPedido() {
+    try {
+        const msg = gerarMensagemPedido();
+        await navigator.clipboard.writeText(msg);
+        alert("Mensagem copiada!");
+    } catch (e) {
+        console.error(e);
+        alert("Não foi possível copiar a mensagem.");
+    }
 }
 
 function abrirAjuste(id, nome, saldo, codigo, dep) {
@@ -225,26 +640,235 @@ function abrirAjuste(id, nome, saldo, codigo, dep) {
     if (novo) {
         const pin = prompt("PIN:");
         const fd = new FormData();
-        fd.append('produto_id', id); fd.append('nome_produto', nome); fd.append('codigo_interno', codigo);
-        fd.append('saldo_atual', saldo); fd.append('novo_saldo', novo); fd.append('deposito', dep); fd.append('pin', pin);
-        fetch("/api/ajustar/", { method: 'POST', body: fd, headers: {'X-CSRFToken': '{{ csrf_token }}'} })
-        .then(res => res.json()).then(d => { if(d.ok) { alert("Ok!"); location.reload(); } else alert("Erro: "+d.erro); });
+        fd.append('produto_id', id);
+        fd.append('nome_produto', nome);
+        fd.append('codigo_interno', codigo);
+        fd.append('saldo_atual', saldo);
+        fd.append('novo_saldo', novo);
+        fd.append('deposito', dep);
+        fd.append('pin', pin);
+
+        fetch("/api/ajustar/", {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(res => res.json())
+        .then(d => {
+            if (d.ok) {
+                alert("Ok!");
+                location.reload();
+            } else {
+                alert("Erro: " + d.erro);
+            }
+        });
     }
 }
 
-// BUSCA CLIENTES
-const inputCliente = document.getElementById('nome-cliente');
-const clienteResults = document.getElementById('cliente-results');
-let clienteDebounceTimer;
+function forcarAtualizacao(produtoId) {
+    const button = document.querySelector(`button[onclick="forcarAtualizacao('${produtoId}')"]`);
+    const originalButtonText = '🔄 Forçar atualização de saldo/preço';
+
+    if (button) {
+        button.innerHTML = 'Buscando...';
+        button.disabled = true;
+    }
+
+    fetch(`/api/buscar-produto-id/${produtoId}/`)
+        .then(res => {
+            if (!res.ok) throw new Error('Produto não encontrado ou erro na API');
+            return res.json();
+        })
+        .then(produtoAtualizado => {
+            if (!produtoAtualizado) throw new Error('Resposta da API sem dados do produto.');
+            produtoEmDestaque = produtoAtualizado;
+            renderDestaque(produtoAtualizado);
+        })
+        .catch(error => {
+            console.error('Erro ao forçar atualização:', error);
+            tocarSom('erro');
+
+            if (button) {
+                button.innerHTML = 'Erro!';
+                setTimeout(() => {
+                    button.innerHTML = originalButtonText;
+                    button.disabled = false;
+                }, 2000);
+            }
+        });
+}
+
+function buscarProdutos(q, modo = 'normal') {
+    clearTimeout(debounceTimer);
+
+    quantidadeRapida = obterQuantidadeRapida(q);
+    const termoBusca = removerSufixoQuantidade(q);
+
+    const minChars = modo === 'scanner' ? 1 : 2;
+    if (!termoBusca || termoBusca.trim().length < minChars) {
+        limparBuscaVisual();
+        esconderStatusBusca();
+        return;
+    }
+
+    const delay = modo === 'scanner' ? 40 : 220;
+
+    debounceTimer = setTimeout(() => {
+        if (modo === 'scanner') {
+            mostrarStatusBusca('Leitura rápida de código em andamento...', 'orange');
+        } else {
+            mostrarStatusBusca(quantidadeRapida > 1 ? `Buscando com quantidade ${quantidadeRapida}...` : 'Buscando produtos...', 'slate');
+        }
+
+        fetch("/api/buscar/?q=" + encodeURIComponent(termoBusca))
+            .then(res => {
+                if (!res.ok) throw new Error(`Erro HTTP ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                if (data.erro) throw new Error(data.erro);
+
+                if (data.exact_barcode_match && data.produtos && data.produtos.length === 1) {
+                    const produto = data.produtos[0];
+                    flashScanner();
+                    mostrarBannerScanner(`✅ Código lido • ${quantidadeRapida}x ${produto.nome}`);
+                    addCarrinho(produto.id, produto.nome, produto.preco_venda, quantidadeRapida);
+                    mostrarStatusBusca(`Código lido: ${quantidadeRapida}x ${produto.nome}`, 'emerald');
+                    setTimeout(esconderStatusBusca, 1500);
+                    return;
+                }
+
+                if (data.produtos && data.produtos.length > 0) {
+                    sugestoesAtuais = data.produtos;
+                    renderizarSugestoes();
+
+                    if (modo === 'scanner' && data.produtos.length === 1) {
+                        const produto = data.produtos[0];
+                        flashScanner();
+                        mostrarBannerScanner(`✅ Scanner • ${quantidadeRapida}x ${produto.nome}`);
+                        renderDestaque(produto);
+                        addCarrinho(produto.id, produto.nome, produto.preco_venda, quantidadeRapida);
+                        mostrarStatusBusca(`Adicionado automaticamente: ${quantidadeRapida}x ${produto.nome}`, 'emerald');
+                        setTimeout(esconderStatusBusca, 1500);
+                        return;
+                    }
+
+                    if (data.produtos.length === 1) {
+                        renderDestaque(data.produtos[0]);
+                        similaresContainer.innerHTML = '';
+                    }
+
+                    mostrarStatusBusca(
+                        quantidadeRapida > 1
+                            ? `${data.produtos.length} produto(s) encontrado(s) • qtd ${quantidadeRapida}`
+                            : `${data.produtos.length} produto(s) encontrado(s)`,
+                        'slate'
+                    );
+                } else {
+                    autoList.classList.add('hidden');
+                    destaqueContainer.innerHTML = '';
+                    similaresContainer.innerHTML = '';
+                    produtoEmDestaque = null;
+                    mostrarStatusBusca('Nenhum produto encontrado', 'red');
+                    tocarSom('erro');
+                }
+            })
+            .catch(err => {
+                console.error('Erro na busca:', err);
+                autoList.classList.add('hidden');
+                destaqueContainer.innerHTML = '';
+                similaresContainer.innerHTML = '';
+                produtoEmDestaque = null;
+                mostrarStatusBusca(`Falha na busca: ${err.message}`, 'red');
+                tocarSom('erro');
+            });
+    }, delay);
+}
+
+inputBusca.addEventListener('input', function(e) {
+    const q = e.target.value;
+    indexSelecionado = -1;
+
+    const agora = Date.now();
+    const diff = agora - ultimoInputTime;
+    ultimoInputTime = agora;
+
+    const textoLimpo = removerSufixoQuantidade(q);
+    const pareceCodigo = /^[0-9A-Za-z\-]+$/.test(textoLimpo) && textoLimpo.length >= 5;
+    const digitacaoMuitoRapida = diff < 35;
+
+    clearTimeout(scannerTimer);
+
+    if (digitacaoMuitoRapida || pareceCodigo) {
+        bufferScanner = q.trim();
+        scannerTimer = setTimeout(() => {
+            buscarProdutos(bufferScanner, 'scanner');
+            bufferScanner = '';
+        }, 60);
+        return;
+    }
+
+    buscarProdutos(q, 'normal');
+});
+
+inputBusca.addEventListener('keydown', function(e) {
+    const itens = autoList.querySelectorAll('.suggestion-item');
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!itens.length) return;
+        indexSelecionado = (indexSelecionado + 1) % itens.length;
+        atualizarSelecaoVisual(itens);
+    }
+    else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!itens.length) return;
+        indexSelecionado = (indexSelecionado - 1 + itens.length) % itens.length;
+        atualizarSelecaoVisual(itens);
+    }
+    else if (e.key === 'Enter') {
+        e.preventDefault();
+
+        quantidadeRapida = obterQuantidadeRapida(inputBusca.value);
+
+        if (!autoList.classList.contains('hidden')) {
+            if (indexSelecionado > -1 && itens[indexSelecionado]) {
+                itens[indexSelecionado].click();
+            } else if (itens.length > 0) {
+                itens[0].click();
+            }
+        } else if (produtoEmDestaque) {
+            addCarrinho(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.preco_venda, quantidadeRapida);
+        } else if (inputBusca.value.trim().length > 0) {
+            buscarProdutos(inputBusca.value.trim(), 'scanner');
+        }
+    }
+    else if (e.key === 'Escape') {
+        e.preventDefault();
+        limparBuscaVisual();
+        inputBusca.value = '';
+        esconderStatusBusca();
+        quantidadeRapida = 1;
+    }
+    else if (e.key === 'Backspace') {
+        if (!inputBusca.value.trim() && carrinho.length) {
+            e.preventDefault();
+            removerUltimoItem();
+        }
+    }
+});
 
 inputCliente.addEventListener('input', function(e) {
     const q = e.target.value;
-    clienteSelecionado = null; // Reseta o cliente selecionado ao digitar
+    clienteSelecionado = null;
+    indexSelecionadoCliente = -1;
     clearTimeout(clienteDebounceTimer);
+
     if (q.length < 2) {
         clienteResults.classList.add('hidden');
         return;
     }
+
     clienteDebounceTimer = setTimeout(() => {
         fetch(`/api/buscar-clientes/?q=${encodeURIComponent(q)}`)
             .then(res => res.json())
@@ -254,29 +878,109 @@ inputCliente.addEventListener('input', function(e) {
                 } else {
                     clienteResults.classList.add('hidden');
                 }
-            });
-    }, 400);
+            })
+            .catch(err => console.error('Erro ao buscar clientes:', err));
+    }, 250);
+});
+
+inputCliente.addEventListener('keydown', function(e) {
+    const itens = clienteResults.querySelectorAll('.cliente-suggestion-item');
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!itens.length) return;
+        indexSelecionadoCliente = (indexSelecionadoCliente + 1) % itens.length;
+        atualizarSelecaoVisualCliente(itens);
+    }
+    else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!itens.length) return;
+        indexSelecionadoCliente = (indexSelecionadoCliente - 1 + itens.length) % itens.length;
+        atualizarSelecaoVisualCliente(itens);
+    }
+    else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (indexSelecionadoCliente > -1 && itens[indexSelecionadoCliente]) {
+            itens[indexSelecionadoCliente].click();
+        } else if (itens.length > 0) {
+            itens[0].click();
+        }
+    }
+    else if (e.key === 'Escape') {
+        e.preventDefault();
+        clienteResults.classList.add('hidden');
+    }
 });
 
 function renderizarClientes(clientes) {
     clienteResults.innerHTML = '';
+
     clientes.forEach(cliente => {
         const div = document.createElement('div');
-        div.className = "p-3 cursor-pointer border-b border-slate-50 hover:bg-slate-100 transition-all uppercase";
-        div.innerHTML = `<div class="font-bold text-slate-700">${cliente.nome}</div><div class="text-[9px] text-slate-400 italic">${cliente.documento}</div>`;
+        div.className = "cliente-suggestion-item p-3 cursor-pointer border-b border-slate-50 hover:bg-slate-100 transition-all uppercase";
+        div.innerHTML = `
+            <div class="font-bold text-slate-700">${escapeHtml(cliente.nome)}</div>
+            <div class="text-[9px] text-slate-400 italic">${escapeHtml(cliente.documento || '')}</div>
+        `;
+
         div.onclick = () => {
             inputCliente.value = cliente.nome;
-            clienteSelecionado = cliente; // Armazena o objeto completo do cliente
+            clienteSelecionado = cliente;
             clienteResults.classList.add('hidden');
+            focarBuscaProduto();
         };
+
         clienteResults.appendChild(div);
     });
+
     clienteResults.classList.remove('hidden');
 }
 
-document.addEventListener('click', (e) => { 
-    if (!inputBusca.contains(e.target)) autoList.classList.add('hidden'); 
-    if (!inputCliente.contains(e.target)) clienteResults.classList.add('hidden');
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'F2') {
+        e.preventDefault();
+        focarBuscaProduto();
+    }
+    else if (e.key === 'F3') {
+        e.preventDefault();
+        focarBuscaCliente();
+    }
+    else if (e.key === 'F4') {
+        e.preventDefault();
+        limparCarrinho();
+    }
+    else if (e.key === 'F7') {
+        e.preventDefault();
+        if (modalResumo.classList.contains('hidden')) abrirResumo();
+        else confirmarEnvio();
+    }
+    else if (e.key === 'F8') {
+        e.preventDefault();
+        if (!modalResumo.classList.contains('hidden')) copiarMensagemPedido();
+    }
+    else if (e.key === 'Escape') {
+        if (!modalResumo.classList.contains('hidden')) {
+            fecharResumo();
+        } else {
+            autoList.classList.add('hidden');
+            clienteResults.classList.add('hidden');
+        }
+    }
+});
+
+document.addEventListener('click', (e) => {
+    if (!inputBusca.contains(e.target) && !autoList.contains(e.target)) {
+        autoList.classList.add('hidden');
+    }
+    if (!inputCliente.contains(e.target) && !clienteResults.contains(e.target)) {
+        clienteResults.classList.add('hidden');
+    }
+});
+
+window.addEventListener('load', () => {
+    inputCliente.value = 'Consumidor Final';
+    focarBuscaProduto();
+    atualizarCarrinho();
 });
 </script>
 </body>
