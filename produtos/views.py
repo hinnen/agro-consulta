@@ -46,6 +46,22 @@ def termo_sem_espacos(txt):
     return re.sub(r"\s+", "", txt or "")
 
 
+def _limpar_e_validar_telefone(numero_str):
+    if not numero_str or not isinstance(numero_str, str):
+        return None
+    
+    # Remove todos os caracteres não numéricos
+    limpo = re.sub(r'[^\d]', '', numero_str)
+    
+    # Verifica o comprimento (DDD + 8 ou 9 dígitos)
+    if 10 <= len(limpo) <= 13: # 13 para incluir o 55
+        # Se o número não começar com 55 e tiver 10 ou 11 digitos, adiciona o 55
+        if not limpo.startswith('55') and (len(limpo) == 10 or len(limpo) == 11):
+            return f"55{limpo}"
+        return limpo
+    return None
+
+
 def eh_granel(produto):
     campos = [
         produto.get("Categoria") or "",
@@ -391,13 +407,34 @@ def api_buscar_clientes(request):
                 {"CNPJ_CPF": {"$regex": termo, "$options": "i"}}
             ]
         }
-        clientes = list(db[client.col_c].find(query).limit(10))
         
-        # CORREÇÃO: Retornando os campos corretos
-        res = [{
-            "nome": c.get("NomeFantasia") or c.get("RazaoSocial"), 
-            "documento": c.get("CNPJ_CPF") or "Sem Doc"
-        } for c in clientes]
+        projection = {
+            "NomeFantasia": 1,
+            "RazaoSocial": 1,
+            "CNPJ_CPF": 1,
+            "Celular": 1,
+            "Telefone": 1,
+            "TelefonesSecundarios": 1
+        }
+
+        clientes = list(db[client.col_c].find(query, projection).limit(10))
+        
+        res = []
+        for c in clientes:
+            telefone_final = _limpar_e_validar_telefone(c.get("Celular"))
+            if not telefone_final:
+                telefone_final = _limpar_e_validar_telefone(c.get("Telefone"))
+            if not telefone_final:
+                telefones_sec = c.get("TelefonesSecundarios")
+                if telefones_sec and isinstance(telefones_sec, list) and len(telefones_sec) > 0:
+                    telefone_final = _limpar_e_validar_telefone(telefones_sec[0])
+
+            res.append({
+                "nome": c.get("NomeFantasia") or c.get("RazaoSocial"), 
+                "documento": c.get("CNPJ_CPF") or "Sem Doc",
+                "telefone": telefone_final
+            })
+
         return JsonResponse({"clientes": res})
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
