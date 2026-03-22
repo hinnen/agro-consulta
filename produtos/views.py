@@ -45,7 +45,9 @@ def api_buscar_produtos(request):
     if not termo_original or not DB_MONGO: 
         return JsonResponse({"produtos": []})
     
+    # DEFINIÇÃO DAS VARIÁVEIS DE BUSCA
     termo_norm = normalizar_termo(termo_original)
+    termo_limpo = termo_original.replace(" ", "") # <--- ESSENCIAL PARA CÓDIGO DE BARRAS
     palavras = termo_norm.split()
     
     try:
@@ -55,13 +57,14 @@ def api_buscar_produtos(request):
 
         query = {"$or": [
             {"BuscaTexto": {"$regex": regex_final, "$options": "i"}},
+            {"Nome": {"$regex": regex_final, "$options": "i"}}, # Fallback caso BuscaTexto esteja vazio
             {"CodigoNFe": termo_limpo},
             {"CodigoBarras": termo_limpo},
-            {"EAN_NFe": termo_limpo}, # Campo extra para código de barras
+            {"EAN_NFe": termo_limpo}, 
             {"CodigoProduto": termo_limpo}
         ]}
 
-        # Filtro de ativos (essencial para performance com o índice que você criou)
+        # Filtro de ativos
         query["CadastroInativo"] = {"$ne": True}
 
         col_p = DB_MONGO[CLIENT_MONGO.col_p]
@@ -114,9 +117,12 @@ def api_autocomplete_produtos(request):
     
     termo_norm = normalizar_termo(termo)
     try:
-        # Busca por prefixo no BuscaTexto (usa índice de forma otimizada)
+        # Busca por prefixo ou termo contido (mais flexível para balcão)
         query = {
-            "BuscaTexto": {"$regex": f"^{termo_norm}", "$options": "i"}, 
+            "$or": [
+                {"BuscaTexto": {"$regex": f"^{termo_norm}", "$options": "i"}},
+                {"Nome": {"$regex": f"^{termo_norm}", "$options": "i"}}
+            ],
             "CadastroInativo": {"$ne": True}
         }
         sugestoes = list(DB_MONGO[CLIENT_MONGO.col_p].find(query, {"Nome": 1, "Marca": 1, "ValorVenda": 1, "PrecoVenda": 1, "Id": 1}).limit(8))
