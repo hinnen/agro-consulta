@@ -170,7 +170,7 @@
             <div class="flex items-start justify-between gap-4 mb-6">
                 <div>
                     <h2 class="text-2xl font-black text-slate-900 italic uppercase tracking-tighter">📝 Resumo do Pedido</h2>
-                    <div class="text-[10px] uppercase font-black tracking-widest text-slate-400 mt-1">F7 zap • F8 imprime • F9 copia • Esc fecha</div>
+                    <div class="text-[10px] uppercase font-black tracking-widest text-slate-400 mt-1">F7 zap • F8 imprime • F10 erp • F9 copia</div>
                 </div>
                 <div class="w-14 h-14 rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                     <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="Agro Mais" class="w-full h-full object-contain p-2">
@@ -188,6 +188,11 @@
                 <button onclick="imprimirOrcamento()" class="w-full bg-slate-800 hover:bg-black text-white font-black py-4 rounded-3xl shadow-lg text-sm uppercase flex items-center justify-center gap-2">
                     <span>🖨️ Imprimir Cupom</span>
                     <span class="text-[10px] px-2 py-1 rounded-full bg-white/20">F8</span>
+                </button>
+
+                <button id="btn-enviar-erp" onclick="enviarPedidoERP()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-black py-4 rounded-2xl shadow-md text-sm uppercase flex items-center justify-center gap-2 mt-2">
+                    <span>☁️ Enviar p/ ERP</span>
+                    <span class="text-[10px] px-2 py-1 rounded-full bg-white/20">F10</span>
                 </button>
 
                 <button onclick="copiarMensagemPedido()" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-500 font-black py-3 rounded-xl text-xs uppercase border border-slate-200 flex items-center justify-center gap-2 mt-2">
@@ -836,6 +841,40 @@ function imprimirOrcamento() {
     window.print();
 }
 
+async function enviarPedidoERP() {
+    if (!carrinho.length) return alert("Carrinho vazio!");
+    const btn = document.getElementById('btn-enviar-erp');
+    if(btn) btn.innerHTML = "Enviando...";
+
+    salvarHistoricoLocal();
+
+    const clienteNome = document.getElementById('nome-cliente').value || "Consumidor Final";
+    const payload = { cliente: clienteNome, itens: carrinho };
+
+    try {
+        const res = await fetch('/api/enviar-pedido-erp/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        
+        if(data.ok) {
+            alert("✅ " + data.mensagem);
+            carrinho = [];
+            atualizarCarrinho();
+            fecharResumo();
+        } else {
+            alert("❌ Falha do ERP:\n" + data.erro);
+        }
+    } catch(e) { alert("Erro de comunicação com o servidor."); }
+    
+    if(btn) btn.innerHTML = `<span>☁️ Enviar p/ ERP</span><span class="text-[10px] px-2 py-1 rounded-full bg-white/20">F10</span>`;
+}
+
 function abrirAjuste(id, nome, saldo, codigo, dep) {
     const novo = prompt(`AJUSTE ${dep.toUpperCase()}\n${nome}\nNovo Real:`);
     if (novo) {
@@ -1218,7 +1257,8 @@ document.addEventListener('keydown', function(e) {
     }
     else if (e.key === 'F10') {
         e.preventDefault();
-        if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_vila, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'vila');
+        if (!modalResumo.classList.contains('hidden')) enviarPedidoERP();
+        else if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_vila, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'vila');
     }
     else if (e.key === 'Escape') {
         if (!document.getElementById('modal-historico-vendas').classList.contains('hidden')) {

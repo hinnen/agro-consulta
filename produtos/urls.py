@@ -12,4 +12,5 @@ urlpatterns = [
     path('api/autocomplete/', views.api_autocomplete_produtos, name='api_autocomplete_produtos'),
     path('api/todos-produtos/', views.api_todos_produtos_local, name='api_todos_produtos_local'),
     path('api/buscar-produto-id/<str:id>/', views.api_buscar_produto_id, name='api_buscar_produto_id'),
+    path('api/enviar-pedido-erp/', views.api_enviar_pedido_erp, name='api_enviar_pedido_erp'),
 ]
