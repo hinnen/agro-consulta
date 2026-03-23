@@ -7,6 +7,8 @@ from django.views.decorators.http import require_GET, require_POST
 from base.models import Empresa, PerfilUsuario, IntegracaoERP
 from estoque.models import AjusteRapidoEstoque
 from integracoes.venda_erp_mongo import VendaERPMongoClient
+from integracoes.venda_erp_api import VendaERPAPIClient
+from django.utils import timezone
 
 # --- CONEXÃO ---
 _cached_mongo_client = None
@@ -226,30 +228,38 @@ def api_todos_produtos_local(request):
             if (aj.produto_externo_id, aj.deposito) not in ajustes_map:
                 ajustes_map[(aj.produto_externo_id, aj.deposito)] = aj
                 
-        # Busca imagens em lote decodificando
+        # Busca imagens em Lotes (Chunks) para não explodir a memória do MongoDB
         from bson.objectid import ObjectId
-        obj_ids = []
-        for pid in p_ids:
-            if len(pid) == 24:
-                try: obj_ids.append(ObjectId(pid))
-                except: pass
-                
-        query_img = {"$or": [{"ProdutoID": {"$in": p_ids}}]}
-        if obj_ids: query_img["$or"].append({"ProdutoID": {"$in": obj_ids}})
-        cods = [str(x.get("Codigo")) for x in produtos if x.get("Codigo")]
-        if cods: query_img["$or"].append({"ProdutoID": {"$in": cods}})
-
         mapa_imagens = {}
-        try:
-            for img in db["DtoImagemProduto"].find(query_img):
-                val = img.get("Url") or img.get("UrlImagem") or img.get("Imagem") or img.get("ImagemBase64") or img.get("Base64") or ""
-                if val: mapa_imagens[str(img.get("ProdutoID"))] = val
-        except: pass
-        try:
-            for img in db["DtoProdutoImagem"].find(query_img):
-                val = img.get("Url") or img.get("UrlImagem") or img.get("Imagem") or img.get("ImagemBase64") or img.get("Base64") or ""
-                if val and str(img.get("ProdutoID")) not in mapa_imagens: mapa_imagens[str(img.get("ProdutoID"))] = val
-        except: pass
+        chunk_size = 2000
+        for i in range(0, len(produtos), chunk_size):
+            chunk_prod = produtos[i:i+chunk_size]
+            c_pids = []
+            c_objs = []
+            c_cods = []
+            for p in chunk_prod:
+                pid = str(p.get("Id") or p.get("_id"))
+                c_pids.append(pid)
+                if len(pid) == 24:
+                    try: c_objs.append(ObjectId(pid))
+                    except: pass
+                cod = str(p.get("Codigo") or "")
+                if cod: c_cods.append(cod)
+                
+            q_img = {"$or": [{"ProdutoID": {"$in": c_pids}}]}
+            if c_objs: q_img["$or"].append({"ProdutoID": {"$in": c_objs}})
+            if c_cods: q_img["$or"].append({"ProdutoID": {"$in": c_cods}})
+            
+            try:
+                for img in db["DtoImagemProduto"].find(q_img):
+                    val = img.get("Url") or img.get("UrlImagem") or img.get("Imagem") or img.get("ImagemBase64") or img.get("Base64") or ""
+                    if val: mapa_imagens[str(img.get("ProdutoID"))] = val
+            except: pass
+            try:
+                for img in db["DtoProdutoImagem"].find(q_img):
+                    val = img.get("Url") or img.get("UrlImagem") or img.get("Imagem") or img.get("ImagemBase64") or img.get("Base64") or ""
+                    if val and str(img.get("ProdutoID")) not in mapa_imagens: mapa_imagens[str(img.get("ProdutoID"))] = val
+            except: pass
 
         est_map = {}
         for est in estoques:
@@ -467,6 +477,52 @@ def api_deletar_ajuste(request, id):
         return JsonResponse({"ok": True})
     except Exception as e: 
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+
+@require_POST
+def api_enviar_pedido_erp(request):
+    try:
+        data = json.loads(request.body)
+        cliente = data.get('cliente', 'Consumidor Final')
+        itens = data.get('itens', [])
+        
+        if not itens:
+            return JsonResponse({'ok': False, 'erro': 'Carrinho vazio'})
+            
+        data_atual = timezone.now().strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        
+        client_mongo, _ = obter_conexao_mongo()
+        dep_id = client_mongo.DEPOSITO_CENTRO if client_mongo else ""
+        
+        payload = {
+            "statusSistema": "Orçamento",
+            "cliente": cliente,
+            "data": data_atual,
+            "origemVenda": "Venda Direta",
+            "vendedor": "Gm Agro Mais",
+            "empresa": "Agro Mais Centro",
+            "deposito": "Deposito Centro",
+            "depositoID": dep_id,
+            "items": []
+        }
+        
+        for i in itens:
+            payload["items"].append({
+                "codigo": str(i.get("id")),
+                "descricao": i.get("nome"),
+                "quantidade": float(i.get("qtd", 1)),
+                "valorUnitario": float(i.get("preco", 0))
+            })
+            
+        client = VendaERPAPIClient()
+        sucesso, status, resposta = client.salvar_operacao_pdv(payload)
+        
+        if sucesso:
+            return JsonResponse({'ok': True, 'mensagem': 'Orçamento salvo no ERP com sucesso!'})
+        else:
+            return JsonResponse({'ok': False, 'erro': f'Erro do ERP (Status {status}): {resposta}'})
+            
+    except Exception as e:
+        return JsonResponse({'ok': False, 'erro': str(e)}, status=500)
 
 @require_POST
 def api_limpar_historico(request):

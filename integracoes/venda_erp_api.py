@@ -1,17 +1,21 @@
 import requests
-from django.conf import settings
+from decouple import config
 
 class VendaERPAPIClient:
     def __init__(self):
         self.base_url = "https://cw.vendaerp.com.br"
-        # Garante que o token esteja limpo
-        self.token = str(getattr(settings, "VENDA_ERP_API_TOKEN", "")).strip()
+        # Busca direto do .env (local) ou do painel do Render (online)
+        self.token = config("VENDA_ERP_API_TOKEN", default="").strip()
+        self.user = config("VENDA_ERP_API_USER", default="").strip()
+        self.app = config("VENDA_ERP_API_APP", default="").strip()
 
     def testar_conexao(self):
         """Tenta apenas listar os pedidos para ver se o Token é válido"""
         url = f"{self.base_url}/api/request/Pedidos/GetTodosPedidos"
         headers = {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization-Token": self.token,
+            "User": self.user,
+            "App": self.app,
             "Accept": "application/json"
         }
         try:
@@ -27,7 +31,9 @@ class VendaERPAPIClient:
     def salvar_operacao_pdv(self, payload):
         url = f"{self.base_url}/api/request/Pedidos/Salvar"
         headers = {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization-Token": self.token,
+            "User": self.user,
+            "App": self.app,
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
@@ -45,7 +51,9 @@ class VendaERPAPIClient:
         """Busca produtos na API do VendaERP"""
         url = "https://api.vendaerp.com.br/produtos/GetTodos"
         headers = {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization-Token": self.token,
+            "User": self.user,
+            "App": self.app,
             "Accept": "application/json"
         }
         params = {
