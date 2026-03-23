@@ -609,7 +609,7 @@ function confirmarEnvio() {
     }
 
     const msg = gerarMensagemPedido();
-    window.open(`https://wa.me/${numeroWhatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://api.whatsapp.com/send?phone=${numeroWhatsapp}&text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 async function copiarMensagemPedido() {
