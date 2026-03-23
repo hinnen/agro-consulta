@@ -9,4 +9,6 @@ urlpatterns = [
     path('estoque/api_sugestoes_transferencia/', estoque_views.api_sugestoes_transferencia, name='api_sugestoes_transferencia'),
     path('estoque/api_salvar_config_transferencia/', estoque_views.api_salvar_config_transferencia, name='api_salvar_config_transferencia'),
     path('estoque/api_importar_planilha/', estoque_views.api_importar_planilha_transferencia, name='api_importar_planilha'),
+    path('estoque/api_atualizar_pin/', estoque_views.api_atualizar_pin, name='api_atualizar_pin'),
+    path('estoque/api_listar_usuarios/', estoque_views.api_listar_usuarios, name='api_listar_usuarios'),
 ]

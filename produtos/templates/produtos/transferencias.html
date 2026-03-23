@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"><title>Agro Mais | Logística</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Biblioteca para gerar códigos de barra Reais! -->
+    <!-- Biblioteca para gerar códigos de barra Reais no cupom! -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
         /* Esconde o cupom na visualização normal */
@@ -24,8 +24,12 @@
             }
             .linha-produto { margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 5px; }
         }
+        /* Animações dos Modais Premium */
+        .modal-enter { opacity: 1 !important; transform: translate(-50%, -50%) scale(1) !important; }
+        .backdrop-enter { opacity: 1 !important; }
     </style>
 </head>
+
 <body class="bg-slate-100 p-4 md:p-10">
     <div class="max-w-7xl mx-auto">
         <header class="flex justify-between items-center mb-10">
@@ -75,6 +79,77 @@
 
     <!-- Div invisível que será preenchida com o cupom na hora de imprimir -->
     <div class="cupom-impressao" id="cupom-conteudo"></div>
+
+    <!-- ESTRUTURA DOS MODAIS PREMIUM -->
+    <div id="backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300"></div>
+
+    <!-- 1. Modal Pedir PIN Genérico -->
+    <div id="modal-pin" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-8 z-50 hidden shadow-2xl w-11/12 max-w-sm scale-95 opacity-0 transition-all duration-300">
+        <h3 class="text-xl font-black text-slate-800 mb-2 text-center" id="pin-title">Autenticação</h3>
+        <p class="text-xs text-slate-500 text-center mb-6" id="pin-desc">Digite seu PIN para continuar.</p>
+        <input type="password" id="input-pin" class="w-full text-center text-3xl font-black tracking-[0.5em] p-4 bg-slate-100 rounded-2xl border-none outline-none focus:ring-4 focus:ring-blue-200 mb-6" maxlength="6">
+        <div class="flex gap-3">
+            <button onclick="fecharModal('modal-pin', false)" class="flex-1 bg-slate-200 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-300">Cancelar</button>
+            <button onclick="fecharModal('modal-pin', true)" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200">Confirmar</button>
+        </div>
+    </div>
+
+    <!-- 2. Modal Troca de PIN Obrigatória -->
+    <div id="modal-troca-pin" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-8 z-50 hidden shadow-2xl w-11/12 max-w-sm scale-95 opacity-0 transition-all duration-300">
+        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 animate-bounce">⚠️</div>
+        <h3 class="text-lg font-black text-slate-800 mb-2 text-center">Atualização Obrigatória</h3>
+        <p class="text-xs text-slate-500 text-center mb-4">O PIN <b class="text-slate-800">1234</b> é padrão. Selecione seu nome e crie um PIN pessoal exclusivo de 4 dígitos.</p>
+        
+        <select id="select-usuario" class="w-full text-center font-bold text-slate-700 p-4 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-200 mb-4 appearance-none cursor-pointer">
+            <option value="">Carregando usuários...</option>
+        </select>
+
+        <input type="password" id="input-novo-pin" placeholder="Novo PIN" class="w-full text-center text-2xl font-black tracking-widest p-4 bg-red-50 text-red-700 rounded-2xl border border-red-200 outline-none focus:ring-4 focus:ring-red-200 mb-6" maxlength="6">
+        <button onclick="salvarNovoPIN()" class="w-full bg-red-600 text-white font-black py-4 rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 uppercase tracking-widest mb-2">Salvar Novo PIN</button>
+        <button onclick="fecharModal('modal-troca-pin', false)" class="w-full text-slate-400 font-bold text-sm hover:text-slate-600 transition-colors py-2">Cancelar</button>
+    </div>
+
+    <!-- 3. Modal Regra de Transferência -->
+    <div id="modal-regra" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-8 z-50 hidden shadow-2xl w-11/12 max-w-md scale-95 opacity-0 transition-all duration-300">
+        <h3 class="text-xl font-black text-slate-800 mb-1">Configurar Limites</h3>
+        <p class="text-[11px] text-slate-500 mb-6 uppercase font-bold text-blue-600" id="regra-produto-nome">NOME DO PRODUTO</p>
+        <div class="mb-4">
+            <label class="block text-xs font-black text-slate-600 uppercase mb-2">Capacidade Máxima (Centro) <span class="text-blue-500 cursor-help" title="Deixe vazio para Infinito">?</span></label>
+            <input type="number" id="input-regra-max" placeholder="Ex: Deixe vazio para ∞" class="w-full font-bold text-lg p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+        </div>
+        <div class="mb-6">
+            <label class="block text-xs font-black text-slate-600 uppercase mb-2">Estoque Segurança (Mínimo)</label>
+            <input type="number" id="input-regra-seg" class="w-full font-bold text-lg p-3 bg-slate-50 rounded-xl border border-slate-200 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+        </div>
+        <div class="flex gap-3">
+            <button onclick="fecharModal('modal-regra', false)" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200">Cancelar</button>
+            <button onclick="fecharModal('modal-regra', true)" class="flex-1 bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-black shadow-lg">Salvar Regra</button>
+        </div>
+    </div>
+
+    <!-- 4. Modal Ajuste de Estoque -->
+    <div id="modal-ajuste" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-8 z-50 hidden shadow-2xl w-11/12 max-w-md scale-95 opacity-0 transition-all duration-300">
+        <h3 class="text-xl font-black text-slate-800 mb-1">Ajuste Rápido de Estoque</h3>
+        <p class="text-[11px] text-slate-500 mb-6 uppercase font-bold text-amber-600" id="ajuste-produto-nome">NOME DO PRODUTO</p>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div onclick="selecionarDepositoAjuste('centro')" id="card-ajuste-centro" class="cursor-pointer border-2 border-slate-200 rounded-2xl p-4 text-center hover:bg-slate-50 transition-all">
+                <div class="text-[10px] font-black uppercase text-slate-400">Loja Centro</div>
+                <div class="text-2xl font-black text-slate-700 mt-1" id="ajuste-saldo-centro">0.0</div>
+            </div>
+            <div onclick="selecionarDepositoAjuste('vila')" id="card-ajuste-vila" class="cursor-pointer border-2 border-slate-200 rounded-2xl p-4 text-center hover:bg-slate-50 transition-all">
+                <div class="text-[10px] font-black uppercase text-slate-400">Vila Elias</div>
+                <div class="text-2xl font-black text-slate-700 mt-1" id="ajuste-saldo-vila">0.0</div>
+            </div>
+        </div>
+        <div class="mb-6">
+            <label class="block text-xs font-black text-slate-600 uppercase mb-2">Novo Saldo Real Contado</label>
+            <input type="number" id="input-ajuste-novo" class="w-full text-center font-black text-3xl p-4 bg-amber-50 text-amber-700 rounded-xl border border-amber-200 outline-none focus:ring-4 focus:ring-amber-200">
+        </div>
+        <div class="flex gap-3">
+            <button onclick="fecharModal('modal-ajuste', false)" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200">Cancelar</button>
+            <button onclick="fecharModal('modal-ajuste', true)" class="flex-1 bg-amber-500 text-white font-bold py-3 rounded-xl hover:bg-amber-600 shadow-lg shadow-amber-200">Confirmar Ajuste</button>
+        </div>
+    </div>
 
     <script>
         let sugestoesGlobais = [];
@@ -188,6 +263,7 @@
                         ${item.qtde_comprar > 0 ? `<span class="bg-red-50 text-red-600 px-3 py-1 rounded-lg font-black text-sm border border-red-100">CP: ${item.qtde_comprar.toFixed(0)}</span>` : ''}
                     </td>
                     <td class="p-5 text-center">
+                        <button onclick="abrirModalAjuste('${item.produto_id}', '${nomeEscapado}', ${item.saldo_centro}, ${item.saldo_vila}, '${item.codigo}')" class="text-amber-500 hover:text-amber-700 transition-colors mr-2 text-lg" title="Ajuste de Estoque">✏️</button>
                         <button onclick="editarRegras('${item.produto_id}', '${nomeEscapado}', ${item.capacidade_maxima || ''}, ${item.estoque_seguranca || ''})" class="text-slate-400 hover:text-slate-800 transition-colors" title="Editar Capacidade e Segurança">⚙️</button>
                     </td>
                 `;
@@ -251,83 +327,205 @@
             window.print(); // Dispara o diálogo de impressão focado na div via CSS
         }
 
-        async function editarRegras(produtoId, nomeProduto, atualMax = '', atualSeg = '') {
-            if (atualMax == -1) atualMax = '';
-            const p_max = prompt(`Qual a CAPACIDADE MÁXIMA do Centro para:\n${nomeProduto}?\n\n* Deixe em branco (vazio) para trazer tudo da Vila Elias (Infinito).`, atualMax);
-            if (p_max === null) return;
+        // --- SISTEMA DE MODAIS ---
+        let modalPromiseResolve = null;
+        let depositoSelecionadoParaAjuste = '';
 
-            const p_seg = prompt(`Qual o ESTOQUE DE SEGURANÇA (Mínimo) para:\n${nomeProduto}?`, atualSeg);
-            if (p_seg === null || p_seg.trim() === '') return;
-            
-            const pin = prompt("Confirme a operação com seu PIN:");
-            if (!pin) return;
+        function abrirModal(id) {
+            document.getElementById('backdrop').classList.remove('hidden');
+            document.getElementById(id).classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('backdrop').classList.add('backdrop-enter');
+                document.getElementById(id).classList.add('modal-enter');
+                const firstInput = document.getElementById(id).querySelector('input');
+                if(firstInput) firstInput.focus();
+            }, 10);
+        }
 
-            const fd = new FormData();
-            fd.append('produto_id', produtoId);
-            fd.append('nome_produto', nomeProduto);
-            fd.append('capacidade_maxima', p_max.trim() === '' ? '-1' : p_max);
-            fd.append('estoque_seguranca', p_seg);
-            fd.append('pin', pin);
-            fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        function fecharModal(id, confirmado) {
+            document.getElementById('backdrop').classList.remove('backdrop-enter');
+            document.getElementById(id).classList.remove('modal-enter');
+            setTimeout(() => {
+                document.getElementById('backdrop').classList.add('hidden');
+                document.getElementById(id).classList.add('hidden');
+                if (modalPromiseResolve) {
+                    modalPromiseResolve(confirmado);
+                    modalPromiseResolve = null;
+                }
+            }, 300);
+        }
 
+        async function carregarUsuariosDropdown() {
+            const select = document.getElementById('select-usuario');
+            select.innerHTML = '<option value="">Carregando usuários...</option>';
             try {
-                // Ajuste esta rota se necessário
-                const res = await fetch('/estoque/api_salvar_config_transferencia/', { method: 'POST', body: fd });
+                const res = await fetch('/estoque/api_listar_usuarios/');
                 const data = await res.json();
                 if (data.ok) {
-                    carregarDados(); // Recarrega automaticamente as novas sugestões
+                    select.innerHTML = '<option value="">-- Selecione seu nome --</option>';
+                    data.usuarios.forEach(u => {
+                        select.innerHTML += `<option value="${u.id}">${u.nome}</option>`;
+                    });
                 } else {
-                    alert("Erro ao salvar: " + data.erro);
+                    select.innerHTML = '<option value="">Erro ao carregar</option>';
                 }
-            } catch (e) { alert("Erro de comunicação com o servidor."); }
+            } catch(e) { select.innerHTML = '<option value="">Erro de conexão</option>'; }
+        }
+
+        async function pedirPIN(mensagem = "Confirme com seu PIN") {
+            document.getElementById('pin-desc').innerText = mensagem;
+            document.getElementById('input-pin').value = '';
+            abrirModal('modal-pin');
+            
+            const confirmado = await new Promise(resolve => { modalPromiseResolve = resolve; });
+            if (!confirmado) return null;
+
+            const pin = document.getElementById('input-pin').value.trim();
+            if (!pin) return null;
+
+            if (pin === '1234') {
+                document.getElementById('input-novo-pin').value = '';
+                carregarUsuariosDropdown();
+                abrirModal('modal-troca-pin');
+                throw new Error("Troca de PIN necessária");
+            }
+            return pin;
+        }
+
+        async function salvarNovoPIN() {
+            const perfilId = document.getElementById('select-usuario').value;
+            if (!perfilId) { alert("Por favor, selecione o seu nome na lista!"); return; }
+
+            const novoPin = document.getElementById('input-novo-pin').value.trim();
+            if (novoPin.length < 4) { alert("O PIN deve ter no mínimo 4 dígitos."); return; }
+            if (novoPin === '1234') { alert("Você não pode usar 1234. Escolha outro!"); return; }
+
+            const fd = new FormData();
+            fd.append('perfil_id', perfilId);
+            fd.append('pin_atual', '1234');
+            fd.append('novo_pin', novoPin);
+            fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            const res = await fetch('/estoque/api_atualizar_pin/', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.ok) {
+                alert("✅ PIN Atualizado! Refaça a operação agora usando seu novo PIN.");
+                fecharModal('modal-troca-pin', false);
+            } else { alert(data.erro); }
+        }
+
+        async function editarRegras(produtoId, nomeProduto, atualMax = '', atualSeg = '') {
+            document.getElementById('regra-produto-nome').innerText = nomeProduto;
+            document.getElementById('input-regra-max').value = atualMax == -1 ? '' : atualMax;
+            document.getElementById('input-regra-seg').value = atualSeg;
+            
+            abrirModal('modal-regra');
+            const confirmado = await new Promise(resolve => { modalPromiseResolve = resolve; });
+            if (!confirmado) return;
+
+            const p_max = document.getElementById('input-regra-max').value;
+            const p_seg = document.getElementById('input-regra-seg').value;
+            if (p_seg.trim() === '') { alert("Estoque Segurança é obrigatório."); return; }
+
+            try {
+                const pin = await pedirPIN("Confirme para salvar as regras");
+                if (!pin) return;
+
+                const fd = new FormData();
+                fd.append('produto_id', produtoId);
+                fd.append('nome_produto', nomeProduto);
+                fd.append('capacidade_maxima', p_max.trim() === '' ? '-1' : p_max);
+                fd.append('estoque_seguranca', p_seg);
+                fd.append('pin', pin);
+                fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+                const res = await fetch('/estoque/api_salvar_config_transferencia/', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.ok) carregarDados();
+                else alert("Erro ao salvar: " + data.erro);
+            } catch (e) { if(e.message !== "Troca de PIN necessária") alert("Erro de comunicação."); }
         }
 
         async function adicionarRegraNova() {
-            const termo = prompt("Digite o nome ou código do produto que deseja adicionar na regra de transferência:");
+            const termo = prompt("🔍 Busca Limpa:\nDigite parte do NOME ou CÓDIGO do produto que deseja adicionar:");
             if (!termo || termo.trim() === '') return;
 
             try {
-                // Reutilizamos a sua rota existente de busca de produtos
                 const response = await fetch(`/api/buscar/?q=${encodeURIComponent(termo)}`);
                 const data = await response.json();
                 
                 if (!data.produtos || data.produtos.length === 0) {
-                    alert("Nenhum produto encontrado com esse termo.");
-                    return;
+                    alert("Nenhum produto encontrado com esse termo."); return;
                 }
-
-                // Pega o primeiro produto retornado da busca
                 const p = data.produtos[0];
-                const confirma = confirm(`Produto encontrado:\n${p.nome}\n\nDeseja configurar as regras (Mínimo/Máximo) para ele?`);
-                
-                if (confirma) {
-                    editarRegras(p.id, p.nome, '', '');
-                }
-            } catch (error) { alert("Erro ao buscar o produto. Verifique a conexão ou a URL da API de busca."); }
+                editarRegras(p.id, p.nome, '', '');
+            } catch (error) { alert("Erro ao buscar produto."); }
+        }
+
+        function selecionarDepositoAjuste(deposito) {
+            depositoSelecionadoParaAjuste = deposito;
+            document.getElementById('card-ajuste-centro').classList.remove('border-amber-500', 'bg-amber-50');
+            document.getElementById('card-ajuste-vila').classList.remove('border-amber-500', 'bg-amber-50');
+            document.getElementById(`card-ajuste-${deposito}`).classList.add('border-amber-500', 'bg-amber-50');
+        }
+
+        let itemAjusteAtual = {};
+        async function abrirModalAjuste(produtoId, nome, saldoCentro, saldoVila, codigo) {
+            itemAjusteAtual = { id: produtoId, nome: nome, codigo: codigo, saldo_centro: saldoCentro, saldo_vila: saldoVila };
+            document.getElementById('ajuste-produto-nome').innerText = nome;
+            document.getElementById('ajuste-saldo-centro').innerText = saldoCentro.toFixed(1);
+            document.getElementById('ajuste-saldo-vila').innerText = saldoVila.toFixed(1);
+            document.getElementById('input-ajuste-novo').value = '';
+            selecionarDepositoAjuste('centro'); 
+            
+            abrirModal('modal-ajuste');
+            const confirmado = await new Promise(resolve => { modalPromiseResolve = resolve; });
+            if (!confirmado) return;
+
+            const novoSaldo = document.getElementById('input-ajuste-novo').value;
+            if (novoSaldo === '') return;
+
+            try {
+                const pin = await pedirPIN("Confirme o ajuste de estoque");
+                if (!pin) return;
+
+                const fd = new FormData();
+                fd.append('produto_id', itemAjusteAtual.id);
+                fd.append('codigo_interno', itemAjusteAtual.codigo);
+                fd.append('nome_produto', itemAjusteAtual.nome);
+                fd.append('deposito', depositoSelecionadoParaAjuste);
+                fd.append('saldo_atual', depositoSelecionadoParaAjuste === 'centro' ? itemAjusteAtual.saldo_centro : itemAjusteAtual.saldo_vila);
+                fd.append('novo_saldo', novoSaldo);
+                fd.append('pin', pin);
+                fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+                const res = await fetch('/api/ajustar/', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.ok) carregarDados(); 
+                else alert(data.erro);
+            } catch (e) { if(e.message !== "Troca de PIN necessária") alert("Erro de comunicação."); }
         }
 
         async function processarPlanilha(input) {
             if (!input.files || input.files.length === 0) return;
             const arquivo = input.files[0];
             
-            const pin = prompt("Importação de Regras em Lote.\nConfirme a operação com seu PIN:");
-            if (!pin) { input.value = ""; return; }
-
-            const fd = new FormData();
-            fd.append('arquivo', arquivo);
-            fd.append('pin', pin);
-            fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
             try {
+                const pin = await pedirPIN("Importação em Lote via CSV");
+                if (!pin) { input.value = ""; return; }
+                
+                const fd = new FormData();
+                fd.append('arquivo', arquivo);
+                fd.append('pin', pin);
+                fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
                 const res = await fetch('/estoque/api_importar_planilha/', { method: 'POST', body: fd });
                 const data = await res.json();
                 if (data.ok) {
                     alert(data.mensagem);
                     carregarDados();
-                } else {
-                    alert("Erro ao importar: " + data.erro);
-                }
-            } catch (e) { alert("Erro de comunicação com o servidor."); }
+                } else { alert("Erro ao importar: " + data.erro); }
+            } catch (e) { if(e.message !== "Troca de PIN necessária") alert("Erro."); }
             input.value = ""; // Limpa o input
         }
     </script>

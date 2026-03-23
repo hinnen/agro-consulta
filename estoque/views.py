@@ -118,6 +118,47 @@ def api_buscar_produtos(request):
     })
 
 
+@require_GET
+def api_listar_usuarios(request):
+    try:
+        perfis = PerfilUsuario.objects.all()
+        lista = []
+        for p in perfis:
+            # Tenta descobrir o nome amigável do usuário atrelado ao perfil
+            nome = "Usuário Desconhecido"
+            if hasattr(p, 'user') and p.user:
+                nome = f"{p.codigo_vendedor} - {p.user.get_full_name() or p.user.username}"
+            elif hasattr(p, 'nome'):
+                nome = p.nome
+            else:
+                nome = str(p)
+            lista.append({"id": p.id, "nome": nome})
+        
+        # Ordena a lista em ordem alfabética para facilitar
+        lista.sort(key=lambda x: x['nome'])
+        return JsonResponse({'ok': True, 'usuarios': lista})
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'erro': f'Erro: {exc}'}, status=500)
+
+@require_POST
+@csrf_protect
+def api_atualizar_pin(request):
+    try:
+        perfil_id = request.POST.get('perfil_id', '').strip()
+        pin_atual = request.POST.get('pin_atual', '').strip()
+        novo_pin = request.POST.get('novo_pin', '').strip()
+        
+        perfil = PerfilUsuario.objects.filter(id=perfil_id, senha_rapida=pin_atual).first()
+        if not perfil:
+            return JsonResponse({'ok': False, 'erro': 'PIN atual incorreto para o usuário selecionado.'}, status=403)
+            
+        perfil.senha_rapida = novo_pin
+        perfil.save()
+        
+        return JsonResponse({'ok': True, 'mensagem': 'PIN atualizado com sucesso!'})
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'erro': f'Erro ao atualizar PIN: {exc}'}, status=500)
+
 @require_POST
 @csrf_protect
 def api_ajustar_estoque(request):
