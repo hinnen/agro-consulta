@@ -278,6 +278,10 @@ def api_ajustar_estoque(request):
             saldo_erp_referencia=Decimal(request.POST.get("saldo_atual", "0")),
             saldo_informado=Decimal(request.POST.get("novo_saldo", "0"))
         )
+        
+        # Limpa o Cache do servidor para a tela do PDV puxar o saldo novo na mesma hora!
+        cache.clear()
+        
         return JsonResponse({"ok": True})
     except Exception as e: return JsonResponse({"ok": False, "erro": str(e)}, status=500)
 
@@ -324,6 +328,9 @@ def api_deletar_ajuste(request, id):
         return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
     try:
         AjusteRapidoEstoque.objects.filter(id=id).delete()
+        
+        cache.clear()
+        
         return JsonResponse({"ok": True})
     except Exception as e: 
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
@@ -335,6 +342,9 @@ def api_limpar_historico(request):
         return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
     try:
         AjusteRapidoEstoque.objects.all().delete()
+        
+        cache.clear()
+        
         return JsonResponse({"ok": True})
     except Exception as e: 
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
