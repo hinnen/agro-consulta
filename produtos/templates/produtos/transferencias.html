@@ -163,6 +163,12 @@
                 // Ajuste esta rota caso as suas views não estejam mapeadas em /estoque/...
                 const response = await fetch('/estoque/api_sugestoes_transferencia/');
                 const data = await response.json();
+                
+                if (data.erro) {
+                    document.getElementById("tabela-corpo").innerHTML = `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold uppercase">ERRO DE CONEXÃO COM O ERP:<br><span class="text-xs text-slate-500 normal-case mt-2 block">${data.erro}</span></td></tr>`;
+                    return;
+                }
+
                 sugestoesGlobais = data.sugestoes || [];
                 renderizarTabela('TODOS');
             } catch (error) {
