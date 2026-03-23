@@ -3,14 +3,10 @@ import django
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-# Inicializa o ambiente Django para podermos salvar no banco SQLite local
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-django.setup()
-
-from estoque.models import ConfiguracaoTransferencia
-from integracoes.venda_erp_mongo import VendaERPMongoClient
-
 def calcular():
+    from estoque.models import ConfiguracaoTransferencia
+    from integracoes.venda_erp_mongo import VendaERPMongoClient
+
     print("="*60)
     print("🚀 INICIANDO CÁLCULO DE VENDA MÉDIA (30 DIAS)")
     print("="*60)
@@ -92,4 +88,6 @@ def calcular():
     print("="*60)
 
 if __name__ == '__main__':
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+    django.setup()
     calcular()

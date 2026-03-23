@@ -11,4 +11,5 @@ urlpatterns = [
     path('estoque/api_importar_planilha/', estoque_views.api_importar_planilha_transferencia, name='api_importar_planilha'),
     path('estoque/api_atualizar_pin/', estoque_views.api_atualizar_pin, name='api_atualizar_pin'),
     path('estoque/api_listar_usuarios/', estoque_views.api_listar_usuarios, name='api_listar_usuarios'),
+    path('estoque/api_atualizar_medias/', estoque_views.api_atualizar_medias, name='api_atualizar_medias'),
 ]

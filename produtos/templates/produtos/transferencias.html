@@ -52,6 +52,7 @@
             
             <div class="w-px h-8 bg-slate-300 mx-2"></div>
             <button onclick="adicionarRegraNova()" class="px-5 py-2 bg-green-600 rounded-xl shadow-sm border border-green-700 text-xs font-black text-white hover:bg-green-700 transition-colors">➕ Adicionar Regra de Produto</button>
+            <button onclick="atualizarMedias()" class="px-5 py-2 bg-purple-600 rounded-xl shadow-sm border border-purple-700 text-xs font-black text-white hover:bg-purple-700 transition-colors">🔄 Recalcular Vendas (30 dias)</button>
             <button onclick="document.getElementById('arquivo-csv').click()" class="px-5 py-2 bg-emerald-600 rounded-xl shadow-sm border border-emerald-700 text-xs font-black text-white hover:bg-emerald-700 transition-colors">📁 Importar CSV</button>
             <!-- Input oculto para o arquivo -->
             <input type="file" id="arquivo-csv" accept=".csv" class="hidden" onchange="processarPlanilha(this)">
@@ -477,6 +478,26 @@
                 const p = data.produtos[0];
                 editarRegras(p.id, p.nome, '', '');
             } catch (error) { alert("Erro ao buscar produto."); }
+        }
+
+        async function atualizarMedias() {
+            try {
+                const pin = await pedirPIN("Autorize o recálculo da Média de Vendas");
+                if (!pin) return;
+                
+                const fd = new FormData();
+                fd.append('pin', pin);
+                fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+                alert("Processando as vendas dos últimos 30 dias...\nIsso pode levar alguns segundos. Dê OK e aguarde.");
+                
+                const res = await fetch('/estoque/api_atualizar_medias/', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.ok) {
+                    alert(data.mensagem);
+                    carregarDados();
+                } else { alert("Erro ao atualizar: " + data.erro); }
+            } catch (e) { if(e.message !== "Troca de PIN necessária") alert("Erro."); }
         }
 
         function selecionarDepositoAjuste(deposito) {
