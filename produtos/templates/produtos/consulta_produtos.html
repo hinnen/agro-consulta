@@ -7,6 +7,7 @@
     <title>Agro Mais | PDV</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .hide-scroll::-webkit-scrollbar { display: none; }
@@ -57,6 +58,13 @@
         .soft-btn:hover {
             background: #f1f5f9;
         }
+        /* Oculta o cupom na tela e mostra só na impressão */
+        #cupom-orcamento { display: none; }
+        @media print {
+            body > div:not(#cupom-orcamento) { display: none !important; }
+            #cupom-orcamento { display: block !important; position: absolute; left: 0; top: 0; width: 76mm; font-family: 'Courier New', Courier, monospace; color: #000; padding: 0; margin: 0; }
+            @page { margin: 0; size: 80mm auto; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 p-2 text-slate-800">
@@ -70,6 +78,7 @@
             <span>F2 <b class="text-slate-600">Produto</b></span> • 
             <span>F3 <b class="text-slate-600">Cliente</b></span> • 
             <span>F4 <b class="text-slate-600">Limpar</b></span> •
+            <span>F6 <b class="text-slate-600">Histórico</b></span> •
             <span>F5 <b class="text-slate-600">Sincronizar</b></span> •
             <span>F7 <b class="text-slate-600">Zap</b></span>
         </div>
@@ -142,6 +151,7 @@
 
                 <div class="flex gap-1 mb-2">
                     <button onclick="limparCarrinho()" class="flex-1 bg-slate-100 text-slate-600 text-[9px] font-black uppercase py-1.5 rounded hover:bg-slate-200">F4 Limpar</button>
+                    <button onclick="abrirHistoricoLocal()" class="flex-1 bg-sky-100 text-sky-600 text-[9px] font-black uppercase py-1.5 rounded hover:bg-sky-200">F6 Recup.</button>
                     <button onclick="focarBuscaProduto()" class="flex-1 bg-slate-100 text-slate-600 text-[9px] font-black uppercase py-1.5 rounded hover:bg-slate-200">F2 Produto</button>
                 </div>
 
@@ -160,7 +170,7 @@
             <div class="flex items-start justify-between gap-4 mb-6">
                 <div>
                     <h2 class="text-2xl font-black text-slate-900 italic uppercase tracking-tighter">📝 Resumo do Pedido</h2>
-                    <div class="text-[10px] uppercase font-black tracking-widest text-slate-400 mt-1">F7 envia • F8 copia • Esc fecha</div>
+                    <div class="text-[10px] uppercase font-black tracking-widest text-slate-400 mt-1">F7 zap • F8 imprime • F9 copia • Esc fecha</div>
                 </div>
                 <div class="w-14 h-14 rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                     <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="Agro Mais" class="w-full h-full object-contain p-2">
@@ -175,14 +185,34 @@
                     <span class="text-[10px] px-2 py-1 rounded-full bg-white/20">F7</span>
                 </button>
 
-                <button onclick="copiarMensagemPedido()" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-500 font-black py-3 rounded-2xl text-xs uppercase border border-slate-200 flex items-center justify-center gap-2">
-                    <span>📋 Copiar mensagem</span>
-                    <span class="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200">F8</span>
+                <button onclick="imprimirOrcamento()" class="w-full bg-slate-800 hover:bg-black text-white font-black py-4 rounded-3xl shadow-lg text-sm uppercase flex items-center justify-center gap-2">
+                    <span>🖨️ Imprimir Cupom</span>
+                    <span class="text-[10px] px-2 py-1 rounded-full bg-white/20">F8</span>
                 </button>
 
-                <button onclick="fecharResumo()" class="w-full bg-slate-100 text-slate-400 font-black py-3 rounded-2xl text-xs uppercase">
+                <button onclick="copiarMensagemPedido()" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-500 font-black py-3 rounded-xl text-xs uppercase border border-slate-200 flex items-center justify-center gap-2 mt-2">
+                    <span> Copiar mensagem</span>
+                    <span class="text-[10px] px-2 py-1 rounded-full bg-white border border-slate-200">F9</span>
+                </button>
+
+                <button onclick="fecharResumo()" class="w-full text-slate-400 font-bold py-2 text-xs uppercase hover:underline">
                     Voltar e Ajustar
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="cupom-orcamento"></div>
+
+    <!-- Modal Histórico de Vendas -->
+    <div id="modal-historico-vendas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl p-6 flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
+                <h2 class="text-xl font-black text-slate-800 uppercase italic">📋 Últimos Orçamentos (Local)</h2>
+                <button onclick="fecharHistoricoLocal()" class="text-slate-400 hover:text-slate-600 font-bold bg-slate-100 px-3 py-1 rounded-lg text-xs uppercase">✕ Fechar [Esc]</button>
+            </div>
+            <div id="lista-historico-local" class="overflow-y-auto hide-scroll flex-1 space-y-3">
+                <!-- Cards de historico preenchidos via JS -->
             </div>
         </div>
     </div>
@@ -201,6 +231,8 @@ let ultimoInputTime = 0;
 let bufferScanner = '';
 let scannerTimer = null;
 let quantidadeRapida = 1;
+let ultimoProdutoAdicionadoId = null;
+let tempoUltimaAdicao = 0;
 
 let baseProdutos = [];
 let frequenciaUso = JSON.parse(localStorage.getItem('freqProdutos') || '{}');
@@ -345,12 +377,16 @@ function renderizarSugestoes() {
     autoList.innerHTML = '';
 
     sugestoesAtuais.forEach((s) => {
+        const foto = s.imagem && s.imagem !== '' && s.imagem !== 'None' ? s.imagem : "{% static 'img/agro-mais-logo-buscador.png' %}";
         const div = document.createElement('div');
         div.className = "suggestion-item p-2 cursor-pointer border-b border-slate-100 flex justify-between items-center hover:bg-slate-50";
         div.innerHTML = `
-            <div class="min-w-0 pr-2">
-                <div class="text-slate-700 font-black text-[10px] uppercase truncate">${escapeHtml(s.nome)}</div>
-                <div class="text-[8px] text-slate-400 uppercase truncate">${escapeHtml(s.marca || 'GENÉRICO')}</div>
+            <div class="flex items-center gap-2 min-w-0 pr-2">
+                <img src="${foto}" onerror="this.src='{% static 'img/agro-mais-logo-buscador.png' %}'" class="w-8 h-8 object-cover rounded bg-white border border-slate-100 p-0.5">
+                <div class="min-w-0">
+                    <div class="text-slate-700 font-black text-[10px] uppercase truncate">${escapeHtml(s.nome)}</div>
+                    <div class="text-[8px] text-slate-400 uppercase truncate">${escapeHtml(s.marca || 'GENÉRICO')}</div>
+                </div>
             </div>
             <div class="text-orange-500 font-black text-[11px] shrink-0">${formatarMoeda(s.preco_venda)}</div>
         `;
@@ -375,6 +411,7 @@ function renderizarSugestoes() {
 function renderDestaque(p) {
     produtoEmDestaque = p;
     const total = (Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(2);
+    const foto = p.imagem && p.imagem !== '' && p.imagem !== 'None' ? p.imagem : "{% static 'img/agro-mais-logo-buscador.png' %}";
 
     destaqueContainer.innerHTML = `
         <div class="bg-white p-3 md:p-4 rounded-2xl border border-emerald-500/30 shadow-md flex flex-col md:flex-row items-center gap-4 animate-in fade-in duration-300 relative overflow-hidden group/card">
@@ -382,17 +419,20 @@ function renderDestaque(p) {
             <div class="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-emerald-50/50 to-transparent pointer-events-none"></div>
 
             <!-- Detalhes do Produto -->
-            <div class="flex-1 w-full min-w-0 z-10 cursor-pointer" onclick="adicionarProdutoComQuantidade('${escapeHtml(p.id)}', '${String(p.nome).replace(/'/g, "\\'")}', ${Number(p.preco_venda || 0)}, quantidadeRapida)">
-                <div class="flex items-center gap-2 mb-1.5">
-                    <span class="bg-emerald-500 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shadow-sm">Destaque [Enter]</span>
-                    <span class="text-slate-400 font-bold uppercase text-[10px] truncate">${escapeHtml(p.marca || 'GENÉRICO')}</span>
-                    ${p.codigo_nfe ? `<span class="text-slate-300 font-bold text-[10px] truncate">| GM: ${escapeHtml(p.codigo_nfe)}</span>` : ''}
-                </div>
-                <h4 class="text-xl md:text-2xl font-black text-slate-800 uppercase leading-tight truncate" title="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}</h4>
-                <div class="flex items-center gap-3 mt-2">
-                    <div class="text-2xl md:text-3xl font-black text-orange-500 tracking-tighter">${formatarMoeda(p.preco_venda)}</div>
-                    ${quantidadeRapida > 1 ? `<div class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-[11px] font-black uppercase border border-orange-200 shadow-sm">Qtd: ${quantidadeRapida}</div>` : ''}
-                    <button id="btn-sincronizar-${escapeHtml(p.id)}" onclick="forcarAtualizacao('${escapeHtml(p.id)}'); event.stopPropagation();" class="text-[10px] font-bold text-sky-600 hover:text-sky-800 hover:underline ml-2 bg-sky-50 px-2 py-1 rounded transition-colors" title="Atualizar saldo do banco em tempo real">🔄 Sincronizar [F5]</button>
+            <div class="flex items-center gap-3 flex-1 w-full min-w-0 z-10 cursor-pointer" onclick="adicionarProdutoComQuantidade('${escapeHtml(p.id)}', '${String(p.nome).replace(/'/g, "\\'")}', ${Number(p.preco_venda || 0)}, quantidadeRapida)">
+                <img src="${foto}" onerror="this.src='{% static 'img/agro-mais-logo-buscador.png' %}'" class="w-16 h-16 md:w-20 md:h-20 object-cover rounded-xl bg-white border border-slate-100 shadow-sm p-1 hidden sm:block">
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <span class="bg-emerald-500 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shadow-sm">Destaque [Enter]</span>
+                        <span class="text-slate-400 font-bold uppercase text-[10px] truncate">${escapeHtml(p.marca || 'GENÉRICO')}</span>
+                        ${p.codigo_nfe ? `<span class="text-slate-300 font-bold text-[10px] truncate">| GM: ${escapeHtml(p.codigo_nfe)}</span>` : ''}
+                    </div>
+                    <h4 class="text-xl md:text-2xl font-black text-slate-800 uppercase leading-tight truncate" title="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}</h4>
+                    <div class="flex items-center gap-3 mt-2">
+                        <div class="text-2xl md:text-3xl font-black text-orange-500 tracking-tighter">${formatarMoeda(p.preco_venda)}</div>
+                        ${quantidadeRapida > 1 ? `<div class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-[11px] font-black uppercase border border-orange-200 shadow-sm">Qtd: ${quantidadeRapida}</div>` : ''}
+                        <button id="btn-sincronizar-${escapeHtml(p.id)}" onclick="forcarAtualizacao('${escapeHtml(p.id)}'); event.stopPropagation();" class="text-[10px] font-bold text-sky-600 hover:text-sky-800 hover:underline ml-2 bg-sky-50 px-2 py-1 rounded transition-colors" title="Atualizar saldo do banco em tempo real">🔄 Sincronizar [F5]</button>
+                    </div>
                 </div>
             </div>
 
@@ -426,12 +466,16 @@ function renderDestaque(p) {
 
 function renderSimilar(p) {
     const pStr = encodeURIComponent(JSON.stringify(p));
+    const foto = p.imagem && p.imagem !== '' && p.imagem !== 'None' ? p.imagem : "{% static 'img/agro-mais-logo-buscador.png' %}";
     similaresContainer.innerHTML += `
         <div class="bg-white p-1.5 px-2 rounded-lg border border-slate-200 flex justify-between items-center hover:bg-slate-50 cursor-pointer group"
              onclick="renderDestaque(JSON.parse(decodeURIComponent('${pStr}')))">
-            <div class="min-w-0 pr-2">
-                <span class="block font-black text-slate-700 uppercase text-[10px] group-hover:text-emerald-600 truncate">${escapeHtml(p.nome)}</span>
-                <span class="block text-[8px] text-slate-400 truncate">${escapeHtml(p.marca || 'GENÉRICO')}</span>
+            <div class="flex items-center gap-2 min-w-0 pr-2">
+                <img src="${foto}" onerror="this.src='{% static 'img/agro-mais-logo-buscador.png' %}'" class="w-6 h-6 object-cover rounded bg-white border border-slate-100 p-0.5">
+                <div class="min-w-0">
+                    <span class="block font-black text-slate-700 uppercase text-[10px] group-hover:text-emerald-600 truncate">${escapeHtml(p.nome)}</span>
+                    <span class="block text-[8px] text-slate-400 truncate">${escapeHtml(p.marca || 'GENÉRICO')}</span>
+                </div>
             </div>
             <div class="flex items-center gap-3 shrink-0">
                 <span class="text-orange-500 text-[11px] font-black">${formatarMoeda(p.preco_venda)}</span>
@@ -450,6 +494,14 @@ function incrementarFrequencia(id) {
 }
 
 function addCarrinho(id, nome, preco, qtd = 1) {
+    const agora = Date.now();
+    // Trava de segurança absoluta (Hardware Lock) de 500ms para evitar "Ghost Keystrokes" de leitores físicos
+    if (id === ultimoProdutoAdicionadoId && (agora - tempoUltimaAdicao) < 500) {
+        return;
+    }
+    ultimoProdutoAdicionadoId = id;
+    tempoUltimaAdicao = agora;
+
     incrementarFrequencia(id); // Registra a "venda" para rankear esse produto depois
 
     const item = carrinho.find(i => i.id === id);
@@ -592,6 +644,77 @@ function fecharResumo() {
     document.body.classList.remove('modal-open');
 }
 
+// --- HISTÓRICO LOCAL ---
+function salvarHistoricoLocal() {
+    if (!carrinho.length) return;
+    let historico = [];
+    try {
+        const salvo = localStorage.getItem('historicoOrcamentos');
+        if (salvo) historico = JSON.parse(salvo);
+        if (!Array.isArray(historico)) historico = [];
+    } catch(e) {
+        historico = [];
+    }
+    
+    const novo = {
+        id: Date.now(),
+        data: new Date().toLocaleString('pt-BR'),
+        cliente: document.getElementById('nome-cliente').value || "Consumidor Final",
+        total: document.getElementById('total-geral').innerText,
+        itens: JSON.parse(JSON.stringify(carrinho))
+    };
+    historico.unshift(novo);
+    if (historico.length > 20) historico.pop();
+    localStorage.setItem('historicoOrcamentos', JSON.stringify(historico));
+}
+
+function abrirHistoricoLocal() {
+    const container = document.getElementById('lista-historico-local');
+    let historico = [];
+    try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { historico = []; }
+    container.innerHTML = '';
+    if (historico.length === 0) {
+        container.innerHTML = '<div class="text-center text-slate-400 py-10 font-bold text-sm">Nenhum orçamento emitido hoje.</div>';
+    } else {
+        historico.forEach(h => {
+            container.innerHTML += `
+                <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl flex justify-between items-center hover:bg-slate-100 transition-colors">
+                    <div>
+                        <div class="font-black text-slate-700 text-sm uppercase">${escapeHtml(h.cliente)}</div>
+                        <div class="text-[10px] text-slate-500 font-bold">${h.data} • ${h.itens.length} itens</div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="font-black text-emerald-600 text-lg">${h.total}</span>
+                        <button onclick="recuperarOrcamento(${h.id})" class="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-xs font-black uppercase shadow-sm active:scale-95">Recuperar Orçamento</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    document.getElementById('modal-historico-vendas').classList.remove('hidden');
+    document.getElementById('modal-historico-vendas').classList.add('flex');
+    document.body.classList.add('modal-open');
+}
+
+function fecharHistoricoLocal() {
+    document.getElementById('modal-historico-vendas').classList.add('hidden');
+    document.getElementById('modal-historico-vendas').classList.remove('flex');
+    document.body.classList.remove('modal-open');
+}
+
+function recuperarOrcamento(id) {
+    let historico = [];
+    try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { return; }
+    const h = historico.find(x => x.id === id);
+    if (h) {
+        if (carrinho.length > 0 && !confirm("Isso vai substituir o carrinho atual. Deseja continuar?")) return;
+        carrinho = h.itens;
+        document.getElementById('nome-cliente').value = h.cliente !== "Consumidor Final" ? h.cliente : "";
+        atualizarCarrinho();
+        fecharHistoricoLocal();
+    }
+}
+
 function gerarMensagemPedido() {
     const clienteNome = document.getElementById('nome-cliente').value || "Consumidor Final";
     let msg = `🐎🌾 *ORÇAMENTO AGRO MAIS* 🌾🐔\n\n`;
@@ -622,6 +745,7 @@ function confirmarEnvio() {
         numeroWhatsapp = '55' + numeroWhatsapp;
     }
 
+    salvarHistoricoLocal();
     const msg = gerarMensagemPedido();
     window.open(`https://api.whatsapp.com/send?phone=${numeroWhatsapp}&text=${encodeURIComponent(msg)}`, '_blank');
 }
@@ -635,6 +759,81 @@ async function copiarMensagemPedido() {
         console.error(e);
         alert("Não foi possível copiar a mensagem.");
     }
+}
+
+function imprimirOrcamento() {
+    if (!carrinho.length) return alert("Carrinho vazio!");
+    
+    salvarHistoricoLocal(); // Salva no histórico pra você nunca perder
+
+    const clienteNome = document.getElementById('nome-cliente').value || "Consumidor Final";
+    const numOrcamento = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    
+    let html = `
+        <div style="text-align:center; margin-bottom: 5px;">
+            <h2 style="margin: 0; font-size: 22px; font-weight: 900;">AGRO MAIS</h2>
+            <div style="font-size: 10px;">Av Principal, 123 - Centro</div>
+        </div>
+        <div style="border-bottom: 1px dashed #000; margin-bottom: 5px;"></div>
+        <div style="text-align:center; font-weight:bold; font-size: 14px; margin-bottom: 5px;">
+            ORÇAMENTO DE VENDA
+        </div>
+        <div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>
+        <div style="font-size: 11px; margin-bottom: 2px;"><b>DATA:</b> ${new Date().toLocaleString('pt-BR')}</div>
+        <div style="font-size: 11px; margin-bottom: 8px;"><b>CLIENTE:</b> ${escapeHtml(clienteNome).toUpperCase()}</div>
+        <div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>
+        <table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 1px solid #000;">
+                    <th style="text-align: left; padding-bottom: 4px;">DESCRIÇÃO</th>
+                    <th style="text-align: right; padding-bottom: 4px;">QTDxUN</th>
+                    <th style="text-align: right; padding-bottom: 4px;">TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    let totalItens = 0;
+    carrinho.forEach(i => {
+        totalItens += i.qtd;
+        html += `
+            <tr>
+                <td style="padding-top: 4px; padding-bottom: 4px;">${escapeHtml(i.nome).substring(0, 20)}</td>
+                <td style="text-align: right; padding-top: 4px; padding-bottom: 4px;">${i.qtd}x ${Number(i.preco).toFixed(2)}</td>
+                <td style="text-align: right; padding-top: 4px; padding-bottom: 4px;">${Number(i.preco * i.qtd).toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    html += `
+            </tbody>
+        </table>
+        <div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>
+        <div style="display:flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 4px;">
+            <span>QTD TOTAL ITENS</span>
+            <span>${totalItens} un</span>
+        </div>
+        <div style="display:flex; justify-content: space-between; font-size: 16px; font-weight: 900; margin-bottom: 15px;">
+            <span>VALOR TOTAL</span>
+            <span>${document.getElementById('total-geral').innerText}</span>
+        </div>
+        <div style="text-align:center; margin-bottom: 10px;">
+            <svg id="barcode-orcamento"></svg>
+        </div>
+        <div style="text-align:center; font-size: 10px;">
+            É sempre um prazer atender você!<br>Volte sempre!
+        </div>
+    `;
+    
+    document.getElementById('cupom-orcamento').innerHTML = html;
+    
+    try {
+        JsBarcode("#barcode-orcamento", numOrcamento, {
+            format: "CODE128", width: 1.5, height: 40, displayValue: true, fontSize: 12, margin: 0
+        });
+    } catch(e) {}
+
+    window.print();
 }
 
 function abrirAjuste(id, nome, saldo, codigo, dep) {
@@ -995,6 +1194,10 @@ document.addEventListener('keydown', function(e) {
         e.preventDefault();
         limparCarrinho();
     }
+    else if (e.key === 'F6') {
+        e.preventDefault();
+        abrirHistoricoLocal();
+    }
     else if (e.key === 'F7') {
         e.preventDefault();
         if (modalResumo.classList.contains('hidden')) abrirResumo();
@@ -1002,22 +1205,25 @@ document.addEventListener('keydown', function(e) {
     }
     else if (e.key === 'F8') {
         e.preventDefault();
+        if (!modalResumo.classList.contains('hidden')) imprimirOrcamento();
+    }
+    else if (e.key === 'F9') {
+        e.preventDefault();
         if (!modalResumo.classList.contains('hidden')) copiarMensagemPedido();
+        else if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_centro, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'centro');
     }
     else if (e.key === 'F5') {
         e.preventDefault();
         if (produtoEmDestaque) forcarAtualizacao(produtoEmDestaque.id);
-    }
-    else if (e.key === 'F9') {
-        e.preventDefault();
-        if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_centro, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'centro');
     }
     else if (e.key === 'F10') {
         e.preventDefault();
         if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_vila, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'vila');
     }
     else if (e.key === 'Escape') {
-        if (!modalResumo.classList.contains('hidden')) {
+        if (!document.getElementById('modal-historico-vendas').classList.contains('hidden')) {
+            fecharHistoricoLocal();
+        } else if (!modalResumo.classList.contains('hidden')) {
             fecharResumo();
         } else {
             autoList.classList.add('hidden');

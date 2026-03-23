@@ -38,25 +38,25 @@
                 <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest">Vila Elias → Centro (Cockpit de Ação)</p>
             </div>
             <div class="flex gap-4 esconder-na-impressao">
-                <button onclick="gerarCupom()" class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-blue-700 transition-all">🖨️ Imprimir Separação</button>
+                <button onclick="gerarCupom()" class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-blue-700 transition-all" title="Atalho F7">🖨️ Imprimir [F7]</button>
                 <a href="/" class="bg-slate-800 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-black transition-all">Voltar</a>
             </div>
         </header>
 
         <!-- Filtros Rápidos -->
         <div class="flex gap-4 mb-6 esconder-na-impressao items-center">
-            <button onclick="renderizarTabela('TODOS')" class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-black text-slate-600 hover:bg-slate-50 transition-colors">📋 Ver Todos</button>
-            <button onclick="renderizarTabela('TRANSFERIR')" class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-black text-blue-600 hover:bg-blue-50 transition-colors">🚚 Somente Transferências</button>
-            <button onclick="renderizarTabela('COMPRAR')" class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-black text-red-600 hover:bg-red-50 transition-colors">🛒 Somente Compras</button>
-            <button onclick="renderizarTabela('PRIORIDADE')" class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-black text-amber-600 hover:bg-amber-50 transition-colors">⚠️ Requer Máximo</button>
-            <button onclick="renderizarTabela('SEPARANDO')" class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-black text-yellow-600 hover:bg-yellow-50 transition-colors">🟡 Em Separação</button>
+            <button data-filtro="TODOS" data-active="bg-slate-700 text-white border-slate-800" data-inactive="bg-white text-slate-600 border-slate-200 hover:bg-slate-50" onclick="renderizarTabela('TODOS')" class="filter-btn px-4 py-2 rounded-xl shadow-sm border text-xs font-black transition-colors bg-white text-slate-600 border-slate-200 hover:bg-slate-50" title="Atalho F4">📋 Todos [F4]</button>
+            <button data-filtro="TRANSFERIR" data-active="bg-blue-600 text-white border-blue-700" data-inactive="bg-white text-blue-600 border-slate-200 hover:bg-blue-50" onclick="renderizarTabela('TRANSFERIR')" class="filter-btn px-5 py-2 rounded-xl shadow-sm border text-xs font-black transition-colors bg-white text-blue-600 border-slate-200 hover:bg-blue-50">🚚 Somente Transferências</button>
+            <button data-filtro="COMPRAR" data-active="bg-red-600 text-white border-red-700" data-inactive="bg-white text-red-600 border-slate-200 hover:bg-red-50" onclick="renderizarTabela('COMPRAR')" class="filter-btn px-5 py-2 rounded-xl shadow-sm border text-xs font-black transition-colors bg-white text-red-600 border-slate-200 hover:bg-red-50">🛒 Somente Compras</button>
+            <button data-filtro="PRIORIDADE" data-active="bg-amber-500 text-white border-amber-600" data-inactive="bg-white text-amber-600 border-slate-200 hover:bg-amber-50" onclick="renderizarTabela('PRIORIDADE')" class="filter-btn px-5 py-2 rounded-xl shadow-sm border text-xs font-black transition-colors bg-white text-amber-600 border-slate-200 hover:bg-amber-50">⚠️ Requer Máximo</button>
+            <button data-filtro="SEPARANDO" data-active="bg-yellow-500 text-white border-yellow-600" data-inactive="bg-white text-yellow-600 border-slate-200 hover:bg-yellow-50" onclick="renderizarTabela('SEPARANDO')" class="filter-btn px-5 py-2 rounded-xl shadow-sm border text-xs font-black transition-colors bg-white text-yellow-600 border-slate-200 hover:bg-yellow-50">🟡 Em Separação</button>
             
             <div class="w-px h-8 bg-slate-300 mx-2"></div>
-            <button onclick="adicionarTransferenciaManual()" class="px-5 py-2 bg-blue-600 rounded-xl shadow-sm border border-blue-700 text-xs font-black text-white hover:bg-blue-700 transition-colors">📦 Transferência Manual</button>
-            <button onclick="adicionarRegraNova()" class="px-5 py-2 bg-green-600 rounded-xl shadow-sm border border-green-700 text-xs font-black text-white hover:bg-green-700 transition-colors">➕ Adicionar Regra de Produto</button>
-            <button onclick="document.getElementById('arquivo-csv').click()" class="px-5 py-2 bg-emerald-600 rounded-xl shadow-sm border border-emerald-700 text-xs font-black text-white hover:bg-emerald-700 transition-colors">📁 Importar CSV</button>
-            <button onclick="atualizarMedias()" class="px-4 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-[10px] font-bold text-slate-500 hover:bg-slate-50 transition-colors flex items-center gap-1.5 ml-auto">
-                🔄 Vendas (30d) <span id="data-ultima-atualizacao" class="bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded text-[9px] font-medium">Carregando...</span>
+            <button onclick="adicionarTransferenciaManual()" class="px-4 py-2 bg-blue-600 rounded-xl shadow-sm border border-blue-700 text-xs font-black text-white hover:bg-blue-700 transition-colors" title="Atalho F3">📦 Manual [F3]</button>
+            <button onclick="adicionarRegraNova()" class="px-4 py-2 bg-green-600 rounded-xl shadow-sm border border-green-700 text-xs font-black text-white hover:bg-green-700 transition-colors" title="Atalho F2">➕ Regra [F2]</button>
+            <button onclick="document.getElementById('arquivo-csv').click()" class="px-4 py-2 bg-emerald-600 rounded-xl shadow-sm border border-emerald-700 text-xs font-black text-white hover:bg-emerald-700 transition-colors" title="Atalho F8">📁 CSV [F8]</button>
+            <button onclick="atualizarMedias()" class="px-4 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-[10px] font-bold text-slate-500 hover:bg-slate-50 transition-colors flex items-center gap-1.5 ml-auto" title="Atalho F5">
+                🔄 Vendas (30d) [F5] <span id="data-ultima-atualizacao" class="bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded text-[9px] font-medium">Carregando...</span>
             </button>
             <!-- Input oculto para o arquivo -->
             <input type="file" id="arquivo-csv" accept=".csv" class="hidden" onchange="processarPlanilha(this)">
@@ -200,6 +200,20 @@
                 if (filtro === 'SEPARANDO' && item.status === 'SEPARANDO') return true;
                 if (filtro === 'TODOS' && item.status === 'MANUAL') return true;
                 return false;
+            });
+
+            // Atualiza o visual dos botões de filtro na tela
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                const btnFiltro = btn.getAttribute('data-filtro');
+                const activeCls = btn.getAttribute('data-active').split(' ');
+                const inactiveCls = btn.getAttribute('data-inactive').split(' ');
+                if (btnFiltro === filtro) {
+                    btn.classList.remove(...inactiveCls);
+                    btn.classList.add(...activeCls);
+                } else {
+                    btn.classList.remove(...activeCls);
+                    btn.classList.add(...inactiveCls);
+                }
             });
 
             if (filtrados.length === 0) {
@@ -671,6 +685,35 @@
             } catch (e) { if(e.message !== "Troca de PIN necessária") alert("Erro."); }
             input.value = ""; // Limpa o input
         }
+
+        // --- ATALHOS DE TECLADO ---
+        document.addEventListener('keydown', function(e) {
+            // Se houver algum modal aberto, permitimos apenas o uso do ESC para fechar as caixinhas
+            if (!document.getElementById('backdrop').classList.contains('hidden')) {
+                if (e.key === 'Escape') {
+                    ['modal-pin', 'modal-troca-pin', 'modal-regra', 'modal-ajuste'].forEach(id => {
+                        if (!document.getElementById(id).classList.contains('hidden')) {
+                            fecharModal(id, false);
+                        }
+                    });
+                }
+                return;
+            }
+
+            if (e.key === 'F2') {
+                e.preventDefault(); adicionarRegraNova();
+            } else if (e.key === 'F3') {
+                e.preventDefault(); adicionarTransferenciaManual();
+            } else if (e.key === 'F4') {
+                e.preventDefault(); renderizarTabela('TODOS');
+            } else if (e.key === 'F5') {
+                e.preventDefault(); atualizarMedias();
+            } else if (e.key === 'F7') {
+                e.preventDefault(); gerarCupom();
+            } else if (e.key === 'F8') {
+                e.preventDefault(); document.getElementById('arquivo-csv').click();
+            }
+        });
     </script>
 </body>
 </html>

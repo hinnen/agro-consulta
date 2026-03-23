@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.core.cache import cache
 from django.views.decorators.http import require_GET, require_POST
-from base.models import Empresa, PerfilUsuario
+from base.models import Empresa, PerfilUsuario, IntegracaoERP
 from estoque.models import AjusteRapidoEstoque
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 
@@ -27,6 +27,54 @@ def normalizar_termo(txt):
     return ''.join(c for c in unicodedata.normalize('NFD', txt)
                   if unicodedata.category(c) != 'Mn').lower()
 
+def _formatar_url_imagem(img_str):
+    img_str = str(img_str or "").strip()
+    if not img_str or img_str == "None": return ""
+    
+    # Se a imagem for um código Base64 puro
+    if img_str.startswith("data:image"):
+        return img_str
+    if len(img_str) > 1000 and not img_str.startswith("http"):
+        return "data:image/jpeg;base64," + img_str
+        
+    base_url = "https://cw.vendaerp.com.br"
+    try:
+        integ = IntegracaoERP.objects.filter(ativo=True).first()
+        if integ and integ.url_base:
+            base_url = integ.url_base.rstrip("/")
+    except: pass
+
+    if img_str.startswith("Uploads/"):
+        return base_url + "/" + img_str
+    elif img_str.startswith("/Uploads/"):
+        return base_url + img_str
+    elif not img_str.startswith("http"):
+        return base_url + "/Uploads/Produtos/" + img_str.lstrip("/")
+    return img_str
+
+def _extrair_imagem_produto(p, mapa_imagens, pid):
+    # 1. Tenta buscar no mapa usando ID, Código ou CódigoNFe
+    if mapa_imagens.get(pid): return mapa_imagens.get(pid)
+    if p.get("Codigo") and mapa_imagens.get(str(p.get("Codigo"))): return mapa_imagens.get(str(p.get("Codigo")))
+    if p.get("CodigoNFe") and mapa_imagens.get(str(p.get("CodigoNFe"))): return mapa_imagens.get(str(p.get("CodigoNFe")))
+    
+    # 2. Varredura nos campos diretos do produto
+    for c in ["UrlImagem", "Imagem", "CaminhoImagem", "Foto", "Url", "UrlImagemPrincipal", "ImagemPrincipal", "ImagemBase64", "FotoBase64"]:
+        val = p.get(c)
+        if val and isinstance(val, str) and len(val.strip()) > 2: return val
+        
+    # 3. Varredura em arrays (Lista de imagens do Venda ERP)
+    for c in ["Imagens", "Fotos", "ImagemProduto", "ProdutoImagem"]:
+        arr = p.get(c)
+        if isinstance(arr, list) and len(arr) > 0:
+            i = arr[0]
+            if isinstance(i, dict):
+                for sub_c in ["Url", "UrlImagem", "Caminho", "Imagem", "Path", "ImagemBase64", "Base64"]:
+                    val = i.get(sub_c)
+                    if val and isinstance(val, str) and len(val.strip()) > 2: return val
+            elif isinstance(i, str): return i
+    return ""
+
 # --- PÁGINAS ---
 def consulta_produtos(request):
     return render(request, "produtos/consulta_produtos.html")
@@ -46,7 +94,7 @@ def api_buscar_produtos(request):
     if not termo_original:
         return JsonResponse({"produtos": []})
 
-    cache_key = f"busca_prod_{normalizar_termo(termo_original).replace(' ', '_')}"
+    cache_key = f"busca_prod_v9_{normalizar_termo(termo_original).replace(' ', '_')}"
     cached_data = cache.get(cache_key)
     if cached_data: return JsonResponse(cached_data)
 
@@ -92,6 +140,31 @@ def api_buscar_produtos(request):
         for aj in ajustes_bd:
             if (aj.produto_externo_id, aj.deposito) not in ajustes_map:
                 ajustes_map[(aj.produto_externo_id, aj.deposito)] = aj
+                
+        # Busca imagens separadas e decodifica o ObjectId do Venda ERP
+        from bson.objectid import ObjectId
+        obj_ids = []
+        for pid in p_ids:
+            if len(pid) == 24:
+                try: obj_ids.append(ObjectId(pid))
+                except: pass
+                
+        query_img = {"$or": [{"ProdutoID": {"$in": p_ids}}]}
+        if obj_ids: query_img["$or"].append({"ProdutoID": {"$in": obj_ids}})
+        cods = [str(x.get("Codigo")) for x in produtos if x.get("Codigo")]
+        if cods: query_img["$or"].append({"ProdutoID": {"$in": cods}})
+
+        mapa_imagens = {}
+        try:
+            for img in db["DtoImagemProduto"].find(query_img):
+                val = img.get("Url") or img.get("UrlImagem") or img.get("Imagem") or img.get("ImagemBase64") or img.get("Base64") or ""
+                if val: mapa_imagens[str(img.get("ProdutoID"))] = val
+        except: pass
+        try:
+            for img in db["DtoProdutoImagem"].find(query_img):
+                val = img.get("Url") or img.get("UrlImagem") or img.get("Imagem") or img.get("ImagemBase64") or img.get("Base64") or ""
+                if val and str(img.get("ProdutoID")) not in mapa_imagens: mapa_imagens[str(img.get("ProdutoID"))] = val
+        except: pass
 
         res = []
         for p in produtos:
@@ -108,11 +181,13 @@ def api_buscar_produtos(request):
             aj_v = ajustes_map.get((pid, 'vila'))
             saldo_f_c = float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia)) if aj_c else s_c
             saldo_f_v = float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia)) if aj_v else s_v
+            img_url = _formatar_url_imagem(_extrair_imagem_produto(p, mapa_imagens, pid))
             
             res.append({
                 "id": pid, "nome": p.get("Nome"), "marca": p.get("Marca") or "",
                 "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "", 
                 "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
+                "imagem": img_url,
                 "saldo_centro": round(saldo_f_c, 2), "saldo_vila": round(saldo_f_v, 2)
             })
         
@@ -123,7 +198,7 @@ def api_buscar_produtos(request):
 
 @require_GET
 def api_todos_produtos_local(request):
-    cache_key = "carga_inicial_produtos_todos"
+    cache_key = "carga_inicial_produtos_todos_v9"
     cached_data = cache.get(cache_key)
     if cached_data: return JsonResponse(cached_data)
 
@@ -134,7 +209,8 @@ def api_todos_produtos_local(request):
         query = {"CadastroInativo": {"$ne": True}}
         projecao = {
             "Nome": 1, "Marca": 1, "CodigoNFe": 1, "Codigo": 1, 
-            "CodigoBarras": 1, "EAN_NFe": 1, "ValorVenda": 1, "PrecoVenda": 1
+            "CodigoBarras": 1, "EAN_NFe": 1, "ValorVenda": 1, "PrecoVenda": 1, 
+            "UrlImagem": 1, "Imagem": 1, "Imagens": 1, "Fotos": 1, "CaminhoImagem": 1
         }
         produtos = list(db[client.col_p].find(query, projecao))
         p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
@@ -149,6 +225,31 @@ def api_todos_produtos_local(request):
         for aj in ajustes_bd:
             if (aj.produto_externo_id, aj.deposito) not in ajustes_map:
                 ajustes_map[(aj.produto_externo_id, aj.deposito)] = aj
+                
+        # Busca imagens em lote decodificando
+        from bson.objectid import ObjectId
+        obj_ids = []
+        for pid in p_ids:
+            if len(pid) == 24:
+                try: obj_ids.append(ObjectId(pid))
+                except: pass
+                
+        query_img = {"$or": [{"ProdutoID": {"$in": p_ids}}]}
+        if obj_ids: query_img["$or"].append({"ProdutoID": {"$in": obj_ids}})
+        cods = [str(x.get("Codigo")) for x in produtos if x.get("Codigo")]
+        if cods: query_img["$or"].append({"ProdutoID": {"$in": cods}})
+
+        mapa_imagens = {}
+        try:
+            for img in db["DtoImagemProduto"].find(query_img):
+                val = img.get("Url") or img.get("UrlImagem") or img.get("Imagem") or img.get("ImagemBase64") or img.get("Base64") or ""
+                if val: mapa_imagens[str(img.get("ProdutoID"))] = val
+        except: pass
+        try:
+            for img in db["DtoProdutoImagem"].find(query_img):
+                val = img.get("Url") or img.get("UrlImagem") or img.get("Imagem") or img.get("ImagemBase64") or img.get("Base64") or ""
+                if val and str(img.get("ProdutoID")) not in mapa_imagens: mapa_imagens[str(img.get("ProdutoID"))] = val
+        except: pass
 
         est_map = {}
         for est in estoques:
@@ -175,6 +276,7 @@ def api_todos_produtos_local(request):
             cod_barras = p.get("CodigoBarras") or p.get("EAN_NFe") or ""
             
             busca_txt = normalizar_termo(f"{nome} {marca} {codigo_nfe} {cod_barras}")
+            img_url = _formatar_url_imagem(_extrair_imagem_produto(p, mapa_imagens, pid))
 
             res.append({
                 "id": pid, 
@@ -183,6 +285,7 @@ def api_todos_produtos_local(request):
                 "codigo_nfe": codigo_nfe, 
                 "codigo_barras": cod_barras,
                 "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
+                "imagem": img_url,
                 "saldo_centro": round(saldo_f_c, 2), 
                 "saldo_vila": round(saldo_f_v, 2),
                 "busca_texto": busca_txt
@@ -226,6 +329,17 @@ def api_buscar_produto_id(request, id):
         aj_v = ajustes_map.get('vila')
         saldo_f_c = float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia)) if aj_c else s_c
         saldo_f_v = float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia)) if aj_v else s_v
+        
+        mapa_img = {}
+        query_ids = [id]
+        if p.get("Codigo"): query_ids.append(str(p.get("Codigo")))
+        try:
+            for img in db["DtoImagemProduto"].find({"ProdutoID": {"$in": query_ids}}):
+                val = img.get("Url") or img.get("UrlImagem") or img.get("Imagem") or img.get("ImagemBase64") or img.get("Base64") or ""
+                if val: mapa_img[str(img.get("ProdutoID"))] = val
+        except: pass
+        
+        img_url = _formatar_url_imagem(_extrair_imagem_produto(p, mapa_img, id))
 
         res = {
             "id": id, 
@@ -233,6 +347,7 @@ def api_buscar_produto_id(request, id):
             "marca": p.get("Marca") or "",
             "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "", 
             "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
+            "imagem": img_url,
             "saldo_centro": round(saldo_f_c, 2), 
             "saldo_vila": round(saldo_f_v, 2)
         }
@@ -244,7 +359,7 @@ def api_autocomplete_produtos(request):
     termo = request.GET.get("q", "").strip()
     termo_norm = normalizar_termo(termo)
     
-    cache_key = f"auto_prod_{termo_norm.replace(' ', '_')}"
+    cache_key = f"auto_prod_v9_{termo_norm.replace(' ', '_')}"
     cached_data = cache.get(cache_key)
     if cached_data: return JsonResponse(cached_data)
 
@@ -266,8 +381,15 @@ def api_autocomplete_produtos(request):
 
         query = {"$and": condicoes_palavras, "CadastroInativo": {"$ne": True}}
 
-        sugestoes = list(db[client.col_p].find(query, {"Nome": 1, "Marca": 1, "ValorVenda": 1, "PrecoVenda": 1, "Id": 1}).limit(8))
-        res = [{"id": str(s.get("Id") or s["_id"]), "nome": s.get("Nome"), "marca": s.get("Marca") or "", "preco_venda": float(s.get("PrecoVenda") or s.get("ValorVenda") or 0)} for s in sugestoes]
+        projecao = {"Nome": 1, "Marca": 1, "ValorVenda": 1, "PrecoVenda": 1, "Id": 1, "UrlImagem": 1, "Imagem": 1, "Imagens": 1, "Fotos": 1}
+        sugestoes = list(db[client.col_p].find(query, projecao).limit(8))
+        res = []
+        for s in sugestoes:
+            res.append({
+                "id": str(s.get("Id") or s["_id"]), "nome": s.get("Nome"), "marca": s.get("Marca") or "", 
+                "preco_venda": float(s.get("PrecoVenda") or s.get("ValorVenda") or 0), 
+                "imagem": _formatar_url_imagem(_extrair_imagem_produto(s, {}, str(s.get("Id") or s["_id"])))
+            })
         cache.set(cache_key, {"sugestoes": res}, timeout=60)
         return JsonResponse({"sugestoes": res})
     except Exception: return JsonResponse({"sugestoes": []})
