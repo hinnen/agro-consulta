@@ -781,17 +781,6 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false)
         sugestoesAtuais = produtosEncontrados;
         renderizarSugestoes();
 
-        if (modo === 'scanner' && produtosEncontrados.length === 1) {
-            const produto = produtosEncontrados[0];
-            flashScanner();
-            mostrarBannerScanner(`✅ Scanner • ${quantidadeRapida}x ${produto.nome}`);
-            renderDestaque(produto);
-            addCarrinho(produto.id, produto.nome, produto.preco_venda, quantidadeRapida);
-            mostrarStatusBusca(`Adicionado: ${quantidadeRapida}x ${produto.nome}`, 'emerald');
-            setTimeout(esconderStatusBusca, 1500);
-            return;
-        }
-
         if (produtosEncontrados.length === 1) {
             renderDestaque(produtosEncontrados[0]);
             similaresContainer.innerHTML = '';
@@ -818,7 +807,7 @@ inputBusca.addEventListener('input', function(e) {
     ultimoInputTime = agora;
 
     const textoLimpo = removerSufixoQuantidade(q);
-    const pareceCodigo = /^[0-9A-Za-z\-]+$/.test(textoLimpo) && textoLimpo.length >= 5;
+    const pareceCodigo = /^\d{6,}$/.test(textoLimpo); // Apenas números longos (Código de Barras EAN)
     const digitacaoMuitoRapida = diff < 35;
 
     clearTimeout(scannerTimer);
