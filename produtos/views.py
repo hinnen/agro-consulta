@@ -2,6 +2,7 @@ import json, unicodedata, re
 from decimal import Decimal
 from django.shortcuts import render
 from django.http import JsonResponse
+from django.core.cache import cache
 from django.views.decorators.http import require_GET, require_POST
 from base.models import Empresa, PerfilUsuario
 from estoque.models import AjusteRapidoEstoque
@@ -38,6 +39,11 @@ def sugestao_transferencia(request):
 @require_GET
 def api_buscar_produtos(request):
     termo_original = request.GET.get("q", "").strip()
+
+    cache_key = f"busca_prod_{normalizar_termo(termo_original).replace(' ', '_')}"
+    cached_data = cache.get(cache_key)
+    if cached_data: return JsonResponse(cached_data)
+
     client, db = obter_conexao_mongo()
     if db is None: return JsonResponse({"erro": "Erro conexao"}, status=500)
 
@@ -46,16 +52,15 @@ def api_buscar_produtos(request):
     palavras = termo_norm.split()
     
     try:
-        regex_parts = [f"(?=.*{re.escape(p)})" for p in palavras]
-        regex_final = "".join(regex_parts) + ".*"
-
+        # Otimização Extrema: Busca no índice de array (NomeTokens) ou buscas baseadas em prefixo
         query = {"$or": [
-            {"BuscaTexto": {"$regex": regex_final, "$options": "i"}},
-            {"Nome": {"$regex": regex_final, "$options": "i"}},
-            {"CodigoNFe": {"$regex": termo_limpo, "$options": "i"}},
-            {"Codigo": {"$regex": termo_limpo, "$options": "i"}},
-            {"CodigoBarras": {"$regex": termo_limpo, "$options": "i"}},
-            {"EAN_NFe": {"$regex": termo_limpo, "$options": "i"}}
+            {"NomeTokens": {"$all": palavras}},
+            {"CodigoNFe": termo_limpo},
+            {"Codigo": termo_limpo},
+            {"CodigoNFe": {"$regex": f"^{termo_limpo}", "$options": "i"}},
+            {"Codigo": {"$regex": f"^{termo_limpo}", "$options": "i"}},
+            {"CodigoBarras": termo_limpo},
+            {"EAN_NFe": termo_limpo}
         ], "CadastroInativo": {"$ne": True}}
 
         produtos = list(db[client.col_p].find(query).limit(15))
@@ -91,19 +96,29 @@ def api_buscar_produtos(request):
                 "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
                 "saldo_centro": round(saldo_f_c, 2), "saldo_vila": round(saldo_f_v, 2)
             })
-        return JsonResponse({"produtos": res})
+        
+        resultado_final = {"produtos": res}
+        cache.set(cache_key, resultado_final, timeout=60) # Salva por 60 seg na RAM
+        return JsonResponse(resultado_final)
     except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
 
 @require_GET
 def api_autocomplete_produtos(request):
     termo = request.GET.get("q", "").strip()
+    termo_norm = normalizar_termo(termo)
+    
+    cache_key = f"auto_prod_{termo_norm.replace(' ', '_')}"
+    cached_data = cache.get(cache_key)
+    if cached_data: return JsonResponse(cached_data)
+
     client, db = obter_conexao_mongo()
     if len(termo) < 2 or db is None: return JsonResponse({"sugestoes": []})
-    termo_norm = normalizar_termo(termo)
     try:
-        query = {"$or": [{"BuscaTexto": {"$regex": f"^{termo_norm}", "$options": "i"}}, {"Nome": {"$regex": f"^{termo_norm}", "$options": "i"}}], "CadastroInativo": {"$ne": True}}
+        # BuscaTexto já está normalizado, dispensando o "$options": "i" o que permite uso do Índice B-Tree
+        query = {"$or": [{"BuscaTexto": {"$regex": f"^{termo_norm}"}}, {"NomeNormalizado": {"$regex": f"^{termo_norm}"}}], "CadastroInativo": {"$ne": True}}
         sugestoes = list(db[client.col_p].find(query, {"Nome": 1, "Marca": 1, "ValorVenda": 1, "PrecoVenda": 1, "Id": 1}).limit(8))
         res = [{"id": str(s.get("Id") or s["_id"]), "nome": s.get("Nome"), "marca": s.get("Marca") or "", "preco_venda": float(s.get("PrecoVenda") or s.get("ValorVenda") or 0)} for s in sugestoes]
+        cache.set(cache_key, {"sugestoes": res}, timeout=60)
         return JsonResponse({"sugestoes": res})
     except Exception: return JsonResponse({"sugestoes": []})
 
@@ -126,6 +141,11 @@ def api_ajustar_estoque(request):
 @require_GET
 def api_buscar_clientes(request):
     termo = request.GET.get("q", "").strip()
+
+    cache_key = f"busca_cli_{termo.replace(' ', '_')}"
+    cached_data = cache.get(cache_key)
+    if cached_data: return JsonResponse(cached_data)
+
     client, db = obter_conexao_mongo()
     if not termo or db is None: return JsonResponse({"clientes": []})
     try:
@@ -148,7 +168,10 @@ def api_buscar_clientes(request):
                     "documento": c.get("CpfCnpj") or c.get("Cpf") or c.get("Cnpj") or "Sem Doc",
                     "telefone": c.get("Celular") or c.get("Telefone") or c.get("Fone") or ""
                 })
-        return JsonResponse({"clientes": res})
+        
+        resultado_final = {"clientes": res}
+        cache.set(cache_key, resultado_final, timeout=120) # Clientes salvos por 2 min na RAM
+        return JsonResponse(resultado_final)
     except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
 
 @require_POST
