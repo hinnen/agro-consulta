@@ -300,6 +300,10 @@ def api_importar_planilha_transferencia(request):
         client = VendaERPMongoClient()
         sucesso = 0
         
+        # 1. Lê a planilha inteira e separa os códigos
+        linhas_validas = []
+        codigos_buscados = set()
+
         for row in reader:
             row_norm = {k.strip().lower(): str(v).strip() for k, v in row.items() if k and v}
             
@@ -311,31 +315,47 @@ def api_importar_planilha_transferencia(request):
             if not codigo or not p_seg:
                 continue
                 
-            # Busca o produto no Mongo para pegar o ID correto e o nome
-            p = client.db[client.col_p].find_one({
-                "$or": [
-                    {"CodigoNFe": codigo},
-                    {"Codigo": codigo},
-                    {"CodigoBarras": codigo},
-                    {"EAN_NFe": codigo}
-                ]
-            })
-            
-            if not p:
-                # Tenta por _id caso a pessoa passe a chave longa do mongo
-                try:
-                    from bson.objectid import ObjectId
-                    p = client.db[client.col_p].find_one({"_id": ObjectId(codigo)})
-                except: pass
+            linhas_validas.append({'codigo': codigo, 'p_seg': p_seg, 'p_max': p_max})
+            codigos_buscados.add(codigo)
 
+        # 2. Faz UMA ÚNICA viagem ao Banco de Dados buscando todos os códigos juntos!
+        mapa_produtos = {}
+        if codigos_buscados:
+            from bson.objectid import ObjectId
+            obj_ids = []
+            for c in codigos_buscados:
+                if len(c) == 24:
+                    try: obj_ids.append(ObjectId(c))
+                    except: pass
+            
+            query = {"$or": [
+                {"CodigoNFe": {"$in": list(codigos_buscados)}},
+                {"Codigo": {"$in": list(codigos_buscados)}},
+                {"CodigoBarras": {"$in": list(codigos_buscados)}},
+                {"EAN_NFe": {"$in": list(codigos_buscados)}}
+            ]}
+            if obj_ids: query["$or"].append({"_id": {"$in": obj_ids}})
+            
+            produtos_mongo = client.db[client.col_p].find(query, {"_id": 1, "Id": 1, "Nome": 1, "CodigoNFe": 1, "Codigo": 1, "CodigoBarras": 1, "EAN_NFe": 1})
+            
+            for p in produtos_mongo:
+                pid = str(p.get('_id') or p.get('Id'))
+                info = {"id": pid, "nome": p.get('Nome', f"Produto {pid}")}
+                if p.get("CodigoNFe"): mapa_produtos[str(p.get("CodigoNFe"))] = info
+                if p.get("Codigo"): mapa_produtos[str(p.get("Codigo"))] = info
+                if p.get("CodigoBarras"): mapa_produtos[str(p.get("CodigoBarras"))] = info
+                if p.get("EAN_NFe"): mapa_produtos[str(p.get("EAN_NFe"))] = info
+                mapa_produtos[pid] = info
+
+        # 3. Salva no Cockpit na velocidade da luz
+        for linha in linhas_validas:
+            p = mapa_produtos.get(linha['codigo'])
             if p:
-                produto_id = str(p.get('_id') or p.get('Id'))
-                nome_produto = p.get('Nome', f"Produto {codigo}")
                 
-                config, _ = ConfiguracaoTransferencia.objects.get_or_create(produto_externo_id=produto_id)
-                config.nome_produto = nome_produto
-                config.capacidade_maxima = _normalizar_decimal(p_max)
-                config.estoque_seguranca = _normalizar_decimal(p_seg)
+                config, _ = ConfiguracaoTransferencia.objects.get_or_create(produto_externo_id=p['id'])
+                config.nome_produto = p['nome']
+                config.capacidade_maxima = _normalizar_decimal(linha['p_max'])
+                config.estoque_seguranca = _normalizar_decimal(linha['p_seg'])
                 config.save()
                 sucesso += 1
 
