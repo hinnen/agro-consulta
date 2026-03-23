@@ -7,6 +7,7 @@ from django.core.cache import cache
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET, require_POST
+from django.utils.timezone import localtime
 
 from base.models import Empresa, Loja, PerfilUsuario
 from estoque.models import AjusteRapidoEstoque, ConfiguracaoTransferencia, PedidoTransferencia
@@ -430,6 +431,7 @@ def api_sugestoes_transferencia(request):
         # Pegar Lotes de Separação
         pedidos_sep = PedidoTransferencia.objects.all()
         mapa_pedidos = {str(p.produto_externo_id): p for p in pedidos_sep}
+        ids_pedidos = list(mapa_pedidos.keys())
 
         # 2. Descobrir quais produtos (não configurados) têm saldo na Vila Elias (Prioridade Alta)
         query_vila = {"Saldo": {"$gt": 0}}
@@ -442,7 +444,7 @@ def api_sugestoes_transferencia(request):
         ids_com_saldo_vila = [str(e.get("ProdutoID")) for e in estoques_vila if e.get("ProdutoID")]
 
         # 3. Unir tudo (Só vamos baixar do ERP o que realmente importa e ignorar o resto)
-        ids_alvo = list(set(ids_configurados + ids_com_saldo_vila))
+        ids_alvo = list(set(ids_configurados + ids_com_saldo_vila + ids_pedidos))
 
         if not ids_alvo:
             return JsonResponse({'sugestoes': []})
@@ -544,6 +546,7 @@ def api_sugestoes_transferencia(request):
                         
                         if pedido:
                             status = "SEPARANDO"
+                            qtde_transferir = pedido.quantidade
                         else:
                             if qtde_transferir > 0 and qtde_comprar > 0: status = "TRANSFERIR_COMPRAR"
                             elif qtde_transferir > 0: status = "TRANSFERIR"
@@ -555,12 +558,14 @@ def api_sugestoes_transferencia(request):
                             qtde_comprar = qtde_necessaria - qtde_transferir
                             if pedido:
                                 status = "SEPARANDO"
+                                qtde_transferir = pedido.quantidade
                             else:
                                 status = "COMPRAR" if qtde_transferir == 0 else ("TRANSFERIR" if qtde_comprar == 0 else "TRANSFERIR_COMPRAR")
                 else:
                     # Auto-limpeza do pedido caso o saldo tenha subido no ERP
                     if pedido:
                         pedido.delete()
+                        status = "OK"
 
                 sugestoes.append({
                     "produto_id": pid, "codigo": p_info["codigo"], "codigo_barras": p_info["codigo_barras"],
@@ -571,18 +576,29 @@ def api_sugestoes_transferencia(request):
                     "capacidade_minima": float(regra.capacidade_minima), "configurado": True, "prioridade": 3 if status != "SEPARANDO" else 4
                 })
             else:
-                # PRODUTO NÃO CONFIGURADO (Prioridade 1 = Alta)
+                # PRODUTO NÃO CONFIGURADO
+                if pedido:
+                    status = "SEPARANDO"
+                    qtde_transferir = pedido.quantidade
+                else:
+                    status = "ALTA" if saldo_vila > 0 else "MEDIA"
+                
                 sugestoes.append({
                     "produto_id": pid, "codigo": p_info["codigo"], "codigo_barras": p_info["codigo_barras"],
                     "nome": p_info["nome"],
                     "saldo_centro": float(saldo_centro), "saldo_vila": float(saldo_vila),
-                    "status": "ALTA", "qtde_transferir": 0.0, "qtde_comprar": 0.0,
-                    "configurado": False, "prioridade": 1
+                    "status": status, "qtde_transferir": float(qtde_transferir), "qtde_comprar": 0.0,
+                    "configurado": False, "prioridade": 4 if status == "SEPARANDO" else 1
                 })
 
         # Ordenação mágica: Prioridade 1 (Alta) -> 3 (Configurados), e dentro delas em ordem alfabética.
         sugestoes.sort(key=lambda x: (x["prioridade"], x["nome"]))
 
-        return JsonResponse({'sugestoes': sugestoes})
+        ultima_atualizacao = "Nunca"
+        ultima_regra = ConfiguracaoTransferencia.objects.order_by('-atualizado_em').first()
+        if ultima_regra and ultima_regra.atualizado_em:
+            ultima_atualizacao = localtime(ultima_regra.atualizado_em).strftime("%d/%m às %H:%M")
+
+        return JsonResponse({'sugestoes': sugestoes, 'ultima_atualizacao': ultima_atualizacao})
     except Exception as exc:
         return JsonResponse({'ok': False, 'erro': f'Erro: {exc}'}, status=500)

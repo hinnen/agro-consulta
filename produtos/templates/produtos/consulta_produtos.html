@@ -69,8 +69,9 @@
         <div class="hidden lg:flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
             <span>F2 <b class="text-slate-600">Produto</b></span> • 
             <span>F3 <b class="text-slate-600">Cliente</b></span> • 
-            <span>F4 <b class="text-slate-600">Limpar</b></span> • 
-            <span>F7 <b class="text-slate-600">Enviar</b></span>
+            <span>F4 <b class="text-slate-600">Limpar</b></span> •
+            <span>F5 <b class="text-slate-600">Sincronizar</b></span> •
+            <span>F7 <b class="text-slate-600">Zap</b></span>
         </div>
 
         <div class="flex gap-4 text-[10px] font-black uppercase">
@@ -376,37 +377,48 @@ function renderDestaque(p) {
     const total = (Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(2);
 
     destaqueContainer.innerHTML = `
-        <div class="bg-white p-2.5 rounded-lg border-l-4 border-l-emerald-500 border-y border-r border-slate-200 flex flex-col md:flex-row justify-between items-center gap-2 shadow-sm animate-in fade-in duration-300">
-            <div class="flex-1 w-full cursor-pointer" onclick="adicionarProdutoComQuantidade('${escapeHtml(p.id)}', '${String(p.nome).replace(/'/g, "\\'")}', ${Number(p.preco_venda || 0)}, quantidadeRapida)">
-                <div class="flex items-center gap-2 mb-0.5">
-                    <span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Destaque [Enter]</span>
-                    ${quantidadeRapida > 1 ? `<span class="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[8px] font-black uppercase">Qtd ${quantidadeRapida}</span>` : ``}
-                    <span class="text-slate-400 font-bold uppercase text-[9px]">${escapeHtml(p.marca || '')}</span>
+        <div class="bg-white p-3 md:p-4 rounded-2xl border border-emerald-500/30 shadow-md flex flex-col md:flex-row items-center gap-4 animate-in fade-in duration-300 relative overflow-hidden group/card">
+            <!-- Decorador de fundo para preencher espaço vazio -->
+            <div class="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-emerald-50/50 to-transparent pointer-events-none"></div>
+
+            <!-- Detalhes do Produto -->
+            <div class="flex-1 w-full min-w-0 z-10 cursor-pointer" onclick="adicionarProdutoComQuantidade('${escapeHtml(p.id)}', '${String(p.nome).replace(/'/g, "\\'")}', ${Number(p.preco_venda || 0)}, quantidadeRapida)">
+                <div class="flex items-center gap-2 mb-1.5">
+                    <span class="bg-emerald-500 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shadow-sm">Destaque [Enter]</span>
+                    <span class="text-slate-400 font-bold uppercase text-[10px] truncate">${escapeHtml(p.marca || 'GENÉRICO')}</span>
+                    ${p.codigo_nfe ? `<span class="text-slate-300 font-bold text-[10px] truncate">| GM: ${escapeHtml(p.codigo_nfe)}</span>` : ''}
                 </div>
-                <h4 class="text-sm font-black text-slate-800 uppercase leading-tight">${escapeHtml(p.nome)}</h4>
-                <div class="text-xs font-black text-orange-500 mt-0.5">${formatarMoeda(p.preco_venda)} ${p.codigo_nfe ? '<span class="text-slate-400 text-[9px] ml-1">GM: '+escapeHtml(p.codigo_nfe)+'</span>' : ''}</div>
-                <div class="mt-1 flex gap-3">
-                    <button onclick="forcarAtualizacao('${escapeHtml(p.id)}'); event.stopPropagation();" class="text-[9px] font-bold text-sky-600 hover:underline">🔄 Atualizar Saldo</button>
-                    <button onclick="adicionarProdutoComQuantidade('${escapeHtml(p.id)}', '${String(p.nome).replace(/'/g, "\\'")}', ${Number(p.preco_venda || 0)}, quantidadeRapida); event.stopPropagation();" class="text-[9px] font-bold text-emerald-600 hover:underline">➕ Adicionar</button>
+                <h4 class="text-xl md:text-2xl font-black text-slate-800 uppercase leading-tight truncate" title="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}</h4>
+                <div class="flex items-center gap-3 mt-2">
+                    <div class="text-2xl md:text-3xl font-black text-orange-500 tracking-tighter">${formatarMoeda(p.preco_venda)}</div>
+                    ${quantidadeRapida > 1 ? `<div class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-[11px] font-black uppercase border border-orange-200 shadow-sm">Qtd: ${quantidadeRapida}</div>` : ''}
+                    <button id="btn-sincronizar-${escapeHtml(p.id)}" onclick="forcarAtualizacao('${escapeHtml(p.id)}'); event.stopPropagation();" class="text-[10px] font-bold text-sky-600 hover:text-sky-800 hover:underline ml-2 bg-sky-50 px-2 py-1 rounded transition-colors" title="Atualizar saldo do banco em tempo real">🔄 Sincronizar [F5]</button>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 min-w-[130px]">
-                <div class="flex flex-col w-full text-[10px] font-black">
-                    <div class="flex justify-between items-center bg-emerald-50 text-emerald-700 px-2 py-1 rounded-t border border-emerald-100">
-                        <span>CENTRO</span>
-                        <div class="flex items-center gap-1">
-                            <span class="text-xs">${Number(p.saldo_centro || 0)}</span>
-                            <span onclick="abrirAjuste('${escapeHtml(p.id)}','${String(p.nome).replace(/'/g, "\\'")}',${Number(p.saldo_centro || 0)},'${escapeHtml(p.codigo_nfe || p.codigo_interno || '')}','centro'); event.stopPropagation();" class="text-[10px] cursor-pointer hover:text-emerald-900 ml-1">✎</span>
+            <!-- Estoque Principal (Centro) e Secundários (Vila/Total) -->
+            <div class="flex items-center gap-4 z-10 shrink-0">
+                
+                <div class="flex flex-col items-end border-r-2 border-slate-100 pr-5">
+                    <div class="text-[11px] font-black text-emerald-600 uppercase tracking-widest mb-1 opacity-80" title="Atalho F9">Saldo Centro [F9]</div>
+                    <div class="flex items-start gap-1 group/edit cursor-pointer hover:scale-105 transition-transform" onclick="abrirAjuste('${escapeHtml(p.id)}','${String(p.nome).replace(/'/g, "\\'")}',${Number(p.saldo_centro || 0)},'${escapeHtml(p.codigo_nfe || p.codigo_interno || '')}','centro'); event.stopPropagation();" title="Ajustar Centro">
+                        <span class="text-5xl md:text-6xl font-black text-emerald-500 leading-none tracking-tighter" style="text-shadow: 2px 2px 0px rgba(16,185,129,0.1);">${Number(p.saldo_centro || 0)}</span>
+                        <span class="opacity-0 group-hover/edit:opacity-100 transition-opacity text-emerald-400 text-lg">✏️</span>
+                    </div>
+                    
+                    <div class="flex gap-2 mt-3">
+                        <div class="bg-slate-100 border border-slate-200 px-2 py-1 rounded text-[10px] font-black text-slate-500 flex gap-1 cursor-pointer hover:bg-slate-200 transition-colors group/vila" onclick="abrirAjuste('${escapeHtml(p.id)}','${String(p.nome).replace(/'/g, "\\'")}',${Number(p.saldo_vila || 0)},'${escapeHtml(p.codigo_nfe || p.codigo_interno || '')}','vila'); event.stopPropagation();" title="Ajustar Vila">
+                            VILA [F10]: <span class="text-slate-700">${Number(p.saldo_vila || 0)}</span>
+                            <span class="opacity-0 group-hover/vila:opacity-100 transition-opacity ml-0.5 -mr-1">✏️</span>
+                        </div>
+                        <div class="bg-slate-800 border border-slate-900 shadow-inner px-2 py-1 rounded text-[10px] font-black text-slate-300 flex gap-1">
+                            TOTAL: <span class="text-emerald-400">${total}</span>
                         </div>
                     </div>
-                    <div class="flex justify-between items-center bg-slate-50 text-slate-600 px-2 py-1 border-x border-b border-slate-200">
-                        <span>VILA</span><span class="text-xs">${Number(p.saldo_vila || 0)}</span>
-                    </div>
-                    <div class="flex justify-between items-center bg-slate-800 text-white px-2 py-1 rounded-b mt-0.5">
-                        <span>TOTAL</span><span class="text-xs text-emerald-400">${total}</span>
-                    </div>
                 </div>
+                <button onclick="adicionarProdutoComQuantidade('${escapeHtml(p.id)}', '${String(p.nome).replace(/'/g, "\\'")}', ${Number(p.preco_venda || 0)}, quantidadeRapida); event.stopPropagation();" class="h-16 w-16 md:h-20 md:w-20 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-lg transition-all active:scale-95 flex items-center justify-center group/btn" title="Adicionar ao Orçamento">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 md:h-12 md:w-12 group-hover/btn:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" /></svg>
+                </button>
             </div>
         </div>
     `;
@@ -448,6 +460,8 @@ function addCarrinho(id, nome, preco, qtd = 1) {
     tocarSom('add');
 
     inputBusca.value = '';
+        bufferScanner = ''; // Trava de segurança contra leitura duplicada
+        clearTimeout(scannerTimer); // Desliga o cronômetro se ainda estiver rodando
     quantidadeRapida = 1;
     limparBuscaVisual();
     esconderStatusBusca();
@@ -654,8 +668,8 @@ function abrirAjuste(id, nome, saldo, codigo, dep) {
 }
 
 function forcarAtualizacao(produtoId) {
-    const button = document.querySelector(`button[onclick="forcarAtualizacao('${produtoId}')"]`);
-    const originalButtonText = '🔄 Forçar atualização de saldo/preço';
+    const button = document.getElementById(`btn-sincronizar-${produtoId}`);
+    const originalButtonText = '🔄 Sincronizar [F5]';
 
     if (button) {
         button.innerHTML = 'Buscando...';
@@ -678,6 +692,22 @@ function forcarAtualizacao(produtoId) {
                 baseProdutos[idx].saldo_centro = produtoAtualizado.saldo_centro;
                 baseProdutos[idx].saldo_vila = produtoAtualizado.saldo_vila;
             }
+
+            // Dá o feedback de Sucesso e volta ao normal
+            setTimeout(() => {
+                const novoButton = document.getElementById(`btn-sincronizar-${produtoId}`);
+                if (novoButton) {
+                    novoButton.innerHTML = '✅ Atualizado!';
+                    novoButton.classList.replace('text-sky-600', 'text-emerald-600');
+                    novoButton.classList.replace('bg-sky-50', 'bg-emerald-50');
+                    setTimeout(() => {
+                        novoButton.innerHTML = originalButtonText;
+                        novoButton.classList.replace('text-emerald-600', 'text-sky-600');
+                        novoButton.classList.replace('bg-emerald-50', 'bg-sky-50');
+                        novoButton.disabled = false;
+                    }, 2500);
+                }
+            }, 50);
         })
         .catch(error => {
             console.error('Erro ao forçar atualização:', error);
@@ -842,6 +872,9 @@ inputBusca.addEventListener('keydown', function(e) {
     else if (e.key === 'Enter') {
         e.preventDefault();
 
+        clearTimeout(scannerTimer); // Cancela o cronômetro do leitor
+        bufferScanner = ''; // Limpa a memória do leitor
+
         quantidadeRapida = obterQuantidadeRapida(inputBusca.value);
 
         if (!autoList.classList.contains('hidden')) {
@@ -970,6 +1003,18 @@ document.addEventListener('keydown', function(e) {
     else if (e.key === 'F8') {
         e.preventDefault();
         if (!modalResumo.classList.contains('hidden')) copiarMensagemPedido();
+    }
+    else if (e.key === 'F5') {
+        e.preventDefault();
+        if (produtoEmDestaque) forcarAtualizacao(produtoEmDestaque.id);
+    }
+    else if (e.key === 'F9') {
+        e.preventDefault();
+        if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_centro, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'centro');
+    }
+    else if (e.key === 'F10') {
+        e.preventDefault();
+        if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_vila, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'vila');
     }
     else if (e.key === 'Escape') {
         if (!modalResumo.classList.contains('hidden')) {
