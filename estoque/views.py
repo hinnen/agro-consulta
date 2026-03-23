@@ -250,6 +250,8 @@ def api_ajustar_estoque(request):
 def api_salvar_config_transferencia(request):
     try:
         pin = request.POST.get('pin', '').strip()
+        if pin == '1234':
+            return JsonResponse({'ok': False, 'erro': 'Senha padrão (1234) bloqueada. Troque seu PIN.'}, status=403)
         perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
         if not perfil:
             return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
@@ -309,6 +311,8 @@ def api_cancelar_separacao(request, id):
 def api_importar_planilha_transferencia(request):
     try:
         pin = request.POST.get('pin', '').strip()
+        if pin == '1234':
+            return JsonResponse({'ok': False, 'erro': 'Senha padrão (1234) bloqueada. Troque seu PIN.'}, status=403)
         perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
         if not perfil:
             return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
@@ -401,6 +405,8 @@ def api_importar_planilha_transferencia(request):
 def api_atualizar_medias(request):
     try:
         pin = request.POST.get('pin', '').strip()
+        if pin == '1234':
+            return JsonResponse({'ok': False, 'erro': 'Senha padrão (1234) bloqueada. Troque seu PIN.'}, status=403)
         perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
         if not perfil:
             return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
