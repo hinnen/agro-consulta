@@ -118,6 +118,121 @@ def api_buscar_produtos(request):
     except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
 
 @require_GET
+def api_todos_produtos_local(request):
+    cache_key = "carga_inicial_produtos_todos"
+    cached_data = cache.get(cache_key)
+    if cached_data: return JsonResponse(cached_data)
+
+    client, db = obter_conexao_mongo()
+    if db is None: return JsonResponse({"erro": "Erro conexao"}, status=500)
+
+    try:
+        query = {"CadastroInativo": {"$ne": True}}
+        projecao = {
+            "Nome": 1, "Marca": 1, "CodigoNFe": 1, "Codigo": 1, 
+            "CodigoBarras": 1, "EAN_NFe": 1, "ValorVenda": 1, "PrecoVenda": 1
+        }
+        produtos = list(db[client.col_p].find(query, projecao))
+        p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
+        
+        estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+        
+        ajustes_bd = AjusteRapidoEstoque.objects.all().order_by('produto_externo_id', 'deposito', '-criado_em')
+        ajustes_map = {}
+        for aj in ajustes_bd:
+            if (aj.produto_externo_id, aj.deposito) not in ajustes_map:
+                ajustes_map[(aj.produto_externo_id, aj.deposito)] = aj
+
+        est_map = {}
+        for est in estoques:
+            pid = str(est.get("ProdutoID"))
+            if pid not in est_map: est_map[pid] = {'c': 0.0, 'v': 0.0}
+            did = str(est.get("DepositoID") or "")
+            if did == client.DEPOSITO_CENTRO: est_map[pid]['c'] += float(est.get("Saldo") or 0)
+            elif did == client.DEPOSITO_VILA_ELIAS: est_map[pid]['v'] += float(est.get("Saldo") or 0)
+
+        res = []
+        for p in produtos:
+            pid = str(p.get("Id") or p["_id"])
+            s_c = est_map.get(pid, {}).get('c', 0.0)
+            s_v = est_map.get(pid, {}).get('v', 0.0)
+
+            aj_c = ajustes_map.get((pid, 'centro'))
+            aj_v = ajustes_map.get((pid, 'vila'))
+            saldo_f_c = float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia)) if aj_c else s_c
+            saldo_f_v = float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia)) if aj_v else s_v
+            
+            nome = p.get("Nome") or ""
+            marca = p.get("Marca") or ""
+            codigo_nfe = p.get("CodigoNFe") or p.get("Codigo") or ""
+            cod_barras = p.get("CodigoBarras") or p.get("EAN_NFe") or ""
+            
+            busca_txt = normalizar_termo(f"{nome} {marca} {codigo_nfe} {cod_barras}")
+
+            res.append({
+                "id": pid, 
+                "nome": nome, 
+                "marca": marca,
+                "codigo_nfe": codigo_nfe, 
+                "codigo_barras": cod_barras,
+                "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
+                "saldo_centro": round(saldo_f_c, 2), 
+                "saldo_vila": round(saldo_f_v, 2),
+                "busca_texto": busca_txt
+            })
+        
+        resultado_final = {"produtos": res}
+        cache.set(cache_key, resultado_final, timeout=300) # RAM por 5 min
+        return JsonResponse(resultado_final)
+    except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
+
+@require_GET
+def api_buscar_produto_id(request, id):
+    client, db = obter_conexao_mongo()
+    if db is None: return JsonResponse({"erro": "Erro conexao"}, status=500)
+    try:
+        from bson import ObjectId
+        query = {"$or": [{"Id": id}]}
+        try:
+            query["$or"].append({"_id": ObjectId(id)})
+        except Exception: pass
+
+        p = db[client.col_p].find_one(query)
+        if not p: return JsonResponse({"erro": "Produto nao encontrado"}, status=404)
+
+        estoques = list(db[client.col_e].find({"ProdutoID": id}))
+        
+        ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id=id).order_by('deposito', '-criado_em')
+        ajustes_map = {}
+        for aj in ajustes_bd:
+            if aj.deposito not in ajustes_map:
+                ajustes_map[aj.deposito] = aj
+
+        s_c = 0.0; s_v = 0.0
+        for est in estoques:
+            val = float(est.get("Saldo") or 0)
+            did = str(est.get("DepositoID") or "")
+            if did == client.DEPOSITO_CENTRO: s_c += val
+            elif did == client.DEPOSITO_VILA_ELIAS: s_v += val
+
+        aj_c = ajustes_map.get('centro')
+        aj_v = ajustes_map.get('vila')
+        saldo_f_c = float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia)) if aj_c else s_c
+        saldo_f_v = float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia)) if aj_v else s_v
+
+        res = {
+            "id": id, 
+            "nome": p.get("Nome"), 
+            "marca": p.get("Marca") or "",
+            "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "", 
+            "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
+            "saldo_centro": round(saldo_f_c, 2), 
+            "saldo_vila": round(saldo_f_v, 2)
+        }
+        return JsonResponse(res)
+    except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
+
+@require_GET
 def api_autocomplete_produtos(request):
     termo = request.GET.get("q", "").strip()
     termo_norm = normalizar_termo(termo)
