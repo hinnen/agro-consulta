@@ -1,3 +1,5 @@
+import csv
+import io
 from decimal import Decimal, InvalidOperation
 
 from django.http import JsonResponse
@@ -5,8 +7,8 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET, require_POST
 
-from base.models import Empresa, Loja
-from estoque.models import AjusteRapidoEstoque
+from base.models import Empresa, Loja, PerfilUsuario
+from estoque.models import AjusteRapidoEstoque, ConfiguracaoTransferencia
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 
 
@@ -16,6 +18,8 @@ def consulta_produtos(request):
 
 def _normalizar_decimal(valor):
     texto = str(valor).strip().replace(' ', '')
+    if not texto:
+        return Decimal('0')
 
     if ',' in texto and '.' in texto:
         if texto.rfind(',') > texto.rfind('.'):
@@ -176,3 +180,226 @@ def api_ajustar_estoque(request):
         return JsonResponse({'ok': False, 'erro': 'Número inválido.'}, status=400)
     except Exception as exc:
         return JsonResponse({'ok': False, 'erro': f'Erro ao salvar ajuste: {exc}'}, status=500)
+
+
+@require_POST
+@csrf_protect
+def api_salvar_config_transferencia(request):
+    try:
+        pin = request.POST.get('pin', '').strip()
+        perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
+        if not perfil:
+            return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
+
+        produto_id = request.POST.get('produto_id', '').strip()
+        if not produto_id:
+            return JsonResponse({'ok': False, 'erro': 'Produto inválido.'}, status=400)
+
+        config, _ = ConfiguracaoTransferencia.objects.get_or_create(
+            produto_externo_id=produto_id,
+            defaults={'nome_produto': request.POST.get('nome_produto', '').strip()}
+        )
+        
+        if 'capacidade_maxima' in request.POST:
+            config.capacidade_maxima = _normalizar_decimal(request.POST.get('capacidade_maxima', '0'))
+        if 'estoque_seguranca' in request.POST:
+            config.estoque_seguranca = _normalizar_decimal(request.POST.get('estoque_seguranca', '0'))
+        if 'dias_cobertura' in request.POST:
+            config.dias_cobertura = int(request.POST.get('dias_cobertura', '1'))
+        if 'venda_media_diaria' in request.POST:
+            config.venda_media_diaria = _normalizar_decimal(request.POST.get('venda_media_diaria', '0'))
+            
+        config.save()
+
+        return JsonResponse({'ok': True, 'mensagem': 'Regras de transferência salvas.'})
+    except InvalidOperation:
+        return JsonResponse({'ok': False, 'erro': 'Número inválido.'}, status=400)
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'erro': f'Erro ao salvar regra: {exc}'}, status=500)
+
+
+@require_POST
+@csrf_protect
+def api_importar_planilha_transferencia(request):
+    try:
+        pin = request.POST.get('pin', '').strip()
+        perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
+        if not perfil:
+            return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
+
+        arquivo = request.FILES.get('arquivo')
+        if not arquivo:
+            return JsonResponse({'ok': False, 'erro': 'Nenhum arquivo enviado.'}, status=400)
+
+        decoded_file = arquivo.read().decode('utf-8-sig', errors='replace')
+        io_string = io.StringIO(decoded_file)
+        
+        # Tenta ler com ponto e vírgula (padrão Excel Brasil), se não der, tenta vírgula
+        reader = csv.DictReader(io_string, delimiter=';')
+        if not reader.fieldnames or len(reader.fieldnames) <= 1:
+            io_string.seek(0)
+            reader = csv.DictReader(io_string, delimiter=',')
+            
+        if not reader.fieldnames:
+            return JsonResponse({'ok': False, 'erro': 'Planilha vazia ou formato inválido.'}, status=400)
+
+        client = VendaERPMongoClient()
+        sucesso = 0
+        
+        for row in reader:
+            row_norm = {k.strip().lower(): str(v).strip() for k, v in row.items() if k and v}
+            
+            codigo = row_norm.get('codigo') or row_norm.get('id') or row_norm.get('produto')
+            p_seg = row_norm.get('seguranca') or row_norm.get('min') or row_norm.get('minimo')
+            p_max = row_norm.get('maximo') or row_norm.get('max') or '-1'
+            
+            # Agora exigimos apenas o código e a segurança. Máximo vazio vira 0 (Infinito)
+            if not codigo or not p_seg:
+                continue
+                
+            # Busca o produto no Mongo para pegar o ID correto e o nome
+            p = client.db[client.col_p].find_one({
+                "$or": [
+                    {"CodigoNFe": codigo},
+                    {"Codigo": codigo},
+                    {"CodigoBarras": codigo},
+                    {"EAN_NFe": codigo}
+                ]
+            })
+            
+            if not p:
+                # Tenta por _id caso a pessoa passe a chave longa do mongo
+                try:
+                    from bson.objectid import ObjectId
+                    p = client.db[client.col_p].find_one({"_id": ObjectId(codigo)})
+                except: pass
+
+            if p:
+                produto_id = str(p.get('_id') or p.get('Id'))
+                nome_produto = p.get('Nome', f"Produto {codigo}")
+                
+                config, _ = ConfiguracaoTransferencia.objects.get_or_create(produto_externo_id=produto_id)
+                config.nome_produto = nome_produto
+                config.capacidade_maxima = _normalizar_decimal(p_max)
+                config.estoque_seguranca = _normalizar_decimal(p_seg)
+                config.save()
+                sucesso += 1
+
+        return JsonResponse({'ok': True, 'mensagem': f'{sucesso} regras importadas/atualizadas com sucesso!'})
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'erro': f'Erro ao processar: {exc}'}, status=500)
+
+
+@require_GET
+def api_sugestoes_transferencia(request):
+    try:
+        client = VendaERPMongoClient()
+        
+        # 1. Busca TODOS os produtos ativos no banco do Venda ERP
+        produtos = list(client.db[client.col_p].find(
+            {"CadastroInativo": {"$ne": True}}, 
+            {"Id": 1, "_id": 1, "Nome": 1, "CodigoNFe": 1, "Codigo": 1, "EAN_NFe": 1, "CodigoBarras": 1}
+        ))
+        
+        mapa_produtos = {}
+        p_ids = []
+        for p in produtos:
+            pid = str(p.get("Id") or p.get("_id"))
+            p_ids.append(pid)
+            mapa_produtos[pid] = {
+                "nome": p.get("Nome", f"Produto {pid}"),
+                "codigo": p.get("CodigoNFe") or p.get("Codigo") or pid,
+                "codigo_barras": p.get("EAN_NFe") or p.get("CodigoBarras") or ""
+            }
+
+        # 2. Busca os estoques fatiados em blocos (segurança para não travar a memória)
+        estoques = []
+        chunk_size = 5000
+        for i in range(0, len(p_ids), chunk_size):
+            chunk_pids = p_ids[i:i + chunk_size]
+            estoques.extend(list(client.db[client.col_e].find({"ProdutoID": {"$in": chunk_pids}})))
+
+        estoques_por_produto = {}
+        for estoque in estoques:
+            p_id = str(estoque.get("ProdutoID"))
+            estoques_por_produto.setdefault(p_id, []).append(estoque)
+
+        # 3. Busca Regras e Ajustes Locais
+        regras = ConfiguracaoTransferencia.objects.all()
+        mapa_regras = {str(r.produto_externo_id): r for r in regras}
+        ajustes = _buscar_ajustes_mais_recentes(p_ids)
+
+        sugestoes = []
+
+        # 4. Monta o Dicionário Final
+        for pid, p_info in mapa_produtos.items():
+            saldo_centro_erp = Decimal('0')
+            saldo_vila_erp = Decimal('0')
+
+            for estoque in estoques_por_produto.get(pid, []):
+                deposito_id = str(estoque.get("DepositoID", ""))
+                deposito_nome = str(estoque.get("Deposito", "")).strip().lower()
+                saldo = Decimal(str(estoque.get("Saldo", 0) or 0))
+
+                if hasattr(client, 'DEPOSITO_CENTRO') and deposito_id == client.DEPOSITO_CENTRO:
+                    saldo_centro_erp += saldo
+                elif hasattr(client, 'DEPOSITO_VILA_ELIAS') and deposito_id == client.DEPOSITO_VILA_ELIAS:
+                    saldo_vila_erp += saldo
+                elif "centro" in deposito_nome: saldo_centro_erp += saldo
+                elif "vila" in deposito_nome: saldo_vila_erp += saldo
+
+            ajuste_centro = ajustes.get((pid, 'centro'))
+            ajuste_vila = ajustes.get((pid, 'vila'))
+
+            saldo_centro = saldo_centro_erp + (ajuste_centro.diferenca_saldo if ajuste_centro else Decimal('0'))
+            saldo_vila = saldo_vila_erp + (ajuste_vila.diferenca_saldo if ajuste_vila else Decimal('0'))
+
+            regra = mapa_regras.get(pid)
+
+            if regra:
+                # PRODUTO JÁ CONFIGURADO
+                qtde_transferir = Decimal('0')
+                qtde_comprar = Decimal('0')
+                status = "OK"
+
+                if saldo_centro <= regra.capacidade_minima:
+                    if regra.capacidade_maxima == Decimal('-1'):
+                        qtde_transferir = max(Decimal('0'), saldo_vila)
+                        falta_para_minimo = regra.capacidade_minima - saldo_centro
+                        qtde_comprar = max(Decimal('0'), falta_para_minimo - qtde_transferir)
+                        if qtde_transferir > 0 and qtde_comprar > 0: status = "TRANSFERIR_COMPRAR"
+                        elif qtde_transferir > 0: status = "TRANSFERIR"
+                        elif qtde_comprar > 0: status = "COMPRAR"
+                    else:
+                        qtde_necessaria = regra.capacidade_maxima - saldo_centro
+                        if qtde_necessaria > 0:
+                            qtde_transferir = qtde_necessaria if saldo_vila >= qtde_necessaria else max(Decimal('0'), saldo_vila)
+                            qtde_comprar = qtde_necessaria - qtde_transferir
+                            status = "COMPRAR" if qtde_transferir == 0 else ("TRANSFERIR" if qtde_comprar == 0 else "TRANSFERIR_COMPRAR")
+
+                sugestoes.append({
+                    "produto_id": pid, "codigo": p_info["codigo"], "codigo_barras": p_info["codigo_barras"],
+                    "nome": p_info["nome"] or regra.nome_produto,
+                    "saldo_centro": float(saldo_centro), "saldo_vila": float(saldo_vila),
+                    "status": status, "qtde_transferir": float(qtde_transferir), "qtde_comprar": float(qtde_comprar),
+                    "capacidade_maxima": float(regra.capacidade_maxima), "estoque_seguranca": float(regra.estoque_seguranca),
+                    "capacidade_minima": float(regra.capacidade_minima), "configurado": True, "prioridade": 3
+                })
+            else:
+                # PRODUTO NÃO CONFIGURADO (Prioridade 1 = Alta, 2 = Média)
+                prioridade_ordem = 1 if saldo_vila > 0 else 2
+                status = "ALTA" if saldo_vila > 0 else "MEDIA"
+                sugestoes.append({
+                    "produto_id": pid, "codigo": p_info["codigo"], "codigo_barras": p_info["codigo_barras"],
+                    "nome": p_info["nome"],
+                    "saldo_centro": float(saldo_centro), "saldo_vila": float(saldo_vila),
+                    "status": status, "qtde_transferir": 0.0, "qtde_comprar": 0.0,
+                    "configurado": False, "prioridade": prioridade_ordem
+                })
+
+        # Ordenação mágica: Prioridade 1 (Alta) -> Prioridade 2 (Média) -> 3 (Configurados), e dentro delas em ordem alfabética.
+        sugestoes.sort(key=lambda x: (x["prioridade"], x["nome"]))
+
+        return JsonResponse({'sugestoes': sugestoes})
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'erro': f'Erro: {exc}'}, status=500)

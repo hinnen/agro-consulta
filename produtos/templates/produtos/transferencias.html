@@ -3,88 +3,332 @@
 <head>
     <meta charset="UTF-8"><title>Agro Mais | Logística</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Biblioteca para gerar códigos de barra Reais! -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        /* Esconde o cupom na visualização normal */
+        .cupom-impressao { display: none; }
+
+        @media print {
+            /* Esconde botões, navbar e filtros na hora de imprimir */
+            .esconder-na-impressao, header, nav, footer { display: none !important; }
+            
+            /* Prepara o cupom para bobina 80mm */
+            @page { margin: 0; size: 80mm 297mm; } 
+            body { background: white; font-family: monospace; padding: 5mm; }
+            
+            .cupom-impressao {
+                display: block;
+                width: 72mm; /* Deixa uma margem segura na bobina */
+                font-size: 14px;
+            }
+            .linha-produto { margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 5px; }
+        }
+    </style>
 </head>
 <body class="bg-slate-100 p-4 md:p-10">
     <div class="max-w-7xl mx-auto">
         <header class="flex justify-between items-center mb-10">
             <div>
                 <h1 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">Gestão de <span class="text-green-600">Carga</span></h1>
-                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest">Vila Elias → Centro (Edite Mín/Máx clicando nos números)</p>
+                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest">Vila Elias → Centro (Cockpit de Ação)</p>
             </div>
-            <a href="/" class="bg-slate-800 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-black transition-all">Voltar</a>
+            <div class="flex gap-4 esconder-na-impressao">
+                <button onclick="gerarCupom()" class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-blue-700 transition-all">🖨️ Imprimir Separação</button>
+                <a href="/" class="bg-slate-800 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg hover:bg-black transition-all">Voltar</a>
+            </div>
         </header>
+
+        <!-- Filtros Rápidos -->
+        <div class="flex gap-4 mb-6 esconder-na-impressao items-center">
+            <button onclick="renderizarTabela('TODOS')" class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-black text-slate-600 hover:bg-slate-50 transition-colors">📋 Ver Todos</button>
+            <button onclick="renderizarTabela('TRANSFERIR')" class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-black text-blue-600 hover:bg-blue-50 transition-colors">🚚 Somente Transferências</button>
+            <button onclick="renderizarTabela('COMPRAR')" class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-black text-red-600 hover:bg-red-50 transition-colors">🛒 Somente Compras</button>
+            <button onclick="renderizarTabela('PRIORIDADE')" class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-black text-amber-600 hover:bg-amber-50 transition-colors">⚠️ Requer Máximo</button>
+            
+            <div class="w-px h-8 bg-slate-300 mx-2"></div>
+            <button onclick="adicionarRegraNova()" class="px-5 py-2 bg-green-600 rounded-xl shadow-sm border border-green-700 text-xs font-black text-white hover:bg-green-700 transition-colors">➕ Adicionar Regra de Produto</button>
+            <button onclick="document.getElementById('arquivo-csv').click()" class="px-5 py-2 bg-emerald-600 rounded-xl shadow-sm border border-emerald-700 text-xs font-black text-white hover:bg-emerald-700 transition-colors">📁 Importar CSV</button>
+            <!-- Input oculto para o arquivo -->
+            <input type="file" id="arquivo-csv" accept=".csv" class="hidden" onchange="processarPlanilha(this)">
+        </div>
 
         <div class="bg-white rounded-[40px] shadow-2xl border-4 border-white overflow-hidden">
             <table class="w-full text-left">
                 <thead class="bg-slate-50 border-b">
                     <tr class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <th class="p-5 w-10 text-center"><input type="checkbox" id="chk-todos" onclick="marcarTodos(this)" class="w-5 h-5 cursor-pointer accent-blue-600"></th>
                         <th class="p-5">Produto</th>
                         <th class="p-5 text-center">Centro</th>
                         <th class="p-5 text-center">Vila</th>
-                        <th class="p-5 text-center text-blue-500">Segurança</th>
-                        <th class="p-5 text-center text-purple-500">Máx Centro</th>
-                        <th class="p-5 text-center">Ação</th>
-                        <th class="p-5 text-right text-green-600">Enviar</th>
+                        <th class="p-5 text-center">Status</th>
+                        <th class="p-5 text-right">Sugestão</th>
+                        <th class="p-5 text-center">Ações</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
-                    {% for item in relatorio %}
-                    <tr class="hover:bg-slate-50/50 transition-colors">
-                        <td class="p-5">
-                            <div class="font-black text-slate-800 text-sm uppercase leading-tight">{{ item.nome }}</div>
-                            <div class="text-[9px] text-slate-400 font-mono mt-1">{{ item.codigo }}</div>
-                        </td>
-                        <td class="p-5 text-center font-bold text-slate-600 text-lg">{{ item.centro|stringformat:".1f" }}</td>
-                        <td class="p-5 text-center font-bold text-slate-400 text-lg">{{ item.vila|stringformat:".1f" }}</td>
-                        
-                        <td class="p-5 text-center">
-                            <input type="number" value="{{ item.min }}" onchange="salvarConfig('{{ item.codigo }}', this.value, {{ item.max }})" class="w-16 p-1 text-center font-black text-blue-600 bg-blue-50 rounded-lg border border-blue-100 outline-none focus:ring-2 focus:ring-blue-400">
-                        </td>
-                        <td class="p-5 text-center">
-                            <input type="number" value="{{ item.max }}" onchange="salvarConfig('{{ item.codigo }}', {{ item.min }}, this.value)" class="w-16 p-1 text-center font-black text-purple-600 bg-purple-50 rounded-lg border border-purple-100 outline-none focus:ring-2 focus:ring-purple-400">
-                        </td>
-
-                        <td class="p-5 text-center">
-                            <span class="text-[9px] font-black uppercase px-3 py-1 rounded-full {{ item.cor }} bg-white border shadow-sm whitespace-nowrap">
-                                {{ item.status }}
-                            </span>
-                        </td>
-                        <td class="p-5 text-right">
-                            {% if item.sugestao > 0 %}
-                            <span class="inline-block bg-green-50 text-green-600 px-4 py-2 rounded-xl font-black text-xl border border-green-200">
-                                {{ item.sugestao|stringformat:".0f" }}
-                            </span>
-                            {% else %}
-                            <span class="text-slate-200 font-black">---</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="7" class="p-20 text-center font-black text-slate-200 uppercase italic text-2xl tracking-widest">Tudo OK!</td></tr>
-                    {% endfor %}
+                <tbody class="divide-y divide-slate-100" id="tabela-corpo">
+                    <tr><td colspan="7" class="p-20 text-center font-black text-slate-300 uppercase tracking-widest">Carregando sugestões da API...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
+    <!-- Div invisível que será preenchida com o cupom na hora de imprimir -->
+    <div class="cupom-impressao" id="cupom-conteudo"></div>
+
     <script>
-        async function salvarConfig(codigo, min, max) {
-            const pin = prompt("Confirme o PIN (1234) para alterar:");
-            if (pin !== "1234") return location.reload();
+        let sugestoesGlobais = [];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            carregarDados();
+        });
+
+        async function carregarDados() {
+            try {
+                // Ajuste esta rota caso as suas views não estejam mapeadas em /estoque/...
+                const response = await fetch('/estoque/api_sugestoes_transferencia/');
+                const data = await response.json();
+                sugestoesGlobais = data.sugestoes || [];
+                renderizarTabela('TODOS');
+            } catch (error) {
+                console.error(error);
+                document.getElementById("tabela-corpo").innerHTML = `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold">Erro ao conectar com servidor.</td></tr>`;
+            }
+        }
+
+        function renderizarTabela(filtro) {
+            const tbody = document.getElementById("tabela-corpo");
+            tbody.innerHTML = "";
+            document.getElementById("chk-todos").checked = false;
+
+            const filtrados = sugestoesGlobais.filter(item => {
+                if (filtro === 'TODOS') return true;
+                if (filtro === 'TRANSFERIR' && item.status.includes('TRANSFERIR')) return true;
+                if (filtro === 'COMPRAR' && item.status.includes('COMPRAR')) return true;
+                if (filtro === 'PRIORIDADE' && item.capacidade_maxima == -1 && item.saldo_vila > 0) return true;
+                return false;
+            });
+
+            if (filtrados.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-20 text-center font-black text-slate-200 uppercase italic text-2xl tracking-widest">Tudo OK! Nenhuma ação necessária.</td></tr>`;
+                return;
+            }
+
+            filtrados.forEach(item => {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50/50 transition-colors esconder-na-impressao";
+                const nomeEscapado = item.nome.replace(/'/g, "\\'"); // Evita erro no javascript ao clicar
+                
+                let corBadge = "bg-slate-100 text-slate-500";
+                let badgeTexto = item.status.replace('_', ' + ');
+
+                if (item.configurado) {
+                    if(item.status === 'OK') corBadge = "bg-green-100 text-green-600 border border-green-200";
+                    if(item.status === 'TRANSFERIR') corBadge = "bg-blue-100 text-blue-600 border border-blue-200";
+                    if(item.status === 'TRANSFERIR_COMPRAR') corBadge = "bg-orange-100 text-orange-600 border border-orange-200";
+                    if(item.status === 'COMPRAR') corBadge = "bg-red-100 text-red-600 border border-red-200";
+                } else {
+                    if (item.status === 'ALTA') {
+                        corBadge = "bg-red-600 text-white font-black shadow-md border-red-700 animate-pulse";
+                        badgeTexto = "🔴 ALTA PRIORIDADE";
+                    } else if (item.status === 'MEDIA') {
+                        corBadge = "bg-amber-400 text-white font-black shadow-sm border-amber-500";
+                        badgeTexto = "🟡 MÉDIA PRIORIDADE";
+                    }
+                }
+
+                // Somente deixa habilitado o checkbox se houver algo para transferir
+                const chkBoxHTML = item.qtde_transferir > 0 
+                    ? `<input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer accent-blue-600" data-nome="${item.nome}" data-qtde="${item.qtde_transferir}" data-barras="${item.codigo_barras || item.codigo}">` 
+                    : ``;
+
+                let centroColHTML = '';
+                if (item.configurado) {
+                    let maxBadgeHTML = '';
+                    if (item.capacidade_maxima == -1 && item.saldo_vila > 0) {
+                        maxBadgeHTML = `<div class="text-[9px] text-amber-700 font-bold uppercase bg-amber-100 border border-amber-300 shadow-sm rounded-md px-1.5 py-0.5 cursor-help" title="PRIORIDADE: Há saldo na Vila Elias! Recomenda-se definir uma Capacidade Máxima para evitar transferir todo o estoque de uma vez.">
+                            Máx: ∞ <span class="ml-0.5 text-[10px]">⚠️</span>
+                        </div>`;
+                    } else {
+                        maxBadgeHTML = `<div class="text-[9px] text-slate-500 font-bold uppercase bg-slate-100 rounded-md px-1.5 py-0.5 cursor-help" title="MÁXIMO (Limite): Quantidade máxima que cabe no Centro. Se estiver com infinito (∞), o sistema vai sugerir transferir tudo que houver disponível na Vila Elias.">
+                            Máx: ${item.capacidade_maxima == -1 ? '∞' : item.capacidade_maxima.toFixed(1)}<span class="text-blue-500 font-black ml-0.5">?</span>
+                        </div>`;
+                    }
+                    centroColHTML = `
+                        <div class="font-bold text-slate-600 text-lg">${item.saldo_centro.toFixed(1)}</div>
+                        <div class="flex items-center justify-center gap-1 mt-1">
+                            <div class="text-[9px] text-slate-500 font-bold uppercase bg-slate-100 rounded-md px-1.5 py-0.5 cursor-help" title="MÍNIMO (Gatilho): É a soma da Média de Vendas com o Estoque de Segurança. Quando o saldo do Centro chegar neste valor, o sistema pedirá transferência.">
+                                Mín: ${item.capacidade_minima.toFixed(1)}<span class="text-blue-500 font-black ml-0.5">?</span>
+                            </div>
+                            ${maxBadgeHTML}
+                        </div>`;
+                } else {
+                    centroColHTML = `
+                        <div class="font-bold text-slate-400 text-lg opacity-50">${item.saldo_centro.toFixed(1)}</div>
+                        <div class="mt-1">
+                            <button onclick="editarRegras('${item.produto_id}', '${nomeEscapado}', '', '')" class="text-[9px] text-white font-bold uppercase bg-slate-400 hover:bg-slate-600 transition-colors rounded-md px-2 py-0.5 shadow-sm">⚙️ Configurar Regra</button>
+                        </div>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="p-5 text-center">${chkBoxHTML}</td>
+                    <td class="p-5">
+                        <div class="font-black text-slate-800 text-sm uppercase leading-tight">${item.nome}</div>
+                        <div class="text-[9px] text-slate-400 font-mono mt-1">${item.codigo}</div>
+                    </td>
+                    <td class="p-5 text-center">${centroColHTML}</td>
+                    <td class="p-5 text-center font-bold text-slate-400 text-lg">${item.saldo_vila.toFixed(1)}</td>
+                    <td class="p-5 text-center">
+                        <span class="text-[9px] font-black uppercase px-3 py-1 rounded-full ${corBadge} whitespace-nowrap shadow-sm">
+                            ${badgeTexto}
+                        </span>
+                    </td>
+                    <td class="p-5 text-right flex flex-col items-end gap-1 justify-center">
+                        ${item.qtde_transferir > 0 ? `<span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg font-black text-sm border border-blue-100">TR: ${item.qtde_transferir.toFixed(0)}</span>` : ''}
+                        ${item.qtde_comprar > 0 ? `<span class="bg-red-50 text-red-600 px-3 py-1 rounded-lg font-black text-sm border border-red-100">CP: ${item.qtde_comprar.toFixed(0)}</span>` : ''}
+                    </td>
+                    <td class="p-5 text-center">
+                        <button onclick="editarRegras('${item.produto_id}', '${nomeEscapado}', ${item.capacidade_maxima || ''}, ${item.estoque_seguranca || ''})" class="text-slate-400 hover:text-slate-800 transition-colors" title="Editar Capacidade e Segurança">⚙️</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function marcarTodos(source) {
+            const checkboxes = document.querySelectorAll('.item-checkbox');
+            checkboxes.forEach(chk => { chk.checked = source.checked; });
+        }
+
+        function gerarCupom() {
+            const selecionados = document.querySelectorAll('.item-checkbox:checked');
+            if (selecionados.length === 0) {
+                alert("Selecione pelo menos um produto para gerar a separação!");
+                return;
+            }
+
+            const cupomDiv = document.getElementById("cupom-conteudo");
+            let dataStr = new Date().toLocaleString('pt-BR');
+            
+            let html = `
+                <div style="text-align:center; font-weight:bold; margin-bottom: 10px; font-size: 16px;">
+                    SEPARAÇÃO - VILA ELIAS<br>
+                    <span style="font-size: 11px; font-weight: normal;">${dataStr}</span>
+                </div>
+                <div style="border-bottom: 2px dashed #000; margin-bottom: 15px;"></div>
+            `;
+
+            selecionados.forEach(chk => {
+                const nome = chk.getAttribute("data-nome");
+                const qtde = chk.getAttribute("data-qtde");
+                const barras = chk.getAttribute("data-barras");
+                
+                let barcodeHTML = '';
+                if (barras && barras.trim() !== '' && barras !== 'undefined') {
+                    // O JsBarcode irá ler essa div e desenhar as barras nela
+                    barcodeHTML = `<div style="text-align: left; margin-left: 15px; margin-top: 5px; margin-bottom: 5px;"><svg class="barcode-svg" jsbarcode-value="${barras}" jsbarcode-height="30" jsbarcode-width="1.5" jsbarcode-fontSize="12" jsbarcode-margin="0"></svg></div>`;
+                }
+
+                html += `
+                    <div class="linha-produto">
+                        <div style="font-weight: bold; font-size: 15px;">[  ] ${qtde}x</div>
+                        <div style="font-size: 13px; margin-left: 20px; text-transform: uppercase;">${nome}</div>
+                        ${barcodeHTML}
+                    </div>
+                `;
+            });
+
+            html += `
+                <div style="border-bottom: 2px dashed #000; margin-top: 15px; margin-bottom: 10px;"></div>
+                <div style="text-align:center; font-size: 12px; font-weight: bold;">Total de volumes: ${selecionados.length}</div>
+            `;
+
+            cupomDiv.innerHTML = html;
+            
+            // Inicia o desenho dos códigos de barra reais na tela oculta
+            try { JsBarcode(".barcode-svg").init(); } catch(e) { console.log(e); }
+            
+            window.print(); // Dispara o diálogo de impressão focado na div via CSS
+        }
+
+        async function editarRegras(produtoId, nomeProduto, atualMax = '', atualSeg = '') {
+            if (atualMax == -1) atualMax = '';
+            const p_max = prompt(`Qual a CAPACIDADE MÁXIMA do Centro para:\n${nomeProduto}?\n\n* Deixe em branco (vazio) para trazer tudo da Vila Elias (Infinito).`, atualMax);
+            if (p_max === null) return;
+
+            const p_seg = prompt(`Qual o ESTOQUE DE SEGURANÇA (Mínimo) para:\n${nomeProduto}?`, atualSeg);
+            if (p_seg === null || p_seg.trim() === '') return;
+            
+            const pin = prompt("Confirme a operação com seu PIN:");
+            if (!pin) return;
 
             const fd = new FormData();
-            fd.append('codigo', codigo);
-            fd.append('min', min);
-            fd.append('max', max);
+            fd.append('produto_id', produtoId);
+            fd.append('nome_produto', nomeProduto);
+            fd.append('capacidade_maxima', p_max.trim() === '' ? '-1' : p_max);
+            fd.append('estoque_seguranca', p_seg);
             fd.append('pin', pin);
             fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
             try {
-                const res = await fetch('/api/config-logistica/', { method: 'POST', body: fd });
-                if (res.ok) {
-                    location.reload(); // Recarrega para recalcular a sugestão com os novos valores
-                } else { alert("Erro ao salvar!"); }
-            } catch (e) { alert("Erro de conexão."); }
+                // Ajuste esta rota se necessário
+                const res = await fetch('/estoque/api_salvar_config_transferencia/', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.ok) {
+                    carregarDados(); // Recarrega automaticamente as novas sugestões
+                } else {
+                    alert("Erro ao salvar: " + data.erro);
+                }
+            } catch (e) { alert("Erro de comunicação com o servidor."); }
+        }
+
+        async function adicionarRegraNova() {
+            const termo = prompt("Digite o nome ou código do produto que deseja adicionar na regra de transferência:");
+            if (!termo || termo.trim() === '') return;
+
+            try {
+                // Reutilizamos a sua rota existente de busca de produtos
+                const response = await fetch(`/api/buscar/?q=${encodeURIComponent(termo)}`);
+                const data = await response.json();
+                
+                if (!data.produtos || data.produtos.length === 0) {
+                    alert("Nenhum produto encontrado com esse termo.");
+                    return;
+                }
+
+                // Pega o primeiro produto retornado da busca
+                const p = data.produtos[0];
+                const confirma = confirm(`Produto encontrado:\n${p.nome}\n\nDeseja configurar as regras (Mínimo/Máximo) para ele?`);
+                
+                if (confirma) {
+                    editarRegras(p.id, p.nome, '', '');
+                }
+            } catch (error) { alert("Erro ao buscar o produto. Verifique a conexão ou a URL da API de busca."); }
+        }
+
+        async function processarPlanilha(input) {
+            if (!input.files || input.files.length === 0) return;
+            const arquivo = input.files[0];
+            
+            const pin = prompt("Importação de Regras em Lote.\nConfirme a operação com seu PIN:");
+            if (!pin) { input.value = ""; return; }
+
+            const fd = new FormData();
+            fd.append('arquivo', arquivo);
+            fd.append('pin', pin);
+            fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            try {
+                const res = await fetch('/estoque/api_importar_planilha/', { method: 'POST', body: fd });
+                const data = await res.json();
+                if (data.ok) {
+                    alert(data.mensagem);
+                    carregarDados();
+                } else {
+                    alert("Erro ao importar: " + data.erro);
+                }
+            } catch (e) { alert("Erro de comunicação com o servidor."); }
+            input.value = ""; // Limpa o input
         }
     </script>
 </body>

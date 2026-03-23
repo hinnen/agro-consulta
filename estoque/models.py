@@ -33,11 +33,23 @@ class AjusteRapidoEstoque(models.Model):
         self.diferenca_saldo = self.saldo_informado - self.saldo_erp_referencia
         super().save(*args, **kwargs)
 
-# NOVO MODELO PARA OS PARÂMETROS DA PLANILHA
-class ConfiguracaoProduto(models.Model):
-    codigo_interno = models.CharField(max_length=100, unique=True)
-    estoque_seguranca = models.DecimalField(max_digits=10, decimal_places=3, default=1)
-    estoque_maximo_centro = models.DecimalField(max_digits=10, decimal_places=3, default=15)
+class ConfiguracaoTransferencia(models.Model):
+    produto_externo_id = models.CharField("ID do Produto", max_length=100, unique=True, db_index=True)
+    nome_produto = models.CharField("Nome do Produto", max_length=255, blank=True, default='')
+    
+    # Parâmetros da Fórmula
+    venda_media_diaria = models.DecimalField("Venda Média Diária", max_digits=10, decimal_places=3, default=0)
+    capacidade_maxima = models.DecimalField("Capacidade Máxima", max_digits=10, decimal_places=3, default=0)
+    dias_cobertura = models.IntegerField("Dias de Cobertura", default=1)
+    estoque_seguranca = models.DecimalField("Estoque Segurança", max_digits=10, decimal_places=3, default=0)
+    
+    atualizado_em = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"{self.codigo_interno} (Seg: {self.estoque_seguranca} | Max: {self.estoque_maximo_centro})"
+    class Meta:
+        verbose_name = 'Configuração de Transferência'
+        verbose_name_plural = 'Configurações de Transferências'
+
+    @property
+    def capacidade_minima(self):
+        """Ponto de Pedido/Transferência"""
+        return (self.venda_media_diaria * self.dias_cobertura) + self.estoque_seguranca
