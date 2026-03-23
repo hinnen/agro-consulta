@@ -3,6 +3,7 @@ import io
 from decimal import Decimal, InvalidOperation
 
 from django.http import JsonResponse
+from django.core.cache import cache
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET, require_POST
@@ -336,29 +337,37 @@ def api_sugestoes_transferencia(request):
     try:
         client = VendaERPMongoClient()
         
-        # 1. Busca TODOS os produtos ativos no banco do Venda ERP
-        produtos = list(client.db[client.col_p].find(
-            {"CadastroInativo": {"$ne": True}}, 
-            {"Id": 1, "_id": 1, "Nome": 1, "CodigoNFe": 1, "Codigo": 1, "EAN_NFe": 1, "CodigoBarras": 1}
-        ))
+        # Tenta buscar os dados pesados na Memória RAM (Cache) primeiro
+        cache_key = "erp_dados_transferencia"
+        dados_erp = cache.get(cache_key)
+
+        if not dados_erp:
+            # 1. Busca TODOS os produtos ativos
+            produtos = list(client.db[client.col_p].find(
+                {"CadastroInativo": {"$ne": True}}, 
+                {"Id": 1, "_id": 1, "Nome": 1, "CodigoNFe": 1, "Codigo": 1, "EAN_NFe": 1, "CodigoBarras": 1}
+            ))
+            
+            p_ids = [str(p.get("Id") or p.get("_id")) for p in produtos]
+
+            # 2. Busca estoques em uma tacada só (sem loop) para evitar Timeout no Render
+            estoques = list(client.db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+            
+            dados_erp = {"produtos": produtos, "estoques": estoques, "p_ids": p_ids}
+            cache.set(cache_key, dados_erp, timeout=120) # Guarda no servidor por 2 minutos
+        else:
+            produtos = dados_erp["produtos"]
+            estoques = dados_erp["estoques"]
+            p_ids = dados_erp["p_ids"]
         
         mapa_produtos = {}
-        p_ids = []
         for p in produtos:
             pid = str(p.get("Id") or p.get("_id"))
-            p_ids.append(pid)
             mapa_produtos[pid] = {
                 "nome": p.get("Nome", f"Produto {pid}"),
                 "codigo": p.get("CodigoNFe") or p.get("Codigo") or pid,
                 "codigo_barras": p.get("EAN_NFe") or p.get("CodigoBarras") or ""
             }
-
-        # 2. Busca os estoques fatiados em blocos (segurança para não travar a memória)
-        estoques = []
-        chunk_size = 5000
-        for i in range(0, len(p_ids), chunk_size):
-            chunk_pids = p_ids[i:i + chunk_size]
-            estoques.extend(list(client.db[client.col_e].find({"ProdutoID": {"$in": chunk_pids}})))
 
         estoques_por_produto = {}
         for estoque in estoques:
