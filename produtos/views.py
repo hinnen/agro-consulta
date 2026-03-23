@@ -139,7 +139,10 @@ def api_todos_produtos_local(request):
         produtos = list(db[client.col_p].find(query, projecao))
         p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
         
-        estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+        estoques = list(db[client.col_e].find(
+            {"Saldo": {"$ne": 0}},
+            {"ProdutoID": 1, "DepositoID": 1, "Deposito": 1, "Saldo": 1, "_id": 0}
+        ))
         
         ajustes_bd = AjusteRapidoEstoque.objects.all().order_by('produto_externo_id', 'deposito', '-criado_em')
         ajustes_map = {}

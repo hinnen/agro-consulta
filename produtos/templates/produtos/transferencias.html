@@ -52,9 +52,12 @@
             <button onclick="renderizarTabela('SEPARANDO')" class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-black text-yellow-600 hover:bg-yellow-50 transition-colors">🟡 Em Separação</button>
             
             <div class="w-px h-8 bg-slate-300 mx-2"></div>
+            <button onclick="adicionarTransferenciaManual()" class="px-5 py-2 bg-blue-600 rounded-xl shadow-sm border border-blue-700 text-xs font-black text-white hover:bg-blue-700 transition-colors">📦 Transferência Manual</button>
             <button onclick="adicionarRegraNova()" class="px-5 py-2 bg-green-600 rounded-xl shadow-sm border border-green-700 text-xs font-black text-white hover:bg-green-700 transition-colors">➕ Adicionar Regra de Produto</button>
-            <button onclick="atualizarMedias()" class="px-5 py-2 bg-purple-600 rounded-xl shadow-sm border border-purple-700 text-xs font-black text-white hover:bg-purple-700 transition-colors">🔄 Recalcular Vendas (30 dias)</button>
             <button onclick="document.getElementById('arquivo-csv').click()" class="px-5 py-2 bg-emerald-600 rounded-xl shadow-sm border border-emerald-700 text-xs font-black text-white hover:bg-emerald-700 transition-colors">📁 Importar CSV</button>
+            <button onclick="atualizarMedias()" class="px-4 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-[10px] font-bold text-slate-500 hover:bg-slate-50 transition-colors flex items-center gap-1.5 ml-auto">
+                🔄 Vendas (30d) <span id="data-ultima-atualizacao" class="bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded text-[9px] font-medium">Carregando...</span>
+            </button>
             <!-- Input oculto para o arquivo -->
             <input type="file" id="arquivo-csv" accept=".csv" class="hidden" onchange="processarPlanilha(this)">
         </div>
@@ -171,6 +174,11 @@
                     return;
                 }
 
+                if (data.ultima_atualizacao) {
+                    const lblData = document.getElementById('data-ultima-atualizacao');
+                    if(lblData) lblData.innerText = data.ultima_atualizacao;
+                }
+
                 sugestoesGlobais = data.sugestoes || [];
                 renderizarTabela('TODOS');
             } catch (error) {
@@ -190,6 +198,7 @@
                 if (filtro === 'COMPRAR' && item.status.includes('COMPRAR')) return true;
                 if (filtro === 'PRIORIDADE' && item.capacidade_maxima == -1 && item.saldo_vila > 0) return true;
                 if (filtro === 'SEPARANDO' && item.status === 'SEPARANDO') return true;
+                if (filtro === 'TODOS' && item.status === 'MANUAL') return true;
                 return false;
             });
 
@@ -216,6 +225,7 @@
                     if(item.status === 'TRANSFERIR_COMPRAR') corBadge = "bg-orange-100 text-orange-600 border border-orange-200";
                     if(item.status === 'COMPRAR') corBadge = "bg-red-100 text-red-600 border border-red-200";
                     if(item.status === 'SEPARANDO') corBadge = "bg-yellow-100 text-yellow-700 border border-yellow-300 animate-pulse";
+                    if(item.status === 'MANUAL') { corBadge = "bg-purple-100 text-purple-600 border border-purple-200"; badgeTexto = "📦 MANUAL"; }
                 } else {
                     if (item.status === 'ALTA') {
                         corBadge = "bg-red-600 text-white font-black shadow-md border-red-700 animate-pulse";
@@ -224,11 +234,13 @@
                         corBadge = "bg-amber-400 text-white font-black shadow-sm border-amber-500";
                         badgeTexto = "🟡 MÉDIA PRIORIDADE";
                     }
+                    if(item.status === 'SEPARANDO') corBadge = "bg-yellow-100 text-yellow-700 border border-yellow-300 animate-pulse";
+                    if(item.status === 'MANUAL') { corBadge = "bg-purple-100 text-purple-600 border border-purple-200"; badgeTexto = "📦 MANUAL"; }
                 }
 
                 // Somente deixa habilitado o checkbox se houver algo para transferir
-                const chkBoxHTML = item.qtde_transferir > 0 && item.status !== 'SEPARANDO'
-                    ? `<input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer accent-blue-600" data-id="${item.produto_id}" data-nome="${item.nome}" data-qtde="${item.qtde_transferir}" data-barras="${item.codigo_barras || item.codigo}">` 
+                const chkBoxHTML = item.status !== 'SEPARANDO'
+                    ? `<input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer accent-blue-600" data-id="${item.produto_id}" data-nome="${nomeEscapado}" data-barras="${item.codigo_barras || item.codigo}" ${item.qtde_transferir > 0 ? 'checked' : ''}>` 
                     : ``;
 
                 let centroColHTML = '';
@@ -267,6 +279,21 @@
                     acoesHTML = `<button onclick="cancelarSeparacao('${item.produto_id}')" class="text-red-500 hover:text-red-700 font-bold text-[10px] uppercase px-2 py-1 bg-red-50 rounded border border-red-200 mr-2" title="Cancelar Separação">❌ Cancelar</button>` + acoesHTML;
                 }
 
+                let qtdeHTML = '';
+                if (item.status === 'SEPARANDO') {
+                    qtdeHTML = `<span class="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-lg font-black text-sm border border-yellow-200">TR: ${item.qtde_transferir.toFixed(0)}</span>`;
+                } else {
+                    qtdeHTML = `
+                        <div class="flex items-center justify-end gap-1">
+                            <span class="text-[10px] font-black text-slate-400">TR:</span>
+                            <input type="number" min="0" step="1" class="qtde-input w-16 text-center font-black text-blue-600 bg-blue-50 border border-blue-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-400" value="${item.qtde_transferir > 0 ? item.qtde_transferir.toFixed(0) : ''}" onchange="toggleCheckboxManual(this)">
+                        </div>
+                    `;
+                }
+                if (item.qtde_comprar > 0) {
+                    qtdeHTML += `<span class="bg-red-50 text-red-600 px-3 py-1 rounded-lg font-black text-sm border border-red-100 mt-1 inline-block">CP: ${item.qtde_comprar.toFixed(0)}</span>`;
+                }
+
                 tr.innerHTML = `
                     <td class="p-5 text-center">${chkBoxHTML}</td>
                     <td class="p-5">
@@ -281,11 +308,7 @@
                         </span>
                     </td>
                     <td class="p-5 text-right flex flex-col items-end gap-1 justify-center">
-                        ${item.qtde_transferir > 0 ? `<span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg font-black text-sm border border-blue-100">TR: ${item.qtde_transferir.toFixed(0)}</span>` : ''}
-                        ${item.qtde_comprar > 0 ? `<span class="bg-red-50 text-red-600 px-3 py-1 rounded-lg font-black text-sm border border-red-100">CP: ${item.qtde_comprar.toFixed(0)}</span>` : ''}
-                    </td>
-                    <td class="p-5 text-center">
-                        ${acoesHTML}
+                        ${qtdeHTML}
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -304,6 +327,14 @@
             checkboxes.forEach(chk => { chk.checked = source.checked; });
         }
 
+        function toggleCheckboxManual(input) {
+            const tr = input.closest('tr');
+            const chk = tr.querySelector('.item-checkbox');
+            if(chk) {
+                chk.checked = (parseFloat(input.value) > 0);
+            }
+        }
+
         async function gerarCupom() {
             const selecionados = document.querySelectorAll('.item-checkbox:checked');
             if (selecionados.length === 0) {
@@ -313,6 +344,7 @@
 
             const cupomDiv = document.getElementById("cupom-conteudo");
             const itensAPI = [];
+            let selecionadosValidos = 0;
             let dataStr = new Date().toLocaleString('pt-BR');
             
             let html = `
@@ -326,29 +358,38 @@
             selecionados.forEach(chk => {
                 const id = chk.getAttribute("data-id");
                 const nome = chk.getAttribute("data-nome");
-                const qtde = chk.getAttribute("data-qtde");
                 const barras = chk.getAttribute("data-barras");
+                const tr = chk.closest('tr');
+                const inputQtde = tr.querySelector('.qtde-input');
+                const qtde = inputQtde && inputQtde.value ? parseFloat(inputQtde.value) : 0;
                 
-                let barcodeHTML = '';
-                if (barras && barras.trim() !== '' && barras !== 'undefined') {
-                    // O JsBarcode irá ler essa div e desenhar as barras nela
-                    barcodeHTML = `<div style="text-align: left; margin-left: 15px; margin-top: 5px; margin-bottom: 5px;"><svg class="barcode-svg" jsbarcode-value="${barras}" jsbarcode-height="30" jsbarcode-width="1.5" jsbarcode-fontSize="12" jsbarcode-margin="0"></svg></div>`;
+                if (qtde > 0) {
+                    selecionadosValidos++;
+                    let barcodeHTML = '';
+                    if (barras && barras.trim() !== '' && barras !== 'undefined') {
+                        barcodeHTML = `<div style="text-align: left; margin-left: 15px; margin-top: 5px; margin-bottom: 5px;"><svg class="barcode-svg" jsbarcode-value="${barras}" jsbarcode-height="30" jsbarcode-width="1.5" jsbarcode-fontSize="12" jsbarcode-margin="0"></svg></div>`;
+                    }
+
+                    itensAPI.push({ id: id, qtde: qtde });
+
+                    html += `
+                        <div class="linha-produto">
+                            <div style="font-weight: bold; font-size: 15px;">[  ] ${qtde}x</div>
+                            <div style="font-size: 13px; margin-left: 20px; text-transform: uppercase;">${nome}</div>
+                            ${barcodeHTML}
+                        </div>
+                    `;
                 }
-
-                itensAPI.push({ id: id, qtde: qtde });
-
-                html += `
-                    <div class="linha-produto">
-                        <div style="font-weight: bold; font-size: 15px;">[  ] ${qtde}x</div>
-                        <div style="font-size: 13px; margin-left: 20px; text-transform: uppercase;">${nome}</div>
-                        ${barcodeHTML}
-                    </div>
-                `;
             });
+
+            if (selecionadosValidos === 0) {
+                alert("Nenhuma quantidade válida informada para transferência!");
+                return;
+            }
 
             html += `
                 <div style="border-bottom: 2px dashed #000; margin-top: 15px; margin-bottom: 10px;"></div>
-                <div style="text-align:center; font-size: 12px; font-weight: bold;">Total de volumes: ${selecionados.length}</div>
+                <div style="text-align:center; font-size: 12px; font-weight: bold;">Total de volumes: ${selecionadosValidos}</div>
             `;
 
             cupomDiv.innerHTML = html;
@@ -510,6 +551,37 @@
                 }
                 const p = data.produtos[0];
                 editarRegras(p.id, p.nome, '', '');
+            } catch (error) { alert("Erro ao buscar produto."); }
+        }
+
+        async function adicionarTransferenciaManual() {
+            const termo = prompt("📦 Transferência Manual:\nDigite o NOME ou CÓDIGO do produto que deseja transferir:");
+            if (!termo || termo.trim() === '') return;
+
+            try {
+                const response = await fetch(`/api/buscar/?q=${encodeURIComponent(termo)}`);
+                const data = await response.json();
+                
+                if (!data.produtos || data.produtos.length === 0) {
+                    alert("Nenhum produto encontrado."); return;
+                }
+                const p = data.produtos[0];
+                
+                const existe = sugestoesGlobais.find(i => i.produto_id === p.id);
+                if (!existe) {
+                    sugestoesGlobais.unshift({
+                        produto_id: p.id, codigo: p.codigo_nfe || p.codigo_interno, codigo_barras: p.codigo_barras,
+                        nome: p.nome, saldo_centro: p.saldo_centro, saldo_vila: p.saldo_vila,
+                        status: "MANUAL", qtde_transferir: 1, qtde_comprar: 0,
+                        configurado: false, prioridade: 0
+                    });
+                } else {
+                    existe.qtde_transferir = 1;
+                    if(existe.status !== 'SEPARANDO') existe.status = "MANUAL";
+                    existe.prioridade = 0;
+                    sugestoesGlobais.sort((a,b) => a.prioridade - b.prioridade);
+                }
+                renderizarTabela('TODOS');
             } catch (error) { alert("Erro ao buscar produto."); }
         }
 
