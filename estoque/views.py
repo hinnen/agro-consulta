@@ -335,13 +335,12 @@ def api_importar_planilha_transferencia(request):
 @require_GET
 def api_sugestoes_transferencia(request):
     try:
-        client = VendaERPMongoClient()
-        
-        # Tenta buscar os dados pesados na Memória RAM (Cache) primeiro
-        cache_key = "erp_dados_transferencia"
-        dados_erp = cache.get(cache_key)
+        # Tenta buscar os dados processados e super leves na Memória RAM
+        cache_key = "erp_resumo_transferencia_v2"
+        resumo_erp = cache.get(cache_key)
 
-        if not dados_erp:
+        if not resumo_erp:
+            client = VendaERPMongoClient()
             # 1. Busca TODOS os produtos ativos
             produtos = list(client.db[client.col_p].find(
                 {"CadastroInativo": {"$ne": True}}, 
@@ -350,53 +349,57 @@ def api_sugestoes_transferencia(request):
             
             p_ids = [str(p.get("Id") or p.get("_id")) for p in produtos]
 
-            # 2. Busca estoques em uma tacada só (sem loop) para evitar Timeout no Render
-            estoques = list(client.db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+            # 2. Busca estoques trazendo apenas as colunas necessárias (economia brutal de memória)
+            estoques = list(client.db[client.col_e].find(
+                {"ProdutoID": {"$in": p_ids}},
+                {"ProdutoID": 1, "DepositoID": 1, "Deposito": 1, "Saldo": 1, "_id": 0}
+            ))
             
-            dados_erp = {"produtos": produtos, "estoques": estoques, "p_ids": p_ids}
-            cache.set(cache_key, dados_erp, timeout=120) # Guarda no servidor por 2 minutos
+            mapa_produtos = {}
+            for p in produtos:
+                pid = str(p.get("Id") or p.get("_id"))
+                mapa_produtos[pid] = {
+                    "nome": p.get("Nome", f"Produto {pid}"),
+                    "codigo": p.get("CodigoNFe") or p.get("Codigo") or pid,
+                    "codigo_barras": p.get("EAN_NFe") or p.get("CodigoBarras") or "",
+                    "saldo_c": 0.0,
+                    "saldo_v": 0.0
+                }
+
+            # 3. Consolida os saldos por loja antes de salvar no Cache
+            for estoque in estoques:
+                pid = str(estoque.get("ProdutoID"))
+                if pid in mapa_produtos:
+                    deposito_id = str(estoque.get("DepositoID", ""))
+                    deposito_nome = str(estoque.get("Deposito", "")).strip().lower()
+                    saldo = float(str(estoque.get("Saldo", 0) or 0))
+
+                    if hasattr(client, 'DEPOSITO_CENTRO') and deposito_id == client.DEPOSITO_CENTRO:
+                        mapa_produtos[pid]["saldo_c"] += saldo
+                    elif hasattr(client, 'DEPOSITO_VILA_ELIAS') and deposito_id == client.DEPOSITO_VILA_ELIAS:
+                        mapa_produtos[pid]["saldo_v"] += saldo
+                    elif "centro" in deposito_nome: 
+                        mapa_produtos[pid]["saldo_c"] += saldo
+                    elif "vila" in deposito_nome: 
+                        mapa_produtos[pid]["saldo_v"] += saldo
+            
+            resumo_erp = {"mapa": mapa_produtos, "p_ids": p_ids}
+            cache.set(cache_key, resumo_erp, timeout=120) # Salva o resumo levíssimo por 2 minutos
         else:
-            produtos = dados_erp["produtos"]
-            estoques = dados_erp["estoques"]
-            p_ids = dados_erp["p_ids"]
-        
-        mapa_produtos = {}
-        for p in produtos:
-            pid = str(p.get("Id") or p.get("_id"))
-            mapa_produtos[pid] = {
-                "nome": p.get("Nome", f"Produto {pid}"),
-                "codigo": p.get("CodigoNFe") or p.get("Codigo") or pid,
-                "codigo_barras": p.get("EAN_NFe") or p.get("CodigoBarras") or ""
-            }
+            mapa_produtos = resumo_erp["mapa"]
+            p_ids = resumo_erp["p_ids"]
 
-        estoques_por_produto = {}
-        for estoque in estoques:
-            p_id = str(estoque.get("ProdutoID"))
-            estoques_por_produto.setdefault(p_id, []).append(estoque)
-
-        # 3. Busca Regras e Ajustes Locais
+        # 4. Busca Regras e Ajustes Locais
         regras = ConfiguracaoTransferencia.objects.all()
         mapa_regras = {str(r.produto_externo_id): r for r in regras}
         ajustes = _buscar_ajustes_mais_recentes(p_ids)
 
         sugestoes = []
 
-        # 4. Monta o Dicionário Final
+        # 5. Monta o Dicionário Final cruzando com os Ajustes Manuais
         for pid, p_info in mapa_produtos.items():
-            saldo_centro_erp = Decimal('0')
-            saldo_vila_erp = Decimal('0')
-
-            for estoque in estoques_por_produto.get(pid, []):
-                deposito_id = str(estoque.get("DepositoID", ""))
-                deposito_nome = str(estoque.get("Deposito", "")).strip().lower()
-                saldo = Decimal(str(estoque.get("Saldo", 0) or 0))
-
-                if hasattr(client, 'DEPOSITO_CENTRO') and deposito_id == client.DEPOSITO_CENTRO:
-                    saldo_centro_erp += saldo
-                elif hasattr(client, 'DEPOSITO_VILA_ELIAS') and deposito_id == client.DEPOSITO_VILA_ELIAS:
-                    saldo_vila_erp += saldo
-                elif "centro" in deposito_nome: saldo_centro_erp += saldo
-                elif "vila" in deposito_nome: saldo_vila_erp += saldo
+            saldo_centro_erp = Decimal(str(p_info["saldo_c"]))
+            saldo_vila_erp = Decimal(str(p_info["saldo_v"]))
 
             ajuste_centro = ajustes.get((pid, 'centro'))
             ajuste_vila = ajustes.get((pid, 'vila'))
