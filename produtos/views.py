@@ -9,13 +9,17 @@ from estoque.models import AjusteRapidoEstoque
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 
 # --- CONEXÃO ---
+_cached_mongo_client = None
+
 def obter_conexao_mongo():
+    global _cached_mongo_client
     try:
-        client = VendaERPMongoClient()
-        client.client.admin.command('ping')
-        return client, client.db
+        if _cached_mongo_client is None:
+            _cached_mongo_client = VendaERPMongoClient()
+        return _cached_mongo_client, _cached_mongo_client.db
     except Exception as e:
         print(f"--- ERRO MONGO: {e} ---")
+        _cached_mongo_client = None
         return None, None
 
 def normalizar_termo(txt):

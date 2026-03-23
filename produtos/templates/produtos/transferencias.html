@@ -49,6 +49,7 @@
             <button onclick="renderizarTabela('TRANSFERIR')" class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-black text-blue-600 hover:bg-blue-50 transition-colors">🚚 Somente Transferências</button>
             <button onclick="renderizarTabela('COMPRAR')" class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-black text-red-600 hover:bg-red-50 transition-colors">🛒 Somente Compras</button>
             <button onclick="renderizarTabela('PRIORIDADE')" class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-black text-amber-600 hover:bg-amber-50 transition-colors">⚠️ Requer Máximo</button>
+            <button onclick="renderizarTabela('SEPARANDO')" class="px-5 py-2 bg-white rounded-xl shadow-sm border border-slate-200 text-xs font-black text-yellow-600 hover:bg-yellow-50 transition-colors">🟡 Em Separação</button>
             
             <div class="w-px h-8 bg-slate-300 mx-2"></div>
             <button onclick="adicionarRegraNova()" class="px-5 py-2 bg-green-600 rounded-xl shadow-sm border border-green-700 text-xs font-black text-white hover:bg-green-700 transition-colors">➕ Adicionar Regra de Produto</button>
@@ -188,6 +189,7 @@
                 if (filtro === 'TRANSFERIR' && item.status.includes('TRANSFERIR')) return true;
                 if (filtro === 'COMPRAR' && item.status.includes('COMPRAR')) return true;
                 if (filtro === 'PRIORIDADE' && item.capacidade_maxima == -1 && item.saldo_vila > 0) return true;
+                if (filtro === 'SEPARANDO' && item.status === 'SEPARANDO') return true;
                 return false;
             });
 
@@ -213,6 +215,7 @@
                     if(item.status === 'TRANSFERIR') corBadge = "bg-blue-100 text-blue-600 border border-blue-200";
                     if(item.status === 'TRANSFERIR_COMPRAR') corBadge = "bg-orange-100 text-orange-600 border border-orange-200";
                     if(item.status === 'COMPRAR') corBadge = "bg-red-100 text-red-600 border border-red-200";
+                    if(item.status === 'SEPARANDO') corBadge = "bg-yellow-100 text-yellow-700 border border-yellow-300 animate-pulse";
                 } else {
                     if (item.status === 'ALTA') {
                         corBadge = "bg-red-600 text-white font-black shadow-md border-red-700 animate-pulse";
@@ -224,8 +227,8 @@
                 }
 
                 // Somente deixa habilitado o checkbox se houver algo para transferir
-                const chkBoxHTML = item.qtde_transferir > 0 
-                    ? `<input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer accent-blue-600" data-nome="${item.nome}" data-qtde="${item.qtde_transferir}" data-barras="${item.codigo_barras || item.codigo}">` 
+                const chkBoxHTML = item.qtde_transferir > 0 && item.status !== 'SEPARANDO'
+                    ? `<input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer accent-blue-600" data-id="${item.produto_id}" data-nome="${item.nome}" data-qtde="${item.qtde_transferir}" data-barras="${item.codigo_barras || item.codigo}">` 
                     : ``;
 
                 let centroColHTML = '';
@@ -256,6 +259,14 @@
                         </div>`;
                 }
 
+                let acoesHTML = `
+                    <button onclick="abrirModalAjuste('${item.produto_id}', '${nomeEscapado}', ${item.saldo_centro}, ${item.saldo_vila}, '${item.codigo}')" class="text-amber-500 hover:text-amber-700 transition-colors mr-2 text-lg" title="Ajuste de Estoque">✏️</button>
+                    <button onclick="editarRegras('${item.produto_id}', '${nomeEscapado}', ${item.capacidade_maxima || ''}, ${item.estoque_seguranca || ''})" class="text-slate-400 hover:text-slate-800 transition-colors" title="Editar Capacidade e Segurança">⚙️</button>
+                `;
+                if (item.status === 'SEPARANDO') {
+                    acoesHTML = `<button onclick="cancelarSeparacao('${item.produto_id}')" class="text-red-500 hover:text-red-700 font-bold text-[10px] uppercase px-2 py-1 bg-red-50 rounded border border-red-200 mr-2" title="Cancelar Separação">❌ Cancelar</button>` + acoesHTML;
+                }
+
                 tr.innerHTML = `
                     <td class="p-5 text-center">${chkBoxHTML}</td>
                     <td class="p-5">
@@ -274,8 +285,7 @@
                         ${item.qtde_comprar > 0 ? `<span class="bg-red-50 text-red-600 px-3 py-1 rounded-lg font-black text-sm border border-red-100">CP: ${item.qtde_comprar.toFixed(0)}</span>` : ''}
                     </td>
                     <td class="p-5 text-center">
-                        <button onclick="abrirModalAjuste('${item.produto_id}', '${nomeEscapado}', ${item.saldo_centro}, ${item.saldo_vila}, '${item.codigo}')" class="text-amber-500 hover:text-amber-700 transition-colors mr-2 text-lg" title="Ajuste de Estoque">✏️</button>
-                        <button onclick="editarRegras('${item.produto_id}', '${nomeEscapado}', ${item.capacidade_maxima || ''}, ${item.estoque_seguranca || ''})" class="text-slate-400 hover:text-slate-800 transition-colors" title="Editar Capacidade e Segurança">⚙️</button>
+                        ${acoesHTML}
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -294,7 +304,7 @@
             checkboxes.forEach(chk => { chk.checked = source.checked; });
         }
 
-        function gerarCupom() {
+        async function gerarCupom() {
             const selecionados = document.querySelectorAll('.item-checkbox:checked');
             if (selecionados.length === 0) {
                 alert("Selecione pelo menos um produto para gerar a separação!");
@@ -302,6 +312,7 @@
             }
 
             const cupomDiv = document.getElementById("cupom-conteudo");
+            const itensAPI = [];
             let dataStr = new Date().toLocaleString('pt-BR');
             
             let html = `
@@ -313,6 +324,7 @@
             `;
 
             selecionados.forEach(chk => {
+                const id = chk.getAttribute("data-id");
                 const nome = chk.getAttribute("data-nome");
                 const qtde = chk.getAttribute("data-qtde");
                 const barras = chk.getAttribute("data-barras");
@@ -322,6 +334,8 @@
                     // O JsBarcode irá ler essa div e desenhar as barras nela
                     barcodeHTML = `<div style="text-align: left; margin-left: 15px; margin-top: 5px; margin-bottom: 5px;"><svg class="barcode-svg" jsbarcode-value="${barras}" jsbarcode-height="30" jsbarcode-width="1.5" jsbarcode-fontSize="12" jsbarcode-margin="0"></svg></div>`;
                 }
+
+                itensAPI.push({ id: id, qtde: qtde });
 
                 html += `
                     <div class="linha-produto">
@@ -339,10 +353,29 @@
 
             cupomDiv.innerHTML = html;
             
+            try {
+                await fetch('/estoque/api_registrar_impressao/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify({ itens: itensAPI })
+                });
+            } catch (e) {}
+
             // Inicia o desenho dos códigos de barra reais na tela oculta
             try { JsBarcode(".barcode-svg").init(); } catch(e) { console.log(e); }
             
             window.print(); // Dispara o diálogo de impressão focado na div via CSS
+            setTimeout(() => carregarDados(), 2000);
+        }
+
+        async function cancelarSeparacao(id) {
+            if(!confirm("Deseja cancelar a separação deste item? Ele voltará para a fila de transferências.")) return;
+            try {
+                const fd = new FormData();
+                fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                await fetch(`/estoque/api_cancelar_separacao/${id}/`, { method: 'POST', body: fd });
+                carregarDados();
+            } catch(e) {}
         }
 
         // --- SISTEMA DE MODAIS ---
