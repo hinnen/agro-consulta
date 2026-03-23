@@ -39,6 +39,8 @@ def sugestao_transferencia(request):
 @require_GET
 def api_buscar_produtos(request):
     termo_original = request.GET.get("q", "").strip()
+    if not termo_original:
+        return JsonResponse({"produtos": []})
 
     cache_key = f"busca_prod_{normalizar_termo(termo_original).replace(' ', '_')}"
     cached_data = cache.get(cache_key)
@@ -52,16 +54,29 @@ def api_buscar_produtos(request):
     palavras = termo_norm.split()
     
     try:
-        # Otimização Extrema: Busca no índice de array (NomeTokens) ou buscas baseadas em prefixo
-        query = {"$or": [
-            {"NomeTokens": {"$all": palavras}},
+        # Busca Inteligente: permite partes de palavras e é super rápido usando $and + regex simples
+        condicoes_palavras = []
+        for p in palavras:
+            condicoes_palavras.append({
+                "$or": [
+                    {"BuscaTexto": {"$regex": re.escape(p), "$options": "i"}},
+                    {"Nome": {"$regex": re.escape(p), "$options": "i"}}
+                ]
+            })
+
+        or_conditions = [
             {"CodigoNFe": termo_limpo},
             {"Codigo": termo_limpo},
             {"CodigoNFe": {"$regex": f"^{termo_limpo}", "$options": "i"}},
             {"Codigo": {"$regex": f"^{termo_limpo}", "$options": "i"}},
             {"CodigoBarras": termo_limpo},
             {"EAN_NFe": termo_limpo}
-        ], "CadastroInativo": {"$ne": True}}
+        ]
+
+        if condicoes_palavras:
+            or_conditions.insert(0, {"$and": condicoes_palavras})
+
+        query = {"$or": or_conditions, "CadastroInativo": {"$ne": True}}
 
         produtos = list(db[client.col_p].find(query).limit(15))
         p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
@@ -114,8 +129,21 @@ def api_autocomplete_produtos(request):
     client, db = obter_conexao_mongo()
     if len(termo) < 2 or db is None: return JsonResponse({"sugestoes": []})
     try:
-        # BuscaTexto já está normalizado, dispensando o "$options": "i" o que permite uso do Índice B-Tree
-        query = {"$or": [{"BuscaTexto": {"$regex": f"^{termo_norm}"}}, {"NomeNormalizado": {"$regex": f"^{termo_norm}"}}], "CadastroInativo": {"$ne": True}}
+        palavras = termo_norm.split()
+        condicoes_palavras = []
+        for p in palavras:
+            condicoes_palavras.append({
+                "$or": [
+                    {"BuscaTexto": {"$regex": re.escape(p), "$options": "i"}},
+                    {"Nome": {"$regex": re.escape(p), "$options": "i"}}
+                ]
+            })
+
+        if not condicoes_palavras:
+            return JsonResponse({"sugestoes": []})
+
+        query = {"$and": condicoes_palavras, "CadastroInativo": {"$ne": True}}
+
         sugestoes = list(db[client.col_p].find(query, {"Nome": 1, "Marca": 1, "ValorVenda": 1, "PrecoVenda": 1, "Id": 1}).limit(8))
         res = [{"id": str(s.get("Id") or s["_id"]), "nome": s.get("Nome"), "marca": s.get("Marca") or "", "preco_venda": float(s.get("PrecoVenda") or s.get("ValorVenda") or 0)} for s in sugestoes]
         cache.set(cache_key, {"sugestoes": res}, timeout=60)
