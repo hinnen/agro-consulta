@@ -272,6 +272,8 @@ def api_autocomplete_produtos(request):
 @require_POST
 def api_ajustar_estoque(request):
     pin = request.POST.get("pin")
+    if pin == "1234":
+        return JsonResponse({"ok": False, "erro": "Senha padrão (1234) bloqueada. Acesse a aba 'Logística' para cadastrar sua senha pessoal."}, status=403)
     perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
     if not perfil: return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
     try:
@@ -328,8 +330,10 @@ def api_buscar_clientes(request):
 @require_POST
 def api_deletar_ajuste(request, id):
     pin = request.POST.get("pin")
-    if pin != "1234": 
-        return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
+    if pin == "1234":
+        return JsonResponse({"ok": False, "erro": "Senha padrão (1234) bloqueada."}, status=403)
+    perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
+    if not perfil: return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
     try:
         AjusteRapidoEstoque.objects.filter(id=id).delete()
         
@@ -342,8 +346,10 @@ def api_deletar_ajuste(request, id):
 @require_POST
 def api_limpar_historico(request):
     pin = request.POST.get("pin")
-    if pin != "1234": 
-        return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
+    if pin == "1234":
+        return JsonResponse({"ok": False, "erro": "Senha padrão (1234) bloqueada."}, status=403)
+    perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
+    if not perfil: return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
     try:
         AjusteRapidoEstoque.objects.all().delete()
         
