@@ -367,68 +367,99 @@ def api_importar_planilha_transferencia(request):
 @require_GET
 def api_sugestoes_transferencia(request):
     try:
-        # Tenta buscar os dados processados e super leves na Memória RAM
-        cache_key = "erp_resumo_transferencia_v2"
-        resumo_erp = cache.get(cache_key)
+        client = VendaERPMongoClient()
 
-        if not resumo_erp:
-            client = VendaERPMongoClient()
-            # 1. Busca TODOS os produtos ativos
-            produtos = list(client.db[client.col_p].find(
-                {"CadastroInativo": {"$ne": True}}, 
-                {"Id": 1, "_id": 1, "Nome": 1, "CodigoNFe": 1, "Codigo": 1, "EAN_NFe": 1, "CodigoBarras": 1}
-            ))
-            
-            p_ids = [str(p.get("Id") or p.get("_id")) for p in produtos]
-
-            # 2. Busca estoques ultra rápida (Ignora o texto gigante no $in e traz só quem tem saldo)
-            estoques = list(client.db[client.col_e].find(
-                {"Saldo": {"$ne": 0}},
-                {"ProdutoID": 1, "DepositoID": 1, "Deposito": 1, "Saldo": 1, "_id": 0}
-            ))
-            
-            mapa_produtos = {}
-            for p in produtos:
-                pid = str(p.get("Id") or p.get("_id"))
-                mapa_produtos[pid] = {
-                    "nome": p.get("Nome", f"Produto {pid}"),
-                    "codigo": p.get("CodigoNFe") or p.get("Codigo") or pid,
-                    "codigo_barras": p.get("EAN_NFe") or p.get("CodigoBarras") or "",
-                    "saldo_c": 0.0,
-                    "saldo_v": 0.0
-                }
-
-            # 3. Consolida os saldos por loja antes de salvar no Cache
-            for estoque in estoques:
-                pid = str(estoque.get("ProdutoID"))
-                if pid in mapa_produtos:
-                    deposito_id = str(estoque.get("DepositoID", ""))
-                    deposito_nome = str(estoque.get("Deposito", "")).strip().lower()
-                    saldo = float(str(estoque.get("Saldo", 0) or 0))
-
-                    if hasattr(client, 'DEPOSITO_CENTRO') and deposito_id == client.DEPOSITO_CENTRO:
-                        mapa_produtos[pid]["saldo_c"] += saldo
-                    elif hasattr(client, 'DEPOSITO_VILA_ELIAS') and deposito_id == client.DEPOSITO_VILA_ELIAS:
-                        mapa_produtos[pid]["saldo_v"] += saldo
-                    elif "centro" in deposito_nome: 
-                        mapa_produtos[pid]["saldo_c"] += saldo
-                    elif "vila" in deposito_nome: 
-                        mapa_produtos[pid]["saldo_v"] += saldo
-            
-            resumo_erp = {"mapa": mapa_produtos, "p_ids": p_ids}
-            cache.set(cache_key, resumo_erp, timeout=120) # Salva o resumo levíssimo por 2 minutos
-        else:
-            mapa_produtos = resumo_erp["mapa"]
-            p_ids = resumo_erp["p_ids"]
-
-        # 4. Busca Regras e Ajustes Locais
+        # 1. Pegar IDs dos produtos que possuem regras configuradas
         regras = ConfiguracaoTransferencia.objects.all()
         mapa_regras = {str(r.produto_externo_id): r for r in regras}
-        ajustes = _buscar_ajustes_mais_recentes(p_ids)
+        ids_configurados = list(mapa_regras.keys())
+
+        # 2. Descobrir quais produtos (não configurados) têm saldo na Vila Elias (Prioridade Alta)
+        query_vila = {"Saldo": {"$gt": 0}}
+        if hasattr(client, 'DEPOSITO_VILA_ELIAS') and client.DEPOSITO_VILA_ELIAS:
+            query_vila["DepositoID"] = client.DEPOSITO_VILA_ELIAS
+        else:
+            query_vila["Deposito"] = {"$regex": "vila", "$options": "i"}
+
+        estoques_vila = list(client.db[client.col_e].find(query_vila, {"ProdutoID": 1, "_id": 0}))
+        ids_com_saldo_vila = [str(e.get("ProdutoID")) for e in estoques_vila if e.get("ProdutoID")]
+
+        # 3. Unir tudo (Só vamos baixar do ERP o que realmente importa e ignorar o resto)
+        ids_alvo = list(set(ids_configurados + ids_com_saldo_vila))
+
+        if not ids_alvo:
+            return JsonResponse({'sugestoes': []})
+
+        # 4. Busca os detalhes APENAS desses produtos no ERP (Carga Ultra Leve)
+        produtos = []
+        chunk_size = 3000
+        for i in range(0, len(ids_alvo), chunk_size):
+            chunk = ids_alvo[i:i+chunk_size]
+            
+            from bson.objectid import ObjectId
+            obj_ids = []
+            str_ids = []
+            for pid in chunk:
+                if len(pid) == 24:
+                    try: obj_ids.append(ObjectId(pid))
+                    except: str_ids.append(pid)
+                else:
+                    str_ids.append(pid)
+
+            q_prod = {"$or": []}
+            if obj_ids: q_prod["$or"].append({"_id": {"$in": obj_ids}})
+            if str_ids: q_prod["$or"].append({"Id": {"$in": str_ids}})
+
+            if q_prod["$or"]:
+                produtos.extend(list(client.db[client.col_p].find(
+                    q_prod, 
+                    {"Id": 1, "_id": 1, "Nome": 1, "CodigoNFe": 1, "Codigo": 1, "EAN_NFe": 1, "CodigoBarras": 1}
+                )))
+
+        mapa_produtos = {}
+        p_ids_encontrados = []
+        for p in produtos:
+            pid = str(p.get("Id") or p.get("_id"))
+            p_ids_encontrados.append(pid)
+            mapa_produtos[pid] = {
+                "nome": p.get("Nome", f"Produto {pid}"),
+                "codigo": p.get("CodigoNFe") or p.get("Codigo") or pid,
+                "codigo_barras": p.get("EAN_NFe") or p.get("CodigoBarras") or "",
+                "saldo_c": 0.0,
+                "saldo_v": 0.0
+            }
+
+        # 5. Busca os saldos totais APENAS desses produtos específicos
+        estoques = []
+        for i in range(0, len(p_ids_encontrados), chunk_size):
+            chunk = p_ids_encontrados[i:i+chunk_size]
+            estoques.extend(list(client.db[client.col_e].find(
+                {"ProdutoID": {"$in": chunk}, "Saldo": {"$ne": 0}},
+                {"ProdutoID": 1, "DepositoID": 1, "Deposito": 1, "Saldo": 1, "_id": 0}
+            )))
+
+        # 6. Consolida saldos
+        for estoque in estoques:
+            pid = str(estoque.get("ProdutoID"))
+            if pid in mapa_produtos:
+                deposito_id = str(estoque.get("DepositoID", ""))
+                deposito_nome = str(estoque.get("Deposito", "")).strip().lower()
+                saldo = float(str(estoque.get("Saldo", 0) or 0))
+
+                if hasattr(client, 'DEPOSITO_CENTRO') and deposito_id == client.DEPOSITO_CENTRO:
+                    mapa_produtos[pid]["saldo_c"] += saldo
+                elif hasattr(client, 'DEPOSITO_VILA_ELIAS') and deposito_id == client.DEPOSITO_VILA_ELIAS:
+                    mapa_produtos[pid]["saldo_v"] += saldo
+                elif "centro" in deposito_nome: 
+                    mapa_produtos[pid]["saldo_c"] += saldo
+                elif "vila" in deposito_nome: 
+                    mapa_produtos[pid]["saldo_v"] += saldo
+
+        # 7. Cruzar com ajustes e montar sugestões
+        ajustes = _buscar_ajustes_mais_recentes(p_ids_encontrados)
 
         sugestoes = []
 
-        # 5. Monta o Dicionário Final cruzando com os Ajustes Manuais
         for pid, p_info in mapa_produtos.items():
             saldo_centro_erp = Decimal(str(p_info["saldo_c"]))
             saldo_vila_erp = Decimal(str(p_info["saldo_v"]))
@@ -471,18 +502,16 @@ def api_sugestoes_transferencia(request):
                     "capacidade_minima": float(regra.capacidade_minima), "configurado": True, "prioridade": 3
                 })
             else:
-                # PRODUTO NÃO CONFIGURADO (Prioridade 1 = Alta, 2 = Média)
-                prioridade_ordem = 1 if saldo_vila > 0 else 2
-                status = "ALTA" if saldo_vila > 0 else "MEDIA"
+                # PRODUTO NÃO CONFIGURADO (Prioridade 1 = Alta)
                 sugestoes.append({
                     "produto_id": pid, "codigo": p_info["codigo"], "codigo_barras": p_info["codigo_barras"],
                     "nome": p_info["nome"],
                     "saldo_centro": float(saldo_centro), "saldo_vila": float(saldo_vila),
-                    "status": status, "qtde_transferir": 0.0, "qtde_comprar": 0.0,
-                    "configurado": False, "prioridade": prioridade_ordem
+                    "status": "ALTA", "qtde_transferir": 0.0, "qtde_comprar": 0.0,
+                    "configurado": False, "prioridade": 1
                 })
 
-        # Ordenação mágica: Prioridade 1 (Alta) -> Prioridade 2 (Média) -> 3 (Configurados), e dentro delas em ordem alfabética.
+        # Ordenação mágica: Prioridade 1 (Alta) -> 3 (Configurados), e dentro delas em ordem alfabética.
         sugestoes.sort(key=lambda x: (x["prioridade"], x["nome"]))
 
         return JsonResponse({'sugestoes': sugestoes})
