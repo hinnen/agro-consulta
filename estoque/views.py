@@ -11,6 +11,7 @@ from django.views.decorators.http import require_GET, require_POST
 from base.models import Empresa, Loja, PerfilUsuario
 from estoque.models import AjusteRapidoEstoque, ConfiguracaoTransferencia
 from integracoes.venda_erp_mongo import VendaERPMongoClient
+from atualizar_medias import calcular
 
 
 def consulta_produtos(request):
@@ -363,6 +364,21 @@ def api_importar_planilha_transferencia(request):
     except Exception as exc:
         return JsonResponse({'ok': False, 'erro': f'Erro ao processar: {exc}'}, status=500)
 
+
+@require_POST
+@csrf_protect
+def api_atualizar_medias(request):
+    try:
+        pin = request.POST.get('pin', '').strip()
+        perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
+        if not perfil:
+            return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
+
+        calcular()
+
+        return JsonResponse({'ok': True, 'mensagem': 'Médias de vendas atualizadas com sucesso!'})
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'erro': f'Erro ao calcular médias: {exc}'}, status=500)
 
 @require_GET
 def api_sugestoes_transferencia(request):
