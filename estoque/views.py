@@ -123,6 +123,14 @@ def api_buscar_produtos(request):
 def api_listar_usuarios(request):
     try:
         perfis = PerfilUsuario.objects.all()
+        
+        # Trava de sobrevivência: Se o Render apagar o banco, cria um usuário automaticamente
+        if not perfis.exists():
+            from django.contrib.auth.models import User
+            user, _ = User.objects.get_or_create(username='caixa', defaults={'first_name': 'Caixa', 'is_staff': True})
+            PerfilUsuario.objects.get_or_create(user=user, codigo_vendedor='0001', defaults={'senha_rapida': '1234'})
+            perfis = PerfilUsuario.objects.all()
+
         lista = []
         for p in perfis:
             # Tenta descobrir o nome amigável do usuário atrelado ao perfil
