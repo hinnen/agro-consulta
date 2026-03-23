@@ -195,7 +195,11 @@
                 return;
             }
 
-            filtrados.forEach(item => {
+            // Prevenção de Congelamento: Mostra apenas os 300 primeiros na tela
+            const limiteDOM = 300;
+            const itensExibidos = filtrados.slice(0, limiteDOM);
+
+            itensExibidos.forEach(item => {
                 const tr = document.createElement("tr");
                 tr.className = "hover:bg-slate-50/50 transition-colors esconder-na-impressao";
                 const nomeEscapado = item.nome.replace(/'/g, "\\'"); // Evita erro no javascript ao clicar
@@ -275,6 +279,13 @@
                 `;
                 tbody.appendChild(tr);
             });
+
+            // Mostra um aviso caso existam mais produtos escondidos
+            if (filtrados.length > limiteDOM) {
+                const trAviso = document.createElement("tr");
+                trAviso.innerHTML = `<td colspan="7" class="p-5 text-center font-black text-orange-600 bg-orange-50 uppercase tracking-widest text-[10px] border-t border-orange-200 shadow-inner">⚠️ Exibindo os ${limiteDOM} primeiros itens (de ${filtrados.length}). Use a barra de pesquisa ou os filtros acima para configurar os demais.</td>`;
+                tbody.appendChild(trAviso);
+            }
         }
 
         function marcarTodos(source) {

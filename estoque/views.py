@@ -33,12 +33,16 @@ def _normalizar_decimal(valor):
     return Decimal(texto)
 
 
-def _buscar_ajustes_mais_recentes(produto_ids):
-    ajustes = (
-        AjusteRapidoEstoque.objects
-        .filter(produto_externo_id__in=produto_ids)
-        .order_by('produto_externo_id', 'deposito', '-criado_em')
-    )
+def _buscar_ajustes_mais_recentes(produto_ids=None):
+    # Trava de segurança para não explodir o limite do banco SQLite
+    if produto_ids is not None and len(produto_ids) <= 900:
+        ajustes = (
+            AjusteRapidoEstoque.objects
+            .filter(produto_externo_id__in=produto_ids)
+            .order_by('produto_externo_id', 'deposito', '-criado_em')
+        )
+    else:
+        ajustes = AjusteRapidoEstoque.objects.all().order_by('produto_externo_id', 'deposito', '-criado_em')
 
     mapa = {}
     for ajuste in ajustes:
@@ -357,9 +361,9 @@ def api_sugestoes_transferencia(request):
             
             p_ids = [str(p.get("Id") or p.get("_id")) for p in produtos]
 
-            # 2. Busca estoques trazendo apenas as colunas necessárias (economia brutal de memória)
+            # 2. Busca estoques ultra rápida (Ignora o texto gigante no $in e traz só quem tem saldo)
             estoques = list(client.db[client.col_e].find(
-                {"ProdutoID": {"$in": p_ids}},
+                {"Saldo": {"$ne": 0}},
                 {"ProdutoID": 1, "DepositoID": 1, "Deposito": 1, "Saldo": 1, "_id": 0}
             ))
             
