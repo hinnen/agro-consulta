@@ -53,3 +53,8 @@ class ConfiguracaoTransferencia(models.Model):
     def capacidade_minima(self):
         """Ponto de Pedido/Transferência"""
         return (self.venda_media_diaria * self.dias_cobertura) + self.estoque_seguranca
+
+class PedidoTransferencia(models.Model):
+    produto_externo_id = models.CharField(max_length=100, db_index=True)
+    quantidade = models.DecimalField(max_digits=10, decimal_places=3)
+    criado_em = models.DateTimeField(auto_now_add=True)

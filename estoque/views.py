@@ -9,9 +9,17 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET, require_POST
 
 from base.models import Empresa, Loja, PerfilUsuario
-from estoque.models import AjusteRapidoEstoque, ConfiguracaoTransferencia
+from estoque.models import AjusteRapidoEstoque, ConfiguracaoTransferencia, PedidoTransferencia
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 from atualizar_medias import calcular
+import json
+
+_cached_mongo_client = None
+def get_mongo_client():
+    global _cached_mongo_client
+    if _cached_mongo_client is None:
+        _cached_mongo_client = VendaERPMongoClient()
+    return _cached_mongo_client
 
 
 def consulta_produtos(request):
@@ -62,7 +70,7 @@ def api_buscar_produtos(request):
 
     if termo:
         try:
-            client = VendaERPMongoClient()
+            client = get_mongo_client()
             produtos = client.buscar_produtos(termo)
 
             produto_ids = [str(produto["_id"]) for produto in produtos]
@@ -272,6 +280,29 @@ def api_salvar_config_transferencia(request):
     except Exception as exc:
         return JsonResponse({'ok': False, 'erro': f'Erro ao salvar regra: {exc}'}, status=500)
 
+@require_POST
+@csrf_protect
+def api_registrar_impressao(request):
+    try:
+        data = json.loads(request.body)
+        itens = data.get('itens', [])
+        for item in itens:
+            PedidoTransferencia.objects.filter(produto_externo_id=item['id']).delete()
+            PedidoTransferencia.objects.create(
+                produto_externo_id=item['id'],
+                quantidade=Decimal(str(item['qtde']))
+            )
+        return JsonResponse({'ok': True})
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'erro': str(exc)})
+
+@require_POST
+def api_cancelar_separacao(request, id):
+    try:
+        PedidoTransferencia.objects.filter(produto_externo_id=id).delete()
+        return JsonResponse({'ok': True})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'erro': str(e)})
 
 @require_POST
 @csrf_protect
@@ -298,7 +329,7 @@ def api_importar_planilha_transferencia(request):
         if not reader.fieldnames:
             return JsonResponse({'ok': False, 'erro': 'Planilha vazia ou formato inválido.'}, status=400)
 
-        client = VendaERPMongoClient()
+        client = get_mongo_client()
         sucesso = 0
         
         # 1. Lê a planilha inteira e separa os códigos
@@ -383,12 +414,16 @@ def api_atualizar_medias(request):
 @require_GET
 def api_sugestoes_transferencia(request):
     try:
-        client = VendaERPMongoClient()
+        client = get_mongo_client()
 
         # 1. Pegar IDs dos produtos que possuem regras configuradas
         regras = ConfiguracaoTransferencia.objects.all()
         mapa_regras = {str(r.produto_externo_id): r for r in regras}
         ids_configurados = list(mapa_regras.keys())
+
+        # Pegar Lotes de Separação
+        pedidos_sep = PedidoTransferencia.objects.all()
+        mapa_pedidos = {str(p.produto_externo_id): p for p in pedidos_sep}
 
         # 2. Descobrir quais produtos (não configurados) têm saldo na Vila Elias (Prioridade Alta)
         query_vila = {"Saldo": {"$gt": 0}}
@@ -487,6 +522,7 @@ def api_sugestoes_transferencia(request):
             saldo_vila = saldo_vila_erp + (ajuste_vila.diferenca_saldo if ajuste_vila else Decimal('0'))
 
             regra = mapa_regras.get(pid)
+            pedido = mapa_pedidos.get(pid)
 
             if regra:
                 # PRODUTO JÁ CONFIGURADO
@@ -499,15 +535,26 @@ def api_sugestoes_transferencia(request):
                         qtde_transferir = max(Decimal('0'), saldo_vila)
                         falta_para_minimo = regra.capacidade_minima - saldo_centro
                         qtde_comprar = max(Decimal('0'), falta_para_minimo - qtde_transferir)
-                        if qtde_transferir > 0 and qtde_comprar > 0: status = "TRANSFERIR_COMPRAR"
-                        elif qtde_transferir > 0: status = "TRANSFERIR"
-                        elif qtde_comprar > 0: status = "COMPRAR"
+                        
+                        if pedido:
+                            status = "SEPARANDO"
+                        else:
+                            if qtde_transferir > 0 and qtde_comprar > 0: status = "TRANSFERIR_COMPRAR"
+                            elif qtde_transferir > 0: status = "TRANSFERIR"
+                            elif qtde_comprar > 0: status = "COMPRAR"
                     else:
                         qtde_necessaria = regra.capacidade_maxima - saldo_centro
                         if qtde_necessaria > 0:
                             qtde_transferir = qtde_necessaria if saldo_vila >= qtde_necessaria else max(Decimal('0'), saldo_vila)
                             qtde_comprar = qtde_necessaria - qtde_transferir
-                            status = "COMPRAR" if qtde_transferir == 0 else ("TRANSFERIR" if qtde_comprar == 0 else "TRANSFERIR_COMPRAR")
+                            if pedido:
+                                status = "SEPARANDO"
+                            else:
+                                status = "COMPRAR" if qtde_transferir == 0 else ("TRANSFERIR" if qtde_comprar == 0 else "TRANSFERIR_COMPRAR")
+                else:
+                    # Auto-limpeza do pedido caso o saldo tenha subido no ERP
+                    if pedido:
+                        pedido.delete()
 
                 sugestoes.append({
                     "produto_id": pid, "codigo": p_info["codigo"], "codigo_barras": p_info["codigo_barras"],
@@ -515,7 +562,7 @@ def api_sugestoes_transferencia(request):
                     "saldo_centro": float(saldo_centro), "saldo_vila": float(saldo_vila),
                     "status": status, "qtde_transferir": float(qtde_transferir), "qtde_comprar": float(qtde_comprar),
                     "capacidade_maxima": float(regra.capacidade_maxima), "estoque_seguranca": float(regra.estoque_seguranca),
-                    "capacidade_minima": float(regra.capacidade_minima), "configurado": True, "prioridade": 3
+                    "capacidade_minima": float(regra.capacidade_minima), "configurado": True, "prioridade": 3 if status != "SEPARANDO" else 4
                 })
             else:
                 # PRODUTO NÃO CONFIGURADO (Prioridade 1 = Alta)

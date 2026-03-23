@@ -12,4 +12,6 @@ urlpatterns = [
     path('estoque/api_atualizar_pin/', estoque_views.api_atualizar_pin, name='api_atualizar_pin'),
     path('estoque/api_listar_usuarios/', estoque_views.api_listar_usuarios, name='api_listar_usuarios'),
     path('estoque/api_atualizar_medias/', estoque_views.api_atualizar_medias, name='api_atualizar_medias'),
+    path('estoque/api_registrar_impressao/', estoque_views.api_registrar_impressao, name='api_registrar_impressao'),
+    path('estoque/api_cancelar_separacao/<str:id>/', estoque_views.api_cancelar_separacao, name='api_cancelar_separacao'),
 ]
