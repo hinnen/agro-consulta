@@ -9,7 +9,7 @@ from pymongo import MongoClient
 from django.conf import settings
 
 
-client = MongoClient(settings.VENDA_ERP_MONGO_URL)
+client = MongoClient(settings.VENDA_ERP_MONGO_URL, tls=False, ssl=False)
 db = client[settings.VENDA_ERP_MONGO_DB]
 
 print("\n=== COLLECTIONS ===")

@@ -1,10 +1,11 @@
 from pymongo import MongoClient
 from pprint import pprint
+from decouple import config
 
-MONGO_URL = "mongodb+srv://Teste Sisvale:Hinnen9973%23@wl6.aprendaerp.com.br/admin?readPreference=primaryPreferred&ssl=false"
-DATABASE_NAME = "9c6f91fb-04e9-42be-aa5d-ec29b43c9a10"
+MONGO_URL = config("VENDA_ERP_MONGO_URL")
+DATABASE_NAME = config("VENDA_ERP_MONGO_DB")
 
-client = MongoClient(MONGO_URL)
+client = MongoClient(MONGO_URL, tls=False, ssl=False)
 db = client[DATABASE_NAME]
 
 termo = "milho grande 47 kg"

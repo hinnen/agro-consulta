@@ -4,7 +4,7 @@ from decouple import config
 from integracoes.texto import normalizar, tokens, montar_busca_texto, eh_granel
 
 
-client = MongoClient(config("VENDA_ERP_MONGO_URL"))
+client = MongoClient(config("VENDA_ERP_MONGO_URL"), tls=False, ssl=False)
 db = client[config("VENDA_ERP_MONGO_DB")]
 col = db["DtoProduto"]
 
