@@ -1,7 +1,8 @@
 import requests
+from decouple import config
 
 API_URL = "https://api.vendaerp.com.br/produtos"
-TOKEN = "SEU_TOKEN_AQUI"
+TOKEN = config("VENDA_ERP_API_TOKEN")
 
 headers = {
     "Authorization": f"Bearer {TOKEN}",
