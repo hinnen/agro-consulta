@@ -13,4 +13,5 @@ urlpatterns = [
     path('api/todos-produtos/', views.api_todos_produtos_local, name='api_todos_produtos_local'),
     path('api/buscar-produto-id/<str:id>/', views.api_buscar_produto_id, name='api_buscar_produto_id'),
     path('api/enviar-pedido-erp/', views.api_enviar_pedido_erp, name='api_enviar_pedido_erp'),
+    path('api/list-customers/', views.api_list_customers, name='api_list_customers'),
 ]

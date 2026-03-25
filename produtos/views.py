@@ -9,6 +9,7 @@ from estoque.models import AjusteRapidoEstoque
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 from integracoes.venda_erp_api import VendaERPAPIClient
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 
 # --- CONEXÃO ---
 _cached_mongo_client = None
@@ -16,9 +17,15 @@ _cached_mongo_client = None
 def obter_conexao_mongo():
     global _cached_mongo_client
     try:
+        print("--- 1. Entrando em obter_conexao_mongo ---")
         if _cached_mongo_client is None:
+            print("--- 2. _cached_mongo_client é None, criando nova instancia ---")
             _cached_mongo_client = VendaERPMongoClient()
-        return _cached_mongo_client, _cached_mongo_client.db
+            print(f"--- 3. Instancia VendaERPMongoClient criada: {_cached_mongo_client} ---")
+        
+        db = _cached_mongo_client.db if _cached_mongo_client else None
+        print(f"--- 4. Client: {_cached_mongo_client}, DB: {db} ---")
+        return _cached_mongo_client, db
     except Exception as e:
         print(f"--- ERRO MONGO: {e} ---")
         _cached_mongo_client = None
@@ -190,7 +197,8 @@ def api_buscar_produtos(request):
                 "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "", 
                 "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
                 "imagem": img_url,
-                "saldo_centro": round(saldo_f_c, 2), "saldo_vila": round(saldo_f_v, 2)
+                "saldo_centro": round(saldo_f_c, 2), "saldo_vila": round(saldo_f_v, 2),
+                "saldo_erp_centro": s_c, "saldo_erp_vila": s_v
             })
         
         resultado_final = {"produtos": res}
@@ -298,6 +306,8 @@ def api_todos_produtos_local(request):
                 "imagem": img_url,
                 "saldo_centro": round(saldo_f_c, 2), 
                 "saldo_vila": round(saldo_f_v, 2),
+                "saldo_erp_centro": s_c,
+                "saldo_erp_vila": s_v,
                 "busca_texto": busca_txt
             })
         
@@ -359,7 +369,9 @@ def api_buscar_produto_id(request, id):
             "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
             "imagem": img_url,
             "saldo_centro": round(saldo_f_c, 2), 
-            "saldo_vila": round(saldo_f_v, 2)
+            "saldo_vila": round(saldo_f_v, 2),
+            "saldo_erp_centro": s_c,
+            "saldo_erp_vila": s_v,
         }
         return JsonResponse(res)
     except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
@@ -462,6 +474,50 @@ def api_buscar_clientes(request):
         return JsonResponse(resultado_final)
     except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
 
+@require_GET
+def api_list_customers(request):
+    """
+    Retorna uma lista de todos os clientes para preencher um select/combobox.
+    """
+    cache_key = "lista_todos_clientes_v3"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return JsonResponse(cached_data)
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Erro de conexão com o banco de dados"}, status=500)
+
+    try:
+        # Busca apenas os campos necessários para otimizar
+        projecao = {"Nome": 1, "RazaoSocial": 1, "NomeFantasia": 1, "_id": 0, "Id": 1}
+        
+        # O find({}) vazio retorna todos os documentos da coleção.
+        # Adicionamos um limit para segurança, mas a ideia é ser uma lista para um <select>
+        clientes_cursor = db[client.col_c].find({"CadastroInativo": {"$ne": True}}, projecao).limit(2000)
+        
+        lista_clientes = []
+        for c in clientes_cursor:
+            # Prioriza o nome pela ordem: Nome, RazaoSocial, NomeFantasia
+            nome = c.get("Nome") or c.get("RazaoSocial") or c.get("NomeFantasia")
+            if nome:
+                lista_clientes.append({
+                    "id": str(c.get("Id") or c.get("_id")),
+                    "nome": nome.strip()
+                })
+        
+        # Ordena a lista em ordem alfabética pelo nome
+        lista_clientes.sort(key=lambda x: x['nome'])
+
+        resultado = {"clientes": lista_clientes}
+        
+        # Salva o resultado no cache por 1 hora (3600 segundos)
+        cache.set(cache_key, resultado, timeout=3600) 
+        
+        return JsonResponse(resultado)
+    except Exception as e:
+        return JsonResponse({"erro": str(e)}, status=500)
+
 @require_POST
 def api_deletar_ajuste(request, id):
     pin = request.POST.get("pin")
@@ -490,28 +546,113 @@ def api_enviar_pedido_erp(request):
             
         data_atual = timezone.now().strftime("%Y-%m-%dT%H:%M:%S.000Z")
         
-        client_mongo, _ = obter_conexao_mongo()
-        dep_id = client_mongo.DEPOSITO_CENTRO if client_mongo else ""
+        client_mongo, db = obter_conexao_mongo()
+        dep_id = ""
+        emp_id = ""
+        
+        # Rouba os IDs oficiais direto do banco de dados para a API não ter como recusar
+        if client_mongo and db is not None:
+            est_centro = db[client_mongo.col_e].find_one({"Deposito": {"$regex": "centro", "$options": "i"}})
+            if est_centro:
+                dep_id = str(est_centro.get("DepositoID") or "")
+                emp_id = str(est_centro.get("EmpresaID") or "")
+                
+            # Se o Estoque não tem a Empresa amarrada, caçamos direto na tabela de Empresas!
+            if not emp_id:
+                emp_db = db["DtoEmpresa"].find_one({"NomeFantasia": {"$regex": "Agro", "$options": "i"}})
+                if not emp_db:
+                    emp_db = db["DtoEmpresa"].find_one()
+                if emp_db:
+                    emp_id = str(emp_db.get("Id") or emp_db.get("_id") or "")
+                    
+        # Busca Tabela de Preço exata ("PRINCIPAL" ou "Preço Padrão") e Cliente
+        tabela_id = ""
+        tabela_nome = ""
+        cliente_id = ""
+        if client_mongo and db is not None:
+            t_db = db["DtoTabelaPreco"].find_one({"Nome": {"$regex": "PRINCIPAL|Padrão|Padrao", "$options": "i"}})
+            if not t_db:
+                t_db = db["DtoTabelaPreco"].find_one({"Padrao": True}) or db["DtoTabelaPreco"].find_one()
+            if t_db:
+                tabela_id = str(t_db.get("Id") or t_db.get("_id") or "")
+                tabela_nome = str(t_db.get("Nome") or "")
+                
+            c_db = db[client_mongo.col_c].find_one({"Nome": {"$regex": cliente, "$options": "i"}})
+            if not c_db:
+                c_db = db[client_mongo.col_c].find_one({"Nome": {"$regex": "Consumidor Final", "$options": "i"}})
+            
+            if c_db:
+                cliente_id = str(c_db.get("Id") or c_db.get("_id") or "")
         
         payload = {
             "statusSistema": "Orçamento",
             "cliente": cliente,
             "data": data_atual,
             "origemVenda": "Venda Direta",
-            "vendedor": "Gm Agro Mais",
             "empresa": "Agro Mais Centro",
             "deposito": "Deposito Centro",
-            "depositoID": dep_id,
-            "items": []
+            "vendedor": "Gm Agro Mais"
         }
+        if dep_id: payload["depositoID"] = dep_id
+        if emp_id: payload["empresaID"] = emp_id
+        if tabela_id: payload["tabelaID"] = tabela_id
+        if tabela_nome: payload["tabela"] = tabela_nome
+        if cliente_id: payload["clienteID"] = cliente_id
         
+        itens_list = []
         for i in itens:
-            payload["items"].append({
-                "codigo": str(i.get("id")),
+            pid = str(i.get("id"))
+            codigo_produto = pid
+            unidade = "UN"
+            
+            # Olha rápido no banco para buscar a "Unidade" e o "Codigo" curto Oficial do ERP
+            if client_mongo and db is not None:
+                from bson.objectid import ObjectId
+                p_query = {"$or": [{"Id": pid}]}
+                if len(pid) == 24:
+                    try: p_query["$or"].append({"_id": ObjectId(pid)})
+                    except: pass
+                
+                p_db = db[client_mongo.col_p].find_one(p_query)
+                if p_db:
+                    cod = p_db.get("Codigo")
+                    if not cod or str(cod).strip() == "":
+                        cod = p_db.get("CodigoNFe")
+                    if not cod or str(cod).strip() == "":
+                        cod = p_db.get("CodigoBarras")
+                        
+                    if cod is not None and str(cod).strip() != "":
+                        cod_str = str(cod).strip()
+                        if cod_str.endswith(".0"):
+                            cod_str = cod_str[:-2]
+                        codigo_produto = cod_str
+
+                    unidade_db = p_db.get("Unidade")
+                    if unidade_db: unidade = str(unidade_db).strip()
+
+            q = float(i.get("qtd", 1))
+            v = float(i.get("preco", 0))
+            
+            item_dict = {
+                "id": pid,
+                "produtoID": pid,
+                "codigo": codigo_produto,
+                "unidade": unidade,
                 "descricao": i.get("nome"),
-                "quantidade": float(i.get("qtd", 1)),
-                "valorUnitario": float(i.get("preco", 0))
-            })
+                "quantidade": float(q),
+                "valorUnitario": float(v),
+                "valorFrete": 0.0,
+                "descontoUnitario": 0.0,
+                "valorTotal": float(round(q * v, 2))
+            }
+            itens_list.append(item_dict)
+            
+        payload["items"] = itens_list
+        
+        print("\n" + "="*50)
+        print("🚀 JSON ENVIADO PARA O VENDA ERP:")
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        print("="*50 + "\n")
             
         client = VendaERPAPIClient()
         sucesso, status, resposta = client.salvar_operacao_pdv(payload)
@@ -523,19 +664,3 @@ def api_enviar_pedido_erp(request):
             
     except Exception as e:
         return JsonResponse({'ok': False, 'erro': str(e)}, status=500)
-
-@require_POST
-def api_limpar_historico(request):
-    pin = request.POST.get("pin")
-    if pin == "1234":
-        return JsonResponse({"ok": False, "erro": "Senha padrão (1234) bloqueada."}, status=403)
-    perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
-    if not perfil: return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
-    try:
-        AjusteRapidoEstoque.objects.all().delete()
-        
-        cache.clear()
-        
-        return JsonResponse({"ok": True})
-    except Exception as e: 
-        return JsonResponse({"ok": False, "erro": str(e)}, status=500)

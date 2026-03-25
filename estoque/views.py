@@ -571,6 +571,7 @@ def api_sugestoes_transferencia(request):
                     "produto_id": pid, "codigo": p_info["codigo"], "codigo_barras": p_info["codigo_barras"],
                     "nome": p_info["nome"] or regra.nome_produto,
                     "saldo_centro": float(saldo_centro), "saldo_vila": float(saldo_vila),
+                    "saldo_centro_erp": float(saldo_centro_erp), "saldo_vila_erp": float(saldo_vila_erp),
                     "status": status, "qtde_transferir": float(qtde_transferir), "qtde_comprar": float(qtde_comprar),
                     "capacidade_maxima": float(regra.capacidade_maxima), "estoque_seguranca": float(regra.estoque_seguranca),
                     "capacidade_minima": float(regra.capacidade_minima), "configurado": True, "prioridade": 3 if status != "SEPARANDO" else 4
@@ -587,6 +588,7 @@ def api_sugestoes_transferencia(request):
                     "produto_id": pid, "codigo": p_info["codigo"], "codigo_barras": p_info["codigo_barras"],
                     "nome": p_info["nome"],
                     "saldo_centro": float(saldo_centro), "saldo_vila": float(saldo_vila),
+                    "saldo_centro_erp": float(saldo_centro_erp), "saldo_vila_erp": float(saldo_vila_erp),
                     "status": status, "qtde_transferir": float(qtde_transferir), "qtde_comprar": 0.0,
                     "configurado": False, "prioridade": 4 if status == "SEPARANDO" else 1
                 })
