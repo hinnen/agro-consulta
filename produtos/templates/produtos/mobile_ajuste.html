@@ -39,43 +39,82 @@
     </div>
 
 <script>
-let scanner; let pSel = null;
+let scanner;
+let pSel = null;
+let baseProdutos = [];
+let debounceTimer;
+
+window.addEventListener('load', () => {
+    const listaDiv = document.getElementById('lista');
+    listaDiv.innerHTML = '<div class="text-center text-slate-400 font-bold p-8">Carregando produtos...</div>';
+
+    fetch("{% url 'api_todos_produtos_local' %}")
+        .then(res => res.json())
+        .then(data => {
+            if (data.produtos) {
+                baseProdutos = data.produtos;
+                listaDiv.innerHTML = '<div class="text-center text-slate-400 font-bold p-8">Pronto! Digite para buscar.</div>';
+            } else {
+                listaDiv.innerHTML = '<div class="text-center text-red-500 font-bold p-8">Falha ao carregar produtos.</div>';
+            }
+        })
+        .catch(err => {
+            console.error("Falha ao carregar base de produtos", err);
+            listaDiv.innerHTML = '<div class="text-center text-red-500 font-bold p-8">Erro de conexão.</div>';
+        });
+});
+
+function normalizar(texto) {
+    if (!texto) return '';
+    return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
 
 function startScan() {
     document.getElementById('reader').classList.remove('hidden');
     scanner = new Html5Qrcode("reader");
     scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
         document.getElementById('busca').value = txt;
-        buscar(txt); scanner.stop(); document.getElementById('reader').classList.add('hidden');
+        buscar(txt);
+        if (scanner) scanner.stop();
+        document.getElementById('reader').classList.add('hidden');
     });
 }
 
 function buscar(q) {
-    if(q.length < 3) return;
-    fetch("{% url 'api_buscar_mobile' %}?q=" + q).then(res => res.json()).then(data => {
-        const l = document.getElementById('lista'); l.innerHTML = '';
-        data.produtos.forEach(p => {
-            const d = document.createElement('div');
-            d.className = "bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center active:bg-slate-50";
-            d.innerHTML = `<div><div class="font-black text-xs uppercase">${p.nome}</div><div class="text-[9px] text-slate-400">${p.marca}</div></div><div class="text-emerald-500 font-black">${p.saldo_centro}</div>`;
-            d.onclick = () => { pSel = p; abrir(); };
-            l.appendChild(d);
-        });
+    const termo = normalizar(q);
+    const l = document.getElementById('lista');
+    l.innerHTML = '';
+
+    if (termo.length < 2) return;
+
+    const resultados = baseProdutos.filter(p => (p.busca_texto || '').includes(termo));
+
+    resultados.slice(0, 20).forEach(p => {
+        const d = document.createElement('div');
+        d.className = "bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center active:bg-slate-50";
+        d.innerHTML = `<div><div class="font-black text-xs uppercase">${p.nome}</div><div class="text-[9px] text-slate-400">${p.marca || ''}</div></div><div class="text-emerald-500 font-black">${p.saldo_centro}</div>`;
+        d.onclick = () => { pSel = p; abrir(); };
+        l.appendChild(d);
     });
 }
 
-document.getElementById('busca').addEventListener('input', (e) => buscar(e.target.value));
+document.getElementById('busca').addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => buscar(e.target.value), 100);
+});
+
 function abrir() { 
     document.getElementById('m-nome').innerText = pSel.nome;
     document.getElementById('m-saldo').innerText = pSel.saldo_centro;
     document.getElementById('modal').classList.replace('hidden', 'flex');
+    document.getElementById('m-novo').focus();
 }
 function fechar() { document.getElementById('modal').classList.replace('flex', 'hidden'); }
 
 function salvar() {
     const fd = new FormData();
     fd.append('produto_id', pSel.id); fd.append('nome_produto', pSel.nome);
-    fd.append('saldo_atual', pSel.saldo_centro); fd.append('novo_saldo', document.getElementById('m-novo').value);
+    fd.append('saldo_atual', pSel.saldo_erp_centro); fd.append('novo_saldo', document.getElementById('m-novo').value);
     fd.append('deposito', 'centro'); fd.append('pin', 'SESSAO');
     
     fetch("{% url 'api_ajustar_estoque' %}", { method: 'POST', body: fd, headers: {'X-CSRFToken': '{{ csrf_token }}'} })
