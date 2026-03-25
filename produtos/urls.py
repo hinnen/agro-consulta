@@ -5,6 +5,11 @@ urlpatterns = [
     path('', views.consulta_produtos, name='consulta_produtos'),
     path('historico/', views.historico_ajustes, name='historico_ajustes'),
     path('transferencias/', views.sugestao_transferencia, name='sugestao_transferencia'),
+    
+    # Telas Mobile
+    path('mobile/', views.ajuste_mobile_view, name='ajuste_mobile'),
+    path('mobile/login/', views.api_login_mobile, name='api_login_mobile'),
+    
     # APIs
     path('api/buscar/', views.api_buscar_produtos, name='api_buscar_produtos'),
     path('api/buscar-clientes/', views.api_buscar_clientes, name='api_buscar_clientes'),

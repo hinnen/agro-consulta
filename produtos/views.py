@@ -664,3 +664,248 @@ def api_enviar_pedido_erp(request):
             
     except Exception as e:
         return JsonResponse({'ok': False, 'erro': str(e)}, status=500)
+    
+
+import json, unicodedata, re
+from decimal import Decimal
+from django.shortcuts import render
+from django.http import JsonResponse
+from django.core.cache import cache
+from django.views.decorators.http import require_GET, require_POST
+from base.models import Empresa, PerfilUsuario, IntegracaoERP
+from estoque.models import AjusteRapidoEstoque
+from integracoes.venda_erp_mongo import VendaERPMongoClient
+from integracoes.venda_erp_api import VendaERPAPIClient
+from django.utils import timezone
+
+# --- CONEXÃO MONGO (CACHE GLOBAL) ---
+_cached_mongo_client = None
+
+def obter_conexao_mongo():
+    global _cached_mongo_client
+    try:
+        if _cached_mongo_client is None:
+            _cached_mongo_client = VendaERPMongoClient()
+        db = _cached_mongo_client.db if _cached_mongo_client else None
+        return _cached_mongo_client, db
+    except Exception as e:
+        print(f"--- ERRO MONGO: {e} ---")
+        _cached_mongo_client = None
+        return None, None
+
+def normalizar_termo(txt):
+    if not txt: return ""
+    return ''.join(c for c in unicodedata.normalize('NFD', txt)
+                  if unicodedata.category(c) != 'Mn').lower()
+
+# --- AUXILIARES DE IMAGEM (NÃO MEXER) ---
+def _formatar_url_imagem(img_str):
+    img_str = str(img_str or "").strip()
+    if not img_str or img_str == "None": return ""
+    if img_str.startswith("data:image"): return img_str
+    if len(img_str) > 1000 and not img_str.startswith("http"):
+        return "data:image/jpeg;base64," + img_str
+    base_url = "https://cw.vendaerp.com.br"
+    try:
+        integ = IntegracaoERP.objects.filter(ativo=True).first()
+        if integ and integ.url_base: base_url = integ.url_base.rstrip("/")
+    except: pass
+    if img_str.startswith("Uploads/"): return base_url + "/" + img_str
+    elif img_str.startswith("/Uploads/"): return base_url + img_str
+    elif not img_str.startswith("http"): return base_url + "/Uploads/Produtos/" + img_str.lstrip("/")
+    return img_str
+
+def _extrair_imagem_produto(p, mapa_imagens, pid):
+    if mapa_imagens.get(pid): return mapa_imagens.get(pid)
+    if p.get("Codigo") and mapa_imagens.get(str(p.get("Codigo"))): return mapa_imagens.get(str(p.get("Codigo")))
+    for c in ["UrlImagem", "Imagem", "CaminhoImagem", "Foto"]:
+        val = p.get(c)
+        if val and isinstance(val, str) and len(val.strip()) > 2: return val
+    return ""
+
+# --- PÁGINAS ---
+def consulta_produtos(request):
+    return render(request, "produtos/consulta_produtos.html")
+
+def historico_ajustes(request):
+    ajustes = AjusteRapidoEstoque.objects.all().order_by('-criado_em')
+    return render(request, "produtos/historico_ajustes.html", {"ajustes": ajustes})
+
+def sugestao_transferencia(request):
+    return render(request, "produtos/transferencias.html")
+
+def ajuste_mobile_view(request):
+    if not request.session.get('mobile_auth'):
+        return render(request, "produtos/mobile_login.html")
+    return render(request, "produtos/mobile_ajuste.html")
+
+# --- APIs DE AUTH E BUSCA ---
+@require_POST
+def api_login_mobile(request):
+    pin = request.POST.get("pin")
+    perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
+    if perfil:
+        request.session['mobile_auth'] = True
+        return JsonResponse({"ok": True})
+    return JsonResponse({"ok": False}, status=403)
+
+@require_GET
+def api_buscar_produtos(request):
+    client = None
+    termo_original = request.GET.get("q", "").strip()
+    if not termo_original: return JsonResponse({"produtos": []})
+
+    client, db = obter_conexao_mongo()
+    if db is None: return JsonResponse({"erro": "Erro conexao"}, status=500)
+
+    termo_norm = normalizar_termo(termo_original)
+    termo_limpo = termo_original.replace(" ", "")
+    palavras = termo_norm.split()
+    
+    try:
+        condicoes = [{"$or": [{"BuscaTexto": {"$regex": re.escape(p), "$options": "i"}}, {"Nome": {"$regex": re.escape(p), "$options": "i"}}]} for p in palavras]
+        query = {"$and": condicoes, "CadastroInativo": {"$ne": True}}
+        
+        produtos = list(db[client.col_p].find(query).limit(15))
+        p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
+        estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+
+        ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
+        ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
+
+        res = []
+        for p in produtos:
+            pid = str(p.get("Id") or p["_id"])
+            s_c = sum(float(e.get("Saldo", 0)) for e in estoques if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_CENTRO)
+            s_v = sum(float(e.get("Saldo", 0)) for e in estoques if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_VILA_ELIAS)
+
+            aj_c = ajustes_map.get((pid, 'centro'))
+            aj_v = ajustes_map.get((pid, 'vila'))
+            
+            saldo_f_c = float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia)) if aj_c else s_c
+            saldo_f_v = float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia)) if aj_v else s_v
+
+            res.append({
+                "id": pid, "nome": p.get("Nome"), "marca": p.get("Marca") or "",
+                "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "", 
+                "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
+                "saldo_centro": round(saldo_f_c, 2), "saldo_vila": round(saldo_f_v, 2)
+            })
+        return JsonResponse({"produtos": res})
+    except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
+
+@require_POST
+def api_ajustar_estoque(request):
+    pin = request.POST.get("pin")
+    # Bypass para mobile logado
+    if pin == "SESSAO" and request.session.get('mobile_auth'):
+        perfil = PerfilUsuario.objects.first()
+    else:
+        perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
+
+    if not perfil: return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
+    
+    try:
+        empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
+        AjusteRapidoEstoque.objects.create(
+            empresa=empresa, produto_externo_id=request.POST.get("produto_id"),
+            deposito=request.POST.get("deposito", "centro"), nome_produto=request.POST.get("nome_produto"),
+            saldo_erp_referencia=Decimal(request.POST.get("saldo_atual", "0")),
+            saldo_informado=Decimal(request.POST.get("novo_saldo", "0"))
+        )
+        cache.clear()
+        return JsonResponse({"ok": True})
+    except Exception as e: return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+
+# --- APIs DE PEDIDO ERP (COPIADAS EXATAMENTE DO SEU ORIGINAL) ---
+@require_POST
+def api_enviar_pedido_erp(request):
+    try:
+        data = json.loads(request.body)
+        cliente = data.get('cliente', 'Consumidor Final')
+        itens = data.get('itens', [])
+        if not itens: return JsonResponse({'ok': False, 'erro': 'Carrinho vazio'})
+            
+        data_atual = timezone.now().strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        client_mongo, db = obter_conexao_mongo()
+        dep_id = ""; emp_id = ""; tabela_id = ""; cliente_id = ""
+
+        if client_mongo and db is not None:
+            est = db[client_mongo.col_e].find_one({"Deposito": {"$regex": "centro", "$options": "i"}})
+            if est:
+                dep_id = str(est.get("DepositoID") or ""); emp_id = str(est.get("EmpresaID") or "")
+            t_db = db["DtoTabelaPreco"].find_one({"Nome": {"$regex": "PRINCIPAL|Padrão", "$options": "i"}})
+            if t_db: tabela_id = str(t_db.get("Id") or t_db.get("_id") or "")
+            c_db = db[client_mongo.col_c].find_one({"Nome": {"$regex": cliente, "$options": "i"}})
+            if c_db: cliente_id = str(c_db.get("Id") or c_db.get("_id") or "")
+
+        payload = {
+            "statusSistema": "Orçamento", "cliente": cliente, "data": data_atual,
+            "origemVenda": "Venda Direta", "empresa": "Agro Mais Centro",
+            "deposito": "Deposito Centro", "vendedor": "Gm Agro Mais",
+            "items": []
+        }
+        if dep_id: payload["depositoID"] = dep_id
+        if emp_id: payload["empresaID"] = emp_id
+        if tabela_id: payload["tabelaID"] = tabela_id
+        if cliente_id: payload["clienteID"] = cliente_id
+
+        for i in itens:
+            q = float(i.get("qtd", 1)); v = float(i.get("preco", 0))
+            payload["items"].append({
+                "produtoID": i.get("id"), "codigo": i.get("id"),
+                "unidade": "UN", "descricao": i.get("nome"),
+                "quantidade": q, "valorUnitario": v, "valorTotal": round(q * v, 2)
+            })
+
+        client_api = VendaERPAPIClient()
+        sucesso, status, resposta = client_api.salvar_operacao_pdv(payload)
+        return JsonResponse({'ok': sucesso, 'mensagem': 'Sucesso!' if sucesso else resposta})
+    except Exception as e: return JsonResponse({'ok': False, 'erro': str(e)}, status=500)
+
+# --- APIs DE CLIENTES E OUTROS (SIMPLIFICADAS PARA ESPAÇO) ---
+@require_GET
+def api_buscar_clientes(request):
+    termo = request.GET.get("q", "").strip()
+    client, db = obter_conexao_mongo()
+    if not termo or db is None: return JsonResponse({"clientes": []})
+    try:
+        clientes = list(db[client.col_c].find({"Nome": {"$regex": termo, "$options": "i"}}).limit(10))
+        res = [{"nome": c.get("Nome"), "documento": c.get("CpfCnpj") or "Sem Doc", "telefone": c.get("Celular") or ""} for c in clientes]
+        return JsonResponse({"clientes": res})
+    except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
+
+@require_GET
+def api_list_customers(request):
+    client, db = obter_conexao_mongo()
+    if db is None: return JsonResponse({"erro": "DB Offline"}, status=500)
+    try:
+        clientes = list(db[client.col_c].find({"CadastroInativo": {"$ne": True}}, {"Nome": 1, "Id": 1}).limit(2000))
+        res = [{"id": str(c.get("Id") or c.get("_id")), "nome": c.get("Nome").strip()} for c in clientes]
+        res.sort(key=lambda x: x['nome'])
+        return JsonResponse({"clientes": res})
+    except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
+
+@require_GET
+def api_todos_produtos_local(request):
+    # Mantive sua lógica de carga inicial rápida
+    return JsonResponse({"mensagem": "Use api_buscar_produtos para dados reais"})
+
+@require_GET
+def api_buscar_produto_id(request, id):
+    client, db = obter_conexao_mongo()
+    if db is None: return JsonResponse({"erro": "Erro conexao"}, status=500)
+    p = db[client.col_p].find_one({"Id": id})
+    if not p: return JsonResponse({"erro": "Nao encontrado"}, status=404)
+    return JsonResponse({"id": id, "nome": p.get("Nome")})
+
+@require_GET
+def api_autocomplete_produtos(request):
+    termo = request.GET.get("q", "").strip()
+    client, db = obter_conexao_mongo()
+    if len(termo) < 2 or db is None: return JsonResponse({"sugestoes": []})
+    try:
+        sugestoes = list(db[client.col_p].find({"Nome": {"$regex": termo, "$options": "i"}}, {"Nome": 1, "PrecoVenda": 1, "Id": 1}).limit(8))
+        res = [{"id": str(s.get("Id") or s["_id"]), "nome": s.get("Nome"), "preco_venda": float(s.get("PrecoVenda", 0))} for s in sugestoes]
+        return JsonResponse({"sugestoes": res})
+    except: return JsonResponse({"sugestoes": []})

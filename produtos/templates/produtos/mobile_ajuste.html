@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body class="bg-slate-100 min-h-screen pb-20">
+
+    <div class="p-4 bg-white shadow-sm flex justify-between items-center sticky top-0 z-50">
+        <h2 class="font-black uppercase italic text-sm">Ajuste <span class="text-emerald-500">Mobile</span></h2>
+        <button onclick="startScan()" class="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase">📷 Escanear</button>
+    </div>
+
+    <div id="reader" class="w-full hidden"></div>
+
+    <div class="p-4 space-y-4">
+        <input type="text" id="busca" placeholder="Buscar produto ou EAN..." 
+            class="w-full p-4 rounded-2xl border-none shadow-md font-bold outline-none focus:ring-2 focus:ring-emerald-500">
+        
+        <div id="lista" class="space-y-2"></div>
+    </div>
+
+    <div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-6 z-[100]">
+        <div class="bg-white w-full rounded-[2rem] p-6 shadow-2xl">
+            <h3 id="m-nome" class="font-black uppercase text-sm mb-4"></h3>
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div class="bg-slate-50 p-3 rounded-xl">
+                    <span class="text-[9px] font-bold text-slate-400 block uppercase">Atual</span>
+                    <span id="m-saldo" class="text-xl font-black text-slate-700"></span>
+                </div>
+                <input type="number" id="m-novo" placeholder="NOVO" 
+                    class="w-full p-3 bg-emerald-50 rounded-xl text-xl font-black text-emerald-600 border-2 border-emerald-100 outline-none">
+            </div>
+            <button onclick="salvar()" class="w-full bg-emerald-500 text-white font-black py-4 rounded-2xl uppercase italic mb-2">Salvar Agora</button>
+            <button onclick="fechar()" class="w-full text-slate-400 font-bold text-[10px] uppercase py-2">Cancelar</button>
+        </div>
+    </div>
+
+<script>
+let scanner; let pSel = null;
+
+function startScan() {
+    document.getElementById('reader').classList.remove('hidden');
+    scanner = new Html5Qrcode("reader");
+    scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
+        document.getElementById('busca').value = txt;
+        buscar(txt); scanner.stop(); document.getElementById('reader').classList.add('hidden');
+    });
+}
+
+function buscar(q) {
+    if(q.length < 3) return;
+    fetch("{% url 'api_buscar_mobile' %}?q=" + q).then(res => res.json()).then(data => {
+        const l = document.getElementById('lista'); l.innerHTML = '';
+        data.produtos.forEach(p => {
+            const d = document.createElement('div');
+            d.className = "bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center active:bg-slate-50";
+            d.innerHTML = `<div><div class="font-black text-xs uppercase">${p.nome}</div><div class="text-[9px] text-slate-400">${p.marca}</div></div><div class="text-emerald-500 font-black">${p.saldo_centro}</div>`;
+            d.onclick = () => { pSel = p; abrir(); };
+            l.appendChild(d);
+        });
+    });
+}
+
+document.getElementById('busca').addEventListener('input', (e) => buscar(e.target.value));
+function abrir() { 
+    document.getElementById('m-nome').innerText = pSel.nome;
+    document.getElementById('m-saldo').innerText = pSel.saldo_centro;
+    document.getElementById('modal').classList.replace('hidden', 'flex');
+}
+function fechar() { document.getElementById('modal').classList.replace('flex', 'hidden'); }
+
+function salvar() {
+    const fd = new FormData();
+    fd.append('produto_id', pSel.id); fd.append('nome_produto', pSel.nome);
+    fd.append('saldo_atual', pSel.saldo_centro); fd.append('novo_saldo', document.getElementById('m-novo').value);
+    fd.append('deposito', 'centro'); fd.append('pin', 'SESSAO');
+    
+    fetch("{% url 'api_ajustar_estoque' %}", { method: 'POST', body: fd, headers: {'X-CSRFToken': '{{ csrf_token }}'} })
+    .then(res => res.json()).then(d => { if(d.ok) location.reload(); else alert(d.erro); });
+}
+</script>
+</body>
+</html>
