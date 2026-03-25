@@ -8,12 +8,12 @@
     <div class="max-w-6xl mx-auto">
         <div class="flex justify-between items-center mb-8">
             <div>
-                <h1 class="text-2xl font-black text-slate-800 uppercase italic tracking-tighter">Histórico de Ajustes</h1>
-                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest">{{ ajustes.count }} registros salvos</p>
+                <h1 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">Histórico de Ajustes</h1>
+                <p class="text-slate-400 text-sm font-black uppercase tracking-widest">{{ ajustes.count }} registros salvos</p>
             </div>
-            <div class="flex gap-3">
-                <button onclick="limparTudo()" class="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl font-black text-[10px] hover:bg-red-600 hover:text-white transition-all uppercase shadow-sm">Apagar Tudo</button>
-                <a href="/" class="bg-slate-800 text-white px-6 py-3 rounded-2xl font-black text-xs hover:bg-black transition-all shadow-lg uppercase">Voltar</a>
+            <div class="flex gap-4">
+                <button onclick="limparTudo()" class="bg-red-50 text-red-600 border border-red-200 px-5 py-3 rounded-2xl font-black text-sm hover:bg-red-600 hover:text-white transition-all uppercase shadow-sm">Apagar Tudo</button>
+                <a href="/" class="bg-slate-800 text-white px-6 py-3 rounded-2xl font-black text-sm hover:bg-black transition-all shadow-lg uppercase">Voltar</a>
             </div>
         </div>
 
@@ -21,11 +21,11 @@
             <table class="w-full text-left">
                 <thead>
                     <tr class="bg-slate-50 border-b">
-                        <th class="p-5 text-[10px] font-black text-slate-400 uppercase">Data/Hora</th>
-                        <th class="p-5 text-[10px] font-black text-slate-400 uppercase">Produto</th>
-                        <th class="p-5 text-[10px] font-black text-slate-400 uppercase text-center">Depósito</th>
-                        <th class="p-5 text-[10px] font-black text-slate-400 uppercase text-right">Diferença</th>
-                        <th class="p-5 text-[10px] font-black text-slate-400 uppercase text-right">Saldo Final</th>
+                        <th class="p-5 text-xs font-black text-slate-400 uppercase tracking-widest">Data/Hora</th>
+                        <th class="p-5 text-xs font-black text-slate-400 uppercase tracking-widest">Produto</th>
+                        <th class="p-5 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Depósito</th>
+                        <th class="p-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Diferença</th>
+                        <th class="p-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Saldo Final</th>
                         <th class="p-5 text-center"></th>
                     </tr>
                 </thead>
@@ -33,30 +33,30 @@
                     {% for ajuste in ajustes %}
                     <tr id="ajuste-{{ ajuste.id }}" class="hover:bg-slate-50/50 transition-colors">
                         <td class="p-5 whitespace-nowrap">
-                            <div class="text-slate-900 font-black text-sm">{{ ajuste.criado_em|date:"d/m" }}</div>
-                            <div class="text-slate-400 text-[10px] font-bold">{{ ajuste.criado_em|date:"H:i" }}</div>
+                            <div class="text-slate-900 font-black text-base">{{ ajuste.criado_em|date:"d/m" }}</div>
+                            <div class="text-slate-400 text-xs font-bold">{{ ajuste.criado_em|date:"H:i" }}</div>
                         </td>
                         <td class="p-5">
-                            <div class="font-black text-slate-700 uppercase text-sm leading-tight">{{ ajuste.nome_produto }}</div>
-                            <div class="text-[9px] text-slate-400 font-mono mt-1 tracking-tighter">{{ ajuste.codigo_interno }}</div>
+                            <div class="font-black text-slate-700 uppercase text-base leading-tight">{{ ajuste.nome_produto }}</div>
+                            <div class="text-xs text-slate-400 font-mono mt-1 tracking-tighter">{{ ajuste.codigo_interno }}</div>
                         </td>
                         <td class="p-5 text-center">
-                            <span class="inline-block px-3 py-1 rounded-full text-[9px] font-black uppercase {% if ajuste.deposito == 'centro' %}bg-blue-100 text-blue-600{% else %}bg-purple-100 text-purple-600{% endif %}">
+                            <span class="inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase {% if ajuste.deposito == 'centro' %}bg-blue-100 text-blue-600{% else %}bg-purple-100 text-purple-600{% endif %}">
                                 {{ ajuste.deposito }}
                             </span>
                         </td>
-                        <td class="p-5 text-right font-black">
+                        <td class="p-5 text-right font-black text-lg">
                             {% if ajuste.diferenca_saldo > 0 %} <span class="text-green-500">+{{ ajuste.diferenca_saldo }}</span>
                             {% elif ajuste.diferenca_saldo < 0 %} <span class="text-red-500">{{ ajuste.diferenca_saldo }}</span>
                             {% else %} <span class="text-slate-300">0.000</span> {% endif %}
                         </td>
-                        <td class="p-5 text-right font-black text-slate-900 text-lg">{{ ajuste.saldo_informado }}</td>
+                        <td class="p-5 text-right font-black text-slate-900 text-2xl">{{ ajuste.saldo_informado }}</td>
                         <td class="p-5 text-center">
-                            <button onclick="deletarAjuste('{{ ajuste.id }}')" class="text-red-300 hover:text-red-600 font-black text-lg transition-colors p-2">✕</button>
+                            <button onclick="deletarAjuste('{{ ajuste.id }}')" class="text-red-300 hover:text-red-600 font-black text-xl transition-colors p-2">✕</button>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="6" class="p-20 text-center font-black text-slate-300 uppercase italic tracking-widest">Nenhum ajuste registrado.</td></tr>
+                    <tr><td colspan="6" class="p-20 text-center font-black text-slate-300 uppercase italic tracking-widest text-base">Nenhum ajuste registrado.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
