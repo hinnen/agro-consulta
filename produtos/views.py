@@ -57,7 +57,7 @@ def sugestao_transferencia(request): return render(request, "produtos/transferen
 
 def ajuste_mobile_view(request):
     if not request.session.get('mobile_auth'):
-        return render(request, "produtos/mobile_login.html")
+        return render(request, "produtos/ajuste_mobile_login.html")
     return render(request, "produtos/mobile_ajuste.html")
 
 # --- APIs DE LOGIN E BUSCA (COM TODA A LÓGICA DE ESTOQUE) ---
@@ -177,18 +177,75 @@ def api_enviar_pedido_erp(request):
 
 # --- OUTRAS APIs ---
 def api_buscar_clientes(request):
-    c, db = obter_conexao_mongo()
-    if not db: return JsonResponse({"clientes": []})
-    clis = list(db[c.col_c].find({"Nome": {"$regex": request.GET.get("q",""), "$options": "i"}}).limit(10))
-    return JsonResponse({"clientes": [{"nome": i.get("Nome"), "telefone": i.get("Celular", "")} for i in clis]})
+    termo = request.GET.get("q", "").strip()
+
+    cache_key = f"busca_cli_{termo.replace(' ', '_')}"
+    cached_data = cache.get(cache_key)
+    if cached_data: return JsonResponse(cached_data)
+
+    client, db = obter_conexao_mongo()
+    if not termo or db is None: return JsonResponse({"clientes": []})
+    try:
+        query = {"$or": [
+            {"Nome": {"$regex": termo, "$options": "i"}},
+            {"RazaoSocial": {"$regex": termo, "$options": "i"}},
+            {"NomeFantasia": {"$regex": termo, "$options": "i"}},
+            {"CpfCnpj": {"$regex": termo, "$options": "i"}}
+        ]}
+        
+        clientes = list(db[client.col_c].find(query).limit(10))
+        
+        res = []
+        for c in clientes:
+            nome = c.get("Nome") or c.get("RazaoSocial") or c.get("NomeFantasia")
+            if nome:
+                res.append({
+                    "nome": nome, 
+                    "documento": c.get("CpfCnpj") or c.get("Cpf") or c.get("Cnpj") or "Sem Doc",
+                    "telefone": c.get("Celular") or c.get("Telefone") or c.get("Fone") or ""
+                })
+        
+        resultado_final = {"clientes": res}
+        cache.set(cache_key, resultado_final, timeout=120)
+        return JsonResponse(resultado_final)
+    except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
 
 def api_list_customers(request):
-    c, db = obter_conexao_mongo()
-    if not db: return JsonResponse({"clientes": []})
-    clis = list(db[c.col_c].find({"CadastroInativo": {"$ne": True}}, {"Nome": 1, "Id": 1}).limit(1000))
-    res = [{"id": str(i.get("Id")), "nome": i.get("Nome")} for i in clis]
-    res.sort(key=lambda x: x['nome'])
-    return JsonResponse({"clientes": res})
+    """
+    Retorna uma lista de todos os clientes para preencher um select/combobox.
+    """
+    cache_key = "lista_todos_clientes_v3"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return JsonResponse(cached_data)
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Erro de conexão com o banco de dados"}, status=500)
+
+    try:
+        projecao = {"Nome": 1, "RazaoSocial": 1, "NomeFantasia": 1, "_id": 0, "Id": 1}
+        
+        clientes_cursor = db[client.col_c].find({"CadastroInativo": {"$ne": True}}, projecao).limit(2000)
+        
+        lista_clientes = []
+        for c in clientes_cursor:
+            nome = c.get("Nome") or c.get("RazaoSocial") or c.get("NomeFantasia")
+            if nome:
+                lista_clientes.append({
+                    "id": str(c.get("Id") or c.get("_id")),
+                    "nome": nome.strip()
+                })
+        
+        lista_clientes.sort(key=lambda x: x['nome'])
+
+        resultado = {"clientes": lista_clientes}
+        
+        cache.set(cache_key, resultado, timeout=3600) 
+        
+        return JsonResponse(resultado)
+    except Exception as e:
+        return JsonResponse({"erro": str(e)}, status=500)
 
 def api_autocomplete_produtos(request):
     c, db = obter_conexao_mongo()
