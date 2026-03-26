@@ -381,7 +381,7 @@ def api_autocomplete_produtos(request):
     except Exception: return JsonResponse({"sugestoes": []})
 
 def api_todos_produtos_local(request):
-    cache_key = "carga_inicial_produtos_todos_v14"
+    cache_key = "carga_inicial_produtos_todos_v24"
     cached_data = cache.get(cache_key)
     if cached_data: return JsonResponse(cached_data)
 
@@ -390,15 +390,8 @@ def api_todos_produtos_local(request):
 
     try:
         query = {"CadastroInativo": {"$ne": True}}
-        projecao = {
-            "Nome": 1, "Marca": 1, "CodigoNFe": 1, "Codigo": 1, 
-            "CodigoBarras": 1, "EAN_NFe": 1, "ValorVenda": 1, "PrecoVenda": 1, 
-            "UrlImagem": 1, "Imagem": 1, "Imagens": 1, "Fotos": 1, "CaminhoImagem": 1,
-            "NomeCategoria": 1, "Categoria": 1, "Categorias": 1, "Grupo": 1, "SubGrupo": 1,
-            "NomeFornecedor": 1, "Fornecedor": 1, "RazaoSocialFornecedor": 1, "Fabricante": 1,
-            "BuscaTexto": 1
-        }
-        produtos = list(db[client.col_p].find(query, projecao))
+        # Removemos a projeção restrita: o Mongo vai trazer TODOS os campos ocultos do Venda ERP
+        produtos = list(db[client.col_p].find(query))
         p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
         
         estoques = list(db[client.col_e].find(
@@ -438,7 +431,72 @@ def api_todos_produtos_local(request):
             ]
             busca_texto_gerado = " ".join(normalizar(str(part)) for part in partes if part).strip()
             busca_texto_existente = normalizar(p.get("BuscaTexto") or "")
-            busca_texto_final = f"{busca_texto_gerado} {busca_texto_existente}".strip()
+            
+            # GARANTIA ANTI-FILTRO: A função normalizar() pode acabar removendo números ou 
+            # caracteres especiais (ex: 47KG). Aqui adicionamos os textos puros (apenas em minúsculo e sem acento)
+            texto_puro = " ".join(str(part) for part in partes if part)
+            texto_puro_limpo = ''.join(c for c in unicodedata.normalize('NFD', texto_puro) if unicodedata.category(c) != 'Mn').lower()
+            
+            busca_texto_final = f"{busca_texto_gerado} {busca_texto_existente} {texto_puro_limpo}".strip()
+            
+            preco_bruto = p.get("PrecoCusto") or p.get("ValorCusto") or 0
+            try:
+                preco_custo_val = float(str(preco_bruto).replace(',', '.'))
+            except ValueError:
+                preco_custo_val = 0.0
+                
+            def get_max_cost(doc):
+                max_val = preco_custo_val
+                
+                def traverse(obj):
+                    nonlocal max_val
+                    if isinstance(obj, dict):
+                        for k, v in obj.items():
+                            k_lower = k.lower()
+                            
+                            # Chaves que são definitivamente NÃO valores de custo (identificadores, quantidades, dimensões, etc.)
+                            # A lista foi simplificada para ser menos restritiva em termos de "imposto" ou "tributo"
+                            bad_keys = ["venda", "lucro", "margem", "id", "codigo", "ean", "ncm", "cest", 
+                                        "peso", "qtd", "quantidade", "estoque", "altura", "largura", 
+                                        "comprimento", "profundidade", "medida", "volume", "nfe", 
+                                        "cfop", "gtin", "dia", "mes", "ano", "prazo", "validade", 
+                                        "caixa", "unidade", "fator", "tabela", "atacado", "varejo", "promocao",
+                                        "percentual", "porcentagem", "aliquota", "taxa"]
+                            if any(x in k_lower for x in bad_keys):
+                                continue
+                            
+                            if isinstance(v, (dict, list)):
+                                traverse(v)
+                            else:
+                                # Chaves que PODEM conter um valor de custo (agora incluindo termos de imposto/tributo)
+                                good_cost_indicators = ["custo", "compra", "reposicao", "fornecedor", "entrada", 
+                                                        "valor", "preco", "total", "final", "bruto", "liquido", 
+                                                        "medio", "acrescimo", "despesa", "frete", "seguro", 
+                                                        "imposto", "tributo", "icms", "ipi", "pis", "cofins",
+                                                        "real", "efetivo"]
+                                if any(x in k_lower for x in good_keys):
+                                    if v is not None:
+                                        try:
+                                            val_f = float(str(v).replace(',', '.'))
+                                            
+                                            # Evita pegar o próprio preço de venda se ele estiver num campo genérico
+                                            if preco_venda_val > 0 and val_f == preco_venda_val:
+                                                continue
+                                            
+                                            if preco_custo_val > 0 and preco_custo_val <= val_f <= (preco_custo_val * 5):
+                                                if val_f > max_val: max_val = val_f
+                                            elif preco_custo_val == 0 and 0 < val_f < 100000:
+                                                if val_f > max_val: max_val = val_f
+                                        except (ValueError, TypeError):
+                                            pass
+                    elif isinstance(obj, list):
+                        for item in obj:
+                            traverse(item)
+                
+                traverse(doc)
+                return max_val
+            
+            preco_custo_acresc_val = get_max_cost(p)
 
             res.append({
                 "id": pid, 
@@ -448,7 +506,9 @@ def api_todos_produtos_local(request):
                 "categoria": p.get("NomeCategoria") or p.get("Categoria") or p.get("Grupo") or p.get("SubGrupo"),
                 "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo"), 
                 "codigo_barras": p.get("CodigoBarras") or p.get("EAN_NFe"),
-                "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
+                "preco_venda": preco_venda_val,
+                "preco_custo": preco_custo_val,
+                "preco_custo_acrescimo": preco_custo_acresc_val,
                 "saldo_centro": round(saldo_f_c, 2), 
                 "saldo_vila": round(saldo_f_v, 2),
                 "saldo_erp_centro": s_c,
@@ -519,3 +579,125 @@ def api_buscar_produto_id(request, id):
         }
         return JsonResponse(res)
     except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
+
+# TELA PARA O COMPRADOR
+def compras_view(request):
+    return render(request, "produtos/compras.html")
+
+# API DE BUSCA COM PREÇO DE CUSTO (VERSÃO CORRIGIDA)
+@require_GET
+def api_buscar_compras(request):
+    termo_original = request.GET.get("q", "").strip()
+    print(f"--- BUSCA COMPRAS: Recebido termo '{termo_original}' ---")
+    if not termo_original:
+        return JsonResponse({"produtos": []})
+
+    # A chave de cache é diferente para não misturar com a busca do PDV
+    cache_key = f"busca_compras_v2_{normalizar(termo_original).replace(' ', '_')}"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        print("--- BUSCA COMPRAS: Retornando do cache ---")
+        return JsonResponse(cached_data)
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        print("--- BUSCA COMPRAS: Erro de conexão com o Mongo ---")
+        return JsonResponse({"erro": "Erro conexao"}, status=500)
+
+    try:
+        # Reutiliza a mesma lógica de busca robusta da api_buscar_produtos
+        palavras_originais = termo_original.split()
+        condicoes_and = []
+
+        for palavra in palavras_originais:
+            tokens_expandidos = expandir_tokens(palavra)
+            palavra_norm = normalizar(palavra)
+            if palavra_norm and palavra_norm not in tokens_expandidos:
+                tokens_expandidos.append(palavra_norm)
+
+            if tokens_expandidos:
+                regex_expandidos = [re.compile(re.escape(token), re.IGNORECASE) for token in tokens_expandidos]
+                condicoes_and.append({"BuscaTexto": {"$in": regex_expandidos}})
+                # Adicionamos fallback para buscar no 'Nome' também, caso o 'BuscaTexto' falhe
+                condicoes_and.append({
+                    "$or": [
+                        {"BuscaTexto": {"$in": regex_expandidos}},
+                        {"Nome": re.compile(re.escape(palavra), re.IGNORECASE)}
+                    ]
+                })
+ 
+        termo_limpo = re.sub(r'[^a-zA-Z0-9]', '', termo_original)
+        or_conditions = []
+        if termo_limpo:
+            or_conditions.extend([
+                {"CodigoNFe": termo_limpo},
+                {"Codigo": termo_limpo},
+                {"CodigoBarras": termo_limpo},
+                {"EAN_NFe": termo_limpo}
+            ])
+
+        if condicoes_and:
+            or_conditions.insert(0, {"$and": condicoes_and})
+
+        if not or_conditions:
+             return JsonResponse({"produtos": []})
+
+        query = {"$or": or_conditions, "CadastroInativo": {"$ne": True}}
+        print(f"--- BUSCA COMPRAS: Executando query: {query} ---")
+        
+        # A busca em si é idêntica
+        produtos = list(db[client.col_p].find(query).limit(15))
+        # Aumentamos o limite para 100 e ordenamos alfabeticamente
+        produtos = list(db[client.col_p].find(query).sort("Nome", 1).limit(100))
+        print(f"--- BUSCA COMPRAS: Encontrados {len(produtos)} produtos ---")
+        p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
+        estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+
+        ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids).order_by('produto_externo_id', 'deposito', '-criado_em')
+        ajustes_map = {}
+        for aj in ajustes_bd:
+            if (aj.produto_externo_id, aj.deposito) not in ajustes_map:
+                ajustes_map[(aj.produto_externo_id, aj.deposito)] = aj
+
+        res = []
+        for p in produtos:
+            pid = str(p.get("Id") or p["_id"])
+            s_c = 0.0; s_v = 0.0
+            for est in estoques:
+                if str(est.get("ProdutoID")) == pid:
+                    val = float(est.get("Saldo") or 0)
+                    did = str(est.get("DepositoID") or "")
+                    if did == client.DEPOSITO_CENTRO: s_c = val
+                    elif did == client.DEPOSITO_VILA_ELIAS: s_v = val
+
+            aj_c = ajustes_map.get((pid, 'centro'))
+            aj_v = ajustes_map.get((pid, 'vila'))
+            saldo_f_c = float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia)) if aj_c else s_c
+            saldo_f_v = float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia)) if aj_v else s_v
+            
+            # Prevenção de erro: converte vírgula para ponto caso o Mongo retorne string ("10,50")
+            preco_bruto = p.get("PrecoCusto") or p.get("ValorCusto") or 0
+            try:
+                preco_val = float(str(preco_bruto).replace(',', '.'))
+            except ValueError:
+                preco_val = 0.0
+
+            # --- A GRANDE MUDANÇA ESTÁ AQUI ---
+            # Trocamos o preço de venda pelo preço de custo
+            res.append({
+                "id": pid, 
+                "nome": p.get("Nome"), 
+                "marca": p.get("Marca") or "",
+                "preco_custo": preco_val,
+                "saldo_centro": round(saldo_f_c, 2),
+                "saldo_vila": round(saldo_f_v, 2)
+            })
+        
+        print(f"--- BUSCA COMPRAS: Retornando {len(res)} resultados ---")
+        resultado_final = {"produtos": res}
+        # Usa uma chave de cache diferente
+        cache.set(cache_key, resultado_final, timeout=60) 
+        return JsonResponse(resultado_final)
+    except Exception as e: 
+        print(f"--- BUSCA COMPRAS: EXCEÇÃO: {e} ---")
+        return JsonResponse({"erro": str(e)}, status=500)
