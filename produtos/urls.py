@@ -7,10 +7,12 @@ urlpatterns = [
     path('historico/', views.historico_ajustes, name='historico_ajustes'),
     path('transferencias/', views.sugestao_transferencia, name='sugestao_transferencia'),
     path('ajuste-mobile/', views.ajuste_mobile_view, name='ajuste_mobile'), # <-- A rota que faltava
+    path('compras/', views.compras_view, name='compras_view'),
 
     # --- APIs ---
     path('api/login-mobile/', views.api_login_mobile, name='api_login_mobile'),
     path('api/buscar/', views.api_buscar_produtos, name='api_buscar_mobile'),
+    path('api/buscar-compras/', views.api_buscar_compras, name='api_buscar_compras'),
     path('api/ajustar/', views.api_ajustar_estoque, name='api_ajustar_estoque'),
     path('api/todos-produtos/', views.api_todos_produtos_local, name='api_todos_produtos_local'),
     path('api/autocomplete/', views.api_autocomplete_produtos, name='api_autocomplete_produtos'),
