@@ -72,7 +72,11 @@ window.addEventListener('load', () => {
 
 function normalizar(texto) {
     if (!texto) return '';
-    return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    let txt = texto.toLowerCase();
+    txt = txt.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    txt = txt.replace(/[^a-z0-9\s]/g, ' ');
+    txt = txt.replace(/\s+/g, ' ').trim();
+    return txt;
 }
 
 function startScan() {

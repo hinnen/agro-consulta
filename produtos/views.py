@@ -113,25 +113,24 @@ def api_buscar_produtos(request):
         condicoes_and = []
 
         for palavra in palavras_originais:
-            if re.search(r'\d', palavra):
-                 condicoes_and.append({"BuscaTexto": {"$regex": re.escape(palavra), "$options": "i"}})
-            else:
-                tokens_expandidos = expandir_tokens(palavra)
-                palavra_norm = normalizar(palavra)
-                if palavra_norm and palavra_norm not in tokens_expandidos:
-                    tokens_expandidos.append(palavra_norm)
+            tokens_expandidos = expandir_tokens(palavra)
+            palavra_norm = normalizar(palavra)
+            if palavra_norm and palavra_norm not in tokens_expandidos:
+                tokens_expandidos.append(palavra_norm)
 
-                if tokens_expandidos:
-                    regex_expandidos = [re.compile(re.escape(token), re.IGNORECASE) for token in tokens_expandidos]
-                    condicoes_and.append({"BuscaTexto": {"$in": regex_expandidos}})
-
+            if tokens_expandidos:
+                regex_expandidos = [re.compile(re.escape(token), re.IGNORECASE) for token in tokens_expandidos]
+                condicoes_and.append({"BuscaTexto": {"$in": regex_expandidos}})
+ 
         termo_limpo = re.sub(r'[^a-zA-Z0-9]', '', termo_original)
-        or_conditions = [
-            {"CodigoNFe": termo_limpo},
-            {"Codigo": termo_limpo},
-            {"CodigoBarras": termo_limpo},
-            {"EAN_NFe": termo_limpo}
-        ]
+        or_conditions = []
+        if termo_limpo:
+            or_conditions.extend([
+                {"CodigoNFe": termo_limpo},
+                {"Codigo": termo_limpo},
+                {"CodigoBarras": termo_limpo},
+                {"EAN_NFe": termo_limpo}
+            ])
 
         if condicoes_and:
             or_conditions.insert(0, {"$and": condicoes_and})
@@ -382,7 +381,7 @@ def api_autocomplete_produtos(request):
     except Exception: return JsonResponse({"sugestoes": []})
 
 def api_todos_produtos_local(request):
-    cache_key = "carga_inicial_produtos_todos_v12"
+    cache_key = "carga_inicial_produtos_todos_v14"
     cached_data = cache.get(cache_key)
     if cached_data: return JsonResponse(cached_data)
 
@@ -396,7 +395,8 @@ def api_todos_produtos_local(request):
             "CodigoBarras": 1, "EAN_NFe": 1, "ValorVenda": 1, "PrecoVenda": 1, 
             "UrlImagem": 1, "Imagem": 1, "Imagens": 1, "Fotos": 1, "CaminhoImagem": 1,
             "NomeCategoria": 1, "Categoria": 1, "Categorias": 1, "Grupo": 1, "SubGrupo": 1,
-            "NomeFornecedor": 1, "Fornecedor": 1, "RazaoSocialFornecedor": 1, "Fabricante": 1
+            "NomeFornecedor": 1, "Fornecedor": 1, "RazaoSocialFornecedor": 1, "Fabricante": 1,
+            "BuscaTexto": 1
         }
         produtos = list(db[client.col_p].find(query, projecao))
         p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
@@ -431,6 +431,15 @@ def api_todos_produtos_local(request):
             saldo_f_c = float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia)) if aj_c else s_c
             saldo_f_v = float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia)) if aj_v else s_v
 
+            partes = [
+                p.get("Nome"), p.get("Marca"),
+                p.get("NomeCategoria"), p.get("Categoria"), p.get("Grupo"),
+                p.get("CodigoNFe"), p.get("Codigo"), p.get("CodigoBarras"), p.get("EAN_NFe")
+            ]
+            busca_texto_gerado = " ".join(normalizar(str(part)) for part in partes if part).strip()
+            busca_texto_existente = normalizar(p.get("BuscaTexto") or "")
+            busca_texto_final = f"{busca_texto_gerado} {busca_texto_existente}".strip()
+
             res.append({
                 "id": pid, 
                 "nome": p.get("Nome"), 
@@ -444,11 +453,11 @@ def api_todos_produtos_local(request):
                 "saldo_vila": round(saldo_f_v, 2),
                 "saldo_erp_centro": s_c,
                 "saldo_erp_vila": s_v,
-                "busca_texto": p.get("BuscaTexto", ""),
+                "busca_texto": busca_texto_final,
             })
         
         resultado_final = {"produtos": res}
-        cache.set(cache_key, resultado_final, timeout=3600) # Aumentado para 1h
+        cache.set(cache_key, resultado_final, timeout=3600)
         return JsonResponse(resultado_final)
     except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
 
