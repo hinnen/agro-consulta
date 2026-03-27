@@ -161,7 +161,7 @@ function abrirAjuste(id, nome, saldoAtual, codigo, deposito) {
   fd.append('pin', pin);
   fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
-  fetch("/api/ajustar/", {
+  fetch("{% url 'api_ajustar_estoque' %}", {
     method: 'POST',
     body: fd
   })
@@ -188,7 +188,7 @@ function buscar(q) {
 
   div.innerHTML = '<div class="text-slate-400 p-4 text-center font-bold">Buscando...</div>';
 
-  fetch(`/api/buscar-compras/?q=${encodeURIComponent(termoOriginal)}`)
+  fetch(`{% url 'api_buscar_compras' %}?q=${encodeURIComponent(termoOriginal)}`)
     .then(r => r.json())
     .then(d => {
       let resultados = d.produtos || [];

@@ -108,7 +108,7 @@ function buscar(q) {
 
   l.innerHTML = '<div class="text-center text-slate-400 font-bold p-8">Buscando...</div>';
 
-  fetch(`/api/buscar/?q=${encodeURIComponent(termo)}`)
+  fetch(`{% url 'api_buscar_mobile' %}?q=${encodeURIComponent(termo)}`)
     .then(res => res.json())
     .then(data => {
       const resultados = data.produtos || [];
