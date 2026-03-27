@@ -733,13 +733,26 @@ def api_autocomplete_produtos(request):
         return JsonResponse({"sugestoes": []})
 
 
+from bson import ObjectId
+
 def api_buscar_produto_id(request, id):
     client, db = obter_conexao_mongo()
     if not db:
         return JsonResponse({"erro": "DB Offline"}, status=500)
 
-    p = db[client.col_p].find_one({"Id": id})
-    if not p:
-        return JsonResponse({"erro": "Nao encontrado"}, status=404)
+    try:
+        p = db[client.col_p].find_one({"Id": id})
 
-    return JsonResponse({"id": id, "nome": p.get("Nome")})
+        if not p:
+            p = db[client.col_p].find_one({"_id": ObjectId(id)})
+
+        if not p:
+            return JsonResponse({"erro": "Nao encontrado"}, status=404)
+
+        return JsonResponse({
+            "id": str(p.get("Id") or p.get("_id")),
+            "nome": p.get("Nome") or ""
+        })
+
+    except Exception as e:
+        return JsonResponse({"erro": str(e)}, status=500)
