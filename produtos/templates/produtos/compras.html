@@ -1,4 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Agro Mais | Pedido de Compra</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .hide-scroll::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 p-4">
+
+  <div class="max-w-6xl mx-auto flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-black italic uppercase tracking-tighter">
+      PAINEL DE <span class="text-orange-500">COMPRAS</span>
+    </h1>
+    <a href="/" class="text-xs font-bold text-slate-500 hover:text-slate-800 uppercase bg-white shadow-sm px-4 py-2 rounded-lg transition-colors border border-slate-200">
+      Voltar ao PDV
+    </a>
+  </div>
+
+  <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 space-y-4">
+      <input
+        type="text"
+        id="busca"
+        placeholder="Buscar por nome, GM, EAN ou marca..."
+        autocomplete="off"
+        class="w-full p-6 rounded-3xl bg-white border border-slate-200 text-xl font-bold outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 shadow-sm text-slate-800 placeholder:text-slate-400 transition-all"
+      >
+      <div id="resultados" class="grid gap-3"></div>
+    </div>
+
+    <div class="bg-white p-6 rounded-[2.5rem] shadow-xl h-fit sticky top-4 border border-slate-200">
+      <h3 class="text-orange-500 font-black uppercase italic mb-4 tracking-widest text-sm flex justify-between items-center">
+        <span>Lista de Pedido</span>
+        <span id="itens-badge" class="bg-slate-100 text-slate-500 border border-slate-200 px-2 py-1 rounded-lg text-[10px]">0 itens</span>
+      </h3>
+
+      <div id="carrinho" class="space-y-3 mb-6 max-h-[500px] overflow-y-auto pr-2 hide-scroll"></div>
+
+      <div class="border-t border-slate-100 pt-4 space-y-3">
+        <div class="flex justify-between items-center px-2 pb-2">
+          <span class="text-xs text-slate-400 font-bold uppercase">Total Estimado:</span>
+          <span id="total-estimado" class="text-2xl text-emerald-600 font-black tabular-nums">R$ 0,00</span>
+        </div>
+
+        <button onclick="copiarLista()" class="w-full bg-slate-100 text-slate-700 font-black py-4 rounded-2xl uppercase italic text-xs hover:bg-slate-200 transition-all shadow-sm active:scale-95">
+          Copiar Lista
+        </button>
+
+        <button onclick="enviarWhatsapp()" class="w-full bg-emerald-500 text-white font-black py-4 rounded-2xl uppercase italic text-xs hover:bg-emerald-600 shadow-md shadow-emerald-500/30 transition-all active:scale-95">
+          Enviar Fornecedor
+        </button>
+
+        <button onclick="limpar()" class="w-full text-slate-400 hover:text-red-500 font-bold text-[10px] uppercase transition-colors pt-2">
+          Limpar Tudo
+        </button>
+      </div>
+    </div>
+  </div>
+
 <script>
+let lista = [];
+let debounceTimer = null;
+
+function escapeHtml(texto) {
+  return String(texto || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function formatarMoeda(valor) {
+  return Number(valor || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  });
+}
+
+function atualizarCarrinho() {
+  const carrinho = document.getElementById('carrinho');
+  const badge = document.getElementById('itens-badge');
+  const total = document.getElementById('total-estimado');
+
+  carrinho.innerHTML = '';
+
+  if (!lista.length) {
+    carrinho.innerHTML = '<div class="text-center text-slate-400 font-bold p-6">Nenhum item adicionado.</div>';
+  }
+
+  let soma = 0;
+
+  lista.forEach((item, idx) => {
+    const subtotal = Number(item.qtd) * Number(item.preco);
+    soma += subtotal;
+
+    const row = document.createElement('div');
+    row.className = 'border border-slate-200 rounded-2xl p-3';
+    row.innerHTML = `
+      <div class="flex justify-between gap-3">
+        <div class="min-w-0">
+          <div class="font-black text-xs uppercase truncate">${escapeHtml(item.nome)}</div>
+          <div class="text-[10px] text-slate-500">Qtd: ${item.qtd} × ${formatarMoeda(item.preco)}</div>
+        </div>
+        <button onclick="removerItem(${idx})" class="text-red-500 font-black text-xs">X</button>
+      </div>
+      <div class="text-right text-sm font-black text-emerald-600 mt-2">${formatarMoeda(subtotal)}</div>
+    `;
+    carrinho.appendChild(row);
+  });
+
+  badge.textContent = `${lista.length} ${lista.length === 1 ? 'item' : 'itens'}`;
+  total.textContent = formatarMoeda(soma);
+}
+
+function add(id, nome, preco) {
+  const existente = lista.find(i => i.id === id);
+
+  if (existente) {
+    existente.qtd += 1;
+  } else {
+    lista.push({
+      id,
+      nome,
+      preco: Number(preco || 0),
+      qtd: 1
+    });
+  }
+
+  atualizarCarrinho();
+}
+
+function removerItem(idx) {
+  lista.splice(idx, 1);
+  atualizarCarrinho();
+}
+
+function limpar() {
+  lista = [];
+  atualizarCarrinho();
+}
+
+function abrirAjuste(id, nome, saldoAtual, codigo, deposito) {
+  const novo = prompt(`[AJUSTE - LOJA ${String(deposito || '').toUpperCase()}]\nProduto: ${nome}\n\nSaldo atual no sistema: ${saldoAtual}\nDigite a nova quantidade real contada:`);
+  if (novo === null || String(novo).trim() === '') return;
+
+  const pin = prompt("Digite seu PIN de Autorização (4 dígitos):");
+  if (!pin) return;
+
+  const fd = new FormData();
+  fd.append('produto_id', id);
+  fd.append('nome_produto', nome);
+  fd.append('codigo_interno', codigo || '');
+  fd.append('saldo_atual', saldoAtual ?? 0);
+  fd.append('novo_saldo', novo);
+  fd.append('deposito', deposito);
+  fd.append('pin', pin);
+  fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+  fetch("/api/ajustar/", {
+    method: 'POST',
+    body: fd
+  })
+  .then(res => res.json())
+  .then(d => {
+    if (d.ok) {
+      alert("Estoque ajustado com sucesso!");
+      buscar(document.getElementById('busca').value);
+    } else {
+      alert("Acesso negado ou erro:\n" + (d.erro || 'Erro desconhecido'));
+    }
+  })
+  .catch(() => alert("Falha na comunicação com o servidor."));
+}
+
 function buscar(q) {
   const div = document.getElementById('resultados');
   const termoOriginal = String(q || '').trim();
@@ -15,8 +193,8 @@ function buscar(q) {
     .then(d => {
       let resultados = d.produtos || [];
 
-      if (resultados.length === 0) {
-        div.innerHTML = `<div class="bg-white text-slate-400 border border-slate-200 shadow-sm p-6 rounded-3xl font-bold text-center">Nenhum produto encontrado para "${termoOriginal}".</div>`;
+      if (!resultados.length) {
+        div.innerHTML = `<div class="bg-white text-slate-400 border border-slate-200 shadow-sm p-6 rounded-3xl font-bold text-center">Nenhum produto encontrado para "${escapeHtml(termoOriginal)}".</div>`;
         return;
       }
 
@@ -24,23 +202,25 @@ function buscar(q) {
 
       resultados.forEach(p => {
         const nomeReal = p.nome || 'PRODUTO SEM NOME';
-        const nomeSeguro = nomeReal.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        const nomeSeguro = nomeReal.replace(/'/g, "\\'");
         const marcaSegura = p.marca || 'GENÉRICO';
         const gmCode = p.codigo_nfe || p.codigo || p.codigo_barras || 'S/N';
 
         const custoSeco = Number(p.preco_custo || 0).toFixed(2);
         const custoFinal = Number(p.preco_custo_acrescimo || p.preco_custo || 0).toFixed(2);
         const precoVenda = Number(p.preco_venda || 0).toFixed(2);
-        const lucroReais = (precoVenda - custoFinal).toFixed(2);
-        const lucroPerc = Number(custoFinal) > 0 ? (((precoVenda - custoFinal) / custoFinal) * 100).toFixed(1) : 100;
-        const corLucro = (precoVenda - custoFinal) >= 0 ? "text-emerald-500" : "text-red-500";
-        const foto = p.imagem && p.imagem !== '' && p.imagem !== 'None'
+        const lucroReais = (Number(precoVenda) - Number(custoFinal)).toFixed(2);
+        const lucroPerc = Number(custoFinal) > 0
+          ? (((Number(precoVenda) - Number(custoFinal)) / Number(custoFinal)) * 100).toFixed(1)
+          : '100.0';
+        const corLucro = (Number(precoVenda) - Number(custoFinal)) >= 0 ? "text-emerald-500" : "text-red-500";
+        const foto = p.imagem && p.imagem !== 'None'
           ? p.imagem
           : `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeReal)}&background=f1f5f9&color=64748b&font-size=0.3`;
 
         div.innerHTML += `
           <div class="bg-white p-4 rounded-2xl flex justify-between items-center border border-slate-200 hover:border-orange-400 hover:bg-orange-50/30 shadow-sm transition-all cursor-pointer group"
-            onclick="add('${p.id}', '${nomeSeguro}', ${custoFinal})">
+            onclick="add('${String(p.id)}', '${nomeSeguro}', ${Number(custoFinal)})">
 
             <div class="flex items-center gap-4 flex-1 min-w-0 pr-4">
               <img src="${foto}" class="w-12 h-12 object-cover rounded-xl bg-slate-50 border border-slate-200 shadow-sm p-0.5 hidden sm:block">
@@ -59,11 +239,11 @@ function buscar(q) {
                   </div>
 
                   <div class="flex gap-2 text-[10px] font-bold uppercase tracking-wider">
-                    <span onclick="abrirAjuste('${p.id}', '${nomeSeguro}', ${Number(p.saldo_centro_erp ?? p.saldo_centro ?? 0)}, '${gmCode}', 'centro'); event.stopPropagation();" class="text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100 flex items-center gap-1 group/edit transition-colors" title="Ajustar Centro">
-                      C: ${Number(p.saldo_centro || 0).toFixed(1)} <span class="opacity-0 group-hover/edit:opacity-100 text-[11px] -mr-1">✏️</span>
+                    <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_centro_erp ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100 flex items-center gap-1 transition-colors" title="Ajustar Centro">
+                      C: ${Number(p.saldo_centro || 0).toFixed(1)}
                     </span>
-                    <span onclick="abrirAjuste('${p.id}', '${nomeSeguro}', ${Number(p.saldo_vila_erp ?? p.saldo_vila ?? 0)}, '${gmCode}', 'vila'); event.stopPropagation();" class="text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100 flex items-center gap-1 group/edit transition-colors" title="Ajustar Vila">
-                      V: ${Number(p.saldo_vila || 0).toFixed(1)} <span class="opacity-0 group-hover/edit:opacity-100 text-[11px] -mr-1">✏️</span>
+                    <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_vila_erp ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100 flex items-center gap-1 transition-colors" title="Ajustar Vila">
+                      V: ${Number(p.saldo_vila || 0).toFixed(1)}
                     </span>
                   </div>
                 </div>
@@ -88,4 +268,32 @@ function buscar(q) {
       div.innerHTML = `<div class="bg-white text-red-500 border border-red-200 shadow-sm p-6 rounded-3xl font-bold text-center">Erro ao buscar produtos.</div>`;
     });
 }
+
+function formatarTexto() {
+  let texto = '📦 *LISTA DE COMPRA*%0A%0A';
+  lista.forEach(item => {
+    texto += `• ${item.nome} — Qtd: ${item.qtd}%0A`;
+  });
+  return decodeURIComponent(texto);
+}
+
+function copiarLista() {
+  if (!lista.length) return alert("A lista está vazia!");
+  navigator.clipboard.writeText(formatarTexto()).then(() => alert("Lista copiada com sucesso!"));
+}
+
+function enviarWhatsapp() {
+  if (!lista.length) return alert("A lista está vazia!");
+  window.open(`https://wa.me/?text=${encodeURIComponent(formatarTexto())}`, '_blank');
+}
+
+document.getElementById('busca').addEventListener('input', (e) => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => buscar(e.target.value), 120);
+});
+
+atualizarCarrinho();
 </script>
+
+</body>
+</html>
