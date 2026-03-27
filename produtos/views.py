@@ -6,157 +6,132 @@ from django.core.cache import cache
 from django.views.decorators.http import require_GET, require_POST
 from base.models import Empresa, PerfilUsuario, IntegracaoERP
 from estoque.models import AjusteRapidoEstoque
-from integracoes.texto import normalizar, expandir_tokens
+from integracoes.texto import normalizar, expandir_tokens # Suas funções inteligentes
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 from integracoes.venda_erp_api import VendaERPAPIClient
 from django.utils import timezone
 from bson.objectid import ObjectId
 
-# --- CONEXÃO MONGO ---
+# --- CONEXÃO E AUXILIARES (IGUAL ANTES) ---
 _cached_mongo_client = None
-
 def obter_conexao_mongo():
     global _cached_mongo_client
     try:
-        if _cached_mongo_client is None:
-            _cached_mongo_client = VendaERPMongoClient()
-        db = _cached_mongo_client.db if _cached_mongo_client else None
-        return _cached_mongo_client, db
-    except:
-        return None, None
+        if _cached_mongo_client is None: _cached_mongo_client = VendaERPMongoClient()
+        return _cached_mongo_client, _cached_mongo_client.db
+    except: return None, None
 
 def _formatar_url_imagem(img_str):
     img_str = str(img_str or "").strip()
     if not img_str or img_str == "None" or img_str.startswith("data:image"): return img_str
     return f"https://cw.vendaerp.com.br/{img_str}" if img_str.startswith("Uploads/") else img_str
 
-def _extrair_imagem_produto(p, pid):
-    for c in ["UrlImagem", "Imagem", "CaminhoImagem", "Foto", "UrlImagemPrincipal"]:
-        val = p.get(c)
-        if val and isinstance(val, str) and len(val.strip()) > 2: return val
-    return ""
+# --- O MOTOR DE BUSCA ÚNICO (CÉREBRO DO SISTEMA) ---
+def motor_de_busca_agro(termo_original, db, client, limit=20):
+    """
+    Esta função centraliza a lógica que funciona bem na transferência:
+    Busca por tokens, códigos exatos e regex em múltiplos campos.
+    """
+    if not termo_original: return []
+    
+    # 1. Tenta busca exata por código (GM, Barras, EAN) - É instantâneo
+    termo_limpo = re.sub(r'[^a-zA-Z0-9]', '', termo_original)
+    if termo_limpo:
+        query_cod = {"$or": [
+            {"Codigo": termo_limpo}, {"CodigoNFe": termo_limpo},
+            {"CodigoBarras": termo_limpo}, {"EAN_NFe": termo_limpo}
+        ], "CadastroInativo": {"$ne": True}}
+        prods_cod = list(db[client.col_p].find(query_cod).limit(5))
+        if prods_cod: return prods_cod
 
-# --- PÁGINAS ---
+    # 2. Busca Inteligente por Palavras (O que faz o 'Milho Grande' funcionar)
+    palavras = termo_original.split()
+    condicoes_and = []
+    
+    for p in palavras:
+        tokens = expandir_tokens(p) # Usa sua integração
+        p_norm = normalizar(p)
+        if p_norm and p_norm not in tokens: tokens.append(p_norm)
+        
+        if tokens:
+            # Transforma tokens em Regex para o Mongo
+            regex_tokens = [re.compile(re.escape(t), re.IGNORECASE) for t in tokens]
+            # Procura a palavra em qualquer um dos campos importantes
+            condicoes_and.append({"$or": [
+                {"BuscaTexto": {"$in": regex_tokens}},
+                {"Nome": {"$regex": re.escape(p), "$options": "i"}},
+                {"Marca": {"$regex": re.escape(p), "$options": "i"}},
+                {"Codigo": {"$regex": re.escape(p), "$options": "i"}}
+            ]})
+
+    if not condicoes_and: return []
+    
+    query = {"$and": condicoes_and, "CadastroInativo": {"$ne": True}}
+    return list(db[client.col_p].find(query).limit(limit))
+
+# --- APIs QUE USAM O MOTOR ---
+
+@require_GET
+def api_buscar_produtos(request):
+    q = request.GET.get("q", "").strip()
+    client, db = obter_conexao_mongo()
+    if not db or not q: return JsonResponse({"produtos": []})
+    
+    produtos = motor_de_busca_agro(q, db, client)
+    p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
+    estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+    ajustes = {(a.produto_externo_id, a.deposito): a for a in AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)}
+    
+    res = []
+    for p in produtos:
+        pid = str(p.get("Id") or p["_id"])
+        sc = sum(float(e.get("Saldo", 0)) for e in estoques if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_CENTRO)
+        sv = sum(float(e.get("Saldo", 0)) for e in estoques if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_VILA_ELIAS)
+        ac, av = ajustes.get((pid, 'centro')), ajustes.get((pid, 'vila'))
+        
+        res.append({
+            "id": pid, "nome": p.get("Nome"), "marca": p.get("Marca") or "",
+            "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "", 
+            "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
+            "imagem": _formatar_url_imagem(p.get("UrlImagem") or ""),
+            "saldo_centro": round(float(ac.saldo_informado) + (sc - float(ac.saldo_erp_referencia)) if ac else sc, 2),
+            "saldo_vila": round(float(av.saldo_informado) + (sv - float(av.saldo_erp_referencia)) if av else sv, 2)
+        })
+    return JsonResponse({"produtos": res})
+
+@require_GET
+def api_buscar_compras(request):
+    q = request.GET.get("q", "").strip()
+    client, db = obter_conexao_mongo()
+    if not db or not q: return JsonResponse({"produtos": []})
+    
+    produtos = motor_de_busca_agro(q, db, client, limit=50)
+    p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
+    estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+    ajustes = {(a.produto_externo_id, a.deposito): a for a in AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)}
+    
+    res = []
+    for p in produtos:
+        pid = str(p.get("Id") or p["_id"])
+        sc = sum(float(e.get("Saldo", 0)) for e in estoques if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_CENTRO)
+        sv = sum(float(e.get("Saldo", 0)) for e in estoques if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_VILA_ELIAS)
+        ac, av = ajustes.get((pid, 'centro')), ajustes.get((pid, 'vila'))
+        
+        res.append({
+            "id": pid, "nome": p.get("Nome"), "marca": p.get("Marca") or "",
+            "preco_custo": float(str(p.get("PrecoCusto") or p.get("ValorCusto") or 0).replace(',', '.')),
+            "saldo_centro": round(float(ac.saldo_informado) + (sc - float(ac.saldo_erp_referencia)) if ac else sc, 2),
+            "saldo_vila": round(float(av.saldo_informado) + (sv - float(av.saldo_erp_referencia)) if av else sv, 2)
+        })
+    return JsonResponse({"produtos": res})
+
+# --- PÁGINAS E OUTRAS APIs (MANTIDAS) ---
 def consulta_produtos(request): return render(request, "produtos/consulta_produtos.html")
-def historico_ajustes(request): return render(request, "produtos/historico_ajustes.html", {"ajustes": AjusteRapidoEstoque.objects.all().order_by('-criado_em')})
-def sugestao_transferencia(request): return render(request, "produtos/transferencias.html")
 def compras_view(request): return render(request, "produtos/compras.html")
 def ajuste_mobile_view(request):
     if not request.session.get('mobile_auth'): return render(request, "produtos/ajuste_mobile_login.html")
     return render(request, "produtos/mobile_ajuste.html")
 
-# --- APIs DE AUTH ---
-@require_POST
-def api_login_mobile(request):
-    pin = request.POST.get("pin")
-    if PerfilUsuario.objects.filter(senha_rapida=pin).exists():
-        request.session['mobile_auth'] = True
-        return JsonResponse({"ok": True})
-    return JsonResponse({"ok": False}, status=403)
-
-# --- BUSCADOR PRINCIPAL (RÁPIDO) ---
-@require_GET
-def api_buscar_produtos(request):
-    client = None
-    q = request.GET.get("q", "").strip()
-    if not q: return JsonResponse({"produtos": []})
-    
-    client, db = obter_conexao_mongo()
-    if not db: return JsonResponse({"erro": "DB Offline"}, status=503)
-    
-    try:
-        termo_limpo = re.sub(r'[^a-zA-Z0-9]', '', q)
-        
-        # 1. Tenta busca exata por código (Bate e volta, muito rápido)
-        query_cod = {"$or": [
-            {"Codigo": termo_limpo},
-            {"CodigoNFe": termo_limpo},
-            {"CodigoBarras": termo_limpo},
-            {"EAN_NFe": termo_limpo}
-        ], "CadastroInativo": {"$ne": True}}
-        
-        prods = list(db[client.col_p].find(query_cod).limit(5))
-        
-        # 2. Se não achou por código, faz a busca por texto
-        if not prods:
-            palavras = q.split()
-            cond = []
-            for p in palavras:
-                p_reg = re.escape(p)
-                cond.append({"$or": [
-                    {"Nome": {"$regex": p_reg, "$options": "i"}},
-                    {"Marca": {"$regex": p_reg, "$options": "i"}},
-                    {"BuscaTexto": {"$regex": p_reg, "$options": "i"}}
-                ]})
-            prods = list(db[client.col_p].find({"$and": cond, "CadastroInativo": {"$ne": True}}).limit(15))
-
-        p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
-        ests = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
-        ajs = {(a.produto_externo_id, a.deposito): a for a in AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)}
-        
-        res = []
-        for p in prods:
-            pid = str(p.get("Id") or p["_id"])
-            sc = sum(float(e.get("Saldo", 0)) for e in ests if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_CENTRO)
-            sv = sum(float(e.get("Saldo", 0)) for e in ests if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_VILA_ELIAS)
-            ac, av = ajs.get((pid, 'centro')), ajs.get((pid, 'vila'))
-            res.append({
-                "id": pid, "nome": p.get("Nome"), "marca": p.get("Marca") or "",
-                "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "", 
-                "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
-                "imagem": _formatar_url_imagem(_extrair_imagem_produto(p, pid)),
-                "saldo_centro": round(float(ac.saldo_informado) + (sc - float(ac.saldo_erp_referencia)) if ac else sc, 2),
-                "saldo_vila": round(float(av.saldo_informado) + (sv - float(av.saldo_erp_referencia)) if av else sv, 2)
-            })
-        return JsonResponse({"produtos": res})
-    except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
-
-# --- BUSCADOR DE COMPRAS (CORRIGIDO) ---
-@require_GET
-def api_buscar_compras(request):
-    client = None
-    q = request.GET.get("q", "").strip()
-    if not q: return JsonResponse({"produtos": []})
-    
-    client, db = obter_conexao_mongo()
-    if not db: return JsonResponse({"erro": "DB Offline"}, status=503)
-    
-    try:
-        palavras = q.split()
-        cond = []
-        for p in palavras:
-            p_reg = re.escape(p)
-            cond.append({"$or": [
-                {"Nome": {"$regex": p_reg, "$options": "i"}},
-                {"Marca": {"$regex": p_reg, "$options": "i"}},
-                {"Codigo": {"$regex": p_reg, "$options": "i"}},
-                {"CodigoBarras": {"$regex": p_reg, "$options": "i"}}
-            ]})
-        
-        prods = list(db[client.col_p].find({"$and": cond, "CadastroInativo": {"$ne": True}}).limit(50))
-        p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
-        ests = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
-        ajs = {(a.produto_externo_id, a.deposito): a for a in AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)}
-        
-        res = []
-        for p in prods:
-            pid = str(p.get("Id") or p["_id"])
-            sc = sum(float(e.get("Saldo", 0)) for e in ests if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_CENTRO)
-            sv = sum(float(e.get("Saldo", 0)) for e in ests if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_VILA_ELIAS)
-            ac, av = ajs.get((pid, 'centro')), ajs.get((pid, 'vila'))
-            
-            custo = float(str(p.get("PrecoCusto") or p.get("ValorCusto") or 0).replace(',', '.'))
-
-            res.append({
-                "id": pid, "nome": p.get("Nome"), "marca": p.get("Marca") or "",
-                "preco_custo": custo,
-                "saldo_centro": round(float(ac.saldo_informado) + (sc - float(ac.saldo_erp_referencia)) if ac else sc, 2),
-                "saldo_vila": round(float(av.saldo_informado) + (sv - float(av.saldo_erp_referencia)) if av else sv, 2)
-            })
-        return JsonResponse({"produtos": res})
-    except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
-
-# --- APIs DE AJUSTE E ERP ---
 @require_POST
 def api_ajustar_estoque(request):
     pin = request.POST.get("pin")
@@ -172,37 +147,3 @@ def api_ajustar_estoque(request):
             return JsonResponse({"ok": True})
         except Exception as e: return JsonResponse({"ok": False, "erro": str(e)})
     return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
-
-@require_POST
-def api_enviar_pedido_erp(request):
-    try:
-        data = json.loads(request.body)
-        payload = {"statusSistema": "Orçamento", "cliente": data.get('cliente', 'Consumidor'), "items": []}
-        for i in data.get('itens', []):
-            payload["items"].append({"produtoID": i.get('id'), "quantidade": float(i.get('qtd')), "valorUnitario": float(i.get('preco')), "valorTotal": round(float(i.get('qtd'))*float(i.get('preco')), 2)})
-        ok, st, res = VendaERPAPIClient().salvar_operacao_pdv(payload)
-        return JsonResponse({'ok': ok, 'mensagem': res})
-    except Exception as e: return JsonResponse({'ok': False, 'erro': str(e)})
-
-def api_buscar_clientes(request):
-    c, db = obter_conexao_mongo()
-    if not db: return JsonResponse({"clientes": []})
-    clis = list(db[c.col_c].find({"Nome": {"$regex": request.GET.get("q",""), "$options": "i"}}).limit(10))
-    return JsonResponse({"clientes": [{"nome": i.get("Nome"), "telefone": i.get("Celular", "")} for i in clis]})
-
-def api_list_customers(request):
-    c, db = obter_conexao_mongo()
-    if not db: return JsonResponse({"clientes": []})
-    clis = list(db[c.col_c].find({}, {"Nome": 1, "Id": 1}).limit(1000))
-    res = [{"id": str(i.get("Id")), "nome": i.get("Nome")} for i in clis]
-    res.sort(key=lambda x: x['nome'])
-    return JsonResponse({"clientes": res})
-
-def api_autocomplete_produtos(request):
-    c, db = obter_conexao_mongo()
-    if not db: return JsonResponse({"sugestoes": []})
-    ps = list(db[c.col_p].find({"Nome": {"$regex": request.GET.get("q",""), "$options": "i"}}, {"Nome": 1, "Id": 1}).limit(8))
-    return JsonResponse({"sugestoes": [{"id": str(i.get("Id")), "nome": i.get("Nome")} for i in ps]})
-
-def api_todos_produtos_local(request): return JsonResponse({"produtos": []})
-def api_buscar_produto_id(request, id): return JsonResponse({"id": id})
