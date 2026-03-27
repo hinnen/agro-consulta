@@ -616,64 +616,76 @@ def api_todos_produtos_local(request):
         return JsonResponse({"erro": "Erro conexao"}, status=500)
 
     try:
-        produtos = list(db[client.col_p].find({"CadastroInativo": {"$ne": True}}).limit(3000))
+        produtos = list(db[client.col_p].find({"CadastroInativo": {"$ne": True}}))
+        p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
 
-        p_ids = [str(p.get("Id") or p.get("_id")) for p in produtos]
         estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
-        estoque_map = _mapear_estoques_por_produto(estoques, client)
-
         ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
         ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
 
         res = []
+
         for p in produtos:
             pid = str(p.get("Id") or p["_id"])
 
-            saldo_centro_erp = float(estoque_map.get(pid, {}).get("centro", 0.0))
-            saldo_vila_erp = float(estoque_map.get(pid, {}).get("vila", 0.0))
+            sc = sum(
+                float(e.get("Saldo", 0))
+                for e in estoques
+                if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_CENTRO
+            )
+
+            sv = sum(
+                float(e.get("Saldo", 0))
+                for e in estoques
+                if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_VILA_ELIAS
+            )
 
             ac = ajustes_map.get((pid, "centro"))
             av = ajustes_map.get((pid, "vila"))
 
-            saldo_centro = (
-                float(ac.saldo_informado) + (saldo_centro_erp - float(ac.saldo_erp_referencia))
-                if ac else saldo_centro_erp
-            )
-            saldo_vila = (
-                float(av.saldo_informado) + (saldo_vila_erp - float(av.saldo_erp_referencia))
-                if av else saldo_vila_erp
+            saldo_centro = round(
+                float(ac.saldo_informado) + (sc - float(ac.saldo_erp_referencia)) if ac else sc,
+                2
             )
 
-            codigo = p.get("Codigo") or ""
-            codigo_nfe = p.get("CodigoNFe") or codigo or ""
-            codigo_barras = _extrair_codigo_barras(p)
+            saldo_vila = round(
+                float(av.saldo_informado) + (sv - float(av.saldo_erp_referencia)) if av else sv,
+                2
+            )
+
+            preco_venda = float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
+
+            try:
+                preco_custo = float(str(p.get("PrecoCusto") or p.get("ValorCusto") or 0).replace(",", "."))
+            except Exception:
+                preco_custo = 0.0
 
             res.append({
                 "id": pid,
                 "nome": p.get("Nome"),
                 "marca": p.get("Marca") or "",
-                "codigo": codigo,
-                "codigo_nfe": codigo_nfe,
-                "codigo_barras": codigo_barras,
-                "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
-                "preco_custo": float(str(p.get("PrecoCusto") or p.get("ValorCusto") or 0).replace(",", ".")),
-                "preco_custo_acrescimo": float(str(p.get("PrecoCusto") or p.get("ValorCusto") or 0).replace(",", ".")),
-                "saldo_centro": round(saldo_centro, 2),
-                "saldo_vila": round(saldo_vila, 2),
-                "saldo_centro_erp": round(saldo_centro_erp, 2),
-                "saldo_vila_erp": round(saldo_vila_erp, 2),
-                "saldo_erp_centro": round(saldo_centro_erp, 2),
-                "saldo_erp_vila": round(saldo_vila_erp, 2),
-                "imagem": _formatar_url_imagem(_extrair_imagem_produto(p, {}, pid)),
+                "codigo": p.get("Codigo") or "",
+                "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "",
+                "codigo_barras": p.get("CodigoBarras") or p.get("EAN_NFe") or "",
+                "preco_venda": preco_venda,
+                "preco_custo": preco_custo,
+                "preco_custo_acrescimo": preco_custo,
+                "saldo_centro": saldo_centro,
+                "saldo_vila": saldo_vila,
+                "saldo_centro_erp": round(sc, 2),
+                "saldo_vila_erp": round(sv, 2),
+                "saldo_erp_centro": round(sc, 2),
+                "saldo_erp_vila": round(sv, 2),
                 "busca_texto": normalizar(
-                    f"{p.get('Nome', '')} {p.get('Marca', '')} {codigo} {codigo_nfe} {codigo_barras}"
-                ),
+                    f"{p.get('Nome')} {p.get('Marca')} {p.get('Codigo')} "
+                    f"{p.get('CodigoNFe') or ''} {p.get('CodigoBarras') or p.get('EAN_NFe') or ''}"
+                )
             })
 
         return JsonResponse({"produtos": res})
-    except Exception:
-        return JsonResponse({"produtos": []})
 
+    except Exception as e:
+        return JsonResponse({"erro": str(e)}, status=500)
 
 def api_list_customers(request):
     client, db = obter_conexao_mongo()
