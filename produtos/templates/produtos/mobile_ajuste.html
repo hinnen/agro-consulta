@@ -43,7 +43,7 @@
     >
 
     <div id="lista" class="space-y-2">
-      <div class="text-center text-slate-400 font-bold p-8">Pronto! Digite para buscar.</div>
+      <div class="text-center text-slate-400 font-bold p-8">Carregando produtos...</div>
     </div>
   </div>
 
@@ -80,6 +80,31 @@
 let scanner;
 let pSel = null;
 let debounceTimer = null;
+let baseProdutos = [];
+
+function normalizar(texto) {
+  return String(texto || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+window.addEventListener('load', () => {
+  const listaDiv = document.getElementById('lista');
+
+  fetch("{% url 'api_todos_produtos_local' %}")
+    .then(res => res.json())
+    .then(data => {
+      baseProdutos = data.produtos || [];
+      listaDiv.innerHTML = '<div class="text-center text-slate-400 font-bold p-8">Pronto! Digite para buscar.</div>';
+    })
+    .catch(() => {
+      listaDiv.innerHTML = '<div class="text-center text-red-500 font-bold p-8">Erro ao carregar produtos.</div>';
+    });
+});
 
 function startScan() {
   document.getElementById('reader').classList.remove('hidden');
@@ -94,11 +119,15 @@ function startScan() {
       if (scanner) scanner.stop();
       document.getElementById('reader').classList.add('hidden');
     }
-  );
+  ).catch(() => {
+    document.getElementById('reader').classList.add('hidden');
+    alert('Não foi possível iniciar a câmera.');
+  });
 }
 
 function buscar(q) {
-  const termo = String(q || '').trim();
+  const termoOriginal = String(q || '').trim();
+  const termo = normalizar(termoOriginal);
   const l = document.getElementById('lista');
 
   if (termo.length < 2) {
@@ -106,40 +135,38 @@ function buscar(q) {
     return;
   }
 
-  l.innerHTML = '<div class="text-center text-slate-400 font-bold p-8">Buscando...</div>';
+  const resultados = baseProdutos.filter(p => {
+    const textoBusca = normalizar(
+      p.busca_texto ||
+      `${p.nome || ''} ${p.marca || ''} ${p.codigo || ''} ${p.codigo_nfe || ''} ${p.codigo_barras || ''}`
+    );
+    return textoBusca.includes(termo);
+  }).slice(0, 20);
 
-  fetch(`{% url 'api_buscar_mobile' %}?q=${encodeURIComponent(termo)}`)
-    .then(res => res.json())
-    .then(data => {
-      const resultados = data.produtos || [];
-      l.innerHTML = '';
+  l.innerHTML = '';
 
-      if (!resultados.length) {
-        l.innerHTML = '<div class="text-center text-slate-400 font-bold p-8">Nenhum produto encontrado.</div>';
-        return;
-      }
+  if (!resultados.length) {
+    l.innerHTML = '<div class="text-center text-slate-400 font-bold p-8">Nenhum produto encontrado.</div>';
+    return;
+  }
 
-      resultados.slice(0, 20).forEach(p => {
-        const d = document.createElement('div');
-        d.className = "bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center active:bg-slate-50";
-        d.innerHTML = `
-          <div class="min-w-0 pr-3">
-            <div class="font-black text-xs uppercase truncate">${p.nome || ''}</div>
-            <div class="text-[9px] text-slate-400 truncate">${p.marca || ''}</div>
-            <div class="text-[9px] text-slate-500 truncate">GM: ${p.codigo_nfe || p.codigo || ''}</div>
-          </div>
-          <div class="text-emerald-500 font-black">${Number(p.saldo_centro || 0).toFixed(1)}</div>
-        `;
-        d.onclick = () => {
-          pSel = p;
-          abrir();
-        };
-        l.appendChild(d);
-      });
-    })
-    .catch(() => {
-      l.innerHTML = '<div class="text-center text-red-500 font-bold p-8">Erro de conexão.</div>';
-    });
+  resultados.forEach(p => {
+    const d = document.createElement('div');
+    d.className = "bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center active:bg-slate-50";
+    d.innerHTML = `
+      <div class="min-w-0 pr-3">
+        <div class="font-black text-xs uppercase truncate">${p.nome || ''}</div>
+        <div class="text-[9px] text-slate-400 truncate">${p.marca || ''}</div>
+        <div class="text-[9px] text-slate-500 truncate">GM: ${p.codigo_nfe || p.codigo || ''}</div>
+      </div>
+      <div class="text-emerald-500 font-black">${Number(p.saldo_centro || 0).toFixed(1)}</div>
+    `;
+    d.onclick = () => {
+      pSel = p;
+      abrir();
+    };
+    l.appendChild(d);
+  });
 }
 
 document.getElementById('busca').addEventListener('input', (e) => {
@@ -160,9 +187,11 @@ function fechar() {
 }
 
 function salvar() {
+  if (!pSel) return;
+
   const fd = new FormData();
   fd.append('produto_id', pSel.id);
-  fd.append('nome_produto', pSel.nome);
+  fd.append('nome_produto', pSel.nome || '');
   fd.append('saldo_atual', pSel.saldo_centro_erp ?? pSel.saldo_erp_centro ?? pSel.saldo_centro ?? 0);
   fd.append('novo_saldo', document.getElementById('m-novo').value);
   fd.append('deposito', 'centro');

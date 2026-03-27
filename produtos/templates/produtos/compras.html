@@ -29,7 +29,9 @@
         autocomplete="off"
         class="w-full p-6 rounded-3xl bg-white border border-slate-200 text-xl font-bold outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 shadow-sm text-slate-800 placeholder:text-slate-400 transition-all"
       >
-      <div id="resultados" class="grid gap-3"></div>
+      <div id="resultados" class="grid gap-3">
+        <div class="text-slate-400 p-4 text-center font-bold">Carregando produtos...</div>
+      </div>
     </div>
 
     <div class="bg-white p-6 rounded-[2.5rem] shadow-xl h-fit sticky top-4 border border-slate-200">
@@ -64,6 +66,7 @@
 <script>
 let lista = [];
 let debounceTimer = null;
+let baseProdutos = [];
 
 function escapeHtml(texto) {
   return String(texto || '')
@@ -72,6 +75,16 @@ function escapeHtml(texto) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+}
+
+function normalizar(texto) {
+  return String(texto || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function formatarMoeda(valor) {
@@ -177,104 +190,117 @@ function abrirAjuste(id, nome, saldoAtual, codigo, deposito) {
   .catch(() => alert("Falha na comunicação com o servidor."));
 }
 
+window.addEventListener('load', () => {
+  const div = document.getElementById('resultados');
+
+  fetch("{% url 'api_todos_produtos_local' %}")
+    .then(r => r.json())
+    .then(data => {
+      baseProdutos = data.produtos || [];
+      div.innerHTML = '';
+      atualizarCarrinho();
+    })
+    .catch(() => {
+      div.innerHTML = `<div class="bg-white text-red-500 border border-red-200 shadow-sm p-6 rounded-3xl font-bold text-center">Erro ao carregar produtos.</div>`;
+    });
+});
+
 function buscar(q) {
   const div = document.getElementById('resultados');
   const termoOriginal = String(q || '').trim();
+  const termo = normalizar(termoOriginal);
 
-  if (termoOriginal.length < 2) {
+  if (termo.length < 2) {
     div.innerHTML = '';
     return;
   }
 
-  div.innerHTML = '<div class="text-slate-400 p-4 text-center font-bold">Buscando...</div>';
+  const resultados = baseProdutos.filter(p => {
+    const texto = normalizar(
+      p.busca_texto ||
+      `${p.nome || ''} ${p.marca || ''} ${p.codigo || ''} ${p.codigo_nfe || ''} ${p.codigo_barras || ''}`
+    );
+    return texto.includes(termo);
+  }).slice(0, 50);
 
-  fetch(`{% url 'api_buscar_compras' %}?q=${encodeURIComponent(termoOriginal)}`)
-    .then(r => r.json())
-    .then(d => {
-      let resultados = d.produtos || [];
+  if (!resultados.length) {
+    div.innerHTML = `<div class="bg-white text-slate-400 border border-slate-200 shadow-sm p-6 rounded-3xl font-bold text-center">Nenhum produto encontrado para "${escapeHtml(termoOriginal)}".</div>`;
+    return;
+  }
 
-      if (!resultados.length) {
-        div.innerHTML = `<div class="bg-white text-slate-400 border border-slate-200 shadow-sm p-6 rounded-3xl font-bold text-center">Nenhum produto encontrado para "${escapeHtml(termoOriginal)}".</div>`;
-        return;
-      }
+  div.innerHTML = '';
 
-      div.innerHTML = '';
+  resultados.forEach(p => {
+    const nomeReal = p.nome || 'PRODUTO SEM NOME';
+    const nomeSeguro = nomeReal.replace(/'/g, "\\'");
+    const marcaSegura = p.marca || 'GENÉRICO';
+    const gmCode = p.codigo_nfe || p.codigo || p.codigo_barras || 'S/N';
 
-      resultados.forEach(p => {
-        const nomeReal = p.nome || 'PRODUTO SEM NOME';
-        const nomeSeguro = nomeReal.replace(/'/g, "\\'");
-        const marcaSegura = p.marca || 'GENÉRICO';
-        const gmCode = p.codigo_nfe || p.codigo || p.codigo_barras || 'S/N';
+    const custoSeco = Number(p.preco_custo || 0).toFixed(2);
+    const custoFinal = Number(p.preco_custo_acrescimo || p.preco_custo || 0).toFixed(2);
+    const precoVenda = Number(p.preco_venda || 0).toFixed(2);
+    const lucroReais = (Number(precoVenda) - Number(custoFinal)).toFixed(2);
+    const lucroPerc = Number(custoFinal) > 0
+      ? (((Number(precoVenda) - Number(custoFinal)) / Number(custoFinal)) * 100).toFixed(1)
+      : '100.0';
+    const corLucro = (Number(precoVenda) - Number(custoFinal)) >= 0 ? "text-emerald-500" : "text-red-500";
+    const foto = p.imagem && p.imagem !== 'None'
+      ? p.imagem
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeReal)}&background=f1f5f9&color=64748b&font-size=0.3`;
 
-        const custoSeco = Number(p.preco_custo || 0).toFixed(2);
-        const custoFinal = Number(p.preco_custo_acrescimo || p.preco_custo || 0).toFixed(2);
-        const precoVenda = Number(p.preco_venda || 0).toFixed(2);
-        const lucroReais = (Number(precoVenda) - Number(custoFinal)).toFixed(2);
-        const lucroPerc = Number(custoFinal) > 0
-          ? (((Number(precoVenda) - Number(custoFinal)) / Number(custoFinal)) * 100).toFixed(1)
-          : '100.0';
-        const corLucro = (Number(precoVenda) - Number(custoFinal)) >= 0 ? "text-emerald-500" : "text-red-500";
-        const foto = p.imagem && p.imagem !== 'None'
-          ? p.imagem
-          : `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeReal)}&background=f1f5f9&color=64748b&font-size=0.3`;
+    div.innerHTML += `
+      <div class="bg-white p-4 rounded-2xl flex justify-between items-center border border-slate-200 hover:border-orange-400 hover:bg-orange-50/30 shadow-sm transition-all cursor-pointer group"
+        onclick="add('${String(p.id)}', '${nomeSeguro}', ${Number(custoFinal)})">
 
-        div.innerHTML += `
-          <div class="bg-white p-4 rounded-2xl flex justify-between items-center border border-slate-200 hover:border-orange-400 hover:bg-orange-50/30 shadow-sm transition-all cursor-pointer group"
-            onclick="add('${String(p.id)}', '${nomeSeguro}', ${Number(custoFinal)})">
+        <div class="flex items-center gap-4 flex-1 min-w-0 pr-4">
+          <img src="${foto}" class="w-12 h-12 object-cover rounded-xl bg-slate-50 border border-slate-200 shadow-sm p-0.5 hidden sm:block">
 
-            <div class="flex items-center gap-4 flex-1 min-w-0 pr-4">
-              <img src="${foto}" class="w-12 h-12 object-cover rounded-xl bg-slate-50 border border-slate-200 shadow-sm p-0.5 hidden sm:block">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="text-[10px] font-bold text-slate-400 uppercase truncate">${escapeHtml(marcaSegura)}</span>
+              <span class="text-[9px] font-black text-slate-500 uppercase bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 tracking-widest">GM: ${escapeHtml(gmCode)}</span>
+            </div>
 
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 mb-1.5">
-                  <span class="text-[10px] font-bold text-slate-400 uppercase truncate">${escapeHtml(marcaSegura)}</span>
-                  <span class="text-[9px] font-black text-slate-500 uppercase bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 tracking-widest">GM: ${escapeHtml(gmCode)}</span>
-                </div>
+            <div class="font-black text-sm uppercase text-slate-800 group-hover:text-orange-600 transition-colors truncate">${escapeHtml(nomeReal)}</div>
 
-                <div class="font-black text-sm uppercase text-slate-800 group-hover:text-orange-600 transition-colors truncate">${escapeHtml(nomeReal)}</div>
+            <div class="flex items-center gap-3 mt-1.5">
+              <div class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 font-black uppercase tracking-wider text-xs shadow-sm">
+                Total: ${(Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1)}
+              </div>
 
-                <div class="flex items-center gap-3 mt-1.5">
-                  <div class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 font-black uppercase tracking-wider text-xs shadow-sm">
-                    Total: ${(Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1)}
-                  </div>
-
-                  <div class="flex gap-2 text-[10px] font-bold uppercase tracking-wider">
-                    <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_centro_erp ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100 flex items-center gap-1 transition-colors" title="Ajustar Centro">
-                      C: ${Number(p.saldo_centro || 0).toFixed(1)}
-                    </span>
-                    <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_vila_erp ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100 flex items-center gap-1 transition-colors" title="Ajustar Vila">
-                      V: ${Number(p.saldo_vila || 0).toFixed(1)}
-                    </span>
-                  </div>
-                </div>
+              <div class="flex gap-2 text-[10px] font-bold uppercase tracking-wider">
+                <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_centro_erp ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100 flex items-center gap-1 transition-colors" title="Ajustar Centro">
+                  C: ${Number(p.saldo_centro || 0).toFixed(1)}
+                </span>
+                <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_vila_erp ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100 flex items-center gap-1 transition-colors" title="Ajustar Vila">
+                  V: ${Number(p.saldo_vila || 0).toFixed(1)}
+                </span>
               </div>
             </div>
-
-            <div class="text-right shrink-0">
-              <div class="text-[10px] text-slate-400 font-bold uppercase">Custo</div>
-              <div class="text-sm font-black text-slate-700">R$ ${custoSeco}</div>
-
-              <div class="text-[10px] text-slate-400 font-bold uppercase mt-2">Venda</div>
-              <div class="text-sm font-black text-orange-600">R$ ${precoVenda}</div>
-
-              <div class="text-[10px] text-slate-400 font-bold uppercase mt-2">Lucro</div>
-              <div class="text-xs font-black ${corLucro}">R$ ${lucroReais} (${lucroPerc}%)</div>
-            </div>
           </div>
-        `;
-      });
-    })
-    .catch(() => {
-      div.innerHTML = `<div class="bg-white text-red-500 border border-red-200 shadow-sm p-6 rounded-3xl font-bold text-center">Erro ao buscar produtos.</div>`;
-    });
+        </div>
+
+        <div class="text-right shrink-0">
+          <div class="text-[10px] text-slate-400 font-bold uppercase">Custo</div>
+          <div class="text-sm font-black text-slate-700">R$ ${custoSeco}</div>
+
+          <div class="text-[10px] text-slate-400 font-bold uppercase mt-2">Venda</div>
+          <div class="text-sm font-black text-orange-600">R$ ${precoVenda}</div>
+
+          <div class="text-[10px] text-slate-400 font-bold uppercase mt-2">Lucro</div>
+          <div class="text-xs font-black ${corLucro}">R$ ${lucroReais} (${lucroPerc}%)</div>
+        </div>
+      </div>
+    `;
+  });
 }
 
 function formatarTexto() {
-  let texto = '📦 *LISTA DE COMPRA*%0A%0A';
+  let texto = '📦 *LISTA DE COMPRA*\n\n';
   lista.forEach(item => {
-    texto += `• ${item.nome} — Qtd: ${item.qtd}%0A`;
+    texto += `• ${item.nome} — Qtd: ${item.qtd}\n`;
   });
-  return decodeURIComponent(texto);
+  return texto;
 }
 
 function copiarLista() {
