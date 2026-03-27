@@ -255,8 +255,26 @@ def motor_de_busca_agro(termo_original, db, client, limit=20):
     if termo_limpo and _termo_parece_codigo(termo_original):
         query_cod_exato = {
             **base_filter,
-            "$or": _codigo_exact_conditions(termo_limpo)
+            "$or": [
+                {"Codigo": _regex_exato_ci(termo_limpo)},
+                {"CodigoNFe": _regex_exato_ci(termo_limpo)},
+                {"CodigoBarras": _regex_exato_ci(termo_limpo)},
+                {"EAN_NFe": _regex_exato_ci(termo_limpo)},
+            ]
         }
+
+        if termo_limpo.isdigit():
+            try:
+                numero = int(termo_limpo)
+                query_cod_exato["$or"].extend([
+                    {"Codigo": numero},
+                    {"CodigoNFe": numero},
+                    {"CodigoBarras": numero},
+                    {"EAN_NFe": numero},
+                ])
+            except Exception:
+                pass
+
         exatos = list(db[client.col_p].find(query_cod_exato).limit(max(limit, 10)))
         if exatos:
             return exatos[:limit]
@@ -264,7 +282,12 @@ def motor_de_busca_agro(termo_original, db, client, limit=20):
         # 1.1) Prefixo de código
         query_cod_prefixo = {
             **base_filter,
-            "$or": _codigo_prefix_conditions(termo_limpo)
+            "$or": [
+                {"Codigo": _regex_inicio_ci(termo_limpo)},
+                {"CodigoNFe": _regex_inicio_ci(termo_limpo)},
+                {"CodigoBarras": _regex_inicio_ci(termo_limpo)},
+                {"EAN_NFe": _regex_inicio_ci(termo_limpo)},
+            ]
         }
         adicionar(list(db[client.col_p].find(query_cod_prefixo).limit(30)))
 
@@ -307,12 +330,12 @@ def motor_de_busca_agro(termo_original, db, client, limit=20):
         adicionar(list(db[client.col_p].find({
             **base_filter,
             "$or": [
-                {"Nome": {"$regex": termo_regex}},
-                {"Marca": {"$regex": termo_regex}},
-                {"Codigo": {"$regex": termo_regex}},
-                {"CodigoNFe": {"$regex": termo_regex}},
-                {"CodigoBarras": {"$regex": termo_regex}},
-                {"EAN_NFe": {"$regex": termo_regex}},
+                {"Nome": termo_regex},
+                {"Marca": termo_regex},
+                {"Codigo": termo_regex},
+                {"CodigoNFe": termo_regex},
+                {"CodigoBarras": termo_regex},
+                {"EAN_NFe": termo_regex},
             ]
         }).limit(80)))
 
@@ -335,7 +358,6 @@ def motor_de_busca_agro(termo_original, db, client, limit=20):
 
         s = 0
 
-        # código exato / prefixo
         if termo_limpo_lower:
             if codigo_alnum == termo_limpo_lower:
                 s += 5000
@@ -351,7 +373,6 @@ def motor_de_busca_agro(termo_original, db, client, limit=20):
             if barras_alnum.startswith(termo_limpo_lower):
                 s += 1900
 
-        # frase inteira
         if termo_norm:
             if nome_norm == termo_norm:
                 s += 1600
@@ -363,7 +384,6 @@ def motor_de_busca_agro(termo_original, db, client, limit=20):
             if marca_norm.startswith(termo_norm):
                 s += 200
 
-        # todas as palavras no nome
         if palavras:
             presentes = 0
             for p_txt in palavras:
@@ -374,9 +394,7 @@ def motor_de_busca_agro(termo_original, db, client, limit=20):
             if presentes == len(palavras):
                 s += 300
 
-        # penaliza nomes enormes
         s -= len(nome_norm.split())
-
         return s
 
     candidatos.sort(key=lambda p: (-score(p), str(p.get("Nome") or "").lower()))
