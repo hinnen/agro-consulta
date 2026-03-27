@@ -1,5 +1,4 @@
-import json
-import re
+import json, unicodedata, re
 from decimal import Decimal
 
 from django.shortcuts import render
@@ -10,6 +9,7 @@ from django.utils import timezone
 
 from base.models import Empresa, PerfilUsuario, IntegracaoERP
 from estoque.models import AjusteRapidoEstoque
+
 from integracoes.texto import normalizar, expandir_tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 from integracoes.venda_erp_api import VendaERPAPIClient
@@ -31,106 +31,46 @@ def obter_conexao_mongo():
         return None, None
 
 
-# --- AUXILIARES GERAIS ---
+# --- AUXILIARES NUMÉRICOS / TEXTO ---
+def _to_float(valor, default=0.0):
+    try:
+        if valor is None:
+            return default
+
+        # Decimal128 do bson tem método to_decimal()
+        if hasattr(valor, "to_decimal"):
+            return float(valor.to_decimal())
+
+        if isinstance(valor, Decimal):
+            return float(valor)
+
+        texto = str(valor).strip()
+        if not texto:
+            return default
+
+        # normalizações simples
+        texto = texto.replace("R$", "").replace(" ", "")
+
+        # caso tipo Decimal128('12.34')
+        if texto.startswith("Decimal128("):
+            texto = texto.replace("Decimal128(", "").replace(")", "").strip("'\"")
+
+        # tenta formato brasileiro / internacional
+        if "," in texto and "." in texto:
+            if texto.rfind(",") > texto.rfind("."):
+                texto = texto.replace(".", "").replace(",", ".")
+            else:
+                texto = texto.replace(",", "")
+        elif "," in texto:
+            texto = texto.replace(",", ".")
+
+        return float(texto)
+    except Exception:
+        return default
+
+
 def _somente_alnum(txt):
     return re.sub(r"[^a-zA-Z0-9]", "", str(txt or ""))
-
-
-def _regex_exato_ci(valor):
-    return re.compile(rf"^{re.escape(str(valor))}$", re.IGNORECASE)
-
-
-def _regex_inicio_ci(valor):
-    return re.compile(rf"^{re.escape(str(valor))}", re.IGNORECASE)
-
-
-def _regex_contem_ci(valor):
-    return re.compile(re.escape(str(valor)), re.IGNORECASE)
-
-
-def _termo_parece_codigo(termo_original):
-    termo = str(termo_original or "").strip()
-    termo_limpo = _somente_alnum(termo)
-
-    if not termo_limpo:
-        return False
-
-    # EAN / barras
-    if termo_limpo.isdigit() and len(termo_limpo) >= 6:
-        return True
-
-    # Código misto tipo GM123 / 123ABC
-    tem_letra = any(c.isalpha() for c in termo_limpo)
-    tem_numero = any(c.isdigit() for c in termo_limpo)
-    if tem_letra and tem_numero and len(termo_limpo) >= 3 and " " not in termo:
-        return True
-
-    # Prefixos comuns digitados
-    if termo_limpo.lower().startswith("gm") and len(termo_limpo) >= 2:
-        return True
-
-    return False
-
-
-def _codigo_exact_conditions(termo_limpo):
-    conds = [
-        {"Codigo": {"$regex": _regex_exato_ci(termo_limpo)}},
-        {"CodigoNFe": {"$regex": _regex_exato_ci(termo_limpo)}},
-        {"CodigoBarras": {"$regex": _regex_exato_ci(termo_limpo)}},
-        {"EAN_NFe": {"$regex": _regex_exato_ci(termo_limpo)}},
-    ]
-
-    if termo_limpo.isdigit():
-        try:
-            numero = int(termo_limpo)
-            conds.extend([
-                {"Codigo": numero},
-                {"CodigoNFe": numero},
-                {"CodigoBarras": numero},
-                {"EAN_NFe": numero},
-            ])
-        except Exception:
-            pass
-
-    return conds
-
-
-def _codigo_prefix_conditions(termo_limpo):
-    return [
-        {"Codigo": {"$regex": _regex_inicio_ci(termo_limpo)}},
-        {"CodigoNFe": {"$regex": _regex_inicio_ci(termo_limpo)}},
-        {"CodigoBarras": {"$regex": _regex_inicio_ci(termo_limpo)}},
-        {"EAN_NFe": {"$regex": _regex_inicio_ci(termo_limpo)}},
-    ]
-
-
-def _extrair_codigo_barras(p):
-    return (
-        p.get("CodigoBarras")
-        or p.get("EAN_NFe")
-        or p.get("EAN")
-        or p.get("CodigoDeBarras")
-        or ""
-    )
-
-
-def _mapear_estoques_por_produto(estoques, client):
-    mapa = {}
-
-    for e in estoques:
-        pid = str(e.get("ProdutoID") or "")
-        dep = str(e.get("DepositoID") or "")
-        saldo = float(e.get("Saldo", 0) or 0)
-
-        if pid not in mapa:
-            mapa[pid] = {"centro": 0.0, "vila": 0.0}
-
-        if dep == client.DEPOSITO_CENTRO:
-            mapa[pid]["centro"] += saldo
-        elif dep == client.DEPOSITO_VILA_ELIAS:
-            mapa[pid]["vila"] += saldo
-
-    return mapa
 
 
 # --- AUXILIARES DE IMAGEM ---
@@ -170,15 +110,8 @@ def _extrair_imagem_produto(p, mapa_imagens, pid):
         return mapa_imagens.get(str(p.get("CodigoNFe")))
 
     for c in [
-        "UrlImagem",
-        "Imagem",
-        "CaminhoImagem",
-        "Foto",
-        "Url",
-        "UrlImagemPrincipal",
-        "ImagemPrincipal",
-        "ImagemBase64",
-        "FotoBase64",
+        "UrlImagem", "Imagem", "CaminhoImagem", "Foto", "Url",
+        "UrlImagemPrincipal", "ImagemPrincipal", "ImagemBase64", "FotoBase64"
     ]:
         val = p.get(c)
         if val and isinstance(val, str) and len(val.strip()) > 2:
@@ -189,15 +122,7 @@ def _extrair_imagem_produto(p, mapa_imagens, pid):
         if isinstance(arr, list) and len(arr) > 0:
             i = arr[0]
             if isinstance(i, dict):
-                for sub_c in [
-                    "Url",
-                    "UrlImagem",
-                    "Caminho",
-                    "Imagem",
-                    "Path",
-                    "ImagemBase64",
-                    "Base64",
-                ]:
+                for sub_c in ["Url", "UrlImagem", "Caminho", "Imagem", "Path", "ImagemBase64", "Base64"]:
                     val = i.get(sub_c)
                     if val and isinstance(val, str) and len(val.strip()) > 2:
                         return val
@@ -213,7 +138,7 @@ def consulta_produtos(request):
 
 
 def historico_ajustes(request):
-    ajustes = AjusteRapidoEstoque.objects.all().order_by("-criado_em")
+    ajustes = AjusteRapidoEstoque.objects.all().order_by('-criado_em')
     return render(request, "produtos/historico_ajustes.html", {"ajustes": ajustes})
 
 
@@ -226,161 +151,62 @@ def compras_view(request):
 
 
 def ajuste_mobile_view(request):
-    if not request.session.get("mobile_auth"):
+    if not request.session.get('mobile_auth'):
         return render(request, "produtos/ajuste_mobile_login.html")
     return render(request, "produtos/mobile_ajuste.html")
 
 
-# --- MOTOR DE BUSCA ÚNICO ---
+# --- MOTOR DE BUSCA ÚNICO (MANTIDO) ---
 def motor_de_busca_agro(termo_original, db, client, limit=20):
-    termo_original = str(termo_original or "").strip()
     if not termo_original:
         return []
 
-    termo_limpo = _somente_alnum(termo_original)
-    palavras = [p for p in termo_original.split() if p]
-    base_filter = {"CadastroInativo": {"$ne": True}}
+    termo_limpo = re.sub(r'[^a-zA-Z0-9]', '', termo_original)
 
-    candidatos = []
-    vistos = set()
-
-    def adicionar(lista):
-        for item in lista:
-            pid = str(item.get("Id") or item.get("_id"))
-            if pid not in vistos:
-                vistos.add(pid)
-                candidatos.append(item)
-
-    # 1) Código / barras exato
-    if termo_limpo and _termo_parece_codigo(termo_original):
-        query_cod_exato = {
-            **base_filter,
-            "$or": _codigo_exact_conditions(termo_limpo)
+    # 1. Tenta Códigos primeiro
+    if termo_limpo:
+        query_cod = {
+            "$or": [
+                {"Codigo": termo_limpo},
+                {"CodigoNFe": termo_limpo},
+                {"CodigoBarras": termo_limpo},
+                {"EAN_NFe": termo_limpo},
+            ],
+            "CadastroInativo": {"$ne": True},
         }
-        exatos = list(db[client.col_p].find(query_cod_exato).limit(max(limit, 10)))
-        if exatos:
-            return exatos[:limit]
+        prods = list(db[client.col_p].find(query_cod).limit(5))
+        if prods:
+            return prods
 
-        # 1.1) Prefixo de código
-        query_cod_prefixo = {
-            **base_filter,
-            "$or": _codigo_prefix_conditions(termo_limpo)
-        }
-        adicionar(list(db[client.col_p].find(query_cod_prefixo).limit(30)))
-
-    # 2) Busca por palavras com expansão
+    # 2. Busca Inteligente
+    palavras = termo_original.split()
     condicoes_and = []
+
     for p in palavras:
         tokens = expandir_tokens(p)
         p_norm = normalizar(p)
         if p_norm and p_norm not in tokens:
             tokens.append(p_norm)
 
-        regex_tokens = []
-        for t in tokens:
-            if not t:
-                continue
-            regex_tokens.append(_regex_contem_ci(t))
+        regex_tokens = [re.compile(re.escape(t), re.IGNORECASE) for t in tokens if t]
 
-        if regex_tokens:
-            condicoes_and.append({
-                "$or": [
-                    {"BuscaTexto": {"$in": regex_tokens}},
-                    {"Nome": {"$in": regex_tokens}},
-                    {"Marca": {"$in": regex_tokens}},
-                    {"Codigo": {"$in": regex_tokens}},
-                    {"CodigoNFe": {"$in": regex_tokens}},
-                    {"CodigoBarras": {"$in": regex_tokens}},
-                    {"EAN_NFe": {"$in": regex_tokens}},
-                ]
-            })
-
-    if condicoes_and:
-        adicionar(list(db[client.col_p].find({
-            **base_filter,
-            "$and": condicoes_and
-        }).limit(80)))
-
-    # 3) Fallback por frase inteira
-    if len(candidatos) < limit:
-        termo_regex = _regex_contem_ci(termo_original)
-        adicionar(list(db[client.col_p].find({
-            **base_filter,
+        condicoes_and.append({
             "$or": [
-                {"Nome": {"$regex": termo_regex}},
-                {"Marca": {"$regex": termo_regex}},
-                {"Codigo": {"$regex": termo_regex}},
-                {"CodigoNFe": {"$regex": termo_regex}},
-                {"CodigoBarras": {"$regex": termo_regex}},
-                {"EAN_NFe": {"$regex": termo_regex}},
+                {"BuscaTexto": {"$in": regex_tokens}},
+                {"Nome": {"$regex": re.escape(p), "$options": "i"}},
+                {"Marca": {"$regex": re.escape(p), "$options": "i"}},
+                {"Codigo": {"$regex": re.escape(p), "$options": "i"}},
             ]
-        }).limit(80)))
+        })
 
-    # 4) Ordenação de relevância
-    termo_norm = normalizar(termo_original)
-    termo_limpo_lower = termo_limpo.lower()
+    if not condicoes_and:
+        return []
 
-    def score(p):
-        nome = str(p.get("Nome") or "")
-        marca = str(p.get("Marca") or "")
-        codigo = str(p.get("Codigo") or "")
-        codigo_nfe = str(p.get("CodigoNFe") or "")
-        codigo_barras = str(_extrair_codigo_barras(p) or "")
-
-        nome_norm = normalizar(nome)
-        marca_norm = normalizar(marca)
-        codigo_alnum = _somente_alnum(codigo).lower()
-        codigo_nfe_alnum = _somente_alnum(codigo_nfe).lower()
-        barras_alnum = _somente_alnum(codigo_barras).lower()
-
-        s = 0
-
-        # código exato / prefixo
-        if termo_limpo_lower:
-            if codigo_alnum == termo_limpo_lower:
-                s += 5000
-            if codigo_nfe_alnum == termo_limpo_lower:
-                s += 4900
-            if barras_alnum == termo_limpo_lower:
-                s += 5200
-
-            if codigo_alnum.startswith(termo_limpo_lower):
-                s += 1800
-            if codigo_nfe_alnum.startswith(termo_limpo_lower):
-                s += 1700
-            if barras_alnum.startswith(termo_limpo_lower):
-                s += 1900
-
-        # frase inteira
-        if termo_norm:
-            if nome_norm == termo_norm:
-                s += 1600
-            elif nome_norm.startswith(termo_norm):
-                s += 1200
-            elif termo_norm in nome_norm:
-                s += 700
-
-            if marca_norm.startswith(termo_norm):
-                s += 200
-
-        # todas as palavras no nome
-        if palavras:
-            presentes = 0
-            for p_txt in palavras:
-                p_norm = normalizar(p_txt)
-                if p_norm and p_norm in nome_norm:
-                    presentes += 1
-            s += presentes * 120
-            if presentes == len(palavras):
-                s += 300
-
-        # penaliza nomes enormes
-        s -= len(nome_norm.split())
-
-        return s
-
-    candidatos.sort(key=lambda p: (-score(p), str(p.get("Nome") or "").lower()))
-    return candidatos[:limit]
+    return list(
+        db[client.col_p].find(
+            {"$and": condicoes_and, "CadastroInativo": {"$ne": True}}
+        ).limit(limit)
+    )
 
 
 # --- APIs DE BUSCA ---
@@ -392,52 +218,58 @@ def api_buscar_produtos(request):
         return JsonResponse({"produtos": []})
 
     try:
-        prods = motor_de_busca_agro(q, db, client, limit=20)
+        prods = motor_de_busca_agro(q, db, client)
         p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
 
         estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
-        estoque_map = _mapear_estoques_por_produto(estoques, client)
-
         ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
         ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
 
         res = []
+
         for p in prods:
             pid = str(p.get("Id") or p["_id"])
 
-            saldo_centro_erp = float(estoque_map.get(pid, {}).get("centro", 0.0))
-            saldo_vila_erp = float(estoque_map.get(pid, {}).get("vila", 0.0))
+            sc = sum(
+                _to_float(e.get("Saldo", 0))
+                for e in estoques
+                if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_CENTRO
+            )
+            sv = sum(
+                _to_float(e.get("Saldo", 0))
+                for e in estoques
+                if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_VILA_ELIAS
+            )
 
             ac = ajustes_map.get((pid, "centro"))
             av = ajustes_map.get((pid, "vila"))
 
+            saldo_centro_erp = sc
+            saldo_vila_erp = sv
+
             saldo_centro = (
-                float(ac.saldo_informado) + (saldo_centro_erp - float(ac.saldo_erp_referencia))
-                if ac else saldo_centro_erp
+                _to_float(ac.saldo_informado) + (sc - _to_float(ac.saldo_erp_referencia))
+                if ac else sc
             )
             saldo_vila = (
-                float(av.saldo_informado) + (saldo_vila_erp - float(av.saldo_erp_referencia))
-                if av else saldo_vila_erp
+                _to_float(av.saldo_informado) + (sv - _to_float(av.saldo_erp_referencia))
+                if av else sv
             )
-
-            codigo = p.get("Codigo") or ""
-            codigo_nfe = p.get("CodigoNFe") or codigo or ""
-            codigo_barras = _extrair_codigo_barras(p)
 
             res.append({
                 "id": pid,
                 "nome": p.get("Nome"),
                 "marca": p.get("Marca") or "",
-                "codigo": codigo,
-                "codigo_nfe": codigo_nfe,
-                "codigo_barras": codigo_barras,
-                "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
+                "codigo": p.get("Codigo") or "",
+                "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "",
+                "codigo_barras": p.get("CodigoBarras") or p.get("EAN_NFe") or "",
+                "preco_venda": _to_float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
                 "imagem": _formatar_url_imagem(_extrair_imagem_produto(p, {}, pid)),
                 "saldo_centro": round(saldo_centro, 2),
                 "saldo_vila": round(saldo_vila, 2),
                 "saldo_centro_erp": round(saldo_centro_erp, 2),
                 "saldo_vila_erp": round(saldo_vila_erp, 2),
-                "saldo_erp_centro": round(saldo_centro_erp, 2),  # compatibilidade com mobile atual
+                "saldo_erp_centro": round(saldo_centro_erp, 2),
                 "saldo_erp_vila": round(saldo_vila_erp, 2),
             })
 
@@ -458,43 +290,50 @@ def api_buscar_compras(request):
         p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
 
         estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
-        estoque_map = _mapear_estoques_por_produto(estoques, client)
-
         ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
         ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
 
         res = []
+
         for p in prods:
             pid = str(p.get("Id") or p["_id"])
 
-            saldo_centro_erp = float(estoque_map.get(pid, {}).get("centro", 0.0))
-            saldo_vila_erp = float(estoque_map.get(pid, {}).get("vila", 0.0))
+            sc = sum(
+                _to_float(e.get("Saldo", 0))
+                for e in estoques
+                if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_CENTRO
+            )
+            sv = sum(
+                _to_float(e.get("Saldo", 0))
+                for e in estoques
+                if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_VILA_ELIAS
+            )
 
             ac = ajustes_map.get((pid, "centro"))
             av = ajustes_map.get((pid, "vila"))
 
+            saldo_centro_erp = sc
+            saldo_vila_erp = sv
+
             saldo_centro = (
-                float(ac.saldo_informado) + (saldo_centro_erp - float(ac.saldo_erp_referencia))
-                if ac else saldo_centro_erp
+                _to_float(ac.saldo_informado) + (sc - _to_float(ac.saldo_erp_referencia))
+                if ac else sc
             )
             saldo_vila = (
-                float(av.saldo_informado) + (saldo_vila_erp - float(av.saldo_erp_referencia))
-                if av else saldo_vila_erp
+                _to_float(av.saldo_informado) + (sv - _to_float(av.saldo_erp_referencia))
+                if av else sv
             )
 
-            custo = float(str(p.get("PrecoCusto") or p.get("ValorCusto") or 0).replace(",", "."))
-            preco_venda = float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
-            codigo = p.get("Codigo") or ""
-            codigo_nfe = p.get("CodigoNFe") or codigo or ""
-            codigo_barras = _extrair_codigo_barras(p)
+            custo = _to_float(p.get("PrecoCusto") or p.get("ValorCusto") or 0)
+            preco_venda = _to_float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
 
             res.append({
                 "id": pid,
                 "nome": p.get("Nome"),
                 "marca": p.get("Marca") or "",
-                "codigo": codigo,
-                "codigo_nfe": codigo_nfe,
-                "codigo_barras": codigo_barras,
+                "codigo": p.get("Codigo") or "",
+                "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "",
+                "codigo_barras": p.get("CodigoBarras") or p.get("EAN_NFe") or "",
                 "preco_custo": custo,
                 "preco_custo_acrescimo": custo,
                 "preco_venda": preco_venda,
@@ -514,7 +353,7 @@ def api_buscar_compras(request):
 @require_POST
 def api_login_mobile(request):
     if PerfilUsuario.objects.filter(senha_rapida=request.POST.get("pin")).exists():
-        request.session["mobile_auth"] = True
+        request.session['mobile_auth'] = True
         return JsonResponse({"ok": True})
     return JsonResponse({"ok": False}, status=403)
 
@@ -522,23 +361,25 @@ def api_login_mobile(request):
 @require_POST
 def api_ajustar_estoque(request):
     pin = request.POST.get("pin")
-    if (pin == "SESSAO" and request.session.get("mobile_auth")) or PerfilUsuario.objects.filter(
-        senha_rapida=pin
-    ).exists():
+
+    if (pin == "SESSAO" and request.session.get('mobile_auth')) or PerfilUsuario.objects.filter(senha_rapida=pin).exists():
         try:
             empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
+
             AjusteRapidoEstoque.objects.create(
                 empresa=empresa,
                 produto_externo_id=request.POST.get("produto_id"),
                 deposito=request.POST.get("deposito", "centro"),
                 nome_produto=request.POST.get("nome_produto"),
                 saldo_erp_referencia=Decimal(request.POST.get("saldo_atual", "0")),
-                saldo_informado=Decimal(request.POST.get("novo_saldo", "0")),
+                saldo_informado=Decimal(request.POST.get("novo_saldo", "0"))
             )
+
             cache.clear()
             return JsonResponse({"ok": True})
         except Exception as e:
             return JsonResponse({"ok": False, "erro": str(e)})
+
     return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
 
 
@@ -598,58 +439,16 @@ def api_todos_produtos_local(request):
         return JsonResponse({"erro": "Erro conexao"}, status=500)
 
     try:
-        produtos = list(db[client.col_p].find({"CadastroInativo": {"$ne": True}}).limit(3000))
-
-        p_ids = [str(p.get("Id") or p.get("_id")) for p in produtos]
-        estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
-        estoque_map = _mapear_estoques_por_produto(estoques, client)
-
-        ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
-        ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
-
+        produtos = list(db[client.col_p].find({"CadastroInativo": {"$ne": True}}))
         res = []
+
         for p in produtos:
             pid = str(p.get("Id") or p["_id"])
-
-            saldo_centro_erp = float(estoque_map.get(pid, {}).get("centro", 0.0))
-            saldo_vila_erp = float(estoque_map.get(pid, {}).get("vila", 0.0))
-
-            ac = ajustes_map.get((pid, "centro"))
-            av = ajustes_map.get((pid, "vila"))
-
-            saldo_centro = (
-                float(ac.saldo_informado) + (saldo_centro_erp - float(ac.saldo_erp_referencia))
-                if ac else saldo_centro_erp
-            )
-            saldo_vila = (
-                float(av.saldo_informado) + (saldo_vila_erp - float(av.saldo_erp_referencia))
-                if av else saldo_vila_erp
-            )
-
-            codigo = p.get("Codigo") or ""
-            codigo_nfe = p.get("CodigoNFe") or codigo or ""
-            codigo_barras = _extrair_codigo_barras(p)
-
             res.append({
                 "id": pid,
                 "nome": p.get("Nome"),
                 "marca": p.get("Marca") or "",
-                "codigo": codigo,
-                "codigo_nfe": codigo_nfe,
-                "codigo_barras": codigo_barras,
-                "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
-                "preco_custo": float(str(p.get("PrecoCusto") or p.get("ValorCusto") or 0).replace(",", ".")),
-                "preco_custo_acrescimo": float(str(p.get("PrecoCusto") or p.get("ValorCusto") or 0).replace(",", ".")),
-                "saldo_centro": round(saldo_centro, 2),
-                "saldo_vila": round(saldo_vila, 2),
-                "saldo_centro_erp": round(saldo_centro_erp, 2),
-                "saldo_vila_erp": round(saldo_vila_erp, 2),
-                "saldo_erp_centro": round(saldo_centro_erp, 2),
-                "saldo_erp_vila": round(saldo_vila_erp, 2),
-                "imagem": _formatar_url_imagem(_extrair_imagem_produto(p, {}, pid)),
-                "busca_texto": normalizar(
-                    f"{p.get('Nome', '')} {p.get('Marca', '')} {codigo} {codigo_nfe} {codigo_barras}"
-                ),
+                "busca_texto": normalizar(f"{p.get('Nome')} {p.get('Marca')} {p.get('Codigo')}")
             })
 
         return JsonResponse({"produtos": res})
@@ -663,9 +462,7 @@ def api_list_customers(request):
         return JsonResponse({"clientes": []})
 
     try:
-        clis = list(
-            db[client.col_c].find({"CadastroInativo": {"$ne": True}}, {"Nome": 1, "Id": 1}).limit(1000)
-        )
+        clis = list(db[client.col_c].find({"CadastroInativo": {"$ne": True}}, {"Nome": 1, "Id": 1}).limit(1000))
         res = [{"id": str(i.get("Id") or i.get("_id")), "nome": i.get("Nome").strip()} for i in clis]
         res.sort(key=lambda x: x["nome"])
         return JsonResponse({"clientes": res})
@@ -680,9 +477,7 @@ def api_buscar_clientes(request):
         return JsonResponse({"clientes": []})
 
     try:
-        clis = list(
-            db[client.col_c].find({"Nome": {"$regex": termo, "$options": "i"}}, {"Nome": 1, "CpfCnpj": 1}).limit(10)
-        )
+        clis = list(db[client.col_c].find({"Nome": {"$regex": termo, "$options": "i"}}, {"Nome": 1, "CpfCnpj": 1}).limit(10))
         res = [{"nome": i.get("Nome"), "documento": i.get("CpfCnpj") or "Sem Doc"} for i in clis]
         return JsonResponse({"clientes": res})
     except Exception:
