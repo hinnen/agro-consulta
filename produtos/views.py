@@ -23,8 +23,14 @@ def obter_conexao_mongo():
         db = _cached_mongo_client.db if _cached_mongo_client else None
         return _cached_mongo_client, db
     except Exception as e:
+        print(f"--- ERRO MONGO: {e} ---")
         _cached_mongo_client = None
         return None, None
+
+def normalizar_termo(txt):
+    if not txt: return ""
+    return ''.join(c for c in unicodedata.normalize('NFD', txt)
+                  if unicodedata.category(c) != 'Mn').lower()
 
 # --- AUXILIARES DE IMAGEM ---
 def _formatar_url_imagem(img_str):
@@ -61,6 +67,39 @@ def _extrair_imagem_produto(p, mapa_imagens, pid):
             elif isinstance(i, str): return i
     return ""
 
+# --- MOTOR DE BUSCA ÚNICO (LÓGICA DA TRANSFERÊNCIA) ---
+def motor_de_busca_agro(q_texto, db, client, limit=20):
+    if not q_texto: return []
+    termo_limpo = re.sub(r'[^a-zA-Z0-9]', '', q_texto)
+    
+    # 1. Tenta Códigos primeiro
+    if termo_limpo:
+        query_cod = {"$or": [
+            {"Codigo": termo_limpo}, {"CodigoNFe": termo_limpo},
+            {"CodigoBarras": termo_limpo}, {"EAN_NFe": termo_limpo}
+        ], "CadastroInativo": {"$ne": True}}
+        prods = list(db[client.col_p].find(query_cod).limit(5))
+        if prods: return prods
+
+    # 2. Busca por Palavras (O que acha o "Milho Grande")
+    palavras = q_texto.split()
+    cond_and = []
+    for p in palavras:
+        tokens = expandir_tokens(p)
+        p_norm = normalizar(p)
+        if p_norm and p_norm not in tokens: tokens.append(p_norm)
+        
+        regex_list = [re.compile(re.escape(t), re.IGNORECASE) for t in tokens]
+        cond_and.append({"$or": [
+            {"Nome": {"$in": regex_list}},
+            {"Marca": {"$in": regex_list}},
+            {"BuscaTexto": {"$in": regex_list}},
+            {"Codigo": {"$regex": re.escape(p), "$options": "i"}}
+        ]})
+    
+    if not cond_and: return []
+    return list(db[client.col_p].find({"$and": cond_and, "CadastroInativo": {"$ne": True}}).limit(limit))
+
 # --- VIEWS DE PÁGINA ---
 def consulta_produtos(request): return render(request, "produtos/consulta_produtos.html")
 def historico_ajustes(request): 
@@ -72,39 +111,6 @@ def ajuste_mobile_view(request):
     if not request.session.get('mobile_auth'):
         return render(request, "produtos/ajuste_mobile_login.html")
     return render(request, "produtos/mobile_ajuste.html")
-
-# --- MOTOR DE BUSCA ÚNICO (ESTILO TRANSFERÊNCIA) ---
-def motor_de_busca_agro(termo_original, db, client, limit=20):
-    if not termo_original: return []
-    termo_limpo = re.sub(r'[^a-zA-Z0-9]', '', termo_original)
-    
-    # 1. Tenta Códigos primeiro
-    if termo_limpo:
-        query_cod = {"$or": [
-            {"Codigo": termo_limpo}, {"CodigoNFe": termo_limpo},
-            {"CodigoBarras": termo_limpo}, {"EAN_NFe": termo_limpo}
-        ], "CadastroInativo": {"$ne": True}}
-        prods = list(db[client.col_p].find(query_cod).limit(5))
-        if prods: return prods
-
-    # 2. Busca Inteligente (O que faz o Milho Grande funcionar)
-    palavras = termo_original.split()
-    condicoes_and = []
-    for p in palavras:
-        tokens = expandir_tokens(p)
-        p_norm = normalizar(p)
-        if p_norm and p_norm not in tokens: tokens.append(p_norm)
-        
-        regex_tokens = [re.compile(re.escape(t), re.IGNORECASE) for t in tokens]
-        condicoes_and.append({"$or": [
-            {"BuscaTexto": {"$in": regex_tokens}},
-            {"Nome": {"$regex": re.escape(p), "$options": "i"}},
-            {"Marca": {"$regex": re.escape(p), "$options": "i"}},
-            {"Codigo": {"$regex": re.escape(p), "$options": "i"}}
-        ]})
-    
-    if not condicoes_and: return []
-    return list(db[client.col_p].find({"$and": condicoes_and, "CadastroInativo": {"$ne": True}}).limit(limit))
 
 # --- APIs DE BUSCA ---
 @require_GET
@@ -151,23 +157,41 @@ def api_buscar_compras(request):
         ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
         ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
 
+        def get_max_cost(doc):
+            val_base = float(str(doc.get("PrecoCusto") or doc.get("ValorCusto") or 0).replace(',', '.'))
+            max_v = val_base
+            def traverse(obj):
+                nonlocal max_v
+                if isinstance(obj, dict):
+                    for k, v in obj.items():
+                        if any(x in k.lower() for x in ["custo", "compra", "reposicao"]):
+                            try:
+                                f = float(str(v).replace(',', '.'))
+                                if f > max_v: max_v = f
+                            except: pass
+                        if isinstance(v, (dict, list)): traverse(v)
+                elif isinstance(obj, list):
+                    for i in obj: traverse(i)
+            traverse(doc)
+            return max_v
+
         res = []
         for p in prods:
             pid = str(p.get("Id") or p["_id"])
             sc = sum(float(e.get("Saldo", 0)) for e in estoques if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_CENTRO)
             sv = sum(float(e.get("Saldo", 0)) for e in estoques if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_VILA_ELIAS)
             ac, av = ajustes_map.get((pid, 'centro')), ajustes_map.get((pid, 'vila'))
-            custo = float(str(p.get("PrecoCusto") or p.get("ValorCusto") or 0).replace(',', '.'))
             
             res.append({
-                "id": pid, "nome": p.get("Nome"), "marca": p.get("Marca") or "", "preco_custo": custo,
+                "id": pid, "nome": p.get("Nome"), "marca": p.get("Marca") or "", 
+                "preco_custo": get_max_cost(p),
                 "saldo_centro": round(float(ac.saldo_informado) + (sc - float(ac.saldo_erp_referencia)) if ac else sc, 2),
                 "saldo_vila": round(float(av.saldo_informado) + (sv - float(av.saldo_erp_referencia)) if av else sv, 2)
             })
         return JsonResponse({"produtos": res})
     except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
 
-# --- APIs DE ESTOQUE E PEDIDO ---
+# --- APIs DE ESTOQUE E PEDIDO (LÓGICA ROBUSTA MANTIDA) ---
 @require_POST
 def api_login_mobile(request):
     if PerfilUsuario.objects.filter(senha_rapida=request.POST.get("pin")).exists():
@@ -218,7 +242,7 @@ def api_enviar_pedido_erp(request):
         return JsonResponse({'ok': ok, 'mensagem': res})
     except Exception as e: return JsonResponse({'ok': False, 'erro': str(e)})
 
-# --- CARGA INICIAL E APIs AUXILIARES ---
+# --- CARGA INICIAL (LOGÍSTICA) ---
 @require_GET
 def api_todos_produtos_local(request):
     client, db = obter_conexao_mongo()
@@ -235,6 +259,7 @@ def api_todos_produtos_local(request):
         return JsonResponse({"produtos": res})
     except: return JsonResponse({"produtos": []})
 
+# --- APIs AUXILIARES (CLIENTES, AUTOCOMPLETE, ETC) ---
 def api_list_customers(request):
     client, db = obter_conexao_mongo()
     if not db: return JsonResponse({"clientes": []})
