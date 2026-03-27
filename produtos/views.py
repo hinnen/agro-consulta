@@ -97,16 +97,56 @@ def api_login_mobile(request):
 
 @require_GET
 def api_buscar_produtos(request):
-    termo_original = request.GET.get("q", "").strip()
-    if not termo_original:
-        return JsonResponse({"produtos": []})
-
-    cache_key = f"busca_prod_v10_{normalizar(termo_original).replace(' ', '_')}"
-    cached_data = cache.get(cache_key)
-    if cached_data: return JsonResponse(cached_data)
+    client = None
+    q_original = request.GET.get("q", "").strip()
+    if not q_original: return JsonResponse({"produtos": []})
 
     client, db = obter_conexao_mongo()
     if db is None: return JsonResponse({"erro": "Erro conexao"}, status=500)
+
+    termo_norm = normalizar_termo(q_original)
+    palavras = termo_norm.split()
+    
+    try:
+        # Busca Global: Procura cada palavra em qualquer um dos campos principais
+        condicoes_palavras = []
+        for p in palavras:
+            p_regex = re.escape(p)
+            condicoes_palavras.append({
+                "$or": [
+                    {"Nome": {"$regex": p_regex, "$options": "i"}},
+                    {"Marca": {"$regex": p_regex, "$options": "i"}},
+                    {"BuscaTexto": {"$regex": p_regex, "$options": "i"}},
+                    {"CodigoNFe": {"$regex": p_regex, "$options": "i"}},
+                    {"CodigoBarras": {"$regex": p_regex, "$options": "i"}},
+                    {"Codigo": {"$regex": p_regex, "$options": "i"}}
+                ]
+            })
+
+        query = {"$and": condicoes_palavras, "CadastroInativo": {"$ne": True}}
+
+        produtos = list(db[client.col_p].find(query).limit(20))
+        p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
+        estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+        ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
+        ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
+
+        res = []
+        for p in produtos:
+            pid = str(p.get("Id") or p["_id"])
+            s_c = sum(float(e.get("Saldo", 0)) for e in estoques if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_CENTRO)
+            s_v = sum(float(e.get("Saldo", 0)) for e in estoques if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_VILA_ELIAS)
+            aj_c, aj_v = ajustes_map.get((pid, 'centro')), ajustes_map.get((pid, 'vila'))
+            
+            res.append({
+                "id": pid, "nome": p.get("Nome"), "marca": p.get("Marca") or "",
+                "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "", 
+                "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
+                "saldo_centro": round(float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia)) if aj_c else s_c, 2),
+                "saldo_vila": round(float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia)) if aj_v else s_v, 2)
+            })
+        return JsonResponse({"produtos": res})
+    except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
 
     try:
         palavras_originais = termo_original.split()
@@ -587,22 +627,47 @@ def compras_view(request):
 # API DE BUSCA COM PREÇO DE CUSTO (VERSÃO CORRIGIDA)
 @require_GET
 def api_buscar_compras(request):
-    termo_original = request.GET.get("q", "").strip()
-    print(f"--- BUSCA COMPRAS: Recebido termo '{termo_original}' ---")
-    if not termo_original:
-        return JsonResponse({"produtos": []})
-
-    # A chave de cache é diferente para não misturar com a busca do PDV
-    cache_key = f"busca_compras_v2_{normalizar(termo_original).replace(' ', '_')}"
-    cached_data = cache.get(cache_key)
-    if cached_data:
-        print("--- BUSCA COMPRAS: Retornando do cache ---")
-        return JsonResponse(cached_data)
-
+    client = None
+    q = request.GET.get("q", "").strip()
     client, db = obter_conexao_mongo()
-    if db is None:
-        print("--- BUSCA COMPRAS: Erro de conexão com o Mongo ---")
-        return JsonResponse({"erro": "Erro conexao"}, status=500)
+    if not db: return JsonResponse({"erro": "DB Offline"}, status=500)
+    try:
+        palavras = normalizar_termo(q).split()
+        condicoes_palavras = []
+        for p in palavras:
+            p_regex = re.escape(p)
+            condicoes_palavras.append({
+                "$or": [
+                    {"Nome": {"$regex": p_regex, "$options": "i"}},
+                    {"Marca": {"$regex": p_regex, "$options": "i"}},
+                    {"BuscaTexto": {"$regex": p_regex, "$options": "i"}},
+                    {"CodigoNFe": {"$regex": p_regex, "$options": "i"}},
+                    {"CodigoBarras": {"$regex": p_regex, "$options": "i"}}
+                ]
+            })
+
+        query = {"$and": condicoes_palavras, "CadastroInativo": {"$ne": True}}
+        prods = list(db[client.col_p].find(query).limit(20))
+        p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
+        estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+        ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
+        ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
+        
+        res = []
+        for p in prods:
+            pid = str(p.get("Id") or p["_id"])
+            s_c = sum(float(e.get("Saldo", 0)) for e in estoques if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_CENTRO)
+            s_v = sum(float(e.get("Saldo", 0)) for e in estoques if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_VILA_ELIAS)
+            aj_c, aj_v = ajustes_map.get((pid, 'centro')), ajustes_map.get((pid, 'vila'))
+            
+            res.append({
+                "id": pid, "nome": p.get("Nome"), "marca": p.get("Marca") or "",
+                "preco_custo": float(p.get("PrecoCusto") or p.get("ValorCusto") or 0),
+                "saldo_centro": round(float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia)) if aj_c else s_c, 2),
+                "saldo_vila": round(float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia)) if aj_v else s_v, 2)
+            })
+        return JsonResponse({"produtos": res})
+    except Exception as e: return JsonResponse({"erro": str(e)}, status=500)
 
     try:
         # Reutiliza a mesma lógica de busca robusta da api_buscar_produtos
