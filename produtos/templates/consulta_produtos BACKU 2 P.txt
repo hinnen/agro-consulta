@@ -1,0 +1,2133 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agro Mais | PDV</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .selected-suggestion {
+            background: linear-gradient(90deg, rgba(16,185,129,0.10), rgba(249,115,22,0.06));
+            border-left: 6px solid #10b981;
+        }
+        .modal-open { overflow: hidden; }
+        input::placeholder {
+            color: #94a3b8;
+            font-weight: 700;
+        }
+        .brand-shadow {
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+        }
+        .brand-ring {
+            box-shadow:
+                0 0 0 1px rgba(16,185,129,0.08),
+                0 18px 35px rgba(15,23,42,0.08);
+        }
+        .pulse-fast {
+            animation: pulseFast 0.35s ease;
+        }
+        @keyframes pulseFast {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.015); }
+            100% { transform: scale(1); }
+        }
+        .scanner-flash {
+            animation: scannerFlash 0.55s ease;
+        }
+        @keyframes scannerFlash {
+            0%   { box-shadow: 0 0 0 0 rgba(249,115,22,0.00); }
+            20%  { box-shadow: 0 0 0 6px rgba(249,115,22,0.16), 0 0 0 12px rgba(16,185,129,0.08); }
+            100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.00); }
+        }
+        .scan-banner {
+            animation: scanBanner 0.5s ease;
+        }
+        @keyframes scanBanner {
+            0% { transform: translateY(-4px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        .soft-btn {
+            background: #f8fafc;
+            color: #64748b;
+        }
+        .soft-btn:hover {
+            background: #f1f5f9;
+        }
+        .gm-logo-mark {
+            width: 84px;
+            height: 72px;
+            flex-shrink: 0;
+            filter: drop-shadow(0 14px 28px rgba(15,23,42,.14));
+        }
+        .gm-logo-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1px;
+            padding: 8px 10px 6px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid rgba(15,23,42,.08);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+        }
+        .gm-logo-g,
+        .gm-logo-m {
+            font-weight: 900;
+            line-height: .9;
+            font-size: 42px;
+            letter-spacing: -0.09em;
+            font-family: 'Inter', sans-serif;
+            position: relative;
+        }
+        .gm-logo-g {
+            color: #4d9f16;
+            text-shadow: 0 1px 0 rgba(255,255,255,.6);
+        }
+        .gm-logo-g::after {
+            content: '';
+            position: absolute;
+            left: 17px;
+            top: 18px;
+            width: 15px;
+            height: 7px;
+            background: linear-gradient(90deg, #4d9f16, #84cc16);
+            border-radius: 8px;
+        }
+        .gm-logo-m {
+            color: #ef7b22;
+            text-shadow: 0 1px 0 rgba(255,255,255,.5);
+        }
+        .gm-logo-leaf {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            width: 18px;
+            height: 10px;
+            background: linear-gradient(135deg, #84cc16 0%, #166534 100%);
+            border-radius: 0 100% 0 100%;
+            transform: rotate(-18deg);
+            opacity: .92;
+        }
+        .aux-panel {
+            margin-top: 116px;
+        }
+        .aux-panel-header {
+            padding-bottom: 6px;
+            border-bottom: 1px dashed #e2e8f0;
+            margin-bottom: 10px;
+        }
+        .catalog-empty-state {
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #94a3b8;
+            font-weight: 800;
+            font-size: 12px;
+            padding: 18px;
+        }
+        .aux-suggestions {
+            max-height: 180px;
+            overflow-y: auto;
+            width: 100%;
+        }
+        .aux-option {
+            width: 100%;
+            text-align: left;
+            padding: 8px 10px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #334155;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .aux-option:hover { background: rgba(16,185,129,.08); }
+        .history-card {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #dbeafe;
+        }
+        .cart-history-stack {
+            padding-top: 2px;
+        }
+        .reminder-card {
+            background: linear-gradient(180deg, #ecfeff 0%, #ffffff 100%);
+            border: 2px solid rgba(14,165,233,.32);
+            box-shadow: 0 16px 32px rgba(14,165,233,.12);
+        }
+        .reminder-card .reminder-header-strong {
+            background: linear-gradient(90deg, rgba(14,165,233,.14) 0%, rgba(16,185,129,.10) 100%);
+        }
+        .catalog-row:hover { background: rgba(16,185,129,.06); }
+        .catalog-row.active {
+            background: linear-gradient(90deg, rgba(16,185,129,.10), rgba(249,115,22,.08));
+            border-color: rgba(16,185,129,.35);
+        }
+        .filter-chip {
+            background: linear-gradient(90deg, rgba(16,185,129,.10), rgba(249,115,22,.10));
+            border: 1px solid rgba(16,185,129,.18);
+        }
+        /* Oculta o cupom na tela e mostra só na impressão */
+        #cupom-orcamento { display: none; }
+        @media print {
+            body > div:not(#cupom-orcamento) { display: none !important; }
+            #cupom-orcamento { display: block !important; position: absolute; left: 0; top: 0; width: 76mm; font-family: 'Courier New', Courier, monospace; color: #000; padding: 0; margin: 0; }
+            @page { margin: 0; size: 80mm auto; }
+        }
+        .cart-shell-empty {
+            background: linear-gradient(180deg, #ffffff 0%, #fff7ed 100%);
+            border: 3px solid rgba(249,115,22,.70);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.85), 0 14px 30px rgba(249,115,22,.10);
+        }
+        .cart-shell-active {
+            background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+            border: 4px solid rgba(249, 115, 22, .98);
+            box-shadow: 0 0 0 5px rgba(249,115,22,.18), 0 0 0 10px rgba(16,185,129,.09), 0 24px 48px rgba(249,115,22,.24);
+            transform: translateY(-1px) scale(1.01);
+        }
+        .cart-shell-active #total-geral {
+            font-size: 1.75rem;
+        }
+        .cart-shell-active #itens-badge {
+            transform: scale(1.06);
+        }
+        .cart-badge-empty {
+            background: #fff7ed;
+            color: #c2410c;
+            border-color: rgba(249,115,22,.35);
+        }
+        .cart-badge-active {
+            background: linear-gradient(90deg, #f97316 0%, #fb923c 100%);
+            color: #fff;
+            border-color: rgba(249,115,22,.92);
+            box-shadow: 0 8px 20px rgba(249,115,22,.28);
+        }
+        .reminder-due {
+            animation: reminderPulse 1s infinite;
+            border-color: rgba(239,68,68,.35) !important;
+            background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+        }
+        @keyframes reminderPulse {
+            0%,100% { box-shadow: 0 0 0 0 rgba(59,130,246,.22); }
+            50% { box-shadow: 0 0 0 8px rgba(59,130,246,0); }
+        }
+        .resultado-card {
+            box-shadow: 0 20px 44px rgba(15,23,42,.10);
+        }
+        .resultado-destaque-shell {
+            border: 2px solid rgba(16,185,129,.22);
+            background:
+                radial-gradient(circle at top right, rgba(16,185,129,.10), transparent 34%),
+                linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 18px 40px rgba(15,23,42,.08);
+        }
+        .produto-meta-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            line-height: 1;
+        }
+        .produto-chip-gm {
+            color: #0f766e;
+            background: rgba(16,185,129,.10);
+            border: 1px solid rgba(16,185,129,.24);
+        }
+        .produto-chip-marca {
+            color: #475569;
+            background: rgba(241,245,249,.92);
+            border: 1px solid rgba(203,213,225,.9);
+        }
+
+        .done-reminder {
+            opacity: .7;
+        }
+        .done-reminder .done-text {
+            text-decoration: line-through;
+        }
+        .panel-strong-title {
+            font-size: 11px;
+            letter-spacing: .18em;
+        }
+
+    </style>
+</head>
+<body class="bg-slate-50 p-2 text-slate-800">
+
+    <div class="max-w-[1400px] mx-auto flex items-center justify-between mb-2 pb-2 border-b border-slate-200 gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+            <div class="gm-logo-mark gm-logo-box" aria-label="GM Agro Mais">
+                <span class="gm-logo-g">G</span>
+                <span class="gm-logo-m">M</span>
+                <span class="gm-logo-leaf" aria-hidden="true"></span>
+            </div>
+            <div class="min-w-0">
+                <div class="text-2xl font-black tracking-tight text-slate-800 leading-none">GM <span class="text-emerald-600">AGRO MAIS</span></div>
+                <div class="text-[10px] md:text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Sistema de balcão</div>
+            </div>
+        </div>
+
+        <div class="hidden xl:flex items-center gap-3 text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <span>F2 <b class="text-slate-600">Produto</b></span> • 
+            <span>F3 <b class="text-slate-600">Cliente</b></span> • 
+            <span>F4 <b class="text-slate-600">Limpar</b></span> •
+            <span>F6 <b class="text-slate-600">Histórico</b></span> •
+            <span>F5 <b class="text-slate-600">Sincronizar</b></span> •
+            <span>F7 <b class="text-slate-600">Zap</b></span>
+        </div>
+
+        <div class="flex gap-4 text-sm font-black uppercase shrink-0">
+            <a href="/transferencias/" class="text-emerald-700 hover:underline">🚚 Logística</a>
+            <a href="/ajuste-mobile/" class="text-slate-600 hover:underline">📱 Ajuste Mobile</a>
+        </div>
+    </div>
+
+    <div class="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-4 gap-2">
+        <div class="lg:col-span-3 space-y-2">
+            <div id="scan-banner" class="hidden scan-banner bg-gradient-to-r from-orange-500 to-emerald-500 text-white text-[11px] font-black uppercase tracking-widest px-4 py-3 rounded-2xl shadow-lg">
+                ✅ Código lido com sucesso
+            </div>
+
+            <div class="relative w-full">
+                <input
+                    type="text"
+                    id="busca-produto"
+                    autocomplete="off"
+                    placeholder="🔍 Buscar ração, milho, marca, EAN ou código GM..."
+                class="w-full px-4 py-2.5 rounded-xl border-[3px] border-orange-500 text-lg font-bold outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-300/35 transition-all bg-white shadow-[0_0_0_3px_rgba(249,115,22,0.08)]"
+                >
+
+                <div
+                    id="autocomplete-results"
+                    class="absolute z-50 w-full bg-white mt-1 rounded-lg shadow-xl border border-slate-200 hidden overflow-hidden"
+                ></div>
+            </div>
+
+            <div id="status-busca" class="hidden text-xs font-black uppercase tracking-wider text-slate-400 px-1"></div>
+
+            <div id="area-resultados" class="space-y-2">
+                <div id="produto-destaque"></div>
+                <div id="lista-similares" class="grid gap-1"></div>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-lg p-2.5 brand-shadow aux-panel">
+                <div class="flex items-center justify-between gap-3 mb-2 aux-panel-header">
+                    <div>
+                        <div class="text-[11px] font-black uppercase tracking-widest text-slate-500">Lista auxiliar</div>
+                        <div class="text-[10px] font-bold text-slate-400">Apoio separado da busca principal, mais abaixo para não competir com ela.</div>
+                    </div>
+                    <div id="filtro-catalogo-ativo" class="hidden filter-chip text-[10px] font-black uppercase tracking-wider text-emerald-700 px-2 py-1 rounded-full"></div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)_110px] gap-2 items-center">
+                    <select id="tipo-filtro-catalogo" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-emerald-400">
+                        <option value="">Filtrar por...</option>
+                        <option value="marca">Marca</option>
+                        <option value="fornecedor">Fornecedor</option>
+                        <option value="categoria">Categoria</option>
+                    </select>
+                    <div class="relative">
+                        <input id="valor-filtro-catalogo" type="text" autocomplete="off" placeholder="Digite ou selecione uma opção" class="w-full bg-slate-50 border-2 border-slate-300 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-emerald-400">
+                        <datalist id="opcoes-filtro-catalogo-list"></datalist>
+                        <div id="opcoes-filtro-catalogo-box" class="hidden absolute z-40 left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg aux-suggestions max-h-52 overflow-y-auto"></div>
+                    </div>
+                    <button id="btn-limpar-filtro-catalogo" type="button" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-black uppercase py-2 rounded-lg transition-colors">Limpar</button>
+                </div>
+                <div class="flex items-center justify-between mt-2 gap-2">
+                    <div id="resumo-filtro-catalogo" class="text-[11px] font-black uppercase tracking-wider text-slate-400">Filtro auxiliar da lista</div>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-lg overflow-hidden mt-3">
+                    <div class="px-3 py-2 border-b border-slate-100 flex items-center justify-between gap-2">
+                        <h3 class="text-slate-700 text-xs font-black uppercase tracking-wider">Lista auxiliar de produtos</h3>
+                    </div>
+                    <div id="lista-catalogo-rapido" class="max-h-[248px] overflow-y-auto hide-scroll divide-y divide-slate-100"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-1 space-y-3">
+            <div id="cart-shell" class="cart-shell-empty p-3 rounded-lg shadow-sm border sticky top-2">
+                <div class="flex items-center justify-between mb-2 border-b border-slate-100 pb-2">
+                    <h3 class="text-slate-800 text-sm font-black uppercase tracking-wider flex items-center gap-1"><span id="cart-icon">🛒</span> Orçamento / Carrinho</h3>
+                    <span id="itens-badge" class="cart-badge-empty px-2.5 py-1.5 rounded-md text-[11px] font-black flex items-center gap-1 border border-slate-200 shadow-sm"><span>0</span><span>itens</span></span>
+                </div>
+
+                <div class="relative mb-2">
+                    <input
+                        type="text"
+                        id="nome-cliente"
+                        placeholder="Buscar cliente..."
+                        class="w-full p-1.5 bg-slate-50 text-sm rounded border border-slate-200 font-bold outline-none focus:border-emerald-400"
+                        autocomplete="off"
+                    >
+                    <div
+                        id="cliente-results"
+                        class="absolute z-[60] w-full bg-white mt-1 rounded shadow-lg border border-slate-200 hidden overflow-hidden text-sm"
+                    ></div>
+                </div>
+
+                <div id="itens-carrinho" class="max-h-[312px] overflow-y-auto mb-2 hide-scroll"></div>
+
+                <div class="flex justify-between items-end mb-2 border-t border-slate-100 pt-2">
+                    <span class="text-slate-500 text-xs font-bold">TOTAL</span>
+                    <span id="total-geral" class="text-emerald-600 text-xl font-black leading-none">R$ 0,00</span>
+                </div>
+
+                <div class="flex gap-1 mb-2">
+                    <button onclick="limparCarrinho()" class="flex-1 bg-slate-100 text-slate-600 text-[11px] font-black uppercase py-1.5 rounded hover:bg-slate-200">F4 Limpar</button>
+                    <button onclick="focarBuscaProduto()" class="flex-1 bg-slate-100 text-slate-600 text-[11px] font-black uppercase py-1.5 rounded hover:bg-slate-200">F2 Produto</button>
+                </div>
+
+                <button
+                    onclick="abrirResumo()"
+                    class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-2 rounded shadow-sm transition-all text-[11px] uppercase flex justify-center items-center gap-1"
+                >
+                    Conferir [F7]
+                </button>
+            </div>
+
+            <div class="reminder-card rounded-xl overflow-hidden shadow-sm">
+                <div class="reminder-header-strong px-3 py-2.5 border-b border-orange-200 flex items-center justify-between gap-2">
+                    <div>
+                        <div class="text-[10px] font-black uppercase tracking-wider text-sky-700 panel-strong-title">Lembretes do caixa</div>
+                        <div class="text-[10px] font-bold text-slate-500">Entregas, recados e avisos rápidos em uma área separada e visível.</div>
+                    </div>
+                    <button type="button" onclick="abrirNovoLembreteRapido()" class="text-[10px] font-black uppercase text-sky-600 hover:text-sky-700 bg-white/90 border border-sky-200 px-2 py-1 rounded-lg shadow-sm">+ Novo</button>
+                </div>
+                <div class="p-2 border-b border-sky-100 grid grid-cols-[1fr_82px_64px] gap-1.5 bg-white/95">
+                    <input id="lembrete-texto" type="text" placeholder="Ex.: entrega do João" class="bg-white border border-sky-200 rounded px-2 py-1.5 text-[11px] font-bold outline-none focus:border-sky-400">
+                    <input id="lembrete-hora" type="time" class="bg-white border border-sky-200 rounded px-2 py-1.5 text-[11px] font-bold outline-none focus:border-sky-400">
+                    <button type="button" onclick="salvarLembrete()" class="bg-sky-500 hover:bg-sky-600 text-white text-[10px] font-black uppercase rounded">Salvar</button>
+                </div>
+                <div id="lista-lembretes" class="max-h-[160px] overflow-y-auto hide-scroll divide-y divide-sky-100 bg-white/95"></div>
+            </div>
+
+            <div class="cart-history-stack pt-2">
+            <div class="history-card rounded-lg overflow-hidden shadow-sm">
+                <div class="px-3 py-2 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between gap-2">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500">Últimos orçamentos</span>
+                    <button onclick="abrirHistoricoLocal()" class="text-[10px] font-black uppercase text-sky-600 hover:text-sky-700">F6 Histórico</button>
+                </div>
+                <div id="historico-resumido" class="max-h-[132px] overflow-y-auto hide-scroll divide-y divide-slate-100"></div>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-resumo" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl p-5 md:p-6 animate-in zoom-in duration-200 border border-slate-200">
+            <div class="flex items-start justify-between gap-4 mb-6">
+                <div>
+                    <h2 class="text-xl md:text-2xl font-black text-slate-900 italic uppercase tracking-tighter">📝 Resumo do Pedido</h2>
+                    <div class="text-[10px] uppercase font-black tracking-widest text-slate-400 mt-1">F7 zap • F8 imprime • F10 erp • F9 copia</div>
+                </div>
+                <div class="w-14 h-14 rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="Agro Mais" class="w-full h-full object-contain p-2">
+                </div>
+            </div>
+
+            <div id="corpo-resumo" class="space-y-3 max-h-[56vh] overflow-y-auto pr-1 hide-scroll font-bold text-slate-700"></div>
+
+            <div class="mt-8 flex flex-col gap-3">
+                <button onclick="confirmarEnvio()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-3 rounded-2xl shadow-lg text-sm uppercase italic flex items-center justify-center gap-2">
+                    <span>🚀 Enviar WhatsApp</span>
+                    <span class="text-xs px-2 py-1 rounded-full bg-white/20">F7</span>
+                </button>
+
+                <button onclick="imprimirOrcamento()" class="w-full bg-slate-800 hover:bg-black text-white font-black py-3 rounded-2xl shadow-lg text-sm uppercase flex items-center justify-center gap-2">
+                    <span>🖨️ Imprimir Cupom</span>
+                    <span class="text-xs px-2 py-1 rounded-full bg-white/20">F8</span>
+                </button>
+
+                <button id="btn-enviar-erp" onclick="enviarPedidoERP()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-black py-3 rounded-xl shadow-md text-sm uppercase flex items-center justify-center gap-2 mt-2">
+                    <span>☁️ Enviar p/ ERP</span>
+                    <span class="text-xs px-2 py-1 rounded-full bg-white/20">F10</span>
+                </button>
+
+                <button onclick="copiarMensagemPedido()" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-500 font-black py-2 rounded-xl text-sm uppercase border border-slate-200 flex items-center justify-center gap-2 mt-2">
+                    <span> Copiar mensagem</span>
+                    <span class="text-xs px-2 py-1 rounded-full bg-white border border-slate-200">F9</span>
+                </button>
+
+                <button onclick="fecharResumo()" class="w-full text-slate-400 font-bold py-2 text-sm uppercase hover:underline">
+                    Voltar e Ajustar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="cupom-orcamento"></div>
+
+    <!-- Modal Histórico de Vendas -->
+    <div id="alerta-lembrete" class="fixed right-4 bottom-4 z-[110] hidden max-w-sm bg-white border-[3px] border-orange-500 rounded-2xl shadow-2xl p-4">
+        <div class="flex items-start gap-3">
+            <div class="text-2xl">⏰</div>
+            <div class="min-w-0">
+                <div class="text-sm font-black uppercase text-slate-800">Lembrete do caixa</div>
+                <div id="alerta-lembrete-texto" class="text-sm font-bold text-slate-600 mt-1 break-words"></div>
+                <div class="mt-3 flex gap-2">
+                    <button type="button" onclick="dispensarAlertaLembrete()" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-black uppercase">Ok</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-historico-vendas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl p-6 flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
+                <h2 class="text-xl font-black text-slate-800 uppercase italic">📋 Últimos Orçamentos (Local)</h2>
+                <button onclick="fecharHistoricoLocal()" class="text-slate-400 hover:text-slate-600 font-bold bg-slate-100 px-3 py-1 rounded-lg text-xs uppercase">✕ Fechar [Esc]</button>
+            </div>
+            <div id="lista-historico-local" class="overflow-y-auto hide-scroll flex-1 space-y-3">
+                <!-- Cards de historico preenchidos via JS -->
+            </div>
+        </div>
+    </div>
+
+<script>
+let carrinho = [];
+let sugestoesAtuais = [];
+let indexSelecionado = -1;
+let indexSelecionadoCliente = -1;
+let debounceTimer;
+let clienteDebounceTimer;
+let produtoEmDestaque = null;
+let clienteSelecionado = null;
+
+let ultimoInputTime = 0;
+let bufferScanner = '';
+let scannerTimer = null;
+let quantidadeRapida = 1;
+let ultimoProdutoAdicionadoId = null;
+let tempoUltimaAdicao = 0;
+
+let baseProdutos = [];
+let frequenciaUso = JSON.parse(localStorage.getItem('freqProdutos') || '{}');
+let catalogoRapidoAtual = [];
+
+const inputBusca = document.getElementById('busca-produto');
+const autoList = document.getElementById('autocomplete-results');
+const destaqueContainer = document.getElementById('produto-destaque');
+const similaresContainer = document.getElementById('lista-similares');
+const modalResumo = document.getElementById('modal-resumo');
+const statusBusca = document.getElementById('status-busca');
+const scanBanner = document.getElementById('scan-banner');
+
+const inputCliente = document.getElementById('nome-cliente');
+const clienteResults = document.getElementById('cliente-results');
+const tipoFiltroCatalogo = document.getElementById('tipo-filtro-catalogo');
+const valorFiltroCatalogo = document.getElementById('valor-filtro-catalogo');
+const opcoesFiltroCatalogo = document.getElementById('opcoes-filtro-catalogo-list');
+const opcoesFiltroCatalogoBox = document.getElementById('opcoes-filtro-catalogo-box');
+const listaCatalogoRapido = document.getElementById('lista-catalogo-rapido');
+const resumoFiltroCatalogo = document.getElementById('resumo-filtro-catalogo');
+const filtroCatalogoAtivo = document.getElementById('filtro-catalogo-ativo');
+const historicoResumido = document.getElementById('historico-resumido');
+const btnLimparFiltroCatalogo = document.getElementById('btn-limpar-filtro-catalogo');
+const listaLembretes = document.getElementById('lista-lembretes');
+let alertaLembreteAtual = null;
+
+
+
+function pickFirstValue(...valores) {
+    for (const valor of valores) {
+        if (valor === 0) return '0';
+        if (valor !== undefined && valor !== null) {
+            const txt = String(valor).trim();
+            if (txt && txt !== '[object Object]') return txt;
+        }
+    }
+    return '';
+}
+
+function extrairTextoGenerico(valor) {
+    if (valor === undefined || valor === null) return '';
+    if (typeof valor === 'string' || typeof valor === 'number') return String(valor).trim();
+    if (Array.isArray(valor)) {
+        for (const item of valor) {
+            const achado = extrairTextoGenerico(item);
+            if (achado) return achado;
+        }
+        return '';
+    }
+    if (typeof valor === 'object') {
+        const preferidos = ['nome','name','descricao','descricao_completa','titulo','title','razao_social','razao','fantasia','nome_fantasia','display_name','categoria','marca','fornecedor','fabricante','grupo','subcategoria','label','text','value'];
+        for (const chave of preferidos) {
+            if (chave in valor) {
+                const achado = extrairTextoGenerico(valor[chave]);
+                if (achado) return achado;
+            }
+        }
+        for (const item of Object.values(valor)) {
+            const achado = extrairTextoGenerico(item);
+            if (achado) return achado;
+        }
+    }
+    return '';
+}
+
+function valorTextoValidoCatalogo(txt) {
+    const v = String(txt || '').trim();
+    if (!v) return false;
+    const norm = normalizarBuscaLocal(v);
+    if (!norm || norm.length < 2) return false;
+    if (/^[0-9]+$/.test(norm)) return false;
+    if (/^[a-f0-9]{24}$/i.test(v)) return false;
+    if (/^[0-9a-f-]{30,}$/i.test(v)) return false;
+    return true;
+}
+
+function coletarValoresPorTipo(produto, tipo) {
+    if (!produto || !tipo) return [];
+    const keywords = {
+        marca: ['marca','brand','marca_nome','brand_name'],
+        fornecedor: ['fornecedor','fornec','supplier','fabricante','distrib','vendor','parceiro','empresa','pessoa'],
+        categoria: ['categoria','categorias','grupo','subcategoria','departamento','linha','familia','tipo','secao','classificacao','colecao','collection']
+    };
+    const seeds = {
+        marca: [produto.marca, produto.marca_nome, produto.nome_marca, produto.brand, produto.marcaDescricao, produto.marca_obj, produto.marcaModel, produto.marcas, produto.brand_name],
+        fornecedor: [produto.fornecedor, produto.fornecedor_nome, produto.nome_fornecedor, produto.razao_fornecedor, produto.fabricante, produto.fornecedor_obj, produto.fornecedorModel, produto.distribuidor, produto.supplier, produto.fornecedores, produto.fornecedor_padrao, produto.parceiro],
+        categoria: [produto.categoria, produto.categoria_nome, produto.nome_categoria, produto.grupo, produto.grupo_nome, produto.subcategoria, produto.categoria_pai, produto.categoria_obj, produto.categorias, produto.departamento, produto.linha, produto.tipo_produto, produto.collection]
+    };
+    const achados = [];
+    const vistos = new Set();
+    const add = (txt) => {
+        const limpo = String(txt || '').trim();
+        const chave = normalizarBuscaLocal(limpo);
+        if (!valorTextoValidoCatalogo(limpo) || vistos.has(chave)) return;
+        vistos.add(chave);
+        achados.push(limpo);
+    };
+    (seeds[tipo] || []).forEach(item => {
+        const txt = extrairTextoGenerico(item);
+        if (txt) add(txt);
+    });
+    const chavesRelacionadas = {
+        marca: ['nome','descricao','label','text','title','name'],
+        fornecedor: ['nome','razao_social','razao','fantasia','nome_fantasia','descricao','label','text','title','name'],
+        categoria: ['nome','descricao','titulo','label','text','title','name']
+    };
+    const queue = [{ valor: produto, path: '', depth: 0 }];
+    while (queue.length) {
+        const { valor, path, depth } = queue.shift();
+        if (depth > 4 || valor === undefined || valor === null) continue;
+        if (Array.isArray(valor)) {
+            valor.forEach((item, idx) => queue.push({ valor: item, path: `${path}[${idx}]`, depth: depth + 1 }));
+            continue;
+        }
+        if (typeof valor === 'object') {
+            for (const [chave, item] of Object.entries(valor)) {
+                const novoPath = path ? `${path}.${chave}` : chave;
+                const chaveNorm = normalizarBuscaLocal(novoPath);
+                if (keywords[tipo].some(k => chaveNorm.includes(normalizarBuscaLocal(k)))) {
+                    const txt = extrairTextoGenerico(item);
+                    if (txt) add(txt);
+                    if (item && typeof item === 'object') {
+                        for (const relKey of chavesRelacionadas[tipo]) {
+                            if (item[relKey] !== undefined) {
+                                const relTxt = extrairTextoGenerico(item[relKey]);
+                                if (relTxt) add(relTxt);
+                            }
+                        }
+                    }
+                }
+                queue.push({ valor: item, path: novoPath, depth: depth + 1 });
+            }
+            continue;
+        }
+        if (typeof valor === 'string' || typeof valor === 'number') {
+            const pathNorm = normalizarBuscaLocal(path);
+            if (keywords[tipo].some(k => pathNorm.includes(normalizarBuscaLocal(k)))) add(valor);
+        }
+    }
+    return achados;
+}
+
+function obterValorCampoProduto(produto, tipo) {
+    return coletarValoresPorTipo(produto, tipo)[0] || '';
+}
+
+function prepararProduto(produto) {
+    const nome = pickFirstValue(produto.nome, produto.descricao, produto.descricao_completa, produto.nome_produto);
+    const codigo = pickFirstValue(produto.codigo_nfe, produto.codigo_interno, produto.codigo, produto.sku);
+    const codigoBarras = pickFirstValue(produto.codigo_barras, produto.ean, produto.barras);
+    const marca = obterValorCampoProduto(produto, 'marca');
+    const fornecedor = obterValorCampoProduto(produto, 'fornecedor');
+    const categoria = obterValorCampoProduto(produto, 'categoria');
+    const buscaTexto = [nome, codigo, codigoBarras, marca, fornecedor, categoria].map(normalizarBuscaLocal).join(' ');
+    return {
+        ...produto,
+        nome,
+        codigo_nfe: codigo,
+        codigo_barras: codigoBarras,
+        marca,
+        fornecedor,
+        categoria,
+        busca_texto: buscaTexto,
+        saldo_centro: Number(produto.saldo_centro || produto.estoque_centro || produto.saldo || 0),
+        saldo_vila: Number(produto.saldo_vila || produto.estoque_vila || produto.saldo_filial || 0),
+        preco_venda: Number(produto.preco_venda || produto.preco || produto.valor || 0)
+    };
+}
+
+function prepararBaseProdutos(lista) {
+    return (Array.isArray(lista) ? lista : []).map(prepararProduto);
+}
+
+function preencherOpcoesFiltroCatalogo() {
+    const tipo = tipoFiltroCatalogo.value;
+    opcoesFiltroCatalogo.innerHTML = '';
+    opcoesFiltroCatalogoBox.innerHTML = '';
+    valorFiltroCatalogo.value = '';
+    filtroCatalogoAtivo.classList.add('hidden');
+
+    if (!tipo || !baseProdutos.length) {
+        resumoFiltroCatalogo.textContent = 'Filtro auxiliar da lista';
+        opcoesFiltroCatalogoBox.classList.add('hidden');
+        return;
+    }
+
+    const unicos = [...new Set(baseProdutos.flatMap(p => coletarValoresPorTipo(p, tipo)).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+        .slice(0, 500);
+
+    unicos.forEach(valor => {
+        const opt = document.createElement('option');
+        opt.value = valor;
+        opcoesFiltroCatalogo.appendChild(opt);
+    });
+
+    opcoesFiltroCatalogoBox.classList.add('hidden');
+    resumoFiltroCatalogo.textContent = unicos.length ? `${unicos.length} opção(ões) para ${tipo}` : `Nenhuma opção encontrada para ${tipo} no catálogo`; 
+}
+
+function renderizarSugestoesFiltro(lista) {
+    opcoesFiltroCatalogoBox.innerHTML = '';
+    if (!lista.length || !tipoFiltroCatalogo.value) {
+        opcoesFiltroCatalogoBox.classList.add('hidden');
+        return;
+    }
+    lista.slice(0, 12).forEach(valor => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'aux-option';
+        btn.textContent = valor;
+        btn.onclick = () => {
+            valorFiltroCatalogo.value = valor;
+            opcoesFiltroCatalogoBox.classList.add('hidden');
+            atualizarCatalogoRapido();
+        };
+        opcoesFiltroCatalogoBox.appendChild(btn);
+    });
+    opcoesFiltroCatalogoBox.classList.remove('hidden');
+}
+
+function renderizarCatalogoRapido(lista) {
+    catalogoRapidoAtual = lista.slice(0, 100);
+    listaCatalogoRapido.innerHTML = '';
+
+    if (!catalogoRapidoAtual.length) {
+        listaCatalogoRapido.innerHTML = '<div class="catalog-empty-state">Nenhum produto encontrado neste filtro.</div>';
+        return;
+    }
+
+    catalogoRapidoAtual.forEach(produto => {
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'catalog-row w-full text-left px-3 py-2 transition-colors border-l-4 border-transparent';
+        const marca = obterValorCampoProduto(produto, 'marca') || 'Sem marca';
+        const fornecedor = obterValorCampoProduto(produto, 'fornecedor') || 'Sem fornecedor';
+        const categoria = obterValorCampoProduto(produto, 'categoria') || 'Sem categoria';
+        row.innerHTML = `
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <div class="text-[14px] leading-4 font-black text-slate-800 uppercase break-words">${escapeHtml(produto.nome || '')}</div>
+                    <div class="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-[10px] font-bold uppercase text-slate-400">
+                        <span class="text-slate-500">Cód: ${escapeHtml(produto.codigo_nfe || produto.codigo || '-')}</span>
+                        <span>${escapeHtml(marca)}</span>
+                        <span>${escapeHtml(fornecedor)}</span>
+                        <span>${escapeHtml(categoria)}</span>
+                    </div>
+                </div>
+                <div class="shrink-0 text-right">
+                    <div class="text-sm font-black text-emerald-600">${formatarMoeda(produto.preco_venda)}</div>
+                    <div class="text-[10px] font-bold uppercase text-slate-400"><span class="text-emerald-700">Centro: ${Number(produto.saldo_centro || 0)}</span> • Vila: ${Number(produto.saldo_vila || 0)} • Total: ${(Number(produto.saldo_centro || 0) + Number(produto.saldo_vila || 0)).toFixed(1)}</div>
+                </div>
+            </div>
+        `;
+        row.onclick = () => {
+            inputBusca.value = produto.nome || '';
+            produtoEmDestaque = produto;
+            renderDestaque(produto);
+            autoList.classList.add('hidden');
+            Array.from(listaCatalogoRapido.children).forEach(el => el.classList.remove('active'));
+            row.classList.add('active');
+            similaresContainer.innerHTML = '';
+            focarBuscaProduto();
+        };
+        listaCatalogoRapido.appendChild(row);
+    });
+}
+
+function atualizarCatalogoRapido() {
+    if (!baseProdutos.length) {
+        listaCatalogoRapido.innerHTML = '<div class="catalog-empty-state">Carregando catálogo...</div>';
+        return;
+    }
+
+    const busca = normalizarBuscaLocal(inputBusca.value || '');
+    const tipo = tipoFiltroCatalogo.value;
+    const filtroDigitado = normalizarBuscaLocal(valorFiltroCatalogo.value || '');
+    const temFiltro = !!(tipo && filtroDigitado);
+    const temBusca = !!busca;
+
+    if (!temFiltro && !temBusca) {
+        filtroCatalogoAtivo.classList.add('hidden');
+        resumoFiltroCatalogo.textContent = 'Use um filtro ou digite algo para abrir a lista auxiliar';
+        listaCatalogoRapido.innerHTML = '<div class="catalog-empty-state">A lista auxiliar só aparece quando houver filtro ou busca digitada.</div>';
+        return;
+    }
+
+    let filtrados = [...baseProdutos];
+
+    if (temFiltro) {
+        filtrados = filtrados.filter(p => coletarValoresPorTipo(p, tipo).some(v => normalizarBuscaLocal(v).includes(filtroDigitado)));
+        filtroCatalogoAtivo.textContent = `${tipo}: ${valorFiltroCatalogo.value}`;
+        filtroCatalogoAtivo.classList.remove('hidden');
+    } else {
+        filtroCatalogoAtivo.classList.add('hidden');
+    }
+
+    if (temBusca) {
+        const palavras = busca.split(' ').filter(Boolean);
+        filtrados = filtrados.filter(p => palavras.every(palavra => (p.busca_texto || '').includes(palavra)));
+    }
+
+    filtrados.sort((a, b) => {
+        const freqA = frequenciaUso[a.id] || 0;
+        const freqB = frequenciaUso[b.id] || 0;
+        if (freqA !== freqB) return freqB - freqA;
+        return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+    });
+
+    resumoFiltroCatalogo.textContent = `${Math.min(filtrados.length, 100)} de ${filtrados.length} produto(s) exibidos`;
+    renderizarCatalogoRapido(filtrados);
+}
+
+function renderizarHistoricoResumido() {
+    let historico = [];
+    try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { historico = []; }
+    historicoResumido.innerHTML = '';
+
+    if (!historico.length) {
+        historicoResumido.innerHTML = '<div class="px-3 py-4 text-center text-[11px] font-bold text-slate-400">Nenhum orçamento salvo ainda.</div>';
+        return;
+    }
+
+    historico.slice(0, 5).forEach(h => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'w-full text-left px-3 py-2 hover:bg-slate-50 transition-colors';
+        item.innerHTML = `
+            <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                    <div class="text-[15px] font-black uppercase text-slate-800 truncate tracking-wide">${escapeHtml(h.cliente)}</div>
+                    <div class="text-[10px] font-bold text-slate-400">${escapeHtml(h.data)}</div>
+                </div>
+                <div class="text-[11px] font-black text-emerald-600 shrink-0">${escapeHtml(h.total)}</div>
+            </div>
+        `;
+        item.onclick = () => recuperarOrcamento(h.id);
+        historicoResumido.appendChild(item);
+    });
+}
+
+function formatarMoeda(valor) {
+    return `R$ ${Number(valor || 0).toFixed(2)}`;
+}
+
+function escapeHtml(texto) {
+    return String(texto || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function tocarSom(tipo = 'add') {
+    try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        const ctx = new AudioContextClass();
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (tipo === 'add') {
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(1240, ctx.currentTime + 0.08);
+            gain.gain.setValueAtTime(0.001, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + 0.12);
+        } else if (tipo === 'erro') {
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(240, ctx.currentTime);
+            gain.gain.setValueAtTime(0.001, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + 0.16);
+        }
+    } catch (e) {
+        console.warn('Som indisponível:', e);
+    }
+}
+
+function mostrarStatusBusca(texto, cor = 'slate') {
+    statusBusca.classList.remove('hidden', 'text-slate-400', 'text-emerald-600', 'text-orange-500', 'text-red-500');
+
+    if (cor === 'emerald') statusBusca.classList.add('text-emerald-600');
+    else if (cor === 'orange') statusBusca.classList.add('text-orange-500');
+    else if (cor === 'red') statusBusca.classList.add('text-red-500');
+    else statusBusca.classList.add('text-slate-400');
+
+    statusBusca.textContent = texto;
+}
+
+function esconderStatusBusca() {
+    statusBusca.classList.add('hidden');
+    statusBusca.textContent = '';
+}
+
+function mostrarBannerScanner(texto) {
+    scanBanner.textContent = texto;
+    scanBanner.classList.remove('hidden');
+    scanBanner.classList.remove('scan-banner');
+    void scanBanner.offsetWidth;
+    scanBanner.classList.add('scan-banner');
+
+    setTimeout(() => {
+        scanBanner.classList.add('hidden');
+    }, 1600);
+}
+
+function flashScanner() {
+    inputBusca.classList.remove('scanner-flash');
+    void inputBusca.offsetWidth;
+    inputBusca.classList.add('scanner-flash');
+}
+
+function focarBuscaProduto() {
+    inputBusca.focus();
+    inputBusca.select();
+}
+
+function focarBuscaCliente() {
+    inputCliente.focus();
+    inputCliente.select();
+}
+
+function limparBuscaVisual() {
+    autoList.classList.add('hidden');
+    destaqueContainer.innerHTML = '';
+    similaresContainer.innerHTML = '';
+    produtoEmDestaque = null;
+    indexSelecionado = -1;
+}
+
+function atualizarSelecaoVisual(itens) {
+    itens.forEach((item, idx) => {
+        if (idx === indexSelecionado) item.classList.add('selected-suggestion');
+        else item.classList.remove('selected-suggestion');
+    });
+}
+
+function atualizarSelecaoVisualCliente(itens) {
+    itens.forEach((item, idx) => {
+        if (idx === indexSelecionadoCliente) item.classList.add('selected-suggestion');
+        else item.classList.remove('selected-suggestion');
+    });
+}
+
+function obterQuantidadeRapida(texto) {
+    const match = String(texto || '').trim().match(/(?:\*|x)(\d+)$/i);
+    if (!match) return 1;
+    const qtd = parseInt(match[1], 10);
+    return (!qtd || qtd < 1) ? 1 : qtd;
+}
+
+function removerSufixoQuantidade(texto) {
+    return String(texto || '').trim().replace(/(?:\*|x)\d+$/i, '').trim();
+}
+
+function renderizarSugestoes() {
+    autoList.innerHTML = '';
+
+    sugestoesAtuais.forEach((s) => {
+        const foto = s.imagem && s.imagem !== '' && s.imagem !== 'None' ? s.imagem : "{% static 'img/agro-mais-logo-buscador.png' %}";
+        const div = document.createElement('div');
+        div.className = "suggestion-item p-2 cursor-pointer border-b border-slate-100 flex justify-between items-center hover:bg-slate-50";
+        div.innerHTML = `
+            <div class="flex items-center gap-2 min-w-0 pr-2">
+                <img src="${foto}" onerror="this.src='{% static 'img/agro-mais-logo-buscador.png' %}'" class="w-8 h-8 object-cover rounded bg-white border border-slate-100 p-0.5">
+                <div class="min-w-0">
+                    <div class="text-slate-700 font-black text-sm uppercase truncate">${escapeHtml(s.nome)}</div>
+                    <div class="text-[10px] text-slate-400 uppercase truncate">${escapeHtml(s.marca || 'GENÉRICO')}</div>
+                </div>
+            </div>
+            <div class="text-orange-500 font-black text-xs shrink-0">${formatarMoeda(s.preco_venda)}</div>
+        `;
+
+        div.onclick = () => {
+            inputBusca.value = s.nome;
+            autoList.classList.add('hidden');
+            renderDestaque(s);
+            similaresContainer.innerHTML = '';
+            sugestoesAtuais
+                .filter(item => item.id !== s.id)
+                .slice(0, 5)
+                .forEach(p => renderSimilar(p));
+        };
+
+        autoList.appendChild(div);
+    });
+
+    autoList.classList.remove('hidden');
+}
+
+function renderDestaque(p) {
+    produtoEmDestaque = p;
+    const total = (Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(2);
+    const foto = p.imagem && p.imagem !== '' && p.imagem !== 'None' ? p.imagem : "{% static 'img/agro-mais-logo-buscador.png' %}";
+
+    destaqueContainer.innerHTML = `
+        <div class="resultado-card bg-white p-3 md:p-4 rounded-2xl border border-emerald-500/30 flex flex-col md:flex-row items-center gap-4 animate-in fade-in duration-300 relative overflow-hidden group/card">
+            <!-- Decorador de fundo para preencher espaço vazio -->
+            <div class="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-emerald-50/50 to-transparent pointer-events-none"></div>
+
+            <!-- Detalhes do Produto -->
+            <div class="flex items-center gap-3 flex-1 w-full min-w-0 z-10 cursor-pointer" onclick="adicionarProdutoComQuantidade('${escapeHtml(p.id)}', '${String(p.nome).replace(/'/g, "\\'")}', ${Number(p.preco_venda || 0)}, quantidadeRapida)">
+                <img src="${foto}" onerror="this.src='{% static 'img/agro-mais-logo-buscador.png' %}'" class="w-12 h-12 md:w-14 md:h-14 object-cover rounded-xl bg-white border border-slate-100 shadow-sm p-1 hidden sm:block">
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                        <span class="bg-emerald-500 text-white px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shadow-sm">Selecionado [Enter]</span>
+                        <span class="text-slate-400 font-bold uppercase text-[10px] truncate">${escapeHtml(p.marca || 'GENÉRICO')}</span>
+                        ${p.codigo_nfe ? `<span class="text-slate-300 font-bold text-[10px] truncate">| GM: ${escapeHtml(p.codigo_nfe)}</span>` : ''}
+                    </div>
+                    <h4 class="text-lg md:text-xl font-black text-slate-800 uppercase leading-tight truncate" title="${escapeHtml(p.nome)}">${escapeHtml(p.nome)}</h4>
+                    <div class="flex items-center gap-3 mt-2">
+                        <div class="text-xl md:text-2xl font-black text-orange-500 tracking-tighter">${formatarMoeda(p.preco_venda)}</div>
+                        ${quantidadeRapida > 1 ? `<div class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-[11px] font-black uppercase border border-orange-200 shadow-sm">Qtd: ${quantidadeRapida}</div>` : ''}
+                        <button id="btn-sincronizar-${escapeHtml(p.id)}" onclick="forcarAtualizacao('${escapeHtml(p.id)}'); event.stopPropagation();" class="text-[10px] font-bold text-sky-600 hover:text-sky-800 hover:underline ml-2 bg-sky-50 px-2 py-1 rounded transition-colors" title="Atualizar saldo do banco em tempo real">🔄 Sincronizar [F5]</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estoque Principal (Centro) e Secundários (Vila/Total) -->
+            <div class="flex items-center gap-5 z-10 shrink-0">
+                
+                <div class="flex flex-col items-end border-r-2 border-slate-100 pr-5">
+                    <div class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 opacity-80" title="Atalho F9">Saldo Centro [F9]</div>
+                    <div class="flex items-start gap-1 group/edit cursor-pointer hover:scale-105 transition-transform" onclick="abrirAjuste('${escapeHtml(p.id)}','${String(p.nome).replace(/'/g, "\\'")}',${Number(p.saldo_erp_centro || 0)},'${escapeHtml(p.codigo_nfe || p.codigo_interno || '')}','centro'); event.stopPropagation();" title="Ajustar Centro">
+                        <span class="text-4xl md:text-5xl font-black text-emerald-500 leading-none tracking-tighter" style="text-shadow: 2px 2px 0px rgba(16,185,129,0.1);">${Number(p.saldo_centro || 0)}</span>
+                        <span class="opacity-0 group-hover/edit:opacity-100 transition-opacity text-emerald-400 text-lg">✏️</span>
+                    </div>
+                    
+                    <div class="flex gap-2 mt-3">
+                        <div class="bg-slate-100 border border-slate-200 px-2 py-1 rounded text-xs font-black text-slate-500 flex gap-1 cursor-pointer hover:bg-slate-200 transition-colors group/vila" onclick="abrirAjuste('${escapeHtml(p.id)}','${String(p.nome).replace(/'/g, "\\'")}',${Number(p.saldo_erp_vila || 0)},'${escapeHtml(p.codigo_nfe || p.codigo_interno || '')}','vila'); event.stopPropagation();" title="Ajustar Vila">
+                            VILA: <span class="text-slate-700">${Number(p.saldo_vila || 0)}</span>
+                            <span class="opacity-0 group-hover/vila:opacity-100 transition-opacity ml-0.5 -mr-1">✏️</span>
+                        </div>
+                        <div class="bg-slate-800 border border-slate-900 shadow-inner px-2 py-1 rounded text-xs font-black text-slate-300 flex gap-1">
+                            TOTAL: <span class="text-emerald-400">${total}</span>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="adicionarProdutoComQuantidade('${escapeHtml(p.id)}', '${String(p.nome).replace(/'/g, "\\'")}', ${Number(p.preco_venda || 0)}, quantidadeRapida); event.stopPropagation();" class="h-12 w-12 md:h-14 md:w-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl shadow-lg transition-all active:scale-95 flex items-center justify-center group/btn" title="Adicionar ao Orçamento">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 md:h-8 md:w-8 group-hover/btn:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" /></svg>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function renderSimilar(p) {
+    const pStr = encodeURIComponent(JSON.stringify(p));
+    const foto = p.imagem && p.imagem !== '' && p.imagem !== 'None' ? p.imagem : "{% static 'img/agro-mais-logo-buscador.png' %}";
+    similaresContainer.innerHTML += `
+        <div class="bg-white p-1.5 px-2 rounded-lg border border-slate-200 flex justify-between items-center hover:bg-slate-50 cursor-pointer group"
+             onclick="renderDestaque(JSON.parse(decodeURIComponent('${pStr}')))">
+            <div class="flex items-center gap-2 min-w-0 pr-2">
+                <img src="${foto}" onerror="this.src='{% static 'img/agro-mais-logo-buscador.png' %}'" class="w-6 h-6 object-cover rounded bg-white border border-slate-100 p-0.5">
+                <div class="min-w-0">
+                    <span class="block font-black text-slate-700 uppercase text-sm group-hover:text-emerald-600 truncate">${escapeHtml(p.nome)}</span>
+                    <span class="block text-[8px] text-slate-400 truncate">${escapeHtml(p.marca || 'GENÉRICO')}</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <span class="text-orange-500 text-[11px] font-black">${formatarMoeda(p.preco_venda)}</span>
+                <div class="flex flex-col items-end text-[8px] font-bold uppercase leading-tight">
+                    <span class="text-emerald-600">C: ${Number(p.saldo_centro || 0)}</span>
+                    <span class="text-slate-400">V: ${Number(p.saldo_vila || 0)}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function incrementarFrequencia(id) {
+    frequenciaUso[id] = (frequenciaUso[id] || 0) + 1;
+    localStorage.setItem('freqProdutos', JSON.stringify(frequenciaUso));
+}
+
+function addCarrinho(id, nome, preco, qtd = 1) {
+    const agora = Date.now();
+    // Trava de segurança absoluta (Hardware Lock) de 500ms para evitar "Ghost Keystrokes" de leitores físicos
+    if (id === ultimoProdutoAdicionadoId && (agora - tempoUltimaAdicao) < 500) {
+        return;
+    }
+    ultimoProdutoAdicionadoId = id;
+    tempoUltimaAdicao = agora;
+
+    incrementarFrequencia(id); // Registra a "venda" para rankear esse produto depois
+
+    const item = carrinho.find(i => i.id === id);
+    if (item) item.qtd += qtd;
+    else carrinho.push({ id, nome, preco: Number(preco || 0), qtd: qtd });
+
+    atualizarCarrinho();
+    tocarSom('add');
+
+    inputBusca.value = '';
+        bufferScanner = ''; // Trava de segurança contra leitura duplicada
+        clearTimeout(scannerTimer); // Desliga o cronômetro se ainda estiver rodando
+    quantidadeRapida = 1;
+    limparBuscaVisual();
+    esconderStatusBusca();
+    focarBuscaProduto();
+
+    validarItemCarrinhoSilencioso(id, preco); // Trava de Segurança
+}
+
+function validarItemCarrinhoSilencioso(id, precoLocal) {
+    fetch(`/api/buscar-produto-id/${id}/`)
+        .then(r => r.json())
+        .then(d => {
+            if (!d.erro && d.preco_venda !== precoLocal) {
+                alert(`⚠️ ATUALIZAÇÃO DE SISTEMA:\nO preço do produto "${d.nome}" sofreu alteração no ERP!\n\nDe: ${formatarMoeda(precoLocal)}\nPara: ${formatarMoeda(d.preco_venda)}\n\nO carrinho foi corrigido automaticamente para evitar perdas.`);
+                
+                const item = carrinho.find(i => i.id === id);
+                if (item) {
+                    item.preco = d.preco_venda;
+                    atualizarCarrinho();
+                }
+                
+                // Atualiza a base em memória
+                const pLocal = baseProdutos.find(p => p.id === id);
+                if (pLocal) pLocal.preco_venda = d.preco_venda;
+            }
+        }).catch(e => console.log('Validação silenciosa falhou ou ignorada:', e));
+}
+
+function adicionarProdutoComQuantidade(id, nome, preco, qtd = 1) {
+    addCarrinho(id, nome, preco, qtd);
+}
+
+function removerItem(i) {
+    carrinho.splice(i, 1);
+    atualizarCarrinho();
+}
+
+function removerUltimoItem() {
+    if (!carrinho.length) return;
+    carrinho.pop();
+    atualizarCarrinho();
+    tocarSom('erro');
+}
+
+function limparCarrinho() {
+    if (!carrinho.length) return;
+    if (!confirm('Limpar todo o orçamento?')) return;
+    carrinho = [];
+    atualizarCarrinho();
+    focarBuscaProduto();
+}
+
+
+function atualizarCarrinho() {
+    const container = document.getElementById('itens-carrinho');
+    const badge = document.getElementById('itens-badge');
+    const cartShell = document.getElementById('cart-shell');
+
+    let total = 0;
+    let qtdItens = 0;
+    container.innerHTML = '';
+
+    carrinho.forEach((item, index) => {
+        total += item.preco * item.qtd;
+        qtdItens += item.qtd;
+
+        container.innerHTML += `
+            <div class="flex justify-between items-center py-1 border-b border-slate-100 last:border-0">
+                <div class="min-w-0 pr-1">
+                    <div class="text-slate-700 font-bold text-[11px] truncate">${item.qtd}x ${escapeHtml(item.nome)}</div>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <span class="text-emerald-600 font-black text-sm">${formatarMoeda(item.preco * item.qtd)}</span>
+                    <button onclick="removerItem(${index})" class="text-red-400 hover:text-red-600 px-0.5 font-bold text-sm">✕</button>
+                </div>
+            </div>
+        `;
+    });
+
+    if (!qtdItens) {
+        container.innerHTML = '<div class="py-8 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400">Nenhum item no carrinho</div>';
+        document.getElementById('cart-icon').textContent = '🛒';
+    }
+
+    document.getElementById('total-geral').innerText = formatarMoeda(total);
+    badge.innerHTML = qtdItens > 0
+        ? `<span>🛒</span><span>${qtdItens} item${qtdItens === 1 ? '' : 's'}</span>`
+        : `<span>0</span><span>itens</span>`;
+
+    if (qtdItens > 0) {
+        document.getElementById('cart-icon').textContent = '🛒';
+        badge.classList.remove('cart-badge-empty');
+        badge.classList.add('cart-badge-active');
+        cartShell?.classList.remove('cart-shell-empty');
+        cartShell?.classList.add('cart-shell-active', 'scale-[1.01]');
+    } else {
+        badge.classList.add('cart-badge-empty');
+        badge.classList.remove('cart-badge-active');
+        cartShell?.classList.add('cart-shell-empty');
+        cartShell?.classList.remove('scale-[1.01]');
+        cartShell?.classList.remove('cart-shell-active');
+    }
+
+    const card = document.querySelector('#itens-carrinho')?.parentElement;
+    if (card && qtdItens > 0) {
+        card.classList.remove('pulse-fast');
+        void card.offsetWidth;
+        card.classList.add('pulse-fast');
+    }
+}
+
+function abrirResumo() {
+    if (!carrinho.length) {
+        tocarSom('erro');
+        return alert("Carrinho vazio!");
+    }
+
+    const cliente = document.getElementById('nome-cliente').value || "Consumidor Final";
+    const corpo = document.getElementById('corpo-resumo');
+    corpo.innerHTML = `
+        <div class="bg-slate-50 p-4 rounded-2xl mb-4 border-l-4 border-emerald-500">
+                <div class="text-xs uppercase text-slate-400">Cliente</div>
+                <div class="text-base italic font-bold">${escapeHtml(cliente)}</div>
+        </div>
+    `;
+
+    carrinho.forEach(item => {
+        corpo.innerHTML += `
+            <div class="flex justify-between border-b border-slate-100 py-2 gap-4">
+                    <span class="text-sm font-bold">${item.qtd}x ${escapeHtml(item.nome)}</span>
+                    <span class="text-emerald-600 font-bold flex-shrink-0">${formatarMoeda(item.preco * item.qtd)}</span>
+            </div>
+        `;
+    });
+
+    corpo.innerHTML += `
+            <div class="flex justify-between pt-4 text-lg font-black text-slate-900 italic uppercase">
+            <span>Total</span>
+            <span>${document.getElementById('total-geral').innerText}</span>
+        </div>
+    `;
+
+    modalResumo.classList.remove('hidden');
+    modalResumo.classList.add('flex');
+    document.body.classList.add('modal-open');
+}
+
+function fecharResumo() {
+    modalResumo.classList.add('hidden');
+    modalResumo.classList.remove('flex');
+    document.body.classList.remove('modal-open');
+}
+
+// --- HISTÓRICO LOCAL ---
+function salvarHistoricoLocal() {
+    if (!carrinho.length) return;
+    let historico = [];
+    try {
+        const salvo = localStorage.getItem('historicoOrcamentos');
+        if (salvo) historico = JSON.parse(salvo);
+        if (!Array.isArray(historico)) historico = [];
+    } catch(e) {
+        historico = [];
+    }
+    
+    const novo = {
+        id: Date.now(),
+        data: new Date().toLocaleString('pt-BR'),
+        cliente: document.getElementById('nome-cliente').value || "Consumidor Final",
+        total: document.getElementById('total-geral').innerText,
+        itens: JSON.parse(JSON.stringify(carrinho))
+    };
+    historico.unshift(novo);
+    if (historico.length > 20) historico.pop();
+    localStorage.setItem('historicoOrcamentos', JSON.stringify(historico));
+    renderizarHistoricoResumido();
+}
+
+function abrirHistoricoLocal() {
+    const container = document.getElementById('lista-historico-local');
+    let historico = [];
+    try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { historico = []; }
+    container.innerHTML = '';
+    if (historico.length === 0) {
+        container.innerHTML = '<div class="text-center text-slate-400 py-10 font-bold text-sm">Nenhum orçamento emitido hoje.</div>';
+    } else {
+        historico.forEach(h => {
+            container.innerHTML += `
+                <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl flex justify-between items-center hover:bg-slate-100 transition-colors">
+                    <div>
+                        <div class="font-black text-slate-700 text-sm uppercase">${escapeHtml(h.cliente)}</div>
+                        <div class="text-xs text-slate-500 font-bold">${h.data} • ${h.itens.length} itens</div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="font-black text-emerald-600 text-lg">${h.total}</span>
+                        <button onclick="recuperarOrcamento(${h.id})" class="bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg text-xs font-black uppercase shadow-sm active:scale-95">Recuperar Orçamento</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    document.getElementById('modal-historico-vendas').classList.remove('hidden');
+    document.getElementById('modal-historico-vendas').classList.add('flex');
+    document.body.classList.add('modal-open');
+}
+
+function fecharHistoricoLocal() {
+    document.getElementById('modal-historico-vendas').classList.add('hidden');
+    document.getElementById('modal-historico-vendas').classList.remove('flex');
+    document.body.classList.remove('modal-open');
+}
+
+function recuperarOrcamento(id) {
+    let historico = [];
+    try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { return; }
+    const h = historico.find(x => x.id === id);
+    if (h) {
+        if (carrinho.length > 0 && !confirm("Isso vai substituir o carrinho atual. Deseja continuar?")) return;
+        carrinho = h.itens;
+        document.getElementById('nome-cliente').value = h.cliente !== "Consumidor Final" ? h.cliente : "";
+        atualizarCarrinho();
+        fecharHistoricoLocal();
+    }
+}
+
+function gerarMensagemPedido() {
+    const clienteNome = document.getElementById('nome-cliente').value || "Consumidor Final";
+    let msg = `🐎🌾 *ORÇAMENTO AGRO MAIS* 🌾🐔\n\n`;
+    msg += `👤 *Cliente:* ${clienteNome}\n`;
+    msg += `🛒 *Itens do pedido:*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━\n`;
+
+    carrinho.forEach(i => {
+        msg += `🔸 ${i.qtd}x ${i.nome}\n`;
+        msg += `   💰 ${formatarMoeda(i.preco * i.qtd)}\n`;
+    });
+
+    msg += `━━━━━━━━━━━━━━━━━━\n`;
+    msg += `💵 *TOTAL: ${document.getElementById('total-geral').innerText}*\n\n`;
+    msg += `✨ Obrigado por escolher a *Agro Mais*!\n`;
+    msg += `📍 Qualquer dúvida, estamos à disposição.`;
+    return msg;
+}
+
+function confirmarEnvio() {
+    let numeroWhatsapp = (clienteSelecionado && clienteSelecionado.telefone) ? String(clienteSelecionado.telefone) : "5513996727222";
+    
+    // Remove tudo que não for dígito numérico (espaços, parênteses, traços, etc)
+    numeroWhatsapp = numeroWhatsapp.replace(/\D/g, '');
+    
+    // Se o número tiver apenas 10 ou 11 dígitos, adicionamos o DDI do Brasil (55)
+    if (numeroWhatsapp.length === 10 || numeroWhatsapp.length === 11) {
+        numeroWhatsapp = '55' + numeroWhatsapp;
+    }
+
+    salvarHistoricoLocal();
+    const msg = gerarMensagemPedido();
+    window.open(`https://api.whatsapp.com/send?phone=${numeroWhatsapp}&text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+async function copiarMensagemPedido() {
+    try {
+        const msg = gerarMensagemPedido();
+        await navigator.clipboard.writeText(msg);
+        alert("Mensagem copiada!");
+    } catch (e) {
+        console.error(e);
+        alert("Não foi possível copiar a mensagem.");
+    }
+}
+
+function imprimirOrcamento() {
+    if (!carrinho.length) return alert("Carrinho vazio!");
+    
+    salvarHistoricoLocal(); // Salva no histórico pra você nunca perder
+
+    const clienteNome = document.getElementById('nome-cliente').value || "Consumidor Final";
+    const numOrcamento = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    
+    let html = `
+        <div style="text-align:center; margin-bottom: 5px;">
+            <h2 style="margin: 0; font-size: 22px; font-weight: 900;">AGRO MAIS</h2>
+            <div style="font-size: 10px;">Av Principal, 123 - Centro</div>
+        </div>
+        <div style="border-bottom: 1px dashed #000; margin-bottom: 5px;"></div>
+        <div style="text-align:center; font-weight:bold; font-size: 14px; margin-bottom: 5px;">
+            ORÇAMENTO DE VENDA
+        </div>
+        <div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>
+        <div style="font-size: 11px; margin-bottom: 2px;"><b>DATA:</b> ${new Date().toLocaleString('pt-BR')}</div>
+        <div style="font-size: 11px; margin-bottom: 8px;"><b>CLIENTE:</b> ${escapeHtml(clienteNome).toUpperCase()}</div>
+        <div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>
+        <table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 1px solid #000;">
+                    <th style="text-align: left; padding-bottom: 4px;">DESCRIÇÃO</th>
+                    <th style="text-align: right; padding-bottom: 4px;">QTDxUN</th>
+                    <th style="text-align: right; padding-bottom: 4px;">TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    let totalItens = 0;
+    carrinho.forEach(i => {
+        totalItens += i.qtd;
+        html += `
+            <tr>
+                <td style="padding-top: 4px; padding-bottom: 4px;">${escapeHtml(i.nome).substring(0, 20)}</td>
+                <td style="text-align: right; padding-top: 4px; padding-bottom: 4px;">${i.qtd}x ${Number(i.preco).toFixed(2)}</td>
+                <td style="text-align: right; padding-top: 4px; padding-bottom: 4px;">${Number(i.preco * i.qtd).toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    html += `
+            </tbody>
+        </table>
+        <div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>
+        <div style="display:flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 4px;">
+            <span>QTD TOTAL ITENS</span>
+            <span>${totalItens} un</span>
+        </div>
+        <div style="display:flex; justify-content: space-between; font-size: 16px; font-weight: 900; margin-bottom: 15px;">
+            <span>VALOR TOTAL</span>
+            <span>${document.getElementById('total-geral').innerText}</span>
+        </div>
+        <div style="text-align:center; margin-bottom: 10px;">
+            <svg id="barcode-orcamento"></svg>
+        </div>
+        <div style="text-align:center; font-size: 10px;">
+            É sempre um prazer atender você!<br>Volte sempre!
+        </div>
+    `;
+    
+    document.getElementById('cupom-orcamento').innerHTML = html;
+    
+    try {
+        JsBarcode("#barcode-orcamento", numOrcamento, {
+            format: "CODE128", width: 1.5, height: 40, displayValue: true, fontSize: 12, margin: 0
+        });
+    } catch(e) {}
+
+    window.print();
+}
+
+async function enviarPedidoERP() {
+    if (!carrinho.length) return alert("Carrinho vazio!");
+    const btn = document.getElementById('btn-enviar-erp');
+    if(btn) btn.innerHTML = "Enviando...";
+
+    salvarHistoricoLocal();
+
+    const clienteNome = document.getElementById('nome-cliente').value || "Consumidor Final";
+    const payload = { cliente: clienteNome, itens: carrinho };
+
+    try {
+        const res = await fetch('/api/enviar-pedido-erp/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        
+        if(data.ok) {
+            alert("✅ " + data.mensagem);
+            carrinho = [];
+            atualizarCarrinho();
+            fecharResumo();
+        } else {
+            alert("❌ Falha do ERP:\n" + data.erro);
+        }
+    } catch(e) { alert("Erro de comunicação com o servidor."); }
+    
+    if(btn) btn.innerHTML = `<span>☁️ Enviar p/ ERP</span><span class="text-xs px-2 py-1 rounded-full bg-white/20">F10</span>`;
+}
+
+function abrirAjuste(id, nome, saldo, codigo, dep) {
+    const novo = prompt(`AJUSTE ${dep.toUpperCase()}\n${nome}\nNovo Real:`);
+    if (novo) {
+        const pin = prompt("PIN:");
+        const fd = new FormData();
+        fd.append('produto_id', id);
+        fd.append('nome_produto', nome);
+        fd.append('codigo_interno', codigo);
+        fd.append('saldo_atual', saldo);
+        fd.append('novo_saldo', novo);
+        fd.append('deposito', dep);
+        fd.append('pin', pin);
+
+        fetch("/api/ajustar/", {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        })
+        .then(res => res.json())
+        .then(d => {
+            if (d.ok) {
+                alert("Ok!");
+                location.reload();
+            } else {
+                alert("Erro: " + d.erro);
+            }
+        });
+    }
+}
+
+function forcarAtualizacao(produtoId) {
+    const button = document.getElementById(`btn-sincronizar-${produtoId}`);
+    const originalButtonText = '🔄 Sincronizar [F5]';
+
+    if (button) {
+        button.innerHTML = 'Buscando...';
+        button.disabled = true;
+    }
+
+    fetch(`/api/buscar-produto-id/${produtoId}/`)
+        .then(res => {
+            if (!res.ok) throw new Error('Produto não encontrado ou erro na API');
+            return res.json();
+        })
+        .then(produtoAtualizado => {
+            if (!produtoAtualizado) throw new Error('Resposta da API sem dados do produto.');
+            produtoEmDestaque = produtoAtualizado;
+            renderDestaque(produtoAtualizado);
+
+            const idx = baseProdutos.findIndex(p => p.id === produtoId);
+            if(idx > -1) {
+                baseProdutos[idx].preco_venda = produtoAtualizado.preco_venda;
+                baseProdutos[idx].saldo_centro = produtoAtualizado.saldo_centro;
+                baseProdutos[idx].saldo_vila = produtoAtualizado.saldo_vila;
+            }
+
+            // Dá o feedback de Sucesso e volta ao normal
+            setTimeout(() => {
+                const novoButton = document.getElementById(`btn-sincronizar-${produtoId}`);
+                if (novoButton) {
+                    novoButton.innerHTML = '✅ Atualizado!';
+                    novoButton.classList.replace('text-sky-600', 'text-emerald-600');
+                    novoButton.classList.replace('bg-sky-50', 'bg-emerald-50');
+                    setTimeout(() => {
+                        novoButton.innerHTML = originalButtonText;
+                        novoButton.classList.replace('text-emerald-600', 'text-sky-600');
+                        novoButton.classList.replace('bg-emerald-50', 'bg-sky-50');
+                        novoButton.disabled = false;
+                    }, 2500);
+                }
+            }, 50);
+        })
+        .catch(error => {
+            console.error('Erro ao forçar atualização:', error);
+            tocarSom('erro');
+
+            if (button) {
+                button.innerHTML = 'Erro!';
+                setTimeout(() => {
+                    button.innerHTML = originalButtonText;
+                    button.disabled = false;
+                }, 2000);
+            }
+        });
+}
+
+
+function obterLembretes() {
+    try {
+        const dados = JSON.parse(localStorage.getItem('gmLembretesCaixa') || '[]');
+        return Array.isArray(dados) ? dados : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function salvarListaLembretes(lista) {
+    localStorage.setItem('gmLembretesCaixa', JSON.stringify(lista));
+}
+
+function renderizarLembretes() {
+    const lembretes = obterLembretes().sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+    listaLembretes.innerHTML = '';
+    if (!lembretes.length) {
+        listaLembretes.innerHTML = '<div class="px-3 py-4 text-center text-[11px] font-bold text-slate-400">Nenhum lembrete cadastrado.</div>';
+        return;
+    }
+
+    lembretes.forEach(lembrete => {
+        const row = document.createElement('div');
+        const due = !!lembrete.disparado && !lembrete.concluido;
+        row.className = `px-3 py-2 ${due ? 'reminder-due' : ''} ${lembrete.concluido ? 'done-reminder' : ''}`;
+        row.innerHTML = `
+            <div class="flex items-start justify-between gap-2">
+                <div class="flex items-start gap-2 min-w-0">
+                    <label class="mt-0.5 flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" ${lembrete.concluido ? 'checked' : ''} onchange="alternarLembreteFeito('${lembrete.id}', this.checked)" class="w-4 h-4 accent-sky-600">
+                    </label>
+                    <div class="min-w-0">
+                        <div class="done-text text-[11px] font-black text-slate-700 uppercase truncate">${escapeHtml(lembrete.texto)}</div>
+                        <div class="text-[10px] font-bold text-slate-400">${escapeHtml(lembrete.hora || '--:--')} ${lembrete.concluido ? '• feito' : ''}</div>
+                    </div>
+                </div>
+                <button type="button" onclick="removerLembrete('${lembrete.id}')" class="text-[10px] font-black uppercase text-red-500 hover:text-red-600">Remover</button>
+            </div>
+        `;
+        listaLembretes.appendChild(row);
+    });
+}
+
+function salvarLembrete() {
+    const textoInput = document.getElementById('lembrete-texto');
+    const horaInput = document.getElementById('lembrete-hora');
+    const texto = (textoInput.value || '').trim();
+    const hora = horaInput.value || '';
+    if (!texto || !hora) {
+        alert('Preencha o lembrete e o horário.');
+        return;
+    }
+    const lista = obterLembretes();
+    lista.push({ id: String(Date.now()), texto, hora, disparado: false, data: new Date().toISOString().slice(0, 10) });
+    salvarListaLembretes(lista);
+    textoInput.value = '';
+    horaInput.value = '';
+    renderizarLembretes();
+}
+
+function removerLembrete(id) {
+    const lista = obterLembretes().filter(item => item.id !== id);
+    salvarListaLembretes(lista);
+    renderizarLembretes();
+}
+
+function alternarLembreteFeito(id, feito) {
+    const lista = obterLembretes();
+    const item = lista.find(x => x.id === id);
+    if (!item) return;
+    item.concluido = !!feito;
+    if (feito) item.disparado = false;
+    salvarListaLembretes(lista);
+    renderizarLembretes();
+}
+
+function abrirNovoLembreteRapido() {
+    document.getElementById('lembrete-texto').focus();
+}
+
+function tocarSomLembrete() {
+    try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        const audioCtx = new AudioContextClass();
+        const tons = [1320, 980, 1320, 1560, 1320, 1560, 1320];
+        tons.forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = idx % 2 === 0 ? 'square' : 'triangle';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const start = audioCtx.currentTime + idx * 0.11;
+            gain.gain.setValueAtTime(0.001, start);
+            gain.gain.exponentialRampToValueAtTime(0.26, start + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, start + 0.12);
+            osc.start(start);
+            osc.stop(start + 0.13);
+        });
+    } catch (e) {}
+}
+
+function exibirAlertaLembrete(lembrete) {
+    alertaLembreteAtual = lembrete;
+    document.getElementById('alerta-lembrete-texto').textContent = `${lembrete.hora} • ${lembrete.texto}`;
+    document.getElementById('alerta-lembrete').classList.remove('hidden');
+    tocarSomLembrete();
+}
+
+function dispensarAlertaLembrete() {
+    document.getElementById('alerta-lembrete').classList.add('hidden');
+    alertaLembreteAtual = null;
+}
+
+function verificarLembretes() {
+    const agora = new Date();
+    const hoje = agora.toISOString().slice(0, 10);
+    const hh = String(agora.getHours()).padStart(2, '0');
+    const mm = String(agora.getMinutes()).padStart(2, '0');
+    const horaAtual = `${hh}:${mm}`;
+    const lista = obterLembretes();
+    let alterou = false;
+
+    lista.forEach(item => {
+        if (item.data !== hoje) {
+            item.data = hoje;
+            item.disparado = false;
+            alterou = true;
+        }
+        if (!item.concluido && !item.disparado && item.hora <= horaAtual) {
+            item.disparado = true;
+            alterou = true;
+            exibirAlertaLembrete(item);
+        }
+    });
+
+    if (alterou) {
+        salvarListaLembretes(lista);
+        renderizarLembretes();
+    }
+}
+
+function normalizarBuscaLocal(texto) {
+    return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+function buscarProdutos(q, modo = 'normal') {
+    clearTimeout(debounceTimer);
+
+    quantidadeRapida = obterQuantidadeRapida(q);
+    const termoBruto = removerSufixoQuantidade(q);
+    const termoBusca = normalizarBuscaLocal(termoBruto);
+
+    const minChars = modo === 'scanner' ? 1 : 2;
+    if (!termoBusca || termoBusca.trim().length < minChars) {
+        limparBuscaVisual();
+        esconderStatusBusca();
+        return;
+    }
+
+    // Se já estiver baixado na memória, a busca precisa de quase 0 delay (30ms para engasgos do dedo)
+    const delay = modo === 'scanner' ? 10 : (baseProdutos.length > 0 ? 30 : 220);
+
+    debounceTimer = setTimeout(() => {
+        if (baseProdutos.length > 0) {
+            executarBuscaLocal(termoBusca, modo);
+        } else {
+            executarBuscaAPI(termoBruto, modo); // Fallback enquanto a base carrega
+        }
+    }, delay);
+}
+
+function executarBuscaLocal(termo, modo) {
+    const palavras = termo.split(/\s+/);
+    
+    let resultados = baseProdutos.filter(p => {
+        if (modo === 'scanner') {
+            return p.codigo_nfe === termo || p.codigo_barras === termo || p.busca_texto.includes(termo); 
+        }
+        return palavras.every(palavra => p.busca_texto.includes(palavra));
+    });
+
+    if (modo === 'scanner') {
+        const exato = resultados.find(p => normalizarBuscaLocal(p.codigo_nfe) === termo || normalizarBuscaLocal(p.codigo_barras || '') === termo);
+        if (exato) {
+            processarResultadosBusca([exato], modo, true);
+            return;
+        }
+    }
+
+    // RANKING INTELIGENTE: Pega pelo Top Vendas do Caixa e depois por ordem alfabética
+    resultados.sort((a, b) => {
+        const freqA = frequenciaUso[a.id] || 0;
+        const freqB = frequenciaUso[b.id] || 0;
+        if (freqA !== freqB) return freqB - freqA;
+        return a.nome.localeCompare(b.nome);
+    });
+
+    processarResultadosBusca(resultados.slice(0, 15), modo, false);
+}
+
+function executarBuscaAPI(termo, modo) {
+    mostrarStatusBusca('Buscando no banco online...', 'slate');
+    fetch("/api/buscar/?q=" + encodeURIComponent(termo))
+        .then(res => res.json())
+        .then(data => {
+            if (data.erro) throw new Error(data.erro);
+            processarResultadosBusca(data.produtos || [], modo, data.exact_barcode_match);
+        })
+        .catch(err => {
+            console.error('Erro na busca:', err);
+            processarResultadosBusca([], modo, false);
+        });
+}
+
+function processarResultadosBusca(produtosEncontrados, modo, matchExato = false) {
+    atualizarCatalogoRapido();
+
+    if (matchExato && produtosEncontrados.length === 1) {
+        const produto = produtosEncontrados[0];
+        flashScanner();
+        mostrarBannerScanner(`✅ Código lido • ${quantidadeRapida}x ${produto.nome}`);
+        addCarrinho(produto.id, produto.nome, produto.preco_venda, quantidadeRapida);
+        mostrarStatusBusca(`Código lido: ${quantidadeRapida}x ${produto.nome}`, 'emerald');
+        setTimeout(esconderStatusBusca, 1500);
+        return;
+    }
+
+    if (produtosEncontrados.length > 0) {
+        sugestoesAtuais = produtosEncontrados;
+        renderizarSugestoes();
+
+        if (produtosEncontrados.length === 1) {
+            renderDestaque(produtosEncontrados[0]);
+            similaresContainer.innerHTML = '';
+        }
+
+        mostrarStatusBusca(`${produtosEncontrados.length} produto(s) encontrado(s)`, 'slate');
+    } else {
+        autoList.classList.add('hidden');
+        destaqueContainer.innerHTML = '';
+        similaresContainer.innerHTML = '';
+        produtoEmDestaque = null;
+        mostrarStatusBusca('Nenhum produto encontrado', 'red');
+        tocarSom('erro');
+    }
+}
+
+inputBusca.addEventListener('input', function(e) {
+    const q = e.target.value;
+    indexSelecionado = -1;
+    produtoEmDestaque = null; // Evita adicionar o item anterior se o Enter for pressionado muito rápido
+
+    const agora = Date.now();
+    const diff = agora - ultimoInputTime;
+    ultimoInputTime = agora;
+
+    const textoLimpo = removerSufixoQuantidade(q);
+    const pareceCodigo = /^\d{6,}$/.test(textoLimpo); // Apenas números longos (Código de Barras EAN)
+    const digitacaoMuitoRapida = diff < 35;
+
+    clearTimeout(scannerTimer);
+
+    atualizarCatalogoRapido();
+
+    if (digitacaoMuitoRapida || pareceCodigo) {
+        bufferScanner = q.trim();
+        scannerTimer = setTimeout(() => {
+            buscarProdutos(bufferScanner, 'scanner');
+            bufferScanner = '';
+        }, 60);
+        return;
+    }
+
+    buscarProdutos(q, 'normal');
+});
+
+tipoFiltroCatalogo.addEventListener('change', () => {
+    preencherOpcoesFiltroCatalogo();
+    atualizarCatalogoRapido();
+});
+
+valorFiltroCatalogo.addEventListener('input', () => {
+    const termo = normalizarBuscaLocal(valorFiltroCatalogo.value || '');
+    if (!tipoFiltroCatalogo.value || !termo) {
+        opcoesFiltroCatalogoBox.classList.add('hidden');
+        atualizarCatalogoRapido();
+        return;
+    }
+    const todos = [...opcoesFiltroCatalogo.querySelectorAll('option')].map(o => o.value).filter(Boolean);
+    const sugestoes = todos.filter(v => normalizarBuscaLocal(v).includes(termo)).slice(0, 12);
+    renderizarSugestoesFiltro(sugestoes);
+    atualizarCatalogoRapido();
+});
+opcoesFiltroCatalogo.addEventListener('change', () => {
+    if (opcoesFiltroCatalogo.value) {
+        valorFiltroCatalogo.value = opcoesFiltroCatalogo.value;
+        opcoesFiltroCatalogoBox.classList.add('hidden');
+        atualizarCatalogoRapido();
+    }
+});
+valorFiltroCatalogo.addEventListener('focus', () => {
+    if (!tipoFiltroCatalogo.value) {
+        opcoesFiltroCatalogoBox.classList.add('hidden');
+        return;
+    }
+    const todos = [...opcoesFiltroCatalogo.querySelectorAll('option')].map(o => o.value).filter(Boolean);
+    if (todos.length) renderizarSugestoesFiltro(todos.slice(0, 12));
+    else opcoesFiltroCatalogoBox.classList.add('hidden');
+});
+document.addEventListener('click', (e) => {
+    if (!opcoesFiltroCatalogoBox.contains(e.target) && e.target !== valorFiltroCatalogo) opcoesFiltroCatalogoBox.classList.add('hidden');
+});
+document.getElementById('btn-limpar-filtro-catalogo').addEventListener('click', () => {
+    tipoFiltroCatalogo.value = '';
+    valorFiltroCatalogo.value = '';
+    opcoesFiltroCatalogo.innerHTML = '';
+    opcoesFiltroCatalogoBox.classList.add('hidden');
+    filtroCatalogoAtivo.classList.add('hidden');
+    atualizarCatalogoRapido();
+});
+
+inputBusca.addEventListener('keydown', function(e) {
+    const itens = autoList.querySelectorAll('.suggestion-item');
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!itens.length) return;
+        indexSelecionado = (indexSelecionado + 1) % itens.length;
+        atualizarSelecaoVisual(itens);
+    }
+    else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!itens.length) return;
+        indexSelecionado = (indexSelecionado - 1 + itens.length) % itens.length;
+        atualizarSelecaoVisual(itens);
+    }
+    else if (e.key === 'Enter') {
+        e.preventDefault();
+
+        clearTimeout(scannerTimer); // Cancela o cronômetro do leitor
+        bufferScanner = ''; // Limpa a memória do leitor
+
+        quantidadeRapida = obterQuantidadeRapida(inputBusca.value);
+
+        if (!autoList.classList.contains('hidden')) {
+            if (indexSelecionado > -1 && itens[indexSelecionado]) {
+                itens[indexSelecionado].click();
+            } else if (itens.length > 0) {
+                itens[0].click();
+            }
+        } else if (produtoEmDestaque) {
+            addCarrinho(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.preco_venda, quantidadeRapida);
+        } else if (inputBusca.value.trim().length > 0) {
+            buscarProdutos(inputBusca.value.trim(), 'scanner');
+        }
+    }
+    else if (e.key === 'Escape') {
+        e.preventDefault();
+        limparBuscaVisual();
+        inputBusca.value = '';
+        esconderStatusBusca();
+        quantidadeRapida = 1;
+    }
+    else if (e.key === 'Backspace') {
+        if (!inputBusca.value.trim() && carrinho.length) {
+            e.preventDefault();
+            removerUltimoItem();
+        }
+    }
+});
+
+inputCliente.addEventListener('input', function(e) {
+    const q = e.target.value;
+    clienteSelecionado = null;
+    indexSelecionadoCliente = -1;
+    clearTimeout(clienteDebounceTimer);
+
+    if (q.length < 2) {
+        clienteResults.classList.add('hidden');
+        return;
+    }
+
+    clienteDebounceTimer = setTimeout(() => {
+        fetch(`/api/buscar-clientes/?q=${encodeURIComponent(q)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.clientes && data.clientes.length > 0) {
+                    renderizarClientes(data.clientes);
+                } else {
+                    clienteResults.classList.add('hidden');
+                }
+            })
+            .catch(err => console.error('Erro ao buscar clientes:', err));
+    }, 250);
+});
+
+inputCliente.addEventListener('keydown', function(e) {
+    const itens = clienteResults.querySelectorAll('.cliente-suggestion-item');
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!itens.length) return;
+        indexSelecionadoCliente = (indexSelecionadoCliente + 1) % itens.length;
+        atualizarSelecaoVisualCliente(itens);
+    }
+    else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!itens.length) return;
+        indexSelecionadoCliente = (indexSelecionadoCliente - 1 + itens.length) % itens.length;
+        atualizarSelecaoVisualCliente(itens);
+    }
+    else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (indexSelecionadoCliente > -1 && itens[indexSelecionadoCliente]) {
+            itens[indexSelecionadoCliente].click();
+        } else if (itens.length > 0) {
+            itens[0].click();
+        }
+    }
+    else if (e.key === 'Escape') {
+        e.preventDefault();
+        clienteResults.classList.add('hidden');
+    }
+});
+
+function renderizarClientes(clientes) {
+    clienteResults.innerHTML = '';
+
+    clientes.forEach(cliente => {
+        const div = document.createElement('div');
+        div.className = "cliente-suggestion-item p-3 cursor-pointer border-b border-slate-50 hover:bg-slate-100 transition-all uppercase";
+        div.innerHTML = `
+            <div class="font-bold text-slate-700">${escapeHtml(cliente.nome)}</div>
+            <div class="text-[11px] text-slate-400 italic">${escapeHtml(cliente.documento || '')}</div>
+        `;
+
+        div.onclick = () => {
+            inputCliente.value = cliente.nome;
+            clienteSelecionado = cliente;
+            clienteResults.classList.add('hidden');
+            focarBuscaProduto();
+        };
+
+        clienteResults.appendChild(div);
+    });
+
+    clienteResults.classList.remove('hidden');
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'F2') {
+        e.preventDefault();
+        focarBuscaProduto();
+    }
+    else if (e.key === 'F3') {
+        e.preventDefault();
+        focarBuscaCliente();
+    }
+    else if (e.key === 'F4') {
+        e.preventDefault();
+        limparCarrinho();
+    }
+    else if (e.key === 'F6') {
+        e.preventDefault();
+        abrirHistoricoLocal();
+    }
+    else if (e.key === 'F7') {
+        e.preventDefault();
+        if (modalResumo.classList.contains('hidden')) abrirResumo();
+        else confirmarEnvio();
+    }
+    else if (e.key === 'F8') {
+        e.preventDefault();
+        if (!modalResumo.classList.contains('hidden')) imprimirOrcamento();
+    }
+    else if (e.key === 'F9') {
+        e.preventDefault();
+        if (!modalResumo.classList.contains('hidden')) copiarMensagemPedido();
+        else if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_erp_centro, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'centro');
+    }
+    else if (e.key === 'F5') {
+        e.preventDefault();
+        if (produtoEmDestaque) forcarAtualizacao(produtoEmDestaque.id);
+    }
+    else if (e.key === 'F10') {
+        e.preventDefault();
+        if (!modalResumo.classList.contains('hidden')) enviarPedidoERP();
+        else if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_erp_vila, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'vila');
+    }
+    else if (e.key === 'Escape') {
+        if (!document.getElementById('modal-historico-vendas').classList.contains('hidden')) {
+            fecharHistoricoLocal();
+        } else if (!modalResumo.classList.contains('hidden')) {
+            fecharResumo();
+        } else {
+            autoList.classList.add('hidden');
+            clienteResults.classList.add('hidden');
+        }
+    }
+});
+
+document.addEventListener('click', (e) => {
+    if (opcoesFiltroCatalogoBox && !opcoesFiltroCatalogoBox.contains(e.target) && e.target !== valorFiltroCatalogo) {
+        opcoesFiltroCatalogoBox.classList.add('hidden');
+    }
+    if (!inputBusca.contains(e.target) && !autoList.contains(e.target)) {
+        autoList.classList.add('hidden');
+    }
+    if (!inputCliente.contains(e.target) && !clienteResults.contains(e.target)) {
+        clienteResults.classList.add('hidden');
+    }
+});
+
+function carregarBaseLocal() {
+    mostrarStatusBusca('Baixando produtos para memória local...', 'orange');
+    fetch('/api/todos-produtos/')
+        .then(r => r.json())
+        .then(d => {
+            if(d.produtos) {
+                baseProdutos = prepararBaseProdutos(d.produtos);
+                mostrarStatusBusca(`Base local pronta com ${baseProdutos.length} itens`, 'emerald');
+                preencherOpcoesFiltroCatalogo();
+                atualizarCatalogoRapido();
+                setTimeout(esconderStatusBusca, 2500);
+            }
+        })
+        .catch(e => {
+            console.error('Falha na carga local:', e);
+        });
+}
+
+window.addEventListener('load', () => {
+    inputCliente.value = 'Consumidor Final';
+    focarBuscaProduto();
+    atualizarCarrinho();
+    renderizarHistoricoResumido();
+    renderizarLembretes();
+    atualizarCatalogoRapido();
+    carregarBaseLocal();
+    verificarLembretes();
+    setInterval(verificarLembretes, 15000);
+});
+</script>
+</body>
+</html>
