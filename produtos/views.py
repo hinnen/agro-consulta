@@ -292,21 +292,116 @@ def _metricas_vendas_agregadas_por_produto(db, dias_media: int):
     return media_tot, w0, w1
 
 
+def _merge_ultima_entrada_entrada_nota_fiscal_mov_estoque(db, agregado, since, names):
+    """
+    Última entrada vinculada a NF-e: registros de movimentação de estoque com tipo
+    EntradaNotaFiscal (como no painel do ERP). Mescla em agregado competindo pela
+    data mais recente por produto.
+    """
+    candidatas = []
+    for n in (
+        "DtoMovimentacaoEstoque",
+        "DtoMovimentacaoEstoqueProduto",
+        "DtoHistoricoMovimentacaoEstoque",
+        "DtoLogMovimentacaoEstoque",
+        "DtoRegistroMovimentacaoEstoque",
+        "MovimentacaoEstoque",
+    ):
+        if n in names:
+            candidatas.append(n)
+    for n in sorted(names):
+        if len(candidatas) >= 14:
+            break
+        low = n.lower()
+        if "moviment" in low and "estoq" in low and n not in candidatas:
+            candidatas.append(n)
+
+    tipo_entrada_nfe = {"$regex": r"^EntradaNotaFiscal$", "$options": "i"}
+    match_tipo = {
+        "$or": [
+            {"Movimentacao": tipo_entrada_nfe},
+            {"TipoMovimentacao": tipo_entrada_nfe},
+            {"TipoMovimentacaoEstoque": tipo_entrada_nfe},
+        ]
+    }
+
+    def _absorver(pid, dt, qtd):
+        if not pid or pid in ("None", "null"):
+            return
+        try:
+            qtd = float(qtd or 0)
+        except (TypeError, ValueError):
+            qtd = 0.0
+        prev = agregado.get(pid)
+        if prev is None or dt > prev[0]:
+            agregado[pid] = (dt, qtd)
+        elif dt == prev[0]:
+            agregado[pid] = (dt, prev[1] + qtd)
+
+    for col_name in candidatas:
+        try:
+            coll = db[col_name]
+            match = {
+                "$and": [
+                    {
+                        "$or": [
+                            {"Data": {"$gte": since}},
+                            {"DataMovimentacao": {"$gte": since}},
+                        ]
+                    },
+                    {"Cancelada": {"$ne": True}},
+                    match_tipo,
+                ]
+            }
+            pipeline = [
+                {"$match": match},
+                {
+                    "$addFields": {
+                        "_ord": {"$ifNull": ["$Data", "$DataMovimentacao"]},
+                    }
+                },
+                {"$match": {"_ord": {"$gte": since}}},
+                {"$sort": {"_ord": -1}},
+                {
+                    "$group": {
+                        "_id": "$ProdutoID",
+                        "ultimaData": {"$first": "$_ord"},
+                        "qtd": {
+                            "$first": {
+                                "$ifNull": [
+                                    "$Quantidade",
+                                    {"$ifNull": ["$Qtd", 0]},
+                                ]
+                            }
+                        },
+                    }
+                },
+            ]
+            for row in coll.aggregate(pipeline, allowDiskUse=True):
+                pid_raw = row.get("_id")
+                pid = str(pid_raw) if pid_raw is not None else ""
+                _absorver(pid, row.get("ultimaData"), row.get("qtd"))
+        except Exception as exc:
+            logger.warning("ultima_entrada EntradaNotaFiscal %s: %s", col_name, exc)
+
+
 def _ultima_entrada_mercadoria_por_produto(db):
     """
-    Melhor esforço: DtoCompra*, DtoPedidoCompra*, DtoNotaEntrada* (se existirem).
+    Melhor esforço: movimentação EntradaNotaFiscal no estoque; depois DtoCompra*,
+    DtoPedidoCompra*, DtoNotaEntrada* (se existirem).
     Retorno: { pid: {"data": iso str, "qtd": float} }
     """
     agregado = {}
     try:
         names = set(db.list_collection_names())
+        since = datetime.now() - timedelta(days=800)
+        _merge_ultima_entrada_entrada_nota_fiscal_mov_estoque(db, agregado, since, names)
         pares = [
             ("DtoCompraProduto", "CompraID", "DtoCompra"),
             ("DtoPedidoCompraProduto", "PedidoCompraID", "DtoPedidoCompra"),
             ("DtoNotaEntradaProduto", "NotaEntradaID", "DtoNotaEntrada"),
             ("DtoEntradaMercadoriaProduto", "EntradaID", "DtoEntradaMercadoria"),
         ]
-        since = datetime.now() - timedelta(days=800)
         for col_p, fk, col_h in pares:
             if col_p not in names or col_h not in names:
                 continue
