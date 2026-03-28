@@ -410,6 +410,9 @@
                         <option value="1">Agro Mais — Principal</option>
                     </select>
                     <div id="pdv-clock" class="text-xs font-semibold text-slate-500 tabular-nums hidden sm:block" title="Data e hora local"></div>
+                    <button type="button" id="btn-atualizar-catalogo-pdv" class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0" title="Forçar atualização do cadastro (preços, nomes, códigos). No servidor o catálogo renova no máximo 1x por dia civil; estoque atualiza em segundo plano (~8s)." aria-label="Atualizar cadastro de produtos">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                    </button>
                     <button type="button" onclick="abrirModalLembretes()" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-950 text-[11px] font-black uppercase tracking-wide hover:bg-amber-100/90 shadow-sm shrink-0" title="Lembretes do caixa — abre janela para criar alertas por horário (som e aviso no canto da tela).">
                         <span class="text-base leading-none" aria-hidden="true">⏰</span>
                         <span class="hidden sm:inline">Lembretes</span>
@@ -681,6 +684,10 @@ let ultimoTermoBuscaPalavras = [];
 const BUSCA_SUG_LIM_INI = 15;
 const BUSCA_SUG_LIM_PAG = 25;
 const BUSCA_SUG_LIM_MAX = 60;
+
+/** Sincronização de saldos em segundo plano (servidor usa cache ~5s para proteger o Mongo). */
+const PDV_POLL_SALDOS_MS = 8000;
+let pdvPollSaldosTimer = null;
 
 /** Igual ao cadastro no ERP (com reticências finais). */
 const CLIENTE_PADRAO_PDV = 'CONSUMIDOR NÃO IDENTIFICADO...';
@@ -2786,6 +2793,110 @@ document.addEventListener('click', (e) => {
     }
 });
 
+function sincronizarSaldosNasListasVisiveis() {
+    const patch = (arr) => {
+        if (!Array.isArray(arr)) return;
+        arr.forEach((s) => {
+            const u = baseProdutos.find(x => String(x.id) === String(s.id));
+            if (!u) return;
+            s.saldo_centro = u.saldo_centro;
+            s.saldo_vila = u.saldo_vila;
+            s.saldo_erp_centro = u.saldo_erp_centro;
+            s.saldo_erp_vila = u.saldo_erp_vila;
+        });
+    };
+    patch(sugestoesAtuais);
+    patch(sugestoesBuscaCompletas);
+    if (produtoEmDestaque) {
+        const u = baseProdutos.find(x => String(x.id) === String(produtoEmDestaque.id));
+        if (u) {
+            produtoEmDestaque = {
+                ...produtoEmDestaque,
+                saldo_centro: u.saldo_centro,
+                saldo_vila: u.saldo_vila,
+                saldo_erp_centro: u.saldo_erp_centro,
+                saldo_erp_vila: u.saldo_erp_vila,
+            };
+        }
+    }
+}
+
+function aplicarSaldosNaBasePdv(rows) {
+    if (!Array.isArray(rows) || rows.length === 0 || !baseProdutos.length) return false;
+    const map = new Map();
+    rows.forEach((r) => {
+        if (r && r[0] != null && r.length >= 5) map.set(String(r[0]), r);
+    });
+    let mudou = false;
+    baseProdutos.forEach((p) => {
+        const row = map.get(String(p.id));
+        if (!row) return;
+        const nc = Number(row[1]);
+        const nv = Number(row[2]);
+        const nec = Number(row[3]);
+        const nev = Number(row[4]);
+        if (
+            Number(p.saldo_centro) !== nc ||
+            Number(p.saldo_vila) !== nv ||
+            Number(p.saldo_erp_centro) !== nec ||
+            Number(p.saldo_erp_vila) !== nev
+        ) {
+            mudou = true;
+        }
+        p.saldo_centro = nc;
+        p.saldo_vila = nv;
+        p.saldo_erp_centro = nec;
+        p.saldo_erp_vila = nev;
+    });
+    if (mudou) {
+        sincronizarSaldosNasListasVisiveis();
+        if (sugestoesAtuais.length) renderizarSugestoes();
+    }
+    return mudou;
+}
+
+function pollSaldoPdvUmaVez() {
+    if (!baseProdutos.length) return;
+    if (document.visibilityState !== 'visible') return;
+    fetch('{% url "api_pdv_saldos" %}')
+        .then((r) => r.json())
+        .then((d) => {
+            if (d.erro || !d.rows) return;
+            aplicarSaldosNaBasePdv(d.rows);
+        })
+        .catch(() => {});
+}
+
+function iniciarPollSaldosPdv() {
+    if (pdvPollSaldosTimer) clearInterval(pdvPollSaldosTimer);
+    pdvPollSaldosTimer = setInterval(pollSaldoPdvUmaVez, PDV_POLL_SALDOS_MS);
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') pollSaldoPdvUmaVez();
+});
+
+document.getElementById('btn-atualizar-catalogo-pdv')?.addEventListener('click', () => {
+    const btn = document.getElementById('btn-atualizar-catalogo-pdv');
+    if (btn) {
+        btn.classList.add('opacity-40', 'pointer-events-none');
+    }
+    fetch('{% url "api_pdv_invalidar_catalogo" %}')
+        .then((r) => r.json())
+        .then(() => {
+            carregarBaseLocal();
+        })
+        .catch((e) => {
+            console.error(e);
+            carregarBaseLocal();
+        })
+        .finally(() => {
+            if (btn) {
+                setTimeout(() => btn.classList.remove('opacity-40', 'pointer-events-none'), 800);
+            }
+        });
+});
+
 function carregarBaseLocal() {
     mostrarStatusBusca('Baixando produtos para memória local...', 'orange');
     fetch('/api/todos-produtos/')
@@ -2796,6 +2907,8 @@ function carregarBaseLocal() {
                 mostrarStatusBusca(`Base local pronta com ${baseProdutos.length} itens`, 'emerald');
                 preencherOpcoesFiltroCatalogo();
                 atualizarCatalogoRapido();
+                iniciarPollSaldosPdv();
+                setTimeout(pollSaldoPdvUmaVez, 2500);
                 setTimeout(esconderStatusBusca, 2500);
             }
         })

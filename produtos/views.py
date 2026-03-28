@@ -141,6 +141,61 @@ def _mapear_estoques_por_produto(estoques, client):
     return mapa
 
 
+def _mapa_saldos_finais_por_produtos(db, client, p_ids):
+    """
+    Para cada produto em p_ids: saldos ERP (centro/vila) + ajuste rápido Django (PIN).
+    Retorno: { pid_str: { saldo_centro, saldo_vila, saldo_erp_centro, saldo_erp_vila } }.
+    """
+    p_ids = [str(x) for x in p_ids if x is not None]
+    if not p_ids:
+        return {}
+    estoques = list(
+        db[client.col_e].find(
+            {"ProdutoID": {"$in": p_ids}},
+            {"ProdutoID": 1, "DepositoID": 1, "Saldo": 1, "_id": 0},
+        )
+    )
+    estoque_map = _mapear_estoques_por_produto(estoques, client)
+    ajustes_bd = AjusteRapidoEstoque.objects.all().order_by(
+        "produto_externo_id", "deposito", "-criado_em"
+    )
+    ajustes_map = {}
+    for aj in ajustes_bd:
+        if (aj.produto_externo_id, aj.deposito) not in ajustes_map:
+            ajustes_map[(aj.produto_externo_id, aj.deposito)] = aj
+    out = {}
+    for pid in p_ids:
+        s_c = float(estoque_map.get(pid, {}).get("centro", 0.0))
+        s_v = float(estoque_map.get(pid, {}).get("vila", 0.0))
+        aj_c = ajustes_map.get((pid, "centro"))
+        aj_v = ajustes_map.get((pid, "vila"))
+        saldo_f_c = (
+            float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia))
+            if aj_c
+            else s_c
+        )
+        saldo_f_v = (
+            float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia))
+            if aj_v
+            else s_v
+        )
+        out[pid] = {
+            "saldo_centro": round(saldo_f_c, 2),
+            "saldo_vila": round(saldo_f_v, 2),
+            "saldo_erp_centro": s_c,
+            "saldo_erp_vila": s_v,
+        }
+    return out
+
+
+# Catálogo PDV: um snapshot por dia civil (TIME_ZONE) + invalidação manual. Estoque ao vivo via /api/pdv/saldos/.
+CATALOGO_PDV_CACHE_ENTRY_KEY = "pdv_catalogo_produtos_por_dia_v1"
+
+# Snapshot de saldos: vários caixas/abas compartilham; TTL curto protege o Mongo sem atrasar o PDV.
+_SALDOS_PDV_CACHE_KEY = "pdv_saldos_compacto_snapshot_v1"
+_SALDOS_PDV_CACHE_TTL = 5
+
+
 # --- AUXILIARES DE IMAGEM ---
 def _formatar_url_imagem(img_str):
     img_str = str(img_str or "").strip()
@@ -683,6 +738,7 @@ def api_ajustar_estoque(request):
                 saldo_erp_referencia=Decimal(request.POST.get("saldo_atual", "0")),
                 saldo_informado=Decimal(request.POST.get("novo_saldo", "0")),
             )
+            _invalidar_cache_saldos_pdv()
             cache.clear()
             return JsonResponse({"ok": True})
         except Exception as e:
@@ -924,25 +980,47 @@ def _media_diaria_vendas_por_produto(db, dias=30):
     return out
 
 
-_CACHE_MEDIAS_VENDA_30D = "pdv_mapa_medias_venda_diaria_30d_v1"
+# Entrada diária: {"day": "YYYY-MM-DD" (localdate Django), "map": {produto_id: float}}
+_CACHE_MEDIAS_VENDA_ENTRY = "pdv_mapa_medias_venda_diaria_30d_entry_v2"
 
 
-def _obter_mapa_medias_venda_cache(db, timeout=900):
-    """Mapa produto_id → média diária (30d), com cache curto para não recalcular a cada busca."""
-    m = cache.get(_CACHE_MEDIAS_VENDA_30D)
-    if m is None:
-        m = _media_diaria_vendas_por_produto(db, dias=30)
-        cache.set(_CACHE_MEDIAS_VENDA_30D, m, timeout=timeout)
+def _obter_mapa_medias_venda_cache(db):
+    """
+    Médias de venda (30d) recalculadas no máximo 1x por dia civil.
+    A troca de dia usa TIME_ZONE do Django (ex.: America/Sao_Paulo): no primeiro
+    request após meia-noite local o mapa é refeito; não há job fixo às 00:00.
+    """
+    hoje = timezone.localdate().isoformat()
+    entry = cache.get(_CACHE_MEDIAS_VENDA_ENTRY)
+    if (
+        entry
+        and isinstance(entry, dict)
+        and entry.get("day") == hoje
+        and isinstance(entry.get("map"), dict)
+    ):
+        return entry["map"]
+    m = _media_diaria_vendas_por_produto(db, dias=30)
+    cache.set(
+        _CACHE_MEDIAS_VENDA_ENTRY,
+        {"day": hoje, "map": m},
+        timeout=86400 * 2,
+    )
     return m
 
 
 # --- CARGA INICIAL E APIs AUXILIARES ---
 @require_GET
 def api_todos_produtos_local(request):
-    cache_key = "carga_inicial_produtos_todos_v26"
-    cached_data = cache.get(cache_key)
-    if cached_data:
-        return JsonResponse(cached_data)
+    hoje_cat = timezone.localdate().isoformat()
+    entry_cat = cache.get(CATALOGO_PDV_CACHE_ENTRY_KEY)
+    if (
+        entry_cat
+        and isinstance(entry_cat, dict)
+        and entry_cat.get("day") == hoje_cat
+        and isinstance(entry_cat.get("body"), dict)
+        and "produtos" in entry_cat["body"]
+    ):
+        return JsonResponse(entry_cat["body"])
 
     client, db = obter_conexao_mongo()
     if db is None:
@@ -953,52 +1031,18 @@ def api_todos_produtos_local(request):
         produtos = list(db[client.col_p].find(query))
         p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
 
-        estoques = list(
-            db[client.col_e].find(
-                {"ProdutoID": {"$in": p_ids}},
-                {"ProdutoID": 1, "DepositoID": 1, "Saldo": 1, "_id": 0},
-            )
-        )
-
-        ajustes_bd = AjusteRapidoEstoque.objects.all().order_by(
-            "produto_externo_id", "deposito", "-criado_em"
-        )
-        ajustes_map = {}
-        for aj in ajustes_bd:
-            if (aj.produto_externo_id, aj.deposito) not in ajustes_map:
-                ajustes_map[(aj.produto_externo_id, aj.deposito)] = aj
-
-        est_map = {}
-        for est in estoques:
-            pid = str(est.get("ProdutoID"))
-            if pid not in est_map:
-                est_map[pid] = {"c": 0.0, "v": 0.0}
-            did = str(est.get("DepositoID") or "")
-            if did == client.DEPOSITO_CENTRO:
-                est_map[pid]["c"] += float(est.get("Saldo") or 0)
-            elif did == client.DEPOSITO_VILA_ELIAS:
-                est_map[pid]["v"] += float(est.get("Saldo") or 0)
+        saldos_por_pid = _mapa_saldos_finais_por_produtos(db, client, p_ids)
 
         medias_venda = _obter_mapa_medias_venda_cache(db)
 
         res = []
         for p in produtos:
             pid = str(p.get("Id") or p["_id"])
-            s_c = est_map.get(pid, {}).get("c", 0.0)
-            s_v = est_map.get(pid, {}).get("v", 0.0)
-
-            aj_c = ajustes_map.get((pid, "centro"))
-            aj_v = ajustes_map.get((pid, "vila"))
-            saldo_f_c = (
-                float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia))
-                if aj_c
-                else s_c
-            )
-            saldo_f_v = (
-                float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia))
-                if aj_v
-                else s_v
-            )
+            sp = saldos_por_pid.get(pid) or {}
+            saldo_f_c = float(sp.get("saldo_centro", 0.0))
+            saldo_f_v = float(sp.get("saldo_vila", 0.0))
+            s_c = float(sp.get("saldo_erp_centro", 0.0))
+            s_v = float(sp.get("saldo_erp_vila", 0.0))
 
             partes = [
                 p.get("Nome"),
@@ -1055,8 +1099,60 @@ def api_todos_produtos_local(request):
             })
 
         resultado_final = {"produtos": res}
-        cache.set(cache_key, resultado_final, timeout=3600)
+        cache.set(
+            CATALOGO_PDV_CACHE_ENTRY_KEY,
+            {"day": hoje_cat, "body": resultado_final},
+            timeout=86400 * 2,
+        )
         return JsonResponse(resultado_final)
+    except Exception as e:
+        return JsonResponse({"erro": str(e)}, status=500)
+
+
+@require_GET
+def api_pdv_invalidar_cache_catalogo(request):
+    """Limpa o snapshot diário do catálogo; próximo GET /api/todos-produtos/ refaz do Mongo."""
+    cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+    return JsonResponse({"ok": True})
+
+
+def _invalidar_cache_saldos_pdv():
+    cache.delete(_SALDOS_PDV_CACHE_KEY)
+
+
+@require_GET
+def api_pdv_saldos_compacto(request):
+    """
+    Saldos atuais (ERP + ajuste PIN) para todos os produtos ativos — payload compacto.
+    Cache de poucos segundos: muitas abas/caixas batem o mesmo snapshot e aliviam o Mongo.
+    """
+    cached = cache.get(_SALDOS_PDV_CACHE_KEY)
+    if cached is not None and isinstance(cached, dict) and "rows" in cached:
+        return JsonResponse(cached)
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Erro conexao"}, status=500)
+    try:
+        query = {"CadastroInativo": {"$ne": True}}
+        produtos = list(db[client.col_p].find(query, {"Id": 1, "_id": 1}))
+        p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
+        saldos = _mapa_saldos_finais_por_produtos(db, client, p_ids)
+        rows = []
+        for pid in p_ids:
+            sp = saldos.get(pid) or {}
+            rows.append(
+                [
+                    pid,
+                    sp.get("saldo_centro", 0.0),
+                    sp.get("saldo_vila", 0.0),
+                    sp.get("saldo_erp_centro", 0.0),
+                    sp.get("saldo_erp_vila", 0.0),
+                ]
+            )
+        payload = {"v": 1, "rows": rows}
+        cache.set(_SALDOS_PDV_CACHE_KEY, payload, timeout=_SALDOS_PDV_CACHE_TTL)
+        return JsonResponse(payload)
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
 
