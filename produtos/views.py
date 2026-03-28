@@ -1,10 +1,12 @@
 import json
+import logging
 import re
 import unicodedata
 from decimal import Decimal
 
 from bson import ObjectId
 
+from django.conf import settings
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.core.cache import cache
@@ -17,6 +19,8 @@ from integracoes.texto import normalizar, expandir_tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 from integracoes.venda_erp_api import VendaERPAPIClient
 
+
+logger = logging.getLogger(__name__)
 
 # --- CONEXÃO MONGO ---
 _cached_mongo_client = None
@@ -208,6 +212,106 @@ def _extrair_imagem_produto(p, mapa_imagens, pid):
                 return i
 
     return ""
+
+
+def _heuristic_custo_maximo_doc(p, preco_custo_val, preco_venda_val):
+    """Varre o documento do produto em busca do maior valor plausível de custo (taxas, frete, etc.)."""
+    max_val = preco_custo_val
+
+    def traverse(obj):
+        nonlocal max_val
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                k_lower = k.lower()
+                bad_keys = [
+                    "venda", "lucro", "margem", "id", "codigo", "ean", "ncm", "cest",
+                    "peso", "qtd", "quantidade", "estoque", "altura", "largura",
+                    "comprimento", "profundidade", "medida", "volume", "nfe",
+                    "cfop", "gtin", "dia", "mes", "ano", "prazo", "validade",
+                    "caixa", "unidade", "fator", "tabela", "atacado", "varejo", "promocao",
+                    "percentual", "porcentagem", "aliquota", "taxa",
+                ]
+                if any(x in k_lower for x in bad_keys):
+                    continue
+
+                if isinstance(v, (dict, list)):
+                    traverse(v)
+                else:
+                    good_cost_indicators = [
+                        "custo", "compra", "reposicao", "fornecedor", "entrada",
+                        "valor", "preco", "total", "final", "bruto", "liquido",
+                        "medio", "acrescimo", "despesa", "frete", "seguro",
+                        "imposto", "tributo", "icms", "ipi", "pis", "cofins",
+                        "real", "efetivo",
+                    ]
+                    if any(x in k_lower for x in good_cost_indicators):
+                        if v is not None:
+                            try:
+                                val_f = float(str(v).replace(",", "."))
+                                if preco_venda_val > 0 and val_f == preco_venda_val:
+                                    continue
+                                if preco_custo_val > 0 and preco_custo_val <= val_f <= (preco_custo_val * 5):
+                                    if val_f > max_val:
+                                        max_val = val_f
+                                elif preco_custo_val == 0 and 0 < val_f < 100000:
+                                    if val_f > max_val:
+                                        max_val = val_f
+                            except (ValueError, TypeError):
+                                pass
+        elif isinstance(obj, list):
+            for item in obj:
+                traverse(item)
+
+    traverse(p)
+    return max_val
+
+
+def _custo_final_explicito_campos(p, preco_venda_val):
+    """Valores explícitos de custo final no cadastro (quando o ERP já grava o custo líquido/c/ imposto)."""
+    chaves = (
+        "PrecoCustoFinal",
+        "ValorCustoFinal",
+        "CustoFinal",
+        "PrecoCustoComImposto",
+        "PrecoCustoTotal",
+        "ValorCustoComImposto",
+        "CustoMedioCompra",
+        "PrecoReposicao",
+        "ValorCustoCompra",
+        "CustoCompraFinal",
+        "ValorCustoReposicao",
+    )
+    vals = []
+    for key in chaves:
+        raw = p.get(key)
+        if raw is None or raw == "":
+            continue
+        try:
+            v = float(str(raw).replace(",", "."))
+            if v <= 0:
+                continue
+            if preco_venda_val > 0 and abs(v - preco_venda_val) < 0.01:
+                continue
+            vals.append(v)
+        except (ValueError, TypeError):
+            continue
+    return max(vals) if vals else None
+
+
+def _custos_compra_produto(p):
+    """
+    Retorna custo base (nota) e custo final para compra (base + taxas/impostos quando identificáveis).
+    """
+    preco_bruto = p.get("PrecoCusto") or p.get("ValorCusto") or 0
+    try:
+        preco_custo_val = float(str(preco_bruto).replace(",", "."))
+    except ValueError:
+        preco_custo_val = 0.0
+    preco_venda_val = float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
+    heuristic = _heuristic_custo_maximo_doc(p, preco_custo_val, preco_venda_val)
+    explicit = _custo_final_explicito_campos(p, preco_venda_val)
+    final = max(heuristic, explicit or 0.0)
+    return {"preco_custo": preco_custo_val, "preco_custo_final": final}
 
 
 # --- VIEWS DE PÁGINA ---
@@ -409,7 +513,7 @@ def motor_de_busca_agro(termo_original, db, client, limit=20):
 def api_buscar_produtos(request):
     q = request.GET.get("q", "").strip()
     client, db = obter_conexao_mongo()
-    if not db or not q:
+    if db is None or not q:
         return JsonResponse({"produtos": []})
 
     try:
@@ -471,7 +575,7 @@ def api_buscar_produtos(request):
 def api_buscar_compras(request):
     q = request.GET.get("q", "").strip()
     client, db = obter_conexao_mongo()
-    if not db or not q:
+    if db is None or not q:
         return JsonResponse({"produtos": []})
 
     try:
@@ -503,7 +607,7 @@ def api_buscar_compras(request):
                 if av else saldo_vila_erp
             )
 
-            custo = float(str(p.get("PrecoCusto") or p.get("ValorCusto") or 0).replace(",", "."))
+            custos = _custos_compra_produto(p)
             preco_venda = float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
             codigo = p.get("Codigo") or ""
             codigo_nfe = p.get("CodigoNFe") or codigo or ""
@@ -516,8 +620,9 @@ def api_buscar_compras(request):
                 "codigo": codigo,
                 "codigo_nfe": codigo_nfe,
                 "codigo_barras": codigo_barras,
-                "preco_custo": custo,
-                "preco_custo_acrescimo": custo,
+                "preco_custo": custos["preco_custo"],
+                "preco_custo_acrescimo": custos["preco_custo_final"],
+                "preco_custo_final": custos["preco_custo_final"],
                 "preco_venda": preco_venda,
                 "imagem": _formatar_url_imagem(_extrair_imagem_produto(p, {}, pid)),
                 "saldo_centro": round(saldo_centro, 2),
@@ -563,6 +668,12 @@ def api_ajustar_estoque(request):
     return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
 
 
+def _json_legivel(val):
+    if isinstance(val, (dict, list)):
+        return json.dumps(val, ensure_ascii=False)
+    return str(val)
+
+
 @require_POST
 def api_enviar_pedido_erp(request):
     try:
@@ -572,11 +683,54 @@ def api_enviar_pedido_erp(request):
         dep_id = ""
         emp_id = ""
 
-        if db is not None:
-            est = db[client_m.col_e].find_one({"Deposito": {"$regex": "centro", "$options": "i"}})
+        if db is not None and client_m is not None:
+            est = db[client_m.col_e].find_one({"DepositoID": client_m.DEPOSITO_CENTRO})
             if est:
-                dep_id = str(est.get("DepositoID"))
-                emp_id = str(est.get("EmpresaID"))
+                dep_id = str(est.get("DepositoID") or "")
+                emp_id = str(est.get("EmpresaID") or "")
+
+        integ = (
+            IntegracaoERP.objects.filter(ativo=True, tipo_erp="venda_erp")
+            .order_by("-pk")
+            .first()
+        )
+        api_client = VendaERPAPIClient(
+            base_url=(integ.url_base.strip() if integ and integ.url_base else None),
+            token=(integ.token.strip() if integ and integ.token else None),
+        )
+
+        # Venda ERP (ASP.NET / JSON camelCase): espera "items" e chaves camelCase — não "Itens"/PascalCase.
+        raw_itens = data.get("itens", [])
+        if not isinstance(raw_itens, list):
+            raw_itens = []
+
+        linhas = []
+        for i in raw_itens:
+            if not isinstance(i, dict):
+                continue
+            pid = str(i.get("id") or "").strip()
+            if not pid:
+                continue
+            qtd = float(i.get("qtd") or 0)
+            vu = float(i.get("preco") or 0)
+            nome = str(i.get("nome") or "").strip()
+            linhas.append(
+                {
+                    "produtoID": pid,
+                    "codigo": pid,
+                    "unidade": "UN",
+                    "descricao": nome,
+                    "quantidade": qtd,
+                    "valorUnitario": vu,
+                    "valorTotal": round(qtd * vu, 2),
+                }
+            )
+
+        if not linhas:
+            return JsonResponse(
+                {"ok": False, "erro": "Nenhum item válido para enviar (verifique IDs dos produtos)."},
+                status=400,
+            )
 
         payload = {
             "statusSistema": "Orçamento",
@@ -586,35 +740,38 @@ def api_enviar_pedido_erp(request):
             "empresa": "Agro Mais Centro",
             "deposito": "Deposito Centro",
             "vendedor": "Gm Agro Mais",
-            "items": [],
+            "items": linhas,
         }
-
         if dep_id:
             payload["depositoID"] = dep_id
         if emp_id:
             payload["empresaID"] = emp_id
 
-        for i in data.get("itens", []):
-            payload["items"].append({
-                "produtoID": i.get("id"),
-                "codigo": i.get("id"),
-                "unidade": "UN",
-                "descricao": i.get("nome"),
-                "quantidade": float(i.get("qtd")),
-                "valorUnitario": float(i.get("preco")),
-                "valorTotal": round(float(i.get("qtd")) * float(i.get("preco")), 2),
-            })
+        cid = str(data.get("cliente_id") or data.get("ClienteID") or "").strip()
+        if cid:
+            payload["clienteID"] = cid
+        doc_raw = str(data.get("cliente_documento") or data.get("CpfCnpj") or "").strip()
+        doc_digits = re.sub(r"\D", "", doc_raw)
+        if len(doc_digits) >= 11:
+            payload["cpfCnpj"] = doc_digits
 
-        ok, status, res = VendaERPAPIClient().salvar_operacao_pdv(payload)
-        return JsonResponse({"ok": ok, "mensagem": res})
+        payload = {k: v for k, v in payload.items() if v not in (None, "")}
+
+        ok, status, res = api_client.salvar_operacao_pdv(payload)
+        if ok:
+            return JsonResponse({"ok": True, "mensagem": _json_legivel(res)})
+        return JsonResponse(
+            {"ok": False, "erro": _json_legivel(res), "http_status": status},
+            status=502 if status and status != 0 else 500,
+        )
     except Exception as e:
-        return JsonResponse({"ok": False, "erro": str(e)})
+        return JsonResponse({"ok": False, "erro": str(e)}, status=500)
 
 
 # --- CARGA INICIAL E APIs AUXILIARES ---
 @require_GET
 def api_todos_produtos_local(request):
-    cache_key = "carga_inicial_produtos_todos_v24"
+    cache_key = "carga_inicial_produtos_todos_v25"
     cached_data = cache.get(cache_key)
     if cached_data:
         return JsonResponse(cached_data)
@@ -696,64 +853,10 @@ def api_todos_produtos_local(request):
 
             busca_texto_final = f"{busca_texto_gerado} {busca_texto_existente} {texto_puro_limpo}".strip()
 
-            preco_bruto = p.get("PrecoCusto") or p.get("ValorCusto") or 0
-            try:
-                preco_custo_val = float(str(preco_bruto).replace(",", "."))
-            except ValueError:
-                preco_custo_val = 0.0
+            custos = _custos_compra_produto(p)
+            preco_custo_val = custos["preco_custo"]
+            preco_custo_acresc_val = custos["preco_custo_final"]
             preco_venda_val = float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
-
-            def get_max_cost(doc):
-                max_val = preco_custo_val
-
-                def traverse(obj):
-                    nonlocal max_val
-                    if isinstance(obj, dict):
-                        for k, v in obj.items():
-                            k_lower = k.lower()
-                            bad_keys = [
-                                "venda", "lucro", "margem", "id", "codigo", "ean", "ncm", "cest",
-                                "peso", "qtd", "quantidade", "estoque", "altura", "largura",
-                                "comprimento", "profundidade", "medida", "volume", "nfe",
-                                "cfop", "gtin", "dia", "mes", "ano", "prazo", "validade",
-                                "caixa", "unidade", "fator", "tabela", "atacado", "varejo", "promocao",
-                                "percentual", "porcentagem", "aliquota", "taxa",
-                            ]
-                            if any(x in k_lower for x in bad_keys):
-                                continue
-
-                            if isinstance(v, (dict, list)):
-                                traverse(v)
-                            else:
-                                good_cost_indicators = [
-                                    "custo", "compra", "reposicao", "fornecedor", "entrada",
-                                    "valor", "preco", "total", "final", "bruto", "liquido",
-                                    "medio", "acrescimo", "despesa", "frete", "seguro",
-                                    "imposto", "tributo", "icms", "ipi", "pis", "cofins",
-                                    "real", "efetivo",
-                                ]
-                                if any(x in k_lower for x in good_cost_indicators):
-                                    if v is not None:
-                                        try:
-                                            val_f = float(str(v).replace(",", "."))
-                                            if preco_venda_val > 0 and val_f == preco_venda_val:
-                                                continue
-                                            if preco_custo_val > 0 and preco_custo_val <= val_f <= (preco_custo_val * 5):
-                                                if val_f > max_val:
-                                                    max_val = val_f
-                                            elif preco_custo_val == 0 and 0 < val_f < 100000:
-                                                if val_f > max_val:
-                                                    max_val = val_f
-                                        except (ValueError, TypeError):
-                                            pass
-                    elif isinstance(obj, list):
-                        for item in obj:
-                            traverse(item)
-
-                traverse(doc)
-                return max_val
-
-            preco_custo_acresc_val = get_max_cost(p)
 
             res.append({
                 "id": pid,
@@ -772,6 +875,7 @@ def api_todos_produtos_local(request):
                 "preco_venda": preco_venda_val,
                 "preco_custo": preco_custo_val,
                 "preco_custo_acrescimo": preco_custo_acresc_val,
+                "preco_custo_final": preco_custo_acresc_val,
                 "saldo_centro": round(saldo_f_c, 2),
                 "saldo_vila": round(saldo_f_v, 2),
                 "saldo_erp_centro": s_c,
@@ -786,53 +890,232 @@ def api_todos_produtos_local(request):
         return JsonResponse({"erro": str(e)}, status=500)
 
 
+def _nome_exibicao_pessoa(doc):
+    """Nome exibível: vários ERPs usam campos diferentes em DtoPessoa / cliente."""
+    for chave in (
+        "Nome",
+        "RazaoSocial",
+        "NomeFantasia",
+        "Fantasia",
+        "Apelido",
+        "NomeCompleto",
+        "NomeReduzido",
+        "DenominacaoSocial",
+        "nome",
+        "razaoSocial",
+        "nomeFantasia",
+        "Descricao",
+        "descricao",
+    ):
+        v = doc.get(chave)
+        if v is not None:
+            s = str(v).strip()
+            if len(s) >= 2:
+                return s[:240]
+    bt = doc.get("BuscaTexto") or doc.get("buscaTexto")
+    if bt is not None:
+        linha = str(bt).strip().split("\n")[0].strip()
+        if len(linha) >= 2:
+            return linha[:240]
+    return ""
+
+
+def _projecao_pessoa():
+    return {
+        "Nome": 1,
+        "RazaoSocial": 1,
+        "NomeFantasia": 1,
+        "Fantasia": 1,
+        "Apelido": 1,
+        "nome": 1,
+        "NomeCompleto": 1,
+        "NomeReduzido": 1,
+        "DenominacaoSocial": 1,
+        "Descricao": 1,
+        "descricao": 1,
+        "BuscaTexto": 1,
+        "buscaTexto": 1,
+        "Id": 1,
+        "CpfCnpj": 1,
+        "CPF": 1,
+        "Cnpj": 1,
+        "Cpf": 1,
+        "Telefone": 1,
+        "Celular": 1,
+        "Fone": 1,
+        "CadastroInativo": 1,
+        "Inativo": 1,
+    }
+
+
+def _colecoes_pessoa_disponiveis(db, client_m):
+    """Tenta DtoPessoa e outras coleções comuns quando a principal está vazia ou em outro nome."""
+    preferidas = [
+        client_m.col_c,
+        "DtoPessoa",
+        "DtoCliente",
+        "Cliente",
+        "DtoPessoaCliente",
+        "Pessoa",
+        "dto_pessoa",
+        "dto_cliente",
+    ]
+    try:
+        existentes = set(db.list_collection_names())
+    except Exception:
+        existentes = set()
+    ordem = []
+    vistas = set()
+    for n in preferidas:
+        if not n or n in vistas:
+            continue
+        if n in existentes:
+            ordem.append(n)
+            vistas.add(n)
+    if client_m.col_c and client_m.col_c not in vistas:
+        ordem.append(client_m.col_c)
+    if not ordem and client_m.col_c:
+        return [client_m.col_c]
+    return ordem
+
+
+def _telefone_pessoa(i):
+    for chave in (
+        "Telefone",
+        "Celular",
+        "Fone",
+        "telefone",
+        "celular",
+        "WhatsApp",
+        "CelularPrincipal",
+    ):
+        t = i.get(chave)
+        if t is not None and str(t).strip():
+            return str(t).strip()
+    return ""
+
+
+def _documento_pessoa(i):
+    for chave in ("CpfCnpj", "CPF", "Cpf", "CNPJ", "Cnpj", "cpfCnpj"):
+        v = i.get(chave)
+        if v is not None and str(v).strip():
+            return str(v).strip()
+    return ""
+
+
+def _montar_linhas_cliente(cursor):
+    out = []
+    for i in cursor:
+        nome = _nome_exibicao_pessoa(i)
+        if not nome:
+            continue
+        doc = _documento_pessoa(i)
+        out.append(
+            {
+                "id": str(i.get("Id") or i.get("_id")),
+                "nome": nome,
+                "documento": doc or "—",
+                "telefone": _telefone_pessoa(i),
+            }
+        )
+    return out
+
+
 @require_GET
 def api_list_customers(request):
-    client, db = obter_conexao_mongo()
-    if not db:
-        return JsonResponse({"clientes": []})
+    client_m, db = obter_conexao_mongo()
+    if db is None:
+        payload = {"clientes": []}
+        if settings.DEBUG:
+            payload["erro"] = "mongo_indisponivel"
+        return JsonResponse(payload)
 
     try:
-        clis = list(
-            db[client.col_c].find(
-                {"CadastroInativo": {"$ne": True}}, {"Nome": 1, "Id": 1}
-            ).limit(1000)
-        )
-        res = [
-            {"id": str(i.get("Id") or i.get("_id")), "nome": (i.get("Nome") or "").strip()}
-            for i in clis
-        ]
+        proj = _projecao_pessoa()
+        res = []
+        for coll in _colecoes_pessoa_disponiveis(db, client_m):
+            try:
+                clis = list(db[coll].find({}, proj).limit(2500))
+            except Exception as exc:
+                logger.warning("api_list_customers: ignorando coleção %s: %s", coll, exc)
+                continue
+            res = _montar_linhas_cliente(clis)
+            if res:
+                break
         res.sort(key=lambda x: x["nome"])
         return JsonResponse({"clientes": res})
-    except Exception:
-        return JsonResponse({"clientes": []})
+    except Exception as e:
+        logger.exception("api_list_customers")
+        payload = {"clientes": []}
+        if settings.DEBUG:
+            payload["erro"] = str(e)
+        return JsonResponse(payload)
 
 
 @require_GET
 def api_buscar_clientes(request):
-    client, db = obter_conexao_mongo()
-    termo = request.GET.get("q", "")
-    if not db:
+    client_m, db = obter_conexao_mongo()
+    termo = (request.GET.get("q") or "").strip()
+    if db is None:
+        payload = {"clientes": []}
+        if settings.DEBUG:
+            payload["erro"] = "mongo_indisponivel"
+        return JsonResponse(payload)
+    if not termo:
         return JsonResponse({"clientes": []})
 
     try:
-        clis = list(
-            db[client.col_c].find(
-                {"Nome": {"$regex": termo, "$options": "i"}},
-                {"Nome": 1, "CpfCnpj": 1},
-            ).limit(10)
-        )
-        res = [{"nome": i.get("Nome"), "documento": i.get("CpfCnpj") or "Sem Doc"} for i in clis]
-        return JsonResponse({"clientes": res})
-    except Exception:
+        trecho = re.escape(termo)
+        regex = {"$regex": trecho, "$options": "i"}
+        texto_or = [
+            {"Nome": regex},
+            {"RazaoSocial": regex},
+            {"NomeFantasia": regex},
+            {"Fantasia": regex},
+            {"Apelido": regex},
+            {"nome": regex},
+            {"NomeCompleto": regex},
+            {"BuscaTexto": regex},
+            {"buscaTexto": regex},
+            {"CpfCnpj": regex},
+            {"CPF": regex},
+            {"Cnpj": regex},
+            {"Cpf": regex},
+            {"Telefone": regex},
+            {"Celular": regex},
+        ]
+        só_digitos = re.sub(r"\D", "", termo)
+        if len(só_digitos) >= 4:
+            d = re.escape(só_digitos)
+            texto_or.append({"CpfCnpj": {"$regex": d}})
+            texto_or.append({"CPF": {"$regex": d}})
+            texto_or.append({"Cnpj": {"$regex": d}})
+
+        proj = _projecao_pessoa()
+
+        for coll in _colecoes_pessoa_disponiveis(db, client_m):
+            try:
+                clis = list(db[coll].find({"$or": texto_or}, proj).limit(40))
+            except Exception as exc:
+                logger.warning("api_buscar_clientes: ignorando coleção %s: %s", coll, exc)
+                continue
+            res = _montar_linhas_cliente(clis)
+            if res:
+                return JsonResponse({"clientes": res})
         return JsonResponse({"clientes": []})
+    except Exception as e:
+        logger.exception("api_buscar_clientes")
+        payload = {"clientes": []}
+        if settings.DEBUG:
+            payload["erro"] = str(e)
+        return JsonResponse(payload)
 
 
 @require_GET
 def api_autocomplete_produtos(request):
     client, db = obter_conexao_mongo()
     termo = request.GET.get("q", "")
-    if not db or len(termo) < 2:
+    if db is None or len(termo) < 2:
         return JsonResponse({"sugestoes": []})
 
     try:

@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -5,68 +6,112 @@
   <title>Agro Mais | Pedido de Compra</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   <style>
+    body { font-family: 'Inter', sans-serif; }
     .hide-scroll::-webkit-scrollbar { display: none; }
+    .gm-bar {
+      background: linear-gradient(90deg, rgba(234,88,12,0.12) 0%, rgba(5,150,105,0.10) 100%);
+    }
   </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800 p-4">
+<body class="bg-slate-50 min-h-screen text-slate-800">
 
-  <div class="max-w-6xl mx-auto flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-black italic uppercase tracking-tighter">
-      PAINEL DE <span class="text-orange-500">COMPRAS</span>
-    </h1>
-    <a href="/" class="text-xs font-bold text-slate-500 hover:text-slate-800 uppercase bg-white shadow-sm px-4 py-2 rounded-lg transition-colors border border-slate-200">
-      Voltar ao PDV
-    </a>
-  </div>
+  <header class="gm-bar border-b border-slate-200/80">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="h-11 w-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+          <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">
+            GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-orange-500">Compras</span>
+          </h1>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Custo final (taxas e impostos, quando informados no cadastro)</p>
+        </div>
+      </div>
+      <a href="/" class="text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:border-orange-400 hover:text-orange-600 transition-colors shrink-0">
+        Voltar ao PDV
+      </a>
+    </div>
+  </header>
 
-  <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <main class="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="lg:col-span-2 space-y-4">
-      <input
-        type="text"
-        id="busca"
-        placeholder="Buscar por nome, GM, EAN ou marca..."
-        autocomplete="off"
-        class="w-full p-6 rounded-3xl bg-white border border-slate-200 text-xl font-bold outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 shadow-sm text-slate-800 placeholder:text-slate-400 transition-all"
-      >
-      <div id="resultados" class="grid gap-3">
-        <div class="text-slate-400 p-4 text-center font-bold">Carregando produtos...</div>
+      <div>
+        <input
+          type="text"
+          id="busca"
+          placeholder="Buscar por nome, GM, EAN ou marca..."
+          autocomplete="off"
+          class="w-full px-5 py-4 rounded-2xl bg-white border-2 border-slate-200 text-base sm:text-lg font-bold outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/25 shadow-sm text-slate-800 placeholder:text-slate-400 transition-all"
+        >
+        <div class="flex items-center justify-between gap-2 mt-2 px-1">
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
+            <span aria-hidden="true">↑</span><span aria-hidden="true">↓</span> nos resultados
+          </span>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Enter adiciona o destacado</span>
+        </div>
+      </div>
+      <div id="resultados" class="grid gap-2">
+        <div class="text-slate-400 py-12 text-center font-bold text-sm rounded-2xl border border-dashed border-slate-200 bg-white/80">Carregando produtos…</div>
       </div>
     </div>
 
-    <div class="bg-white p-6 rounded-[2.5rem] shadow-xl h-fit sticky top-4 border border-slate-200">
-      <h3 class="text-orange-500 font-black uppercase italic mb-4 tracking-widest text-sm flex justify-between items-center">
-        <span>Lista de Pedido</span>
-        <span id="itens-badge" class="bg-slate-100 text-slate-500 border border-slate-200 px-2 py-1 rounded-lg text-[10px]">0 itens</span>
+    <aside class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 h-fit lg:sticky lg:top-4">
+      <h3 class="text-slate-800 font-black uppercase text-xs tracking-widest mb-1 flex justify-between items-center gap-2">
+        <span class="text-orange-500">Lista de pedido</span>
+        <span id="itens-badge" class="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-1 rounded-lg text-[10px] font-black">0 itens</span>
       </h3>
+      <p class="text-[10px] text-slate-500 font-semibold mb-4">Totais em custo final (c/ taxas e imp.)</p>
 
-      <div id="carrinho" class="space-y-3 mb-6 max-h-[500px] overflow-y-auto pr-2 hide-scroll"></div>
+      <div id="carrinho" class="space-y-2 mb-5 max-h-[min(420px,50vh)] overflow-y-auto pr-1 hide-scroll"></div>
 
       <div class="border-t border-slate-100 pt-4 space-y-3">
-        <div class="flex justify-between items-center px-2 pb-2">
-          <span class="text-xs text-slate-400 font-bold uppercase">Total Estimado:</span>
-          <span id="total-estimado" class="text-2xl text-emerald-600 font-black tabular-nums">R$ 0,00</span>
+        <div class="flex justify-between items-baseline gap-2 px-0.5">
+          <span class="text-[10px] text-slate-500 font-black uppercase">Total estimado</span>
+          <span id="total-estimado" class="text-xl sm:text-2xl text-emerald-600 font-black tabular-nums">R$ 0,00</span>
         </div>
 
-        <button onclick="copiarLista()" class="w-full bg-slate-100 text-slate-700 font-black py-4 rounded-2xl uppercase italic text-xs hover:bg-slate-200 transition-all shadow-sm active:scale-95">
-          Copiar Lista
+        <button type="button" onclick="copiarLista()" class="w-full bg-slate-100 text-slate-800 font-black py-3.5 rounded-xl uppercase text-[11px] tracking-wide hover:bg-slate-200 transition-colors active:scale-[0.99]">
+          Copiar lista
         </button>
 
-        <button onclick="enviarWhatsapp()" class="w-full bg-emerald-500 text-white font-black py-4 rounded-2xl uppercase italic text-xs hover:bg-emerald-600 shadow-md shadow-emerald-500/30 transition-all active:scale-95">
-          Enviar Fornecedor
+        <button type="button" onclick="enviarWhatsapp()" class="w-full bg-emerald-600 text-white font-black py-3.5 rounded-xl uppercase text-[11px] tracking-wide hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-colors active:scale-[0.99]">
+          Enviar fornecedor
         </button>
 
-        <button onclick="limpar()" class="w-full text-slate-400 hover:text-red-500 font-bold text-[10px] uppercase transition-colors pt-2">
-          Limpar Tudo
+        <button type="button" onclick="registrarPedidoNoHistorico()" class="w-full bg-white text-orange-600 border-2 border-orange-200 font-black py-3 rounded-xl uppercase text-[11px] tracking-wide hover:bg-orange-50 transition-colors active:scale-[0.99]">
+          Salvar no histórico
+        </button>
+
+        <button type="button" onclick="limpar()" class="w-full text-slate-400 hover:text-red-600 font-bold text-[10px] uppercase transition-colors pt-1">
+          Limpar tudo
         </button>
       </div>
+    </aside>
+  </main>
+
+  <section class="max-w-6xl mx-auto px-4 pb-12" aria-label="Histórico de pedidos de compra">
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-sm font-black uppercase tracking-widest text-slate-700">Histórico de pedidos</h2>
+        <p class="text-[10px] font-bold text-slate-400 max-w-md leading-snug">Status: cotação → pedido → entregue. <span class="text-emerald-600">Entregue</span> pode ficar automático quando o estoque total subir o suficiente após o registro.</p>
+      </div>
+      <div id="historico-pedidos-compra" class="p-4 space-y-3 min-h-[80px]">
+        <div class="text-center text-slate-400 font-bold text-sm py-6">Carregando histórico…</div>
+      </div>
     </div>
-  </div>
+  </section>
 
 <script>
 let lista = [];
 let debounceTimer = null;
 let baseProdutos = [];
+const PLACEHOLDER_IMG = "{% static 'img/agro-mais-logo-buscador.png' %}";
+const LS_HISTORICO_COMPRA = 'gmHistoricoPedidosCompra';
+let indiceSelecionadoCompra = -1;
+let ultimosResultadosCompra = [];
 
 function escapeHtml(texto) {
   return String(texto || '')
@@ -94,6 +139,11 @@ function formatarMoeda(valor) {
   });
 }
 
+function custoFinalDoProduto(p) {
+  const v = p.preco_custo_final != null ? p.preco_custo_final : (p.preco_custo_acrescimo != null ? p.preco_custo_acrescimo : p.preco_custo);
+  return Number(v || 0);
+}
+
 function atualizarCarrinho() {
   const carrinho = document.getElementById('carrinho');
   const badge = document.getElementById('itens-badge');
@@ -102,26 +152,26 @@ function atualizarCarrinho() {
   carrinho.innerHTML = '';
 
   if (!lista.length) {
-    carrinho.innerHTML = '<div class="text-center text-slate-400 font-bold p-6">Nenhum item adicionado.</div>';
+    carrinho.innerHTML = '<div class="text-center text-slate-400 font-bold text-xs py-8">Nenhum item adicionado.</div>';
   }
 
   let soma = 0;
 
   lista.forEach((item, idx) => {
-    const subtotal = Number(item.qtd) * Number(item.preco);
+    const subtotal = Number(item.qtd) * Number(item.precoFinal);
     soma += subtotal;
 
     const row = document.createElement('div');
-    row.className = 'border border-slate-200 rounded-2xl p-3';
+    row.className = 'border border-slate-200 rounded-xl p-3 bg-slate-50/50';
     row.innerHTML = `
       <div class="flex justify-between gap-3">
         <div class="min-w-0">
-          <div class="font-black text-xs uppercase truncate">${escapeHtml(item.nome)}</div>
-          <div class="text-[10px] text-slate-500">Qtd: ${item.qtd} × ${formatarMoeda(item.preco)}</div>
+          <div class="font-black text-[11px] uppercase text-slate-800 truncate">${escapeHtml(item.nome)}</div>
+          <div class="text-[10px] text-slate-500 font-semibold mt-0.5">${item.qtd} × ${formatarMoeda(item.precoFinal)} <span class="text-slate-400">(custo final)</span></div>
         </div>
-        <button onclick="removerItem(${idx})" class="text-red-500 font-black text-xs">X</button>
+        <button type="button" onclick="removerItem(${idx})" class="text-red-500 hover:text-red-700 font-black text-xs shrink-0 px-1" aria-label="Remover">✕</button>
       </div>
-      <div class="text-right text-sm font-black text-emerald-600 mt-2">${formatarMoeda(subtotal)}</div>
+      <div class="text-right text-sm font-black text-emerald-600 mt-2 tabular-nums">${formatarMoeda(subtotal)}</div>
     `;
     carrinho.appendChild(row);
   });
@@ -130,8 +180,9 @@ function atualizarCarrinho() {
   total.textContent = formatarMoeda(soma);
 }
 
-function add(id, nome, preco) {
+function add(id, nome, precoFinal) {
   const existente = lista.find(i => i.id === id);
+  const pf = Number(precoFinal || 0);
 
   if (existente) {
     existente.qtd += 1;
@@ -139,7 +190,7 @@ function add(id, nome, preco) {
     lista.push({
       id,
       nome,
-      preco: Number(preco || 0),
+      precoFinal: pf,
       qtd: 1
     });
   }
@@ -182,7 +233,14 @@ function abrirAjuste(id, nome, saldoAtual, codigo, deposito) {
   .then(d => {
     if (d.ok) {
       alert("Estoque ajustado com sucesso!");
-      buscar(document.getElementById('busca').value);
+      fetch("{% url 'api_todos_produtos_local' %}")
+        .then(r => r.json())
+        .then(data => {
+          baseProdutos = data.produtos || [];
+          buscar(document.getElementById('busca').value);
+          renderHistoricoCompras();
+        })
+        .catch(() => buscar(document.getElementById('busca').value));
     } else {
       alert("Acesso negado ou erro:\n" + (d.erro || 'Erro desconhecido'));
     }
@@ -199,11 +257,154 @@ window.addEventListener('load', () => {
       baseProdutos = data.produtos || [];
       div.innerHTML = '';
       atualizarCarrinho();
+      renderHistoricoCompras();
     })
     .catch(() => {
-      div.innerHTML = `<div class="bg-white text-red-500 border border-red-200 shadow-sm p-6 rounded-3xl font-bold text-center">Erro ao carregar produtos.</div>`;
+      div.innerHTML = `<div class="bg-white text-red-600 border border-red-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm">Erro ao carregar produtos.</div>`;
     });
 });
+
+function saldoTotalProduto(p) {
+  if (!p) return 0;
+  return Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0);
+}
+
+function lerHistoricoCompra() {
+  try {
+    const h = JSON.parse(localStorage.getItem(LS_HISTORICO_COMPRA) || '[]');
+    return Array.isArray(h) ? h : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function salvarHistoricoCompra(arr) {
+  localStorage.setItem(LS_HISTORICO_COMPRA, JSON.stringify(arr.slice(0, 60)));
+}
+
+function verificarEntregasAutomaticas() {
+  const h = lerHistoricoCompra();
+  let mudou = false;
+  h.forEach(ped => {
+    if (ped.status === 'entregue') return;
+    const itens = ped.itens || [];
+    if (!itens.length) return;
+    const ok = itens.every(line => {
+      const p = baseProdutos.find(x => String(x.id) === String(line.id));
+      if (!p) return false;
+      const snap = Number((ped.snapshot || {})[line.id] != null ? (ped.snapshot || {})[line.id] : 0);
+      const cur = saldoTotalProduto(p);
+      return cur + 0.01 >= snap + Number(line.qtd);
+    });
+    if (ok) {
+      ped.status = 'entregue';
+      mudou = true;
+    }
+  });
+  if (mudou) salvarHistoricoCompra(h);
+}
+
+function registrarPedidoNoHistorico() {
+  if (!lista.length) {
+    alert('Adicione itens à lista antes de salvar no histórico.');
+    return;
+  }
+  const snapshot = {};
+  lista.forEach(item => {
+    const p = baseProdutos.find(x => String(x.id) === String(item.id));
+    snapshot[item.id] = p ? saldoTotalProduto(p) : 0;
+  });
+  const h = lerHistoricoCompra();
+  h.unshift({
+    id: 'p' + Date.now(),
+    criadoEm: new Date().toISOString(),
+    status: 'cotacao',
+    itens: lista.map(i => ({ id: i.id, nome: i.nome, qtd: i.qtd })),
+    snapshot
+  });
+  salvarHistoricoCompra(h);
+  renderHistoricoCompras();
+  alert('Pedido registrado como cotação.');
+}
+
+function atualizarStatusPedidoCompra(id, status) {
+  const h = lerHistoricoCompra();
+  const ped = h.find(x => x.id === id);
+  if (ped) ped.status = status;
+  salvarHistoricoCompra(h);
+  renderHistoricoCompras();
+}
+
+function removerPedidoCompra(id) {
+  if (!confirm('Remover este registro do histórico?')) return;
+  salvarHistoricoCompra(lerHistoricoCompra().filter(x => x.id !== id));
+  renderHistoricoCompras();
+}
+
+function renderHistoricoCompras() {
+  const host = document.getElementById('historico-pedidos-compra');
+  if (!host) return;
+  verificarEntregasAutomaticas();
+  const h = lerHistoricoCompra();
+  if (!h.length) {
+    host.innerHTML = '<div class="text-center text-slate-400 font-bold text-sm py-8">Nenhum pedido salvo ainda. Use “Salvar no histórico” na lista ao lado.</div>';
+    return;
+  }
+  host.innerHTML = '';
+  h.forEach(ped => {
+    const dt = new Date(ped.criadoEm);
+    const dtStr = Number.isNaN(dt.getTime()) ? String(ped.criadoEm || '') : dt.toLocaleString('pt-BR');
+    const st = ped.status || 'cotacao';
+    const card = document.createElement('div');
+    card.className = 'rounded-xl border border-slate-200 bg-slate-50/80 p-4 flex flex-col sm:flex-row gap-4 sm:items-start sm:justify-between';
+    const itensLinhas = (ped.itens || []).map(i =>
+      `<div class="text-xs font-bold text-slate-700">${escapeHtml(i.nome)} <span class="text-slate-400">× ${escapeHtml(String(i.qtd))}</span></div>`
+    ).join('');
+    card.innerHTML = `
+      <div class="min-w-0 flex-1">
+        <div class="text-[10px] font-black uppercase text-slate-400">${escapeHtml(dtStr)}</div>
+        <div class="mt-2 space-y-1 max-h-40 overflow-y-auto pr-1 hide-scroll">${itensLinhas}</div>
+      </div>
+      <div class="flex flex-col gap-2 shrink-0 sm:items-end">
+        <span class="text-[10px] font-black uppercase text-slate-500">Status</span>
+        <select data-pedido-id="${escapeHtml(String(ped.id))}" class="sel-status-compra text-xs font-black border-2 border-slate-200 rounded-lg px-2 py-2 bg-white min-w-[140px]">
+          <option value="cotacao" ${st === 'cotacao' ? 'selected' : ''}>Cotação</option>
+          <option value="pedido" ${st === 'pedido' ? 'selected' : ''}>Pedido</option>
+          <option value="entregue" ${st === 'entregue' ? 'selected' : ''}>Entregue</option>
+        </select>
+        <button type="button" data-remove-id="${escapeHtml(String(ped.id))}" class="btn-remove-compra text-[10px] font-bold text-red-500 hover:text-red-600 uppercase text-left sm:text-right">Excluir</button>
+      </div>`;
+    host.appendChild(card);
+    const sel = card.querySelector('.sel-status-compra');
+    if (sel) {
+      sel.addEventListener('change', () => atualizarStatusPedidoCompra(sel.getAttribute('data-pedido-id'), sel.value));
+    }
+    const rm = card.querySelector('.btn-remove-compra');
+    if (rm) {
+      rm.addEventListener('click', () => removerPedidoCompra(rm.getAttribute('data-remove-id')));
+    }
+  });
+}
+
+function destacarLinhaCompra() {
+  document.querySelectorAll('.compra-card').forEach((el, i) => {
+    const on = i === indiceSelecionadoCompra;
+    el.classList.toggle('ring-2', on);
+    el.classList.toggle('ring-orange-400', on);
+    el.classList.toggle('ring-offset-2', on);
+    el.classList.toggle('bg-orange-50/40', on);
+  });
+  const sel = document.querySelector(`.compra-card[data-compra-idx="${indiceSelecionadoCompra}"]`);
+  if (sel) sel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function adicionarProdutoResultadoCompra(idx) {
+  const p = ultimosResultadosCompra[idx];
+  if (!p) return;
+  const nomeReal = p.nome || 'PRODUTO SEM NOME';
+  const nomeSeguro = nomeReal.replace(/'/g, "\\'");
+  add(String(p.id), nomeSeguro, custoFinalDoProduto(p));
+}
 
 function buscar(q) {
   const div = document.getElementById('resultados');
@@ -211,6 +412,8 @@ function buscar(q) {
   const termo = normalizar(termoOriginal);
 
   if (termo.length < 2) {
+    ultimosResultadosCompra = [];
+    indiceSelecionadoCompra = -1;
     div.innerHTML = '';
     return;
   }
@@ -224,82 +427,104 @@ function buscar(q) {
   }).slice(0, 50);
 
   if (!resultados.length) {
-    div.innerHTML = `<div class="bg-white text-slate-400 border border-slate-200 shadow-sm p-6 rounded-3xl font-bold text-center">Nenhum produto encontrado para "${escapeHtml(termoOriginal)}".</div>`;
+    ultimosResultadosCompra = [];
+    indiceSelecionadoCompra = -1;
+    div.innerHTML = `<div class="bg-white text-slate-500 border border-slate-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm">Nenhum produto encontrado para "${escapeHtml(termoOriginal)}".</div>`;
     return;
   }
 
   div.innerHTML = '';
 
-  resultados.forEach(p => {
+  resultados.forEach((p, idx) => {
     const nomeReal = p.nome || 'PRODUTO SEM NOME';
     const nomeSeguro = nomeReal.replace(/'/g, "\\'");
     const marcaSegura = p.marca || 'GENÉRICO';
     const gmCode = p.codigo_nfe || p.codigo || p.codigo_barras || 'S/N';
 
-    const custoSeco = Number(p.preco_custo || 0).toFixed(2);
-    const custoFinal = Number(p.preco_custo_acrescimo || p.preco_custo || 0).toFixed(2);
+    const custoBase = Number(p.preco_custo || 0);
+    const custoFin = custoFinalDoProduto(p);
+    const mostrarBase = Math.abs(custoBase - custoFin) > 0.005;
+
     const precoVenda = Number(p.preco_venda || 0).toFixed(2);
-    const lucroReais = (Number(precoVenda) - Number(custoFinal)).toFixed(2);
-    const lucroPerc = Number(custoFinal) > 0
-      ? (((Number(precoVenda) - Number(custoFinal)) / Number(custoFinal)) * 100).toFixed(1)
+    const lucroReais = (Number(precoVenda) - custoFin).toFixed(2);
+    const lucroPerc = custoFin > 0
+      ? (((Number(precoVenda) - custoFin) / custoFin) * 100).toFixed(1)
       : '100.0';
-    const corLucro = (Number(precoVenda) - Number(custoFinal)) >= 0 ? "text-emerald-500" : "text-red-500";
-    const foto = p.imagem && p.imagem !== 'None'
+    const corLucro = (Number(precoVenda) - custoFin) >= 0 ? "text-emerald-600" : "text-red-500";
+
+    const foto = p.imagem && p.imagem !== 'None' && p.imagem !== ''
       ? p.imagem
-      : `https://ui-avatars.com/api/?name=${encodeURIComponent(nomeReal)}&background=f1f5f9&color=64748b&font-size=0.3`;
+      : PLACEHOLDER_IMG;
 
     div.innerHTML += `
-      <div class="bg-white p-4 rounded-2xl flex justify-between items-center border border-slate-200 hover:border-orange-400 hover:bg-orange-50/30 shadow-sm transition-all cursor-pointer group"
-        onclick="add('${String(p.id)}', '${nomeSeguro}', ${Number(custoFinal)})">
+      <div class="compra-card bg-white p-3 sm:p-4 rounded-2xl flex justify-between items-stretch gap-3 border border-slate-200 hover:border-orange-400 hover:shadow-md transition-all cursor-pointer group"
+        data-compra-idx="${idx}"
+        onclick="adicionarProdutoResultadoCompra(${idx})">
 
-        <div class="flex items-center gap-4 flex-1 min-w-0 pr-4">
-          <img src="${foto}" class="w-12 h-12 object-cover rounded-xl bg-slate-50 border border-slate-200 shadow-sm p-0.5 hidden sm:block">
+        <div class="flex items-start gap-3 flex-1 min-w-0">
+          <img src="${foto}" alt="" onerror="this.src='${PLACEHOLDER_IMG}'" class="w-11 h-11 sm:w-12 sm:h-12 object-contain rounded-xl bg-white border border-slate-100 shrink-0 p-0.5">
 
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1.5">
-              <span class="text-[10px] font-bold text-slate-400 uppercase truncate">${escapeHtml(marcaSegura)}</span>
-              <span class="text-[9px] font-black text-slate-500 uppercase bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 tracking-widest">GM: ${escapeHtml(gmCode)}</span>
+            <div class="flex flex-wrap items-center gap-1.5 mb-1">
+              <span class="text-[10px] font-bold text-slate-500 uppercase truncate">${escapeHtml(marcaSegura)}</span>
+              <span class="text-[9px] font-black text-slate-600 uppercase bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">GM ${escapeHtml(gmCode)}</span>
             </div>
 
-            <div class="font-black text-sm uppercase text-slate-800 group-hover:text-orange-600 transition-colors truncate">${escapeHtml(nomeReal)}</div>
+            <div class="font-black text-xs sm:text-sm uppercase text-slate-800 group-hover:text-orange-600 transition-colors leading-snug">${escapeHtml(nomeReal)}</div>
 
-            <div class="flex items-center gap-3 mt-1.5">
-              <div class="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 font-black uppercase tracking-wider text-xs shadow-sm">
-                Total: ${(Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1)}
-              </div>
-
-              <div class="flex gap-2 text-[10px] font-bold uppercase tracking-wider">
-                <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_centro_erp ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100 flex items-center gap-1 transition-colors" title="Ajustar Centro">
-                  C: ${Number(p.saldo_centro || 0).toFixed(1)}
-                </span>
-                <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_vila_erp ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100 flex items-center gap-1 transition-colors" title="Ajustar Vila">
-                  V: ${Number(p.saldo_vila || 0).toFixed(1)}
-                </span>
-              </div>
+            <div class="flex flex-wrap items-center gap-2 mt-2">
+              <span class="text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-black text-[10px] uppercase">
+                Est. total ${(Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1)}
+              </span>
+              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_centro_erp ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Centro">C ${Number(p.saldo_centro || 0).toFixed(1)}</span>
+              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_vila_erp ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Vila">V ${Number(p.saldo_vila || 0).toFixed(1)}</span>
             </div>
           </div>
         </div>
 
-        <div class="text-right shrink-0">
-          <div class="text-[10px] text-slate-400 font-bold uppercase">Custo</div>
-          <div class="text-sm font-black text-slate-700">R$ ${custoSeco}</div>
+        <div class="text-right shrink-0 w-[108px] sm:w-[120px] border-l border-slate-100 pl-2 sm:pl-3">
+          <div class="text-[9px] text-orange-600 font-black uppercase leading-tight">Custo final</div>
+          <div class="text-[10px] text-slate-500 font-semibold leading-tight mb-0.5">c/ taxas e imp.</div>
+          <div class="text-base font-black text-slate-900 tabular-nums">${formatarMoeda(custoFin)}</div>
 
-          <div class="text-[10px] text-slate-400 font-bold uppercase mt-2">Venda</div>
-          <div class="text-sm font-black text-orange-600">R$ ${precoVenda}</div>
+          ${mostrarBase ? `
+          <div class="text-[9px] text-slate-400 font-bold uppercase mt-2">Custo base</div>
+          <div class="text-[11px] font-semibold text-slate-500 tabular-nums">${formatarMoeda(custoBase)}</div>` : ''}
 
-          <div class="text-[10px] text-slate-400 font-bold uppercase mt-2">Lucro</div>
-          <div class="text-xs font-black ${corLucro}">R$ ${lucroReais} (${lucroPerc}%)</div>
+          <div class="text-[9px] text-slate-400 font-bold uppercase mt-2">Venda</div>
+          <div class="text-xs font-black text-orange-600 tabular-nums">R$ ${precoVenda}</div>
+
+          <div class="text-[9px] text-slate-400 font-bold uppercase mt-1">Lucro</div>
+          <div class="text-[10px] font-black ${corLucro} tabular-nums">R$ ${lucroReais} (${lucroPerc}%)</div>
         </div>
       </div>
     `;
   });
+
+  ultimosResultadosCompra = resultados;
+  indiceSelecionadoCompra = resultados.length ? 0 : -1;
+  requestAnimationFrame(() => destacarLinhaCompra());
+}
+
+function formatarTextoFornecedor() {
+  let texto = '📦 *PEDIDO — GM AGRO MAIS*\n\n';
+  lista.forEach(item => {
+    texto += `• ${item.nome}\n  Qtd: ${item.qtd}\n`;
+  });
+  return texto.trimEnd();
 }
 
 function formatarTexto() {
-  let texto = '📦 *LISTA DE COMPRA*\n\n';
+  let texto = '📦 *LISTA DE COMPRA — GM AGRO MAIS*\n';
+  texto += '_Valores em custo final (taxas e impostos, quando no cadastro)_\n\n';
+  let totalGeral = 0;
   lista.forEach(item => {
-    texto += `• ${item.nome} — Qtd: ${item.qtd}\n`;
+    const sub = Number(item.qtd) * Number(item.precoFinal);
+    totalGeral += sub;
+    texto += `• ${item.nome}\n`;
+    texto += `  Qtd: ${item.qtd} × ${formatarMoeda(item.precoFinal)} = ${formatarMoeda(sub)}\n`;
   });
+  texto += `\n*Total:* ${formatarMoeda(totalGeral)}`;
   return texto;
 }
 
@@ -310,15 +535,34 @@ function copiarLista() {
 
 function enviarWhatsapp() {
   if (!lista.length) return alert("A lista está vazia!");
-  window.open(`https://wa.me/?text=${encodeURIComponent(formatarTexto())}`, '_blank');
+  window.open(`https://wa.me/?text=${encodeURIComponent(formatarTextoFornecedor())}`, '_blank');
 }
 
 document.getElementById('busca').addEventListener('input', (e) => {
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => buscar(e.target.value), 120);
+  debounceTimer = setTimeout(() => buscar(e.target.value), 150);
+});
+
+document.getElementById('busca').addEventListener('keydown', (e) => {
+  if (!ultimosResultadosCompra.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    indiceSelecionadoCompra = Math.min(indiceSelecionadoCompra + 1, ultimosResultadosCompra.length - 1);
+    if (indiceSelecionadoCompra < 0) indiceSelecionadoCompra = 0;
+    destacarLinhaCompra();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    const base = indiceSelecionadoCompra < 0 ? 0 : indiceSelecionadoCompra;
+    indiceSelecionadoCompra = Math.max(base - 1, 0);
+    destacarLinhaCompra();
+  } else if (e.key === 'Enter' && indiceSelecionadoCompra >= 0) {
+    e.preventDefault();
+    adicionarProdutoResultadoCompra(indiceSelecionadoCompra);
+  }
 });
 
 atualizarCarrinho();
+renderHistoricoCompras();
 </script>
 
 </body>
