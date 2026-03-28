@@ -81,6 +81,8 @@ let scanner;
 let pSel = null;
 let debounceTimer = null;
 let baseProdutos = [];
+const MOBILE_POLL_SALDOS_MS = 8000;
+let mobilePollSaldosTimer = null;
 
 function normalizar(texto) {
   return String(texto || '')
@@ -92,6 +94,68 @@ function normalizar(texto) {
     .trim();
 }
 
+function aplicarSaldosMobile(rows) {
+  if (!Array.isArray(rows) || rows.length === 0 || !baseProdutos.length) return false;
+  const map = new Map();
+  rows.forEach((r) => {
+    if (r && r[0] != null && r.length >= 5) map.set(String(r[0]), r);
+  });
+  let mudou = false;
+  baseProdutos.forEach((p) => {
+    const row = map.get(String(p.id));
+    if (!row) return;
+    const nc = Number(row[1]);
+    const nv = Number(row[2]);
+    const nec = Number(row[3]);
+    const nev = Number(row[4]);
+    if (
+      Number(p.saldo_centro) !== nc ||
+      Number(p.saldo_vila) !== nv ||
+      Number(p.saldo_erp_centro) !== nec ||
+      Number(p.saldo_erp_vila) !== nev
+    ) {
+      mudou = true;
+    }
+    p.saldo_centro = nc;
+    p.saldo_vila = nv;
+    p.saldo_erp_centro = nec;
+    p.saldo_erp_vila = nev;
+  });
+  if (mudou && pSel) {
+    const u = baseProdutos.find((x) => String(x.id) === String(pSel.id));
+    if (u) pSel = u;
+  }
+  if (mudou) {
+    const q = document.getElementById('busca').value;
+    if (normalizar(q).length >= 2) buscar(q);
+    const modal = document.getElementById('modal');
+    if (pSel && modal && modal.classList.contains('flex')) {
+      document.getElementById('m-saldo').innerText = Number(pSel.saldo_centro || 0).toFixed(1);
+    }
+  }
+  return mudou;
+}
+
+function pollSaldosMobileUmaVez() {
+  if (!baseProdutos.length || document.visibilityState !== 'visible') return;
+  fetch("{% url 'api_pdv_saldos' %}")
+    .then((r) => r.json())
+    .then((d) => {
+      if (d.rows) aplicarSaldosMobile(d.rows);
+    })
+    .catch(() => {});
+}
+
+function iniciarPollSaldosMobile() {
+  if (mobilePollSaldosTimer) clearInterval(mobilePollSaldosTimer);
+  mobilePollSaldosTimer = setInterval(pollSaldosMobileUmaVez, MOBILE_POLL_SALDOS_MS);
+  setTimeout(pollSaldosMobileUmaVez, 2500);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') pollSaldosMobileUmaVez();
+});
+
 window.addEventListener('load', () => {
   const listaDiv = document.getElementById('lista');
 
@@ -100,6 +164,7 @@ window.addEventListener('load', () => {
     .then(data => {
       baseProdutos = data.produtos || [];
       listaDiv.innerHTML = '<div class="text-center text-slate-400 font-bold p-8">Pronto! Digite para buscar.</div>';
+      iniciarPollSaldosMobile();
     })
     .catch(() => {
       listaDiv.innerHTML = '<div class="text-center text-red-500 font-bold p-8">Erro ao carregar produtos.</div>';
