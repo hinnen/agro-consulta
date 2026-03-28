@@ -90,6 +90,7 @@ def calcular():
     try:
         from django.core.cache import cache
 
+        cache.delete("pdv_mapa_medias_venda_diaria_30d_entry_v2")
         cache.delete("pdv_mapa_medias_venda_diaria_30d_v1")
         print("Cache PDV de médias de venda (30d) invalidado.")
     except Exception as exc:
