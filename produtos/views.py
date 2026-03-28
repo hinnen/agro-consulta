@@ -735,6 +735,7 @@ def motor_de_busca_agro(termo_original, db, client, limit=20):
                     {"BuscaTexto": {"$in": regex_tokens}},
                     {"Nome": {"$in": regex_tokens}},
                     {"Marca": {"$in": regex_tokens}},
+                    {"NomeNormalizado": {"$in": regex_tokens}},
                     {"Codigo": {"$in": regex_tokens}},
                     {"CodigoNFe": {"$in": regex_tokens}},
                     {"CodigoBarras": {"$in": regex_tokens}},
@@ -746,7 +747,7 @@ def motor_de_busca_agro(termo_original, db, client, limit=20):
         adicionar(list(db[client.col_p].find({
             **base_filter,
             "$and": condicoes_and
-        }).limit(80)))
+        }).limit(160)))
 
     # 3) Fallback por frase inteira
     if len(candidatos) < limit:
@@ -755,13 +756,45 @@ def motor_de_busca_agro(termo_original, db, client, limit=20):
             **base_filter,
             "$or": [
                 {"Nome": termo_regex},
+                {"BuscaTexto": termo_regex},
                 {"Marca": termo_regex},
+                {"NomeNormalizado": termo_regex},
                 {"Codigo": termo_regex},
                 {"CodigoNFe": termo_regex},
                 {"CodigoBarras": termo_regex},
                 {"EAN_NFe": termo_regex},
             ]
-        }).limit(80)))
+        }).limit(160)))
+
+    # 3b) Qualquer palavra/token bate (recall alto; útil com BuscaTexto defasado)
+    if len(candidatos) < max(limit, 24) and palavras:
+        tokens_flat = []
+        visto_tok = set()
+        for p in palavras:
+            for t in expandir_tokens(p):
+                if t and t not in visto_tok:
+                    visto_tok.add(t)
+                    tokens_flat.append(t)
+            p_norm = normalizar(p)
+            if p_norm and p_norm not in visto_tok:
+                visto_tok.add(p_norm)
+                tokens_flat.append(p_norm)
+        or_clauses = []
+        for t in tokens_flat:
+            if not t or len(str(t)) < 2:
+                continue
+            rx = _regex_contem_ci(t)
+            or_clauses.extend([
+                {"BuscaTexto": rx},
+                {"Nome": rx},
+                {"Marca": rx},
+                {"NomeNormalizado": rx},
+            ])
+        if or_clauses:
+            adicionar(list(db[client.col_p].find({
+                **base_filter,
+                "$or": or_clauses,
+            }).limit(220)))
 
     # 4) Ordenação de relevância
     termo_norm = normalizar(termo_original)
@@ -834,16 +867,30 @@ def api_buscar_produtos(request):
         return JsonResponse({"produtos": []})
 
     try:
-        prods = motor_de_busca_agro(q, db, client, limit=60)
+        prods = motor_de_busca_agro(q, db, client, limit=80)
         p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
 
-        medias_map = _obter_mapa_medias_venda_cache(db)
+        medias_map = {}
+        try:
+            medias_map = _obter_mapa_medias_venda_cache(db)
+        except Exception:
+            logger.warning("api_buscar_produtos: medias indisponíveis", exc_info=True)
 
-        estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
-        estoque_map = _mapear_estoques_por_produto(estoques, client)
+        estoque_map = {}
+        try:
+            if p_ids:
+                estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+                estoque_map = _mapear_estoques_por_produto(estoques, client)
+        except Exception:
+            logger.warning("api_buscar_produtos: estoque indisponível — retornando saldo 0", exc_info=True)
 
-        ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
-        ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
+        ajustes_map = {}
+        try:
+            if p_ids:
+                ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
+                ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
+        except Exception:
+            logger.warning("api_buscar_produtos: ajustes PIN indisponíveis", exc_info=True)
 
         res = []
         for p in prods:
@@ -917,14 +964,24 @@ def api_buscar_compras(request):
         return JsonResponse({"produtos": []})
 
     try:
-        prods = motor_de_busca_agro(q, db, client, limit=50)
+        prods = motor_de_busca_agro(q, db, client, limit=70)
         p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
 
-        estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
-        estoque_map = _mapear_estoques_por_produto(estoques, client)
+        estoque_map = {}
+        try:
+            if p_ids:
+                estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+                estoque_map = _mapear_estoques_por_produto(estoques, client)
+        except Exception:
+            logger.warning("api_buscar_compras: estoque indisponível", exc_info=True)
 
-        ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
-        ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
+        ajustes_map = {}
+        try:
+            if p_ids:
+                ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
+                ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
+        except Exception:
+            logger.warning("api_buscar_compras: ajustes indisponíveis", exc_info=True)
 
         res = []
         for p in prods:

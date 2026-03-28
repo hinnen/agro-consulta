@@ -1,0 +1,146 @@
+{# Motor de busca de produtos (sinônimos, códigos, fuzzy) — mesmo comportamento do PDV. Incluir antes dos scripts que usam normalizarBuscaLocal / filtrarProdutosBuscaInteligente. #}
+<script>
+(function () {
+    'use strict';
+
+    function normalizarBuscaLocal(texto) {
+        return String(texto || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+    }
+
+    const SINONIMOS_BUSCA_PRODUTO = {
+        racao: ['alimento', 'balanceado', 'concentrado'],
+        kg: ['quilo', 'kilos', 'kilo', 'kgs'],
+        quilo: ['kg', 'kilos', 'kilo'],
+        kilo: ['kg', 'quilo'],
+        litro: ['lt', 'lts', 'ltr'],
+        un: ['und', 'unidade', 'uni'],
+        und: ['un', 'unidade'],
+        adubo: ['fertilizante', 'fertil'],
+        fertilizante: ['adubo'],
+    };
+
+    function tokensBuscaProduto(p) {
+        const s = (p.busca_texto || '').trim();
+        if (!s) return [];
+        return s.split(/\s+/).filter(Boolean);
+    }
+
+    function variantesPalavraBusca(palavraBruta) {
+        const n = normalizarBuscaLocal(palavraBruta);
+        const out = new Set();
+        if (n) out.add(n);
+        if (n.length < 2) return [...out];
+        const extra = SINONIMOS_BUSCA_PRODUTO[n];
+        if (extra) extra.forEach(x => out.add(normalizarBuscaLocal(x)));
+        for (const [k, arr] of Object.entries(SINONIMOS_BUSCA_PRODUTO)) {
+            if (arr.some(v => normalizarBuscaLocal(v) === n)) out.add(normalizarBuscaLocal(k));
+        }
+        return [...out].filter(Boolean);
+    }
+
+    function codigosSoDigitosProduto(p) {
+        const raw = [p.codigo_nfe, p.codigo_barras, p.codigo, p.ean];
+        return raw
+            .map(x => String(x ?? '').replace(/\D/g, ''))
+            .filter(c => c.length > 0);
+    }
+
+    function casaCodigoNumericoNoProduto(palavraBruta, p) {
+        const d = String(palavraBruta || '').replace(/\D/g, '');
+        if (d.length < 4) return false;
+        return codigosSoDigitosProduto(p).some(c => {
+            if (c === d) return true;
+            if (d.length >= 6 && (c.endsWith(d) || c.includes(d))) return true;
+            if (c.length >= 6 && d.length >= 6 && (d.endsWith(c) || d.includes(c))) return true;
+            return false;
+        });
+    }
+
+    function edicaoUnicaNoMaximo(a, b) {
+        if (a === b) return true;
+        const la = a.length;
+        const lb = b.length;
+        if (Math.abs(la - lb) > 1) return false;
+        let i = 0;
+        let j = 0;
+        let usado = false;
+        while (i < la && j < lb) {
+            if (a[i] === b[j]) {
+                i++;
+                j++;
+                continue;
+            }
+            if (usado) return false;
+            usado = true;
+            if (la > lb) i++;
+            else if (lb > la) j++;
+            else {
+                i++;
+                j++;
+            }
+        }
+        return true;
+    }
+
+    function casaPalavraEmTexto(palavraNorm, tokens, hay, fuzzy) {
+        if (!palavraNorm) return true;
+        if (hay.includes(palavraNorm)) return true;
+        return tokens.some(tk => {
+            if (tk.includes(palavraNorm)) return true;
+            if (palavraNorm.length >= 2 && tk.startsWith(palavraNorm)) return true;
+            if (fuzzy && palavraNorm.length >= 4 && tk.length >= 4 && edicaoUnicaNoMaximo(palavraNorm, tk)) return true;
+            return false;
+        });
+    }
+
+    function palavraCasaNoProduto(palavraBruta, tokens, hay, fuzzy, p) {
+        if (casaCodigoNumericoNoProduto(palavraBruta, p)) return true;
+        return variantesPalavraBusca(palavraBruta).some(v =>
+            casaPalavraEmTexto(v, tokens, hay, fuzzy, p)
+        );
+    }
+
+    /**
+     * @param {Array} lista - produtos (mesmo formato da API local: busca_texto, codigo_nfe, etc.)
+     * @param {string} termoNormalizado - resultado de normalizarBuscaLocal(termoBruto)
+     * @param {'normal'|'scanner'} modo
+     */
+    function filtrarProdutosBuscaInteligente(lista, termoNormalizado, modo) {
+        const termo = String(termoNormalizado || '').trim();
+        const palavras = termo.split(/\s+/).filter(Boolean);
+        if (modo === 'scanner') {
+            const dTerm = termo.replace(/\D/g, '');
+            return lista.filter(p => {
+                const hay = p.busca_texto || '';
+                if (hay.includes(termo)) return true;
+                const nfe = normalizarBuscaLocal(String(p.codigo_nfe ?? ''));
+                const cb = normalizarBuscaLocal(String(p.codigo_barras ?? ''));
+                if (termo === nfe || termo === cb) return true;
+                if (dTerm.length >= 4 && casaCodigoNumericoNoProduto(termo, p)) return true;
+                return false;
+            });
+        }
+        if (!palavras.length) return [];
+
+        const tentar = (fuzzy) => lista.filter(p => {
+            const hay = p.busca_texto || '';
+            const tokens = tokensBuscaProduto(p);
+            return palavras.every(pl => palavraCasaNoProduto(pl, tokens, hay, fuzzy, p));
+        });
+
+        let resultados = tentar(false);
+        if (resultados.length === 0 && palavras.every(pl => pl.length >= 3)) {
+            resultados = tentar(true);
+        }
+        return resultados;
+    }
+
+    window.normalizarBuscaLocal = normalizarBuscaLocal;
+    window.filtrarProdutosBuscaInteligente = filtrarProdutosBuscaInteligente;
+    window.casaCodigoNumericoNoProduto = casaCodigoNumericoNoProduto;
+})();
+</script>
