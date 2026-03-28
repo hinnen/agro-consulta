@@ -2,6 +2,7 @@ import json
 import logging
 import re
 import unicodedata
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from bson import ObjectId
@@ -517,8 +518,10 @@ def api_buscar_produtos(request):
         return JsonResponse({"produtos": []})
 
     try:
-        prods = motor_de_busca_agro(q, db, client, limit=20)
+        prods = motor_de_busca_agro(q, db, client, limit=60)
         p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
+
+        medias_map = _obter_mapa_medias_venda_cache(db)
 
         estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
         estoque_map = _mapear_estoques_por_produto(estoques, client)
@@ -548,11 +551,22 @@ def api_buscar_produtos(request):
             codigo = p.get("Codigo") or ""
             codigo_nfe = p.get("CodigoNFe") or codigo or ""
             codigo_barras = _extrair_codigo_barras(p)
+            media_d = float(medias_map.get(pid, 0.0))
 
             res.append({
                 "id": pid,
                 "nome": p.get("Nome"),
                 "marca": p.get("Marca") or "",
+                "fornecedor": p.get("NomeFornecedor")
+                or p.get("Fornecedor")
+                or p.get("RazaoSocialFornecedor")
+                or p.get("Fabricante")
+                or "",
+                "categoria": p.get("NomeCategoria")
+                or p.get("Categoria")
+                or p.get("Grupo")
+                or p.get("SubGrupo")
+                or "",
                 "codigo": codigo,
                 "codigo_nfe": codigo_nfe,
                 "codigo_barras": codigo_barras,
@@ -564,7 +578,15 @@ def api_buscar_produtos(request):
                 "saldo_vila_erp": round(saldo_vila_erp, 2),
                 "saldo_erp_centro": round(saldo_centro_erp, 2),  # compatibilidade com mobile atual
                 "saldo_erp_vila": round(saldo_vila_erp, 2),
+                "media_venda_diaria_30d": media_d,
             })
+
+        res.sort(
+            key=lambda r: (
+                -float(r.get("media_venda_diaria_30d") or 0),
+                str(r.get("nome") or "").lower(),
+            )
+        )
 
         return JsonResponse({"produtos": res})
     except Exception as e:
@@ -674,6 +696,95 @@ def _json_legivel(val):
     return str(val)
 
 
+def _produto_mongo_por_id_externo(db, client_m, pid_str):
+    if db is None or client_m is None:
+        return None
+    pid_str = str(pid_str or "").strip()
+    if not pid_str:
+        return None
+    ors = [{"Id": pid_str}]
+    try:
+        ors.append({"_id": ObjectId(pid_str)})
+    except Exception:
+        pass
+    return db[client_m.col_p].find_one({"$or": ors})
+
+
+def _parece_object_id_mongo(s):
+    s = str(s or "").strip()
+    if len(s) != 24:
+        return False
+    return all(c in "0123456789abcdefABCDEF" for c in s)
+
+
+def _desembrulhar_texto_json_recursivo(val, depth=0):
+    if depth > 5:
+        return val
+    if isinstance(val, (dict, list)):
+        return val
+    s = str(val).strip()
+    if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+        try:
+            inner = json.loads(s)
+            return _desembrulhar_texto_json_recursivo(inner, depth + 1)
+        except Exception:
+            return s
+    return s
+
+
+def _mensagem_pedido_erp_indica_falha(msg) -> bool:
+    s = str(_desembrulhar_texto_json_recursivo(msg)).strip().lower()
+    folded = "".join(
+        c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn"
+    )
+    markers = (
+        "nao foi possivel",
+        "e preciso informar",
+        "produto valido",
+        "informar algum produto",
+        "informar produtos",
+        "falha ao salvar",
+    )
+    return any(m in folded for m in markers)
+
+
+def _linha_item_pedido_erp(db, client_m, item: dict) -> dict | None:
+    pid = str(item.get("id") or "").strip()
+    if not pid:
+        return None
+    qtd = float(item.get("qtd") or 0)
+    vu = float(item.get("preco") or 0)
+    nome = str(item.get("nome") or "").strip()
+    p_doc = _produto_mongo_por_id_externo(db, client_m, pid)
+    produto_id = pid
+    codigo = pid
+    codigo_barras = ""
+    if p_doc:
+        bid = p_doc.get("Id")
+        if bid is not None and str(bid).strip():
+            produto_id = str(bid).strip()
+        else:
+            produto_id = str(p_doc.get("_id") or pid)
+        codigo = (
+            str(p_doc.get("CodigoNFe") or p_doc.get("Codigo") or "").strip() or produto_id
+        )
+        codigo_barras = str(p_doc.get("CodigoBarras") or p_doc.get("EAN_NFe") or "").strip()
+        if _parece_object_id_mongo(produto_id) and codigo and not _parece_object_id_mongo(codigo):
+            produto_id = codigo
+    linha = {
+        "produtoID": produto_id,
+        "codigo": codigo,
+        "unidade": "UN",
+        "descricao": nome,
+        "quantidade": qtd,
+        "valorUnitario": vu,
+        "valorTotal": round(qtd * vu, 2),
+    }
+    if codigo_barras:
+        linha["codigoBarras"] = codigo_barras
+    return linha
+
+
 @require_POST
 def api_enviar_pedido_erp(request):
     try:
@@ -708,23 +819,9 @@ def api_enviar_pedido_erp(request):
         for i in raw_itens:
             if not isinstance(i, dict):
                 continue
-            pid = str(i.get("id") or "").strip()
-            if not pid:
-                continue
-            qtd = float(i.get("qtd") or 0)
-            vu = float(i.get("preco") or 0)
-            nome = str(i.get("nome") or "").strip()
-            linhas.append(
-                {
-                    "produtoID": pid,
-                    "codigo": pid,
-                    "unidade": "UN",
-                    "descricao": nome,
-                    "quantidade": qtd,
-                    "valorUnitario": vu,
-                    "valorTotal": round(qtd * vu, 2),
-                }
-            )
+            linha = _linha_item_pedido_erp(db, client_m, i)
+            if linha:
+                linhas.append(linha)
 
         if not linhas:
             return JsonResponse(
@@ -734,7 +831,8 @@ def api_enviar_pedido_erp(request):
 
         payload = {
             "statusSistema": "Orçamento",
-            "cliente": data.get("cliente", "Consumidor Final"),
+            "cliente": (data.get("cliente") or "").strip()
+            or "CONSUMIDOR NÃO IDENTIFICADO...",
             "data": timezone.now().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
             "origemVenda": "Venda Direta",
             "empresa": "Agro Mais Centro",
@@ -758,6 +856,13 @@ def api_enviar_pedido_erp(request):
         payload = {k: v for k, v in payload.items() if v not in (None, "")}
 
         ok, status, res = api_client.salvar_operacao_pdv(payload)
+        msg_para_checar = _desembrulhar_texto_json_recursivo(res)
+        msg_txt = str(msg_para_checar).strip()
+        if ok and _mensagem_pedido_erp_indica_falha(msg_txt):
+            return JsonResponse(
+                {"ok": False, "erro": msg_txt or _json_legivel(res), "http_status": status},
+                status=502,
+            )
         if ok:
             return JsonResponse({"ok": True, "mensagem": _json_legivel(res)})
         return JsonResponse(
@@ -768,10 +873,73 @@ def api_enviar_pedido_erp(request):
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
 
 
+def _media_diaria_vendas_por_produto(db, dias=30):
+    """
+    Quantidade média vendida por dia (total no período / dias), por ProdutoID,
+    a partir de DtoVenda + DtoVendaProduto (mesmos filtros que atualizar_medias.py).
+    """
+    out = {}
+    try:
+        data_limite = datetime.now() - timedelta(days=dias)
+        vendas = list(
+            db["DtoVenda"].find(
+                {
+                    "Data": {"$gte": data_limite},
+                    "Cancelada": {"$ne": True},
+                    "Status": {"$nin": ["Cancelado", "Cancelada", "Orcamento"]},
+                },
+                {"_id": 1, "Id": 1},
+            )
+        )
+        if not vendas:
+            return out
+        venda_ids_obj = []
+        venda_ids_str = []
+        for v in vendas:
+            vid = str(v.get("Id") or v.get("_id"))
+            venda_ids_str.append(vid)
+            if len(vid) == 24:
+                try:
+                    venda_ids_obj.append(ObjectId(vid))
+                except Exception:
+                    pass
+        query_itens = {
+            "$or": [
+                {"VendaID": {"$in": venda_ids_obj}},
+                {"VendaID": {"$in": venda_ids_str}},
+            ]
+        }
+        totais = {}
+        for item in db["DtoVendaProduto"].find(query_itens):
+            pid = str(item.get("ProdutoID") or "")
+            if not pid or pid == "None":
+                continue
+            qtd = float(item.get("Quantidade") or 0)
+            totais[pid] = totais.get(pid, 0.0) + qtd
+        div = float(dias) if dias else 30.0
+        for pid, total in totais.items():
+            out[pid] = round(total / div, 6)
+    except Exception as exc:
+        logger.warning("media_diaria_vendas_por_produto: %s", exc)
+    return out
+
+
+_CACHE_MEDIAS_VENDA_30D = "pdv_mapa_medias_venda_diaria_30d_v1"
+
+
+def _obter_mapa_medias_venda_cache(db, timeout=900):
+    """Mapa produto_id → média diária (30d), com cache curto para não recalcular a cada busca."""
+    m = cache.get(_CACHE_MEDIAS_VENDA_30D)
+    if m is None:
+        m = _media_diaria_vendas_por_produto(db, dias=30)
+        cache.set(_CACHE_MEDIAS_VENDA_30D, m, timeout=timeout)
+    return m
+
+
 # --- CARGA INICIAL E APIs AUXILIARES ---
 @require_GET
 def api_todos_produtos_local(request):
-    cache_key = "carga_inicial_produtos_todos_v25"
+    cache_key = "carga_inicial_produtos_todos_v26"
     cached_data = cache.get(cache_key)
     if cached_data:
         return JsonResponse(cached_data)
@@ -810,6 +978,8 @@ def api_todos_produtos_local(request):
                 est_map[pid]["c"] += float(est.get("Saldo") or 0)
             elif did == client.DEPOSITO_VILA_ELIAS:
                 est_map[pid]["v"] += float(est.get("Saldo") or 0)
+
+        medias_venda = _obter_mapa_medias_venda_cache(db)
 
         res = []
         for p in produtos:
@@ -881,6 +1051,7 @@ def api_todos_produtos_local(request):
                 "saldo_erp_centro": s_c,
                 "saldo_erp_vila": s_v,
                 "busca_texto": busca_texto_final,
+                "media_venda_diaria_30d": float(medias_venda.get(pid, 0.0)),
             })
 
         resultado_final = {"produtos": res}

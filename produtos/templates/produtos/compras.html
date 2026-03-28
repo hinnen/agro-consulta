@@ -73,6 +73,17 @@
           <span id="total-estimado" class="text-xl sm:text-2xl text-emerald-600 font-black tabular-nums">R$ 0,00</span>
         </div>
 
+        <div class="rounded-xl border border-slate-200 bg-slate-50/90 p-3 space-y-2">
+          <label class="flex items-start gap-2.5 cursor-pointer group">
+            <input type="checkbox" id="chk-fornec-compra" class="mt-0.5 w-4 h-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500">
+            <span class="text-[11px] font-bold text-slate-700 leading-snug">Incluir <span class="text-orange-600">fornecedor</span> na mensagem (copiar / WhatsApp)</span>
+          </label>
+          <div id="wrap-nome-fornec-compra" class="hidden">
+            <label for="nome-fornec-compra" class="sr-only">Nome ou contato do fornecedor</label>
+            <input type="text" id="nome-fornec-compra" maxlength="120" placeholder="Nome ou contato do fornecedor" autocomplete="organization" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:border-orange-400 focus:ring-1 focus:ring-orange-200 outline-none transition-colors">
+          </div>
+        </div>
+
         <button type="button" onclick="copiarLista()" class="w-full bg-slate-100 text-slate-800 font-black py-3.5 rounded-xl uppercase text-[11px] tracking-wide hover:bg-slate-200 transition-colors active:scale-[0.99]">
           Copiar lista
         </button>
@@ -96,7 +107,7 @@
     <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
         <h2 class="text-sm font-black uppercase tracking-widest text-slate-700">Histórico de pedidos</h2>
-        <p class="text-[10px] font-bold text-slate-400 max-w-md leading-snug">Status: cotação → pedido → entregue. <span class="text-emerald-600">Entregue</span> pode ficar automático quando o estoque total subir o suficiente após o registro.</p>
+        <p class="text-[10px] font-bold text-slate-500 max-w-lg leading-snug"><span class="text-amber-700">Cotação</span> e <span class="text-sky-700">Pedido</span> você altera no menu. <span class="text-emerald-700">Entregue</span> é automático quando o estoque sobe o suficiente (só em pedidos confirmados).</p>
       </div>
       <div id="historico-pedidos-compra" class="p-4 space-y-3 min-h-[80px]">
         <div class="text-center text-slate-400 font-bold text-sm py-6">Carregando histórico…</div>
@@ -287,6 +298,7 @@ function verificarEntregasAutomaticas() {
   let mudou = false;
   h.forEach(ped => {
     if (ped.status === 'entregue') return;
+    if (ped.status !== 'pedido') return;
     const itens = ped.itens || [];
     if (!itens.length) return;
     const ok = itens.every(line => {
@@ -294,7 +306,8 @@ function verificarEntregasAutomaticas() {
       if (!p) return false;
       const snap = Number((ped.snapshot || {})[line.id] != null ? (ped.snapshot || {})[line.id] : 0);
       const cur = saldoTotalProduto(p);
-      return cur + 0.01 >= snap + Number(line.qtd);
+      const q = Number(line.qtd) || 0;
+      return Math.floor(cur + 1e-9) >= Math.floor(snap + q);
     });
     if (ok) {
       ped.status = 'entregue';
@@ -324,13 +337,15 @@ function registrarPedidoNoHistorico() {
   });
   salvarHistoricoCompra(h);
   renderHistoricoCompras();
-  alert('Pedido registrado como cotação.');
+  alert('Salvo como cotação. Quando confirmar com o fornecedor, mude para Pedido — ao entrar estoque, vira Entregue automaticamente.');
 }
 
 function atualizarStatusPedidoCompra(id, status) {
+  if (status === 'entregue') return;
+  if (status !== 'cotacao' && status !== 'pedido') return;
   const h = lerHistoricoCompra();
   const ped = h.find(x => x.id === id);
-  if (ped) ped.status = status;
+  if (ped && ped.status !== 'entregue') ped.status = status;
   salvarHistoricoCompra(h);
   renderHistoricoCompras();
 }
@@ -354,25 +369,38 @@ function renderHistoricoCompras() {
   h.forEach(ped => {
     const dt = new Date(ped.criadoEm);
     const dtStr = Number.isNaN(dt.getTime()) ? String(ped.criadoEm || '') : dt.toLocaleString('pt-BR');
-    const st = ped.status || 'cotacao';
+    let st = ped.status || 'cotacao';
+    if (st !== 'entregue' && st !== 'pedido' && st !== 'cotacao') st = 'cotacao';
+    const entregue = st === 'entregue';
     const card = document.createElement('div');
-    card.className = 'rounded-xl border border-slate-200 bg-slate-50/80 p-4 flex flex-col sm:flex-row gap-4 sm:items-start sm:justify-between';
+    const barra =
+      entregue
+        ? 'border-l-4 border-l-emerald-500 bg-emerald-50/40'
+        : st === 'pedido'
+          ? 'border-l-4 border-l-sky-500 bg-sky-50/35'
+          : 'border-l-4 border-l-amber-400 bg-amber-50/30';
+    card.className = `rounded-xl border border-slate-200/90 p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:items-start sm:justify-between ${barra}`;
     const itensLinhas = (ped.itens || []).map(i =>
-      `<div class="text-xs font-bold text-slate-700">${escapeHtml(i.nome)} <span class="text-slate-400">× ${escapeHtml(String(i.qtd))}</span></div>`
+      `<div class="text-xs font-bold text-slate-800">${escapeHtml(i.nome)} <span class="text-slate-400 font-semibold">× ${escapeHtml(String(i.qtd))}</span></div>`
     ).join('');
+    const badgeEntregue = `<span class="inline-flex items-center gap-1 rounded-full bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wide px-3 py-1 shadow-sm">Entregue</span>`;
+    const selDois = `
+        <label class="text-[9px] font-black uppercase text-slate-500 tracking-wide">Status</label>
+        <select data-pedido-id="${escapeHtml(String(ped.id))}" class="sel-status-compra text-xs font-black border-2 border-slate-200 rounded-lg px-2 py-1.5 bg-white min-w-[130px] text-slate-800 focus:border-sky-400 focus:ring-1 focus:ring-sky-200 outline-none">
+          <option value="cotacao" ${st === 'cotacao' ? 'selected' : ''}>Cotação</option>
+          <option value="pedido" ${st === 'pedido' ? 'selected' : ''}>Pedido</option>
+        </select>`;
     card.innerHTML = `
       <div class="min-w-0 flex-1">
-        <div class="text-[10px] font-black uppercase text-slate-400">${escapeHtml(dtStr)}</div>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-[10px] font-black uppercase text-slate-500">${escapeHtml(dtStr)}</span>
+          ${entregue ? badgeEntregue : ''}
+        </div>
         <div class="mt-2 space-y-1 max-h-40 overflow-y-auto pr-1 hide-scroll">${itensLinhas}</div>
       </div>
       <div class="flex flex-col gap-2 shrink-0 sm:items-end">
-        <span class="text-[10px] font-black uppercase text-slate-500">Status</span>
-        <select data-pedido-id="${escapeHtml(String(ped.id))}" class="sel-status-compra text-xs font-black border-2 border-slate-200 rounded-lg px-2 py-2 bg-white min-w-[140px]">
-          <option value="cotacao" ${st === 'cotacao' ? 'selected' : ''}>Cotação</option>
-          <option value="pedido" ${st === 'pedido' ? 'selected' : ''}>Pedido</option>
-          <option value="entregue" ${st === 'entregue' ? 'selected' : ''}>Entregue</option>
-        </select>
-        <button type="button" data-remove-id="${escapeHtml(String(ped.id))}" class="btn-remove-compra text-[10px] font-bold text-red-500 hover:text-red-600 uppercase text-left sm:text-right">Excluir</button>
+        ${entregue ? '<span class="text-[9px] font-bold text-emerald-700 text-right max-w-[11rem] leading-snug">Fechado automaticamente quando o estoque subiu.</span>' : selDois}
+        <button type="button" data-remove-id="${escapeHtml(String(ped.id))}" class="btn-remove-compra text-[10px] font-bold text-red-500 hover:text-red-700 uppercase text-left sm:text-right">Excluir</button>
       </div>`;
     host.appendChild(card);
     const sel = card.querySelector('.sel-status-compra');
@@ -508,29 +536,50 @@ function buscar(q) {
 
 function formatarTextoFornecedor() {
   let texto = '📦 *PEDIDO — GM AGRO MAIS*\n\n';
+  const chk = document.getElementById('chk-fornec-compra');
+  const inp = document.getElementById('nome-fornec-compra');
+  if (chk && chk.checked && inp) {
+    const n = String(inp.value || '').trim();
+    if (n) texto += `🏭 *Fornecedor:* ${n}\n\n`;
+  }
   lista.forEach(item => {
     texto += `• ${item.nome}\n  Qtd: ${item.qtd}\n`;
   });
   return texto.trimEnd();
 }
 
-function formatarTexto() {
-  let texto = '📦 *LISTA DE COMPRA — GM AGRO MAIS*\n';
-  texto += '_Valores em custo final (taxas e impostos, quando no cadastro)_\n\n';
-  let totalGeral = 0;
-  lista.forEach(item => {
-    const sub = Number(item.qtd) * Number(item.precoFinal);
-    totalGeral += sub;
-    texto += `• ${item.nome}\n`;
-    texto += `  Qtd: ${item.qtd} × ${formatarMoeda(item.precoFinal)} = ${formatarMoeda(sub)}\n`;
-  });
-  texto += `\n*Total:* ${formatarMoeda(totalGeral)}`;
-  return texto;
+function initPainelFornecedorCompra() {
+  const chk = document.getElementById('chk-fornec-compra');
+  const wrap = document.getElementById('wrap-nome-fornec-compra');
+  const inp = document.getElementById('nome-fornec-compra');
+  if (!chk || !wrap) return;
+  const LS_CHK = 'gmCompraChkFornec';
+  const LS_NOME = 'gmCompraNomeFornec';
+  const sync = () => {
+    wrap.classList.toggle('hidden', !chk.checked);
+    try {
+      localStorage.setItem(LS_CHK, chk.checked ? '1' : '0');
+    } catch (_) {}
+  };
+  chk.addEventListener('change', sync);
+  if (inp) {
+    inp.addEventListener('blur', () => {
+      try {
+        localStorage.setItem(LS_NOME, String(inp.value || '').trim());
+      } catch (_) {}
+    });
+  }
+  try {
+    chk.checked = localStorage.getItem(LS_CHK) === '1';
+    if (inp) inp.value = localStorage.getItem(LS_NOME) || '';
+  } catch (_) {}
+  sync();
 }
 
 function copiarLista() {
   if (!lista.length) return alert("A lista está vazia!");
-  navigator.clipboard.writeText(formatarTexto()).then(() => alert("Lista copiada com sucesso!"));
+  const texto = formatarTextoFornecedor();
+  navigator.clipboard.writeText(texto).then(() => alert("Lista copiada com sucesso!"));
 }
 
 function enviarWhatsapp() {
@@ -563,6 +612,7 @@ document.getElementById('busca').addEventListener('keydown', (e) => {
 
 atualizarCarrinho();
 renderHistoricoCompras();
+initPainelFornecedorCompra();
 </script>
 
 </body>
