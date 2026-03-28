@@ -39,13 +39,35 @@
   <main class="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="lg:col-span-2 space-y-4">
       <div>
-        <input
-          type="text"
-          id="busca"
-          placeholder="Buscar por nome, GM, EAN ou marca..."
-          autocomplete="off"
-          class="w-full px-5 py-4 rounded-2xl bg-white border-2 border-slate-200 text-base sm:text-lg font-bold outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/25 shadow-sm text-slate-800 placeholder:text-slate-400 transition-all"
-        >
+        <div class="flex flex-col sm:flex-row gap-2 sm:items-stretch">
+          <input
+            type="text"
+            id="busca"
+            placeholder="Buscar por nome, GM, EAN ou marca..."
+            autocomplete="off"
+            class="flex-1 min-w-0 px-5 py-4 rounded-2xl bg-white border-2 border-slate-200 text-base sm:text-lg font-bold outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/25 shadow-sm text-slate-800 placeholder:text-slate-400 transition-all"
+          >
+          <button type="button" id="btn-busca-avancada-compra" class="shrink-0 px-4 py-4 rounded-2xl bg-white border-2 border-orange-200 text-orange-700 font-black text-xs uppercase tracking-wide hover:bg-orange-50 hover:border-orange-400 transition-colors shadow-sm">
+            Filtros avançados
+          </button>
+        </div>
+        <div id="ca-banner-ativo" class="hidden mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-orange-200 bg-orange-50/80 px-3 py-2">
+          <span class="text-[11px] font-bold text-orange-900">Filtro avançado ativo — resultados limitados ao conjunto filtrado.</span>
+          <button type="button" id="btn-ca-limpar" class="text-[10px] font-black uppercase text-orange-700 hover:text-orange-900 underline decoration-orange-300">Limpar filtro</button>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2 mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+          <label class="text-[10px] font-black uppercase text-slate-500 shrink-0" for="compra-dias-media-vendas">Média de vendas (todos os produtos)</label>
+          <select id="compra-dias-media-vendas" class="text-xs font-bold border-2 border-orange-100 rounded-lg px-2 py-1.5 bg-orange-50/50 text-orange-900 max-w-full" title="Período em dias para média, variação semanal e última entrada nos cards">
+            <option value="7">7 dias</option>
+            <option value="14">14 dias</option>
+            <option value="21">21 dias</option>
+            <option value="28">28 dias</option>
+            <option value="30" selected>30 dias</option>
+            <option value="45">45 dias</option>
+            <option value="60">60 dias</option>
+            <option value="90">90 dias</option>
+          </select>
+        </div>
         <div class="flex items-center justify-between gap-2 mt-2 px-1">
           <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
             <span aria-hidden="true">↑</span><span aria-hidden="true">↓</span> nos resultados
@@ -115,10 +137,55 @@
     </div>
   </section>
 
+  <div id="modal-busca-avancada-compra" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[105] hidden items-center justify-center p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 max-h-[92vh] flex flex-col">
+      <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center gap-3 shrink-0">
+        <h2 class="text-lg font-black uppercase text-slate-800 tracking-tight">Busca avançada</h2>
+        <button type="button" id="btn-fechar-ca" class="text-slate-400 hover:text-slate-700 font-bold text-sm px-2" aria-label="Fechar">✕</button>
+      </div>
+      <div class="p-5 space-y-3 overflow-y-auto hide-scroll flex-1 min-h-0">
+        <div>
+          <label class="text-[10px] font-black uppercase text-slate-500" for="ca-dimensao">Filtrar por</label>
+          <select id="ca-dimensao" class="mt-1 w-full font-bold text-sm border-2 border-slate-200 rounded-xl px-3 py-2 bg-white">
+            <option value="">Só texto / preço / estoque</option>
+            <option value="marca">Marca</option>
+            <option value="fornecedor">Fornecedor</option>
+            <option value="categoria">Categoria</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] font-black uppercase text-slate-500" for="ca-valor-ref">Valor do filtro</label>
+          <select id="ca-valor-ref" class="mt-1 w-full font-bold text-sm border-2 border-slate-200 rounded-xl px-3 py-2 bg-white max-h-40"></select>
+        </div>
+        <div>
+          <label class="text-[10px] font-black uppercase text-slate-500" for="ca-texto">Contém no nome / código / busca</label>
+          <input id="ca-texto" type="text" class="mt-1 w-full font-bold text-sm border-2 border-slate-200 rounded-xl px-3 py-2" placeholder="Opcional" autocomplete="off">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[10px] font-black uppercase text-slate-500" for="ca-preco-max">Preço venda máx.</label>
+            <input id="ca-preco-max" type="number" step="0.01" min="0" class="mt-1 w-full font-bold text-sm border-2 border-slate-200 rounded-xl px-3 py-2" placeholder="—">
+          </div>
+          <div>
+            <label class="text-[10px] font-black uppercase text-slate-500" for="ca-estoque-max">Estoque total máx.</label>
+            <input id="ca-estoque-max" type="number" step="0.1" class="mt-1 w-full font-bold text-sm border-2 border-slate-200 rounded-xl px-3 py-2" placeholder="—">
+          </div>
+        </div>
+        <button type="button" id="btn-aplicar-ca" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-3 rounded-xl uppercase text-sm">Aplicar filtros</button>
+        <p class="text-[10px] text-slate-400 font-bold text-center leading-snug">Clique em um item abaixo para adicionar à lista de pedido.</p>
+        <div id="lista-busca-avancada-compra" class="border border-slate-100 rounded-xl min-h-[120px] max-h-[38vh] overflow-y-auto hide-scroll bg-slate-50/30"></div>
+      </div>
+    </div>
+  </div>
+
 <script>
 let lista = [];
 let debounceTimer = null;
 let baseProdutos = [];
+let compraPoolAvancado = null;
+let buscaAvancadaResultadosCompra = [];
+const LS_COMPRA_DIAS_MEDIA = 'compra_media_vendas_dias';
+let compraDiasMediaVendas = 30;
 const PLACEHOLDER_IMG = "{% static 'img/agro-mais-logo-buscador.png' %}";
 const LS_HISTORICO_COMPRA = 'gmHistoricoPedidosCompra';
 let indiceSelecionadoCompra = -1;
@@ -147,6 +214,90 @@ function formatarMoeda(valor) {
   return Number(valor || 0).toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL'
+  });
+}
+
+function formatarDataEntradaCompra(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return String(iso).slice(0, 10) || '—';
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  } catch (_) {
+    return '—';
+  }
+}
+
+function formatarVarSemanalCompra(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '—';
+  return (n >= 0 ? '+' : '') + n.toFixed(1) + '%';
+}
+
+function classeCorVarSemanalCompra(v) {
+  if (v === null || v === undefined || v === '') return 'text-slate-500 border-slate-200 bg-slate-50';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 'text-slate-500 border-slate-200 bg-slate-50';
+  if (n > 0) return 'text-emerald-800 border-emerald-200 bg-emerald-50';
+  if (n < 0) return 'text-red-700 border-red-200 bg-red-50';
+  return 'text-slate-600 border-slate-200 bg-slate-50';
+}
+
+function aplicarMetricasCompraNaBase(payload) {
+  if (!payload || !Array.isArray(payload.rows) || !baseProdutos.length) return;
+  const map = new Map();
+  payload.rows.forEach((r) => {
+    if (r && r[0] != null && r.length >= 8) map.set(String(r[0]), r);
+  });
+  baseProdutos.forEach((p) => {
+    const row = map.get(String(p.id));
+    if (!row) {
+      p._c_media_dia = 0;
+      p._c_var_sem = null;
+      p._c_entrada_data = '';
+      p._c_entrada_qtd = 0;
+      return;
+    }
+    p._c_media_dia = Number(row[1]);
+    p._c_var_sem = row[5] === null || row[5] === undefined || row[5] === '' ? null : Number(row[5]);
+    p._c_entrada_data = row[6] || '';
+    p._c_entrada_qtd = Number(row[7]);
+  });
+}
+
+function carregarMetricasCompra() {
+  if (!baseProdutos.length) return;
+  const d = compraDiasMediaVendas;
+  fetch(`{% url 'api_pdv_metricas_produtos' %}?dias=${d}`)
+    .then((r) => r.json())
+    .then((data) => {
+      if (data.erro || !data.rows) return;
+      aplicarMetricasCompraNaBase(data);
+      const inp = document.getElementById('busca');
+      if (inp && (normalizar(inp.value).length >= 2 || compraPoolAvancado !== null)) buscar(inp.value);
+    })
+    .catch(() => {});
+}
+
+function initCompraDiasMediaVendasUi() {
+  const sel = document.getElementById('compra-dias-media-vendas');
+  if (!sel || sel.dataset.bound === '1') return;
+  sel.dataset.bound = '1';
+  try {
+    const v = parseInt(localStorage.getItem(LS_COMPRA_DIAS_MEDIA), 10);
+    if ([7, 14, 21, 28, 30, 45, 60, 90].includes(v)) {
+      compraDiasMediaVendas = v;
+      sel.value = String(v);
+    }
+  } catch (_) {}
+  sel.addEventListener('change', () => {
+    const nv = parseInt(sel.value, 10) || 30;
+    compraDiasMediaVendas = nv;
+    try {
+      localStorage.setItem(LS_COMPRA_DIAS_MEDIA, String(nv));
+    } catch (_) {}
+    carregarMetricasCompra();
   });
 }
 
@@ -248,6 +399,9 @@ function abrirAjuste(id, nome, saldoAtual, codigo, deposito) {
         .then(r => r.json())
         .then(data => {
           baseProdutos = data.produtos || [];
+          compraPoolAvancado = null;
+          atualizarBannerFiltroCompra();
+          carregarMetricasCompra();
           buscar(document.getElementById('busca').value);
           renderHistoricoCompras();
         })
@@ -266,6 +420,9 @@ window.addEventListener('load', () => {
     .then(r => r.json())
     .then(data => {
       baseProdutos = data.produtos || [];
+      compraPoolAvancado = null;
+      atualizarBannerFiltroCompra();
+      carregarMetricasCompra();
       div.innerHTML = '';
       atualizarCarrinho();
       renderHistoricoCompras();
@@ -278,6 +435,132 @@ window.addEventListener('load', () => {
 function saldoTotalProduto(p) {
   if (!p) return 0;
   return Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0);
+}
+
+function valoresDimensaoCompra(p, dim) {
+  const o = [];
+  if (dim === 'marca' && p.marca) o.push(String(p.marca));
+  if (dim === 'fornecedor' && p.fornecedor) o.push(String(p.fornecedor));
+  if (dim === 'categoria' && p.categoria) o.push(String(p.categoria));
+  return o;
+}
+
+function atualizarBannerFiltroCompra() {
+  const b = document.getElementById('ca-banner-ativo');
+  if (!b) return;
+  b.classList.toggle('hidden', compraPoolAvancado === null);
+}
+
+function abrirBuscaAvancadaCompra() {
+  const m = document.getElementById('modal-busca-avancada-compra');
+  if (!m) return;
+  preencherSelectCompraAvancadaDimensao();
+  m.classList.remove('hidden');
+  m.classList.add('flex');
+}
+
+function fecharBuscaAvancadaCompra() {
+  const m = document.getElementById('modal-busca-avancada-compra');
+  if (!m) return;
+  m.classList.add('hidden');
+  m.classList.remove('flex');
+}
+
+function preencherSelectCompraAvancadaDimensao() {
+  const sel = document.getElementById('ca-valor-ref');
+  const dimEl = document.getElementById('ca-dimensao');
+  if (!sel || !dimEl) return;
+  const dim = dimEl.value;
+  sel.innerHTML = '';
+  const o0 = document.createElement('option');
+  o0.value = '';
+  o0.textContent = '(qualquer)';
+  sel.appendChild(o0);
+  if (!dim || !baseProdutos.length) return;
+  const unicos = [...new Set(baseProdutos.flatMap(p => valoresDimensaoCompra(p, dim)).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+    .slice(0, 400);
+  unicos.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v;
+    o.textContent = v;
+    sel.appendChild(o);
+  });
+}
+
+function aplicarBuscaAvancadaCompra() {
+  const dim = (document.getElementById('ca-dimensao') || {}).value || '';
+  const valRef = ((document.getElementById('ca-valor-ref') || {}).value || '').trim();
+  const txt = normalizar((document.getElementById('ca-texto') || {}).value || '');
+  const pm = parseFloat((document.getElementById('ca-preco-max') || {}).value);
+  const em = parseFloat((document.getElementById('ca-estoque-max') || {}).value);
+
+  let out = baseProdutos.slice();
+  if (dim && valRef) {
+    const nref = normalizar(valRef);
+    out = out.filter(p =>
+      valoresDimensaoCompra(p, dim).some(v => {
+        const nv = normalizar(v);
+        return nv === nref || nv.includes(nref);
+      })
+    );
+  }
+  if (txt) {
+    out = out.filter(p =>
+      normalizar(
+        p.busca_texto ||
+        `${p.nome || ''} ${p.marca || ''} ${p.codigo || ''} ${p.codigo_nfe || ''} ${p.codigo_barras || ''}`
+      ).includes(txt)
+    );
+  }
+  if (!Number.isNaN(pm) && pm >= 0) {
+    out = out.filter(p => Number(p.preco_venda || 0) <= pm);
+  }
+  if (!Number.isNaN(em)) {
+    out = out.filter(p => saldoTotalProduto(p) <= em);
+  }
+
+  compraPoolAvancado = out.length ? out : [];
+  buscaAvancadaResultadosCompra = out.slice(0, 200);
+  atualizarBannerFiltroCompra();
+  renderListaBuscaAvancadaCompra();
+  fecharBuscaAvancadaCompra();
+  const inp = document.getElementById('busca');
+  buscar(inp ? inp.value : '');
+}
+
+function limparFiltroAvancadoCompra() {
+  compraPoolAvancado = null;
+  buscaAvancadaResultadosCompra = [];
+  atualizarBannerFiltroCompra();
+  const inp = document.getElementById('busca');
+  buscar(inp ? inp.value : '');
+}
+
+function renderListaBuscaAvancadaCompra() {
+  const host = document.getElementById('lista-busca-avancada-compra');
+  if (!host) return;
+  if (!buscaAvancadaResultadosCompra.length) {
+    host.innerHTML = '<div class="text-center text-slate-400 font-bold text-sm py-8 px-2">Nenhum produto com esses filtros.</div>';
+    return;
+  }
+  host.innerHTML = '';
+  buscaAvancadaResultadosCompra.forEach(p => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'w-full text-left px-3 py-2.5 rounded-xl border border-slate-100 hover:border-orange-300 hover:bg-orange-50/50 mb-1 transition-colors bg-white';
+    const mar = p.marca || '—';
+    const tot = saldoTotalProduto(p);
+    btn.innerHTML = `
+      <div class="font-black text-xs uppercase text-slate-800 leading-snug">${escapeHtml(p.nome || '')}</div>
+      <div class="text-[10px] text-slate-500 font-bold mt-0.5">${escapeHtml(mar)} · ${formatarMoeda(custoFinalDoProduto(p))} · est ${tot.toFixed(1)}</div>`;
+    btn.addEventListener('click', () => {
+      const nomeReal = p.nome || 'PRODUTO SEM NOME';
+      const nomeSeguro = nomeReal.replace(/'/g, "\\'");
+      add(String(p.id), nomeSeguro, custoFinalDoProduto(p));
+    });
+    host.appendChild(btn);
+  });
 }
 
 function lerHistoricoCompra() {
@@ -438,26 +721,38 @@ function buscar(q) {
   const div = document.getElementById('resultados');
   const termoOriginal = String(q || '').trim();
   const termo = normalizar(termoOriginal);
+  const fonte = compraPoolAvancado !== null ? compraPoolAvancado : baseProdutos;
 
-  if (termo.length < 2) {
+  if (termo.length < 2 && compraPoolAvancado === null) {
     ultimosResultadosCompra = [];
     indiceSelecionadoCompra = -1;
     div.innerHTML = '';
     return;
   }
 
-  const resultados = baseProdutos.filter(p => {
-    const texto = normalizar(
-      p.busca_texto ||
-      `${p.nome || ''} ${p.marca || ''} ${p.codigo || ''} ${p.codigo_nfe || ''} ${p.codigo_barras || ''}`
-    );
-    return texto.includes(termo);
-  }).slice(0, 50);
+  let candidatos = fonte;
+  if (termo.length >= 2) {
+    candidatos = fonte.filter(p => {
+      const texto = normalizar(
+        p.busca_texto ||
+        `${p.nome || ''} ${p.marca || ''} ${p.codigo || ''} ${p.codigo_nfe || ''} ${p.codigo_barras || ''}`
+      );
+      return texto.includes(termo);
+    });
+  }
+
+  const resultados = candidatos.slice(0, 50);
 
   if (!resultados.length) {
     ultimosResultadosCompra = [];
     indiceSelecionadoCompra = -1;
-    div.innerHTML = `<div class="bg-white text-slate-500 border border-slate-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm">Nenhum produto encontrado para "${escapeHtml(termoOriginal)}".</div>`;
+    const msg =
+      compraPoolAvancado !== null && termo.length < 2
+        ? 'Nenhum produto no conjunto do filtro avançado. Ajuste os filtros ou clique em Limpar filtro.'
+        : compraPoolAvancado !== null
+          ? `Nenhum resultado para "${escapeHtml(termoOriginal)}" dentro do filtro avançado.`
+          : `Nenhum produto encontrado para "${escapeHtml(termoOriginal)}".`;
+    div.innerHTML = `<div class="bg-white text-slate-500 border border-slate-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm">${msg}</div>`;
     return;
   }
 
@@ -484,6 +779,17 @@ function buscar(q) {
       ? p.imagem
       : PLACEHOLDER_IMG;
 
+    const diasM = compraDiasMediaVendas;
+    const mediaDia = Number(p._c_media_dia != null ? p._c_media_dia : 0);
+    const mediaFmt = Number.isFinite(mediaDia) && mediaDia > 0 && mediaDia < 0.01
+      ? mediaDia.toFixed(4)
+      : (Number.isFinite(mediaDia) ? mediaDia.toFixed(2) : '0.00');
+    const varSem = p._c_var_sem;
+    const varCls = classeCorVarSemanalCompra(varSem);
+    const entData = formatarDataEntradaCompra(p._c_entrada_data);
+    const entQ = Number(p._c_entrada_qtd || 0);
+    const entQFmt = entQ > 0 ? entQ.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '—';
+
     div.innerHTML += `
       <div class="compra-card bg-white p-3 sm:p-4 rounded-2xl flex justify-between items-stretch gap-3 border border-slate-200 hover:border-orange-400 hover:shadow-md transition-all cursor-pointer group"
         data-compra-idx="${idx}"
@@ -504,8 +810,13 @@ function buscar(q) {
               <span class="text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-black text-[10px] uppercase">
                 Est. total ${(Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1)}
               </span>
-              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_centro_erp ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Centro">C ${Number(p.saldo_centro || 0).toFixed(1)}</span>
-              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_vila_erp ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Vila">V ${Number(p.saldo_vila || 0).toFixed(1)}</span>
+              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_centro ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Centro">C ${Number(p.saldo_centro || 0).toFixed(1)}</span>
+              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_vila ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Vila">V ${Number(p.saldo_vila || 0).toFixed(1)}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5 mt-2 text-[9px] font-bold leading-tight border-t border-slate-100 pt-2">
+              <span class="inline-flex items-center gap-0.5 rounded-md bg-sky-50 text-sky-900 px-1.5 py-0.5 ring-1 ring-sky-200/80" title="Média de unidades vendidas por dia">Média ${diasM}d: <strong class="tabular-nums font-black">${mediaFmt}</strong>/dia</span>
+              <span class="inline-flex items-center rounded-md px-1.5 py-0.5 ring-1 tabular-nums ${varCls}" title="Últimos 7 dias vs. 7 anteriores">Δ sem. <strong>${escapeHtml(formatarVarSemanalCompra(varSem))}</strong></span>
+              <span class="text-slate-500 font-semibold">Entrada: <strong class="text-slate-700">${escapeHtml(entData)}</strong> · <strong class="tabular-nums text-slate-700">${escapeHtml(entQFmt)}</strong></span>
             </div>
           </div>
         </div>
@@ -613,6 +924,19 @@ document.getElementById('busca').addEventListener('keydown', (e) => {
 atualizarCarrinho();
 renderHistoricoCompras();
 initPainelFornecedorCompra();
+initCompraDiasMediaVendasUi();
+
+document.getElementById('ca-dimensao')?.addEventListener('change', () => preencherSelectCompraAvancadaDimensao());
+document.getElementById('btn-busca-avancada-compra')?.addEventListener('click', () => abrirBuscaAvancadaCompra());
+document.getElementById('btn-fechar-ca')?.addEventListener('click', () => fecharBuscaAvancadaCompra());
+document.getElementById('btn-aplicar-ca')?.addEventListener('click', () => aplicarBuscaAvancadaCompra());
+document.getElementById('btn-ca-limpar')?.addEventListener('click', () => limparFiltroAvancadoCompra());
+document.getElementById('modal-busca-avancada-compra')?.addEventListener('click', (e) => {
+  if (e.target && e.target.id === 'modal-busca-avancada-compra') fecharBuscaAvancadaCompra();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') fecharBuscaAvancadaCompra();
+});
 </script>
 
 </body>

@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import time
 import unicodedata
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -126,7 +127,8 @@ def _mapear_estoques_por_produto(estoques, client):
     mapa = {}
 
     for e in estoques:
-        pid = str(e.get("ProdutoID") or "")
+        # Não usar (ProdutoID or ""): Id 0 numérico viraria "" e perderia o saldo.
+        pid = str(e.get("ProdutoID"))
         dep = str(e.get("DepositoID") or "")
         saldo = float(e.get("Saldo", 0) or 0)
 
@@ -194,6 +196,170 @@ CATALOGO_PDV_CACHE_ENTRY_KEY = "pdv_catalogo_produtos_por_dia_v1"
 # Snapshot de saldos: vários caixas/abas compartilham; TTL curto protege o Mongo sem atrasar o PDV.
 _SALDOS_PDV_CACHE_KEY = "pdv_saldos_compacto_snapshot_v1"
 _SALDOS_PDV_CACHE_TTL = 5
+
+_METRICAS_PDV_BUCKETS_INVALIDAR = 4
+_METRICAS_PDV_DIAS_COMUNS = (7, 14, 21, 28, 30, 45, 60, 90, 120, 180, 365)
+
+
+def _pdv_metricas_cache_key(dias: int, bucket: int) -> str:
+    return f"pdv_metricas_v3_{dias}_{bucket}"
+
+
+def _invalidar_cache_saldos_pdv():
+    cache.delete(_SALDOS_PDV_CACHE_KEY)
+
+
+def _invalidar_cache_metricas_pdv():
+    b = int(time.time() // 300)
+    for dias in _METRICAS_PDV_DIAS_COMUNS:
+        for bb in range(b, b - _METRICAS_PDV_BUCKETS_INVALIDAR - 1, -1):
+            cache.delete(_pdv_metricas_cache_key(dias, bb))
+
+
+def _invalidar_caches_apos_ajuste_pin():
+    _invalidar_cache_saldos_pdv()
+    cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+    cache.delete(_CACHE_MEDIAS_VENDA_ENTRY)
+    _invalidar_cache_metricas_pdv()
+
+
+def _filtro_venda_ativa_mongo():
+    return {
+        "Cancelada": {"$ne": True},
+        "Status": {"$nin": ["Cancelado", "Cancelada", "Orcamento"]},
+    }
+
+
+def _metricas_vendas_agregadas_por_produto(db, dias_media: int):
+    """
+    Uma passagem em DtoVendaProduto (com cabeçalhos no intervalo):
+    - totais no período [now-dias_media, now] para média diária
+    - últimos 7 dias vs 7 dias anteriores (variação semanal)
+    """
+    now = datetime.now()
+    t_m = now - timedelta(days=dias_media)
+    t_w0 = now - timedelta(days=7)
+    t_w1 = now - timedelta(days=14)
+    limite = min(t_m, t_w1)
+    q = {"Data": {"$gte": limite}, **_filtro_venda_ativa_mongo()}
+    vendas = list(db["DtoVenda"].find(q, {"Id": 1, "_id": 1, "Data": 1}))
+    if not vendas:
+        return {}, {}, {}
+    vmap = {}
+    for v in vendas:
+        dt = v.get("Data")
+        for key in (str(v.get("Id")), str(v.get("_id"))):
+            if key and key != "None":
+                vmap[key] = dt
+    venda_ids_obj = []
+    venda_ids_str = []
+    for v in vendas:
+        vid = str(v.get("Id") or v.get("_id"))
+        venda_ids_str.append(vid)
+        if len(vid) == 24:
+            try:
+                venda_ids_obj.append(ObjectId(vid))
+            except Exception:
+                pass
+    query_itens = {
+        "$or": [
+            {"VendaID": {"$in": venda_ids_obj}},
+            {"VendaID": {"$in": venda_ids_str}},
+        ]
+    }
+    media_tot = {}
+    w0 = {}
+    w1 = {}
+    for item in db["DtoVendaProduto"].find(query_itens):
+        pid = str(item.get("ProdutoID") or "")
+        if not pid or pid == "None":
+            continue
+        vid_raw = item.get("VendaID")
+        vid = str(vid_raw) if vid_raw is not None else ""
+        dt = vmap.get(vid)
+        if dt is None:
+            continue
+        try:
+            qtd = float(item.get("Quantidade") or 0)
+        except (TypeError, ValueError):
+            qtd = 0.0
+        if dt >= t_m:
+            media_tot[pid] = media_tot.get(pid, 0.0) + qtd
+        if dt >= t_w0:
+            w0[pid] = w0.get(pid, 0.0) + qtd
+        if t_w1 <= dt < t_w0:
+            w1[pid] = w1.get(pid, 0.0) + qtd
+    return media_tot, w0, w1
+
+
+def _ultima_entrada_mercadoria_por_produto(db):
+    """
+    Melhor esforço: DtoCompra*, DtoPedidoCompra*, DtoNotaEntrada* (se existirem).
+    Retorno: { pid: {"data": iso str, "qtd": float} }
+    """
+    agregado = {}
+    try:
+        names = set(db.list_collection_names())
+        pares = [
+            ("DtoCompraProduto", "CompraID", "DtoCompra"),
+            ("DtoPedidoCompraProduto", "PedidoCompraID", "DtoPedidoCompra"),
+            ("DtoNotaEntradaProduto", "NotaEntradaID", "DtoNotaEntrada"),
+            ("DtoEntradaMercadoriaProduto", "EntradaID", "DtoEntradaMercadoria"),
+        ]
+        since = datetime.now() - timedelta(days=800)
+        for col_p, fk, col_h in pares:
+            if col_p not in names or col_h not in names:
+                continue
+            heads = list(
+                db[col_h].find(
+                    {"Data": {"$gte": since}, "Cancelada": {"$ne": True}},
+                    {"Id": 1, "_id": 1, "Data": 1},
+                )
+            )
+            if not heads:
+                continue
+            cmap = {}
+            for h in heads:
+                hid = str(h.get("Id") or h.get("_id"))
+                cmap[hid] = h.get("Data")
+            hids_obj = []
+            hids_str = []
+            for k in cmap:
+                hids_str.append(k)
+                if len(k) == 24:
+                    try:
+                        hids_obj.append(ObjectId(k))
+                    except Exception:
+                        pass
+            q = {"$or": [{fk: {"$in": hids_obj}}, {fk: {"$in": hids_str}}]}
+            for item in db[col_p].find(q):
+                pid = str(item.get("ProdutoID") or "")
+                if not pid:
+                    continue
+                hid = str(item.get(fk) or "")
+                dt = cmap.get(hid)
+                if dt is None:
+                    continue
+                try:
+                    qtd = float(item.get("Quantidade") or item.get("Qtd") or 0)
+                except (TypeError, ValueError):
+                    qtd = 0.0
+                prev = agregado.get(pid)
+                if prev is None or dt > prev[0]:
+                    agregado[pid] = (dt, qtd)
+                elif dt == prev[0]:
+                    agregado[pid] = (dt, prev[1] + qtd)
+        serial = {}
+        for pid, (dt, qtd) in agregado.items():
+            if hasattr(dt, "isoformat"):
+                dts = dt.isoformat()
+            else:
+                dts = str(dt) if dt is not None else ""
+            serial[pid] = {"data": dts[:19] if len(dts) > 19 else dts, "qtd": round(qtd, 4)}
+        return serial
+    except Exception as exc:
+        logger.warning("ultima_entrada_mercadoria_por_produto: %s", exc)
+        return {}
 
 
 # --- AUXILIARES DE IMAGEM ---
@@ -738,8 +904,7 @@ def api_ajustar_estoque(request):
                 saldo_erp_referencia=Decimal(request.POST.get("saldo_atual", "0")),
                 saldo_informado=Decimal(request.POST.get("novo_saldo", "0")),
             )
-            _invalidar_cache_saldos_pdv()
-            cache.clear()
+            _invalidar_caches_apos_ajuste_pin()
             return JsonResponse({"ok": True})
         except Exception as e:
             return JsonResponse({"ok": False, "erro": str(e)})
@@ -1116,10 +1281,6 @@ def api_pdv_invalidar_cache_catalogo(request):
     return JsonResponse({"ok": True})
 
 
-def _invalidar_cache_saldos_pdv():
-    cache.delete(_SALDOS_PDV_CACHE_KEY)
-
-
 @require_GET
 def api_pdv_saldos_compacto(request):
     """
@@ -1152,6 +1313,66 @@ def api_pdv_saldos_compacto(request):
             )
         payload = {"v": 1, "rows": rows}
         cache.set(_SALDOS_PDV_CACHE_KEY, payload, timeout=_SALDOS_PDV_CACHE_TTL)
+        return JsonResponse(payload)
+    except Exception as e:
+        return JsonResponse({"erro": str(e)}, status=500)
+
+
+@require_GET
+def api_pdv_metricas_produtos(request):
+    """
+    Por produto: média diária (total/dias no período), vendas últimos 7d, 7d anteriores,
+    variação % semana a semana, última entrada (compra/nota) se o Mongo tiver as coleções.
+    Cache ~5 min por (dias, bucket) para não sobrecarregar o banco.
+    """
+    try:
+        dias = int(request.GET.get("dias", 30))
+    except (TypeError, ValueError):
+        dias = 30
+    dias = max(7, min(365, dias))
+    bucket = int(time.time() // 300)
+    ck = _pdv_metricas_cache_key(dias, bucket)
+    hit = cache.get(ck)
+    if hit is not None and isinstance(hit, dict) and hit.get("rows"):
+        return JsonResponse(hit)
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Erro conexao"}, status=500)
+    try:
+        media_tot, w0, w1 = _metricas_vendas_agregadas_por_produto(db, dias)
+        entradas = _ultima_entrada_mercadoria_por_produto(db)
+        query = {"CadastroInativo": {"$ne": True}}
+        produtos = list(db[client.col_p].find(query, {"Id": 1, "_id": 1}))
+        p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
+        div = float(dias) if dias else 30.0
+        rows = []
+        for pid in p_ids:
+            tot_p = float(media_tot.get(pid, 0.0))
+            media_d = round(tot_p / div, 6) if div else 0.0
+            s0 = float(w0.get(pid, 0.0))
+            s1 = float(w1.get(pid, 0.0))
+            if s1 > 0:
+                var_pct = round((s0 - s1) / s1 * 100.0, 2)
+            elif s0 > 0:
+                var_pct = 100.0
+            else:
+                var_pct = None
+            ent = entradas.get(pid) or {}
+            rows.append(
+                [
+                    pid,
+                    media_d,
+                    round(tot_p, 4),
+                    round(s0, 4),
+                    round(s1, 4),
+                    var_pct,
+                    ent.get("data") or "",
+                    float(ent.get("qtd") or 0),
+                ]
+            )
+        payload = {"v": 1, "dias": dias, "rows": rows}
+        cache.set(ck, payload, timeout=320)
         return JsonResponse(payload)
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
