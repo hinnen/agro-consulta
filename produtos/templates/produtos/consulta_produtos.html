@@ -655,6 +655,7 @@
         </div>
     </div>
 
+{% include "produtos/_js_busca_produto_inteligente.html" %}
 <script>
 let carrinho = [];
 let sugestoesAtuais = [];
@@ -684,6 +685,8 @@ let ultimoTermoBuscaPalavras = [];
 const BUSCA_SUG_LIM_INI = 15;
 const BUSCA_SUG_LIM_PAG = 25;
 const BUSCA_SUG_LIM_MAX = 60;
+let buscaOnlineMergeSeq = 0;
+let mergeFetchTimer = null;
 
 /** Sincronização de saldos em segundo plano (servidor usa cache ~5s para proteger o Mongo). */
 const PDV_POLL_SALDOS_MS = 8000;
@@ -1048,9 +1051,7 @@ function aplicarBuscaAvancada() {
         );
     }
     if (txt) {
-        out = out.filter(p =>
-            normalizarBuscaLocal(p.busca_texto || `${p.nome || ''} ${p.codigo_nfe || ''} ${p.codigo_barras || ''}`).includes(txt)
-        );
+        out = filtrarProdutosBuscaInteligente(out, txt, 'normal');
     }
     if (!Number.isNaN(pm) && pm >= 0) {
         out = out.filter(p => Number(p.preco_venda || 0) <= pm);
@@ -2144,10 +2145,6 @@ function verificarLembretes() {
     }
 }
 
-function normalizarBuscaLocal(texto) {
-    return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-}
-
 function buscarProdutos(q, modo = 'normal') {
     clearTimeout(debounceTimer);
 
@@ -2174,135 +2171,8 @@ function buscarProdutos(q, modo = 'normal') {
     }, delay);
 }
 
-/** Palavras do texto de busca do produto (já normalizado no servidor). */
-function tokensBuscaProduto(p) {
-    const s = (p.busca_texto || '').trim();
-    if (!s) return [];
-    return s.split(/\s+/).filter(Boolean);
-}
-
-/** Sinônimos (chaves = texto já normalizado: sem acento, minúsculo). */
-const SINONIMOS_BUSCA_PDV = {
-    racao: ['alimento', 'balanceado', 'concentrado'],
-    kg: ['quilo', 'kilos', 'kilo', 'kgs'],
-    quilo: ['kg', 'kilos', 'kilo'],
-    kilo: ['kg', 'quilo'],
-    litro: ['lt', 'lts', 'ltr'],
-    un: ['und', 'unidade', 'uni'],
-    und: ['un', 'unidade'],
-    adubo: ['fertilizante', 'fertil'],
-    fertilizante: ['adubo'],
-};
-
-function variantesPalavraBusca(palavraBruta) {
-    const n = normalizarBuscaLocal(palavraBruta);
-    const out = new Set();
-    if (n) out.add(n);
-    if (n.length < 2) return [...out];
-    const extra = SINONIMOS_BUSCA_PDV[n];
-    if (extra) extra.forEach(x => out.add(normalizarBuscaLocal(x)));
-    for (const [k, arr] of Object.entries(SINONIMOS_BUSCA_PDV)) {
-        if (arr.some(v => normalizarBuscaLocal(v) === n)) out.add(normalizarBuscaLocal(k));
-    }
-    return [...out].filter(Boolean);
-}
-
-function codigosSoDigitosProduto(p) {
-    const raw = [
-        p.codigo_nfe,
-        p.codigo_barras,
-        p.codigo,
-        p.ean,
-    ];
-    return raw
-        .map(x => String(x ?? '').replace(/\D/g, ''))
-        .filter(c => c.length > 0);
-}
-
-/** Código/EAN: ignora não-dígitos, aceita sufixo/prefixo com tamanho mínimo. */
-function casaCodigoNumericoNoProduto(palavraBruta, p) {
-    const d = String(palavraBruta || '').replace(/\D/g, '');
-    if (d.length < 4) return false;
-    return codigosSoDigitosProduto(p).some(c => {
-        if (c === d) return true;
-        if (d.length >= 6 && (c.endsWith(d) || c.includes(d))) return true;
-        if (c.length >= 6 && d.length >= 6 && (d.endsWith(c) || d.includes(c))) return true;
-        return false;
-    });
-}
-
-/** Levenshtein ≤ 1 (troca, inserção ou remoção única) — typos leves. */
-function edicaoUnicaNoMaximo(a, b) {
-    if (a === b) return true;
-    const la = a.length;
-    const lb = b.length;
-    if (Math.abs(la - lb) > 1) return false;
-    let i = 0;
-    let j = 0;
-    let usado = false;
-    while (i < la && j < lb) {
-        if (a[i] === b[j]) {
-            i++;
-            j++;
-            continue;
-        }
-        if (usado) return false;
-        usado = true;
-        if (la > lb) i++;
-        else if (lb > la) j++;
-        else {
-            i++;
-            j++;
-        }
-    }
-    return true;
-}
-
-function casaPalavraEmTexto(palavraNorm, tokens, hay, fuzzy) {
-    if (!palavraNorm) return true;
-    if (hay.includes(palavraNorm)) return true;
-    return tokens.some(tk => {
-        if (tk.includes(palavraNorm)) return true;
-        if (palavraNorm.length >= 2 && tk.startsWith(palavraNorm)) return true;
-        if (fuzzy && palavraNorm.length >= 4 && tk.length >= 4 && edicaoUnicaNoMaximo(palavraNorm, tk)) return true;
-        return false;
-    });
-}
-
-function palavraCasaNoProduto(palavraBruta, tokens, hay, fuzzy, p) {
-    if (casaCodigoNumericoNoProduto(palavraBruta, p)) return true;
-    return variantesPalavraBusca(palavraBruta).some(v =>
-        casaPalavraEmTexto(v, tokens, hay, fuzzy)
-    );
-}
-
 function filtrarBuscaLocal(termo, modo) {
-    const palavras = termo.split(/\s+/).filter(Boolean);
-    if (modo === 'scanner') {
-        const dTerm = termo.replace(/\D/g, '');
-        return baseProdutos.filter(p => {
-            const hay = p.busca_texto || '';
-            if (hay.includes(termo)) return true;
-            const nfe = normalizarBuscaLocal(String(p.codigo_nfe ?? ''));
-            const cb = normalizarBuscaLocal(String(p.codigo_barras ?? ''));
-            if (termo === nfe || termo === cb) return true;
-            if (dTerm.length >= 4 && casaCodigoNumericoNoProduto(termo, p)) return true;
-            return false;
-        });
-    }
-    if (!palavras.length) return [];
-
-    const tentar = (fuzzy) => baseProdutos.filter(p => {
-        const hay = p.busca_texto || '';
-        const tokens = tokensBuscaProduto(p);
-        return palavras.every(pl => palavraCasaNoProduto(pl, tokens, hay, fuzzy, p));
-    });
-
-    let resultados = tentar(false);
-    if (resultados.length === 0 && palavras.every(pl => pl.length >= 3)) {
-        resultados = tentar(true);
-    }
-    return resultados;
+    return filtrarProdutosBuscaInteligente(baseProdutos, termo, modo);
 }
 
 function ordenarSugestoesPdv(lista) {
@@ -2361,7 +2231,53 @@ function extrairPalavrasParaHighlightDaBusca() {
     return t.split(/\s+/).filter(Boolean);
 }
 
+function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
+    if (modo === 'scanner') {
+        processarResultadosBusca(locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX), modo, false);
+        return;
+    }
+    clearTimeout(mergeFetchTimer);
+    const seq = ++buscaOnlineMergeSeq;
+    const map = new Map();
+    locaisOrdenados.forEach((p) => map.set(String(p.id), p));
+    const hadLocal = locaisOrdenados.length > 0;
+    if (hadLocal) {
+        processarResultadosBusca(
+            ordenarSugestoesPdv([...map.values()]).slice(0, BUSCA_SUG_LIM_MAX),
+            modo,
+            false
+        );
+    } else {
+        mostrarStatusBusca('Buscando no servidor…', 'slate');
+    }
+    mergeFetchTimer = setTimeout(() => {
+        fetch('/api/buscar/?q=' + encodeURIComponent(termoBrutoOriginal))
+            .then((res) => res.json())
+            .then((data) => {
+                if (seq !== buscaOnlineMergeSeq) return;
+                if (data.erro) throw new Error(data.erro);
+                const api = data.produtos || [];
+                api.forEach((raw) => {
+                    const id = String(raw.id);
+                    if (!map.has(id)) map.set(id, raw);
+                });
+                const ordenados = ordenarSugestoesPdv([...map.values()].map(enriquecerProdutoBusca));
+                processarResultadosBusca(ordenados.slice(0, BUSCA_SUG_LIM_MAX), modo, false);
+            })
+            .catch((err) => {
+                if (seq !== buscaOnlineMergeSeq) return;
+                console.error('Busca online:', err);
+                if (!hadLocal) {
+                    processarResultadosBusca([], modo, false);
+                } else {
+                    esconderStatusBusca();
+                }
+            });
+    }, 300);
+}
+
 function executarBuscaLocal(termo, modo) {
+    const termoBrutoApi = removerSufixoQuantidade(inputBusca ? inputBusca.value : '');
     let resultados = filtrarBuscaLocal(termo, modo);
 
     if (modo === 'scanner') {
@@ -2377,7 +2293,7 @@ function executarBuscaLocal(termo, modo) {
     }
 
     resultados = ordenarSugestoesPdv(resultados);
-    processarResultadosBusca(resultados.slice(0, BUSCA_SUG_LIM_MAX), modo, false);
+    mesclarBuscaLocalComOnline(termoBrutoApi, modo, resultados);
 }
 
 function executarBuscaAPI(termo, modo) {

@@ -76,6 +76,7 @@
     </div>
   </div>
 
+{% include "produtos/_js_busca_produto_inteligente.html" %}
 <script>
 let scanner;
 let pSel = null;
@@ -127,7 +128,7 @@ function aplicarSaldosMobile(rows) {
   }
   if (mudou) {
     const q = document.getElementById('busca').value;
-    if (normalizar(q).length >= 2) buscar(q);
+    if (normalizarBuscaLocal(q).length >= 2) buscar(q);
     const modal = document.getElementById('modal');
     if (pSel && modal && modal.classList.contains('flex')) {
       document.getElementById('m-saldo').innerText = Number(pSel.saldo_centro || 0).toFixed(1);
@@ -192,21 +193,15 @@ function startScan() {
 
 function buscar(q) {
   const termoOriginal = String(q || '').trim();
-  const termo = normalizar(termoOriginal);
+  const termoN = normalizarBuscaLocal(termoOriginal);
   const l = document.getElementById('lista');
 
-  if (termo.length < 2) {
+  if (termoN.length < 2) {
     l.innerHTML = '<div class="text-center text-slate-400 font-bold p-8">Digite ao menos 2 caracteres.</div>';
     return;
   }
 
-  const resultados = baseProdutos.filter(p => {
-    const textoBusca = normalizar(
-      p.busca_texto ||
-      `${p.nome || ''} ${p.marca || ''} ${p.codigo || ''} ${p.codigo_nfe || ''} ${p.codigo_barras || ''}`
-    );
-    return textoBusca.includes(termo);
-  }).slice(0, 20);
+  const resultados = filtrarProdutosBuscaInteligente(baseProdutos, termoN, 'normal').slice(0, 20);
 
   l.innerHTML = '';
 

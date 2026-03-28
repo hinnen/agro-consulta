@@ -178,6 +178,7 @@
     </div>
   </div>
 
+{% include "produtos/_js_busca_produto_inteligente.html" %}
 <script>
 let lista = [];
 let debounceTimer = null;
@@ -275,7 +276,7 @@ function carregarMetricasCompra() {
       if (data.erro || !data.rows) return;
       aplicarMetricasCompraNaBase(data);
       const inp = document.getElementById('busca');
-      if (inp && (normalizar(inp.value).length >= 2 || compraPoolAvancado !== null)) buscar(inp.value);
+      if (inp && (normalizarBuscaLocal(inp.value).length >= 2 || compraPoolAvancado !== null)) buscar(inp.value);
     })
     .catch(() => {});
 }
@@ -491,7 +492,7 @@ function preencherSelectCompraAvancadaDimensao() {
 function aplicarBuscaAvancadaCompra() {
   const dim = (document.getElementById('ca-dimensao') || {}).value || '';
   const valRef = ((document.getElementById('ca-valor-ref') || {}).value || '').trim();
-  const txt = normalizar((document.getElementById('ca-texto') || {}).value || '');
+  const txtNorm = normalizarBuscaLocal((document.getElementById('ca-texto') || {}).value || '');
   const pm = parseFloat((document.getElementById('ca-preco-max') || {}).value);
   const em = parseFloat((document.getElementById('ca-estoque-max') || {}).value);
 
@@ -505,13 +506,8 @@ function aplicarBuscaAvancadaCompra() {
       })
     );
   }
-  if (txt) {
-    out = out.filter(p =>
-      normalizar(
-        p.busca_texto ||
-        `${p.nome || ''} ${p.marca || ''} ${p.codigo || ''} ${p.codigo_nfe || ''} ${p.codigo_barras || ''}`
-      ).includes(txt)
-    );
+  if (txtNorm) {
+    out = filtrarProdutosBuscaInteligente(out, txtNorm, 'normal');
   }
   if (!Number.isNaN(pm) && pm >= 0) {
     out = out.filter(p => Number(p.preco_venda || 0) <= pm);
@@ -720,10 +716,10 @@ function adicionarProdutoResultadoCompra(idx) {
 function buscar(q) {
   const div = document.getElementById('resultados');
   const termoOriginal = String(q || '').trim();
-  const termo = normalizar(termoOriginal);
+  const termoN = normalizarBuscaLocal(termoOriginal);
   const fonte = compraPoolAvancado !== null ? compraPoolAvancado : baseProdutos;
 
-  if (termo.length < 2 && compraPoolAvancado === null) {
+  if (termoN.length < 2 && compraPoolAvancado === null) {
     ultimosResultadosCompra = [];
     indiceSelecionadoCompra = -1;
     div.innerHTML = '';
@@ -731,14 +727,8 @@ function buscar(q) {
   }
 
   let candidatos = fonte;
-  if (termo.length >= 2) {
-    candidatos = fonte.filter(p => {
-      const texto = normalizar(
-        p.busca_texto ||
-        `${p.nome || ''} ${p.marca || ''} ${p.codigo || ''} ${p.codigo_nfe || ''} ${p.codigo_barras || ''}`
-      );
-      return texto.includes(termo);
-    });
+  if (termoN.length >= 2) {
+    candidatos = filtrarProdutosBuscaInteligente(fonte, termoN, 'normal');
   }
 
   const resultados = candidatos.slice(0, 50);
@@ -747,7 +737,7 @@ function buscar(q) {
     ultimosResultadosCompra = [];
     indiceSelecionadoCompra = -1;
     const msg =
-      compraPoolAvancado !== null && termo.length < 2
+      compraPoolAvancado !== null && termoN.length < 2
         ? 'Nenhum produto no conjunto do filtro avançado. Ajuste os filtros ou clique em Limpar filtro.'
         : compraPoolAvancado !== null
           ? `Nenhum resultado para "${escapeHtml(termoOriginal)}" dentro do filtro avançado.`
