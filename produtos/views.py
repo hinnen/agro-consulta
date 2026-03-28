@@ -444,7 +444,8 @@ def api_todos_produtos_local(request):
                 preco_custo_val = float(str(preco_bruto).replace(',', '.'))
             except ValueError:
                 preco_custo_val = 0.0
-                
+            preco_venda_val = float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
+
             def get_max_cost(doc):
                 max_val = preco_custo_val
                 
@@ -474,7 +475,7 @@ def api_todos_produtos_local(request):
                                                         "medio", "acrescimo", "despesa", "frete", "seguro", 
                                                         "imposto", "tributo", "icms", "ipi", "pis", "cofins",
                                                         "real", "efetivo"]
-                                if any(x in k_lower for x in good_keys):
+                                if any(x in k_lower for x in good_cost_indicators):
                                     if v is not None:
                                         try:
                                             val_f = float(str(v).replace(',', '.'))
@@ -588,7 +589,6 @@ def compras_view(request):
 @require_GET
 def api_buscar_compras(request):
     termo_original = request.GET.get("q", "").strip()
-    print(f"--- BUSCA COMPRAS: Recebido termo '{termo_original}' ---")
     if not termo_original:
         return JsonResponse({"produtos": []})
 
@@ -596,12 +596,10 @@ def api_buscar_compras(request):
     cache_key = f"busca_compras_v2_{normalizar(termo_original).replace(' ', '_')}"
     cached_data = cache.get(cache_key)
     if cached_data:
-        print("--- BUSCA COMPRAS: Retornando do cache ---")
         return JsonResponse(cached_data)
 
     client, db = obter_conexao_mongo()
     if db is None:
-        print("--- BUSCA COMPRAS: Erro de conexão com o Mongo ---")
         return JsonResponse({"erro": "Erro conexao"}, status=500)
 
     try:
@@ -643,15 +641,24 @@ def api_buscar_compras(request):
              return JsonResponse({"produtos": []})
 
         query = {"$or": or_conditions, "CadastroInativo": {"$ne": True}}
-        print(f"--- BUSCA COMPRAS: Executando query: {query} ---")
-        
-        # A busca em si é idêntica
-        produtos = list(db[client.col_p].find(query).limit(15))
-        # Aumentamos o limite para 100 e ordenamos alfabeticamente
-        produtos = list(db[client.col_p].find(query).sort("Nome", 1).limit(100))
-        print(f"--- BUSCA COMPRAS: Encontrados {len(produtos)} produtos ---")
+
+        produtos = list(
+            db[client.col_p]
+            .find(query, {"Nome": 1, "Marca": 1, "PrecoCusto": 1, "ValorCusto": 1, "Id": 1})
+            .sort("Nome", 1)
+            .limit(100)
+        )
         p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
-        estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+        estoques = list(
+            db[client.col_e].find(
+                {"ProdutoID": {"$in": p_ids}},
+                {"ProdutoID": 1, "DepositoID": 1, "Saldo": 1, "_id": 0},
+            )
+        )
+        estoques_por_produto = {}
+        for est in estoques:
+            pid_e = str(est.get("ProdutoID"))
+            estoques_por_produto.setdefault(pid_e, []).append(est)
 
         ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids).order_by('produto_externo_id', 'deposito', '-criado_em')
         ajustes_map = {}
@@ -663,12 +670,11 @@ def api_buscar_compras(request):
         for p in produtos:
             pid = str(p.get("Id") or p["_id"])
             s_c = 0.0; s_v = 0.0
-            for est in estoques:
-                if str(est.get("ProdutoID")) == pid:
-                    val = float(est.get("Saldo") or 0)
-                    did = str(est.get("DepositoID") or "")
-                    if did == client.DEPOSITO_CENTRO: s_c = val
-                    elif did == client.DEPOSITO_VILA_ELIAS: s_v = val
+            for est in estoques_por_produto.get(pid, []):
+                val = float(est.get("Saldo") or 0)
+                did = str(est.get("DepositoID") or "")
+                if did == client.DEPOSITO_CENTRO: s_c = val
+                elif did == client.DEPOSITO_VILA_ELIAS: s_v = val
 
             aj_c = ajustes_map.get((pid, 'centro'))
             aj_v = ajustes_map.get((pid, 'vila'))
@@ -693,11 +699,8 @@ def api_buscar_compras(request):
                 "saldo_vila": round(saldo_f_v, 2)
             })
         
-        print(f"--- BUSCA COMPRAS: Retornando {len(res)} resultados ---")
         resultado_final = {"produtos": res}
-        # Usa uma chave de cache diferente
-        cache.set(cache_key, resultado_final, timeout=60) 
+        cache.set(cache_key, resultado_final, timeout=60)
         return JsonResponse(resultado_final)
-    except Exception as e: 
-        print(f"--- BUSCA COMPRAS: EXCEÇÃO: {e} ---")
+    except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
