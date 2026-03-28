@@ -1,6 +1,9 @@
 import json
 import re
+import unicodedata
 from decimal import Decimal
+
+from bson import ObjectId
 
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -611,82 +614,179 @@ def api_enviar_pedido_erp(request):
 # --- CARGA INICIAL E APIs AUXILIARES ---
 @require_GET
 def api_todos_produtos_local(request):
+    cache_key = "carga_inicial_produtos_todos_v24"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return JsonResponse(cached_data)
+
     client, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"erro": "Erro conexao"}, status=500)
 
     try:
-        produtos = list(db[client.col_p].find({"CadastroInativo": {"$ne": True}}))
+        query = {"CadastroInativo": {"$ne": True}}
+        produtos = list(db[client.col_p].find(query))
         p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
 
-        estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
-        ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
-        ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
+        estoques = list(
+            db[client.col_e].find(
+                {"ProdutoID": {"$in": p_ids}},
+                {"ProdutoID": 1, "DepositoID": 1, "Saldo": 1, "_id": 0},
+            )
+        )
+
+        ajustes_bd = AjusteRapidoEstoque.objects.all().order_by(
+            "produto_externo_id", "deposito", "-criado_em"
+        )
+        ajustes_map = {}
+        for aj in ajustes_bd:
+            if (aj.produto_externo_id, aj.deposito) not in ajustes_map:
+                ajustes_map[(aj.produto_externo_id, aj.deposito)] = aj
+
+        est_map = {}
+        for est in estoques:
+            pid = str(est.get("ProdutoID"))
+            if pid not in est_map:
+                est_map[pid] = {"c": 0.0, "v": 0.0}
+            did = str(est.get("DepositoID") or "")
+            if did == client.DEPOSITO_CENTRO:
+                est_map[pid]["c"] += float(est.get("Saldo") or 0)
+            elif did == client.DEPOSITO_VILA_ELIAS:
+                est_map[pid]["v"] += float(est.get("Saldo") or 0)
 
         res = []
-
         for p in produtos:
             pid = str(p.get("Id") or p["_id"])
+            s_c = est_map.get(pid, {}).get("c", 0.0)
+            s_v = est_map.get(pid, {}).get("v", 0.0)
 
-            sc = sum(
-                float(e.get("Saldo", 0))
-                for e in estoques
-                if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_CENTRO
+            aj_c = ajustes_map.get((pid, "centro"))
+            aj_v = ajustes_map.get((pid, "vila"))
+            saldo_f_c = (
+                float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia))
+                if aj_c
+                else s_c
+            )
+            saldo_f_v = (
+                float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia))
+                if aj_v
+                else s_v
             )
 
-            sv = sum(
-                float(e.get("Saldo", 0))
-                for e in estoques
-                if str(e.get("ProdutoID")) == pid and str(e.get("DepositoID")) == client.DEPOSITO_VILA_ELIAS
-            )
+            partes = [
+                p.get("Nome"),
+                p.get("Marca"),
+                p.get("NomeCategoria"),
+                p.get("Categoria"),
+                p.get("Grupo"),
+                p.get("CodigoNFe"),
+                p.get("Codigo"),
+                p.get("CodigoBarras"),
+                p.get("EAN_NFe"),
+            ]
+            busca_texto_gerado = " ".join(normalizar(str(part)) for part in partes if part).strip()
+            busca_texto_existente = normalizar(p.get("BuscaTexto") or "")
 
-            ac = ajustes_map.get((pid, "centro"))
-            av = ajustes_map.get((pid, "vila"))
+            texto_puro = " ".join(str(part) for part in partes if part)
+            texto_puro_limpo = "".join(
+                c
+                for c in unicodedata.normalize("NFD", texto_puro)
+                if unicodedata.category(c) != "Mn"
+            ).lower()
 
-            saldo_centro = round(
-                float(ac.saldo_informado) + (sc - float(ac.saldo_erp_referencia)) if ac else sc,
-                2
-            )
+            busca_texto_final = f"{busca_texto_gerado} {busca_texto_existente} {texto_puro_limpo}".strip()
 
-            saldo_vila = round(
-                float(av.saldo_informado) + (sv - float(av.saldo_erp_referencia)) if av else sv,
-                2
-            )
-
-            preco_venda = float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
-
+            preco_bruto = p.get("PrecoCusto") or p.get("ValorCusto") or 0
             try:
-                preco_custo = float(str(p.get("PrecoCusto") or p.get("ValorCusto") or 0).replace(",", "."))
-            except Exception:
-                preco_custo = 0.0
+                preco_custo_val = float(str(preco_bruto).replace(",", "."))
+            except ValueError:
+                preco_custo_val = 0.0
+            preco_venda_val = float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
+
+            def get_max_cost(doc):
+                max_val = preco_custo_val
+
+                def traverse(obj):
+                    nonlocal max_val
+                    if isinstance(obj, dict):
+                        for k, v in obj.items():
+                            k_lower = k.lower()
+                            bad_keys = [
+                                "venda", "lucro", "margem", "id", "codigo", "ean", "ncm", "cest",
+                                "peso", "qtd", "quantidade", "estoque", "altura", "largura",
+                                "comprimento", "profundidade", "medida", "volume", "nfe",
+                                "cfop", "gtin", "dia", "mes", "ano", "prazo", "validade",
+                                "caixa", "unidade", "fator", "tabela", "atacado", "varejo", "promocao",
+                                "percentual", "porcentagem", "aliquota", "taxa",
+                            ]
+                            if any(x in k_lower for x in bad_keys):
+                                continue
+
+                            if isinstance(v, (dict, list)):
+                                traverse(v)
+                            else:
+                                good_cost_indicators = [
+                                    "custo", "compra", "reposicao", "fornecedor", "entrada",
+                                    "valor", "preco", "total", "final", "bruto", "liquido",
+                                    "medio", "acrescimo", "despesa", "frete", "seguro",
+                                    "imposto", "tributo", "icms", "ipi", "pis", "cofins",
+                                    "real", "efetivo",
+                                ]
+                                if any(x in k_lower for x in good_cost_indicators):
+                                    if v is not None:
+                                        try:
+                                            val_f = float(str(v).replace(",", "."))
+                                            if preco_venda_val > 0 and val_f == preco_venda_val:
+                                                continue
+                                            if preco_custo_val > 0 and preco_custo_val <= val_f <= (preco_custo_val * 5):
+                                                if val_f > max_val:
+                                                    max_val = val_f
+                                            elif preco_custo_val == 0 and 0 < val_f < 100000:
+                                                if val_f > max_val:
+                                                    max_val = val_f
+                                        except (ValueError, TypeError):
+                                            pass
+                    elif isinstance(obj, list):
+                        for item in obj:
+                            traverse(item)
+
+                traverse(doc)
+                return max_val
+
+            preco_custo_acresc_val = get_max_cost(p)
 
             res.append({
                 "id": pid,
                 "nome": p.get("Nome"),
-                "marca": p.get("Marca") or "",
-                "codigo": p.get("Codigo") or "",
-                "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "",
-                "codigo_barras": p.get("CodigoBarras") or p.get("EAN_NFe") or "",
-                "preco_venda": preco_venda,
-                "preco_custo": preco_custo,
-                "preco_custo_acrescimo": preco_custo,
-                "saldo_centro": saldo_centro,
-                "saldo_vila": saldo_vila,
-                "saldo_centro_erp": round(sc, 2),
-                "saldo_vila_erp": round(sv, 2),
-                "saldo_erp_centro": round(sc, 2),
-                "saldo_erp_vila": round(sv, 2),
-                "busca_texto": normalizar(
-                    f"{p.get('Nome')} {p.get('Marca')} {p.get('Codigo')} "
-                    f"{p.get('CodigoNFe') or ''} {p.get('CodigoBarras') or p.get('EAN_NFe') or ''}"
-                )
+                "marca": p.get("Marca"),
+                "fornecedor": p.get("NomeFornecedor")
+                or p.get("Fornecedor")
+                or p.get("RazaoSocialFornecedor")
+                or p.get("Fabricante"),
+                "categoria": p.get("NomeCategoria")
+                or p.get("Categoria")
+                or p.get("Grupo")
+                or p.get("SubGrupo"),
+                "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo"),
+                "codigo_barras": p.get("CodigoBarras") or p.get("EAN_NFe"),
+                "preco_venda": preco_venda_val,
+                "preco_custo": preco_custo_val,
+                "preco_custo_acrescimo": preco_custo_acresc_val,
+                "saldo_centro": round(saldo_f_c, 2),
+                "saldo_vila": round(saldo_f_v, 2),
+                "saldo_erp_centro": s_c,
+                "saldo_erp_vila": s_v,
+                "busca_texto": busca_texto_final,
             })
 
-        return JsonResponse({"produtos": res})
-
+        resultado_final = {"produtos": res}
+        cache.set(cache_key, resultado_final, timeout=3600)
+        return JsonResponse(resultado_final)
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
 
+
+@require_GET
 def api_list_customers(request):
     client, db = obter_conexao_mongo()
     if not db:
@@ -694,15 +794,21 @@ def api_list_customers(request):
 
     try:
         clis = list(
-            db[client.col_c].find({"CadastroInativo": {"$ne": True}}, {"Nome": 1, "Id": 1}).limit(1000)
+            db[client.col_c].find(
+                {"CadastroInativo": {"$ne": True}}, {"Nome": 1, "Id": 1}
+            ).limit(1000)
         )
-        res = [{"id": str(i.get("Id") or i.get("_id")), "nome": i.get("Nome").strip()} for i in clis]
+        res = [
+            {"id": str(i.get("Id") or i.get("_id")), "nome": (i.get("Nome") or "").strip()}
+            for i in clis
+        ]
         res.sort(key=lambda x: x["nome"])
         return JsonResponse({"clientes": res})
     except Exception:
         return JsonResponse({"clientes": []})
 
 
+@require_GET
 def api_buscar_clientes(request):
     client, db = obter_conexao_mongo()
     termo = request.GET.get("q", "")
@@ -711,7 +817,10 @@ def api_buscar_clientes(request):
 
     try:
         clis = list(
-            db[client.col_c].find({"Nome": {"$regex": termo, "$options": "i"}}, {"Nome": 1, "CpfCnpj": 1}).limit(10)
+            db[client.col_c].find(
+                {"Nome": {"$regex": termo, "$options": "i"}},
+                {"Nome": 1, "CpfCnpj": 1},
+            ).limit(10)
         )
         res = [{"nome": i.get("Nome"), "documento": i.get("CpfCnpj") or "Sem Doc"} for i in clis]
         return JsonResponse({"clientes": res})
@@ -719,6 +828,7 @@ def api_buscar_clientes(request):
         return JsonResponse({"clientes": []})
 
 
+@require_GET
 def api_autocomplete_produtos(request):
     client, db = obter_conexao_mongo()
     termo = request.GET.get("q", "")
@@ -733,26 +843,87 @@ def api_autocomplete_produtos(request):
         return JsonResponse({"sugestoes": []})
 
 
-from bson import ObjectId
-
+@require_GET
 def api_buscar_produto_id(request, id):
     client, db = obter_conexao_mongo()
-    if not db:
-        return JsonResponse({"erro": "DB Offline"}, status=500)
-
+    if db is None:
+        return JsonResponse({"erro": "Erro conexao"}, status=500)
     try:
-        p = db[client.col_p].find_one({"Id": id})
+        query = {"$or": [{"Id": id}]}
+        try:
+            query["$or"].append({"_id": ObjectId(id)})
+        except Exception:
+            pass
 
+        p = db[client.col_p].find_one(query)
         if not p:
-            p = db[client.col_p].find_one({"_id": ObjectId(id)})
+            return JsonResponse({"erro": "Produto nao encontrado"}, status=404)
 
-        if not p:
-            return JsonResponse({"erro": "Nao encontrado"}, status=404)
+        estoques = list(db[client.col_e].find({"ProdutoID": id}))
+        ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id=id).order_by(
+            "deposito", "-criado_em"
+        )
+        ajustes_map = {}
+        for aj in ajustes_bd:
+            if aj.deposito not in ajustes_map:
+                ajustes_map[aj.deposito] = aj
 
-        return JsonResponse({
-            "id": str(p.get("Id") or p.get("_id")),
-            "nome": p.get("Nome") or ""
-        })
+        s_c = 0.0
+        s_v = 0.0
+        for est in estoques:
+            val = float(est.get("Saldo") or 0)
+            did = str(est.get("DepositoID") or "")
+            if did == client.DEPOSITO_CENTRO:
+                s_c += val
+            elif did == client.DEPOSITO_VILA_ELIAS:
+                s_v += val
 
+        aj_c = ajustes_map.get("centro")
+        aj_v = ajustes_map.get("vila")
+        saldo_f_c = (
+            float(aj_c.saldo_informado) + (s_c - float(aj_c.saldo_erp_referencia))
+            if aj_c
+            else s_c
+        )
+        saldo_f_v = (
+            float(aj_v.saldo_informado) + (s_v - float(aj_v.saldo_erp_referencia))
+            if aj_v
+            else s_v
+        )
+
+        mapa_img = {}
+        query_ids = [id]
+        if p.get("Codigo"):
+            query_ids.append(str(p.get("Codigo")))
+        try:
+            for img in db["DtoImagemProduto"].find({"ProdutoID": {"$in": query_ids}}):
+                val = (
+                    img.get("Url")
+                    or img.get("UrlImagem")
+                    or img.get("Imagem")
+                    or img.get("ImagemBase64")
+                    or img.get("Base64")
+                    or ""
+                )
+                if val:
+                    mapa_img[str(img.get("ProdutoID"))] = val
+        except Exception:
+            pass
+
+        img_url = _formatar_url_imagem(_extrair_imagem_produto(p, mapa_img, id))
+
+        res = {
+            "id": id,
+            "nome": p.get("Nome"),
+            "marca": p.get("Marca") or "",
+            "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "",
+            "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
+            "imagem": img_url,
+            "saldo_centro": round(saldo_f_c, 2),
+            "saldo_vila": round(saldo_f_v, 2),
+            "saldo_erp_centro": s_c,
+            "saldo_erp_vila": s_v,
+        }
+        return JsonResponse(res)
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
