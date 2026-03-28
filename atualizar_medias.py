@@ -87,6 +87,14 @@ def calcular():
     print(f"🏁 FINALIZADO! {atualizados} produtos tiveram suas médias atualizadas.")
     print("="*60)
 
+    try:
+        from django.core.cache import cache
+
+        cache.delete("pdv_mapa_medias_venda_diaria_30d_v1")
+        print("Cache PDV de médias de venda (30d) invalidado.")
+    except Exception as exc:
+        print(f"Aviso: não foi possível limpar cache de médias: {exc}")
+
 if __name__ == '__main__':
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
     django.setup()
