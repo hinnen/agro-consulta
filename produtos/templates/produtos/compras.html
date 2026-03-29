@@ -191,6 +191,11 @@ const PLACEHOLDER_IMG = "{% static 'img/agro-mais-logo-buscador.png' %}";
 const LS_HISTORICO_COMPRA = 'gmHistoricoPedidosCompra';
 let indiceSelecionadoCompra = -1;
 let ultimosResultadosCompra = [];
+/** Mesmo critério do PDV — ordenação estável; merge com /api/buscar/?compras=1 */
+let frequenciaUso = JSON.parse(localStorage.getItem('freqProdutos') || '{}');
+let buscaCompraMergeSeq = 0;
+let mergeCompraTimer = null;
+const BUSCA_COMPRA_LIM_MAX = 60;
 
 function escapeHtml(texto) {
   return String(texto || '')
@@ -307,6 +312,238 @@ function custoFinalDoProduto(p) {
   return Number(v || 0);
 }
 
+function mediaParaOrdenacaoPdv(p) {
+  const id = String(p.id);
+  const loc = baseProdutos.length ? baseProdutos.find((x) => String(x.id) === id) : null;
+  if (loc && loc.media_venda_diaria_30d != null && loc.media_venda_diaria_30d !== '') {
+    return Number(loc.media_venda_diaria_30d || 0);
+  }
+  return Number(p.media_venda_diaria_30d || 0);
+}
+
+function ordenarSugestoesPdv(lista) {
+  return [...lista].sort((a, b) => {
+    const mA = mediaParaOrdenacaoPdv(a);
+    const mB = mediaParaOrdenacaoPdv(b);
+    if (mA !== mB) return mB - mA;
+    const freqA = frequenciaUso[a.id] || 0;
+    const freqB = frequenciaUso[b.id] || 0;
+    if (freqA !== freqB) return freqB - freqA;
+    return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+  });
+}
+
+/** Mesmo critério do PDV (`consulta_produtos`) — texto usado pelo filtro inteligente. */
+function montarBuscaTextoRapido(p) {
+  const partes = [p.nome, p.marca, p.codigo_nfe, p.codigo_barras, p.codigo].filter(Boolean);
+  return normalizarBuscaLocal(partes.join(' '));
+}
+
+function enriquecerProdutoCompraBusca(p) {
+  const id = String(p.id);
+  const loc = baseProdutos.find((x) => String(x.id) === id);
+  const mediaApi = p.media_venda_diaria_30d;
+  if (!loc) {
+    const md =
+      mediaApi != null && mediaApi !== ''
+        ? Number(mediaApi)
+        : 0;
+    const bt = p.busca_texto || montarBuscaTextoRapido(p);
+    return {
+      ...p,
+      busca_texto: bt,
+      media_venda_diaria_30d: Number(
+        mediaApi != null && mediaApi !== '' ? mediaApi : 0
+      ),
+      _c_media_dia: md,
+      _c_var_sem: null,
+      _c_entrada_data: '',
+      _c_entrada_qtd: 0,
+    };
+  }
+  return {
+    ...loc,
+    ...p,
+    nome: p.nome || loc.nome,
+    marca: p.marca != null && p.marca !== '' ? p.marca : loc.marca,
+    fornecedor:
+      p.fornecedor != null && String(p.fornecedor).trim() !== ''
+        ? p.fornecedor
+        : loc.fornecedor || '',
+    categoria:
+      p.categoria != null && String(p.categoria).trim() !== ''
+        ? p.categoria
+        : loc.categoria || '',
+    busca_texto: loc.busca_texto || p.busca_texto || montarBuscaTextoRapido({ ...loc, ...p }),
+    preco_venda: p.preco_venda != null ? Number(p.preco_venda) : loc.preco_venda,
+    saldo_centro: p.saldo_centro != null ? p.saldo_centro : loc.saldo_centro,
+    saldo_vila: p.saldo_vila != null ? p.saldo_vila : loc.saldo_vila,
+    saldo_erp_centro: p.saldo_erp_centro != null ? p.saldo_erp_centro : loc.saldo_erp_centro,
+    saldo_erp_vila: p.saldo_erp_vila != null ? p.saldo_erp_vila : loc.saldo_erp_vila,
+    preco_custo: p.preco_custo != null ? p.preco_custo : loc.preco_custo,
+    preco_custo_final: p.preco_custo_final != null ? p.preco_custo_final : loc.preco_custo_final,
+    preco_custo_acrescimo: p.preco_custo_acrescimo != null ? p.preco_custo_acrescimo : loc.preco_custo_acrescimo,
+    imagem: p.imagem || loc.imagem,
+    media_venda_diaria_30d: Number(
+      mediaApi != null && mediaApi !== ''
+        ? mediaApi
+        : loc.media_venda_diaria_30d != null && loc.media_venda_diaria_30d !== ''
+          ? loc.media_venda_diaria_30d
+          : 0
+    ),
+    _c_media_dia: loc._c_media_dia,
+    _c_var_sem: loc._c_var_sem,
+    _c_entrada_data: loc._c_entrada_data,
+    _c_entrada_qtd: loc._c_entrada_qtd,
+  };
+}
+
+function renderizarListaResultadosCompra(resultados) {
+  const div = document.getElementById('resultados');
+  if (!div) return;
+  div.innerHTML = '';
+  resultados.forEach((p, idx) => {
+    const nomeReal = p.nome || 'PRODUTO SEM NOME';
+    const nomeSeguro = nomeReal.replace(/'/g, "\\'");
+    const marcaSegura = p.marca || 'GENÉRICO';
+    const gmCode = p.codigo_nfe || p.codigo || p.codigo_barras || 'S/N';
+
+    const custoBase = Number(p.preco_custo || 0);
+    const custoFin = custoFinalDoProduto(p);
+    const mostrarBase = Math.abs(custoBase - custoFin) > 0.005;
+
+    const precoVenda = Number(p.preco_venda || 0).toFixed(2);
+    const lucroReais = (Number(precoVenda) - custoFin).toFixed(2);
+    const lucroPerc = custoFin > 0
+      ? (((Number(precoVenda) - custoFin) / custoFin) * 100).toFixed(1)
+      : '100.0';
+    const corLucro = (Number(precoVenda) - custoFin) >= 0 ? "text-emerald-600" : "text-red-500";
+
+    const foto = p.imagem && p.imagem !== 'None' && p.imagem !== ''
+      ? p.imagem
+      : PLACEHOLDER_IMG;
+
+    const diasM = compraDiasMediaVendas;
+    const mediaDia = Number(p._c_media_dia != null ? p._c_media_dia : 0);
+    const mediaFmt = Number.isFinite(mediaDia) && mediaDia > 0 && mediaDia < 0.01
+      ? mediaDia.toFixed(4)
+      : (Number.isFinite(mediaDia) ? mediaDia.toFixed(2) : '0.00');
+    const varSem = p._c_var_sem;
+    const varCls = classeCorVarSemanalCompra(varSem);
+    const entData = formatarDataEntradaCompra(p._c_entrada_data);
+    const entQ = Number(p._c_entrada_qtd || 0);
+    const entQFmt = entQ > 0 ? entQ.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '—';
+
+    div.innerHTML += `
+      <div class="compra-card bg-white p-3 sm:p-4 rounded-2xl flex justify-between items-stretch gap-3 border border-slate-200 hover:border-orange-400 hover:shadow-md transition-all cursor-pointer group"
+        data-compra-idx="${idx}"
+        onclick="adicionarProdutoResultadoCompra(${idx})">
+
+        <div class="flex items-start gap-3 flex-1 min-w-0">
+          <img src="${foto}" alt="" onerror="this.src='${PLACEHOLDER_IMG}'" class="w-11 h-11 sm:w-12 sm:h-12 object-contain rounded-xl bg-white border border-slate-100 shrink-0 p-0.5">
+
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-1.5 mb-1">
+              <span class="text-[10px] font-bold text-slate-500 uppercase truncate">${escapeHtml(marcaSegura)}</span>
+              <span class="text-[9px] font-black text-slate-600 uppercase bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">GM ${escapeHtml(gmCode)}</span>
+            </div>
+
+            <div class="font-black text-xs sm:text-sm uppercase text-slate-800 group-hover:text-orange-600 transition-colors leading-snug">${escapeHtml(nomeReal)}</div>
+
+            <div class="flex flex-wrap items-center gap-2 mt-2">
+              <span class="text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-black text-[10px] uppercase">
+                Est. total ${(Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1)}
+              </span>
+              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_centro ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Centro">C ${Number(p.saldo_centro || 0).toFixed(1)}</span>
+              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_vila ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Vila">V ${Number(p.saldo_vila || 0).toFixed(1)}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5 mt-2 text-[9px] font-bold leading-tight border-t border-slate-100 pt-2">
+              <span class="inline-flex items-center gap-0.5 rounded-md bg-sky-50 text-sky-900 px-1.5 py-0.5 ring-1 ring-sky-200/80" title="Média de unidades vendidas por dia">Média ${diasM}d: <strong class="tabular-nums font-black">${mediaFmt}</strong>/dia</span>
+              <span class="inline-flex items-center rounded-md px-1.5 py-0.5 ring-1 tabular-nums ${varCls}" title="Últimos 7 dias vs. 7 anteriores">Δ sem. <strong>${escapeHtml(formatarVarSemanalCompra(varSem))}</strong></span>
+              <span class="text-slate-500 font-semibold">Entrada: <strong class="text-slate-700">${escapeHtml(entData)}</strong> · <strong class="tabular-nums text-slate-700">${escapeHtml(entQFmt)}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-right shrink-0 w-[108px] sm:w-[120px] border-l border-slate-100 pl-2 sm:pl-3">
+          <div class="text-[9px] text-orange-600 font-black uppercase leading-tight">Custo final</div>
+          <div class="text-[10px] text-slate-500 font-semibold leading-tight mb-0.5">c/ taxas e imp.</div>
+          <div class="text-base font-black text-slate-900 tabular-nums">${formatarMoeda(custoFin)}</div>
+
+          ${mostrarBase ? `
+          <div class="text-[9px] text-slate-400 font-bold uppercase mt-2">Custo base</div>
+          <div class="text-[11px] font-semibold text-slate-500 tabular-nums">${formatarMoeda(custoBase)}</div>` : ''}
+
+          <div class="text-[9px] text-slate-400 font-bold uppercase mt-2">Venda</div>
+          <div class="text-xs font-black text-orange-600 tabular-nums">R$ ${precoVenda}</div>
+
+          <div class="text-[9px] text-slate-400 font-bold uppercase mt-1">Lucro</div>
+          <div class="text-[10px] font-black ${corLucro} tabular-nums">R$ ${lucroReais} (${lucroPerc}%)</div>
+        </div>
+      </div>
+    `;
+  });
+
+  ultimosResultadosCompra = resultados;
+  indiceSelecionadoCompra = resultados.length ? 0 : -1;
+  requestAnimationFrame(() => destacarLinhaCompra());
+}
+
+function mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados) {
+  if (compraPoolAvancado !== null) {
+    const resultados = locaisOrdenados.slice(0, BUSCA_COMPRA_LIM_MAX).map(enriquecerProdutoCompraBusca);
+    renderizarListaResultadosCompra(resultados);
+    return;
+  }
+
+  const primeiro = locaisOrdenados.slice(0, BUSCA_COMPRA_LIM_MAX).map(enriquecerProdutoCompraBusca);
+  renderizarListaResultadosCompra(primeiro);
+
+  clearTimeout(mergeCompraTimer);
+  const seq = ++buscaCompraMergeSeq;
+  mergeCompraTimer = setTimeout(() => {
+    fetch(`{% url 'api_buscar_mobile' %}?q=` + encodeURIComponent(termoOriginal) + '&compras=1')
+      .then((r) => r.json())
+      .then((data) => {
+        if (seq !== buscaCompraMergeSeq) return;
+        if (data.erro) throw new Error(data.erro);
+        const api = data.produtos || [];
+        const apiById = new Map();
+        api.forEach((raw) => {
+          apiById.set(String(raw.id), raw);
+        });
+        const ordemLocalIds = locaisOrdenados.map((p) => String(p.id));
+        const idsLocal = new Set(ordemLocalIds);
+        const locaisMesclados = ordemLocalIds.map((id) => {
+          const base = locaisOrdenados.find((x) => String(x.id) === id);
+          const apiRow = apiById.get(id);
+          if (!base) return null;
+          return apiRow ? { ...base, ...apiRow } : base;
+        }).filter(Boolean);
+        const extrasBrutos = api.filter((raw) => !idsLocal.has(String(raw.id)));
+        const extrasOrd = ordenarSugestoesPdv(extrasBrutos);
+        const final = [...locaisMesclados, ...extrasOrd].slice(0, BUSCA_COMPRA_LIM_MAX);
+        const selAnt =
+          indiceSelecionadoCompra >= 0 && ultimosResultadosCompra[indiceSelecionadoCompra]
+            ? String(ultimosResultadosCompra[indiceSelecionadoCompra].id)
+            : null;
+        const enr = final.map(enriquecerProdutoCompraBusca);
+        renderizarListaResultadosCompra(enr);
+        if (selAnt) {
+          const ix = ultimosResultadosCompra.findIndex((x) => String(x.id) === selAnt);
+          if (ix >= 0) {
+            indiceSelecionadoCompra = ix;
+            destacarLinhaCompra();
+          }
+        }
+      })
+      .catch((err) => {
+        if (seq !== buscaCompraMergeSeq) return;
+        console.error('Busca compras (API):', err);
+      });
+  }, 300);
+}
+
 function atualizarCarrinho() {
   const carrinho = document.getElementById('carrinho');
   const badge = document.getElementById('itens-badge');
@@ -357,6 +594,11 @@ function add(id, nome, precoFinal) {
       qtd: 1
     });
   }
+
+  frequenciaUso[id] = (frequenciaUso[id] || 0) + 1;
+  try {
+    localStorage.setItem('freqProdutos', JSON.stringify(frequenciaUso));
+  } catch (_) {}
 
   atualizarCarrinho();
 }
@@ -731,9 +973,9 @@ function buscar(q) {
     candidatos = filtrarProdutosBuscaInteligente(fonte, termoN, 'normal');
   }
 
-  const resultados = candidatos.slice(0, 50);
+  const locaisOrdenados = ordenarSugestoesPdv(candidatos);
 
-  if (!resultados.length) {
+  if (!locaisOrdenados.length) {
     ultimosResultadosCompra = [];
     indiceSelecionadoCompra = -1;
     const msg =
@@ -746,93 +988,7 @@ function buscar(q) {
     return;
   }
 
-  div.innerHTML = '';
-
-  resultados.forEach((p, idx) => {
-    const nomeReal = p.nome || 'PRODUTO SEM NOME';
-    const nomeSeguro = nomeReal.replace(/'/g, "\\'");
-    const marcaSegura = p.marca || 'GENÉRICO';
-    const gmCode = p.codigo_nfe || p.codigo || p.codigo_barras || 'S/N';
-
-    const custoBase = Number(p.preco_custo || 0);
-    const custoFin = custoFinalDoProduto(p);
-    const mostrarBase = Math.abs(custoBase - custoFin) > 0.005;
-
-    const precoVenda = Number(p.preco_venda || 0).toFixed(2);
-    const lucroReais = (Number(precoVenda) - custoFin).toFixed(2);
-    const lucroPerc = custoFin > 0
-      ? (((Number(precoVenda) - custoFin) / custoFin) * 100).toFixed(1)
-      : '100.0';
-    const corLucro = (Number(precoVenda) - custoFin) >= 0 ? "text-emerald-600" : "text-red-500";
-
-    const foto = p.imagem && p.imagem !== 'None' && p.imagem !== ''
-      ? p.imagem
-      : PLACEHOLDER_IMG;
-
-    const diasM = compraDiasMediaVendas;
-    const mediaDia = Number(p._c_media_dia != null ? p._c_media_dia : 0);
-    const mediaFmt = Number.isFinite(mediaDia) && mediaDia > 0 && mediaDia < 0.01
-      ? mediaDia.toFixed(4)
-      : (Number.isFinite(mediaDia) ? mediaDia.toFixed(2) : '0.00');
-    const varSem = p._c_var_sem;
-    const varCls = classeCorVarSemanalCompra(varSem);
-    const entData = formatarDataEntradaCompra(p._c_entrada_data);
-    const entQ = Number(p._c_entrada_qtd || 0);
-    const entQFmt = entQ > 0 ? entQ.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '—';
-
-    div.innerHTML += `
-      <div class="compra-card bg-white p-3 sm:p-4 rounded-2xl flex justify-between items-stretch gap-3 border border-slate-200 hover:border-orange-400 hover:shadow-md transition-all cursor-pointer group"
-        data-compra-idx="${idx}"
-        onclick="adicionarProdutoResultadoCompra(${idx})">
-
-        <div class="flex items-start gap-3 flex-1 min-w-0">
-          <img src="${foto}" alt="" onerror="this.src='${PLACEHOLDER_IMG}'" class="w-11 h-11 sm:w-12 sm:h-12 object-contain rounded-xl bg-white border border-slate-100 shrink-0 p-0.5">
-
-          <div class="flex-1 min-w-0">
-            <div class="flex flex-wrap items-center gap-1.5 mb-1">
-              <span class="text-[10px] font-bold text-slate-500 uppercase truncate">${escapeHtml(marcaSegura)}</span>
-              <span class="text-[9px] font-black text-slate-600 uppercase bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">GM ${escapeHtml(gmCode)}</span>
-            </div>
-
-            <div class="font-black text-xs sm:text-sm uppercase text-slate-800 group-hover:text-orange-600 transition-colors leading-snug">${escapeHtml(nomeReal)}</div>
-
-            <div class="flex flex-wrap items-center gap-2 mt-2">
-              <span class="text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-black text-[10px] uppercase">
-                Est. total ${(Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1)}
-              </span>
-              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_centro ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Centro">C ${Number(p.saldo_centro || 0).toFixed(1)}</span>
-              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_vila ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Vila">V ${Number(p.saldo_vila || 0).toFixed(1)}</span>
-            </div>
-            <div class="flex flex-wrap items-center gap-1.5 mt-2 text-[9px] font-bold leading-tight border-t border-slate-100 pt-2">
-              <span class="inline-flex items-center gap-0.5 rounded-md bg-sky-50 text-sky-900 px-1.5 py-0.5 ring-1 ring-sky-200/80" title="Média de unidades vendidas por dia">Média ${diasM}d: <strong class="tabular-nums font-black">${mediaFmt}</strong>/dia</span>
-              <span class="inline-flex items-center rounded-md px-1.5 py-0.5 ring-1 tabular-nums ${varCls}" title="Últimos 7 dias vs. 7 anteriores">Δ sem. <strong>${escapeHtml(formatarVarSemanalCompra(varSem))}</strong></span>
-              <span class="text-slate-500 font-semibold">Entrada: <strong class="text-slate-700">${escapeHtml(entData)}</strong> · <strong class="tabular-nums text-slate-700">${escapeHtml(entQFmt)}</strong></span>
-            </div>
-          </div>
-        </div>
-
-        <div class="text-right shrink-0 w-[108px] sm:w-[120px] border-l border-slate-100 pl-2 sm:pl-3">
-          <div class="text-[9px] text-orange-600 font-black uppercase leading-tight">Custo final</div>
-          <div class="text-[10px] text-slate-500 font-semibold leading-tight mb-0.5">c/ taxas e imp.</div>
-          <div class="text-base font-black text-slate-900 tabular-nums">${formatarMoeda(custoFin)}</div>
-
-          ${mostrarBase ? `
-          <div class="text-[9px] text-slate-400 font-bold uppercase mt-2">Custo base</div>
-          <div class="text-[11px] font-semibold text-slate-500 tabular-nums">${formatarMoeda(custoBase)}</div>` : ''}
-
-          <div class="text-[9px] text-slate-400 font-bold uppercase mt-2">Venda</div>
-          <div class="text-xs font-black text-orange-600 tabular-nums">R$ ${precoVenda}</div>
-
-          <div class="text-[9px] text-slate-400 font-bold uppercase mt-1">Lucro</div>
-          <div class="text-[10px] font-black ${corLucro} tabular-nums">R$ ${lucroReais} (${lucroPerc}%)</div>
-        </div>
-      </div>
-    `;
-  });
-
-  ultimosResultadosCompra = resultados;
-  indiceSelecionadoCompra = resultados.length ? 0 : -1;
-  requestAnimationFrame(() => destacarLinhaCompra());
+  mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados);
 }
 
 function formatarTextoFornecedor() {
