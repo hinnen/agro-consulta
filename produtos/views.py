@@ -532,10 +532,13 @@ def _extrair_imagem_produto(p, mapa_imagens, pid):
     return ""
 
 
-def _custo_com_acrescimos_explicito(p, preco_base):
+def _custo_com_acrescimos_explicito(p, preco_base, preco_venda_val=0.0):
     """
     Preço de custo com acréscimos (frete, ST, etc.) gravado pelo ERP — alinha com a tela Custos e Precificação.
     Ignora zero (campo não calculado / legado).
+    Só aceita valor >= custo base e <= 5× o base (mesma faixa inferior/superior da heurística de custo).
+    Rejeita valor acima do preço de venda (com 1 centavo de folga): na precificação ERP,
+    custo c/ acréscimos + MVA ≈ venda; valores acima da venda costumam ser campo errado ou lixo.
     """
     chaves = (
         "PrecoCustoComAcrescimos",
@@ -556,10 +559,44 @@ def _custo_com_acrescimos_explicito(p, preco_base):
         if v <= 0:
             continue
         if preco_base > 0:
-            if v < preco_base * 0.5 or v > preco_base * 5:
+            # Alinhado a _heuristic_custo_maximo_doc: acréscimo não pode ser < custo base (100%–500% do base).
+            if v + 1e-9 < preco_base or v > preco_base * 5:
                 continue
+        if preco_venda_val > 0 and v > preco_venda_val + 0.01:
+            continue
         return v
     return None
+
+
+def _custo_com_acrescimos_estimado_percentuais_compra(p, preco_base):
+    """
+    Custo com acréscimos ≈ PrecoCusto * (1 + soma dos % de compra), no mesmo espírito da precificação VendaERP.
+    Os campos *CompraPercentual no DtoProduto são alíquotas (número 6,13 = 6,13%), não valores em R$.
+    ICMS da compra não entra na soma: costuma ser crédito; o quadro "custo c/ acréscimos" usa frete/ST/IPI/seguro/FCP ST.
+    """
+    if preco_base <= 0:
+        return None
+    pct_fields = (
+        "FreteCompraPercentual",
+        "SeguroCompraPercentual",
+        "IPICompraPercentual",
+        "ICMSSTCompraPercentual",
+        "FCPSTCompraPercentual",
+    )
+    total_pct = 0.0
+    for field in pct_fields:
+        raw = p.get(field)
+        if raw is None or raw == "":
+            continue
+        try:
+            x = float(str(raw).replace(",", "."))
+        except (ValueError, TypeError):
+            continue
+        if x > 0:
+            total_pct += x
+    if total_pct <= 0:
+        return None
+    return round(preco_base * (1.0 + total_pct / 100.0), 4)
 
 
 def _heuristic_custo_maximo_doc(p, preco_custo_val, preco_venda_val):
@@ -601,6 +638,8 @@ def _heuristic_custo_maximo_doc(p, preco_custo_val, preco_venda_val):
                             try:
                                 val_f = float(str(v).replace(",", "."))
                                 if preco_venda_val > 0 and val_f == preco_venda_val:
+                                    continue
+                                if preco_venda_val > 0 and val_f > preco_venda_val + 0.01:
                                     continue
                                 if preco_custo_val > 0 and preco_custo_val <= val_f <= (preco_custo_val * 5):
                                     if val_f > max_val:
@@ -644,6 +683,8 @@ def _custo_final_explicito_campos(p, preco_venda_val):
                 continue
             if preco_venda_val > 0 and abs(v - preco_venda_val) < 0.01:
                 continue
+            if preco_venda_val > 0 and v > preco_venda_val + 0.01:
+                continue
             vals.append(v)
         except (ValueError, TypeError):
             continue
@@ -660,13 +701,21 @@ def _custos_compra_produto(p):
     except ValueError:
         preco_custo_val = 0.0
     preco_venda_val = float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
-    com_acresc = _custo_com_acrescimos_explicito(p, preco_custo_val)
+    com_acresc = _custo_com_acrescimos_explicito(p, preco_custo_val, preco_venda_val)
+    est_pct = _custo_com_acrescimos_estimado_percentuais_compra(p, preco_custo_val)
     heuristic = _heuristic_custo_maximo_doc(p, preco_custo_val, preco_venda_val)
     explicit = _custo_final_explicito_campos(p, preco_venda_val)
+    raw_max = max(heuristic, explicit or 0.0)
+
     if com_acresc is not None:
         final = com_acresc
+    elif preco_venda_val > 0 and raw_max > preco_venda_val + 0.01 and est_pct is not None:
+        # Custo cadastral acima da venda (ex.: 16,10 vs 15,99) — típico de campo errado; % de compra batem com o ERP
+        final = round(max(preco_custo_val, est_pct), 2)
+    elif est_pct is not None:
+        final = round(max(raw_max, est_pct), 2)
     else:
-        final = max(heuristic, explicit or 0.0)
+        final = raw_max
     return {"preco_custo": preco_custo_val, "preco_custo_final": final}
 
 
