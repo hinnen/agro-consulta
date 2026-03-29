@@ -532,6 +532,36 @@ def _extrair_imagem_produto(p, mapa_imagens, pid):
     return ""
 
 
+def _custo_com_acrescimos_explicito(p, preco_base):
+    """
+    Preço de custo com acréscimos (frete, ST, etc.) gravado pelo ERP — alinha com a tela Custos e Precificação.
+    Ignora zero (campo não calculado / legado).
+    """
+    chaves = (
+        "PrecoCustoComAcrescimos",
+        "ValorPrecoCustoComAcrescimos",
+        "PrecoCustoComAcrescimo",
+        "ValorCustoComAcrescimos",
+        "ValorCustoComAcrescimo",
+        "CustoComAcrescimos",
+    )
+    for key in chaves:
+        raw = p.get(key)
+        if raw is None or raw == "":
+            continue
+        try:
+            v = float(str(raw).replace(",", "."))
+        except (ValueError, TypeError):
+            continue
+        if v <= 0:
+            continue
+        if preco_base > 0:
+            if v < preco_base * 0.5 or v > preco_base * 5:
+                continue
+        return v
+    return None
+
+
 def _heuristic_custo_maximo_doc(p, preco_custo_val, preco_venda_val):
     """Varre o documento do produto em busca do maior valor plausível de custo (taxas, frete, etc.)."""
     max_val = preco_custo_val
@@ -548,6 +578,9 @@ def _heuristic_custo_maximo_doc(p, preco_custo_val, preco_venda_val):
                     "cfop", "gtin", "dia", "mes", "ano", "prazo", "validade",
                     "caixa", "unidade", "fator", "tabela", "atacado", "varejo", "promocao",
                     "percentual", "porcentagem", "aliquota", "taxa",
+                    # Componentes fiscais em R$ ou bases — não são o custo com acréscimos total
+                    "valor_icms_st", "valor_icms_substituto", "fcpst_valor", "fcpst_basecalculo",
+                    "valor_ipi", "fcpst_percentual",
                 ]
                 if any(x in k_lower for x in bad_keys):
                     continue
@@ -555,11 +588,12 @@ def _heuristic_custo_maximo_doc(p, preco_custo_val, preco_venda_val):
                 if isinstance(v, (dict, list)):
                     traverse(v)
                 else:
+                    # Não usar nomes genéricos de imposto (muitas vezes são alíquotas %, ex.: ICMSCompraPercentual)
                     good_cost_indicators = [
                         "custo", "compra", "reposicao", "fornecedor", "entrada",
                         "valor", "preco", "total", "final", "bruto", "liquido",
                         "medio", "acrescimo", "despesa", "frete", "seguro",
-                        "imposto", "tributo", "icms", "ipi", "pis", "cofins",
+                        "imposto",
                         "real", "efetivo",
                     ]
                     if any(x in k_lower for x in good_cost_indicators):
@@ -626,9 +660,13 @@ def _custos_compra_produto(p):
     except ValueError:
         preco_custo_val = 0.0
     preco_venda_val = float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
+    com_acresc = _custo_com_acrescimos_explicito(p, preco_custo_val)
     heuristic = _heuristic_custo_maximo_doc(p, preco_custo_val, preco_venda_val)
     explicit = _custo_final_explicito_campos(p, preco_venda_val)
-    final = max(heuristic, explicit or 0.0)
+    if com_acresc is not None:
+        final = com_acresc
+    else:
+        final = max(heuristic, explicit or 0.0)
     return {"preco_custo": preco_custo_val, "preco_custo_final": final}
 
 
