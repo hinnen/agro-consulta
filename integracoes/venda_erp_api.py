@@ -11,6 +11,18 @@ def _django_setting(name, default=""):
         return (default or "").strip()
 
 
+def _erp_json_tem_linhas_pessoa(data):
+    if isinstance(data, list) and len(data) > 0:
+        return True
+    if not isinstance(data, dict):
+        return False
+    for k in ("Data", "data", "Pessoas", "pessoas", "Items", "items", "Result", "result"):
+        v = data.get(k)
+        if isinstance(v, list) and len(v) > 0:
+            return True
+    return False
+
+
 class VendaERPAPIClient:
     def __init__(self, base_url=None, token=None, user=None, app=None):
         bu = (base_url or "").strip().rstrip("/") if base_url else ""
@@ -99,3 +111,105 @@ class VendaERPAPIClient:
             return False, res.text
         except Exception as e:
             return False, str(e)
+
+    def _headers_get(self):
+        return {
+            "Authorization-Token": self.token,
+            "User": self.user,
+            "App": self.app,
+            "Accept": "application/json",
+        }
+
+    def pessoas_pesquisar(
+        self,
+        nomefantasia="",
+        cpfcnpj="",
+        page_size=80,
+        skip=0,
+        cliente=True,
+        fornecedor=False,
+    ):
+        """
+        GET /api/request/Pessoas/Pesquisar (Swagger: camelCase; alguns hosts usam PascalCase).
+        """
+        if not self.token:
+            return False, []
+        url = f"{self.base_url}/api/request/Pessoas/Pesquisar"
+        ps = min(max(int(page_size or 80), 1), 500)
+        sk = max(int(skip or 0), 0)
+        nf = (nomefantasia or "")[:200]
+        cp = (cpfcnpj or "")[:20]
+        cli = str(bool(cliente)).lower()
+        forn = str(bool(fornecedor)).lower()
+
+        param_sets = [
+            {
+                "nomefantasia": nf,
+                "cpfcnpj": cp,
+                "pageSize": ps,
+                "skip": sk,
+                "cliente": cli,
+                "fornecedor": forn,
+            },
+            {
+                "NomeFantasia": nf,
+                "CpfCnpj": cp,
+                "PageSize": ps,
+                "Skip": sk,
+                "Cliente": cli,
+                "Fornecedor": forn,
+            },
+            {
+                "nomefantasia": nf,
+                "cpfcnpj": cp,
+                "pageSize": ps,
+                "skip": sk,
+            },
+            {
+                "NomeFantasia": nf,
+                "CpfCnpj": cp,
+                "PageSize": ps,
+                "Skip": sk,
+            },
+        ]
+        try:
+            for i, params in enumerate(param_sets):
+                res = requests.get(url, headers=self._headers_get(), params=params, timeout=30)
+                if not (200 <= res.status_code < 300):
+                    continue
+                try:
+                    j = res.json()
+                except Exception:
+                    j = []
+                if j is None:
+                    j = []
+                if _erp_json_tem_linhas_pessoa(j) or i == len(param_sets) - 1:
+                    return True, j
+            return False, []
+        except Exception:
+            return False, []
+
+    def pessoas_get_all(self, page_size=200, skip=0):
+        """GET /api/request/Pessoas/GetAll (tenta pageSize/skip e PageSize/Skip)."""
+        if not self.token:
+            return False, []
+        url = f"{self.base_url}/api/request/Pessoas/GetAll"
+        ps = min(max(int(page_size or 200), 1), 500)
+        sk = max(int(skip or 0), 0)
+        param_variants = (
+            {"pageSize": ps, "skip": sk},
+            {"PageSize": ps, "Skip": sk},
+        )
+        last_status = 0
+        try:
+            for params in param_variants:
+                res = requests.get(url, headers=self._headers_get(), params=params, timeout=45)
+                last_status = res.status_code
+                if 200 <= res.status_code < 300:
+                    try:
+                        return True, res.json()
+                    except Exception:
+                        return True, []
+            return False, {"_http_status": last_status, "_body": ""}
+        except Exception as e:
+            return False, {"_erro": str(e)}

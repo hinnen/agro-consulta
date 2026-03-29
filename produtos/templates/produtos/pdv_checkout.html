@@ -1,0 +1,260 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agro Mais | Fechar venda</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen">
+  {% csrf_token %}
+  {{ draft|json_script:"checkout-draft" }}
+
+  <header class="bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-lg mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-black uppercase tracking-tight text-slate-900">Fechar venda</h1>
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Pagamento · WhatsApp <span class="text-slate-300">(F7)</span> · ERP</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a href="{% url 'consulta_produtos' %}?reabrir=1" class="text-xs font-black uppercase px-3 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50">
+          Voltar ao carrinho
+        </a>
+        <button type="button" id="btn-descartar-checkout" class="text-xs font-black uppercase px-3 py-2 rounded-xl border border-red-200 text-red-700 hover:bg-red-50">
+          Descartar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-lg mx-auto px-4 py-6 space-y-5">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+      <div class="bg-slate-50 p-4 rounded-2xl border-l-4 border-emerald-500">
+        <div class="text-[10px] uppercase font-black text-slate-400">Cliente</div>
+        <div class="text-base font-bold text-slate-900" id="checkout-cliente-display">{{ draft.cliente }}</div>
+        {% if draft.forma_pagamento %}
+        <div class="mt-2 text-xs font-bold text-slate-600">Pagamento: <span class="text-emerald-700">{{ draft.forma_pagamento }}</span></div>
+        {% endif %}
+      </div>
+      <div class="divide-y divide-slate-100 text-sm font-bold" id="checkout-itens-list">
+        {% for it in draft_display.itens %}
+        <div class="flex justify-between gap-3 py-2">
+          <span class="min-w-0">{{ it.qtd }}× {{ it.nome }}</span>
+          <span class="text-emerald-600 shrink-0 tabular-nums">R$ {{ it.valor_linha }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="flex justify-between items-baseline pt-3 border-t-2 border-slate-200">
+        <span class="text-sm font-black uppercase text-slate-500">Total</span>
+        <span class="text-2xl font-black text-emerald-600 tabular-nums" id="checkout-total">R$ {{ total_fmt }}</span>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3">
+      <button type="button" id="btn-wa-checkout" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-3.5 rounded-2xl shadow-lg text-sm uppercase">
+        WhatsApp
+      </button>
+      <button type="button" id="btn-print-checkout" class="w-full bg-slate-800 hover:bg-black text-white font-black py-3.5 rounded-2xl text-sm uppercase">
+        Imprimir
+      </button>
+      <button type="button" id="btn-erp-checkout" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-black py-3.5 rounded-xl text-sm uppercase flex items-center justify-center gap-2">
+        <span>ERP Orçamento</span>
+        <kbd class="text-[10px] px-2 py-1 rounded-lg bg-white/25 font-black border border-white/20">F10</kbd>
+      </button>
+      <button type="button" id="btn-copy-checkout" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-600 font-black py-3 rounded-xl text-sm uppercase border border-slate-200">
+        Copiar texto
+      </button>
+    </div>
+  </main>
+
+  <div id="cupom-orcamento-checkout" class="hidden"></div>
+
+  <script>
+  function getCookie(name) {
+    var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return v ? decodeURIComponent(v[2]) : '';
+  }
+  var csrftokenEl = document.querySelector('[name=csrfmiddlewaretoken]');
+  var csrftoken = csrftokenEl ? csrftokenEl.value : getCookie('csrftoken');
+
+  function escapeHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+  function formatarMoeda(v) {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v));
+  }
+
+  var elDraft = document.getElementById('checkout-draft');
+  var DRAFT = {};
+  try {
+    DRAFT = JSON.parse(elDraft.textContent);
+  } catch (e) {
+    window.location.href = '{% url "consulta_produtos" %}';
+  }
+  var carrinho = DRAFT.itens || [];
+  var clienteSelecionado = DRAFT.cliente_extra || null;
+
+  function nomeClienteCheckout() {
+    return String(DRAFT.cliente || '').trim() || 'CONSUMIDOR NÃO IDENTIFICADO...';
+  }
+
+  function totalTextoCheckout() {
+    return document.getElementById('checkout-total').innerText;
+  }
+
+  function salvarHistoricoLocal() {
+    if (!carrinho.length) return;
+    var historico = [];
+    try {
+      var salvo = localStorage.getItem('historicoOrcamentos');
+      if (salvo) historico = JSON.parse(salvo);
+      if (!Array.isArray(historico)) historico = [];
+    } catch (e) { historico = []; }
+    var novo = {
+      id: Date.now(),
+      data: new Date().toLocaleString('pt-BR'),
+      cliente: nomeClienteCheckout(),
+      total: totalTextoCheckout(),
+      itens: JSON.parse(JSON.stringify(carrinho))
+    };
+    historico.unshift(novo);
+    if (historico.length > 20) historico.pop();
+    localStorage.setItem('historicoOrcamentos', JSON.stringify(historico));
+  }
+
+  function gerarMensagemPedido() {
+    var clienteNome = nomeClienteCheckout();
+    var msg = '🐎🌾 *ORÇAMENTO AGRO MAIS* 🌾🐔\n\n';
+    msg += '👤 *Cliente:* ' + clienteNome + '\n';
+    msg += '🛒 *Itens do pedido:*\n';
+    msg += '━━━━━━━━━━━━━━━━━━\n';
+    carrinho.forEach(function (i) {
+      msg += '🔸 ' + i.qtd + 'x ' + i.nome + '\n';
+      msg += '   💰 ' + formatarMoeda(i.preco * i.qtd) + '\n';
+    });
+    msg += '━━━━━━━━━━━━━━━━━━\n';
+    msg += '💵 *TOTAL: ' + totalTextoCheckout() + '*\n\n';
+    msg += '✨ Obrigado por escolher a *Agro Mais*!\n';
+    msg += '📍 Qualquer dúvida, estamos à disposição.';
+    return msg;
+  }
+
+  function abrirWhatsappCheckout() {
+    var numeroWhatsapp = (clienteSelecionado && clienteSelecionado.telefone) ? String(clienteSelecionado.telefone) : '5513996727222';
+    numeroWhatsapp = numeroWhatsapp.replace(/\D/g, '');
+    if (numeroWhatsapp.length === 10 || numeroWhatsapp.length === 11) numeroWhatsapp = '55' + numeroWhatsapp;
+    salvarHistoricoLocal();
+    var msg = gerarMensagemPedido();
+    window.open('https://api.whatsapp.com/send?phone=' + numeroWhatsapp + '&text=' + encodeURIComponent(msg), '_blank');
+  }
+  document.getElementById('btn-wa-checkout').onclick = abrirWhatsappCheckout;
+
+  document.getElementById('btn-print-checkout').onclick = function () {
+    if (!carrinho.length) return alert('Sem itens.');
+    salvarHistoricoLocal();
+    var clienteNome = nomeClienteCheckout();
+    var numOrcamento = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+    var html = '<div style="text-align:center; margin-bottom: 5px;"><h2 style="margin: 0; font-size: 22px; font-weight: 900;">AGRO MAIS</h2><div style="font-size: 10px;">Av Principal, 123 - Centro</div></div>';
+    html += '<div style="border-bottom: 1px dashed #000; margin-bottom: 5px;"></div>';
+    html += '<div style="text-align:center; font-weight:bold; font-size: 14px; margin-bottom: 5px;">ORÇAMENTO DE VENDA</div>';
+    html += '<div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>';
+    html += '<div style="font-size: 11px; margin-bottom: 2px;"><b>DATA:</b> ' + new Date().toLocaleString('pt-BR') + '</div>';
+    html += '<div style="font-size: 11px; margin-bottom: 8px;"><b>CLIENTE:</b> ' + escapeHtml(clienteNome).toUpperCase() + '</div>';
+    html += '<div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>';
+    html += '<table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;"><thead><tr style="border-bottom: 1px solid #000;"><th style="text-align: left;">DESCRIÇÃO</th><th style="text-align: right;">QTDxUN</th><th style="text-align: right;">TOTAL</th></tr></thead><tbody>';
+    var totalItens = 0;
+    carrinho.forEach(function (i) {
+      totalItens += i.qtd;
+      html += '<tr><td style="padding: 4px 0;">' + escapeHtml(String(i.nome).substring(0, 24)) + '</td><td style="text-align: right;">' + i.qtd + 'x ' + Number(i.preco).toFixed(2) + '</td><td style="text-align: right;">' + Number(i.preco * i.qtd).toFixed(2) + '</td></tr>';
+    });
+    html += '</tbody></table><div style="border-bottom: 1px dashed #000; margin: 8px 0;"></div>';
+    html += '<div style="display:flex; justify-content: space-between; font-size: 13px; font-weight: bold;"><span>QTD TOTAL ITENS</span><span>' + totalItens + ' un</span></div>';
+    html += '<div style="display:flex; justify-content: space-between; font-size: 16px; font-weight: 900; margin: 10px 0 15px;"><span>VALOR TOTAL</span><span>' + totalTextoCheckout() + '</span></div>';
+    html += '<div style="text-align:center;"><svg id="barcode-orcamento-chk"></svg></div><div style="text-align:center; font-size: 10px;">É sempre um prazer atender você!</div>';
+    var cup = document.getElementById('cupom-orcamento-checkout');
+    cup.className = '';
+    cup.innerHTML = html;
+    try {
+      JsBarcode('#barcode-orcamento-chk', numOrcamento, { format: 'CODE128', width: 1.5, height: 40, displayValue: true, fontSize: 12, margin: 0 });
+    } catch (e) {}
+    window.print();
+  };
+
+  document.getElementById('btn-copy-checkout').onclick = function () {
+    navigator.clipboard.writeText(gerarMensagemPedido()).then(function () {
+      alert('Mensagem copiada!');
+    }).catch(function () { alert('Não foi possível copiar.'); });
+  };
+
+  async function limparDraftServidor() {
+    await fetch('{% url "api_pdv_limpar_checkout_draft" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrftoken }
+    });
+  }
+
+  document.getElementById('btn-descartar-checkout').onclick = async function () {
+    if (!confirm('Descartar esta venda e voltar ao PDV?')) return;
+    await limparDraftServidor();
+    window.location.href = '{% url "consulta_produtos" %}';
+  };
+
+  document.getElementById('btn-erp-checkout').onclick = async function () {
+    var btn = document.getElementById('btn-erp-checkout');
+    if (!carrinho.length) return alert('Sem itens.');
+    btn.disabled = true;
+    btn.innerHTML = 'Enviando...';
+    salvarHistoricoLocal();
+    var payload = { cliente: nomeClienteCheckout(), itens: carrinho };
+    if (clienteSelecionado && clienteSelecionado.id) {
+      var _cid = String(clienteSelecionado.id);
+      if (!/^local:/i.test(_cid) && !/^erp-doc:/i.test(_cid)) payload.cliente_id = _cid;
+    }
+    if (clienteSelecionado && clienteSelecionado.documento != null && String(clienteSelecionado.documento).trim() && String(clienteSelecionado.documento).trim() !== '—') {
+      payload.cliente_documento = String(clienteSelecionado.documento).trim();
+    }
+    if (DRAFT.forma_pagamento) payload.forma_pagamento = DRAFT.forma_pagamento;
+    try {
+      var res = await fetch('{% url "api_enviar_pedido_erp" %}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+        body: JSON.stringify(payload)
+      });
+      var data = await res.json();
+      if (data.ok) {
+        var msg = typeof data.mensagem === 'string' ? data.mensagem : JSON.stringify(data.mensagem);
+        var vid = data.venda_id != null ? '\nRegistro local: #' + data.venda_id : '';
+        alert('✅ ' + msg + vid);
+        await limparDraftServidor();
+        window.location.href = '{% url "consulta_produtos" %}';
+      } else {
+        var err = data.erro || data.mensagem || JSON.stringify(data);
+        var vid2 = data.venda_id != null ? '\nRegistro local: #' + data.venda_id : '';
+        alert('❌ Falha do ERP:\n' + err + vid2);
+      }
+    } catch (e) {
+      alert('Erro de comunicação com o servidor.');
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<span>ERP Orçamento</span><kbd class="text-[10px] px-2 py-1 rounded-lg bg-white/25 font-black border border-white/20">F10</kbd>';
+  };
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'F7') {
+      e.preventDefault();
+      abrirWhatsappCheckout();
+    }
+    if (e.key === 'F10') {
+      e.preventDefault();
+      document.getElementById('btn-erp-checkout').click();
+    }
+  });
+  </script>
+</body>
+</html>

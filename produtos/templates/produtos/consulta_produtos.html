@@ -350,6 +350,9 @@
     </style>
 </head>
 <body class="bg-slate-100 text-slate-900 h-screen overflow-hidden flex flex-col text-[15px]">
+{% if pdv_reabrir_data %}
+{{ pdv_reabrir_data|json_script:"pdv-reabrir-draft" }}
+{% endif %}
 
     <div class="flex flex-1 min-h-0">
         <aside id="pdv-sidebar" data-expanded="false" class="flex flex-col shrink-0 bg-slate-950 text-slate-200 border-r border-slate-800/80 shadow-xl overflow-hidden" aria-label="Navegação principal">
@@ -372,10 +375,18 @@
                     <span class="pdv-nav-icon"><i data-lucide="arrow-left-right"></i></span>
                     <span class="pdv-nav-label">Logística</span>
                 </a>
-                <button type="button" class="pdv-nav-item" disabled title="Financeiro — caixa e contas (em breve).">
-                    <span class="pdv-nav-icon"><i data-lucide="wallet"></i></span>
-                    <span class="pdv-nav-label">Financeiro</span>
-                </button>
+                <a href="{% url 'vendas_lista' %}" class="pdv-nav-item" title="Lista de vendas com filtro por período e export CSV (login).">
+                    <span class="pdv-nav-icon"><i data-lucide="receipt"></i></span>
+                    <span class="pdv-nav-label">Vendas</span>
+                </a>
+                <a href="{% url 'clientes_lista' %}" class="pdv-nav-item" title="Clientes cadastrados no Agro (login).">
+                    <span class="pdv-nav-icon"><i data-lucide="users"></i></span>
+                    <span class="pdv-nav-label">Clientes</span>
+                </a>
+                <a href="{% url 'caixa_painel' %}" class="pdv-nav-item" title="Abrir ou fechar caixa — vínculo das vendas ao turno (login).">
+                    <span class="pdv-nav-icon"><i data-lucide="banknote"></i></span>
+                    <span class="pdv-nav-label">Caixa</span>
+                </a>
                 <button type="button" class="pdv-nav-item" onclick="abrirHistoricoLocal()" title="Orçamentos salvos neste computador. Atalho: F6.">
                     <span class="pdv-nav-icon"><i data-lucide="history"></i></span>
                     <span class="pdv-nav-label">Orçamentos</span>
@@ -405,6 +416,11 @@
                     </div>
                 </div>
                 <div class="flex-1 flex flex-wrap items-center justify-end gap-3 min-w-0">
+                    {% if caixa_aberto %}
+                    <a href="{% url 'caixa_painel' %}" class="hidden sm:inline-flex items-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-200 hover:bg-emerald-200/80 shrink-0" title="Caixa aberto — ver painel">Caixa #{{ caixa_aberto.pk }}</a>
+                    {% else %}
+                    <a href="{% url 'caixa_abrir' %}" class="hidden sm:inline-flex items-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-950 border border-amber-200 hover:bg-amber-200/80 shrink-0" title="Nenhum caixa aberto neste navegador">Abrir caixa</a>
+                    {% endif %}
                     <label class="sr-only" for="pdv-empresa">Empresa / unidade</label>
                     <select id="pdv-empresa" class="text-sm font-bold border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 text-slate-800 max-w-[min(240px,100%)]" title="Unidade / contexto da venda (configuração futura do ERP).">
                         <option value="1">Agro Mais — Principal</option>
@@ -477,12 +493,28 @@
                                     placeholder="Buscar cliente…"
                                     class="w-full p-3 pr-14 bg-slate-50 text-base rounded-xl border-2 border-slate-200 font-bold outline-none focus:border-emerald-500"
                                     autocomplete="off"
-                                    title="Busca clientes no ERP por nome ou razão social. F3 foca aqui. Use ↑↓ e Enter na lista. Telefone (se houver) é usado no WhatsApp."
+                                    title="Sugestões: só clientes cadastrados no Agro (sincronize em Clientes se vier do ERP/Mongo). F3 foca aqui. ↑↓ e Enter. Telefone no WhatsApp."
                                 >
                                 <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500 uppercase bg-white/95 px-2 py-0.5 rounded-md border border-slate-200 shadow-sm tabular-nums" title="Atalho: F3 foca neste campo">F3</span>
                             </div>
                             <div id="cliente-results" class="absolute z-[60] left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 hidden overflow-hidden text-sm max-h-56 overflow-y-auto"></div>
                             <p id="cliente-api-msg" class="hidden mt-2 text-[10px] font-bold text-amber-700 leading-snug" role="status"></p>
+                        </div>
+
+                        <div class="relative mt-3 shrink-0">
+                            <label for="forma-pagamento-pdv" class="text-[10px] font-black uppercase text-slate-500">Pagamento</label>
+                            <select
+                                id="forma-pagamento-pdv"
+                                class="mt-1 w-full p-3 bg-slate-50 text-sm rounded-xl border-2 border-slate-200 font-bold outline-none focus:border-emerald-500"
+                                title="Como o cliente pagou (registro local e na venda salva no sistema)."
+                            >
+                                <option value="">Não informado</option>
+                                <option value="Dinheiro">Dinheiro</option>
+                                <option value="PIX">PIX</option>
+                                <option value="Cartão de débito">Cartão de débito</option>
+                                <option value="Cartão de crédito">Cartão de crédito</option>
+                                <option value="Outro">Outro</option>
+                            </select>
                         </div>
 
                         <div id="itens-carrinho" class="flex-1 min-h-[120px] overflow-y-auto mt-3 hide-scroll"></div>
@@ -496,7 +528,7 @@
                                 <span>Limpar venda</span>
                                 <kbd class="text-[10px] px-2 py-0.5 rounded-md bg-white/80 text-slate-600 font-black border border-slate-200 shadow-sm">F4</kbd>
                             </button>
-                            <button type="button" onclick="abrirResumo()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-4 rounded-xl text-base uppercase shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2" title="Finalizar venda — abre o resumo com WhatsApp, impressão, ERP e cópia da mensagem. Atalho: F8.">
+                            <button type="button" onclick="irParaCheckout()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-4 rounded-xl text-base uppercase shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2" title="Finalizar venda — abre a tela de fechamento (pagamento, WhatsApp, impressão, ERP). Atalho: F8.">
                                 <span>Finalizar</span>
                                 <kbd class="text-[11px] px-2.5 py-1 rounded-lg bg-white/25 text-white font-black border border-white/30">F8</kbd>
                             </button>
@@ -519,48 +551,6 @@
         <button id="btn-limpar-filtro-catalogo" type="button"></button>
     </div>
 
-
-    <div id="modal-resumo" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
-        <div class="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl p-5 md:p-6 animate-in zoom-in duration-200 border border-slate-200">
-            <div class="flex items-start justify-between gap-4 mb-6">
-                <div>
-                    <h2 class="text-xl md:text-2xl font-black text-slate-900 italic uppercase tracking-tighter">📝 Resumo do Pedido</h2>
-                    <p class="text-[10px] text-slate-400 font-bold mt-1">Passe o mouse nos botões para ver nome, atalho e descrição.</p>
-                </div>
-                <div class="w-14 h-14 rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="Agro Mais" class="w-full h-full object-contain p-2">
-                </div>
-            </div>
-
-            <div id="corpo-resumo" class="space-y-3 max-h-[56vh] overflow-y-auto pr-1 hide-scroll font-bold text-slate-700"></div>
-
-            <div class="mt-8 flex flex-col gap-3">
-                <button type="button" onclick="confirmarEnvio()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-3 rounded-2xl shadow-lg text-sm uppercase italic flex items-center justify-center gap-2" title="Enviar WhatsApp — abre o app com a mensagem do pedido; usa o telefone do cliente se estiver cadastrado. Atalho: F7.">
-                    <span>🚀 WhatsApp</span>
-                    <kbd class="text-[10px] px-2 py-1 rounded-lg bg-white/25 font-black not-italic border border-white/20">F7</kbd>
-                </button>
-
-                <button type="button" onclick="imprimirOrcamento()" class="w-full bg-slate-800 hover:bg-black text-white font-black py-3 rounded-2xl shadow-lg text-sm uppercase flex items-center justify-center gap-2" title="Imprimir cupom — janela de impressão com itens e total (use na impressora térmica ou PDF). Com este modal aberto, atalho F8.">
-                    <span>🖨️ Imprimir</span>
-                    <kbd class="text-[10px] px-2 py-1 rounded-lg bg-white/20 font-black border border-white/15">F8</kbd>
-                </button>
-
-                <button type="button" id="btn-enviar-erp" onclick="enviarPedidoERP()" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-black py-3 rounded-xl shadow-md text-sm uppercase flex items-center justify-center gap-2 mt-2" title="Enviar para o ERP — grava como orçamento no Venda ERP (token e URL configurados). Atalho: F10.">
-                    <span>☁️ ERP Orçamento</span>
-                    <kbd class="text-[10px] px-2 py-1 rounded-lg bg-white/25 font-black border border-white/20">F10</kbd>
-                </button>
-
-                <button type="button" onclick="copiarMensagemPedido()" class="w-full bg-slate-50 hover:bg-slate-100 text-slate-600 font-black py-2 rounded-xl text-sm uppercase border border-slate-200 flex items-center justify-center gap-2 mt-2" title="Copiar mensagem — texto do pedido na área de transferência para colar em qualquer app. Atalho: F9.">
-                    <span>Copiar texto</span>
-                    <kbd class="text-[10px] px-2 py-1 rounded-lg bg-white text-slate-600 font-black border border-slate-200">F9</kbd>
-                </button>
-
-                <button type="button" onclick="fecharResumo()" class="w-full text-slate-400 font-bold py-2 text-sm uppercase hover:underline" title="Voltar — fecha o resumo e permite alterar itens no carrinho. Tecla Esc também fecha.">
-                    Voltar e ajustar
-                </button>
-            </div>
-        </div>
-    </div>
 
     <div id="cupom-orcamento"></div>
 
@@ -712,7 +702,6 @@ const inputBusca = document.getElementById('busca-produto');
 const autoList = document.getElementById('autocomplete-results');
 const destaqueContainer = document.getElementById('produto-destaque');
 const similaresContainer = document.getElementById('lista-similares');
-const modalResumo = document.getElementById('modal-resumo');
 const statusBusca = document.getElementById('status-busca');
 const scanBanner = document.getElementById('scan-banner');
 
@@ -1568,6 +1557,8 @@ function limparCarrinho() {
         inputCliente.value = CLIENTE_PADRAO_PDV;
     }
     clienteSelecionado = null;
+    const fp = document.getElementById('forma-pagamento-pdv');
+    if (fp) fp.value = '';
     atualizarCarrinho();
     focarBuscaProduto();
 }
@@ -1635,46 +1626,36 @@ function atualizarCarrinho() {
     }
 }
 
-function abrirResumo() {
+async function irParaCheckout() {
     if (!carrinho.length) {
         tocarSom('erro');
         return alert("Carrinho vazio!");
     }
-
-    const cliente = nomeClientePdv();
-    const corpo = document.getElementById('corpo-resumo');
-    corpo.innerHTML = `
-        <div class="bg-slate-50 p-4 rounded-2xl mb-4 border-l-4 border-emerald-500">
-                <div class="text-xs uppercase text-slate-400">Cliente</div>
-                <div class="text-base italic font-bold">${escapeHtml(cliente)}</div>
-        </div>
-    `;
-
-    carrinho.forEach(item => {
-        corpo.innerHTML += `
-            <div class="flex justify-between border-b border-slate-100 py-2 gap-4">
-                    <span class="text-sm font-bold">${item.qtd}x ${escapeHtml(item.nome)}</span>
-                    <span class="text-emerald-600 font-bold flex-shrink-0">${formatarMoeda(item.preco * item.qtd)}</span>
-            </div>
-        `;
-    });
-
-    corpo.innerHTML += `
-            <div class="flex justify-between pt-4 text-lg font-black text-slate-900 italic uppercase">
-            <span>Total</span>
-            <span>${document.getElementById('total-geral').innerText}</span>
-        </div>
-    `;
-
-    modalResumo.classList.remove('hidden');
-    modalResumo.classList.add('flex');
-    document.body.classList.add('modal-open');
-}
-
-function fecharResumo() {
-    modalResumo.classList.add('hidden');
-    modalResumo.classList.remove('flex');
-    document.body.classList.remove('modal-open');
+    var fp = document.getElementById('forma-pagamento-pdv');
+    var body = {
+        itens: carrinho,
+        cliente: nomeClientePdv(),
+        cliente_extra: clienteSelecionado,
+        forma_pagamento: fp && fp.value ? fp.value : ''
+    };
+    try {
+        var res = await fetch('{% url "api_pdv_salvar_checkout_draft" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(body)
+        });
+        var j = await res.json();
+        if (j.ok) {
+            window.location.href = '{% url "pdv_checkout" %}';
+        } else {
+            alert(j.erro || 'Não foi possível abrir a tela de fechamento.');
+        }
+    } catch (e) {
+        alert('Erro de rede ao salvar o rascunho da venda.');
+    }
 }
 
 // --- HISTÓRICO LOCAL ---
@@ -1749,170 +1730,6 @@ function recuperarOrcamento(id) {
         atualizarCarrinho();
         fecharHistoricoLocal();
     }
-}
-
-function gerarMensagemPedido() {
-    const clienteNome = nomeClientePdv();
-    let msg = `🐎🌾 *ORÇAMENTO AGRO MAIS* 🌾🐔\n\n`;
-    msg += `👤 *Cliente:* ${clienteNome}\n`;
-    msg += `🛒 *Itens do pedido:*\n`;
-    msg += `━━━━━━━━━━━━━━━━━━\n`;
-
-    carrinho.forEach(i => {
-        msg += `🔸 ${i.qtd}x ${i.nome}\n`;
-        msg += `   💰 ${formatarMoeda(i.preco * i.qtd)}\n`;
-    });
-
-    msg += `━━━━━━━━━━━━━━━━━━\n`;
-    msg += `💵 *TOTAL: ${document.getElementById('total-geral').innerText}*\n\n`;
-    msg += `✨ Obrigado por escolher a *Agro Mais*!\n`;
-    msg += `📍 Qualquer dúvida, estamos à disposição.`;
-    return msg;
-}
-
-function confirmarEnvio() {
-    let numeroWhatsapp = (clienteSelecionado && clienteSelecionado.telefone) ? String(clienteSelecionado.telefone) : "5513996727222";
-    
-    // Remove tudo que não for dígito numérico (espaços, parênteses, traços, etc)
-    numeroWhatsapp = numeroWhatsapp.replace(/\D/g, '');
-    
-    // Se o número tiver apenas 10 ou 11 dígitos, adicionamos o DDI do Brasil (55)
-    if (numeroWhatsapp.length === 10 || numeroWhatsapp.length === 11) {
-        numeroWhatsapp = '55' + numeroWhatsapp;
-    }
-
-    salvarHistoricoLocal();
-    const msg = gerarMensagemPedido();
-    window.open(`https://api.whatsapp.com/send?phone=${numeroWhatsapp}&text=${encodeURIComponent(msg)}`, '_blank');
-}
-
-async function copiarMensagemPedido() {
-    try {
-        const msg = gerarMensagemPedido();
-        await navigator.clipboard.writeText(msg);
-        alert("Mensagem copiada!");
-    } catch (e) {
-        console.error(e);
-        alert("Não foi possível copiar a mensagem.");
-    }
-}
-
-function imprimirOrcamento() {
-    if (!carrinho.length) return alert("Carrinho vazio!");
-    
-    salvarHistoricoLocal(); // Salva no histórico pra você nunca perder
-
-    const clienteNome = nomeClientePdv();
-    const numOrcamento = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-    
-    let html = `
-        <div style="text-align:center; margin-bottom: 5px;">
-            <h2 style="margin: 0; font-size: 22px; font-weight: 900;">AGRO MAIS</h2>
-            <div style="font-size: 10px;">Av Principal, 123 - Centro</div>
-        </div>
-        <div style="border-bottom: 1px dashed #000; margin-bottom: 5px;"></div>
-        <div style="text-align:center; font-weight:bold; font-size: 14px; margin-bottom: 5px;">
-            ORÇAMENTO DE VENDA
-        </div>
-        <div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>
-        <div style="font-size: 11px; margin-bottom: 2px;"><b>DATA:</b> ${new Date().toLocaleString('pt-BR')}</div>
-        <div style="font-size: 11px; margin-bottom: 8px;"><b>CLIENTE:</b> ${escapeHtml(clienteNome).toUpperCase()}</div>
-        <div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>
-        <table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;">
-            <thead>
-                <tr style="border-bottom: 1px solid #000;">
-                    <th style="text-align: left; padding-bottom: 4px;">DESCRIÇÃO</th>
-                    <th style="text-align: right; padding-bottom: 4px;">QTDxUN</th>
-                    <th style="text-align: right; padding-bottom: 4px;">TOTAL</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    let totalItens = 0;
-    carrinho.forEach(i => {
-        totalItens += i.qtd;
-        html += `
-            <tr>
-                <td style="padding-top: 4px; padding-bottom: 4px;">${escapeHtml(i.nome).substring(0, 20)}</td>
-                <td style="text-align: right; padding-top: 4px; padding-bottom: 4px;">${i.qtd}x ${Number(i.preco).toFixed(2)}</td>
-                <td style="text-align: right; padding-top: 4px; padding-bottom: 4px;">${Number(i.preco * i.qtd).toFixed(2)}</td>
-            </tr>
-        `;
-    });
-
-    html += `
-            </tbody>
-        </table>
-        <div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>
-        <div style="display:flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 4px;">
-            <span>QTD TOTAL ITENS</span>
-            <span>${totalItens} un</span>
-        </div>
-        <div style="display:flex; justify-content: space-between; font-size: 16px; font-weight: 900; margin-bottom: 15px;">
-            <span>VALOR TOTAL</span>
-            <span>${document.getElementById('total-geral').innerText}</span>
-        </div>
-        <div style="text-align:center; margin-bottom: 10px;">
-            <svg id="barcode-orcamento"></svg>
-        </div>
-        <div style="text-align:center; font-size: 10px;">
-            É sempre um prazer atender você!<br>Volte sempre!
-        </div>
-    `;
-    
-    document.getElementById('cupom-orcamento').innerHTML = html;
-    
-    try {
-        JsBarcode("#barcode-orcamento", numOrcamento, {
-            format: "CODE128", width: 1.5, height: 40, displayValue: true, fontSize: 12, margin: 0
-        });
-    } catch(e) {}
-
-    window.print();
-}
-
-async function enviarPedidoERP() {
-    if (!carrinho.length) return alert("Carrinho vazio!");
-    const btn = document.getElementById('btn-enviar-erp');
-    if(btn) btn.innerHTML = "Enviando...";
-
-    salvarHistoricoLocal();
-
-    const clienteNome = nomeClientePdv();
-    const payload = { cliente: clienteNome, itens: carrinho };
-    if (clienteSelecionado) {
-        if (clienteSelecionado.id) payload.cliente_id = String(clienteSelecionado.id);
-        const d = clienteSelecionado.documento;
-        if (d != null && String(d).trim() && String(d).trim() !== '—') {
-            payload.cliente_documento = String(d).trim();
-        }
-    }
-
-    try {
-        const res = await fetch('/api/enviar-pedido-erp/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        
-        if(data.ok) {
-            const msg = typeof data.mensagem === 'string' ? data.mensagem : JSON.stringify(data.mensagem);
-            alert("✅ " + msg);
-            carrinho = [];
-            atualizarCarrinho();
-            fecharResumo();
-        } else {
-            const err = data.erro || data.mensagem || JSON.stringify(data);
-            alert("❌ Falha do ERP:\n" + err);
-        }
-    } catch(e) { alert("Erro de comunicação com o servidor."); }
-    
-    if(btn) btn.innerHTML = `<span>☁️ ERP Orçamento</span><kbd class="text-[10px] px-2 py-1 rounded-lg bg-white/25 font-black border border-white/20">F10</kbd>`;
 }
 
 function abrirAjuste(id, nome, saldo, codigo, dep) {
@@ -2490,6 +2307,9 @@ function carregarCacheClientes() {
         .then(r => r.json())
         .then(d => {
             cacheClientesPDV = Array.isArray(d.clientes) ? d.clientes : [];
+            if (d.contagem_fontes && typeof console !== 'undefined' && console.info) {
+                console.info('[PDV clientes — ClienteAgro]', d.contagem_fontes);
+            }
             if (!msgEl) return;
             if (cacheClientesPDV.length) {
                 msgEl.classList.add('hidden');
@@ -2499,7 +2319,8 @@ function carregarCacheClientes() {
             let t = '';
             if (d.erro) t = String(d.erro);
             else {
-                t = 'Nenhum cliente retornado do Mongo. Verifique DtoPessoa / DtoCliente no banco. Com DEBUG=True a API pode incluir o campo "erro" no JSON.';
+                t = 'Nenhum cliente ativo no Agro. Use a tela Clientes (menu) e “Sincronizar ERP / Mongo” para importar, ou cadastre manualmente. '
+                    + 'O histórico de orçamentos ao lado é só no navegador.';
             }
             msgEl.textContent = t;
             msgEl.classList.toggle('hidden', !t);
@@ -2535,10 +2356,14 @@ inputCliente.addEventListener('input', function(e) {
     }
 
     clienteDebounceTimer = setTimeout(() => {
+        const locaisFiltrados = filtrarClientesLocais(q);
         fetch(`{% url "api_buscar_clientes" %}?q=${encodeURIComponent(q.trim())}`)
             .then(res => res.json())
             .then(data => {
                 const apiList = data.clientes || [];
+                if (data.contagem_fontes && typeof console !== 'undefined' && console.info) {
+                    console.info('[PDV clientes — busca ClienteAgro]', data.contagem_fontes, 'q=', q.trim());
+                }
                 const msgEl = document.getElementById('cliente-api-msg');
                 if (msgEl && data.erro) {
                     msgEl.textContent = String(data.erro);
@@ -2546,7 +2371,14 @@ inputCliente.addEventListener('input', function(e) {
                 }
                 if (apiList.length > 0) {
                     renderizarClientes(apiList);
-                } else if (!filtrarClientesLocais(q).length) {
+                } else if (locaisFiltrados.length > 0) {
+                    renderizarClientes(locaisFiltrados.map(c => ({
+                        nome: c.nome,
+                        documento: c.documento || '',
+                        telefone: c.telefone || '',
+                        id: c.id
+                    })));
+                } else {
                     clienteResults.classList.add('hidden');
                 }
             })
@@ -2651,22 +2483,13 @@ document.addEventListener('keydown', function(e) {
         e.preventDefault();
         abrirHistoricoLocal();
     }
-    else if (e.key === 'F7') {
-        e.preventDefault();
-        if (!modalResumo.classList.contains('hidden')) confirmarEnvio();
-    }
     else if (e.key === 'F8') {
         e.preventDefault();
-        if (modalResumo.classList.contains('hidden')) {
-            if (carrinho.length) abrirResumo();
-        } else {
-            imprimirOrcamento();
-        }
+        if (carrinho.length) irParaCheckout();
     }
     else if (e.key === 'F9') {
         e.preventDefault();
-        if (!modalResumo.classList.contains('hidden')) copiarMensagemPedido();
-        else if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_erp_centro, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'centro');
+        if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_erp_centro, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'centro');
     }
     else if (e.key === 'F5') {
         e.preventDefault();
@@ -2674,8 +2497,7 @@ document.addEventListener('keydown', function(e) {
     }
     else if (e.key === 'F10') {
         e.preventDefault();
-        if (!modalResumo.classList.contains('hidden')) enviarPedidoERP();
-        else if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_erp_vila, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'vila');
+        if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_erp_vila, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'vila');
     }
     else if (e.key === 'Escape') {
         const ml = document.getElementById('modal-lembretes');
@@ -2687,8 +2509,6 @@ document.addEventListener('keydown', function(e) {
                 fecharBuscaAvancada();
             } else if (!document.getElementById('modal-historico-vendas').classList.contains('hidden')) {
                 fecharHistoricoLocal();
-            } else if (!modalResumo.classList.contains('hidden')) {
-                fecharResumo();
             } else {
                 autoList.classList.add('hidden');
                 clienteResults.classList.add('hidden');
@@ -2895,5 +2715,26 @@ window.addEventListener('load', () => {
     pdvRefreshLucide();
 })();
 </script>
+{% if pdv_reabrir_data %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var el = document.getElementById('pdv-reabrir-draft');
+    if (!el) return;
+    try {
+        var d = JSON.parse(el.textContent);
+        if (!d.itens || !d.itens.length) return;
+        carrinho = d.itens;
+        if (typeof inputCliente !== 'undefined' && inputCliente && d.cliente) {
+            inputCliente.value = d.cliente;
+        }
+        clienteSelecionado = (d.cliente_extra && typeof d.cliente_extra === 'object') ? d.cliente_extra : null;
+        var fp = document.getElementById('forma-pagamento-pdv');
+        if (fp && d.forma_pagamento) fp.value = d.forma_pagamento;
+        if (typeof atualizarCarrinho === 'function') atualizarCarrinho();
+        if (history.replaceState) history.replaceState(null, '', '{% url "consulta_produtos" %}');
+    } catch (x) { console.error(x); }
+});
+</script>
+{% endif %}
 </body>
 </html>

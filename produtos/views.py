@@ -1,3 +1,4 @@
+import csv
 import json
 import logging
 import re
@@ -5,18 +6,24 @@ import time
 import unicodedata
 from datetime import datetime, timedelta
 from decimal import Decimal
-
 from bson import ObjectId
 
 from django.conf import settings
-from django.shortcuts import render
-from django.http import JsonResponse
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Q, Sum
+from django.shortcuts import get_object_or_404, redirect, render
+from django.http import HttpResponse, JsonResponse
+from django.urls import reverse
 from django.core.cache import cache
 from django.views.decorators.http import require_GET, require_POST
 from django.utils import timezone
+from django.db import transaction
 
 from base.models import Empresa, PerfilUsuario, IntegracaoERP
 from estoque.models import AjusteRapidoEstoque
+from .forms import ClienteAgroForm
+from .models import ClienteAgro, ItemVendaAgro, SessaoCaixa, VendaAgro
 from integracoes.texto import normalizar, expandir_tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 from integracoes.venda_erp_api import VendaERPAPIClient
@@ -631,9 +638,385 @@ def _custos_compra_produto(p):
     return {"preco_custo": preco_custo_val, "preco_custo_final": final}
 
 
+def _sanear_itens_checkout_sessao(itens):
+    out = []
+    if not isinstance(itens, list):
+        return out
+    for i in itens[:400]:
+        if not isinstance(i, dict):
+            continue
+        try:
+            qtd = float(i.get("qtd") or 0)
+            preco = float(i.get("preco") or 0)
+        except (TypeError, ValueError):
+            continue
+        if qtd <= 0:
+            continue
+        out.append(
+            {
+                "id": str(i.get("id") or "")[:80],
+                "nome": str(i.get("nome") or "")[:500],
+                "qtd": qtd,
+                "preco": preco,
+                "codigo": str(i.get("codigo") or i.get("Codigo") or "")[:120],
+            }
+        )
+    return out
+
+
+def _sanear_cliente_extra_sessao(raw):
+    if not isinstance(raw, dict):
+        return None
+    out = {}
+    for k in ("id", "documento", "telefone", "nome", "razao_social"):
+        v = raw.get(k)
+        if v is not None and str(v).strip():
+            out[k] = str(v).strip()[:300]
+    return out if out else None
+
+
+def _parse_data_iso(s):
+    if not s or not str(s).strip():
+        return None
+    try:
+        return datetime.strptime(str(s).strip()[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def _periodo_vendas_from_request(request):
+    hoje = timezone.localdate()
+    preset = (request.GET.get("preset") or "").strip().lower()
+    de_str = request.GET.get("de")
+    ate_str = request.GET.get("ate")
+    di = _parse_data_iso(de_str)
+    df = _parse_data_iso(ate_str)
+    if di and df and di > df:
+        di, df = df, di
+    if preset == "hoje":
+        di = df = hoje
+        label = "Hoje"
+    elif preset == "7d":
+        di = hoje - timedelta(days=6)
+        df = hoje
+        label = "Últimos 7 dias"
+    elif preset == "30d":
+        di = hoje - timedelta(days=29)
+        df = hoje
+        label = "Últimos 30 dias"
+    elif di and df:
+        label = f"{di.strftime('%d/%m/%Y')} — {df.strftime('%d/%m/%Y')}"
+    elif di:
+        df = hoje
+        label = f"Desde {di.strftime('%d/%m/%Y')}"
+    elif df:
+        di = df
+        label = f"Dia {df.strftime('%d/%m/%Y')}"
+    else:
+        di = hoje - timedelta(days=6)
+        df = hoje
+        label = "Últimos 7 dias"
+    return di, df, label
+
+
+def _obter_sessao_caixa_aberta(request):
+    sid = request.session.get("pdv_sessao_caixa_id")
+    if not sid:
+        return None
+    try:
+        return SessaoCaixa.objects.get(pk=int(sid), fechado_em__isnull=True)
+    except (SessaoCaixa.DoesNotExist, ValueError, TypeError):
+        request.session.pop("pdv_sessao_caixa_id", None)
+        return None
+
+
 # --- VIEWS DE PÁGINA ---
 def consulta_produtos(request):
-    return render(request, "produtos/consulta_produtos.html")
+    ctx = {}
+    if request.GET.get("reabrir") == "1":
+        draft = request.session.get("pdv_checkout")
+        if draft and draft.get("itens"):
+            ctx["pdv_reabrir_data"] = draft
+    ctx["caixa_aberto"] = _obter_sessao_caixa_aberta(request)
+    return render(request, "produtos/consulta_produtos.html", ctx)
+
+
+def pdv_checkout(request):
+    draft = request.session.get("pdv_checkout")
+    if not draft or not draft.get("itens"):
+        return redirect("consulta_produtos")
+    total = Decimal("0")
+    disp_itens = []
+    for i in draft["itens"]:
+        try:
+            q = Decimal(str(i.get("qtd") or 0))
+            p = Decimal(str(i.get("preco") or 0))
+            lin = (q * p).quantize(Decimal("0.01"))
+            total += lin
+            row = dict(i)
+            row["valor_linha"] = lin
+            disp_itens.append(row)
+        except Exception:
+            continue
+    draft_display = {**draft, "itens": disp_itens}
+    return render(
+        request,
+        "produtos/pdv_checkout.html",
+        {
+            "draft": draft,
+            "draft_display": draft_display,
+            "total_fmt": total.quantize(Decimal("0.01")),
+        },
+    )
+
+
+def vendas_hoje_redirect(request):
+    return redirect(f"{reverse('vendas_lista')}?preset=hoje")
+
+
+@login_required(login_url="/admin/login/")
+def vendas_lista(request):
+    di, df, label = _periodo_vendas_from_request(request)
+    qs = (
+        VendaAgro.objects.filter(criado_em__date__gte=di, criado_em__date__lte=df)
+        .select_related("sessao_caixa")
+        .order_by("-criado_em")
+    )
+    agg = qs.aggregate(soma=Sum("total"), n=Count("id"))
+    soma = agg["soma"] if agg["soma"] is not None else Decimal("0")
+    return render(
+        request,
+        "produtos/vendas_lista.html",
+        {
+            "data_ini": di,
+            "data_fim": df,
+            "periodo_label": label,
+            "vendas": qs,
+            "total_periodo": soma.quantize(Decimal("0.01")),
+            "quantidade_vendas": agg["n"] or 0,
+            "preset_ativo": (request.GET.get("preset") or "").strip().lower(),
+        },
+    )
+
+
+@login_required(login_url="/admin/login/")
+def vendas_exportar_csv(request):
+    di, df, _label = _periodo_vendas_from_request(request)
+    qs = (
+        VendaAgro.objects.filter(criado_em__date__gte=di, criado_em__date__lte=df)
+        .select_related("sessao_caixa")
+        .order_by("-criado_em")
+    )
+    resp = HttpResponse(content_type="text/csv; charset=utf-8")
+    resp["Content-Disposition"] = (
+        f'attachment; filename="vendas_{di.isoformat()}_{df.isoformat()}.csv"'
+    )
+    resp.write("\ufeff")
+    w = csv.writer(resp)
+    w.writerow(
+        [
+            "id",
+            "data_hora",
+            "cliente",
+            "cliente_id_erp",
+            "cpf_cnpj",
+            "forma_pagamento",
+            "total",
+            "enviado_erp",
+            "usuario",
+            "sessao_caixa_id",
+        ]
+    )
+    for v in qs:
+        w.writerow(
+            [
+                v.pk,
+                v.criado_em.strftime("%Y-%m-%d %H:%M:%S"),
+                v.cliente_nome,
+                v.cliente_id_erp,
+                v.cliente_documento,
+                v.forma_pagamento,
+                str(v.total).replace(".", ","),
+                "sim" if v.enviado_erp else "nao",
+                v.usuario_registro,
+                v.sessao_caixa_id or "",
+            ]
+        )
+    return resp
+
+
+@login_required(login_url="/admin/login/")
+def clientes_lista(request):
+    q = (request.GET.get("q") or "").strip()
+    qs = ClienteAgro.objects.all()
+    if q:
+        qs = qs.filter(
+            Q(nome__icontains=q)
+            | Q(whatsapp__icontains=q)
+            | Q(cpf__icontains=q)
+            | Q(endereco__icontains=q)
+            | Q(cep__icontains=q)
+            | Q(cidade__icontains=q)
+            | Q(bairro__icontains=q)
+            | Q(logradouro__icontains=q)
+            | Q(complemento__icontains=q)
+        )
+    qs = qs.order_by("nome")
+    return render(
+        request,
+        "produtos/clientes_lista.html",
+        {"clientes": qs, "busca": q},
+    )
+
+
+@login_required(login_url="/admin/login/")
+def cliente_novo(request):
+    if request.method == "POST":
+        form = ClienteAgroForm(request.POST)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.editado_local = True
+            obj.save()
+            messages.success(request, "Cliente cadastrado.")
+            return redirect("clientes_lista")
+    else:
+        form = ClienteAgroForm()
+    return render(request, "produtos/cliente_form.html", {"form": form, "titulo": "Novo cliente"})
+
+
+@login_required(login_url="/admin/login/")
+def cliente_editar(request, pk):
+    cli = get_object_or_404(ClienteAgro, pk=pk)
+    if request.method == "POST":
+        form = ClienteAgroForm(request.POST, instance=cli)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.editado_local = True
+            obj.save()
+            messages.success(request, "Cliente atualizado.")
+            return redirect("clientes_lista")
+    else:
+        form = ClienteAgroForm(instance=cli)
+    return render(
+        request,
+        "produtos/cliente_form.html",
+        {"form": form, "titulo": f"Editar: {cli.nome}", "cliente": cli},
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def clientes_sincronizar(request):
+    """Importa clientes de Mongo + API ERP para ClienteAgro; não grava no ERP."""
+    from .services_clientes_sync import sincronizar_clientes_fontes_para_agro
+
+    try:
+        r = sincronizar_clientes_fontes_para_agro()
+    except Exception as exc:
+        logger.exception("clientes_sincronizar")
+        messages.error(request, f"Sincronização falhou: {exc}")
+        return redirect("clientes_lista")
+    messages.success(
+        request,
+        (
+            f"Sincronizado: {r['criados']} novos, {r['atualizados']} atualizados, "
+            f"{r['ignorados_editados_local']} preservados (editados no Agro). "
+            f"Fontes: Mongo {r['linhas_mongo']} linhas, ERP {r['linhas_erp']} linhas."
+        ),
+    )
+    return redirect("clientes_lista")
+
+
+@login_required(login_url="/admin/login/")
+def caixa_painel(request):
+    aberto = _obter_sessao_caixa_aberta(request)
+    ctx = {"sessao_aberta": aberto}
+    if aberto:
+        vendas = VendaAgro.objects.filter(sessao_caixa=aberto)
+        ctx["qtd_vendas_sessao"] = vendas.count()
+        s = vendas.aggregate(soma=Sum("total"))["soma"]
+        ctx["total_vendas_sessao"] = (
+            s.quantize(Decimal("0.01")) if s is not None else Decimal("0")
+        )
+    return render(request, "produtos/caixa_painel.html", ctx)
+
+
+@login_required(login_url="/admin/login/")
+def caixa_abrir(request):
+    if _obter_sessao_caixa_aberta(request):
+        messages.warning(request, "Já existe um caixa aberto neste navegador. Feche-o antes de abrir outro.")
+        return redirect("caixa_painel")
+    if request.method == "POST":
+        raw = (request.POST.get("valor_abertura") or "0").replace(",", ".").strip()
+        try:
+            va = Decimal(raw)
+        except Exception:
+            va = Decimal("0")
+        obs = (request.POST.get("observacao_abertura") or "").strip()[:500]
+        s = SessaoCaixa.objects.create(
+            usuario=request.user,
+            valor_abertura=va.quantize(Decimal("0.01")),
+            observacao_abertura=obs,
+        )
+        request.session["pdv_sessao_caixa_id"] = s.pk
+        messages.success(request, f"Caixa #{s.pk} aberto. Valor de abertura: R$ {s.valor_abertura}")
+        return redirect("consulta_produtos")
+    return render(request, "produtos/caixa_abrir.html")
+
+
+@login_required(login_url="/admin/login/")
+def caixa_fechar(request):
+    sessao = _obter_sessao_caixa_aberta(request)
+    if not sessao:
+        messages.info(request, "Nenhum caixa aberto neste navegador.")
+        return redirect("caixa_painel")
+    vendas = VendaAgro.objects.filter(sessao_caixa=sessao)
+    qtd = vendas.count()
+    tot = vendas.aggregate(s=Sum("total"))["s"] or Decimal("0")
+    tot = tot.quantize(Decimal("0.01"))
+    if request.method == "POST":
+        raw = (request.POST.get("valor_fechamento") or "").replace(",", ".").strip()
+        try:
+            vf = Decimal(raw) if raw else None
+        except Exception:
+            vf = None
+        obs = (request.POST.get("observacao_fechamento") or "").strip()[:500]
+        sessao.fechado_em = timezone.now()
+        if vf is not None:
+            sessao.valor_fechamento = vf.quantize(Decimal("0.01"))
+        sessao.observacao_fechamento = obs
+        sessao.save()
+        request.session.pop("pdv_sessao_caixa_id", None)
+        messages.success(request, f"Caixa #{sessao.pk} fechado.")
+        return redirect("caixa_painel")
+    return render(
+        request,
+        "produtos/caixa_fechar.html",
+        {
+            "sessao": sessao,
+            "qtd_vendas": qtd,
+            "total_vendas": tot,
+        },
+    )
+
+
+@login_required(login_url="/admin/login/")
+def venda_agro_detalhe(request, pk):
+    v = get_object_or_404(
+        VendaAgro.objects.select_related("sessao_caixa").prefetch_related("itens"),
+        pk=pk,
+    )
+    erp_txt = ""
+    if v.erp_resposta is not None:
+        try:
+            erp_txt = json.dumps(v.erp_resposta, ensure_ascii=False, indent=2)
+        except Exception:
+            erp_txt = str(v.erp_resposta)
+    return render(
+        request,
+        "produtos/venda_agro_detalhe.html",
+        {"v": v, "erp_resposta_text": erp_txt},
+    )
 
 
 def historico_ajustes(request):
@@ -1158,6 +1541,98 @@ def _linha_item_pedido_erp(db, client_m, item: dict) -> dict | None:
     return linha
 
 
+def _decimal_item_pedido(val, default="0"):
+    try:
+        return Decimal(str(val))
+    except Exception:
+        return Decimal(default)
+
+
+def _erp_resposta_para_json(res):
+    if res is None:
+        return None
+    if isinstance(res, (dict, list, bool, int)):
+        return res
+    if isinstance(res, float):
+        return res
+    if isinstance(res, str):
+        return {"texto": res[:8000]}
+    if isinstance(res, bytes):
+        try:
+            return {"texto": res.decode("utf-8", errors="replace")[:8000]}
+        except Exception:
+            return {"texto": str(res)[:8000]}
+    return {"texto": str(res)[:8000]}
+
+
+def _cliente_id_e_valido_para_erp(cid) -> bool:
+    s = str(cid or "").strip()
+    if not s:
+        return False
+    sl = s.lower()
+    if sl.startswith("local:") or sl.startswith("erp-doc:"):
+        return False
+    return True
+
+
+def _persistir_venda_agro(request, data, raw_itens, erp_http_status, erp_resposta_raw, enviado_erp_com_sucesso):
+    """
+    Grava venda + itens no banco local (sempre que houve tentativa com itens válidos ao ERP).
+    """
+    user_label = ""
+    u = getattr(request, "user", None)
+    if u is not None and getattr(u, "is_authenticated", False):
+        user_label = str(u.get_username() if hasattr(u, "get_username") else u.pk)[:150]
+
+    cliente = (data.get("cliente") or "").strip() or "CONSUMIDOR NÃO IDENTIFICADO..."
+    cid = str(data.get("cliente_id") or data.get("ClienteID") or "").strip()
+    if not _cliente_id_e_valido_para_erp(cid):
+        cid = ""
+    doc = str(data.get("cliente_documento") or data.get("CpfCnpj") or "").strip()
+    forma = str(data.get("forma_pagamento") or "").strip()[:80]
+
+    itens_payload = []
+    total = Decimal("0")
+    for i in raw_itens:
+        if not isinstance(i, dict):
+            continue
+        qtd = _decimal_item_pedido(i.get("qtd"), "0")
+        vu = _decimal_item_pedido(i.get("preco"), "0")
+        vt = (qtd * vu).quantize(Decimal("0.01"))
+        total += vt
+        itens_payload.append(
+            {
+                "produto_id_externo": str(i.get("id") or "").strip()[:64],
+                "codigo": str(i.get("codigo") or i.get("Codigo") or "").strip()[:120],
+                "descricao": str(i.get("nome") or "").strip()[:500],
+                "quantidade": qtd,
+                "valor_unitario": vu,
+                "valor_total": vt,
+            }
+        )
+
+    resp_json = _erp_resposta_para_json(erp_resposta_raw)
+    st = erp_http_status if erp_http_status is not None and erp_http_status > 0 else None
+    sessao = _obter_sessao_caixa_aberta(request)
+
+    with transaction.atomic():
+        v = VendaAgro.objects.create(
+            cliente_nome=cliente[:300],
+            cliente_id_erp=cid[:32],
+            cliente_documento=re.sub(r"\D", "", doc)[:20],
+            total=total.quantize(Decimal("0.01")),
+            forma_pagamento=forma,
+            enviado_erp=bool(enviado_erp_com_sucesso),
+            erp_http_status=st,
+            erp_resposta=resp_json,
+            usuario_registro=user_label,
+            sessao_caixa=sessao,
+        )
+        for it in itens_payload:
+            ItemVendaAgro.objects.create(venda=v, **it)
+    return v
+
+
 @require_POST
 def api_enviar_pedido_erp(request):
     try:
@@ -1202,15 +1677,22 @@ def api_enviar_pedido_erp(request):
                 status=400,
             )
 
+        def _lbl(integ_obj, attr, default):
+            if not integ_obj:
+                return default
+            v = getattr(integ_obj, attr, None) or ""
+            v = str(v).strip()
+            return v or default
+
         payload = {
             "statusSistema": "Orçamento",
             "cliente": (data.get("cliente") or "").strip()
             or "CONSUMIDOR NÃO IDENTIFICADO...",
             "data": timezone.now().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
             "origemVenda": "Venda Direta",
-            "empresa": "Agro Mais Centro",
-            "deposito": "Deposito Centro",
-            "vendedor": "Gm Agro Mais",
+            "empresa": _lbl(integ, "pedido_empresa_label", "Agro Mais Centro"),
+            "deposito": _lbl(integ, "pedido_deposito_label", "Deposito Centro"),
+            "vendedor": _lbl(integ, "pedido_vendedor_label", "Gm Agro Mais"),
             "items": linhas,
         }
         if dep_id:
@@ -1219,7 +1701,7 @@ def api_enviar_pedido_erp(request):
             payload["empresaID"] = emp_id
 
         cid = str(data.get("cliente_id") or data.get("ClienteID") or "").strip()
-        if cid:
+        if _cliente_id_e_valido_para_erp(cid):
             payload["clienteID"] = cid
         doc_raw = str(data.get("cliente_documento") or data.get("CpfCnpj") or "").strip()
         doc_digits = re.sub(r"\D", "", doc_raw)
@@ -1231,19 +1713,70 @@ def api_enviar_pedido_erp(request):
         ok, status, res = api_client.salvar_operacao_pdv(payload)
         msg_para_checar = _desembrulhar_texto_json_recursivo(res)
         msg_txt = str(msg_para_checar).strip()
+        sucesso_erp = bool(ok and not _mensagem_pedido_erp_indica_falha(msg_txt))
+        venda_local = _persistir_venda_agro(
+            request, data, raw_itens, status, res, sucesso_erp
+        )
+        vid = venda_local.pk if venda_local else None
+
         if ok and _mensagem_pedido_erp_indica_falha(msg_txt):
             return JsonResponse(
-                {"ok": False, "erro": msg_txt or _json_legivel(res), "http_status": status},
+                {
+                    "ok": False,
+                    "erro": msg_txt or _json_legivel(res),
+                    "http_status": status,
+                    "venda_id": vid,
+                },
                 status=502,
             )
         if ok:
-            return JsonResponse({"ok": True, "mensagem": _json_legivel(res)})
+            return JsonResponse(
+                {"ok": True, "mensagem": _json_legivel(res), "venda_id": vid}
+            )
         return JsonResponse(
-            {"ok": False, "erro": _json_legivel(res), "http_status": status},
+            {
+                "ok": False,
+                "erro": _json_legivel(res),
+                "http_status": status,
+                "venda_id": vid,
+            },
             status=502 if status and status != 0 else 500,
         )
     except Exception as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+
+
+@require_POST
+def api_pdv_salvar_checkout_draft(request):
+    """Grava carrinho na sessão e permite abrir /pdv/checkout/."""
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    itens = _sanear_itens_checkout_sessao(data.get("itens"))
+    if not itens:
+        return JsonResponse(
+            {"ok": False, "erro": "Carrinho vazio ou itens inválidos"},
+            status=400,
+        )
+    cli = str(data.get("cliente") or "").strip()[:400]
+    if not cli:
+        cli = "CONSUMIDOR NÃO IDENTIFICADO..."
+    request.session["pdv_checkout"] = {
+        "itens": itens,
+        "cliente": cli,
+        "cliente_extra": _sanear_cliente_extra_sessao(data.get("cliente_extra")),
+        "forma_pagamento": str(data.get("forma_pagamento") or "").strip()[:80],
+    }
+    request.session.modified = True
+    return JsonResponse({"ok": True})
+
+
+@require_POST
+def api_pdv_limpar_checkout_draft(request):
+    request.session.pop("pdv_checkout", None)
+    request.session.modified = True
+    return JsonResponse({"ok": True})
 
 
 def _media_diaria_vendas_por_produto(db, dias=30):
@@ -1580,11 +2113,94 @@ def _projecao_pessoa():
         "CPF": 1,
         "Cnpj": 1,
         "Cpf": 1,
+        "cpfCnpj": 1,
+        "CNPJ": 1,
+        "Documento": 1,
+        "documento": 1,
+        "DocumentoIdentificacao": 1,
+        "documentoIdentificacao": 1,
+        "InscricaoFederal": 1,
+        "inscricaoFederal": 1,
+        "CpfCnpjFormatado": 1,
+        "cpfCnpjFormatado": 1,
+        "CpfCnpjSemFormatacao": 1,
+        "cpfCnpjSemFormatacao": 1,
+        "NumeroDocumento": 1,
+        "numeroDocumento": 1,
+        "Identificacao": 1,
+        "identificacao": 1,
+        "PessoaFisica": 1,
+        "pessoaFisica": 1,
+        "PessoaJuridica": 1,
+        "pessoaJuridica": 1,
+        "DadosCadastrais": 1,
+        "dadosCadastrais": 1,
+        "DadosPrincipais": 1,
+        "dadosPrincipais": 1,
         "Telefone": 1,
         "Celular": 1,
         "Fone": 1,
         "CadastroInativo": 1,
         "Inativo": 1,
+        # Endereço (plano ou aninhado em DtoPessoa)
+        "Logradouro": 1,
+        "logradouro": 1,
+        "Endereco": 1,
+        "endereco": 1,
+        "Rua": 1,
+        "rua": 1,
+        "NomeLogradouro": 1,
+        "Numero": 1,
+        "numero": 1,
+        "NumeroEndereco": 1,
+        "Complemento": 1,
+        "complemento": 1,
+        "Bairro": 1,
+        "bairro": 1,
+        "NomeBairro": 1,
+        "Cidade": 1,
+        "cidade": 1,
+        "Municipio": 1,
+        "municipio": 1,
+        "NomeCidade": 1,
+        "NomeMunicipio": 1,
+        "UF": 1,
+        "uf": 1,
+        "Estado": 1,
+        "estado": 1,
+        "SiglaUF": 1,
+        "CEP": 1,
+        "cep": 1,
+        "Cep": 1,
+        "EnderecoPrincipal": 1,
+        "enderecoPrincipal": 1,
+        "DadosEndereco": 1,
+        "dadosEndereco": 1,
+        "EnderecoCompleto": 1,
+        "enderecoCompleto": 1,
+        "EnderecoFormatado": 1,
+        "enderecoFormatado": 1,
+        "PessoaEndereco": 1,
+        "pessoaEndereco": 1,
+        "EnderecoCobranca": 1,
+        "enderecoCobranca": 1,
+        "CodigoPostal": 1,
+        "codigoPostal": 1,
+        "ComplementoEndereco": 1,
+        "complementoEndereco": 1,
+        "NumeroLogradouro": 1,
+        "numeroLogradouro": 1,
+        "numeroEndereco": 1,
+        "Nro": 1,
+        "nro": 1,
+        "NroEndereco": 1,
+        "nroEndereco": 1,
+        "EnderecoNumero": 1,
+        "enderecoNumero": 1,
+        "Num": 1,
+        "num": 1,
+        "Predio": 1,
+        "predio": 1,
     }
 
 
@@ -1635,12 +2251,398 @@ def _telefone_pessoa(i):
     return ""
 
 
-def _documento_pessoa(i):
-    for chave in ("CpfCnpj", "CPF", "Cpf", "CNPJ", "Cnpj", "cpfCnpj"):
-        v = i.get(chave)
-        if v is not None and str(v).strip():
-            return str(v).strip()
+def _valor_texto_campo(v):
+    """Mongo/BSON: número do imóvel e IDs costumam vir int/Decimal — evita '12.0' e ignora bool."""
+    if v is None:
+        return ""
+    if isinstance(v, bool):
+        return ""
+    if isinstance(v, Decimal):
+        try:
+            if v == v.to_integral_value():
+                return str(int(v))
+        except Exception:
+            pass
+        s = format(v, "f").rstrip("0").rstrip(".")
+        return s if s else ""
+    if isinstance(v, float):
+        if v.is_integer():
+            return str(int(v))
+        s = str(v).strip()
+        return s
+    if isinstance(v, int):
+        return str(v)
+    return str(v).strip()
+
+
+_CHAVES_DOCUMENTO_PESSOA = (
+    "CpfCnpj",
+    "CPF",
+    "Cpf",
+    "CNPJ",
+    "Cnpj",
+    "cpfCnpj",
+    "CNPJ_CPF",
+    "cnpj_CPF",
+    "cnpJ_CPF",
+    "CnpJ_CPF",
+    "Documento",
+    "documento",
+    "DocumentoIdentificacao",
+    "documentoIdentificacao",
+    "InscricaoFederal",
+    "inscricaoFederal",
+    "Inscricao",
+    "inscricao",
+    "CpfCnpjFormatado",
+    "cpfCnpjFormatado",
+    "CpfCnpjSemFormatacao",
+    "cpfCnpjSemFormatacao",
+    "NumeroDocumento",
+    "numeroDocumento",
+    "CNPJCPF",
+    "Identificacao",
+    "identificacao",
+)
+
+
+_DOC_NEST_KEYS_DOCUMENTO = (
+    "PessoaFisica",
+    "pessoaFisica",
+    "PessoaJuridica",
+    "pessoaJuridica",
+    "DadosCadastrais",
+    "dadosCadastrais",
+    "DadosPrincipais",
+    "dadosPrincipais",
+    "Cliente",
+    "cliente",
+    "Fisica",
+    "fisica",
+    "Juridica",
+    "juridica",
+)
+
+
+def _documento_em_dict_plano(i):
+    if not isinstance(i, dict):
+        return ""
+    for chave in _CHAVES_DOCUMENTO_PESSOA:
+        s = _valor_texto_campo(i.get(chave))
+        if s:
+            return s
     return ""
+
+
+def _documento_pessoa(i):
+    """CPF/CNPJ em raiz ou em subdocumentos (DtoPessoa / ERP)."""
+    if not isinstance(i, dict):
+        return ""
+    d = _documento_em_dict_plano(i)
+    if d:
+        return d
+    for nk in _DOC_NEST_KEYS_DOCUMENTO:
+        sub = i.get(nk)
+        if isinstance(sub, dict):
+            d = _documento_em_dict_plano(sub)
+            if d:
+                return d
+            for nk2 in _DOC_NEST_KEYS_DOCUMENTO:
+                sub2 = sub.get(nk2)
+                if isinstance(sub2, dict):
+                    d = _documento_em_dict_plano(sub2)
+                    if d:
+                        return d
+    return ""
+
+
+def _primeiro_campo_texto(d, *chaves):
+    if not isinstance(d, dict):
+        return ""
+    for chave in chaves:
+        s = _valor_texto_campo(d.get(chave))
+        if s:
+            return s
+    return ""
+
+
+def _separar_numero_do_logradouro(logr: str, numero_ja: str):
+    """
+    Muitas bases gravam 'Rua X, 123' só em Logradouro. Extrai o sufixo numérico se Numero veio vazio.
+    """
+    if (numero_ja or "").strip() or not (logr or "").strip():
+        return (logr or "").strip(), (numero_ja or "").strip()
+    s = str(logr).strip()
+    m = re.search(
+        r"(?i)[,\s]+(?:n[ºo°\.]\s*|n[úu]mero\s*|num\.?\s*)?(\d+[A-Za-z]?(?:[/\-]\d+)?)\s*$",
+        s,
+    )
+    if not m:
+        m = re.search(r",\s*(\d{1,6}[A-Za-z]?)\s*$", s)
+    if not m:
+        return s, ""
+    num = m.group(1)
+    base = s[: m.start()].strip().rstrip(",")
+    if base and num:
+        return base, num
+    return s, ""
+
+
+def _endereco_linha_de_dict_plano(i):
+    """Monta uma linha de endereço a partir de campos comuns (Mongo DtoPessoa / ERP)."""
+    end_comp = _primeiro_campo_texto(
+        i,
+        "EnderecoCompleto",
+        "enderecoCompleto",
+        "EnderecoFormatado",
+        "enderecoFormatado",
+        "EnderecoResumido",
+        "enderecoResumido",
+    )
+    if end_comp:
+        return end_comp[:500]
+    logr = _primeiro_campo_texto(
+        i,
+        "Logradouro",
+        "logradouro",
+        "NomeLogradouro",
+        "Rua",
+        "rua",
+        "EnderecoLinha",
+        "enderecoLinha",
+    )
+    # "Endereco" às vezes é string única (logradouro completo)
+    if not logr:
+        end_plain = i.get("Endereco") or i.get("endereco")
+        if isinstance(end_plain, str) and end_plain.strip():
+            logr = end_plain.strip()
+    num = _primeiro_campo_texto(
+        i,
+        "Numero",
+        "numero",
+        "NumeroEndereco",
+        "numeroEndereco",
+        "Nr",
+        "nr",
+        "Nro",
+        "nro",
+        "NroEndereco",
+        "nroEndereco",
+        "EnderecoNumero",
+        "enderecoNumero",
+        "NumeroLogradouro",
+        "numeroLogradouro",
+        "Num",
+        "num",
+        "Predio",
+        "predio",
+    )
+    logr, num = _separar_numero_do_logradouro(logr, num)
+    comp = _primeiro_campo_texto(i, "Complemento", "complemento")
+    bai = _primeiro_campo_texto(i, "Bairro", "bairro", "NomeBairro")
+    cid = _primeiro_campo_texto(
+        i,
+        "Cidade",
+        "cidade",
+        "Municipio",
+        "municipio",
+        "NomeCidade",
+        "NomeMunicipio",
+    )
+    uf = _primeiro_campo_texto(i, "UF", "uf", "Estado", "estado", "SiglaUF")
+    cep_raw = _primeiro_campo_texto(i, "CEP", "cep", "Cep")
+    parts = []
+    linha1 = ", ".join(x for x in (logr, num) if x).strip(", ")
+    if linha1:
+        parts.append(linha1)
+    if comp:
+        parts.append(comp)
+    if bai:
+        parts.append(bai)
+    if cid or uf:
+        parts.append("/".join(x for x in (cid, uf) if x))
+    if cep_raw:
+        dcep = re.sub(r"\D", "", cep_raw)
+        if len(dcep) == 8:
+            parts.append(f"CEP {dcep[:5]}-{dcep[5:]}")
+        else:
+            parts.append(f"CEP {cep_raw}")
+    return " · ".join(parts) if parts else ""
+
+
+_ENDERECO_NEST_KEYS = (
+    "Endereco",
+    "endereco",
+    "EnderecoPrincipal",
+    "enderecoPrincipal",
+    "DadosEndereco",
+    "dadosEndereco",
+    "PessoaEndereco",
+    "pessoaEndereco",
+    "EnderecoCobranca",
+    "enderecoCobranca",
+)
+
+
+def _endereco_partes_vazias():
+    return {k: "" for k in ("cep", "uf", "cidade", "bairro", "logradouro", "numero", "complemento")}
+
+
+def _endereco_partes_extrair_flat(i):
+    if not isinstance(i, dict):
+        return _endereco_partes_vazias()
+    cep_raw = _primeiro_campo_texto(
+        i, "CEP", "cep", "Cep", "CodigoPostal", "codigoPostal", "CodigoCEP", "codigoCEP"
+    )
+    dcep = re.sub(r"\D", "", cep_raw)
+    cep_fmt = f"{dcep[:5]}-{dcep[5:]}" if len(dcep) == 8 else (cep_raw or "")[:12]
+    logr = _primeiro_campo_texto(
+        i,
+        "Logradouro",
+        "logradouro",
+        "NomeLogradouro",
+        "Rua",
+        "rua",
+        "EnderecoLinha",
+        "enderecoLinha",
+    )
+    if not logr:
+        end_plain = i.get("Endereco") or i.get("endereco")
+        if isinstance(end_plain, str) and end_plain.strip():
+            logr = end_plain.strip()
+    uf_v = _primeiro_campo_texto(
+        i, "UF", "uf", "Estado", "estado", "SiglaUF", "SiglaEstado", "Uf"
+    )
+    num_v = (
+        _primeiro_campo_texto(
+            i,
+            "Numero",
+            "numero",
+            "NumeroEndereco",
+            "numeroEndereco",
+            "Nr",
+            "nr",
+            "Nro",
+            "nro",
+            "NroEndereco",
+            "nroEndereco",
+            "EnderecoNumero",
+            "enderecoNumero",
+            "NumeroLogradouro",
+            "numeroLogradouro",
+            "Num",
+            "num",
+            "Predio",
+            "predio",
+        )
+        or ""
+    )
+    logr_v, num_v = _separar_numero_do_logradouro((logr or "").strip(), num_v)
+    return {
+        "cep": cep_fmt[:12],
+        "uf": (uf_v or "")[:2].upper(),
+        "cidade": (
+            _primeiro_campo_texto(
+                i,
+                "Cidade",
+                "cidade",
+                "Municipio",
+                "municipio",
+                "NomeCidade",
+                "NomeMunicipio",
+            )
+            or ""
+        )[:120],
+        "bairro": (_primeiro_campo_texto(i, "Bairro", "bairro", "NomeBairro") or "")[:120],
+        "logradouro": (logr_v or "")[:300],
+        "numero": (num_v or "")[:30],
+        "complemento": (
+            _primeiro_campo_texto(
+                i,
+                "Complemento",
+                "complemento",
+                "ComplementoEndereco",
+                "complementoEndereco",
+            )
+            or ""
+        )[:200],
+    }
+
+
+def _endereco_partes_extrair(i):
+    merged = _endereco_partes_vazias()
+    if not isinstance(i, dict):
+        return merged
+    for nk in _ENDERECO_NEST_KEYS:
+        sub = i.get(nk)
+        if isinstance(sub, dict):
+            fl = _endereco_partes_extrair_flat(sub)
+            for k in merged:
+                if not merged[k] and fl[k]:
+                    merged[k] = fl[k]
+    root = _endereco_partes_extrair_flat(i)
+    for k in merged:
+        if not merged[k] and root[k]:
+            merged[k] = root[k]
+    lr, nr = _separar_numero_do_logradouro(merged.get("logradouro") or "", merged.get("numero") or "")
+    merged["logradouro"] = (lr or "")[:300]
+    merged["numero"] = (nr or "")[:30]
+    return merged
+
+
+def _endereco_completo_texto_em_dict(i):
+    if not isinstance(i, dict):
+        return ""
+    for nk in _ENDERECO_NEST_KEYS:
+        sub = i.get(nk)
+        if isinstance(sub, dict):
+            t = _primeiro_campo_texto(
+                sub,
+                "EnderecoCompleto",
+                "enderecoCompleto",
+                "EnderecoFormatado",
+                "enderecoFormatado",
+                "EnderecoResumido",
+                "enderecoResumido",
+            )
+            if t:
+                return t
+    return _primeiro_campo_texto(
+        i,
+        "EnderecoCompleto",
+        "enderecoCompleto",
+        "EnderecoFormatado",
+        "enderecoFormatado",
+        "EnderecoResumido",
+        "enderecoResumido",
+    )
+
+
+def _endereco_info_para_row(i):
+    """Linha resumo + partes (CEP, UF, cidade…) para sync / ClienteAgro."""
+    if not isinstance(i, dict):
+        return "", _endereco_partes_vazias()
+    partes = _endereco_partes_extrair(i)
+    end_comp = _endereco_completo_texto_em_dict(i)
+    if end_comp:
+        return end_comp.strip()[:500], partes
+    if any((partes[k] or "").strip() for k in partes):
+        from .models import compor_endereco_resumo_cliente
+
+        return (
+            compor_endereco_resumo_cliente(
+                cep=partes["cep"],
+                uf=partes["uf"],
+                cidade=partes["cidade"],
+                bairro=partes["bairro"],
+                logradouro=partes["logradouro"],
+                numero=partes["numero"],
+                complemento=partes["complemento"],
+            )[:500],
+            partes,
+        )
+    line = _endereco_linha_de_dict_plano(i)
+    return (line or "")[:500], partes
 
 
 def _montar_linhas_cliente(cursor):
@@ -1650,105 +2652,233 @@ def _montar_linhas_cliente(cursor):
         if not nome:
             continue
         doc = _documento_pessoa(i)
-        out.append(
-            {
-                "id": str(i.get("Id") or i.get("_id")),
-                "nome": nome,
-                "documento": doc or "—",
-                "telefone": _telefone_pessoa(i),
-            }
-        )
+        end_linha, partes = _endereco_info_para_row(i)
+        row = {
+            "id": str(i.get("Id") or i.get("_id")),
+            "nome": nome,
+            "documento": doc or "—",
+            "telefone": _telefone_pessoa(i),
+            "endereco": end_linha,
+        }
+        row.update(partes)
+        out.append(row)
     return out
+
+
+def _venda_erp_api_client_from_db():
+    integ = (
+        IntegracaoERP.objects.filter(ativo=True, tipo_erp="venda_erp")
+        .order_by("-pk")
+        .first()
+    )
+    return VendaERPAPIClient(
+        base_url=(integ.url_base.strip() if integ and integ.url_base else None),
+        token=(integ.token.strip() if integ and integ.token else None),
+    )
+
+
+def _unwrap_pessoas_erp_response(raw):
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        return [x for x in raw if isinstance(x, dict)]
+    if isinstance(raw, dict):
+        if raw.get("_http_status") is not None or raw.get("_erro"):
+            return []
+        for key in (
+            "Data",
+            "data",
+            "Pessoas",
+            "pessoas",
+            "Items",
+            "items",
+            "Result",
+            "result",
+            "Lista",
+            "lista",
+            "Records",
+            "records",
+            "Rows",
+            "rows",
+        ):
+            d = raw.get(key)
+            if isinstance(d, list):
+                return [x for x in d if isinstance(x, dict)]
+        if any(raw.get(k) is not None for k in ("Id", "id", "NomeFantasia", "nomeFantasia")):
+            return [raw]
+        for v in raw.values():
+            if isinstance(v, list) and v and isinstance(v[0], dict):
+                return v
+    return []
+
+
+def _linha_pessoa_erp_pdv(p):
+    if not isinstance(p, dict):
+        return None
+    nome = (
+        p.get("nomeFantasia")
+        or p.get("NomeFantasia")
+        or p.get("Nome")
+        or p.get("nome")
+        or p.get("razaoSocial")
+        or p.get("RazaoSocial")
+        or ""
+    )
+    nome = str(nome).strip()
+    if len(nome) < 2:
+        return None
+    doc = (_documento_pessoa(p) or "").strip()
+    tel = (
+        p.get("celular")
+        or p.get("Celular")
+        or p.get("telefone")
+        or p.get("Telefone")
+        or ""
+    )
+    tel = str(tel).strip()
+    pid = str(
+        p.get("id")
+        or p.get("Id")
+        or p.get("ID")
+        or p.get("PessoaID")
+        or p.get("pessoaID")
+        or p.get("PessoaId")
+        or p.get("ClienteID")
+        or p.get("clienteID")
+        or p.get("Codigo")
+        or p.get("codigo")
+        or ""
+    ).strip()
+    if not pid:
+        doc_digits = re.sub(r"\D", "", doc)
+        if len(doc_digits) >= 11:
+            pid = f"erp-doc:{doc_digits}"
+        else:
+            return None
+    end_linha, partes = _endereco_info_para_row(p)
+    row = {
+        "id": pid,
+        "nome": nome[:240],
+        "documento": doc or "—",
+        "telefone": tel,
+        "endereco": end_linha,
+    }
+    row.update(partes)
+    return row
+
+
+def _linhas_pessoas_erp_list(lst):
+    out = []
+    for p in lst:
+        row = _linha_pessoa_erp_pdv(p)
+        if row:
+            out.append(row)
+    return out
+
+
+def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
+    """JSON do cliente no PDV: id compatível com checkout (ERP não recebe ObjectId do Mongo)."""
+    eid = (c.externo_id or "").strip()
+    orig = (c.origem_import or "").strip()
+    if orig == "mongo":
+        pid = f"local:{c.pk}"
+    elif eid:
+        pid = eid
+    else:
+        pid = f"local:{c.pk}"
+    return {
+        "id": pid,
+        "nome": c.nome,
+        "documento": (c.cpf or "").strip() or "—",
+        "telefone": (c.whatsapp or "").strip(),
+    }
+
+
+def _clientes_locais_agro_pdv(termo=""):
+    t = (termo or "").strip()
+    qs = ClienteAgro.objects.filter(ativo=True)
+    if t:
+        qs = qs.filter(
+            Q(nome__icontains=t) | Q(whatsapp__icontains=t) | Q(cpf__icontains=t)
+        )
+    qs = qs.order_by("nome")[:80]
+    return [_linha_clienteagro_pdv(c) for c in qs]
+
+
+def _dedupe_clientes_pdv_por_nome_doc(rows):
+    seen = set()
+    out = []
+    for r in rows:
+        k = (str(r.get("nome") or "").lower()[:120], str(r.get("documento") or ""))
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(r)
+    return out
+
+
+def _clientes_lista_via_erp_api(max_total=900):
+    api = _venda_erp_api_client_from_db()
+    if not (getattr(api, "token", None) or "").strip():
+        return []
+    all_rows = []
+    skip = 0
+    page = 300
+    while len(all_rows) < max_total:
+        ok, raw = api.pessoas_get_all(page_size=page, skip=skip)
+        if not ok:
+            logger.warning(
+                "pessoas_get_all falhou (skip=%s). Resposta: %s",
+                skip,
+                str(raw)[:400],
+            )
+            break
+        unwrapped = _unwrap_pessoas_erp_response(raw)
+        chunk = _linhas_pessoas_erp_list(unwrapped)
+        if not chunk and skip == 0 and raw is not None:
+            logger.warning(
+                "ERP Pessoas/GetAll retornou OK mas nenhuma linha mapeada. "
+                "Tipo=%s amostra=%s",
+                type(raw).__name__,
+                str(raw)[:500],
+            )
+        if not chunk:
+            break
+        all_rows.extend(chunk)
+        if len(chunk) < page:
+            break
+        skip += page
+    return all_rows
 
 
 @require_GET
 def api_list_customers(request):
-    client_m, db = obter_conexao_mongo()
-    if db is None:
-        payload = {"clientes": []}
-        if settings.DEBUG:
-            payload["erro"] = "mongo_indisponivel"
-        return JsonResponse(payload)
-
-    try:
-        proj = _projecao_pessoa()
-        res = []
-        for coll in _colecoes_pessoa_disponiveis(db, client_m):
-            try:
-                clis = list(db[coll].find({}, proj).limit(2500))
-            except Exception as exc:
-                logger.warning("api_list_customers: ignorando coleção %s: %s", coll, exc)
-                continue
-            res = _montar_linhas_cliente(clis)
-            if res:
-                break
-        res.sort(key=lambda x: x["nome"])
-        return JsonResponse({"clientes": res})
-    except Exception as e:
-        logger.exception("api_list_customers")
-        payload = {"clientes": []}
-        if settings.DEBUG:
-            payload["erro"] = str(e)
-        return JsonResponse(payload)
+    """Lista só ClienteAgro (sincronize em /clientes/ antes). Sem Mongo/API em tempo real."""
+    qs = ClienteAgro.objects.filter(ativo=True).order_by("nome")[:8000]
+    merged = [_linha_clienteagro_pdv(c) for c in qs]
+    payload = {"clientes": merged}
+    if settings.DEBUG:
+        payload["contagem_fontes"] = {
+            "cliente_agro": len(merged),
+            "total_na_lista": len(merged),
+        }
+    return JsonResponse(payload)
 
 
 @require_GET
 def api_buscar_clientes(request):
-    client_m, db = obter_conexao_mongo()
+    """Busca só em ClienteAgro (ativos)."""
     termo = (request.GET.get("q") or "").strip()
-    if db is None:
-        payload = {"clientes": []}
-        if settings.DEBUG:
-            payload["erro"] = "mongo_indisponivel"
-        return JsonResponse(payload)
     if not termo:
         return JsonResponse({"clientes": []})
 
-    try:
-        trecho = re.escape(termo)
-        regex = {"$regex": trecho, "$options": "i"}
-        texto_or = [
-            {"Nome": regex},
-            {"RazaoSocial": regex},
-            {"NomeFantasia": regex},
-            {"Fantasia": regex},
-            {"Apelido": regex},
-            {"nome": regex},
-            {"NomeCompleto": regex},
-            {"BuscaTexto": regex},
-            {"buscaTexto": regex},
-            {"CpfCnpj": regex},
-            {"CPF": regex},
-            {"Cnpj": regex},
-            {"Cpf": regex},
-            {"Telefone": regex},
-            {"Celular": regex},
-        ]
-        só_digitos = re.sub(r"\D", "", termo)
-        if len(só_digitos) >= 4:
-            d = re.escape(só_digitos)
-            texto_or.append({"CpfCnpj": {"$regex": d}})
-            texto_or.append({"CPF": {"$regex": d}})
-            texto_or.append({"Cnpj": {"$regex": d}})
-
-        proj = _projecao_pessoa()
-
-        for coll in _colecoes_pessoa_disponiveis(db, client_m):
-            try:
-                clis = list(db[coll].find({"$or": texto_or}, proj).limit(40))
-            except Exception as exc:
-                logger.warning("api_buscar_clientes: ignorando coleção %s: %s", coll, exc)
-                continue
-            res = _montar_linhas_cliente(clis)
-            if res:
-                return JsonResponse({"clientes": res})
-        return JsonResponse({"clientes": []})
-    except Exception as e:
-        logger.exception("api_buscar_clientes")
-        payload = {"clientes": []}
-        if settings.DEBUG:
-            payload["erro"] = str(e)
-        return JsonResponse(payload)
+    merged = _clientes_locais_agro_pdv(termo)[:45]
+    payload = {"clientes": merged}
+    if settings.DEBUG:
+        payload["contagem_fontes"] = {
+            "cliente_agro": len(merged),
+        }
+    return JsonResponse(payload)
 
 
 @require_GET
