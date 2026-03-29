@@ -27,6 +27,7 @@ from .models import ClienteAgro, ItemVendaAgro, SessaoCaixa, VendaAgro
 from integracoes.texto import normalizar, expandir_tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 from integracoes.venda_erp_api import VendaERPAPIClient
+from .mongo_vendas_util import _filtro_venda_ativa_mongo
 
 
 logger = logging.getLogger(__name__)
@@ -228,13 +229,6 @@ def _invalidar_caches_apos_ajuste_pin():
     cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
     cache.delete(_CACHE_MEDIAS_VENDA_ENTRY)
     _invalidar_cache_metricas_pdv()
-
-
-def _filtro_venda_ativa_mongo():
-    return {
-        "Cancelada": {"$ne": True},
-        "Status": {"$nin": ["Cancelado", "Cancelada", "Orcamento"]},
-    }
 
 
 def _metricas_vendas_agregadas_por_produto(db, dias_media: int):
@@ -1241,6 +1235,50 @@ def motor_de_busca_agro(termo_original, db, client, limit=20):
     return candidatos[:limit]
 
 
+def _parse_etiqueta_balanca_ean13_br(q: str):
+    """
+    Padrão comum de balança: 2 C C C C 0 T T T T T T DV (EAN-13).
+    C = código interno (4 dígitos), T = valor total em centavos (6 dígitos, 2 decimais).
+    """
+    d = re.sub(r"\D", "", str(q or ""))
+    if len(d) != 13 or d[0] != "2":
+        return None
+    cod4 = d[1:5]
+    # sep = d[5] — costuma ser 0
+    try:
+        valor_cent = int(d[6:12])
+    except ValueError:
+        return None
+    preco = (Decimal(valor_cent) / Decimal(100)).quantize(Decimal("0.01"))
+    return cod4, preco
+
+
+def _buscar_produto_por_codigo_interno_balanca(db, client, cod4: str):
+    """Resolve produto pelos 4 dígitos do código na etiqueta."""
+    col = db[client.col_p]
+    base = {"CadastroInativo": {"$ne": True}}
+    variants = set()
+    variants.add(cod4)
+    variants.add(cod4.lstrip("0") or "0")
+    for z in (5, 6, 7):
+        variants.add(cod4.zfill(z))
+    ors = []
+    for v in variants:
+        ors.append({"Codigo": v})
+        ors.append({"CodigoNFe": v})
+        ors.append({"CodigoBarras": v})
+        ors.append({"EAN_NFe": v})
+        if v.isdigit():
+            try:
+                ors.append({"Codigo": int(v)})
+            except Exception:
+                pass
+    try:
+        return col.find_one({**base, "$or": ors})
+    except Exception:
+        return None
+
+
 # --- APIs DE BUSCA ---
 @require_GET
 def api_buscar_produtos(request):
@@ -1250,7 +1288,19 @@ def api_buscar_produtos(request):
         return JsonResponse({"produtos": []})
 
     try:
-        prods = motor_de_busca_agro(q, db, client, limit=80)
+        preco_por_id = {}
+        bal = _parse_etiqueta_balanca_ean13_br(q)
+        if bal:
+            cod4, preco_etiqueta = bal
+            p_bal = _buscar_produto_por_codigo_interno_balanca(db, client, cod4)
+            if p_bal:
+                pid_b = str(p_bal.get("Id") or p_bal.get("_id"))
+                preco_por_id[pid_b] = preco_etiqueta
+                prods = [p_bal]
+            else:
+                prods = motor_de_busca_agro(q, db, client, limit=80)
+        else:
+            prods = motor_de_busca_agro(q, db, client, limit=80)
         p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
 
         medias_map = {}
@@ -1298,6 +1348,7 @@ def api_buscar_produtos(request):
             codigo_nfe = p.get("CodigoNFe") or codigo or ""
             codigo_barras = _extrair_codigo_barras(p)
             media_d = float(medias_map.get(pid, 0.0))
+            pv = float(preco_por_id[pid]) if pid in preco_por_id else float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
 
             res.append({
                 "id": pid,
@@ -1316,7 +1367,7 @@ def api_buscar_produtos(request):
                 "codigo": codigo,
                 "codigo_nfe": codigo_nfe,
                 "codigo_barras": codigo_barras,
-                "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
+                "preco_venda": pv,
                 "imagem": _formatar_url_imagem(_extrair_imagem_produto(p, {}, pid)),
                 "saldo_centro": round(saldo_centro, 2),
                 "saldo_vila": round(saldo_vila, 2),
@@ -1325,6 +1376,7 @@ def api_buscar_produtos(request):
                 "saldo_erp_centro": round(saldo_centro_erp, 2),  # compatibilidade com mobile atual
                 "saldo_erp_vila": round(saldo_vila_erp, 2),
                 "media_venda_diaria_30d": media_d,
+                "preco_etiqueta_balanca": bool(pid in preco_por_id),
             })
 
         res.sort(
@@ -1334,7 +1386,8 @@ def api_buscar_produtos(request):
             )
         )
 
-        return JsonResponse({"produtos": res})
+        exact = bool(preco_por_id) and len(res) == 1
+        return JsonResponse({"produtos": res, "exact_barcode_match": exact})
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
 
@@ -1838,7 +1891,9 @@ def _obter_mapa_medias_venda_cache(db):
     """
     Médias de venda (30d) recalculadas no máximo 1x por dia civil.
     A troca de dia usa TIME_ZONE do Django (ex.: America/Sao_Paulo): no primeiro
-    request após meia-noite local o mapa é refeito; não há job fixo às 00:00.
+    request após meia-noite local o mapa é refeito.
+    Opcional: agendar `python manage.py pdv_refresh_medias_venda` no cron às 00:00
+    para pré-aquecer o cache antes do primeiro usuário.
     """
     hoje = timezone.localdate().isoformat()
     entry = cache.get(_CACHE_MEDIAS_VENDA_ENTRY)
