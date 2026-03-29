@@ -1460,7 +1460,7 @@ function incrementarFrequencia(id) {
     localStorage.setItem('freqProdutos', JSON.stringify(frequenciaUso));
 }
 
-function addCarrinho(id, nome, preco, qtd = 1) {
+function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
     const agora = Date.now();
     // Trava de segurança absoluta (Hardware Lock) de 500ms para evitar "Ghost Keystrokes" de leitores físicos
     if (id === ultimoProdutoAdicionadoId && (agora - tempoUltimaAdicao) < 500) {
@@ -1486,7 +1486,9 @@ function addCarrinho(id, nome, preco, qtd = 1) {
     esconderStatusBusca();
     focarBuscaProduto();
 
-    validarItemCarrinhoSilencioso(id, preco); // Trava de Segurança
+    if (!opcoes.precoEtiquetaBalanca) {
+        validarItemCarrinhoSilencioso(id, preco);
+    }
 }
 
 function validarItemCarrinhoSilencioso(id, precoLocal) {
@@ -1992,10 +1994,23 @@ function filtrarBuscaLocal(termo, modo) {
     return filtrarProdutosBuscaInteligente(baseProdutos, termo, modo);
 }
 
+function mediaParaOrdenacaoPdv(p) {
+    const id = String(p.id);
+    const loc = (typeof baseProdutos !== 'undefined' && baseProdutos.length)
+        ? baseProdutos.find((x) => String(x.id) === id)
+        : null;
+    if (loc && loc.media_venda_diaria_30d != null && loc.media_venda_diaria_30d !== '') {
+        return Number(loc.media_venda_diaria_30d || 0);
+    }
+    return Number(p.media_venda_diaria_30d || 0);
+}
+
 function ordenarSugestoesPdv(lista) {
+    /* Média de vendas do catálogo carregado no início do dia (mesmo cache do servidor).
+       Não usar só a média que veio no merge da API — evita “tic” e troca de ordem ao mesclar. */
     return [...lista].sort((a, b) => {
-        const mA = Number(a.media_venda_diaria_30d || 0);
-        const mB = Number(b.media_venda_diaria_30d || 0);
+        const mA = mediaParaOrdenacaoPdv(a);
+        const mB = mediaParaOrdenacaoPdv(b);
         if (mA !== mB) return mB - mA;
         const freqA = frequenciaUso[a.id] || 0;
         const freqB = frequenciaUso[b.id] || 0;
@@ -2007,6 +2022,52 @@ function ordenarSugestoesPdv(lista) {
 function montarBuscaTextoRapido(p) {
     const partes = [p.nome, p.marca, p.codigo_nfe, p.codigo_barras, p.codigo].filter(Boolean);
     return normalizarBuscaLocal(partes.join(' '));
+}
+
+/** EAN-13 etiqueta balança: 2 + CCCC + 0 + TTTTTT (centavos) + DV — mesmo padrão do ERP (Venda). */
+function digitoVerificadorEan13Primeiros12(d12) {
+    let sum = 0;
+    for (let i = 0; i < 12; i++) {
+        const n = parseInt(d12[i], 10);
+        sum += (i % 2 === 0) ? n : n * 3;
+    }
+    const mod = sum % 10;
+    return mod === 0 ? 0 : 10 - mod;
+}
+
+function parseEtiquetaBalancaEan13(digits13) {
+    if (!/^\d{13}$/.test(digits13) || digits13[0] !== '2') return null;
+    const codigo4 = digits13.slice(1, 5);
+    const valorCent = parseInt(digits13.slice(6, 12), 10);
+    if (Number.isNaN(valorCent)) return null;
+    const valorReais = Math.round(valorCent) / 100;
+    const dvExp = digitoVerificadorEan13Primeiros12(digits13.slice(0, 12));
+    const dv = parseInt(digits13[12], 10);
+    return {
+        codigo4,
+        valorCent,
+        valorReais,
+        checkOk: dv === dvExp,
+    };
+}
+
+function produtoCombinaCodigoInternoBalanca4(cod4, p) {
+    const raw = [p.codigo_nfe, p.codigo, p.codigo_barras];
+    const candidatos = new Set([cod4, cod4.replace(/^0+/, '') || '0', cod4.padStart(5, '0'), cod4.padStart(6, '0')]);
+    for (const field of raw) {
+        const d = String(field ?? '').replace(/\D/g, '');
+        if (!d) continue;
+        for (const c of candidatos) {
+            if (d === c) return true;
+            if (d.length >= 4 && d.slice(-4) === cod4) return true;
+            if (c.length >= 4 && d.endsWith(c)) return true;
+        }
+    }
+    return false;
+}
+
+function encontrarProdutoPorCodigoInternoBalanca(cod4, lista) {
+    return lista.find((p) => produtoCombinaCodigoInternoBalanca4(cod4, p)) || null;
 }
 
 function enriquecerProdutoBusca(p) {
@@ -2021,6 +2082,7 @@ function enriquecerProdutoBusca(p) {
             media_venda_diaria_30d: Number(
                 mediaApi != null && mediaApi !== '' ? mediaApi : 0
             ),
+            preco_etiqueta_balanca: !!p.preco_etiqueta_balanca,
         };
     }
     return {
@@ -2039,6 +2101,7 @@ function enriquecerProdutoBusca(p) {
                 ? mediaApi
                 : loc.media_venda_diaria_30d || 0
         ),
+        preco_etiqueta_balanca: !!(p.preco_etiqueta_balanca || loc.preco_etiqueta_balanca),
     };
 }
 
@@ -2095,6 +2158,24 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
 
 function executarBuscaLocal(termo, modo) {
     const termoBrutoApi = removerSufixoQuantidade(inputBusca ? inputBusca.value : '');
+    const digits = String(termo || '').replace(/\D/g, '');
+
+    if (modo === 'scanner' && digits.length === 13 && digits[0] === '2') {
+        const bal = parseEtiquetaBalancaEan13(digits);
+        if (bal && baseProdutos.length) {
+            const prod = encontrarProdutoPorCodigoInternoBalanca(bal.codigo4, baseProdutos);
+            if (prod) {
+                const linha = {
+                    ...prod,
+                    preco_venda: bal.valorReais,
+                    preco_etiqueta_balanca: true,
+                };
+                processarResultadosBusca([linha], modo, true);
+                return;
+            }
+        }
+    }
+
     let resultados = filtrarBuscaLocal(termo, modo);
 
     if (modo === 'scanner') {
@@ -2131,8 +2212,16 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false)
     if (matchExato && produtosEncontrados.length === 1) {
         const produto = enriquecerProdutoBusca(produtosEncontrados[0]);
         flashScanner();
-        mostrarBannerScanner(`✅ Código lido • ${quantidadeRapida}x ${produto.nome}`);
-        addCarrinho(produto.id, produto.nome, produto.preco_venda, quantidadeRapida);
+        const precoEtiqueta = !!produto.preco_etiqueta_balanca;
+        const avisoPreco = precoEtiqueta ? ' (valor da etiqueta)' : '';
+        mostrarBannerScanner(`✅ Código lido • ${quantidadeRapida}x ${produto.nome}${avisoPreco}`);
+        addCarrinho(
+            produto.id,
+            produto.nome,
+            produto.preco_venda,
+            quantidadeRapida,
+            precoEtiqueta ? { precoEtiquetaBalanca: true } : {}
+        );
         mostrarStatusBusca(`Código lido: ${quantidadeRapida}x ${produto.nome}`, 'emerald');
         setTimeout(esconderStatusBusca, 1500);
         return;
