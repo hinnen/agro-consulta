@@ -2113,19 +2113,24 @@ function extrairPalavrasParaHighlightDaBusca() {
 
 function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
     if (modo === 'scanner') {
-        processarResultadosBusca(locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX), modo, false);
+        processarResultadosBusca(locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX), modo, false, {
+            preservarOrdem: true,
+        });
         return;
     }
     clearTimeout(mergeFetchTimer);
     const seq = ++buscaOnlineMergeSeq;
     const map = new Map();
     locaisOrdenados.forEach((p) => map.set(String(p.id), p));
+    const ordemLocalIds = locaisOrdenados.map((p) => String(p.id));
+    const idsLocal = new Set(ordemLocalIds);
     const hadLocal = locaisOrdenados.length > 0;
     if (hadLocal) {
         processarResultadosBusca(
-            ordenarSugestoesPdv([...map.values()]).slice(0, BUSCA_SUG_LIM_MAX),
+            locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX),
             modo,
-            false
+            false,
+            { preservarOrdem: true }
         );
     } else {
         mostrarStatusBusca('Buscando no servidor…', 'slate');
@@ -2137,12 +2142,25 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
                 if (seq !== buscaOnlineMergeSeq) return;
                 if (data.erro) throw new Error(data.erro);
                 const api = data.produtos || [];
+                const apiById = new Map();
                 api.forEach((raw) => {
                     const id = String(raw.id);
+                    apiById.set(id, raw);
                     if (!map.has(id)) map.set(id, raw);
                 });
-                const ordenados = ordenarSugestoesPdv([...map.values()].map(enriquecerProdutoBusca));
-                processarResultadosBusca(ordenados.slice(0, BUSCA_SUG_LIM_MAX), modo, false);
+                const locaisMesclados = ordemLocalIds.map((id) => {
+                    const base = map.get(id);
+                    const apiRow = apiById.get(id);
+                    return apiRow ? { ...base, ...apiRow } : base;
+                }).filter(Boolean);
+                const extrasBrutos = api.filter((raw) => !idsLocal.has(String(raw.id)));
+                const extrasOrd = ordenarSugestoesPdv(extrasBrutos);
+                const selId = produtoEmDestaque ? String(produtoEmDestaque.id) : null;
+                const final = [...locaisMesclados, ...extrasOrd].slice(0, BUSCA_SUG_LIM_MAX);
+                processarResultadosBusca(final, modo, false, {
+                    preservarOrdem: true,
+                    manterSelecaoId: selId,
+                });
             })
             .catch((err) => {
                 if (seq !== buscaOnlineMergeSeq) return;
@@ -2212,7 +2230,7 @@ function executarBuscaAPI(termo, modo) {
         });
 }
 
-function processarResultadosBusca(produtosEncontrados, modo, matchExato = false) {
+function processarResultadosBusca(produtosEncontrados, modo, matchExato = false, opcoes = {}) {
     if (matchExato && produtosEncontrados.length === 1) {
         const produto = enriquecerProdutoBusca(produtosEncontrados[0]);
         flashScanner();
@@ -2232,15 +2250,33 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false)
     }
 
     if (produtosEncontrados.length > 0) {
-        const ordenados = ordenarSugestoesPdv(
-            produtosEncontrados.map(enriquecerProdutoBusca)
-        );
+        const enriquecidos = produtosEncontrados.map(enriquecerProdutoBusca);
+        const ordenados = opcoes.preservarOrdem
+            ? enriquecidos
+            : ordenarSugestoesPdv(enriquecidos);
         sugestoesBuscaCompletas = ordenados;
         limiteSugestoesVisivel = BUSCA_SUG_LIM_INI;
         sugestoesAtuais = sugestoesBuscaCompletas.slice(0, limiteSugestoesVisivel);
         ultimoTermoBuscaPalavras = extrairPalavrasParaHighlightDaBusca();
-        indexSelecionado = 0;
-        produtoEmDestaque = sugestoesAtuais[0] || null;
+        const manter = opcoes.manterSelecaoId != null ? String(opcoes.manterSelecaoId) : null;
+        if (manter) {
+            const ix = sugestoesBuscaCompletas.findIndex((x) => String(x.id) === manter);
+            if (ix >= 0) {
+                produtoEmDestaque = sugestoesBuscaCompletas[ix];
+                if (ix < sugestoesAtuais.length) {
+                    indexSelecionado = ix;
+                } else {
+                    indexSelecionado = 0;
+                    produtoEmDestaque = sugestoesAtuais[0] || null;
+                }
+            } else {
+                indexSelecionado = 0;
+                produtoEmDestaque = sugestoesAtuais[0] || null;
+            }
+        } else {
+            indexSelecionado = 0;
+            produtoEmDestaque = sugestoesAtuais[0] || null;
+        }
         renderizarSugestoes();
 
         const total = sugestoesBuscaCompletas.length;
