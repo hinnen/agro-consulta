@@ -1235,13 +1235,29 @@ def motor_de_busca_agro(termo_original, db, client, limit=20):
     return candidatos[:limit]
 
 
+def _ean13_digito_verificador(d12: str) -> int | None:
+    """Último dígito do EAN-13 a partir dos 12 primeiros (GTIN)."""
+    if len(d12) != 12 or not d12.isdigit():
+        return None
+    s = 0
+    for i, ch in enumerate(d12):
+        n = int(ch)
+        s += n if i % 2 == 0 else n * 3
+    mod = s % 10
+    return 0 if mod == 0 else 10 - mod
+
+
 def _parse_etiqueta_balanca_ean13_br(q: str):
     """
     Padrão comum de balança: 2 C C C C 0 T T T T T T DV (EAN-13).
     C = código interno (4 dígitos), T = valor total em centavos (6 dígitos, 2 decimais).
+    Só aceita código com dígito verificador EAN-13 válido (evita preço arbitrário).
     """
     d = re.sub(r"\D", "", str(q or ""))
     if len(d) != 13 or d[0] != "2":
+        return None
+    dv_exp = _ean13_digito_verificador(d[:12])
+    if dv_exp is None or int(d[12]) != dv_exp:
         return None
     cod4 = d[1:5]
     # sep = d[5] — costuma ser 0

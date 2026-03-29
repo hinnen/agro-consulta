@@ -88,8 +88,8 @@ class Command(BaseCommand):
         msg = (
             f"Agro — {agora.strftime('%d/%m/%Y')} às {agora.strftime('%H:%M')}\n"
             f"Vendas do dia: {_formatar_brl(total)}\n"
-            f"Vence hoje (a pagar, em aberto): {_formatar_brl(v_pagar)}\n"
-            f"Vence hoje (a receber, em aberto): {_formatar_brl(v_receber)}"
+            f"Vence hoje — a pagar (não pago): {_formatar_brl(v_pagar)}\n"
+            f"Vence hoje — a receber (não recebido): {_formatar_brl(v_receber)}"
         )
 
         ok_wa, info_wa = enviar_whatsapp_callmebot(msg)

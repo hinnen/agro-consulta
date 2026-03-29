@@ -2162,16 +2162,20 @@ function executarBuscaLocal(termo, modo) {
 
     if (modo === 'scanner' && digits.length === 13 && digits[0] === '2') {
         const bal = parseEtiquetaBalancaEan13(digits);
-        if (bal && baseProdutos.length) {
-            const prod = encontrarProdutoPorCodigoInternoBalanca(bal.codigo4, baseProdutos);
-            if (prod) {
-                const linha = {
-                    ...prod,
-                    preco_venda: bal.valorReais,
-                    preco_etiqueta_balanca: true,
-                };
-                processarResultadosBusca([linha], modo, true);
-                return;
+        if (bal) {
+            if (!bal.checkOk) {
+                mostrarBannerScanner('⚠️ Etiqueta inválida (dígito verificador)');
+            } else if (baseProdutos.length) {
+                const prod = encontrarProdutoPorCodigoInternoBalanca(bal.codigo4, baseProdutos);
+                if (prod) {
+                    const linha = {
+                        ...prod,
+                        preco_venda: bal.valorReais,
+                        preco_etiqueta_balanca: true,
+                    };
+                    processarResultadosBusca([linha], modo, true);
+                    return;
+                }
             }
         }
     }
