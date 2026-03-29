@@ -1298,6 +1298,12 @@ def _buscar_produto_por_codigo_interno_balanca(db, client, cod4: str):
 # --- APIs DE BUSCA ---
 @require_GET
 def api_buscar_produtos(request):
+    """Busca única: PDV (`/api/buscar/`) ou tela de compras com `?compras=1` (inclui custos)."""
+    compras = getattr(request, "_compras_mode", False) or request.GET.get("compras") in (
+        "1",
+        "true",
+        "yes",
+    )
     q = request.GET.get("q", "").strip()
     client, db = obter_conexao_mongo()
     if db is None or not q:
@@ -1366,7 +1372,7 @@ def api_buscar_produtos(request):
             media_d = float(medias_map.get(pid, 0.0))
             pv = float(preco_por_id[pid]) if pid in preco_por_id else float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
 
-            res.append({
+            row = {
                 "id": pid,
                 "nome": p.get("Nome"),
                 "marca": p.get("Marca") or "",
@@ -1392,8 +1398,14 @@ def api_buscar_produtos(request):
                 "saldo_erp_centro": round(saldo_centro_erp, 2),  # compatibilidade com mobile atual
                 "saldo_erp_vila": round(saldo_vila_erp, 2),
                 "media_venda_diaria_30d": media_d,
-                "preco_etiqueta_balanca": bool(pid in preco_por_id),
-            })
+                "preco_etiqueta_balanca": bool(pid in preco_por_id) and not compras,
+            }
+            if compras:
+                custos = _custos_compra_produto(p)
+                row["preco_custo"] = custos["preco_custo"]
+                row["preco_custo_acrescimo"] = custos["preco_custo_final"]
+                row["preco_custo_final"] = custos["preco_custo_final"]
+            res.append(row)
 
         res.sort(
             key=lambda r: (
@@ -1410,77 +1422,13 @@ def api_buscar_produtos(request):
 
 @require_GET
 def api_buscar_compras(request):
-    q = request.GET.get("q", "").strip()
-    client, db = obter_conexao_mongo()
-    if db is None or not q:
-        return JsonResponse({"produtos": []})
-
+    """Compatibilidade: mesmo motor e payload que GET /api/buscar/?compras=1"""
+    setattr(request, "_compras_mode", True)
     try:
-        prods = motor_de_busca_agro(q, db, client, limit=70)
-        p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
-
-        estoque_map = {}
-        try:
-            if p_ids:
-                estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
-                estoque_map = _mapear_estoques_por_produto(estoques, client)
-        except Exception:
-            logger.warning("api_buscar_compras: estoque indisponível", exc_info=True)
-
-        ajustes_map = {}
-        try:
-            if p_ids:
-                ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
-                ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
-        except Exception:
-            logger.warning("api_buscar_compras: ajustes indisponíveis", exc_info=True)
-
-        res = []
-        for p in prods:
-            pid = str(p.get("Id") or p["_id"])
-
-            saldo_centro_erp = float(estoque_map.get(pid, {}).get("centro", 0.0))
-            saldo_vila_erp = float(estoque_map.get(pid, {}).get("vila", 0.0))
-
-            ac = ajustes_map.get((pid, "centro"))
-            av = ajustes_map.get((pid, "vila"))
-
-            saldo_centro = (
-                float(ac.saldo_informado) + (saldo_centro_erp - float(ac.saldo_erp_referencia))
-                if ac else saldo_centro_erp
-            )
-            saldo_vila = (
-                float(av.saldo_informado) + (saldo_vila_erp - float(av.saldo_erp_referencia))
-                if av else saldo_vila_erp
-            )
-
-            custos = _custos_compra_produto(p)
-            preco_venda = float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
-            codigo = p.get("Codigo") or ""
-            codigo_nfe = p.get("CodigoNFe") or codigo or ""
-            codigo_barras = _extrair_codigo_barras(p)
-
-            res.append({
-                "id": pid,
-                "nome": p.get("Nome"),
-                "marca": p.get("Marca") or "",
-                "codigo": codigo,
-                "codigo_nfe": codigo_nfe,
-                "codigo_barras": codigo_barras,
-                "preco_custo": custos["preco_custo"],
-                "preco_custo_acrescimo": custos["preco_custo_final"],
-                "preco_custo_final": custos["preco_custo_final"],
-                "preco_venda": preco_venda,
-                "imagem": _formatar_url_imagem(_extrair_imagem_produto(p, {}, pid)),
-                "saldo_centro": round(saldo_centro, 2),
-                "saldo_vila": round(saldo_vila, 2),
-                "saldo_centro_erp": round(saldo_centro_erp, 2),
-                "saldo_vila_erp": round(saldo_vila_erp, 2),
-            })
-
-        return JsonResponse({"produtos": res})
-    except Exception as e:
-        return JsonResponse({"erro": str(e)}, status=500)
+        return api_buscar_produtos(request)
+    finally:
+        if hasattr(request, "_compras_mode"):
+            delattr(request, "_compras_mode")
 
 
 # --- APIs DE ESTOQUE E PEDIDO ---
