@@ -1,0 +1,122 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agro Mais | Vendas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+  <header class="border-b border-slate-200 bg-white shadow-sm">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
+          <span class="text-base font-black"><span class="text-emerald-600">G</span><span class="text-orange-500">M</span></span>
+        </div>
+        <div>
+          <h1 class="text-lg font-black uppercase tracking-tight text-slate-900">Vendas</h1>
+          <p class="text-xs font-bold text-slate-500">{{ periodo_label }} · {{ data_ini|date:"d/m/Y" }} — {{ data_fim|date:"d/m/Y" }}</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2 shrink-0">
+        <a href="{% url 'vendas_exportar_csv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="text-xs font-black uppercase px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+          Exportar CSV
+        </a>
+        <a href="{% url 'consulta_produtos' %}" class="text-xs font-black uppercase bg-emerald-50 text-emerald-800 px-4 py-2.5 rounded-xl border border-emerald-200 hover:bg-emerald-100">
+          PDV
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+    {% if messages %}
+    <ul class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900 space-y-1">
+      {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+
+    <form method="get" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+      <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Período rápido</p>
+      <div class="flex flex-wrap gap-2">
+        <a href="?preset=hoje" class="px-3 py-2 rounded-xl text-xs font-black uppercase border {% if preset_ativo == 'hoje' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Hoje</a>
+        <a href="?preset=7d" class="px-3 py-2 rounded-xl text-xs font-black uppercase border {% if not preset_ativo or preset_ativo == '7d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">7 dias</a>
+        <a href="?preset=30d" class="px-3 py-2 rounded-xl text-xs font-black uppercase border {% if preset_ativo == '30d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">30 dias</a>
+      </div>
+      <div class="flex flex-wrap items-end gap-3 pt-2 border-t border-slate-100">
+        <div>
+          <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="id-de">De</label>
+          <input type="date" name="de" id="id-de" value="{{ data_ini|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold">
+        </div>
+        <div>
+          <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="id-ate">Até</label>
+          <input type="date" name="ate" id="id-ate" value="{{ data_fim|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold">
+        </div>
+        <button type="submit" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-black uppercase">Aplicar</button>
+      </div>
+      <p class="text-[10px] text-slate-400">O CSV usa o mesmo período (inclui filtros da URL após aplicar).</p>
+    </form>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Vendas</p>
+        <p class="text-2xl font-black text-slate-900 tabular-nums">{{ quantidade_vendas }}</p>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:col-span-2">
+        <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Total no período</p>
+        <p class="text-2xl font-black text-emerald-600 tabular-nums">R$ {{ total_periodo }}</p>
+      </div>
+    </div>
+
+    {% if vendas %}
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-left text-[10px] font-black uppercase tracking-wide text-slate-500">
+              <th class="px-4 py-3">Ver</th>
+              <th class="px-4 py-3">Data</th>
+              <th class="px-4 py-3">Cliente</th>
+              <th class="px-4 py-3">Pagamento</th>
+              <th class="px-4 py-3 text-right">Total</th>
+              <th class="px-4 py-3">Caixa</th>
+              <th class="px-4 py-3">ERP</th>
+              <th class="px-4 py-3">Usuário</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 font-semibold text-slate-700">
+            {% for v in vendas %}
+            <tr class="hover:bg-slate-50/80">
+              <td class="px-4 py-3">
+                <a href="{% url 'venda_agro_detalhe' v.id %}" class="text-emerald-700 hover:text-emerald-900 font-black text-xs uppercase underline decoration-emerald-200 underline-offset-2">#{{ v.id }}</a>
+              </td>
+              <td class="px-4 py-3 tabular-nums whitespace-nowrap text-xs">{{ v.criado_em|date:"d/m/Y H:i" }}</td>
+              <td class="px-4 py-3 max-w-[180px] truncate" title="{{ v.cliente_nome }}">{{ v.cliente_nome }}</td>
+              <td class="px-4 py-3 text-xs">{{ v.forma_pagamento|default:"—" }}</td>
+              <td class="px-4 py-3 text-right tabular-nums font-black text-slate-900">R$ {{ v.total }}</td>
+              <td class="px-4 py-3 text-xs text-slate-500">{% if v.sessao_caixa_id %}#{{ v.sessao_caixa_id }}{% else %}—{% endif %}</td>
+              <td class="px-4 py-3">
+                {% if v.enviado_erp %}
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">Ok</span>
+                {% else %}
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-900">Erro</span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-3 text-xs text-slate-500 truncate max-w-[100px]" title="{{ v.usuario_registro }}">{{ v.usuario_registro|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="rounded-2xl border border-dashed border-slate-200 bg-white/80 py-16 text-center">
+      <p class="font-bold text-slate-500">Nenhuma venda neste período.</p>
+    </div>
+    {% endif %}
+  </main>
+</body>
+</html>

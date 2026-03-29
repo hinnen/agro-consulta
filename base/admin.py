@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Empresa, Loja, IntegracaoERP
+
+from .models import Empresa, IntegracaoERP, Loja, PerfilUsuario
 
 
 @admin.register(Empresa)
@@ -21,8 +22,17 @@ class IntegracaoERPAdmin(admin.ModelAdmin):
     list_display = ("id", "empresa", "tipo_erp", "ativo", "ultima_sincronizacao", "criado_em")
     search_fields = ("empresa__nome_fantasia", "tipo_erp")
     list_filter = ("ativo", "tipo_erp", "empresa")
-from django.contrib import admin
-from .models import PerfilUsuario
+    fieldsets = (
+        (None, {"fields": ("empresa", "tipo_erp", "url_base", "token", "ativo", "ultima_sincronizacao")}),
+        (
+            "Rótulos do pedido (Venda ERP)",
+            {
+                "fields": ("pedido_empresa_label", "pedido_deposito_label", "pedido_vendedor_label"),
+                "description": "Opcional. Se vazio, o sistema usa valores padrão ao enviar o orçamento.",
+            },
+        ),
+    )
+
 
 @admin.register(PerfilUsuario)
 class PerfilUsuarioAdmin(admin.ModelAdmin):

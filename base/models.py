@@ -72,6 +72,25 @@ class IntegracaoERP(models.Model):
     ativo = models.BooleanField("Ativa", default=True)
     ultima_sincronizacao = models.DateTimeField("Última sincronização", null=True, blank=True)
     criado_em = models.DateTimeField("Criado em", auto_now_add=True)
+    # Rótulos enviados em Pedidos/Salvar (Venda ERP). Vazios = padrão no código do Agro.
+    pedido_empresa_label = models.CharField(
+        "Nome empresa (pedido ERP)",
+        max_length=200,
+        blank=True,
+        help_text="Campo 'empresa' do orçamento. Ex.: nome fantasia na nota.",
+    )
+    pedido_deposito_label = models.CharField(
+        "Nome depósito (pedido ERP)",
+        max_length=200,
+        blank=True,
+        help_text="Campo 'deposito' do orçamento.",
+    )
+    pedido_vendedor_label = models.CharField(
+        "Nome vendedor (pedido ERP)",
+        max_length=200,
+        blank=True,
+        help_text="Campo 'vendedor' do orçamento.",
+    )
 
     class Meta:
         verbose_name = "Integração ERP"

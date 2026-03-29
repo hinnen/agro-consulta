@@ -1,0 +1,118 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venda #{{ v.id }} | Agro Mais</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+  <header class="border-b border-slate-200 bg-white shadow-sm">
+    <div class="max-w-3xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-black uppercase tracking-tight text-slate-900">Venda #{{ v.id }}</h1>
+        <p class="text-xs font-bold text-slate-500">{{ v.criado_em|date:"d/m/Y H:i:s" }}</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a href="{% url 'vendas_lista' %}" class="text-xs font-black uppercase px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-700 transition-colors">
+          Lista de vendas
+        </a>
+        <a href="{% url 'consulta_produtos' %}" class="text-xs font-black uppercase bg-emerald-50 text-emerald-800 px-4 py-2.5 rounded-xl border border-emerald-200 hover:bg-emerald-100 transition-colors">
+          PDV
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 py-6 space-y-6">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+      <h2 class="text-[10px] font-black uppercase tracking-wide text-slate-400">Cliente</h2>
+      <p class="font-bold text-slate-900">{{ v.cliente_nome }}</p>
+      {% if v.cliente_id_erp %}
+      <p class="text-xs text-slate-500">ID ERP: <span class="font-mono">{{ v.cliente_id_erp }}</span></p>
+      {% endif %}
+      {% if v.cliente_documento %}
+      <p class="text-xs text-slate-500">Doc.: <span class="font-mono">{{ v.cliente_documento }}</span></p>
+      {% endif %}
+      <div class="flex flex-wrap gap-4 pt-2 border-t border-slate-100">
+        <div>
+          <p class="text-[10px] font-black uppercase text-slate-400">Pagamento</p>
+          <p class="font-bold text-slate-800">{{ v.forma_pagamento|default:"—" }}</p>
+        </div>
+        <div>
+          <p class="text-[10px] font-black uppercase text-slate-400">Total</p>
+          <p class="text-xl font-black text-emerald-600 tabular-nums">R$ {{ v.total }}</p>
+        </div>
+        <div>
+          <p class="text-[10px] font-black uppercase text-slate-400">ERP</p>
+          {% if v.enviado_erp %}
+          <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">Enviado ok</span>
+          {% else %}
+          <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-900">Falha / pendente</span>
+          {% endif %}
+          {% if v.erp_http_status %}
+          <p class="text-[10px] text-slate-400 mt-1">HTTP {{ v.erp_http_status }}</p>
+          {% endif %}
+        </div>
+        {% if v.usuario_registro %}
+        <div>
+          <p class="text-[10px] font-black uppercase text-slate-400">Usuário</p>
+          <p class="text-sm font-semibold text-slate-600">{{ v.usuario_registro }}</p>
+        </div>
+        {% endif %}
+        {% if v.sessao_caixa_id %}
+        <div>
+          <p class="text-[10px] font-black uppercase text-slate-400">Sessão de caixa</p>
+          <p class="text-sm font-semibold text-slate-600">#{{ v.sessao_caixa_id }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <h2 class="px-4 py-3 bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-wide text-slate-500">Itens</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[10px] font-black uppercase text-slate-400 border-b border-slate-100">
+              <th class="px-4 py-2">Descrição</th>
+              <th class="px-4 py-2">Cód.</th>
+              <th class="px-4 py-2 text-right">Qtd</th>
+              <th class="px-4 py-2 text-right">Unit.</th>
+              <th class="px-4 py-2 text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50 font-semibold">
+            {% for it in v.itens.all %}
+            <tr>
+              <td class="px-4 py-3">{{ it.descricao|default:"—" }}</td>
+              <td class="px-4 py-3 font-mono text-xs text-slate-500">{{ it.codigo|default:"—" }}</td>
+              <td class="px-4 py-3 text-right tabular-nums">{{ it.quantidade }}</td>
+              <td class="px-4 py-3 text-right tabular-nums">R$ {{ it.valor_unitario }}</td>
+              <td class="px-4 py-3 text-right tabular-nums font-black text-slate-900">R$ {{ it.valor_total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="px-4 py-8 text-center text-slate-400 text-sm">Nenhum item gravado.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if erp_resposta_text %}
+    <details class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden group">
+      <summary class="px-4 py-3 cursor-pointer text-[10px] font-black uppercase tracking-wide text-slate-500 hover:bg-slate-50 list-none flex items-center justify-between">
+        Resposta do ERP (técnico)
+        <span class="text-slate-300 group-open:rotate-180 transition-transform">▼</span>
+      </summary>
+      <pre class="px-4 py-3 text-xs font-mono bg-slate-900 text-slate-100 overflow-x-auto max-h-64 overflow-y-auto border-t border-slate-800">{{ erp_resposta_text }}</pre>
+    </details>
+    {% endif %}
+  </main>
+</body>
+</html>
