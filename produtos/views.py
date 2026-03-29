@@ -4,7 +4,7 @@ import logging
 import re
 import time
 import unicodedata
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from bson import ObjectId
 
@@ -28,6 +28,7 @@ from integracoes.texto import normalizar, expandir_tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 from integracoes.venda_erp_api import VendaERPAPIClient
 from .mongo_vendas_util import _filtro_venda_ativa_mongo
+from .mongo_financeiro_util import contas_pagar_buscar_pagina, contas_pagar_montar_query_mongo
 
 
 logger = logging.getLogger(__name__)
@@ -1111,6 +1112,85 @@ def sugestao_transferencia(request):
 
 def compras_view(request):
     return render(request, "produtos/compras.html")
+
+
+@login_required(login_url="/admin/login/")
+def lancamentos_contas_pagar_view(request):
+    """Lançamentos a pagar (DtoLancamento) — leitura do Mongo / ERP Venda."""
+    return render(request, "produtos/lancamentos_contas_pagar.html")
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_contas_pagar(request):
+    """Lista paginada de contas a pagar (Despesa=True), espelhando o ERP."""
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse(
+            {
+                "erro": "Mongo indisponível",
+                "lancamentos": [],
+                "total": 0,
+                "page": 1,
+                "page_size": 50,
+                "totais": {},
+            },
+            status=503,
+        )
+
+    status = (request.GET.get("status") or "abertos").strip().lower()
+    if status not in ("abertos", "quitados", "todos"):
+        status = "abertos"
+
+    def _parse_d(s):
+        if not s or not str(s).strip():
+            return None
+        try:
+            return date.fromisoformat(str(s).strip()[:10])
+        except ValueError:
+            return None
+
+    v_de = _parse_d(request.GET.get("venc_de"))
+    v_ate = _parse_d(request.GET.get("venc_ate"))
+    texto = (request.GET.get("q") or "").strip() or None
+
+    try:
+        page = max(1, int(request.GET.get("page") or 1))
+    except ValueError:
+        page = 1
+    try:
+        page_size = int(request.GET.get("page_size") or 50)
+    except ValueError:
+        page_size = 50
+
+    ordenacao = (request.GET.get("ordenacao") or "vencimento_asc").strip().lower()
+    if ordenacao not in ("vencimento_asc", "vencimento_desc", "fluxo_desc"):
+        ordenacao = "vencimento_asc"
+
+    query = contas_pagar_montar_query_mongo(
+        status=status,
+        vencimento_de=v_de,
+        vencimento_ate=v_ate,
+        texto=texto,
+    )
+    linhas, total, totais = contas_pagar_buscar_pagina(
+        db,
+        query,
+        page=page,
+        page_size=page_size,
+        ordenacao=ordenacao,
+    )
+
+    return JsonResponse(
+        {
+            "lancamentos": linhas,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "totais": totais,
+            "status_filtro": status,
+        }
+    )
 
 
 def ajuste_mobile_view(request):

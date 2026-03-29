@@ -8,6 +8,11 @@ urlpatterns = [
     path('transferencias/', views.sugestao_transferencia, name='sugestao_transferencia'),
     path('ajuste-mobile/', views.ajuste_mobile_view, name='ajuste_mobile'), # <-- A rota que faltava
     path('compras/', views.compras_view, name='compras_view'),
+    path(
+        'lancamentos/contas-pagar/',
+        views.lancamentos_contas_pagar_view,
+        name='lancamentos_contas_pagar',
+    ),
     path('pdv/checkout/', views.pdv_checkout, name='pdv_checkout'),
     path('vendas/exportar-csv/', views.vendas_exportar_csv, name='vendas_exportar_csv'),
     path('vendas/', views.vendas_lista, name='vendas_lista'),
@@ -25,6 +30,11 @@ urlpatterns = [
     path('api/login-mobile/', views.api_login_mobile, name='api_login_mobile'),
     path('api/buscar/', views.api_buscar_produtos, name='api_buscar_mobile'),
     path('api/buscar-compras/', views.api_buscar_compras, name='api_buscar_compras'),
+    path(
+        'api/lancamentos/contas-pagar/',
+        views.api_lancamentos_contas_pagar,
+        name='api_lancamentos_contas_pagar',
+    ),
     path('api/ajustar/', views.api_ajustar_estoque, name='api_ajustar_estoque'),
     path('api/todos-produtos/', views.api_todos_produtos_local, name='api_todos_produtos_local'),
     path('api/pdv/saldos/', views.api_pdv_saldos_compacto, name='api_pdv_saldos'),
