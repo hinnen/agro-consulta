@@ -4,11 +4,13 @@ import logging
 import re
 import time
 import unicodedata
-from datetime import datetime, timedelta
+from datetime import date, datetime, time as dtime, timedelta
+from io import StringIO
 from decimal import Decimal
 from bson import ObjectId
 
 from django.conf import settings
+from decouple import config
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Sum
@@ -16,18 +18,43 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse, JsonResponse
 from django.urls import reverse
 from django.core.cache import cache
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from django.db import transaction
 
 from base.models import Empresa, PerfilUsuario, IntegracaoERP
 from estoque.models import AjusteRapidoEstoque
 from .forms import ClienteAgroForm
-from .models import ClienteAgro, ItemVendaAgro, SessaoCaixa, VendaAgro
+from .models import ClienteAgro, ItemVendaAgro, PedidoEntrega, SessaoCaixa, VendaAgro
 from integracoes.texto import normalizar, expandir_tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 from integracoes.venda_erp_api import VendaERPAPIClient
 from .mongo_vendas_util import _filtro_venda_ativa_mongo
+from .nfe_entrada_util import (
+    casar_produtos_mongo,
+    gravar_ult_nsu,
+    listar_rascunhos_entrada,
+    obter_ult_nsu,
+    parse_nfe_xml_bytes,
+    salvar_rascunho_entrada,
+)
+from .rota_entregas_geo import ordenar_entregas_por_proximidade
+from .mongo_financeiro_util import (
+    baixar_lancamentos_mongo,
+    contas_pagar_buscar_pagina,
+    contas_pagar_montar_query_mongo,
+    financeiro_projecao_fluxo_diario,
+    inserir_lancamentos_manual_lote,
+    lancamentos_buscar_pagina,
+    lancamentos_montar_query_mongo,
+    lancamentos_planos_distintos_no_filtro,
+    lancamentos_sugestoes_campo,
+    listar_formas_e_bancos_distintos,
+    montar_payload_erp_baixa,
+    montar_payload_erp_lancamentos_novos,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -210,7 +237,41 @@ _METRICAS_PDV_DIAS_COMUNS = (7, 14, 21, 28, 30, 45, 60, 90, 120, 180, 365)
 
 
 def _pdv_metricas_cache_key(dias: int, bucket: int) -> str:
-    return f"pdv_metricas_v3_{dias}_{bucket}"
+    return f"pdv_metricas_v4_{dias}_{bucket}"
+
+
+def _pdv_top_vendidos_cache_key(dias: int, limite: int, bucket: int) -> str:
+    return f"pdv_top_vend_v3_{dias}_{limite}_{bucket}"
+
+
+def _pdv_top_v_float(v):
+    """Evita falha do JsonResponse com Decimal128, Decimal ou float não finito do Mongo."""
+    if v is None:
+        return 0.0
+    try:
+        if hasattr(v, "to_decimal"):
+            x = float(v.to_decimal())
+        elif isinstance(v, Decimal):
+            x = float(v)
+        else:
+            x = float(v)
+    except (TypeError, ValueError, ArithmeticError, AttributeError):
+        return 0.0
+    if x != x or x == float("inf") or x == float("-inf"):
+        return 0.0
+    return x
+
+
+def _pdv_top_v_texto_produto(v, fallback: str = "") -> str:
+    if v is None:
+        return fallback
+    if isinstance(v, (dict, list, bytes)):
+        return fallback
+    s = str(v).strip()
+    return s if s else fallback
+
+
+_TOP_VENDIDOS_LIMITES_CACHE = (10, 15, 20)
 
 
 def _invalidar_cache_saldos_pdv():
@@ -222,6 +283,8 @@ def _invalidar_cache_metricas_pdv():
     for dias in _METRICAS_PDV_DIAS_COMUNS:
         for bb in range(b, b - _METRICAS_PDV_BUCKETS_INVALIDAR - 1, -1):
             cache.delete(_pdv_metricas_cache_key(dias, bb))
+            for lim in _TOP_VENDIDOS_LIMITES_CACHE:
+                cache.delete(_pdv_top_vendidos_cache_key(dias, lim, bb))
 
 
 def _invalidar_caches_apos_ajuste_pin():
@@ -272,7 +335,11 @@ def _metricas_vendas_agregadas_por_produto(db, dias_media: int):
     w0 = {}
     w1 = {}
     for item in db["DtoVendaProduto"].find(query_itens):
-        pid = str(item.get("ProdutoID") or "")
+        # Não usar (ProdutoID or ""): Id numérico 0 sumiria.
+        raw_pid = item.get("ProdutoID")
+        if raw_pid is None:
+            continue
+        pid = str(raw_pid)
         if not pid or pid == "None":
             continue
         vid_raw = item.get("VendaID")
@@ -291,6 +358,82 @@ def _metricas_vendas_agregadas_por_produto(db, dias_media: int):
         if t_w1 <= dt < t_w0:
             w1[pid] = w1.get(pid, 0.0) + qtd
     return media_tot, w0, w1
+
+
+def _indice_semana_4(dt, now) -> int | None:
+    """0 = semana mais antiga (dias 28–22), 3 = últimos 7 dias."""
+    if dt is None or not isinstance(dt, datetime):
+        return None
+    if dt < now - timedelta(days=28):
+        return None
+    if dt >= now - timedelta(days=7):
+        return 3
+    if dt >= now - timedelta(days=14):
+        return 2
+    if dt >= now - timedelta(days=21):
+        return 1
+    return 0
+
+
+def _metricas_vendas_4_semanas_por_produto(db) -> dict[str, list[float]]:
+    """
+    Quantidades vendidas por produto em 4 faixas de 7 dias (mais antiga → mais recente).
+    Usa DtoVenda + DtoVendaProduto (mesmo critério de _metricas_vendas_agregadas_por_produto).
+    """
+    now = datetime.now()
+    t_lo = now - timedelta(days=28)
+    q = {"Data": {"$gte": t_lo}, **_filtro_venda_ativa_mongo()}
+    vendas = list(db["DtoVenda"].find(q, {"Id": 1, "_id": 1, "Data": 1}))
+    if not vendas:
+        return {}
+    vmap: dict[str, datetime] = {}
+    for v in vendas:
+        dt = v.get("Data")
+        if not isinstance(dt, datetime):
+            continue
+        for key in (str(v.get("Id")), str(v.get("_id"))):
+            if key and key != "None":
+                vmap[key] = dt
+    venda_ids_obj: list = []
+    venda_ids_str: list[str] = []
+    for v in vendas:
+        vid = str(v.get("Id") or v.get("_id"))
+        venda_ids_str.append(vid)
+        if len(vid) == 24:
+            try:
+                venda_ids_obj.append(ObjectId(vid))
+            except Exception:
+                pass
+    query_itens = {
+        "$or": [
+            {"VendaID": {"$in": venda_ids_obj}},
+            {"VendaID": {"$in": venda_ids_str}},
+        ]
+    }
+    out: dict[str, list[float]] = {}
+    for item in db["DtoVendaProduto"].find(query_itens):
+        raw_pid = item.get("ProdutoID")
+        if raw_pid is None:
+            continue
+        pid = str(raw_pid)
+        if not pid or pid == "None":
+            continue
+        vid_raw = item.get("VendaID")
+        vid = str(vid_raw) if vid_raw is not None else ""
+        dt = vmap.get(vid)
+        if dt is None:
+            continue
+        bi = _indice_semana_4(dt, now)
+        if bi is None:
+            continue
+        try:
+            qtd = float(item.get("Quantidade") or 0)
+        except (TypeError, ValueError):
+            qtd = 0.0
+        if pid not in out:
+            out[pid] = [0.0, 0.0, 0.0, 0.0]
+        out[pid][bi] += qtd
+    return out
 
 
 def _merge_ultima_entrada_entrada_nota_fiscal_mov_estoque(db, agregado, since, names):
@@ -819,6 +962,7 @@ def consulta_produtos(request):
         if draft and draft.get("itens"):
             ctx["pdv_reabrir_data"] = draft
     ctx["caixa_aberto"] = _obter_sessao_caixa_aberta(request)
+    ctx["pdv_entrega_whatsapp"] = getattr(settings, "PDV_ENTREGA_WHATSAPP", "") or ""
     return render(request, "produtos/consulta_produtos.html", ctx)
 
 
@@ -1106,11 +1250,682 @@ def historico_ajustes(request):
 
 
 def sugestao_transferencia(request):
-    return render(request, "produtos/transferencias.html")
+    tw = (getattr(settings, "TRANSFERENCIA_WHATSAPP", None) or "").strip()
+    if not tw:
+        tw = (getattr(settings, "PDV_ENTREGA_WHATSAPP", None) or "").strip()
+    return render(
+        request,
+        "produtos/transferencias.html",
+        {"transferencia_whatsapp": tw},
+    )
 
 
 def compras_view(request):
     return render(request, "produtos/compras.html")
+
+
+def _lancamentos_parse_date_param(s):
+    if not s or not str(s).strip():
+        return None
+    try:
+        return date.fromisoformat(str(s).strip()[:10])
+    except ValueError:
+        return None
+
+
+def _lancamentos_excluir_planos_from_request(request) -> list[str]:
+    raw = request.GET.getlist("excluir_plano")
+    out: list[str] = []
+    seen: set[str] = set()
+    for x in raw:
+        s = (x or "").strip()
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        out.append(s[:400])
+        if len(out) >= 200:
+            break
+    return out
+
+
+def _api_lancamentos_lista_core(request, despesa: bool):
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse(
+            {
+                "erro": "Mongo indisponível",
+                "lancamentos": [],
+                "total": 0,
+                "page": 1,
+                "page_size": 50,
+                "totais": {},
+            },
+            status=503,
+        )
+
+    status = (request.GET.get("status") or "abertos").strip().lower()
+    if status not in ("abertos", "quitados", "todos"):
+        status = "abertos"
+
+    v_de = _lancamentos_parse_date_param(request.GET.get("venc_de"))
+    v_ate = _lancamentos_parse_date_param(request.GET.get("venc_ate"))
+    texto = (request.GET.get("q") or "").strip() or None
+
+    try:
+        page = max(1, int(request.GET.get("page") or 1))
+    except ValueError:
+        page = 1
+    try:
+        page_size = int(request.GET.get("page_size") or 50)
+    except ValueError:
+        page_size = 50
+
+    ordenacao = (request.GET.get("ordenacao") or "vencimento_asc").strip().lower()
+    if ordenacao not in ("vencimento_asc", "vencimento_desc", "fluxo_desc"):
+        ordenacao = "vencimento_asc"
+
+    excl_planos = _lancamentos_excluir_planos_from_request(request)
+    query = lancamentos_montar_query_mongo(
+        despesa=despesa,
+        status=status,
+        vencimento_de=v_de,
+        vencimento_ate=v_ate,
+        texto=texto,
+        excluir_planos_nomes=excl_planos or None,
+    )
+    linhas, total, totais = lancamentos_buscar_pagina(
+        db,
+        query,
+        despesa,
+        page=page,
+        page_size=page_size,
+        ordenacao=ordenacao,
+    )
+
+    tot_out = {
+        "quantidade": totais["quantidade"],
+        "bruto": totais["bruto"],
+        "movimentado": totais["movimentado"],
+        "saldo_aberto": totais["saldo_aberto"],
+        "previsto": totais["bruto"],
+        "pago": totais["movimentado"],
+        "a_pagar": totais["saldo_aberto"] if despesa else 0.0,
+        "a_receber": totais["saldo_aberto"] if not despesa else 0.0,
+    }
+
+    return JsonResponse(
+        {
+            "lancamentos": linhas,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "totais": tot_out,
+            "status_filtro": status,
+            "tipo": "pagar" if despesa else "receber",
+            "planos_excluidos_aplicados": len(excl_planos),
+        }
+    )
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def lancamentos_financeiros_view(request):
+    """Lançamentos a pagar e a receber (DtoLancamento) — Mongo / ERP Venda."""
+    return render(request, "produtos/lancamentos_financeiros.html")
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def lancamentos_contas_pagar_view(request):
+    """Alias da rota antiga — mesma tela unificada."""
+    return render(request, "produtos/lancamentos_financeiros.html")
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_lista(request):
+    """Lista paginada: ``?tipo=pagar`` (default) ou ``?tipo=receber``."""
+    tipo = (request.GET.get("tipo") or "pagar").strip().lower()
+    despesa = tipo != "receber"
+    return _api_lancamentos_lista_core(request, despesa)
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def lancamentos_fluxo_calendario_view(request):
+    """Calendário analítico: projeção de fluxo (vendas médias + vencimentos)."""
+    return render(request, "produtos/lancamentos_fluxo_calendario.html")
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_planos_distintos(request):
+    """Planos de conta distintos no filtro atual (para marcar/desmarcar exclusões)."""
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Mongo indisponível", "planos": []}, status=503)
+    tipo = (request.GET.get("tipo") or "pagar").strip().lower()
+    despesa = tipo != "receber"
+    status = (request.GET.get("status") or "abertos").strip().lower()
+    if status not in ("abertos", "quitados", "todos"):
+        status = "abertos"
+    v_de = _lancamentos_parse_date_param(request.GET.get("venc_de"))
+    v_ate = _lancamentos_parse_date_param(request.GET.get("venc_ate"))
+    texto = (request.GET.get("q") or "").strip() or None
+    try:
+        lim = min(int(request.GET.get("limit") or 400), 500)
+    except ValueError:
+        lim = 400
+    planos = lancamentos_planos_distintos_no_filtro(
+        db,
+        despesa=despesa,
+        status=status,
+        vencimento_de=v_de,
+        vencimento_ate=v_ate,
+        texto=texto,
+        limit=lim,
+    )
+    return JsonResponse({"planos": planos})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_fluxo_calendario(request):
+    """JSON: projeção diária (média vendas + títulos a pagar/receber por vencimento)."""
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Mongo indisponível", "dias": [], "meta": {}}, status=503)
+    try:
+        horiz = int(request.GET.get("horizonte") or 60)
+    except ValueError:
+        horiz = 60
+    try:
+        dias_m = int(request.GET.get("dias_media") or 30)
+    except ValueError:
+        dias_m = 30
+    incl = (request.GET.get("incluir_media") or "1").strip().lower() not in (
+        "0",
+        "false",
+        "nao",
+        "não",
+        "no",
+    )
+    out = financeiro_projecao_fluxo_diario(
+        db,
+        dias_media_vendas=dias_m,
+        horizonte_dias=horiz,
+        incluir_media_vendas=incl,
+    )
+    if out.get("erro"):
+        return JsonResponse(out, status=503)
+    return JsonResponse(out)
+
+
+def _mascarar_cnpj(cnpj: str) -> str:
+    d = re.sub(r"\D", "", str(cnpj or ""))
+    if len(d) != 14:
+        return ""
+    return f"**.***.***/****-{d[-2:]}"
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def entrada_nota_view(request):
+    """Entrada de NF-e: manual, XML e Distribuição DF-e (SEFAZ)."""
+    return render(request, "produtos/entrada_nota.html")
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_entrada_nota_sefaz_status(request):
+    from produtos.sefaz_dfe_client import distribuicao_dfe_configurada
+
+    cnpj = re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14]
+    return JsonResponse(
+        {
+            "configurada": distribuicao_dfe_configurada(),
+            "uf": (config("NFE_DIST_DFE_UF", default="") or "").strip().upper()[:2],
+            "cnpj_mascarado": _mascarar_cnpj(cnpj),
+            "tp_amb": config("NFE_DIST_DFE_TP_AMB", default="2"),
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_entrada_nota_parse_xml(request):
+    arq = request.FILES.get("arquivo")
+    if not arq:
+        return JsonResponse({"ok": False, "erro": "Envie um arquivo XML (NF-e autorizada)."}, status=400)
+    raw = arq.read()
+    if len(raw) > 2_500_000:
+        return JsonResponse({"ok": False, "erro": "Arquivo muito grande (máx. ~2,5 MB)."}, status=400)
+    parsed = parse_nfe_xml_bytes(raw)
+    if not parsed.get("ok"):
+        return JsonResponse(
+            {"ok": False, "erro": parsed.get("erro") or "Não foi possível ler a NF-e."},
+            status=400,
+        )
+    client, db = obter_conexao_mongo()
+    if db is not None and client is not None:
+        parsed["itens"] = casar_produtos_mongo(db, client.col_p, parsed.get("itens") or [])
+    return JsonResponse({"ok": True, "nota": parsed})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_entrada_nota_salvar(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    modo = str(payload.get("modo") or "manual").strip()[:40]
+    cab = payload.get("cabecalho") if isinstance(payload.get("cabecalho"), dict) else {}
+    linhas = payload.get("linhas")
+    if not isinstance(linhas, list) or not linhas:
+        return JsonResponse({"ok": False, "erro": "Inclua ao menos uma linha."}, status=400)
+    xml_chave = str(payload.get("xml_chave") or "").strip()[:44] or None
+    extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (
+            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
+        )[:120]
+    _, db = obter_conexao_mongo()
+    r = salvar_rascunho_entrada(
+        db,
+        usuario=usuario,
+        modo=modo,
+        cabecalho=cab,
+        linhas=linhas,
+        xml_chave=xml_chave,
+        extra=extra,
+    )
+    st = 200 if r.get("ok") else 400
+    return JsonResponse(r, status=st)
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_entrada_nota_rascunhos(request):
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Mongo indisponível", "itens": []}, status=503)
+    try:
+        lim = min(int(request.GET.get("limit") or 25), 80)
+    except ValueError:
+        lim = 25
+    return JsonResponse({"itens": listar_rascunhos_entrada(db, limit=lim)})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_entrada_nota_dist_dfe(request):
+    from produtos.sefaz_dfe_client import distribuicao_dfe_configurada, nfe_distribuicao_dfe_interesse
+
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        payload = {}
+    cnpj_cfg = re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14]
+    ult_pedido = payload.get("ult_nsu")
+    client, db = obter_conexao_mongo()
+    if ult_pedido is not None and str(ult_pedido).strip() != "":
+        ult = re.sub(r"\D", "", str(ult_pedido))[:15] or "0"
+    elif db is not None and len(cnpj_cfg) == 14:
+        ult = obter_ult_nsu(db, cnpj_cfg)
+    else:
+        ult = "0"
+
+    if not distribuicao_dfe_configurada():
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Distribuição DF-e não configurada. Defina no .env: NFE_DIST_DFE_CERT_PATH, "
+                "NFE_DIST_DFE_CERT_PASSWORD, NFE_DIST_DFE_CNPJ, NFE_DIST_DFE_UF e opcionalmente "
+                "NFE_DIST_DFE_TP_AMB (1=produção, 2=homologação). Instale: pip install cryptography lxml signxml",
+                "ult_nsu": ult,
+            },
+            status=400,
+        )
+
+    res = nfe_distribuicao_dfe_interesse(ult)
+    previews: list[dict] = []
+    for xml_txt in res.get("notas_xml") or []:
+        p = parse_nfe_xml_bytes(xml_txt.encode("utf-8"))
+        if p.get("ok"):
+            if db is not None and client is not None:
+                p["itens"] = casar_produtos_mongo(db, client.col_p, p.get("itens") or [])
+            previews.append(
+                {
+                    "chave": p.get("chave"),
+                    "numero": p.get("numero"),
+                    "emit_nome": p.get("emit_nome"),
+                    "valor_total": p.get("valor_total"),
+                    "n_itens": len(p.get("itens") or []),
+                    "nota": p,
+                }
+            )
+
+    if db is not None and len(cnpj_cfg) == 14 and res.get("ult_nsu"):
+        gravar_ult_nsu(db, cnpj_cfg, str(res["ult_nsu"]))
+
+    res["previews"] = previews
+    if not res.get("ok") and res.get("erro"):
+        return JsonResponse(res, status=502)
+    return JsonResponse(res)
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_contas_pagar(request):
+    """Compatibilidade: sempre contas a pagar."""
+    return _api_lancamentos_lista_core(request, True)
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_export_csv(request):
+    """Exporta CSV com os mesmos filtros da lista (até 5000 linhas)."""
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return HttpResponse("Mongo indisponível", status=503, content_type="text/plain; charset=utf-8")
+
+    tipo = (request.GET.get("tipo") or "pagar").strip().lower()
+    despesa = tipo != "receber"
+    status = (request.GET.get("status") or "abertos").strip().lower()
+    if status not in ("abertos", "quitados", "todos"):
+        status = "abertos"
+    v_de = _lancamentos_parse_date_param(request.GET.get("venc_de"))
+    v_ate = _lancamentos_parse_date_param(request.GET.get("venc_ate"))
+    texto = (request.GET.get("q") or "").strip() or None
+    ordenacao = (request.GET.get("ordenacao") or "vencimento_asc").strip().lower()
+    if ordenacao not in ("vencimento_asc", "vencimento_desc", "fluxo_desc"):
+        ordenacao = "vencimento_asc"
+
+    excl_planos = _lancamentos_excluir_planos_from_request(request)
+    query = lancamentos_montar_query_mongo(
+        despesa=despesa,
+        status=status,
+        vencimento_de=v_de,
+        vencimento_ate=v_ate,
+        texto=texto,
+        excluir_planos_nomes=excl_planos or None,
+    )
+    linhas, _, _ = lancamentos_buscar_pagina(
+        db,
+        query,
+        despesa,
+        page=1,
+        page_size=5000,
+        ordenacao=ordenacao,
+    )
+
+    buf = StringIO()
+    w = csv.writer(buf)
+    label_mov = "Pago" if despesa else "Recebido / mov."
+    label_saldo = "A pagar" if despesa else "A receber"
+    w.writerow(
+        [
+            "Vencimento",
+            "Cliente / favorecido",
+            "Descrição",
+            "Doc.",
+            "Forma pagamento",
+            "Banco",
+            "Plano conta",
+            "Grupo",
+            "Valor bruto",
+            label_mov,
+            label_saldo,
+            "Situação",
+            "Data quitação",
+        ]
+    )
+    for row in linhas:
+        w.writerow(
+            [
+                (row.get("data_vencimento") or "")[:19],
+                row.get("cliente") or "",
+                row.get("descricao") or "",
+                row.get("numero_documento") or "",
+                row.get("forma_pagamento") or "",
+                row.get("banco") or "",
+                row.get("plano_conta") or "",
+                row.get("grupo") or "",
+                row.get("valor_bruto"),
+                row.get("valor_movimentado"),
+                row.get("restante"),
+                "Quitado" if row.get("pago") else "Aberto",
+                (row.get("data_pagamento") or "")[:19],
+            ]
+        )
+
+    nome = f"lancamentos_{'pagar' if despesa else 'receber'}_{timezone.localdate().isoformat()}.csv"
+    resp = HttpResponse("\ufeff" + buf.getvalue(), content_type="text/csv; charset=utf-8")
+    resp["Content-Disposition"] = f'attachment; filename="{nome}"'
+    return resp
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_opcoes_baixa(request):
+    """Formas de pagamento e bancos distintos no Mongo (para selects na baixa)."""
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Mongo indisponível", "formas": [], "bancos": []}, status=503)
+    formas, bancos = listar_formas_e_bancos_distintos(db)
+    return JsonResponse({"formas": formas, "bancos": bancos})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_lancamentos_baixa(request):
+    """
+    Quitação total no Mongo dos títulos selecionados, com forma e banco escolhidos no ato.
+    Opcional: VendaERPAPIClient.financeiro_tentar_baixa_api se configurado.
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    ids = payload.get("ids")
+    if not isinstance(ids, list) or not ids:
+        return JsonResponse({"ok": False, "erro": "Informe ao menos um lançamento (ids)."}, status=400)
+
+    tipo = str(payload.get("tipo") or "pagar").strip().lower()
+    despesa = tipo != "receber"
+    forma_nome = str(payload.get("forma_pagamento") or "").strip()
+    forma_id = payload.get("forma_pagamento_id")
+    banco_nome = str(payload.get("banco") or "").strip()
+    banco_id = payload.get("banco_id")
+    data_str = str(payload.get("data_movimento") or "").strip()[:10]
+    try:
+        dmov = date.fromisoformat(data_str) if data_str else timezone.localdate()
+    except ValueError:
+        return JsonResponse({"ok": False, "erro": "Data inválida (use AAAA-MM-DD)."}, status=400)
+
+    tz = timezone.get_current_timezone()
+    data_movimento = timezone.make_aware(datetime.combine(dmov, dtime(12, 0, 0)), tz)
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk))[:120]
+
+    resultado = baixar_lancamentos_mongo(
+        db,
+        [str(i) for i in ids],
+        despesa=despesa,
+        data_movimento=data_movimento,
+        forma_nome=forma_nome,
+        forma_id=str(forma_id).strip() if forma_id else None,
+        banco_nome=banco_nome,
+        banco_id=str(banco_id).strip() if banco_id else None,
+        usuario_label=usuario,
+    )
+
+    path_baixa = (
+        (config("VENDA_ERP_API_FINANCEIRO_BAIXA_PATH", default="") or "")
+        or getattr(settings, "VENDA_ERP_API_FINANCEIRO_BAIXA_PATH", "")
+        or ""
+    ).strip()
+    if path_baixa and resultado.get("atualizados"):
+        try:
+            cli = VendaERPAPIClient()
+            body_erp = montar_payload_erp_baixa(db, resultado["atualizados"], despesa, payload)
+            ok_api, api_msg = cli.financeiro_tentar_baixa_api(body_erp)
+            if ok_api:
+                resultado["erp_baixa_ok"] = True
+            else:
+                resultado["aviso_api"] = str(api_msg)[:800]
+                resultado["erp_baixa_ok"] = False
+        except Exception as exc:
+            resultado["aviso_api"] = str(exc)[:800]
+            resultado["erp_baixa_ok"] = False
+
+    ok_all = bool(resultado.get("ok"))
+    atual = resultado.get("atualizados") or []
+    erros = resultado.get("erros") or []
+    if ok_all:
+        http_st = 200
+    elif atual:
+        http_st = 207
+    else:
+        http_st = 400
+
+    out_j = {
+        "ok": ok_all,
+        "atualizados": atual,
+        "erros": erros,
+        "aviso_api": resultado.get("aviso_api"),
+    }
+    if "erp_baixa_ok" in resultado:
+        out_j["erp_baixa_ok"] = resultado["erp_baixa_ok"]
+    return JsonResponse(out_j, status=http_st)
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def lancamentos_manual_view(request):
+    """Lançamento manual em lote (cabeçalho fixo + linhas de detalhe) gravado no Mongo."""
+    return render(request, "produtos/lancamentos_manual.html")
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_sugestoes(request):
+    """Autocomplete: campo=empresa|cliente|plano|forma|banco|grupo|centro&q="""
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Mongo indisponível", "itens": []}, status=503)
+    campo = (request.GET.get("campo") or "").strip().lower()
+    q = (request.GET.get("q") or "").strip()
+    try:
+        lim = min(int(request.GET.get("limit") or 30), 80)
+    except ValueError:
+        lim = 30
+    itens = lancamentos_sugestoes_campo(db, campo, q=q or None, limit=lim)
+    return JsonResponse({"campo": campo, "itens": itens})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_lancamentos_criar_manual_lote(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    tipo = str(payload.get("tipo") or "pagar").strip().lower()
+    despesa = tipo != "receber"
+
+    def _d(key):
+        s = str(payload.get(key) or "").strip()[:10]
+        if not s:
+            return None
+        return date.fromisoformat(s)
+
+    dc = _d("data_competencia")
+    dv = _d("data_vencimento")
+    if dc is None or dv is None:
+        return JsonResponse({"ok": False, "erro": "Informe data de competência e de vencimento."}, status=400)
+
+    linhas = payload.get("linhas")
+    if not isinstance(linhas, list):
+        return JsonResponse({"ok": False, "erro": "Campo linhas deve ser uma lista."}, status=400)
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (
+            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
+        )[:120]
+
+    resultado = inserir_lancamentos_manual_lote(
+        db,
+        despesa=despesa,
+        empresa_nome=str(payload.get("empresa_nome") or "").strip(),
+        empresa_id=str(payload.get("empresa_id") or "").strip() or None,
+        pessoa_nome=str(payload.get("pessoa_nome") or "").strip(),
+        pessoa_id=str(payload.get("pessoa_id") or "").strip() or None,
+        data_competencia=dc,
+        data_vencimento=dv,
+        banco_nome=str(payload.get("banco_nome") or "").strip(),
+        banco_id=str(payload.get("banco_id") or "").strip() or None,
+        forma_nome=str(payload.get("forma_nome") or "").strip(),
+        forma_id=str(payload.get("forma_id") or "").strip() or None,
+        grupo_nome=str(payload.get("grupo_nome") or "").strip() or None,
+        grupo_id=str(payload.get("grupo_id") or "").strip() or None,
+        usuario_label=usuario,
+        linhas=linhas,
+    )
+
+    ok = bool(resultado.get("ok"))
+    ids = resultado.get("ids") or []
+    erros = resultado.get("erros") or []
+    aviso_api_erp = None
+    erp_lanc_ok = None
+    path_lanc = (
+        (config("VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", default="") or "")
+        or getattr(settings, "VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", "")
+        or ""
+    ).strip()
+    if path_lanc and ids:
+        try:
+            cli = VendaERPAPIClient()
+            body_erp = montar_payload_erp_lancamentos_novos(db, ids, str(resultado.get("lote") or ""), despesa)
+            ok_erp, api_msg = cli.financeiro_tentar_lancamentos_api(body_erp)
+            erp_lanc_ok = bool(ok_erp)
+            if not ok_erp:
+                aviso_api_erp = str(api_msg)[:800]
+        except Exception as exc:
+            erp_lanc_ok = False
+            aviso_api_erp = str(exc)[:800]
+    if ok:
+        st = 200
+    elif ids:
+        st = 207
+    else:
+        st = 400
+    out_lm = {
+        "ok": ok,
+        "lote": resultado.get("lote"),
+        "ids": ids,
+        "erros": erros,
+    }
+    if erp_lanc_ok is not None:
+        out_lm["erp_lancamento_ok"] = erp_lanc_ok
+    if aviso_api_erp:
+        out_lm["aviso_api"] = aviso_api_erp
+    return JsonResponse(out_lm, status=st)
 
 
 def ajuste_mobile_view(request):
@@ -1458,11 +2273,20 @@ def api_buscar_produtos(request):
             codigo_barras = _extrair_codigo_barras(p)
             media_d = float(medias_map.get(pid, 0.0))
             pv = float(preco_por_id[pid]) if pid in preco_por_id else float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
+            prateleira_busca = (
+                p.get("Prateleira")
+                or p.get("Localizacao")
+                or p.get("LocalEstoque")
+                or p.get("Setor")
+                or p.get("EnderecoPrateleira")
+                or ""
+            )
 
             row = {
                 "id": pid,
                 "nome": p.get("Nome"),
                 "marca": p.get("Marca") or "",
+                "prateleira": str(prateleira_busca).strip() if prateleira_busca is not None else "",
                 "fornecedor": p.get("NomeFornecedor")
                 or p.get("Fornecedor")
                 or p.get("RazaoSocialFornecedor")
@@ -1921,7 +2745,10 @@ def _media_diaria_vendas_por_produto(db, dias=30):
         }
         totais = {}
         for item in db["DtoVendaProduto"].find(query_itens):
-            pid = str(item.get("ProdutoID") or "")
+            raw_pid = item.get("ProdutoID")
+            if raw_pid is None:
+                continue
+            pid = str(raw_pid)
             if not pid or pid == "None":
                 continue
             qtd = float(item.get("Quantidade") or 0)
@@ -2000,6 +2827,14 @@ def api_todos_produtos_local(request):
             s_c = float(sp.get("saldo_erp_centro", 0.0))
             s_v = float(sp.get("saldo_erp_vila", 0.0))
 
+            prateleira_raw = (
+                p.get("Prateleira")
+                or p.get("Localizacao")
+                or p.get("LocalEstoque")
+                or p.get("Setor")
+                or p.get("EnderecoPrateleira")
+                or ""
+            )
             partes = [
                 p.get("Nome"),
                 p.get("Marca"),
@@ -2010,6 +2845,7 @@ def api_todos_produtos_local(request):
                 p.get("Codigo"),
                 p.get("CodigoBarras"),
                 p.get("EAN_NFe"),
+                prateleira_raw or None,
             ]
             busca_texto_gerado = " ".join(normalizar(str(part)) for part in partes if part).strip()
             busca_texto_existente = normalizar(p.get("BuscaTexto") or "")
@@ -2032,6 +2868,7 @@ def api_todos_produtos_local(request):
                 "id": pid,
                 "nome": p.get("Nome"),
                 "marca": p.get("Marca"),
+                "prateleira": str(prateleira_raw).strip() if prateleira_raw is not None else "",
                 "fornecedor": p.get("NomeFornecedor")
                 or p.get("Fornecedor")
                 or p.get("RazaoSocialFornecedor")
@@ -2113,8 +2950,9 @@ def api_pdv_saldos_compacto(request):
 def api_pdv_metricas_produtos(request):
     """
     Por produto: média diária (total/dias no período), vendas últimos 7d, 7d anteriores,
-    variação % semana a semana, última entrada (compra/nota) se o Mongo tiver as coleções.
-    Cache ~5 min por (dias, bucket) para não sobrecarregar o banco.
+    variação % semana a semana, última entrada (compra/nota), e 4 colunas extras com qtd.
+    vendida por semana (janelas de 7d nos últimos 28d, da mais antiga à mais recente).
+    Cada linha de rows tem 12 elementos (índices 8–11 = sparkline 4 semanas). Cache ~5 min.
     """
     try:
         dias = int(request.GET.get("dias", 30))
@@ -2132,6 +2970,7 @@ def api_pdv_metricas_produtos(request):
         return JsonResponse({"erro": "Erro conexao"}, status=500)
     try:
         media_tot, w0, w1 = _metricas_vendas_agregadas_por_produto(db, dias)
+        spark_map = _metricas_vendas_4_semanas_por_produto(db)
         entradas = _ultima_entrada_mercadoria_por_produto(db)
         query = {"CadastroInativo": {"$ne": True}}
         produtos = list(db[client.col_p].find(query, {"Id": 1, "_id": 1}))
@@ -2150,6 +2989,7 @@ def api_pdv_metricas_produtos(request):
             else:
                 var_pct = None
             ent = entradas.get(pid) or {}
+            sp = spark_map.get(pid) or [0.0, 0.0, 0.0, 0.0]
             rows.append(
                 [
                     pid,
@@ -2160,13 +3000,145 @@ def api_pdv_metricas_produtos(request):
                     var_pct,
                     ent.get("data") or "",
                     float(ent.get("qtd") or 0),
+                    round(float(sp[0]), 4),
+                    round(float(sp[1]), 4),
+                    round(float(sp[2]), 4),
+                    round(float(sp[3]), 4),
                 ]
             )
-        payload = {"v": 1, "dias": dias, "rows": rows}
+        payload = {"v": 2, "dias": dias, "rows": rows}
         cache.set(ck, payload, timeout=320)
         return JsonResponse(payload)
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
+
+
+@require_GET
+def api_pdv_top_vendidos(request):
+    """
+    Top N produtos por quantidade vendida no período (DtoVenda / DtoVendaProduto).
+    Cache ~5 min; invalidação alinhada às métricas PDV.
+    """
+    try:
+        limite = int(request.GET.get("limite") or 10)
+    except (TypeError, ValueError):
+        limite = 10
+    limite = max(1, min(limite, 20))
+    try:
+        dias = int(request.GET.get("dias") or 30)
+    except (TypeError, ValueError):
+        dias = 30
+    dias = max(7, min(dias, 365))
+    bucket = int(time.time() // 300)
+    ck = _pdv_top_vendidos_cache_key(dias, limite, bucket)
+    hit = cache.get(ck)
+    if hit is not None and isinstance(hit, dict) and "itens" in hit:
+        try:
+            json.dumps(hit)
+        except (TypeError, ValueError):
+            cache.delete(ck)
+        else:
+            return JsonResponse(hit)
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Mongo indisponível", "itens": []}, status=503)
+    try:
+        media_tot, _, _ = _metricas_vendas_agregadas_por_produto(db, dias)
+        ranked = sorted(media_tot.items(), key=lambda x: x[1], reverse=True)[:limite]
+        if not ranked:
+            payload = {"v": 1, "dias": dias, "limite": limite, "itens": []}
+            cache.set(ck, payload, timeout=320)
+            return JsonResponse(payload)
+
+        ids_top = [r[0] for r in ranked]
+        ors = []
+        for pid in ids_top:
+            ors.append({"Id": pid})
+            if pid.isdigit():
+                try:
+                    n = int(pid)
+                    ors.append({"Id": n})
+                    ors.append({"Codigo": n})
+                except (TypeError, ValueError):
+                    pass
+            if len(pid) == 24:
+                try:
+                    oid = ObjectId(pid)
+                    ors.append({"Id": oid})
+                    ors.append({"_id": oid})
+                except Exception:
+                    pass
+
+        col = db[client.col_p]
+        prods = list(
+            col.find(
+                {"$or": ors},
+                {
+                    "Id": 1,
+                    "_id": 1,
+                    "Nome": 1,
+                    "ValorVenda": 1,
+                    "PrecoVenda": 1,
+                    "Codigo": 1,
+                },
+            )
+        )
+
+        def _chaves_produto_para_mapa(p) -> list[str]:
+            keys = []
+            vid = p.get("Id")
+            if vid is not None:
+                keys.append(str(vid))
+            keys.append(str(p.get("_id")))
+            cod = p.get("Codigo")
+            if cod is not None and str(cod).strip() != "":
+                keys.append(str(cod))
+            return [k for k in keys if k and k != "None"]
+
+        pmap: dict[str, dict] = {}
+        for p in prods:
+            for k in _chaves_produto_para_mapa(p):
+                pmap[k] = p
+
+        itens: list[dict] = []
+        for pid, qtd in ranked:
+            p = pmap.get(pid)
+            canon_id = str(p.get("Id") or p["_id"]) if p else str(pid)
+            raw_nome = p.get("Nome") if p else None
+            nome = _pdv_top_v_texto_produto(raw_nome, f"Produto {canon_id}")
+            if not nome:
+                nome = f"Produto {canon_id}"
+            preco = 0.0
+            if p:
+                raw_preco = p.get("ValorVenda")
+                if raw_preco is None:
+                    raw_preco = p.get("PrecoVenda")
+                if raw_preco is None:
+                    raw_preco = 0
+                preco = _pdv_top_v_float(raw_preco)
+            fq = _pdv_top_v_float(qtd)
+            itens.append(
+                {
+                    "id": canon_id,
+                    "nome": nome,
+                    "preco_venda": round(preco, 4),
+                    "qtd_periodo": round(fq, 4),
+                }
+            )
+
+        payload = {"v": 1, "dias": dias, "limite": limite, "itens": itens}
+        cache.set(ck, payload, timeout=320)
+        try:
+            return JsonResponse(payload)
+        except (TypeError, ValueError) as ser_err:
+            logger.exception("api_pdv_top_vendidos JsonResponse: %s", ser_err)
+            return JsonResponse(
+                {"erro": "Falha ao serializar o ranking; dados de produto inválidos.", "itens": []},
+                status=500,
+            )
+    except Exception as e:
+        return JsonResponse({"erro": str(e), "itens": []}, status=500)
 
 
 def _nome_exibicao_pessoa(doc):
@@ -2892,11 +3864,14 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
         pid = eid
     else:
         pid = f"local:{c.pk}"
+    end = (c.endereco or "").strip()
     return {
         "id": pid,
         "nome": c.nome,
         "documento": (c.cpf or "").strip() or "—",
         "telefone": (c.whatsapp or "").strip(),
+        "endereco": end,
+        "plus_code": (getattr(c, "plus_code", None) or "").strip(),
     }
 
 
@@ -2905,7 +3880,11 @@ def _clientes_locais_agro_pdv(termo=""):
     qs = ClienteAgro.objects.filter(ativo=True)
     if t:
         qs = qs.filter(
-            Q(nome__icontains=t) | Q(whatsapp__icontains=t) | Q(cpf__icontains=t)
+            Q(nome__icontains=t)
+            | Q(whatsapp__icontains=t)
+            | Q(cpf__icontains=t)
+            | Q(endereco__icontains=t)
+            | Q(plus_code__icontains=t)
         )
     qs = qs.order_by("nome")[:80]
     return [_linha_clienteagro_pdv(c) for c in qs]
@@ -3086,3 +4065,246 @@ def api_buscar_produto_id(request, id):
         return JsonResponse(res)
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
+
+
+def _parse_hhmm_entrega(val):
+    if val is None:
+        return None
+    s = str(val).strip()
+    if not s:
+        return None
+    try:
+        parts = s.replace(".", ":").split(":")
+        h = int(parts[0])
+        m = int(parts[1]) if len(parts) > 1 else 0
+        return dtime(max(0, min(h, 23)), max(0, min(m, 59)))
+    except (ValueError, TypeError, IndexError):
+        return None
+
+
+def _parse_troco_precisa_val(v):
+    if v is None or v == "":
+        return None
+    if isinstance(v, bool):
+        return v
+    s = str(v).strip().lower()
+    if s in ("true", "1", "sim", "yes", "s"):
+        return True
+    if s in ("false", "0", "nao", "não", "no", "n"):
+        return False
+    return None
+
+
+@ensure_csrf_cookie
+@require_GET
+def entregas_painel_view(request):
+    tw = (getattr(settings, "PDV_ENTREGA_WHATSAPP", None) or "").strip()
+    origens = [
+        {
+            "id": "centro",
+            "label": "Centro — Av. Adhemar de Barros, 230",
+            "q": (getattr(settings, "LOJA_MAPS_ORIGEM_CENTRO", None) or "").strip(),
+            "link_loja": (getattr(settings, "LOJA_MAPS_LINK_CENTRO", None) or "").strip(),
+        },
+        {
+            "id": "vila",
+            "label": "Vila Elias",
+            "q": (getattr(settings, "LOJA_MAPS_ORIGEM_VILA", None) or "").strip(),
+            "link_loja": (getattr(settings, "LOJA_MAPS_LINK_VILA", None) or "").strip(),
+        },
+    ]
+    return render(
+        request,
+        "produtos/entregas_painel.html",
+        {
+            "origens_maps_json": mark_safe(json.dumps(origens, ensure_ascii=False)),
+            "pdv_whatsapp_loja": tw,
+        },
+    )
+
+
+@require_POST
+def api_entrega_registrar(request):
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    orc_raw = body.get("orc_local_id")
+    try:
+        orc_id = int(orc_raw) if orc_raw is not None and str(orc_raw).strip() != "" else None
+    except (TypeError, ValueError):
+        orc_id = None
+
+    cliente_nome = (body.get("cliente_nome") or "").strip()[:300]
+    if not cliente_nome:
+        return JsonResponse({"ok": False, "erro": "cliente_nome obrigatório"}, status=400)
+
+    itens = body.get("itens")
+    if not isinstance(itens, list):
+        itens = []
+
+    campos = {
+        "cliente_nome": cliente_nome,
+        "telefone": (body.get("telefone") or "")[:40].strip(),
+        "endereco_linha": (body.get("endereco_linha") or "")[:500].strip(),
+        "plus_code": (body.get("plus_code") or "")[:120].strip(),
+        "referencia_rural": (body.get("referencia_rural") or "")[:300].strip(),
+        "maps_url_manual": (body.get("maps_url_manual") or "")[:600].strip(),
+        "itens_json": itens,
+        "total_texto": (body.get("total_texto") or "")[:48].strip(),
+        "retomar_codigo": (body.get("retomar_codigo") or "")[:40].strip(),
+        "operador": (body.get("operador") or "")[:120].strip(),
+        "hora_prevista": _parse_hhmm_entrega(body.get("hora_prevista")),
+        "forma_pagamento": (body.get("forma_pagamento") or "")[:40].strip(),
+        "troco_precisa": _parse_troco_precisa_val(body.get("troco_precisa")),
+    }
+    if campos["forma_pagamento"] == "Dinheiro" and campos["troco_precisa"] is None:
+        return JsonResponse(
+            {"ok": False, "erro": "Para Dinheiro informe se precisa de troco (troco_precisa: true/false)."},
+            status=400,
+        )
+    if campos["forma_pagamento"] and campos["forma_pagamento"] != "Dinheiro":
+        campos["troco_precisa"] = None
+
+    if orc_id is not None:
+        existente = PedidoEntrega.objects.filter(orc_local_id=orc_id).first()
+        if existente:
+            for k, v in campos.items():
+                setattr(existente, k, v)
+            existente.save()
+            obj = existente
+        else:
+            obj = PedidoEntrega.objects.create(
+                orc_local_id=orc_id,
+                status=PedidoEntrega.Status.PENDENTE,
+                **campos,
+            )
+    else:
+        obj = PedidoEntrega.objects.create(
+            status=PedidoEntrega.Status.PENDENTE,
+            **campos,
+        )
+
+    return JsonResponse({"ok": True, "id": obj.pk})
+
+
+@require_GET
+def api_entregas_listar(request):
+    st = (request.GET.get("status") or "").strip()
+    try:
+        lim = min(max(int(request.GET.get("lim") or 200), 1), 500)
+    except (TypeError, ValueError):
+        lim = 200
+    qs = PedidoEntrega.objects.all().order_by("-criado_em")
+    if st:
+        qs = qs.filter(status=st)
+    qs = qs[:lim]
+    status_vals = {c.value for c in PedidoEntrega.Status}
+    rows = []
+    for e in qs:
+        rows.append(
+            {
+                "id": e.pk,
+                "status": e.status,
+                "cliente_nome": e.cliente_nome,
+                "telefone": e.telefone,
+                "endereco_linha": e.endereco_linha,
+                "plus_code": e.plus_code,
+                "referencia_rural": e.referencia_rural,
+                "maps_url_manual": e.maps_url_manual or "",
+                "itens_json": e.itens_json,
+                "total_texto": e.total_texto,
+                "orc_local_id": e.orc_local_id,
+                "retomar_codigo": e.retomar_codigo,
+                "operador": e.operador,
+                "hora_prevista": e.hora_prevista.isoformat() if e.hora_prevista else None,
+                "hora_saida": e.hora_saida.isoformat() if e.hora_saida else None,
+                "hora_entrega": e.hora_entrega.isoformat() if e.hora_entrega else None,
+                "observacoes": e.observacoes,
+                "forma_pagamento": e.forma_pagamento or "",
+                "troco_precisa": e.troco_precisa,
+                "criado_em": e.criado_em.isoformat(),
+            }
+        )
+    return JsonResponse({"entregas": rows, "status_opcoes": sorted(status_vals)})
+
+
+@require_POST
+def api_entrega_atualizar(request):
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    pk = body.get("id")
+    try:
+        pk = int(pk)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "id inválido"}, status=400)
+    ent = get_object_or_404(PedidoEntrega, pk=pk)
+
+    status_vals = {c.value for c in PedidoEntrega.Status}
+    if "status" in body and body["status"]:
+        val = str(body["status"]).strip()
+        if val in status_vals:
+            ent.status = val
+    if "telefone" in body and body["telefone"] is not None:
+        ent.telefone = str(body["telefone"])[:40].strip()
+    if "endereco_linha" in body and body["endereco_linha"] is not None:
+        ent.endereco_linha = str(body["endereco_linha"])[:500].strip()
+    if "plus_code" in body and body["plus_code"] is not None:
+        ent.plus_code = str(body["plus_code"])[:120].strip()
+    if "referencia_rural" in body and body["referencia_rural"] is not None:
+        ent.referencia_rural = str(body["referencia_rural"])[:300].strip()
+    if "maps_url_manual" in body and body["maps_url_manual"] is not None:
+        ent.maps_url_manual = str(body["maps_url_manual"])[:600].strip()
+    if "observacoes" in body and body["observacoes"] is not None:
+        ent.observacoes = str(body["observacoes"])[:2000]
+    if "hora_prevista" in body:
+        ent.hora_prevista = _parse_hhmm_entrega(body.get("hora_prevista"))
+    if body.get("hora_saida_now"):
+        ent.hora_saida = timezone.now()
+    if body.get("hora_entrega_now"):
+        ent.hora_entrega = timezone.now()
+    if body.get("clear_hora_saida"):
+        ent.hora_saida = None
+    if body.get("clear_hora_entrega"):
+        ent.hora_entrega = None
+    if "forma_pagamento" in body and body["forma_pagamento"] is not None:
+        ent.forma_pagamento = str(body["forma_pagamento"])[:40].strip()
+    if "troco_precisa" in body:
+        ent.troco_precisa = _parse_troco_precisa_val(body["troco_precisa"])
+
+    fp = (ent.forma_pagamento or "").strip()
+    if fp == "Dinheiro" and ent.troco_precisa is None:
+        return JsonResponse(
+            {"ok": False, "erro": "Para Dinheiro informe se precisa de troco (Sim/Não)."},
+            status=400,
+        )
+    if fp and fp != "Dinheiro":
+        ent.troco_precisa = None
+
+    ent.save()
+    return JsonResponse({"ok": True})
+
+
+@require_POST
+def api_entregas_ordenar_rota(request):
+    """
+    Ordena paradas por proximidade (Haversine + vizinho mais próximo).
+    Plus Codes (Google OLC) são decodificados no servidor; demais textos via Nominatim (1 req/s; cache).
+    Links do Maps com @lat,lng usam coordenadas diretas.
+    """
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    origem = str(body.get("origem_texto") or "").strip()
+    paradas = body.get("paradas")
+    if not isinstance(paradas, list):
+        return JsonResponse({"ok": False, "erro": "Envie paradas (lista)."}, status=400)
+    out = ordenar_entregas_por_proximidade(origem, paradas)
+    if not out.get("ok"):
+        st = 400 if not out.get("paradas") else 422
+        return JsonResponse(out, status=st)
+    return JsonResponse(out)

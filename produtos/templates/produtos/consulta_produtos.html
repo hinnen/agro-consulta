@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" class="h-full overflow-hidden">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
+        /* Evita rolagem da página inteira: só painéis internos rolam */
+        html, body { height: 100%; max-height: 100%; overflow: hidden; }
         body { font-family: 'Inter', sans-serif; }
         .hide-scroll::-webkit-scrollbar { display: none; }
         .selected-suggestion {
@@ -16,6 +18,9 @@
             border-left: 6px solid #10b981;
         }
         .modal-open { overflow: hidden; }
+        body.pdv-carrinho-drawer-open { overflow: hidden; }
+        #pdv-carrinho-backdrop { transition: opacity 0.2s ease; }
+        #pdv-drawer-carrinho { transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
         input::placeholder {
             color: #94a3b8;
             font-weight: 700;
@@ -50,6 +55,14 @@
         @keyframes scanBanner {
             0% { transform: translateY(-4px); opacity: 0; }
             100% { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes pdvCarrinhoAttention {
+            0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); filter: brightness(1); }
+            30% { box-shadow: 0 0 0 5px rgba(249, 115, 22, 0.4), 0 0 22px rgba(251, 146, 60, 0.45); filter: brightness(1.09); }
+            100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); filter: brightness(1); }
+        }
+        .pdv-carrinho-attention {
+            animation: pdvCarrinhoAttention 0.95s ease-out 1;
         }
         .soft-btn {
             background: #f8fafc;
@@ -172,11 +185,56 @@
             background: linear-gradient(90deg, rgba(16,185,129,.10), rgba(249,115,22,.10));
             border: 1px solid rgba(16,185,129,.18);
         }
-        /* Oculta o cupom na tela e mostra só na impressão */
-        #cupom-orcamento { display: none; }
+        /* Oculta cupons na tela; impressão controlada por classe no body */
+        #cupom-orcamento, #cupom-separacao, #pdv-pack-entrega-print { display: none; }
         @media print {
-            body > div:not(#cupom-orcamento) { display: none !important; }
-            #cupom-orcamento { display: block !important; position: absolute; left: 0; top: 0; width: 76mm; font-family: 'Courier New', Courier, monospace; color: #000; padding: 0; margin: 0; }
+            body.print-pdv-separacao > *:not(#cupom-separacao) { display: none !important; }
+            body.print-pdv-separacao #cupom-separacao {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 76mm;
+                font-family: 'Courier New', Courier, monospace;
+                color: #000;
+                padding: 0;
+                margin: 0;
+            }
+            body.print-pdv-entrega-pack > *:not(#pdv-pack-entrega-print) { display: none !important; }
+            body.print-pdv-entrega-pack #pdv-pack-entrega-print {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm;
+                max-width: 80mm;
+                font-family: 'Courier New', Courier, monospace;
+                color: #000;
+                padding: 0;
+                margin: 0;
+                background: #fff;
+            }
+            body.print-pdv-entrega-pack .pdv-entrega-page {
+                page-break-after: always;
+                width: 100%;
+                box-sizing: border-box;
+                padding: 4mm 3mm;
+                font-size: 11px;
+                line-height: 1.35;
+            }
+            body.print-pdv-entrega-pack .pdv-entrega-page:last-child { page-break-after: auto; }
+            body.print-pdv-orcamento-only > *:not(#cupom-orcamento) { display: none !important; }
+            body.print-pdv-orcamento-only #cupom-orcamento {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 80mm;
+                font-family: 'Courier New', Courier, monospace;
+                color: #000;
+                padding: 0;
+                margin: 0;
+            }
             @page { margin: 0; size: 80mm auto; }
         }
         .cart-shell-empty {
@@ -188,7 +246,6 @@
             background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
             border: 4px solid rgba(249, 115, 22, .98);
             box-shadow: 0 0 0 5px rgba(249,115,22,.18), 0 0 0 10px rgba(16,185,129,.09), 0 24px 48px rgba(249,115,22,.24);
-            transform: translateY(-1px) scale(1.01);
         }
         .cart-shell-active #total-geral {
             font-size: 1.75rem;
@@ -349,7 +406,7 @@
 
     </style>
 </head>
-<body class="bg-slate-100 text-slate-900 h-screen overflow-hidden flex flex-col text-[15px]">
+<body class="bg-slate-100 text-slate-900 h-screen overflow-hidden flex flex-col text-[15px]" data-pdv-entrega-wa="{{ pdv_entrega_whatsapp|default:''|escape }}">
 {% if pdv_reabrir_data %}
 {{ pdv_reabrir_data|json_script:"pdv-reabrir-draft" }}
 {% endif %}
@@ -371,6 +428,14 @@
                     <span class="pdv-nav-icon"><i data-lucide="package"></i></span>
                     <span class="pdv-nav-label">Compras</span>
                 </a>
+                <a href="{% url 'entrada_nota' %}" class="pdv-nav-item" title="Entrada de NF-e — manual, XML ou consulta SEFAZ (login).">
+                    <span class="pdv-nav-icon"><i data-lucide="file-input"></i></span>
+                    <span class="pdv-nav-label">Entrada NF-e</span>
+                </a>
+                <a href="{% url 'lancamentos_financeiros' %}" class="pdv-nav-item" title="Lançamentos — pagar e receber, export CSV, baixa no Mongo (login).">
+                    <span class="pdv-nav-icon"><i data-lucide="wallet"></i></span>
+                    <span class="pdv-nav-label">Lançamentos</span>
+                </a>
                 <a href="/transferencias/" class="pdv-nav-item" title="Logística — transferências entre depósitos ou filiais.">
                     <span class="pdv-nav-icon"><i data-lucide="arrow-left-right"></i></span>
                     <span class="pdv-nav-label">Logística</span>
@@ -391,6 +456,10 @@
                     <span class="pdv-nav-icon"><i data-lucide="history"></i></span>
                     <span class="pdv-nav-label">Orçamentos</span>
                 </button>
+                <a href="{% url 'entregas_painel' %}" class="pdv-nav-item" title="Painel de entregas: status, rotas Maps, reimpressão e WhatsApp.">
+                    <span class="pdv-nav-icon"><i data-lucide="truck"></i></span>
+                    <span class="pdv-nav-label">Entregas</span>
+                </a>
             </nav>
             <div class="p-2 border-t border-slate-800/80 flex flex-col gap-1">
                 <a href="/ajuste-mobile/" class="pdv-nav-item" title="Ajuste mobile — contagem com PIN na loja.">
@@ -412,7 +481,7 @@
                     </div>
                     <div class="min-w-0">
                         <div class="text-sm font-black text-slate-800 leading-tight truncate">GM <span class="text-emerald-600">AGRO MAIS</span></div>
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">PDV · Venda</div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">PDV · Venda · <span class="text-slate-500 normal-case">F1</span> carrinho · <span class="text-slate-500 normal-case">F1</span> em outras telas volta ao PDV</div>
                     </div>
                 </div>
                 <div class="flex-1 flex flex-wrap items-center justify-end gap-3 min-w-0">
@@ -425,9 +494,18 @@
                     <select id="pdv-empresa" class="text-sm font-bold border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 text-slate-800 max-w-[min(240px,100%)]" title="Unidade / contexto da venda (configuração futura do ERP).">
                         <option value="1">Agro Mais — Principal</option>
                     </select>
+                    <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-700 border border-slate-200 shrink-0 max-w-[7rem] truncate" title="Operador (modo descanso)"></span>
+                    <button type="button" id="btn-pdv-sair-usuario-pin" class="inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 shrink-0" title="Encerra o usuário neste aparelho e abre a tela de PIN" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">
+                        Sair / PIN
+                    </button>
                     <div id="pdv-clock" class="text-xs font-semibold text-slate-500 tabular-nums hidden sm:block" title="Data e hora local"></div>
                     <button type="button" id="btn-atualizar-catalogo-pdv" class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0" title="Forçar atualização do cadastro (preços, nomes, códigos). No servidor o catálogo renova no máximo 1x por dia civil; estoque atualiza em segundo plano (~8s)." aria-label="Atualizar cadastro de produtos">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                    </button>
+                    <button type="button" id="btn-abrir-carrinho-pdv-header" onclick="abrirDrawerCarrinho()" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border-2 border-orange-200 bg-orange-50 text-orange-900 text-[11px] font-black uppercase tracking-wide hover:bg-orange-100/90 shadow-sm shrink-0" title="Abrir ou fechar carrinho (F1). Cliente, itens, finalizar.">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm12 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" /></svg>
+                        <span class="hidden sm:inline">Carrinho</span>
+                        <kbd class="pointer-events-none text-[8px] px-1 py-0.5 rounded font-black border border-orange-300/80 bg-white text-orange-800 tabular-nums shadow-sm" title="Atalho: F1">F1</kbd>
                     </button>
                     <button type="button" onclick="abrirModalLembretes()" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-950 text-[11px] font-black uppercase tracking-wide hover:bg-amber-100/90 shadow-sm shrink-0" title="Lembretes do caixa — abre janela para criar alertas por horário (som e aviso no canto da tela).">
                         <span class="text-base leading-none" aria-hidden="true">⏰</span>
@@ -436,7 +514,7 @@
                 </div>
             </header>
 
-            <div class="flex flex-1 min-h-0 gap-3 p-3 overflow-hidden">
+            <div class="flex flex-1 min-h-0 gap-3 p-3 overflow-hidden items-stretch">
                 <div class="flex-1 flex flex-col min-w-0 min-h-0 gap-3">
                     <div id="scan-banner" class="hidden scan-banner bg-gradient-to-r from-orange-500 to-emerald-600 text-white text-xs font-black uppercase tracking-widest px-4 py-3 rounded-xl shadow-md">
                         Código lido com sucesso
@@ -445,7 +523,7 @@
                     <div class="shrink-0 flex gap-2 items-stretch">
                         <div class="relative flex-1 min-w-0">
                             <label for="busca-produto" class="sr-only">Buscar produto</label>
-                            <span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500 uppercase bg-white/95 px-2 py-0.5 rounded-md border border-slate-200 shadow-sm tabular-nums" title="Atalho: F2 foca neste campo">F2</span>
+                            <span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase bg-white/90 px-1.5 py-0.5 rounded-md border border-slate-200/90 tabular-nums opacity-90" title="F2 foca aqui · / também (fora de campos)">F2</span>
                             <input
                                 type="text"
                                 id="busca-produto"
@@ -456,10 +534,23 @@
                             >
                             <div id="autocomplete-results" class="absolute z-50 w-full bg-white mt-1 rounded-lg shadow-xl border border-slate-200 hidden overflow-hidden"></div>
                         </div>
-                        <button type="button" onclick="abrirBuscaAvancada()" class="shrink-0 self-center h-14 px-3 sm:px-4 rounded-xl border-2 border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 text-[10px] sm:text-[11px] font-black uppercase text-slate-600 leading-tight max-w-[108px] sm:max-w-none" title="Busca avançada — filtros por marca, fornecedor, categoria, texto, preço máximo e estoque máximo. Resultados entram no carrinho ao toque.">
-                            <span class="block leading-snug">Busca</span>
-                            <span class="block leading-snug text-[9px] text-slate-400 font-bold normal-case">avançada</span>
+                        <button type="button" onclick="abrirBuscaAvancada()" class="shrink-0 self-center h-14 px-3 sm:px-4 rounded-xl border-2 border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 text-[10px] sm:text-[11px] font-black uppercase text-slate-600 leading-tight max-w-[108px] sm:max-w-none inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5" title="Busca avançada — filtros por marca, fornecedor, categoria, etc. Atalho: Alt + A (fora de campos de texto).">
+                            <span class="text-center leading-snug"><span class="block sm:inline">Busca </span><span class="block sm:inline text-[9px] text-slate-400 font-bold normal-case">avançada</span></span>
+                            <kbd class="pointer-events-none hidden sm:inline-flex text-[9px] px-1.5 py-0.5 rounded-md font-black border border-slate-200 bg-white text-slate-500 whitespace-nowrap normal-case" title="Alt + A">Alt + A</kbd>
                         </button>
+                    </div>
+
+                    <div id="pdv-top-vendidos-wrap" class="shrink-0 rounded-xl border border-orange-200/90 bg-gradient-to-r from-orange-50/95 to-amber-50/90 p-3 shadow-sm">
+                        <div class="flex flex-wrap items-center justify-end gap-2 mb-2">
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button type="button" id="pdv-mv-importar-ranking" class="text-[9px] font-black uppercase text-amber-900 bg-white/80 border border-amber-300/70 rounded-lg px-2 py-1 hover:bg-amber-100" title="Sobrescreve os 10 atalhos com o ranking de vendas dos últimos 30 dias (Mongo).">
+                                    Preencher Mongo 30d
+                                </button>
+                                <span class="text-[9px] font-bold text-amber-800/90 tabular-nums whitespace-nowrap" id="pdv-top-vendidos-meta" title="Gravado só neste navegador/aparelho.">Neste aparelho</span>
+                            </div>
+                        </div>
+                        <div id="pdv-mv-slot-banner" class="hidden mb-2 text-[10px] font-bold text-amber-950 bg-amber-100/95 border border-amber-300/50 rounded-lg px-2.5 py-2 leading-snug"></div>
+                        <div id="pdv-top-vendidos-btns" class="grid grid-cols-2 sm:grid-cols-5 gap-2 min-h-[2.5rem]"></div>
                     </div>
 
                     <div id="status-busca" class="hidden text-xs font-black uppercase tracking-wider text-slate-500 px-1"></div>
@@ -476,65 +567,77 @@
                     </div>
                 </div>
 
-                <aside class="w-full max-w-[380px] shrink-0 flex flex-col min-h-0">
-                    <div id="cart-shell" class="cart-shell-empty flex flex-col flex-1 min-h-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 shrink-0">
-                            <h3 class="text-base font-black uppercase tracking-wide text-slate-800" title="Carrinho — itens da venda atual. Quantidades com +/− no painel abaixo.">Carrinho</h3>
-                            <span id="itens-badge" class="cart-badge-empty px-2.5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1 border border-slate-200"><span>0</span><span>itens</span></span>
-                        </div>
-
-                        <div class="relative mt-3 shrink-0">
-                            <label for="nome-cliente" class="text-[10px] font-black uppercase text-slate-500">Cliente</label>
-                            <div class="relative mt-1">
-                                <input
-                                    type="text"
-                                    id="nome-cliente"
-                                    value="CONSUMIDOR NÃO IDENTIFICADO..."
-                                    placeholder="Buscar cliente…"
-                                    class="w-full p-3 pr-14 bg-slate-50 text-base rounded-xl border-2 border-slate-200 font-bold outline-none focus:border-emerald-500"
-                                    autocomplete="off"
-                                    title="Sugestões: só clientes cadastrados no Agro (sincronize em Clientes se vier do ERP/Mongo). F3 foca aqui. ↑↓ e Enter. Telefone no WhatsApp."
-                                >
-                                <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-500 uppercase bg-white/95 px-2 py-0.5 rounded-md border border-slate-200 shadow-sm tabular-nums" title="Atalho: F3 foca neste campo">F3</span>
-                            </div>
-                            <div id="cliente-results" class="absolute z-[60] left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 hidden overflow-hidden text-sm max-h-56 overflow-y-auto"></div>
-                            <p id="cliente-api-msg" class="hidden mt-2 text-[10px] font-bold text-amber-700 leading-snug" role="status"></p>
-                        </div>
-
-                        <div class="relative mt-3 shrink-0">
-                            <label for="forma-pagamento-pdv" class="text-[10px] font-black uppercase text-slate-500">Pagamento</label>
-                            <select
-                                id="forma-pagamento-pdv"
-                                class="mt-1 w-full p-3 bg-slate-50 text-sm rounded-xl border-2 border-slate-200 font-bold outline-none focus:border-emerald-500"
-                                title="Como o cliente pagou (registro local e na venda salva no sistema)."
-                            >
-                                <option value="">Não informado</option>
-                                <option value="Dinheiro">Dinheiro</option>
-                                <option value="PIX">PIX</option>
-                                <option value="Cartão de débito">Cartão de débito</option>
-                                <option value="Cartão de crédito">Cartão de crédito</option>
-                                <option value="Outro">Outro</option>
-                            </select>
-                        </div>
-
-                        <div id="itens-carrinho" class="flex-1 min-h-[120px] overflow-y-auto mt-3 hide-scroll"></div>
-
-                        <div class="pt-4 mt-auto shrink-0 border-t border-slate-100">
-                            <div class="flex justify-between items-baseline gap-2 mb-4">
-                                <span class="text-xs font-black uppercase text-slate-500">Total</span>
-                                <span id="total-geral" class="text-3xl font-black text-emerald-600 tabular-nums leading-none">R$ 0,00</span>
-                            </div>
-                            <button type="button" onclick="limparCarrinho()" class="w-full mb-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-3 rounded-xl text-sm uppercase flex items-center justify-center gap-2" title="Limpar venda — zera o carrinho e restaura o cliente padrão (CONSUMIDOR NÃO IDENTIFICADO...). Atalho: F4.">
-                                <span>Limpar venda</span>
-                                <kbd class="text-[10px] px-2 py-0.5 rounded-md bg-white/80 text-slate-600 font-black border border-slate-200 shadow-sm">F4</kbd>
-                            </button>
-                            <button type="button" onclick="irParaCheckout()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-4 rounded-xl text-base uppercase shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2" title="Finalizar venda — abre a tela de fechamento (pagamento, WhatsApp, impressão, ERP). Atalho: F8.">
-                                <span>Finalizar</span>
-                                <kbd class="text-[11px] px-2.5 py-1 rounded-lg bg-white/25 text-white font-black border border-white/30">F8</kbd>
-                            </button>
-                        </div>
+                <aside class="w-[4.75rem] sm:w-[5.25rem] shrink-0 flex flex-col items-stretch gap-3 py-3 px-2 bg-white border border-slate-200 rounded-xl shadow-sm self-stretch min-h-0" aria-label="Atalho do carrinho">
+                    <button type="button" id="btn-abrir-carrinho-pdv" class="relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30 hover:from-orange-600 hover:to-orange-700 transition-all active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-orange-400/40" title="Abrir ou fechar carrinho (F1)">
+                        <kbd class="pointer-events-none absolute top-1 right-1 text-[7px] px-1 py-0.5 rounded font-black bg-white/20 text-white border border-white/30 tabular-nums" aria-hidden="true">F1</kbd>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm12 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" /></svg>
+                        <span id="itens-badge" class="cart-badge-empty px-1.5 py-1 rounded-md text-[10px] font-black flex flex-col items-center gap-0 leading-tight border border-white/25 bg-white/15 min-w-[2.25rem]"><span class="tabular-nums text-sm">0</span><span class="text-[7px] uppercase font-bold opacity-90">itens</span></span>
+                    </button>
+                    <div class="text-center px-0.5 flex-1 min-h-0 flex flex-col justify-end pb-1">
+                        <div class="text-[8px] font-black uppercase text-slate-400 tracking-wider">Total</div>
+                        <div id="pdv-carrinho-strip-total" class="text-[11px] sm:text-xs font-black text-emerald-700 tabular-nums leading-tight break-words hyphens-auto mt-0.5">R$ 0,00</div>
                     </div>
                 </aside>
+            </div>
+        </div>
+    </div>
+
+    <div id="pdv-carrinho-backdrop" class="fixed inset-0 z-[90] bg-slate-900/45 backdrop-blur-[2px] opacity-0 pointer-events-none" aria-hidden="true"></div>
+    <div id="pdv-drawer-carrinho" class="fixed top-0 right-0 z-[91] h-[100dvh] max-h-[100dvh] w-full max-w-[min(480px,100%)] flex flex-col bg-white shadow-[-16px_0_48px_rgba(15,23,42,0.14)] border-l border-slate-200 translate-x-full overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="pdv-drawer-carrinho-titulo" aria-hidden="true">
+        <div class="shrink-0 flex items-center justify-between gap-2 px-3 py-2.5 border-b border-slate-100 bg-gradient-to-r from-orange-50/95 via-white to-emerald-50/40">
+            <div class="min-w-0">
+                <h3 id="pdv-drawer-carrinho-titulo" class="text-base font-black uppercase tracking-wide text-slate-800 leading-tight">Carrinho</h3>
+                <p id="pdv-drawer-cart-meta" class="text-[10px] font-bold text-slate-500 mt-0.5 truncate" title="Atalhos: F1 carrinho · F3 cliente · F4 limpar · F7 salvar orçamento · F8 finalizar">Nenhum item</p>
+            </div>
+            <button type="button" id="btn-fechar-carrinho-pdv" class="shrink-0 w-10 h-10 rounded-xl border-2 border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 font-black text-lg leading-none transition-colors" aria-label="Fechar carrinho" title="Fechar (Esc)">×</button>
+        </div>
+        <div id="cart-shell" class="cart-shell-empty flex flex-col flex-1 min-h-0 overflow-hidden px-3 pb-3 pt-2 gap-0">
+            <div class="relative shrink-0 space-y-2">
+                <div class="relative">
+                    <label for="nome-cliente" class="sr-only">Cliente</label>
+                    <input
+                        type="text"
+                        id="nome-cliente"
+                        value="CONSUMIDOR NÃO IDENTIFICADO..."
+                        placeholder="Cliente (F3)"
+                        class="w-full py-2.5 px-3 bg-slate-50 text-sm rounded-xl border-2 border-slate-200 font-bold outline-none focus:border-emerald-500"
+                        autocomplete="off"
+                        title="F3 foca aqui. ↑↓ e Enter na lista. Clientes do Agro."
+                    >
+                    <div id="cliente-results" class="absolute z-[100] left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 hidden overflow-hidden text-sm max-h-48 overflow-y-auto"></div>
+                    <p id="cliente-api-msg" class="hidden mt-1 text-[10px] font-bold text-amber-700 leading-snug" role="status"></p>
+                </div>
+                <div class="relative">
+                    <label for="forma-pagamento-pdv" class="sr-only">Pagamento</label>
+                    <select
+                        id="forma-pagamento-pdv"
+                        class="w-full py-2.5 px-3 bg-slate-50 text-sm rounded-xl border-2 border-slate-200 font-bold outline-none focus:border-emerald-500"
+                        title="Forma de pagamento"
+                    >
+                        <option value="">Não informado</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="PIX">PIX</option>
+                        <option value="Cartão de débito">Cartão de débito</option>
+                        <option value="Cartão de crédito">Cartão de crédito</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="itens-carrinho" class="flex-1 min-h-0 overflow-y-auto overscroll-contain mt-2 py-1.5 px-1 space-y-1.5 hide-scroll border border-slate-100 rounded-xl bg-slate-50/50 touch-pan-y"></div>
+
+            <div class="shrink-0 mt-2 space-y-2 border-t border-slate-100 pt-2">
+                <label class="flex items-center gap-2 cursor-pointer rounded-lg border border-sky-200 bg-sky-50/80 px-2.5 py-1.5" title="F7 após salvar: pergunta impressão e WhatsApp. Painel Entregas.">
+                    <input type="checkbox" id="pdv-orcamento-entrega" class="w-4 h-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 accent-sky-600 shrink-0">
+                    <span class="text-[10px] font-black uppercase text-sky-900">Entrega</span>
+                </label>
+                <div class="flex justify-between items-baseline gap-2">
+                    <span class="text-[10px] font-black uppercase text-slate-500">Total</span>
+                    <span id="total-geral" class="text-2xl font-black text-emerald-600 tabular-nums leading-none">R$ 0,00</span>
+                </div>
+                <button type="button" onclick="limparCarrinho()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-2.5 rounded-xl text-xs uppercase" title="Limpar venda (F4)">Limpar</button>
+                <button type="button" onclick="salvarOrcamentoManual()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-md shadow-sky-600/20" title="Salvar orçamento (F7)">Salvar orçamento</button>
+                <button type="button" onclick="irParaCheckout()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-3 rounded-xl text-sm uppercase shadow-lg shadow-orange-500/25" title="Finalizar venda (F8)">Finalizar</button>
             </div>
         </div>
     </div>
@@ -553,6 +656,42 @@
 
 
     <div id="cupom-orcamento"></div>
+    <div id="cupom-separacao"></div>
+    <div id="pdv-pack-entrega-print" aria-hidden="true"></div>
+
+    <div id="modal-pdv-entrega-pergunta" class="fixed inset-0 z-[115] hidden items-center justify-center p-4 bg-slate-950/55 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="mpe-titulo">
+        <div class="bg-white w-full max-w-[420px] rounded-2xl shadow-2xl overflow-hidden border border-slate-200 ring-1 ring-slate-900/5" onclick="event.stopPropagation()">
+            <div class="relative px-5 pt-5 pb-4 bg-gradient-to-br from-sky-600 via-sky-600 to-emerald-600">
+                <p id="mpe-eyebrow" class="text-[10px] font-black uppercase tracking-[0.2em] text-white/85">Entrega</p>
+                <h2 id="mpe-titulo" class="text-xl font-black text-white tracking-tight mt-1 leading-snug">Confirmação</h2>
+            </div>
+            <div class="px-5 py-5">
+                <p id="mpe-texto" class="text-[15px] text-slate-600 leading-relaxed whitespace-pre-line"></p>
+            </div>
+            <div class="flex gap-3 px-5 pb-5 pt-0">
+                <button type="button" id="mpe-nao" class="flex-1 py-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-black uppercase text-sm tracking-wide hover:bg-slate-50 hover:border-slate-300 transition-colors">Não</button>
+                <button type="button" id="mpe-sim" class="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 text-white font-black uppercase text-sm tracking-wide shadow-lg shadow-sky-600/25 hover:brightness-105 active:scale-[0.99] transition-all">Sim</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-pdv-entrega-impressao" class="fixed inset-0 z-[116] hidden items-center justify-center p-4 bg-slate-950/55 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="mei-titulo">
+        <div class="bg-white w-full max-w-[420px] rounded-2xl shadow-2xl overflow-hidden border border-slate-200 ring-1 ring-slate-900/5" onclick="event.stopPropagation()">
+            <div class="relative px-5 pt-5 pb-4 bg-gradient-to-br from-orange-500 via-orange-500 to-amber-600">
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Impressão</p>
+                <h2 id="mei-titulo" class="text-xl font-black text-white tracking-tight mt-1 leading-snug">O que imprimir?</h2>
+            </div>
+            <div class="px-5 py-5 space-y-3">
+                <label class="flex items-center gap-3 cursor-pointer text-sm font-bold text-slate-800"><input type="checkbox" id="mei-chk-sep" class="w-4 h-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 accent-orange-600" checked> Separação</label>
+                <label class="flex items-center gap-3 cursor-pointer text-sm font-bold text-slate-800"><input type="checkbox" id="mei-chk-ent" class="w-4 h-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 accent-orange-600" checked> Via do entregador</label>
+                <label class="flex items-center gap-3 cursor-pointer text-sm font-bold text-slate-800"><input type="checkbox" id="mei-chk-cup" class="w-4 h-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 accent-orange-600" checked> Cupom (cliente)</label>
+            </div>
+            <div class="flex gap-3 px-5 pb-5 pt-0">
+                <button type="button" id="mei-cancelar" class="flex-1 py-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-black uppercase text-sm tracking-wide hover:bg-slate-50">Cancelar</button>
+                <button type="button" id="mei-imprimir" class="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 text-white font-black uppercase text-sm tracking-wide shadow-lg hover:brightness-105">Imprimir</button>
+            </div>
+        </div>
+    </div>
 
     <div id="modal-busca-avancada" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[105] hidden items-center justify-center p-4">
         <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 max-h-[92vh] flex flex-col">
@@ -634,12 +773,12 @@
     </div>
 
     <div id="modal-historico-vendas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
-        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl p-6 flex flex-col max-h-[80vh]">
+        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl p-6 flex flex-col max-h-[80vh] min-h-0">
             <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
                 <h2 class="text-xl font-black text-slate-800 uppercase italic">📋 Últimos Orçamentos (Local)</h2>
                 <button onclick="fecharHistoricoLocal()" class="text-slate-400 hover:text-slate-600 font-bold bg-slate-100 px-3 py-1 rounded-lg text-xs uppercase">✕ Fechar [Esc]</button>
             </div>
-            <div id="lista-historico-local" class="overflow-y-auto hide-scroll flex-1 space-y-3">
+            <div id="lista-historico-local" class="overflow-y-auto hide-scroll flex-1 min-h-0 space-y-3">
                 <!-- Cards de historico preenchidos via JS -->
             </div>
         </div>
@@ -698,6 +837,211 @@ function ehClienteGenericoPdv(str) {
     return false;
 }
 
+function enderecoLinhaClientePdv(sel) {
+    if (!sel || typeof sel !== 'object') return '';
+    const e = String(sel.endereco || '').trim();
+    if (e) return e;
+    const parts = [sel.logradouro, sel.numero, sel.complemento, sel.bairro, sel.cidade, sel.uf, sel.cep]
+        .map((x) => String(x || '').trim())
+        .filter(Boolean);
+    return parts.length ? parts.join(', ') : '';
+}
+
+/** Maps: link manual do cliente, senão busca por Plus Code, senão endereço em linha. */
+function pdvUrlMapsCliente() {
+    if (!clienteSelecionado || typeof clienteSelecionado !== 'object') return '';
+    const manual = String(clienteSelecionado.maps_url_manual || '').trim();
+    if (manual) return manual;
+    const pc = String(clienteSelecionado.plus_code || '').trim();
+    const end = enderecoLinhaClientePdv(clienteSelecionado);
+    const q = (pc || end).trim();
+    return q ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q) : '';
+}
+
+function pdvTelefoneEntregaWa() {
+    const raw = (document.body && document.body.getAttribute('data-pdv-entrega-wa')) || '';
+    return String(raw).replace(/\D/g, '');
+}
+
+function montarTextoWhatsappSeparacaoPdv(orcIdOpt) {
+    const nome = nomeClientePdv();
+    const telCli = clienteSelecionado && clienteSelecionado.telefone
+        ? String(clienteSelecionado.telefone).trim()
+        : '';
+    const end = enderecoLinhaClientePdv(clienteSelecionado);
+    const pc = clienteSelecionado && clienteSelecionado.plus_code ? String(clienteSelecionado.plus_code).trim() : '';
+    const maps = pdvUrlMapsCliente();
+    let t = '*Separação / Entrega* (orçamento PDV)\n';
+    t += 'Cliente: ' + nome + '\n';
+    if (telCli) t += 'Tel: ' + telCli + '\n';
+    if (pc) t += 'Plus Code: ' + pc + '\n';
+    t += end ? 'Endereço: ' + end + '\n' : 'Endereço: (não cadastrado no cliente)\n';
+    if (maps) t += 'Maps: ' + maps + '\n';
+    t += '\n*Itens:*\n';
+    carrinho.forEach((it) => {
+        t += String(it.qtd || 0) + 'x ' + String(it.nome || '') + '\n';
+    });
+    const totEl = document.getElementById('total-geral');
+    t += '\nTotal: ' + (totEl ? totEl.innerText : '');
+    if (orcIdOpt != null) t += '\n\nRetomar no PDV: ' + pdvCodigoBarrasOrcamento(orcIdOpt);
+    return t;
+}
+
+function pdvCodigoBarrasOrcamento(orcId) {
+    return 'GMORC' + String(orcId);
+}
+
+function pdvMetaItemCarrinho(it) {
+    let cg = String(it && it.codigo_gm ? it.codigo_gm : '').trim();
+    let pr = String(it && it.prateleira ? it.prateleira : '').trim();
+    if (typeof baseProdutos !== 'undefined' && baseProdutos.length) {
+        const loc = baseProdutos.find((x) => String(x.id) === String(it.id));
+        if (loc) {
+            if (!cg) cg = String(loc.codigo_nfe || loc.codigo || '').trim();
+            if (!pr) pr = String(loc.prateleira || '').trim();
+        }
+    }
+    return { codigo_gm: cg || '—', prateleira: pr || '—' };
+}
+
+/** Entrega: 3 vias 80mm — separação, entregador (QR Maps), cupom cliente. */
+function imprimirPacoteEntregaTresViasPdv(orcId, opt) {
+    opt = opt || { sep: true, ent: true, cup: true };
+    const pack = document.getElementById('pdv-pack-entrega-print');
+    if (!pack) return;
+    const barcodeVal = pdvCodigoBarrasOrcamento(orcId);
+    const dh = new Date().toLocaleString('pt-BR');
+    const nomeCli = nomeClientePdv();
+    const primeiroNome = (nomeCli.split(/\s+/)[0] || nomeCli || '—').toUpperCase();
+    const end = enderecoLinhaClientePdv(clienteSelecionado);
+    const mapsUrl = pdvUrlMapsCliente();
+    const qrImg = mapsUrl
+        ? '<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=1&data=' + encodeURIComponent(mapsUrl) + '" alt="" style="width:36mm;height:auto;display:block;margin:6px auto 0;" />'
+        : '<div style="text-align:center;margin-top:6px;font-size:10px;">(endereço não cadastrado)</div>';
+
+    let sepItems = '';
+    carrinho.forEach((it) => {
+        const m = pdvMetaItemCarrinho(it);
+        sepItems +=
+            '<div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">' +
+            '<div><b>GM</b> ' + escapeHtml(m.codigo_gm) + '</div>' +
+            '<div style="font-weight:bold;">' + escapeHtml(String(it.nome || '')) + '</div>' +
+            '<div style="font-size:20px;font-weight:900;margin:4px 0;">QTD ' + escapeHtml(String(it.qtd || 0)) + '</div>' +
+            '<div><b>Prat.</b> ' + escapeHtml(m.prateleira) + '</div>' +
+            '</div>';
+    });
+
+    const page1 =
+        '<div class="pdv-entrega-page">' +
+        '<div style="text-align:center;font-weight:900;font-size:13px;">SEPARAÇÃO</div>' +
+        '<div style="margin-top:4px;">' + escapeHtml(dh) + '</div>' +
+        '<div style="margin-top:4px;"><b>Cliente</b> ' + escapeHtml(nomeCli) + '</div>' +
+        '<div style="border-top:2px solid #000;margin:6px 0;"></div>' +
+        sepItems +
+        '<div style="margin-top:10px;text-align:center;">' +
+        '<svg id="pdv-barcode-orc" xmlns="http://www.w3.org/2000/svg"></svg>' +
+        '<div style="font-size:9px;margin-top:4px;">Bipe no buscador do PDV para retomar o orçamento</div>' +
+        '</div>' +
+        '</div>';
+
+    let entItems = '';
+    carrinho.forEach((it) => {
+        entItems +=
+            '<div style="margin-top:4px;">' +
+            escapeHtml(String(it.qtd || 0) + '× ' + String(it.nome || '')) +
+            '</div>';
+    });
+
+    const page2 =
+        '<div class="pdv-entrega-page">' +
+        '<div style="text-align:center;font-weight:900;font-size:12px;">ENTREGA</div>' +
+        '<div style="font-size:26px;font-weight:900;text-align:center;line-height:1;margin:8px 0;letter-spacing:-0.02em;">' +
+        escapeHtml(primeiroNome) +
+        '</div>' +
+        '<div style="font-size:10px;">' + escapeHtml(dh) + '</div>' +
+        '<div style="margin-top:6px;"><b>Cliente</b> ' + escapeHtml(nomeCli) + '</div>' +
+        '<div style="border-top:1px dashed #000;margin:6px 0;"></div>' +
+        entItems +
+        '<div style="margin-top:8px;"><b>Endereço</b></div>' +
+        '<div style="font-size:10px;word-break:break-word;">' + escapeHtml(end || '—') + '</div>' +
+        qrImg +
+        '</div>';
+
+    const totEl = document.getElementById('total-geral');
+    let cupLines = '';
+    carrinho.forEach((it) => {
+        const sub = Number(it.preco || 0) * Number(it.qtd || 0);
+        cupLines +=
+            '<div style="display:flex;justify-content:space-between;gap:4px;margin:3px 0;font-size:10px;">' +
+            '<span style="flex:1;">' +
+            escapeHtml(String(it.qtd) + '× ' + String(it.nome || '').slice(0, 36)) +
+            '</span>' +
+            '<span style="white-space:nowrap;">' + escapeHtml(formatarMoeda(sub)) + '</span>' +
+            '</div>';
+    });
+
+    const page3 =
+        '<div class="pdv-entrega-page">' +
+        '<div style="text-align:center;font-weight:900;font-size:14px;">AGRO MAIS</div>' +
+        '<div style="text-align:center;font-size:10px;margin:2px 0;">Orçamento (não fiscal)</div>' +
+        '<div style="font-size:10px;">' + escapeHtml(dh) + '</div>' +
+        '<div style="border-top:1px dashed #000;margin:6px 0;"></div>' +
+        '<div style="font-weight:bold;margin-bottom:4px;">' + escapeHtml(nomeCli) + '</div>' +
+        cupLines +
+        '<div style="border-top:2px solid #000;margin:8px 0 4px;padding-top:4px;font-weight:900;font-size:13px;display:flex;justify-content:space-between;">' +
+        '<span>TOTAL</span><span>' + escapeHtml(totEl ? totEl.innerText : '') + '</span></div>' +
+        '<div style="text-align:center;font-size:9px;margin-top:8px;">Obrigado — apresente na retirada</div>' +
+        '<div style="text-align:center;font-size:8px;margin-top:4px;word-break:break-all;">Retomar: ' + escapeHtml(barcodeVal) + '</div>' +
+        '</div>';
+
+    const chunks = [];
+    if (opt.sep) chunks.push(page1);
+    if (opt.ent) chunks.push(page2);
+    if (opt.cup) chunks.push(page3);
+    if (!chunks.length) return;
+    pack.innerHTML = chunks.join('');
+
+    try {
+        const svg = pack.querySelector('#pdv-barcode-orc');
+        if (svg && typeof JsBarcode !== 'undefined') {
+            JsBarcode(svg, barcodeVal, {
+                format: 'CODE128',
+                width: 1.35,
+                height: 44,
+                displayValue: true,
+                fontSize: 11,
+                margin: 0,
+                marginTop: 4,
+                marginBottom: 2,
+            });
+        }
+    } catch (eBar) {
+        console.warn('Barcode orçamento:', eBar);
+    }
+
+    document.body.classList.add('print-pdv-entrega-pack');
+    window.print();
+    document.body.classList.remove('print-pdv-entrega-pack');
+    pack.innerHTML = '';
+}
+
+function abrirWhatsappSeparacaoPdv(orcIdOpt) {
+    const phone = pdvTelefoneEntregaWa();
+    const txt = montarTextoWhatsappSeparacaoPdv(orcIdOpt);
+    if (!phone || phone.length < 10) {
+        alert('WhatsApp de entrega não configurado. Defina PDV_ENTREGA_WHATSAPP no .env (só dígitos, ex. 5513999999999).');
+        return;
+    }
+    window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(txt), '_blank', 'noopener,noreferrer');
+}
+
+/** Cards de produto: sem rótulos inventados (“Sem marca”); neutro para o operador conferir. */
+function htmlValorCardProdutoPdv(val) {
+    const t = String(val == null ? '' : val).trim();
+    if (t) return escapeHtml(t);
+    return '<span class="text-slate-300 font-normal normal-case" title="A conferir">—</span>';
+}
+
 const inputBusca = document.getElementById('busca-produto');
 const autoList = document.getElementById('autocomplete-results');
 const destaqueContainer = document.getElementById('produto-destaque');
@@ -719,7 +1063,143 @@ const btnLimparFiltroCatalogo = document.getElementById('btn-limpar-filtro-catal
 const listaLembretes = document.getElementById('lista-lembretes');
 let alertaLembreteAtual = null;
 
+function pdvCarrinhoDrawerEstaAberto() {
+    const d = document.getElementById('pdv-drawer-carrinho');
+    return !!(d && !d.classList.contains('translate-x-full'));
+}
 
+function abrirDrawerCarrinho() {
+    const root = document.getElementById('pdv-drawer-carrinho');
+    const bd = document.getElementById('pdv-carrinho-backdrop');
+    if (!root) return;
+    root.classList.remove('translate-x-full');
+    root.setAttribute('aria-hidden', 'false');
+    if (bd) {
+        bd.classList.remove('opacity-0', 'pointer-events-none');
+        bd.classList.add('opacity-100');
+        bd.setAttribute('aria-hidden', 'false');
+    }
+    document.body.classList.add('pdv-carrinho-drawer-open');
+}
+
+/** Primeiro item no carrinho: não abre o drawer — chama após atualizarCarrinho. */
+function pdvDestacarBotoesCarrinho() {
+    const ids = ['btn-abrir-carrinho-pdv', 'btn-abrir-carrinho-pdv-header'];
+    ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.remove('pdv-carrinho-attention');
+        void el.offsetWidth;
+        el.classList.add('pdv-carrinho-attention');
+        const fin = () => el.classList.remove('pdv-carrinho-attention');
+        el.addEventListener('animationend', fin, { once: true });
+        window.setTimeout(fin, 1000);
+    });
+}
+
+function fecharDrawerCarrinho() {
+    const root = document.getElementById('pdv-drawer-carrinho');
+    const bd = document.getElementById('pdv-carrinho-backdrop');
+    if (!root) return;
+    root.classList.add('translate-x-full');
+    root.setAttribute('aria-hidden', 'true');
+    if (bd) {
+        bd.classList.add('opacity-0', 'pointer-events-none');
+        bd.classList.remove('opacity-100');
+        bd.setAttribute('aria-hidden', 'true');
+    }
+    document.body.classList.remove('pdv-carrinho-drawer-open');
+}
+
+/** Modal estilizado (impressão / WhatsApp após salvar com entrega). */
+function pdvModalPerguntaEntrega(titulo, texto, eyebrow) {
+    return new Promise((resolve) => {
+        const root = document.getElementById('modal-pdv-entrega-pergunta');
+        if (!root) {
+            resolve(false);
+            return;
+        }
+        const elEyebrow = document.getElementById('mpe-eyebrow');
+        const elTitulo = document.getElementById('mpe-titulo');
+        const elTexto = document.getElementById('mpe-texto');
+        const btnSim = document.getElementById('mpe-sim');
+        const btnNao = document.getElementById('mpe-nao');
+        if (elEyebrow) elEyebrow.textContent = eyebrow || 'Orçamento com entrega';
+        if (elTitulo) elTitulo.textContent = titulo;
+        if (elTexto) elTexto.textContent = texto;
+        let done = false;
+        const finish = (v) => {
+            if (done) return;
+            done = true;
+            root.classList.add('hidden');
+            root.classList.remove('flex');
+            document.body.classList.remove('modal-open');
+            root.onclick = null;
+            if (btnSim) btnSim.onclick = null;
+            if (btnNao) btnNao.onclick = null;
+            resolve(v);
+        };
+        if (btnSim) btnSim.onclick = () => finish(true);
+        if (btnNao) btnNao.onclick = () => finish(false);
+        root.onclick = (ev) => { if (ev.target === root) finish(false); };
+        root.classList.remove('hidden');
+        root.classList.add('flex');
+        document.body.classList.add('modal-open');
+    });
+}
+
+/** Checkboxes: separação, entregador, cupom — cancel retorna null. */
+function pdvModalEscolhaImpressaoEntrega() {
+    return new Promise((resolve) => {
+        const root = document.getElementById('modal-pdv-entrega-impressao');
+        if (!root) {
+            resolve({ sep: true, ent: true, cup: true });
+            return;
+        }
+        const btnImp = document.getElementById('mei-imprimir');
+        const btnCan = document.getElementById('mei-cancelar');
+        let done = false;
+        const finish = (v) => {
+            if (done) return;
+            done = true;
+            root.classList.add('hidden');
+            root.classList.remove('flex');
+            document.body.classList.remove('modal-open');
+            root.onclick = null;
+            if (btnImp) btnImp.onclick = null;
+            if (btnCan) btnCan.onclick = null;
+            resolve(v);
+        };
+        if (btnImp) {
+            btnImp.onclick = () => {
+                const sep = document.getElementById('mei-chk-sep').checked;
+                const ent = document.getElementById('mei-chk-ent').checked;
+                const cup = document.getElementById('mei-chk-cup').checked;
+                if (!sep && !ent && !cup) {
+                    alert('Marque ao menos uma via para imprimir.');
+                    return;
+                }
+                finish({ sep, ent, cup });
+            };
+        }
+        if (btnCan) btnCan.onclick = () => finish(null);
+        root.onclick = (ev) => {
+            if (ev.target === root) finish(null);
+        };
+        root.classList.remove('hidden');
+        root.classList.add('flex');
+        document.body.classList.add('modal-open');
+    });
+}
+
+(function initPdvCarrinhoDrawer() {
+    const btnAbrir = document.getElementById('btn-abrir-carrinho-pdv');
+    const btnFechar = document.getElementById('btn-fechar-carrinho-pdv');
+    const bd = document.getElementById('pdv-carrinho-backdrop');
+    if (btnAbrir) btnAbrir.addEventListener('click', abrirDrawerCarrinho);
+    if (btnFechar) btnFechar.addEventListener('click', fecharDrawerCarrinho);
+    if (bd) bd.addEventListener('click', fecharDrawerCarrinho);
+})();
 
 function pickFirstValue(...valores) {
     for (const valor of valores) {
@@ -928,18 +1408,20 @@ function renderizarCatalogoRapido(lista) {
         const row = document.createElement('button');
         row.type = 'button';
         row.className = 'catalog-row w-full text-left px-3 py-2 transition-colors border-l-4 border-transparent';
-        const marca = obterValorCampoProduto(produto, 'marca') || 'Sem marca';
-        const fornecedor = obterValorCampoProduto(produto, 'fornecedor') || 'Sem fornecedor';
-        const categoria = obterValorCampoProduto(produto, 'categoria') || 'Sem categoria';
+        const marca = obterValorCampoProduto(produto, 'marca');
+        const fornecedor = obterValorCampoProduto(produto, 'fornecedor');
+        const categoria = obterValorCampoProduto(produto, 'categoria');
+        const codStr = String(produto.codigo_nfe || produto.codigo || '').trim();
+        const codHtml = codStr ? escapeHtml(codStr) : '<span class="text-slate-300">—</span>';
         row.innerHTML = `
             <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                     <div class="text-[14px] leading-4 font-black text-slate-800 uppercase break-words">${escapeHtml(produto.nome || '')}</div>
                     <div class="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-[10px] font-bold uppercase text-slate-400">
-                        <span class="text-slate-500">Cód: ${escapeHtml(produto.codigo_nfe || produto.codigo || '-')}</span>
-                        <span>${escapeHtml(marca)}</span>
-                        <span>${escapeHtml(fornecedor)}</span>
-                        <span>${escapeHtml(categoria)}</span>
+                        <span class="text-slate-500">Cód: ${codHtml}</span>
+                        <span>${htmlValorCardProdutoPdv(marca)}</span>
+                        <span>${htmlValorCardProdutoPdv(fornecedor)}</span>
+                        <span>${htmlValorCardProdutoPdv(categoria)}</span>
                     </div>
                 </div>
                 <div class="shrink-0 text-right">
@@ -1068,11 +1550,12 @@ function renderListaBuscaAvancada() {
         btn.className = 'w-full text-left px-3 py-2.5 rounded-xl border border-slate-100 hover:border-orange-300 hover:bg-orange-50/50 mb-1 transition-colors bg-white';
         const mar = obterValorCampoProduto(p, 'marca');
         const tot = Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0);
+        const marLinha = String(mar || '').trim() ? escapeHtml(mar) : '<span class="text-slate-300">—</span>';
         btn.innerHTML = `
             <div class="font-black text-xs uppercase text-slate-800 leading-snug">${escapeHtml(p.nome || '')}</div>
-            <div class="text-[10px] text-slate-500 font-bold mt-0.5">${escapeHtml(mar)} · ${formatarMoeda(p.preco_venda)} · est ${tot.toFixed(1)}</div>`;
+            <div class="text-[10px] text-slate-500 font-bold mt-0.5">${marLinha} · ${formatarMoeda(p.preco_venda)} · est ${tot.toFixed(1)}</div>`;
         btn.onclick = () => {
-            adicionarProdutoComQuantidade(p.id, p.nome, p.preco_venda, quantidadeRapida);
+            adicionarProdutoComQuantidade(p.id, p.nome, p.preco_venda, quantidadeRapida, p);
             tocarSom('add');
         };
         host.appendChild(btn);
@@ -1340,7 +1823,7 @@ function renderizarSugestoes() {
         if (marcaRaw) metaPartes.push(`<span class="text-slate-500 truncate max-w-[8rem] font-medium text-slate-600" title="${escapeHtml(marcaRaw)}">${escapeHtml(marcaRaw)}</span>`);
         const metaLinha = metaPartes.length
             ? metaPartes.join('<span class="text-slate-300 select-none" aria-hidden="true">·</span>')
-            : '<span class="text-slate-400 text-[11px]">Sem código</span>';
+            : '<span class="text-slate-300 text-[11px]" title="A conferir">—</span>';
 
         div.innerHTML = `
             <figure class="shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-lg bg-slate-100 overflow-hidden ring-1 ring-inset ring-slate-200/70 flex items-center justify-center p-0.5 self-center">
@@ -1402,13 +1885,20 @@ function renderizarSugestoes() {
             });
         });
         div.addEventListener('click', () => {
+            if (pdvMaisVSlotAlvo !== null && pdvMaisVSlotAlvo >= 0) {
+                atribuirProdutoAoSlotMaisVendidos(s, pdvMaisVSlotAlvo);
+                produtoEmDestaque = s;
+                indexSelecionado = idx;
+                renderizarSugestoes();
+                return;
+            }
             produtoEmDestaque = s;
             indexSelecionado = idx;
             renderizarSugestoes();
         });
         div.addEventListener('dblclick', (ev) => {
             ev.preventDefault();
-            adicionarProdutoComQuantidade(s.id, s.nome, s.preco_venda, quantidadeRapida);
+            adicionarProdutoComQuantidade(s.id, s.nome, s.preco_venda, quantidadeRapida, s);
         });
         const selected = (indexSelecionado === idx) || (produtoEmDestaque && String(produtoEmDestaque.id) === String(s.id));
         if (selected) div.classList.add('selected-suggestion');
@@ -1460,23 +1950,63 @@ function incrementarFrequencia(id) {
     localStorage.setItem('freqProdutos', JSON.stringify(frequenciaUso));
 }
 
+function normalizarIdProdutoPdv(id) {
+    if (id === undefined || id === null) return '';
+    return String(id);
+}
+
+function metaOpcoesFromProd(p) {
+    if (!p || typeof p !== 'object') return {};
+    return {
+        codigo_gm: String(p.codigo_nfe || p.codigo_gm || p.codigo || '').trim(),
+        prateleira: String(p.prateleira || '').trim(),
+    };
+}
+
 function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
+    const idNorm = normalizarIdProdutoPdv(id);
+    if (!idNorm) return;
+
+    const carrinhoEstavaVazio = carrinho.length === 0;
+
     const agora = Date.now();
-    // Trava de segurança absoluta (Hardware Lock) de 500ms para evitar "Ghost Keystrokes" de leitores físicos
-    if (id === ultimoProdutoAdicionadoId && (agora - tempoUltimaAdicao) < 500) {
+    // Trava de 500ms contra leitores duplicados; toques em botões (Mais vendidos etc.) usam skipDebounce.
+    if (
+        !opcoes.skipDebounce
+        && idNorm === ultimoProdutoAdicionadoId
+        && (agora - tempoUltimaAdicao) < 500
+    ) {
         return;
     }
-    ultimoProdutoAdicionadoId = id;
+    ultimoProdutoAdicionadoId = idNorm;
     tempoUltimaAdicao = agora;
 
-    incrementarFrequencia(id); // Registra a "venda" para rankear esse produto depois
+    incrementarFrequencia(idNorm);
 
-    const item = carrinho.find(i => i.id === id);
-    if (item) item.qtd += qtd;
-    else carrinho.push({ id, nome, preco: Number(preco || 0), qtd: qtd });
+    const item = carrinho.find((i) => normalizarIdProdutoPdv(i.id) === idNorm);
+    const cg = opcoes.codigo_gm != null ? String(opcoes.codigo_gm).trim() : '';
+    const pr = opcoes.prateleira != null ? String(opcoes.prateleira).trim() : '';
+    if (item) {
+        item.qtd += qtd;
+        if (cg && !item.codigo_gm) item.codigo_gm = cg;
+        if (pr && !item.prateleira) item.prateleira = pr;
+    } else {
+        carrinho.push({
+            id: idNorm,
+            nome,
+            preco: Number(preco || 0),
+            qtd: qtd,
+            codigo_gm: cg,
+            prateleira: pr,
+        });
+    }
 
     atualizarCarrinho();
     tocarSom('add');
+
+    if (carrinhoEstavaVazio && carrinho.length > 0 && typeof pdvDestacarBotoesCarrinho === 'function') {
+        pdvDestacarBotoesCarrinho();
+    }
 
     inputBusca.value = '';
         bufferScanner = ''; // Trava de segurança contra leitura duplicada
@@ -1487,7 +2017,7 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
     focarBuscaProduto();
 
     if (!opcoes.precoEtiquetaBalanca) {
-        validarItemCarrinhoSilencioso(id, preco);
+        validarItemCarrinhoSilencioso(idNorm, preco);
     }
 }
 
@@ -1498,21 +2028,21 @@ function validarItemCarrinhoSilencioso(id, precoLocal) {
             if (!d.erro && d.preco_venda !== precoLocal) {
                 alert(`⚠️ ATUALIZAÇÃO DE SISTEMA:\nO preço do produto "${d.nome}" sofreu alteração no ERP!\n\nDe: ${formatarMoeda(precoLocal)}\nPara: ${formatarMoeda(d.preco_venda)}\n\nO carrinho foi corrigido automaticamente para evitar perdas.`);
                 
-                const item = carrinho.find(i => i.id === id);
+                const item = carrinho.find((i) => normalizarIdProdutoPdv(i.id) === normalizarIdProdutoPdv(id));
                 if (item) {
                     item.preco = d.preco_venda;
                     atualizarCarrinho();
                 }
                 
                 // Atualiza a base em memória
-                const pLocal = baseProdutos.find(p => p.id === id);
+                const pLocal = baseProdutos.find((p) => normalizarIdProdutoPdv(p.id) === normalizarIdProdutoPdv(id));
                 if (pLocal) pLocal.preco_venda = d.preco_venda;
             }
         }).catch(e => console.log('Validação silenciosa falhou ou ignorada:', e));
 }
 
-function adicionarProdutoComQuantidade(id, nome, preco, qtd = 1) {
-    addCarrinho(id, nome, preco, qtd);
+function adicionarProdutoComQuantidade(id, nome, preco, qtd = 1, prodRef = null) {
+    addCarrinho(id, nome, preco, qtd, prodRef ? metaOpcoesFromProd(prodRef) : {});
 }
 
 function removerItem(i) {
@@ -1561,6 +2091,8 @@ function limparCarrinho() {
     clienteSelecionado = null;
     const fp = document.getElementById('forma-pagamento-pdv');
     if (fp) fp.value = '';
+    const chkEnt = document.getElementById('pdv-orcamento-entrega');
+    if (chkEnt) chkEnt.checked = false;
     atualizarCarrinho();
     focarBuscaProduto();
 }
@@ -1580,43 +2112,55 @@ function atualizarCarrinho() {
         qtdItens += item.qtd;
 
         container.innerHTML += `
-            <div class="flex gap-2 py-3 border-b border-slate-100 last:border-0 items-start">
+            <div class="flex gap-2 py-2 px-2 rounded-lg border border-slate-100 bg-white items-start shadow-sm">
                 <div class="min-w-0 flex-1">
-                    <div class="text-slate-900 font-bold text-sm leading-snug">${escapeHtml(item.nome)}</div>
-                    <div class="text-xs font-semibold text-slate-500 mt-1">${formatarMoeda(item.preco)} <span class="text-slate-400">/ un.</span></div>
+                    <div class="text-slate-900 font-bold text-xs leading-snug line-clamp-2">${escapeHtml(item.nome)}</div>
+                    <div class="text-[10px] font-semibold text-slate-500 mt-0.5">${formatarMoeda(item.preco)} <span class="text-slate-400">/ un.</span></div>
                 </div>
-                <div class="flex flex-col items-end gap-2 shrink-0">
-                    <div class="flex items-center gap-1">
-                        <button type="button" onclick="alterarQtdItem(${index}, -1)" class="w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 font-black text-lg leading-none" aria-label="Menos">−</button>
-                        <input type="number" min="1" value="${item.qtd}" class="w-14 text-center font-black border border-slate-200 rounded-lg py-1.5 text-sm" onchange="definirQtdItem(${index}, this.value)" />
-                        <button type="button" onclick="alterarQtdItem(${index}, 1)" class="w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 font-black text-lg leading-none" aria-label="Mais">+</button>
+                <div class="flex flex-col items-end gap-1 shrink-0">
+                    <div class="flex items-center gap-0.5">
+                        <button type="button" onclick="alterarQtdItem(${index}, -1)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 font-black text-base leading-none" aria-label="Menos">−</button>
+                        <input type="number" min="1" value="${item.qtd}" class="w-10 text-center font-black border border-slate-200 rounded-lg py-1 text-xs" onchange="definirQtdItem(${index}, this.value)" />
+                        <button type="button" onclick="alterarQtdItem(${index}, 1)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 font-black text-base leading-none" aria-label="Mais">+</button>
                     </div>
-                    <span class="text-emerald-600 font-black text-base">${formatarMoeda(item.preco * item.qtd)}</span>
-                    <button type="button" onclick="removerItem(${index})" class="text-xs font-bold text-red-500 hover:text-red-700">Remover</button>
+                    <span class="text-emerald-600 font-black text-xs tabular-nums">${formatarMoeda(item.preco * item.qtd)}</span>
+                    <button type="button" onclick="removerItem(${index})" class="text-[9px] font-black uppercase text-red-500 hover:text-red-700">Remover</button>
                 </div>
             </div>
         `;
     });
 
     if (!qtdItens) {
-        container.innerHTML = '<div class="py-10 text-center text-sm font-bold text-slate-400">Nenhum item no carrinho</div>';
+        container.innerHTML = '<div class="py-8 text-center text-xs font-bold text-slate-400 px-3">Vazio — busque e Enter para adicionar.</div>';
     }
 
     document.getElementById('total-geral').innerText = formatarMoeda(total);
-    badge.innerHTML = qtdItens > 0
-        ? `<span>${qtdItens} item${qtdItens === 1 ? '' : 's'}</span>`
-        : `<span>0</span><span>itens</span>`;
+    const stripTot = document.getElementById('pdv-carrinho-strip-total');
+    if (stripTot) stripTot.textContent = formatarMoeda(total);
+    const drawerMeta = document.getElementById('pdv-drawer-cart-meta');
+    if (drawerMeta) {
+        drawerMeta.textContent = qtdItens
+            ? `${qtdItens} item${qtdItens === 1 ? '' : 's'}`
+            : 'Nenhum item';
+    }
+    if (badge) {
+        badge.innerHTML = qtdItens > 0
+            ? `<span class="tabular-nums text-sm leading-none font-black">${qtdItens}</span><span class="text-[7px] uppercase font-bold opacity-90 leading-none">itens</span>`
+            : `<span class="tabular-nums text-sm leading-none font-black">0</span><span class="text-[7px] uppercase font-bold opacity-90 leading-none">itens</span>`;
+        if (qtdItens > 0) {
+            badge.classList.remove('cart-badge-empty');
+            badge.classList.add('cart-badge-active');
+        } else {
+            badge.classList.add('cart-badge-empty');
+            badge.classList.remove('cart-badge-active');
+        }
+    }
 
     if (qtdItens > 0) {
-        badge.classList.remove('cart-badge-empty');
-        badge.classList.add('cart-badge-active');
         cartShell?.classList.remove('cart-shell-empty');
-        cartShell?.classList.add('cart-shell-active', 'scale-[1.01]');
+        cartShell?.classList.add('cart-shell-active');
     } else {
-        badge.classList.add('cart-badge-empty');
-        badge.classList.remove('cart-badge-active');
         cartShell?.classList.add('cart-shell-empty');
-        cartShell?.classList.remove('scale-[1.01]');
         cartShell?.classList.remove('cart-shell-active');
     }
 
@@ -1661,8 +2205,9 @@ async function irParaCheckout() {
 }
 
 // --- HISTÓRICO LOCAL ---
-function salvarHistoricoLocal() {
+function salvarHistoricoLocal(extra) {
     if (!carrinho.length) return;
+    extra = extra || {};
     let historico = [];
     try {
         const salvo = localStorage.getItem('historicoOrcamentos');
@@ -1672,17 +2217,116 @@ function salvarHistoricoLocal() {
         historico = [];
     }
     
+    const fpEl = document.getElementById('forma-pagamento-pdv');
+    const idOrc = extra && extra.orcId != null ? Number(extra.orcId) : Date.now();
     const novo = {
-        id: Date.now(),
+        id: idOrc,
+        orc_barcode: pdvCodigoBarrasOrcamento(idOrc),
         data: new Date().toLocaleString('pt-BR'),
         cliente: nomeClientePdv(),
         total: document.getElementById('total-geral').innerText,
-        itens: JSON.parse(JSON.stringify(carrinho))
+        itens: JSON.parse(JSON.stringify(carrinho)),
+        forma_pagamento: fpEl && fpEl.value ? fpEl.value : '',
+        entrega: !!extra.entrega,
+        cliente_extra:
+            clienteSelecionado && typeof clienteSelecionado === 'object'
+                ? JSON.parse(JSON.stringify(clienteSelecionado))
+                : null,
     };
     historico.unshift(novo);
     if (historico.length > 20) historico.pop();
     localStorage.setItem('historicoOrcamentos', JSON.stringify(historico));
     renderizarHistoricoResumido();
+}
+
+function registrarPedidoEntregaServidor(orcId, extra) {
+    extra = extra || {};
+    const itens = carrinho.map(function (it) {
+        const m = pdvMetaItemCarrinho(it);
+        return {
+            codigo_gm: m.codigo_gm,
+            nome: it.nome,
+            qtd: it.qtd,
+            prateleira: m.prateleira,
+            preco: it.preco != null ? it.preco : undefined,
+        };
+    });
+    let operador = '';
+    try { operador = (localStorage.getItem('gm_sspin_operador') || '').trim(); } catch (e) {}
+    const totalEl = document.getElementById('total-geral');
+    const fpEl = document.getElementById('forma-pagamento-pdv');
+    const forma =
+        extra.forma_pagamento != null && extra.forma_pagamento !== undefined
+            ? String(extra.forma_pagamento)
+            : fpEl && fpEl.value
+              ? fpEl.value
+              : '';
+    let trocoPrecisa = extra.troco_precisa;
+    if (trocoPrecisa === undefined) trocoPrecisa = null;
+    const body = {
+        orc_local_id: orcId,
+        cliente_nome: nomeClientePdv(),
+        telefone: clienteSelecionado && clienteSelecionado.telefone ? String(clienteSelecionado.telefone).trim() : '',
+        endereco_linha: enderecoLinhaClientePdv(clienteSelecionado),
+        plus_code: clienteSelecionado && clienteSelecionado.plus_code ? String(clienteSelecionado.plus_code).trim() : '',
+        referencia_rural: clienteSelecionado && clienteSelecionado.referencia_rural ? String(clienteSelecionado.referencia_rural).trim() : '',
+        maps_url_manual: clienteSelecionado && clienteSelecionado.maps_url_manual ? String(clienteSelecionado.maps_url_manual).trim() : '',
+        itens: itens,
+        total_texto: totalEl ? totalEl.innerText : '',
+        retomar_codigo: pdvCodigoBarrasOrcamento(orcId),
+        operador: operador,
+        forma_pagamento: forma,
+        troco_precisa: forma === 'Dinheiro' ? trocoPrecisa : null,
+    };
+    return fetch('{% url "api_entrega_registrar" %}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify(body),
+    }).then(function (r) { return r.json(); }).catch(function () { return { ok: false }; });
+}
+
+async function salvarOrcamentoManual() {
+    if (!carrinho.length) {
+        tocarSom('erro');
+        return alert('Carrinho vazio — adicione itens antes de salvar o orçamento.');
+    }
+    const chkEnt = document.getElementById('pdv-orcamento-entrega');
+    const comEntrega = chkEnt && chkEnt.checked;
+    const orcId = Date.now();
+    const fpEl = document.getElementById('forma-pagamento-pdv');
+    const fp = fpEl && fpEl.value ? fpEl.value : '';
+    let trocoPrecisa = null;
+    if (comEntrega && fp === 'Dinheiro') {
+        trocoPrecisa = await pdvModalPerguntaEntrega(
+            'Precisa de troco?',
+            'Sim = levar troco para o cliente. Não = pagamento em valor exato (sem troco).',
+            'Dinheiro'
+        );
+    }
+    salvarHistoricoLocal({ entrega: comEntrega, orcId });
+    tocarSom('add');
+    if (comEntrega) {
+        const escImp = await pdvModalEscolhaImpressaoEntrega();
+        if (escImp) imprimirPacoteEntregaTresViasPdv(orcId, escImp);
+        const zap = await pdvModalPerguntaEntrega(
+            'Enviar pelo WhatsApp?',
+            'Abre uma nova aba com o WhatsApp da loja e o texto pronto: cliente, telefone, endereço ou Plus Code, link do Maps e lista de itens.',
+            'WhatsApp'
+        );
+        if (zap) abrirWhatsappSeparacaoPdv(orcId);
+        const reg = await registrarPedidoEntregaServidor(orcId, {
+            forma_pagamento: fp,
+            troco_precisa: trocoPrecisa,
+        });
+        if (!reg || !reg.ok) {
+            alert((reg && reg.erro) ? reg.erro : 'Não foi possível registrar o pedido no painel Entregas.');
+        }
+    }
+    alert(
+        comEntrega
+            ? 'Orçamento salvo com entrega. O pedido foi registrado no painel Entregas (menu). Bipe ' + pdvCodigoBarrasOrcamento(orcId) + ' no buscador para retomar. F6 lista orçamentos.'
+            : 'Orçamento salvo neste navegador. Abra Orçamentos (F6) para listar ou recuperar.'
+    );
 }
 
 function abrirHistoricoLocal() {
@@ -1697,7 +2341,7 @@ function abrirHistoricoLocal() {
             container.innerHTML += `
                 <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl flex justify-between items-center hover:bg-slate-100 transition-colors">
                     <div>
-                        <div class="font-black text-slate-700 text-sm uppercase">${escapeHtml(h.cliente)}</div>
+                        <div class="font-black text-slate-700 text-sm uppercase">${escapeHtml(h.cliente)}${h.entrega ? ' <span class="text-sky-600">· Entrega</span>' : ''}</div>
                         <div class="text-xs text-slate-500 font-bold">${h.data} • ${h.itens.length} itens</div>
                     </div>
                     <div class="flex items-center gap-4">
@@ -1722,16 +2366,60 @@ function fecharHistoricoLocal() {
 function recuperarOrcamento(id) {
     let historico = [];
     try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { return; }
-    const h = historico.find(x => x.id === id);
+    const h = historico.find(x => Number(x.id) === Number(id));
     if (h) {
         if (carrinho.length > 0 && !confirm("Isso vai substituir o carrinho atual. Deseja continuar?")) return;
         carrinho = h.itens;
         document.getElementById('nome-cliente').value = ehClienteGenericoPdv(h.cliente)
             ? CLIENTE_PADRAO_PDV
             : h.cliente;
+        clienteSelecionado =
+            h.cliente_extra && typeof h.cliente_extra === 'object' ? h.cliente_extra : null;
+        const fpRec = document.getElementById('forma-pagamento-pdv');
+        if (fpRec && Object.prototype.hasOwnProperty.call(h, 'forma_pagamento')) {
+            fpRec.value = h.forma_pagamento || '';
+        }
+        const chkRec = document.getElementById('pdv-orcamento-entrega');
+        if (chkRec) chkRec.checked = !!h.entrega;
         atualizarCarrinho();
         fecharHistoricoLocal();
     }
+}
+
+/** Retomada por código de barras GMORC… no buscador / leitor. */
+function recuperarOrcamentoSilenciosoPorId(oid) {
+    let historico = [];
+    try {
+        historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]');
+    } catch (e) {
+        return false;
+    }
+    const h = historico.find((x) => Number(x.id) === Number(oid));
+    if (!h) {
+        mostrarBannerScanner('Orçamento não encontrado para este código.');
+        tocarSom('erro');
+        return false;
+    }
+    if (carrinho.length > 0 && !confirm('Substituir o carrinho pelo orçamento salvo (cód. ' + oid + ')?')) {
+        return false;
+    }
+    carrinho = JSON.parse(JSON.stringify(h.itens));
+    document.getElementById('nome-cliente').value = ehClienteGenericoPdv(h.cliente)
+        ? CLIENTE_PADRAO_PDV
+        : h.cliente;
+    clienteSelecionado =
+        h.cliente_extra && typeof h.cliente_extra === 'object' ? h.cliente_extra : null;
+    const fpRec = document.getElementById('forma-pagamento-pdv');
+    if (fpRec && Object.prototype.hasOwnProperty.call(h, 'forma_pagamento')) {
+        fpRec.value = h.forma_pagamento || '';
+    }
+    const chkRec = document.getElementById('pdv-orcamento-entrega');
+    if (chkRec) chkRec.checked = !!h.entrega;
+    atualizarCarrinho();
+    mostrarBannerScanner('Orçamento recuperado — finalize no caixa (F8).');
+    tocarSom('add');
+    focarBuscaProduto();
+    return true;
 }
 
 function abrirAjuste(id, nome, saldo, codigo, dep) {
@@ -1969,6 +2657,21 @@ function buscarProdutos(q, modo = 'normal') {
 
     quantidadeRapida = obterQuantidadeRapida(q);
     const termoBruto = removerSufixoQuantidade(q);
+    const rawOrc = String(termoBruto).replace(/\s/g, '').toUpperCase();
+    const mOrc = rawOrc.match(/^GMORC(\d{10,20})$/);
+    if (mOrc) {
+        const oid = parseInt(mOrc[1], 10);
+        if (Number.isFinite(oid)) {
+            clearTimeout(debounceTimer);
+            if (recuperarOrcamentoSilenciosoPorId(oid)) {
+                if (inputBusca) inputBusca.value = '';
+                limparBuscaVisual();
+                esconderStatusBusca();
+            }
+            return;
+        }
+    }
+
     const termoBusca = normalizarBuscaLocal(termoBruto);
 
     const minChars = modo === 'scanner' ? 1 : 2;
@@ -2020,7 +2723,7 @@ function ordenarSugestoesPdv(lista) {
 }
 
 function montarBuscaTextoRapido(p) {
-    const partes = [p.nome, p.marca, p.codigo_nfe, p.codigo_barras, p.codigo].filter(Boolean);
+    const partes = [p.nome, p.marca, p.codigo_nfe, p.codigo_barras, p.codigo, p.prateleira].filter(Boolean);
     return normalizarBuscaLocal(partes.join(' '));
 }
 
@@ -2079,23 +2782,29 @@ function enriquecerProdutoBusca(p) {
         return {
             ...p,
             busca_texto: bt,
+            prateleira: p.prateleira != null && String(p.prateleira).trim() !== '' ? p.prateleira : '',
             media_venda_diaria_30d: Number(
                 mediaApi != null && mediaApi !== '' ? mediaApi : 0
             ),
             preco_etiqueta_balanca: !!p.preco_etiqueta_balanca,
         };
     }
+    const prat =
+        p.prateleira != null && String(p.prateleira).trim() !== ''
+            ? String(p.prateleira).trim()
+            : String(loc.prateleira || '').trim();
     return {
         ...loc,
         ...p,
         imagem: p.imagem || loc.imagem,
         nome: p.nome || loc.nome,
+        prateleira: prat,
         preco_venda: p.preco_venda != null ? Number(p.preco_venda) : loc.preco_venda,
         saldo_centro: p.saldo_centro != null ? p.saldo_centro : loc.saldo_centro,
         saldo_vila: p.saldo_vila != null ? p.saldo_vila : loc.saldo_vila,
         saldo_erp_centro: p.saldo_erp_centro != null ? p.saldo_erp_centro : loc.saldo_erp_centro,
         saldo_erp_vila: p.saldo_erp_vila != null ? p.saldo_erp_vila : loc.saldo_erp_vila,
-        busca_texto: loc.busca_texto || p.busca_texto || montarBuscaTextoRapido(p),
+        busca_texto: loc.busca_texto || p.busca_texto || montarBuscaTextoRapido({ ...loc, ...p, prateleira: prat }),
         media_venda_diaria_30d: Number(
             mediaApi != null && mediaApi !== ''
                 ? mediaApi
@@ -2242,7 +2951,10 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false,
             produto.nome,
             produto.preco_venda,
             quantidadeRapida,
-            precoEtiqueta ? { precoEtiquetaBalanca: true } : {}
+            {
+                ...(precoEtiqueta ? { precoEtiquetaBalanca: true } : {}),
+                ...metaOpcoesFromProd(produto),
+            }
         );
         mostrarStatusBusca(`Código lido: ${quantidadeRapida}x ${produto.nome}`, 'emerald');
         setTimeout(esconderStatusBusca, 1500);
@@ -2310,7 +3022,8 @@ inputBusca.addEventListener('input', function(e) {
     ultimoInputTime = agora;
 
     const textoLimpo = removerSufixoQuantidade(q);
-    const pareceCodigo = /^\d{6,}$/.test(textoLimpo); // Apenas números longos (Código de Barras EAN)
+    const pareceCodigoOrc = /^GMORC\d{10,20}$/i.test(String(textoLimpo).replace(/\s/g, ''));
+    const pareceCodigo = /^\d{6,}$/.test(textoLimpo) || pareceCodigoOrc;
     const digitacaoMuitoRapida = diff < 35;
 
     clearTimeout(scannerTimer);
@@ -2402,15 +3115,36 @@ inputBusca.addEventListener('keydown', function(e) {
         if (itens.length > 0) {
             const idx = indexSelecionado > -1 ? indexSelecionado : 0;
             const prod = sugestoesAtuais[idx];
-            if (prod) adicionarProdutoComQuantidade(prod.id, prod.nome, prod.preco_venda, quantidadeRapida);
+            if (prod) {
+                if (pdvMaisVSlotAlvo !== null && pdvMaisVSlotAlvo >= 0) {
+                    atribuirProdutoAoSlotMaisVendidos(prod, pdvMaisVSlotAlvo);
+                } else {
+                    adicionarProdutoComQuantidade(prod.id, prod.nome, prod.preco_venda, quantidadeRapida, prod);
+                }
+            }
         } else if (produtoEmDestaque) {
-            addCarrinho(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.preco_venda, quantidadeRapida);
+            if (pdvMaisVSlotAlvo !== null && pdvMaisVSlotAlvo >= 0) {
+                atribuirProdutoAoSlotMaisVendidos(produtoEmDestaque, pdvMaisVSlotAlvo);
+            } else {
+                addCarrinho(
+                    produtoEmDestaque.id,
+                    produtoEmDestaque.nome,
+                    produtoEmDestaque.preco_venda,
+                    quantidadeRapida,
+                    metaOpcoesFromProd(produtoEmDestaque)
+                );
+            }
         } else if (inputBusca.value.trim().length > 0) {
             buscarProdutos(inputBusca.value.trim(), 'scanner');
         }
     }
     else if (e.key === 'Escape') {
         e.preventDefault();
+        if (pdvMaisVSlotAlvo !== null) {
+            pdvMaisVSlotAlvo = null;
+            atualizarBannerSlotMaisVendidos();
+            renderSlotsMaisVendidosPdv();
+        }
         limparBuscaVisual();
         inputBusca.value = '';
         esconderStatusBusca();
@@ -2427,7 +3161,12 @@ inputBusca.addEventListener('keydown', function(e) {
 function filtrarClientesLocais(q) {
     const n = normalizarBuscaLocal(String(q || '').trim());
     if (n.length < 1) return [];
-    return cacheClientesPDV.filter(c => normalizarBuscaLocal(c.nome || '').includes(n)).slice(0, 22);
+    return cacheClientesPDV.filter((c) => {
+        const nm = normalizarBuscaLocal(c.nome || '');
+        const ed = normalizarBuscaLocal(c.endereco || '');
+        const pc = normalizarBuscaLocal(c.plus_code || '');
+        return nm.includes(n) || ed.includes(n) || pc.includes(n);
+    }).slice(0, 22);
 }
 
 function carregarCacheClientes() {
@@ -2480,6 +3219,8 @@ inputCliente.addEventListener('input', function(e) {
             nome: c.nome,
             documento: c.documento || '',
             telefone: c.telefone || '',
+            endereco: c.endereco || '',
+            plus_code: c.plus_code || '',
             id: c.id
         })));
     }
@@ -2505,6 +3246,8 @@ inputCliente.addEventListener('input', function(e) {
                         nome: c.nome,
                         documento: c.documento || '',
                         telefone: c.telefone || '',
+                        endereco: c.endereco || '',
+                        plus_code: c.plus_code || '',
                         id: c.id
                     })));
                 } else {
@@ -2573,6 +3316,10 @@ function renderizarClientes(clientes) {
                 nome: cliente.nome,
                 documento: cliente.documento,
                 telefone: cliente.telefone,
+                endereco: (cliente.endereco && String(cliente.endereco).trim()) ? String(cliente.endereco).trim() : '',
+                plus_code: (cliente.plus_code && String(cliente.plus_code).trim()) ? String(cliente.plus_code).trim() : '',
+                referencia_rural: (cliente.referencia_rural && String(cliente.referencia_rural).trim()) ? String(cliente.referencia_rural).trim() : '',
+                maps_url_manual: (cliente.maps_url_manual && String(cliente.maps_url_manual).trim()) ? String(cliente.maps_url_manual).trim() : '',
                 id: cliente.id
             };
             if ((!sel.telefone || !String(sel.telefone).trim()) && cacheClientesPDV.length) {
@@ -2582,6 +3329,8 @@ function renderizarClientes(clientes) {
                     if (m.telefone) sel.telefone = m.telefone;
                     if (m.id && !sel.id) sel.id = m.id;
                     if (m.documento && (!sel.documento || sel.documento === '—')) sel.documento = m.documento;
+                    if (m.endereco && !sel.endereco) sel.endereco = String(m.endereco).trim();
+                    if (m.plus_code && !sel.plus_code) sel.plus_code = String(m.plus_code).trim();
                 }
             }
             clienteSelecionado = sel;
@@ -2596,6 +3345,35 @@ function renderizarClientes(clientes) {
 }
 
 document.addEventListener('keydown', function(e) {
+    if (document.body.classList.contains('sspin-locked')) return;
+    const tag = e.target && e.target.tagName;
+    const inField = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+    if (e.key === 'F1') {
+        const mpe = document.getElementById('modal-pdv-entrega-pergunta');
+        const mei = document.getElementById('modal-pdv-entrega-impressao');
+        if (mpe && !mpe.classList.contains('hidden')) return;
+        if (mei && !mei.classList.contains('hidden')) return;
+        e.preventDefault();
+        if (pdvCarrinhoDrawerEstaAberto()) fecharDrawerCarrinho();
+        else abrirDrawerCarrinho();
+        return;
+    }
+
+    if (e.key === '/' && !inField) {
+        e.preventDefault();
+        focarBuscaProduto();
+        return;
+    }
+    if (e.altKey && !e.ctrlKey && !e.shiftKey && (e.code === 'KeyA' || e.key === 'a' || e.key === 'A')) {
+        if (inField) return;
+        const mba = document.getElementById('modal-busca-avancada');
+        if (mba && !mba.classList.contains('hidden')) return;
+        e.preventDefault();
+        abrirBuscaAvancada();
+        return;
+    }
+
     if (e.key === 'F2') {
         e.preventDefault();
         focarBuscaProduto();
@@ -2611,6 +3389,10 @@ document.addEventListener('keydown', function(e) {
     else if (e.key === 'F6') {
         e.preventDefault();
         abrirHistoricoLocal();
+    }
+    else if (e.key === 'F7') {
+        e.preventDefault();
+        salvarOrcamentoManual();
     }
     else if (e.key === 'F8') {
         e.preventDefault();
@@ -2629,6 +3411,18 @@ document.addEventListener('keydown', function(e) {
         if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_erp_vila, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'vila');
     }
     else if (e.key === 'Escape') {
+        const mpe = document.getElementById('modal-pdv-entrega-pergunta');
+        if (mpe && !mpe.classList.contains('hidden')) {
+            const btnNao = document.getElementById('mpe-nao');
+            if (btnNao) btnNao.click();
+            e.preventDefault();
+            return;
+        }
+        if (pdvCarrinhoDrawerEstaAberto()) {
+            fecharDrawerCarrinho();
+            e.preventDefault();
+            return;
+        }
         const ml = document.getElementById('modal-lembretes');
         if (ml && !ml.classList.contains('hidden')) {
             fecharModalLembretes();
@@ -2717,7 +3511,268 @@ function aplicarSaldosNaBasePdv(rows) {
         sincronizarSaldosNasListasVisiveis();
         if (sugestoesAtuais.length) renderizarSugestoes();
     }
+    atualizarPrecosBotoesTopVendidos();
     return mudou;
+}
+
+const PDV_TOP_VENDIDOS_DIAS = 30;
+const PDV_MV_SLOTS_KEY = 'pdv_mais_vendidos_slots_v1';
+const PDV_MV_NUM = 10;
+let pdvMaisVSlotAlvo = null;
+
+function obterSlotsMaisVendidosPdv() {
+    let raw = [];
+    try {
+        raw = JSON.parse(localStorage.getItem(PDV_MV_SLOTS_KEY) || '[]');
+    } catch (e) {
+        raw = [];
+    }
+    if (!Array.isArray(raw)) raw = [];
+    const out = [];
+    for (let i = 0; i < PDV_MV_NUM; i++) {
+        const x = raw[i];
+        if (x && x.id != null && String(x.id) !== '') {
+            out.push({
+                id: normalizarIdProdutoPdv(x.id),
+                nome: String(x.nome || ''),
+                preco_venda: Number(x.preco_venda || 0),
+            });
+        } else {
+            out.push(null);
+        }
+    }
+    return out;
+}
+
+function salvarSlotsMaisVendidosPdv(slots) {
+    try {
+        localStorage.setItem(PDV_MV_SLOTS_KEY, JSON.stringify(slots));
+    } catch (e) {}
+}
+
+function atualizarBannerSlotMaisVendidos() {
+    const el = document.getElementById('pdv-mv-slot-banner');
+    if (!el) return;
+    if (pdvMaisVSlotAlvo === null || pdvMaisVSlotAlvo < 0) {
+        el.classList.add('hidden');
+        el.textContent = '';
+        return;
+    }
+    el.classList.remove('hidden');
+    el.textContent = `Atalho ${pdvMaisVSlotAlvo + 1}: busque abaixo e toque no produto (ou Enter na linha selecionada). Esc cancela. ↻ num atalho cheio também entra em modo troca.`;
+}
+
+function atribuirProdutoAoSlotMaisVendidos(s, index) {
+    const slots = obterSlotsMaisVendidosPdv();
+    slots[index] = {
+        id: normalizarIdProdutoPdv(s.id),
+        nome: String(s.nome || ''),
+        preco_venda: Number(s.preco_venda || 0),
+    };
+    salvarSlotsMaisVendidosPdv(slots);
+    pdvMaisVSlotAlvo = null;
+    atualizarBannerSlotMaisVendidos();
+    renderSlotsMaisVendidosPdv();
+    tocarSom('add');
+}
+
+function limparSlotMaisVendidos(i) {
+    const slots = obterSlotsMaisVendidosPdv();
+    slots[i] = null;
+    salvarSlotsMaisVendidosPdv(slots);
+    if (pdvMaisVSlotAlvo === i) {
+        pdvMaisVSlotAlvo = null;
+        atualizarBannerSlotMaisVendidos();
+    }
+    renderSlotsMaisVendidosPdv();
+}
+
+function aplicarRankingMongoNosSlotsMaisVendidos(payload) {
+    const itens = (payload && payload.itens) ? payload.itens : [];
+    const slots = obterSlotsMaisVendidosPdv();
+    for (let i = 0; i < PDV_MV_NUM; i++) {
+        const it = itens[i];
+        if (it && it.id != null) {
+            slots[i] = {
+                id: normalizarIdProdutoPdv(it.id),
+                nome: String(it.nome || ''),
+                preco_venda: Number(it.preco_venda || 0),
+            };
+        } else {
+            slots[i] = null;
+        }
+    }
+    salvarSlotsMaisVendidosPdv(slots);
+    pdvMaisVSlotAlvo = null;
+    atualizarBannerSlotMaisVendidos();
+    renderSlotsMaisVendidosPdv();
+}
+
+function renderSlotsMaisVendidosPdv() {
+    const wrap = document.getElementById('pdv-top-vendidos-btns');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    const slots = obterSlotsMaisVendidosPdv();
+    for (let i = 0; i < PDV_MV_NUM; i++) {
+        const it = slots[i];
+        const row = document.createElement('div');
+        row.className = 'relative min-h-[3.25rem]';
+        if (pdvMaisVSlotAlvo === i) {
+            row.classList.add('ring-2', 'ring-amber-500', 'ring-offset-1', 'rounded-lg');
+        }
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className =
+            'text-left w-full min-h-[3.25rem] px-2.5 py-2 rounded-lg border-2 border-orange-200 bg-white hover:bg-orange-100 hover:border-orange-400 active:scale-[0.98] shadow-sm transition-all';
+
+        const t1 = document.createElement('span');
+        t1.className = 'block text-[11px] font-black leading-snug line-clamp-2';
+        const t2 = document.createElement('span');
+        t2.className = 'block text-[10px] font-bold tabular-nums mt-0.5';
+
+        if (!it) {
+            btn.classList.add('pr-2');
+            t1.classList.add('text-slate-400');
+            t1.textContent = `Atalho ${i + 1}`;
+            t2.textContent = '— vago';
+            t2.classList.add('text-slate-400', 'font-semibold');
+            btn.setAttribute('aria-label', `Definir atalho ${i + 1}`);
+            btn.title = 'Toque: escolhe este espaço. Depois toque num produto na lista (ou Enter).';
+            btn.addEventListener('click', () => {
+                pdvMaisVSlotAlvo = pdvMaisVSlotAlvo === i ? null : i;
+                atualizarBannerSlotMaisVendidos();
+                renderSlotsMaisVendidosPdv();
+                if (pdvMaisVSlotAlvo === i) focarBuscaProduto();
+            });
+            btn._pdvTopAtualizarPreco = () => {};
+        } else {
+            btn.classList.add('pr-8', 'pb-5');
+            const nome = String(it.nome || 'Item');
+            const nomeCurto = nome.length > 44 ? `${nome.slice(0, 42)}…` : nome;
+            t1.classList.add('text-slate-800');
+            t1.textContent = nomeCurto;
+            t2.classList.add('text-emerald-700');
+
+            const atualizarPrecoExibido = () => {
+                const idApi = normalizarIdProdutoPdv(it.id);
+                const loc =
+                    typeof baseProdutos !== 'undefined' && baseProdutos.length
+                        ? baseProdutos.find((x) => normalizarIdProdutoPdv(x.id) === idApi)
+                        : null;
+                const preco = loc ? Number(loc.preco_venda) : Number(it.preco_venda);
+                t2.textContent = formatarMoeda(preco);
+            };
+            atualizarPrecoExibido();
+            btn.setAttribute('data-pdv-mv-preco', '1');
+            btn.setAttribute('aria-label', `Adicionar ${nome} ao carrinho`);
+            btn.title = 'Toque: coloca no carrinho. ↻: trocar produto. ✕: esvaziar atalho.';
+            btn.addEventListener('click', () => {
+                if (pdvMaisVSlotAlvo === i) {
+                    pdvMaisVSlotAlvo = null;
+                    atualizarBannerSlotMaisVendidos();
+                    renderSlotsMaisVendidosPdv();
+                    return;
+                }
+                const idApi = normalizarIdProdutoPdv(it.id);
+                const loc =
+                    typeof baseProdutos !== 'undefined' && baseProdutos.length
+                        ? baseProdutos.find((x) => normalizarIdProdutoPdv(x.id) === idApi)
+                        : null;
+                const preco = loc ? Number(loc.preco_venda) : Number(it.preco_venda);
+                const nomeUsar = loc && loc.nome ? loc.nome : nome;
+                const q = typeof quantidadeRapida !== 'undefined' && quantidadeRapida ? quantidadeRapida : 1;
+                addCarrinho(idApi, nomeUsar, preco, q, {
+                    skipDebounce: true,
+                    ...metaOpcoesFromProd(loc || it),
+                });
+            });
+            btn._pdvTopAtualizarPreco = atualizarPrecoExibido;
+
+            const btnTroca = document.createElement('button');
+            btnTroca.type = 'button';
+            btnTroca.className =
+                'absolute top-1 right-1 z-[1] w-6 h-6 flex items-center justify-center rounded-md border border-orange-200 bg-white text-[12px] leading-none text-amber-800 hover:bg-amber-100 shadow-sm';
+            btnTroca.title = 'Trocar produto deste atalho';
+            btnTroca.setAttribute('aria-label', 'Trocar');
+            btnTroca.textContent = '↻';
+            btnTroca.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                pdvMaisVSlotAlvo = i;
+                atualizarBannerSlotMaisVendidos();
+                renderSlotsMaisVendidosPdv();
+                focarBuscaProduto();
+            });
+
+            const btnX = document.createElement('button');
+            btnX.type = 'button';
+            btnX.className =
+                'absolute bottom-1 right-1 z-[1] w-5 h-5 flex items-center justify-center rounded text-[10px] font-black text-slate-400 hover:text-red-600 hover:bg-red-50';
+            btnX.title = 'Limpar atalho';
+            btnX.setAttribute('aria-label', 'Limpar');
+            btnX.textContent = '✕';
+            btnX.addEventListener('click', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                limparSlotMaisVendidos(i);
+            });
+
+            row.appendChild(btnTroca);
+            row.appendChild(btnX);
+        }
+
+        btn.appendChild(t1);
+        btn.appendChild(t2);
+        row.appendChild(btn);
+        wrap.appendChild(row);
+    }
+}
+
+function atualizarPrecosBotoesTopVendidos() {
+    const wrap = document.getElementById('pdv-top-vendidos-btns');
+    if (!wrap) return;
+    wrap.querySelectorAll('button[data-pdv-mv-preco]').forEach((btn) => {
+        if (typeof btn._pdvTopAtualizarPreco === 'function') btn._pdvTopAtualizarPreco();
+    });
+}
+
+function importarRankingMongoParaSlotsMaisVendidos() {
+    if (!confirm('Substituir os 10 atalhos pelos 10 produtos mais vendidos (Mongo, 30 dias)?')) return;
+    const btnImp = document.getElementById('pdv-mv-importar-ranking');
+    if (btnImp) {
+        btnImp.disabled = true;
+        btnImp.classList.add('opacity-50');
+    }
+    const u = new URL('{% url "api_pdv_top_vendidos" %}', window.location.origin);
+    u.searchParams.set('limite', '10');
+    u.searchParams.set('dias', String(PDV_TOP_VENDIDOS_DIAS));
+    fetch(u.toString(), { credentials: 'same-origin' })
+        .then(async (r) => {
+            const text = await r.text();
+            const raw = text ? text.trim() : '';
+            if (!raw) throw new Error(r.ok ? 'Resposta vazia' : `HTTP ${r.status}`);
+            let d;
+            try {
+                d = JSON.parse(raw);
+            } catch (err) {
+                throw new Error('Resposta inválida do servidor');
+            }
+            if (!r.ok && (!d.itens || !d.itens.length)) {
+                throw new Error(d.erro || `HTTP ${r.status}`);
+            }
+            if (d.erro && (!d.itens || !d.itens.length)) throw new Error(d.erro);
+            aplicarRankingMongoNosSlotsMaisVendidos(d);
+        })
+        .catch((e) => {
+            alert(e && e.message ? e.message : 'Não foi possível importar o ranking.');
+        })
+        .finally(() => {
+            if (btnImp) {
+                btnImp.disabled = false;
+                btnImp.classList.remove('opacity-50');
+            }
+        });
 }
 
 function pollSaldoPdvUmaVez() {
@@ -2774,6 +3829,7 @@ function carregarBaseLocal() {
                 iniciarPollSaldosPdv();
                 setTimeout(pollSaldoPdvUmaVez, 2500);
                 setTimeout(esconderStatusBusca, 2500);
+                setTimeout(atualizarPrecosBotoesTopVendidos, 100);
             }
         })
         .catch(e => {
@@ -2798,6 +3854,8 @@ window.addEventListener('load', () => {
     atualizarCarrinho();
     renderizarHistoricoResumido();
     renderizarLembretes();
+    renderSlotsMaisVendidosPdv();
+    document.getElementById('pdv-mv-importar-ranking')?.addEventListener('click', importarRankingMongoParaSlotsMaisVendidos);
     atualizarCatalogoRapido();
     carregarBaseLocal();
     carregarCacheClientes();
@@ -2865,5 +3923,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 {% endif %}
+{% include "produtos/_screensaver_pin.html" %}
+{% include "produtos/_atalho_voltar_pdv.html" %}
 </body>
 </html>

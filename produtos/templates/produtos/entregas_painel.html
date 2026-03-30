@@ -1,0 +1,877 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agro Mais | Entregas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-800 flex flex-col">
+  <header class="shrink-0 border-b border-slate-200 bg-white shadow-sm">
+    <div class="max-w-[1600px] mx-auto px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="h-10 w-10 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+          <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-base sm:text-lg font-black uppercase tracking-tight text-slate-800">GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-sky-600">Entregas</span></h1>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Status · horários · Maps · reimpressão · WhatsApp</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <button type="button" id="btn-refresh" class="text-xs font-black uppercase bg-slate-800 text-white px-3 py-2 rounded-xl shadow-sm hover:bg-slate-900">Atualizar</button>
+        <button type="button" id="btn-rota-multi" class="text-xs font-black uppercase bg-sky-600 text-white px-3 py-2 rounded-xl shadow-sm hover:bg-sky-700 disabled:opacity-40" disabled title="Ordena por distância (OpenStreetMap) e mostra a sequência; opcional abrir Maps">Rota otimizada</button>
+        {% include "produtos/_pdv_voltar_link.html" %}
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-[1600px] mx-auto w-full px-3 sm:px-4 py-4 flex-1 flex flex-col min-h-0 gap-3">
+    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed">
+      <p><strong class="font-black uppercase">Partida</strong> — escolha <strong>Centro</strong> ou <strong>Vila Elias</strong> no seletor abaixo. No servidor: <code class="bg-white/80 px-1 rounded">LOJA_MAPS_ORIGEM_CENTRO</code> e <code class="bg-white/80 px-1 rounded">LOJA_MAPS_ORIGEM_VILA</code> (endereço ou <code class="bg-white/80 px-1 rounded">lat,lng</code>); links do pin: <code class="bg-white/80 px-1 rounded">LOJA_MAPS_LINK_CENTRO</code> / <code class="bg-white/80 px-1 rounded">LOJA_MAPS_LINK_VILA</code>. Legado: só <code class="bg-white/80 px-1 rounded">LOJA_MAPS_ORIGEM_TEXTO</code> preenche o Centro.</p>
+      <p class="mt-1"><strong class="font-black uppercase">Área rural</strong> — Plus Code no cliente ou na linha; link manual do Maps no pedido também vale.</p>
+      <p class="mt-1"><strong class="font-black uppercase">WhatsApp</strong> — <code class="bg-white/80 px-1 rounded">PDV_ENTREGA_WHATSAPP</code> (só dígitos).</p>
+      <p class="mt-1"><strong class="font-black uppercase">Rota otimizada</strong> — ordena por distância em linha reta. Endereços passam pelo OpenStreetMap (Nominatim); <strong>Plus Codes</strong> do Google são decodificados no servidor (código curto usa a <strong>partida</strong> como referência). Links do Maps com <code class="bg-white/80 px-1 rounded">@lat,lng</code> continuam válidos.</p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <label class="text-[10px] font-black uppercase text-slate-500 shrink-0">Partida</label>
+      <select id="origem-rota" class="rounded-xl border-2 border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-800 max-w-[min(320px,100%)]" title="Loja de onde sai a entrega (rotas Google Maps)"></select>
+      <a id="abrir-loja-maps" href="#" target="_blank" rel="noopener noreferrer" class="text-[10px] font-black uppercase text-sky-700 hover:text-sky-900 border-2 border-sky-200 rounded-xl px-2 py-2 bg-sky-50 shrink-0">Loja no Maps</a>
+      <label class="text-[10px] font-black uppercase text-slate-500 shrink-0 ml-2">Status</label>
+      <select id="filtro-status" class="rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800">
+        <option value="">Todos</option>
+      </select>
+      <span id="meta-lista" class="text-[10px] font-bold text-slate-400 uppercase ml-auto"></span>
+    </div>
+
+    <div class="flex-1 min-h-0 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-auto">
+      <table class="w-full min-w-[1240px] text-left text-sm">
+        <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
+          <tr class="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+            <th class="p-2 w-10 text-center"><input type="checkbox" id="chk-todos-ent" class="w-4 h-4 accent-sky-600" title="Marcar todas na tela"></th>
+            <th class="p-2">#</th>
+            <th class="p-2">Cliente / contato</th>
+            <th class="p-2">Local / rural</th>
+            <th class="p-2">Status</th>
+            <th class="p-2 min-w-[128px]">Pagamento</th>
+            <th class="p-2">Prevista</th>
+            <th class="p-2">Saída / entrega</th>
+            <th class="p-2 w-[200px]">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-ent" class="divide-y divide-slate-100"></tbody>
+      </table>
+      <div id="empty-ent" class="hidden p-12 text-center font-bold text-slate-400">Nenhuma entrega registrada ainda. Salve um orçamento com “Entrega” no PDV.</div>
+    </div>
+  </div>
+
+  <div id="modal-imp-entrega" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-imp-titulo" onclick="if(event.target===this){var m=document.getElementById('modal-imp-entrega');m.classList.add('hidden');m.classList.remove('flex');}">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-200 overflow-hidden" onclick="event.stopPropagation()">
+      <div class="px-4 py-3 border-b border-slate-100 bg-slate-50">
+        <h2 id="modal-imp-titulo" class="text-sm font-black uppercase text-slate-800">Imprimir</h2>
+        <p class="text-[10px] text-slate-500 font-semibold mt-0.5">Marque o que enviar à impressora (80 mm).</p>
+      </div>
+      <div class="px-4 py-4 space-y-3">
+        <label class="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700"><input type="checkbox" id="imp-chk-sep" class="w-4 h-4 accent-sky-600 rounded border-slate-300" checked> Separação</label>
+        <label class="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700"><input type="checkbox" id="imp-chk-ent" class="w-4 h-4 accent-sky-600 rounded border-slate-300" checked> Via do entregador</label>
+        <label class="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700"><input type="checkbox" id="imp-chk-cup" class="w-4 h-4 accent-sky-600 rounded border-slate-300" checked> Cupom (cliente)</label>
+      </div>
+      <div class="flex gap-2 px-4 pb-4">
+        <button type="button" id="imp-btn-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-slate-200 text-slate-700 text-xs font-black uppercase">Cancelar</button>
+        <button type="button" id="imp-btn-ok" class="flex-1 py-2.5 rounded-xl bg-orange-600 text-white text-xs font-black uppercase hover:bg-orange-700">Imprimir</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-rota-otimizada" class="fixed inset-0 z-[85] hidden flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-rota-titulo">
+    <div class="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+      <div class="shrink-0 px-4 py-3 border-b border-slate-100 bg-slate-50">
+        <h2 id="modal-rota-titulo" class="text-sm font-black uppercase text-slate-800">Rota por distância</h2>
+        <p class="text-[10px] font-semibold text-slate-500 mt-0.5">Sequência sugerida · distâncias aproximadas (não seguem estradas)</p>
+      </div>
+      <div class="flex-1 min-h-0 overflow-y-auto px-4 py-3">
+        <p id="rota-opt-status" class="text-xs font-bold text-sky-800"></p>
+        <p id="rota-opt-total" class="text-xs font-black text-emerald-700 mt-2 hidden"></p>
+        <div id="rota-opt-list" class="mt-3 space-y-0 text-sm"></div>
+        <p id="rota-opt-avisos" class="text-[11px] font-semibold text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-2 mt-3 hidden"></p>
+      </div>
+      <div class="shrink-0 flex flex-wrap gap-2 p-4 border-t border-slate-100 bg-white">
+        <button type="button" id="rota-opt-open-maps" class="flex-1 min-w-[8rem] py-2.5 rounded-xl bg-sky-600 text-white text-xs font-black uppercase hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed" disabled>Abrir no Maps</button>
+        <button type="button" id="rota-opt-copy" class="flex-1 min-w-[8rem] py-2.5 rounded-xl border-2 border-slate-200 text-slate-700 text-xs font-black uppercase hover:bg-slate-50 disabled:opacity-40" disabled>Copiar ordem</button>
+        <button type="button" id="rota-opt-close" class="w-full py-2 text-xs font-bold text-slate-500 uppercase">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  var ORIGENS = {{ origens_maps_json }};
+  var WA_LOJA = "{{ pdv_whatsapp_loja|default:''|escapejs }}";
+  var CSRF = "{{ csrf_token }}";
+  var URL_LISTAR = "{% url 'api_entregas_listar' %}";
+  var URL_ATUAL = "{% url 'api_entrega_atualizar' %}";
+  var URL_ORDENAR_ROTA = "{% url 'api_entregas_ordenar_rota' %}";
+  var ultimaRotaMapsUrl = '';
+
+  function origemObj() {
+    var sel = document.getElementById('origem-rota');
+    var id = sel && sel.value;
+    for (var i = 0; i < ORIGENS.length; i++) {
+      if (ORIGENS[i].id === id) return ORIGENS[i];
+    }
+    return ORIGENS[0] || { id: '', label: '', q: '', link_loja: '' };
+  }
+
+  function origemAtual() {
+    return String(origemObj().q || '').trim();
+  }
+
+  function atualizarLinkLojaToolbar() {
+    var a = document.getElementById('abrir-loja-maps');
+    if (!a) return;
+    var lk = String(origemObj().link_loja || '').trim();
+    if (lk) {
+      a.setAttribute('href', lk);
+      a.classList.remove('hidden', 'pointer-events-none', 'opacity-40');
+    } else {
+      a.setAttribute('href', '#');
+      a.classList.add('pointer-events-none', 'opacity-40');
+    }
+  }
+
+  function initOrigens() {
+    var sel = document.getElementById('origem-rota');
+    if (!sel || !ORIGENS.length) return;
+    sel.innerHTML = '';
+    ORIGENS.forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o.id;
+      opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
+    var saved = '';
+    try { saved = (sessionStorage.getItem('entregas_origem_rota') || '').trim(); } catch (e) {}
+    var ok = false;
+    for (var j = 0; j < ORIGENS.length; j++) {
+      if (ORIGENS[j].id === saved) { ok = true; break; }
+    }
+    sel.value = ok ? saved : ORIGENS[0].id;
+    sel.addEventListener('change', function () {
+      try { sessionStorage.setItem('entregas_origem_rota', sel.value); } catch (e2) {}
+      atualizarLinkLojaToolbar();
+      syncChkTodos();
+    });
+    atualizarLinkLojaToolbar();
+  }
+
+  function esc(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function destinoQuery(e) {
+    var manual = String(e.maps_url_manual || '').trim();
+    if (manual) return { modo: 'url', texto: manual };
+    var pc = String(e.plus_code || '').trim();
+    var end = String(e.endereco_linha || '').trim();
+    var ref = String(e.referencia_rural || '').trim();
+    var q = [pc, end, ref].filter(Boolean).join(' ').trim() || String(e.cliente_nome || '');
+    return { modo: 'q', texto: q };
+  }
+
+  function urlBuscaMaps(e) {
+    var d = destinoQuery(e);
+    if (d.modo === 'url') return d.texto;
+    return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(d.texto);
+  }
+
+  /** Um botão: rota loja→cliente se houver origem; senão abre busca no Maps. */
+  function abrirMapsEntrega(e) {
+    var o = origemAtual();
+    if (!o) {
+      window.open(urlBuscaMaps(e), '_blank');
+      return;
+    }
+    var d = destinoQuery(e);
+    window.open(
+      'https://www.google.com/maps/dir/?api=1&origin=' + encodeURIComponent(o) + '&destination=' + encodeURIComponent(d.texto),
+      '_blank'
+    );
+  }
+
+  function waDigitos() {
+    return String(WA_LOJA || '').replace(/\D/g, '');
+  }
+
+  function textoResumoEntrega(e) {
+    var lines = [];
+    lines.push('*Entrega #' + e.id + '* — ' + String(e.status || ''));
+    lines.push(String(e.cliente_nome || ''));
+    if (e.telefone) lines.push('Tel: ' + e.telefone);
+    if (e.plus_code) lines.push('Plus: ' + e.plus_code);
+    if (e.endereco_linha) lines.push('End: ' + e.endereco_linha);
+    if (e.referencia_rural) lines.push('Ref: ' + e.referencia_rural);
+    if (e.observacoes) lines.push('Obs: ' + e.observacoes);
+    if (e.retomar_codigo) lines.push('Retomar PDV: ' + e.retomar_codigo);
+    if (e.forma_pagamento) {
+      var pg = e.forma_pagamento;
+      if (pg === 'Dinheiro' && e.troco_precisa === true) pg += ' (troco: sim)';
+      else if (pg === 'Dinheiro' && e.troco_precisa === false) pg += ' (troco: não)';
+      lines.push('Pagamento: ' + pg);
+    }
+    lines.push('');
+    var itens = Array.isArray(e.itens_json) ? e.itens_json : [];
+    itens.forEach(function (it) {
+      var cod = it.codigo_gm != null ? String(it.codigo_gm) : (it.codigo != null ? String(it.codigo) : '');
+      var nome = it.nome != null ? String(it.nome) : '';
+      var q = it.qtd != null ? it.qtd : '';
+      lines.push((cod ? cod + ' — ' : '') + nome + ': ' + q);
+    });
+    if (e.total_texto) lines.push('Total: ' + e.total_texto);
+    return lines.join('\n');
+  }
+
+  function urlClienteMapsParaQr(e) {
+    var manual = String(e.maps_url_manual || '').trim();
+    if (/^https?:\/\//i.test(manual)) return manual;
+    return urlBuscaMaps(e);
+  }
+
+  function formatarMoedaPainel(n) {
+    var x = Number(n);
+    if (!isFinite(x)) return '—';
+    try {
+      return x.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    } catch (e2) {
+      return '—';
+    }
+  }
+
+  function codigoBarrasEntrega(e) {
+    var c = String(e.retomar_codigo || '').trim();
+    if (c) return c;
+    if (e.orc_local_id != null) return 'GMORC' + String(e.orc_local_id);
+    return 'ENT' + String(e.id);
+  }
+
+  function htmlPagSeparacao(e) {
+    var items = Array.isArray(e.itens_json) ? e.itens_json : [];
+    var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
+    var h = '<div class="pg">';
+    h += '<div style="text-align:center;font-weight:900;font-size:13px;">SEPARAÇÃO</div>';
+    h += '<div style="font-size:9px;margin:4px 0;">' + esc(dh) + '</div>';
+    h += '<div style="font-weight:bold;">' + esc(e.cliente_nome) + '</div>';
+    if (e.telefone) h += '<div>Tel ' + esc(e.telefone) + '</div>';
+    if (e.plus_code) h += '<div>Plus ' + esc(e.plus_code) + '</div>';
+    if (e.endereco_linha) h += '<div>' + esc(e.endereco_linha) + '</div>';
+    if (e.referencia_rural) h += '<div>Ref. ' + esc(e.referencia_rural) + '</div>';
+    if (e.forma_pagamento) {
+      var fp = esc(e.forma_pagamento);
+      if (e.forma_pagamento === 'Dinheiro') {
+        if (e.troco_precisa === true) fp += ' · troco: sim';
+        else if (e.troco_precisa === false) fp += ' · troco: não';
+      }
+      h += '<div style="font-size:10px;margin-top:4px;"><b>Pag.</b> ' + fp + '</div>';
+    }
+    h += '<div style="border-top:2px solid #000;margin:8px 0;"></div>';
+    items.forEach(function (it) {
+      var cod = it.codigo_gm != null ? String(it.codigo_gm) : (it.codigo != null ? String(it.codigo) : '');
+      h += '<div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">';
+      if (cod) h += '<div><b>GM</b> ' + esc(cod) + '</div>';
+      h += '<div style="font-weight:bold;">' + esc(it.nome || '') + '</div>';
+      h += '<div style="font-size:18px;font-weight:900;">QTD ' + esc(String(it.qtd != null ? it.qtd : '')) + '</div>';
+      if (it.prateleira) h += '<div><b>Prat.</b> ' + esc(String(it.prateleira)) + '</div>';
+      h += '</div>';
+    });
+    h += '<div style="margin-top:10px;text-align:center;">';
+    h += '<svg id="barc-orc" xmlns="http://www.w3.org/2000/svg"></svg>';
+    h += '<div style="font-size:9px;margin-top:4px;">Bipe no PDV para retomar o orçamento</div></div>';
+    h += '</div>';
+    return h;
+  }
+
+  function htmlPagEntregador(e) {
+    var nomeCli = String(e.cliente_nome || '');
+    var primeiro = (nomeCli.split(/\s+/)[0] || nomeCli || '—').toUpperCase();
+    var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
+    var end = String(e.endereco_linha || '').trim();
+    var mapsUrl = urlClienteMapsParaQr(e);
+    var qrImg = mapsUrl
+      ? '<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=1&data=' + encodeURIComponent(mapsUrl) + '" alt="" style="width:36mm;height:auto;display:block;margin:6px auto 0;" />'
+      : '<div style="text-align:center;margin-top:6px;font-size:10px;">(sem destino no Maps)</div>';
+    var items = Array.isArray(e.itens_json) ? e.itens_json : [];
+    var entItems = '';
+    items.forEach(function (it) {
+      entItems += '<div style="margin-top:4px;">' + esc(String(it.qtd != null ? it.qtd : '') + '× ' + String(it.nome || '')) + '</div>';
+    });
+    var h = '<div class="pg">';
+    h += '<div style="text-align:center;font-weight:900;font-size:12px;">ENTREGA</div>';
+    h += '<div style="font-size:26px;font-weight:900;text-align:center;line-height:1;margin:8px 0;letter-spacing:-0.02em;">' + esc(primeiro) + '</div>';
+    h += '<div style="font-size:10px;">' + esc(dh) + '</div>';
+    h += '<div style="margin-top:6px;"><b>Cliente</b> ' + esc(nomeCli) + '</div>';
+    h += '<div style="border-top:1px dashed #000;margin:6px 0;"></div>';
+    h += entItems;
+    h += '<div style="margin-top:8px;"><b>Endereço</b></div>';
+    h += '<div style="font-size:10px;word-break:break-word;">' + esc(end || '—') + '</div>';
+    h += qrImg;
+    h += '</div>';
+    return h;
+  }
+
+  function htmlPagCupom(e) {
+    var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
+    var items = Array.isArray(e.itens_json) ? e.itens_json : [];
+    var lines = '';
+    items.forEach(function (it) {
+      var q = Number(it.qtd != null ? it.qtd : 0);
+      var preco = Number(it.preco != null ? it.preco : 0);
+      var sub = isFinite(q) && isFinite(preco) ? q * preco : NaN;
+      var subTxt = isFinite(sub) ? formatarMoedaPainel(sub) : '—';
+      lines +=
+        '<div style="display:flex;justify-content:space-between;gap:4px;margin:3px 0;font-size:10px;">' +
+        '<span style="flex:1;">' +
+        esc(String(it.qtd != null ? it.qtd : '') + '× ' + String(it.nome || '').slice(0, 36)) +
+        '</span><span style="white-space:nowrap;">' + esc(subTxt) + '</span></div>';
+    });
+    var bc = codigoBarrasEntrega(e);
+    var h = '<div class="pg">';
+    h += '<div style="text-align:center;font-weight:900;font-size:14px;">AGRO MAIS</div>';
+    h += '<div style="text-align:center;font-size:10px;margin:2px 0;">Orçamento (não fiscal)</div>';
+    h += '<div style="font-size:10px;">' + esc(dh) + '</div>';
+    h += '<div style="border-top:1px dashed #000;margin:6px 0;"></div>';
+    h += '<div style="font-weight:bold;margin-bottom:4px;">' + esc(e.cliente_nome) + '</div>';
+    h += lines;
+    h += '<div style="border-top:2px solid #000;margin:8px 0 4px;padding-top:4px;font-weight:900;font-size:13px;display:flex;justify-content:space-between;">';
+    h += '<span>TOTAL</span><span>' + esc(String(e.total_texto || '—')) + '</span></div>';
+    h += '<div style="text-align:center;font-size:9px;margin-top:8px;">Obrigado — apresente na retirada</div>';
+    h += '<div style="text-align:center;font-size:8px;margin-top:4px;word-break:break-all;">Retomar: ' + esc(bc) + '</div>';
+    h += '</div>';
+    return h;
+  }
+
+  function imprimirPacotePainel(e, opt) {
+    opt = opt || { sep: true, ent: true, cup: true };
+    var parts = [];
+    if (opt.sep) parts.push(htmlPagSeparacao(e));
+    if (opt.ent) parts.push(htmlPagEntregador(e));
+    if (opt.cup) parts.push(htmlPagCupom(e));
+    if (!parts.length) return;
+    var barcodeVal = codigoBarrasEntrega(e);
+    var inner = parts.join('');
+    var w = window.open('', '_blank');
+    if (!w) {
+      alert('Permita pop-ups para imprimir.');
+      return;
+    }
+    var doc =
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Entrega #' +
+      String(e.id) +
+      '</title><style>@page{margin:0;size:80mm auto;}body{margin:0;font-family:system-ui,sans-serif;}.pg{width:72mm;margin:0 auto;font-size:11px;padding:4mm;page-break-after:always;box-sizing:border-box;}.pg:last-child{page-break-after:auto;}</style></head><body>' +
+      inner +
+      '</body></html>';
+    w.document.open();
+    w.document.write(doc);
+    w.document.close();
+    var runPrint = function () {
+      try {
+        var svg = w.document.getElementById('barc-orc');
+        if (svg && typeof w.JsBarcode !== 'undefined') {
+          w.JsBarcode(svg, barcodeVal, {
+            format: 'CODE128',
+            width: 1.35,
+            height: 44,
+            displayValue: true,
+            fontSize: 11,
+            margin: 0,
+            marginTop: 4,
+            marginBottom: 2,
+          });
+        }
+      } catch (e3) {}
+      w.focus();
+      setTimeout(function () {
+        w.print();
+      }, 120);
+    };
+    var s = w.document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js';
+    s.onload = runPrint;
+    s.onerror = runPrint;
+    w.document.head.appendChild(s);
+  }
+
+  function postAtualizar(payload) {
+    return fetch(URL_ATUAL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify(payload),
+    }).then(function (r) { return r.json(); });
+  }
+
+  var cacheEntregas = [];
+  var impContext = null;
+
+  var FORMAS_PGTO = [
+    { v: '', t: 'Não informado' },
+    { v: 'Dinheiro', t: 'Dinheiro' },
+    { v: 'PIX', t: 'PIX' },
+    { v: 'Cartão de débito', t: 'Cartão de débito' },
+    { v: 'Cartão de crédito', t: 'Cartão de crédito' },
+    { v: 'Outro', t: 'Outro' },
+  ];
+
+  function statusFiltroLista() {
+    try {
+      if (sessionStorage.getItem('entregas_filtro_status') === null) return 'pendente';
+      return sessionStorage.getItem('entregas_filtro_status');
+    } catch (e) {
+      return 'pendente';
+    }
+  }
+
+  function setStatusFiltroLista(v) {
+    try {
+      sessionStorage.setItem('entregas_filtro_status', v);
+    } catch (e2) {}
+  }
+
+  function popularFiltroStatus(opcoes) {
+    var sel = document.getElementById('filtro-status');
+    var want = statusFiltroLista();
+    var html = '<option value="">Todos</option>';
+    (opcoes || []).forEach(function (s) {
+      html += '<option value="' + esc(s) + '">' + esc(s) + '</option>';
+    });
+    sel.innerHTML = html;
+    if (want === '' || (opcoes || []).indexOf(want) !== -1) sel.value = want;
+    else sel.value = (opcoes || []).indexOf('pendente') !== -1 ? 'pendente' : '';
+  }
+
+  function atualizarVisTrocoLinha(tr) {
+    var fpEl = tr.querySelector('.ent-forma');
+    var wrap = tr.querySelector('.ent-troco-wrap');
+    var trocoEl = tr.querySelector('.ent-troco');
+    if (!fpEl || !wrap) return;
+    var isD = fpEl.value === 'Dinheiro';
+    wrap.classList.toggle('hidden', !isD);
+    if (!isD && trocoEl) trocoEl.value = '';
+  }
+
+  function mergeEntregaDaLinha(tr, e) {
+    var urlEl = tr.querySelector('.ent-maps-url');
+    var obsEl = tr.querySelector('.ent-obs');
+    var fpEl = tr.querySelector('.ent-forma');
+    var trocoEl = tr.querySelector('.ent-troco');
+    var out = Object.assign({}, e);
+    if (urlEl) out.maps_url_manual = urlEl.value.trim();
+    if (obsEl) out.observacoes = obsEl.value;
+    out.forma_pagamento = fpEl ? fpEl.value : out.forma_pagamento || '';
+    if (out.forma_pagamento === 'Dinheiro' && trocoEl && trocoEl.value !== '') {
+      out.troco_precisa = trocoEl.value === '1';
+    } else if (out.forma_pagamento === 'Dinheiro' && trocoEl && trocoEl.value === '') {
+      out.troco_precisa = null;
+    } else {
+      out.troco_precisa = null;
+    }
+    return out;
+  }
+
+  function optsFormaHtml(valAtual) {
+    var h = '';
+    FORMAS_PGTO.forEach(function (o) {
+      h +=
+        '<option value="' +
+        esc(o.v) +
+        '"' +
+        (valAtual === o.v ? ' selected' : '') +
+        '>' +
+        esc(o.t) +
+        '</option>';
+    });
+    return h;
+  }
+
+  function trocoSelectVal(e) {
+    if (e.troco_precisa === true) return '1';
+    if (e.troco_precisa === false) return '0';
+    return '';
+  }
+
+  function fecharModalImp() {
+    var m = document.getElementById('modal-imp-entrega');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+    impContext = null;
+  }
+
+  function abrirModalImp(tr, e) {
+    impContext = { tr: tr, e: e };
+    document.getElementById('imp-chk-sep').checked = true;
+    document.getElementById('imp-chk-ent').checked = true;
+    document.getElementById('imp-chk-cup').checked = true;
+    var m = document.getElementById('modal-imp-entrega');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+
+  function renderLinha(e) {
+    var tr = document.createElement('tr');
+    tr.className = 'align-top hover:bg-slate-50/80';
+    tr.dataset.id = String(e.id);
+    var prev = '';
+    if (e.hora_prevista) {
+      var hp = e.hora_prevista;
+      if (hp.length >= 5) prev = hp.slice(0, 5);
+    }
+    var hs = e.hora_saida ? e.hora_saida.replace('T', ' ').slice(0, 16) : '—';
+    var he = e.hora_entrega ? e.hora_entrega.replace('T', ' ').slice(0, 16) : '—';
+
+    var opts = '';
+    (window.__statusOpcoes || []).forEach(function (st) {
+      opts += '<option value="' + esc(st) + '"' + (e.status === st ? ' selected' : '') + '>' + esc(st) + '</option>';
+    });
+
+    tr.innerHTML =
+      '<td class="p-2 text-center"><input type="checkbox" class="ent-chk w-4 h-4 accent-sky-600" data-id="' + esc(e.id) + '"></td>' +
+      '<td class="p-2 font-mono text-xs font-bold text-slate-600">' + esc(e.id) + '</td>' +
+      '<td class="p-2 min-w-[140px]">' +
+        '<div class="font-black text-slate-800">' + esc(e.cliente_nome) + '</div>' +
+        '<div class="text-xs text-slate-500">' + esc(e.telefone || '') + '</div>' +
+        (e.operador ? '<div class="text-[10px] text-slate-400 mt-0.5">Op. ' + esc(e.operador) + '</div>' : '') +
+      '</td>' +
+      '<td class="p-2 min-w-[180px] text-xs">' +
+        (e.plus_code ? '<div class="font-bold text-sky-800">' + esc(e.plus_code) + '</div>' : '') +
+        '<div class="text-slate-600">' + esc(e.endereco_linha || '') + '</div>' +
+        (e.referencia_rural ? '<div class="text-amber-800 font-semibold mt-1">Ref. ' + esc(e.referencia_rural) + '</div>' : '') +
+        '<input type="text" class="ent-maps-url mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Cole link Maps (opcional)" value="' + esc(e.maps_url_manual || '') + '">' +
+      '</td>' +
+      '<td class="p-2"><select class="ent-status w-full text-xs font-bold border-2 border-slate-200 rounded-lg px-1 py-1">' + opts + '</select></td>' +
+      '<td class="p-2">' +
+        '<select class="ent-forma w-full text-[10px] font-bold border border-slate-200 rounded-lg px-1 py-1">' +
+        optsFormaHtml(String(e.forma_pagamento || '')) +
+        '</select>' +
+        '<div class="ent-troco-wrap mt-1' +
+        (String(e.forma_pagamento || '') === 'Dinheiro' ? '' : ' hidden') +
+        '">' +
+        '<label class="text-[9px] font-black uppercase text-slate-500 block">Troco</label>' +
+        '<select class="ent-troco w-full text-[10px] font-bold border border-amber-200 rounded-lg px-1 py-1 bg-amber-50/50">' +
+        '<option value=""' +
+        (trocoSelectVal(e) === '' ? ' selected' : '') +
+        '>—</option>' +
+        '<option value="1"' +
+        (trocoSelectVal(e) === '1' ? ' selected' : '') +
+        '>Precisa</option>' +
+        '<option value="0"' +
+        (trocoSelectVal(e) === '0' ? ' selected' : '') +
+        '>Não precisa</option>' +
+        '</select></div>' +
+      '</td>' +
+      '<td class="p-2"><input type="text" class="ent-hprev w-20 text-xs font-mono border border-slate-200 rounded px-1 py-1" placeholder="HH:MM" value="' + esc(prev) + '"></td>' +
+      '<td class="p-2 text-[10px] font-mono text-slate-600">' + esc(hs) + '<br>' + esc(he) + '</td>' +
+      '<td class="p-2">' +
+        '<div class="flex flex-wrap gap-1">' +
+          '<button type="button" class="ent-btn-maps px-2 py-1 rounded-lg bg-sky-100 text-[10px] font-black uppercase border border-sky-200 text-sky-900" title="Rota da loja ou busca">Maps</button>' +
+          '<button type="button" class="ent-btn-zap px-2 py-1 rounded-lg bg-emerald-100 text-[10px] font-black uppercase border border-emerald-200 text-emerald-900">Zap</button>' +
+          '<button type="button" class="ent-btn-print px-2 py-1 rounded-lg bg-orange-100 text-[10px] font-black uppercase border border-orange-200">Imprimir</button>' +
+        '</div>' +
+        '<div class="flex flex-wrap gap-1 mt-1">' +
+          '<button type="button" class="ent-btn-saida px-2 py-0.5 rounded bg-amber-50 text-[9px] font-black uppercase border border-amber-200">Saída agora</button>' +
+          '<button type="button" class="ent-btn-ent px-2 py-0.5 rounded bg-emerald-50 text-[9px] font-black uppercase border border-emerald-200">Entregue</button>' +
+        '</div>' +
+        '<textarea class="ent-obs w-full mt-1 text-[10px] border border-slate-200 rounded p-1 min-h-[40px]" placeholder="Obs.">' + esc(e.observacoes || '') + '</textarea>' +
+        '<button type="button" class="ent-btn-salvar-maps mt-1 w-full py-1 rounded-lg bg-slate-800 text-white text-[9px] font-black uppercase">Salvar alterações</button>' +
+      '</td>';
+
+    tr.querySelector('.ent-btn-maps').onclick = function () {
+      abrirMapsEntrega(mergeEntregaDaLinha(tr, e));
+    };
+    tr.querySelector('.ent-btn-zap').onclick = function () {
+      var d = waDigitos();
+      if (!d) { alert('Configure PDV_ENTREGA_WHATSAPP no .env.'); return; }
+      var ex = mergeEntregaDaLinha(tr, e);
+      window.open('https://wa.me/' + d + '?text=' + encodeURIComponent(textoResumoEntrega(ex)), '_blank');
+    };
+    tr.querySelector('.ent-btn-print').onclick = function () {
+      abrirModalImp(tr, e);
+    };
+    tr.querySelector('.ent-forma').onchange = function () {
+      atualizarVisTrocoLinha(tr);
+    };
+
+    tr.querySelector('.ent-btn-saida').onclick = function () {
+      postAtualizar({ id: e.id, hora_saida_now: true }).then(function (j) { if (j.ok) carregar(); });
+    };
+    tr.querySelector('.ent-btn-ent').onclick = function () {
+      postAtualizar({ id: e.id, hora_entrega_now: true, status: 'entregue' }).then(function (j) { if (j.ok) carregar(); });
+    };
+
+    tr.querySelector('.ent-status').onchange = function () {
+      var v = this.value;
+      postAtualizar({ id: e.id, status: v }).then(function (j) { if (!j.ok) alert('Falha ao salvar status'); });
+    };
+
+    tr.querySelector('.ent-btn-salvar-maps').onclick = function () {
+      var urlEl = tr.querySelector('.ent-maps-url');
+      var obsEl = tr.querySelector('.ent-obs');
+      var hpEl = tr.querySelector('.ent-hprev');
+      var fpEl = tr.querySelector('.ent-forma');
+      var trocoEl = tr.querySelector('.ent-troco');
+      var fp = fpEl ? fpEl.value : '';
+      if (fp === 'Dinheiro' && (!trocoEl || trocoEl.value === '')) {
+        alert('Para Dinheiro informe se precisa de troco (Precisa / Não precisa).');
+        return;
+      }
+      var payload = {
+        id: e.id,
+        maps_url_manual: urlEl ? urlEl.value : '',
+        observacoes: obsEl ? obsEl.value : '',
+        hora_prevista: hpEl ? hpEl.value : '',
+        forma_pagamento: fp,
+      };
+      if (fp === 'Dinheiro') payload.troco_precisa = trocoEl.value === '1';
+      else payload.troco_precisa = null;
+      postAtualizar(payload).then(function (j) {
+        if (j.ok) carregar();
+        else alert((j && j.erro) || 'Falha ao salvar');
+      });
+    };
+
+    return tr;
+  }
+
+  function carregar() {
+    var st = statusFiltroLista();
+    var url = URL_LISTAR + (st ? '?status=' + encodeURIComponent(st) : '');
+    return fetch(url).then(function (r) { return r.json(); }).then(function (d) {
+      window.__statusOpcoes = d.status_opcoes || [];
+      popularFiltroStatus(d.status_opcoes || []);
+
+      cacheEntregas = d.entregas || [];
+      var tb = document.getElementById('tbody-ent');
+      var empty = document.getElementById('empty-ent');
+      tb.innerHTML = '';
+      document.getElementById('meta-lista').textContent = cacheEntregas.length + ' registro(s)';
+      if (!cacheEntregas.length) {
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+      cacheEntregas.forEach(function (e) {
+        tb.appendChild(renderLinha(e));
+      });
+      syncChkTodos();
+    }).catch(function () {
+      alert('Erro ao carregar entregas.');
+    });
+  }
+
+  function entregaById(id) {
+    var n = Number(id);
+    for (var i = 0; i < cacheEntregas.length; i++) {
+      if (Number(cacheEntregas[i].id) === n) return cacheEntregas[i];
+    }
+    return null;
+  }
+
+  function entregaMescladaParaRota(id) {
+    var e = entregaById(id);
+    if (!e) return null;
+    var tr = document.querySelector('#tbody-ent tr[data-id="' + String(id) + '"]');
+    if (tr) return mergeEntregaDaLinha(tr, e);
+    return e;
+  }
+
+  function abrirModalRotaOpt() {
+    var m = document.getElementById('modal-rota-otimizada');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+
+  function fecharModalRotaOpt() {
+    var m = document.getElementById('modal-rota-otimizada');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+
+  function urlMapsDirPartidas(origem, paradasOrdenadas) {
+    var parts = [origem];
+    (paradasOrdenadas || []).forEach(function (p) {
+      parts.push(p.texto || p.label || '');
+    });
+    return 'https://www.google.com/maps/dir/' + parts.map(function (x) { return encodeURIComponent(x); }).join('/');
+  }
+
+  function syncChkTodos() {
+    var master = document.getElementById('chk-todos-ent');
+    var chks = document.querySelectorAll('.ent-chk');
+    var btnM = document.getElementById('btn-rota-multi');
+    function upd() {
+      var n = document.querySelectorAll('.ent-chk:checked').length;
+      btnM.disabled = !origemAtual() || n < 1;
+    }
+    chks.forEach(function (c) { c.onchange = upd; });
+    master.onchange = function () {
+      chks.forEach(function (c) { c.checked = master.checked; });
+      upd();
+    };
+    upd();
+  }
+
+  document.getElementById('btn-refresh').onclick = carregar;
+  document.getElementById('filtro-status').onchange = function () {
+    setStatusFiltroLista(this.value);
+    carregar();
+  };
+
+  document.getElementById('imp-btn-cancel').onclick = fecharModalImp;
+  document.getElementById('imp-btn-ok').onclick = function () {
+    if (!impContext) return;
+    var sep = document.getElementById('imp-chk-sep').checked;
+    var ent = document.getElementById('imp-chk-ent').checked;
+    var cup = document.getElementById('imp-chk-cup').checked;
+    if (!sep && !ent && !cup) {
+      alert('Marque ao menos uma via para imprimir.');
+      return;
+    }
+    var ex = mergeEntregaDaLinha(impContext.tr, impContext.e);
+    imprimirPacotePainel(ex, { sep: sep, ent: ent, cup: cup });
+    fecharModalImp();
+  };
+
+  document.getElementById('btn-rota-multi').onclick = function () {
+    var ids = [];
+    document.querySelectorAll('.ent-chk:checked').forEach(function (c) {
+      ids.push(Number(c.getAttribute('data-id')));
+    });
+    var list = [];
+    ids.forEach(function (id) {
+      var ex = entregaMescladaParaRota(id);
+      if (ex) list.push(ex);
+    });
+    if (!list.length) return;
+    var o = origemAtual();
+    if (!o) {
+      alert('Defina a origem (Centro ou Vila) nas configurações da loja.');
+      return;
+    }
+    var paradas = list.map(function (e) {
+      var d = destinoQuery(e);
+      return {
+        id: e.id,
+        texto: d.texto,
+        label: String(e.cliente_nome || '').slice(0, 200),
+        maps_url_manual: String(e.maps_url_manual || '').trim(),
+      };
+    });
+    var st = document.getElementById('rota-opt-status');
+    var listEl = document.getElementById('rota-opt-list');
+    var av = document.getElementById('rota-opt-avisos');
+    var tot = document.getElementById('rota-opt-total');
+    var btnMaps = document.getElementById('rota-opt-open-maps');
+    var btnCopy = document.getElementById('rota-opt-copy');
+    listEl.innerHTML = '';
+    av.classList.add('hidden');
+    av.textContent = '';
+    tot.classList.add('hidden');
+    btnMaps.disabled = true;
+    btnCopy.disabled = true;
+    ultimaRotaMapsUrl = '';
+    st.textContent =
+      'Calculando ordem (Plus Code no servidor; demais endereços ~1 s cada no OpenStreetMap; link Maps com @lat,lng é instantâneo).';
+    abrirModalRotaOpt();
+    fetch(URL_ORDENAR_ROTA, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ origem_texto: o, paradas: paradas }),
+    })
+      .then(function (r) {
+        return r.json().then(function (j) {
+          return { okHttp: r.ok, j: j };
+        });
+      })
+      .then(function (x) {
+        var j = x.j;
+        if (!j.ok) {
+          st.textContent = '';
+          listEl.innerHTML = '<li class="text-red-600 font-bold list-none">' + esc(j.erro || 'Falha ao ordenar.') + '</li>';
+          return;
+        }
+        st.textContent = 'Partida → paradas na ordem sugerida (km em linha reta entre pontos geocodificados).';
+        tot.textContent =
+          'Distância acumulada aproximada: ' + String(j.km_total_estimado != null ? j.km_total_estimado : '—') + ' km (não é tempo de estrada).';
+        tot.classList.remove('hidden');
+        if (j.avisos && j.avisos.length) {
+          av.textContent = j.avisos.join(' ');
+          av.classList.remove('hidden');
+        } else {
+          av.classList.add('hidden');
+        }
+        (j.paradas_ordenadas || []).forEach(function (p) {
+          var li = document.createElement('li');
+          li.className = 'list-none border-b border-slate-100 pb-2 mb-2 text-slate-800';
+          var km = p.km_da_anterior != null ? ' +' + esc(String(p.km_da_anterior)) + ' km' : '';
+          var warn = p.lat == null ? ' <span class="text-amber-700 text-[10px] font-bold">(sem coord.)</span>' : '';
+          li.innerHTML =
+            '<span class="font-black text-sky-700">#' +
+            esc(String(p.ordem)) +
+            '</span> · ' +
+            esc(p.label) +
+            km +
+            warn +
+            '<div class="text-[10px] text-slate-500 mt-0.5 break-words">' +
+            esc(p.texto) +
+            '</div>';
+          listEl.appendChild(li);
+        });
+        ultimaRotaMapsUrl = urlMapsDirPartidas(o, j.paradas_ordenadas);
+        btnMaps.disabled = false;
+        btnCopy.disabled = false;
+      })
+      .catch(function () {
+        st.textContent = '';
+        listEl.innerHTML = '<li class="text-red-600 font-bold list-none">Erro de rede ao ordenar rota.</li>';
+      });
+  };
+
+  document.getElementById('modal-rota-otimizada').addEventListener('click', function (ev) {
+    if (ev.target === this) fecharModalRotaOpt();
+  });
+  document.getElementById('rota-opt-close').onclick = fecharModalRotaOpt;
+  document.getElementById('rota-opt-open-maps').onclick = function () {
+    if (!ultimaRotaMapsUrl) return;
+    window.open(ultimaRotaMapsUrl, '_blank');
+  };
+  document.getElementById('rota-opt-copy').onclick = function () {
+    var lines = [];
+    document.querySelectorAll('#rota-opt-list li').forEach(function (li) {
+      lines.push(li.innerText.replace(/\s+/g, ' ').trim());
+    });
+    var t = lines.join('\n');
+    if (!t) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(function () {
+        alert('Ordem copiada.');
+      }).catch(function () {
+        window.prompt('Copiar:', t);
+      });
+    } else {
+      window.prompt('Copiar:', t);
+    }
+  };
+
+  initOrigens();
+  carregar();
+})();
+  </script>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+{% include "produtos/_screensaver_pin.html" %}
+</body>
+</html>

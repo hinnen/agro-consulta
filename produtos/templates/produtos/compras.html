@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" class="h-full overflow-hidden">
 <head>
   <meta charset="UTF-8">
   <title>Agro Mais | Pedido de Compra</title>
@@ -13,129 +13,172 @@
     .gm-bar {
       background: linear-gradient(90deg, rgba(234,88,12,0.12) 0%, rgba(5,150,105,0.10) 100%);
     }
+    .scroll-compras-resultados::-webkit-scrollbar,
+    .scroll-compras-carrinho::-webkit-scrollbar,
+    .scroll-compras-historico::-webkit-scrollbar {
+      width: 10px; height: 10px;
+    }
+    .scroll-compras-resultados::-webkit-scrollbar-track,
+    .scroll-compras-carrinho::-webkit-scrollbar-track,
+    .scroll-compras-historico::-webkit-scrollbar-track {
+      background: #f1f5f9; border-radius: 8px;
+    }
+    .scroll-compras-resultados::-webkit-scrollbar-thumb,
+    .scroll-compras-carrinho::-webkit-scrollbar-thumb,
+    .scroll-compras-historico::-webkit-scrollbar-thumb {
+      background: #cbd5e1; border-radius: 8px;
+    }
+    .scroll-compras-resultados::-webkit-scrollbar-thumb:hover,
+    .scroll-compras-carrinho::-webkit-scrollbar-thumb:hover,
+    .scroll-compras-historico::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .scroll-compras-resultados, .scroll-compras-carrinho, .scroll-compras-historico {
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    .gm-kbd {
+      pointer-events: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      line-height: 1;
+      padding: 0.2rem 0.35rem;
+      border-radius: 0.35rem;
+      font-weight: 900;
+      font-family: ui-monospace, monospace;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.92;
+    }
+    @media (min-width: 640px) { .gm-kbd { font-size: 10px; padding: 0.25rem 0.45rem; } }
   </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800">
+<body class="h-screen overflow-hidden bg-slate-50 text-slate-800 flex flex-col">
 
-  <header class="gm-bar border-b border-slate-200/80">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+  <header class="gm-bar border-b border-slate-200/80 shrink-0 z-20">
+    <div class="max-w-[1700px] mx-auto px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3 min-w-0">
-        <div class="h-11 w-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+        <div class="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
           <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
         </div>
         <div class="min-w-0">
-          <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">
+          <h1 class="text-base sm:text-lg font-black uppercase tracking-tight text-slate-800 leading-tight">
             GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-orange-500">Compras</span>
           </h1>
           <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Custo final (taxas e impostos, quando informados no cadastro)</p>
         </div>
       </div>
-      <a href="/" class="text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:border-orange-400 hover:text-orange-600 transition-colors shrink-0">
-        Voltar ao PDV
-      </a>
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-white border border-slate-200 text-slate-700 max-w-[7rem] truncate" title="Operador (modo descanso)"></span>
+        <button type="button" id="btn-abrir-historico-compra" class="text-xs font-black uppercase bg-white shadow-sm px-3 py-2 rounded-xl border border-slate-200 text-orange-700 hover:border-orange-400 hover:bg-orange-50 transition-colors shrink-0" title="Cotações e pedidos salvos (F10)">
+          Histórico
+          <kbd class="gm-kbd ml-1 border border-orange-200 bg-orange-50 text-orange-800 align-middle">F10</kbd>
+        </button>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="text-xs font-black uppercase bg-white shadow-sm px-3 py-2 rounded-xl border border-slate-200 text-slate-600 hover:border-orange-400 hover:text-orange-600 transition-colors shrink-0" %}
+      </div>
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <div class="lg:col-span-2 space-y-4">
-      <div>
-        <div class="flex flex-col sm:flex-row gap-2 sm:items-stretch">
-          <input
-            type="text"
-            id="busca"
-            placeholder="Buscar por nome, GM, EAN ou marca..."
-            autocomplete="off"
-            class="flex-1 min-w-0 px-5 py-4 rounded-2xl bg-white border-2 border-slate-200 text-base sm:text-lg font-bold outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/25 shadow-sm text-slate-800 placeholder:text-slate-400 transition-all"
-          >
-          <button type="button" id="btn-busca-avancada-compra" class="shrink-0 px-4 py-4 rounded-2xl bg-white border-2 border-orange-200 text-orange-700 font-black text-xs uppercase tracking-wide hover:bg-orange-50 hover:border-orange-400 transition-colors shadow-sm">
-            Filtros avançados
-          </button>
-        </div>
-        <div id="ca-banner-ativo" class="hidden mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-orange-200 bg-orange-50/80 px-3 py-2">
-          <span class="text-[11px] font-bold text-orange-900">Filtro avançado ativo — resultados limitados ao conjunto filtrado.</span>
-          <button type="button" id="btn-ca-limpar" class="text-[10px] font-black uppercase text-orange-700 hover:text-orange-900 underline decoration-orange-300">Limpar filtro</button>
-        </div>
-        <div class="flex flex-wrap items-center justify-between gap-2 mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-          <label class="text-[10px] font-black uppercase text-slate-500 shrink-0" for="compra-dias-media-vendas">Média de vendas (todos os produtos)</label>
-          <select id="compra-dias-media-vendas" class="text-xs font-bold border-2 border-orange-100 rounded-lg px-2 py-1.5 bg-orange-50/50 text-orange-900 max-w-full" title="Período em dias para média, variação semanal e última entrada nos cards">
-            <option value="7">7 dias</option>
-            <option value="14">14 dias</option>
-            <option value="21">21 dias</option>
-            <option value="28">28 dias</option>
-            <option value="30" selected>30 dias</option>
-            <option value="45">45 dias</option>
-            <option value="60">60 dias</option>
-            <option value="90">90 dias</option>
-          </select>
-        </div>
-        <div class="flex items-center justify-between gap-2 mt-2 px-1">
-          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
-            <span aria-hidden="true">↑</span><span aria-hidden="true">↓</span> nos resultados
-          </span>
-          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Enter adiciona o destacado</span>
-        </div>
-      </div>
-      <div id="resultados" class="grid gap-2">
-        <div class="text-slate-400 py-12 text-center font-bold text-sm rounded-2xl border border-dashed border-slate-200 bg-white/80">Carregando produtos…</div>
-      </div>
-    </div>
-
-    <aside class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 h-fit lg:sticky lg:top-4">
-      <h3 class="text-slate-800 font-black uppercase text-xs tracking-widest mb-1 flex justify-between items-center gap-2">
-        <span class="text-orange-500">Lista de pedido</span>
-        <span id="itens-badge" class="bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-1 rounded-lg text-[10px] font-black">0 itens</span>
-      </h3>
-      <p class="text-[10px] text-slate-500 font-semibold mb-4">Totais em custo final (c/ taxas e imp.)</p>
-
-      <div id="carrinho" class="space-y-2 mb-5 max-h-[min(420px,50vh)] overflow-y-auto pr-1 hide-scroll"></div>
-
-      <div class="border-t border-slate-100 pt-4 space-y-3">
-        <div class="flex justify-between items-baseline gap-2 px-0.5">
-          <span class="text-[10px] text-slate-500 font-black uppercase">Total estimado</span>
-          <span id="total-estimado" class="text-xl sm:text-2xl text-emerald-600 font-black tabular-nums">R$ 0,00</span>
-        </div>
-
-        <div class="rounded-xl border border-slate-200 bg-slate-50/90 p-3 space-y-2">
-          <label class="flex items-start gap-2.5 cursor-pointer group">
-            <input type="checkbox" id="chk-fornec-compra" class="mt-0.5 w-4 h-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500">
-            <span class="text-[11px] font-bold text-slate-700 leading-snug">Incluir <span class="text-orange-600">fornecedor</span> na mensagem (copiar / WhatsApp)</span>
-          </label>
-          <div id="wrap-nome-fornec-compra" class="hidden">
-            <label for="nome-fornec-compra" class="sr-only">Nome ou contato do fornecedor</label>
-            <input type="text" id="nome-fornec-compra" maxlength="120" placeholder="Nome ou contato do fornecedor" autocomplete="organization" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:border-orange-400 focus:ring-1 focus:ring-orange-200 outline-none transition-colors">
+  <div class="flex-1 min-h-0 flex flex-col w-full max-w-[1700px] mx-auto px-3 sm:px-4 pt-3 pb-3 gap-3">
+    <main class="flex-1 min-h-0 flex flex-col lg:flex-row gap-3 min-h-0 overflow-hidden" aria-label="Pedido de compra">
+      <div class="order-2 lg:order-none flex-1 min-h-0 flex flex-col gap-2 min-w-0 min-h-[min(36vh,260px)] lg:min-h-0">
+        <div class="shrink-0 rounded-2xl border border-slate-200 bg-white shadow-sm p-3 space-y-2">
+          <div class="flex flex-col sm:flex-row gap-2 sm:items-stretch">
+            <div class="relative flex-1 min-w-0">
+              <input
+                type="text"
+                id="busca"
+                placeholder="Buscar por nome, GM, EAN ou marca…"
+                autocomplete="off"
+                class="w-full px-4 py-2.5 pr-12 rounded-xl bg-slate-50 border-2 border-slate-200 text-sm sm:text-base font-bold outline-none focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-500/20 text-slate-800 placeholder:text-slate-400 transition-all"
+                title="F2 foca aqui de qualquer lugar. / também (fora de campos de texto). ↑↓ destaca · Enter adiciona."
+              >
+              <kbd class="gm-kbd absolute right-2.5 top-1/2 -translate-y-1/2 border border-slate-200 bg-white text-slate-500" title="F2 foca a busca">F2</kbd>
+            </div>
+            <button type="button" id="btn-busca-avancada-compra" class="shrink-0 inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl bg-white border-2 border-orange-200 text-orange-700 font-black text-xs uppercase tracking-wide hover:bg-orange-50 hover:border-orange-400 transition-colors shadow-sm" title="Filtros avançados (F6).">
+              <span>Filtros avançados</span>
+              <kbd class="gm-kbd border border-orange-200 bg-orange-50 text-orange-800">F6</kbd>
+            </button>
+          </div>
+          <div id="ca-banner-ativo" class="hidden flex flex-wrap items-center justify-between gap-2 rounded-xl border border-orange-200 bg-orange-50/80 px-3 py-2">
+            <span class="text-[11px] font-bold text-orange-900">Filtro avançado ativo — resultados limitados ao conjunto filtrado.</span>
+            <button type="button" id="btn-ca-limpar" class="text-[10px] font-black uppercase text-orange-700 hover:text-orange-900 underline decoration-orange-300">Limpar filtro</button>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2">
+            <label class="text-[10px] font-black uppercase text-slate-500 shrink-0" for="compra-dias-media-vendas">Média de vendas (todos os produtos)</label>
+            <select id="compra-dias-media-vendas" class="text-xs font-bold border-2 border-orange-100 rounded-lg px-2 py-1.5 bg-orange-50/50 text-orange-900 max-w-full" title="Período em dias para média, variação semanal e última entrada nos cards">
+              <option value="7">7 dias</option>
+              <option value="14">14 dias</option>
+              <option value="21">21 dias</option>
+              <option value="28">28 dias</option>
+              <option value="30" selected>30 dias</option>
+              <option value="45">45 dias</option>
+              <option value="60">60 dias</option>
+              <option value="90">90 dias</option>
+            </select>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-0.5">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
+              <span aria-hidden="true">↑</span><span aria-hidden="true">↓</span> nos resultados
+            </span>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Enter adiciona · <kbd class="gm-kbd align-middle border border-slate-200 bg-slate-100 text-slate-600">F5</kbd> médias</span>
           </div>
         </div>
-
-        <button type="button" onclick="copiarLista()" class="w-full bg-slate-100 text-slate-800 font-black py-3.5 rounded-xl uppercase text-[11px] tracking-wide hover:bg-slate-200 transition-colors active:scale-[0.99]">
-          Copiar lista
-        </button>
-
-        <button type="button" onclick="enviarWhatsapp()" class="w-full bg-emerald-600 text-white font-black py-3.5 rounded-xl uppercase text-[11px] tracking-wide hover:bg-emerald-700 shadow-md shadow-emerald-600/20 transition-colors active:scale-[0.99]">
-          Enviar fornecedor
-        </button>
-
-        <button type="button" onclick="registrarPedidoNoHistorico()" class="w-full bg-white text-orange-600 border-2 border-orange-200 font-black py-3 rounded-xl uppercase text-[11px] tracking-wide hover:bg-orange-50 transition-colors active:scale-[0.99]">
-          Salvar no histórico
-        </button>
-
-        <button type="button" onclick="limpar()" class="w-full text-slate-400 hover:text-red-600 font-bold text-[10px] uppercase transition-colors pt-1">
-          Limpar tudo
-        </button>
+        <div class="scroll-compras-resultados flex-1 min-h-0 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-sm p-3">
+          <div id="resultados" class="grid gap-2">
+            <div class="text-slate-400 py-12 text-center font-bold text-sm rounded-xl border border-dashed border-slate-200 bg-slate-50/80">Carregando produtos…</div>
+          </div>
+        </div>
       </div>
-    </aside>
-  </main>
 
-  <section class="max-w-6xl mx-auto px-4 pb-12" aria-label="Histórico de pedidos de compra">
-    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
-        <h2 class="text-sm font-black uppercase tracking-widest text-slate-700">Histórico de pedidos</h2>
-        <p class="text-[10px] font-bold text-slate-500 max-w-lg leading-snug"><span class="text-amber-700">Cotação</span> e <span class="text-sky-700">Pedido</span> você altera no menu. <span class="text-emerald-700">Entregue</span> é automático quando o estoque sobe o suficiente (só em pedidos confirmados).</p>
-      </div>
-      <div id="historico-pedidos-compra" class="p-4 space-y-3 min-h-[80px]">
-        <div class="text-center text-slate-400 font-bold text-sm py-6">Carregando histórico…</div>
-      </div>
-    </div>
-  </section>
+      <aside class="order-1 lg:order-none w-full lg:w-[min(380px,34vw)] flex flex-[1.15] min-h-0 flex-col lg:flex-none lg:self-stretch" aria-label="Lista de pedido">
+        <div class="flex flex-col flex-1 min-h-0 h-full min-h-[min(220px,38dvh)] lg:min-h-0 rounded-2xl shadow-sm border border-slate-200 bg-white overflow-hidden">
+          <div class="shrink-0 px-2.5 py-2 sm:px-3 border-b border-slate-100 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h3 class="text-orange-600 font-black uppercase text-[10px] sm:text-xs tracking-wide">Lista</h3>
+            <span id="itens-badge" class="bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-black tabular-nums">0 itens</span>
+            <span class="hidden sm:inline text-[10px] text-slate-400 font-semibold">· custo final</span>
+            <span id="total-estimado" class="ml-auto text-base sm:text-lg text-emerald-600 font-black tabular-nums">R$ 0,00</span>
+          </div>
+          <div id="carrinho" class="scroll-compras-carrinho space-y-1.5 flex-1 min-h-0 overflow-y-auto overscroll-contain px-2.5 py-2 sm:px-3"></div>
+          <div class="shrink-0 border-t border-slate-100 p-2 sm:p-2.5 space-y-2">
+            <div class="rounded-lg border border-slate-200 bg-slate-50/90 p-2 space-y-1.5">
+              <label class="flex items-start gap-2 cursor-pointer group">
+                <input type="checkbox" id="chk-fornec-compra" class="mt-0.5 w-3.5 h-3.5 rounded border-slate-300 text-orange-600 focus:ring-orange-500 shrink-0">
+                <span class="text-[10px] font-bold text-slate-700 leading-snug">Fornecedor na msg <span class="text-orange-600">(copiar / Zap)</span></span>
+              </label>
+              <div id="wrap-nome-fornec-compra" class="hidden">
+                <label for="nome-fornec-compra" class="sr-only">Nome ou contato do fornecedor</label>
+                <input type="text" id="nome-fornec-compra" maxlength="120" placeholder="Nome ou contato" autocomplete="organization" class="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:border-orange-400 focus:ring-1 focus:ring-orange-200 outline-none">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-1.5">
+              <button type="button" onclick="copiarLista()" class="inline-flex items-center justify-center gap-1 bg-slate-100 text-slate-800 font-black py-2 rounded-lg uppercase text-[9px] sm:text-[10px] tracking-wide hover:bg-slate-200 active:scale-[0.99]" title="F7">
+                <span>Copiar</span>
+                <kbd class="gm-kbd border border-slate-300 bg-white text-slate-600 text-[8px]">F7</kbd>
+              </button>
+              <button type="button" onclick="enviarWhatsapp()" class="inline-flex items-center justify-center gap-1 bg-emerald-600 text-white font-black py-2 rounded-lg uppercase text-[9px] sm:text-[10px] tracking-wide hover:bg-emerald-700 shadow-sm active:scale-[0.99]" title="F8">
+                <span>Zap</span>
+                <kbd class="gm-kbd border border-white/30 bg-white/15 text-white text-[8px]">F8</kbd>
+              </button>
+              <button type="button" onclick="registrarPedidoNoHistorico()" class="col-span-2 inline-flex items-center justify-center gap-1 bg-white text-orange-600 border-2 border-orange-200 font-black py-2 rounded-lg uppercase text-[9px] sm:text-[10px] tracking-wide hover:bg-orange-50 active:scale-[0.99]" title="F9">
+                <span>Salvar histórico</span>
+                <kbd class="gm-kbd border border-orange-200 bg-orange-50 text-orange-800 text-[8px]">F9</kbd>
+              </button>
+              <button type="button" onclick="abrirHistoricoCompraModal()" class="col-span-2 text-center text-orange-700 font-bold text-[9px] uppercase hover:underline py-0.5">
+                Ver histórico (F10)
+              </button>
+              <button type="button" onclick="limpar()" class="col-span-2 text-slate-400 hover:text-red-600 font-bold text-[9px] uppercase py-1 flex items-center justify-center gap-1" title="F4">
+                <span>Limpar lista</span>
+                <kbd class="gm-kbd border border-slate-200 bg-slate-50 text-slate-500 text-[8px]">F4</kbd>
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
 
   <div id="modal-busca-avancada-compra" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[105] hidden items-center justify-center p-4">
     <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 max-h-[92vh] flex flex-col">
@@ -174,6 +217,23 @@
         <button type="button" id="btn-aplicar-ca" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-3 rounded-xl uppercase text-sm">Aplicar filtros</button>
         <p class="text-[10px] text-slate-400 font-bold text-center leading-snug">Clique em um item abaixo para adicionar à lista de pedido.</p>
         <div id="lista-busca-avancada-compra" class="border border-slate-100 rounded-xl min-h-[120px] max-h-[38vh] overflow-y-auto hide-scroll bg-slate-50/30"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-historico-compra" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[106] hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 max-h-[88vh] flex flex-col min-h-0">
+      <div class="px-4 py-3 border-b border-slate-100 flex justify-between items-start gap-3 shrink-0">
+        <div class="min-w-0">
+          <h2 class="text-base font-black uppercase text-slate-800 tracking-tight">Histórico de pedidos</h2>
+          <p class="text-[9px] font-bold text-slate-500 mt-1 leading-snug"><span class="text-amber-700">Cotação</span> / <span class="text-sky-700">Pedido</span> no menu. <span class="text-emerald-700">Entregue</span> no estoque. <span class="text-orange-700">Recuperar</span> substitui a lista atual.</p>
+        </div>
+        <button type="button" id="btn-fechar-historico-compra" class="text-slate-400 hover:text-slate-700 font-bold text-sm px-2 shrink-0" aria-label="Fechar">✕</button>
+      </div>
+      <div class="scroll-compras-historico flex-1 min-h-0 overflow-y-auto p-3">
+        <div id="historico-pedidos-compra" class="space-y-3 min-h-[48px]">
+          <div class="text-center text-slate-400 font-bold text-sm py-4">Carregando histórico…</div>
+        </div>
       </div>
     </div>
   </div>
@@ -263,12 +323,23 @@ function aplicarMetricasCompraNaBase(payload) {
       p._c_var_sem = null;
       p._c_entrada_data = '';
       p._c_entrada_qtd = 0;
+      p._c_spark = [0, 0, 0, 0];
       return;
     }
     p._c_media_dia = Number(row[1]);
     p._c_var_sem = row[5] === null || row[5] === undefined || row[5] === '' ? null : Number(row[5]);
     p._c_entrada_data = row[6] || '';
     p._c_entrada_qtd = Number(row[7]);
+    if (row.length >= 12) {
+      p._c_spark = [
+        Math.max(0, Number(row[8]) || 0),
+        Math.max(0, Number(row[9]) || 0),
+        Math.max(0, Number(row[10]) || 0),
+        Math.max(0, Number(row[11]) || 0),
+      ];
+    } else {
+      p._c_spark = [0, 0, 0, 0];
+    }
   });
 }
 
@@ -359,6 +430,7 @@ function enriquecerProdutoCompraBusca(p) {
       _c_var_sem: null,
       _c_entrada_data: '',
       _c_entrada_qtd: 0,
+      _c_spark: [0, 0, 0, 0],
     };
   }
   return {
@@ -395,7 +467,61 @@ function enriquecerProdutoCompraBusca(p) {
     _c_var_sem: loc._c_var_sem,
     _c_entrada_data: loc._c_entrada_data,
     _c_entrada_qtd: loc._c_entrada_qtd,
+    _c_spark: Array.isArray(loc._c_spark) && loc._c_spark.length === 4
+      ? loc._c_spark.map((x) => Math.max(0, Number(x) || 0))
+      : [0, 0, 0, 0],
   };
+}
+
+/** Mini gráfico: 4 semanas (antiga → recente), quantidade vendida por semana. */
+function compraSparklineSvg4(vals) {
+  const v = (vals || []).map((x) => Math.max(0, Number(x) || 0));
+  const n = 4;
+  const w = 120;
+  const h = 44;
+  const padX = 6;
+  const padY = 5;
+  const max = Math.max(...v, 1e-6);
+  const innerW = w - 2 * padX;
+  const innerH = h - 2 * padY;
+  const step = n <= 1 ? 0 : innerW / (n - 1);
+  const pts = v
+    .map((val, i) => {
+      const x = padX + i * step;
+      const y = padY + innerH - (val / max) * innerH;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+  const lastY = padY + innerH - (v[3] / max) * innerH;
+  const area =
+    `${padX},${padY + innerH} ` +
+    v
+      .map((val, i) => {
+        const x = padX + i * step;
+        const y = padY + innerH - (val / max) * innerH;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(' ') +
+    ` ${padX + 3 * step},${padY + innerH}`;
+  return (
+    '<svg viewBox="0 0 ' +
+    w +
+    ' ' +
+    h +
+    '" class="w-full max-w-[9rem] sm:max-w-[10.5rem] h-11 sm:h-12 text-orange-500" preserveAspectRatio="none" aria-hidden="true">' +
+    '<polygon fill="currentColor" fill-opacity="0.12" stroke="none" points="' +
+    area +
+    '" class="text-orange-400"/>' +
+    '<polyline fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" points="' +
+    pts +
+    '"/>' +
+    '<circle cx="' +
+    (padX + 3 * step).toFixed(1) +
+    '" cy="' +
+    lastY.toFixed(1) +
+    '" r="3" fill="currentColor" class="text-orange-600"/>' +
+    '</svg>'
+  );
 }
 
 function renderizarListaResultadosCompra(resultados) {
@@ -433,52 +559,64 @@ function renderizarListaResultadosCompra(resultados) {
     const entData = formatarDataEntradaCompra(p._c_entrada_data);
     const entQ = Number(p._c_entrada_qtd || 0);
     const entQFmt = entQ > 0 ? entQ.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : '—';
+    const spark = Array.isArray(p._c_spark) && p._c_spark.length === 4 ? p._c_spark : [0, 0, 0, 0];
+    const sparkTip =
+      'Vendas por semana (antiga→atual): ' +
+      spark.map((q, i) => 'S' + (i + 1) + '=' + (Number(q) || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 })).join(' · ');
 
     div.innerHTML += `
-      <div class="compra-card bg-white p-3 sm:p-4 rounded-2xl flex justify-between items-stretch gap-3 border border-slate-200 hover:border-orange-400 hover:shadow-md transition-all cursor-pointer group"
+      <div class="compra-card bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 hover:border-orange-400 hover:shadow-md transition-all cursor-pointer group grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(7rem,11rem)_minmax(6.5rem,7.5rem)] gap-3 sm:gap-4 items-stretch"
         data-compra-idx="${idx}"
         onclick="adicionarProdutoResultadoCompra(${idx})">
 
-        <div class="flex items-start gap-3 flex-1 min-w-0">
-          <img src="${foto}" alt="" onerror="this.src='${PLACEHOLDER_IMG}'" class="w-11 h-11 sm:w-12 sm:h-12 object-contain rounded-xl bg-white border border-slate-100 shrink-0 p-0.5">
+        <div class="flex items-start gap-3 min-w-0">
+          <img src="${foto}" alt="" onerror="this.src='${PLACEHOLDER_IMG}'" class="w-14 h-14 sm:w-[4.25rem] sm:h-[4.25rem] object-contain rounded-xl bg-white border border-slate-100 shrink-0 p-1">
 
           <div class="flex-1 min-w-0">
-            <div class="flex flex-wrap items-center gap-1.5 mb-1">
-              <span class="text-[10px] font-bold text-slate-500 uppercase truncate">${escapeHtml(marcaSegura)}</span>
-              <span class="text-[9px] font-black text-slate-600 uppercase bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">GM ${escapeHtml(gmCode)}</span>
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+              <span class="text-[11px] sm:text-xs font-bold text-slate-600 uppercase tracking-wide truncate">${escapeHtml(marcaSegura)}</span>
+              <span class="text-[10px] sm:text-[11px] font-black text-slate-700 uppercase bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">GM ${escapeHtml(gmCode)}</span>
             </div>
 
-            <div class="font-black text-xs sm:text-sm uppercase text-slate-800 group-hover:text-orange-600 transition-colors leading-snug">${escapeHtml(nomeReal)}</div>
+            <div class="font-black text-sm sm:text-base uppercase text-slate-800 group-hover:text-orange-600 transition-colors leading-tight">${escapeHtml(nomeReal)}</div>
 
-            <div class="flex flex-wrap items-center gap-2 mt-2">
-              <span class="text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-black text-[10px] uppercase">
+            <div class="flex flex-wrap items-center gap-2 mt-2.5">
+              <span class="text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/90 font-black text-xs uppercase tracking-wide">
                 Est. total ${(Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1)}
               </span>
-              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_centro ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Centro">C ${Number(p.saldo_centro || 0).toFixed(1)}</span>
-              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_vila ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Vila">V ${Number(p.saldo_vila || 0).toFixed(1)}</span>
+              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_centro ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Centro">C ${Number(p.saldo_centro || 0).toFixed(1)}</span>
+              <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_vila ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Vila">V ${Number(p.saldo_vila || 0).toFixed(1)}</span>
             </div>
-            <div class="flex flex-wrap items-center gap-1.5 mt-2 text-[9px] font-bold leading-tight border-t border-slate-100 pt-2">
-              <span class="inline-flex items-center gap-0.5 rounded-md bg-sky-50 text-sky-900 px-1.5 py-0.5 ring-1 ring-sky-200/80" title="Média de unidades vendidas por dia">Média ${diasM}d: <strong class="tabular-nums font-black">${mediaFmt}</strong>/dia</span>
-              <span class="inline-flex items-center rounded-md px-1.5 py-0.5 ring-1 tabular-nums ${varCls}" title="Últimos 7 dias vs. 7 anteriores">Δ sem. <strong>${escapeHtml(formatarVarSemanalCompra(varSem))}</strong></span>
-              <span class="text-slate-500 font-semibold">Entrada: <strong class="text-slate-700">${escapeHtml(entData)}</strong> · <strong class="tabular-nums text-slate-700">${escapeHtml(entQFmt)}</strong></span>
+            <div class="flex flex-wrap items-center gap-2 mt-2.5 text-xs font-bold leading-snug border-t border-slate-100 pt-2.5">
+              <span class="inline-flex items-center gap-1 rounded-lg bg-sky-50 text-sky-950 px-2 py-1 ring-1 ring-sky-200" title="Média de unidades vendidas por dia">Média ${diasM}d: <strong class="tabular-nums font-black">${mediaFmt}</strong>/dia</span>
+              <span class="inline-flex items-center rounded-lg px-2 py-1 ring-1 tabular-nums ${varCls}" title="Últimos 7 dias vs. 7 anteriores">Δ sem. <strong>${escapeHtml(formatarVarSemanalCompra(varSem))}</strong></span>
+              <span class="text-slate-600 font-semibold text-[11px] sm:text-xs">Entrada: <strong class="text-slate-800">${escapeHtml(entData)}</strong> · <strong class="tabular-nums text-slate-800">${escapeHtml(entQFmt)}</strong></span>
             </div>
           </div>
         </div>
 
-        <div class="text-right shrink-0 w-[108px] sm:w-[120px] border-l border-slate-100 pl-2 sm:pl-3">
-          <div class="text-[9px] text-orange-600 font-black uppercase leading-tight">Custo final</div>
-          <div class="text-[10px] text-slate-500 font-semibold leading-tight mb-0.5">c/ taxas e imp.</div>
-          <div class="text-base font-black text-slate-900 tabular-nums">${formatarMoeda(custoFin)}</div>
+        <div class="flex flex-col justify-center min-h-[3rem] sm:border-l sm:border-slate-100 sm:pl-3 border-t sm:border-t-0 border-slate-100 pt-2 sm:pt-0" title="${escapeHtml(sparkTip)}">
+          <div class="text-[10px] sm:text-[11px] font-black uppercase text-slate-500 tracking-wide mb-1">Vendas · 4 semanas</div>
+          <div class="flex items-end justify-center sm:justify-start">${compraSparklineSvg4(spark)}</div>
+          <div class="flex justify-between text-[9px] font-bold text-slate-400 mt-1 px-0.5 max-w-[10.5rem] mx-auto sm:mx-0 sm:mr-auto">
+            <span>−28d</span><span>hoje</span>
+          </div>
+        </div>
+
+        <div class="text-right shrink-0 border-t sm:border-t-0 sm:border-l border-slate-100 pt-2 sm:pt-0 sm:pl-3 flex flex-col justify-center">
+          <div class="text-[10px] sm:text-[11px] text-orange-600 font-black uppercase leading-tight">Custo final</div>
+          <div class="text-xs text-slate-500 font-semibold leading-tight mb-0.5">c/ taxas e imp.</div>
+          <div class="text-lg sm:text-xl font-black text-slate-900 tabular-nums">${formatarMoeda(custoFin)}</div>
 
           ${mostrarBase ? `
-          <div class="text-[9px] text-slate-400 font-bold uppercase mt-2">Custo base</div>
-          <div class="text-[11px] font-semibold text-slate-500 tabular-nums">${formatarMoeda(custoBase)}</div>` : ''}
+          <div class="text-[10px] text-slate-400 font-bold uppercase mt-2">Custo base</div>
+          <div class="text-sm font-semibold text-slate-500 tabular-nums">${formatarMoeda(custoBase)}</div>` : ''}
 
-          <div class="text-[9px] text-slate-400 font-bold uppercase mt-2">Venda</div>
-          <div class="text-xs font-black text-orange-600 tabular-nums">R$ ${precoVenda}</div>
+          <div class="text-[10px] text-slate-400 font-bold uppercase mt-2">Venda</div>
+          <div class="text-sm sm:text-base font-black text-orange-600 tabular-nums">R$ ${precoVenda}</div>
 
-          <div class="text-[9px] text-slate-400 font-bold uppercase mt-1">Lucro</div>
-          <div class="text-[10px] font-black ${corLucro} tabular-nums">R$ ${lucroReais} (${lucroPerc}%)</div>
+          <div class="text-[10px] text-slate-400 font-bold uppercase mt-1.5">Lucro</div>
+          <div class="text-xs sm:text-sm font-black ${corLucro} tabular-nums">R$ ${lucroReais} (${lucroPerc}%)</div>
         </div>
       </div>
     `;
@@ -562,16 +700,16 @@ function atualizarCarrinho() {
     soma += subtotal;
 
     const row = document.createElement('div');
-    row.className = 'border border-slate-200 rounded-xl p-3 bg-slate-50/50';
+    row.className = 'border border-slate-200 rounded-lg p-2 sm:p-2.5 bg-slate-50/50';
     row.innerHTML = `
-      <div class="flex justify-between gap-3">
+      <div class="flex justify-between gap-2">
         <div class="min-w-0">
-          <div class="font-black text-[11px] uppercase text-slate-800 truncate">${escapeHtml(item.nome)}</div>
-          <div class="text-[10px] text-slate-500 font-semibold mt-0.5">${item.qtd} × ${formatarMoeda(item.precoFinal)} <span class="text-slate-400">(custo final)</span></div>
+          <div class="font-black text-[10px] sm:text-[11px] uppercase text-slate-800 truncate">${escapeHtml(item.nome)}</div>
+          <div class="text-[9px] sm:text-[10px] text-slate-500 font-semibold mt-0.5">${item.qtd} × ${formatarMoeda(item.precoFinal)} <span class="text-slate-400">(custo final)</span></div>
         </div>
         <button type="button" onclick="removerItem(${idx})" class="text-red-500 hover:text-red-700 font-black text-xs shrink-0 px-1" aria-label="Remover">✕</button>
       </div>
-      <div class="text-right text-sm font-black text-emerald-600 mt-2 tabular-nums">${formatarMoeda(subtotal)}</div>
+      <div class="text-right text-xs sm:text-sm font-black text-emerald-600 mt-1 tabular-nums">${formatarMoeda(subtotal)}</div>
     `;
     carrinho.appendChild(row);
   });
@@ -700,6 +838,26 @@ function abrirBuscaAvancadaCompra() {
   preencherSelectCompraAvancadaDimensao();
   m.classList.remove('hidden');
   m.classList.add('flex');
+}
+
+function abrirHistoricoCompraModal() {
+  const m = document.getElementById('modal-historico-compra');
+  if (!m) return;
+  renderHistoricoCompras();
+  m.classList.remove('hidden');
+  m.classList.add('flex');
+}
+
+function fecharHistoricoCompraModal() {
+  const m = document.getElementById('modal-historico-compra');
+  if (!m) return;
+  m.classList.add('hidden');
+  m.classList.remove('flex');
+}
+
+function comprasModalHistoricoAberta() {
+  const m = document.getElementById('modal-historico-compra');
+  return !!(m && m.classList.contains('flex'));
 }
 
 function fecharBuscaAvancadaCompra() {
@@ -877,13 +1035,67 @@ function removerPedidoCompra(id) {
   renderHistoricoCompras();
 }
 
+/** Recoloca os itens do registro na lista de pedido (preços atuais de custo final). */
+function recuperarPedidoCompra(id) {
+  const ped = lerHistoricoCompra().find(x => String(x.id) === String(id));
+  if (!ped) {
+    alert('Registro não encontrado.');
+    return;
+  }
+  const linhas = Array.isArray(ped.itens) ? ped.itens : [];
+  if (!linhas.length) {
+    alert('Este registro não tem itens para recuperar.');
+    return;
+  }
+  const st = ped.status || 'cotacao';
+  let msg = '';
+  if (lista.length > 0) {
+    msg = 'A lista atual será substituída por este pedido. Continuar?';
+  }
+  if (st === 'entregue') {
+    msg = msg
+      ? msg + '\n\n(O registro está como Entregue — só recarrega a lista para consulta ou novo envio.)'
+      : 'Este pedido está como Entregue. Recuperar os itens na lista mesmo assim?';
+  }
+  if (msg && !confirm(msg)) return;
+
+  const porId = new Map();
+  linhas.forEach(line => {
+    const pid = String(line.id);
+    const q = Number(line.qtd) || 0;
+    if (q <= 0) return;
+    const prev = porId.get(pid) || 0;
+    porId.set(pid, prev + q);
+  });
+
+  const nova = [];
+  porId.forEach((qtd, pid) => {
+    const p = baseProdutos.find(x => String(x.id) === pid);
+    const nomeHist = linhas.find(l => String(l.id) === pid);
+    const nome = (nomeHist && nomeHist.nome) || (p && p.nome) || 'Produto';
+    const preco = p ? custoFinalDoProduto(p) : 0;
+    nova.push({
+      id: pid,
+      nome,
+      precoFinal: preco,
+      qtd: qtd,
+    });
+  });
+
+  lista = nova;
+  atualizarCarrinho();
+  fecharHistoricoCompraModal();
+  const buscaEl = document.getElementById('busca');
+  if (buscaEl) buscaEl.focus();
+}
+
 function renderHistoricoCompras() {
   const host = document.getElementById('historico-pedidos-compra');
   if (!host) return;
   verificarEntregasAutomaticas();
   const h = lerHistoricoCompra();
   if (!h.length) {
-    host.innerHTML = '<div class="text-center text-slate-400 font-bold text-sm py-8">Nenhum pedido salvo ainda. Use “Salvar no histórico” na lista ao lado.</div>';
+    host.innerHTML = '<div class="text-center text-slate-400 font-bold text-sm py-8">Nenhum pedido salvo ainda. Use “Salvar histórico” na lista ou o atalho <kbd class="gm-kbd border border-orange-200 bg-orange-50 text-orange-800">F9</kbd>.</div>';
     return;
   }
   host.innerHTML = '';
@@ -921,6 +1133,7 @@ function renderHistoricoCompras() {
       </div>
       <div class="flex flex-col gap-2 shrink-0 sm:items-end">
         ${entregue ? '<span class="text-[9px] font-bold text-emerald-700 text-right max-w-[11rem] leading-snug">Fechado automaticamente quando o estoque subiu.</span>' : selDois}
+        <button type="button" data-recuperar-id="${escapeHtml(String(ped.id))}" class="btn-recuperar-compra w-full sm:w-auto inline-flex items-center justify-center rounded-lg bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-black uppercase px-3 py-2 shadow-sm transition-colors">Recuperar na lista</button>
         <button type="button" data-remove-id="${escapeHtml(String(ped.id))}" class="btn-remove-compra text-[10px] font-bold text-red-500 hover:text-red-700 uppercase text-left sm:text-right">Excluir</button>
       </div>`;
     host.appendChild(card);
@@ -931,6 +1144,10 @@ function renderHistoricoCompras() {
     const rm = card.querySelector('.btn-remove-compra');
     if (rm) {
       rm.addEventListener('click', () => removerPedidoCompra(rm.getAttribute('data-remove-id')));
+    }
+    const rec = card.querySelector('.btn-recuperar-compra');
+    if (rec) {
+      rec.addEventListener('click', () => recuperarPedidoCompra(rec.getAttribute('data-recuperar-id')));
     }
   });
 }
@@ -1080,10 +1297,91 @@ document.getElementById('btn-ca-limpar')?.addEventListener('click', () => limpar
 document.getElementById('modal-busca-avancada-compra')?.addEventListener('click', (e) => {
   if (e.target && e.target.id === 'modal-busca-avancada-compra') fecharBuscaAvancadaCompra();
 });
+document.getElementById('btn-abrir-historico-compra')?.addEventListener('click', () => abrirHistoricoCompraModal());
+document.getElementById('btn-fechar-historico-compra')?.addEventListener('click', () => fecharHistoricoCompraModal());
+document.getElementById('modal-historico-compra')?.addEventListener('click', (e) => {
+  if (e.target && e.target.id === 'modal-historico-compra') fecharHistoricoCompraModal();
+});
+function comprasModalBuscaAberta() {
+  const m = document.getElementById('modal-busca-avancada-compra');
+  return m && m.classList.contains('flex');
+}
+
+function comprasAtalhoIgnorarBarra() {
+  const el = document.activeElement;
+  if (!el) return false;
+  const t = el.tagName;
+  if (t === 'TEXTAREA' || t === 'SELECT') return true;
+  if (t === 'INPUT') return true;
+  if (el.isContentEditable) return true;
+  return false;
+}
+
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') fecharBuscaAvancadaCompra();
+  if (document.body.classList.contains('sspin-locked')) return;
+  if (comprasModalBuscaAberta()) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      fecharBuscaAvancadaCompra();
+    }
+    return;
+  }
+  if (comprasModalHistoricoAberta()) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      fecharHistoricoCompraModal();
+    }
+    return;
+  }
+  if (e.key === 'Escape') return;
+  if (e.key === 'F2') {
+    e.preventDefault();
+    document.getElementById('busca')?.focus();
+    return;
+  }
+  if (e.key === 'F4') {
+    e.preventDefault();
+    limpar();
+    return;
+  }
+  if (e.key === 'F5') {
+    e.preventDefault();
+    carregarMetricasCompra();
+    return;
+  }
+  if (e.key === 'F6') {
+    e.preventDefault();
+    abrirBuscaAvancadaCompra();
+    return;
+  }
+  if (e.key === 'F7') {
+    e.preventDefault();
+    copiarLista();
+    return;
+  }
+  if (e.key === 'F8') {
+    e.preventDefault();
+    enviarWhatsapp();
+    return;
+  }
+  if (e.key === 'F9') {
+    e.preventDefault();
+    registrarPedidoNoHistorico();
+    return;
+  }
+  if (e.key === 'F10') {
+    e.preventDefault();
+    if (comprasModalHistoricoAberta()) fecharHistoricoCompraModal();
+    else abrirHistoricoCompraModal();
+    return;
+  }
+  if (e.key === '/' && !comprasAtalhoIgnorarBarra()) {
+    e.preventDefault();
+    document.getElementById('busca')?.focus();
+  }
 });
 </script>
-
+{% include "produtos/_screensaver_pin.html" %}
+{% include "produtos/_atalho_voltar_pdv.html" %}
 </body>
 </html>

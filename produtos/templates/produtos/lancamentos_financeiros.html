@@ -1,0 +1,818 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <title>Agro Mais | Lançamentos financeiros</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .gm-bar { background: linear-gradient(90deg, rgba(234,88,12,0.12) 0%, rgba(5,150,105,0.10) 100%); }
+    .gm-kbd {
+      pointer-events: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      line-height: 1;
+      padding: 0.2rem 0.35rem;
+      border-radius: 0.35rem;
+      font-weight: 900;
+      font-family: ui-monospace, monospace;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.92;
+    }
+    @media (min-width: 640px) { .gm-kbd { font-size: 10px; padding: 0.25rem 0.45rem; } }
+  </style>
+</head>
+<body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+
+  <header class="gm-bar border-b border-slate-200/80 shrink-0">
+    <div class="max-w-[1400px] mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="h-11 w-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+          <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">
+            GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-amber-800">Lançamentos</span>
+          </h1>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Contas a pagar e a receber · Mongo / ERP Venda</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <a href="{% url 'lancamentos_fluxo_calendario' %}" class="text-xs font-black uppercase bg-emerald-600 text-white shadow-sm px-4 py-2.5 rounded-xl border border-emerald-700 hover:bg-emerald-700 transition-colors">
+          Calendário de fluxo
+        </a>
+        <a href="{% url 'lancamentos_manual' %}" class="text-xs font-black uppercase bg-amber-500 text-white shadow-sm px-4 py-2.5 rounded-xl border border-amber-600 hover:bg-amber-600 transition-colors">
+          Lançamento manual (lote)
+        </a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-800 transition-colors" %}
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1400px] mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
+    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-1">
+      <p><strong class="font-black uppercase">Baixa pelo Agro</strong> grava no <strong>Mongo</strong> primeiro. Com <code class="bg-white/80 px-1 rounded">VENDA_ERP_API_FINANCEIRO_BAIXA_PATH</code> (sufixo após <code class="bg-white/80 px-1 rounded">/api/request/</code>), o servidor também envia ao ERP um JSON com <code class="bg-white/80 px-1 rounded">ids</code> do Mongo, <code class="bg-white/80 px-1 rounded">titulos</code> (snapshot do título após a baixa, incluindo <code class="bg-white/80 px-1 rounded">Id</code>/<code class="bg-white/80 px-1 rounded">LancamentoID</code> se existirem) e o <code class="bg-white/80 px-1 rounded">payload</code> da tela.</p>
+      <p>Novos títulos e regras fiscais continuam no <strong>Venda ERP</strong>.</p>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <button type="button" data-tipo="pagar" class="tab-tipo px-5 py-2.5 rounded-xl font-black text-xs uppercase border-2 border-amber-500 bg-amber-500 text-white shadow-sm">A pagar</button>
+      <button type="button" data-tipo="receber" class="tab-tipo px-5 py-2.5 rounded-xl font-black text-xs uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-amber-300">A receber</button>
+    </div>
+
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Situação</span>
+          <select id="f-status" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
+            <option value="abertos" selected>Em aberto</option>
+            <option value="quitados">Quitados</option>
+            <option value="todos">Todos</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Vencimento de</span>
+          <input type="date" id="f-de" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
+        </label>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Vencimento até</span>
+          <input type="date" id="f-ate" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
+        </label>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Ordenação</span>
+          <select id="f-ord" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
+            <option value="vencimento_asc" selected>Vencimento ↑</option>
+            <option value="vencimento_desc">Vencimento ↓</option>
+            <option value="fluxo_desc">Data fluxo ↓</option>
+          </select>
+        </label>
+      </div>
+      <div class="flex flex-col lg:flex-row gap-3">
+        <label class="flex-1 block min-w-0">
+          <span class="text-[10px] font-black uppercase text-slate-500">Busca</span>
+          <div class="relative mt-1">
+            <input type="search" id="f-q" placeholder="Fornecedor, cliente, descrição, doc., forma…" autocomplete="off"
+              class="w-full rounded-xl border-2 border-slate-200 pl-4 pr-10 py-3 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:border-amber-500 outline-none"
+              title="Enter aplica filtro. / foca aqui (fora de campos).">
+            <kbd class="gm-kbd absolute right-2.5 top-1/2 -translate-y-1/2 border border-slate-200 bg-white text-slate-500" title="Barra / foca a busca">/</kbd>
+          </div>
+        </label>
+        <div class="flex flex-wrap items-end gap-2">
+          <label class="block w-24">
+            <span class="text-[10px] font-black uppercase text-slate-500">Página</span>
+            <select id="f-ps" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-2 py-3 text-sm font-bold">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+            </select>
+          </label>
+          <button type="button" id="btn-buscar" class="inline-flex items-center gap-1.5 px-4 sm:px-5 py-3 rounded-xl bg-amber-600 text-white font-black text-xs uppercase tracking-wide hover:bg-amber-700 shadow-md" title="Recarregar lista (F5).">
+            <span>Atualizar</span>
+            <kbd class="gm-kbd border border-white/30 bg-white/15 text-white">F5</kbd>
+          </button>
+          <a href="#" id="btn-csv" class="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-3 rounded-xl bg-slate-800 text-white font-black text-xs uppercase tracking-wide hover:bg-slate-900 text-center" title="Exportar CSV com os filtros atuais (F8).">
+            <span>Export CSV</span>
+            <kbd class="gm-kbd border border-white/25 bg-white/10 text-white">F8</kbd>
+          </a>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-end gap-2 border-t border-slate-100 pt-4">
+        <label class="block flex-1 min-w-[140px] max-w-xs">
+          <span class="text-[10px] font-black uppercase text-slate-500">Favoritos de filtro</span>
+          <select id="fav-load" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold">
+            <option value="">— carregar —</option>
+          </select>
+        </label>
+        <input type="text" id="fav-name" maxlength="40" placeholder="Nome do favorito" class="mt-6 sm:mt-0 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold w-44 max-w-full">
+        <button type="button" id="btn-fav-save" class="px-4 py-2 rounded-xl border-2 border-amber-200 text-amber-800 font-black text-[10px] uppercase hover:bg-amber-50">Salvar filtro</button>
+        <button type="button" id="btn-fav-del" class="px-4 py-2 rounded-xl border-2 border-red-100 text-red-700 font-black text-[10px] uppercase hover:bg-red-50">Excluir favorito</button>
+      </div>
+      <details class="group border-t border-slate-100 pt-4">
+        <summary class="text-xs font-black uppercase text-slate-600 cursor-pointer list-none flex items-center gap-2">
+          <span class="group-open:rotate-90 transition-transform inline-block">▸</span>
+          Planos de conta — desmarque para ocultar da lista (padrão: todos visíveis)
+        </summary>
+        <div class="mt-3 space-y-2">
+          <div class="flex flex-wrap gap-2">
+            <button type="button" id="plano-todas" class="px-3 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Marcar todos</button>
+            <button type="button" id="plano-nenhuma" class="px-3 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Desmarcar todos</button>
+          </div>
+          <div id="plano-chks" class="flex flex-wrap gap-2 min-h-[2rem] items-start content-start max-h-48 overflow-y-auto p-1 rounded-xl border border-slate-100 bg-slate-50/50"></div>
+        </div>
+      </details>
+    </section>
+
+    <div id="sel-bar" class="hidden rounded-2xl border-2 border-emerald-300 bg-emerald-50/90 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="text-sm font-black text-emerald-950">
+        <span id="sel-count">0</span> selecionado(s) · Soma saldo: <span id="sel-soma" class="tabular-nums text-lg">R$ 0,00</span>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" id="btn-sel-clear" class="px-3 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-900 font-black text-[10px] uppercase">Limpar seleção</button>
+        <button type="button" id="btn-baixa" class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700 shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
+          Baixar selecionados…
+        </button>
+      </div>
+    </div>
+
+    <div id="erro-box" class="hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800"></div>
+
+    <section id="totais-box" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="text-[10px] font-black uppercase text-slate-500">Títulos (filtro)</div>
+        <div id="t-qtd" class="text-2xl font-black text-slate-800 tabular-nums">0</div>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div id="lbl-bruto" class="text-[10px] font-black uppercase text-slate-500">Valor bruto</div>
+        <div id="t-bruto" class="text-xl font-black text-slate-800 tabular-nums">R$ 0,00</div>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div id="lbl-mov" class="text-[10px] font-black uppercase text-slate-500">Movimentado</div>
+        <div id="t-mov" class="text-xl font-black text-emerald-700 tabular-nums">R$ 0,00</div>
+      </div>
+      <div class="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
+        <div id="lbl-saldo" class="text-[10px] font-black uppercase text-amber-900">Saldo em aberto</div>
+        <div id="t-saldo" class="text-xl font-black text-amber-900 tabular-nums">R$ 0,00</div>
+      </div>
+    </section>
+
+    <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-500 px-1">
+      <span id="pag-info"></span>
+      <div class="flex gap-2">
+        <button type="button" id="btn-prev" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 font-black uppercase">Anterior</button>
+        <button type="button" id="btn-next" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 font-black uppercase">Próxima</button>
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-left text-sm hidden lg:table">
+          <thead class="bg-slate-100 text-[10px] font-black uppercase text-slate-600 border-b border-slate-200">
+            <tr>
+              <th class="px-2 py-3 w-10" id="th-chk"><input type="checkbox" id="chk-all" class="rounded border-slate-300" title="Selecionar página"></th>
+              <th class="px-2 py-3">Vencimento</th>
+              <th class="px-2 py-3">Favorecido / cliente</th>
+              <th class="px-2 py-3">Descrição</th>
+              <th class="px-2 py-3">Forma pagamento</th>
+              <th class="px-2 py-3">Banco / conta</th>
+              <th class="px-2 py-3">Plano / grupo</th>
+              <th class="px-2 py-3 text-right">Bruto</th>
+              <th class="px-2 py-3 text-right" id="th-mov">Pago</th>
+              <th class="px-2 py-3 text-right" id="th-saldo">A pagar</th>
+              <th class="px-2 py-3">Situação</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-desk" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+      <div id="cards-mob" class="lg:hidden divide-y divide-slate-100 p-2 space-y-2"></div>
+      <div id="empty-state" class="hidden py-16 text-center text-slate-400 font-bold text-sm">Nenhum lançamento com os filtros atuais.</div>
+      <div id="loading-state" class="py-16 text-center text-slate-400 font-bold text-sm">Carregando…</div>
+    </div>
+  </main>
+
+  <!-- Modal baixa -->
+  <div id="modal-baixa" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 space-y-4 border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <h2 class="text-lg font-black text-slate-900 uppercase tracking-tight">Confirmar baixa</h2>
+      <p class="text-xs text-slate-600 font-semibold" id="modal-baixa-resumo"></p>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Data do movimento</span>
+        <input type="date" id="bx-data" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold">
+      </label>
+      <div class="space-y-2">
+        <span class="text-[10px] font-black uppercase text-slate-500">Forma de pagamento (na baixa)</span>
+        <select id="bx-forma-sel" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold"></select>
+        <input type="text" id="bx-forma-txt" placeholder="Ou digite outra forma (sobrescreve a lista)" class="w-full rounded-xl border-2 border-dashed border-amber-200 px-3 py-2 text-sm font-semibold">
+      </div>
+      <div class="space-y-2">
+        <span class="text-[10px] font-black uppercase text-slate-500">Conta / banco (na baixa)</span>
+        <select id="bx-banco-sel" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold"></select>
+        <input type="text" id="bx-banco-txt" placeholder="Ou digite outro banco/conta" class="w-full rounded-xl border-2 border-dashed border-amber-200 px-3 py-2 text-sm font-semibold">
+      </div>
+      <div class="flex flex-wrap gap-2 justify-end pt-2">
+        <button type="button" id="bx-cancel" class="px-4 py-2.5 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Cancelar</button>
+        <button type="button" id="bx-ok" class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700">Confirmar baixa</button>
+      </div>
+    </div>
+  </div>
+
+  {{ csrf_token }}
+  <script>
+    const API_LISTA = "{% url 'api_lancamentos_lista' %}";
+    const API_CSV = "{% url 'api_lancamentos_export_csv' %}";
+    const API_PLANOS = "{% url 'api_lancamentos_planos_distintos' %}";
+    const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
+    const API_BAIXA = "{% url 'api_lancamentos_baixa' %}";
+    const LS_FAV = 'gm_fin_favs_v1';
+    const LS_EXCL = 'gm_fin_planos_excl_v1';
+    const SEM_PLANO_KEY = '__SEM_PLANO__';
+
+    let tipoAtual = 'pagar';
+    let page = 1;
+    let lastTotal = 0;
+    let lastPageSize = 50;
+    const selecionados = new Map();
+
+    function getCookie(name) {
+      const m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+      return m ? decodeURIComponent(m[2]) : '';
+    }
+
+    function hojeISO() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function brl(n) {
+      const x = Number(n) || 0;
+      return x.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function fmtData(iso) {
+      if (!iso) return '—';
+      try {
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
+        return d.toLocaleDateString('pt-BR');
+      } catch (_) { return '—'; }
+    }
+
+    function esc(s) {
+      const t = document.createElement('div');
+      t.textContent = s == null ? '' : String(s);
+      return t.innerHTML;
+    }
+
+    function loadExclMap() {
+      try {
+        const x = JSON.parse(localStorage.getItem(LS_EXCL) || '{}');
+        return x && typeof x === 'object' ? x : {};
+      } catch (_) {
+        return {};
+      }
+    }
+
+    function getExcludedSet() {
+      const m = loadExclMap();
+      const arr = m[tipoAtual];
+      return new Set(Array.isArray(arr) ? arr : []);
+    }
+
+    function saveExcludedSet(set) {
+      const m = loadExclMap();
+      m[tipoAtual] = Array.from(set);
+      localStorage.setItem(LS_EXCL, JSON.stringify(m));
+    }
+
+    function montarParamsBaseLista() {
+      const p = new URLSearchParams();
+      p.set('tipo', tipoAtual);
+      p.set('status', document.getElementById('f-status').value);
+      p.set('ordenacao', document.getElementById('f-ord').value);
+      const de = document.getElementById('f-de').value;
+      const ate = document.getElementById('f-ate').value;
+      const q = document.getElementById('f-q').value.trim();
+      if (de) p.set('venc_de', de);
+      if (ate) p.set('venc_ate', ate);
+      if (q) p.set('q', q);
+      return p;
+    }
+
+    function montarParams() {
+      const p = montarParamsBaseLista();
+      p.set('page', String(page));
+      p.set('page_size', document.getElementById('f-ps').value);
+      getExcludedSet().forEach((nome) => {
+        p.append('excluir_plano', nome);
+      });
+      return p;
+    }
+
+    function atualizarLabelsTotais() {
+      const pagar = tipoAtual === 'pagar';
+      document.getElementById('lbl-bruto').textContent = pagar ? 'Previsto (saída)' : 'Valor título (entrada)';
+      document.getElementById('lbl-mov').textContent = pagar ? 'Já pago' : 'Já recebido';
+      document.getElementById('lbl-saldo').textContent = pagar ? 'Saldo a pagar' : 'Saldo a receber';
+      document.getElementById('th-mov').textContent = pagar ? 'Pago' : 'Recebido';
+      document.getElementById('th-saldo').textContent = pagar ? 'A pagar' : 'A receber';
+    }
+
+    function atualizarTabs() {
+      document.querySelectorAll('.tab-tipo').forEach((b) => {
+        const on = b.dataset.tipo === tipoAtual;
+        b.classList.toggle('border-amber-500', on);
+        b.classList.toggle('bg-amber-500', on);
+        b.classList.toggle('text-white', on);
+        b.classList.toggle('border-slate-200', !on);
+        b.classList.toggle('bg-white', !on);
+        b.classList.toggle('text-slate-600', !on);
+      });
+    }
+
+    function podeSelecionar() {
+      return document.getElementById('f-status').value === 'abertos';
+    }
+
+    function refreshSelBar() {
+      let soma = 0;
+      selecionados.forEach((v) => { soma += v; });
+      const bar = document.getElementById('sel-bar');
+      const n = selecionados.size;
+      if (n === 0) {
+        bar.classList.add('hidden');
+        return;
+      }
+      bar.classList.remove('hidden');
+      document.getElementById('sel-count').textContent = String(n);
+      document.getElementById('sel-soma').textContent = brl(soma);
+    }
+
+    function atualizarCsvHref() {
+      const a = document.getElementById('btn-csv');
+      a.href = `${API_CSV}?${montarParams()}`;
+    }
+
+    async function carregarOpcoesBaixa() {
+      try {
+        const r = await fetch(API_OPCOES, { credentials: 'same-origin' });
+        const d = await r.json();
+        const fs = document.getElementById('bx-forma-sel');
+        const bs = document.getElementById('bx-banco-sel');
+        fs.innerHTML = '<option value="">— Selecione —</option>';
+        bs.innerHTML = '<option value="">— Selecione —</option>';
+        (d.formas || []).forEach((x) => {
+          const o = document.createElement('option');
+          const nome = String(x.nome || '').replace(/\|/g, '/');
+          o.value = `${String(x.id || '')}|||${nome}`;
+          o.textContent = x.nome || nome;
+          fs.appendChild(o);
+        });
+        (d.bancos || []).forEach((x) => {
+          const o = document.createElement('option');
+          const nome = String(x.nome || '').replace(/\|/g, '/');
+          o.value = `${String(x.id || '')}|||${nome}`;
+          o.textContent = x.nome || nome;
+          bs.appendChild(o);
+        });
+      } catch (_) {}
+    }
+
+    async function carregarPlanos() {
+      const cont = document.getElementById('plano-chks');
+      if (!cont) return;
+      cont.innerHTML = '<span class="text-xs text-slate-400 px-1">Carregando planos…</span>';
+      try {
+        const p = montarParamsBaseLista();
+        const r = await fetch(`${API_PLANOS}?${p}`, { credentials: 'same-origin' });
+        const data = await r.json();
+        cont.innerHTML = '';
+        const excl = getExcludedSet();
+        (data.planos || []).forEach((item) => {
+          const nome = item.nome || '';
+          const key = nome === '(sem plano)' ? SEM_PLANO_KEY : nome;
+          const wrap = document.createElement('label');
+          wrap.className = 'inline-flex items-center gap-1.5 text-xs font-semibold bg-white border border-slate-200 rounded-lg px-2 py-1.5 cursor-pointer hover:border-amber-300 max-w-full';
+          const chk = document.createElement('input');
+          chk.type = 'checkbox';
+          chk.className = 'rounded border-slate-300 accent-amber-600 shrink-0';
+          chk.checked = !excl.has(key);
+          chk.dataset.planoKey = key;
+          chk.addEventListener('change', () => {
+            const ex2 = getExcludedSet();
+            if (chk.checked) ex2.delete(key);
+            else ex2.add(key);
+            saveExcludedSet(ex2);
+            page = 1;
+            selecionados.clear();
+            carregar();
+          });
+          wrap.appendChild(chk);
+          const span = document.createElement('span');
+          span.className = 'truncate max-w-[220px]';
+          span.title = nome;
+          span.textContent = nome || '—';
+          wrap.appendChild(span);
+          cont.appendChild(wrap);
+        });
+        if (!(data.planos || []).length) {
+          cont.innerHTML = '<span class="text-xs text-slate-400 px-1">Nenhum plano distinto no filtro atual.</span>';
+        }
+      } catch (_) {
+        cont.innerHTML = '<span class="text-xs text-red-600 px-1">Erro ao carregar planos.</span>';
+      }
+    }
+
+    async function carregar() {
+      atualizarLabelsTotais();
+      atualizarCsvHref();
+      const err = document.getElementById('erro-box');
+      const load = document.getElementById('loading-state');
+      const empty = document.getElementById('empty-state');
+      const tb = document.getElementById('tbody-desk');
+      const mob = document.getElementById('cards-mob');
+      const tot = document.getElementById('totais-box');
+      err.classList.add('hidden');
+      load.classList.remove('hidden');
+      empty.classList.add('hidden');
+      tb.innerHTML = '';
+      mob.innerHTML = '';
+
+      const st = document.getElementById('f-status').value;
+      document.getElementById('th-chk').style.visibility = st === 'abertos' ? 'visible' : 'hidden';
+      document.getElementById('btn-baixa').disabled = !podeSelecionar() || selecionados.size === 0;
+
+      try {
+        const r = await fetch(`${API_LISTA}?${montarParams()}`, { credentials: 'same-origin' });
+        const data = await r.json();
+        if (!r.ok) {
+          err.textContent = data.erro || 'Erro ao carregar.';
+          err.classList.remove('hidden');
+          load.classList.add('hidden');
+          tot.classList.add('hidden');
+          return;
+        }
+        lastTotal = data.total || 0;
+        lastPageSize = data.page_size || 50;
+        const t = data.totais || {};
+        document.getElementById('t-qtd').textContent = String(t.quantidade ?? 0);
+        document.getElementById('t-bruto').textContent = brl(t.bruto ?? t.previsto);
+        document.getElementById('t-mov').textContent = brl(t.movimentado ?? t.pago);
+        document.getElementById('t-saldo').textContent = brl(t.saldo_aberto ?? t.a_pagar ?? t.a_receber);
+        tot.classList.remove('hidden');
+
+        const lista = data.lancamentos || [];
+        if (lista.length === 0) {
+          empty.classList.remove('hidden');
+        } else {
+          const showChk = podeSelecionar();
+          for (const row of lista) {
+            const sit = row.pago ? '<span class="text-emerald-700 font-black">Quitado</span>' : '<span class="text-amber-800 font-black">Aberto</span>';
+            const rest = Number(row.restante) || 0;
+            const chk = showChk && !row.pago
+              ? `<input type="checkbox" class="row-chk rounded border-slate-300" data-id="${esc(row.id)}" data-rest="${rest}" ${selecionados.has(row.id) ? 'checked' : ''}>`
+              : '';
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50/80';
+            tr.innerHTML = `
+              <td class="px-2 py-2">${chk}</td>
+              <td class="px-2 py-2 text-xs font-semibold tabular-nums whitespace-nowrap">${esc(fmtData(row.data_vencimento))}</td>
+              <td class="px-2 py-2 text-xs font-bold text-slate-800 max-w-[160px]"><div class="truncate" title="${esc(row.cliente)}">${esc(row.cliente || '—')}</div></td>
+              <td class="px-2 py-2 text-xs text-slate-700 max-w-[180px]"><div class="truncate" title="${esc(row.descricao)}">${esc(row.descricao || '—')}</div></td>
+              <td class="px-2 py-2 text-[11px] text-slate-700 max-w-[120px]"><div class="truncate" title="${esc(row.forma_pagamento)}">${esc(row.forma_pagamento || '—')}</div></td>
+              <td class="px-2 py-2 text-[11px] text-slate-600 max-w-[120px]"><div class="truncate" title="${esc(row.banco)}">${esc(row.banco || '—')}</div></td>
+              <td class="px-2 py-2 text-[11px] text-slate-600 max-w-[140px]"><div class="truncate">${esc(row.plano_conta || '')}${row.grupo ? ' · ' + esc(row.grupo) : ''}</div></td>
+              <td class="px-2 py-2 text-xs text-right font-bold tabular-nums">${esc(brl(row.valor_bruto))}</td>
+              <td class="px-2 py-2 text-xs text-right font-semibold text-emerald-800 tabular-nums">${esc(brl(row.valor_movimentado))}</td>
+              <td class="px-2 py-2 text-xs text-right font-black text-amber-900 tabular-nums">${esc(brl(row.restante))}</td>
+              <td class="px-2 py-2 text-xs">${sit}</td>`;
+            tb.appendChild(tr);
+
+            const card = document.createElement('div');
+            card.className = 'rounded-xl border border-slate-200 bg-slate-50/50 p-3 space-y-2';
+            const chkM = showChk && !row.pago
+              ? `<label class="flex items-center gap-2 text-[11px] font-bold"><input type="checkbox" class="row-chk rounded" data-id="${esc(row.id)}" data-rest="${rest}" ${selecionados.has(row.id) ? 'checked' : ''}> Selecionar</label>`
+              : '';
+            card.innerHTML = `
+              ${chkM}
+              <div class="flex justify-between items-start gap-2">
+                <span class="text-[10px] font-black uppercase text-slate-500">Venc. ${esc(fmtData(row.data_vencimento))}</span>
+                ${sit}
+              </div>
+              <div class="font-black text-sm text-slate-900">${esc(row.cliente || '—')}</div>
+              <div class="text-xs text-slate-600">${esc(row.descricao || '')}</div>
+              <div class="text-[11px] text-slate-700"><span class="font-black text-slate-500">Forma:</span> ${esc(row.forma_pagamento || '—')}</div>
+              <div class="text-[11px] text-slate-700"><span class="font-black text-slate-500">Banco:</span> ${esc(row.banco || '—')}</div>
+              <div class="flex justify-between text-xs font-bold border-t border-slate-200 pt-2">
+                <span class="text-slate-500">Saldo</span>
+                <span class="text-amber-900 tabular-nums">${esc(brl(row.restante))}</span>
+              </div>`;
+            mob.appendChild(card);
+          }
+
+          document.querySelectorAll('.row-chk').forEach((el) => {
+            el.addEventListener('change', () => {
+              const id = el.dataset.id;
+              const rest = Number(el.dataset.rest) || 0;
+              if (el.checked) selecionados.set(id, rest);
+              else selecionados.delete(id);
+              refreshSelBar();
+              document.getElementById('btn-baixa').disabled = !podeSelecionar() || selecionados.size === 0;
+            });
+          });
+        }
+
+        const pi = Math.max(1, Math.ceil(lastTotal / lastPageSize) || 1);
+        document.getElementById('pag-info').textContent =
+          `Página ${data.page || 1} de ${pi} · ${lastTotal} título(s) no filtro`;
+        document.getElementById('btn-prev').disabled = (data.page || 1) <= 1;
+        document.getElementById('btn-next').disabled = (data.page || 1) >= pi;
+        document.getElementById('chk-all').checked = false;
+      } catch (e) {
+        err.textContent = 'Falha de rede.';
+        err.classList.remove('hidden');
+        tot.classList.add('hidden');
+      } finally {
+        load.classList.add('hidden');
+      }
+      refreshSelBar();
+      document.getElementById('btn-baixa').disabled = !podeSelecionar() || selecionados.size === 0;
+    }
+
+    function favList() {
+      try {
+        return JSON.parse(localStorage.getItem(LS_FAV) || '[]');
+      } catch (_) { return []; }
+    }
+
+    function favRefreshSelect() {
+      const sel = document.getElementById('fav-load');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">— carregar —</option>';
+      favList().forEach((f, i) => {
+        const o = document.createElement('option');
+        o.value = String(i);
+        o.textContent = f.name || `Favorito ${i + 1}`;
+        sel.appendChild(o);
+      });
+      sel.value = cur;
+    }
+
+    document.querySelectorAll('.tab-tipo').forEach((b) => {
+      b.addEventListener('click', () => {
+        tipoAtual = b.dataset.tipo;
+        selecionados.clear();
+        atualizarTabs();
+        page = 1;
+        carregarPlanos().then(() => carregar());
+      });
+    });
+
+    document.getElementById('btn-buscar').addEventListener('click', () => {
+      page = 1;
+      selecionados.clear();
+      carregarPlanos().then(() => carregar());
+    });
+    document.getElementById('btn-prev').addEventListener('click', () => { if (page > 1) { page--; carregar(); } });
+    document.getElementById('btn-next').addEventListener('click', () => { page++; carregar(); });
+    document.getElementById('f-status').addEventListener('change', () => {
+      selecionados.clear();
+      page = 1;
+      carregarPlanos().then(() => carregar());
+    });
+    document.getElementById('f-q').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        page = 1;
+        selecionados.clear();
+        carregarPlanos().then(() => carregar());
+      }
+    });
+
+    document.getElementById('plano-todas').addEventListener('click', () => {
+      saveExcludedSet(new Set());
+      carregarPlanos().then(() => carregar());
+    });
+    document.getElementById('plano-nenhuma').addEventListener('click', () => {
+      const keys = new Set();
+      document.querySelectorAll('#plano-chks input[type=checkbox][data-plano-key]').forEach((el) => {
+        keys.add(el.dataset.planoKey);
+      });
+      saveExcludedSet(keys);
+      carregarPlanos().then(() => carregar());
+    });
+
+    document.getElementById('chk-all').addEventListener('change', (e) => {
+      if (!podeSelecionar()) return;
+      document.querySelectorAll('.row-chk').forEach((c) => {
+        c.checked = e.target.checked;
+        const id = c.dataset.id;
+        const rest = Number(c.dataset.rest) || 0;
+        if (e.target.checked) selecionados.set(id, rest);
+        else selecionados.delete(id);
+      });
+      refreshSelBar();
+      document.getElementById('btn-baixa').disabled = selecionados.size === 0;
+    });
+
+    document.getElementById('btn-sel-clear').addEventListener('click', () => {
+      selecionados.clear();
+      document.getElementById('chk-all').checked = false;
+      carregar();
+    });
+
+    document.getElementById('btn-fav-save').addEventListener('click', () => {
+      const name = (document.getElementById('fav-name').value || '').trim();
+      if (!name) { alert('Digite um nome para o favorito.'); return; }
+      const item = {
+        name,
+        tipo: tipoAtual,
+        status: document.getElementById('f-status').value,
+        venc_de: document.getElementById('f-de').value,
+        venc_ate: document.getElementById('f-ate').value,
+        q: document.getElementById('f-q').value,
+        ordenacao: document.getElementById('f-ord').value,
+        page_size: document.getElementById('f-ps').value,
+        planos_excl: Array.from(getExcludedSet()),
+      };
+      const arr = favList().filter((x) => (x.name || '').toLowerCase() !== name.toLowerCase());
+      arr.push(item);
+      localStorage.setItem(LS_FAV, JSON.stringify(arr));
+      favRefreshSelect();
+      document.getElementById('fav-load').value = String(arr.length - 1);
+      alert('Filtro salvo.');
+    });
+
+    document.getElementById('fav-load').addEventListener('change', () => {
+      const i = document.getElementById('fav-load').value;
+      if (i === '') return;
+      const f = favList()[Number(i)];
+      if (!f) return;
+      tipoAtual = f.tipo === 'receber' ? 'receber' : 'pagar';
+      atualizarTabs();
+      document.getElementById('f-status').value = f.status || 'abertos';
+      document.getElementById('f-de').value = f.venc_de || '';
+      document.getElementById('f-ate').value = f.venc_ate || '';
+      document.getElementById('f-q').value = f.q || '';
+      document.getElementById('f-ord').value = f.ordenacao || 'vencimento_asc';
+      document.getElementById('f-ps').value = f.page_size || '50';
+      if (Array.isArray(f.planos_excl)) {
+        saveExcludedSet(new Set(f.planos_excl));
+      }
+      page = 1;
+      selecionados.clear();
+      carregarPlanos().then(() => carregar());
+    });
+
+    document.getElementById('btn-fav-del').addEventListener('click', () => {
+      const i = document.getElementById('fav-load').value;
+      if (i === '') { alert('Escolha um favorito na lista.'); return; }
+      const arr = favList();
+      arr.splice(Number(i), 1);
+      localStorage.setItem(LS_FAV, JSON.stringify(arr));
+      favRefreshSelect();
+    });
+
+    document.getElementById('btn-baixa').addEventListener('click', () => {
+      if (selecionados.size === 0) return;
+      document.getElementById('modal-baixa-resumo').textContent =
+        `${selecionados.size} título(s) · Total saldo ${brl(Array.from(selecionados.values()).reduce((a, b) => a + b, 0))} · ${tipoAtual === 'pagar' ? 'Contas a pagar' : 'Contas a receber'}`;
+      document.getElementById('bx-data').value = hojeISO();
+      document.getElementById('bx-forma-txt').value = '';
+      document.getElementById('bx-banco-txt').value = '';
+      document.getElementById('bx-forma-sel').selectedIndex = 0;
+      document.getElementById('bx-banco-sel').selectedIndex = 0;
+      carregarOpcoesBaixa();
+      document.getElementById('modal-baixa').classList.remove('hidden');
+    });
+
+    document.getElementById('bx-cancel').addEventListener('click', () => {
+      document.getElementById('modal-baixa').classList.add('hidden');
+    });
+
+    document.getElementById('bx-ok').addEventListener('click', async () => {
+      let formaNome = (document.getElementById('bx-forma-txt').value || '').trim();
+      let formaId = null;
+      if (!formaNome) {
+        const sv = document.getElementById('bx-forma-sel').value;
+        const fi = sv.indexOf('|||');
+        if (fi >= 0) {
+          formaId = sv.slice(0, fi) || null;
+          formaNome = sv.slice(fi + 3).trim();
+        }
+      }
+      let bancoNome = (document.getElementById('bx-banco-txt').value || '').trim();
+      let bancoId = null;
+      if (!bancoNome) {
+        const sv = document.getElementById('bx-banco-sel').value;
+        const bi = sv.indexOf('|||');
+        if (bi >= 0) {
+          bancoId = sv.slice(0, bi) || null;
+          bancoNome = sv.slice(bi + 3).trim();
+        }
+      }
+      if (!formaNome || !bancoNome) {
+        alert('Informe forma de pagamento e banco/conta (lista ou texto livre).');
+        return;
+      }
+      const body = {
+        ids: Array.from(selecionados.keys()),
+        tipo: tipoAtual,
+        data_movimento: document.getElementById('bx-data').value,
+        forma_pagamento: formaNome,
+        forma_pagamento_id: formaId,
+        banco: bancoNome,
+        banco_id: bancoId,
+      };
+      document.getElementById('bx-ok').disabled = true;
+      try {
+        const r = await fetch(API_BAIXA, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify(body),
+        });
+        const out = await r.json();
+        if (out.erros && out.erros.length) {
+          alert('Alguns títulos não foram baixados:\n' + out.erros.map((e) => `${e.id}: ${e.erro}`).join('\n'));
+        }
+        if (out.atualizados && out.atualizados.length) {
+          let m = `Baixa registrada: ${out.atualizados.length} título(s) no Agro.`;
+          if (out.erp_baixa_ok === true) m += '\n\nERP: sincronização da baixa aceita.';
+          else if (out.aviso_api) m += '\n\nERP (atenção): ' + out.aviso_api;
+          alert(m);
+        }
+        document.getElementById('modal-baixa').classList.add('hidden');
+        selecionados.clear();
+        carregar();
+      } catch (e) {
+        alert('Erro de rede na baixa.');
+      } finally {
+        document.getElementById('bx-ok').disabled = false;
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const tag = e.target && e.target.tagName;
+      const inField = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      const modalAberto = !document.getElementById('modal-baixa')?.classList.contains('hidden');
+      if (modalAberto) return;
+      if (e.key === 'F5') {
+        e.preventDefault();
+        document.getElementById('btn-buscar')?.click();
+        return;
+      }
+      if (e.key === 'F8') {
+        e.preventDefault();
+        document.getElementById('btn-csv')?.click();
+        return;
+      }
+      if (e.key === '/' && !inField) {
+        e.preventDefault();
+        document.getElementById('f-q')?.focus();
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const t = hojeISO();
+      document.getElementById('f-de').value = t;
+      document.getElementById('f-ate').value = t;
+      favRefreshSelect();
+      atualizarTabs();
+      carregarOpcoesBaixa();
+      carregarPlanos().then(() => carregar());
+    });
+  </script>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>

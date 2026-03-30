@@ -1,0 +1,446 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <title>Agro Mais | Entrada de NF-e</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .gm-bar { background: linear-gradient(90deg, rgba(234,88,12,0.12) 0%, rgba(59,130,246,0.10) 100%); }
+    .tab-on { border-color: rgb(249 115 22); background: rgb(255 247 237); color: rgb(124 45 18); }
+    .tab-off { border-color: rgb(226 232 240); background: white; color: rgb(71 85 105); }
+    .gm-kbd {
+      pointer-events: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      line-height: 1;
+      padding: 0.15rem 0.35rem;
+      border-radius: 0.3rem;
+      font-weight: 900;
+      font-family: ui-monospace, monospace;
+      opacity: 0.9;
+    }
+    .tab-btn .gm-kbd { border: 1px solid rgba(15, 23, 42, 0.12); background: rgba(15, 23, 42, 0.06); color: rgb(71, 85, 105); }
+    .tab-btn.tab-on .gm-kbd { border-color: rgba(124, 45, 18, 0.25); background: rgba(255, 255, 255, 0.65); color: rgb(124, 45, 18); }
+  </style>
+</head>
+<body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+
+  <header class="gm-bar border-b border-slate-200/80 shrink-0">
+    <div class="max-w-[1400px] mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="h-11 w-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+          <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">
+            GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-orange-700">Entrada de NF-e</span>
+          </h1>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Manual · XML · Distribuição DF-e (SEFAZ)</p>
+        </div>
+      </div>
+      {% include "produtos/_pdv_voltar_link.html" with link_class="text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:border-orange-300 shrink-0" %}
+    </div>
+  </header>
+
+  <main class="max-w-[1400px] mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
+    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-1">
+      <p><strong class="font-black uppercase">Rascunho no Mongo</strong> — esta tela grava conferência em <code class="bg-white/80 px-1 rounded">AgroEntradaNotaRascunho</code>. Não lança estoque automaticamente no ERP; use para conferir itens, casar códigos e registrar histórico até existir API de compra.</p>
+      <p><strong class="font-black uppercase">SEFAZ</strong> — Distribuição DF-e exige certificado A1 (.pfx), CNPJ e UF no <code class="bg-white/80 px-1 rounded">.env</code>. Em homologação use <code class="bg-white/80 px-1 rounded">NFE_DIST_DFE_TP_AMB=2</code>.</p>
+    </div>
+
+    <div id="msg-global" class="hidden rounded-2xl border px-4 py-3 text-sm font-bold"></div>
+
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="tab-btn inline-flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl font-black text-xs uppercase border-2 tab-on" data-tab="manual" title="Alt + 1">
+        <span>Entrada manual</span>
+        <kbd class="gm-kbd whitespace-nowrap normal-case" title="Alt + 1">Alt + 1</kbd>
+      </button>
+      <button type="button" class="tab-btn inline-flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl font-black text-xs uppercase border-2 tab-off" data-tab="xml" title="Alt + 2">
+        <span>Importar XML</span>
+        <kbd class="gm-kbd whitespace-nowrap normal-case" title="Alt + 2">Alt + 2</kbd>
+      </button>
+      <button type="button" class="tab-btn inline-flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl font-black text-xs uppercase border-2 tab-off" data-tab="sefaz" title="Alt + 3">
+        <span>SEFAZ (DF-e)</span>
+        <kbd class="gm-kbd whitespace-nowrap normal-case" title="Alt + 3">Alt + 3</kbd>
+      </button>
+    </div>
+
+    <section id="panel-manual" class="tab-panel bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
+      <h2 class="text-sm font-black uppercase text-slate-700">Dados da nota</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Fornecedor / emitente</span>
+          <input type="text" id="m-emit-nome" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Razão social"></label>
+        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">CNPJ emitente</span>
+          <input type="text" id="m-emit-cnpj" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Somente números"></label>
+        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Número / Série</span>
+          <div class="flex gap-2 mt-1">
+            <input type="text" id="m-nf" class="flex-1 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold" placeholder="Nº">
+            <input type="text" id="m-serie" class="w-24 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold" placeholder="Sér.">
+          </div></label>
+        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Chave (44 dígitos)</span>
+          <input type="text" id="m-chave" maxlength="44" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono text-xs" placeholder="Opcional"></label>
+        <label class="block md:col-span-2"><span class="text-[10px] font-black uppercase text-slate-500">Data emissão</span>
+          <input type="datetime-local" id="m-dh" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold"></label>
+      </div>
+      <div class="flex flex-wrap gap-2 items-center justify-between border-t border-slate-100 pt-4">
+        <h3 class="text-sm font-black uppercase text-slate-700">Itens</h3>
+        <button type="button" id="btn-add-linha" class="px-4 py-2 rounded-xl bg-slate-100 border border-slate-200 text-xs font-black uppercase hover:bg-slate-200">+ Linha</button>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-slate-200">
+        <table class="w-full text-xs sm:text-sm min-w-[720px]">
+          <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-500">
+            <tr>
+              <th class="text-left px-2 py-2">Descrição</th>
+              <th class="text-left px-2 py-2 w-24">Cód.</th>
+              <th class="text-left px-2 py-2 w-28">EAN</th>
+              <th class="text-right px-2 py-2 w-20">Qtd</th>
+              <th class="text-right px-2 py-2 w-24">V. unit</th>
+              <th class="text-left px-2 py-2 w-16">CFOP</th>
+              <th class="text-left px-2 py-2">Match catálogo</th>
+              <th class="w-8"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody-itens"></tbody>
+        </table>
+      </div>
+      <button type="button" id="btn-salvar-manual" class="px-8 py-3 rounded-xl bg-orange-600 text-white font-black text-sm uppercase hover:bg-orange-700 shadow-md">Salvar rascunho</button>
+    </section>
+
+    <section id="panel-xml" class="tab-panel hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
+      <p class="text-sm font-semibold text-slate-600">Envie o arquivo XML da NF-e autorizada (<strong>nfeProc</strong> ou <strong>NFe</strong>). Os campos e a grade serão preenchidos para conferência.</p>
+      <div class="flex flex-wrap items-end gap-3">
+        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Arquivo XML</span>
+          <input type="file" id="xml-file" accept=".xml,text/xml,application/xml" class="mt-1 block w-full text-sm font-semibold"></label>
+        <button type="button" id="btn-parse-xml" class="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-black text-xs uppercase hover:bg-blue-700">Ler XML</button>
+      </div>
+      <p class="text-[11px] text-slate-500 font-semibold">Depois de carregar, revise a grade na aba manual ou salve direto:</p>
+      <button type="button" id="btn-salvar-xml" class="px-8 py-3 rounded-xl bg-orange-600 text-white font-black text-sm uppercase hover:bg-orange-700 shadow-md">Salvar rascunho (origem XML)</button>
+    </section>
+
+    <section id="panel-sefaz" class="tab-panel hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
+      <div id="sefaz-status" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">Carregando status…</div>
+      <div class="flex flex-wrap gap-3 items-end">
+        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">ultNSU (opcional)</span>
+          <input type="text" id="sefaz-ult" class="mt-1 w-44 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono" placeholder="Deixe vazio para usar cursor salvo"></label>
+        <button type="button" id="btn-dist-dfe" class="px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700">Consultar SEFAZ</button>
+      </div>
+      <div id="sefaz-result" class="hidden rounded-xl border border-slate-200 p-4 space-y-2 text-sm"></div>
+      <div id="sefaz-previews" class="space-y-2"></div>
+    </section>
+
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
+      <div class="flex justify-between items-center gap-2 mb-3">
+        <h2 class="text-sm font-black uppercase text-slate-700">Últimos rascunhos</h2>
+        <button type="button" id="btn-refresh-rasc" class="text-[10px] font-black uppercase text-orange-700 hover:underline">Atualizar</button>
+      </div>
+      <div id="lista-rasc" class="text-sm space-y-2 max-h-64 overflow-y-auto"></div>
+    </section>
+  </main>
+
+  {{ csrf_token }}
+  <script>
+(function () {
+  const URL_SEFAZ = "{% url 'api_entrada_nota_sefaz_status' %}";
+  const URL_PARSE = "{% url 'api_entrada_nota_parse_xml' %}";
+  const URL_SALVAR = "{% url 'api_entrada_nota_salvar' %}";
+  const URL_RASC = "{% url 'api_entrada_nota_rascunhos' %}";
+  const URL_DFE = "{% url 'api_entrada_nota_dist_dfe' %}";
+
+  function getCookie(name) {
+    const m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return m ? decodeURIComponent(m[2]) : '';
+  }
+
+  function showMsg(text, ok) {
+    const el = document.getElementById('msg-global');
+    el.textContent = text;
+    el.classList.remove('hidden', 'border-red-200', 'bg-red-50', 'text-red-800', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-900');
+    el.classList.add(ok ? 'border-emerald-200' : 'border-red-200', ok ? 'bg-emerald-50' : 'bg-red-50', ok ? 'text-emerald-900' : 'text-red-800');
+  }
+
+  let ultimaNotaParse = null;
+
+  function aplicarCabecalho(n) {
+    document.getElementById('m-emit-nome').value = n.emit_nome || '';
+    document.getElementById('m-emit-cnpj').value = n.emit_cnpj || '';
+    document.getElementById('m-nf').value = n.numero || '';
+    document.getElementById('m-serie').value = n.serie || '';
+    document.getElementById('m-chave').value = n.chave || '';
+    if (n.dh_emi) {
+      const d = n.dh_emi.replace(' ', 'T').slice(0, 16);
+      document.getElementById('m-dh').value = d;
+    }
+  }
+
+  function linhaFromItem(it) {
+    return {
+      x_prod: it.x_prod || '',
+      c_prod: it.c_prod || '',
+      ean: it.ean || '',
+      q_com: it.q_com != null ? it.q_com : 1,
+      v_un_com: it.v_un_com != null ? it.v_un_com : 0,
+      cfop: it.cfop || '',
+      produto_id: it.produto_id || '',
+      nome_catalogo: it.nome_catalogo || '',
+      match_tipo: it.match_tipo || '',
+    };
+  }
+
+  function tbodyClear() {
+    document.getElementById('tbody-itens').innerHTML = '';
+  }
+
+  function addLinhaRow(data) {
+    const tr = document.createElement('tr');
+    tr.className = 'border-t border-slate-100';
+    const d = data || { x_prod: '', c_prod: '', ean: '', q_com: 1, v_un_com: 0, cfop: '', produto_id: '', nome_catalogo: '', match_tipo: '' };
+    const mt = d.match_tipo ? ` (${d.match_tipo})` : '';
+    const mc = d.nome_catalogo ? `${d.nome_catalogo}${mt}` : (d.produto_id ? d.produto_id : '—');
+    tr.innerHTML = `
+      <td class="px-2 py-1"><input type="text" class="in-desc w-full rounded border border-slate-200 px-1 py-1 text-xs font-semibold" value=""></td>
+      <td class="px-2 py-1"><input type="text" class="in-cprod w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
+      <td class="px-2 py-1"><input type="text" class="in-ean w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
+      <td class="px-2 py-1"><input type="number" step="0.0001" class="in-qtd w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value=""></td>
+      <td class="px-2 py-1"><input type="number" step="0.01" class="in-vun w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value=""></td>
+      <td class="px-2 py-1"><input type="text" class="in-cfop w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
+      <td class="px-2 py-1 text-[11px] font-semibold text-slate-600 in-match">${mc}</td>
+      <td class="px-1 py-1"><button type="button" class="btn-del text-red-600 font-black text-lg leading-none px-1" title="Remover">×</button></td>`;
+    tr.querySelector('.in-desc').value = d.x_prod;
+    tr.querySelector('.in-cprod').value = d.c_prod;
+    tr.querySelector('.in-ean').value = d.ean;
+    tr.querySelector('.in-qtd').value = d.q_com;
+    tr.querySelector('.in-vun').value = d.v_un_com;
+    tr.querySelector('.in-cfop').value = d.cfop;
+    tr.querySelector('.btn-del').addEventListener('click', () => tr.remove());
+    document.getElementById('tbody-itens').appendChild(tr);
+  }
+
+  function coletarLinhas() {
+    const rows = document.querySelectorAll('#tbody-itens tr');
+    const linhas = [];
+    rows.forEach((tr) => {
+      const desc = tr.querySelector('.in-desc').value.trim();
+      const qtd = Number(tr.querySelector('.in-qtd').value) || 0;
+      if (!desc && qtd === 0) return;
+      linhas.push({
+        x_prod: desc,
+        c_prod: tr.querySelector('.in-cprod').value.trim(),
+        ean: tr.querySelector('.in-ean').value.trim(),
+        q_com: qtd,
+        v_un_com: Number(tr.querySelector('.in-vun').value) || 0,
+        cfop: tr.querySelector('.in-cfop').value.trim(),
+      });
+    });
+    return linhas;
+  }
+
+  function coletarCabecalho() {
+    return {
+      emit_nome: document.getElementById('m-emit-nome').value.trim(),
+      emit_cnpj: document.getElementById('m-emit-cnpj').value.trim(),
+      numero: document.getElementById('m-nf').value.trim(),
+      serie: document.getElementById('m-serie').value.trim(),
+      chave: document.getElementById('m-chave').value.trim(),
+      dh_emi: document.getElementById('m-dh').value || '',
+    };
+  }
+
+  async function salvar(modo, extra) {
+    const cab = coletarCabecalho();
+    const linhas = coletarLinhas();
+    if (!linhas.length) {
+      showMsg('Inclua ao menos uma linha com descrição ou quantidade.', false);
+      return;
+    }
+    const body = {
+      modo,
+      cabecalho: cab,
+      linhas,
+      xml_chave: ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null),
+      extra: extra || {},
+    };
+    try {
+      const r = await fetch(URL_SALVAR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json();
+      if (j.ok) {
+        showMsg('Rascunho salvo no Mongo.', true);
+        carregarRascunhos();
+      } else {
+        showMsg(j.erro || 'Falha ao salvar.', false);
+      }
+    } catch (e) {
+      showMsg('Erro de rede.', false);
+    }
+  }
+
+  document.getElementById('btn-add-linha').addEventListener('click', () => addLinhaRow({}));
+  document.getElementById('btn-salvar-manual').addEventListener('click', () => salvar('manual', {}));
+  document.getElementById('btn-salvar-xml').addEventListener('click', () => salvar('xml', { origem: 'upload_xml' }));
+
+  document.querySelectorAll('.tab-btn').forEach((b) => {
+    b.addEventListener('click', () => {
+      const tab = b.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach((x) => {
+        x.classList.toggle('tab-on', x.dataset.tab === tab);
+        x.classList.toggle('tab-off', x.dataset.tab !== tab);
+      });
+      document.querySelectorAll('.tab-panel').forEach((p) => p.classList.add('hidden'));
+      document.getElementById('panel-' + tab).classList.remove('hidden');
+    });
+  });
+
+  document.getElementById('btn-parse-xml').addEventListener('click', async () => {
+    const inp = document.getElementById('xml-file');
+    if (!inp.files || !inp.files[0]) {
+      showMsg('Escolha um arquivo XML.', false);
+      return;
+    }
+    const fd = new FormData();
+    fd.append('arquivo', inp.files[0]);
+    try {
+      const r = await fetch(URL_PARSE, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        body: fd,
+      });
+      const j = await r.json();
+      if (!j.ok) {
+        showMsg(j.erro || 'Falha ao ler XML.', false);
+        return;
+      }
+      ultimaNotaParse = j.nota;
+      aplicarCabecalho(j.nota);
+      tbodyClear();
+      (j.nota.itens || []).forEach((it) => addLinhaRow(linhaFromItem(it)));
+      showMsg(`NF-e ${j.nota.numero || ''} carregada — ${(j.nota.itens || []).length} item(ns). Revise e salve.`, true);
+      document.querySelector('.tab-btn[data-tab="manual"]').click();
+    } catch (e) {
+      showMsg('Erro de rede no upload.', false);
+    }
+  });
+
+  async function carregarSefazStatus() {
+    const el = document.getElementById('sefaz-status');
+    try {
+      const r = await fetch(URL_SEFAZ, { credentials: 'same-origin' });
+      const s = await r.json();
+      if (s.configurada) {
+        el.innerHTML = `<span class="text-emerald-800 font-black">DF-e configurado.</span> UF ${s.uf || '—'} · CNPJ ${s.cnpj_mascarado || '—'} · tpAmb ${s.tp_amb}`;
+      } else {
+        el.innerHTML = `<span class="text-amber-900 font-bold">Certificado / CNPJ / UF ainda não configurados no servidor.</span> Veja o aviso no topo e o .env.`;
+      }
+    } catch (_) {
+      el.textContent = 'Não foi possível ler o status.';
+    }
+  }
+
+  document.getElementById('btn-dist-dfe').addEventListener('click', async () => {
+    const ult = document.getElementById('sefaz-ult').value.trim();
+    const resBox = document.getElementById('sefaz-result');
+    const prevBox = document.getElementById('sefaz-previews');
+    resBox.classList.remove('hidden');
+    resBox.textContent = 'Consultando…';
+    prevBox.innerHTML = '';
+    try {
+      const r = await fetch(URL_DFE, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(ult ? { ult_nsu: ult } : {}),
+      });
+      const j = await r.json();
+      resBox.innerHTML = `<div class="font-black">cStat: ${j.c_stat ?? '—'}</div><div>${j.x_motivo || j.erro || ''}</div><div class="text-xs mt-1">ultNSU: ${j.ult_nsu} · maxNSU: ${j.max_nsu ?? '—'}</div>`;
+      if (Array.isArray(j.previews) && j.previews.length) {
+        j.previews.forEach((pv, idx) => {
+          const div = document.createElement('div');
+          div.className = 'rounded-lg border border-slate-200 p-3 bg-slate-50';
+          div.innerHTML = `<div class="font-black text-slate-800">${pv.emit_nome || '—'} · NF ${pv.numero || '—'} · R$ ${Number(pv.valor_total || 0).toFixed(2)}</div>
+            <div class="text-xs text-slate-600">Chave ${pv.chave || '—'} · ${pv.n_itens} itens</div>
+            <button type="button" class="mt-2 text-[10px] font-black uppercase text-orange-700 btn-import-dfe" data-idx="${idx}">Carregar na grade</button>`;
+          div.querySelector('.btn-import-dfe').addEventListener('click', () => {
+            const n = j.previews[idx].nota;
+            ultimaNotaParse = n;
+            aplicarCabecalho(n);
+            tbodyClear();
+            (n.itens || []).forEach((it) => addLinhaRow(linhaFromItem(it)));
+            showMsg('Nota carregada na grade (aba manual).', true);
+            document.querySelector('.tab-btn[data-tab="manual"]').click();
+          });
+          prevBox.appendChild(div);
+        });
+      }
+    } catch (e) {
+      resBox.textContent = 'Erro de rede.';
+    }
+  });
+
+  async function carregarRascunhos() {
+    const box = document.getElementById('lista-rasc');
+    box.innerHTML = 'Carregando…';
+    try {
+      const r = await fetch(URL_RASC, { credentials: 'same-origin' });
+      const j = await r.json();
+      const itens = j.itens || [];
+      if (!itens.length) {
+        box.innerHTML = '<p class="text-slate-400 font-semibold">Nenhum rascunho ainda.</p>';
+        return;
+      }
+      box.innerHTML = '';
+      itens.forEach((it) => {
+        const d = document.createElement('div');
+        d.className = 'border border-slate-100 rounded-lg px-3 py-2 text-xs';
+        const cab = it.cabecalho || {};
+        d.innerHTML = `<span class="font-black text-slate-800">${it.modo || ''}</span> · ${cab.emit_nome || '—'} · NF ${cab.numero || '—'} · ${it.linhas ? it.linhas.length : 0} linhas · <span class="text-slate-400">${it.criado_em || ''}</span>`;
+        box.appendChild(d);
+      });
+    } catch (_) {
+      box.textContent = 'Erro ao listar.';
+    }
+  }
+
+  document.getElementById('btn-refresh-rasc').addEventListener('click', carregarRascunhos);
+
+  document.addEventListener('keydown', (e) => {
+    if (!e.altKey || e.ctrlKey || e.shiftKey) return;
+    const k = e.key;
+    if (k === '1') {
+      e.preventDefault();
+      document.querySelector('.tab-btn[data-tab="manual"]')?.click();
+    } else if (k === '2') {
+      e.preventDefault();
+      document.querySelector('.tab-btn[data-tab="xml"]')?.click();
+    } else if (k === '3') {
+      e.preventDefault();
+      document.querySelector('.tab-btn[data-tab="sefaz"]')?.click();
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    addLinhaRow({});
+    addLinhaRow({});
+    carregarSefazStatus();
+    carregarRascunhos();
+  });
+})();
+  </script>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>

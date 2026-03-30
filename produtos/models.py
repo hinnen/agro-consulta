@@ -91,6 +91,13 @@ class ClienteAgro(models.Model):
         blank=True,
         default="",
     )
+    plus_code = models.CharField(
+        "Plus Code / local rural (Maps)",
+        max_length=120,
+        blank=True,
+        default="",
+        help_text="Ex.: 8X5R+7M9 Jacupiranga — abre direto no Google Maps na busca.",
+    )
     ativo = models.BooleanField(default=True)
     externo_id = models.CharField(
         max_length=80,
@@ -242,3 +249,69 @@ class ItemVendaAgro(models.Model):
 
     def __str__(self):
         return f"{self.descricao[:30]} x {self.quantidade}"
+
+
+class PedidoEntrega(models.Model):
+    """Entrega vinculada ao PDV (orçamento com entrega); painel de gestão e rotas."""
+
+    class Status(models.TextChoices):
+        PENDENTE = "pendente", "Pendente"
+        SEPARANDO = "separando", "Separando"
+        PRONTO_ROTA = "pronto_rota", "Pronto p/ rota"
+        EM_ROTA = "em_rota", "Em rota"
+        ENTREGUE = "entregue", "Entregue"
+        CANCELADO = "cancelado", "Cancelado"
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDENTE,
+        db_index=True,
+    )
+    cliente_nome = models.CharField(max_length=300)
+    telefone = models.CharField(max_length=40, blank=True, default="")
+    endereco_linha = models.CharField(max_length=500, blank=True, default="")
+    plus_code = models.CharField(max_length=120, blank=True, default="")
+    referencia_rural = models.CharField(
+        max_length=300,
+        blank=True,
+        default="",
+        help_text="Ex.: porteira azul, 2 km após o trevo.",
+    )
+    maps_url_manual = models.URLField(
+        max_length=600,
+        blank=True,
+        default="",
+        help_text="Link colado do Google Maps (casa no satélite).",
+    )
+    itens_json = models.JSONField(default=list)
+    total_texto = models.CharField(max_length=48, blank=True, default="")
+    orc_local_id = models.BigIntegerField(null=True, blank=True, db_index=True)
+    retomar_codigo = models.CharField(max_length=40, blank=True, default="")
+    operador = models.CharField(max_length=120, blank=True, default="")
+    hora_prevista = models.TimeField(null=True, blank=True)
+    hora_saida = models.DateTimeField(null=True, blank=True)
+    hora_entrega = models.DateTimeField(null=True, blank=True)
+    observacoes = models.TextField(blank=True, default="")
+    forma_pagamento = models.CharField(
+        max_length=40,
+        blank=True,
+        default="",
+        verbose_name="Forma de pagamento",
+    )
+    troco_precisa = models.BooleanField(
+        null=True,
+        blank=True,
+        verbose_name="Precisa de troco",
+        help_text="Somente para Dinheiro: True = levar troco, False = sem troco.",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Pedido de entrega"
+        verbose_name_plural = "Pedidos de entrega"
+
+    def __str__(self):
+        return f"Entrega #{self.pk} — {self.cliente_nome[:40]}"

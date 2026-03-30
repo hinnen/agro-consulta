@@ -1,0 +1,393 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <title>Agro Mais | Lançamento manual em lote</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .gm-bar { background: linear-gradient(90deg, rgba(234,88,12,0.12) 0%, rgba(5,150,105,0.10) 100%); }
+    .sug-dd { max-height: 220px; overflow-y: auto; z-index: 40; }
+    .gm-kbd {
+      pointer-events: none;
+      display: inline-flex;
+      align-items: center;
+      font-size: 9px;
+      padding: 0.2rem 0.4rem;
+      border-radius: 0.35rem;
+      font-weight: 900;
+      font-family: ui-monospace, monospace;
+      opacity: 0.95;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+
+  <header class="gm-bar border-b border-slate-200/80">
+    <div class="max-w-[1200px] mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="h-11 w-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+          <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">
+            GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-amber-800">Lançamento manual (lote)</span>
+          </h1>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Cabeçalho único · várias linhas no Mongo</p>
+        </div>
+      </div>
+      <a href="{% url 'lancamentos_financeiros' %}" class="text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-800 transition-colors shrink-0">
+        Voltar aos lançamentos
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-[1200px] mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
+    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed">
+      Preencha <strong>empresa</strong>, <strong>fornecedor ou cliente</strong>, <strong>datas</strong>, <strong>banco</strong> e <strong>forma de pagamento</strong> uma vez. Em seguida inclua linhas só com <strong>plano de contas</strong>, <strong>valor</strong>, <strong>descrição</strong> e <strong>observação</strong>. Um único envio grava vários títulos no <strong>Mongo</strong> (mesmo padrão do ERP Venda). Opcional no .env: <code class="bg-white/80 px-1 rounded">VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH</code> para o servidor <strong>avisar o ERP</strong> com os novos títulos (<code class="bg-white/80 px-1 rounded">titulos</code> + lote).
+    </div>
+
+    <div id="msg-box" class="hidden rounded-2xl border px-4 py-3 text-sm font-bold"></div>
+
+    <form id="form-lote" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-6">
+      {% csrf_token %}
+      <div class="flex flex-wrap gap-3 items-center">
+        <span class="text-[10px] font-black uppercase text-slate-500">Tipo</span>
+        <label class="inline-flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="tipo" value="pagar" checked class="accent-amber-600">
+          <span class="text-sm font-bold">Conta a pagar</span>
+        </label>
+        <label class="inline-flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="tipo" value="receber" class="accent-emerald-600">
+          <span class="text-sm font-bold">Conta a receber</span>
+        </label>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Empresa *</span>
+          <div class="relative sug-wrap mt-1" data-sug-campo="empresa">
+            <input type="text" name="empresa_nome" id="empresa-nome" autocomplete="off" placeholder="Digite para buscar…"
+              class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-amber-500 outline-none">
+            <input type="hidden" name="empresa_id" id="empresa-id" value="">
+            <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+          </div>
+        </label>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Cliente / fornecedor *</span>
+          <div class="relative sug-wrap mt-1" data-sug-campo="cliente">
+            <input type="text" name="pessoa_nome" id="pessoa-nome" autocomplete="off" placeholder="Digite para buscar…"
+              class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-amber-500 outline-none">
+            <input type="hidden" name="pessoa_id" id="pessoa-id" value="">
+            <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+          </div>
+        </label>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Data competência *</span>
+          <input type="date" id="data-comp" required
+            class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-amber-500 outline-none">
+        </label>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Data vencimento *</span>
+          <input type="date" id="data-ven" required
+            class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-amber-500 outline-none">
+        </label>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Conta bancária *</span>
+          <div class="relative sug-wrap mt-1" data-sug-campo="banco">
+            <input type="text" id="banco-nome" autocomplete="off" placeholder="Digite para buscar…"
+              class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-amber-500 outline-none">
+            <input type="hidden" id="banco-id" value="">
+            <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+          </div>
+        </label>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Forma de pagamento *</span>
+          <div class="relative sug-wrap mt-1" data-sug-campo="forma">
+            <input type="text" id="forma-nome" autocomplete="off" placeholder="Digite para buscar…"
+              class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-amber-500 outline-none">
+            <input type="hidden" id="forma-id" value="">
+            <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+          </div>
+        </label>
+      </div>
+
+      <label class="block max-w-md">
+        <span class="text-[10px] font-black uppercase text-slate-500">Grupo (opcional)</span>
+        <div class="relative sug-wrap mt-1" data-sug-campo="grupo">
+          <input type="text" id="grupo-nome" autocomplete="off" placeholder="Digite para buscar…"
+            class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-amber-500 outline-none">
+          <input type="hidden" id="grupo-id" value="">
+          <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+        </div>
+      </label>
+
+      <div class="border-t border-slate-100 pt-4 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-sm font-black uppercase text-slate-700">Linhas de detalhe</h2>
+          <button type="button" id="btn-add-linha" class="px-4 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 font-black text-[10px] uppercase hover:bg-slate-200">
+            + Adicionar linha
+          </button>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-500">
+              <tr>
+                <th class="text-left px-3 py-2 min-w-[200px]">Plano de conta *</th>
+                <th class="text-left px-3 py-2 w-28">Valor (R$) *</th>
+                <th class="text-left px-3 py-2 min-w-[140px]">Descrição</th>
+                <th class="text-left px-3 py-2 min-w-[140px]">Observação</th>
+                <th class="w-10"></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-linhas"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-3">
+        <button type="submit" id="btn-submit" class="inline-flex items-center gap-2 px-6 sm:px-8 py-3 rounded-xl bg-amber-600 text-white font-black text-sm uppercase tracking-wide hover:bg-amber-700 shadow-md disabled:opacity-50" title="Enviar lote (F5 fora de campos de texto).">
+          <span>Cadastrar lote</span>
+          <kbd class="gm-kbd border border-white/30 bg-white/15 text-white">F5</kbd>
+        </button>
+      </div>
+    </form>
+  </main>
+
+  <script>
+(function () {
+  const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
+  const API_CRIAR = "{% url 'api_lancamentos_criar_manual_lote' %}";
+
+  function getCookie(name) {
+    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? decodeURIComponent(v.pop()) : '';
+  }
+
+  function todayISO() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  document.getElementById('data-comp').value = todayISO();
+  document.getElementById('data-ven').value = todayISO();
+
+  function attachSuggest(wrap) {
+    if (!wrap || wrap.dataset.sugBound === '1') return;
+    wrap.dataset.sugBound = '1';
+    const campo = wrap.getAttribute('data-sug-campo');
+    const inp = wrap.querySelector('input[type="text"]');
+    const hid = wrap.querySelector('input[type="hidden"]');
+    const dd = wrap.querySelector('.sug-dd');
+    let timer = null;
+
+    inp.addEventListener('input', function () {
+      hid.value = '';
+      clearTimeout(timer);
+      timer = setTimeout(async function () {
+        try {
+          const u = new URL(API_SUG, window.location.origin);
+          u.searchParams.set('campo', campo);
+          u.searchParams.set('q', inp.value.trim());
+          const r = await fetch(u.toString(), { credentials: 'same-origin' });
+          const j = await r.json();
+          dd.innerHTML = '';
+          (j.itens || []).forEach(function (it) {
+            const li = document.createElement('li');
+            li.textContent = it.nome;
+            li.className = 'px-3 py-2 cursor-pointer hover:bg-amber-50 text-sm font-medium border-b border-slate-50 last:border-0';
+            li.addEventListener('mousedown', function (e) {
+              e.preventDefault();
+              inp.value = it.nome;
+              hid.value = it.id || '';
+              dd.classList.add('hidden');
+            });
+            dd.appendChild(li);
+          });
+          dd.classList.toggle('hidden', dd.children.length === 0);
+        } catch (e) {
+          dd.classList.add('hidden');
+        }
+      }, 280);
+    });
+
+    inp.addEventListener('blur', function () {
+      setTimeout(function () { dd.classList.add('hidden'); }, 200);
+    });
+    inp.addEventListener('focus', function () {
+      if (dd.children.length) dd.classList.remove('hidden');
+    });
+  }
+
+  document.querySelectorAll('.sug-wrap').forEach(attachSuggest);
+
+  const tbody = document.getElementById('tbody-linhas');
+
+  function rowHTML() {
+    return (
+      '<tr class="linha border-t border-slate-100 align-top">' +
+      '<td class="px-3 py-2">' +
+      '<div class="relative sug-wrap" data-sug-campo="plano">' +
+      '<input type="text" class="in-plano w-full rounded-lg border border-slate-200 px-2 py-2 text-sm font-semibold focus:border-amber-500 outline-none" autocomplete="off" placeholder="Plano…">' +
+      '<input type="hidden" class="in-plano-id" value="">' +
+      '<ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-lg shadow-lg"></ul>' +
+      '</div></td>' +
+      '<td class="px-3 py-2"><input type="text" class="in-valor w-full rounded-lg border border-slate-200 px-2 py-2 text-sm font-bold tabular-nums focus:border-amber-500 outline-none" placeholder="0,00" inputmode="decimal"></td>' +
+      '<td class="px-3 py-2"><input type="text" class="in-desc w-full rounded-lg border border-slate-200 px-2 py-2 text-sm focus:border-amber-500 outline-none" placeholder="Descrição"></td>' +
+      '<td class="px-3 py-2"><input type="text" class="in-obs w-full rounded-lg border border-slate-200 px-2 py-2 text-sm focus:border-amber-500 outline-none" placeholder="Obs."></td>' +
+      '<td class="px-1 py-2"><button type="button" class="btn-del text-red-600 font-black text-xs px-1 hover:underline" title="Remover">×</button></td>' +
+      '</tr>'
+    );
+  }
+
+  function addRow() {
+    tbody.insertAdjacentHTML('beforeend', rowHTML());
+    const tr = tbody.lastElementChild;
+    attachSuggest(tr.querySelector('.sug-wrap'));
+    tr.querySelector('.btn-del').addEventListener('click', function () {
+      if (tbody.querySelectorAll('tr.linha').length <= 1) return;
+      tr.remove();
+    });
+  }
+
+  for (let i = 0; i < 3; i++) addRow();
+  document.getElementById('btn-add-linha').addEventListener('click', addRow);
+
+  const msgBox = document.getElementById('msg-box');
+
+  function showMsg(text, ok) {
+    msgBox.textContent = text;
+    msgBox.classList.remove('hidden', 'border-red-200', 'bg-red-50', 'text-red-800', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-900');
+    if (ok) {
+      msgBox.classList.add('border-emerald-200', 'bg-emerald-50', 'text-emerald-900');
+    } else {
+      msgBox.classList.add('border-red-200', 'bg-red-50', 'text-red-800');
+    }
+  }
+
+  document.getElementById('form-lote').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const tipo = (document.querySelector('input[name="tipo"]:checked') || {}).value || 'pagar';
+    const empresa_nome = document.getElementById('empresa-nome').value.trim();
+    const empresa_id = document.getElementById('empresa-id').value.trim();
+    const pessoa_nome = document.getElementById('pessoa-nome').value.trim();
+    const pessoa_id = document.getElementById('pessoa-id').value.trim();
+    const data_competencia = document.getElementById('data-comp').value;
+    const data_vencimento = document.getElementById('data-ven').value;
+    const banco_nome = document.getElementById('banco-nome').value.trim();
+    const banco_id = document.getElementById('banco-id').value.trim();
+    const forma_nome = document.getElementById('forma-nome').value.trim();
+    const forma_id = document.getElementById('forma-id').value.trim();
+    const grupo_nome = document.getElementById('grupo-nome').value.trim();
+    const grupo_id = document.getElementById('grupo-id').value.trim();
+
+    const linhas = [];
+    const problemas = [];
+    tbody.querySelectorAll('tr.linha').forEach(function (tr, idx) {
+      const plano = tr.querySelector('.in-plano').value.trim();
+      const valor = tr.querySelector('.in-valor').value.trim();
+      const descricao = tr.querySelector('.in-desc').value.trim();
+      const observacao = tr.querySelector('.in-obs').value.trim();
+      const plano_conta_id = tr.querySelector('.in-plano-id').value.trim();
+      if (!plano && !valor) return;
+      const n = idx + 1;
+      if (!plano) problemas.push('Linha ' + n + ': informe o plano de conta.');
+      if (!valor) problemas.push('Linha ' + n + ': informe o valor.');
+      if (plano && valor) {
+        linhas.push({
+          plano_conta: plano,
+          plano_conta_id: plano_conta_id || undefined,
+          valor: valor,
+          descricao: descricao || undefined,
+          observacao: observacao || undefined
+        });
+      }
+    });
+
+    if (!empresa_nome || !pessoa_nome || !banco_nome || !forma_nome) {
+      showMsg('Preencha empresa, cliente/fornecedor, banco e forma de pagamento.', false);
+      return;
+    }
+    if (problemas.length) {
+      showMsg(problemas.join(' '), false);
+      return;
+    }
+    if (!linhas.length) {
+      showMsg('Inclua ao menos uma linha com plano de conta e valor.', false);
+      return;
+    }
+
+    const payload = {
+      tipo: tipo,
+      empresa_nome: empresa_nome,
+      empresa_id: empresa_id || undefined,
+      pessoa_nome: pessoa_nome,
+      pessoa_id: pessoa_id || undefined,
+      data_competencia: data_competencia,
+      data_vencimento: data_vencimento,
+      banco_nome: banco_nome,
+      banco_id: banco_id || undefined,
+      forma_nome: forma_nome,
+      forma_id: forma_id || undefined,
+      grupo_nome: grupo_nome || undefined,
+      grupo_id: grupo_id || undefined,
+      linhas: linhas
+    };
+
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    try {
+      const r = await fetch(API_CRIAR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(payload)
+      });
+      const j = await r.json().catch(function () { return {}; });
+      if (r.ok && j.ok) {
+        var okMsg = 'Lote ' + (j.lote || '') + ' gravado: ' + (j.ids || []).length + ' título(s) no Mongo.';
+        if (j.erp_lancamento_ok === true) okMsg += ' ERP: envio aceito.';
+        if (j.aviso_api) okMsg += ' ' + j.aviso_api;
+        showMsg(okMsg, !j.aviso_api);
+        tbody.innerHTML = '';
+        for (let i = 0; i < 3; i++) addRow();
+      } else if (r.status === 207 && (j.ids || []).length) {
+        const er = (j.erros || []).map(function (x) { return 'L' + x.linha + ': ' + x.erro; }).join(' · ');
+        var pMsg = 'Parcial: ' + j.ids.length + ' ok. ' + er;
+        if (j.aviso_api) pMsg += ' ERP: ' + j.aviso_api;
+        showMsg(pMsg, false);
+      } else {
+        const er = (j.erros && j.erros[0] && j.erros[0].erro) ? j.erros[0].erro : (j.erro || 'Falha ao gravar.');
+        showMsg(er, false);
+      }
+    } catch (err) {
+      showMsg('Erro de rede: ' + String(err), false);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'F5') return;
+    var t = e.target && e.target.tagName;
+    if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+    e.preventDefault();
+    document.getElementById('btn-submit').click();
+  });
+})();
+  </script>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>

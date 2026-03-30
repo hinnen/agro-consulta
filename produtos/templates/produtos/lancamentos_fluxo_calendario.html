@@ -1,0 +1,279 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <title>Agro Mais | Calendário de fluxo (vendas × gastos)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .gm-bar { background: linear-gradient(90deg, rgba(234,88,12,0.12) 0%, rgba(5,150,105,0.10) 100%); }
+    .gm-kbd {
+      pointer-events: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      line-height: 1;
+      padding: 0.2rem 0.35rem;
+      border-radius: 0.35rem;
+      font-weight: 900;
+      font-family: ui-monospace, monospace;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.92;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+
+  <header class="gm-bar border-b border-slate-200/80">
+    <div class="max-w-[1200px] mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="h-11 w-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+          <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">
+            GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-emerald-800">Calendário de fluxo</span>
+          </h1>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Vendas médias + vencimentos · projeção analítica</p>
+        </div>
+      </div>
+      <a href="{% url 'lancamentos_financeiros' %}" class="text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-800 transition-colors shrink-0">
+        Voltar aos lançamentos
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-[1200px] mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
+    <div class="rounded-2xl border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-[11px] font-semibold text-emerald-950 leading-relaxed space-y-1">
+      <p><strong class="font-black uppercase">O que é:</strong> para cada dia no horizonte, estimamos <strong>entradas</strong> (média de faturamento dos últimos N dias no Mongo, <strong>ajustada por dia da semana e por faixa do mês</strong> com base no histórico recente — ex.: final de mês tende a vender menos se seus dados mostrarem isso — mais títulos <strong>a receber</strong> em aberto com vencimento na data) e <strong>saídas</strong> (títulos <strong>a pagar</strong> em aberto na data). O <strong>saldo acumulado</strong> soma o líquido dia a dia a partir de <strong>zero</strong> — é uma tendência, não substitui extrato bancário.</p>
+      <p>A média de vendas e os títulos podem se sobrepor conceitualmente (ex.: recebíveis já refletem vendas passadas). Use o painel como <strong>visão combinada</strong> e desligue a média se quiser ver só vencimentos.</p>
+    </div>
+
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-wrap items-end gap-3">
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Horizonte (dias)</span>
+        <select id="fx-horiz" class="mt-1 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold">
+          <option value="30">30</option>
+          <option value="60" selected>60</option>
+          <option value="90">90</option>
+          <option value="120">120</option>
+        </select>
+      </label>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Média de vendas (dias base)</span>
+        <select id="fx-media" class="mt-1 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold">
+          <option value="7">7</option>
+          <option value="14">14</option>
+          <option value="30" selected>30</option>
+          <option value="60">60</option>
+        </select>
+      </label>
+      <label class="inline-flex items-center gap-2 cursor-pointer mt-6 sm:mt-0">
+        <input type="checkbox" id="fx-incl" checked class="rounded border-slate-300 accent-emerald-600 w-4 h-4">
+        <span class="text-sm font-bold text-slate-700">Incluir média de vendas nas entradas</span>
+      </label>
+      <button type="button" id="fx-go" class="inline-flex items-center gap-1.5 px-5 sm:px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700 shadow-md" title="Recalcular calendário (F5).">
+        <span>Atualizar</span>
+        <kbd class="gm-kbd border border-white/30 bg-white/15 text-white">F5</kbd>
+      </button>
+    </section>
+
+    <div id="fx-err" class="hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800"></div>
+
+    <section id="fx-meta-box" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="text-[10px] font-black uppercase text-slate-500">Média diária (base, últimos N dias)</div>
+        <div id="fx-m-v" class="text-xl font-black text-slate-800 tabular-nums">—</div>
+        <div id="fx-m-cal" class="text-[10px] font-semibold text-slate-500 mt-2 leading-snug">—</div>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="text-[10px] font-black uppercase text-slate-500">Período</div>
+        <div id="fx-m-per" class="text-sm font-bold text-slate-700">—</div>
+      </div>
+      <div class="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 shadow-sm sm:col-span-2">
+        <div class="text-[10px] font-black uppercase text-emerald-900">Aviso</div>
+        <div id="fx-m-aviso" class="text-xs font-semibold text-emerald-950 leading-snug">—</div>
+      </div>
+    </section>
+
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div class="overflow-x-auto max-h-[70vh] overflow-y-auto">
+        <table class="min-w-full text-left text-sm">
+          <thead class="sticky top-0 bg-slate-100 text-[10px] font-black uppercase text-slate-600 border-b border-slate-200 z-10">
+            <tr>
+              <th class="px-3 py-2">Data</th>
+              <th class="px-3 py-2 min-w-[140px]">Calendário</th>
+              <th class="px-3 py-2 text-right">Entradas prev.</th>
+              <th class="px-3 py-2 text-right">Saídas prev.</th>
+              <th class="px-3 py-2 text-right">Líquido dia</th>
+              <th class="px-3 py-2 text-right">Saldo acum.</th>
+              <th class="px-3 py-2 w-24"></th>
+            </tr>
+          </thead>
+          <tbody id="fx-tbody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+      <div id="fx-empty" class="hidden py-12 text-center text-slate-400 font-bold text-sm">Sem dados.</div>
+    </div>
+  </main>
+
+  <div id="fx-modal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 space-y-3 border border-slate-200 max-h-[88vh] overflow-y-auto">
+      <div class="flex justify-between items-start gap-2">
+        <h2 id="fx-mt" class="text-lg font-black text-slate-900 uppercase tracking-tight leading-tight">Detalhe</h2>
+        <button type="button" id="fx-mx" class="text-slate-400 hover:text-slate-800 font-black text-xl leading-none px-1">×</button>
+      </div>
+      <div id="fx-mb" class="text-sm text-slate-700 space-y-3 font-semibold"></div>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  const API = "{% url 'api_lancamentos_fluxo_calendario' %}";
+
+  function brl(n) {
+    const x = Number(n) || 0;
+    return x.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function fmtD(iso) {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso + 'T12:00:00');
+      return d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+    } catch (_) { return iso; }
+  }
+
+  function fmtCal(dia, incl) {
+    if (incl !== '1') return '—';
+    const ds = dia.dia_semana || '';
+    const fl = dia.faixa_mes_label || '';
+    const fc = dia.fator_combinado;
+    const adj = typeof fc === 'number' && fc !== 1 ? ` ×${fc.toFixed(2)}` : '';
+    const bits = [ds, fl].filter(Boolean);
+    if (!bits.length) return '—';
+    return bits.join(' · ') + adj;
+  }
+
+  let lastDias = [];
+
+  function openModal(dia) {
+    document.getElementById('fx-mt').textContent = fmtD(dia.data);
+    const box = document.getElementById('fx-mb');
+    const parts = [];
+    parts.push(`<div class="rounded-xl bg-slate-50 border border-slate-200 p-3 space-y-1 text-xs">`);
+    parts.push(`<div class="flex justify-between"><span class="text-slate-500">Entradas previstas</span><span class="font-black tabular-nums text-emerald-800">${brl(dia.entradas_previstas)}</span></div>`);
+    parts.push(`<div class="flex justify-between"><span class="text-slate-500">Saídas previstas</span><span class="font-black tabular-nums text-amber-900">${brl(dia.saidas_previstas)}</span></div>`);
+    parts.push(`<div class="flex justify-between border-t border-slate-200 pt-1 mt-1"><span class="text-slate-600">Líquido do dia</span><span class="font-black tabular-nums">${brl(dia.liquido_dia)}</span></div>`);
+    parts.push(`<div class="flex justify-between"><span class="text-slate-600">Saldo acumulado (proj.)</span><span class="font-black tabular-nums text-slate-900">${brl(dia.saldo_acumulado_proj)}</span></div>`);
+    parts.push(`</div>`);
+    parts.push(`<p class="text-[11px] font-black uppercase text-slate-500">Por que esses números</p>`);
+    parts.push(`<ul class="space-y-2 text-xs">`);
+    (dia.motivos || []).forEach((m) => {
+      const v = m.sinal === -1 ? `− ${brl(Math.abs(m.valor))}` : (m.valor ? brl(m.valor) : '—');
+      parts.push(`<li class="border border-slate-100 rounded-lg p-2 bg-white"><div class="font-black text-slate-800">${m.rotulo || ''}</div><div class="text-slate-600 mt-0.5">${m.detalhe || ''}</div><div class="text-right font-bold tabular-nums mt-1">${v}</div></li>`);
+    });
+    parts.push(`</ul>`);
+    box.innerHTML = parts.join('');
+    document.getElementById('fx-modal').classList.remove('hidden');
+  }
+
+  document.getElementById('fx-mx').addEventListener('click', () => {
+    document.getElementById('fx-modal').classList.add('hidden');
+  });
+  document.getElementById('fx-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'fx-modal') document.getElementById('fx-modal').classList.add('hidden');
+  });
+
+  async function carregar() {
+    const err = document.getElementById('fx-err');
+    const tb = document.getElementById('fx-tbody');
+    const meta = document.getElementById('fx-meta-box');
+    const empty = document.getElementById('fx-empty');
+    err.classList.add('hidden');
+    tb.innerHTML = '';
+    meta.classList.add('hidden');
+    empty.classList.add('hidden');
+
+    const h = document.getElementById('fx-horiz').value;
+    const dm = document.getElementById('fx-media').value;
+    const incl = document.getElementById('fx-incl').checked ? '1' : '0';
+    const u = new URL(API, window.location.origin);
+    u.searchParams.set('horizonte', h);
+    u.searchParams.set('dias_media', dm);
+    u.searchParams.set('incluir_media', incl);
+
+    try {
+      const r = await fetch(u.toString(), { credentials: 'same-origin' });
+      const j = await r.json();
+      if (!r.ok || j.erro) {
+        err.textContent = j.erro || 'Falha ao carregar.';
+        err.classList.remove('hidden');
+        return;
+      }
+      lastDias = j.dias || [];
+      const m = j.meta || {};
+      document.getElementById('fx-m-v').textContent = incl === '1' ? brl(m.media_vendas_diaria) : '— (desligado)';
+      const fc = m.fatores_vendas_calendario;
+      let calLine = '';
+      if (incl === '1') {
+        if (fc && fc.suficiente && m.lookback_fatores_calendario) {
+          calLine = `Ajuste por histórico (~${m.lookback_fatores_calendario} dias): multiplica a média base pelo padrão do dia da semana (seg–dom) e pela faixa do mês (1–10, 11–20, 21+), conforme seu faturamento recente no Mongo.`;
+        } else {
+          calLine = 'Ajuste por calendário: histórico insuficiente — entradas por vendas usam só a média base.';
+        }
+      } else {
+        calLine = 'Média de vendas desligada.';
+      }
+      document.getElementById('fx-m-cal').textContent = calLine;
+      document.getElementById('fx-m-per').textContent = `${fmtD(m.hoje)} → ${fmtD(m.fim)} · ${m.horizonte_dias || ''} dias`;
+      document.getElementById('fx-m-aviso').textContent = m.aviso_saldo || '';
+      meta.classList.remove('hidden');
+
+      if (!lastDias.length) {
+        empty.classList.remove('hidden');
+        return;
+      }
+
+      lastDias.forEach((dia) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/80';
+        const liq = Number(dia.liquido_dia) || 0;
+        const liqCls = liq >= 0 ? 'text-emerald-800' : 'text-red-700';
+        const ac = Number(dia.saldo_acumulado_proj) || 0;
+        const acCls = ac >= 0 ? 'text-slate-900' : 'text-red-800';
+        tr.innerHTML = `
+          <td class="px-3 py-2 font-bold text-slate-800 whitespace-nowrap">${fmtD(dia.data)}</td>
+          <td class="px-3 py-2 text-[11px] font-semibold text-slate-600 leading-snug">${fmtCal(dia, incl)}</td>
+          <td class="px-3 py-2 text-right tabular-nums font-semibold text-emerald-800">${brl(dia.entradas_previstas)}</td>
+          <td class="px-3 py-2 text-right tabular-nums font-semibold text-amber-900">${brl(dia.saidas_previstas)}</td>
+          <td class="px-3 py-2 text-right tabular-nums font-black ${liqCls}">${brl(dia.liquido_dia)}</td>
+          <td class="px-3 py-2 text-right tabular-nums font-black ${acCls}">${brl(dia.saldo_acumulado_proj)}</td>
+          <td class="px-3 py-2"><button type="button" class="fx-det text-[10px] font-black uppercase text-emerald-700 hover:underline">Por quê?</button></td>`;
+        tr.querySelector('.fx-det').addEventListener('click', () => openModal(dia));
+        tb.appendChild(tr);
+      });
+    } catch (e) {
+      err.textContent = 'Erro de rede.';
+      err.classList.remove('hidden');
+    }
+  }
+
+  document.getElementById('fx-go').addEventListener('click', carregar);
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'F5') return;
+    const t = e.target && e.target.tagName;
+    if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+    e.preventDefault();
+    document.getElementById('fx-go').click();
+  });
+  document.addEventListener('DOMContentLoaded', carregar);
+})();
+  </script>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>
