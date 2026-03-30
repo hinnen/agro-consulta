@@ -60,10 +60,13 @@ def _dentro_hora_cheia(agora) -> tuple[bool, str]:
     Envio padronizado em hora cheia, com pequena tolerância para atraso do scheduler.
     Ex.: tolerância 3 => 11:00 até 11:03 ainda conta como janela da hora 11.
     """
+    estrito = bool(getattr(settings, "ALERTA_VENDAS_HORA_CHEIA_ESTRITO", False))
+    if not estrito:
+        return True, ""
     try:
-        tol = int(getattr(settings, "ALERTA_VENDAS_HORA_CHEIA_TOL_MIN", 3) or 3)
+        tol = int(getattr(settings, "ALERTA_VENDAS_HORA_CHEIA_TOL_MIN", 5) or 5)
     except Exception:
-        tol = 3
+        tol = 5
     tol = max(0, min(tol, 15))
     if 0 <= agora.minute <= tol:
         return True, ""

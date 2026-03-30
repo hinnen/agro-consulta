@@ -166,8 +166,10 @@ PDV_ENTREGA_WHATSAPP = config('PDV_ENTREGA_WHATSAPP', default='5513997673389').s
 TRANSFERENCIA_WHATSAPP = config('TRANSFERENCIA_WHATSAPP', default='').strip()
 # Token para endpoint HTTP do cron de alertas (sem shell). Mantenha forte e secreto.
 ALERTA_VENDAS_CRON_TOKEN = config('ALERTA_VENDAS_CRON_TOKEN', default='').strip()
-# Envio em hora cheia: aceita atraso do scheduler em minutos (0..15). Padrão: 3.
-ALERTA_VENDAS_HORA_CHEIA_TOL_MIN = config('ALERTA_VENDAS_HORA_CHEIA_TOL_MIN', default=3, cast=int)
+# Se True, só envia perto da hora cheia (00..tol minutos). Se False, envia 1x por hora em qualquer minuto.
+ALERTA_VENDAS_HORA_CHEIA_ESTRITO = config('ALERTA_VENDAS_HORA_CHEIA_ESTRITO', default=False, cast=bool)
+# Quando estrito=True, tolerância de atraso do scheduler em minutos (0..15).
+ALERTA_VENDAS_HORA_CHEIA_TOL_MIN = config('ALERTA_VENDAS_HORA_CHEIA_TOL_MIN', default=5, cast=int)
 # --- Rotas Google Maps (painel de entregas): duas lojas ---
 # Links “pin” no Maps (abrir a loja no navegador). Podem ser sobrescritos no .env.
 _LOJA_MAPS_LINK_CENTRO_DEFAULT = (
