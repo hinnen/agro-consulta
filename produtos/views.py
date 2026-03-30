@@ -63,6 +63,10 @@ logger = logging.getLogger(__name__)
 
 def _token_cron_alerta_valido(request) -> bool:
     token_cfg = (getattr(settings, "ALERTA_VENDAS_CRON_TOKEN", "") or "").strip()
+    if (token_cfg.startswith('"') and token_cfg.endswith('"')) or (
+        token_cfg.startswith("'") and token_cfg.endswith("'")
+    ):
+        token_cfg = token_cfg[1:-1].strip()
     if not token_cfg:
         return False
     token_q = (request.GET.get("token") or "").strip()
@@ -2884,7 +2888,20 @@ def api_cron_enviar_alerta_vendas_dia(request):
       - Header Authorization: Bearer ...
     """
     if not _token_cron_alerta_valido(request):
-        return JsonResponse({"ok": False, "erro": "Não autorizado."}, status=403)
+        token_cfg = (getattr(settings, "ALERTA_VENDAS_CRON_TOKEN", "") or "").strip()
+        if (token_cfg.startswith('"') and token_cfg.endswith('"')) or (
+            token_cfg.startswith("'") and token_cfg.endswith("'")
+        ):
+            token_cfg = token_cfg[1:-1].strip()
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Não autorizado.",
+                "token_configurado": bool(token_cfg),
+                "token_tamanho": len(token_cfg),
+            },
+            status=403,
+        )
     force = str(request.GET.get("force") or "").strip().lower() in ("1", "true", "yes", "on")
     from produtos.management.commands.enviar_alerta_vendas_dia import executar_alerta_vendas_dia
 
