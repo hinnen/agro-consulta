@@ -13,6 +13,7 @@ Use --force para ignorar janela e anti-duplicata (testes).
 Evita duplicar no mesmo horário civil (cache 50 min).
 """
 
+from django.conf import settings
 from django.core.cache import cache
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -54,6 +55,21 @@ def _formatar_brl(val) -> str:
         return str(val)
 
 
+def _dentro_hora_cheia(agora) -> tuple[bool, str]:
+    """
+    Envio padronizado em hora cheia, com pequena tolerância para atraso do scheduler.
+    Ex.: tolerância 3 => 11:00 até 11:03 ainda conta como janela da hora 11.
+    """
+    try:
+        tol = int(getattr(settings, "ALERTA_VENDAS_HORA_CHEIA_TOL_MIN", 3) or 3)
+    except Exception:
+        tol = 3
+    tol = max(0, min(tol, 15))
+    if 0 <= agora.minute <= tol:
+        return True, ""
+    return False, f"Aguardando hora cheia (minuto atual {agora.minute}; tolerância {tol} min)."
+
+
 class Command(BaseCommand):
     help = "Envia alerta com valor de vendas do dia (DtoVenda / Mongo)."
 
@@ -92,6 +108,9 @@ def executar_alerta_vendas_dia(*, force: bool = False) -> dict:
         ok_janela, msg_janela = _dentro_janela_envio(agora)
         if not ok_janela:
             return {"executado": False, "ok": False, "motivo": msg_janela, "agora": agora.isoformat()}
+        ok_hora, msg_hora = _dentro_hora_cheia(agora)
+        if not ok_hora:
+            return {"executado": False, "ok": False, "motivo": msg_hora, "agora": agora.isoformat()}
 
     chave = f"alerta_vendas_enviado:{agora.date().isoformat()}:{agora.hour}"
     if not force and cache.get(chave):
@@ -108,8 +127,9 @@ def executar_alerta_vendas_dia(*, force: bool = False) -> dict:
 
     total = obter_valor_total_vendas_dia_mongo(db)
     v_pagar, v_receber = obter_vencimentos_abertos_dia_mongo(db)
+    hora_ref = agora.replace(minute=0, second=0, microsecond=0)
     msg = (
-        f"Agro — {agora.strftime('%d/%m/%Y')} às {agora.strftime('%H:%M')}\n"
+        f"Agro — {hora_ref.strftime('%d/%m/%Y')} às {hora_ref.strftime('%H:%M')}\n"
         f"Vendas do dia: {_formatar_brl(total)}\n"
         f"Vence hoje — a pagar (não pago): {_formatar_brl(v_pagar)}\n"
         f"Vence hoje — a receber (não recebido): {_formatar_brl(v_receber)}"
