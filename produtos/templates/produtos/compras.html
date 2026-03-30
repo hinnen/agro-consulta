@@ -1185,6 +1185,13 @@ function buscar(q) {
     return;
   }
 
+  if (!fonte.length) {
+    ultimosResultadosCompra = [];
+    indiceSelecionadoCompra = -1;
+    div.innerHTML = `<div class="bg-white text-amber-700 border border-amber-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm">Catálogo vazio ou indisponível. Recarregue a página ou verifique a API de produtos.</div>`;
+    return;
+  }
+
   let candidatos = fonte;
   if (termoN.length >= 2) {
     candidatos = filtrarProdutosBuscaInteligente(fonte, termoN, 'normal');
