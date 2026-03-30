@@ -106,6 +106,7 @@ urlpatterns = [
     path('api/pdv/metricas-produtos/', views.api_pdv_metricas_produtos, name='api_pdv_metricas_produtos'),
     path('api/pdv/top-vendidos/', views.api_pdv_top_vendidos, name='api_pdv_top_vendidos'),
     path('api/pdv/invalidar-catalogo/', views.api_pdv_invalidar_cache_catalogo, name='api_pdv_invalidar_catalogo'),
+    path('api/cron/enviar-alerta-vendas-dia/', views.api_cron_enviar_alerta_vendas_dia, name='api_cron_enviar_alerta_vendas_dia'),
     path('api/autocomplete/', views.api_autocomplete_produtos, name='api_autocomplete_produtos'),
     path('api/buscar-clientes/', views.api_buscar_clientes, name='api_buscar_clientes'),
     path('api/listar-clientes/', views.api_list_customers, name='api_list_customers'),

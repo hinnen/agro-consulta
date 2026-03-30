@@ -164,6 +164,8 @@ VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH = config('VENDA_ERP_API_FINANCEIRO_LANC
 PDV_ENTREGA_WHATSAPP = config('PDV_ENTREGA_WHATSAPP', default='5513997673389').strip()
 # WhatsApp após impressão de cupom de transferência (Vila Elias). Vazio = usa PDV_ENTREGA_WHATSAPP.
 TRANSFERENCIA_WHATSAPP = config('TRANSFERENCIA_WHATSAPP', default='').strip()
+# Token para endpoint HTTP do cron de alertas (sem shell). Mantenha forte e secreto.
+ALERTA_VENDAS_CRON_TOKEN = config('ALERTA_VENDAS_CRON_TOKEN', default='').strip()
 # --- Rotas Google Maps (painel de entregas): duas lojas ---
 # Links “pin” no Maps (abrir a loja no navegador). Podem ser sobrescritos no .env.
 _LOJA_MAPS_LINK_CENTRO_DEFAULT = (

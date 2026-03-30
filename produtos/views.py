@@ -1,4 +1,5 @@
 import csv
+import secrets
 import json
 import logging
 import re
@@ -58,6 +59,22 @@ from .mongo_financeiro_util import (
 
 
 logger = logging.getLogger(__name__)
+
+
+def _token_cron_alerta_valido(request) -> bool:
+    token_cfg = (getattr(settings, "ALERTA_VENDAS_CRON_TOKEN", "") or "").strip()
+    if not token_cfg:
+        return False
+    token_q = (request.GET.get("token") or "").strip()
+    token_h = (request.headers.get("X-Agro-Cron-Token") or "").strip()
+    auth = (request.headers.get("Authorization") or "").strip()
+    token_bearer = ""
+    if auth.lower().startswith("bearer "):
+        token_bearer = auth[7:].strip()
+    for cand in (token_q, token_h, token_bearer):
+        if cand and secrets.compare_digest(cand, token_cfg):
+            return True
+    return False
 
 # --- CONEXÃO MONGO ---
 _cached_mongo_client = None
@@ -2854,6 +2871,26 @@ def api_pdv_invalidar_cache_catalogo(request):
     """Limpa o snapshot diário do catálogo; próximo GET /api/todos-produtos/ refaz do Mongo."""
     cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
     return JsonResponse({"ok": True})
+
+
+@require_GET
+def api_cron_enviar_alerta_vendas_dia(request):
+    """
+    Endpoint para agendador externo (sem shell): dispara alerta de vendas do dia.
+    Protegido por token em ALERTA_VENDAS_CRON_TOKEN.
+    Aceita:
+      - ?token=...
+      - Header X-Agro-Cron-Token: ...
+      - Header Authorization: Bearer ...
+    """
+    if not _token_cron_alerta_valido(request):
+        return JsonResponse({"ok": False, "erro": "Não autorizado."}, status=403)
+    force = str(request.GET.get("force") or "").strip().lower() in ("1", "true", "yes", "on")
+    from produtos.management.commands.enviar_alerta_vendas_dia import executar_alerta_vendas_dia
+
+    out = executar_alerta_vendas_dia(force=force)
+    st = 200 if out.get("ok") else (200 if not out.get("executado") else 503)
+    return JsonResponse(out, status=st)
 
 
 @require_GET

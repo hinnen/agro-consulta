@@ -65,47 +65,68 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        force = options.get("force")
-        agora = timezone.localtime()
-        if not force:
-            ok_janela, msg_janela = _dentro_janela_envio(agora)
-            if not ok_janela:
-                self.stdout.write(msg_janela)
-                return
-
-        chave = f"alerta_vendas_enviado:{agora.date().isoformat()}:{agora.hour}"
-        if not force and cache.get(chave):
-            self.stdout.write("Já enviado nesta hora — use --force para repetir.")
+        out = executar_alerta_vendas_dia(force=bool(options.get("force")))
+        if not out.get("executado"):
+            self.stdout.write(out.get("motivo") or "Não executado.")
             return
-
-        _, db = obter_conexao_mongo()
-        if db is None:
-            self.stderr.write(self.style.ERROR("Mongo indisponível"))
+        if out.get("ok"):
+            self.stdout.write(self.style.SUCCESS(out.get("mensagem") or "OK"))
+            if out.get("ok_whatsapp"):
+                self.stdout.write(f"WhatsApp: OK {str(out.get('info_whatsapp') or '')[:120]}")
+            if out.get("ok_webhook"):
+                self.stdout.write(f"Webhook: OK {str(out.get('info_webhook') or '')[:120]}")
             return
-
-        total = obter_valor_total_vendas_dia_mongo(db)
-        v_pagar, v_receber = obter_vencimentos_abertos_dia_mongo(db)
-        msg = (
-            f"Agro — {agora.strftime('%d/%m/%Y')} às {agora.strftime('%H:%M')}\n"
-            f"Vendas do dia: {_formatar_brl(total)}\n"
-            f"Vence hoje — a pagar (não pago): {_formatar_brl(v_pagar)}\n"
-            f"Vence hoje — a receber (não recebido): {_formatar_brl(v_receber)}"
+        self.stdout.write(
+            self.style.WARNING(
+                f"Nada enviado. WA: {out.get('info_whatsapp')} | Hook: {out.get('info_webhook')}"
+            )
         )
 
-        ok_wa, info_wa = enviar_whatsapp_callmebot(msg)
-        ok_hook, info_hook = enviar_alerta_custom_url(msg)
 
-        if ok_wa or ok_hook:
-            cache.set(chave, 1, timeout=50 * 60)
-            self.stdout.write(self.style.SUCCESS(msg))
-            if ok_wa:
-                self.stdout.write(f"WhatsApp: OK {info_wa[:120]}")
-            if ok_hook:
-                self.stdout.write(f"Webhook: OK {info_hook[:120]}")
-        else:
-            self.stdout.write(
-                self.style.WARNING(
-                    f"Nada enviado. Configure WHATSAPP_CALLMEBOT_* ou ALERTA_VENDAS_WEBHOOK_URL. "
-                    f"WA: {info_wa} | Hook: {info_hook}"
-                )
-            )
+def executar_alerta_vendas_dia(*, force: bool = False) -> dict:
+    """
+    Executa o envio e retorna resultado estruturado para comando e endpoint HTTP.
+    """
+    agora = timezone.localtime()
+    if not force:
+        ok_janela, msg_janela = _dentro_janela_envio(agora)
+        if not ok_janela:
+            return {"executado": False, "ok": False, "motivo": msg_janela, "agora": agora.isoformat()}
+
+    chave = f"alerta_vendas_enviado:{agora.date().isoformat()}:{agora.hour}"
+    if not force and cache.get(chave):
+        return {
+            "executado": False,
+            "ok": False,
+            "motivo": "Já enviado nesta hora — use force para repetir.",
+            "agora": agora.isoformat(),
+        }
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return {"executado": True, "ok": False, "motivo": "Mongo indisponível", "agora": agora.isoformat()}
+
+    total = obter_valor_total_vendas_dia_mongo(db)
+    v_pagar, v_receber = obter_vencimentos_abertos_dia_mongo(db)
+    msg = (
+        f"Agro — {agora.strftime('%d/%m/%Y')} às {agora.strftime('%H:%M')}\n"
+        f"Vendas do dia: {_formatar_brl(total)}\n"
+        f"Vence hoje — a pagar (não pago): {_formatar_brl(v_pagar)}\n"
+        f"Vence hoje — a receber (não recebido): {_formatar_brl(v_receber)}"
+    )
+
+    ok_wa, info_wa = enviar_whatsapp_callmebot(msg)
+    ok_hook, info_hook = enviar_alerta_custom_url(msg)
+    ok_any = bool(ok_wa or ok_hook)
+    if ok_any:
+        cache.set(chave, 1, timeout=50 * 60)
+    return {
+        "executado": True,
+        "ok": ok_any,
+        "agora": agora.isoformat(),
+        "mensagem": msg,
+        "ok_whatsapp": bool(ok_wa),
+        "ok_webhook": bool(ok_hook),
+        "info_whatsapp": str(info_wa or "")[:400],
+        "info_webhook": str(info_hook or "")[:400],
+    }
