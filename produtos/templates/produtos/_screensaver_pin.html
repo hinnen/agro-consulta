@@ -1,0 +1,368 @@
+{# Modo descanso + PIN. Incluir antes de </body>. Opcional: data-idle-min="3" no #sspin-root #}
+<div id="sspin-root" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-slate-950/88 backdrop-blur-md text-slate-100 p-4 transition-opacity duration-300 opacity-0 pointer-events-none" data-idle-min="3" aria-hidden="true">
+  <div class="w-full max-w-sm rounded-2xl border border-slate-600/80 bg-slate-900 shadow-2xl overflow-hidden">
+    <div class="px-5 pt-5 pb-2 text-center border-b border-slate-700/80">
+      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400/90">Agro Mais</p>
+      <h2 id="sspin-title" class="mt-1 text-lg font-black text-white">Modo descanso</h2>
+      <p id="sspin-sub" class="text-xs text-slate-400 mt-1 font-semibold">Digite seu PIN para continuar</p>
+    </div>
+
+    <div id="sspin-panel-pin" class="p-5 space-y-4">
+      <div class="relative">
+        <label for="sspin-input" class="sr-only">PIN</label>
+        <input type="password" id="sspin-input" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="off" class="w-full text-center text-2xl font-black tracking-[0.4em] py-3 rounded-xl border-2 border-slate-600 bg-slate-800 text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 placeholder:text-slate-600" placeholder="····">
+      </div>
+      <p id="sspin-msg" class="text-center text-sm font-bold text-red-400 min-h-[1.25rem]" role="alert"></p>
+      <div class="grid grid-cols-3 gap-2 select-none" id="sspin-numpad">
+        <button type="button" data-d="1" class="sspin-key py-3.5 rounded-xl bg-slate-800 border border-slate-600 font-black text-lg hover:bg-slate-700 active:scale-95">1</button>
+        <button type="button" data-d="2" class="sspin-key py-3.5 rounded-xl bg-slate-800 border border-slate-600 font-black text-lg hover:bg-slate-700 active:scale-95">2</button>
+        <button type="button" data-d="3" class="sspin-key py-3.5 rounded-xl bg-slate-800 border border-slate-600 font-black text-lg hover:bg-slate-700 active:scale-95">3</button>
+        <button type="button" data-d="4" class="sspin-key py-3.5 rounded-xl bg-slate-800 border border-slate-600 font-black text-lg hover:bg-slate-700 active:scale-95">4</button>
+        <button type="button" data-d="5" class="sspin-key py-3.5 rounded-xl bg-slate-800 border border-slate-600 font-black text-lg hover:bg-slate-700 active:scale-95">5</button>
+        <button type="button" data-d="6" class="sspin-key py-3.5 rounded-xl bg-slate-800 border border-slate-600 font-black text-lg hover:bg-slate-700 active:scale-95">6</button>
+        <button type="button" data-d="7" class="sspin-key py-3.5 rounded-xl bg-slate-800 border border-slate-600 font-black text-lg hover:bg-slate-700 active:scale-95">7</button>
+        <button type="button" data-d="8" class="sspin-key py-3.5 rounded-xl bg-slate-800 border border-slate-600 font-black text-lg hover:bg-slate-700 active:scale-95">8</button>
+        <button type="button" data-d="9" class="sspin-key py-3.5 rounded-xl bg-slate-800 border border-slate-600 font-black text-lg hover:bg-slate-700 active:scale-95">9</button>
+        <button type="button" data-d="clear" class="sspin-key py-3.5 rounded-xl bg-slate-800 border border-slate-600 text-xs font-black uppercase text-amber-400 hover:bg-slate-700 active:scale-95">Limpar</button>
+        <button type="button" data-d="0" class="sspin-key py-3.5 rounded-xl bg-slate-800 border border-slate-600 font-black text-lg hover:bg-slate-700 active:scale-95">0</button>
+        <button type="button" data-d="ok" class="sspin-key py-3.5 rounded-xl bg-emerald-600 border border-emerald-500 font-black text-sm uppercase text-white hover:bg-emerald-500 active:scale-95">OK</button>
+      </div>
+    </div>
+
+    <div id="sspin-panel-setup" class="hidden p-5 space-y-4 max-h-[min(70vh,520px)] overflow-y-auto">
+      <p class="text-xs text-slate-300 font-semibold text-center leading-snug">PIN padrão (1234) — escolha seu nome e defina um <span class="text-emerald-400 font-black">PIN definitivo</span> (mín. 4 dígitos, não pode ser 1234).</p>
+      <div>
+        <p class="text-[10px] font-black uppercase text-slate-500 mb-2">Quem está usando?</p>
+        <div id="sspin-names" class="grid grid-cols-2 gap-2"></div>
+      </div>
+      <div class="space-y-2">
+        <label class="text-[10px] font-black uppercase text-slate-500" for="sspin-new1">Novo PIN</label>
+        <input type="password" id="sspin-new1" inputmode="numeric" maxlength="12" autocomplete="new-password" class="w-full py-2.5 px-3 rounded-xl border-2 border-slate-600 bg-slate-800 font-bold text-white outline-none focus:border-emerald-500">
+        <label class="text-[10px] font-black uppercase text-slate-500" for="sspin-new2">Confirmar PIN</label>
+        <input type="password" id="sspin-new2" inputmode="numeric" maxlength="12" autocomplete="new-password" class="w-full py-2.5 px-3 rounded-xl border-2 border-slate-600 bg-slate-800 font-bold text-white outline-none focus:border-emerald-500">
+      </div>
+      <p id="sspin-setup-msg" class="text-center text-sm font-bold text-red-400 min-h-[1.25rem]"></p>
+      <button type="button" id="sspin-btn-save" class="w-full py-3 rounded-xl bg-emerald-600 font-black uppercase text-sm text-white hover:bg-emerald-500">Salvar e entrar</button>
+      <button type="button" id="sspin-btn-back" class="w-full py-2 text-xs font-bold uppercase text-slate-500 hover:text-slate-300">Voltar ao PIN</button>
+    </div>
+  </div>
+  <p class="mt-4 text-[10px] text-slate-500 font-bold uppercase tracking-wide">Toque ou mova o mouse para adiar o descanso</p>
+</div>
+<script>
+(function () {
+  var NAMES = ['Renan', 'Zuleide', 'Geraldo', 'Geraldinho', 'Isabela', 'Queila', 'Vitor', 'Nathan', 'Estanislau'];
+  var DEFAULT_PIN = '1234';
+  var LS_PINS = 'gm_sspin_pins';
+  var LS_OPERADOR = 'gm_sspin_operador';
+  var root = document.getElementById('sspin-root');
+  if (!root) return;
+
+  var idleMin = parseFloat(root.getAttribute('data-idle-min') || '3', 10);
+  if (!Number.isFinite(idleMin) || idleMin < 0.5) idleMin = 3;
+  var IDLE_MS = Math.round(idleMin * 60 * 1000);
+
+  var input = document.getElementById('sspin-input');
+  var msg = document.getElementById('sspin-msg');
+  var panelPin = document.getElementById('sspin-panel-pin');
+  var panelSetup = document.getElementById('sspin-panel-setup');
+  var titleEl = document.getElementById('sspin-title');
+  var subEl = document.getElementById('sspin-sub');
+  var namesBox = document.getElementById('sspin-names');
+  var new1 = document.getElementById('sspin-new1');
+  var new2 = document.getElementById('sspin-new2');
+  var setupMsg = document.getElementById('sspin-setup-msg');
+  var btnSave = document.getElementById('sspin-btn-save');
+  var btnBack = document.getElementById('sspin-btn-back');
+  var numpadEl = document.getElementById('sspin-numpad');
+
+  var idleTimer = null;
+  var locked = false;
+  var selectedName = '';
+
+  function loadPins() {
+    try {
+      var o = JSON.parse(localStorage.getItem(LS_PINS) || '{}');
+      return o && typeof o === 'object' ? o : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function savePins(p) {
+    try {
+      localStorage.setItem(LS_PINS, JSON.stringify(p));
+    } catch (e) {}
+  }
+
+  function setOperador(nome) {
+    try {
+      localStorage.setItem(LS_OPERADOR, nome);
+    } catch (e) {}
+    window.dispatchEvent(new CustomEvent('gm-sspin-operador', { detail: { nome: nome } }));
+    refreshOperadorChip();
+  }
+
+  /** Remove operador gravado no aparelho e volta à tela só de PIN (troca de turno). */
+  function sairUsuarioEVoltarPedidoPin() {
+    try {
+      localStorage.removeItem(LS_OPERADOR);
+    } catch (e) {}
+    selectedName = '';
+    window.dispatchEvent(new CustomEvent('gm-sspin-operador', { detail: { nome: '' } }));
+    refreshOperadorChip();
+    clearMsg();
+    showPinPanel();
+  }
+
+  function refreshOperadorChip() {
+    var chip = document.getElementById('gm-sspin-operador-chip');
+    if (!chip) return;
+    var n = '';
+    try {
+      n = (localStorage.getItem(LS_OPERADOR) || '').trim();
+    } catch (e) {}
+    if (n) {
+      chip.textContent = n;
+      chip.classList.remove('hidden');
+      chip.classList.add('inline-flex');
+    } else {
+      chip.textContent = '';
+      chip.classList.add('hidden');
+      chip.classList.remove('inline-flex');
+    }
+  }
+
+  function clearMsg() {
+    if (msg) msg.textContent = '';
+    if (setupMsg) setupMsg.textContent = '';
+  }
+
+  function showPinPanel() {
+    if (panelPin) panelPin.classList.remove('hidden');
+    if (panelSetup) panelSetup.classList.add('hidden');
+    if (titleEl) titleEl.textContent = 'Modo descanso';
+    if (subEl) subEl.textContent = 'Digite seu PIN para continuar';
+    clearMsg();
+    if (input) {
+      input.value = '';
+      setTimeout(function () { input.focus(); }, 120);
+    }
+  }
+
+  function showSetupPanel() {
+    if (input) input.blur();
+    if (panelPin) panelPin.classList.add('hidden');
+    if (panelSetup) panelSetup.classList.remove('hidden');
+    if (titleEl) titleEl.textContent = 'Identificação';
+    if (subEl) subEl.textContent = 'Defina seu PIN definitivo';
+    selectedName = '';
+    clearMsg();
+    if (new1) new1.value = '';
+    if (new2) new2.value = '';
+    renderNameButtons();
+    setTimeout(function () { if (new1) new1.focus(); }, 100);
+  }
+
+  function renderNameButtons() {
+    if (!namesBox) return;
+    namesBox.innerHTML = '';
+    NAMES.forEach(function (nome) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = nome;
+      b.className = 'py-2.5 px-2 rounded-xl border-2 text-xs font-black uppercase transition-colors border-slate-600 bg-slate-800 text-slate-200 hover:border-emerald-500/60';
+      b.addEventListener('click', function () {
+        selectedName = nome;
+        namesBox.querySelectorAll('button').forEach(function (x) {
+          x.classList.remove('border-emerald-500', 'bg-emerald-950', 'text-emerald-200');
+          x.classList.add('border-slate-600', 'bg-slate-800', 'text-slate-200');
+        });
+        b.classList.remove('border-slate-600', 'bg-slate-800', 'text-slate-200');
+        b.classList.add('border-emerald-500', 'bg-emerald-950', 'text-emerald-200');
+      });
+      namesBox.appendChild(b);
+    });
+  }
+
+  function openLock() {
+    if (idleTimer) {
+      clearTimeout(idleTimer);
+      idleTimer = null;
+    }
+    try {
+      var ae = document.activeElement;
+      if (ae && typeof ae.blur === 'function') ae.blur();
+    } catch (e) {}
+    locked = true;
+    root.classList.remove('opacity-0', 'pointer-events-none');
+    root.setAttribute('aria-hidden', 'false');
+    showPinPanel();
+    document.body.classList.add('sspin-locked');
+  }
+
+  function closeLock() {
+    locked = false;
+    root.classList.add('opacity-0', 'pointer-events-none');
+    root.setAttribute('aria-hidden', 'true');
+    showPinPanel();
+    document.body.classList.remove('sspin-locked');
+    bumpIdle();
+  }
+
+  function bumpIdle() {
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () {
+      openLock();
+    }, IDLE_MS);
+  }
+
+  function findOperadorByPin(pin) {
+    var pins = loadPins();
+    for (var i = 0; i < NAMES.length; i++) {
+      var n = NAMES[i];
+      if (pins[n] === pin) return n;
+    }
+    return null;
+  }
+
+  function tryPin() {
+    clearMsg();
+    var pin = (input && input.value) ? String(input.value).replace(/\D/g, '') : '';
+    if (pin.length < 4) {
+      if (msg) msg.textContent = 'Informe ao menos 4 dígitos.';
+      return;
+    }
+    if (pin === DEFAULT_PIN) {
+      if (input) input.value = '';
+      showSetupPanel();
+      return;
+    }
+    var op = findOperadorByPin(pin);
+    if (op) {
+      setOperador(op);
+      if (input) input.value = '';
+      closeLock();
+      return;
+    }
+    if (msg) msg.textContent = 'PIN incorreto.';
+    if (input) input.select();
+  }
+
+  function trySaveSetup() {
+    clearMsg();
+    if (!selectedName) {
+      if (setupMsg) setupMsg.textContent = 'Selecione seu nome na lista.';
+      return;
+    }
+    var a = (new1 && new1.value) ? String(new1.value).replace(/\D/g, '') : '';
+    var b = (new2 && new2.value) ? String(new2.value).replace(/\D/g, '') : '';
+    if (a.length < 4) {
+      if (setupMsg) setupMsg.textContent = 'O PIN deve ter no mínimo 4 dígitos.';
+      return;
+    }
+    if (a !== b) {
+      if (setupMsg) setupMsg.textContent = 'A confirmação não confere.';
+      return;
+    }
+    if (a === DEFAULT_PIN) {
+      if (setupMsg) setupMsg.textContent = 'Escolha um PIN diferente de 1234.';
+      return;
+    }
+    var pins = loadPins();
+    for (var nk in pins) {
+      if (!Object.prototype.hasOwnProperty.call(pins, nk)) continue;
+      if (nk === selectedName) continue;
+      if (String(pins[nk]) === a) {
+        if (setupMsg) setupMsg.textContent = 'Este PIN já está em uso por ' + nk + '. Escolha outro.';
+        return;
+      }
+    }
+    pins[selectedName] = a;
+    savePins(pins);
+    setOperador(selectedName);
+    closeLock();
+  }
+
+  if (btnBack) {
+    btnBack.addEventListener('click', function () {
+      clearMsg();
+      showPinPanel();
+    });
+  }
+
+  if (numpadEl) numpadEl.addEventListener('click', function (e) {
+    var t = e.target.closest('.sspin-key');
+    if (!t) return;
+    var d = t.getAttribute('data-d');
+    if (!input || !locked) return;
+    if (d === 'clear') {
+      input.value = '';
+      return;
+    }
+    if (d === 'ok') {
+      tryPin();
+      return;
+    }
+    if (d && /^\d$/.test(d)) {
+      if (input.value.length < 12) input.value += d;
+    }
+  });
+
+  if (input) {
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        tryPin();
+      }
+    });
+  }
+
+  if (btnSave) btnSave.addEventListener('click', trySaveSetup);
+  if (new2) {
+    new2.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') trySaveSetup();
+    });
+  }
+
+  var wakeEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'wheel', 'click'];
+  wakeEvents.forEach(function (ev) {
+    document.addEventListener(ev, function () {
+      if (!locked) bumpIdle();
+    }, { passive: true });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (!locked) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+    }
+  });
+
+  var style = document.createElement('style');
+  /* Só forçar pointer-events no overlay quando realmente bloqueado. Uma regra global
+     #sspin-root { pointer-events: auto !important } anula o pointer-events-none do Tailwind
+     e deixa a camada invisível (z-10000) comendo todos os cliques do PDV. */
+  style.textContent =
+    'body.sspin-locked { overflow: hidden !important; } ' +
+    'body.sspin-locked > *:not(#sspin-root) { filter: blur(6px); user-select: none; } ' +
+    'body.sspin-locked #sspin-root { pointer-events: auto !important; filter: none !important; } ' +
+    '@media print { #sspin-root { display: none !important; } body.sspin-locked > * { filter: none !important; } }';
+  document.head.appendChild(style);
+
+  function initSspin() {
+    refreshOperadorChip();
+    bumpIdle();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSspin);
+  } else {
+    initSspin();
+  }
+
+  /** PDV/outras telas: limpa operador local e abre a tela de PIN imediatamente (troca de turno). */
+  window.gmSspinSairEAbrirPin = function () {
+    sairUsuarioEVoltarPedidoPin();
+    openLock();
+  };
+})();
+</script>

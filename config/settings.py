@@ -154,3 +154,34 @@ CONSULTA_CACHE_TTL = 20
 # Configurações da API Venda ERP
 VENDA_ERP_API_BASE_URL = config('VENDA_ERP_API_BASE_URL', default='https://cw.vendaerp.com.br')
 VENDA_ERP_API_TOKEN = config('VENDA_ERP_API_TOKEN', default='')
+# Financeiro: sufixo após /api/request/ (ex.: Lancamentos/SalvarBaixa). Vazio = não chama API.
+VENDA_ERP_API_FINANCEIRO_BAIXA_PATH = config('VENDA_ERP_API_FINANCEIRO_BAIXA_PATH', default='').strip()
+VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH = config('VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH', default='').strip()
+
+# PDV: WhatsApp para aviso de separação/entrega ao salvar orçamento (somente dígitos, ex.: 5513999999999).
+# wa.me abre conversa com um número; não existe URL oficial para “postar” direto em grupo pelo navegador.
+# Para grupo: API (ex. WhatsApp Business), ou número da loja que repassa no grupo manualmente.
+PDV_ENTREGA_WHATSAPP = config('PDV_ENTREGA_WHATSAPP', default='5513997673389').strip()
+# WhatsApp após impressão de cupom de transferência (Vila Elias). Vazio = usa PDV_ENTREGA_WHATSAPP.
+TRANSFERENCIA_WHATSAPP = config('TRANSFERENCIA_WHATSAPP', default='').strip()
+# --- Rotas Google Maps (painel de entregas): duas lojas ---
+# Links “pin” no Maps (abrir a loja no navegador). Podem ser sobrescritos no .env.
+_LOJA_MAPS_LINK_CENTRO_DEFAULT = (
+    "https://www.google.com/maps/dir/GM+AGRO+MAIS,+Av.+Adhemar+de+Barros,+230+-+Centro,+Jacupiranga+-+SP,+11940-000//@-24.6939187,-48.00301,53m/data=!3m1!1e3!4m8!4m7!1m5!1m1!1s0x94dad7ad67522a83:0x6bc5a31e953afdd7!2m2!1d-48.0030368!2d-24.6939103!1m0?entry=ttu&g_ep=EgoyMDI2MDMyNC4wIKXMDSoASAFQAw%3D%3D"
+)
+_LOJA_MAPS_LINK_VILA_DEFAULT = (
+    "https://www.google.com/maps/dir/-24.7022751,-48.0029425//@-24.7022767,-48.0028979,47m/data=!3m1!1e3?entry=ttu&g_ep=EgoyMDI2MDMyNC4wIKXMDSoASAFQAw%3D%3D"
+)
+# Texto ou "lat,lng" usado como origem em maps/dir (API). Coordenadas tiradas dos links acima.
+LOJA_MAPS_LINK_CENTRO = config("LOJA_MAPS_LINK_CENTRO", default=_LOJA_MAPS_LINK_CENTRO_DEFAULT).strip()
+LOJA_MAPS_LINK_VILA = config("LOJA_MAPS_LINK_VILA", default=_LOJA_MAPS_LINK_VILA_DEFAULT).strip()
+
+_legacy_loja_maps = config("LOJA_MAPS_ORIGEM_TEXTO", default="").strip()
+LOJA_MAPS_ORIGEM_CENTRO = (
+    config("LOJA_MAPS_ORIGEM_CENTRO", default="").strip()
+    or _legacy_loja_maps
+    or "-24.6939103,-48.0030368"
+)
+LOJA_MAPS_ORIGEM_VILA = config("LOJA_MAPS_ORIGEM_VILA", default="").strip() or "-24.7022751,-48.0029425"
+# Legado: se você só definia uma origem, ela vira fallback do Centro (acima).
+LOJA_MAPS_ORIGEM_TEXTO = _legacy_loja_maps

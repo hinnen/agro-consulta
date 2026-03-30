@@ -4,8 +4,9 @@ Agregações de vendas a partir do Mongo (DtoVenda / DtoVendaProduto), alinhadas
 from __future__ import annotations
 
 import logging
-from datetime import datetime, time as dtime
+from datetime import datetime, timedelta, time as dtime
 from decimal import Decimal
+from typing import Any
 
 from django.utils import timezone
 
@@ -156,3 +157,109 @@ def obter_valor_total_vendas_dia_mongo(db, dia=None) -> Decimal:
                 break
 
     return total.quantize(Decimal("0.01"))
+
+
+def media_vendas_diaria_ultimos_n_dias(db, n: int = 30) -> Decimal:
+    """
+    Média diária = soma do faturamento de cada um dos últimos n dias corridos (incluindo hoje) ÷ n.
+    Dias sem venda entram com zero no numerador.
+    """
+    if db is None or n < 1:
+        return Decimal("0")
+    n = min(int(n), 365)
+    hoje = timezone.localdate()
+    total = Decimal("0")
+    for k in range(n):
+        d = hoje - timedelta(days=k)
+        total += obter_valor_total_vendas_dia_mongo(db, d)
+    return (total / Decimal(n)).quantize(Decimal("0.01"))
+
+
+def faixa_dia_mes_mongo(day_of_month: int) -> str:
+    """Segmenta o mês: início (1–10), meio (11–20), final (21+)."""
+    d = int(day_of_month)
+    if d <= 10:
+        return "inicio"
+    if d <= 20:
+        return "meio"
+    return "final"
+
+
+def fatores_vendas_por_calendario(db, dias_lookback: int = 84) -> dict[str, Any]:
+    """
+    Multiplicadores em relação à média diária global do período:
+    - por dia da semana (0=segunda … 6=domingo);
+    - por faixa do mês (início / meio / final).
+
+    Usa histórico de faturamento por dia civil (Mongo). Poucas amostras → fator 1.0.
+    """
+    nomes_curto = ("Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom")
+    faixa_labels = {
+        "inicio": "Início do mês (1–10)",
+        "meio": "Meio do mês (11–20)",
+        "final": "Final do mês (21+)",
+    }
+    out: dict[str, Any] = {
+        "lookback_dias": dias_lookback,
+        "media_global_dia": 0.0,
+        "mult_dow": [1.0] * 7,
+        "mult_faixa": {"inicio": 1.0, "meio": 1.0, "final": 1.0},
+        "n_amostras_dow": [0] * 7,
+        "n_amostras_faixa": {"inicio": 0, "meio": 0, "final": 0},
+        "suficiente": False,
+        "dia_semana_nomes_curto": nomes_curto,
+        "faixa_labels": faixa_labels,
+    }
+    if db is None:
+        return out
+    dias_lookback = max(21, min(int(dias_lookback or 84), 366))
+    hoje = timezone.localdate()
+    totais_dia: list[float] = []
+    by_dow_sum = [0.0] * 7
+    by_dow_cnt = [0] * 7
+    by_fx_sum = {"inicio": 0.0, "meio": 0.0, "final": 0.0}
+    by_fx_cnt = {"inicio": 0, "meio": 0, "final": 0}
+
+    for k in range(dias_lookback):
+        d = hoje - timedelta(days=k)
+        val = float(obter_valor_total_vendas_dia_mongo(db, d))
+        totais_dia.append(val)
+        wd = d.weekday()
+        by_dow_sum[wd] += val
+        by_dow_cnt[wd] += 1
+        fx = faixa_dia_mes_mongo(d.day)
+        by_fx_sum[fx] += val
+        by_fx_cnt[fx] += 1
+
+    media_g = sum(totais_dia) / dias_lookback if dias_lookback else 0.0
+    out["media_global_dia"] = round(media_g, 4)
+    if media_g <= 0:
+        return out
+
+    min_wd = 3
+    min_fx = 5
+    mult_dow: list[float] = []
+    for w in range(7):
+        c = by_dow_cnt[w]
+        out["n_amostras_dow"][w] = c
+        if c >= min_wd:
+            m = by_dow_sum[w] / c
+            r = m / media_g
+            mult_dow.append(round(max(0.55, min(1.5, r)), 4))
+        else:
+            mult_dow.append(1.0)
+    out["mult_dow"] = mult_dow
+
+    mult_fx: dict[str, float] = {}
+    for fx in ("inicio", "meio", "final"):
+        c = by_fx_cnt[fx]
+        out["n_amostras_faixa"][fx] = c
+        if c >= min_fx:
+            m = by_fx_sum[fx] / c
+            r = m / media_g
+            mult_fx[fx] = round(max(0.55, min(1.5, r)), 4)
+        else:
+            mult_fx[fx] = 1.0
+    out["mult_faixa"] = mult_fx
+    out["suficiente"] = True
+    return out

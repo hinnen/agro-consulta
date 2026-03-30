@@ -1,5 +1,8 @@
+import logging
 import requests
 from decouple import config
+
+logger = logging.getLogger(__name__)
 
 
 def _django_setting(name, default=""):
@@ -9,6 +12,14 @@ def _django_setting(name, default=""):
         return (getattr(dj_settings, name, None) or default or "").strip()
     except Exception:
         return (default or "").strip()
+
+
+def _env_or_setting_path(key: str) -> str:
+    """Sufixo após /api/request/ — .env (decouple) ou settings Django."""
+    v = (config(key, default="") or "").strip().strip("/")
+    if v:
+        return v
+    return (_django_setting(key) or "").strip().strip("/")
 
 
 def _erp_json_tem_linhas_pessoa(data):
@@ -213,3 +224,50 @@ class VendaERPAPIClient:
             return False, {"_http_status": last_status, "_body": ""}
         except Exception as e:
             return False, {"_erro": str(e)}
+
+    def _headers_post(self):
+        return {
+            "Authorization-Token": self.token,
+            "User": self.user,
+            "App": self.app,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+
+    def _financeiro_post(self, path: str, body: dict, *, timeout: int = 60) -> tuple[bool, object]:
+        if not path or not self.token:
+            return False, "API financeira não configurada ou sem token"
+        url = f"{self.base_url}/api/request/{path}"
+        try:
+            res = requests.post(url, json=body, headers=self._headers_post(), timeout=timeout)
+            logger.info("VendaERP financeiro POST %s → HTTP %s", path, res.status_code)
+            if 200 <= res.status_code < 300:
+                try:
+                    return True, res.json()
+                except Exception:
+                    return True, res.text or "OK"
+            try:
+                return False, res.json()
+            except Exception:
+                return False, (res.text or res.reason or "")[:2000]
+        except Exception as e:
+            logger.warning("VendaERP financeiro POST %s erro: %s", path, e)
+            return False, str(e)
+
+    def financeiro_tentar_baixa_api(self, body: dict):
+        """
+        POST opcional após baixa no Mongo. Configure ``VENDA_ERP_API_FINANCEIRO_BAIXA_PATH``
+        com o sufixo após ``/api/request/`` (ex.: ``Lancamentos/SalvarBaixa`` — confirmar no Swagger do WL).
+
+        O corpo inclui ``titulos`` (snapshot dos documentos após a baixa), além de ``ids`` / ``tipo`` / ``payload``.
+        """
+        path = _env_or_setting_path("VENDA_ERP_API_FINANCEIRO_BAIXA_PATH")
+        return self._financeiro_post(path, body, timeout=60)
+
+    def financeiro_tentar_lancamentos_api(self, body: dict):
+        """
+        POST opcional após lançamento manual no Agro. Configure ``VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH``
+        (sufixo após ``/api/request/``). O corpo traz ``titulos`` com recorte do DtoLancamento gravado no Mongo.
+        """
+        path = _env_or_setting_path("VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH")
+        return self._financeiro_post(path, body, timeout=60)
