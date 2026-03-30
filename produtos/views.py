@@ -294,21 +294,38 @@ def _invalidar_caches_apos_ajuste_pin():
     _invalidar_cache_metricas_pdv()
 
 
+def _indice_semana_4(dt, now) -> int | None:
+    """0 = semana mais antiga (dias 28–22), 3 = últimos 7 dias."""
+    if dt is None or not isinstance(dt, datetime):
+        return None
+    if dt < now - timedelta(days=28):
+        return None
+    if dt >= now - timedelta(days=7):
+        return 3
+    if dt >= now - timedelta(days=14):
+        return 2
+    if dt >= now - timedelta(days=21):
+        return 1
+    return 0
+
+
 def _metricas_vendas_agregadas_por_produto(db, dias_media: int):
     """
-    Uma passagem em DtoVendaProduto (com cabeçalhos no intervalo):
+    Uma passagem em DtoVenda + DtoVendaProduto:
     - totais no período [now-dias_media, now] para média diária
-    - últimos 7 dias vs 7 dias anteriores (variação semanal)
+    - últimos 7d vs 7d anteriores (variação semanal)
+    - quantidades por semana nos últimos 28d (4 faixas, para sparkline Compras)
     """
     now = datetime.now()
     t_m = now - timedelta(days=dias_media)
     t_w0 = now - timedelta(days=7)
     t_w1 = now - timedelta(days=14)
-    limite = min(t_m, t_w1)
+    t_28 = now - timedelta(days=28)
+    limite = min(t_m, t_w1, t_28)
     q = {"Data": {"$gte": limite}, **_filtro_venda_ativa_mongo()}
     vendas = list(db["DtoVenda"].find(q, {"Id": 1, "_id": 1, "Data": 1}))
     if not vendas:
-        return {}, {}, {}
+        return {}, {}, {}, {}
     vmap = {}
     for v in vendas:
         dt = v.get("Data")
@@ -334,6 +351,7 @@ def _metricas_vendas_agregadas_por_produto(db, dias_media: int):
     media_tot = {}
     w0 = {}
     w1 = {}
+    spark: dict[str, list[float]] = {}
     for item in db["DtoVendaProduto"].find(query_itens):
         # Não usar (ProdutoID or ""): Id numérico 0 sumiria.
         raw_pid = item.get("ProdutoID")
@@ -345,7 +363,7 @@ def _metricas_vendas_agregadas_por_produto(db, dias_media: int):
         vid_raw = item.get("VendaID")
         vid = str(vid_raw) if vid_raw is not None else ""
         dt = vmap.get(vid)
-        if dt is None:
+        if dt is None or not isinstance(dt, datetime):
             continue
         try:
             qtd = float(item.get("Quantidade") or 0)
@@ -357,83 +375,12 @@ def _metricas_vendas_agregadas_por_produto(db, dias_media: int):
             w0[pid] = w0.get(pid, 0.0) + qtd
         if t_w1 <= dt < t_w0:
             w1[pid] = w1.get(pid, 0.0) + qtd
-    return media_tot, w0, w1
-
-
-def _indice_semana_4(dt, now) -> int | None:
-    """0 = semana mais antiga (dias 28–22), 3 = últimos 7 dias."""
-    if dt is None or not isinstance(dt, datetime):
-        return None
-    if dt < now - timedelta(days=28):
-        return None
-    if dt >= now - timedelta(days=7):
-        return 3
-    if dt >= now - timedelta(days=14):
-        return 2
-    if dt >= now - timedelta(days=21):
-        return 1
-    return 0
-
-
-def _metricas_vendas_4_semanas_por_produto(db) -> dict[str, list[float]]:
-    """
-    Quantidades vendidas por produto em 4 faixas de 7 dias (mais antiga → mais recente).
-    Usa DtoVenda + DtoVendaProduto (mesmo critério de _metricas_vendas_agregadas_por_produto).
-    """
-    now = datetime.now()
-    t_lo = now - timedelta(days=28)
-    q = {"Data": {"$gte": t_lo}, **_filtro_venda_ativa_mongo()}
-    vendas = list(db["DtoVenda"].find(q, {"Id": 1, "_id": 1, "Data": 1}))
-    if not vendas:
-        return {}
-    vmap: dict[str, datetime] = {}
-    for v in vendas:
-        dt = v.get("Data")
-        if not isinstance(dt, datetime):
-            continue
-        for key in (str(v.get("Id")), str(v.get("_id"))):
-            if key and key != "None":
-                vmap[key] = dt
-    venda_ids_obj: list = []
-    venda_ids_str: list[str] = []
-    for v in vendas:
-        vid = str(v.get("Id") or v.get("_id"))
-        venda_ids_str.append(vid)
-        if len(vid) == 24:
-            try:
-                venda_ids_obj.append(ObjectId(vid))
-            except Exception:
-                pass
-    query_itens = {
-        "$or": [
-            {"VendaID": {"$in": venda_ids_obj}},
-            {"VendaID": {"$in": venda_ids_str}},
-        ]
-    }
-    out: dict[str, list[float]] = {}
-    for item in db["DtoVendaProduto"].find(query_itens):
-        raw_pid = item.get("ProdutoID")
-        if raw_pid is None:
-            continue
-        pid = str(raw_pid)
-        if not pid or pid == "None":
-            continue
-        vid_raw = item.get("VendaID")
-        vid = str(vid_raw) if vid_raw is not None else ""
-        dt = vmap.get(vid)
-        if dt is None:
-            continue
         bi = _indice_semana_4(dt, now)
-        if bi is None:
-            continue
-        try:
-            qtd = float(item.get("Quantidade") or 0)
-        except (TypeError, ValueError):
-            qtd = 0.0
-        if pid not in out:
-            out[pid] = [0.0, 0.0, 0.0, 0.0]
-        out[pid][bi] += qtd
-    return out
+        if bi is not None:
+            if pid not in spark:
+                spark[pid] = [0.0, 0.0, 0.0, 0.0]
+            spark[pid][bi] += qtd
+    return media_tot, w0, w1, spark
 
 
 def _merge_ultima_entrada_entrada_nota_fiscal_mov_estoque(db, agregado, since, names):
@@ -2969,8 +2916,7 @@ def api_pdv_metricas_produtos(request):
     if db is None:
         return JsonResponse({"erro": "Erro conexao"}, status=500)
     try:
-        media_tot, w0, w1 = _metricas_vendas_agregadas_por_produto(db, dias)
-        spark_map = _metricas_vendas_4_semanas_por_produto(db)
+        media_tot, w0, w1, spark_map = _metricas_vendas_agregadas_por_produto(db, dias)
         entradas = _ultima_entrada_mercadoria_por_produto(db)
         query = {"CadastroInativo": {"$ne": True}}
         produtos = list(db[client.col_p].find(query, {"Id": 1, "_id": 1}))
@@ -3044,7 +2990,7 @@ def api_pdv_top_vendidos(request):
     if db is None:
         return JsonResponse({"erro": "Mongo indisponível", "itens": []}, status=503)
     try:
-        media_tot, _, _ = _metricas_vendas_agregadas_por_produto(db, dias)
+        media_tot, _, _, _ = _metricas_vendas_agregadas_por_produto(db, dias)
         ranked = sorted(media_tot.items(), key=lambda x: x[1], reverse=True)[:limite]
         if not ranked:
             payload = {"v": 1, "dias": dias, "limite": limite, "itens": []}
