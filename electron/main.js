@@ -68,6 +68,23 @@ async function createWindow() {
   win.once('ready-to-show', () => win.show());
 
   const target = urlComBust(DEFAULT_URL);
+  let appOrigin = '';
+  try {
+    appOrigin = new URL(DEFAULT_URL).origin;
+  } catch (_) {}
+
+  function openExternalHttp(url) {
+    try {
+      const u = new URL(url);
+      const isHttp = u.protocol === 'http:' || u.protocol === 'https:';
+      if (!isHttp) return false;
+      void shell.openExternal(url);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   try {
     await win.loadURL(target, {
       extraHeaders: ['Cache-Control: no-cache', 'Pragma: no-cache'].join('\n'),
@@ -77,14 +94,17 @@ async function createWindow() {
   }
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    try {
-      const u = new URL(url);
-      const isHttp = u.protocol === 'http:' || u.protocol === 'https:';
-      if (isHttp) {
-        void shell.openExternal(url);
-      }
-    } catch (_) {}
+    openExternalHttp(url);
     return { action: 'deny' };
+  });
+
+  // Cobertura para fluxos que navegam a própria janela (ex.: alguns botões de envio/Zap).
+  win.webContents.on('will-navigate', (event, url) => {
+    if (!url) return;
+    if (appOrigin && url.startsWith(appOrigin)) return;
+    if (openExternalHttp(url)) {
+      event.preventDefault();
+    }
   });
 }
 
