@@ -55,6 +55,7 @@
   </style>
 </head>
 <body class="h-screen overflow-hidden bg-slate-50 text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
 
   <header class="gm-bar border-b border-slate-200/80 shrink-0 z-20">
     <div class="max-w-[1700px] mx-auto px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-3">
@@ -123,6 +124,9 @@
               <span aria-hidden="true">↑</span><span aria-hidden="true">↓</span> nos resultados
             </span>
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Enter adiciona · <kbd class="gm-kbd align-middle border border-slate-200 bg-slate-100 text-slate-600">F5</kbd> médias</span>
+          </div>
+          <div id="compra-loading-tip" class="hidden rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] font-bold text-sky-900">
+            Atualizando resultados online...
           </div>
         </div>
         <div class="scroll-compras-resultados flex-1 min-h-0 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-sm p-3">
@@ -346,6 +350,7 @@ function aplicarMetricasCompraNaBase(payload) {
 function carregarMetricasCompra() {
   if (!baseProdutos.length) return;
   const d = compraDiasMediaVendas;
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
   fetch(`{% url 'api_pdv_metricas_produtos' %}?dias=${d}`)
     .then((r) => r.json())
     .then((data) => {
@@ -354,7 +359,8 @@ function carregarMetricasCompra() {
       const inp = document.getElementById('busca');
       if (inp && (normalizarBuscaLocal(inp.value).length >= 2 || compraPoolAvancado !== null)) buscar(inp.value);
     })
-    .catch(() => {});
+    .catch(() => {})
+    .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
 
 function initCompraDiasMediaVendasUi() {
@@ -628,7 +634,9 @@ function renderizarListaResultadosCompra(resultados) {
 }
 
 function mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados) {
+  const tip = document.getElementById('compra-loading-tip');
   if (compraPoolAvancado !== null) {
+    if (tip) tip.classList.add('hidden');
     const resultados = locaisOrdenados.slice(0, BUSCA_COMPRA_LIM_MAX).map(enriquecerProdutoCompraBusca);
     renderizarListaResultadosCompra(resultados);
     return;
@@ -636,10 +644,12 @@ function mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados) {
 
   const primeiro = locaisOrdenados.slice(0, BUSCA_COMPRA_LIM_MAX).map(enriquecerProdutoCompraBusca);
   renderizarListaResultadosCompra(primeiro);
+  if (tip) tip.classList.remove('hidden');
 
   clearTimeout(mergeCompraTimer);
   const seq = ++buscaCompraMergeSeq;
   mergeCompraTimer = setTimeout(() => {
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     fetch(`{% url 'api_buscar_mobile' %}?q=` + encodeURIComponent(termoOriginal) + '&compras=1')
       .then((r) => r.json())
       .then((data) => {
@@ -674,11 +684,14 @@ function mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados) {
             destacarLinhaCompra();
           }
         }
+        if (tip) tip.classList.add('hidden');
       })
       .catch((err) => {
         if (seq !== buscaCompraMergeSeq) return;
         console.error('Busca compras (API):', err);
-      });
+        if (tip) tip.classList.add('hidden');
+      })
+      .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
   }, 300);
 }
 
@@ -768,6 +781,7 @@ function abrirAjuste(id, nome, saldoAtual, codigo, deposito) {
   fd.append('pin', pin);
   fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
   fetch("{% url 'api_ajustar_estoque' %}", {
     method: 'POST',
     body: fd
@@ -776,7 +790,7 @@ function abrirAjuste(id, nome, saldoAtual, codigo, deposito) {
   .then(d => {
     if (d.ok) {
       alert("Estoque ajustado com sucesso!");
-      fetch("{% url 'api_todos_produtos_local' %}")
+      return fetch("{% url 'api_todos_produtos_local' %}")
         .then(r => r.json())
         .then(data => {
           baseProdutos = data.produtos || [];
@@ -791,7 +805,8 @@ function abrirAjuste(id, nome, saldoAtual, codigo, deposito) {
       alert("Acesso negado ou erro:\n" + (d.erro || 'Erro desconhecido'));
     }
   })
-  .catch(() => alert("Falha na comunicação com o servidor."));
+  .catch(() => alert("Falha na comunicação com o servidor."))
+  .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
 
 window.addEventListener('load', () => {

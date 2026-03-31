@@ -182,6 +182,39 @@ def api_atualizar_pin(request):
     except Exception as exc:
         return JsonResponse({'ok': False, 'erro': f'Erro ao atualizar PIN: {exc}'}, status=500)
 
+
+@require_POST
+@csrf_protect
+def api_definir_pin_rh(request):
+    """Define ou redefine o PIN de um usuário via painel de RH (sem pedir PIN atual)."""
+    try:
+        if not request.user.is_authenticated or not request.user.is_staff:
+            return JsonResponse({'ok': False, 'erro': 'Acesso negado.'}, status=403)
+
+        perfil_id = request.POST.get('perfil_id', '').strip()
+        novo_pin = request.POST.get('novo_pin', '').strip()
+
+        if not perfil_id:
+            return JsonResponse({'ok': False, 'erro': 'Perfil inválido.'}, status=400)
+        if not novo_pin:
+            return JsonResponse({'ok': False, 'erro': 'Informe o novo PIN.'}, status=400)
+        if (not novo_pin.isdigit()) or len(novo_pin) != 4:
+            return JsonResponse({'ok': False, 'erro': 'O PIN deve ter exatamente 4 dígitos numéricos.'}, status=400)
+        if novo_pin == '1234':
+            return JsonResponse({'ok': False, 'erro': 'Escolha um PIN diferente de 1234.'}, status=400)
+
+        try:
+            perfil = PerfilUsuario.objects.get(id=perfil_id)
+        except PerfilUsuario.DoesNotExist:
+            return JsonResponse({'ok': False, 'erro': 'Perfil não encontrado.'}, status=404)
+
+        perfil.senha_rapida = novo_pin
+        perfil.save()
+
+        return JsonResponse({'ok': True, 'mensagem': 'PIN atualizado com sucesso.'})
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'erro': f'Erro ao atualizar PIN: {exc}'}, status=500)
+
 @require_POST
 @csrf_protect
 def api_ajustar_estoque(request):

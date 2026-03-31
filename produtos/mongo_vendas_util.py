@@ -4,7 +4,7 @@ Agregações de vendas a partir do Mongo (DtoVenda / DtoVendaProduto), alinhadas
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, time as dtime
+from datetime import date, datetime, timedelta, time as dtime
 from decimal import Decimal
 from typing import Any
 
@@ -81,27 +81,11 @@ def _valor_linha_item(item: dict) -> Decimal:
     return Decimal("0")
 
 
-def obter_valor_total_vendas_dia_mongo(db, dia=None) -> Decimal:
+def _total_vendas_de_documentos_mongo(db, vendas: list) -> Decimal:
     """
-    Soma o faturamento do dia (timezone Django) a partir de DtoVenda / DtoVendaProduto.
-    Usa valor do cabeçalho quando existir; senão soma linhas de DtoVendaProduto.
+    Soma faturamento a partir de uma lista de documentos DtoVenda já filtrados.
+    Cabeçalho quando existir; senão agrega DtoVendaProduto por VendaID.
     """
-    if db is None:
-        return Decimal("0")
-
-    dia = dia or timezone.localdate()
-    tz = timezone.get_current_timezone()
-    inicio = timezone.make_aware(datetime.combine(dia, dtime.min), tz)
-    fim = timezone.make_aware(datetime.combine(dia, dtime.max), tz)
-
-    q = {"Data": {"$gte": inicio, "$lte": fim}, **_filtro_venda_ativa_mongo()}
-
-    try:
-        vendas = list(db["DtoVenda"].find(q))
-    except Exception as exc:
-        logger.exception("obter_valor_total_vendas_dia_mongo: find DtoVenda: %s", exc)
-        return Decimal("0")
-
     if not vendas:
         return Decimal("0")
 
@@ -138,7 +122,7 @@ def obter_valor_total_vendas_dia_mongo(db, dia=None) -> Decimal:
     try:
         itens = db["DtoVendaProduto"].find(query_itens)
     except Exception as exc:
-        logger.exception("obter_valor_total_vendas_dia_mongo: itens: %s", exc)
+        logger.exception("_total_vendas_de_documentos_mongo: itens: %s", exc)
         return total.quantize(Decimal("0.01"))
 
     soma_por_venda: dict[str, Decimal] = {}
@@ -157,6 +141,51 @@ def obter_valor_total_vendas_dia_mongo(db, dia=None) -> Decimal:
                 break
 
     return total.quantize(Decimal("0.01"))
+
+
+def obter_valor_total_vendas_dia_mongo(db, dia=None) -> Decimal:
+    """
+    Soma o faturamento do dia (timezone Django) a partir de DtoVenda / DtoVendaProduto.
+    Usa valor do cabeçalho quando existir; senão soma linhas de DtoVendaProduto.
+    """
+    if db is None:
+        return Decimal("0")
+
+    dia = dia or timezone.localdate()
+    tz = timezone.get_current_timezone()
+    inicio = timezone.make_aware(datetime.combine(dia, dtime.min), tz)
+    fim = timezone.make_aware(datetime.combine(dia, dtime.max), tz)
+
+    q = {"Data": {"$gte": inicio, "$lte": fim}, **_filtro_venda_ativa_mongo()}
+
+    try:
+        vendas = list(db["DtoVenda"].find(q))
+    except Exception as exc:
+        logger.exception("obter_valor_total_vendas_dia_mongo: find DtoVenda: %s", exc)
+        return Decimal("0")
+
+    return _total_vendas_de_documentos_mongo(db, vendas)
+
+
+def obter_valor_total_vendas_periodo_mongo(db, data_de: date, data_ate: date) -> Decimal:
+    """
+    Faturamento no intervalo [data_de, data_ate] pela data do pedido (DtoVenda.Data),
+    mesmas regras que o total diário (Pedidos Faturados / PDV).
+    """
+    if db is None or data_de is None or data_ate is None:
+        return Decimal("0")
+    if data_de > data_ate:
+        data_de, data_ate = data_ate, data_de
+    tz = timezone.get_current_timezone()
+    inicio = timezone.make_aware(datetime.combine(data_de, dtime.min), tz)
+    fim = timezone.make_aware(datetime.combine(data_ate, dtime.max), tz)
+    q = {"Data": {"$gte": inicio, "$lte": fim}, **_filtro_venda_ativa_mongo()}
+    try:
+        vendas = list(db["DtoVenda"].find(q))
+    except Exception as exc:
+        logger.exception("obter_valor_total_vendas_periodo_mongo: find DtoVenda: %s", exc)
+        return Decimal("0")
+    return _total_vendas_de_documentos_mongo(db, vendas)
 
 
 def media_vendas_diaria_ultimos_n_dias(db, n: int = 30) -> Decimal:

@@ -43,9 +43,11 @@ from .nfe_entrada_util import (
 )
 from .rota_entregas_geo import ordenar_entregas_por_proximidade
 from .mongo_financeiro_util import (
+    baixar_lancamento_parcial_mongo,
     baixar_lancamentos_mongo,
     contas_pagar_buscar_pagina,
     contas_pagar_montar_query_mongo,
+    dre_resumo_simples_mongo,
     financeiro_projecao_fluxo_diario,
     inserir_lancamentos_manual_lote,
     lancamentos_buscar_pagina,
@@ -931,6 +933,7 @@ def consulta_produtos(request):
             ctx["pdv_reabrir_data"] = draft
     ctx["caixa_aberto"] = _obter_sessao_caixa_aberta(request)
     ctx["pdv_entrega_whatsapp"] = getattr(settings, "PDV_ENTREGA_WHATSAPP", "") or ""
+    ctx["lancamentos_dre_ativo"] = getattr(settings, "LANCAMENTOS_DRE_ATIVO", False)
     return render(request, "produtos/consulta_produtos.html", ctx)
 
 
@@ -1135,6 +1138,67 @@ def caixa_painel(request):
 
 
 @login_required(login_url="/admin/login/")
+@ensure_csrf_cookie
+def caixa_saida_view(request):
+    """Formulário dedicado: saída rápida no caixa (plano de conta + quem levou)."""
+    from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
+
+    funcionarios_principais = [
+        "Renan",
+        "Geraldinho",
+        "Isabela",
+        "Geraldo",
+        "Zuleide",
+        "Vitor",
+        "Nathan",
+        "Queila",
+    ]
+    funcionarios_outra = [
+        "Matheus",
+        "Estanislau",
+    ]
+    empresa_padrao = getattr(settings, "AGRO_SAIDA_CAIXA_EMPRESA_PADRAO", "") or "Agro Mais Centro"
+    return render(
+        request,
+        "produtos/caixa_saida.html",
+        {
+            "planos_json": json.dumps(SAIDA_CAIXA_PLANOS, ensure_ascii=False),
+            "funcionarios_principais": funcionarios_principais,
+            "funcionarios_outra": funcionarios_outra,
+            "empresa_padrao": empresa_padrao,
+        },
+    )
+
+
+@login_required(login_url="/admin/login/")
+@ensure_csrf_cookie
+def rh_painel(request):
+    """Painel simples de RH para operadores do Agro: nomes e PIN (mock)."""
+    funcionarios_principais = [
+        "Renan",
+        "Geraldinho",
+        "Isabela",
+        "Geraldo",
+        "Zuleide",
+        "Vitor",
+        "Nathan",
+        "Queila",
+    ]
+    funcionarios_outra = [
+        "Matheus",
+        "Estanislau",
+    ]
+    return render(
+        request,
+        "produtos/rh_painel.html",
+        {
+            "funcionarios_principais": funcionarios_principais,
+            "funcionarios_outra": funcionarios_outra,
+        },
+    )
+
+
+@login_required(login_url="/admin/login/")
 def caixa_abrir(request):
     if _obter_sessao_caixa_aberta(request):
         messages.warning(request, "Já existe um caixa aberto neste navegador. Feche-o antes de abrir outro.")
@@ -1335,18 +1399,33 @@ def _api_lancamentos_lista_core(request, despesa: bool):
     )
 
 
+def _ctx_lancamentos_financeiros():
+    return {
+        "lancamentos_dre_ativo": getattr(settings, "LANCAMENTOS_DRE_ATIVO", False),
+    }
+
+
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
 def lancamentos_financeiros_view(request):
     """Lançamentos a pagar e a receber (DtoLancamento) — Mongo / ERP Venda."""
-    return render(request, "produtos/lancamentos_financeiros.html")
+    return render(request, "produtos/lancamentos_financeiros.html", _ctx_lancamentos_financeiros())
 
 
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
 def lancamentos_contas_pagar_view(request):
     """Alias da rota antiga — mesma tela unificada."""
-    return render(request, "produtos/lancamentos_financeiros.html")
+    return render(request, "produtos/lancamentos_financeiros.html", _ctx_lancamentos_financeiros())
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def lancamentos_dre_view(request):
+    """DRE simples por plano (Mongo) — tela separada; desligada por LANCAMENTOS_DRE_ATIVO."""
+    if not getattr(settings, "LANCAMENTOS_DRE_ATIVO", False):
+        return render(request, "produtos/lancamentos_dre_desativado.html")
+    return render(request, "produtos/lancamentos_dre.html")
 
 
 @login_required(login_url="/admin/login/")
@@ -1630,9 +1709,16 @@ def api_lancamentos_export_csv(request):
     )
 
     buf = StringIO()
-    w = csv.writer(buf)
+    # Excel (pt-BR) costuma interpretar melhor CSV com ";".
+    w = csv.writer(buf, delimiter=";")
     label_mov = "Pago" if despesa else "Recebido / mov."
     label_saldo = "A pagar" if despesa else "A receber"
+    w.writerow(["Relatório de lançamentos financeiros"])
+    w.writerow(["Tipo", "Contas a pagar" if despesa else "Contas a receber"])
+    w.writerow(["Status", status])
+    w.writerow(["Período", (v_de.isoformat() if v_de else ""), (v_ate.isoformat() if v_ate else "")])
+    w.writerow(["Busca", texto or ""])
+    w.writerow([])
     w.writerow(
         [
             "Vencimento",
@@ -1650,7 +1736,23 @@ def api_lancamentos_export_csv(request):
             "Data quitação",
         ]
     )
+    soma_bruto = 0.0
+    soma_mov = 0.0
+    soma_saldo = 0.0
+    por_plano: dict[str, dict[str, float]] = {}
     for row in linhas:
+        vb = float(row.get("valor_bruto") or 0)
+        vm = float(row.get("valor_movimentado") or 0)
+        rs = float(row.get("restante") or 0)
+        soma_bruto += vb
+        soma_mov += vm
+        soma_saldo += rs
+        plano = str(row.get("plano_conta") or "(sem plano)").strip() or "(sem plano)"
+        ag = por_plano.setdefault(plano, {"qtd": 0.0, "bruto": 0.0, "mov": 0.0, "saldo": 0.0})
+        ag["qtd"] += 1
+        ag["bruto"] += vb
+        ag["mov"] += vm
+        ag["saldo"] += rs
         w.writerow(
             [
                 (row.get("data_vencimento") or "")[:19],
@@ -1666,6 +1768,28 @@ def api_lancamentos_export_csv(request):
                 row.get("restante"),
                 "Quitado" if row.get("pago") else "Aberto",
                 (row.get("data_pagamento") or "")[:19],
+            ]
+        )
+
+    w.writerow([])
+    w.writerow(["Resumo geral"])
+    w.writerow(["Quantidade de títulos", len(linhas)])
+    w.writerow(["Total bruto", round(soma_bruto, 2)])
+    w.writerow([label_mov, round(soma_mov, 2)])
+    w.writerow([label_saldo, round(soma_saldo, 2)])
+
+    w.writerow([])
+    w.writerow(["Subtotais por plano de conta"])
+    w.writerow(["Plano de conta", "Títulos", "Bruto", label_mov, label_saldo])
+    for plano in sorted(por_plano.keys(), key=lambda x: x.lower()):
+        ag = por_plano[plano]
+        w.writerow(
+            [
+                plano,
+                int(ag["qtd"]),
+                round(ag["bruto"], 2),
+                round(ag["mov"], 2),
+                round(ag["saldo"], 2),
             ]
         )
 
@@ -1777,6 +1901,282 @@ def api_lancamentos_baixa(request):
     return JsonResponse(out_j, status=http_st)
 
 
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_lancamentos_baixa_parcial(request):
+    """Uma linha selecionada: várias parcelas (valor + forma + banco) até quitar o saldo."""
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    lid = str(payload.get("lancamento_id") or payload.get("id") or "").strip()
+    if not lid:
+        return JsonResponse({"ok": False, "erro": "Informe o lançamento (lancamento_id)."}, status=400)
+
+    tipo = str(payload.get("tipo") or "pagar").strip().lower()
+    despesa = tipo != "receber"
+    parcelas = payload.get("parcelas")
+    if not isinstance(parcelas, list) or not parcelas:
+        return JsonResponse({"ok": False, "erro": "Informe ao menos uma parcela (valor, forma, banco)."}, status=400)
+
+    data_str = str(payload.get("data_movimento") or "").strip()[:10]
+    try:
+        dmov = date.fromisoformat(data_str) if data_str else timezone.localdate()
+    except ValueError:
+        return JsonResponse({"ok": False, "erro": "Data inválida (use AAAA-MM-DD)."}, status=400)
+
+    tz = timezone.get_current_timezone()
+    data_movimento = timezone.make_aware(datetime.combine(dmov, dtime(12, 0, 0)), tz)
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk))[:120]
+
+    resultado = baixar_lancamento_parcial_mongo(
+        db,
+        lid,
+        despesa=despesa,
+        data_movimento=data_movimento,
+        parcelas=parcelas,
+        usuario_label=usuario,
+    )
+
+    if not resultado.get("ok"):
+        return JsonResponse(
+            {"ok": False, "erro": resultado.get("erro") or "Falha na baixa parcial."},
+            status=400,
+        )
+
+    out_j = {
+        "ok": True,
+        "id": resultado.get("id"),
+        "quitado": bool(resultado.get("quitado")),
+    }
+
+    path_baixa = (
+        (config("VENDA_ERP_API_FINANCEIRO_BAIXA_PATH", default="") or "")
+        or getattr(settings, "VENDA_ERP_API_FINANCEIRO_BAIXA_PATH", "")
+        or ""
+    ).strip()
+    if path_baixa and resultado.get("quitado") and resultado.get("id"):
+        try:
+            cli = VendaERPAPIClient()
+            body_erp = montar_payload_erp_baixa(db, [str(resultado["id"])], despesa, payload)
+            ok_api, api_msg = cli.financeiro_tentar_baixa_api(body_erp)
+            out_j["erp_baixa_ok"] = bool(ok_api)
+            if not ok_api:
+                out_j["aviso_api"] = str(api_msg)[:800]
+        except Exception as exc:
+            out_j["erp_baixa_ok"] = False
+            out_j["aviso_api"] = str(exc)[:800]
+    return JsonResponse(out_j, status=200)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_lancamentos_saida_caixa(request):
+    """Registra uma despesa rápida (saída de caixa) com plano de conta — grava como lançamento manual de 1 linha."""
+    from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
+
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    try:
+        valor = float(str(payload.get("valor", "")).replace(",", ".").strip())
+    except (ValueError, TypeError):
+        return JsonResponse({"ok": False, "erro": "Valor inválido."}, status=400)
+    if valor <= 0:
+        return JsonResponse({"ok": False, "erro": "Valor deve ser maior que zero."}, status=400)
+
+    plano_id_req = str(payload.get("plano_id") or "").strip()
+    plan_map = {p["id"]: p for p in SAIDA_CAIXA_PLANOS}
+    is_outros = False
+    if plano_id_req:
+        if plano_id_req not in plan_map:
+            return JsonResponse({"ok": False, "erro": "Plano de conta inválido."}, status=400)
+        entry = plan_map[plano_id_req]
+        plano = entry["plano"]
+        is_outros = bool(entry.get("outros"))
+    else:
+        plano = str(payload.get("plano_conta") or payload.get("plano_nome") or "").strip()
+        if not plano:
+            return JsonResponse({"ok": False, "erro": "Escolha o plano de conta."}, status=400)
+
+    motivo = str(payload.get("motivo") or "").strip()[:200]
+    if plano_id_req:
+        if is_outros:
+            if len(motivo) < 15:
+                return JsonResponse(
+                    {"ok": False, "erro": "No plano Outros, o motivo é obrigatório (mínimo 15 caracteres)."},
+                    status=400,
+                )
+        quem = str(payload.get("quem_leva") or "").strip()
+        quem_outro = str(payload.get("quem_leva_outro_nome") or "").strip()[:200]
+        if quem.upper() in ("OUTRO", "__OUTRO__") or quem == "__OUTRO__":
+            if len(quem_outro) < 2:
+                return JsonResponse({"ok": False, "erro": "Informe o nome completo da pessoa."}, status=400)
+            pessoa_nome = quem_outro
+        else:
+            if not quem:
+                return JsonResponse({"ok": False, "erro": "Selecione quem está levando o dinheiro."}, status=400)
+            pessoa_nome = quem
+    else:
+        if not motivo:
+            return JsonResponse({"ok": False, "erro": "Informe o motivo (ex.: troco, compra emergencial)."}, status=400)
+        pessoa_nome = str(payload.get("pessoa_nome") or "").strip() or (
+            (config("AGRO_FIN_SAIDA_CAIXA_PESSOA", default="") or "").strip() or "Operação / caixa"
+        )
+
+    dc = _lancamentos_parse_date_param(payload.get("data_competencia"))
+    dv = _lancamentos_parse_date_param(payload.get("data_vencimento"))
+    if dc is None:
+        dc = timezone.localdate()
+    if dv is None:
+        dv = dc
+
+    empresa_nome = str(payload.get("empresa_nome") or "").strip() or (
+        (config("AGRO_FIN_SAIDA_CAIXA_EMPRESA", default="") or "").strip() or "Loja"
+    )
+    banco_nome = str(payload.get("banco_nome") or "").strip()
+    forma_nome = str(payload.get("forma_nome") or "").strip()
+    if not banco_nome or not forma_nome:
+        return JsonResponse({"ok": False, "erro": "Informe conta/banco e forma de pagamento."}, status=400)
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (
+            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
+        )[:120]
+
+    if plano_id_req:
+        partes = []
+        if motivo:
+            partes.append(motivo)
+        partes.append(f"Quem: {pessoa_nome}")
+        desc_linha = "Saída caixa — " + " · ".join(partes)
+    else:
+        desc_linha = f"Saída caixa — {motivo}"
+
+    linhas = [
+        {
+            "plano_conta": plano,
+            "plano_conta_id": str(payload.get("plano_conta_id") or "").strip() or None,
+            "valor": valor,
+            "descricao": desc_linha[:500],
+            "observacao": str(payload.get("observacao") or "").strip()[:500],
+        }
+    ]
+
+    resultado = inserir_lancamentos_manual_lote(
+        db,
+        despesa=True,
+        empresa_nome=empresa_nome,
+        empresa_id=str(payload.get("empresa_id") or "").strip() or None,
+        pessoa_nome=pessoa_nome,
+        pessoa_id=str(payload.get("pessoa_id") or "").strip() or None,
+        data_competencia=dc,
+        data_vencimento=dv,
+        banco_nome=banco_nome,
+        banco_id=str(payload.get("banco_id") or "").strip() or None,
+        forma_nome=forma_nome,
+        forma_id=str(payload.get("forma_id") or "").strip() or None,
+        grupo_nome=str(payload.get("grupo_nome") or "").strip() or None,
+        grupo_id=str(payload.get("grupo_id") or "").strip() or None,
+        usuario_label=usuario,
+        linhas=linhas,
+    )
+
+    ok = bool(resultado.get("ok"))
+    ids = resultado.get("ids") or []
+    erros = resultado.get("erros") or []
+    aviso_api_erp = None
+    erp_lanc_ok = None
+    path_lanc = (
+        (config("VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", default="") or "")
+        or getattr(settings, "VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", "")
+        or ""
+    ).strip()
+    if path_lanc and ids:
+        try:
+            cli = VendaERPAPIClient()
+            body_erp = montar_payload_erp_lancamentos_novos(db, ids, str(resultado.get("lote") or ""), True)
+            ok_erp, api_msg = cli.financeiro_tentar_lancamentos_api(body_erp)
+            erp_lanc_ok = bool(ok_erp)
+            if not ok_erp:
+                aviso_api_erp = str(api_msg)[:800]
+        except Exception as exc:
+            erp_lanc_ok = False
+            aviso_api_erp = str(exc)[:800]
+    st = 200 if ok else (207 if ids else 400)
+    out = {
+        "ok": ok,
+        "lote": resultado.get("lote"),
+        "ids": ids,
+        "erros": erros,
+    }
+    if erp_lanc_ok is not None:
+        out["erp_lancamento_ok"] = erp_lanc_ok
+    if aviso_api_erp:
+        out["aviso_api"] = aviso_api_erp
+    return JsonResponse(out, status=st)
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_dre_resumo(request):
+    """Totais por plano de conta no período (base para DRE simples)."""
+    de = _lancamentos_parse_date_param(request.GET.get("de"))
+    ate = _lancamentos_parse_date_param(request.GET.get("ate"))
+    if de is None or ate is None:
+        return JsonResponse({"ok": False, "erro": "Informe de e até (AAAA-MM-DD)."}, status=400)
+    if de > ate:
+        de, ate = ate, de
+    por = (request.GET.get("por") or "competencia").strip().lower()
+    if por not in ("competencia", "vencimento", "pagamento"):
+        por = "competencia"
+
+    valor = (request.GET.get("valor") or "bruto").strip().lower()
+    if valor not in ("bruto", "realizado"):
+        valor = "bruto"
+
+    contas = (request.GET.get("contas") or "").strip().lower()
+    if not contas:
+        contas = getattr(settings, "DRE_RESULTADO_FILTRO", "resultado") or "resultado"
+    extra_rx = getattr(settings, "DRE_RESULTADO_EXCLUIR_REGEX_EXTRA", "") or ""
+    empresa = (request.GET.get("empresa") or "").strip() or None
+    empresa_id = (request.GET.get("empresa_id") or "").strip() or None
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    r = dre_resumo_simples_mongo(
+        db,
+        data_de=de,
+        data_ate=ate,
+        por=por,
+        valor=valor,
+        filtro_contas=contas,
+        regex_excluir_extra=extra_rx or None,
+        empresa=empresa,
+        empresa_id=empresa_id,
+    )
+    if not r.get("ok"):
+        return JsonResponse(r, status=500)
+    return JsonResponse(r)
+
+
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
 def lancamentos_manual_view(request):
@@ -1794,9 +2194,11 @@ def api_lancamentos_sugestoes(request):
     campo = (request.GET.get("campo") or "").strip().lower()
     q = (request.GET.get("q") or "").strip()
     try:
-        lim = min(int(request.GET.get("limit") or 30), 80)
+        raw_lim = int(request.GET.get("limit") or 30)
     except ValueError:
-        lim = 30
+        raw_lim = 30
+    cap = 500 if campo == "plano" else 80
+    lim = min(max(raw_lim, 1), cap)
     itens = lancamentos_sugestoes_campo(db, campo, q=q or None, limit=lim)
     return JsonResponse({"campo": campo, "itens": itens})
 

@@ -407,6 +407,7 @@
     </style>
 </head>
 <body class="bg-slate-100 text-slate-900 h-screen overflow-hidden flex flex-col text-[15px]" data-pdv-entrega-wa="{{ pdv_entrega_whatsapp|default:''|escape }}">
+{% include "produtos/_gm_loading_bar.html" %}
 {% if pdv_reabrir_data %}
 {{ pdv_reabrir_data|json_script:"pdv-reabrir-draft" }}
 {% endif %}
@@ -436,6 +437,17 @@
                     <span class="pdv-nav-icon"><i data-lucide="wallet"></i></span>
                     <span class="pdv-nav-label">Lançamentos</span>
                 </a>
+                {% if lancamentos_dre_ativo %}
+                <a href="{% url 'lancamentos_dre' %}" class="pdv-nav-item" title="DRE simples — totais por plano de conta (Mongo).">
+                    <span class="pdv-nav-icon"><i data-lucide="bar-chart-3"></i></span>
+                    <span class="pdv-nav-label">DRE simples</span>
+                </a>
+                {% else %}
+                <span class="pdv-nav-item opacity-40 cursor-not-allowed select-none" title="DRE simples — desativado no momento. A equipe técnica pode habilitar quando for usar." aria-disabled="true" role="presentation">
+                    <span class="pdv-nav-icon"><i data-lucide="bar-chart-3"></i></span>
+                    <span class="pdv-nav-label">DRE <span class="text-[9px] font-bold normal-case">(off)</span></span>
+                </span>
+                {% endif %}
                 <a href="/transferencias/" class="pdv-nav-item" title="Logística — transferências entre depósitos ou filiais.">
                     <span class="pdv-nav-icon"><i data-lucide="arrow-left-right"></i></span>
                     <span class="pdv-nav-label">Logística</span>
@@ -451,6 +463,10 @@
                 <a href="{% url 'caixa_painel' %}" class="pdv-nav-item" title="Abrir ou fechar caixa — vínculo das vendas ao turno (login).">
                     <span class="pdv-nav-icon"><i data-lucide="banknote"></i></span>
                     <span class="pdv-nav-label">Caixa</span>
+                </a>
+                <a href="{% url 'rh_painel' %}" class="pdv-nav-item" title="RH — operadores e PINs neste computador.">
+                    <span class="pdv-nav-icon"><i data-lucide="id-card"></i></span>
+                    <span class="pdv-nav-label">RH</span>
                 </a>
                 <button type="button" class="pdv-nav-item" onclick="abrirHistoricoLocal()" title="Orçamentos salvos neste computador. Atalho: F6.">
                     <span class="pdv-nav-icon"><i data-lucide="history"></i></span>
@@ -1029,7 +1045,7 @@ function abrirWhatsappSeparacaoPdv(orcIdOpt) {
     const phone = pdvTelefoneEntregaWa();
     const txt = montarTextoWhatsappSeparacaoPdv(orcIdOpt);
     if (!phone || phone.length < 10) {
-        alert('WhatsApp de entrega não configurado. Defina PDV_ENTREGA_WHATSAPP no .env (só dígitos, ex. 5513999999999).');
+        alert('WhatsApp de entregas não está configurado. Peça ao suporte para cadastrar o número da loja.');
         return;
     }
     window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(txt), '_blank', 'noopener,noreferrer');
@@ -2845,6 +2861,7 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
         mostrarStatusBusca('Buscando no servidor…', 'slate');
     }
     mergeFetchTimer = setTimeout(() => {
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
         fetch('/api/buscar/?q=' + encodeURIComponent(termoBrutoOriginal))
             .then((res) => res.json())
             .then((data) => {
@@ -2879,7 +2896,8 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
                 } else {
                     esconderStatusBusca();
                 }
-            });
+            })
+            .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
     }, 300);
 }
 
@@ -2927,6 +2945,7 @@ function executarBuscaLocal(termo, modo) {
 
 function executarBuscaAPI(termo, modo) {
     mostrarStatusBusca('Buscando no banco online...', 'slate');
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     fetch("/api/buscar/?q=" + encodeURIComponent(termo))
         .then(res => res.json())
         .then(data => {
@@ -2936,7 +2955,8 @@ function executarBuscaAPI(termo, modo) {
         .catch(err => {
             console.error('Erro na busca:', err);
             processarResultadosBusca([], modo, false);
-        });
+        })
+        .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
 
 function processarResultadosBusca(produtosEncontrados, modo, matchExato = false, opcoes = {}) {
@@ -3171,6 +3191,7 @@ function filtrarClientesLocais(q) {
 
 function carregarCacheClientes() {
     const msgEl = document.getElementById('cliente-api-msg');
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     fetch('{% url "api_list_customers" %}')
         .then(r => r.json())
         .then(d => {
@@ -3199,7 +3220,8 @@ function carregarCacheClientes() {
                 msgEl.textContent = 'Falha ao carregar lista de clientes (rede ou servidor).';
                 msgEl.classList.remove('hidden');
             }
-        });
+        })
+        .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
 
 inputCliente.addEventListener('input', function(e) {
@@ -3227,6 +3249,7 @@ inputCliente.addEventListener('input', function(e) {
 
     clienteDebounceTimer = setTimeout(() => {
         const locaisFiltrados = filtrarClientesLocais(q);
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
         fetch(`{% url "api_buscar_clientes" %}?q=${encodeURIComponent(q.trim())}`)
             .then(res => res.json())
             .then(data => {
@@ -3254,7 +3277,8 @@ inputCliente.addEventListener('input', function(e) {
                     clienteResults.classList.add('hidden');
                 }
             })
-            .catch(err => console.error('Erro ao buscar clientes:', err));
+            .catch(err => console.error('Erro ao buscar clientes:', err))
+            .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
     }, 200);
 });
 
@@ -3744,6 +3768,7 @@ function importarRankingMongoParaSlotsMaisVendidos() {
         btnImp.disabled = true;
         btnImp.classList.add('opacity-50');
     }
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     const u = new URL('{% url "api_pdv_top_vendidos" %}', window.location.origin);
     u.searchParams.set('limite', '10');
     u.searchParams.set('dias', String(PDV_TOP_VENDIDOS_DIAS));
@@ -3772,6 +3797,7 @@ function importarRankingMongoParaSlotsMaisVendidos() {
                 btnImp.disabled = false;
                 btnImp.classList.remove('opacity-50');
             }
+            if (window.gmLoadingBar) window.gmLoadingBar.hide();
         });
 }
 
@@ -3818,6 +3844,7 @@ document.getElementById('btn-atualizar-catalogo-pdv')?.addEventListener('click',
 
 function carregarBaseLocal() {
     mostrarStatusBusca('Baixando produtos para memória local...', 'orange');
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     fetch('/api/todos-produtos/')
         .then(r => r.json())
         .then(d => {
@@ -3834,7 +3861,8 @@ function carregarBaseLocal() {
         })
         .catch(e => {
             console.error('Falha na carga local:', e);
-        });
+        })
+        .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
 
 function atualizarRelogioPdv() {

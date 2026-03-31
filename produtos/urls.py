@@ -28,6 +28,11 @@ urlpatterns = [
         name='lancamentos_financeiros',
     ),
     path(
+        'lancamentos/dre/',
+        views.lancamentos_dre_view,
+        name='lancamentos_dre',
+    ),
+    path(
         'lancamentos/contas-pagar/',
         views.lancamentos_contas_pagar_view,
         name='lancamentos_contas_pagar',
@@ -51,7 +56,9 @@ urlpatterns = [
     path('clientes/sincronizar/', views.clientes_sincronizar, name='clientes_sincronizar'),
     path('clientes/novo/', views.cliente_novo, name='cliente_novo'),
     path('clientes/<int:pk>/editar/', views.cliente_editar, name='cliente_editar'),
+    path('rh/', views.rh_painel, name='rh_painel'),
     path('caixa/', views.caixa_painel, name='caixa_painel'),
+    path('caixa/saida/', views.caixa_saida_view, name='caixa_saida'),
     path('caixa/abrir/', views.caixa_abrir, name='caixa_abrir'),
     path('caixa/fechar/', views.caixa_fechar, name='caixa_fechar'),
 
@@ -74,6 +81,21 @@ urlpatterns = [
         'api/lancamentos/baixa/',
         views.api_lancamentos_baixa,
         name='api_lancamentos_baixa',
+    ),
+    path(
+        'api/lancamentos/baixa-parcial/',
+        views.api_lancamentos_baixa_parcial,
+        name='api_lancamentos_baixa_parcial',
+    ),
+    path(
+        'api/lancamentos/saida-caixa/',
+        views.api_lancamentos_saida_caixa,
+        name='api_lancamentos_saida_caixa',
+    ),
+    path(
+        'api/lancamentos/dre-resumo/',
+        views.api_lancamentos_dre_resumo,
+        name='api_lancamentos_dre_resumo',
     ),
     path(
         'api/lancamentos/sugestoes/',

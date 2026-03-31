@@ -1,0 +1,15 @@
+{
+  "name": "agro-mais-pdv-shell",
+  "version": "0.1.0",
+  "description": "Shell instalável para o PDV Agro Mais (Electron).",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Agro Mais",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^41.0.0"
+  }
+}
+

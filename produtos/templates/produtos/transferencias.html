@@ -60,6 +60,7 @@
     </style>
 </head>
 <body class="h-screen overflow-hidden bg-slate-50 text-slate-800 flex flex-col" data-transfer-wa="{{ transferencia_whatsapp|default:''|escape }}">
+{% include "produtos/_gm_loading_bar.html" %}
     <header class="gm-bar border-b border-slate-200/80 shrink-0 z-20">
         <div class="max-w-[1700px] mx-auto px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-3 min-w-0">
@@ -276,6 +277,7 @@
         }
 
         async function carregarDados() {
+            if (window.gmLoadingBar) window.gmLoadingBar.show();
             try {
                 const response = await fetch('/estoque/api_sugestoes_transferencia/');
                 const data = await response.json();
@@ -296,6 +298,8 @@
             } catch (error) {
                 console.error(error);
                 document.getElementById("tabela-corpo").innerHTML = `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold">Erro ao conectar com servidor.</td></tr>`;
+            } finally {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
             }
         }
 
@@ -618,6 +622,7 @@
         async function carregarUsuariosDropdown() {
             const select = document.getElementById('select-usuario');
             select.innerHTML = '<option value="">Carregando usuários...</option>';
+            if (window.gmLoadingBar) window.gmLoadingBar.show();
             try {
                 const res = await fetch('/estoque/api_listar_usuarios/');
                 const data = await res.json();
@@ -630,6 +635,7 @@
                     select.innerHTML = '<option value="">Erro ao carregar</option>';
                 }
             } catch(e) { select.innerHTML = '<option value="">Erro de conexão</option>'; }
+            finally { if (window.gmLoadingBar) window.gmLoadingBar.hide(); }
         }
 
         async function pedirPIN(mensagem = "Confirme com seu PIN") {
@@ -711,6 +717,7 @@
             if (!termo || termo.trim() === '') return;
 
             try {
+                if (window.gmLoadingBar) window.gmLoadingBar.show();
                 const response = await fetch(`/api/buscar/?q=${encodeURIComponent(termo)}`);
                 const data = await response.json();
 
@@ -720,6 +727,7 @@
                 const p = data.produtos[0];
                 editarRegras(p.id, p.nome, '', '');
             } catch (error) { alert("Erro ao buscar produto."); }
+            finally { if (window.gmLoadingBar) window.gmLoadingBar.hide(); }
         }
 
         async function adicionarTransferenciaManual() {
@@ -727,6 +735,7 @@
             if (!termo || termo.trim() === '') return;
 
             try {
+                if (window.gmLoadingBar) window.gmLoadingBar.show();
                 const response = await fetch(`/api/buscar/?q=${encodeURIComponent(termo)}`);
                 const data = await response.json();
 
@@ -751,6 +760,7 @@
                 }
                 renderizarTabela(filtroAtual);
             } catch (error) { alert("Erro ao buscar produto."); }
+            finally { if (window.gmLoadingBar) window.gmLoadingBar.hide(); }
         }
 
         function adicionarTransferenciaManualPorItem(produtoId, nomeProduto, codigoProduto = '', barrasProduto = '', saldoCentro = 0, saldoVila = 0) {
@@ -810,6 +820,7 @@
 
                 alert("Processando as vendas dos últimos 30 dias...\nIsso pode levar alguns segundos.");
 
+                if (window.gmLoadingBar) window.gmLoadingBar.show();
                 const res = await fetch('/estoque/api_atualizar_medias/', { method: 'POST', body: fd });
                 const data = await res.json();
                 if (data.ok) {
@@ -817,6 +828,7 @@
                     carregarDados();
                 } else { alert("Erro ao atualizar: " + data.erro); }
             } catch (e) { if (e.message !== "Troca de PIN necessária") alert("Erro."); }
+            finally { if (window.gmLoadingBar) window.gmLoadingBar.hide(); }
         }
 
         function selecionarDepositoAjuste(deposito) {
@@ -868,10 +880,15 @@
                 fd.append('pin', pin);
                 fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
-                const res = await fetch('/api/ajustar/', { method: 'POST', body: fd, cache: 'no-store' });
-                const data = await res.json();
-                if (data.ok) location.reload();
-                else alert(data.erro);
+                if (window.gmLoadingBar) window.gmLoadingBar.show();
+                try {
+                    const res = await fetch('/api/ajustar/', { method: 'POST', body: fd, cache: 'no-store' });
+                    const data = await res.json();
+                    if (data.ok) location.reload();
+                    else alert(data.erro);
+                } finally {
+                    if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                }
             } catch (e) { if(e.message !== "Troca de PIN necessária") alert("Erro de comunicação."); }
         }
 
@@ -888,12 +905,17 @@
                 fd.append('pin', pin);
                 fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
-                const res = await fetch('/estoque/api_importar_planilha/', { method: 'POST', body: fd });
-                const data = await res.json();
-                if (data.ok) {
-                    alert(data.mensagem);
-                    carregarDados();
-                } else { alert("Erro ao importar: " + data.erro); }
+                if (window.gmLoadingBar) window.gmLoadingBar.show();
+                try {
+                    const res = await fetch('/estoque/api_importar_planilha/', { method: 'POST', body: fd });
+                    const data = await res.json();
+                    if (data.ok) {
+                        alert(data.mensagem);
+                        carregarDados();
+                    } else { alert("Erro ao importar: " + data.erro); }
+                } finally {
+                    if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                }
             } catch (e) { if (e.message !== "Troca de PIN necessária") alert("Erro."); }
             input.value = "";
         }

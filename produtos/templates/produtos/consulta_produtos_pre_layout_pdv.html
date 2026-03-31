@@ -263,6 +263,7 @@
     </style>
 </head>
 <body class="bg-slate-50 p-2 text-slate-800">
+{% include "produtos/_gm_loading_bar.html" %}
 
     <div class="max-w-[1400px] mx-auto flex items-center justify-between mb-2 pb-2 border-b border-slate-200 gap-3">
         <div class="flex items-center gap-3 min-w-0">
@@ -1789,6 +1790,7 @@ function executarBuscaLocal(termo, modo) {
 
 function executarBuscaAPI(termo, modo) {
     mostrarStatusBusca('Buscando no banco online...', 'slate');
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     fetch("/api/buscar/?q=" + encodeURIComponent(termo))
         .then(res => res.json())
         .then(data => {
@@ -1798,7 +1800,8 @@ function executarBuscaAPI(termo, modo) {
         .catch(err => {
             console.error('Erro na busca:', err);
             processarResultadosBusca([], modo, false);
-        });
+        })
+        .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
 
 function processarResultadosBusca(produtosEncontrados, modo, matchExato = false) {
@@ -2102,6 +2105,7 @@ document.addEventListener('click', (e) => {
 
 function carregarBaseLocal() {
     mostrarStatusBusca('Baixando produtos para memória local...', 'orange');
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     fetch('/api/todos-produtos/')
         .then(r => r.json())
         .then(d => {
@@ -2115,7 +2119,8 @@ function carregarBaseLocal() {
         })
         .catch(e => {
             console.error('Falha na carga local:', e);
-        });
+        })
+        .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
 
 window.addEventListener('load', () => {

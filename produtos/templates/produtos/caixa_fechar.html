@@ -9,6 +9,7 @@
   <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
   <header class="border-b border-slate-200 bg-white shadow-sm">
     <div class="max-w-lg mx-auto px-4 py-4 flex justify-between items-center">
       <h1 class="text-lg font-black uppercase text-slate-900">Fechar caixa</h1>
@@ -21,7 +22,7 @@
       <p>Fundo abertura: R$ {{ sessao.valor_abertura }}</p>
       <p class="pt-2 border-t border-slate-100">Vendas nesta sessão: <span class="text-emerald-700">{{ qtd_vendas }}</span> · Total R$ <span class="text-emerald-700">{{ total_vendas }}</span></p>
     </div>
-    <form method="post" class="space-y-4 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+    <form method="post" class="space-y-4 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
       {% csrf_token %}
       <div>
         <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="valor_fechamento">Valor contado na gaveta (opcional)</label>

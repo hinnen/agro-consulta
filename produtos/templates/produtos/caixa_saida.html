@@ -1,0 +1,314 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saída no caixa | Agro Mais</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 min-h-full text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-black uppercase text-slate-900">Saída no caixa</h1>
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Despesa rápida · plano de conta</p>
+      </div>
+      <a href="{% url 'caixa_painel' %}" class="text-xs font-black uppercase text-emerald-700">← Caixa</a>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-3 pt-3 pb-4 space-y-3 flex-1 w-full flex flex-col sm:flex-row sm:items-stretch sm:gap-3">
+    <div class="w-full sm:max-w-md rounded-2xl border border-emerald-200 bg-gradient-to-br from-white to-emerald-50/50 shadow-sm p-4 space-y-3">
+      <h2 class="text-sm font-black uppercase text-emerald-900">Registro principal</h2>
+
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Valor (R$) *</span>
+        <input type="text" id="cx-valor" inputmode="decimal" placeholder="0,00"
+          class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-lg font-black tabular-nums focus:border-emerald-500 outline-none">
+      </label>
+
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Plano de contas *</span>
+        <select id="cx-plano" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-emerald-500 outline-none">
+          <option value="">— Escolha —</option>
+        </select>
+      </label>
+
+      <div id="wrap-motivo" class="space-y-1">
+        <label class="block">
+          <span id="lbl-motivo" class="text-[10px] font-black uppercase text-slate-500">Motivo <span id="motivo-opc" class="font-semibold text-slate-400 normal-case">(opcional)</span></span>
+          <input type="text" id="cx-motivo" maxlength="200" placeholder="Detalhe quando fizer sentido…"
+            class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-emerald-500 outline-none">
+        </label>
+        <p id="hint-outros" class="hidden text-[10px] font-bold text-amber-800">No plano <strong>Outros</strong>, o motivo é obrigatório (mínimo 15 caracteres).</p>
+      </div>
+
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Quem está levando o dinheiro *</span>
+        <select id="cx-quem" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-emerald-500 outline-none">
+          <option value="">— Escolha —</option>
+          {% for f in funcionarios_principais %}
+          <option value="{{ f|escape }}">{{ f }}</option>
+          {% endfor %}
+          <option value="__OUTRO__">Outro (informar nome)</option>
+        </select>
+      </label>
+      <div id="wrap-quem-outro" class="hidden">
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Nome da pessoa *</span>
+          <input type="text" id="cx-quem-outro" maxlength="200" placeholder="Nome completo"
+            class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-emerald-500 outline-none">
+        </label>
+      </div>
+
+      <button type="button" id="cx-salvar" class="w-full py-3 rounded-xl bg-emerald-600 text-white font-black uppercase text-sm tracking-wide hover:bg-emerald-700 shadow-md">
+        Registrar saída
+      </button>
+    </div>
+
+    <details class="group rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden sm:flex-1">
+      <summary class="cursor-pointer list-none px-4 py-2.5 text-[11px] font-black uppercase text-slate-600 flex items-center gap-2 hover:bg-slate-50">
+        <span class="group-open:rotate-90 transition-transform inline-block">▸</span>
+        Outros dados (forma, conta, competência, empresa)
+      </summary>
+      <div class="px-4 pb-3 pt-1 space-y-2 border-t border-slate-100">
+        <p class="text-[10px] text-slate-500 font-semibold">Padrão loja Centro: <strong class="text-slate-700">DINHEIRO</strong> · <strong class="text-slate-700">CAIXA 1</strong>.</p>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Forma de pagamento</span>
+          <select id="cx-forma" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-emerald-500 outline-none">
+            <option value="">— Carregando…</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Conta / banco</span>
+          <select id="cx-banco" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-emerald-500 outline-none">
+            <option value="">— Carregando…</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Competência</span>
+          <input type="date" id="cx-data" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-emerald-500 outline-none">
+        </label>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Empresa</span>
+          <input type="text" id="cx-empresa" value="{{ empresa_padrao|escape }}"
+            class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold focus:border-emerald-500 outline-none">
+        </label>
+      </div>
+    </details>
+  </main>
+
+  {% csrf_token %}
+  <script type="application/json" id="planos-saida-json">{{ planos_json|safe }}</script>
+  <script>
+    const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
+    const API_SAIDA = "{% url 'api_lancamentos_saida_caixa' %}";
+    const PLANOS = JSON.parse(document.getElementById('planos-saida-json').textContent || '[]');
+
+    function getCookie(name) {
+      const m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+      return m ? decodeURIComponent(m[2]) : '';
+    }
+    function hojeISO() {
+      const d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function parseValorPt(s) {
+      if (s == null || String(s).trim() === '') return NaN;
+      const t = String(s).trim().replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+      const n = parseFloat(t);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    const selPlano = document.getElementById('cx-plano');
+    PLANOS.forEach((p) => {
+      const o = document.createElement('option');
+      o.value = p.id;
+      o.textContent = p.label;
+      o.dataset.outros = p.outros ? '1' : '';
+      selPlano.appendChild(o);
+    });
+
+    function atualizarMotivoObrigatorio() {
+      const opt = selPlano.options[selPlano.selectedIndex];
+      const outros = opt && opt.dataset && opt.dataset.outros === '1';
+      const hint = document.getElementById('hint-outros');
+      const opc = document.getElementById('motivo-opc');
+      if (outros) {
+        hint.classList.remove('hidden');
+        opc.textContent = '(obrigatório · min. 15 caracteres)';
+        opc.classList.remove('text-slate-400');
+        opc.classList.add('text-amber-800');
+      } else {
+        hint.classList.add('hidden');
+        opc.textContent = '(opcional)';
+        opc.classList.add('text-slate-400');
+        opc.classList.remove('text-amber-800');
+      }
+    }
+    selPlano.addEventListener('change', atualizarMotivoObrigatorio);
+
+    const selQuem = document.getElementById('cx-quem');
+    const wrapOutro = document.getElementById('wrap-quem-outro');
+    selQuem.addEventListener('change', () => {
+      wrapOutro.classList.toggle('hidden', selQuem.value !== '__OUTRO__');
+    });
+
+    function matchOpcaoPreferida(list, prefer) {
+      const up = String(prefer || '').toUpperCase();
+      for (let i = 0; i < list.length; i++) {
+        const nome = String(list[i].nome || '').toUpperCase();
+        if (nome.includes(up)) return i;
+      }
+      return -1;
+    }
+
+    async function carregarOpcoes() {
+      if (window.gmLoadingBar) window.gmLoadingBar.show();
+      try {
+        const r = await fetch(API_OPCOES, { credentials: 'same-origin' });
+        const d = await r.json();
+        const fs = document.getElementById('cx-forma');
+        const bs = document.getElementById('cx-banco');
+        fs.innerHTML = '<option value="">— Selecione —</option>';
+        bs.innerHTML = '<option value="">— Selecione —</option>';
+        (d.formas || []).forEach((x) => {
+          const o = document.createElement('option');
+          const nome = String(x.nome || '').replace(/\|/g, '/');
+          o.value = `${String(x.id || '')}|||${nome}`;
+          o.textContent = x.nome || nome;
+          fs.appendChild(o);
+        });
+        (d.bancos || []).forEach((x) => {
+          const o = document.createElement('option');
+          const nome = String(x.nome || '').replace(/\|/g, '/');
+          o.value = `${String(x.id || '')}|||${nome}`;
+          o.textContent = x.nome || nome;
+          bs.appendChild(o);
+        });
+        const ifs = matchOpcaoPreferida(d.formas || [], 'DINHEIRO');
+        if (ifs >= 0) fs.selectedIndex = ifs + 1;
+        const ibs = matchOpcaoPreferida(d.bancos || [], 'CAIXA 1');
+        if (ibs >= 0) bs.selectedIndex = ibs + 1;
+      } catch (_) {
+        document.getElementById('cx-forma').innerHTML = '<option value="">Erro ao carregar</option>';
+        document.getElementById('cx-banco').innerHTML = '<option value="">Erro ao carregar</option>';
+      } finally {
+        if (window.gmLoadingBar) window.gmLoadingBar.hide();
+      }
+    }
+
+    document.getElementById('cx-salvar').addEventListener('click', async () => {
+      const valor = parseValorPt(document.getElementById('cx-valor').value);
+      const planoId = (document.getElementById('cx-plano').value || '').trim();
+      const motivo = (document.getElementById('cx-motivo').value || '').trim();
+      const opt = selPlano.options[selPlano.selectedIndex];
+      const isOutros = opt && opt.dataset && opt.dataset.outros === '1';
+
+      if (!planoId || Number.isNaN(valor) || valor <= 0) {
+        alert('Informe valor e plano de contas.');
+        return;
+      }
+      if (isOutros && motivo.length < 15) {
+        alert('No plano Outros, o motivo é obrigatório (mínimo 15 caracteres).');
+        return;
+      }
+
+      let quem = (selQuem.value || '').trim();
+      let quemOutro = (document.getElementById('cx-quem-outro').value || '').trim();
+      if (quem === '__OUTRO__') {
+        if (quemOutro.length < 2) {
+          alert('Informe o nome da pessoa.');
+          return;
+        }
+      } else if (!quem) {
+        alert('Selecione quem está levando o dinheiro.');
+        return;
+      }
+
+      let fn = (document.getElementById('cx-forma').value || '').trim();
+      let fid = '';
+      if (fn) {
+        const fi = fn.indexOf('|||');
+        if (fi >= 0) {
+          fid = fn.slice(0, fi) || '';
+          fn = fn.slice(fi + 3).trim();
+        }
+      }
+      let bn = (document.getElementById('cx-banco').value || '').trim();
+      let bid = '';
+      if (bn) {
+        const bi = bn.indexOf('|||');
+        if (bi >= 0) {
+          bid = bn.slice(0, bi) || '';
+          bn = bn.slice(bi + 3).trim();
+        }
+      }
+      const dc = document.getElementById('cx-data').value || hojeISO();
+      if (!fn || !bn) {
+        alert('Abra "Outros dados" e escolha forma de pagamento e conta/banco (ou aguarde o carregamento).');
+        return;
+      }
+
+      const body = {
+        valor,
+        plano_id: planoId,
+        motivo: motivo || undefined,
+        quem_leva: quem === '__OUTRO__' ? 'OUTRO' : quem,
+        quem_leva_outro_nome: quem === '__OUTRO__' ? quemOutro : undefined,
+        empresa_nome: (document.getElementById('cx-empresa').value || '').trim(),
+        data_competencia: dc,
+        data_vencimento: dc,
+        banco_nome: bn,
+        banco_id: bid || undefined,
+        forma_nome: fn,
+        forma_id: fid || undefined,
+      };
+
+      if (window.gmLoadingBar) window.gmLoadingBar.show();
+      try {
+        const r = await fetch(API_SAIDA, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify(body),
+        });
+        const out = await r.json();
+        if (out.ids && out.ids.length) {
+          let m = 'Saída registrada no Agro.';
+          if (out.erp_lancamento_ok === true) m += '\nERP: lançamento aceito.';
+          else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
+          alert(m);
+          document.getElementById('cx-valor').value = '';
+          document.getElementById('cx-motivo').value = '';
+          selPlano.selectedIndex = 0;
+          atualizarMotivoObrigatorio();
+          selQuem.selectedIndex = 0;
+          wrapOutro.classList.add('hidden');
+          document.getElementById('cx-quem-outro').value = '';
+        } else {
+          alert(out.erro || (out.erros && out.erros[0] && out.erros[0].erro) || 'Não gravou.');
+        }
+      } catch (_) {
+        alert('Erro de rede.');
+      } finally {
+        if (window.gmLoadingBar) window.gmLoadingBar.hide();
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('cx-data').value = hojeISO();
+      atualizarMotivoObrigatorio();
+      carregarOpcoes();
+    });
+  </script>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>

@@ -9,6 +9,7 @@
   <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
   <header class="border-b border-slate-200 bg-white shadow-sm">
     <div class="max-w-lg mx-auto px-4 py-4 flex justify-between items-center">
       <h1 class="text-lg font-black uppercase text-slate-900">Abrir caixa</h1>
@@ -16,7 +17,7 @@
     </div>
   </header>
   <main class="max-w-lg mx-auto px-4 py-6 flex-1 min-h-0 overflow-y-auto">
-    <form method="post" class="space-y-4 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+    <form method="post" class="space-y-4 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
       {% csrf_token %}
       <div>
         <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="valor_abertura">Valor em gaveta (fundo de troco)</label>
