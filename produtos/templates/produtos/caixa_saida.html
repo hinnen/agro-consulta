@@ -7,6 +7,7 @@
   <title>Saída no caixa | Agro Mais</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
   <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 min-h-full text-slate-800 flex flex-col">
@@ -17,7 +18,10 @@
         <h1 class="text-lg font-black uppercase text-slate-900">Saída no caixa</h1>
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Despesa rápida · plano de conta</p>
       </div>
-      <a href="{% url 'caixa_painel' %}" class="text-xs font-black uppercase text-emerald-700">← Caixa</a>
+      <div class="flex flex-wrap items-center gap-2">
+      <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-emerald-800 hover:bg-slate-50">← Caixa</a>
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 shrink-0" %}
+      </div>
     </div>
   </header>
 

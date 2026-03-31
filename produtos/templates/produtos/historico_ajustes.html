@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8"><title>Agro Mais | Histórico</title>
     <script src="https://cdn.tailwindcss.com"></script>
+  {% include "produtos/_agro_consulta_ui.html" %}
 </head>
 <body class="bg-slate-100 p-4 md:p-10">
 {% include "produtos/_gm_loading_bar.html" %}
@@ -14,7 +15,7 @@
             </div>
             <div class="flex gap-4">
                 <button onclick="limparTudo()" class="bg-red-50 text-red-600 border border-red-200 px-5 py-3 rounded-2xl font-black text-sm hover:bg-red-600 hover:text-white transition-all uppercase shadow-sm">Apagar Tudo</button>
-                <a href="/" class="bg-slate-800 text-white px-6 py-3 rounded-2xl font-black text-sm hover:bg-black transition-all shadow-lg uppercase">Voltar</a>
+                {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-sm font-black uppercase px-4 py-2.5 rounded-2xl border-2 border-slate-700 bg-slate-800 text-white shadow-lg hover:bg-slate-900 shrink-0" %}
             </div>
         </div>
 

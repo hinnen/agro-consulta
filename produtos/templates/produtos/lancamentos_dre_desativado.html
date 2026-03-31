@@ -7,6 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
   <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 min-h-full text-slate-800 flex flex-col">
@@ -15,7 +16,7 @@
       <h1 class="text-lg font-black uppercase tracking-tight text-slate-800">DRE simples</h1>
       <div class="flex flex-wrap gap-2">
         <a href="{% url 'lancamentos_financeiros' %}" class="text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-800 transition-colors">Lançamentos</a>
-        {% include "produtos/_pdv_voltar_link.html" with link_class="text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-800 transition-colors" %}
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-800 transition-colors" %}
       </div>
     </div>
   </header>

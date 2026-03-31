@@ -8,6 +8,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
   <style>
     body { font-family: 'Inter', sans-serif; }
     .gm-kbd {
@@ -36,11 +37,12 @@
         <h1 class="text-lg font-black uppercase tracking-tight text-slate-900">Fechar venda</h1>
         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Atalhos nos botões abaixo</p>
       </div>
-      <div class="flex flex-wrap gap-2">
-        <a href="{% url 'consulta_produtos' %}?reabrir=1" class="text-xs font-black uppercase px-3 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50">
+      <div class="flex flex-wrap gap-2 items-center">
+        <a href="{% url 'consulta_produtos' %}?reabrir=1" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-50" title="Retoma o rascunho da venda no PDV">
           Voltar ao carrinho
         </a>
-        <button type="button" id="btn-descartar-checkout" class="text-xs font-black uppercase px-3 py-2 rounded-xl border border-red-200 text-red-700 hover:bg-red-50">
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-200 bg-white text-emerald-900 hover:bg-emerald-50 shrink-0" %}
+        <button type="button" id="btn-descartar-checkout" class="text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-red-200 text-red-700 hover:bg-red-50 min-h-[44px]">
           Descartar
         </button>
       </div>

@@ -7,6 +7,7 @@
     <title>Agro Mais | PDV</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    {% include "produtos/_agro_consulta_ui.html" %}
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
         /* Evita rolagem da página inteira: só painéis internos rolam */
@@ -319,11 +320,11 @@
 
         /* PDV shell — sidebar ERP (Lucide, recolhível) */
         #pdv-sidebar {
-            width: 5rem;
+            width: 5.5rem;
             transition: width 0.22s ease, box-shadow 0.22s ease;
         }
         #pdv-sidebar[data-expanded="true"] {
-            width: 14rem;
+            width: 15rem;
         }
         #pdv-sidebar[data-expanded="false"] .pdv-nav-label {
             position: absolute;
@@ -406,7 +407,7 @@
 
     </style>
 </head>
-<body class="bg-slate-100 text-slate-900 h-screen overflow-hidden flex flex-col text-[15px]" data-pdv-entrega-wa="{{ pdv_entrega_whatsapp|default:''|escape }}">
+<body class="bg-slate-100 text-slate-900 h-screen overflow-hidden flex flex-col text-[14px] sm:text-[15px]" data-pdv-entrega-wa="{{ pdv_entrega_whatsapp|default:''|escape }}">
 {% include "produtos/_gm_loading_bar.html" %}
 {% if pdv_reabrir_data %}
 {{ pdv_reabrir_data|json_script:"pdv-reabrir-draft" }}
@@ -490,14 +491,14 @@
         </aside>
 
         <div class="flex flex-1 flex-col min-w-0 min-h-0">
-            <header class="shrink-0 flex flex-wrap items-center gap-3 px-4 py-2.5 bg-white border-b border-slate-200">
-                <div class="flex items-center gap-2 min-w-0">
-                    <div class="h-10 w-10 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
-                        <span class="text-lg font-black"><span class="text-emerald-600">G</span><span class="text-orange-500">M</span></span>
+            <header class="shrink-0 flex flex-wrap items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-white border-b border-slate-200">
+                <div class="flex items-center gap-2 min-w-0" title="PDV — venda. F2 foca na busca. F1 abre o carrinho; em outras telas, F1 volta ao PDV.">
+                    <div class="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                        <span class="text-base sm:text-lg font-black"><span class="text-emerald-600">G</span><span class="text-orange-500">M</span></span>
                     </div>
                     <div class="min-w-0">
                         <div class="text-sm font-black text-slate-800 leading-tight truncate">GM <span class="text-emerald-600">AGRO MAIS</span></div>
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">PDV · Venda · <span class="text-slate-500 normal-case">F1</span> carrinho · <span class="text-slate-500 normal-case">F1</span> em outras telas volta ao PDV</div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500"><span class="text-slate-400">PDV</span> · <span class="text-slate-600 normal-case">F2</span> busca · <span class="text-slate-600 normal-case">F1</span> carrinho</div>
                     </div>
                 </div>
                 <div class="flex-1 flex flex-wrap items-center justify-end gap-3 min-w-0">
@@ -516,23 +517,20 @@
                         Sair / PIN
                     </button>
                     <div id="pdv-clock" class="text-xs font-semibold text-slate-500 tabular-nums hidden sm:block" title="Data e hora local"></div>
-                    <button type="button" id="btn-atualizar-catalogo-pdv" class="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-300 hover:text-slate-600 hover:bg-slate-100 transition-colors shrink-0" title="Forçar atualização do cadastro (preços, nomes, códigos). No servidor o catálogo renova no máximo 1x por dia civil; estoque atualiza em segundo plano (~8s)." aria-label="Atualizar cadastro de produtos">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
-                    </button>
-                    <button type="button" id="btn-abrir-carrinho-pdv-header" onclick="abrirDrawerCarrinho()" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border-2 border-orange-200 bg-orange-50 text-orange-900 text-[11px] font-black uppercase tracking-wide hover:bg-orange-100/90 shadow-sm shrink-0" title="Abrir ou fechar carrinho (F1). Cliente, itens, finalizar.">
+                    <button type="button" id="btn-abrir-carrinho-pdv-header" onclick="abrirDrawerCarrinho()" class="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl border-2 border-orange-200 bg-orange-50 text-orange-900 text-[10px] sm:text-[11px] font-black uppercase tracking-wide hover:bg-orange-100/90 shadow-sm shrink-0" title="Abrir ou fechar carrinho (F1). Cliente, itens, finalizar.">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm12 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" /></svg>
                         <span class="hidden sm:inline">Carrinho</span>
                         <kbd class="pointer-events-none text-[8px] px-1 py-0.5 rounded font-black border border-orange-300/80 bg-white text-orange-800 tabular-nums shadow-sm" title="Atalho: F1">F1</kbd>
                     </button>
-                    <button type="button" onclick="abrirModalLembretes()" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-950 text-[11px] font-black uppercase tracking-wide hover:bg-amber-100/90 shadow-sm shrink-0" title="Lembretes do caixa — abre janela para criar alertas por horário (som e aviso no canto da tela).">
+                    <button type="button" onclick="abrirModalLembretes()" class="flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-950 text-[10px] sm:text-[11px] font-black uppercase tracking-wide hover:bg-amber-100/90 shadow-sm shrink-0" title="Lembretes do caixa — abre janela para criar alertas por horário (som e aviso no canto da tela).">
                         <span class="text-base leading-none" aria-hidden="true">⏰</span>
                         <span class="hidden sm:inline">Lembretes</span>
                     </button>
                 </div>
             </header>
 
-            <div class="flex flex-1 min-h-0 gap-3 p-3 overflow-hidden items-stretch">
-                <div class="flex-1 flex flex-col min-w-0 min-h-0 gap-3">
+            <div class="flex flex-1 min-h-0 gap-2 sm:gap-3 p-2 sm:p-3 overflow-hidden items-stretch">
+                <div class="flex-1 flex flex-col min-w-0 min-h-0 gap-2 sm:gap-3">
                     <div id="scan-banner" class="hidden scan-banner bg-gradient-to-r from-orange-500 to-emerald-600 text-white text-xs font-black uppercase tracking-widest px-4 py-3 rounded-xl shadow-md">
                         Código lido com sucesso
                     </div>
@@ -540,25 +538,25 @@
                     <div class="shrink-0 flex gap-2 items-stretch">
                         <div class="relative flex-1 min-w-0">
                             <label for="busca-produto" class="sr-only">Buscar produto</label>
-                            <span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase bg-white/90 px-1.5 py-0.5 rounded-md border border-slate-200/90 tabular-nums opacity-90" title="F2 foca aqui · / também (fora de campos)">F2</span>
+                            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-500 uppercase bg-white/95 px-1.5 py-0.5 rounded-md border border-slate-300 tabular-nums" title="F2 foca aqui · / também (fora de campos)">F2</span>
                             <input
                                 type="text"
                                 id="busca-produto"
                                 autocomplete="off"
                                 placeholder="Nome, marca, EAN ou código GM…"
-                                class="w-full h-14 pl-4 pr-16 rounded-xl border-2 border-orange-400 text-lg font-bold outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-400/25 transition-all bg-white shadow-sm text-slate-900"
+                                class="w-full h-12 pl-3 pr-14 rounded-xl border-2 border-slate-300 text-base font-bold outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-400/35 transition-all bg-white shadow-sm text-slate-900"
                                 title="Busca por nome, marca, código GM, EAN ou código de barras. Tecla F2 foca aqui. Enter adiciona o item selecionado."
                             >
                             <div id="autocomplete-results" class="absolute z-50 w-full bg-white mt-1 rounded-lg shadow-xl border border-slate-200 hidden overflow-hidden"></div>
                         </div>
-                        <button type="button" onclick="abrirBuscaAvancada()" class="shrink-0 self-center h-14 px-3 sm:px-4 rounded-xl border-2 border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 text-[10px] sm:text-[11px] font-black uppercase text-slate-600 leading-tight max-w-[108px] sm:max-w-none inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5" title="Busca avançada — filtros por marca, fornecedor, categoria, etc. Atalho: Alt + A (fora de campos de texto).">
+                        <button type="button" onclick="abrirBuscaAvancada()" class="shrink-0 self-center h-12 px-2.5 sm:px-4 rounded-xl border-2 border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 text-[10px] sm:text-[11px] font-black uppercase text-slate-600 leading-tight max-w-[100px] sm:max-w-none inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5" title="Busca avançada — filtros por marca, fornecedor, categoria, etc. Atalho: Alt + A (fora de campos de texto).">
                             <span class="text-center leading-snug"><span class="block sm:inline">Busca </span><span class="block sm:inline text-[9px] text-slate-400 font-bold normal-case">avançada</span></span>
                             <kbd class="pointer-events-none hidden sm:inline-flex text-[9px] px-1.5 py-0.5 rounded-md font-black border border-slate-200 bg-white text-slate-500 whitespace-nowrap normal-case" title="Alt + A">Alt + A</kbd>
                         </button>
                     </div>
 
-                    <div id="pdv-top-vendidos-wrap" class="shrink-0 rounded-xl border border-orange-200/90 bg-gradient-to-r from-orange-50/95 to-amber-50/90 p-3 shadow-sm">
-                        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <div id="pdv-top-vendidos-wrap" class="shrink-0 rounded-xl border border-orange-200/90 bg-gradient-to-r from-orange-50/95 to-amber-50/90 p-2 sm:p-2.5 shadow-sm">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                             <button type="button" id="pdv-mv-toggle" class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-amber-900 bg-white/80 border border-amber-300/70 rounded-lg px-2 py-1 hover:bg-amber-100" title="Mostrar/ocultar atalhos rápidos">
                                 <span id="pdv-mv-toggle-icon" aria-hidden="true">▾</span>
                                 Produtos rápidos
@@ -579,9 +577,9 @@
                     <div id="status-busca" class="hidden text-xs font-black uppercase tracking-wider text-slate-500 px-1"></div>
 
                     <div class="flex-1 flex flex-col min-h-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div class="px-4 py-2.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 shrink-0 bg-slate-50/80">
+                        <div class="px-3 sm:px-4 py-2 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 shrink-0 bg-slate-50/80">
                             <h2 class="text-sm font-black uppercase tracking-wider text-slate-700">Produtos</h2>
-                            <span class="text-[10px] font-bold text-slate-400 uppercase cursor-help" title="↑↓ linha · Enter adiciona · duplo clique adiciona · lápis em C/V ajusta estoque (PIN) · Esc limpa busca.">↑↓ · Enter · 2× clique · ✎ · Esc</span>
+                            <span class="text-[10px] font-bold text-slate-500 tabular-nums cursor-help" title="↑↓ seleciona linha · Enter adiciona · duplo clique adiciona · lápis em C/V ajusta estoque (PIN) · Esc limpa busca.">↑↓ Enter · Esc</span>
                         </div>
                         <div id="area-resultados" class="flex-1 min-h-0 overflow-y-auto hide-scroll p-2 space-y-2">
                             <div id="produto-destaque" class="hidden"></div>
@@ -590,11 +588,11 @@
                     </div>
                 </div>
 
-                <aside class="w-[4.75rem] sm:w-[5.25rem] shrink-0 flex flex-col items-stretch gap-3 py-3 px-2 bg-white border border-slate-200 rounded-xl shadow-sm self-stretch min-h-0" aria-label="Atalho do carrinho">
-                    <button type="button" id="btn-abrir-carrinho-pdv" class="relative flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30 hover:from-orange-600 hover:to-orange-700 transition-all active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-orange-400/40" title="Abrir ou fechar carrinho (F1)">
-                        <kbd class="pointer-events-none absolute top-1 right-1 text-[7px] px-1 py-0.5 rounded font-black bg-white/20 text-white border border-white/30 tabular-nums" aria-hidden="true">F1</kbd>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm12 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" /></svg>
-                        <span id="itens-badge" class="cart-badge-empty px-1.5 py-1 rounded-md text-[10px] font-black flex flex-col items-center gap-0 leading-tight border border-white/25 bg-white/15 min-w-[2.25rem]"><span class="tabular-nums text-sm">0</span><span class="text-[7px] uppercase font-bold opacity-90">itens</span></span>
+                <aside class="w-[4.5rem] sm:w-[5rem] shrink-0 flex flex-col items-stretch gap-2 py-2 px-1.5 sm:px-2 bg-white border border-slate-200 rounded-xl shadow-sm self-stretch min-h-0" aria-label="Atalho do carrinho">
+                    <button type="button" id="btn-abrir-carrinho-pdv" class="relative flex flex-col items-center justify-center gap-1 p-2 sm:p-2.5 rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 text-white shadow-md shadow-orange-500/25 hover:from-orange-600 hover:to-orange-700 transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-orange-400/50" title="Abrir ou fechar carrinho (F1)">
+                        <kbd class="pointer-events-none absolute top-0.5 right-0.5 text-[7px] px-1 py-0.5 rounded font-black bg-white/20 text-white border border-white/30 tabular-nums" aria-hidden="true">F1</kbd>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 sm:w-7 sm:h-7 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm12 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" /></svg>
+                        <span id="itens-badge" class="cart-badge-empty px-1 py-0.5 rounded-md text-[9px] sm:text-[10px] font-black flex flex-col items-center gap-0 leading-tight border border-white/25 bg-white/15 min-w-[2rem] sm:min-w-[2.25rem]"><span class="tabular-nums text-xs sm:text-sm">0</span><span class="text-[7px] uppercase font-bold opacity-90">itens</span></span>
                     </button>
                     <div class="text-center px-0.5 flex-1 min-h-0 flex flex-col justify-end pb-1">
                         <div class="text-[8px] font-black uppercase text-slate-400 tracking-wider">Total</div>
@@ -3890,27 +3888,6 @@ function iniciarPollSaldosPdv() {
 
 /* Polling de saldo: intervalo 8s (PDV_POLL_SALDOS_MS). Sem poll extra ao voltar do Alt+Tab — evita sensação de reload. */
 
-document.getElementById('btn-atualizar-catalogo-pdv')?.addEventListener('click', () => {
-    const btn = document.getElementById('btn-atualizar-catalogo-pdv');
-    if (btn) {
-        btn.classList.add('opacity-40', 'pointer-events-none');
-    }
-    fetch('{% url "api_pdv_invalidar_catalogo" %}')
-        .then((r) => r.json())
-        .then(() => {
-            carregarBaseLocal();
-        })
-        .catch((e) => {
-            console.error(e);
-            carregarBaseLocal();
-        })
-        .finally(() => {
-            if (btn) {
-                setTimeout(() => btn.classList.remove('opacity-40', 'pointer-events-none'), 800);
-            }
-        });
-});
-
 function carregarBaseLocal() {
     const warmed = hidratarCatalogoPdvDoCache();
     if (!warmed) mostrarStatusBusca('Baixando produtos para memória local...', 'orange');
@@ -4093,7 +4070,6 @@ window.addEventListener('load', () => {
     });
   };
   guard([
-    '#btn-atualizar-catalogo-pdv',
     '#btn-pdv-orc-whatsapp',
     '#btn-pdv-entrega-whatsapp',
     '#btn-pdv-emitir-orc',
