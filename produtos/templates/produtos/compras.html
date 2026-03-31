@@ -7,6 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
   <style>
     body { font-family: 'Inter', sans-serif; }
     .hide-scroll::-webkit-scrollbar { display: none; }
@@ -115,7 +116,7 @@
           Histórico
           <kbd class="gm-kbd ml-1 border border-orange-200 bg-orange-50 text-orange-800 align-middle">F10</kbd>
         </button>
-        {% include "produtos/_pdv_voltar_link.html" with link_class="text-xs font-black uppercase bg-white shadow-sm px-3 py-2 rounded-xl border border-slate-200 text-slate-600 hover:border-orange-400 hover:text-orange-600 transition-colors shrink-0" %}
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-3 py-2 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-orange-400 hover:text-orange-600 transition-colors shrink-0" %}
         {% include "produtos/_barra_estoque_global.html" %}
       </div>
     </div>

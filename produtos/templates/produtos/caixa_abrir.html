@@ -6,14 +6,18 @@
   <title>Abrir caixa | Agro Mais</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
   <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
 {% include "produtos/_gm_loading_bar.html" %}
   <header class="border-b border-slate-200 bg-white shadow-sm">
-    <div class="max-w-lg mx-auto px-4 py-4 flex justify-between items-center">
+    <div class="max-w-lg mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-2">
       <h1 class="text-lg font-black uppercase text-slate-900">Abrir caixa</h1>
-      <a href="{% url 'caixa_painel' %}" class="text-xs font-black uppercase text-slate-600">Painel</a>
+      <div class="flex flex-wrap items-center gap-2">
+      <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">Painel</a>
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 shrink-0" %}
+      </div>
     </div>
   </header>
   <main class="max-w-lg mx-auto px-4 py-6 flex-1 min-h-0 overflow-y-auto">

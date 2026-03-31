@@ -7,6 +7,7 @@
   <title>Venda #{{ v.id }} | Agro Mais</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
   <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
@@ -20,9 +21,7 @@
         <a href="{% url 'vendas_lista' %}" class="text-xs font-black uppercase px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-700 transition-colors">
           Lista de vendas
         </a>
-        <a href="{% url 'consulta_produtos' %}" class="text-xs font-black uppercase bg-emerald-50 text-emerald-800 px-4 py-2.5 rounded-xl border border-emerald-200 hover:bg-emerald-100 transition-colors">
-          PDV
-        </a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-900 shadow-sm hover:bg-emerald-100 transition-colors shrink-0" %}
       </div>
     </div>
   </header>
