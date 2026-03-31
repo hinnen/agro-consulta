@@ -185,9 +185,7 @@ function iniciarPollSaldosMobile() {
   setTimeout(pollSaldosMobileUmaVez, 2500);
 }
 
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') pollSaldosMobileUmaVez();
-});
+/* Polling de saldo: intervalo 8s. Sem poll extra ao voltar do Alt+Tab. */
 
 window.addEventListener('load', () => {
   const listaDiv = document.getElementById('lista');

@@ -3,6 +3,11 @@
  * e atualização automática em standby (janela em segundo plano, Alt+Tab, ou inatividade).
  *
  * Cada página chama AgroEstoqueSync.mount({ onRefresh, ... }) após definir onRefresh.
+ *
+ * Tempos típicos (padrão):
+ * - Botão manual: imediato (+ latência de rede).
+ * - Auto em standby: após idleMs (padrão 45s) sem mouse/teclado/scroll + debounce 400ms.
+ * - Não dispara ao Alt+Tab / blur / aba oculta (evita “reload” visual ao voltar).
  */
 (function (global) {
   'use strict';
@@ -98,14 +103,6 @@
       document.addEventListener(ev, bumpIdle, { passive: true });
     });
     bumpIdle();
-
-    window.addEventListener('blur', function () {
-      scheduleAuto('blur');
-    });
-
-    document.addEventListener('visibilitychange', function () {
-      if (document.hidden) scheduleAuto('hidden');
-    });
 
     global.agroEstoqueSyncRefresh = function (reason) {
       return exec(reason || 'external');
