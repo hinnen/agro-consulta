@@ -2335,7 +2335,11 @@ document.addEventListener('keydown', (e) => {
 
 window.addEventListener('beforeunload', salvarEstadoTelaCompra);
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') salvarEstadoTelaCompra();
+  if (document.visibilityState === 'hidden') {
+    salvarEstadoTelaCompra();
+  }
+  // Evita efeito de "reload" ao voltar via Alt+Tab:
+  // ao retornar para aba visível, não dispara busca/re-render aqui.
 });
 document.querySelector('.scroll-compras-resultados .overflow-y-auto')?.addEventListener('scroll', agendarSalvarEstadoCompra, { passive: true });
 document.getElementById('carrinho')?.addEventListener('scroll', agendarSalvarEstadoCompra, { passive: true });

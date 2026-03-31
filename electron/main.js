@@ -5,7 +5,7 @@
  * disable-http-cache: cada recurso (HTML/JS/CSS) vem da rede — evita ficar preso em
  * versão antiga após deploy. (localStorage do PDV não é apagado por isso.)
  */
-const { app, BrowserWindow, session, globalShortcut } = require('electron');
+const { app, BrowserWindow, session, globalShortcut, shell } = require('electron');
 
 // Deve rodar antes de ready — desliga cache HTTP do Chromium neste app
 app.commandLine.appendSwitch('disable-http-cache');
@@ -76,7 +76,16 @@ async function createWindow() {
     console.error('Falha ao carregar URL:', target, err);
   }
 
-  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const u = new URL(url);
+      const isHttp = u.protocol === 'http:' || u.protocol === 'https:';
+      if (isHttp) {
+        void shell.openExternal(url);
+      }
+    } catch (_) {}
+    return { action: 'deny' };
+  });
 }
 
 function registerReloadShortcut() {

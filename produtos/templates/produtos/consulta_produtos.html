@@ -3861,9 +3861,7 @@ function iniciarPollSaldosPdv() {
     pdvPollSaldosTimer = setInterval(pollSaldoPdvUmaVez, PDV_POLL_SALDOS_MS);
 }
 
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') pollSaldoPdvUmaVez();
-});
+/* Polling de saldo: intervalo 8s (PDV_POLL_SALDOS_MS). Sem poll extra ao voltar do Alt+Tab — evita sensação de reload. */
 
 document.getElementById('btn-atualizar-catalogo-pdv')?.addEventListener('click', () => {
     const btn = document.getElementById('btn-atualizar-catalogo-pdv');
