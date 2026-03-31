@@ -52,6 +52,45 @@
       opacity: 0.92;
     }
     @media (min-width: 640px) { .gm-kbd { font-size: 10px; padding: 0.25rem 0.45rem; } }
+    @media (min-width: 1024px) {
+      #compra-main-shell { position: relative; }
+      #compra-main-conteudo { padding-right: calc(min(380px, 34vw) + 0.75rem); }
+      #compra-aside-lista {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: min(380px, 34vw);
+        min-width: 340px;
+        height: 100%;
+        transition: width 180ms ease;
+        overflow: visible;
+      }
+      #compra-main-shell.aside-collapsed #compra-main-conteudo { padding-right: 3.4rem; }
+      #compra-aside-lista.is-collapsed {
+        width: 2.9rem !important;
+        min-width: 2.9rem !important;
+        background: linear-gradient(180deg, #fb923c 0%, #f97316 100%);
+        border-left: 2px solid #059669;
+        border-radius: 0.9rem 0 0 0.9rem;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25), 0 10px 24px rgba(234,88,12,0.28);
+      }
+      #compra-aside-panel {
+        transition: opacity 140ms ease;
+      }
+      #compra-aside-lista.is-collapsed #compra-aside-panel {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #btn-compra-toggle-carrinho {
+        width: 2.9rem;
+        height: 7.4rem;
+        border-radius: 0.95rem 0 0 0.95rem;
+        top: 0.65rem;
+        left: -2.9rem;
+        box-shadow: 0 10px 24px rgba(234, 88, 12, 0.35);
+        border-left: 4px solid #059669;
+      }
+    }
   </style>
 </head>
 <body class="h-screen overflow-hidden bg-slate-50 text-slate-800 flex flex-col">
@@ -82,9 +121,9 @@
     </div>
   </header>
 
-  <div class="flex-1 min-h-0 flex flex-col w-full max-w-[1700px] mx-auto px-3 sm:px-4 pt-3 pb-3 gap-3">
-    <main class="flex-1 min-h-0 flex flex-col lg:flex-row gap-3 min-h-0 overflow-hidden" aria-label="Pedido de compra">
-      <div class="order-2 lg:order-none flex-1 min-h-0 flex flex-col gap-2 min-w-0 min-h-[min(36vh,260px)] lg:min-h-0 overflow-hidden">
+  <div class="flex-1 min-h-0 w-full max-w-[1700px] mx-auto px-3 sm:px-4 pt-3 pb-3 gap-3 flex flex-col overflow-hidden">
+    <main id="compra-main-shell" class="flex-1 min-h-0 flex flex-col lg:flex-row lg:items-stretch gap-3 overflow-visible" aria-label="Pedido de compra">
+      <div id="compra-main-conteudo" class="order-2 lg:order-none flex-1 lg:basis-0 min-h-0 h-full flex flex-col gap-2 min-w-0 min-h-[min(36vh,260px)] lg:min-h-0 overflow-hidden">
         <div class="shrink-0 flex flex-col gap-2 min-w-0 relative z-10">
           <div class="rounded-2xl border border-slate-200 bg-white shadow-sm p-2.5 sm:p-3">
             <label for="busca" class="sr-only">Buscar produto</label>
@@ -102,9 +141,9 @@
           </div>
         <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
           <div class="flex flex-wrap items-center gap-2 px-3 py-2 sm:py-2.5 bg-gradient-to-r from-orange-50/90 to-slate-50/90 border-b border-slate-100">
-            <button type="button" id="btn-compra-toggle-gaveta" class="inline-flex items-center gap-2 rounded-xl border-2 border-orange-200 bg-white px-3 py-2 sm:py-2.5 text-left shadow-sm hover:bg-orange-50/80 hover:border-orange-400 transition-colors min-h-[44px]" aria-expanded="true" aria-controls="compra-gaveta-body" title="Abre ou fecha filtros avançados, alertas de estoque e período da média">
-              <span id="compra-gaveta-icon" class="text-slate-600 font-black text-sm w-5 text-center" aria-hidden="true">▾</span>
-              <span class="text-[11px] sm:text-xs font-black uppercase text-slate-800 tracking-wide">Filtros e alertas</span>
+            <button type="button" id="btn-compra-toggle-gaveta" class="inline-flex items-center gap-2 rounded-xl border-2 border-orange-500 bg-orange-500 px-3 py-2 sm:py-2.5 text-left shadow-sm hover:bg-orange-600 hover:border-orange-600 transition-colors min-h-[44px]" aria-expanded="true" aria-controls="compra-gaveta-body" title="Abre ou fecha filtros avançados, alertas de estoque e período da média">
+              <span id="compra-gaveta-icon" class="text-white font-black text-sm w-5 text-center" aria-hidden="true">▾</span>
+              <span class="text-[11px] sm:text-xs font-black uppercase text-white tracking-wide">Filtros e alertas</span>
             </button>
             <span id="compra-gaveta-resumo" class="text-[10px] sm:text-[11px] font-bold text-slate-600 min-w-0 flex-1 text-right leading-tight truncate"></span>
           </div>
@@ -151,17 +190,14 @@
             </span>
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Enter adiciona · <kbd class="gm-kbd align-middle border border-slate-200 bg-slate-100 text-slate-600">F5</kbd> médias</span>
           </div>
-<<<<<<< HEAD
           <div id="compra-loading-tip" class="hidden rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] font-bold text-sky-900">
             Atualizando resultados online...
-=======
->>>>>>> 1570953 (resgata alteracoes feitas no worktree qeq)
           </div>
         </div>
         </div>
         <div class="scroll-compras-resultados flex-1 min-h-0 min-w-0 flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden relative z-0">
           <div id="compra-resultados-colheader" class="hidden shrink-0 border-b border-slate-200 bg-slate-100 px-3 pt-2 pb-0" aria-hidden="true"></div>
-          <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pb-3 pt-2">
+          <div id="compra-resultados-scroll" class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pb-3 pt-2">
             <div id="resultados" class="flex flex-col gap-1 min-h-0 min-w-0">
               <div class="text-slate-400 py-12 text-center font-bold text-sm rounded-xl border border-dashed border-slate-200 bg-slate-50/80">Carregando produtos…</div>
             </div>
@@ -169,8 +205,13 @@
         </div>
       </div>
 
-      <aside class="order-1 lg:order-none w-full lg:w-[min(380px,34vw)] flex flex-[1.15] min-h-0 flex-col lg:flex-none lg:self-stretch" aria-label="Lista de pedido">
-        <div class="flex flex-col flex-1 min-h-0 h-full min-h-[min(220px,38dvh)] lg:min-h-0 rounded-2xl shadow-sm border border-slate-200 bg-white overflow-hidden">
+      <aside id="compra-aside-lista" class="order-1 lg:order-none w-full lg:w-[360px] lg:min-w-[340px] lg:max-w-[380px] lg:shrink-0 shrink-0 min-h-0 flex flex-col" aria-label="Lista de pedido">
+        <button type="button" id="btn-compra-toggle-carrinho" class="hidden lg:inline-flex absolute flex-col items-center justify-center gap-1 border border-orange-300 bg-gradient-to-b from-orange-400 via-orange-500 to-orange-600 text-white shadow-md hover:from-orange-500 hover:via-orange-600 hover:to-orange-700 z-20" title="Expandir/retrair carrinho" aria-label="Expandir ou retrair carrinho">
+          <span class="text-xl leading-none drop-shadow-sm" aria-hidden="true">🛒</span>
+          <span class="text-[8px] font-black tracking-wide uppercase leading-none text-white/95">Itens</span>
+          <span id="compra-carrinho-badge-mini" class="text-[10px] font-black uppercase rounded-md bg-white/25 px-1.5 py-0.5 tabular-nums border border-white/30">0</span>
+        </button>
+        <div id="compra-aside-panel" class="flex flex-col min-h-[240px] lg:min-h-0 lg:h-full rounded-2xl shadow-sm border border-slate-200 bg-white overflow-hidden">
           <div class="shrink-0 px-2.5 py-2 sm:px-3 border-b border-slate-100 flex flex-wrap items-center gap-x-2 gap-y-1">
             <h3 class="text-orange-600 font-black uppercase text-[10px] sm:text-xs tracking-wide">Lista</h3>
             <span id="itens-badge" class="bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-black tabular-nums">0 itens</span>
@@ -295,6 +336,110 @@ let compraDiasMediaVendas = 30;
 let compraFiltroAlerta = 'ZERADO';
 const LS_COMPRA_OCULTOS = 'compra_produtos_ocultos_v1';
 let compraIdsOcultos = new Set();
+const COMPRA_UI_STATE_KEY = 'gm_compra_ui_state_v1';
+let compraSalvarEstadoTimer = null;
+let compraBuscaRestauradaInicial = '';
+let compraScrollRestaurado = true;
+let compraPermitirAutoScrollSelecao = true;
+let compraCarrinhoExpandido = false;
+let compraPreservarScrollAteMs = 0;
+let compraScrollTopPreservado = null;
+
+function focoBuscaCompra(opts = {}) {
+  const el = document.getElementById('busca');
+  if (!el) return;
+  const active = document.activeElement;
+  const permitirSobreInput = !!opts.force;
+  const modalAberta = comprasModalBuscaAberta() || comprasModalHistoricoAberta();
+  if (modalAberta) return;
+  if (
+    !permitirSobreInput &&
+    active &&
+    (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable)
+  ) {
+    return;
+  }
+  requestAnimationFrame(() => {
+    el.focus({ preventScroll: true });
+    try {
+      const fim = String(el.value || '').length;
+      el.setSelectionRange(fim, fim);
+    } catch (_) {}
+  });
+}
+
+function agendarSalvarEstadoCompra() {
+  clearTimeout(compraSalvarEstadoTimer);
+  compraSalvarEstadoTimer = setTimeout(salvarEstadoTelaCompra, 120);
+}
+
+function salvarEstadoTelaCompra() {
+  try {
+    const buscaEl = document.getElementById('busca');
+    const resultadosWrap = document.querySelector('.scroll-compras-resultados .overflow-y-auto');
+    const carrinhoEl = document.getElementById('carrinho');
+    const bodyGaveta = document.getElementById('compra-gaveta-body');
+    const estado = {
+      busca: buscaEl ? String(buscaEl.value || '') : '',
+      filtroAlerta: compraFiltroAlerta,
+      gavetaAberta: bodyGaveta ? !bodyGaveta.classList.contains('hidden') : true,
+      lista: Array.isArray(lista) ? lista : [],
+      scrollResultados: resultadosWrap ? Number(resultadosWrap.scrollTop || 0) : 0,
+      scrollCarrinho: carrinhoEl ? Number(carrinhoEl.scrollTop || 0) : 0,
+      carrinhoExpandido: !!compraCarrinhoExpandido,
+      ts: Date.now(),
+    };
+    sessionStorage.setItem(COMPRA_UI_STATE_KEY, JSON.stringify(estado));
+  } catch (_) {}
+}
+
+function restaurarEstadoTelaCompra() {
+  try {
+    const raw = sessionStorage.getItem(COMPRA_UI_STATE_KEY);
+    if (!raw) return;
+    const estado = JSON.parse(raw);
+    if (!estado || typeof estado !== 'object') return;
+
+    if (Array.isArray(estado.lista)) {
+      lista = estado.lista.map((i) => ({
+        id: String(i.id || ''),
+        nome: String(i.nome || ''),
+        precoFinal: Number(i.precoFinal || 0),
+        qtd: Math.max(0, Number(i.qtd || 0)),
+      })).filter((i) => i.id && i.nome && i.qtd > 0);
+      atualizarCarrinho();
+    }
+
+    if (typeof estado.filtroAlerta === 'string' && ['TODOS', 'ZERADO', 'LARANJA', 'AMARELO', 'RISCO', 'OCULTOS'].includes(estado.filtroAlerta)) {
+      compraFiltroAlerta = estado.filtroAlerta;
+      atualizarBotoesFiltroAlertaCompra();
+      atualizarIndicadorCompraAlerta();
+    }
+
+    if (typeof estado.gavetaAberta === 'boolean') {
+      compraAplicarEstadoGaveta(estado.gavetaAberta);
+    }
+    if (typeof estado.carrinhoExpandido === 'boolean') {
+      compraCarrinhoExpandido = estado.carrinhoExpandido;
+    }
+
+    const buscaEl = document.getElementById('busca');
+    if (buscaEl && typeof estado.busca === 'string') {
+      buscaEl.value = estado.busca;
+      compraBuscaRestauradaInicial = estado.busca;
+    }
+
+    const scrollResultados = Number(estado.scrollResultados || 0);
+    const scrollCarrinho = Number(estado.scrollCarrinho || 0);
+    requestAnimationFrame(() => {
+      const resultadosWrap = document.querySelector('.scroll-compras-resultados .overflow-y-auto');
+      const carrinhoEl = document.getElementById('carrinho');
+      if (resultadosWrap) resultadosWrap.scrollTop = Math.max(0, scrollResultados);
+      if (carrinhoEl) carrinhoEl.scrollTop = Math.max(0, scrollCarrinho);
+      compraScrollRestaurado = true;
+    });
+  } catch (_) {}
+}
 
 function carregarCompraOcultos() {
   try {
@@ -321,6 +466,7 @@ function compraOcultarItem(id) {
   salvarCompraOcultos();
   atualizarIndicadorCompraAlerta();
   buscar(document.getElementById('busca').value);
+  focoBuscaCompra();
 }
 
 function compraRestaurarItem(id) {
@@ -328,6 +474,7 @@ function compraRestaurarItem(id) {
   salvarCompraOcultos();
   atualizarIndicadorCompraAlerta();
   buscar(document.getElementById('busca').value);
+  focoBuscaCompra();
 }
 
 /** Um botão por card: escolhe Centro ou Vila e chama o fluxo existente de PIN. */
@@ -475,7 +622,7 @@ function aplicarSaldosNaBaseCompra(rows) {
     (normalizarBuscaLocal(inp.value).length >= 2 ||
       compraFiltroAlerta !== 'TODOS')
   ) {
-    buscar(inp.value);
+    withPreservedResultadosScroll(() => buscar(inp.value));
   }
   atualizarIndicadorCompraAlerta();
   return true;
@@ -531,7 +678,7 @@ function carregarMetricasCompra() {
           compraPoolAvancado !== null ||
           compraFiltroAlerta !== 'TODOS')
       ) {
-        buscar(inp.value);
+        withPreservedResultadosScroll(() => buscar(inp.value));
       }
     })
     .catch(() => {})
@@ -841,7 +988,7 @@ function renderizarListaResultadosCompra(resultados) {
           <div class="px-3 pt-3 pb-2 flex flex-wrap gap-2 justify-between items-center border-b border-slate-100/80 bg-white/80">
             <span class="text-[10px] font-black uppercase text-slate-500">Detalhe do produto</span>
             <button type="button" class="inline-flex items-center gap-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-black uppercase tracking-wide px-4 py-2.5 shadow-sm min-h-[44px]"
-              onclick="adicionarProdutoResultadoCompra(${idx}); event.stopPropagation();">Adicionar ao pedido</button>
+              onclick="adicionarProdutoResultadoCompra(${idx}, event);">Adicionar ao pedido</button>
           </div>
           <div class="p-3 sm:p-3.5">
       <div class="compra-card bg-white p-3 sm:p-3.5 rounded-2xl border ${barraAlerta ? barraAlerta + ' border-slate-200' : 'border-slate-200'} grid grid-cols-1 sm:grid-cols-[minmax(0,1.62fr)_minmax(0,1.18fr)_minmax(8rem,0.82fr)] gap-2.5 sm:gap-3 items-stretch">
@@ -921,6 +1068,12 @@ function renderizarListaResultadosCompra(resultados) {
   ultimosResultadosCompra = resultados;
   indiceSelecionadoCompra = resultados.length ? 0 : -1;
   requestAnimationFrame(() => destacarLinhaCompra());
+  if (Date.now() < compraPreservarScrollAteMs && compraScrollTopPreservado !== null) {
+    requestAnimationFrame(() => {
+      const sc = getResultadosScrollEl();
+      if (sc) sc.scrollTop = compraScrollTopPreservado;
+    });
+  }
 }
 
 function mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados) {
@@ -938,6 +1091,7 @@ function mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados) {
 
   const to = String(termoOriginal || '').trim();
   if (to.length < 2) {
+    if (tip) tip.classList.add('hidden');
     return;
   }
 
@@ -1002,10 +1156,12 @@ function atualizarCarrinho() {
   }
 
   let soma = 0;
+  let qtdTotal = 0;
 
   lista.forEach((item, idx) => {
     const subtotal = Number(item.qtd) * Number(item.precoFinal);
     soma += subtotal;
+    qtdTotal += Number(item.qtd || 0);
 
     const row = document.createElement('div');
     row.className = 'border border-slate-200 rounded-lg p-2 sm:p-2.5 bg-slate-50/50';
@@ -1017,46 +1173,102 @@ function atualizarCarrinho() {
         </div>
         <button type="button" onclick="removerItem(${idx})" class="text-red-500 hover:text-red-700 font-black text-xs shrink-0 px-1" aria-label="Remover">✕</button>
       </div>
+      <div class="mt-1.5 flex items-center justify-end gap-1.5">
+        <button type="button" onclick="alterarQtdItem(${idx}, -1)" class="h-7 w-7 rounded-md border border-slate-300 bg-white text-slate-700 font-black hover:bg-slate-100" aria-label="Diminuir quantidade">−</button>
+        <input
+          type="number"
+          min="0"
+          step="0.1"
+          value="${Number(item.qtd || 0)}"
+          oninput="setQtdItem(${idx}, this.value)"
+          class="w-16 h-7 text-center rounded-md border border-slate-300 text-xs font-black text-slate-800 bg-white outline-none focus:border-orange-400"
+          title="Quantidade"
+        >
+        <button type="button" onclick="alterarQtdItem(${idx}, 1)" class="h-7 w-7 rounded-md border border-emerald-300 bg-emerald-50 text-emerald-700 font-black hover:bg-emerald-100" aria-label="Aumentar quantidade">+</button>
+      </div>
       <div class="text-right text-xs sm:text-sm font-black text-emerald-600 mt-1 tabular-nums">${formatarMoeda(subtotal)}</div>
     `;
     carrinho.appendChild(row);
   });
 
-  badge.textContent = `${lista.length} ${lista.length === 1 ? 'item' : 'itens'}`;
+  const itensDistintos = lista.length;
+  const qtdFmt = qtdTotal.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+  badge.textContent = `${itensDistintos} ${itensDistintos === 1 ? 'item' : 'itens'} · qtd ${qtdFmt}`;
+  badge.title = `Itens distintos: ${itensDistintos} | Quantidade total: ${qtdFmt}`;
   total.textContent = formatarMoeda(soma);
+  const mini = document.getElementById('compra-carrinho-badge-mini');
+  if (mini) mini.textContent = `${itensDistintos}/${qtdFmt}`;
+  if (lista.length > 0 && compraEhDesktop()) {
+    setCarrinhoExpandido(true, { silentSave: true });
+  }
 }
 
 function add(id, nome, precoFinal) {
-  const existente = lista.find(i => i.id === id);
+  const pid = String(id);
+  const existente = lista.find(i => String(i.id) === pid);
   const pf = Number(precoFinal || 0);
 
   if (existente) {
     existente.qtd += 1;
   } else {
     lista.push({
-      id,
+      id: pid,
       nome,
       precoFinal: pf,
       qtd: 1
     });
   }
 
-  frequenciaUso[id] = (frequenciaUso[id] || 0) + 1;
+  frequenciaUso[pid] = (frequenciaUso[pid] || 0) + 1;
   try {
     localStorage.setItem('freqProdutos', JSON.stringify(frequenciaUso));
   } catch (_) {}
 
   atualizarCarrinho();
+  setCarrinhoExpandido(true, { silentSave: true });
+  agendarSalvarEstadoCompra();
+  focoBuscaCompra();
 }
 
 function removerItem(idx) {
   lista.splice(idx, 1);
   atualizarCarrinho();
+  agendarSalvarEstadoCompra();
+  focoBuscaCompra();
+}
+
+function alterarQtdItem(idx, delta) {
+  const it = lista[idx];
+  if (!it) return;
+  const nv = Number(it.qtd || 0) + Number(delta || 0);
+  if (nv <= 0) {
+    removerItem(idx);
+    return;
+  }
+  it.qtd = nv;
+  atualizarCarrinho();
+  agendarSalvarEstadoCompra();
+}
+
+function setQtdItem(idx, valor) {
+  const it = lista[idx];
+  if (!it) return;
+  const nv = Number(valor);
+  if (!Number.isFinite(nv) || nv < 0) return;
+  if (nv === 0) {
+    removerItem(idx);
+    return;
+  }
+  it.qtd = nv;
+  atualizarCarrinho();
+  agendarSalvarEstadoCompra();
 }
 
 function limpar() {
   lista = [];
   atualizarCarrinho();
+  agendarSalvarEstadoCompra();
+  focoBuscaCompra();
 }
 
 function abrirAjuste(id, nome, saldoAtual, codigo, deposito) {
@@ -1337,7 +1549,11 @@ function setCompraFiltroAlerta(novo) {
   } catch (_) {}
   atualizarBotoesFiltroAlertaCompra();
   atualizarIndicadorCompraAlerta();
+  compraAplicarEstadoGaveta(false);
+  ajustarAlturaResultadosCompra();
   buscar(document.getElementById('busca').value);
+  agendarSalvarEstadoCompra();
+  focoBuscaCompra();
 }
 
 function initCompraFiltroAlertaUi() {
@@ -1364,9 +1580,7 @@ function compraAtualizarResumoGaveta() {
     OCULTOS: 'Ocultos',
   };
   const nome = nomes[compraFiltroAlerta] || compraFiltroAlerta;
-  const ind = document.getElementById('compra-indicador-alerta');
-  const extra = ind ? String(ind.innerText || '').replace(/\s+/g, ' ').trim() : '';
-  el.textContent = extra ? `${nome} · ${extra}` : nome;
+  el.textContent = nome;
 }
 
 function compraAplicarEstadoGaveta(abrir) {
@@ -1387,17 +1601,15 @@ function compraAplicarEstadoGaveta(abrir) {
     localStorage.setItem(LS_COMPRA_GAVETA_ABERTA, abrir ? '1' : '0');
   } catch (_) {}
   compraAtualizarResumoGaveta();
+  setTimeout(ajustarAlturaResultadosCompra, 0);
+  agendarSalvarEstadoCompra();
 }
 
 function initCompraGavetaFiltros() {
   const btn = document.getElementById('btn-compra-toggle-gaveta');
   const body = document.getElementById('compra-gaveta-body');
   if (!btn || !body) return;
-  let abrir = true;
-  try {
-    abrir = localStorage.getItem(LS_COMPRA_GAVETA_ABERTA) !== '0';
-  } catch (_) {}
-  compraAplicarEstadoGaveta(abrir);
+  compraAplicarEstadoGaveta(false);
   btn.addEventListener('click', function () {
     const fechada = body.classList.contains('hidden');
     compraAplicarEstadoGaveta(fechada);
@@ -1458,6 +1670,7 @@ function fecharHistoricoCompraModal() {
   if (!m) return;
   m.classList.add('hidden');
   m.classList.remove('flex');
+  focoBuscaCompra({ force: true });
 }
 
 function comprasModalHistoricoAberta() {
@@ -1470,6 +1683,7 @@ function fecharBuscaAvancadaCompra() {
   if (!m) return;
   m.classList.add('hidden');
   m.classList.remove('flex');
+  focoBuscaCompra({ force: true });
 }
 
 function preencherSelectCompraAvancadaDimensao() {
@@ -1528,6 +1742,7 @@ function aplicarBuscaAvancadaCompra() {
   fecharBuscaAvancadaCompra();
   const inp = document.getElementById('busca');
   buscar(inp ? inp.value : '');
+  focoBuscaCompra();
 }
 
 function limparFiltroAvancadoCompra() {
@@ -1536,6 +1751,7 @@ function limparFiltroAvancadoCompra() {
   atualizarBannerFiltroCompra();
   const inp = document.getElementById('busca');
   buscar(inp ? inp.value : '');
+  focoBuscaCompra();
 }
 
 function renderListaBuscaAvancadaCompra() {
@@ -1770,10 +1986,59 @@ function destacarLinhaCompra() {
   const sel = document.querySelector(
     '#resultados .compra-item-wrap[data-compra-idx="' + indiceSelecionadoCompra + '"] .compra-linha'
   );
-  if (sel) sel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  if (sel && compraPermitirAutoScrollSelecao) sel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
-function adicionarProdutoResultadoCompra(idx) {
+function getResultadosScrollEl() {
+  return document.getElementById('compra-resultados-scroll');
+}
+
+function withPreservedResultadosScroll(fn) {
+  const el = getResultadosScrollEl();
+  const top = el ? el.scrollTop : 0;
+  const prev = compraPermitirAutoScrollSelecao;
+  compraScrollTopPreservado = top;
+  compraPreservarScrollAteMs = Date.now() + 2500;
+  compraPermitirAutoScrollSelecao = false;
+  try {
+    fn();
+  } finally {
+    requestAnimationFrame(() => {
+      if (el) el.scrollTop = top;
+    });
+    setTimeout(() => {
+      compraPermitirAutoScrollSelecao = prev;
+      compraPreservarScrollAteMs = 0;
+      compraScrollTopPreservado = null;
+    }, 2600);
+  }
+}
+
+function compraEhDesktop() {
+  return window.matchMedia('(min-width: 1024px)').matches;
+}
+
+function setCarrinhoExpandido(abrir, opts = {}) {
+  compraCarrinhoExpandido = !!abrir;
+  const aside = document.getElementById('compra-aside-lista');
+  const shell = document.getElementById('compra-main-shell');
+  const btn = document.getElementById('btn-compra-toggle-carrinho');
+  if (aside && shell && compraEhDesktop()) {
+    aside.classList.toggle('is-collapsed', !compraCarrinhoExpandido);
+    shell.classList.toggle('aside-collapsed', !compraCarrinhoExpandido);
+  } else if (aside && shell) {
+    aside.classList.remove('is-collapsed');
+    shell.classList.remove('aside-collapsed');
+  }
+  if (btn) {
+    btn.title = compraCarrinhoExpandido ? 'Recolher carrinho' : 'Abrir carrinho';
+    btn.setAttribute('aria-label', compraCarrinhoExpandido ? 'Recolher carrinho' : 'Abrir carrinho');
+  }
+  if (!opts.silentSave) agendarSalvarEstadoCompra();
+}
+
+function adicionarProdutoResultadoCompra(idx, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
   const p = ultimosResultadosCompra[idx];
   if (!p) return;
   const nomeReal = p.nome || 'PRODUTO SEM NOME';
@@ -1786,11 +2051,12 @@ function buscar(q) {
   const termoOriginal = String(q || '').trim();
   const termoN = normalizarBuscaLocal(termoOriginal);
   const fonte = compraPoolAvancado !== null ? compraPoolAvancado : baseProdutos;
+  const filtroEfetivo = termoN.length >= 1 ? 'TODOS' : compraFiltroAlerta;
 
   atualizarIndicadorCompraAlerta();
 
   const precisaTexto =
-    compraFiltroAlerta === 'TODOS' && compraPoolAvancado === null;
+    filtroEfetivo === 'TODOS' && compraPoolAvancado === null;
 
   if (termoN.length < 2 && compraPoolAvancado === null && precisaTexto) {
     ultimosResultadosCompra = [];
@@ -1813,18 +2079,18 @@ function buscar(q) {
   if (termoN.length >= 2) {
     candidatos = filtrarProdutosBuscaInteligente(fonte, termoN, 'normal');
     candidatos = candidatos.filter((p) => !ehProdutoGranelCompra(p));
-    if (compraFiltroAlerta === 'OCULTOS') {
+    if (filtroEfetivo === 'OCULTOS') {
       candidatos = candidatos.filter((p) => produtoEstaOcultoCompra(p.id));
     } else {
       candidatos = candidatos.filter((p) => !produtoEstaOcultoCompra(p.id));
-      if (compraFiltroAlerta !== 'TODOS') {
+      if (filtroEfetivo !== 'TODOS') {
         candidatos = candidatos.filter((p) =>
-          produtoPassaFiltroAlertaCompra(p, compraFiltroAlerta)
+          produtoPassaFiltroAlertaCompra(p, filtroEfetivo)
         );
       }
     }
-  } else if (compraPoolAvancado === null && compraFiltroAlerta !== 'TODOS') {
-    if (compraFiltroAlerta === 'OCULTOS') {
+  } else if (compraPoolAvancado === null && filtroEfetivo !== 'TODOS') {
+    if (filtroEfetivo === 'OCULTOS') {
       candidatos = fonte.filter(
         (p) => !ehProdutoGranelCompra(p) && produtoEstaOcultoCompra(p.id)
       );
@@ -1832,28 +2098,28 @@ function buscar(q) {
       candidatos = fonte.filter(
         (p) =>
           !ehProdutoGranelCompra(p) &&
-          produtoPassaFiltroAlertaCompra(p, compraFiltroAlerta) &&
+          produtoPassaFiltroAlertaCompra(p, filtroEfetivo) &&
           !produtoEstaOcultoCompra(p.id)
       );
     }
   } else if (compraPoolAvancado !== null) {
     candidatos = fonte.filter((p) => !ehProdutoGranelCompra(p));
-    if (compraFiltroAlerta === 'OCULTOS') {
+    if (filtroEfetivo === 'OCULTOS') {
       candidatos = candidatos.filter((p) => produtoEstaOcultoCompra(p.id));
     } else {
       candidatos = candidatos.filter((p) => !produtoEstaOcultoCompra(p.id));
-      if (compraFiltroAlerta !== 'TODOS') {
+      if (filtroEfetivo !== 'TODOS') {
         candidatos = candidatos.filter((p) =>
-          produtoPassaFiltroAlertaCompra(p, compraFiltroAlerta)
+          produtoPassaFiltroAlertaCompra(p, filtroEfetivo)
         );
       }
     }
   }
 
   const locaisOrdenados =
-    compraFiltroAlerta === 'TODOS'
+    filtroEfetivo === 'TODOS'
       ? ordenarSugestoesPdv(candidatos)
-      : compraFiltroAlerta === 'OCULTOS'
+      : filtroEfetivo === 'OCULTOS'
         ? ordenarSugestoesPdv(candidatos)
         : ordenarResultadosCompra(candidatos);
 
@@ -1866,8 +2132,8 @@ function buscar(q) {
         'Nenhum produto no conjunto do filtro avançado. Ajuste os filtros ou clique em Limpar filtro.';
     } else if (compraPoolAvancado !== null) {
       msg = `Nenhum resultado para "${escapeHtml(termoOriginal)}" dentro do filtro avançado.`;
-    } else if (termoN.length < 2 && compraFiltroAlerta !== 'TODOS') {
-      msg = mensagemListaCompraVazia(compraFiltroAlerta);
+    } else if (termoN.length < 2 && filtroEfetivo !== 'TODOS') {
+      msg = mensagemListaCompraVazia(filtroEfetivo);
     } else {
       msg = `Nenhum produto encontrado para "${escapeHtml(termoOriginal)}".`;
     }
@@ -1877,6 +2143,7 @@ function buscar(q) {
   }
 
   mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados);
+  agendarSalvarEstadoCompra();
 }
 
 function formatarTextoFornecedor() {
@@ -1924,18 +2191,24 @@ function initPainelFornecedorCompra() {
 function copiarLista() {
   if (!lista.length) return alert("A lista está vazia!");
   const texto = formatarTextoFornecedor();
-  navigator.clipboard.writeText(texto).then(() => alert("Lista copiada com sucesso!"));
+  navigator.clipboard.writeText(texto).then(() => {
+    alert("Lista copiada com sucesso!");
+    focoBuscaCompra();
+  });
 }
 
 function enviarWhatsapp() {
   if (!lista.length) return alert("A lista está vazia!");
   window.open(`https://wa.me/?text=${encodeURIComponent(formatarTextoFornecedor())}`, '_blank');
+  focoBuscaCompra();
 }
 
 document.getElementById('busca').addEventListener('input', (e) => {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => buscar(e.target.value), 150);
+  agendarSalvarEstadoCompra();
 });
+document.getElementById('busca')?.addEventListener('focus', () => {});
 
 document.getElementById('busca').addEventListener('keydown', (e) => {
   if (!ultimosResultadosCompra.length) return;
@@ -1961,6 +2234,12 @@ initPainelFornecedorCompra();
 initCompraDiasMediaVendasUi();
 initCompraFiltroAlertaUi();
 initCompraGavetaFiltros();
+restaurarEstadoTelaCompra();
+setCarrinhoExpandido(compraCarrinhoExpandido && lista.length > 0, { silentSave: true });
+document.getElementById('btn-compra-toggle-carrinho')?.addEventListener('click', () => {
+  setCarrinhoExpandido(!compraCarrinhoExpandido);
+});
+document.addEventListener('click', () => {});
 
 document.getElementById('ca-dimensao')?.addEventListener('change', () => preencherSelectCompraAvancadaDimensao());
 document.getElementById('btn-busca-avancada-compra')?.addEventListener('click', () => abrirBuscaAvancadaCompra());
@@ -2053,6 +2332,46 @@ document.addEventListener('keydown', (e) => {
     document.getElementById('busca')?.focus();
   }
 });
+
+window.addEventListener('beforeunload', salvarEstadoTelaCompra);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') salvarEstadoTelaCompra();
+});
+document.querySelector('.scroll-compras-resultados .overflow-y-auto')?.addEventListener('scroll', agendarSalvarEstadoCompra, { passive: true });
+document.getElementById('carrinho')?.addEventListener('scroll', agendarSalvarEstadoCompra, { passive: true });
+function ajustarAlturaResultadosCompra() {
+  const sc = document.getElementById('compra-resultados-scroll');
+  if (!sc) return;
+  const top = sc.getBoundingClientRect().top;
+  const viewport = window.innerHeight || document.documentElement.clientHeight || 900;
+  const target = Math.max(220, Math.floor(viewport - top - 12));
+  sc.style.height = target + 'px';
+  sc.style.maxHeight = target + 'px';
+}
+
+function bindWheelResultadosCompra() {
+  const el = document.getElementById('compra-resultados-scroll');
+  if (!el || el.dataset.wheelBound === '1') return;
+  el.dataset.wheelBound = '1';
+  el.addEventListener('wheel', (e) => {
+    if (el.scrollHeight <= el.clientHeight) return;
+    e.preventDefault();
+    el.scrollTop += e.deltaY;
+  }, { passive: false });
+}
+
+window.addEventListener('load', () => {
+  ajustarAlturaResultadosCompra();
+  bindWheelResultadosCompra();
+  if (compraBuscaRestauradaInicial && String(compraBuscaRestauradaInicial).trim().length >= 2) {
+    buscar(compraBuscaRestauradaInicial);
+  } else if (compraFiltroAlerta !== 'TODOS') {
+    buscar(document.getElementById('busca')?.value || '');
+  }
+});
+window.addEventListener('resize', ajustarAlturaResultadosCompra);
+document.getElementById('busca')?.addEventListener('focus', () => setTimeout(ajustarAlturaResultadosCompra, 0));
+window.addEventListener('resize', () => setCarrinhoExpandido(compraCarrinhoExpandido, { silentSave: true }));
 </script>
 {% include "produtos/_screensaver_pin.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
