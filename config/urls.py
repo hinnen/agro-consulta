@@ -1,8 +1,16 @@
 from django.contrib import admin
+from django.http import HttpResponse
 from django.urls import path, include
 from estoque import views as estoque_views
 
+
+def healthz(_request):
+    """Resposta mínima para health check do Render (evita GET / pesado no cold start)."""
+    return HttpResponse("ok", content_type="text/plain; charset=utf-8")
+
+
 urlpatterns = [
+    path("healthz", healthz, name="healthz"),
     # O include já vai tratar a rota vazia se ela estiver no produtos/urls.py
     path('', include('produtos.urls')), 
     path('admin/', admin.site.urls),
