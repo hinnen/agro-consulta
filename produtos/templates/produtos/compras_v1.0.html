@@ -11,6 +11,7 @@
   </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 p-4">
+{% include "produtos/_gm_loading_bar.html" %}
 
   <div class="max-w-6xl mx-auto flex justify-between items-center mb-6">
     <h1 class="text-2xl font-black italic uppercase tracking-tighter">
@@ -175,6 +176,7 @@ function abrirAjuste(id, nome, saldoAtual, codigo, deposito) {
   fd.append('pin', pin);
   fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
   fetch("{% url 'api_ajustar_estoque' %}", {
     method: 'POST',
     body: fd
@@ -188,12 +190,14 @@ function abrirAjuste(id, nome, saldoAtual, codigo, deposito) {
       alert("Acesso negado ou erro:\n" + (d.erro || 'Erro desconhecido'));
     }
   })
-  .catch(() => alert("Falha na comunicação com o servidor."));
+  .catch(() => alert("Falha na comunicação com o servidor."))
+  .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
 
 window.addEventListener('load', () => {
   const div = document.getElementById('resultados');
 
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
   fetch("{% url 'api_todos_produtos_local' %}")
     .then(r => r.json())
     .then(data => {
@@ -203,7 +207,8 @@ window.addEventListener('load', () => {
     })
     .catch(() => {
       div.innerHTML = `<div class="bg-white text-red-500 border border-red-200 shadow-sm p-6 rounded-3xl font-bold text-center">Erro ao carregar produtos.</div>`;
-    });
+    })
+    .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 });
 
 function buscar(q) {

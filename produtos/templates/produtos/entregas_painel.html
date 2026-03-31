@@ -10,6 +10,7 @@
   <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
   <header class="shrink-0 border-b border-slate-200 bg-white shadow-sm">
     <div class="max-w-[1600px] mx-auto px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3 min-w-0">
@@ -23,18 +24,30 @@
       </div>
       <div class="flex flex-wrap items-center gap-2 shrink-0">
         <button type="button" id="btn-refresh" class="text-xs font-black uppercase bg-slate-800 text-white px-3 py-2 rounded-xl shadow-sm hover:bg-slate-900">Atualizar</button>
-        <button type="button" id="btn-rota-multi" class="text-xs font-black uppercase bg-sky-600 text-white px-3 py-2 rounded-xl shadow-sm hover:bg-sky-700 disabled:opacity-40" disabled title="Ordena por distância (OpenStreetMap) e mostra a sequência; opcional abrir Maps">Rota otimizada</button>
+        <button type="button" id="btn-rota-multi" class="text-xs font-black uppercase bg-sky-600 text-white px-3 py-2 rounded-xl shadow-sm hover:bg-sky-700 disabled:opacity-40" disabled title="Ordena as entregas por distância a partir da partida; pode abrir o Maps na sequência">Rota otimizada</button>
         {% include "produtos/_pdv_voltar_link.html" %}
       </div>
     </div>
   </header>
 
   <div class="max-w-[1600px] mx-auto w-full px-3 sm:px-4 py-4 flex-1 flex flex-col min-h-0 gap-3">
-    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed">
-      <p><strong class="font-black uppercase">Partida</strong> — escolha <strong>Centro</strong> ou <strong>Vila Elias</strong> no seletor abaixo. No servidor: <code class="bg-white/80 px-1 rounded">LOJA_MAPS_ORIGEM_CENTRO</code> e <code class="bg-white/80 px-1 rounded">LOJA_MAPS_ORIGEM_VILA</code> (endereço ou <code class="bg-white/80 px-1 rounded">lat,lng</code>); links do pin: <code class="bg-white/80 px-1 rounded">LOJA_MAPS_LINK_CENTRO</code> / <code class="bg-white/80 px-1 rounded">LOJA_MAPS_LINK_VILA</code>. Legado: só <code class="bg-white/80 px-1 rounded">LOJA_MAPS_ORIGEM_TEXTO</code> preenche o Centro.</p>
-      <p class="mt-1"><strong class="font-black uppercase">Área rural</strong> — Plus Code no cliente ou na linha; link manual do Maps no pedido também vale.</p>
-      <p class="mt-1"><strong class="font-black uppercase">WhatsApp</strong> — <code class="bg-white/80 px-1 rounded">PDV_ENTREGA_WHATSAPP</code> (só dígitos).</p>
-      <p class="mt-1"><strong class="font-black uppercase">Rota otimizada</strong> — ordena por distância em linha reta. Endereços passam pelo OpenStreetMap (Nominatim); <strong>Plus Codes</strong> do Google são decodificados no servidor (código curto usa a <strong>partida</strong> como referência). Links do Maps com <code class="bg-white/80 px-1 rounded">@lat,lng</code> continuam válidos.</p>
+    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-2">
+      <p><strong class="font-black uppercase">Partida</strong> — escolha <strong>Centro</strong> ou <strong>Vila Elias</strong> no seletor. Use <strong>Loja no Maps</strong> para conferir o ponto de saída.</p>
+      <p><strong class="font-black uppercase">Área rural</strong> — Plus Code no cliente ou na linha; link manual do Maps no pedido também vale.</p>
+      <p><strong class="font-black uppercase">WhatsApp</strong> — avisos usam o número de entrega configurado na loja (fale com o suporte se precisar alterar).</p>
+      <p><strong class="font-black uppercase">Rota otimizada</strong> — ordena as entregas do dia por distância aproximada a partir da partida.</p>
+      <details class="group">
+        <summary class="cursor-pointer list-none inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-900">
+          <span aria-hidden="true">ℹ</span>
+          <span>Detalhes técnicos</span>
+          <span class="group-open:rotate-90 transition-transform inline-block text-[9px]">▸</span>
+        </summary>
+        <div class="mt-2 space-y-1 text-[10px] font-bold text-amber-900/90">
+          <p><strong>Endereços / pins</strong> — <code class="bg-white/80 px-1 rounded">LOJA_MAPS_ORIGEM_CENTRO</code>, <code class="bg-white/80 px-1 rounded">LOJA_MAPS_ORIGEM_VILA</code> (texto ou <code class="bg-white/80 px-1 rounded">lat,lng</code>); links: <code class="bg-white/80 px-1 rounded">LOJA_MAPS_LINK_CENTRO</code> / <code class="bg-white/80 px-1 rounded">LOJA_MAPS_LINK_VILA</code>. Legado: <code class="bg-white/80 px-1 rounded">LOJA_MAPS_ORIGEM_TEXTO</code> para o Centro.</p>
+          <p><strong>WhatsApp</strong> — <code class="bg-white/80 px-1 rounded">PDV_ENTREGA_WHATSAPP</code> (só dígitos, no ambiente).</p>
+          <p><strong>Geocodificação</strong> — OpenStreetMap (Nominatim); Plus Codes do Google no servidor (código curto usa a partida). Links com <code class="bg-white/80 px-1 rounded">@lat,lng</code> são aceitos.</p>
+        </div>
+      </details>
     </div>
 
     <div class="flex flex-wrap items-center gap-2">
@@ -595,7 +608,7 @@
     };
     tr.querySelector('.ent-btn-zap').onclick = function () {
       var d = waDigitos();
-      if (!d) { alert('Configure PDV_ENTREGA_WHATSAPP no .env.'); return; }
+      if (!d) { alert('WhatsApp de entregas não está configurado. Peça ao suporte para cadastrar o número da loja.'); return; }
       var ex = mergeEntregaDaLinha(tr, e);
       window.open('https://wa.me/' + d + '?text=' + encodeURIComponent(textoResumoEntrega(ex)), '_blank');
     };
@@ -650,6 +663,7 @@
   function carregar() {
     var st = statusFiltroLista();
     var url = URL_LISTAR + (st ? '?status=' + encodeURIComponent(st) : '');
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     return fetch(url).then(function (r) { return r.json(); }).then(function (d) {
       window.__statusOpcoes = d.status_opcoes || [];
       popularFiltroStatus(d.status_opcoes || []);
@@ -670,6 +684,8 @@
       syncChkTodos();
     }).catch(function () {
       alert('Erro ao carregar entregas.');
+    }).finally(function () {
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
     });
   }
 
@@ -784,9 +800,9 @@
     btnMaps.disabled = true;
     btnCopy.disabled = true;
     ultimaRotaMapsUrl = '';
-    st.textContent =
-      'Calculando ordem (Plus Code no servidor; demais endereços ~1 s cada no OpenStreetMap; link Maps com @lat,lng é instantâneo).';
+    st.textContent = 'Calculando a melhor ordem de visitas… Endereços difíceis de localizar podem demorar um pouco.';
     abrirModalRotaOpt();
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     fetch(URL_ORDENAR_ROTA, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
@@ -838,6 +854,9 @@
       .catch(function () {
         st.textContent = '';
         listEl.innerHTML = '<li class="text-red-600 font-bold list-none">Erro de rede ao ordenar rota.</li>';
+      })
+      .finally(function () {
+        if (window.gmLoadingBar) window.gmLoadingBar.hide();
       });
   };
 

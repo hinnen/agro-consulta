@@ -30,6 +30,7 @@
   </style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
 
   <header class="gm-bar border-b border-slate-200/80 shrink-0">
     <div class="max-w-[1400px] mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
@@ -49,9 +50,20 @@
   </header>
 
   <main class="max-w-[1400px] mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
-    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-1">
-      <p><strong class="font-black uppercase">Rascunho no Mongo</strong> — esta tela grava conferência em <code class="bg-white/80 px-1 rounded">AgroEntradaNotaRascunho</code>. Não lança estoque automaticamente no ERP; use para conferir itens, casar códigos e registrar histórico até existir API de compra.</p>
-      <p><strong class="font-black uppercase">SEFAZ</strong> — Distribuição DF-e exige certificado A1 (.pfx), CNPJ e UF no <code class="bg-white/80 px-1 rounded">.env</code>. Em homologação use <code class="bg-white/80 px-1 rounded">NFE_DIST_DFE_TP_AMB=2</code>.</p>
+    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-2">
+      <p><strong class="font-black uppercase">Uso</strong> — conferir nota, casar produtos e guardar histórico no sistema. <strong>Não</strong> altera estoque no ERP sozinho; a integração completa de compra é evolução futura.</p>
+      <p><strong class="font-black uppercase">SEFAZ</strong> — consultar notas na Receita exige certificado digital e dados da empresa já instalados no servidor.</p>
+      <details class="group">
+        <summary class="cursor-pointer list-none inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-900">
+          <span aria-hidden="true">ℹ</span>
+          <span>Detalhes técnicos</span>
+          <span class="group-open:rotate-90 transition-transform inline-block text-[9px]">▸</span>
+        </summary>
+        <div class="mt-2 space-y-1 text-[10px] font-bold text-amber-900/90">
+          <p>Rascunhos na coleção <code class="bg-white/80 px-1 rounded">AgroEntradaNotaRascunho</code> (Mongo).</p>
+          <p>Certificado A1 (.pfx), CNPJ e UF nas variáveis de ambiente. Homologação: <code class="bg-white/80 px-1 rounded">NFE_DIST_DFE_TP_AMB=2</code>.</p>
+        </div>
+      </details>
     </div>
 
     <div id="msg-global" class="hidden rounded-2xl border px-4 py-3 text-sm font-bold"></div>
@@ -336,16 +348,19 @@
 
   async function carregarSefazStatus() {
     const el = document.getElementById('sefaz-status');
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
       const r = await fetch(URL_SEFAZ, { credentials: 'same-origin' });
       const s = await r.json();
       if (s.configurada) {
-        el.innerHTML = `<span class="text-emerald-800 font-black">DF-e configurado.</span> UF ${s.uf || '—'} · CNPJ ${s.cnpj_mascarado || '—'} · tpAmb ${s.tp_amb}`;
+        el.innerHTML = `<span class="text-emerald-800 font-black">DF-e pronto para consulta na Receita.</span><span class="block text-[10px] font-semibold text-emerald-900/80 mt-0.5">UF ${s.uf || '—'} · CNPJ ${s.cnpj_mascarado || '—'} · Ambiente ${s.tp_amb}</span>`;
       } else {
-        el.innerHTML = `<span class="text-amber-900 font-bold">Certificado / CNPJ / UF ainda não configurados no servidor.</span> Veja o aviso no topo e o .env.`;
+        el.innerHTML = `<span class="text-amber-900 font-bold">Certificado e dados fiscais ainda não estão configurados no servidor.</span> <span class="text-[10px] font-semibold text-amber-800/90">Peça suporte à equipe técnica.</span>`;
       }
     } catch (_) {
       el.textContent = 'Não foi possível ler o status.';
+    } finally {
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
     }
   }
 
@@ -356,6 +371,7 @@
     resBox.classList.remove('hidden');
     resBox.textContent = 'Consultando…';
     prevBox.innerHTML = '';
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
       const r = await fetch(URL_DFE, {
         method: 'POST',
@@ -389,12 +405,15 @@
       }
     } catch (e) {
       resBox.textContent = 'Erro de rede.';
+    } finally {
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
     }
   });
 
   async function carregarRascunhos() {
     const box = document.getElementById('lista-rasc');
     box.innerHTML = 'Carregando…';
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
       const r = await fetch(URL_RASC, { credentials: 'same-origin' });
       const j = await r.json();
@@ -413,6 +432,8 @@
       });
     } catch (_) {
       box.textContent = 'Erro ao listar.';
+    } finally {
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
     }
   }
 

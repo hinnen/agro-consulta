@@ -9,10 +9,14 @@
   <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
   <header class="border-b border-slate-200 bg-white shadow-sm">
-    <div class="max-w-lg mx-auto px-4 py-4 flex justify-between items-center gap-3">
+    <div class="max-w-lg mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-3">
       <h1 class="text-lg font-black uppercase text-slate-900">Caixa</h1>
-      <a href="{% url 'consulta_produtos' %}" class="text-xs font-black uppercase text-emerald-700">PDV</a>
+      <div class="flex flex-wrap items-center gap-2">
+        <a href="{% url 'caixa_saida' %}" class="inline-flex items-center px-4 py-2 rounded-xl bg-emerald-600 text-white font-black uppercase text-xs tracking-wide hover:bg-emerald-700 shadow-sm">Saída no caixa</a>
+        <a href="{% url 'consulta_produtos' %}" class="text-xs font-black uppercase text-emerald-700">PDV</a>
+      </div>
     </div>
   </header>
   <main class="max-w-lg mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">

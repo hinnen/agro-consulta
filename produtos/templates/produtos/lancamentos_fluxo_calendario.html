@@ -27,6 +27,7 @@
   </style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
 
   <header class="gm-bar border-b border-slate-200/80">
     <div class="max-w-[1200px] mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
@@ -48,9 +49,21 @@
   </header>
 
   <main class="max-w-[1200px] mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
-    <div class="rounded-2xl border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-[11px] font-semibold text-emerald-950 leading-relaxed space-y-1">
-      <p><strong class="font-black uppercase">O que é:</strong> para cada dia no horizonte, estimamos <strong>entradas</strong> (média de faturamento dos últimos N dias no Mongo, <strong>ajustada por dia da semana e por faixa do mês</strong> com base no histórico recente — ex.: final de mês tende a vender menos se seus dados mostrarem isso — mais títulos <strong>a receber</strong> em aberto com vencimento na data) e <strong>saídas</strong> (títulos <strong>a pagar</strong> em aberto na data). O <strong>saldo acumulado</strong> soma o líquido dia a dia a partir de <strong>zero</strong> — é uma tendência, não substitui extrato bancário.</p>
-      <p>A média de vendas e os títulos podem se sobrepor conceitualmente (ex.: recebíveis já refletem vendas passadas). Use o painel como <strong>visão combinada</strong> e desligue a média se quiser ver só vencimentos.</p>
+    <div class="rounded-2xl border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-[11px] font-semibold text-emerald-950 leading-relaxed space-y-2">
+      <p><strong class="font-black uppercase">Resumo</strong> — para cada dia no período, o painel estima <strong>entradas</strong> (vendas recentes + títulos a receber na data) e <strong>saídas</strong> (títulos a pagar na data). O <strong>saldo acumulado</strong> é <strong>indicativo</strong> e não substitui extrato bancário.</p>
+      <p>Você pode combinar ou separar média de vendas e vencimentos nos filtros abaixo.</p>
+      <details class="group">
+        <summary class="cursor-pointer list-none inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-emerald-900">
+          <span aria-hidden="true">ℹ</span>
+          <span>Detalhes técnicos</span>
+          <span class="group-open:rotate-90 transition-transform inline-block text-[9px]">▸</span>
+        </summary>
+        <div class="mt-2 space-y-1 text-[10px] font-bold text-emerald-900/90">
+          <p><strong>Cálculo</strong> — média de faturamento dos últimos N dias (dados no Mongo), <strong>ajustada por dia da semana e faixa do mês</strong> conforme histórico recente (ex.: final de mês pode pesar menos se os dados mostrarem isso), somada aos títulos <strong>a receber</strong> em aberto com vencimento na data. Saídas: títulos <strong>a pagar</strong> em aberto na data.</p>
+          <p><strong>Saldo</strong> — soma líquida dia a dia a partir de zero (tendência).</p>
+          <p><strong>Sobreposição</strong> — média de vendas e recebíveis podem se sobrepor conceitualmente; use como visão combinada ou desligue a média para ver só vencimentos.</p>
+        </div>
+      </details>
     </div>
 
     <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-wrap items-end gap-3">
@@ -207,6 +220,7 @@
     u.searchParams.set('dias_media', dm);
     u.searchParams.set('incluir_media', incl);
 
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
       const r = await fetch(u.toString(), { credentials: 'same-origin' });
       const j = await r.json();
@@ -260,6 +274,8 @@
     } catch (e) {
       err.textContent = 'Erro de rede.';
       err.classList.remove('hidden');
+    } finally {
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
     }
   }
 

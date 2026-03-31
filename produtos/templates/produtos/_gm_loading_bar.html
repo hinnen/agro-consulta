@@ -1,0 +1,48 @@
+{# Barra de progresso indeterminada no topo — use window.gmLoadingBar.show() / .hide() (contador interno para requisições paralelas). #}
+<style>
+  @keyframes gm-loading-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(350%); }
+  }
+  .gm-loading-bar-fill {
+    width: 42%;
+    animation: gm-loading-shimmer 1.12s ease-in-out infinite;
+  }
+</style>
+<div id="gm-loading-bar-root" class="fixed top-0 left-0 right-0 z-[9999] pointer-events-none hidden" role="progressbar" aria-valuetext="Carregando" aria-busy="false">
+  <div class="h-1 bg-gradient-to-b from-slate-200/95 to-slate-300/85 shadow-[0_2px_8px_rgba(5,150,105,0.25)] overflow-hidden">
+    <div class="gm-loading-bar-fill h-full rounded-full bg-gradient-to-r from-emerald-500 via-amber-400 to-emerald-500"></div>
+  </div>
+</div>
+<script>
+(function () {
+  if (window.gmLoadingBar) return;
+  var root = null;
+  var depth = 0;
+  function el() {
+    return root || (root = document.getElementById('gm-loading-bar-root'));
+  }
+  window.gmLoadingBar = {
+    show: function () {
+      depth++;
+      var e = el();
+      if (!e) return;
+      e.classList.remove('hidden');
+      e.setAttribute('aria-busy', 'true');
+    },
+    hide: function () {
+      depth = Math.max(0, depth - 1);
+      var e = el();
+      if (!e || depth > 0) return;
+      e.classList.add('hidden');
+      e.setAttribute('aria-busy', 'false');
+    },
+    wrap: function (p) {
+      this.show();
+      return Promise.resolve(p).finally(function () {
+        window.gmLoadingBar.hide();
+      });
+    },
+  };
+})();
+</script>

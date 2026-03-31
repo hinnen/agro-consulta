@@ -28,6 +28,7 @@
   </style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
 
   <header class="gm-bar border-b border-slate-200/80 shrink-0">
     <div class="max-w-[1400px] mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
@@ -49,15 +50,30 @@
         <a href="{% url 'lancamentos_manual' %}" class="text-xs font-black uppercase bg-amber-500 text-white shadow-sm px-4 py-2.5 rounded-xl border border-amber-600 hover:bg-amber-600 transition-colors">
           Lançamento manual (lote)
         </a>
+        {% if lancamentos_dre_ativo %}
+        <a href="{% url 'lancamentos_dre' %}" class="text-xs font-black uppercase bg-slate-700 text-white shadow-sm px-4 py-2.5 rounded-xl border border-slate-800 hover:bg-slate-800 transition-colors" title="DRE simples por plano (tela dedicada)">
+          DRE simples
+        </a>
+        {% endif %}
         {% include "produtos/_pdv_voltar_link.html" with link_class="text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-800 transition-colors" %}
       </div>
     </div>
   </header>
 
   <main class="max-w-[1400px] mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
-    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-1">
-      <p><strong class="font-black uppercase">Baixa pelo Agro</strong> grava no <strong>Mongo</strong> primeiro. Com <code class="bg-white/80 px-1 rounded">VENDA_ERP_API_FINANCEIRO_BAIXA_PATH</code> (sufixo após <code class="bg-white/80 px-1 rounded">/api/request/</code>), o servidor também envia ao ERP um JSON com <code class="bg-white/80 px-1 rounded">ids</code> do Mongo, <code class="bg-white/80 px-1 rounded">titulos</code> (snapshot do título após a baixa, incluindo <code class="bg-white/80 px-1 rounded">Id</code>/<code class="bg-white/80 px-1 rounded">LancamentoID</code> se existirem) e o <code class="bg-white/80 px-1 rounded">payload</code> da tela.</p>
-      <p>Novos títulos e regras fiscais continuam no <strong>Venda ERP</strong>.</p>
+    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-2">
+      <p><strong class="font-black uppercase">Como funciona</strong> — o Agro registra os lançamentos/baixas aqui e, quando a integração estiver habilitada, também tenta sincronizar com o ERP.</p>
+      <details class="group">
+        <summary class="cursor-pointer list-none inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-900">
+          <span aria-hidden="true">ℹ</span>
+          <span>Detalhes técnicos</span>
+          <span class="group-open:rotate-90 transition-transform inline-block text-[9px]">▸</span>
+        </summary>
+        <div class="mt-2 space-y-1 text-[10px] font-bold text-amber-900/90">
+          <p>Baixa: <code class="bg-white/80 px-1 rounded">VENDA_ERP_API_FINANCEIRO_BAIXA_PATH</code>.</p>
+          <p>Lançamento manual: <code class="bg-white/80 px-1 rounded">VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH</code>.</p>
+        </div>
+      </details>
     </div>
 
     <div class="flex flex-wrap gap-2">
@@ -119,6 +135,10 @@
             <span>Export CSV</span>
             <kbd class="gm-kbd border border-white/25 bg-white/10 text-white">F8</kbd>
           </a>
+          <button type="button" id="btn-whats" class="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-3 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase tracking-wide hover:bg-emerald-700 text-center" title="Resumo caprichado para WhatsApp (F9).">
+            <span>WhatsApp</span>
+            <kbd class="gm-kbd border border-white/25 bg-white/10 text-white">F9</kbd>
+          </button>
         </div>
       </div>
       <div class="flex flex-wrap items-end gap-2 border-t border-slate-100 pt-4">
@@ -153,8 +173,11 @@
       </div>
       <div class="flex flex-wrap gap-2">
         <button type="button" id="btn-sel-clear" class="px-3 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-900 font-black text-[10px] uppercase">Limpar seleção</button>
+        <button type="button" id="btn-baixa-parcial" disabled title="Selecione exatamente 1 título em aberto." class="px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-black text-[10px] sm:text-xs uppercase hover:bg-indigo-700 shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
+          Baixa parcial…
+        </button>
         <button type="button" id="btn-baixa" class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700 shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
-          Baixar selecionados…
+          Baixa total…
         </button>
       </div>
     </div>
@@ -182,7 +205,11 @@
 
     <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-500 px-1">
       <span id="pag-info"></span>
-      <div class="flex gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="relative">
+          <button type="button" id="btn-cols" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-black uppercase text-[10px] text-slate-700">Colunas</button>
+          <div id="col-dropdown" class="hidden absolute right-0 mt-1 z-30 w-56 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg p-2 space-y-1.5 text-[11px]"></div>
+        </div>
         <button type="button" id="btn-prev" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 font-black uppercase">Anterior</button>
         <button type="button" id="btn-next" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 font-black uppercase">Próxima</button>
       </div>
@@ -193,17 +220,17 @@
         <table class="min-w-full text-left text-sm hidden lg:table">
           <thead class="bg-slate-100 text-[10px] font-black uppercase text-slate-600 border-b border-slate-200">
             <tr>
-              <th class="px-2 py-3 w-10" id="th-chk"><input type="checkbox" id="chk-all" class="rounded border-slate-300" title="Selecionar página"></th>
-              <th class="px-2 py-3">Vencimento</th>
-              <th class="px-2 py-3">Favorecido / cliente</th>
-              <th class="px-2 py-3">Descrição</th>
-              <th class="px-2 py-3">Forma pagamento</th>
-              <th class="px-2 py-3">Banco / conta</th>
-              <th class="px-2 py-3">Plano / grupo</th>
-              <th class="px-2 py-3 text-right">Bruto</th>
-              <th class="px-2 py-3 text-right" id="th-mov">Pago</th>
-              <th class="px-2 py-3 text-right" id="th-saldo">A pagar</th>
-              <th class="px-2 py-3">Situação</th>
+              <th data-col="chk" class="px-2 py-3 w-10" id="th-chk"><input type="checkbox" id="chk-all" class="rounded border-slate-300" title="Selecionar página"></th>
+              <th data-col="venc" class="px-2 py-3">Vencimento</th>
+              <th data-col="cli" class="px-2 py-3">Favorecido / cliente</th>
+              <th data-col="desc" class="px-2 py-3">Descrição</th>
+              <th data-col="forma" class="px-2 py-3">Forma pagamento</th>
+              <th data-col="banco" class="px-2 py-3">Banco / conta</th>
+              <th data-col="plano" class="px-2 py-3">Plano / grupo</th>
+              <th data-col="bruto" class="px-2 py-3 text-right">Bruto</th>
+              <th data-col="mov" class="px-2 py-3 text-right" id="th-mov">Pago</th>
+              <th data-col="saldo" class="px-2 py-3 text-right" id="th-saldo">A pagar</th>
+              <th data-col="sit" class="px-2 py-3">Situação</th>
             </tr>
           </thead>
           <tbody id="tbody-desk" class="divide-y divide-slate-100"></tbody>
@@ -211,9 +238,18 @@
       </div>
       <div id="cards-mob" class="lg:hidden divide-y divide-slate-100 p-2 space-y-2"></div>
       <div id="empty-state" class="hidden py-16 text-center text-slate-400 font-bold text-sm">Nenhum lançamento com os filtros atuais.</div>
-      <div id="loading-state" class="py-16 text-center text-slate-400 font-bold text-sm">Carregando…</div>
+      <div id="loading-state" class="py-10 px-4">
+        <div class="max-w-xl mx-auto">
+          <div class="h-2 rounded-full bg-slate-200 overflow-hidden">
+            <div class="h-full w-2/5 bg-amber-500 animate-pulse"></div>
+          </div>
+          <div class="text-center text-slate-500 font-bold text-sm mt-3">Carregando lançamentos...</div>
+        </div>
+      </div>
     </div>
   </main>
+
+  <div id="wa-toast" class="fixed bottom-4 left-1/2 z-[60] -translate-x-1/2 max-w-[min(92vw,24rem)] rounded-xl border border-emerald-200 bg-emerald-950 text-white px-4 py-3 text-xs font-bold shadow-lg hidden text-center leading-snug" role="status" aria-live="polite"></div>
 
   <!-- Modal baixa -->
   <div id="modal-baixa" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40">
@@ -236,7 +272,31 @@
       </div>
       <div class="flex flex-wrap gap-2 justify-end pt-2">
         <button type="button" id="bx-cancel" class="px-4 py-2.5 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Cancelar</button>
-        <button type="button" id="bx-ok" class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700">Confirmar baixa</button>
+        <button type="button" id="bx-ok" class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700">Confirmar baixa total</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal baixa parcial (1 título, várias formas/contas) -->
+  <div id="modal-baixa-parcial" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40">
+    <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-5 space-y-4 border border-slate-200 max-h-[92vh] overflow-y-auto">
+      <h2 class="text-lg font-black text-slate-900 uppercase tracking-tight">Baixa parcial</h2>
+      <p class="text-xs text-slate-600 font-semibold" id="bxp-resumo"></p>
+      <p class="text-[10px] font-bold text-indigo-600">Informe uma ou mais linhas: cada uma com valor, forma e conta. A soma não pode passar do saldo em aberto.</p>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Data do movimento</span>
+        <input type="date" id="bxp-data" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold">
+      </label>
+      <div class="space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-[10px] font-black uppercase text-slate-500">Parcelas</span>
+          <button type="button" id="bxp-add-linha" class="text-[10px] font-black uppercase text-indigo-600 hover:underline">+ Linha</button>
+        </div>
+        <div id="bxp-linhas" class="space-y-2"></div>
+      </div>
+      <div class="flex flex-wrap gap-2 justify-end pt-2 border-t border-slate-100">
+        <button type="button" id="bxp-cancel" class="px-4 py-2.5 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Cancelar</button>
+        <button type="button" id="bxp-ok" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-black text-xs uppercase hover:bg-indigo-700">Confirmar</button>
       </div>
     </div>
   </div>
@@ -248,14 +308,32 @@
     const API_PLANOS = "{% url 'api_lancamentos_planos_distintos' %}";
     const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
     const API_BAIXA = "{% url 'api_lancamentos_baixa' %}";
+    const API_BAIXA_PARCIAL = "{% url 'api_lancamentos_baixa_parcial' %}";
+    const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
     const LS_FAV = 'gm_fin_favs_v1';
     const LS_EXCL = 'gm_fin_planos_excl_v1';
+    const LS_COLS = 'gm_fin_cols_v1';
     const SEM_PLANO_KEY = '__SEM_PLANO__';
+
+    const COL_DEFS = [
+      { id: 'chk', label: 'Seleção' },
+      { id: 'venc', label: 'Vencimento' },
+      { id: 'cli', label: 'Cliente / favorecido' },
+      { id: 'desc', label: 'Descrição' },
+      { id: 'forma', label: 'Forma pagamento' },
+      { id: 'banco', label: 'Banco / conta' },
+      { id: 'plano', label: 'Plano / grupo' },
+      { id: 'bruto', label: 'Bruto' },
+      { id: 'mov', label: 'Movimentado' },
+      { id: 'saldo', label: 'Saldo' },
+      { id: 'sit', label: 'Situação' },
+    ];
 
     let tipoAtual = 'pagar';
     let page = 1;
     let lastTotal = 0;
     let lastPageSize = 50;
+    let lastRows = [];
     const selecionados = new Map();
 
     function getCookie(name) {
@@ -289,6 +367,63 @@
       const t = document.createElement('div');
       t.textContent = s == null ? '' : String(s);
       return t.innerHTML;
+    }
+
+    function defaultColsMap() {
+      const o = {};
+      COL_DEFS.forEach((c) => { o[c.id] = true; });
+      return o;
+    }
+    function loadColsMap() {
+      try {
+        const raw = localStorage.getItem(LS_COLS);
+        if (!raw) return defaultColsMap();
+        return { ...defaultColsMap(), ...JSON.parse(raw) };
+      } catch (_) {
+        return defaultColsMap();
+      }
+    }
+    function saveColsMap(m) {
+      localStorage.setItem(LS_COLS, JSON.stringify(m));
+    }
+    function applyTableCols() {
+      const m = loadColsMap();
+      COL_DEFS.forEach((c) => {
+        const on = m[c.id] !== false;
+        document.querySelectorAll(`thead [data-col="${c.id}"], #tbody-desk [data-col="${c.id}"]`).forEach((el) => {
+          el.classList.toggle('hidden', !on);
+        });
+      });
+    }
+    function buildColDropdown() {
+      const el = document.getElementById('col-dropdown');
+      if (!el) return;
+      const m = loadColsMap();
+      el.innerHTML = COL_DEFS.map((c) => `
+        <label class="flex items-center gap-2 cursor-pointer py-0.5 px-1 rounded hover:bg-slate-50">
+          <input type="checkbox" class="col-chk rounded border-slate-300 accent-amber-600" data-col-id="${c.id}" ${m[c.id] !== false ? 'checked' : ''}>
+          <span>${esc(c.label)}</span>
+        </label>
+      `).join('');
+      el.querySelectorAll('.col-chk').forEach((ch) => {
+        ch.addEventListener('change', () => {
+          const mm = loadColsMap();
+          mm[ch.dataset.colId] = ch.checked;
+          saveColsMap(mm);
+          applyTableCols();
+        });
+      });
+    }
+
+    function refreshBaixaParcialBtn() {
+      const el = document.getElementById('btn-baixa-parcial');
+      if (!el) return;
+      el.disabled = !(podeSelecionar() && selecionados.size === 1);
+    }
+
+    function refreshBtnsBaixa() {
+      document.getElementById('btn-baixa').disabled = !podeSelecionar() || selecionados.size === 0;
+      refreshBaixaParcialBtn();
     }
 
     function loadExclMap() {
@@ -368,16 +503,121 @@
       const n = selecionados.size;
       if (n === 0) {
         bar.classList.add('hidden');
+        refreshBaixaParcialBtn();
         return;
       }
       bar.classList.remove('hidden');
       document.getElementById('sel-count').textContent = String(n);
       document.getElementById('sel-soma').textContent = brl(soma);
+      refreshBaixaParcialBtn();
     }
 
     function atualizarCsvHref() {
       const a = document.getElementById('btn-csv');
       a.href = `${API_CSV}?${montarParams()}`;
+    }
+
+    /** Limite seguro do parâmetro text= em URLs (GET); acima disso o navegador pode truncar e quebrar UTF-8 → no WhatsApp aparecem. */
+    const MAX_WA_TEXT_PARAM_LEN = 1700;
+
+    function mostrarToastWhats(msg) {
+      const el = document.getElementById('wa-toast');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      clearTimeout(window._waToastT);
+      window._waToastT = setTimeout(() => el.classList.add('hidden'), 6000);
+    }
+
+    function textoWhatsResumo() {
+      if (!lastRows.length) return '';
+      const EMOJI = {
+        pagar: '✅',
+        receber: '✅',
+        periodo: '⏰',
+        plano: '▸',
+        subtotal: '➡️',
+        total: '★',
+      };
+      function dataCurtaMMDD(iso) {
+        const s = String(iso || '').trim();
+        if (!s) return '—';
+        const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (m) return `${m[2]}/${m[3]}`;
+        return s;
+      }
+      function nomeCurtoCliente(raw) {
+        const nome = String(raw || '').trim().replace(/\s+/g, ' ');
+        if (!nome) return '—';
+        const partes = nome.split(' ').filter(Boolean);
+        if (!partes.length) return '—';
+        const p1 = partes[0];
+        if (p1.length > 3) return p1;
+        return `${p1} -`;
+      }
+      const icTipo = tipoAtual === 'pagar' ? EMOJI.pagar : EMOJI.receber;
+      const tit = tipoAtual === 'pagar' ? 'CONTAS A PAGAR' : 'CONTAS A RECEBER';
+      const de = document.getElementById('f-de').value || '—';
+      const ate = document.getElementById('f-ate').value || '—';
+      const grupos = {};
+      let totalBruto = 0;
+      let totalMov = 0;
+      let totalSaldo = 0;
+      lastRows.forEach((r) => {
+        const plano = String(r.plano_conta || '(sem plano)').trim() || '(sem plano)';
+        if (!grupos[plano]) grupos[plano] = { itens: [], bruto: 0, mov: 0, saldo: 0 };
+        const vb = Number(r.valor_bruto || 0);
+        const vm = Number(r.valor_movimentado || 0);
+        const rs = Number(r.restante || 0);
+        grupos[plano].itens.push(r);
+        grupos[plano].bruto += vb;
+        grupos[plano].mov += vm;
+        grupos[plano].saldo += rs;
+        totalBruto += vb;
+        totalMov += vm;
+        totalSaldo += rs;
+      });
+
+      const linhas = [];
+      linhas.push(`${icTipo} *${tit}*`);
+      linhas.push(`${EMOJI.periodo} *Período:* ${dataCurtaMMDD(de)} á ${dataCurtaMMDD(ate)}`);
+      linhas.push('');
+
+      Object.keys(grupos).sort((a, b) => a.localeCompare(b, 'pt-BR')).forEach((plano) => {
+        const g = grupos[plano];
+        linhas.push(`${EMOJI.plano} *${plano}*`);
+        g.itens.forEach((r) => {
+          const cli = nomeCurtoCliente(r.cliente);
+          linhas.push(`• ${cli} — ${brl(r.restante)}`);
+        });
+        linhas.push(`${EMOJI.subtotal} *Subtotal* — Saldo ${brl(g.saldo)}`);
+        linhas.push('');
+      });
+
+      linhas.push('━━━━━━━━━━━━');
+      linhas.push(`${EMOJI.total} *TOTAL GERAL*`);
+      linhas.push(`• Bruto: *${brl(totalBruto)}*`);
+      linhas.push(`• Movimentado: *${brl(totalMov)}*`);
+      linhas.push(`• Saldo: *${brl(totalSaldo)}*`);
+      return linhas.join('\n');
+    }
+
+    async function abrirWhatsAppComResumoLancamentos() {
+      const txt = textoWhatsResumo();
+      if (!txt) return;
+      const enc = encodeURIComponent(txt);
+      const base = 'https://api.whatsapp.com/send?text=';
+      if (enc.length <= MAX_WA_TEXT_PARAM_LEN) {
+        window.open(base + enc, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(txt);
+        mostrarToastWhats('Resumo longo: texto completo copiado. No WhatsApp, cole com Ctrl+V (ou toque em Colar).');
+      } catch (_) {
+        mostrarToastWhats('Resumo longo demais para enviar na URL. Reduza itens por página ou use Export CSV.');
+      }
+      window.open('https://api.whatsapp.com/send', '_blank', 'noopener,noreferrer');
     }
 
     async function carregarOpcoesBaixa() {
@@ -403,6 +643,67 @@
           bs.appendChild(o);
         });
       } catch (_) {}
+    }
+
+    let bxpIdAtual = null;
+    let bxpSaldoMax = 0;
+
+    function bxpHtmlOptsFormaBanco() {
+      const fs = document.getElementById('bx-forma-sel');
+      const bs = document.getElementById('bx-banco-sel');
+      return {
+        htmlF: fs ? fs.innerHTML : '<option value="">—</option>',
+        htmlB: bs ? bs.innerHTML : '<option value="">—</option>',
+      };
+    }
+
+    function bxpAddLinha(valorDefault) {
+      const { htmlF, htmlB } = bxpHtmlOptsFormaBanco();
+      const wrap = document.createElement('div');
+      wrap.className = 'bxp-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-end border border-slate-100 rounded-xl p-2 bg-slate-50/50';
+      const v0 = valorDefault != null && valorDefault !== '' ? String(valorDefault) : '';
+      wrap.innerHTML = `
+        <div class="sm:col-span-3">
+          <label class="block text-[9px] font-black uppercase text-slate-500">Valor R$</label>
+          <input type="text" class="bxp-val mt-1 w-full rounded-lg border-2 border-slate-200 px-2 py-1.5 text-sm font-bold tabular-nums" value="${esc(v0)}">
+        </div>
+        <div class="sm:col-span-4">
+          <label class="block text-[9px] font-black uppercase text-slate-500">Forma</label>
+          <select class="bxp-forma mt-1 w-full rounded-lg border-2 border-slate-200 px-2 py-1.5 text-xs font-bold">${htmlF}</select>
+        </div>
+        <div class="sm:col-span-4">
+          <label class="block text-[9px] font-black uppercase text-slate-500">Banco</label>
+          <select class="bxp-banco mt-1 w-full rounded-lg border-2 border-slate-200 px-2 py-1.5 text-xs font-bold">${htmlB}</select>
+        </div>
+        <div class="sm:col-span-1 flex justify-end pb-1">
+          <button type="button" class="bxp-remove text-red-600 text-[10px] font-black uppercase px-1" title="Remover linha">✕</button>
+        </div>`;
+      document.getElementById('bxp-linhas').appendChild(wrap);
+      const rm = wrap.querySelector('.bxp-remove');
+      rm.addEventListener('click', () => {
+        if (document.querySelectorAll('#bxp-linhas .bxp-row').length <= 1) return;
+        wrap.remove();
+      });
+    }
+
+    async function prepararModalBaixaParcial() {
+      if (selecionados.size !== 1) return;
+      const id = Array.from(selecionados.keys())[0];
+      const rest = selecionados.get(id) || 0;
+      bxpIdAtual = id;
+      bxpSaldoMax = rest;
+      document.getElementById('bxp-resumo').textContent =
+        `1 título · Saldo em aberto ${brl(rest)} · ${tipoAtual === 'pagar' ? 'Contas a pagar' : 'Contas a receber'}`;
+      document.getElementById('bxp-data').value = hojeISO();
+      document.getElementById('bxp-linhas').innerHTML = '';
+      await carregarOpcoesBaixa();
+      bxpAddLinha(Number(rest).toFixed(2));
+    }
+
+    function parseValorPt(s) {
+      const t = String(s || '').trim().replace(/\s/g, '');
+      if (!t) return NaN;
+      return parseFloat(t.replace(/\./g, '').replace(',', '.'));
     }
 
     async function carregarPlanos() {
@@ -464,10 +765,11 @@
       empty.classList.add('hidden');
       tb.innerHTML = '';
       mob.innerHTML = '';
+      if (window.gmLoadingBar) window.gmLoadingBar.show();
 
       const st = document.getElementById('f-status').value;
       document.getElementById('th-chk').style.visibility = st === 'abertos' ? 'visible' : 'hidden';
-      document.getElementById('btn-baixa').disabled = !podeSelecionar() || selecionados.size === 0;
+      refreshBtnsBaixa();
 
       try {
         const r = await fetch(`${API_LISTA}?${montarParams()}`, { credentials: 'same-origin' });
@@ -489,6 +791,7 @@
         tot.classList.remove('hidden');
 
         const lista = data.lancamentos || [];
+        lastRows = lista;
         if (lista.length === 0) {
           empty.classList.remove('hidden');
         } else {
@@ -502,17 +805,17 @@
             const tr = document.createElement('tr');
             tr.className = 'hover:bg-slate-50/80';
             tr.innerHTML = `
-              <td class="px-2 py-2">${chk}</td>
-              <td class="px-2 py-2 text-xs font-semibold tabular-nums whitespace-nowrap">${esc(fmtData(row.data_vencimento))}</td>
-              <td class="px-2 py-2 text-xs font-bold text-slate-800 max-w-[160px]"><div class="truncate" title="${esc(row.cliente)}">${esc(row.cliente || '—')}</div></td>
-              <td class="px-2 py-2 text-xs text-slate-700 max-w-[180px]"><div class="truncate" title="${esc(row.descricao)}">${esc(row.descricao || '—')}</div></td>
-              <td class="px-2 py-2 text-[11px] text-slate-700 max-w-[120px]"><div class="truncate" title="${esc(row.forma_pagamento)}">${esc(row.forma_pagamento || '—')}</div></td>
-              <td class="px-2 py-2 text-[11px] text-slate-600 max-w-[120px]"><div class="truncate" title="${esc(row.banco)}">${esc(row.banco || '—')}</div></td>
-              <td class="px-2 py-2 text-[11px] text-slate-600 max-w-[140px]"><div class="truncate">${esc(row.plano_conta || '')}${row.grupo ? ' · ' + esc(row.grupo) : ''}</div></td>
-              <td class="px-2 py-2 text-xs text-right font-bold tabular-nums">${esc(brl(row.valor_bruto))}</td>
-              <td class="px-2 py-2 text-xs text-right font-semibold text-emerald-800 tabular-nums">${esc(brl(row.valor_movimentado))}</td>
-              <td class="px-2 py-2 text-xs text-right font-black text-amber-900 tabular-nums">${esc(brl(row.restante))}</td>
-              <td class="px-2 py-2 text-xs">${sit}</td>`;
+              <td data-col="chk" class="px-2 py-2">${chk}</td>
+              <td data-col="venc" class="px-2 py-2 text-xs font-semibold tabular-nums whitespace-nowrap">${esc(fmtData(row.data_vencimento))}</td>
+              <td data-col="cli" class="px-2 py-2 text-xs font-bold text-slate-800 max-w-[160px]"><div class="truncate" title="${esc(row.cliente)}">${esc(row.cliente || '—')}</div></td>
+              <td data-col="desc" class="px-2 py-2 text-xs text-slate-700 max-w-[180px]"><div class="truncate" title="${esc(row.descricao)}">${esc(row.descricao || '—')}</div></td>
+              <td data-col="forma" class="px-2 py-2 text-[11px] text-slate-700 max-w-[120px]"><div class="truncate" title="${esc(row.forma_pagamento)}">${esc(row.forma_pagamento || '—')}</div></td>
+              <td data-col="banco" class="px-2 py-2 text-[11px] text-slate-600 max-w-[120px]"><div class="truncate" title="${esc(row.banco)}">${esc(row.banco || '—')}</div></td>
+              <td data-col="plano" class="px-2 py-2 text-[11px] text-slate-600 max-w-[140px]"><div class="truncate">${esc(row.plano_conta || '')}${row.grupo ? ' · ' + esc(row.grupo) : ''}</div></td>
+              <td data-col="bruto" class="px-2 py-2 text-xs text-right font-bold tabular-nums">${esc(brl(row.valor_bruto))}</td>
+              <td data-col="mov" class="px-2 py-2 text-xs text-right font-semibold text-emerald-800 tabular-nums">${esc(brl(row.valor_movimentado))}</td>
+              <td data-col="saldo" class="px-2 py-2 text-xs text-right font-black text-amber-900 tabular-nums">${esc(brl(row.restante))}</td>
+              <td data-col="sit" class="px-2 py-2 text-xs">${sit}</td>`;
             tb.appendChild(tr);
 
             const card = document.createElement('div');
@@ -537,6 +840,8 @@
             mob.appendChild(card);
           }
 
+          applyTableCols();
+
           document.querySelectorAll('.row-chk').forEach((el) => {
             el.addEventListener('change', () => {
               const id = el.dataset.id;
@@ -544,7 +849,7 @@
               if (el.checked) selecionados.set(id, rest);
               else selecionados.delete(id);
               refreshSelBar();
-              document.getElementById('btn-baixa').disabled = !podeSelecionar() || selecionados.size === 0;
+              refreshBtnsBaixa();
             });
           });
         }
@@ -561,9 +866,10 @@
         tot.classList.add('hidden');
       } finally {
         load.classList.add('hidden');
+        if (window.gmLoadingBar) window.gmLoadingBar.hide();
       }
       refreshSelBar();
-      document.getElementById('btn-baixa').disabled = !podeSelecionar() || selecionados.size === 0;
+      refreshBtnsBaixa();
     }
 
     function favList() {
@@ -599,6 +905,13 @@
       page = 1;
       selecionados.clear();
       carregarPlanos().then(() => carregar());
+    });
+    document.getElementById('btn-whats').addEventListener('click', () => {
+      if (!lastRows.length) {
+        alert('Nenhum lançamento na lista para exportar.');
+        return;
+      }
+      abrirWhatsAppComResumoLancamentos();
     });
     document.getElementById('btn-prev').addEventListener('click', () => { if (page > 1) { page--; carregar(); } });
     document.getElementById('btn-next').addEventListener('click', () => { page++; carregar(); });
@@ -639,7 +952,7 @@
         else selecionados.delete(id);
       });
       refreshSelBar();
-      document.getElementById('btn-baixa').disabled = selecionados.size === 0;
+      refreshBtnsBaixa();
     });
 
     document.getElementById('btn-sel-clear').addEventListener('click', () => {
@@ -698,6 +1011,107 @@
       arr.splice(Number(i), 1);
       localStorage.setItem(LS_FAV, JSON.stringify(arr));
       favRefreshSelect();
+    });
+
+    document.getElementById('btn-cols').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dd = document.getElementById('col-dropdown');
+      dd.classList.toggle('hidden');
+      if (!dd.classList.contains('hidden')) buildColDropdown();
+    });
+    document.getElementById('col-dropdown').addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('click', (e) => {
+      const dd = document.getElementById('col-dropdown');
+      const btn = document.getElementById('btn-cols');
+      if (!dd || dd.classList.contains('hidden')) return;
+      if (btn.contains(e.target) || dd.contains(e.target)) return;
+      dd.classList.add('hidden');
+    });
+
+    document.getElementById('btn-baixa-parcial').addEventListener('click', async () => {
+      if (selecionados.size !== 1) return;
+      await prepararModalBaixaParcial();
+      document.getElementById('modal-baixa-parcial').classList.remove('hidden');
+    });
+    document.getElementById('bxp-cancel').addEventListener('click', () => {
+      document.getElementById('modal-baixa-parcial').classList.add('hidden');
+    });
+    document.getElementById('bxp-add-linha').addEventListener('click', () => bxpAddLinha(''));
+
+    document.getElementById('bxp-ok').addEventListener('click', async () => {
+      if (!bxpIdAtual) return;
+      const parcelas = [];
+      let soma = 0;
+      document.querySelectorAll('#bxp-linhas .bxp-row').forEach((row) => {
+        const v = parseValorPt(row.querySelector('.bxp-val').value);
+        let formaNome = '';
+        let formaId = '';
+        const sv = row.querySelector('.bxp-forma').value;
+        const fi = sv.indexOf('|||');
+        if (fi >= 0) {
+          formaId = sv.slice(0, fi) || '';
+          formaNome = sv.slice(fi + 3).trim();
+        }
+        let bancoNome = '';
+        let bancoId = '';
+        const bv = row.querySelector('.bxp-banco').value;
+        const bi = bv.indexOf('|||');
+        if (bi >= 0) {
+          bancoId = bv.slice(0, bi) || '';
+          bancoNome = bv.slice(bi + 3).trim();
+        }
+        if (!Number.isNaN(v) && v > 0 && formaNome && bancoNome) {
+          soma += v;
+          parcelas.push({
+            valor: v,
+            forma_pagamento: formaNome,
+            forma_pagamento_id: formaId,
+            banco: bancoNome,
+            banco_id: bancoId,
+          });
+        }
+      });
+      if (!parcelas.length) {
+        alert('Informe ao menos uma parcela válida (valor, forma e banco).');
+        return;
+      }
+      if (soma > bxpSaldoMax + 0.02) {
+        alert(`A soma (${brl(soma)}) não pode passar do saldo (${brl(bxpSaldoMax)}).`);
+        return;
+      }
+      document.getElementById('bxp-ok').disabled = true;
+      try {
+        const r = await fetch(API_BAIXA_PARCIAL, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify({
+            lancamento_id: bxpIdAtual,
+            tipo: tipoAtual,
+            data_movimento: document.getElementById('bxp-data').value,
+            parcelas,
+          }),
+        });
+        const out = await r.json();
+        if (!out.ok) {
+          alert(out.erro || 'Falha na baixa parcial.');
+          return;
+        }
+        let m = out.quitado ? 'Baixa concluída (título quitado).' : 'Parcela(s) registradas — ainda há saldo em aberto.';
+        if (out.erp_baixa_ok === true) m += '\nERP: baixa aceita.';
+        else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
+        alert(m);
+        document.getElementById('modal-baixa-parcial').classList.add('hidden');
+        selecionados.clear();
+        carregar();
+      } catch (_) {
+        alert('Erro de rede.');
+      } finally {
+        document.getElementById('bxp-ok').disabled = false;
+      }
     });
 
     document.getElementById('btn-baixa').addEventListener('click', () => {
@@ -786,7 +1200,8 @@
       const tag = e.target && e.target.tagName;
       const inField = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
       const modalAberto = !document.getElementById('modal-baixa')?.classList.contains('hidden');
-      if (modalAberto) return;
+      const modalParcial = !document.getElementById('modal-baixa-parcial')?.classList.contains('hidden');
+      if (modalAberto || modalParcial) return;
       if (e.key === 'F5') {
         e.preventDefault();
         document.getElementById('btn-buscar')?.click();
@@ -795,6 +1210,11 @@
       if (e.key === 'F8') {
         e.preventDefault();
         document.getElementById('btn-csv')?.click();
+        return;
+      }
+      if (e.key === 'F9') {
+        e.preventDefault();
+        document.getElementById('btn-whats')?.click();
         return;
       }
       if (e.key === '/' && !inField) {
@@ -810,6 +1230,8 @@
       favRefreshSelect();
       atualizarTabs();
       carregarOpcoesBaixa();
+      buildColDropdown();
+      applyTableCols();
       carregarPlanos().then(() => carregar());
     });
   </script>

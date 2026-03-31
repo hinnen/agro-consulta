@@ -25,6 +25,7 @@
   </style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
 
   <header class="gm-bar border-b border-slate-200/80">
     <div class="max-w-[1200px] mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
@@ -46,8 +47,18 @@
   </header>
 
   <main class="max-w-[1200px] mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
-    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed">
-      Preencha <strong>empresa</strong>, <strong>fornecedor ou cliente</strong>, <strong>datas</strong>, <strong>banco</strong> e <strong>forma de pagamento</strong> uma vez. Em seguida inclua linhas só com <strong>plano de contas</strong>, <strong>valor</strong>, <strong>descrição</strong> e <strong>observação</strong>. Um único envio grava vários títulos no <strong>Mongo</strong> (mesmo padrão do ERP Venda). Opcional no .env: <code class="bg-white/80 px-1 rounded">VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH</code> para o servidor <strong>avisar o ERP</strong> com os novos títulos (<code class="bg-white/80 px-1 rounded">titulos</code> + lote).
+    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-2">
+      <p>Preencha <strong>empresa</strong>, <strong>fornecedor ou cliente</strong>, <strong>datas</strong>, <strong>banco</strong> e <strong>forma de pagamento</strong> uma vez. Depois adicione linhas com <strong>plano de contas</strong>, <strong>valor</strong>, <strong>descrição</strong> e <strong>observação</strong>. Um único envio grava vários títulos no sistema (mesmo padrão do ERP Venda). Se a integração estiver ligada, o servidor pode avisar o ERP automaticamente.</p>
+      <details class="group">
+        <summary class="cursor-pointer list-none inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-900">
+          <span aria-hidden="true">ℹ</span>
+          <span>Detalhes técnicos</span>
+          <span class="group-open:rotate-90 transition-transform inline-block text-[9px]">▸</span>
+        </summary>
+        <div class="mt-2 space-y-1 text-[10px] font-bold text-amber-900/90">
+          <p>Persistência no <strong>Mongo</strong>. Integração opcional via variável de ambiente <code class="bg-white/80 px-1 rounded">VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH</code> (envio em lote, campo <code class="bg-white/80 px-1 rounded">titulos</code>).</p>
+        </div>
+      </details>
     </div>
 
     <div id="msg-box" class="hidden rounded-2xl border px-4 py-3 text-sm font-bold"></div>
@@ -345,6 +356,7 @@
 
     const btn = document.getElementById('btn-submit');
     btn.disabled = true;
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
       const r = await fetch(API_CRIAR, {
         method: 'POST',
@@ -376,6 +388,7 @@
       showMsg('Erro de rede: ' + String(err), false);
     } finally {
       btn.disabled = false;
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
     }
   });
 

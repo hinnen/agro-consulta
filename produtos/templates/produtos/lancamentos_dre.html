@@ -1,0 +1,209 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <title>Agro Mais | DRE simples (por plano)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .gm-bar { background: linear-gradient(90deg, rgba(234,88,12,0.12) 0%, rgba(5,150,105,0.10) 100%); }
+  </style>
+</head>
+<body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
+
+  <header class="gm-bar border-b border-slate-200/80 shrink-0">
+    <div class="max-w-[1400px] mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="h-11 w-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+          <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">
+            GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-amber-800">DRE simples</span>
+          </h1>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Totais por plano · Mongo / DtoLancamento</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <a href="{% url 'lancamentos_financeiros' %}" class="text-xs font-black uppercase bg-amber-500 text-white shadow-sm px-4 py-2.5 rounded-xl border border-amber-600 hover:bg-amber-600 transition-colors">
+          Lançamentos
+        </a>
+        <a href="{% url 'lancamentos_fluxo_calendario' %}" class="text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-800 transition-colors">
+          Calendário de fluxo
+        </a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-800 transition-colors" %}
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1400px] mx-auto px-4 py-6 flex-1 min-h-0 overflow-y-auto">
+    <section class="rounded-2xl border border-slate-200 bg-white shadow-sm p-4 sm:p-5 space-y-3">
+      <h2 class="text-sm font-black uppercase text-slate-800 tracking-tight">Resumo por plano de conta</h2>
+      <p class="text-[11px] font-semibold text-slate-600 leading-snug">Soma lançamentos financeiros por <strong class="text-slate-800">plano de contas</strong> no período. Escolha a <strong class="text-slate-800">data base</strong> (competência, vencimento ou pagamento), o tipo de <strong class="text-slate-800">valor</strong> (realizado ou bruto) e, se quiser bater com o relatório de uma loja, preencha <strong class="text-slate-800">empresa</strong>.</p>
+      <details class="group">
+        <summary class="cursor-pointer list-none inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-slate-700">
+          <span aria-hidden="true">ℹ</span>
+          <span>Detalhes técnicos</span>
+          <span class="group-open:rotate-90 transition-transform inline-block text-[9px]">▸</span>
+        </summary>
+        <div class="mt-2 space-y-1 text-[10px] font-semibold text-slate-600">
+          <p>Fonte: <strong class="text-slate-800">DtoLancamento</strong> no Mongo. <strong class="text-slate-800">Bruto</strong> = soma de Entrada/Saída do título; <strong class="text-slate-800">Realizado</strong> = receita min(Entrada, Recebido+ValorPago) quando há Entrada; despesa ValorPago.</p>
+          <p>Hierarquia numérica no nome: receita e despesa em dimensões separadas — com movimento no filho, o pai naquela dimensão é ignorado.</p>
+          <p><strong class="text-slate-800">Só resultado</strong> exclui planos patrimoniais. <strong class="text-slate-800">Resultado = PDF ERP</strong> restringe receita aos códigos 1 e 5 e despesa a 2, 10, 11 e 12. <strong class="text-slate-800">Todos os planos</strong> lista tudo.</p>
+        </div>
+      </details>
+      <div class="flex flex-wrap gap-2 items-end">
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">De</span>
+          <input type="date" id="dre-de" class="mt-1 rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-bold">
+        </label>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Até</span>
+          <input type="date" id="dre-ate" class="mt-1 rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-bold">
+        </label>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Data base</span>
+          <select id="dre-por" class="mt-1 rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-bold">
+            <option value="competencia" selected>Competência</option>
+            <option value="vencimento">Vencimento</option>
+            <option value="pagamento">Data pagamento</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Valor</span>
+          <select id="dre-valor" class="mt-1 rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-bold">
+            <option value="realizado" selected>Realizado</option>
+            <option value="bruto">Bruto (título)</option>
+          </select>
+        </label>
+        <label class="block min-w-[10rem]">
+          <span class="text-[10px] font-black uppercase text-slate-500">Planos</span>
+          <select id="dre-contas" class="mt-1 rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-bold w-full">
+            <option value="resultado" selected>Só resultado (DRE)</option>
+            <option value="resultado_erp">Resultado = colunas do PDF ERP (1/5 · 2/10/11/12)</option>
+            <option value="todas">Todos os planos</option>
+          </select>
+        </label>
+        <label class="block min-w-[12rem] flex-1 sm:flex-none">
+          <span class="text-[10px] font-black uppercase text-slate-500">Empresa (opcional)</span>
+          <input type="text" id="dre-empresa" placeholder="Ex.: Agro Mais Centro" autocomplete="off"
+            class="mt-1 w-full min-w-[10rem] rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-bold">
+        </label>
+        <label class="block min-w-[7rem]">
+          <span class="text-[10px] font-black uppercase text-slate-500">Empresa ID</span>
+          <input type="text" id="dre-empresa-id" placeholder="Opcional" autocomplete="off"
+            class="mt-1 w-full rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-bold">
+        </label>
+        <button type="button" id="dre-carregar" class="px-4 py-2.5 rounded-xl bg-slate-800 text-white font-black text-[10px] uppercase hover:bg-slate-900">Atualizar DRE</button>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-slate-100 max-h-[min(70vh,32rem)] overflow-y-auto">
+        <table class="min-w-full text-left text-xs">
+          <thead class="bg-slate-100 font-black uppercase text-slate-600 sticky top-0">
+            <tr>
+              <th class="px-2 py-2">Plano</th>
+              <th class="px-2 py-2 text-right">Receita</th>
+              <th class="px-2 py-2 text-right">Despesa</th>
+              <th class="px-2 py-2 text-right">Saldo</th>
+            </tr>
+          </thead>
+          <tbody id="dre-tbody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+      <div id="dre-totais" class="text-[11px] font-bold text-slate-700 hidden"></div>
+    </section>
+  </main>
+
+  <script>
+    const API_DRE = "{% url 'api_lancamentos_dre_resumo' %}";
+
+    function hojeISO() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function brl(n) {
+      const x = Number(n) || 0;
+      return x.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function esc(s) {
+      const t = document.createElement('div');
+      t.textContent = s == null ? '' : String(s);
+      return t.innerHTML;
+    }
+
+    document.getElementById('dre-carregar').addEventListener('click', async () => {
+      const de = document.getElementById('dre-de').value;
+      const ate = document.getElementById('dre-ate').value;
+      const por = document.getElementById('dre-por').value;
+      const valor = document.getElementById('dre-valor').value;
+      const contas = document.getElementById('dre-contas').value;
+      const em = (document.getElementById('dre-empresa').value || '').trim();
+      const emId = (document.getElementById('dre-empresa-id').value || '').trim();
+      const tb = document.getElementById('dre-tbody');
+      const tot = document.getElementById('dre-totais');
+      tb.innerHTML = '<tr><td colspan="4" class="px-2 py-3 text-slate-400">Carregando…</td></tr>';
+      if (window.gmLoadingBar) window.gmLoadingBar.show();
+      try {
+        let q = `de=${encodeURIComponent(de)}&ate=${encodeURIComponent(ate)}&por=${encodeURIComponent(por)}&valor=${encodeURIComponent(valor)}&contas=${encodeURIComponent(contas)}`;
+        if (em) q += `&empresa=${encodeURIComponent(em)}`;
+        if (emId) q += `&empresa_id=${encodeURIComponent(emId)}`;
+        const r = await fetch(`${API_DRE}?${q}`, { credentials: 'same-origin' });
+        const d = await r.json();
+        tb.innerHTML = '';
+        if (!d.ok || !d.linhas) {
+          tb.innerHTML = `<tr><td colspan="4" class="px-2 py-3 text-red-600">${esc(d.erro || 'Erro')}</td></tr>`;
+          tot.classList.add('hidden');
+          return;
+        }
+        d.linhas.forEach((row) => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50';
+          tr.innerHTML = `
+            <td class="px-2 py-1.5 font-semibold">${esc(row.plano)}</td>
+            <td class="px-2 py-1.5 text-right tabular-nums">${esc(brl(row.receita))}</td>
+            <td class="px-2 py-1.5 text-right tabular-nums">${esc(brl(row.despesa))}</td>
+            <td class="px-2 py-1.5 text-right font-black tabular-nums ${row.saldo >= 0 ? 'text-emerald-800' : 'text-red-700'}">${esc(brl(row.saldo))}</td>`;
+          tb.appendChild(tr);
+        });
+        const t = d.totais || {};
+        const modo =
+          d.filtro_contas === 'todas'
+            ? 'todos os planos'
+            : d.filtro_contas === 'resultado_erp'
+              ? 'resultado + colunas ERP (receita 1/5 · despesa 2/10/11/12)'
+              : 'só resultado';
+        const vm = d.valor_modo === 'realizado' ? 'Realizado' : 'Bruto';
+        let loja = '';
+        if (d.empresa_filtro) loja += ` · Empresa: ${d.empresa_filtro}`;
+        if (d.empresa_id_filtro) loja += ` · EmpresaID: ${d.empresa_id_filtro}`;
+        const linha1 = `Totais (${modo}) — Receita ${brl(t.total_receita)} · Despesa ${brl(t.total_despesa)} · Resultado ${brl(t.resultado)} · Base: ${d.campo_data || ''} · Valor: ${vm}${loja}`;
+        if (!d.empresa_filtro && !d.empresa_id_filtro) {
+          tot.innerHTML = `<span class="block">${linha1}</span><span class="block mt-1.5 text-amber-800 font-semibold normal-case">Sem filtro de empresa: totais somam todas as lojas no Mongo (~2× em relação ao PDF de uma loja). Para bater com o ERP por unidade, preencha Empresa (ex.: Agro Mais Centro).</span>`;
+        } else {
+          tot.textContent = linha1;
+        }
+        tot.classList.remove('hidden');
+      } catch (_) {
+        tb.innerHTML = '<tr><td colspan="4" class="px-2 py-3 text-red-600">Falha de rede.</td></tr>';
+      } finally {
+        if (window.gmLoadingBar) window.gmLoadingBar.hide();
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const t = hojeISO();
+      document.getElementById('dre-de').value = t;
+      document.getElementById('dre-ate').value = t;
+    });
+  </script>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>

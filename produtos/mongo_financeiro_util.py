@@ -7,12 +7,15 @@ from __future__ import annotations
 import copy
 import logging
 import re
+from collections import defaultdict
 import secrets
+import unicodedata
 from datetime import date, datetime, timedelta, time as dtime
 from decimal import Decimal
 from typing import Any
 
 from bson import ObjectId
+from django.conf import settings
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -37,16 +40,100 @@ def _restante_a_pagar(doc: dict) -> Decimal:
     return r if r > 0 else Decimal("0")
 
 
+def _valor_realizado_receita_dec(entrada: Decimal, rec: Decimal, vp: Decimal) -> Decimal:
+    """
+    Valor realizado no título a receber. O ERP às vezes grava o mesmo recebimento em Recebido e
+    ValorPago; somar os dois infla o DRE. Quando Entrada > 0, usa min(Entrada, Recebido+ValorPago).
+    """
+    s = rec + vp
+    if entrada > 0:
+        return min(entrada, s)
+    return s
+
+
 def _restante_a_receber(doc: dict) -> Decimal:
     """
-    Saldo a receber. No Mongo do Venda ERP o recebido pode constar em Recebido e/ou ValorPago
-    (ex.: título quitado com Recebido=0 e ValorPago=Entrada).
+    Saldo a receber. Movimento realizado = ``_valor_realizado_receita_dec`` (sem dupla contagem).
     """
     entrada = _dec(doc.get("Entrada"))
     rec = _dec(doc.get("Recebido"))
     vp = _dec(doc.get("ValorPago"))
-    r = entrada - rec - vp
+    mov = _valor_realizado_receita_dec(entrada, rec, vp)
+    r = entrada - mov
     return r if r > 0 else Decimal("0")
+
+
+def _mongo_expr_valor_realizado_receita() -> dict[str, Any]:
+    """Expressão Mongo (aggregate) equivalente a ``_valor_realizado_receita_dec``."""
+    soma_rv: dict[str, Any] = {
+        "$add": [
+            {"$ifNull": ["$Recebido", 0]},
+            {"$ifNull": ["$ValorPago", 0]},
+        ]
+    }
+    return {
+        "$cond": [
+            {"$gt": [{"$ifNull": ["$Entrada", 0]}, 0]},
+            {"$min": [{"$ifNull": ["$Entrada", 0]}, soma_rv]},
+            soma_rv,
+        ]
+    }
+
+
+def _mongo_expr_dre_dedup_key() -> dict[str, Any]:
+    """
+    Chave para o primeiro ``$group`` do DRE. Com Id/LancamentoID do ERP, usa-os.
+    Sem ambos: se ``DRE_DEDUP_ASSINATURA_SEM_ID``, monta assinatura estável com ``vl_dre`` (exige
+    estágio ``$addFields`` anterior com ``vl_dre``); senão usa ``_id`` (cada cópia duplicada soma de novo).
+    """
+    id_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$Id", ""]}}}}
+    lid_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$LancamentoID", ""]}}}}
+    dstr = {
+        "$cond": [
+            {"$ne": ["$DataPagamento", None]},
+            {"$dateToString": {"format": "%Y-%m-%d", "date": "$DataPagamento"}},
+            "nod",
+        ]
+    }
+    vl_round = {"$toString": {"$round": [{"$toDouble": {"$ifNull": ["$vl_dre", 0]}}, 2]}}
+    assinatura: dict[str, Any] = {
+        "$concat": [
+            "SIG|",
+            {"$ifNull": [{"$toString": "$EmpresaID"}, ""]},
+            "|",
+            {"$ifNull": ["$Empresa", ""]},
+            "|",
+            dstr,
+            "|",
+            {"$ifNull": ["$PlanoDeConta", ""]},
+            "|",
+            {"$ifNull": [{"$toString": {"$ifNull": ["$PlanoDeContaID", ""]}}, ""]},
+            "|",
+            {"$toString": "$Despesa"},
+            "|",
+            vl_round,
+            "|",
+            {"$ifNull": [{"$toString": "$NumeroDocumento"}, ""]},
+            "|",
+            {"$toString": {"$ifNull": ["$NumeroParcela", 0]}},
+        ]
+    }
+    fallback_oid = {"$toString": "$_id"}
+    if not getattr(settings, "DRE_DEDUP_ASSINATURA_SEM_ID", True):
+        assinatura = fallback_oid
+    return {
+        "$cond": [
+            {"$gt": [{"$strLenCP": id_trim}, 0]},
+            {"$concat": ["ID|", {"$toString": "$Id"}]},
+            {
+                "$cond": [
+                    {"$gt": [{"$strLenCP": lid_trim}, 0]},
+                    {"$concat": ["LID|", {"$toString": "$LancamentoID"}]},
+                    assinatura,
+                ]
+            },
+        ]
+    }
 
 
 def _filtro_sem_quitacao_registrada():
@@ -241,6 +328,7 @@ def lancamentos_totais_filtrados(db, query: dict, despesa: bool) -> dict[str, fl
                 },
             ]
         else:
+            _mov_rec = _mongo_expr_valor_realizado_receita()
             pipe = [
                 {"$match": query},
                 {
@@ -248,14 +336,7 @@ def lancamentos_totais_filtrados(db, query: dict, despesa: bool) -> dict[str, fl
                         "_id": None,
                         "n": {"$sum": 1},
                         "bruto": {"$sum": {"$ifNull": ["$Entrada", 0]}},
-                        "movimentado": {
-                            "$sum": {
-                                "$add": [
-                                    {"$ifNull": ["$Recebido", 0]},
-                                    {"$ifNull": ["$ValorPago", 0]},
-                                ]
-                            }
-                        },
+                        "movimentado": {"$sum": _mov_rec},
                         "saldo_aberto": {
                             "$sum": {
                                 "$max": [
@@ -263,12 +344,7 @@ def lancamentos_totais_filtrados(db, query: dict, despesa: bool) -> dict[str, fl
                                     {
                                         "$subtract": [
                                             {"$ifNull": ["$Entrada", 0]},
-                                            {
-                                                "$add": [
-                                                    {"$ifNull": ["$Recebido", 0]},
-                                                    {"$ifNull": ["$ValorPago", 0]},
-                                                ]
-                                            },
+                                            _mov_rec,
                                         ]
                                     },
                                 ]
@@ -325,7 +401,13 @@ def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
     else:
         restante = _restante_a_receber(doc)
         bruto = float(_dec(doc.get("Entrada")))
-        mov = float(_dec(doc.get("Recebido")) + _dec(doc.get("ValorPago")))
+        mov = float(
+            _valor_realizado_receita_dec(
+                _dec(doc.get("Entrada")),
+                _dec(doc.get("Recebido")),
+                _dec(doc.get("ValorPago")),
+            )
+        )
     return {
         "id": str(doc.get("_id", "")),
         "despesa": despesa,
@@ -500,8 +582,9 @@ def baixar_lancamentos_mongo(
     res_ok: list[str] = []
     res_err: list[dict] = []
 
-    fid = _maybe_oid(forma_id)
-    bid = _maybe_oid(banco_id)
+    # ERP espera string em FormaPagamentoID/BancoID; mantemos sempre string aqui.
+    fid = str(forma_id).strip() if forma_id else ""
+    bid = str(banco_id).strip() if banco_id else ""
 
     for sid in (ids or [])[:80]:
         try:
@@ -574,6 +657,685 @@ def baixar_lancamentos_mongo(
         "ok": len(res_err) == 0,
         "atualizados": res_ok,
         "erros": res_err,
+    }
+
+
+def baixar_lancamento_parcial_mongo(
+    db,
+    lancamento_id: str,
+    *,
+    despesa: bool,
+    data_movimento: datetime,
+    parcelas: list[dict[str, Any]],
+    usuario_label: str,
+) -> dict[str, Any]:
+    """
+    Uma ou mais parcelas no mesmo título (várias formas/contas). Soma em ValorPago (a pagar)
+    ou incrementa ValorPago (a receber). Quita quando o saldo zera.
+    """
+    if db is None:
+        return {"ok": False, "id": None, "erro": "Mongo indisponível", "quitado": False}
+    raw = [p for p in (parcelas or []) if isinstance(p, dict)]
+    if not raw or len(raw) > 24:
+        return {"ok": False, "id": None, "erro": "Informe de 1 a 24 parcelas (valor + forma + banco).", "quitado": False}
+
+    now = timezone.now()
+    mod = (usuario_label or "Agro")[:80] + " — baixa parcial Agro"
+    mod = mod[:200]
+    col = db[COL_DTO_LANCAMENTO]
+
+    try:
+        oid = ObjectId(str(lancamento_id).strip())
+    except Exception:
+        return {"ok": False, "id": None, "erro": "ID inválido", "quitado": False}
+
+    for par in raw:
+        forma_nome = str(par.get("forma_pagamento") or par.get("forma_nome") or "").strip()
+        banco_nome = str(par.get("banco") or par.get("banco_nome") or "").strip()
+        try:
+            valor_par = float(str(par.get("valor", "")).replace(",", ".").strip())
+        except (ValueError, TypeError):
+            return {"ok": False, "id": str(oid), "erro": "Valor inválido em uma das parcelas.", "quitado": False}
+        if valor_par <= 0:
+            return {"ok": False, "id": str(oid), "erro": "Cada parcela deve ter valor maior que zero.", "quitado": False}
+        if not forma_nome or not banco_nome:
+            return {"ok": False, "id": str(oid), "erro": "Cada parcela precisa de forma de pagamento e banco/conta.", "quitado": False}
+
+    doc = col.find_one({"_id": oid})
+    if not doc:
+        return {"ok": False, "id": None, "erro": "Lançamento não encontrado", "quitado": False}
+    if bool(doc.get("Despesa")) != bool(despesa):
+        return {"ok": False, "id": str(oid), "erro": "Tipo de lançamento divergente (pagar/receber)", "quitado": False}
+
+    soma_par = sum(
+        float(str(p.get("valor", "")).replace(",", ".").strip())
+        for p in raw
+    )
+    if despesa:
+        if doc.get("Pago") or _dt_efetiva(doc.get("DataPagamento")):
+            return {"ok": False, "id": str(oid), "erro": "Título já quitado", "quitado": False}
+        rest_ini = float(_restante_a_pagar(doc))
+        if rest_ini <= 0 or soma_par > rest_ini + 0.02:
+            return {
+                "ok": False,
+                "id": str(oid),
+                "erro": f"Soma das parcelas (R$ {soma_par:.2f}) não pode exceder o saldo (R$ {rest_ini:.2f}).",
+                "quitado": False,
+            }
+    else:
+        if doc.get("Pago") or _dt_efetiva(doc.get("DataPagamento")):
+            return {"ok": False, "id": str(oid), "erro": "Título já quitado/recebido", "quitado": False}
+        rest_ini = float(_restante_a_receber(doc))
+        entrada = float(_dec(doc.get("Entrada")))
+        if rest_ini <= 0 or soma_par > rest_ini + 0.02:
+            return {
+                "ok": False,
+                "id": str(oid),
+                "erro": f"Soma das parcelas (R$ {soma_par:.2f}) não pode exceder o saldo (R$ {rest_ini:.2f}).",
+                "quitado": False,
+            }
+        if entrada <= 0:
+            return {"ok": False, "id": str(oid), "erro": "Sem valor de entrada no título", "quitado": False}
+
+    quitado_final = False
+    ultima_forma = ""
+    ultima_banco = ""
+    ultima_fid = ""
+    ultima_bid = ""
+
+    for par in raw:
+        doc = col.find_one({"_id": oid})
+        if not doc:
+            return {"ok": False, "id": str(oid), "erro": "Lançamento sumiu durante a baixa", "quitado": False}
+        forma_nome = str(par.get("forma_pagamento") or par.get("forma_nome") or "").strip()
+        banco_nome = str(par.get("banco") or par.get("banco_nome") or "").strip()
+        fid = str(par.get("forma_pagamento_id") or par.get("forma_id") or "").strip()
+        bid = str(par.get("banco_id") or "").strip()
+        valor_par = float(str(par.get("valor", "")).replace(",", ".").strip())
+        ultima_forma = forma_nome[:200]
+        ultima_banco = banco_nome[:200]
+        ultima_fid = fid
+        ultima_bid = bid
+
+        obs_ant = str(doc.get("Observacoes") or "")[:1800]
+        linha_obs = (
+            f"Agro parc. {timezone.localtime(data_movimento).strftime('%d/%m/%Y')} "
+            f"{forma_nome[:50]}/{banco_nome[:50]} R$ {valor_par:.2f}"
+        )
+        obs_nova = (obs_ant + (" | " if obs_ant else "") + linha_obs)[:2000]
+
+        if despesa:
+            vp_atual = float(_dec(doc.get("ValorPago")))
+            saida = float(_dec(doc.get("Saida")))
+            novo_vp = vp_atual + valor_par
+            rest_apos = saida - novo_vp
+            if rest_apos <= 0.02:
+                novo_vp = saida
+                quitado_final = True
+                col.update_one(
+                    {"_id": oid},
+                    {
+                        "$set": {
+                            "Pago": True,
+                            "DataPagamento": data_movimento,
+                            "ValorPago": novo_vp,
+                            "FormaPagamento": ultima_forma,
+                            "FormaPagamentoID": ultima_fid,
+                            "Banco": ultima_banco,
+                            "BancoID": ultima_bid,
+                            "Observacoes": obs_nova,
+                            "LastUpdate": now,
+                            "ModificadoPor": mod,
+                        }
+                    },
+                )
+            else:
+                col.update_one(
+                    {"_id": oid},
+                    {
+                        "$set": {
+                            "Pago": False,
+                            "ValorPago": novo_vp,
+                            "FormaPagamento": ultima_forma,
+                            "FormaPagamentoID": ultima_fid,
+                            "Banco": ultima_banco,
+                            "BancoID": ultima_bid,
+                            "Observacoes": obs_nova,
+                            "LastUpdate": now,
+                            "ModificadoPor": mod,
+                        }
+                    },
+                )
+        else:
+            rec = float(_dec(doc.get("Recebido")))
+            vp_atual = float(_dec(doc.get("ValorPago")))
+            entrada = float(_dec(doc.get("Entrada")))
+            novo_vp = vp_atual + valor_par
+            rest_apos = entrada - rec - novo_vp
+            if rest_apos <= 0.02:
+                quitado_final = True
+                col.update_one(
+                    {"_id": oid},
+                    {
+                        "$set": {
+                            "Pago": True,
+                            "DataPagamento": data_movimento,
+                            "ValorPago": novo_vp,
+                            "FormaPagamento": ultima_forma,
+                            "FormaPagamentoID": ultima_fid,
+                            "Banco": ultima_banco,
+                            "BancoID": ultima_bid,
+                            "Observacoes": obs_nova,
+                            "LastUpdate": now,
+                            "ModificadoPor": mod,
+                        }
+                    },
+                )
+            else:
+                col.update_one(
+                    {"_id": oid},
+                    {
+                        "$set": {
+                            "Pago": False,
+                            "ValorPago": novo_vp,
+                            "FormaPagamento": ultima_forma,
+                            "FormaPagamentoID": ultima_fid,
+                            "Banco": ultima_banco,
+                            "BancoID": ultima_bid,
+                            "Observacoes": obs_nova,
+                            "LastUpdate": now,
+                            "ModificadoPor": mod,
+                        }
+                    },
+                )
+
+    return {"ok": True, "id": str(oid), "erro": None, "quitado": bool(quitado_final)}
+
+
+# Padrão “contas de resultado”: exclui planos claramente patrimoniais (balanço).
+# Ajuste fino via DRE_RESULTADO_EXCLUIR_REGEX_EXTRA no .env (padrões extras separados por ||).
+#
+# Não excluir por “empréstimo” sozinho: no ERP, “Pagamento de Emprestimos” e “Juros de …”
+# entram em Despesas (resultado). Exclua só captação/passivo (entrada de empréstimo, etc.).
+_DRE_REGEXES_EXCLUIR_CONTA_PATRIMONIAL: tuple[str, ...] = (
+    r"(?i)\b(ativo|passivos?|patrim[oô]nio)(\s|$|/|-)",
+    r"(?i)\b(circulante|imobilizado|investimentos)\b",
+    r"(?i)\b(estoques?|estoque)\b",
+    r"(?i)\b(caixa e bancos|bancos)\b",
+    r"(?i)\b(duplicatas)\b",
+    r"(?i)\b(contas a pagar|contas a receber)\b",
+    r"(?i)\bentrada\s+de\s+empr[eé]stimos?\b",
+    r"(?i)\b(empr[eé]stimos?|financiamentos?)\s+a\s+(captar|obter|contratar)\b",
+    r"(?i)\b(aplica[cç][oõ]es?)\b",
+    r"(?i)\b(realiz[aá]vel)\b",
+    r"(?i)^\s*\(sem plano\)\s*$",
+)
+
+
+def _dre_regexes_excluir_resultado(extra: str | None) -> list[str]:
+    out = list(_DRE_REGEXES_EXCLUIR_CONTA_PATRIMONIAL)
+    raw = (extra or "").strip()
+    if raw:
+        for part in raw.split("||"):
+            p = part.strip()
+            if p:
+                out.append(p)
+    return out
+
+
+def _sanitizar_nome_plano_dre(nome: str) -> str:
+    """
+    Unifica variações do mesmo texto de plano (espaços duplos, NBSP, zero-width, NFKC).
+    Evita duas linhas ``Aluguel`` por diferença invisível no Mongo.
+    """
+    s = unicodedata.normalize("NFKC", nome or "")
+    s = s.replace("\xa0", " ").replace("\u200b", "").replace("\ufeff", "")
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def _profundidade_codigo_plano(nome: str) -> int:
+    """Quantidade de níveis no código inicial (ex.: ``1.1.1`` → 3; sem código → 0)."""
+    c = _parse_codigo_hierarquia_plano(nome)
+    if not c:
+        return 0
+    segs = _segmentos_codigo_plano(c)
+    return len(segs) if segs else 0
+
+
+def _normalizar_chave_plano_dre(nome: str) -> str:
+    """
+    Remove prefixo de código do plano (ex.: ``1.1.1 —``, ``2.2.1 -``) para agrupar a mesma conta
+    gravada com textos diferentes no Mongo (comum no ERP: hierarquia + nome curto).
+    """
+    s = _sanitizar_nome_plano_dre(nome)
+    if not s:
+        return "(sem plano)"
+    # Hífen ASCII e Unicode en dash (U+2013) / em dash (U+2014)
+    s2 = re.sub(r"^\s*\d+(?:\.\d+)*\s*[\u2013\u2014\-]\s*", "", s, count=1)
+    s2 = s2.strip()
+    return s2 if s2 else "(sem plano)"
+
+
+def _mesclar_por_plano_normalizado(
+    por_plano: dict[str, dict[str, Decimal]],
+) -> dict[str, dict[str, Decimal]]:
+    """
+    Agrupa por nome sem prefixo de código. Se várias linhas caem na mesma chave e há código
+    numérico no nome, mantém só as de **maior profundidade** (folha), para não somar pai + filho
+    quando o ERP grava ``1.1 - Vendas Pdv`` e ``1.1.1 - Vendas Pdv`` (ambos viram ``Vendas Pdv``).
+    """
+    grupos: dict[str, list[tuple[str, dict[str, Decimal]]]] = defaultdict(list)
+    for nome, row in por_plano.items():
+        k = _normalizar_chave_plano_dre(nome)
+        grupos[k].append((nome, row))
+
+    profundidade_ok = getattr(settings, "DRE_MESCLAR_PLANO_PROFUNDIDADE_MAX", True)
+    out: dict[str, dict[str, Decimal]] = {}
+    for k, items in grupos.items():
+        selecionados = items
+        if profundidade_ok and len(items) > 1:
+            depths = [_profundidade_codigo_plano(nome) for nome, _ in items]
+            md = max(depths) if depths else 0
+            if md > 0:
+                selecionados = [(n, r) for (n, r), d in zip(items, depths) if d == md]
+        slot = out.setdefault(k, {"despesa": Decimal("0"), "receita": Decimal("0")})
+        for _, row in selecionados:
+            slot["despesa"] += row["despesa"]
+            slot["receita"] += row["receita"]
+    return out
+
+
+def _parse_codigo_hierarquia_plano(nome: str) -> str | None:
+    """Extrai o código inicial tipo ``1``, ``1.1``, ``1.01``, ``1.1.1`` do nome do plano (PlanoDeConta)."""
+    s = _sanitizar_nome_plano_dre(nome)
+    if not s:
+        return None
+    m = re.match(r"^\s*(\d+(?:\.\d+)*)\b", s)
+    return m.group(1) if m else None
+
+
+def _segmentos_codigo_plano(codigo: str) -> list[int] | None:
+    """Segmentos numéricos do código (``1.01`` e ``1.1`` → ``[1, 1]``)."""
+    if not codigo or not str(codigo).strip():
+        return None
+    out: list[int] = []
+    for p in str(codigo).split("."):
+        p = p.strip()
+        if not p.isdigit():
+            return None
+        out.append(int(p))
+    return out if out else None
+
+
+def _eh_ancestral_estrito(cod_ance: str, cod_desc: str) -> bool:
+    """True se ``cod_ance`` é nível acima de ``cod_desc`` (ex.: 1.1 é ancestral de 1.1.1)."""
+    pa = _segmentos_codigo_plano(cod_ance)
+    pb = _segmentos_codigo_plano(cod_desc)
+    if not pa or not pb or len(pa) >= len(pb):
+        return False
+    return pb[: len(pa)] == pa
+
+
+def _filtrar_planos_pais_dre(por_plano: dict[str, dict[str, Decimal]]) -> dict[str, dict[str, Decimal]]:
+    """
+    Alinha ao DRE do ERP por **código** (ex.: ``2`` > ``2.1`` > ``2.1.1`` > ``2.1.1.1`` > ``2.1.1.1.1``).
+
+    No ERP o **pai** já agrega os **filhos** na apresentação; nos lançamentos (Mongo) o mesmo período
+    pode ter movimento no pai **e** no filho (ex.: Salários e Adiantamento). Somar os dois **duplica**.
+
+    Regra: **receita** e **despesa** são tratadas à parte — só entram no conjunto hierárquico contas
+    com valor > 0 naquela dimensão; zera-se o valor na dimensão do **pai** se existir **qualquer**
+    descendente estrito com valor na mesma dimensão. Sem código numérico no início do nome, não há
+    árvore (linha mantida).
+
+    Segmentos numéricos: ``1.01`` e ``1.1`` equivalem (``int`` por parte).
+    """
+    def _segmentos_com_valor(dim: str) -> set[tuple[int, ...]]:
+        s: set[tuple[int, ...]] = set()
+        for nome, row in por_plano.items():
+            if dim == "receita" and row["receita"] <= 0:
+                continue
+            if dim == "despesa" and row["despesa"] <= 0:
+                continue
+            c = _parse_codigo_hierarquia_plano(nome)
+            if not c:
+                continue
+            segs = _segmentos_codigo_plano(c)
+            if segs is not None:
+                s.add(tuple(segs))
+        return s
+
+    conj_rec = _segmentos_com_valor("receita")
+    conj_desp = _segmentos_com_valor("despesa")
+
+    def _tem_filho_no_conjunto(pa: list[int], conj: set[tuple[int, ...]]) -> bool:
+        for pb in conj:
+            if len(pb) <= len(pa):
+                continue
+            if list(pb[: len(pa)]) == pa:
+                return True
+        return False
+
+    out: dict[str, dict[str, Decimal]] = {}
+    for nome, row in por_plano.items():
+        c = _parse_codigo_hierarquia_plano(nome)
+        if c is None:
+            out[nome] = {"receita": row["receita"], "despesa": row["despesa"]}
+            continue
+        pa = _segmentos_codigo_plano(c)
+        if pa is None:
+            out[nome] = {"receita": row["receita"], "despesa": row["despesa"]}
+            continue
+
+        rec = row["receita"]
+        des = row["despesa"]
+        if rec > 0 and _tem_filho_no_conjunto(pa, conj_rec):
+            rec = Decimal("0")
+        if des > 0 and _tem_filho_no_conjunto(pa, conj_desp):
+            des = Decimal("0")
+        if rec == 0 and des == 0:
+            continue
+        out[nome] = {"receita": rec, "despesa": des}
+    return out
+
+
+def _dre_texto_base_nome(s: str) -> str:
+    """Sanitizado, minúsculo, ``de`` opcional colapsado (comparação de rótulos de plano)."""
+    t = _sanitizar_nome_plano_dre(s).casefold()
+    return re.sub(r"\s+de\s+", " ", t, flags=re.I).strip()
+
+
+def _dre_nomes_plano_equivalentes(a: str, b: str) -> bool:
+    """Igualdade visual de nome de plano (espaços, caixa, ``de`` opcional entre palavras)."""
+    return _dre_texto_base_nome(a) == _dre_texto_base_nome(b)
+
+
+def _dre_remover_sem_codigo_se_nome_igual_plano_codificado(
+    por_plano: dict[str, dict[str, Decimal]],
+    normas_sem_prefixo_de_planos_com_codigo: set[str],
+) -> dict[str, dict[str, Decimal]]:
+    """
+    Remove linha **sem** código no texto quando:
+
+    1. O nome (normalizado) é **igual** ao de algum plano **com** código no período; ou
+    2. Existe plano codificado cujo nome (sem prefixo) **continua** o da linha sem código
+       (ex.: ``Compra de Mercadoria`` sombra de ``2.2.1.1 — Compra Mercadoria CN`` quando **não**
+       há movimento na conta ``2.2.1 —`` no Mongo). Exige **≥ 2** palavras no rótulo sem código para
+       evitar remover só ``Compra`` por engano.
+    """
+    if not getattr(settings, "DRE_ZERAR_SEM_CODIGO_REPETE_PAI", True):
+        return por_plano
+    remover: set[str] = set()
+    for nome in por_plano:
+        if _parse_codigo_hierarquia_plano(nome):
+            continue
+        alvo = _normalizar_chave_plano_dre(nome)
+        if not alvo or alvo == "(sem plano)":
+            continue
+        ba = _dre_texto_base_nome(alvo)
+        palavras = len(ba.split())
+        hit = False
+        for nc in normas_sem_prefixo_de_planos_com_codigo:
+            if _dre_nomes_plano_equivalentes(nc, alvo):
+                hit = True
+                break
+            if palavras >= 2:
+                bc = _dre_texto_base_nome(nc)
+                if bc.startswith(ba + " "):
+                    hit = True
+                    break
+        if hit:
+            remover.add(nome)
+    if not remover:
+        return por_plano
+    return {k: v for k, v in por_plano.items() if k not in remover}
+
+
+def _dre_fragmento_classificacao_colunas_erp() -> dict[str, Any]:
+    """
+    Alinha ao PDF de síntese do Venda ERP (colunas Receitas / Despesas):
+
+    - Título **a pagar** (``Despesa`` true): só planos cujo código inicial é **2**, **10**, **11** ou **12**
+      (ex.: ``2.5.1``, ``10 Outro``), que entram no **Total Despesas** do relatório.
+    - Título **a receber** (``Despesa`` false): códigos **1** e **5** (receita operacional + passivos/entrada
+      de empréstimo na coluna de receitas).
+
+    Exclui da DRE lançamentos com plano **3**, **4**, etc. ou sem código no texto — que o ERP mostra fora
+    dessas colunas e costumam inflar o total Agro (ex.: ~30k a mais no Centro).
+    """
+    frag_desp = {
+        "$or": [
+            {"PlanoDeConta": {"$regex": r"^\s*2(\.\d+)*\b"}},
+            {"PlanoDeConta": {"$regex": r"^\s*10(\.\d+)*\b"}},
+            {"PlanoDeConta": {"$regex": r"^\s*11(\.\d+)*\b"}},
+            {"PlanoDeConta": {"$regex": r"^\s*12(\.\d+)*\b"}},
+        ]
+    }
+    frag_rec = {
+        "$or": [
+            {"PlanoDeConta": {"$regex": r"^\s*1(\.\d+)*\b"}},
+            {"PlanoDeConta": {"$regex": r"^\s*5(\.\d+)*\b"}},
+        ]
+    }
+    return {
+        "$or": [
+            {"$and": [{"Despesa": True}, frag_desp]},
+            {"$and": [{"Despesa": {"$ne": True}}, frag_rec]},
+        ]
+    }
+
+
+def _filtro_empresa_dre(empresa: str | None, empresa_id: str | None) -> dict[str, Any] | None:
+    """Restringe por ``Empresa`` e/ou ``EmpresaID`` (filtro de loja, como no ERP)."""
+    eid = (empresa_id or "").strip()
+    en = (empresa or "").strip()
+    parts: list[dict[str, Any]] = []
+    if eid:
+        parts.append({"EmpresaID": eid})
+    if en:
+        tokens = [re.escape(t) for t in re.split(r"\s+", en.strip()) if t]
+        if tokens:
+            rpat = r"^\s*" + r"\s+".join(tokens) + r"\s*$"
+            parts.append({"Empresa": {"$regex": rpat, "$options": "i"}})
+    if not parts:
+        return None
+    if len(parts) == 1:
+        return parts[0]
+    return {"$and": parts}
+
+
+def dre_resumo_simples_mongo(
+    db,
+    *,
+    data_de: date,
+    data_ate: date,
+    por: str = "competencia",
+    valor: str = "bruto",
+    filtro_contas: str = "resultado",
+    regex_excluir_extra: str | None = None,
+    empresa: str | None = None,
+    empresa_id: str | None = None,
+) -> dict[str, Any]:
+    """
+    Base simples para DRE: totais por PlanoDeConta no período (lançamentos DtoLancamento).
+
+    ``por`` (data base do filtro):
+      - ``competencia``: DataCompetencia
+      - ``vencimento``: DataVencimento
+      - ``pagamento``: DataPagamento (só títulos com pagamento efetivo no período; alinha ao ERP em "Filtrar por: Data Pagamento")
+
+    ``valor``:
+      - ``bruto``: receita = ``Entrada``, despesa = ``Saida`` (valor do título).
+      - ``realizado``: receita = min(``Entrada``, ``Recebido``+``ValorPago``) quando ``Entrada``>0
+        (evita dupla contagem se o ERP repetir o valor em ambos os campos); despesa = ``ValorPago``.
+
+    filtro_contas:
+      - ``resultado`` (default): exclui planos que parecem patrimoniais/balanço (ver regexes no código).
+      - ``resultado_erp``: como ``resultado`` + só contas nas colunas do PDF (despesa: cód. 2/10/11/12;
+        receita: 1/5). Use para bater o **Total Despesas / Receitas** do síntese.
+      - ``todas``: sem filtro por nome de plano (comportamento antigo).
+
+    ``empresa`` / ``empresa_id`` (opcional): filtram lançamentos pela loja cadastrada no título,
+    alinhado ao relatório do ERP por empresa. Nome: match exato ignorando maiúsculas e com espaços
+    flexíveis entre as palavras.
+    """
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível", "linhas": [], "totais": {}}
+    tz = timezone.get_current_timezone()
+    ini = timezone.make_aware(datetime.combine(data_de, dtime.min), tz)
+    fim = timezone.make_aware(datetime.combine(data_ate, dtime.max), tz)
+    modo_por = (por or "").strip().lower()
+    if modo_por == "vencimento":
+        campo = "DataVencimento"
+    elif modo_por == "pagamento":
+        campo = "DataPagamento"
+    else:
+        campo = "DataCompetencia"
+    col = db[COL_DTO_LANCAMENTO]
+    linhas: list[dict[str, Any]] = []
+    fc = (filtro_contas or "resultado").strip().lower()
+    if fc not in ("resultado", "resultado_erp", "todas"):
+        fc = "resultado"
+    modo_valor = (valor or "bruto").strip().lower()
+    if modo_valor not in ("bruto", "realizado"):
+        modo_valor = "bruto"
+    if modo_valor == "realizado":
+        soma_receita_expr = _mongo_expr_valor_realizado_receita()
+        soma_despesa_expr: dict[str, Any] = {"$ifNull": ["$ValorPago", 0]}
+    else:
+        soma_receita_expr = {"$ifNull": ["$Entrada", 0]}
+        soma_despesa_expr = {"$ifNull": ["$Saida", 0]}
+    try:
+        if campo == "DataPagamento":
+            # Ignora datas sentinela (1/1/1) e títulos sem pagamento no período
+            match_data = {
+                "DataPagamento": {"$gte": ini, "$lte": fim, "$gt": _SENTINEL},
+            }
+        else:
+            match_data = {campo: {"$gte": ini, "$lte": fim}}
+        if fc in ("resultado", "resultado_erp"):
+            pats = _dre_regexes_excluir_resultado(regex_excluir_extra)
+            match0 = {
+                "$and": [
+                    match_data,
+                    {"PlanoDeConta": {"$regex": r"\S"}},
+                    {"$nor": [{"PlanoDeConta": {"$regex": pat}} for pat in pats]},
+                ]
+            }
+            if fc == "resultado_erp":
+                match0["$and"].append(_dre_fragmento_classificacao_colunas_erp())
+        else:
+            match0 = match_data
+
+        em_filtro = _filtro_empresa_dre(empresa, empresa_id)
+        if em_filtro is not None:
+            if isinstance(match0, dict) and "$and" in match0:
+                match0["$and"].append(em_filtro)
+            else:
+                match0 = {"$and": [match0, em_filtro]}
+
+        vl_linha = {"$cond": ["$Despesa", soma_despesa_expr, soma_receita_expr]}
+        dedup_id = getattr(settings, "DRE_DEDUP_LANCAMENTO_ID", True)
+        if dedup_id:
+            pipe = [
+                {"$match": match0},
+                {"$addFields": {"vl_dre": vl_linha}},
+                {"$addFields": {"dk_dre": _mongo_expr_dre_dedup_key()}},
+                {
+                    "$group": {
+                        "_id": {
+                            "dk": "$dk_dre",
+                            "plano": {"$ifNull": ["$PlanoDeConta", ""]},
+                            "desp": "$Despesa",
+                        },
+                        "soma": {"$max": "$vl_dre"},
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "plano": "$_id.plano",
+                            "desp": "$_id.desp",
+                        },
+                        "soma": {"$sum": "$soma"},
+                    }
+                },
+            ]
+        else:
+            pipe = [
+                {"$match": match0},
+                {
+                    "$group": {
+                        "_id": {
+                            "plano": {"$ifNull": ["$PlanoDeConta", ""]},
+                            "desp": "$Despesa",
+                        },
+                        "soma": {"$sum": vl_linha},
+                    }
+                },
+            ]
+        agg = list(col.aggregate(pipe))
+        por_plano: dict[str, dict[str, Decimal]] = {}
+        for r in agg:
+            pid = r.get("_id") or {}
+            nome_raw = str(pid.get("plano") or "").strip()
+            nome = _sanitizar_nome_plano_dre(nome_raw) or "(sem plano)"
+            is_desp = bool(pid.get("desp"))
+            val = _dec(r.get("soma"))
+            slot = por_plano.setdefault(nome, {"despesa": Decimal("0"), "receita": Decimal("0")})
+            if is_desp:
+                slot["despesa"] += val
+            else:
+                slot["receita"] += val
+        normas_codificadas_pre_pais = {
+            _normalizar_chave_plano_dre(nome)
+            for nome in por_plano
+            if _parse_codigo_hierarquia_plano(nome)
+        }
+        if getattr(settings, "DRE_EXCLUIR_PLANOS_PAI_HIERARQUIA", True):
+            por_plano = _filtrar_planos_pais_dre(por_plano)
+        por_plano = _dre_remover_sem_codigo_se_nome_igual_plano_codificado(
+            por_plano,
+            normas_codificadas_pre_pais,
+        )
+        if getattr(settings, "DRE_MESCLAR_PLANO_PREFIXO_CODIGO", True):
+            por_plano = _mesclar_por_plano_normalizado(por_plano)
+        tot_rec = sum((row["receita"] for row in por_plano.values()), Decimal("0"))
+        tot_desp = sum((row["despesa"] for row in por_plano.values()), Decimal("0"))
+        for nome in sorted(por_plano.keys(), key=lambda x: x.lower()):
+            row = por_plano[nome]
+            d = row["despesa"]
+            r_ = row["receita"]
+            linhas.append(
+                {
+                    "plano": nome,
+                    "despesa": float(d.quantize(Decimal("0.01"))),
+                    "receita": float(r_.quantize(Decimal("0.01"))),
+                    "saldo": float((r_ - d).quantize(Decimal("0.01"))),
+                }
+            )
+    except Exception as exc:
+        logger.exception("dre_resumo_simples_mongo: %s", exc)
+        return {"ok": False, "erro": str(exc)[:300], "linhas": [], "totais": {}}
+
+    ef = (empresa or "").strip()
+    eidf = (empresa_id or "").strip()
+    return {
+        "ok": True,
+        "campo_data": campo,
+        "valor_modo": modo_valor,
+        "filtro_contas": fc,
+        "empresa_filtro": ef or None,
+        "empresa_id_filtro": eidf or None,
+        "periodo": {"de": data_de.isoformat(), "ate": data_ate.isoformat()},
+        "linhas": linhas,
+        "totais": {
+            "total_despesa": float(tot_desp.quantize(Decimal("0.01"))),
+            "total_receita": float(tot_rec.quantize(Decimal("0.01"))),
+            "resultado": float((tot_rec - tot_desp).quantize(Decimal("0.01"))),
+        },
+        "dedup_assinatura_sem_id": getattr(settings, "DRE_DEDUP_ASSINATURA_SEM_ID", True),
     }
 
 
@@ -730,7 +1492,8 @@ def lancamentos_sugestoes_campo(
     if db is None or campo not in _SUGESTOES_CAMPOS:
         return out
     nome_f, id_f = _SUGESTOES_CAMPOS[campo]
-    lim = min(max(int(limit or 30), 1), 80)
+    cap = 500 if campo == "plano" else 80
+    lim = min(max(int(limit or 30), 1), cap)
     qq = (q or "").strip()
     try:
         col = db[COL_DTO_LANCAMENTO]
@@ -831,11 +1594,12 @@ def inserir_lancamentos_manual_lote(
     lote = f"AG{secrets.token_hex(4).upper()}"
     user = (usuario_label or "Agro")[:200]
 
-    eid = _maybe_oid(empresa_id) if empresa_id else None
-    pid = _maybe_oid(pessoa_id) if pessoa_id else None
-    bid = _maybe_oid(banco_id) if banco_id else None
-    fid = _maybe_oid(forma_id) if forma_id else None
-    gid = _maybe_oid(grupo_id) if grupo_id else None
+    # IDs originais vindos do ERP geralmente são strings; não converter para ObjectId
+    eid = str(empresa_id).strip() if empresa_id else ""
+    pid = str(pessoa_id).strip() if pessoa_id else ""
+    bid = str(banco_id).strip() if banco_id else ""
+    fid = str(forma_id).strip() if forma_id else ""
+    gid = str(grupo_id).strip() if grupo_id else ""
 
     col = db[COL_DTO_LANCAMENTO]
     inserted: list[str] = []
@@ -862,16 +1626,16 @@ def inserir_lancamentos_manual_lote(
         doc.pop("_id", None)
         doc["Despesa"] = bool(despesa)
         doc["Empresa"] = empresa_nome[:200]
-        doc["EmpresaID"] = eid if eid is not None else (empresa_id or "")
+        doc["EmpresaID"] = eid or (empresa_id or "")
         doc["Cliente"] = pessoa_nome[:300]
-        doc["ClienteID"] = pid if pid is not None else (pessoa_id or "")
+        doc["ClienteID"] = pid or (pessoa_id or "")
         doc["Banco"] = banco_nome[:200]
-        doc["BancoID"] = bid if bid is not None else (banco_id or "")
+        doc["BancoID"] = bid or (banco_id or "")
         doc["FormaPagamento"] = forma_nome[:200]
-        doc["FormaPagamentoID"] = fid if fid is not None else (forma_id or "")
+        doc["FormaPagamentoID"] = fid or (forma_id or "")
         if (grupo_nome or "").strip():
             doc["LancamentoGrupo"] = grupo_nome.strip()[:200]
-            doc["LancamentoGrupoID"] = gid if gid is not None else (grupo_id or "")
+            doc["LancamentoGrupoID"] = gid or (grupo_id or "")
         doc["PlanoDeConta"] = plano_nome[:200]
         doc["PlanoDeContaID"] = plano_oid if plano_oid is not None else (str(plano_id_raw).strip() if plano_id_raw else "")
         doc["Descricao"] = (ln.get("descricao") or f"Lançamento manual {n}").strip()[:500]

@@ -26,6 +26,7 @@
   </style>
 </head>
 <body class="bg-slate-100 text-slate-900 h-full overflow-hidden flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
   {% csrf_token %}
   {{ draft|json_script:"checkout-draft" }}
 
@@ -238,6 +239,7 @@
       payload.cliente_documento = String(clienteSelecionado.documento).trim();
     }
     if (DRAFT.forma_pagamento) payload.forma_pagamento = DRAFT.forma_pagamento;
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
       var res = await fetch('{% url "api_enviar_pedido_erp" %}', {
         method: 'POST',
@@ -258,6 +260,8 @@
       }
     } catch (e) {
       alert('Erro de comunicação com o servidor.');
+    } finally {
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
     }
     btn.disabled = false;
     btn.innerHTML = '<span>ERP Orçamento</span><kbd class="gm-kbd border border-white/30 bg-white/15 text-white">F10</kbd>';

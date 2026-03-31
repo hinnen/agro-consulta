@@ -158,6 +158,30 @@ VENDA_ERP_API_TOKEN = config('VENDA_ERP_API_TOKEN', default='')
 VENDA_ERP_API_FINANCEIRO_BAIXA_PATH = config('VENDA_ERP_API_FINANCEIRO_BAIXA_PATH', default='').strip()
 VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH = config('VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH', default='').strip()
 
+# DRE (resumo por plano): resultado | resultado_erp (colunas 1/5 receita · 2/10/11/12 despesa, como o PDF) | todas.
+DRE_RESULTADO_FILTRO = (config('DRE_RESULTADO_FILTRO', default='resultado') or 'resultado').strip().lower()
+# Padrões extras de exclusão (separar com ||), mesclados ao filtro "resultado".
+DRE_RESULTADO_EXCLUIR_REGEX_EXTRA = config('DRE_RESULTADO_EXCLUIR_REGEX_EXTRA', default='').strip()
+# DRE: agrupa linhas cujo PlanoDeConta só difere pelo código hierárquico (ex.: "1.1.1 — Vendas Pdv" + "Vendas Pdv").
+DRE_MESCLAR_PLANO_PREFIXO_CODIGO = config('DRE_MESCLAR_PLANO_PREFIXO_CODIGO', default=True, cast=bool)
+# Ao mesclar pelo nome sem código, se houver pai (1.1) e filho (1.1.1) com o mesmo nome base, somente o mais profundo entra (evita ~2x na receita).
+DRE_MESCLAR_PLANO_PROFUNDIDADE_MAX = config('DRE_MESCLAR_PLANO_PROFUNDIDADE_MAX', default=True, cast=bool)
+# DRE: não soma contas-pai quando já existem filhos no mesmo relatório (ex.: não somar 1 + 1.1 + 1.1.1).
+DRE_EXCLUIR_PLANOS_PAI_HIERARQUIA = config('DRE_EXCLUIR_PLANOS_PAI_HIERARQUIA', default=True, cast=bool)
+# DRE: remove plano sem código no texto se o mesmo nome (normalizado) já existe num plano com código (ex.: "Manutenção Frota" duplicando 2.1.7.3).
+DRE_ZERAR_SEM_CODIGO_REPETE_PAI = config('DRE_ZERAR_SEM_CODIGO_REPETE_PAI', default=True, cast=bool)
+# DRE: colapsa documentos duplicados no Mongo com o mesmo Id/LancamentoID do ERP antes de somar.
+DRE_DEDUP_LANCAMENTO_ID = config('DRE_DEDUP_LANCAMENTO_ID', default=True, cast=bool)
+# Sem Id/LancamentoID, o fallback antigo era ``_id`` (cada cópia duplicada = chave diferente → total ~2x).
+# Com True, usa assinatura (empresa, data, plano, valor DRE, doc., parcela, cliente) para colapsar cópias idênticas.
+DRE_DEDUP_ASSINATURA_SEM_ID = config('DRE_DEDUP_ASSINATURA_SEM_ID', default=True, cast=bool)
+# Tela dedicada /lancamentos/dre/ e item no menu lateral. False = rota mostra aviso “desativado”.
+LANCAMENTOS_DRE_ATIVO = config('LANCAMENTOS_DRE_ATIVO', default=False, cast=bool)
+
+# Saída no caixa (/caixa/saida/): nomes para “quem levou o dinheiro”, separados por vírgula. Vazio = só “Outro”.
+AGRO_SAIDA_CAIXA_FUNCIONARIOS = config('AGRO_SAIDA_CAIXA_FUNCIONARIOS', default='').strip()
+AGRO_SAIDA_CAIXA_EMPRESA_PADRAO = config('AGRO_SAIDA_CAIXA_EMPRESA_PADRAO', default='Agro Mais Centro').strip()
+
 # PDV: WhatsApp para aviso de separação/entrega ao salvar orçamento (somente dígitos, ex.: 5513999999999).
 # wa.me abre conversa com um número; não existe URL oficial para “postar” direto em grupo pelo navegador.
 # Para grupo: API (ex. WhatsApp Business), ou número da loja que repassa no grupo manualmente.

@@ -24,6 +24,7 @@
   </style>
 </head>
 <body class="bg-slate-100 h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col touch-manipulation">
+{% include "produtos/_gm_loading_bar.html" %}
 
   <header class="shrink-0 z-50 bg-white shadow-sm border-b border-slate-100 pt-[env(safe-area-inset-top,0px)]">
     <div class="p-2.5 sm:p-3 flex justify-between items-center gap-2 min-h-[3rem]">
@@ -191,6 +192,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('load', () => {
   const listaDiv = document.getElementById('lista');
 
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
   fetch("{% url 'api_todos_produtos_local' %}")
     .then(res => res.json())
     .then(data => {
@@ -200,7 +202,8 @@ window.addEventListener('load', () => {
     })
     .catch(() => {
       listaDiv.innerHTML = '<div class="text-center text-red-500 font-bold p-8">Erro ao carregar produtos.</div>';
-    });
+    })
+    .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 });
 
 function startScan() {
@@ -335,6 +338,7 @@ function salvar() {
   fd.append('deposito', 'centro');
   fd.append('pin', 'SESSAO');
 
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
   fetch("{% url 'api_ajustar_estoque' %}", {
     method: 'POST',
     body: fd,
@@ -349,7 +353,8 @@ function salvar() {
       alert(d.erro || 'Erro ao salvar ajuste.');
     }
   })
-  .catch(() => alert('Falha na comunicação com o servidor.'));
+  .catch(() => alert('Falha na comunicação com o servidor.'))
+  .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
 </script>
 {% include "produtos/_atalho_voltar_pdv.html" %}
