@@ -320,11 +320,11 @@
 
         /* PDV shell — sidebar ERP (Lucide, recolhível) */
         #pdv-sidebar {
-            width: 5.5rem;
+            width: 4.75rem;
             transition: width 0.22s ease, box-shadow 0.22s ease;
         }
         #pdv-sidebar[data-expanded="true"] {
-            width: 15rem;
+            width: 14rem;
         }
         #pdv-sidebar[data-expanded="false"] .pdv-nav-label {
             position: absolute;
@@ -491,24 +491,23 @@
         </aside>
 
         <div class="flex flex-1 flex-col min-w-0 min-h-0">
-            <header class="shrink-0 flex flex-wrap items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-white border-b border-slate-200">
-                <div class="flex items-center gap-2 min-w-0" title="PDV — venda. F2 foca na busca. F1 abre o carrinho; em outras telas, F1 volta ao PDV.">
-                    <div class="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
-                        <span class="text-base sm:text-lg font-black"><span class="text-emerald-600">G</span><span class="text-orange-500">M</span></span>
+            <header class="shrink-0 flex flex-wrap items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-white border-b border-slate-200">
+                <div class="flex items-center gap-1.5 min-w-0" title="PDV — venda. F2 foca na busca. F1 abre o carrinho (faixa laranja à direita); em outras telas, F1 volta ao PDV.">
+                    <div class="h-8 w-8 sm:h-9 sm:w-9 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                        <span class="text-sm sm:text-base font-black"><span class="text-emerald-600">G</span><span class="text-orange-500">M</span></span>
                     </div>
                     <div class="min-w-0">
-                        <div class="text-sm font-black text-slate-800 leading-tight truncate">GM <span class="text-emerald-600">AGRO MAIS</span></div>
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500"><span class="text-slate-400">PDV</span> · <span class="text-slate-600 normal-case">F2</span> busca · <span class="text-slate-600 normal-case">F1</span> carrinho</div>
+                        <div class="text-xs sm:text-sm font-black text-slate-800 leading-tight truncate">GM <span class="text-emerald-600">AGRO MAIS</span></div>
                     </div>
                 </div>
-                <div class="flex-1 flex flex-wrap items-center justify-end gap-3 min-w-0">
+                <div class="flex-1 flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 min-w-0">
                     {% if caixa_aberto %}
                     <a href="{% url 'caixa_painel' %}" class="hidden sm:inline-flex items-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-200 hover:bg-emerald-200/80 shrink-0" title="Caixa aberto — ver painel">Caixa #{{ caixa_aberto.pk }}</a>
                     {% else %}
                     <a href="{% url 'caixa_abrir' %}" class="hidden sm:inline-flex items-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-950 border border-amber-200 hover:bg-amber-200/80 shrink-0" title="Nenhum caixa aberto neste navegador">Abrir caixa</a>
                     {% endif %}
                     <label class="sr-only" for="pdv-empresa">Empresa / unidade</label>
-                    <select id="pdv-empresa" class="text-sm font-bold border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 text-slate-800 max-w-[min(240px,100%)]" title="Unidade / contexto da venda (configuração futura do ERP).">
+                    <select id="pdv-empresa" class="text-xs sm:text-sm font-bold border border-slate-200 rounded-lg px-2 py-1.5 sm:px-2.5 sm:py-2 bg-slate-50 text-slate-800 max-w-[min(200px,100%)]" title="Unidade / contexto da venda (configuração futura do ERP).">
                         <option value="1">Agro Mais — Principal</option>
                     </select>
                     <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-700 border border-slate-200 shrink-0 max-w-[7rem] truncate" title="Operador (modo descanso)"></span>
@@ -516,21 +515,16 @@
                     <button type="button" id="btn-pdv-sair-usuario-pin" class="inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 shrink-0" title="Encerra o usuário neste aparelho e abre a tela de PIN" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">
                         Sair / PIN
                     </button>
-                    <div id="pdv-clock" class="text-xs font-semibold text-slate-500 tabular-nums hidden sm:block" title="Data e hora local"></div>
-                    <button type="button" id="btn-abrir-carrinho-pdv-header" onclick="abrirDrawerCarrinho()" class="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl border-2 border-orange-200 bg-orange-50 text-orange-900 text-[10px] sm:text-[11px] font-black uppercase tracking-wide hover:bg-orange-100/90 shadow-sm shrink-0" title="Abrir ou fechar carrinho (F1). Cliente, itens, finalizar.">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm12 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" /></svg>
-                        <span class="hidden sm:inline">Carrinho</span>
-                        <kbd class="pointer-events-none text-[8px] px-1 py-0.5 rounded font-black border border-orange-300/80 bg-white text-orange-800 tabular-nums shadow-sm" title="Atalho: F1">F1</kbd>
-                    </button>
-                    <button type="button" onclick="abrirModalLembretes()" class="flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-950 text-[10px] sm:text-[11px] font-black uppercase tracking-wide hover:bg-amber-100/90 shadow-sm shrink-0" title="Lembretes do caixa — abre janela para criar alertas por horário (som e aviso no canto da tela).">
+                    <div id="pdv-clock" class="text-[11px] sm:text-xs font-semibold text-slate-500 tabular-nums hidden sm:block" title="Data e hora local"></div>
+                    <button type="button" onclick="abrirModalLembretes()" class="inline-flex items-center justify-center gap-1 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-lg border border-amber-200 bg-amber-50 text-amber-950 text-[10px] font-black uppercase tracking-wide hover:bg-amber-100/90 shadow-sm shrink-0" title="Lembretes do caixa — abre janela para criar alertas por horário (som e aviso no canto da tela).">
                         <span class="text-base leading-none" aria-hidden="true">⏰</span>
                         <span class="hidden sm:inline">Lembretes</span>
                     </button>
                 </div>
             </header>
 
-            <div class="flex flex-1 min-h-0 gap-2 sm:gap-3 p-2 sm:p-3 overflow-hidden items-stretch">
-                <div class="flex-1 flex flex-col min-w-0 min-h-0 gap-2 sm:gap-3">
+            <div class="flex flex-1 min-h-0 gap-1.5 sm:gap-2 p-1.5 sm:p-2 overflow-hidden items-stretch">
+                <div class="flex-1 flex flex-col min-w-0 min-h-0 gap-1.5 sm:gap-2">
                     <div id="scan-banner" class="hidden scan-banner bg-gradient-to-r from-orange-500 to-emerald-600 text-white text-xs font-black uppercase tracking-widest px-4 py-3 rounded-xl shadow-md">
                         Código lido com sucesso
                     </div>
@@ -555,17 +549,17 @@
                         </button>
                     </div>
 
-                    <div id="pdv-top-vendidos-wrap" class="shrink-0 rounded-xl border border-orange-200/90 bg-gradient-to-r from-orange-50/95 to-amber-50/90 p-2 sm:p-2.5 shadow-sm">
-                        <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                            <button type="button" id="pdv-mv-toggle" class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-amber-900 bg-white/80 border border-amber-300/70 rounded-lg px-2 py-1 hover:bg-amber-100" title="Mostrar/ocultar atalhos rápidos">
+                    <div id="pdv-top-vendidos-wrap" class="shrink-0 rounded-lg border border-orange-200/90 bg-gradient-to-r from-orange-50/95 to-amber-50/90 p-1.5 sm:p-2 shadow-sm">
+                        <div class="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+                            <button type="button" id="pdv-mv-toggle" class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-amber-900 bg-white/80 border border-amber-300/70 rounded-md px-2 py-0.5 hover:bg-amber-100" title="Mostrar/ocultar atalhos rápidos">
                                 <span id="pdv-mv-toggle-icon" aria-hidden="true">▾</span>
-                                Produtos rápidos
+                                Rápidos
                             </button>
-                            <div class="flex items-center gap-2 shrink-0">
-                                <button type="button" id="pdv-mv-importar-ranking" class="text-[9px] font-black uppercase text-amber-900 bg-white/80 border border-amber-300/70 rounded-lg px-2 py-1 hover:bg-amber-100" title="Sobrescreve os 10 atalhos com o ranking de vendas dos últimos 30 dias (Mongo).">
-                                    Preencher Mongo 30d
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <button type="button" id="pdv-mv-importar-ranking" class="text-[9px] font-black uppercase text-amber-900 bg-white/80 border border-amber-300/70 rounded-md px-1.5 py-0.5 hover:bg-amber-100" title="Sobrescreve os 10 atalhos com o ranking de vendas dos últimos 30 dias (Mongo).">
+                                    Mongo 30d
                                 </button>
-                                <span class="text-[9px] font-bold text-amber-800/90 tabular-nums whitespace-nowrap" id="pdv-top-vendidos-meta" title="Gravado só neste navegador/aparelho.">Neste aparelho</span>
+                                <span class="hidden md:inline text-[9px] font-bold text-amber-800/90 tabular-nums whitespace-nowrap" id="pdv-top-vendidos-meta" title="Gravado só neste navegador/aparelho.">Local</span>
                             </div>
                         </div>
                         <div id="pdv-top-vendidos-body">
@@ -588,7 +582,7 @@
                     </div>
                 </div>
 
-                <aside class="w-[4.5rem] sm:w-[5rem] shrink-0 flex flex-col items-stretch gap-2 py-2 px-1.5 sm:px-2 bg-white border border-slate-200 rounded-xl shadow-sm self-stretch min-h-0" aria-label="Atalho do carrinho">
+                <aside class="w-[4rem] sm:w-[4.75rem] shrink-0 flex flex-col items-stretch gap-1.5 py-1.5 px-1 sm:px-1.5 bg-white border border-slate-200 rounded-lg shadow-sm self-stretch min-h-0" aria-label="Atalho do carrinho">
                     <button type="button" id="btn-abrir-carrinho-pdv" class="relative flex flex-col items-center justify-center gap-1 p-2 sm:p-2.5 rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 text-white shadow-md shadow-orange-500/25 hover:from-orange-600 hover:to-orange-700 transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-orange-400/50" title="Abrir ou fechar carrinho (F1)">
                         <kbd class="pointer-events-none absolute top-0.5 right-0.5 text-[7px] px-1 py-0.5 rounded font-black bg-white/20 text-white border border-white/30 tabular-nums" aria-hidden="true">F1</kbd>
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 sm:w-7 sm:h-7 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm12 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" /></svg>
@@ -1134,7 +1128,7 @@ function abrirDrawerCarrinho() {
 
 /** Primeiro item no carrinho: não abre o drawer — chama após atualizarCarrinho. */
 function pdvDestacarBotoesCarrinho() {
-    const ids = ['btn-abrir-carrinho-pdv', 'btn-abrir-carrinho-pdv-header'];
+    const ids = ['btn-abrir-carrinho-pdv'];
     ids.forEach((id) => {
         const el = document.getElementById(id);
         if (!el) return;
