@@ -583,7 +583,8 @@ def api_sugestoes_transferencia(request):
                     qtde_transferir = pedido.quantidade
                 else:
                     status = "ALTA" if saldo_vila > 0 else "MEDIA"
-                
+                    qtde_transferir = Decimal('0')
+
                 sugestoes.append({
                     "produto_id": pid, "codigo": p_info["codigo"], "codigo_barras": p_info["codigo_barras"],
                     "nome": p_info["nome"],

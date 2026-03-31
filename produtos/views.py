@@ -5,6 +5,7 @@ import logging
 import re
 import time
 import unicodedata
+import hashlib
 from datetime import date, datetime, time as dtime, timedelta
 from io import StringIO
 from decimal import Decimal
@@ -19,6 +20,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse, JsonResponse
 from django.urls import reverse
 from django.core.cache import cache
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 from django.utils import timezone
@@ -248,6 +250,7 @@ def _mapa_saldos_finais_por_produtos(db, client, p_ids):
 
 # Catálogo PDV: um snapshot por dia civil (TIME_ZONE) + invalidação manual. Estoque ao vivo via /api/pdv/saldos/.
 CATALOGO_PDV_CACHE_ENTRY_KEY = "pdv_catalogo_produtos_por_dia_v1"
+CATALOGO_PDV_CACHE_PREV_ENTRY_KEY = "pdv_catalogo_produtos_prev_v1"
 
 # Snapshot de saldos: vários caixas/abas compartilham; TTL curto protege o Mongo sem atrasar o PDV.
 _SALDOS_PDV_CACHE_KEY = "pdv_saldos_compacto_snapshot_v1"
@@ -2760,79 +2763,56 @@ def _obter_mapa_medias_venda_cache(db):
 
 
 # --- CARGA INICIAL E APIs AUXILIARES ---
-@require_GET
-def api_todos_produtos_local(request):
-    hoje_cat = timezone.localdate().isoformat()
-    entry_cat = cache.get(CATALOGO_PDV_CACHE_ENTRY_KEY)
-    if (
-        entry_cat
-        and isinstance(entry_cat, dict)
-        and entry_cat.get("day") == hoje_cat
-        and isinstance(entry_cat.get("body"), dict)
-        and "produtos" in entry_cat["body"]
-    ):
-        return JsonResponse(entry_cat["body"])
+def _catalogo_pdv_montar_produtos(db, client):
+    query = {"CadastroInativo": {"$ne": True}}
+    produtos = list(db[client.col_p].find(query))
+    p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
+    saldos_por_pid = _mapa_saldos_finais_por_produtos(db, client, p_ids)
+    medias_venda = _obter_mapa_medias_venda_cache(db)
+    res = []
+    for p in produtos:
+        pid = str(p.get("Id") or p["_id"])
+        sp = saldos_por_pid.get(pid) or {}
+        saldo_f_c = float(sp.get("saldo_centro", 0.0))
+        saldo_f_v = float(sp.get("saldo_vila", 0.0))
+        s_c = float(sp.get("saldo_erp_centro", 0.0))
+        s_v = float(sp.get("saldo_erp_vila", 0.0))
 
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"erro": "Erro conexao"}, status=500)
+        prateleira_raw = (
+            p.get("Prateleira")
+            or p.get("Localizacao")
+            or p.get("LocalEstoque")
+            or p.get("Setor")
+            or p.get("EnderecoPrateleira")
+            or ""
+        )
+        partes = [
+            p.get("Nome"),
+            p.get("Marca"),
+            p.get("NomeCategoria"),
+            p.get("Categoria"),
+            p.get("Grupo"),
+            p.get("CodigoNFe"),
+            p.get("Codigo"),
+            p.get("CodigoBarras"),
+            p.get("EAN_NFe"),
+            prateleira_raw or None,
+        ]
+        busca_texto_gerado = " ".join(normalizar(str(part)) for part in partes if part).strip()
+        busca_texto_existente = normalizar(p.get("BuscaTexto") or "")
+        texto_puro = " ".join(str(part) for part in partes if part)
+        texto_puro_limpo = "".join(
+            c for c in unicodedata.normalize("NFD", texto_puro) if unicodedata.category(c) != "Mn"
+        ).lower()
+        busca_texto_final = f"{busca_texto_gerado} {busca_texto_existente} {texto_puro_limpo}".strip()
 
-    try:
-        query = {"CadastroInativo": {"$ne": True}}
-        produtos = list(db[client.col_p].find(query))
-        p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
+        custos = _custos_compra_produto(p)
+        preco_custo_val = custos["preco_custo"]
+        preco_custo_acresc_val = custos["preco_custo_final"]
+        preco_venda_val = float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
 
-        saldos_por_pid = _mapa_saldos_finais_por_produtos(db, client, p_ids)
-
-        medias_venda = _obter_mapa_medias_venda_cache(db)
-
-        res = []
-        for p in produtos:
-            pid = str(p.get("Id") or p["_id"])
-            sp = saldos_por_pid.get(pid) or {}
-            saldo_f_c = float(sp.get("saldo_centro", 0.0))
-            saldo_f_v = float(sp.get("saldo_vila", 0.0))
-            s_c = float(sp.get("saldo_erp_centro", 0.0))
-            s_v = float(sp.get("saldo_erp_vila", 0.0))
-
-            prateleira_raw = (
-                p.get("Prateleira")
-                or p.get("Localizacao")
-                or p.get("LocalEstoque")
-                or p.get("Setor")
-                or p.get("EnderecoPrateleira")
-                or ""
-            )
-            partes = [
-                p.get("Nome"),
-                p.get("Marca"),
-                p.get("NomeCategoria"),
-                p.get("Categoria"),
-                p.get("Grupo"),
-                p.get("CodigoNFe"),
-                p.get("Codigo"),
-                p.get("CodigoBarras"),
-                p.get("EAN_NFe"),
-                prateleira_raw or None,
-            ]
-            busca_texto_gerado = " ".join(normalizar(str(part)) for part in partes if part).strip()
-            busca_texto_existente = normalizar(p.get("BuscaTexto") or "")
-
-            texto_puro = " ".join(str(part) for part in partes if part)
-            texto_puro_limpo = "".join(
-                c
-                for c in unicodedata.normalize("NFD", texto_puro)
-                if unicodedata.category(c) != "Mn"
-            ).lower()
-
-            busca_texto_final = f"{busca_texto_gerado} {busca_texto_existente} {texto_puro_limpo}".strip()
-
-            custos = _custos_compra_produto(p)
-            preco_custo_val = custos["preco_custo"]
-            preco_custo_acresc_val = custos["preco_custo_final"]
-            preco_venda_val = float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
-
-            res.append({
+        res.append(
+            {
                 "id": pid,
                 "nome": p.get("Nome"),
                 "marca": p.get("Marca"),
@@ -2857,15 +2837,128 @@ def api_todos_produtos_local(request):
                 "saldo_erp_vila": s_v,
                 "busca_texto": busca_texto_final,
                 "media_venda_diaria_30d": float(medias_venda.get(pid, 0.0)),
-            })
-
-        resultado_final = {"produtos": res}
-        cache.set(
-            CATALOGO_PDV_CACHE_ENTRY_KEY,
-            {"day": hoje_cat, "body": resultado_final},
-            timeout=86400 * 2,
+            }
         )
-        return JsonResponse(resultado_final)
+    return res
+
+
+def _catalogo_pdv_version(produtos: list[dict]) -> str:
+    h = hashlib.sha1()
+    h.update(str(len(produtos)).encode("utf-8"))
+    for p in sorted(produtos, key=lambda x: str(x.get("id") or "")):
+        h.update(
+            (
+                f"{p.get('id','')}|{p.get('nome','')}|{p.get('codigo_nfe','')}|"
+                f"{p.get('codigo_barras','')}|{p.get('preco_venda',0)}|{p.get('preco_custo_final',0)}"
+            ).encode("utf-8")
+        )
+    return h.hexdigest()[:20]
+
+
+def _catalogo_pdv_entry_atual(db, client):
+    hoje_cat = timezone.localdate().isoformat()
+    entry_cat = cache.get(CATALOGO_PDV_CACHE_ENTRY_KEY)
+    if (
+        entry_cat
+        and isinstance(entry_cat, dict)
+        and entry_cat.get("day") == hoje_cat
+        and isinstance(entry_cat.get("body"), dict)
+        and "produtos" in entry_cat["body"]
+        and entry_cat.get("version")
+    ):
+        return entry_cat
+
+    produtos = _catalogo_pdv_montar_produtos(db, client)
+    now_iso = timezone.now().isoformat()
+    version = _catalogo_pdv_version(produtos)
+    body = {
+        "produtos": produtos,
+        "catalog_version": version,
+        "catalog_updated_at": now_iso,
+    }
+    prev = cache.get(CATALOGO_PDV_CACHE_ENTRY_KEY)
+    if prev and isinstance(prev, dict):
+        cache.set(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY, prev, timeout=86400 * 3)
+    new_entry = {"day": hoje_cat, "version": version, "updated_at": now_iso, "body": body}
+    cache.set(CATALOGO_PDV_CACHE_ENTRY_KEY, new_entry, timeout=86400 * 2)
+    return new_entry
+
+
+@require_GET
+def api_todos_produtos_local(request):
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Erro conexao"}, status=500)
+    try:
+        entry = _catalogo_pdv_entry_atual(db, client)
+        return JsonResponse(entry["body"])
+    except Exception as e:
+        return JsonResponse({"erro": str(e)}, status=500)
+
+
+@require_GET
+def api_todos_produtos_delta(request):
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Erro conexao"}, status=500)
+    since = str(request.GET.get("since") or "").strip()
+    try:
+        current = _catalogo_pdv_entry_atual(db, client)
+        cur_v = str(current.get("version") or "")
+        cur_body = current.get("body") or {}
+        cur_updated = str(current.get("updated_at") or cur_body.get("catalog_updated_at") or "")
+        if since and since == cur_v:
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "unchanged": True,
+                    "catalog_version": cur_v,
+                    "catalog_updated_at": cur_updated,
+                }
+            )
+
+        prev = cache.get(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
+        if (
+            since
+            and prev
+            and isinstance(prev, dict)
+            and str(prev.get("version") or "") == since
+            and isinstance(prev.get("body"), dict)
+        ):
+            prev_rows = prev["body"].get("produtos") or []
+            cur_rows = cur_body.get("produtos") or []
+            prev_map = {str(p.get("id") or ""): p for p in prev_rows if p.get("id") is not None}
+            cur_map = {str(p.get("id") or ""): p for p in cur_rows if p.get("id") is not None}
+            changed = []
+            removed = []
+            for pid, row in cur_map.items():
+                old = prev_map.get(pid)
+                if old != row:
+                    changed.append(row)
+            for pid in prev_map:
+                if pid not in cur_map:
+                    removed.append(pid)
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "delta": True,
+                    "catalog_version": cur_v,
+                    "catalog_updated_at": cur_updated,
+                    "changed": changed,
+                    "removed_ids": removed,
+                }
+            )
+
+        return JsonResponse(
+            {
+                "ok": True,
+                "delta": False,
+                "full": True,
+                "catalog_version": cur_v,
+                "catalog_updated_at": cur_updated,
+                "produtos": cur_body.get("produtos") or [],
+            }
+        )
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
 
@@ -2874,6 +2967,7 @@ def api_todos_produtos_local(request):
 def api_pdv_invalidar_cache_catalogo(request):
     """Limpa o snapshot diário do catálogo; próximo GET /api/todos-produtos/ refaz do Mongo."""
     cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+    cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
     return JsonResponse({"ok": True})
 
 
@@ -2910,11 +3004,13 @@ def api_cron_enviar_alerta_vendas_dia(request):
     return JsonResponse(out, status=st)
 
 
+@never_cache
 @require_GET
 def api_pdv_saldos_compacto(request):
     """
     Saldos atuais (ERP + ajuste PIN) para todos os produtos ativos — payload compacto.
     Cache de poucos segundos: muitas abas/caixas batem o mesmo snapshot e aliviam o Mongo.
+    Resposta sem cache HTTP (evita saldo antigo no Electron / Chromium).
     """
     cached = cache.get(_SALDOS_PDV_CACHE_KEY)
     if cached is not None and isinstance(cached, dict) and "rows" in cached:

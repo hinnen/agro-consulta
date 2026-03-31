@@ -170,7 +170,7 @@ function aplicarSaldosMobile(rows) {
 
 function pollSaldosMobileUmaVez() {
   if (!baseProdutos.length || document.visibilityState !== 'visible') return;
-  fetch("{% url 'api_pdv_saldos' %}")
+  fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' })
     .then((r) => r.json())
     .then((d) => {
       if (d.rows) aplicarSaldosMobile(d.rows);

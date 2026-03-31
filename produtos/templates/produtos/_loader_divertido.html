@@ -1,0 +1,179 @@
+<style>
+  #gm-fun-loader {
+    position: fixed;
+    left: 50%;
+    top: 14px;
+    transform: translateX(-50%);
+    z-index: 9999;
+    min-width: min(94vw, 520px);
+    max-width: min(96vw, 640px);
+    padding: 14px 18px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(16, 185, 129, 0.28);
+    background: linear-gradient(135deg, rgba(236, 253, 245, 0.99), rgba(255, 247, 237, 0.98));
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.16);
+    font-size: 13px;
+    font-weight: 900;
+    color: #334155;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    display: none;
+  }
+  #gm-fun-loader.gm-show { display: block; }
+
+  .gm-loader-track {
+    position: relative;
+    height: 52px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(226, 232, 240, 0.55), rgba(203, 213, 225, 0.35));
+    overflow: hidden;
+    margin-bottom: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+  }
+
+  .gm-loader-rastro {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      rgba(16, 185, 129, 0.06),
+      rgba(249, 115, 22, 0.12),
+      rgba(234, 179, 8, 0.08),
+      rgba(16, 185, 129, 0.06)
+    );
+    animation: gmTrailFlow 1.4s linear infinite;
+    transform: translateX(-100%);
+  }
+
+  .gm-loader-poeira {
+    position: absolute;
+    bottom: 6px;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: radial-gradient(ellipse 80% 100% at 50% 100%, rgba(148, 163, 184, 0.35), transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Cachorro atrás (perseguindo) */
+  .gm-loader-dog {
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    font-size: clamp(28px, 7vw, 38px);
+    line-height: 1;
+    z-index: 1;
+    filter: drop-shadow(0 3px 6px rgba(15, 23, 42, 0.22));
+    animation: gmDogChase 2.2s ease-in-out infinite;
+    will-change: left;
+  }
+
+  /* Pato na frente (fugindo) */
+  .gm-loader-duck {
+    position: absolute;
+    bottom: 4px;
+    left: 0;
+    font-size: clamp(32px, 8vw, 44px);
+    line-height: 1;
+    z-index: 2;
+    filter: drop-shadow(0 3px 6px rgba(15, 23, 42, 0.2));
+    animation: gmDuckFlee 2.2s ease-in-out infinite;
+    will-change: left;
+  }
+
+  /* Pato na frente, cachorro atrás; ida e volta contínua (0% = 100% para loop suave) */
+  @keyframes gmDuckFlee {
+    0%, 100% {
+      left: 16%;
+      transform: rotate(-8deg);
+    }
+    25% {
+      transform: rotate(5deg);
+    }
+    50% {
+      left: 74%;
+      transform: rotate(6deg);
+    }
+    75% {
+      transform: rotate(-4deg);
+    }
+  }
+
+  @keyframes gmDogChase {
+    0%, 100% {
+      left: 4%;
+      transform: rotate(10deg);
+    }
+    25% {
+      transform: rotate(-6deg);
+    }
+    50% {
+      left: 58%;
+      transform: rotate(-8deg);
+    }
+    75% {
+      transform: rotate(8deg);
+    }
+  }
+
+  @keyframes gmTrailFlow {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0.4;
+    }
+    100% {
+      transform: translateX(100%);
+      opacity: 0.92;
+    }
+  }
+
+  #gm-fun-loader-text {
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gm-loader-rastro,
+    .gm-loader-dog,
+    .gm-loader-duck {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+</style>
+<div id="gm-fun-loader" aria-live="polite" aria-atomic="true">
+  <div class="gm-loader-track" aria-hidden="true">
+    <div class="gm-loader-rastro"></div>
+    <div class="gm-loader-poeira"></div>
+    <span class="gm-loader-dog" title="Correndo atrás">🐕</span>
+    <span class="gm-loader-duck" title="Fugindo">🦆</span>
+  </div>
+  <div id="gm-fun-loader-text">Carregando dados...</div>
+</div>
+<script>
+  (function () {
+    if (window.gmLoader) return;
+    const root = document.getElementById('gm-fun-loader');
+    const txt = document.getElementById('gm-fun-loader-text');
+    let tHide = null;
+    window.gmLoader = {
+      show(msg) {
+        if (!root) return;
+        if (tHide) { clearTimeout(tHide); tHide = null; }
+        if (txt) txt.textContent = msg || 'Carregando dados...';
+        root.classList.add('gm-show');
+      },
+      hide(delayMs) {
+        if (!root) return;
+        if (tHide) clearTimeout(tHide);
+        const d = Number(delayMs || 0);
+        if (d > 0) {
+          tHide = setTimeout(() => root.classList.remove('gm-show'), d);
+        } else {
+          root.classList.remove('gm-show');
+        }
+      }
+    };
+  })();
+</script>
