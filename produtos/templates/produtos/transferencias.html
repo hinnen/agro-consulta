@@ -89,6 +89,7 @@
                 </span>
                 <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-white border border-slate-200 text-slate-700 max-w-[7rem] truncate" title="Operador (modo descanso)"></span>
                 {% include "produtos/_pdv_voltar_link.html" %}
+                {% include "produtos/_barra_estoque_global.html" %}
             </div>
         </div>
     </header>
@@ -277,7 +278,8 @@
         }
 
         async function carregarDados() {
-            if (window.gmLoadingBar) window.gmLoadingBar.show();
+            if (window.gmLoader) window.gmLoader.show('🐭 carregando sugestões...');
+            else if (window.gmLoadingBar) window.gmLoadingBar.show();
             try {
                 const response = await fetch('/estoque/api_sugestoes_transferencia/');
                 const data = await response.json();
@@ -295,11 +297,13 @@
                 sugestoesGlobais = data.sugestoes || [];
                 document.getElementById('indicador-total-itens').innerText = sugestoesGlobais.length;
                 renderizarTabela(filtroAtual);
+                if (window.gmLoader) window.gmLoader.hide(180);
             } catch (error) {
                 console.error(error);
                 document.getElementById("tabela-corpo").innerHTML = `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold">Erro ao conectar com servidor.</td></tr>`;
             } finally {
-                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                if (window.gmLoader) window.gmLoader.hide(180);
+                else if (window.gmLoadingBar) window.gmLoadingBar.hide();
             }
         }
 
@@ -949,8 +953,20 @@
                 document.getElementById('busca-lista').focus();
             }
         });
+
+        window.addEventListener('load', function () {
+            if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.mount) {
+                AgroEstoqueSync.mount({
+                    idleMs: 45000,
+                    onRefresh: async function () {
+                        await carregarDados();
+                    },
+                });
+            }
+        });
     </script>
 {% include "produtos/_screensaver_pin.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
+{% include "produtos/_loader_divertido.html" %}
 </body>
 </html>

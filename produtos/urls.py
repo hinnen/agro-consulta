@@ -124,6 +124,7 @@ urlpatterns = [
     ),
     path('api/ajustar/', views.api_ajustar_estoque, name='api_ajustar_estoque'),
     path('api/todos-produtos/', views.api_todos_produtos_local, name='api_todos_produtos_local'),
+    path('api/todos-produtos/delta/', views.api_todos_produtos_delta, name='api_todos_produtos_delta'),
     path('api/pdv/saldos/', views.api_pdv_saldos_compacto, name='api_pdv_saldos'),
     path('api/pdv/metricas-produtos/', views.api_pdv_metricas_produtos, name='api_pdv_metricas_produtos'),
     path('api/pdv/top-vendidos/', views.api_pdv_top_vendidos, name='api_pdv_top_vendidos'),

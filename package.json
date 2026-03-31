@@ -1,15 +1,45 @@
 {
-  "name": "agro-mais-pdv-shell",
-  "version": "0.1.0",
-  "description": "Shell instalável para o PDV Agro Mais (Electron).",
-  "main": "electron-main.js",
+  "name": "agro-consulta-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shell Electron para o PDV Agro Consulta (Django em rede ou localhost).",
+  "main": "electron/main.js",
   "scripts": {
-    "start": "electron ."
+    "electron": "electron .",
+    "electron:build": "electron-builder --win --publish never"
   },
-  "author": "Agro Mais",
-  "license": "MIT",
   "devDependencies": {
-    "electron": "^41.0.0"
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "br.com.agromais.consulta",
+    "productName": "Agro Consulta",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "publisherName": "Agro Mais"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerLanguages": [
+        "pt_BR"
+      ],
+      "language": "1046"
+    }
   }
 }
-

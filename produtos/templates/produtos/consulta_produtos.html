@@ -511,6 +511,7 @@
                         <option value="1">Agro Mais — Principal</option>
                     </select>
                     <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-700 border border-slate-200 shrink-0 max-w-[7rem] truncate" title="Operador (modo descanso)"></span>
+                    {% include "produtos/_barra_estoque_global.html" %}
                     <button type="button" id="btn-pdv-sair-usuario-pin" class="inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 shrink-0" title="Encerra o usuário neste aparelho e abre a tela de PIN" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">
                         Sair / PIN
                     </button>
@@ -557,7 +558,11 @@
                     </div>
 
                     <div id="pdv-top-vendidos-wrap" class="shrink-0 rounded-xl border border-orange-200/90 bg-gradient-to-r from-orange-50/95 to-amber-50/90 p-3 shadow-sm">
-                        <div class="flex flex-wrap items-center justify-end gap-2 mb-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                            <button type="button" id="pdv-mv-toggle" class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide text-amber-900 bg-white/80 border border-amber-300/70 rounded-lg px-2 py-1 hover:bg-amber-100" title="Mostrar/ocultar atalhos rápidos">
+                                <span id="pdv-mv-toggle-icon" aria-hidden="true">▾</span>
+                                Produtos rápidos
+                            </button>
                             <div class="flex items-center gap-2 shrink-0">
                                 <button type="button" id="pdv-mv-importar-ranking" class="text-[9px] font-black uppercase text-amber-900 bg-white/80 border border-amber-300/70 rounded-lg px-2 py-1 hover:bg-amber-100" title="Sobrescreve os 10 atalhos com o ranking de vendas dos últimos 30 dias (Mongo).">
                                     Preencher Mongo 30d
@@ -565,8 +570,10 @@
                                 <span class="text-[9px] font-bold text-amber-800/90 tabular-nums whitespace-nowrap" id="pdv-top-vendidos-meta" title="Gravado só neste navegador/aparelho.">Neste aparelho</span>
                             </div>
                         </div>
-                        <div id="pdv-mv-slot-banner" class="hidden mb-2 text-[10px] font-bold text-amber-950 bg-amber-100/95 border border-amber-300/50 rounded-lg px-2.5 py-2 leading-snug"></div>
-                        <div id="pdv-top-vendidos-btns" class="grid grid-cols-2 sm:grid-cols-5 gap-2 min-h-[2.5rem]"></div>
+                        <div id="pdv-top-vendidos-body">
+                            <div id="pdv-mv-slot-banner" class="hidden mb-2 text-[10px] font-bold text-amber-950 bg-amber-100/95 border border-amber-300/50 rounded-lg px-2.5 py-2 leading-snug"></div>
+                            <div id="pdv-top-vendidos-btns" class="grid grid-cols-2 sm:grid-cols-5 gap-2 min-h-[2.5rem]"></div>
+                        </div>
                     </div>
 
                     <div id="status-busca" class="hidden text-xs font-black uppercase tracking-wider text-slate-500 px-1"></div>
@@ -819,6 +826,8 @@ let ultimoProdutoAdicionadoId = null;
 let tempoUltimaAdicao = 0;
 
 let baseProdutos = [];
+const PDV_CACHE_KEY = 'agro_pdv_catalog_cache_v2';
+const PDV_CACHE_TTL_MS = 1000 * 60 * 60 * 8;
 let cacheClientesPDV = [];
 let frequenciaUso = JSON.parse(localStorage.getItem('freqProdutos') || '{}');
 let catalogoRapidoAtual = [];
@@ -2898,7 +2907,7 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
                 }
             })
             .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
-    }, 300);
+    }, hadLocal ? 0 : 220);
 }
 
 function executarBuscaLocal(termo, modo) {
@@ -3541,8 +3550,40 @@ function aplicarSaldosNaBasePdv(rows) {
 
 const PDV_TOP_VENDIDOS_DIAS = 30;
 const PDV_MV_SLOTS_KEY = 'pdv_mais_vendidos_slots_v1';
+const PDV_MV_DRAWER_KEY = 'pdv_mais_vendidos_drawer_open_v1';
 const PDV_MV_NUM = 10;
 let pdvMaisVSlotAlvo = null;
+
+function pdvAplicarEstadoDrawerAtalhos(abrir) {
+    const body = document.getElementById('pdv-top-vendidos-body');
+    const icon = document.getElementById('pdv-mv-toggle-icon');
+    if (!body) return;
+    if (abrir) {
+        body.classList.remove('hidden');
+        if (icon) icon.textContent = '▾';
+    } else {
+        body.classList.add('hidden');
+        if (icon) icon.textContent = '▸';
+    }
+    try {
+        localStorage.setItem(PDV_MV_DRAWER_KEY, abrir ? '1' : '0');
+    } catch (_) {}
+}
+
+function pdvInitDrawerAtalhos() {
+    const btn = document.getElementById('pdv-mv-toggle');
+    if (!btn) return;
+    let abrir = true;
+    try {
+        abrir = localStorage.getItem(PDV_MV_DRAWER_KEY) !== '0';
+    } catch (_) {}
+    pdvAplicarEstadoDrawerAtalhos(abrir);
+    btn.addEventListener('click', () => {
+        const body = document.getElementById('pdv-top-vendidos-body');
+        const aberto = !!(body && !body.classList.contains('hidden'));
+        pdvAplicarEstadoDrawerAtalhos(!aberto);
+    });
+}
 
 function obterSlotsMaisVendidosPdv() {
     let raw = [];
@@ -3803,11 +3844,14 @@ function importarRankingMongoParaSlotsMaisVendidos() {
 
 function pollSaldoPdvUmaVez() {
     if (!baseProdutos.length) return;
-    if (document.visibilityState !== 'visible') return;
-    fetch('{% url "api_pdv_saldos" %}')
+    /* Não usar visibilityState aqui: no Electron a aba pode ficar como "hidden" e o saldo nunca atualiza. */
+    fetch('{% url "api_pdv_saldos" %}', { cache: 'no-store' })
         .then((r) => r.json())
         .then((sd) => {
             if (sd.rows) aplicarSaldosNaBasePdv(sd.rows);
+            if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
+                AgroEstoqueSync.markFresh(document.getElementById('agro-saldos-ultima-atualizacao'));
+            }
         })
         .catch(() => {});
 }
@@ -3843,26 +3887,126 @@ document.getElementById('btn-atualizar-catalogo-pdv')?.addEventListener('click',
 });
 
 function carregarBaseLocal() {
-    mostrarStatusBusca('Baixando produtos para memória local...', 'orange');
-    if (window.gmLoadingBar) window.gmLoadingBar.show();
-    fetch('/api/todos-produtos/')
-        .then(r => r.json())
-        .then(d => {
-            if(d.produtos) {
-                baseProdutos = prepararBaseProdutos(d.produtos);
-                mostrarStatusBusca(`Base local pronta com ${baseProdutos.length} itens`, 'emerald');
-                preencherOpcoesFiltroCatalogo();
-                atualizarCatalogoRapido();
-                iniciarPollSaldosPdv();
-                setTimeout(pollSaldoPdvUmaVez, 2500);
-                setTimeout(esconderStatusBusca, 2500);
-                setTimeout(atualizarPrecosBotoesTopVendidos, 100);
+    const warmed = hidratarCatalogoPdvDoCache();
+    if (!warmed) mostrarStatusBusca('Baixando produtos para memória local...', 'orange');
+    sincronizarCatalogoPdvServidor(warmed);
+}
+
+function aplicarBasePdv(produtos, statusTxt) {
+    if (!Array.isArray(produtos) || !produtos.length) return false;
+    baseProdutos = prepararBaseProdutos(produtos);
+    if (typeof buildBuscaProdutoIndex === 'function') {
+        buildBuscaProdutoIndex(baseProdutos);
+    }
+    if (statusTxt) mostrarStatusBusca(statusTxt, 'emerald');
+    preencherOpcoesFiltroCatalogo();
+    atualizarCatalogoRapido();
+    iniciarPollSaldosPdv();
+    setTimeout(pollSaldoPdvUmaVez, 0);
+    setTimeout(pollSaldoPdvUmaVez, 2500);
+    setTimeout(esconderStatusBusca, 2500);
+    setTimeout(atualizarPrecosBotoesTopVendidos, 100);
+    return true;
+}
+
+function salvarCacheCatalogoPdv(payload) {
+    try {
+        localStorage.setItem(
+            PDV_CACHE_KEY,
+            JSON.stringify({
+                saved_at: Date.now(),
+                catalog_version: payload.catalog_version || '',
+                catalog_updated_at: payload.catalog_updated_at || '',
+                produtos: Array.isArray(payload.produtos) ? payload.produtos : [],
+            })
+        );
+    } catch (_) {}
+}
+
+function lerCacheCatalogoPdv() {
+    try {
+        const raw = localStorage.getItem(PDV_CACHE_KEY);
+        if (!raw) return null;
+        const p = JSON.parse(raw);
+        if (!p || !Array.isArray(p.produtos)) return null;
+        const age = Date.now() - Number(p.saved_at || 0);
+        if (age > PDV_CACHE_TTL_MS) return null;
+        return p;
+    } catch (_) {
+        return null;
+    }
+}
+
+function hidratarCatalogoPdvDoCache() {
+    const cached = lerCacheCatalogoPdv();
+    if (!cached || !cached.produtos.length) return false;
+    return aplicarBasePdv(cached.produtos, `Catálogo local carregado (${cached.produtos.length})`);
+}
+
+function aplicarDeltaCatalogoPdv(changed, removedIds) {
+    const map = new Map(baseProdutos.map((p) => [String(p.id), p]));
+    (Array.isArray(changed) ? changed : []).forEach((row) => {
+        const p = prepararProduto(row);
+        map.set(String(p.id), p);
+    });
+    (Array.isArray(removedIds) ? removedIds : []).forEach((pid) => {
+        map.delete(String(pid));
+    });
+    baseProdutos = Array.from(map.values());
+    if (typeof buildBuscaProdutoIndex === 'function') buildBuscaProdutoIndex(baseProdutos);
+    preencherOpcoesFiltroCatalogo();
+    atualizarCatalogoRapido();
+}
+
+function sincronizarCatalogoPdvServidor(jahAquecido) {
+    if (!jahAquecido) {
+        if (window.gmLoader) window.gmLoader.show('🐭 carregando catálogo...');
+        else if (window.gmLoadingBar) window.gmLoadingBar.show();
+    }
+    const cached = lerCacheCatalogoPdv();
+    const since = cached && cached.catalog_version ? cached.catalog_version : '';
+    const u = new URL('/api/todos-produtos/delta/', window.location.origin);
+    if (since) u.searchParams.set('since', since);
+    fetch(u.toString())
+        .then((r) => r.json())
+        .then((d) => {
+            if (d && d.unchanged) {
+                if (!jahAquecido && cached && cached.produtos) {
+                    aplicarBasePdv(cached.produtos, `Base local pronta com ${cached.produtos.length} itens`);
+                }
+                if (window.gmLoader) window.gmLoader.hide(180);
+                else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                return;
+            }
+            if (d && d.delta) {
+                if (!baseProdutos.length && cached && cached.produtos) {
+                    aplicarBasePdv(cached.produtos, `Catálogo local carregado (${cached.produtos.length})`);
+                }
+                aplicarDeltaCatalogoPdv(d.changed || [], d.removed_ids || []);
+                const novo = {
+                    produtos: baseProdutos,
+                    catalog_version: d.catalog_version || '',
+                    catalog_updated_at: d.catalog_updated_at || '',
+                };
+                salvarCacheCatalogoPdv(novo);
+                mostrarStatusBusca(`Catálogo sincronizado (${baseProdutos.length})`, 'emerald');
+                if (window.gmLoader) window.gmLoader.hide(180);
+                else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                return;
+            }
+            if (d && Array.isArray(d.produtos)) {
+                aplicarBasePdv(d.produtos, `Base local pronta com ${d.produtos.length} itens`);
+                salvarCacheCatalogoPdv(d);
+                if (window.gmLoader) window.gmLoader.hide(180);
+                else if (window.gmLoadingBar) window.gmLoadingBar.hide();
             }
         })
-        .catch(e => {
+        .catch((e) => {
             console.error('Falha na carga local:', e);
-        })
-        .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
+            if (!jahAquecido) mostrarStatusBusca('Falha de rede; usando cache local.', 'orange');
+            if (window.gmLoader) window.gmLoader.hide(180);
+            else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+        });
 }
 
 function atualizarRelogioPdv() {
@@ -3882,6 +4026,7 @@ window.addEventListener('load', () => {
     atualizarCarrinho();
     renderizarHistoricoResumido();
     renderizarLembretes();
+    pdvInitDrawerAtalhos();
     renderSlotsMaisVendidosPdv();
     document.getElementById('pdv-mv-importar-ranking')?.addEventListener('click', importarRankingMongoParaSlotsMaisVendidos);
     atualizarCatalogoRapido();
@@ -3891,6 +4036,17 @@ window.addEventListener('load', () => {
     setInterval(verificarLembretes, 15000);
     atualizarRelogioPdv();
     setInterval(atualizarRelogioPdv, 30000);
+    if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.mount) {
+        AgroEstoqueSync.mount({
+            idleMs: 45000,
+            onRefresh: async function () {
+                if (!baseProdutos.length) return;
+                const r = await fetch('{% url "api_pdv_saldos" %}', { cache: 'no-store' });
+                const sd = await r.json();
+                if (sd.rows) aplicarSaldosNaBasePdv(sd.rows);
+            },
+        });
+    }
 });
 </script>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
@@ -3953,5 +4109,6 @@ document.addEventListener('DOMContentLoaded', function () {
 {% endif %}
 {% include "produtos/_screensaver_pin.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
+{% include "produtos/_loader_divertido.html" %}
 </body>
 </html>

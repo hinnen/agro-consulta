@@ -2,6 +2,7 @@
 <script>
 (function () {
     'use strict';
+    const _buscaIndexCache = new WeakMap();
 
     function normalizarBuscaLocal(texto) {
         return String(texto || '')
@@ -31,6 +32,59 @@
         const s = textoBuscaProdutoNormalizado(p);
         if (!s) return [];
         return s.split(/\s+/).filter(Boolean);
+    }
+
+    function buildBuscaProdutoIndex(lista) {
+        const arr = Array.isArray(lista) ? lista : [];
+        const cached = _buscaIndexCache.get(arr);
+        if (cached && cached.len === arr.length) return cached.index;
+        const tokenMap = new Map();
+        const codigoMap = new Map();
+        arr.forEach((p, idx) => {
+            const toks = tokensBuscaProduto(p);
+            toks.forEach((t) => {
+                if (!t) return;
+                if (!tokenMap.has(t)) tokenMap.set(t, []);
+                tokenMap.get(t).push(idx);
+            });
+            codigosSoDigitosProduto(p).forEach((c) => {
+                if (!c) return;
+                if (!codigoMap.has(c)) codigoMap.set(c, []);
+                codigoMap.get(c).push(idx);
+            });
+        });
+        const index = { tokenMap, codigoMap, listRef: arr };
+        _buscaIndexCache.set(arr, { len: arr.length, index });
+        return index;
+    }
+
+    function _uniquePush(out, seen, idx) {
+        if (idx == null) return;
+        if (seen.has(idx)) return;
+        seen.add(idx);
+        out.push(idx);
+    }
+
+    function _indicesPorTokenParcial(index, termo) {
+        const out = [];
+        const seen = new Set();
+        index.tokenMap.forEach((idxs, tk) => {
+            if (tk === termo || tk.startsWith(termo) || tk.includes(termo)) {
+                idxs.forEach((i) => _uniquePush(out, seen, i));
+            }
+        });
+        return out;
+    }
+
+    function _indicesPorCodigo(index, digitos) {
+        const out = [];
+        const seen = new Set();
+        index.codigoMap.forEach((idxs, code) => {
+            if (code === digitos || code.startsWith(digitos) || code.endsWith(digitos) || code.includes(digitos)) {
+                idxs.forEach((i) => _uniquePush(out, seen, i));
+            }
+        });
+        return out;
     }
 
     function variantesPalavraBusca(palavraBruta) {
@@ -116,9 +170,14 @@
     function filtrarProdutosBuscaInteligente(lista, termoNormalizado, modo) {
         const termo = String(termoNormalizado || '').trim();
         const palavras = termo.split(/\s+/).filter(Boolean);
+        const index = buildBuscaProdutoIndex(lista);
         if (modo === 'scanner') {
             const dTerm = termo.replace(/\D/g, '');
-            return lista.filter(p => {
+            const candidatosIdx = dTerm.length >= 4 ? _indicesPorCodigo(index, dTerm) : null;
+            const pool = Array.isArray(candidatosIdx) && candidatosIdx.length
+                ? candidatosIdx.map((i) => lista[i]).filter(Boolean)
+                : lista;
+            return pool.filter(p => {
                 const hay = textoBuscaProdutoNormalizado(p);
                 if (hay.includes(termo)) return true;
                 const nfe = normalizarBuscaLocal(String(p.codigo_nfe ?? ''));
@@ -130,7 +189,24 @@
         }
         if (!palavras.length) return [];
 
-        const tentar = (fuzzy) => lista.filter(p => {
+        // Pré-filtro por índice local para reduzir varredura linear.
+        let pool = lista;
+        if (palavras.length) {
+            let idxUnion = null;
+            palavras.forEach((pl) => {
+                const d = String(pl || '').replace(/\D/g, '');
+                const local = (d.length >= 4 ? _indicesPorCodigo(index, d) : _indicesPorTokenParcial(index, pl));
+                if (!local || !local.length) return;
+                const asSet = new Set(local);
+                if (idxUnion === null) idxUnion = asSet;
+                else idxUnion = new Set([...idxUnion].filter((x) => asSet.has(x)));
+            });
+            if (idxUnion && idxUnion.size) {
+                pool = [...idxUnion].map((i) => lista[i]).filter(Boolean);
+            }
+        }
+
+        const tentar = (fuzzy) => pool.filter(p => {
             const hay = textoBuscaProdutoNormalizado(p);
             const tokens = tokensBuscaProduto(p);
             return palavras.every(pl => palavraCasaNoProduto(pl, tokens, hay, fuzzy, p));
@@ -146,5 +222,6 @@
     window.normalizarBuscaLocal = normalizarBuscaLocal;
     window.filtrarProdutosBuscaInteligente = filtrarProdutosBuscaInteligente;
     window.casaCodigoNumericoNoProduto = casaCodigoNumericoNoProduto;
+    window.buildBuscaProdutoIndex = buildBuscaProdutoIndex;
 })();
 </script>
