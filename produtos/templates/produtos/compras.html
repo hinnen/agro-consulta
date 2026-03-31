@@ -318,6 +318,33 @@
 
 {% include "produtos/_js_busca_produto_inteligente.html" %}
 <script>
+(() => {
+  const DELAY_MS = 320;
+  const patch = (obj) => {
+    if (!obj || obj.__delayedPatched || typeof obj.show !== 'function' || typeof obj.hide !== 'function') return;
+    const origShow = obj.show.bind(obj);
+    const origHide = obj.hide.bind(obj);
+    let t = null;
+    let visible = false;
+    obj.show = (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => {
+        visible = true;
+        origShow(...args);
+      }, DELAY_MS);
+    };
+    obj.hide = (...args) => {
+      clearTimeout(t);
+      if (!visible) return;
+      visible = false;
+      origHide(...args);
+    };
+    obj.__delayedPatched = true;
+  };
+  patch(window.gmLoadingBar);
+  patch(window.gmLoader);
+})();
+
 let lista = [];
 let debounceTimer = null;
 let baseProdutos = [];
@@ -2376,6 +2403,26 @@ window.addEventListener('load', () => {
 window.addEventListener('resize', ajustarAlturaResultadosCompra);
 document.getElementById('busca')?.addEventListener('focus', () => setTimeout(ajustarAlturaResultadosCompra, 0));
 window.addEventListener('resize', () => setCarrinhoExpandido(compraCarrinhoExpandido, { silentSave: true }));
+
+(() => {
+  const guard = (selectors, ms = 550) => {
+    selectors.forEach((sel) => {
+      document.querySelectorAll(sel).forEach((el) => {
+        el.addEventListener('click', (e) => {
+          const now = Date.now();
+          const last = Number(el.dataset.guardTs || 0);
+          if (now - last < ms) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return;
+          }
+          el.dataset.guardTs = String(now);
+        }, true);
+      });
+    });
+  };
+  guard(['#btn-aplicar-ca', '#btn-ca-limpar', '#btn-abrir-historico-compra'], 600);
+})();
 </script>
 {% include "produtos/_screensaver_pin.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
