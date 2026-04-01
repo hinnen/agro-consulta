@@ -1,0 +1,10 @@
+# Blueprint Render — Web Service HTTP público.
+# Após commit, no painel: New → Blueprint (ou vincule este repo ao serviço existente).
+# Ajuste o nome do serviço se quiser.
+services:
+  - type: web
+    name: agro-consulta
+    runtime: python
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --graceful-timeout 30 --access-logfile - --error-logfile -
+    healthCheckPath: /healthz
