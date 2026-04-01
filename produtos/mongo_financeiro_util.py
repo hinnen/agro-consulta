@@ -23,6 +23,37 @@ logger = logging.getLogger(__name__)
 _SENTINEL = datetime(1, 1, 1, 0, 0)
 COL_DTO_LANCAMENTO = "DtoLancamento"
 
+# Campos que o DTO C# do ERP espera como string no BSON (não ObjectId).
+_COERCE_OID_CAMPOS_ERP = (
+    "BancoID",
+    "FormaPagamentoID",
+    "EmpresaID",
+    "ClienteID",
+    "LancamentoGrupoID",
+)
+
+
+def _financeiro_id_para_string(v: Any) -> str:
+    """Converte valor de ID (JSON, ObjectId, etc.) em string para gravação no DtoLancamento."""
+    if v is None:
+        return ""
+    if isinstance(v, ObjectId):
+        return str(v)
+    if isinstance(v, dict):
+        oid = v.get("$oid")
+        if isinstance(oid, str):
+            return oid.strip()
+        return ""
+    return str(v).strip()
+
+
+def _financeiro_doc_coerce_ids_oid_para_string(doc: dict[str, Any]) -> None:
+    """Evita herdar ObjectId do documento modelo ao inserir — o ERP deserializa *ID como string."""
+    for k in _COERCE_OID_CAMPOS_ERP:
+        val = doc.get(k)
+        if isinstance(val, ObjectId):
+            doc[k] = str(val)
+
 
 def _dec(v) -> Decimal:
     if v is None:
@@ -501,52 +532,147 @@ def _maybe_oid(s: str | None) -> ObjectId | str | None:
     return s
 
 
-def listar_formas_e_bancos_distintos(db, limit: int = 400) -> tuple[list[dict], list[dict]]:
-    """Listas para selects na baixa (a partir de lançamentos já existentes no Mongo)."""
+def _listar_formas_e_bancos_modo_historico(db, limit: int) -> tuple[list[dict], list[dict]]:
+    """Uma linha por combinação nome+ID vista em títulos (inclui digitação livre e duplicatas de rótulo)."""
+    formas: list[dict] = []
+    bancos: list[dict] = []
+    seen_f: set[str] = set()
+    seen_b: set[str] = set()
+    col = db[COL_DTO_LANCAMENTO]
+    pipe_f = [
+        {"$match": {"FormaPagamento": {"$nin": [None, ""]}}},
+        {
+            "$group": {
+                "_id": {
+                    "nome": "$FormaPagamento",
+                    "fid": "$FormaPagamentoID",
+                }
+            }
+        },
+        {"$limit": limit},
+    ]
+    for r in col.aggregate(pipe_f):
+        i = r.get("_id") or {}
+        nome = str(i.get("nome") or "").strip()
+        if not nome or nome in seen_f:
+            continue
+        seen_f.add(nome)
+        fid = i.get("fid")
+        formas.append({"id": _financeiro_id_para_string(fid), "nome": nome})
+    formas.sort(key=lambda x: x["nome"].lower())
+
+    pipe_b = [
+        {"$match": {"Banco": {"$nin": [None, "", "ADICIONAR BANCO", "Adicionar banco"]}}},
+        {"$group": {"_id": {"nome": "$Banco", "bid": "$BancoID"}}},
+        {"$limit": limit},
+    ]
+    for r in col.aggregate(pipe_b):
+        i = r.get("_id") or {}
+        nome = str(i.get("nome") or "").strip()
+        if not nome or nome in seen_b:
+            continue
+        seen_b.add(nome)
+        bid = i.get("bid")
+        bancos.append({"id": _financeiro_id_para_string(bid), "nome": nome})
+    bancos.sort(key=lambda x: x["nome"].lower())
+    return formas, bancos
+
+
+def _listar_formas_e_bancos_modo_erp(db, limit: int) -> tuple[list[dict], list[dict]]:
+    """
+    Agrupa por ID de cadastro (FormaPagamentoID / BancoID) convertido para string.
+    Omite títulos sem ID (baixas só com texto livre) e entradas típicas de rascunho do ERP.
+    """
+    formas: list[dict] = []
+    bancos: list[dict] = []
+    col = db[COL_DTO_LANCAMENTO]
+    pipe_f = [
+        {
+            "$match": {
+                "$and": [
+                    {"FormaPagamento": {"$nin": [None, ""]}},
+                    {"FormaPagamento": {"$not": {"$regex": r"^criar\s+novo", "$options": "i"}}},
+                ]
+            }
+        },
+        {
+            "$addFields": {
+                "fidStr": {
+                    "$convert": {
+                        "input": "$FormaPagamentoID",
+                        "to": "string",
+                        "onError": "",
+                        "onNull": "",
+                    }
+                }
+            }
+        },
+        {"$match": {"fidStr": {"$ne": ""}}},
+        {"$sort": {"FormaPagamento": 1}},
+        {"$group": {"_id": "$fidStr", "nome": {"$first": "$FormaPagamento"}}},
+        {"$limit": limit},
+    ]
+    for r in col.aggregate(pipe_f):
+        fid = str(r.get("_id") or "").strip()
+        nome = str(r.get("nome") or "").strip()
+        if fid and nome:
+            formas.append({"id": fid, "nome": nome})
+    formas.sort(key=lambda x: x["nome"].lower())
+
+    pipe_b = [
+        {
+            "$match": {
+                "$and": [
+                    {"Banco": {"$nin": [None, "", "ADICIONAR BANCO", "Adicionar banco"]}},
+                ]
+            }
+        },
+        {
+            "$addFields": {
+                "bidStr": {
+                    "$convert": {
+                        "input": "$BancoID",
+                        "to": "string",
+                        "onError": "",
+                        "onNull": "",
+                    }
+                }
+            }
+        },
+        {"$match": {"bidStr": {"$ne": ""}}},
+        {"$sort": {"Banco": 1}},
+        {"$group": {"_id": "$bidStr", "nome": {"$first": "$Banco"}}},
+        {"$limit": limit},
+    ]
+    for r in col.aggregate(pipe_b):
+        bid = str(r.get("_id") or "").strip()
+        nome = str(r.get("nome") or "").strip()
+        if bid and nome:
+            bancos.append({"id": bid, "nome": nome})
+    bancos.sort(key=lambda x: x["nome"].lower())
+    return formas, bancos
+
+
+def listar_formas_e_bancos_distintos(
+    db, limit: int = 400, *, modo: str = "erp"
+) -> tuple[list[dict], list[dict]]:
+    """
+    Listas para selects na baixa a partir do Mongo.
+
+    - ``erp`` (padrão): uma entrada por ID de forma/conta (como no cadastro do ERP).
+    - ``historico``: todas as combinações nome+ID já usadas em títulos (comportamento antigo).
+    """
     formas: list[dict] = []
     bancos: list[dict] = []
     if db is None:
         return formas, bancos
-    seen_f: set[str] = set()
-    seen_b: set[str] = set()
+    modo_n = (modo or "erp").strip().lower()
+    if modo_n not in ("erp", "historico"):
+        modo_n = "erp"
     try:
-        col = db[COL_DTO_LANCAMENTO]
-        pipe_f = [
-            {"$match": {"FormaPagamento": {"$nin": [None, ""]}}},
-            {
-                "$group": {
-                    "_id": {
-                        "nome": "$FormaPagamento",
-                        "fid": "$FormaPagamentoID",
-                    }
-                }
-            },
-            {"$limit": limit},
-        ]
-        for r in col.aggregate(pipe_f):
-            i = r.get("_id") or {}
-            nome = str(i.get("nome") or "").strip()
-            if not nome or nome in seen_f:
-                continue
-            seen_f.add(nome)
-            fid = i.get("fid")
-            formas.append({"id": str(fid) if fid is not None else "", "nome": nome})
-        formas.sort(key=lambda x: x["nome"].lower())
-
-        pipe_b = [
-            {"$match": {"Banco": {"$nin": [None, "", "ADICIONAR BANCO", "Adicionar banco"]}}},
-            {"$group": {"_id": {"nome": "$Banco", "bid": "$BancoID"}}},
-            {"$limit": limit},
-        ]
-        for r in col.aggregate(pipe_b):
-            i = r.get("_id") or {}
-            nome = str(i.get("nome") or "").strip()
-            if not nome or nome in seen_b:
-                continue
-            seen_b.add(nome)
-            bid = i.get("bid")
-            bancos.append({"id": str(bid) if bid is not None else "", "nome": nome})
-        bancos.sort(key=lambda x: x["nome"].lower())
+        if modo_n == "historico":
+            return _listar_formas_e_bancos_modo_historico(db, limit)
+        return _listar_formas_e_bancos_modo_erp(db, limit)
     except Exception as exc:
         logger.exception("listar_formas_e_bancos_distintos: %s", exc)
     return formas, bancos
@@ -583,8 +709,8 @@ def baixar_lancamentos_mongo(
     res_err: list[dict] = []
 
     # ERP espera string em FormaPagamentoID/BancoID; mantemos sempre string aqui.
-    fid = str(forma_id).strip() if forma_id else ""
-    bid = str(banco_id).strip() if banco_id else ""
+    fid = _financeiro_id_para_string(forma_id)
+    bid = _financeiro_id_para_string(banco_id)
 
     for sid in (ids or [])[:80]:
         try:
@@ -749,8 +875,8 @@ def baixar_lancamento_parcial_mongo(
             return {"ok": False, "id": str(oid), "erro": "Lançamento sumiu durante a baixa", "quitado": False}
         forma_nome = str(par.get("forma_pagamento") or par.get("forma_nome") or "").strip()
         banco_nome = str(par.get("banco") or par.get("banco_nome") or "").strip()
-        fid = str(par.get("forma_pagamento_id") or par.get("forma_id") or "").strip()
-        bid = str(par.get("banco_id") or "").strip()
+        fid = _financeiro_id_para_string(par.get("forma_pagamento_id") or par.get("forma_id"))
+        bid = _financeiro_id_para_string(par.get("banco_id"))
         valor_par = float(str(par.get("valor", "")).replace(",", ".").strip())
         ultima_forma = forma_nome[:200]
         ultima_banco = banco_nome[:200]
@@ -1595,11 +1721,11 @@ def inserir_lancamentos_manual_lote(
     user = (usuario_label or "Agro")[:200]
 
     # IDs originais vindos do ERP geralmente são strings; não converter para ObjectId
-    eid = str(empresa_id).strip() if empresa_id else ""
-    pid = str(pessoa_id).strip() if pessoa_id else ""
-    bid = str(banco_id).strip() if banco_id else ""
-    fid = str(forma_id).strip() if forma_id else ""
-    gid = str(grupo_id).strip() if grupo_id else ""
+    eid = _financeiro_id_para_string(empresa_id)
+    pid = _financeiro_id_para_string(pessoa_id)
+    bid = _financeiro_id_para_string(banco_id)
+    fid = _financeiro_id_para_string(forma_id)
+    gid = _financeiro_id_para_string(grupo_id)
 
     col = db[COL_DTO_LANCAMENTO]
     inserted: list[str] = []
@@ -1626,16 +1752,16 @@ def inserir_lancamentos_manual_lote(
         doc.pop("_id", None)
         doc["Despesa"] = bool(despesa)
         doc["Empresa"] = empresa_nome[:200]
-        doc["EmpresaID"] = eid or (empresa_id or "")
+        doc["EmpresaID"] = eid
         doc["Cliente"] = pessoa_nome[:300]
-        doc["ClienteID"] = pid or (pessoa_id or "")
+        doc["ClienteID"] = pid
         doc["Banco"] = banco_nome[:200]
-        doc["BancoID"] = bid or (banco_id or "")
+        doc["BancoID"] = bid
         doc["FormaPagamento"] = forma_nome[:200]
-        doc["FormaPagamentoID"] = fid or (forma_id or "")
+        doc["FormaPagamentoID"] = fid
         if (grupo_nome or "").strip():
             doc["LancamentoGrupo"] = grupo_nome.strip()[:200]
-            doc["LancamentoGrupoID"] = gid or (grupo_id or "")
+            doc["LancamentoGrupoID"] = gid
         doc["PlanoDeConta"] = plano_nome[:200]
         doc["PlanoDeContaID"] = plano_oid if plano_oid is not None else (str(plano_id_raw).strip() if plano_id_raw else "")
         doc["Descricao"] = (ln.get("descricao") or f"Lançamento manual {n}").strip()[:500]
@@ -1667,6 +1793,7 @@ def inserir_lancamentos_manual_lote(
             doc["Saida"] = 0.0
             doc["Recebido"] = 0.0
             doc["ValorPago"] = 0.0
+        _financeiro_doc_coerce_ids_oid_para_string(doc)
         try:
             ins = col.insert_one(doc)
             inserted.append(str(ins.inserted_id))

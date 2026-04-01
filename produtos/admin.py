@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import ClienteAgro, ItemVendaAgro, Produto, SessaoCaixa, VendaAgro
+from .models import (
+    ClienteAgro,
+    ItemVendaAgro,
+    OpcaoBaixaFinanceiroExtra,
+    Produto,
+    SessaoCaixa,
+    VendaAgro,
+)
 
 
 class ItemVendaAgroInline(admin.TabularInline):
@@ -115,3 +122,11 @@ class ProdutoAdmin(admin.ModelAdmin):
     )
 
     list_filter = ('empresa', 'categoria', 'marca', 'ativo')
+
+
+@admin.register(OpcaoBaixaFinanceiroExtra)
+class OpcaoBaixaFinanceiroExtraAdmin(admin.ModelAdmin):
+    list_display = ("id", "usuario", "tipo", "nome", "id_erp", "criado_em")
+    list_filter = ("tipo",)
+    search_fields = ("nome", "id_erp", "usuario__username")
+    raw_id_fields = ("usuario",)
