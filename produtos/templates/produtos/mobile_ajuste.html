@@ -22,6 +22,9 @@
     .ma-modal-pad {
       padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + var(--ma-kb-inset));
     }
+    #reader video {
+      object-fit: cover;
+    }
   </style>
 </head>
 <body class="bg-slate-100 h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col touch-manipulation">
@@ -51,7 +54,15 @@
     </div>
   </header>
 
-  <div id="reader" class="w-full hidden shrink-0 max-h-[min(40vh,240px)] overflow-hidden bg-black"></div>
+  <div id="reader" class="fixed inset-0 z-[120] hidden bg-black">
+    <div id="reader-box" class="absolute inset-0"></div>
+    <div class="absolute top-0 left-0 right-0 pt-[max(0.6rem,env(safe-area-inset-top))] px-3 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 to-transparent">
+      <p class="text-white text-[11px] font-black uppercase tracking-wide">Scan ativo</p>
+      <button type="button" onclick="stopScan()" class="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-white/15 border border-white/35 text-white text-[11px] font-black uppercase">
+        Fechar
+      </button>
+    </div>
+  </div>
 
   <!-- Busca fora da área rolável: não some ao rolar e não empurra itens sob o teclado sem scroll próprio. -->
   <div class="shrink-0 z-40 px-3 pt-2 pb-2 bg-slate-100/95 backdrop-blur-sm border-b border-slate-200/80">
@@ -67,7 +78,58 @@
       spellcheck="false"
       class="w-full px-4 py-3.5 rounded-2xl border border-slate-200/90 shadow-sm bg-white text-base font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400"
     >
-    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-1.5 px-0.5 leading-snug">Lista abaixo rola com o dedo — continua visível acima do teclado.</p>
+    <button type="button" id="btn-toggle-filtros" class="mt-1.5 w-full min-h-[42px] rounded-xl bg-white border border-slate-200 text-slate-700 text-[11px] font-black uppercase inline-flex items-center justify-center gap-2">
+      Filtros
+      <span id="f-toggle-icon" class="text-slate-500">▾</span>
+    </button>
+    <div id="f-drawer" class="hidden mt-1.5 grid grid-cols-2 gap-1.5">
+      <label class="inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
+        <span class="text-[9px] font-black uppercase text-slate-500 shrink-0">Depósito</span>
+        <select id="f-deposito" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none">
+          <option value="centro">Centro</option>
+          <option value="vila">Vila Elias</option>
+        </select>
+      </label>
+      <label class="inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
+        <span class="text-[9px] font-black uppercase text-slate-500 shrink-0">Saldo</span>
+        <select id="f-saldo" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none">
+          <option value="all">Todos</option>
+          <option value="gt0">Só positivo</option>
+          <option value="le0">Zerado/negativo</option>
+        </select>
+      </label>
+      <label class="inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
+        <span class="text-[9px] font-black uppercase text-slate-500 shrink-0">Ordem</span>
+        <select id="f-ordem" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none">
+          <option value="nome">Nome A-Z</option>
+          <option value="saldo-asc">Menor saldo</option>
+          <option value="saldo-desc">Maior saldo</option>
+        </select>
+      </label>
+      <label class="col-span-2 inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
+        <span class="text-[9px] font-black uppercase text-slate-500 shrink-0">Extra</span>
+        <select id="f-extra" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none">
+          <option value="all">Sem filtro extra</option>
+          <option value="divergencia">Só com divergência ERP</option>
+          <option value="sem-marca">Só sem marca</option>
+        </select>
+      </label>
+      <label class="col-span-2 inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
+        <span class="text-[9px] font-black uppercase text-slate-500 shrink-0">Categoria</span>
+        <select id="f-categoria" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none">
+          <option value="all">Todas</option>
+        </select>
+      </label>
+      <label class="col-span-2 inline-flex items-center gap-1 rounded-xl bg-white border border-slate-200 px-2.5 py-2 min-h-[42px]">
+        <span class="text-[9px] font-black uppercase text-slate-500 shrink-0">Fornecedor</span>
+        <select id="f-fornecedor" class="w-full bg-transparent text-[11px] font-black text-slate-800 outline-none">
+          <option value="all">Todos</option>
+        </select>
+      </label>
+      <button type="button" id="btn-aplicar-filtros" class="min-h-[42px] rounded-xl bg-emerald-600 text-white text-[11px] font-black uppercase">Aplicar filtros</button>
+      <button type="button" id="btn-limpar-filtros" class="min-h-[42px] rounded-xl bg-white border border-slate-200 text-slate-700 text-[11px] font-black uppercase">Limpar</button>
+    </div>
+    <p id="f-resumo" class="text-[9px] font-bold text-slate-400 uppercase tracking-wide mt-1.5 px-0.5 leading-snug">Busca sem filtro por padrão.</p>
   </div>
 
   <div id="lista-scroll" class="flex-1 min-h-0 overflow-y-auto ma-scroll-lista px-3 pt-2">
@@ -82,7 +144,7 @@
         <h3 id="m-nome" class="font-black uppercase text-sm leading-snug text-slate-900 pr-8"></h3>
 
         <div class="space-y-1">
-          <div class="text-[10px] text-slate-500 font-black uppercase tracking-wide">Saldo atual (Centro)</div>
+          <div id="m-saldo-label" class="text-[10px] text-slate-500 font-black uppercase tracking-wide">Saldo atual (Centro)</div>
           <div id="m-saldo" class="text-3xl font-black text-emerald-600 tabular-nums">0</div>
         </div>
 
@@ -117,6 +179,15 @@ let debounceTimer = null;
 let baseProdutos = [];
 const MOBILE_POLL_SALDOS_MS = 8000;
 let mobilePollSaldosTimer = null;
+let scanningActive = false;
+let filtrosAplicados = {
+  deposito: 'centro',
+  saldo: 'all',
+  ordem: 'nome',
+  extra: 'all',
+  categoria: 'all',
+  fornecedor: 'all',
+};
 
 function normalizar(texto) {
   return String(texto || '')
@@ -164,10 +235,69 @@ function aplicarSaldosMobile(rows) {
     if (normalizarBuscaLocal(q).length >= 2) buscar(q);
     const modal = document.getElementById('modal');
     if (pSel && modal && !modal.classList.contains('hidden')) {
-      document.getElementById('m-saldo').innerText = Number(pSel.saldo_centro || 0).toFixed(1);
+      document.getElementById('m-saldo').innerText = Number(getSaldoAtual(pSel)).toFixed(1);
     }
   }
   return mudou;
+}
+
+function getDepositoSelecionado() {
+  return filtrosAplicados.deposito === 'vila' ? 'vila' : 'centro';
+}
+
+function getNomeDepositoSelecionado() {
+  return getDepositoSelecionado() === 'vila' ? 'Vila Elias' : 'Centro';
+}
+
+function getSaldoAtual(p) {
+  if (!p) return 0;
+  return getDepositoSelecionado() === 'vila'
+    ? Number(p.saldo_vila || 0)
+    : Number(p.saldo_centro || 0);
+}
+
+function getSaldoErpAtual(p) {
+  if (!p) return 0;
+  if (getDepositoSelecionado() === 'vila') {
+    return Number(p.saldo_vila_erp ?? p.saldo_erp_vila ?? p.saldo_vila ?? 0);
+  }
+  return Number(p.saldo_centro_erp ?? p.saldo_erp_centro ?? p.saldo_centro ?? 0);
+}
+
+function getCategoriaTexto(p) {
+  return String(p?.categoria_nome || p?.categoria || p?.grupo || '').trim();
+}
+
+function getFornecedorTexto(p) {
+  return String(p?.fornecedor_nome || p?.fornecedor || p?.fabricante || '').trim();
+}
+
+function preencherSelectComValores(id, valores, labelAll) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const atual = el.value || 'all';
+  const itens = ['<option value="all">' + labelAll + '</option>']
+    .concat(valores.map((v) => '<option value="' + v.replace(/"/g, '&quot;') + '">' + v + '</option>'));
+  el.innerHTML = itens.join('');
+  el.value = valores.includes(atual) ? atual : 'all';
+}
+
+function atualizarOpcoesFiltros() {
+  const categorias = Array.from(new Set(baseProdutos.map(getCategoriaTexto).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  const fornecedores = Array.from(new Set(baseProdutos.map(getFornecedorTexto).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  preencherSelectComValores('f-categoria', categorias, 'Todas');
+  preencherSelectComValores('f-fornecedor', fornecedores, 'Todos');
+}
+
+function aplicarFiltrosDaUI() {
+  filtrosAplicados = {
+    deposito: document.getElementById('f-deposito')?.value || 'centro',
+    saldo: document.getElementById('f-saldo')?.value || 'all',
+    ordem: document.getElementById('f-ordem')?.value || 'nome',
+    extra: document.getElementById('f-extra')?.value || 'all',
+    categoria: document.getElementById('f-categoria')?.value || 'all',
+    fornecedor: document.getElementById('f-fornecedor')?.value || 'all',
+  };
 }
 
 function pollSaldosMobileUmaVez() {
@@ -196,7 +326,9 @@ window.addEventListener('load', () => {
     .then(res => res.json())
     .then(data => {
       baseProdutos = data.produtos || [];
-      listaDiv.innerHTML = '<div class="text-center text-slate-400 font-bold p-8">Pronto! Digite para buscar.</div>';
+      atualizarOpcoesFiltros();
+      aplicarFiltrosDaUI();
+      buscar('');
       iniciarPollSaldosMobile();
     })
     .catch(() => {
@@ -206,8 +338,12 @@ window.addEventListener('load', () => {
 });
 
 function startScan() {
-  document.getElementById('reader').classList.remove('hidden');
-  scanner = new Html5Qrcode("reader");
+  if (scanningActive) return;
+  const reader = document.getElementById('reader');
+  const readerBox = document.getElementById('reader-box');
+  reader.classList.remove('hidden');
+  scanner = new Html5Qrcode("reader-box");
+  scanningActive = true;
   const w = Math.min(window.innerWidth || 360, 360);
   const qrbox = Math.max(140, Math.min(250, Math.floor(w * 0.72)));
 
@@ -217,31 +353,71 @@ function startScan() {
     (txt) => {
       document.getElementById('busca').value = txt;
       buscar(txt);
-      if (scanner) scanner.stop();
-      document.getElementById('reader').classList.add('hidden');
+      stopScan();
     }
   ).catch(() => {
-    document.getElementById('reader').classList.add('hidden');
+    stopScan();
     alert('Não foi possível iniciar a câmera.');
   });
+}
+
+function stopScan() {
+  const reader = document.getElementById('reader');
+  const done = () => {
+    scanningActive = false;
+    reader.classList.add('hidden');
+    scanner = null;
+  };
+  if (!scanner) {
+    done();
+    return;
+  }
+  scanner.stop()
+    .catch(() => {})
+    .finally(() => {
+      scanner.clear().catch(() => {}).finally(done);
+    });
 }
 
 function buscar(q) {
   const termoOriginal = String(q || '').trim();
   const termoN = normalizarBuscaLocal(termoOriginal);
   const l = document.getElementById('lista');
-
-  if (termoN.length < 2) {
-    l.innerHTML = '<div class="text-center text-slate-400 font-bold p-8">Digite ao menos 2 caracteres.</div>';
-    return;
-  }
-
-  const resultados = filtrarProdutosBuscaInteligente(baseProdutos, termoN, 'normal').slice(0, 40);
+  const saldoFiltro = filtrosAplicados.saldo || 'all';
+  const extraFiltro = filtrosAplicados.extra || 'all';
+  const ordem = filtrosAplicados.ordem || 'nome';
+  const categoriaFiltro = filtrosAplicados.categoria || 'all';
+  const fornecedorFiltro = filtrosAplicados.fornecedor || 'all';
+  const origem = termoN.length >= 2
+    ? filtrarProdutosBuscaInteligente(baseProdutos, termoN, 'normal')
+    : baseProdutos.slice();
+  const resultados = origem
+    .filter((p) => {
+      const saldo = getSaldoAtual(p);
+      if (saldoFiltro === 'gt0' && !(saldo > 0)) return false;
+      if (saldoFiltro === 'le0' && !(saldo <= 0)) return false;
+      if (extraFiltro === 'divergencia' && !(Math.abs(getSaldoAtual(p) - getSaldoErpAtual(p)) > 0.0001)) return false;
+      if (extraFiltro === 'sem-marca' && String(p.marca || '').trim()) return false;
+      if (categoriaFiltro !== 'all' && getCategoriaTexto(p) !== categoriaFiltro) return false;
+      if (fornecedorFiltro !== 'all' && getFornecedorTexto(p) !== fornecedorFiltro) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (ordem === 'saldo-asc') return getSaldoAtual(a) - getSaldoAtual(b);
+      if (ordem === 'saldo-desc') return getSaldoAtual(b) - getSaldoAtual(a);
+      return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+    })
+    .slice(0, termoN.length >= 2 ? 40 : 80);
 
   l.innerHTML = '';
+  const resumo = document.getElementById('f-resumo');
+  if (resumo) {
+    const modoBusca = termoN.length >= 2 ? 'busca ativa' : 'somente filtros';
+    resumo.innerText = `${modoBusca} · ${resultados.length} itens exibidos`;
+  }
 
   if (!resultados.length) {
-    l.innerHTML = '<div class="text-center text-slate-400 font-bold p-8">Nenhum produto encontrado.</div>';
+    l.innerHTML = '<div class="text-center text-slate-400 font-bold p-8">Nenhum item para os filtros atuais.</div>';
     return;
   }
 
@@ -254,7 +430,7 @@ function buscar(q) {
         <div class="text-[9px] text-slate-400 truncate">${p.marca || ''}</div>
         <div class="text-[9px] text-slate-500 truncate">GM: ${p.codigo_nfe || p.codigo || ''}</div>
       </div>
-      <div class="text-emerald-600 font-black text-lg tabular-nums shrink-0">${Number(p.saldo_centro || 0).toFixed(1)}</div>
+      <div class="text-emerald-600 font-black text-lg tabular-nums shrink-0">${getSaldoAtual(p).toFixed(1)}</div>
     `;
     d.onclick = () => {
       pSel = p;
@@ -268,12 +444,50 @@ document.getElementById('busca').addEventListener('input', (e) => {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => buscar(e.target.value), 120);
 });
+document.getElementById('btn-aplicar-filtros').addEventListener('click', () => {
+  aplicarFiltrosDaUI();
+  buscar(document.getElementById('busca').value);
+});
+document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+  document.getElementById('f-deposito').value = 'centro';
+  document.getElementById('f-saldo').value = 'all';
+  document.getElementById('f-ordem').value = 'nome';
+  document.getElementById('f-extra').value = 'all';
+  document.getElementById('f-categoria').value = 'all';
+  document.getElementById('f-fornecedor').value = 'all';
+  aplicarFiltrosDaUI();
+  buscar(document.getElementById('busca').value);
+});
+document.getElementById('btn-toggle-filtros').addEventListener('click', () => {
+  const drawer = document.getElementById('f-drawer');
+  const icon = document.getElementById('f-toggle-icon');
+  const aberto = !drawer.classList.contains('hidden');
+  drawer.classList.toggle('hidden', aberto);
+  icon.textContent = aberto ? '▾' : '▴';
+});
+document.getElementById('f-deposito').addEventListener('change', () => {
+  if (pSel && !document.getElementById('modal').classList.contains('hidden')) {
+    const prox = document.getElementById('f-deposito').value === 'vila' ? 'Vila Elias' : 'Centro';
+    const saldoPreview = document.getElementById('f-deposito').value === 'vila'
+      ? Number(pSel.saldo_vila || 0)
+      : Number(pSel.saldo_centro || 0);
+    document.getElementById('m-saldo-label').innerText = `Saldo atual (${prox})`;
+    document.getElementById('m-saldo').innerText = saldoPreview.toFixed(1);
+    document.getElementById('m-novo').value = saldoPreview.toFixed(1);
+  }
+});
+document.getElementById('f-saldo').addEventListener('change', () => {
+  /* Filtros de saldo/ordem/extra aplicam no botão "Aplicar filtros". */
+});
+document.getElementById('f-ordem').addEventListener('change', () => {});
+document.getElementById('f-extra').addEventListener('change', () => {});
 
 function abrir() {
   const modal = document.getElementById('modal');
   document.getElementById('m-nome').innerText = pSel.nome || '';
-  document.getElementById('m-saldo').innerText = Number(pSel.saldo_centro || 0).toFixed(1);
-  document.getElementById('m-novo').value = Number(pSel.saldo_centro || 0).toFixed(1);
+  document.getElementById('m-saldo-label').innerText = `Saldo atual (${getNomeDepositoSelecionado()})`;
+  document.getElementById('m-saldo').innerText = getSaldoAtual(pSel).toFixed(1);
+  document.getElementById('m-novo').value = getSaldoAtual(pSel).toFixed(1);
   modal.classList.remove('hidden');
   modal.classList.add('flex');
   modal.setAttribute('aria-hidden', 'false');
@@ -332,9 +546,10 @@ function salvar() {
   const fd = new FormData();
   fd.append('produto_id', pSel.id);
   fd.append('nome_produto', pSel.nome || '');
-  fd.append('saldo_atual', pSel.saldo_centro_erp ?? pSel.saldo_erp_centro ?? pSel.saldo_centro ?? 0);
+  const deposito = getDepositoSelecionado();
+  fd.append('saldo_atual', getSaldoErpAtual(pSel));
   fd.append('novo_saldo', document.getElementById('m-novo').value);
-  fd.append('deposito', 'centro');
+  fd.append('deposito', deposito);
   fd.append('pin', 'SESSAO');
 
   if (window.gmLoadingBar) window.gmLoadingBar.show();
