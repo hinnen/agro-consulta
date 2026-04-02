@@ -1,0 +1,10 @@
+{# MPA: View Transitions (Chrome 126+), prefetch de navegação e HTMX para ilhas futuras. Incluir no <head>. #}
+<meta name="view-transition" content="same-origin">
+<style id="agro-perf-mpa">
+  @media (prefers-reduced-motion: no-preference) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation-duration: 0.22s;
+    }
+  }
+</style>

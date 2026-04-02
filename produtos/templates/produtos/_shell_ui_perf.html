@@ -1,0 +1,56 @@
+{# Prefetch em hover/foco + HTMX (ilhas / hx-* pontuais). Incluído após _gm_loading_bar nas telas loja. #}
+<script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js" crossorigin="anonymous"></script>
+<script>
+(function () {
+  if (window.__agroShellPerfInit) return;
+  window.__agroShellPerfInit = true;
+
+  function csrfToken() {
+    var m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1].trim()) : '';
+  }
+  document.body.addEventListener('htmx:configRequest', function (evt) {
+    var t = csrfToken();
+    if (t) evt.detail.headers['X-CSRFToken'] = t;
+  });
+
+  var prefetched = Object.create(null);
+  function prefetchUrl(href) {
+    if (!href || href.charAt(0) !== '/') return;
+    if (href.indexOf('/admin') === 0) return;
+    if (prefetched[href]) return;
+    prefetched[href] = 1;
+    var l = document.createElement('link');
+    l.rel = 'prefetch';
+    l.href = href;
+    l.as = 'document';
+    document.head.appendChild(l);
+  }
+
+  document.addEventListener('mouseenter', function (e) {
+    var a = e.target && e.target.closest && e.target.closest('a[href]');
+    if (!a || !a.href) return;
+    try {
+      var u = new URL(a.href, window.location.origin);
+      if (u.origin !== window.location.origin) return;
+      if (a.hasAttribute('data-no-prefetch')) return;
+      if (a.classList.contains('pdv-nav-item') || a.hasAttribute('data-prefetch')) {
+        prefetchUrl(u.pathname + u.search);
+      }
+    } catch (_) {}
+  }, true);
+
+  document.addEventListener('focusin', function (e) {
+    var a = e.target && e.target.closest && e.target.closest('a[href]');
+    if (!a || !a.href) return;
+    try {
+      var u = new URL(a.href, window.location.origin);
+      if (u.origin !== window.location.origin) return;
+      if (a.hasAttribute('data-no-prefetch')) return;
+      if (a.classList.contains('pdv-nav-item') || a.hasAttribute('data-prefetch')) {
+        prefetchUrl(u.pathname + u.search);
+      }
+    } catch (_) {}
+  }, true);
+})();
+</script>

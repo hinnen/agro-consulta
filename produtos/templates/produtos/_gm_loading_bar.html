@@ -1,4 +1,6 @@
-{# Barra de progresso indeterminada no topo — use window.gmLoadingBar.show() / .hide() (contador interno para requisições paralelas). #}
+{# Barra de progresso indeterminada no topo — use window.gmLoadingBar.show() / .hide() (contador interno para requisições paralelas).
+   GM_LOADING_BAR_SHOW_DELAY_MS (opcional, antes deste include): 0 = sem atraso; padrão ~280ms = só mostra se o load demorar (menos “piscada”).
+#}
 <style>
   @keyframes gm-loading-shimmer {
     0% { transform: translateX(-100%); }
@@ -19,23 +21,42 @@
   if (window.gmLoadingBar) return;
   var root = null;
   var depth = 0;
+  var showTimer = null;
+  var DELAY_MS = typeof window.GM_LOADING_BAR_SHOW_DELAY_MS === 'number'
+    ? Math.max(0, window.GM_LOADING_BAR_SHOW_DELAY_MS)
+    : 280;
   function el() {
     return root || (root = document.getElementById('gm-loading-bar-root'));
+  }
+  function revealBar() {
+    var e = el();
+    if (!e || depth < 1) return;
+    e.classList.remove('hidden');
+    e.setAttribute('aria-busy', 'true');
+  }
+  function concealBar() {
+    var e = el();
+    if (!e) return;
+    e.classList.add('hidden');
+    e.setAttribute('aria-busy', 'false');
   }
   window.gmLoadingBar = {
     show: function () {
       depth++;
-      var e = el();
-      if (!e) return;
-      e.classList.remove('hidden');
-      e.setAttribute('aria-busy', 'true');
+      if (DELAY_MS <= 0) {
+        revealBar();
+        return;
+      }
+      clearTimeout(showTimer);
+      showTimer = setTimeout(revealBar, DELAY_MS);
     },
     hide: function () {
       depth = Math.max(0, depth - 1);
-      var e = el();
-      if (!e || depth > 0) return;
-      e.classList.add('hidden');
-      e.setAttribute('aria-busy', 'false');
+      if (depth === 0) {
+        clearTimeout(showTimer);
+        showTimer = null;
+        concealBar();
+      }
     },
     wrap: function (p) {
       this.show();
@@ -44,5 +65,8 @@
       });
     },
   };
+  /* Evita segundo patch com debounce em páginas que já fazem patch (ex.: consulta_produtos). */
+  window.gmLoadingBar.__delayedPatched = true;
 })();
 </script>
+{% include "produtos/_shell_ui_perf.html" %}
