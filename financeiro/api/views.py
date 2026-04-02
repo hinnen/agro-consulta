@@ -1,9 +1,12 @@
+import logging
+
+from django.conf import settings
+from django.shortcuts import get_object_or_404
+from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
 from rest_framework.views import APIView
-from django.shortcuts import get_object_or_404
 
 from financeiro.api.jsonutil import json_safe
 from financeiro.models import GrupoEmpresarial
@@ -14,6 +17,14 @@ from financeiro.services.resumo_operacional_mongo import (
     consolidar_empresa_mongo,
     consolidar_grupo_mongo,
 )
+
+_log_resumo = logging.getLogger("financeiro.resumo_diagnostico")
+
+
+def _resumo_diagnostico_ativo(request) -> bool:
+    return request.query_params.get("debug_resumo") == "1" or getattr(
+        settings, "FINANCEIRO_DEBUG_RESUMO", False
+    )
 
 
 class _AuthAPIView(APIView):
@@ -27,6 +38,7 @@ class ResumoOperacionalAPIView(_AuthAPIView):
         serializer.is_valid(raise_exception=True)
 
         params = serializer.validated_data
+        diagnostico = _resumo_diagnostico_ativo(request)
 
         if params.get("fonte") == "mongo":
             from produtos.views import obter_conexao_mongo
@@ -49,6 +61,7 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                     por=por,
                     valor=valor,
                     filtro_contas=fc,
+                    diagnostico=diagnostico,
                 )
             else:
                 get_object_or_404(
@@ -62,6 +75,7 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                     por=por,
                     valor=valor,
                     filtro_contas=fc,
+                    diagnostico=diagnostico,
                 )
             if data.get("erro"):
                 return Response(
@@ -89,6 +103,11 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                     data_fim=params["data_fim"],
                 )
 
+        if diagnostico and params.get("fonte") == "mongo":
+            _log_resumo.info(
+                "[FINANCEIRO_RESUMO_DIAG] resumo_operacional_api_payload=%s",
+                json_safe(data) if isinstance(data, dict) else data,
+            )
         return Response(json_safe(data), status=status.HTTP_200_OK)
 
 
@@ -97,6 +116,7 @@ class GapEquilibrioAPIView(_AuthAPIView):
         serializer = ResumoOperacionalQuerySerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         params = serializer.validated_data
+        diagnostico = _resumo_diagnostico_ativo(request)
 
         equilibrio_service = EquilibrioFinanceiroService()
 
@@ -121,6 +141,7 @@ class GapEquilibrioAPIView(_AuthAPIView):
                     por=por,
                     valor=valor,
                     filtro_contas=fc,
+                    diagnostico=diagnostico,
                 )
                 if pack.get("erro"):
                     return Response(
@@ -140,6 +161,7 @@ class GapEquilibrioAPIView(_AuthAPIView):
                     por=por,
                     valor=valor,
                     filtro_contas=fc,
+                    diagnostico=diagnostico,
                 )
                 if grupo.get("erro"):
                     return Response(
@@ -174,4 +196,10 @@ class GapEquilibrioAPIView(_AuthAPIView):
             despesas_variaveis=resumo["despesas_variaveis"],
             dias_periodo=dias,
         )
+        if diagnostico and params.get("fonte") == "mongo":
+            _log_resumo.info(
+                "[FINANCEIRO_RESUMO_DIAG] gap_equilibrio_payload=%s (insumo receita_op=%s)",
+                json_safe(data),
+                resumo.get("receita_operacional"),
+            )
         return Response(json_safe(data), status=status.HTTP_200_OK)

@@ -177,6 +177,8 @@ DRE_DEDUP_LANCAMENTO_ID = config('DRE_DEDUP_LANCAMENTO_ID', default=True, cast=b
 DRE_DEDUP_ASSINATURA_SEM_ID = config('DRE_DEDUP_ASSINATURA_SEM_ID', default=True, cast=bool)
 # Tela dedicada /lancamentos/dre/ e item no menu lateral. False = rota mostra aviso “desativado”.
 LANCAMENTOS_DRE_ATIVO = config('LANCAMENTOS_DRE_ATIVO', default=False, cast=bool)
+# True = logs [FINANCEIRO_RESUMO_DIAG] no logger financeiro.resumo_diagnostico (ou use ?debug_resumo=1 na API).
+FINANCEIRO_DEBUG_RESUMO = config('FINANCEIRO_DEBUG_RESUMO', default=False, cast=bool)
 
 # Saída no caixa (/caixa/saida/): nomes para “quem levou o dinheiro”, separados por vírgula. Vazio = só “Outro”.
 AGRO_SAIDA_CAIXA_FUNCIONARIOS = config('AGRO_SAIDA_CAIXA_FUNCIONARIOS', default='').strip()
