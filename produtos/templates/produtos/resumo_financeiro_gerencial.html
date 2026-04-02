@@ -6,375 +6,192 @@
   <title>Agro Mais | Resumo financeiro gerencial</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/agro_resumo_gerencial.css' %}">
   {% include "produtos/_agro_consulta_ui.html" %}
   <style>
-    body { font-family: 'Inter', sans-serif; }
-    .gm-bar { background: linear-gradient(90deg, rgba(234,88,12,0.12) 0%, rgba(5,150,105,0.10) 100%); }
-    .gm-kbd {
-      pointer-events: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 9px;
-      line-height: 1;
-      padding: 0.2rem 0.35rem;
-      border-radius: 0.35rem;
-      font-weight: 900;
-      font-family: ui-monospace, monospace;
-      font-variant-numeric: tabular-nums;
-    }
-    @media (min-width: 640px) { .gm-kbd { font-size: 10px; padding: 0.25rem 0.45rem; } }
+    /* Modal ajuda — mínimo; restante no CSS do painel */
+    body.h-full { margin: 0; }
+    .rg-modal-backdrop { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(15, 23, 42, 0.55); }
+    .rg-modal { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; max-width: 32rem; width: 100%; padding: 1.25rem; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.15); }
+    .rg-modal h3 { margin: 0 0 0.5rem; font-size: 1.1rem; font-weight: 900; color: #0f172a; }
+    .rg-modal ul { margin: 0; padding-left: 1.25rem; font-size: 0.875rem; color: #334155; line-height: 1.5; }
+    .rg-modal li { margin-bottom: 0.35rem; }
+    .rg-modal__btn { margin-top: 1rem; width: 100%; padding: 0.65rem; border-radius: 10px; border: none; background: #0f172a; color: #fff; font-weight: 900; font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; min-height: 44px; }
+    .rg-modal__btn:hover { filter: brightness(1.08); }
   </style>
 </head>
-<body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+<body id="agro-resumo-gerencial-root" data-storage-key="agro_resumo_fin_sess_v1" class="bg-slate-100 h-full overflow-hidden text-slate-800 flex flex-col">
 {% include "produtos/_gm_loading_bar.html" %}
 
-  <header class="gm-bar border-b border-slate-200/80 shrink-0">
-    <div class="max-w-[1400px] mx-auto px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center gap-2 min-w-0">
-        <div class="h-10 w-10 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
-          <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
+  <header class="rg-head shrink-0">
+    <div class="rg-head__inner">
+      <div class="rg-head__brand">
+        <div class="rg-head__logo">
+          <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="">
         </div>
-        <div class="min-w-0">
-          <h1 class="text-base sm:text-lg font-black uppercase tracking-tight text-slate-800 leading-tight">
-            GM <span class="text-emerald-600">AGRO</span> · <span class="text-orange-600">Resumo gerencial</span>
-          </h1>
-          <p class="text-[9px] font-bold uppercase tracking-widest text-slate-500">Operação · caixa · consolidação grupo</p>
+        <div class="rg-head__titles">
+          <h1>GM <span style="color:#059669">AGRO</span> · <span style="color:#ea580c">Resumo gerencial</span></h1>
+          <p>Operação · caixa · consolidação</p>
         </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2 shrink-0">
-        <a href="{% url 'lancamentos_financeiros' %}" class="text-xs font-black uppercase bg-white shadow-sm px-3 py-2.5 rounded-xl border-2 border-slate-200 text-slate-700 hover:border-amber-400 min-h-[44px] inline-flex items-center">Lançamentos</a>
-        <button type="button" id="btn-ajuda" class="text-xs font-black uppercase bg-slate-200 text-slate-800 px-3 py-2.5 rounded-xl border-2 border-slate-300 min-h-[44px] min-w-[44px]" title="Ajuda">?</button>
+      <div class="rg-head__actions">
+        <a href="{% url 'lancamentos_financeiros' %}" class="rg-btn-ghost">Lançamentos</a>
+        <button type="button" id="btn-ajuda" class="rg-btn-ghost rg-btn-icon" title="Ajuda">?</button>
         {% include "produtos/_barra_estoque_global.html" %}
-        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-3 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-orange-400 hover:text-orange-800 transition-colors" %}
+        {% include "produtos/_pdv_voltar_link.html" with link_class="rg-btn-ghost inline-flex items-center justify-center gap-1.5 min-h-[44px]" %}
       </div>
     </div>
   </header>
 
-  <main class="max-w-[1400px] mx-auto px-3 sm:px-4 py-4 flex-1 min-h-0 overflow-y-auto space-y-4">
-    <section class="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <label class="block">
-        <span class="text-[10px] font-black uppercase text-slate-500">Modo</span>
-        <select id="f-modo" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-sm font-bold min-h-[44px]">
-          <option value="empresa">Uma empresa</option>
-          <option value="grupo">Grupo (consolidado)</option>
-        </select>
-      </label>
-      <label class="block" id="wrap-empresa">
-        <span class="text-[10px] font-black uppercase text-slate-500">Empresa</span>
-        <select id="f-empresa" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-sm font-bold min-h-[44px]">
-          {% for e in empresas %}
-          <option value="{{ e.id }}">{{ e.nome_fantasia }}</option>
-          {% empty %}
-          <option value="">— cadastre empresa —</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label class="block hidden" id="wrap-grupo">
-        <span class="text-[10px] font-black uppercase text-slate-500">Grupo</span>
-        <select id="f-grupo" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-sm font-bold min-h-[44px]">
-          {% for g in grupos %}
-          <option value="{{ g.id }}">{{ g.nome }}</option>
-          {% empty %}
-          <option value="">— cadastre grupo no admin —</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label class="block">
-        <span class="text-[10px] font-black uppercase text-slate-500">Início</span>
-        <input type="date" id="f-ini" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-sm font-bold min-h-[44px]">
-      </label>
-      <label class="block">
-        <span class="text-[10px] font-black uppercase text-slate-500">Fim</span>
-        <input type="date" id="f-fim" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-sm font-bold min-h-[44px]">
-      </label>
-      <div class="flex items-end gap-2 sm:col-span-2 lg:col-span-1">
-        <button type="button" id="btn-atualizar" class="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase py-3 px-4 min-h-[44px] shadow-md border-2 border-emerald-700">
-          Atualizar <kbd class="gm-kbd ml-1 border border-white/30 bg-white/15 text-white">F5</kbd>
+  <main class="rg-main">
+    {# ——— Toolbar / filtros ——— #}
+    <section class="rg-toolbar" aria-label="Filtros do painel">
+      <div class="rg-toolbar__row">
+        <div class="rg-field rg-field--modo">
+          <span class="rg-field__label">Modo</span>
+          <select id="f-modo" title="Uma empresa ou grupo consolidado">
+            <option value="empresa">Uma empresa</option>
+            <option value="grupo">Grupo (consolidado)</option>
+          </select>
+        </div>
+        <div class="rg-field rg-field--empresa" id="wrap-empresa">
+          <span class="rg-field__label">Empresa</span>
+          <select id="f-empresa">
+            {% for e in empresas %}
+            <option value="{{ e.id }}">{{ e.nome_fantasia }}</option>
+            {% empty %}
+            <option value="">— cadastre empresa —</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="rg-field rg-field--grupo hidden" id="wrap-grupo">
+          <span class="rg-field__label">Grupo</span>
+          <select id="f-grupo">
+            {% for g in grupos %}
+            <option value="{{ g.id }}">{{ g.nome }}</option>
+            {% empty %}
+            <option value="">— cadastre grupo no admin —</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="rg-field rg-field--date">
+          <span class="rg-field__label">Início</span>
+          <input type="date" id="f-ini">
+        </div>
+        <div class="rg-field rg-field--date">
+          <span class="rg-field__label">Fim</span>
+          <input type="date" id="f-fim">
+        </div>
+        <button type="button" id="btn-atualizar" class="rg-btn-atualizar" title="Recarregar indicadores">
+          Atualizar
+          <kbd class="gm-kbd-rg">F5</kbd>
         </button>
       </div>
+      <div class="rg-toolbar__row rg-toolbar__row--secondary">
+        <div class="rg-field" style="width:11rem;min-width:9rem">
+          <span class="rg-field__label">Fonte dos dados</span>
+          <select id="f-fonte" title="Mongo = DtoLancamento (ERP). Postgres = Agro.">
+            <option value="mongo" selected>Mongo — DtoLancamento (ERP)</option>
+            <option value="postgres">Postgres — Agro</option>
+          </select>
+        </div>
+        <div class="rg-field" id="wrap-mongo-por" style="width:9.5rem">
+          <span class="rg-field__label">Data base</span>
+          <select id="f-por">
+            <option value="competencia">Competência</option>
+            <option value="vencimento">Vencimento</option>
+            <option value="pagamento">Pagamento</option>
+          </select>
+        </div>
+        <div class="rg-field" id="wrap-mongo-valor" style="width:9rem">
+          <span class="rg-field__label">Valor</span>
+          <select id="f-valor">
+            <option value="bruto">Bruto (título)</option>
+            <option value="realizado">Realizado</option>
+          </select>
+        </div>
+        <div class="rg-field" id="wrap-mongo-contas" style="flex:1;min-width:8rem">
+          <span class="rg-field__label">Filtro contas</span>
+          <select id="f-contas" title="Igual ao DRE simples">
+            <option value="">Padrão (.env)</option>
+            <option value="resultado">Resultado</option>
+            <option value="resultado_erp">Resultado ERP (PDF)</option>
+            <option value="todas">Todas</option>
+          </select>
+        </div>
+      </div>
+      <div id="rg-filtro-ativo" class="rg-filtro-ativo" role="status" aria-live="polite"></div>
     </section>
 
-    <section class="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <label class="block">
-        <span class="text-[10px] font-black uppercase text-slate-500">Fonte dos dados</span>
-        <select id="f-fonte" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-sm font-bold min-h-[44px]" title="Mongo = DtoLancamento (sincronizado com o ERP). Postgres = lançamentos gravados no Agro.">
-          <option value="mongo" selected>Mongo — DtoLancamento (ERP)</option>
-          <option value="postgres">Postgres — Agro</option>
-        </select>
-      </label>
-      <label class="block" id="wrap-mongo-por">
-        <span class="text-[10px] font-black uppercase text-slate-500">Data base (Mongo)</span>
-        <select id="f-por" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-sm font-bold min-h-[44px]">
-          <option value="competencia">Competência</option>
-          <option value="vencimento">Vencimento</option>
-          <option value="pagamento">Pagamento</option>
-        </select>
-      </label>
-      <label class="block" id="wrap-mongo-valor">
-        <span class="text-[10px] font-black uppercase text-slate-500">Valor (Mongo)</span>
-        <select id="f-valor" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-sm font-bold min-h-[44px]">
-          <option value="bruto">Bruto (título)</option>
-          <option value="realizado">Realizado (pago/recebido)</option>
-        </select>
-      </label>
-      <label class="block" id="wrap-mongo-contas">
-        <span class="text-[10px] font-black uppercase text-slate-500">Filtro contas</span>
-        <select id="f-contas" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-sm font-bold min-h-[44px]" title="Igual ao DRE simples: resultado (padrão), resultado_erp ou todas.">
-          <option value="">Padrão (.env / resultado)</option>
-          <option value="resultado">Resultado</option>
-          <option value="resultado_erp">Resultado ERP (PDF)</option>
-          <option value="todas">Todas</option>
-        </select>
-      </label>
-    </section>
+    <p id="msg-erro" class="rg-msg rg-msg--error hidden" role="alert"></p>
+    <p id="msg-mongo-info" class="rg-msg rg-msg--info hidden"></p>
+    <p id="rg-msg-zero" class="rg-msg rg-msg--zero hidden">
+      Indicadores principais estão zerados neste período e filtros. Confira a fonte de dados, o nome da empresa (Mongo) e as datas — isso é esperado quando não há movimento.
+    </p>
 
-    <p id="msg-erro" class="hidden rounded-2xl border-2 border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800"></p>
-    <p id="msg-mongo-info" class="hidden rounded-2xl border-2 border-sky-200 bg-sky-50 px-4 py-3 text-xs font-semibold text-sky-950 leading-snug"></p>
+    {# Skeleton carregando #}
+    <div id="rg-kpi-skeleton" class="rg-skeleton" aria-hidden="true">
+      <div class="rg-skeleton__row">
+        <div class="rg-skeleton__cell"></div><div class="rg-skeleton__cell"></div><div class="rg-skeleton__cell"></div>
+      </div>
+      <div class="rg-skeleton__row">
+        <div class="rg-skeleton__cell"></div><div class="rg-skeleton__cell"></div><div class="rg-skeleton__cell"></div>
+      </div>
+      <div class="rg-skeleton__row">
+        <div class="rg-skeleton__cell"></div><div class="rg-skeleton__cell"></div><div class="rg-skeleton__cell"></div>
+      </div>
+      <div class="rg-skeleton__row rg-skeleton__row--4">
+        <div class="rg-skeleton__cell"></div><div class="rg-skeleton__cell"></div><div class="rg-skeleton__cell"></div><div class="rg-skeleton__cell"></div>
+      </div>
+    </div>
 
-    <div id="painel-cards" class="hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
+    {# Grid de KPIs (preenchido via JS — mesma API) #}
+    <div id="painel-cards" class="hidden"></div>
 
-    <details id="bloco-grupo" class="hidden rounded-2xl border-2 border-slate-200 bg-white p-4">
-      <summary class="text-xs font-black uppercase text-slate-700 cursor-pointer">Por empresa (grupo)</summary>
-      <div id="por-empresa" class="mt-3 space-y-2 text-sm"></div>
+    <details id="bloco-grupo" class="rg-grupo-detalhe hidden">
+      <summary>Por empresa (grupo)</summary>
+      <div id="por-empresa" class="mt-2 space-y-2"></div>
     </details>
 
-    <section id="sec-equilibrio" class="hidden rounded-2xl border-2 border-orange-200 bg-orange-50/80 p-4">
-      <h2 class="text-xs font-black uppercase text-orange-900 mb-2">Ponto de equilíbrio (período)</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm font-bold text-orange-950">
-        <div><span class="text-[10px] uppercase text-orange-800 block">Margem contrib. %</span><span id="eq-margem">—</span></div>
-        <div><span class="text-[10px] uppercase text-orange-800 block">Faturamento equilíbrio</span><span id="eq-fat">—</span></div>
-        <div><span class="text-[10px] uppercase text-orange-800 block">Fat. diário equilíbrio</span><span id="eq-dia">—</span></div>
+    {# Ponto de equilíbrio — faixa executiva #}
+    <section id="sec-equilibrio" class="rg-equilibrio" aria-label="Ponto de equilíbrio">
+      <div class="rg-equilibrio__head">
+        <h2>Ponto de equilíbrio</h2>
+        <p>Projeção no período selecionado — margem de contribuição e faturamento necessário para cobrir despesas fixas.</p>
+      </div>
+      <div class="rg-equilibrio__grid">
+        <div class="rg-equilibrio__metric">
+          <span>Margem de contribuição</span>
+          <span id="eq-margem" class="rg-equilibrio__val">—</span>
+        </div>
+        <div class="rg-equilibrio__metric">
+          <span>Faturamento de equilíbrio</span>
+          <span id="eq-fat" class="rg-equilibrio__val">—</span>
+        </div>
+        <div class="rg-equilibrio__metric">
+          <span>Faturamento diário de equilíbrio</span>
+          <span id="eq-dia" class="rg-equilibrio__val">—</span>
+        </div>
       </div>
     </section>
   </main>
 
-  <div id="modal-ajuda" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60" role="dialog" aria-modal="true">
-    <div class="bg-white rounded-2xl border-2 border-slate-200 max-w-lg w-full p-5 shadow-xl">
-      <h3 class="text-lg font-black text-slate-800 mb-2">Resumo gerencial</h3>
-      <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5">
-        <li><strong>Fonte Mongo</strong> usa o mesmo <strong>DtoLancamento</strong> do DRE (dados do ERP). O nome fantasia da empresa no Agro deve bater com o campo Empresa do título no Mongo.</li>
-        <li><strong>Fonte Postgres</strong> usa <strong>LancamentoFinanceiro</strong> cadastrado no Agro.</li>
-        <li>Modo <strong>grupo</strong> no Postgres elimina internos com <code class="bg-slate-100 px-1 rounded text-xs">eh_interno_grupo</code>. No Mongo, o grupo soma cada empresa (sem eliminação automática entre filiais).</li>
-        <li>Empréstimo e amortização entram na <strong>geração de caixa</strong>, não no resultado operacional.</li>
-        <li><kbd class="gm-kbd border border-slate-200 bg-slate-50">F1</kbd> fora de campos volta ao PDV. Filtros ficam na sessão desta aba (sessionStorage).</li>
+  <div id="modal-ajuda" class="rg-modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="rg-modal">
+      <h3>Resumo gerencial</h3>
+      <ul>
+        <li><strong>Fonte Mongo</strong> usa o <strong>DtoLancamento</strong> (ERP). O nome fantasia da empresa no Agro deve coincidir com o campo Empresa no Mongo.</li>
+        <li><strong>Fonte Postgres</strong> usa <strong>LancamentoFinanceiro</strong> no Agro.</li>
+        <li>Modo <strong>grupo</strong> no Postgres elimina internos com <code style="background:#f1f5f9;padding:0 4px;border-radius:4px;font-size:0.8em">eh_interno_grupo</code>. No Mongo, soma-se cada empresa (sem eliminação automática entre filiais).</li>
+        <li>Tendência “vs período anterior” aparecerá aqui quando a API enviar o campo (layout já reservado nos cards).</li>
+        <li><kbd style="border:1px solid #cbd5e1;padding:1px 4px;border-radius:4px;font-size:10px">F1</kbd> fora de campos volta ao PDV.</li>
       </ul>
-      <button type="button" id="btn-fechar-ajuda" class="mt-4 w-full py-3 rounded-xl bg-slate-800 text-white font-black text-xs uppercase min-h-[44px]">Fechar</button>
+      <button type="button" id="btn-fechar-ajuda" class="rg-modal__btn">Fechar</button>
     </div>
   </div>
 
   {% include "produtos/_atalho_voltar_pdv.html" %}
-  <script>
-(function () {
-  var CK = 'agro_resumo_fin_sess_v1';
-  function brl(s) {
-    var n = parseFloat(String(s).replace(',', '.'));
-    if (isNaN(n)) return '—';
-    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  }
-  function pct(s) {
-    var n = parseFloat(String(s).replace(',', '.'));
-    if (isNaN(n)) return '—';
-    return (n * 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + '%';
-  }
-  function diasNoPeriodo(ini, fim) {
-    if (!ini || !fim) return 30;
-    var a = new Date(ini + 'T12:00:00');
-    var b = new Date(fim + 'T12:00:00');
-    var d = Math.round((b - a) / 86400000) + 1;
-    return d > 0 ? d : 30;
-  }
-  function salvarCtx() {
-    try {
-      sessionStorage.setItem(CK, JSON.stringify({
-        modo: document.getElementById('f-modo').value,
-        empresa_id: document.getElementById('f-empresa').value,
-        grupo_id: document.getElementById('f-grupo').value,
-        data_inicio: document.getElementById('f-ini').value,
-        data_fim: document.getElementById('f-fim').value,
-        fonte: document.getElementById('f-fonte').value,
-        por: document.getElementById('f-por').value,
-        valor: document.getElementById('f-valor').value,
-        contas: document.getElementById('f-contas').value
-      }));
-    } catch (e) {}
-  }
-  function carregarCtx() {
-    try {
-      var raw = sessionStorage.getItem(CK);
-      if (!raw) return;
-      var o = JSON.parse(raw);
-      if (o.modo) document.getElementById('f-modo').value = o.modo;
-      if (o.empresa_id) document.getElementById('f-empresa').value = o.empresa_id;
-      if (o.grupo_id) document.getElementById('f-grupo').value = o.grupo_id;
-      if (o.data_inicio) document.getElementById('f-ini').value = o.data_inicio;
-      if (o.data_fim) document.getElementById('f-fim').value = o.data_fim;
-      if (o.fonte) document.getElementById('f-fonte').value = o.fonte;
-      if (o.por) document.getElementById('f-por').value = o.por;
-      if (o.valor) document.getElementById('f-valor').value = o.valor;
-      if (o.contas !== undefined) document.getElementById('f-contas').value = o.contas;
-    } catch (e) {}
-  }
-  function toggleModo() {
-    var m = document.getElementById('f-modo').value;
-    document.getElementById('wrap-empresa').classList.toggle('hidden', m !== 'empresa');
-    document.getElementById('wrap-grupo').classList.toggle('hidden', m !== 'grupo');
-    document.getElementById('bloco-grupo').classList.toggle('hidden', m !== 'grupo');
-  }
-  function toggleFonte() {
-    var mongo = document.getElementById('f-fonte').value === 'mongo';
-    ['wrap-mongo-por', 'wrap-mongo-valor', 'wrap-mongo-contas'].forEach(function (id) {
-      document.getElementById(id).classList.toggle('hidden', !mongo);
-    });
-  }
-  function card(titulo, valor, cor) {
-    cor = cor || 'slate';
-    var b = { slate: 'border-slate-200', emerald: 'border-emerald-200', orange: 'border-orange-200', amber: 'border-amber-200' };
-    return '<div class="rounded-2xl border-2 ' + (b[cor] || b.slate) + ' bg-white p-4 shadow-sm">' +
-      '<div class="text-[10px] font-black uppercase text-slate-500 leading-tight">' + titulo + '</div>' +
-      '<div class="text-xl font-black tabular-nums text-slate-900 mt-1">' + valor + '</div></div>';
-  }
-  function renderResumo(data, modo) {
-    var c = modo === 'grupo' ? data.consolidado : data;
-    var html = '';
-    html += card('Receita operacional', brl(c.receita_operacional), 'emerald');
-    html += card('Lucro bruto', brl(c.lucro_bruto), 'emerald');
-    html += card('Despesas fixas', brl(c.despesas_fixas), 'orange');
-    html += card('Despesas variáveis', brl(c.despesas_variaveis), 'orange');
-    html += card('Despesas financeiras', brl(c.despesas_financeiras), 'amber');
-    html += card('Resultado operacional', brl(c.resultado_operacional), 'slate');
-    html += card('Resultado líquido gerencial', brl(c.resultado_liquido_gerencial), 'slate');
-    html += card('Geração de caixa', brl(c.geracao_caixa), 'emerald');
-    html += card('Entrada empréstimos', brl(c.emprestimos_entrada), 'amber');
-    html += card('Amortização empréstimos', brl(c.amortizacao_emprestimos), 'amber');
-    if (c.ajustes_eliminacao) {
-      html += card('Elimin. receitas internas', brl(c.ajustes_eliminacao.receitas_internas_eliminadas), 'slate');
-      html += card('Transferências internas (ajuste)', brl(c.ajustes_eliminacao.transferencias_internas), 'slate');
-    }
-    document.getElementById('painel-cards').innerHTML = html;
-    document.getElementById('painel-cards').classList.remove('hidden');
-    var info = document.getElementById('msg-mongo-info');
-    var obs = c.ajustes_eliminacao && c.ajustes_eliminacao.observacao_mongo;
-    if (obs) {
-      info.textContent = obs;
-      info.classList.remove('hidden');
-    } else {
-      info.textContent = '';
-      info.classList.add('hidden');
-    }
-    if (modo === 'grupo' && data.por_empresa && data.por_empresa.length) {
-      var pe = document.getElementById('por-empresa');
-      pe.innerHTML = data.por_empresa.map(function (x) {
-        if (x.erro) {
-          return '<div class="rounded-xl border border-red-100 bg-red-50 px-3 py-2 font-semibold text-red-900">Empresa #' + x.empresa_id + ' — ' + x.erro + '</div>';
-        }
-        return '<div class="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 font-semibold text-slate-800">Empresa #' + x.empresa_id +
-          ' · Res. op. <span class="tabular-nums">' + brl(x.resultado_operacional) + '</span></div>';
-      }).join('');
-    }
-  }
-  function mostrarErro(msg) {
-    var el = document.getElementById('msg-erro');
-    el.textContent = msg;
-    el.classList.toggle('hidden', !msg);
-  }
-  async function atualizar() {
-    salvarCtx();
-    mostrarErro('');
-    var modo = document.getElementById('f-modo').value;
-    var ini = document.getElementById('f-ini').value;
-    var fim = document.getElementById('f-fim').value;
-    if (!ini || !fim) {
-      mostrarErro('Informe início e fim.');
-      return;
-    }
-    var fonte = document.getElementById('f-fonte').value;
-    var q = 'modo=' + encodeURIComponent(modo) + '&data_inicio=' + encodeURIComponent(ini) + '&data_fim=' + encodeURIComponent(fim) + '&fonte=' + encodeURIComponent(fonte);
-    if (fonte === 'mongo') {
-      q += '&por=' + encodeURIComponent(document.getElementById('f-por').value);
-      q += '&valor=' + encodeURIComponent(document.getElementById('f-valor').value);
-      var ct = document.getElementById('f-contas').value;
-      if (ct) q += '&contas=' + encodeURIComponent(ct);
-    }
-    if (modo === 'empresa') {
-      var eid = document.getElementById('f-empresa').value;
-      if (!eid) { mostrarErro('Selecione a empresa.'); return; }
-      q += '&empresa_id=' + encodeURIComponent(eid);
-    } else {
-      var gid = document.getElementById('f-grupo').value;
-      if (!gid) { mostrarErro('Selecione o grupo ou cadastre um no admin.'); return; }
-      q += '&grupo_id=' + encodeURIComponent(gid);
-    }
-    try {
-      var r = await fetch('/api/financeiro/resumo-operacional?' + q, { credentials: 'same-origin' });
-      if (r.status === 401) { mostrarErro('Faça login (admin).'); return; }
-      if (!r.ok) {
-        try {
-          var ej = await r.json();
-          var d = ej.detail != null ? ej.detail : ej.erro;
-          var msg = typeof d === 'string' ? d : (Array.isArray(d) ? d.join(' ') : JSON.stringify(ej));
-          mostrarErro(String(msg).slice(0, 450));
-        } catch (e2) {
-          var t = await r.text();
-          mostrarErro('Erro ' + r.status + (t ? ': ' + t.slice(0, 200) : ''));
-        }
-        return;
-      }
-      var data = await r.json();
-      renderResumo(data, modo);
-      var dq = q + '&dias_periodo=' + diasNoPeriodo(ini, fim);
-      var re = await fetch('/api/financeiro/gap-equilibrio?' + dq, { credentials: 'same-origin' });
-      if (re.ok) {
-        var eq = await re.json();
-        document.getElementById('sec-equilibrio').classList.remove('hidden');
-        document.getElementById('eq-margem').textContent = pct(eq.margem_contribuicao_pct);
-        document.getElementById('eq-fat').textContent = brl(eq.faturamento_equilibrio);
-        document.getElementById('eq-dia').textContent = brl(eq.faturamento_diario_equilibrio);
-      }
-    } catch (e) {
-      mostrarErro('Falha de rede.');
-    }
-  }
-  document.getElementById('f-modo').addEventListener('change', function () { toggleModo(); salvarCtx(); });
-  document.getElementById('f-fonte').addEventListener('change', function () { toggleFonte(); salvarCtx(); });
-  document.getElementById('btn-atualizar').addEventListener('click', atualizar);
-  document.getElementById('f-empresa').addEventListener('change', salvarCtx);
-  document.getElementById('f-grupo').addEventListener('change', salvarCtx);
-  document.getElementById('f-ini').addEventListener('change', salvarCtx);
-  document.getElementById('f-fim').addEventListener('change', salvarCtx);
-  document.getElementById('f-por').addEventListener('change', salvarCtx);
-  document.getElementById('f-valor').addEventListener('change', salvarCtx);
-  document.getElementById('f-contas').addEventListener('change', salvarCtx);
-  document.getElementById('btn-ajuda').addEventListener('click', function () {
-    document.getElementById('modal-ajuda').classList.remove('hidden');
-  });
-  document.getElementById('btn-fechar-ajuda').addEventListener('click', function () {
-    document.getElementById('modal-ajuda').classList.add('hidden');
-  });
-  document.getElementById('modal-ajuda').addEventListener('click', function (e) {
-    if (e.target.id === 'modal-ajuda') document.getElementById('modal-ajuda').classList.add('hidden');
-  });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'F5' && !e.defaultPrevented) {
-      var t = e.target;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA')) return;
-      e.preventDefault();
-      atualizar();
-    }
-  });
-  carregarCtx();
-  toggleModo();
-  toggleFonte();
-  var hoje = new Date();
-  var iso = hoje.toISOString().slice(0, 10);
-  if (!document.getElementById('f-fim').value) document.getElementById('f-fim').value = iso;
-  if (!document.getElementById('f-ini').value) {
-    var u = new Date(hoje);
-    u.setDate(u.getDate() - 29);
-    document.getElementById('f-ini').value = u.toISOString().slice(0, 10);
-  }
-})();
-  </script>
+  <script src="{% static 'js/agro_resumo_gerencial.js' %}"></script>
 </body>
 </html>
