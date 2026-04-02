@@ -517,6 +517,7 @@
                     </select>
                     <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-700 border border-slate-200 shrink-0 max-w-[7rem] truncate" title="Operador (modo descanso)"></span>
                     {% include "produtos/_barra_estoque_global.html" %}
+                    <button type="button" onclick="if (window.agroPdvSincronizarComApi) window.agroPdvSincronizarComApi()" class="inline-flex items-center gap-1 rounded-xl border-2 border-amber-400 bg-amber-500 hover:bg-amber-600 text-white text-[9px] sm:text-[10px] font-black uppercase px-2.5 py-2 shadow-sm shrink-0" title="Baixa catálogo, clientes e saldos do servidor (única sync automática desligada)">Sincronizar API</button>
                     <button type="button" id="btn-pdv-sair-usuario-pin" class="inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 shrink-0" title="Encerra o usuário neste aparelho e abre a tela de PIN" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">
                         Sair / PIN
                     </button>
@@ -2734,6 +2735,9 @@ function buscarProdutos(q, modo = 'normal') {
     debounceTimer = setTimeout(() => {
         if (baseProdutos.length > 0) {
             executarBuscaLocal(termoBusca, modo);
+        } else if (window.AGRO_MANUAL_SYNC_ONLY) {
+            mostrarStatusBusca('Sem catálogo local. Use “Sincronizar API” antes de buscar.', 'orange');
+            limparBuscaVisual();
         } else {
             executarBuscaAPI(termoBruto, modo); // Fallback enquanto a base carrega
         }
@@ -2872,6 +2876,15 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
         processarResultadosBusca(locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX), modo, false, {
             preservarOrdem: true,
         });
+        return;
+    }
+    if (window.AGRO_MANUAL_SYNC_ONLY) {
+        if (locaisOrdenados.length) {
+            processarResultadosBusca(locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX), modo, false, { preservarOrdem: true });
+        } else {
+            mostrarStatusBusca('Sem sugestões locais. Sincronize o catálogo ou refine a busca.', 'orange');
+            processarResultadosBusca([], modo, false);
+        }
         return;
     }
     clearTimeout(mergeFetchTimer);
@@ -3220,13 +3233,44 @@ function filtrarClientesLocais(q) {
     }).slice(0, 22);
 }
 
-function carregarCacheClientes() {
+const PDV_CLIENTES_LS_KEY = 'agro_pdv_clientes_cache_v1';
+
+function carregarCacheClientes(opts) {
+    const force = opts && opts.force;
     const msgEl = document.getElementById('cliente-api-msg');
+    if (window.AGRO_MANUAL_SYNC_ONLY && !force) {
+        try {
+            const raw = localStorage.getItem(PDV_CLIENTES_LS_KEY);
+            if (raw) {
+                const d = JSON.parse(raw);
+                cacheClientesPDV = Array.isArray(d.clientes) ? d.clientes : [];
+                if (msgEl) {
+                    if (cacheClientesPDV.length) {
+                        msgEl.classList.add('hidden');
+                        msgEl.textContent = '';
+                    } else {
+                        msgEl.textContent = 'Lista de clientes vazia no cache. Use “Sincronizar API”.';
+                        msgEl.classList.remove('hidden');
+                    }
+                }
+                return;
+            }
+        } catch (_) {}
+        cacheClientesPDV = [];
+        if (msgEl) {
+            msgEl.textContent = 'Clientes não carregados (modo só cache). Use “Sincronizar API”.';
+            msgEl.classList.remove('hidden');
+        }
+        return;
+    }
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     fetch('{% url "api_list_customers" %}')
         .then(r => r.json())
         .then(d => {
             cacheClientesPDV = Array.isArray(d.clientes) ? d.clientes : [];
+            try {
+                localStorage.setItem(PDV_CLIENTES_LS_KEY, JSON.stringify({ clientes: cacheClientesPDV, saved_at: Date.now() }));
+            } catch (_) {}
             if (d.contagem_fontes && typeof console !== 'undefined' && console.info) {
                 console.info('[PDV clientes — ClienteAgro]', d.contagem_fontes);
             }
@@ -3280,6 +3324,21 @@ inputCliente.addEventListener('input', function(e) {
 
     clienteDebounceTimer = setTimeout(() => {
         const locaisFiltrados = filtrarClientesLocais(q);
+        if (window.AGRO_MANUAL_SYNC_ONLY) {
+            if (locaisFiltrados.length > 0) {
+                renderizarClientes(locaisFiltrados.map(c => ({
+                    nome: c.nome,
+                    documento: c.documento || '',
+                    telefone: c.telefone || '',
+                    endereco: c.endereco || '',
+                    plus_code: c.plus_code || '',
+                    id: c.id
+                })));
+            } else {
+                clienteResults.classList.add('hidden');
+            }
+            return;
+        }
         if (window.gmLoadingBar) window.gmLoadingBar.show();
         fetch(`{% url "api_buscar_clientes" %}?q=${encodeURIComponent(q.trim())}`)
             .then(res => res.json())
@@ -3881,7 +3940,17 @@ function pollSaldoPdvUmaVez() {
 /* Saldos: sem polling automático — use o botão Estoque (termômetro) ou ações que já disparam leitura. */
 
 function carregarBaseLocal() {
+    const manual = !!window.AGRO_MANUAL_SYNC_ONLY;
     const warmed = hidratarCatalogoPdvDoCache();
+    if (manual) {
+        if (warmed) {
+            mostrarStatusBusca('Catálogo em cache (sem sync automático). Use “Sincronizar API”.', 'emerald');
+            setTimeout(esconderStatusBusca, 4200);
+        } else {
+            mostrarStatusBusca('Sem cache de produtos. Clique em “Sincronizar API” no topo.', 'orange');
+        }
+        return;
+    }
     if (!warmed) mostrarStatusBusca('Baixando produtos para memória local...', 'orange');
     sincronizarCatalogoPdvServidor(warmed);
 }
@@ -3895,7 +3964,9 @@ function aplicarBasePdv(produtos, statusTxt) {
     if (statusTxt) mostrarStatusBusca(statusTxt, 'emerald');
     preencherOpcoesFiltroCatalogo();
     atualizarCatalogoRapido();
-    setTimeout(pollSaldoPdvUmaVez, 0);
+    if (!window.AGRO_MANUAL_SYNC_ONLY) {
+        setTimeout(pollSaldoPdvUmaVez, 0);
+    }
     setTimeout(esconderStatusBusca, 2500);
     setTimeout(atualizarPrecosBotoesTopVendidos, 100);
     return true;
@@ -3922,7 +3993,7 @@ function lerCacheCatalogoPdv() {
         const p = JSON.parse(raw);
         if (!p || !Array.isArray(p.produtos)) return null;
         const age = Date.now() - Number(p.saved_at || 0);
-        if (age > PDV_CACHE_TTL_MS) return null;
+        if (!window.AGRO_MANUAL_SYNC_ONLY && age > PDV_CACHE_TTL_MS) return null;
         return p;
     } catch (_) {
         return null;
@@ -4009,6 +4080,12 @@ function atualizarRelogioPdv() {
         hour: '2-digit', minute: '2-digit'
     });
 }
+
+window.agroPdvSincronizarComApi = function () {
+    carregarCacheClientes({ force: true });
+    sincronizarCatalogoPdvServidor(false);
+    setTimeout(function () { pollSaldoPdvUmaVez(); }, 700);
+};
 
 window.addEventListener('load', () => {
     if (inputCliente && !String(inputCliente.value || '').trim()) {

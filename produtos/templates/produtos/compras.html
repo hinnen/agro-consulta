@@ -119,6 +119,7 @@
         </button>
         {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-3 py-2 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-orange-400 hover:text-orange-600 transition-colors shrink-0" %}
         {% include "produtos/_barra_estoque_global.html" %}
+        <button type="button" onclick="if (window.agroComprasSincronizarComApi) window.agroComprasSincronizarComApi()" class="inline-flex items-center gap-1 rounded-xl border-2 border-amber-400 bg-amber-500 hover:bg-amber-600 text-white text-[9px] sm:text-[10px] font-black uppercase px-2.5 py-2 shadow-sm shrink-0" title="Catálogo, médias de venda e saldos — consulta o servidor">Sincronizar API</button>
       </div>
     </div>
   </header>
@@ -690,8 +691,9 @@ function aplicarMetricasCompraNaBase(payload) {
   });
 }
 
-function carregarMetricasCompra() {
+function carregarMetricasCompra(forceApi) {
   if (!baseProdutos.length) return;
+  if (window.AGRO_MANUAL_SYNC_ONLY && !forceApi) return;
   const d = compraDiasMediaVendas;
   if (window.gmLoadingBar) window.gmLoadingBar.show();
   fetch(`{% url 'api_pdv_metricas_produtos' %}?dias=${d}`)
@@ -731,7 +733,7 @@ function initCompraDiasMediaVendasUi() {
     try {
       localStorage.setItem(LS_COMPRA_DIAS_MEDIA, String(nv));
     } catch (_) {}
-    carregarMetricasCompra();
+    carregarMetricasCompra(true);
   });
 }
 
@@ -1116,6 +1118,10 @@ function mesclarBuscaCompraComOnline(termoOriginal, locaisOrdenados) {
 
   const primeiro = locaisOrdenados.slice(0, BUSCA_COMPRA_LIM_MAX).map(enriquecerProdutoCompraBusca);
   renderizarListaResultadosCompra(primeiro);
+  if (window.AGRO_MANUAL_SYNC_ONLY) {
+    if (tip) tip.classList.add('hidden');
+    return;
+  }
   if (tip) tip.classList.remove('hidden');
 
   const to = String(termoOriginal || '').trim();
@@ -1335,14 +1341,35 @@ function abrirAjuste(id, nome, saldoAtual, codigo, deposito) {
   .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
 
+window.agroComprasSincronizarComApi = function () {
+  sincronizarCatalogoComprasServidor();
+  setTimeout(function () {
+    carregarMetricasCompra(true);
+    fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (sd) {
+        if (sd.rows) aplicarSaldosNaBaseCompra(sd.rows);
+        if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
+          AgroEstoqueSync.markFresh(document.getElementById('agro-saldos-ultima-atualizacao'));
+        }
+      })
+      .catch(function () {});
+  }, 900);
+};
+
 window.addEventListener('load', () => {
   const div = document.getElementById('resultados');
+  const manual = !!window.AGRO_MANUAL_SYNC_ONLY;
   const warmed = hidratarCatalogoComprasDoCache();
   if (!warmed) {
     compraOcultarCabecalhoListaResultados();
-    div.innerHTML = `<div class="bg-white text-slate-500 border border-slate-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm">Carregando catálogo…</div>`;
+    div.innerHTML = manual
+      ? `<div class="bg-white text-amber-800 border border-amber-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm leading-relaxed">Sem catálogo em cache neste aparelho.<br><span class="text-slate-600 font-semibold text-xs mt-2 block">Use o botão <strong>Sincronizar API</strong> no topo.</span></div>`
+      : `<div class="bg-white text-slate-500 border border-slate-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm">Carregando catálogo…</div>`;
   }
-  sincronizarCatalogoComprasServidor();
+  if (!manual) {
+    sincronizarCatalogoComprasServidor();
+  }
   if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.mount) {
     AgroEstoqueSync.mount({
       onRefresh: async function () {
@@ -1364,17 +1391,19 @@ function aplicarBaseCompras(produtos) {
   carregarMetricasCompra();
   buscar(document.getElementById('busca').value);
   renderHistoricoCompras();
-  setTimeout(function () {
-    fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' })
-      .then(function (r) { return r.json(); })
-      .then(function (sd) {
-        if (sd.rows) aplicarSaldosNaBaseCompra(sd.rows);
-        if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
-          AgroEstoqueSync.markFresh(document.getElementById('agro-saldos-ultima-atualizacao'));
-        }
-      })
-      .catch(function () {});
-  }, 0);
+  if (!window.AGRO_MANUAL_SYNC_ONLY) {
+    setTimeout(function () {
+      fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (sd) {
+          if (sd.rows) aplicarSaldosNaBaseCompra(sd.rows);
+          if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
+            AgroEstoqueSync.markFresh(document.getElementById('agro-saldos-ultima-atualizacao'));
+          }
+        })
+        .catch(function () {});
+    }, 0);
+  }
   return true;
 }
 
@@ -1399,7 +1428,7 @@ function lerCacheCatalogoCompras() {
     const p = JSON.parse(raw);
     if (!p || !Array.isArray(p.produtos)) return null;
     const age = Date.now() - Number(p.saved_at || 0);
-    if (age > COMPRA_CACHE_TTL_MS) return null;
+    if (!window.AGRO_MANUAL_SYNC_ONLY && age > COMPRA_CACHE_TTL_MS) return null;
     return p;
   } catch (_) {
     return null;
@@ -1422,7 +1451,7 @@ function aplicarDeltaCatalogoCompras(changed, removedIds) {
   });
   baseProdutos = Array.from(map.values());
   if (typeof buildBuscaProdutoIndex === 'function') buildBuscaProdutoIndex(baseProdutos);
-  carregarMetricasCompra();
+  carregarMetricasCompra(true);
   buscar(document.getElementById('busca').value);
 }
 
@@ -2334,7 +2363,7 @@ document.addEventListener('keydown', (e) => {
   }
   if (e.key === 'F5') {
     e.preventDefault();
-    carregarMetricasCompra();
+    carregarMetricasCompra(true);
     return;
   }
   if (e.key === 'F6') {
