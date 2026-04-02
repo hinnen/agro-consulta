@@ -438,6 +438,10 @@
                     <span class="pdv-nav-icon"><i data-lucide="wallet"></i></span>
                     <span class="pdv-nav-label">Lançamentos</span>
                 </a>
+                <a href="{% url 'resumo_financeiro_gerencial' %}" class="pdv-nav-item" title="Resumo gerencial — DRE Postgres, grupo e equilíbrio (login).">
+                    <span class="pdv-nav-icon"><i data-lucide="pie-chart"></i></span>
+                    <span class="pdv-nav-label">Resumo gerencial</span>
+                </a>
                 {% if lancamentos_dre_ativo %}
                 <a href="{% url 'lancamentos_dre' %}" class="pdv-nav-item" title="DRE simples — totais por plano de conta (Mongo).">
                     <span class="pdv-nav-icon"><i data-lucide="bar-chart-3"></i></span>
