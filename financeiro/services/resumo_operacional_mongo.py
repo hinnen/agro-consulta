@@ -6,9 +6,13 @@ O mapeamento plano → natureza é heurístico (palavras-chave no nome do plano)
 
 from __future__ import annotations
 
+import logging
 import unicodedata
+from collections import defaultdict
 from decimal import Decimal
 from typing import Any
+
+_log_diag = logging.getLogger("financeiro.resumo_diagnostico")
 
 from django.conf import settings
 
@@ -213,15 +217,33 @@ def agregar_linhas_dre_em_resumo(linhas: list[dict[str, Any]]) -> dict[str, Any]
     }
 
 
+def _debug_totais_por_natureza(linhas: list[dict[str, Any]]) -> dict[str, float]:
+    """Só para diagnóstico: mesma lógica de classificação de agregar_linhas_dre_em_resumo."""
+    b: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    for linha in linhas:
+        plano = str(linha.get("plano") or "")
+        rec = _dec(linha.get("receita"))
+        des = _dec(linha.get("despesa"))
+        if rec > 0:
+            nat = classificar_receita_plano(plano)
+            b[nat] = b[nat] + rec
+        if des > 0:
+            nat = classificar_despesa_plano(plano)
+            b[nat] = b[nat] + des
+    return {k: float(v.quantize(Decimal("0.01"))) for k, v in sorted(b.items())}
+
+
 def _dre_mongo(
     db,
     *,
     data_inicio,
     data_fim,
     empresa_nome: str | None,
+    empresa_mongo_id: str | None,
     por: str,
     valor: str,
     filtro_contas: str,
+    diagnostico: bool = False,
 ):
     from produtos.mongo_financeiro_util import dre_resumo_simples_mongo
 
@@ -235,7 +257,8 @@ def _dre_mongo(
         filtro_contas=filtro_contas,
         regex_excluir_extra=extra or None,
         empresa=empresa_nome or None,
-        empresa_id=None,
+        empresa_id=empresa_mongo_id,
+        diagnostico=diagnostico,
     )
 
 
@@ -248,6 +271,7 @@ def consolidar_empresa_mongo(
     por: str = "competencia",
     valor: str = "bruto",
     filtro_contas: str = "",
+    diagnostico: bool = False,
 ) -> dict[str, Any]:
     empresa = get_object_or_none_empresa(empresa_id)
     if not empresa:
@@ -259,6 +283,18 @@ def consolidar_empresa_mongo(
             "erro": "Cadastre o nome fantasia da empresa; ele é usado para bater com o campo Empresa do Mongo.",
             "linhas_dre": [],
         }
+    mongo_eid = str(empresa.pk)
+    if diagnostico:
+        _log_diag.info(
+            "[FINANCEIRO_RESUMO_DIAG] empresa_django resolvida: pk=%s nome_fantasia=%r "
+            "razao_social=%r ativo=%s mongo_EmpresaID_enviado=%r filtro_nome_tokens=%r",
+            empresa.pk,
+            nome,
+            (empresa.razao_social or "")[:120],
+            empresa.ativo,
+            mongo_eid,
+            nome.split(),
+        )
     fc = (filtro_contas or "").strip().lower() or (
         getattr(settings, "DRE_RESULTADO_FILTRO", "resultado") or "resultado"
     )
@@ -270,9 +306,11 @@ def consolidar_empresa_mongo(
         data_inicio=data_inicio,
         data_fim=data_fim,
         empresa_nome=nome,
+        empresa_mongo_id=mongo_eid,
         por=por,
         valor=valor,
         filtro_contas=fc,
+        diagnostico=diagnostico,
     )
     if not raw.get("ok"):
         return {
@@ -282,6 +320,24 @@ def consolidar_empresa_mongo(
         }
 
     core = agregar_linhas_dre_em_resumo(raw.get("linhas") or [])
+    if diagnostico:
+        linhas = raw.get("linhas") or []
+        _log_diag.info(
+            "[FINANCEIRO_RESUMO_DIAG] apos_dre linhas_dre=%s totais_dre=%s "
+            "totais_por_natureza(classificacao_plano)=%s",
+            len(linhas),
+            raw.get("totais"),
+            _debug_totais_por_natureza(linhas),
+        )
+        _log_diag.info(
+            "[FINANCEIRO_RESUMO_DIAG] payload_resumo_operacional "
+            "receita_op=%s cmv=%s desp_fix=%s desp_var=%s resultado_op=%s",
+            core.get("receita_operacional"),
+            core.get("cmv"),
+            core.get("despesas_fixas"),
+            core.get("despesas_variaveis"),
+            core.get("resultado_operacional"),
+        )
     core["fonte"] = "mongo"
     core["empresa_id"] = empresa_id
     core["empresa_nome_filtro"] = nome
@@ -309,6 +365,7 @@ def consolidar_grupo_mongo(
     por: str = "competencia",
     valor: str = "bruto",
     filtro_contas: str = "",
+    diagnostico: bool = False,
 ) -> dict[str, Any]:
     grupo = GrupoEmpresarial.objects.filter(pk=grupo_id, ativo=True).first()
     if not grupo:
@@ -344,6 +401,7 @@ def consolidar_grupo_mongo(
             por=por,
             valor=valor,
             filtro_contas=filtro_contas,
+            diagnostico=diagnostico,
         )
         if sub.get("erro"):
             por_empresa_limpo.append({"empresa_id": v.empresa_id, "erro": sub["erro"]})

@@ -1418,6 +1418,10 @@ def _ctx_lancamentos_financeiros():
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
 def resumo_financeiro_gerencial_view(request):
+<<<<<<< Current (Your changes)
+=======
+    """DRE gerencial (Postgres + consolidação grupo) — leitura de snapshot agregado."""
+>>>>>>> Incoming (Background Agent changes)
     from financeiro.models import GrupoEmpresarial
 
     empresas = Empresa.objects.filter(ativo=True).order_by("nome_fantasia")

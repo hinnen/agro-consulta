@@ -59,6 +59,7 @@ class PedidoTransferencia(models.Model):
     quantidade = models.DecimalField(max_digits=10, decimal_places=3)
     criado_em = models.DateTimeField(auto_now_add=True)
 
+
 class PoliticaEstoque(models.Model):
     empresa = models.ForeignKey("base.Empresa", on_delete=models.CASCADE)
     loja = models.ForeignKey("base.Loja", on_delete=models.CASCADE)
@@ -144,4 +145,3 @@ class IndicadorProdutoLoja(models.Model):
             models.Index(fields=["empresa", "loja", "score_prioridade"]),
             models.Index(fields=["empresa", "loja", "classe_abc", "score_prioridade"]),
         ]
-

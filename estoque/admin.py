@@ -68,5 +68,9 @@ class IndicadorProdutoLojaAdmin(admin.ModelAdmin):
         "score_prioridade",
     )
     list_filter = ("empresa", "loja", "data_base", "classe_abc")
+<<<<<<< Current (Your changes)
     search_fields = ("produto__nome", "produto__codigo_interno")
 
+=======
+    search_fields = ("produto__nome", "produto__codigo_interno")
+>>>>>>> Incoming (Background Agent changes)

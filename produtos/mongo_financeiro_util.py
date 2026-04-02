@@ -1253,12 +1253,20 @@ def _dre_fragmento_classificacao_colunas_erp() -> dict[str, Any]:
 
 
 def _filtro_empresa_dre(empresa: str | None, empresa_id: str | None) -> dict[str, Any] | None:
-    """Restringe por ``Empresa`` e/ou ``EmpresaID`` (filtro de loja, como no ERP)."""
+    """
+    Restringe por ``Empresa`` e/ou ``EmpresaID`` (filtro de loja, como no ERP).
+
+    Quando ambos existem, usa ``$or``: basta bater o ID **ou** o nome (evita zero linhas quando
+    o texto em ``Empresa`` difere do cadastro Django mas o ``EmpresaID`` coincide).
+    """
     eid = (empresa_id or "").strip()
     en = (empresa or "").strip()
     parts: list[dict[str, Any]] = []
     if eid:
-        parts.append({"EmpresaID": eid})
+        id_conds: list[dict[str, Any]] = [{"EmpresaID": eid}]
+        if eid.isdigit():
+            id_conds.append({"EmpresaID": int(eid)})
+        parts.append(id_conds[0] if len(id_conds) == 1 else {"$or": id_conds})
     if en:
         tokens = [re.escape(t) for t in re.split(r"\s+", en.strip()) if t]
         if tokens:
@@ -1268,7 +1276,27 @@ def _filtro_empresa_dre(empresa: str | None, empresa_id: str | None) -> dict[str
         return None
     if len(parts) == 1:
         return parts[0]
-    return {"$and": parts}
+    return {"$or": parts}
+
+
+def _mongo_filtro_jsonish_for_log(obj: Any) -> Any:
+    """Serializa filtro Mongo para log (datetime, ObjectId, aninhados)."""
+    if obj is None:
+        return None
+    if isinstance(obj, datetime):
+        try:
+            if timezone.is_naive(obj):
+                obj = timezone.make_aware(obj, timezone.get_current_timezone())
+            return timezone.localtime(obj).isoformat()
+        except Exception:
+            return obj.isoformat(sep=" ")
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    if isinstance(obj, dict):
+        return {str(k): _mongo_filtro_jsonish_for_log(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_mongo_filtro_jsonish_for_log(v) for v in obj[:80]]
+    return obj
 
 
 def dre_resumo_simples_mongo(
@@ -1282,6 +1310,7 @@ def dre_resumo_simples_mongo(
     regex_excluir_extra: str | None = None,
     empresa: str | None = None,
     empresa_id: str | None = None,
+    diagnostico: bool = False,
 ) -> dict[str, Any]:
     """
     Base simples para DRE: totais por PlanoDeConta no período (lançamentos DtoLancamento).
@@ -1361,6 +1390,69 @@ def dre_resumo_simples_mongo(
             else:
                 match0 = {"$and": [match0, em_filtro]}
 
+        if diagnostico:
+            try:
+                n_docs = col.count_documents(match0)
+            except Exception as exc:
+                n_docs = f"erro_count:{exc!s}"[:120]
+            proj = {
+                "Empresa": 1,
+                "EmpresaID": 1,
+                "PlanoDeConta": 1,
+                "Despesa": 1,
+                "Entrada": 1,
+                "Saida": 1,
+                "DataCompetencia": 1,
+                "DataVencimento": 1,
+                "DataPagamento": 1,
+            }
+            amostras: list[dict[str, Any]] = []
+            try:
+                for doc in col.find(match0, projection=proj).limit(5):
+                    amostras.append(
+                        {
+                            "_id": str(doc.get("_id", "")),
+                            "Empresa": doc.get("Empresa"),
+                            "EmpresaID": doc.get("EmpresaID"),
+                            "PlanoDeConta": (str(doc.get("PlanoDeConta") or ""))[:100],
+                            "Despesa": doc.get("Despesa"),
+                            "Entrada": doc.get("Entrada"),
+                            "Saida": doc.get("Saida"),
+                            "DataCompetencia": _mongo_filtro_jsonish_for_log(
+                                doc.get("DataCompetencia")
+                            ),
+                            "DataVencimento": _mongo_filtro_jsonish_for_log(
+                                doc.get("DataVencimento")
+                            ),
+                            "DataPagamento": _mongo_filtro_jsonish_for_log(
+                                doc.get("DataPagamento")
+                            ),
+                        }
+                    )
+            except Exception as exc:
+                amostras = [{"erro_amostra": str(exc)[:200]}]
+            logger.info(
+                "[FINANCEIRO_RESUMO_DIAG] collection=%s campo_data=%s intervalo_local=[%s .. %s] "
+                "filtro_contas=%s valor_modo=%s empresa_filtro_nome=%r empresa_id_filtro=%r",
+                COL_DTO_LANCAMENTO,
+                campo,
+                ini.isoformat(),
+                fim.isoformat(),
+                fc,
+                modo_valor,
+                (empresa or "").strip() or None,
+                (empresa_id or "").strip() or None,
+            )
+            logger.info(
+                "[FINANCEIRO_RESUMO_DIAG] match0_jsonish=%s",
+                _mongo_filtro_jsonish_for_log(match0),
+            )
+            logger.info(
+                "[FINANCEIRO_RESUMO_DIAG] documentos_no_match_antes_agregacao=%s amostras=%s",
+                n_docs,
+                amostras,
+            )
+
         vl_linha = {"$cond": ["$Despesa", soma_despesa_expr, soma_receita_expr]}
         dedup_id = getattr(settings, "DRE_DEDUP_LANCAMENTO_ID", True)
         if dedup_id:
@@ -1414,6 +1506,25 @@ def dre_resumo_simples_mongo(
                 slot["despesa"] += val
             else:
                 slot["receita"] += val
+        if diagnostico:
+            totais_plano_preview: list[tuple[str, float, float]] = []
+            for nome, row in por_plano.items():
+                totais_plano_preview.append(
+                    (
+                        (nome or "")[:120],
+                        float(row["receita"].quantize(Decimal("0.01"))),
+                        float(row["despesa"].quantize(Decimal("0.01"))),
+                    )
+                )
+            totais_plano_preview.sort(
+                key=lambda t: max(t[1], t[2]),
+                reverse=True,
+            )
+            logger.info(
+                "[FINANCEIRO_RESUMO_DIAG] apos_group_plano n_planos=%s totais_parciais_top15=%s",
+                len(por_plano),
+                totais_plano_preview[:15],
+            )
         normas_codificadas_pre_pais = {
             _normalizar_chave_plano_dre(nome)
             for nome in por_plano
@@ -1447,6 +1558,17 @@ def dre_resumo_simples_mongo(
 
     ef = (empresa or "").strip()
     eidf = (empresa_id or "").strip()
+    out_tot = {
+        "total_despesa": float(tot_desp.quantize(Decimal("0.01"))),
+        "total_receita": float(tot_rec.quantize(Decimal("0.01"))),
+        "resultado": float((tot_rec - tot_desp).quantize(Decimal("0.01"))),
+    }
+    if diagnostico:
+        logger.info(
+            "[FINANCEIRO_RESUMO_DIAG] dre_saida_final n_linhas_dre=%s totais=%s",
+            len(linhas),
+            out_tot,
+        )
     return {
         "ok": True,
         "campo_data": campo,
@@ -1456,11 +1578,7 @@ def dre_resumo_simples_mongo(
         "empresa_id_filtro": eidf or None,
         "periodo": {"de": data_de.isoformat(), "ate": data_ate.isoformat()},
         "linhas": linhas,
-        "totais": {
-            "total_despesa": float(tot_desp.quantize(Decimal("0.01"))),
-            "total_receita": float(tot_rec.quantize(Decimal("0.01"))),
-            "resultado": float((tot_rec - tot_desp).quantize(Decimal("0.01"))),
-        },
+        "totais": out_tot,
         "dedup_assinatura_sem_id": getattr(settings, "DRE_DEDUP_ASSINATURA_SEM_ID", True),
     }
 
