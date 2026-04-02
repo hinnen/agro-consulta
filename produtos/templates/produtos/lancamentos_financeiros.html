@@ -975,6 +975,8 @@
         const r = await fetch(`${API_LISTA}?${montarParams()}`, { credentials: 'same-origin' });
         const data = await r.json();
         if (!r.ok) {
+          tb.innerHTML = '';
+          mob.innerHTML = '';
           err.textContent = data.erro || 'Erro ao carregar.';
           err.classList.remove('hidden');
           load.classList.add('hidden');
@@ -990,6 +992,8 @@
         document.getElementById('t-saldo').textContent = brl(t.saldo_aberto ?? t.a_pagar ?? t.a_receber);
         tot.classList.remove('hidden');
 
+        tb.innerHTML = '';
+        mob.innerHTML = '';
         const lista = data.lancamentos || [];
         lastRows = lista;
         if (lista.length === 0) {
@@ -1061,6 +1065,8 @@
         document.getElementById('btn-next').disabled = (data.page || 1) >= pi;
         document.getElementById('chk-all').checked = false;
       } catch (e) {
+        tb.innerHTML = '';
+        mob.innerHTML = '';
         err.textContent = 'Falha de rede.';
         err.classList.remove('hidden');
         tot.classList.add('hidden');
