@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-br" class="h-[100dvh] max-h-[100dvh] overflow-hidden">
 <head>
@@ -50,6 +51,18 @@
         </a>
         <button type="button" onclick="startScan()" class="bg-slate-900 text-white px-2.5 py-2 sm:px-3 rounded-xl text-[9px] sm:text-[10px] font-black uppercase whitespace-nowrap">
           Scan
+        </button>
+      </div>
+    </div>
+    <div class="flex items-center justify-between gap-2 px-3 py-2 border-t border-emerald-100/90 bg-gradient-to-r from-emerald-50/95 via-white to-slate-50/80">
+      <span class="text-[9px] font-black uppercase text-slate-500 tracking-wide shrink-0">Saldos</span>
+      <div class="flex items-center gap-2 min-w-0 flex-1 justify-end">
+        <span id="ma-saldos-ultima" class="text-[9px] font-bold text-slate-800 tabular-nums truncate max-w-[min(52vw,11rem)]" title="Última leitura dos saldos na lista">—</span>
+        <button type="button" id="ma-btn-saldos" class="relative inline-flex items-center gap-1.5 rounded-xl border-2 border-emerald-500/45 bg-gradient-to-br from-emerald-600 to-emerald-700 text-white text-[9px] font-black uppercase tracking-wide pl-1.5 pr-2.5 py-1.5 shadow-md active:scale-[0.98] transition-transform shrink-0 overflow-hidden" title="Atualizar saldos agora (ERP + PIN)">
+          <span class="agro-termo-track flex flex-col justify-end w-1.5 h-7 rounded-full bg-black/20 border border-white/25 overflow-hidden shadow-inner" aria-hidden="true">
+            <span class="agro-termo-fil w-full rounded-b-full transition-all duration-500 ease-out" style="height:0%;min-height:0"></span>
+          </span>
+          <span class="relative z-[1] whitespace-nowrap">Atualizar</span>
         </button>
       </div>
     </div>
@@ -173,13 +186,15 @@
   </div>
 
 {% include "produtos/_js_busca_produto_inteligente.html" %}
+<script src="{% static 'js/agro_estoque_sync.js' %}"></script>
 <script>
 let scanner;
 let pSel = null;
 let debounceTimer = null;
 let baseProdutos = [];
-const MOBILE_POLL_SALDOS_MS = 8000;
+const MOBILE_POLL_SALDOS_MS = 4500;
 let mobilePollSaldosTimer = null;
+let maThermoTimer = null;
 let scanningActive = false;
 let filtrosAplicados = {
   deposito: 'centro',
@@ -301,12 +316,23 @@ function aplicarFiltrosDaUI() {
   };
 }
 
+function marcarMobileSaldosFresh() {
+  const lab = document.getElementById('ma-saldos-ultima');
+  const btn = document.getElementById('ma-btn-saldos');
+  if (typeof AgroEstoqueSync !== 'undefined' && lab && btn) {
+    AgroEstoqueSync.markFresh(lab, undefined, btn);
+  }
+}
+
 function pollSaldosMobileUmaVez() {
   if (!baseProdutos.length || document.visibilityState !== 'visible') return;
   fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' })
     .then((r) => r.json())
     .then((d) => {
-      if (d.rows) aplicarSaldosMobile(d.rows);
+      if (d.rows) {
+        aplicarSaldosMobile(d.rows);
+        marcarMobileSaldosFresh();
+      }
     })
     .catch(() => {});
 }
@@ -314,13 +340,26 @@ function pollSaldosMobileUmaVez() {
 function iniciarPollSaldosMobile() {
   if (mobilePollSaldosTimer) clearInterval(mobilePollSaldosTimer);
   mobilePollSaldosTimer = setInterval(pollSaldosMobileUmaVez, MOBILE_POLL_SALDOS_MS);
-  setTimeout(pollSaldosMobileUmaVez, 2500);
+  setTimeout(pollSaldosMobileUmaVez, 450);
 }
 
-/* Polling de saldo: intervalo 8s. Sem poll extra ao voltar do Alt+Tab. */
+/* Ajuste mobile: polling mais frequente (~4,5s). Demais telas: só botão Estoque / manual. */
+
+document.getElementById('ma-btn-saldos')?.addEventListener('click', () => {
+  pollSaldosMobileUmaVez();
+});
 
 window.addEventListener('load', () => {
   const listaDiv = document.getElementById('lista');
+
+  if (maThermoTimer) clearInterval(maThermoTimer);
+  maThermoTimer = setInterval(() => {
+    const lab = document.getElementById('ma-saldos-ultima');
+    const btn = document.getElementById('ma-btn-saldos');
+    if (typeof AgroEstoqueSync !== 'undefined' && lab && btn) {
+      AgroEstoqueSync.paintThermo(btn, lab, AgroEstoqueSync.staleMsDefault);
+    }
+  }, 15000);
 
   if (window.gmLoadingBar) window.gmLoadingBar.show();
   fetch("{% url 'api_todos_produtos_local' %}")

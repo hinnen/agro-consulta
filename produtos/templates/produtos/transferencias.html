@@ -959,7 +959,6 @@
         window.addEventListener('load', function () {
             if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.mount) {
                 AgroEstoqueSync.mount({
-                    idleMs: 45000,
                     onRefresh: async function () {
                         await carregarDados();
                     },
