@@ -260,6 +260,8 @@ class VendaERPAPIClient:
         com o sufixo após ``/api/request/`` (ex.: ``Lancamentos/SalvarBaixa`` — confirmar no Swagger do WL).
 
         O corpo inclui ``titulos`` (snapshot dos documentos após a baixa), além de ``ids`` / ``tipo`` / ``payload``.
+        Em **baixa parcial**, também são enviados ``parcelas_baixa``, ``pagamentos`` e ``pagamentos_relacionados``
+        (linhas no estilo da aba *Pagamentos* do SisVale), para o servidor poder gravar movimentos filhos.
         """
         path = _env_or_setting_path("VENDA_ERP_API_FINANCEIRO_BAIXA_PATH")
         return self._financeiro_post(path, body, timeout=60)

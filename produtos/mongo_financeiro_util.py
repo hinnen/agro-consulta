@@ -1935,6 +1935,47 @@ def normalizar_parcelas_baixa_ui_erp(parcelas: list[Any] | None) -> list[dict[st
     return out
 
 
+def pagamentos_detalhe_formato_sisvale(
+    parcelas_norm: list[dict[str, Any]],
+    *,
+    data_pagamento_iso: str | None,
+    documento_base_titulo: str | None,
+    quitar_lancamento: bool = False,
+) -> list[dict[str, Any]]:
+    """
+    Estrutura análoga à aba **Pagamentos** do cadastro de lançamento no SisVale/Venda (linhas de
+    pagamento relacionadas). O endpoint WL pode ignorar campos que não mapear — ``titulos`` segue
+    sendo o snapshot do DtoLancamento.
+    """
+    base = (documento_base_titulo or "").strip()[:80]
+    data_s = (data_pagamento_iso or "").strip()[:10] or None
+    rows: list[dict[str, Any]] = []
+    for idx, p in enumerate(parcelas_norm or [], start=1):
+        val = float(p.get("valor") or 0)
+        if val <= 0:
+            continue
+        doc_linha = f"{base}-P{idx}" if base else f"P{idx}"
+        rows.append(
+            {
+                "valor": round(val, 2),
+                "multa": 0.0,
+                "juros_percent": 0,
+                "juros": 0.0,
+                "data_pagamento": data_s,
+                "forma_pagamento": str(p.get("forma_pagamento") or "")[:200],
+                "forma_pagamento_id": str(p.get("forma_pagamento_id") or "")[:80],
+                "conta_bancaria": str(p.get("banco") or "")[:200],
+                "conta_bancaria_id": str(p.get("banco_id") or "")[:80],
+                "banco": str(p.get("banco") or "")[:200],
+                "banco_id": str(p.get("banco_id") or "")[:80],
+                "documento": doc_linha[:120],
+                "total": round(val, 2),
+                "quitar_lancamento": bool(quitar_lancamento),
+            }
+        )
+    return rows
+
+
 def lancamento_titulos_payload_baixa_erp(
     db,
     mongo_ids: list[str],
@@ -2010,10 +2051,27 @@ def montar_payload_erp_baixa(
         "titulos": titulos,
     }
     if _payload_indica_baixa_parcial_lancamentos(payload_ui):
-        out["baixa_parcial"] = True
-        out["parcelas_baixa"] = normalizar_parcelas_baixa_ui_erp(
+        plist = normalizar_parcelas_baixa_ui_erp(
             payload_ui.get("parcelas") if isinstance(payload_ui, dict) else None
         )
+        out["baixa_parcial"] = True
+        out["parcelas_baixa"] = plist
+        docs_head = lancamentos_carregar_por_ids(db, mongo_ids[:1])
+        num_doc = str((docs_head[0] or {}).get("NumeroDocumento") or "").strip()[:80] if docs_head else ""
+        data_iso = (
+            str(payload_ui.get("data_movimento") or "").strip()[:10]
+            if isinstance(payload_ui, dict)
+            else ""
+        ) or None
+        pag = pagamentos_detalhe_formato_sisvale(
+            plist,
+            data_pagamento_iso=data_iso,
+            documento_base_titulo=num_doc or None,
+            quitar_lancamento=False,
+        )
+        if pag:
+            out["pagamentos"] = pag
+            out["pagamentos_relacionados"] = pag
     if extras:
         for k, v in extras.items():
             if v is not None:
