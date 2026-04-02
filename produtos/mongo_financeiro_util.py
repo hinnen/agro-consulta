@@ -30,6 +30,8 @@ _COERCE_OID_CAMPOS_ERP = (
     "EmpresaID",
     "ClienteID",
     "LancamentoGrupoID",
+    "PlanoDeContaID",
+    "CentroDeCustoID",
 )
 
 
@@ -53,6 +55,28 @@ def _financeiro_doc_coerce_ids_oid_para_string(doc: dict[str, Any]) -> None:
         val = doc.get(k)
         if isinstance(val, ObjectId):
             doc[k] = str(val)
+
+
+def _sanear_dto_lancamento_ids_erp_string(col, oid_lancamento: ObjectId) -> None:
+    """
+    Corrige no Mongo campos *ID que o BorlanV2.DTO.DtoLancamento espera como string no BSON.
+    Documentos antigos podem ter PlanoDeContaID como ObjectId (quebrava visualização no ERP).
+    """
+    if col is None or oid_lancamento is None:
+        return
+    try:
+        doc = col.find_one({"_id": oid_lancamento}, {"PlanoDeContaID": 1, "CentroDeCustoID": 1})
+        if not doc:
+            return
+        set_doc: dict[str, Any] = {}
+        for key in ("PlanoDeContaID", "CentroDeCustoID"):
+            v = doc.get(key)
+            if isinstance(v, ObjectId):
+                set_doc[key] = str(v)
+        if set_doc:
+            col.update_one({"_id": oid_lancamento}, {"$set": set_doc})
+    except Exception:
+        logger.exception("_sanear_dto_lancamento_ids_erp_string")
 
 
 def _dec(v) -> Decimal:
@@ -834,6 +858,7 @@ def baixar_lancamentos_mongo(
                 },
             )
         res_ok.append(str(oid))
+        _sanear_dto_lancamento_ids_erp_string(col, oid)
 
     return {
         "ok": len(res_err) == 0,
@@ -1032,6 +1057,7 @@ def baixar_lancamento_parcial_mongo(
                     },
                 )
 
+    _sanear_dto_lancamento_ids_erp_string(col, oid)
     return {"ok": True, "id": str(oid), "erro": None, "quitado": bool(quitado_final)}
 
 
@@ -2134,7 +2160,6 @@ def inserir_lancamentos_manual_lote(
         if not plano_nome:
             erros.append({"linha": n, "erro": "Plano de conta obrigatório"})
             continue
-        plano_oid = _maybe_oid(str(plano_id_raw).strip()) if plano_id_raw else None
 
         doc = copy.deepcopy(tpl)
         doc.pop("_id", None)
@@ -2151,7 +2176,8 @@ def inserir_lancamentos_manual_lote(
             doc["LancamentoGrupo"] = grupo_nome.strip()[:200]
             doc["LancamentoGrupoID"] = gid
         doc["PlanoDeConta"] = plano_nome[:200]
-        doc["PlanoDeContaID"] = plano_oid if plano_oid is not None else (str(plano_id_raw).strip() if plano_id_raw else "")
+        # DtoLancamento (C#): PlanoDeContaID deve ser string no BSON, nunca ObjectId.
+        doc["PlanoDeContaID"] = _financeiro_id_para_string(plano_id_raw) if plano_id_raw else ""
         doc["Descricao"] = (ln.get("descricao") or f"Lançamento manual {n}").strip()[:500]
         obs_linha = (ln.get("observacao") or ln.get("observacoes") or "").strip()
         doc["Observacoes"] = " | ".join(
@@ -2546,11 +2572,7 @@ def atualizar_lancamento_mongo_agro(
     if "plano_conta" in patch:
         set_doc["PlanoDeConta"] = str(patch.get("plano_conta") or "").strip()[:200]
     if "plano_conta_id" in patch and patch.get("plano_conta_id") is not None:
-        pid = patch.get("plano_conta_id")
-        oid_plano = _maybe_oid(str(pid).strip()) if pid else None
-        set_doc["PlanoDeContaID"] = (
-            oid_plano if oid_plano is not None else _financeiro_id_para_string(pid)
-        )
+        set_doc["PlanoDeContaID"] = _financeiro_id_para_string(patch.get("plano_conta_id"))
     dv = patch.get("data_vencimento")
     if dv is not None:
         ds = str(dv).strip()[:10]
