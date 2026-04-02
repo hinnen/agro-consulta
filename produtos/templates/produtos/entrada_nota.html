@@ -29,6 +29,8 @@
     }
     .tab-btn .gm-kbd { border: 1px solid rgba(15, 23, 42, 0.12); background: rgba(15, 23, 42, 0.06); color: rgb(71, 85, 105); }
     .tab-btn.tab-on .gm-kbd { border-color: rgba(124, 45, 18, 0.25); background: rgba(255, 255, 255, 0.65); color: rgb(124, 45, 18); }
+    .sug-dd { max-height: 220px; overflow-y: auto; z-index: 40; }
+    .forn-dd { max-height: 260px; overflow-y: auto; z-index: 45; }
   </style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
@@ -53,7 +55,7 @@
 
   <main class="max-w-[1400px] mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
     <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-2">
-      <p><strong class="font-black uppercase">Uso</strong> — conferir nota, casar produtos e guardar histórico no sistema. <strong>Não</strong> altera estoque no ERP sozinho; a integração completa de compra é evolução futura.</p>
+      <p><strong class="font-black uppercase">Uso</strong> — conferir nota, buscar <strong>fornecedor</strong> e <strong>produtos</strong> cadastrados, <strong>ratear quantidade</strong> (ex.: 1 caixa = 10 un. no estoque), <strong>data de entrada</strong>, <strong>plano de contas</strong> por item e opcionalmente gerar <strong>conta a pagar</strong> no Mongo (como o <a href="{% url 'lancamentos_manual' %}" class="underline font-black">lançamento manual</a>). <strong>Não</strong> altera estoque no ERP sozinho.</p>
       <p><strong class="font-black uppercase">SEFAZ</strong> — consultar notas na Receita exige certificado digital e dados da empresa já instalados no servidor.</p>
       <details class="group">
         <summary class="cursor-pointer list-none inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-900">
@@ -88,8 +90,14 @@
     <section id="panel-manual" class="tab-panel bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
       <h2 class="text-sm font-black uppercase text-slate-700">Dados da nota</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Fornecedor / emitente</span>
-          <input type="text" id="m-emit-nome" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Razão social"></label>
+        <label class="block lg:col-span-2"><span class="text-[10px] font-black uppercase text-slate-500">Fornecedor / emitente (cadastro)</span>
+          <div class="relative mt-1">
+            <input type="text" id="m-emit-nome" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Digite para buscar Mongo / títulos / ClienteAgro…">
+            <input type="hidden" id="m-emit-forn-id" value="">
+            <ul id="forn-sug" class="forn-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg text-sm"></ul>
+          </div>
+          <p class="text-[9px] text-slate-500 font-semibold mt-1">Escolha da lista para gravar o ID do ERP (integração). CNPJ abaixo pode ser preenchido ao clicar no fornecedor.</p>
+        </label>
         <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">CNPJ emitente</span>
           <input type="text" id="m-emit-cnpj" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Somente números"></label>
         <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Número / Série</span>
@@ -99,32 +107,129 @@
           </div></label>
         <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Chave (44 dígitos)</span>
           <input type="text" id="m-chave" maxlength="44" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono text-xs" placeholder="Opcional"></label>
-        <label class="block md:col-span-2"><span class="text-[10px] font-black uppercase text-slate-500">Data emissão</span>
+        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Data emissão</span>
           <input type="datetime-local" id="m-dh" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold"></label>
+        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Data entrada (física)</span>
+          <input type="date" id="m-data-entrada" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold" title="Quando a mercadoria entrou no estoque"></label>
       </div>
       <div class="flex flex-wrap gap-2 items-center justify-between border-t border-slate-100 pt-4">
         <h3 class="text-sm font-black uppercase text-slate-700">Itens</h3>
         <button type="button" id="btn-add-linha" class="px-4 py-2 rounded-xl bg-slate-100 border border-slate-200 text-xs font-black uppercase hover:bg-slate-200">+ Linha</button>
       </div>
+      <p class="text-[10px] font-semibold text-slate-600"><strong class="text-orange-800">Rateio:</strong> coluna <em>Un/emb</em> = unidades dentro de cada embalagem da NF (ex.: 10). <strong>Qtd est.</strong> = Qtd NF × Un/emb (ajuste manual se precisar).</p>
       <div class="overflow-x-auto rounded-xl border border-slate-200">
-        <table class="w-full text-xs sm:text-sm min-w-[720px]">
+        <table class="w-full text-xs sm:text-sm min-w-[1100px]">
           <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-500">
             <tr>
-              <th class="text-left px-2 py-2">Descrição</th>
-              <th class="text-left px-2 py-2 w-24">Cód.</th>
-              <th class="text-left px-2 py-2 w-28">EAN</th>
-              <th class="text-right px-2 py-2 w-20">Qtd</th>
-              <th class="text-right px-2 py-2 w-24">V. unit</th>
-              <th class="text-left px-2 py-2 w-16">CFOP</th>
-              <th class="text-left px-2 py-2">Match catálogo</th>
+              <th class="text-left px-2 py-2 min-w-[140px]">Descrição</th>
+              <th class="text-left px-2 py-2 w-20">Cód.</th>
+              <th class="text-left px-2 py-2 w-24">EAN</th>
+              <th class="text-center px-1 py-2 w-14">Cat.</th>
+              <th class="text-right px-2 py-2 w-16">Qtd NF</th>
+              <th class="text-right px-2 py-2 w-16">Un/emb</th>
+              <th class="text-right px-2 py-2 w-20">Qtd est.</th>
+              <th class="text-right px-2 py-2 w-20">V. unit</th>
+              <th class="text-left px-2 py-2 w-14">CFOP</th>
+              <th class="text-left px-2 py-2 min-w-[100px]">Plano conta</th>
+              <th class="text-left px-2 py-2 min-w-[100px]">Match</th>
               <th class="w-8"></th>
             </tr>
           </thead>
           <tbody id="tbody-itens"></tbody>
         </table>
       </div>
-      <button type="button" id="btn-salvar-manual" class="px-8 py-3 rounded-xl bg-orange-600 text-white font-black text-sm uppercase hover:bg-orange-700 shadow-md">Salvar rascunho</button>
+
+      <details class="rounded-2xl border border-emerald-200 bg-emerald-50/40 px-4 py-3 group">
+        <summary class="cursor-pointer list-none text-sm font-black uppercase text-emerald-900 flex items-center gap-2">
+          <span class="group-open:rotate-90 transition-transform inline-block text-[10px]">▸</span>
+          Lançamento financeiro (conta a pagar) — opcional
+        </summary>
+        <div class="mt-4 space-y-3 text-[11px] font-semibold text-emerald-950">
+          <p>Grava o rascunho da NF e cria título(s) a pagar no Mongo (e envia ao ERP se <code class="bg-white/80 px-1 rounded text-[10px]">VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH</code> estiver ativo).</p>
+          <div class="flex flex-wrap gap-4">
+            <label class="inline-flex items-center gap-2 cursor-pointer"><input type="radio" name="fin-modo" value="unico" checked class="accent-emerald-600"><span>Um título (soma da nota)</span></label>
+            <label class="inline-flex items-center gap-2 cursor-pointer"><input type="radio" name="fin-modo" value="por_item" class="accent-emerald-600"><span>Uma linha por item (usa plano de cada linha)</span></label>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Empresa *</span>
+              <div class="relative sug-wrap mt-1" data-sug-campo="empresa">
+                <input type="text" id="fin-empresa-nome" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Buscar…">
+                <input type="hidden" id="fin-empresa-id" value="">
+                <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+              </div></label>
+            <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Plano padrão *</span>
+              <div class="relative sug-wrap mt-1" data-sug-campo="plano">
+                <input type="text" id="fin-plano-pad" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Ex.: Compra de mercadoria…">
+                <input type="hidden" id="fin-plano-pad-id" value="">
+                <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+              </div>
+              <span class="text-[9px] text-slate-500">No modo &quot;por item&quot;, use plano na linha ou este padrão.</span>
+            </label>
+            <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Competência *</span>
+              <input type="date" id="fin-dc" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold"></label>
+            <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Vencimento *</span>
+              <input type="date" id="fin-dv" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold"></label>
+            <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Forma pagamento *</span>
+              <div class="relative sug-wrap mt-1" data-sug-campo="forma">
+                <input type="text" id="fin-forma-nome" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Buscar…">
+                <input type="hidden" id="fin-forma-id" value="">
+                <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+              </div></label>
+            <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Banco / conta *</span>
+              <div class="relative sug-wrap mt-1" data-sug-campo="banco">
+                <input type="text" id="fin-banco-nome" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Buscar…">
+                <input type="hidden" id="fin-banco-id" value="">
+                <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+              </div></label>
+            <label class="block md:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Grupo (opcional)</span>
+              <div class="relative sug-wrap mt-1" data-sug-campo="grupo">
+                <input type="text" id="fin-grupo-nome" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Buscar…">
+                <input type="hidden" id="fin-grupo-id" value="">
+                <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+              </div></label>
+          </div>
+        </div>
+      </details>
+
+      <div class="flex flex-wrap gap-3">
+        <button type="button" id="btn-salvar-manual" class="px-8 py-3 rounded-xl bg-orange-600 text-white font-black text-sm uppercase hover:bg-orange-700 shadow-md">Salvar rascunho</button>
+        <button type="button" id="btn-salvar-fin" class="px-8 py-3 rounded-xl bg-emerald-700 text-white font-black text-sm uppercase hover:bg-emerald-800 shadow-md border-2 border-emerald-800">Salvar + lançar a pagar</button>
+      </div>
+
+      <div class="rounded-2xl border border-blue-200 bg-blue-50/70 px-4 py-4 space-y-3">
+        <h3 class="text-xs font-black uppercase text-blue-950">Estoque Agro (PIN / ajuste rápido)</h3>
+        <p class="text-[10px] font-semibold text-blue-950/90 leading-relaxed">
+          Soma a coluna <strong>Qtd est.</strong> no saldo que o Agro já mostra (ERP + ajustes), <strong>sem</strong> alterar o Mongo do ERP — mesmo critério do PDV e do ajuste por PIN.
+          Só entram linhas com produto vinculado pelo <strong>Buscar</strong> (catálogo). Cada clique soma de novo: evite duplicar a mesma nota.
+        </p>
+        <div class="flex flex-wrap items-end gap-3">
+          <label class="block">
+            <span class="text-[10px] font-black uppercase text-slate-600">Depósito</span>
+            <select id="m-dep-estoque" class="mt-1 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold">
+              <option value="centro" selected>Centro</option>
+              <option value="vila">Vila Elias</option>
+            </select>
+          </label>
+          <label class="inline-flex items-center gap-2 cursor-pointer text-[11px] font-bold text-blue-900 mt-6">
+            <input type="checkbox" id="chk-estoque-com-rascunho" class="rounded border-slate-300 accent-blue-600">
+            Salvar rascunho no mesmo envio
+          </label>
+        </div>
+        <button type="button" id="btn-estoque-agro" class="px-8 py-3 rounded-xl bg-blue-700 text-white font-black text-sm uppercase hover:bg-blue-800 shadow-md border-2 border-blue-900">
+          Registrar entrada no estoque Agro
+        </button>
+      </div>
     </section>
+
+    <div id="modal-prod" class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/45">
+      <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 border border-slate-200 max-h-[85vh] overflow-hidden flex flex-col">
+        <h3 class="text-sm font-black uppercase text-slate-800">Buscar produto no catálogo</h3>
+        <p class="text-[10px] text-slate-600 font-semibold mt-1">Linha alvo: <span id="modal-prod-linha">—</span></p>
+        <input type="text" id="modal-prod-q" class="mt-3 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Nome, código ou EAN…" autocomplete="off">
+        <ul id="modal-prod-res" class="mt-2 flex-1 overflow-y-auto min-h-[120px] max-h-64 border border-slate-100 rounded-xl divide-y divide-slate-100 text-sm"></ul>
+        <button type="button" id="modal-prod-fechar" class="mt-3 px-4 py-2 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Fechar</button>
+      </div>
+    </div>
 
     <section id="panel-xml" class="tab-panel hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
       <p class="text-sm font-semibold text-slate-600">Envie o arquivo XML da NF-e autorizada (<strong>nfeProc</strong> ou <strong>NFe</strong>). Os campos e a grade serão preenchidos para conferência.</p>
@@ -163,8 +268,13 @@
   const URL_SEFAZ = "{% url 'api_entrada_nota_sefaz_status' %}";
   const URL_PARSE = "{% url 'api_entrada_nota_parse_xml' %}";
   const URL_SALVAR = "{% url 'api_entrada_nota_salvar' %}";
+  const URL_FIN = "{% url 'api_entrada_nota_financeiro' %}";
+  const URL_ESTOQUE_AGRO = "{% url 'api_entrada_nota_estoque_agro' %}";
+  const URL_FORN = "{% url 'api_entrada_nota_fornecedores' %}";
   const URL_RASC = "{% url 'api_entrada_nota_rascunhos' %}";
   const URL_DFE = "{% url 'api_entrada_nota_dist_dfe' %}";
+  const URL_SUG = "{% url 'api_lancamentos_sugestoes' %}";
+  const URL_BUSCA = "{% url 'api_buscar_mobile' %}";
 
   function getCookie(name) {
     const m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
@@ -193,16 +303,23 @@
   }
 
   function linhaFromItem(it) {
+    const un = it.un_por_embalagem != null ? it.un_por_embalagem : 1;
+    const qnf = it.q_com != null ? it.q_com : 1;
+    const qest = it.q_estoque != null ? it.q_estoque : (Number(qnf) * Number(un));
     return {
       x_prod: it.x_prod || '',
       c_prod: it.c_prod || '',
       ean: it.ean || '',
-      q_com: it.q_com != null ? it.q_com : 1,
+      q_com: qnf,
+      un_por_embalagem: un,
+      q_estoque: qest,
       v_un_com: it.v_un_com != null ? it.v_un_com : 0,
       cfop: it.cfop || '',
       produto_id: it.produto_id || '',
       nome_catalogo: it.nome_catalogo || '',
       match_tipo: it.match_tipo || '',
+      plano_conta: it.plano_conta || '',
+      plano_conta_id: it.plano_conta_id || '',
     };
   }
 
@@ -210,29 +327,78 @@
     document.getElementById('tbody-itens').innerHTML = '';
   }
 
+  function atualizarQtdEstoqueRow(tr) {
+    const qnf = Number(tr.querySelector('.in-qtd').value) || 0;
+    const un = Number(tr.querySelector('.in-un-emb').value) || 1;
+    const el = tr.querySelector('.in-q-est');
+    if (!el.dataset.manual) {
+      el.value = (qnf * un).toFixed(4).replace(/\.?0+$/, '');
+    }
+  }
+
+  let trProdAlvo = null;
+
   function addLinhaRow(data) {
     const tr = document.createElement('tr');
     tr.className = 'border-t border-slate-100';
-    const d = data || { x_prod: '', c_prod: '', ean: '', q_com: 1, v_un_com: 0, cfop: '', produto_id: '', nome_catalogo: '', match_tipo: '' };
+    const d = data || {
+      x_prod: '', c_prod: '', ean: '', q_com: 1, un_por_embalagem: 1, q_estoque: 1,
+      v_un_com: 0, cfop: '', produto_id: '', nome_catalogo: '', match_tipo: '',
+      plano_conta: '', plano_conta_id: '',
+    };
     const mt = d.match_tipo ? ` (${d.match_tipo})` : '';
     const mc = d.nome_catalogo ? `${d.nome_catalogo}${mt}` : (d.produto_id ? d.produto_id : '—');
     tr.innerHTML = `
       <td class="px-2 py-1"><input type="text" class="in-desc w-full rounded border border-slate-200 px-1 py-1 text-xs font-semibold" value=""></td>
       <td class="px-2 py-1"><input type="text" class="in-cprod w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
       <td class="px-2 py-1"><input type="text" class="in-ean w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
+      <td class="px-1 py-1 text-center"><button type="button" class="btn-pick-prod text-[10px] font-black uppercase text-blue-700 border border-blue-200 rounded px-1 py-0.5" title="Catálogo">Buscar</button><input type="hidden" class="in-prod-id" value=""></td>
       <td class="px-2 py-1"><input type="number" step="0.0001" class="in-qtd w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value=""></td>
+      <td class="px-2 py-1"><input type="number" step="0.0001" min="0.0001" class="in-un-emb w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="1" title="Unidades por embalagem NF"></td>
+      <td class="px-2 py-1"><input type="number" step="0.0001" class="in-q-est w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="" title="Qtd p/ estoque (editar para sobrescrever)"></td>
       <td class="px-2 py-1"><input type="number" step="0.01" class="in-vun w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value=""></td>
       <td class="px-2 py-1"><input type="text" class="in-cfop w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
-      <td class="px-2 py-1 text-[11px] font-semibold text-slate-600 in-match">${mc}</td>
+      <td class="px-2 py-1"><div class="relative sug-wrap" data-sug-campo="plano">
+        <input type="text" class="in-plano w-full rounded border border-slate-200 px-1 py-1 text-xs font-semibold" autocomplete="off" placeholder="Plano…">
+        <input type="hidden" class="in-plano-id" value="">
+        <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-lg shadow-lg"></ul>
+      </div></td>
+      <td class="px-2 py-1 text-[10px] font-semibold text-slate-600 in-match">${mc}</td>
       <td class="px-1 py-1"><button type="button" class="btn-del text-red-600 font-black text-lg leading-none px-1" title="Remover">×</button></td>`;
     tr.querySelector('.in-desc').value = d.x_prod;
     tr.querySelector('.in-cprod').value = d.c_prod;
     tr.querySelector('.in-ean').value = d.ean;
     tr.querySelector('.in-qtd').value = d.q_com;
+    tr.querySelector('.in-un-emb').value = d.un_por_embalagem != null ? d.un_por_embalagem : 1;
     tr.querySelector('.in-vun').value = d.v_un_com;
     tr.querySelector('.in-cfop').value = d.cfop;
+    tr.querySelector('.in-prod-id').value = d.produto_id || '';
+    tr.querySelector('.in-plano').value = d.plano_conta || '';
+    tr.querySelector('.in-plano-id').value = d.plano_conta_id || '';
+    const qe = tr.querySelector('.in-q-est');
+    if (d.q_estoque != null && d.q_estoque !== '' && !Number.isNaN(Number(d.q_estoque))) {
+      qe.value = d.q_estoque;
+      qe.dataset.manual = '1';
+    } else {
+      qe.dataset.manual = '';
+      atualizarQtdEstoqueRow(tr);
+    }
+    ['input', 'change'].forEach((ev) => {
+      tr.querySelector('.in-qtd').addEventListener(ev, () => { delete qe.dataset.manual; atualizarQtdEstoqueRow(tr); });
+      tr.querySelector('.in-un-emb').addEventListener(ev, () => { delete qe.dataset.manual; atualizarQtdEstoqueRow(tr); });
+    });
+    qe.addEventListener('input', () => { qe.dataset.manual = '1'; });
+    tr.querySelector('.btn-pick-prod').addEventListener('click', () => {
+      trProdAlvo = tr;
+      document.getElementById('modal-prod-linha').textContent = (tr.querySelector('.in-desc').value || '(nova linha)').slice(0, 60);
+      document.getElementById('modal-prod-q').value = '';
+      document.getElementById('modal-prod-res').innerHTML = '';
+      document.getElementById('modal-prod').classList.remove('hidden');
+      document.getElementById('modal-prod-q').focus();
+    });
     tr.querySelector('.btn-del').addEventListener('click', () => tr.remove());
     document.getElementById('tbody-itens').appendChild(tr);
+    attachSuggest(tr.querySelector('.sug-wrap'));
   }
 
   function coletarLinhas() {
@@ -247,8 +413,17 @@
         c_prod: tr.querySelector('.in-cprod').value.trim(),
         ean: tr.querySelector('.in-ean').value.trim(),
         q_com: qtd,
+        un_por_embalagem: Number(tr.querySelector('.in-un-emb').value) || 1,
+        q_estoque: Number(tr.querySelector('.in-q-est').value) || 0,
         v_un_com: Number(tr.querySelector('.in-vun').value) || 0,
         cfop: tr.querySelector('.in-cfop').value.trim(),
+        produto_id: tr.querySelector('.in-prod-id').value.trim(),
+        nome_catalogo: (() => {
+          const t = (tr.querySelector('.in-match').textContent || '').trim();
+          return t && t !== '—' ? t : '';
+        })(),
+        plano_conta: tr.querySelector('.in-plano').value.trim(),
+        plano_conta_id: tr.querySelector('.in-plano-id').value.trim(),
       });
     });
     return linhas;
@@ -258,12 +433,148 @@
     return {
       emit_nome: document.getElementById('m-emit-nome').value.trim(),
       emit_cnpj: document.getElementById('m-emit-cnpj').value.trim(),
+      emit_fornecedor_id: document.getElementById('m-emit-forn-id').value.trim(),
       numero: document.getElementById('m-nf').value.trim(),
       serie: document.getElementById('m-serie').value.trim(),
       chave: document.getElementById('m-chave').value.trim(),
       dh_emi: document.getElementById('m-dh').value || '',
+      data_entrada: document.getElementById('m-data-entrada').value || '',
     };
   }
+
+  function attachSuggest(wrap) {
+    if (!wrap) return;
+    const campo = wrap.getAttribute('data-sug-campo');
+    const inp = wrap.querySelector('input[type="text"]');
+    const hid = wrap.querySelector('input[type="hidden"]');
+    const dd = wrap.querySelector('.sug-dd');
+    let timer = null;
+    inp.addEventListener('input', () => {
+      hid.value = '';
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        try {
+          const u = new URL(URL_SUG, window.location.origin);
+          u.searchParams.set('campo', campo);
+          u.searchParams.set('q', inp.value.trim());
+          const r = await fetch(u.toString(), { credentials: 'same-origin' });
+          const j = await r.json();
+          dd.innerHTML = '';
+          (j.itens || []).forEach((it) => {
+            const li = document.createElement('li');
+            li.textContent = it.nome;
+            li.className = 'px-3 py-2 cursor-pointer hover:bg-orange-50 text-sm font-medium border-b border-slate-50 last:border-0';
+            li.addEventListener('mousedown', (e) => {
+              e.preventDefault();
+              inp.value = it.nome;
+              hid.value = it.id || '';
+              dd.classList.add('hidden');
+            });
+            dd.appendChild(li);
+          });
+          dd.classList.toggle('hidden', dd.children.length === 0);
+        } catch (_) {
+          dd.classList.add('hidden');
+        }
+      }, 280);
+    });
+    inp.addEventListener('blur', () => { setTimeout(() => dd.classList.add('hidden'), 200); });
+    inp.addEventListener('focus', () => { if (dd.children.length) dd.classList.remove('hidden'); });
+  }
+
+  const fornInp = document.getElementById('m-emit-nome');
+  const fornHid = document.getElementById('m-emit-forn-id');
+  const fornDd = document.getElementById('forn-sug');
+  let fornTimer = null;
+
+  async function carregarFornecedores(q, inicial) {
+    try {
+      const u = new URL(URL_FORN, window.location.origin);
+      if (inicial) u.searchParams.set('inicial', '1');
+      else if (q) u.searchParams.set('q', q);
+      u.searchParams.set('limit', '50');
+      const r = await fetch(u.toString(), { credentials: 'same-origin' });
+      const j = await r.json();
+      fornDd.innerHTML = '';
+      (j.itens || []).forEach((it) => {
+        const li = document.createElement('li');
+        const doc = it.documento ? ` · ${it.documento}` : '';
+        const og = it.origem ? ` [${it.origem}]` : '';
+        li.textContent = `${it.nome}${doc}${og}`;
+        li.className = 'px-3 py-2 cursor-pointer hover:bg-orange-50 text-sm font-medium border-b border-slate-50 last:border-0';
+        li.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          fornInp.value = it.nome;
+          fornHid.value = it.id || '';
+          if (it.documento) document.getElementById('m-emit-cnpj').value = it.documento;
+          fornDd.classList.add('hidden');
+        });
+        fornDd.appendChild(li);
+      });
+      fornDd.classList.toggle('hidden', fornDd.children.length === 0);
+    } catch (_) {
+      fornDd.classList.add('hidden');
+    }
+  }
+
+  fornInp.addEventListener('input', () => {
+    fornHid.value = '';
+    clearTimeout(fornTimer);
+    const q = fornInp.value.trim();
+    fornTimer = setTimeout(() => carregarFornecedores(q, false), 300);
+  });
+  fornInp.addEventListener('focus', () => {
+    if (!fornDd.children.length) carregarFornecedores('', true);
+    else fornDd.classList.remove('hidden');
+  });
+  fornInp.addEventListener('blur', () => { setTimeout(() => fornDd.classList.add('hidden'), 200); });
+
+  document.querySelectorAll('#panel-manual .sug-wrap').forEach(attachSuggest);
+
+  async function buscarProdutosModal(termo) {
+    const ul = document.getElementById('modal-prod-res');
+    ul.innerHTML = '<li class="px-3 py-2 text-slate-400 text-xs">Buscando…</li>';
+    try {
+      const r = await fetch(`${URL_BUSCA}?q=${encodeURIComponent(termo)}`, { credentials: 'same-origin' });
+      const j = await r.json();
+      const arr = j.produtos || [];
+      ul.innerHTML = '';
+      if (!arr.length) {
+        ul.innerHTML = '<li class="px-3 py-2 text-slate-400 text-xs">Nenhum produto.</li>';
+        return;
+      }
+      arr.slice(0, 40).forEach((p) => {
+        const li = document.createElement('li');
+        li.className = 'px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm border-b border-slate-50';
+        li.innerHTML = `<div class="font-bold text-slate-800">${p.nome || '—'}</div><div class="text-[10px] text-slate-500 font-mono">ID ${p.id} · ${p.codigo_nfe || p.codigo || ''} · EAN ${p.codigo_barras || '—'}</div>`;
+        li.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          if (!trProdAlvo) return;
+          trProdAlvo.querySelector('.in-prod-id').value = p.id || '';
+          const m = trProdAlvo.querySelector('.in-match');
+          m.textContent = (p.nome || p.id || '—').slice(0, 120);
+          if (p.codigo_nfe || p.codigo) trProdAlvo.querySelector('.in-cprod').value = p.codigo_nfe || p.codigo || '';
+          if (p.codigo_barras) trProdAlvo.querySelector('.in-ean').value = String(p.codigo_barras).replace(/\D/g, '').slice(0, 14);
+          document.getElementById('modal-prod').classList.add('hidden');
+          trProdAlvo = null;
+        });
+        ul.appendChild(li);
+      });
+    } catch (_) {
+      ul.innerHTML = '<li class="px-3 py-2 text-red-600 text-xs">Erro na busca.</li>';
+    }
+  }
+
+  let prodModalTimer = null;
+  document.getElementById('modal-prod-q').addEventListener('input', () => {
+    clearTimeout(prodModalTimer);
+    const t = document.getElementById('modal-prod-q').value.trim();
+    prodModalTimer = setTimeout(() => { if (t.length >= 2) buscarProdutosModal(t); }, 350);
+  });
+  document.getElementById('modal-prod-fechar').addEventListener('click', () => {
+    document.getElementById('modal-prod').classList.add('hidden');
+    trProdAlvo = null;
+  });
 
   async function salvar(modo, extra) {
     const cab = coletarCabecalho();
@@ -301,8 +612,152 @@
     }
   }
 
+  async function salvarComFinanceiro(modo, extra) {
+    const cab = coletarCabecalho();
+    const linhas = coletarLinhas();
+    if (!linhas.length) {
+      showMsg('Inclua ao menos uma linha com descrição ou quantidade.', false);
+      return;
+    }
+    const finModo = (document.querySelector('input[name="fin-modo"]:checked') || {}).value || 'unico';
+    const empresa = document.getElementById('fin-empresa-nome').value.trim();
+    const planoPad = document.getElementById('fin-plano-pad').value.trim();
+    const dc = document.getElementById('fin-dc').value;
+    const dv = document.getElementById('fin-dv').value;
+    const forma = document.getElementById('fin-forma-nome').value.trim();
+    const banco = document.getElementById('fin-banco-nome').value.trim();
+    if (!cab.emit_nome) {
+      showMsg('Informe o fornecedor na nota.', false);
+      return;
+    }
+    if (!empresa || !planoPad || !dc || !dv || !forma || !banco) {
+      showMsg('Preencha empresa, plano padrão, competência, vencimento, forma e banco no bloco financeiro.', false);
+      return;
+    }
+    if (finModo === 'por_item') {
+      const falta = linhas.some((ln) => !(ln.plano_conta || planoPad));
+      if (falta) {
+        showMsg('Modo por item: cada linha precisa de plano de conta (ou use um plano padrão preenchido).', false);
+        return;
+      }
+    }
+    const financeiro = {
+      modo_lancamento: finModo,
+      empresa_nome: empresa,
+      empresa_id: document.getElementById('fin-empresa-id').value.trim() || undefined,
+      plano_padrao: planoPad,
+      plano_padrao_id: document.getElementById('fin-plano-pad-id').value.trim() || undefined,
+      data_competencia: dc,
+      data_vencimento: dv,
+      forma_nome: forma,
+      forma_id: document.getElementById('fin-forma-id').value.trim() || undefined,
+      banco_nome: banco,
+      banco_id: document.getElementById('fin-banco-id').value.trim() || undefined,
+      grupo_nome: document.getElementById('fin-grupo-nome').value.trim() || undefined,
+      grupo_id: document.getElementById('fin-grupo-id').value.trim() || undefined,
+    };
+    const body = {
+      modo,
+      cabecalho: cab,
+      linhas,
+      xml_chave: ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null),
+      extra: extra || {},
+      financeiro,
+    };
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    try {
+      const r = await fetch(URL_FIN, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json();
+      if ((r.status === 200 || r.status === 207) && j.rascunho && j.rascunho.ok) {
+        const fin = j.financeiro || {};
+        const nIds = (fin.ids || []).length;
+        if (nIds && fin.ok) {
+          let t = 'Rascunho salvo e conta(s) a pagar gerada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
+          if (j.erp_lancamento_ok === true) t += ' ERP: envio aceito.';
+          if (j.aviso_api) t += ' ' + j.aviso_api;
+          showMsg(t, !j.aviso_api);
+        } else if (nIds && !fin.ok) {
+          const er = (fin.erros || []).map((x) => (x.linha ? 'L' + x.linha + ': ' : '') + (x.erro || '')).join(' · ');
+          showMsg('Rascunho salvo. Lançamento parcial: ' + (er || 'ver detalhes') + '. IDs: ' + fin.ids.join(', ') + '.', false);
+        } else {
+          const er = j.erro
+            || (fin.erros && fin.erros[0] && fin.erros[0].erro)
+            || 'Rascunho OK; financeiro não gerou título (revise plano, valores ou empresa).';
+          showMsg(er, false);
+        }
+        carregarRascunhos();
+      } else {
+        const er = j.erro || 'Falha ao salvar.';
+        showMsg(er, false);
+      }
+    } catch (e) {
+      showMsg('Erro de rede.', false);
+    } finally {
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
+    }
+  }
+
   document.getElementById('btn-add-linha').addEventListener('click', () => addLinhaRow({}));
   document.getElementById('btn-salvar-manual').addEventListener('click', () => salvar('manual', {}));
+  document.getElementById('btn-salvar-fin').addEventListener('click', () => salvarComFinanceiro('manual', { com_financeiro: true }));
+
+  document.getElementById('btn-estoque-agro').addEventListener('click', async () => {
+    const linhas = coletarLinhas();
+    if (!linhas.length) {
+      showMsg('Inclua ao menos uma linha com descrição ou quantidade.', false);
+      return;
+    }
+    const comPid = linhas.filter((ln) => ln.produto_id && !String(ln.produto_id).startsWith('local:'));
+    if (!comPid.length) {
+      showMsg('Nenhuma linha com produto do catálogo (use Buscar em cada item).', false);
+      return;
+    }
+    if (!window.confirm(`Registrar ${comPid.length} produto(s) no estoque Agro (depósito ${document.getElementById('m-dep-estoque').value})?`)) return;
+    const cab = coletarCabecalho();
+    const body = {
+      linhas,
+      cabecalho: cab,
+      deposito: document.getElementById('m-dep-estoque').value,
+      salvar_rascunho: document.getElementById('chk-estoque-com-rascunho').checked,
+      modo: 'manual',
+      xml_chave: ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null),
+      extra: { origem: 'entrada_nfe_estoque_agro' },
+    };
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    try {
+      const r = await fetch(URL_ESTOQUE_AGRO, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json();
+      const est = j.estoque || {};
+      const aplicados = est.aplicados || [];
+      if (aplicados.length) {
+        const resumo = aplicados.map((a) => `${a.produto_id}: +${a.quantidade} → saldo Agro ${a.saldo_agro_depois}`).join(' · ');
+        showMsg(`Estoque Agro atualizado. ${resumo}`, r.ok);
+        if (j.rascunho && j.rascunho.ok) carregarRascunhos();
+      } else {
+        showMsg(j.erro || est.erros?.[0]?.erro || 'Nada foi aplicado.', false);
+      }
+    } catch (_) {
+      showMsg('Erro de rede.', false);
+    } finally {
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
+    }
+  });
   document.getElementById('btn-salvar-xml').addEventListener('click', () => salvar('xml', { origem: 'upload_xml' }));
 
   document.querySelectorAll('.tab-btn').forEach((b) => {
@@ -457,6 +912,11 @@
   });
 
   document.addEventListener('DOMContentLoaded', () => {
+    const t = new Date();
+    const iso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+    if (!document.getElementById('fin-dc').value) document.getElementById('fin-dc').value = iso;
+    if (!document.getElementById('fin-dv').value) document.getElementById('fin-dv').value = iso;
+    if (!document.getElementById('m-data-entrada').value) document.getElementById('m-data-entrada').value = iso;
     addLinhaRow({});
     addLinhaRow({});
     carregarSefazStatus();

@@ -422,6 +422,31 @@ def _serializar_dt(v) -> str | None:
         return v.isoformat(sep=" ")
 
 
+def _lancamento_e_manual_agro(doc: dict) -> bool:
+    obs = str(doc.get("Observacoes") or "")
+    mod = str(doc.get("ModificadoPor") or "")
+    return "Lote manual Agro" in obs or "inclusão manual em lote Agro" in mod
+
+
+def _lancamento_tem_vinculo_erp(doc: dict) -> bool:
+    if str(doc.get("LancamentoID") or "").strip():
+        return True
+    x = str(doc.get("Id") or "").strip()
+    if not x:
+        return False
+    if len(x) == 24 and re.match(r"^[a-fA-F0-9]{24}$", x):
+        return False
+    return True
+
+
+def _lancamento_pode_excluir_agro(doc: dict, quitado: bool, valor_mov: float) -> bool:
+    if quitado or valor_mov > 0.02:
+        return False
+    if _lancamento_e_manual_agro(doc):
+        return True
+    return not _lancamento_tem_vinculo_erp(doc)
+
+
 def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
     dp = doc.get("DataPagamento")
     quitado = bool(doc.get("Pago")) or _dt_efetiva(dp)
@@ -439,11 +464,13 @@ def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
                 _dec(doc.get("ValorPago")),
             )
         )
+    mov_r = round(float(mov), 2)
     return {
         "id": str(doc.get("_id", "")),
         "despesa": despesa,
         "descricao": doc.get("Descricao") or "",
         "cliente": doc.get("Cliente") or "",
+        "cliente_id": str(doc.get("ClienteID") or ""),
         "numero_documento": str(doc.get("NumeroDocumento") or ""),
         "parcela": int(doc.get("NumeroParcela") or 0),
         "plano_conta": doc.get("PlanoDeConta") or "",
@@ -466,6 +493,9 @@ def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
         # aliases para compatibilidade com tela antiga
         "valor_previsto": round(bruto, 2),
         "valor_pago": round(float(mov), 2),
+        "pode_editar": not quitado,
+        "pode_editar_valor": (not quitado) and mov_r <= 0.02,
+        "pode_excluir": _lancamento_pode_excluir_agro(doc, quitado, mov_r),
     }
 
 
@@ -578,6 +608,30 @@ def _listar_formas_e_bancos_modo_historico(db, limit: int) -> tuple[list[dict], 
     return formas, bancos
 
 
+# Rótulos alinhados ao cadastro de contas no ERP (Agro Mais) quando o BancoID identifica uma conta única.
+_BANCO_ID_ROTULO_ERP: dict[str, str] = {
+    "323": "CPF | Mercado Pago ( Renan )",
+    "001": "CPF | Banco Brasil ( Renan )",
+    "237": "CPF | Bradesco ( Geraldinho )",
+    "197": "CNPJ | Stone ( Cartões )",
+    "756": "CPF | Sicoob ( Geraldinho )",
+}
+
+
+def normalizar_rotulo_banco_erp(banco_id: str, nome: str) -> str:
+    """Uniformiza grafia (Santander, Sicredi, Sicoob) e aplica nome canônico por ID quando cadastrado."""
+    bid = str(banco_id or "").strip()
+    if bid in _BANCO_ID_ROTULO_ERP:
+        return _BANCO_ID_ROTULO_ERP[bid]
+    n = (nome or "").strip()
+    if not n:
+        return n
+    n = n.replace("Satander", "Santander")
+    n = re.sub(r"\bSicob\b", "Sicoob", n, flags=re.IGNORECASE)
+    n = re.sub(r"\bSicred(?!i)([a-zA-ZÀ-ÿ]*)", r"Sicredi\1", n)
+    return n
+
+
 def _listar_formas_e_bancos_modo_erp(db, limit: int) -> tuple[list[dict], list[dict]]:
     """
     Agrupa por ID de cadastro (FormaPagamentoID / BancoID) convertido para string.
@@ -648,7 +702,7 @@ def _listar_formas_e_bancos_modo_erp(db, limit: int) -> tuple[list[dict], list[d
         bid = str(r.get("_id") or "").strip()
         nome = str(r.get("nome") or "").strip()
         if bid and nome:
-            bancos.append({"id": bid, "nome": nome})
+            bancos.append({"id": bid, "nome": normalizar_rotulo_banco_erp(bid, nome)})
     bancos.sort(key=lambda x: x["nome"].lower())
     return formas, bancos
 
@@ -711,6 +765,7 @@ def baixar_lancamentos_mongo(
     # ERP espera string em FormaPagamentoID/BancoID; mantemos sempre string aqui.
     fid = _financeiro_id_para_string(forma_id)
     bid = _financeiro_id_para_string(banco_id)
+    banco_nome = normalizar_rotulo_banco_erp(bid, banco_nome)[:200]
 
     for sid in (ids or [])[:80]:
         try:
@@ -874,9 +929,10 @@ def baixar_lancamento_parcial_mongo(
         if not doc:
             return {"ok": False, "id": str(oid), "erro": "Lançamento sumiu durante a baixa", "quitado": False}
         forma_nome = str(par.get("forma_pagamento") or par.get("forma_nome") or "").strip()
-        banco_nome = str(par.get("banco") or par.get("banco_nome") or "").strip()
         fid = _financeiro_id_para_string(par.get("forma_pagamento_id") or par.get("forma_id"))
         bid = _financeiro_id_para_string(par.get("banco_id"))
+        banco_nome = str(par.get("banco") or par.get("banco_nome") or "").strip()
+        banco_nome = normalizar_rotulo_banco_erp(bid, banco_nome)[:200]
         valor_par = float(str(par.get("valor", "")).replace(",", ".").strip())
         ultima_forma = forma_nome[:200]
         ultima_banco = banco_nome[:200]
@@ -2338,3 +2394,133 @@ def financeiro_projecao_fluxo_diario(
         "calculado sobre o histórico de faturamento no Mongo quando há dados suficientes.",
     }
     return {"dias": dias_out, "meta": meta}
+
+
+def excluir_lancamento_mongo_agro(db, lancamento_id: str, usuario_label: str) -> dict[str, Any]:
+    """Remove título no Mongo apenas quando permitido (manual Agro ou sem vínculo ERP, sem pagamento)."""
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    col = db[COL_DTO_LANCAMENTO]
+    try:
+        oid = ObjectId(str(lancamento_id).strip())
+    except Exception:
+        return {"ok": False, "erro": "ID inválido"}
+    doc = col.find_one({"_id": oid})
+    if not doc:
+        return {"ok": False, "erro": "Lançamento não encontrado"}
+    dp = doc.get("DataPagamento")
+    quitado = bool(doc.get("Pago")) or _dt_efetiva(dp)
+    mov = float(_dec(doc.get("ValorPago")))
+    if not bool(doc.get("Despesa")):
+        mov = float(
+            _valor_realizado_receita_dec(
+                _dec(doc.get("Entrada")),
+                _dec(doc.get("Recebido")),
+                _dec(doc.get("ValorPago")),
+            )
+        )
+    if not _lancamento_pode_excluir_agro(doc, quitado, round(mov, 2)):
+        return {
+            "ok": False,
+            "erro": "Exclusão não permitida: quitado, com movimento ou vinculado ao ERP (use o ERP para excluir).",
+        }
+    col.delete_one({"_id": oid})
+    logger.info(
+        "excluir_lancamento_mongo_agro: _id=%s por=%s",
+        oid,
+        (usuario_label or "")[:80],
+    )
+    return {"ok": True}
+
+
+def atualizar_lancamento_mongo_agro(
+    db,
+    lancamento_id: str,
+    patch: dict[str, Any],
+    usuario_label: str,
+) -> dict[str, Any]:
+    """Atualiza campos cadastrais de um título em aberto (Mongo)."""
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    col = db[COL_DTO_LANCAMENTO]
+    try:
+        oid = ObjectId(str(lancamento_id).strip())
+    except Exception:
+        return {"ok": False, "erro": "ID inválido"}
+    doc = col.find_one({"_id": oid})
+    if not doc:
+        return {"ok": False, "erro": "Lançamento não encontrado"}
+    dp = doc.get("DataPagamento")
+    quitado = bool(doc.get("Pago")) or _dt_efetiva(dp)
+    if quitado:
+        return {"ok": False, "erro": "Não é possível alterar título quitado."}
+    despesa = bool(doc.get("Despesa"))
+    mov = float(_dec(doc.get("ValorPago")))
+    if not despesa:
+        mov = float(
+            _valor_realizado_receita_dec(
+                _dec(doc.get("Entrada")),
+                _dec(doc.get("Recebido")),
+                _dec(doc.get("ValorPago")),
+            )
+        )
+    mov_r = round(mov, 2)
+    now = timezone.now()
+    mod = ((usuario_label or "Agro")[:80] + " — edição lançamento Agro")[:200]
+    set_doc: dict[str, Any] = {"LastUpdate": now, "ModificadoPor": mod, "DataModificacao": now}
+
+    if "descricao" in patch:
+        set_doc["Descricao"] = str(patch.get("descricao") or "").strip()[:500]
+    if "cliente" in patch:
+        set_doc["Cliente"] = str(patch.get("cliente") or "").strip()[:300]
+    if "cliente_id" in patch and patch.get("cliente_id") is not None:
+        set_doc["ClienteID"] = _financeiro_id_para_string(patch.get("cliente_id"))[:80]
+    if "plano_conta" in patch:
+        set_doc["PlanoDeConta"] = str(patch.get("plano_conta") or "").strip()[:200]
+    if "plano_conta_id" in patch and patch.get("plano_conta_id") is not None:
+        pid = patch.get("plano_conta_id")
+        oid_plano = _maybe_oid(str(pid).strip()) if pid else None
+        set_doc["PlanoDeContaID"] = (
+            oid_plano if oid_plano is not None else _financeiro_id_para_string(pid)
+        )
+    dv = patch.get("data_vencimento")
+    if dv is not None:
+        ds = str(dv).strip()[:10]
+        try:
+            d = date.fromisoformat(ds)
+        except ValueError:
+            return {"ok": False, "erro": "data_vencimento inválida (AAAA-MM-DD)."}
+        dtn = _dt_naive_meia_noite_erp(d)
+        set_doc["DataVencimento"] = dtn
+        set_doc["DataVencimentoOriginal"] = dtn
+    if "valor_bruto" in patch and patch.get("valor_bruto") is not None:
+        if mov_r > 0.02:
+            return {"ok": False, "erro": "Não é possível alterar o valor com pagamento já registrado."}
+        try:
+            vb = float(str(patch.get("valor_bruto")).replace(",", ".").strip())
+        except (TypeError, ValueError):
+            return {"ok": False, "erro": "valor_bruto inválido."}
+        if vb <= 0:
+            return {"ok": False, "erro": "valor_bruto deve ser maior que zero."}
+        if despesa:
+            set_doc["Saida"] = vb
+        else:
+            set_doc["Entrada"] = vb
+    if "banco" in patch:
+        bn = str(patch.get("banco") or "").strip()
+        if bn:
+            bid_e = _financeiro_id_para_string(patch.get("banco_id"))
+            set_doc["Banco"] = normalizar_rotulo_banco_erp(bid_e, bn)[:200]
+            set_doc["BancoID"] = bid_e
+    if "forma_pagamento" in patch:
+        fn = str(patch.get("forma_pagamento") or "").strip()
+        if fn:
+            set_doc["FormaPagamento"] = fn[:200]
+            set_doc["FormaPagamentoID"] = _financeiro_id_para_string(patch.get("forma_pagamento_id"))
+
+    if len(set_doc) <= 3:
+        return {"ok": False, "erro": "Nenhum campo para atualizar."}
+
+    _financeiro_doc_coerce_ids_oid_para_string(set_doc)
+    col.update_one({"_id": oid}, {"$set": set_doc})
+    return {"ok": True, "id": str(oid)}
