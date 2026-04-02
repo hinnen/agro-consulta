@@ -2470,34 +2470,80 @@ function recuperarOrcamentoSilenciosoPorId(oid) {
     return true;
 }
 
-function abrirAjuste(id, nome, saldo, codigo, dep) {
-    const novo = prompt(`AJUSTE ${dep.toUpperCase()}\n${nome}\nNovo Real:`);
-    if (novo) {
-        const pin = prompt("PIN:");
-        const fd = new FormData();
-        fd.append('produto_id', id);
-        fd.append('nome_produto', nome);
-        fd.append('codigo_interno', codigo);
-        fd.append('saldo_atual', saldo);
-        fd.append('novo_saldo', novo);
-        fd.append('deposito', dep);
-        fd.append('pin', pin);
+function gmCsrfTokenParaFetch() {
+    var m = document.querySelector('meta[name=csrfmiddlewaretoken]');
+    if (m && m.getAttribute('content')) return m.getAttribute('content');
+    var c = document.cookie.match(/(?:^|; )csrftoken=([^;]*)/);
+    return c ? decodeURIComponent(c[1]) : '{{ csrf_token }}';
+}
 
-        fetch("/api/ajustar/", {
-            method: 'POST',
-            body: fd,
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-        })
-        .then(res => res.json())
-        .then(d => {
-            if (d.ok) {
-                alert("Ok!");
-                location.reload();
-            } else {
-                alert("Erro: " + d.erro);
-            }
-        });
+function abrirAjuste(id, nome, saldo, codigo, dep) {
+    if (typeof window.prompt !== 'function') {
+        alert('Este ambiente bloqueou o diálogo de ajuste. Abra o PDV no navegador normal ou use Ajuste Mobile.');
+        return;
     }
+    var pid = id != null && id !== '' ? String(id) : '';
+    if (!pid) {
+        alert('Produto sem identificador. Sincronize a base (Sincronizar API / Estoque) e tente de novo.');
+        return;
+    }
+    var novo = prompt('AJUSTE ' + String(dep || '').toUpperCase() + '\n' + String(nome || '') + '\nNovo Real:');
+    if (novo === null) return;
+    novo = String(novo).trim().replace(',', '.');
+    if (novo === '' || Number.isNaN(Number(novo))) {
+        alert('Informe um número válido para o novo saldo.');
+        return;
+    }
+    var pin = prompt('PIN:');
+    if (pin === null) return;
+    pin = String(pin).trim();
+    if (!pin) {
+        alert('PIN é obrigatório.');
+        return;
+    }
+    var fd = new FormData();
+    fd.append('produto_id', pid);
+    fd.append('nome_produto', String(nome || ''));
+    fd.append('codigo_interno', String(codigo || ''));
+    fd.append('saldo_atual', String(saldo != null ? saldo : '0'));
+    fd.append('novo_saldo', novo);
+    fd.append('deposito', String(dep || 'centro'));
+    fd.append('pin', pin);
+
+    var csrf = gmCsrfTokenParaFetch();
+    fetch('/api/ajustar/', {
+        method: 'POST',
+        body: fd,
+        headers: { 'X-CSRFToken': csrf }
+    })
+        .then(function (res) {
+            var ct = (res.headers.get('content-type') || '').toLowerCase();
+            if (ct.indexOf('application/json') !== -1) {
+                return res.json().then(function (d) {
+                    return { res: res, d: d };
+                });
+            }
+            return res.text().then(function (t) {
+                return {
+                    res: res,
+                    d: { ok: false, erro: t ? t.slice(0, 240) : ('HTTP ' + res.status) }
+                };
+            });
+        })
+        .then(function (x) {
+            var d = x.d;
+            if (x.res.ok && d && d.ok) {
+                alert('Ok!');
+                location.reload();
+                return;
+            }
+            var msg = (d && d.erro) ? d.erro : ('HTTP ' + x.res.status);
+            alert('Erro: ' + msg);
+        })
+        .catch(function (e) {
+            console.error('[abrirAjuste]', e);
+            alert('Falha ao enviar ajuste. Verifique a rede ou recarregue o PDV e tente de novo.');
+        });
 }
 
 function forcarAtualizacao(produtoId) {
