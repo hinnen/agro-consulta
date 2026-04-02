@@ -315,3 +315,56 @@ class PedidoEntrega(models.Model):
 
     def __str__(self):
         return f"Entrega #{self.pk} — {self.cliente_nome[:40]}"
+
+
+class OpcaoBaixaFinanceiroExtra(models.Model):
+    """
+    Forma de pagamento ou conta/banco adicionada pelo usuário às listas da baixa no Agro.
+    Complementa as opções vindas do Mongo (modo ERP ou histórico).
+    """
+
+    class Tipo(models.TextChoices):
+        FORMA = "forma", "Forma de pagamento"
+        BANCO = "banco", "Banco / conta"
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="opcoes_baixa_financeiro_extra",
+    )
+    tipo = models.CharField(max_length=16, choices=Tipo.choices, db_index=True)
+    id_erp = models.CharField(
+        "ID no ERP / Mongo",
+        max_length=80,
+        blank=True,
+        default="",
+        help_text="Recomendado: copie o ID do cadastro no ERP para manter a baixa alinhada.",
+    )
+    nome = models.CharField("Nome exibido", max_length=300)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Opção extra (baixa financeira)"
+        verbose_name_plural = "Opções extras (baixa financeira)"
+        ordering = ["tipo", "nome"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["usuario", "tipo", "id_erp"],
+                condition=models.Q(id_erp__gt=""),
+                name="uniq_opcao_baixa_extra_com_id_erp",
+            ),
+            models.UniqueConstraint(
+                fields=["usuario", "tipo", "nome"],
+                condition=models.Q(id_erp=""),
+                name="uniq_opcao_baixa_extra_sem_id_erp",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        self.nome = (self.nome or "").strip()[:300]
+        self.id_erp = (self.id_erp or "").strip()[:80]
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        suf = f" ({self.id_erp})" if self.id_erp else ""
+        return f"{self.get_tipo_display()}: {self.nome}{suf}"

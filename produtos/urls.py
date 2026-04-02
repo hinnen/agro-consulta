@@ -28,6 +28,11 @@ urlpatterns = [
         name='lancamentos_financeiros',
     ),
     path(
+        'financeiro/resumo-gerencial/',
+        views.resumo_financeiro_gerencial_view,
+        name='resumo_financeiro_gerencial',
+    ),
+    path(
         'lancamentos/dre/',
         views.lancamentos_dre_view,
         name='lancamentos_dre',
@@ -76,6 +81,16 @@ urlpatterns = [
         'api/lancamentos/opcoes-baixa/',
         views.api_lancamentos_opcoes_baixa,
         name='api_lancamentos_opcoes_baixa',
+    ),
+    path(
+        'api/lancamentos/opcoes-baixa/extra/',
+        views.api_lancamentos_opcoes_baixa_extra_criar,
+        name='api_lancamentos_opcoes_baixa_extra_criar',
+    ),
+    path(
+        'api/lancamentos/opcoes-baixa/extra/<int:pk>/excluir/',
+        views.api_lancamentos_opcoes_baixa_extra_excluir,
+        name='api_lancamentos_opcoes_baixa_extra_excluir',
     ),
     path(
         'api/lancamentos/baixa/',

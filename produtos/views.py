@@ -25,12 +25,19 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 from django.utils import timezone
 from django.utils.safestring import mark_safe
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 from base.models import Empresa, PerfilUsuario, IntegracaoERP
 from estoque.models import AjusteRapidoEstoque
 from .forms import ClienteAgroForm
-from .models import ClienteAgro, ItemVendaAgro, PedidoEntrega, SessaoCaixa, VendaAgro
+from .models import (
+    ClienteAgro,
+    ItemVendaAgro,
+    OpcaoBaixaFinanceiroExtra,
+    PedidoEntrega,
+    SessaoCaixa,
+    VendaAgro,
+)
 from integracoes.texto import normalizar, expandir_tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 from integracoes.venda_erp_api import VendaERPAPIClient
@@ -1410,6 +1417,23 @@ def _ctx_lancamentos_financeiros():
 
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
+def resumo_financeiro_gerencial_view(request):
+    from financeiro.models import GrupoEmpresarial
+
+    empresas = Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
+    grupos = GrupoEmpresarial.objects.filter(ativo=True).order_by("nome")
+    return render(
+        request,
+        "produtos/resumo_financeiro_gerencial.html",
+        {
+            "empresas": empresas,
+            "grupos": grupos,
+        },
+    )
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
 def lancamentos_financeiros_view(request):
     """Lançamentos a pagar e a receber (DtoLancamento) — Mongo / ERP Venda."""
     return render(request, "produtos/lancamentos_financeiros.html", _ctx_lancamentos_financeiros())
@@ -1802,15 +1826,126 @@ def api_lancamentos_export_csv(request):
     return resp
 
 
+def _mesclar_opcoes_baixa_com_extras(
+    base: list[dict],
+    extras_qs,
+) -> tuple[list[dict], list[dict]]:
+    """
+    Acrescenta opções cadastradas pelo usuário sem duplicar id (quando preenchido) ou nome (sem id).
+    Retorna (lista_mesclada, detalhe_extras_para_ui).
+    """
+    keys: set[tuple[str, str]] = set()
+    for x in base:
+        oid = (x.get("id") or "").strip()
+        nome = (x.get("nome") or "").strip().lower()
+        if not (x.get("nome") or "").strip():
+            continue
+        keys.add(("i", oid) if oid else ("n", nome))
+    out = list(base)
+    detalhe: list[dict] = []
+    for e in extras_qs:
+        i = (e.id_erp or "").strip()
+        n = (e.nome or "").strip()
+        if not n:
+            continue
+        k = ("i", i) if i else ("n", n.lower())
+        if k in keys:
+            continue
+        keys.add(k)
+        out.append({"id": i, "nome": n, "origem": "manual"})
+        detalhe.append(
+            {"pk": e.pk, "tipo": e.tipo, "nome": n, "id_erp": i}
+        )
+    return out, detalhe
+
+
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_lancamentos_opcoes_baixa(request):
-    """Formas de pagamento e bancos distintos no Mongo (para selects na baixa)."""
+    """Formas de pagamento e bancos: Mongo (modo ERP ou histórico) + opções extras do usuário."""
+    modo = (request.GET.get("modo") or "erp").strip().lower()
+    if modo not in ("erp", "historico"):
+        modo = "erp"
     _, db = obter_conexao_mongo()
     if db is None:
-        return JsonResponse({"erro": "Mongo indisponível", "formas": [], "bancos": []}, status=503)
-    formas, bancos = listar_formas_e_bancos_distintos(db)
-    return JsonResponse({"formas": formas, "bancos": bancos})
+        return JsonResponse(
+            {"erro": "Mongo indisponível", "formas": [], "bancos": [], "modo": modo, "extras": []},
+            status=503,
+        )
+    formas, bancos = listar_formas_e_bancos_distintos(db, modo=modo)
+    extras_q = OpcaoBaixaFinanceiroExtra.objects.filter(usuario=request.user)
+    formas, det_f = _mesclar_opcoes_baixa_com_extras(
+        formas, extras_q.filter(tipo=OpcaoBaixaFinanceiroExtra.Tipo.FORMA)
+    )
+    bancos, det_b = _mesclar_opcoes_baixa_com_extras(
+        bancos, extras_q.filter(tipo=OpcaoBaixaFinanceiroExtra.Tipo.BANCO)
+    )
+    formas.sort(key=lambda x: (x.get("nome") or "").lower())
+    bancos.sort(key=lambda x: (x.get("nome") or "").lower())
+    return JsonResponse(
+        {
+            "formas": formas,
+            "bancos": bancos,
+            "modo": modo,
+            "extras": det_f + det_b,
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_lancamentos_opcoes_baixa_extra_criar(request):
+    """Inclui forma ou conta na lista pessoal da baixa."""
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    tipo = str(payload.get("tipo") or "").strip().lower()
+    if tipo not in ("forma", "banco"):
+        return JsonResponse({"ok": False, "erro": 'Informe tipo "forma" ou "banco".'}, status=400)
+    nome = str(payload.get("nome") or "").strip()[:300]
+    if not nome:
+        return JsonResponse({"ok": False, "erro": "Informe o nome exibido na lista."}, status=400)
+    id_erp = str(payload.get("id_erp") or "").strip()[:80]
+    tipo_choice = (
+        OpcaoBaixaFinanceiroExtra.Tipo.FORMA
+        if tipo == "forma"
+        else OpcaoBaixaFinanceiroExtra.Tipo.BANCO
+    )
+    try:
+        obj = OpcaoBaixaFinanceiroExtra.objects.create(
+            usuario=request.user,
+            tipo=tipo_choice,
+            nome=nome,
+            id_erp=id_erp,
+        )
+    except IntegrityError:
+        return JsonResponse(
+            {"ok": False, "erro": "Já existe uma opção igual (mesmo tipo e ID ou mesmo nome sem ID)."},
+            status=400,
+        )
+    return JsonResponse(
+        {
+            "ok": True,
+            "item": {
+                "pk": obj.pk,
+                "tipo": obj.tipo,
+                "nome": obj.nome,
+                "id_erp": obj.id_erp,
+            },
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_lancamentos_opcoes_baixa_extra_excluir(request, pk: int):
+    """Remove opção pessoal da lista da baixa."""
+    q = OpcaoBaixaFinanceiroExtra.objects.filter(pk=pk, usuario=request.user)
+    if not q.exists():
+        return JsonResponse({"ok": False, "erro": "Registro não encontrado."}, status=404)
+    q.delete()
+    return JsonResponse({"ok": True})
 
 
 @login_required(login_url="/admin/login/")

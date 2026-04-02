@@ -111,6 +111,11 @@
   <script>
     const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
     const API_SAIDA = "{% url 'api_lancamentos_saida_caixa' %}";
+    const LS_OPCOES_MODO = 'gm_fin_opcoes_modo';
+    function opcoesBaixaModoFromStorage() {
+      const v = (localStorage.getItem(LS_OPCOES_MODO) || 'erp').toLowerCase();
+      return v === 'historico' ? 'historico' : 'erp';
+    }
     const PLANOS = JSON.parse(document.getElementById('planos-saida-json').textContent || '[]');
 
     function getCookie(name) {
@@ -174,7 +179,8 @@
     async function carregarOpcoes() {
       if (window.gmLoadingBar) window.gmLoadingBar.show();
       try {
-        const r = await fetch(API_OPCOES, { credentials: 'same-origin' });
+        const modo = opcoesBaixaModoFromStorage();
+        const r = await fetch(`${API_OPCOES}?modo=${encodeURIComponent(modo)}`, { credentials: 'same-origin' });
         const d = await r.json();
         const fs = document.getElementById('cx-forma');
         const bs = document.getElementById('cx-banco');
@@ -184,14 +190,14 @@
           const o = document.createElement('option');
           const nome = String(x.nome || '').replace(/\|/g, '/');
           o.value = `${String(x.id || '')}|||${nome}`;
-          o.textContent = x.nome || nome;
+          o.textContent = x.origem === 'manual' ? `${x.nome || nome} · lista pessoal` : (x.nome || nome);
           fs.appendChild(o);
         });
         (d.bancos || []).forEach((x) => {
           const o = document.createElement('option');
           const nome = String(x.nome || '').replace(/\|/g, '/');
           o.value = `${String(x.id || '')}|||${nome}`;
-          o.textContent = x.nome || nome;
+          o.textContent = x.origem === 'manual' ? `${x.nome || nome} · lista pessoal` : (x.nome || nome);
           bs.appendChild(o);
         });
         const ifs = matchOpcaoPreferida(d.formas || [], 'DINHEIRO');

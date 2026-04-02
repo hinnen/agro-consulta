@@ -1,5 +1,10 @@
 from django.contrib import admin
-from .models import Estoque, AjusteRapidoEstoque
+from .models import (
+    AjusteRapidoEstoque,
+    Estoque,
+    IndicadorProdutoLoja,
+    PoliticaEstoque,
+)
 
 
 @admin.register(Estoque)
@@ -43,3 +48,25 @@ class AjusteRapidoEstoqueAdmin(admin.ModelAdmin):
         'loja__nome',
     )
     list_filter = ('empresa', 'loja', 'deposito', 'criado_em')
+
+
+@admin.register(PoliticaEstoque)
+class PoliticaEstoqueAdmin(admin.ModelAdmin):
+    list_display = ("empresa", "loja", "produto", "dias_cobertura", "prioridade_manual")
+    list_filter = ("empresa", "loja")
+
+
+@admin.register(IndicadorProdutoLoja)
+class IndicadorProdutoLojaAdmin(admin.ModelAdmin):
+    list_display = (
+        "data_base",
+        "empresa",
+        "loja",
+        "produto",
+        "necessidade",
+        "sugestao_acao",
+        "score_prioridade",
+    )
+    list_filter = ("empresa", "loja", "data_base", "classe_abc")
+    search_fields = ("produto__nome", "produto__codigo_interno")
+

@@ -1608,7 +1608,9 @@ function compraAtualizarResumoGaveta() {
     OCULTOS: 'Ocultos',
   };
   const nome = nomes[compraFiltroAlerta] || compraFiltroAlerta;
-  el.textContent = nome;
+  const ind = document.getElementById('compra-indicador-alerta');
+  const extra = ind ? String(ind.innerText || '').replace(/\s+/g, ' ').trim() : '';
+  el.textContent = extra ? `${nome} · ${extra}` : nome;
 }
 
 function compraAplicarEstadoGaveta(abrir) {
@@ -1637,7 +1639,11 @@ function initCompraGavetaFiltros() {
   const btn = document.getElementById('btn-compra-toggle-gaveta');
   const body = document.getElementById('compra-gaveta-body');
   if (!btn || !body) return;
-  compraAplicarEstadoGaveta(false);
+  let abrir = true;
+  try {
+    abrir = localStorage.getItem(LS_COMPRA_GAVETA_ABERTA) !== '0';
+  } catch (_) {}
+  compraAplicarEstadoGaveta(abrir);
   btn.addEventListener('click', function () {
     const fechada = body.classList.contains('hidden');
     compraAplicarEstadoGaveta(fechada);
@@ -2267,7 +2273,6 @@ setCarrinhoExpandido(compraCarrinhoExpandido && lista.length > 0, { silentSave: 
 document.getElementById('btn-compra-toggle-carrinho')?.addEventListener('click', () => {
   setCarrinhoExpandido(!compraCarrinhoExpandido);
 });
-document.addEventListener('click', () => {});
 
 document.getElementById('ca-dimensao')?.addEventListener('change', () => preencherSelectCompraAvancadaDimensao());
 document.getElementById('btn-busca-avancada-compra')?.addEventListener('click', () => abrirBuscaAvancadaCompra());
