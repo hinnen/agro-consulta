@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <title>Agro Mais | Pedido de Compra</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   {% include "produtos/_agro_consulta_ui.html" %}
@@ -2366,7 +2367,10 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-window.addEventListener('beforeunload', salvarEstadoTelaCompra);
+window.addEventListener('pagehide', (ev) => {
+  if (ev.persisted) return;
+  salvarEstadoTelaCompra();
+});
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     salvarEstadoTelaCompra();

@@ -257,6 +257,10 @@ def _mapa_saldos_finais_por_produtos(db, client, p_ids):
     return out
 
 
+# Lista de clientes PDV (ClienteAgro) — cache curto; invalida em sync e em save/delete (signals).
+API_LIST_CUSTOMERS_CACHE_KEY = "api_list_customers_v1"
+API_LIST_CUSTOMERS_TTL = 45
+
 # Catálogo PDV: um snapshot por dia civil (TIME_ZONE) + invalidação manual. Estoque ao vivo via /api/pdv/saldos/.
 CATALOGO_PDV_CACHE_ENTRY_KEY = "pdv_catalogo_produtos_por_dia_v1"
 CATALOGO_PDV_CACHE_PREV_ENTRY_KEY = "pdv_catalogo_produtos_prev_v1"
@@ -1130,6 +1134,7 @@ def clientes_sincronizar(request):
             f"Fontes: Mongo {r['linhas_mongo']} linhas, ERP {r['linhas_erp']} linhas."
         ),
     )
+    cache.delete(API_LIST_CUSTOMERS_CACHE_KEY)
     return redirect("clientes_lista")
 
 
@@ -4573,6 +4578,9 @@ def _clientes_lista_via_erp_api(max_total=900):
 @require_GET
 def api_list_customers(request):
     """Lista só ClienteAgro (sincronize em /clientes/ antes). Sem Mongo/API em tempo real."""
+    cached = cache.get(API_LIST_CUSTOMERS_CACHE_KEY)
+    if cached is not None:
+        return JsonResponse(cached)
     qs = ClienteAgro.objects.filter(ativo=True).order_by("nome")[:8000]
     merged = [_linha_clienteagro_pdv(c) for c in qs]
     payload = {"clientes": merged}
@@ -4581,6 +4589,7 @@ def api_list_customers(request):
             "cliente_agro": len(merged),
             "total_na_lista": len(merged),
         }
+    cache.set(API_LIST_CUSTOMERS_CACHE_KEY, payload, API_LIST_CUSTOMERS_TTL)
     return JsonResponse(payload)
 
 
