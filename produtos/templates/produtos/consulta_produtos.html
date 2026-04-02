@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% include "produtos/_head_perf_mpa.html" %}
+    <meta name="csrfmiddlewaretoken" content="{{ csrf_token }}">
     <title>Agro Mais | PDV</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
@@ -774,6 +775,35 @@
                         <input id="lembrete-hora" type="time" class="mt-1 w-full text-sm font-bold px-2 py-2.5 rounded-xl border-2 border-slate-200 bg-white">
                     </div>
                     <button type="button" onclick="salvarLembrete()" class="sm:self-end shrink-0 px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-black uppercase">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-pdv-ajuste-estoque" class="fixed inset-0 bg-slate-900/55 backdrop-blur-sm z-[107] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="pae-titulo-dep" onclick="if (event.target === this) fecharModalAjustePdv();">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 flex flex-col" onclick="event.stopPropagation();">
+            <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center gap-3 shrink-0">
+                <h2 id="pae-titulo-dep" class="text-base font-black uppercase text-slate-800 tracking-tight">Ajuste de estoque</h2>
+                <button type="button" onclick="fecharModalAjustePdv()" class="text-slate-400 hover:text-slate-700 font-bold text-sm px-2" aria-label="Fechar">✕</button>
+            </div>
+            <div class="p-5 space-y-4">
+                <p id="pae-produto" class="text-sm font-bold text-slate-700 leading-snug"></p>
+                <p class="text-[11px] font-semibold text-amber-900 bg-amber-50 border border-amber-200/80 rounded-xl px-3 py-2 leading-relaxed">Antes de ajustar, use o botão verde <strong>Estoque</strong> na barra superior para trazer os saldos do ERP. O ajuste usa o saldo exibido como referência.</p>
+                <div class="flex items-baseline gap-2 text-sm">
+                    <span class="text-slate-500 font-bold">Saldo atual (referência):</span>
+                    <span id="pae-saldo-atual" class="font-black tabular-nums text-emerald-800">0</span>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-500" for="pae-novo-saldo">Novo saldo real</label>
+                    <input id="pae-novo-saldo" type="text" inputmode="decimal" autocomplete="off" class="mt-1 w-full font-bold text-lg border-2 border-slate-200 rounded-xl px-3 py-2.5" placeholder="Ex.: 12">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-500" for="pae-pin">PIN</label>
+                    <input id="pae-pin" type="password" autocomplete="current-password" class="mt-1 w-full font-bold text-sm border-2 border-slate-200 rounded-xl px-3 py-2.5" placeholder="Senha rápida">
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                    <button type="button" id="pae-btn-cancelar" onclick="fecharModalAjustePdv()" class="flex-1 py-3 rounded-xl border-2 border-slate-200 font-black uppercase text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
+                    <button type="button" id="pae-btn-confirmar" onclick="confirmarModalAjustePdv()" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-sm shadow-md">Confirmar ajuste</button>
                 </div>
             </div>
         </div>
@@ -1887,8 +1917,8 @@ function renderizarSugestoes() {
                     </div>
                     <div class="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 shrink-0 ml-auto">
                         <div class="flex items-center gap-1 rounded-md bg-emerald-600/10 px-1.5 py-0.5 ring-1 ring-emerald-500/35">
-                            <span class="text-[8px] font-black uppercase text-emerald-900">Centro</span>
-                            <span class="text-sm font-black text-emerald-950 tabular-nums">${saldoPiso(c)}</span>
+                            <span class="text-[9px] font-black uppercase text-emerald-900">Centro</span>
+                            <span class="text-base sm:text-lg font-black text-emerald-950 tabular-nums leading-none">${saldoPiso(c)}</span>
                             <button type="button" data-adj-c class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-white/90 text-emerald-800 ring-1 ring-emerald-300/60 hover:bg-emerald-50 transition-colors shrink-0" aria-label="Ajustar Centro">${lapiz}</button>
                         </div>
                         <div class="flex items-center gap-1 rounded-md bg-slate-100/90 px-1.5 py-0.5 ring-1 ring-slate-200/80">
@@ -2477,44 +2507,89 @@ function gmCsrfTokenParaFetch() {
     return c ? decodeURIComponent(c[1]) : '{{ csrf_token }}';
 }
 
-function abrirAjuste(id, nome, saldo, codigo, dep) {
-    if (typeof window.prompt !== 'function') {
-        alert('Este ambiente bloqueou o diálogo de ajuste. Abra o PDV no navegador normal ou use Ajuste Mobile.');
-        return;
+/** Exige leitura recente de saldos (botão Estoque), alinhado ao termômetro da barra. */
+function pdvEstoqueLeituraRecenteParaAjuste() {
+    var lab = document.getElementById('agro-saldos-ultima-atualizacao');
+    if (!lab) return { ok: true };
+    var freshAt = lab.dataset && lab.dataset.gmFreshAt ? parseInt(lab.dataset.gmFreshAt, 10) : 0;
+    if (!freshAt) {
+        return {
+            ok: false,
+            msg: 'Atualize o estoque antes de ajustar: clique no botão verde «Estoque» na barra superior e aguarde aparecer a data em «Última leitura». Depois disso você pode usar o lápis para ajustar o saldo.',
+        };
     }
-    var pid = id != null && id !== '' ? String(id) : '';
-    if (!pid) {
-        alert('Produto sem identificador. Sincronize a base (Sincronizar API / Estoque) e tente de novo.');
-        return;
+    var staleMs =
+        typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.staleMsDefault
+            ? AgroEstoqueSync.staleMsDefault
+            : 600000;
+    if (Date.now() - freshAt > staleMs) {
+        return {
+            ok: false,
+            msg: 'Os saldos estão desatualizados (passou o tempo recomendado). Clique em «Estoque» para atualizar de novo e só então faça o ajuste.',
+        };
     }
-    var novo = prompt('AJUSTE ' + String(dep || '').toUpperCase() + '\n' + String(nome || '') + '\nNovo Real:');
-    if (novo === null) return;
-    novo = String(novo).trim().replace(',', '.');
+    return { ok: true };
+}
+
+var __pdvAjustePendente = null;
+
+function fecharModalAjustePdv() {
+    var m = document.getElementById('modal-pdv-ajuste-estoque');
+    if (!m) return;
+    __pdvAjustePendente = null;
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+}
+
+function confirmarModalAjustePdv() {
+    var p = __pdvAjustePendente;
+    if (!p) return;
+    var novoEl = document.getElementById('pae-novo-saldo');
+    var pinEl = document.getElementById('pae-pin');
+    var novo = String((novoEl && novoEl.value) || '')
+        .trim()
+        .replace(',', '.');
     if (novo === '' || Number.isNaN(Number(novo))) {
         alert('Informe um número válido para o novo saldo.');
+        if (novoEl) novoEl.focus();
         return;
     }
-    var pin = prompt('PIN:');
-    if (pin === null) return;
-    pin = String(pin).trim();
+    var pin = String((pinEl && pinEl.value) || '').trim();
     if (!pin) {
         alert('PIN é obrigatório.');
+        if (pinEl) pinEl.focus();
         return;
     }
-    var fd = new FormData();
-    fd.append('produto_id', pid);
-    fd.append('nome_produto', String(nome || ''));
-    fd.append('codigo_interno', String(codigo || ''));
-    fd.append('saldo_atual', String(saldo != null ? saldo : '0'));
-    fd.append('novo_saldo', novo);
-    fd.append('deposito', String(dep || 'centro'));
-    fd.append('pin', pin);
+    var btn = document.getElementById('pae-btn-confirmar');
+    var prev = btn ? btn.textContent : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Enviando…';
+    }
+    gmEnviarAjustePdvFetch(p, novo, pin, function (ok) {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = prev || 'Confirmar ajuste';
+        }
+        if (ok) fecharModalAjustePdv();
+    });
+}
 
+function gmEnviarAjustePdvFetch(p, novo, pin, done) {
+    var fd = new FormData();
+    fd.append('produto_id', p.id);
+    fd.append('nome_produto', String(p.nome || ''));
+    fd.append('codigo_interno', String(p.codigo || ''));
+    fd.append('saldo_atual', String(p.saldo != null ? p.saldo : '0'));
+    fd.append('novo_saldo', novo);
+    fd.append('deposito', String(p.dep || 'centro'));
+    fd.append('pin', pin);
     var csrf = gmCsrfTokenParaFetch();
     fetch('/api/ajustar/', {
         method: 'POST',
         body: fd,
-        headers: { 'X-CSRFToken': csrf }
+        headers: { 'X-CSRFToken': csrf },
+        credentials: 'same-origin',
     })
         .then(function (res) {
             var ct = (res.headers.get('content-type') || '').toLowerCase();
@@ -2526,7 +2601,7 @@ function abrirAjuste(id, nome, saldo, codigo, dep) {
             return res.text().then(function (t) {
                 return {
                     res: res,
-                    d: { ok: false, erro: t ? t.slice(0, 240) : ('HTTP ' + res.status) }
+                    d: { ok: false, erro: t ? t.slice(0, 240) : 'HTTP ' + res.status },
                 };
             });
         })
@@ -2535,15 +2610,53 @@ function abrirAjuste(id, nome, saldo, codigo, dep) {
             if (x.res.ok && d && d.ok) {
                 alert('Ok!');
                 location.reload();
+                if (typeof done === 'function') done(true);
                 return;
             }
-            var msg = (d && d.erro) ? d.erro : ('HTTP ' + x.res.status);
+            var msg = d && d.erro ? d.erro : 'HTTP ' + x.res.status;
             alert('Erro: ' + msg);
+            if (typeof done === 'function') done(false);
         })
         .catch(function (e) {
-            console.error('[abrirAjuste]', e);
+            console.error('[gmEnviarAjustePdvFetch]', e);
             alert('Falha ao enviar ajuste. Verifique a rede ou recarregue o PDV e tente de novo.');
+            if (typeof done === 'function') done(false);
         });
+}
+
+function abrirAjuste(id, nome, saldo, codigo, dep) {
+    var chk = pdvEstoqueLeituraRecenteParaAjuste();
+    if (!chk.ok) {
+        alert(chk.msg);
+        return;
+    }
+    var pid = id != null && id !== '' ? String(id) : '';
+    if (!pid) {
+        alert('Produto sem identificador. Use «Sincronizar API» ou «Estoque» para atualizar a base e tente de novo.');
+        return;
+    }
+    var m = document.getElementById('modal-pdv-ajuste-estoque');
+    if (!m) {
+        alert('Interface de ajuste indisponível. Recarregue o PDV.');
+        return;
+    }
+    __pdvAjustePendente = { id: pid, nome: nome, saldo: saldo, codigo: codigo, dep: dep || 'centro' };
+    var tit = document.getElementById('pae-titulo-dep');
+    var depLabel = __pdvAjustePendente.dep === 'vila' ? 'Vila' : 'Centro';
+    if (tit) tit.textContent = 'Ajuste — ' + depLabel;
+    var pn = document.getElementById('pae-produto');
+    if (pn) pn.textContent = String(nome || '');
+    var sa = document.getElementById('pae-saldo-atual');
+    if (sa) sa.textContent = String(Math.floor(Number(saldo) || 0));
+    var novoEl = document.getElementById('pae-novo-saldo');
+    var pinEl = document.getElementById('pae-pin');
+    if (novoEl) novoEl.value = '';
+    if (pinEl) pinEl.value = '';
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+    setTimeout(function () {
+        if (novoEl) novoEl.focus();
+    }, 50);
 }
 
 function forcarAtualizacao(produtoId) {
@@ -3580,6 +3693,12 @@ document.addEventListener('keydown', function(e) {
         }
         if (pdvCarrinhoDrawerEstaAberto()) {
             fecharDrawerCarrinho();
+            e.preventDefault();
+            return;
+        }
+        const mpae = document.getElementById('modal-pdv-ajuste-estoque');
+        if (mpae && !mpae.classList.contains('hidden')) {
+            fecharModalAjustePdv();
             e.preventDefault();
             return;
         }
