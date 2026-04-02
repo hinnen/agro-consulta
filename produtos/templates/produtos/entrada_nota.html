@@ -55,7 +55,7 @@
 
   <main class="max-w-[1400px] mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
     <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-2">
-      <p><strong class="font-black uppercase">Uso</strong> — conferir nota, buscar <strong>fornecedor</strong> e <strong>produtos</strong> cadastrados, <strong>ratear quantidade</strong> (ex.: 1 caixa = 10 un. no estoque), <strong>data de entrada</strong>, <strong>plano de contas</strong> por item e opcionalmente gerar <strong>conta a pagar</strong> no Mongo (como o <a href="{% url 'lancamentos_manual' %}" class="underline font-black">lançamento manual</a>). <strong>Não</strong> altera estoque no ERP sozinho.</p>
+      <p><strong class="font-black uppercase">Uso</strong> — conferir nota, buscar <strong>fornecedor</strong> e <strong>produtos</strong> cadastrados, <strong>ratear quantidade</strong> (ex.: 1 caixa = 10 un. no estoque), <strong>data de entrada</strong>, um <strong>plano de contas para a nota inteira</strong> (DRE / resumo gerencial) e opcionalmente gerar <strong>conta a pagar</strong> no Mongo (como o <a href="{% url 'lancamentos_manual' %}" class="underline font-black">lançamento manual</a>). <strong>Não</strong> altera estoque no ERP sozinho.</p>
       <p><strong class="font-black uppercase">SEFAZ</strong> — consultar notas na Receita exige certificado digital e dados da empresa já instalados no servidor.</p>
       <details class="group">
         <summary class="cursor-pointer list-none inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-900">
@@ -64,7 +64,7 @@
           <span class="group-open:rotate-90 transition-transform inline-block text-[9px]">▸</span>
         </summary>
         <div class="mt-2 space-y-1 text-[10px] font-bold text-amber-900/90">
-          <p>Rascunhos na coleção <code class="bg-white/80 px-1 rounded">AgroEntradaNotaRascunho</code> (Mongo).</p>
+          <p>Rascunhos na coleção <code class="bg-white/80 px-1 rounded">AgroEntradaNotaRascunho</code> (Mongo). O plano da nota fica em <code class="bg-white/80 px-1 rounded">cabecalho.plano_conta</code> / <code class="bg-white/80 px-1 rounded">plano_conta_id</code>.</p>
           <p>Certificado A1 (.pfx), CNPJ e UF nas variáveis de ambiente. Homologação: <code class="bg-white/80 px-1 rounded">NFE_DIST_DFE_TP_AMB=2</code>.</p>
         </div>
       </details>
@@ -111,6 +111,18 @@
           <input type="datetime-local" id="m-dh" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold"></label>
         <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Data entrada (física)</span>
           <input type="date" id="m-data-entrada" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold" title="Quando a mercadoria entrou no estoque"></label>
+        <label class="block lg:col-span-3"><span class="text-[10px] font-black uppercase text-slate-500">Plano de conta (nota inteira · DRE / gerencial)</span>
+          <div class="relative sug-wrap mt-1" data-sug-campo="plano">
+            <input type="text" id="m-plano-conta" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold focus:border-orange-500 outline-none" placeholder="Busque ou escolha um atalho abaixo…">
+            <input type="hidden" id="m-plano-conta-id" value="">
+            <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+          </div>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <button type="button" class="btn-plano-rapido px-3 py-1.5 rounded-lg border-2 border-orange-200 bg-white text-[10px] font-black uppercase text-orange-900 hover:bg-orange-50" data-plano-nome="COMPRA MERCADORIA SN" title="Preenche o nome; confira na lista se quiser amarrar o ID do ERP">COMPRA MERCADORIA SN</button>
+            <button type="button" class="btn-plano-rapido px-3 py-1.5 rounded-lg border-2 border-orange-200 bg-white text-[10px] font-black uppercase text-orange-900 hover:bg-orange-50" data-plano-nome="COMPRA MERCADORIA CN">COMPRA MERCADORIA CN</button>
+          </div>
+          <p class="text-[9px] text-slate-500 font-semibold mt-1">O mesmo plano vale para o <strong>título a pagar</strong> (um lançamento com a soma da nota) e aparece no Mongo como <code class="bg-slate-100 px-0.5 rounded">PlanoDeConta</code>, base do DRE.</p>
+        </label>
       </div>
       <div class="flex flex-wrap gap-2 items-center justify-between border-t border-slate-100 pt-4">
         <h3 class="text-sm font-black uppercase text-slate-700">Itens</h3>
@@ -118,7 +130,7 @@
       </div>
       <p class="text-[10px] font-semibold text-slate-600"><strong class="text-orange-800">Rateio:</strong> coluna <em>Un/emb</em> = unidades dentro de cada embalagem da NF (ex.: 10). <strong>Qtd est.</strong> = Qtd NF × Un/emb (ajuste manual se precisar).</p>
       <div class="overflow-x-auto rounded-xl border border-slate-200">
-        <table class="w-full text-xs sm:text-sm min-w-[1100px]">
+        <table class="w-full text-xs sm:text-sm min-w-[960px]">
           <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-500">
             <tr>
               <th class="text-left px-2 py-2 min-w-[140px]">Descrição</th>
@@ -130,7 +142,6 @@
               <th class="text-right px-2 py-2 w-20">Qtd est.</th>
               <th class="text-right px-2 py-2 w-20">V. unit</th>
               <th class="text-left px-2 py-2 w-14">CFOP</th>
-              <th class="text-left px-2 py-2 min-w-[100px]">Plano conta</th>
               <th class="text-left px-2 py-2 min-w-[100px]">Match</th>
               <th class="w-8"></th>
             </tr>
@@ -145,11 +156,7 @@
           Lançamento financeiro (conta a pagar) — opcional
         </summary>
         <div class="mt-4 space-y-3 text-[11px] font-semibold text-emerald-950">
-          <p>Grava o rascunho da NF e cria título(s) a pagar no Mongo (e envia ao ERP se <code class="bg-white/80 px-1 rounded text-[10px]">VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH</code> estiver ativo).</p>
-          <div class="flex flex-wrap gap-4">
-            <label class="inline-flex items-center gap-2 cursor-pointer"><input type="radio" name="fin-modo" value="unico" checked class="accent-emerald-600"><span>Um título (soma da nota)</span></label>
-            <label class="inline-flex items-center gap-2 cursor-pointer"><input type="radio" name="fin-modo" value="por_item" class="accent-emerald-600"><span>Uma linha por item (usa plano de cada linha)</span></label>
-          </div>
+          <p>Grava o rascunho da NF e cria <strong>um título a pagar</strong> com a soma da nota (e envia ao ERP se <code class="bg-white/80 px-1 rounded text-[10px]">VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH</code> estiver ativo). O <strong>plano de contas</strong> é o definido acima em <em>Dados da nota</em> — é ele que alimenta o DRE.</p>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Empresa *</span>
               <div class="relative sug-wrap mt-1" data-sug-campo="empresa">
@@ -157,14 +164,6 @@
                 <input type="hidden" id="fin-empresa-id" value="">
                 <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
               </div></label>
-            <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Plano padrão *</span>
-              <div class="relative sug-wrap mt-1" data-sug-campo="plano">
-                <input type="text" id="fin-plano-pad" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Ex.: Compra de mercadoria…">
-                <input type="hidden" id="fin-plano-pad-id" value="">
-                <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
-              </div>
-              <span class="text-[9px] text-slate-500">No modo &quot;por item&quot;, use plano na linha ou este padrão.</span>
-            </label>
             <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Competência *</span>
               <input type="date" id="fin-dc" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold"></label>
             <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Vencimento *</span>
@@ -318,8 +317,6 @@
       produto_id: it.produto_id || '',
       nome_catalogo: it.nome_catalogo || '',
       match_tipo: it.match_tipo || '',
-      plano_conta: it.plano_conta || '',
-      plano_conta_id: it.plano_conta_id || '',
     };
   }
 
@@ -344,7 +341,6 @@
     const d = data || {
       x_prod: '', c_prod: '', ean: '', q_com: 1, un_por_embalagem: 1, q_estoque: 1,
       v_un_com: 0, cfop: '', produto_id: '', nome_catalogo: '', match_tipo: '',
-      plano_conta: '', plano_conta_id: '',
     };
     const mt = d.match_tipo ? ` (${d.match_tipo})` : '';
     const mc = d.nome_catalogo ? `${d.nome_catalogo}${mt}` : (d.produto_id ? d.produto_id : '—');
@@ -358,11 +354,6 @@
       <td class="px-2 py-1"><input type="number" step="0.0001" class="in-q-est w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="" title="Qtd p/ estoque (editar para sobrescrever)"></td>
       <td class="px-2 py-1"><input type="number" step="0.01" class="in-vun w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value=""></td>
       <td class="px-2 py-1"><input type="text" class="in-cfop w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
-      <td class="px-2 py-1"><div class="relative sug-wrap" data-sug-campo="plano">
-        <input type="text" class="in-plano w-full rounded border border-slate-200 px-1 py-1 text-xs font-semibold" autocomplete="off" placeholder="Plano…">
-        <input type="hidden" class="in-plano-id" value="">
-        <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-lg shadow-lg"></ul>
-      </div></td>
       <td class="px-2 py-1 text-[10px] font-semibold text-slate-600 in-match">${mc}</td>
       <td class="px-1 py-1"><button type="button" class="btn-del text-red-600 font-black text-lg leading-none px-1" title="Remover">×</button></td>`;
     tr.querySelector('.in-desc').value = d.x_prod;
@@ -373,8 +364,6 @@
     tr.querySelector('.in-vun').value = d.v_un_com;
     tr.querySelector('.in-cfop').value = d.cfop;
     tr.querySelector('.in-prod-id').value = d.produto_id || '';
-    tr.querySelector('.in-plano').value = d.plano_conta || '';
-    tr.querySelector('.in-plano-id').value = d.plano_conta_id || '';
     const qe = tr.querySelector('.in-q-est');
     if (d.q_estoque != null && d.q_estoque !== '' && !Number.isNaN(Number(d.q_estoque))) {
       qe.value = d.q_estoque;
@@ -398,7 +387,6 @@
     });
     tr.querySelector('.btn-del').addEventListener('click', () => tr.remove());
     document.getElementById('tbody-itens').appendChild(tr);
-    attachSuggest(tr.querySelector('.sug-wrap'));
   }
 
   function coletarLinhas() {
@@ -422,8 +410,6 @@
           const t = (tr.querySelector('.in-match').textContent || '').trim();
           return t && t !== '—' ? t : '';
         })(),
-        plano_conta: tr.querySelector('.in-plano').value.trim(),
-        plano_conta_id: tr.querySelector('.in-plano-id').value.trim(),
       });
     });
     return linhas;
@@ -439,6 +425,8 @@
       chave: document.getElementById('m-chave').value.trim(),
       dh_emi: document.getElementById('m-dh').value || '',
       data_entrada: document.getElementById('m-data-entrada').value || '',
+      plano_conta: document.getElementById('m-plano-conta').value.trim(),
+      plano_conta_id: document.getElementById('m-plano-conta-id').value.trim(),
     };
   }
 
@@ -531,6 +519,16 @@
 
   document.querySelectorAll('#panel-manual .sug-wrap').forEach(attachSuggest);
 
+  document.querySelectorAll('.btn-plano-rapido').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const nome = (btn.getAttribute('data-plano-nome') || '').trim();
+      if (!nome) return;
+      document.getElementById('m-plano-conta').value = nome;
+      document.getElementById('m-plano-conta-id').value = '';
+      document.getElementById('m-plano-conta').focus();
+    });
+  });
+
   async function buscarProdutosModal(termo) {
     const ul = document.getElementById('modal-prod-res');
     ul.innerHTML = '<li class="px-3 py-2 text-slate-400 text-xs">Buscando…</li>';
@@ -619,9 +617,9 @@
       showMsg('Inclua ao menos uma linha com descrição ou quantidade.', false);
       return;
     }
-    const finModo = (document.querySelector('input[name="fin-modo"]:checked') || {}).value || 'unico';
     const empresa = document.getElementById('fin-empresa-nome').value.trim();
-    const planoPad = document.getElementById('fin-plano-pad').value.trim();
+    const planoPad = (cab.plano_conta || document.getElementById('m-plano-conta').value.trim());
+    const planoPadId = (cab.plano_conta_id || document.getElementById('m-plano-conta-id').value.trim());
     const dc = document.getElementById('fin-dc').value;
     const dv = document.getElementById('fin-dv').value;
     const forma = document.getElementById('fin-forma-nome').value.trim();
@@ -630,23 +628,20 @@
       showMsg('Informe o fornecedor na nota.', false);
       return;
     }
-    if (!empresa || !planoPad || !dc || !dv || !forma || !banco) {
-      showMsg('Preencha empresa, plano padrão, competência, vencimento, forma e banco no bloco financeiro.', false);
+    if (!planoPad) {
+      showMsg('Defina o plano de contas em Dados da nota (ex.: COMPRA MERCADORIA SN ou CN).', false);
       return;
     }
-    if (finModo === 'por_item') {
-      const falta = linhas.some((ln) => !(ln.plano_conta || planoPad));
-      if (falta) {
-        showMsg('Modo por item: cada linha precisa de plano de conta (ou use um plano padrão preenchido).', false);
-        return;
-      }
+    if (!empresa || !dc || !dv || !forma || !banco) {
+      showMsg('Preencha empresa, competência, vencimento, forma e banco no bloco financeiro.', false);
+      return;
     }
     const financeiro = {
-      modo_lancamento: finModo,
+      modo_lancamento: 'unico',
       empresa_nome: empresa,
       empresa_id: document.getElementById('fin-empresa-id').value.trim() || undefined,
       plano_padrao: planoPad,
-      plano_padrao_id: document.getElementById('fin-plano-pad-id').value.trim() || undefined,
+      plano_padrao_id: planoPadId || undefined,
       data_competencia: dc,
       data_vencimento: dv,
       forma_nome: forma,

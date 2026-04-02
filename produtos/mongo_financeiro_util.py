@@ -474,6 +474,7 @@ def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
         "numero_documento": str(doc.get("NumeroDocumento") or ""),
         "parcela": int(doc.get("NumeroParcela") or 0),
         "plano_conta": doc.get("PlanoDeConta") or "",
+        "plano_conta_id": _financeiro_id_para_string(doc.get("PlanoDeContaID")),
         "grupo": doc.get("LancamentoGrupo") or "",
         "forma_pagamento": doc.get("FormaPagamento") or "",
         "forma_pagamento_id": str(doc.get("FormaPagamentoID") or ""),
@@ -1874,20 +1875,82 @@ def lancamentos_carregar_por_ids(db, ids: list[str]) -> list[dict]:
     return out
 
 
+def normalizar_parcelas_baixa_ui_erp(parcelas: list[Any] | None) -> list[dict[str, Any]]:
+    """Parcelas vindas do POST da tela → lista estável para o corpo enviado ao ERP (baixa parcial)."""
+    out: list[dict[str, Any]] = []
+    for p in parcelas or []:
+        if not isinstance(p, dict):
+            continue
+        try:
+            val = float(str(p.get("valor", "")).replace(",", ".").strip())
+        except (ValueError, TypeError):
+            continue
+        if val <= 0:
+            continue
+        out.append(
+            {
+                "valor": round(val, 2),
+                "forma_pagamento": str(p.get("forma_pagamento") or p.get("forma_nome") or "").strip()[:200],
+                "forma_pagamento_id": str(p.get("forma_pagamento_id") or p.get("forma_id") or "").strip()[:80],
+                "banco": str(p.get("banco") or p.get("banco_nome") or "").strip()[:200],
+                "banco_id": str(p.get("banco_id") or "").strip()[:80],
+            }
+        )
+        if len(out) >= 24:
+            break
+    return out
+
+
+def lancamento_titulos_payload_baixa_erp(db, mongo_ids: list[str]) -> list[dict[str, Any]]:
+    """
+    Snapshot pós-baixa para o ERP, com saldo/realizado explícitos e fallback de LancamentoID.
+
+    Alguns ambientes SisVale/Venda só exibem ``NumeroLancamento`` na grade; se ``LancamentoID`` vier
+    vazio no Mongo, repetimos o número para facilitar o match no endpoint de baixa.
+    """
+    titulos: list[dict[str, Any]] = []
+    for doc in lancamentos_carregar_por_ids(db, mongo_ids):
+        sub = lancamento_doc_subset_erp(doc)
+        desp = bool(doc.get("Despesa"))
+        try:
+            if desp:
+                sub["SaldoAberto"] = round(float(_restante_a_pagar(doc)), 2)
+                real = float(_dec(doc.get("ValorPago")))
+            else:
+                sub["SaldoAberto"] = round(float(_restante_a_receber(doc)), 2)
+                real = float(
+                    _valor_realizado_receita_dec(
+                        _dec(doc.get("Entrada")),
+                        _dec(doc.get("Recebido")),
+                        _dec(doc.get("ValorPago")),
+                    )
+                )
+            sub["ValorRealizadoAgro"] = round(real, 2)
+        except Exception:
+            pass
+        lid_s = str(sub.get("LancamentoID") or "").strip()
+        if not lid_s and doc.get("NumeroLancamento") is not None:
+            sub["LancamentoID"] = _json_safe_erp_value(doc.get("NumeroLancamento"))
+        titulos.append(sub)
+    return titulos
+
+
 def montar_payload_erp_baixa(
     db,
     mongo_ids: list[str],
     despesa: bool,
     payload_ui: dict,
+    *,
+    extras: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Corpo sugerido para VENDA_ERP_API_FINANCEIRO_BAIXA_PATH.
     Mantém ``ids`` / ``payload`` / ``tipo`` (compatível com integrações antigas) e acrescenta ``titulos``
     com snapshot pós-baixa (inclui Id/LancamentoID do ERP quando existirem no Mongo).
     """
-    titulos = [lancamento_doc_subset_erp(d) for d in lancamentos_carregar_por_ids(db, mongo_ids)]
+    titulos = lancamento_titulos_payload_baixa_erp(db, mongo_ids)
     tipo = "pagar" if despesa else "receber"
-    return {
+    out: dict[str, Any] = {
         "ids": mongo_ids,
         "mongodb_ids": mongo_ids,
         "tipo": tipo,
@@ -1896,6 +1959,11 @@ def montar_payload_erp_baixa(
         "origem": "agro_consulta",
         "titulos": titulos,
     }
+    if extras:
+        for k, v in extras.items():
+            if v is not None:
+                out[k] = v
+    return out
 
 
 def montar_payload_erp_lancamentos_novos(
