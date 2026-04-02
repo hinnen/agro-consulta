@@ -193,6 +193,19 @@ let pSel = null;
 let debounceTimer = null;
 let baseProdutos = [];
 const MOBILE_POLL_SALDOS_MS = 4500;
+const MA_CAT_KEYS = ['agro_pdv_catalog_cache_v2', 'agro_compra_catalog_cache_v2'];
+
+function mobileLerProdutosDoCacheUnificado() {
+  for (let i = 0; i < MA_CAT_KEYS.length; i++) {
+    try {
+      const raw = localStorage.getItem(MA_CAT_KEYS[i]);
+      if (!raw) continue;
+      const p = JSON.parse(raw);
+      if (p && Array.isArray(p.produtos) && p.produtos.length) return p.produtos;
+    } catch (_) {}
+  }
+  return null;
+}
 let mobilePollSaldosTimer = null;
 let maThermoTimer = null;
 let scanningActive = false;
@@ -338,12 +351,35 @@ function pollSaldosMobileUmaVez() {
 }
 
 function iniciarPollSaldosMobile() {
+  if (window.AGRO_MANUAL_SYNC_ONLY) return;
   if (mobilePollSaldosTimer) clearInterval(mobilePollSaldosTimer);
   mobilePollSaldosTimer = setInterval(pollSaldosMobileUmaVez, MOBILE_POLL_SALDOS_MS);
   setTimeout(pollSaldosMobileUmaVez, 450);
 }
 
-/* Ajuste mobile: polling mais frequente (~4,5s). Demais telas: só botão Estoque / manual. */
+function mobileAjusteAplicarProdutosDaLista(produtos) {
+  baseProdutos = produtos || [];
+  atualizarOpcoesFiltros();
+  aplicarFiltrosDaUI();
+  buscar('');
+}
+
+function mobileAjusteBaixarListaApi() {
+  const listaDiv = document.getElementById('lista');
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
+  fetch("{% url 'api_todos_produtos_local' %}")
+    .then((res) => res.json())
+    .then((data) => {
+      mobileAjusteAplicarProdutosDaLista(data.produtos || []);
+      iniciarPollSaldosMobile();
+    })
+    .catch(() => {
+      listaDiv.innerHTML = '<div class="text-center text-red-500 font-bold p-8">Erro ao carregar produtos.</div>';
+    })
+    .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
+}
+
+/* Com AGRO_MANUAL_SYNC_ONLY: sem polling; lista vem do cache do PDV ou botão. */
 
 document.getElementById('ma-btn-saldos')?.addEventListener('click', () => {
   pollSaldosMobileUmaVez();
@@ -361,14 +397,27 @@ window.addEventListener('load', () => {
     }
   }, 15000);
 
+  if (window.AGRO_MANUAL_SYNC_ONLY) {
+    const fromLs = mobileLerProdutosDoCacheUnificado();
+    if (fromLs) {
+      mobileAjusteAplicarProdutosDaLista(fromLs);
+      return;
+    }
+    listaDiv.innerHTML = `
+      <div class="text-center px-4 py-8 space-y-3">
+        <p class="text-amber-800 font-black text-sm leading-snug">Sem catálogo em cache neste aparelho.</p>
+        <p class="text-slate-500 text-xs font-bold">Sincronize no <strong>PDV</strong> (botão “Sincronizar API”) ou baixe aqui.</p>
+        <button type="button" id="ma-btn-baixar-lista" class="min-h-[48px] px-5 py-3 rounded-2xl bg-emerald-600 text-white text-xs font-black uppercase shadow-md active:scale-[0.99]">Baixar produtos (API)</button>
+      </div>`;
+    document.getElementById('ma-btn-baixar-lista')?.addEventListener('click', () => mobileAjusteBaixarListaApi());
+    return;
+  }
+
   if (window.gmLoadingBar) window.gmLoadingBar.show();
   fetch("{% url 'api_todos_produtos_local' %}")
     .then(res => res.json())
     .then(data => {
-      baseProdutos = data.produtos || [];
-      atualizarOpcoesFiltros();
-      aplicarFiltrosDaUI();
-      buscar('');
+      mobileAjusteAplicarProdutosDaLista(data.produtos || []);
       iniciarPollSaldosMobile();
     })
     .catch(() => {

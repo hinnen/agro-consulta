@@ -551,7 +551,17 @@
       el("f-ini").value = u.toISOString().slice(0, 10);
     }
     atualizarResumoFiltroVisivel();
-    atualizar();
+    if (!window.AGRO_MANUAL_SYNC_ONLY) {
+      atualizar();
+    } else {
+      setLoading(false);
+      var info = el("msg-mongo-info");
+      if (info) {
+        info.textContent =
+          "Modo só cache: use Atualizar ou F5 (fora de campos) para buscar indicadores na API.";
+        info.classList.remove("hidden");
+      }
+    }
 
     if (typeof AgroEstoqueSync !== "undefined" && AgroEstoqueSync.mount) {
       AgroEstoqueSync.mount({

@@ -60,6 +60,7 @@
           DRE simples
         </a>
         {% endif %}
+        <button type="button" id="btn-fin-sync-api" class="inline-flex items-center gap-1 rounded-xl border-2 border-amber-400 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black uppercase px-3 py-2.5 shadow-sm shrink-0" title="Planos, opções de baixa e lista — consulta o servidor">Sincronizar API</button>
         {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-800 transition-colors" %}
       </div>
     </div>
@@ -952,6 +953,121 @@
       }
     }
 
+    const LS_FIN_LISTA = 'gm_fin_lista_cache_v1';
+
+    function pintarListaLancamentosDaResposta(data) {
+      const err = document.getElementById('erro-box');
+      const empty = document.getElementById('empty-state');
+      const tb = document.getElementById('tbody-desk');
+      const mob = document.getElementById('cards-mob');
+      const tot = document.getElementById('totais-box');
+      err.classList.add('hidden');
+      empty.textContent = 'Nenhum lançamento com os filtros atuais.';
+      empty.classList.add('hidden');
+
+      lastTotal = data.total || 0;
+      lastPageSize = data.page_size || 50;
+      const t = data.totais || {};
+      document.getElementById('t-qtd').textContent = String(t.quantidade ?? 0);
+      document.getElementById('t-bruto').textContent = brl(t.bruto ?? t.previsto);
+      document.getElementById('t-mov').textContent = brl(t.movimentado ?? t.pago);
+      document.getElementById('t-saldo').textContent = brl(t.saldo_aberto ?? t.a_pagar ?? t.a_receber);
+      tot.classList.remove('hidden');
+
+      tb.innerHTML = '';
+      mob.innerHTML = '';
+      const lista = data.lancamentos || [];
+      lastRows = lista;
+      if (lista.length === 0) {
+        empty.classList.remove('hidden');
+      } else {
+        const showChk = podeSelecionar();
+        for (const row of lista) {
+          const sit = row.pago ? '<span class="text-emerald-700 font-black">Quitado</span>' : '<span class="text-amber-800 font-black">Aberto</span>';
+          const rest = Number(row.restante) || 0;
+          const chk = showChk && !row.pago
+            ? `<input type="checkbox" class="row-chk rounded border-slate-300" data-id="${esc(row.id)}" data-rest="${rest}" ${selecionados.has(row.id) ? 'checked' : ''}>`
+            : '';
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50/80';
+          tr.innerHTML = `
+            <td data-col="chk" class="px-2 py-2">${chk}</td>
+            <td data-col="venc" class="px-2 py-2 text-xs font-semibold tabular-nums whitespace-nowrap">${esc(fmtData(row.data_vencimento))}</td>
+            <td data-col="cli" class="px-2 py-2 text-xs font-bold text-slate-800 max-w-[160px]"><div class="truncate" title="${esc(row.cliente)}">${esc(row.cliente || '—')}</div></td>
+            <td data-col="desc" class="px-2 py-2 text-xs text-slate-700 max-w-[180px]"><div class="truncate" title="${esc(row.descricao)}">${esc(row.descricao || '—')}</div></td>
+            <td data-col="forma" class="px-2 py-2 text-[11px] text-slate-700 max-w-[120px]"><div class="truncate" title="${esc(row.forma_pagamento)}">${esc(row.forma_pagamento || '—')}</div></td>
+            <td data-col="banco" class="px-2 py-2 text-[11px] text-slate-600 max-w-[120px]"><div class="truncate" title="${esc(row.banco)}">${esc(row.banco || '—')}</div></td>
+            <td data-col="plano" class="px-2 py-2 text-[11px] text-slate-600 max-w-[140px]"><div class="truncate">${esc(row.plano_conta || '')}${row.grupo ? ' · ' + esc(row.grupo) : ''}</div></td>
+            <td data-col="bruto" class="px-2 py-2 text-xs text-right font-bold tabular-nums">${esc(brl(row.valor_bruto))}</td>
+            <td data-col="mov" class="px-2 py-2 text-xs text-right font-semibold text-emerald-800 tabular-nums">${esc(brl(row.valor_movimentado))}</td>
+            <td data-col="saldo" class="px-2 py-2 text-xs text-right font-black text-amber-900 tabular-nums">${esc(brl(row.restante))}</td>
+            <td data-col="sit" class="px-2 py-2 text-xs">${sit}</td>`;
+          tb.appendChild(tr);
+
+          const card = document.createElement('div');
+          card.className = 'rounded-xl border border-slate-200 bg-slate-50/50 p-3 space-y-2';
+          const chkM = showChk && !row.pago
+            ? `<label class="flex items-center gap-2 text-[11px] font-bold"><input type="checkbox" class="row-chk rounded" data-id="${esc(row.id)}" data-rest="${rest}" ${selecionados.has(row.id) ? 'checked' : ''}> Selecionar</label>`
+            : '';
+          card.innerHTML = `
+            ${chkM}
+            <div class="flex justify-between items-start gap-2">
+              <span class="text-[10px] font-black uppercase text-slate-500">Venc. ${esc(fmtData(row.data_vencimento))}</span>
+              ${sit}
+            </div>
+            <div class="font-black text-sm text-slate-900">${esc(row.cliente || '—')}</div>
+            <div class="text-xs text-slate-600">${esc(row.descricao || '')}</div>
+            <div class="text-[11px] text-slate-700"><span class="font-black text-slate-500">Forma:</span> ${esc(row.forma_pagamento || '—')}</div>
+            <div class="text-[11px] text-slate-700"><span class="font-black text-slate-500">Banco:</span> ${esc(row.banco || '—')}</div>
+            <div class="flex justify-between text-xs font-bold border-t border-slate-200 pt-2">
+              <span class="text-slate-500">Saldo</span>
+              <span class="text-amber-900 tabular-nums">${esc(brl(row.restante))}</span>
+            </div>`;
+          mob.appendChild(card);
+        }
+
+        applyTableCols();
+
+        document.querySelectorAll('.row-chk').forEach((el) => {
+          el.addEventListener('change', () => {
+            const id = el.dataset.id;
+            const rest = Number(el.dataset.rest) || 0;
+            if (el.checked) selecionados.set(id, rest);
+            else selecionados.delete(id);
+            refreshSelBar();
+            refreshBtnsBaixa();
+          });
+        });
+      }
+
+      const pi = Math.max(1, Math.ceil(lastTotal / lastPageSize) || 1);
+      document.getElementById('pag-info').textContent =
+        `Página ${data.page || 1} de ${pi} · ${lastTotal} título(s) no filtro`;
+      document.getElementById('btn-prev').disabled = (data.page || 1) <= 1;
+      document.getElementById('btn-next').disabled = (data.page || 1) >= pi;
+      document.getElementById('chk-all').checked = false;
+    }
+
+    function tentarHidratarListaFinCache() {
+      if (!window.AGRO_MANUAL_SYNC_ONLY) return false;
+      try {
+        const raw = sessionStorage.getItem(LS_FIN_LISTA);
+        if (!raw) return false;
+        const o = JSON.parse(raw);
+        if (o.params !== montarParams()) return false;
+        pintarListaLancamentosDaResposta(o.data);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    async function agroFinSincronizarComApi() {
+      await carregarOpcoesBaixa();
+      await carregarPlanos();
+      await carregar();
+    }
+
     async function carregar() {
       atualizarLabelsTotais();
       const err = document.getElementById('erro-box');
@@ -965,7 +1081,7 @@
       empty.classList.add('hidden');
       tb.innerHTML = lancamentosSkeletonDeskRows();
       mob.innerHTML = lancamentosSkeletonMobCards();
-      if (window.gmLoadingBar) window.gmLoadingBar.show();
+      /* Sem gmLoadingBar aqui: o skeleton da tabela já sinaliza carga (evita “dois loads”). */
 
       const st = document.getElementById('f-status').value;
       document.getElementById('th-chk').style.visibility = st === 'abertos' ? 'visible' : 'hidden';
@@ -983,87 +1099,10 @@
           tot.classList.add('hidden');
           return;
         }
-        lastTotal = data.total || 0;
-        lastPageSize = data.page_size || 50;
-        const t = data.totais || {};
-        document.getElementById('t-qtd').textContent = String(t.quantidade ?? 0);
-        document.getElementById('t-bruto').textContent = brl(t.bruto ?? t.previsto);
-        document.getElementById('t-mov').textContent = brl(t.movimentado ?? t.pago);
-        document.getElementById('t-saldo').textContent = brl(t.saldo_aberto ?? t.a_pagar ?? t.a_receber);
-        tot.classList.remove('hidden');
-
-        tb.innerHTML = '';
-        mob.innerHTML = '';
-        const lista = data.lancamentos || [];
-        lastRows = lista;
-        if (lista.length === 0) {
-          empty.classList.remove('hidden');
-        } else {
-          const showChk = podeSelecionar();
-          for (const row of lista) {
-            const sit = row.pago ? '<span class="text-emerald-700 font-black">Quitado</span>' : '<span class="text-amber-800 font-black">Aberto</span>';
-            const rest = Number(row.restante) || 0;
-            const chk = showChk && !row.pago
-              ? `<input type="checkbox" class="row-chk rounded border-slate-300" data-id="${esc(row.id)}" data-rest="${rest}" ${selecionados.has(row.id) ? 'checked' : ''}>`
-              : '';
-            const tr = document.createElement('tr');
-            tr.className = 'hover:bg-slate-50/80';
-            tr.innerHTML = `
-              <td data-col="chk" class="px-2 py-2">${chk}</td>
-              <td data-col="venc" class="px-2 py-2 text-xs font-semibold tabular-nums whitespace-nowrap">${esc(fmtData(row.data_vencimento))}</td>
-              <td data-col="cli" class="px-2 py-2 text-xs font-bold text-slate-800 max-w-[160px]"><div class="truncate" title="${esc(row.cliente)}">${esc(row.cliente || '—')}</div></td>
-              <td data-col="desc" class="px-2 py-2 text-xs text-slate-700 max-w-[180px]"><div class="truncate" title="${esc(row.descricao)}">${esc(row.descricao || '—')}</div></td>
-              <td data-col="forma" class="px-2 py-2 text-[11px] text-slate-700 max-w-[120px]"><div class="truncate" title="${esc(row.forma_pagamento)}">${esc(row.forma_pagamento || '—')}</div></td>
-              <td data-col="banco" class="px-2 py-2 text-[11px] text-slate-600 max-w-[120px]"><div class="truncate" title="${esc(row.banco)}">${esc(row.banco || '—')}</div></td>
-              <td data-col="plano" class="px-2 py-2 text-[11px] text-slate-600 max-w-[140px]"><div class="truncate">${esc(row.plano_conta || '')}${row.grupo ? ' · ' + esc(row.grupo) : ''}</div></td>
-              <td data-col="bruto" class="px-2 py-2 text-xs text-right font-bold tabular-nums">${esc(brl(row.valor_bruto))}</td>
-              <td data-col="mov" class="px-2 py-2 text-xs text-right font-semibold text-emerald-800 tabular-nums">${esc(brl(row.valor_movimentado))}</td>
-              <td data-col="saldo" class="px-2 py-2 text-xs text-right font-black text-amber-900 tabular-nums">${esc(brl(row.restante))}</td>
-              <td data-col="sit" class="px-2 py-2 text-xs">${sit}</td>`;
-            tb.appendChild(tr);
-
-            const card = document.createElement('div');
-            card.className = 'rounded-xl border border-slate-200 bg-slate-50/50 p-3 space-y-2';
-            const chkM = showChk && !row.pago
-              ? `<label class="flex items-center gap-2 text-[11px] font-bold"><input type="checkbox" class="row-chk rounded" data-id="${esc(row.id)}" data-rest="${rest}" ${selecionados.has(row.id) ? 'checked' : ''}> Selecionar</label>`
-              : '';
-            card.innerHTML = `
-              ${chkM}
-              <div class="flex justify-between items-start gap-2">
-                <span class="text-[10px] font-black uppercase text-slate-500">Venc. ${esc(fmtData(row.data_vencimento))}</span>
-                ${sit}
-              </div>
-              <div class="font-black text-sm text-slate-900">${esc(row.cliente || '—')}</div>
-              <div class="text-xs text-slate-600">${esc(row.descricao || '')}</div>
-              <div class="text-[11px] text-slate-700"><span class="font-black text-slate-500">Forma:</span> ${esc(row.forma_pagamento || '—')}</div>
-              <div class="text-[11px] text-slate-700"><span class="font-black text-slate-500">Banco:</span> ${esc(row.banco || '—')}</div>
-              <div class="flex justify-between text-xs font-bold border-t border-slate-200 pt-2">
-                <span class="text-slate-500">Saldo</span>
-                <span class="text-amber-900 tabular-nums">${esc(brl(row.restante))}</span>
-              </div>`;
-            mob.appendChild(card);
-          }
-
-          applyTableCols();
-
-          document.querySelectorAll('.row-chk').forEach((el) => {
-            el.addEventListener('change', () => {
-              const id = el.dataset.id;
-              const rest = Number(el.dataset.rest) || 0;
-              if (el.checked) selecionados.set(id, rest);
-              else selecionados.delete(id);
-              refreshSelBar();
-              refreshBtnsBaixa();
-            });
-          });
-        }
-
-        const pi = Math.max(1, Math.ceil(lastTotal / lastPageSize) || 1);
-        document.getElementById('pag-info').textContent =
-          `Página ${data.page || 1} de ${pi} · ${lastTotal} título(s) no filtro`;
-        document.getElementById('btn-prev').disabled = (data.page || 1) <= 1;
-        document.getElementById('btn-next').disabled = (data.page || 1) >= pi;
-        document.getElementById('chk-all').checked = false;
+        try {
+          sessionStorage.setItem(LS_FIN_LISTA, JSON.stringify({ params: montarParams(), data }));
+        } catch (_) {}
+        pintarListaLancamentosDaResposta(data);
       } catch (e) {
         tb.innerHTML = '';
         mob.innerHTML = '';
@@ -1072,7 +1111,6 @@
         tot.classList.add('hidden');
       } finally {
         load.classList.add('hidden');
-        if (window.gmLoadingBar) window.gmLoadingBar.hide();
       }
       refreshSelBar();
       refreshBtnsBaixa();
@@ -1515,7 +1553,8 @@
         '#bx-ok',
         '#bxp-ok',
         '#btn-fav-save',
-        '#btn-fav-del'
+        '#btn-fav-del',
+        '#btn-fin-sync-api',
       ], 700);
 
       const t = hojeISO();
@@ -1523,10 +1562,36 @@
       document.getElementById('f-ate').value = t;
       favRefreshSelect();
       atualizarTabs();
-      carregarOpcoesBaixa();
       buildColDropdown();
       applyTableCols();
-      carregarPlanos().then(() => carregar());
+      document.getElementById('btn-fin-sync-api')?.addEventListener('click', () => {
+        agroFinSincronizarComApi().catch(() => {});
+      });
+      if (window.AGRO_MANUAL_SYNC_ONLY) {
+        const st0 = document.getElementById('f-status').value;
+        document.getElementById('th-chk').style.visibility = st0 === 'abertos' ? 'visible' : 'hidden';
+        if (!tentarHidratarListaFinCache()) {
+          const tb = document.getElementById('tbody-desk');
+          const mob = document.getElementById('cards-mob');
+          const tot = document.getElementById('totais-box');
+          tb.innerHTML = '';
+          mob.innerHTML = '';
+          tot.classList.add('hidden');
+          const empty = document.getElementById('empty-state');
+          empty.textContent = 'Nenhum dado em cache para estes filtros. Clique em “Sincronizar API”.';
+          empty.classList.remove('hidden');
+          const pi = document.getElementById('pag-info');
+          if (pi) pi.textContent = '';
+        } else {
+          const st = document.getElementById('f-status').value;
+          document.getElementById('th-chk').style.visibility = st === 'abertos' ? 'visible' : 'hidden';
+        }
+        refreshBtnsBaixa();
+        refreshSelBar();
+      } else {
+        carregarOpcoesBaixa();
+        carregarPlanos().then(() => carregar());
+      }
     });
   </script>
 {% include "produtos/_atalho_voltar_pdv.html" %}
