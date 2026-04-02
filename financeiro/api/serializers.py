@@ -37,3 +37,17 @@ class ResumoOperacionalQuerySerializer(serializers.Serializer):
                 "grupo_id é obrigatório quando modo=grupo"
             )
         return attrs
+
+
+class DebugMongoResumoQuerySerializer(serializers.Serializer):
+    """Query params para ``/api/financeiro/debug-mongo-resumo/`` (somente staff)."""
+
+    empresa_id = serializers.IntegerField(required=True, min_value=1)
+    data_inicio = serializers.DateField(required=True)
+    data_fim = serializers.DateField(required=True)
+    por = serializers.ChoiceField(
+        choices=["competencia", "vencimento", "pagamento"],
+        default="competencia",
+        required=False,
+    )
+    contas = serializers.CharField(required=False, allow_blank=True, default="")

@@ -1299,6 +1299,152 @@ def _mongo_filtro_jsonish_for_log(obj: Any) -> Any:
     return obj
 
 
+def _dre_distinct_sample_strings(
+    col,
+    query: dict[str, Any],
+    field: str,
+    *,
+    limit: int = 30,
+) -> list[str]:
+    """Valores distintos não vazios de ``field`` no conjunto ``query`` (amostra ordenada)."""
+    out: list[str] = []
+    try:
+        pipe: list[dict[str, Any]] = [
+            {"$match": query},
+            {"$group": {"_id": f"${field}"}},
+            {"$match": {"_id": {"$nin": [None, ""]}}},
+            {"$sort": {"_id": 1}},
+            {"$limit": limit},
+        ]
+        for r in col.aggregate(pipe):
+            v = r.get("_id")
+            if v is None:
+                continue
+            s = str(v).strip()
+            if s:
+                out.append(s[:220])
+    except Exception as exc:
+        logger.exception("_dre_distinct_sample_strings: %s", exc)
+    return out
+
+
+def debug_resumo_mongo_lens(
+    db,
+    *,
+    data_de: date,
+    data_ate: date,
+    por: str = "competencia",
+    filtro_contas: str = "resultado",
+    regex_excluir_extra: str | None = None,
+    empresa: str | None = None,
+    empresa_id: str | None = None,
+) -> dict[str, Any]:
+    """
+    Contagens encadeadas para diagnosticar resumo gerencial zerado (mesma lógica de filtro do DRE).
+
+    - ``total_documentos_periodo``: só intervalo de data (DataCompetencia / Vencimento / Pagamento).
+    - ``total_documentos_empresa``: período + filtro de loja (nome e/ou EmpresaID, ``$or``).
+    - ``total_documentos_resultado``: período + loja + regras de plano do modo ``resultado``/``resultado_erp``/``todas``.
+    """
+    empty = {
+        "total_documentos_periodo": 0,
+        "total_documentos_empresa": 0,
+        "total_documentos_resultado": 0,
+        "exemplos_empresa_distinta": [],
+        "exemplos_planos_conta": [],
+        "ok": False,
+        "erro": "Mongo indisponível",
+        "campo_data": None,
+    }
+    if db is None:
+        return empty
+
+    tz = timezone.get_current_timezone()
+    ini = timezone.make_aware(datetime.combine(data_de, dtime.min), tz)
+    fim = timezone.make_aware(datetime.combine(data_ate, dtime.max), tz)
+    modo_por = (por or "").strip().lower()
+    if modo_por == "vencimento":
+        campo = "DataVencimento"
+    elif modo_por == "pagamento":
+        campo = "DataPagamento"
+    else:
+        campo = "DataCompetencia"
+
+    fc = (filtro_contas or "resultado").strip().lower()
+    if fc not in ("resultado", "resultado_erp", "todas"):
+        fc = "resultado"
+
+    if campo == "DataPagamento":
+        match_data: dict[str, Any] = {
+            "DataPagamento": {"$gte": ini, "$lte": fim, "$gt": _SENTINEL},
+        }
+    else:
+        match_data = {campo: {"$gte": ini, "$lte": fim}}
+
+    em_filtro = _filtro_empresa_dre(empresa, empresa_id)
+    if em_filtro is not None:
+        match_empresa: dict[str, Any] = {"$and": [match_data, em_filtro]}
+    else:
+        match_empresa = match_data
+
+    if fc in ("resultado", "resultado_erp"):
+        pats = _dre_regexes_excluir_resultado(regex_excluir_extra)
+        match_resultado_base: dict[str, Any] = {
+            "$and": [
+                match_data,
+                {"PlanoDeConta": {"$regex": r"\S"}},
+                {"$nor": [{"PlanoDeConta": {"$regex": pat}} for pat in pats]},
+            ]
+        }
+        if fc == "resultado_erp":
+            match_resultado_base["$and"].append(_dre_fragmento_classificacao_colunas_erp())
+    else:
+        match_resultado_base = match_data
+
+    if em_filtro is not None:
+        if isinstance(match_resultado_base, dict) and "$and" in match_resultado_base:
+            match_final = {**match_resultado_base, "$and": [*match_resultado_base["$and"], em_filtro]}
+        else:
+            match_final = {"$and": [match_resultado_base, em_filtro]}
+    else:
+        match_final = match_resultado_base
+
+    col = db[COL_DTO_LANCAMENTO]
+    try:
+        n_periodo = col.count_documents(match_data)
+        n_empresa = col.count_documents(match_empresa)
+        n_resultado = col.count_documents(match_final)
+    except Exception as exc:
+        logger.exception("debug_resumo_mongo_lens count: %s", exc)
+        return {
+            "total_documentos_periodo": 0,
+            "total_documentos_empresa": 0,
+            "total_documentos_resultado": 0,
+            "exemplos_empresa_distinta": [],
+            "exemplos_planos_conta": [],
+            "ok": False,
+            "erro": str(exc)[:400],
+            "campo_data": campo,
+        }
+
+    exemplos_empresa = _dre_distinct_sample_strings(col, match_data, "Empresa", limit=30)
+    exemplos_planos = _dre_distinct_sample_strings(col, match_empresa, "PlanoDeConta", limit=30)
+
+    return {
+        "total_documentos_periodo": n_periodo,
+        "total_documentos_empresa": n_empresa,
+        "total_documentos_resultado": n_resultado,
+        "exemplos_empresa_distinta": exemplos_empresa,
+        "exemplos_planos_conta": exemplos_planos,
+        "ok": True,
+        "erro": None,
+        "campo_data": campo,
+        "filtro_contas": fc,
+        "empresa_filtro_nome": (empresa or "").strip() or None,
+        "empresa_id_filtro": (empresa_id or "").strip() or None,
+    }
+
+
 def dre_resumo_simples_mongo(
     db,
     *,
