@@ -69,7 +69,6 @@ from .mongo_financeiro_util import (
     listar_formas_e_bancos_distintos,
     montar_payload_erp_baixa,
     montar_payload_erp_lancamentos_novos,
-    normalizar_parcelas_baixa_ui_erp,
 )
 
 
@@ -2618,18 +2617,8 @@ def api_lancamentos_baixa_parcial(request):
     if path_baixa and resultado.get("id"):
         try:
             cli = VendaERPAPIClient()
-            parcelas_erp = normalizar_parcelas_baixa_ui_erp(payload.get("parcelas"))
-            body_erp = montar_payload_erp_baixa(
-                db,
-                [str(resultado["id"])],
-                despesa,
-                payload,
-                extras={
-                    "operacao_baixa": "parcial",
-                    "quitado_no_agro": bool(resultado.get("quitado")),
-                    "parcelas_baixa": parcelas_erp,
-                },
-            )
+            # Mesmo corpo base da baixa total (``titulos`` + ``ids`` + ``payload``), sem chaves extras no nível raiz.
+            body_erp = montar_payload_erp_baixa(db, [str(resultado["id"])], despesa, payload)
             ok_api, api_msg = cli.financeiro_tentar_baixa_api(body_erp)
             out_j["erp_baixa_ok"] = bool(ok_api)
             if not ok_api:
