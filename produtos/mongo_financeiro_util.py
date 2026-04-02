@@ -1901,6 +1901,14 @@ def lancamentos_carregar_por_ids(db, ids: list[str]) -> list[dict]:
     return out
 
 
+def _payload_indica_baixa_parcial_lancamentos(payload_ui: dict | None) -> bool:
+    """POST da tela de baixa parcial traz ``parcelas``; baixa total não."""
+    if not payload_ui or not isinstance(payload_ui, dict):
+        return False
+    p = payload_ui.get("parcelas")
+    return isinstance(p, list) and len(p) > 0
+
+
 def normalizar_parcelas_baixa_ui_erp(parcelas: list[Any] | None) -> list[dict[str, Any]]:
     """Parcelas vindas do POST da tela → lista estável para o corpo enviado ao ERP (baixa parcial)."""
     out: list[dict[str, Any]] = []
@@ -1927,21 +1935,37 @@ def normalizar_parcelas_baixa_ui_erp(parcelas: list[Any] | None) -> list[dict[st
     return out
 
 
-def lancamento_titulos_payload_baixa_erp(db, mongo_ids: list[str]) -> list[dict[str, Any]]:
+def lancamento_titulos_payload_baixa_erp(
+    db,
+    mongo_ids: list[str],
+    payload_ui: dict | None = None,
+) -> list[dict[str, Any]]:
     """
     Snapshot pós-baixa para o ERP, com saldo/realizado explícitos e fallback de LancamentoID.
 
     Alguns ambientes SisVale/Venda só exibem ``NumeroLancamento`` na grade; se ``LancamentoID`` vier
     vazio no Mongo, repetimos o número para facilitar o match no endpoint de baixa.
+
+    Em **baixa parcial** de conta a pagar, há builds que não atualizam a coluna "Realizado" só com
+    ``ValorPago``; espelhamos o acumulado pago em ``Recebido`` no JSON (sem alterar o Mongo) e
+    fixamos ``SaldoAtual`` como saldo em aberto para o título.
     """
+    parcial = _payload_indica_baixa_parcial_lancamentos(payload_ui)
     titulos: list[dict[str, Any]] = []
     for doc in lancamentos_carregar_por_ids(db, mongo_ids):
         sub = lancamento_doc_subset_erp(doc)
         desp = bool(doc.get("Despesa"))
         try:
             if desp:
-                sub["SaldoAberto"] = round(float(_restante_a_pagar(doc)), 2)
+                rest = float(_restante_a_pagar(doc))
+                sub["SaldoAberto"] = round(rest, 2)
                 real = float(_dec(doc.get("ValorPago")))
+                saida = float(_dec(doc.get("Saida")))
+                sub["ValorPago"] = round(real, 2)
+                sub["Saida"] = round(saida, 2)
+                sub["SaldoAtual"] = round(max(0.0, rest), 2)
+                if parcial and real > 0.005 and not bool(doc.get("Pago")):
+                    sub["Recebido"] = round(real, 2)
             else:
                 sub["SaldoAberto"] = round(float(_restante_a_receber(doc)), 2)
                 real = float(
@@ -1974,7 +1998,7 @@ def montar_payload_erp_baixa(
     Mantém ``ids`` / ``payload`` / ``tipo`` (compatível com integrações antigas) e acrescenta ``titulos``
     com snapshot pós-baixa (inclui Id/LancamentoID do ERP quando existirem no Mongo).
     """
-    titulos = lancamento_titulos_payload_baixa_erp(db, mongo_ids)
+    titulos = lancamento_titulos_payload_baixa_erp(db, mongo_ids, payload_ui)
     tipo = "pagar" if despesa else "receber"
     out: dict[str, Any] = {
         "ids": mongo_ids,
@@ -1985,6 +2009,11 @@ def montar_payload_erp_baixa(
         "origem": "agro_consulta",
         "titulos": titulos,
     }
+    if _payload_indica_baixa_parcial_lancamentos(payload_ui):
+        out["baixa_parcial"] = True
+        out["parcelas_baixa"] = normalizar_parcelas_baixa_ui_erp(
+            payload_ui.get("parcelas") if isinstance(payload_ui, dict) else None
+        )
     if extras:
         for k, v in extras.items():
             if v is not None:
