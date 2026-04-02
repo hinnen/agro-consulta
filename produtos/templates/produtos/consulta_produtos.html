@@ -74,6 +74,42 @@
         .soft-btn:hover {
             background: #f1f5f9;
         }
+        /* Balão: seta aponta para o botão Estoque (posição via --pdv-balao-arrow-x). */
+        .pdv-balao-estoque-card {
+            position: relative;
+            --pdv-balao-arrow-x: 50%;
+        }
+        .pdv-balao-estoque-arrow {
+            position: absolute;
+            bottom: calc(100% - 1px);
+            left: var(--pdv-balao-arrow-x, 50%);
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-bottom: 14px solid #10b981;
+            filter: drop-shadow(0 -2px 2px rgba(15, 23, 42, 0.12));
+            pointer-events: none;
+        }
+        .pdv-balao-estoque-arrow::after {
+            content: '';
+            position: absolute;
+            left: -9px;
+            top: 3px;
+            width: 0;
+            height: 0;
+            border-left: 9px solid transparent;
+            border-right: 9px solid transparent;
+            border-bottom: 11px solid #fff;
+        }
+        @keyframes pdvBalaoEntra {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .pdv-balao-estoque-pop {
+            animation: pdvBalaoEntra 0.28s ease-out;
+        }
         .gm-logo-mark {
             width: 84px;
             height: 72px;
@@ -518,7 +554,18 @@
                     </select>
                     <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-700 border border-slate-200 shrink-0 max-w-[7rem] truncate" title="Operador (modo descanso)"></span>
                     {% include "produtos/_barra_estoque_global.html" %}
-                    <button type="button" onclick="if (window.agroPdvSincronizarComApi) window.agroPdvSincronizarComApi()" class="inline-flex items-center gap-1 rounded-xl border-2 border-amber-400 bg-amber-500 hover:bg-amber-600 text-white text-[9px] sm:text-[10px] font-black uppercase px-2.5 py-2 shadow-sm shrink-0" title="Baixa catálogo, clientes e saldos do servidor (única sync automática desligada)">Sincronizar API</button>
+                    <div id="agro-barra-sync-api-wrap" class="inline-flex flex-wrap items-center gap-1 sm:gap-1.5 rounded-xl border border-amber-300/90 bg-gradient-to-r from-amber-50/95 to-orange-50/90 px-1.5 py-1 shadow-sm shrink-0" role="region" aria-label="Sincronização completa com o servidor" title="Baixa catálogo de produtos, lista de clientes e saldos (delta + leitura ERP). Use ao abrir o caixa ou quando fizer muito tempo sem sync. O botão verde Estoque só atualiza saldos, mais rápido.">
+                        <button type="button" id="agro-btn-sincronizar-api" class="relative inline-flex items-center gap-1.5 rounded-lg border-2 border-amber-500/55 bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-[9px] sm:text-[10px] font-black uppercase pl-1.5 pr-2 py-1.5 shadow-md transition-[border-color,transform] active:scale-[0.98] shrink-0 overflow-hidden" onclick="if (window.agroPdvSincronizarComApi) window.agroPdvSincronizarComApi()">
+                            <span class="agro-termo-track flex flex-col justify-end w-2 h-8 rounded-full bg-black/25 shrink-0 border border-white/30 overflow-hidden shadow-inner" aria-hidden="true">
+                                <span class="agro-termo-fil w-full rounded-b-full transition-all duration-500 ease-out" style="height:0%;min-height:0"></span>
+                            </span>
+                            <span class="relative z-[1]">Sincronizar API</span>
+                        </button>
+                        <div class="min-w-0 flex flex-row items-baseline gap-1">
+                            <span class="text-[8px] sm:text-[9px] font-black uppercase text-amber-900/80 leading-none shrink-0">Última sync</span>
+                            <span id="agro-api-sync-ultima" class="text-[9px] sm:text-[10px] font-bold text-amber-950 tabular-nums leading-tight truncate max-w-[6.5rem] sm:max-w-none" title="Horário local da última sincronização completa (catálogo + clientes + saldos)">—</span>
+                        </div>
+                    </div>
                     <button type="button" id="btn-pdv-sair-usuario-pin" class="inline-flex items-center justify-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 shrink-0" title="Encerra o usuário neste aparelho e abre a tela de PIN" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">
                         Sair / PIN
                     </button>
@@ -529,6 +576,18 @@
                     </button>
                 </div>
             </header>
+
+            <div id="pdv-balao-aviso-estoque" class="fixed left-1/2 -translate-x-1/2 z-[118] w-[min(100%,22rem)] sm:w-[min(100%,26rem)] max-w-[calc(100vw-1rem)] hidden pointer-events-none top-[3.25rem]" role="status" aria-live="polite">
+                <div class="pdv-balao-estoque-card pdv-balao-estoque-pop pointer-events-auto rounded-2xl border-2 border-emerald-500 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.18)] px-4 pt-3 pb-3 mx-auto">
+                    <div class="pdv-balao-estoque-arrow" aria-hidden="true"></div>
+                    <p class="text-[11px] font-black uppercase tracking-wide text-emerald-900 mb-2 flex items-center gap-2">
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-base" aria-hidden="true">👆</span>
+                        <span>Barra superior — botão verde</span>
+                    </p>
+                    <p id="pdv-balao-aviso-estoque-texto" class="text-[12px] font-semibold text-slate-700 leading-snug"></p>
+                    <button type="button" onclick="fecharBalaoAvisoEstoquePdv()" class="mt-3 w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black uppercase tracking-wide shadow-sm">Entendi</button>
+                </div>
+            </div>
 
             <div class="flex flex-1 min-h-0 gap-1.5 sm:gap-2 p-1.5 sm:p-2 overflow-hidden items-stretch">
                 <div class="flex-1 flex flex-col min-w-0 min-h-0 gap-1.5 sm:gap-2">
@@ -788,7 +847,17 @@
             </div>
             <div class="p-5 space-y-4">
                 <p id="pae-produto" class="text-sm font-bold text-slate-700 leading-snug"></p>
-                <p class="text-[11px] font-semibold text-amber-900 bg-amber-50 border border-amber-200/80 rounded-xl px-3 py-2 leading-relaxed">Antes de ajustar, use o botão verde <strong>Estoque</strong> na barra superior para trazer os saldos do ERP. O ajuste usa o saldo exibido como referência.</p>
+                <div class="rounded-2xl border-2 border-emerald-500/80 bg-gradient-to-br from-emerald-50 via-white to-slate-50/80 p-3.5 shadow-inner space-y-2.5">
+                    <p class="text-[10px] font-black uppercase text-emerald-900 tracking-wide">Onde atualizar o estoque</p>
+                    <div class="flex flex-wrap items-center gap-2 justify-center sm:justify-start py-2 px-2 rounded-xl bg-slate-100/90 border border-slate-200/80">
+                        <span class="inline-flex items-center gap-1 rounded-lg border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-600 to-emerald-700 text-white text-[8px] font-black uppercase px-2 py-1.5 shadow-sm" aria-hidden="true">
+                            <span class="inline-block w-1.5 h-4 rounded-full bg-white/25"></span>
+                            Estoque
+                        </span>
+                        <span class="text-[11px] font-bold text-slate-600 leading-tight">na barra do topo, ao lado de <span class="text-amber-700">Sincronizar API</span></span>
+                    </div>
+                    <p class="text-[11px] font-semibold text-slate-600 leading-relaxed">Toque em <strong class="text-emerald-800">Estoque</strong> e aguarde a data em <strong>Última leitura</strong>. O ajuste usa o número de saldo que aparece na busca como referência.</p>
+                </div>
                 <div class="flex items-baseline gap-2 text-sm">
                     <span class="text-slate-500 font-bold">Saldo atual (referência):</span>
                     <span id="pae-saldo-atual" class="font-black tabular-nums text-emerald-800">0</span>
@@ -2507,6 +2576,46 @@ function gmCsrfTokenParaFetch() {
     return c ? decodeURIComponent(c[1]) : '{{ csrf_token }}';
 }
 
+function posicionarSetaBalaoEstoque() {
+    var wrap = document.getElementById('agro-barra-estoque-wrap');
+    var root = document.getElementById('pdv-balao-aviso-estoque');
+    if (!wrap || !root) return;
+    var card = root.querySelector('.pdv-balao-estoque-card');
+    if (!card) return;
+    var wr = wrap.getBoundingClientRect();
+    var cr = card.getBoundingClientRect();
+    if (cr.width < 1) return;
+    var x = wr.left + wr.width / 2 - cr.left;
+    x = Math.max(36, Math.min(x, cr.width - 36));
+    card.style.setProperty('--pdv-balao-arrow-x', Math.round(x) + 'px');
+}
+
+function mostrarBalaoAvisoEstoquePdv(mensagem) {
+    var root = document.getElementById('pdv-balao-aviso-estoque');
+    var txt = document.getElementById('pdv-balao-aviso-estoque-texto');
+    var estBtn = document.getElementById('agro-btn-atualizar-saldos');
+    if (txt) txt.textContent = mensagem || '';
+    if (root) {
+        root.classList.remove('hidden');
+        requestAnimationFrame(function () {
+            posicionarSetaBalaoEstoque();
+        });
+    }
+    if (estBtn) {
+        estBtn.classList.add('ring-4', 'ring-amber-400', 'ring-offset-2', 'animate-pulse');
+        try {
+            estBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        } catch (e) {}
+    }
+}
+
+function fecharBalaoAvisoEstoquePdv() {
+    var root = document.getElementById('pdv-balao-aviso-estoque');
+    var estBtn = document.getElementById('agro-btn-atualizar-saldos');
+    if (root) root.classList.add('hidden');
+    if (estBtn) estBtn.classList.remove('ring-4', 'ring-amber-400', 'ring-offset-2', 'animate-pulse');
+}
+
 /** Exige leitura recente de saldos (botão Estoque), alinhado ao termômetro da barra. */
 function pdvEstoqueLeituraRecenteParaAjuste() {
     var lab = document.getElementById('agro-saldos-ultima-atualizacao');
@@ -2627,7 +2736,7 @@ function gmEnviarAjustePdvFetch(p, novo, pin, done) {
 function abrirAjuste(id, nome, saldo, codigo, dep) {
     var chk = pdvEstoqueLeituraRecenteParaAjuste();
     if (!chk.ok) {
-        alert(chk.msg);
+        mostrarBalaoAvisoEstoquePdv(chk.msg);
         return;
     }
     var pid = id != null && id !== '' ? String(id) : '';
@@ -4089,17 +4198,28 @@ function importarRankingMongoParaSlotsMaisVendidos() {
 }
 
 function pollSaldoPdvUmaVez() {
-    if (!baseProdutos.length) return;
-    /* Não usar visibilityState aqui: no Electron a aba pode ficar como "hidden" e o saldo nunca atualiza. */
-    fetch('{% url "api_pdv_saldos" %}', { cache: 'no-store' })
-        .then((r) => r.json())
-        .then((sd) => {
-            if (sd.rows) aplicarSaldosNaBasePdv(sd.rows);
-            if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
-                AgroEstoqueSync.markFresh(document.getElementById('agro-saldos-ultima-atualizacao'));
-            }
-        })
-        .catch(() => {});
+    pollSaldoPdvUmaVezPromise();
+}
+
+function pollSaldoPdvUmaVezPromise() {
+    return new Promise(function (resolve) {
+        if (!baseProdutos.length) {
+            resolve();
+            return;
+        }
+        fetch('{% url "api_pdv_saldos" %}', { cache: 'no-store' })
+            .then((r) => r.json())
+            .then((sd) => {
+                if (sd.rows) aplicarSaldosNaBasePdv(sd.rows);
+                if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
+                    AgroEstoqueSync.markFresh(document.getElementById('agro-saldos-ultima-atualizacao'));
+                }
+                resolve();
+            })
+            .catch(function () {
+                resolve();
+            });
+    });
 }
 
 /* Saldos: sem polling automático — use o botão Estoque (termômetro) ou ações que já disparam leitura. */
@@ -4117,7 +4237,9 @@ function carregarBaseLocal() {
         return;
     }
     if (!warmed) mostrarStatusBusca('Baixando produtos para memória local...', 'orange');
-    sincronizarCatalogoPdvServidor(warmed);
+    sincronizarCatalogoPdvServidor(warmed).catch(function (err) {
+        if (typeof console !== 'undefined' && console.error) console.error(err);
+    });
 }
 
 function aplicarBasePdv(produtos, statusTxt) {
@@ -4187,54 +4309,67 @@ function aplicarDeltaCatalogoPdv(changed, removedIds) {
 }
 
 function sincronizarCatalogoPdvServidor(jahAquecido) {
-    if (!jahAquecido) {
-        if (window.gmLoader) window.gmLoader.show('🐭 carregando catálogo...');
-        else if (window.gmLoadingBar) window.gmLoadingBar.show();
-    }
-    const cached = lerCacheCatalogoPdv();
-    const since = cached && cached.catalog_version ? cached.catalog_version : '';
-    const u = new URL('/api/todos-produtos/delta/', window.location.origin);
-    if (since) u.searchParams.set('since', since);
-    fetch(u.toString())
-        .then((r) => r.json())
-        .then((d) => {
-            if (d && d.unchanged) {
-                if (!jahAquecido && cached && cached.produtos) {
-                    aplicarBasePdv(cached.produtos, `Base local pronta com ${cached.produtos.length} itens`);
+    return new Promise(function (resolve) {
+        function finish() {
+            resolve();
+        }
+        if (!jahAquecido) {
+            if (window.gmLoader) window.gmLoader.show('🐭 carregando catálogo...');
+            else if (window.gmLoadingBar) window.gmLoadingBar.show();
+        }
+        const cached = lerCacheCatalogoPdv();
+        const since = cached && cached.catalog_version ? cached.catalog_version : '';
+        const u = new URL('/api/todos-produtos/delta/', window.location.origin);
+        if (since) u.searchParams.set('since', since);
+        fetch(u.toString())
+            .then((r) => r.json())
+            .then((d) => {
+                if (d && d.unchanged) {
+                    if (!jahAquecido && cached && cached.produtos) {
+                        aplicarBasePdv(cached.produtos, `Base local pronta com ${cached.produtos.length} itens`);
+                    }
+                    if (window.gmLoader) window.gmLoader.hide(180);
+                    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                    finish();
+                    return;
+                }
+                if (d && d.delta) {
+                    if (!baseProdutos.length && cached && cached.produtos) {
+                        aplicarBasePdv(cached.produtos, `Catálogo local carregado (${cached.produtos.length})`);
+                    }
+                    aplicarDeltaCatalogoPdv(d.changed || [], d.removed_ids || []);
+                    const novo = {
+                        produtos: baseProdutos,
+                        catalog_version: d.catalog_version || '',
+                        catalog_updated_at: d.catalog_updated_at || '',
+                    };
+                    salvarCacheCatalogoPdv(novo);
+                    mostrarStatusBusca(`Catálogo sincronizado (${baseProdutos.length})`, 'emerald');
+                    if (window.gmLoader) window.gmLoader.hide(180);
+                    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                    finish();
+                    return;
+                }
+                if (d && Array.isArray(d.produtos)) {
+                    aplicarBasePdv(d.produtos, `Base local pronta com ${d.produtos.length} itens`);
+                    salvarCacheCatalogoPdv(d);
+                    if (window.gmLoader) window.gmLoader.hide(180);
+                    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                    finish();
+                    return;
                 }
                 if (window.gmLoader) window.gmLoader.hide(180);
                 else if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                return;
-            }
-            if (d && d.delta) {
-                if (!baseProdutos.length && cached && cached.produtos) {
-                    aplicarBasePdv(cached.produtos, `Catálogo local carregado (${cached.produtos.length})`);
-                }
-                aplicarDeltaCatalogoPdv(d.changed || [], d.removed_ids || []);
-                const novo = {
-                    produtos: baseProdutos,
-                    catalog_version: d.catalog_version || '',
-                    catalog_updated_at: d.catalog_updated_at || '',
-                };
-                salvarCacheCatalogoPdv(novo);
-                mostrarStatusBusca(`Catálogo sincronizado (${baseProdutos.length})`, 'emerald');
+                finish();
+            })
+            .catch((e) => {
+                console.error('Falha na carga local:', e);
+                if (!jahAquecido) mostrarStatusBusca('Falha de rede; usando cache local.', 'orange');
                 if (window.gmLoader) window.gmLoader.hide(180);
                 else if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                return;
-            }
-            if (d && Array.isArray(d.produtos)) {
-                aplicarBasePdv(d.produtos, `Base local pronta com ${d.produtos.length} itens`);
-                salvarCacheCatalogoPdv(d);
-                if (window.gmLoader) window.gmLoader.hide(180);
-                else if (window.gmLoadingBar) window.gmLoadingBar.hide();
-            }
-        })
-        .catch((e) => {
-            console.error('Falha na carga local:', e);
-            if (!jahAquecido) mostrarStatusBusca('Falha de rede; usando cache local.', 'orange');
-            if (window.gmLoader) window.gmLoader.hide(180);
-            else if (window.gmLoadingBar) window.gmLoadingBar.hide();
-        });
+                finish();
+            });
+    });
 }
 
 function atualizarRelogioPdv() {
@@ -4246,10 +4381,60 @@ function atualizarRelogioPdv() {
     });
 }
 
+function pdvMarcarSyncApiFresh() {
+    var lab = document.getElementById('agro-api-sync-ultima');
+    var btn = document.getElementById('agro-btn-sincronizar-api');
+    if (lab && btn && typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
+        AgroEstoqueSync.markFresh(lab, undefined, btn);
+    }
+}
+
+function pdvHidratarIndicadorSyncApiDoCache() {
+    try {
+        var raw = localStorage.getItem(PDV_CACHE_KEY);
+        if (!raw) return;
+        var p = JSON.parse(raw);
+        var at = Number(p.saved_at || 0);
+        if (!at) return;
+        var lab = document.getElementById('agro-api-sync-ultima');
+        var btn = document.getElementById('agro-btn-sincronizar-api');
+        if (!lab || !btn || typeof AgroEstoqueSync === 'undefined') return;
+        lab.dataset.gmFreshAt = String(at);
+        if (AgroEstoqueSync.formatHorario) {
+            lab.textContent = AgroEstoqueSync.formatHorario(new Date(at));
+        } else {
+            lab.textContent = new Date(at).toLocaleString('pt-BR');
+        }
+        if (AgroEstoqueSync.paintThermo) {
+            AgroEstoqueSync.paintThermo(btn, lab, AgroEstoqueSync.staleMsDefault);
+        }
+    } catch (_) {}
+}
+
 window.agroPdvSincronizarComApi = function () {
+    var apiBtn = document.getElementById('agro-btn-sincronizar-api');
+    if (apiBtn) {
+        apiBtn.disabled = true;
+        apiBtn.setAttribute('aria-busy', 'true');
+    }
     carregarCacheClientes({ force: true });
-    sincronizarCatalogoPdvServidor(false);
-    setTimeout(function () { pollSaldoPdvUmaVez(); }, 700);
+    sincronizarCatalogoPdvServidor(false)
+        .then(function () {
+            return new Promise(function (resolve) {
+                setTimeout(function () {
+                    pollSaldoPdvUmaVezPromise().then(resolve);
+                }, 700);
+            });
+        })
+        .then(function () {
+            pdvMarcarSyncApiFresh();
+        })
+        .finally(function () {
+            if (apiBtn) {
+                apiBtn.disabled = false;
+                apiBtn.removeAttribute('aria-busy');
+            }
+        });
 };
 
 window.addEventListener('load', () => {
@@ -4280,6 +4465,18 @@ window.addEventListener('load', () => {
             },
         });
     }
+    pdvHidratarIndicadorSyncApiDoCache();
+    setInterval(function () {
+        var b = document.getElementById('agro-btn-sincronizar-api');
+        var l = document.getElementById('agro-api-sync-ultima');
+        if (b && l && typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.paintThermo) {
+            AgroEstoqueSync.paintThermo(b, l, AgroEstoqueSync.staleMsDefault);
+        }
+    }, 15000);
+    window.addEventListener('resize', function () {
+        var root = document.getElementById('pdv-balao-aviso-estoque');
+        if (root && !root.classList.contains('hidden')) posicionarSetaBalaoEstoque();
+    });
 });
 </script>
 <script>
