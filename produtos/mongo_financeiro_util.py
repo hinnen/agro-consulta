@@ -2049,6 +2049,9 @@ _SUGESTOES_CAMPOS = {
     "centro": ("CentroDeCusto", "CentroDeCustoID"),
 }
 
+# Conta padrão do cadastro ERP (WL) — oferecida nas sugestões mesmo sem histórico no Mongo.
+_BANCO_ADICIONAR_ERP_FIXO = {"nome": "ADICIONAR BANCO", "id": "6990cf726c4d856abaa670c6"}
+
 
 def lancamentos_sugestoes_campo(
     db,
@@ -2094,6 +2097,10 @@ def lancamentos_sugestoes_campo(
             if len(out) >= lim:
                 break
         out.sort(key=lambda x: x["nome"].lower())
+        if campo == "banco":
+            fid = str(_BANCO_ADICIONAR_ERP_FIXO.get("id") or "")
+            if fid and not any(str(x.get("id") or "") == fid for x in out):
+                out.insert(0, dict(_BANCO_ADICIONAR_ERP_FIXO))
     except Exception as exc:
         logger.exception("lancamentos_sugestoes_campo: %s", exc)
     return out[:lim]
@@ -2131,7 +2138,7 @@ def inserir_lancamentos_manual_lote(
     linhas: list[dict[str, Any]],
 ) -> dict[str, Any]:
     """
-    Vários títulos compartilhando cabeçalho (empresa, favorecido, datas, banco, forma);
+    Vários títulos compartilhando cabeçalho (empresa, favorecido, datas, banco; forma opcional);
     cada linha: plano de conta, valor, descrição, observação.
     """
     if db is None:
@@ -2140,11 +2147,11 @@ def inserir_lancamentos_manual_lote(
     pessoa_nome = (pessoa_nome or "").strip()
     banco_nome = (banco_nome or "").strip()
     forma_nome = (forma_nome or "").strip()
-    if not empresa_nome or not pessoa_nome or not banco_nome or not forma_nome:
+    if not empresa_nome or not pessoa_nome or not banco_nome:
         return {
             "ok": False,
             "ids": [],
-            "erros": [{"erro": "Preencha empresa, cliente/fornecedor, banco e forma de pagamento."}],
+            "erros": [{"erro": "Preencha empresa, cliente/fornecedor e conta bancária."}],
         }
     linhas = [x for x in (linhas or []) if isinstance(x, dict)]
     if not linhas or len(linhas) > 50:

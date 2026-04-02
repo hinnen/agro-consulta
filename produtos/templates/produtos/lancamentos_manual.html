@@ -50,7 +50,7 @@
 
   <main class="max-w-[1200px] mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
     <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-2">
-      <p>Preencha <strong>empresa</strong>, <strong>fornecedor ou cliente</strong>, <strong>datas</strong>, <strong>banco</strong> e <strong>forma de pagamento</strong> uma vez. Depois adicione linhas com <strong>plano de contas</strong>, <strong>valor</strong>, <strong>descrição</strong> e <strong>observação</strong>. Um único envio grava vários títulos no sistema (mesmo padrão do ERP Venda). Se a integração estiver ligada, o servidor pode avisar o ERP automaticamente.</p>
+      <p>Preencha <strong>empresa</strong> (Centro ou Vilas Elias, conforme o movimento), <strong>fornecedor ou cliente</strong>, <strong>datas</strong> e <strong>conta bancária</strong>. <strong>Forma de pagamento</strong> é opcional. Depois adicione linhas com <strong>plano de contas</strong>, <strong>valor</strong>, <strong>descrição</strong> e <strong>observação</strong>. Um único envio grava vários títulos no sistema (mesmo padrão do ERP Venda). Se a integração estiver ligada, o servidor pode avisar o ERP automaticamente.</p>
       <details class="group">
         <summary class="cursor-pointer list-none inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-900">
           <span aria-hidden="true">ℹ</span>
@@ -83,11 +83,12 @@
         <label class="block">
           <span class="text-[10px] font-black uppercase text-slate-500">Empresa *</span>
           <div class="relative sug-wrap mt-1" data-sug-campo="empresa">
-            <input type="text" name="empresa_nome" id="empresa-nome" autocomplete="off" placeholder="Digite para buscar…"
+            <input type="text" name="empresa_nome" id="empresa-nome" autocomplete="off" placeholder="Busque Agro Mais Centro ou Vilas Elias…"
               class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-amber-500 outline-none">
             <input type="hidden" name="empresa_id" id="empresa-id" value="">
             <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
           </div>
+          <p class="text-[9px] text-slate-600 font-semibold mt-1">Use <strong>Agro Mais Centro</strong> ou <strong>Agro Mais Vilas Elias</strong> conforme a loja do lançamento (CNPJ ou nome na lista).</p>
         </label>
         <label class="block">
           <span class="text-[10px] font-black uppercase text-slate-500">Cliente / fornecedor *</span>
@@ -121,9 +122,9 @@
           </div>
         </label>
         <label class="block">
-          <span class="text-[10px] font-black uppercase text-slate-500">Forma de pagamento *</span>
+          <span class="text-[10px] font-black uppercase text-slate-500">Forma de pagamento (opcional)</span>
           <div class="relative sug-wrap mt-1" data-sug-campo="forma">
-            <input type="text" id="forma-nome" autocomplete="off" placeholder="Digite para buscar…"
+            <input type="text" id="forma-nome" autocomplete="off" placeholder="Deixe em branco ou busque…"
               class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-amber-500 outline-none">
             <input type="hidden" id="forma-id" value="">
             <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
@@ -326,8 +327,8 @@
       }
     });
 
-    if (!empresa_nome || !pessoa_nome || !banco_nome || !forma_nome) {
-      showMsg('Preencha empresa, cliente/fornecedor, banco e forma de pagamento.', false);
+    if (!empresa_nome || !pessoa_nome || !banco_nome) {
+      showMsg('Preencha empresa, cliente/fornecedor e conta bancária.', false);
       return;
     }
     if (problemas.length) {
@@ -349,7 +350,7 @@
       data_vencimento: data_vencimento,
       banco_nome: banco_nome,
       banco_id: banco_id || undefined,
-      forma_nome: forma_nome,
+      forma_nome: forma_nome || undefined,
       forma_id: forma_id || undefined,
       grupo_nome: grupo_nome || undefined,
       grupo_id: grupo_id || undefined,
