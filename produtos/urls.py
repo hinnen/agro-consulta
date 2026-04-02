@@ -103,6 +103,16 @@ urlpatterns = [
         name='api_lancamentos_baixa_parcial',
     ),
     path(
+        'api/lancamentos/alterar/',
+        views.api_lancamentos_alterar,
+        name='api_lancamentos_alterar',
+    ),
+    path(
+        'api/lancamentos/excluir/',
+        views.api_lancamentos_excluir,
+        name='api_lancamentos_excluir',
+    ),
+    path(
         'api/lancamentos/saida-caixa/',
         views.api_lancamentos_saida_caixa,
         name='api_lancamentos_saida_caixa',
@@ -171,6 +181,21 @@ urlpatterns = [
         'api/entrada-nota/rascunhos/',
         views.api_entrada_nota_rascunhos,
         name='api_entrada_nota_rascunhos',
+    ),
+    path(
+        'api/entrada-nota/fornecedores/',
+        views.api_entrada_nota_fornecedores,
+        name='api_entrada_nota_fornecedores',
+    ),
+    path(
+        'api/entrada-nota/financeiro/',
+        views.api_entrada_nota_financeiro,
+        name='api_entrada_nota_financeiro',
+    ),
+    path(
+        'api/entrada-nota/estoque-agro/',
+        views.api_entrada_nota_estoque_agro,
+        name='api_entrada_nota_estoque_agro',
     ),
     path(
         'api/entrada-nota/dist-dfe/',

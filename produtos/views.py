@@ -27,7 +27,7 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.db import IntegrityError, transaction
 
-from base.models import Empresa, PerfilUsuario, IntegracaoERP
+from base.models import Empresa, Loja, PerfilUsuario, IntegracaoERP
 from estoque.models import AjusteRapidoEstoque
 from .forms import ClienteAgroForm
 from .models import (
@@ -43,6 +43,7 @@ from integracoes.venda_erp_mongo import VendaERPMongoClient
 from integracoes.venda_erp_api import VendaERPAPIClient
 from .mongo_vendas_util import _filtro_venda_ativa_mongo
 from .nfe_entrada_util import (
+    buscar_fornecedores_entrada_nfe,
     casar_produtos_mongo,
     gravar_ult_nsu,
     listar_rascunhos_entrada,
@@ -52,11 +53,13 @@ from .nfe_entrada_util import (
 )
 from .rota_entregas_geo import ordenar_entregas_por_proximidade
 from .mongo_financeiro_util import (
+    atualizar_lancamento_mongo_agro,
     baixar_lancamento_parcial_mongo,
     baixar_lancamentos_mongo,
     contas_pagar_buscar_pagina,
     contas_pagar_montar_query_mongo,
     dre_resumo_simples_mongo,
+    excluir_lancamento_mongo_agro,
     financeiro_projecao_fluxo_diario,
     inserir_lancamentos_manual_lote,
     lancamentos_buscar_pagina,
@@ -1638,6 +1641,506 @@ def api_entrada_nota_rascunhos(request):
     return JsonResponse({"itens": listar_rascunhos_entrada(db, limit=lim)})
 
 
+def _empresa_loja_padrao_agro_estoque(deposito: str) -> tuple[Empresa | None, Loja | None]:
+    dep = (deposito or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
+    empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
+    loja = None
+    if empresa:
+        if dep == "vila":
+            loja = Loja.objects.filter(empresa=empresa, nome__icontains="vila").first()
+        else:
+            loja = Loja.objects.filter(empresa=empresa, nome__icontains="centro").first()
+    return empresa, loja
+
+
+def _saldo_erp_produto_deposito_mongo(db, client_m, produto_id: str, deposito: str) -> Decimal:
+    dep_id = (
+        client_m.DEPOSITO_VILA_ELIAS if deposito == "vila" else client_m.DEPOSITO_CENTRO
+    )
+    tot = Decimal("0")
+    try:
+        for e in db[client_m.col_e].find({"ProdutoID": produto_id, "DepositoID": dep_id}):
+            tot += Decimal(str(float(e.get("Saldo") or 0)))
+    except Exception:
+        pass
+    return tot.quantize(Decimal("0.001"))
+
+
+def _saldo_final_agro_com_pin(produto_id: str, deposito: str, saldo_erp: Decimal) -> Decimal:
+    aj = (
+        AjusteRapidoEstoque.objects.filter(produto_externo_id=produto_id, deposito=deposito)
+        .order_by("-criado_em")
+        .first()
+    )
+    if aj is None:
+        return saldo_erp.quantize(Decimal("0.001"))
+    ref = Decimal(str(aj.saldo_erp_referencia))
+    inf = Decimal(str(aj.saldo_informado))
+    return (inf + (saldo_erp - ref)).quantize(Decimal("0.001"))
+
+
+def aplicar_entrada_nota_estoque_agro(
+    *,
+    db,
+    client_m,
+    linhas: list,
+    deposito: str,
+    usuario_label: str,
+    cabecalho: dict | None,
+) -> dict:
+    """
+    Incrementa o saldo **visto pelo Agro** via ``AjusteRapidoEstoque``, sem alterar o Mongo do ERP.
+    Mantém a mesma lógica do PDV/ajuste PIN: final = saldo_informado + (ERP_atual - saldo_erp_referencia).
+    """
+    dep = (deposito or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
+    empresa, loja = _empresa_loja_padrao_agro_estoque(dep)
+    cab = cabecalho if isinstance(cabecalho, dict) else {}
+    nf_bits = " ".join(
+        p
+        for p in (
+            str(cab.get("numero") or "").strip() and f"NF {cab.get('numero')}",
+            (str(cab.get("chave") or "").strip()[:12] + "…") if cab.get("chave") else "",
+        )
+        if p
+    )
+    ref_txt = (nf_bits or "entrada NF-e")[:120]
+    user = (usuario_label or "Agro")[:80]
+
+    aplicados: list[dict] = []
+    erros: list[dict] = []
+    idx = 0
+    for ln in linhas or []:
+        idx += 1
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.startswith("local:"):
+            continue
+        try:
+            qtd = Decimal(str(ln.get("q_estoque", ln.get("q_com", 0))).replace(",", ".").strip() or "0")
+        except Exception:
+            erros.append({"linha": idx, "erro": "Quantidade inválida."})
+            continue
+        if qtd <= 0:
+            continue
+
+        saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid, dep)
+        saldo_final_antes = _saldo_final_agro_com_pin(pid, dep, saldo_erp)
+        saldo_final_depois = (saldo_final_antes + qtd).quantize(Decimal("0.001"))
+
+        doc = _produto_mongo_por_id_externo(db, client_m, pid)
+        nome_p = str((doc or {}).get("Nome") or ln.get("x_prod") or "")[:200]
+        codigo = str((doc or {}).get("CodigoNFe") or (doc or {}).get("Codigo") or ln.get("c_prod") or "")[
+            :100
+        ]
+
+        try:
+            adj = AjusteRapidoEstoque.objects.create(
+                empresa=empresa,
+                loja=loja,
+                produto_externo_id=pid[:100],
+                codigo_interno=codigo,
+                nome_produto=(f"{nome_p} · Entrada NF-e Agro ({ref_txt}) · {user}")[:255],
+                deposito=dep,
+                saldo_erp_referencia=saldo_erp,
+                saldo_informado=saldo_final_depois,
+            )
+            aplicados.append(
+                {
+                    "linha": idx,
+                    "produto_id": pid,
+                    "deposito": dep,
+                    "quantidade": float(qtd),
+                    "saldo_erp_mongo": float(saldo_erp),
+                    "saldo_agro_antes": float(saldo_final_antes),
+                    "saldo_agro_depois": float(saldo_final_depois),
+                    "ajuste_id": adj.pk,
+                }
+            )
+        except Exception as exc:
+            logger.exception("aplicar_entrada_nota_estoque_agro linha %s", idx)
+            erros.append({"linha": idx, "produto_id": pid, "erro": str(exc)[:300]})
+
+    return {
+        "ok": len(erros) == 0 and len(aplicados) > 0,
+        "aplicados": aplicados,
+        "erros": erros,
+        "avisos": []
+        if aplicados
+        else ([{"msg": "Nenhuma linha com produto vinculado (catálogo) e quantidade > 0."}]),
+    }
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_entrada_nota_estoque_agro(request):
+    """
+    Aplica entrada de estoque só na camada Agro (``AjusteRapidoEstoque``), como PIN / ajuste rápido.
+    Opcionalmente salva rascunho no Mongo no mesmo POST.
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    linhas = payload.get("linhas")
+    if not isinstance(linhas, list) or not linhas:
+        return JsonResponse({"ok": False, "erro": "Informe as linhas da nota."}, status=400)
+
+    deposito = str(payload.get("deposito") or "centro").strip().lower()
+    if deposito not in ("centro", "vila"):
+        deposito = "centro"
+
+    cab = payload.get("cabecalho") if isinstance(payload.get("cabecalho"), dict) else {}
+    salvar_rascunho = payload.get("salvar_rascunho") is True
+    modo = str(payload.get("modo") or "manual").strip()[:40]
+    xml_chave = str(payload.get("xml_chave") or "").strip()[:44] or None
+    extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
+    extra = {**extra, "estoque_agro_registrado_em": timezone.now().isoformat()}
+
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (
+            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
+        )[:120]
+
+    client, db = obter_conexao_mongo()
+    if db is None or client is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    r_rasc: dict | None = None
+    if salvar_rascunho:
+        r_rasc = salvar_rascunho_entrada(
+            db,
+            usuario=usuario,
+            modo=modo,
+            cabecalho=cab,
+            linhas=linhas,
+            xml_chave=xml_chave,
+            extra=extra,
+        )
+        if not r_rasc.get("ok"):
+            return JsonResponse({**r_rasc, "estoque": None}, status=400)
+
+    resultado = aplicar_entrada_nota_estoque_agro(
+        db=db,
+        client_m=client,
+        linhas=linhas,
+        deposito=deposito,
+        usuario_label=usuario,
+        cabecalho=cab,
+    )
+    if resultado.get("aplicados"):
+        _invalidar_caches_apos_ajuste_pin()
+
+    ok = bool(resultado.get("ok"))
+    st = 200 if ok else (207 if resultado.get("aplicados") else 400)
+    out = {
+        "ok": ok,
+        "estoque": resultado,
+        "rascunho": r_rasc,
+    }
+    if not resultado.get("aplicados"):
+        err = None
+        if resultado.get("erros"):
+            err = resultado["erros"][0].get("erro")
+        elif resultado.get("avisos"):
+            err = resultado["avisos"][0].get("msg")
+        if err:
+            out["erro"] = err
+    return JsonResponse(out, status=st)
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_entrada_nota_fornecedores(request):
+    """Fornecedores: Mongo (DtoPessoa) + nomes já usados em títulos + ClienteAgro local."""
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"itens": [], "erro": "Mongo indisponível"}, status=503)
+    q = (request.GET.get("q") or "").strip()
+    inicial = request.GET.get("inicial") in ("1", "true", "yes")
+    try:
+        lim = min(int(request.GET.get("limit") or 50), 100)
+    except ValueError:
+        lim = 50
+    col = getattr(client, "col_c", None) or "DtoPessoa"
+    mongo_rows = buscar_fornecedores_entrada_nfe(
+        db,
+        col,
+        q or None,
+        inicial=bool(inicial and not q),
+        limit=lim,
+    )
+    extras: list[dict[str, str]] = []
+    if q:
+        for s in lancamentos_sugestoes_campo(db, "cliente", q=q, limit=25):
+            nm = (s.get("nome") or "").strip()
+            if not nm:
+                continue
+            extras.append(
+                {
+                    "id": str(s.get("id") or "").strip(),
+                    "nome": nm[:300],
+                    "documento": "",
+                    "origem": "titulo",
+                }
+            )
+    agro_rows: list[dict[str, str]] = []
+    if q:
+        try:
+            for c in ClienteAgro.objects.filter(ativo=True, nome__icontains=q).order_by("nome")[:20]:
+                agro_rows.append(
+                    {
+                        "id": f"local:{c.pk}",
+                        "nome": (c.nome or "")[:300],
+                        "documento": (c.cpf or "").strip()[:20],
+                        "origem": "agro",
+                    }
+                )
+        except Exception:
+            pass
+    seen: set[str] = set()
+    merged: list[dict[str, str]] = []
+    for row in mongo_rows + extras + agro_rows:
+        key = f"{(row.get('nome') or '').lower()}|{row.get('documento') or ''}|{row.get('origem')}"
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(row)
+    return JsonResponse({"itens": merged[:lim]})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_entrada_nota_financeiro(request):
+    """
+    Salva rascunho da NF-e e gera lançamento(amentos) a pagar no Mongo (mesmo fluxo do manual).
+    financeiro.modo: ``unico`` (um título com soma) ou ``por_item`` (uma linha por item da grade).
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    modo = str(payload.get("modo") or "manual").strip()[:40]
+    cab = payload.get("cabecalho") if isinstance(payload.get("cabecalho"), dict) else {}
+    linhas = payload.get("linhas")
+    if not isinstance(linhas, list) or not linhas:
+        return JsonResponse({"ok": False, "erro": "Inclua ao menos uma linha na nota."}, status=400)
+    fin = payload.get("financeiro")
+    if not isinstance(fin, dict):
+        return JsonResponse({"ok": False, "erro": "Informe o bloco financeiro."}, status=400)
+
+    xml_chave = str(payload.get("xml_chave") or "").strip()[:44] or None
+    extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
+    extra["financeiro_solicitado"] = True
+
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (
+            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
+        )[:120]
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    r_rasc = salvar_rascunho_entrada(
+        db,
+        usuario=usuario,
+        modo=modo,
+        cabecalho=cab,
+        linhas=linhas,
+        xml_chave=xml_chave,
+        extra=extra,
+    )
+    if not r_rasc.get("ok"):
+        return JsonResponse(r_rasc, status=400)
+
+    def _d_fin(key: str):
+        s = str(fin.get(key) or "").strip()[:10]
+        if not s:
+            return None
+        return date.fromisoformat(s)
+
+    dc = _d_fin("data_competencia")
+    dv = _d_fin("data_vencimento")
+    if dc is None or dv is None:
+        return JsonResponse(
+            {"ok": False, "erro": "Informe data de competência e vencimento no financeiro.", "rascunho": r_rasc},
+            status=400,
+        )
+
+    empresa_nome = str(fin.get("empresa_nome") or "").strip()
+    pessoa_nome = str(cab.get("emit_nome") or fin.get("pessoa_nome") or "").strip()
+    if not empresa_nome or not pessoa_nome:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Preencha empresa (financeiro) e fornecedor na nota.",
+                "rascunho": r_rasc,
+            },
+            status=400,
+        )
+
+    banco_nome = str(fin.get("banco_nome") or "").strip()
+    forma_nome = str(fin.get("forma_nome") or "").strip()
+    if not banco_nome or not forma_nome:
+        return JsonResponse(
+            {"ok": False, "erro": "Informe forma de pagamento e banco/conta (financeiro).", "rascunho": r_rasc},
+            status=400,
+        )
+
+    modo_lanc = str(fin.get("modo_lancamento") or "unico").strip().lower()
+    plano_pad = str(fin.get("plano_padrao") or "").strip()
+    plano_pad_id = str(fin.get("plano_padrao_id") or "").strip() or None
+
+    pessoa_id_raw = str(cab.get("emit_fornecedor_id") or fin.get("pessoa_id") or "").strip() or None
+    if pessoa_id_raw and pessoa_id_raw.startswith("local:"):
+        pessoa_id_raw = None
+
+    linhas_fin: list[dict] = []
+    if modo_lanc == "por_item":
+        for ln in linhas:
+            if not isinstance(ln, dict):
+                continue
+            try:
+                qtd = float(str(ln.get("q_com", "")).replace(",", ".").strip() or 0)
+                vu = float(str(ln.get("v_un_com", "")).replace(",", ".").strip() or 0)
+            except (TypeError, ValueError):
+                continue
+            val = round(qtd * vu, 2)
+            if val <= 0:
+                continue
+            desc = str(ln.get("x_prod") or "Item NF").strip()[:500]
+            pn = str(ln.get("plano_conta") or "").strip() or plano_pad
+            pid = ln.get("plano_conta_id") or plano_pad_id
+            if not pn:
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "erro": "Modo por item: defina plano em cada linha ou um plano padrão.",
+                        "rascunho": r_rasc,
+                    },
+                    status=400,
+                )
+            linhas_fin.append(
+                {
+                    "valor": val,
+                    "descricao": desc,
+                    "plano_conta": pn,
+                    "plano_conta_id": pid,
+                    "observacao": f"Entrada NF-e {cab.get('numero') or ''} item",
+                }
+            )
+        if not linhas_fin:
+            return JsonResponse(
+                {"ok": False, "erro": "Nenhum item com valor > 0 para lançar.", "rascunho": r_rasc},
+                status=400,
+            )
+    else:
+        total = Decimal("0")
+        for ln in linhas:
+            if not isinstance(ln, dict):
+                continue
+            try:
+                qtd = Decimal(str(ln.get("q_com", "")).replace(",", ".").strip() or "0")
+                vu = Decimal(str(ln.get("v_un_com", "")).replace(",", ".").strip() or "0")
+            except Exception:
+                continue
+            total += qtd * vu
+        tot_f = float(total.quantize(Decimal("0.01")))
+        if tot_f <= 0:
+            return JsonResponse(
+                {"ok": False, "erro": "Valor total da nota é zero.", "rascunho": r_rasc},
+                status=400,
+            )
+        if not plano_pad:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Modo título único: informe o plano de contas padrão.",
+                    "rascunho": r_rasc,
+                },
+                status=400,
+            )
+        nf_num = str(cab.get("numero") or "").strip()
+        linhas_fin = [
+            {
+                "valor": tot_f,
+                "descricao": (f"NF {nf_num} — {pessoa_nome}" if nf_num else pessoa_nome)[:500],
+                "plano_conta": plano_pad,
+                "plano_conta_id": plano_pad_id,
+                "observacao": (
+                    f"Entrada NF-e Agro · chave {cab.get('chave') or '—'} · {cab.get('data_entrada') or ''}"
+                )[:500],
+            }
+        ]
+
+    resultado = inserir_lancamentos_manual_lote(
+        db,
+        despesa=True,
+        empresa_nome=empresa_nome,
+        empresa_id=str(fin.get("empresa_id") or "").strip() or None,
+        pessoa_nome=pessoa_nome,
+        pessoa_id=pessoa_id_raw,
+        data_competencia=dc,
+        data_vencimento=dv,
+        banco_nome=banco_nome,
+        banco_id=str(fin.get("banco_id") or "").strip() or None,
+        forma_nome=forma_nome,
+        forma_id=str(fin.get("forma_id") or "").strip() or None,
+        grupo_nome=str(fin.get("grupo_nome") or "").strip() or None,
+        grupo_id=str(fin.get("grupo_id") or "").strip() or None,
+        usuario_label=usuario,
+        linhas=linhas_fin,
+    )
+
+    ok = bool(resultado.get("ok"))
+    ids = resultado.get("ids") or []
+    erros = resultado.get("erros") or []
+    aviso_api_erp = None
+    erp_lanc_ok = None
+    path_lanc = (
+        (config("VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", default="") or "")
+        or getattr(settings, "VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", "")
+        or ""
+    ).strip()
+    if path_lanc and ids:
+        try:
+            cli = VendaERPAPIClient()
+            body_erp = montar_payload_erp_lancamentos_novos(db, ids, str(resultado.get("lote") or ""), True)
+            ok_erp, api_msg = cli.financeiro_tentar_lancamentos_api(body_erp)
+            erp_lanc_ok = bool(ok_erp)
+            if not ok_erp:
+                aviso_api_erp = str(api_msg)[:800]
+        except Exception as exc:
+            erp_lanc_ok = False
+            aviso_api_erp = str(exc)[:800]
+
+    out = {
+        "ok": ok and not erros,
+        "rascunho": r_rasc,
+        "financeiro": {
+            "ok": ok,
+            "lote": resultado.get("lote"),
+            "ids": ids,
+            "erros": erros,
+        },
+    }
+    if erp_lanc_ok is not None:
+        out["erp_lancamento_ok"] = erp_lanc_ok
+    if aviso_api_erp:
+        out["aviso_api"] = aviso_api_erp
+    st = 200 if ok and not erros else (207 if ids else 400)
+    return JsonResponse(out, status=st)
+
+
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_entrada_nota_dist_dfe(request):
@@ -2107,7 +2610,8 @@ def api_lancamentos_baixa_parcial(request):
         or getattr(settings, "VENDA_ERP_API_FINANCEIRO_BAIXA_PATH", "")
         or ""
     ).strip()
-    if path_baixa and resultado.get("quitado") and resultado.get("id"):
+    # Sincroniza também baixa parcial (antes só quando quitado — o ERP não recebia parcelas).
+    if path_baixa and resultado.get("id"):
         try:
             cli = VendaERPAPIClient()
             body_erp = montar_payload_erp_baixa(db, [str(resultado["id"])], despesa, payload)
@@ -2119,6 +2623,64 @@ def api_lancamentos_baixa_parcial(request):
             out_j["erp_baixa_ok"] = False
             out_j["aviso_api"] = str(exc)[:800]
     return JsonResponse(out_j, status=200)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_lancamentos_alterar(request):
+    """Edita lançamento em aberto no Mongo (descrição, favorecido, vencimento, plano, valor bruto sem movimento)."""
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    lid = str(payload.get("id") or "").strip()
+    if not lid:
+        return JsonResponse({"ok": False, "erro": "Informe o id do lançamento."}, status=400)
+
+    patch = {k: payload[k] for k in payload if k != "id"}
+    if not patch:
+        return JsonResponse({"ok": False, "erro": "Nenhum campo para atualizar."}, status=400)
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk))[:120]
+
+    r = atualizar_lancamento_mongo_agro(db, lid, patch, usuario)
+    if not r.get("ok"):
+        return JsonResponse({"ok": False, "erro": r.get("erro") or "Falha ao atualizar."}, status=400)
+    return JsonResponse({"ok": True, "id": r.get("id")})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_lancamentos_excluir(request):
+    """Remove lançamento no Mongo somente se manual Agro ou sem vínculo ERP, sem pagamento."""
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    lid = str(payload.get("id") or "").strip()
+    if not lid:
+        return JsonResponse({"ok": False, "erro": "Informe o id do lançamento."}, status=400)
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk))[:120]
+
+    r = excluir_lancamento_mongo_agro(db, lid, usuario)
+    if not r.get("ok"):
+        return JsonResponse({"ok": False, "erro": r.get("erro") or "Falha ao excluir."}, status=400)
+    return JsonResponse({"ok": True})
 
 
 @login_required(login_url="/admin/login/")

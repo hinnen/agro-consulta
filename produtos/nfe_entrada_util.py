@@ -304,6 +304,91 @@ def obter_ult_nsu(db, cnpj: str) -> str:
     return "0"
 
 
+def buscar_fornecedores_entrada_nfe(
+    db,
+    col_pessoa: str,
+    q: str | None,
+    *,
+    inicial: bool = False,
+    limit: int = 50,
+) -> list[dict[str, str]]:
+    """
+    Pessoas no Mongo (DtoPessoa) por nome ou CNPJ/CPF.
+    ``inicial=True`` sem ``q`` retorna até ``limit`` registros ordenados por nome (para abrir o datalist).
+    """
+    out: list[dict[str, str]] = []
+    if db is None or not col_pessoa:
+        return out
+    lim = min(max(int(limit or 50), 1), 100)
+    q = (q or "").strip()
+    col = db[col_pessoa]
+    proj = {
+        "Nome": 1,
+        "RazaoSocial": 1,
+        "NomeFantasia": 1,
+        "CpfCnpj": 1,
+        "Id": 1,
+        "_id": 1,
+        "CNPJ": 1,
+        "Cnpj": 1,
+        "CPF": 1,
+        "Cpf": 1,
+    }
+    try:
+        if not q and inicial:
+            cur = col.find({}, proj).sort([("Nome", 1), ("RazaoSocial", 1)]).limit(lim)
+        elif q:
+            esc = re.escape(q)
+            cond: dict[str, Any] = {
+                "$or": [
+                    {"Nome": {"$regex": esc, "$options": "i"}},
+                    {"RazaoSocial": {"$regex": esc, "$options": "i"}},
+                    {"NomeFantasia": {"$regex": esc, "$options": "i"}},
+                ]
+            }
+            digits = re.sub(r"\D", "", q)
+            if len(digits) >= 2:
+                cond["$or"].append({"CpfCnpj": {"$regex": re.escape(digits)}})
+                cond["$or"].append({"CNPJ": {"$regex": re.escape(digits)}})
+                cond["$or"].append({"Cnpj": {"$regex": re.escape(digits)}})
+            cur = col.find(cond, proj).sort("Nome", 1).limit(lim)
+        else:
+            return out
+        seen: set[str] = set()
+        for d in cur:
+            nome = (
+                str(d.get("Nome") or "").strip()
+                or str(d.get("RazaoSocial") or "").strip()
+                or str(d.get("NomeFantasia") or "").strip()
+            )
+            if not nome:
+                continue
+            doc_raw = (
+                d.get("CpfCnpj")
+                or d.get("CNPJ")
+                or d.get("Cnpj")
+                or d.get("CPF")
+                or d.get("Cpf")
+                or ""
+            )
+            documento = re.sub(r"\D", "", str(doc_raw))[:18]
+            pid = str(d.get("Id") or d.get("_id") or "").strip()
+            if not pid or pid in seen:
+                continue
+            seen.add(pid)
+            out.append(
+                {
+                    "id": pid,
+                    "nome": nome[:300],
+                    "documento": documento,
+                    "origem": "mongo",
+                }
+            )
+    except Exception as exc:
+        logger.warning("buscar_fornecedores_entrada_nfe: %s", exc)
+    return out
+
+
 def gravar_ult_nsu(db, cnpj: str, ult_nsu: str) -> None:
     cnpj = re.sub(r"\D", "", cnpj or "")[:14]
     if not cnpj or db is None:

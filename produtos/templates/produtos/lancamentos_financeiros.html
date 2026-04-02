@@ -68,7 +68,7 @@
 
   <main class="max-w-[1400px] mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
     <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-2">
-      <p><strong class="font-black uppercase">Como funciona</strong> — o Agro registra os lançamentos/baixas aqui e, quando a integração estiver habilitada, também tenta sincronizar com o ERP. Na baixa, a lista padrão mostra só formas e contas com ID no Mongo (cadastro ERP); você pode incluir itens na sua lista pessoal ou ver o histórico completo no modal de baixa.</p>
+      <p><strong class="font-black uppercase">Como funciona</strong> — o Agro registra os lançamentos/baixas aqui e, quando a integração estiver habilitada, também tenta sincronizar com o ERP (baixa total <em>e</em> baixa parcial enviam o título atualizado). Na baixa, a lista padrão mostra só formas e contas com ID no Mongo (cadastro ERP); você pode incluir itens na sua lista pessoal ou ver o histórico completo no modal de baixa.</p>
       <details class="group">
         <summary class="cursor-pointer list-none inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-900">
           <span aria-hidden="true">ℹ</span>
@@ -237,6 +237,7 @@
               <th data-col="mov" class="px-2 py-3 text-right" id="th-mov">Pago</th>
               <th data-col="saldo" class="px-2 py-3 text-right" id="th-saldo">A pagar</th>
               <th data-col="sit" class="px-2 py-3">Situação</th>
+              <th data-col="acoes" class="px-2 py-3 text-right">Ações</th>
             </tr>
           </thead>
           <tbody id="tbody-desk" class="divide-y divide-slate-100"></tbody>
@@ -339,6 +340,70 @@
     </div>
   </div>
 
+  <!-- Modal editar lançamento -->
+  <div id="modal-edit-lanc" class="hidden fixed inset-0 z-[52] flex items-end sm:items-center justify-center p-4 bg-black/40">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 space-y-3 border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <h2 class="text-lg font-black text-slate-900 uppercase tracking-tight">Editar lançamento</h2>
+      <p class="text-[10px] text-slate-600 font-semibold leading-relaxed">Apenas títulos em aberto. Valor (bruto) só aparece se ainda não houver pagamento. Exclusão na linha só vale para lançamento manual do Agro ou sem ID do ERP no Mongo.</p>
+      <input type="hidden" id="edl-id">
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Descrição</span>
+        <input type="text" id="edl-desc" maxlength="500" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold">
+      </label>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Favorecido / cliente</span>
+        <input type="text" id="edl-cliente" maxlength="300" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold">
+      </label>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">ID cliente (ERP, opcional)</span>
+        <input type="text" id="edl-cliente-id" maxlength="80" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono text-xs">
+      </label>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Vencimento</span>
+        <input type="date" id="edl-venc" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold">
+      </label>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Plano de conta</span>
+        <input type="text" id="edl-plano" maxlength="200" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold">
+      </label>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">ID plano (opcional)</span>
+        <input type="text" id="edl-plano-id" maxlength="80" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono text-xs">
+      </label>
+      <div id="edl-valor-wrap" class="hidden">
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Valor bruto (R$)</span>
+          <input type="text" id="edl-valor" placeholder="0,00" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold tabular-nums">
+        </label>
+      </div>
+      <details class="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2">
+        <summary class="text-[10px] font-black uppercase text-slate-600 cursor-pointer">Corrigir forma / conta (opcional)</summary>
+        <div class="mt-2 space-y-2 pt-1">
+          <label class="block">
+            <span class="text-[9px] font-black uppercase text-slate-500">Forma de pagamento</span>
+            <input type="text" id="edl-forma" maxlength="200" class="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold" placeholder="Ex.: PIX">
+          </label>
+          <label class="block">
+            <span class="text-[9px] font-black uppercase text-slate-500">ID forma (ERP)</span>
+            <input type="text" id="edl-forma-id" maxlength="80" class="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-mono">
+          </label>
+          <label class="block">
+            <span class="text-[9px] font-black uppercase text-slate-500">Banco / conta</span>
+            <input type="text" id="edl-banco" maxlength="200" class="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold" placeholder="Ex.: CPF | Mercado Pago ( Renan )">
+          </label>
+          <label class="block">
+            <span class="text-[9px] font-black uppercase text-slate-500">ID conta (ERP)</span>
+            <input type="text" id="edl-banco-id" maxlength="80" class="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-mono">
+          </label>
+        </div>
+      </details>
+      <div class="flex flex-wrap gap-2 justify-end pt-2 border-t border-slate-100">
+        <button type="button" id="edl-cancel" class="px-4 py-2.5 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Cancelar</button>
+        <button type="button" id="edl-salvar" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-black text-xs uppercase hover:bg-indigo-700">Salvar</button>
+      </div>
+    </div>
+  </div>
+
   {{ csrf_token }}
   <script>
     (() => {
@@ -376,6 +441,8 @@
     const API_OPCOES_EXTRA_EXCL_TMPL = "{% url 'api_lancamentos_opcoes_baixa_extra_excluir' pk=888888888 %}";
     const API_BAIXA = "{% url 'api_lancamentos_baixa' %}";
     const API_BAIXA_PARCIAL = "{% url 'api_lancamentos_baixa_parcial' %}";
+    const API_LANC_ALTERAR = "{% url 'api_lancamentos_alterar' %}";
+    const API_LANC_EXCLUIR = "{% url 'api_lancamentos_excluir' %}";
     const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
     const LS_OPCOES_MODO = 'gm_fin_opcoes_modo';
     const LS_FAV = 'gm_fin_favs_v1';
@@ -395,6 +462,7 @@
       { id: 'mov', label: 'Movimentado' },
       { id: 'saldo', label: 'Saldo' },
       { id: 'sit', label: 'Situação' },
+      { id: 'acoes', label: 'Ações' },
     ];
 
     let tipoAtual = 'pagar';
@@ -440,7 +508,7 @@
     function lancamentosSkeletonDeskRows() {
       let html = '';
       for (let i = 0; i < 10; i++) {
-        html += '<tr class="animate-pulse"><td colspan="11" class="px-2 py-3"><div class="h-4 bg-slate-200 rounded-md w-full max-w-[720px]"></div></td></tr>';
+        html += '<tr class="animate-pulse"><td colspan="12" class="px-2 py-3"><div class="h-4 bg-slate-200 rounded-md w-full max-w-[720px]"></div></td></tr>';
       }
       return html;
     }
@@ -830,16 +898,16 @@
         bs.innerHTML = '<option value="">— Selecione —</option>';
         (d.formas || []).forEach((x) => {
           const o = document.createElement('option');
-          const nome = String(x.nome || '').replace(/\|/g, '/');
+          const nome = String(x.nome || '');
           o.value = `${String(x.id || '')}|||${nome}`;
-          o.textContent = x.origem === 'manual' ? `${x.nome || nome} · lista pessoal` : (x.nome || nome);
+          o.textContent = x.origem === 'manual' ? `${nome} · lista pessoal` : nome;
           fs.appendChild(o);
         });
         (d.bancos || []).forEach((x) => {
           const o = document.createElement('option');
-          const nome = String(x.nome || '').replace(/\|/g, '/');
+          const nome = String(x.nome || '');
           o.value = `${String(x.id || '')}|||${nome}`;
-          o.textContent = x.origem === 'manual' ? `${x.nome || nome} · lista pessoal` : (x.nome || nome);
+          o.textContent = x.origem === 'manual' ? `${nome} · lista pessoal` : nome;
           bs.appendChild(o);
         });
         renderListaOpcoesExtras(window._lastOpcoesExtras);
@@ -988,6 +1056,16 @@
           const chk = showChk && !row.pago
             ? `<input type="checkbox" class="row-chk rounded border-slate-300" data-id="${esc(row.id)}" data-rest="${rest}" ${selecionados.has(row.id) ? 'checked' : ''}>`
             : '';
+          const acoesBtns = [];
+          if (row.pode_editar) {
+            acoesBtns.push(`<button type="button" class="btn-edt-lanc text-[10px] font-black uppercase text-indigo-700 hover:underline px-1 py-0.5 rounded" data-id="${esc(row.id)}">Editar</button>`);
+          }
+          if (row.pode_excluir) {
+            acoesBtns.push(`<button type="button" class="btn-del-lanc text-[10px] font-black uppercase text-red-700 hover:underline px-1 py-0.5 rounded" data-id="${esc(row.id)}">Excluir</button>`);
+          }
+          const acoesHtml = acoesBtns.length
+            ? `<div class="flex flex-wrap gap-1 justify-end">${acoesBtns.join('')}</div>`
+            : '<span class="text-slate-300">—</span>';
           const tr = document.createElement('tr');
           tr.className = 'hover:bg-slate-50/80';
           tr.innerHTML = `
@@ -1001,7 +1079,8 @@
             <td data-col="bruto" class="px-2 py-2 text-xs text-right font-bold tabular-nums">${esc(brl(row.valor_bruto))}</td>
             <td data-col="mov" class="px-2 py-2 text-xs text-right font-semibold text-emerald-800 tabular-nums">${esc(brl(row.valor_movimentado))}</td>
             <td data-col="saldo" class="px-2 py-2 text-xs text-right font-black text-amber-900 tabular-nums">${esc(brl(row.restante))}</td>
-            <td data-col="sit" class="px-2 py-2 text-xs">${sit}</td>`;
+            <td data-col="sit" class="px-2 py-2 text-xs">${sit}</td>
+            <td data-col="acoes" class="px-2 py-2 text-xs text-right align-middle">${acoesHtml}</td>`;
           tb.appendChild(tr);
 
           const card = document.createElement('div');
@@ -1022,6 +1101,10 @@
             <div class="flex justify-between text-xs font-bold border-t border-slate-200 pt-2">
               <span class="text-slate-500">Saldo</span>
               <span class="text-amber-900 tabular-nums">${esc(brl(row.restante))}</span>
+            </div>
+            <div class="flex flex-wrap gap-2 justify-end pt-1">
+              ${row.pode_editar ? `<button type="button" class="btn-edt-lanc text-[10px] font-black uppercase text-indigo-700 border border-indigo-200 rounded-lg px-2 py-1" data-id="${esc(row.id)}">Editar</button>` : ''}
+              ${row.pode_excluir ? `<button type="button" class="btn-del-lanc text-[10px] font-black uppercase text-red-700 border border-red-200 rounded-lg px-2 py-1" data-id="${esc(row.id)}">Excluir</button>` : ''}
             </div>`;
           mob.appendChild(card);
         }
@@ -1498,13 +1581,153 @@
       }
     });
 
+    function isoDateFromRowVenc(iso) {
+      if (!iso) return '';
+      const s = String(iso).trim();
+      return s.length >= 10 ? s.slice(0, 10) : '';
+    }
+
+    function abrirModalEditLanc(id) {
+      const row = lastRows.find((r) => r.id === id);
+      if (!row || !row.pode_editar) return;
+      document.getElementById('edl-id').value = id;
+      document.getElementById('edl-desc').value = row.descricao || '';
+      document.getElementById('edl-cliente').value = row.cliente || '';
+      document.getElementById('edl-cliente-id').value = row.cliente_id || '';
+      document.getElementById('edl-venc').value = isoDateFromRowVenc(row.data_vencimento);
+      document.getElementById('edl-plano').value = row.plano_conta || '';
+      document.getElementById('edl-plano-id').value = '';
+      document.getElementById('edl-forma').value = row.forma_pagamento || '';
+      document.getElementById('edl-forma-id').value = row.forma_pagamento_id || '';
+      document.getElementById('edl-banco').value = row.banco || '';
+      document.getElementById('edl-banco-id').value = row.banco_id || '';
+      const vw = document.getElementById('edl-valor-wrap');
+      const vi = document.getElementById('edl-valor');
+      if (row.pode_editar_valor) {
+        vw.classList.remove('hidden');
+        vi.value = Number(row.valor_bruto || 0).toFixed(2).replace('.', ',');
+      } else {
+        vw.classList.add('hidden');
+        vi.value = '';
+      }
+      document.getElementById('modal-edit-lanc').classList.remove('hidden');
+    }
+
+    async function excluirLancamentoPorId(id) {
+      try {
+        const r = await fetch(API_LANC_EXCLUIR, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify({ id }),
+        });
+        const out = await r.json();
+        if (!out.ok) {
+          alert(out.erro || 'Não foi possível excluir.');
+          return;
+        }
+        selecionados.delete(id);
+        carregar();
+      } catch (_) {
+        alert('Erro de rede.');
+      }
+    }
+
+    function bindGestaoLancamentosClick(container) {
+      if (!container) return;
+      container.addEventListener('click', (e) => {
+        const edt = e.target.closest('.btn-edt-lanc');
+        if (edt && edt.dataset.id) {
+          e.preventDefault();
+          abrirModalEditLanc(edt.dataset.id);
+          return;
+        }
+        const del = e.target.closest('.btn-del-lanc');
+        if (del && del.dataset.id) {
+          e.preventDefault();
+          if (!window.confirm('Excluir este lançamento no Mongo? Esta ação não pode ser desfeita.')) return;
+          excluirLancamentoPorId(del.dataset.id);
+        }
+      });
+    }
+    bindGestaoLancamentosClick(document.getElementById('tbody-desk'));
+    bindGestaoLancamentosClick(document.getElementById('cards-mob'));
+
+    document.getElementById('edl-cancel')?.addEventListener('click', () => {
+      document.getElementById('modal-edit-lanc').classList.add('hidden');
+    });
+    document.getElementById('modal-edit-lanc')?.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'modal-edit-lanc') {
+        document.getElementById('modal-edit-lanc').classList.add('hidden');
+      }
+    });
+    document.getElementById('edl-salvar')?.addEventListener('click', async () => {
+      const id = (document.getElementById('edl-id').value || '').trim();
+      if (!id) return;
+      const body = {
+        id,
+        descricao: document.getElementById('edl-desc').value,
+        cliente: document.getElementById('edl-cliente').value,
+        data_vencimento: document.getElementById('edl-venc').value,
+        plano_conta: document.getElementById('edl-plano').value,
+      };
+      const cid = (document.getElementById('edl-cliente-id').value || '').trim();
+      if (cid) body.cliente_id = cid;
+      const pid = (document.getElementById('edl-plano-id').value || '').trim();
+      if (pid) body.plano_conta_id = pid;
+      const vw = document.getElementById('edl-valor-wrap');
+      if (vw && !vw.classList.contains('hidden')) {
+        const vpt = parseValorPt(document.getElementById('edl-valor').value);
+        if (!Number.isNaN(vpt) && vpt > 0) body.valor_bruto = vpt;
+      }
+      const fn = (document.getElementById('edl-forma').value || '').trim();
+      if (fn) {
+        body.forma_pagamento = fn;
+        const fids = (document.getElementById('edl-forma-id').value || '').trim();
+        if (fids) body.forma_pagamento_id = fids;
+      }
+      const bn = (document.getElementById('edl-banco').value || '').trim();
+      if (bn) {
+        body.banco = bn;
+        const bids = (document.getElementById('edl-banco-id').value || '').trim();
+        if (bids) body.banco_id = bids;
+      }
+      document.getElementById('edl-salvar').disabled = true;
+      try {
+        const r = await fetch(API_LANC_ALTERAR, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify(body),
+        });
+        const out = await r.json();
+        if (!out.ok) {
+          alert(out.erro || 'Não foi possível salvar.');
+          return;
+        }
+        document.getElementById('modal-edit-lanc').classList.add('hidden');
+        carregar();
+      } catch (_) {
+        alert('Erro de rede.');
+      } finally {
+        document.getElementById('edl-salvar').disabled = false;
+      }
+    });
+
     document.addEventListener('keydown', (e) => {
       const tag = e.target && e.target.tagName;
       const inField = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
       const modalAberto = !document.getElementById('modal-baixa')?.classList.contains('hidden');
       const modalParcial = !document.getElementById('modal-baixa-parcial')?.classList.contains('hidden');
       const modalOpx = !document.getElementById('modal-opcoes-extras')?.classList.contains('hidden');
-      if (modalAberto || modalParcial || modalOpx) return;
+      const modalEdit = !document.getElementById('modal-edit-lanc')?.classList.contains('hidden');
+      if (modalAberto || modalParcial || modalOpx || modalEdit) return;
       if (e.key === 'F5') {
         e.preventDefault();
         document.getElementById('btn-buscar')?.click();
