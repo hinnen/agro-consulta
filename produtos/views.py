@@ -69,6 +69,7 @@ from .mongo_financeiro_util import (
     listar_formas_e_bancos_distintos,
     montar_payload_erp_baixa,
     montar_payload_erp_lancamentos_novos,
+    normalizar_parcelas_baixa_ui_erp,
 )
 
 
@@ -1920,7 +1921,8 @@ def api_entrada_nota_fornecedores(request):
 def api_entrada_nota_financeiro(request):
     """
     Salva rascunho da NF-e e gera lançamento(amentos) a pagar no Mongo (mesmo fluxo do manual).
-    financeiro.modo: ``unico`` (um título com soma) ou ``por_item`` (uma linha por item da grade).
+    Plano de contas: ``financeiro.plano_padrao`` ou, se vazio, ``cabecalho.plano_conta`` (nota inteira).
+    ``modo_lancamento`` ``por_item`` ainda é aceito na API; a tela manual envia só ``unico``.
     """
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
@@ -1997,8 +1999,8 @@ def api_entrada_nota_financeiro(request):
         )
 
     modo_lanc = str(fin.get("modo_lancamento") or "unico").strip().lower()
-    plano_pad = str(fin.get("plano_padrao") or "").strip()
-    plano_pad_id = str(fin.get("plano_padrao_id") or "").strip() or None
+    plano_pad = str(fin.get("plano_padrao") or cab.get("plano_conta") or "").strip()
+    plano_pad_id = str(fin.get("plano_padrao_id") or cab.get("plano_conta_id") or "").strip() or None
 
     pessoa_id_raw = str(cab.get("emit_fornecedor_id") or fin.get("pessoa_id") or "").strip() or None
     if pessoa_id_raw and pessoa_id_raw.startswith("local:"):
@@ -2064,7 +2066,7 @@ def api_entrada_nota_financeiro(request):
             return JsonResponse(
                 {
                     "ok": False,
-                    "erro": "Modo título único: informe o plano de contas padrão.",
+                    "erro": "Informe o plano de contas da nota (tela NF-e) ou plano_padrao no bloco financeiro.",
                     "rascunho": r_rasc,
                 },
                 status=400,
@@ -2516,7 +2518,9 @@ def api_lancamentos_baixa(request):
     if path_baixa and resultado.get("atualizados"):
         try:
             cli = VendaERPAPIClient()
-            body_erp = montar_payload_erp_baixa(db, resultado["atualizados"], despesa, payload)
+            body_erp = montar_payload_erp_baixa(
+                db, resultado["atualizados"], despesa, payload, extras={"operacao_baixa": "total"}
+            )
             ok_api, api_msg = cli.financeiro_tentar_baixa_api(body_erp)
             if ok_api:
                 resultado["erp_baixa_ok"] = True
@@ -2614,7 +2618,18 @@ def api_lancamentos_baixa_parcial(request):
     if path_baixa and resultado.get("id"):
         try:
             cli = VendaERPAPIClient()
-            body_erp = montar_payload_erp_baixa(db, [str(resultado["id"])], despesa, payload)
+            parcelas_erp = normalizar_parcelas_baixa_ui_erp(payload.get("parcelas"))
+            body_erp = montar_payload_erp_baixa(
+                db,
+                [str(resultado["id"])],
+                despesa,
+                payload,
+                extras={
+                    "operacao_baixa": "parcial",
+                    "quitado_no_agro": bool(resultado.get("quitado")),
+                    "parcelas_baixa": parcelas_erp,
+                },
+            )
             ok_api, api_msg = cli.financeiro_tentar_baixa_api(body_erp)
             out_j["erp_baixa_ok"] = bool(ok_api)
             if not ok_api:

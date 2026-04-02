@@ -27,6 +27,7 @@
       opacity: 0.92;
     }
     @media (min-width: 640px) { .gm-kbd { font-size: 10px; padding: 0.25rem 0.45rem; } }
+    #modal-edit-lanc .sug-dd { max-height: 220px; overflow-y: auto; z-index: 60; }
   </style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
@@ -352,11 +353,12 @@
       </label>
       <label class="block">
         <span class="text-[10px] font-black uppercase text-slate-500">Favorecido / cliente</span>
-        <input type="text" id="edl-cliente" maxlength="300" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold">
-      </label>
-      <label class="block">
-        <span class="text-[10px] font-black uppercase text-slate-500">ID cliente (ERP, opcional)</span>
-        <input type="text" id="edl-cliente-id" maxlength="80" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono text-xs">
+        <div class="relative sug-wrap mt-1" data-sug-campo="cliente">
+          <input type="text" id="edl-cliente" maxlength="300" autocomplete="off" placeholder="Digite para buscar…"
+            class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold focus:border-amber-500 outline-none">
+          <input type="hidden" id="edl-cliente-id" value="">
+          <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+        </div>
       </label>
       <label class="block">
         <span class="text-[10px] font-black uppercase text-slate-500">Vencimento</span>
@@ -364,11 +366,12 @@
       </label>
       <label class="block">
         <span class="text-[10px] font-black uppercase text-slate-500">Plano de conta</span>
-        <input type="text" id="edl-plano" maxlength="200" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold">
-      </label>
-      <label class="block">
-        <span class="text-[10px] font-black uppercase text-slate-500">ID plano (opcional)</span>
-        <input type="text" id="edl-plano-id" maxlength="80" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono text-xs">
+        <div class="relative sug-wrap mt-1" data-sug-campo="plano">
+          <input type="text" id="edl-plano" maxlength="200" autocomplete="off" placeholder="Digite para buscar ou escolha na lista…"
+            class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold focus:border-amber-500 outline-none">
+          <input type="hidden" id="edl-plano-id" value="">
+          <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+        </div>
       </label>
       <div id="edl-valor-wrap" class="hidden">
         <label class="block">
@@ -381,19 +384,21 @@
         <div class="mt-2 space-y-2 pt-1">
           <label class="block">
             <span class="text-[9px] font-black uppercase text-slate-500">Forma de pagamento</span>
-            <input type="text" id="edl-forma" maxlength="200" class="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold" placeholder="Ex.: PIX">
-          </label>
-          <label class="block">
-            <span class="text-[9px] font-black uppercase text-slate-500">ID forma (ERP)</span>
-            <input type="text" id="edl-forma-id" maxlength="80" class="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-mono">
+            <div class="relative sug-wrap mt-1" data-sug-campo="forma">
+              <input type="text" id="edl-forma" maxlength="200" autocomplete="off" placeholder="Digite para buscar…"
+                class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold focus:border-amber-500 outline-none">
+              <input type="hidden" id="edl-forma-id" value="">
+              <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-lg shadow-lg"></ul>
+            </div>
           </label>
           <label class="block">
             <span class="text-[9px] font-black uppercase text-slate-500">Banco / conta</span>
-            <input type="text" id="edl-banco" maxlength="200" class="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold" placeholder="Ex.: CPF | Mercado Pago ( Renan )">
-          </label>
-          <label class="block">
-            <span class="text-[9px] font-black uppercase text-slate-500">ID conta (ERP)</span>
-            <input type="text" id="edl-banco-id" maxlength="80" class="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-mono">
+            <div class="relative sug-wrap mt-1" data-sug-campo="banco">
+              <input type="text" id="edl-banco" maxlength="200" autocomplete="off" placeholder="Digite para buscar…"
+                class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold focus:border-amber-500 outline-none">
+              <input type="hidden" id="edl-banco-id" value="">
+              <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-lg shadow-lg"></ul>
+            </div>
           </label>
         </div>
       </details>
@@ -484,6 +489,54 @@
       const day = String(d.getDate()).padStart(2, '0');
       return `${y}-${m}-${day}`;
     }
+
+    function attachSuggest(wrap) {
+      if (!wrap || wrap.dataset.sugBound === '1') return;
+      wrap.dataset.sugBound = '1';
+      const campo = wrap.getAttribute('data-sug-campo');
+      const inp = wrap.querySelector('input[type="text"]');
+      const hid = wrap.querySelector('input[type="hidden"]');
+      const dd = wrap.querySelector('.sug-dd');
+      if (!inp || !hid || !dd || !campo) return;
+      let timer = null;
+      inp.addEventListener('input', function () {
+        hid.value = '';
+        clearTimeout(timer);
+        timer = setTimeout(async function () {
+          try {
+            const u = new URL(API_SUG, window.location.origin);
+            u.searchParams.set('campo', campo);
+            u.searchParams.set('q', inp.value.trim());
+            const r = await fetch(u.toString(), { credentials: 'same-origin' });
+            const j = await r.json();
+            dd.innerHTML = '';
+            (j.itens || []).forEach(function (it) {
+              const li = document.createElement('li');
+              li.textContent = it.nome;
+              li.className = 'px-3 py-2 cursor-pointer hover:bg-amber-50 text-sm font-medium border-b border-slate-50 last:border-0';
+              li.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+                inp.value = it.nome;
+                hid.value = it.id || '';
+                dd.classList.add('hidden');
+              });
+              dd.appendChild(li);
+            });
+            dd.classList.toggle('hidden', dd.children.length === 0);
+          } catch (e) {
+            dd.classList.add('hidden');
+          }
+        }, 280);
+      });
+      inp.addEventListener('blur', function () {
+        setTimeout(function () { dd.classList.add('hidden'); }, 200);
+      });
+      inp.addEventListener('focus', function () {
+        if (dd.children.length) dd.classList.remove('hidden');
+      });
+    }
+
+    document.querySelectorAll('#modal-edit-lanc .sug-wrap').forEach(attachSuggest);
 
     function brl(n) {
       const x = Number(n) || 0;
@@ -1596,7 +1649,7 @@
       document.getElementById('edl-cliente-id').value = row.cliente_id || '';
       document.getElementById('edl-venc').value = isoDateFromRowVenc(row.data_vencimento);
       document.getElementById('edl-plano').value = row.plano_conta || '';
-      document.getElementById('edl-plano-id').value = '';
+      document.getElementById('edl-plano-id').value = row.plano_conta_id || '';
       document.getElementById('edl-forma').value = row.forma_pagamento || '';
       document.getElementById('edl-forma-id').value = row.forma_pagamento_id || '';
       document.getElementById('edl-banco').value = row.banco || '';
