@@ -96,7 +96,42 @@
       </div>
     </section>
 
+    <section class="bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Fonte dos dados</span>
+        <select id="f-fonte" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-sm font-bold min-h-[44px]" title="Mongo = DtoLancamento (sincronizado com o ERP). Postgres = lançamentos gravados no Agro.">
+          <option value="mongo" selected>Mongo — DtoLancamento (ERP)</option>
+          <option value="postgres">Postgres — Agro</option>
+        </select>
+      </label>
+      <label class="block" id="wrap-mongo-por">
+        <span class="text-[10px] font-black uppercase text-slate-500">Data base (Mongo)</span>
+        <select id="f-por" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-sm font-bold min-h-[44px]">
+          <option value="competencia">Competência</option>
+          <option value="vencimento">Vencimento</option>
+          <option value="pagamento">Pagamento</option>
+        </select>
+      </label>
+      <label class="block" id="wrap-mongo-valor">
+        <span class="text-[10px] font-black uppercase text-slate-500">Valor (Mongo)</span>
+        <select id="f-valor" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-sm font-bold min-h-[44px]">
+          <option value="bruto">Bruto (título)</option>
+          <option value="realizado">Realizado (pago/recebido)</option>
+        </select>
+      </label>
+      <label class="block" id="wrap-mongo-contas">
+        <span class="text-[10px] font-black uppercase text-slate-500">Filtro contas</span>
+        <select id="f-contas" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-3 text-sm font-bold min-h-[44px]" title="Igual ao DRE simples: resultado (padrão), resultado_erp ou todas.">
+          <option value="">Padrão (.env / resultado)</option>
+          <option value="resultado">Resultado</option>
+          <option value="resultado_erp">Resultado ERP (PDF)</option>
+          <option value="todas">Todas</option>
+        </select>
+      </label>
+    </section>
+
     <p id="msg-erro" class="hidden rounded-2xl border-2 border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800"></p>
+    <p id="msg-mongo-info" class="hidden rounded-2xl border-2 border-sky-200 bg-sky-50 px-4 py-3 text-xs font-semibold text-sky-950 leading-snug"></p>
 
     <div id="painel-cards" class="hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
 
@@ -119,8 +154,9 @@
     <div class="bg-white rounded-2xl border-2 border-slate-200 max-w-lg w-full p-5 shadow-xl">
       <h3 class="text-lg font-black text-slate-800 mb-2">Resumo gerencial</h3>
       <ul class="text-sm text-slate-700 space-y-2 list-disc pl-5">
-        <li>Mostra agregados de <strong>LancamentoFinanceiro</strong> (Postgres), separando operação, financeiro e capital.</li>
-        <li>Modo <strong>grupo</strong> elimina receitas e transferências internas marcadas com <code class="bg-slate-100 px-1 rounded text-xs">eh_interno_grupo</code>.</li>
+        <li><strong>Fonte Mongo</strong> usa o mesmo <strong>DtoLancamento</strong> do DRE (dados do ERP). O nome fantasia da empresa no Agro deve bater com o campo Empresa do título no Mongo.</li>
+        <li><strong>Fonte Postgres</strong> usa <strong>LancamentoFinanceiro</strong> cadastrado no Agro.</li>
+        <li>Modo <strong>grupo</strong> no Postgres elimina internos com <code class="bg-slate-100 px-1 rounded text-xs">eh_interno_grupo</code>. No Mongo, o grupo soma cada empresa (sem eliminação automática entre filiais).</li>
         <li>Empréstimo e amortização entram na <strong>geração de caixa</strong>, não no resultado operacional.</li>
         <li><kbd class="gm-kbd border border-slate-200 bg-slate-50">F1</kbd> fora de campos volta ao PDV. Filtros ficam na sessão desta aba (sessionStorage).</li>
       </ul>
@@ -156,7 +192,11 @@
         empresa_id: document.getElementById('f-empresa').value,
         grupo_id: document.getElementById('f-grupo').value,
         data_inicio: document.getElementById('f-ini').value,
-        data_fim: document.getElementById('f-fim').value
+        data_fim: document.getElementById('f-fim').value,
+        fonte: document.getElementById('f-fonte').value,
+        por: document.getElementById('f-por').value,
+        valor: document.getElementById('f-valor').value,
+        contas: document.getElementById('f-contas').value
       }));
     } catch (e) {}
   }
@@ -170,6 +210,10 @@
       if (o.grupo_id) document.getElementById('f-grupo').value = o.grupo_id;
       if (o.data_inicio) document.getElementById('f-ini').value = o.data_inicio;
       if (o.data_fim) document.getElementById('f-fim').value = o.data_fim;
+      if (o.fonte) document.getElementById('f-fonte').value = o.fonte;
+      if (o.por) document.getElementById('f-por').value = o.por;
+      if (o.valor) document.getElementById('f-valor').value = o.valor;
+      if (o.contas !== undefined) document.getElementById('f-contas').value = o.contas;
     } catch (e) {}
   }
   function toggleModo() {
@@ -177,6 +221,12 @@
     document.getElementById('wrap-empresa').classList.toggle('hidden', m !== 'empresa');
     document.getElementById('wrap-grupo').classList.toggle('hidden', m !== 'grupo');
     document.getElementById('bloco-grupo').classList.toggle('hidden', m !== 'grupo');
+  }
+  function toggleFonte() {
+    var mongo = document.getElementById('f-fonte').value === 'mongo';
+    ['wrap-mongo-por', 'wrap-mongo-valor', 'wrap-mongo-contas'].forEach(function (id) {
+      document.getElementById(id).classList.toggle('hidden', !mongo);
+    });
   }
   function card(titulo, valor, cor) {
     cor = cor || 'slate';
@@ -204,9 +254,21 @@
     }
     document.getElementById('painel-cards').innerHTML = html;
     document.getElementById('painel-cards').classList.remove('hidden');
+    var info = document.getElementById('msg-mongo-info');
+    var obs = c.ajustes_eliminacao && c.ajustes_eliminacao.observacao_mongo;
+    if (obs) {
+      info.textContent = obs;
+      info.classList.remove('hidden');
+    } else {
+      info.textContent = '';
+      info.classList.add('hidden');
+    }
     if (modo === 'grupo' && data.por_empresa && data.por_empresa.length) {
       var pe = document.getElementById('por-empresa');
       pe.innerHTML = data.por_empresa.map(function (x) {
+        if (x.erro) {
+          return '<div class="rounded-xl border border-red-100 bg-red-50 px-3 py-2 font-semibold text-red-900">Empresa #' + x.empresa_id + ' — ' + x.erro + '</div>';
+        }
         return '<div class="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 font-semibold text-slate-800">Empresa #' + x.empresa_id +
           ' · Res. op. <span class="tabular-nums">' + brl(x.resultado_operacional) + '</span></div>';
       }).join('');
@@ -227,7 +289,14 @@
       mostrarErro('Informe início e fim.');
       return;
     }
-    var q = 'modo=' + encodeURIComponent(modo) + '&data_inicio=' + encodeURIComponent(ini) + '&data_fim=' + encodeURIComponent(fim);
+    var fonte = document.getElementById('f-fonte').value;
+    var q = 'modo=' + encodeURIComponent(modo) + '&data_inicio=' + encodeURIComponent(ini) + '&data_fim=' + encodeURIComponent(fim) + '&fonte=' + encodeURIComponent(fonte);
+    if (fonte === 'mongo') {
+      q += '&por=' + encodeURIComponent(document.getElementById('f-por').value);
+      q += '&valor=' + encodeURIComponent(document.getElementById('f-valor').value);
+      var ct = document.getElementById('f-contas').value;
+      if (ct) q += '&contas=' + encodeURIComponent(ct);
+    }
     if (modo === 'empresa') {
       var eid = document.getElementById('f-empresa').value;
       if (!eid) { mostrarErro('Selecione a empresa.'); return; }
@@ -241,8 +310,15 @@
       var r = await fetch('/api/financeiro/resumo-operacional?' + q, { credentials: 'same-origin' });
       if (r.status === 401) { mostrarErro('Faça login (admin).'); return; }
       if (!r.ok) {
-        var t = await r.text();
-        mostrarErro('Erro ' + r.status + (t ? ': ' + t.slice(0, 200) : ''));
+        try {
+          var ej = await r.json();
+          var d = ej.detail != null ? ej.detail : ej.erro;
+          var msg = typeof d === 'string' ? d : (Array.isArray(d) ? d.join(' ') : JSON.stringify(ej));
+          mostrarErro(String(msg).slice(0, 450));
+        } catch (e2) {
+          var t = await r.text();
+          mostrarErro('Erro ' + r.status + (t ? ': ' + t.slice(0, 200) : ''));
+        }
         return;
       }
       var data = await r.json();
@@ -261,11 +337,15 @@
     }
   }
   document.getElementById('f-modo').addEventListener('change', function () { toggleModo(); salvarCtx(); });
+  document.getElementById('f-fonte').addEventListener('change', function () { toggleFonte(); salvarCtx(); });
   document.getElementById('btn-atualizar').addEventListener('click', atualizar);
   document.getElementById('f-empresa').addEventListener('change', salvarCtx);
   document.getElementById('f-grupo').addEventListener('change', salvarCtx);
   document.getElementById('f-ini').addEventListener('change', salvarCtx);
   document.getElementById('f-fim').addEventListener('change', salvarCtx);
+  document.getElementById('f-por').addEventListener('change', salvarCtx);
+  document.getElementById('f-valor').addEventListener('change', salvarCtx);
+  document.getElementById('f-contas').addEventListener('change', salvarCtx);
   document.getElementById('btn-ajuda').addEventListener('click', function () {
     document.getElementById('modal-ajuda').classList.remove('hidden');
   });
@@ -285,6 +365,7 @@
   });
   carregarCtx();
   toggleModo();
+  toggleFonte();
   var hoje = new Date();
   var iso = hoje.toISOString().slice(0, 10);
   if (!document.getElementById('f-fim').value) document.getElementById('f-fim').value = iso;
