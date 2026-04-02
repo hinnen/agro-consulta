@@ -1935,12 +1935,34 @@ def normalizar_parcelas_baixa_ui_erp(parcelas: list[Any] | None) -> list[dict[st
     return out
 
 
+def _montar_vinculo_root_baixa_erp(t0: dict[str, Any], mongo_id: str | None) -> dict[str, Any]:
+    """
+    Chaves para o servidor WL amarrar pagamento(s) ao título certo (evita realizado “solto” no
+    totalizador sem atualizar a linha do lançamento, ex. Previsto 3.140,94 / código 550).
+    """
+    v: dict[str, Any] = {}
+    mid = (mongo_id or "").strip()
+    if mid:
+        v["mongodb_id"] = mid
+    erp_id = t0.get("Id")
+    if erp_id is not None and str(erp_id).strip() != "":
+        v["id"] = erp_id
+    nl = t0.get("NumeroLancamento")
+    if nl is not None and str(nl).strip() != "":
+        v["numero_lancamento"] = nl
+    lid = t0.get("LancamentoID")
+    if lid is not None and str(lid).strip() != "":
+        v["lancamento_id"] = lid
+    return v
+
+
 def pagamentos_detalhe_formato_sisvale(
     parcelas_norm: list[dict[str, Any]],
     *,
     data_pagamento_iso: str | None,
     documento_base_titulo: str | None,
     quitar_lancamento: bool = False,
+    vinculo_titulo: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """
     Estrutura análoga à aba **Pagamentos** do cadastro de lançamento no SisVale/Venda (linhas de
@@ -1950,29 +1972,41 @@ def pagamentos_detalhe_formato_sisvale(
     base = (documento_base_titulo or "").strip()[:80]
     data_s = (data_pagamento_iso or "").strip()[:10] or None
     rows: list[dict[str, Any]] = []
+    vin = vinculo_titulo or {}
+    vid = vin.get("id")
+    vid_s = str(vid).strip() if vid is not None and str(vid).strip() else ""
     for idx, p in enumerate(parcelas_norm or [], start=1):
         val = float(p.get("valor") or 0)
         if val <= 0:
             continue
         doc_linha = f"{base}-P{idx}" if base else f"P{idx}"
-        rows.append(
-            {
-                "valor": round(val, 2),
-                "multa": 0.0,
-                "juros_percent": 0,
-                "juros": 0.0,
-                "data_pagamento": data_s,
-                "forma_pagamento": str(p.get("forma_pagamento") or "")[:200],
-                "forma_pagamento_id": str(p.get("forma_pagamento_id") or "")[:80],
-                "conta_bancaria": str(p.get("banco") or "")[:200],
-                "conta_bancaria_id": str(p.get("banco_id") or "")[:80],
-                "banco": str(p.get("banco") or "")[:200],
-                "banco_id": str(p.get("banco_id") or "")[:80],
-                "documento": doc_linha[:120],
-                "total": round(val, 2),
-                "quitar_lancamento": bool(quitar_lancamento),
-            }
-        )
+        row: dict[str, Any] = {
+            "valor": round(val, 2),
+            "multa": 0.0,
+            "juros_percent": 0,
+            "juros": 0.0,
+            "data_pagamento": data_s,
+            "forma_pagamento": str(p.get("forma_pagamento") or "")[:200],
+            "forma_pagamento_id": str(p.get("forma_pagamento_id") or "")[:80],
+            "conta_bancaria": str(p.get("banco") or "")[:200],
+            "conta_bancaria_id": str(p.get("banco_id") or "")[:80],
+            "banco": str(p.get("banco") or "")[:200],
+            "banco_id": str(p.get("banco_id") or "")[:80],
+            "documento": doc_linha[:120],
+            "total": round(val, 2),
+            "quitar_lancamento": bool(quitar_lancamento),
+        }
+        if vid_s:
+            row["lancamento_vinculo_id"] = vid_s
+            row["dto_lancamento_id"] = vid_s
+            row["LancamentoPaiId"] = vid_s
+        if vin.get("numero_lancamento") is not None and str(vin.get("numero_lancamento")).strip() != "":
+            row["numero_lancamento_pai"] = vin["numero_lancamento"]
+        if vin.get("lancamento_id") is not None and str(vin.get("lancamento_id")).strip() != "":
+            row["lancamento_codigo"] = vin["lancamento_id"]
+        if vin.get("mongodb_id"):
+            row["mongodb_id_titulo"] = vin["mongodb_id"]
+        rows.append(row)
     return rows
 
 
@@ -2050,6 +2084,17 @@ def montar_payload_erp_baixa(
         "origem": "agro_consulta",
         "titulos": titulos,
     }
+    vinculo_root: dict[str, Any] = {}
+    if titulos:
+        mid0 = str(mongo_ids[0]).strip() if mongo_ids else ""
+        vinculo_root = _montar_vinculo_root_baixa_erp(titulos[0], mid0 or None)
+        if vinculo_root:
+            out["vinculo_lancamento"] = vinculo_root
+            eid = vinculo_root.get("id")
+            if eid is not None and str(eid).strip():
+                sid = str(eid).strip()
+                out["lancamentoId"] = sid
+                out["dtoLancamentoId"] = sid
     if _payload_indica_baixa_parcial_lancamentos(payload_ui):
         plist = normalizar_parcelas_baixa_ui_erp(
             payload_ui.get("parcelas") if isinstance(payload_ui, dict) else None
@@ -2068,6 +2113,7 @@ def montar_payload_erp_baixa(
             data_pagamento_iso=data_iso,
             documento_base_titulo=num_doc or None,
             quitar_lancamento=False,
+            vinculo_titulo=vinculo_root if vinculo_root else None,
         )
         if pag:
             out["pagamentos"] = pag
