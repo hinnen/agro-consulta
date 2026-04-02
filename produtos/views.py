@@ -1417,6 +1417,23 @@ def _ctx_lancamentos_financeiros():
 
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
+def resumo_financeiro_gerencial_view(request):
+    from financeiro.models import GrupoEmpresarial
+
+    empresas = Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
+    grupos = GrupoEmpresarial.objects.filter(ativo=True).order_by("nome")
+    return render(
+        request,
+        "produtos/resumo_financeiro_gerencial.html",
+        {
+            "empresas": empresas,
+            "grupos": grupos,
+        },
+    )
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
 def lancamentos_financeiros_view(request):
     """Lançamentos a pagar e a receber (DtoLancamento) — Mongo / ERP Venda."""
     return render(request, "produtos/lancamentos_financeiros.html", _ctx_lancamentos_financeiros())

@@ -28,6 +28,11 @@ urlpatterns = [
         name='lancamentos_financeiros',
     ),
     path(
+        'financeiro/resumo-gerencial/',
+        views.resumo_financeiro_gerencial_view,
+        name='resumo_financeiro_gerencial',
+    ),
+    path(
         'lancamentos/dre/',
         views.lancamentos_dre_view,
         name='lancamentos_dre',

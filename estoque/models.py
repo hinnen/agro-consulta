@@ -58,3 +58,90 @@ class PedidoTransferencia(models.Model):
     produto_externo_id = models.CharField(max_length=100, db_index=True)
     quantidade = models.DecimalField(max_digits=10, decimal_places=3)
     criado_em = models.DateTimeField(auto_now_add=True)
+
+class PoliticaEstoque(models.Model):
+    empresa = models.ForeignKey("base.Empresa", on_delete=models.CASCADE)
+    loja = models.ForeignKey("base.Loja", on_delete=models.CASCADE)
+    produto = models.ForeignKey("produtos.Produto", on_delete=models.CASCADE)
+
+    estoque_seguranca = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    dias_cobertura = models.DecimalField(max_digits=8, decimal_places=2, default=15)
+    capacidade_maxima = models.DecimalField(
+        max_digits=12, decimal_places=3, null=True, blank=True
+    )
+
+    estoque_minimo_manual = models.DecimalField(
+        max_digits=12, decimal_places=3, null=True, blank=True
+    )
+    estoque_ideal_manual = models.DecimalField(
+        max_digits=12, decimal_places=3, null=True, blank=True
+    )
+
+    permite_transferencia = models.BooleanField(default=True)
+    permite_compra = models.BooleanField(default=True)
+    prioridade_manual = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = "politica_estoque"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["empresa", "loja", "produto"],
+                name="uniq_politica_estoque_emp_loja_prod",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["empresa", "loja", "produto"]),
+        ]
+
+
+class IndicadorProdutoLoja(models.Model):
+    empresa = models.ForeignKey("base.Empresa", on_delete=models.CASCADE)
+    loja = models.ForeignKey("base.Loja", on_delete=models.CASCADE)
+    produto = models.ForeignKey("produtos.Produto", on_delete=models.CASCADE)
+
+    data_base = models.DateField(db_index=True)
+
+    saldo_atual = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    venda_media_dia = models.DecimalField(max_digits=12, decimal_places=4, default=0)
+    dias_sem_venda = models.IntegerField(default=9999)
+    dias_cobertura_atual = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    estoque_minimo = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    estoque_ideal = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    necessidade = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+
+    custo_medio = models.DecimalField(max_digits=12, decimal_places=4, default=0)
+    preco_venda = models.DecimalField(max_digits=12, decimal_places=4, default=0)
+    margem_bruta_pct = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+
+    score_prioridade = models.DecimalField(max_digits=12, decimal_places=4, default=0)
+    classe_abc = models.CharField(max_length=1, blank=True, default="")
+    classe_criticidade = models.CharField(max_length=20, blank=True, default="")
+
+    sugestao_acao = models.CharField(max_length=30, blank=True, default="")
+    qtd_transferir = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    qtd_comprar = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    loja_origem_sugerida = models.ForeignKey(
+        "base.Loja",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="indicadores_como_origem_sugerida",
+    )
+
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "indicador_produto_loja"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["empresa", "loja", "produto", "data_base"],
+                name="uniq_indicador_emp_loja_prod_data",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["empresa", "loja", "data_base"]),
+            models.Index(fields=["empresa", "loja", "score_prioridade"]),
+            models.Index(fields=["empresa", "loja", "classe_abc", "score_prioridade"]),
+        ]
+
