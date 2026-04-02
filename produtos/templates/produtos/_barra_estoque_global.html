@@ -1,13 +1,18 @@
 {% load static %}
-{# Barra fixa: atualizar saldos (Mongo) + horário. #}
-<div id="agro-barra-estoque-wrap" class="inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-emerald-200/90 bg-gradient-to-r from-emerald-50/95 to-slate-50/90 px-2 py-1 shadow-sm" role="region" aria-label="Sincronização de estoque" title="Estoque manual. Última leitura abaixo. Sincronização em segundo plano quando o app fica ocioso (standby).">
-  <button type="button" id="agro-btn-atualizar-saldos" class="inline-flex items-center gap-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wide px-2 py-1 shadow-sm transition-colors shrink-0" title="Atualizar saldos Centro / Vila agora (ERP + ajustes PIN)">
-    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
-    Estoque
+{# Barra: atualizar saldos manual + horário + termômetro (verde → vermelho se dados envelhecem). #}
+<div id="agro-barra-estoque-wrap" class="inline-flex flex-wrap items-center gap-1.5 rounded-xl border border-emerald-200/90 bg-gradient-to-r from-emerald-50/95 to-slate-50/90 px-2 py-1 shadow-sm" role="region" aria-label="Sincronização de estoque" title="Atualize os saldos quando precisar. O indicador ao lado do botão aquece (vermelho) se faz tempo sem atualizar.">
+  <button type="button" id="agro-btn-atualizar-saldos" class="relative inline-flex items-center gap-2 rounded-lg border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white text-[10px] font-black uppercase tracking-wide pl-2 pr-2.5 py-1.5 shadow-md transition-[border-color,transform] active:scale-[0.98] shrink-0 overflow-hidden" title="Atualizar saldos Centro / Vila agora (ERP + ajustes PIN)">
+    <span class="agro-termo-track flex flex-col justify-end w-2 h-8 rounded-full bg-black/20 shrink-0 border border-white/25 overflow-hidden shadow-inner" aria-hidden="true">
+      <span class="agro-termo-fil w-full rounded-b-full transition-all duration-500 ease-out" style="height:0%;min-height:0"></span>
+    </span>
+    <span class="relative z-[1] inline-flex items-center gap-1">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+      Estoque
+    </span>
   </button>
   <div class="min-w-0 flex flex-row items-baseline gap-1 sm:gap-1.5">
-    <span class="text-[8px] sm:text-[9px] font-black uppercase text-slate-500 leading-none shrink-0" title="Última atualização de saldos">Atual.</span>
-    <span id="agro-saldos-ultima-atualizacao" class="text-[9px] sm:text-[10px] font-bold text-slate-700 tabular-nums leading-tight truncate max-w-[9.5rem] sm:max-w-none" title="Horário local da última leitura de saldos">—</span>
+    <span class="text-[8px] sm:text-[9px] font-black uppercase text-slate-500 leading-none shrink-0">Última leitura</span>
+    <span id="agro-saldos-ultima-atualizacao" class="text-[9px] sm:text-[10px] font-bold text-slate-800 tabular-nums leading-tight truncate max-w-[9.5rem] sm:max-w-none" title="Horário local da última leitura de saldos">—</span>
   </div>
 </div>
 <script src="{% static 'js/agro_estoque_sync.js' %}"></script>

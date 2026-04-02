@@ -867,8 +867,6 @@ let buscaOnlineMergeSeq = 0;
 let mergeFetchTimer = null;
 
 /** Sincronização de saldos em segundo plano (servidor usa cache ~5s para proteger o Mongo). */
-const PDV_POLL_SALDOS_MS = 8000;
-let pdvPollSaldosTimer = null;
 
 /** Igual ao cadastro no ERP (com reticências finais). */
 const CLIENTE_PADRAO_PDV = 'CONSUMIDOR NÃO IDENTIFICADO...';
@@ -3880,12 +3878,7 @@ function pollSaldoPdvUmaVez() {
         .catch(() => {});
 }
 
-function iniciarPollSaldosPdv() {
-    if (pdvPollSaldosTimer) clearInterval(pdvPollSaldosTimer);
-    pdvPollSaldosTimer = setInterval(pollSaldoPdvUmaVez, PDV_POLL_SALDOS_MS);
-}
-
-/* Polling de saldo: intervalo 8s (PDV_POLL_SALDOS_MS). Sem poll extra ao voltar do Alt+Tab — evita sensação de reload. */
+/* Saldos: sem polling automático — use o botão Estoque (termômetro) ou ações que já disparam leitura. */
 
 function carregarBaseLocal() {
     const warmed = hidratarCatalogoPdvDoCache();
@@ -3902,9 +3895,7 @@ function aplicarBasePdv(produtos, statusTxt) {
     if (statusTxt) mostrarStatusBusca(statusTxt, 'emerald');
     preencherOpcoesFiltroCatalogo();
     atualizarCatalogoRapido();
-    iniciarPollSaldosPdv();
     setTimeout(pollSaldoPdvUmaVez, 0);
-    setTimeout(pollSaldoPdvUmaVez, 2500);
     setTimeout(esconderStatusBusca, 2500);
     setTimeout(atualizarPrecosBotoesTopVendidos, 100);
     return true;
@@ -4039,7 +4030,6 @@ window.addEventListener('load', () => {
     setInterval(atualizarRelogioPdv, 30000);
     if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.mount) {
         AgroEstoqueSync.mount({
-            idleMs: 45000,
             onRefresh: async function () {
                 if (!baseProdutos.length) return;
                 const r = await fetch('{% url "api_pdv_saldos" %}', { cache: 'no-store' });

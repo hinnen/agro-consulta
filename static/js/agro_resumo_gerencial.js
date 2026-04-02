@@ -552,6 +552,14 @@
     }
     atualizarResumoFiltroVisivel();
     atualizar();
+
+    if (typeof AgroEstoqueSync !== "undefined" && AgroEstoqueSync.mount) {
+      AgroEstoqueSync.mount({
+        onRefresh: async function () {
+          await fetch("/api/pdv/saldos/", { cache: "no-store", credentials: "same-origin" });
+        },
+      });
+    }
   }
 
   window.AgroResumoGerencial = {
