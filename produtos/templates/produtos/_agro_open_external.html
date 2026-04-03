@@ -1,0 +1,19 @@
+{# Abre WhatsApp/Maps no navegador do SO no Electron (shell.openExternal). No browser comum usa window.open. #}
+<script>
+(function () {
+  window.agroAbrirUrlExterna = function (u) {
+    if (!u) return;
+    var s = String(u).trim();
+    if (!/^https?:\/\//i.test(s)) return;
+    try {
+      if (window.agroShell && typeof window.agroShell.openExternal === 'function') {
+        window.agroShell.openExternal(s);
+        return;
+      }
+    } catch (e) {}
+    try {
+      window.open(s, '_blank', 'noopener,noreferrer');
+    } catch (e2) {}
+  };
+})();
+</script>

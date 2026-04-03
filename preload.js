@@ -1,8 +1,7 @@
-// Preload simples: por enquanto só reserva espaço pra futuras integrações locais.
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('agroShell', {
-  // Exemplo futuro:
-  // getConfig: () => { ... },
+  /** Abre http(s) no navegador do SO — necessário no Electron (window.open para wa.me/Maps falha). */
+  openExternal: (url) => ipcRenderer.invoke('agro-open-external', url),
 });
 

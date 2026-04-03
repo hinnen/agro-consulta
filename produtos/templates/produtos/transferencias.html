@@ -90,9 +90,8 @@
                     <span id="indicador-filtro" class="truncate">Somente transferências</span>
                 </span>
                 <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-white border border-slate-200 text-slate-700 max-w-[7rem] truncate" title="Operador (modo descanso)"></span>
-                <button type="button" id="btn-transf-atualizar-api" class="inline-flex items-center gap-1 rounded-xl border-2 border-sky-500 bg-sky-600 hover:bg-sky-700 text-white text-[10px] font-black uppercase px-3 py-2 shadow-sm shrink-0" title="Buscar sugestões no servidor">Atualizar API</button>
                 {% include "produtos/_pdv_voltar_link.html" %}
-                {% include "produtos/_barra_estoque_global.html" %}
+                {% include "produtos/_barra_estoque_global.html" with barra_estoque_btn_label="Atualizar" barra_estoque_btn_title="Recarregar sugestões de transferência e saldos (ERP + PIN)" %}
             </div>
         </div>
     </header>
@@ -115,7 +114,7 @@
                     </div>
                 </div>
                 <div class="flex flex-wrap gap-2 lg:justify-end">
-                    <button type="button" onclick="gerarCupom()" class="inline-flex items-center gap-1.5 rounded-xl bg-sky-600 text-white px-3 sm:px-4 py-2.5 text-xs font-black uppercase shadow-sm hover:bg-sky-700" title="Imprimir cupom da seleção (F7).">
+                    <button type="button" onclick="gerarCupom()" class="inline-flex items-center gap-1.5 rounded-xl bg-sky-600 text-white px-3 sm:px-4 py-2.5 text-xs font-black uppercase shadow-sm hover:bg-sky-700" title="Imprimir cupom dos itens marcados (F7). Inclui os que já estão em separação. Abre WhatsApp após imprimir.">
                         <span>Imprimir</span>
                         <kbd class="gm-kbd border border-white/30 bg-white/15 text-white">F7</kbd>
                     </button>
@@ -159,7 +158,7 @@
                             <th class="p-3 text-center">Vila Elias</th>
                             <th class="p-3 text-center">Status</th>
                             <th class="p-3 text-right">Sugestão</th>
-                            <th class="p-3 text-center w-36">Ações</th>
+                            <th class="p-3 text-center min-w-[11rem]">Ações</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100" id="tabela-corpo">
@@ -242,6 +241,35 @@
         let termoBuscaAtual = '';
         let ultimoFiltrado = [];
         const LIMITE_TELA = 100;
+        /** Contador de impressões por produto (este navegador/PC — reduz risco de duplicar separação). */
+        const AGRO_TRANSF_PRINT_LS = 'agro_transfer_print_counts_v1';
+
+        function transfPrintCountsLoad() {
+            try {
+                const o = JSON.parse(localStorage.getItem(AGRO_TRANSF_PRINT_LS) || '{}');
+                return o && typeof o === 'object' ? o : {};
+            } catch (_) { return {}; }
+        }
+        function transfPrintCountsSave(map) {
+            try { localStorage.setItem(AGRO_TRANSF_PRINT_LS, JSON.stringify(map)); } catch (_) {}
+        }
+        function transfIncrementPrintCount(produtoId) {
+            const id = String(produtoId);
+            const map = transfPrintCountsLoad();
+            map[id] = (Number(map[id]) || 0) + 1;
+            transfPrintCountsSave(map);
+            return map[id];
+        }
+        function transfGetPrintCount(produtoId) {
+            const n = Number(transfPrintCountsLoad()[String(produtoId)]);
+            return Number.isFinite(n) && n > 0 ? n : 0;
+        }
+        /** Número WhatsApp da loja (data-transfer-wa ou fallback do ambiente). */
+        function getTransferenciaWaDigits() {
+            const waRaw = (document.body && document.body.getAttribute('data-transfer-wa')) || '';
+            const waDig = String(waRaw).replace(/\D/g, '');
+            return waDig || '5513997673389';
+        }
 
         document.addEventListener("DOMContentLoaded", () => {
             const campoBusca = document.getElementById('busca-lista');
@@ -253,10 +281,8 @@
                     renderizarTabela(filtroAtual);
                 });
             }
-            const btnApi = document.getElementById('btn-transf-atualizar-api');
-            if (btnApi) btnApi.addEventListener('click', () => carregarDados());
             if (window.AGRO_MANUAL_SYNC_ONLY) {
-                document.getElementById("tabela-corpo").innerHTML = '<tr><td colspan="7" class="p-10 text-center text-slate-600 font-bold text-sm">Dados não carregados automaticamente.<br><span class="text-xs font-semibold text-slate-500 mt-2 block">Clique em <strong>Atualizar API</strong> no topo.</span></td></tr>';
+                document.getElementById("tabela-corpo").innerHTML = '<tr><td colspan="7" class="p-10 text-center text-slate-600 font-bold text-sm">Dados não carregados automaticamente.<br><span class="text-xs font-semibold text-slate-500 mt-2 block">Clique em <strong>Atualizar</strong> no topo (barra verde).</span></td></tr>';
             } else {
                 carregarDados();
             }
@@ -410,9 +436,8 @@
                     if (item.status === 'MANUAL') { corBadge = "bg-purple-100 text-purple-700 border border-purple-200"; badgeTexto = "📦 Manual"; }
                 }
 
-                const chkBoxHTML = item.status !== 'SEPARANDO'
-                    ? `<input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer accent-blue-600" data-id="${item.produto_id}" data-nome="${nomeEscapado}" data-codigo="${codigoEscapado}" data-barras="${barrasEscapado}" ${item.qtde_transferir > 0 ? 'checked' : ''}>`
-                    : ``;
+                const qtdePedidoAttr = item.status === 'SEPARANDO' ? String(Number(item.qtde_transferir || 0)) : '';
+                const chkBoxHTML = `<input type="checkbox" class="item-checkbox w-5 h-5 cursor-pointer accent-blue-600" data-id="${item.produto_id}" data-nome="${nomeEscapado}" data-codigo="${codigoEscapado}" data-barras="${barrasEscapado}" data-qtde-pedido="${qtdePedidoAttr}" title="${item.status === 'SEPARANDO' ? 'Marcar para imprimir de novo (F7) — quantidade já em separação' : 'Marcar para separação / impressão'}" ${item.qtde_transferir > 0 ? 'checked' : ''}>`;
 
                 let centroColHTML = '';
                 if (item.configurado) {
@@ -445,19 +470,26 @@
                 `;
                 if (item.status === 'SEPARANDO') {
                     acoesHTML = `
-                        <div class="flex flex-col items-center gap-2">
-                            <button onclick="cancelarSeparacao('${item.produto_id}')" class="text-red-600 hover:text-red-700 font-black text-xs uppercase px-3 py-2 bg-red-50 rounded-xl border border-red-200" title="Cancelar separação">❌ Cancelar</button>
-                            <div class="flex items-center justify-center gap-2">
+                        <div class="flex flex-col items-center gap-2 w-full max-w-[12rem] mx-auto">
+                            <div class="flex flex-wrap items-center justify-center gap-2">
                                 <button onclick="abrirModalAjuste('${item.produto_id}', '${nomeEscapado}', ${Number(item.saldo_centro || 0)}, ${Number(item.saldo_vila || 0)}, '${codigoEscapado}', ${Number(item.saldo_centro_erp || item.saldo_centro || 0)}, ${Number(item.saldo_vila_erp || item.saldo_vila || 0)})" class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 transition-colors border border-amber-200 shadow-sm" title="Ajuste de estoque">✏️</button>
                                 <button onclick="editarRegras('${item.produto_id}', '${nomeEscapado}', '${item.capacidade_maxima ?? ''}', '${item.estoque_seguranca ?? ''}')" class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors border border-slate-200 shadow-sm" title="Editar mínimos e máximos">⚙️</button>
                                 <button onclick="adicionarTransferenciaManualPorItem('${item.produto_id}', '${nomeEscapado}', '${codigoEscapado}', '${barrasEscapado}', ${Number(item.saldo_centro || 0)}, ${Number(item.saldo_vila || 0)})" class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 transition-colors border border-indigo-200 shadow-sm" title="Transferência manual">⇄</button>
                             </div>
+                            <button type="button" onclick="cancelarSeparacao('${item.produto_id}')" class="w-full text-red-600 hover:text-red-700 font-black text-[10px] uppercase px-2 py-1.5 bg-red-50 rounded-xl border border-red-200" title="Cancelar separação">❌ Cancelar</button>
                         </div>`;
                 }
 
                 let qtdeHTML = '';
+                const nImpSep = item.status === 'SEPARANDO' ? transfGetPrintCount(item.produto_id) : 0;
+                const badgeImpSep = item.status === 'SEPARANDO' && nImpSep >= 1
+                    ? `<div class="flex flex-wrap items-center justify-end gap-1.5 mt-1.5 max-w-[14rem]">
+                        <span class="inline-flex items-center rounded-lg border border-amber-400 bg-amber-50 px-2 py-1 text-[9px] font-black uppercase text-amber-950 tracking-wide" title="Impressões de cupom neste computador. Mais de uma pode indicar duas pessoas indo buscar o mesmo produto.">🖨️ ${nImpSep} impressão(ões)</span>
+                        ${nImpSep >= 2 ? '<span class="text-[9px] font-black text-red-700 uppercase border border-red-200 bg-red-50 rounded-lg px-2 py-1">⚠ Conferir duplicidade</span>' : ''}
+                       </div>`
+                    : '';
                 if (item.status === 'SEPARANDO') {
-                    qtdeHTML = `<div class="flex flex-col items-end gap-2"><span class="bg-yellow-50 text-yellow-800 px-4 py-2 rounded-xl font-black text-sm border border-yellow-200">Sugestão de transferência: ${item.qtde_transferir.toFixed(0)}</span></div>`;
+                    qtdeHTML = `<div class="flex flex-col items-end gap-2"><span class="bg-yellow-50 text-yellow-800 px-4 py-2 rounded-xl font-black text-sm border border-yellow-200">Sugestão de transferência: ${item.qtde_transferir.toFixed(0)}</span>${badgeImpSep}</div>`;
                 } else {
                     qtdeHTML = `
                         <div class="flex flex-col items-end gap-2">
@@ -491,7 +523,7 @@
                         </span>
                     </td>
                     <td class="p-4 md:p-5 text-right">${qtdeHTML}</td>
-                    <td class="p-4 md:p-5 text-center">${acoesHTML}</td>
+                    <td class="p-4 md:p-5 text-center align-top min-w-[11rem]">${acoesHTML}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -523,7 +555,6 @@
 
             const cupomDiv = document.getElementById("cupom-conteudo");
             const itensAPI = [];
-            const linhasZap = [];
             let selecionadosValidos = 0;
             let dataStr = new Date().toLocaleString('pt-BR');
 
@@ -542,11 +573,16 @@
                 const barras = chk.getAttribute("data-barras");
                 const tr = chk.closest('tr');
                 const inputQtde = tr.querySelector('.qtde-input');
-                const qtde = inputQtde && inputQtde.value ? parseFloat(inputQtde.value) : 0;
+                const qPedido = chk.getAttribute("data-qtde-pedido");
+                let qtde = 0;
+                if (inputQtde && String(inputQtde.value).trim() !== '') {
+                    qtde = parseFloat(inputQtde.value);
+                } else if (qPedido != null && String(qPedido).trim() !== '') {
+                    qtde = parseFloat(qPedido);
+                }
 
                 if (qtde > 0) {
                     selecionadosValidos++;
-                    linhasZap.push((codigo ? codigo + ' — ' : '') + nome + ': ' + qtde);
                     let barcodeHTML = '';
                     if (barras && barras.trim() !== '' && barras !== 'undefined') {
                         barcodeHTML = `<div style="text-align: left; margin-left: 15px; margin-top: 5px; margin-bottom: 5px;"><svg class="barcode-svg" jsbarcode-value="${barras}" jsbarcode-height="30" jsbarcode-width="1.5" jsbarcode-fontSize="12" jsbarcode-margin="0"></svg></div>`;
@@ -584,14 +620,27 @@
                 });
             } catch (e) {}
 
+            itensAPI.forEach((row) => { transfIncrementPrintCount(row.id); });
+
             try { JsBarcode(".barcode-svg").init(); } catch(e) { console.log(e); }
             window.print();
-            const waRaw = (document.body && document.body.getAttribute('data-transfer-wa')) || '';
-            const waDig = String(waRaw).replace(/\D/g, '');
-            if (waDig && linhasZap.length) {
-                const msg = '*Transferência — separação*\n' + dataStr + '\n\n' + linhasZap.join('\n');
-                window.open('https://wa.me/' + waDig + '?text=' + encodeURIComponent(msg), '_blank');
+            const waDig = getTransferenciaWaDigits();
+            if (itensAPI.length && waDig) {
+                const linhasZapComContagem = itensAPI.map((row) => {
+                    const id = row && row.id;
+                    const nomeLinha = sugestoesGlobais.find((s) => String(s.produto_id) === String(id));
+                    const nome = nomeLinha ? nomeLinha.nome : '';
+                    const cod = nomeLinha ? String(nomeLinha.codigo || '').trim() : '';
+                    const base = (cod ? cod + ' — ' : '') + String(nome || '').replace(/\n/g, ' ') + ': ' + row.qtde;
+                    const c = id ? transfGetPrintCount(id) : 0;
+                    return c ? `${base} (impressões neste PC: ${c})` : base;
+                });
+                const msg = '*Transferência — separação*\n' + dataStr + '\n\n' + linhasZapComContagem.join('\n');
+                var u = 'https://wa.me/' + waDig + '?text=' + encodeURIComponent(msg);
+                if (typeof agroAbrirUrlExterna === 'function') agroAbrirUrlExterna(u);
+                else window.open(u, '_blank', 'noopener,noreferrer');
             }
+            renderizarTabela(filtroAtual);
             setTimeout(() => carregarDados(), 2000);
         }
 

@@ -192,7 +192,7 @@ let scanner;
 let pSel = null;
 let debounceTimer = null;
 let baseProdutos = [];
-const MOBILE_POLL_SALDOS_MS = 4500;
+const MOBILE_POLL_SALDOS_MS = 2200;
 const MA_CAT_KEYS = ['agro_pdv_catalog_cache_v2', 'agro_compra_catalog_cache_v2'];
 
 function mobileLerProdutosDoCacheUnificado() {
@@ -261,7 +261,7 @@ function aplicarSaldosMobile(rows) {
   }
   if (mudou) {
     const q = document.getElementById('busca').value;
-    if (normalizarBuscaLocal(q).length >= 2) buscar(q);
+    buscar(q);
     const modal = document.getElementById('modal');
     if (pSel && modal && !modal.classList.contains('hidden')) {
       document.getElementById('m-saldo').innerText = Number(getSaldoAtual(pSel)).toFixed(1);
@@ -337,6 +337,23 @@ function marcarMobileSaldosFresh() {
   }
 }
 
+function parseDecimalBr(s) {
+  const t = String(s ?? '').trim().replace(/\s/g, '').replace(',', '.');
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+/** Atualiza o saldo “visto pelo Agro” na memória logo após PIN (lista reflete antes do próximo poll). */
+function aplicarSaldoLocalAposPin(p, deposito, novoSaldo) {
+  if (!p || !Number.isFinite(novoSaldo)) return;
+  const id = String(p.id);
+  baseProdutos.forEach((x) => {
+    if (String(x.id) !== id) return;
+    if (deposito === 'vila') x.saldo_vila = novoSaldo;
+    else x.saldo_centro = novoSaldo;
+  });
+}
+
 function pollSaldosMobileUmaVez() {
   if (!baseProdutos.length || document.visibilityState !== 'visible') return;
   fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' })
@@ -356,6 +373,10 @@ function iniciarPollSaldosMobile() {
   mobilePollSaldosTimer = setInterval(pollSaldosMobileUmaVez, MOBILE_POLL_SALDOS_MS);
   setTimeout(pollSaldosMobileUmaVez, 450);
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') pollSaldosMobileUmaVez();
+});
 
 function mobileAjusteAplicarProdutosDaLista(produtos) {
   baseProdutos = produtos || [];
@@ -650,8 +671,13 @@ function salvar() {
   .then(res => res.json())
   .then(d => {
     if (d.ok) {
+      const dep = getDepositoSelecionado();
+      const novo = parseDecimalBr(document.getElementById('m-novo').value);
+      aplicarSaldoLocalAposPin(pSel, dep, novo);
       fechar();
       buscar(document.getElementById('busca').value);
+      pollSaldosMobileUmaVez();
+      setTimeout(pollSaldosMobileUmaVez, 400);
     } else {
       alert(d.erro || 'Erro ao salvar ajuste.');
     }

@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, shell, ipcMain } = require('electron');
 
 const START_URL =
   process.env.AGRO_PDV_URL ||
@@ -20,6 +20,19 @@ function createWindow() {
   win.removeMenu();
   win.loadURL(START_URL);
 }
+
+ipcMain.handle('agro-open-external', async (_event, url) => {
+  const u = String(url || '').trim();
+  if (!/^https?:\/\//i.test(u)) {
+    return { ok: false, reason: 'invalid_url' };
+  }
+  try {
+    await shell.openExternal(u);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: String(e && e.message) };
+  }
+});
 
 app.whenReady().then(() => {
   createWindow();
