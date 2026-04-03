@@ -96,6 +96,10 @@
       }
       tbody.innerHTML = '';
       lista.forEach((u) => {
+        const personalizado = !!u.pin_personalizado;
+        const statusInicial = personalizado
+          ? '<span class="inline-flex items-center rounded-md px-1.5 py-0.5 bg-emerald-100 text-emerald-800">PIN próprio</span>'
+          : '<span class="inline-flex items-center rounded-md px-1.5 py-0.5 bg-amber-100 text-amber-900">Padrão 1234</span>';
         const tr = document.createElement('tr');
         tr.className = 'border-b border-slate-100 last:border-b-0';
         tr.dataset.perfilId = String(u.id);
@@ -103,15 +107,15 @@
           <td class="py-1.5 pr-2 font-semibold text-slate-800 whitespace-nowrap">${u.nome}</td>
           <td class="py-1.5 px-2">
             <div class="flex items-center gap-2">
-              <input type="password" maxlength="6" placeholder="••••"
+              <input type="password" maxlength="4" placeholder="4 dígitos"
                      class="rh-pin-input w-24 rounded-lg border border-slate-200 px-2 py-1 text-xs font-mono tracking-[0.2em] bg-slate-50"
-                     inputmode="numeric">
+                     inputmode="numeric" autocomplete="new-password">
               <button type="button" class="rh-salvar inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-emerald-600 text-white hover:bg-emerald-700">
                 Salvar
               </button>
             </div>
           </td>
-          <td class="py-1.5 pl-2 text-[11px] font-bold"><span class="rh-status text-slate-400">Definir / atualizar</span></td>
+          <td class="py-1.5 pl-2 text-[11px] font-bold"><span class="rh-status">${statusInicial}</span></td>
         `;
         tbody.appendChild(tr);
       });
@@ -149,9 +153,8 @@
             const out = await r2.json();
             if (out.ok) {
               if (statusEl) {
-                statusEl.textContent = 'PIN definido';
-                statusEl.classList.remove('text-slate-400');
-                statusEl.classList.add('text-emerald-700');
+                statusEl.innerHTML =
+                  '<span class="inline-flex items-center rounded-md px-1.5 py-0.5 bg-emerald-100 text-emerald-800">PIN próprio</span>';
               }
               input.value = '';
               alert('PIN salvo no servidor para ' + nome + '.');

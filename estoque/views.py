@@ -2,6 +2,7 @@ import csv
 import io
 from decimal import Decimal, InvalidOperation
 
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.core.cache import cache
 from django.shortcuts import render
@@ -155,7 +156,9 @@ def api_listar_usuarios(request):
                 nome = p.nome
             else:
                 nome = str(p)
-            lista.append({"id": p.id, "nome": nome})
+            pin_raw = (getattr(p, "senha_rapida", None) or "").strip()
+            pin_personalizado = bool(pin_raw) and pin_raw != "1234"
+            lista.append({"id": p.id, "nome": nome, "pin_personalizado": pin_personalizado})
         
         # Ordena a lista em ordem alfabética para facilitar
         lista.sort(key=lambda x: x['nome'])
@@ -183,14 +186,12 @@ def api_atualizar_pin(request):
         return JsonResponse({'ok': False, 'erro': f'Erro ao atualizar PIN: {exc}'}, status=500)
 
 
+@login_required(login_url="/admin/login/")
 @require_POST
 @csrf_protect
 def api_definir_pin_rh(request):
     """Define ou redefine o PIN de um usuário via painel de RH (sem pedir PIN atual)."""
     try:
-        if not request.user.is_authenticated or not request.user.is_staff:
-            return JsonResponse({'ok': False, 'erro': 'Acesso negado.'}, status=403)
-
         perfil_id = request.POST.get('perfil_id', '').strip()
         novo_pin = request.POST.get('novo_pin', '').strip()
 

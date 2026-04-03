@@ -2645,6 +2645,7 @@ var __pdvAjustePendente = null;
 function fecharModalAjustePdv() {
     var m = document.getElementById('modal-pdv-ajuste-estoque');
     if (!m) return;
+    window.__pdvSuprimirAtualizacaoSaldosSegundoPlano = false;
     __pdvAjustePendente = null;
     m.classList.add('hidden');
     m.classList.remove('flex');
@@ -2680,7 +2681,6 @@ function confirmarModalAjustePdv() {
             btn.disabled = false;
             btn.textContent = prev || 'Confirmar ajuste';
         }
-        if (ok) fecharModalAjustePdv();
     });
 }
 
@@ -2717,9 +2717,25 @@ function gmEnviarAjustePdvFetch(p, novo, pin, done) {
         .then(function (x) {
             var d = x.d;
             if (x.res.ok && d && d.ok) {
-                alert('Ok!');
-                location.reload();
-                if (typeof done === 'function') done(true);
+                var btnCon = document.getElementById('pae-btn-confirmar');
+                if (btnCon) {
+                    btnCon.disabled = false;
+                    btnCon.textContent = 'Confirmar ajuste';
+                }
+                fecharModalAjustePdv();
+                pollSaldoPdvUmaVezPromise({ force: true })
+                    .then(function () {
+                        return new Promise(function (r) {
+                            setTimeout(r, 200);
+                        });
+                    })
+                    .then(function () {
+                        return pollSaldoPdvUmaVezPromise({ force: true });
+                    })
+                    .then(function () {
+                        alert('Ajuste registrado.');
+                        if (typeof done === 'function') done(true);
+                    });
                 return;
             }
             var msg = d && d.erro ? d.erro : 'HTTP ' + x.res.status;
@@ -2761,6 +2777,7 @@ function abrirAjuste(id, nome, saldo, codigo, dep) {
     var pinEl = document.getElementById('pae-pin');
     if (novoEl) novoEl.value = '';
     if (pinEl) pinEl.value = '';
+    window.__pdvSuprimirAtualizacaoSaldosSegundoPlano = true;
     m.classList.remove('hidden');
     m.classList.add('flex');
     setTimeout(function () {
@@ -3868,7 +3885,9 @@ function sincronizarSaldosNasListasVisiveis() {
     }
 }
 
-function aplicarSaldosNaBasePdv(rows) {
+function aplicarSaldosNaBasePdv(rows, opts) {
+    var opt = opts || {};
+    if (!opt.force && window.__pdvSuprimirAtualizacaoSaldosSegundoPlano) return false;
     if (!Array.isArray(rows) || rows.length === 0 || !baseProdutos.length) return false;
     const map = new Map();
     rows.forEach((r) => {
@@ -4201,8 +4220,13 @@ function pollSaldoPdvUmaVez() {
     pollSaldoPdvUmaVezPromise();
 }
 
-function pollSaldoPdvUmaVezPromise() {
+function pollSaldoPdvUmaVezPromise(options) {
+    var pollOpts = options || {};
     return new Promise(function (resolve) {
+        if (!pollOpts.force && window.__pdvSuprimirAtualizacaoSaldosSegundoPlano) {
+            resolve();
+            return;
+        }
         if (!baseProdutos.length) {
             resolve();
             return;
@@ -4210,7 +4234,7 @@ function pollSaldoPdvUmaVezPromise() {
         fetch('{% url "api_pdv_saldos" %}', { cache: 'no-store' })
             .then((r) => r.json())
             .then((sd) => {
-                if (sd.rows) aplicarSaldosNaBasePdv(sd.rows);
+                if (sd.rows) aplicarSaldosNaBasePdv(sd.rows, pollOpts);
                 if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
                     AgroEstoqueSync.markFresh(document.getElementById('agro-saldos-ultima-atualizacao'));
                 }
@@ -4297,6 +4321,13 @@ function aplicarDeltaCatalogoPdv(changed, removedIds) {
     const map = new Map(baseProdutos.map((p) => [String(p.id), p]));
     (Array.isArray(changed) ? changed : []).forEach((row) => {
         const p = prepararProduto(row);
+        const prev = map.get(String(p.id));
+        if (prev) {
+            p.saldo_centro = prev.saldo_centro;
+            p.saldo_vila = prev.saldo_vila;
+            p.saldo_erp_centro = prev.saldo_erp_centro;
+            p.saldo_erp_vila = prev.saldo_erp_vila;
+        }
         map.set(String(p.id), p);
     });
     (Array.isArray(removedIds) ? removedIds : []).forEach((pid) => {
@@ -4306,6 +4337,11 @@ function aplicarDeltaCatalogoPdv(changed, removedIds) {
     if (typeof buildBuscaProdutoIndex === 'function') buildBuscaProdutoIndex(baseProdutos);
     preencherOpcoesFiltroCatalogo();
     atualizarCatalogoRapido();
+    if (!window.AGRO_MANUAL_SYNC_ONLY) {
+        setTimeout(function () {
+            pollSaldoPdvUmaVezPromise();
+        }, 0);
+    }
 }
 
 function sincronizarCatalogoPdvServidor(jahAquecido) {
@@ -4422,7 +4458,7 @@ window.agroPdvSincronizarComApi = function () {
         .then(function () {
             return new Promise(function (resolve) {
                 setTimeout(function () {
-                    pollSaldoPdvUmaVezPromise().then(resolve);
+                    pollSaldoPdvUmaVezPromise({ force: true }).then(resolve);
                 }, 700);
             });
         })
@@ -4457,11 +4493,17 @@ window.addEventListener('load', () => {
     setInterval(atualizarRelogioPdv, 30000);
     if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.mount) {
         AgroEstoqueSync.mount({
-            onRefresh: async function () {
+            onRefresh: async function (reason) {
                 if (!baseProdutos.length) return;
+                var explicito = reason === 'manual' || reason === 'external';
+                if (window.__pdvSuprimirAtualizacaoSaldosSegundoPlano && !explicito) return;
                 const r = await fetch('{% url "api_pdv_saldos" %}', { cache: 'no-store' });
                 const sd = await r.json();
-                if (sd.rows) aplicarSaldosNaBasePdv(sd.rows);
+                if (sd.rows) {
+                    aplicarSaldosNaBasePdv(sd.rows, {
+                        force: explicito && !!window.__pdvSuprimirAtualizacaoSaldosSegundoPlano,
+                    });
+                }
             },
         });
     }
