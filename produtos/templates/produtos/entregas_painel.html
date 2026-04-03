@@ -398,12 +398,7 @@
     if (!parts.length) return;
     var barcodeVal = codigoBarrasEntrega(e);
     var inner = parts.join('');
-    var w = window.open('', '_blank');
-    if (!w) {
-      alert('Permita pop-ups para imprimir.');
-      return;
-    }
-    var doc =
+    var docHtml =
       '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Entrega #' +
       String(e.id) +
       '</title><style>' +
@@ -415,14 +410,28 @@
       '</style></head><body>' +
       inner +
       '</body></html>';
-    w.document.open();
-    w.document.write(doc);
-    w.document.close();
+
+    var iframe = document.getElementById('agro-print-iframe-entregas');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'agro-print-iframe-entregas';
+      iframe.title = 'Impressão entrega';
+      iframe.setAttribute('aria-hidden', 'true');
+      iframe.style.cssText =
+        'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;';
+      document.body.appendChild(iframe);
+    }
+    var idoc = iframe.contentDocument || iframe.contentWindow.document;
+    idoc.open();
+    idoc.write(docHtml);
+    idoc.close();
+
     var runPrint = function () {
       try {
-        var svg = w.document.getElementById('barc-orc');
-        if (svg && typeof w.JsBarcode !== 'undefined') {
-          w.JsBarcode(svg, barcodeVal, {
+        var svg = idoc.getElementById('barc-orc');
+        var iw = iframe.contentWindow;
+        if (svg && iw && typeof iw.JsBarcode !== 'undefined') {
+          iw.JsBarcode(svg, barcodeVal, {
             format: 'CODE128',
             width: 1.35,
             height: 44,
@@ -434,16 +443,21 @@
           });
         }
       } catch (e3) {}
-      w.focus();
       setTimeout(function () {
-        w.print();
-      }, 120);
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        } catch (e4) {}
+      }, 100);
     };
-    var s = w.document.createElement('script');
+    var old = idoc.querySelector('script[data-agro-jsbarcode]');
+    if (old) old.remove();
+    var s = idoc.createElement('script');
+    s.setAttribute('data-agro-jsbarcode', '1');
     s.src = 'https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js';
     s.onload = runPrint;
     s.onerror = runPrint;
-    w.document.head.appendChild(s);
+    idoc.head.appendChild(s);
   }
 
   function postAtualizar(payload) {

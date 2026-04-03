@@ -7,7 +7,10 @@
     if (!/^https?:\/\//i.test(s)) return;
     try {
       if (window.agroShell && typeof window.agroShell.openExternal === 'function') {
-        window.agroShell.openExternal(s);
+        var pr = window.agroShell.openExternal(s);
+        if (pr && typeof pr.then === 'function') {
+          pr.catch(function () {});
+        }
         return;
       }
     } catch (e) {}

@@ -18,6 +18,14 @@ function createWindow() {
   });
 
   win.removeMenu();
+  win.webContents.setWindowOpenHandler((details) => {
+    const url = String(details.url || '').trim();
+    if (/^https?:\/\//i.test(url)) {
+      shell.openExternal(url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow' };
+  });
   win.loadURL(START_URL);
 }
 

@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     {% include "produtos/_agro_consulta_ui.html" %}
+    {% include "produtos/_agro_open_external.html" %}
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -626,16 +627,18 @@
             window.print();
             const waDig = getTransferenciaWaDigits();
             if (itensAPI.length && waDig) {
-                const linhasZapComContagem = itensAPI.map((row) => {
+                const blocosZap = itensAPI.map((row) => {
                     const id = row && row.id;
                     const nomeLinha = sugestoesGlobais.find((s) => String(s.produto_id) === String(id));
-                    const nome = nomeLinha ? nomeLinha.nome : '';
+                    const nome = String((nomeLinha && nomeLinha.nome) || '').replace(/\n/g, ' ').trim();
                     const cod = nomeLinha ? String(nomeLinha.codigo || '').trim() : '';
-                    const base = (cod ? cod + ' — ' : '') + String(nome || '').replace(/\n/g, ' ') + ': ' + row.qtde;
-                    const c = id ? transfGetPrintCount(id) : 0;
-                    return c ? `${base} (impressões neste PC: ${c})` : base;
+                    const cab = cod ? ('*' + cod + '* — ' + nome) : ('*' + nome + '*');
+                    return cab + '\n   × ' + String(row.qtde);
                 });
-                const msg = '*Transferência — separação*\n' + dataStr + '\n\n' + linhasZapComContagem.join('\n');
+                const msg =
+                    '*Transferência — separação*\n' +
+                    '_' + dataStr + '_\n\n' +
+                    blocosZap.join('\n\n────────────────\n\n');
                 var u = 'https://wa.me/' + waDig + '?text=' + encodeURIComponent(msg);
                 if (typeof agroAbrirUrlExterna === 'function') agroAbrirUrlExterna(u);
                 else window.open(u, '_blank', 'noopener,noreferrer');
