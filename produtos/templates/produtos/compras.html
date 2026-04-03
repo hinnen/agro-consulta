@@ -144,7 +144,7 @@
           </div>
         <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
           <div class="flex flex-wrap items-center gap-2 px-3 py-2 sm:py-2.5 bg-gradient-to-r from-orange-50/90 to-slate-50/90 border-b border-slate-100">
-            <button type="button" id="btn-compra-toggle-gaveta" class="inline-flex items-center gap-2 rounded-xl border-2 border-orange-500 bg-orange-500 px-3 py-2 sm:py-2.5 text-left shadow-sm hover:bg-orange-600 hover:border-orange-600 transition-colors min-h-[44px]" aria-expanded="true" aria-controls="compra-gaveta-body" title="Abre ou fecha filtros avançados, alertas de estoque e período da média">
+            <button type="button" id="btn-compra-toggle-gaveta" class="inline-flex items-center gap-2 rounded-xl border-2 border-orange-500 bg-orange-500 px-3 py-2 sm:py-2.5 text-left shadow-sm hover:bg-orange-600 hover:border-orange-600 transition-colors min-h-[44px]" aria-expanded="true" aria-controls="compra-gaveta-body" title="Filtros avançados, alertas, sugestão de compra e métricas opcionais">
               <span id="compra-gaveta-icon" class="text-white font-black text-sm w-5 text-center" aria-hidden="true">▾</span>
               <span class="text-[11px] sm:text-xs font-black uppercase text-white tracking-wide">Filtros e alertas</span>
             </button>
@@ -174,24 +174,54 @@
               <button type="button" data-compra-filtro="OCULTOS" class="compra-filtro-alerta-btn inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl border text-[10px] sm:text-xs font-black transition-all bg-white text-violet-800 border-slate-200 hover:bg-violet-50" title="Itens que você ocultou (não comprar agora / produção na loja)">Ocultos</button>
             </div>
           </div>
-          <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2">
-            <label class="text-[10px] font-black uppercase text-slate-500 shrink-0" for="compra-dias-media-vendas">Média de vendas (todos os produtos)</label>
-            <select id="compra-dias-media-vendas" class="text-xs font-bold border-2 border-orange-100 rounded-lg px-2 py-1.5 bg-orange-50/50 text-orange-900 max-w-full min-h-[40px]" title="Período em dias para média, variação semanal e última entrada nos cards">
-              <option value="7">7 dias</option>
-              <option value="14">14 dias</option>
-              <option value="21">21 dias</option>
-              <option value="28">28 dias</option>
-              <option value="30" selected>30 dias</option>
-              <option value="45">45 dias</option>
-              <option value="60">60 dias</option>
-              <option value="90">90 dias</option>
-            </select>
+          <div class="rounded-xl border-2 border-emerald-400/90 bg-gradient-to-br from-emerald-50 to-white px-3 py-2.5 shadow-sm space-y-2.5">
+            <div class="flex flex-wrap items-center gap-2 justify-between">
+              <span class="text-xs font-black uppercase text-emerald-900 tracking-wide">Sugestão de compra</span>
+              <button type="button" id="btn-compra-ajuda-sugestao" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-800 font-black text-sm hover:bg-emerald-100" title="Usa a média por dia (métricas ou busca) e o horizonte em dias que você escolher. Com «Descontar estoque», calcula quanto falta após Centro+Vila. Sem descontar, mostra o volume alvo do período (útil para pedido mínimo ou reposição fixa)." aria-label="Ajuda: sugestão de compra">?</button>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+              <label class="text-[10px] font-black uppercase text-emerald-900 shrink-0" for="compra-dias-sugestao">Horizonte (dias)</label>
+              <select id="compra-dias-sugestao" class="flex-1 min-w-[8rem] text-sm font-black border-2 border-emerald-300 rounded-xl px-3 py-2.5 bg-white text-emerald-950 min-h-[48px] max-w-[220px]" title="Por quantos dias de venda você quer planejar a compra">
+                <option value="7">7 dias</option>
+                <option value="14">14 dias</option>
+                <option value="21">21 dias</option>
+                <option value="28">28 dias</option>
+                <option value="30" selected>30 dias</option>
+                <option value="45">45 dias</option>
+                <option value="60">60 dias</option>
+                <option value="90">90 dias</option>
+              </select>
+            </div>
+            <label class="flex items-start gap-3 min-h-[48px] cursor-pointer rounded-lg border border-emerald-200/80 bg-white/80 px-2.5 py-2">
+              <input type="checkbox" id="compra-sugestao-desconta-estoque" checked class="mt-0.5 w-5 h-5 shrink-0 rounded border-2 border-emerald-600 text-emerald-600 focus:ring-orange-500">
+              <span class="text-sm font-bold text-slate-900 leading-snug">Descontar estoque total <span class="text-emerald-800">(C + V)</span> da sugestão</span>
+            </label>
           </div>
+          <details class="rounded-lg border border-slate-200 bg-slate-50/70 group">
+            <summary class="list-none px-3 py-2.5 min-h-[44px] flex items-center gap-2 cursor-pointer select-none text-[10px] font-black uppercase text-slate-500 hover:bg-slate-100/80 rounded-lg [&::-webkit-details-marker]:hidden">
+              <span class="text-slate-400 group-open:rotate-90 transition-transform inline-block w-4 text-center" aria-hidden="true">▸</span>
+              <span>Métricas avançadas (pouco uso)</span>
+            </summary>
+            <div class="px-3 pb-3 pt-0 border-t border-slate-200/80 space-y-2">
+              <p class="text-[9px] font-semibold text-slate-500 leading-snug pt-2">Período para <strong>média/dia</strong>, gráfico de 4 semanas, variação semanal e última entrada — <em>não</em> altera o horizonte da sugestão acima.</p>
+              <label class="text-[9px] font-black uppercase text-slate-500 block" for="compra-dias-media-vendas">Período da média</label>
+              <select id="compra-dias-media-vendas" class="w-full max-w-xs text-xs font-bold border-2 border-slate-200 rounded-lg px-2 py-2 bg-white text-slate-800 min-h-[44px]" title="Só para gráfico e etiquetas de média nos cards">
+                <option value="7">7 dias</option>
+                <option value="14">14 dias</option>
+                <option value="21">21 dias</option>
+                <option value="28">28 dias</option>
+                <option value="30" selected>30 dias</option>
+                <option value="45">45 dias</option>
+                <option value="60">60 dias</option>
+                <option value="90">90 dias</option>
+              </select>
+            </div>
+          </details>
           <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-0.5">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
               <span aria-hidden="true">↑</span><span aria-hidden="true">↓</span> nos resultados
             </span>
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Enter adiciona · <kbd class="gm-kbd align-middle border border-slate-200 bg-slate-100 text-slate-600">F5</kbd> médias</span>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Enter adiciona · <kbd class="gm-kbd align-middle border border-slate-200 bg-slate-100 text-slate-600">F5</kbd> atualiza métricas</span>
           </div>
           <div id="compra-loading-tip" class="hidden rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] font-bold text-sky-900">
             Atualizando resultados online...
@@ -356,12 +386,18 @@ const COMPRA_CACHE_TTL_MS = 1000 * 60 * 60 * 8;
 let compraPoolAvancado = null;
 let buscaAvancadaResultadosCompra = [];
 const LS_COMPRA_DIAS_MEDIA = 'compra_media_vendas_dias';
+const LS_COMPRA_DIAS_SUGESTAO = 'compra_sugestao_dias_v1';
+const LS_COMPRA_SUGESTAO_DESCONTA_EST = 'compra_sugestao_desconta_est_v1';
 const LS_COMPRA_FILTRO_ALERTA = 'compra_filtro_alerta_v1';
 const LS_COMPRA_GAVETA_ABERTA = 'compra_gaveta_filtros_aberta_v1';
 /** Média/dia (período do seletor) × dias de estoque de segurança */
 const COMPRA_ALERTA_DIAS_LARANJA = 7;
 const COMPRA_ALERTA_DIAS_AMARELO = 15;
 let compraDiasMediaVendas = 30;
+/** Horizonte só da sugestão de compra (independe do período da média nos gráficos). */
+let compraDiasSugestaoCompra = 30;
+/** Se true: sugestão = média×dias − estoque (C+V). Se false: sugestão = média×dias (volume alvo do período). */
+let compraSugestaoDescontarEstoque = true;
 /** TODOS | ZERADO | LARANJA | AMARELO | RISCO | OCULTOS */
 let compraFiltroAlerta = 'ZERADO';
 const LS_COMPRA_OCULTOS = 'compra_produtos_ocultos_v1';
@@ -598,6 +634,91 @@ function ehProdutoGranelCompra(p) {
   return temRacao || temMilho;
 }
 
+/** Média/dia para sugestão: métricas do período (cards) ou fallback da busca. */
+function mediaDiaParaSugestaoCompra(p) {
+  let m = Number(p._c_media_dia != null ? p._c_media_dia : NaN);
+  if (!Number.isFinite(m)) m = 0;
+  if (m <= 0) {
+    m = Number(p.media_venda_diaria_30d != null ? p.media_venda_diaria_30d : 0);
+  }
+  return Number.isFinite(m) && m > 0 ? m : 0;
+}
+
+/**
+ * Quantidade sugerida: média/dia × dias (horizonte sugestão) − opcionalmente estoque C+V.
+ */
+function compraCalcularSugestaoCompra(p) {
+  const diasS = Number(compraDiasSugestaoCompra) || 30;
+  const mediaDia = mediaDiaParaSugestaoCompra(p);
+  const est = Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0);
+  if (!(mediaDia > 0)) {
+    return {
+      qtd: 0,
+      textoLinha: '—',
+      titulo:
+        'Sem média de vendas — aguarde métricas (F5) ou use período de média nos detalhes.',
+      diasS,
+    };
+  }
+  const meta = mediaDia * diasS;
+  const falta = compraSugestaoDescontarEstoque ? meta - est : meta;
+  const granel = ehProdutoGranelCompra(p);
+  let qtd = 0;
+  if (falta > 0.0001) {
+    if (granel) {
+      qtd = Math.round(falta * 10) / 10;
+      if (qtd < 0.05 && falta > 0) {
+        qtd = Math.round(falta * 100) / 100;
+      }
+    } else {
+      qtd = Math.ceil(falta - 1e-9);
+    }
+  }
+  const mediaStr = mediaDia < 0.01 ? mediaDia.toFixed(4) : mediaDia.toFixed(2);
+  const textoLinha =
+    qtd > 0 ? (granel ? String(qtd).replace('.', ',') : String(qtd)) : '—';
+  let titulo;
+  if (compraSugestaoDescontarEstoque) {
+    titulo =
+      'Sugestão (' +
+      diasS +
+      'd): média ' +
+      mediaStr +
+      '/dia × ' +
+      diasS +
+      ' ≈ ' +
+      meta.toFixed(2) +
+      ' u. − estoque ' +
+      est.toFixed(1) +
+      ' (C+V).';
+  } else {
+    titulo =
+      'Volume alvo (' +
+      diasS +
+      'd): média ' +
+      mediaStr +
+      '/dia × ' +
+      diasS +
+      ' ≈ ' +
+      meta.toFixed(2) +
+      ' u. (sem descontar estoque).';
+  }
+  return { qtd, textoLinha, titulo, mediaDia, est, meta, diasS, granel };
+}
+
+function compraRefazerRenderResultados() {
+  const inp = document.getElementById('busca');
+  if (
+    inp &&
+    (normalizarBuscaLocal(inp.value).length >= 2 ||
+      compraPoolAvancado !== null ||
+      compraFiltroAlerta !== 'TODOS')
+  ) {
+    withPreservedResultadosScroll(() => buscar(inp.value));
+  }
+  compraAtualizarResumoGaveta();
+}
+
 function formatarMoeda(valor) {
   return Number(valor || 0).toLocaleString('pt-BR', {
     style: 'currency',
@@ -734,6 +855,50 @@ function initCompraDiasMediaVendasUi() {
       localStorage.setItem(LS_COMPRA_DIAS_MEDIA, String(nv));
     } catch (_) {}
     carregarMetricasCompra(true);
+  });
+}
+
+function initCompraSugestaoCompraUi() {
+  const sel = document.getElementById('compra-dias-sugestao');
+  const chk = document.getElementById('compra-sugestao-desconta-estoque');
+  const help = document.getElementById('btn-compra-ajuda-sugestao');
+  if (sel && sel.dataset.bound !== '1') {
+    sel.dataset.bound = '1';
+    try {
+      const v = parseInt(localStorage.getItem(LS_COMPRA_DIAS_SUGESTAO), 10);
+      if ([7, 14, 21, 28, 30, 45, 60, 90].includes(v)) {
+        compraDiasSugestaoCompra = v;
+        sel.value = String(v);
+      }
+    } catch (_) {}
+    sel.addEventListener('change', () => {
+      compraDiasSugestaoCompra = parseInt(sel.value, 10) || 30;
+      try {
+        localStorage.setItem(LS_COMPRA_DIAS_SUGESTAO, String(compraDiasSugestaoCompra));
+      } catch (_) {}
+      compraRefazerRenderResultados();
+    });
+  }
+  if (chk && chk.dataset.bound !== '1') {
+    chk.dataset.bound = '1';
+    try {
+      const s = localStorage.getItem(LS_COMPRA_SUGESTAO_DESCONTA_EST);
+      if (s === '0') {
+        compraSugestaoDescontarEstoque = false;
+        chk.checked = false;
+      }
+    } catch (_) {}
+    chk.addEventListener('change', () => {
+      compraSugestaoDescontarEstoque = !!chk.checked;
+      try {
+        localStorage.setItem(LS_COMPRA_SUGESTAO_DESCONTA_EST, compraSugestaoDescontarEstoque ? '1' : '0');
+      } catch (_) {}
+      compraRefazerRenderResultados();
+    });
+  }
+  help?.addEventListener('click', function () {
+    const t = this.getAttribute('title') || '';
+    if (t) window.alert(t);
   });
 }
 
@@ -900,8 +1065,8 @@ function compraMostrarCabecalhoListaResultados() {
   const head = document.getElementById('compra-resultados-colheader');
   if (!head) return;
   head.innerHTML =
-    '<div class="grid grid-cols-[minmax(4.5rem,0.9fr)_minmax(0,2fr)_minmax(3.5rem,0.75fr)_minmax(4rem,0.95fr)_1.75rem] sm:grid-cols-[minmax(5.5rem,1fr)_minmax(0,2.4fr)_minmax(4rem,0.9fr)_minmax(4.5rem,1fr)_1.75rem] gap-x-2 gap-y-0.5 px-2 sm:px-3 py-2 text-[9px] sm:text-[10px] font-black uppercase text-slate-600 tracking-wide">' +
-    '<span>Código</span><span>Nome</span><span class="text-right tabular-nums">Saldo</span><span class="text-right">Custo</span><span class="sr-only">Exp.</span></div>';
+    '<div class="grid grid-cols-[minmax(4.5rem,0.85fr)_minmax(0,1.55fr)_minmax(2.6rem,0.52fr)_minmax(3.2rem,0.68fr)_minmax(3.6rem,0.82fr)_1.75rem] sm:grid-cols-[minmax(5.5rem,0.9fr)_minmax(0,2fr)_minmax(3rem,0.55fr)_minmax(3.8rem,0.75fr)_minmax(4.2rem,0.9fr)_1.75rem] gap-x-2 gap-y-0.5 px-2 sm:px-3 py-2 text-[9px] sm:text-[10px] font-black uppercase text-slate-600 tracking-wide">' +
+    '<span>Código</span><span>Nome</span><span class="text-right tabular-nums" title="Quantidade sugerida conforme a gaveta «Sugestão de compra» (horizonte em dias e se desconta estoque C+V). F5 só atualiza métricas.">Sug.</span><span class="text-right tabular-nums">Saldo</span><span class="text-right">Custo</span><span class="sr-only">Exp.</span></div>';
   head.classList.remove('hidden');
   head.setAttribute('aria-hidden', 'false');
 }
@@ -1002,15 +1167,49 @@ function renderizarListaResultadosCompra(resultados) {
     const saldoCls =
       ala === 'ZERADO' ? 'text-red-800 font-black' : 'text-slate-800 font-bold';
 
+    const sug = compraCalcularSugestaoCompra(p);
+    const sugCls =
+      sug.qtd > 0
+        ? 'text-emerald-900 font-black'
+        : 'text-slate-400 font-semibold';
+    const sugLegendaEstoque = compraSugestaoDescontarEstoque
+      ? '<span class="text-[11px] sm:text-xs font-bold text-emerald-900/90 leading-snug">Falta após estoque total <strong class="text-emerald-950">C+V</strong></span>'
+      : '<span class="text-[11px] sm:text-xs font-bold text-amber-950 leading-snug">Volume alvo do período <strong class="tabular-nums">' +
+        String(sug.diasS) +
+        'd</strong> (sem descontar estoque)</span>';
+    const sugValorCard =
+      sug.qtd > 0
+        ? '<span class="tabular-nums">' +
+          escapeHtml(sug.textoLinha) +
+          '</span> <span class="text-lg sm:text-xl font-black text-emerald-800 normal-case">u.</span>'
+        : '<span class="text-slate-500">—</span>';
+    const sugCardHtml =
+      '<div class="mt-2.5 rounded-xl border-2 border-emerald-400/90 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 px-3 py-2.5 shadow-sm" title="' +
+      escapeHtml(sug.titulo) +
+      '">' +
+      '<div class="text-[10px] sm:text-[11px] font-black uppercase text-emerald-900 tracking-wide leading-tight">Sugestão de compra · ' +
+      String(sug.diasS) +
+      ' dias</div>' +
+      '<div class="mt-1 text-2xl sm:text-[1.7rem] font-black tabular-nums leading-none tracking-tight ' +
+      (sug.qtd > 0 ? 'text-emerald-950' : 'text-slate-400') +
+      '">' +
+      sugValorCard +
+      '</div>' +
+      '<div class="mt-1.5">' +
+      sugLegendaEstoque +
+      '</div>' +
+      '</div>';
+
     html += `
       <article class="compra-item-wrap rounded-lg border border-slate-200 bg-white overflow-hidden shadow-sm" data-compra-idx="${idx}">
-        <button type="button" class="compra-linha group w-full text-left grid grid-cols-[minmax(4.5rem,0.9fr)_minmax(0,2fr)_minmax(3.5rem,0.75fr)_minmax(4rem,0.95fr)_1.75rem] sm:grid-cols-[minmax(5.5rem,1fr)_minmax(0,2.4fr)_minmax(4rem,0.9fr)_minmax(4.5rem,1fr)_1.75rem] gap-x-2 items-center px-2 sm:px-3 py-2.5 min-h-[48px] hover:bg-orange-50/50 transition-colors"
+        <button type="button" class="compra-linha group w-full text-left grid grid-cols-[minmax(4.5rem,0.85fr)_minmax(0,1.55fr)_minmax(2.6rem,0.52fr)_minmax(3.2rem,0.68fr)_minmax(3.6rem,0.82fr)_1.75rem] sm:grid-cols-[minmax(5.5rem,0.9fr)_minmax(0,2fr)_minmax(3rem,0.55fr)_minmax(3.8rem,0.75fr)_minmax(4.2rem,0.9fr)_1.75rem] gap-x-2 items-center px-2 sm:px-3 py-2.5 min-h-[48px] hover:bg-orange-50/50 transition-colors"
           data-compra-idx="${idx}"
           aria-expanded="false"
           onclick="compraToggleExpandir(${idx})"
           title="Clique para ver detalhes, gráfico e adicionar ao pedido">
           <span class="text-[11px] sm:text-xs font-black text-slate-700 tabular-nums truncate">${escapeHtml(gmCode)}</span>
           <span class="text-[11px] sm:text-sm font-bold text-slate-900 truncate min-w-0" title="${escapeHtml(nomeReal)}">${escapeHtml(nomeReal)}</span>
+          <span class="text-[11px] sm:text-sm tabular-nums text-right ${sugCls}" title="${escapeHtml(sug.titulo)}">${escapeHtml(sug.textoLinha)}</span>
           <span class="text-[11px] sm:text-sm tabular-nums text-right ${saldoCls}">${saldoTot}</span>
           <span class="text-[11px] sm:text-sm font-black text-slate-900 tabular-nums text-right">${formatarMoeda(custoFin)}</span>
           <span class="compra-linha-chevron text-slate-500 font-black text-sm text-center" aria-hidden="true">▸</span>
@@ -1043,6 +1242,7 @@ function renderizarListaResultadosCompra(resultados) {
               <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_centro ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Centro">C ${Number(p.saldo_centro || 0).toFixed(1)}</span>
               <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_vila ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Vila">V ${Number(p.saldo_vila || 0).toFixed(1)}</span>
             </div>
+            ${sugCardHtml}
             <div class="flex flex-wrap items-center gap-2 mt-2.5">
               <button type="button" class="inline-flex items-center justify-center gap-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wide px-3 py-2 shadow-sm border border-emerald-700/30" title="Ajuste com PIN (Centro ou Vila)" onclick="compraAbrirAjusteProduto('${String(p.id)}'); event.stopPropagation();">Ajustar estoque</button>
               ${
@@ -1052,7 +1252,7 @@ function renderizarListaResultadosCompra(resultados) {
               }
             </div>
             <div class="flex flex-wrap items-center gap-2 mt-2 text-xs font-bold leading-snug border-t border-slate-100 pt-2">
-              <span class="inline-flex items-center gap-1 rounded-lg bg-sky-50 text-sky-950 px-2 py-1 ring-1 ring-sky-200" title="Média de unidades vendidas por dia">Média ${diasM}d: <strong class="tabular-nums font-black">${mediaFmt}</strong>/dia</span>
+              <span class="inline-flex items-center gap-1 rounded-lg bg-sky-50 text-sky-950 px-2 py-1 ring-1 ring-sky-200" title="Média de unidades vendidas por dia (período nos filtros · métricas avançadas)">Média ${diasM}d: <strong class="tabular-nums font-black">${mediaFmt}</strong>/dia</span>
               <span class="inline-flex items-center rounded-lg px-2 py-1 ring-1 tabular-nums ${varCls}" title="Últimos 7 dias vs. 7 anteriores">Δ sem. <strong>${escapeHtml(formatarVarSemanalCompra(varSem))}</strong></span>
               <span class="text-slate-600 font-semibold text-[11px] sm:text-xs">Entrada: <strong class="text-slate-800">${escapeHtml(entData)}</strong> · <strong class="tabular-nums text-slate-800">${escapeHtml(entQFmt)}</strong></span>
             </div>
@@ -1642,7 +1842,12 @@ function compraAtualizarResumoGaveta() {
   const nome = nomes[compraFiltroAlerta] || compraFiltroAlerta;
   const ind = document.getElementById('compra-indicador-alerta');
   const extra = ind ? String(ind.innerText || '').replace(/\s+/g, ' ').trim() : '';
-  el.textContent = extra ? `${nome} · ${extra}` : nome;
+  const dSug = Number(compraDiasSugestaoCompra) || 30;
+  const sugTxt = compraSugestaoDescontarEstoque
+    ? `Sug. ${dSug}d · −C+V`
+    : `Sug. ${dSug}d · alvo`;
+  const base = extra ? `${nome} · ${extra}` : nome;
+  el.textContent = `${base} · ${sugTxt}`;
 }
 
 function compraAplicarEstadoGaveta(abrir) {
@@ -2298,6 +2503,7 @@ atualizarCarrinho();
 renderHistoricoCompras();
 initPainelFornecedorCompra();
 initCompraDiasMediaVendasUi();
+initCompraSugestaoCompraUi();
 initCompraFiltroAlertaUi();
 initCompraGavetaFiltros();
 restaurarEstadoTelaCompra();
