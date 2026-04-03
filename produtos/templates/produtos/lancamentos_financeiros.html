@@ -143,6 +143,12 @@
             <span>CSV</span>
             <kbd class="gm-kbd border border-slate-200 bg-slate-50 text-slate-600">F4</kbd>
           </button>
+          <button type="button" id="btn-xlsx-fin" class="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-3 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-emerald-900 font-black text-xs uppercase tracking-wide hover:bg-emerald-100 shadow-sm text-center" title="Excel no padrão do relatório Financeiro (layout resumido + bloco manual).">
+            <span>Excel financeiro</span>
+          </button>
+          <button type="button" id="btn-pdf-fin" class="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-3 rounded-xl border-2 border-slate-300 bg-slate-800 text-white font-black text-xs uppercase tracking-wide hover:bg-slate-900 shadow-sm text-center" title="PDF no padrão do relatório Financeiro (tabela formatada + bloco para anotações).">
+            <span>PDF financeiro</span>
+          </button>
           <button type="button" id="btn-whats" class="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-3 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase tracking-wide hover:bg-emerald-700 text-center" title="Resumo caprichado para WhatsApp (F9).">
             <span>WhatsApp</span>
             <kbd class="gm-kbd border border-white/25 bg-white/10 text-white">F9</kbd>
@@ -441,6 +447,8 @@
 
     const API_LISTA = "{% url 'api_lancamentos_lista' %}";
     const API_CSV = "{% url 'api_lancamentos_export_csv' %}";
+    const API_XLSX_FIN = "{% url 'api_lancamentos_export_financeiro_xlsx' %}";
+    const API_PDF_FIN = "{% url 'api_lancamentos_export_financeiro_pdf' %}";
     const API_PLANOS = "{% url 'api_lancamentos_planos_distintos' %}";
     const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
     const API_OPCOES_EXTRA_CRIAR = "{% url 'api_lancamentos_opcoes_baixa_extra_criar' %}";
@@ -734,20 +742,24 @@
       return null;
     }
 
-    async function baixarCsvLancamentos() {
-      const btn = document.getElementById('btn-csv');
+    async function baixarArquivoLancamentos(url, btnId, fallbackNome) {
+      const btn = btnId ? document.getElementById(btnId) : null;
       if (btn && btn.disabled) return;
-      const url = `${API_CSV}?${montarParams()}`;
+      const p = montarParamsBaseLista();
+      getExcludedSet().forEach((nome) => {
+        p.append('excluir_plano', nome);
+      });
+      const fullUrl = `${url}?${p}`;
       if (btn) btn.disabled = true;
       if (window.gmLoadingBar) window.gmLoadingBar.show();
       try {
-        const r = await fetch(url, { credentials: 'same-origin' });
+        const r = await fetch(fullUrl, { credentials: 'same-origin' });
         const fn =
           parseFilenameContentDisposition(r.headers.get('Content-Disposition'))
-          || `lancamentos_${tipoAtual}_${hojeISO()}.csv`;
+          || fallbackNome;
         if (!r.ok) {
           const t = await r.text().catch(() => '');
-          alert((t || 'Erro ao gerar CSV.').slice(0, 500));
+          alert((t || 'Erro ao baixar arquivo.').slice(0, 500));
           return;
         }
         const blob = await r.blob();
@@ -755,17 +767,40 @@
         const a = document.createElement('a');
         a.href = u;
         a.download = fn;
-        a.rel = 'noopener';
         document.body.appendChild(a);
         a.click();
         a.remove();
-        setTimeout(() => URL.revokeObjectURL(u), 2500);
+        URL.revokeObjectURL(u);
       } catch (_) {
-        alert('Erro de rede ao baixar o CSV.');
+        alert('Falha de rede ao baixar o arquivo.');
       } finally {
         if (btn) btn.disabled = false;
         if (window.gmLoadingBar) window.gmLoadingBar.hide();
       }
+    }
+
+    function baixarCsvLancamentos() {
+      baixarArquivoLancamentos(
+        API_CSV,
+        'btn-csv',
+        `lancamentos_${tipoAtual}_${hojeISO()}.csv`,
+      );
+    }
+
+    function baixarExcelFinanceiroPadrao() {
+      baixarArquivoLancamentos(
+        API_XLSX_FIN,
+        'btn-xlsx-fin',
+        `Financeiro_${hojeISO()}.xlsx`,
+      );
+    }
+
+    function baixarPdfFinanceiroPadrao() {
+      baixarArquivoLancamentos(
+        API_PDF_FIN,
+        'btn-pdf-fin',
+        `Financeiro_${hojeISO()}.pdf`,
+      );
     }
 
     /** Limite seguro do parâmetro text= em URLs (GET); acima disso o navegador pode truncar e quebrar UTF-8 → no WhatsApp aparecem. */
@@ -1297,6 +1332,8 @@
     document.getElementById('btn-prev').addEventListener('click', () => { if (page > 1) { page--; carregar(); } });
     document.getElementById('btn-next').addEventListener('click', () => { page++; carregar(); });
     document.getElementById('btn-csv').addEventListener('click', () => { baixarCsvLancamentos(); });
+    document.getElementById('btn-xlsx-fin')?.addEventListener('click', () => { baixarExcelFinanceiroPadrao(); });
+    document.getElementById('btn-pdf-fin')?.addEventListener('click', () => { baixarPdfFinanceiroPadrao(); });
     document.getElementById('f-status').addEventListener('change', () => {
       selecionados.clear();
       page = 1;
@@ -1823,6 +1860,8 @@
       guard([
         '#btn-buscar',
         '#btn-csv',
+        '#btn-xlsx-fin',
+        '#btn-pdf-fin',
         '#btn-whats',
         '#btn-prev',
         '#btn-next',

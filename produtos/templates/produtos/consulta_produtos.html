@@ -2723,19 +2723,14 @@ function gmEnviarAjustePdvFetch(p, novo, pin, done) {
                     btnCon.textContent = 'Confirmar ajuste';
                 }
                 fecharModalAjustePdv();
-                pollSaldoPdvUmaVezPromise({ force: true })
-                    .then(function () {
-                        return new Promise(function (r) {
-                            setTimeout(r, 200);
-                        });
-                    })
-                    .then(function () {
-                        return pollSaldoPdvUmaVezPromise({ force: true });
-                    })
-                    .then(function () {
-                        alert('Ajuste registrado.');
-                        if (typeof done === 'function') done(true);
+                if (typeof done === 'function') done(true);
+                mostrarStatusBusca('Ajuste registrado. Atualizando saldos…', 'emerald');
+                setTimeout(function () {
+                    pollSaldoPdvUmaVezPromise({ force: true }).then(function () {
+                        mostrarStatusBusca('Saldos atualizados.', 'emerald');
+                        setTimeout(esconderStatusBusca, 2400);
                     });
+                }, 0);
                 return;
             }
             var msg = d && d.erro ? d.erro : 'HTTP ' + x.res.status;
@@ -4231,14 +4226,25 @@ function pollSaldoPdvUmaVezPromise(options) {
             resolve();
             return;
         }
-        fetch('{% url "api_pdv_saldos" %}', { cache: 'no-store' })
+        var saldosUrl = '{% url "api_pdv_saldos" %}';
+        if (pollOpts.force) {
+            saldosUrl += (saldosUrl.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now();
+        }
+        fetch(saldosUrl, { cache: 'no-store' })
             .then((r) => r.json())
             .then((sd) => {
-                if (sd.rows) aplicarSaldosNaBasePdv(sd.rows, pollOpts);
-                if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
-                    AgroEstoqueSync.markFresh(document.getElementById('agro-saldos-ultima-atualizacao'));
+                function aplicarEMarcar() {
+                    if (sd.rows) aplicarSaldosNaBasePdv(sd.rows, pollOpts);
+                    if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
+                        AgroEstoqueSync.markFresh(document.getElementById('agro-saldos-ultima-atualizacao'));
+                    }
+                    resolve();
                 }
-                resolve();
+                if (pollOpts.force) {
+                    requestAnimationFrame(aplicarEMarcar);
+                } else {
+                    aplicarEMarcar();
+                }
             })
             .catch(function () {
                 resolve();

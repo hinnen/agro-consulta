@@ -78,6 +78,16 @@ urlpatterns = [
         name='api_lancamentos_export_csv',
     ),
     path(
+        'api/lancamentos/export-financeiro-xlsx/',
+        views.api_lancamentos_export_financeiro_xlsx,
+        name='api_lancamentos_export_financeiro_xlsx',
+    ),
+    path(
+        'api/lancamentos/export-financeiro-pdf/',
+        views.api_lancamentos_export_financeiro_pdf,
+        name='api_lancamentos_export_financeiro_pdf',
+    ),
+    path(
         'api/lancamentos/opcoes-baixa/',
         views.api_lancamentos_opcoes_baixa,
         name='api_lancamentos_opcoes_baixa',

@@ -52,6 +52,8 @@ from .nfe_entrada_util import (
     salvar_rascunho_entrada,
 )
 from .rota_entregas_geo import ordenar_entregas_por_proximidade
+from .lancamentos_financeiro_pdf import montar_pdf_financeiro_padrao
+from .lancamentos_financeiro_xlsx import montar_planilha_financeiro_padrao
 from .mongo_financeiro_util import (
     atualizar_lancamento_mongo_agro,
     baixar_lancamento_parcial_mongo,
@@ -2243,6 +2245,7 @@ def api_lancamentos_export_csv(request):
         page=1,
         page_size=5000,
         ordenacao=ordenacao,
+        limite_max=5000,
     )
 
     buf = StringIO()
@@ -2332,6 +2335,105 @@ def api_lancamentos_export_csv(request):
 
     nome = f"lancamentos_{'pagar' if despesa else 'receber'}_{timezone.localdate().isoformat()}.csv"
     resp = HttpResponse("\ufeff" + buf.getvalue(), content_type="text/csv; charset=utf-8")
+    resp["Content-Disposition"] = f'attachment; filename="{nome}"'
+    return resp
+
+
+def _lancamentos_financeiro_dados_export(request):
+    """
+    Mesmos filtros da lista / CSV / Excel / PDF — até 5000 títulos deduplicados.
+    Retorna (resposta_erro, None) ou (None, dict com linhas, despesa, v_de, v_ate, status).
+    """
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return HttpResponse("Mongo indisponível", status=503, content_type="text/plain; charset=utf-8"), None
+
+    tipo = (request.GET.get("tipo") or "pagar").strip().lower()
+    despesa = tipo != "receber"
+    status = (request.GET.get("status") or "abertos").strip().lower()
+    if status not in ("abertos", "quitados", "todos"):
+        status = "abertos"
+    v_de = _lancamentos_parse_date_param(request.GET.get("venc_de"))
+    v_ate = _lancamentos_parse_date_param(request.GET.get("venc_ate"))
+    texto = (request.GET.get("q") or "").strip() or None
+    ordenacao = (request.GET.get("ordenacao") or "vencimento_asc").strip().lower()
+    if ordenacao not in ("vencimento_asc", "vencimento_desc", "fluxo_desc"):
+        ordenacao = "vencimento_asc"
+
+    excl_planos = _lancamentos_excluir_planos_from_request(request)
+    query = lancamentos_montar_query_mongo(
+        despesa=despesa,
+        status=status,
+        vencimento_de=v_de,
+        vencimento_ate=v_ate,
+        texto=texto,
+        excluir_planos_nomes=excl_planos or None,
+    )
+    linhas, _, _ = lancamentos_buscar_pagina(
+        db,
+        query,
+        despesa,
+        page=1,
+        page_size=5000,
+        ordenacao=ordenacao,
+        limite_max=5000,
+    )
+    return None, {
+        "linhas": linhas,
+        "despesa": despesa,
+        "v_de": v_de,
+        "v_ate": v_ate,
+        "status": status,
+    }
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_export_financeiro_xlsx(request):
+    """
+    Excel (.xlsx) no layout do relatório financeiro de referência: período, colunas resumidas
+    (vencimento dd/mmm, favorecido, plano, valores estilo R$, pago, qual conta) e bloco inferior
+    para preenchimento manual (entrada / dívida / beneficiário / observações).
+    """
+    err, data = _lancamentos_financeiro_dados_export(request)
+    if err:
+        return err
+    blob = montar_planilha_financeiro_padrao(
+        data["linhas"],
+        despesa=data["despesa"],
+        v_de=data["v_de"],
+        v_ate=data["v_ate"],
+    )
+    ref = data["v_ate"] or data["v_de"] or timezone.localdate()
+    nome = f"Financeiro_{ref.strftime('%d.%m.%Y')}.xlsx"
+    resp = HttpResponse(
+        blob,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    resp["Content-Disposition"] = f'attachment; filename="{nome}"'
+    return resp
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_export_financeiro_pdf(request):
+    """
+    PDF no padrão do relatório financeiro de referência — tipografia e cores discretas,
+    tabela com cabeçalho destacado, linhas zebradas e bloco manual inferior.
+    """
+    err, data = _lancamentos_financeiro_dados_export(request)
+    if err:
+        return err
+    blob = montar_pdf_financeiro_padrao(
+        data["linhas"],
+        despesa=data["despesa"],
+        v_de=data["v_de"],
+        v_ate=data["v_ate"],
+        status=data["status"],
+    )
+    ref = data["v_ate"] or data["v_de"] or timezone.localdate()
+    nome = f"Financeiro_{ref.strftime('%d.%m.%Y')}.pdf"
+    resp = HttpResponse(blob, content_type="application/pdf")
     resp["Content-Disposition"] = f'attachment; filename="{nome}"'
     return resp
 

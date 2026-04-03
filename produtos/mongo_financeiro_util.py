@@ -353,71 +353,118 @@ def contas_pagar_montar_query_mongo(**kwargs) -> dict[str, Any]:
     return lancamentos_montar_query_mongo(despesa=True, **kwargs)
 
 
+def _lancamentos_sort_spec_list(ordenacao: str = "vencimento_asc") -> list[tuple[str, int]]:
+    ord_ = (ordenacao or "vencimento_asc").strip().lower()
+    if ord_ == "vencimento_desc":
+        return [("DataVencimento", -1), ("_id", -1)]
+    if ord_ == "fluxo_desc":
+        return [("DataFluxo", -1), ("_id", -1)]
+    return [("DataVencimento", 1), ("_id", 1)]
+
+
+def _lancamentos_mongo_stages_dedup_por_titulo_erp(sort_spec: list[tuple[str, int]]) -> list[dict[str, Any]]:
+    """
+    Um documento por título no ERP: evita linhas repetidas quando o Mongo recebeu o mesmo
+    DtoLancamento duas vezes (ex.: resync). Sem LancamentoID, cada BSON _id permanece único.
+    """
+    lid_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$LancamentoID", ""]}}}}
+    return [
+        {
+            "$addFields": {
+                "_dupKey": {
+                    "$cond": [
+                        {"$gt": [{"$strLenCP": lid_trim}, 0]},
+                        {
+                            "$concat": [
+                                "L|",
+                                lid_trim,
+                                "|P|",
+                                {"$toString": {"$ifNull": ["$NumeroParcela", 0]}},
+                            ]
+                        },
+                        {"$concat": ["O|", {"$toString": "$_id"}]},
+                    ]
+                }
+            }
+        },
+        {"$sort": dict(sort_spec)},
+        {"$group": {"_id": "$_dupKey", "_dedup": {"$first": "$$ROOT"}}},
+        {"$replaceRoot": {"newRoot": "$_dedup"}},
+        {"$sort": dict(sort_spec)},
+    ]
+
+
+def _lancamentos_mongo_group_totais_stage(despesa: bool) -> dict[str, Any]:
+    if despesa:
+        return {
+            "$group": {
+                "_id": None,
+                "n": {"$sum": 1},
+                "bruto": {"$sum": {"$ifNull": ["$Saida", 0]}},
+                "movimentado": {"$sum": {"$ifNull": ["$ValorPago", 0]}},
+                "saldo_aberto": {
+                    "$sum": {
+                        "$max": [
+                            0,
+                            {
+                                "$subtract": [
+                                    {"$ifNull": ["$Saida", 0]},
+                                    {"$ifNull": ["$ValorPago", 0]},
+                                ]
+                            },
+                        ]
+                    }
+                },
+            }
+        }
+    _mov_rec = _mongo_expr_valor_realizado_receita()
+    return {
+        "$group": {
+            "_id": None,
+            "n": {"$sum": 1},
+            "bruto": {"$sum": {"$ifNull": ["$Entrada", 0]}},
+            "movimentado": {"$sum": _mov_rec},
+            "saldo_aberto": {
+                "$sum": {
+                    "$max": [
+                        0,
+                        {
+                            "$subtract": [
+                                {"$ifNull": ["$Entrada", 0]},
+                                _mov_rec,
+                            ]
+                        },
+                    ]
+                }
+            },
+        }
+    }
+
+
+def _lancamentos_totais_dict_from_group_doc(a: dict | None) -> dict[str, float]:
+    if not a:
+        return {"quantidade": 0, "bruto": 0.0, "movimentado": 0.0, "saldo_aberto": 0.0}
+    return {
+        "quantidade": int(a.get("n") or 0),
+        "bruto": round(float(a.get("bruto") or 0), 2),
+        "movimentado": round(float(a.get("movimentado") or 0), 2),
+        "saldo_aberto": round(float(a.get("saldo_aberto") or 0), 2),
+    }
+
+
 def lancamentos_totais_filtrados(db, query: dict, despesa: bool) -> dict[str, float]:
     if db is None:
         return {"quantidade": 0, "bruto": 0.0, "movimentado": 0.0, "saldo_aberto": 0.0}
     try:
-        if despesa:
-            pipe = [
-                {"$match": query},
-                {
-                    "$group": {
-                        "_id": None,
-                        "n": {"$sum": 1},
-                        "bruto": {"$sum": {"$ifNull": ["$Saida", 0]}},
-                        "movimentado": {"$sum": {"$ifNull": ["$ValorPago", 0]}},
-                        "saldo_aberto": {
-                            "$sum": {
-                                "$max": [
-                                    0,
-                                    {
-                                        "$subtract": [
-                                            {"$ifNull": ["$Saida", 0]},
-                                            {"$ifNull": ["$ValorPago", 0]},
-                                        ]
-                                    },
-                                ]
-                            }
-                        },
-                    }
-                },
-            ]
-        else:
-            _mov_rec = _mongo_expr_valor_realizado_receita()
-            pipe = [
-                {"$match": query},
-                {
-                    "$group": {
-                        "_id": None,
-                        "n": {"$sum": 1},
-                        "bruto": {"$sum": {"$ifNull": ["$Entrada", 0]}},
-                        "movimentado": {"$sum": _mov_rec},
-                        "saldo_aberto": {
-                            "$sum": {
-                                "$max": [
-                                    0,
-                                    {
-                                        "$subtract": [
-                                            {"$ifNull": ["$Entrada", 0]},
-                                            _mov_rec,
-                                        ]
-                                    },
-                                ]
-                            }
-                        },
-                    }
-                },
-            ]
+        sort_dedup = _lancamentos_sort_spec_list("vencimento_asc")
+        dedup = _lancamentos_mongo_stages_dedup_por_titulo_erp(sort_dedup)
+        pipe: list[dict[str, Any]] = [
+            {"$match": query},
+            *dedup,
+            _lancamentos_mongo_group_totais_stage(despesa),
+        ]
         agg = list(db[COL_DTO_LANCAMENTO].aggregate(pipe))
-        if not agg:
-            return {"quantidade": 0, "bruto": 0.0, "movimentado": 0.0, "saldo_aberto": 0.0}
-        a = agg[0]
-        return {
-            "quantidade": int(a.get("n") or 0),
-            "bruto": round(float(a.get("bruto") or 0), 2),
-            "movimentado": round(float(a.get("movimentado") or 0), 2),
-            "saldo_aberto": round(float(a.get("saldo_aberto") or 0), 2),
-        }
+        return _lancamentos_totais_dict_from_group_doc(agg[0] if agg else None)
     except Exception as exc:
         logger.exception("lancamentos_totais_filtrados: %s", exc)
         return {"quantidade": 0, "bruto": 0.0, "movimentado": 0.0, "saldo_aberto": 0.0}
@@ -536,28 +583,46 @@ def lancamentos_buscar_pagina(
     page: int = 1,
     page_size: int = 50,
     ordenacao: str = "vencimento_asc",
+    limite_max: int = 200,
 ) -> tuple[list[dict], int, dict[str, float]]:
     if db is None:
         return [], 0, {"quantidade": 0, "bruto": 0.0, "movimentado": 0.0, "saldo_aberto": 0.0}
 
     page = max(1, page)
-    page_size = min(200, max(1, page_size))
+    cap = max(1, int(limite_max) if limite_max else 200)
+    page_size = min(cap, max(1, page_size))
     skip = (page - 1) * page_size
 
-    ord = (ordenacao or "vencimento_asc").strip().lower()
-    if ord == "vencimento_desc":
-        sort_spec = [("DataVencimento", -1), ("_id", -1)]
-    elif ord == "fluxo_desc":
-        sort_spec = [("DataFluxo", -1), ("_id", -1)]
-    else:
-        sort_spec = [("DataVencimento", 1), ("_id", 1)]
+    sort_spec = _lancamentos_sort_spec_list(ordenacao)
 
     try:
         col = db[COL_DTO_LANCAMENTO]
-        total = col.count_documents(query)
-        totais = lancamentos_totais_filtrados(db, query, despesa)
-        cur = col.find(query).sort(sort_spec).skip(skip).limit(page_size)
-        linhas = [lancamento_para_api(d, despesa) for d in cur]
+        dedup = _lancamentos_mongo_stages_dedup_por_titulo_erp(sort_spec)
+        group_tot = _lancamentos_mongo_group_totais_stage(despesa)
+        facet_stage: dict[str, Any] = {
+            "$facet": {
+                "total_count": [{"$count": "n"}],
+                "page_slice": [{"$skip": skip}, {"$limit": page_size}],
+                "totais_agg": [group_tot],
+            }
+        }
+        pipe: list[dict[str, Any]] = [{"$match": query}, *dedup, facet_stage]
+        agg = list(col.aggregate(pipe))
+        total = 0
+        page_docs: list[dict[str, Any]] = []
+        totais = {"quantidade": 0, "bruto": 0.0, "movimentado": 0.0, "saldo_aberto": 0.0}
+        if agg:
+            facet = agg[0]
+            tc = facet.get("total_count") or []
+            if tc:
+                total = int(tc[0].get("n") or 0)
+            page_docs = list(facet.get("page_slice") or [])
+            ta = facet.get("totais_agg") or []
+            totais = _lancamentos_totais_dict_from_group_doc(ta[0] if ta else None)
+        linhas = []
+        for d in page_docs:
+            d.pop("_dupKey", None)
+            linhas.append(lancamento_para_api(d, despesa))
         return linhas, total, totais
     except Exception as exc:
         logger.exception("lancamentos_buscar_pagina: %s", exc)
