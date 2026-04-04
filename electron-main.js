@@ -1,8 +1,15 @@
 const { app, BrowserWindow, shell, ipcMain } = require('electron');
 
+const path = require('path');
+
 const START_URL =
   process.env.AGRO_PDV_URL ||
   'http://127.0.0.1:8000/'; // durante dev, aponta pro Django local
+
+let _agroAppOrigin = '';
+try {
+  _agroAppOrigin = new URL(START_URL).origin;
+} catch (_) {}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -13,25 +20,31 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: require('path').join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
   win.removeMenu();
   win.webContents.setWindowOpenHandler((details) => {
     const url = String(details.url || '').trim();
-    if (/^https?:\/\//i.test(url)) {
-      shell.openExternal(url);
+    if (!url) return { action: 'deny' };
+    try {
+      if (_agroAppOrigin && url.startsWith(_agroAppOrigin)) {
+        return { action: 'allow' };
+      }
+    } catch (_) {}
+    if (/^https?:\/\//i.test(url) || /^whatsapp:/i.test(url)) {
+      void shell.openExternal(url);
       return { action: 'deny' };
     }
-    return { action: 'allow' };
+    return { action: 'deny' };
   });
   win.loadURL(START_URL);
 }
 
 ipcMain.handle('agro-open-external', async (_event, url) => {
   const u = String(url || '').trim();
-  if (!/^https?:\/\//i.test(u)) {
+  if (!/^https?:\/\//i.test(u) && !/^whatsapp:/i.test(u)) {
     return { ok: false, reason: 'invalid_url' };
   }
   try {

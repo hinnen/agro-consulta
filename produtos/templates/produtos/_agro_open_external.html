@@ -1,10 +1,14 @@
-{# Abre WhatsApp/Maps no navegador do SO no Electron (shell.openExternal). No browser comum usa window.open. #}
+{# Electron: agroShell.openExternal → shell.openExternal. Browser: window.open. Intercepta window.open para wa.me / Maps. #}
 <script>
 (function () {
-  window.agroAbrirUrlExterna = function (u) {
+  if (window.__agroOpenExternalInit) return;
+  window.__agroOpenExternalInit = true;
+
+  function openViaShellOrBrowser(u) {
     if (!u) return;
     var s = String(u).trim();
-    if (!/^https?:\/\//i.test(s)) return;
+    if (!s) return;
+    if (!/^https?:\/\//i.test(s) && !/^whatsapp:/i.test(s)) return;
     try {
       if (window.agroShell && typeof window.agroShell.openExternal === 'function') {
         var pr = window.agroShell.openExternal(s);
@@ -17,6 +21,36 @@
     try {
       window.open(s, '_blank', 'noopener,noreferrer');
     } catch (e2) {}
+  }
+
+  window.agroAbrirUrlExterna = openViaShellOrBrowser;
+
+  function isHandoffUrl(s) {
+    if (!s || typeof s !== 'string') return false;
+    s = s.trim();
+    if (/^whatsapp:/i.test(s)) return true;
+    if (!/^https?:\/\//i.test(s)) return false;
+    try {
+      var a = document.createElement('a');
+      a.href = s;
+      var h = (a.hostname || '').toLowerCase();
+      if (h === 'wa.me' || h === 'www.wa.me') return true;
+      if (h.indexOf('whatsapp.com') >= 0) return true;
+      if (h.indexOf('google.') === 0 && (a.pathname || '').indexOf('/maps') >= 0) return true;
+      if (h === 'maps.google.com') return true;
+      if (h === 'goo.gl' || h.indexOf('goo.gl') >= 0) return true;
+      if (h.indexOf('waze.com') >= 0) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  var origOpen = window.open;
+  window.open = function (url, name, features) {
+    if (typeof url === 'string' && isHandoffUrl(url)) {
+      openViaShellOrBrowser(url.trim());
+      return null;
+    }
+    return origOpen.apply(this, arguments);
   };
 })();
 </script>

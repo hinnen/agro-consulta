@@ -235,7 +235,18 @@
           <thead class="bg-slate-100 text-[10px] font-black uppercase text-slate-600 border-b border-slate-200">
             <tr>
               <th data-col="chk" class="px-2 py-3 w-10" id="th-chk"><input type="checkbox" id="chk-all" class="rounded border-slate-300" title="Selecionar página"></th>
-              <th data-col="venc" class="px-2 py-3">Vencimento</th>
+              <th data-col="venc" class="px-1 py-2 align-bottom w-[7.5rem]">
+                <button type="button" id="th-sort-venc" class="w-full min-h-[44px] rounded-lg px-2 py-2 text-left text-[10px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 border border-transparent"
+                  title="Ordenar por data de vencimento. Clique para inverter (↑ mais antigo primeiro · ↓ mais novo primeiro).">
+                  <span data-sort-lbl>Vencimento</span><span data-sort-ind class="tabular-nums text-emerald-700" aria-hidden="true"></span>
+                </button>
+              </th>
+              <th data-col="fluxo" class="px-1 py-2 align-bottom w-[6.5rem]">
+                <button type="button" id="th-sort-fluxo" class="w-full min-h-[44px] rounded-lg px-2 py-2 text-left text-[10px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 border border-transparent"
+                  title="Ordenar pela data de fluxo (mais recente primeiro). Clique de novo para voltar ao vencimento ↑.">
+                  <span data-fluxo-lbl>Fluxo</span>
+                </button>
+              </th>
               <th data-col="cli" class="px-2 py-3">Favorecido / cliente</th>
               <th data-col="desc" class="px-2 py-3">Descrição</th>
               <th data-col="forma" class="px-2 py-3">Forma pagamento</th>
@@ -467,6 +478,7 @@
     const COL_DEFS = [
       { id: 'chk', label: 'Seleção' },
       { id: 'venc', label: 'Vencimento' },
+      { id: 'fluxo', label: 'Data fluxo' },
       { id: 'cli', label: 'Cliente / favorecido' },
       { id: 'desc', label: 'Descrição' },
       { id: 'forma', label: 'Forma pagamento' },
@@ -570,7 +582,7 @@
     function lancamentosSkeletonDeskRows() {
       let html = '';
       for (let i = 0; i < 10; i++) {
-        html += '<tr class="animate-pulse"><td colspan="12" class="px-2 py-3"><div class="h-4 bg-slate-200 rounded-md w-full max-w-[720px]"></div></td></tr>';
+        html += '<tr class="animate-pulse"><td colspan="13" class="px-2 py-3"><div class="h-4 bg-slate-200 rounded-md w-full max-w-[720px]"></div></td></tr>';
       }
       return html;
     }
@@ -682,6 +694,40 @@
         p.append('excluir_plano', nome);
       });
       return p;
+    }
+
+    function syncSortHeaderButtons() {
+      const sel = document.getElementById('f-ord');
+      const vBtn = document.getElementById('th-sort-venc');
+      const fBtn = document.getElementById('th-sort-fluxo');
+      if (!sel || !vBtn || !fBtn) return;
+      const ord = sel.value;
+      const vInd = vBtn.querySelector('[data-sort-ind]');
+      if (vInd) {
+        if (ord === 'vencimento_asc') vInd.textContent = ' ↑';
+        else if (ord === 'vencimento_desc') vInd.textContent = ' ↓';
+        else vInd.textContent = '';
+      }
+      const fLbl = fBtn.querySelector('[data-fluxo-lbl]');
+      if (fLbl) fLbl.textContent = ord === 'fluxo_desc' ? 'Fluxo ↓' : 'Fluxo';
+      const vOn = ord === 'vencimento_asc' || ord === 'vencimento_desc';
+      const fOn = ord === 'fluxo_desc';
+      vBtn.classList.toggle('bg-emerald-50', vOn);
+      vBtn.classList.toggle('ring-1', vOn);
+      vBtn.classList.toggle('ring-emerald-300', vOn);
+      vBtn.classList.toggle('text-emerald-950', vOn);
+      fBtn.classList.toggle('bg-emerald-50', fOn);
+      fBtn.classList.toggle('ring-1', fOn);
+      fBtn.classList.toggle('ring-emerald-300', fOn);
+      fBtn.classList.toggle('text-emerald-950', fOn);
+    }
+
+    function aplicarOrdenacaoPeloCabecalho(novo) {
+      document.getElementById('f-ord').value = novo;
+      page = 1;
+      selecionados.clear();
+      syncSortHeaderButtons();
+      carregar();
     }
 
     function atualizarLabelsTotais() {
@@ -1160,6 +1206,7 @@
           tr.innerHTML = `
             <td data-col="chk" class="px-2 py-2">${chk}</td>
             <td data-col="venc" class="px-2 py-2 text-xs font-semibold tabular-nums whitespace-nowrap">${esc(fmtData(row.data_vencimento))}</td>
+            <td data-col="fluxo" class="px-2 py-2 text-xs font-semibold tabular-nums whitespace-nowrap text-slate-600">${esc(fmtData(row.data_fluxo))}</td>
             <td data-col="cli" class="px-2 py-2 text-xs font-bold text-slate-800 max-w-[160px]"><div class="truncate" title="${esc(row.cliente)}">${esc(row.cliente || '—')}</div></td>
             <td data-col="desc" class="px-2 py-2 text-xs text-slate-700 max-w-[180px]"><div class="truncate" title="${esc(row.descricao)}">${esc(row.descricao || '—')}</div></td>
             <td data-col="forma" class="px-2 py-2 text-[11px] text-slate-700 max-w-[120px]"><div class="truncate" title="${esc(row.forma_pagamento)}">${esc(row.forma_pagamento || '—')}</div></td>
@@ -1180,7 +1227,7 @@
           card.innerHTML = `
             ${chkM}
             <div class="flex justify-between items-start gap-2">
-              <span class="text-[10px] font-black uppercase text-slate-500">Venc. ${esc(fmtData(row.data_vencimento))}</span>
+              <span class="text-[10px] font-black uppercase text-slate-500">Venc. ${esc(fmtData(row.data_vencimento))}${row.data_fluxo ? ' · Fluxo ' + esc(fmtData(row.data_fluxo)) : ''}</span>
               ${sit}
             </div>
             <div class="font-black text-sm text-slate-900">${esc(row.cliente || '—')}</div>
@@ -1218,6 +1265,7 @@
       document.getElementById('btn-prev').disabled = (data.page || 1) <= 1;
       document.getElementById('btn-next').disabled = (data.page || 1) >= pi;
       document.getElementById('chk-all').checked = false;
+      syncSortHeaderButtons();
     }
 
     function tentarHidratarListaFinCache() {
@@ -1286,6 +1334,7 @@
       }
       refreshSelBar();
       refreshBtnsBaixa();
+      syncSortHeaderButtons();
     }
 
     function favList() {
@@ -1346,6 +1395,26 @@
         selecionados.clear();
         carregarPlanos().then(() => carregar());
       }
+    });
+
+    document.getElementById('f-ord').addEventListener('change', () => {
+      page = 1;
+      selecionados.clear();
+      syncSortHeaderButtons();
+      carregarPlanos().then(() => carregar());
+    });
+
+    document.getElementById('th-sort-venc').addEventListener('click', () => {
+      const ord = document.getElementById('f-ord').value;
+      let n;
+      if (ord === 'vencimento_asc') n = 'vencimento_desc';
+      else if (ord === 'vencimento_desc') n = 'vencimento_asc';
+      else n = 'vencimento_asc';
+      aplicarOrdenacaoPeloCabecalho(n);
+    });
+    document.getElementById('th-sort-fluxo').addEventListener('click', () => {
+      const ord = document.getElementById('f-ord').value;
+      aplicarOrdenacaoPeloCabecalho(ord === 'fluxo_desc' ? 'vencimento_asc' : 'fluxo_desc');
     });
 
     document.getElementById('plano-todas').addEventListener('click', () => {
@@ -1880,6 +1949,7 @@
       atualizarTabs();
       buildColDropdown();
       applyTableCols();
+      syncSortHeaderButtons();
       document.getElementById('btn-fin-sync-api')?.addEventListener('click', () => {
         agroFinSincronizarComApi().catch(() => {});
       });
