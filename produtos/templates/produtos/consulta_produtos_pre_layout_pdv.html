@@ -427,11 +427,11 @@
         </div>
     </div>
 
-    <div id="modal-resumo" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
-        <div class="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl p-5 md:p-6 animate-in zoom-in duration-200 border border-slate-200">
+    <div id="modal-resumo" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-resumo-titulo">
+        <div class="bg-white w-full max-w-[min(48rem,96vw)] rounded-[2rem] shadow-2xl p-5 md:p-6 animate-in zoom-in duration-200 border border-slate-200">
             <div class="flex items-start justify-between gap-4 mb-6">
                 <div>
-                    <h2 class="text-xl md:text-2xl font-black text-slate-900 italic uppercase tracking-tighter">📝 Resumo do Pedido</h2>
+                    <h2 id="modal-resumo-titulo" class="text-xl md:text-2xl font-black text-slate-900 italic uppercase tracking-tighter">📝 Resumo do Pedido</h2>
                     <div class="text-[10px] uppercase font-black tracking-widest text-slate-400 mt-1">F7 zap • F8 imprime • F10 erp • F9 copia</div>
                 </div>
                 <div class="w-14 h-14 rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -472,11 +472,11 @@
     <div id="cupom-orcamento"></div>
 
     <!-- Modal Histórico de Vendas -->
-    <div id="alerta-lembrete" class="fixed right-4 bottom-4 z-[110] hidden max-w-sm bg-white border-[3px] border-orange-500 rounded-2xl shadow-2xl p-4">
+    <div id="alerta-lembrete" class="fixed right-4 bottom-4 z-[110] hidden max-w-[min(24rem,92vw)] bg-white border-[3px] border-orange-500 rounded-2xl shadow-2xl p-4" role="alert" aria-live="assertive" aria-labelledby="alerta-lembrete-titulo-pre" aria-describedby="alerta-lembrete-texto">
         <div class="flex items-start gap-3">
             <div class="text-2xl">⏰</div>
             <div class="min-w-0">
-                <div class="text-sm font-black uppercase text-slate-800">Lembrete do caixa</div>
+                <div id="alerta-lembrete-titulo-pre" class="text-sm font-black uppercase text-slate-800">Lembrete do caixa</div>
                 <div id="alerta-lembrete-texto" class="text-sm font-bold text-slate-600 mt-1 break-words"></div>
                 <div class="mt-3 flex gap-2">
                     <button type="button" onclick="dispensarAlertaLembrete()" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-black uppercase">Ok</button>
@@ -485,13 +485,13 @@
         </div>
     </div>
 
-    <div id="modal-historico-vendas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
-        <div class="bg-white w-full max-w-2xl rounded-3xl shadow-2xl p-6 flex flex-col max-h-[80vh]">
+    <div id="modal-historico-vendas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-hist-local-titulo-pre">
+        <div class="bg-white w-full max-w-[min(48rem,96vw)] rounded-3xl shadow-2xl p-6 flex flex-col max-h-[85vh] min-h-0">
             <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
-                <h2 class="text-xl font-black text-slate-800 uppercase italic">📋 Últimos Orçamentos (Local)</h2>
+                <h2 id="modal-hist-local-titulo-pre" class="text-xl font-black text-slate-800 uppercase italic">📋 Últimos Orçamentos (Local)</h2>
                 <button onclick="fecharHistoricoLocal()" class="text-slate-400 hover:text-slate-600 font-bold bg-slate-100 px-3 py-1 rounded-lg text-xs uppercase">✕ Fechar [Esc]</button>
             </div>
-            <div id="lista-historico-local" class="overflow-y-auto hide-scroll flex-1 space-y-3">
+            <div id="lista-historico-local" class="overflow-y-auto hide-scroll flex-1 min-h-0 space-y-3">
                 <!-- Cards de historico preenchidos via JS -->
             </div>
         </div>

@@ -98,6 +98,19 @@ class ClienteAgro(models.Model):
         default="",
         help_text="Ex.: 8X5R+7M9 Jacupiranga — abre direto no Google Maps na busca.",
     )
+    referencia_rural = models.CharField(
+        "Referência (entrega)",
+        max_length=300,
+        blank=True,
+        default="",
+        help_text="Porteira, km, cor — texto para o entregador; não compõe o link do Maps.",
+    )
+    maps_url_manual = models.CharField(
+        "Link do Maps (colado)",
+        max_length=600,
+        blank=True,
+        default="",
+    )
     ativo = models.BooleanField(default=True)
     externo_id = models.CharField(
         max_length=80,
@@ -267,6 +280,14 @@ class PedidoEntrega(models.Model):
         choices=Status.choices,
         default=Status.PENDENTE,
         db_index=True,
+    )
+    cliente_agro = models.ForeignKey(
+        "ClienteAgro",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pedidos_entrega",
+        verbose_name="Cliente (cadastro PDV)",
     )
     cliente_nome = models.CharField(max_length=300)
     telefone = models.CharField(max_length=40, blank=True, default="")

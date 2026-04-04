@@ -291,10 +291,10 @@
     </main>
   </div>
 
-  <div id="modal-busca-avancada-compra" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[105] hidden items-center justify-center p-4">
-    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 max-h-[92vh] flex flex-col">
+  <div id="modal-busca-avancada-compra" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[105] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-busca-av-compra-titulo">
+    <div class="bg-white w-full max-w-[min(42rem,96vw)] rounded-2xl shadow-2xl border border-slate-200 max-h-[92vh] flex flex-col">
       <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center gap-3 shrink-0">
-        <h2 class="text-lg font-black uppercase text-slate-800 tracking-tight">Busca avançada</h2>
+        <h2 id="modal-busca-av-compra-titulo" class="text-lg font-black uppercase text-slate-800 tracking-tight">Busca avançada</h2>
         <button type="button" id="btn-fechar-ca" class="text-slate-400 hover:text-slate-700 font-bold text-sm px-2" aria-label="Fechar">✕</button>
       </div>
       <div class="p-5 space-y-3 overflow-y-auto hide-scroll flex-1 min-h-0">
@@ -332,11 +332,11 @@
     </div>
   </div>
 
-  <div id="modal-historico-compra" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[106] hidden items-center justify-center p-3 sm:p-4">
-    <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 max-h-[88vh] flex flex-col min-h-0">
+  <div id="modal-historico-compra" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[106] hidden items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-historico-compra-titulo">
+    <div class="bg-white w-full max-w-[min(42rem,96vw)] rounded-2xl shadow-2xl border border-slate-200 max-h-[88vh] flex flex-col min-h-0">
       <div class="px-4 py-3 border-b border-slate-100 flex justify-between items-start gap-3 shrink-0">
         <div class="min-w-0">
-          <h2 class="text-base font-black uppercase text-slate-800 tracking-tight">Histórico de pedidos</h2>
+          <h2 id="modal-historico-compra-titulo" class="text-base font-black uppercase text-slate-800 tracking-tight">Histórico de pedidos</h2>
           <p class="text-[9px] font-bold text-slate-500 mt-1 leading-snug"><span class="text-amber-700">Cotação</span> / <span class="text-sky-700">Pedido</span> no menu. <span class="text-emerald-700">Entregue</span> no estoque. <span class="text-orange-700">Recuperar</span> substitui a lista atual.</p>
         </div>
         <button type="button" id="btn-fechar-historico-compra" class="text-slate-400 hover:text-slate-700 font-bold text-sm px-2 shrink-0" aria-label="Fechar">✕</button>

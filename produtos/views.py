@@ -64,6 +64,7 @@ from .mongo_financeiro_util import (
     excluir_lancamento_mongo_agro,
     financeiro_projecao_fluxo_diario,
     inserir_lancamentos_manual_lote,
+    LANCAMENTOS_ORDENACOES_VALIDAS,
     lancamentos_buscar_pagina,
     lancamentos_montar_query_mongo,
     lancamentos_planos_distintos_no_filtro,
@@ -1373,7 +1374,7 @@ def _api_lancamentos_lista_core(request, despesa: bool):
         page_size = 50
 
     ordenacao = (request.GET.get("ordenacao") or "vencimento_asc").strip().lower()
-    if ordenacao not in ("vencimento_asc", "vencimento_desc", "fluxo_desc"):
+    if ordenacao not in LANCAMENTOS_ORDENACOES_VALIDAS:
         ordenacao = "vencimento_asc"
 
     excl_planos = _lancamentos_excluir_planos_from_request(request)
@@ -2226,7 +2227,7 @@ def api_lancamentos_export_csv(request):
     v_ate = _lancamentos_parse_date_param(request.GET.get("venc_ate"))
     texto = (request.GET.get("q") or "").strip() or None
     ordenacao = (request.GET.get("ordenacao") or "vencimento_asc").strip().lower()
-    if ordenacao not in ("vencimento_asc", "vencimento_desc", "fluxo_desc"):
+    if ordenacao not in LANCAMENTOS_ORDENACOES_VALIDAS:
         ordenacao = "vencimento_asc"
 
     excl_planos = _lancamentos_excluir_planos_from_request(request)
@@ -2357,7 +2358,7 @@ def _lancamentos_financeiro_dados_export(request):
     v_ate = _lancamentos_parse_date_param(request.GET.get("venc_ate"))
     texto = (request.GET.get("q") or "").strip() or None
     ordenacao = (request.GET.get("ordenacao") or "vencimento_asc").strip().lower()
-    if ordenacao not in ("vencimento_asc", "vencimento_desc", "fluxo_desc"):
+    if ordenacao not in LANCAMENTOS_ORDENACOES_VALIDAS:
         ordenacao = "vencimento_asc"
 
     excl_planos = _lancamentos_excluir_planos_from_request(request)
@@ -5178,7 +5179,16 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
         "documento": (c.cpf or "").strip() or "—",
         "telefone": (c.whatsapp or "").strip(),
         "endereco": end,
+        "logradouro": (c.logradouro or "").strip(),
+        "numero": (c.numero or "").strip(),
+        "bairro": (c.bairro or "").strip(),
+        "cidade": (c.cidade or "").strip(),
+        "uf": (c.uf or "").strip(),
+        "cep": (c.cep or "").strip(),
         "plus_code": (getattr(c, "plus_code", None) or "").strip(),
+        "referencia_rural": (getattr(c, "referencia_rural", None) or "").strip(),
+        "maps_url_manual": (getattr(c, "maps_url_manual", None) or "").strip(),
+        "cliente_agro_pk": c.pk,
     }
 
 
@@ -5406,6 +5416,102 @@ def _parse_troco_precisa_val(v):
     return None
 
 
+def _normalizar_digitos_telefone_agro(s: str) -> str:
+    d = re.sub(r"\D", "", str(s or ""))
+    if d.startswith("55") and len(d) >= 12:
+        d = d[2:]
+    return d
+
+
+def _cliente_agro_de_body(body: dict):
+    raw = body.get("cliente_agro_id")
+    if raw in (None, "", 0, "0", False):
+        return None
+    try:
+        pk = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return ClienteAgro.objects.filter(pk=pk, ativo=True).first()
+
+
+def _truthy_sincronizar_cliente(v) -> bool:
+    if v is True:
+        return True
+    if isinstance(v, str) and v.strip().lower() in ("1", "true", "sim", "yes"):
+        return True
+    return False
+
+
+def _resolver_cliente_agro_para_sincronizar(ent: PedidoEntrega, body: dict):
+    c = _cliente_agro_de_body(body)
+    if c:
+        return c
+    if getattr(ent, "cliente_agro_id", None):
+        return ent.cliente_agro
+    tel = _normalizar_digitos_telefone_agro(
+        body.get("telefone") if body.get("telefone") is not None else ent.telefone
+    )
+    if len(tel) < 10:
+        return None
+    matches = []
+    for ca in ClienteAgro.objects.filter(ativo=True).only("id", "whatsapp"):
+        if _normalizar_digitos_telefone_agro(ca.whatsapp) == tel:
+            matches.append(ca)
+    if len(matches) == 1:
+        return matches[0]
+    if len(tel) >= 11:
+        tail = tel[-11:]
+        tail_matches = [
+            ca
+            for ca in ClienteAgro.objects.filter(ativo=True).only("id", "whatsapp")
+            if _normalizar_digitos_telefone_agro(ca.whatsapp).endswith(tail)
+        ]
+        if len(tail_matches) == 1:
+            return tail_matches[0]
+    return None
+
+
+def _sincronizar_clienteagro_desde_modal_entrega(ent: PedidoEntrega, body: dict) -> bool:
+    if not _truthy_sincronizar_cliente(body.get("sincronizar_cliente")):
+        return False
+    cli = _resolver_cliente_agro_para_sincronizar(ent, body)
+    if not cli:
+        return False
+    nome = str(body.get("cliente_nome") or ent.cliente_nome or "").strip()[:200]
+    if nome:
+        cli.nome = nome
+    tel = str(body.get("telefone") if body.get("telefone") is not None else ent.telefone).strip()
+    if tel:
+        cli.whatsapp = tel[:20]
+    if body.get("cli_logradouro") is not None:
+        cli.logradouro = str(body.get("cli_logradouro") or "")[:300].strip()
+    if body.get("cli_numero") is not None:
+        cli.numero = str(body.get("cli_numero") or "")[:30].strip()
+    if body.get("cli_bairro") is not None:
+        cli.bairro = str(body.get("cli_bairro") or "")[:120].strip()
+    if body.get("cli_cidade") is not None:
+        cli.cidade = str(body.get("cli_cidade") or "")[:120].strip()
+    if body.get("cli_uf") is not None:
+        cli.uf = str(body.get("cli_uf") or "").strip().upper()[:2]
+    if body.get("cli_cep") is not None:
+        cli.cep = str(body.get("cli_cep") or "").strip()[:12]
+    if body.get("plus_code") is not None:
+        cli.plus_code = str(body.get("plus_code") or "")[:120].strip()
+    if body.get("maps_url_manual") is not None:
+        cli.maps_url_manual = str(body.get("maps_url_manual") or "")[:600].strip()
+    if body.get("referencia_rural") is not None:
+        cli.referencia_rural = str(body.get("referencia_rural") or "")[:300].strip()
+    cli.editado_local = True
+    cli.save()
+    ent_updated = False
+    if not ent.cliente_agro_id or ent.cliente_agro_id != cli.pk:
+        ent.cliente_agro = cli
+        ent_updated = True
+    if ent_updated:
+        ent.save(update_fields=["cliente_agro"])
+    return True
+
+
 @ensure_csrf_cookie
 @require_GET
 def entregas_painel_view(request):
@@ -5478,22 +5584,28 @@ def api_entrega_registrar(request):
     if campos["forma_pagamento"] and campos["forma_pagamento"] != "Dinheiro":
         campos["troco_precisa"] = None
 
+    cli_obj = _cliente_agro_de_body(body)
+
     if orc_id is not None:
         existente = PedidoEntrega.objects.filter(orc_local_id=orc_id).first()
         if existente:
             for k, v in campos.items():
                 setattr(existente, k, v)
+            if cli_obj is not None:
+                existente.cliente_agro = cli_obj
             existente.save()
             obj = existente
         else:
             obj = PedidoEntrega.objects.create(
                 orc_local_id=orc_id,
                 status=PedidoEntrega.Status.PENDENTE,
+                cliente_agro=cli_obj,
                 **campos,
             )
     else:
         obj = PedidoEntrega.objects.create(
             status=PedidoEntrega.Status.PENDENTE,
+            cliente_agro=cli_obj,
             **campos,
         )
 
@@ -5518,6 +5630,7 @@ def api_entregas_listar(request):
             {
                 "id": e.pk,
                 "status": e.status,
+                "cliente_agro_id": e.cliente_agro_id,
                 "cliente_nome": e.cliente_nome,
                 "telefone": e.telefone,
                 "endereco_linha": e.endereco_linha,
@@ -5555,6 +5668,21 @@ def api_entrega_atualizar(request):
     ent = get_object_or_404(PedidoEntrega, pk=pk)
 
     status_vals = {c.value for c in PedidoEntrega.Status}
+    if "cliente_agro_id" in body:
+        raw = body.get("cliente_agro_id")
+        if raw in (None, "", 0, "0"):
+            ent.cliente_agro = None
+        else:
+            try:
+                pk_ca = int(raw)
+                ent.cliente_agro = ClienteAgro.objects.filter(pk=pk_ca, ativo=True).first()
+            except (TypeError, ValueError):
+                pass
+    if "cliente_nome" in body and body["cliente_nome"] is not None:
+        cn = str(body["cliente_nome"])[:300].strip()
+        if not cn:
+            return JsonResponse({"ok": False, "erro": "Nome do cliente não pode ficar vazio."}, status=400)
+        ent.cliente_nome = cn
     if "status" in body and body["status"]:
         val = str(body["status"]).strip()
         if val in status_vals:
@@ -5596,6 +5724,7 @@ def api_entrega_atualizar(request):
         ent.troco_precisa = None
 
     ent.save()
+    _sincronizar_clienteagro_desde_modal_entrega(ent, body)
     return JsonResponse({"ok": True})
 
 

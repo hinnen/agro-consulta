@@ -4,6 +4,9 @@
   if (window.__agroOpenExternalInit) return;
   window.__agroOpenExternalInit = true;
 
+  /** Referência real — o patch de window.open abaixo não pode ser chamado daqui (wa.me/Maps viraria recursão infinita no browser). */
+  var origOpen = window.open;
+
   function openViaShellOrBrowser(u) {
     if (!u) return;
     var s = String(u).trim();
@@ -19,7 +22,7 @@
       }
     } catch (e) {}
     try {
-      window.open(s, '_blank', 'noopener,noreferrer');
+      origOpen.call(window, s, '_blank', 'noopener,noreferrer');
     } catch (e2) {}
   }
 
@@ -35,7 +38,7 @@
       a.href = s;
       var h = (a.hostname || '').toLowerCase();
       if (h === 'wa.me' || h === 'www.wa.me') return true;
-      if (h.indexOf('whatsapp.com') >= 0) return true;
+      if (h === 'api.whatsapp.com' || h.indexOf('whatsapp.com') >= 0) return true;
       if (h.indexOf('google.') === 0 && (a.pathname || '').indexOf('/maps') >= 0) return true;
       if (h === 'maps.google.com') return true;
       if (h === 'goo.gl' || h.indexOf('goo.gl') >= 0) return true;
@@ -44,7 +47,6 @@
     return false;
   }
 
-  var origOpen = window.open;
   window.open = function (url, name, features) {
     if (typeof url === 'string' && isHandoffUrl(url)) {
       openViaShellOrBrowser(url.trim());

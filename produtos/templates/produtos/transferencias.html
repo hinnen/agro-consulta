@@ -173,7 +173,7 @@
 
     <div id="backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300"></div>
 
-    <div id="modal-pin" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-8 z-50 hidden shadow-2xl w-11/12 max-w-sm scale-95 opacity-0 transition-all duration-300">
+    <div id="modal-pin" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-8 z-50 hidden shadow-2xl w-11/12 max-w-[min(24rem,96vw)] scale-95 opacity-0 transition-all duration-300" role="dialog" aria-modal="true" aria-labelledby="pin-title">
         <h3 class="text-xl font-black text-slate-800 mb-2 text-center" id="pin-title">Autenticação</h3>
         <p class="text-sm text-slate-500 text-center mb-6" id="pin-desc">Digite seu PIN para continuar.</p>
         <input type="password" id="input-pin" class="w-full text-center text-2xl font-black tracking-[0.5em] p-3 bg-slate-100 rounded-2xl border-none outline-none focus:ring-4 focus:ring-blue-200 mb-6" maxlength="6">
@@ -183,9 +183,9 @@
         </div>
     </div>
 
-    <div id="modal-troca-pin" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-8 z-50 hidden shadow-2xl w-11/12 max-w-sm scale-95 opacity-0 transition-all duration-300">
+    <div id="modal-troca-pin" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-8 z-50 hidden shadow-2xl w-11/12 max-w-[min(24rem,96vw)] scale-95 opacity-0 transition-all duration-300" role="dialog" aria-modal="true" aria-labelledby="modal-troca-pin-titulo">
         <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 animate-bounce">⚠️</div>
-        <h3 class="text-lg font-black text-slate-800 mb-2 text-center">Atualização Obrigatória</h3>
+        <h3 id="modal-troca-pin-titulo" class="text-lg font-black text-slate-800 mb-2 text-center">Atualização Obrigatória</h3>
         <p class="text-sm text-slate-500 text-center mb-4">O PIN <b class="text-slate-800">1234</b> é padrão. Selecione seu nome e crie um PIN pessoal exclusivo de 4 dígitos.</p>
         <select id="select-usuario" class="w-full text-center font-bold text-slate-700 p-3 bg-slate-50 rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-200 mb-4 appearance-none cursor-pointer">
             <option value="">Carregando usuários...</option>
@@ -195,8 +195,8 @@
         <button onclick="fecharModal('modal-troca-pin', false)" class="w-full text-slate-400 font-bold text-base hover:text-slate-600 transition-colors py-2">Cancelar</button>
     </div>
 
-    <div id="modal-regra" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-8 z-50 hidden shadow-2xl w-11/12 max-w-md scale-95 opacity-0 transition-all duration-300">
-        <h3 class="text-xl font-black text-slate-800 mb-1">Configurar limites</h3>
+    <div id="modal-regra" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-8 z-50 hidden shadow-2xl w-11/12 max-w-[min(40rem,96vw)] scale-95 opacity-0 transition-all duration-300" role="dialog" aria-modal="true" aria-labelledby="modal-regra-titulo">
+        <h3 id="modal-regra-titulo" class="text-xl font-black text-slate-800 mb-1">Configurar limites</h3>
         <p class="text-sm text-slate-500 mb-6 uppercase font-bold text-blue-600" id="regra-produto-nome">NOME DO PRODUTO</p>
         <div class="mb-4">
             <label class="block text-sm font-black text-slate-600 uppercase mb-2">Capacidade máxima no Centro <span class="text-blue-500 cursor-help" title="Deixe vazio para Infinito">?</span></label>
@@ -212,8 +212,8 @@
         </div>
     </div>
 
-    <div id="modal-ajuste" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-8 z-50 hidden shadow-2xl w-11/12 max-w-md scale-95 opacity-0 transition-all duration-300">
-        <h3 class="text-xl font-black text-slate-800 mb-1">Ajuste rápido de estoque</h3>
+    <div id="modal-ajuste" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-3xl p-8 z-50 hidden shadow-2xl w-11/12 max-w-[min(40rem,96vw)] scale-95 opacity-0 transition-all duration-300" role="dialog" aria-modal="true" aria-labelledby="modal-ajuste-titulo">
+        <h3 id="modal-ajuste-titulo" class="text-xl font-black text-slate-800 mb-1">Ajuste rápido de estoque</h3>
         <p class="text-sm text-slate-500 mb-6 uppercase font-bold text-amber-600" id="ajuste-produto-nome">NOME DO PRODUTO</p>
         <div class="grid grid-cols-2 gap-4 mb-4">
             <div onclick="selecionarDepositoAjuste('centro')" id="card-ajuste-centro" class="cursor-pointer border-2 border-slate-200 rounded-2xl p-4 text-center hover:bg-slate-50 transition-all">
