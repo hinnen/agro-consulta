@@ -28,13 +28,65 @@
     }
     @media (min-width: 640px) { .gm-kbd { font-size: 10px; padding: 0.25rem 0.45rem; } }
     #modal-edit-lanc .sug-dd { max-height: 220px; overflow-y: auto; z-index: 60; }
+    .gm-gaveta > summary { list-style: none; }
+    .gm-gaveta > summary::-webkit-details-marker { display: none; }
+    .gm-gaveta-chev {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 0.35rem;
+      background: rgba(245, 158, 11, 0.15);
+      color: rgb(180 83 9);
+      font-size: 10px;
+      font-weight: 900;
+      transition: transform 0.15s ease;
+      flex-shrink: 0;
+    }
+    details.gm-gaveta[open] > summary .gm-gaveta-chev { transform: rotate(90deg); }
+    .gm-gaveta-emerald > summary .gm-gaveta-chev {
+      background: rgba(5, 150, 105, 0.12);
+      color: rgb(6 95 70);
+    }
+    #btn-cols.gm-cols-open {
+      border-color: rgb(217 119 6);
+      box-shadow: 0 10px 28px -6px rgb(5 150 105 / 0.2), 0 0 0 3px rgb(251 191 36 / 0.42);
+      background: linear-gradient(to bottom, rgb(254 252 232 / 0.95), white);
+    }
+    .gm-gaveta-ajuda { border-width: 1px; }
+    .gm-gaveta-ajuda > summary {
+      background: rgb(248 250 252);
+      border-bottom: 1px solid rgb(241 245 249);
+    }
+    .gm-gaveta-ajuda > summary .gm-gaveta-chev {
+      width: 2.25rem;
+      height: 2.25rem;
+      font-size: 14px;
+      font-weight: 900;
+      background: rgb(241 245 249);
+      color: rgb(100 116 139);
+      border: 1px solid rgb(226 232 240);
+    }
+    details.gm-gaveta-ajuda[open] > summary .gm-gaveta-chev {
+      transform: none;
+      background: rgb(236 253 245);
+      color: rgb(5 122 85);
+      border-color: rgb(167 243 208);
+    }
+    .gm-gaveta-ajuda .gm-ajuda-detalhes > summary {
+      list-style: none;
+    }
+    .gm-gaveta-ajuda .gm-ajuda-detalhes > summary::-webkit-details-marker {
+      display: none;
+    }
   </style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
 {% include "produtos/_gm_loading_bar.html" %}
 
   <header class="gm-bar border-b border-slate-200/80 shrink-0">
-    <div class="max-w-[1400px] mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="w-full px-2 sm:px-3 py-2 sm:py-2.5 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
       <div class="flex items-center gap-3 min-w-0">
         <div class="h-11 w-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
           <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
@@ -67,121 +119,154 @@
     </div>
   </header>
 
-  <main class="max-w-[1400px] mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
-    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-2">
-      <p><strong class="font-black uppercase">Como funciona</strong> — o Agro registra os lançamentos/baixas aqui e, quando a integração estiver habilitada, também tenta sincronizar com o ERP (baixa total <em>e</em> baixa parcial enviam o título atualizado). Na baixa, a lista padrão mostra só formas e contas com ID no Mongo (cadastro ERP); você pode incluir itens na sua lista pessoal ou ver o histórico completo no modal de baixa.</p>
-      <details class="group">
-        <summary class="cursor-pointer list-none inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-900">
-          <span aria-hidden="true">ℹ</span>
-          <span>Detalhes técnicos</span>
-          <span class="group-open:rotate-90 transition-transform inline-block text-[9px]">▸</span>
+  <main class="w-full max-w-none flex-1 flex flex-col min-h-0 overflow-hidden px-2 sm:px-3 py-2 gap-1.5">
+    <div class="shrink-0 max-h-[min(46vh,480px)] sm:max-h-[min(52vh,540px)] overflow-y-auto overscroll-y-contain space-y-1.5 pr-0.5 [scrollbar-gutter:stable]">
+    <div class="flex flex-wrap items-center gap-2">
+      <details id="gaveta-ajuda" class="gm-gaveta gm-gaveta-ajuda rounded-xl border border-slate-200/90 bg-white shadow-sm overflow-hidden shrink-0">
+        <summary class="px-2 py-1.5 sm:px-2.5 sm:py-2 flex flex-wrap items-center gap-2 cursor-pointer hover:bg-slate-50/80 transition-colors list-none"
+          title="Integração com o ERP, baixa total e parcial, formas e contas no Mongo, lista pessoal e modal de baixa. Abra para o texto completo.">
+          <span class="gm-gaveta-chev" aria-hidden="true">?</span>
+          <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Ajuda</span>
         </summary>
-        <div class="mt-2 space-y-1 text-[10px] font-bold text-amber-900/90">
-          <p>Baixa: <code class="bg-white/80 px-1 rounded">VENDA_ERP_API_FINANCEIRO_BAIXA_PATH</code>.</p>
-          <p>Baixa parcial: o POST também envia <code class="bg-white/80 px-1 rounded">pagamentos</code> / <code class="bg-white/80 px-1 rounded">pagamentos_relacionados</code> (formato parecido com a aba <em>Pagamentos</em> do lançamento no SisVale), além de <code class="bg-white/80 px-1 rounded">titulos</code>.</p>
-          <p>Lançamento manual: <code class="bg-white/80 px-1 rounded">VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH</code>.</p>
+        <div class="px-3 py-3 sm:px-4 sm:py-4 space-y-3 border-t border-slate-100 text-[12px] sm:text-[13px] font-semibold text-slate-700 leading-relaxed">
+          <p>O Agro registra os lançamentos e baixas aqui e, quando a integração estiver habilitada, também tenta sincronizar com o ERP. <strong class="text-slate-900">Baixa total</strong> e <strong class="text-slate-900">baixa parcial</strong> enviam o título atualizado. Na baixa, a lista padrão mostra só formas e contas com ID no Mongo (cadastro ERP); você pode incluir itens na sua lista pessoal ou ver o histórico completo no modal de baixa.</p>
+          <details class="gm-ajuda-detalhes group rounded-xl border border-slate-200 bg-slate-50/70 overflow-hidden">
+            <summary class="px-3 py-2.5 cursor-pointer flex items-center gap-2 text-[10px] font-black uppercase text-slate-600 hover:bg-slate-100/80 list-none">
+              <span class="inline-flex h-6 w-6 items-center justify-center rounded-md bg-slate-200/80 text-slate-700 text-[11px]" aria-hidden="true">ℹ</span>
+              <span>Detalhes técnicos (variáveis de ambiente)</span>
+              <span class="text-[9px] opacity-70 ml-auto transition-transform group-open:rotate-90 inline-block" aria-hidden="true">▸</span>
+            </summary>
+            <div class="px-3 pb-3 pt-0 space-y-2 text-[10px] font-bold text-slate-700 border-t border-slate-200/80">
+              <p class="pt-2">Baixa: <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200">VENDA_ERP_API_FINANCEIRO_BAIXA_PATH</code></p>
+              <p>Baixa parcial: o POST também envia <code class="bg-white px-1 py-0.5 rounded border border-slate-200">pagamentos</code> / <code class="bg-white px-1 py-0.5 rounded border border-slate-200">pagamentos_relacionados</code> (formato parecido com a aba <em>Pagamentos</em> do lançamento no SisVale), além de <code class="bg-white px-1 py-0.5 rounded border border-slate-200">titulos</code>.</p>
+              <p>Lançamento manual: <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200">VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH</code></p>
+            </div>
+          </details>
         </div>
       </details>
+      <button type="button" data-tipo="pagar" class="tab-tipo px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl font-black text-sm sm:text-base uppercase border-2 border-amber-500 bg-amber-500 text-white shadow-sm min-h-[44px]">A pagar</button>
+      <button type="button" data-tipo="receber" class="tab-tipo px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl font-black text-sm sm:text-base uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-amber-300 min-h-[44px]">A receber</button>
     </div>
 
-    <div class="flex flex-wrap gap-2">
-      <button type="button" data-tipo="pagar" class="tab-tipo px-5 py-2.5 rounded-xl font-black text-xs uppercase border-2 border-amber-500 bg-amber-500 text-white shadow-sm">A pagar</button>
-      <button type="button" data-tipo="receber" class="tab-tipo px-5 py-2.5 rounded-xl font-black text-xs uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-amber-300">A receber</button>
-    </div>
-
-    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <label class="block">
-          <span class="text-[10px] font-black uppercase text-slate-500">Situação</span>
-          <select id="f-status" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
-            <option value="abertos" selected>Em aberto</option>
-            <option value="quitados">Quitados</option>
-            <option value="todos">Todos</option>
-          </select>
-        </label>
-        <label class="block">
-          <span class="text-[10px] font-black uppercase text-slate-500">Vencimento de</span>
-          <input type="date" id="f-de" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
-        </label>
-        <label class="block">
-          <span class="text-[10px] font-black uppercase text-slate-500">Vencimento até</span>
-          <input type="date" id="f-ate" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
-        </label>
-        <label class="block">
-          <span class="text-[10px] font-black uppercase text-slate-500">Ordenação</span>
-          <select id="f-ord" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
-            <option value="vencimento_asc" selected>Vencimento ↑</option>
-            <option value="vencimento_desc">Vencimento ↓</option>
-            <option value="fluxo_desc">Data fluxo ↓</option>
-          </select>
-        </label>
-      </div>
-      <div class="flex flex-col lg:flex-row gap-3">
-        <label class="flex-1 block min-w-0">
-          <span class="text-[10px] font-black uppercase text-slate-500">Busca</span>
-          <div class="relative mt-1">
-            <input type="search" id="f-q" placeholder="Fornecedor, cliente, descrição, doc., forma…" autocomplete="off"
-              class="w-full rounded-xl border-2 border-slate-200 pl-4 pr-10 py-3 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:border-amber-500 outline-none"
-              title="Enter aplica filtro. / foca aqui (fora de campos).">
-            <kbd class="gm-kbd absolute right-2.5 top-1/2 -translate-y-1/2 border border-slate-200 bg-white text-slate-500" title="Barra / foca a busca">/</kbd>
+    <section class="space-y-1.5" aria-label="Filtros e ferramentas da lista">
+      <details id="gaveta-filtros" class="gm-gaveta rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <summary id="sum-gaveta-filtros" class="min-h-[44px] px-3 py-2 flex flex-wrap items-center gap-2 cursor-pointer bg-slate-50/90 hover:bg-amber-50/40 border-b border-slate-100 transition-colors list-none">
+          <span class="gm-gaveta-chev" aria-hidden="true">▸</span>
+          <div class="min-w-0 flex-1 flex flex-wrap items-baseline gap-x-2 gap-y-0">
+            <span class="text-sm sm:text-base font-black uppercase tracking-wide text-slate-800">Filtros da lista</span>
+            <span id="gaveta-filtros-resumo" class="sr-only" aria-live="polite"></span>
           </div>
-        </label>
-        <div class="flex flex-wrap items-end gap-2">
-          <label class="block w-24">
-            <span class="text-[10px] font-black uppercase text-slate-500">Página</span>
-            <select id="f-ps" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-2 py-3 text-sm font-bold">
-              <option value="25">25</option>
-              <option value="50" selected>50</option>
-              <option value="100">100</option>
-            </select>
-          </label>
-          <button type="button" id="btn-buscar" class="inline-flex items-center gap-1.5 px-4 sm:px-5 py-3 rounded-xl bg-amber-600 text-white font-black text-xs uppercase tracking-wide hover:bg-amber-700 shadow-md" title="Recarregar lista (F5).">
-            <span>Atualizar</span>
-            <kbd class="gm-kbd border border-white/30 bg-white/15 text-white">F5</kbd>
-          </button>
-          <button type="button" id="btn-csv" class="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-3 rounded-xl border-2 border-slate-200 bg-white text-slate-800 font-black text-xs uppercase tracking-wide hover:bg-slate-50 shadow-sm text-center" title="Baixar planilha CSV com os filtros atuais (F4 ou F8).">
-            <span>CSV</span>
-            <kbd class="gm-kbd border border-slate-200 bg-slate-50 text-slate-600">F4</kbd>
-          </button>
-          <button type="button" id="btn-xlsx-fin" class="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-3 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-emerald-900 font-black text-xs uppercase tracking-wide hover:bg-emerald-100 shadow-sm text-center" title="Excel no padrão do relatório Financeiro (layout resumido + bloco manual).">
-            <span>Excel financeiro</span>
-          </button>
-          <button type="button" id="btn-pdf-fin" class="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-3 rounded-xl border-2 border-slate-300 bg-slate-800 text-white font-black text-xs uppercase tracking-wide hover:bg-slate-900 shadow-sm text-center" title="PDF no padrão do relatório Financeiro (tabela formatada + bloco para anotações).">
-            <span>PDF financeiro</span>
-          </button>
-          <button type="button" id="btn-whats" class="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-3 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase tracking-wide hover:bg-emerald-700 text-center" title="Resumo caprichado para WhatsApp (F9).">
-            <span>WhatsApp</span>
-            <kbd class="gm-kbd border border-white/25 bg-white/10 text-white">F9</kbd>
-          </button>
-        </div>
-      </div>
-      <div class="flex flex-wrap items-end gap-2 border-t border-slate-100 pt-4">
-        <label class="block flex-1 min-w-[140px] max-w-xs">
-          <span class="text-[10px] font-black uppercase text-slate-500">Favoritos de filtro</span>
-          <select id="fav-load" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold">
-            <option value="">— carregar —</option>
-          </select>
-        </label>
-        <input type="text" id="fav-name" maxlength="40" placeholder="Nome do favorito" class="mt-6 sm:mt-0 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold w-44 max-w-full">
-        <button type="button" id="btn-fav-save" class="px-4 py-2 rounded-xl border-2 border-amber-200 text-amber-800 font-black text-[10px] uppercase hover:bg-amber-50">Salvar filtro</button>
-        <button type="button" id="btn-fav-del" class="px-4 py-2 rounded-xl border-2 border-red-100 text-red-700 font-black text-[10px] uppercase hover:bg-red-50">Excluir favorito</button>
-      </div>
-      <details class="group border-t border-slate-100 pt-4">
-        <summary class="text-xs font-black uppercase text-slate-600 cursor-pointer list-none flex items-center gap-2">
-          <span class="group-open:rotate-90 transition-transform inline-block">▸</span>
-          Planos de conta — desmarque para ocultar da lista (padrão: todos visíveis)
         </summary>
-        <div class="mt-3 space-y-2">
-          <div class="flex flex-wrap gap-2">
-            <button type="button" id="plano-todas" class="px-3 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Marcar todos</button>
-            <button type="button" id="plano-nenhuma" class="px-3 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Desmarcar todos</button>
+        <div class="p-3 sm:p-4 space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <label class="block">
+              <span class="text-[11px] font-black uppercase text-slate-500">Situação</span>
+              <select id="f-status" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
+                <option value="abertos" selected>Em aberto</option>
+                <option value="quitados">Quitados</option>
+                <option value="todos">Todos</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="text-[11px] font-black uppercase text-slate-500">Vencimento de</span>
+              <input type="date" id="f-de" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
+            </label>
+            <label class="block">
+              <span class="text-[11px] font-black uppercase text-slate-500">Vencimento até</span>
+              <input type="date" id="f-ate" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
+            </label>
+            <label class="block">
+              <span class="text-[11px] font-black uppercase text-slate-500">Ordenação</span>
+              <select id="f-ord" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
+                <option value="vencimento_asc" selected>Vencimento ↑</option>
+                <option value="vencimento_desc">Vencimento ↓</option>
+                <option value="fluxo_desc">Data fluxo ↓</option>
+                <option value="cliente_asc">Favorecido A→Z</option>
+                <option value="cliente_desc">Favorecido Z→A</option>
+                <option value="forma_asc">Forma pagamento A→Z</option>
+                <option value="forma_desc">Forma pagamento Z→A</option>
+                <option value="plano_asc">Plano / grupo A→Z</option>
+                <option value="plano_desc">Plano / grupo Z→A</option>
+                <option value="bruto_asc">Bruto ↑ (menor)</option>
+                <option value="bruto_desc">Bruto ↓ (maior)</option>
+                <option value="saldo_asc">Saldo aberto ↑ (menor)</option>
+                <option value="saldo_desc">Saldo aberto ↓ (maior)</option>
+              </select>
+            </label>
           </div>
-          <div id="plano-chks" class="flex flex-wrap gap-2 min-h-[2rem] items-start content-start max-h-48 overflow-y-auto p-1 rounded-xl border border-slate-100 bg-slate-50/50"></div>
+          <div class="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
+            <label class="flex-1 block min-w-[min(100%,16rem)]">
+              <span class="text-[11px] font-black uppercase text-slate-500">Busca</span>
+              <div class="relative mt-1">
+                <input type="search" id="f-q" placeholder="Fornecedor, cliente, descrição, doc., forma…" autocomplete="off"
+                  class="w-full rounded-xl border-2 border-slate-200 pl-4 pr-10 py-3 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:border-amber-500 outline-none"
+                  title="Enter aplica filtro. / foca aqui (fora de campos).">
+                <kbd class="gm-kbd absolute right-2.5 top-1/2 -translate-y-1/2 border border-slate-200 bg-white text-slate-500" title="Barra / foca a busca">/</kbd>
+              </div>
+            </label>
+            <label class="block w-full sm:w-24">
+              <span class="text-[11px] font-black uppercase text-slate-500">Por página</span>
+              <select id="f-ps" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-2 py-3 text-sm font-bold">
+                <option value="25">25</option>
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+              </select>
+            </label>
+            <button type="button" id="btn-buscar" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 sm:py-3 rounded-xl bg-amber-600 text-white font-black text-sm uppercase tracking-wide hover:bg-amber-700 shadow-md min-h-[44px]" title="Recarregar lista (F5).">
+              <span>Atualizar lista</span>
+              <kbd class="gm-kbd border border-white/30 bg-white/15 text-white">F5</kbd>
+            </button>
+          </div>
+        </div>
+      </details>
+
+      <details id="gaveta-ferramentas" class="gm-gaveta gm-gaveta-emerald rounded-xl border border-emerald-200/90 bg-white shadow-sm overflow-hidden">
+        <summary id="sum-gaveta-ferramentas" class="min-h-[44px] px-3 py-2 flex flex-wrap items-center gap-2 cursor-pointer bg-emerald-50/60 hover:bg-emerald-50 border-b border-emerald-100/90 transition-colors list-none"
+          title="CSV: todas as colunas, totais e subtotais por plano. Excel e PDF: mesmo layout de relatório com bloco para anotações. WhatsApp, favoritos de filtro e exclusão por plano de conta.">
+          <span class="gm-gaveta-chev" aria-hidden="true">▸</span>
+          <span class="text-sm sm:text-base font-black uppercase tracking-wide text-emerald-950">Exportar, favoritos e planos</span>
+        </summary>
+        <div class="p-2 sm:p-3 space-y-2 border-t border-emerald-100/80">
+          <div class="flex flex-wrap items-center gap-2" title="Exportações com os filtros atuais. CSV = dados completos; Excel/PDF = relatório modelo.">
+            <button type="button" id="btn-csv" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black text-sm uppercase tracking-wide hover:bg-slate-100 shadow-sm min-h-[44px]" title="CSV: dados completos + totais e subtotais por plano (F4 ou F8).">
+              <span>CSV</span>
+              <kbd class="gm-kbd border border-slate-200 bg-slate-50 text-slate-600">F4</kbd>
+            </button>
+            <button type="button" id="btn-xlsx-fin" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-emerald-300 bg-white text-emerald-900 font-black text-sm uppercase tracking-wide hover:bg-emerald-100/80 shadow-sm min-h-[44px]" title="Excel .xlsx no layout do relatório financeiro.">
+              <span>Excel</span>
+            </button>
+            <button type="button" id="btn-pdf-fin" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-slate-600 bg-slate-800 text-white font-black text-sm uppercase tracking-wide hover:bg-slate-900 shadow-sm min-h-[44px]" title="PDF no mesmo padrão do relatório.">
+              <span>PDF</span>
+            </button>
+            <button type="button" id="btn-whats" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-sm uppercase tracking-wide hover:bg-emerald-700 min-h-[44px]" title="Resumo para WhatsApp (F9).">
+              <span>WhatsApp</span>
+              <kbd class="gm-kbd border border-white/25 bg-white/10 text-white">F9</kbd>
+            </button>
+          </div>
+          <div class="flex flex-wrap items-end gap-2 pt-1 border-t border-slate-100/90">
+            <label class="block flex-1 min-w-[10rem] max-w-xs">
+              <span class="text-[11px] font-black uppercase text-slate-500">Favoritos</span>
+              <select id="fav-load" class="mt-0.5 w-full rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-bold min-h-[44px]">
+                <option value="">— carregar —</option>
+              </select>
+            </label>
+            <input type="text" id="fav-name" maxlength="40" placeholder="Nome do favorito" class="rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-semibold w-40 max-w-full min-h-[44px]">
+            <button type="button" id="btn-fav-save" class="px-3 py-2 rounded-xl border-2 border-amber-200 text-amber-800 font-black text-[10px] uppercase hover:bg-amber-50 min-h-[44px]">Salvar</button>
+            <button type="button" id="btn-fav-del" class="px-3 py-2 rounded-xl border-2 border-red-100 text-red-700 font-black text-[10px] uppercase hover:bg-red-50 min-h-[44px]">Excluir</button>
+          </div>
+          <div class="pt-1 border-t border-slate-100/90" title="Desmarque um plano para ocultar títulos na lista.">
+            <div class="text-[11px] font-black uppercase text-slate-600 mb-1">Planos na lista</div>
+            <div class="flex flex-wrap gap-2 mb-1">
+              <button type="button" id="plano-todas" class="px-2 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Marcar todos</button>
+              <button type="button" id="plano-nenhuma" class="px-2 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Desmarcar todos</button>
+            </div>
+            <div id="plano-chks" class="flex flex-wrap gap-2 min-h-[1.5rem] items-start content-start max-h-32 overflow-y-auto p-1 rounded-lg border border-slate-100 bg-slate-50/50"></div>
+          </div>
         </div>
       </details>
     </section>
 
-    <div id="sel-bar" class="hidden rounded-2xl border-2 border-emerald-300 bg-emerald-50/90 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div id="sel-bar" class="hidden rounded-xl border-2 border-emerald-300 bg-emerald-50/90 px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
       <div class="text-sm font-black text-emerald-950">
         <span id="sel-count">0</span> selecionado(s) · Soma saldo: <span id="sel-soma" class="tabular-nums text-lg">R$ 0,00</span>
       </div>
@@ -196,43 +281,53 @@
       </div>
     </div>
 
-    <div id="erro-box" class="hidden rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-800"></div>
+    <div id="erro-box" class="hidden rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-800"></div>
 
-    <section id="totais-box" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div class="text-[10px] font-black uppercase text-slate-500">Títulos (filtro)</div>
-        <div id="t-qtd" class="text-2xl font-black text-slate-800 tabular-nums">0</div>
+    </div>
+
+    <div class="flex flex-col flex-1 min-h-0 gap-1.5">
+    <section id="totais-box" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-2">
+      <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div class="text-[11px] font-black uppercase text-slate-500">Títulos (filtro)</div>
+        <div id="t-qtd" class="text-xl sm:text-2xl font-black text-slate-800 tabular-nums">0</div>
       </div>
-      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div id="lbl-bruto" class="text-[10px] font-black uppercase text-slate-500">Valor bruto</div>
-        <div id="t-bruto" class="text-xl font-black text-slate-800 tabular-nums">R$ 0,00</div>
+      <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div id="lbl-bruto" class="text-[11px] font-black uppercase text-slate-500">Valor bruto</div>
+        <div id="t-bruto" class="text-lg sm:text-xl font-black text-slate-800 tabular-nums">R$ 0,00</div>
       </div>
-      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div id="lbl-mov" class="text-[10px] font-black uppercase text-slate-500">Movimentado</div>
-        <div id="t-mov" class="text-xl font-black text-emerald-700 tabular-nums">R$ 0,00</div>
+      <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div id="lbl-mov" class="text-[11px] font-black uppercase text-slate-500">Movimentado</div>
+        <div id="t-mov" class="text-lg sm:text-xl font-black text-emerald-700 tabular-nums">R$ 0,00</div>
       </div>
-      <div class="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
-        <div id="lbl-saldo" class="text-[10px] font-black uppercase text-amber-900">Saldo em aberto</div>
-        <div id="t-saldo" class="text-xl font-black text-amber-900 tabular-nums">R$ 0,00</div>
+      <div class="rounded-xl border border-amber-200 bg-amber-50/80 p-3 shadow-sm">
+        <div id="lbl-saldo" class="text-[11px] font-black uppercase text-amber-900">Saldo em aberto</div>
+        <div id="t-saldo" class="text-lg sm:text-xl font-black text-amber-900 tabular-nums">R$ 0,00</div>
       </div>
     </section>
 
-    <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-500 px-1">
+    <div class="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm font-bold text-slate-500 px-0.5">
       <span id="pag-info"></span>
       <div class="flex flex-wrap items-center gap-2">
         <div class="relative">
-          <button type="button" id="btn-cols" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-black uppercase text-[10px] text-slate-700">Colunas</button>
-          <div id="col-dropdown" class="hidden absolute right-0 mt-1 z-30 w-56 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg p-2 space-y-1.5 text-[11px]"></div>
+          <button type="button" id="btn-cols" class="inline-flex items-center gap-2 min-h-[42px] pl-3 pr-3 py-2 rounded-xl border-2 border-emerald-600 bg-gradient-to-b from-emerald-100/90 via-white to-white text-emerald-950 font-black uppercase text-[10px] shadow-md shadow-emerald-900/15 ring-2 ring-emerald-500/30 hover:ring-amber-400/45 hover:border-amber-500 hover:from-amber-50/90 transition-all outline-none focus-visible:ring-4 focus-visible:ring-amber-400/50" aria-expanded="false" aria-haspopup="true" aria-controls="col-dropdown" title="Mostrar ou ocultar colunas da tabela">
+            <svg class="w-4 h-4 text-emerald-800 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path d="M4 5h4v14H4zM10 5h4v14h-4zM16 5h4v14h-4"/>
+            </svg>
+            <span>Colunas</span>
+            <span class="text-amber-700 text-[10px] leading-none font-black tabular-nums" aria-hidden="true">▾</span>
+          </button>
+          <div id="col-dropdown" role="menu" class="hidden absolute right-0 mt-1.5 z-30 w-56 max-h-64 overflow-y-auto rounded-xl border-2 border-emerald-200/80 bg-white shadow-xl shadow-emerald-900/10 p-2 space-y-1.5 text-[11px] ring-1 ring-slate-200/60"></div>
         </div>
         <button type="button" id="btn-prev" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 font-black uppercase">Anterior</button>
         <button type="button" id="btn-next" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 font-black uppercase">Próxima</button>
       </div>
     </div>
 
-    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <div class="rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
+      <div class="flex-1 min-h-0 overflow-auto">
       <div class="overflow-x-auto">
         <table class="min-w-full text-left text-sm hidden lg:table">
-          <thead class="bg-slate-100 text-[10px] font-black uppercase text-slate-600 border-b border-slate-200">
+          <thead class="bg-slate-100 text-[11px] font-black uppercase text-slate-600 border-b border-slate-200">
             <tr>
               <th data-col="chk" class="px-2 py-3 w-10" id="th-chk"><input type="checkbox" id="chk-all" class="rounded border-slate-300" title="Selecionar página"></th>
               <th data-col="venc" class="px-1 py-2 align-bottom w-[7.5rem]">
@@ -247,14 +342,39 @@
                   <span data-fluxo-lbl>Fluxo</span>
                 </button>
               </th>
-              <th data-col="cli" class="px-2 py-3">Favorecido / cliente</th>
+              <th data-col="cli" class="px-1 py-2 align-bottom">
+                <button type="button" id="th-sort-cli" class="w-full min-h-[44px] rounded-lg px-2 py-2 text-left text-[10px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 border border-transparent"
+                  title="Ordenar por favorecido ou cliente. Clique para inverter A→Z / Z→A.">
+                  <span data-sort-lbl>Favorecido / cliente</span><span data-sort-ind class="tabular-nums text-emerald-700" aria-hidden="true"></span>
+                </button>
+              </th>
+              <th data-col="forma" class="px-1 py-2 align-bottom">
+                <button type="button" id="th-sort-forma" class="w-full min-h-[44px] rounded-lg px-2 py-2 text-left text-[10px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 border border-transparent"
+                  title="Ordenar por forma de pagamento. Clique para inverter A→Z / Z→A.">
+                  <span data-sort-lbl>Forma pagamento</span><span data-sort-ind class="tabular-nums text-emerald-700" aria-hidden="true"></span>
+                </button>
+              </th>
+              <th data-col="plano" class="px-1 py-2 align-bottom">
+                <button type="button" id="th-sort-plano" class="w-full min-h-[44px] rounded-lg px-2 py-2 text-left text-[10px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 border border-transparent"
+                  title="Ordenar por plano de conta e grupo. Clique para inverter A→Z / Z→A.">
+                  <span data-sort-lbl>Plano / grupo</span><span data-sort-ind class="tabular-nums text-emerald-700" aria-hidden="true"></span>
+                </button>
+              </th>
               <th data-col="desc" class="px-2 py-3">Descrição</th>
-              <th data-col="forma" class="px-2 py-3">Forma pagamento</th>
               <th data-col="banco" class="px-2 py-3">Banco / conta</th>
-              <th data-col="plano" class="px-2 py-3">Plano / grupo</th>
-              <th data-col="bruto" class="px-2 py-3 text-right">Bruto</th>
+              <th data-col="bruto" class="px-1 py-2 align-bottom">
+                <button type="button" id="th-sort-bruto" class="w-full min-h-[44px] rounded-lg px-2 py-2 text-right text-[10px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 border border-transparent"
+                  title="Ordenar pelo valor bruto do título. Clique para inverter menor primeiro / maior primeiro.">
+                  <span data-sort-lbl>Bruto</span><span data-sort-ind class="tabular-nums text-emerald-700" aria-hidden="true"></span>
+                </button>
+              </th>
               <th data-col="mov" class="px-2 py-3 text-right" id="th-mov">Pago</th>
-              <th data-col="saldo" class="px-2 py-3 text-right" id="th-saldo">A pagar</th>
+              <th data-col="saldo" class="px-1 py-2 align-bottom">
+                <button type="button" id="th-sort-saldo" class="w-full min-h-[44px] rounded-lg px-2 py-2 text-right text-[10px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 border border-transparent"
+                  title="Ordenar pelo saldo em aberto (a pagar ou a receber). Clique para inverter menor / maior.">
+                  <span data-sort-lbl data-saldo-lbl>A pagar</span><span data-sort-ind class="tabular-nums text-emerald-700" aria-hidden="true"></span>
+                </button>
+              </th>
               <th data-col="sit" class="px-2 py-3">Situação</th>
               <th data-col="acoes" class="px-2 py-3 text-right">Ações</th>
             </tr>
@@ -263,8 +383,8 @@
         </table>
       </div>
       <div id="cards-mob" class="lg:hidden divide-y divide-slate-100 p-2 space-y-2"></div>
-      <div id="empty-state" class="hidden py-16 text-center text-slate-400 font-bold text-sm">Nenhum lançamento com os filtros atuais.</div>
-      <div id="loading-state" class="hidden py-10 px-4" aria-hidden="true">
+      <div id="empty-state" class="hidden py-8 text-center text-slate-400 font-bold text-sm">Nenhum lançamento com os filtros atuais.</div>
+      <div id="loading-state" class="hidden py-6 px-4" aria-hidden="true">
         <div class="max-w-xl mx-auto">
           <div class="h-2 rounded-full bg-slate-200 overflow-hidden">
             <div class="h-full w-2/5 bg-amber-500 animate-pulse"></div>
@@ -272,15 +392,17 @@
           <div class="text-center text-slate-500 font-bold text-sm mt-3">Carregando lançamentos...</div>
         </div>
       </div>
+      </div>
+    </div>
     </div>
   </main>
 
   <div id="wa-toast" class="fixed bottom-4 left-1/2 z-[60] -translate-x-1/2 max-w-[min(92vw,24rem)] rounded-xl border border-emerald-200 bg-emerald-950 text-white px-4 py-3 text-xs font-bold shadow-lg hidden text-center leading-snug" role="status" aria-live="polite"></div>
 
   <!-- Modal baixa -->
-  <div id="modal-baixa" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40">
-    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 space-y-4 border border-slate-200 max-h-[90vh] overflow-y-auto">
-      <h2 class="text-lg font-black text-slate-900 uppercase tracking-tight">Confirmar baixa</h2>
+  <div id="modal-baixa" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-baixa-titulo">
+    <div class="bg-white rounded-2xl shadow-xl max-w-[min(40rem,96vw)] w-full p-5 sm:p-6 space-y-4 border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <h2 id="modal-baixa-titulo" class="text-lg font-black text-slate-900 uppercase tracking-tight">Confirmar baixa</h2>
       <p class="text-xs text-slate-600 font-semibold" id="modal-baixa-resumo"></p>
       <label class="block">
         <span class="text-[10px] font-black uppercase text-slate-500">Data do movimento</span>
@@ -314,9 +436,9 @@
   </div>
 
   <!-- Modal baixa parcial (1 título, várias formas/contas) -->
-  <div id="modal-baixa-parcial" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40">
-    <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-5 space-y-4 border border-slate-200 max-h-[92vh] overflow-y-auto">
-      <h2 class="text-lg font-black text-slate-900 uppercase tracking-tight">Baixa parcial</h2>
+  <div id="modal-baixa-parcial" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-baixa-parcial-titulo">
+    <div class="bg-white rounded-2xl shadow-xl max-w-[min(52rem,96vw)] w-full p-5 sm:p-6 space-y-4 border border-slate-200 max-h-[92vh] overflow-y-auto">
+      <h2 id="modal-baixa-parcial-titulo" class="text-lg font-black text-slate-900 uppercase tracking-tight">Baixa parcial</h2>
       <p class="text-xs text-slate-600 font-semibold" id="bxp-resumo"></p>
       <p class="text-[10px] font-bold text-indigo-600">Informe uma ou mais linhas: cada uma com valor, forma e conta. A soma não pode passar do saldo em aberto.</p>
       <label class="block">
@@ -338,9 +460,9 @@
   </div>
 
   <!-- Modal opções extras (cadastro pessoal forma/banco) -->
-  <div id="modal-opcoes-extras" class="hidden fixed inset-0 z-[55] flex items-end sm:items-center justify-center p-4 bg-black/40">
-    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 space-y-4 border border-slate-200 max-h-[90vh] overflow-y-auto">
-      <h2 class="text-lg font-black text-slate-900 uppercase tracking-tight">Minhas opções na baixa</h2>
+  <div id="modal-opcoes-extras" class="hidden fixed inset-0 z-[55] flex items-end sm:items-center justify-center p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-opcoes-extras-titulo">
+    <div class="bg-white rounded-2xl shadow-xl max-w-[min(40rem,96vw)] w-full p-5 sm:p-6 space-y-4 border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <h2 id="modal-opcoes-extras-titulo" class="text-lg font-black text-slate-900 uppercase tracking-tight">Minhas opções na baixa</h2>
       <p class="text-[10px] text-slate-600 font-semibold leading-relaxed">Entradas que você cadastra aqui aparecem nos selects junto com as do Mongo. Prefira informar o <strong>ID do ERP</strong> (cadastro de formas / contas) para evitar divergência.</p>
       <div id="opx-lista" class="rounded-xl border border-slate-100 divide-y divide-slate-100 max-h-40 overflow-y-auto text-xs"></div>
       <div class="space-y-2 border-t border-slate-100 pt-3">
@@ -360,9 +482,9 @@
   </div>
 
   <!-- Modal editar lançamento -->
-  <div id="modal-edit-lanc" class="hidden fixed inset-0 z-[52] flex items-end sm:items-center justify-center p-4 bg-black/40">
-    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 space-y-3 border border-slate-200 max-h-[90vh] overflow-y-auto">
-      <h2 class="text-lg font-black text-slate-900 uppercase tracking-tight">Editar lançamento</h2>
+  <div id="modal-edit-lanc" class="hidden fixed inset-0 z-[52] flex items-end sm:items-center justify-center p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-edit-lanc-titulo">
+    <div class="bg-white rounded-2xl shadow-xl max-w-[min(40rem,96vw)] w-full p-5 sm:p-6 space-y-3 border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <h2 id="modal-edit-lanc-titulo" class="text-lg font-black text-slate-900 uppercase tracking-tight">Editar lançamento</h2>
       <p class="text-[10px] text-slate-600 font-semibold leading-relaxed">Apenas títulos em aberto. Valor (bruto) só aparece se ainda não houver pagamento. Exclusão na linha só vale para lançamento manual do Agro ou sem ID do ERP no Mongo.</p>
       <input type="hidden" id="edl-id">
       <label class="block">
@@ -472,7 +594,7 @@
     const LS_OPCOES_MODO = 'gm_fin_opcoes_modo';
     const LS_FAV = 'gm_fin_favs_v1';
     const LS_EXCL = 'gm_fin_planos_excl_v1';
-    const LS_COLS = 'gm_fin_cols_v1';
+    const LS_COLS = 'gm_fin_cols_v2';
     const SEM_PLANO_KEY = '__SEM_PLANO__';
 
     const COL_DEFS = [
@@ -480,10 +602,10 @@
       { id: 'venc', label: 'Vencimento' },
       { id: 'fluxo', label: 'Data fluxo' },
       { id: 'cli', label: 'Cliente / favorecido' },
-      { id: 'desc', label: 'Descrição' },
       { id: 'forma', label: 'Forma pagamento' },
-      { id: 'banco', label: 'Banco / conta' },
       { id: 'plano', label: 'Plano / grupo' },
+      { id: 'desc', label: 'Descrição' },
+      { id: 'banco', label: 'Banco / conta' },
       { id: 'bruto', label: 'Bruto' },
       { id: 'mov', label: 'Movimentado' },
       { id: 'saldo', label: 'Saldo' },
@@ -573,6 +695,46 @@
       } catch (_) { return '—'; }
     }
 
+    function fmtInputDateBR(ymd) {
+      if (!ymd || String(ymd).length < 8) return '—';
+      const s = String(ymd).slice(0, 10);
+      return fmtData(`${s}T12:00:00`);
+    }
+
+    function refreshGavetaFiltrosResumo() {
+      const el = document.getElementById('gaveta-filtros-resumo');
+      const sum = document.getElementById('sum-gaveta-filtros');
+      if (!el || !sum) return;
+      const st = document.getElementById('f-status');
+      const stText = st && st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : '';
+      const de = document.getElementById('f-de').value;
+      const ate = document.getElementById('f-ate').value;
+      const ord = document.getElementById('f-ord');
+      const ordText = ord && ord.options[ord.selectedIndex] ? ord.options[ord.selectedIndex].text : '';
+      const q = (document.getElementById('f-q').value || '').trim();
+      const ps = document.getElementById('f-ps').value;
+      const parts = [
+        stText,
+        `${fmtInputDateBR(de)} → ${fmtInputDateBR(ate)}`,
+        ordText,
+        `${ps} por página`,
+      ];
+      if (q) {
+        const short = q.length > 48 ? `${q.slice(0, 46)}…` : q;
+        parts.push(`busca: ${short}`);
+      }
+      const line = parts.join(' · ');
+      el.textContent = line;
+      sum.title = `Resumo dos filtros (passe o mouse aqui): ${line}`;
+    }
+
+    function setColsMenuOpen(open) {
+      const btn = document.getElementById('btn-cols');
+      if (!btn) return;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      btn.classList.toggle('gm-cols-open', open);
+    }
+
     function esc(s) {
       const t = document.createElement('div');
       t.textContent = s == null ? '' : String(s);
@@ -597,6 +759,10 @@
     function defaultColsMap() {
       const o = {};
       COL_DEFS.forEach((c) => { o[c.id] = true; });
+      o.fluxo = false;
+      o.desc = false;
+      o.banco = false;
+      o.bruto = false;
       return o;
     }
     function loadColsMap() {
@@ -696,6 +862,24 @@
       return p;
     }
 
+    function _sortHeaderStyle(btn, on) {
+      if (!btn) return;
+      btn.classList.toggle('bg-emerald-50', on);
+      btn.classList.toggle('ring-1', on);
+      btn.classList.toggle('ring-emerald-300', on);
+      btn.classList.toggle('text-emerald-950', on);
+    }
+
+    function _setThSortInd(btnId, ord, asc, desc) {
+      const btn = document.getElementById(btnId);
+      const ind = btn && btn.querySelector('[data-sort-ind]');
+      if (!ind) return;
+      if (ord === asc) ind.textContent = ' ↑';
+      else if (ord === desc) ind.textContent = ' ↓';
+      else ind.textContent = '';
+      _sortHeaderStyle(btn, ord === asc || ord === desc);
+    }
+
     function syncSortHeaderButtons() {
       const sel = document.getElementById('f-ord');
       const vBtn = document.getElementById('th-sort-venc');
@@ -712,14 +896,13 @@
       if (fLbl) fLbl.textContent = ord === 'fluxo_desc' ? 'Fluxo ↓' : 'Fluxo';
       const vOn = ord === 'vencimento_asc' || ord === 'vencimento_desc';
       const fOn = ord === 'fluxo_desc';
-      vBtn.classList.toggle('bg-emerald-50', vOn);
-      vBtn.classList.toggle('ring-1', vOn);
-      vBtn.classList.toggle('ring-emerald-300', vOn);
-      vBtn.classList.toggle('text-emerald-950', vOn);
-      fBtn.classList.toggle('bg-emerald-50', fOn);
-      fBtn.classList.toggle('ring-1', fOn);
-      fBtn.classList.toggle('ring-emerald-300', fOn);
-      fBtn.classList.toggle('text-emerald-950', fOn);
+      _sortHeaderStyle(vBtn, vOn);
+      _sortHeaderStyle(fBtn, fOn);
+      _setThSortInd('th-sort-cli', ord, 'cliente_asc', 'cliente_desc');
+      _setThSortInd('th-sort-forma', ord, 'forma_asc', 'forma_desc');
+      _setThSortInd('th-sort-plano', ord, 'plano_asc', 'plano_desc');
+      _setThSortInd('th-sort-bruto', ord, 'bruto_asc', 'bruto_desc');
+      _setThSortInd('th-sort-saldo', ord, 'saldo_asc', 'saldo_desc');
     }
 
     function aplicarOrdenacaoPeloCabecalho(novo) {
@@ -730,13 +913,20 @@
       carregar();
     }
 
+    function alternarOrdenacaoAscDesc(ordAtual, ascVal, descVal) {
+      if (ordAtual === ascVal) return descVal;
+      if (ordAtual === descVal) return ascVal;
+      return ascVal;
+    }
+
     function atualizarLabelsTotais() {
       const pagar = tipoAtual === 'pagar';
       document.getElementById('lbl-bruto').textContent = pagar ? 'Previsto (saída)' : 'Valor título (entrada)';
       document.getElementById('lbl-mov').textContent = pagar ? 'Já pago' : 'Já recebido';
       document.getElementById('lbl-saldo').textContent = pagar ? 'Saldo a pagar' : 'Saldo a receber';
       document.getElementById('th-mov').textContent = pagar ? 'Pago' : 'Recebido';
-      document.getElementById('th-saldo').textContent = pagar ? 'A pagar' : 'A receber';
+      const saldoLbl = document.querySelector('#th-sort-saldo [data-saldo-lbl]');
+      if (saldoLbl) saldoLbl.textContent = pagar ? 'A pagar' : 'A receber';
     }
 
     function atualizarTabs() {
@@ -1208,10 +1398,10 @@
             <td data-col="venc" class="px-2 py-2 text-xs font-semibold tabular-nums whitespace-nowrap">${esc(fmtData(row.data_vencimento))}</td>
             <td data-col="fluxo" class="px-2 py-2 text-xs font-semibold tabular-nums whitespace-nowrap text-slate-600">${esc(fmtData(row.data_fluxo))}</td>
             <td data-col="cli" class="px-2 py-2 text-xs font-bold text-slate-800 max-w-[160px]"><div class="truncate" title="${esc(row.cliente)}">${esc(row.cliente || '—')}</div></td>
-            <td data-col="desc" class="px-2 py-2 text-xs text-slate-700 max-w-[180px]"><div class="truncate" title="${esc(row.descricao)}">${esc(row.descricao || '—')}</div></td>
             <td data-col="forma" class="px-2 py-2 text-[11px] text-slate-700 max-w-[120px]"><div class="truncate" title="${esc(row.forma_pagamento)}">${esc(row.forma_pagamento || '—')}</div></td>
-            <td data-col="banco" class="px-2 py-2 text-[11px] text-slate-600 max-w-[120px]"><div class="truncate" title="${esc(row.banco)}">${esc(row.banco || '—')}</div></td>
             <td data-col="plano" class="px-2 py-2 text-[11px] text-slate-600 max-w-[140px]"><div class="truncate">${esc(row.plano_conta || '')}${row.grupo ? ' · ' + esc(row.grupo) : ''}</div></td>
+            <td data-col="desc" class="px-2 py-2 text-xs text-slate-700 max-w-[180px]"><div class="truncate" title="${esc(row.descricao)}">${esc(row.descricao || '—')}</div></td>
+            <td data-col="banco" class="px-2 py-2 text-[11px] text-slate-600 max-w-[120px]"><div class="truncate" title="${esc(row.banco)}">${esc(row.banco || '—')}</div></td>
             <td data-col="bruto" class="px-2 py-2 text-xs text-right font-bold tabular-nums">${esc(brl(row.valor_bruto))}</td>
             <td data-col="mov" class="px-2 py-2 text-xs text-right font-semibold text-emerald-800 tabular-nums">${esc(brl(row.valor_movimentado))}</td>
             <td data-col="saldo" class="px-2 py-2 text-xs text-right font-black text-amber-900 tabular-nums">${esc(brl(row.restante))}</td>
@@ -1231,8 +1421,9 @@
               ${sit}
             </div>
             <div class="font-black text-sm text-slate-900">${esc(row.cliente || '—')}</div>
-            <div class="text-xs text-slate-600">${esc(row.descricao || '')}</div>
             <div class="text-[11px] text-slate-700"><span class="font-black text-slate-500">Forma:</span> ${esc(row.forma_pagamento || '—')}</div>
+            <div class="text-[11px] text-slate-700"><span class="font-black text-slate-500">Plano:</span> ${esc(row.plano_conta || '—')}${row.grupo ? ' · ' + esc(row.grupo) : ''}</div>
+            <div class="text-xs text-slate-600">${esc(row.descricao || '')}</div>
             <div class="text-[11px] text-slate-700"><span class="font-black text-slate-500">Banco:</span> ${esc(row.banco || '—')}</div>
             <div class="flex justify-between text-xs font-bold border-t border-slate-200 pt-2">
               <span class="text-slate-500">Saldo</span>
@@ -1266,6 +1457,7 @@
       document.getElementById('btn-next').disabled = (data.page || 1) >= pi;
       document.getElementById('chk-all').checked = false;
       syncSortHeaderButtons();
+      refreshGavetaFiltrosResumo();
     }
 
     function tentarHidratarListaFinCache() {
@@ -1401,8 +1593,15 @@
       page = 1;
       selecionados.clear();
       syncSortHeaderButtons();
+      refreshGavetaFiltrosResumo();
       carregarPlanos().then(() => carregar());
     });
+
+    ['f-status', 'f-de', 'f-ate', 'f-ps'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', () => refreshGavetaFiltrosResumo());
+    });
+    document.getElementById('f-q').addEventListener('input', () => refreshGavetaFiltrosResumo());
 
     document.getElementById('th-sort-venc').addEventListener('click', () => {
       const ord = document.getElementById('f-ord').value;
@@ -1415,6 +1614,27 @@
     document.getElementById('th-sort-fluxo').addEventListener('click', () => {
       const ord = document.getElementById('f-ord').value;
       aplicarOrdenacaoPeloCabecalho(ord === 'fluxo_desc' ? 'vencimento_asc' : 'fluxo_desc');
+    });
+
+    document.getElementById('th-sort-cli').addEventListener('click', () => {
+      const ord = document.getElementById('f-ord').value;
+      aplicarOrdenacaoPeloCabecalho(alternarOrdenacaoAscDesc(ord, 'cliente_asc', 'cliente_desc'));
+    });
+    document.getElementById('th-sort-forma').addEventListener('click', () => {
+      const ord = document.getElementById('f-ord').value;
+      aplicarOrdenacaoPeloCabecalho(alternarOrdenacaoAscDesc(ord, 'forma_asc', 'forma_desc'));
+    });
+    document.getElementById('th-sort-plano').addEventListener('click', () => {
+      const ord = document.getElementById('f-ord').value;
+      aplicarOrdenacaoPeloCabecalho(alternarOrdenacaoAscDesc(ord, 'plano_asc', 'plano_desc'));
+    });
+    document.getElementById('th-sort-bruto').addEventListener('click', () => {
+      const ord = document.getElementById('f-ord').value;
+      aplicarOrdenacaoPeloCabecalho(alternarOrdenacaoAscDesc(ord, 'bruto_asc', 'bruto_desc'));
+    });
+    document.getElementById('th-sort-saldo').addEventListener('click', () => {
+      const ord = document.getElementById('f-ord').value;
+      aplicarOrdenacaoPeloCabecalho(alternarOrdenacaoAscDesc(ord, 'saldo_asc', 'saldo_desc'));
     });
 
     document.getElementById('plano-todas').addEventListener('click', () => {
@@ -1489,6 +1709,8 @@
       }
       page = 1;
       selecionados.clear();
+      syncSortHeaderButtons();
+      refreshGavetaFiltrosResumo();
       carregarPlanos().then(() => carregar());
     });
 
@@ -1505,7 +1727,9 @@
       e.stopPropagation();
       const dd = document.getElementById('col-dropdown');
       dd.classList.toggle('hidden');
-      if (!dd.classList.contains('hidden')) buildColDropdown();
+      const nowOpen = !dd.classList.contains('hidden');
+      if (nowOpen) buildColDropdown();
+      setColsMenuOpen(nowOpen);
     });
     document.getElementById('col-dropdown').addEventListener('click', (e) => e.stopPropagation());
     document.addEventListener('click', (e) => {
@@ -1514,6 +1738,7 @@
       if (!dd || dd.classList.contains('hidden')) return;
       if (btn.contains(e.target) || dd.contains(e.target)) return;
       dd.classList.add('hidden');
+      setColsMenuOpen(false);
     });
 
     document.getElementById('btn-baixa-parcial').addEventListener('click', async () => {
@@ -1950,6 +2175,7 @@
       buildColDropdown();
       applyTableCols();
       syncSortHeaderButtons();
+      refreshGavetaFiltrosResumo();
       document.getElementById('btn-fin-sync-api')?.addEventListener('click', () => {
         agroFinSincronizarComApi().catch(() => {});
       });

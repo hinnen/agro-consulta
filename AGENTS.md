@@ -69,8 +69,8 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 
 ## 5. Padrão visual e UX (loja)
 
-- Telas **14" / 17" / 19"**: layout **compacto**, legível, sem depender de resolução alta.
-- **Contraste e legibilidade** (incl. idosos): fonte clara, botões grandes, ações previsíveis, sem sustos visuais.
+- Telas **14" / 17" / 19"**: layout **compacto**, legível, sem depender de resolução alta. **APROVEITAR BEM A TELA,POR SER PEQUENA E SE TRATAR DE IDOSOS QUE IRÃO USAR É BEM DIFICIL DE ENXENGAR NATURAMENTE JÁ, ENTÃO PRECISA SER BEM APROVEITADA PARA MELHOR LEITURA.**
+- **Contraste e legibilidade** (incl. idosos): fonte clara e GRANDE , botões grandes, ações previsíveis, sem sustos visuais.
 - **Teclado e scanner** primeiro; mouse como apoio; **mínimo de cliques**.
 - Tela **limpa**; textos longos só em tooltip, modal “Ajuda” ou “?”.
 - Paleta **emerald / orange / slate**, cards simples, hierarquia forte.

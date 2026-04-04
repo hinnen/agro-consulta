@@ -11,89 +11,91 @@
   {% include "produtos/_agro_consulta_ui.html" %}
   <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
-<body class="min-h-screen bg-slate-100 text-slate-800 flex flex-col">
+<body class="min-h-screen bg-slate-200/80 text-slate-900 flex flex-col">
 {% include "produtos/_gm_loading_bar.html" %}
-  <header class="shrink-0 border-b border-slate-200 bg-white shadow-sm">
-    <div class="max-w-[1600px] mx-auto px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+  <header class="shrink-0 border-b-2 border-slate-200 bg-white shadow-sm">
+    <div class="max-w-[1600px] mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3 min-w-0">
-        <div class="h-10 w-10 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+        <div class="h-11 w-11 rounded-xl bg-white border-2 border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
           <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
         </div>
         <div class="min-w-0">
-          <h1 class="text-base sm:text-lg font-black uppercase tracking-tight text-slate-800">GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-sky-600">Entregas</span></h1>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Status · horários · Maps · reimpressão · WhatsApp</p>
+          <h1 class="text-base sm:text-lg font-black uppercase tracking-tight text-slate-900">GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-orange-600">Entregas</span></h1>
+          <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wide text-slate-500">Status · horários · Maps · impressão · WhatsApp</p>
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2 shrink-0">
-        <button type="button" id="btn-refresh" class="text-xs font-black uppercase bg-slate-800 text-white px-3 py-2 rounded-xl shadow-sm hover:bg-slate-900">Atualizar</button>
-        <button type="button" id="btn-rota-multi" class="text-xs font-black uppercase bg-sky-600 text-white px-3 py-2 rounded-xl shadow-sm hover:bg-sky-700 disabled:opacity-40" disabled title="Ordena as entregas por distância a partir da partida; pode abrir o Maps na sequência">Rota otimizada</button>
+        <button type="button" id="btn-refresh" class="text-xs font-black uppercase bg-slate-800 text-white px-3.5 py-2.5 rounded-xl border-2 border-slate-900 shadow-sm hover:bg-slate-900 min-h-[2.75rem]">Atualizar</button>
+        <button type="button" id="btn-rota-multi" class="text-xs font-black uppercase bg-orange-600 text-white px-3.5 py-2.5 rounded-xl border-2 border-orange-700 shadow-sm hover:bg-orange-700 disabled:opacity-40 min-h-[2.75rem]" disabled title="Ordena as entregas por distância a partir da partida; pode abrir o Maps na sequência">Rota otimizada</button>
         {% include "produtos/_pdv_voltar_link.html" %}
       </div>
     </div>
   </header>
 
-  <div class="max-w-[1600px] mx-auto w-full px-3 sm:px-4 py-4 flex-1 flex flex-col min-h-0 gap-3">
-    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-2">
-      <p><strong class="font-black uppercase">Partida</strong> — escolha <strong>Centro</strong> ou <strong>Vila Elias</strong> no seletor. Use <strong>Loja no Maps</strong> para conferir o ponto de saída.</p>
-      <p><strong class="font-black uppercase">Área rural</strong> — Plus Code no cliente ou na linha; link manual do Maps no pedido também vale.</p>
-      <p><strong class="font-black uppercase">WhatsApp</strong> — avisos usam o número de entrega configurado na loja (fale com o suporte se precisar alterar).</p>
-      <p><strong class="font-black uppercase">Rota otimizada</strong> — ordena as entregas do dia por distância aproximada a partir da partida.</p>
-      <details class="group">
-        <summary class="cursor-pointer list-none inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-900">
-          <span aria-hidden="true">ℹ</span>
-          <span>Detalhes técnicos</span>
-          <span class="group-open:rotate-90 transition-transform inline-block text-[9px]">▸</span>
-        </summary>
-        <div class="mt-2 space-y-1 text-[10px] font-bold text-amber-900/90">
-          <p><strong>Endereços / pins</strong> — <code class="bg-white/80 px-1 rounded">LOJA_MAPS_ORIGEM_CENTRO</code>, <code class="bg-white/80 px-1 rounded">LOJA_MAPS_ORIGEM_VILA</code> (texto ou <code class="bg-white/80 px-1 rounded">lat,lng</code>); links: <code class="bg-white/80 px-1 rounded">LOJA_MAPS_LINK_CENTRO</code> / <code class="bg-white/80 px-1 rounded">LOJA_MAPS_LINK_VILA</code>. Legado: <code class="bg-white/80 px-1 rounded">LOJA_MAPS_ORIGEM_TEXTO</code> para o Centro.</p>
-          <p><strong>WhatsApp</strong> — <code class="bg-white/80 px-1 rounded">PDV_ENTREGA_WHATSAPP</code> (só dígitos, no ambiente).</p>
-          <p><strong>Geocodificação</strong> — OpenStreetMap (Nominatim); Plus Codes do Google no servidor (código curto usa a partida). Links com <code class="bg-white/80 px-1 rounded">@lat,lng</code> são aceitos.</p>
-        </div>
-      </details>
-    </div>
+  <div class="max-w-[1600px] mx-auto w-full px-3 sm:px-4 py-3 flex-1 flex flex-col min-h-0 gap-2.5">
+    <details class="group rounded-xl border-2 border-emerald-200 bg-white shadow-sm overflow-hidden">
+      <summary class="cursor-pointer list-none px-3 py-2.5 flex items-center justify-between gap-2 bg-emerald-50/80 hover:bg-emerald-50 [&::-webkit-details-marker]:hidden">
+        <span class="text-xs sm:text-sm font-black uppercase text-emerald-900 tracking-wide">Dicas rápidas</span>
+        <span class="text-emerald-700 text-sm font-black shrink-0 group-open:rotate-180 transition-transform" aria-hidden="true">▼</span>
+      </summary>
+      <div class="px-3 py-2.5 text-xs sm:text-[13px] font-semibold text-slate-700 leading-snug space-y-1.5 border-t border-emerald-100">
+        <p><span class="font-black text-emerald-800 uppercase text-[10px]">Partida</span> — Centro ou Vila Elias no seletor; <strong>Loja no Maps</strong> confere o ponto de saída.</p>
+        <p><span class="font-black text-orange-700 uppercase text-[10px]">Rural</span> — Plus Code ou link do Maps na linha do pedido.</p>
+        <p><span class="font-black text-slate-800 uppercase text-[10px]">Zap</span> — usa o WhatsApp de entregas da loja (suporte altera se precisar).</p>
+        <p><span class="font-black text-emerald-800 uppercase text-[10px]">Rota</span> — ordena por distância aproximada a partir da partida.</p>
+        <details class="pt-1 border-t border-slate-100 mt-2">
+          <summary class="cursor-pointer text-[10px] font-black uppercase text-slate-500 py-1 list-none [&::-webkit-details-marker]:hidden">Ambiente / variáveis (suporte)</summary>
+          <div class="mt-1.5 space-y-1 text-[10px] font-semibold text-slate-600">
+            <p><strong class="text-slate-800">Pins</strong> — <code class="bg-slate-100 px-1 rounded border border-slate-200">LOJA_MAPS_ORIGEM_CENTRO</code>, <code class="bg-slate-100 px-1 rounded border border-slate-200">LOJA_MAPS_ORIGEM_VILA</code>; links <code class="bg-slate-100 px-1 rounded">LOJA_MAPS_LINK_*</code>.</p>
+            <p><strong class="text-slate-800">WhatsApp</strong> — <code class="bg-slate-100 px-1 rounded">PDV_ENTREGA_WHATSAPP</code>.</p>
+            <p><strong class="text-slate-800">Geo</strong> — Nominatim; Plus Google no servidor.</p>
+          </div>
+        </details>
+      </div>
+    </details>
 
-    <div class="flex flex-wrap items-center gap-2">
-      <label class="text-[10px] font-black uppercase text-slate-500 shrink-0">Partida</label>
-      <select id="origem-rota" class="rounded-xl border-2 border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-800 max-w-[min(320px,100%)]" title="Loja de onde sai a entrega (rotas Google Maps)"></select>
-      <a id="abrir-loja-maps" href="#" target="_blank" rel="noopener noreferrer" class="text-[10px] font-black uppercase text-sky-700 hover:text-sky-900 border-2 border-sky-200 rounded-xl px-2 py-2 bg-sky-50 shrink-0">Loja no Maps</a>
-      <label class="text-[10px] font-black uppercase text-slate-500 shrink-0 ml-2">Status</label>
-      <select id="filtro-status" class="rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-800">
+    <div class="flex flex-wrap items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-3 py-2 shadow-sm">
+      <label class="text-[10px] font-black uppercase text-slate-600 shrink-0">Partida</label>
+      <select id="origem-rota" class="rounded-lg border-2 border-slate-200 bg-white px-2.5 py-2 text-xs sm:text-sm font-bold text-slate-900 max-w-[min(340px,100%)] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-300 outline-none" title="Loja de onde sai a entrega (rotas Google Maps)"></select>
+      <a id="abrir-loja-maps" href="#" target="_blank" rel="noopener noreferrer" class="text-[10px] sm:text-xs font-black uppercase text-emerald-800 hover:text-emerald-950 border-2 border-emerald-300 rounded-lg px-2.5 py-2 bg-emerald-50 shrink-0 min-h-[2.5rem] inline-flex items-center">Loja no Maps</a>
+      <label class="text-[10px] font-black uppercase text-slate-600 shrink-0 sm:ml-1">Status</label>
+      <select id="filtro-status" class="rounded-lg border-2 border-slate-200 bg-white px-2.5 py-2 text-xs sm:text-sm font-bold text-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-300 outline-none">
         <option value="">Todos</option>
       </select>
-      <span id="meta-lista" class="text-[10px] font-bold text-slate-400 uppercase ml-auto"></span>
+      <span id="meta-lista" class="text-[10px] font-black text-slate-500 uppercase ml-auto"></span>
     </div>
 
-    <div class="flex-1 min-h-0 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-auto">
-      <table class="w-full min-w-[1240px] text-left text-sm">
-        <thead class="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
-          <tr class="text-[10px] font-black text-slate-500 uppercase tracking-wider">
-            <th class="p-2 w-10 text-center"><input type="checkbox" id="chk-todos-ent" class="w-4 h-4 accent-sky-600" title="Marcar todas na tela"></th>
+    <div class="flex-1 min-h-0 rounded-xl border-2 border-slate-200 bg-white shadow-sm overflow-auto">
+      <table class="w-full min-w-[1180px] text-left text-sm">
+        <thead class="bg-slate-800 border-b-2 border-slate-900 sticky top-0 z-10 shadow-sm">
+          <tr class="text-[10px] font-black text-slate-100 uppercase tracking-wider">
+            <th class="p-2 w-10 text-center"><input type="checkbox" id="chk-todos-ent" class="w-4 h-4 accent-emerald-500 rounded border-slate-500" title="Marcar todas na tela"></th>
             <th class="p-2">#</th>
             <th class="p-2">Cliente / contato</th>
-            <th class="p-2">Local / rural</th>
+            <th class="p-2">Local</th>
             <th class="p-2">Status</th>
             <th class="p-2 min-w-[128px]">Pagamento</th>
             <th class="p-2">Prevista</th>
             <th class="p-2">Saída / entrega</th>
-            <th class="p-2 w-[200px]">Ações</th>
+            <th class="p-2 w-[192px]">Ações</th>
           </tr>
         </thead>
-        <tbody id="tbody-ent" class="divide-y divide-slate-100"></tbody>
+        <tbody id="tbody-ent"></tbody>
       </table>
-      <div id="empty-ent" class="hidden p-12 text-center font-bold text-slate-400">Nenhuma entrega registrada ainda. Salve um orçamento com “Entrega” no PDV.</div>
+      <div id="empty-ent" class="hidden p-12 text-center text-sm font-bold text-slate-500">Nenhuma entrega registrada ainda. Salve um orçamento com “Entrega” no PDV.</div>
     </div>
   </div>
 
   <div id="modal-imp-entrega" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-imp-titulo" onclick="if(event.target===this){var m=document.getElementById('modal-imp-entrega');m.classList.add('hidden');m.classList.remove('flex');}">
-    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-200 overflow-hidden" onclick="event.stopPropagation()">
+    <div class="bg-white w-full max-w-[min(28rem,96vw)] rounded-2xl shadow-xl border border-slate-200 overflow-hidden" onclick="event.stopPropagation()">
       <div class="px-4 py-3 border-b border-slate-100 bg-slate-50">
-        <h2 id="modal-imp-titulo" class="text-sm font-black uppercase text-slate-800">Imprimir</h2>
+        <h2 id="modal-imp-titulo" class="text-base font-black uppercase text-slate-800">Imprimir</h2>
         <p class="text-[10px] text-slate-500 font-semibold mt-0.5">Marque o que enviar à impressora (80 mm).</p>
       </div>
       <div class="px-4 py-4 space-y-3">
-        <label class="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700"><input type="checkbox" id="imp-chk-sep" class="w-4 h-4 accent-sky-600 rounded border-slate-300" checked> Separação</label>
-        <label class="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700"><input type="checkbox" id="imp-chk-ent" class="w-4 h-4 accent-sky-600 rounded border-slate-300" checked> Via do entregador</label>
-        <label class="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700"><input type="checkbox" id="imp-chk-cup" class="w-4 h-4 accent-sky-600 rounded border-slate-300" checked> Cupom (cliente)</label>
+        <label class="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700"><input type="checkbox" id="imp-chk-sep" class="w-4 h-4 accent-emerald-600 rounded border-slate-300" checked> Separação</label>
+        <label class="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700"><input type="checkbox" id="imp-chk-ent" class="w-4 h-4 accent-emerald-600 rounded border-slate-300" checked> Via do entregador</label>
+        <label class="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700"><input type="checkbox" id="imp-chk-cup" class="w-4 h-4 accent-emerald-600 rounded border-slate-300" checked> Cupom (cliente)</label>
       </div>
       <div class="flex gap-2 px-4 pb-4">
         <button type="button" id="imp-btn-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-slate-200 text-slate-700 text-xs font-black uppercase">Cancelar</button>
@@ -102,20 +104,74 @@
     </div>
   </div>
 
+  <div id="modal-edit-local" class="fixed inset-0 z-[82] hidden flex items-center justify-center p-1 sm:p-2 bg-slate-950/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-edloc-titulo">
+    <div class="bg-white w-full max-w-[min(80rem,calc(100vw-0.5rem))] rounded-2xl shadow-xl border border-slate-200 overflow-hidden max-h-[min(96vh,960px)] flex flex-col" onclick="event.stopPropagation()">
+      <div class="shrink-0 px-3 py-2 sm:px-4 sm:py-2.5 border-b border-slate-100 bg-slate-50 flex items-center justify-between gap-2">
+        <h2 id="modal-edloc-titulo" class="text-base sm:text-lg font-black uppercase text-slate-800 leading-tight">Editar local / cliente</h2>
+        <button type="button" id="edloc-help" class="shrink-0 min-w-9 min-h-9 rounded-lg border-2 border-slate-300 text-slate-700 font-black text-sm hover:bg-white hover:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-300" title="Salva na entrega e no cadastro do cliente no PDV quando o cliente for identificado pelo telefone ou vínculo." aria-label="Ajuda">?</button>
+      </div>
+      <div class="flex-1 min-h-0 overflow-y-auto px-3 py-2.5 sm:px-4 sm:py-3 space-y-2.5 text-sm sm:text-[15px] leading-snug">
+        <div class="grid grid-cols-1 md:grid-cols-[1fr_minmax(10.5rem,13rem)] gap-2 md:gap-3 items-end">
+          <label class="block min-w-0"><span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Cliente</span><input type="text" id="edloc-cliente" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2.5 py-2 font-bold text-[15px] sm:text-base" maxlength="300"></label>
+          <label class="block min-w-0"><span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Telefone <span class="text-orange-600">*</span></span><input type="text" id="edloc-tel" inputmode="tel" autocomplete="tel" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2.5 py-2 font-mono text-[15px] sm:text-base" maxlength="40"></label>
+        </div>
+        <div class="rounded-xl border-2 border-slate-200 bg-slate-50/90 p-2.5 sm:p-3 space-y-2">
+          <div class="grid grid-cols-1 sm:grid-cols-[1fr_5.5rem] gap-2 sm:gap-3 items-end">
+            <label class="block min-w-0 sm:col-span-1"><span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Logradouro <span class="text-orange-600">*</span></span><input type="text" id="edloc-logr" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2.5 py-2 text-[15px] sm:text-base bg-white" maxlength="320" placeholder="Rua, estrada, BR…"></label>
+            <label class="block w-full sm:w-auto sm:max-w-[5.5rem]"><span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Nº <span class="text-orange-600">*</span></span><input type="text" id="edloc-num" inputmode="numeric" pattern="[0-9]*" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2 py-2 text-[15px] sm:text-base font-mono bg-white" maxlength="12" placeholder="123" title="Somente algarismos"></label>
+          </div>
+          <div class="block min-w-0">
+            <span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Bairro <span class="text-orange-600">*</span></span>
+            <div class="relative edloc-bairro-wrap mt-0.5">
+              <input type="text" id="edloc-bairro-input" class="w-full border-2 border-slate-200 rounded-lg pl-2.5 pr-9 py-2 text-[15px] sm:text-base font-bold bg-white" maxlength="120" placeholder="Digite ou abra a lista" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="edloc-bairro-dd" aria-autocomplete="list">
+              <button type="button" id="edloc-bairro-toggle" class="absolute right-0 top-0 h-full px-2 text-slate-500 hover:text-slate-800 text-lg leading-none" title="Abrir lista" aria-label="Abrir lista de bairros">▾</button>
+              <ul id="edloc-bairro-dd" class="hidden absolute left-0 right-0 top-full z-40 mt-0.5 max-h-48 overflow-y-auto rounded-lg border-2 border-slate-200 bg-white shadow-lg" role="listbox" aria-label="Bairros"></ul>
+            </div>
+          </div>
+          <details id="edloc-drawer-loc" class="group rounded-lg border-2 border-slate-200 bg-white open:shadow-sm">
+            <summary class="cursor-pointer list-none px-2.5 py-2 font-black text-[10px] sm:text-xs uppercase text-slate-700 hover:bg-slate-50 rounded-lg flex items-center justify-between gap-2 select-none [&::-webkit-details-marker]:hidden">
+              <span>Cidade, UF e CEP</span>
+              <span class="text-slate-400 text-sm leading-none transition-transform group-open:rotate-180" aria-hidden="true">▼</span>
+            </summary>
+            <div class="px-2.5 pb-2 pt-0 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-12 gap-2">
+              <label class="block sm:col-span-5 md:col-span-6"><span class="text-[9px] font-bold uppercase text-slate-500">Cidade</span><input type="text" id="edloc-cidade" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2.5 py-1.5 text-[15px] sm:text-base" maxlength="120"></label>
+              <label class="block w-full sm:col-span-2 sm:max-w-[4rem]"><span class="text-[9px] font-bold uppercase text-slate-500">UF</span><input type="text" id="edloc-uf" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2 py-1.5 text-[15px] sm:text-base font-mono uppercase text-center" maxlength="2" placeholder="SP" title="2 letras ou vazio"></label>
+              <label class="block sm:col-span-5 md:col-span-4"><span class="text-[9px] font-bold uppercase text-slate-500">CEP</span><input type="text" id="edloc-cep" inputmode="numeric" autocomplete="postal-code" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2.5 py-1.5 text-[15px] sm:text-base font-mono max-w-full sm:max-w-[12rem]" maxlength="9" placeholder="00000-000"></label>
+            </div>
+          </details>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-2.5 lg:gap-3 items-start">
+          <label class="block min-w-0">
+            <span class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Plus / link Maps</span>
+              <button type="button" class="min-w-7 min-h-7 rounded-md border-2 border-slate-300 text-slate-600 font-black text-[10px] hover:bg-slate-50 hover:border-orange-400" title="Um campo só: URL (http…) ou código Plus. Se o CEP não aparecer no mapa, use o Plus aqui (ex.: 8FW4+V5)." aria-label="Ajuda Plus e Maps">?</button>
+            </span>
+            <input type="text" id="edloc-plus-ou-link" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2.5 py-2 text-[14px] sm:text-[15px] font-mono" maxlength="600" placeholder="https://… ou Plus">
+          </label>
+          <label class="block min-w-0"><span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Referência</span><textarea id="edloc-ref" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2.5 py-2 min-h-[44px] text-[15px] sm:text-base resize-y" rows="2" maxlength="300" placeholder="Porteira, cor, km…"></textarea></label>
+        </div>
+      </div>
+      <div class="shrink-0 flex gap-2 p-3 sm:p-3.5 border-t border-slate-100 bg-white">
+        <button type="button" id="edloc-cancel" class="flex-1 py-3 rounded-xl border-2 border-slate-300 text-slate-800 text-sm font-black uppercase hover:bg-slate-50">Cancelar</button>
+        <button type="button" id="edloc-save" class="flex-1 py-3 rounded-xl bg-emerald-600 text-white text-sm font-black uppercase hover:bg-emerald-700 shadow-sm">Salvar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="modal-rota-otimizada" class="fixed inset-0 z-[85] hidden flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-rota-titulo">
     <div class="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
       <div class="shrink-0 px-4 py-3 border-b border-slate-100 bg-slate-50">
-        <h2 id="modal-rota-titulo" class="text-sm font-black uppercase text-slate-800">Rota por distância</h2>
+        <h2 id="modal-rota-titulo" class="text-base font-black uppercase text-slate-800">Rota por distância</h2>
         <p class="text-[10px] font-semibold text-slate-500 mt-0.5">Sequência sugerida · distâncias aproximadas (não seguem estradas)</p>
       </div>
       <div class="flex-1 min-h-0 overflow-y-auto px-4 py-3">
-        <p id="rota-opt-status" class="text-xs font-bold text-sky-800"></p>
+        <p id="rota-opt-status" class="text-xs font-bold text-slate-800"></p>
         <p id="rota-opt-total" class="text-xs font-black text-emerald-700 mt-2 hidden"></p>
         <div id="rota-opt-list" class="mt-3 space-y-0 text-sm"></div>
-        <p id="rota-opt-avisos" class="text-[11px] font-semibold text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-2 mt-3 hidden"></p>
+        <p id="rota-opt-avisos" class="text-[11px] font-semibold text-orange-950 bg-orange-50 border-2 border-orange-200 rounded-xl p-2 mt-3 hidden"></p>
       </div>
       <div class="shrink-0 flex flex-wrap gap-2 p-4 border-t border-slate-100 bg-white">
-        <button type="button" id="rota-opt-open-maps" class="flex-1 min-w-[8rem] py-2.5 rounded-xl bg-sky-600 text-white text-xs font-black uppercase hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed" disabled>Abrir no Maps</button>
+        <button type="button" id="rota-opt-open-maps" class="flex-1 min-w-[8rem] py-2.5 rounded-xl bg-emerald-700 text-white text-xs font-black uppercase border-2 border-emerald-800 hover:bg-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed" disabled>Abrir no Maps</button>
         <button type="button" id="rota-opt-copy" class="flex-1 min-w-[8rem] py-2.5 rounded-xl border-2 border-slate-200 text-slate-700 text-xs font-black uppercase hover:bg-slate-50 disabled:opacity-40" disabled>Copiar ordem</button>
         <button type="button" id="rota-opt-close" class="w-full py-2 text-xs font-bold text-slate-500 uppercase">Fechar</button>
       </div>
@@ -207,20 +263,427 @@
       .replace(/"/g, '&quot;');
   }
 
+  /** Padrão Jacupiranga quando cidade/UF/CEP vêm vazios no cadastro. */
+  var EDLOC_CIDADE_PADRAO = 'JACUPIRANGA';
+  var EDLOC_UF_PADRAO = 'SP';
+  var EDLOC_CEP_DIGITOS_PADRAO = '11940000';
+
+  function edlocCepDigitosOuPadrao() {
+    var d = document.getElementById('edloc-cep').value.replace(/\D/g, '').slice(0, 8);
+    return d.length === 8 ? d : EDLOC_CEP_DIGITOS_PADRAO;
+  }
+
+  /** Conteúdo do campo “Maps” que não é URL http(s) (ex.: Plus colado ali). */
+  function textoExtraMapsSemHttp(e) {
+    var m = String(e.maps_url_manual || '').trim();
+    if (!m || /^https?:\/\//i.test(m)) return '';
+    return m;
+  }
+
+  function mapsUrlHttp(e) {
+    var m = String(e.maps_url_manual || '').trim();
+    return /^https?:\/\//i.test(m) ? m : '';
+  }
+
+  /** Mesmo padrão de `rota_entregas_geo` (OLC no texto). */
+  var RE_PLUS_CODE_OLC = /(?:\d{2,8})?[2-9CFGHJMPQRVWX]{2,8}\+[2-9CFGHJMPQRVWX]{2,3}/gi;
+
+  function primeiroPlusCodeEmTexto(s) {
+    RE_PLUS_CODE_OLC.lastIndex = 0;
+    var m = RE_PLUS_CODE_OLC.exec(String(s || ''));
+    return m ? m[0].toUpperCase() : '';
+  }
+
+  function primeiroLatLngEmTexto(s) {
+    var m = String(s || '').trim().match(/^(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)$/);
+    if (!m) return '';
+    var lat = parseFloat(m[1]);
+    var lon = parseFloat(m[2]);
+    if (!isFinite(lat) || !isFinite(lon)) return '';
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return '';
+    return lat + ',' + lon;
+  }
+
+  /**
+   * Um campo só no formulário: http(s) → maps_url_manual; padrão Plus OLC isolado → plus_code;
+   * demais texto → maps_url_manual (texto de busca no Maps).
+   */
+  function distribuirPlusOuLink(val) {
+    val = String(val || '').trim();
+    if (!val) return { plus_code: '', maps_url_manual: '' };
+    if (/^https?:\/\//i.test(val)) return { plus_code: '', maps_url_manual: val.slice(0, 600) };
+    var p = primeiroPlusCodeEmTexto(val);
+    if (!p) return { plus_code: '', maps_url_manual: val.slice(0, 600) };
+    var vCompact = val.replace(/\s/g, '').toUpperCase();
+    var pCompact = p.replace(/\s/g, '');
+    if (vCompact === pCompact) return { plus_code: p, maps_url_manual: '' };
+    if (val.length <= 36 && vCompact.indexOf(pCompact) >= 0 && vCompact.length <= pCompact.length + 3)
+      return { plus_code: p, maps_url_manual: '' };
+    return { plus_code: '', maps_url_manual: val.slice(0, 600) };
+  }
+
+  function valorExibirPlusOuLink(e) {
+    var h = mapsUrlHttp(e);
+    if (h) return h;
+    if (String(e.plus_code || '').trim()) return String(e.plus_code || '').trim();
+    return String(e.maps_url_manual || '').trim();
+  }
+
+  /** Bairros urbanos (lista inicial + “Ver mais” para rurais). */
+  var BAIRROS_JACUPI_URBANOS = [
+    'Barro Branco',
+    'Botujuru / Botuquara',
+    'Centro',
+    'Cidade Nova',
+    'Distrito Industrial',
+    'Flor da Vila',
+    'Jardim Brasília',
+    'Jardim Primavera',
+    'Lençol',
+    'Morangaba',
+    'Novo Botujuru',
+    'Padre André I',
+    'Padre André II',
+    'Vila Elias',
+    'Vila Josefa',
+    'Vila Vital',
+  ];
+  var BAIRROS_JACUPI_RURAIS = [
+    'Água Parada',
+    'Areiado',
+    'Banana',
+    'Barbosinha',
+    'Barra do Pindaúba',
+    'Barra do Rio Canha',
+    'Barra do Soldado',
+    'Barracão',
+    'Biquinha',
+    'Bulha',
+    'Cachoeirinha',
+    'Canha',
+    'Carravieri',
+    'Cipriano',
+    'Coroado',
+    'Engenheiro Velho',
+    'Guaracuí',
+    'Guaramiranga',
+    'Guaraú',
+    'Lageado',
+    'Manuel Gomes',
+    'Nhunguvira',
+    'Pedreira',
+    'Pedreira Jorcal',
+    'Pindaúba',
+    'Pinheiros',
+    'Poça',
+    'Riachão',
+    'Ribeirão da Batata',
+    'Rosali',
+    'Seringal',
+    'Serrote',
+    'Tábua',
+    'Tarciso',
+  ];
+
+  var edlocBairroRuralExpandido = false;
+
+  function todosBairrosJacupiOrdem() {
+    return BAIRROS_JACUPI_URBANOS.concat(BAIRROS_JACUPI_RURAIS);
+  }
+
+  function normalizarBuscaBairro(s) {
+    return String(s || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function filtrarBairrosJacupiPorTexto(arr, q) {
+    var nq = normalizarBuscaBairro(q);
+    if (!nq) return arr.slice();
+    return arr.filter(function (nome) {
+      return normalizarBuscaBairro(nome).indexOf(nq) >= 0;
+    });
+  }
+
+  /** Igual à lista (ignora acento/caixa); senão mantém o texto salvo. */
+  function canonicalBairroJacupiSePossivel(txt) {
+    txt = String(txt || '').trim();
+    if (!txt) return '';
+    var nt = normalizarBuscaBairro(txt);
+    var all = todosBairrosJacupiOrdem();
+    for (var i = 0; i < all.length; i++) {
+      if (normalizarBuscaBairro(all[i]) === nt) return all[i];
+    }
+    return txt;
+  }
+
+  function fecharEdlocBairroDd() {
+    var dd = document.getElementById('edloc-bairro-dd');
+    var inp = document.getElementById('edloc-bairro-input');
+    if (dd) {
+      dd.classList.add('hidden');
+      dd.innerHTML = '';
+    }
+    if (inp) inp.setAttribute('aria-expanded', 'false');
+  }
+
+  function renderEdlocBairroDd() {
+    var dd = document.getElementById('edloc-bairro-dd');
+    var inp = document.getElementById('edloc-bairro-input');
+    if (!dd || !inp) return;
+    var q = inp.value;
+    var nq = normalizarBuscaBairro(q);
+    var fu;
+    var fr;
+    if (nq) {
+      fu = filtrarBairrosJacupiPorTexto(BAIRROS_JACUPI_URBANOS, q);
+      fr = filtrarBairrosJacupiPorTexto(BAIRROS_JACUPI_RURAIS, q);
+    } else {
+      fu = BAIRROS_JACUPI_URBANOS.slice();
+      fr = edlocBairroRuralExpandido ? BAIRROS_JACUPI_RURAIS.slice() : [];
+    }
+    var showVerMais = !nq && !edlocBairroRuralExpandido && BAIRROS_JACUPI_RURAIS.length;
+    var showingRuraisBloco = fr.length && (nq || edlocBairroRuralExpandido);
+    var h = '';
+    function row(nome) {
+      h +=
+        '<li role="option" data-bairro="' +
+        esc(nome) +
+        '" class="px-3 py-2 cursor-pointer text-sm font-semibold text-slate-800 hover:bg-emerald-50 border-b border-slate-50 last:border-b-0">' +
+        esc(nome) +
+        '</li>';
+    }
+    fu.forEach(row);
+    if (showVerMais) {
+      h +=
+        '<li role="button" data-edloc-ver-mais="1" class="px-3 py-2 text-center text-[10px] font-black uppercase tracking-wide text-orange-600 cursor-pointer hover:bg-orange-50 border-t border-slate-200">Ver mais</li>';
+    }
+    if (showingRuraisBloco) {
+      h +=
+        '<li class="px-3 py-1 text-[9px] font-black uppercase text-slate-400 bg-slate-50 pointer-events-none border-t border-slate-200">Rurais</li>';
+      fr.forEach(row);
+    }
+    if (nq && !fu.length && !fr.length) {
+      h =
+        '<li class="px-3 py-2 text-slate-500 text-xs italic pointer-events-none">Nenhum na lista — pode salvar o texto digitado</li>';
+    }
+    dd.innerHTML = h;
+  }
+
+  function abrirEdlocBairroDd() {
+    var dd = document.getElementById('edloc-bairro-dd');
+    var inp = document.getElementById('edloc-bairro-input');
+    if (!dd || !inp) return;
+    renderEdlocBairroDd();
+    dd.classList.remove('hidden');
+    inp.setAttribute('aria-expanded', 'true');
+  }
+
+  function toggleEdlocBairroDd() {
+    var dd = document.getElementById('edloc-bairro-dd');
+    if (!dd) return;
+    if (dd.classList.contains('hidden')) abrirEdlocBairroDd();
+    else fecharEdlocBairroDd();
+  }
+
+  function initEdlocBairroComboboxOnce() {
+    var wrap = document.querySelector('.edloc-bairro-wrap');
+    if (!wrap || wrap.dataset.agroBairroComboBound) return;
+    wrap.dataset.agroBairroComboBound = '1';
+    var inp = document.getElementById('edloc-bairro-input');
+    var dd = document.getElementById('edloc-bairro-dd');
+    var toggle = document.getElementById('edloc-bairro-toggle');
+    if (!inp || !dd) return;
+
+    dd.addEventListener('mousedown', function (ev) {
+      ev.preventDefault();
+    });
+    dd.addEventListener('click', function (ev) {
+      var vm = ev.target.closest('[data-edloc-ver-mais]');
+      if (vm) {
+        edlocBairroRuralExpandido = true;
+        renderEdlocBairroDd();
+        return;
+      }
+      var li = ev.target.closest('[data-bairro]');
+      if (li) {
+        var nome = li.getAttribute('data-bairro');
+        if (nome) {
+          inp.value = nome;
+          fecharEdlocBairroDd();
+        }
+      }
+    });
+
+    inp.addEventListener('focus', function () {
+      abrirEdlocBairroDd();
+    });
+    inp.addEventListener('input', function () {
+      if (dd.classList.contains('hidden')) abrirEdlocBairroDd();
+      else renderEdlocBairroDd();
+    });
+    inp.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') {
+        fecharEdlocBairroDd();
+        ev.stopPropagation();
+      }
+    });
+    if (toggle) {
+      toggle.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        toggleEdlocBairroDd();
+        if (!dd.classList.contains('hidden')) inp.focus();
+      });
+    }
+
+    document.addEventListener('mousedown', function (ev) {
+      var m = document.getElementById('modal-edit-local');
+      if (!m || m.classList.contains('hidden')) return;
+      if (!wrap.contains(ev.target)) fecharEdlocBairroDd();
+    });
+  }
+
+  function bairroSelecionadoModal() {
+    var inp = document.getElementById('edloc-bairro-input');
+    return inp ? inp.value.trim() : '';
+  }
+
+  function aplicarBairroNoSelect(bairroTxt) {
+    var inp = document.getElementById('edloc-bairro-input');
+    if (!inp) return;
+    bairroTxt = String(bairroTxt || '').trim();
+    inp.value = bairroTxt ? canonicalBairroJacupiSePossivel(bairroTxt) : '';
+  }
+
+  function montarEnderecoLinhaFromModal() {
+    var log = document.getElementById('edloc-logr').value.trim();
+    var num = document.getElementById('edloc-num').value.trim();
+    var bairro = bairroSelecionadoModal();
+    var cidade = document.getElementById('edloc-cidade').value.trim() || EDLOC_CIDADE_PADRAO;
+    var uf =
+      document.getElementById('edloc-uf').value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 2) ||
+      EDLOC_UF_PADRAO;
+    var cepD = edlocCepDigitosOuPadrao();
+    var parts = [];
+    var linha1 = log;
+    if (num) linha1 += (linha1 ? ', ' : '') + 'nº ' + num;
+    if (linha1) parts.push(linha1);
+    if (bairro) parts.push(bairro);
+    if (cidade && uf) parts.push(cidade + ' - ' + uf);
+    else if (cidade || uf) parts.push(cidade || uf);
+    if (cepD.length === 8) parts.push('CEP ' + cepD.slice(0, 5) + '-' + cepD.slice(5));
+    return parts.join(' · ').slice(0, 500);
+  }
+
+  function partirEnderecoLinha(s) {
+    s = String(s || '').trim();
+    var o = { log: '', num: '', bairro: '', cidade: '', uf: '', cep: '' };
+    if (!s) return o;
+    var cepM = s.match(/\bCEP\s*(\d{5})-?(\d{3})\b/i);
+    if (!cepM) cepM = s.match(/\b(\d{5})-(\d{3})\s*$/);
+    if (cepM) {
+      o.cep = cepM[1] + '-' + cepM[2];
+      s = s.slice(0, cepM.index).replace(/[·,]\s*$/,'').trim();
+    }
+    var parts = s.split(/\s*·\s*/).map(function (x) { return x.trim(); }).filter(Boolean);
+    if (!parts.length) return o;
+    if (parts.length === 1 && s.indexOf('·') < 0) {
+      var first = parts[0];
+      var m2 = first.match(/^(.+?),\s*n[º°]?\s*(.+)$/i);
+      if (m2) {
+        o.log = m2[1].trim();
+        o.num = m2[2].trim();
+      } else {
+        o.log = first;
+      }
+      return o;
+    }
+    var p0 = parts[0] || '';
+    var m0 = p0.match(/^(.+?),\s*n[º°]?\s*(.+)$/i);
+    if (m0) {
+      o.log = m0[1].trim();
+      o.num = m0[2].trim();
+    } else {
+      o.log = p0;
+    }
+    o.bairro = parts[1] || '';
+    var last = parts[2] || '';
+    var muf = last.match(/^(.+?)\s*[-–]\s*([A-Za-z]{2})\s*$/);
+    if (muf) {
+      o.cidade = muf[1].trim();
+      o.uf = muf[2].toUpperCase();
+    } else {
+      o.cidade = last;
+    }
+    return o;
+  }
+
+  function bindModalEdlocAntiErroOnce() {
+    var numEl = document.getElementById('edloc-num');
+    if (numEl && !numEl.dataset.agroNumBound) {
+      numEl.dataset.agroNumBound = '1';
+      numEl.addEventListener('input', function () {
+        numEl.value = numEl.value.replace(/\D/g, '');
+      });
+    }
+    var uf = document.getElementById('edloc-uf');
+    var cep = document.getElementById('edloc-cep');
+    if (!uf || uf.dataset.agroBound) return;
+    uf.dataset.agroBound = '1';
+    uf.addEventListener('input', function () {
+      uf.value = uf.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 2);
+    });
+    cep.addEventListener('input', function () {
+      var d = cep.value.replace(/\D/g, '').slice(0, 8);
+      cep.value = d.length <= 5 ? d : d.slice(0, 5) + '-' + d.slice(5);
+    });
+    initEdlocBairroComboboxOnce();
+  }
+
   function destinoQuery(e) {
-    var manual = String(e.maps_url_manual || '').trim();
-    if (manual) return { modo: 'url', texto: manual };
+    var httpU = mapsUrlHttp(e);
+    if (httpU) return { modo: 'url', texto: httpU };
+    var extra = textoExtraMapsSemHttp(e);
     var pc = String(e.plus_code || '').trim();
     var end = String(e.endereco_linha || '').trim();
-    var ref = String(e.referencia_rural || '').trim();
-    var q = [pc, end, ref].filter(Boolean).join(' ').trim() || String(e.cliente_nome || '');
+    /* Referência não entra no link do Maps / Zap — só orienta o entregador. */
+    var q = [pc, extra, end].filter(Boolean).join(' ').trim() || String(e.cliente_nome || '');
     return { modo: 'q', texto: q };
+  }
+
+  /** Verificador local (sem geocoding): verde = destino provável; vermelho = revisar. */
+  function destinoLocalConfiavel(e) {
+    var httpM = mapsUrlHttp(e);
+    if (httpM) return { ok: true, msg: '✓ Link do Maps (URL)' };
+    var extra = textoExtraMapsSemHttp(e);
+    var pc = String(e.plus_code || '').trim();
+    var end = String(e.endereco_linha || '').trim();
+    var blob = [pc, extra, end].join(' ');
+    if (primeiroPlusCodeEmTexto(blob)) return { ok: true, msg: '✓ Plus Code reconhecido' };
+    if (primeiroLatLngEmTexto(pc) || primeiroLatLngEmTexto(extra) || primeiroLatLngEmTexto(end))
+      return { ok: true, msg: '✓ Coordenadas lat, lng' };
+    if (end.length >= 12) return { ok: true, msg: '✓ Endereço para busca no Maps' };
+    if (end.length >= 8 && end.length < 12)
+      return { ok: false, msg: '⚠ Endereço curto — confira ou use Plus / link Maps' };
+    if (!blob.replace(/\s/g, '') && String(e.cliente_nome || '').trim())
+      return { ok: false, msg: '⚠ Só o nome no Maps — informe endereço, Plus ou link' };
+    return { ok: false, msg: '⚠ Sem destino claro — Plus, link Maps ou endereço completo' };
   }
 
   function urlBuscaMaps(e) {
     var d = destinoQuery(e);
     if (d.modo === 'url') return d.texto;
     return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(d.texto);
+  }
+
+  /** Link curto p/ colar no Zap (mesmo destino que a busca no Maps do painel). */
+  function urlMapsCurta(e) {
+    var d = destinoQuery(e);
+    if (d.modo === 'url') return d.texto;
+    return 'https://maps.google.com/?q=' + encodeURIComponent(d.texto);
   }
 
   /** Um botão: rota loja→cliente se houver origem; senão abre busca no Maps. */
@@ -242,37 +705,106 @@
     return d || '5513997673389';
   }
 
-  function textoResumoEntrega(e) {
+  /**
+   * Zap: link mínimo — URL http colada; senão 1º Plus Code encontrado; senão lat,lng;
+   * senão busca única com texto composto (evita wa.me gigante quando há Plus).
+   */
+  function urlMapsCurtaParaZap(e) {
+    var httpM = mapsUrlHttp(e);
+    if (httpM) return httpM;
+    var extra = textoExtraMapsSemHttp(e);
+    var pc = String(e.plus_code || '').trim();
+    var blob = [pc, extra, String(e.endereco_linha || '').trim()].join(' ');
+    var p1 = primeiroPlusCodeEmTexto(pc) || primeiroPlusCodeEmTexto(extra) || primeiroPlusCodeEmTexto(blob);
+    if (p1) return 'https://maps.google.com/?q=' + encodeURIComponent(p1);
+    var ll =
+      primeiroLatLngEmTexto(pc) ||
+      primeiroLatLngEmTexto(extra) ||
+      primeiroLatLngEmTexto(String(e.endereco_linha || ''));
+    if (ll) return 'https://maps.google.com/?q=' + encodeURIComponent(ll);
+    var dq = destinoQuery(e);
+    if (dq.modo === 'url') return dq.texto;
+    return 'https://maps.google.com/?q=' + encodeURIComponent(dq.texto);
+  }
+
+  /** Último caractere visual (emoji = 1 code point), sem partir surrogate UTF-16. */
+  function truncarUmCodePoint(s) {
+    var a = Array.from(String(s || ''));
+    if (!a.length) return '';
+    a.pop();
+    return a.join('');
+  }
+
+  /**
+   * Mesmo formato do orçamento PDV (consulta_produtos / pdv_checkout): api.whatsapp.com/send.
+   * wa.me/…?text=… no Electron/Windows costuma corromper emoji na query (aparecem como ).
+   */
+  function montarWaMeUrl(digitos, texto) {
+    var phone = String(digitos || '').replace(/\D/g, '');
+    if (phone.length === 10 || phone.length === 11) phone = '55' + phone;
+    var base = 'https://api.whatsapp.com/send?phone=' + phone + '&text=';
+    var t = String(texto == null ? '' : texto);
+    var maxTotal = 1750;
+    var enc = '';
+    try {
+      enc = encodeURIComponent(t);
+    } catch (e2) {
+      t = '';
+      enc = encodeURIComponent('');
+    }
+    while (base.length + enc.length > maxTotal) {
+      if (t.length === 0) {
+        enc = encodeURIComponent('Entrega (mensagem longa — veja no painel).');
+        break;
+      }
+      t = truncarUmCodePoint(t);
+      try {
+        enc = encodeURIComponent(t ? t + '…' : '…');
+      } catch (e3) {
+        t = '';
+        enc = encodeURIComponent('…');
+      }
+    }
+    return base + enc;
+  }
+
+  function textoResumoEntrega(e, opts) {
+    opts = opts || {};
+    var mapsHref = opts.zapCompact ? urlMapsCurtaParaZap(e) : urlMapsCurta(e);
+    /* Emoji em UTF-8 literal — igual ao orçamento PDV (gerarMensagemPedido). */
     var lines = [];
-    lines.push('*Entrega #' + e.id + '* — ' + String(e.status || ''));
-    lines.push(String(e.cliente_nome || ''));
-    if (e.telefone) lines.push('Tel: ' + e.telefone);
-    if (e.plus_code) lines.push('Plus: ' + e.plus_code);
-    if (e.endereco_linha) lines.push('End: ' + e.endereco_linha);
-    if (e.referencia_rural) lines.push('Ref: ' + e.referencia_rural);
-    if (e.observacoes) lines.push('Obs: ' + e.observacoes);
-    if (e.retomar_codigo) lines.push('Retomar PDV: ' + e.retomar_codigo);
+    lines.push('🚚 *Entrega #' + e.id + '* — ' + String(e.status || ''));
+    lines.push('👤 Cliente: ' + String(e.cliente_nome || ''));
+    if (e.telefone) lines.push('📞 Tel: ' + e.telefone);
+    if (e.plus_code) lines.push('📌 Plus: *' + e.plus_code + '*');
+    if (e.endereco_linha) lines.push('📍 Endereço: ' + e.endereco_linha);
+    if (e.referencia_rural) lines.push('🏞 Referência: ' + e.referencia_rural);
+    if (e.observacoes) lines.push('📝 Obs.: ' + e.observacoes);
     if (e.forma_pagamento) {
       var pg = e.forma_pagamento;
       if (pg === 'Dinheiro' && e.troco_precisa === true) pg += ' (troco: sim)';
       else if (pg === 'Dinheiro' && e.troco_precisa === false) pg += ' (troco: não)';
-      lines.push('Pagamento: ' + pg);
+      lines.push('💳 Pagamento: ' + pg);
     }
     lines.push('');
+    lines.push('📦 Itens:');
     var itens = Array.isArray(e.itens_json) ? e.itens_json : [];
     itens.forEach(function (it) {
       var cod = it.codigo_gm != null ? String(it.codigo_gm) : (it.codigo != null ? String(it.codigo) : '');
       var nome = it.nome != null ? String(it.nome) : '';
       var q = it.qtd != null ? it.qtd : '';
-      lines.push((cod ? cod + ' — ' : '') + nome + ': ' + q);
+      lines.push('• ' + (cod ? cod + ' — ' : '') + nome + ': ' + q);
     });
-    if (e.total_texto) lines.push('Total: ' + e.total_texto);
+    lines.push('');
+    if (e.total_texto) lines.push('💰 *Total: ' + e.total_texto + '*');
+    lines.push('');
+    lines.push('🗺 Maps: ' + mapsHref);
     return lines.join('\n');
   }
 
   function urlClienteMapsParaQr(e) {
-    var manual = String(e.maps_url_manual || '').trim();
-    if (/^https?:\/\//i.test(manual)) return manual;
+    var manual = mapsUrlHttp(e);
+    if (manual) return manual;
     return urlBuscaMaps(e);
   }
 
@@ -469,6 +1001,7 @@
 
   var cacheEntregas = [];
   var impContext = null;
+  var editLocalCtx = null;
 
   var FORMAS_PGTO = [
     { v: '', t: 'Não informado' },
@@ -517,12 +1050,16 @@
   }
 
   function mergeEntregaDaLinha(tr, e) {
-    var urlEl = tr.querySelector('.ent-maps-url');
+    var pol = tr.querySelector('.ent-plus-ou-link');
     var obsEl = tr.querySelector('.ent-obs');
     var fpEl = tr.querySelector('.ent-forma');
     var trocoEl = tr.querySelector('.ent-troco');
     var out = Object.assign({}, e);
-    if (urlEl) out.maps_url_manual = urlEl.value.trim();
+    if (pol) {
+      var dpol = distribuirPlusOuLink(pol.value);
+      out.plus_code = dpol.plus_code;
+      out.maps_url_manual = dpol.maps_url_manual;
+    }
     if (obsEl) out.observacoes = obsEl.value;
     out.forma_pagamento = fpEl ? fpEl.value : out.forma_pagamento || '';
     if (out.forma_pagamento === 'Dinheiro' && trocoEl && trocoEl.value !== '') {
@@ -533,6 +1070,17 @@
       out.troco_precisa = null;
     }
     return out;
+  }
+
+  function atualizarIndicadorLocal(tr, e) {
+    var st = tr.querySelector('.ent-loc-status');
+    if (!st) return;
+    var ex = mergeEntregaDaLinha(tr, e);
+    var r = destinoLocalConfiavel(ex);
+    st.textContent = r.msg;
+    st.className =
+      'ent-loc-status mt-1 text-xs font-bold leading-snug min-h-[1.35rem] ' +
+      (r.ok ? 'text-emerald-700' : 'text-orange-800');
   }
 
   function optsFormaHtml(valAtual) {
@@ -575,7 +1123,7 @@
 
   function renderLinha(e) {
     var tr = document.createElement('tr');
-    tr.className = 'align-top hover:bg-slate-50/80';
+    tr.className = 'align-top border-b border-slate-100 hover:bg-emerald-50/50 transition-colors';
     tr.dataset.id = String(e.id);
     var prev = '';
     if (e.hora_prevista) {
@@ -591,29 +1139,34 @@
     });
 
     tr.innerHTML =
-      '<td class="p-2 text-center"><input type="checkbox" class="ent-chk w-4 h-4 accent-sky-600" data-id="' + esc(e.id) + '"></td>' +
-      '<td class="p-2 font-mono text-xs font-bold text-slate-600">' + esc(e.id) + '</td>' +
-      '<td class="p-2 min-w-[140px]">' +
-        '<div class="font-black text-slate-800">' + esc(e.cliente_nome) + '</div>' +
-        '<div class="text-xs text-slate-500">' + esc(e.telefone || '') + '</div>' +
-        (e.operador ? '<div class="text-[10px] text-slate-400 mt-0.5">Op. ' + esc(e.operador) + '</div>' : '') +
+      '<td class="p-1.5 align-middle text-center"><input type="checkbox" class="ent-chk w-4 h-4 accent-emerald-600 rounded border-slate-300" data-id="' + esc(e.id) + '"></td>' +
+      '<td class="p-1.5 align-middle font-mono text-xs font-black text-slate-600">' + esc(e.id) + '</td>' +
+      '<td class="p-1.5 align-middle min-w-[132px] max-w-[200px]">' +
+        '<div class="font-black text-sm text-slate-900 leading-tight">' + esc(e.cliente_nome) + '</div>' +
+        '<div class="text-xs font-mono font-semibold text-slate-600 mt-0.5">' + esc(e.telefone || '') + '</div>' +
+        (e.operador ? '<div class="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wide">Op. ' + esc(e.operador) + '</div>' : '') +
       '</td>' +
-      '<td class="p-2 min-w-[180px] text-xs">' +
-        (e.plus_code ? '<div class="font-bold text-sky-800">' + esc(e.plus_code) + '</div>' : '') +
-        '<div class="text-slate-600">' + esc(e.endereco_linha || '') + '</div>' +
-        (e.referencia_rural ? '<div class="text-amber-800 font-semibold mt-1">Ref. ' + esc(e.referencia_rural) + '</div>' : '') +
-        '<input type="text" class="ent-maps-url mt-1 w-full text-[10px] border border-slate-200 rounded px-1 py-0.5" placeholder="Cole link Maps (opcional)" value="' + esc(e.maps_url_manual || '') + '">' +
+      '<td class="p-1.5 align-middle min-w-[240px] max-w-[min(28rem,36vw)]">' +
+        '<div class="text-xs font-semibold text-slate-800 leading-snug">' + esc(e.endereco_linha || '') + '</div>' +
+        (e.referencia_rural ? '<div class="text-xs font-bold text-orange-800 mt-1 leading-snug">Ref.: ' + esc(e.referencia_rural) + '</div>' : '') +
+        '<div class="flex flex-col sm:flex-row gap-1.5 mt-1.5 items-stretch">' +
+        '<div class="flex-1 min-w-0">' +
+        '<input type="text" class="ent-plus-ou-link w-full text-xs border-2 border-slate-200 rounded-lg px-2 py-1.5 font-mono bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200 outline-none" placeholder="Plus ou link Maps" title="URL https… ou código Plus" aria-label="Plus ou link do Maps" value="' + esc(valorExibirPlusOuLink(e)) + '">' +
+        '</div>' +
+        '<button type="button" class="ent-btn-edit-local shrink-0 px-2.5 py-1.5 rounded-lg border-2 border-slate-300 bg-white text-[10px] font-black uppercase text-slate-800 hover:bg-emerald-50 hover:border-emerald-400 min-h-[2.25rem] sm:min-w-[6.5rem]">Editar local</button>' +
+        '</div>' +
+        '<div class="ent-loc-status mt-1 text-xs font-bold leading-snug min-h-[1.35rem] text-slate-500"></div>' +
       '</td>' +
-      '<td class="p-2"><select class="ent-status w-full text-xs font-bold border-2 border-slate-200 rounded-lg px-1 py-1">' + opts + '</select></td>' +
-      '<td class="p-2">' +
-        '<select class="ent-forma w-full text-[10px] font-bold border border-slate-200 rounded-lg px-1 py-1">' +
+      '<td class="p-1.5 align-middle"><select class="ent-status w-full min-w-[6.5rem] text-xs font-black border-2 border-slate-200 rounded-lg px-1.5 py-1.5 bg-white focus:border-emerald-500 outline-none">' + opts + '</select></td>' +
+      '<td class="p-1.5 align-middle min-w-[118px]">' +
+        '<select class="ent-forma w-full text-xs font-bold border-2 border-slate-200 rounded-lg px-1.5 py-1.5 bg-white">' +
         optsFormaHtml(String(e.forma_pagamento || '')) +
         '</select>' +
         '<div class="ent-troco-wrap mt-1' +
         (String(e.forma_pagamento || '') === 'Dinheiro' ? '' : ' hidden') +
         '">' +
         '<label class="text-[9px] font-black uppercase text-slate-500 block">Troco</label>' +
-        '<select class="ent-troco w-full text-[10px] font-bold border border-amber-200 rounded-lg px-1 py-1 bg-amber-50/50">' +
+        '<select class="ent-troco w-full text-xs font-bold border-2 border-orange-200 rounded-lg px-1 py-1 bg-orange-50">' +
         '<option value=""' +
         (trocoSelectVal(e) === '' ? ' selected' : '') +
         '>—</option>' +
@@ -625,20 +1178,20 @@
         '>Não precisa</option>' +
         '</select></div>' +
       '</td>' +
-      '<td class="p-2"><input type="text" class="ent-hprev w-20 text-xs font-mono border border-slate-200 rounded px-1 py-1" placeholder="HH:MM" value="' + esc(prev) + '"></td>' +
-      '<td class="p-2 text-[10px] font-mono text-slate-600">' + esc(hs) + '<br>' + esc(he) + '</td>' +
-      '<td class="p-2">' +
-        '<div class="flex flex-wrap gap-1">' +
-          '<button type="button" class="ent-btn-maps px-2 py-1 rounded-lg bg-sky-100 text-[10px] font-black uppercase border border-sky-200 text-sky-900" title="Rota da loja ou busca">Maps</button>' +
-          '<button type="button" class="ent-btn-zap px-2 py-1 rounded-lg bg-emerald-100 text-[10px] font-black uppercase border border-emerald-200 text-emerald-900">Zap</button>' +
-          '<button type="button" class="ent-btn-print px-2 py-1 rounded-lg bg-orange-100 text-[10px] font-black uppercase border border-orange-200">Imprimir</button>' +
+      '<td class="p-1.5 align-middle"><input type="text" class="ent-hprev w-[4.5rem] text-xs font-mono font-bold border-2 border-slate-200 rounded-lg px-1.5 py-1.5 text-center" placeholder="HH:MM" value="' + esc(prev) + '"></td>' +
+      '<td class="p-1.5 align-middle text-xs font-mono font-semibold text-slate-700 leading-tight">' + esc(hs) + '<br><span class="text-slate-500">' + esc(he) + '</span></td>' +
+      '<td class="p-1.5 align-middle w-[188px]">' +
+        '<div class="grid grid-cols-3 gap-1">' +
+          '<button type="button" class="ent-btn-maps py-1.5 rounded-lg bg-slate-700 text-white text-[10px] font-black uppercase border-2 border-slate-800 hover:bg-slate-800 min-h-[2rem]" title="Rota da loja ou busca">Maps</button>' +
+          '<button type="button" class="ent-btn-zap py-1.5 rounded-lg bg-emerald-600 text-white text-[10px] font-black uppercase border-2 border-emerald-700 hover:bg-emerald-700 min-h-[2rem]">Zap</button>' +
+          '<button type="button" class="ent-btn-print py-1.5 rounded-lg bg-orange-500 text-white text-[10px] font-black uppercase border-2 border-orange-600 hover:bg-orange-600 min-h-[2rem]" title="Imprimir">Imp.</button>' +
         '</div>' +
-        '<div class="flex flex-wrap gap-1 mt-1">' +
-          '<button type="button" class="ent-btn-saida px-2 py-0.5 rounded bg-amber-50 text-[9px] font-black uppercase border border-amber-200">Saída agora</button>' +
-          '<button type="button" class="ent-btn-ent px-2 py-0.5 rounded bg-emerald-50 text-[9px] font-black uppercase border border-emerald-200">Entregue</button>' +
+        '<div class="grid grid-cols-2 gap-1 mt-1">' +
+          '<button type="button" class="ent-btn-saida py-1.5 rounded-lg bg-orange-100 text-[10px] font-black uppercase border-2 border-orange-300 text-orange-950 hover:bg-orange-200 min-h-[2rem]">Saída</button>' +
+          '<button type="button" class="ent-btn-ent py-1.5 rounded-lg bg-emerald-100 text-[10px] font-black uppercase border-2 border-emerald-400 text-emerald-950 hover:bg-emerald-200 min-h-[2rem]">Entregue</button>' +
         '</div>' +
-        '<textarea class="ent-obs w-full mt-1 text-[10px] border border-slate-200 rounded p-1 min-h-[40px]" placeholder="Obs.">' + esc(e.observacoes || '') + '</textarea>' +
-        '<button type="button" class="ent-btn-salvar-maps mt-1 w-full py-1 rounded-lg bg-slate-800 text-white text-[9px] font-black uppercase">Salvar alterações</button>' +
+        '<textarea class="ent-obs w-full mt-1 text-xs border-2 border-slate-200 rounded-lg px-1.5 py-1 min-h-[36px] resize-y font-medium" placeholder="Observações" rows="2">' + esc(e.observacoes || '') + '</textarea>' +
+        '<button type="button" class="ent-btn-salvar-maps mt-1 w-full py-2 rounded-lg bg-emerald-700 text-white text-[10px] font-black uppercase border-2 border-emerald-800 hover:bg-emerald-800 shadow-sm min-h-[2.25rem]">Salvar</button>' +
       '</td>';
 
     tr.querySelector('.ent-btn-maps').onclick = function () {
@@ -648,7 +1201,7 @@
       var d = waDigitos();
       if (!d) { alert('WhatsApp de entregas não está configurado. Peça ao suporte para cadastrar o número da loja.'); return; }
       var ex = mergeEntregaDaLinha(tr, e);
-      var u = 'https://wa.me/' + d + '?text=' + encodeURIComponent(textoResumoEntrega(ex));
+      var u = montarWaMeUrl(d, textoResumoEntrega(ex, { zapCompact: true }));
       if (typeof agroAbrirUrlExterna === 'function') agroAbrirUrlExterna(u);
       else window.open(u, '_blank');
     };
@@ -672,7 +1225,7 @@
     };
 
     tr.querySelector('.ent-btn-salvar-maps').onclick = function () {
-      var urlEl = tr.querySelector('.ent-maps-url');
+      var pol = tr.querySelector('.ent-plus-ou-link');
       var obsEl = tr.querySelector('.ent-obs');
       var hpEl = tr.querySelector('.ent-hprev');
       var fpEl = tr.querySelector('.ent-forma');
@@ -682,9 +1235,11 @@
         alert('Para Dinheiro informe se precisa de troco (Precisa / Não precisa).');
         return;
       }
+      var dpol = distribuirPlusOuLink(pol ? pol.value : '');
       var payload = {
         id: e.id,
-        maps_url_manual: urlEl ? urlEl.value : '',
+        plus_code: dpol.plus_code,
+        maps_url_manual: dpol.maps_url_manual,
         observacoes: obsEl ? obsEl.value : '',
         hora_prevista: hpEl ? hpEl.value : '',
         forma_pagamento: fp,
@@ -697,7 +1252,62 @@
       });
     };
 
+    var mapsInp = tr.querySelector('.ent-plus-ou-link');
+    if (mapsInp) {
+      mapsInp.addEventListener('input', function () {
+        atualizarIndicadorLocal(tr, e);
+      });
+    }
+    tr.querySelector('.ent-btn-edit-local').onclick = function () {
+      abrirModalEditLocal(tr, e);
+    };
+    atualizarIndicadorLocal(tr, e);
+
     return tr;
+  }
+
+  function fecharModalEditLocal() {
+    fecharEdlocBairroDd();
+    edlocBairroRuralExpandido = false;
+    var m = document.getElementById('modal-edit-local');
+    if (m) {
+      m.classList.add('hidden');
+    }
+    editLocalCtx = null;
+  }
+
+  function abrirModalEditLocal(tr, e) {
+    bindModalEdlocAntiErroOnce();
+    edlocBairroRuralExpandido = false;
+    fecharEdlocBairroDd();
+    editLocalCtx = { tr: tr, e: e };
+    var ex = mergeEntregaDaLinha(tr, e);
+    document.getElementById('edloc-cliente').value = ex.cliente_nome || '';
+    document.getElementById('edloc-tel').value = ex.telefone || '';
+    var pe = partirEnderecoLinha(ex.endereco_linha || '');
+    document.getElementById('edloc-logr').value = pe.log;
+    var numRaw = String(pe.num || '').trim();
+    document.getElementById('edloc-num').value = /^\d+$/.test(numRaw) ? numRaw : '';
+    aplicarBairroNoSelect(pe.bairro);
+    var cid = String(pe.cidade || '').trim();
+    document.getElementById('edloc-cidade').value = cid || EDLOC_CIDADE_PADRAO;
+    var ufv = String(pe.uf || '')
+      .trim()
+      .replace(/[^A-Za-z]/g, '')
+      .toUpperCase()
+      .slice(0, 2);
+    document.getElementById('edloc-uf').value = ufv || EDLOC_UF_PADRAO;
+    var cepDig = String(pe.cep || '').replace(/\D/g, '');
+    if (cepDig.length === 8) {
+      document.getElementById('edloc-cep').value = cepDig.slice(0, 5) + '-' + cepDig.slice(5);
+    } else {
+      var pc = EDLOC_CEP_DIGITOS_PADRAO;
+      document.getElementById('edloc-cep').value = pc.slice(0, 5) + '-' + pc.slice(5);
+    }
+    document.getElementById('edloc-plus-ou-link').value = valorExibirPlusOuLink(ex);
+    document.getElementById('edloc-ref').value = ex.referencia_rural || '';
+    var m = document.getElementById('modal-edit-local');
+    m.classList.remove('hidden');
   }
 
   function carregar() {
@@ -857,7 +1467,7 @@
         var j = x.j;
         if (!j.ok) {
           st.textContent = '';
-          listEl.innerHTML = '<li class="text-red-600 font-bold list-none">' + esc(j.erro || 'Falha ao ordenar.') + '</li>';
+          listEl.innerHTML = '<li class="text-orange-800 font-bold list-none">' + esc(j.erro || 'Falha ao ordenar.') + '</li>';
           return;
         }
         st.textContent = 'Partida → paradas na ordem sugerida (km em linha reta entre pontos geocodificados).';
@@ -876,7 +1486,7 @@
           var km = p.km_da_anterior != null ? ' +' + esc(String(p.km_da_anterior)) + ' km' : '';
           var warn = p.lat == null ? ' <span class="text-amber-700 text-[10px] font-bold">(sem coord.)</span>' : '';
           li.innerHTML =
-            '<span class="font-black text-sky-700">#' +
+            '<span class="font-black text-emerald-800">#' +
             esc(String(p.ordem)) +
             '</span> · ' +
             esc(p.label) +
@@ -893,7 +1503,7 @@
       })
       .catch(function () {
         st.textContent = '';
-        listEl.innerHTML = '<li class="text-red-600 font-bold list-none">Erro de rede ao ordenar rota.</li>';
+        listEl.innerHTML = '<li class="text-orange-800 font-bold list-none">Erro de rede ao ordenar rota.</li>';
       })
       .finally(function () {
         if (window.gmLoadingBar) window.gmLoadingBar.hide();
@@ -927,6 +1537,82 @@
     }
   };
 
+  document.getElementById('modal-edit-local').addEventListener('click', function (ev) {
+    if (ev.target === this) fecharModalEditLocal();
+  });
+  document.getElementById('edloc-cancel').onclick = fecharModalEditLocal;
+  document.getElementById('edloc-save').onclick = function () {
+    if (!editLocalCtx) return;
+    var telDig = document.getElementById('edloc-tel').value.replace(/\D/g, '');
+    if (telDig.length < 8) {
+      alert('Telefone é obrigatório (mínimo 8 dígitos).');
+      document.getElementById('edloc-tel').focus();
+      return;
+    }
+    if (!document.getElementById('edloc-logr').value.trim()) {
+      alert('Logradouro é obrigatório.');
+      document.getElementById('edloc-logr').focus();
+      return;
+    }
+    var numVal = document.getElementById('edloc-num').value.trim();
+    if (!numVal) {
+      alert('Número é obrigatório (apenas algarismos).');
+      document.getElementById('edloc-num').focus();
+      return;
+    }
+    if (!/^\d+$/.test(numVal)) {
+      alert('Número: use somente algarismos, sem letras.');
+      document.getElementById('edloc-num').focus();
+      return;
+    }
+    if (!bairroSelecionadoModal()) {
+      alert('Bairro é obrigatório.');
+      document.getElementById('edloc-bairro-input').focus();
+      return;
+    }
+    var ufEl = document.getElementById('edloc-uf');
+    var ufDig = ufEl.value.replace(/[^A-Za-z]/g, '').toUpperCase();
+    if (ufEl.value.trim() && ufDig.length !== 2) {
+      alert('UF: use 2 letras (ex.: SP) ou deixe vazio.');
+      return;
+    }
+    var cepD = document.getElementById('edloc-cep').value.replace(/\D/g, '');
+    if (cepD.length > 0 && cepD.length !== 8) {
+      alert('CEP: informe 8 dígitos ou deixe vazio (será usado o padrão da loja).');
+      return;
+    }
+    if (cepD.length === 0) cepD = EDLOC_CEP_DIGITOS_PADRAO;
+    var pol = distribuirPlusOuLink(document.getElementById('edloc-plus-ou-link').value);
+    var cliCep = cepD.slice(0, 5) + '-' + cepD.slice(5);
+    var caid = editLocalCtx.e.cliente_agro_id;
+    var payload = {
+      id: editLocalCtx.e.id,
+      cliente_nome: document.getElementById('edloc-cliente').value,
+      telefone: document.getElementById('edloc-tel').value,
+      endereco_linha: montarEnderecoLinhaFromModal(),
+      referencia_rural: document.getElementById('edloc-ref').value,
+      plus_code: pol.plus_code,
+      maps_url_manual: pol.maps_url_manual,
+      sincronizar_cliente: true,
+      cliente_agro_id: caid != null && caid !== '' ? caid : null,
+      cli_logradouro: document.getElementById('edloc-logr').value.trim(),
+      cli_numero: document.getElementById('edloc-num').value.trim(),
+      cli_bairro: bairroSelecionadoModal(),
+      cli_cidade: document.getElementById('edloc-cidade').value.trim() || EDLOC_CIDADE_PADRAO,
+      cli_uf:
+        document.getElementById('edloc-uf').value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 2) ||
+        EDLOC_UF_PADRAO,
+      cli_cep: cliCep,
+    };
+    postAtualizar(payload).then(function (j) {
+      if (j.ok) {
+        fecharModalEditLocal();
+        carregar();
+      } else alert((j && j.erro) || 'Falha ao salvar');
+    });
+  };
+
+  bindModalEdlocAntiErroOnce();
   initOrigens();
   carregar();
 })();

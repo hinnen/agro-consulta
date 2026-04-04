@@ -15,6 +15,7 @@
   "build": {
     "appId": "br.com.agromais.consulta",
     "productName": "Agro Consulta",
+    "icon": "build/icon.png",
     "directories": {
       "output": "dist-electron"
     },

@@ -353,22 +353,101 @@ def contas_pagar_montar_query_mongo(**kwargs) -> dict[str, Any]:
     return lancamentos_montar_query_mongo(despesa=True, **kwargs)
 
 
-def _lancamentos_sort_spec_list(ordenacao: str = "vencimento_asc") -> list[tuple[str, int]]:
+LANCAMENTOS_ORDENACOES_VALIDAS = frozenset(
+    {
+        "vencimento_asc",
+        "vencimento_desc",
+        "fluxo_desc",
+        "cliente_asc",
+        "cliente_desc",
+        "forma_asc",
+        "forma_desc",
+        "plano_asc",
+        "plano_desc",
+        "bruto_asc",
+        "bruto_desc",
+        "saldo_asc",
+        "saldo_desc",
+    }
+)
+
+
+def _lancamentos_sort_pre_stages(ordenacao: str, despesa: bool) -> list[dict[str, Any]]:
+    """Estágios antes do dedup quando a ordenação usa campo calculado (ex.: saldo em aberto)."""
+    ord_ = (ordenacao or "").strip().lower()
+    if ord_ not in ("saldo_asc", "saldo_desc"):
+        return []
+    if despesa:
+        saldo_expr: dict[str, Any] = {
+            "$max": [
+                0,
+                {
+                    "$subtract": [
+                        {"$ifNull": ["$Saida", 0]},
+                        {"$ifNull": ["$ValorPago", 0]},
+                    ]
+                },
+            ]
+        }
+    else:
+        saldo_expr = {
+            "$max": [
+                0,
+                {
+                    "$subtract": [
+                        {"$ifNull": ["$Entrada", 0]},
+                        _mongo_expr_valor_realizado_receita(),
+                    ]
+                },
+            ]
+        }
+    return [{"$addFields": {"_gmSortSaldo": saldo_expr}}]
+
+
+def _lancamentos_sort_spec_list(
+    ordenacao: str = "vencimento_asc", despesa: bool = True
+) -> list[tuple[str, int]]:
     ord_ = (ordenacao or "vencimento_asc").strip().lower()
     if ord_ == "vencimento_desc":
         return [("DataVencimento", -1), ("_id", -1)]
     if ord_ == "fluxo_desc":
         return [("DataFluxo", -1), ("_id", -1)]
+    if ord_ == "cliente_asc":
+        return [("Cliente", 1), ("_id", 1)]
+    if ord_ == "cliente_desc":
+        return [("Cliente", -1), ("_id", -1)]
+    if ord_ == "forma_asc":
+        return [("FormaPagamento", 1), ("_id", 1)]
+    if ord_ == "forma_desc":
+        return [("FormaPagamento", -1), ("_id", -1)]
+    if ord_ == "plano_asc":
+        return [("PlanoDeConta", 1), ("LancamentoGrupo", 1), ("_id", 1)]
+    if ord_ == "plano_desc":
+        return [("PlanoDeConta", -1), ("LancamentoGrupo", -1), ("_id", -1)]
+    bruto_fld = "Saida" if despesa else "Entrada"
+    if ord_ == "bruto_asc":
+        return [(bruto_fld, 1), ("_id", 1)]
+    if ord_ == "bruto_desc":
+        return [(bruto_fld, -1), ("_id", -1)]
+    if ord_ == "saldo_asc":
+        return [("_gmSortSaldo", 1), ("_id", 1)]
+    if ord_ == "saldo_desc":
+        return [("_gmSortSaldo", -1), ("_id", -1)]
     return [("DataVencimento", 1), ("_id", 1)]
 
 
-def _lancamentos_mongo_stages_dedup_por_titulo_erp(sort_spec: list[tuple[str, int]]) -> list[dict[str, Any]]:
+def _lancamentos_mongo_stages_dedup_por_titulo_erp(
+    sort_spec: list[tuple[str, int]],
+    *,
+    pre_stages: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
     """
     Um documento por título no ERP: evita linhas repetidas quando o Mongo recebeu o mesmo
     DtoLancamento duas vezes (ex.: resync). Sem LancamentoID, cada BSON _id permanece único.
     """
     lid_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$LancamentoID", ""]}}}}
     return [
+        *(pre_stages or []),
         {
             "$addFields": {
                 "_dupKey": {
@@ -456,7 +535,7 @@ def lancamentos_totais_filtrados(db, query: dict, despesa: bool) -> dict[str, fl
     if db is None:
         return {"quantidade": 0, "bruto": 0.0, "movimentado": 0.0, "saldo_aberto": 0.0}
     try:
-        sort_dedup = _lancamentos_sort_spec_list("vencimento_asc")
+        sort_dedup = _lancamentos_sort_spec_list("vencimento_asc", despesa)
         dedup = _lancamentos_mongo_stages_dedup_por_titulo_erp(sort_dedup)
         pipe: list[dict[str, Any]] = [
             {"$match": query},
@@ -593,11 +672,14 @@ def lancamentos_buscar_pagina(
     page_size = min(cap, max(1, page_size))
     skip = (page - 1) * page_size
 
-    sort_spec = _lancamentos_sort_spec_list(ordenacao)
+    sort_spec = _lancamentos_sort_spec_list(ordenacao, despesa)
+    pre_sort = _lancamentos_sort_pre_stages(ordenacao, despesa)
 
     try:
         col = db[COL_DTO_LANCAMENTO]
-        dedup = _lancamentos_mongo_stages_dedup_por_titulo_erp(sort_spec)
+        dedup = _lancamentos_mongo_stages_dedup_por_titulo_erp(
+            sort_spec, pre_stages=pre_sort
+        )
         group_tot = _lancamentos_mongo_group_totais_stage(despesa)
         facet_stage: dict[str, Any] = {
             "$facet": {
