@@ -5,7 +5,8 @@
  * disable-http-cache: cada recurso (HTML/JS/CSS) vem da rede — evita ficar preso em
  * versão antiga após deploy. (localStorage do PDV não é apagado por isso.)
  */
-const { app, BrowserWindow, session, globalShortcut, shell } = require('electron');
+const path = require('path');
+const { app, BrowserWindow, session, globalShortcut, shell, ipcMain } = require('electron');
 
 // Deve rodar antes de ready — desliga cache HTTP do Chromium neste app
 app.commandLine.appendSwitch('disable-http-cache');
@@ -25,6 +26,20 @@ function urlComBust(u) {
     return u;
   }
 }
+
+ipcMain.handle('agro-open-external', async (_event, url) => {
+  const s = String(url || '').trim();
+  if (!s) return { ok: false, reason: 'empty' };
+  if (!/^https?:\/\//i.test(s) && !/^whatsapp:/i.test(s)) {
+    return { ok: false, reason: 'invalid_url' };
+  }
+  try {
+    await shell.openExternal(s);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: String(e && e.message) };
+  }
+});
 
 function installNoCacheForOrigin() {
   let host = '';
@@ -62,6 +77,7 @@ async function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
@@ -76,6 +92,10 @@ async function createWindow() {
   function openExternalHttp(url) {
     try {
       const u = new URL(url);
+      if (u.protocol === 'whatsapp:') {
+        void shell.openExternal(url);
+        return true;
+      }
       const isHttp = u.protocol === 'http:' || u.protocol === 'https:';
       if (!isHttp) return false;
       void shell.openExternal(url);
@@ -85,20 +105,20 @@ async function createWindow() {
     }
   }
 
-  try {
-    await win.loadURL(target, {
-      extraHeaders: ['Cache-Control: no-cache', 'Pragma: no-cache'].join('\n'),
-    });
-  } catch (err) {
-    console.error('Falha ao carregar URL:', target, err);
-  }
-
   win.webContents.setWindowOpenHandler(({ url }) => {
-    openExternalHttp(url);
+    if (!url) return { action: 'deny' };
+    try {
+      if (appOrigin && url.startsWith(appOrigin)) {
+        return { action: 'allow' };
+      }
+    } catch (_) {}
+    if (openExternalHttp(url)) {
+      return { action: 'deny' };
+    }
     return { action: 'deny' };
   });
 
-  // Cobertura para fluxos que navegam a própria janela (ex.: alguns botões de envio/Zap).
+  // Cobertura para links que alteram a própria janela (ex.: alguns fluxos de WhatsApp).
   win.webContents.on('will-navigate', (event, url) => {
     if (!url) return;
     if (appOrigin && url.startsWith(appOrigin)) return;
@@ -106,6 +126,14 @@ async function createWindow() {
       event.preventDefault();
     }
   });
+
+  try {
+    await win.loadURL(target, {
+      extraHeaders: ['Cache-Control: no-cache', 'Pragma: no-cache'].join('\n'),
+    });
+  } catch (err) {
+    console.error('Falha ao carregar URL:', target, err);
+  }
 }
 
 function registerReloadShortcut() {

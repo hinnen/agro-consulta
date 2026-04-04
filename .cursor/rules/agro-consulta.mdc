@@ -1,0 +1,34 @@
+---
+description: GM Agro Consulta — UX loja, workflow de patches e ponteiros para o mapa do projeto
+alwaysApply: true
+---
+
+# Agro Consulta — regras do projeto
+
+## Fonte completa
+
+Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**. Para tarefas grandes ou pouco claras, o usuário pode anexar `@AGENTS.md`; não é obrigatório pedir leitura em todo chat se esta regra já estiver ativa.
+
+## UX (resumo)
+
+- Telas 14–19", compacto e legível; contraste alto; botões grandes; teclado/scanner antes do mouse.
+- Tela limpa; ajuda longa só em tooltip, modal ou "?".
+- Paleta emerald / orange / slate; hierarquia forte.
+- Onde couber: busca local rápida + sync em background; barra de estoque com manual + última atualização + standby.
+- **Voltar ao PDV (F1)** quando existir; ao voltar, **preservar contexto** (draft, filtros, lista).
+
+## Como trabalhar
+
+- Respostas curtas (modo econômico) quando o usuário pedir.
+- **Antes de editar:** uma linha com o plano.
+- **Escopo:** só arquivos combinados; ampliar só com autorização do usuário.
+- Preferir **um patch coeso** por entrega.
+- Código existente: citar com formato ` ```startLine:endLine:path` ` quando mostrar trechos.
+
+## Onde está o quê (rápido)
+
+- Rotas web principais: `produtos/urls.py`; raiz Django: `config/urls.py`.
+- Financeiro Mongo/agregações: `produtos/mongo_financeiro_util.py`.
+- PDF financeiro padrão: `produtos/lancamentos_financeiro_pdf.py`.
+- Electron empacotado: `electron/main.js`, `electron/preload.js`.
+- Links externos / WhatsApp no browser: `produtos/templates/produtos/_agro_open_external.html` (puxado por `_agro_consulta_ui.html`).
