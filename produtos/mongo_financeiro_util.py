@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 _SENTINEL = datetime(1, 1, 1, 0, 0)
 COL_DTO_LANCAMENTO = "DtoLancamento"
+# Cadastro de plano (Mongo shell: db.DtoPlanoDeConta.find().sort({ _id: -1 }).limit(10))
+COL_DTO_PLANO_CONTA = "DtoPlanoDeConta"
 
 # Campos que o DTO C# do ERP espera como string no BSON (não ObjectId).
 _COERCE_OID_CAMPOS_ERP = (
@@ -47,6 +49,288 @@ def _financeiro_id_para_string(v: Any) -> str:
             return oid.strip()
         return ""
     return str(v).strip()
+
+
+def _pedido_erp_filtro_empresa(empresa_id: str | None) -> dict[str, Any]:
+    e = (empresa_id or "").strip()
+    if not e:
+        return {}
+    return {"EmpresaID": e}
+
+
+def _pedido_erp_oid_24(val: str) -> ObjectId | None:
+    if len(val) != 24 or not all(c in "0123456789abcdefABCDEF" for c in val):
+        return None
+    try:
+        return ObjectId(val)
+    except Exception:
+        return None
+
+
+def _texto_plano_mestre_para_pedido_erp(doc: dict[str, Any]) -> str:
+    """
+    DTO de plano no WL costuma ter ``Hierarquia`` (ex.: 1.1.3) e ``Nome`` (ex.: Vendas SisVale).
+    O texto enviado ao Pedidos/Salvar costuma ser ``{Hierarquia} — {Nome}`` (travessão), como no financeiro.
+    """
+    pc = str(doc.get("PlanoDeConta") or "").strip()
+    if pc:
+        return pc
+    h = str(doc.get("Hierarquia") or "").strip()
+    n = str(doc.get("Nome") or "").strip()
+    if h and n:
+        return f"{h} — {n}"
+    if n:
+        return n
+    if h:
+        return h
+    for key in ("Descricao", "Titulo", "NomeCompleto", "DescricaoCompleta"):
+        v = doc.get(key)
+        if v is not None and str(v).strip():
+            return str(v).strip()
+    return ""
+
+
+def _documento_plano_mestre_por_id_na_colecao(col, pid: str, oid: ObjectId | None) -> dict[str, Any] | None:
+    doc = None
+    if oid is not None:
+        doc = col.find_one({"_id": oid})
+    if not doc:
+        doc = col.find_one({"_id": pid})
+    if not doc:
+        doc = col.find_one({"Id": pid})
+    if not doc:
+        doc = col.find_one({"PlanoDeContaID": pid})
+    if not doc and oid is not None:
+        doc = col.find_one({"PlanoDeContaID": oid})
+    return doc
+
+
+def documento_plano_mestre_por_id_mongo(db, plano_id: str) -> dict[str, Any] | None:
+    """Documento bruto em ``DtoPlanoDeConta`` (ou coleção equivalente), por ``_id`` / ``PlanoDeContaID``."""
+    pid = (plano_id or "").strip()
+    if db is None or not pid:
+        return None
+
+    oid = _pedido_erp_oid_24(pid)
+    fixas = (
+        COL_DTO_PLANO_CONTA,
+        "DtoPlanoConta",
+        "DtoPlanoContaItem",
+        "PlanoDeConta",
+    )
+    extras: list[str] = []
+    try:
+        for nome in db.list_collection_names():
+            low = nome.lower()
+            if "plano" in low and "cont" in low and nome not in fixas:
+                extras.append(nome)
+        extras.sort()
+    except Exception:
+        pass
+
+    for col_name in (*fixas, *extras):
+        try:
+            col = db[col_name]
+        except Exception:
+            continue
+        doc = _documento_plano_mestre_por_id_na_colecao(col, pid, oid)
+        if doc:
+            return doc
+    return None
+
+
+def candidatos_texto_plano_para_api_pedido(
+    db,
+    *,
+    plano_id: str,
+    texto_ja_resolvido: str,
+) -> list[str]:
+    """
+    Textos possíveis para ``planoDeConta`` (string) quando o ERP exige coincidência exata.
+    Ordem: resolvido, cadastro (várias grafias), exemplo em DtoLancamento.
+    """
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def add(s: str) -> None:
+        t = (s or "").strip()
+        if len(t) > 500:
+            t = t[:500]
+        if not t or t in seen:
+            return
+        seen.add(t)
+        out.append(t)
+
+    add(texto_ja_resolvido)
+    doc = (
+        documento_plano_mestre_por_id_mongo(db, plano_id)
+        if db is not None and plano_id
+        else None
+    )
+    if doc:
+        add(_texto_plano_mestre_para_pedido_erp(doc))
+        nome = str(doc.get("Nome") or "").strip()
+        hier = str(doc.get("Hierarquia") or "").strip()
+        add(nome)
+        add(hier)
+        if nome:
+            add(re.sub(r"\s+", " ", nome).strip())
+        if hier and nome:
+            add(f"{hier} — {nome}")
+            add(f"{hier} - {nome}")
+            add(f"{hier} – {nome}")
+            add(f"{hier} {nome}")
+        full = _texto_plano_mestre_para_pedido_erp(doc)
+        if full:
+            add(re.sub(r"\s+", " ", full).strip())
+    pid = (plano_id or "").strip()
+    if db is not None and pid:
+        try:
+            col = db[COL_DTO_LANCAMENTO]
+            lam = col.find_one({"PlanoDeContaID": pid}, {"PlanoDeConta": 1})
+            if not lam:
+                oid = _pedido_erp_oid_24(pid)
+                if oid is not None:
+                    lam = col.find_one({"PlanoDeContaID": oid}, {"PlanoDeConta": 1})
+            if lam:
+                add(str(lam.get("PlanoDeConta") or "").strip())
+        except Exception:
+            logger.debug("candidatos_texto_plano_para_api_pedido: DtoLancamento", exc_info=True)
+    return out[:24]
+
+
+def buscar_plano_conta_mestre_por_id_mongo(db, plano_id: str) -> tuple[str, str]:
+    """
+    Alguns planos existem só na coleção de cadastro (``_id`` = PlanoDeContaID), sem lançamento ainda.
+    Retorna (nome_para_api, id_string).
+    """
+    doc = documento_plano_mestre_por_id_mongo(db, plano_id)
+    if not doc:
+        return "", ""
+    nome = _texto_plano_mestre_para_pedido_erp(doc)
+    rid = _financeiro_id_para_string(doc.get("_id")) or (plano_id or "").strip()
+    if nome or rid:
+        return nome, rid
+    return "", ""
+
+
+def resolver_plano_conta_para_pedido_erp(
+    db,
+    *,
+    texto_config: str,
+    id_config: str | None = None,
+    empresa_id: str | None = None,
+) -> tuple[str, str]:
+    """
+    Usa exemplos em ``DtoLancamento`` para obter o texto canônico e ``PlanoDeContaID``.
+    O Pedidos/Salvar do Venda ERP costuma validar o plano por ID; o literal precisa bater com o cadastro.
+    ``empresa_id`` restringe lançamentos à mesma empresa do depósito do pedido (quando informado).
+    """
+    texto = (texto_config or "").strip()
+    id_hint = (str(id_config).strip() if id_config else "") or ""
+    fe = _pedido_erp_filtro_empresa(empresa_id)
+
+    if db is None:
+        return texto, id_hint
+
+    if id_hint:
+        pn_m, pid_m = buscar_plano_conta_mestre_por_id_mongo(db, id_hint)
+        if pid_m and pn_m:
+            return pn_m, pid_m
+        if pid_m and not pn_m and texto:
+            return texto, pid_m
+
+    try:
+        col = db[COL_DTO_LANCAMENTO]
+    except Exception:
+        return texto, id_hint
+
+    proj = {"PlanoDeConta": 1, "PlanoDeContaID": 1}
+
+    def _from_doc(doc: dict | None) -> tuple[str, str]:
+        if not doc:
+            return "", ""
+        pn = str(doc.get("PlanoDeConta") or "").strip()
+        pid = _financeiro_id_para_string(doc.get("PlanoDeContaID"))
+        return pn, pid
+
+    def _query_por_plano_id(val: str) -> dict | None:
+        if not val:
+            return None
+        flt: dict[str, Any] = {**fe, "PlanoDeContaID": val}
+        doc = col.find_one(flt, proj)
+        if doc:
+            return doc
+        oid = _pedido_erp_oid_24(val)
+        if oid is not None:
+            doc = col.find_one({**fe, "PlanoDeContaID": oid}, proj)
+            if doc:
+                return doc
+        if fe:
+            doc = col.find_one({"PlanoDeContaID": val}, proj)
+            if doc:
+                return doc
+            if oid is not None:
+                doc = col.find_one({"PlanoDeContaID": oid}, proj)
+                if doc:
+                    return doc
+        return None
+
+    if id_hint:
+        doc = _query_por_plano_id(id_hint)
+        if doc:
+            pn, pid = _from_doc(doc)
+            if pn and pid:
+                return pn, pid
+            if pid:
+                return (texto or pn), pid
+
+    if texto:
+        doc = col.find_one({**fe, "PlanoDeConta": texto}, proj)
+        if not doc and fe:
+            doc = col.find_one({"PlanoDeConta": texto}, proj)
+        pn, pid = _from_doc(doc)
+        if pid:
+            return pn or texto, pid
+
+        def _dash_variants(s: str) -> list[str]:
+            parts = re.split(r"\s*[—–−-]\s*", s, maxsplit=1)
+            if len(parts) < 2:
+                return [s]
+            code, tail = parts[0].strip(), parts[1].strip()
+            seps = (" — ", " – ", " - ", "—", "–", "-")
+            return [f"{code}{sep}{tail}" for sep in seps] + [s]
+
+        seen: set[str] = set()
+        for cand in _dash_variants(texto):
+            if cand in seen:
+                continue
+            seen.add(cand)
+            doc = col.find_one({**fe, "PlanoDeConta": cand}, proj)
+            if not doc and fe:
+                doc = col.find_one({"PlanoDeConta": cand}, proj)
+            pn, pid = _from_doc(doc)
+            if pid:
+                return pn or cand, pid
+
+        cod = _parse_codigo_hierarquia_plano(texto)
+        if cod:
+            try:
+                esc = re.escape(cod)
+                flt_rx = {**fe, "PlanoDeConta": {"$regex": f"^{esc}\\b", "$options": "i"}}
+                doc = col.find_one(flt_rx, proj)
+                if not doc and fe:
+                    doc = col.find_one(
+                        {"PlanoDeConta": {"$regex": f"^{esc}\\b", "$options": "i"}},
+                        proj,
+                    )
+                pn, pid = _from_doc(doc)
+                if pid:
+                    return pn, pid
+            except Exception:
+                logger.debug("resolver_plano_conta_para_pedido_erp: regex falhou", exc_info=True)
+
+    return texto, id_hint
 
 
 def _financeiro_doc_coerce_ids_oid_para_string(doc: dict[str, Any]) -> None:

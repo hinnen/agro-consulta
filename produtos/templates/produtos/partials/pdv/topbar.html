@@ -1,0 +1,54 @@
+            <header class="shrink-0 flex {% if pdv_dedicado %}flex-nowrap{% else %}flex-wrap{% endif %} items-center {% if pdv_dedicado %}gap-0.5 sm:gap-1{% else %}gap-1.5 sm:gap-2{% endif %} {% if pdv_dedicado %}px-1.5 sm:px-2{% else %}px-2 sm:px-3{% endif %} {% if pdv_dedicado %}py-0.5 sm:py-1{% else %}py-1.5{% endif %} {% if pdv_dedicado %}bg-slate-50/95{% else %}bg-white{% endif %} border-b border-slate-200">
+                <div class="flex items-center {% if pdv_dedicado %}gap-1{% else %}gap-1.5{% endif %} min-w-0" title="PDV — venda. F2 foca na busca. F1 abre o carrinho (faixa laranja à direita); em outras telas, F1 volta ao PDV.">
+                    <div class="{% if pdv_dedicado %}h-7.5 w-7.5 sm:h-8 sm:w-8{% else %}h-8 w-8 sm:h-9 sm:w-9{% endif %} rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+                        <span class="text-sm sm:text-base font-black"><span class="text-emerald-600">G</span><span class="text-orange-500">M</span></span>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-xs sm:text-sm font-black text-slate-800 leading-tight truncate">GM <span class="text-emerald-600">AGRO MAIS</span></div>
+                        {% if pdv_dedicado %}
+                        <div class="hidden sm:block text-[10px] font-bold uppercase tracking-wide text-slate-500">Modo PDV</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex-1 flex items-center justify-end {% if pdv_dedicado %}gap-0.5 sm:gap-1 overflow-x-auto hide-scroll whitespace-nowrap{% else %}flex-wrap gap-1.5 sm:gap-2{% endif %} min-w-0">
+                    {% if caixa_aberto %}
+                    <a href="{% url 'caixa_painel' %}" class="{% if pdv_dedicado %}hidden lg:inline-flex{% else %}hidden sm:inline-flex{% endif %} items-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-200 hover:bg-emerald-200/80 shrink-0" title="Caixa aberto — ver painel">Caixa #{{ caixa_aberto.pk }}</a>
+                    {% else %}
+                    <a href="{% url 'caixa_abrir' %}" class="{% if pdv_dedicado %}hidden lg:inline-flex{% else %}hidden sm:inline-flex{% endif %} items-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-950 border border-amber-200 hover:bg-amber-200/80 shrink-0" title="Nenhum caixa aberto neste navegador">Abrir caixa</a>
+                    {% endif %}
+                    {% if not pdv_dedicado %}
+                    <label class="sr-only" for="pdv-empresa">Empresa / unidade</label>
+                    <select id="pdv-empresa" class="text-xs sm:text-sm font-bold border border-slate-200 rounded-lg px-2 py-1.5 sm:px-2.5 sm:py-2 bg-slate-50 text-slate-800 max-w-[min(200px,100%)]" title="Unidade / contexto da venda (configuração futura do ERP).">
+                        <option value="1">Agro Mais — Principal</option>
+                    </select>
+                    {% endif %}
+                    <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-700 border border-slate-200 shrink-0 max-w-[7rem] truncate" title="Operador (modo descanso)"></span>
+                    {% include "produtos/_barra_estoque_global.html" %}
+                    <div id="agro-barra-sync-api-wrap" class="inline-flex items-center {% if pdv_dedicado %}gap-0.5 px-0.5 py-0.5{% else %}gap-1 sm:gap-1.5 px-1.5 py-1{% endif %} rounded-xl border border-amber-300/90 bg-gradient-to-r from-amber-50/95 to-orange-50/90 shadow-sm shrink-0" role="region" aria-label="Sincronização completa com o servidor" title="Baixa catálogo de produtos, lista de clientes e saldos (delta + leitura ERP). Use ao abrir o caixa ou quando fizer muito tempo sem sync. O botão verde Estoque só atualiza saldos, mais rápido.">
+                        <button type="button" id="agro-btn-sincronizar-api" class="relative inline-flex items-center {% if pdv_dedicado %}gap-0.5 rounded-md pl-1 pr-1 py-0.5 min-h-[30px] min-w-[62px]{% else %}gap-1.5 rounded-lg pl-1.5 pr-2 py-1.5{% endif %} border-2 border-amber-500/55 bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-[9px] sm:text-[10px] font-black uppercase shadow-md transition-[border-color,transform] active:scale-[0.98] shrink-0 overflow-hidden" onclick="if (window.agroPdvSincronizarComApi) window.agroPdvSincronizarComApi()">
+                            <span class="agro-termo-track flex flex-col justify-end w-2 h-8 rounded-full bg-black/25 shrink-0 border border-white/30 overflow-hidden shadow-inner" aria-hidden="true">
+                                <span class="agro-termo-fil w-full rounded-b-full transition-all duration-500 ease-out" style="height:0%;min-height:0"></span>
+                            </span>
+                            <span class="relative z-[1] {% if pdv_dedicado %}hidden sm:inline{% endif %}">Sincronizar API</span>
+                            {% if pdv_dedicado %}
+                            <span class="relative z-[1] sm:hidden" aria-hidden="true">Sync</span>
+                            {% endif %}
+                        </button>
+                        <div class="{% if pdv_dedicado %}hidden md:flex{% else %}min-w-0 flex{% endif %} flex-row items-baseline gap-1">
+                            <span class="text-[8px] sm:text-[9px] font-black uppercase text-amber-900/80 leading-none shrink-0">Última sync</span>
+                            <span id="agro-api-sync-ultima" class="text-[9px] sm:text-[10px] font-bold text-amber-950 tabular-nums leading-tight truncate max-w-[6.5rem] sm:max-w-none" title="Horário local da última sincronização completa (catálogo + clientes + saldos)">—</span>
+                        </div>
+                    </div>
+                    <button type="button" id="btn-pdv-sair-usuario-pin" class="inline-flex items-center justify-center {% if pdv_dedicado %}px-1.5 py-0.5 min-h-[30px] min-w-[52px]{% else %}px-2.5 py-1.5{% endif %} rounded-lg text-[10px] font-black uppercase border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 shrink-0" title="Encerra o usuário neste aparelho e abre a tela de PIN" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">
+                        <span class="{% if pdv_dedicado %}hidden sm:inline{% endif %}">Sair / PIN</span>
+                        {% if pdv_dedicado %}
+                        <span class="sm:hidden" aria-hidden="true">PIN</span>
+                        {% endif %}
+                    </button>
+                    <div id="pdv-clock" class="text-[11px] sm:text-xs font-semibold text-slate-500 tabular-nums {% if pdv_dedicado %}hidden xl:block{% else %}hidden sm:block{% endif %}" title="Data e hora local"></div>
+                    <button type="button" onclick="abrirModalLembretes()" class="inline-flex items-center justify-center gap-1 {% if pdv_dedicado %}px-1 py-0.5 sm:px-1.5 sm:py-1 min-h-[30px] min-w-[34px]{% else %}px-2 py-1.5 sm:px-2.5 sm:py-2{% endif %} rounded-lg border {% if pdv_dedicado %}border-slate-200 bg-white text-slate-800 hover:bg-slate-100{% else %}border-amber-200 bg-amber-50 text-amber-950 hover:bg-amber-100/90{% endif %} text-[10px] font-black uppercase tracking-wide shadow-sm shrink-0" title="Lembretes do caixa — abre janela para criar alertas por horário (som e aviso no canto da tela).">
+                        <span class="text-base leading-none" aria-hidden="true">⏰</span>
+                        <span class="{% if pdv_dedicado %}hidden lg:inline{% else %}hidden sm:inline{% endif %}">Lembretes</span>
+                    </button>
+                </div>
+            </header>

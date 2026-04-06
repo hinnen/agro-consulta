@@ -78,6 +78,7 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 - **Barra de estoque** (PDV): atualização manual + horário da última atualização + automático em standby quando a tela tiver isso.
 - **“Voltar ao PDV (F1)”** visível nas telas possíveis.
 - Ao voltar ao PDV: **preservar contexto** (draft, filtros, lista, scroll).
+- **Home administrativa (launcher):** sem **rolagem da página** (`overflow: hidden` no viewport, `100dvh` / `min-h-0` com flex); **tipografia e espaçamentos fluidos** (`clamp` com `vw` + `rem` na shell) e **colunas da grade por largura útil** (`container-type: inline-size` + `@container`), para o layout **acompanhar o zoom** sem empilhar cards; em **zoom muito alto**, se necessário há **rolagem só na área da grade** (sem sobreposição).
 
 ---
 

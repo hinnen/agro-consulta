@@ -57,6 +57,13 @@
   var root = document.getElementById('sspin-root');
   if (!root) return;
 
+  /** O blur do modo descanso aplica em filhos de `body`; se o PIN ficar dentro de `main`, o próprio modal fica borrado. */
+  if (root.parentElement !== document.body) {
+    try {
+      document.body.appendChild(root);
+    } catch (eReparent) {}
+  }
+
   var idleMin = parseFloat(root.getAttribute('data-idle-min') || '3', 10);
   if (!Number.isFinite(idleMin) || idleMin < 0.5) idleMin = 3;
   var IDLE_MS = Math.round(idleMin * 60 * 1000);
@@ -137,6 +144,31 @@
     if (setupMsg) setupMsg.textContent = '';
   }
 
+  function focarCampoPin() {
+    if (!input || !locked) return;
+    try {
+      input.focus({ preventScroll: true });
+    } catch (e) {
+      try {
+        input.focus();
+      } catch (e2) {}
+    }
+  }
+
+  function agendarFocoPin() {
+    if (!input) return;
+    var tentativas = 0;
+    function tentar() {
+      if (!locked) return;
+      focarCampoPin();
+      tentativas += 1;
+      if (tentativas < 6) setTimeout(tentar, tentativas === 1 ? 30 : 80);
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(tentar);
+    });
+  }
+
   function showPinPanel() {
     if (panelPin) panelPin.classList.remove('hidden');
     if (panelSetup) panelSetup.classList.add('hidden');
@@ -145,7 +177,7 @@
     clearMsg();
     if (input) {
       input.value = '';
-      setTimeout(function () { input.focus(); }, 120);
+      agendarFocoPin();
     }
   }
 
@@ -160,7 +192,19 @@
     if (new1) new1.value = '';
     if (new2) new2.value = '';
     renderNameButtons();
-    setTimeout(function () { if (new1) new1.focus(); }, 100);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        if (new1 && locked) {
+          try {
+            new1.focus({ preventScroll: true });
+          } catch (e) {
+            try {
+              new1.focus();
+            } catch (e2) {}
+          }
+        }
+      });
+    });
   }
 
   function renderNameButtons() {
@@ -362,6 +406,21 @@
   /** PDV/outras telas: limpa operador local e abre a tela de PIN imediatamente (troca de turno). */
   window.gmSspinSairEAbrirPin = function () {
     sairUsuarioEVoltarPedidoPin();
+    openLock();
+  };
+
+  /** Exige PIN na hora e executa callback ao validar sem trocar o operador ativo. */
+  window.gmSspinProtegerAcao = function (onSuccess) {
+    if (typeof onSuccess !== 'function') return;
+    var callbackExecutado = false;
+    var originalCloseLock = closeLock;
+    closeLock = function () {
+      originalCloseLock();
+      if (callbackExecutado) return;
+      callbackExecutado = true;
+      closeLock = originalCloseLock;
+      onSuccess();
+    };
     openLock();
   };
 })();

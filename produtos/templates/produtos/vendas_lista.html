@@ -100,11 +100,15 @@
               <td class="px-4 py-3 text-right tabular-nums font-black text-slate-900">R$ {{ v.total }}</td>
               <td class="px-4 py-3 text-xs text-slate-500">{% if v.sessao_caixa_id %}#{{ v.sessao_caixa_id }}{% else %}—{% endif %}</td>
               <td class="px-4 py-3">
-                {% if v.enviado_erp %}
-                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">Ok</span>
+                {% with s=v.erp_sync_efetivo %}
+                {% if s == 'aceito' %}
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">ERP ok</span>
+                {% elif s == 'recusado_erp' %}
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-rose-100 text-rose-900" title="O ERP respondeu com erro de validação ou negócio.">ERP recusou</span>
                 {% else %}
-                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-900">Erro</span>
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-900" title="Falha de rede, HTTP ou resposta inesperada.">Falha envio</span>
                 {% endif %}
+                {% endwith %}
               </td>
               <td class="px-4 py-3 text-xs text-slate-500 truncate max-w-[100px]" title="{{ v.usuario_registro }}">{{ v.usuario_registro|default:"—" }}</td>
             </tr>

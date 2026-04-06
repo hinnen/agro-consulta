@@ -1,0 +1,329 @@
+{% extends "layouts/base_pdv.html" %}
+{% load static %}
+
+{% block pdv_title %}Agro Mais | PDV Wizard{% endblock %}
+{% block body_class %}bg-slate-100 text-slate-900 h-screen overflow-hidden{% endblock %}
+{% block main_class %}h-full min-h-0 overflow-hidden{% endblock %}
+{% block pdv_shell_class %}flex h-full min-h-0 flex-col bg-slate-100{% endblock %}
+{% block pdv_header %}{% endblock %}
+{% block pdv_section_class %}flex min-h-0 flex-1 flex-col max-w-none overflow-hidden p-0{% endblock %}
+
+{% block head_extra %}
+<style>
+  .pdv-wizard-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+  .pdv-wizard-scroll::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.55); border-radius: 999px; }
+  .pdv-step-panel[hidden] { display: none !important; }
+  .pdv-step-badge-active { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 10px 28px rgba(16, 185, 129, 0.22); }
+  .pdv-step-badge-done { background: #ecfdf5; color: #047857; border-color: rgba(16, 185, 129, 0.22); }
+  .pdv-product-card:hover { border-color: rgba(16, 185, 129, 0.35); box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08); }
+  .pdv-summary-sticky { top: 0.5rem; }
+  .pdv-input { width: 100%; border-radius: 1rem; border: 2px solid #e2e8f0; background: #fff; padding: 0.72rem 0.9rem; font-size: 0.95rem; font-weight: 700; color: #0f172a; outline: none; transition: border-color .15s ease, box-shadow .15s ease; }
+  .pdv-input:focus { border-color: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.14); }
+  .pdv-soft-card { border: 1px solid #e2e8f0; background: linear-gradient(180deg, #fff, #f8fafc); }
+  .pdv-action-btn { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 40px; border-radius: .95rem; font-weight: 900; text-transform: uppercase; letter-spacing: .03em; transition: transform .12s ease, background .12s ease, border-color .12s ease; }
+  .pdv-action-btn:active { transform: translateY(1px); }
+  .pdv-cart-row { flex-wrap: nowrap; align-items: center; }
+  .pdv-cart-row .pdv-cart-line { line-height: 1.2; }
+  .pdv-product-results-grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .pdv-product-results-empty { display: flex; min-height: 12rem; align-items: center; justify-content: center; border: 1px dashed #cbd5e1; border-radius: 1.25rem; background: linear-gradient(180deg, #fff, #f8fafc); color: #64748b; font-size: .9rem; font-weight: 700; text-align: center; padding: 1rem; }
+  #pdv-step1-side .pdv-step1-side-card { min-width: 0; }
+  #pdv-step1-side .pdv-side-money { white-space: nowrap; }
+  #pdv-product-search-wrap.pdv-search-awaiting #pdv-product-search {
+    animation: pdv-search-pulse 2.2s ease-in-out infinite;
+    border-color: rgba(245, 158, 11, 0.55);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.25);
+  }
+  @keyframes pdv-search-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.2); border-color: rgba(245, 158, 11, 0.45); }
+    50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.55); }
+  }
+  #pdv-product-photo-pop::backdrop { background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); }
+  #pdv-step-pagamento-root .pdv-pay-flow-pop { padding: 0; border: none; border-radius: 1.5rem; max-height: 92vh; }
+  #pdv-step-pagamento-root .pdv-pay-flow-pop::backdrop { background: rgba(15, 23, 42, 0.78); backdrop-filter: blur(5px); }
+  #pdv-step-pagamento-root.pdv-pay-step { flex: 1 1 min(0); min-height: 0; }
+  #pdv-step-pagamento-root .pdv-pay-main-grid { flex: 1 1 min(0); min-height: 0; }
+  #pdv-step-pagamento-root .pdv-pay-left-col { flex: 1 1 min(0); min-height: 0; max-height: 100%; }
+  #pdv-step-pagamento-root .pdv-payment-flow:not(.hidden) { display: flex; min-height: 0; }
+  #pdv-pay-pop-maquinas .pdv-pay-maquina-card-mp {
+    border-color: #ca8a04 !important;
+    background: linear-gradient(145deg, #fef9c3 0%, #fde047 45%, #facc15 100%) !important;
+    color: #422006 !important;
+    min-height: 4.25rem;
+    box-shadow: 0 12px 28px rgba(202, 138, 4, 0.35);
+  }
+  #pdv-pay-pop-maquinas .pdv-pay-maquina-card-mp:hover { filter: brightness(1.03); }
+  #pdv-pay-pop-maquinas .pdv-pay-maquina-card-sicredi {
+    border-color: #15803d !important;
+    background: linear-gradient(145deg, #ecfdf5 0%, #4ade80 35%, #16a34a 100%) !important;
+    color: #052e16 !important;
+    min-height: 4.25rem;
+    box-shadow: 0 12px 28px rgba(22, 163, 74, 0.35);
+  }
+  #pdv-pay-pop-maquinas .pdv-pay-maquina-card-sicredi:hover { filter: brightness(1.03); }
+  #pdv-pay-pop-maquinas .pdv-pay-maquina-card-sicoob {
+    border-color: #1d4ed8 !important;
+    background: linear-gradient(145deg, #eff6ff 0%, #93c5fd 40%, #2563eb 100%) !important;
+    color: #0f172a !important;
+    min-height: 4.25rem;
+    box-shadow: 0 12px 28px rgba(37, 99, 235, 0.3);
+  }
+  #pdv-pay-pop-maquinas .pdv-pay-maquina-card-sicoob:hover { filter: brightness(1.03); }
+  #pdv-pay-pop-maquinas .pdv-pay-maquina-card-outro {
+    border-color: #64748b !important;
+    background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%) !important;
+    color: #0f172a !important;
+    min-height: 4.25rem;
+  }
+  #pdv-pack-entrega-print { display: none !important; }
+  @media print {
+    body.print-pdv-entrega-pack > *:not(#pdv-pack-entrega-print) { display: none !important; }
+    body.print-pdv-entrega-pack #pdv-pack-entrega-print {
+      display: block !important;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 80mm;
+      max-width: 80mm;
+      font-family: 'Courier New', Courier, monospace;
+      color: #000;
+      padding: 0;
+      margin: 0;
+      background: #fff;
+    }
+    body.print-pdv-entrega-pack .pdv-entrega-page {
+      page-break-after: always;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 4mm 3mm;
+    }
+    body.print-pdv-entrega-pack .pdv-entrega-page:last-child { page-break-after: auto; }
+  }
+  @media (max-width: 1400px) and (max-height: 800px) {
+    .pdv-action-btn { min-height: 34px; border-radius: .8rem; }
+    #pdv-topbar-compact { gap: .35rem; }
+    #pdv-topbar-compact .pdv-action-btn { padding: .25rem .55rem !important; font-size: 10px; }
+    #pdv-stepper .pdv-step-nav { padding: .25rem .5rem !important; border-radius: .8rem; }
+    #pdv-step1-layout { grid-template-columns: minmax(0, 1fr) 13.25rem !important; gap: .35rem; }
+    #pdv-step1-client-bar { padding: .4rem .6rem !important; }
+    #pdv-step1-search-wrap { padding: .45rem .6rem !important; }
+    #pdv-step1-search-wrap h3 { font-size: 12px !important; }
+    #pdv-product-search { height: 2.4rem !important; font-size: 13px !important; padding-top: .55rem !important; padding-bottom: .55rem !important; }
+    #pdv-product-autocomplete { max-height: 16rem !important; }
+    #pdv-product-cart-list { padding: .35rem .45rem !important; }
+    .pdv-cart-row { padding: .25rem .45rem !important; }
+    .pdv-cart-empty { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+    #pdv-step1-side .pdv-step1-side-card { padding: .55rem .65rem !important; }
+    #pdv-step1-side #pdv-product-subtotal { font-size: 1.65rem !important; margin-top: .35rem !important; }
+    #pdv-step1-side #pdv-step1-advance { padding-top: .55rem !important; padding-bottom: .55rem !important; }
+    #pdv-step1-side #pdv-step1-payment { padding-top: .45rem !important; padding-bottom: .45rem !important; }
+  }
+</style>
+{% endblock %}
+
+{% block pdv_content %}
+{% include "produtos/_gm_loading_bar.html" %}
+{{ pdv_bootstrap|json_script:"agro-pdv-wizard-bootstrap" }}
+
+<div class="flex min-h-0 flex-1 flex-col overflow-hidden px-1 py-1 sm:px-1.5 sm:py-1.5">
+    <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+      <header class="shrink-0 border-b border-slate-200 bg-white/95 px-2.5 py-1.5 sm:px-3">
+        <div class="pdv-wizard-scroll flex flex-nowrap items-center gap-1.5 overflow-x-auto" id="pdv-topbar-compact">
+          <div class="shrink-0 whitespace-nowrap text-sm font-black tracking-tight text-slate-900">
+            <span class="text-[9px] uppercase tracking-[0.22em] text-orange-600">PDV</span>
+            <span class="ml-1">Wizard</span>
+          </div>
+          <div class="flex flex-nowrap items-center gap-1" id="pdv-stepper">
+            <button type="button" class="pdv-step-nav shrink-0 rounded-xl border border-slate-200 px-2 py-1 text-left" data-step-nav="produtos" title="Ir para etapa 1 · Alt+1">
+              <span class="flex items-center gap-1 whitespace-nowrap text-[11px] font-black text-slate-900"><kbd class="pointer-events-none rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[9px] text-slate-600">1</kbd><span>Produtos</span></span>
+            </button>
+            <button type="button" class="pdv-step-nav shrink-0 rounded-xl border border-slate-200 px-2 py-1 text-left" data-step-nav="cliente" title="Ir para etapa 2 · Alt+2">
+              <span class="flex items-center gap-1 whitespace-nowrap text-[11px] font-black text-slate-900"><kbd class="pointer-events-none rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[9px] text-slate-600">2</kbd><span>Cliente</span></span>
+            </button>
+            <button type="button" class="pdv-step-nav shrink-0 rounded-xl border border-slate-200 px-2 py-1 text-left" data-step-nav="entrega" title="Ir para etapa 3 · Alt+3">
+              <span class="flex items-center gap-1 whitespace-nowrap text-[11px] font-black text-slate-900"><kbd class="pointer-events-none rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[9px] text-slate-600">3</kbd><span>Entrega</span></span>
+            </button>
+            <button type="button" class="pdv-step-nav shrink-0 rounded-xl border border-slate-200 px-2 py-1 text-left" data-step-nav="pagamento" title="Ir para etapa 4 · Alt+4">
+              <span class="flex items-center gap-1 whitespace-nowrap text-[11px] font-black text-slate-900"><kbd class="pointer-events-none rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[9px] text-slate-600">4</kbd><span>Pagamento</span></span>
+            </button>
+          </div>
+          <div class="ml-auto flex flex-nowrap items-center gap-1.5">
+            {% if caixa_aberto %}
+            <a href="{% url 'caixa_painel' %}" class="pdv-action-btn border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] text-emerald-900">Caixa #{{ caixa_aberto.pk }}</a>
+            {% endif %}
+            <a id="pdv-wizard-voltar-home" href="{% url 'home' %}" class="pdv-action-btn border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700" title="Sair do wizard">Sair</a>
+            <button type="button" id="pdv-open-budget-history" class="pdv-action-btn border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700" title="Histórico de orçamentos · F6">Orçamento <kbd class="pointer-events-none ml-0.5 hidden rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[8px] sm:inline">F6</kbd></button>
+            <button type="button" id="pdv-pin-btn" class="pdv-action-btn border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">PIN</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div class="min-h-0 flex flex-1 flex-col overflow-hidden px-1 py-1 sm:px-1.5 sm:py-1.5">
+          {% include "produtos/partials/pdv/step_produtos.html" %}
+          {% include "produtos/partials/pdv/step_cliente.html" %}
+          {% include "produtos/partials/pdv/step_entrega.html" %}
+          {% include "produtos/partials/pdv/step_pagamento.html" %}
+        </div>
+
+        <footer id="pdv-main-footer" class="shrink-0 border-t border-slate-200 bg-slate-50/90 px-3 py-2 sm:px-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="text-[11px] font-bold text-slate-500" id="pdv-step-hint">Adicione itens para iniciar a venda.</div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" id="pdv-btn-prev" class="pdv-action-btn border border-slate-300 bg-white px-3 py-1.5 text-[10px] text-slate-700" title="Etapa anterior">Voltar</button>
+              <button type="button" id="pdv-btn-next" class="pdv-action-btn bg-emerald-600 px-3 py-1.5 text-[10px] text-white shadow-lg shadow-emerald-600/20" title="Próxima etapa">Continuar</button>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </section>
+</div>
+
+<div id="pdv-cliente-start-modal" class="fixed inset-0 z-[120] hidden items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+  <div class="w-full max-w-lg rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_28px_80px_rgba(15,23,42,0.25)]">
+    <div class="mt-1 grid gap-3">
+      <button type="button" id="pdv-start-consumidor-final" class="pdv-action-btn rounded-2xl border-2 border-orange-300 bg-orange-50 px-4 py-4 text-left text-orange-950">
+        <span class="block text-base font-black">Consumidor não identificado</span>
+        <span class="mt-1 block text-[10px] font-bold text-orange-800/90"><kbd class="pointer-events-none rounded border border-orange-400 bg-white px-1.5 font-mono text-[10px]">Enter</kbd> para confirmar</span>
+      </button>
+      <button type="button" id="pdv-start-search-client" class="pdv-action-btn rounded-2xl border-2 border-emerald-300 bg-emerald-50 px-4 py-4 text-left text-emerald-950">
+        <span class="block text-base font-black">Buscar outro cliente</span>
+        <span class="mt-1 block text-[10px] font-bold text-emerald-800/90"><kbd class="pointer-events-none rounded border border-emerald-400 bg-white px-1.5 font-mono text-[10px]">F2</kbd> para buscar</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="pdv-budget-history-modal" class="fixed inset-0 z-[121] hidden items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+  <div class="flex max-h-[min(86vh,48rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_28px_80px_rgba(15,23,42,0.25)]">
+    <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+      <div>
+        <h3 class="text-lg font-black text-slate-900">Orçamentos salvos / histórico</h3>
+        <p class="text-[11px] font-semibold text-slate-500">Local neste aparelho. Você pode reabrir a venda no wizard.</p>
+      </div>
+      <button type="button" id="pdv-budget-history-close" class="pdv-action-btn border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-700" title="Fechar · Esc">Fechar <kbd class="pointer-events-none ml-1 rounded border border-slate-200 px-1 font-mono text-[9px]">Esc</kbd></button>
+    </div>
+    <div id="pdv-budget-history-list" class="pdv-wizard-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4"></div>
+  </div>
+</div>
+
+<div id="pdv-cliente-edit-modal" class="fixed inset-0 z-[122] hidden items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+  <div class="w-full max-w-lg rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_28px_80px_rgba(15,23,42,0.25)]">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <p class="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-700">Cliente</p>
+        <h2 class="mt-1 text-xl font-black tracking-tight text-slate-900">Editar contato e endereço</h2>
+        <p class="mt-1 text-xs font-semibold text-slate-500">Os dados seguem na venda e na entrega.</p>
+      </div>
+      <button type="button" id="pdv-cliente-edit-close" class="pdv-action-btn shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] text-slate-700" title="Fechar · Esc">Fechar <kbd class="pointer-events-none ml-1 rounded border border-slate-200 px-1 font-mono text-[9px]">Esc</kbd></button>
+    </div>
+    <div class="mt-4 grid gap-3">
+      <label class="block">
+        <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-500">Telefone</span>
+        <input id="pdv-cliente-telefone" type="text" class="pdv-input" placeholder="Telefone / WhatsApp" autocomplete="tel">
+      </label>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <label class="block sm:col-span-2">
+          <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-500">Logradouro</span>
+          <input id="pdv-cliente-logradouro" type="text" class="pdv-input" placeholder="Rua, avenida, estrada…" autocomplete="address-line1">
+        </label>
+        <label class="block">
+          <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-500">Número</span>
+          <input id="pdv-cliente-numero" type="text" class="pdv-input" placeholder="Nº, km, s/n">
+        </label>
+        <label class="block">
+          <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-500">Bairro</span>
+          <select id="pdv-cliente-bairro" class="pdv-input">
+            <option value="">Selecione</option>
+          </select>
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-500">Plus Code <span class="font-semibold normal-case text-slate-400">(opcional)</span></span>
+          <input id="pdv-cliente-pluscode" type="text" class="pdv-input" placeholder="Ex.: XXXX+XX" autocomplete="off">
+        </label>
+      </div>
+      <button type="button" id="pdv-cliente-advanced-edit-modal" class="pdv-action-btn w-full border border-slate-200 bg-slate-50 px-4 py-2.5 text-[11px] text-slate-800">Abrir cadastro completo no Agro (nova aba)</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-pdv-entrega-fluxo-1" class="fixed inset-0 z-[127] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-ef1-titulo">
+  <div class="w-full max-w-lg overflow-hidden rounded-[1.35rem] border-[3px] border-emerald-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
+    <div class="border-b border-emerald-100 bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-5 sm:px-6 sm:py-6">
+      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Etapa 3 · Entrega</p>
+      <h2 id="pdv-ef1-titulo" class="mt-2 text-xl font-black leading-tight text-white sm:text-2xl">Onde será o pagamento?</h2>
+      <p class="mt-2 text-sm font-semibold text-white/90">Escolha uma opção para continuar.</p>
+    </div>
+    <div class="flex flex-col gap-3 px-4 py-5 sm:px-6 sm:py-6">
+      <button type="button" id="pdv-ef1-entrega" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-white shadow-lg hover:brightness-105 sm:min-h-[4rem] sm:text-lg">Pagamento na entrega</button>
+      <button type="button" id="pdv-ef1-loja" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-emerald-300 bg-emerald-50 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-emerald-950 shadow-md hover:bg-emerald-100 sm:min-h-[4rem] sm:text-lg">Pagamento na loja</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-pdv-entrega-fluxo-2" class="fixed inset-0 z-[128] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-ef2-titulo">
+  <div class="w-full max-w-lg overflow-hidden rounded-[1.35rem] border-[3px] border-orange-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
+    <div class="border-b border-orange-100 bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-5 sm:px-6 sm:py-6">
+      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Pagamento na entrega</p>
+      <h2 id="pdv-ef2-titulo" class="mt-2 text-xl font-black leading-tight text-white sm:text-2xl">Como o cliente vai pagar?</h2>
+    </div>
+    <div class="flex flex-col gap-3 px-4 py-5 sm:px-6 sm:py-6">
+      <button type="button" id="pdv-ef2-dinheiro" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-slate-300 bg-slate-50 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-slate-900 shadow-md hover:bg-slate-100 sm:min-h-[4rem] sm:text-lg">Dinheiro</button>
+      <button type="button" id="pdv-ef2-cartao" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-indigo-300 bg-indigo-50 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-indigo-950 shadow-md hover:bg-indigo-100 sm:min-h-[4rem] sm:text-lg">Cartão</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-pdv-entrega-fluxo-3-troco" class="fixed inset-0 z-[129] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-ef3-titulo">
+  <div class="w-full max-w-md overflow-hidden rounded-[1.35rem] border-[3px] border-slate-300 bg-white shadow-2xl" onclick="event.stopPropagation()">
+    <div class="border-b border-slate-100 bg-slate-800 px-5 py-4 sm:px-6">
+      <h2 id="pdv-ef3-titulo" class="text-lg font-black text-white sm:text-xl">Troco para quanto?</h2>
+      <p class="mt-1 text-xs font-semibold text-slate-300">Informe o valor que o cliente vai pagar em dinheiro (para calcular o troco na entrega).</p>
+    </div>
+    <div class="space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+      <label class="block">
+        <span class="mb-2 block text-[11px] font-black uppercase text-slate-600">Valor (troco)</span>
+        <input type="text" id="pdv-ef3-troco-input" class="pdv-input text-lg font-bold" placeholder="Ex.: 100,00" inputmode="decimal" autocomplete="off">
+      </label>
+      <div class="flex flex-col gap-2 sm:flex-row sm:gap-3">
+        <button type="button" id="pdv-ef3-cancelar" class="flex-1 rounded-2xl border-2 border-slate-200 py-3.5 text-sm font-black uppercase text-slate-700 hover:bg-slate-50">Voltar</button>
+        <button type="button" id="pdv-ef3-ok" class="flex-1 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 py-3.5 text-sm font-black uppercase text-white shadow-lg hover:brightness-105">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-pdv-entrega-impressao" class="fixed inset-0 z-[125] hidden items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="mei-titulo">
+  <div class="w-full max-w-[420px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl ring-1 ring-slate-900/5" onclick="event.stopPropagation()">
+    <div class="relative bg-gradient-to-br from-orange-500 via-orange-500 to-amber-600 px-5 pb-4 pt-5">
+      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Impressão</p>
+      <h2 id="mei-titulo" class="mt-1 text-xl font-black tracking-tight text-white">O que imprimir?</h2>
+    </div>
+    <div class="space-y-3 px-5 py-5">
+      <label class="flex cursor-pointer items-center gap-3 text-sm font-bold text-slate-800"><input type="checkbox" id="mei-chk-sep" class="h-4 w-4 rounded border-slate-300 text-orange-600 accent-orange-600 focus:ring-orange-500" checked> Separação</label>
+      <label class="flex cursor-pointer items-center gap-3 text-sm font-bold text-slate-800"><input type="checkbox" id="mei-chk-ent" class="h-4 w-4 rounded border-slate-300 text-orange-600 accent-orange-600 focus:ring-orange-500" checked> Via do entregador</label>
+      <label class="flex cursor-pointer items-center gap-3 text-sm font-bold text-slate-800"><input type="checkbox" id="mei-chk-cup" class="h-4 w-4 rounded border-slate-300 text-orange-600 accent-orange-600 focus:ring-orange-500" checked> Cupom (cliente)</label>
+    </div>
+    <div class="flex gap-3 px-5 pb-5 pt-0">
+      <button type="button" id="mei-cancelar" class="flex-1 rounded-xl border-2 border-slate-200 bg-white py-3.5 text-sm font-black uppercase tracking-wide text-slate-700 hover:bg-slate-50">Cancelar</button>
+      <button type="button" id="mei-imprimir" class="flex-1 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 py-3.5 text-sm font-black uppercase tracking-wide text-white shadow-lg hover:brightness-105">Imprimir</button>
+    </div>
+  </div>
+</div>
+<div id="pdv-pack-entrega-print" aria-hidden="true"></div>
+<div id="alerta-lembrete" class="fixed bottom-4 right-4 z-[126] hidden max-w-[min(24rem,92vw)] rounded-2xl border-[3px] border-orange-500 bg-white p-4 shadow-2xl" role="alert" aria-live="assertive">
+  <div class="flex items-start gap-3">
+    <div class="text-2xl" aria-hidden="true">⏰</div>
+    <div class="min-w-0">
+      <div id="alerta-lembrete-titulo" class="text-sm font-black uppercase text-slate-800">Lembrete do caixa</div>
+      <div id="alerta-lembrete-texto" class="mt-1 break-words text-sm font-bold text-slate-600"></div>
+      <div class="mt-3 flex gap-2">
+        <button type="button" id="alerta-lembrete-ok" class="rounded-lg bg-orange-500 px-3 py-1.5 text-[11px] font-black uppercase text-white hover:bg-orange-600">Ok</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<script src="{% static 'produtos/js/pdv_state.js' %}"></script>
+<script src="{% static 'produtos/js/pdv_wizard.js' %}"></script>
+{% include "produtos/_screensaver_pin.html" %}
+{% endblock %}

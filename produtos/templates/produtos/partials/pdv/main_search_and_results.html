@@ -1,0 +1,71 @@
+            <div class="flex flex-1 min-h-0 {% if pdv_dedicado %}gap-1 sm:gap-1.5 p-1 sm:p-1.5{% else %}gap-1.5 sm:gap-2 p-1.5 sm:p-2{% endif %} overflow-hidden items-stretch">
+                <div class="flex-1 flex flex-col min-w-0 min-h-0 {% if pdv_dedicado %}gap-1 sm:gap-1.5{% else %}gap-1.5 sm:gap-2{% endif %}">
+                    <div id="scan-banner" class="hidden scan-banner bg-gradient-to-r from-orange-500 to-emerald-600 text-white text-xs font-black uppercase tracking-widest px-4 py-3 rounded-xl shadow-md">
+                        Código lido com sucesso
+                    </div>
+
+                    <div class="shrink-0 flex {% if pdv_dedicado %}gap-1.5{% else %}gap-2{% endif %} items-stretch">
+                        <div class="relative flex-1 min-w-0">
+                            <label for="busca-produto" class="sr-only">Buscar produto</label>
+                            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-500 uppercase bg-white/95 px-1.5 py-0.5 rounded-md border border-slate-300 tabular-nums" title="F2 foca aqui · / também (fora de campos)">F2</span>
+                            <input
+                                type="text"
+                                id="busca-produto"
+                                autocomplete="off"
+                                placeholder="Nome, marca, EAN ou código GM…"
+                                class="w-full {% if pdv_dedicado %}h-11{% else %}h-12{% endif %} pl-3 pr-14 rounded-xl border-2 border-slate-300 text-base font-bold outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-400/35 transition-all bg-white shadow-sm text-slate-900"
+                                title="Busca por nome, marca, código GM, EAN ou código de barras. Tecla F2 foca aqui. Enter adiciona o item selecionado."
+                            >
+                            <div id="autocomplete-results" class="absolute z-50 w-full bg-white mt-1 rounded-lg shadow-xl border border-slate-200 hidden overflow-hidden"></div>
+                        </div>
+                        <button type="button" onclick="abrirBuscaAvancada()" class="shrink-0 self-center {% if pdv_dedicado %}h-11{% else %}h-12{% endif %} px-2.5 sm:px-4 rounded-xl border-2 border-slate-200 bg-slate-50 hover:bg-orange-50 hover:border-orange-300 text-[10px] sm:text-[11px] font-black uppercase text-slate-600 leading-tight max-w-[100px] sm:max-w-none inline-flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5" title="Busca avançada — filtros por marca, fornecedor, categoria, etc. Atalho: Alt + A (fora de campos de texto).">
+                            <span class="text-center leading-snug"><span class="block sm:inline">Busca </span><span class="block sm:inline text-[9px] text-slate-400 font-bold normal-case">avançada</span></span>
+                            <kbd class="pointer-events-none hidden sm:inline-flex text-[9px] px-1.5 py-0.5 rounded-md font-black border border-slate-200 bg-white text-slate-500 whitespace-nowrap normal-case" title="Alt + A">Alt + A</kbd>
+                        </button>
+                    </div>
+
+                    <div id="pdv-top-vendidos-wrap" class="shrink-0 rounded-lg border border-orange-200/90 bg-gradient-to-r from-orange-50/95 to-amber-50/90 {% if pdv_dedicado %}p-1 sm:p-1.5{% else %}p-1.5 sm:p-2{% endif %} shadow-sm">
+                        <div class="flex flex-wrap items-center justify-between gap-1.5 mb-1">
+                            <button type="button" id="pdv-mv-toggle" class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wide text-amber-900 bg-white/80 border border-amber-300/70 rounded-md px-2 py-0.5 hover:bg-amber-100" title="Mostrar/ocultar atalhos rápidos">
+                                <span id="pdv-mv-toggle-icon" aria-hidden="true">▾</span>
+                                Rápidos
+                            </button>
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <button type="button" id="pdv-mv-importar-ranking" class="text-[9px] font-black uppercase text-amber-900 bg-white/80 border border-amber-300/70 rounded-md px-1.5 py-0.5 hover:bg-amber-100" title="Sobrescreve os 10 atalhos com o ranking de vendas dos últimos 30 dias (Mongo).">
+                                    Mongo 30d
+                                </button>
+                                <span class="hidden md:inline text-[9px] font-bold text-amber-800/90 tabular-nums whitespace-nowrap" id="pdv-top-vendidos-meta" title="Gravado só neste navegador/aparelho.">Local</span>
+                            </div>
+                        </div>
+                        <div id="pdv-top-vendidos-body">
+                            <div id="pdv-mv-slot-banner" class="hidden mb-2 text-[10px] font-bold text-amber-950 bg-amber-100/95 border border-amber-300/50 rounded-lg px-2.5 py-2 leading-snug"></div>
+                            <div id="pdv-top-vendidos-btns" class="grid grid-cols-2 sm:grid-cols-5 gap-2 min-h-[2.5rem]"></div>
+                        </div>
+                    </div>
+
+                    <div id="status-busca" class="hidden text-xs font-black uppercase tracking-wider text-slate-500 px-1"></div>
+
+                    <div class="flex-1 flex flex-col min-h-0 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="px-3 sm:px-4 py-2 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 shrink-0 bg-slate-50/80">
+                            <h2 class="text-sm font-black uppercase tracking-wider text-slate-700">Produtos</h2>
+                            <span class="text-[10px] font-bold text-slate-500 tabular-nums cursor-help" title="↑↓ seleciona linha · Enter adiciona · duplo clique adiciona · lápis em C/V ajusta estoque (PIN) · Esc limpa busca.">↑↓ Enter · Esc</span>
+                        </div>
+                        <div id="area-resultados" class="flex-1 min-h-0 overflow-y-auto hide-scroll {% if pdv_dedicado %}p-1.5 space-y-1.5{% else %}p-2 space-y-2{% endif %}">
+                            <div id="produto-destaque" class="hidden"></div>
+                            <div id="lista-similares" class="space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="{% if pdv_dedicado %}w-[3.6rem] sm:w-[4.2rem]{% else %}w-[4rem] sm:w-[4.75rem]{% endif %} shrink-0 flex flex-col items-stretch {% if pdv_dedicado %}gap-1 py-1 px-1 sm:px-1{% else %}gap-1.5 py-1.5 px-1 sm:px-1.5{% endif %} bg-white border border-slate-200 rounded-lg shadow-sm self-stretch min-h-0" aria-label="Atalho do carrinho">
+                    <button type="button" id="btn-abrir-carrinho-pdv" class="relative flex flex-col items-center justify-center gap-1 p-2 sm:p-2.5 rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 text-white shadow-md shadow-orange-500/25 hover:from-orange-600 hover:to-orange-700 transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-orange-400/50" title="Abrir ou fechar carrinho (F1)">
+                        <kbd class="pointer-events-none absolute top-0.5 right-0.5 text-[7px] px-1 py-0.5 rounded font-black bg-white/20 text-white border border-white/30 tabular-nums" aria-hidden="true">F1</kbd>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 sm:w-7 sm:h-7 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm12 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" /></svg>
+                        <span id="itens-badge" class="cart-badge-empty px-1 py-0.5 rounded-md text-[9px] sm:text-[10px] font-black flex flex-col items-center gap-0 leading-tight border border-white/25 bg-white/15 min-w-[2rem] sm:min-w-[2.25rem]"><span class="tabular-nums text-xs sm:text-sm">0</span><span class="text-[7px] uppercase font-bold opacity-90">itens</span></span>
+                    </button>
+                    <div class="text-center px-0.5 flex-1 min-h-0 flex flex-col justify-end pb-1">
+                        <div class="text-[8px] font-black uppercase text-slate-400 tracking-wider">Total</div>
+                        <div id="pdv-carrinho-strip-total" class="text-[11px] sm:text-xs font-black text-emerald-700 tabular-nums leading-tight break-words hyphens-auto mt-0.5">R$ 0,00</div>
+                    </div>
+                </aside>
+            </div>

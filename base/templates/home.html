@@ -1,0 +1,375 @@
+{% extends "layouts/base_admin.html" %}
+
+{% block admin_title %}Agro Consulta | Home{% endblock %}
+{% block admin_header_title %}Agro Consulta{% endblock %}
+{% block body_class %}bg-slate-100 text-slate-800 h-dvh max-h-dvh overflow-hidden{% endblock %}
+{% block main_class %}h-full min-h-0 flex flex-col overflow-hidden{% endblock %}
+{% block admin_shell_class %}h-full min-h-0 flex flex-col bg-slate-100 overflow-hidden{% endblock %}
+{% block admin_header_inner_class %}!py-2 sm:!py-2{% endblock %}
+{% block admin_section_class %}flex-1 min-h-0 overflow-hidden flex flex-col mx-auto max-w-6xl w-full px-2 py-2 sm:px-3 sm:py-2{% endblock %}
+{% block head_extra %}
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <style>
+    .home-hub-outer {
+      flex: 1 1 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .home-hub-shell {
+      --hh-wpx: 800px;
+      --hh-hpx: 640px;
+      flex: 1 1 0;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.3rem, calc(0.18rem + var(--hh-wpx) * 0.004), 0.58rem);
+      container-type: inline-size;
+      container-name: home-hub;
+      font-size: clamp(0.84rem, calc(0.76rem + var(--hh-wpx) * 0.0025), 1.01rem);
+      background:
+        radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 28%),
+        linear-gradient(180deg, #020617 0%, #0f172a 100%);
+    }
+    .home-hub-shell-pad {
+      padding: clamp(0.3rem, calc(0.15rem + var(--hh-wpx) * 0.0045), 0.88rem);
+    }
+    .home-hub-top {
+      flex-shrink: 0;
+      align-items: start;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(0.3rem, calc(0.18rem + var(--hh-wpx) * 0.0036), 0.78rem);
+    }
+    .home-hub-grid-wrap {
+      flex: 1 1 0;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: hidden;
+      overscroll-behavior: contain;
+      align-content: start;
+      align-items: stretch;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(0.3rem, calc(0.18rem + var(--hh-wpx) * 0.0032), 0.68rem);
+    }
+    @container home-hub (min-width: 34rem) {
+      .home-hub-top {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @container home-hub (min-width: 30rem) {
+      .home-hub-grid-wrap {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @container home-hub (min-width: 56rem) {
+      .home-hub-grid-wrap {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+    .home-top-card,
+    .home-grid-card,
+    .home-grid-card-disabled {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      width: 100%;
+      border-radius: clamp(0.92rem, calc(0.56rem + var(--hh-wpx) * 0.0078), 1.38rem);
+      border: 1px solid rgba(51, 65, 85, 0.9);
+      color: #f8fafc;
+      transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+    .home-top-card {
+      min-height: auto;
+      align-self: start;
+      padding: clamp(0.48rem, calc(0.28rem + var(--hh-wpx) * 0.0082), 1.22rem)
+        clamp(0.52rem, calc(0.3rem + var(--hh-wpx) * 0.009), 1.22rem);
+      box-shadow: 0 16px 40px rgba(2, 6, 23, 0.28);
+    }
+    .home-grid-card,
+    .home-grid-card-disabled {
+      min-height: 0;
+      height: auto;
+      align-self: stretch;
+      padding: clamp(0.4rem, calc(0.24rem + var(--hh-wpx) * 0.0064), 1rem)
+        clamp(0.4rem, calc(0.24rem + var(--hh-wpx) * 0.0055), 0.95rem);
+      background: rgba(15, 23, 42, 0.86);
+    }
+    .home-hub-grid-wrap .home-grid-card > div:nth-child(2),
+    .home-hub-grid-wrap .home-grid-card-disabled > div:nth-child(2) {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    .home-top-card:hover,
+    .home-grid-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(148, 163, 184, 0.7);
+      box-shadow: 0 18px 36px rgba(2, 6, 23, 0.28);
+    }
+    .home-top-card-emerald {
+      background: linear-gradient(135deg, #065f46 0%, #047857 48%, #064e3b 100%);
+      border-color: rgba(52, 211, 153, 0.34);
+    }
+    .home-top-card-orange {
+      background: linear-gradient(135deg, #9a3412 0%, #c2410c 50%, #7c2d12 100%);
+      border-color: rgba(251, 146, 60, 0.34);
+    }
+    .home-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: clamp(0.3rem, calc(0.15rem + var(--hh-wpx) * 0.0036), 0.78rem);
+    }
+    .home-card-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: clamp(2.05rem, calc(1.1rem + var(--hh-wpx) * 0.018), 3.05rem);
+      height: clamp(2.05rem, calc(1.1rem + var(--hh-wpx) * 0.018), 3.05rem);
+      border-radius: clamp(0.62rem, calc(0.38rem + var(--hh-wpx) * 0.004), 0.95rem);
+      background: rgba(255, 255, 255, 0.14);
+      flex-shrink: 0;
+    }
+    .home-card-icon svg {
+      width: clamp(1.05rem, calc(0.52rem + var(--hh-wpx) * 0.0112), 1.68rem);
+      height: clamp(1.05rem, calc(0.52rem + var(--hh-wpx) * 0.0112), 1.68rem);
+      stroke-width: 2.15;
+    }
+    .home-shortcut-chip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: clamp(2.35rem, calc(1.22rem + var(--hh-wpx) * 0.021), 3.4rem);
+      min-height: clamp(1.82rem, calc(0.9rem + var(--hh-wpx) * 0.0125), 2.58rem);
+      padding: clamp(0.16rem, calc(0.06rem + var(--hh-wpx) * 0.0022), 0.34rem)
+        clamp(0.3rem, calc(0.15rem + var(--hh-wpx) * 0.0035), 0.58rem);
+      border-radius: clamp(0.48rem, calc(0.28rem + var(--hh-wpx) * 0.0035), 0.82rem);
+      border: 2px solid rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.12);
+      font-size: clamp(0.74rem, calc(0.58rem + var(--hh-wpx) * 0.008), 1.02rem);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      color: rgba(255, 255, 255, 0.98);
+    }
+    .home-card-title {
+      margin-top: clamp(0.2rem, calc(0.1rem + var(--hh-wpx) * 0.003), 0.78rem);
+      font-size: clamp(0.84rem, calc(0.65rem + var(--hh-wpx) * 0.009), 1.26rem);
+      font-weight: 900;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+    .home-top-card .home-card-title {
+      font-size: clamp(1.08rem, calc(0.7rem + var(--hh-wpx) * 0.0148), 1.98rem);
+      line-height: 1.12;
+    }
+    .home-card-foot {
+      margin-top: clamp(0.2rem, calc(0.1rem + var(--hh-wpx) * 0.003), 0.72rem);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.75rem;
+      font-size: clamp(0.66rem, calc(0.52rem + var(--hh-wpx) * 0.0052), 0.92rem);
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .home-grid-card-disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+    }
+    .home-grid-card-disabled:hover {
+      transform: none;
+      box-shadow: none;
+      border-color: rgba(51, 65, 85, 0.9);
+    }
+  </style>
+{% endblock %}
+{% block admin_header_meta %}
+  {% if empresa_atual %}
+    <p class="mt-1 text-base font-bold text-slate-600">Empresa: <span class="text-slate-900">{{ empresa_atual.nome_fantasia }}</span></p>
+  {% endif %}
+{% endblock %}
+
+{% block admin_content %}
+<section class="home-hub-outer w-full">
+  <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-slate-800 shadow-[0_24px_80px_rgba(2,6,23,0.45)] sm:rounded-[1.75rem]">
+    <div class="home-hub-shell home-hub-shell-pad">
+      <div class="home-hub-top">
+        {% for item in home_top_items %}
+          <a
+            href="{{ item.href }}"
+            class="home-top-card home-top-card-{{ item.accent }}"
+            data-home-shortcut="{{ item.shortcut_key }}"
+            {% if item.pin_protected %}data-pin-protected="true"{% endif %}
+          >
+            <div class="home-card-head">
+              <span class="home-card-icon"><i data-lucide="{{ item.icon }}"></i></span>
+              <span class="home-shortcut-chip">{{ item.shortcut }}</span>
+            </div>
+            <div>
+              <div class="home-card-title">{{ item.title }}</div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+
+      <div class="home-hub-grid-wrap mt-1 min-h-0 [grid-auto-rows:auto]">
+        {% for item in home_grid_items %}
+          {% if item.disabled %}
+            <span class="home-grid-card-disabled" aria-disabled="true">
+              <div class="home-card-head">
+                <span class="home-card-icon"><i data-lucide="{{ item.icon }}"></i></span>
+                <span class="home-shortcut-chip">{{ item.shortcut }}</span>
+              </div>
+              <div>
+                <div class="home-card-title">{{ item.title }}</div>
+              </div>
+              <div class="home-card-foot">
+                <span>Indisponível</span>
+              </div>
+            </span>
+          {% else %}
+            <a
+              href="{{ item.href }}"
+              class="home-grid-card"
+              data-home-shortcut="{{ item.shortcut_key }}"
+              {% if item.pin_protected %}data-pin-protected="true"{% endif %}
+            >
+              <div class="home-card-head">
+                <span class="home-card-icon"><i data-lucide="{{ item.icon }}"></i></span>
+                <span class="home-shortcut-chip">{{ item.shortcut }}</span>
+              </div>
+              <div>
+                <div class="home-card-title">{{ item.title }}</div>
+              </div>
+            </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% include "produtos/_screensaver_pin.html" %}
+<script>
+  (function () {
+    var hubLayoutTimer = null;
+
+    function updateHomeHubLayout() {
+      var outer = document.querySelector('.home-hub-outer');
+      var shell = document.querySelector('.home-hub-shell');
+      if (!outer || !shell) return;
+      var box = outer.querySelector(':scope > div.flex');
+      shell.style.zoom = '';
+      var w = shell.clientWidth || 0;
+      var hAvail = box ? box.clientHeight : outer.clientHeight;
+      if (w < 1) w = 800;
+      if (hAvail < 1) hAvail = 640;
+      shell.style.setProperty('--hh-wpx', w + 'px');
+      shell.style.setProperty('--hh-hpx', hAvail + 'px');
+      requestAnimationFrame(function () {
+        var need = shell.scrollHeight;
+        if (need > hAvail + 2 && hAvail > 80) {
+          var z = Math.max(0.62, Math.min(1, hAvail / need));
+          var prev = shell.style.zoom;
+          var zs = String(Math.round(z * 1000) / 1000);
+          if (prev !== zs) shell.style.zoom = zs;
+        }
+      });
+    }
+
+    function scheduleHomeHubLayout() {
+      if (hubLayoutTimer) clearTimeout(hubLayoutTimer);
+      hubLayoutTimer = setTimeout(function () {
+        hubLayoutTimer = null;
+        updateHomeHubLayout();
+      }, 40);
+    }
+
+    function bindHomeHubLayout() {
+      var outer = document.querySelector('.home-hub-outer');
+      var shell = document.querySelector('.home-hub-shell');
+      if (!outer || !shell) return;
+      var box = outer.querySelector(':scope > div.flex');
+      updateHomeHubLayout();
+      if (typeof ResizeObserver !== 'undefined') {
+        var ro = new ResizeObserver(scheduleHomeHubLayout);
+        ro.observe(outer);
+        if (box) ro.observe(box);
+        ro.observe(shell);
+      }
+      window.addEventListener('resize', scheduleHomeHubLayout);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', scheduleHomeHubLayout);
+        window.visualViewport.addEventListener('scroll', scheduleHomeHubLayout);
+      }
+    }
+
+    function initHomeIcons() {
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    }
+
+    function pedirPinAntesDeEntrar(event) {
+      var link = event.target.closest('[data-pin-protected="true"]');
+      if (!link) return;
+      if (typeof window.gmSspinProtegerAcao !== 'function') return;
+      event.preventDefault();
+      var href = link.getAttribute('href');
+      window.gmSspinProtegerAcao(function () {
+        window.location.href = href;
+      });
+    }
+
+    function dispararAtalho(shortcutKey) {
+      var el = document.querySelector('[data-home-shortcut="' + shortcutKey + '"]');
+      if (!el) return;
+      el.click();
+    }
+
+    function normalizarTeclaUnica(event) {
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return null;
+      var raw = event.key;
+      if (!raw) return null;
+      if (/^F\d{1,2}$/i.test(raw)) return raw.toLowerCase();
+      if (raw.length === 1 && /[a-zA-Z0-9]/.test(raw)) return raw.toLowerCase();
+      return null;
+    }
+
+    function onHomeShortcut(event) {
+      if (event.repeat) return;
+      var tag = (event.target && event.target.tagName) ? event.target.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || (event.target && event.target.isContentEditable)) return;
+      var sspin = document.getElementById('sspin-root');
+      if (sspin && sspin.getAttribute('aria-hidden') === 'false') return;
+      var k = normalizarTeclaUnica(event);
+      if (!k) return;
+      if (!document.querySelector('[data-home-shortcut="' + k + '"]')) return;
+      event.preventDefault();
+      dispararAtalho(k);
+    }
+
+    document.addEventListener('click', pedirPinAntesDeEntrar);
+    document.addEventListener('keydown', onHomeShortcut);
+
+    function initHomePage() {
+      initHomeIcons();
+      bindHomeHubLayout();
+      requestAnimationFrame(function () {
+        updateHomeHubLayout();
+        setTimeout(updateHomeHubLayout, 120);
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initHomePage);
+    } else {
+      initHomePage();
+    }
+  })();
+</script>
+{% endblock %}

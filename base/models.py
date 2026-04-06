@@ -91,6 +91,24 @@ class IntegracaoERP(models.Model):
         blank=True,
         help_text="Campo 'vendedor' do orçamento.",
     )
+    pedido_status_sistema = models.CharField(
+        "Status sistema (pedido ERP)",
+        max_length=80,
+        blank=True,
+        help_text="Campo statusSistema em Pedidos/Salvar. Vazio = usa VENDA_ERP_PEDIDO_STATUS_SISTEMA (settings/.env).",
+    )
+    pedido_plano_conta = models.CharField(
+        "Plano de contas (pedido ERP)",
+        max_length=300,
+        blank=True,
+        help_text="Texto do plano em Pedidos/Salvar (ex.: 1.1.3 — Vendas SisVale). Vazio = usa VENDA_ERP_PEDIDO_PLANO_CONTA (settings/.env).",
+    )
+    pedido_plano_conta_id = models.CharField(
+        "ID plano de contas (pedido ERP)",
+        max_length=32,
+        blank=True,
+        help_text="PlanoDeContaID no Mongo (string). Vazio = tenta resolver pelo texto em DtoLancamento ou usa VENDA_ERP_PEDIDO_PLANO_CONTA_ID.",
+    )
 
     class Meta:
         verbose_name = "Integração ERP"

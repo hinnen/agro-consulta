@@ -242,6 +242,7 @@
       payload.cliente_documento = String(clienteSelecionado.documento).trim();
     }
     if (DRAFT.forma_pagamento) payload.forma_pagamento = DRAFT.forma_pagamento;
+    if (DRAFT.pagamentos && DRAFT.pagamentos.length) payload.pagamentos = DRAFT.pagamentos;
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
       var res = await fetch('{% url "api_enviar_pedido_erp" %}', {
