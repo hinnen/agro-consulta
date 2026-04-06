@@ -1,3 +1,9 @@
+"""
+Cliente HTTP da API REST Venda ERP (white label).
+
+Swagger da instância (troque o subdomínio): ``https://<wl>.vendaerp.com.br/api/swagger/index.html``
+— use o mesmo host que ``VENDA_ERP_API_BASE_URL`` quando a API for nesse domínio.
+"""
 import logging
 import requests
 from decouple import config
@@ -79,6 +85,7 @@ class VendaERPAPIClient:
             )
 
         url = f"{self.base_url}/api/request/Pedidos/Salvar"
+        # Corpo: JSON objeto completo (não JSON Patch). No Swagger, escolha ``application/json``, não json-patch+json.
         headers = {
             "Authorization-Token": self.token,
             "User": self.user,

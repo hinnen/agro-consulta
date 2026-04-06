@@ -50,6 +50,7 @@ INSTALLED_APPS = [
 
     'financeiro',
     'lojas',
+    'pdv.apps.PdvConfig',
     'produtos',
     'estoque',
     'transferencias',
@@ -152,6 +153,9 @@ CACHES = {
 
 CONSULTA_CACHE_TTL = 20
 # Configurações da API Venda ERP
+# Contrato OpenAPI (substitua o subdomínio pelo da sua instância WL, o mesmo host de VENDA_ERP_API_BASE_URL quando for o caso):
+#   https://<subdominio>.vendaerp.com.br/api/swagger/index.html
+# Endpoints usados pelo Agro costumam estar sob /api/request/... (ex.: Pedidos/Salvar).
 VENDA_ERP_API_BASE_URL = config('VENDA_ERP_API_BASE_URL', default='https://cw.vendaerp.com.br')
 VENDA_ERP_API_TOKEN = config('VENDA_ERP_API_TOKEN', default='')
 # Financeiro: sufixo após /api/request/ (ex.: Lancamentos/SalvarBaixa). Vazio = não chama API.
@@ -188,6 +192,71 @@ AGRO_SAIDA_CAIXA_EMPRESA_PADRAO = config('AGRO_SAIDA_CAIXA_EMPRESA_PADRAO', defa
 # wa.me abre conversa com um número; não existe URL oficial para “postar” direto em grupo pelo navegador.
 # Para grupo: API (ex. WhatsApp Business), ou número da loja que repassa no grupo manualmente.
 PDV_ENTREGA_WHATSAPP = config('PDV_ENTREGA_WHATSAPP', default='5513997673389').strip()
+# PDV Wizard — etapa pagamento: QR estáticos (URL de imagem), chave Pix e saldos exibidos (vale/cashback até integrar API).
+PDV_QR_MERCADOPAGO_URL = config("PDV_QR_MERCADOPAGO_URL", default="").strip()
+PDV_QR_SICREDI_URL = config("PDV_QR_SICREDI_URL", default="").strip()
+PDV_CHAVE_PIX_SICOB = config("PDV_CHAVE_PIX_SICOB", default="").strip()
+# Venda ERP — POST Pedidos/Salvar: literal exato do status (enum no ERP; maiúsculas importam).
+# Muitas instâncias usam "Pedido" (Title case), não "PEDIDO". Sobrescreva no .env se o seu for outro.
+_VENDA_ERP_PEDIDO_STATUS_SISTEMA_RAW = config("VENDA_ERP_PEDIDO_STATUS_SISTEMA", default="Pedido").strip()
+VENDA_ERP_PEDIDO_STATUS_SISTEMA = _VENDA_ERP_PEDIDO_STATUS_SISTEMA_RAW or "Pedido"
+# Pedidos/Salvar: plano de contas (texto como no ERP, ex.: código hierárquico + nome).
+_VENDA_ERP_PEDIDO_PLANO_CONTA_RAW = config(
+    "VENDA_ERP_PEDIDO_PLANO_CONTA",
+    default="1.1.3 — Vendas SisVale",
+).strip()
+VENDA_ERP_PEDIDO_PLANO_CONTA = (
+    _VENDA_ERP_PEDIDO_PLANO_CONTA_RAW or "1.1.3 — Vendas SisVale"
+)
+# Opcional: PlanoDeContaID (string Mongo) quando o ERP não resolve só pelo texto.
+VENDA_ERP_PEDIDO_PLANO_CONTA_ID = config(
+    "VENDA_ERP_PEDIDO_PLANO_CONTA_ID",
+    default="69d2e2d35c5d14cb68c6acef",
+).strip()
+# True = primeira tentativa Pedidos/Salvar já em PascalCase (StatusSistema, Items, …).
+VENDA_ERP_PEDIDOS_SALVAR_JSON_PASCAL = config(
+    "VENDA_ERP_PEDIDOS_SALVAR_JSON_PASCAL", default=False, cast=bool
+)
+# Se HTTP 200 mas o ERP recusa (ex.: status inválido), tenta de novo o mesmo corpo em PascalCase.
+VENDA_ERP_PEDIDOS_SALVAR_RETRY_PASCAL_EM_RECUSA = config(
+    "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PASCAL_EM_RECUSA", default=True, cast=bool
+)
+# Swagger do WL tipicamente declara ``planoDeConta`` como string (literal igual ao cadastro), não objeto.
+# True = envia só essa string (sem planoConta / *ID* no JSON). False = envia também aliases e IDs (legado).
+VENDA_ERP_PEDIDOS_SALVAR_PLANO_SO_TEXTO_SWAGGER = config(
+    "VENDA_ERP_PEDIDOS_SALVAR_PLANO_SO_TEXTO_SWAGGER", default=True, cast=bool
+)
+# O schema público do Pedidos/Salvar não declara ``planoDeConta`` dentro de ``items`` (só no cabeçalho).
+# False = alinhado ao Swagger. True = repete plano em cada linha (legado / WL que exija por item).
+VENDA_ERP_PEDIDOS_SALVAR_PLANO_NOS_ITENS = config(
+    "VENDA_ERP_PEDIDOS_SALVAR_PLANO_NOS_ITENS", default=False, cast=bool
+)
+# True = primeiro POST com ``planoDeConta`` como objeto { Id, Nome, … } (fora do schema string do Swagger).
+VENDA_ERP_PEDIDOS_SALVAR_PLANO_USO_EMBUTIDO = config(
+    "VENDA_ERP_PEDIDOS_SALVAR_PLANO_USO_EMBUTIDO", default=False, cast=bool
+)
+# HTTP 200 + erro de plano: se o 1º POST não era embutido, tenta objeto { Id, Nome }.
+VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_ANINHADO = config(
+    "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_ANINHADO", default=True, cast=bool
+)
+# Opcional: variantes que removem plano do cabeçalho / texto nas linhas (só se "localizar" no retorno).
+VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_ALTERNATIVAS = config(
+    "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_ALTERNATIVAS", default=False, cast=bool
+)
+# "Localizar plano": reenvia com outros textos (Nome só, Hierarquia, hífen, PlanoDeConta de um lançamento, etc.).
+VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_TEXTO_VARIANTES = config(
+    "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_TEXTO_VARIANTES", default=True, cast=bool
+)
+# Depois das variantes de texto: tenta ``planoDeConta`` como objeto estilo PlanoDeContaRetornoBusca (nome, codigoNatureza, …).
+VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_OBJETO_RETORNO_BUSCA = config(
+    "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_OBJETO_RETORNO_BUSCA", default=True, cast=bool
+)
+# Ao gravar venda no PDV: baixa quantidades no estoque visto pelo Agro (AjusteRapidoEstoque + saldo ERP Mongo).
+PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA = config("PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA", default=True, cast=bool)
+# Depósito da baixa: centro | vila (mesma convenção do PIN / entrada NF).
+PDV_VENDA_ESTOQUE_DEPOSITO = config("PDV_VENDA_ESTOQUE_DEPOSITO", default="centro").strip().lower() or "centro"
+PDV_WIZARD_SALDO_VALE_CREDITO = config("PDV_WIZARD_SALDO_VALE_CREDITO", default="0").strip()
+PDV_WIZARD_SALDO_CASHBACK = config("PDV_WIZARD_SALDO_CASHBACK", default="0").strip()
 # WhatsApp após impressão de cupom de transferência (Vila Elias). Vazio = usa PDV_ENTREGA_WHATSAPP.
 TRANSFERENCIA_WHATSAPP = config('TRANSFERENCIA_WHATSAPP', default='').strip()
 # Token para endpoint HTTP do cron de alertas (sem shell). Mantenha forte e secreto.

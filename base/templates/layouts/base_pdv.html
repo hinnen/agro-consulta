@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}{% block pdv_title %}Agro Consulta | PDV{% endblock %}{% endblock %}
+{% block body_class %}bg-slate-100 text-slate-900 min-h-screen{% endblock %}
+
+{% block content %}
+<div class="{% block pdv_shell_class %}min-h-screen bg-slate-100{% endblock %}">
+  {% block pdv_header %}
+  <header class="border-b border-slate-200 bg-white shadow-sm">
+    <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+      <div class="min-w-0">
+        <p class="text-[10px] font-black uppercase tracking-[0.24em] text-orange-600">PDV dedicado</p>
+        <h1 class="truncate text-2xl font-black tracking-tight text-slate-900">
+          {% block pdv_header_title %}Agro Consulta PDV{% endblock %}
+        </h1>
+        {% block pdv_header_meta %}{% endblock %}
+      </div>
+      <div class="flex shrink-0 items-center gap-2">
+        {% block pdv_header_actions %}{% endblock %}
+      </div>
+    </div>
+  </header>
+  {% endblock %}
+
+  <section class="{% block pdv_section_class %}mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8{% endblock %}">
+    {% block pdv_content %}{% endblock %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,162 @@
+    <div id="modal-pdv-entrega-pergunta" class="fixed inset-0 z-[115] hidden items-center justify-center p-4 bg-slate-950/55 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="mpe-titulo">
+        <div class="bg-white w-full max-w-[420px] rounded-2xl shadow-2xl overflow-hidden border border-slate-200 ring-1 ring-slate-900/5" onclick="event.stopPropagation()">
+            <div class="relative px-5 pt-5 pb-4 bg-gradient-to-br from-sky-600 via-sky-600 to-emerald-600">
+                <p id="mpe-eyebrow" class="text-[10px] font-black uppercase tracking-[0.2em] text-white/85">Entrega</p>
+                <h2 id="mpe-titulo" class="text-xl font-black text-white tracking-tight mt-1 leading-snug">Confirmação</h2>
+            </div>
+            <div class="px-5 py-5">
+                <p id="mpe-texto" class="text-[15px] text-slate-600 leading-relaxed whitespace-pre-line"></p>
+            </div>
+            <div class="flex gap-3 px-5 pb-5 pt-0">
+                <button type="button" id="mpe-nao" class="flex-1 py-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-black uppercase text-sm tracking-wide hover:bg-slate-50 hover:border-slate-300 transition-colors">Não</button>
+                <button type="button" id="mpe-sim" class="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-sky-600 to-emerald-600 text-white font-black uppercase text-sm tracking-wide shadow-lg shadow-sky-600/25 hover:brightness-105 active:scale-[0.99] transition-all">Sim</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-pdv-entrega-impressao" class="fixed inset-0 z-[116] hidden items-center justify-center p-4 bg-slate-950/55 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="mei-titulo">
+        <div class="bg-white w-full max-w-[420px] rounded-2xl shadow-2xl overflow-hidden border border-slate-200 ring-1 ring-slate-900/5" onclick="event.stopPropagation()">
+            <div class="relative px-5 pt-5 pb-4 bg-gradient-to-br from-orange-500 via-orange-500 to-amber-600">
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Impressão</p>
+                <h2 id="mei-titulo" class="text-xl font-black text-white tracking-tight mt-1 leading-snug">O que imprimir?</h2>
+            </div>
+            <div class="px-5 py-5 space-y-3">
+                <label class="flex items-center gap-3 cursor-pointer text-sm font-bold text-slate-800"><input type="checkbox" id="mei-chk-sep" class="w-4 h-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 accent-orange-600" checked> Separação</label>
+                <label class="flex items-center gap-3 cursor-pointer text-sm font-bold text-slate-800"><input type="checkbox" id="mei-chk-ent" class="w-4 h-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 accent-orange-600" checked> Via do entregador</label>
+                <label class="flex items-center gap-3 cursor-pointer text-sm font-bold text-slate-800"><input type="checkbox" id="mei-chk-cup" class="w-4 h-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 accent-orange-600" checked> Cupom (cliente)</label>
+            </div>
+            <div class="flex gap-3 px-5 pb-5 pt-0">
+                <button type="button" id="mei-cancelar" class="flex-1 py-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-black uppercase text-sm tracking-wide hover:bg-slate-50">Cancelar</button>
+                <button type="button" id="mei-imprimir" class="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 text-white font-black uppercase text-sm tracking-wide shadow-lg hover:brightness-105">Imprimir</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-busca-avancada" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[105] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-busca-av-titulo">
+        <div class="bg-white w-full max-w-[min(42rem,96vw)] rounded-2xl shadow-2xl border border-slate-200 max-h-[92vh] flex flex-col">
+            <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center gap-3 shrink-0">
+                <h2 id="modal-busca-av-titulo" class="text-lg font-black uppercase text-slate-800 tracking-tight">Busca avançada</h2>
+                <button type="button" onclick="fecharBuscaAvancada()" class="text-slate-400 hover:text-slate-700 font-bold text-sm px-2" aria-label="Fechar">✕</button>
+            </div>
+            <div class="p-5 space-y-3 overflow-y-auto hide-scroll flex-1 min-h-0">
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-500" for="ba-dimensao">Filtrar por</label>
+                    <select id="ba-dimensao" onchange="preencherSelectBuscaAvancadaDimensao()" class="mt-1 w-full font-bold text-sm border-2 border-slate-200 rounded-xl px-3 py-2 bg-white">
+                        <option value="">Só texto / preço / estoque</option>
+                        <option value="marca">Marca</option>
+                        <option value="fornecedor">Fornecedor</option>
+                        <option value="categoria">Categoria</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-500" for="ba-valor-ref">Valor do filtro</label>
+                    <select id="ba-valor-ref" class="mt-1 w-full font-bold text-sm border-2 border-slate-200 rounded-xl px-3 py-2 bg-white max-h-40"></select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-500" for="ba-texto">Contém no nome / código / busca</label>
+                    <input id="ba-texto" type="text" class="mt-1 w-full font-bold text-sm border-2 border-slate-200 rounded-xl px-3 py-2" placeholder="Opcional" autocomplete="off">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-slate-500" for="ba-preco-max">Preço venda máx.</label>
+                        <input id="ba-preco-max" type="number" step="0.01" min="0" class="mt-1 w-full font-bold text-sm border-2 border-slate-200 rounded-xl px-3 py-2" placeholder="—">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-slate-500" for="ba-estoque-max">Estoque total máx.</label>
+                        <input id="ba-estoque-max" type="number" step="0.1" class="mt-1 w-full font-bold text-sm border-2 border-slate-200 rounded-xl px-3 py-2" placeholder="—">
+                    </div>
+                </div>
+                <button type="button" onclick="aplicarBuscaAvancada()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl uppercase text-sm">Aplicar filtros</button>
+                <p class="text-[10px] text-slate-400 font-bold text-center leading-snug">Toque no item para adicionar ao carrinho (usa a quantidade rápida do leitor / PDV).</p>
+                <div id="lista-busca-avancada" class="border border-slate-100 rounded-xl min-h-[120px] max-h-[38vh] overflow-y-auto hide-scroll bg-slate-50/30"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-lembretes" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[106] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-lembretes-titulo" onclick="if (event.target === this) fecharModalLembretes();">
+        <div class="bg-white w-full max-w-[min(36rem,96vw)] rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col" onclick="event.stopPropagation();">
+            <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center gap-3 shrink-0">
+                <h2 id="modal-lembretes-titulo" class="text-lg font-black uppercase text-slate-800 tracking-tight">⏰ Lembretes do caixa</h2>
+                <button type="button" onclick="fecharModalLembretes()" class="text-slate-400 hover:text-slate-700 font-bold text-sm px-2" aria-label="Fechar">✕</button>
+            </div>
+            <div class="p-5 space-y-4 overflow-y-auto hide-scroll flex-1 min-h-0">
+                <p class="text-[11px] font-semibold text-slate-500 leading-relaxed">Cadastre um texto e o horário; quando chegar a hora, o PDV toca um aviso e mostra um cartão no canto da tela.</p>
+                <div id="lista-lembretes" class="max-h-48 overflow-y-auto hide-scroll rounded-xl border border-slate-100 bg-slate-50/60 p-1"></div>
+                <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
+                    <div class="flex-1 min-w-0">
+                        <label class="text-[10px] font-black uppercase text-slate-500" for="lembrete-texto">Texto</label>
+                        <input id="lembrete-texto" type="text" placeholder="O que lembrar?" class="mt-1 w-full text-sm font-bold px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-white">
+                    </div>
+                    <div class="w-full sm:w-[104px] shrink-0">
+                        <label class="text-[10px] font-black uppercase text-slate-500" for="lembrete-hora">Hora</label>
+                        <input id="lembrete-hora" type="time" class="mt-1 w-full text-sm font-bold px-2 py-2.5 rounded-xl border-2 border-slate-200 bg-white">
+                    </div>
+                    <button type="button" onclick="salvarLembrete()" class="sm:self-end shrink-0 px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-black uppercase">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-pdv-ajuste-estoque" class="fixed inset-0 bg-slate-900/55 backdrop-blur-sm z-[107] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="pae-titulo-dep" onclick="if (event.target === this) fecharModalAjustePdv();">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 flex flex-col" onclick="event.stopPropagation();">
+            <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center gap-3 shrink-0">
+                <h2 id="pae-titulo-dep" class="text-base font-black uppercase text-slate-800 tracking-tight">Ajuste de estoque</h2>
+                <button type="button" onclick="fecharModalAjustePdv()" class="text-slate-400 hover:text-slate-700 font-bold text-sm px-2" aria-label="Fechar">✕</button>
+            </div>
+            <div class="p-5 space-y-4">
+                <p id="pae-produto" class="text-sm font-bold text-slate-700 leading-snug"></p>
+                <div class="rounded-2xl border-2 border-emerald-500/80 bg-gradient-to-br from-emerald-50 via-white to-slate-50/80 p-3.5 shadow-inner space-y-2.5">
+                    <p class="text-[10px] font-black uppercase text-emerald-900 tracking-wide">Onde atualizar o estoque</p>
+                    <div class="flex flex-wrap items-center gap-2 justify-center sm:justify-start py-2 px-2 rounded-xl bg-slate-100/90 border border-slate-200/80">
+                        <span class="inline-flex items-center gap-1 rounded-lg border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-600 to-emerald-700 text-white text-[8px] font-black uppercase px-2 py-1.5 shadow-sm" aria-hidden="true">
+                            <span class="inline-block w-1.5 h-4 rounded-full bg-white/25"></span>
+                            Estoque
+                        </span>
+                        <span class="text-[11px] font-bold text-slate-600 leading-tight">na barra do topo, ao lado de <span class="text-amber-700">Sincronizar API</span></span>
+                    </div>
+                    <p class="text-[11px] font-semibold text-slate-600 leading-relaxed">Toque em <strong class="text-emerald-800">Estoque</strong> e aguarde a data em <strong>Última leitura</strong>. O ajuste usa o número de saldo que aparece na busca como referência.</p>
+                </div>
+                <div class="flex items-baseline gap-2 text-sm">
+                    <span class="text-slate-500 font-bold">Saldo atual (referência):</span>
+                    <span id="pae-saldo-atual" class="font-black tabular-nums text-emerald-800">0</span>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-500" for="pae-novo-saldo">Novo saldo real</label>
+                    <input id="pae-novo-saldo" type="text" inputmode="decimal" autocomplete="off" class="mt-1 w-full font-bold text-lg border-2 border-slate-200 rounded-xl px-3 py-2.5" placeholder="Ex.: 12">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-slate-500" for="pae-pin">PIN</label>
+                    <input id="pae-pin" type="password" autocomplete="current-password" class="mt-1 w-full font-bold text-sm border-2 border-slate-200 rounded-xl px-3 py-2.5" placeholder="Senha rápida">
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                    <button type="button" id="pae-btn-cancelar" onclick="fecharModalAjustePdv()" class="flex-1 py-3 rounded-xl border-2 border-slate-200 font-black uppercase text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
+                    <button type="button" id="pae-btn-confirmar" onclick="confirmarModalAjustePdv()" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-sm shadow-md">Confirmar ajuste</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="alerta-lembrete" class="fixed right-4 bottom-4 z-[110] hidden max-w-[min(24rem,92vw)] bg-white border-[3px] border-orange-500 rounded-2xl shadow-2xl p-4" role="alert" aria-live="assertive" aria-labelledby="alerta-lembrete-titulo" aria-describedby="alerta-lembrete-texto">
+        <div class="flex items-start gap-3">
+            <div class="text-2xl">⏰</div>
+            <div class="min-w-0">
+                <div id="alerta-lembrete-titulo" class="text-sm font-black uppercase text-slate-800">Lembrete do caixa</div>
+                <div id="alerta-lembrete-texto" class="text-sm font-bold text-slate-600 mt-1 break-words"></div>
+                <div class="mt-3 flex gap-2">
+                    <button type="button" onclick="dispensarAlertaLembrete()" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-black uppercase">Ok</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-historico-vendas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-hist-local-titulo">
+        <div class="bg-white w-full max-w-[min(48rem,96vw)] rounded-3xl shadow-2xl p-6 flex flex-col max-h-[85vh] min-h-0">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
+                <h2 id="modal-hist-local-titulo" class="text-xl font-black text-slate-800 uppercase italic">📋 Últimos Orçamentos (Local)</h2>
+                <button onclick="fecharHistoricoLocal()" class="text-slate-400 hover:text-slate-600 font-bold bg-slate-100 px-3 py-1 rounded-lg text-xs uppercase">✕ Fechar [Esc]</button>
+            </div>
+            <div id="lista-historico-local" class="overflow-y-auto hide-scroll flex-1 min-h-0 space-y-3">
+                <!-- Cards de historico preenchidos via JS -->
+            </div>
+        </div>
+    </div>

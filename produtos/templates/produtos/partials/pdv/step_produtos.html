@@ -1,0 +1,125 @@
+<section class="pdv-step-panel flex h-full min-h-0 flex-1 flex-col gap-1.5" data-step-panel="produtos">
+  <div id="pdv-step1-client-bar" class="flex flex-wrap items-center gap-2 rounded-[1rem] border-2 border-sky-400/80 bg-gradient-to-r from-sky-50 to-white px-2.5 py-1.5 shadow-sm ring-2 ring-sky-200/60">
+    <div class="shrink-0">
+      <div class="text-[9px] font-black uppercase tracking-[0.22em] text-sky-800">Etapa 1</div>
+      <h2 class="text-lg font-black tracking-tight text-slate-900">Produtos</h2>
+    </div>
+    <div
+      id="pdv-quick-client-hit"
+      class="pdv-wizard-scroll flex min-w-0 flex-1 cursor-pointer items-center gap-2 overflow-x-auto rounded-xl border-2 border-sky-300/70 bg-white px-2 py-1.5 shadow-inner transition hover:border-sky-500 hover:bg-sky-50/60"
+      role="button"
+      tabindex="0"
+      title="Trocar cliente · F4"
+    >
+      <span class="shrink-0 text-[10px] font-black uppercase tracking-wide text-sky-700">Cliente</span>
+      <span id="pdv-quick-client-name" class="min-w-0 flex-1 truncate whitespace-nowrap text-left text-sm font-black text-slate-900">Selecione o cliente da venda</span>
+    </div>
+    <button type="button" id="pdv-quick-client-change" class="shrink-0 rounded-lg border-2 border-emerald-300 bg-white px-2.5 py-1 text-[10px] font-black uppercase text-emerald-800 shadow-sm" title="Trocar cliente · F4">
+      Trocar <kbd class="pointer-events-none ml-0.5 hidden rounded border border-emerald-200 bg-emerald-50 px-1 font-mono text-[8px] sm:inline">F4</kbd>
+    </button>
+    <button type="button" id="pdv-client-purchase-history" class="shrink-0 rounded-lg border-2 border-slate-300 bg-white px-2.5 py-1 text-[10px] font-black uppercase text-slate-800 shadow-sm" title="Histórico de compras · F5">
+      Hist. <kbd class="pointer-events-none ml-0.5 hidden rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[8px] sm:inline">F5</kbd>
+    </button>
+  </div>
+
+  <div id="pdv-quick-client-picker" class="relative z-[200] mx-0 hidden rounded-[1.25rem] border border-slate-200 bg-white p-3 shadow-lg">
+    <div class="relative">
+      <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
+        <label class="sr-only" for="pdv-quick-client-search">Buscar cliente</label>
+        <input id="pdv-quick-client-search" type="text" class="pdv-input" placeholder="Nome, documento ou telefone" autocomplete="off" title="↑↓ seleciona · Enter confirma · Esc fecha">
+        <button type="button" id="pdv-quick-client-picker-close" class="pdv-action-btn border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-700" title="Fechar · Esc">Fechar</button>
+      </div>
+      <p id="pdv-quick-client-meta" class="sr-only">Resultados da busca de cliente.</p>
+      <div
+        id="pdv-quick-client-results"
+        class="absolute left-0 right-0 top-full z-[210] mt-1 hidden max-h-[min(50vh,20rem)] overflow-y-auto rounded-2xl border-2 border-slate-200 bg-white p-1 shadow-[0_20px_50px_rgba(15,23,42,0.2)]"
+        role="listbox"
+        aria-label="Clientes encontrados"
+      ></div>
+    </div>
+  </div>
+
+  <div id="pdv-step1-layout" class="grid min-h-0 flex-1 gap-1.5 xl:grid-cols-[minmax(0,1fr)_18rem]">
+    <div class="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[1.15rem] border border-slate-200 bg-white shadow-sm">
+      <div id="pdv-step1-search-wrap" class="shrink-0 rounded-t-[1.1rem] border-2 border-amber-400/90 bg-gradient-to-b from-amber-50/95 to-white px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] sm:px-3 sm:py-2.5">
+        <div class="flex items-center justify-between gap-2">
+          <h3 class="text-[13px] font-black uppercase tracking-wide text-amber-950">Busca</h3>
+          <div class="flex items-center justify-center rounded-2xl border-2 border-amber-200 bg-white px-2 py-1.5 text-[10px] font-black uppercase text-amber-900">
+            <span id="pdv-product-step-count">0</span>&nbsp;itens
+          </div>
+        </div>
+        <div id="pdv-product-search-wrap" class="relative mt-2 rounded-xl">
+          <label class="sr-only" for="pdv-product-search">Buscar produto</label>
+          <input id="pdv-product-search" type="text" class="pdv-input h-11 pr-14 text-[14px] border-amber-200/90 bg-amber-50/30 focus:border-emerald-500" placeholder="Nome, GM, EAN ou código de barras" autocomplete="off" title="F2 · lista ↑↓ · Enter · +/− último">
+          <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black uppercase text-amber-800">F2</span>
+          <div id="pdv-product-autocomplete" class="absolute inset-x-0 top-[calc(100%+0.35rem)] z-20 hidden max-h-[min(50vh,22rem)] overflow-y-auto rounded-2xl border-2 border-amber-200/90 bg-white p-1 shadow-[0_18px_48px_rgba(15,23,42,0.18)]"></div>
+        </div>
+        <div class="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold text-amber-900/85">
+          <div id="pdv-product-search-feedback">Carregando catálogo…</div>
+          <div id="pdv-product-search-meta" class="text-right">↑↓ Enter · +/−</div>
+        </div>
+      </div>
+
+      <div id="pdv-step1-cart-wrap" class="flex min-h-0 flex-1 flex-col rounded-b-[1.1rem] border-2 border-t-0 border-orange-400/90 bg-gradient-to-b from-orange-50/50 to-white px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] sm:px-3 sm:py-2.5">
+        <div class="flex shrink-0 items-center justify-between gap-2">
+          <h3 class="text-[13px] font-black uppercase tracking-wide text-orange-950">Carrinho</h3>
+          <button type="button" id="pdv-clear-items" class="rounded-xl border-2 border-red-300 bg-red-50 px-2 py-1 text-[10px] font-black uppercase text-red-800">Limpar</button>
+        </div>
+        <div id="pdv-product-cart-list" class="pdv-wizard-scroll mt-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto rounded-xl border-2 border-orange-200/90 bg-white px-2 py-2 sm:px-2.5 sm:py-2.5"></div>
+      </div>
+    </div>
+
+    <aside id="pdv-step1-side" class="min-h-0 min-w-0 xl:sticky xl:top-0">
+      <div class="grid gap-1.5">
+        <div class="pdv-step1-side-card rounded-[1.15rem] border border-slate-900/90 bg-slate-950 px-2.5 py-2.5 text-white shadow-sm">
+          <div class="flex min-w-0 items-center justify-between gap-2 text-[11px] font-black uppercase tracking-wide text-slate-300">
+            <span class="min-w-0 truncate">Vale crédito</span>
+            <span id="pdv-product-credit-balance" class="pdv-side-money shrink-0 tabular-nums">R$ 0,00</span>
+          </div>
+          <div class="mt-2 flex min-w-0 items-center justify-between gap-2 text-[11px] font-black uppercase tracking-wide text-slate-300">
+            <span class="min-w-0 truncate">Cashback</span>
+            <span id="pdv-product-cashback-balance" class="pdv-side-money shrink-0 tabular-nums">R$ 0,00</span>
+          </div>
+          <div class="mt-2 flex min-w-0 items-center justify-between gap-2 text-[11px] font-black uppercase tracking-wide text-slate-300">
+            <span class="min-w-0 truncate">Fiado</span>
+            <span id="pdv-product-fiado-balance" class="pdv-side-money shrink-0 tabular-nums">R$ 0,00</span>
+          </div>
+        </div>
+        <div class="pdv-step1-side-card flex min-h-0 flex-col rounded-[1.15rem] border-2 border-orange-400/60 bg-gradient-to-b from-slate-900 via-slate-950 to-black px-2.5 pb-3 pt-2.5 text-white shadow-xl shadow-orange-950/30">
+          <div class="flex min-w-0 items-center justify-between gap-2 text-[11px] font-black uppercase tracking-wide text-orange-100/90">
+            <span>Subtotal</span>
+            <span id="pdv-product-subtotal-items" class="shrink-0 whitespace-nowrap tabular-nums">0 itens</span>
+          </div>
+          <div id="pdv-product-subtotal" class="mt-2 text-[2rem] font-black leading-none tracking-tight text-white sm:text-[2.2rem]">R$ 0,00</div>
+          <div class="mt-auto flex flex-1 flex-col justify-end gap-2.5 pt-4">
+            <button type="button" id="pdv-step1-payment" class="pdv-action-btn w-full rounded-2xl bg-gradient-to-r from-orange-500 via-orange-500 to-amber-500 px-3 py-3.5 text-[13px] text-white shadow-lg shadow-orange-600/40 ring-2 ring-orange-300/50" title="Ir para pagamento · F7">
+              Ir para pagamento <kbd class="pointer-events-none ml-1 rounded bg-black/25 px-1.5 py-0.5 font-mono text-[10px]">F7</kbd>
+            </button>
+            <button type="button" id="pdv-step1-advance" class="pdv-action-btn w-full rounded-2xl border-2 border-white/30 bg-white/10 px-3 py-2.5 text-[11px] text-white hover:bg-white/15" title="Continuar · F3">
+              Continuar <kbd class="pointer-events-none ml-1 rounded bg-black/30 px-1.5 py-0.5 font-mono text-[9px]">F3</kbd>
+            </button>
+          </div>
+        </div>
+        <div id="pdv-step1-budget-snippet-wrap" class="min-w-0 rounded-[1rem] border border-slate-200/80 bg-slate-50/90 px-2 py-2 shadow-sm">
+          <p class="text-[9px] font-black uppercase tracking-wide text-slate-500">Orçamentos recentes</p>
+          <div id="pdv-step1-budget-snippet" class="mt-1.5 min-w-0 text-[10px] leading-snug text-slate-500"></div>
+          <button type="button" id="pdv-step1-budget-ver-mais" class="mt-2 w-full rounded-lg border border-slate-200 bg-white py-1.5 text-[9px] font-black uppercase text-slate-600 hover:bg-slate-50" title="Ver todos · F6">
+            Ver mais <kbd class="pointer-events-none ml-1 rounded border border-slate-200 px-1 font-mono text-[8px] text-slate-500">F6</kbd>
+          </button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <dialog id="pdv-product-photo-pop" class="max-h-[min(92vh,560px)] w-[min(96vw,520px)] rounded-2xl border-2 border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-950/65">
+    <form method="dialog" class="flex max-h-[min(92vh,560px)] flex-col">
+      <div class="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
+        <p class="text-[11px] font-black uppercase text-slate-600">Foto do produto</p>
+        <button type="submit" class="rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase text-slate-700" autofocus>Fechar</button>
+      </div>
+      <div class="min-h-0 flex-1 overflow-auto p-3">
+        <img id="pdv-product-photo-pop-img" src="" alt="" class="mx-auto max-h-[min(72vh,480px)] w-full max-w-full rounded-xl object-contain outline-none ring-2 ring-slate-100" tabindex="0" />
+      </div>
+    </form>
+  </dialog>
+</section>

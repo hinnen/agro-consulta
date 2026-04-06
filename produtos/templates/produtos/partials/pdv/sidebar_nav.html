@@ -1,0 +1,108 @@
+        <aside id="pdv-sidebar" data-expanded="false" class="flex flex-col shrink-0 bg-slate-950 text-slate-200 border-r border-slate-800/80 shadow-xl overflow-hidden {% if pdv_dedicado %}w-[3.6rem] sm:w-[4.1rem]{% endif %}" aria-label="{% if pdv_dedicado %}Atalhos do modo PDV{% else %}Navegação principal{% endif %}">
+            <button type="button" id="btn-pdv-menu" class="p-3 flex justify-center items-center text-slate-400 hover:text-slate-100 hover:bg-slate-800/65 rounded-lg mx-1 mt-2 transition-colors duration-200" title="Expandir ou recolher menu" aria-expanded="false" aria-controls="pdv-sidebar-nav">
+                <span class="inline-flex items-center justify-center w-7 h-7 shrink-0 relative" aria-hidden="true">
+                    <i data-lucide="chevron-right" class="pdv-chevron-collapsed w-7 h-7"></i>
+                    <i data-lucide="chevron-left" class="pdv-chevron-expanded w-7 h-7 absolute inset-0 m-auto"></i>
+                </span>
+            </button>
+            {% if pdv_dedicado %}
+            <nav id="pdv-sidebar-nav" class="flex-1 flex flex-col gap-1 px-1.5 py-3 overflow-y-auto hide-scroll">
+                <a href="{{ pdv_root_url }}" class="pdv-nav-item pdv-nav-active" title="PDV / Venda — buscar produtos, carrinho e finalizar. F2 foca na busca.">
+                    <span class="pdv-nav-icon"><i data-lucide="shopping-cart"></i></span>
+                    <span class="pdv-nav-label">Vendas / Consulta</span>
+                </a>
+                <button type="button" class="pdv-nav-item" onclick="abrirHistoricoLocal()" title="Orçamentos salvos neste computador. Atalho: F6.">
+                    <span class="pdv-nav-icon"><i data-lucide="history"></i></span>
+                    <span class="pdv-nav-label">Orçamentos</span>
+                </button>
+                <a href="{% url 'caixa_painel' %}" class="pdv-nav-item" title="Abrir ou fechar caixa — vínculo das vendas ao turno (login).">
+                    <span class="pdv-nav-icon"><i data-lucide="banknote"></i></span>
+                    <span class="pdv-nav-label">Caixa</span>
+                </a>
+                <a href="{% url 'entregas_painel' %}" class="pdv-nav-item" title="Painel de entregas: status, rotas Maps, reimpressão e WhatsApp.">
+                    <span class="pdv-nav-icon"><i data-lucide="truck"></i></span>
+                    <span class="pdv-nav-label">Entregas</span>
+                </a>
+                <a href="{% url 'clientes_lista' %}" class="pdv-nav-item" title="Clientes cadastrados no Agro (login).">
+                    <span class="pdv-nav-icon"><i data-lucide="users"></i></span>
+                    <span class="pdv-nav-label">Clientes</span>
+                </a>
+                <a href="{% url 'home' %}" class="pdv-nav-item" title="Início — volta para a home administrativa.">
+                    <span class="pdv-nav-icon"><i data-lucide="house"></i></span>
+                    <span class="pdv-nav-label">Início</span>
+                </a>
+            </nav>
+            {% else %}
+            <nav id="pdv-sidebar-nav" class="flex-1 flex flex-col gap-1 px-1.5 py-3 overflow-y-auto hide-scroll">
+                <a href="{{ pdv_root_url }}" class="pdv-nav-item pdv-nav-active" title="PDV / Venda — buscar produtos, carrinho e finalizar. F2 foca na busca.">
+                    <span class="pdv-nav-icon"><i data-lucide="shopping-cart"></i></span>
+                    <span class="pdv-nav-label">Vendas / Consulta</span>
+                </a>
+                <a href="{% url 'compras_view' %}" class="pdv-nav-item" title="Compras — pedido ao fornecedor e envio por WhatsApp.">
+                    <span class="pdv-nav-icon"><i data-lucide="package"></i></span>
+                    <span class="pdv-nav-label">Compras</span>
+                </a>
+                <a href="{% url 'entrada_nota' %}" class="pdv-nav-item" title="Entrada de NF-e — manual, XML ou consulta SEFAZ (login).">
+                    <span class="pdv-nav-icon"><i data-lucide="file-input"></i></span>
+                    <span class="pdv-nav-label">Entrada NF-e</span>
+                </a>
+                <a href="{% url 'lancamentos_financeiros' %}" class="pdv-nav-item" title="Lançamentos — pagar e receber, export CSV, baixa no Mongo (login).">
+                    <span class="pdv-nav-icon"><i data-lucide="wallet"></i></span>
+                    <span class="pdv-nav-label">Lançamentos</span>
+                </a>
+                <a href="{% url 'resumo_financeiro_gerencial' %}" class="pdv-nav-item" title="Resumo gerencial — DRE Postgres, grupo e equilíbrio (login).">
+                    <span class="pdv-nav-icon"><i data-lucide="pie-chart"></i></span>
+                    <span class="pdv-nav-label">Resumo gerencial</span>
+                </a>
+                {% if lancamentos_dre_ativo %}
+                <a href="{% url 'lancamentos_dre' %}" class="pdv-nav-item" title="DRE simples — totais por plano de conta (Mongo).">
+                    <span class="pdv-nav-icon"><i data-lucide="bar-chart-3"></i></span>
+                    <span class="pdv-nav-label">DRE simples</span>
+                </a>
+                {% else %}
+                <span class="pdv-nav-item opacity-40 cursor-not-allowed select-none" title="DRE simples — desativado no momento. A equipe técnica pode habilitar quando for usar." aria-disabled="true" role="presentation">
+                    <span class="pdv-nav-icon"><i data-lucide="bar-chart-3"></i></span>
+                    <span class="pdv-nav-label">DRE <span class="text-[9px] font-bold normal-case">(off)</span></span>
+                </span>
+                {% endif %}
+                <a href="/transferencias/" class="pdv-nav-item" title="Logística — transferências entre depósitos ou filiais.">
+                    <span class="pdv-nav-icon"><i data-lucide="arrow-left-right"></i></span>
+                    <span class="pdv-nav-label">Logística</span>
+                </a>
+                <a href="{% url 'vendas_lista' %}" class="pdv-nav-item" title="Lista de vendas com filtro por período e export CSV (login).">
+                    <span class="pdv-nav-icon"><i data-lucide="receipt"></i></span>
+                    <span class="pdv-nav-label">Vendas</span>
+                </a>
+                <a href="{% url 'clientes_lista' %}" class="pdv-nav-item" title="Clientes cadastrados no Agro (login).">
+                    <span class="pdv-nav-icon"><i data-lucide="users"></i></span>
+                    <span class="pdv-nav-label">Clientes</span>
+                </a>
+                <a href="{% url 'caixa_painel' %}" class="pdv-nav-item" title="Abrir ou fechar caixa — vínculo das vendas ao turno (login).">
+                    <span class="pdv-nav-icon"><i data-lucide="banknote"></i></span>
+                    <span class="pdv-nav-label">Caixa</span>
+                </a>
+                <a href="{% url 'rh_painel' %}" class="pdv-nav-item" title="RH — operadores e PINs neste computador.">
+                    <span class="pdv-nav-icon"><i data-lucide="id-card"></i></span>
+                    <span class="pdv-nav-label">RH</span>
+                </a>
+                <button type="button" class="pdv-nav-item" onclick="abrirHistoricoLocal()" title="Orçamentos salvos neste computador. Atalho: F6.">
+                    <span class="pdv-nav-icon"><i data-lucide="history"></i></span>
+                    <span class="pdv-nav-label">Orçamentos</span>
+                </button>
+                <a href="{% url 'entregas_painel' %}" class="pdv-nav-item" title="Painel de entregas: status, rotas Maps, reimpressão e WhatsApp.">
+                    <span class="pdv-nav-icon"><i data-lucide="truck"></i></span>
+                    <span class="pdv-nav-label">Entregas</span>
+                </a>
+            </nav>
+            <div class="p-2 border-t border-slate-800/80 flex flex-col gap-1">
+                <a href="/ajuste-mobile/" class="pdv-nav-item" title="Ajuste mobile — contagem com PIN na loja.">
+                    <span class="pdv-nav-icon"><i data-lucide="smartphone"></i></span>
+                    <span class="pdv-nav-label">Ajuste Mobile</span>
+                </a>
+                <a href="{% url 'home' %}" class="pdv-nav-item" title="Início — volta para a home administrativa.">
+                    <span class="pdv-nav-icon"><i data-lucide="house"></i></span>
+                    <span class="pdv-nav-label">Início</span>
+                </a>
+            </div>
+            {% endif %}
+        </aside>

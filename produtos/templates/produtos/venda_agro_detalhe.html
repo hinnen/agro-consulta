@@ -17,10 +17,13 @@
         <h1 class="text-lg font-black uppercase tracking-tight text-slate-900">Venda #{{ v.id }}</h1>
         <p class="text-xs font-bold text-slate-500">{{ v.criado_em|date:"d/m/Y H:i:s" }}</p>
       </div>
-      <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2">
         <a href="{% url 'vendas_lista' %}" class="text-xs font-black uppercase px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-700 transition-colors">
           Lista de vendas
         </a>
+        <button type="button" id="btn-reenviar-erp" class="text-xs font-black uppercase px-4 py-2.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100 transition-colors">
+          Reenviar ao ERP
+        </button>
         {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-900 shadow-sm hover:bg-emerald-100 transition-colors shrink-0" %}
       </div>
     </div>
@@ -47,11 +50,15 @@
         </div>
         <div>
           <p class="text-[10px] font-black uppercase text-slate-400">ERP</p>
-          {% if v.enviado_erp %}
-          <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">Enviado ok</span>
+          {% with s=v.erp_sync_efetivo %}
+          {% if s == 'aceito' %}
+          <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">Aceito no ERP</span>
+          {% elif s == 'recusado_erp' %}
+          <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-rose-100 text-rose-900">Recusado pelo ERP</span>
           {% else %}
-          <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-900">Falha / pendente</span>
+          <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-900">Falha na comunicação</span>
           {% endif %}
+          {% endwith %}
           {% if v.erp_http_status %}
           <p class="text-[10px] text-slate-400 mt-1">HTTP {{ v.erp_http_status }}</p>
           {% endif %}
@@ -62,12 +69,20 @@
           <p class="text-sm font-semibold text-slate-600">{{ v.usuario_registro }}</p>
         </div>
         {% endif %}
-        {% if v.sessao_caixa_id %}
+          {% if v.sessao_caixa_id %}
         <div>
           <p class="text-[10px] font-black uppercase text-slate-400">Sessão de caixa</p>
           <p class="text-sm font-semibold text-slate-600">#{{ v.sessao_caixa_id }}</p>
         </div>
         {% endif %}
+        <div>
+          <p class="text-[10px] font-black uppercase text-slate-400">Estoque Agro</p>
+          {% if v.estoque_baixa_agro_aplicada %}
+          <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-800">Baixa registrada</span>
+          {% else %}
+          <span class="inline-flex mt-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-amber-50 text-amber-900">Sem baixa automática</span>
+          {% endif %}
+        </div>
       </div>
     </div>
 
@@ -114,5 +129,52 @@
     {% endif %}
   </main>
 {% include "produtos/_atalho_voltar_pdv.html" %}
+  <script>
+    (function () {
+      var btn = document.getElementById('btn-reenviar-erp');
+      if (!btn) return;
+      function getCookie(name) {
+        var v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return v ? decodeURIComponent(v.pop()) : '';
+      }
+      btn.addEventListener('click', function () {
+        if (!confirm('Repetir envio desta venda para o ERP (Pedidos/Salvar)?')) return;
+        btn.disabled = true;
+        var t = btn.textContent;
+        btn.textContent = 'Enviando…';
+        fetch('{% url "api_venda_agro_reenviar_erp" v.pk %}', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Accept': 'application/json',
+          },
+        })
+          .then(function (r) {
+            return r.json().then(function (j) {
+              return { okHttp: r.ok, j: j };
+            });
+          })
+          .then(function (x) {
+            if (x.j && x.j.ok) {
+              alert(x.j.mensagem || 'ERP aceitou o reenvio.');
+              location.reload();
+              return;
+            }
+            var msg =
+              (x.j && (x.j.erro || x.j.mensagem)) ||
+              (x.okHttp ? 'Resposta inesperada.' : 'Falha na comunicação.');
+            alert(msg);
+          })
+          .catch(function () {
+            alert('Falha na comunicação com o servidor.');
+          })
+          .finally(function () {
+            btn.disabled = false;
+            btn.textContent = t;
+          });
+      });
+    })();
+  </script>
 </body>
 </html>

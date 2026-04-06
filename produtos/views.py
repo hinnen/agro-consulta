@@ -1,3 +1,4 @@
+import copy
 import csv
 import secrets
 import json
@@ -20,6 +21,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse, JsonResponse
 from django.urls import reverse
 from django.core.cache import cache
+from django.templatetags.static import static
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
@@ -72,6 +74,9 @@ from .mongo_financeiro_util import (
     listar_formas_e_bancos_distintos,
     montar_payload_erp_baixa,
     montar_payload_erp_lancamentos_novos,
+    candidatos_texto_plano_para_api_pedido,
+    documento_plano_mestre_por_id_mongo,
+    resolver_plano_conta_para_pedido_erp,
 )
 
 
@@ -889,6 +894,75 @@ def _sanear_cliente_extra_sessao(raw):
     return out if out else None
 
 
+def _forma_pagamento_rotulo_sem_valor_moeda(s: str) -> str:
+    """
+    ERP costuma mostrar valor em coluna à parte; texto ``Dinheiro R$ 4,00`` vem de resumos antigos
+    ou PDV clássico. Remove ``(troco R$ …)``, trecho que é só ``R$``+valor e sufixo `` R$``+valor.
+    """
+    s = str(s or "").strip()
+    if not s:
+        return ""
+    parts = [p.strip() for p in re.split(r"\s+\+\s+", s) if p.strip()]
+    out: list[str] = []
+    for p in parts:
+        t = p
+        t = re.sub(r"^\s*R\$\s*[\d\s.,]+\s*$", "", t, flags=re.IGNORECASE)
+        t = re.sub(r"\s*\(troco\s+R\$[\d\s.,]+\)\s*$", "", t, flags=re.IGNORECASE)
+        t = re.sub(r"\s+R\$\s*[\d\s.,]+$", "", t, flags=re.IGNORECASE)
+        t = t.strip()
+        if t:
+            out.append(t)
+    return " + ".join(out)[:200]
+
+
+def _normalizar_linhas_pagamento_pedido(raw_list) -> list[dict]:
+    """Lista de parcelas para Pedidos/Salvar (camelCase). Usado no payload e no rascunho checkout."""
+    if not isinstance(raw_list, list) or not raw_list:
+        return []
+    out: list[dict] = []
+    for row in raw_list[:30]:
+        if not isinstance(row, dict):
+            continue
+        fn = str(
+            row.get("formaPagamento")
+            or row.get("forma_pagamento")
+            or row.get("forma")
+            or ""
+        ).strip()[:200]
+        vp_raw = row.get("valorPagamento", row.get("valor_pagamento", row.get("valor")))
+        try:
+            vp = float(vp_raw)
+        except (TypeError, ValueError):
+            vp = 0.0
+        vp = round(vp, 2)
+        fn = _forma_pagamento_rotulo_sem_valor_moeda(fn)
+        if not fn and vp <= 0:
+            continue
+        if not fn:
+            fn = "Não informado"
+        item: dict = {
+            "formaPagamento": fn,
+            "valorPagamento": vp,
+            "quitar": bool(row.get("quitar", True)),
+        }
+        desc = str(
+            row.get("descricaoPagamento") or row.get("descricao_pagamento") or ""
+        ).strip()[:300]
+        if desc:
+            item["descricaoPagamento"] = desc
+        out.append(item)
+    return out
+
+
+def _resumo_forma_pagamento_de_linhas(pagamentos: list[dict]) -> str:
+    labels: list[str] = []
+    for p in pagamentos:
+        t = _forma_pagamento_rotulo_sem_valor_moeda(str(p.get("formaPagamento") or ""))
+        if t and t not in labels:
+            labels.append(t)
+    return (" + ".join(labels))[:200]
+
+
 def _parse_data_iso(s):
     if not s or not str(s).strip():
         return None
@@ -944,8 +1018,166 @@ def _obter_sessao_caixa_aberta(request):
         return None
 
 
+def _empresa_home_atual():
+    empresas = list(
+        Empresa.objects.filter(ativo=True).only("id", "nome_fantasia").order_by("nome_fantasia")[:2]
+    )
+    if len(empresas) == 1:
+        return empresas[0]
+    return None
+
+
+def _home_admin_navegacao():
+    dre_ativo = getattr(settings, "LANCAMENTOS_DRE_ATIVO", False)
+    agro_legado_url = reverse("consulta_produtos")
+    # Teclas únicas (sem modificador), priorizando F2–F12 + letras para o restante — ver AGENTS.md §5 (teclado primeiro, fonte grande).
+    top_items = [
+        {
+            "title": "PDV",
+            "href": reverse("pdv_home"),
+            "icon": "shopping-cart",
+            "shortcut": "F2",
+            "shortcut_key": "f2",
+            "accent": "emerald",
+            "pin_protected": True,
+        },
+        {
+            "title": "LEGADO",
+            "href": agro_legado_url,
+            "icon": "monitor-smartphone",
+            "shortcut": "F3",
+            "shortcut_key": "f3",
+            "accent": "orange",
+            "pin_protected": True,
+        },
+    ]
+    # F4/F5 reservados (ex.: navegador / refresh); Entrada NF-e por último na grade.
+    grid_items = [
+        {
+            "title": "Compras",
+            "href": reverse("compras_view"),
+            "icon": "package",
+            "shortcut": "F6",
+            "shortcut_key": "f6",
+            "pin_protected": True,
+        },
+        {
+            "title": "Lançamentos",
+            "href": reverse("lancamentos_financeiros"),
+            "icon": "wallet",
+            "shortcut": "F7",
+            "shortcut_key": "f7",
+            "pin_protected": True,
+        },
+        {
+            "title": "Resumo gerencial",
+            "href": reverse("resumo_financeiro_gerencial"),
+            "icon": "pie-chart",
+            "shortcut": "F8",
+            "shortcut_key": "f8",
+            "pin_protected": True,
+        },
+        {
+            "title": "DRE (off)" if not dre_ativo else "DRE simples",
+            "href": reverse("lancamentos_dre") if dre_ativo else "",
+            "icon": "bar-chart-3",
+            "shortcut": "F9",
+            "shortcut_key": "f9",
+            "disabled": not dre_ativo,
+        },
+        {
+            "title": "Logística",
+            "href": reverse("sugestao_transferencia"),
+            "icon": "arrow-left-right",
+            "shortcut": "F10",
+            "shortcut_key": "f10",
+            "pin_protected": True,
+        },
+        {
+            "title": "Vendas",
+            "href": reverse("vendas_lista"),
+            "icon": "receipt",
+            "shortcut": "F11",
+            "shortcut_key": "f11",
+            "pin_protected": True,
+        },
+        {
+            "title": "Clientes",
+            "href": reverse("clientes_lista"),
+            "icon": "users",
+            "shortcut": "F12",
+            "shortcut_key": "f12",
+            "pin_protected": True,
+        },
+        {
+            "title": "Caixa",
+            "href": reverse("caixa_painel"),
+            "icon": "banknote",
+            "shortcut": "Q",
+            "shortcut_key": "q",
+            "pin_protected": True,
+        },
+        {
+            "title": "RH",
+            "href": reverse("rh_painel"),
+            "icon": "id-card",
+            "shortcut": "W",
+            "shortcut_key": "w",
+            "pin_protected": True,
+        },
+        {
+            "title": "Orçamentos",
+            "href": f"{agro_legado_url}?orcamentos=1",
+            "icon": "history",
+            "shortcut": "O",
+            "shortcut_key": "o",
+            "pin_protected": True,
+        },
+        {
+            "title": "Entregas",
+            "href": reverse("entregas_painel"),
+            "icon": "truck",
+            "shortcut": "E",
+            "shortcut_key": "e",
+            "pin_protected": True,
+        },
+        {
+            "title": "Ajuste Mobile",
+            "href": reverse("ajuste_mobile"),
+            "icon": "smartphone",
+            "shortcut": "M",
+            "shortcut_key": "m",
+            "pin_protected": True,
+        },
+        {
+            "title": "Entrada NF-e",
+            "href": reverse("entrada_nota"),
+            "icon": "file-input",
+            "shortcut": "N",
+            "shortcut_key": "n",
+            "pin_protected": True,
+        },
+    ]
+    return {"top_items": top_items, "grid_items": grid_items}
+
+
 # --- VIEWS DE PÁGINA ---
-def consulta_produtos(request):
+def home(request):
+    nav = _home_admin_navegacao()
+    return render(
+        request,
+        "home.html",
+        {
+            "empresa_atual": _empresa_home_atual(),
+            "home_top_items": nav["top_items"],
+            "home_grid_items": nav["grid_items"],
+        },
+    )
+
+
+def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
+    pdv_root_url = reverse(rota_nome)
+    pdv_dedicado = rota_nome == "pdv_home"
     ctx = {}
     if request.GET.get("reabrir") == "1":
         draft = request.session.get("pdv_checkout")
@@ -954,7 +1186,29 @@ def consulta_produtos(request):
     ctx["caixa_aberto"] = _obter_sessao_caixa_aberta(request)
     ctx["pdv_entrega_whatsapp"] = getattr(settings, "PDV_ENTREGA_WHATSAPP", "") or ""
     ctx["lancamentos_dre_ativo"] = getattr(settings, "LANCAMENTOS_DRE_ATIVO", False)
+    ctx["pdv_root_url"] = pdv_root_url
+    ctx["pdv_dedicado"] = pdv_dedicado
+    ctx["pdv_bootstrap"] = {
+        "csrfToken": request.META.get("CSRF_COOKIE", "") or "",
+        "urls": {
+            "apiPdvSalvarCheckoutDraft": reverse("api_pdv_salvar_checkout_draft"),
+            "pdvCheckout": reverse("pdv_checkout"),
+            "apiEntregaRegistrar": reverse("api_entrega_registrar"),
+            "apiListCustomers": reverse("api_list_customers"),
+            "apiBuscarClientes": reverse("api_buscar_clientes"),
+            "apiPdvTopVendidos": reverse("api_pdv_top_vendidos"),
+            "apiPdvSaldos": reverse("api_pdv_saldos"),
+            "pdvRootUrl": pdv_root_url,
+        },
+        "assets": {
+            "placeholderProduto": static("img/agro-mais-logo-buscador.png"),
+        },
+    }
     return render(request, "produtos/consulta_produtos.html", ctx)
+
+
+def consulta_produtos(request):
+    return _render_pdv_operacional(request, "consulta_produtos")
 
 
 def pdv_checkout(request):
@@ -1038,12 +1292,16 @@ def vendas_exportar_csv(request):
             "cpf_cnpj",
             "forma_pagamento",
             "total",
+            "erp_situacao",
             "enviado_erp",
             "usuario",
             "sessao_caixa_id",
         ]
     )
     for v in qs:
+        situacao = dict(VendaAgro.ErpSyncStatus.choices).get(
+            v.erp_sync_efetivo, v.erp_sync_efetivo
+        )
         w.writerow(
             [
                 v.pk,
@@ -1053,6 +1311,7 @@ def vendas_exportar_csv(request):
                 v.cliente_documento,
                 v.forma_pagamento,
                 str(v.total).replace(".", ","),
+                situacao,
                 "sim" if v.enviado_erp else "nao",
                 v.usuario_registro,
                 v.sessao_caixa_id or "",
@@ -1279,6 +1538,7 @@ def caixa_fechar(request):
 
 
 @login_required(login_url="/admin/login/")
+@ensure_csrf_cookie
 def venda_agro_detalhe(request, pk):
     v = get_object_or_404(
         VendaAgro.objects.select_related("sessao_caixa").prefetch_related("itens"),
@@ -1775,6 +2035,77 @@ def aplicar_entrada_nota_estoque_agro(
         "avisos": []
         if aplicados
         else ([{"msg": "Nenhuma linha com produto vinculado (catálogo) e quantidade > 0."}]),
+    }
+
+
+def aplicar_baixa_estoque_venda_agro(
+    *,
+    db,
+    client_m,
+    venda: VendaAgro,
+    deposito: str,
+    usuario_label: str,
+) -> dict:
+    """
+    Baixa de estoque só na camada Agro (``AjusteRapidoEstoque``), como entrada NF / PIN.
+    Não altera o Mongo do ERP diretamente — o saldo exibido no PDV segue a fórmula Agro.
+    """
+    dep = (deposito or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
+    empresa, loja = _empresa_loja_padrao_agro_estoque(dep)
+    user = (usuario_label or "PDV")[:80]
+    aplicados: list[dict] = []
+    erros: list[dict] = []
+
+    for it in venda.itens.all():
+        pid = str(it.produto_id_externo or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            continue
+        try:
+            qtd = Decimal(str(it.quantidade))
+        except Exception:
+            erros.append({"produto_id": pid, "erro": "Quantidade inválida."})
+            continue
+        if qtd <= 0:
+            continue
+
+        saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid, dep)
+        saldo_antes = _saldo_final_agro_com_pin(pid, dep, saldo_erp)
+        saldo_depois = (saldo_antes - qtd).quantize(Decimal("0.001"))
+
+        try:
+            AjusteRapidoEstoque.objects.create(
+                empresa=empresa,
+                loja=loja,
+                produto_externo_id=pid[:100],
+                codigo_interno=str(it.codigo or "")[:100],
+                nome_produto=(f"{(it.descricao or '')[:120]} · Baixa venda #{venda.pk} Agro ({user})")[
+                    :255
+                ],
+                deposito=dep,
+                saldo_erp_referencia=saldo_erp,
+                saldo_informado=saldo_depois,
+            )
+            aplicados.append(
+                {
+                    "produto_id": pid,
+                    "quantidade": float(qtd),
+                    "saldo_agro_antes": float(saldo_antes),
+                    "saldo_agro_depois": float(saldo_depois),
+                }
+            )
+        except Exception as exc:
+            logger.exception("aplicar_baixa_estoque_venda_agro venda=%s produto=%s", venda.pk, pid)
+            erros.append({"produto_id": pid, "erro": str(exc)[:300]})
+
+    return {
+        "ok": len(erros) == 0 and len(aplicados) > 0,
+        "aplicados": aplicados,
+        "erros": erros,
+        "avisos": []
+        if aplicados
+        else ([{"msg": "Nenhum item com produto de catálogo para baixar."}]),
     }
 
 
@@ -3389,32 +3720,50 @@ def api_buscar_produtos(request):
         "true",
         "yes",
     )
+    wizard_mode = (request.GET.get("wizard") or "").strip().lower() in ("1", "true", "yes")
+    wizard_catalog = wizard_mode and (request.GET.get("wizard_catalog") or "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
     q = request.GET.get("q", "").strip()
     client, db = obter_conexao_mongo()
-    if db is None or not q:
+    if db is None:
+        return JsonResponse({"produtos": []})
+    if not q and not wizard_catalog:
         return JsonResponse({"produtos": []})
 
     try:
-        preco_por_id = {}
-        bal = _parse_etiqueta_balanca_ean13_br(q)
-        if bal:
-            cod4, preco_etiqueta = bal
-            p_bal = _buscar_produto_por_codigo_interno_balanca(db, client, cod4)
-            if p_bal:
-                pid_b = str(p_bal.get("Id") or p_bal.get("_id"))
-                preco_por_id[pid_b] = preco_etiqueta
-                prods = [p_bal]
+        if wizard_catalog:
+            prods = list(
+                db[client.col_p]
+                .find({"CadastroInativo": {"$ne": True}})
+                .sort("Nome", 1)
+                .limit(25000)
+            )
+            preco_por_id = {}
+        else:
+            preco_por_id = {}
+            bal = _parse_etiqueta_balanca_ean13_br(q)
+            if bal:
+                cod4, preco_etiqueta = bal
+                p_bal = _buscar_produto_por_codigo_interno_balanca(db, client, cod4)
+                if p_bal:
+                    pid_b = str(p_bal.get("Id") or p_bal.get("_id"))
+                    preco_por_id[pid_b] = preco_etiqueta
+                    prods = [p_bal]
+                else:
+                    prods = motor_de_busca_agro(q, db, client, limit=80)
             else:
                 prods = motor_de_busca_agro(q, db, client, limit=80)
-        else:
-            prods = motor_de_busca_agro(q, db, client, limit=80)
         p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
 
         medias_map = {}
-        try:
-            medias_map = _obter_mapa_medias_venda_cache(db)
-        except Exception:
-            logger.warning("api_buscar_produtos: medias indisponíveis", exc_info=True)
+        if not wizard_mode:
+            try:
+                medias_map = _obter_mapa_medias_venda_cache(db)
+            except Exception:
+                logger.warning("api_buscar_produtos: medias indisponíveis", exc_info=True)
 
         estoque_map = {}
         try:
@@ -3469,17 +3818,6 @@ def api_buscar_produtos(request):
                 "id": pid,
                 "nome": p.get("Nome"),
                 "marca": p.get("Marca") or "",
-                "prateleira": str(prateleira_busca).strip() if prateleira_busca is not None else "",
-                "fornecedor": p.get("NomeFornecedor")
-                or p.get("Fornecedor")
-                or p.get("RazaoSocialFornecedor")
-                or p.get("Fabricante")
-                or "",
-                "categoria": p.get("NomeCategoria")
-                or p.get("Categoria")
-                or p.get("Grupo")
-                or p.get("SubGrupo")
-                or "",
                 "codigo": codigo,
                 "codigo_nfe": codigo_nfe,
                 "codigo_barras": codigo_barras,
@@ -3487,13 +3825,29 @@ def api_buscar_produtos(request):
                 "imagem": _formatar_url_imagem(_extrair_imagem_produto(p, {}, pid)),
                 "saldo_centro": round(saldo_centro, 2),
                 "saldo_vila": round(saldo_vila, 2),
-                "saldo_centro_erp": round(saldo_centro_erp, 2),
-                "saldo_vila_erp": round(saldo_vila_erp, 2),
-                "saldo_erp_centro": round(saldo_centro_erp, 2),  # compatibilidade com mobile atual
-                "saldo_erp_vila": round(saldo_vila_erp, 2),
                 "media_venda_diaria_30d": media_d,
                 "preco_etiqueta_balanca": bool(pid in preco_por_id) and not compras,
             }
+            if not wizard_mode:
+                row.update(
+                    {
+                        "prateleira": str(prateleira_busca).strip() if prateleira_busca is not None else "",
+                        "fornecedor": p.get("NomeFornecedor")
+                        or p.get("Fornecedor")
+                        or p.get("RazaoSocialFornecedor")
+                        or p.get("Fabricante")
+                        or "",
+                        "categoria": p.get("NomeCategoria")
+                        or p.get("Categoria")
+                        or p.get("Grupo")
+                        or p.get("SubGrupo")
+                        or "",
+                        "saldo_centro_erp": round(saldo_centro_erp, 2),
+                        "saldo_vila_erp": round(saldo_vila_erp, 2),
+                        "saldo_erp_centro": round(saldo_centro_erp, 2),  # compatibilidade com mobile atual
+                        "saldo_erp_vila": round(saldo_vila_erp, 2),
+                    }
+                )
             if compras:
                 custos = _custos_compra_produto(p)
                 row["preco_custo"] = custos["preco_custo"]
@@ -3501,14 +3855,25 @@ def api_buscar_produtos(request):
                 row["preco_custo_final"] = custos["preco_custo_final"]
             res.append(row)
 
-        res.sort(
-            key=lambda r: (
-                -float(r.get("media_venda_diaria_30d") or 0),
-                str(r.get("nome") or "").lower(),
+        if wizard_catalog:
+            res.sort(key=lambda r: str(r.get("nome") or "").lower())
+        elif wizard_mode:
+            res.sort(
+                key=lambda r: (
+                    -1 if str(r.get("codigo_barras") or "") == q or str(r.get("codigo_nfe") or "") == q else 0,
+                    str(r.get("nome") or "").lower(),
+                )
             )
-        )
+            res = res[:24]
+        else:
+            res.sort(
+                key=lambda r: (
+                    -float(r.get("media_venda_diaria_30d") or 0),
+                    str(r.get("nome") or "").lower(),
+                )
+            )
 
-        exact = bool(preco_por_id) and len(res) == 1
+        exact = bool(preco_por_id) and len(res) == 1 and not wizard_catalog
         return JsonResponse({"produtos": res, "exact_barcode_match": exact})
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
@@ -3599,8 +3964,65 @@ def _desembrulhar_texto_json_recursivo(val, depth=0):
     return s
 
 
-def _mensagem_pedido_erp_indica_falha(msg) -> bool:
-    s = str(_desembrulhar_texto_json_recursivo(msg)).strip().lower()
+def _texto_heuristico_resposta_pedido_erp(res) -> str:
+    """
+    Extrai texto legível da resposta do Pedidos/Salvar (dict com 'texto' JSON escapado, etc.)
+    para heurística de recusa de negócio — evita str(dict) que não contém frases pesquisáveis.
+    """
+    chunks = []
+
+    def add(s):
+        t = str(s or "").strip()
+        if t:
+            chunks.append(t)
+
+    def walk(node, depth):
+        if depth > 14:
+            return
+        if node is None:
+            return
+        if isinstance(node, str):
+            s = node.strip()
+            add(s)
+            if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+                try:
+                    walk(json.loads(s), depth + 1)
+                except Exception:
+                    pass
+            elif (s.startswith("{") and s.endswith("}")) or (s.startswith("[") and s.endswith("]")):
+                try:
+                    walk(json.loads(s), depth + 1)
+                except Exception:
+                    pass
+            return
+        if isinstance(node, dict):
+            for key in (
+                "texto",
+                "Texto",
+                "mensagem",
+                "Mensagem",
+                "message",
+                "Message",
+                "erro",
+                "Erro",
+                "error",
+                "Error",
+                "detalhes",
+                "Detalhes",
+            ):
+                if key in node and node[key] is not None:
+                    walk(node[key], depth + 1)
+            return
+        if isinstance(node, list):
+            for it in node[:80]:
+                walk(it, depth + 1)
+
+    walk(res, 0)
+    return " ".join(chunks)
+
+
+def _mensagem_pedido_erp_indica_recusa_negocio(texto_flat: str) -> bool:
+    s = str(texto_flat or "").strip().lower()
     folded = "".join(
         c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn"
     )
@@ -3611,11 +4033,293 @@ def _mensagem_pedido_erp_indica_falha(msg) -> bool:
         "informar algum produto",
         "informar produtos",
         "falha ao salvar",
+        "status da venda",
+        "deve ser valido",
+        "ao informar um status",
+        "mesmo deve ser valido",
+        "nao e valido",
+        "invalido",
+        "nao permitid",
+        "nao pode ser",
+        "erro ao salvar",
+        "in formar",
+        "plano de contas informado",
+        "informar o plano",
+        "salvar o pedido",
     )
     return any(m in folded for m in markers)
 
 
-def _linha_item_pedido_erp(db, client_m, item: dict) -> dict | None:
+def _mensagem_pedido_erp_indica_falha_salvar_pedido_generica(texto_flat: str) -> bool:
+    """Ex.: 'NÃO FOI POSSÍVEL SALVAR O PEDIDO' (sem detalhe de plano/status)."""
+    folded, compact = _pedido_erp_texto_fold_e_compact(texto_flat)
+    if "naofoipossivelsalvaropedido" in compact:
+        return True
+    if "nao foi possivel" in folded and "salvar" in folded and "pedido" in folded:
+        return True
+    return False
+
+
+def _pedido_erp_texto_fold_e_compact(texto_flat: str) -> tuple[str, str]:
+    folded = "".join(
+        c
+        for c in unicodedata.normalize("NFD", str(texto_flat or "").lower())
+        if unicodedata.category(c) != "Mn"
+    )
+    compact = "".join(folded.split())
+    return folded, compact
+
+
+def _mensagem_pedido_erp_indica_erro_localizar_plano(texto_flat: str) -> bool:
+    folded, compact = _pedido_erp_texto_fold_e_compact(texto_flat)
+    if "plano" not in folded or "cont" not in folded:
+        return False
+    return "localizar" in folded or "lovalizar" in folded or "informado" in folded
+
+
+def _mensagem_pedido_erp_indica_erro_plano_contas(texto_flat: str) -> bool:
+    """Localizar / informar plano (inclui 'IN FORMAR' → compact ``informar``)."""
+    folded, compact = _pedido_erp_texto_fold_e_compact(texto_flat)
+    tem_plano_contas = "planodecontas" in compact or (
+        "plano" in folded and "contas" in folded
+    )
+    if not tem_plano_contas:
+        return False
+    if "localizar" in folded or "lovalizar" in folded:
+        return True
+    if "naofoipossivel" in compact:
+        return True
+    if "informar" in compact and "plano" in folded:
+        return True
+    return False
+
+
+def _mensagem_pedido_erp_indica_recusa_ou_erro_plano(flat_erp: str) -> bool:
+    return (
+        _mensagem_pedido_erp_indica_recusa_negocio(flat_erp)
+        or _mensagem_pedido_erp_indica_erro_plano_contas(flat_erp)
+        or _mensagem_pedido_erp_indica_falha_salvar_pedido_generica(flat_erp)
+    )
+
+
+def _mensagem_pedido_erp_indica_retry_flat_apos_embutido(flat_erp: str) -> bool:
+    """Plano inválido ou corpo rejeitado (mensagem genérica) após JSON com plano embutido."""
+    return _mensagem_pedido_erp_indica_erro_plano_contas(
+        flat_erp
+    ) or _mensagem_pedido_erp_indica_falha_salvar_pedido_generica(flat_erp)
+
+
+def _pedido_payload_variante_sem_plano_cabecalho(payload_camel: dict) -> dict:
+    out = copy.deepcopy(payload_camel)
+    for k in list(out.keys()):
+        if k == "items":
+            continue
+        if str(k).lower().startswith("plano"):
+            del out[k]
+    return out
+
+
+def _pedido_payload_variante_itens_plano_so_id(payload_camel: dict) -> dict:
+    """Remove plano do cabeçalho e remove só os campos de texto do plano nas linhas (mantém *ID* / *Id*)."""
+    out = _pedido_payload_variante_sem_plano_cabecalho(payload_camel)
+    for row in out.get("items") or []:
+        if not isinstance(row, dict):
+            continue
+        for ik in list(row.keys()):
+            lki = str(ik).lower()
+            if lki in ("planodeconta", "planoconta", "planodecontas"):
+                del row[ik]
+    return out
+
+
+def _pedido_extrair_id_plano_de_dict(d: dict) -> str:
+    for key in ("planoDeContaID", "planoContaID", "planoDeContaId", "planoContaId"):
+        v = d.get(key)
+        if v is not None and str(v).strip():
+            return str(v).strip()[:40]
+    return ""
+
+
+def _pedido_extrair_texto_plano_de_dict(d: dict) -> str:
+    for key in ("planoDeConta", "planoConta"):
+        v = d.get(key)
+        if v is None or isinstance(v, dict):
+            continue
+        s = str(v).strip()
+        if s:
+            return s[:500]
+    return ""
+
+
+def _pedido_remover_chaves_plano_dict(d: dict) -> None:
+    for k in list(d.keys()):
+        if str(k).lower().startswith("plano"):
+            del d[k]
+
+
+def _pedido_plano_vai_nos_itens() -> bool:
+    """Swagger não lista plano nas linhas; use True só se o WL exigir por item."""
+    return bool(getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_PLANO_NOS_ITENS", False))
+
+
+def _pedido_payload_flat_com_texto_plano_uniforme(base_flat: dict, texto: str) -> dict:
+    """
+    ``planoDeConta`` string no cabeçalho; nas linhas só se ``VENDA_ERP_PEDIDOS_SALVAR_PLANO_NOS_ITENS``.
+    """
+    p = copy.deepcopy(base_flat)
+    t = (texto or "").strip()[:500]
+    _pedido_remover_chaves_plano_dict(p)
+    if t:
+        p["planoDeConta"] = t
+    nos = _pedido_plano_vai_nos_itens()
+    for row in p.get("items") or []:
+        if isinstance(row, dict):
+            _pedido_remover_chaves_plano_dict(row)
+            if nos and t:
+                row["planoDeConta"] = t
+    return p
+
+
+def _pedido_montar_plano_conta_objeto_retorno_busca(doc: dict | None) -> dict | None:
+    """
+    Alinha ao schema WL ``PlanoDeContaRetornoBusca`` (camelCase no JSON).
+    Montado a partir do documento Mongo ``DtoPlanoDeConta``.
+    """
+    if not doc:
+        return None
+    nome = str(doc.get("Nome") or "").strip()
+    if not nome:
+        return None
+    o: dict = {"nome": nome[:500]}
+    oid = doc.get("_id")
+    if oid is not None:
+        if isinstance(oid, ObjectId):
+            o["id"] = str(oid)
+        else:
+            s = str(oid).strip()
+            if s:
+                o["id"] = s[:40]
+    cn = doc.get("CodigoNatureza")
+    if cn is not None and str(cn).strip() != "":
+        try:
+            o["codigoNatureza"] = int(str(cn).strip())
+        except ValueError:
+            pass
+    tc = str(doc.get("TipoDeConta") or "").strip()
+    if tc:
+        o["tipoDeConta"] = tc[:40]
+    o["despesa"] = bool(doc.get("EhDespesa", False))
+    gdre = str(doc.get("GrupoDRE") or "").strip()
+    if gdre:
+        o["grupoDRE"] = gdre[:200]
+    hier = str(doc.get("Hierarquia") or "").strip()
+    if hier:
+        o["hierarquia"] = hier[:80]
+    cc = doc.get("CostCenter")
+    if isinstance(cc, dict):
+        cnm = str(cc.get("Name") or "").strip()
+        if cnm:
+            o["centroDeCusto"] = cnm[:200]
+    gl = doc.get("GroupEntry")
+    if isinstance(gl, dict):
+        gnm = str(gl.get("Name") or "").strip()
+        if gnm:
+            o["grupoLancamento"] = gnm[:200]
+    return o
+
+
+def _pedido_payload_com_plano_objeto_retorno_busca(
+    base_flat: dict, doc_plano_mestre: dict | None
+) -> dict | None:
+    obj = _pedido_montar_plano_conta_objeto_retorno_busca(doc_plano_mestre)
+    if not obj:
+        return None
+    p = copy.deepcopy(base_flat)
+    _pedido_remover_chaves_plano_dict(p)
+    p["planoDeConta"] = copy.deepcopy(obj)
+    if _pedido_plano_vai_nos_itens():
+        for row in p.get("items") or []:
+            if isinstance(row, dict):
+                _pedido_remover_chaves_plano_dict(row)
+                row["planoDeConta"] = copy.deepcopy(obj)
+    else:
+        for row in p.get("items") or []:
+            if isinstance(row, dict):
+                _pedido_remover_chaves_plano_dict(row)
+    return p
+
+
+def _pedido_montar_objeto_plano_dto(
+    pid: str, txt: str, doc_plano_mestre: dict | None
+) -> dict:
+    o: dict = {"Id": str(pid)[:40], "Nome": str(txt)[:500]}
+    if not doc_plano_mestre:
+        return o
+    gid = str(doc_plano_mestre.get("GrupoDREID") or "").strip()
+    if gid:
+        o["GrupoDREID"] = gid
+    h = str(doc_plano_mestre.get("Hierarquia") or "").strip()
+    if h:
+        o["Hierarquia"] = h
+    pai = str(doc_plano_mestre.get("PlanoPaiId") or "").strip()
+    if pai:
+        o["PlanoPaiId"] = pai
+    return o
+
+
+def _pedido_payload_variante_plano_aninhado_dto(
+    payload_camel: dict, *, doc_plano_mestre: dict | None = None
+) -> dict | None:
+    """
+    Alguns DTOs .NET esperam ``PlanoDeConta`` como objeto (Id + Nome), não string solta + *ID* paralelos.
+    ``doc_plano_mestre`` vem do Mongo (GrupoDREID, Hierarquia, PlanoPaiId) quando disponível.
+    """
+    out = copy.deepcopy(payload_camel)
+    pid_root = _pedido_extrair_id_plano_de_dict(out)
+    txt_root = _pedido_extrair_texto_plano_de_dict(out)
+    if not pid_root:
+        return None
+    if not txt_root:
+        txt_root = pid_root
+    _pedido_remover_chaves_plano_dict(out)
+    out["planoDeConta"] = _pedido_montar_objeto_plano_dto(pid_root, txt_root, doc_plano_mestre)
+
+    for row in out.get("items") or []:
+        if not isinstance(row, dict):
+            continue
+        if _pedido_plano_vai_nos_itens():
+            pid = _pedido_extrair_id_plano_de_dict(row) or pid_root
+            txt = _pedido_extrair_texto_plano_de_dict(row) or txt_root
+            if not txt:
+                txt = txt_root
+            _pedido_remover_chaves_plano_dict(row)
+            row["planoDeConta"] = _pedido_montar_objeto_plano_dto(pid, txt, doc_plano_mestre)
+        else:
+            _pedido_remover_chaves_plano_dict(row)
+    return out
+
+
+def _pedido_plano_conta_texto_erp(integ_obj) -> str:
+    """Texto do plano de contas para Pedidos/Salvar (cabeçalho e linhas)."""
+    if integ_obj:
+        raw = str(getattr(integ_obj, "pedido_plano_conta", None) or "").strip()
+        if raw:
+            return raw
+    return str(getattr(settings, "VENDA_ERP_PEDIDO_PLANO_CONTA", "") or "").strip()
+
+
+def _pedido_plano_conta_id_config_erp(integ_obj) -> str:
+    """PlanoDeContaID opcional (.env ou Integração ERP)."""
+    if integ_obj:
+        raw = str(getattr(integ_obj, "pedido_plano_conta_id", None) or "").strip()
+        if raw:
+            return raw
+    return str(getattr(settings, "VENDA_ERP_PEDIDO_PLANO_CONTA_ID", "") or "").strip()
+
+
+def _linha_item_pedido_erp(
+    db, client_m, item: dict, *, plano_conta: str = "", plano_conta_id: str = ""
+) -> dict | None:
     pid = str(item.get("id") or "").strip()
     if not pid:
         return None
@@ -3649,7 +4353,151 @@ def _linha_item_pedido_erp(db, client_m, item: dict) -> dict | None:
     }
     if codigo_barras:
         linha["codigoBarras"] = codigo_barras
+    if _pedido_plano_vai_nos_itens():
+        pc = str(plano_conta or "").strip()
+        if pc:
+            pcc = pc[:500]
+            linha["planoDeConta"] = pcc
+            if not getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_PLANO_SO_TEXTO_SWAGGER", True):
+                linha["planoConta"] = pcc
+        pid = str(plano_conta_id or "").strip()
+        if pid and not getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_PLANO_SO_TEXTO_SWAGGER", True):
+            pids = pid[:40]
+            linha["planoDeContaID"] = pids
+            linha["planoContaID"] = pids
+            linha["planoDeContaId"] = pids
+            linha["planoContaId"] = pids
     return linha
+
+
+_PEDIDO_SALVAR_TOP_CAMEL_PARA_PASCAL = {
+    "statusSistema": "StatusSistema",
+    "statusDaVenda": "StatusDaVenda",
+    "cliente": "Cliente",
+    "data": "Data",
+    "origemVenda": "OrigemVenda",
+    "empresa": "Empresa",
+    "deposito": "Deposito",
+    "vendedor": "Vendedor",
+    "items": "Items",
+    "depositoID": "DepositoID",
+    "empresaID": "EmpresaID",
+    "clienteID": "ClienteID",
+    "cpfCnpj": "CpfCnpj",
+    "planoDeConta": "PlanoDeConta",
+    "planoConta": "PlanoConta",
+    "planoDeContaID": "PlanoDeContaID",
+    "planoContaID": "PlanoContaID",
+    "planoDeContaId": "PlanoDeContaId",
+    "planoContaId": "PlanoContaId",
+    "formaPagamento": "FormaPagamento",
+    "formaPagamentoID": "FormaPagamentoID",
+    "valorFinal": "ValorFinal",
+    "pagamentos": "Pagamentos",
+}
+
+_PEDIDO_SALVAR_PAGAMENTO_CAMEL_PARA_PASCAL = {
+    "formaPagamento": "FormaPagamento",
+    "descricaoPagamento": "DescricaoPagamento",
+    "valorPagamento": "ValorPagamento",
+    "bandeiraCartao": "BandeiraCartao",
+    "numeroTerminal": "NumeroTerminal",
+    "dataTransacao": "DataTransacao",
+    "credenciadoraCartao": "CredenciadoraCartao",
+    "credenciadoraCNPJ": "CredenciadoraCNPJ",
+    "cV_NSU": "CV_NSU",
+    "tipoIntegracao": "TipoIntegracao",
+    "condicaoPagamento": "CondicaoPagamento",
+    "parcelas": "Parcelas",
+    "periodoParcelas": "PeriodoParcelas",
+    "adiantamento": "Adiantamento",
+    "quitar": "Quitar",
+}
+_PEDIDO_SALVAR_ITEM_CAMEL_PARA_PASCAL = {
+    "produtoID": "ProdutoID",
+    "codigo": "Codigo",
+    "unidade": "Unidade",
+    "descricao": "Descricao",
+    "quantidade": "Quantidade",
+    "valorUnitario": "ValorUnitario",
+    "valorTotal": "ValorTotal",
+    "codigoBarras": "CodigoBarras",
+    "planoDeConta": "PlanoDeConta",
+    "planoConta": "PlanoConta",
+    "planoDeContaID": "PlanoDeContaID",
+    "planoContaID": "PlanoContaID",
+    "planoDeContaId": "PlanoDeContaId",
+    "planoContaId": "PlanoContaId",
+}
+
+# Propriedades internas de ``planoDeConta`` no formato PlanoDeContaRetornoBusca (camel → Pascal).
+_PLANO_RETORNO_BUSCA_JSON_CAMEL_PARA_PASCAL = {
+    "nome": "Nome",
+    "id": "Id",
+    "codigoNatureza": "CodigoNatureza",
+    "tipoDeConta": "TipoDeConta",
+    "despesa": "Despesa",
+    "grupoDRE": "GrupoDRE",
+    "hierarquia": "Hierarquia",
+    "centroDeCusto": "CentroDeCusto",
+    "grupoLancamento": "GrupoLancamento",
+}
+
+
+def _pedido_payload_camel_para_pascal(payload: dict) -> dict:
+    """Mesmo conteúdo do Pedidos/Salvar com chaves PascalCase (compat .NET legado)."""
+    out: dict = {}
+    for k, v in payload.items():
+        nk = _PEDIDO_SALVAR_TOP_CAMEL_PARA_PASCAL.get(k) or (
+            (k[0].upper() + k[1:]) if k and k[0].islower() else k
+        )
+        if nk == "Items" and isinstance(v, list):
+            linhas = []
+            for row in v:
+                if not isinstance(row, dict):
+                    linhas.append(row)
+                    continue
+                linhas.append(
+                    {
+                        _PEDIDO_SALVAR_ITEM_CAMEL_PARA_PASCAL.get(ik)
+                        or ((ik[0].upper() + ik[1:]) if ik and ik[0].islower() else ik): iv
+                        for ik, iv in row.items()
+                    }
+                )
+            out[nk] = linhas
+        elif nk == "Pagamentos" and isinstance(v, list):
+            pag_list = []
+            for row in v:
+                if not isinstance(row, dict):
+                    pag_list.append(row)
+                    continue
+                pag_list.append(
+                    {
+                        _PEDIDO_SALVAR_PAGAMENTO_CAMEL_PARA_PASCAL.get(ik)
+                        or ((ik[0].upper() + ik[1:]) if ik and ik[0].islower() else ik): iv
+                        for ik, iv in row.items()
+                    }
+                )
+            out[nk] = pag_list
+        else:
+            out[nk] = v
+    return out
+
+
+def _pedido_payload_plano_retorno_busca_tudo_pascal(camel_body: dict) -> dict:
+    """PlanoDeConta aninhado em Pascal + restante do pedido em Pascal (Pedidos/Salvar)."""
+    p = copy.deepcopy(camel_body)
+    for loc in [p] + [r for r in p.get("items") or [] if isinstance(r, dict)]:
+        v = loc.get("planoDeConta")
+        if isinstance(v, dict) and "nome" in v:
+            loc["planoDeConta"] = {
+                _PLANO_RETORNO_BUSCA_JSON_CAMEL_PARA_PASCAL.get(
+                    k,
+                    (k[0].upper() + k[1:]) if k and k[0].islower() else k,
+                ): val
+                for k, val in v.items()
+            }
+    return _pedido_payload_camel_para_pascal(p)
 
 
 def _decimal_item_pedido(val, default="0"):
@@ -3686,7 +4534,16 @@ def _cliente_id_e_valido_para_erp(cid) -> bool:
     return True
 
 
-def _persistir_venda_agro(request, data, raw_itens, erp_http_status, erp_resposta_raw, enviado_erp_com_sucesso):
+def _persistir_venda_agro(
+    request,
+    data,
+    raw_itens,
+    erp_http_status,
+    erp_resposta_raw,
+    enviado_erp_com_sucesso,
+    *,
+    erp_sync_status: str | None = None,
+):
     """
     Grava venda + itens no banco local (sempre que houve tentativa com itens válidos ao ERP).
     """
@@ -3700,7 +4557,9 @@ def _persistir_venda_agro(request, data, raw_itens, erp_http_status, erp_respost
     if not _cliente_id_e_valido_para_erp(cid):
         cid = ""
     doc = str(data.get("cliente_documento") or data.get("CpfCnpj") or "").strip()
-    forma = str(data.get("forma_pagamento") or "").strip()[:80]
+    forma = _forma_pagamento_rotulo_sem_valor_moeda(
+        str(data.get("forma_pagamento") or data.get("formaPagamento") or "")
+    ).strip()[:80]
 
     itens_payload = []
     total = Decimal("0")
@@ -3725,6 +4584,13 @@ def _persistir_venda_agro(request, data, raw_itens, erp_http_status, erp_respost
     resp_json = _erp_resposta_para_json(erp_resposta_raw)
     st = erp_http_status if erp_http_status is not None and erp_http_status > 0 else None
     sessao = _obter_sessao_caixa_aberta(request)
+    sync_st = (erp_sync_status or "").strip()
+    if not sync_st:
+        sync_st = (
+            VendaAgro.ErpSyncStatus.ACEITO
+            if enviado_erp_com_sucesso
+            else VendaAgro.ErpSyncStatus.FALHA_COMUNICACAO
+        )
 
     with transaction.atomic():
         v = VendaAgro.objects.create(
@@ -3733,15 +4599,440 @@ def _persistir_venda_agro(request, data, raw_itens, erp_http_status, erp_respost
             cliente_documento=re.sub(r"\D", "", doc)[:20],
             total=total.quantize(Decimal("0.01")),
             forma_pagamento=forma,
+            erp_sync_status=sync_st,
             enviado_erp=bool(enviado_erp_com_sucesso),
             erp_http_status=st,
             erp_resposta=resp_json,
             usuario_registro=user_label,
             sessao_caixa=sessao,
+            estoque_baixa_agro_aplicada=False,
         )
         for it in itens_payload:
             ItemVendaAgro.objects.create(venda=v, **it)
+
+        if getattr(settings, "PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA", True):
+            cm, dbe = obter_conexao_mongo()
+            # PyMongo: Database/MongoClient não implementam __bool__ — usar "is not None".
+            if cm is not None and dbe is not None:
+                dep_v = getattr(settings, "PDV_VENDA_ESTOQUE_DEPOSITO", "centro") or "centro"
+                if dep_v not in ("centro", "vila"):
+                    dep_v = "centro"
+                try:
+                    r_baixa = aplicar_baixa_estoque_venda_agro(
+                        db=dbe,
+                        client_m=cm,
+                        venda=v,
+                        deposito=dep_v,
+                        usuario_label=user_label,
+                    )
+                    if r_baixa.get("ok"):
+                        v.estoque_baixa_agro_aplicada = True
+                        v.save(update_fields=["estoque_baixa_agro_aplicada"])
+                        _invalidar_caches_apos_ajuste_pin()
+                    elif r_baixa.get("erros"):
+                        logger.warning(
+                            "Venda %s: baixa estoque Agro incompleta: %s",
+                            v.pk,
+                            r_baixa.get("erros"),
+                        )
+                except Exception:
+                    logger.exception(
+                        "Venda %s: falha na baixa estoque Agro (venda permanece gravada).",
+                        v.pk,
+                    )
+            else:
+                logger.warning(
+                    "Venda %s: Mongo indisponível — baixa estoque Agro não aplicada.",
+                    v.pk,
+                )
     return v
+
+
+def _atualizar_venda_agro_resposta_erp(v: VendaAgro, erp_http_status, erp_resposta_raw, erp_sync: str):
+    sucesso = erp_sync == VendaAgro.ErpSyncStatus.ACEITO
+    st = erp_http_status if erp_http_status is not None and erp_http_status > 0 else None
+    v.erp_sync_status = erp_sync
+    v.enviado_erp = bool(sucesso)
+    v.erp_http_status = st
+    v.erp_resposta = _erp_resposta_para_json(erp_resposta_raw)
+    v.save(
+        update_fields=[
+            "erp_sync_status",
+            "enviado_erp",
+            "erp_http_status",
+            "erp_resposta",
+        ]
+    )
+
+
+def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
+    """
+    Monta itens, chama Pedidos/Salvar (com retry Pascal) e devolve resultado.
+    Retorno: (JsonResponse de erro imediato | None, dict resultado | None).
+    """
+    raw_itens = data.get("itens", [])
+    if not isinstance(raw_itens, list):
+        raw_itens = []
+
+    integ = (
+        IntegracaoERP.objects.filter(ativo=True, tipo_erp="venda_erp")
+        .order_by("-pk")
+        .first()
+    )
+
+    dep_id = ""
+    emp_id = ""
+    if db is not None and client_m is not None:
+        est = db[client_m.col_e].find_one({"DepositoID": client_m.DEPOSITO_CENTRO})
+        if est:
+            dep_id = str(est.get("DepositoID") or "")
+            emp_id = str(est.get("EmpresaID") or "")
+
+    plano_txt_cfg = _pedido_plano_conta_texto_erp(integ)
+    plano_id_cfg = _pedido_plano_conta_id_config_erp(integ)
+    plano_txt, plano_id = resolver_plano_conta_para_pedido_erp(
+        db,
+        texto_config=plano_txt_cfg,
+        id_config=plano_id_cfg or None,
+        empresa_id=emp_id or None,
+    )
+    _plano_so_txt = getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_PLANO_SO_TEXTO_SWAGGER", True)
+    _plano_itens = _pedido_plano_vai_nos_itens()
+    logger.info(
+        "Pedidos/Salvar: plano resolvido — texto=%r | id_mongo=%r | no JSON vai %s | plano nos itens=%s",
+        plano_txt,
+        plano_id,
+        "apenas planoDeConta (string)" if _plano_so_txt else "planoDeConta + planoConta e campos *ID*",
+        _plano_itens,
+    )
+
+    linhas = []
+    for i in raw_itens:
+        if not isinstance(i, dict):
+            continue
+        linha = _linha_item_pedido_erp(
+            db, client_m, i, plano_conta=plano_txt, plano_conta_id=plano_id
+        )
+        if linha:
+            linhas.append(linha)
+
+    if not linhas:
+        return (
+            JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Nenhum item válido para enviar (verifique IDs dos produtos).",
+                },
+                status=400,
+            ),
+            None,
+        )
+
+    api_client = VendaERPAPIClient(
+        base_url=(integ.url_base.strip() if integ and integ.url_base else None),
+        token=(integ.token.strip() if integ and integ.token else None),
+    )
+
+    def _lbl(integ_obj, attr, default):
+        if not integ_obj:
+            return default
+        v = getattr(integ_obj, attr, None) or ""
+        v = str(v).strip()
+        return v or default
+
+    def _status_sistema_pedido_erp(integ_obj):
+        raw = _lbl(integ_obj, "pedido_status_sistema", "")
+        if raw:
+            return raw
+        return str(
+            getattr(settings, "VENDA_ERP_PEDIDO_STATUS_SISTEMA", "") or "Pedido"
+        ).strip() or "Pedido"
+
+    valor_final = round(sum(float(r.get("valorTotal") or 0) for r in linhas), 2)
+    fp_txt = _forma_pagamento_rotulo_sem_valor_moeda(
+        str(data.get("forma_pagamento") or data.get("formaPagamento") or "")
+    ).strip()[:200]
+    fp_id = str(
+        data.get("forma_pagamento_id")
+        or data.get("formaPagamentoID")
+        or data.get("formaPagamentoId")
+        or ""
+    ).strip()[:40]
+    pagamentos_norm = _normalizar_linhas_pagamento_pedido(data.get("pagamentos"))
+
+    st_pedido = _status_sistema_pedido_erp(integ)
+    payload = {
+        "statusSistema": st_pedido,
+        "statusDaVenda": st_pedido,
+        "cliente": (data.get("cliente") or "").strip()
+        or "CONSUMIDOR NÃO IDENTIFICADO...",
+        "data": timezone.now().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+        "origemVenda": "Venda Direta",
+        "empresa": _lbl(integ, "pedido_empresa_label", "Agro Mais Centro"),
+        "deposito": _lbl(integ, "pedido_deposito_label", "Deposito Centro"),
+        "vendedor": _lbl(integ, "pedido_vendedor_label", "Gm Agro Mais"),
+        "items": linhas,
+        "valorFinal": valor_final,
+    }
+    if pagamentos_norm:
+        payload["pagamentos"] = pagamentos_norm
+        resumo_fp = _resumo_forma_pagamento_de_linhas(pagamentos_norm)
+        if resumo_fp:
+            payload["formaPagamento"] = resumo_fp
+    elif fp_txt:
+        payload["formaPagamento"] = fp_txt
+        payload["pagamentos"] = [
+            {
+                "formaPagamento": fp_txt[:200],
+                "valorPagamento": valor_final,
+                "quitar": True,
+            }
+        ]
+    if fp_id:
+        payload["formaPagamentoID"] = fp_id
+    if plano_txt:
+        pt = plano_txt[:500]
+        payload["planoDeConta"] = pt
+        if not getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_PLANO_SO_TEXTO_SWAGGER", True):
+            payload["planoConta"] = pt
+    if plano_id and not getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_PLANO_SO_TEXTO_SWAGGER", True):
+        pid = plano_id[:40]
+        payload["planoDeContaID"] = pid
+        payload["planoContaID"] = pid
+        payload["planoDeContaId"] = pid
+        payload["planoContaId"] = pid
+    if dep_id:
+        payload["depositoID"] = dep_id
+    if emp_id:
+        payload["empresaID"] = emp_id
+
+    cid = str(data.get("cliente_id") or data.get("ClienteID") or "").strip()
+    if _cliente_id_e_valido_para_erp(cid):
+        payload["clienteID"] = cid
+    doc_raw = str(data.get("cliente_documento") or data.get("CpfCnpj") or "").strip()
+    doc_digits = re.sub(r"\D", "", doc_raw)
+    if len(doc_digits) >= 11:
+        payload["cpfCnpj"] = doc_digits
+
+    payload = {k: v for k, v in payload.items() if v not in (None, "")}
+    payload_camel_flat = copy.deepcopy(payload)
+    payload_camel_snapshot = copy.deepcopy(payload)
+    doc_plano_mestre = None
+    if db is not None and plano_id:
+        doc_plano_mestre = documento_plano_mestre_por_id_mongo(db, plano_id)
+    usou_embutido = False
+    if getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_PLANO_USO_EMBUTIDO", True):
+        pv_emb = _pedido_payload_variante_plano_aninhado_dto(
+            payload_camel_snapshot, doc_plano_mestre=doc_plano_mestre
+        )
+        if pv_emb is not None:
+            payload_camel_snapshot = pv_emb
+            usou_embutido = True
+    payload = copy.deepcopy(payload_camel_snapshot)
+
+    if getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_JSON_PASCAL", False):
+        payload = _pedido_payload_camel_para_pascal(payload)
+
+    if settings.DEBUG:
+        try:
+            logger.info(
+                "Pedidos/Salvar payload: %s",
+                json.dumps(payload, ensure_ascii=False, default=str),
+            )
+        except Exception:
+            logger.info("Pedidos/Salvar payload (repr): %r", payload)
+
+    ok, status, res = api_client.salvar_operacao_pdv(payload)
+    flat_erp = _texto_heuristico_resposta_pedido_erp(res)
+    recusa_erp = _mensagem_pedido_erp_indica_recusa_ou_erro_plano(flat_erp)
+
+    if (
+        getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PASCAL_EM_RECUSA", True)
+        and ok
+        and recusa_erp
+        and not getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_JSON_PASCAL", False)
+    ):
+        payload_p = _pedido_payload_camel_para_pascal(payload_camel_snapshot)
+        if settings.DEBUG:
+            try:
+                logger.info(
+                    "Pedidos/Salvar retry PascalCase: %s",
+                    json.dumps(payload_p, ensure_ascii=False, default=str),
+                )
+            except Exception:
+                pass
+        ok2, status2, res2 = api_client.salvar_operacao_pdv(payload_p)
+        flat2 = _texto_heuristico_resposta_pedido_erp(res2)
+        recusa2 = _mensagem_pedido_erp_indica_recusa_ou_erro_plano(flat2)
+        if ok2 and not recusa2:
+            ok, status, res = ok2, status2, res2
+            flat_erp = flat2
+            recusa_erp = recusa2
+
+    if (
+        getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_ANINHADO", True)
+        and ok
+        and recusa_erp
+        and _mensagem_pedido_erp_indica_erro_plano_contas(flat_erp)
+        and not usou_embutido
+    ):
+        pv_nest = _pedido_payload_variante_plano_aninhado_dto(
+            payload_camel_flat, doc_plano_mestre=doc_plano_mestre
+        )
+        if pv_nest is not None:
+            if getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_JSON_PASCAL", False):
+                corpos_n = (_pedido_payload_camel_para_pascal(pv_nest),)
+            else:
+                corpos_n = (pv_nest,)
+                if getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PASCAL_EM_RECUSA", True):
+                    corpos_n = (pv_nest, _pedido_payload_camel_para_pascal(pv_nest))
+            for body in corpos_n:
+                okn, stn, resn = api_client.salvar_operacao_pdv(body)
+                flatn = _texto_heuristico_resposta_pedido_erp(resn)
+                recusan = _mensagem_pedido_erp_indica_recusa_ou_erro_plano(flatn)
+                if okn and not recusan:
+                    ok, status, res = okn, stn, resn
+                    flat_erp = flatn
+                    recusa_erp = False
+                    break
+
+    if (
+        usou_embutido
+        and ok
+        and recusa_erp
+        and _mensagem_pedido_erp_indica_retry_flat_apos_embutido(flat_erp)
+    ):
+        if getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_JSON_PASCAL", False):
+            corpos_flat = (_pedido_payload_camel_para_pascal(payload_camel_flat),)
+        else:
+            corpos_flat = (payload_camel_flat,)
+            if getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PASCAL_EM_RECUSA", True):
+                corpos_flat = (
+                    payload_camel_flat,
+                    _pedido_payload_camel_para_pascal(payload_camel_flat),
+                )
+        for body in corpos_flat:
+            okf, stf, resf = api_client.salvar_operacao_pdv(body)
+            flatf = _texto_heuristico_resposta_pedido_erp(resf)
+            recusaf = _mensagem_pedido_erp_indica_recusa_ou_erro_plano(flatf)
+            if okf and not recusaf:
+                ok, status, res = okf, stf, resf
+                flat_erp = flatf
+                recusa_erp = False
+                break
+
+    if (
+        getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_ALTERNATIVAS", False)
+        and ok
+        and recusa_erp
+        and _mensagem_pedido_erp_indica_erro_localizar_plano(flat_erp)
+    ):
+        variantes = (
+            _pedido_payload_variante_sem_plano_cabecalho(payload_camel_snapshot),
+            _pedido_payload_variante_itens_plano_so_id(payload_camel_snapshot),
+        )
+        for pv in variantes:
+            if getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_JSON_PASCAL", False):
+                corpos = (_pedido_payload_camel_para_pascal(pv),)
+            else:
+                corpos = (pv,)
+                if getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PASCAL_EM_RECUSA", True):
+                    corpos = (pv, _pedido_payload_camel_para_pascal(pv))
+            for body in corpos:
+                okp, stp, resp = api_client.salvar_operacao_pdv(body)
+                flatp = _texto_heuristico_resposta_pedido_erp(resp)
+                recusap = _mensagem_pedido_erp_indica_recusa_ou_erro_plano(flatp)
+                if okp and not recusap:
+                    ok, status, res = okp, stp, resp
+                    flat_erp = flatp
+                    recusa_erp = False
+                    break
+            if not recusa_erp:
+                break
+
+    if (
+        getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_TEXTO_VARIANTES", True)
+        and ok
+        and recusa_erp
+        and _mensagem_pedido_erp_indica_erro_localizar_plano(flat_erp)
+        and plano_id
+        and db is not None
+    ):
+        cands = candidatos_texto_plano_para_api_pedido(
+            db, plano_id=plano_id, texto_ja_resolvido=plano_txt or ""
+        )
+        for cand in cands:
+            if not cand:
+                continue
+            pvar = _pedido_payload_flat_com_texto_plano_uniforme(payload_camel_flat, cand)
+            pvar = {k: v for k, v in pvar.items() if v not in (None, "")}
+            if getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_JSON_PASCAL", False):
+                corpos_tv = (_pedido_payload_camel_para_pascal(pvar),)
+            else:
+                corpos_tv = (pvar,)
+                if getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PASCAL_EM_RECUSA", True):
+                    corpos_tv = (pvar, _pedido_payload_camel_para_pascal(pvar))
+            for body in corpos_tv:
+                okv, stv, resv = api_client.salvar_operacao_pdv(body)
+                flatv = _texto_heuristico_resposta_pedido_erp(resv)
+                recusav = _mensagem_pedido_erp_indica_recusa_ou_erro_plano(flatv)
+                if okv and not recusav:
+                    ok, status, res = okv, stv, resv
+                    flat_erp = flatv
+                    recusa_erp = False
+                    break
+            if not recusa_erp:
+                break
+
+    if (
+        getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_OBJETO_RETORNO_BUSCA", True)
+        and ok
+        and recusa_erp
+        and _mensagem_pedido_erp_indica_erro_localizar_plano(flat_erp)
+        and doc_plano_mestre
+    ):
+        prb = _pedido_payload_com_plano_objeto_retorno_busca(payload_camel_flat, doc_plano_mestre)
+        if prb is not None:
+            prb = {k: v for k, v in prb.items() if v not in (None, "")}
+            if getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_JSON_PASCAL", False):
+                corpos_rb = (_pedido_payload_plano_retorno_busca_tudo_pascal(prb),)
+            else:
+                corpos_rb = (prb,)
+                if getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_RETRY_PASCAL_EM_RECUSA", True):
+                    corpos_rb = (prb, _pedido_payload_plano_retorno_busca_tudo_pascal(prb))
+            for body in corpos_rb:
+                okb, stb, resb = api_client.salvar_operacao_pdv(body)
+                flatb = _texto_heuristico_resposta_pedido_erp(resb)
+                recusab = _mensagem_pedido_erp_indica_recusa_ou_erro_plano(flatb)
+                if okb and not recusab:
+                    ok, status, res = okb, stb, resb
+                    flat_erp = flatb
+                    recusa_erp = False
+                    break
+
+    if ok and not recusa_erp and _mensagem_pedido_erp_indica_erro_plano_contas(flat_erp):
+        recusa_erp = True
+
+    if recusa_erp:
+        erp_sync = VendaAgro.ErpSyncStatus.RECUSADO_ERP
+    elif ok:
+        erp_sync = VendaAgro.ErpSyncStatus.ACEITO
+    else:
+        erp_sync = VendaAgro.ErpSyncStatus.FALHA_COMUNICACAO
+    sucesso_erp = erp_sync == VendaAgro.ErpSyncStatus.ACEITO
+    msg_erro_ui = (flat_erp.strip() or _json_legivel(res)).strip()
+
+    return None, {
+        "ok": ok,
+        "status": status,
+        "res": res,
+        "flat_erp": flat_erp,
+        "recusa_erp": recusa_erp,
+        "erp_sync": erp_sync,
+        "sucesso_erp": sucesso_erp,
+        "raw_itens": raw_itens,
+        "msg_erro_ui": msg_erro_ui,
+    }
 
 
 @require_POST
@@ -3749,109 +5040,120 @@ def api_enviar_pedido_erp(request):
     try:
         data = json.loads(request.body)
         client_m, db = obter_conexao_mongo()
-
-        dep_id = ""
-        emp_id = ""
-
-        if db is not None and client_m is not None:
-            est = db[client_m.col_e].find_one({"DepositoID": client_m.DEPOSITO_CENTRO})
-            if est:
-                dep_id = str(est.get("DepositoID") or "")
-                emp_id = str(est.get("EmpresaID") or "")
-
-        integ = (
-            IntegracaoERP.objects.filter(ativo=True, tipo_erp="venda_erp")
-            .order_by("-pk")
-            .first()
+        err, out = _fluxo_enviar_pedido_erp_interno(
+            request, data, client_m=client_m, db=db
         )
-        api_client = VendaERPAPIClient(
-            base_url=(integ.url_base.strip() if integ and integ.url_base else None),
-            token=(integ.token.strip() if integ and integ.token else None),
-        )
-
-        # Venda ERP (ASP.NET / JSON camelCase): espera "items" e chaves camelCase — não "Itens"/PascalCase.
-        raw_itens = data.get("itens", [])
-        if not isinstance(raw_itens, list):
-            raw_itens = []
-
-        linhas = []
-        for i in raw_itens:
-            if not isinstance(i, dict):
-                continue
-            linha = _linha_item_pedido_erp(db, client_m, i)
-            if linha:
-                linhas.append(linha)
-
-        if not linhas:
-            return JsonResponse(
-                {"ok": False, "erro": "Nenhum item válido para enviar (verifique IDs dos produtos)."},
-                status=400,
-            )
-
-        def _lbl(integ_obj, attr, default):
-            if not integ_obj:
-                return default
-            v = getattr(integ_obj, attr, None) or ""
-            v = str(v).strip()
-            return v or default
-
-        payload = {
-            "statusSistema": "Orçamento",
-            "cliente": (data.get("cliente") or "").strip()
-            or "CONSUMIDOR NÃO IDENTIFICADO...",
-            "data": timezone.now().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-            "origemVenda": "Venda Direta",
-            "empresa": _lbl(integ, "pedido_empresa_label", "Agro Mais Centro"),
-            "deposito": _lbl(integ, "pedido_deposito_label", "Deposito Centro"),
-            "vendedor": _lbl(integ, "pedido_vendedor_label", "Gm Agro Mais"),
-            "items": linhas,
-        }
-        if dep_id:
-            payload["depositoID"] = dep_id
-        if emp_id:
-            payload["empresaID"] = emp_id
-
-        cid = str(data.get("cliente_id") or data.get("ClienteID") or "").strip()
-        if _cliente_id_e_valido_para_erp(cid):
-            payload["clienteID"] = cid
-        doc_raw = str(data.get("cliente_documento") or data.get("CpfCnpj") or "").strip()
-        doc_digits = re.sub(r"\D", "", doc_raw)
-        if len(doc_digits) >= 11:
-            payload["cpfCnpj"] = doc_digits
-
-        payload = {k: v for k, v in payload.items() if v not in (None, "")}
-
-        ok, status, res = api_client.salvar_operacao_pdv(payload)
-        msg_para_checar = _desembrulhar_texto_json_recursivo(res)
-        msg_txt = str(msg_para_checar).strip()
-        sucesso_erp = bool(ok and not _mensagem_pedido_erp_indica_falha(msg_txt))
+        if err is not None:
+            return err
         venda_local = _persistir_venda_agro(
-            request, data, raw_itens, status, res, sucesso_erp
+            request,
+            data,
+            out["raw_itens"],
+            out["status"],
+            out["res"],
+            out["sucesso_erp"],
+            erp_sync_status=out["erp_sync"],
         )
         vid = venda_local.pk if venda_local else None
+        msg_erro_ui = out["msg_erro_ui"]
 
-        if ok and _mensagem_pedido_erp_indica_falha(msg_txt):
+        if out["ok"] and out["recusa_erp"]:
             return JsonResponse(
                 {
                     "ok": False,
-                    "erro": msg_txt or _json_legivel(res),
-                    "http_status": status,
+                    "erro": msg_erro_ui,
+                    "http_status": out["status"],
                     "venda_id": vid,
                 },
                 status=502,
             )
-        if ok:
+        if out["ok"]:
             return JsonResponse(
-                {"ok": True, "mensagem": _json_legivel(res), "venda_id": vid}
+                {
+                    "ok": True,
+                    "mensagem": _json_legivel(out["res"]),
+                    "venda_id": vid,
+                }
             )
         return JsonResponse(
             {
                 "ok": False,
-                "erro": _json_legivel(res),
-                "http_status": status,
+                "erro": msg_erro_ui or _json_legivel(out["res"]),
+                "http_status": out["status"],
                 "venda_id": vid,
             },
-            status=502 if status and status != 0 else 500,
+            status=502 if out["status"] and out["status"] != 0 else 500,
+        )
+    except Exception as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_venda_agro_reenviar_erp(request, pk):
+    """Repete Pedidos/Salvar para uma venda já gravada (ex.: após falha ou recusa do ERP)."""
+    try:
+        v = get_object_or_404(
+            VendaAgro.objects.prefetch_related("itens"),
+            pk=pk,
+        )
+        if not v.itens.exists():
+            return JsonResponse(
+                {"ok": False, "erro": "Venda sem itens para reenviar."},
+                status=400,
+            )
+        data = {
+            "cliente": v.cliente_nome,
+            "cliente_id": v.cliente_id_erp,
+            "cliente_documento": v.cliente_documento,
+            "forma_pagamento": v.forma_pagamento,
+            "itens": [
+                {
+                    "id": it.produto_id_externo,
+                    "nome": it.descricao,
+                    "qtd": float(it.quantidade),
+                    "preco": float(it.valor_unitario),
+                    "codigo": it.codigo,
+                }
+                for it in v.itens.all()
+            ],
+        }
+        client_m, db = obter_conexao_mongo()
+        err, out = _fluxo_enviar_pedido_erp_interno(
+            request, data, client_m=client_m, db=db
+        )
+        if err is not None:
+            return err
+        _atualizar_venda_agro_resposta_erp(
+            v, out["status"], out["res"], out["erp_sync"]
+        )
+        msg_erro_ui = out["msg_erro_ui"]
+        if out["ok"] and out["recusa_erp"]:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": msg_erro_ui,
+                    "http_status": out["status"],
+                    "venda_id": v.pk,
+                },
+                status=502,
+            )
+        if out["ok"]:
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "mensagem": _json_legivel(out["res"]),
+                    "venda_id": v.pk,
+                }
+            )
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": msg_erro_ui or _json_legivel(out["res"]),
+                "http_status": out["status"],
+                "venda_id": v.pk,
+            },
+            status=502 if out["status"] and out["status"] != 0 else 500,
         )
     except Exception as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
@@ -3873,12 +5175,16 @@ def api_pdv_salvar_checkout_draft(request):
     cli = str(data.get("cliente") or "").strip()[:400]
     if not cli:
         cli = "CONSUMIDOR NÃO IDENTIFICADO..."
-    request.session["pdv_checkout"] = {
+    sess_chk: dict = {
         "itens": itens,
         "cliente": cli,
         "cliente_extra": _sanear_cliente_extra_sessao(data.get("cliente_extra")),
-        "forma_pagamento": str(data.get("forma_pagamento") or "").strip()[:80],
+        "forma_pagamento": str(data.get("forma_pagamento") or "").strip()[:200],
     }
+    pag_chk = _normalizar_linhas_pagamento_pedido(data.get("pagamentos"))
+    if pag_chk:
+        sess_chk["pagamentos"] = pag_chk
+    request.session["pdv_checkout"] = sess_chk
     request.session.modified = True
     return JsonResponse({"ok": True})
 

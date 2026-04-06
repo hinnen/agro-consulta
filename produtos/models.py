@@ -216,11 +216,24 @@ class SessaoCaixa(models.Model):
 class VendaAgro(models.Model):
     """Venda registrada pelo PDV Agro (fonte local); orçamento pode ser espelhado no ERP."""
 
+    class ErpSyncStatus(models.TextChoices):
+        ACEITO = "aceito", "Aceito no ERP"
+        RECUSADO_ERP = "recusado_erp", "Recusado pelo ERP"
+        FALHA_COMUNICACAO = "falha_comunicacao", "Falha na comunicação"
+
     cliente_nome = models.CharField(max_length=300, blank=True, default="")
     cliente_id_erp = models.CharField(max_length=32, blank=True, default="")
     cliente_documento = models.CharField(max_length=20, blank=True, default="")
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     forma_pagamento = models.CharField(max_length=80, blank=True, default="")
+    erp_sync_status = models.CharField(
+        max_length=24,
+        choices=ErpSyncStatus.choices,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Resultado do envio ao ERP (Pedidos/Salvar). Vazio = registro antigo antes deste campo.",
+    )
     enviado_erp = models.BooleanField(default=False)
     erp_http_status = models.PositiveIntegerField(null=True, blank=True)
     erp_resposta = models.JSONField(null=True, blank=True)
@@ -233,6 +246,11 @@ class VendaAgro(models.Model):
         related_name="vendas",
     )
     criado_em = models.DateTimeField(auto_now_add=True)
+    estoque_baixa_agro_aplicada = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Se True, já foi registrada baixa de estoque na camada Agro (AjusteRapidoEstoque) para esta venda.",
+    )
 
     class Meta:
         ordering = ["-criado_em"]
@@ -241,6 +259,14 @@ class VendaAgro(models.Model):
 
     def __str__(self):
         return f"Venda #{self.pk} — {self.cliente_nome[:40]} — R$ {self.total}"
+
+    @property
+    def erp_sync_efetivo(self) -> str:
+        """Valor de exibição para registros sem `erp_sync_status` (legado)."""
+        s = (self.erp_sync_status or "").strip()
+        if s:
+            return s
+        return self.ErpSyncStatus.ACEITO if self.enviado_erp else self.ErpSyncStatus.FALHA_COMUNICACAO
 
 
 class ItemVendaAgro(models.Model):

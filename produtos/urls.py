@@ -3,7 +3,8 @@ from . import views
 
 urlpatterns = [
     # --- PÁGINAS ---
-    path('', views.consulta_produtos, name='consulta_produtos'),
+    path('', views.home, name='home'),
+    path('consulta/', views.consulta_produtos, name='consulta_produtos'),
     path('historico/', views.historico_ajustes, name='historico_ajustes'),
     path('transferencias/', views.sugestao_transferencia, name='sugestao_transferencia'),
     path('entregas/', views.entregas_painel_view, name='entregas_painel'),
@@ -56,6 +57,11 @@ urlpatterns = [
     path('vendas/exportar-csv/', views.vendas_exportar_csv, name='vendas_exportar_csv'),
     path('vendas/', views.vendas_lista, name='vendas_lista'),
     path('vendas-hoje/', views.vendas_hoje_redirect, name='vendas_hoje'),
+    path(
+        'venda/<int:pk>/reenviar-erp/',
+        views.api_venda_agro_reenviar_erp,
+        name='api_venda_agro_reenviar_erp',
+    ),
     path('venda/<int:pk>/', views.venda_agro_detalhe, name='venda_agro_detalhe'),
     path('clientes/', views.clientes_lista, name='clientes_lista'),
     path('clientes/sincronizar/', views.clientes_sincronizar, name='clientes_sincronizar'),

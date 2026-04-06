@@ -1,0 +1,398 @@
+<section id="pdv-step-pagamento-root" class="pdv-step-panel pdv-pay-step flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden" data-step-panel="pagamento" hidden>
+  <article class="pdv-soft-card shrink-0 rounded-xl px-3 py-2 sm:rounded-[1.1rem] sm:px-4 sm:py-3">
+    <p class="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-700 sm:text-[11px]">Etapa 4</p>
+    <h2 class="mt-0.5 text-lg font-black tracking-tight text-slate-900 sm:text-xl">Pagamento / fechamento</h2>
+  </article>
+
+  <div class="pdv-pay-main-grid grid min-h-0 flex-1 gap-2 overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(14rem,20rem)]">
+    <article class="pdv-pay-left-col flex min-h-0 flex-col overflow-hidden rounded-[1.15rem] border border-slate-200 bg-white shadow-sm">
+      <div class="pdv-pay-left-scroll min-h-0 flex-1 space-y-2 overflow-y-auto overflow-x-hidden p-2.5 sm:p-3">
+      <label class="sr-only" for="pdv-payment-method">Forma de pagamento (acessibilidade)</label>
+      <select id="pdv-payment-method" class="sr-only" tabindex="-1" aria-hidden="true">
+        <option value="">Selecione</option>
+        <option value="Dinheiro">Dinheiro</option>
+        <option value="PIX">PIX</option>
+        <option value="Cartão de débito">Cartão de débito</option>
+        <option value="Cartão de crédito">Cartão de crédito</option>
+        <option value="Crédito parcelado">Crédito parcelado</option>
+        <option value="Fiado">Fiado</option>
+        <option value="Vale crédito">Vale crédito</option>
+        <option value="Cashback">Cashback</option>
+        <option value="Outro">Outro</option>
+      </select>
+
+      <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/80 px-4 py-3">
+        <div class="min-w-0">
+          <p class="text-[10px] font-black uppercase tracking-wide text-slate-500">Forma atual</p>
+          <p id="pdv-payment-forma-label" class="text-lg font-black text-slate-900">Nenhuma selecionada</p>
+          <p class="mt-1 text-xs font-bold text-slate-600">Pago: <span id="pdv-payment-pago-acum" class="tabular-nums text-emerald-800">R$ 0,00</span> · Restante: <span id="pdv-payment-restante-top" class="tabular-nums font-black text-orange-700">R$ 0,00</span></p>
+        </div>
+        <button type="button" id="pdv-open-payment-forma" class="pdv-action-btn shrink-0 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3 text-sm text-white shadow-lg shadow-emerald-600/30">Escolher forma <kbd class="ml-1 hidden rounded bg-white/20 px-1.5 py-0.5 font-mono text-[10px] sm:inline">F3</kbd></button>
+      </div>
+
+      <div id="pdv-payment-no-forma-hint" class="shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-5 text-center sm:rounded-2xl sm:py-6">
+        <p class="text-sm font-bold text-slate-600 sm:text-base">Toque em <span class="font-black text-emerald-700">Escolher forma</span> para abrir o painel no meio da tela.</p>
+      </div>
+
+      <div id="pdv-payment-flow-area" class="hidden min-h-0 flex-1 flex-col overflow-hidden rounded-[1.15rem] border-2 border-emerald-300/90 bg-gradient-to-br from-emerald-50/90 via-white to-slate-50 shadow-sm ring-1 ring-emerald-200/60 sm:rounded-[1.35rem]">
+        <div class="flex shrink-0 flex-wrap items-start justify-between gap-2 border-b-2 border-emerald-200/80 bg-gradient-to-r from-emerald-600 to-teal-600 px-3 py-2.5 text-white sm:px-4 sm:py-3">
+          <div class="min-w-0">
+            <p class="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-100/90 sm:text-[10px]">Fluxo ativo</p>
+            <h3 id="pdv-payment-flow-heading" class="mt-0.5 text-lg font-black tracking-tight sm:text-xl">—</h3>
+          </div>
+          <button type="button" id="pdv-trocar-payment-forma" class="shrink-0 rounded-lg border-2 border-white/40 bg-white/15 px-3 py-2 text-[10px] font-black uppercase text-white backdrop-blur-sm hover:bg-white/25 sm:rounded-xl sm:text-[11px]">Trocar <kbd class="ml-1 rounded bg-black/20 px-1 font-mono text-[9px]">T</kbd></button>
+        </div>
+
+        <div id="pdv-pay-maquina-bar" class="hidden shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100 bg-white/95 px-3 py-1.5">
+          <p class="min-w-0 text-[11px] font-bold text-slate-800 sm:text-sm"><span class="text-slate-500">Máquina:</span> <span id="pdv-pay-maquina-label" class="font-black text-emerald-800">—</span></p>
+          <button type="button" id="pdv-pay-trocar-maquina" class="shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-900">Trocar <kbd class="ml-0.5 rounded bg-white px-1 font-mono text-[9px] text-slate-700">M</kbd></button>
+        </div>
+
+        <div id="pdv-pay-valor-tranche-bar" class="hidden shrink-0 border-b border-emerald-100 bg-amber-50/90 px-3 py-2">
+          <label class="block">
+            <span class="mb-1 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase text-amber-950">
+              <span>Valor nesta forma</span>
+              <kbd class="rounded border border-amber-400 bg-white px-1.5 py-0.5 font-mono text-[9px]">Enter</kbd>
+              <span class="font-bold normal-case text-amber-900">restante: <span id="pdv-payment-valor-restante">R$ 0,00</span></span>
+              <span class="font-bold normal-case text-amber-900">total: <span id="pdv-payment-valor-total-ref">R$ 0,00</span></span>
+            </span>
+            <input id="pdv-pay-valor-tranche" type="text" class="pdv-input text-lg font-black" placeholder="Restante ou valor parcial" autocomplete="off">
+          </label>
+        </div>
+
+        <div class="pdv-pay-flow-inner flex min-h-0 flex-1 flex-col gap-2 overflow-hidden overflow-x-hidden p-2.5 sm:gap-3 sm:p-3">
+        <div id="pdv-flow-dinheiro" class="pdv-payment-flow hidden min-h-0 flex-1 flex-col gap-3 space-y-0 overflow-hidden">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-emerald-900">💵 Espécie</span>
+            <button type="button" id="pdv-pay-open-dinheiro-resumo" class="rounded-xl border-2 border-emerald-300 bg-white px-3 py-2 text-[11px] font-black uppercase text-emerald-800 shadow-sm hover:bg-emerald-50">Ver resumo grande</button>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="block">
+              <span class="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-wide text-slate-600"><span>Valor recebido</span><kbd class="rounded border border-slate-300 bg-white px-1.5 py-0.5 font-mono text-[9px]">Enter</kbd></span>
+              <input id="pdv-payment-received" type="text" class="pdv-input text-lg" placeholder="0,00" autocomplete="off">
+            </label>
+            <label class="block">
+              <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-600">Troco</span>
+              <input id="pdv-payment-change" type="text" class="pdv-input bg-amber-50/80 text-lg font-black text-amber-950" placeholder="Calculado" readonly>
+            </label>
+          </div>
+        </div>
+
+        <div id="pdv-flow-pix" class="pdv-payment-flow hidden min-h-0 flex-1 flex-col gap-2">
+          <div id="pdv-pix-machine-gate" class="hidden flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-sky-400 bg-sky-50/90 p-3 text-center sm:gap-3 sm:rounded-2xl sm:p-4">
+            <p class="text-xs font-black text-slate-800 sm:text-sm">Escolha a máquina antes do QR Pix</p>
+            <button type="button" id="pdv-pay-open-maquinas-pix" class="pdv-action-btn rounded-xl bg-gradient-to-r from-sky-600 to-cyan-600 px-5 py-2.5 text-xs text-white shadow-md sm:py-3 sm:text-sm">Selecionar máquina</button>
+          </div>
+          <div id="pdv-pix-steps-wrap" class="hidden min-h-0 flex-1 flex-col gap-2">
+            <div id="pdv-pix-row-mp" class="flex flex-wrap gap-1.5 sm:gap-2">
+              <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-600 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">1</span>
+              <div class="min-w-0 flex-1 rounded-xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100 p-2 shadow-sm sm:rounded-2xl sm:p-3">
+                <div class="flex flex-wrap items-center justify-between gap-1">
+                  <p class="text-xs font-black uppercase text-amber-950 sm:text-sm">Mercado Pago</p>
+                  <button type="button" id="pdv-pay-open-qr-pix" class="rounded-md border-2 border-amber-600/40 bg-white px-2 py-0.5 text-[9px] font-black uppercase text-amber-900 sm:text-[10px]">Ampliar QR</button>
+                </div>
+                <div id="pdv-pix-mp-qr" class="mt-1 flex max-h-[min(22vh,11rem)] min-h-[72px] items-center justify-center overflow-hidden rounded-lg bg-white p-1 text-center text-[10px] font-bold text-slate-500 sm:min-h-[88px]">Carregando…</div>
+              </div>
+            </div>
+            <div id="pdv-pix-row-sicredi" class="flex flex-wrap gap-1.5 sm:gap-2">
+              <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">2</span>
+              <a id="pdv-pix-sicredi-link" href="#" target="_blank" rel="noopener noreferrer" class="flex min-h-[2.75rem] flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 px-3 text-center text-xs font-black uppercase text-white shadow-md sm:min-h-[3.25rem] sm:rounded-2xl sm:text-sm">Abrir QR Sicredi</a>
+            </div>
+            <div id="pdv-pix-row-sicoob" class="flex flex-wrap gap-1.5 sm:gap-2">
+              <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-700 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">3</span>
+              <div class="min-w-0 flex-1 rounded-xl border-2 border-slate-200 bg-white p-2 shadow-sm sm:rounded-2xl sm:p-3">
+                <p class="text-[10px] font-black uppercase text-slate-500 sm:text-[11px]">Chave Pix Sicoob</p>
+                <p id="pdv-pix-sicob-key" class="mt-0.5 break-all text-xs font-bold text-slate-800 sm:text-sm"></p>
+                <button type="button" id="pdv-pix-copy-key" class="mt-1.5 w-full rounded-lg border-2 border-emerald-200 bg-emerald-50 py-1.5 text-[10px] font-black uppercase text-emerald-900 sm:rounded-xl sm:text-[11px]">Copiar chave</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="pdv-flow-cartao" class="pdv-payment-flow hidden min-h-0 flex-1 flex-col gap-2">
+          <div id="pdv-card-machine-gate" class="hidden flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-indigo-400 bg-indigo-50/90 p-3 text-center sm:gap-3 sm:rounded-2xl sm:p-4">
+            <p class="text-xs font-black text-slate-800 sm:text-sm">Escolha a máquina antes do QR do cartão</p>
+            <button type="button" id="pdv-pay-open-maquinas-card" class="pdv-action-btn rounded-xl bg-gradient-to-r from-indigo-600 to-violet-700 px-5 py-2.5 text-xs text-white shadow-md sm:py-3 sm:text-sm">Selecionar máquina</button>
+          </div>
+          <div id="pdv-card-steps-wrap" class="hidden min-h-0 flex-1 flex-col gap-2">
+            <div class="flex flex-wrap gap-1.5 sm:gap-2">
+              <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">1</span>
+              <div class="min-w-0 flex-1 rounded-xl border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-amber-100 p-2 shadow-sm sm:rounded-2xl sm:p-3">
+                <div class="flex flex-wrap items-center justify-between gap-1">
+                  <p class="text-xs font-black uppercase text-amber-950 sm:text-sm">QR na loja</p>
+                  <button type="button" id="pdv-pay-open-qr-card" class="rounded-md border-2 border-amber-600/40 bg-white px-2 py-0.5 text-[9px] font-black uppercase text-amber-900 sm:text-[10px]">Ampliar QR</button>
+                </div>
+                <div id="pdv-card-mp-qr" class="mt-1 flex max-h-[min(22vh,11rem)] min-h-[72px] items-center justify-center overflow-hidden rounded-lg bg-white p-1 text-center text-[10px] font-bold text-slate-500 sm:min-h-[88px]">Carregando…</div>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-1.5 sm:gap-2">
+              <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-black text-white sm:h-9 sm:w-9 sm:text-sm">2</span>
+              <a id="pdv-card-sicredi-link" href="#" target="_blank" rel="noopener noreferrer" class="flex min-h-[2.75rem] flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 px-3 text-center text-xs font-black uppercase text-white shadow-md sm:min-h-[3.25rem] sm:rounded-2xl sm:text-sm">QR Sicredi</a>
+            </div>
+            <div id="pdv-flow-parcelas" class="hidden rounded-xl border-2 border-fuchsia-200 bg-fuchsia-50/50 p-2.5 sm:rounded-2xl sm:p-4">
+              <label class="block">
+                <span class="mb-1 block text-[10px] font-black uppercase tracking-wide text-fuchsia-900 sm:text-[11px]">Parcelas no cartão</span>
+                <input id="pdv-payment-parcelas" type="number" min="2" max="24" step="1" class="pdv-input max-w-[7rem] text-base font-black sm:max-w-[8rem] sm:text-lg" value="2">
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div id="pdv-flow-fiado" class="pdv-payment-flow hidden space-y-4">
+          <div class="flex flex-wrap items-start justify-between gap-2 rounded-2xl border-2 border-orange-300 bg-gradient-to-r from-orange-50 to-amber-50 p-4">
+            <p id="pdv-fiado-resumo" class="min-w-0 flex-1 text-sm font-bold text-orange-950">Por padrão: conta a receber em <strong>1x</strong> com vencimento em <strong>30 dias</strong>.</p>
+            <button type="button" id="pdv-pay-open-fiado-pop" class="shrink-0 rounded-xl border-2 border-orange-400 bg-white px-3 py-2 text-[10px] font-black uppercase text-orange-900 shadow-sm">Destaque</button>
+          </div>
+          <details class="rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-sm">
+            <summary class="cursor-pointer text-sm font-black text-slate-800">Editar parcelas e prazo</summary>
+            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="mb-1 block text-[10px] font-black uppercase text-slate-500">Parcelas</span>
+                <input id="pdv-fiado-parcelas" type="number" min="1" max="48" step="1" class="pdv-input" value="1">
+              </label>
+              <label class="block">
+                <span class="mb-1 block text-[10px] font-black uppercase text-slate-500">1º vencimento (dias)</span>
+                <input id="pdv-fiado-dias" type="number" min="1" max="365" step="1" class="pdv-input" value="30">
+              </label>
+            </div>
+          </details>
+        </div>
+
+        <div id="pdv-flow-vale" class="pdv-payment-flow hidden space-y-3 rounded-2xl border-2 border-teal-200 bg-gradient-to-br from-teal-50 to-white p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-sm font-bold text-slate-800">Saldo vale: <span id="pdv-vale-saldo-view" class="font-black text-teal-700">R$ 0,00</span></p>
+            <button type="button" id="pdv-pay-open-vale-pop" class="rounded-xl border-2 border-teal-400 bg-white px-3 py-2 text-[10px] font-black uppercase text-teal-900">Ver em destaque</button>
+          </div>
+          <p class="text-[11px] font-semibold text-slate-600">Valor limitado ao saldo do vale — use o campo <strong>Valor nesta forma</strong> acima e <kbd class="rounded border border-slate-300 bg-white px-1 font-mono text-[9px]">Enter</kbd>.</p>
+        </div>
+
+        <div id="pdv-flow-cashback" class="pdv-payment-flow hidden space-y-3 rounded-2xl border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-white p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-sm font-bold text-slate-800">Cashback: <span id="pdv-cashback-saldo-view" class="font-black text-rose-700">R$ 0,00</span></p>
+            <button type="button" id="pdv-pay-open-cashback-pop" class="rounded-xl border-2 border-rose-400 bg-white px-3 py-2 text-[10px] font-black uppercase text-rose-900">Ver em destaque</button>
+          </div>
+          <p class="text-[11px] font-semibold text-slate-600">Valor limitado ao cashback — use <strong>Valor nesta forma</strong> e <kbd class="rounded border border-slate-300 bg-white px-1 font-mono text-[9px]">Enter</kbd>.</p>
+        </div>
+
+        <div id="pdv-flow-outro" class="pdv-payment-flow hidden space-y-4 rounded-2xl border-2 border-dashed border-slate-400 bg-slate-50 p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-sm font-black text-slate-800">Pagamento fora do padrão</p>
+            <button type="button" id="pdv-pay-open-outro-ajuda" class="rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-[10px] font-black uppercase text-slate-700">Como funciona?</button>
+          </div>
+          <button type="button" id="pdv-outro-validar-pin" class="w-full rounded-2xl border-2 border-orange-400 bg-gradient-to-r from-orange-200 to-amber-200 px-3 py-3.5 text-sm font-black uppercase text-orange-950 shadow-md">Validar PIN do operador</button>
+          <p id="pdv-outro-pin-msg" class="text-xs font-bold text-slate-600">PIN obrigatório antes de descrever o pagamento.</p>
+          <label class="block">
+            <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-600">Detalhes</span>
+            <textarea id="pdv-outro-detalhes" rows="3" class="pdv-input resize-y" placeholder="Ex.: permuta, depósito identificado, link enviado…"></textarea>
+          </label>
+        </div>
+        </div>
+      </div>
+      </div>
+    </article>
+
+    <article class="flex min-h-0 flex-col overflow-hidden rounded-[1.4rem] border border-emerald-200 bg-gradient-to-b from-emerald-50 to-white shadow-sm">
+      <div class="pdv-pay-right-scroll min-h-0 flex-1 space-y-3 overflow-y-auto p-4 sm:p-5">
+      <div>
+        <p class="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">Fechamento</p>
+        <h3 class="mt-1 text-xl font-black text-slate-900">Revisão final</h3>
+      </div>
+      <div class="space-y-2 rounded-2xl border border-emerald-200 bg-white p-4">
+        <div class="flex items-center justify-between gap-2 text-sm font-bold text-slate-600"><span>Subtotal</span><span id="pdv-payment-subtotal">R$ 0,00</span></div>
+        <div class="flex items-center justify-between gap-2 text-sm font-bold text-slate-600"><span>Desconto</span><span id="pdv-payment-discount-view">R$ 0,00</span></div>
+        <div class="flex items-center justify-between gap-2 text-sm font-bold text-slate-600"><span>Frete</span><span id="pdv-payment-shipping-view">R$ 0,00</span></div>
+        <div class="border-t border-emerald-100 pt-3">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-black uppercase tracking-wide text-slate-700">Total final</span>
+            <span id="pdv-payment-total" class="text-3xl font-black tracking-tight text-emerald-700">R$ 0,00</span>
+          </div>
+        </div>
+      </div>
+      <div id="pdv-payment-lancamentos-box" class="hidden rounded-2xl border border-slate-200 bg-white p-3">
+        <p class="text-[10px] font-black uppercase tracking-wide text-slate-500">Pagamentos lançados</p>
+        <ul id="pdv-payment-lancamentos-list" class="mt-2 space-y-1.5 text-xs font-bold text-slate-800"></ul>
+      </div>
+      <div id="pdv-payment-feedback" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600">Lance as formas com Enter até zerar o restante.</div>
+      </div>
+    </article>
+  </div>
+
+  <footer id="pdv-pay-footer" class="shrink-0 border-t-2 border-slate-200 bg-white shadow-[0_-8px_28px_rgba(15,23,42,0.08)]">
+    <div class="grid gap-3 px-3 py-3 sm:px-4 sm:py-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,20rem)] lg:items-end lg:gap-4">
+      <div class="min-w-0 space-y-2.5">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="block">
+            <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-500">Desconto geral</span>
+            <input id="pdv-payment-discount" type="text" class="pdv-input" placeholder="0,00">
+          </label>
+          <label class="block">
+            <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-500">Frete</span>
+            <input id="pdv-payment-shipping" type="text" class="pdv-input" placeholder="0,00">
+          </label>
+        </div>
+        <label class="block">
+          <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-500">Observação final</span>
+          <textarea id="pdv-payment-note" rows="2" class="pdv-input min-h-[3.5rem] resize-none sm:min-h-[4rem]" placeholder="Observação para a venda, impressão ou entrega."></textarea>
+        </label>
+      </div>
+      <div class="flex min-w-0 flex-col gap-2 lg:max-w-none">
+        <button type="button" id="pdv-confirm-sale-no-print" class="pdv-action-btn w-full border-2 border-emerald-500 bg-white px-4 py-3.5 text-sm font-black text-emerald-800 shadow-md hover:bg-emerald-50">Confirmar sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">F8</kbd></button>
+        <button type="button" id="pdv-confirm-sale-print" class="pdv-action-btn w-full bg-emerald-600 px-4 py-3.5 text-sm font-black text-white shadow-lg shadow-emerald-600/25">Confirmar com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">F9</kbd></button>
+      </div>
+    </div>
+  </footer>
+
+  <dialog id="pdv-pay-pop-maquinas" class="pdv-pay-flow-pop z-[315] w-[min(96vw,440px)] shadow-2xl">
+    <div class="rounded-3xl bg-white">
+      <div class="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
+        <h3 id="pdv-pay-pop-maquinas-title" class="text-lg font-black text-slate-900">Máquina / terminal</h3>
+        <form method="dialog"><button type="submit" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-black uppercase text-slate-700 hover:bg-slate-100" title="Fechar · Esc">Fechar <kbd class="pointer-events-none ml-1 rounded bg-slate-200 px-1 font-mono text-[9px]">Esc</kbd></button></form>
+      </div>
+      <div id="pdv-pay-maquinas-list" class="max-h-[min(52vh,340px)] overflow-y-auto p-4"></div>
+      <p class="border-t border-slate-100 px-4 py-2 text-center text-[10px] font-semibold text-slate-500">Teclas <kbd class="rounded bg-slate-100 px-1 font-mono">1</kbd>–<kbd class="rounded bg-slate-100 px-1 font-mono">9</kbd> · <kbd class="rounded bg-slate-100 px-1 font-mono">Esc</kbd> fecha · escolha o terminal</p>
+    </div>
+  </dialog>
+
+  <dialog id="pdv-pay-pop-qr" class="pdv-pay-flow-pop z-[310] w-[min(96vw,480px)] shadow-2xl">
+    <div class="overflow-hidden rounded-3xl bg-white">
+      <div class="flex items-center justify-between gap-2 bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-white">
+        <h3 id="pdv-pay-pop-qr-title" class="text-lg font-black">QR Code</h3>
+        <form method="dialog"><button type="submit" class="rounded-lg bg-white/20 px-3 py-2 text-xs font-black uppercase text-white hover:bg-white/30">Fechar</button></form>
+      </div>
+      <div id="pdv-pay-pop-qr-body" class="flex max-h-[min(72vh,520px)] justify-center overflow-auto bg-slate-100 p-6"></div>
+    </div>
+  </dialog>
+
+  <dialog id="pdv-pay-pop-dinheiro" class="pdv-pay-flow-pop z-[310] w-[min(96vw,420px)] shadow-2xl">
+    <div class="rounded-3xl bg-white p-5 sm:p-6">
+      <p class="text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Dinheiro — visão ampliada</p>
+      <div class="mt-4 grid gap-3">
+        <div class="rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 text-center">
+          <div class="text-xs font-black uppercase text-slate-500">Restante a pagar</div>
+          <div id="pdv-pay-pop-din-total" class="mt-1 text-3xl font-black tabular-nums text-slate-900 sm:text-4xl">R$ 0,00</div>
+        </div>
+        <div class="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-4 text-center">
+          <div class="text-xs font-black uppercase text-emerald-800">Recebido</div>
+          <div id="pdv-pay-pop-din-recebido" class="mt-1 text-3xl font-black tabular-nums text-emerald-900 sm:text-4xl">—</div>
+        </div>
+        <div class="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 text-center">
+          <div class="text-xs font-black uppercase text-amber-900">Troco</div>
+          <div id="pdv-pay-pop-din-troco" class="mt-1 text-3xl font-black tabular-nums text-amber-950 sm:text-4xl">—</div>
+        </div>
+      </div>
+      <form method="dialog" class="mt-5"><button type="submit" class="pdv-action-btn w-full bg-slate-900 py-3.5 text-sm text-white">Fechar</button></form>
+    </div>
+  </dialog>
+
+  <dialog id="pdv-pay-pop-fiado" class="pdv-pay-flow-pop z-[310] w-[min(96vw,440px)] shadow-2xl">
+    <div class="rounded-3xl bg-gradient-to-b from-orange-100 via-white to-white p-6">
+      <p class="text-center text-2xl font-black text-orange-950">Fiado</p>
+      <div id="pdv-pay-pop-fiado-body" class="mt-4 text-center text-lg font-bold leading-snug text-slate-800"></div>
+      <form method="dialog" class="mt-6"><button type="submit" class="pdv-action-btn w-full rounded-2xl bg-orange-600 py-3.5 text-sm text-white shadow-lg">Entendi</button></form>
+    </div>
+  </dialog>
+
+  <dialog id="pdv-pay-pop-saldo" class="pdv-pay-flow-pop z-[310] w-[min(96vw,400px)] shadow-2xl">
+    <div class="rounded-3xl border-2 border-emerald-200 bg-white p-6 text-center">
+      <p id="pdv-pay-pop-saldo-title" class="text-lg font-black text-slate-900">Saldo</p>
+      <p id="pdv-pay-pop-saldo-valor" class="mt-4 text-4xl font-black tabular-nums text-emerald-700 sm:text-5xl">R$ 0,00</p>
+      <p id="pdv-pay-pop-saldo-hint" class="mt-3 text-sm font-semibold text-slate-600"></p>
+      <form method="dialog" class="mt-6"><button type="submit" class="pdv-action-btn w-full bg-emerald-600 py-3.5 text-sm text-white">Ok</button></form>
+    </div>
+  </dialog>
+
+  <dialog id="pdv-pay-pop-outro-help" class="pdv-pay-flow-pop z-[310] w-[min(96vw,440px)] shadow-2xl">
+    <div class="rounded-3xl bg-gradient-to-br from-slate-900 to-slate-800 p-6 text-white">
+      <p class="text-xl font-black">Pagamento “Outro”</p>
+      <ul class="mt-4 list-inside list-decimal space-y-2 text-sm font-semibold text-slate-200">
+        <li>Valide o PIN do operador (controle da loja).</li>
+        <li>Descreva com clareza o combinado com o cliente.</li>
+        <li>Informe o valor em <strong>Valor nesta forma</strong> e confirme com Enter.</li>
+      </ul>
+      <form method="dialog" class="mt-6"><button type="submit" class="pdv-action-btn w-full bg-white py-3.5 text-sm font-black text-slate-900">Fechar</button></form>
+    </div>
+  </dialog>
+
+  <div id="pdv-payment-forma-modal" class="fixed inset-0 z-[300] hidden items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="pdv-payment-forma-modal-title">
+    <div id="pdv-payment-forma-modal-backdrop" class="absolute inset-0 bg-slate-950/75 backdrop-blur-[3px]"></div>
+    <div class="relative z-10 max-h-[min(92vh,720px)] w-full max-w-[26rem] overflow-y-auto rounded-[1.75rem] border-2 border-white/10 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:max-w-2xl sm:p-6">
+      <div class="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <p class="text-[10px] font-black uppercase tracking-[0.28em] text-emerald-400/90">Como vai pagar?</p>
+          <h2 id="pdv-payment-forma-modal-title" class="mt-1 text-2xl font-black tracking-tight text-white">Escolha a forma</h2>
+          <p class="mt-1 text-sm font-semibold text-slate-400">Teclas <span class="font-mono font-bold text-white">1</span> a <span class="font-mono font-bold text-white">9</span> · <span class="font-mono font-bold text-white">Esc</span> fecha</p>
+        </div>
+        <button type="button" id="pdv-payment-forma-modal-close" class="rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm font-black uppercase text-white hover:bg-white/10" aria-label="Fechar" title="Fechar · Esc">Fechar <kbd class="ml-1 rounded bg-black/30 px-1.5 font-mono text-[10px]">Esc</kbd></button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <p class="mb-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Dinheiro · Pix</p>
+          <div class="grid grid-cols-2 gap-3">
+            <button type="button" data-payment-modal-card="Dinheiro" class="pdv-pay-modal-btn group flex flex-col items-stretch gap-2 rounded-2xl border-2 border-emerald-400/40 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 px-4 py-4 text-left text-white shadow-lg shadow-emerald-900/40 transition hover:scale-[1.02] hover:border-emerald-300 active:scale-[0.98]">
+              <span class="text-3xl leading-none drop-shadow-md" aria-hidden="true">💵</span>
+              <span class="text-lg font-black leading-tight">Dinheiro</span>
+              <span class="mt-auto flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold text-emerald-100/90">Troco na sequência</span>
+                <kbd class="rounded-lg bg-black/25 px-2 py-1 font-mono text-sm font-black">1</kbd>
+              </span>
+            </button>
+            <button type="button" data-payment-modal-card="PIX" class="pdv-pay-modal-btn group flex flex-col items-stretch gap-2 rounded-2xl border-2 border-cyan-400/50 bg-gradient-to-br from-sky-500 via-cyan-500 to-teal-600 px-4 py-4 text-left text-white shadow-lg shadow-cyan-900/35 transition hover:scale-[1.02] active:scale-[0.98]">
+              <span class="text-3xl leading-none" aria-hidden="true">⚡</span>
+              <span class="text-lg font-black leading-tight">Pix</span>
+              <span class="mt-auto flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold text-cyan-50/90">QR e chaves</span>
+                <kbd class="rounded-lg bg-black/25 px-2 py-1 font-mono text-sm font-black">2</kbd>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div>
+          <p class="mb-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Cartões</p>
+          <div class="grid grid-cols-3 gap-2 sm:gap-3">
+            <button type="button" data-payment-modal-card="Cartão de débito" class="pdv-pay-modal-btn flex min-h-[5.5rem] flex-col justify-between rounded-2xl border-2 border-slate-500/50 bg-gradient-to-b from-slate-600 to-slate-900 p-3 text-left text-white shadow-md transition hover:scale-[1.02] active:scale-[0.98]">
+              <span class="text-xl" aria-hidden="true">💳</span>
+              <span class="text-sm font-black leading-tight">Débito</span>
+              <kbd class="w-fit rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs font-black">3</kbd>
+            </button>
+            <button type="button" data-payment-modal-card="Cartão de crédito" class="pdv-pay-modal-btn flex min-h-[5.5rem] flex-col justify-between rounded-2xl border-2 border-indigo-400/40 bg-gradient-to-br from-indigo-500 to-violet-800 p-3 text-left text-white shadow-md transition hover:scale-[1.02] active:scale-[0.98]">
+              <span class="text-xl" aria-hidden="true">💜</span>
+              <span class="text-sm font-black leading-tight">Crédito</span>
+              <kbd class="w-fit rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs font-black">4</kbd>
+            </button>
+            <button type="button" data-payment-modal-card="Crédito parcelado" class="pdv-pay-modal-btn flex min-h-[5.5rem] flex-col justify-between rounded-2xl border-2 border-fuchsia-400/40 bg-gradient-to-br from-purple-600 to-fuchsia-700 p-3 text-left text-white shadow-md transition hover:scale-[1.02] active:scale-[0.98]">
+              <span class="text-xl" aria-hidden="true">📅</span>
+              <span class="text-sm font-black leading-tight">Parc.</span>
+              <kbd class="w-fit rounded bg-black/30 px-1.5 py-0.5 font-mono text-xs font-black">5</kbd>
+            </button>
+          </div>
+        </div>
+        <div>
+          <p class="mb-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Loja · outros</p>
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <button type="button" data-payment-modal-card="Fiado" class="pdv-pay-modal-btn flex min-h-[4.75rem] flex-col justify-between rounded-2xl border-2 border-amber-300/60 bg-gradient-to-br from-amber-400 to-orange-600 p-2.5 text-left text-slate-900 shadow-md transition hover:scale-[1.02] active:scale-[0.98]">
+              <span class="text-lg" aria-hidden="true">📝</span>
+              <span class="text-xs font-black">Fiado</span>
+              <kbd class="w-fit rounded bg-black/15 px-1.5 py-0.5 font-mono text-[10px] font-black">6</kbd>
+            </button>
+            <button type="button" data-payment-modal-card="Vale crédito" class="pdv-pay-modal-btn flex min-h-[4.75rem] flex-col justify-between rounded-2xl border-2 border-teal-300/50 bg-gradient-to-br from-teal-500 to-emerald-700 p-2.5 text-left text-white shadow-md transition hover:scale-[1.02] active:scale-[0.98]">
+              <span class="text-lg" aria-hidden="true">🎫</span>
+              <span class="text-xs font-black">Vale</span>
+              <kbd class="w-fit rounded bg-black/25 px-1.5 py-0.5 font-mono text-[10px] font-black">7</kbd>
+            </button>
+            <button type="button" data-payment-modal-card="Cashback" class="pdv-pay-modal-btn flex min-h-[4.75rem] flex-col justify-between rounded-2xl border-2 border-rose-300/50 bg-gradient-to-br from-rose-500 to-orange-500 p-2.5 text-left text-white shadow-md transition hover:scale-[1.02] active:scale-[0.98]">
+              <span class="text-lg" aria-hidden="true">✨</span>
+              <span class="text-xs font-black">Cashback</span>
+              <kbd class="w-fit rounded bg-black/25 px-1.5 py-0.5 font-mono text-[10px] font-black">8</kbd>
+            </button>
+            <button type="button" data-payment-modal-card="Outro" class="pdv-pay-modal-btn flex min-h-[4.75rem] flex-col justify-between rounded-2xl border-2 border-dashed border-slate-500 bg-slate-800/90 p-2.5 text-left text-slate-100 shadow-inner transition hover:border-orange-400/60 hover:bg-slate-800 active:scale-[0.98]">
+              <span class="text-lg" aria-hidden="true">✏️</span>
+              <span class="text-xs font-black">Outro</span>
+              <kbd class="w-fit rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] font-black">9</kbd>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

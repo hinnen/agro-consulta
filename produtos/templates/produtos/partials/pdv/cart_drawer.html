@@ -1,0 +1,75 @@
+    <div id="pdv-carrinho-backdrop" class="fixed inset-0 z-[90] bg-slate-900/45 backdrop-blur-[2px] opacity-0 pointer-events-none" aria-hidden="true"></div>
+    <div id="pdv-drawer-carrinho" class="fixed top-0 right-0 z-[91] h-[100dvh] max-h-[100dvh] w-full {% if pdv_dedicado %}max-w-[min(430px,100%)]{% else %}max-w-[min(480px,100%)]{% endif %} flex flex-col bg-white shadow-[-16px_0_48px_rgba(15,23,42,0.14)] border-l border-slate-200 translate-x-full overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="pdv-drawer-carrinho-titulo" aria-hidden="true">
+        <div class="shrink-0 flex items-center justify-between gap-2 {% if pdv_dedicado %}px-2.5 py-2{% else %}px-3 py-2.5{% endif %} border-b border-slate-100 bg-gradient-to-r from-orange-50/95 via-white to-emerald-50/40">
+            <div class="min-w-0">
+                <h3 id="pdv-drawer-carrinho-titulo" class="text-base font-black uppercase tracking-wide text-slate-800 leading-tight">Carrinho</h3>
+                <p id="pdv-drawer-cart-meta" class="text-[10px] font-bold text-slate-500 mt-0.5 truncate" title="Atalhos: F1 carrinho · F3 cliente · F4 limpar · F7 salvar orçamento · F8 finalizar">Nenhum item</p>
+            </div>
+            <button type="button" id="btn-fechar-carrinho-pdv" class="shrink-0 {% if pdv_dedicado %}w-9 h-9{% else %}w-10 h-10{% endif %} rounded-xl border-2 border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 font-black text-lg leading-none transition-colors" aria-label="Fechar carrinho" title="Fechar (Esc)">×</button>
+        </div>
+        <div id="cart-shell" class="cart-shell-empty flex flex-col flex-1 min-h-0 overflow-hidden {% if pdv_dedicado %}px-2.5 pb-2.5 pt-1.5{% else %}px-3 pb-3 pt-2{% endif %} gap-0">
+            <div class="relative shrink-0 space-y-2">
+                <div class="relative">
+                    <label for="nome-cliente" class="sr-only">Cliente</label>
+                    <input
+                        type="text"
+                        id="nome-cliente"
+                        value="CONSUMIDOR NÃO IDENTIFICADO..."
+                        placeholder="Cliente (F3)"
+                        class="w-full py-2.5 px-3 bg-slate-50 text-sm rounded-xl border-2 border-slate-200 font-bold outline-none focus:border-emerald-500"
+                        autocomplete="off"
+                        title="F3 foca aqui. ↑↓ e Enter na lista. Clientes do Agro."
+                    >
+                    <div id="cliente-results" class="absolute z-[100] left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 hidden overflow-hidden text-sm max-h-48 overflow-y-auto"></div>
+                    <p id="cliente-api-msg" class="hidden mt-1 text-[10px] font-bold text-amber-700 leading-snug" role="status"></p>
+                </div>
+                <div class="relative">
+                    <label for="forma-pagamento-pdv" class="sr-only">Pagamento</label>
+                    <select
+                        id="forma-pagamento-pdv"
+                        class="w-full py-2.5 px-3 bg-slate-50 text-sm rounded-xl border-2 border-slate-200 font-bold outline-none focus:border-emerald-500"
+                        title="Forma de pagamento"
+                    >
+                        <option value="">Não informado</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="PIX">PIX</option>
+                        <option value="Cartão de débito">Cartão de débito</option>
+                        <option value="Cartão de crédito">Cartão de crédito</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="itens-carrinho" class="flex-1 min-h-0 overflow-y-auto overscroll-contain mt-2 py-1.5 px-1 space-y-1.5 hide-scroll border border-slate-100 rounded-xl bg-slate-50/50 touch-pan-y"></div>
+
+            <div class="shrink-0 mt-2 space-y-2 border-t border-slate-100 pt-2">
+                <label class="flex items-center gap-2 cursor-pointer rounded-lg border border-sky-200 bg-sky-50/80 px-2.5 py-1.5" title="F7 após salvar: pergunta impressão e WhatsApp. Painel Entregas.">
+                    <input type="checkbox" id="pdv-orcamento-entrega" class="w-4 h-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 accent-sky-600 shrink-0">
+                    <span class="text-[10px] font-black uppercase text-sky-900">Entrega</span>
+                </label>
+                <div class="flex justify-between items-baseline gap-2">
+                    <span class="text-[10px] font-black uppercase text-slate-500">Total</span>
+                    <span id="total-geral" class="text-2xl font-black text-emerald-600 tabular-nums leading-none">R$ 0,00</span>
+                </div>
+                <button type="button" onclick="limparCarrinho()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-2.5 rounded-xl text-xs uppercase" title="Limpar venda (F4)">Limpar</button>
+                <button type="button" onclick="salvarOrcamentoManual()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-md shadow-sky-600/20" title="Salvar orçamento (F7)">Salvar orçamento</button>
+                <button type="button" onclick="irParaCheckout()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-3 rounded-xl text-sm uppercase shadow-lg shadow-orange-500/25" title="Finalizar venda (F8)">Finalizar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pdv-legacy-hidden" class="hidden" aria-hidden="true">
+        <select id="tipo-filtro-catalogo"><option value=""></option></select>
+        <input id="valor-filtro-catalogo" type="text" value="">
+        <datalist id="opcoes-filtro-catalogo-list"></datalist>
+        <div id="opcoes-filtro-catalogo-box"></div>
+        <div id="lista-catalogo-rapido"></div>
+        <span id="resumo-filtro-catalogo"></span>
+        <span id="filtro-catalogo-ativo"></span>
+        <div id="historico-resumido"></div>
+        <button id="btn-limpar-filtro-catalogo" type="button"></button>
+    </div>
+
+    <div id="cupom-orcamento"></div>
+    <div id="cupom-separacao"></div>
+    <div id="pdv-pack-entrega-print" aria-hidden="true"></div>

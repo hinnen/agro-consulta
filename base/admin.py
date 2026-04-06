@@ -27,7 +27,14 @@ class IntegracaoERPAdmin(admin.ModelAdmin):
         (
             "Rótulos do pedido (Venda ERP)",
             {
-                "fields": ("pedido_empresa_label", "pedido_deposito_label", "pedido_vendedor_label"),
+                "fields": (
+                    "pedido_empresa_label",
+                    "pedido_deposito_label",
+                    "pedido_vendedor_label",
+                    "pedido_status_sistema",
+                    "pedido_plano_conta",
+                    "pedido_plano_conta_id",
+                ),
                 "description": "Opcional. Se vazio, o sistema usa valores padrão ao enviar o orçamento.",
             },
         ),

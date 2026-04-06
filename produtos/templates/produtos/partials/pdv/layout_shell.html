@@ -1,0 +1,20 @@
+    <div class="flex flex-1 min-h-0 bg-slate-100 {% if pdv_dedicado %}sm:p-1.5{% endif %}">
+{% include "produtos/partials/pdv/sidebar_nav.html" %}
+        <div class="flex flex-1 flex-col min-w-0 min-h-0 {% if pdv_dedicado %}overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm{% endif %}">
+{% include "produtos/partials/pdv/topbar.html" %}
+            <div id="pdv-balao-aviso-estoque" class="fixed left-1/2 -translate-x-1/2 z-[118] w-[min(100%,22rem)] sm:w-[min(100%,26rem)] max-w-[calc(100vw-1rem)] hidden pointer-events-none top-[3.25rem]" role="status" aria-live="polite">
+                <div class="pdv-balao-estoque-card pdv-balao-estoque-pop pointer-events-auto rounded-2xl border-2 border-emerald-500 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.18)] px-4 pt-3 pb-3 mx-auto">
+                    <div class="pdv-balao-estoque-arrow" aria-hidden="true"></div>
+                    <p class="text-[11px] font-black uppercase tracking-wide text-emerald-900 mb-2 flex items-center gap-2">
+                        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100 text-base" aria-hidden="true">👆</span>
+                        <span>Barra superior — botão verde</span>
+                    </p>
+                    <p id="pdv-balao-aviso-estoque-texto" class="text-[12px] font-semibold text-slate-700 leading-snug"></p>
+                    <button type="button" onclick="fecharBalaoAvisoEstoquePdv()" class="mt-3 w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black uppercase tracking-wide shadow-sm">Entendi</button>
+                </div>
+            </div>
+
+{% include "produtos/partials/pdv/main_search_and_results.html" %}
+        </div>
+    </div>
+{% include "produtos/partials/pdv/cart_drawer.html" %}
