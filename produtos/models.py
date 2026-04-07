@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.db import models
 
 
@@ -415,3 +416,37 @@ class OpcaoBaixaFinanceiroExtra(models.Model):
     def __str__(self):
         suf = f" ({self.id_erp})" if self.id_erp else ""
         return f"{self.get_tipo_display()}: {self.nome}{suf}"
+
+
+class LancamentoAtalhoFiltro(models.Model):
+    """
+    Atalhos de filtro da lista de lançamentos (2 por usuário).
+    ``payload`` espelha o objeto usado nos favoritos locais (tipo, status, datas, busca, planos excl.).
+    """
+
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="lancamento_atalhos_filtro",
+    )
+    slot = models.PositiveSmallIntegerField(
+        db_index=True,
+        help_text="1 ou 2 — identifica o botão na barra.",
+    )
+    nome = models.CharField(max_length=80)
+    payload = models.JSONField(default=dict, blank=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Atalho de filtro (lançamentos)"
+        verbose_name_plural = "Atalhos de filtro (lançamentos)"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["usuario", "slot"],
+                name="uniq_lancamento_atalho_filtro_usuario_slot",
+            ),
+        ]
+        ordering = ["usuario_id", "slot"]
+
+    def __str__(self):
+        return f"{self.usuario_id} · {self.slot} · {self.nome[:40]}"

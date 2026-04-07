@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.db import models
+
 
 class Estoque(models.Model):
     empresa = models.ForeignKey('base.Empresa', on_delete=models.CASCADE, related_name='estoques', null=True, blank=True)
@@ -14,6 +16,40 @@ class Estoque(models.Model):
         ordering = ['loja__nome', 'produto__nome']
         constraints = [models.UniqueConstraint(fields=['produto', 'loja'], name='unique_produto_loja_estoque')]
 
+class OrigemAjusteEstoque(models.TextChoices):
+    """Origem do ajuste na camada Agro (Mongo ERP não é alterado por estes registros)."""
+
+    AJUSTE_PIN = "ajuste_pin", "Ajuste PIN / modal"
+    ENTRADA_NF_AGRO = "entrada_nf_agro", "Entrada NF (Agro)"
+    BAIXA_VENDA_PDV = "baixa_venda_pdv", "Baixa venda PDV"
+    TRANSFERENCIA_UI = "transferencia_ui", "Transferência / tela"
+    PLANILHA = "planilha", "Importação planilha"
+    OUTRO = "outro", "Outro"
+
+
+class EstoqueSyncHealth(models.Model):
+    """
+    Registro singleton (pk=1): último ping ao Mongo de estoque, build de catálogo PDV e alertas.
+    """
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    mongo_ultimo_ping_em = models.DateTimeField(null=True, blank=True)
+    mongo_ultimo_ok = models.BooleanField(default=True)
+    mongo_ultimo_erro = models.TextField(blank=True)
+    catalogo_ultimo_build_em = models.DateTimeField(null=True, blank=True)
+    catalogo_ultima_versao = models.CharField(max_length=80, blank=True)
+    falhas_sequenciais_mongo = models.PositiveIntegerField(default=0)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Saúde sync estoque (Agro)"
+        verbose_name_plural = "Saúde sync estoque (Agro)"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+
 class AjusteRapidoEstoque(models.Model):
     empresa = models.ForeignKey('base.Empresa', on_delete=models.CASCADE, null=True, blank=True)
     loja = models.ForeignKey('base.Loja', on_delete=models.CASCADE, null=True, blank=True)
@@ -24,6 +60,20 @@ class AjusteRapidoEstoque(models.Model):
     saldo_erp_referencia = models.DecimalField(max_digits=12, decimal_places=3, default=0)
     saldo_informado = models.DecimalField(max_digits=12, decimal_places=3, default=0)
     diferenca_saldo = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    origem = models.CharField(
+        max_length=40,
+        choices=OrigemAjusteEstoque.choices,
+        default=OrigemAjusteEstoque.OUTRO,
+        db_index=True,
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ajustes_estoque_agro",
+    )
+    observacao = models.TextField(blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:

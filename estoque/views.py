@@ -6,12 +6,18 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.core.cache import cache
 from django.shortcuts import render
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET, require_POST
 from django.utils.timezone import localtime
 
 from base.models import Empresa, Loja, PerfilUsuario
-from estoque.models import AjusteRapidoEstoque, ConfiguracaoTransferencia, PedidoTransferencia
+from estoque.models import (
+    AjusteRapidoEstoque,
+    ConfiguracaoTransferencia,
+    OrigemAjusteEstoque,
+    PedidoTransferencia,
+)
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 from atualizar_medias import calcular
 import json
@@ -261,6 +267,8 @@ def api_ajustar_estoque(request):
             saldo_informado=saldo_informado,
             diferenca_saldo=diferenca_saldo,
             observacao=observacao,
+            origem=OrigemAjusteEstoque.TRANSFERENCIA_UI,
+            usuario=request.user if request.user.is_authenticated else None,
         )
 
         return JsonResponse({
@@ -639,3 +647,53 @@ def api_sugestoes_transferencia(request):
         return JsonResponse({'sugestoes': sugestoes, 'ultima_atualizacao': ultima_atualizacao})
     except Exception as exc:
         return JsonResponse({'ok': False, 'erro': f'Erro: {exc}'}, status=500)
+
+
+@never_cache
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_estoque_sync_health(request):
+    """JSON: heartbeat leitura Mongo + build catálogo (ver ``EstoqueSyncHealth``)."""
+    from estoque.sync_health import snapshot_health_dict
+
+    return JsonResponse({"ok": True, **snapshot_health_dict()})
+
+
+@never_cache
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_estoque_divergencia_ajustes(request):
+    """
+    Lista o último ajuste por (produto, depósito): camada Agro sobre o espelho ERP no Mongo.
+    Útil para auditoria (não é “erro” — é o delta operacional intencional).
+    """
+    try:
+        lim = int(request.GET.get("limit") or 200)
+    except (TypeError, ValueError):
+        lim = 200
+    lim = max(1, min(500, lim))
+
+    rows = AjusteRapidoEstoque.objects.all().order_by("produto_externo_id", "deposito", "-criado_em")
+    seen = set()
+    itens = []
+    for r in rows:
+        if len(itens) >= lim:
+            break
+        k = (r.produto_externo_id, r.deposito)
+        if k in seen:
+            continue
+        seen.add(k)
+        itens.append(
+            {
+                "produto_externo_id": r.produto_externo_id,
+                "deposito": r.deposito,
+                "nome_produto": (r.nome_produto or "")[:200],
+                "saldo_erp_referencia": float(r.saldo_erp_referencia),
+                "saldo_informado": float(r.saldo_informado),
+                "diferenca_saldo": float(r.diferenca_saldo),
+                "origem": r.origem,
+                "criado_em": r.criado_em.isoformat() if r.criado_em else None,
+            }
+        )
+
+    return JsonResponse({"ok": True, "total_listados": len(itens), "itens": itens})

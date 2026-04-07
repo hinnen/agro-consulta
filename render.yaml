@@ -1,6 +1,9 @@
 # Blueprint Render — Web Service HTTP público.
 # Após commit, no painel: New → Blueprint (ou vincule este repo ao serviço existente).
 # Ajuste o nome do serviço se quiser.
+#
+# Cron de ping Mongo: roda em processo separado (não atende usuários do PDV). Anexe ao
+# serviço cron o mesmo Environment Group do web (Mongo, DATABASE_URL, DJANGO_SETTINGS_MODULE, etc.).
 services:
   - type: web
     name: agro-consulta
@@ -8,3 +11,11 @@ services:
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --preload --timeout 120 --graceful-timeout 30 --access-logfile - --error-logfile -
     healthCheckPath: /healthz
+
+  - type: cron
+    name: agro-estoque-mongo-ping
+    runtime: python
+    # A cada 10 min: um find_one no Mongo + gravação em EstoqueSyncHealth (erros acumulam em falhas_sequenciais_mongo).
+    schedule: "*/10 * * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py estoque_mongo_ping

@@ -2,6 +2,7 @@ from django.contrib import admin
 from .models import (
     AjusteRapidoEstoque,
     Estoque,
+    EstoqueSyncHealth,
     IndicadorProdutoLoja,
     PoliticaEstoque,
 )
@@ -27,6 +28,24 @@ class EstoqueAdmin(admin.ModelAdmin):
     list_filter = ('empresa', 'loja')
 
 
+@admin.register(EstoqueSyncHealth)
+class EstoqueSyncHealthAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'mongo_ultimo_ok',
+        'mongo_ultimo_ping_em',
+        'catalogo_ultima_versao',
+        'falhas_sequenciais_mongo',
+        'atualizado_em',
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(AjusteRapidoEstoque)
 class AjusteRapidoEstoqueAdmin(admin.ModelAdmin):
     list_display = (
@@ -35,6 +54,8 @@ class AjusteRapidoEstoqueAdmin(admin.ModelAdmin):
         'loja',
         'nome_produto',
         'deposito',
+        'origem',
+        'usuario',
         'saldo_erp_referencia',
         'saldo_informado',
         'diferenca_saldo',
@@ -47,7 +68,7 @@ class AjusteRapidoEstoqueAdmin(admin.ModelAdmin):
         'empresa__nome_fantasia',
         'loja__nome',
     )
-    list_filter = ('empresa', 'loja', 'deposito', 'criado_em')
+    list_filter = ('empresa', 'loja', 'deposito', 'origem', 'criado_em')
 
 
 @admin.register(PoliticaEstoque)

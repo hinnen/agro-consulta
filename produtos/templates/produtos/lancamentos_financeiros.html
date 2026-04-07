@@ -3,7 +3,7 @@
 <html lang="pt-br" class="h-full overflow-hidden">
 <head>
   <meta charset="UTF-8">
-  <title>Agro Mais | Lançamentos financeiros</title>
+  <title>Agro Mais | {% if modo_contas == 'pagar' %}Contas a pagar{% else %}Contas a receber{% endif %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   {% include "produtos/_head_perf_mpa.html" %}
   <script src="https://cdn.tailwindcss.com"></script>
@@ -127,10 +127,11 @@
           <h1 class="text-base sm:text-lg font-black uppercase tracking-tight text-slate-800 leading-tight">
             <span class="text-emerald-600">GM Agro Mais</span><span class="text-slate-300 font-bold mx-1.5">·</span><span class="text-amber-800">Lançamentos</span>
           </h1>
-          <p class="text-[10px] font-semibold text-slate-500">Contas a pagar e a receber</p>
+          <p class="text-[10px] font-semibold text-slate-500">{% if modo_contas == 'pagar' %}Contas a pagar{% else %}Contas a receber{% endif %}</p>
         </div>
       </div>
       <nav class="flex flex-wrap items-center gap-1.5 shrink-0 justify-end" aria-label="Atalhos do módulo">
+        <a href="{% url 'lancamentos_financeiros' %}" data-prefetch class="gm-lanc-nav-link" title="Escolher contas a pagar ou receber">Lançamentos</a>
         <a href="{% url 'resumo_financeiro_gerencial' %}" data-prefetch class="gm-lanc-nav-link" title="DRE gerencial">Resumo gerencial</a>
         <a href="{% url 'lancamentos_fluxo_calendario' %}" data-prefetch class="gm-lanc-nav-link">Calendário</a>
         <a href="{% url 'lancamentos_manual' %}" data-prefetch class="gm-lanc-nav-link gm-lanc-nav-accent">Manual (lote)</a>
@@ -145,6 +146,7 @@
 
   <main class="w-full max-w-none flex-1 flex flex-col min-h-0 overflow-hidden px-2 sm:px-3 py-1.5 sm:py-2 gap-1.5">
     <div class="shrink-0 max-h-[min(40vh,400px)] sm:max-h-[min(44vh,440px)] overflow-y-auto overscroll-y-contain space-y-1.5 pr-0.5 [scrollbar-gutter:stable]">
+    {% if modo_contas == 'receber' %}
     <div class="flex flex-wrap items-center gap-1.5">
       <details id="gaveta-ajuda" class="gm-gaveta gm-gaveta-ajuda rounded-lg border border-slate-200 bg-white overflow-hidden shrink-0">
         <summary class="px-2 py-1.5 sm:px-2.5 sm:py-1.5 flex flex-wrap items-center gap-2 cursor-pointer hover:bg-slate-50 transition-colors list-none"
@@ -168,20 +170,20 @@
           </details>
         </div>
       </details>
-      <button type="button" data-tipo="pagar" class="tab-tipo px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-black text-sm uppercase border-2 border-amber-500 bg-amber-500 text-white min-h-[44px]">A pagar</button>
-      <button type="button" data-tipo="receber" class="tab-tipo px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-black text-sm uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-amber-300 min-h-[44px]">A receber</button>
     </div>
+    {% endif %}
 
-    <section class="flex flex-wrap gap-1.5" aria-label="Filtros e ferramentas da lista">
-      <button type="button" id="btn-open-modal-filtros" class="flex-1 min-w-[min(100%,14rem)] min-h-[48px] px-3 py-2 rounded-xl border border-amber-300/90 bg-amber-50/80 hover:bg-amber-50 text-left transition-colors">
-        <span class="block text-sm font-black uppercase tracking-wide text-slate-800">Filtros</span>
-        <span id="filtros-btn-sub" class="block text-[10px] font-semibold text-slate-600 truncate mt-0.5 leading-tight">—</span>
+    <section id="bar-acoes-lancamentos" class="flex flex-nowrap sm:flex-wrap items-stretch gap-1.5 w-full min-w-0 overflow-x-auto pb-0.5 [scrollbar-gutter:stable]" aria-label="Filtros e ferramentas da lista">
+      <button type="button" id="btn-open-modal-filtros" class="flex-none min-w-[7rem] min-h-[44px] max-h-[52px] px-2.5 sm:px-3 py-1.5 rounded-xl border border-amber-300/90 bg-amber-50/80 hover:bg-amber-50 text-left transition-colors shrink-0">
+        <span class="block text-[10px] sm:text-xs font-black uppercase tracking-wide text-slate-800 leading-tight">Filtros</span>
+        <span id="filtros-btn-sub" class="block text-[9px] sm:text-[10px] font-semibold text-slate-600 truncate mt-0.5 leading-tight max-w-[min(28vw,12rem)] sm:max-w-[14rem]">—</span>
       </button>
-      <button type="button" id="btn-open-modal-ferramentas" class="flex-1 min-w-[min(100%,14rem)] min-h-[48px] px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50/70 hover:bg-emerald-50 text-left transition-colors"
-        title="CSV, Excel, PDF, WhatsApp, favoritos e planos na lista.">
-        <span class="block text-sm font-black uppercase tracking-wide text-emerald-950">Exportar e planos</span>
-        <span class="block text-[10px] font-semibold text-emerald-800/85 mt-0.5 leading-tight">Relatórios · WhatsApp · favoritos</span>
-      </button>
+      <button type="button" id="btn-filtro-rapido-hoje" class="flex-none shrink-0 min-h-[44px] min-w-[4.25rem] px-2 sm:px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 font-black text-[10px] sm:text-[11px] uppercase hover:border-amber-300 hover:bg-amber-50/80 transition-colors" title="Em aberto · vencimento hoje">Hoje</button>
+      <button type="button" id="btn-filtro-rapido-3d" class="flex-none shrink-0 min-h-[44px] min-w-[4.25rem] px-2 sm:px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 font-black text-[10px] sm:text-[11px] uppercase hover:border-amber-300 hover:bg-amber-50/80 transition-colors" title="Em aberto · vencimento de hoje−2 até hoje">3 dias</button>
+      <button type="button" id="btn-open-modal-planos" class="flex-none shrink-0 min-h-[44px] min-w-[4.5rem] px-2 sm:px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50/80 text-emerald-950 font-black text-[10px] sm:text-[11px] uppercase hover:bg-emerald-100/80 transition-colors" title="Planos de conta na lista">Planos</button>
+      <button type="button" id="btn-atalho-slot-1" data-slot="1" class="btn-atalho-slot flex-none shrink-0 min-h-[44px] min-w-[4.5rem] max-w-[7rem] sm:max-w-[9rem] px-2 py-2 rounded-xl border border-amber-200 bg-white text-amber-900 font-black text-[10px] sm:text-[11px] uppercase hover:bg-amber-50 truncate" title="Atalho 1 · clique para aplicar · Alt+clique para reconfigurar">Atalho 1</button>
+      <button type="button" id="btn-atalho-slot-2" data-slot="2" class="btn-atalho-slot flex-none shrink-0 min-h-[44px] min-w-[4.5rem] max-w-[7rem] sm:max-w-[9rem] px-2 py-2 rounded-xl border border-amber-200 bg-white text-amber-900 font-black text-[10px] sm:text-[11px] uppercase hover:bg-amber-50 truncate" title="Atalho 2 · clique para aplicar · Alt+clique para reconfigurar">Atalho 2</button>
+      <button type="button" id="btn-open-modal-ferramentas" class="flex-none shrink-0 min-h-[44px] min-w-[4.75rem] px-2.5 sm:px-3 py-2 rounded-xl border border-emerald-600 bg-emerald-600 text-white font-black text-[10px] sm:text-[11px] uppercase hover:bg-emerald-700 transition-colors text-center" title="CSV, Excel, PDF, WhatsApp, favoritos">Exportar</button>
     </section>
 
     <div id="sel-bar" class="hidden rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
@@ -426,6 +428,25 @@
             </div>
           </label>
         </section>
+        <section class="rounded-xl border border-amber-100 bg-amber-50/40 p-3 space-y-2" aria-label="Salvar atalho na barra">
+          <div class="text-[10px] font-black uppercase tracking-wide text-amber-900/90">Atalho (botão 1 ou 2)</div>
+          <div class="flex flex-wrap items-end gap-2">
+            <label class="block shrink-0">
+              <span class="text-[11px] font-bold text-slate-600">Onde</span>
+              <select id="atalho-save-slot" class="mt-1 rounded-xl border border-slate-200 px-2 py-2.5 text-sm font-bold min-h-[44px]">
+                <option value="1">Botão 1</option>
+                <option value="2">Botão 2</option>
+              </select>
+            </label>
+            <label class="block flex-1 min-w-[10rem]">
+              <span class="text-[11px] font-bold text-slate-600">Nome no botão</span>
+              <input type="text" id="atalho-save-nome" maxlength="80" placeholder="Ex.: Fornecedores semana"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold min-h-[44px]">
+            </label>
+            <button type="button" id="btn-atalho-salvar" class="min-h-[44px] px-4 rounded-xl bg-amber-600 text-white font-black text-[10px] uppercase hover:bg-amber-700 shrink-0">Salvar atalho</button>
+          </div>
+          <p class="text-[10px] font-semibold text-slate-600 leading-snug">Salva os filtros atuais (incluindo exclusão de planos). Na barra: clique aplica · Alt+clique reabre estes filtros.</p>
+        </section>
         <div class="flex flex-col-reverse sm:flex-row flex-wrap items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-slate-100">
           <button type="button" id="btn-cancelar-modal-filtros" class="order-last sm:order-none min-h-[48px] px-4 rounded-xl border border-slate-200 bg-white text-slate-700 font-black text-sm uppercase hover:bg-slate-50">Cancelar</button>
           <div class="flex flex-1 flex-wrap items-center justify-end gap-2 min-w-0">
@@ -452,8 +473,8 @@
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-[min(52rem,96vw)] max-h-[min(92dvh,880px)] overflow-hidden flex flex-col border border-emerald-200/90">
       <div class="flex items-start justify-between gap-2 px-4 py-3 border-b border-emerald-100/90 bg-emerald-50/70 shrink-0">
         <div class="min-w-0 pr-2">
-          <h2 id="modal-ferramentas-lista-titulo" class="text-base sm:text-lg font-black text-emerald-950 uppercase tracking-tight">Exportar e planos</h2>
-          <p class="text-[10px] font-semibold text-emerald-800/80 mt-0.5">Mesmos filtros da lista · favoritos e exclusão de planos</p>
+          <h2 id="modal-ferramentas-lista-titulo" class="text-base sm:text-lg font-black text-emerald-950 uppercase tracking-tight">Exportar</h2>
+          <p class="text-[10px] font-semibold text-emerald-800/80 mt-0.5">Mesmos filtros da lista · favoritos</p>
         </div>
         <button type="button" id="btn-fechar-modal-ferramentas" class="shrink-0 min-h-[44px] min-w-[44px] rounded-xl border-2 border-emerald-200 font-black text-lg leading-none text-emerald-900 hover:bg-emerald-100/80" aria-label="Fechar">×</button>
       </div>
@@ -485,14 +506,26 @@
           <button type="button" id="btn-fav-save" class="px-3 py-2 rounded-xl border-2 border-amber-200 text-amber-800 font-black text-[10px] uppercase hover:bg-amber-50 min-h-[44px]">Salvar</button>
           <button type="button" id="btn-fav-del" class="px-3 py-2 rounded-xl border-2 border-red-100 text-red-700 font-black text-[10px] uppercase hover:bg-red-50 min-h-[44px]">Excluir</button>
         </div>
-        <div class="pt-1 border-t border-slate-100/90" title="Desmarque um plano para ocultar títulos na lista.">
-          <div class="text-[11px] font-black uppercase text-slate-600 mb-1">Planos na lista</div>
-          <div class="flex flex-wrap gap-2 mb-1">
-            <button type="button" id="plano-todas" class="px-2 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Marcar todos</button>
-            <button type="button" id="plano-nenhuma" class="px-2 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Desmarcar todos</button>
-          </div>
-          <div id="plano-chks" class="flex flex-wrap gap-2 min-h-[1.5rem] items-start content-start max-h-32 overflow-y-auto p-1 rounded-lg border border-slate-100 bg-slate-50/50"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: planos de conta na lista -->
+  <div id="modal-planos-lista" class="hidden fixed inset-0 z-[48] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-planos-lista-titulo">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-[min(52rem,96vw)] max-h-[min(92dvh,880px)] overflow-hidden flex flex-col border border-emerald-200/90">
+      <div class="flex items-start justify-between gap-2 px-4 py-3 border-b border-emerald-100/90 bg-emerald-50/70 shrink-0">
+        <div class="min-w-0 pr-2">
+          <h2 id="modal-planos-lista-titulo" class="text-base sm:text-lg font-black text-emerald-950 uppercase tracking-tight">Planos de contas</h2>
+          <p class="text-[10px] font-semibold text-emerald-800/80 mt-0.5">Desmarque para ocultar títulos na lista (mesmos filtros atuais)</p>
         </div>
+        <button type="button" id="btn-fechar-modal-planos" class="shrink-0 min-h-[44px] min-w-[44px] rounded-xl border-2 border-emerald-200 font-black text-lg leading-none text-emerald-900 hover:bg-emerald-100/80" aria-label="Fechar">×</button>
+      </div>
+      <div class="p-3 sm:p-4 overflow-y-auto flex-1 min-h-0 space-y-3">
+        <div class="flex flex-wrap gap-2">
+          <button type="button" id="plano-todas" class="px-2 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Marcar todos</button>
+          <button type="button" id="plano-nenhuma" class="px-2 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Desmarcar todos</button>
+        </div>
+        <div id="plano-chks" class="flex flex-wrap gap-2 min-h-[1.5rem] items-start content-start max-h-[min(40vh,320px)] overflow-y-auto p-1 rounded-lg border border-slate-100 bg-slate-50/50"></div>
       </div>
     </div>
   </div>
@@ -689,11 +722,14 @@
     const API_LANC_ALTERAR = "{% url 'api_lancamentos_alterar' %}";
     const API_LANC_EXCLUIR = "{% url 'api_lancamentos_excluir' %}";
     const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
+    const API_ATALHOS = "{% url 'api_lancamentos_atalhos_filtro' %}";
     const LS_OPCOES_MODO = 'gm_fin_opcoes_modo';
     const LS_FAV = 'gm_fin_favs_v1';
     const LS_EXCL = 'gm_fin_planos_excl_v1';
     const LS_COLS = 'gm_fin_cols_v2';
+    const LS_ATALHOS = 'gm_fin_atalhos_slots_v1';
     const SEM_PLANO_KEY = '__SEM_PLANO__';
+    const modoContas = '{{ modo_contas }}';
 
     const COL_DEFS = [
       { id: 'chk', label: 'Seleção' },
@@ -711,7 +747,7 @@
       { id: 'acoes', label: 'Ações' },
     ];
 
-    let tipoAtual = 'pagar';
+    let tipoAtual = modoContas === 'receber' ? 'receber' : 'pagar';
     let page = 1;
     let lastTotal = 0;
     let lastPageSize = 50;
@@ -729,6 +765,151 @@
       const m = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
       return `${y}-${m}-${day}`;
+    }
+
+    function isoAddDays(ymd, delta) {
+      const d = new Date(ymd + 'T12:00:00');
+      if (Number.isNaN(d.getTime())) return ymd;
+      d.setDate(d.getDate() + delta);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function aplicarFiltroRapidoHoje() {
+      document.getElementById('f-status').value = 'abertos';
+      ['f-comp-de', 'f-comp-ate', 'f-pag-de', 'f-pag-ate'].forEach((id) => {
+        const n = document.getElementById(id);
+        if (n) n.value = '';
+      });
+      const t = hojeISO();
+      document.getElementById('f-de').value = t;
+      document.getElementById('f-ate').value = t;
+      page = 1;
+      selecionados.clear();
+      refreshGavetaFiltrosResumo();
+      carregarPlanos().then(() => carregar());
+    }
+
+    function aplicarFiltroRapidoTresDias() {
+      document.getElementById('f-status').value = 'abertos';
+      ['f-comp-de', 'f-comp-ate', 'f-pag-de', 'f-pag-ate'].forEach((id) => {
+        const n = document.getElementById(id);
+        if (n) n.value = '';
+      });
+      const t = hojeISO();
+      document.getElementById('f-de').value = isoAddDays(t, -2);
+      document.getElementById('f-ate').value = t;
+      page = 1;
+      selecionados.clear();
+      refreshGavetaFiltrosResumo();
+      carregarPlanos().then(() => carregar());
+    }
+
+    function buildFavoritoPayload() {
+      return {
+        tipo: tipoAtual,
+        status: document.getElementById('f-status').value,
+        venc_de: document.getElementById('f-de').value,
+        venc_ate: document.getElementById('f-ate').value,
+        comp_de: document.getElementById('f-comp-de').value,
+        comp_ate: document.getElementById('f-comp-ate').value,
+        pag_de: document.getElementById('f-pag-de').value,
+        pag_ate: document.getElementById('f-pag-ate').value,
+        q: document.getElementById('f-q').value,
+        ordenacao: document.getElementById('f-ord').value,
+        page_size: document.getElementById('f-ps').value,
+        planos_excl: Array.from(getExcludedSet()),
+      };
+    }
+
+    const atalhoSlots = { 1: null, 2: null };
+
+    function aplicarPayloadFiltro(f) {
+      if (!f) return;
+      let t = f.tipo === 'receber' ? 'receber' : 'pagar';
+      if (modoContas === 'pagar') t = 'pagar';
+      else if (modoContas === 'receber') t = 'receber';
+      tipoAtual = t;
+      atualizarTabs();
+      document.getElementById('f-status').value = f.status || 'abertos';
+      document.getElementById('f-de').value = f.venc_de || '';
+      document.getElementById('f-ate').value = f.venc_ate || '';
+      document.getElementById('f-comp-de').value = f.comp_de || '';
+      document.getElementById('f-comp-ate').value = f.comp_ate || '';
+      document.getElementById('f-pag-de').value = f.pag_de || '';
+      document.getElementById('f-pag-ate').value = f.pag_ate || '';
+      document.getElementById('f-q').value = f.q || '';
+      document.getElementById('f-ord').value = f.ordenacao || 'vencimento_asc';
+      document.getElementById('f-ps').value = f.page_size || '50';
+      if (Array.isArray(f.planos_excl)) {
+        saveExcludedSet(new Set(f.planos_excl));
+      }
+      page = 1;
+      selecionados.clear();
+      syncSortHeaderButtons();
+      refreshGavetaFiltrosResumo();
+      carregarPlanos().then(() => carregar());
+    }
+
+    function refreshAtalhoButtonLabel(slot) {
+      const btn = document.getElementById(`btn-atalho-slot-${slot}`);
+      if (!btn) return;
+      const row = atalhoSlots[slot];
+      const nome = (row && row.nome) ? row.nome : `Atalho ${slot}`;
+      btn.textContent = nome;
+    }
+
+    function persistAtalhosLocalCache() {
+      try {
+        const o = {};
+        [1, 2].forEach((s) => {
+          if (atalhoSlots[s]) o[s] = atalhoSlots[s];
+        });
+        localStorage.setItem(LS_ATALHOS, JSON.stringify(o));
+      } catch (_) {}
+    }
+
+    function loadAtalhosFromLocalStorage() {
+      try {
+        const raw = localStorage.getItem(LS_ATALHOS);
+        if (!raw) return;
+        const o = JSON.parse(raw);
+        [1, 2].forEach((s) => {
+          if (o[s] && o[s].nome) {
+            atalhoSlots[s] = o[s];
+            refreshAtalhoButtonLabel(s);
+          }
+        });
+      } catch (_) {}
+    }
+
+    async function carregarAtalhosDoServidor() {
+      try {
+        const r = await fetch(API_ATALHOS, { credentials: 'same-origin', cache: 'no-store' });
+        const j = await r.json();
+        if (!j.ok || !Array.isArray(j.atalhos)) {
+          loadAtalhosFromLocalStorage();
+          return;
+        }
+        j.atalhos.forEach((a) => {
+          atalhoSlots[a.slot] = { nome: a.nome, payload: a.payload };
+          refreshAtalhoButtonLabel(a.slot);
+        });
+        persistAtalhosLocalCache();
+      } catch (_) {
+        loadAtalhosFromLocalStorage();
+      }
+    }
+
+    function abrirModalFiltrosParaAtalho(slot) {
+      document.getElementById('atalho-save-slot').value = String(slot);
+      const row = atalhoSlots[slot];
+      document.getElementById('atalho-save-nome').value = (row && row.nome) ? row.nome : '';
+      document.getElementById('modal-filtros-lista').classList.remove('hidden');
+      document.getElementById('modal-filtros-ajuda-pop')?.classList.add('hidden');
+      document.getElementById('atalho-save-nome')?.focus();
     }
 
     function attachSuggest(wrap) {
@@ -1811,18 +1992,7 @@
       if (!name) { alert('Digite um nome para o favorito.'); return; }
       const item = {
         name,
-        tipo: tipoAtual,
-        status: document.getElementById('f-status').value,
-        venc_de: document.getElementById('f-de').value,
-        venc_ate: document.getElementById('f-ate').value,
-        comp_de: document.getElementById('f-comp-de').value,
-        comp_ate: document.getElementById('f-comp-ate').value,
-        pag_de: document.getElementById('f-pag-de').value,
-        pag_ate: document.getElementById('f-pag-ate').value,
-        q: document.getElementById('f-q').value,
-        ordenacao: document.getElementById('f-ord').value,
-        page_size: document.getElementById('f-ps').value,
-        planos_excl: Array.from(getExcludedSet()),
+        ...buildFavoritoPayload(),
       };
       const arr = favList().filter((x) => (x.name || '').toLowerCase() !== name.toLowerCase());
       arr.push(item);
@@ -1837,26 +2007,7 @@
       if (i === '') return;
       const f = favList()[Number(i)];
       if (!f) return;
-      tipoAtual = f.tipo === 'receber' ? 'receber' : 'pagar';
-      atualizarTabs();
-      document.getElementById('f-status').value = f.status || 'abertos';
-      document.getElementById('f-de').value = f.venc_de || '';
-      document.getElementById('f-ate').value = f.venc_ate || '';
-      document.getElementById('f-comp-de').value = f.comp_de || '';
-      document.getElementById('f-comp-ate').value = f.comp_ate || '';
-      document.getElementById('f-pag-de').value = f.pag_de || '';
-      document.getElementById('f-pag-ate').value = f.pag_ate || '';
-      document.getElementById('f-q').value = f.q || '';
-      document.getElementById('f-ord').value = f.ordenacao || 'vencimento_asc';
-      document.getElementById('f-ps').value = f.page_size || '50';
-      if (Array.isArray(f.planos_excl)) {
-        saveExcludedSet(new Set(f.planos_excl));
-      }
-      page = 1;
-      selecionados.clear();
-      syncSortHeaderButtons();
-      refreshGavetaFiltrosResumo();
-      carregarPlanos().then(() => carregar());
+      aplicarPayloadFiltro(f);
     });
 
     document.getElementById('btn-fav-del').addEventListener('click', () => {
@@ -2242,6 +2393,78 @@
         document.getElementById('modal-ferramentas-lista').classList.add('hidden');
       }
     });
+
+    document.getElementById('btn-open-modal-planos')?.addEventListener('click', () => {
+      document.getElementById('modal-planos-lista')?.classList.remove('hidden');
+    });
+    document.getElementById('btn-fechar-modal-planos')?.addEventListener('click', () => {
+      document.getElementById('modal-planos-lista')?.classList.add('hidden');
+    });
+    document.getElementById('modal-planos-lista')?.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'modal-planos-lista') {
+        document.getElementById('modal-planos-lista').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('btn-filtro-rapido-hoje')?.addEventListener('click', () => {
+      aplicarFiltroRapidoHoje();
+    });
+    document.getElementById('btn-filtro-rapido-3d')?.addEventListener('click', () => {
+      aplicarFiltroRapidoTresDias();
+    });
+
+    document.getElementById('btn-atalho-salvar')?.addEventListener('click', async () => {
+      const slot = Number(document.getElementById('atalho-save-slot').value);
+      const nome = (document.getElementById('atalho-save-nome').value || '').trim();
+      if (!nome) {
+        alert('Informe o nome exibido no botão.');
+        return;
+      }
+      const payload = buildFavoritoPayload();
+      try {
+        const r = await fetch(API_ATALHOS, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify({ slot, nome, payload }),
+        });
+        const j = await r.json();
+        if (!j.ok) {
+          alert(j.erro || 'Não foi possível salvar o atalho.');
+          return;
+        }
+        atalhoSlots[slot] = { nome, payload };
+        refreshAtalhoButtonLabel(slot);
+        persistAtalhosLocalCache();
+        document.getElementById('atalho-save-nome').value = '';
+        alert('Atalho salvo.');
+      } catch (_) {
+        alert('Erro de rede.');
+      }
+    });
+
+    document.querySelectorAll('.btn-atalho-slot').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const slot = Number(btn.dataset.slot);
+        if (e.altKey) {
+          e.preventDefault();
+          const row = atalhoSlots[slot];
+          if (row && row.payload) aplicarPayloadFiltro(row.payload);
+          abrirModalFiltrosParaAtalho(slot);
+          return;
+        }
+        const row = atalhoSlots[slot];
+        if (!row || !row.payload) {
+          abrirModalFiltrosParaAtalho(slot);
+          return;
+        }
+        aplicarPayloadFiltro(row.payload);
+        document.getElementById('modal-filtros-lista')?.classList.add('hidden');
+      });
+    });
     document.getElementById('edl-salvar')?.addEventListener('click', async () => {
       const id = (document.getElementById('edl-id').value || '').trim();
       if (!id) return;
@@ -2307,6 +2530,15 @@
       const modalEdit = !document.getElementById('modal-edit-lanc')?.classList.contains('hidden');
       const modalFiltrosLista = !document.getElementById('modal-filtros-lista')?.classList.contains('hidden');
       const modalFerramentasLista = !document.getElementById('modal-ferramentas-lista')?.classList.contains('hidden');
+      const modalPlanosLista = !document.getElementById('modal-planos-lista')?.classList.contains('hidden');
+      if (modalPlanosLista) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          document.getElementById('modal-planos-lista')?.classList.add('hidden');
+          return;
+        }
+        return;
+      }
       if (modalFiltrosLista) {
         if (e.key === 'Escape') {
           e.preventDefault();
@@ -2378,12 +2610,17 @@
         '#btn-fav-save',
         '#btn-fav-del',
         '#btn-fin-sync-api',
+        '#btn-filtro-rapido-hoje',
+        '#btn-filtro-rapido-3d',
+        '#btn-atalho-salvar',
+        '#btn-open-modal-planos',
       ], 700);
 
       const t = hojeISO();
       document.getElementById('f-de').value = t;
       document.getElementById('f-ate').value = t;
       favRefreshSelect();
+      carregarAtalhosDoServidor();
       atualizarTabs();
       buildColDropdown();
       applyTableCols();

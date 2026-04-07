@@ -1,0 +1,86 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <title>Agro Mais | Estoque — sincronização</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-slate-50 min-h-full text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-gradient-to-r from-emerald-50 to-amber-50 shrink-0">
+    <div class="max-w-3xl mx-auto px-3 py-3 flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h1 class="text-lg font-black uppercase text-slate-900 tracking-tight">Estoque no Agro</h1>
+        <p class="text-[11px] font-semibold text-slate-600 mt-0.5">Referência operacional: saldo exibido no PDV (Mongo espelho + ajustes)</p>
+      </div>
+      <a href="{% url 'home' %}" class="text-[10px] font-black uppercase px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:border-amber-400">Início</a>
+    </div>
+  </header>
+  <main class="flex-1 max-w-3xl w-full mx-auto px-3 py-4 space-y-4 min-h-0 overflow-y-auto">
+    <section class="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm" aria-live="polite">
+      <h2 class="text-sm font-black uppercase text-emerald-900 mb-2">Leitura Mongo (espelho ERP)</h2>
+      <div id="sync-box" class="text-[13px] font-semibold text-slate-700 space-y-1">
+        <p class="text-slate-500">Carregando…</p>
+      </div>
+      <button type="button" id="btn-atualizar" class="mt-3 min-h-[44px] px-4 rounded-xl bg-emerald-600 text-white text-[11px] font-black uppercase hover:bg-emerald-700">Atualizar painel</button>
+    </section>
+    <section class="rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
+      <h2 class="text-sm font-black uppercase text-amber-950 mb-1">Camada Agro (delta)</h2>
+      <p class="text-[12px] font-semibold text-amber-950/90 leading-snug mb-3">Ajustes PIN, baixa de venda, entrada NF e transferência alteram só a camada Agro. Lista abaixo: último registro por produto/depósito.</p>
+      <button type="button" id="btn-div" class="min-h-[44px] px-4 rounded-xl border-2 border-amber-600 text-amber-950 text-[11px] font-black uppercase hover:bg-amber-100">Carregar divergência / auditoria</button>
+      <pre id="div-box" class="mt-3 text-[10px] font-mono bg-white/90 border border-amber-200 rounded-xl p-3 max-h-64 overflow-auto hidden whitespace-pre-wrap"></pre>
+    </section>
+    <p class="text-[10px] font-semibold text-slate-500 text-center">Documentação: <code class="bg-slate-100 px-1 rounded">docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md</code></p>
+  </main>
+  <script>
+    const API_SYNC = "/api/estoque/sync-health/";
+    const API_DIV = "/api/estoque/divergencia-ajustes/?limit=80";
+    async function carregarSync() {
+      const el = document.getElementById('sync-box');
+      el.innerHTML = '<p class="text-slate-500">Carregando…</p>';
+      try {
+        const r = await fetch(API_SYNC, { credentials: 'same-origin', cache: 'no-store' });
+        const j = await r.json();
+        if (!j.ok && r.status === 403) {
+          el.innerHTML = '<p class="text-red-700 font-bold">Faça login para ver o painel.</p>';
+          return;
+        }
+        const al = j.alerta ? `<p class="text-amber-800 font-black">${j.alerta}</p>` : '';
+        el.innerHTML = `
+          ${al}
+          <p><span class="text-slate-500">Último ping Mongo:</span> ${j.mongo_ultimo_ping_em || '—'}</p>
+          <p><span class="text-slate-500">OK:</span> ${j.mongo_ultimo_ok ? 'sim' : 'não'}</p>
+          <p><span class="text-slate-500">Falhas seguidas:</span> ${j.falhas_sequenciais_mongo ?? 0}</p>
+          <p><span class="text-slate-500">Catálogo (build):</span> ${j.catalogo_ultimo_build_em || '—'}</p>
+          <p><span class="text-slate-500">Versão catálogo:</span> ${j.catalogo_ultima_versao || '—'}</p>
+          <p class="text-[10px] text-slate-500 mt-2 break-all">${j.mongo_ultimo_erro ? 'Erro: ' + j.mongo_ultimo_erro : ''}</p>
+        `;
+      } catch (e) {
+        el.innerHTML = '<p class="text-red-700">Falha de rede.</p>';
+      }
+    }
+    async function carregarDiv() {
+      const pre = document.getElementById('div-box');
+      pre.classList.remove('hidden');
+      pre.textContent = 'Carregando…';
+      try {
+        const r = await fetch(API_DIV, { credentials: 'same-origin', cache: 'no-store' });
+        const j = await r.json();
+        pre.textContent = JSON.stringify(j, null, 2);
+      } catch (e) {
+        pre.textContent = 'Erro: ' + e;
+      }
+    }
+    document.getElementById('btn-atualizar').addEventListener('click', carregarSync);
+    document.getElementById('btn-div').addEventListener('click', carregarDiv);
+    carregarSync();
+  </script>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>
