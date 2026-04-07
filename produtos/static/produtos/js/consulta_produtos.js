@@ -1223,6 +1223,7 @@ function esconderStatusBusca() {
 }
 
 function mostrarBannerScanner(texto) {
+    if (!scanBanner) return;
     scanBanner.textContent = texto;
     scanBanner.classList.remove('hidden');
     scanBanner.classList.remove('scan-banner');
@@ -1235,25 +1236,28 @@ function mostrarBannerScanner(texto) {
 }
 
 function flashScanner() {
+    if (!inputBusca) return;
     inputBusca.classList.remove('scanner-flash');
     void inputBusca.offsetWidth;
     inputBusca.classList.add('scanner-flash');
 }
 
 function focarBuscaProduto() {
+    if (!inputBusca) return;
     inputBusca.focus();
     inputBusca.select();
 }
 
 function focarBuscaCliente() {
+    if (!inputCliente) return;
     inputCliente.focus();
     inputCliente.select();
 }
 
 function limparBuscaVisual() {
-    autoList.classList.add('hidden');
-    destaqueContainer.innerHTML = '';
-    similaresContainer.innerHTML = '';
+    if (autoList) autoList.classList.add('hidden');
+    if (destaqueContainer) destaqueContainer.innerHTML = '';
+    if (similaresContainer) similaresContainer.innerHTML = '';
     produtoEmDestaque = null;
     indexSelecionado = -1;
     sugestoesBuscaCompletas = [];
@@ -2698,9 +2702,9 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false,
         sugestoesBuscaCompletas = [];
         limiteSugestoesVisivel = BUSCA_SUG_LIM_INI;
         ultimoTermoBuscaPalavras = [];
-        autoList.classList.add('hidden');
-        destaqueContainer.innerHTML = '';
-        similaresContainer.innerHTML = '';
+        if (autoList) autoList.classList.add('hidden');
+        if (destaqueContainer) destaqueContainer.innerHTML = '';
+        if (similaresContainer) similaresContainer.innerHTML = '';
         produtoEmDestaque = null;
         sugestoesAtuais = [];
         mostrarStatusBusca('Nenhum produto encontrado', 'red');
@@ -2708,6 +2712,7 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false,
     }
 }
 
+if (inputBusca) {
 inputBusca.addEventListener('input', function(e) {
     const q = e.target.value;
     indexSelecionado = -1;
@@ -2737,7 +2742,9 @@ inputBusca.addEventListener('input', function(e) {
 
     buscarProdutos(q, 'normal');
 });
+}
 
+if (tipoFiltroCatalogo && valorFiltroCatalogo && opcoesFiltroCatalogo && opcoesFiltroCatalogoBox) {
 tipoFiltroCatalogo.addEventListener('change', () => {
     preencherOpcoesFiltroCatalogo();
     atualizarCatalogoRapido();
@@ -2771,18 +2778,24 @@ valorFiltroCatalogo.addEventListener('focus', () => {
     if (todos.length) renderizarSugestoesFiltro(todos.slice(0, 12));
     else opcoesFiltroCatalogoBox.classList.add('hidden');
 });
+}
 document.addEventListener('click', (e) => {
-    if (!opcoesFiltroCatalogoBox.contains(e.target) && e.target !== valorFiltroCatalogo) opcoesFiltroCatalogoBox.classList.add('hidden');
+    if (opcoesFiltroCatalogoBox && !opcoesFiltroCatalogoBox.contains(e.target) && e.target !== valorFiltroCatalogo) {
+        opcoesFiltroCatalogoBox.classList.add('hidden');
+    }
 });
-document.getElementById('btn-limpar-filtro-catalogo').addEventListener('click', () => {
-    tipoFiltroCatalogo.value = '';
-    valorFiltroCatalogo.value = '';
-    opcoesFiltroCatalogo.innerHTML = '';
-    opcoesFiltroCatalogoBox.classList.add('hidden');
-    filtroCatalogoAtivo.classList.add('hidden');
-    atualizarCatalogoRapido();
-});
+if (btnLimparFiltroCatalogo && tipoFiltroCatalogo && valorFiltroCatalogo && opcoesFiltroCatalogo && opcoesFiltroCatalogoBox && filtroCatalogoAtivo) {
+    btnLimparFiltroCatalogo.addEventListener('click', () => {
+        tipoFiltroCatalogo.value = '';
+        valorFiltroCatalogo.value = '';
+        opcoesFiltroCatalogo.innerHTML = '';
+        opcoesFiltroCatalogoBox.classList.add('hidden');
+        filtroCatalogoAtivo.classList.add('hidden');
+        atualizarCatalogoRapido();
+    });
+}
 
+if (inputBusca && similaresContainer) {
 inputBusca.addEventListener('keydown', function(e) {
     const itens = similaresContainer.querySelectorAll('.suggestion-item');
 
@@ -2853,6 +2866,7 @@ inputBusca.addEventListener('keydown', function(e) {
         }
     }
 });
+}
 
 function filtrarClientesLocais(q) {
     const n = normalizarBuscaLocal(String(q || '').trim());
@@ -2931,6 +2945,7 @@ function carregarCacheClientes(opts) {
         .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
 
+if (inputCliente && clienteResults) {
 inputCliente.addEventListener('input', function(e) {
     const q = e.target.value;
     clienteSelecionado = null;
@@ -3032,8 +3047,10 @@ inputCliente.addEventListener('keydown', function(e) {
         clienteResults.classList.add('hidden');
     }
 });
+}
 
 function renderizarClientes(clientes) {
+    if (!clienteResults) return;
     clienteResults.innerHTML = '';
     const hint = document.getElementById('cliente-api-msg');
     if (hint && clientes.length) {
@@ -3196,25 +3213,34 @@ document.addEventListener('keydown', function(e) {
             const mba = document.getElementById('modal-busca-avancada');
             if (mba && !mba.classList.contains('hidden')) {
                 fecharBuscaAvancada();
-            } else if (!document.getElementById('modal-historico-vendas').classList.contains('hidden')) {
-                fecharHistoricoLocal();
             } else {
-                autoList.classList.add('hidden');
-                clienteResults.classList.add('hidden');
+                const mh = document.getElementById('modal-historico-vendas');
+                if (mh && !mh.classList.contains('hidden')) {
+                    fecharHistoricoLocal();
+                } else {
+                    if (autoList) autoList.classList.add('hidden');
+                    if (clienteResults) clienteResults.classList.add('hidden');
+                }
             }
         }
     }
 });
 
 document.addEventListener('click', (e) => {
-    if (opcoesFiltroCatalogoBox && !opcoesFiltroCatalogoBox.contains(e.target) && e.target !== valorFiltroCatalogo) {
-        opcoesFiltroCatalogoBox.classList.add('hidden');
-    }
-    if (!inputBusca.contains(e.target) && !autoList.contains(e.target)) {
-        autoList.classList.add('hidden');
-    }
-    if (!inputCliente.contains(e.target) && !clienteResults.contains(e.target)) {
-        clienteResults.classList.add('hidden');
+    try {
+        if (opcoesFiltroCatalogoBox && !opcoesFiltroCatalogoBox.contains(e.target) && e.target !== valorFiltroCatalogo) {
+            opcoesFiltroCatalogoBox.classList.add('hidden');
+        }
+        if (inputBusca && autoList && !inputBusca.contains(e.target) && !autoList.contains(e.target)) {
+            autoList.classList.add('hidden');
+        }
+        if (inputCliente && clienteResults && !inputCliente.contains(e.target) && !clienteResults.contains(e.target)) {
+            clienteResults.classList.add('hidden');
+        }
+    } catch (err) {
+        if (typeof console !== 'undefined' && console.warn) {
+            console.warn('[PDV] click overlay handler', err);
+        }
     }
 });
 
