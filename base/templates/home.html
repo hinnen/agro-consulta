@@ -198,6 +198,19 @@
 <section class="home-hub-outer w-full">
   <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-slate-800 shadow-[0_24px_80px_rgba(2,6,23,0.45)] sm:rounded-[1.75rem]">
     <div class="home-hub-shell home-hub-shell-pad">
+      <div class="flex flex-wrap items-center gap-2 gap-y-2 shrink-0 border-b border-slate-600/50 pb-2 mb-0.5" role="region" aria-label="Atualização de dados">
+        <span class="text-[10px] font-black uppercase tracking-wide text-slate-500">Dados</span>
+        <a
+          href="{% url 'consulta_produtos' %}?sync=saldos"
+          class="inline-flex items-center gap-1.5 rounded-lg border-2 border-emerald-500/55 bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 px-2.5 py-1.5 text-white text-[10px] font-black uppercase tracking-wide shadow-md transition-[border-color,transform] active:scale-[0.98]"
+          title="Abre a consulta e atualiza só os saldos (precisa de catálogo já carregado)"
+        >Atualizar saldos</a>
+        <a
+          href="{% url 'consulta_produtos' %}?sync=1"
+          class="inline-flex items-center gap-1.5 rounded-lg border-2 border-amber-500/55 bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 px-2.5 py-1.5 text-white text-[10px] font-black uppercase tracking-wide shadow-md transition-[border-color,transform] active:scale-[0.98]"
+          title="Abre a consulta e sincroniza catálogo, clientes e saldos (mesmo que Sincronizar API)"
+        >Sincronizar API</a>
+      </div>
       <div class="home-hub-top">
         {% for item in home_top_items %}
           <a
