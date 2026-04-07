@@ -15,6 +15,10 @@
     }
     const AGRO_PDV_URLS = BOOTSTRAP.urls || {};
     const AGRO_PDV_ASSETS = BOOTSTRAP.assets || {};
+    const AGRO_PDV_BOOTSTRAP = BOOTSTRAP;
+    try {
+        window.AGRO_PDV_BOOTSTRAP = BOOTSTRAP;
+    } catch (e) {}
 
 (function () {
     'use strict';
@@ -1830,6 +1834,248 @@ async function salvarOrcamentoManual() {
             ? 'Orçamento salvo com entrega. O pedido foi registrado no painel Entregas (menu). Bipe ' + pdvCodigoBarrasOrcamento(orcId) + ' no buscador para retomar. F6 lista orçamentos.'
             : 'Orçamento salvo neste navegador. Abra Orçamentos (F6) para listar ou recuperar.'
     );
+}
+
+function pdvGerarTextoWhatsappOrcamentoCarrinho() {
+    const nome = nomeClientePdv();
+    let msg = '🐎🌾 *ORÇAMENTO AGRO MAIS* 🌾🐔\n\n';
+    msg += '👤 *Cliente:* ' + nome + '\n';
+    msg += '🛒 *Itens:*\n';
+    msg += '━━━━━━━━━━━━━━━━━━\n';
+    carrinho.forEach(function (i) {
+        msg += '🔸 ' + i.qtd + 'x ' + i.nome + '\n';
+        msg += '   💰 ' + formatarMoeda(i.preco * i.qtd) + '\n';
+    });
+    msg += '━━━━━━━━━━━━━━━━━━\n';
+    const tot = document.getElementById('total-geral');
+    msg += '💵 *TOTAL: ' + (tot ? tot.innerText : '') + '*\n\n';
+    msg += '✨ Obrigado por escolher a *Agro Mais*!';
+    return msg;
+}
+
+function pdvWhatsappOrcamentoCarrinho() {
+    if (!carrinho.length) {
+        tocarSom('erro');
+        return alert('Carrinho vazio.');
+    }
+    salvarHistoricoLocal();
+    let numeroWhatsapp =
+        clienteSelecionado && clienteSelecionado.telefone
+            ? String(clienteSelecionado.telefone)
+            : '5513997673389';
+    numeroWhatsapp = numeroWhatsapp.replace(/\D/g, '');
+    if (numeroWhatsapp.length === 10 || numeroWhatsapp.length === 11) numeroWhatsapp = '55' + numeroWhatsapp;
+    const msg = pdvGerarTextoWhatsappOrcamentoCarrinho();
+    window.open(
+        'https://api.whatsapp.com/send?phone=' + numeroWhatsapp + '&text=' + encodeURIComponent(msg),
+        '_blank',
+        'noopener,noreferrer'
+    );
+}
+
+function pdvImprimirOrcamentoCarrinho() {
+    if (!carrinho.length) {
+        tocarSom('erro');
+        return alert('Carrinho vazio.');
+    }
+    salvarHistoricoLocal();
+    const clienteNome = nomeClientePdv();
+    const numOrcamento = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+    let html =
+        '<div style="text-align:center; margin-bottom: 5px;"><h2 style="margin: 0; font-size: 22px; font-weight: 900;">AGRO MAIS</h2><div style="font-size: 10px;">Orçamento</div></div>';
+    html += '<div style="border-bottom: 1px dashed #000; margin-bottom: 5px;"></div>';
+    html +=
+        '<div style="text-align:center; font-weight:bold; font-size: 14px; margin-bottom: 5px;">ORÇAMENTO DE VENDA</div>';
+    html += '<div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>';
+    html +=
+        '<div style="font-size: 11px; margin-bottom: 2px;"><b>DATA:</b> ' +
+        new Date().toLocaleString('pt-BR') +
+        '</div>';
+    html +=
+        '<div style="font-size: 11px; margin-bottom: 8px;"><b>CLIENTE:</b> ' +
+        escapeHtml(clienteNome).toUpperCase() +
+        '</div>';
+    html += '<div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>';
+    html +=
+        '<table style="width: 100%; font-size: 11px; margin-bottom: 5px; border-collapse: collapse;"><thead><tr style="border-bottom: 1px solid #000;"><th style="text-align: left;">DESCRIÇÃO</th><th style="text-align: right;">QTDxUN</th><th style="text-align: right;">TOTAL</th></tr></thead><tbody>';
+    let totalItens = 0;
+    carrinho.forEach(function (i) {
+        totalItens += i.qtd;
+        html +=
+            '<tr><td style="padding: 4px 0;">' +
+            escapeHtml(String(i.nome).substring(0, 28)) +
+            '</td><td style="text-align: right;">' +
+            i.qtd +
+            'x ' +
+            Number(i.preco).toFixed(2) +
+            '</td><td style="text-align: right;">' +
+            Number(i.preco * i.qtd).toFixed(2) +
+            '</td></tr>';
+    });
+    html += '</tbody></table><div style="border-bottom: 1px dashed #000; margin: 8px 0;"></div>';
+    html +=
+        '<div style="display:flex; justify-content: space-between; font-size: 13px; font-weight: bold;"><span>QTD TOTAL ITENS</span><span>' +
+        totalItens +
+        ' un</span></div>';
+    const totEl = document.getElementById('total-geral');
+    html +=
+        '<div style="display:flex; justify-content: space-between; font-size: 16px; font-weight: 900; margin: 10px 0 15px;"><span>VALOR TOTAL</span><span>' +
+        (totEl ? escapeHtml(totEl.innerText) : '') +
+        '</span></div>';
+    html +=
+        '<div style="text-align:center;"><svg id="barcode-orcamento-pdv"></svg></div><div style="text-align:center; font-size: 10px;">É sempre um prazer atender você!</div>';
+    const cup = document.getElementById('cupom-orcamento');
+    if (!cup) {
+        return alert('Área de impressão indisponível.');
+    }
+    cup.className = '';
+    cup.innerHTML = html;
+    try {
+        if (typeof JsBarcode !== 'undefined') {
+            JsBarcode('#barcode-orcamento-pdv', numOrcamento, {
+                format: 'CODE128',
+                width: 1.5,
+                height: 40,
+                displayValue: true,
+                fontSize: 12,
+                margin: 0,
+            });
+        }
+    } catch (e) {}
+    window.print();
+}
+
+async function pdvEnviarOrcamentoErpCarrinho() {
+    if (!carrinho.length) {
+        tocarSom('erro');
+        return alert('Carrinho vazio.');
+    }
+    const url = AGRO_PDV_URLS.apiEnviarPedidoErp;
+    if (!url) {
+        return alert('URL do ERP não configurada no bootstrap.');
+    }
+    salvarHistoricoLocal();
+    const payload = { cliente: nomeClientePdv(), itens: carrinho };
+    if (clienteSelecionado && clienteSelecionado.id) {
+        const _cid = String(clienteSelecionado.id);
+        if (!/^local:/i.test(_cid) && !/^erp-doc:/i.test(_cid)) payload.cliente_id = _cid;
+    }
+    if (
+        clienteSelecionado &&
+        clienteSelecionado.documento != null &&
+        String(clienteSelecionado.documento).trim() &&
+        String(clienteSelecionado.documento).trim() !== '—'
+    ) {
+        payload.cliente_documento = String(clienteSelecionado.documento).trim();
+    }
+    const fp = document.getElementById('forma-pagamento-pdv');
+    if (fp && fp.value) payload.forma_pagamento = fp.value;
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': AGRO_PDV_BOOTSTRAP.csrfToken || gmCsrfTokenParaFetch(),
+            },
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.ok) {
+            const msg = typeof data.mensagem === 'string' ? data.mensagem : JSON.stringify(data.mensagem);
+            const vid = data.venda_id != null ? '\nRegistro local: #' + data.venda_id : '';
+            alert('✅ ' + msg + vid);
+            carrinho = [];
+            clienteSelecionado = null;
+            if (inputCliente) inputCliente.value = CLIENTE_PADRAO_PDV;
+            const fp2 = document.getElementById('forma-pagamento-pdv');
+            if (fp2) fp2.value = '';
+            const chkEnt = document.getElementById('pdv-orcamento-entrega');
+            if (chkEnt) chkEnt.checked = false;
+            atualizarCarrinho();
+            focarBuscaProduto();
+        } else {
+            const err = data.erro || data.mensagem || JSON.stringify(data);
+            const vid2 = data.venda_id != null ? '\nRegistro local: #' + data.venda_id : '';
+            alert('❌ Falha do ERP:\n' + err + vid2);
+        }
+    } catch (e) {
+        alert('Erro de comunicação com o servidor.');
+    } finally {
+        if (window.gmLoadingBar) window.gmLoadingBar.hide();
+    }
+}
+
+function pdvAbrirModalCadastroClientePdv() {
+    const m = document.getElementById('modal-pdv-cadastro-cliente');
+    const nomeEl = document.getElementById('pdv-cli-rapido-nome');
+    const waEl = document.getElementById('pdv-cli-rapido-whatsapp');
+    if (!m) return;
+    if (nomeEl) nomeEl.value = '';
+    if (waEl) waEl.value = clienteSelecionado && clienteSelecionado.telefone ? String(clienteSelecionado.telefone) : '';
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+    setTimeout(function () {
+        if (nomeEl) nomeEl.focus();
+    }, 80);
+}
+
+function pdvFecharModalCadastroClientePdv() {
+    const m = document.getElementById('modal-pdv-cadastro-cliente');
+    if (!m) return;
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+}
+
+async function pdvSalvarClienteRapidoPdv() {
+    const nomeEl = document.getElementById('pdv-cli-rapido-nome');
+    const waEl = document.getElementById('pdv-cli-rapido-whatsapp');
+    const nome = nomeEl ? String(nomeEl.value || '').trim() : '';
+    const wa = waEl ? String(waEl.value || '').trim() : '';
+    if (nome.length < 2) {
+        alert('Informe o nome do cliente.');
+        if (nomeEl) nomeEl.focus();
+        return;
+    }
+    const url = AGRO_PDV_URLS.apiPdvClienteRapido;
+    if (!url) {
+        return alert('Cadastro rápido indisponível (URL).');
+    }
+    const btn = document.getElementById('pdv-cli-rapido-salvar');
+    const prev = btn ? btn.textContent : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Salvando…';
+    }
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': AGRO_PDV_BOOTSTRAP.csrfToken || gmCsrfTokenParaFetch(),
+            },
+            body: JSON.stringify({ nome, whatsapp: wa }),
+        });
+        const d = await res.json();
+        if (d.ok && d.cliente) {
+            clienteSelecionado = d.cliente;
+            if (inputCliente) inputCliente.value = d.cliente.nome || nome;
+            pdvFecharModalCadastroClientePdv();
+            mostrarStatusBusca('Cliente cadastrado e selecionado.', 'emerald');
+            setTimeout(esconderStatusBusca, 2800);
+            tocarSom('add');
+            if (typeof carregarCacheClientes === 'function') carregarCacheClientes({ force: true });
+        } else {
+            alert(d.erro || 'Não foi possível salvar o cliente.');
+        }
+    } catch (e) {
+        alert('Erro de rede ao cadastrar cliente.');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = prev || 'Salvar cliente';
+        }
+    }
 }
 
 function abrirHistoricoLocal() {
@@ -3911,7 +4157,11 @@ window.addEventListener('load', () => {
     atualizarRelogioPdv();
     setInterval(atualizarRelogioPdv, 30000);
     if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.mount) {
-        AgroEstoqueSync.mount({
+        var idleMs =
+            typeof window.AGRO_ESTOQUE_IDLE_MS === 'number' && window.AGRO_ESTOQUE_IDLE_MS > 0
+                ? window.AGRO_ESTOQUE_IDLE_MS
+                : 5 * 60 * 1000;
+        var mountEstoque = {
             onRefresh: async function (reason) {
                 if (!baseProdutos.length) return;
                 var explicito = reason === 'manual' || reason === 'external';
@@ -3924,7 +4174,12 @@ window.addEventListener('load', () => {
                     });
                 }
             },
-        });
+        };
+        if (!window.AGRO_MANUAL_SYNC_ONLY) {
+            mountEstoque.autoIdleRefresh = true;
+            mountEstoque.idleMs = idleMs;
+        }
+        AgroEstoqueSync.mount(mountEstoque);
     }
     pdvHidratarIndicadorSyncApiDoCache();
     setInterval(function () {
@@ -4039,4 +4294,30 @@ document.addEventListener('DOMContentLoaded', function () {
         console.warn('Nao foi possivel abrir o historico por URL.', err);
     }
 });
+
+/** onclick="" nos templates — escopo do IIFE não é global */
+window.limparCarrinho = limparCarrinho;
+window.salvarOrcamentoManual = salvarOrcamentoManual;
+window.irParaCheckout = irParaCheckout;
+window.alterarQtdItem = alterarQtdItem;
+window.definirQtdItem = definirQtdItem;
+window.removerItem = removerItem;
+window.abrirBuscaAvancada = abrirBuscaAvancada;
+window.fecharBuscaAvancada = fecharBuscaAvancada;
+window.aplicarBuscaAvancada = aplicarBuscaAvancada;
+window.abrirModalLembretes = abrirModalLembretes;
+window.fecharModalLembretes = fecharModalLembretes;
+window.salvarLembrete = salvarLembrete;
+window.fecharModalAjustePdv = fecharModalAjustePdv;
+window.confirmarModalAjustePdv = confirmarModalAjustePdv;
+window.dispensarAlertaLembrete = dispensarAlertaLembrete;
+window.fecharHistoricoLocal = fecharHistoricoLocal;
+window.abrirHistoricoLocal = abrirHistoricoLocal;
+window.fecharBalaoAvisoEstoquePdv = fecharBalaoAvisoEstoquePdv;
+window.pdvWhatsappOrcamentoCarrinho = pdvWhatsappOrcamentoCarrinho;
+window.pdvImprimirOrcamentoCarrinho = pdvImprimirOrcamentoCarrinho;
+window.pdvEnviarOrcamentoErpCarrinho = pdvEnviarOrcamentoErpCarrinho;
+window.pdvAbrirModalCadastroClientePdv = pdvAbrirModalCadastroClientePdv;
+window.pdvFecharModalCadastroClientePdv = pdvFecharModalCadastroClientePdv;
+window.pdvSalvarClienteRapidoPdv = pdvSalvarClienteRapidoPdv;
 })();
