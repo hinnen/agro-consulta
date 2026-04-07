@@ -1,0 +1,57 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <title>Agro Mais | Lançamentos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .gm-hub-card {
+      min-height: 120px;
+      border-width: 2px;
+      transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
+    }
+    .gm-hub-card:hover { transform: translateY(-1px); }
+  </style>
+</head>
+<body class="bg-slate-900/90 min-h-full flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
+
+  <div class="flex-1 flex items-center justify-center p-4 sm:p-6">
+    <div class="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="hub-lanc-titulo">
+      <div class="px-4 sm:px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-amber-50/90 to-emerald-50/80">
+        <h1 id="hub-lanc-titulo" class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-900">
+          <span class="text-emerald-600">GM Agro Mais</span><span class="text-slate-300 font-bold mx-1.5">·</span><span class="text-amber-800">Lançamentos</span>
+        </h1>
+        <p class="text-[11px] font-semibold text-slate-600 mt-1">Escolha o módulo para continuar</p>
+      </div>
+      <div class="p-4 sm:p-6 space-y-3">
+        <a href="{% url 'lancamentos_contas_pagar' %}" data-prefetch
+          class="gm-hub-card flex flex-col justify-center rounded-xl border-amber-400 bg-amber-50/90 hover:bg-amber-100/90 px-4 py-5 text-center">
+          <span class="text-sm sm:text-base font-black uppercase text-amber-950">Contas a pagar</span>
+          <span class="text-[10px] font-semibold text-amber-900/80 mt-1">Títulos a pagar, baixa, exportação</span>
+        </a>
+        <a href="{% url 'lancamentos_contas_receber' %}" data-prefetch
+          class="gm-hub-card flex flex-col justify-center rounded-xl border-emerald-400 bg-emerald-50/90 hover:bg-emerald-100/90 px-4 py-5 text-center">
+          <span class="text-sm sm:text-base font-black uppercase text-emerald-950">Contas a receber</span>
+          <span class="text-[10px] font-semibold text-emerald-900/80 mt-1">Recebíveis, baixa, exportação</span>
+        </a>
+      </div>
+      <div class="px-4 sm:px-6 pb-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/80">
+        <a href="{% url 'lancamentos_fluxo_calendario' %}" data-prefetch class="text-[10px] font-black uppercase text-slate-600 hover:text-amber-800 px-2 py-1.5 rounded-lg border border-transparent hover:border-amber-200">Calendário</a>
+        {% if lancamentos_dre_ativo %}
+        <a href="{% url 'lancamentos_dre' %}" data-prefetch class="text-[10px] font-black uppercase text-slate-600 hover:text-emerald-800 px-2 py-1.5 rounded-lg border border-transparent hover:border-emerald-200">DRE</a>
+        {% endif %}
+        <a href="{% url 'lancamentos_manual' %}" data-prefetch class="text-[10px] font-black uppercase text-slate-600 hover:text-amber-800 px-2 py-1.5 rounded-lg border border-transparent hover:border-amber-200">Manual (lote)</a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[40px] text-[10px] font-black uppercase bg-white px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-900 transition-colors ml-auto" %}
+      </div>
+    </div>
+  </div>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>

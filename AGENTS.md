@@ -47,6 +47,7 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 | `/lancamentos/contas-pagar/` | `lancamentos_contas_pagar` | |
 | `/lancamentos/novo-manual/` | `lancamentos_manual` | |
 | `/lancamentos/fluxo-calendario/` | `lancamentos_fluxo_calendario` | |
+| `/estoque/sincronizacao/` | `estoque_sincronizacao` | Saúde leitura Mongo + divergência camada Agro |
 | `/pdv/checkout/` | `pdv_checkout` | |
 | `/vendas/` | `vendas_lista` | |
 | `/venda/<pk>/` | `venda_agro_detalhe` | |
@@ -111,6 +112,9 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 
 **Lançamentos — ordenação por coluna**  
 - Backend hoje: principalmente `vencimento_asc` / `vencimento_desc` / `fluxo_desc` em `mongo_financeiro_util.py`. Ordenar **todas** as colunas no servidor exige estender o aggregate; sort só no cliente **não** substitui paginação global.
+
+**Estoque — Agro como operação (espelho ERP + ajustes)**  
+- Saldo operacional no PDV: referência ERP (Mongo) + correções em `AjusteRapidoEstoque` (`origem`, `usuario`, `observacao`). Painel `/estoque/sincronizacao/`, APIs `/api/estoque/sync-health/` e `/api/estoque/divergencia-ajustes/`, ping automático leve (`manage.py estoque_mongo_ping` no Cron Render ou HTTP `/api/cron/estoque-mongo-ping/`), comando `reconciliar_estoque_agro`. Doc interna: `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md`.
 
 **RH — fechamento e ficha (`rh_help_agents.html` + §9)**  
 - Textos explicativos longos em **«?»** (`<details>`); conteúdo canônico espelhado em **AGENTS.md §9** e no include `rh/templates/rh/includes/rh_help_agents.html`.  

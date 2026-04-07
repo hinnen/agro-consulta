@@ -24,17 +24,18 @@ from django.core.cache import cache
 from django.templatetags.static import static
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.db import IntegrityError, transaction
 
 from base.models import Empresa, Loja, PerfilUsuario, IntegracaoERP
-from estoque.models import AjusteRapidoEstoque
+from estoque.models import AjusteRapidoEstoque, OrigemAjusteEstoque
 from .forms import ClienteAgroForm
 from .models import (
     ClienteAgro,
     ItemVendaAgro,
+    LancamentoAtalhoFiltro,
     OpcaoBaixaFinanceiroExtra,
     PedidoEntrega,
     SessaoCaixa,
@@ -1158,6 +1159,14 @@ def _home_admin_navegacao():
             "shortcut_key": "n",
             "pin_protected": True,
         },
+        {
+            "title": "Estoque (Agro)",
+            "href": reverse("estoque_sincronizacao"),
+            "icon": "activity",
+            "shortcut": "Y",
+            "shortcut_key": "y",
+            "pin_protected": True,
+        },
     ]
     return {"top_items": top_items, "grid_items": grid_items}
 
@@ -1174,6 +1183,36 @@ def home(request):
             "home_grid_items": nav["grid_items"],
         },
     )
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def estoque_sincronizacao_view(request):
+    """Painel: saúde da leitura Mongo (espelho ERP), alertas e auditoria da camada Agro."""
+    return render(request, "produtos/estoque_sincronizacao.html")
+
+
+@require_GET
+def api_cron_estoque_mongo_ping(request):
+    """
+    Agendador externo: ping Mongo e atualiza ``EstoqueSyncHealth``.
+    Mesmo token que o cron de alerta de vendas (``ALERTA_VENDAS_CRON_TOKEN``).
+    """
+    if not _token_cron_alerta_valido(request):
+        return JsonResponse({"ok": False, "erro": "token"}, status=403)
+    from estoque.sync_health import registrar_ping_mongo
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        registrar_ping_mongo(False, "Mongo indisponível (cron)")
+        return JsonResponse({"ok": False, "mongo": False})
+    try:
+        db[client.col_p].find_one({}, {"_id": 1})
+        registrar_ping_mongo(True)
+        return JsonResponse({"ok": True, "mongo": True})
+    except Exception as e:
+        registrar_ping_mongo(False, str(e))
+        return JsonResponse({"ok": False, "mongo": False, "erro": str(e)[:500]}, status=503)
 
 
 def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
@@ -1676,9 +1715,13 @@ def _api_lancamentos_lista_core(request, despesa: bool):
     )
 
 
-def _ctx_lancamentos_financeiros():
+def _ctx_lancamentos_financeiros(modo_contas: str):
+    """
+    ``modo_contas``: ``pagar`` | ``receber`` — lista fixa em um tipo (sem abas).
+    """
     return {
         "lancamentos_dre_ativo": getattr(settings, "LANCAMENTOS_DRE_ATIVO", False),
+        "modo_contas": modo_contas,
     }
 
 
@@ -1703,15 +1746,36 @@ def resumo_financeiro_gerencial_view(request):
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
 def lancamentos_financeiros_view(request):
-    """Lançamentos a pagar e a receber (DtoLancamento) — Mongo / ERP Venda."""
-    return render(request, "produtos/lancamentos_financeiros.html", _ctx_lancamentos_financeiros())
+    """Entrada do módulo: escolha entre Contas a pagar e Contas a receber."""
+    return render(
+        request,
+        "produtos/lancamentos_hub.html",
+        {
+            "lancamentos_dre_ativo": getattr(settings, "LANCAMENTOS_DRE_ATIVO", False),
+        },
+    )
 
 
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
 def lancamentos_contas_pagar_view(request):
-    """Alias da rota antiga — mesma tela unificada."""
-    return render(request, "produtos/lancamentos_financeiros.html", _ctx_lancamentos_financeiros())
+    """Lista de contas a pagar (filtros, export, baixa)."""
+    return render(
+        request,
+        "produtos/lancamentos_financeiros.html",
+        _ctx_lancamentos_financeiros("pagar"),
+    )
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def lancamentos_contas_receber_view(request):
+    """Lista de contas a receber (filtros, export, baixa)."""
+    return render(
+        request,
+        "produtos/lancamentos_financeiros.html",
+        _ctx_lancamentos_financeiros("receber"),
+    )
 
 
 @ensure_csrf_cookie
@@ -1778,6 +1842,55 @@ def api_lancamentos_planos_distintos(request):
         limit=lim,
     )
     return JsonResponse({"planos": planos})
+
+
+@never_cache
+@login_required(login_url="/admin/login/")
+@require_http_methods(["GET", "POST", "DELETE"])
+def api_lancamentos_atalhos_filtro(request):
+    """Dois atalhos de filtro por usuário (payload JSON espelha favoritos locais)."""
+    if request.method == "GET":
+        rows = LancamentoAtalhoFiltro.objects.filter(usuario=request.user).order_by("slot")
+        return JsonResponse(
+            {
+                "ok": True,
+                "atalhos": [
+                    {"slot": r.slot, "nome": r.nome, "payload": r.payload or {}}
+                    for r in rows
+                ],
+            }
+        )
+    if request.method == "POST":
+        try:
+            body = json.loads(request.body.decode("utf-8") or "{}")
+        except Exception:
+            return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+        try:
+            slot = int(body.get("slot"))
+        except (TypeError, ValueError):
+            return JsonResponse({"ok": False, "erro": "slot inválido"}, status=400)
+        if slot not in (1, 2):
+            return JsonResponse({"ok": False, "erro": "slot inválido"}, status=400)
+        nome = (body.get("nome") or "").strip()[:80]
+        if not nome:
+            return JsonResponse({"ok": False, "erro": "nome obrigatório"}, status=400)
+        payload = body.get("payload")
+        if not isinstance(payload, dict):
+            return JsonResponse({"ok": False, "erro": "payload deve ser objeto"}, status=400)
+        obj, _ = LancamentoAtalhoFiltro.objects.update_or_create(
+            usuario=request.user,
+            slot=slot,
+            defaults={"nome": nome, "payload": payload},
+        )
+        return JsonResponse({"ok": True, "slot": obj.slot, "nome": obj.nome})
+    try:
+        slot = int(request.GET.get("slot") or request.POST.get("slot") or 0)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "slot inválido"}, status=400)
+    if slot not in (1, 2):
+        return JsonResponse({"ok": False, "erro": "slot inválido"}, status=400)
+    LancamentoAtalhoFiltro.objects.filter(usuario=request.user, slot=slot).delete()
+    return JsonResponse({"ok": True})
 
 
 @login_required(login_url="/admin/login/")
@@ -1958,6 +2071,7 @@ def aplicar_entrada_nota_estoque_agro(
     deposito: str,
     usuario_label: str,
     cabecalho: dict | None,
+    usuario_django=None,
 ) -> dict:
     """
     Incrementa o saldo **visto pelo Agro** via ``AjusteRapidoEstoque``, sem alterar o Mongo do ERP.
@@ -2017,6 +2131,8 @@ def aplicar_entrada_nota_estoque_agro(
                 deposito=dep,
                 saldo_erp_referencia=saldo_erp,
                 saldo_informado=saldo_final_depois,
+                origem=OrigemAjusteEstoque.ENTRADA_NF_AGRO,
+                usuario=usuario_django if usuario_django is not None else None,
             )
             aplicados.append(
                 {
@@ -2051,6 +2167,7 @@ def aplicar_baixa_estoque_venda_agro(
     venda: VendaAgro,
     deposito: str,
     usuario_label: str,
+    usuario_django=None,
 ) -> dict:
     """
     Baixa de estoque só na camada Agro (``AjusteRapidoEstoque``), como entrada NF / PIN.
@@ -2092,6 +2209,8 @@ def aplicar_baixa_estoque_venda_agro(
                 deposito=dep,
                 saldo_erp_referencia=saldo_erp,
                 saldo_informado=saldo_depois,
+                origem=OrigemAjusteEstoque.BAIXA_VENDA_PDV,
+                usuario=usuario_django if usuario_django is not None else None,
             )
             aplicados.append(
                 {
@@ -2173,6 +2292,7 @@ def api_entrada_nota_estoque_agro(request):
         deposito=deposito,
         usuario_label=usuario,
         cabecalho=cab,
+        usuario_django=request.user if request.user.is_authenticated else None,
     )
     if resultado.get("aplicados"):
         _invalidar_caches_apos_ajuste_pin()
@@ -4035,6 +4155,8 @@ def api_ajustar_estoque(request):
                 nome_produto=request.POST.get("nome_produto"),
                 saldo_erp_referencia=Decimal(request.POST.get("saldo_atual", "0")),
                 saldo_informado=Decimal(request.POST.get("novo_saldo", "0")),
+                origem=OrigemAjusteEstoque.AJUSTE_PIN,
+                usuario=request.user if request.user.is_authenticated else None,
             )
             _invalidar_caches_apos_ajuste_pin()
             return JsonResponse({"ok": True})
@@ -4745,6 +4867,10 @@ def _persistir_venda_agro(
                         venda=v,
                         deposito=dep_v,
                         usuario_label=user_label,
+                        usuario_django=request.user
+                        if getattr(request, "user", None) is not None
+                        and getattr(request.user, "is_authenticated", False)
+                        else None,
                     )
                     if r_baixa.get("ok"):
                         v.estoque_baixa_agro_aplicada = True
@@ -5520,25 +5646,39 @@ def _catalogo_pdv_entry_atual(db, client):
         cache.set(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY, prev, timeout=86400 * 3)
     new_entry = {"day": hoje_cat, "version": version, "updated_at": now_iso, "body": body}
     cache.set(CATALOGO_PDV_CACHE_ENTRY_KEY, new_entry, timeout=86400 * 2)
+    try:
+        from estoque.sync_health import registrar_catalogo_built
+
+        registrar_catalogo_built(version)
+    except Exception:
+        pass
     return new_entry
 
 
 @require_GET
 def api_todos_produtos_local(request):
+    from estoque.sync_health import registrar_ping_mongo
+
     client, db = obter_conexao_mongo()
     if db is None:
+        registrar_ping_mongo(False, "Mongo indisponível")
         return JsonResponse({"erro": "Erro conexao"}, status=500)
     try:
         entry = _catalogo_pdv_entry_atual(db, client)
+        registrar_ping_mongo(True)
         return JsonResponse(entry["body"])
     except Exception as e:
+        registrar_ping_mongo(False, str(e))
         return JsonResponse({"erro": str(e)}, status=500)
 
 
 @require_GET
 def api_todos_produtos_delta(request):
+    from estoque.sync_health import registrar_ping_mongo
+
     client, db = obter_conexao_mongo()
     if db is None:
+        registrar_ping_mongo(False, "Mongo indisponível")
         return JsonResponse({"erro": "Erro conexao"}, status=500)
     since = str(request.GET.get("since") or "").strip()
     try:
@@ -5547,6 +5687,7 @@ def api_todos_produtos_delta(request):
         cur_body = current.get("body") or {}
         cur_updated = str(current.get("updated_at") or cur_body.get("catalog_updated_at") or "")
         if since and since == cur_v:
+            registrar_ping_mongo(True)
             return JsonResponse(
                 {
                     "ok": True,
@@ -5577,6 +5718,7 @@ def api_todos_produtos_delta(request):
             for pid in prev_map:
                 if pid not in cur_map:
                     removed.append(pid)
+            registrar_ping_mongo(True)
             return JsonResponse(
                 {
                     "ok": True,
@@ -5588,6 +5730,7 @@ def api_todos_produtos_delta(request):
                 }
             )
 
+        registrar_ping_mongo(True)
         return JsonResponse(
             {
                 "ok": True,
@@ -5599,6 +5742,7 @@ def api_todos_produtos_delta(request):
             }
         )
     except Exception as e:
+        registrar_ping_mongo(False, str(e))
         return JsonResponse({"erro": str(e)}, status=500)
 
 
@@ -5647,7 +5791,7 @@ def api_cron_enviar_alerta_vendas_dia(request):
 @require_GET
 def api_pdv_saldos_compacto(request):
     """
-    Saldos atuais (ERP + ajuste PIN) para todos os produtos ativos — payload compacto.
+    Saldos atuais (espelho Mongo + camada Agro / ajustes) para todos os produtos ativos — payload compacto.
     Cache de poucos segundos: muitas abas/caixas batem o mesmo snapshot e aliviam o Mongo.
     Resposta sem cache HTTP (evita saldo antigo no Electron / Chromium).
     """
@@ -5657,6 +5801,12 @@ def api_pdv_saldos_compacto(request):
 
     client, db = obter_conexao_mongo()
     if db is None:
+        try:
+            from estoque.sync_health import registrar_ping_mongo
+
+            registrar_ping_mongo(False, "Mongo indisponível")
+        except Exception:
+            pass
         return JsonResponse({"erro": "Erro conexao"}, status=500)
     try:
         query = {"CadastroInativo": {"$ne": True}}
@@ -5677,8 +5827,20 @@ def api_pdv_saldos_compacto(request):
             )
         payload = {"v": 1, "rows": rows}
         cache.set(_SALDOS_PDV_CACHE_KEY, payload, timeout=_SALDOS_PDV_CACHE_TTL)
+        try:
+            from estoque.sync_health import registrar_ping_mongo
+
+            registrar_ping_mongo(True)
+        except Exception:
+            pass
         return JsonResponse(payload)
     except Exception as e:
+        try:
+            from estoque.sync_health import registrar_ping_mongo
+
+            registrar_ping_mongo(False, str(e))
+        except Exception:
+            pass
         return JsonResponse({"erro": str(e)}, status=500)
 
 

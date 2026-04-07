@@ -27,4 +27,14 @@ urlpatterns = [
     path('estoque/api_atualizar_medias/', estoque_views.api_atualizar_medias, name='api_atualizar_medias'),
     path('estoque/api_registrar_impressao/', estoque_views.api_registrar_impressao, name='api_registrar_impressao'),
     path('estoque/api_cancelar_separacao/<str:id>/', estoque_views.api_cancelar_separacao, name='api_cancelar_separacao'),
+    path(
+        'api/estoque/sync-health/',
+        estoque_views.api_estoque_sync_health,
+        name='api_estoque_sync_health',
+    ),
+    path(
+        'api/estoque/divergencia-ajustes/',
+        estoque_views.api_estoque_divergencia_ajustes,
+        name='api_estoque_divergencia_ajustes',
+    ),
 ]

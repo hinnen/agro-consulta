@@ -44,6 +44,11 @@ urlpatterns = [
         name='lancamentos_contas_pagar',
     ),
     path(
+        'lancamentos/contas-receber/',
+        views.lancamentos_contas_receber_view,
+        name='lancamentos_contas_receber',
+    ),
+    path(
         'lancamentos/novo-manual/',
         views.lancamentos_manual_view,
         name='lancamentos_manual',
@@ -53,6 +58,7 @@ urlpatterns = [
         views.lancamentos_fluxo_calendario_view,
         name='lancamentos_fluxo_calendario',
     ),
+    path('estoque/sincronizacao/', views.estoque_sincronizacao_view, name='estoque_sincronizacao'),
     path('pdv/checkout/', views.pdv_checkout, name='pdv_checkout'),
     path('vendas/exportar-csv/', views.vendas_exportar_csv, name='vendas_exportar_csv'),
     path('vendas/', views.vendas_lista, name='vendas_lista'),
@@ -154,6 +160,11 @@ urlpatterns = [
         name='api_lancamentos_planos_distintos',
     ),
     path(
+        'api/lancamentos/atalhos-filtro/',
+        views.api_lancamentos_atalhos_filtro,
+        name='api_lancamentos_atalhos_filtro',
+    ),
+    path(
         'api/lancamentos/fluxo-calendario/',
         views.api_lancamentos_fluxo_calendario,
         name='api_lancamentos_fluxo_calendario',
@@ -171,6 +182,7 @@ urlpatterns = [
     path('api/pdv/top-vendidos/', views.api_pdv_top_vendidos, name='api_pdv_top_vendidos'),
     path('api/pdv/invalidar-catalogo/', views.api_pdv_invalidar_cache_catalogo, name='api_pdv_invalidar_catalogo'),
     path('api/cron/enviar-alerta-vendas-dia/', views.api_cron_enviar_alerta_vendas_dia, name='api_cron_enviar_alerta_vendas_dia'),
+    path('api/cron/estoque-mongo-ping/', views.api_cron_estoque_mongo_ping, name='api_cron_estoque_mongo_ping'),
     path('api/autocomplete/', views.api_autocomplete_produtos, name='api_autocomplete_produtos'),
     path('api/buscar-clientes/', views.api_buscar_clientes, name='api_buscar_clientes'),
     path('api/listar-clientes/', views.api_list_customers, name='api_list_customers'),
