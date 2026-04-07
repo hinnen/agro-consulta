@@ -22,7 +22,13 @@
         <h1 class="text-lg font-black uppercase text-slate-900">RH · Operadores e PIN</h1>
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Cadastro leve para uso futuro</p>
       </div>
-      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 shadow-sm shrink-0" %}
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <a href="{% url 'rh_painel' %}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-800 hover:bg-slate-50 shadow-sm">
+          Menu RH
+        </a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 shadow-sm shrink-0" %}
+      </div>
     </div>
   </header>
 

@@ -1,0 +1,42 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>Reconciliar pessoa base | RH</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>body{font-family:'Inter',sans-serif;}</style>
+</head>
+<body class="bg-slate-50 min-h-full text-slate-800">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-white px-4 py-3 max-w-2xl mx-auto">
+    <h1 class="text-lg font-black uppercase">Reconciliar vínculo · {{ funcionario.nome_exibicao }}</h1>
+    <p class="text-[11px] text-slate-600 mt-1">Troca só o ClienteAgro (pessoa base). Empresa e loja do perfil não mudam. Depois, alinhe <span class="font-mono">nome_cache</span> na edição se o caixa ainda usar texto antigo.</p>
+  </header>
+  <main class="max-w-2xl mx-auto px-4 py-4">
+    <div class="rounded-xl border border-orange-200 bg-orange-50/50 p-3 text-xs mb-4">
+      <p><strong>Atual:</strong> ClienteAgro #{{ funcionario.cliente_agro_id }} — {{ funcionario.cliente_agro.nome }}</p>
+      {% if funcionario.cliente_agro.externo_id %}<p class="font-mono mt-1">externo_id: {{ funcionario.cliente_agro.externo_id }}</p>{% endif %}
+    </div>
+    {% if messages %}{% for m in messages %}<p class="mb-2 text-sm font-semibold text-emerald-800">{{ m }}</p>{% endfor %}{% endif %}
+    <form method="post" class="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      {% csrf_token %}
+      {% for field in form %}
+      <label class="block text-[10px] font-black uppercase text-slate-500">{{ field.label }}
+        {{ field }}
+        {% for e in field.errors %}<span class="text-red-600 text-xs block">{{ e }}</span>{% endfor %}
+      </label>
+      {% endfor %}
+      {% if form.non_field_errors %}{% for e in form.non_field_errors %}<p class="text-red-600 text-sm">{{ e }}</p>{% endfor %}{% endif %}
+      <div class="flex flex-wrap gap-2">
+        <button type="submit" class="min-h-[48px] px-6 rounded-xl bg-orange-600 text-white font-black uppercase text-sm">Salvar vínculo</button>
+        <a href="{% url 'rh_funcionario_ficha' funcionario.pk %}" class="min-h-[48px] inline-flex items-center px-4 rounded-xl border-2 border-slate-200 text-sm font-bold">Cancelar</a>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

@@ -1,0 +1,154 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>RH · Conferência técnica | Agro Mais</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>html,body{height:100%;max-height:100%;overflow:hidden;}body{font-family:'Inter',sans-serif;}</style>
+</head>
+<body class="bg-slate-50 h-full text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <h1 class="text-lg font-black uppercase text-slate-900">Conferência técnica (RH)</h1>
+      <a href="{% url 'rh_gestao_funcionarios' %}" class="min-h-[44px] inline-flex items-center px-3 py-2 rounded-xl text-xs font-black uppercase border-2 border-slate-200 bg-white">Gestão</a>
+    </div>
+  </header>
+  <main class="flex-1 min-h-0 overflow-y-auto">
+    <div class="max-w-6xl mx-auto px-4 py-4">
+      {% include "rh/_gestao_nav.html" with nav_gestao="conf" %}
+      {% if messages %}{% for m in messages %}<p class="mb-2 text-sm font-semibold {% if m.tags == 'error' %}text-red-700{% elif m.tags == 'info' %}text-slate-700 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2{% else %}text-emerald-800{% endif %}">{{ m }}</p>{% endfor %}{% endif %}
+      <p class="text-xs text-slate-600 mb-4">Leitura de integridade: vínculos, vales e possíveis duplicidades em ClienteAgro. Atualize a página após correções. <strong>Vale automático:</strong> só no plano «Adiantamento de Salário (Vale)», com empresa do lançamento igual à do perfil RH e pessoa identificável (ClienteAgro / nome).</p>
+
+      <section class="rounded-2xl border-2 border-emerald-200 bg-emerald-50/40 p-4 mb-6">
+        <h2 class="text-sm font-black uppercase text-emerald-900 mb-3">Resumo administrativo (base atual)</h2>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs mb-4">
+          <div class="rounded-lg bg-white border border-emerald-100 p-2"><span class="text-slate-500 font-bold uppercase text-[10px]">Perfis RH (total / ativos)</span><p class="text-lg font-black tabular-nums">{{ resumo.total_perfis }} / {{ resumo.perfis_ativos }}</p></div>
+          <div class="rounded-lg bg-white border border-emerald-100 p-2"><span class="text-slate-500 font-bold uppercase text-[10px]">Perfis com ClienteAgro.externo_id preenchido</span><p class="text-lg font-black tabular-nums">{{ resumo.perfis_com_cliente_externo_id }}</p></div>
+          <div class="rounded-lg bg-white border border-emerald-100 p-2"><span class="text-slate-500 font-bold uppercase text-[10px]">Perfis cujo CA é origem rh_legacy</span><p class="text-lg font-black tabular-nums text-amber-900">{{ resumo.perfis_cliente_origem_rh_legacy }}</p></div>
+          <div class="rounded-lg bg-white border border-emerald-100 p-2"><span class="text-slate-500 font-bold uppercase text-[10px]">ClienteAgro (total)</span><p class="text-lg font-black tabular-nums">{{ resumo.total_clienteagro }}</p></div>
+          <div class="rounded-lg bg-white border border-emerald-100 p-2"><span class="text-slate-500 font-bold uppercase text-[10px]">ClienteAgro sem externo_id</span><p class="text-lg font-black tabular-nums {% if resumo.clienteagro_sem_externo_id %}text-amber-900{% endif %}">{{ resumo.clienteagro_sem_externo_id }}</p></div>
+          <div class="rounded-lg bg-white border border-emerald-100 p-2"><span class="text-slate-500 font-bold uppercase text-[10px]">ClienteAgro origem rh_legacy</span><p class="text-lg font-black tabular-nums">{{ resumo.clienteagro_origem_rh_legacy }}</p></div>
+        </div>
+        <h3 class="text-[10px] font-black uppercase text-slate-600 mb-1">Perfis por empresa (cadastro base)</h3>
+        <div class="overflow-x-auto rounded-lg border border-slate-200 bg-white max-h-40 overflow-y-auto">
+          <table class="w-full text-[11px] min-w-[320px]">
+            <thead class="sticky top-0 bg-slate-100 font-black uppercase text-[10px]"><tr><th class="text-left py-1.5 px-2">Empresa</th><th class="text-right py-1.5 px-2">Perfis</th><th class="text-right py-1.5 px-2">Ativos</th></tr></thead>
+            <tbody>{% for row in resumo.por_empresa %}<tr class="border-t border-slate-100"><td class="py-1 px-2">{{ row.nome_fantasia }}</td><td class="py-1 px-2 text-right font-mono">{{ row.n_perfis }}</td><td class="py-1 px-2 text-right font-mono">{{ row.n_perfis_ativos }}</td></tr>{% empty %}<tr><td colspan="3" class="py-2 px-2 text-slate-500">Nenhuma empresa ativa.</td></tr>{% endfor %}</tbody>
+          </table>
+        </div>
+        <p class="text-[10px] text-slate-600 mt-2">Duplicidades por nome/CPF aparecem nas seções abaixo — priorize fundir ou reconciliar vínculos antes de novos cadastros.</p>
+      </section>
+
+      <section class="grid sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-6">
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <p class="text-[10px] font-black uppercase text-slate-500">rh.Funcionario (total)</p>
+          <p class="text-2xl font-black tabular-nums">{{ snap.n_funcionario_total }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <p class="text-[10px] font-black uppercase text-slate-500">Sem cliente_agro</p>
+          <p class="text-2xl font-black tabular-nums {% if snap.n_funcionario_sem_cliente_agro %}text-red-700{% else %}text-emerald-800{% endif %}">{{ snap.n_funcionario_sem_cliente_agro }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <p class="text-[10px] font-black uppercase text-slate-500">Duplicata ativa (empresa+CA)</p>
+          <p class="text-2xl font-black tabular-nums {% if snap.n_duplicata_ativa_empresa_cliente %}text-red-700{% else %}text-emerald-800{% endif %}">{{ snap.n_duplicata_ativa_empresa_cliente }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <p class="text-[10px] font-black uppercase text-slate-500">Inc. vale sem funcionário</p>
+          <p class="text-2xl font-black tabular-nums {% if snap.n_inconsistencias_vale_sem_funcionario %}text-amber-800{% else %}text-emerald-800{% endif %}">{{ snap.n_inconsistencias_vale_sem_funcionario }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <p class="text-[10px] font-black uppercase text-slate-500">Vales empresa ≠ perfil</p>
+          <p class="text-2xl font-black tabular-nums {% if snap.n_vales_empresa_divergente %}text-red-700{% else %}text-emerald-800{% endif %}">{{ snap.n_vales_empresa_divergente }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <p class="text-[10px] font-black uppercase text-slate-500">Grupos nome CA duplicado</p>
+          <p class="text-2xl font-black tabular-nums {% if snap.n_grupos_nome_cliente_duplicado %}text-amber-800{% else %}text-emerald-800{% endif %}">{{ snap.n_grupos_nome_cliente_duplicado }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <p class="text-[10px] font-black uppercase text-slate-500">Grupos CPF CA duplicado</p>
+          <p class="text-2xl font-black tabular-nums {% if snap.n_grupos_cpf_cliente_duplicado %}text-amber-800{% else %}text-emerald-800{% endif %}">{{ snap.n_grupos_cpf_cliente_duplicado }}</p>
+        </div>
+      </section>
+
+      {% if snap.duplicatas_ativas %}
+      <h2 class="text-sm font-black uppercase text-red-800 mb-2">Perfis RH ativos duplicados (mesma empresa + ClienteAgro)</h2>
+      <div class="overflow-x-auto rounded-xl border border-red-200 bg-red-50/50 mb-6">
+        <table class="w-full text-xs min-w-[400px]">
+          <thead class="font-black uppercase text-[10px] text-slate-600"><tr><th class="text-left py-2 px-2">Empresa id</th><th class="text-left py-2 px-2">ClienteAgro id</th><th class="text-right py-2 px-2">Qtd</th></tr></thead>
+          <tbody>{% for r in snap.duplicatas_ativas %}<tr class="border-t border-red-100"><td class="py-1.5 px-2 font-mono">{{ r.empresa_id }}</td><td class="py-1.5 px-2 font-mono">{{ r.cliente_agro_id }}</td><td class="py-1.5 px-2 text-right font-black">{{ r.quantidade }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      <h2 class="text-sm font-black uppercase text-slate-800 mb-2">Inconsistências: vale sem funcionário (abertas)</h2>
+      <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm mb-6 max-h-64 overflow-y-auto">
+        <table class="w-full text-xs min-w-[640px]">
+          <thead class="sticky top-0 bg-slate-100 font-black uppercase text-[10px]"><tr><th class="text-left py-2 px-2">Criado</th><th class="text-left py-2 px-2">Empresa</th><th class="text-left py-2 px-2">Ref.</th><th class="text-left py-2 px-2">Detalhe</th></tr></thead>
+          <tbody>
+            {% for i in snap.inconsistencias_vale %}
+            <tr class="border-t border-slate-100"><td class="py-1.5 px-2 whitespace-nowrap">{{ i.criado_em|date:"Y-m-d H:i" }}</td><td class="py-1.5 px-2">{{ i.empresa.nome_fantasia|default:"—" }}</td><td class="py-1.5 px-2 font-mono text-[10px]">{{ i.referencia_externa_id|truncatechars:24 }}</td><td class="py-1.5 px-2">{{ i.detalhe|truncatechars:120 }}</td></tr>
+            {% empty %}
+            <tr><td colspan="4" class="py-4 px-2 text-slate-500 font-semibold">Nenhuma inconsistência aberta deste tipo.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="text-sm font-black uppercase text-slate-800 mb-2">Vales (não cancelados) com empresa ≠ empresa do perfil RH</h2>
+      <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm mb-6 max-h-64 overflow-y-auto">
+        <table class="w-full text-xs min-w-[720px]">
+          <thead class="sticky top-0 bg-slate-100 font-black uppercase text-[10px]"><tr><th class="text-left py-2 px-2">Data</th><th class="text-right py-2 px-2">Valor</th><th class="text-left py-2 px-2">Empresa (vale)</th><th class="text-left py-2 px-2">Empresa (perfil)</th><th class="text-left py-2 px-2">Perfil</th></tr></thead>
+          <tbody>
+            {% for v in snap.vales_empresa_divergente %}
+            <tr class="border-t border-slate-100">
+              <td class="py-1.5 px-2">{{ v.data }}</td>
+              <td class="py-1.5 px-2 text-right font-mono">R$ {{ v.valor }}</td>
+              <td class="py-1.5 px-2">{{ v.empresa.nome_fantasia }}</td>
+              <td class="py-1.5 px-2">{{ v.funcionario.empresa.nome_fantasia }}</td>
+              <td class="py-1.5 px-2"><a href="{% url 'rh_funcionario_ficha' v.funcionario_id %}" class="text-emerald-800 font-bold underline">#{{ v.funcionario_id }}</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="py-4 px-2 text-slate-500 font-semibold">Nenhum vale divergente.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="text-sm font-black uppercase text-slate-800 mb-2">ClienteAgro — nomes iguais (case insensitive), amostra</h2>
+      <div class="space-y-3 mb-6">
+        {% for g in snap.grupos_nome_duplicado %}
+        <div class="rounded-xl border border-amber-200 bg-amber-50/40 p-3 text-xs">
+          <p class="font-black text-amber-950 mb-1">{{ g.total }} registros · nome normalizado “{{ g.chave }}”</p>
+          <ul class="font-mono text-[11px] space-y-0.5">
+            {% for e in g.exemplos %}<li>#{{ e.id }} · {{ e.nome|truncatechars:40 }} · ext={{ e.externo_id|default:"—"|truncatechars:16 }} · {{ e.origem_import|default:"—" }} · {% if e.ativo %}ativo{% else %}inativo{% endif %}</li>{% endfor %}
+          </ul>
+        </div>
+        {% empty %}
+        <p class="text-xs text-slate-500">Nenhum grupo duplicado por nome (na amostra / limite).</p>
+        {% endfor %}
+      </div>
+
+      <h2 class="text-sm font-black uppercase text-slate-800 mb-2">ClienteAgro — mesmo CPF preenchido, amostra</h2>
+      <div class="space-y-3 mb-8">
+        {% for g in snap.grupos_cpf_duplicado %}
+        <div class="rounded-xl border border-amber-200 bg-amber-50/40 p-3 text-xs">
+          <p class="font-black text-amber-950 mb-1">{{ g.total }} registros · CPF {{ g.cpf }}</p>
+          <ul class="font-mono text-[11px] space-y-0.5">
+            {% for e in g.exemplos %}<li>#{{ e.id }} · {{ e.nome|truncatechars:40 }} · ext={{ e.externo_id|default:"—"|truncatechars:16 }}</li>{% endfor %}
+          </ul>
+        </div>
+        {% empty %}
+        <p class="text-xs text-slate-500">Nenhum grupo duplicado por CPF (na amostra / limite).</p>
+        {% endfor %}
+      </div>
+    </div>
+  </main>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>

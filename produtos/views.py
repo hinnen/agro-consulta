@@ -1423,57 +1423,18 @@ def caixa_saida_view(request):
     """Formulário dedicado: saída rápida no caixa (plano de conta + quem levou)."""
     from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
 
-    funcionarios_principais = [
-        "Renan",
-        "Geraldinho",
-        "Isabela",
-        "Geraldo",
-        "Zuleide",
-        "Vitor",
-        "Nathan",
-        "Queila",
-    ]
-    funcionarios_outra = [
-        "Matheus",
-        "Estanislau",
-    ]
+    from rh.utils import resolver_empresa_por_nome_fantasia
+
     empresa_padrao = getattr(settings, "AGRO_SAIDA_CAIXA_EMPRESA_PADRAO", "") or "Agro Mais Centro"
+    emp = resolver_empresa_por_nome_fantasia(empresa_padrao)
+    empresa_padrao_id = emp.pk if emp else ""
     return render(
         request,
         "produtos/caixa_saida.html",
         {
             "planos_json": json.dumps(SAIDA_CAIXA_PLANOS, ensure_ascii=False),
-            "funcionarios_principais": funcionarios_principais,
-            "funcionarios_outra": funcionarios_outra,
             "empresa_padrao": empresa_padrao,
-        },
-    )
-
-
-@login_required(login_url="/admin/login/")
-@ensure_csrf_cookie
-def rh_painel(request):
-    """Painel simples de RH para operadores do Agro: nomes e PIN (mock)."""
-    funcionarios_principais = [
-        "Renan",
-        "Geraldinho",
-        "Isabela",
-        "Geraldo",
-        "Zuleide",
-        "Vitor",
-        "Nathan",
-        "Queila",
-    ]
-    funcionarios_outra = [
-        "Matheus",
-        "Estanislau",
-    ]
-    return render(
-        request,
-        "produtos/rh_painel.html",
-        {
-            "funcionarios_principais": funcionarios_principais,
-            "funcionarios_outra": funcionarios_outra,
+            "empresa_padrao_id": empresa_padrao_id,
         },
     )
 
@@ -1586,6 +1547,29 @@ def _lancamentos_parse_date_param(s):
         return None
 
 
+def _lancamentos_filtros_echo_dict(
+    v_de: date | None,
+    v_ate: date | None,
+    c_de: date | None,
+    c_ate: date | None,
+    p_de: date | None,
+    p_ate: date | None,
+) -> dict[str, str | None]:
+    """Eco das datas efetivamente lidas do GET (confirmação na UI / suporte)."""
+
+    def iso(d: date | None) -> str | None:
+        return d.isoformat() if d else None
+
+    return {
+        "venc_de": iso(v_de),
+        "venc_ate": iso(v_ate),
+        "comp_de": iso(c_de),
+        "comp_ate": iso(c_ate),
+        "pag_de": iso(p_de),
+        "pag_ate": iso(p_ate),
+    }
+
+
 def _lancamentos_excluir_planos_from_request(request) -> list[str]:
     raw = request.GET.getlist("excluir_plano")
     out: list[str] = []
@@ -1602,6 +1586,19 @@ def _lancamentos_excluir_planos_from_request(request) -> list[str]:
 
 
 def _api_lancamentos_lista_core(request, despesa: bool):
+    status = (request.GET.get("status") or "abertos").strip().lower()
+    if status not in ("abertos", "quitados", "todos"):
+        status = "abertos"
+
+    v_de = _lancamentos_parse_date_param(request.GET.get("venc_de"))
+    v_ate = _lancamentos_parse_date_param(request.GET.get("venc_ate"))
+    c_de = _lancamentos_parse_date_param(request.GET.get("comp_de"))
+    c_ate = _lancamentos_parse_date_param(request.GET.get("comp_ate"))
+    p_de = _lancamentos_parse_date_param(request.GET.get("pag_de"))
+    p_ate = _lancamentos_parse_date_param(request.GET.get("pag_ate"))
+    filtros_echo = _lancamentos_filtros_echo_dict(v_de, v_ate, c_de, c_ate, p_de, p_ate)
+    texto = (request.GET.get("q") or "").strip() or None
+
     _, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse(
@@ -1612,17 +1609,10 @@ def _api_lancamentos_lista_core(request, despesa: bool):
                 "page": 1,
                 "page_size": 50,
                 "totais": {},
+                "filtros": filtros_echo,
             },
             status=503,
         )
-
-    status = (request.GET.get("status") or "abertos").strip().lower()
-    if status not in ("abertos", "quitados", "todos"):
-        status = "abertos"
-
-    v_de = _lancamentos_parse_date_param(request.GET.get("venc_de"))
-    v_ate = _lancamentos_parse_date_param(request.GET.get("venc_ate"))
-    texto = (request.GET.get("q") or "").strip() or None
 
     try:
         page = max(1, int(request.GET.get("page") or 1))
@@ -1643,6 +1633,10 @@ def _api_lancamentos_lista_core(request, despesa: bool):
         status=status,
         vencimento_de=v_de,
         vencimento_ate=v_ate,
+        competencia_de=c_de,
+        competencia_ate=c_ate,
+        pagamento_de=p_de,
+        pagamento_ate=p_ate,
         texto=texto,
         excluir_planos_nomes=excl_planos or None,
     )
@@ -1676,6 +1670,7 @@ def _api_lancamentos_lista_core(request, despesa: bool):
             "status_filtro": status,
             "tipo": "pagar" if despesa else "receber",
             "planos_excluidos_aplicados": len(excl_planos),
+            "filtros": filtros_echo,
         }
     )
 
@@ -1727,6 +1722,7 @@ def lancamentos_dre_view(request):
     return render(request, "produtos/lancamentos_dre.html")
 
 
+@never_cache
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_lancamentos_lista(request):
@@ -1743,6 +1739,7 @@ def lancamentos_fluxo_calendario_view(request):
     return render(request, "produtos/lancamentos_fluxo_calendario.html")
 
 
+@never_cache
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_lancamentos_planos_distintos(request):
@@ -1757,6 +1754,10 @@ def api_lancamentos_planos_distintos(request):
         status = "abertos"
     v_de = _lancamentos_parse_date_param(request.GET.get("venc_de"))
     v_ate = _lancamentos_parse_date_param(request.GET.get("venc_ate"))
+    c_de = _lancamentos_parse_date_param(request.GET.get("comp_de"))
+    c_ate = _lancamentos_parse_date_param(request.GET.get("comp_ate"))
+    p_de = _lancamentos_parse_date_param(request.GET.get("pag_de"))
+    p_ate = _lancamentos_parse_date_param(request.GET.get("pag_ate"))
     texto = (request.GET.get("q") or "").strip() or None
     try:
         lim = min(int(request.GET.get("limit") or 400), 500)
@@ -1768,6 +1769,10 @@ def api_lancamentos_planos_distintos(request):
         status=status,
         vencimento_de=v_de,
         vencimento_ate=v_ate,
+        competencia_de=c_de,
+        competencia_ate=c_ate,
+        pagamento_de=p_de,
+        pagamento_ate=p_ate,
         texto=texto,
         limit=lim,
     )
@@ -2556,6 +2561,10 @@ def api_lancamentos_export_csv(request):
         status = "abertos"
     v_de = _lancamentos_parse_date_param(request.GET.get("venc_de"))
     v_ate = _lancamentos_parse_date_param(request.GET.get("venc_ate"))
+    c_de = _lancamentos_parse_date_param(request.GET.get("comp_de"))
+    c_ate = _lancamentos_parse_date_param(request.GET.get("comp_ate"))
+    p_de = _lancamentos_parse_date_param(request.GET.get("pag_de"))
+    p_ate = _lancamentos_parse_date_param(request.GET.get("pag_ate"))
     texto = (request.GET.get("q") or "").strip() or None
     ordenacao = (request.GET.get("ordenacao") or "vencimento_asc").strip().lower()
     if ordenacao not in LANCAMENTOS_ORDENACOES_VALIDAS:
@@ -2567,6 +2576,10 @@ def api_lancamentos_export_csv(request):
         status=status,
         vencimento_de=v_de,
         vencimento_ate=v_ate,
+        competencia_de=c_de,
+        competencia_ate=c_ate,
+        pagamento_de=p_de,
+        pagamento_ate=p_ate,
         texto=texto,
         excluir_planos_nomes=excl_planos or None,
     )
@@ -2588,7 +2601,9 @@ def api_lancamentos_export_csv(request):
     w.writerow(["Relatório de lançamentos financeiros"])
     w.writerow(["Tipo", "Contas a pagar" if despesa else "Contas a receber"])
     w.writerow(["Status", status])
-    w.writerow(["Período", (v_de.isoformat() if v_de else ""), (v_ate.isoformat() if v_ate else "")])
+    w.writerow(["Vencimento (de / até)", (v_de.isoformat() if v_de else ""), (v_ate.isoformat() if v_ate else "")])
+    w.writerow(["Competência (de / até)", (c_de.isoformat() if c_de else ""), (c_ate.isoformat() if c_ate else "")])
+    w.writerow(["Pagamento / quitação (de / até)", (p_de.isoformat() if p_de else ""), (p_ate.isoformat() if p_ate else "")])
     w.writerow(["Busca", texto or ""])
     w.writerow([])
     w.writerow(
@@ -2687,6 +2702,10 @@ def _lancamentos_financeiro_dados_export(request):
         status = "abertos"
     v_de = _lancamentos_parse_date_param(request.GET.get("venc_de"))
     v_ate = _lancamentos_parse_date_param(request.GET.get("venc_ate"))
+    c_de = _lancamentos_parse_date_param(request.GET.get("comp_de"))
+    c_ate = _lancamentos_parse_date_param(request.GET.get("comp_ate"))
+    p_de = _lancamentos_parse_date_param(request.GET.get("pag_de"))
+    p_ate = _lancamentos_parse_date_param(request.GET.get("pag_ate"))
     texto = (request.GET.get("q") or "").strip() or None
     ordenacao = (request.GET.get("ordenacao") or "vencimento_asc").strip().lower()
     if ordenacao not in LANCAMENTOS_ORDENACOES_VALIDAS:
@@ -2698,6 +2717,10 @@ def _lancamentos_financeiro_dados_export(request):
         status=status,
         vencimento_de=v_de,
         vencimento_ate=v_ate,
+        competencia_de=c_de,
+        competencia_ate=c_ate,
+        pagamento_de=p_de,
+        pagamento_ate=p_ate,
         texto=texto,
         excluir_planos_nomes=excl_planos or None,
     )
@@ -2715,6 +2738,8 @@ def _lancamentos_financeiro_dados_export(request):
         "despesa": despesa,
         "v_de": v_de,
         "v_ate": v_ate,
+        "c_de": c_de,
+        "c_ate": c_ate,
         "status": status,
     }
 
@@ -2735,6 +2760,8 @@ def api_lancamentos_export_financeiro_xlsx(request):
         despesa=data["despesa"],
         v_de=data["v_de"],
         v_ate=data["v_ate"],
+        comp_de=data.get("c_de"),
+        comp_ate=data.get("c_ate"),
     )
     ref = data["v_ate"] or data["v_de"] or timezone.localdate()
     nome = f"Financeiro_{ref.strftime('%d.%m.%Y')}.xlsx"
@@ -2762,6 +2789,8 @@ def api_lancamentos_export_financeiro_pdf(request):
         v_de=data["v_de"],
         v_ate=data["v_ate"],
         status=data["status"],
+        comp_de=data.get("c_de"),
+        comp_ate=data.get("c_ate"),
     )
     ref = data["v_ate"] or data["v_de"] or timezone.localdate()
     nome = f"Financeiro_{ref.strftime('%d.%m.%Y')}.pdf"
@@ -3118,6 +3147,12 @@ def api_lancamentos_excluir(request):
     r = excluir_lancamento_mongo_agro(db, lid, usuario)
     if not r.get("ok"):
         return JsonResponse({"ok": False, "erro": r.get("erro") or "Falha ao excluir."}, status=400)
+    try:
+        from rh.services.importador_vales_caixa import marcar_vales_cancelados_por_lancamento_removido
+
+        marcar_vales_cancelados_por_lancamento_removido(lid)
+    except Exception:
+        logger.exception("RH: cancelar vales após exclusão de lançamento")
     return JsonResponse({"ok": True})
 
 
@@ -3154,6 +3189,8 @@ def api_lancamentos_saida_caixa(request):
             return JsonResponse({"ok": False, "erro": "Escolha o plano de conta."}, status=400)
 
     motivo = str(payload.get("motivo") or "").strip()[:200]
+    pessoa_id_final = str(payload.get("pessoa_id") or "").strip() or None
+    pessoa_nome = ""
     if plano_id_req:
         if is_outros:
             if len(motivo) < 15:
@@ -3161,16 +3198,31 @@ def api_lancamentos_saida_caixa(request):
                     {"ok": False, "erro": "No plano Outros, o motivo é obrigatório (mínimo 15 caracteres)."},
                     status=400,
                 )
-        quem = str(payload.get("quem_leva") or "").strip()
-        quem_outro = str(payload.get("quem_leva_outro_nome") or "").strip()[:200]
-        if quem.upper() in ("OUTRO", "__OUTRO__") or quem == "__OUTRO__":
-            if len(quem_outro) < 2:
-                return JsonResponse({"ok": False, "erro": "Informe o nome completo da pessoa."}, status=400)
-            pessoa_nome = quem_outro
+        caid = payload.get("cliente_agro_id")
+        if caid is not None and str(caid).strip() != "":
+            try:
+                ca_pk = int(caid)
+            except (TypeError, ValueError):
+                return JsonResponse({"ok": False, "erro": "cliente_agro_id inválido."}, status=400)
+            ca = ClienteAgro.objects.filter(pk=ca_pk, ativo=True).first()
+            if not ca:
+                return JsonResponse(
+                    {"ok": False, "erro": "Pessoa base (ClienteAgro) não encontrada ou inativa."},
+                    status=400,
+                )
+            pessoa_nome = (ca.nome or "")[:300]
+            pessoa_id_final = ((ca.externo_id or "").strip() or f"local:{ca.pk}")[:120]
         else:
-            if not quem:
-                return JsonResponse({"ok": False, "erro": "Selecione quem está levando o dinheiro."}, status=400)
-            pessoa_nome = quem
+            quem = str(payload.get("quem_leva") or "").strip()
+            quem_outro = str(payload.get("quem_leva_outro_nome") or "").strip()[:200]
+            if quem.upper() in ("OUTRO", "__OUTRO__") or quem == "__OUTRO__":
+                if len(quem_outro) < 2:
+                    return JsonResponse({"ok": False, "erro": "Informe o nome completo da pessoa."}, status=400)
+                pessoa_nome = quem_outro
+            else:
+                if not quem:
+                    return JsonResponse({"ok": False, "erro": "Selecione quem está levando o dinheiro."}, status=400)
+                pessoa_nome = quem
     else:
         if not motivo:
             return JsonResponse({"ok": False, "erro": "Informe o motivo (ex.: troco, compra emergencial)."}, status=400)
@@ -3212,6 +3264,48 @@ def api_lancamentos_saida_caixa(request):
     else:
         desc_linha = f"Saída caixa — {motivo}"
 
+    # Vale (adiantamento): baixa parcial no título único de salário — sem novo DtoLancamento de vale.
+    if plano_id_req == "adiant_vale":
+        from rh.services.salario_financeiro_mongo import tentar_caixa_adiant_vale_como_baixa_parcial
+
+        alt = tentar_caixa_adiant_vale_como_baixa_parcial(
+            db=db,
+            data_competencia=dc,
+            empresa_nome=empresa_nome,
+            pessoa_nome=pessoa_nome,
+            pessoa_id=pessoa_id_final,
+            valor=valor,
+            forma_nome=forma_nome,
+            forma_id=str(payload.get("forma_id") or "").strip() or None,
+            banco_nome=banco_nome,
+            banco_id=str(payload.get("banco_id") or "").strip() or None,
+            usuario=request.user,
+            observacao_desc=desc_linha,
+        )
+        if alt is not None:
+            st = 200 if alt.get("ok") else 400
+            out = {
+                "ok": bool(alt.get("ok")),
+                "lote": alt.get("lote"),
+                "ids": alt.get("ids") or [],
+                "erros": alt.get("erros") or [],
+            }
+            if not alt.get("ok"):
+                out["erro"] = alt.get("erro") or "Não foi possível registrar o vale."
+            return JsonResponse(out, status=st)
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": (
+                    "Vale no caixa: use a pessoa cadastrada no perfil RH (ClienteAgro) e gere o título de salário "
+                    "com vencimento no fechamento da competência — o vale entra como pagamento parcial desse título."
+                ),
+                "ids": [],
+                "erros": [],
+            },
+            status=400,
+        )
+
     linhas = [
         {
             "plano_conta": plano,
@@ -3228,7 +3322,7 @@ def api_lancamentos_saida_caixa(request):
         empresa_nome=empresa_nome,
         empresa_id=str(payload.get("empresa_id") or "").strip() or None,
         pessoa_nome=pessoa_nome,
-        pessoa_id=str(payload.get("pessoa_id") or "").strip() or None,
+        pessoa_id=pessoa_id_final,
         data_competencia=dc,
         data_vencimento=dv,
         banco_nome=banco_nome,
@@ -3273,6 +3367,22 @@ def api_lancamentos_saida_caixa(request):
         out["erp_lancamento_ok"] = erp_lanc_ok
     if aviso_api_erp:
         out["aviso_api"] = aviso_api_erp
+    # Vale RH: dispara mesmo com status 207 (ok falso) desde que tenha inserido no Mongo.
+    if plano_id_req == "adiant_vale" and ids:
+        try:
+            from rh.services.importador_vales_caixa import processar_saida_caixa_apos_gravar
+
+            processar_saida_caixa_apos_gravar(
+                plano_id=plano_id_req,
+                mongo_ids=ids,
+                pessoa_nome=pessoa_nome,
+                data_competencia=dc,
+                empresa_nome=empresa_nome,
+                valor=valor,
+                usuario=request.user,
+            )
+        except Exception:
+            logger.exception("RH: vale automático pós-saída caixa")
     return JsonResponse(out, status=st)
 
 

@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 from . import views
 
 urlpatterns = [
@@ -67,7 +67,7 @@ urlpatterns = [
     path('clientes/sincronizar/', views.clientes_sincronizar, name='clientes_sincronizar'),
     path('clientes/novo/', views.cliente_novo, name='cliente_novo'),
     path('clientes/<int:pk>/editar/', views.cliente_editar, name='cliente_editar'),
-    path('rh/', views.rh_painel, name='rh_painel'),
+    path('rh/', include('rh.urls')),
     path('caixa/', views.caixa_painel, name='caixa_painel'),
     path('caixa/saida/', views.caixa_saida_view, name='caixa_saida'),
     path('caixa/abrir/', views.caixa_abrir, name='caixa_abrir'),

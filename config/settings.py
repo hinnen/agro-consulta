@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'base',
+    'rh',
 
     'rest_framework',
 
@@ -187,6 +188,20 @@ FINANCEIRO_DEBUG_RESUMO = config('FINANCEIRO_DEBUG_RESUMO', default=False, cast=
 # Saída no caixa (/caixa/saida/): nomes para “quem levou o dinheiro”, separados por vírgula. Vazio = só “Outro”.
 AGRO_SAIDA_CAIXA_FUNCIONARIOS = config('AGRO_SAIDA_CAIXA_FUNCIONARIOS', default='').strip()
 AGRO_SAIDA_CAIXA_EMPRESA_PADRAO = config('AGRO_SAIDA_CAIXA_EMPRESA_PADRAO', default='Agro Mais Centro').strip()
+
+# RH: texto de PlanoDeConta no Mongo para o título único de salário (despesa). Deve existir no ERP.
+AGRO_RH_PLANO_SALARIO_FOLHA = (config("AGRO_RH_PLANO_SALARIO_FOLHA", default="") or "").strip() or (
+    "2.1.1.1.2 — Salários"
+)
+# Conta placeholder no ERP (ex.: «ADICIONAR BANCO») até definir banco real — BancoID como string no Mongo/cadastro.
+# Se vazio, o Agro usa um ID legado embutido; defina no .env o ID correto da sua base (veja um DtoLancamento que já use essa conta).
+AGRO_FINANCEIRO_BANCO_PLACEHOLDER_ID = (
+    config("AGRO_FINANCEIRO_BANCO_PLACEHOLDER_ID", default="") or ""
+).strip()
+AGRO_FINANCEIRO_BANCO_PLACEHOLDER_NOME = (
+    (config("AGRO_FINANCEIRO_BANCO_PLACEHOLDER_NOME", default="") or "").strip()
+    or "ADICIONAR BANCO"
+)
 
 # PDV: WhatsApp para aviso de separação/entrega ao salvar orçamento (somente dígitos, ex.: 5513999999999).
 # wa.me abre conversa com um número; não existe URL oficial para “postar” direto em grupo pelo navegador.

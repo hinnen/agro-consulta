@@ -1,0 +1,35 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>{{ titulo }} | RH Agro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>body{font-family:'Inter',sans-serif;}</style>
+</head>
+<body class="bg-slate-50 min-h-full text-slate-800">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-white shadow-sm px-4 py-3 max-w-3xl mx-auto flex justify-between items-center gap-2">
+    <h1 class="text-lg font-black uppercase">{{ titulo }}</h1>
+    <a href="{% if funcionario %}{% url 'rh_funcionario_ficha' funcionario.pk %}{% else %}{% url 'rh_funcionarios_lista' %}{% endif %}" class="text-xs font-black uppercase text-emerald-800">Voltar</a>
+  </header>
+  <main class="max-w-3xl mx-auto px-4 py-4">
+    {% if messages %}{% for m in messages %}<p class="mb-2 text-sm font-semibold {% if m.tags == 'error' %}text-red-700{% else %}text-emerald-800{% endif %}">{{ m }}</p>{% endfor %}{% endif %}
+    <form method="post" class="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      {% csrf_token %}
+      {% for field in form %}
+      <label class="block text-[10px] font-black uppercase text-slate-500">{{ field.label }}
+        {{ field }}
+        {% if field.help_text %}<span class="block text-[10px] font-semibold text-slate-400 normal-case mt-0.5">{{ field.help_text }}</span>{% endif %}
+        {% for e in field.errors %}<span class="text-red-600 text-xs">{{ e }}</span>{% endfor %}
+      </label>
+      {% endfor %}
+      <button type="submit" class="w-full min-h-[48px] rounded-xl bg-emerald-600 text-white font-black uppercase text-sm">Salvar</button>
+    </form>
+  </main>
+</body>
+</html>

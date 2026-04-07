@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>RH · Gestão | Agro Mais</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>html,body{height:100%;max-height:100%;overflow:hidden;}body{font-family:'Inter',sans-serif;}</style>
+</head>
+<body class="bg-slate-50 h-full text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-black uppercase text-slate-900">Gestão de Funcionários</h1>
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Salários · vales · fechamento</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a href="{% url 'rh_painel' %}" class="min-h-[44px] inline-flex items-center px-3 py-2 rounded-xl text-xs font-black uppercase border-2 border-slate-200 bg-white hover:bg-slate-50">Menu RH</a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 shrink-0" %}
+      </div>
+    </div>
+  </header>
+  <main class="flex-1 min-h-0 overflow-y-auto">
+    <div class="max-w-6xl mx-auto px-4 py-4">
+      {% include "rh/_gestao_nav.html" with nav_gestao="dash" %}
+      <div class="grid gap-3 sm:grid-cols-3">
+        <div class="rounded-2xl border-2 border-emerald-200 bg-white p-4 shadow-sm">
+          <p class="text-[10px] font-black uppercase text-slate-500">Ativos</p>
+          <p class="text-2xl font-black text-emerald-800">{{ n_funcionarios }}</p>
+          <p class="text-xs text-slate-600 mt-1">funcionários no cadastro RH</p>
+        </div>
+        <div class="rounded-2xl border-2 border-amber-200 bg-amber-50 p-4 shadow-sm">
+          <p class="text-[10px] font-black uppercase text-amber-800">Inconsistências</p>
+          <p class="text-2xl font-black text-amber-900">{{ n_inconsistencias }}</p>
+          <a href="{% url 'rh_inconsistencias_lista' %}" class="text-xs font-bold text-amber-800 underline mt-1 inline-block">Ver fila</a>
+          <a href="{% url 'rh_conferencia_tecnica' %}" class="text-xs font-bold text-slate-600 underline mt-1 inline-block">Conferência / resumo da base</a>
+        </div>
+        <div class="rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-sm">
+          <p class="text-[10px] font-black uppercase text-slate-500">Fechamentos abertos</p>
+          <p class="text-2xl font-black text-slate-900">{{ n_fech_abertos }}</p>
+          <a href="{% url 'rh_fechamentos_lista' %}?status=ABERTO" class="text-xs font-bold text-emerald-700 underline mt-1 inline-block">Listar</a>
+        </div>
+      </div>
+      {% if user.is_staff %}
+      <p class="mt-6 text-sm"><a href="{% url 'admin:index' %}" class="font-bold text-orange-800 underline">Django Admin</a> — modelos RH</p>
+      {% endif %}
+    </div>
+  </main>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>

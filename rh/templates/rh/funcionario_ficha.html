@@ -1,0 +1,228 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>{{ funcionario.nome_exibicao }} | RH Agro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    html,body{height:100%;max-height:100%;overflow:hidden;}
+    body{font-family:'Inter',sans-serif;}
+    .agro-details > summary{list-style:none;}
+    .agro-details > summary::-webkit-details-marker{display:none;}
+    .agro-ficha-chev{display:inline-block;transition:transform .15s ease;font-size:.85rem;line-height:1;color:#047857;}
+    .agro-details[open] > summary .agro-ficha-chev{transform:rotate(90deg);}
+    .rh-help-agents > summary{list-style:none;}
+    .rh-help-agents > summary::-webkit-details-marker{display:none;}
+  </style>
+</head>
+<body class="bg-slate-50 h-full text-slate-800 flex flex-col overflow-hidden">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0 z-10">
+    <div class="w-full max-w-[min(100%,92rem)] mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap justify-between gap-3 items-center">
+      <div class="min-w-0">
+        <h1 class="text-lg sm:text-xl font-black uppercase text-slate-900 leading-tight">{{ funcionario.nome_exibicao }}</h1>
+        <p class="text-xs font-bold text-slate-500 mt-0.5">{{ funcionario.empresa.nome_fantasia }}{% if funcionario.loja %} · {{ funcionario.loja.nome }}{% endif %} · {{ funcionario.cargo|default:"Sem cargo" }}</p>
+      </div>
+      <div class="flex flex-wrap gap-2 shrink-0">
+        <a href="{% url 'rh_funcionarios_lista' %}" class="min-h-[44px] px-3 py-2 rounded-xl border-2 border-slate-200 text-xs font-black uppercase bg-white inline-flex items-center">Lista</a>
+        <a href="{% url 'rh_funcionario_editar' funcionario.pk %}" class="min-h-[44px] px-3 py-2 rounded-xl border-2 border-orange-200 text-xs font-black uppercase bg-orange-50 text-orange-900 inline-flex items-center">Editar</a>
+        <a href="{% url 'rh_funcionario_reconciliar_cliente' funcionario.pk %}" class="min-h-[44px] px-3 py-2 rounded-xl border-2 border-slate-300 text-xs font-black uppercase bg-slate-100 text-slate-800 inline-flex items-center">Reconciliar vínculo</a>
+      </div>
+    </div>
+  </header>
+  <main class="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+    <div class="w-full max-w-[min(100%,92rem)] mx-auto px-3 sm:px-5 py-3 space-y-4 pb-10">
+    <details class="agro-details rounded-xl border border-dashed border-slate-300 bg-slate-50 shadow-sm overflow-hidden" aria-label="Conferência de vínculo">
+      <summary class="min-h-[48px] px-3 py-3 cursor-pointer select-none flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 bg-slate-100/80">
+        <span class="text-sm font-black uppercase text-slate-800">Conferência · pessoa base</span>
+        <span class="text-[10px] font-bold uppercase text-slate-500">Toque para abrir</span>
+      </summary>
+      <div class="px-3 py-2.5 text-[11px] leading-snug text-slate-700">
+      <dl class="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-1.5">
+        <div><dt class="text-slate-500">Pessoa base</dt><dd class="font-semibold">{{ funcionario.cliente_agro.nome }} <span class="font-mono text-slate-600">(#{{ funcionario.cliente_agro_id }})</span></dd></div>
+        <div><dt class="text-slate-500">ID externo (ERP)</dt><dd class="font-mono break-all">{{ funcionario.cliente_agro.externo_id|default:"—" }}</dd></div>
+        <div><dt class="text-slate-500">Empresa (perfil RH)</dt><dd>{{ funcionario.empresa.nome_fantasia }}</dd></div>
+        <div><dt class="text-slate-500">Loja (perfil RH)</dt><dd>{{ funcionario.loja.nome|default:"—" }}</dd></div>
+      </dl>
+      <p class="mt-2 flex flex-wrap gap-x-3 gap-y-1"><a href="{% url 'admin:produtos_clienteagro_change' funcionario.cliente_agro_id %}" class="text-emerald-800 font-bold underline text-[10px] uppercase" target="_blank" rel="noopener">Abrir ClienteAgro no admin</a><a href="{% url 'rh_conferencia_tecnica' %}" class="text-slate-600 font-bold underline text-[10px] uppercase">Conferência (vales / inconsistências)</a></p>
+      </div>
+    </details>
+    {% if messages %}{% for m in messages %}<p class="text-sm font-semibold {% if m.tags == 'error' %}text-red-700{% else %}text-emerald-800{% endif %} rounded-lg border px-3 py-2 {% if m.tags == 'error' %}border-red-200 bg-red-50{% else %}border-emerald-200 bg-emerald-50{% endif %}">{{ m }}</p>{% endfor %}{% endif %}
+
+    <div class="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
+      <div class="rounded-2xl border-2 border-emerald-200 bg-white p-4 shadow-sm">
+        <p class="text-[10px] font-black uppercase text-slate-500">Salário base (vigente)</p>
+        <p class="text-2xl sm:text-3xl font-black text-emerald-900 tabular-nums mt-1">R$&nbsp;{{ salario_atual|floatformat:2 }}</p>
+      </div>
+      <div class="rounded-2xl border-2 border-amber-200 bg-amber-50 p-4 shadow-sm">
+        <p class="text-[10px] font-black uppercase text-amber-800">Vales no mês</p>
+        <p class="text-2xl sm:text-3xl font-black text-amber-950 tabular-nums mt-1">R$&nbsp;{{ total_vales_mes|floatformat:2 }}</p>
+      </div>
+      <div class="rounded-2xl border-2 border-slate-300 bg-slate-900 text-white p-4 shadow-sm sm:col-span-2 xl:col-span-1">
+        <p class="text-[10px] font-black uppercase text-slate-300">Líquido previsto (mês)</p>
+        <p class="text-2xl sm:text-3xl font-black tabular-nums mt-1">R$&nbsp;{{ liquido_previsto_mes|floatformat:2 }}</p>
+      </div>
+    </div>
+
+    <div class="rounded-xl border-2 border-emerald-200 bg-emerald-50/80 px-3 py-2.5">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <p class="font-black uppercase text-xs text-emerald-900 tracking-wide">Atalhos</p>
+        {% with rh_help="ficha_onde_cadastrar" %}{% include "rh/includes/rh_help_agents.html" %}{% endwith %}
+      </div>
+      <p class="flex flex-wrap gap-2">
+        <a href="#salario" class="min-h-[44px] inline-flex items-center px-3 rounded-lg bg-emerald-700 text-white text-xs font-black uppercase">Abrir salário</a>
+        <a href="#vales" class="min-h-[44px] inline-flex items-center px-3 rounded-lg bg-orange-600 text-white text-xs font-black uppercase">Abrir vales</a>
+      </p>
+    </div>
+
+    <details class="agro-details rounded-2xl border-2 border-emerald-200 bg-white shadow-sm overflow-hidden" id="salario">
+      <summary class="min-h-[52px] px-4 py-3 cursor-pointer select-none flex flex-wrap items-center justify-between gap-2 bg-emerald-50/90 border-b border-emerald-100 hover:bg-emerald-100/80 rounded-t-2xl">
+        <span class="flex items-center gap-2.5 min-w-0 text-base font-black uppercase text-slate-900">
+          <span class="agro-ficha-chev" aria-hidden="true">▶</span>
+          <span>1 · Salário — valor e datas de vigência</span>
+        </span>
+        <span class="text-[11px] font-black uppercase text-emerald-800 bg-white/90 border border-emerald-200 px-2 py-1 rounded-lg shrink-0">Tocar para expandir</span>
+      </summary>
+      <div class="p-4">
+      {% with rh_help="ficha_salario_linha" %}{% include "rh/includes/rh_help_agents.html" %}{% endwith %}
+      <form method="post" action="{% url 'rh_funcionario_salario_adicionar' funcionario.pk %}" class="space-y-3">
+        {% csrf_token %}
+        {% for field in sal_form %}
+        <div class="space-y-1">
+          <label class="block text-[11px] font-black uppercase text-slate-600 tracking-wide" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% for e in field.errors %}<p class="text-sm text-red-700 font-semibold">{{ e }}</p>{% endfor %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="min-h-[48px] px-5 rounded-xl bg-emerald-600 text-white text-sm font-black uppercase">Registrar</button>
+      </form>
+      <h3 class="text-xs font-black uppercase text-slate-500 mt-4 mb-2">Histórico</h3>
+      <ul class="text-sm space-y-1.5 max-h-48 overflow-y-auto min-w-0 border border-slate-100 rounded-lg p-2 bg-slate-50">
+        {% for h in historico_salario %}
+        <li class="flex flex-wrap justify-between gap-2 border-b border-slate-100 py-1.5 last:border-0"><span>R$ {{ h.salario_base|floatformat:2 }} desde {{ h.data_inicio_vigencia }}{% if h.data_fim_vigencia %} até {{ h.data_fim_vigencia }}{% else %} <span class="text-emerald-700 font-bold">(vigente)</span>{% endif %}</span></li>
+        {% empty %}<li class="text-slate-500">Sem histórico — use o formulário acima.</li>{% endfor %}
+      </ul>
+      </div>
+    </details>
+
+    <details class="agro-details rounded-2xl border-2 border-orange-200 bg-white shadow-sm overflow-hidden" id="vales">
+      <summary class="min-h-[52px] px-4 py-3 cursor-pointer select-none flex flex-wrap items-center justify-between gap-2 bg-orange-50/90 border-b border-orange-100 hover:bg-orange-100/70 rounded-t-2xl">
+        <span class="flex items-center gap-2.5 min-w-0 text-base font-black uppercase text-slate-900">
+          <span class="agro-ficha-chev text-orange-700" aria-hidden="true">▶</span>
+          <span>2 · Vales — lançar e ver extrato</span>
+        </span>
+        <span class="text-[11px] font-black uppercase text-orange-900 bg-white/90 border border-orange-200 px-2 py-1 rounded-lg shrink-0">Tocar para expandir</span>
+      </summary>
+      <div class="p-4">
+      <p class="text-xs font-bold text-slate-800 mb-2">Vale no RH / financeiro — detalhes no <strong>?</strong> abaixo.</p>
+      {% with rh_help="ficha_vales" %}{% include "rh/includes/rh_help_agents.html" %}{% endwith %}
+      <p class="text-xs mb-2"><a href="{% url 'rh_fechamentos_lista' %}" class="text-emerald-800 font-bold underline">Fechamentos</a> · <a href="{% url 'caixa_saida' %}" class="text-emerald-800 font-bold underline">Saída caixa</a></p>
+      {% if not vale_mongo_disponivel %}
+      <p class="text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">Mongo indisponível: desmarque a opção de financeiro ou tente mais tarde.</p>
+      {% elif vale_listas_vazias %}
+      <p class="text-xs font-semibold text-slate-600 mb-3">Formas e bancos ainda vazios no cadastro — use <a href="{% url 'lancamentos_financeiros' %}" class="underline font-bold text-emerald-800">lançamentos</a> ou vale só no RH até existirem opções no Mongo.</p>
+      {% endif %}
+      <form method="post" action="{% url 'rh_funcionario_vale_manual' funcionario.pk %}" class="flex flex-wrap gap-3 items-end">
+        {% csrf_token %}
+        {% if vale_form.non_field_errors %}
+        <div class="w-full basis-full text-red-700 text-sm font-semibold">{% for e in vale_form.non_field_errors %}{{ e }}{% endfor %}</div>
+        {% endif %}
+        {% for field in vale_form %}
+        <div class="{% if field.name == 'registrar_no_financeiro' %}w-full basis-full order-last sm:order-none{% elif field.name == 'observacao' %}w-full basis-full min-w-0{% else %}min-w-[12rem] flex-1{% endif %}">
+          {% if field.name == 'registrar_no_financeiro' %}
+          <label class="flex items-start gap-2.5 cursor-pointer rounded-xl border-2 border-slate-200 bg-slate-50 px-3 py-3 min-h-[48px]">
+            {{ field }}
+            <span class="text-sm font-bold text-slate-800 leading-snug">{{ field.label }}<span class="block text-xs font-semibold text-slate-500 mt-1">{{ field.help_text }}</span></span>
+          </label>
+          {% else %}
+          <label class="block text-[11px] font-black uppercase text-slate-600 mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% endif %}
+          {% for e in field.errors %}<span class="text-red-600 text-sm block mt-1">{{ e }}</span>{% endfor %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="min-h-[48px] px-5 rounded-xl bg-orange-600 text-white text-sm font-black uppercase shrink-0">Lançar vale</button>
+      </form>
+      <h3 class="text-xs font-black uppercase text-slate-500 mt-4 mb-2">Extrato</h3>
+      <div class="overflow-x-auto rounded-lg border border-slate-200 min-w-0">
+        <table class="w-full text-sm min-w-[36rem]">
+          <thead class="bg-slate-100 font-black uppercase text-[10px]"><tr><th class="text-left py-2 px-2">Data</th><th class="text-left py-2 px-2">Origem</th><th class="text-right py-2 px-2">Valor</th><th class="text-left py-2 px-2">Ref.</th><th class="text-left py-2 px-2">Status</th><th class="text-left py-2 px-2">Ações</th></tr></thead>
+          <tbody>
+            {% for v in vales %}
+            <tr class="border-t border-slate-100">
+              <td class="py-2 px-2">{{ v.data }}</td>
+              <td class="py-2 px-2"><span class="rounded px-1.5 py-0.5 {% if v.tipo_origem == 'MANUAL' %}bg-blue-100 text-blue-900{% else %}bg-slate-200 text-slate-800{% endif %} font-bold text-xs">{{ v.get_tipo_origem_display }}</span></td>
+              <td class="py-2 px-2 text-right font-mono tabular-nums">R$&nbsp;{{ v.valor|floatformat:2 }}</td>
+              <td class="py-2 px-2 text-xs font-mono break-all max-w-[12rem]">{{ v.referencia_externa_id|default:"—" }}</td>
+              <td class="py-2 px-2">{% if v.cancelado %}<span class="text-red-700 font-bold">Cancelado</span>{% if v.motivo_cancelamento %}<span class="block text-[11px] font-semibold text-slate-600 mt-1 leading-snug">{{ v.motivo_cancelamento }}</span>{% endif %}{% else %}OK{% endif %}</td>
+              <td class="py-2 px-2 align-top min-w-[12rem]">
+                {% if not v.cancelado %}
+                <form method="post" action="{% url 'rh_funcionario_vale_cancelar' funcionario.pk v.pk %}" class="space-y-1.5 max-w-[16rem]" onsubmit="return confirm('Confirma cancelar este vale?');">
+                  {% csrf_token %}
+                  <label class="block text-[10px] font-black uppercase text-slate-500 tracking-wide" for="motivo-cancel-{{ v.pk }}">Motivo</label>
+                  <input id="motivo-cancel-{{ v.pk }}" type="text" name="motivo" required minlength="3" maxlength="400" autocomplete="off" placeholder="Ex.: teste / lançamento errado" class="w-full min-h-[44px] rounded-lg border-2 border-slate-200 px-2.5 text-sm font-semibold text-slate-900 focus:border-orange-500 outline-none">
+                  <button type="submit" class="w-full min-h-[44px] rounded-lg border-2 border-slate-300 bg-white text-[11px] font-black uppercase text-slate-800 hover:bg-slate-100">Cancelar vale</button>
+                </form>
+                {% else %}<span class="text-slate-400 text-xs">—</span>{% endif %}
+              </td>
+            </tr>
+            {% empty %}<tr><td colspan="6" class="py-4 text-slate-500 text-center">Sem lançamentos.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+      </div>
+    </details>
+
+    <details class="agro-details rounded-2xl border-2 border-slate-200 bg-white shadow-sm overflow-hidden" id="fechamentos">
+      <summary class="min-h-[52px] px-4 py-3 cursor-pointer select-none flex flex-wrap items-center justify-between gap-2 bg-slate-50 border-b border-slate-100 hover:bg-slate-100/80 rounded-t-2xl">
+        <span class="flex items-center gap-2.5 min-w-0 text-base font-black uppercase text-slate-900">
+          <span class="agro-ficha-chev text-slate-600" aria-hidden="true">▶</span>
+          <span>3 · Fechamentos mensais (vencimento no financeiro é aqui)</span>
+        </span>
+        <span class="text-[11px] font-black uppercase text-slate-600 bg-white border border-slate-200 px-2 py-1 rounded-lg shrink-0">Tocar para expandir</span>
+      </summary>
+      <div class="p-4">
+      <ul class="text-sm space-y-1.5">
+        {% for fe in fechamentos %}
+        <li><a href="{% url 'rh_fechamento_detalhe' fe.pk %}" class="font-bold text-emerald-800 underline">{{ fe.competencia|date:"Y-m" }} — R$ {{ fe.valor_liquido_previsto|floatformat:2 }} ({{ fe.get_status_display }})</a></li>
+        {% empty %}
+        <li class="text-slate-700 space-y-3">
+          <p class="font-bold text-slate-800">Nenhum fechamento na lista.</p>
+          {% with rh_help="ficha_fechamentos_vazio" %}{% include "rh/includes/rh_help_agents.html" %}{% endwith %}
+          <form method="post" action="{% url 'rh_funcionario_garantir_fechamento_mes_atual' funcionario.pk %}" class="flex flex-wrap items-center gap-2">
+            {% csrf_token %}
+            <button type="submit" class="min-h-[48px] px-4 rounded-xl bg-emerald-700 text-white text-xs font-black uppercase shadow-sm hover:bg-emerald-800">Abrir folha do mês {{ hoje|date:"m/Y" }}</button>
+          </form>
+          <p class="text-xs font-semibold text-slate-500"><a href="{% url 'rh_fechamentos_lista' %}?funcionario={{ funcionario.pk }}" class="text-emerald-800 font-bold underline">Lista de fechamentos</a> · explicação no <strong>?</strong> e em <strong>AGENTS.md</strong> §9.10.</p>
+        </li>
+        {% endfor %}
+      </ul>
+      </div>
+    </details>
+    </div>
+  </main>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+<script>
+(function () {
+  function abrirPorHash() {
+    var h = (location.hash || '').replace(/^#/, '');
+    var map = { salario: 'salario', vales: 'vales', fechamentos: 'fechamentos' };
+    var id = map[h];
+    if (!id) return;
+    var el = document.getElementById(id);
+    if (el && el.tagName === 'DETAILS') {
+      el.open = true;
+      requestAnimationFrame(function () { el.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
+    }
+  }
+  document.addEventListener('DOMContentLoaded', abrirPorHash);
+  window.addEventListener('hashchange', abrirPorHash);
+})();
+</script>
+</body>
+</html>

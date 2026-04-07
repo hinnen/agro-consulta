@@ -1,0 +1,101 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>RH · Funcionários | Agro Mais</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>html,body{height:100%;max-height:100%;overflow:hidden;}body{font-family:'Inter',sans-serif;}</style>
+</head>
+<body class="bg-slate-50 h-full text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="w-full max-w-[min(100%,92rem)] mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-black uppercase text-slate-900">Funcionários</h1>
+        <p class="text-[10px] font-semibold text-slate-500 mt-0.5">Perfis RH por empresa · <a href="{% url 'rh_conferencia_tecnica' %}" class="text-emerald-800 underline font-bold">Conferência e resumo da base</a></p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a href="{% url 'rh_funcionario_novo' %}" class="min-h-[44px] inline-flex items-center px-3 py-2 rounded-xl text-xs font-black uppercase bg-emerald-600 text-white hover:bg-emerald-700">+ Novo</a>
+        <a href="{% url 'rh_gestao_funcionarios' %}" class="min-h-[44px] inline-flex items-center px-3 py-2 rounded-xl text-xs font-black uppercase border-2 border-slate-200 bg-white">Gestão</a>
+      </div>
+    </div>
+  </header>
+  <main class="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+    <div class="w-full max-w-[min(100%,92rem)] mx-auto px-3 sm:px-5 py-3">
+      {% include "rh/_gestao_nav.html" with nav_gestao="func" %}
+      <form method="get" class="flex flex-wrap gap-2 mb-3 items-end">
+        <label class="text-[10px] font-black uppercase text-slate-500">Empresa
+          <select name="empresa" class="mt-0.5 block rounded-lg border-2 border-slate-200 text-sm font-semibold px-2 py-2">
+            <option value="">—</option>
+            {% for e in empresas %}<option value="{{ e.pk }}" {% if request.GET.empresa == e.pk|stringformat:"i" %}selected{% endif %}>{{ e.nome_fantasia }}</option>{% endfor %}
+          </select>
+        </label>
+        <label class="text-[10px] font-black uppercase text-slate-500">Loja
+          <select name="loja" class="mt-0.5 block rounded-lg border-2 border-slate-200 text-sm font-semibold px-2 py-2" title="Escolha a empresa primeiro para listar só lojas dessa empresa.">
+            <option value="">—</option>
+            {% for l in lojas %}<option value="{{ l.pk }}" {% if request.GET.loja == l.pk|stringformat:"i" %}selected{% endif %}>{{ l.nome }}</option>{% endfor %}
+          </select>
+        </label>
+        {% if not request.GET.empresa %}<p class="w-full text-[10px] font-semibold text-slate-500">Filtro de loja: selecione uma <strong>empresa</strong> acima (cada empresa é listada separadamente).</p>{% endif %}
+        <label class="text-[10px] font-black uppercase text-slate-500">Ativo
+          <select name="ativo" class="mt-0.5 block rounded-lg border-2 border-slate-200 text-sm font-semibold px-2 py-2">
+            <option value="">Todos</option>
+            <option value="1" {% if request.GET.ativo == "1" %}selected{% endif %}>Sim</option>
+            <option value="0" {% if request.GET.ativo == "0" %}selected{% endif %}>Não</option>
+          </select>
+        </label>
+        <label class="text-[10px] font-black uppercase text-slate-500">Nome
+          <input type="search" name="q" value="{{ request.GET.q }}" class="mt-0.5 block rounded-lg border-2 border-slate-200 text-sm px-2 py-2 w-40">
+        </label>
+        <label class="text-[10px] font-black uppercase text-slate-500">Cargo
+          <input type="text" name="cargo" value="{{ request.GET.cargo }}" class="mt-0.5 block rounded-lg border-2 border-slate-200 text-sm px-2 py-2 w-32">
+        </label>
+        <button type="submit" class="min-h-[44px] px-4 rounded-xl bg-slate-800 text-white text-xs font-black uppercase">Filtrar</button>
+      </form>
+      <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-0">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-100 text-[10px] uppercase font-black text-slate-600">
+            <tr>
+              <th class="text-left py-2 px-2">Nome</th>
+              <th class="text-left py-2 px-2">Cargo</th>
+              <th class="text-left py-2 px-2">Loja</th>
+              <th class="text-right py-2 px-2">Salário</th>
+              <th class="text-right py-2 px-2">Vales mês</th>
+              <th class="text-right py-2 px-2">Líquido prev.</th>
+              <th class="text-left py-2 px-2">Status</th>
+              <th class="text-left py-2 px-2">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in funcionarios %}
+            {% with f=row.obj %}
+            <tr class="border-t border-slate-100">
+              <td class="py-2 px-2 font-bold">{{ f.nome_exibicao }}</td>
+              <td class="py-2 px-2">{{ f.cargo|default:"—" }}</td>
+              <td class="py-2 px-2">{{ f.loja.nome|default:"—" }}</td>
+              <td class="py-2 px-2 text-right font-mono tabular-nums whitespace-nowrap">R$&nbsp;{{ row.salario|floatformat:2 }}</td>
+              <td class="py-2 px-2 text-right font-mono tabular-nums text-amber-800 whitespace-nowrap">R$&nbsp;{{ row.vales_mes|floatformat:2 }}</td>
+              <td class="py-2 px-2 text-right font-mono font-black tabular-nums text-emerald-800 whitespace-nowrap">R$&nbsp;{{ row.liquido_previsto|floatformat:2 }}</td>
+              <td class="py-2 px-2">{% if f.ativo %}<span class="rounded-md bg-emerald-100 text-emerald-900 px-1.5 py-0.5 font-bold">Ativo</span>{% else %}<span class="rounded-md bg-slate-200 px-1.5 py-0.5 font-bold">Inativo</span>{% endif %}</td>
+              <td class="py-2 px-2">
+                <a href="{% url 'rh_funcionario_ficha' f.pk %}" class="font-bold text-emerald-800 underline">Ficha</a>
+                · <a href="{% url 'rh_funcionario_editar' f.pk %}" class="font-bold text-slate-700 underline">Editar</a>
+              </td>
+            </tr>
+            {% endwith %}
+            {% empty %}
+            <tr><td colspan="8" class="py-6 text-center text-slate-500 font-semibold">Nenhum funcionário. <a href="{% url 'rh_funcionario_novo' %}" class="text-emerald-700 underline font-bold">Cadastrar</a></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>

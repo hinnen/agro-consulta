@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>RH · Fechamentos | Agro Mais</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>html,body{height:100%;max-height:100%;overflow:hidden;}body{font-family:'Inter',sans-serif;}</style>
+</head>
+<body class="bg-slate-50 h-full text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-white shadow-sm px-3 sm:px-5 py-2.5 w-full max-w-[min(100%,92rem)] mx-auto">
+    <h1 class="text-lg font-black uppercase">Fechamentos</h1>
+  </header>
+  <main class="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+    <div class="w-full max-w-[min(100%,92rem)] mx-auto px-3 sm:px-5 py-3">
+      {% include "rh/_gestao_nav.html" with nav_gestao="fech" %}
+      <form method="get" class="flex flex-wrap gap-2 mb-3 text-xs">
+        <input type="date" name="competencia" value="{{ request.GET.competencia }}" class="rounded-lg border-2 border-slate-200 px-2 py-2 font-semibold" title="Competência (1º dia)">
+        <select name="empresa" class="rounded-lg border-2 border-slate-200 px-2 py-2 font-semibold"><option value="">Empresa</option>{% for e in empresas %}<option value="{{ e.pk }}" {% if request.GET.empresa == e.pk|stringformat:"i" %}selected{% endif %}>{{ e.nome_fantasia }}</option>{% endfor %}</select>
+        <select name="status" class="rounded-lg border-2 border-slate-200 px-2 py-2 font-semibold"><option value="">Status</option><option value="ABERTO" {% if request.GET.status == "ABERTO" %}selected{% endif %}>Aberto</option><option value="FECHADO" {% if request.GET.status == "FECHADO" %}selected{% endif %}>Fechado</option><option value="PAGO" {% if request.GET.status == "PAGO" %}selected{% endif %}>Pago</option></select>
+        <button type="submit" class="px-4 py-2 rounded-xl bg-slate-800 text-white font-black uppercase">Filtrar</button>
+      </form>
+      <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm min-w-0">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-100 font-black uppercase text-[10px]"><tr>
+            <th class="text-left py-2 px-2">Funcionário</th><th class="text-left py-2 px-2">Comp.</th>
+            <th class="text-right py-2 px-2">Salário</th><th class="text-right py-2 px-2">Vales</th>
+            <th class="text-right py-2 px-2">Líquido</th><th class="text-right py-2 px-2">Pago</th><th class="text-left py-2 px-2">Status</th><th class="text-left py-2 px-2"></th>
+          </tr></thead>
+          <tbody>
+            {% for f in fechamentos %}
+            <tr class="border-t border-slate-100">
+              <td class="py-2 px-2 font-bold">{{ f.funcionario.nome_exibicao }}</td>
+              <td class="py-2 px-2">{{ f.competencia|date:"Y-m" }}</td>
+              <td class="py-2 px-2 text-right font-mono tabular-nums whitespace-nowrap">R$&nbsp;{{ f.salario_base_na_competencia|floatformat:2 }}</td>
+              <td class="py-2 px-2 text-right font-mono text-amber-800 tabular-nums whitespace-nowrap">R$&nbsp;{{ f.total_vales|floatformat:2 }}</td>
+              <td class="py-2 px-2 text-right font-mono font-black tabular-nums whitespace-nowrap">R$&nbsp;{{ f.valor_liquido_previsto|floatformat:2 }}</td>
+              <td class="py-2 px-2 text-right font-mono tabular-nums whitespace-nowrap">R$&nbsp;{{ f.valor_pago|floatformat:2 }}</td>
+              <td class="py-2 px-2">{{ f.get_status_display }}</td>
+              <td class="py-2 px-2"><a href="{% url 'rh_fechamento_detalhe' f.pk %}" class="text-emerald-800 font-bold underline">Abrir</a></td>
+            </tr>
+            {% empty %}<tr><td colspan="8" class="py-6 text-center text-slate-500">Nenhum fechamento.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>

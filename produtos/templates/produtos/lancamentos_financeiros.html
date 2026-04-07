@@ -51,8 +51,7 @@
     }
     #btn-cols.gm-cols-open {
       border-color: rgb(217 119 6);
-      box-shadow: 0 10px 28px -6px rgb(5 150 105 / 0.2), 0 0 0 3px rgb(251 191 36 / 0.42);
-      background: linear-gradient(to bottom, rgb(254 252 232 / 0.95), white);
+      background: rgb(255 251 235);
     }
     .gm-gaveta-ajuda { border-width: 1px; }
     .gm-gaveta-ajuda > summary {
@@ -74,6 +73,39 @@
       color: rgb(5 122 85);
       border-color: rgb(167 243 208);
     }
+    .gm-lanc-nav-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0.35rem 0.65rem;
+      border-radius: 0.5rem;
+      border: 1px solid rgb(226 232 240);
+      background: rgb(255 255 255);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      color: rgb(51 65 85);
+      transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    }
+    @media (min-width: 640px) {
+      .gm-lanc-nav-link { font-size: 11px; padding: 0.4rem 0.75rem; }
+    }
+    .gm-lanc-nav-link:hover {
+      border-color: rgb(251 191 36);
+      color: rgb(146 64 14);
+      background: rgb(255 251 235);
+    }
+    .gm-lanc-nav-accent {
+      border-color: rgb(252 211 77);
+      background: rgb(255 251 235);
+      color: rgb(146 64 14);
+    }
+    .gm-lanc-nav-accent:hover {
+      border-color: rgb(245 158 11);
+      background: rgb(254 243 199);
+    }
     .gm-gaveta-ajuda .gm-ajuda-detalhes > summary {
       list-style: none;
     }
@@ -86,47 +118,39 @@
 {% include "produtos/_gm_loading_bar.html" %}
 
   <header class="gm-bar border-b border-slate-200/80 shrink-0">
-    <div class="w-full px-2 sm:px-3 py-2 sm:py-2.5 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
-      <div class="flex items-center gap-3 min-w-0">
-        <div class="h-11 w-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+    <div class="w-full px-2 sm:px-3 py-2 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
           <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
         </div>
         <div class="min-w-0">
-          <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">
-            GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-amber-800">Lançamentos</span>
+          <h1 class="text-base sm:text-lg font-black uppercase tracking-tight text-slate-800 leading-tight">
+            <span class="text-emerald-600">GM Agro Mais</span><span class="text-slate-300 font-bold mx-1.5">·</span><span class="text-amber-800">Lançamentos</span>
           </h1>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Contas a pagar e a receber · Mongo / ERP Venda</p>
+          <p class="text-[10px] font-semibold text-slate-500">Contas a pagar e a receber</p>
         </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2 shrink-0">
-        <a href="{% url 'resumo_financeiro_gerencial' %}" data-prefetch class="text-xs font-black uppercase bg-emerald-700 text-white shadow-sm px-4 py-2.5 rounded-xl border border-emerald-800 hover:bg-emerald-800 transition-colors" title="DRE gerencial Postgres / grupo">
-          Resumo gerencial
-        </a>
-        <a href="{% url 'lancamentos_fluxo_calendario' %}" data-prefetch class="text-xs font-black uppercase bg-emerald-600 text-white shadow-sm px-4 py-2.5 rounded-xl border border-emerald-700 hover:bg-emerald-700 transition-colors">
-          Calendário de fluxo
-        </a>
-        <a href="{% url 'lancamentos_manual' %}" data-prefetch class="text-xs font-black uppercase bg-amber-500 text-white shadow-sm px-4 py-2.5 rounded-xl border border-amber-600 hover:bg-amber-600 transition-colors">
-          Lançamento manual (lote)
-        </a>
+      <nav class="flex flex-wrap items-center gap-1.5 shrink-0 justify-end" aria-label="Atalhos do módulo">
+        <a href="{% url 'resumo_financeiro_gerencial' %}" data-prefetch class="gm-lanc-nav-link" title="DRE gerencial">Resumo gerencial</a>
+        <a href="{% url 'lancamentos_fluxo_calendario' %}" data-prefetch class="gm-lanc-nav-link">Calendário</a>
+        <a href="{% url 'lancamentos_manual' %}" data-prefetch class="gm-lanc-nav-link gm-lanc-nav-accent">Manual (lote)</a>
         {% if lancamentos_dre_ativo %}
-        <a href="{% url 'lancamentos_dre' %}" data-prefetch class="text-xs font-black uppercase bg-slate-700 text-white shadow-sm px-4 py-2.5 rounded-xl border border-slate-800 hover:bg-slate-800 transition-colors" title="DRE simples por plano (tela dedicada)">
-          DRE simples
-        </a>
+        <a href="{% url 'lancamentos_dre' %}" data-prefetch class="gm-lanc-nav-link" title="DRE por plano">DRE</a>
         {% endif %}
-        <button type="button" id="btn-fin-sync-api" class="inline-flex items-center gap-1 rounded-xl border-2 border-amber-400 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black uppercase px-3 py-2.5 shadow-sm shrink-0" title="Planos, opções de baixa e lista — consulta o servidor">Sincronizar API</button>
-        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-800 transition-colors" %}
-      </div>
+        <button type="button" id="btn-fin-sync-api" class="inline-flex items-center gap-1 rounded-lg border border-amber-600 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black uppercase px-3 py-2 min-h-[40px] shrink-0 transition-colors" title="Atualiza planos, opções de baixa e lista no servidor">Sincronizar</button>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[40px] text-[10px] font-black uppercase bg-white px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-900 transition-colors" %}
+      </nav>
     </div>
   </header>
 
-  <main class="w-full max-w-none flex-1 flex flex-col min-h-0 overflow-hidden px-2 sm:px-3 py-2 gap-1.5">
-    <div class="shrink-0 max-h-[min(46vh,480px)] sm:max-h-[min(52vh,540px)] overflow-y-auto overscroll-y-contain space-y-1.5 pr-0.5 [scrollbar-gutter:stable]">
-    <div class="flex flex-wrap items-center gap-2">
-      <details id="gaveta-ajuda" class="gm-gaveta gm-gaveta-ajuda rounded-xl border border-slate-200/90 bg-white shadow-sm overflow-hidden shrink-0">
-        <summary class="px-2 py-1.5 sm:px-2.5 sm:py-2 flex flex-wrap items-center gap-2 cursor-pointer hover:bg-slate-50/80 transition-colors list-none"
+  <main class="w-full max-w-none flex-1 flex flex-col min-h-0 overflow-hidden px-2 sm:px-3 py-1.5 sm:py-2 gap-1.5">
+    <div class="shrink-0 max-h-[min(40vh,400px)] sm:max-h-[min(44vh,440px)] overflow-y-auto overscroll-y-contain space-y-1.5 pr-0.5 [scrollbar-gutter:stable]">
+    <div class="flex flex-wrap items-center gap-1.5">
+      <details id="gaveta-ajuda" class="gm-gaveta gm-gaveta-ajuda rounded-lg border border-slate-200 bg-white overflow-hidden shrink-0">
+        <summary class="px-2 py-1.5 sm:px-2.5 sm:py-1.5 flex flex-wrap items-center gap-2 cursor-pointer hover:bg-slate-50 transition-colors list-none"
           title="Integração com o ERP, baixa total e parcial, formas e contas no Mongo, lista pessoal e modal de baixa. Abra para o texto completo.">
           <span class="gm-gaveta-chev" aria-hidden="true">?</span>
-          <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Ajuda</span>
+          <span class="text-[10px] font-black text-slate-500 uppercase tracking-wide">Ajuda</span>
         </summary>
         <div class="px-3 py-3 sm:px-4 sm:py-4 space-y-3 border-t border-slate-100 text-[12px] sm:text-[13px] font-semibold text-slate-700 leading-relaxed">
           <p>O Agro registra os lançamentos e baixas aqui e, quando a integração estiver habilitada, também tenta sincronizar com o ERP. <strong class="text-slate-900">Baixa total</strong> e <strong class="text-slate-900">baixa parcial</strong> enviam o título atualizado. Na baixa, a lista padrão mostra só formas e contas com ID no Mongo (cadastro ERP); você pode incluir itens na sua lista pessoal ou ver o histórico completo no modal de baixa.</p>
@@ -144,129 +168,23 @@
           </details>
         </div>
       </details>
-      <button type="button" data-tipo="pagar" class="tab-tipo px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl font-black text-sm sm:text-base uppercase border-2 border-amber-500 bg-amber-500 text-white shadow-sm min-h-[44px]">A pagar</button>
-      <button type="button" data-tipo="receber" class="tab-tipo px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl font-black text-sm sm:text-base uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-amber-300 min-h-[44px]">A receber</button>
+      <button type="button" data-tipo="pagar" class="tab-tipo px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-black text-sm uppercase border-2 border-amber-500 bg-amber-500 text-white min-h-[44px]">A pagar</button>
+      <button type="button" data-tipo="receber" class="tab-tipo px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-black text-sm uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-amber-300 min-h-[44px]">A receber</button>
     </div>
 
-    <section class="space-y-1.5" aria-label="Filtros e ferramentas da lista">
-      <details id="gaveta-filtros" class="gm-gaveta rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <summary id="sum-gaveta-filtros" class="min-h-[44px] px-3 py-2 flex flex-wrap items-center gap-2 cursor-pointer bg-slate-50/90 hover:bg-amber-50/40 border-b border-slate-100 transition-colors list-none">
-          <span class="gm-gaveta-chev" aria-hidden="true">▸</span>
-          <div class="min-w-0 flex-1 flex flex-wrap items-baseline gap-x-2 gap-y-0">
-            <span class="text-sm sm:text-base font-black uppercase tracking-wide text-slate-800">Filtros da lista</span>
-            <span id="gaveta-filtros-resumo" class="sr-only" aria-live="polite"></span>
-          </div>
-        </summary>
-        <div class="p-3 sm:p-4 space-y-3">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <label class="block">
-              <span class="text-[11px] font-black uppercase text-slate-500">Situação</span>
-              <select id="f-status" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
-                <option value="abertos" selected>Em aberto</option>
-                <option value="quitados">Quitados</option>
-                <option value="todos">Todos</option>
-              </select>
-            </label>
-            <label class="block">
-              <span class="text-[11px] font-black uppercase text-slate-500">Vencimento de</span>
-              <input type="date" id="f-de" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
-            </label>
-            <label class="block">
-              <span class="text-[11px] font-black uppercase text-slate-500">Vencimento até</span>
-              <input type="date" id="f-ate" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
-            </label>
-            <label class="block">
-              <span class="text-[11px] font-black uppercase text-slate-500">Ordenação</span>
-              <select id="f-ord" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
-                <option value="vencimento_asc" selected>Vencimento ↑</option>
-                <option value="vencimento_desc">Vencimento ↓</option>
-                <option value="fluxo_desc">Data fluxo ↓</option>
-                <option value="cliente_asc">Favorecido A→Z</option>
-                <option value="cliente_desc">Favorecido Z→A</option>
-                <option value="forma_asc">Forma pagamento A→Z</option>
-                <option value="forma_desc">Forma pagamento Z→A</option>
-                <option value="plano_asc">Plano / grupo A→Z</option>
-                <option value="plano_desc">Plano / grupo Z→A</option>
-                <option value="bruto_asc">Bruto ↑ (menor)</option>
-                <option value="bruto_desc">Bruto ↓ (maior)</option>
-                <option value="saldo_asc">Saldo aberto ↑ (menor)</option>
-                <option value="saldo_desc">Saldo aberto ↓ (maior)</option>
-              </select>
-            </label>
-          </div>
-          <div class="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
-            <label class="flex-1 block min-w-[min(100%,16rem)]">
-              <span class="text-[11px] font-black uppercase text-slate-500">Busca</span>
-              <div class="relative mt-1">
-                <input type="search" id="f-q" placeholder="Fornecedor, cliente, descrição, doc., forma…" autocomplete="off"
-                  class="w-full rounded-xl border-2 border-slate-200 pl-4 pr-10 py-3 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:border-amber-500 outline-none"
-                  title="Enter aplica filtro. / foca aqui (fora de campos).">
-                <kbd class="gm-kbd absolute right-2.5 top-1/2 -translate-y-1/2 border border-slate-200 bg-white text-slate-500" title="Barra / foca a busca">/</kbd>
-              </div>
-            </label>
-            <label class="block w-full sm:w-24">
-              <span class="text-[11px] font-black uppercase text-slate-500">Por página</span>
-              <select id="f-ps" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-2 py-3 text-sm font-bold">
-                <option value="25">25</option>
-                <option value="50" selected>50</option>
-                <option value="100">100</option>
-              </select>
-            </label>
-            <button type="button" id="btn-buscar" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 sm:py-3 rounded-xl bg-amber-600 text-white font-black text-sm uppercase tracking-wide hover:bg-amber-700 shadow-md min-h-[44px]" title="Recarregar lista (F5).">
-              <span>Atualizar lista</span>
-              <kbd class="gm-kbd border border-white/30 bg-white/15 text-white">F5</kbd>
-            </button>
-          </div>
-        </div>
-      </details>
-
-      <details id="gaveta-ferramentas" class="gm-gaveta gm-gaveta-emerald rounded-xl border border-emerald-200/90 bg-white shadow-sm overflow-hidden">
-        <summary id="sum-gaveta-ferramentas" class="min-h-[44px] px-3 py-2 flex flex-wrap items-center gap-2 cursor-pointer bg-emerald-50/60 hover:bg-emerald-50 border-b border-emerald-100/90 transition-colors list-none"
-          title="CSV: todas as colunas, totais e subtotais por plano. Excel e PDF: mesmo layout de relatório com bloco para anotações. WhatsApp, favoritos de filtro e exclusão por plano de conta.">
-          <span class="gm-gaveta-chev" aria-hidden="true">▸</span>
-          <span class="text-sm sm:text-base font-black uppercase tracking-wide text-emerald-950">Exportar, favoritos e planos</span>
-        </summary>
-        <div class="p-2 sm:p-3 space-y-2 border-t border-emerald-100/80">
-          <div class="flex flex-wrap items-center gap-2" title="Exportações com os filtros atuais. CSV = dados completos; Excel/PDF = relatório modelo.">
-            <button type="button" id="btn-csv" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black text-sm uppercase tracking-wide hover:bg-slate-100 shadow-sm min-h-[44px]" title="CSV: dados completos + totais e subtotais por plano (F4 ou F8).">
-              <span>CSV</span>
-              <kbd class="gm-kbd border border-slate-200 bg-slate-50 text-slate-600">F4</kbd>
-            </button>
-            <button type="button" id="btn-xlsx-fin" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-emerald-300 bg-white text-emerald-900 font-black text-sm uppercase tracking-wide hover:bg-emerald-100/80 shadow-sm min-h-[44px]" title="Excel .xlsx no layout do relatório financeiro.">
-              <span>Excel</span>
-            </button>
-            <button type="button" id="btn-pdf-fin" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-slate-600 bg-slate-800 text-white font-black text-sm uppercase tracking-wide hover:bg-slate-900 shadow-sm min-h-[44px]" title="PDF no mesmo padrão do relatório.">
-              <span>PDF</span>
-            </button>
-            <button type="button" id="btn-whats" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-sm uppercase tracking-wide hover:bg-emerald-700 min-h-[44px]" title="Resumo para WhatsApp (F9).">
-              <span>WhatsApp</span>
-              <kbd class="gm-kbd border border-white/25 bg-white/10 text-white">F9</kbd>
-            </button>
-          </div>
-          <div class="flex flex-wrap items-end gap-2 pt-1 border-t border-slate-100/90">
-            <label class="block flex-1 min-w-[10rem] max-w-xs">
-              <span class="text-[11px] font-black uppercase text-slate-500">Favoritos</span>
-              <select id="fav-load" class="mt-0.5 w-full rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-bold min-h-[44px]">
-                <option value="">— carregar —</option>
-              </select>
-            </label>
-            <input type="text" id="fav-name" maxlength="40" placeholder="Nome do favorito" class="rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-semibold w-40 max-w-full min-h-[44px]">
-            <button type="button" id="btn-fav-save" class="px-3 py-2 rounded-xl border-2 border-amber-200 text-amber-800 font-black text-[10px] uppercase hover:bg-amber-50 min-h-[44px]">Salvar</button>
-            <button type="button" id="btn-fav-del" class="px-3 py-2 rounded-xl border-2 border-red-100 text-red-700 font-black text-[10px] uppercase hover:bg-red-50 min-h-[44px]">Excluir</button>
-          </div>
-          <div class="pt-1 border-t border-slate-100/90" title="Desmarque um plano para ocultar títulos na lista.">
-            <div class="text-[11px] font-black uppercase text-slate-600 mb-1">Planos na lista</div>
-            <div class="flex flex-wrap gap-2 mb-1">
-              <button type="button" id="plano-todas" class="px-2 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Marcar todos</button>
-              <button type="button" id="plano-nenhuma" class="px-2 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Desmarcar todos</button>
-            </div>
-            <div id="plano-chks" class="flex flex-wrap gap-2 min-h-[1.5rem] items-start content-start max-h-32 overflow-y-auto p-1 rounded-lg border border-slate-100 bg-slate-50/50"></div>
-          </div>
-        </div>
-      </details>
+    <section class="flex flex-wrap gap-1.5" aria-label="Filtros e ferramentas da lista">
+      <button type="button" id="btn-open-modal-filtros" class="flex-1 min-w-[min(100%,14rem)] min-h-[48px] px-3 py-2 rounded-xl border border-amber-300/90 bg-amber-50/80 hover:bg-amber-50 text-left transition-colors">
+        <span class="block text-sm font-black uppercase tracking-wide text-slate-800">Filtros da lista</span>
+        <span id="filtros-btn-sub" class="block text-[10px] font-semibold text-slate-600 truncate mt-0.5 leading-tight">—</span>
+      </button>
+      <button type="button" id="btn-open-modal-ferramentas" class="flex-1 min-w-[min(100%,14rem)] min-h-[48px] px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50/70 hover:bg-emerald-50 text-left transition-colors"
+        title="CSV, Excel, PDF, WhatsApp, favoritos e planos na lista.">
+        <span class="block text-sm font-black uppercase tracking-wide text-emerald-950">Exportar e planos</span>
+        <span class="block text-[10px] font-semibold text-emerald-800/85 mt-0.5 leading-tight">Relatórios · WhatsApp · favoritos</span>
+      </button>
     </section>
 
-    <div id="sel-bar" class="hidden rounded-xl border-2 border-emerald-300 bg-emerald-50/90 px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
+    <div id="sel-bar" class="hidden rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
       <div class="text-sm font-black text-emerald-950">
         <span id="sel-count">0</span> selecionado(s) · Soma saldo: <span id="sel-soma" class="tabular-nums text-lg">R$ 0,00</span>
       </div>
@@ -286,44 +204,47 @@
     </div>
 
     <div class="flex flex-col flex-1 min-h-0 gap-1.5">
-    <section id="totais-box" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-2">
-      <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <div class="text-[11px] font-black uppercase text-slate-500">Títulos (filtro)</div>
-        <div id="t-qtd" class="text-xl sm:text-2xl font-black text-slate-800 tabular-nums">0</div>
+    <section id="totais-box" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2">
+      <div class="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3">
+        <div class="text-[10px] sm:text-[11px] font-black uppercase text-slate-500">Títulos (filtro)</div>
+        <div id="t-qtd" class="text-lg sm:text-2xl font-black text-slate-800 tabular-nums leading-tight">0</div>
       </div>
-      <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <div id="lbl-bruto" class="text-[11px] font-black uppercase text-slate-500">Valor bruto</div>
-        <div id="t-bruto" class="text-lg sm:text-xl font-black text-slate-800 tabular-nums">R$ 0,00</div>
+      <div class="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3">
+        <div id="lbl-bruto" class="text-[10px] sm:text-[11px] font-black uppercase text-slate-500">Valor bruto</div>
+        <div id="t-bruto" class="text-base sm:text-xl font-black text-slate-800 tabular-nums leading-tight">R$ 0,00</div>
       </div>
-      <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <div id="lbl-mov" class="text-[11px] font-black uppercase text-slate-500">Movimentado</div>
-        <div id="t-mov" class="text-lg sm:text-xl font-black text-emerald-700 tabular-nums">R$ 0,00</div>
+      <div class="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3">
+        <div id="lbl-mov" class="text-[10px] sm:text-[11px] font-black uppercase text-slate-500">Movimentado</div>
+        <div id="t-mov" class="text-base sm:text-xl font-black text-emerald-700 tabular-nums leading-tight">R$ 0,00</div>
       </div>
-      <div class="rounded-xl border border-amber-200 bg-amber-50/80 p-3 shadow-sm">
-        <div id="lbl-saldo" class="text-[11px] font-black uppercase text-amber-900">Saldo em aberto</div>
-        <div id="t-saldo" class="text-lg sm:text-xl font-black text-amber-900 tabular-nums">R$ 0,00</div>
+      <div class="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3">
+        <div id="lbl-saldo" class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600">Saldo em aberto</div>
+        <div id="t-saldo" class="text-base sm:text-xl font-black text-amber-800 tabular-nums leading-tight">R$ 0,00</div>
       </div>
     </section>
 
-    <div class="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm font-bold text-slate-500 px-0.5">
-      <span id="pag-info"></span>
-      <div class="flex flex-wrap items-center gap-2">
+    <div class="flex flex-wrap items-end justify-between gap-2 text-xs sm:text-sm font-bold text-slate-600 px-0.5">
+      <div id="pag-info-wrap" class="flex flex-col sm:flex-row sm:flex-wrap sm:items-baseline gap-0.5 sm:gap-x-2 min-w-0">
+        <span id="pag-info"></span>
+        <span id="pag-info-meta" class="hidden text-[10px] sm:text-xs font-semibold text-slate-400"></span>
+      </div>
+      <div class="flex flex-wrap items-center gap-1.5">
         <div class="relative">
-          <button type="button" id="btn-cols" class="inline-flex items-center gap-2 min-h-[42px] pl-3 pr-3 py-2 rounded-xl border-2 border-emerald-600 bg-gradient-to-b from-emerald-100/90 via-white to-white text-emerald-950 font-black uppercase text-[10px] shadow-md shadow-emerald-900/15 ring-2 ring-emerald-500/30 hover:ring-amber-400/45 hover:border-amber-500 hover:from-amber-50/90 transition-all outline-none focus-visible:ring-4 focus-visible:ring-amber-400/50" aria-expanded="false" aria-haspopup="true" aria-controls="col-dropdown" title="Mostrar ou ocultar colunas da tabela">
-            <svg class="w-4 h-4 text-emerald-800 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <button type="button" id="btn-cols" class="inline-flex items-center gap-1.5 min-h-[40px] pl-2.5 pr-2.5 py-1.5 rounded-lg border border-emerald-600 bg-white text-emerald-900 font-black uppercase text-[10px] hover:bg-emerald-50 hover:border-amber-500 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1" aria-expanded="false" aria-haspopup="true" aria-controls="col-dropdown" title="Colunas visíveis na tabela">
+            <svg class="w-3.5 h-3.5 text-emerald-700 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
               <path d="M4 5h4v14H4zM10 5h4v14h-4zM16 5h4v14h-4"/>
             </svg>
             <span>Colunas</span>
-            <span class="text-amber-700 text-[10px] leading-none font-black tabular-nums" aria-hidden="true">▾</span>
+            <span class="text-slate-400 text-[9px] leading-none" aria-hidden="true">▾</span>
           </button>
-          <div id="col-dropdown" role="menu" class="hidden absolute right-0 mt-1.5 z-30 w-56 max-h-64 overflow-y-auto rounded-xl border-2 border-emerald-200/80 bg-white shadow-xl shadow-emerald-900/10 p-2 space-y-1.5 text-[11px] ring-1 ring-slate-200/60"></div>
+          <div id="col-dropdown" role="menu" class="hidden absolute right-0 mt-1 z-30 w-56 max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg p-2 space-y-1 text-[11px]"></div>
         </div>
-        <button type="button" id="btn-prev" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 font-black uppercase">Anterior</button>
-        <button type="button" id="btn-next" class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 font-black uppercase">Próxima</button>
+        <button type="button" id="btn-prev" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 font-black uppercase text-[10px] min-h-[40px]">Anterior</button>
+        <button type="button" id="btn-next" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 font-black uppercase text-[10px] min-h-[40px]">Próxima</button>
       </div>
     </div>
 
-    <div class="rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
+    <div class="rounded-xl border border-slate-200 bg-white flex flex-col flex-1 min-h-0 overflow-hidden shadow-sm">
       <div class="flex-1 min-h-0 overflow-auto">
       <div class="overflow-x-auto">
         <table class="min-w-full text-left text-sm hidden lg:table">
@@ -398,6 +319,150 @@
   </main>
 
   <div id="wa-toast" class="fixed bottom-4 left-1/2 z-[60] -translate-x-1/2 max-w-[min(92vw,24rem)] rounded-xl border border-emerald-200 bg-emerald-950 text-white px-4 py-3 text-xs font-bold shadow-lg hidden text-center leading-snug" role="status" aria-live="polite"></div>
+
+  <!-- Modal: filtros da lista -->
+  <div id="modal-filtros-lista" class="hidden fixed inset-0 z-[48] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-filtros-lista-titulo">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-[min(56rem,96vw)] max-h-[min(92dvh,880px)] overflow-hidden flex flex-col border border-slate-200">
+      <div class="flex items-start justify-between gap-2 px-4 py-3 border-b border-slate-100 bg-slate-50/90 shrink-0">
+        <div class="min-w-0 pr-2">
+          <h2 id="modal-filtros-lista-titulo" class="text-base sm:text-lg font-black text-slate-900 uppercase tracking-tight">Filtros da lista</h2>
+          <span id="gaveta-filtros-resumo" class="sr-only" aria-live="polite"></span>
+          <p id="modal-filtros-resumo-vis" class="text-[11px] font-semibold text-slate-600 mt-1 leading-snug"></p>
+        </div>
+        <button type="button" id="btn-fechar-modal-filtros" class="shrink-0 min-h-[44px] min-w-[44px] rounded-xl border-2 border-slate-200 font-black text-lg leading-none text-slate-700 hover:bg-slate-100" aria-label="Fechar">×</button>
+      </div>
+      <div class="p-3 sm:p-4 overflow-y-auto flex-1 min-h-0 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <label class="block">
+            <span class="text-[11px] font-black uppercase text-slate-500">Situação</span>
+            <select id="f-status" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
+              <option value="abertos" selected>Em aberto</option>
+              <option value="quitados">Quitados</option>
+              <option value="todos">Todos</option>
+            </select>
+          </label>
+          <label class="block">
+            <span class="text-[11px] font-black uppercase text-slate-500">Vencimento de</span>
+            <input type="date" id="f-de" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
+          </label>
+          <label class="block">
+            <span class="text-[11px] font-black uppercase text-slate-500">Vencimento até</span>
+            <input type="date" id="f-ate" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
+          </label>
+          <label class="block">
+            <span class="text-[11px] font-black uppercase text-slate-500">Ordenação</span>
+            <select id="f-ord" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
+              <option value="vencimento_asc" selected>Vencimento ↑</option>
+              <option value="vencimento_desc">Vencimento ↓</option>
+              <option value="fluxo_desc">Data fluxo ↓</option>
+              <option value="cliente_asc">Favorecido A→Z</option>
+              <option value="cliente_desc">Favorecido Z→A</option>
+              <option value="forma_asc">Forma pagamento A→Z</option>
+              <option value="forma_desc">Forma pagamento Z→A</option>
+              <option value="plano_asc">Plano / grupo A→Z</option>
+              <option value="plano_desc">Plano / grupo Z→A</option>
+              <option value="bruto_asc">Bruto ↑ (menor)</option>
+              <option value="bruto_desc">Bruto ↓ (maior)</option>
+              <option value="saldo_asc">Saldo aberto ↑ (menor)</option>
+              <option value="saldo_desc">Saldo aberto ↓ (maior)</option>
+            </select>
+          </label>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <label class="block">
+            <span class="text-[11px] font-black uppercase text-slate-500">Competência de</span>
+            <input type="date" id="f-comp-de" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none" title="Data de competência (DataCompetencia). Opcional.">
+          </label>
+          <label class="block">
+            <span class="text-[11px] font-black uppercase text-slate-500">Competência até</span>
+            <input type="date" id="f-comp-ate" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
+          </label>
+          <label class="block">
+            <span class="text-[11px] font-black uppercase text-slate-500">Pagamento de</span>
+            <input type="date" id="f-pag-de" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none" title="Data de quitação (DataPagamento). Use com Quitados ou Todos.">
+          </label>
+          <label class="block">
+            <span class="text-[11px] font-black uppercase text-slate-500">Pagamento até</span>
+            <input type="date" id="f-pag-ate" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
+          </label>
+        </div>
+        <p class="text-[10px] text-slate-500 leading-snug">Competência usa a data de competência do título; pagamento usa a data de quitação. Com <strong class="text-slate-600">Em aberto</strong> e intervalo de pagamento preenchido, a lista costuma ficar vazia.</p>
+        <div class="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
+          <label class="flex-1 block min-w-[min(100%,16rem)]">
+            <span class="text-[11px] font-black uppercase text-slate-500">Busca</span>
+            <div class="relative mt-1">
+              <input type="search" id="f-q" placeholder="Fornecedor, cliente, descrição, doc., forma…" autocomplete="off"
+                class="w-full rounded-xl border-2 border-slate-200 pl-4 pr-10 py-3 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:border-amber-500 outline-none"
+                title="Enter aplica filtro. / foca aqui (fora de campos).">
+              <kbd class="gm-kbd absolute right-2.5 top-1/2 -translate-y-1/2 border border-slate-200 bg-white text-slate-500" title="Barra / foca a busca">/</kbd>
+            </div>
+          </label>
+          <label class="block w-full sm:w-24">
+            <span class="text-[11px] font-black uppercase text-slate-500">Por página</span>
+            <select id="f-ps" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-2 py-3 text-sm font-bold">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+            </select>
+          </label>
+          <button type="button" id="btn-buscar" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 sm:py-3 rounded-xl bg-amber-600 text-white font-black text-sm uppercase tracking-wide hover:bg-amber-700 shadow-md min-h-[44px]" title="Recarregar lista (F5).">
+            <span>Atualizar lista</span>
+            <kbd class="gm-kbd border border-white/30 bg-white/15 text-white">F5</kbd>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: exportar, favoritos e planos -->
+  <div id="modal-ferramentas-lista" class="hidden fixed inset-0 z-[48] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-ferramentas-lista-titulo">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-[min(52rem,96vw)] max-h-[min(92dvh,880px)] overflow-hidden flex flex-col border border-emerald-200/90">
+      <div class="flex items-start justify-between gap-2 px-4 py-3 border-b border-emerald-100/90 bg-emerald-50/70 shrink-0">
+        <div class="min-w-0 pr-2">
+          <h2 id="modal-ferramentas-lista-titulo" class="text-base sm:text-lg font-black text-emerald-950 uppercase tracking-tight">Exportar e planos</h2>
+          <p class="text-[10px] font-semibold text-emerald-800/80 mt-0.5">Mesmos filtros da lista · favoritos e exclusão de planos</p>
+        </div>
+        <button type="button" id="btn-fechar-modal-ferramentas" class="shrink-0 min-h-[44px] min-w-[44px] rounded-xl border-2 border-emerald-200 font-black text-lg leading-none text-emerald-900 hover:bg-emerald-100/80" aria-label="Fechar">×</button>
+      </div>
+      <div class="p-3 sm:p-4 overflow-y-auto flex-1 min-h-0 space-y-3">
+        <div class="flex flex-wrap items-center gap-2" title="CSV completo; Excel e PDF no modelo do relatório financeiro.">
+          <button type="button" id="btn-csv" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black text-sm uppercase tracking-wide hover:bg-slate-100 shadow-sm min-h-[44px]" title="CSV: dados completos + totais e subtotais por plano (F4 ou F8).">
+            <span>CSV</span>
+            <kbd class="gm-kbd border border-slate-200 bg-slate-50 text-slate-600">F4</kbd>
+          </button>
+          <button type="button" id="btn-xlsx-fin" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-emerald-300 bg-white text-emerald-900 font-black text-sm uppercase tracking-wide hover:bg-emerald-100/80 shadow-sm min-h-[44px]" title="Excel .xlsx no layout do relatório financeiro.">
+            <span>Excel</span>
+          </button>
+          <button type="button" id="btn-pdf-fin" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-slate-600 bg-slate-800 text-white font-black text-sm uppercase tracking-wide hover:bg-slate-900 shadow-sm min-h-[44px]" title="PDF no mesmo padrão do relatório.">
+            <span>PDF</span>
+          </button>
+          <button type="button" id="btn-whats" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-sm uppercase tracking-wide hover:bg-emerald-700 min-h-[44px]" title="Resumo para WhatsApp (F9).">
+            <span>WhatsApp</span>
+            <kbd class="gm-kbd border border-white/25 bg-white/10 text-white">F9</kbd>
+          </button>
+        </div>
+        <div class="flex flex-wrap items-end gap-2 pt-1 border-t border-slate-100/90">
+          <label class="block flex-1 min-w-[10rem] max-w-xs">
+            <span class="text-[11px] font-black uppercase text-slate-500">Favoritos</span>
+            <select id="fav-load" class="mt-0.5 w-full rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-bold min-h-[44px]">
+              <option value="">— carregar —</option>
+            </select>
+          </label>
+          <input type="text" id="fav-name" maxlength="40" placeholder="Nome do favorito" class="rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-semibold w-40 max-w-full min-h-[44px]">
+          <button type="button" id="btn-fav-save" class="px-3 py-2 rounded-xl border-2 border-amber-200 text-amber-800 font-black text-[10px] uppercase hover:bg-amber-50 min-h-[44px]">Salvar</button>
+          <button type="button" id="btn-fav-del" class="px-3 py-2 rounded-xl border-2 border-red-100 text-red-700 font-black text-[10px] uppercase hover:bg-red-50 min-h-[44px]">Excluir</button>
+        </div>
+        <div class="pt-1 border-t border-slate-100/90" title="Desmarque um plano para ocultar títulos na lista.">
+          <div class="text-[11px] font-black uppercase text-slate-600 mb-1">Planos na lista</div>
+          <div class="flex flex-wrap gap-2 mb-1">
+            <button type="button" id="plano-todas" class="px-2 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Marcar todos</button>
+            <button type="button" id="plano-nenhuma" class="px-2 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Desmarcar todos</button>
+          </div>
+          <div id="plano-chks" class="flex flex-wrap gap-2 min-h-[1.5rem] items-start content-start max-h-32 overflow-y-auto p-1 rounded-lg border border-slate-100 bg-slate-50/50"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal baixa -->
   <div id="modal-baixa" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-baixa-titulo">
@@ -702,30 +767,40 @@
     }
 
     function refreshGavetaFiltrosResumo() {
-      const el = document.getElementById('gaveta-filtros-resumo');
-      const sum = document.getElementById('sum-gaveta-filtros');
-      if (!el || !sum) return;
       const st = document.getElementById('f-status');
-      const stText = st && st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : '';
+      if (!st) return;
+      const el = document.getElementById('gaveta-filtros-resumo');
+      const btnOpen = document.getElementById('btn-open-modal-filtros');
+      const btnSub = document.getElementById('filtros-btn-sub');
+      const modalVis = document.getElementById('modal-filtros-resumo-vis');
+      const stText = st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : '';
       const de = document.getElementById('f-de').value;
       const ate = document.getElementById('f-ate').value;
+      const cde = document.getElementById('f-comp-de').value;
+      const cate = document.getElementById('f-comp-ate').value;
+      const pde = document.getElementById('f-pag-de').value;
+      const pate = document.getElementById('f-pag-ate').value;
       const ord = document.getElementById('f-ord');
       const ordText = ord && ord.options[ord.selectedIndex] ? ord.options[ord.selectedIndex].text : '';
       const q = (document.getElementById('f-q').value || '').trim();
       const ps = document.getElementById('f-ps').value;
-      const parts = [
-        stText,
-        `${fmtInputDateBR(de)} → ${fmtInputDateBR(ate)}`,
-        ordText,
-        `${ps} por página`,
-      ];
+      const parts = [stText, `venc. ${fmtInputDateBR(de)} → ${fmtInputDateBR(ate)}`];
+      if (cde || cate) {
+        parts.push(`comp. ${fmtInputDateBR(cde)} → ${fmtInputDateBR(cate)}`);
+      }
+      if (pde || pate) {
+        parts.push(`pag. ${fmtInputDateBR(pde)} → ${fmtInputDateBR(pate)}`);
+      }
+      parts.push(ordText, `${ps} por página`);
       if (q) {
         const short = q.length > 48 ? `${q.slice(0, 46)}…` : q;
         parts.push(`busca: ${short}`);
       }
       const line = parts.join(' · ');
-      el.textContent = line;
-      sum.title = `Resumo dos filtros (passe o mouse aqui): ${line}`;
+      if (el) el.textContent = line;
+      if (btnSub) btnSub.textContent = line;
+      if (btnOpen) btnOpen.title = `Resumo dos filtros (passe o mouse): ${line}`;
+      if (modalVis) modalVis.textContent = line;
     }
 
     function setColsMenuOpen(open) {
@@ -845,9 +920,17 @@
       p.set('ordenacao', document.getElementById('f-ord').value);
       const de = document.getElementById('f-de').value;
       const ate = document.getElementById('f-ate').value;
+      const cde = document.getElementById('f-comp-de').value;
+      const cate = document.getElementById('f-comp-ate').value;
+      const pde = document.getElementById('f-pag-de').value;
+      const pate = document.getElementById('f-pag-ate').value;
       const q = document.getElementById('f-q').value.trim();
       if (de) p.set('venc_de', de);
       if (ate) p.set('venc_ate', ate);
+      if (cde) p.set('comp_de', cde);
+      if (cate) p.set('comp_ate', cate);
+      if (pde) p.set('pag_de', pde);
+      if (pate) p.set('pag_ate', pate);
       if (q) p.set('q', q);
       return p;
     }
@@ -989,7 +1072,7 @@
       if (btn) btn.disabled = true;
       if (window.gmLoadingBar) window.gmLoadingBar.show();
       try {
-        const r = await fetch(fullUrl, { credentials: 'same-origin' });
+        const r = await fetch(fullUrl, { credentials: 'same-origin', cache: 'no-store' });
         const fn =
           parseFilenameContentDisposition(r.headers.get('Content-Disposition'))
           || fallbackNome;
@@ -1307,7 +1390,7 @@
       cont.innerHTML = '<span class="text-xs text-slate-400 px-1">Carregando planos…</span>';
       try {
         const p = montarParamsBaseLista();
-        const r = await fetch(`${API_PLANOS}?${p}`, { credentials: 'same-origin' });
+        const r = await fetch(`${API_PLANOS}?${p}`, { credentials: 'same-origin', cache: 'no-store' });
         const data = await r.json();
         cont.innerHTML = '';
         const excl = getExcludedSet();
@@ -1451,8 +1534,24 @@
       }
 
       const pi = Math.max(1, Math.ceil(lastTotal / lastPageSize) || 1);
-      document.getElementById('pag-info').textContent =
-        `Página ${data.page || 1} de ${pi} · ${lastTotal} título(s) no filtro`;
+      const fz = data.filtros;
+      const piMain = document.getElementById('pag-info');
+      const piMeta = document.getElementById('pag-info-meta');
+      if (piMain) {
+        piMain.textContent = `Página ${data.page || 1} de ${pi} · ${lastTotal} título(s) no filtro`;
+      }
+      if (piMeta) {
+        if (fz && (fz.pag_de || fz.pag_ate)) {
+          piMeta.textContent = `API: pagamento ${fz.pag_de || '—'} → ${fz.pag_ate || '—'}`;
+          piMeta.classList.remove('hidden');
+        } else if (fz && (fz.venc_de || fz.venc_ate || fz.comp_de || fz.comp_ate)) {
+          piMeta.textContent = 'API: vencimento ou competência aplicados';
+          piMeta.classList.remove('hidden');
+        } else {
+          piMeta.textContent = '';
+          piMeta.classList.add('hidden');
+        }
+      }
       document.getElementById('btn-prev').disabled = (data.page || 1) <= 1;
       document.getElementById('btn-next').disabled = (data.page || 1) >= pi;
       document.getElementById('chk-all').checked = false;
@@ -1466,7 +1565,8 @@
         const raw = sessionStorage.getItem(LS_FIN_LISTA);
         if (!raw) return false;
         const o = JSON.parse(raw);
-        if (o.params !== montarParams()) return false;
+        const cur = montarParams().toString();
+        if (String(o.params_qs || '') !== cur) return false;
         pintarListaLancamentosDaResposta(o.data);
         return true;
       } catch (_) {
@@ -1500,7 +1600,7 @@
       refreshBtnsBaixa();
 
       try {
-        const r = await fetch(`${API_LISTA}?${montarParams()}`, { credentials: 'same-origin' });
+        const r = await fetch(`${API_LISTA}?${montarParams()}`, { credentials: 'same-origin', cache: 'no-store' });
         const data = await r.json();
         if (!r.ok) {
           tb.innerHTML = '';
@@ -1512,7 +1612,7 @@
           return;
         }
         try {
-          sessionStorage.setItem(LS_FIN_LISTA, JSON.stringify({ params: montarParams(), data }));
+          sessionStorage.setItem(LS_FIN_LISTA, JSON.stringify({ params_qs: montarParams().toString(), data }));
         } catch (_) {}
         pintarListaLancamentosDaResposta(data);
       } catch (e) {
@@ -1597,7 +1697,7 @@
       carregarPlanos().then(() => carregar());
     });
 
-    ['f-status', 'f-de', 'f-ate', 'f-ps'].forEach((id) => {
+    ['f-status', 'f-de', 'f-ate', 'f-comp-de', 'f-comp-ate', 'f-pag-de', 'f-pag-ate', 'f-ps'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('change', () => refreshGavetaFiltrosResumo());
     });
@@ -1678,6 +1778,10 @@
         status: document.getElementById('f-status').value,
         venc_de: document.getElementById('f-de').value,
         venc_ate: document.getElementById('f-ate').value,
+        comp_de: document.getElementById('f-comp-de').value,
+        comp_ate: document.getElementById('f-comp-ate').value,
+        pag_de: document.getElementById('f-pag-de').value,
+        pag_ate: document.getElementById('f-pag-ate').value,
         q: document.getElementById('f-q').value,
         ordenacao: document.getElementById('f-ord').value,
         page_size: document.getElementById('f-ps').value,
@@ -1701,6 +1805,10 @@
       document.getElementById('f-status').value = f.status || 'abertos';
       document.getElementById('f-de').value = f.venc_de || '';
       document.getElementById('f-ate').value = f.venc_ate || '';
+      document.getElementById('f-comp-de').value = f.comp_de || '';
+      document.getElementById('f-comp-ate').value = f.comp_ate || '';
+      document.getElementById('f-pag-de').value = f.pag_de || '';
+      document.getElementById('f-pag-ate').value = f.pag_ate || '';
       document.getElementById('f-q').value = f.q || '';
       document.getElementById('f-ord').value = f.ordenacao || 'vencimento_asc';
       document.getElementById('f-ps').value = f.page_size || '50';
@@ -2049,6 +2157,31 @@
         document.getElementById('modal-edit-lanc').classList.add('hidden');
       }
     });
+
+    document.getElementById('btn-open-modal-filtros')?.addEventListener('click', () => {
+      document.getElementById('modal-filtros-lista').classList.remove('hidden');
+      refreshGavetaFiltrosResumo();
+    });
+    document.getElementById('btn-fechar-modal-filtros')?.addEventListener('click', () => {
+      document.getElementById('modal-filtros-lista').classList.add('hidden');
+    });
+    document.getElementById('modal-filtros-lista')?.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'modal-filtros-lista') {
+        document.getElementById('modal-filtros-lista').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('btn-open-modal-ferramentas')?.addEventListener('click', () => {
+      document.getElementById('modal-ferramentas-lista').classList.remove('hidden');
+    });
+    document.getElementById('btn-fechar-modal-ferramentas')?.addEventListener('click', () => {
+      document.getElementById('modal-ferramentas-lista').classList.add('hidden');
+    });
+    document.getElementById('modal-ferramentas-lista')?.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'modal-ferramentas-lista') {
+        document.getElementById('modal-ferramentas-lista').classList.add('hidden');
+      }
+    });
     document.getElementById('edl-salvar')?.addEventListener('click', async () => {
       const id = (document.getElementById('edl-id').value || '').trim();
       if (!id) return;
@@ -2112,7 +2245,9 @@
       const modalParcial = !document.getElementById('modal-baixa-parcial')?.classList.contains('hidden');
       const modalOpx = !document.getElementById('modal-opcoes-extras')?.classList.contains('hidden');
       const modalEdit = !document.getElementById('modal-edit-lanc')?.classList.contains('hidden');
-      if (modalAberto || modalParcial || modalOpx || modalEdit) return;
+      const modalFiltrosLista = !document.getElementById('modal-filtros-lista')?.classList.contains('hidden');
+      const modalFerramentasLista = !document.getElementById('modal-ferramentas-lista')?.classList.contains('hidden');
+      if (modalAberto || modalParcial || modalOpx || modalEdit || modalFiltrosLista || modalFerramentasLista) return;
       if (e.key === 'F5') {
         e.preventDefault();
         document.getElementById('btn-buscar')?.click();
@@ -2193,7 +2328,12 @@
           empty.textContent = 'Nenhum dado em cache para estes filtros. Clique em “Sincronizar API”.';
           empty.classList.remove('hidden');
           const pi = document.getElementById('pag-info');
+          const pm = document.getElementById('pag-info-meta');
           if (pi) pi.textContent = '';
+          if (pm) {
+            pm.textContent = '';
+            pm.classList.add('hidden');
+          }
         } else {
           const st = document.getElementById('f-status').value;
           document.getElementById('th-chk').style.visibility = st === 'abertos' ? 'visible' : 'hidden';

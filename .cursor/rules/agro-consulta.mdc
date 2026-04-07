@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Fonte completa
 
-Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**. Para tarefas grandes ou pouco claras, o usuário pode anexar `@AGENTS.md`; não é obrigatório pedir leitura em todo chat se esta regra já estiver ativa.
+Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**. Ajuda longa do **RH** (fechamento / ficha): **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_help_agents.html` (blocos «?» nas telas). Para tarefas grandes ou pouco claras, o usuário pode anexar `@AGENTS.md`; não é obrigatório pedir leitura em todo chat se esta regra já estiver ativa.
 
 ## UX (resumo)
 

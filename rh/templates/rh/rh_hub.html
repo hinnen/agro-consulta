@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>RH | Agro Mais</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    html, body { height: 100%; max-height: 100%; overflow: hidden; }
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 h-full text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-black uppercase text-slate-900">RH</h1>
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Recursos humanos — escolha abaixo</p>
+      </div>
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 shadow-sm shrink-0" %}
+    </div>
+  </header>
+
+  <main class="flex-1 min-h-0 overflow-y-auto">
+    <div class="max-w-5xl mx-auto px-4 py-6 md:py-10">
+      <div class="grid gap-4 {% if rh_acesso_restrito %}md:grid-cols-2{% else %}max-w-md mx-auto{% endif %}">
+        <a href="{% url 'rh_operadores_pins' %}"
+           class="group flex flex-col justify-center gap-2 min-h-[120px] rounded-2xl border-2 border-emerald-300 bg-white p-5 shadow-sm hover:bg-emerald-50 hover:border-emerald-400 transition-colors">
+          <span class="text-base md:text-lg font-black uppercase text-emerald-900 leading-tight">RH · Operadores e PIN</span>
+          <span class="text-xs md:text-sm font-semibold text-slate-600">Acesso livre — definir PIN por operador neste aparelho.</span>
+          <span class="text-[10px] font-black uppercase text-emerald-600 mt-1">Abrir →</span>
+        </a>
+        {% if rh_acesso_restrito %}
+        <a href="{% url 'rh_gestao_funcionarios' %}"
+           class="group flex flex-col justify-center gap-2 min-h-[120px] rounded-2xl border-2 border-orange-300 bg-orange-50 p-5 shadow-sm hover:bg-orange-100 hover:border-orange-400 transition-colors">
+          <span class="text-base md:text-lg font-black uppercase text-orange-950 leading-tight">Gestão de Funcionários</span>
+          <span class="text-xs md:text-sm font-semibold text-orange-900/90">Salários, vales, fechamento e integração com caixas.</span>
+          <span class="text-[10px] font-black uppercase text-orange-700 mt-1">Abrir →</span>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </main>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>
