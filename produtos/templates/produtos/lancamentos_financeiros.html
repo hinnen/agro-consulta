@@ -174,7 +174,7 @@
 
     <section class="flex flex-wrap gap-1.5" aria-label="Filtros e ferramentas da lista">
       <button type="button" id="btn-open-modal-filtros" class="flex-1 min-w-[min(100%,14rem)] min-h-[48px] px-3 py-2 rounded-xl border border-amber-300/90 bg-amber-50/80 hover:bg-amber-50 text-left transition-colors">
-        <span class="block text-sm font-black uppercase tracking-wide text-slate-800">Filtros da lista</span>
+        <span class="block text-sm font-black uppercase tracking-wide text-slate-800">Filtros</span>
         <span id="filtros-btn-sub" class="block text-[10px] font-semibold text-slate-600 truncate mt-0.5 leading-tight">—</span>
       </button>
       <button type="button" id="btn-open-modal-ferramentas" class="flex-1 min-w-[min(100%,14rem)] min-h-[48px] px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50/70 hover:bg-emerald-50 text-left transition-colors"
@@ -325,90 +325,123 @@
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-[min(56rem,96vw)] max-h-[min(92dvh,880px)] overflow-hidden flex flex-col border border-slate-200">
       <div class="flex items-start justify-between gap-2 px-4 py-3 border-b border-slate-100 bg-slate-50/90 shrink-0">
         <div class="min-w-0 pr-2">
-          <h2 id="modal-filtros-lista-titulo" class="text-base sm:text-lg font-black text-slate-900 uppercase tracking-tight">Filtros da lista</h2>
+          <h2 id="modal-filtros-lista-titulo" class="text-base sm:text-lg font-black text-slate-900 uppercase tracking-tight">Filtros</h2>
           <span id="gaveta-filtros-resumo" class="sr-only" aria-live="polite"></span>
-          <p id="modal-filtros-resumo-vis" class="text-[11px] font-semibold text-slate-600 mt-1 leading-snug"></p>
+          <p id="modal-filtros-resumo-vis" class="text-[11px] font-semibold text-slate-600 mt-1 leading-snug max-w-[52ch]"></p>
         </div>
-        <button type="button" id="btn-fechar-modal-filtros" class="shrink-0 min-h-[44px] min-w-[44px] rounded-xl border-2 border-slate-200 font-black text-lg leading-none text-slate-700 hover:bg-slate-100" aria-label="Fechar">×</button>
+        <div class="flex items-center gap-1 shrink-0">
+          <button type="button" id="btn-filtros-ajuda" class="min-h-[44px] min-w-[44px] rounded-xl border border-slate-200 text-sm font-black text-slate-600 hover:bg-slate-100" title="Ajuda sobre datas" aria-label="Ajuda sobre datas do filtro">?</button>
+          <button type="button" id="btn-fechar-modal-filtros" class="min-h-[44px] min-w-[44px] rounded-xl border border-slate-200 font-black text-lg leading-none text-slate-700 hover:bg-slate-100" aria-label="Fechar">×</button>
+        </div>
       </div>
-      <div class="p-3 sm:p-4 overflow-y-auto flex-1 min-h-0 space-y-3">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div id="modal-filtros-ajuda-pop" class="hidden mx-4 mt-2 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-[11px] font-semibold text-amber-950 leading-snug" role="note">
+        <strong class="font-black">Vencimento</strong> — data de vencimento do título. <strong class="font-black">Competência</strong> — competência contábil. <strong class="font-black">Pagamento</strong> — quitação (parcial/total). Com <strong>Em aberto</strong> e só filtro de pagamento, a lista pode ficar vazia; use <strong>Todos</strong> ou inclua vencimento.
+      </div>
+      <div class="p-3 sm:p-4 overflow-y-auto flex-1 min-h-0 space-y-4">
+        <section class="rounded-xl border border-slate-100 bg-slate-50/40 p-3 space-y-3" aria-label="Situação e ordenação">
+          <div class="text-[10px] font-black uppercase tracking-wide text-slate-500">Situação e ordem</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="block">
+              <span class="text-[11px] font-bold text-slate-600">Situação</span>
+              <select id="f-status" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-400 outline-none min-h-[48px]">
+                <option value="abertos" selected>Em aberto</option>
+                <option value="quitados">Quitados</option>
+                <option value="todos">Todos</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="text-[11px] font-bold text-slate-600">Ordenar por</span>
+              <select id="f-ord" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-400 outline-none min-h-[48px]">
+                <option value="vencimento_asc" selected>Vencimento ↑</option>
+                <option value="vencimento_desc">Vencimento ↓</option>
+                <option value="fluxo_desc">Data fluxo ↓</option>
+                <option value="cliente_asc">Favorecido A→Z</option>
+                <option value="cliente_desc">Favorecido Z→A</option>
+                <option value="forma_asc">Forma pagamento A→Z</option>
+                <option value="forma_desc">Forma pagamento Z→A</option>
+                <option value="plano_asc">Plano / grupo A→Z</option>
+                <option value="plano_desc">Plano / grupo Z→A</option>
+                <option value="bruto_asc">Bruto ↑ (menor)</option>
+                <option value="bruto_desc">Bruto ↓ (maior)</option>
+                <option value="saldo_asc">Saldo aberto ↑ (menor)</option>
+                <option value="saldo_desc">Saldo aberto ↓ (maior)</option>
+              </select>
+            </label>
+          </div>
+        </section>
+        <section class="rounded-xl border border-slate-100 p-3 space-y-3" aria-label="Datas de vencimento">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="text-[10px] font-black uppercase tracking-wide text-slate-500">Vencimento</div>
+            <button type="button" id="btn-filtros-limpar-datas" class="text-[11px] font-black uppercase text-amber-700 hover:text-amber-900 underline decoration-amber-400/80 underline-offset-2 min-h-[40px] px-1">Limpar todas as datas</button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="block">
+              <span class="text-[11px] font-bold text-slate-600">De</span>
+              <input type="date" id="f-de" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-400 outline-none min-h-[48px]">
+            </label>
+            <label class="block">
+              <span class="text-[11px] font-bold text-slate-600">Até</span>
+              <input type="date" id="f-ate" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-400 outline-none min-h-[48px]">
+            </label>
+          </div>
+          <details id="filtros-datas-extras" class="rounded-xl border border-slate-100 bg-white open:shadow-sm scroll-mt-2 group">
+            <summary class="cursor-pointer select-none list-none flex items-center justify-between gap-2 rounded-xl px-3 py-3 text-[12px] font-black uppercase text-slate-700 hover:bg-slate-50 min-h-[48px] [&::-webkit-details-marker]:hidden">
+              <span>Competência e pagamento <span class="text-slate-400 font-bold normal-case text-[11px]">(opcional)</span></span>
+              <span class="text-slate-400 text-xs transition-transform group-open:rotate-180" aria-hidden="true">▼</span>
+            </summary>
+            <div class="px-3 pb-3 pt-0 space-y-4 border-t border-slate-50">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
+                <div class="sm:col-span-2 text-[10px] font-black uppercase text-slate-500">Competência</div>
+                <label class="block">
+                  <span class="text-[11px] font-bold text-slate-600">De</span>
+                  <input type="date" id="f-comp-de" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none min-h-[48px]">
+                </label>
+                <label class="block">
+                  <span class="text-[11px] font-bold text-slate-600">Até</span>
+                  <input type="date" id="f-comp-ate" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none min-h-[48px]">
+                </label>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="sm:col-span-2 text-[10px] font-black uppercase text-slate-500">Pagamento / quitação</div>
+                <label class="block">
+                  <span class="text-[11px] font-bold text-slate-600">De</span>
+                  <input type="date" id="f-pag-de" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none min-h-[48px]" title="Data de quitação no título">
+                </label>
+                <label class="block">
+                  <span class="text-[11px] font-bold text-slate-600">Até</span>
+                  <input type="date" id="f-pag-ate" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none min-h-[48px]">
+                </label>
+              </div>
+            </div>
+          </details>
+        </section>
+        <section class="rounded-xl border border-slate-100 p-3" aria-label="Busca">
           <label class="block">
-            <span class="text-[11px] font-black uppercase text-slate-500">Situação</span>
-            <select id="f-status" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
-              <option value="abertos" selected>Em aberto</option>
-              <option value="quitados">Quitados</option>
-              <option value="todos">Todos</option>
-            </select>
-          </label>
-          <label class="block">
-            <span class="text-[11px] font-black uppercase text-slate-500">Vencimento de</span>
-            <input type="date" id="f-de" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
-          </label>
-          <label class="block">
-            <span class="text-[11px] font-black uppercase text-slate-500">Vencimento até</span>
-            <input type="date" id="f-ate" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
-          </label>
-          <label class="block">
-            <span class="text-[11px] font-black uppercase text-slate-500">Ordenação</span>
-            <select id="f-ord" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
-              <option value="vencimento_asc" selected>Vencimento ↑</option>
-              <option value="vencimento_desc">Vencimento ↓</option>
-              <option value="fluxo_desc">Data fluxo ↓</option>
-              <option value="cliente_asc">Favorecido A→Z</option>
-              <option value="cliente_desc">Favorecido Z→A</option>
-              <option value="forma_asc">Forma pagamento A→Z</option>
-              <option value="forma_desc">Forma pagamento Z→A</option>
-              <option value="plano_asc">Plano / grupo A→Z</option>
-              <option value="plano_desc">Plano / grupo Z→A</option>
-              <option value="bruto_asc">Bruto ↑ (menor)</option>
-              <option value="bruto_desc">Bruto ↓ (maior)</option>
-              <option value="saldo_asc">Saldo aberto ↑ (menor)</option>
-              <option value="saldo_desc">Saldo aberto ↓ (maior)</option>
-            </select>
-          </label>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <label class="block">
-            <span class="text-[11px] font-black uppercase text-slate-500">Competência de</span>
-            <input type="date" id="f-comp-de" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none" title="Data de competência (DataCompetencia). Opcional.">
-          </label>
-          <label class="block">
-            <span class="text-[11px] font-black uppercase text-slate-500">Competência até</span>
-            <input type="date" id="f-comp-ate" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
-          </label>
-          <label class="block">
-            <span class="text-[11px] font-black uppercase text-slate-500">Pagamento de</span>
-            <input type="date" id="f-pag-de" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none" title="Data de quitação (DataPagamento). Use com Quitados ou Todos.">
-          </label>
-          <label class="block">
-            <span class="text-[11px] font-black uppercase text-slate-500">Pagamento até</span>
-            <input type="date" id="f-pag-ate" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none">
-          </label>
-        </div>
-        <p class="text-[10px] text-slate-500 leading-snug">Competência usa a data de competência do título; pagamento usa a data de quitação. Com <strong class="text-slate-600">Em aberto</strong> e intervalo de pagamento preenchido, a lista costuma ficar vazia.</p>
-        <div class="flex flex-col sm:flex-row flex-wrap gap-3 items-end">
-          <label class="flex-1 block min-w-[min(100%,16rem)]">
-            <span class="text-[11px] font-black uppercase text-slate-500">Busca</span>
+            <span class="text-[10px] font-black uppercase tracking-wide text-slate-500">Busca na lista</span>
             <div class="relative mt-1">
-              <input type="search" id="f-q" placeholder="Fornecedor, cliente, descrição, doc., forma…" autocomplete="off"
-                class="w-full rounded-xl border-2 border-slate-200 pl-4 pr-10 py-3 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:border-amber-500 outline-none"
-                title="Enter aplica filtro. / foca aqui (fora de campos).">
-              <kbd class="gm-kbd absolute right-2.5 top-1/2 -translate-y-1/2 border border-slate-200 bg-white text-slate-500" title="Barra / foca a busca">/</kbd>
+              <input type="search" id="f-q" placeholder="Nome, descrição, documento…" autocomplete="off"
+                class="w-full rounded-xl border border-slate-200 pl-4 pr-10 py-3 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-400 outline-none min-h-[48px]"
+                title="Enter aplica e atualiza a lista. Tecla / foca aqui (fora de campos).">
+              <kbd class="gm-kbd absolute right-2.5 top-1/2 -translate-y-1/2 border border-slate-200 bg-white text-slate-500 text-[10px]" title="Barra / foca a busca">/</kbd>
             </div>
           </label>
-          <label class="block w-full sm:w-24">
-            <span class="text-[11px] font-black uppercase text-slate-500">Por página</span>
-            <select id="f-ps" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-2 py-3 text-sm font-bold">
-              <option value="25">25</option>
-              <option value="50" selected>50</option>
-              <option value="100">100</option>
-            </select>
-          </label>
-          <button type="button" id="btn-buscar" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 sm:py-3 rounded-xl bg-amber-600 text-white font-black text-sm uppercase tracking-wide hover:bg-amber-700 shadow-md min-h-[44px]" title="Recarregar lista (F5).">
-            <span>Atualizar lista</span>
-            <kbd class="gm-kbd border border-white/30 bg-white/15 text-white">F5</kbd>
-          </button>
+        </section>
+        <div class="flex flex-col-reverse sm:flex-row flex-wrap items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" id="btn-cancelar-modal-filtros" class="order-last sm:order-none min-h-[48px] px-4 rounded-xl border border-slate-200 bg-white text-slate-700 font-black text-sm uppercase hover:bg-slate-50">Cancelar</button>
+          <div class="flex flex-1 flex-wrap items-center justify-end gap-2 min-w-0">
+            <label class="flex items-center gap-2 shrink-0">
+              <span class="text-[10px] font-black uppercase text-slate-500 whitespace-nowrap">Por página</span>
+              <select id="f-ps" class="rounded-xl border border-slate-200 px-2 py-2.5 text-sm font-bold min-h-[48px] min-w-[4.5rem]">
+                <option value="25">25</option>
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+              </select>
+            </label>
+            <button type="button" id="btn-buscar" class="inline-flex flex-1 sm:flex-none items-center justify-center gap-2 min-h-[48px] px-6 rounded-xl bg-amber-600 text-white font-black text-sm uppercase tracking-wide hover:bg-amber-700 shadow-sm" title="Aplicar filtros e atualizar a lista">
+              <span>Aplicar</span>
+              <kbd class="gm-kbd border border-white/30 bg-white/15 text-white text-[10px]">F5</kbd>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -784,7 +817,10 @@
       const ordText = ord && ord.options[ord.selectedIndex] ? ord.options[ord.selectedIndex].text : '';
       const q = (document.getElementById('f-q').value || '').trim();
       const ps = document.getElementById('f-ps').value;
-      const parts = [stText, `venc. ${fmtInputDateBR(de)} → ${fmtInputDateBR(ate)}`];
+      const parts = [stText];
+      if (de || ate) {
+        parts.push(`venc. ${fmtInputDateBR(de)} → ${fmtInputDateBR(ate)}`);
+      }
       if (cde || cate) {
         parts.push(`comp. ${fmtInputDateBR(cde)} → ${fmtInputDateBR(cate)}`);
       }
@@ -1661,6 +1697,8 @@
     document.getElementById('btn-buscar').addEventListener('click', () => {
       page = 1;
       selecionados.clear();
+      document.getElementById('modal-filtros-lista')?.classList.add('hidden');
+      document.getElementById('modal-filtros-ajuda-pop')?.classList.add('hidden');
       carregarPlanos().then(() => carregar());
     });
     document.getElementById('btn-whats').addEventListener('click', () => {
@@ -1683,9 +1721,8 @@
     document.getElementById('f-q').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        page = 1;
-        selecionados.clear();
-        carregarPlanos().then(() => carregar());
+        e.stopPropagation();
+        document.getElementById('btn-buscar')?.click();
       }
     });
 
@@ -2161,9 +2198,32 @@
     document.getElementById('btn-open-modal-filtros')?.addEventListener('click', () => {
       document.getElementById('modal-filtros-lista').classList.remove('hidden');
       refreshGavetaFiltrosResumo();
+      const det = document.getElementById('filtros-datas-extras');
+      if (det) {
+        const cde = document.getElementById('f-comp-de').value;
+        const cate = document.getElementById('f-comp-ate').value;
+        const pde = document.getElementById('f-pag-de').value;
+        const pate = document.getElementById('f-pag-ate').value;
+        det.open = !!(cde || cate || pde || pate);
+      }
+      document.getElementById('modal-filtros-ajuda-pop')?.classList.add('hidden');
+      document.getElementById('f-status')?.focus();
     });
     document.getElementById('btn-fechar-modal-filtros')?.addEventListener('click', () => {
       document.getElementById('modal-filtros-lista').classList.add('hidden');
+    });
+    document.getElementById('btn-cancelar-modal-filtros')?.addEventListener('click', () => {
+      document.getElementById('modal-filtros-lista')?.classList.add('hidden');
+    });
+    document.getElementById('btn-filtros-ajuda')?.addEventListener('click', () => {
+      document.getElementById('modal-filtros-ajuda-pop')?.classList.toggle('hidden');
+    });
+    document.getElementById('btn-filtros-limpar-datas')?.addEventListener('click', () => {
+      ['f-de', 'f-ate', 'f-comp-de', 'f-comp-ate', 'f-pag-de', 'f-pag-ate'].forEach((id) => {
+        const n = document.getElementById(id);
+        if (n) n.value = '';
+      });
+      refreshGavetaFiltrosResumo();
     });
     document.getElementById('modal-filtros-lista')?.addEventListener('click', (e) => {
       if (e.target && e.target.id === 'modal-filtros-lista') {
@@ -2247,7 +2307,25 @@
       const modalEdit = !document.getElementById('modal-edit-lanc')?.classList.contains('hidden');
       const modalFiltrosLista = !document.getElementById('modal-filtros-lista')?.classList.contains('hidden');
       const modalFerramentasLista = !document.getElementById('modal-ferramentas-lista')?.classList.contains('hidden');
-      if (modalAberto || modalParcial || modalOpx || modalEdit || modalFiltrosLista || modalFerramentasLista) return;
+      if (modalFiltrosLista) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          document.getElementById('modal-filtros-lista')?.classList.add('hidden');
+          return;
+        }
+        if (e.key === 'F5') {
+          e.preventDefault();
+          document.getElementById('btn-buscar')?.click();
+          return;
+        }
+        if (e.key === 'Enter' && (tag === 'INPUT' || tag === 'SELECT')) {
+          e.preventDefault();
+          document.getElementById('btn-buscar')?.click();
+          return;
+        }
+        return;
+      }
+      if (modalAberto || modalParcial || modalOpx || modalEdit || modalFerramentasLista) return;
       if (e.key === 'F5') {
         e.preventDefault();
         document.getElementById('btn-buscar')?.click();
