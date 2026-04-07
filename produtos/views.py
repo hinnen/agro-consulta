@@ -1238,6 +1238,8 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
             "apiBuscarClientes": reverse("api_buscar_clientes"),
             "apiPdvTopVendidos": reverse("api_pdv_top_vendidos"),
             "apiPdvSaldos": reverse("api_pdv_saldos"),
+            "apiEnviarPedidoErp": reverse("api_enviar_pedido_erp"),
+            "apiPdvClienteRapido": reverse("api_pdv_cliente_rapido"),
             "pdvRootUrl": pdv_root_url,
         },
         "assets": {
@@ -6875,6 +6877,34 @@ def api_buscar_clientes(request):
             "cliente_agro": len(merged),
         }
     return JsonResponse(payload)
+
+
+@require_POST
+def api_pdv_cliente_rapido(request):
+    """Cadastro rápido de ClienteAgro a partir do PDV (popup no carrinho)."""
+    try:
+        data = json.loads(request.body or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    nome = (data.get("nome") or "").strip()
+    if len(nome) < 2:
+        return JsonResponse(
+            {"ok": False, "erro": "Informe o nome do cliente (mínimo 2 caracteres)."},
+            status=400,
+        )
+    wa_raw = (data.get("whatsapp") or data.get("telefone") or "").strip()
+    wa_digits = re.sub(r"\D", "", wa_raw)
+    if len(wa_digits) > 20:
+        wa_digits = wa_digits[-20:]
+    try:
+        c = ClienteAgro.objects.create(
+            nome=nome[:200],
+            whatsapp=wa_digits[:20] if wa_digits else "",
+        )
+    except Exception as e:
+        logger.exception("api_pdv_cliente_rapido")
+        return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=400)
+    return JsonResponse({"ok": True, "cliente": _linha_clienteagro_pdv(c)})
 
 
 @require_GET

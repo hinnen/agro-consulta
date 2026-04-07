@@ -160,3 +160,27 @@
             </div>
         </div>
     </div>
+
+    <div id="modal-pdv-cadastro-cliente" class="fixed inset-0 z-[108] hidden items-center justify-center p-4 bg-slate-900/55 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-pdv-cli-titulo" onclick="if (event.target === this) pdvFecharModalCadastroClientePdv();">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden" onclick="event.stopPropagation();">
+            <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2">
+                <h2 id="modal-pdv-cli-titulo" class="text-base font-black uppercase text-slate-900">Novo cliente</h2>
+                <button type="button" onclick="pdvFecharModalCadastroClientePdv()" class="text-slate-400 hover:text-slate-700 font-bold text-lg leading-none px-2" aria-label="Fechar">×</button>
+            </div>
+            <div class="p-4 space-y-3">
+                <p class="text-xs font-bold text-slate-600 leading-snug">Cadastra no Agro e já seleciona no carrinho. Depois sincronize clientes se precisar no ERP.</p>
+                <div>
+                    <label for="pdv-cli-rapido-nome" class="block text-[10px] font-black uppercase text-slate-500 mb-1">Nome</label>
+                    <input id="pdv-cli-rapido-nome" type="text" autocomplete="name" class="w-full py-2.5 px-3 rounded-xl border-2 border-slate-200 font-bold text-sm focus:border-emerald-500 outline-none" placeholder="Nome completo ou fantasia">
+                </div>
+                <div>
+                    <label for="pdv-cli-rapido-whatsapp" class="block text-[10px] font-black uppercase text-slate-500 mb-1">WhatsApp (opcional)</label>
+                    <input id="pdv-cli-rapido-whatsapp" type="tel" inputmode="tel" autocomplete="tel" class="w-full py-2.5 px-3 rounded-xl border-2 border-slate-200 font-bold text-sm focus:border-emerald-500 outline-none" placeholder="DDD + número">
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="pdvFecharModalCadastroClientePdv()" class="flex-1 py-3 rounded-xl border-2 border-slate-200 font-black uppercase text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
+                    <button type="button" id="pdv-cli-rapido-salvar" onclick="pdvSalvarClienteRapidoPdv()" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-sm shadow-md">Salvar cliente</button>
+                </div>
+            </div>
+        </div>
+    </div>
