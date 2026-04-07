@@ -28,6 +28,11 @@ urlpatterns = [
     path('estoque/api_registrar_impressao/', estoque_views.api_registrar_impressao, name='api_registrar_impressao'),
     path('estoque/api_cancelar_separacao/<str:id>/', estoque_views.api_cancelar_separacao, name='api_cancelar_separacao'),
     path(
+        'estoque/api_transferir_vila_para_centro/',
+        estoque_views.api_transferir_vila_para_centro,
+        name='api_transferir_vila_para_centro',
+    ),
+    path(
         'api/estoque/sync-health/',
         estoque_views.api_estoque_sync_health,
         name='api_estoque_sync_health',

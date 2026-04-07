@@ -1,7 +1,7 @@
 {% extends "layouts/base_pdv.html" %}
 {% load static %}
 
-{% block pdv_title %}Agro Mais | PDV{% endblock %}
+{% block pdv_title %}Consulta e orçamentos | Agro Mais{% endblock %}
 {% block body_class %}bg-slate-100 text-slate-900 h-screen overflow-hidden flex flex-col text-[14px] sm:text-[15px]{% endblock %}
 {% block body_attrs %}data-pdv-entrega-wa="{{ pdv_entrega_whatsapp|default:''|escape }}"{% endblock %}
 {% block main_class %}flex-1 min-h-0 flex flex-col{% endblock %}
@@ -455,6 +455,39 @@
 {{ pdv_bootstrap|json_script:"agro-pdv-bootstrap" }}
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="{% static 'produtos/js/consulta_produtos.js' %}"></script>
+<script>
+(function () {
+  function cleanSyncParam() {
+    try {
+      var u = new URL(window.location.href);
+      if (!u.searchParams.has('sync')) return;
+      u.searchParams.delete('sync');
+      window.history.replaceState({}, '', u.pathname + (u.search ? u.search : '') + u.hash);
+    } catch (_) {}
+  }
+  window.addEventListener('load', function () {
+    var p = new URLSearchParams(window.location.search || '');
+    var sync = p.get('sync');
+    if (!sync) return;
+    if (sync === '1') {
+      setTimeout(function () {
+        if (typeof window.agroPdvSincronizarComApi === 'function') {
+          window.agroPdvSincronizarComApi();
+        }
+        cleanSyncParam();
+      }, 1000);
+      return;
+    }
+    if (sync === 'saldos') {
+      if (typeof window.agroPdvSincronizarSoSaldosDeepLink === 'function') {
+        window.agroPdvSincronizarSoSaldosDeepLink(cleanSyncParam);
+      } else {
+        cleanSyncParam();
+      }
+    }
+  });
+})();
+</script>
 {% include "produtos/_screensaver_pin.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
 {% include "produtos/_loader_divertido.html" %}

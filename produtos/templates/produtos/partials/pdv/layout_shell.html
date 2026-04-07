@@ -1,5 +1,7 @@
     <div class="flex flex-1 min-h-0 bg-slate-100 {% if pdv_dedicado %}sm:p-1.5{% endif %}">
+{% if not pdv_consulta_only %}
 {% include "produtos/partials/pdv/sidebar_nav.html" %}
+{% endif %}
         <div class="flex flex-1 flex-col min-w-0 min-h-0 {% if pdv_dedicado %}overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm{% endif %}">
 {% include "produtos/partials/pdv/topbar.html" %}
             <div id="pdv-balao-aviso-estoque" class="fixed left-1/2 -translate-x-1/2 z-[118] w-[min(100%,22rem)] sm:w-[min(100%,26rem)] max-w-[calc(100vw-1rem)] hidden pointer-events-none top-[3.25rem]" role="status" aria-live="polite">

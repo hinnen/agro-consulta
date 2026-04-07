@@ -1044,9 +1044,9 @@ def _home_admin_navegacao():
             "pin_protected": True,
         },
         {
-            "title": "LEGADO",
+            "title": "Consulta / Orçamentos",
             "href": agro_legado_url,
-            "icon": "monitor-smartphone",
+            "icon": "search",
             "shortcut": "F3",
             "shortcut_key": "f3",
             "accent": "orange",
@@ -1244,6 +1244,7 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
             "placeholderProduto": static("img/agro-mais-logo-buscador.png"),
         },
     }
+    ctx["pdv_consulta_only"] = rota_nome == "consulta_produtos"
     return render(request, "produtos/consulta_produtos.html", ctx)
 
 

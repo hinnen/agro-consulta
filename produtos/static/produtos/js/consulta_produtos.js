@@ -3871,6 +3871,27 @@ window.agroPdvSincronizarComApi = function () {
         });
 };
 
+/** Deep link (?sync=saldos): espera catálogo em memória e força leitura de saldos (mesmo efeito do botão Estoque). */
+window.agroPdvSincronizarSoSaldosDeepLink = function (onDone) {
+    var tries = 0;
+    var maxTries = 80;
+    function tick() {
+        tries++;
+        if (baseProdutos.length) {
+            pollSaldoPdvUmaVezPromise({ force: true }).then(function () {
+                if (typeof onDone === 'function') onDone();
+            });
+            return;
+        }
+        if (tries >= maxTries) {
+            if (typeof onDone === 'function') onDone();
+            return;
+        }
+        setTimeout(tick, 250);
+    }
+    setTimeout(tick, 400);
+};
+
 window.addEventListener('load', () => {
     if (inputCliente && !String(inputCliente.value || '').trim()) {
         inputCliente.value = CLIENTE_PADRAO_PDV;

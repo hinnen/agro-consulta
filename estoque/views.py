@@ -3,6 +3,7 @@ import io
 from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import JsonResponse
 from django.core.cache import cache
 from django.shortcuts import render
@@ -286,6 +287,115 @@ def api_ajustar_estoque(request):
         return JsonResponse({'ok': False, 'erro': 'Número inválido.'}, status=400)
     except Exception as exc:
         return JsonResponse({'ok': False, 'erro': f'Erro ao salvar ajuste: {exc}'}, status=500)
+
+
+@require_POST
+@csrf_protect
+def api_transferir_vila_para_centro(request):
+    """
+    Registra transferência Vila Elias → Centro na **camada Agro** (dois ``AjusteRapidoEstoque``).
+    Não grava movimento no ERP/Mongo do WL; o PDV passa a enxergar os saldos atualizados pela fórmula habitual.
+    """
+    try:
+        pin = request.POST.get("pin", "").strip()
+        if pin == "1234":
+            return JsonResponse({"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN."}, status=403)
+        if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+            return JsonResponse({"ok": False, "erro": "PIN incorreto."}, status=403)
+
+        produto_id = (request.POST.get("produto_id") or "").strip()[:100]
+        if not produto_id:
+            return JsonResponse({"ok": False, "erro": "Produto inválido."}, status=400)
+
+        qtd = _normalizar_decimal(request.POST.get("quantidade", "0"))
+        if qtd <= 0:
+            return JsonResponse({"ok": False, "erro": "Informe quantidade maior que zero."}, status=400)
+
+        nome_produto = (request.POST.get("nome_produto") or "").strip()[:255] or "Produto"
+        codigo_interno = (request.POST.get("codigo_interno") or "").strip()[:100]
+        obs_extra = (request.POST.get("observacao") or "").strip()[:500]
+
+        from produtos.views import (
+            _empresa_loja_padrao_agro_estoque,
+            _invalidar_caches_apos_ajuste_pin,
+            _saldo_erp_produto_deposito_mongo,
+            _saldo_final_agro_com_pin,
+            obter_conexao_mongo,
+        )
+
+        client_m, db = obter_conexao_mongo()
+        if db is None:
+            return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
+
+        saldo_erp_v = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, "vila")
+        saldo_erp_c = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, "centro")
+        saldo_ag_v = _saldo_final_agro_com_pin(produto_id, "vila", saldo_erp_v)
+        saldo_ag_c = _saldo_final_agro_com_pin(produto_id, "centro", saldo_erp_c)
+
+        if qtd > saldo_ag_v:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": f"Quantidade maior que o saldo na Vila ({float(saldo_ag_v):.3f}).",
+                },
+                status=400,
+            )
+
+        novo_v = (saldo_ag_v - qtd).quantize(Decimal("0.001"))
+        novo_c = (saldo_ag_c + qtd).quantize(Decimal("0.001"))
+
+        empresa_v, loja_v = _empresa_loja_padrao_agro_estoque("vila")
+        empresa_c, loja_c = _empresa_loja_padrao_agro_estoque("centro")
+        empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
+
+        ref_obs = f"Vila→Centro {qtd}"
+        if obs_extra:
+            ref_obs = f"{ref_obs} · {obs_extra}"
+
+        nome_v = f"{nome_produto} · Transferência {ref_obs}"[:255]
+        nome_c = nome_v
+
+        with transaction.atomic():
+            AjusteRapidoEstoque.objects.create(
+                empresa=empresa_v or empresa,
+                loja=loja_v,
+                produto_externo_id=produto_id,
+                codigo_interno=codigo_interno,
+                nome_produto=nome_v,
+                deposito="vila",
+                saldo_erp_referencia=saldo_erp_v,
+                saldo_informado=novo_v,
+                observacao=ref_obs,
+                origem=OrigemAjusteEstoque.TRANSFERENCIA_UI,
+                usuario=request.user if request.user.is_authenticated else None,
+            )
+            AjusteRapidoEstoque.objects.create(
+                empresa=empresa_c or empresa,
+                loja=loja_c,
+                produto_externo_id=produto_id,
+                codigo_interno=codigo_interno,
+                nome_produto=nome_c,
+                deposito="centro",
+                saldo_erp_referencia=saldo_erp_c,
+                saldo_informado=novo_c,
+                observacao=ref_obs,
+                origem=OrigemAjusteEstoque.TRANSFERENCIA_UI,
+                usuario=request.user if request.user.is_authenticated else None,
+            )
+
+        _invalidar_caches_apos_ajuste_pin()
+        return JsonResponse(
+            {
+                "ok": True,
+                "saldo_vila": float(novo_v),
+                "saldo_centro": float(novo_c),
+                "quantidade": float(qtd),
+            }
+        )
+    except InvalidOperation:
+        return JsonResponse({"ok": False, "erro": "Quantidade inválida."}, status=400)
+    except Exception as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=500)
 
 
 @require_POST
