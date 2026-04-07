@@ -1,0 +1,188 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>Fechamento {{ fechamento.competencia|date:"Y-m" }} | RH</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    html,body{height:100%;max-height:100%;overflow:hidden;}
+    body{font-family:'Inter',sans-serif;}
+    .agro-fech-details > summary,.rh-help-agents > summary{list-style:none;}
+    .agro-fech-details > summary::-webkit-details-marker,.rh-help-agents > summary::-webkit-details-marker{display:none;}
+    .agro-fech-chev{display:inline-block;transition:transform .15s ease;color:#047857;}
+    .agro-fech-details[open] > summary .agro-fech-chev{transform:rotate(90deg);}
+  </style>
+</head>
+<body class="bg-slate-50 h-full text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="w-full max-w-[min(100%,92rem)] mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap items-start justify-between gap-3">
+      <div class="min-w-0 flex-1">
+        <h1 class="text-lg sm:text-xl font-black uppercase text-slate-900 leading-tight">{{ fechamento.funcionario.nome_exibicao }}</h1>
+        <p class="text-sm font-bold text-slate-600 mt-0.5">{{ fechamento.competencia|date:"F Y" }} · {{ fechamento.get_status_display }}</p>
+      </div>
+      <a href="{% url 'rh_fechamentos_lista' %}" class="min-h-[44px] shrink-0 inline-flex items-center px-4 py-2 rounded-xl text-sm font-black uppercase border-2 border-slate-200 bg-white text-emerald-800 hover:bg-slate-50">← Lista</a>
+    </div>
+  </header>
+  <main class="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+    <div class="w-full max-w-[min(100%,92rem)] mx-auto px-3 sm:px-5 py-3 space-y-4 pb-10">
+      {% if messages %}{% for m in messages %}<p class="text-base font-bold {% if m.tags == 'error' %}text-red-700{% else %}text-emerald-800{% endif %} rounded-xl border px-3 py-2 {% if m.tags == 'error' %}border-red-200 bg-red-50{% else %}border-emerald-200 bg-emerald-50{% endif %}">{{ m }}</p>{% endfor %}{% endif %}
+
+      {% if salario_base_zero %}
+      <div class="rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3 space-y-2">
+        <p class="text-sm font-black text-amber-950">Salário R$ 0</p>
+        {% with rh_help="fechamento_salario_zero" %}{% include "rh/includes/rh_help_agents.html" %}{% endwith %}
+        {% if not tem_historico_salario %}
+        <p class="text-sm font-semibold text-amber-950">Ação: <a href="{% url 'rh_funcionario_ficha' fechamento.funcionario.pk %}#salario" class="underline font-black text-emerald-900">Abrir ficha · salário</a></p>
+        {% else %}
+        <p class="text-sm font-semibold text-amber-950">Ação: ajustar vigência até {{ ultimo_dia_competencia|date:"d/m/Y" }} na ficha.</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5">
+        <div class="rounded-2xl border-2 border-slate-200 bg-white p-3 shadow-sm">
+          <span class="text-[11px] font-black uppercase text-slate-500 tracking-wide">Salário base</span>
+          <p class="mt-0.5 text-2xl sm:text-3xl font-black tabular-nums text-slate-900 whitespace-nowrap">R$&nbsp;{{ fechamento.salario_base_na_competencia|floatformat:2 }}</p>
+        </div>
+        <div class="rounded-2xl border-2 border-amber-200 bg-amber-50 p-3 shadow-sm">
+          <span class="text-[11px] font-black uppercase text-amber-900 tracking-wide">Vales (adiantamentos)</span>
+          <p class="mt-0.5 text-2xl sm:text-3xl font-black tabular-nums text-amber-950 whitespace-nowrap">R$&nbsp;{{ fechamento.total_vales|floatformat:2 }}</p>
+        </div>
+        <div class="rounded-2xl border-2 border-slate-800 bg-slate-900 text-white p-3 shadow-sm">
+          <span class="text-[11px] font-black uppercase text-slate-400 tracking-wide">Líquido previsto</span>
+          <p class="mt-0.5 text-2xl sm:text-3xl font-black tabular-nums mt-1 whitespace-nowrap">R$&nbsp;{{ fechamento.valor_liquido_previsto|floatformat:2 }}</p>
+        </div>
+        <div class="rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-3 shadow-sm">
+          <span class="text-[11px] font-black uppercase text-emerald-900 tracking-wide">Valor pago (controle)</span>
+          <p class="mt-0.5 text-2xl sm:text-3xl font-black tabular-nums text-emerald-950 whitespace-nowrap">R$&nbsp;{{ fechamento.valor_pago|floatformat:2 }}</p>
+        </div>
+      </div>
+
+      <details class="agro-fech-details rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <summary class="min-h-[48px] px-3 py-3 cursor-pointer select-none flex flex-wrap items-center justify-between gap-2 bg-slate-50 border-b border-slate-100 font-black uppercase text-slate-900 text-sm">
+          <span class="flex items-center gap-2"><span class="agro-fech-chev" aria-hidden="true">▶</span> Legenda · mês {{ fechamento.competencia|date:"m/Y" }}</span>
+          <span class="text-[10px] text-slate-500 font-bold">Abrir</span>
+        </summary>
+        <div class="px-3 py-2 space-y-2">
+          <p class="text-sm font-bold text-slate-800">Cartões = folha até {{ ultimo_dia_competencia|date:"d/m" }}. Passo 2 = opcional no financeiro.</p>
+          {% with rh_help="fechamento_cards_legenda" %}{% include "rh/includes/rh_help_agents.html" %}{% endwith %}
+        </div>
+      </details>
+
+      <details class="agro-fech-details rounded-2xl border-2 border-slate-200 bg-white shadow-sm overflow-hidden">
+        <summary class="min-h-[48px] px-4 py-3 cursor-pointer select-none flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-white font-black uppercase text-slate-900 text-sm">
+          <span class="flex items-center gap-2"><span class="agro-fech-chev text-slate-600" aria-hidden="true">▶</span> Itens da folha deste mês</span>
+          <span class="text-[10px] text-slate-500 font-bold">Abrir</span>
+        </summary>
+        <div class="p-4 space-y-3">
+          {% with rh_help="fechamento_itens_folha" %}{% include "rh/includes/rh_help_agents.html" %}{% endwith %}
+          <ul class="text-sm space-y-1.5">
+            {% for it in fechamento.itens.all %}
+            <li class="flex flex-wrap justify-between gap-2 items-baseline border-b border-slate-100 pb-1.5">
+              <span class="font-semibold text-slate-800 leading-snug min-w-0">{{ it.get_tipo_display }} — {{ it.descricao }}</span>
+              <span class="font-mono font-black text-base tabular-nums shrink-0 whitespace-nowrap">R$&nbsp;{{ it.valor|floatformat:2 }}</span>
+            </li>
+            {% empty %}
+            <li class="text-slate-500 font-semibold">Nada listado ainda. Abra o passo 1 e use «Salvar e recalcular».</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </details>
+
+      {% if fechamento.status == 'ABERTO' %}
+      <details class="agro-fech-details rounded-2xl border-2 border-slate-200 bg-white shadow-sm overflow-hidden">
+        <summary class="min-h-[48px] px-4 py-3 cursor-pointer select-none flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 font-black uppercase text-slate-900 text-sm">
+          <span class="flex items-center gap-2"><span class="agro-fech-chev text-slate-600" aria-hidden="true">▶</span> 1 · Ajustes da folha</span>
+          <span class="text-[10px] text-slate-500 font-bold">Abrir</span>
+        </summary>
+        <div class="p-4 space-y-3">
+          {% with rh_help="fechamento_passo1" %}{% include "rh/includes/rh_help_agents.html" %}{% endwith %}
+          <form method="post" action="{% url 'rh_fechamento_salvar' fechamento.pk %}" class="space-y-3">
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="space-y-1">
+              <label class="block text-[11px] font-black uppercase text-slate-600 tracking-wide" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% for e in field.errors %}<p class="text-sm font-semibold text-red-700">{{ e }}</p>{% endfor %}
+            </div>
+            {% endfor %}
+            <button type="submit" class="w-full sm:w-auto min-h-[48px] px-6 rounded-xl bg-slate-900 text-white text-sm font-black uppercase tracking-wide hover:bg-slate-800 shadow-md">Salvar e recalcular</button>
+          </form>
+        </div>
+      </details>
+      {% else %}
+      <div class="rounded-2xl border-2 border-slate-200 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700">
+        Fechamento fechado ou pago — edição da folha desligada.
+      </div>
+      {% endif %}
+
+      {% if fechamento.status == 'ABERTO' %}
+      <details class="agro-fech-details rounded-2xl border-2 border-emerald-200 bg-white shadow-sm overflow-hidden">
+        <summary class="min-h-[52px] px-4 py-3 cursor-pointer select-none flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100 bg-emerald-50/90 font-black uppercase text-emerald-950 text-sm">
+          <span class="flex items-center gap-2 min-w-0"><span class="agro-fech-chev text-emerald-700" aria-hidden="true">▶</span> 2 · Conta a pagar no financeiro <span class="text-slate-600 font-semibold normal-case text-xs">(opcional)</span></span>
+          <span class="text-[10px] text-emerald-800 font-bold shrink-0">Abrir</span>
+        </summary>
+        <div class="p-4 space-y-3">
+          <p class="text-sm font-black text-slate-800">Vencimento + conta (forma pode ficar em branco). Texto completo no <strong>?</strong> abaixo.</p>
+          {% with rh_help="fechamento_passo2" %}{% include "rh/includes/rh_help_agents.html" %}{% endwith %}
+          {% with rh_help="fechamento_passo2_tecnica" %}{% include "rh/includes/rh_help_agents.html" %}{% endwith %}
+          <form method="post" action="{% url 'rh_fechamento_titulo_financeiro' fechamento.pk %}" class="space-y-2 border-t border-emerald-100 pt-3">
+            {% csrf_token %}
+            {% if titulo_form.non_field_errors %}{% for e in titulo_form.non_field_errors %}<p class="text-sm font-bold text-red-700">{{ e }}</p>{% endfor %}{% endif %}
+            {% for field in titulo_form %}
+            <div class="space-y-1">
+              <label class="block text-[11px] font-black uppercase text-slate-700 tracking-wide" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% for e in field.errors %}<p class="text-sm font-semibold text-red-700">{{ e }}</p>{% endfor %}
+            </div>
+            {% endfor %}
+            <div class="flex flex-wrap gap-2 pt-2">
+              <button type="submit" name="titulo_acao" value="publicar" class="min-h-[48px] px-5 rounded-xl bg-emerald-700 text-white text-sm font-black uppercase hover:bg-emerald-800 shadow-md">Criar ou atualizar lançamento</button>
+              {% if fechamento.mongo_lancamento_salario_id %}
+              <button type="submit" name="titulo_acao" value="sync_valores" class="min-h-[48px] px-5 rounded-xl border-2 border-emerald-600 bg-white text-emerald-900 text-sm font-black uppercase hover:bg-emerald-50">Igualar ao que está na folha</button>
+              {% endif %}
+            </div>
+          </form>
+        </div>
+      </details>
+      {% endif %}
+
+      <details class="agro-fech-details rounded-2xl border-2 border-slate-200 bg-slate-100 shadow-sm overflow-hidden">
+        <summary class="min-h-[48px] px-4 py-3 cursor-pointer select-none flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-100 font-black uppercase text-slate-900 text-sm">
+          <span class="flex items-center gap-2"><span class="agro-fech-chev text-slate-600" aria-hidden="true">▶</span> 3 · Encerrar e correções</span>
+          <span class="text-[10px] text-slate-500 font-bold">Abrir</span>
+        </summary>
+        <div class="p-4 space-y-3 bg-slate-50/80">
+          {% with rh_help="fechamento_passo3" %}{% include "rh/includes/rh_help_agents.html" %}{% endwith %}
+          <div class="flex flex-wrap gap-2.5">
+            {% if fechamento.status == 'ABERTO' %}
+            <form method="post" action="{% url 'rh_fechamento_fechar' fechamento.pk %}" onsubmit="return confirm('Fechar esta competência na folha?');" class="inline">{% csrf_token %}<button type="submit" class="min-h-[48px] px-5 rounded-xl border-2 border-orange-500 bg-orange-50 text-orange-950 text-sm font-black uppercase hover:bg-orange-100">Fechar folha deste mês</button></form>
+            {% endif %}
+            {% if fechamento.status != 'PAGO' %}
+            <form method="post" action="{% url 'rh_fechamento_marcar_pago' fechamento.pk %}" onsubmit="return confirm('Marcar como pago (valor = líquido previsto)?');" class="inline">{% csrf_token %}<button type="submit" class="min-h-[48px] px-5 rounded-xl bg-emerald-600 text-white text-sm font-black uppercase hover:bg-emerald-700 shadow-md">Marcar pago</button></form>
+            {% endif %}
+            {% if fechamento.status != 'ABERTO' %}
+            <form method="post" action="{% url 'rh_fechamento_reabrir' fechamento.pk %}" onsubmit="return confirm('Reabrir esta competência? Volta para Aberto; se estava como pago, o valor pago de controle zera.');" class="inline">{% csrf_token %}<button type="submit" class="min-h-[48px] px-5 rounded-xl border-2 border-slate-400 bg-white text-slate-900 text-sm font-black uppercase hover:bg-slate-50">Reabrir folha</button></form>
+            {% endif %}
+          </div>
+          <div class="rounded-xl border border-slate-300 bg-white px-3 py-2.5">
+            <p class="text-[11px] font-black uppercase text-slate-600 mb-1.5">Excluir esta competência do RH</p>
+            {% if fechamento_exclusao_bloqueio %}
+            <p class="text-xs font-semibold text-slate-600 leading-snug">{{ fechamento_exclusao_bloqueio }}</p>
+            {% else %}
+            <form method="post" action="{% url 'rh_fechamento_excluir' fechamento.pk %}" onsubmit="return confirm('Excluir de vez este fechamento? Os vales já lançados no mês continuam no cadastro; a competência pode ser recriada depois.');" class="inline">{% csrf_token %}<button type="submit" class="min-h-[48px] px-5 rounded-xl border-2 border-red-300 bg-red-50 text-red-900 text-sm font-black uppercase hover:bg-red-100">Excluir competência</button></form>
+            {% endif %}
+          </div>
+        </div>
+      </details>
+    </div>
+  </main>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>

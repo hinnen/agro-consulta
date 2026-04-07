@@ -55,12 +55,9 @@
       <label class="block">
         <span class="text-[10px] font-black uppercase text-slate-500">Quem está levando o dinheiro *</span>
         <select id="cx-quem" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-emerald-500 outline-none">
-          <option value="">— Escolha —</option>
-          {% for f in funcionarios_principais %}
-          <option value="{{ f|escape }}">{{ f }}</option>
-          {% endfor %}
-          <option value="__OUTRO__">Outro (informar nome)</option>
+          <option value="">— Carregando lista…</option>
         </select>
+        <span class="block text-[10px] font-semibold text-slate-400 mt-0.5">Perfis RH <strong>ativos</strong> da empresa em «Outros dados» (cada empresa tem lista própria). Para o vale aparecer no RH, use o plano <strong>Adiantamento de Salário (Vale)</strong>. Se não aparecer, abra <strong>RH → Conferência</strong>.</span>
       </label>
       <div id="wrap-quem-outro" class="hidden">
         <label class="block">
@@ -99,8 +96,8 @@
           <input type="date" id="cx-data" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-emerald-500 outline-none">
         </label>
         <label class="block">
-          <span class="text-[10px] font-black uppercase text-slate-500">Empresa</span>
-          <input type="text" id="cx-empresa" value="{{ empresa_padrao|escape }}"
+          <span class="text-[10px] font-black uppercase text-slate-500">Empresa (nome fantasia no cadastro)</span>
+          <input type="text" id="cx-empresa" value="{{ empresa_padrao|escape }}" data-empresa-id="{{ empresa_padrao_id|default:'' }}"
             class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold focus:border-emerald-500 outline-none">
         </label>
       </div>
@@ -112,6 +109,7 @@
   <script>
     const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
     const API_SAIDA = "{% url 'api_lancamentos_saida_caixa' %}";
+    const API_QUEM_LEVA = "{% url 'api_rh_caixa_quem_leva' %}";
     const LS_OPCOES_MODO = 'gm_fin_opcoes_modo';
     function opcoesBaixaModoFromStorage() {
       const v = (localStorage.getItem(LS_OPCOES_MODO) || 'erp').toLowerCase();
@@ -164,9 +162,54 @@
 
     const selQuem = document.getElementById('cx-quem');
     const wrapOutro = document.getElementById('wrap-quem-outro');
+    const inpEmpresa = document.getElementById('cx-empresa');
     selQuem.addEventListener('change', () => {
       wrapOutro.classList.toggle('hidden', selQuem.value !== '__OUTRO__');
     });
+
+    let _quemLevaTimer = null;
+    async function carregarQuemLeva() {
+      const empresaNome = (inpEmpresa.value || '').trim();
+      const eidRaw = (inpEmpresa.dataset.empresaId || '').trim();
+      const prev = selQuem.value;
+      selQuem.innerHTML = '<option value="">— Carregando…</option>';
+      try {
+        const u = new URL(API_QUEM_LEVA, window.location.origin);
+        if (eidRaw && /^\d+$/.test(eidRaw)) u.searchParams.set('empresa_id', eidRaw);
+        else if (empresaNome) u.searchParams.set('empresa_nome', empresaNome);
+        const r = await fetch(u.toString(), { credentials: 'same-origin' });
+        const d = await r.json();
+        selQuem.innerHTML = '<option value="">— Escolha —</option>';
+        if (d.ok && (d.pessoas || []).length) {
+          (d.pessoas || []).forEach((p) => {
+            const o = document.createElement('option');
+            o.value = String(p.cliente_agro_id);
+            o.textContent = p.label || ('#' + p.cliente_agro_id);
+            selQuem.appendChild(o);
+          });
+        }
+        const oout = document.createElement('option');
+        oout.value = '__OUTRO__';
+        oout.textContent = 'Outro (informar nome)';
+        selQuem.appendChild(oout);
+        if (d.empresa_id) inpEmpresa.dataset.empresaId = String(d.empresa_id);
+        const okVal = [...selQuem.options].some((o) => o.value === prev);
+        if (okVal) selQuem.value = prev;
+        wrapOutro.classList.toggle('hidden', selQuem.value !== '__OUTRO__');
+      } catch (_) {
+        selQuem.innerHTML = '<option value="">— Erro ao carregar —</option>';
+        const oout = document.createElement('option');
+        oout.value = '__OUTRO__';
+        oout.textContent = 'Outro (informar nome)';
+        selQuem.appendChild(oout);
+      }
+    }
+    function agendarCarregarQuemLeva() {
+      if (_quemLevaTimer) clearTimeout(_quemLevaTimer);
+      _quemLevaTimer = setTimeout(() => { carregarQuemLeva(); }, 350);
+    }
+    inpEmpresa.addEventListener('change', agendarCarregarQuemLeva);
+    inpEmpresa.addEventListener('blur', agendarCarregarQuemLeva);
 
     function matchOpcaoPreferida(list, prefer) {
       const up = String(prefer || '').toUpperCase();
@@ -229,16 +272,31 @@
         return;
       }
 
-      let quem = (selQuem.value || '').trim();
-      let quemOutro = (document.getElementById('cx-quem-outro').value || '').trim();
-      if (quem === '__OUTRO__') {
+      const quemRaw = (selQuem.value || '').trim();
+      const isOutroQuem = quemRaw === '__OUTRO__';
+      let quemLevaTexto = '';
+      let quemOutro = '';
+      let clienteAgroId = undefined;
+      if (isOutroQuem) {
+        quemOutro = (document.getElementById('cx-quem-outro').value || '').trim();
         if (quemOutro.length < 2) {
           alert('Informe o nome da pessoa.');
           return;
         }
-      } else if (!quem) {
-        alert('Selecione quem está levando o dinheiro.');
-        return;
+        quemLevaTexto = 'OUTRO';
+      } else {
+        if (!quemRaw) {
+          alert('Selecione quem está levando o dinheiro.');
+          return;
+        }
+        const n = parseInt(quemRaw, 10);
+        if (!Number.isFinite(n) || n < 1) {
+          alert('Seleção inválida. Recarregue a lista ou escolha Outro.');
+          return;
+        }
+        clienteAgroId = n;
+        const opt = selQuem.options[selQuem.selectedIndex];
+        quemLevaTexto = opt ? String(opt.textContent || '').trim() : '';
       }
 
       let fn = (document.getElementById('cx-forma').value || '').trim();
@@ -269,8 +327,9 @@
         valor,
         plano_id: planoId,
         motivo: motivo || undefined,
-        quem_leva: quem === '__OUTRO__' ? 'OUTRO' : quem,
-        quem_leva_outro_nome: quem === '__OUTRO__' ? quemOutro : undefined,
+        quem_leva: quemLevaTexto,
+        quem_leva_outro_nome: isOutroQuem ? quemOutro : undefined,
+        cliente_agro_id: clienteAgroId,
         empresa_nome: (document.getElementById('cx-empresa').value || '').trim(),
         data_competencia: dc,
         data_vencimento: dc,
@@ -318,6 +377,7 @@
       document.getElementById('cx-data').value = hojeISO();
       atualizarMotivoObrigatorio();
       carregarOpcoes();
+      carregarQuemLeva();
     });
   </script>
 {% include "produtos/_atalho_voltar_pdv.html" %}

@@ -1,0 +1,126 @@
+{# Ajuda alinhada ao AGENTS.md §9 — use {% with rh_help="slug" %}{% include ... %}{% endwith %} #}
+{% if rh_help == "fechamento_salario_zero" %}
+<details class="rh-help-agents rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+  <summary class="min-h-[44px] cursor-pointer select-none font-black uppercase text-amber-950 text-xs tracking-wide list-none flex items-center gap-2"><span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-amber-600 bg-white text-base" aria-hidden="true">?</span> Por que salário está R$ 0?</summary>
+  <div class="mt-2 space-y-2 font-semibold leading-snug border-t border-amber-200 pt-2">
+    <p>Sem histórico: cadastre a primeira faixa na <strong>ficha do funcionário</strong> (seção salário).</p>
+    <p>Com histórico: confira se a <strong>vigência</strong> cobre o <strong>último dia do mês</strong> da competência; ajuste as datas se a faixa tiver acabado antes.</p>
+    <p class="text-xs text-amber-900/80">AGENTS.md §9.0</p>
+  </div>
+</details>
+{% endif %}
+
+{% if rh_help == "fechamento_cards_legenda" %}
+<details class="rh-help-agents rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+  <summary class="min-h-[44px] cursor-pointer select-none font-black uppercase text-slate-800 text-xs tracking-wide list-none flex items-center gap-2"><span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-slate-400 bg-white text-base" aria-hidden="true">?</span> Legenda dos cartões — texto completo</summary>
+  <div class="mt-2 space-y-2 font-semibold leading-snug border-t border-slate-200 pt-2">
+    <p>Os quatro cartões mostram só a <strong>folha</strong> da competência (mês indicado no título, até o último dia desse mês).</p>
+    <p>O passo <strong>2</strong> (bloco verde) é <strong>opcional</strong>: use apenas se quiser que esse salário apareça nas <strong>contas a pagar</strong> do financeiro (Mongo), com data de vencimento.</p>
+    <p class="text-xs text-slate-500">Fonte de documentação: <strong>AGENTS.md</strong> no repositório, seção 9.1.</p>
+  </div>
+</details>
+{% endif %}
+
+{% if rh_help == "fechamento_itens_folha" %}
+<details class="rh-help-agents rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+  <summary class="min-h-[44px] cursor-pointer select-none font-black uppercase text-slate-800 text-xs tracking-wide list-none flex items-center gap-2"><span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-slate-400 bg-slate-50 text-base" aria-hidden="true">?</span> Como a lista de itens funciona</summary>
+  <div class="mt-2 space-y-2 font-semibold leading-snug border-t border-slate-100 pt-2">
+    <p>Esta lista é a <strong>composição da folha</strong>: salário base, vales do mês, descontos e proventos informados no passo 1, etc.</p>
+    <p>Se estiver vazia, use <strong>Salvar e recalcular</strong> no passo 1 (com folha aberta) para regenerar os itens.</p>
+    <p class="text-xs text-slate-500">AGENTS.md §9.2</p>
+  </div>
+</details>
+{% endif %}
+
+{% if rh_help == "fechamento_passo1" %}
+<details class="rh-help-agents rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+  <summary class="min-h-[44px] cursor-pointer select-none font-black uppercase text-slate-800 text-xs tracking-wide list-none flex items-center gap-2"><span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-slate-400 bg-white text-base" aria-hidden="true">?</span> Passo 1 — o que editar</summary>
+  <div class="mt-2 space-y-2 font-semibold leading-snug border-t border-slate-200 pt-2">
+    <p>Aqui entram <strong>descontos extras</strong>, <strong>proventos</strong>, <strong>observações</strong> e ajustes de <strong>status</strong> / valor pago de controle, conforme os campos do formulário.</p>
+    <p>Depois de alterar, clique em <strong>Salvar e recalcular</strong> para atualizar totais e itens da folha.</p>
+    <p class="text-xs text-slate-500">AGENTS.md §9.3</p>
+  </div>
+</details>
+{% endif %}
+
+{% if rh_help == "fechamento_passo2" %}
+<details class="rh-help-agents rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-sm text-slate-800">
+  <summary class="min-h-[44px] cursor-pointer select-none font-black uppercase text-emerald-950 text-xs tracking-wide list-none flex items-center gap-2"><span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-base text-emerald-800" aria-hidden="true">?</span> Passo 2 — conta a pagar (texto completo)</summary>
+  <div class="mt-2 space-y-2 font-semibold leading-snug border-t border-emerald-200 pt-2">
+    <p>Use este bloco <strong>só se quiser</strong> que o salário desta competência apareça nas <strong>contas a pagar</strong> do financeiro (Mongo), com uma <strong>data de vencimento</strong> visível em Lançamentos.</p>
+    <p>Cada <strong>vale</strong> lançado na ficha ou no <strong>caixa</strong> entra como <strong>pagamento parcial</strong> desse mesmo título — não abre outra despesa de “vale”.</p>
+    <p>A <strong>forma de pagamento</strong> pode ficar em <strong>branco</strong> até quitar; a <strong>conta / banco</strong> é obrigatória para gerar o título. Contas placeholder do tipo <strong>«ADICIONAR BANCO»</strong> aparecem no <strong>topo</strong> da lista quando configuradas (<code>AGRO_FINANCEIRO_BANCO_PLACEHOLDER_ID</code> no <code>.env</code> se o ID do ERP for diferente do padrão).</p>
+    <p class="text-xs text-slate-600">AGENTS.md §9.4</p>
+  </div>
+</details>
+{% endif %}
+
+{% if rh_help == "fechamento_passo2_tecnica" %}
+<details class="rh-help-agents rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+  <summary class="min-h-[44px] cursor-pointer select-none font-black uppercase text-slate-700 tracking-wide list-none flex items-center gap-2"><span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-slate-400 bg-white text-sm" aria-hidden="true">?</span> Ajuda técnica (plano Mongo / ID)</summary>
+  <div class="mt-2 space-y-2 font-semibold leading-snug border-t border-slate-200 pt-2">
+    <p>Plano de conta usado no título: <code class="bg-white px-1 rounded border">{{ plano_salario_folha_hint }}</code>. Se no ERP o texto for outro, defina <code class="bg-white px-1 rounded border">AGRO_RH_PLANO_SALARIO_FOLHA</code> no ambiente.</p>
+    {% if fechamento.mongo_lancamento_salario_id %}
+    <p class="font-mono text-[11px]">ID do lançamento: {{ fechamento.mongo_lancamento_salario_id }}</p>
+    {% endif %}
+    <p class="text-[11px] text-slate-500">AGENTS.md §9.5</p>
+  </div>
+</details>
+{% endif %}
+
+{% if rh_help == "fechamento_passo3" %}
+<details class="rh-help-agents rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+  <summary class="min-h-[44px] cursor-pointer select-none font-black uppercase text-slate-800 text-xs tracking-wide list-none flex items-center gap-2"><span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-slate-400 bg-slate-50 text-base" aria-hidden="true">?</span> Passo 3 — fechar, pago, reabrir, excluir</summary>
+  <div class="mt-2 space-y-2 font-semibold leading-snug border-t border-slate-100 pt-2">
+    <p><strong>Fechar folha</strong> e <strong>Marcar pago</strong> são só <strong>controle interno</strong> do RH neste sistema; não substituem o pagamento real no banco nem a baixa no ERP.</p>
+    <p><strong>Reabrir folha</strong> volta o status para Aberto (e zera o valor pago de controle se estava como Pago).</p>
+    <p><strong>Excluir competência</strong> só é permitido sem título de salário vinculado no financeiro; com título, reabra e ajuste no financeiro se necessário.</p>
+    <p class="text-xs text-slate-500">AGENTS.md §9.6</p>
+  </div>
+</details>
+{% endif %}
+
+{% if rh_help == "ficha_onde_cadastrar" %}
+<details class="rh-help-agents rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-800">
+  <summary class="min-h-[44px] cursor-pointer select-none font-black uppercase text-emerald-900 text-xs tracking-wide list-none flex items-center gap-2"><span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-emerald-600 bg-emerald-50 text-base text-emerald-800" aria-hidden="true">?</span> Onde estão salário e vales</summary>
+  <div class="mt-2 space-y-2 font-semibold leading-snug border-t border-emerald-100 pt-2">
+    <p>Os formulários ficam nas <strong>faixas numeradas</strong> abaixo dos números resumo. <strong>Toque na faixa inteira</strong> (título ou “Tocar para expandir”) para abrir.</p>
+    <p>Use os botões de atalho para rolar até a seção e abrir automaticamente.</p>
+    <p class="text-xs text-slate-500">AGENTS.md §9.7</p>
+  </div>
+</details>
+{% endif %}
+
+{% if rh_help == "ficha_salario_linha" %}
+<details class="rh-help-agents mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+  <summary class="min-h-[40px] cursor-pointer select-none font-black uppercase text-slate-700 text-[11px] tracking-wide list-none flex items-center gap-2"><span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-slate-400 bg-white text-sm" aria-hidden="true">?</span> Histórico salarial — explicação</summary>
+  <div class="mt-2 font-semibold leading-snug border-t border-slate-200 pt-2 text-xs">
+    <p>Ao registrar uma nova faixa, a vigência anterior é <strong>encerrada na data informada</strong> e abre a nova — o histórico anterior não é apagado.</p>
+    <p class="text-slate-500">AGENTS.md §9.8</p>
+  </div>
+</details>
+{% endif %}
+
+{% if rh_help == "ficha_vales" %}
+<details class="rh-help-agents mb-3 rounded-lg border border-orange-200 bg-orange-50/60 px-3 py-2 text-sm text-slate-800">
+  <summary class="min-h-[44px] cursor-pointer select-none font-black uppercase text-orange-950 text-xs tracking-wide list-none flex items-center gap-2"><span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-orange-500 bg-white text-base text-orange-800" aria-hidden="true">?</span> Vales e financeiro — texto completo</summary>
+  <div class="mt-2 space-y-2 font-semibold leading-snug border-t border-orange-200 pt-2 text-xs">
+    <p>Com <strong>financeiro</strong> marcado: precisa existir o <strong>título de salário</strong> gerado no <strong>fechamento</strong> daquele mês; o vale entra como <strong>pagamento parcial</strong> desse lançamento no Mongo.</p>
+    <p>Sem marcar financeiro: o vale fica <strong>só no RH</strong>, sem alterar o Mongo.</p>
+    <p>Formas e contas seguem o mesmo padrão da <strong>saída de caixa</strong>.</p>
+    <p>Na <strong>extrato</strong>, vales ativos têm campo <strong>Motivo</strong> (obrigatório, mín. 3 caracteres) e botão <strong>Cancelar vale</strong>. O registro permanece no banco como cancelado; totais e o <strong>ValorPago</strong> do título no Mongo são realinhados quando houver título daquele mês.</p>
+    <p class="text-slate-600">AGENTS.md §9.9</p>
+  </div>
+</details>
+{% endif %}
+
+{% if rh_help == "ficha_fechamentos_vazio" %}
+<details class="rh-help-agents rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+  <summary class="min-h-[44px] cursor-pointer select-none font-black uppercase text-slate-800 text-xs tracking-wide list-none flex items-center gap-2"><span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-slate-400 bg-white text-base" aria-hidden="true">?</span> Por que não aparece fechamento?</summary>
+  <div class="mt-2 space-y-2 font-semibold leading-snug border-t border-slate-200 pt-2 text-xs">
+    <p>O registro da competência costuma ser criado ao lançar um <strong>vale</strong> (nesta ficha ou no caixa), mas você pode <strong>abrir a folha do mês atual</strong> com o botão abaixo sem esperar vale.</p>
+    <p>No fechamento você define <strong>vencimento</strong> e título no financeiro (passo 2), se quiser.</p>
+    <p class="text-slate-500">AGENTS.md §9.10</p>
+  </div>
+</details>
+{% endif %}

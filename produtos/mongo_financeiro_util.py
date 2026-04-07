@@ -572,38 +572,80 @@ def lancamentos_montar_query_mongo(
     status: str = "abertos",
     vencimento_de: date | None = None,
     vencimento_ate: date | None = None,
+    competencia_de: date | None = None,
+    competencia_ate: date | None = None,
+    pagamento_de: date | None = None,
+    pagamento_ate: date | None = None,
     texto: str | None = None,
     excluir_planos_nomes: list[str] | None = None,
 ) -> dict[str, Any]:
-    base: dict[str, Any] = {"Despesa": bool(despesa)}
-
+    despesa_bool = bool(despesa)
     st = (status or "abertos").strip().lower()
-    if st == "abertos":
-        base["Pago"] = False
-        base.update(_filtro_sem_quitacao_registrada())
-    elif st == "quitados":
-        base.update(_filtro_quitado())
-    elif st != "todos":
+    if st not in ("abertos", "quitados", "todos"):
         st = "abertos"
-        base["Pago"] = False
-        base.update(_filtro_sem_quitacao_registrada())
 
     tz = timezone.get_current_timezone()
-    if vencimento_de is not None:
-        ini = timezone.make_aware(datetime.combine(vencimento_de, dtime.min), tz)
-        base.setdefault("DataVencimento", {})
-        if not isinstance(base["DataVencimento"], dict):
-            base["DataVencimento"] = {}
-        base["DataVencimento"]["$gte"] = ini
-    if vencimento_ate is not None:
-        fim = timezone.make_aware(datetime.combine(vencimento_ate, dtime.max), tz)
-        base.setdefault("DataVencimento", {})
-        if not isinstance(base["DataVencimento"], dict):
-            base["DataVencimento"] = {}
-        base["DataVencimento"]["$lte"] = fim
 
-    if base.get("DataVencimento") == {}:
-        del base["DataVencimento"]
+    dv: dict[str, Any] = {}
+    if vencimento_de is not None:
+        dv["$gte"] = timezone.make_aware(datetime.combine(vencimento_de, dtime.min), tz)
+    if vencimento_ate is not None:
+        dv["$lte"] = timezone.make_aware(datetime.combine(vencimento_ate, dtime.max), tz)
+
+    dc: dict[str, Any] = {}
+    if competencia_de is not None:
+        dc["$gte"] = timezone.make_aware(datetime.combine(competencia_de, dtime.min), tz)
+    if competencia_ate is not None:
+        dc["$lte"] = timezone.make_aware(datetime.combine(competencia_ate, dtime.max), tz)
+
+    dp: dict[str, Any] = {}
+    if pagamento_de is not None:
+        dp["$gte"] = timezone.make_aware(datetime.combine(pagamento_de, dtime.min), tz)
+    if pagamento_ate is not None:
+        dp["$lte"] = timezone.make_aware(datetime.combine(pagamento_ate, dtime.max), tz)
+    tem_filtro_pagamento = bool(dp)
+
+    base: dict[str, Any]
+
+    if tem_filtro_pagamento:
+        # Quitados com $or (Pago OU DataPagamento) fazia entrar título só com Pago=True e
+        # DataPagamento fora da janela / vazia — o intervalo de pagamento era ignorado na prática.
+        pay_filt: dict[str, Any] = dict(dp)
+        pay_filt["$gt"] = _SENTINEL
+        if st in ("quitados", "todos"):
+            base = {"Despesa": despesa_bool, "DataPagamento": pay_filt}
+            if dv:
+                base["DataVencimento"] = dv
+            if dc:
+                base["DataCompetencia"] = dc
+        else:
+            em_aberto: dict[str, Any] = {"Despesa": despesa_bool, "Pago": False}
+            em_aberto.update(_filtro_sem_quitacao_registrada())
+            partes_ab: list[dict[str, Any]] = [em_aberto, {"DataPagamento": pay_filt}]
+            if dv:
+                partes_ab.append({"DataVencimento": dv})
+            if dc:
+                partes_ab.append({"DataCompetencia": dc})
+            base = {"$and": partes_ab}
+    else:
+        base = {"Despesa": despesa_bool}
+        if st == "abertos":
+            base["Pago"] = False
+            base.update(_filtro_sem_quitacao_registrada())
+        elif st == "quitados":
+            base.update(_filtro_quitado())
+
+        range_parts: list[dict[str, Any]] = []
+        if dv:
+            range_parts.append({"DataVencimento": dv})
+        if dc:
+            range_parts.append({"DataCompetencia": dc})
+        if range_parts:
+            if "$or" in base:
+                base = {"$and": [base, *range_parts]}
+            else:
+                for part in range_parts:
+                    base.update(part)
 
     t = (texto or "").strip()
     if t:
@@ -720,6 +762,16 @@ def _lancamentos_sort_spec_list(
     return [("DataVencimento", 1), ("_id", 1)]
 
 
+def _mongo_expr_string_parece_objectid_mongo(s_trim: dict[str, Any]) -> dict[str, Any]:
+    """Expressão de agregação: true se a string tem 24 hex (ObjectId em texto), não Id de ERP."""
+    return {
+        "$and": [
+            {"$eq": [{"$strLenCP": s_trim}, 24]},
+            {"$regexMatch": {"input": s_trim, "regex": "^[a-fA-F0-9]{24}$"}},
+        ]
+    }
+
+
 def _lancamentos_mongo_stages_dedup_por_titulo_erp(
     sort_spec: list[tuple[str, int]],
     *,
@@ -727,27 +779,127 @@ def _lancamentos_mongo_stages_dedup_por_titulo_erp(
 ) -> list[dict[str, Any]]:
     """
     Um documento por título no ERP: evita linhas repetidas quando o Mongo recebeu o mesmo
-    DtoLancamento duas vezes (ex.: resync). Sem LancamentoID, cada BSON _id permanece único.
+    DtoLancamento duas vezes (ex.: resync).
+
+    Ordem da chave (alinhada ao DRE quando há Id de ERP):
+    1) ``Id`` não vazio e não parecendo ObjectId Mongo → dedup por título ERP;
+    2) ``LancamentoID`` + parcela;
+    3) ``NumeroLancamento`` + parcela (SisVale às vezes só preenche o número);
+    4) assinatura estável (favorecido, valor bruto, venc., plano, doc., parcela, pag., forma)
+       quando não há chave ERP — evita dupla inserção sem Id/LancamentoID/Número;
+    5) senão ``_id`` BSON (último recurso).
     """
+    id_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$Id", ""]}}}}
     lid_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$LancamentoID", ""]}}}}
+    nl_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$NumeroLancamento", ""]}}}}
+    parc = {"$toString": {"$ifNull": ["$NumeroParcela", 0]}}
+    id_erp_valido = {
+        "$and": [
+            {"$gt": [{"$strLenCP": id_trim}, 0]},
+            {"$not": [_mongo_expr_string_parece_objectid_mongo(id_trim)]},
+        ]
+    }
+    key_id = {"$concat": ["ID|", id_trim, "|P|", parc]}
+    key_lid = {"$concat": ["L|", lid_trim, "|P|", parc]}
+    key_nl = {"$concat": ["NL|", nl_trim, "|P|", parc]}
+    key_oid = {"$concat": ["O|", {"$toString": "$_id"}]}
+    cli_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$Cliente", ""]}}}}
+    plano_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$PlanoDeConta", ""]}}}}
+    doc_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$NumeroDocumento", ""]}}}}
+    forma_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$FormaPagamento", ""]}}}}
+    bruto_dedup = {
+        "$round": [
+            {
+                "$toDouble": {
+                    "$cond": [
+                        {"$eq": ["$Despesa", True]},
+                        {"$ifNull": ["$Saida", 0]},
+                        {"$ifNull": ["$Entrada", 0]},
+                    ]
+                }
+            },
+            2,
+        ]
+    }
+    dstr_venc_sig = {
+        "$cond": [
+            {
+                "$and": [
+                    {"$ne": ["$DataVencimento", None]},
+                    {"$gt": ["$DataVencimento", _SENTINEL]},
+                ]
+            },
+            {"$dateToString": {"format": "%Y-%m-%d", "date": "$DataVencimento"}},
+            "nod",
+        ]
+    }
+    dstr_pag_sig = {
+        "$cond": [
+            {
+                "$and": [
+                    {"$ne": [{"$ifNull": ["$DataPagamento", None]}, None]},
+                    {"$gt": ["$DataPagamento", _SENTINEL]},
+                ]
+            },
+            {"$dateToString": {"format": "%Y-%m-%d", "date": "$DataPagamento"}},
+            "np",
+        ]
+    }
+    desc_sig = {
+        "$substrCP": [
+            {"$trim": {"input": {"$toString": {"$ifNull": ["$Descricao", ""]}}}},
+            0,
+            200,
+        ]
+    }
+    key_sig = {
+        "$concat": [
+            "SIG|",
+            {"$toString": "$Despesa"},
+            "|",
+            cli_trim,
+            "|",
+            {"$toString": bruto_dedup},
+            "|",
+            dstr_venc_sig,
+            "|",
+            plano_trim,
+            "|",
+            doc_trim,
+            "|",
+            forma_trim,
+            "|",
+            parc,
+            "|",
+            dstr_pag_sig,
+            "|",
+            desc_sig,
+        ]
+    }
+    dup_key = {
+        "$cond": [
+            id_erp_valido,
+            key_id,
+            {
+                "$cond": [
+                    {"$gt": [{"$strLenCP": lid_trim}, 0]},
+                    key_lid,
+                    {
+                        "$cond": [
+                            {"$gt": [{"$strLenCP": nl_trim}, 0]},
+                            key_nl,
+                            key_sig,
+                        ]
+                    },
+                ]
+            },
+        ]
+    }
     return [
         *(pre_stages or []),
         {
             "$addFields": {
-                "_dupKey": {
-                    "$cond": [
-                        {"$gt": [{"$strLenCP": lid_trim}, 0]},
-                        {
-                            "$concat": [
-                                "L|",
-                                lid_trim,
-                                "|P|",
-                                {"$toString": {"$ifNull": ["$NumeroParcela", 0]}},
-                            ]
-                        },
-                        {"$concat": ["O|", {"$toString": "$_id"}]},
-                    ]
-                }
+                "_dupKey": dup_key,
             }
         },
         {"$sort": dict(sort_spec)},
@@ -1061,6 +1213,7 @@ def _listar_formas_e_bancos_modo_historico(db, limit: int) -> tuple[list[dict], 
         bid = i.get("bid")
         bancos.append({"id": _financeiro_id_para_string(bid), "nome": nome})
     bancos.sort(key=lambda x: x["nome"].lower())
+    bancos = _bancos_lista_com_placeholder_inicio(bancos)
     return formas, bancos
 
 
@@ -1160,6 +1313,7 @@ def _listar_formas_e_bancos_modo_erp(db, limit: int) -> tuple[list[dict], list[d
         if bid and nome:
             bancos.append({"id": bid, "nome": normalizar_rotulo_banco_erp(bid, nome)})
     bancos.sort(key=lambda x: x["nome"].lower())
+    bancos = _bancos_lista_com_placeholder_inicio(bancos)
     return formas, bancos
 
 
@@ -2588,6 +2742,25 @@ _SUGESTOES_CAMPOS = {
 _BANCO_ADICIONAR_ERP_FIXO = {"nome": "ADICIONAR BANCO", "id": "6990cf726c4d856abaa670c6"}
 
 
+def _banco_placeholder_para_select() -> dict[str, str]:
+    """Conta «a definir» do ERP — lista no Agro mesmo sendo filtrada nas agregações."""
+    bid = (getattr(settings, "AGRO_FINANCEIRO_BANCO_PLACEHOLDER_ID", None) or "").strip()
+    nome = (getattr(settings, "AGRO_FINANCEIRO_BANCO_PLACEHOLDER_NOME", None) or "").strip() or "ADICIONAR BANCO"
+    if bid:
+        return {"id": bid, "nome": nome}
+    return dict(_BANCO_ADICIONAR_ERP_FIXO)
+
+
+def _bancos_lista_com_placeholder_inicio(bancos: list[dict]) -> list[dict]:
+    ph = _banco_placeholder_para_select()
+    pid = str(ph.get("id") or "").strip()
+    if not pid:
+        return bancos
+    if any(str(x.get("id") or "").strip() == pid for x in bancos):
+        return bancos
+    return [ph, *bancos]
+
+
 def lancamentos_sugestoes_campo(
     db,
     campo: str,
@@ -2633,9 +2806,10 @@ def lancamentos_sugestoes_campo(
                 break
         out.sort(key=lambda x: x["nome"].lower())
         if campo == "banco":
-            fid = str(_BANCO_ADICIONAR_ERP_FIXO.get("id") or "")
-            if fid and not any(str(x.get("id") or "") == fid for x in out):
-                out.insert(0, dict(_BANCO_ADICIONAR_ERP_FIXO))
+            ph = _banco_placeholder_para_select()
+            pid = str(ph.get("id") or "")
+            if pid and not any(str(x.get("id") or "") == pid for x in out):
+                out.insert(0, ph)
     except Exception as exc:
         logger.exception("lancamentos_sugestoes_campo: %s", exc)
     return out[:lim]
@@ -2801,6 +2975,10 @@ def lancamentos_planos_distintos_no_filtro(
     status: str,
     vencimento_de: date | None = None,
     vencimento_ate: date | None = None,
+    competencia_de: date | None = None,
+    competencia_ate: date | None = None,
+    pagamento_de: date | None = None,
+    pagamento_ate: date | None = None,
     texto: str | None = None,
     limit: int = 400,
 ) -> list[dict[str, str]]:
@@ -2812,6 +2990,10 @@ def lancamentos_planos_distintos_no_filtro(
         status=status,
         vencimento_de=vencimento_de,
         vencimento_ate=vencimento_ate,
+        competencia_de=competencia_de,
+        competencia_ate=competencia_ate,
+        pagamento_de=pagamento_de,
+        pagamento_ate=pagamento_ate,
         texto=texto,
     )
     lim = min(max(int(limit or 400), 1), 500)

@@ -112,14 +112,86 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 **Lançamentos — ordenação por coluna**  
 - Backend hoje: principalmente `vencimento_asc` / `vencimento_desc` / `fluxo_desc` em `mongo_financeiro_util.py`. Ordenar **todas** as colunas no servidor exige estender o aggregate; sort só no cliente **não** substitui paginação global.
 
+**RH — fechamento e ficha (`rh_help_agents.html` + §9)**  
+- Textos explicativos longos em **«?»** (`<details>`); conteúdo canônico espelhado em **AGENTS.md §9** e no include `rh/templates/rh/includes/rh_help_agents.html`.  
+- Tela de fechamento: passos **1–3**, legenda e itens da folha em **guias recolhíveis** (`<details>`).
+
+**RH — cancelar vale na ficha**  
+- Botão **Cancelar** no extrato (`rh_funcionario_vale_cancelar`): `cancelado=True`, recalcula folhas abertas, tenta `sincronizar_valores_titulo_salario_mongo` na competência do vale. Alternativa: **Admin** Django em *Vales / adiantamentos*.
+
 ---
 
 ## 8. Manutenção deste arquivo
 
 - Atualizar **§7** quando houver decisão de produto relevante.
 - Atualizar **§3** se `produtos/urls.py` ganhar rotas importantes (ou referenciar “ver arquivo”).
+- Atualizar **§9** quando mudar textos de ajuda do RH em tela (manter alinhado a `rh/templates/rh/includes/rh_help_agents.html`).
 - Evitar duplicar **cada** template aqui — manter mapa enxuto.
 
 ---
 
-*Última revisão estrutural: documento inicial + mapa de rotas a partir de `produtos/urls.py` e `config/urls.py`.*
+## 9. Ajuda em tela — RH (fonte para o `?`)
+
+Textos longos nas telas **Fechamento de folha** e **Ficha do funcionário** ficam em blocos **«?»** (elemento `<details>`). O HTML vivo está em **`rh/templates/rh/includes/rh_help_agents.html`**; esta seção é o espelho em Markdown para humanos e para `@AGENTS.md`.
+
+### 9.0 Salário R$ 0 no fechamento
+
+- Sem histórico salarial na ficha: cadastrar a primeira faixa na ficha (seção salário).
+- Com histórico: conferir se a **vigência** cobre o **último dia do mês** da competência; corrigir datas se a faixa tiver terminado antes.
+
+### 9.1 Legenda dos cartões (fechamento)
+
+- Os quatro cartões mostram só a **folha** da competência (mês do título, até o último dia desse mês).
+- O passo **2** (bloco verde) é **opcional**: usar só se quiser lançar o salário nas **contas a pagar** do financeiro (Mongo), com vencimento.
+
+### 9.2 Itens da folha
+
+- Lista = **composição da folha** (salário base, vales do mês, descontos/proventos do passo 1, etc.).
+- Se vazia: no passo 1 (folha aberta), usar **Salvar e recalcular**.
+
+### 9.3 Passo 1 — Ajustes da folha
+
+- Campos para descontos extras, proventos, observações e ajustes de status / valor pago de controle.
+- Após alterar: **Salvar e recalcular** para atualizar totais e itens.
+
+### 9.4 Passo 2 — Conta a pagar no financeiro
+
+- Opcional: faz o salário da competência aparecer nas **contas a pagar** (Mongo) com **data de vencimento** em Lançamentos.
+- Cada **vale** (ficha ou caixa) é **pagamento parcial** do mesmo título; não cria outra despesa de “vale”.
+- **Forma de pagamento** pode ficar em **branco** até quitar; **conta/banco** é obrigatória para gerar o título.
+- Conta placeholder tipo **«ADICIONAR BANCO»** aparece no **topo** da lista quando configurada (`AGRO_FINANCEIRO_BANCO_PLACEHOLDER_ID` no `.env` se o ID do ERP for diferente do padrão embutido).
+
+### 9.5 Passo 2 — Ajuda técnica (plano Mongo)
+
+- Plano do título: variável de ambiente **`AGRO_RH_PLANO_SALARIO_FOLHA`** (texto igual ao cadastro no ERP/Mongo).
+- Quando já existe lançamento, o **ID** do título é exibido na própria tela (ajuda técnica).
+
+### 9.6 Passo 3 — Encerrar e correções
+
+- **Fechar** e **Marcar pago** são só **controle interno** do RH; não substituem pagamento no banco nem baixa no ERP.
+- **Reabrir folha** volta para Aberto e zera valor pago de controle se estava Pago.
+- **Excluir competência** só sem título de salário vinculado no financeiro.
+
+### 9.7 Ficha — onde estão salário e vales
+
+- Formulários nas **faixas numeradas** abaixo dos cartões; **tocar na faixa** para expandir. Atalhos rolam e abrem a seção.
+
+### 9.8 Ficha — histórico salarial
+
+- Nova faixa **encerra** a vigência anterior na data informada e abre a nova; histórico anterior **não** é apagado.
+
+### 9.9 Ficha — vales e financeiro
+
+- Com **financeiro** marcado: precisa existir **título de salário** no **fechamento** daquele mês; vale = **baixa parcial** no Mongo.
+- Sem financeiro: vale só no RH.
+- Formas/contas como na **saída de caixa**.
+- **Cancelar vale** (coluna Ações no extrato): exige **motivo** (mín. 3 caracteres); marca o vale como cancelado (não apaga a linha). Folhas **abertas** são recalculadas; se existir título Mongo na competência do vale, roda **sincronizar** para realinhar **ValorPago**. Conferir no financeiro se aparecer aviso de falha.
+
+### 9.10 Ficha — lista de fechamentos vazia
+
+- Competência costuma ser criada ao lançar **vale** (ficha ou caixa), ou pelo botão **Abrir folha do mês atual**.
+- No fechamento: **vencimento** e título no financeiro no passo 2, se desejado.
+
+---
+
+*Última revisão estrutural: documento inicial + mapa de rotas a partir de `produtos/urls.py` e `config/urls.py`; §9 ajuda RH.*
