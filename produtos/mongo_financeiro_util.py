@@ -402,6 +402,18 @@ def _restante_a_receber(doc: dict) -> Decimal:
     return r if r > 0 else Decimal("0")
 
 
+def _lancamento_quitado_totalmente(doc: dict) -> bool:
+    """
+    Quitação total no negócio: flag Pago ou saldo residual ≤ tolerância.
+    ``DataPagamento`` sozinha não indica quitação (ERP e Agro gravam data em parcelas parciais).
+    """
+    if bool(doc.get("Pago")):
+        return True
+    if bool(doc.get("Despesa")):
+        return float(_restante_a_pagar(doc)) <= 0.02
+    return float(_restante_a_receber(doc)) <= 0.02
+
+
 def _mongo_expr_valor_realizado_receita() -> dict[str, Any]:
     """Expressão Mongo (aggregate) equivalente a ``_valor_realizado_receita_dec``."""
     soma_rv: dict[str, Any] = {
@@ -475,12 +487,20 @@ def _mongo_expr_dre_dedup_key() -> dict[str, Any]:
     }
 
 
-def _filtro_sem_quitacao_registrada():
+def _mongo_expr_restante_max0_inner(despesa: bool) -> dict[str, Any]:
+    """Expressão BSON: max(0, saldo em aberto) — espelha ``_restante_a_pagar`` / ``_restante_a_receber``."""
+    if despesa:
+        return {
+            "$max": [
+                0,
+                {"$subtract": [{"$ifNull": ["$Saida", 0]}, {"$ifNull": ["$ValorPago", 0]}]},
+            ]
+        }
+    mov = _mongo_expr_valor_realizado_receita()
     return {
-        "$or": [
-            {"DataPagamento": {"$exists": False}},
-            {"DataPagamento": None},
-            {"DataPagamento": {"$lte": _SENTINEL}},
+        "$max": [
+            0,
+            {"$subtract": [{"$ifNull": ["$Entrada", 0]}, mov]},
         ]
     }
 
@@ -494,19 +514,26 @@ def obter_vencimentos_abertos_dia_mongo(db, dia=None) -> tuple[Decimal, Decimal]
     inicio = timezone.make_aware(datetime.combine(dia, dtime.min), tz)
     fim = timezone.make_aware(datetime.combine(dia, dtime.max), tz)
 
-    q_base = {
+    q_pagar = {
         "DataVencimento": {"$gte": inicio, "$lte": fim, "$gt": _SENTINEL},
         "Pago": False,
-        **_filtro_sem_quitacao_registrada(),
+        "Despesa": True,
+        "$expr": {"$gt": [_mongo_expr_restante_max0_inner(True), 0.02]},
+    }
+    q_receb = {
+        "DataVencimento": {"$gte": inicio, "$lte": fim, "$gt": _SENTINEL},
+        "Pago": False,
+        "Despesa": False,
+        "$expr": {"$gt": [_mongo_expr_restante_max0_inner(False), 0.02]},
     }
 
     total_pagar = Decimal("0")
     total_receber = Decimal("0")
 
     try:
-        for doc in db[COL_DTO_LANCAMENTO].find({**q_base, "Despesa": True}):
+        for doc in db[COL_DTO_LANCAMENTO].find(q_pagar):
             total_pagar += _restante_a_pagar(doc)
-        for doc in db[COL_DTO_LANCAMENTO].find({**q_base, "Despesa": False}):
+        for doc in db[COL_DTO_LANCAMENTO].find(q_receb):
             total_receber += _restante_a_receber(doc)
     except Exception as exc:
         logger.exception("obter_vencimentos_abertos_dia_mongo: %s", exc)
@@ -515,11 +542,13 @@ def obter_vencimentos_abertos_dia_mongo(db, dia=None) -> tuple[Decimal, Decimal]
     return total_pagar.quantize(Decimal("0.01")), total_receber.quantize(Decimal("0.01"))
 
 
-def _filtro_quitado():
+def _filtro_quitado(despesa: bool) -> dict[str, Any]:
+    """Título quitado no negócio (não confundir com parcial que tenha ``DataPagamento`` preenchida)."""
+    rest = _mongo_expr_restante_max0_inner(despesa)
     return {
         "$or": [
             {"Pago": True},
-            {"DataPagamento": {"$exists": True, "$gt": _SENTINEL}},
+            {"$expr": {"$lte": [rest, 0.02]}},
         ]
     }
 
@@ -564,6 +593,64 @@ def _data_vencimento_local_doc(doc: dict) -> date | None:
     if timezone.is_naive(dv):
         dv = timezone.make_aware(dv, tz)
     return timezone.localtime(dv).date()
+
+
+def _lancamentos_lista_dias_intervalo(p_de: date | None, p_ate: date | None) -> list[date]:
+    """Dias inclusivos do filtro de pagamento (para casar texto ``Agro parc. DD/MM/AAAA`` nas observações)."""
+    if p_de is None and p_ate is None:
+        return []
+    if p_de is None:
+        return [p_ate]  # p_ate definido: ambos None já retornou acima
+    if p_ate is None:
+        return [p_de]
+    a, b = p_de, p_ate
+    if a > b:
+        a, b = b, a
+    out: list[date] = []
+    cur = a
+    for _ in range(400):
+        out.append(cur)
+        if cur == b:
+            break
+        cur = cur + timedelta(days=1)
+    return out
+
+
+def _lancamentos_or_datapagamento_ou_obs_parcial_agro(
+    despesa_bool: bool,
+    pay_filt: dict[str, Any],
+    pagamento_de: date | None,
+    pagamento_ate: date | None,
+) -> dict[str, Any]:
+    """
+    Filtro por data de pagamento: ``DataPagamento`` no intervalo **ou** parcial feita no Agro com
+    data só nas ``Observacoes`` (quando o ERP/sync deixa ``DataPagamento`` em 0001-01-01).
+    """
+    dias = _lancamentos_lista_dias_intervalo(pagamento_de, pagamento_ate)
+    if not dias:
+        return {"DataPagamento": pay_filt}
+    obs_parts: list[dict[str, Any]] = [
+        {"Observacoes": {"$regex": re.escape(f"Agro parc. {d.strftime('%d/%m/%Y')}")}}
+        for d in dias
+    ]
+    obs_or: dict[str, Any] = obs_parts[0] if len(obs_parts) == 1 else {"$or": obs_parts}
+    invalid_dp = {
+        "$or": [
+            {"DataPagamento": {"$exists": False}},
+            {"DataPagamento": None},
+            {"DataPagamento": {"$lte": _SENTINEL}},
+        ]
+    }
+    parcial_obs: dict[str, Any] = {
+        "$and": [
+            {"Despesa": despesa_bool},
+            {"Pago": False},
+            {"ValorPago": {"$gt": 0.02}},
+            invalid_dp,
+            obs_or,
+        ]
+    }
+    return {"$or": [{"DataPagamento": pay_filt}, parcial_obs]}
 
 
 def lancamentos_montar_query_mongo(
@@ -612,28 +699,52 @@ def lancamentos_montar_query_mongo(
         # DataPagamento fora da janela / vazia — o intervalo de pagamento era ignorado na prática.
         pay_filt: dict[str, Any] = dict(dp)
         pay_filt["$gt"] = _SENTINEL
-        if st in ("quitados", "todos"):
+        if st == "quitados":
             base = {"Despesa": despesa_bool, "DataPagamento": pay_filt}
             if dv:
                 base["DataVencimento"] = dv
             if dc:
                 base["DataCompetencia"] = dc
-        else:
-            em_aberto: dict[str, Any] = {"Despesa": despesa_bool, "Pago": False}
-            em_aberto.update(_filtro_sem_quitacao_registrada())
-            partes_ab: list[dict[str, Any]] = [em_aberto, {"DataPagamento": pay_filt}]
+        elif st == "todos":
+            pay_or = _lancamentos_or_datapagamento_ou_obs_parcial_agro(
+                despesa_bool, pay_filt, pagamento_de, pagamento_ate
+            )
+            partes_td: list[dict[str, Any]] = [{"Despesa": despesa_bool}, pay_or]
             if dv:
-                partes_ab.append({"DataVencimento": dv})
+                partes_td.append({"DataVencimento": dv})
             if dc:
-                partes_ab.append({"DataCompetencia": dc})
-            base = {"$and": partes_ab}
+                partes_td.append({"DataCompetencia": dc})
+            base = {"$and": partes_td}
+        else:
+            pay_or = _lancamentos_or_datapagamento_ou_obs_parcial_agro(
+                despesa_bool, pay_filt, pagamento_de, pagamento_ate
+            )
+            em_aberto: dict[str, Any] = {
+                "$and": [
+                    {
+                        "Despesa": despesa_bool,
+                        "Pago": False,
+                        "$expr": {"$gt": [_mongo_expr_restante_max0_inner(despesa_bool), 0.02]},
+                    },
+                    pay_or,
+                ]
+            }
+            if dv or dc:
+                partes_ab: list[dict[str, Any]] = [em_aberto]
+                if dv:
+                    partes_ab.append({"DataVencimento": dv})
+                if dc:
+                    partes_ab.append({"DataCompetencia": dc})
+                base = {"$and": partes_ab}
+            else:
+                base = em_aberto
     else:
         base = {"Despesa": despesa_bool}
         if st == "abertos":
             base["Pago"] = False
-            base.update(_filtro_sem_quitacao_registrada())
+            base["$expr"] = {"$gt": [_mongo_expr_restante_max0_inner(despesa_bool), 0.02]}
         elif st == "quitados":
-            base.update(_filtro_quitado())
+            base.update(_filtro_quitado(despesa_bool))
 
         range_parts: list[dict[str, Any]] = []
         if dv:
@@ -900,9 +1011,17 @@ def _lancamentos_mongo_stages_dedup_por_titulo_erp(
         {
             "$addFields": {
                 "_dupKey": dup_key,
+                # Mesmo título ERP pode existir em 2+ documentos (resync). $first após sort por
+                # vencimento mantinha a cópia antiga e “apagava” baixa/DataPagamento feitos no Agro.
+                "_gmDedupOrd": {
+                    "$ifNull": [
+                        "$LastUpdate",
+                        {"$ifNull": ["$DataModificacao", _SENTINEL]},
+                    ]
+                },
             }
         },
-        {"$sort": dict(sort_spec)},
+        {"$sort": {"_dupKey": 1, "_gmDedupOrd": -1, "_id": -1}},
         {"$group": {"_id": "$_dupKey", "_dedup": {"$first": "$$ROOT"}}},
         {"$replaceRoot": {"newRoot": "$_dedup"}},
         {"$sort": dict(sort_spec)},
@@ -1035,7 +1154,7 @@ def _lancamento_pode_excluir_agro(doc: dict, quitado: bool, valor_mov: float) ->
 
 def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
     dp = doc.get("DataPagamento")
-    quitado = bool(doc.get("Pago")) or _dt_efetiva(dp)
+    quitado = _lancamento_quitado_totalmente(doc)
     if despesa:
         restante = _restante_a_pagar(doc)
         bruto = float(_dec(doc.get("Saida")))
@@ -1076,7 +1195,7 @@ def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
         "data_vencimento": _serializar_dt(doc.get("DataVencimento")),
         "data_competencia": _serializar_dt(doc.get("DataCompetencia")),
         "data_fluxo": _serializar_dt(doc.get("DataFluxo")),
-        "data_pagamento": _serializar_dt(dp) if quitado else None,
+        "data_pagamento": _serializar_dt(dp) if _dt_efetiva(dp) else None,
         # aliases para compatibilidade com tela antiga
         "valor_previsto": round(bruto, 2),
         "valor_pago": round(float(mov), 2),
@@ -1140,6 +1259,7 @@ def lancamentos_buscar_pagina(
         linhas = []
         for d in page_docs:
             d.pop("_dupKey", None)
+            d.pop("_gmDedupOrd", None)
             linhas.append(lancamento_para_api(d, despesa))
         return linhas, total, totais
     except Exception as exc:
@@ -1392,7 +1512,7 @@ def baixar_lancamentos_mongo(
             continue
 
         if despesa:
-            if doc.get("Pago") or _dt_efetiva(doc.get("DataPagamento")):
+            if _lancamento_quitado_totalmente(doc):
                 res_err.append({"id": sid, "erro": "Já quitado"})
                 continue
             saida = float(_dec(doc.get("Saida")))
@@ -1417,7 +1537,7 @@ def baixar_lancamentos_mongo(
                 },
             )
         else:
-            if doc.get("Pago") or _dt_efetiva(doc.get("DataPagamento")):
+            if _lancamento_quitado_totalmente(doc):
                 res_err.append({"id": sid, "erro": "Já recebido/quitado"})
                 continue
             entrada = float(_dec(doc.get("Entrada")))
@@ -1504,7 +1624,7 @@ def baixar_lancamento_parcial_mongo(
         for p in raw
     )
     if despesa:
-        if doc.get("Pago") or _dt_efetiva(doc.get("DataPagamento")):
+        if _lancamento_quitado_totalmente(doc):
             return {"ok": False, "id": str(oid), "erro": "Título já quitado", "quitado": False}
         rest_ini = float(_restante_a_pagar(doc))
         if rest_ini <= 0 or soma_par > rest_ini + 0.02:
@@ -1515,7 +1635,7 @@ def baixar_lancamento_parcial_mongo(
                 "quitado": False,
             }
     else:
-        if doc.get("Pago") or _dt_efetiva(doc.get("DataPagamento")):
+        if _lancamento_quitado_totalmente(doc):
             return {"ok": False, "id": str(oid), "erro": "Título já quitado/recebido", "quitado": False}
         rest_ini = float(_restante_a_receber(doc))
         entrada = float(_dec(doc.get("Entrada")))
@@ -1588,6 +1708,7 @@ def baixar_lancamento_parcial_mongo(
                     {
                         "$set": {
                             "Pago": False,
+                            "DataPagamento": data_movimento,
                             "ValorPago": novo_vp,
                             "FormaPagamento": ultima_forma,
                             "FormaPagamentoID": ultima_fid,
@@ -1630,6 +1751,7 @@ def baixar_lancamento_parcial_mongo(
                     {
                         "$set": {
                             "Pago": False,
+                            "DataPagamento": data_movimento,
                             "ValorPago": novo_vp,
                             "FormaPagamento": ultima_forma,
                             "FormaPagamentoID": ultima_fid,
@@ -2614,6 +2736,16 @@ def lancamento_titulos_payload_baixa_erp(
     titulos: list[dict[str, Any]] = []
     for doc in lancamentos_carregar_por_ids(db, mongo_ids):
         sub = lancamento_doc_subset_erp(doc)
+        if parcial and isinstance(payload_ui, dict):
+            ds = str(payload_ui.get("data_movimento") or "").strip()[:10]
+            if ds:
+                try:
+                    dmv = date.fromisoformat(ds)
+                    tz = timezone.get_current_timezone()
+                    dta = timezone.make_aware(datetime.combine(dmv, dtime(12, 0, 0)), tz)
+                    sub["DataPagamento"] = _json_safe_erp_value(dta)
+                except ValueError:
+                    pass
         desp = bool(doc.get("Despesa"))
         try:
             if desp:
@@ -3255,8 +3387,7 @@ def excluir_lancamento_mongo_agro(db, lancamento_id: str, usuario_label: str) ->
     doc = col.find_one({"_id": oid})
     if not doc:
         return {"ok": False, "erro": "Lançamento não encontrado"}
-    dp = doc.get("DataPagamento")
-    quitado = bool(doc.get("Pago")) or _dt_efetiva(dp)
+    quitado = _lancamento_quitado_totalmente(doc)
     mov = float(_dec(doc.get("ValorPago")))
     if not bool(doc.get("Despesa")):
         mov = float(
@@ -3297,8 +3428,7 @@ def atualizar_lancamento_mongo_agro(
     doc = col.find_one({"_id": oid})
     if not doc:
         return {"ok": False, "erro": "Lançamento não encontrado"}
-    dp = doc.get("DataPagamento")
-    quitado = bool(doc.get("Pago")) or _dt_efetiva(dp)
+    quitado = _lancamento_quitado_totalmente(doc)
     if quitado:
         return {"ok": False, "erro": "Não é possível alterar título quitado."}
     despesa = bool(doc.get("Despesa"))

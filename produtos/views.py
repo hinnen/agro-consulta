@@ -57,6 +57,7 @@ from .rota_entregas_geo import ordenar_entregas_por_proximidade
 from .lancamentos_financeiro_pdf import montar_pdf_financeiro_padrao
 from .lancamentos_financeiro_xlsx import montar_planilha_financeiro_padrao
 from .mongo_financeiro_util import (
+    COL_DTO_LANCAMENTO,
     atualizar_lancamento_mongo_agro,
     baixar_lancamento_parcial_mongo,
     baixar_lancamentos_mongo,
@@ -3089,6 +3090,16 @@ def api_lancamentos_baixa_parcial(request):
         except Exception as exc:
             out_j["erp_baixa_ok"] = False
             out_j["aviso_api"] = str(exc)[:800]
+    # Resposta do ERP/sync pode regravar o DtoLancamento com DataPagamento = data mínima (.NET).
+    if resultado.get("ok") and resultado.get("id") and not resultado.get("quitado"):
+        try:
+            oid = ObjectId(str(resultado["id"]).strip())
+            db[COL_DTO_LANCAMENTO].update_one(
+                {"_id": oid},
+                {"$set": {"DataPagamento": data_movimento, "LastUpdate": timezone.now()}},
+            )
+        except Exception:
+            logger.exception("api_lancamentos_baixa_parcial: reaplicar DataPagamento após ERP")
     return JsonResponse(out_j, status=200)
 
 
