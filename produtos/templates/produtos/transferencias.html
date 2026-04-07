@@ -462,19 +462,21 @@
                 }
 
                 let acoesHTML = `
-                    <div class="flex items-center justify-center gap-2">
+                    <div class="flex flex-wrap items-center justify-center gap-2">
+                        <button type="button" onclick="transferirVilaParaCentroAgro('${item.produto_id}')" class="inline-flex items-center justify-center min-w-[3rem] h-11 px-1.5 rounded-2xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300 shadow-sm text-[9px] font-black uppercase leading-tight text-center" title="Registra Vila Elias → Centro no Agro (saldo operacional). Não envia movimento ao ERP.">Vila→C</button>
                         <button onclick="abrirModalAjuste('${item.produto_id}', '${nomeEscapado}', ${Number(item.saldo_centro || 0)}, ${Number(item.saldo_vila || 0)}, '${codigoEscapado}', ${Number(item.saldo_centro_erp || item.saldo_centro || 0)}, ${Number(item.saldo_vila_erp || item.saldo_vila || 0)})" class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 transition-colors border border-amber-200 shadow-sm" title="Ajuste de estoque">✏️</button>
                         <button onclick="editarRegras('${item.produto_id}', '${nomeEscapado}', '${item.capacidade_maxima ?? ''}', '${item.estoque_seguranca ?? ''}')" class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors border border-slate-200 shadow-sm" title="Editar mínimos e máximos">⚙️</button>
-                        <button onclick="adicionarTransferenciaManualPorItem('${item.produto_id}', '${nomeEscapado}', '${codigoEscapado}', '${barrasEscapado}', ${Number(item.saldo_centro || 0)}, ${Number(item.saldo_vila || 0)})" class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 transition-colors border border-indigo-200 shadow-sm" title="Transferência manual">⇄</button>
+                        <button onclick="adicionarTransferenciaManualPorItem('${item.produto_id}', '${nomeEscapado}', '${codigoEscapado}', '${barrasEscapado}', ${Number(item.saldo_centro || 0)}, ${Number(item.saldo_vila || 0)})" class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 transition-colors border border-indigo-200 shadow-sm" title="Inclui na lista / sugestão manual (impressão)">⇄</button>
                     </div>
                 `;
                 if (item.status === 'SEPARANDO') {
                     acoesHTML = `
                         <div class="flex flex-col items-center gap-2 w-full max-w-[12rem] mx-auto">
                             <div class="flex flex-wrap items-center justify-center gap-2">
+                                <button type="button" onclick="transferirVilaParaCentroAgro('${item.produto_id}')" class="inline-flex items-center justify-center min-w-[3rem] h-11 px-1.5 rounded-2xl bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300 shadow-sm text-[9px] font-black uppercase leading-tight text-center" title="Registra Vila Elias → Centro no Agro (saldo operacional). Não envia movimento ao ERP.">Vila→C</button>
                                 <button onclick="abrirModalAjuste('${item.produto_id}', '${nomeEscapado}', ${Number(item.saldo_centro || 0)}, ${Number(item.saldo_vila || 0)}, '${codigoEscapado}', ${Number(item.saldo_centro_erp || item.saldo_centro || 0)}, ${Number(item.saldo_vila_erp || item.saldo_vila || 0)})" class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 transition-colors border border-amber-200 shadow-sm" title="Ajuste de estoque">✏️</button>
                                 <button onclick="editarRegras('${item.produto_id}', '${nomeEscapado}', '${item.capacidade_maxima ?? ''}', '${item.estoque_seguranca ?? ''}')" class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors border border-slate-200 shadow-sm" title="Editar mínimos e máximos">⚙️</button>
-                                <button onclick="adicionarTransferenciaManualPorItem('${item.produto_id}', '${nomeEscapado}', '${codigoEscapado}', '${barrasEscapado}', ${Number(item.saldo_centro || 0)}, ${Number(item.saldo_vila || 0)})" class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 transition-colors border border-indigo-200 shadow-sm" title="Transferência manual">⇄</button>
+                                <button onclick="adicionarTransferenciaManualPorItem('${item.produto_id}', '${nomeEscapado}', '${codigoEscapado}', '${barrasEscapado}', ${Number(item.saldo_centro || 0)}, ${Number(item.saldo_vila || 0)})" class="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 transition-colors border border-indigo-200 shadow-sm" title="Inclui na lista / sugestão manual (impressão)">⇄</button>
                             </div>
                             <button type="button" onclick="cancelarSeparacao('${item.produto_id}')" class="w-full text-red-600 hover:text-red-700 font-black text-[10px] uppercase px-2 py-1.5 bg-red-50 rounded-xl border border-red-200" title="Cancelar separação">❌ Cancelar</button>
                         </div>`;
@@ -871,6 +873,62 @@
                 linha.classList.add('bg-indigo-50');
                 setTimeout(() => linha.classList.remove('bg-indigo-50'), 1200);
             }, 30);
+        }
+
+        async function transferirVilaParaCentroAgro(produtoId) {
+            const item = sugestoesGlobais.find(i => String(i.produto_id) === String(produtoId));
+            if (!item) {
+                alert('Produto não está na lista atual. Atualize a tela (Estoque no topo) e tente de novo.');
+                return;
+            }
+            const saldoV = Number(item.saldo_vila || 0);
+            if (saldoV <= 0) {
+                alert('Sem saldo na Vila Elias para transferir.');
+                return;
+            }
+            const def = item.qtde_transferir > 0 ? Number(item.qtde_transferir) : Math.min(1, saldoV);
+            const resposta = prompt(
+                `Vila Elias → Centro (somente no Agro)\n\n` +
+                `Produto: ${item.nome}\n` +
+                `Saldo Vila (operacional): ${saldoV.toFixed(1)}\n` +
+                `Saldo Centro (operacional): ${Number(item.saldo_centro || 0).toFixed(1)}\n\n` +
+                `Quantidade a mover para o Centro:`,
+                String(def)
+            );
+            if (resposta === null) return;
+            const qtde = parseFloat(String(resposta).replace(',', '.'));
+            if (Number.isNaN(qtde) || qtde <= 0) {
+                alert('Informe uma quantidade maior que zero.');
+                return;
+            }
+            if (qtde > saldoV) {
+                alert(`Quantidade maior que o saldo na Vila (${saldoV.toFixed(1)}).`);
+                return;
+            }
+            try {
+                const pin = await pedirPIN('Confirme a transferência Vila→Centro no Agro');
+                if (!pin) return;
+                const fd = new FormData();
+                fd.append('produto_id', String(produtoId));
+                fd.append('quantidade', String(qtde));
+                fd.append('nome_produto', item.nome || '');
+                fd.append('codigo_interno', item.codigo || '');
+                fd.append('pin', pin);
+                fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                if (window.gmLoadingBar) window.gmLoadingBar.show();
+                const res = await fetch('/estoque/api_transferir_vila_para_centro/', { method: 'POST', body: fd, cache: 'no-store' });
+                const data = await res.json();
+                if (data.ok) {
+                    alert(`Transferência registrada no Agro.\nNovo saldo Vila: ${data.saldo_vila}\nNovo saldo Centro: ${data.saldo_centro}`);
+                    carregarDados();
+                } else {
+                    alert(data.erro || 'Não foi possível registrar.');
+                }
+            } catch (e) {
+                if (e.message !== 'Troca de PIN necessária') alert('Erro de comunicação.');
+            } finally {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            }
         }
 
         async function atualizarMedias() {
