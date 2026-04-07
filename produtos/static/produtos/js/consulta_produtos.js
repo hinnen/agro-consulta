@@ -3911,7 +3911,11 @@ window.addEventListener('load', () => {
     atualizarRelogioPdv();
     setInterval(atualizarRelogioPdv, 30000);
     if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.mount) {
-        AgroEstoqueSync.mount({
+        var idleMs =
+            typeof window.AGRO_ESTOQUE_IDLE_MS === 'number' && window.AGRO_ESTOQUE_IDLE_MS > 0
+                ? window.AGRO_ESTOQUE_IDLE_MS
+                : 5 * 60 * 1000;
+        var mountEstoque = {
             onRefresh: async function (reason) {
                 if (!baseProdutos.length) return;
                 var explicito = reason === 'manual' || reason === 'external';
@@ -3924,7 +3928,12 @@ window.addEventListener('load', () => {
                     });
                 }
             },
-        });
+        };
+        if (!window.AGRO_MANUAL_SYNC_ONLY) {
+            mountEstoque.autoIdleRefresh = true;
+            mountEstoque.idleMs = idleMs;
+        }
+        AgroEstoqueSync.mount(mountEstoque);
     }
     pdvHidratarIndicadorSyncApiDoCache();
     setInterval(function () {

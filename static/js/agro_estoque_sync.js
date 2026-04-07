@@ -1,7 +1,12 @@
 /**
  * Agro Consulta — barra de estoque: botão manual, horário da última leitura,
  * “termômetro” (verde → vermelho conforme o tempo sem atualizar).
- * Atualização automática por inatividade só se autoIdleRefresh: true + idleMs > 0.
+ *
+ * autoIdleRefresh + idleMs: após idleMs sem mouse/teclado/scroll/toque na página,
+ * dispara onRefresh('idle') — ou seja, **durante** o silêncio, não ao “acordar” o PC.
+ * Qualquer interação zera o cronômetro (e cancela um refresh idle já debounced).
+ * Ao voltar para a aba (visibility visible), o cronômetro reinicia para não parecer
+ * sync no primeiro foco após troca de aba.
  */
 (function (global) {
   'use strict';
@@ -136,6 +141,9 @@
     function bumpIdle() {
       if (!useIdle) return;
       if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = null;
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = null;
       idleTimer = setTimeout(function () {
         scheduleAuto('idle');
       }, opts.idleMs);
@@ -144,6 +152,9 @@
     if (useIdle) {
       ['mousemove', 'keydown', 'click', 'scroll', 'touchstart', 'wheel'].forEach(function (ev) {
         document.addEventListener(ev, bumpIdle, { passive: true });
+      });
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') bumpIdle();
       });
       bumpIdle();
     }
