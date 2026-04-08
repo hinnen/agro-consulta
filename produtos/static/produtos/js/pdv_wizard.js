@@ -4026,6 +4026,16 @@
         setInterval(verificarLembretesWizardTick, 25000);
     }
 
+    var hydratedFromConsulta = false;
+    var reabrirDraftEl = document.getElementById('pdv-wizard-reabrir-draft');
+    if (reabrirDraftEl && typeof State.hydrateFromSessionDraft === 'function') {
+        try {
+            hydratedFromConsulta = !!State.hydrateFromSessionDraft(JSON.parse(reabrirDraftEl.textContent || 'null'));
+        } catch (eReab) {
+            hydratedFromConsulta = false;
+        }
+    }
+
     State.subscribe(renderAll);
     bindEvents();
 
@@ -4042,7 +4052,7 @@
         });
 
     var currentState = State.getState();
-    if (!currentState.clienteMode || currentState.clienteMode === 'unset') {
+    if (!hydratedFromConsulta && (!currentState.clienteMode || currentState.clienteMode === 'unset')) {
         openStartModal();
     }
     focusProductSearch();

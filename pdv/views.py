@@ -51,6 +51,11 @@ def _safe_float_ptbr(val, default=0.0):
 
 def pdv_home(request):
     caixa_aberto = _obter_sessao_caixa_aberta(request)
+    pdv_reabrir_from_consulta = None
+    if request.GET.get("reabrir") == "1":
+        chk = request.session.get("pdv_checkout")
+        if chk and chk.get("itens"):
+            pdv_reabrir_from_consulta = chk
     origens_maps = [
         {
             "id": "centro",
@@ -82,6 +87,7 @@ def pdv_home(request):
                 "apiEntregaRegistrar": reverse("api_entrega_registrar"),
                 "apiLoginMobile": reverse("api_login_mobile"),
                 "pdvCheckout": reverse("pdv_checkout"),
+                "pdvWizardHome": reverse("pdv_home"),
                 "consultaLegacy": reverse("consulta_produtos"),
                 "home": reverse("home"),
                 "vendasLista": reverse("vendas_lista"),
@@ -114,5 +120,6 @@ def pdv_home(request):
                 "maquininhasPix": _maquininhas_pix_effective(),
             },
         },
+        "pdv_reabrir_from_consulta": pdv_reabrir_from_consulta,
     }
     return render(request, "produtos/pdv_wizard.html", ctx)

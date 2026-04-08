@@ -23,6 +23,7 @@ from django.urls import reverse
 from django.core.cache import cache
 from django.templatetags.static import static
 from django.views.decorators.cache import never_cache
+from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django.utils import timezone
@@ -889,10 +890,32 @@ def _sanear_cliente_extra_sessao(raw):
     if not isinstance(raw, dict):
         return None
     out = {}
-    for k in ("id", "documento", "telefone", "nome", "razao_social"):
+    for k, maxlen in (
+        ("id", 80),
+        ("documento", 300),
+        ("telefone", 300),
+        ("nome", 300),
+        ("razao_social", 300),
+        ("endereco", 500),
+        ("logradouro", 300),
+        ("numero", 80),
+        ("bairro", 200),
+        ("cidade", 200),
+        ("uf", 8),
+        ("cep", 24),
+        ("plus_code", 120),
+        ("referencia_rural", 500),
+        ("maps_url_manual", 800),
+    ):
         v = raw.get(k)
         if v is not None and str(v).strip():
-            out[k] = str(v).strip()[:300]
+            out[k] = str(v).strip()[:maxlen]
+    pk = raw.get("cliente_agro_pk")
+    if pk is not None and str(pk).strip():
+        try:
+            out["cliente_agro_pk"] = int(pk)
+        except (TypeError, ValueError):
+            out["cliente_agro_pk"] = str(pk).strip()[:40]
     return out if out else None
 
 
@@ -1128,7 +1151,7 @@ def _home_admin_navegacao():
             "pin_protected": True,
         },
         {
-            "title": "Orçamentos",
+            "title": "Orçamentos salvos",
             "href": f"{agro_legado_url}?orcamentos=1",
             "icon": "history",
             "shortcut": "O",
@@ -1172,8 +1195,26 @@ def _home_admin_navegacao():
 
 
 # --- VIEWS DE PÁGINA ---
+@ensure_csrf_cookie
 def home(request):
     nav = _home_admin_navegacao()
+    u = ""
+    if getattr(request, "user", None) and request.user.is_authenticated:
+        u = (request.user.get_full_name() or "").strip() or (
+            request.user.get_username() if hasattr(request.user, "get_username") else ""
+        )
+    home_pdv_bootstrap = {
+        "csrfToken": get_token(request),
+        "usuarioSalvamento": u,
+        "urls": {
+            "apiPdvSaldos": reverse("api_pdv_saldos"),
+            "apiTodosProdutosDelta": reverse("api_todos_produtos_delta"),
+            "apiListCustomers": reverse("api_list_customers"),
+            "consultaPdv": reverse("consulta_produtos"),
+            "apiPdvSalvarCheckoutDraft": reverse("api_pdv_salvar_checkout_draft"),
+            "pdvWizardHome": reverse("pdv_home"),
+        },
+    }
     return render(
         request,
         "home.html",
@@ -1181,6 +1222,7 @@ def home(request):
             "empresa_atual": _empresa_home_atual(),
             "home_top_items": nav["top_items"],
             "home_grid_items": nav["grid_items"],
+            "home_pdv_bootstrap": home_pdv_bootstrap,
         },
     )
 
@@ -1228,11 +1270,18 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
     ctx["lancamentos_dre_ativo"] = getattr(settings, "LANCAMENTOS_DRE_ATIVO", False)
     ctx["pdv_root_url"] = pdv_root_url
     ctx["pdv_dedicado"] = pdv_dedicado
+    u_pdv = ""
+    if getattr(request, "user", None) and request.user.is_authenticated:
+        u_pdv = (request.user.get_full_name() or "").strip() or (
+            request.user.get_username() if hasattr(request.user, "get_username") else ""
+        )
     ctx["pdv_bootstrap"] = {
         "csrfToken": request.META.get("CSRF_COOKIE", "") or "",
+        "usuarioSalvamento": u_pdv,
         "urls": {
             "apiPdvSalvarCheckoutDraft": reverse("api_pdv_salvar_checkout_draft"),
             "pdvCheckout": reverse("pdv_checkout"),
+            "pdvWizardHome": reverse("pdv_home"),
             "apiEntregaRegistrar": reverse("api_entrega_registrar"),
             "apiListCustomers": reverse("api_list_customers"),
             "apiBuscarClientes": reverse("api_buscar_clientes"),
@@ -1255,32 +1304,11 @@ def consulta_produtos(request):
 
 
 def pdv_checkout(request):
+    """Legado: rascunho vai para o wizard PDV (sem tela intermediária)."""
     draft = request.session.get("pdv_checkout")
     if not draft or not draft.get("itens"):
         return redirect("consulta_produtos")
-    total = Decimal("0")
-    disp_itens = []
-    for i in draft["itens"]:
-        try:
-            q = Decimal(str(i.get("qtd") or 0))
-            p = Decimal(str(i.get("preco") or 0))
-            lin = (q * p).quantize(Decimal("0.01"))
-            total += lin
-            row = dict(i)
-            row["valor_linha"] = lin
-            disp_itens.append(row)
-        except Exception:
-            continue
-    draft_display = {**draft, "itens": disp_itens}
-    return render(
-        request,
-        "produtos/pdv_checkout.html",
-        {
-            "draft": draft,
-            "draft_display": draft_display,
-            "total_fmt": total.quantize(Decimal("0.01")),
-        },
-    )
+    return redirect(f"{reverse('pdv_home')}?reabrir=1")
 
 
 def vendas_hoje_redirect(request):
@@ -2884,8 +2912,6 @@ def api_lancamentos_export_financeiro_xlsx(request):
         despesa=data["despesa"],
         v_de=data["v_de"],
         v_ate=data["v_ate"],
-        comp_de=data.get("c_de"),
-        comp_ate=data.get("c_ate"),
     )
     ref = data["v_ate"] or data["v_de"] or timezone.localdate()
     nome = f"Financeiro_{ref.strftime('%d.%m.%Y')}.xlsx"
@@ -2913,8 +2939,6 @@ def api_lancamentos_export_financeiro_pdf(request):
         v_de=data["v_de"],
         v_ate=data["v_ate"],
         status=data["status"],
-        comp_de=data.get("c_de"),
-        comp_ate=data.get("c_ate"),
     )
     ref = data["v_ate"] or data["v_de"] or timezone.localdate()
     nome = f"Financeiro_{ref.strftime('%d.%m.%Y')}.pdf"
@@ -4057,6 +4081,12 @@ def api_buscar_produtos(request):
                 or p.get("EnderecoPrateleira")
                 or ""
             )
+            _sub_w = str(
+                p.get("SubGrupo") or p.get("Subcategoria") or p.get("NomeSubcategoria") or ""
+            ).strip()
+            _cat_w = p.get("NomeCategoria") or p.get("Categoria") or p.get("Grupo") or ""
+            if not str(_cat_w or "").strip() and _sub_w:
+                _cat_w = _sub_w
 
             row = {
                 "id": pid,
@@ -4081,11 +4111,8 @@ def api_buscar_produtos(request):
                         or p.get("RazaoSocialFornecedor")
                         or p.get("Fabricante")
                         or "",
-                        "categoria": p.get("NomeCategoria")
-                        or p.get("Categoria")
-                        or p.get("Grupo")
-                        or p.get("SubGrupo")
-                        or "",
+                        "categoria": _cat_w,
+                        "subcategoria": _sub_w,
                         "saldo_centro_erp": round(saldo_centro_erp, 2),
                         "saldo_vila_erp": round(saldo_vila_erp, 2),
                         "saldo_erp_centro": round(saldo_centro_erp, 2),  # compatibilidade com mobile atual
@@ -5554,6 +5581,17 @@ def _catalogo_pdv_montar_produtos(db, client):
             or p.get("EnderecoPrateleira")
             or ""
         )
+        sub_grupo_txt = str(
+            p.get("SubGrupo") or p.get("Subcategoria") or p.get("NomeSubcategoria") or ""
+        ).strip()
+        cat_linha = (
+            p.get("NomeCategoria")
+            or p.get("Categoria")
+            or p.get("Grupo")
+            or ""
+        )
+        if not str(cat_linha or "").strip() and sub_grupo_txt:
+            cat_linha = sub_grupo_txt
         partes = [
             p.get("Nome"),
             p.get("Marca"),
@@ -5589,10 +5627,8 @@ def _catalogo_pdv_montar_produtos(db, client):
                 or p.get("Fornecedor")
                 or p.get("RazaoSocialFornecedor")
                 or p.get("Fabricante"),
-                "categoria": p.get("NomeCategoria")
-                or p.get("Categoria")
-                or p.get("Grupo")
-                or p.get("SubGrupo"),
+                "categoria": cat_linha,
+                "subcategoria": sub_grupo_txt,
                 "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo"),
                 "codigo_barras": p.get("CodigoBarras") or p.get("EAN_NFe"),
                 "preco_venda": preco_venda_val,
@@ -6879,6 +6915,18 @@ def api_buscar_clientes(request):
     return JsonResponse(payload)
 
 
+def _pdv_resumo_endereco_cliente_rapido(data: dict) -> str:
+    log = (data.get("logradouro") or "").strip()
+    num = (data.get("numero") or "").strip()
+    comp = (data.get("complemento") or "").strip()
+    bai = (data.get("bairro") or "").strip()
+    cid = (data.get("cidade") or "").strip()
+    uf = (data.get("uf") or "").strip()
+    cep = (data.get("cep") or "").strip()
+    parts = [x for x in (log, num, comp, bai, cid, uf, cep) if x]
+    return ", ".join(parts)[:500]
+
+
 @require_POST
 def api_pdv_cliente_rapido(request):
     """Cadastro rápido de ClienteAgro a partir do PDV (popup no carrinho)."""
@@ -6896,10 +6944,24 @@ def api_pdv_cliente_rapido(request):
     wa_digits = re.sub(r"\D", "", wa_raw)
     if len(wa_digits) > 20:
         wa_digits = wa_digits[-20:]
+    resumo_end = _pdv_resumo_endereco_cliente_rapido(data)
+    endereco_manual = (data.get("endereco") or "").strip()[:500]
+    endereco_final = endereco_manual or resumo_end
     try:
         c = ClienteAgro.objects.create(
             nome=nome[:200],
             whatsapp=wa_digits[:20] if wa_digits else "",
+            endereco=endereco_final,
+            cep=(data.get("cep") or "").strip()[:12],
+            uf=(data.get("uf") or "").strip()[:2].upper(),
+            cidade=(data.get("cidade") or "").strip()[:120],
+            bairro=(data.get("bairro") or "").strip()[:120],
+            logradouro=(data.get("logradouro") or "").strip()[:300],
+            numero=(data.get("numero") or "").strip()[:30],
+            complemento=(data.get("complemento") or "").strip()[:200],
+            plus_code=(data.get("plus_code") or "").strip()[:120],
+            referencia_rural=(data.get("referencia_rural") or "").strip()[:300],
+            maps_url_manual=(data.get("maps_url_manual") or "").strip()[:600],
         )
     except Exception as e:
         logger.exception("api_pdv_cliente_rapido")
