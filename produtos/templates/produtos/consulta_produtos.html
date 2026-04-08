@@ -259,17 +259,38 @@
                 line-height: 1.35;
             }
             body.print-pdv-entrega-pack .pdv-entrega-page:last-child { page-break-after: auto; }
-            body.print-pdv-orcamento-only > *:not(#cupom-orcamento) { display: none !important; }
+            /* Cupom pode estar aninhado (não é filho direto do body) — visibility evita folha em branco */
+            body.print-pdv-orcamento-only,
+            body.print-pdv-orcamento-only * {
+                visibility: hidden !important;
+            }
+            body.print-pdv-orcamento-only #cupom-orcamento,
+            body.print-pdv-orcamento-only #cupom-orcamento * {
+                visibility: visible !important;
+            }
             body.print-pdv-orcamento-only #cupom-orcamento {
                 display: block !important;
                 position: absolute;
                 left: 0;
                 top: 0;
-                width: 80mm;
+                width: 72mm;
+                max-width: 72mm;
+                box-sizing: border-box;
                 font-family: 'Courier New', Courier, monospace;
                 color: #000;
-                padding: 0;
+                background: #fff !important;
+                padding: 2mm 1mm;
                 margin: 0;
+                font-size: 11px;
+                line-height: 1.25;
+            }
+            body.print-pdv-orcamento-only #cupom-orcamento h2 {
+                font-size: 13px !important;
+                margin: 0 0 2px !important;
+            }
+            body.print-pdv-orcamento-only #cupom-orcamento table {
+                width: 100% !important;
+                font-size: 10px !important;
             }
             @page { margin: 0; size: 80mm auto; }
         }
@@ -444,7 +465,7 @@
 {% endblock %}
 {% block pdv_shell_class %}h-full bg-slate-100 flex flex-col{% endblock %}
 {% block pdv_header %}{% endblock %}
-{% block pdv_section_class %}flex-1 min-h-0 p-0 m-0 max-w-none{% endblock %}
+{% block pdv_section_class %}flex flex-col flex-1 min-h-0 overflow-hidden p-0 m-0 max-w-none{% endblock %}
 {% block pdv_content %}
 {% include "produtos/_gm_loading_bar.html" %}
 {% if pdv_reabrir_data %}

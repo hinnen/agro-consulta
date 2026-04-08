@@ -1,4 +1,5 @@
 {% extends "layouts/base_admin.html" %}
+{% load static %}
 
 {% block admin_title %}Agro Consulta | Home{% endblock %}
 {% block admin_header_title %}Agro Consulta{% endblock %}
@@ -10,6 +11,19 @@
 {% block head_extra %}
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <style>
+    .hide-scroll::-webkit-scrollbar { display: none; }
+    body.modal-open { overflow: hidden !important; }
+    .reminder-due {
+      animation: homeReminderPulse 1s infinite;
+      border-color: rgba(239, 68, 68, 0.35) !important;
+      background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+    }
+    @keyframes homeReminderPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.22); }
+      50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+    }
+    .done-reminder { opacity: 0.7; }
+    .done-reminder .done-text { text-decoration: line-through; }
     .home-hub-outer {
       flex: 1 1 0;
       min-height: 0;
@@ -195,22 +209,81 @@
 {% endblock %}
 
 {% block admin_content %}
+{% include "produtos/_gm_loading_bar.html" %}
+{{ home_pdv_bootstrap|json_script:"home-pdv-bootstrap" }}
 <section class="home-hub-outer w-full">
   <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.35rem] border border-slate-800 shadow-[0_24px_80px_rgba(2,6,23,0.45)] sm:rounded-[1.75rem]">
     <div class="home-hub-shell home-hub-shell-pad">
-      <div class="flex flex-wrap items-center gap-2 gap-y-2 shrink-0 border-b border-slate-600/50 pb-2 mb-0.5" role="region" aria-label="Atualização de dados">
-        <span class="text-[10px] font-black uppercase tracking-wide text-slate-500">Dados</span>
-        <a
-          href="{% url 'consulta_produtos' %}?sync=saldos"
-          class="inline-flex items-center gap-1.5 rounded-lg border-2 border-emerald-500/55 bg-gradient-to-br from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 px-2.5 py-1.5 text-white text-[10px] font-black uppercase tracking-wide shadow-md transition-[border-color,transform] active:scale-[0.98]"
-          title="Abre a consulta e atualiza só os saldos (precisa de catálogo já carregado)"
-        >Atualizar saldos</a>
-        <a
-          href="{% url 'consulta_produtos' %}?sync=1"
-          class="inline-flex items-center gap-1.5 rounded-lg border-2 border-amber-500/55 bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 px-2.5 py-1.5 text-white text-[10px] font-black uppercase tracking-wide shadow-md transition-[border-color,transform] active:scale-[0.98]"
-          title="Abre a consulta e sincroniza catálogo, clientes e saldos (mesmo que Sincronizar API)"
-        >Sincronizar API</a>
+      <div
+        class="flex flex-wrap items-center gap-2 gap-y-2 shrink-0 border-b border-slate-600/50 pb-2 mb-0.5 rounded-xl bg-slate-900/35 p-2 ring-1 ring-slate-600/40"
+        role="region"
+        aria-label="Sincronização PDV — permanece na home"
+      >
+        <span class="text-[10px] font-black uppercase tracking-wide text-slate-400 w-full sm:w-auto sm:mr-1">Dados PDV</span>
+        <div class="flex flex-wrap items-center gap-2">
+          {% include "produtos/_barra_estoque_global.html" %}
+          <div
+            id="agro-barra-sync-api-wrap"
+            class="inline-flex flex-wrap items-center gap-1.5 sm:gap-2 px-2 py-1 rounded-xl border border-amber-500/45 bg-gradient-to-r from-amber-950/55 to-orange-950/45 shadow-sm"
+            role="region"
+            aria-label="Sincronização completa"
+            title="Catálogo (delta) + clientes + saldos. Horário da última sync dentro do botão."
+          >
+            <button
+              type="button"
+              id="agro-btn-sincronizar-api"
+              class="relative inline-flex items-center gap-1.5 rounded-lg pl-1.5 pr-2 py-1.5 border-2 border-amber-500/55 bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-[9px] sm:text-[10px] font-black uppercase shadow-md transition-[border-color,transform] active:scale-[0.98] shrink-0 overflow-hidden"
+            >
+              <span class="agro-termo-track flex flex-col justify-end w-2 h-8 rounded-full bg-black/25 shrink-0 border border-white/30 overflow-hidden shadow-inner" aria-hidden="true">
+                <span class="agro-termo-fil w-full rounded-b-full transition-all duration-500 ease-out" style="height:0%;min-height:0"></span>
+              </span>
+              <span class="relative z-[1] flex min-w-0 flex-col items-start gap-0.5 text-left leading-tight">
+                <span class="whitespace-nowrap">Sincronizar API</span>
+                <span id="agro-api-sync-ultima" class="text-[8px] font-bold text-white/90 tabular-nums truncate max-w-[9rem]" title="Última sincronização">—</span>
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 w-full mt-1 pt-1 border-t border-slate-600/40">
+          <label class="text-[9px] font-black uppercase text-slate-400 shrink-0" for="home-agro-loja">Loja</label>
+          <select id="home-agro-loja" class="min-w-[10rem] max-w-full rounded-lg border border-slate-500/60 bg-slate-900/80 px-2 py-1.5 text-[11px] font-bold text-slate-100" title="Unidade usada na consulta / PDV (preferência neste aparelho)">
+            <option value="1">Agro Mais — Principal (Centro)</option>
+            <option value="2">Agro Mais — Vila Elias</option>
+          </select>
+          <button type="button" id="home-link-lembretes" class="inline-flex items-center gap-1 rounded-lg border border-amber-400/50 bg-amber-950/40 px-2.5 py-1.5 text-[10px] font-black uppercase text-amber-100 hover:bg-amber-900/50 cursor-pointer">⏰ Lembretes</button>
+          <button type="button" id="home-link-orcamentos" class="inline-flex items-center gap-1 rounded-lg border border-sky-400/45 bg-sky-950/35 px-2.5 py-1.5 text-[10px] font-black uppercase text-sky-100 hover:bg-sky-900/45 cursor-pointer">Orçamentos salvos</button>
+        </div>
       </div>
+      <script src="{% static 'js/home_pdv_sync.js' %}"></script>
+      {% include "produtos/partials/pdv/modals_home_strip.html" %}
+      <script src="{% static 'js/home_modals_pdv.js' %}"></script>
+      <script>
+        (function () {
+          var LS_LOJA = 'agro_pdv_loja_id';
+          function bootHomePdvLoja() {
+            var sel = document.getElementById('home-agro-loja');
+            if (!sel) return;
+            try {
+              var v = localStorage.getItem(LS_LOJA);
+              if (v) {
+                for (var i = 0; i < sel.options.length; i++) {
+                  if (String(sel.options[i].value) === String(v)) {
+                    sel.selectedIndex = i;
+                    break;
+                  }
+                }
+              }
+            } catch (e2) {}
+            sel.addEventListener('change', function () {
+              try {
+                localStorage.setItem(LS_LOJA, sel.value);
+              } catch (e4) {}
+            });
+          }
+          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootHomePdvLoja);
+          else bootHomePdvLoja();
+        })();
+      </script>
       <div class="home-hub-top">
         {% for item in home_top_items %}
           <a

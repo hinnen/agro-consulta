@@ -3,12 +3,12 @@
         <div class="shrink-0 flex items-center justify-between gap-2 {% if pdv_dedicado %}px-2.5 py-2{% else %}px-3 py-2.5{% endif %} border-b border-slate-100 bg-gradient-to-r from-orange-50/95 via-white to-emerald-50/40">
             <div class="min-w-0">
                 <h3 id="pdv-drawer-carrinho-titulo" class="text-base font-black uppercase tracking-wide text-slate-800 leading-tight">Carrinho</h3>
-                <p id="pdv-drawer-cart-meta" class="text-[10px] font-bold text-slate-500 mt-0.5 truncate" title="Atalhos: F1 carrinho · F3 cliente · F4 limpar · F7 salvar orçamento · F8 finalizar">Nenhum item</p>
+                <p id="pdv-drawer-cart-meta" class="text-[10px] font-bold text-slate-500 mt-0.5 truncate" title="Atalhos: F1 carrinho · F3 cliente · F4 limpar · F7 salvar orçamento · F8 FECHAR VENDA (PDV)">Nenhum item</p>
             </div>
             <button type="button" id="btn-fechar-carrinho-pdv" class="shrink-0 {% if pdv_dedicado %}w-9 h-9{% else %}w-10 h-10{% endif %} rounded-xl border-2 border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 font-black text-lg leading-none transition-colors" aria-label="Fechar carrinho" title="Fechar (Esc)">×</button>
         </div>
         <div id="cart-shell" class="cart-shell-empty flex flex-col flex-1 min-h-0 overflow-hidden {% if pdv_dedicado %}px-2.5 pb-2.5 pt-1.5{% else %}px-3 pb-3 pt-2{% endif %} gap-0">
-            <div class="relative shrink-0 space-y-2">
+            <div class="relative shrink-0 space-y-2 rounded-xl border-2 border-emerald-300/70 bg-gradient-to-br from-emerald-50/95 via-orange-50/40 to-white p-2 shadow-inner">
                 <div class="relative">
                     <label for="nome-cliente" class="sr-only">Cliente</label>
                     <input
@@ -16,7 +16,7 @@
                         id="nome-cliente"
                         value="CONSUMIDOR NÃO IDENTIFICADO..."
                         placeholder="Cliente (F3)"
-                        class="w-full py-2.5 px-3 bg-slate-50 text-sm rounded-xl border-2 border-slate-200 font-bold outline-none focus:border-emerald-500"
+                        class="w-full py-2.5 px-3 bg-white text-base rounded-xl border-2 border-emerald-400/90 font-black text-slate-900 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-200"
                         autocomplete="off"
                         title="F3 foca aqui. ↑↓ e Enter na lista. Clientes do Agro."
                     >
@@ -48,18 +48,18 @@
                     <span class="text-[10px] font-black uppercase text-sky-900">Entrega</span>
                 </label>
                 <div class="grid grid-cols-2 gap-2 shrink-0" role="group" aria-label="Ações do orçamento">
-                    <button type="button" onclick="pdvAbrirModalCadastroClientePdv()" class="min-h-[44px] rounded-xl border-2 border-emerald-200 bg-emerald-50/90 text-emerald-950 text-[10px] font-black uppercase tracking-wide hover:bg-emerald-100 px-1.5 py-2 leading-tight" title="Cadastra cliente no Agro e já seleciona no carrinho">Novo cliente</button>
-                    <button type="button" onclick="pdvImprimirOrcamentoCarrinho()" class="min-h-[44px] rounded-xl border-2 border-slate-200 bg-white text-slate-800 text-[10px] font-black uppercase tracking-wide hover:bg-slate-50 px-1.5 py-2 leading-tight" title="Cupom de orçamento para impressora">Imprimir</button>
-                    <button type="button" onclick="pdvWhatsappOrcamentoCarrinho()" class="min-h-[44px] rounded-xl border-2 border-emerald-500/40 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wide hover:bg-emerald-500 px-1.5 py-2 leading-tight" title="Abre WhatsApp com texto do orçamento">WhatsApp</button>
-                    <button type="button" onclick="pdvEnviarOrcamentoErpCarrinho()" class="min-h-[44px] rounded-xl border-2 border-sky-500/50 bg-sky-600 text-white text-[10px] font-black uppercase tracking-wide hover:bg-sky-500 px-1.5 py-2 leading-tight" title="Envia pedido ao ERP como orçamento">ERP orçamento</button>
+                    <button type="button" onclick="pdvAbrirModalCadastroClientePdv()" class="min-h-[44px] rounded-xl border-2 border-emerald-200 bg-emerald-50/90 text-emerald-950 text-[10px] font-black uppercase tracking-wide hover:bg-emerald-100 px-1.5 py-2 leading-tight flex flex-col items-center justify-center gap-0.5" title="Cadastra cliente (atalho N com carrinho aberto)">Novo <kbd class="pointer-events-none rounded bg-emerald-200/80 px-1 font-mono text-[8px] text-emerald-950/80">N</kbd></button>
+                    <button type="button" onclick="pdvImprimirOrcamentoCarrinho()" class="min-h-[44px] rounded-xl border-2 border-slate-200 bg-white text-slate-800 text-[10px] font-black uppercase tracking-wide hover:bg-slate-50 px-1.5 py-2 leading-tight flex flex-col items-center justify-center gap-0.5" title="Cupom 80mm (atalho I)">Imprimir <kbd class="pointer-events-none rounded bg-slate-200/80 px-1 font-mono text-[8px] text-slate-600">I</kbd></button>
+                    <button type="button" onclick="pdvWhatsappOrcamentoCarrinho()" class="min-h-[44px] rounded-xl border-2 border-emerald-500/40 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wide hover:bg-emerald-500 px-1.5 py-2 leading-tight flex flex-col items-center justify-center gap-0.5" title="WhatsApp (atalho W)">Zap <kbd class="pointer-events-none rounded bg-white/20 px-1 font-mono text-[8px] text-white/90">W</kbd></button>
+                    <button type="button" onclick="pdvEnviarOrcamentoErpCarrinho()" class="min-h-[44px] rounded-xl border-2 border-sky-500/50 bg-sky-600 text-white text-[10px] font-black uppercase tracking-wide hover:bg-sky-500 px-1.5 py-2 leading-tight flex flex-col items-center justify-center gap-0.5" title="ERP orçamento (atalho E)">ERP <kbd class="pointer-events-none rounded bg-white/20 px-1 font-mono text-[8px] text-white/90">E</kbd></button>
                 </div>
                 <div class="flex justify-between items-baseline gap-2">
                     <span class="text-[10px] font-black uppercase text-slate-500">Total</span>
                     <span id="total-geral" class="text-2xl font-black text-emerald-600 tabular-nums leading-none">R$ 0,00</span>
                 </div>
-                <button type="button" onclick="limparCarrinho()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-2.5 rounded-xl text-xs uppercase" title="Limpar venda (F4)">Limpar</button>
-                <button type="button" onclick="salvarOrcamentoManual()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-md shadow-sky-600/20" title="Salvar orçamento (F7)">Salvar orçamento</button>
-                <button type="button" onclick="irParaCheckout()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-3 rounded-xl text-sm uppercase shadow-lg shadow-orange-500/25" title="Finalizar venda (F8)">Finalizar</button>
+                <button type="button" onclick="limparCarrinho()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-2.5 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-0.5" title="Limpar (F4 ou L)">Limpar <kbd class="pointer-events-none rounded bg-slate-300/60 px-1 font-mono text-[8px] text-slate-600">L</kbd></button>
+                <button type="button" onclick="salvarOrcamentoManual()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-md shadow-sky-600/20 flex flex-col items-center justify-center gap-0.5" title="Salvar orçamento (F7 ou S)">Salvar orç. <kbd class="pointer-events-none rounded bg-white/25 px-1 font-mono text-[8px] text-white/90">S</kbd></button>
+                <button type="button" onclick="irParaCheckout()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-3 rounded-xl text-sm uppercase shadow-lg shadow-orange-500/25 flex flex-col items-center justify-center gap-0.5" title="PDV (F8 ou V)">FECHAR VENDA <kbd class="pointer-events-none rounded bg-white/25 px-1 font-mono text-[9px] text-white/90">V</kbd></button>
             </div>
         </div>
     </div>

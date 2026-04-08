@@ -1294,8 +1294,14 @@
           parseFilenameContentDisposition(r.headers.get('Content-Disposition'))
           || fallbackNome;
         if (!r.ok) {
+          const ct = (r.headers.get('content-type') || '').toLowerCase();
           const t = await r.text().catch(() => '');
-          alert((t || 'Erro ao baixar arquivo.').slice(0, 500));
+          const isHtml500 = ct.includes('html') && /server error|500/i.test(t);
+          alert(
+            isHtml500
+              ? 'Erro no servidor ao gerar o arquivo (500). Atualize a página e tente de novo; se persistir, avise o suporte.'
+              : (t || 'Erro ao baixar arquivo.').slice(0, 500),
+          );
           return;
         }
         const blob = await r.blob();
@@ -1351,16 +1357,14 @@
       window._waToastT = setTimeout(() => el.classList.add('hidden'), 6000);
     }
 
+    /** Valor numérico pt-BR sem símbolo R$ (ex.: 834,38) — para linhas do WhatsApp. */
+    function fmtValorNumBR(n) {
+      const x = Number(n) || 0;
+      return x.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
     function textoWhatsResumo() {
       if (!lastRows.length) return '';
-      const EMOJI = {
-        pagar: '✅',
-        receber: '✅',
-        periodo: '⏰',
-        plano: '▸',
-        subtotal: '➡️',
-        total: '★',
-      };
       function dataCurtaMMDD(iso) {
         const s = String(iso || '').trim();
         if (!s) return '—';
@@ -1368,59 +1372,36 @@
         if (m) return `${m[2]}/${m[3]}`;
         return s;
       }
-      function nomeCurtoCliente(raw) {
-        const nome = String(raw || '').trim().replace(/\s+/g, ' ');
+      /** Primeiras 8 letras do favorecido/cliente (sem agrupar por plano). */
+      function fornecedor8(raw) {
+        const nome = String(raw || '').trim().normalize('NFC');
         if (!nome) return '—';
-        const partes = nome.split(' ').filter(Boolean);
-        if (!partes.length) return '—';
-        const p1 = partes[0];
-        if (p1.length > 3) return p1;
-        return `${p1} -`;
+        return nome.slice(0, 8);
       }
-      const icTipo = tipoAtual === 'pagar' ? EMOJI.pagar : EMOJI.receber;
       const tit = tipoAtual === 'pagar' ? 'CONTAS A PAGAR' : 'CONTAS A RECEBER';
       const de = document.getElementById('f-de').value || '—';
       const ate = document.getElementById('f-ate').value || '—';
-      const grupos = {};
       let totalBruto = 0;
       let totalMov = 0;
       let totalSaldo = 0;
       lastRows.forEach((r) => {
-        const plano = String(r.plano_conta || '(sem plano)').trim() || '(sem plano)';
-        if (!grupos[plano]) grupos[plano] = { itens: [], bruto: 0, mov: 0, saldo: 0 };
-        const vb = Number(r.valor_bruto || 0);
-        const vm = Number(r.valor_movimentado || 0);
-        const rs = Number(r.restante || 0);
-        grupos[plano].itens.push(r);
-        grupos[plano].bruto += vb;
-        grupos[plano].mov += vm;
-        grupos[plano].saldo += rs;
-        totalBruto += vb;
-        totalMov += vm;
-        totalSaldo += rs;
+        totalBruto += Number(r.valor_bruto || 0);
+        totalMov += Number(r.valor_movimentado || 0);
+        totalSaldo += Number(r.restante || 0);
       });
 
       const linhas = [];
-      linhas.push(`${icTipo} *${tit}*`);
-      linhas.push(`${EMOJI.periodo} *Período:* ${dataCurtaMMDD(de)} á ${dataCurtaMMDD(ate)}`);
+      linhas.push(`✅ *${tit}*`);
+      linhas.push(`⏰ *Período:* ${dataCurtaMMDD(de)} á ${dataCurtaMMDD(ate)}`);
       linhas.push('');
-
-      Object.keys(grupos).sort((a, b) => a.localeCompare(b, 'pt-BR')).forEach((plano) => {
-        const g = grupos[plano];
-        linhas.push(`${EMOJI.plano} *${plano}*`);
-        g.itens.forEach((r) => {
-          const cli = nomeCurtoCliente(r.cliente);
-          linhas.push(`• ${cli} — ${brl(r.restante)}`);
-        });
-        linhas.push(`${EMOJI.subtotal} *Subtotal* — Saldo ${brl(g.saldo)}`);
-        linhas.push('');
+      lastRows.forEach((r) => {
+        linhas.push(`• ${fornecedor8(r.cliente)} — ${fmtValorNumBR(r.restante)}`);
       });
-
-      linhas.push('━━━━━━━━━━━━');
-      linhas.push(`${EMOJI.total} *TOTAL GERAL*`);
-      linhas.push(`• Bruto: *${brl(totalBruto)}*`);
-      linhas.push(`• Movimentado: *${brl(totalMov)}*`);
-      linhas.push(`• Saldo: *${brl(totalSaldo)}*`);
+      linhas.push('');
+      linhas.push(`• Bruto: ${fmtValorNumBR(totalBruto)}`);
+      const movLabel = tipoAtual === 'pagar' ? 'já pago' : 'já recebido';
+      linhas.push(`• ${movLabel}: ${fmtValorNumBR(totalMov)}`);
+      linhas.push(`• 🥴 Saldo: *${brl(totalSaldo)}*`);
       return linhas.join('\n');
     }
 

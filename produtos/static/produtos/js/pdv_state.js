@@ -334,6 +334,104 @@
         notify();
     }
 
+    /** Hidrata o wizard a partir do rascunho salvo na sessão (consulta → FECHAR VENDA). */
+    function hydrateFromSessionDraft(draft) {
+        if (!draft || typeof draft !== 'object') return false;
+        var itens = Array.isArray(draft.itens) ? draft.itens : [];
+        if (!itens.length) return false;
+        state.itens = itens.map(function (i) {
+            var cod = String((i && i.codigo) || '').trim();
+            return {
+                id: String((i && i.id) || ''),
+                nome: String((i && i.nome) || ''),
+                preco: toNumber(i && i.preco),
+                qtd: Math.max(1, toNumber(i && i.qtd)),
+                codigo: cod,
+                codigoGm: cod || '—',
+                imagem: '',
+                marca: '',
+                desconto: 0,
+                observacao: ''
+            };
+        });
+        var nomeLinha = String(draft.cliente || '').trim();
+        if (!nomeLinha) nomeLinha = 'CONSUMIDOR NÃO IDENTIFICADO...';
+        var ex = draft.cliente_extra;
+        if (ex && typeof ex === 'object' && Object.keys(ex).length) {
+            var raw = Object.assign({}, ex);
+            if (!String(raw.nome || '').trim() && String(raw.razao_social || '').trim()) {
+                raw.nome = raw.razao_social;
+            }
+            if (!String(raw.nome || '').trim()) raw.nome = nomeLinha;
+            state.cliente = sanitizeCliente(raw);
+            state.clienteMode = 'cliente';
+        } else if (/consumidor\s+n[aã]o\s+identificado/i.test(nomeLinha)) {
+            state.clienteMode = 'consumidor_final';
+            state.cliente = {
+                id: '',
+                nome: nomeLinha,
+                documento: '',
+                telefone: '',
+                endereco: '',
+                logradouro: '',
+                numero: '',
+                bairro: '',
+                cidade: '',
+                uf: '',
+                cep: '',
+                plus_code: '',
+                referencia_rural: '',
+                maps_url_manual: '',
+                cliente_agro_pk: null
+            };
+        } else {
+            state.clienteMode = 'cliente';
+            state.cliente = sanitizeCliente({ nome: nomeLinha, id: '' });
+        }
+        state.entrega.ativa = false;
+        state.entrega.endereco = '';
+        state.entrega.logradouro = '';
+        state.entrega.numero = '';
+        state.entrega.bairro = '';
+        state.entrega.plusCode = '';
+        state.entrega.complemento = '';
+        state.entrega.referencia = '';
+        state.entrega.horario = '';
+        state.entrega.troco = '';
+        state.entrega.statusPagamento = '';
+        state.entrega.maquininha = '';
+        state.entrega.observacao = '';
+        state.entrega.taxaEntregaRespondida = false;
+        state.entrega.taxaEntregaModo = '';
+        state.entrega.localPagamento = '';
+        state.entrega.meioNaEntrega = '';
+        var fp = String(draft.forma_pagamento || '').trim();
+        var allowed = [
+            '',
+            'Dinheiro',
+            'PIX',
+            'Cartão de débito',
+            'Cartão de crédito',
+            'Crédito parcelado',
+            'Fiado',
+            'Vale crédito',
+            'Cashback',
+            'Outro'
+        ];
+        state.pagamento.forma = allowed.indexOf(fp) >= 0 ? fp : '';
+        state.pagamento.lancamentos = [];
+        state.pagamento.valorRecebido = '';
+        state.pagamento.trocoCalculado = '';
+        state.pagamento.valorDestaForma = '';
+        state.pagamento.maquinaId = '';
+        state.pagamento.maquinaNome = '';
+        state.pagamento.outroDetalhes = '';
+        state.pagamento.outroPinVerificado = false;
+        state.currentStep = 'produtos';
+        notify();
+        return true;
+    }
+
     function resetPagamentoTranche() {
         if (!state.pagamento) return;
         state.pagamento.forma = '';
@@ -408,6 +506,7 @@
         setPagamentoPatch: setPagamentoPatch,
         setVendaField: setVendaField,
         hydrateFromBudget: hydrateFromBudget,
+        hydrateFromSessionDraft: hydrateFromSessionDraft,
         reset: reset,
         toNumber: toNumber,
         addPagamentoLancamento: addPagamentoLancamento,

@@ -754,13 +754,15 @@ function coletarValoresPorTipo(produto, tipo) {
     if (!produto || !tipo) return [];
     const keywords = {
         marca: ['marca','brand','marca_nome','brand_name'],
-        fornecedor: ['fornecedor','fornec','supplier','fabricante','distrib','vendor','parceiro','empresa','pessoa'],
-        categoria: ['categoria','categorias','grupo','subcategoria','departamento','linha','familia','tipo','secao','classificacao','colecao','collection']
+        fornecedor: ['fornecedor','fornec','supplier','fabricante','distrib','vendor','parceiro','empresa','pessoa','nomefornecedor','razaosocialfornecedor'],
+        categoria: ['categoria','categorias','grupo','departamento','linha','familia','tipo','secao','classificacao','colecao','collection','nomecategoria'],
+        subcategoria: ['subcategoria','subgrupo','sub_grupo','nome_subcategoria','sub_grup','linha']
     };
     const seeds = {
         marca: [produto.marca, produto.marca_nome, produto.nome_marca, produto.brand, produto.marcaDescricao, produto.marca_obj, produto.marcaModel, produto.marcas, produto.brand_name],
         fornecedor: [produto.fornecedor, produto.fornecedor_nome, produto.nome_fornecedor, produto.razao_fornecedor, produto.fabricante, produto.fornecedor_obj, produto.fornecedorModel, produto.distribuidor, produto.supplier, produto.fornecedores, produto.fornecedor_padrao, produto.parceiro],
-        categoria: [produto.categoria, produto.categoria_nome, produto.nome_categoria, produto.grupo, produto.grupo_nome, produto.subcategoria, produto.categoria_pai, produto.categoria_obj, produto.categorias, produto.departamento, produto.linha, produto.tipo_produto, produto.collection]
+        categoria: [produto.categoria, produto.categoria_nome, produto.nome_categoria, produto.grupo, produto.grupo_nome, produto.categoria_pai, produto.categoria_obj, produto.categorias, produto.departamento, produto.linha, produto.tipo_produto, produto.collection],
+        subcategoria: [produto.subcategoria, produto.SubGrupo, produto.sub_grupo, produto.nome_subcategoria]
     };
     const achados = [];
     const vistos = new Set();
@@ -778,7 +780,8 @@ function coletarValoresPorTipo(produto, tipo) {
     const chavesRelacionadas = {
         marca: ['nome','descricao','label','text','title','name'],
         fornecedor: ['nome','razao_social','razao','fantasia','nome_fantasia','descricao','label','text','title','name'],
-        categoria: ['nome','descricao','titulo','label','text','title','name']
+        categoria: ['nome','descricao','titulo','label','text','title','name'],
+        subcategoria: ['nome','descricao','titulo','label','text','title','name']
     };
     const queue = [{ valor: produto, path: '', depth: 0 }];
     while (queue.length) {
@@ -792,11 +795,11 @@ function coletarValoresPorTipo(produto, tipo) {
             for (const [chave, item] of Object.entries(valor)) {
                 const novoPath = path ? `${path}.${chave}` : chave;
                 const chaveNorm = normalizarBuscaLocal(novoPath);
-                if (keywords[tipo].some(k => chaveNorm.includes(normalizarBuscaLocal(k)))) {
+                if ((keywords[tipo] || []).some(k => chaveNorm.includes(normalizarBuscaLocal(k)))) {
                     const txt = extrairTextoGenerico(item);
                     if (txt) add(txt);
                     if (item && typeof item === 'object') {
-                        for (const relKey of chavesRelacionadas[tipo]) {
+                        for (const relKey of chavesRelacionadas[tipo] || []) {
                             if (item[relKey] !== undefined) {
                                 const relTxt = extrairTextoGenerico(item[relKey]);
                                 if (relTxt) add(relTxt);
@@ -810,7 +813,7 @@ function coletarValoresPorTipo(produto, tipo) {
         }
         if (typeof valor === 'string' || typeof valor === 'number') {
             const pathNorm = normalizarBuscaLocal(path);
-            if (keywords[tipo].some(k => pathNorm.includes(normalizarBuscaLocal(k)))) add(valor);
+            if ((keywords[tipo] || []).some(k => pathNorm.includes(normalizarBuscaLocal(k)))) add(valor);
         }
     }
     return achados;
@@ -827,7 +830,10 @@ function prepararProduto(produto) {
     const marca = obterValorCampoProduto(produto, 'marca');
     const fornecedor = obterValorCampoProduto(produto, 'fornecedor');
     const categoria = obterValorCampoProduto(produto, 'categoria');
-    const buscaTexto = [nome, codigo, codigoBarras, marca, fornecedor, categoria].map(normalizarBuscaLocal).join(' ');
+    const subcategoria = obterValorCampoProduto(produto, 'subcategoria');
+    const buscaTexto = [nome, codigo, codigoBarras, marca, fornecedor, categoria, subcategoria]
+        .map(normalizarBuscaLocal)
+        .join(' ');
     return {
         ...produto,
         nome,
@@ -836,6 +842,7 @@ function prepararProduto(produto) {
         marca,
         fornecedor,
         categoria,
+        subcategoria,
         busca_texto: buscaTexto,
         saldo_centro: Number(produto.saldo_centro || produto.estoque_centro || produto.saldo || 0),
         saldo_vila: Number(produto.saldo_vila || produto.estoque_vila || produto.saldo_filial || 0),
@@ -1700,7 +1707,8 @@ async function irParaCheckout() {
         });
         var j = await res.json();
         if (j.ok) {
-            window.location.href = AGRO_PDV_URLS.pdvCheckout;
+            var base = (AGRO_PDV_URLS.pdvWizardHome || '/pdv/').replace(/\/?$/, '/');
+            window.location.href = base + '?reabrir=1';
         } else {
             alert(j.erro || 'Não foi possível abrir a tela de fechamento.');
         }
@@ -1724,6 +1732,17 @@ function salvarHistoricoLocal(extra) {
     
     const fpEl = document.getElementById('forma-pagamento-pdv');
     const idOrc = extra && extra.orcId != null ? Number(extra.orcId) : Date.now();
+    let operadorSalvo = '';
+    try {
+        operadorSalvo = (localStorage.getItem('gm_sspin_operador') || '').trim();
+    } catch (eOp) {}
+    let usuarioSalvo = '';
+    try {
+        usuarioSalvo = (AGRO_PDV_BOOTSTRAP && AGRO_PDV_BOOTSTRAP.usuarioSalvamento)
+            ? String(AGRO_PDV_BOOTSTRAP.usuarioSalvamento).trim()
+            : '';
+    } catch (eUs) {}
+    if (!usuarioSalvo) usuarioSalvo = operadorSalvo;
     const novo = {
         id: idOrc,
         orc_barcode: pdvCodigoBarrasOrcamento(idOrc),
@@ -1733,6 +1752,7 @@ function salvarHistoricoLocal(extra) {
         itens: JSON.parse(JSON.stringify(carrinho)),
         forma_pagamento: fpEl && fpEl.value ? fpEl.value : '',
         entrega: !!extra.entrega,
+        usuario: usuarioSalvo || undefined,
         cliente_extra:
             clienteSelecionado && typeof clienteSelecionado === 'object'
                 ? JSON.parse(JSON.stringify(clienteSelecionado))
@@ -1942,7 +1962,14 @@ function pdvImprimirOrcamentoCarrinho() {
             });
         }
     } catch (e) {}
+    document.body.classList.add('print-pdv-orcamento-only');
+    function _fimCupomPdv() {
+        document.body.classList.remove('print-pdv-orcamento-only');
+        window.removeEventListener('afterprint', _fimCupomPdv);
+    }
+    window.addEventListener('afterprint', _fimCupomPdv);
     window.print();
+    setTimeout(_fimCupomPdv, 8000);
 }
 
 async function pdvEnviarOrcamentoErpCarrinho() {
@@ -2013,6 +2040,21 @@ function pdvAbrirModalCadastroClientePdv() {
     if (!m) return;
     if (nomeEl) nomeEl.value = '';
     if (waEl) waEl.value = clienteSelecionado && clienteSelecionado.telefone ? String(clienteSelecionado.telefone) : '';
+    [
+        'pdv-cli-rapido-logradouro',
+        'pdv-cli-rapido-numero',
+        'pdv-cli-rapido-complemento',
+        'pdv-cli-rapido-bairro',
+        'pdv-cli-rapido-cidade',
+        'pdv-cli-rapido-uf',
+        'pdv-cli-rapido-cep',
+        'pdv-cli-rapido-plus',
+        'pdv-cli-rapido-ref-rural',
+        'pdv-cli-rapido-maps-url',
+    ].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
     m.classList.remove('hidden');
     m.classList.add('flex');
     setTimeout(function () {
@@ -2048,13 +2090,30 @@ async function pdvSalvarClienteRapidoPdv() {
         btn.textContent = 'Salvando…';
     }
     try {
+        const gv = (id) => {
+            const el = document.getElementById(id);
+            return el ? String(el.value || '').trim() : '';
+        };
         const res = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': AGRO_PDV_BOOTSTRAP.csrfToken || gmCsrfTokenParaFetch(),
             },
-            body: JSON.stringify({ nome, whatsapp: wa }),
+            body: JSON.stringify({
+                nome,
+                whatsapp: wa,
+                logradouro: gv('pdv-cli-rapido-logradouro'),
+                numero: gv('pdv-cli-rapido-numero'),
+                complemento: gv('pdv-cli-rapido-complemento'),
+                bairro: gv('pdv-cli-rapido-bairro'),
+                cidade: gv('pdv-cli-rapido-cidade'),
+                uf: gv('pdv-cli-rapido-uf'),
+                cep: gv('pdv-cli-rapido-cep'),
+                plus_code: gv('pdv-cli-rapido-plus'),
+                referencia_rural: gv('pdv-cli-rapido-ref-rural'),
+                maps_url_manual: gv('pdv-cli-rapido-maps-url'),
+            }),
         });
         const d = await res.json();
         if (d.ok && d.cliente) {
@@ -2084,18 +2143,37 @@ function abrirHistoricoLocal() {
     try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { historico = []; }
     container.innerHTML = '';
     if (historico.length === 0) {
-        container.innerHTML = '<div class="text-center text-slate-400 py-10 font-bold text-sm">Nenhum orçamento emitido hoje.</div>';
+        container.innerHTML = '<div class="text-center text-slate-400 py-10 font-bold text-sm">Nenhum orçamento salvo neste navegador.</div>';
     } else {
         historico.forEach(h => {
+            const hid = Number(h.id);
+            const uRaw = String((h.usuario != null && h.usuario !== '') ? h.usuario : (h.operador || '')).trim();
+            const op = uRaw ? escapeHtml(uRaw) : '';
+            const opLinha = op
+                ? `<span class="inline-flex items-center rounded-md bg-slate-200/70 px-1.5 py-0.5 text-[7px] font-black uppercase text-slate-600 ring-1 ring-slate-300/60" title="Usuário que salvou o orçamento">👤 ${op}</span>`
+                : '<span class="text-[9px] font-bold text-slate-400">— usuário</span>';
             container.innerHTML += `
-                <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl flex justify-between items-center hover:bg-slate-100 transition-colors">
-                    <div>
-                        <div class="font-black text-slate-700 text-sm uppercase">${escapeHtml(h.cliente)}${h.entrega ? ' <span class="text-sky-600">· Entrega</span>' : ''}</div>
-                        <div class="text-xs text-slate-500 font-bold">${h.data} • ${h.itens.length} itens</div>
+                <div class="bg-slate-50 border border-slate-200 p-3 sm:p-4 rounded-2xl hover:bg-slate-100/90 transition-colors">
+                    <div class="flex flex-wrap items-start justify-between gap-2 gap-y-1">
+                        <div class="min-w-0 flex-1">
+                            <div class="font-black text-slate-800 text-sm uppercase leading-snug">${escapeHtml(h.cliente)}${h.entrega ? ' <span class="text-sky-600 font-black">· Entrega</span>' : ''}</div>
+                            <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-500 font-bold">
+                                <span>${escapeHtml(h.data)}</span>
+                                <span class="text-slate-300">·</span>
+                                <span>${Number(h.itens && h.itens.length) || 0} itens</span>
+                                ${h.forma_pagamento ? `<span class="text-slate-300">·</span><span>${escapeHtml(h.forma_pagamento)}</span>` : ''}
+                            </div>
+                            <div class="mt-1.5 flex flex-wrap items-center gap-2">${opLinha}</div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="font-black text-emerald-600 text-lg tabular-nums">${escapeHtml(h.total)}</div>
+                            ${h.orc_barcode ? `<div class="text-[9px] font-mono font-bold text-slate-400 mt-0.5">${escapeHtml(String(h.orc_barcode))}</div>` : ''}
+                        </div>
                     </div>
-                    <div class="flex items-center gap-4">
-                        <span class="font-black text-emerald-600 text-lg">${h.total}</span>
-                        <button onclick="recuperarOrcamento(${h.id})" class="bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 rounded-lg text-xs font-black uppercase shadow-sm active:scale-95">Recuperar Orçamento</button>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button type="button" onclick="recuperarOrcamento(${hid})" class="flex-1 min-w-[8rem] py-2.5 rounded-xl border-2 border-sky-400 bg-sky-500 hover:bg-sky-600 text-white text-[10px] font-black uppercase shadow-sm active:scale-[0.98]">Abrir como orçamento</button>
+                        <button type="button" onclick="abrirOrcamentoComoVendaPdv(${hid})" class="flex-1 min-w-[8rem] py-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase shadow-sm active:scale-[0.98]">Abrir como venda (PDV)</button>
+                        <button type="button" onclick="excluirOrcamentoHistorico(${hid})" class="flex-1 min-w-[6rem] py-2.5 rounded-xl border-2 border-red-200 bg-white text-red-700 hover:bg-red-50 text-[10px] font-black uppercase tracking-wide">Excluir</button>
                     </div>
                 </div>
             `;
@@ -2118,7 +2196,7 @@ function recuperarOrcamento(id) {
     const h = historico.find(x => Number(x.id) === Number(id));
     if (h) {
         if (carrinho.length > 0 && !confirm("Isso vai substituir o carrinho atual. Deseja continuar?")) return;
-        carrinho = h.itens;
+        carrinho = JSON.parse(JSON.stringify(h.itens));
         document.getElementById('nome-cliente').value = ehClienteGenericoPdv(h.cliente)
             ? CLIENTE_PADRAO_PDV
             : h.cliente;
@@ -2133,6 +2211,44 @@ function recuperarOrcamento(id) {
         atualizarCarrinho();
         fecharHistoricoLocal();
     }
+}
+
+function excluirOrcamentoHistorico(id) {
+    if (!confirm('Excluir este orçamento salvo neste navegador?')) return;
+    let historico = [];
+    try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { return; }
+    historico = historico.filter(x => Number(x.id) !== Number(id));
+    try {
+        localStorage.setItem('historicoOrcamentos', JSON.stringify(historico));
+    } catch (e) {}
+    abrirHistoricoLocal();
+    if (typeof renderizarHistoricoResumido === 'function') renderizarHistoricoResumido();
+}
+
+async function abrirOrcamentoComoVendaPdv(id) {
+    let historico = [];
+    try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { return; }
+    const h = historico.find(x => Number(x.id) === Number(id));
+    if (!h) {
+        alert('Orçamento não encontrado.');
+        return;
+    }
+    if (carrinho.length > 0 && !confirm('Substituir o carrinho atual e ir para o fechamento de venda (PDV)?')) return;
+    carrinho = JSON.parse(JSON.stringify(h.itens));
+    document.getElementById('nome-cliente').value = ehClienteGenericoPdv(h.cliente)
+        ? CLIENTE_PADRAO_PDV
+        : h.cliente;
+    clienteSelecionado =
+        h.cliente_extra && typeof h.cliente_extra === 'object' ? h.cliente_extra : null;
+    const fpRec = document.getElementById('forma-pagamento-pdv');
+    if (fpRec && Object.prototype.hasOwnProperty.call(h, 'forma_pagamento')) {
+        fpRec.value = h.forma_pagamento || '';
+    }
+    const chkRec = document.getElementById('pdv-orcamento-entrega');
+    if (chkRec) chkRec.checked = !!h.entrega;
+    atualizarCarrinho();
+    fecharHistoricoLocal();
+    await irParaCheckout();
 }
 
 /** Retomada por código de barras GMORC… no buscador / leitor. */
@@ -2165,7 +2281,7 @@ function recuperarOrcamentoSilenciosoPorId(oid) {
     const chkRec = document.getElementById('pdv-orcamento-entrega');
     if (chkRec) chkRec.checked = !!h.entrega;
     atualizarCarrinho();
-    mostrarBannerScanner('Orçamento recuperado — finalize no caixa (F8).');
+    mostrarBannerScanner('Orçamento recuperado — use FECHAR VENDA / F8 para abrir o PDV.');
     tocarSom('add');
     focarBuscaProduto();
     return true;
@@ -2641,10 +2757,17 @@ function mediaParaOrdenacaoPdv(p) {
     return Number(p.media_venda_diaria_30d || 0);
 }
 
-function ordenarSugestoesPdv(lista) {
-    /* Média de vendas do catálogo carregado no início do dia (mesmo cache do servidor).
+function ordenarSugestoesPdv(lista, termoBuscaNorm) {
+    /* Relevância do texto da busca primeiro (evita esconder match forte no nome atrás do corte por média).
+       Depois: média de vendas do catálogo carregado no início do dia (mesmo cache do servidor).
        Não usar só a média que veio no merge da API — evita “tic” e troca de ordem ao mesclar. */
+    const termoTrim = termoBuscaNorm != null ? String(termoBuscaNorm).trim() : '';
     return [...lista].sort((a, b) => {
+        if (termoTrim) {
+            const rA = relevanciaTextoBuscaPdv(a, termoTrim);
+            const rB = relevanciaTextoBuscaPdv(b, termoTrim);
+            if (rA !== rB) return rB - rA;
+        }
         const mA = mediaParaOrdenacaoPdv(a);
         const mB = mediaParaOrdenacaoPdv(b);
         if (mA !== mB) return mB - mA;
@@ -2658,6 +2781,28 @@ function ordenarSugestoesPdv(lista) {
 function montarBuscaTextoRapido(p) {
     const partes = [p.nome, p.marca, p.codigo_nfe, p.codigo_barras, p.codigo, p.prateleira].filter(Boolean);
     return normalizarBuscaLocal(partes.join(' '));
+}
+
+function blobTextoBuscaRelevancia(p) {
+    if (p.busca_texto) return normalizarBuscaLocal(String(p.busca_texto));
+    return montarBuscaTextoRapido(p);
+}
+
+function relevanciaTextoBuscaPdv(p, termoNorm) {
+    if (!termoNorm || typeof termoNorm !== 'string') return 0;
+    const t = termoNorm.trim();
+    if (!t) return 0;
+    const nome = normalizarBuscaLocal(String(p.nome || ''));
+    const blob = blobTextoBuscaRelevancia(p);
+    if (nome.includes(t)) return 1_000_000;
+    if (blob.includes(t)) return 500_000;
+    const palavras = t.split(/\s+/).filter((w) => w.length >= 2);
+    let s = 0;
+    for (const w of palavras) {
+        if (nome.includes(w)) s += 50_000;
+        else if (blob.includes(w)) s += 5_000;
+    }
+    return s;
 }
 
 /** EAN-13 etiqueta balança: 2 + CCCC + 0 + TTTTTT (centavos) + DV — mesmo padrão do ERP (Venda). */
@@ -2771,6 +2916,7 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
     }
     clearTimeout(mergeFetchTimer);
     const seq = ++buscaOnlineMergeSeq;
+    const termoNorm = normalizarBuscaLocal(removerSufixoQuantidade(termoBrutoOriginal));
     const map = new Map();
     locaisOrdenados.forEach((p) => map.set(String(p.id), p));
     const ordemLocalIds = locaisOrdenados.map((p) => String(p.id));
@@ -2806,7 +2952,7 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
                     return apiRow ? { ...base, ...apiRow } : base;
                 }).filter(Boolean);
                 const extrasBrutos = api.filter((raw) => !idsLocal.has(String(raw.id)));
-                const extrasOrd = ordenarSugestoesPdv(extrasBrutos);
+                const extrasOrd = ordenarSugestoesPdv(extrasBrutos, termoNorm);
                 const selId = produtoEmDestaque ? String(produtoEmDestaque.id) : null;
                 const final = [...locaisMesclados, ...extrasOrd].slice(0, BUSCA_SUG_LIM_MAX);
                 processarResultadosBusca(final, modo, false, {
@@ -2865,7 +3011,7 @@ function executarBuscaLocal(termo, modo) {
         }
     }
 
-    resultados = ordenarSugestoesPdv(resultados);
+    resultados = ordenarSugestoesPdv(resultados, termo);
     mesclarBuscaLocalComOnline(termoBrutoApi, modo, resultados);
 }
 
@@ -2909,9 +3055,10 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false,
 
     if (produtosEncontrados.length > 0) {
         const enriquecidos = produtosEncontrados.map(enriquecerProdutoBusca);
+        const termoOrd = normalizarBuscaLocal(removerSufixoQuantidade(inputBusca ? inputBusca.value : ''));
         const ordenados = opcoes.preservarOrdem
             ? enriquecidos
-            : ordenarSugestoesPdv(enriquecidos);
+            : ordenarSugestoesPdv(enriquecidos, termoOrd);
         sugestoesBuscaCompletas = ordenados;
         limiteSugestoesVisivel = BUSCA_SUG_LIM_INI;
         sugestoesAtuais = sugestoesBuscaCompletas.slice(0, limiteSugestoesVisivel);
@@ -3047,17 +3194,43 @@ inputBusca.addEventListener('keydown', function(e) {
 
     if (e.key === 'ArrowDown') {
         e.preventDefault();
-        if (!sugestoesAtuais.length) return;
-        indexSelecionado = (indexSelecionado + 1) % sugestoesAtuais.length;
+        if (!sugestoesBuscaCompletas.length) return;
+        if (indexSelecionado < 0) {
+            indexSelecionado = 0;
+        } else if (indexSelecionado < sugestoesAtuais.length - 1) {
+            indexSelecionado++;
+        } else if (sugestoesBuscaCompletas.length > sugestoesAtuais.length) {
+            limiteSugestoesVisivel = Math.min(
+                limiteSugestoesVisivel + BUSCA_SUG_LIM_PAG,
+                sugestoesBuscaCompletas.length
+            );
+            sugestoesAtuais = sugestoesBuscaCompletas.slice(0, limiteSugestoesVisivel);
+            if (indexSelecionado < sugestoesAtuais.length - 1) indexSelecionado++;
+        }
         produtoEmDestaque = sugestoesAtuais[indexSelecionado] || null;
         renderizarSugestoes();
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                const rows = similaresContainer.querySelectorAll('.suggestion-item');
+                const el = rows[indexSelecionado];
+                if (el) el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            });
+        });
     }
     else if (e.key === 'ArrowUp') {
         e.preventDefault();
         if (!sugestoesAtuais.length) return;
-        indexSelecionado = (indexSelecionado - 1 + sugestoesAtuais.length) % sugestoesAtuais.length;
+        if (indexSelecionado < 0) indexSelecionado = 0;
+        else indexSelecionado = Math.max(0, indexSelecionado - 1);
         produtoEmDestaque = sugestoesAtuais[indexSelecionado] || null;
         renderizarSugestoes();
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                const rows = similaresContainer.querySelectorAll('.suggestion-item');
+                const el = rows[indexSelecionado];
+                if (el) el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            });
+        });
     }
     else if (e.key === 'Enter') {
         e.preventDefault();
@@ -3432,6 +3605,45 @@ document.addEventListener('keydown', function(e) {
     else if (e.key === 'F10') {
         e.preventDefault();
         if (produtoEmDestaque) abrirAjuste(produtoEmDestaque.id, produtoEmDestaque.nome, produtoEmDestaque.saldo_erp_vila, produtoEmDestaque.codigo_nfe || produtoEmDestaque.codigo_interno || '', 'vila');
+    }
+    else if (
+        pdvCarrinhoDrawerEstaAberto() &&
+        !inField &&
+        !e.repeat &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        e.key &&
+        e.key.length === 1
+    ) {
+        const ch = e.key.toLowerCase();
+        const run = {
+            n: () => {
+                pdvAbrirModalCadastroClientePdv();
+            },
+            i: () => {
+                pdvImprimirOrcamentoCarrinho();
+            },
+            w: () => {
+                pdvWhatsappOrcamentoCarrinho();
+            },
+            e: () => {
+                pdvEnviarOrcamentoErpCarrinho();
+            },
+            l: () => {
+                limparCarrinho();
+            },
+            s: () => {
+                salvarOrcamentoManual();
+            },
+            v: () => {
+                if (carrinho.length) irParaCheckout();
+            },
+        };
+        if (run[ch]) {
+            e.preventDefault();
+            run[ch]();
+        }
     }
     else if (e.key === 'Escape') {
         const mpe = document.getElementById('modal-pdv-entrega-pergunta');
@@ -4262,6 +4474,16 @@ window.addEventListener('load', () => {
 
 
 document.addEventListener('DOMContentLoaded', function () {
+    try {
+        var oid = sessionStorage.getItem('agro_pdv_aplicar_orcamento_id');
+        if (oid) {
+            sessionStorage.removeItem('agro_pdv_aplicar_orcamento_id');
+            setTimeout(function () {
+                if (typeof recuperarOrcamento === 'function') recuperarOrcamento(Number(oid));
+            }, 0);
+            return;
+        }
+    } catch (e0) {}
     var el = document.getElementById('pdv-reabrir-draft');
     if (!el) return;
     try {
@@ -4282,16 +4504,25 @@ document.addEventListener('DOMContentLoaded', function () {
 document.addEventListener('DOMContentLoaded', function () {
     try {
         var params = new URLSearchParams(window.location.search || '');
-        if (params.get('orcamentos') !== '1') return;
-        if (typeof abrirHistoricoLocal === 'function') abrirHistoricoLocal();
-        params.delete('orcamentos');
-        if (history.replaceState) {
-            var nextQuery = params.toString();
-            var nextUrl = window.location.pathname + (nextQuery ? ('?' + nextQuery) : '') + (window.location.hash || '');
-            history.replaceState(null, '', nextUrl);
+        if (params.get('lembretes') === '1') {
+            if (typeof abrirModalLembretes === 'function') abrirModalLembretes();
+            params.delete('lembretes');
+            if (history.replaceState) {
+                var nqL = params.toString();
+                history.replaceState(null, '', window.location.pathname + (nqL ? ('?' + nqL) : '') + (window.location.hash || ''));
+            }
+            return;
+        }
+        if (params.get('orcamentos') === '1') {
+            if (typeof abrirHistoricoLocal === 'function') abrirHistoricoLocal();
+            params.delete('orcamentos');
+            if (history.replaceState) {
+                var nq = params.toString();
+                history.replaceState(null, '', window.location.pathname + (nq ? ('?' + nq) : '') + (window.location.hash || ''));
+            }
         }
     } catch (err) {
-        console.warn('Nao foi possivel abrir o historico por URL.', err);
+        console.warn('Nao foi possivel abrir modal por URL.', err);
     }
 });
 
@@ -4305,6 +4536,7 @@ window.removerItem = removerItem;
 window.abrirBuscaAvancada = abrirBuscaAvancada;
 window.fecharBuscaAvancada = fecharBuscaAvancada;
 window.aplicarBuscaAvancada = aplicarBuscaAvancada;
+window.preencherSelectBuscaAvancadaDimensao = preencherSelectBuscaAvancadaDimensao;
 window.abrirModalLembretes = abrirModalLembretes;
 window.fecharModalLembretes = fecharModalLembretes;
 window.salvarLembrete = salvarLembrete;
@@ -4313,6 +4545,9 @@ window.confirmarModalAjustePdv = confirmarModalAjustePdv;
 window.dispensarAlertaLembrete = dispensarAlertaLembrete;
 window.fecharHistoricoLocal = fecharHistoricoLocal;
 window.abrirHistoricoLocal = abrirHistoricoLocal;
+window.excluirOrcamentoHistorico = excluirOrcamentoHistorico;
+window.abrirOrcamentoComoVendaPdv = abrirOrcamentoComoVendaPdv;
+window.recuperarOrcamento = recuperarOrcamento;
 window.fecharBalaoAvisoEstoquePdv = fecharBalaoAvisoEstoquePdv;
 window.pdvWhatsappOrcamentoCarrinho = pdvWhatsappOrcamentoCarrinho;
 window.pdvImprimirOrcamentoCarrinho = pdvImprimirOrcamentoCarrinho;

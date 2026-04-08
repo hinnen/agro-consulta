@@ -1,0 +1,36 @@
+{# Lembretes + orçamentos salvos na home — pop-ups locais (sem sair da página). #}
+<div id="modal-lembretes" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[106] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-lembretes-titulo" onclick="if (event.target === this) fecharModalLembretes();">
+    <div class="bg-white w-full max-w-[min(36rem,96vw)] rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col" onclick="event.stopPropagation();">
+        <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center gap-3 shrink-0">
+            <h2 id="modal-lembretes-titulo" class="text-lg font-black uppercase text-slate-800 tracking-tight">⏰ Lembretes do caixa</h2>
+            <button type="button" onclick="fecharModalLembretes()" class="text-slate-400 hover:text-slate-700 font-bold text-sm px-2" aria-label="Fechar">✕</button>
+        </div>
+        <div class="p-5 space-y-4 overflow-y-auto hide-scroll flex-1 min-h-0">
+            <p class="text-[11px] font-semibold text-slate-500 leading-relaxed">Cadastre um texto e o horário; quando chegar a hora, o PDV toca um aviso e mostra um cartão no canto da tela.</p>
+            <div id="lista-lembretes" class="max-h-48 overflow-y-auto hide-scroll rounded-xl border border-slate-100 bg-slate-50/60 p-1"></div>
+            <div class="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
+                <div class="flex-1 min-w-0">
+                    <label class="text-[10px] font-black uppercase text-slate-500" for="lembrete-texto">Texto</label>
+                    <input id="lembrete-texto" type="text" placeholder="O que lembrar?" class="mt-1 w-full text-sm font-bold px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-white">
+                </div>
+                <div class="w-full sm:w-[104px] shrink-0">
+                    <label class="text-[10px] font-black uppercase text-slate-500" for="lembrete-hora">Hora</label>
+                    <input id="lembrete-hora" type="time" class="mt-1 w-full text-sm font-bold px-2 py-2.5 rounded-xl border-2 border-slate-200 bg-white">
+                </div>
+                <button type="button" onclick="salvarLembrete()" class="sm:self-end shrink-0 px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-black uppercase">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modal-historico-vendas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-hist-local-titulo" onclick="if (event.target === this) fecharHistoricoLocal();">
+    <div class="bg-white w-full max-w-[min(48rem,96vw)] rounded-3xl shadow-2xl p-6 flex flex-col max-h-[85vh] min-h-0" onclick="event.stopPropagation();">
+        <div class="flex justify-between items-start gap-3 mb-4 border-b border-slate-100 pb-4">
+            <div class="min-w-0">
+                <h2 id="modal-hist-local-titulo" class="text-xl font-black text-slate-800 uppercase tracking-tight">Orçamentos salvos</h2>
+            </div>
+            <button type="button" onclick="fecharHistoricoLocal()" class="shrink-0 text-slate-400 hover:text-slate-600 font-bold bg-slate-100 px-3 py-1 rounded-lg text-xs uppercase">✕ Fechar [Esc]</button>
+        </div>
+        <div id="lista-historico-local" class="overflow-y-auto hide-scroll flex-1 min-h-0 space-y-3"></div>
+    </div>
+</div>

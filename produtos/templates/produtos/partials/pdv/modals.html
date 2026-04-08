@@ -46,6 +46,7 @@
                         <option value="marca">Marca</option>
                         <option value="fornecedor">Fornecedor</option>
                         <option value="categoria">Categoria</option>
+                        <option value="subcategoria">Subcategoria</option>
                     </select>
                 </div>
                 <div>
@@ -151,9 +152,11 @@
 
     <div id="modal-historico-vendas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-hist-local-titulo">
         <div class="bg-white w-full max-w-[min(48rem,96vw)] rounded-3xl shadow-2xl p-6 flex flex-col max-h-[85vh] min-h-0">
-            <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
-                <h2 id="modal-hist-local-titulo" class="text-xl font-black text-slate-800 uppercase italic">📋 Últimos Orçamentos (Local)</h2>
-                <button onclick="fecharHistoricoLocal()" class="text-slate-400 hover:text-slate-600 font-bold bg-slate-100 px-3 py-1 rounded-lg text-xs uppercase">✕ Fechar [Esc]</button>
+            <div class="flex justify-between items-start gap-3 mb-4 border-b border-slate-100 pb-4">
+                <div class="min-w-0">
+                    <h2 id="modal-hist-local-titulo" class="text-xl font-black text-slate-800 uppercase tracking-tight">Orçamentos salvos</h2>
+                </div>
+                <button type="button" onclick="fecharHistoricoLocal()" class="shrink-0 text-slate-400 hover:text-slate-600 font-bold bg-slate-100 px-3 py-1 rounded-lg text-xs uppercase">✕ Fechar [Esc]</button>
             </div>
             <div id="lista-historico-local" class="overflow-y-auto hide-scroll flex-1 min-h-0 space-y-3">
                 <!-- Cards de historico preenchidos via JS -->
@@ -177,6 +180,51 @@
                     <label for="pdv-cli-rapido-whatsapp" class="block text-[10px] font-black uppercase text-slate-500 mb-1">WhatsApp (opcional)</label>
                     <input id="pdv-cli-rapido-whatsapp" type="tel" inputmode="tel" autocomplete="tel" class="w-full py-2.5 px-3 rounded-xl border-2 border-slate-200 font-bold text-sm focus:border-emerald-500 outline-none" placeholder="DDD + número">
                 </div>
+                <details class="rounded-xl border-2 border-slate-200 bg-slate-50/80 px-3 py-2">
+                    <summary class="cursor-pointer text-[11px] font-black uppercase text-slate-700 tracking-wide select-none">Endereço e Plus Code (opcional)</summary>
+                    <div class="mt-3 grid gap-2.5 sm:grid-cols-2">
+                        <div class="sm:col-span-2">
+                            <label for="pdv-cli-rapido-logradouro" class="block text-[9px] font-black uppercase text-slate-500 mb-0.5">Logradouro</label>
+                            <input id="pdv-cli-rapido-logradouro" type="text" autocomplete="street-address" class="w-full py-2 px-3 rounded-xl border-2 border-slate-200 bg-white font-bold text-sm" placeholder="Rua, avenida…">
+                        </div>
+                        <div>
+                            <label for="pdv-cli-rapido-numero" class="block text-[9px] font-black uppercase text-slate-500 mb-0.5">Número</label>
+                            <input id="pdv-cli-rapido-numero" type="text" class="w-full py-2 px-3 rounded-xl border-2 border-slate-200 bg-white font-bold text-sm" placeholder="Nº">
+                        </div>
+                        <div>
+                            <label for="pdv-cli-rapido-complemento" class="block text-[9px] font-black uppercase text-slate-500 mb-0.5">Complemento</label>
+                            <input id="pdv-cli-rapido-complemento" type="text" class="w-full py-2 px-3 rounded-xl border-2 border-slate-200 bg-white font-bold text-sm" placeholder="Apto, bloco…">
+                        </div>
+                        <div>
+                            <label for="pdv-cli-rapido-bairro" class="block text-[9px] font-black uppercase text-slate-500 mb-0.5">Bairro</label>
+                            <input id="pdv-cli-rapido-bairro" type="text" class="w-full py-2 px-3 rounded-xl border-2 border-slate-200 bg-white font-bold text-sm">
+                        </div>
+                        <div>
+                            <label for="pdv-cli-rapido-cidade" class="block text-[9px] font-black uppercase text-slate-500 mb-0.5">Cidade</label>
+                            <input id="pdv-cli-rapido-cidade" type="text" class="w-full py-2 px-3 rounded-xl border-2 border-slate-200 bg-white font-bold text-sm">
+                        </div>
+                        <div>
+                            <label for="pdv-cli-rapido-uf" class="block text-[9px] font-black uppercase text-slate-500 mb-0.5">UF</label>
+                            <input id="pdv-cli-rapido-uf" type="text" maxlength="2" class="w-full py-2 px-3 rounded-xl border-2 border-slate-200 bg-white font-bold text-sm uppercase" placeholder="SP">
+                        </div>
+                        <div>
+                            <label for="pdv-cli-rapido-cep" class="block text-[9px] font-black uppercase text-slate-500 mb-0.5">CEP</label>
+                            <input id="pdv-cli-rapido-cep" type="text" class="w-full py-2 px-3 rounded-xl border-2 border-slate-200 bg-white font-bold text-sm" placeholder="00000-000">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label for="pdv-cli-rapido-plus" class="block text-[9px] font-black uppercase text-slate-500 mb-0.5">Plus Code / local rural (Maps)</label>
+                            <input id="pdv-cli-rapido-plus" type="text" class="w-full py-2 px-3 rounded-xl border-2 border-slate-200 bg-white font-bold text-sm" placeholder="Ex.: 8X5R+7M9">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label for="pdv-cli-rapido-ref-rural" class="block text-[9px] font-black uppercase text-slate-500 mb-0.5">Referência (entrega)</label>
+                            <input id="pdv-cli-rapido-ref-rural" type="text" class="w-full py-2 px-3 rounded-xl border-2 border-slate-200 bg-white font-bold text-sm" placeholder="Porteira, km, cor…">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label for="pdv-cli-rapido-maps-url" class="block text-[9px] font-black uppercase text-slate-500 mb-0.5">Link do Maps (colado)</label>
+                            <input id="pdv-cli-rapido-maps-url" type="url" class="w-full py-2 px-3 rounded-xl border-2 border-slate-200 bg-white font-bold text-sm" placeholder="https://…">
+                        </div>
+                    </div>
+                </details>
                 <div class="flex gap-2 pt-1">
                     <button type="button" onclick="pdvFecharModalCadastroClientePdv()" class="flex-1 py-3 rounded-xl border-2 border-slate-200 font-black uppercase text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
                     <button type="button" id="pdv-cli-rapido-salvar" onclick="pdvSalvarClienteRapidoPdv()" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-sm shadow-md">Salvar cliente</button>
