@@ -631,6 +631,226 @@ def api_transferir_lote_vila_para_centro(request):
         return JsonResponse({"ok": False, "erro": str(exc)}, status=500)
 
 
+def _parse_observacao_historico_json(obs):
+    if not obs:
+        return None
+    s = obs.strip()
+    if not s.startswith("{"):
+        return None
+    try:
+        return json.loads(s)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return None
+
+
+def _fmt_qtd_hist(q):
+    try:
+        s = f"{float(q):.3f}"
+    except (TypeError, ValueError):
+        return ""
+    s = s.rstrip("0").rstrip(".")
+    return s or "0"
+
+
+def _lote_uuid_curto(u):
+    if not u:
+        return None
+    s = str(u)
+    if len(s) <= 10:
+        return s
+    return f"{s[:8]}…"
+
+
+def _nomes_produtos_por_ids_transferencia(produto_ids):
+    produto_ids = list(
+        {str(x).strip()[:100] for x in produto_ids if x and str(x).strip()}
+    )
+    if not produto_ids:
+        return {}
+    return {
+        str(k): (v or "").strip()
+        for k, v in ConfiguracaoTransferencia.objects.filter(
+            produto_externo_id__in=produto_ids
+        ).values_list("produto_externo_id", "nome_produto")
+    }
+
+
+def _coletar_produto_ids_historico_transferencia(rows):
+    ids = []
+    for h in rows:
+        pid = (h.produto_externo_id or "").strip()
+        if pid:
+            ids.append(pid)
+        data = _parse_observacao_historico_json(h.observacao or "")
+        if not data:
+            continue
+        if h.tipo == HistoricoTransferencia.TIPO_LOTE_IMPRESSO:
+            for it in data.get("itens") or []:
+                iid = str((it or {}).get("id") or "").strip()
+                if iid:
+                    ids.append(iid)
+        elif h.tipo == HistoricoTransferencia.TIPO_TRANSFER_LOTE:
+            for it in data.get("ok") or []:
+                iid = str((it or {}).get("produto_id") or "").strip()
+                if iid:
+                    ids.append(iid)
+            for it in data.get("erro") or []:
+                iid = str((it or {}).get("produto_id") or "").strip()
+                if iid:
+                    ids.append(iid)
+    return ids
+
+
+def _serializar_um_evento_historico_transferencia(h, nomes_map):
+    tipo = h.tipo
+    data = _parse_observacao_historico_json(h.observacao or "")
+    detalhe_itens = []
+    resumo_parts = []
+    status = "info"
+    tipo_labels = {
+        HistoricoTransferencia.TIPO_LOTE_IMPRESSO: "Impresso (separação)",
+        HistoricoTransferencia.TIPO_TRANSFER_ITEM: "Transferência",
+        HistoricoTransferencia.TIPO_TRANSFER_LOTE: "Transferência em lote",
+        HistoricoTransferencia.TIPO_CANCEL_SEP: "Cancelou separação",
+    }
+    tipo_label = tipo_labels.get(tipo, tipo.replace("_", " ").strip().title() or tipo)
+
+    if tipo == HistoricoTransferencia.TIPO_LOTE_IMPRESSO:
+        status = "info"
+        itens = (data or {}).get("itens") or []
+        n = int((data or {}).get("n") or 0) or len(itens)
+        resumo_parts.append(f"{n} item(ns)")
+        lot = _lote_uuid_curto(h.lote_uuid)
+        if lot:
+            resumo_parts.append(f"Lote {lot}")
+        for it in itens[:500]:
+            iid = str((it or {}).get("id") or "").strip()
+            if not iid:
+                continue
+            try:
+                qf = float((it or {}).get("qt"))
+            except (TypeError, ValueError):
+                qf = None
+            nome = (nomes_map.get(iid) or "").strip() or "Produto"
+            detalhe_itens.append(
+                {
+                    "produto_id": iid,
+                    "nome": nome,
+                    "quantidade": qf,
+                    "situacao": "impresso",
+                    "mensagem": "",
+                }
+            )
+
+    elif tipo == HistoricoTransferencia.TIPO_TRANSFER_LOTE:
+        ok_list = (data or {}).get("ok") or []
+        err_list = (data or {}).get("erro") or []
+        n_ok, n_err = len(ok_list), len(err_list)
+        if n_err == 0:
+            status = "ok"
+        elif n_ok == 0:
+            status = "erro"
+        else:
+            status = "parcial"
+        resumo_parts.append(f"{n_ok} transferido(s)" if n_ok else "0 transferido(s)")
+        if n_err:
+            resumo_parts.append(f"{n_err} falha(s)")
+        lot = _lote_uuid_curto(h.lote_uuid)
+        if lot:
+            resumo_parts.append(f"Lote {lot}")
+        for it in ok_list[:500]:
+            iid = str((it or {}).get("produto_id") or "").strip()
+            if not iid:
+                continue
+            try:
+                qf = float((it or {}).get("quantidade"))
+            except (TypeError, ValueError):
+                qf = None
+            nome = (nomes_map.get(iid) or "").strip() or "Produto"
+            detalhe_itens.append(
+                {
+                    "produto_id": iid,
+                    "nome": nome,
+                    "quantidade": qf,
+                    "situacao": "ok",
+                    "mensagem": "",
+                }
+            )
+        for it in err_list[:500]:
+            iid = str((it or {}).get("produto_id") or "").strip()
+            nome = (nomes_map.get(iid) or "").strip() or ("Produto" if iid else "—")
+            msg = str((it or {}).get("erro") or "").strip()[:240]
+            if iid:
+                detalhe_itens.append(
+                    {
+                        "produto_id": iid,
+                        "nome": nome,
+                        "quantidade": None,
+                        "situacao": "falha",
+                        "mensagem": msg,
+                    }
+                )
+
+    elif tipo == HistoricoTransferencia.TIPO_TRANSFER_ITEM:
+        status = "ok"
+        iid = (h.produto_externo_id or "").strip()
+        nome = (h.observacao or "").strip() or (nomes_map.get(iid) or "").strip() or "Produto"
+        qf = float(h.quantidade) if h.quantidade is not None else None
+        lot = _lote_uuid_curto(h.lote_uuid)
+        if qf is not None:
+            resumo_parts.append(f"Qtd {_fmt_qtd_hist(qf)}")
+        resumo_parts.append((nome[:120] + "…") if len(nome) > 120 else nome)
+        if lot:
+            resumo_parts.append(f"Lote {lot}")
+        detalhe_itens.append(
+            {
+                "produto_id": iid,
+                "nome": nome,
+                "quantidade": qf,
+                "situacao": "ok",
+                "mensagem": "",
+            }
+        )
+
+    elif tipo == HistoricoTransferencia.TIPO_CANCEL_SEP:
+        status = "aviso"
+        iid = (h.produto_externo_id or "").strip()
+        nome = (nomes_map.get(iid) or "").strip() or "Produto"
+        qf = float(h.quantidade) if h.quantidade is not None else None
+        resumo_parts.append((nome[:100] + "…") if len(nome) > 100 else nome)
+        if qf is not None:
+            resumo_parts.append(f"Qtd {_fmt_qtd_hist(qf)}")
+        detalhe_itens.append(
+            {
+                "produto_id": iid,
+                "nome": nome,
+                "quantidade": qf,
+                "situacao": "cancelado",
+                "mensagem": "",
+            }
+        )
+
+    else:
+        tail = (h.observacao or "").strip()
+        if tail:
+            resumo_parts.append(tail[:180] + ("…" if len(tail) > 180 else ""))
+
+    resumo_linha = " · ".join(resumo_parts) if resumo_parts else "—"
+    return {
+        "id": h.pk,
+        "tipo": tipo,
+        "tipo_label": tipo_label,
+        "status": status,
+        "criado_em": localtime(h.criado_em).strftime("%d/%m/%Y %H:%M")
+        if h.criado_em
+        else "",
+        "usuario": h.usuario_label or "—",
+        "resumo_linha": resumo_linha,
+        "tem_detalhe": bool(detalhe_itens),
+        "detalhe_itens": detalhe_itens,
+    }
+
+
 @require_GET
 def api_listar_historico_transferencia(request):
     """Últimos eventos de impressão / transferência / cancelamento."""
@@ -638,21 +858,9 @@ def api_listar_historico_transferencia(request):
         lim = int(request.GET.get("limit", "80"))
         lim = max(1, min(lim, 200))
         qs = HistoricoTransferencia.objects.all()[:lim]
-        evs = []
-        for h in qs:
-            evs.append(
-                {
-                    "tipo": h.tipo,
-                    "criado_em": localtime(h.criado_em).strftime("%d/%m/%Y %H:%M")
-                    if h.criado_em
-                    else "",
-                    "lote_uuid": str(h.lote_uuid) if h.lote_uuid else None,
-                    "produto_id": h.produto_externo_id or None,
-                    "quantidade": float(h.quantidade) if h.quantidade is not None else None,
-                    "usuario": h.usuario_label or "—",
-                    "observacao": (h.observacao or "")[:500],
-                }
-            )
+        rows = list(qs)
+        nomes = _nomes_produtos_por_ids_transferencia(_coletar_produto_ids_historico_transferencia(rows))
+        evs = [_serializar_um_evento_historico_transferencia(h, nomes) for h in rows]
         return JsonResponse({"ok": True, "eventos": evs})
     except Exception as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=500)
