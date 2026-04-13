@@ -3149,6 +3149,21 @@ def _dt_naive_meia_noite_erp(d: date) -> datetime:
     return datetime.combine(d, dtime(3, 0, 0))
 
 
+def _fin_ln_parse_date(val: Any, fallback: date) -> date:
+    """Data opcional por linha (ISO ``YYYY-MM-DD`` ou ``date``/``datetime``)."""
+    if val is None or val == "":
+        return fallback
+    if isinstance(val, datetime):
+        return val.date()
+    if isinstance(val, date):
+        return val
+    s = str(val).strip()[:10]
+    try:
+        return date.fromisoformat(s)
+    except ValueError:
+        return fallback
+
+
 def inserir_lancamentos_manual_lote(
     db,
     *,
@@ -3186,8 +3201,8 @@ def inserir_lancamentos_manual_lote(
             "erros": [{"erro": "Preencha empresa, cliente/fornecedor e conta bancária."}],
         }
     linhas = [x for x in (linhas or []) if isinstance(x, dict)]
-    if not linhas or len(linhas) > 50:
-        return {"ok": False, "ids": [], "erros": [{"erro": "Informe de 1 a 50 linhas de detalhe."}]}
+    if not linhas or len(linhas) > 60:
+        return {"ok": False, "ids": [], "erros": [{"erro": "Informe de 1 a 60 linhas de detalhe."}]}
 
     tpl = _obter_template_lancamento(db, despesa)
     if not tpl:
@@ -3197,8 +3212,6 @@ def inserir_lancamentos_manual_lote(
     tpl["PagamentoRemessa"] = {}
 
     now = timezone.now()
-    dc = _dt_naive_meia_noite_erp(data_competencia)
-    dv = _dt_naive_meia_noite_erp(data_vencimento)
     lote = f"AG{secrets.token_hex(4).upper()}"
     user = (usuario_label or "Agro")[:200]
 
@@ -3251,6 +3264,10 @@ def inserir_lancamentos_manual_lote(
         doc["Observacoes"] = " | ".join(
             p for p in (obs_linha, f"Lote manual Agro {lote}") if p
         )[:2000]
+        use_dc = _fin_ln_parse_date(ln.get("data_competencia"), data_competencia)
+        use_dv = _fin_ln_parse_date(ln.get("data_vencimento"), data_vencimento)
+        dc = _dt_naive_meia_noite_erp(use_dc)
+        dv = _dt_naive_meia_noite_erp(use_dv)
         doc["DataCompetencia"] = dc
         doc["DataVencimento"] = dv
         doc["DataVencimentoOriginal"] = dv
@@ -3276,7 +3293,7 @@ def inserir_lancamentos_manual_lote(
             doc["Recebido"] = 0.0
             doc["ValorPago"] = 0.0
             if marcar_quitado_receber:
-                dpq = _dt_naive_meia_noite_erp(data_vencimento)
+                dpq = dv
                 doc["Pago"] = True
                 doc["DataPagamento"] = dpq
                 doc["Recebido"] = float(valor)
@@ -3624,6 +3641,8 @@ def listar_emprestimos_agro(db, *, tipo: str | None = None, limit: int = 100) ->
         d["id"] = str(oid) if oid is not None else ""
         if isinstance(d.get("created_at"), datetime):
             d["created_at"] = d["created_at"].isoformat()
+        if isinstance(d.get("updated_at"), datetime):
+            d["updated_at"] = d["updated_at"].isoformat()
         # Legado: documento sem campo tipo — inferir para o filtro da UI
         tdoc = str(d.get("tipo") or "").strip().lower()
         if tdoc not in ("externo", "interno"):
@@ -3631,8 +3650,124 @@ def listar_emprestimos_agro(db, *, tipo: str | None = None, limit: int = 100) ->
                 d["tipo"] = "externo"
             elif (d.get("mutuario_label") or "").strip():
                 d["tipo"] = "interno"
+        if str(d.get("tipo") or "").strip().lower() == "interno":
+            d["pagamentos"] = _serialize_pagamentos_interno_emp(d.get("pagamentos"))
+        d = _enriquecer_interno_campos_calculados(d)
         out.append(d)
     return out
+
+
+def _serialize_pagamentos_interno_emp(pags: Any) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for p in pags or []:
+        if not isinstance(p, dict):
+            continue
+        q = dict(p)
+        if isinstance(q.get("created_at"), datetime):
+            q["created_at"] = q["created_at"].isoformat()
+        out.append(q)
+    return out
+
+
+def _interno_soma_pagamentos(doc: dict[str, Any]) -> Decimal:
+    pago = Decimal("0")
+    for p in doc.get("pagamentos") or []:
+        if not isinstance(p, dict):
+            continue
+        try:
+            pago += Decimal(str(float(p.get("valor") or 0))).quantize(Decimal("0.01"))
+        except Exception:
+            pass
+    return pago
+
+
+def _enriquecer_interno_campos_calculados(d: dict[str, Any]) -> dict[str, Any]:
+    if str(d.get("tipo") or "").strip().lower() != "interno":
+        return d
+    try:
+        dev = Decimal(str(float(d.get("valor_devolucao_total") or 0))).quantize(Decimal("0.01"))
+    except Exception:
+        dev = Decimal("0")
+    pago = _interno_soma_pagamentos(d)
+    saldo = (dev - pago).quantize(Decimal("0.01"))
+    out = dict(d)
+    out["interno_total_pago"] = float(pago)
+    out["interno_saldo_devedor"] = float(max(saldo, Decimal("0")))
+    out["interno_quitado"] = bool(dev > 0 and saldo <= 0)
+    return out
+
+
+def registrar_pagamento_emprestimo_interno_agro(
+    db,
+    *,
+    meta_id: str,
+    valor: Decimal,
+    data_pagamento: date,
+    observacao: str,
+    usuario_label: str,
+) -> dict[str, Any]:
+    """Registra pagamento ou devolução ao sócio (parcial ou integral ao saldo). Só tipo interno."""
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    meta_id = (meta_id or "").strip()
+    if not meta_id:
+        return {"ok": False, "erro": "Informe o id do registro."}
+    valor = valor.quantize(Decimal("0.01"))
+    if valor <= 0:
+        return {"ok": False, "erro": "Valor deve ser maior que zero."}
+    try:
+        oid = ObjectId(meta_id)
+    except Exception:
+        return {"ok": False, "erro": "Id inválido."}
+
+    col = db[COL_AGRO_EMPRESTIMO]
+    doc = col.find_one({"_id": oid})
+    if not doc:
+        return {"ok": False, "erro": "Registro não encontrado."}
+    if str(doc.get("tipo") or "").strip().lower() != "interno":
+        return {"ok": False, "erro": "Só é possível registrar pagamento em empréstimo interno."}
+    try:
+        dev = Decimal(str(float(doc.get("valor_devolucao_total") or 0))).quantize(Decimal("0.01"))
+    except Exception:
+        dev = Decimal("0")
+    if dev <= 0:
+        return {"ok": False, "erro": "Registro sem valor a devolver."}
+    ja = _interno_soma_pagamentos(doc)
+    saldo = (dev - ja).quantize(Decimal("0.01"))
+    if saldo <= 0:
+        return {"ok": False, "erro": "Este empréstimo já está quitado no total a devolver."}
+    if valor > saldo:
+        return {
+            "ok": False,
+            "erro": f"Valor acima do saldo devedor (máx. R$ {saldo}).",
+        }
+
+    now = timezone.now()
+    pag: dict[str, Any] = {
+        "valor": float(valor),
+        "data_pagamento": data_pagamento.isoformat(),
+        "observacao": (observacao or "").strip()[:2000],
+        "created_at": now,
+        "created_by": (usuario_label or "Agro")[:200],
+    }
+    try:
+        r = col.update_one({"_id": oid}, {"$push": {"pagamentos": pag}, "$set": {"updated_at": now}})
+        if r.matched_count == 0:
+            return {"ok": False, "erro": "Registro não atualizado."}
+    except Exception as exc:
+        logger.exception("registrar_pagamento_emprestimo_interno_agro")
+        return {"ok": False, "erro": str(exc)[:300]}
+
+    doc2 = col.find_one({"_id": oid}) or {}
+    d2 = dict(doc2)
+    d2["pagamentos"] = _serialize_pagamentos_interno_emp(d2.get("pagamentos"))
+    enr = _enriquecer_interno_campos_calculados(d2)
+    return {
+        "ok": True,
+        "interno_total_pago": enr.get("interno_total_pago"),
+        "interno_saldo_devedor": enr.get("interno_saldo_devedor"),
+        "interno_quitado": enr.get("interno_quitado"),
+    }
 
 
 def lancamentos_planos_distintos_no_filtro(

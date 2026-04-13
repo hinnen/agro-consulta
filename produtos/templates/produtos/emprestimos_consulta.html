@@ -71,7 +71,7 @@
 <div id="panel-tab-agro" class="consulta-panel hidden w-full">
   <div class="flex min-h-0 w-full flex-col gap-4 rounded-2xl border-2 border-orange-200/80 bg-white p-6 lg:p-8 shadow-sm">
     <h2 class="text-xl font-black uppercase tracking-tight text-orange-900 lg:text-2xl">Registros Agro (gestão)</h2>
-    <p class="text-base font-semibold text-slate-600">Tipo <strong>Todos / Externos / Internos</strong> está no painel <strong>Filtros</strong>.</p>
+    <p class="text-base font-semibold text-slate-600">Tipo <strong>Todos / Externos / Internos</strong> está no painel <strong>Filtros</strong>. Nos <strong class="text-orange-800">internos</strong>, use <strong>Gerenciar</strong> para registrar pagamento ou devolução ao sócio (parcial ou integral).</p>
     <div id="lista-emp" class="min-h-[min(58vh,32rem)] max-h-[min(65vh,36rem)] w-full overflow-y-auto text-lg font-semibold text-slate-600">Carregando…</div>
   </div>
 </div>
@@ -169,6 +169,43 @@
   </div>
 </div>
 
+<div id="modal-emp-int" class="fixed inset-0 z-[110] hidden flex items-end justify-center p-0 sm:items-center sm:p-4 bg-slate-900/60" role="dialog" aria-modal="true" aria-labelledby="modal-emp-int-titulo">
+  <div class="flex max-h-[min(92dvh,640px)] w-full max-w-lg flex-col rounded-t-2xl border-2 border-orange-200 bg-white shadow-2xl sm:rounded-2xl">
+    <div class="shrink-0 border-b border-slate-100 px-4 py-3 sm:px-5 sm:py-4 flex items-start justify-between gap-2">
+      <h2 id="modal-emp-int-titulo" class="text-lg font-black uppercase text-orange-950 pr-2">Gerenciar interno</h2>
+      <button type="button" id="modal-emp-int-fechar" class="min-h-[44px] min-w-[44px] shrink-0 rounded-xl border-2 border-slate-200 text-xl font-black text-slate-600 hover:bg-slate-50" aria-label="Fechar">&times;</button>
+    </div>
+    <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5 sm:py-4 space-y-4 text-sm font-semibold text-slate-800">
+      <input type="hidden" id="modal-emp-int-id" value="">
+      <p id="modal-emp-int-resumo" class="text-base leading-snug"></p>
+      <div>
+        <h3 class="text-xs font-black uppercase text-slate-500 mb-1">Cronograma previsto</h3>
+        <div class="max-h-40 overflow-auto rounded-lg border border-slate-200">
+          <table class="w-full text-xs sm:text-sm">
+            <thead class="bg-slate-50 font-black uppercase text-slate-600"><tr><th class="text-left px-2 py-2">Parc.</th><th class="text-right px-2 py-2">Valor</th><th class="text-left px-2 py-2">Venc.</th></tr></thead>
+            <tbody id="modal-emp-int-crono"></tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <h3 class="text-xs font-black uppercase text-slate-500 mb-1">Pagamentos já registrados</h3>
+        <ul id="modal-emp-int-hist" class="max-h-36 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50/80 p-2 text-xs space-y-2"></ul>
+      </div>
+      <div class="rounded-xl border-2 border-orange-100 bg-orange-50/50 p-3 space-y-3">
+        <h3 class="text-sm font-black uppercase text-orange-900">Novo pagamento / devolução</h3>
+        <label class="block"><span class="text-xs font-black uppercase text-slate-600">Valor (R$) *</span>
+          <input type="text" id="modal-emp-int-valor" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 font-black tabular-nums" placeholder="0,00" inputmode="decimal"></label>
+        <label class="block"><span class="text-xs font-black uppercase text-slate-600">Data *</span>
+          <input type="date" id="modal-emp-int-data" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 font-bold"></label>
+        <label class="block"><span class="text-xs font-black uppercase text-slate-600">Observação</span>
+          <textarea id="modal-emp-int-obs" rows="2" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 resize-y"></textarea></label>
+        <p id="modal-emp-int-msg" class="hidden text-sm font-bold rounded-lg px-2 py-2"></p>
+        <button type="button" id="modal-emp-int-salvar" class="w-full min-h-[52px] rounded-xl bg-orange-600 px-4 py-3 text-base font-black uppercase text-white border-2 border-orange-800 hover:bg-orange-700">Registrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% include "produtos/_atalho_voltar_pdv.html" %}
 
 <script>
@@ -176,10 +213,16 @@
   const API_LIST = "{% url 'api_emprestimos_listar' %}";
   const API_ERP = "{% url 'api_emprestimos_erp_lancamentos' %}";
   const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
+  const API_INT_PAG = "{% url 'api_emprestimos_interno_pagamento' %}";
 
   let filtroLista = '';
   let erpItensCache = null;
   let agroItensCache = null;
+
+  function getCookie(name) {
+    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? decodeURIComponent(v.pop()) : '';
+  }
 
   function escHtml(s) {
     return String(s == null ? '' : s)
@@ -295,6 +338,10 @@
     });
   }
 
+  function fmtBrl(n) {
+    return Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
   function renderAgroHtml(itens) {
     const el = document.getElementById('lista-emp');
     if (!itens.length) {
@@ -308,15 +355,132 @@
       const v1 = typeof x.valor_recebido === 'number' ? x.valor_recebido : (x.valor_aporte || 0);
       const v2 = typeof x.valor_total_devido === 'number' ? x.valor_total_devido : (x.valor_devolucao_total || 0);
       const dt = (x.created_at || '').slice(0, 19).replace('T', ' ');
+      const isInt = String(x.tipo || '').toLowerCase() === 'interno';
+      let extra = '';
+      let btnGer = '';
+      if (isInt) {
+        const saldo = typeof x.interno_saldo_devedor === 'number' ? x.interno_saldo_devedor : v2;
+        const pago = typeof x.interno_total_pago === 'number' ? x.interno_total_pago : 0;
+        const quit = x.interno_quitado ? '<span class="ml-2 inline-flex items-center rounded-lg bg-emerald-600 px-2 py-0.5 text-xs font-black text-white uppercase">Quitado</span>' : '';
+        extra = '<div class="text-base font-bold text-slate-700 mt-1">Pago R$ ' + fmtBrl(pago) + ' · Saldo R$ ' + fmtBrl(saldo) + quit + '</div>';
+        const dis = x.interno_quitado ? ' disabled' : '';
+        btnGer = '<button type="button" class="btn-ger-int min-h-[48px] shrink-0 rounded-xl border-2 border-orange-500 bg-orange-500 px-4 py-2 text-sm font-black uppercase text-white hover:bg-orange-600 disabled:opacity-40 disabled:pointer-events-none" data-id="' + escHtml(x.id) + '"' + dis + '>Gerenciar</button>';
+      }
       return '<div class="rounded-xl border-2 border-slate-100 bg-slate-50/90 px-5 py-4 mb-3 flex flex-wrap items-center justify-between gap-3">' +
-        '<div><span class="text-sm font-black uppercase text-slate-500">' + tipo + ' · ref ' + escHtml(ref) + '</span>' +
+        '<div class="min-w-0 flex-1"><span class="text-sm font-black uppercase text-slate-500">' + tipo + ' · ref ' + escHtml(ref) + '</span>' +
         '<div class="text-xl font-black text-slate-900 mt-1">' + escHtml(quem) + '</div>' +
-        '<div class="text-base font-semibold text-slate-600 mt-1">Entrada/aporte R$ ' + Number(v1).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) +
-        ' · Total R$ ' + Number(v2).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + '</div></div>' +
-        '<div class="text-sm font-bold text-slate-400">' + escHtml(dt) + '</div></div>';
+        '<div class="text-base font-semibold text-slate-600 mt-1">Entrada/aporte R$ ' + fmtBrl(v1) +
+        ' · Total a devolver R$ ' + fmtBrl(v2) + '</div>' + extra + '</div>' +
+        '<div class="flex flex-col items-end gap-2 shrink-0"><div class="text-sm font-bold text-slate-400">' + escHtml(dt) + '</div>' + btnGer + '</div></div>';
     });
     el.innerHTML = rows.join('');
+    el.querySelectorAll('.btn-ger-int').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const id = b.getAttribute('data-id');
+        const item = (agroItensCache || []).find(function (z) { return String(z.id) === String(id); });
+        if (item) abrirModalEmpInt(item);
+      });
+    });
   }
+
+  function fecharModalEmpInt() {
+    document.getElementById('modal-emp-int').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  function abrirModalEmpInt(x) {
+    const m = document.getElementById('modal-emp-int');
+    document.getElementById('modal-emp-int-id').value = x.id || '';
+    const vA = typeof x.valor_aporte === 'number' ? x.valor_aporte : 0;
+    const vD = typeof x.valor_devolucao_total === 'number' ? x.valor_devolucao_total : 0;
+    const pago = typeof x.interno_total_pago === 'number' ? x.interno_total_pago : 0;
+    const saldo = typeof x.interno_saldo_devedor === 'number' ? x.interno_saldo_devedor : vD;
+    document.getElementById('modal-emp-int-resumo').innerHTML =
+      '<strong class="text-slate-900">' + escHtml(x.mutuario_label || '—') + '</strong> · ref <code class="text-xs bg-slate-100 px-1 rounded">' + escHtml(x.ref || '') + '</code><br>' +
+      'Aporte R$ ' + fmtBrl(vA) + ' · Total a devolver R$ ' + fmtBrl(vD) + '<br>' +
+      'Já pago R$ ' + fmtBrl(pago) + ' · Saldo R$ <strong class="text-orange-800">' + fmtBrl(saldo) + '</strong>';
+    const tb = document.getElementById('modal-emp-int-crono');
+    tb.innerHTML = '';
+    (x.cronograma || []).forEach(function (c) {
+      const tr = document.createElement('tr');
+      tr.className = 'border-t border-slate-100';
+      tr.innerHTML = '<td class="px-2 py-1.5">' + escHtml(c.parcela) + '</td>' +
+        '<td class="px-2 py-1.5 text-right tabular-nums">' + fmtBrl(c.valor) + '</td>' +
+        '<td class="px-2 py-1.5">' + escHtml((c.vencimento_previsto || '').slice(0, 10)) + '</td>';
+      tb.appendChild(tr);
+    });
+    if (!tb.children.length) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td colspan="3" class="px-2 py-2 text-slate-500">—</td>';
+      tb.appendChild(tr);
+    }
+    const ul = document.getElementById('modal-emp-int-hist');
+    ul.innerHTML = '';
+    const pags = x.pagamentos || [];
+    if (!pags.length) {
+      ul.innerHTML = '<li class="text-slate-500">Nenhum ainda.</li>';
+    } else {
+      pags.slice().reverse().forEach(function (p) {
+        const li = document.createElement('li');
+        li.className = 'border-b border-slate-200 pb-2 last:border-0';
+        li.innerHTML = '<span class="font-black text-orange-900">R$ ' + fmtBrl(p.valor) + '</span> em <strong>' + escHtml((p.data_pagamento || '').slice(0, 10)) + '</strong>' +
+          (p.observacao ? '<div class="text-slate-600 mt-0.5">' + escHtml(p.observacao) + '</div>' : '') +
+          '<div class="text-[10px] text-slate-400 mt-0.5">' + escHtml((p.created_by || '') + ' · ' + (String(p.created_at || '').slice(0, 19).replace('T', ' '))) + '</div>';
+        ul.appendChild(li);
+      });
+    }
+    document.getElementById('modal-emp-int-valor').value = saldo > 0 ? String(saldo).replace('.', ',') : '';
+    const hoje = new Date();
+    document.getElementById('modal-emp-int-data').value = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+    document.getElementById('modal-emp-int-obs').value = '';
+    const msg = document.getElementById('modal-emp-int-msg');
+    msg.classList.add('hidden');
+    msg.textContent = '';
+    m.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+    document.getElementById('modal-emp-int-salvar').disabled = !!x.interno_quitado;
+    document.getElementById('modal-emp-int-valor').disabled = !!x.interno_quitado;
+    document.getElementById('modal-emp-int-data').disabled = !!x.interno_quitado;
+    document.getElementById('modal-emp-int-obs').disabled = !!x.interno_quitado;
+  }
+
+  document.getElementById('modal-emp-int-fechar').addEventListener('click', fecharModalEmpInt);
+  document.getElementById('modal-emp-int').addEventListener('click', function (e) {
+    if (e.target.id === 'modal-emp-int') fecharModalEmpInt();
+  });
+  document.getElementById('modal-emp-int-salvar').addEventListener('click', async function () {
+    const msg = document.getElementById('modal-emp-int-msg');
+    msg.classList.add('hidden');
+    const id = document.getElementById('modal-emp-int-id').value.trim();
+    const body = {
+      id: id,
+      valor: document.getElementById('modal-emp-int-valor').value.trim(),
+      data_pagamento: document.getElementById('modal-emp-int-data').value,
+      observacao: document.getElementById('modal-emp-int-obs').value.trim()
+    };
+    try {
+      const r = await fetch(API_INT_PAG, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify(body)
+      });
+      const j = await r.json();
+      if (j.ok) {
+        fecharModalEmpInt();
+        await carregarLista();
+        pipelineAgroMostrar();
+      } else {
+        msg.textContent = j.erro || 'Falha ao registrar.';
+        msg.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-900', 'border-emerald-200');
+        msg.classList.add('bg-red-50', 'text-red-900', 'border', 'border-red-200');
+      }
+    } catch (e) {
+      msg.textContent = 'Erro de rede.';
+      msg.classList.remove('hidden');
+      msg.classList.add('bg-red-50', 'text-red-900', 'border', 'border-red-200');
+    }
+  });
 
   function pipelineAgroMostrar() {
     if (!agroItensCache) return;
@@ -443,7 +607,11 @@
   document.getElementById('consulta-filtros-fechar').addEventListener('click', fecharFiltrosConsulta);
   document.getElementById('consulta-filtros-fechar-rodape').addEventListener('click', fecharFiltrosConsulta);
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && !overlay.classList.contains('hidden')) fecharFiltrosConsulta();
+    if (e.key === 'Escape') {
+      const mi = document.getElementById('modal-emp-int');
+      if (mi && !mi.classList.contains('hidden')) fecharModalEmpInt();
+      else if (!overlay.classList.contains('hidden')) fecharFiltrosConsulta();
+    }
   });
 
   async function carregarErpMongo() {
