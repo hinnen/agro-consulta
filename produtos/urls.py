@@ -217,6 +217,11 @@ urlpatterns = [
         name='api_emprestimos_criar',
     ),
     path(
+        'api/emprestimos/interno-pagamento/',
+        views.api_emprestimos_interno_pagamento,
+        name='api_emprestimos_interno_pagamento',
+    ),
+    path(
         'api/emprestimos/defaults/',
         views.api_emprestimos_defaults,
         name='api_emprestimos_defaults',

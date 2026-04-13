@@ -110,7 +110,7 @@
           <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-orange-600 text-white text-lg font-black shrink-0 shadow-sm" aria-hidden="true">1</span>
           <div class="min-w-0 flex-1">
             <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight">Fornecedor e identificação da NF</h2>
-            <p class="text-xs sm:text-sm font-semibold text-slate-600 mt-1 leading-snug">Escolha o fornecedor na lista. Número, série e chave quando já tiver a nota.</p>
+            <p class="text-xs sm:text-sm font-semibold text-slate-600 mt-1 leading-snug">Escolha o fornecedor na lista, a <strong class="text-slate-800">empresa faturada</strong> e o <strong class="text-slate-800">depósito</strong> da mercadoria. Número, série e chave quando já tiver a nota.</p>
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -135,6 +135,25 @@
           <input type="datetime-local" id="m-dh" class="mt-1 w-full max-w-xs min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold"></label>
         <label class="block"><span class="text-xs font-black uppercase text-slate-600">Data entrada (física)</span>
           <input type="date" id="m-data-entrada" class="mt-1 w-full max-w-xs min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black" title="Quando a mercadoria entrou no estoque"></label>
+        <div class="md:col-span-2 lg:col-span-3 pt-3 mt-1 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          <label class="block"><span class="text-xs font-black uppercase text-slate-600">Empresa faturada (estoque Agro) *</span>
+            <select id="m-empresa-faturada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Ajustes de estoque Agro ficam ligados a esta empresa e à loja (Centro/Vila) correspondente.">
+              {% for e in empresas_entrada_nfe %}
+              <option value="{{ e.id }}"{% if e.nome == "Agro Mais" %} selected{% endif %}>{{ e.nome }}</option>
+              {% empty %}
+              <option value="">Cadastre empresas no Admin</option>
+              {% endfor %}
+            </select>
+            <span class="text-[11px] text-slate-600 font-semibold mt-1 block leading-snug">Conta no cadastro Django; a loja é escolhida pelo depósito abaixo (nome Centro ou Vila na mesma empresa).</span>
+          </label>
+          <label class="block"><span class="text-xs font-black uppercase text-slate-600">Depósito da mercadoria *</span>
+            <select id="m-deposito-entrada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Saldo de referência lido no Mongo do ERP para este depósito.">
+              <option value="centro" selected>Centro</option>
+              <option value="vila">Vila Elias</option>
+            </select>
+            <span class="text-[11px] text-slate-600 font-semibold mt-1 block leading-snug">Usado em <strong>Registrar entrada no estoque Agro</strong> e gravado no rascunho.</span>
+          </label>
+        </div>
         </div>
       </div>
 
@@ -202,6 +221,10 @@
           <tbody id="tbody-itens"></tbody>
         </table>
       </div>
+        <div id="nfe-painel-total-itens" class="flex flex-wrap items-center justify-between gap-2 mt-3 px-3 py-2.5 rounded-xl border-2 border-orange-300 bg-orange-50/95 text-sm font-black text-orange-950 shadow-sm">
+          <span class="leading-tight">Total itens <span class="text-[10px] font-bold uppercase text-orange-800/90 block sm:inline sm:ml-1">(Σ Qtd NF × V. unit)</span></span>
+          <span id="nfe-valor-total-itens" class="tabular-nums text-base sm:text-lg shrink-0">R$&nbsp;0,00</span>
+        </div>
       </div>
 
       <details class="rounded-2xl border-2 border-emerald-300 bg-emerald-50/50 px-4 py-3 sm:px-5 sm:py-4 group shadow-sm">
@@ -211,7 +234,7 @@
           <span class="text-xs font-bold normal-case text-emerald-800/90 w-full sm:w-auto sm:ml-auto">Só precisa se for usar o botão verde &quot;Salvar + lançar&quot;</span>
         </summary>
         <div class="mt-4 space-y-3 text-xs sm:text-sm font-semibold text-emerald-950">
-          <p class="leading-relaxed">Abre este bloco, preencha empresa, datas e conta bancária. Depois use <strong>Salvar + lançar a pagar</strong> no final da página. O plano de contas é o do passo 2.</p>
+          <p class="leading-relaxed">Abre este bloco, preencha empresa, datas e conta bancária. Para <strong>vários boletos</strong>, use <strong>Nº parcelas</strong> e <strong>Intervalo (dias)</strong> — o campo de vencimento é o da <strong>1ª</strong> parcela. Depois use <strong>Salvar + lançar a pagar</strong> no final da página. O plano de contas é o do passo 2.</p>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label class="block"><span class="text-xs font-black uppercase text-slate-700">Empresa *</span>
               <div class="relative sug-wrap mt-1" data-sug-campo="empresa">
@@ -221,9 +244,13 @@
               </div></label>
             <label class="block"><span class="text-xs font-black uppercase text-slate-700">Competência *</span>
               <input type="date" id="fin-dc" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black"></label>
-            <label class="block"><span class="text-xs font-black uppercase text-slate-700">Vencimento *</span>
-              <input type="date" id="fin-dv" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black"></label>
-            <label class="block"><span class="text-xs font-black uppercase text-slate-700">Forma pagamento *</span>
+            <label class="block"><span class="text-xs font-black uppercase text-slate-700">1º vencimento *</span>
+              <input type="date" id="fin-dv" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black" title="Com várias parcelas, este é o vencimento da 1ª."></label>
+            <label class="block"><span class="text-xs font-black uppercase text-slate-700">Nº parcelas (boletos)</span>
+              <input type="number" id="fin-n-parc" min="1" max="60" step="1" value="1" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black" title="1 = um título só. Acima de 1 divide o total da nota em parcelas iguais."></label>
+            <label class="block"><span class="text-xs font-black uppercase text-slate-700">Intervalo (dias)</span>
+              <input type="number" id="fin-parc-int" min="1" max="366" step="1" value="30" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black" title="Dias entre um vencimento e o próximo (ex.: 30)."></label>
+            <label class="block md:col-span-2"><span class="text-xs font-black uppercase text-slate-700">Forma pagamento *</span>
               <div class="relative sug-wrap mt-1" data-sug-campo="forma">
                 <input type="text" id="fin-forma-nome" autocomplete="off" class="w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Buscar…">
                 <input type="hidden" id="fin-forma-id" value="">
@@ -260,7 +287,7 @@
           </div>
           <div class="flex-1 min-w-[min(100%,18rem)] flex flex-col gap-2">
             <button type="button" id="btn-salvar-fin" class="min-h-[52px] w-full px-6 py-3.5 rounded-xl bg-emerald-700 text-white font-black text-sm sm:text-base uppercase tracking-wide hover:bg-emerald-800 shadow-md border-2 border-emerald-900">Salvar + lançar a pagar</button>
-            <p class="text-xs font-semibold text-emerald-900/90 text-center lg:text-left">Abra o passo extra verde, preencha empresa, vencimento e banco.</p>
+            <p class="text-xs font-semibold text-emerald-900/90 text-center lg:text-left">Abra o passo extra verde, preencha empresa, 1º vencimento, parcelas (se houver) e banco.</p>
           </div>
         </div>
       </div>
@@ -271,15 +298,8 @@
           <span>Depois que a mercadoria chegou — Entrada no estoque Agro</span>
         </summary>
         <div class="mt-4 space-y-3 text-xs sm:text-sm font-semibold text-blue-950">
-          <p class="leading-relaxed">Soma a coluna <strong>Qtd est.</strong> no saldo que o PDV e a tela Compras já mostram. Só vale para linhas em que você usou <strong>Buscar</strong> e escolheu o produto do catálogo. Cada clique soma de novo: <strong>não repita</strong> a mesma nota.</p>
+          <p class="leading-relaxed">Soma a coluna <strong>Qtd est.</strong> no saldo que o PDV e a tela Compras já mostram. Só vale para linhas em que você usou <strong>Buscar</strong> e escolheu o produto do catálogo. Cada clique soma de novo: <strong>não repita</strong> a mesma nota. O <strong>depósito</strong> e a <strong>empresa faturada</strong> são os do <strong>passo 1</strong>.</p>
           <div class="flex flex-wrap items-end gap-4">
-            <label class="block">
-              <span class="text-xs font-black uppercase text-slate-700">Depósito</span>
-              <select id="m-dep-estoque" class="mt-1 min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black bg-white">
-                <option value="centro" selected>Centro</option>
-                <option value="vila">Vila Elias</option>
-              </select>
-            </label>
             <label class="inline-flex items-center gap-2.5 cursor-pointer text-sm font-bold text-blue-950 min-h-[48px]">
               <input type="checkbox" id="chk-estoque-com-rascunho" class="h-5 w-5 rounded border-slate-300 accent-blue-600">
               Salvar rascunho no mesmo envio
@@ -426,8 +446,20 @@
     };
   }
 
+  function atualizarPainelTotalNfe() {
+    let s = 0;
+    document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
+      const q = Number(tr.querySelector('.in-qtd')?.value) || 0;
+      const v = Number(tr.querySelector('.in-vun')?.value) || 0;
+      s += q * v;
+    });
+    const el = document.getElementById('nfe-valor-total-itens');
+    if (el) el.textContent = s.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
   function tbodyClear() {
     document.getElementById('tbody-itens').innerHTML = '';
+    atualizarPainelTotalNfe();
   }
 
   function atualizarQtdEstoqueRow(tr) {
@@ -485,14 +517,19 @@
     qe.addEventListener('input', () => { qe.dataset.manual = '1'; });
     tr.querySelector('.btn-pick-prod').addEventListener('click', () => {
       trProdAlvo = tr;
+      modProdHlIdx = -1;
       document.getElementById('modal-prod-linha').textContent = (tr.querySelector('.in-desc').value || '(nova linha)').slice(0, 60);
       document.getElementById('modal-prod-q').value = '';
       document.getElementById('modal-prod-res').innerHTML = '';
       document.getElementById('modal-prod').classList.remove('hidden');
       document.getElementById('modal-prod-q').focus();
     });
-    tr.querySelector('.btn-del').addEventListener('click', () => tr.remove());
+    tr.querySelector('.btn-del').addEventListener('click', () => {
+      tr.remove();
+      atualizarPainelTotalNfe();
+    });
     document.getElementById('tbody-itens').appendChild(tr);
+    atualizarPainelTotalNfe();
   }
 
   function coletarLinhas() {
@@ -533,6 +570,8 @@
       data_entrada: document.getElementById('m-data-entrada').value || '',
       plano_conta: document.getElementById('m-plano-conta').value.trim(),
       plano_conta_id: document.getElementById('m-plano-conta-id').value.trim(),
+      empresa_faturada_id: document.getElementById('m-empresa-faturada').value.trim(),
+      deposito_entrada: document.getElementById('m-deposito-entrada').value.trim(),
     };
   }
 
@@ -635,6 +674,14 @@
     });
     fornHid.value = cab.emit_fornecedor_id || '';
     if (cab.data_entrada) document.getElementById('m-data-entrada').value = String(cab.data_entrada).slice(0, 10);
+    const selEmp = document.getElementById('m-empresa-faturada');
+    if (cab.empresa_faturada_id != null && String(cab.empresa_faturada_id) !== '' && selEmp) {
+      const v = String(cab.empresa_faturada_id);
+      if ([...selEmp.options].some((o) => o.value === v)) selEmp.value = v;
+    }
+    if (cab.deposito_entrada && ['centro', 'vila'].includes(String(cab.deposito_entrada))) {
+      document.getElementById('m-deposito-entrada').value = cab.deposito_entrada;
+    }
     if (cab.plano_conta != null) document.getElementById('m-plano-conta').value = cab.plano_conta;
     document.getElementById('m-plano-conta-id').value = cab.plano_conta_id != null ? String(cab.plano_conta_id || '') : '';
     fornInp.value = cab.emit_nome || '';
@@ -654,6 +701,7 @@
         match_tipo: row.match_tipo || '',
       });
     });
+    atualizarPainelTotalNfe();
   }
 
   async function carregarRascunhoNaTela(id) {
@@ -710,7 +758,23 @@
     });
   });
 
+  let modProdHlIdx = -1;
+  function modProdSelectableLis() {
+    return [...document.querySelectorAll('#modal-prod-res li.modal-prod-li-sel')];
+  }
+  function modProdApplyHl() {
+    modProdSelectableLis().forEach((li, i) => {
+      li.classList.toggle('bg-blue-100', i === modProdHlIdx);
+      li.classList.toggle('ring-2', i === modProdHlIdx);
+      li.classList.toggle('ring-inset', i === modProdHlIdx);
+      li.classList.toggle('ring-orange-500', i === modProdHlIdx);
+    });
+    const lis = modProdSelectableLis();
+    if (modProdHlIdx >= 0 && lis[modProdHlIdx]) lis[modProdHlIdx].scrollIntoView({ block: 'nearest' });
+  }
+
   async function buscarProdutosModal(termo) {
+    modProdHlIdx = -1;
     const ul = document.getElementById('modal-prod-res');
     ul.innerHTML = '<li class="px-3 py-2 text-slate-400 text-xs">Buscando…</li>';
     try {
@@ -724,7 +788,7 @@
       }
       arr.slice(0, 40).forEach((p) => {
         const li = document.createElement('li');
-        li.className = 'px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm border-b border-slate-50';
+        li.className = 'modal-prod-li-sel px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm border-b border-slate-50';
         li.innerHTML = `<div class="font-bold text-slate-800">${p.nome || '—'}</div><div class="text-[10px] text-slate-500 font-mono">ID ${p.id} · ${p.codigo_nfe || p.codigo || ''} · EAN ${p.codigo_barras || '—'}</div>`;
         li.addEventListener('mousedown', (e) => {
           e.preventDefault();
@@ -736,6 +800,7 @@
           if (p.codigo_barras) trProdAlvo.querySelector('.in-ean').value = String(p.codigo_barras).replace(/\D/g, '').slice(0, 14);
           document.getElementById('modal-prod').classList.add('hidden');
           trProdAlvo = null;
+          modProdHlIdx = -1;
         });
         ul.appendChild(li);
       });
@@ -743,6 +808,32 @@
       ul.innerHTML = '<li class="px-3 py-2 text-red-600 text-xs">Erro na busca.</li>';
     }
   }
+
+  const modalProdEl = document.getElementById('modal-prod');
+  modalProdEl.addEventListener('keydown', (e) => {
+    if (modalProdEl.classList.contains('hidden')) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      document.getElementById('modal-prod-fechar').click();
+      return;
+    }
+    const lis = modProdSelectableLis();
+    if (!lis.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (modProdHlIdx < 0) modProdHlIdx = 0;
+      else modProdHlIdx = Math.min(modProdHlIdx + 1, lis.length - 1);
+      modProdApplyHl();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (modProdHlIdx < 0) modProdHlIdx = lis.length - 1;
+      else modProdHlIdx = Math.max(modProdHlIdx - 1, 0);
+      modProdApplyHl();
+    } else if (e.key === 'Enter' && modProdHlIdx >= 0 && lis[modProdHlIdx]) {
+      e.preventDefault();
+      lis[modProdHlIdx].dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, which: 1 }));
+    }
+  }, true);
 
   let prodModalTimer = null;
   document.getElementById('modal-prod-q').addEventListener('input', () => {
@@ -753,6 +844,19 @@
   document.getElementById('modal-prod-fechar').addEventListener('click', () => {
     document.getElementById('modal-prod').classList.add('hidden');
     trProdAlvo = null;
+    modProdHlIdx = -1;
+    modProdSelectableLis().forEach((li) => {
+      li.classList.remove('bg-blue-100', 'ring-2', 'ring-inset', 'ring-orange-500');
+    });
+  });
+
+  document.getElementById('tbody-itens').addEventListener('input', (e) => {
+    const t = e.target;
+    if (t && (t.classList.contains('in-qtd') || t.classList.contains('in-vun'))) atualizarPainelTotalNfe();
+  });
+  document.getElementById('tbody-itens').addEventListener('change', (e) => {
+    const t = e.target;
+    if (t && (t.classList.contains('in-qtd') || t.classList.contains('in-vun'))) atualizarPainelTotalNfe();
   });
 
   async function salvar(modo, extra) {
@@ -831,6 +935,12 @@
       showMsg('Preencha empresa, competência, vencimento, forma e banco no bloco financeiro.', false);
       return;
     }
+    let nParc = parseInt(String(document.getElementById('fin-n-parc').value || '1'), 10);
+    if (!Number.isFinite(nParc) || nParc < 1) nParc = 1;
+    if (nParc > 60) nParc = 60;
+    let intDias = parseInt(String(document.getElementById('fin-parc-int').value || '30'), 10);
+    if (!Number.isFinite(intDias) || intDias < 1) intDias = 30;
+    if (intDias > 366) intDias = 366;
     const financeiro = {
       modo_lancamento: 'unico',
       empresa_nome: empresa,
@@ -839,6 +949,8 @@
       plano_padrao_id: planoPadId || undefined,
       data_competencia: dc,
       data_vencimento: dv,
+      num_parcelas: nParc,
+      parcelas_intervalo_dias: intDias,
       forma_nome: forma,
       forma_id: document.getElementById('fin-forma-id').value.trim() || undefined,
       banco_nome: banco,
@@ -910,12 +1022,19 @@
       showMsg('Nenhuma linha com produto do catálogo (use Buscar em cada item).', false);
       return;
     }
-    if (!window.confirm(`Registrar ${comPid.length} produto(s) no estoque Agro (depósito ${document.getElementById('m-dep-estoque').value})?`)) return;
+    const depVal = document.getElementById('m-deposito-entrada').value;
+    const empSel = document.getElementById('m-empresa-faturada');
+    const empNome = empSel.options[empSel.selectedIndex]?.text || depVal;
+    if (!empSel.value) {
+      showMsg('Selecione a empresa faturada no passo 1.', false);
+      return;
+    }
+    if (!window.confirm(`Registrar ${comPid.length} produto(s) no estoque Agro?\nEmpresa: ${empNome}\nDepósito: ${depVal}`)) return;
     const cab = coletarCabecalho();
     const body = {
       linhas,
       cabecalho: cab,
-      deposito: document.getElementById('m-dep-estoque').value,
+      deposito: depVal,
       salvar_rascunho: document.getElementById('chk-estoque-com-rascunho').checked,
       modo: 'manual',
       xml_chave: ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null),
@@ -1153,6 +1272,14 @@
         if (cab.data_entrada) document.getElementById('m-data-entrada').value = String(cab.data_entrada).slice(0, 10);
         if (cab.plano_conta) document.getElementById('m-plano-conta').value = cab.plano_conta;
         if (cab.plano_conta_id) document.getElementById('m-plano-conta-id').value = cab.plano_conta_id;
+        const selEmpOc = document.getElementById('m-empresa-faturada');
+        if (cab.empresa_faturada_id != null && String(cab.empresa_faturada_id) !== '' && selEmpOc) {
+          const v = String(cab.empresa_faturada_id);
+          if ([...selEmpOc.options].some((o) => o.value === v)) selEmpOc.value = v;
+        }
+        if (cab.deposito_entrada && ['centro', 'vila'].includes(String(cab.deposito_entrada))) {
+          document.getElementById('m-deposito-entrada').value = cab.deposito_entrada;
+        }
         tbodyClear();
         const lns = pr.linhas || [];
         if (lns.length) {
@@ -1187,6 +1314,7 @@
     }
     carregarSefazStatus();
     carregarRascunhos();
+    atualizarPainelTotalNfe();
   });
 })();
   </script>
