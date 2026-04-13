@@ -84,7 +84,12 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# No Render: sem manifest evita 500 em runtime se algum asset faltar no manifest pós-collectstatic
+# (o edge costuma devolver 502 quando o worker cai ou responde mal).
+if _on_render:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 #sadasdas#
 TEMPLATES = [
     {
