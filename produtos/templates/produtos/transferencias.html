@@ -244,8 +244,19 @@
                 <button type="button" onclick="fecharModal('modal-historico-transfer', false)" class="text-slate-400 hover:text-slate-700 font-black text-lg leading-none px-1" aria-label="Fechar">×</button>
             </div>
         </div>
-        <p class="text-[10px] text-slate-500 mb-2 shrink-0">Impressões de lote, transferências Vila→Centro e cancelamentos de separação.</p>
+        <p class="text-[10px] text-slate-500 mb-2 shrink-0">Impressões de lote, transferências Vila→Centro e cancelamentos de separação. Toque numa linha para ver os itens.</p>
         <div id="corpo-historico-transferencia" class="text-[11px] overflow-y-auto min-h-0 flex-1 pr-1">Carregando…</div>
+    </div>
+
+    <div id="modal-historico-transfer-detalhe" class="gm-transf-modal-layer fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-4 sm:p-5 z-[10120] hidden shadow-2xl w-11/12 max-w-[min(48rem,96vw)] max-h-[min(80vh,640px)] flex flex-col scale-95 opacity-0 transition-all duration-300" role="dialog" aria-modal="true" aria-labelledby="modal-hist-det-titulo">
+        <div class="flex items-start justify-between gap-2 shrink-0 mb-2">
+            <div class="min-w-0">
+                <h3 id="modal-hist-det-titulo" class="text-sm font-black uppercase text-slate-800 leading-tight">Detalhe</h3>
+                <p id="modal-hist-det-sub" class="text-[10px] text-slate-500 font-semibold mt-0.5"></p>
+            </div>
+            <button type="button" onclick="fecharModal('modal-historico-transfer-detalhe', false)" class="text-slate-400 hover:text-slate-700 font-black text-lg leading-none px-1 shrink-0" aria-label="Fechar">×</button>
+        </div>
+        <div id="modal-hist-det-corpo" class="text-[11px] overflow-y-auto min-h-0 flex-1 pr-1"></div>
     </div>
 
     {% include "produtos/_js_busca_produto_inteligente.html" %}
@@ -360,6 +371,58 @@
             await carregarHistoricoTransferencias();
         }
 
+        window._agroHistTransferEvs = [];
+
+        function classeCorHistoricoStatus(st) {
+            const k = String(st || 'info');
+            if (k === 'ok') return 'border-l-[5px] border-emerald-500 bg-emerald-50/50 hover:bg-emerald-50';
+            if (k === 'parcial') return 'border-l-[5px] border-amber-500 bg-amber-50/50 hover:bg-amber-50';
+            if (k === 'erro') return 'border-l-[5px] border-rose-600 bg-rose-50/55 hover:bg-rose-50';
+            if (k === 'aviso') return 'border-l-[5px] border-orange-500 bg-orange-50/50 hover:bg-orange-50';
+            return 'border-l-[5px] border-sky-500 bg-sky-50/45 hover:bg-sky-50';
+        }
+
+        function badgeSituacaoHistorico(sit) {
+            const s = String(sit || '');
+            if (s === 'ok') return '<span class="inline-block rounded-lg px-2 py-0.5 text-[9px] font-black uppercase bg-emerald-200 text-emerald-950">OK</span>';
+            if (s === 'impresso') return '<span class="inline-block rounded-lg px-2 py-0.5 text-[9px] font-black uppercase bg-sky-200 text-sky-950">Impresso</span>';
+            if (s === 'falha') return '<span class="inline-block rounded-lg px-2 py-0.5 text-[9px] font-black uppercase bg-rose-200 text-rose-950">Falha</span>';
+            if (s === 'cancelado') return '<span class="inline-block rounded-lg px-2 py-0.5 text-[9px] font-black uppercase bg-orange-200 text-orange-950">Cancelado</span>';
+            return '<span class="inline-block rounded-lg px-2 py-0.5 text-[9px] font-black uppercase bg-slate-200 text-slate-800">' + escHtml(s || '—') + '</span>';
+        }
+
+        function formatarQtdHist(v) {
+            const n = Number(v);
+            if (!Number.isFinite(n)) return '—';
+            let t = n.toFixed(3).replace(/\.?0+$/, '');
+            return t || '0';
+        }
+
+        function abrirDetalheHistoricoTransfer(idx) {
+            const ev = window._agroHistTransferEvs && window._agroHistTransferEvs[idx];
+            if (!ev) return;
+            const tit = document.getElementById('modal-hist-det-titulo');
+            const sub = document.getElementById('modal-hist-det-sub');
+            const corpo = document.getElementById('modal-hist-det-corpo');
+            if (!tit || !sub || !corpo) return;
+            tit.textContent = ev.tipo_label || 'Registro';
+            sub.textContent = [ev.criado_em || '', ev.usuario || ''].filter(Boolean).join(' · ');
+            const itens = ev.detalhe_itens || [];
+            if (!itens.length) {
+                corpo.innerHTML = '<p class="text-slate-600 font-semibold leading-snug">' + escHtml(ev.resumo_linha || 'Sem lista de itens.') + '</p>';
+            } else {
+                let h = '<table class="w-full text-left border-collapse"><thead><tr class="text-slate-500 font-black uppercase text-[9px] border-b border-slate-200"><th class="py-1.5 pr-2 text-left">Produto</th><th class="py-1.5 text-right w-24">Qtd</th><th class="py-1.5 text-center w-28">Situação</th></tr></thead><tbody>';
+                itens.forEach((it) => {
+                    const q = formatarQtdHist(it.quantidade);
+                    const msg = it.mensagem ? '<div class="text-[9px] text-rose-800 font-semibold mt-0.5 leading-snug">' + escHtml(it.mensagem) + '</div>' : '';
+                    h += '<tr class="border-b border-slate-100 align-top"><td class="py-2 pr-2"><div class="font-black text-slate-900 leading-snug">' + escHtml(it.nome || '—') + '</div>' + msg + '</td><td class="py-2 text-right tabular-nums font-black text-slate-800">' + escHtml(q) + '</td><td class="py-2 text-center">' + badgeSituacaoHistorico(it.situacao) + '</td></tr>';
+                });
+                h += '</tbody></table>';
+                corpo.innerHTML = h;
+            }
+            abrirModal('modal-historico-transfer-detalhe');
+        }
+
         async function carregarHistoricoTransferencias() {
             const el = document.getElementById('corpo-historico-transferencia');
             if (!el) return;
@@ -372,26 +435,29 @@
                     return;
                 }
                 const evs = d.eventos || [];
+                window._agroHistTransferEvs = evs;
                 if (!evs.length) {
                     el.innerHTML = '<p class="text-slate-500 font-bold uppercase text-[10px]">Nenhum registro ainda.</p>';
                     return;
                 }
-                const tipoLabel = (t) => ({
-                    LOTE_IMPRESSO: 'Impressão lote',
-                    TRANSFER_VILA_ITEM: 'Transferência item',
-                    TRANSFER_VILA_LOTE: 'Transferência lote',
-                    CANCELAR_SEPARACAO: 'Cancelar separação',
-                }[t] || t);
-                let html = '<table class="w-full text-left border-collapse text-[10px]"><thead><tr class="text-slate-500 font-black uppercase border-b border-slate-200"><th class="py-1 pr-2">Quando</th><th class="py-1 pr-2">Tipo</th><th class="py-1 pr-2">Quem</th><th class="py-1 pr-2">Detalhe</th></tr></thead><tbody>';
-                evs.forEach((ev) => {
-                    const det = [];
-                    if (ev.lote_uuid) det.push('Lote ' + String(ev.lote_uuid).slice(0, 8) + '…');
-                    if (ev.produto_id) det.push('Prod. ' + ev.produto_id);
-                    if (ev.quantidade != null) det.push('Qtd ' + ev.quantidade);
-                    if (ev.observacao) det.push(ev.observacao.slice(0, 120) + (ev.observacao.length > 120 ? '…' : ''));
-                    html += `<tr class="border-b border-slate-100 align-top"><td class="py-1.5 pr-2 font-bold text-slate-700 whitespace-nowrap">${escHtml(ev.criado_em || '—')}</td><td class="py-1.5 pr-2 font-semibold text-slate-800">${escHtml(tipoLabel(ev.tipo))}</td><td class="py-1.5 pr-2 text-slate-700">${escHtml(ev.usuario || '—')}</td><td class="py-1.5 text-slate-600 break-words">${escHtml(det.join(' · ') || '—')}</td></tr>`;
+                let html = '<div class="space-y-2">';
+                evs.forEach((ev, idx) => {
+                    const st = ev.status || 'info';
+                    const rowCls = 'rounded-xl border border-slate-200/80 shadow-sm cursor-pointer select-none ' + classeCorHistoricoStatus(st);
+                    const hint = ev.tem_detalhe ? 'Toque para ver itens' : 'Toque para ver resumo';
+                    const tipoBadge = '<span class="inline-flex items-center rounded-lg px-2 py-0.5 text-[9px] font-black uppercase tracking-wide bg-white/80 text-slate-900 border border-slate-200/90">' + escHtml(ev.tipo_label || ev.tipo || '—') + '</span>';
+                    html += `<div class="${rowCls}" data-hist-idx="${idx}" title="${escHtml(hint)}" onclick="abrirDetalheHistoricoTransfer(${idx})">
+                        <div class="flex flex-wrap items-start gap-x-3 gap-y-1 p-2.5 sm:p-3">
+                            <div class="font-black text-slate-800 whitespace-nowrap text-[10px] sm:text-[11px]">${escHtml(ev.criado_em || '—')}</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex flex-wrap items-center gap-2 mb-0.5">${tipoBadge}</div>
+                                <div class="text-[11px] sm:text-[12px] font-bold text-slate-800 leading-snug">${escHtml(ev.resumo_linha || '—')}</div>
+                                <div class="text-[10px] text-slate-600 font-semibold mt-0.5">${escHtml(ev.usuario || '—')}</div>
+                            </div>
+                        </div>
+                    </div>`;
                 });
-                html += '</tbody></table>';
+                html += '</div>';
                 el.innerHTML = html;
             } catch (e) {
                 el.textContent = 'Erro de rede ao carregar histórico.';
@@ -1033,7 +1099,7 @@
             }, 10);
         }
 
-        const GM_TRANSF_MODAL_IDS = ['modal-pin', 'modal-troca-pin', 'modal-regra', 'modal-ajuste', 'modal-pedidos-transfer', 'modal-historico-transfer'];
+        const GM_TRANSF_MODAL_IDS = ['modal-pin', 'modal-troca-pin', 'modal-regra', 'modal-ajuste', 'modal-pedidos-transfer', 'modal-historico-transfer', 'modal-historico-transfer-detalhe'];
 
         function fecharModal(id, confirmado) {
             const bd = document.getElementById('backdrop');
@@ -1425,7 +1491,7 @@
             if (document.body.classList.contains('sspin-locked')) return;
             if (!document.getElementById('backdrop').classList.contains('hidden')) {
                 if (e.key === 'Escape') {
-                    ['modal-pin', 'modal-troca-pin', 'modal-regra', 'modal-ajuste', 'modal-pedidos-transfer', 'modal-historico-transfer'].forEach(id => {
+                    ['modal-pin', 'modal-troca-pin', 'modal-regra', 'modal-ajuste', 'modal-pedidos-transfer', 'modal-historico-transfer', 'modal-historico-transfer-detalhe'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el && !el.classList.contains('hidden')) {
                             fecharModal(id, false);
