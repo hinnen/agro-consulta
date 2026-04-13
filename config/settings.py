@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 DEBUG = True
+import os
+
 import dj_database_url
 from decouple import config
 from pathlib import Path
@@ -27,13 +29,20 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = [host.strip() for host in config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',')]
+ALLOWED_HOSTS = [host.strip() for host in config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',') if host.strip()]
+
+# Render injeta RENDER=true; sem isso, ALLOWED_HOSTS só com localhost → 400 DisallowedHost no deploy.
+_on_render = str(os.environ.get("RENDER", "")).lower() in ("1", "true", "yes")
+if _on_render and ".onrender.com" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS = list(ALLOWED_HOSTS) + [".onrender.com"]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1",
     "http://localhost",
     "https://agro-consulta.onrender.com",
 ]
+if _on_render and "https://*.onrender.com" not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = list(CSRF_TRUSTED_ORIGINS) + ["https://*.onrender.com"]
 # Application definition
 
 INSTALLED_APPS = [
