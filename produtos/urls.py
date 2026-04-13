@@ -1,5 +1,5 @@
 from django.urls import include, path
-from . import views
+from . import views, views_mp_point
 
 urlpatterns = [
     # --- PÁGINAS ---
@@ -18,6 +18,12 @@ urlpatterns = [
     ),
     path('ajuste-mobile/', views.ajuste_mobile_view, name='ajuste_mobile'), # <-- A rota que faltava
     path('compras/', views.compras_view, name='compras_view'),
+    path(
+        'produtos/cadastro-erp/',
+        views.produtos_cadastro_erp_view,
+        name='produtos_cadastro_erp',
+    ),
+    path('produtos/gestao/', views.produtos_gestao_view, name='produtos_gestao'),
     path(
         'entrada-nota/',
         views.entrada_nota_view,
@@ -54,6 +60,26 @@ urlpatterns = [
         name='lancamentos_manual',
     ),
     path(
+        'emprestimos/',
+        views.emprestimos_gestao_view,
+        name='emprestimos_gestao',
+    ),
+    path(
+        'emprestimos/externo/',
+        views.emprestimos_externo_view,
+        name='emprestimos_externo',
+    ),
+    path(
+        'emprestimos/interno/',
+        views.emprestimos_interno_view,
+        name='emprestimos_interno',
+    ),
+    path(
+        'emprestimos/consulta/',
+        views.emprestimos_consulta_view,
+        name='emprestimos_consulta',
+    ),
+    path(
         'lancamentos/fluxo-calendario/',
         views.lancamentos_fluxo_calendario_view,
         name='lancamentos_fluxo_calendario',
@@ -81,6 +107,32 @@ urlpatterns = [
 
     # --- APIs ---
     path('api/login-mobile/', views.api_login_mobile, name='api_login_mobile'),
+    path('api/produtos/cadastro/', views.api_produtos_cadastro, name='api_produtos_cadastro'),
+    path('api/produtos/gestao/lista/', views.api_produtos_gestao_lista, name='api_produtos_gestao_lista'),
+    path('api/produtos/gestao/facetas/', views.api_produtos_gestao_facetas, name='api_produtos_gestao_facetas'),
+    path(
+        'api/produtos/gestao/ajuste-estoque/',
+        views.api_produtos_gestao_ajuste_estoque,
+        name='api_produtos_gestao_ajuste_estoque',
+    ),
+    path(
+        'api/produtos/gestao/overlay/',
+        views.api_produtos_gestao_overlay_salvar,
+        name='api_produtos_gestao_overlay_salvar',
+    ),
+    path(
+        'api/produtos/cadastro/detalhe/<str:produto_id>/',
+        views.api_produtos_cadastro_detalhe,
+        name='api_produtos_cadastro_detalhe',
+    ),
+    path('api/produtos/grupos/', views.api_produtos_grupos_listar, name='api_produtos_grupos_listar'),
+    path('api/produtos/grupos/salvar/', views.api_produtos_grupo_salvar, name='api_produtos_grupo_salvar'),
+    path('api/produtos/grupos/<int:pk>/', views.api_produtos_grupo_obter, name='api_produtos_grupo_obter'),
+    path(
+        'api/produtos/grupos/<int:pk>/excluir/',
+        views.api_produtos_grupo_excluir,
+        name='api_produtos_grupo_excluir',
+    ),
     path('api/buscar/', views.api_buscar_produtos, name='api_buscar_mobile'),
     path('api/buscar-compras/', views.api_buscar_compras, name='api_buscar_compras'),
     path('api/lancamentos/', views.api_lancamentos_lista, name='api_lancamentos_lista'),
@@ -155,6 +207,26 @@ urlpatterns = [
         name='api_lancamentos_criar_manual_lote',
     ),
     path(
+        'api/emprestimos/listar/',
+        views.api_emprestimos_listar,
+        name='api_emprestimos_listar',
+    ),
+    path(
+        'api/emprestimos/criar/',
+        views.api_emprestimos_criar,
+        name='api_emprestimos_criar',
+    ),
+    path(
+        'api/emprestimos/defaults/',
+        views.api_emprestimos_defaults,
+        name='api_emprestimos_defaults',
+    ),
+    path(
+        'api/emprestimos/erp-lancamentos/',
+        views.api_emprestimos_erp_lancamentos,
+        name='api_emprestimos_erp_lancamentos',
+    ),
+    path(
         'api/lancamentos/planos-distintos/',
         views.api_lancamentos_planos_distintos,
         name='api_lancamentos_planos_distintos',
@@ -190,6 +262,26 @@ urlpatterns = [
     path('api/pdv/cliente-rapido/', views.api_pdv_cliente_rapido, name='api_pdv_cliente_rapido'),
     path('api/pdv/checkout-draft/', views.api_pdv_salvar_checkout_draft, name='api_pdv_salvar_checkout_draft'),
     path('api/pdv/checkout-draft/clear/', views.api_pdv_limpar_checkout_draft, name='api_pdv_limpar_checkout_draft'),
+    path(
+        'api/pdv/mp-point/criar/',
+        views_mp_point.api_pdv_mp_point_criar,
+        name='api_pdv_mp_point_criar',
+    ),
+    path(
+        'api/pdv/mp-point/status/',
+        views_mp_point.api_pdv_mp_point_status,
+        name='api_pdv_mp_point_status',
+    ),
+    path(
+        'api/pdv/mp-point/finalizar/',
+        views_mp_point.api_pdv_mp_point_finalizar,
+        name='api_pdv_mp_point_finalizar',
+    ),
+    path(
+        'api/pdv/mp-point/abandonar/',
+        views_mp_point.api_pdv_mp_point_abandon,
+        name='api_pdv_mp_point_abandon',
+    ),
     path('api/buscar-produto-id/<str:id>/', views.api_buscar_produto_id, name='api_buscar_produto_id'),
     path(
         'api/entrada-nota/sefaz-status/',
@@ -210,6 +302,21 @@ urlpatterns = [
         'api/entrada-nota/rascunhos/',
         views.api_entrada_nota_rascunhos,
         name='api_entrada_nota_rascunhos',
+    ),
+    path(
+        'api/entrada-nota/rascunho/',
+        views.api_entrada_nota_rascunho_obter,
+        name='api_entrada_nota_rascunho_obter',
+    ),
+    path(
+        'api/entrada-nota/rascunho/excluir/',
+        views.api_entrada_nota_rascunho_excluir,
+        name='api_entrada_nota_rascunho_excluir',
+    ),
+    path(
+        'api/entrada-nota/rascunho/atualizar/',
+        views.api_entrada_nota_rascunho_atualizar,
+        name='api_entrada_nota_rascunho_atualizar',
     ),
     path(
         'api/entrada-nota/fornecedores/',

@@ -209,6 +209,14 @@ AGRO_FINANCEIRO_BANCO_PLACEHOLDER_NOME = (
 PDV_ENTREGA_WHATSAPP = config('PDV_ENTREGA_WHATSAPP', default='5513997673389').strip()
 # PDV Wizard — etapa pagamento: QR estáticos (URL de imagem), chave Pix e saldos exibidos (vale/cashback até integrar API).
 PDV_QR_MERCADOPAGO_URL = config("PDV_QR_MERCADOPAGO_URL", default="").strip()
+# Mercado Pago Point — cobrança enviada ao terminal (API Orders). Ver produtos/views_mp_point.py
+MP_POINT_ENABLED = config("MP_POINT_ENABLED", default=False, cast=bool)
+MP_POINT_ACCESS_TOKEN = (config("MP_POINT_ACCESS_TOKEN", default="") or "").strip()
+MP_POINT_TERMINAL_ID = (config("MP_POINT_TERMINAL_ID", default="") or "").strip()
+MP_POINT_EXPIRATION = (config("MP_POINT_EXPIRATION", default="PT16M") or "PT16M").strip()
+MP_POINT_PRINT_ON_TERMINAL = (
+    config("MP_POINT_PRINT_ON_TERMINAL", default="no_ticket") or "no_ticket"
+).strip()
 PDV_QR_SICREDI_URL = config("PDV_QR_SICREDI_URL", default="").strip()
 PDV_CHAVE_PIX_SICOB = config("PDV_CHAVE_PIX_SICOB", default="").strip()
 # Venda ERP — POST Pedidos/Salvar: literal exato do status (enum no ERP; maiúsculas importam).

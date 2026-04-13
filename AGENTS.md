@@ -7,7 +7,7 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 ## 1. Stack e deploy
 
 - **Backend:** Django (`config/`), WSGI em `config/wsgi.py`.
-- **Rotas raiz:** `config/urls.py` — `healthz`, APIs `financeiro`, `indicadores` (estoque), `transferencias`, e **`''` → `produtos.urls`** (maior parte do PDV e APIs web).
+- **Rotas raiz:** `config/urls.py` — `healthz`, APIs `financeiro`, `indicadores` (estoque), `transferencias`, e `**''` → `produtos.urls`** (maior parte do PDV e APIs web).
 - **Dados:** Mongo em fluxos financeiros e integrações (ver `produtos/mongo_financeiro_util.py`, views que usam `obter_conexao_mongo`).
 - **ERP / integrações:** pacote `integracoes/` (ex.: cliente venda ERP, financeiro opcional).
 - **Hospedagem típica:** Render (health em `/healthz`), Gunicorn — ver `Procfile`, `render.yaml`.
@@ -17,14 +17,16 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 
 ## 2. Apps Django no repositório
 
-| App | Papel (resumo) |
-|-----|----------------|
-| `produtos` | PDV web, lançamentos, clientes, vendas, APIs de busca/estoque PDV, entrada NF, etc. |
-| `estoque` | APIs de indicadores, transferência, PIN, médias, impressão, separação — várias rotas em `config/urls.py` sob `/estoque/`. |
-| `financeiro` | API REST sob `/api/financeiro/` (include de `financeiro.api.urls`). |
-| `transferencias` | API sob `/api/transferencias/`. |
-| `integracoes` | Pontes com ERP, notificações, etc. |
-| `base`, `core`, `lojas`, `relatorios` | Suporte conforme cada módulo. |
+
+| App                                   | Papel (resumo)                                                                                                            |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `produtos`                            | PDV web, lançamentos, clientes, vendas, APIs de busca/estoque PDV, entrada NF, etc.                                       |
+| `estoque`                             | APIs de indicadores, transferência, PIN, médias, impressão, separação — várias rotas em `config/urls.py` sob `/estoque/`. |
+| `financeiro`                          | API REST sob `/api/financeiro/` (include de `financeiro.api.urls`).                                                       |
+| `transferencias`                      | API sob `/api/transferencias/`.                                                                                           |
+| `integracoes`                         | Pontes com ERP, notificações, etc.                                                                                        |
+| `base`, `core`, `lojas`, `relatorios` | Suporte conforme cada módulo.                                                                                             |
+
 
 ---
 
@@ -32,28 +34,30 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 
 **Páginas (MPA / templates):**
 
-| Caminho | Nome (name) | Nota |
-|---------|-------------|------|
-| `/` | `consulta_produtos` | PDV principal |
-| `/historico/` | `historico_ajustes` | |
-| `/transferencias/` | `sugestao_transferencia` | |
-| `/entregas/` | `entregas_painel` | APIs sob `/entregas/api/...` |
-| `/ajuste-mobile/` | `ajuste_mobile` | |
-| `/compras/` | `compras_view` | Pedido fornecedor, WhatsApp |
-| `/entrada-nota/` | `entrada_nota` | |
-| `/lancamentos/` | `lancamentos_financeiros` | Contas a pagar/receber |
-| `/financeiro/resumo-gerencial/` | `resumo_financeiro_gerencial` | |
-| `/lancamentos/dre/` | `lancamentos_dre` | |
-| `/lancamentos/contas-pagar/` | `lancamentos_contas_pagar` | |
-| `/lancamentos/novo-manual/` | `lancamentos_manual` | |
-| `/lancamentos/fluxo-calendario/` | `lancamentos_fluxo_calendario` | |
-| `/estoque/sincronizacao/` | `estoque_sincronizacao` | Saúde leitura Mongo + divergência camada Agro |
-| `/pdv/checkout/` | `pdv_checkout` | |
-| `/vendas/` | `vendas_lista` | |
-| `/venda/<pk>/` | `venda_agro_detalhe` | |
-| `/clientes/` … | `clientes_*`, `cliente_*` | |
-| `/rh/` | `rh_painel` | |
-| `/caixa/` … | `caixa_*` | Painel, saída, abrir, fechar |
+
+| Caminho                          | Nome (name)                    | Nota                                          |
+| -------------------------------- | ------------------------------ | --------------------------------------------- |
+| `/`                              | `consulta_produtos`            | PDV principal                                 |
+| `/historico/`                    | `historico_ajustes`            |                                               |
+| `/transferencias/`               | `sugestao_transferencia`       |                                               |
+| `/entregas/`                     | `entregas_painel`              | APIs sob `/entregas/api/...`                  |
+| `/ajuste-mobile/`                | `ajuste_mobile`                |                                               |
+| `/compras/`                      | `compras_view`                 | Pedido fornecedor, WhatsApp                   |
+| `/entrada-nota/`                 | `entrada_nota`                 |                                               |
+| `/lancamentos/`                  | `lancamentos_financeiros`      | Contas a pagar/receber                        |
+| `/financeiro/resumo-gerencial/`  | `resumo_financeiro_gerencial`  |                                               |
+| `/lancamentos/dre/`              | `lancamentos_dre`              |                                               |
+| `/lancamentos/contas-pagar/`     | `lancamentos_contas_pagar`     |                                               |
+| `/lancamentos/novo-manual/`      | `lancamentos_manual`           |                                               |
+| `/lancamentos/fluxo-calendario/` | `lancamentos_fluxo_calendario` |                                               |
+| `/estoque/sincronizacao/`        | `estoque_sincronizacao`        | Saúde leitura Mongo + divergência camada Agro |
+| `/pdv/checkout/`                 | `pdv_checkout`                 |                                               |
+| `/vendas/`                       | `vendas_lista`                 |                                               |
+| `/venda/<pk>/`                   | `venda_agro_detalhe`           |                                               |
+| `/clientes/` …                   | `clientes_*`, `cliente_*`      |                                               |
+| `/rh/`                           | `rh_painel`                    |                                               |
+| `/caixa/` …                      | `caixa_*`                      | Painel, saída, abrir, fechar                  |
+
 
 **APIs (amostra; lista completa no arquivo):** `api/buscar/`, `api/lancamentos/`, export CSV/XLSX/PDF financeiro, `api/pdv/*`, `api/entrada-nota/*`, `api/ajustar/`, etc.
 
@@ -61,10 +65,10 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 
 ## 4. Partials e UI compartilhada (templates)
 
-- **`produtos/templates/produtos/_agro_consulta_ui.html`** — tipografia/densidade GM Agro; inclui **`_agro_open_external.html`**.
-- **`_agro_open_external.html`** — `agroAbrirUrlExterna`, uso de `window.agroShell.openExternal` no Electron; monkey-patch de `window.open` para WhatsApp/Maps/Waze/goo.gl.
-- **`_head_perf_mpa.html`** — performance MPA onde usado.
-- **`_gm_loading_bar.html`** — barra de loading em algumas telas.
+- `**produtos/templates/produtos/_agro_consulta_ui.html`** — tipografia/densidade GM Agro; inclui `**_agro_open_external.html`**.
+- `**_agro_open_external.html**` — `agroAbrirUrlExterna`, uso de `window.agroShell.openExternal` no Electron; monkey-patch de `window.open` para WhatsApp/Maps/Waze/goo.gl.
+- `**_head_perf_mpa.html**` — performance MPA onde usado.
+- `**_gm_loading_bar.html**` — barra de loading em algumas telas.
 
 ---
 
@@ -95,32 +99,39 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 ## 7. Decisões e implementações já registradas (changelog resumido)
 
 **Compras (`compras.html` + JS inline)**  
+
 - Sugestão de compra em destaque no **card**; horizonte em dias **independente** do período da média (média em `<details>` “Métricas avançadas”).  
 - Opção **descontar ou não** estoque total **C+V** (localStorage).  
 - F5 / textos: **atualizar métricas**; não confundir com horizonte da sugestão.
 
 **PDF financeiro (`produtos/lancamentos_financeiro_pdf.py`)**  
+
 - Removidos blocos “OBSERVAÇÃO” / “ENTROU ALGUM DINHEIRO…”.  
 - Sem coluna Observações; **QUAL CONTA** em branco; **Plano conta** sem grupo; coluna **Forma de pagamento**.  
 - **Valor bruto** em fonte maior; quitação parcial → **bruto + linha Saldo**.  
 - Tabela “Anotações e conferência” mais larga.
 
 **Electron**  
-- Build usa **`electron/main.js`** + **`electron/preload.js`**.  
+
+- Build usa `**electron/main.js`** + `**electron/preload.js`**.  
 - IPC `agro-open-external` → `shell.openExternal`; mesma origem do app pode abrir janela interna; demais http(s) e `whatsapp:` no SO.  
 - Raiz: `electron-main.js` + `preload.js` alinhados para dev alternativo.
 
 **Lançamentos — ordenação por coluna**  
+
 - Backend hoje: principalmente `vencimento_asc` / `vencimento_desc` / `fluxo_desc` em `mongo_financeiro_util.py`. Ordenar **todas** as colunas no servidor exige estender o aggregate; sort só no cliente **não** substitui paginação global.
 
 **Estoque — Agro como operação (espelho ERP + ajustes)**  
+
 - Saldo operacional no PDV: referência ERP (Mongo) + correções em `AjusteRapidoEstoque` (`origem`, `usuario`, `observacao`). Painel `/estoque/sincronizacao/`, APIs `/api/estoque/sync-health/` e `/api/estoque/divergencia-ajustes/`, ping automático leve (`manage.py estoque_mongo_ping` no Cron Render ou HTTP `/api/cron/estoque-mongo-ping/`), comando `reconciliar_estoque_agro`. Doc interna: `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md`.
 
 **RH — fechamento e ficha (`rh_help_agents.html` + §9)**  
+
 - Textos explicativos longos em **«?»** (`<details>`); conteúdo canônico espelhado em **AGENTS.md §9** e no include `rh/templates/rh/includes/rh_help_agents.html`.  
 - Tela de fechamento: passos **1–3**, legenda e itens da folha em **guias recolhíveis** (`<details>`).
 
 **RH — cancelar vale na ficha**  
+
 - Botão **Cancelar** no extrato (`rh_funcionario_vale_cancelar`): `cancelado=True`, recalcula folhas abertas, tenta `sincronizar_valores_titulo_salario_mongo` na competência do vale. Alternativa: **Admin** Django em *Vales / adiantamentos*.
 
 ---
@@ -136,7 +147,7 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 
 ## 9. Ajuda em tela — RH (fonte para o `?`)
 
-Textos longos nas telas **Fechamento de folha** e **Ficha do funcionário** ficam em blocos **«?»** (elemento `<details>`). O HTML vivo está em **`rh/templates/rh/includes/rh_help_agents.html`**; esta seção é o espelho em Markdown para humanos e para `@AGENTS.md`.
+Textos longos nas telas **Fechamento de folha** e **Ficha do funcionário** ficam em blocos **«?»** (elemento `<details>`). O HTML vivo está em `**rh/templates/rh/includes/rh_help_agents.html`**; esta seção é o espelho em Markdown para humanos e para `@AGENTS.md`.
 
 ### 9.0 Salário R$ 0 no fechamento
 
@@ -167,7 +178,7 @@ Textos longos nas telas **Fechamento de folha** e **Ficha do funcionário** fica
 
 ### 9.5 Passo 2 — Ajuda técnica (plano Mongo)
 
-- Plano do título: variável de ambiente **`AGRO_RH_PLANO_SALARIO_FOLHA`** (texto igual ao cadastro no ERP/Mongo).
+- Plano do título: variável de ambiente `**AGRO_RH_PLANO_SALARIO_FOLHA`** (texto igual ao cadastro no ERP/Mongo).
 - Quando já existe lançamento, o **ID** do título é exibido na própria tela (ajuda técnica).
 
 ### 9.6 Passo 3 — Encerrar e correções

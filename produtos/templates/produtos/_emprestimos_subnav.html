@@ -1,0 +1,7 @@
+{# emprestimos_nav: hub | externo | interno | consulta #}
+<nav class="mb-6 flex flex-wrap gap-2 border-b-2 border-slate-200 pb-4" aria-label="Seções de empréstimos">
+  <a href="{% url 'emprestimos_gestao' %}" class="min-h-[48px] inline-flex items-center rounded-xl border-2 px-5 py-3 text-sm font-black uppercase transition-colors {% if emprestimos_nav == 'hub' %}border-slate-800 bg-slate-800 text-white{% else %}border-slate-200 bg-white text-slate-700 hover:border-slate-400{% endif %}">Início</a>
+  <a href="{% url 'emprestimos_externo' %}" class="min-h-[48px] inline-flex items-center rounded-xl border-2 px-5 py-3 text-sm font-black uppercase transition-colors {% if emprestimos_nav == 'externo' %}border-emerald-600 bg-emerald-600 text-white{% else %}border-slate-200 bg-white text-slate-700 hover:border-emerald-400{% endif %}">Externo</a>
+  <a href="{% url 'emprestimos_interno' %}" class="min-h-[48px] inline-flex items-center rounded-xl border-2 px-5 py-3 text-sm font-black uppercase transition-colors {% if emprestimos_nav == 'interno' %}border-orange-500 bg-orange-500 text-white{% else %}border-slate-200 bg-white text-slate-700 hover:border-orange-300{% endif %}">Interno (sócio)</a>
+  <a href="{% url 'emprestimos_consulta' %}" class="min-h-[48px] inline-flex items-center rounded-xl border-2 px-5 py-3 text-sm font-black uppercase transition-colors {% if emprestimos_nav == 'consulta' %}border-slate-700 bg-slate-700 text-white{% else %}border-slate-200 bg-white text-slate-700 hover:border-slate-400{% endif %}">Consulta</a>
+</nav>

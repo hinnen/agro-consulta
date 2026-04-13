@@ -24,6 +24,106 @@ _SENTINEL = datetime(1, 1, 1, 0, 0)
 COL_DTO_LANCAMENTO = "DtoLancamento"
 # Cadastro de plano (Mongo shell: db.DtoPlanoDeConta.find().sort({ _id: -1 }).limit(10))
 COL_DTO_PLANO_CONTA = "DtoPlanoDeConta"
+COL_AGRO_EMPRESTIMO = "AgroEmprestimo"
+
+# Planos padrão informados pela operação (conferir grafia no ERP / Mongo).
+EMPRESTIMO_PLANO_ENTRADA_PADRAO = "Entrada de Emprestimo"
+EMPRESTIMO_PLANO_DIVIDA_PADRAO = "Pagamento de Emprestimos"
+EMPRESTIMO_PLANO_JUROS_PADRAO = "Juros de Emprestimos"
+
+EMPRESTIMO_CREDORES_INTERNOS_PADRAO: tuple[str, ...] = (
+    "Renan Hinnen 1403",
+    "Geraldo Hinnen",
+    "Zuleide Hinnen",
+    "Geraldinho",
+    "Caminhão ( Conta Mercado Pago Geraldinho )",
+    "Isabela Cugler",
+    "🟡📍 Queila Hinnen a",
+)
+
+
+def emprestimo_defaults_para_ui() -> dict[str, Any]:
+    return {
+        "plano_entrada": EMPRESTIMO_PLANO_ENTRADA_PADRAO,
+        "plano_divida": EMPRESTIMO_PLANO_DIVIDA_PADRAO,
+        "plano_juros": EMPRESTIMO_PLANO_JUROS_PADRAO,
+        "credores_internos": list(EMPRESTIMO_CREDORES_INTERNOS_PADRAO),
+    }
+
+
+def _mongo_query_planos_emprestimo_erp() -> dict[str, Any]:
+    """Títulos cujo plano de conta é o de empréstimos usado no ERP (regex case-insensitive)."""
+    return {
+        "PlanoDeConta": {
+            "$regex": r"^\s*(Entrada|Pagamento|Juros)\s+de\s+Emprestim",
+            "$options": "i",
+        }
+    }
+
+
+def _normalizar_nome_credor_emprestimo(nome: str) -> str:
+    s = unicodedata.normalize("NFKC", nome or "")
+    s = s.replace("\xa0", " ").replace("\u200b", "").replace("\ufeff", "")
+    s = re.sub(r"\s+", " ", s).strip().casefold()
+    return s
+
+
+def _classificar_lancamento_emprestimo_mongo(doc: dict[str, Any]) -> str:
+    """
+    Externo: lançamentos criados pelo fluxo Agro de empréstimo externo (marca nas observações).
+    Interno: demais títulos de plano de empréstimo cujo Cliente bate com a lista de sócios/credores internos.
+    Caso contrário, assume externo (ex.: banco / fornecedor no ERP).
+    """
+    obs = str(doc.get("Observacoes") or "")
+    if re.search(r"Emprestimo\s+EXT", obs, re.I) or "EMP-EXT-" in obs:
+        return "externo"
+    cli = _normalizar_nome_credor_emprestimo(str(doc.get("Cliente") or ""))
+    if cli:
+        for pad in EMPRESTIMO_CREDORES_INTERNOS_PADRAO:
+            if _normalizar_nome_credor_emprestimo(pad) == cli:
+                return "interno"
+    return "externo"
+
+
+def listar_lancamentos_emprestimo_do_mongo(
+    db,
+    *,
+    empresa_id: str | None = None,
+    empresa_nome: str | None = None,
+    limit: int = 200,
+) -> list[dict[str, Any]]:
+    """
+    Lançamentos já existentes no Mongo (sincronizados do ERP ou lançados no Agro)
+    identificados pelo plano de conta típico de empréstimo.
+    """
+    if db is None:
+        return []
+    q_plano = _mongo_query_planos_emprestimo_erp()
+    and_parts: list[dict[str, Any]] = [q_plano]
+    eid = (empresa_id or "").strip()
+    if eid:
+        and_parts.append({"$or": [{"EmpresaID": eid}, {"EmpresaID": str(eid)}]})
+    enome = (empresa_nome or "").strip()
+    if enome:
+        and_parts.append({"Empresa": {"$regex": re.escape(enome[:120]), "$options": "i"}})
+    query: dict[str, Any] = and_parts[0] if len(and_parts) == 1 else {"$and": and_parts}
+    lim = min(max(int(limit or 200), 1), 400)
+    col = db[COL_DTO_LANCAMENTO]
+    try:
+        cur = col.find(query).sort("DataVencimento", -1).limit(lim)
+    except Exception:
+        logger.exception("listar_lancamentos_emprestimo_do_mongo find")
+        return []
+    out: list[dict[str, Any]] = []
+    for doc in cur:
+        desp = bool(doc.get("Despesa"))
+        row = lancamento_para_api(doc, desp)
+        row["origem_erp"] = _lancamento_tem_vinculo_erp(doc)
+        row["manual_agro"] = _lancamento_e_manual_agro(doc)
+        row["emprestimo_tipo"] = _classificar_lancamento_emprestimo_mongo(doc)
+        out.append(row)
+    return out
+
 
 # Campos que o DTO C# do ERP espera como string no BSON (não ObjectId).
 _COERCE_OID_CAMPOS_ERP = (
@@ -2893,13 +2993,94 @@ def _bancos_lista_com_placeholder_inicio(bancos: list[dict]) -> list[dict]:
     return [ph, *bancos]
 
 
+def _lancamentos_sugestoes_cliente_mongo(
+    col,
+    *,
+    qq: str,
+    lim: int,
+    escopo: str,
+    ordenar: str,
+    empresa_id: str | None,
+) -> list[dict[str, str]]:
+    """Agregação específica para autocomplete de Cliente com escopo, empresa e ordenação."""
+    nome_f, id_f = _SUGESTOES_CAMPOS["cliente"]
+    and_parts: list[dict[str, Any]] = [{nome_f: {"$nin": [None, ""]}}]
+    if qq:
+        and_parts.append({nome_f: {"$regex": re.escape(qq[:100]), "$options": "i"}})
+    es = (escopo or "todos").strip().lower()
+    if es == "pagar":
+        and_parts.append({"Despesa": True})
+    elif es == "receber":
+        and_parts.append({"Despesa": {"$ne": True}})
+    elif es in ("emprestimo", "empréstimo"):
+        and_parts.append(_mongo_query_planos_emprestimo_erp())
+    eid = (empresa_id or "").strip()
+    if eid:
+        and_parts.append({"$or": [{"EmpresaID": eid}, {"EmpresaID": str(eid)}]})
+    match: dict[str, Any] = {"$and": and_parts} if len(and_parts) > 1 else and_parts[0]
+
+    pipe: list[dict[str, Any]] = [
+        {"$match": match},
+        {
+            "$group": {
+                "_id": {"n": f"${nome_f}", "i": f"${id_f}"},
+                "cnt": {"$sum": 1},
+                "ult": {"$max": "$DataVencimento"},
+            }
+        },
+        {"$addFields": {"nl": {"$toLower": {"$ifNull": ["$_id.n", ""]}}}},
+    ]
+    ord_key = (ordenar or "nome").strip().lower()
+    ord_aliases = {
+        "az": "nome",
+        "za": "nome_desc",
+        "mais_recente": "recente",
+        "recentes": "recente",
+        "uso": "frequencia",
+        "mais_usado": "frequencia",
+        "freq": "frequencia",
+    }
+    ord_key = ord_aliases.get(ord_key, ord_key)
+    if ord_key in ("frequencia",):
+        pipe.append({"$sort": {"cnt": -1, "ult": -1, "nl": 1}})
+    elif ord_key in ("recente",):
+        pipe.append({"$sort": {"ult": -1, "cnt": -1, "nl": 1}})
+    elif ord_key in ("nome_desc", "nome_za"):
+        pipe.append({"$sort": {"nl": -1}})
+    else:
+        pipe.append({"$sort": {"nl": 1}})
+    pipe.append({"$limit": lim})
+
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for r in col.aggregate(pipe):
+        i = r.get("_id") or {}
+        nome = str(i.get("n") or "").strip()
+        if not nome or nome.lower() in seen:
+            continue
+        seen.add(nome.lower())
+        rid = i.get("i")
+        out.append({"nome": nome, "id": str(rid) if rid is not None else ""})
+    return out
+
+
 def lancamentos_sugestoes_campo(
     db,
     campo: str,
     q: str | None = None,
     limit: int = 30,
+    *,
+    escopo: str = "todos",
+    ordenar: str = "nome",
+    empresa_id: str | None = None,
 ) -> list[dict[str, str]]:
-    """Sugestões (nome + id) a partir de lançamentos existentes no Mongo — alinhado ao cadastro ERP."""
+    """Sugestões (nome + id) a partir de lançamentos existentes no Mongo — alinhado ao cadastro ERP.
+
+    Para ``campo == "cliente"``:
+    - ``escopo``: ``todos`` | ``pagar`` (fornecedor / a pagar) | ``receber`` | ``emprestimo`` (plano típico de empréstimo).
+    - ``ordenar``: ``nome`` | ``nome_desc`` | ``recente`` (último vencimento) | ``frequencia`` (mais lançamentos).
+    - ``empresa_id``: restringe a lançamentos dessa empresa (string do ERP).
+    """
     out: list[dict[str, str]] = []
     if db is None or campo not in _SUGESTOES_CAMPOS:
         return out
@@ -2909,6 +3090,15 @@ def lancamentos_sugestoes_campo(
     qq = (q or "").strip()
     try:
         col = db[COL_DTO_LANCAMENTO]
+        if campo == "cliente":
+            return _lancamentos_sugestoes_cliente_mongo(
+                col,
+                qq=qq,
+                lim=lim,
+                escopo=escopo,
+                ordenar=ordenar,
+                empresa_id=empresa_id,
+            )
         if campo == "banco":
             conds = [
                 {nome_f: {"$nin": [None, "", "ADICIONAR BANCO", "Adicionar banco"]}},
@@ -2977,6 +3167,7 @@ def inserir_lancamentos_manual_lote(
     grupo_id: str | None,
     usuario_label: str,
     linhas: list[dict[str, Any]],
+    marcar_quitado_receber: bool = False,
 ) -> dict[str, Any]:
     """
     Vários títulos compartilhando cabeçalho (empresa, favorecido, datas, banco; forma opcional);
@@ -3084,6 +3275,12 @@ def inserir_lancamentos_manual_lote(
             doc["Saida"] = 0.0
             doc["Recebido"] = 0.0
             doc["ValorPago"] = 0.0
+            if marcar_quitado_receber:
+                dpq = _dt_naive_meia_noite_erp(data_vencimento)
+                doc["Pago"] = True
+                doc["DataPagamento"] = dpq
+                doc["Recebido"] = float(valor)
+                doc["ValorPago"] = float(valor)
         _financeiro_doc_coerce_ids_oid_para_string(doc)
         try:
             ins = col.insert_one(doc)
@@ -3098,6 +3295,344 @@ def inserir_lancamentos_manual_lote(
         "ids": inserted,
         "erros": erros,
     }
+
+
+def split_decimal_em_parcelas(total: Decimal, n: int) -> list[Decimal]:
+    """Divide total em n parcelas (centavos) sem perder a soma."""
+    if n < 1:
+        return []
+    total = total.quantize(Decimal("0.01"))
+    cents = int((total * 100).to_integral_value())
+    base = cents // n
+    rem = cents % n
+    out: list[Decimal] = []
+    for i in range(n):
+        c = base + (1 if i < rem else 0)
+        out.append(Decimal(c) / Decimal(100))
+    return out
+
+
+def criar_emprestimo_externo_agro(
+    db,
+    *,
+    usuario_label: str,
+    empresa_nome: str,
+    empresa_id: str | None,
+    credor_nome: str,
+    credor_id: str | None,
+    valor_recebido: Decimal,
+    valor_total_devido: Decimal,
+    data_entrada: date,
+    primeiro_vencimento: date,
+    parcelas: int,
+    intervalo_dias: int,
+    banco_nome: str,
+    banco_id: str | None,
+    forma_nome: str,
+    forma_id: str | None,
+    plano_entrada_nome: str,
+    plano_entrada_id: str | None,
+    plano_divida_nome: str,
+    plano_divida_id: str | None,
+    grupo_nome: str | None = None,
+    grupo_id: str | None = None,
+    observacao: str = "",
+    entrada_ja_quitada: bool = True,
+    valor_juros: Decimal | None = None,
+    plano_juros_nome: str | None = None,
+    plano_juros_id: str | None = None,
+) -> dict[str, Any]:
+    """
+    Empréstimo externo: 1 título a receber (entrada do valor) + N contas a pagar (parcelas).
+    Os títulos a pagar aparecem no financeiro Agro como demais despesas.
+    """
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível", "ref": None}
+    credor_nome = (credor_nome or "").strip()
+    if not credor_nome:
+        return {"ok": False, "erro": "Informe o credor (fornecedor/pessoa).", "ref": None}
+    if parcelas < 1 or parcelas > 48:
+        return {"ok": False, "erro": "Parcelas deve ser entre 1 e 48.", "ref": None}
+    if intervalo_dias < 1 or intervalo_dias > 366:
+        return {"ok": False, "erro": "Intervalo entre parcelas inválido (1–366 dias).", "ref": None}
+    if valor_recebido <= 0 or valor_total_devido <= 0:
+        return {"ok": False, "erro": "Valores recebido e total a pagar devem ser maiores que zero.", "ref": None}
+    plano_entrada_nome = (plano_entrada_nome or "").strip()
+    plano_divida_nome = (plano_divida_nome or "").strip()
+    if not plano_entrada_nome or not plano_divida_nome:
+        return {"ok": False, "erro": "Planos de conta (entrada e dívida) são obrigatórios.", "ref": None}
+
+    v_juros = (valor_juros or Decimal("0")).quantize(Decimal("0.01"))
+    if v_juros > 0:
+        pj = (plano_juros_nome or "").strip()
+        if not pj:
+            return {
+                "ok": False,
+                "erro": "Informe o plano de juros ou deixe o valor de juros zerado.",
+                "ref": None,
+            }
+
+    ref = secrets.token_hex(4).upper()
+    obs_base = (f"Emprestimo EXT ref EMP-EXT-{ref}. " + (observacao or "").strip()).strip()[:900]
+
+    r_ent = inserir_lancamentos_manual_lote(
+        db,
+        despesa=False,
+        empresa_nome=empresa_nome,
+        empresa_id=empresa_id,
+        pessoa_nome=credor_nome,
+        pessoa_id=credor_id,
+        data_competencia=data_entrada,
+        data_vencimento=data_entrada,
+        banco_nome=banco_nome,
+        banco_id=banco_id,
+        forma_nome=forma_nome,
+        forma_id=forma_id,
+        grupo_nome=grupo_nome,
+        grupo_id=grupo_id,
+        usuario_label=usuario_label,
+        linhas=[
+            {
+                "valor": float(valor_recebido),
+                "descricao": f"Entrada empréstimo — {credor_nome}"[:500],
+                "plano_conta": plano_entrada_nome,
+                "plano_conta_id": plano_entrada_id,
+                "observacao": obs_base[:500],
+            }
+        ],
+        marcar_quitado_receber=bool(entrada_ja_quitada),
+    )
+    if not r_ent.get("ok"):
+        return {
+            "ok": False,
+            "erro": "Falha ao lançar entrada (receita).",
+            "ref": ref,
+            "entrada": r_ent,
+            "parcelas": [],
+        }
+
+    vals = split_decimal_em_parcelas(valor_total_devido, parcelas)
+    parcelas_out: list[dict[str, Any]] = []
+    all_ok = True
+    for i in range(parcelas):
+        dv = primeiro_vencimento + timedelta(days=intervalo_dias * i)
+        obs_p = f"{obs_base} Parc {i + 1}/{parcelas}."[:500]
+        r_p = inserir_lancamentos_manual_lote(
+            db,
+            despesa=True,
+            empresa_nome=empresa_nome,
+            empresa_id=empresa_id,
+            pessoa_nome=credor_nome,
+            pessoa_id=credor_id,
+            data_competencia=dv,
+            data_vencimento=dv,
+            banco_nome=banco_nome,
+            banco_id=banco_id,
+            forma_nome=forma_nome,
+            forma_id=forma_id,
+            grupo_nome=grupo_nome,
+            grupo_id=grupo_id,
+            usuario_label=usuario_label,
+            linhas=[
+                {
+                    "valor": float(vals[i]),
+                    "descricao": f"Empréstimo — {credor_nome} (parc {i + 1}/{parcelas})"[:500],
+                    "plano_conta": plano_divida_nome,
+                    "plano_conta_id": plano_divida_id,
+                    "observacao": obs_p,
+                }
+            ],
+        )
+        parcelas_out.append(r_p)
+        if not r_p.get("ok"):
+            all_ok = False
+
+    r_juros: dict[str, Any] | None = None
+    if v_juros > 0:
+        obs_j = f"{obs_base} Juros (1ª parcela)."[:500]
+        r_juros = inserir_lancamentos_manual_lote(
+            db,
+            despesa=True,
+            empresa_nome=empresa_nome,
+            empresa_id=empresa_id,
+            pessoa_nome=credor_nome,
+            pessoa_id=credor_id,
+            data_competencia=primeiro_vencimento,
+            data_vencimento=primeiro_vencimento,
+            banco_nome=banco_nome,
+            banco_id=banco_id,
+            forma_nome=forma_nome,
+            forma_id=forma_id,
+            grupo_nome=grupo_nome,
+            grupo_id=grupo_id,
+            usuario_label=usuario_label,
+            linhas=[
+                {
+                    "valor": float(v_juros),
+                    "descricao": f"Juros empréstimo — {credor_nome}"[:500],
+                    "plano_conta": (plano_juros_nome or "").strip(),
+                    "plano_conta_id": plano_juros_id,
+                    "observacao": obs_j,
+                }
+            ],
+        )
+        parcelas_out.append(r_juros)
+        if not r_juros.get("ok"):
+            all_ok = False
+
+    ids_entrada = list(r_ent.get("ids") or [])
+    ids_divida: list[str] = []
+    lotes_parcelas: list[str] = []
+    for r_p in parcelas_out:
+        ids_divida.extend(r_p.get("ids") or [])
+        if r_p.get("lote"):
+            lotes_parcelas.append(str(r_p["lote"]))
+
+    now = timezone.now()
+    meta = {
+        "tipo": "externo",
+        "ref": ref,
+        "empresa_nome": (empresa_nome or "")[:200],
+        "empresa_id": _financeiro_id_para_string(empresa_id),
+        "credor_nome": credor_nome[:300],
+        "credor_id": _financeiro_id_para_string(credor_id),
+        "valor_recebido": float(valor_recebido),
+        "valor_total_devido": float(valor_total_devido),
+        "valor_juros": float(v_juros) if v_juros > 0 else 0.0,
+        "entrada_ja_quitada": bool(entrada_ja_quitada),
+        "parcelas": parcelas,
+        "intervalo_dias": intervalo_dias,
+        "primeiro_vencimento": primeiro_vencimento.isoformat(),
+        "data_entrada": data_entrada.isoformat(),
+        "ids_entrada": ids_entrada,
+        "ids_divida": ids_divida,
+        "lote_entrada": str(r_ent.get("lote") or ""),
+        "lotes_parcelas": lotes_parcelas,
+        "observacao": (observacao or "")[:2000],
+        "created_at": now,
+        "created_by": (usuario_label or "")[:200],
+    }
+    try:
+        ins_m = db[COL_AGRO_EMPRESTIMO].insert_one(meta)
+        meta_id = str(ins_m.inserted_id)
+    except Exception as exc:
+        logger.exception("AgroEmprestimo insert meta externo")
+        meta_id = ""
+        all_ok = False
+
+    return {
+        "ok": all_ok,
+        "ref": ref,
+        "meta_id": meta_id,
+        "entrada": r_ent,
+        "parcelas": parcelas_out,
+        "juros": r_juros,
+        "ids_entrada": ids_entrada,
+        "ids_divida": ids_divida,
+    }
+
+
+def registrar_emprestimo_interno_agro(
+    db,
+    *,
+    usuario_label: str,
+    empresa_nome: str,
+    empresa_id: str | None,
+    mutuario_label: str,
+    valor_aporte: Decimal,
+    valor_devolucao_total: Decimal,
+    primeira_data_prevista: date | None,
+    parcelas: int,
+    intervalo_dias: int,
+    observacao: str = "",
+) -> dict[str, Any]:
+    """Aporte de sócio: só registro AgroEmprestimo (não gera DtoLancamento / contas a pagar)."""
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    mutuario_label = (mutuario_label or "").strip()
+    if not mutuario_label:
+        return {"ok": False, "erro": "Informe o proprietário / sócio."}
+    if parcelas < 1 or parcelas > 48:
+        return {"ok": False, "erro": "Parcelas deve ser entre 1 e 48."}
+    if intervalo_dias < 1 or intervalo_dias > 366:
+        return {"ok": False, "erro": "Intervalo inválido (1–366 dias)."}
+    if valor_aporte <= 0 or valor_devolucao_total <= 0:
+        return {"ok": False, "erro": "Valores devem ser maiores que zero."}
+
+    vals = split_decimal_em_parcelas(valor_devolucao_total, parcelas)
+    cronograma: list[dict[str, Any]] = []
+    for i in range(parcelas):
+        if primeira_data_prevista is not None:
+            d = primeira_data_prevista + timedelta(days=intervalo_dias * i)
+            ds = d.isoformat()
+        else:
+            ds = ""
+        cronograma.append(
+            {
+                "parcela": i + 1,
+                "valor": float(vals[i]),
+                "vencimento_previsto": ds,
+            }
+        )
+
+    ref = secrets.token_hex(4).upper()
+    now = timezone.now()
+    doc = {
+        "tipo": "interno",
+        "ref": ref,
+        "empresa_nome": (empresa_nome or "")[:200],
+        "empresa_id": _financeiro_id_para_string(empresa_id),
+        "mutuario_label": mutuario_label[:300],
+        "valor_aporte": float(valor_aporte),
+        "valor_devolucao_total": float(valor_devolucao_total),
+        "parcelas": parcelas,
+        "intervalo_dias": intervalo_dias,
+        "primeira_data_prevista": primeira_data_prevista.isoformat() if primeira_data_prevista else "",
+        "cronograma": cronograma,
+        "observacao": (observacao or "")[:2000],
+        "created_at": now,
+        "created_by": (usuario_label or "")[:200],
+    }
+    try:
+        ins = db[COL_AGRO_EMPRESTIMO].insert_one(doc)
+        return {"ok": True, "ref": ref, "meta_id": str(ins.inserted_id)}
+    except Exception as exc:
+        logger.exception("AgroEmprestimo insert interno")
+        return {"ok": False, "erro": str(exc)[:300]}
+
+
+def listar_emprestimos_agro(db, *, tipo: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
+    if db is None:
+        return []
+    q: dict[str, Any] = {}
+    t = (tipo or "").strip().lower()
+    if t == "externo":
+        q["tipo"] = {"$regex": "^externo$", "$options": "i"}
+    elif t == "interno":
+        q["tipo"] = {"$regex": "^interno$", "$options": "i"}
+    lim = min(max(int(limit or 100), 1), 200)
+    cur = (
+        db[COL_AGRO_EMPRESTIMO]
+        .find(q)
+        .sort("created_at", -1)
+        .limit(lim)
+    )
+    out: list[dict[str, Any]] = []
+    for doc in cur:
+        d = dict(doc)
+        oid = d.pop("_id", None)
+        d["id"] = str(oid) if oid is not None else ""
+        if isinstance(d.get("created_at"), datetime):
+            d["created_at"] = d["created_at"].isoformat()
+        # Legado: documento sem campo tipo — inferir para o filtro da UI
+        tdoc = str(d.get("tipo") or "").strip().lower()
+        if tdoc not in ("externo", "interno"):
+            if (d.get("credor_nome") or "").strip() and not (d.get("mutuario_label") or "").strip():
+                d["tipo"] = "externo"
+            elif (d.get("mutuario_label") or "").strip():
+                d["tipo"] = "interno"
+        out.append(d)
+    return out
 
 
 def lancamentos_planos_distintos_no_filtro(

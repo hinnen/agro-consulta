@@ -81,6 +81,7 @@
                 outroPinVerificado: false,
                 maquinaId: '',
                 maquinaNome: '',
+                mpBalcaoModo: '',
                 lancamentos: []
             },
             venda: {
@@ -105,7 +106,20 @@
                 var def = defaultState();
                 var merged = Object.assign({}, def, parsed || {});
                 merged.pagamento = Object.assign({}, def.pagamento, (parsed && parsed.pagamento) || {});
+                Object.keys(def.pagamento).forEach(function (pk) {
+                    if (merged.pagamento[pk] === undefined) merged.pagamento[pk] = def.pagamento[pk];
+                });
                 if (!Array.isArray(merged.pagamento.lancamentos)) merged.pagamento.lancamentos = [];
+                merged.pagamento.lancamentos = merged.pagamento.lancamentos.map(function (L) {
+                    if (!L || typeof L !== 'object') return L;
+                    var row = Object.assign({}, L);
+                    if (row.mpBalcaoModo == null) row.mpBalcaoModo = '';
+                    var mid = String(row.maquinaId || '').trim();
+                    var mpm = String(row.mpBalcaoModo || '').trim();
+                    row.cobrarNoPointMp =
+                        !!row.cobrarNoPointMp || (mid === 'mp_balcao' && mpm === 'point');
+                    return row;
+                });
                 merged.entrega = Object.assign({}, def.entrega, (parsed && parsed.entrega) || {});
                 ['logradouro', 'numero', 'bairro', 'plusCode'].forEach(function (k) {
                     if (merged.entrega[k] === undefined || merged.entrega[k] === null) {
@@ -267,15 +281,18 @@
     }
 
     function setPagamentoField(field, value) {
-        if (!state.pagamento || !(field in state.pagamento)) return;
+        if (!state.pagamento) return;
+        var defPg = defaultState().pagamento;
+        if (!(field in defPg)) return;
         state.pagamento[field] = value;
         notify();
     }
 
     function setPagamentoPatch(patch) {
         if (!state.pagamento || !patch || typeof patch !== 'object') return;
+        var defPg = defaultState().pagamento;
         Object.keys(patch).forEach(function (k) {
-            if (k in state.pagamento) state.pagamento[k] = patch[k];
+            if (k in defPg) state.pagamento[k] = patch[k];
         });
         notify();
     }
@@ -425,6 +442,7 @@
         state.pagamento.valorDestaForma = '';
         state.pagamento.maquinaId = '';
         state.pagamento.maquinaNome = '';
+        state.pagamento.mpBalcaoModo = '';
         state.pagamento.outroDetalhes = '';
         state.pagamento.outroPinVerificado = false;
         state.currentStep = 'produtos';
@@ -437,6 +455,7 @@
         state.pagamento.forma = '';
         state.pagamento.maquinaId = '';
         state.pagamento.maquinaNome = '';
+        state.pagamento.mpBalcaoModo = '';
         state.pagamento.valorRecebido = '';
         state.pagamento.trocoCalculado = '';
         state.pagamento.valorDestaForma = '';
@@ -456,6 +475,8 @@
                     valor: 0,
                     maquinaId: '',
                     maquinaNome: '',
+                    mpBalcaoModo: '',
+                    cobrarNoPointMp: false,
                     creditoParcelas: null,
                     fiadoParcelas: null,
                     fiadoDiasVencimento: null,
@@ -467,6 +488,45 @@
             )
         );
         resetPagamentoTranche();
+    }
+
+    function removePagamentoLancamentoAt(index) {
+        if (!state.pagamento || !Array.isArray(state.pagamento.lancamentos)) return;
+        var i = parseInt(index, 10);
+        if (!Number.isFinite(i) || i < 0 || i >= state.pagamento.lancamentos.length) return;
+        state.pagamento.lancamentos.splice(i, 1);
+        notify();
+    }
+
+    function beginEditPagamentoLancamento(index) {
+        if (!state.pagamento || !Array.isArray(state.pagamento.lancamentos)) return;
+        var i = parseInt(index, 10);
+        if (!Number.isFinite(i) || i < 0 || i >= state.pagamento.lancamentos.length) return;
+        var L = state.pagamento.lancamentos.splice(i, 1)[0];
+        if (!L || typeof L !== 'object') {
+            notify();
+            return;
+        }
+        var v = toNumber(L.valor);
+        var fmt = String(v.toFixed(2)).replace('.', ',');
+        var forma = String(L.forma || '');
+        var vr = String(L.valorRecebido || '').trim();
+        var patch = {
+            forma: forma,
+            maquinaId: String(L.maquinaId || ''),
+            maquinaNome: String(L.maquinaNome || ''),
+            mpBalcaoModo: String(L.mpBalcaoModo || ''),
+            creditoParcelas: L.creditoParcelas != null ? parseInt(L.creditoParcelas, 10) || 2 : 2,
+            fiadoParcelas: L.fiadoParcelas != null ? parseInt(L.fiadoParcelas, 10) || 1 : 1,
+            fiadoDiasVencimento: L.fiadoDiasVencimento != null ? parseInt(L.fiadoDiasVencimento, 10) || 30 : 30,
+            outroDetalhes: String(L.outroDetalhes || ''),
+            outroPinVerificado: forma === 'Outro',
+            valorRecebido: forma === 'Dinheiro' ? (vr || fmt) : '',
+            trocoCalculado: forma === 'Dinheiro' ? String(L.trocoCalculado || '') : '',
+            valorDestaForma: forma === 'Dinheiro' ? '' : fmt
+        };
+        Object.assign(state.pagamento, patch);
+        notify();
     }
 
     function reset(keepClient) {
@@ -510,6 +570,8 @@
         reset: reset,
         toNumber: toNumber,
         addPagamentoLancamento: addPagamentoLancamento,
+        removePagamentoLancamentoAt: removePagamentoLancamentoAt,
+        beginEditPagamentoLancamento: beginEditPagamentoLancamento,
         resetPagamentoTranche: resetPagamentoTranche
     };
 })();

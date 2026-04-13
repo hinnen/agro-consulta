@@ -1,5 +1,6 @@
 import csv
 import io
+import uuid
 from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.decorators import login_required
@@ -10,12 +11,14 @@ from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET, require_POST
+from django.utils import timezone
 from django.utils.timezone import localtime
 
 from base.models import Empresa, Loja, PerfilUsuario
 from estoque.models import (
     AjusteRapidoEstoque,
     ConfiguracaoTransferencia,
+    HistoricoTransferencia,
     OrigemAjusteEstoque,
     PedidoTransferencia,
 )
@@ -69,6 +72,198 @@ def _buscar_ajustes_mais_recentes(produto_ids=None):
             mapa[chave] = ajuste
 
     return mapa
+
+
+def _pedido_transferencia_extra(pedido):
+    if not pedido:
+        return {
+            "pedido_quantidade": 0.0,
+            "pedido_lote_uuid": None,
+            "pedido_status": None,
+            "pedido_impresso_em": None,
+        }
+    return {
+        "pedido_quantidade": float(pedido.quantidade),
+        "pedido_lote_uuid": str(pedido.lote_uuid) if pedido.lote_uuid else None,
+        "pedido_status": (pedido.status or "IMPRESSO").strip(),
+        "pedido_impresso_em": localtime(pedido.impresso_em).strftime("%d/%m/%Y %H:%M")
+        if pedido.impresso_em
+        else None,
+    }
+
+
+def _rotulo_usuario_pin(pin):
+    pin = (pin or "").strip()
+    if not pin or pin == "1234":
+        return ""
+    perfil = (
+        PerfilUsuario.objects.filter(senha_rapida=pin)
+        .select_related("user")
+        .first()
+    )
+    if not perfil:
+        return ""
+    u = perfil.user
+    nome = (u.get_full_name() or u.first_name or u.username or "").strip()
+    return f"{perfil.codigo_vendedor} — {nome}".strip(" —")[:200]
+
+
+def _rotulo_usuario_request(request):
+    if not request.user.is_authenticated:
+        return ""
+    u = request.user
+    nome = (u.get_full_name() or u.first_name or u.username or "").strip()
+    return nome[:200]
+
+
+def _historico_transferencia(
+    tipo,
+    *,
+    usuario_label="",
+    lote_uuid=None,
+    produto_externo_id="",
+    quantidade=None,
+    observacao="",
+):
+    try:
+        HistoricoTransferencia.objects.create(
+            tipo=tipo,
+            lote_uuid=lote_uuid,
+            produto_externo_id=(produto_externo_id or "")[:100],
+            quantidade=quantidade,
+            usuario_label=(usuario_label or "")[:200],
+            observacao=observacao or "",
+        )
+    except Exception:
+        pass
+
+
+def _transferir_vila_para_centro_exec(
+    request,
+    pin,
+    produto_id,
+    qtd,
+    nome_produto,
+    codigo_interno,
+    obs_extra,
+    registrar_historico=True,
+    invalidar_cache=True,
+):
+    """
+    Executa uma transferência Vila→Centro (Agro). Retorna dict com ok/erro e códigos HTTP sugeridos.
+    """
+    if pin == "1234":
+        return {"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN.", "status": 403}
+    if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+        return {"ok": False, "erro": "PIN incorreto.", "status": 403}
+
+    produto_id = (produto_id or "").strip()[:100]
+    if not produto_id:
+        return {"ok": False, "erro": "Produto inválido.", "status": 400}
+
+    if not isinstance(qtd, Decimal):
+        try:
+            qtd = Decimal(str(qtd))
+        except Exception:
+            return {"ok": False, "erro": "Quantidade inválida.", "status": 400}
+
+    if qtd <= 0:
+        return {"ok": False, "erro": "Informe quantidade maior que zero.", "status": 400}
+
+    nome_produto = (nome_produto or "").strip()[:255] or "Produto"
+    codigo_interno = (codigo_interno or "").strip()[:100]
+    obs_extra = (obs_extra or "").strip()[:500]
+
+    ped_row = PedidoTransferencia.objects.filter(produto_externo_id=produto_id).first()
+    lote_ref = ped_row.lote_uuid if ped_row else None
+
+    from produtos.views import (
+        _empresa_loja_padrao_agro_estoque,
+        _invalidar_caches_apos_ajuste_pin,
+        _saldo_erp_produto_deposito_mongo,
+        _saldo_final_agro_com_pin,
+        obter_conexao_mongo,
+    )
+
+    client_m, db = obter_conexao_mongo()
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível.", "status": 503}
+
+    saldo_erp_v = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, "vila")
+    saldo_erp_c = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, "centro")
+    saldo_ag_v = _saldo_final_agro_com_pin(produto_id, "vila", saldo_erp_v)
+    saldo_ag_c = _saldo_final_agro_com_pin(produto_id, "centro", saldo_erp_c)
+
+    if qtd > saldo_ag_v:
+        return {
+            "ok": False,
+            "erro": f"Quantidade maior que o saldo na Vila ({float(saldo_ag_v):.3f}).",
+            "status": 400,
+        }
+
+    novo_v = (saldo_ag_v - qtd).quantize(Decimal("0.001"))
+    novo_c = (saldo_ag_c + qtd).quantize(Decimal("0.001"))
+
+    empresa_v, loja_v = _empresa_loja_padrao_agro_estoque("vila")
+    empresa_c, loja_c = _empresa_loja_padrao_agro_estoque("centro")
+    empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
+
+    ref_obs = f"Vila→Centro {qtd}"
+    if obs_extra:
+        ref_obs = f"{ref_obs} · {obs_extra}"
+
+    nome_v = f"{nome_produto} · Transferência {ref_obs}"[:255]
+    nome_c = nome_v
+
+    with transaction.atomic():
+        AjusteRapidoEstoque.objects.create(
+            empresa=empresa_v or empresa,
+            loja=loja_v,
+            produto_externo_id=produto_id,
+            codigo_interno=codigo_interno,
+            nome_produto=nome_v,
+            deposito="vila",
+            saldo_erp_referencia=saldo_erp_v,
+            saldo_informado=novo_v,
+            observacao=ref_obs,
+            origem=OrigemAjusteEstoque.TRANSFERENCIA_UI,
+            usuario=request.user if request.user.is_authenticated else None,
+        )
+        AjusteRapidoEstoque.objects.create(
+            empresa=empresa_c or empresa,
+            loja=loja_c,
+            produto_externo_id=produto_id,
+            codigo_interno=codigo_interno,
+            nome_produto=nome_c,
+            deposito="centro",
+            saldo_erp_referencia=saldo_erp_c,
+            saldo_informado=novo_c,
+            observacao=ref_obs,
+            origem=OrigemAjusteEstoque.TRANSFERENCIA_UI,
+            usuario=request.user if request.user.is_authenticated else None,
+        )
+
+    if invalidar_cache:
+        _invalidar_caches_apos_ajuste_pin()
+    PedidoTransferencia.objects.filter(produto_externo_id=produto_id).delete()
+
+    if registrar_historico:
+        rotulo = _rotulo_usuario_pin(pin) or _rotulo_usuario_request(request)
+        _historico_transferencia(
+            HistoricoTransferencia.TIPO_TRANSFER_ITEM,
+            usuario_label=rotulo,
+            lote_uuid=lote_ref,
+            produto_externo_id=produto_id,
+            quantidade=qtd,
+            observacao=nome_produto[:500],
+        )
+
+    return {
+        "ok": True,
+        "saldo_vila": float(novo_v),
+        "saldo_centro": float(novo_c),
+        "quantidade": float(qtd),
+    }
 
 
 @require_GET
@@ -298,102 +493,153 @@ def api_transferir_vila_para_centro(request):
     """
     try:
         pin = request.POST.get("pin", "").strip()
-        if pin == "1234":
-            return JsonResponse({"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN."}, status=403)
-        if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
-            return JsonResponse({"ok": False, "erro": "PIN incorreto."}, status=403)
-
         produto_id = (request.POST.get("produto_id") or "").strip()[:100]
-        if not produto_id:
-            return JsonResponse({"ok": False, "erro": "Produto inválido."}, status=400)
-
         qtd = _normalizar_decimal(request.POST.get("quantidade", "0"))
-        if qtd <= 0:
-            return JsonResponse({"ok": False, "erro": "Informe quantidade maior que zero."}, status=400)
-
         nome_produto = (request.POST.get("nome_produto") or "").strip()[:255] or "Produto"
         codigo_interno = (request.POST.get("codigo_interno") or "").strip()[:100]
         obs_extra = (request.POST.get("observacao") or "").strip()[:500]
 
-        from produtos.views import (
-            _empresa_loja_padrao_agro_estoque,
-            _invalidar_caches_apos_ajuste_pin,
-            _saldo_erp_produto_deposito_mongo,
-            _saldo_final_agro_com_pin,
-            obter_conexao_mongo,
+        out = _transferir_vila_para_centro_exec(
+            request,
+            pin,
+            produto_id,
+            qtd,
+            nome_produto,
+            codigo_interno,
+            obs_extra,
+            registrar_historico=True,
+            invalidar_cache=True,
         )
-
-        client_m, db = obter_conexao_mongo()
-        if db is None:
-            return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
-
-        saldo_erp_v = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, "vila")
-        saldo_erp_c = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, "centro")
-        saldo_ag_v = _saldo_final_agro_com_pin(produto_id, "vila", saldo_erp_v)
-        saldo_ag_c = _saldo_final_agro_com_pin(produto_id, "centro", saldo_erp_c)
-
-        if qtd > saldo_ag_v:
-            return JsonResponse(
-                {
-                    "ok": False,
-                    "erro": f"Quantidade maior que o saldo na Vila ({float(saldo_ag_v):.3f}).",
-                },
-                status=400,
-            )
-
-        novo_v = (saldo_ag_v - qtd).quantize(Decimal("0.001"))
-        novo_c = (saldo_ag_c + qtd).quantize(Decimal("0.001"))
-
-        empresa_v, loja_v = _empresa_loja_padrao_agro_estoque("vila")
-        empresa_c, loja_c = _empresa_loja_padrao_agro_estoque("centro")
-        empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
-
-        ref_obs = f"Vila→Centro {qtd}"
-        if obs_extra:
-            ref_obs = f"{ref_obs} · {obs_extra}"
-
-        nome_v = f"{nome_produto} · Transferência {ref_obs}"[:255]
-        nome_c = nome_v
-
-        with transaction.atomic():
-            AjusteRapidoEstoque.objects.create(
-                empresa=empresa_v or empresa,
-                loja=loja_v,
-                produto_externo_id=produto_id,
-                codigo_interno=codigo_interno,
-                nome_produto=nome_v,
-                deposito="vila",
-                saldo_erp_referencia=saldo_erp_v,
-                saldo_informado=novo_v,
-                observacao=ref_obs,
-                origem=OrigemAjusteEstoque.TRANSFERENCIA_UI,
-                usuario=request.user if request.user.is_authenticated else None,
-            )
-            AjusteRapidoEstoque.objects.create(
-                empresa=empresa_c or empresa,
-                loja=loja_c,
-                produto_externo_id=produto_id,
-                codigo_interno=codigo_interno,
-                nome_produto=nome_c,
-                deposito="centro",
-                saldo_erp_referencia=saldo_erp_c,
-                saldo_informado=novo_c,
-                observacao=ref_obs,
-                origem=OrigemAjusteEstoque.TRANSFERENCIA_UI,
-                usuario=request.user if request.user.is_authenticated else None,
-            )
-
-        _invalidar_caches_apos_ajuste_pin()
+        if not out.get("ok"):
+            return JsonResponse({"ok": False, "erro": out.get("erro", "Erro.")}, status=int(out.get("status") or 400))
         return JsonResponse(
             {
                 "ok": True,
-                "saldo_vila": float(novo_v),
-                "saldo_centro": float(novo_c),
-                "quantidade": float(qtd),
+                "saldo_vila": out["saldo_vila"],
+                "saldo_centro": out["saldo_centro"],
+                "quantidade": out["quantidade"],
             }
         )
     except InvalidOperation:
         return JsonResponse({"ok": False, "erro": "Quantidade inválida."}, status=400)
+    except Exception as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=500)
+
+
+@require_POST
+@csrf_protect
+def api_transferir_lote_vila_para_centro(request):
+    """Transfere todos os itens de um lote (pedido IMPRESSO) com um único PIN."""
+    try:
+        data = json.loads(request.body)
+        pin = str(data.get("pin") or "").strip()
+        lote_raw = str(data.get("lote_uuid") or "").strip()
+        if not lote_raw:
+            return JsonResponse({"ok": False, "erro": "lote_uuid obrigatório."}, status=400)
+        try:
+            lote_uuid = uuid.UUID(lote_raw)
+        except ValueError:
+            return JsonResponse({"ok": False, "erro": "lote_uuid inválido."}, status=400)
+
+        if pin == "1234" or not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+            return JsonResponse({"ok": False, "erro": "PIN incorreto ou bloqueado."}, status=403)
+
+        linhas_raw = list(
+            PedidoTransferencia.objects.filter(lote_uuid=lote_uuid, status="IMPRESSO")
+            .order_by("produto_externo_id")
+            .values_list("produto_externo_id", "quantidade")
+        )
+        if not linhas_raw:
+            return JsonResponse({"ok": False, "erro": "Lote vazio ou já encerrado."}, status=404)
+
+        from produtos.views import _invalidar_caches_apos_ajuste_pin
+
+        pids = [str(r[0]) for r in linhas_raw]
+        nomes_map = {
+            str(k): (v or "").strip()
+            for k, v in ConfiguracaoTransferencia.objects.filter(produto_externo_id__in=pids).values_list(
+                "produto_externo_id", "nome_produto"
+            )
+        }
+
+        rotulo = _rotulo_usuario_pin(pin) or _rotulo_usuario_request(request)
+        resultados_ok = []
+        resultados_erro = []
+
+        for produto_id_raw, qtd_raw in linhas_raw:
+            pid = str(produto_id_raw).strip()[:100]
+            try:
+                qtd = Decimal(str(qtd_raw))
+            except Exception:
+                resultados_erro.append({"produto_id": pid, "erro": "Quantidade inválida."})
+                continue
+            nome = (nomes_map.get(str(pid)) or "").strip() or f"Produto {pid}"
+            cod = pid
+            out = _transferir_vila_para_centro_exec(
+                request,
+                pin,
+                pid,
+                qtd,
+                nome,
+                cod,
+                "lote",
+                registrar_historico=False,
+                invalidar_cache=False,
+            )
+            if out.get("ok"):
+                resultados_ok.append(
+                    {"produto_id": pid, "quantidade": float(out.get("quantidade", qtd))}
+                )
+            else:
+                resultados_erro.append({"produto_id": pid, "erro": out.get("erro", "Erro")})
+
+        _invalidar_caches_apos_ajuste_pin()
+
+        _historico_transferencia(
+            HistoricoTransferencia.TIPO_TRANSFER_LOTE,
+            usuario_label=rotulo,
+            lote_uuid=lote_uuid,
+            observacao=json.dumps(
+                {"ok": resultados_ok, "erro": resultados_erro},
+                ensure_ascii=False,
+            )[:8000],
+        )
+
+        return JsonResponse(
+            {
+                "ok": len(resultados_erro) == 0,
+                "transferidos": resultados_ok,
+                "falhas": resultados_erro,
+                "mensagem": f"{len(resultados_ok)} transferido(s), {len(resultados_erro)} falha(s).",
+            }
+        )
+    except Exception as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=500)
+
+
+@require_GET
+def api_listar_historico_transferencia(request):
+    """Últimos eventos de impressão / transferência / cancelamento."""
+    try:
+        lim = int(request.GET.get("limit", "80"))
+        lim = max(1, min(lim, 200))
+        qs = HistoricoTransferencia.objects.all()[:lim]
+        evs = []
+        for h in qs:
+            evs.append(
+                {
+                    "tipo": h.tipo,
+                    "criado_em": localtime(h.criado_em).strftime("%d/%m/%Y %H:%M")
+                    if h.criado_em
+                    else "",
+                    "lote_uuid": str(h.lote_uuid) if h.lote_uuid else None,
+                    "produto_id": h.produto_externo_id or None,
+                    "quantidade": float(h.quantidade) if h.quantidade is not None else None,
+                    "usuario": h.usuario_label or "—",
+                    "observacao": (h.observacao or "")[:500],
+                }
+            )
+        return JsonResponse({"ok": True, "eventos": evs})
     except Exception as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=500)
 
@@ -440,24 +686,243 @@ def api_salvar_config_transferencia(request):
 def api_registrar_impressao(request):
     try:
         data = json.loads(request.body)
-        itens = data.get('itens', [])
-        for item in itens:
-            PedidoTransferencia.objects.filter(produto_externo_id=item['id']).delete()
-            PedidoTransferencia.objects.create(
-                produto_externo_id=item['id'],
-                quantidade=Decimal(str(item['qtde']))
+        itens = data.get("itens", [])
+        substituir = bool(data.get("substituir"))
+        if not itens:
+            return JsonResponse({"ok": False, "erro": "Nenhum item."}, status=400)
+
+        ids_impressos = [str(item["id"]).strip()[:100] for item in itens if item.get("id")]
+        if not substituir:
+            conflitos = list(
+                PedidoTransferencia.objects.filter(
+                    produto_externo_id__in=ids_impressos, status="IMPRESSO"
+                ).values_list("produto_externo_id", flat=True)
             )
-        return JsonResponse({'ok': True})
+            if conflitos:
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "codigo": "PEDIDO_ABERTO",
+                        "produtos_em_aberto": conflitos,
+                        "erro": "Um ou mais produtos já estão em separação (impresso).",
+                    },
+                    status=409,
+                )
+
+        pin_opt = str(data.get("pin") or "").strip()
+        usuario_lbl = _rotulo_usuario_request(request)
+        if pin_opt:
+            if pin_opt == "1234":
+                return JsonResponse({"ok": False, "erro": "PIN padrão bloqueado."}, status=403)
+            rot = _rotulo_usuario_pin(pin_opt)
+            if not rot:
+                return JsonResponse(
+                    {"ok": False, "erro": "PIN inválido para identificação no histórico."},
+                    status=403,
+                )
+            usuario_lbl = rot
+        elif not usuario_lbl:
+            usuario_lbl = "—"
+
+        lote = uuid.uuid4()
+        agora = timezone.now()
+        criados = 0
+        for item in itens:
+            pid = str(item["id"]).strip()[:100]
+            qt = Decimal(str(item.get("qtde") or 0))
+            if not pid or qt <= 0:
+                continue
+            PedidoTransferencia.objects.filter(produto_externo_id=pid).delete()
+            PedidoTransferencia.objects.create(
+                produto_externo_id=pid,
+                quantidade=qt,
+                lote_uuid=lote,
+                status="IMPRESSO",
+                impresso_em=agora,
+            )
+            criados += 1
+        if criados == 0:
+            return JsonResponse({"ok": False, "erro": "Nenhuma quantidade válida nos itens."}, status=400)
+
+        snap = []
+        for item in itens:
+            pid = str(item.get("id") or "").strip()[:100]
+            qt = Decimal(str(item.get("qtde") or 0))
+            if not pid or qt <= 0:
+                continue
+            snap.append({"id": pid, "qt": float(qt)})
+
+        _historico_transferencia(
+            HistoricoTransferencia.TIPO_LOTE_IMPRESSO,
+            usuario_label=usuario_lbl,
+            lote_uuid=lote,
+            observacao=json.dumps({"itens": snap, "n": criados}, ensure_ascii=False)[:8000],
+        )
+        return JsonResponse({"ok": True, "lote_uuid": str(lote)})
     except Exception as exc:
-        return JsonResponse({'ok': False, 'erro': str(exc)})
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=500)
+
+
+@require_GET
+def api_listar_lotes_transferencia(request):
+    """Lista lotes com itens em separação (status IMPRESSO), agrupados por lote_uuid."""
+    try:
+        rows = list(
+            PedidoTransferencia.objects.filter(status="IMPRESSO")
+            .order_by("-impresso_em", "-id")
+        )
+        por_lote = {}
+        for r in rows:
+            key = str(r.lote_uuid) if r.lote_uuid else f"legacy-{r.pk}"
+            por_lote.setdefault(key, []).append(r)
+
+        lotes_out = []
+        for _lote_key, linhas in por_lote.items():
+            linhas.sort(key=lambda x: (x.impresso_em or x.criado_em, x.produto_externo_id))
+            primeiro = linhas[0]
+            ref_dt = primeiro.impresso_em or primeiro.criado_em
+            lote_uuid_str = str(primeiro.lote_uuid) if primeiro.lote_uuid else None
+            lotes_out.append(
+                {
+                    "lote_uuid": lote_uuid_str,
+                    "impresso_em": localtime(ref_dt).strftime("%d/%m/%Y %H:%M") if ref_dt else None,
+                    "n_itens": len(linhas),
+                    "itens": [
+                        {
+                            "produto_id": str(x.produto_externo_id),
+                            "quantidade": float(x.quantidade),
+                        }
+                        for x in linhas
+                    ],
+                }
+            )
+        lotes_out.sort(key=lambda x: x.get("impresso_em") or "", reverse=True)
+        return JsonResponse({"ok": True, "lotes": lotes_out[:50]})
+    except Exception as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=500)
+
 
 @require_POST
+@csrf_protect
+def api_atualizar_pedido_transferencia(request):
+    try:
+        data = json.loads(request.body)
+        pin = str(data.get("pin") or "").strip()
+        if pin == "1234":
+            return JsonResponse({"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN."}, status=403)
+        if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+            return JsonResponse({"ok": False, "erro": "PIN incorreto."}, status=403)
+
+        produto_id = str(data.get("produto_id") or "").strip()[:100]
+        if not produto_id:
+            return JsonResponse({"ok": False, "erro": "Produto inválido."}, status=400)
+        qtd = _normalizar_decimal(data.get("quantidade", "0"))
+        if qtd <= 0:
+            return JsonResponse({"ok": False, "erro": "Quantidade deve ser maior que zero."}, status=400)
+
+        ped = PedidoTransferencia.objects.filter(
+            produto_externo_id=produto_id, status="IMPRESSO"
+        ).first()
+        if not ped:
+            return JsonResponse({"ok": False, "erro": "Nenhum pedido em aberto para este produto."}, status=404)
+
+        ped.quantidade = qtd
+        ped.save(update_fields=["quantidade"])
+        return JsonResponse({"ok": True, "quantidade": float(qtd)})
+    except InvalidOperation:
+        return JsonResponse({"ok": False, "erro": "Quantidade inválida."}, status=400)
+    except Exception as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=500)
+
+
+@require_POST
+@csrf_protect
+def api_adicionar_pedido_transferencia(request):
+    try:
+        data = json.loads(request.body)
+        pin = str(data.get("pin") or "").strip()
+        if pin == "1234":
+            return JsonResponse({"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN."}, status=403)
+        if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+            return JsonResponse({"ok": False, "erro": "PIN incorreto."}, status=403)
+
+        produto_id = str(data.get("produto_id") or "").strip()[:100]
+        lote_raw = str(data.get("lote_uuid") or "").strip()
+        if not produto_id or not lote_raw:
+            return JsonResponse({"ok": False, "erro": "produto_id e lote_uuid são obrigatórios."}, status=400)
+        try:
+            lote_uuid = uuid.UUID(lote_raw)
+        except ValueError:
+            return JsonResponse({"ok": False, "erro": "lote_uuid inválido."}, status=400)
+
+        qtd = _normalizar_decimal(data.get("quantidade", "0"))
+        if qtd <= 0:
+            return JsonResponse({"ok": False, "erro": "Quantidade deve ser maior que zero."}, status=400)
+
+        if not PedidoTransferencia.objects.filter(lote_uuid=lote_uuid, status="IMPRESSO").exists():
+            return JsonResponse({"ok": False, "erro": "Lote não encontrado ou já encerrado."}, status=404)
+
+        outro = (
+            PedidoTransferencia.objects.filter(produto_externo_id=produto_id, status="IMPRESSO")
+            .exclude(lote_uuid=lote_uuid)
+            .first()
+        )
+        if outro:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Este produto já está em outro lote de separação. Cancele o outro antes.",
+                },
+                status=400,
+            )
+
+        mesmo_lote = PedidoTransferencia.objects.filter(
+            produto_externo_id=produto_id, lote_uuid=lote_uuid, status="IMPRESSO"
+        ).first()
+        if mesmo_lote:
+            mesmo_lote.quantidade = qtd
+            mesmo_lote.save(update_fields=["quantidade"])
+            return JsonResponse({"ok": True, "quantidade": float(mesmo_lote.quantidade)})
+
+        PedidoTransferencia.objects.create(
+            produto_externo_id=produto_id,
+            quantidade=qtd,
+            lote_uuid=lote_uuid,
+            status="IMPRESSO",
+            impresso_em=timezone.now(),
+        )
+        return JsonResponse({"ok": True, "quantidade": float(qtd)})
+    except InvalidOperation:
+        return JsonResponse({"ok": False, "erro": "Quantidade inválida."}, status=400)
+    except Exception as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=500)
+
+@require_POST
+@csrf_protect
 def api_cancelar_separacao(request, id):
     try:
-        PedidoTransferencia.objects.filter(produto_externo_id=id).delete()
-        return JsonResponse({'ok': True})
+        pid = str(id).strip()[:100]
+        ex = PedidoTransferencia.objects.filter(produto_externo_id=pid).first()
+        lote_ref = ex.lote_uuid if ex else None
+        qant = ex.quantidade if ex else None
+        pin_opt = (request.POST.get("pin") or "").strip()
+        usuario_lbl = _rotulo_usuario_pin(pin_opt) if pin_opt else _rotulo_usuario_request(request)
+        if not usuario_lbl:
+            usuario_lbl = "—"
+
+        PedidoTransferencia.objects.filter(produto_externo_id=pid).delete()
+
+        _historico_transferencia(
+            HistoricoTransferencia.TIPO_CANCEL_SEP,
+            usuario_label=usuario_lbl,
+            lote_uuid=lote_ref,
+            produto_externo_id=pid,
+            quantidade=qant,
+            observacao="",
+        )
+        return JsonResponse({"ok": True})
     except Exception as e:
-        return JsonResponse({'ok': False, 'erro': str(e)})
+        return JsonResponse({"ok": False, "erro": str(e)})
 
 @require_POST
 @csrf_protect
@@ -581,7 +1046,7 @@ def api_sugestoes_transferencia(request):
         ids_configurados = list(mapa_regras.keys())
 
         # Pegar Lotes de Separação
-        pedidos_sep = PedidoTransferencia.objects.all()
+        pedidos_sep = PedidoTransferencia.objects.filter(status="IMPRESSO")
         mapa_pedidos = {str(p.produto_externo_id): p for p in pedidos_sep}
         ids_pedidos = list(mapa_pedidos.keys())
 
@@ -719,15 +1184,27 @@ def api_sugestoes_transferencia(request):
                         pedido.delete()
                         status = "OK"
 
-                sugestoes.append({
-                    "produto_id": pid, "codigo": p_info["codigo"], "codigo_barras": p_info["codigo_barras"],
-                    "nome": p_info["nome"] or regra.nome_produto,
-                    "saldo_centro": float(saldo_centro), "saldo_vila": float(saldo_vila),
-                    "saldo_centro_erp": float(saldo_centro_erp), "saldo_vila_erp": float(saldo_vila_erp),
-                    "status": status, "qtde_transferir": float(qtde_transferir), "qtde_comprar": float(qtde_comprar),
-                    "capacidade_maxima": float(regra.capacidade_maxima), "estoque_seguranca": float(regra.estoque_seguranca),
-                    "capacidade_minima": float(regra.capacidade_minima), "configurado": True, "prioridade": 3 if status != "SEPARANDO" else 4
-                })
+                sugestoes.append(
+                    {
+                        "produto_id": pid,
+                        "codigo": p_info["codigo"],
+                        "codigo_barras": p_info["codigo_barras"],
+                        "nome": p_info["nome"] or regra.nome_produto,
+                        "saldo_centro": float(saldo_centro),
+                        "saldo_vila": float(saldo_vila),
+                        "saldo_centro_erp": float(saldo_centro_erp),
+                        "saldo_vila_erp": float(saldo_vila_erp),
+                        "status": status,
+                        "qtde_transferir": float(qtde_transferir),
+                        "qtde_comprar": float(qtde_comprar),
+                        "capacidade_maxima": float(regra.capacidade_maxima),
+                        "estoque_seguranca": float(regra.estoque_seguranca),
+                        "capacidade_minima": float(regra.capacidade_minima),
+                        "configurado": True,
+                        "prioridade": 3 if status != "SEPARANDO" else 4,
+                        **_pedido_transferencia_extra(pedido),
+                    }
+                )
             else:
                 # PRODUTO NÃO CONFIGURADO
                 if pedido:
@@ -737,14 +1214,24 @@ def api_sugestoes_transferencia(request):
                     status = "ALTA" if saldo_vila > 0 else "MEDIA"
                     qtde_transferir = Decimal('0')
 
-                sugestoes.append({
-                    "produto_id": pid, "codigo": p_info["codigo"], "codigo_barras": p_info["codigo_barras"],
-                    "nome": p_info["nome"],
-                    "saldo_centro": float(saldo_centro), "saldo_vila": float(saldo_vila),
-                    "saldo_centro_erp": float(saldo_centro_erp), "saldo_vila_erp": float(saldo_vila_erp),
-                    "status": status, "qtde_transferir": float(qtde_transferir), "qtde_comprar": 0.0,
-                    "configurado": False, "prioridade": 4 if status == "SEPARANDO" else 1
-                })
+                sugestoes.append(
+                    {
+                        "produto_id": pid,
+                        "codigo": p_info["codigo"],
+                        "codigo_barras": p_info["codigo_barras"],
+                        "nome": p_info["nome"],
+                        "saldo_centro": float(saldo_centro),
+                        "saldo_vila": float(saldo_vila),
+                        "saldo_centro_erp": float(saldo_centro_erp),
+                        "saldo_vila_erp": float(saldo_vila_erp),
+                        "status": status,
+                        "qtde_transferir": float(qtde_transferir),
+                        "qtde_comprar": 0.0,
+                        "configurado": False,
+                        "prioridade": 4 if status == "SEPARANDO" else 1,
+                        **_pedido_transferencia_extra(pedido),
+                    }
+                )
 
         # Ordenação mágica: Prioridade 1 (Alta) -> 3 (Configurados), e dentro delas em ordem alfabética.
         sugestoes.sort(key=lambda x: (x["prioridade"], x["nome"]))

@@ -1,0 +1,156 @@
+{% extends "layouts/base_admin.html" %}
+{% load static %}
+
+{% block admin_title %}Agro Consulta | Empréstimo interno{% endblock %}
+{% block admin_header_title %}Empréstimo interno (sócio){% endblock %}
+{% block admin_header_meta %}
+  <p class="mt-1 text-lg font-bold text-slate-600 max-w-4xl leading-snug">Sem título no financeiro — só controle no Agro.</p>
+{% endblock %}
+
+{% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col{% endblock %}
+{% block admin_header_inner_class %}w-full max-w-none px-4 sm:px-6 lg:px-8 py-3 sm:py-4{% endblock %}
+{% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-4 py-4 sm:px-6 lg:px-8 sm:py-6 overflow-y-auto{% endblock %}
+
+{% block admin_header_actions %}
+  {% include "produtos/_emprestimos_admin_actions.html" %}
+{% endblock %}
+
+{% block admin_content %}
+{% include "produtos/_gm_loading_bar.html" %}
+{% if emprestimos_defaults %}{{ emprestimos_defaults|json_script:"emprestimos-defaults-data" }}{% endif %}
+
+{% include "produtos/_emprestimos_subnav.html" %}
+
+<div id="msg-box" class="hidden mb-6 rounded-2xl border-2 px-4 py-3 text-lg font-bold"></div>
+
+{% include "produtos/_emprestimos_form_interno.html" %}
+
+<p class="mt-8 text-lg font-semibold text-slate-600">
+  Registros salvos: <a href="{% url 'emprestimos_consulta' %}" class="font-black text-orange-800 underline decoration-2 underline-offset-2 hover:text-orange-950">Consulta</a>
+</p>
+
+{% include "produtos/_atalho_voltar_pdv.html" %}
+
+<script>
+(function () {
+  const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
+  const API_CRIAR = "{% url 'api_emprestimos_criar' %}";
+
+  function getCookie(name) {
+    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? decodeURIComponent(v.pop()) : '';
+  }
+
+  function bootDefaults() {
+    var el = document.getElementById('emprestimos-defaults-data');
+    if (!el) return;
+    try {
+      var d = JSON.parse(el.textContent);
+      var dl = document.getElementById('credores-internos-list');
+      if (dl && Array.isArray(d.credores_internos)) {
+        d.credores_internos.forEach(function (nome) {
+          var o = document.createElement('option');
+          o.value = nome;
+          dl.appendChild(o);
+        });
+      }
+    } catch (e2) {}
+  }
+
+  function attachSuggest(wrap) {
+    if (!wrap || wrap.dataset.sugBound === '1') return;
+    wrap.dataset.sugBound = '1';
+    const campo = wrap.getAttribute('data-sug-campo');
+    const inp = wrap.querySelector('input[type="text"]');
+    const hid = wrap.querySelector('input[type="hidden"]');
+    const dd = wrap.querySelector('.sug-dd');
+    let timer = null;
+    inp.addEventListener('input', function () {
+      hid.value = '';
+      clearTimeout(timer);
+      timer = setTimeout(async function () {
+        try {
+          const u = new URL(API_SUG, window.location.origin);
+          u.searchParams.set('campo', campo);
+          u.searchParams.set('q', inp.value.trim());
+          const r = await fetch(u.toString(), { credentials: 'same-origin' });
+          const j = await r.json();
+          dd.innerHTML = '';
+          (j.itens || []).forEach(function (it) {
+            const li = document.createElement('li');
+            li.textContent = it.nome;
+            li.className = 'px-4 py-3 cursor-pointer hover:bg-orange-50 text-lg font-semibold border-b border-slate-100 last:border-0 min-h-[48px] flex items-center';
+            li.addEventListener('mousedown', function (e) {
+              e.preventDefault();
+              inp.value = it.nome;
+              hid.value = it.id || '';
+              dd.classList.add('hidden');
+            });
+            dd.appendChild(li);
+          });
+          dd.classList.toggle('hidden', dd.children.length === 0);
+        } catch (e) {
+          dd.classList.add('hidden');
+        }
+      }, 280);
+    });
+    inp.addEventListener('blur', function () {
+      setTimeout(function () { dd.classList.add('hidden'); }, 200);
+    });
+    inp.addEventListener('focus', function () {
+      if (dd.children.length) dd.classList.remove('hidden');
+    });
+  }
+
+  document.querySelectorAll('.sug-wrap').forEach(attachSuggest);
+  bootDefaults();
+
+  const msgBox = document.getElementById('msg-box');
+  function showMsg(text, ok) {
+    msgBox.textContent = text;
+    msgBox.classList.remove('hidden', 'border-red-300', 'bg-red-50', 'text-red-900', 'border-emerald-300', 'bg-emerald-50', 'text-emerald-950');
+    if (ok) {
+      msgBox.classList.add('border-emerald-300', 'bg-emerald-50', 'text-emerald-950');
+    } else {
+      msgBox.classList.add('border-red-300', 'bg-red-50', 'text-red-900');
+    }
+  }
+
+  document.getElementById('form-int').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const pv = document.getElementById('int-primeiro-ven').value;
+    const body = {
+      tipo: 'interno',
+      empresa_nome: document.getElementById('int-empresa-nome').value.trim(),
+      empresa_id: document.getElementById('int-empresa-id').value.trim(),
+      mutuario_label: document.getElementById('int-mutuario').value.trim(),
+      valor_aporte: document.getElementById('int-valor-aporte').value.trim(),
+      valor_devolucao_total: document.getElementById('int-valor-dev').value.trim(),
+      primeira_data_prevista: pv,
+      parcelas: parseInt(document.getElementById('int-parcelas').value, 10) || 1,
+      intervalo_dias: parseInt(document.getElementById('int-intervalo').value, 10) || 30,
+      observacao: document.getElementById('int-obs').value.trim()
+    };
+    try {
+      const r = await fetch(API_CRIAR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(body)
+      });
+      const j = await r.json();
+      if (j.ok) {
+        showMsg('Interno registrado. Ref ' + (j.ref || '') + '. Veja em Consulta.', true);
+      } else {
+        showMsg(j.erro || 'Falha ao salvar.', false);
+      }
+    } catch (err) {
+      showMsg('Erro de rede.', false);
+    }
+  });
+})();
+</script>
+{% endblock %}

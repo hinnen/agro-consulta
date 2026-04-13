@@ -12,6 +12,32 @@
     var urls = bootstrap.urls || {};
     var assets = bootstrap.assets || {};
     var pagamentoUi = bootstrap.pagamentoUi || {};
+    var mpBalcaoPickPending = null;
+    /** Evita refocus na lista de máquinas quando o modo MP Balcão fechou após Automático/Manual (sucesso). */
+    var mpBalcaoModoCloseAfterSuccess = false;
+
+    var MP_POINT_WAIT_ABORT_MSG =
+        'Espera do Point cancelada.\n\nEm “Pagamentos já lançados”, use Alterar (ex.: Balcão manual) ou Excluir e escolha outra forma.\n\nSe o valor ainda aparecer na maquininha, cancele a operação no próprio terminal Mercado Pago.';
+
+    var mpPointWaitControl = {
+        orderId: null,
+        cancelRequested: false,
+        reset: function () {
+            this.orderId = null;
+            this.cancelRequested = false;
+        }
+    };
+
+    function showMpPointWaitBar() {
+        var bar = document.getElementById('pdv-mp-point-wait-bar');
+        if (bar) bar.classList.remove('hidden');
+    }
+
+    function hideMpPointWaitBar() {
+        var bar = document.getElementById('pdv-mp-point-wait-bar');
+        if (bar) bar.classList.add('hidden');
+        mpPointWaitControl.reset();
+    }
     var bairrosEntrega = bootstrap.bairrosEntrega || { urbanos: [], rurais: [] };
     var State = window.AgroPdvState;
     if (!State) return;
@@ -211,8 +237,19 @@
         var url = (urls.apiBuscarProdutos || '/api/buscar/') + '?wizard=1&wizard_catalog=1';
         catalogLoadPromise = fetch(url, { credentials: 'same-origin' })
             .then(function (res) {
-                if (!res.ok) throw new Error('catalog_http');
-                return res.json();
+                return res.text().then(function (text) {
+                    if (!res.ok) {
+                        var hint = (text || '').trim().slice(0, 200);
+                        throw new Error(
+                            'servidor HTTP ' + res.status + (hint ? ' — ' + hint : '')
+                        );
+                    }
+                    try {
+                        return JSON.parse(text);
+                    } catch (eJson) {
+                        throw new Error('resposta do catálogo não é JSON válido (dados corrompidos no servidor?)');
+                    }
+                });
             })
             .then(function (data) {
                 wizardProductCatalog = Array.isArray(data.produtos) ? data.produtos : [];
@@ -535,11 +572,15 @@
     function snapshotLancamentoFromState(state, T, dinheiroExtra) {
         dinheiroExtra = dinheiroExtra || {};
         var forma = state.pagamento.forma || '';
+        var mid = String(state.pagamento.maquinaId || '').trim();
+        var mpModo = mid === 'mp_balcao' ? String(state.pagamento.mpBalcaoModo || '').trim() : '';
         return {
             forma: forma,
             valor: T,
             maquinaId: state.pagamento.maquinaId || '',
             maquinaNome: state.pagamento.maquinaNome || '',
+            mpBalcaoModo: mpModo,
+            cobrarNoPointMp: mid === 'mp_balcao' && mpModo === 'point',
             creditoParcelas: forma === 'Crédito parcelado' ? parseInt(state.pagamento.creditoParcelas, 10) || 2 : null,
             fiadoParcelas: forma === 'Fiado' ? parseInt(state.pagamento.fiadoParcelas, 10) || 1 : null,
             fiadoDiasVencimento: forma === 'Fiado' ? parseInt(state.pagamento.fiadoDiasVencimento, 10) || 30 : null,
@@ -654,6 +695,12 @@
     }
 
     function openMaquinasDialog() {
+        mpBalcaoPickPending = null;
+        var dmpClear = document.getElementById('pdv-pay-pop-mp-balcao-modo');
+        if (dmpClear) {
+            delete dmpClear.dataset.mpPickId;
+            delete dmpClear.dataset.mpPickNome;
+        }
         var dlg = document.getElementById('pdv-pay-pop-maquinas');
         var st = State.getState();
         var forma = st.pagamento.forma || '';
@@ -667,6 +714,89 @@
             var w = document.getElementById('pdv-pay-maquinas-list');
             if (!w) return;
             var b = w.querySelector('[data-maquina-id]');
+            if (b) b.focus();
+        }, 50);
+    }
+
+    function openMpBalcaoModoDialog(maquinaId, maquinaNome) {
+        var d = document.getElementById('pdv-pay-pop-mp-balcao-modo');
+        if (d) {
+            d.dataset.mpPickId = String(maquinaId || '').trim();
+            d.dataset.mpPickNome = String(maquinaNome != null ? maquinaNome : '').trim() || d.dataset.mpPickId;
+        }
+        mpBalcaoPickPending = { id: maquinaId, nome: maquinaNome };
+        showPayFlowDialog(d);
+        setTimeout(function () {
+            var b = document.getElementById('pdv-mp-balcao-btn-point');
+            if (b) b.focus();
+        }, 50);
+    }
+
+    function finishMpBalcaoChoice(modo) {
+        var d2 = document.getElementById('pdv-pay-pop-mp-balcao-modo');
+        var id =
+            (d2 && String(d2.dataset.mpPickId || '').trim()) ||
+            (mpBalcaoPickPending && String(mpBalcaoPickPending.id || '').trim()) ||
+            '';
+        var nomePick = mpBalcaoPickPending && mpBalcaoPickPending.nome;
+        var nome =
+            (d2 && String(d2.dataset.mpPickNome || '').trim()) ||
+            (nomePick != null ? String(nomePick).trim() : '') ||
+            id;
+        if (d2) {
+            delete d2.dataset.mpPickId;
+            delete d2.dataset.mpPickNome;
+        }
+        mpBalcaoPickPending = null;
+        if (!id) {
+            if (d2 && typeof d2.close === 'function') {
+                try {
+                    d2.close();
+                } catch (e0) {}
+            }
+            return;
+        }
+        State.setPagamentoPatch({
+            maquinaId: id,
+            maquinaNome: nome || id,
+            mpBalcaoModo: modo === 'point' ? 'point' : 'manual'
+        });
+        mpBalcaoModoCloseAfterSuccess = true;
+        try {
+            if (d2 && typeof d2.close === 'function') {
+                try {
+                    d2.close();
+                } catch (e2) {}
+            }
+        } finally {
+            mpBalcaoModoCloseAfterSuccess = false;
+        }
+        var md = document.getElementById('pdv-pay-pop-maquinas');
+        if (md && typeof md.close === 'function') {
+            try {
+                md.close();
+            } catch (e3) {}
+        }
+        focusFirstFlowFieldForForma(State.getState().pagamento.forma);
+    }
+
+    function cancelMpBalcaoChoice() {
+        var d2pre = document.getElementById('pdv-pay-pop-mp-balcao-modo');
+        if (d2pre) {
+            delete d2pre.dataset.mpPickId;
+            delete d2pre.dataset.mpPickNome;
+        }
+        mpBalcaoPickPending = null;
+        var d2 = document.getElementById('pdv-pay-pop-mp-balcao-modo');
+        if (d2 && typeof d2.close === 'function') {
+            try {
+                d2.close();
+            } catch (e2) {}
+        }
+        setTimeout(function () {
+            var w = document.getElementById('pdv-pay-maquinas-list');
+            if (!w) return;
+            var b = w.querySelector('[data-maquina-id="mp_balcao"]') || w.querySelector('[data-maquina-id]');
             if (b) b.focus();
         }, 50);
     }
@@ -748,6 +878,21 @@
             });
         }
         return out.length ? out : null;
+    }
+
+    function deveUsarMpPointNoFechar(state, computed) {
+        if (!pagamentoUi.mpPointEnabled || !String(urls.apiPdvMpPointCriar || '').trim()) return false;
+        var arr = state.pagamento.lancamentos || [];
+        if (arr.length !== 1) return false;
+        var L = arr[0];
+        if (String(L.maquinaId || '').trim() !== 'mp_balcao') return false;
+        var wantsPoint = !!L.cobrarNoPointMp || String(L.mpBalcaoModo || '').trim() === 'point';
+        if (!wantsPoint) return false;
+        var total = totalNumberFromComputed(computed);
+        var vL = Math.round((State.toNumber(L.valor) + Number.EPSILON) * 100) / 100;
+        var vT = Math.round((total + Number.EPSILON) * 100) / 100;
+        if (Math.abs(vL - vT) > 0.1) return false;
+        return true;
     }
 
     function erroValidacaoPagamento(state, computed) {
@@ -1458,19 +1603,21 @@
         if (dom.fiadoDiasInput) setInputValue(dom.fiadoDiasInput, String(state.pagamento.fiadoDiasVencimento || 30));
         if (dom.outroDetalhes) setInputValue(dom.outroDetalhes, state.pagamento.outroDetalhes);
         if (dom.fiadoResumo) {
+            var fpR = parseInt(state.pagamento.fiadoParcelas, 10) || 1;
+            var fdR = parseInt(state.pagamento.fiadoDiasVencimento, 10) || 30;
             dom.fiadoResumo.innerHTML =
-                'Por padrão: conta a receber em <strong>' +
-                (parseInt(state.pagamento.fiadoParcelas, 10) || 1) +
-                'x</strong> com 1º vencimento em <strong>' +
-                (parseInt(state.pagamento.fiadoDiasVencimento, 10) || 30) +
-                ' dias</strong>.';
+                '<strong>' +
+                fpR +
+                'x</strong> · 1º venc. <strong>' +
+                fdR +
+                ' dias</strong> <span class="text-orange-700/80">(editar abaixo)</span>';
         }
         if (dom.valeSaldoView) dom.valeSaldoView.textContent = formatMoney(pagamentoUi.saldoValeCredito || 0);
         if (dom.cashbackSaldoView) dom.cashbackSaldoView.textContent = formatMoney(pagamentoUi.saldoCashback || 0);
         if (dom.outroPinMsg) {
             dom.outroPinMsg.textContent = state.pagamento.outroPinVerificado
-                ? 'PIN validado. Descreva o pagamento.'
-                : 'PIN obrigatório antes de descrever o pagamento.';
+                ? 'PIN ok — descreva o pagamento.'
+                : 'Valide o PIN antes de descrever.';
             dom.outroPinMsg.classList.toggle('text-emerald-700', !!state.pagamento.outroPinVerificado);
             dom.outroPinMsg.classList.toggle('text-slate-500', !state.pagamento.outroPinVerificado);
         }
@@ -1634,15 +1781,47 @@
         if (dom.paymentLancamentosList) {
             dom.paymentLancamentosList.innerHTML = larr.length
                 ? larr
-                      .map(function (L) {
+                      .map(function (L, idx) {
+                          var sub = [];
+                          if (L.maquinaNome) sub.push(String(L.maquinaNome).trim());
+                          var midL = String(L.maquinaId || '').trim();
+                          var pointAuto = !!L.cobrarNoPointMp || String(L.mpBalcaoModo || '').trim() === 'point';
+                          if (midL === 'mp_balcao') {
+                              sub.push(pointAuto ? 'Point' : 'Manual');
+                          }
+                          if (L.forma === 'Crédito parcelado' && L.creditoParcelas) {
+                              sub.push(String(L.creditoParcelas).trim() + 'x');
+                          }
+                          if (L.forma === 'Dinheiro' && L.trocoCalculado) {
+                              sub.push('Troco ' + formatMoney(State.toNumber(L.trocoCalculado)));
+                          }
+                          if (L.forma === 'Outro' && L.outroDetalhes) {
+                              sub.push(String(L.outroDetalhes).trim().slice(0, 80));
+                          }
+                          var subTxt = sub.filter(Boolean).join(' · ');
                           return (
-                              '<li class="flex flex-wrap justify-between gap-2 border-b border-slate-100 pb-1">' +
-                              '<span>' +
+                              '<li class="rounded-xl border-2 border-emerald-200/80 bg-white p-2.5 shadow-sm sm:p-3">' +
+                              '<div class="flex flex-wrap items-start justify-between gap-2">' +
+                              '<div class="min-w-0 flex-1">' +
+                              '<p class="text-sm font-black leading-tight text-slate-900 sm:text-base">' +
                               escapeHtml(L.forma || '') +
-                              (L.maquinaNome ? ' · ' + escapeHtml(L.maquinaNome) : '') +
-                              '</span><span class="tabular-nums">' +
+                              '</p>' +
+                              (subTxt
+                                  ? '<p class="mt-1 text-[11px] font-semibold leading-snug text-slate-600 sm:text-xs">' +
+                                    escapeHtml(subTxt) +
+                                    '</p>'
+                                  : '') +
+                              '</div>' +
+                              '<p class="shrink-0 text-base font-black tabular-nums text-emerald-900 sm:text-lg">' +
                               escapeHtml(formatMoney(L.valor)) +
-                              '</span></li>'
+                              '</p></div>' +
+                              '<div class="mt-2 flex flex-wrap gap-2">' +
+                              '<button type="button" class="rounded-lg border-2 border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-slate-800 hover:bg-slate-100 sm:text-xs" data-pdv-edit-lanc="' +
+                              idx +
+                              '">Alterar</button>' +
+                              '<button type="button" class="rounded-lg border-2 border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-rose-900 hover:bg-rose-100 sm:text-xs" data-pdv-remove-lanc="' +
+                              idx +
+                              '">Excluir</button></div></li>'
                           );
                       })
                       .join('')
@@ -1665,11 +1844,7 @@
             cp.disabled = !readyConfirm;
             cp.classList.toggle('opacity-40', !readyConfirm);
         }
-        if (!forma && !larr.length) {
-            dom.paymentFeedback.textContent = 'F3 ou “Escolher forma” · teclas 1–9 no painel. Lance cada meio com Enter.';
-        } else if (forma) {
-            dom.paymentFeedback.textContent = '';
-        } else if (err) {
+        if (err) {
             dom.paymentFeedback.textContent = err;
         } else {
             dom.paymentFeedback.textContent = '';
@@ -2040,6 +2215,62 @@
         });
     }
 
+    function jsonGet(url) {
+        return fetch(url, {
+            method: 'GET',
+            credentials: 'same-origin'
+        }).then(function (res) {
+            return res.json().then(function (data) {
+                return { ok: res.ok, status: res.status, data: data };
+            });
+        });
+    }
+
+    function pollMpPointUntilPaid(orderId) {
+        var maxPoll = 200;
+        var statusBase = urls.apiPdvMpPointStatus || '';
+        function userAbortError() {
+            var e = new Error(MP_POINT_WAIT_ABORT_MSG);
+            e.mpPointUserAbort = true;
+            return e;
+        }
+        function step(n) {
+            if (mpPointWaitControl.cancelRequested) {
+                return Promise.reject(userAbortError());
+            }
+            if (n >= maxPoll) {
+                return Promise.reject(new Error('Tempo esgotado aguardando o pagamento no terminal Mercado Pago.'));
+            }
+            var sep = statusBase.indexOf('?') >= 0 ? '&' : '?';
+            return jsonGet(statusBase + sep + 'order_id=' + encodeURIComponent(orderId)).then(function (stRes) {
+                if (mpPointWaitControl.cancelRequested) {
+                    return Promise.reject(userAbortError());
+                }
+                if (!stRes.ok) {
+                    throw new Error((stRes.data && (stRes.data.erro || stRes.data.message)) || 'Falha ao consultar Point.');
+                }
+                if (!stRes.data.ok) {
+                    throw new Error((stRes.data && stRes.data.erro) || 'Falha ao consultar Point.');
+                }
+                if (stRes.data.abandoned) {
+                    return Promise.reject(userAbortError());
+                }
+                if (stRes.data.finalized && stRes.data.venda_id) {
+                    return { jaFinalizado: true, venda_id: stRes.data.venda_id };
+                }
+                if (stRes.data.paid) {
+                    return { jaFinalizado: false, order_id: orderId };
+                }
+                return new Promise(function (resolve) {
+                    setTimeout(function () {
+                        resolve(step(n + 1));
+                    }, 2000);
+                });
+            });
+        }
+        return step(0);
+    }
+
     function buildCheckoutDraftPayload(state, computed) {
         var cliente = state.cliente || {};
         var draft = {
@@ -2218,6 +2449,10 @@
             alert(validation);
             return;
         }
+        if (deveUsarMpPointNoFechar(state, computed)) {
+            confirmSaleMercadoPagoPoint(!!withPrint);
+            return;
+        }
         var printWin = null;
         if (withPrint) {
             printWin = window.open('about:blank', 'pdv_cupom_venda', 'width=480,height=720,scrollbars=yes');
@@ -2269,6 +2504,117 @@
                 alert(err && err.message ? err.message : 'Falha ao confirmar venda.');
             })
             .finally(function () {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                setConfirmButtonsBusy(false);
+            });
+    }
+
+    function confirmSaleMercadoPagoPoint(withPrint) {
+        withPrint = !!withPrint;
+        if (!pagamentoUi.mpPointEnabled || !String(urls.apiPdvMpPointCriar || '').trim()) {
+            alert('Mercado Pago Point não está configurado no servidor (.env).');
+            return;
+        }
+        var state = State.getState();
+        var computed = State.getComputed();
+        var validation = canAdvance(Object.assign({}, state, { currentStep: 'pagamento' }), computed);
+        if (validation) {
+            alert(validation);
+            return;
+        }
+        if (!deveUsarMpPointNoFechar(state, computed)) {
+            alert('O envio automático ao Point só vale para pagamento único no “Mercado Pago — Balcão” cobrindo o total da venda.');
+            return;
+        }
+        var printWin = null;
+        if (withPrint) {
+            printWin = window.open('about:blank', 'pdv_cupom_venda', 'width=480,height=720,scrollbars=yes');
+            if (!printWin) {
+                alert(
+                    'Não foi possível abrir a janela do cupom. Permita pop-ups ou use “Confirmar sem impressão”.'
+                );
+            }
+        }
+        State.setPagamentoField('imprimirCupom', withPrint);
+        state = State.getState();
+        setConfirmButtonsBusy(true);
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+
+        jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(state, computed))
+            .then(function (draftRes) {
+                if (!draftRes.ok || !draftRes.data.ok) {
+                    throw new Error(
+                        (draftRes.data && (draftRes.data.erro || draftRes.data.mensagem)) || 'Falha ao salvar rascunho.'
+                    );
+                }
+                return jsonPost(urls.apiPdvMpPointCriar, buildErpPayload(state, computed));
+            })
+            .then(function (criarRes) {
+                if (!criarRes.ok || !criarRes.data.ok) {
+                    throw new Error((criarRes.data && criarRes.data.erro) || 'Falha ao enviar valor ao terminal MP.');
+                }
+                var oid = criarRes.data.order_id;
+                if (!oid) throw new Error('Resposta sem order_id.');
+                mpPointWaitControl.cancelRequested = false;
+                mpPointWaitControl.orderId = oid;
+                showMpPointWaitBar();
+                return pollMpPointUntilPaid(oid);
+            })
+            .then(function (pack) {
+                if (pack.jaFinalizado) {
+                    return { ok: true, data: { ok: true, venda_id: pack.venda_id } };
+                }
+                return jsonPost(urls.apiPdvMpPointFinalizar, { order_id: pack.order_id });
+            })
+            .then(function (finRes) {
+                if (!finRes.ok || !finRes.data.ok) {
+                    throw new Error((finRes.data && (finRes.data.erro || finRes.data.mensagem)) || 'Falha ao registrar venda após o Point.');
+                }
+                var st = State.getState();
+                var comp = State.getComputed();
+                if (!st.entrega.ativa) return { entrega: null, erp: finRes.data };
+                return jsonPost(urls.apiEntregaRegistrar, buildEntregaPayload(st, comp)).then(function (entRes) {
+                    if (!entRes.ok || !entRes.data.ok) {
+                        throw new Error(
+                            (entRes.data && (entRes.data.erro || entRes.data.mensagem)) ||
+                                'Venda salva, mas falhou ao registrar entrega.'
+                        );
+                    }
+                    return { entrega: entRes.data, erp: finRes.data };
+                });
+            })
+            .then(function (result) {
+                if (withPrint && printWin && !printWin.closed) {
+                    var stP = State.getState();
+                    var compP = State.getComputed();
+                    if (!printSaleReceiptWindow(printWin, stP, compP)) {
+                        alert(
+                            'Venda confirmada, mas a impressão do cupom falhou. Tente reimprimir pela lista de vendas, se disponível.'
+                        );
+                    }
+                }
+                jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+                alert(
+                    result.entrega
+                        ? 'Pagamento no Point confirmado, venda registrada e entrega lançada.'
+                        : 'Pagamento no Point confirmado e venda registrada com sucesso.'
+                );
+                State.reset(true);
+                State.setCurrentStep('produtos');
+            })
+            .catch(function (err) {
+                if (printWin && !printWin.closed) {
+                    try {
+                        printWin.close();
+                    } catch (errC) {}
+                }
+                if (err && err.mpPointUserAbort) {
+                    jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+                }
+                alert(err && err.message ? err.message : 'Falha no fluxo Mercado Pago Point.');
+            })
+            .finally(function () {
+                hideMpPointWaitBar();
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
                 setConfirmButtonsBusy(false);
             });
@@ -2347,6 +2693,7 @@
             forma: forma,
             maquinaId: '',
             maquinaNome: '',
+            mpBalcaoModo: '',
             outroPinVerificado: forma === 'Outro' ? !!st.pagamento.outroPinVerificado : false
         };
         if (forma === 'Vale crédito') {
@@ -3620,6 +3967,24 @@
 
         if (dom.paymentReceived) dom.paymentReceived.addEventListener('keydown', handlePaymentReceivedEnter);
 
+        if (dom.paymentLancamentosList) {
+            dom.paymentLancamentosList.addEventListener('click', function (event) {
+                var rm = event.target.closest('[data-pdv-remove-lanc]');
+                if (rm) {
+                    event.preventDefault();
+                    State.removePagamentoLancamentoAt(rm.getAttribute('data-pdv-remove-lanc'));
+                    return;
+                }
+                var ed = event.target.closest('[data-pdv-edit-lanc]');
+                if (ed) {
+                    event.preventDefault();
+                    State.beginEditPagamentoLancamento(ed.getAttribute('data-pdv-edit-lanc'));
+                    var stE = State.getState();
+                    focusFirstFlowFieldForForma(stE.pagamento.forma);
+                }
+            });
+        }
+
         var maquinasListEl = document.getElementById('pdv-pay-maquinas-list');
         if (maquinasListEl) {
             maquinasListEl.addEventListener('click', function (event) {
@@ -3627,7 +3992,17 @@
                 if (!btn) return;
                 var id = btn.getAttribute('data-maquina-id') || '';
                 var nome = btn.getAttribute('data-maquina-nome') || id;
-                State.setPagamentoPatch({ maquinaId: id, maquinaNome: nome });
+                var stM = State.getState();
+                var formaM = stM.pagamento.forma || '';
+                if (
+                    id === 'mp_balcao' &&
+                    pagamentoUi.mpPointEnabled &&
+                    formaM !== 'PIX'
+                ) {
+                    openMpBalcaoModoDialog(id, nome);
+                    return;
+                }
+                State.setPagamentoPatch({ maquinaId: id, maquinaNome: nome, mpBalcaoModo: '' });
                 var md = document.getElementById('pdv-pay-pop-maquinas');
                 if (md && typeof md.close === 'function') {
                     try {
@@ -3635,6 +4010,65 @@
                     } catch (errM) {}
                 }
                 focusFirstFlowFieldForForma(State.getState().pagamento.forma);
+            });
+        }
+
+        var btnMpBalAuto = document.getElementById('pdv-mp-balcao-btn-point');
+        if (btnMpBalAuto) {
+            btnMpBalAuto.addEventListener(
+                'click',
+                function (ev) {
+                    if (ev && ev.stopPropagation) ev.stopPropagation();
+                    finishMpBalcaoChoice('point');
+                },
+                true
+            );
+        }
+        var btnMpBalMan = document.getElementById('pdv-mp-balcao-btn-manual');
+        if (btnMpBalMan) {
+            btnMpBalMan.addEventListener(
+                'click',
+                function (ev) {
+                    if (ev && ev.stopPropagation) ev.stopPropagation();
+                    finishMpBalcaoChoice('manual');
+                },
+                true
+            );
+        }
+        var btnMpBalCancel = document.getElementById('pdv-mp-balcao-btn-cancel');
+        if (btnMpBalCancel) {
+            btnMpBalCancel.addEventListener(
+                'click',
+                function (ev) {
+                    if (ev && ev.stopPropagation) ev.stopPropagation();
+                    cancelMpBalcaoChoice();
+                },
+                true
+            );
+        }
+        var dlgMpBalModo = document.getElementById('pdv-pay-pop-mp-balcao-modo');
+        if (dlgMpBalModo) {
+            dlgMpBalModo.addEventListener('close', function () {
+                delete dlgMpBalModo.dataset.mpPickId;
+                delete dlgMpBalModo.dataset.mpPickNome;
+                mpBalcaoPickPending = null;
+                if (mpBalcaoModoCloseAfterSuccess) return;
+                setTimeout(function () {
+                    var w = document.getElementById('pdv-pay-maquinas-list');
+                    if (!w) return;
+                    var b = w.querySelector('[data-maquina-id="mp_balcao"]') || w.querySelector('[data-maquina-id]');
+                    if (b) b.focus();
+                }, 50);
+            });
+        }
+        var btnMpPointCancelWait = document.getElementById('pdv-mp-point-cancel-wait');
+        if (btnMpPointCancelWait) {
+            btnMpPointCancelWait.addEventListener('click', function () {
+                mpPointWaitControl.cancelRequested = true;
+                var oid = mpPointWaitControl.orderId;
+                if (oid && String(urls.apiPdvMpPointAbandon || '').trim()) {
+                    jsonPost(urls.apiPdvMpPointAbandon, { order_id: oid }).catch(function () {});
+                }
             });
         }
         var btnMaquinaPix = document.getElementById('pdv-pay-open-maquinas-pix');
@@ -4045,10 +4479,16 @@
                 dom.productSearchFeedback.textContent = 'Catálogo local pronto. Digite para filtrar.';
             }
         })
-        .catch(function () {
+        .catch(function (err) {
             if (dom.productSearchFeedback) {
-                dom.productSearchFeedback.textContent = 'Não foi possível carregar o catálogo. Atualize a página.';
+                var msg = err && err.message ? String(err.message) : 'falha de rede ou servidor.';
+                if (msg.length > 220) msg = msg.slice(0, 217) + '…';
+                dom.productSearchFeedback.textContent =
+                    'Catálogo: ' + msg + ' Atualize a página; se persistir, limpe o cache do navegador para este site.';
             }
+            try {
+                sessionStorage.removeItem(CATALOG_STORAGE_KEY);
+            } catch (errRm) {}
         });
 
     var currentState = State.getState();

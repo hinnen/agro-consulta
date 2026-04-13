@@ -291,6 +291,7 @@
 
         <div class="flex flex-wrap justify-end gap-x-4 gap-y-1 text-sm font-black uppercase shrink-0">
             <a href="{% url 'compras_view' %}" class="text-orange-600 hover:underline">📦 Compras</a>
+            <a href="{% url 'produtos_gestao' %}" class="text-emerald-700 hover:underline">📋 Gestão produtos</a>
             <a href="/transferencias/" class="text-emerald-700 hover:underline">🚚 Logística</a>
             <a href="/ajuste-mobile/" class="text-slate-600 hover:underline">📱 Ajuste Mobile</a>
         </div>
@@ -679,6 +680,7 @@ function prepararProduto(produto) {
         busca_texto: buscaTexto,
         saldo_centro: Number(produto.saldo_centro || produto.estoque_centro || produto.saldo || 0),
         saldo_vila: Number(produto.saldo_vila || produto.estoque_vila || produto.saldo_filial || 0),
+        qtd_separacao_transferencia: Number(produto.qtd_separacao_transferencia || 0),
         preco_venda: Number(produto.preco_venda || produto.preco || produto.valor || 0)
     };
 }
@@ -764,7 +766,7 @@ function renderizarCatalogoRapido(lista) {
                 </div>
                 <div class="shrink-0 text-right">
                     <div class="text-sm font-black text-emerald-600">${formatarMoeda(produto.preco_venda)}</div>
-                    <div class="text-[10px] font-bold uppercase text-slate-400"><span class="text-emerald-700">Centro: ${Number(produto.saldo_centro || 0)}</span> • Vila: ${Number(produto.saldo_vila || 0)} • Total: ${(Number(produto.saldo_centro || 0) + Number(produto.saldo_vila || 0)).toFixed(1)}</div>
+                    <div class="text-[10px] font-bold uppercase text-slate-400"><span class="text-emerald-700">Centro: ${Number(produto.saldo_centro || 0)}</span> • Vila: ${Number(produto.saldo_vila || 0)} • Total: ${(Number(produto.saldo_centro || 0) + Number(produto.saldo_vila || 0)).toFixed(1)}${Number(produto.qtd_separacao_transferencia || 0) > 0 ? ' <span class="text-sky-700 normal-case" title="Qtd na separação de transferência (impresso)">(' + Number(produto.qtd_separacao_transferencia) + ')</span>' : ''}</div>
                 </div>
             </div>
         `;
@@ -1018,6 +1020,10 @@ function renderizarSugestoes() {
 function renderDestaque(p) {
     produtoEmDestaque = p;
     const total = (Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(2);
+    const qSep = Number(p.qtd_separacao_transferencia || 0);
+    const sepHtml = qSep > 0
+        ? `<span class="text-xl md:text-2xl font-black text-sky-700 tabular-nums" title="Quantidade na separação de transferência (impresso)"> (${qSep})</span>`
+        : '';
     const foto = p.imagem && p.imagem !== '' && p.imagem !== 'None' ? p.imagem : "{% static 'img/agro-mais-logo-buscador.png' %}";
 
     destaqueContainer.innerHTML = `
@@ -1049,7 +1055,7 @@ function renderDestaque(p) {
                 <div class="flex flex-col items-end border-r-2 border-slate-100 pr-5">
                     <div class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 opacity-80" title="Atalho F9">Saldo Centro [F9]</div>
                     <div class="flex items-start gap-1 group/edit cursor-pointer hover:scale-105 transition-transform" onclick="abrirAjuste('${escapeHtml(p.id)}','${String(p.nome).replace(/'/g, "\\'")}',${Number(p.saldo_erp_centro || 0)},'${escapeHtml(p.codigo_nfe || p.codigo_interno || '')}','centro'); event.stopPropagation();" title="Ajustar Centro">
-                        <span class="text-4xl md:text-5xl font-black text-emerald-500 leading-none tracking-tighter" style="text-shadow: 2px 2px 0px rgba(16,185,129,0.1);">${Number(p.saldo_centro || 0)}</span>
+                        <span class="text-4xl md:text-5xl font-black text-emerald-500 leading-none tracking-tighter" style="text-shadow: 2px 2px 0px rgba(16,185,129,0.1);">${Number(p.saldo_centro || 0)}</span>${sepHtml}
                         <span class="opacity-0 group-hover/edit:opacity-100 transition-opacity text-emerald-400 text-lg">✏️</span>
                     </div>
                     
@@ -1074,6 +1080,8 @@ function renderDestaque(p) {
 function renderSimilar(p) {
     const pStr = encodeURIComponent(JSON.stringify(p));
     const foto = p.imagem && p.imagem !== '' && p.imagem !== 'None' ? p.imagem : "{% static 'img/agro-mais-logo-buscador.png' %}";
+    const qS = Number(p.qtd_separacao_transferencia || 0);
+    const sepS = qS > 0 ? ` <span class="text-sky-700">(${qS})</span>` : '';
     similaresContainer.innerHTML += `
         <div class="bg-white p-1.5 px-2 rounded-lg border border-slate-200 flex justify-between items-center hover:bg-slate-50 cursor-pointer group"
              onclick="renderDestaque(JSON.parse(decodeURIComponent('${pStr}')))">
@@ -1087,8 +1095,8 @@ function renderSimilar(p) {
             <div class="flex items-center gap-3 shrink-0">
                 <span class="text-orange-500 text-[11px] font-black">${formatarMoeda(p.preco_venda)}</span>
                 <div class="flex flex-col items-end text-[8px] font-bold uppercase leading-tight">
-                    <span class="text-emerald-600">C: ${Number(p.saldo_centro || 0)}</span>
-                    <span class="text-slate-400">V: ${Number(p.saldo_vila || 0)}</span>
+                    <span class="text-emerald-600">C: ${Number(p.saldo_centro || 0)}${sepS}</span>
+                    <span class="text-slate-400">V: ${Number(p.saldo_vila || 0)}${sepS}</span>
                 </div>
             </div>
         </div>
@@ -1555,6 +1563,9 @@ function forcarAtualizacao(produtoId) {
                 baseProdutos[idx].preco_venda = produtoAtualizado.preco_venda;
                 baseProdutos[idx].saldo_centro = produtoAtualizado.saldo_centro;
                 baseProdutos[idx].saldo_vila = produtoAtualizado.saldo_vila;
+                if (typeof produtoAtualizado.qtd_separacao_transferencia !== 'undefined') {
+                    baseProdutos[idx].qtd_separacao_transferencia = produtoAtualizado.qtd_separacao_transferencia;
+                }
             }
 
             // Dá o feedback de Sucesso e volta ao normal

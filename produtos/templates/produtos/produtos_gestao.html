@@ -1,0 +1,685 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <title>Agro Mais | Gestão de produtos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gm-bg: #0f1115;
+      --gm-bg2: #12151a;
+      --gm-card: #171b21;
+      --gm-card2: #1b2027;
+      --gm-border: rgba(255,255,255,.08);
+      --gm-text: #e8eaef;
+      --gm-muted: #8b93a7;
+      --gm-orange: #f07a2b;
+      --gm-green: #4caf50;
+      --gm-danger: #ef5350;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body.gm-body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--gm-bg);
+      color: var(--gm-text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .gm-shell { display: flex; flex: 1; min-height: 0; }
+    .gm-side {
+      width: 13.5rem;
+      flex-shrink: 0;
+      background: var(--gm-bg2);
+      border-right: 1px solid var(--gm-border);
+      display: flex;
+      flex-direction: column;
+    }
+    .gm-side-brand {
+      padding: 1rem 1rem 0.75rem;
+      font-weight: 900;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gm-muted);
+    }
+    .gm-side-brand span { color: var(--gm-orange); }
+    .gm-nav { padding: 0.35rem 0.5rem 1rem; display: flex; flex-direction: column; gap: 0.2rem; flex: 1; min-height: 0; overflow-y: auto; }
+    .gm-nav button {
+      display: flex; align-items: center; gap: 0.5rem;
+      width: 100%; text-align: left;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--gm-muted);
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.55rem 0.65rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      min-height: 2.5rem;
+    }
+    .gm-nav button:hover { color: var(--gm-text); background: rgba(255,255,255,.04); }
+    .gm-nav button.gm-nav-active {
+      color: #fff;
+      background: rgba(240,122,43,.14);
+      border-color: rgba(240,122,43,.35);
+    }
+    .gm-nav-ic { width: 1.1rem; text-align: center; opacity: 0.85; }
+    .gm-side-foot {
+      padding: 0.75rem 0.85rem;
+      border-top: 1px solid var(--gm-border);
+      font-size: 0.68rem;
+      color: var(--gm-muted);
+      line-height: 1.35;
+    }
+    .gm-side-foot strong { color: #cbd5e1; display: block; font-size: 0.72rem; margin-bottom: 0.15rem; }
+    .gm-main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+    .gm-top {
+      flex-shrink: 0;
+      padding: 0.65rem 1rem;
+      background: var(--gm-bg2);
+      border-bottom: 1px solid var(--gm-border);
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem;
+    }
+    .gm-search-wrap { flex: 1; min-width: 12rem; }
+    .gm-search {
+      width: 100%;
+      min-height: 2.65rem;
+      border-radius: 0.55rem;
+      border: 2px solid rgba(76,175,80,.35);
+      background: var(--gm-card);
+      color: var(--gm-text);
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 0 0.85rem;
+      outline: none;
+    }
+    .gm-search:focus { border-color: var(--gm-orange); box-shadow: 0 0 0 3px rgba(240,122,43,.18); }
+    .gm-search-ph { font-size: 0.65rem; color: var(--gm-muted); margin-top: 0.2rem; padding-left: 0.1rem; }
+    .gm-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; }
+    .gm-btn {
+      border-radius: 0.5rem;
+      font-weight: 800;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.55rem 0.85rem;
+      min-height: 2.5rem;
+      cursor: pointer;
+      border: 1px solid var(--gm-border);
+      background: var(--gm-card);
+      color: var(--gm-text);
+    }
+    .gm-btn:hover { background: var(--gm-card2); }
+    .gm-btn-primary {
+      background: var(--gm-orange);
+      border-color: #d66a24;
+      color: #1a0f08;
+    }
+    .gm-btn-primary:hover { filter: brightness(1.06); }
+    .gm-btn-ghost { background: transparent; color: var(--gm-muted); }
+    .gm-filters {
+      display: none;
+      padding: 0.5rem 1rem;
+      background: var(--gm-card);
+      border-bottom: 1px solid var(--gm-border);
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .gm-filters.gm-open { display: flex; }
+    .gm-filters label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; color: var(--gm-muted); }
+    .gm-filters select {
+      min-height: 2.35rem; min-width: 9rem;
+      border-radius: 0.45rem;
+      border: 1px solid var(--gm-border);
+      background: var(--gm-bg2);
+      color: var(--gm-text);
+      font-weight: 600;
+      padding: 0 0.45rem;
+    }
+    .gm-strip { display: none; padding: 0.4rem 1rem; gap: 0.35rem; flex-wrap: wrap; border-bottom: 1px solid var(--gm-border); background: #141820; }
+    .gm-strip.gm-open { display: flex; }
+    .gm-chip {
+      font-size: 0.72rem; font-weight: 700;
+      padding: 0.35rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid var(--gm-border);
+      background: var(--gm-card);
+      color: var(--gm-muted);
+      cursor: pointer;
+    }
+    .gm-chip:hover { color: var(--gm-text); border-color: rgba(240,122,43,.4); }
+    .gm-chip.gm-chip-on { color: #fff; border-color: var(--gm-orange); background: rgba(240,122,43,.12); }
+    .gm-list { flex: 1; overflow-y: auto; padding: 0.55rem 0.85rem 1rem; }
+    .gm-row {
+      background: var(--gm-card);
+      border: 1px solid var(--gm-border);
+      border-radius: 0.65rem;
+      margin-bottom: 0.5rem;
+      overflow: hidden;
+    }
+    .gm-row.gm-row-editing { border-color: rgba(240,122,43,.55); box-shadow: 0 0 0 1px rgba(240,122,43,.2); }
+    .gm-row-hd {
+      display: flex; flex-wrap: wrap; gap: 0.65rem 1rem;
+      padding: 0.65rem 0.75rem; align-items: flex-start;
+    }
+    .gm-row-hd > div:first-child { flex: 1 1 14rem; min-width: 11rem; }
+    .gm-row-metrics { display: flex; flex-wrap: wrap; gap: 0.75rem 1.1rem; align-items: flex-end; flex: 2 1 22rem; }
+    .gm-code { font-size: 1.35rem; font-weight: 900; color: var(--gm-orange); line-height: 1.1; letter-spacing: -0.02em; }
+    .gm-name { font-size: 1rem; font-weight: 800; color: #fff; margin-top: 0.15rem; }
+    .gm-sub { font-size: 0.72rem; color: var(--gm-muted); font-weight: 600; margin-top: 0.2rem; }
+    .gm-ean { font-size: 0.68rem; color: #6b7280; font-family: ui-monospace, monospace; }
+    .gm-stk-c { text-align: right; }
+    .gm-stk-c .gm-stk-val { font-size: 1.25rem; font-weight: 900; color: var(--gm-green); }
+    .gm-stk-c .gm-stk-lbl { font-size: 0.58rem; font-weight: 800; text-transform: uppercase; color: #81c784; letter-spacing: 0.06em; }
+    .gm-stk-v, .gm-stk-t { text-align: right; }
+    .gm-stk-v .gm-stk-val, .gm-stk-t .gm-stk-val { font-size: 0.88rem; font-weight: 700; color: #9aa3b5; }
+    .gm-stk-v .gm-stk-lbl, .gm-stk-t .gm-stk-lbl { font-size: 0.55rem; font-weight: 800; text-transform: uppercase; color: #5c6578; }
+    .gm-preco { text-align: right; font-size: 1rem; font-weight: 800; color: #fff; }
+    .gm-row-act { display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: flex-end; align-items: center; margin-left: auto; }
+    .gm-act { font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.45rem 0.55rem; border-radius: 0.45rem; border: 1px solid var(--gm-border); background: #222831; color: #e8eaef; cursor: pointer; min-height: 2.25rem; }
+    .gm-act:hover { background: #2a313c; }
+    .gm-act-main { background: rgba(76,175,80,.18); border-color: rgba(76,175,80,.45); color: #c8e6c9; }
+    .gm-act-main:hover { background: rgba(76,175,80,.28); }
+    .gm-expand { display: none; padding: 0.65rem 0.75rem 0.85rem; border-top: 1px solid var(--gm-border); background: #141820; }
+    .gm-expand.gm-open { display: block; }
+    .gm-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; max-width: 28rem; }
+    .gm-grid2 label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; color: var(--gm-muted); }
+    .gm-grid2 input {
+      min-height: 2.4rem; border-radius: 0.45rem; border: 1px solid var(--gm-border);
+      background: var(--gm-card); color: #fff; font-weight: 700; padding: 0 0.5rem;
+    }
+    .gm-expand-actions { display: flex; gap: 0.45rem; margin-top: 0.65rem; flex-wrap: wrap; }
+    .gm-banner { display: none; margin: 0.5rem 1rem; padding: 0.65rem 0.85rem; border-radius: 0.5rem; background: rgba(239,83,80,.12); border: 1px solid rgba(239,83,80,.35); color: #ffcdd2; font-weight: 600; font-size: 0.85rem; }
+    .gm-banner.gm-open { display: block; }
+    .gm-pag { flex-shrink: 0; padding: 0.45rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; border-top: 1px solid var(--gm-border); background: var(--gm-bg2); font-size: 0.72rem; color: var(--gm-muted); font-weight: 700; }
+    .gm-drawer-back {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 80;
+    }
+    .gm-drawer-back.gm-open { display: block; }
+    .gm-drawer {
+      position: fixed; top: 0; right: 0; height: 100%; width: min(26rem, 96vw);
+      background: var(--gm-card2); border-left: 1px solid var(--gm-border);
+      z-index: 90; transform: translateX(100%); transition: transform 0.2s ease;
+      display: flex; flex-direction: column; box-shadow: -8px 0 32px rgba(0,0,0,.45);
+    }
+    .gm-drawer.gm-open { transform: translateX(0); }
+    .gm-drawer-hd { padding: 0.85rem 1rem; border-bottom: 1px solid var(--gm-border); font-weight: 900; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+    .gm-drawer-bd { flex: 1; overflow-y: auto; padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.65rem; }
+    .gm-field label { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; color: var(--gm-muted); display: block; margin-bottom: 0.25rem; }
+    .gm-field input, .gm-field select {
+      width: 100%; min-height: 2.4rem; border-radius: 0.45rem; border: 1px solid var(--gm-border);
+      background: var(--gm-bg); color: #fff; font-weight: 600; padding: 0 0.55rem;
+    }
+    details.gm-more > summary { list-style: none; cursor: pointer; color: var(--gm-muted); font-weight: 900; padding: 0.35rem 0.45rem; border-radius: 0.35rem; }
+    details.gm-more > summary::-webkit-details-marker { display: none; }
+    details.gm-more[open] > summary { color: var(--gm-orange); }
+    .gm-more-body { position: absolute; right: 0; margin-top: 0.25rem; background: var(--gm-card); border: 1px solid var(--gm-border); border-radius: 0.45rem; padding: 0.35rem; min-width: 10rem; z-index: 5; }
+    .gm-more-body a, .gm-more-body button {
+      display: block; width: 100%; text-align: left; padding: 0.45rem 0.55rem; border: none; background: transparent;
+      color: var(--gm-text); font-size: 0.75rem; font-weight: 600; cursor: pointer; border-radius: 0.35rem;
+    }
+    .gm-more-body a:hover, .gm-more-body button:hover { background: rgba(255,255,255,.06); }
+    .gm-rel { position: relative; }
+  </style>
+</head>
+<body class="gm-body">
+  {% csrf_token %}
+  <div id="gm-banner" class="gm-banner"></div>
+  <div class="gm-shell">
+    <aside class="gm-side" aria-label="Navegação gestão">
+      <div class="gm-side-brand">GM <span>AGRO MAIS</span></div>
+      <nav class="gm-nav" id="gm-nav">
+        <button type="button" data-mode="produtos" class="gm-nav-active"><span class="gm-nav-ic">▣</span> Produtos</button>
+        <button type="button" data-mode="marcas"><span class="gm-nav-ic">◆</span> Marcas</button>
+        <button type="button" data-mode="categorias"><span class="gm-nav-ic">◇</span> Categorias</button>
+        <button type="button" data-mode="fornecedores"><span class="gm-nav-ic">◎</span> Fornecedores</button>
+      </nav>
+      <div class="gm-side-foot">
+        <strong>Empresa</strong>
+        {{ empresa_nome|default:"—" }}
+        <strong style="margin-top:0.5rem">Usuário</strong>
+        {{ usuario_label }}
+        <div style="margin-top:0.65rem">
+          <a href="{% url 'produtos_cadastro_erp' %}" style="color:#f07a2b;font-weight:700;font-size:0.68rem;text-decoration:none">Grupos multi-marca →</a>
+        </div>
+      </div>
+    </aside>
+    <main class="gm-main">
+      <header class="gm-top">
+        <div class="gm-search-wrap">
+          <input type="search" id="gm-q" autocomplete="off" placeholder="Código GM, nome ou código de barras…" class="gm-search" />
+          <div class="gm-search-ph">Enter busca · F3 foca aqui</div>
+        </div>
+        <div class="gm-actions">
+          <button type="button" class="gm-btn gm-btn-ghost" id="gm-filtros">Filtros</button>
+          <button type="button" class="gm-btn gm-btn-ghost" id="gm-importar" disabled title="Em breve">Importar</button>
+          <a class="gm-btn gm-btn-primary" href="/admin/produtos/produto/add/" target="_blank" rel="noopener">Novo produto</a>
+        </div>
+      </header>
+      <div id="gm-filters" class="gm-filters">
+        <label>Status
+          <select id="f-status">
+            <option value="ativos">Ativos</option>
+            <option value="inativos">Inativos</option>
+            <option value="todos">Todos</option>
+          </select>
+        </label>
+        <label>Marca
+          <select id="f-marca"><option value="">(todas)</option></select>
+        </label>
+        <label>Categoria
+          <select id="f-cat"><option value="">(todas)</option></select>
+        </label>
+        <label>Fornecedor
+          <select id="f-forn"><option value="">(todos)</option></select>
+        </label>
+        <button type="button" class="gm-btn gm-btn-primary" id="f-aplicar">Aplicar</button>
+      </div>
+      <div id="gm-strip" class="gm-strip"></div>
+      <div class="gm-list" id="gm-list"></div>
+      <div class="gm-pag">
+        <span id="gm-meta">—</span>
+        <div style="display:flex;gap:0.35rem;align-items:center">
+          <button type="button" class="gm-btn" id="gm-prev">Anterior</button>
+          <button type="button" class="gm-btn gm-btn-primary" id="gm-next">Próxima</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="gm-drawer-back" class="gm-drawer-back"></div>
+  <aside id="gm-drawer" class="gm-drawer" aria-hidden="true">
+    <div class="gm-drawer-hd">
+      <span>Editar produto</span>
+      <button type="button" class="gm-btn gm-btn-ghost" id="gm-drawer-x" style="min-height:2rem;padding:0.25rem 0.5rem">✕</button>
+    </div>
+    <div class="gm-drawer-bd">
+      <input type="hidden" id="ed-id" />
+      <div class="gm-field"><label>Nome</label><input id="ed-nome" /></div>
+      <div class="gm-field"><label>Marca</label><input id="ed-marca" /></div>
+      <div class="gm-field"><label>Categoria</label><input id="ed-cat" /></div>
+      <div class="gm-field"><label>Fornecedor (texto)</label><input id="ed-forn" /></div>
+      <div class="gm-field"><label>Unidade</label><input id="ed-un" /></div>
+      <div class="gm-field"><label>Preço venda</label><input id="ed-preco" inputmode="decimal" /></div>
+      <div class="gm-field"><label>Status exibição</label>
+        <select id="ed-ativo">
+          <option value="">Seguir ERP</option>
+          <option value="1">Ativo</option>
+          <option value="0">Inativo</option>
+        </select>
+      </div>
+      <p style="font-size:0.68rem;color:#8b93a7;margin:0">Alterações ficam só no Agro (overlay). O cadastro mestre continua no ERP.</p>
+      <div style="display:flex;gap:0.45rem;margin-top:0.5rem">
+        <button type="button" class="gm-btn gm-btn-primary" id="ed-salvar">Salvar</button>
+        <button type="button" class="gm-btn" id="ed-cancelar">Cancelar</button>
+      </div>
+    </div>
+  </aside>
+
+  {% include "produtos/_atalho_voltar_pdv.html" %}
+  <script>
+(function () {
+  var URL_LISTA = "{% url 'api_produtos_gestao_lista' %}";
+  var URL_FAC = "{% url 'api_produtos_gestao_facetas' %}";
+  var URL_AJ = "{% url 'api_produtos_gestao_ajuste_estoque' %}";
+  var URL_OV = "{% url 'api_produtos_gestao_overlay_salvar' %}";
+  function urlDet(id) {
+    return "{% url 'api_produtos_cadastro_detalhe' produto_id='x' %}".replace(/\/x\//, '/' + encodeURIComponent(String(id)) + '/');
+  }
+  function getCookie(n) {
+    var v = document.cookie.match('(^|;) ?' + n + '=([^;]*)(;|$)');
+    return v ? decodeURIComponent(v[2]) : '';
+  }
+  function csrf() {
+    var el = document.querySelector('[name=csrfmiddlewaretoken]');
+    return el ? el.value : getCookie('csrftoken');
+  }
+  function fmtMoney(n) {
+    var x = Number(n);
+    if (!isFinite(x)) x = 0;
+    return x.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  var qEl = document.getElementById('gm-q');
+  var listEl = document.getElementById('gm-list');
+  var metaEl = document.getElementById('gm-meta');
+  var banEl = document.getElementById('gm-banner');
+  var pagPrev = document.getElementById('gm-prev');
+  var pagNext = document.getElementById('gm-next');
+  var filtPanel = document.getElementById('gm-filters');
+  var btnFilt = document.getElementById('gm-filtros');
+  var fStatus = document.getElementById('f-status');
+  var fMarca = document.getElementById('f-marca');
+  var fCat = document.getElementById('f-cat');
+  var fForn = document.getElementById('f-forn');
+  var fAplicar = document.getElementById('f-aplicar');
+  var stripEl = document.getElementById('gm-strip');
+  var nav = document.getElementById('gm-nav');
+  var drawer = document.getElementById('gm-drawer');
+  var drawerBack = document.getElementById('gm-drawer-back');
+
+  var pagina = 1;
+  var porPagina = 40;
+  var deb;
+  var vista = 'produtos';
+  var chipMarca = '';
+  var chipCat = '';
+  var chipForn = '';
+  var expandAj = null;
+  var expandMm = null;
+
+  function showBan(t) {
+    if (!t) { banEl.classList.remove('gm-open'); banEl.textContent = ''; return; }
+    banEl.textContent = t;
+    banEl.classList.add('gm-open');
+  }
+
+  function paramsLista() {
+    var p = new URLSearchParams();
+    p.set('pagina', String(pagina));
+    p.set('por_pagina', String(porPagina));
+    var q = (qEl.value || '').trim();
+    if (q) p.set('q', q);
+    p.set('status', fStatus.value || 'ativos');
+    var m = (vista === 'marcas' && chipMarca) ? chipMarca : (fMarca.value || '').trim();
+    var c = (vista === 'categorias' && chipCat) ? chipCat : (fCat.value || '').trim();
+    var f = (vista === 'fornecedores' && chipForn) ? chipForn : (fForn.value || '').trim();
+    if (m) p.set('marca', m);
+    if (c) p.set('categoria', c);
+    if (f) p.set('fornecedor', f);
+    return p.toString();
+  }
+
+  function renderRow(p) {
+    var id = esc(p.id);
+    var ajOpen = expandAj === p.id ? ' gm-open' : '';
+    var mmOpen = expandMm === p.id ? ' gm-open' : '';
+    var editing = (expandAj === p.id || expandMm === p.id) ? ' gm-row-editing' : '';
+    var inat = p.inativo ? '<span style="font-size:0.58rem;font-weight:900;background:#3d2914;color:#ffb74d;padding:0.12rem 0.35rem;border-radius:0.25rem;margin-left:0.35rem">INATIVO</span>' : '';
+    return (
+      '<div class="gm-row' + editing + '" data-id="' + id + '">' +
+        '<div class="gm-row-hd">' +
+          '<div>' +
+            '<div class="gm-code">' + esc(p.codigo_gm || '—') + '</div>' +
+            '<div class="gm-name">' + esc(p.nome) + inat + '</div>' +
+            '<div class="gm-sub">' + esc(p.marca || '—') + ' · ' + esc(p.categoria || '—') + '</div>' +
+            '<div class="gm-ean">' + esc(p.codigo_barras || '') + '</div>' +
+          '</div>' +
+          '<div class="gm-row-metrics">' +
+          '<div class="gm-stk-c"><div class="gm-stk-lbl">Centro</div><div class="gm-stk-val">' + esc(String(p.saldo_centro)) + '</div></div>' +
+          '<div class="gm-stk-v"><div class="gm-stk-lbl">Vila Elias</div><div class="gm-stk-val">' + esc(String(p.saldo_vila)) + '</div></div>' +
+          '<div class="gm-stk-t"><div class="gm-stk-lbl">Total</div><div class="gm-stk-val">' + esc(String(p.saldo_total)) + '</div></div>' +
+          '<div class="gm-preco">' + fmtMoney(p.preco_venda) + '</div></div>' +
+          '<div class="gm-row-act">' +
+            '<button type="button" class="gm-act gm-act-main" data-act="ajuste">Ajustar</button>' +
+            '<button type="button" class="gm-act" data-act="edit">Editar</button>' +
+            '<button type="button" class="gm-act" data-act="mm">Mín/Máx</button>' +
+            '<div class="gm-rel"><details class="gm-more"><summary>⋮</summary><div class="gm-more-body">' +
+              '<button type="button" data-act="copiar">Copiar ID</button>' +
+              '<a href="' + esc(urlDet(p.id)) + '" target="_blank" rel="noopener">Detalhe JSON</a>' +
+            '</div></details></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="gm-expand' + ajOpen + '" data-expand="aj">' +
+          '<div class="gm-grid2">' +
+            '<label>Novo saldo Centro<input type="number" step="0.001" data-inp="c" value="' + esc(String(p.saldo_centro)) + '" /></label>' +
+            '<label>Novo saldo Vila<input type="number" step="0.001" data-inp="v" value="' + esc(String(p.saldo_vila)) + '" /></label>' +
+          '</div>' +
+          '<div class="gm-expand-actions">' +
+            '<button type="button" class="gm-btn gm-btn-primary" data-save="aj">Salvar</button>' +
+            '<button type="button" class="gm-btn" data-can="aj">Cancelar</button>' +
+          '</div></div>' +
+        '<div class="gm-expand' + mmOpen + '" data-expand="mm">' +
+          '<div class="gm-grid2">' +
+            '<label>Mín Centro<input type="number" step="0.001" data-mm="minc" value="' + (p.estoque_min_centro != null ? esc(String(p.estoque_min_centro)) : '') + '" /></label>' +
+            '<label>Máx Centro<input type="number" step="0.001" data-mm="maxc" value="' + (p.estoque_max_centro != null ? esc(String(p.estoque_max_centro)) : '') + '" /></label>' +
+            '<label>Mín Vila<input type="number" step="0.001" data-mm="minv" value="' + (p.estoque_min_vila != null ? esc(String(p.estoque_min_vila)) : '') + '" /></label>' +
+            '<label>Máx Vila<input type="number" step="0.001" data-mm="maxv" value="' + (p.estoque_max_vila != null ? esc(String(p.estoque_max_vila)) : '') + '" /></label>' +
+          '</div>' +
+          '<div class="gm-expand-actions">' +
+            '<button type="button" class="gm-btn gm-btn-primary" data-save="mm">Salvar</button>' +
+            '<button type="button" class="gm-btn" data-can="mm">Cancelar</button>' +
+          '</div></div>' +
+      '</div>'
+    );
+  }
+
+  function bindRow(rowEl, p) {
+    rowEl.querySelector('[data-act="ajuste"]').addEventListener('click', function () {
+      expandMm = null;
+      expandAj = expandAj === p.id ? null : p.id;
+      carregar();
+    });
+    rowEl.querySelector('[data-act="mm"]').addEventListener('click', function () {
+      expandAj = null;
+      expandMm = expandMm === p.id ? null : p.id;
+      carregar();
+    });
+    rowEl.querySelector('[data-act="edit"]').addEventListener('click', function () { abrirDrawer(p); });
+    rowEl.querySelector('[data-act="copiar"]').addEventListener('click', function () {
+      try { navigator.clipboard.writeText(String(p.id)); } catch (e) {}
+    });
+    rowEl.querySelector('[data-can="aj"]').addEventListener('click', function () { expandAj = null; carregar(); });
+    rowEl.querySelector('[data-can="mm"]').addEventListener('click', function () { expandMm = null; carregar(); });
+    rowEl.querySelector('[data-save="aj"]').addEventListener('click', function () {
+      var c = rowEl.querySelector('[data-inp="c"]').value;
+      var v = rowEl.querySelector('[data-inp="v"]').value;
+      fetch(URL_AJ, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ produto_id: p.id, saldo_centro: c, saldo_vila: v })
+      }).then(function (r) { return r.json(); }).then(function (j) {
+        if (!j.ok) throw new Error(j.erro || 'erro');
+        expandAj = null;
+        aplicarLinhaAtualizada(j.produto);
+      }).catch(function (e) { showBan(e.message || 'Falha ao salvar ajuste'); });
+    });
+    rowEl.querySelector('[data-save="mm"]').addEventListener('click', function () {
+      var body = { produto_id: p.id };
+      body.estoque_min_centro = rowEl.querySelector('[data-mm="minc"]').value || null;
+      body.estoque_max_centro = rowEl.querySelector('[data-mm="maxc"]').value || null;
+      body.estoque_min_vila = rowEl.querySelector('[data-mm="minv"]').value || null;
+      body.estoque_max_vila = rowEl.querySelector('[data-mm="maxv"]').value || null;
+      fetch(URL_OV, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify(body)
+      }).then(function (r) { return r.json();       }).then(function (j) {
+        if (!j.ok) throw new Error(j.erro || 'erro');
+        expandMm = null;
+        expandAj = null;
+        aplicarLinhaAtualizada(j.produto);
+      }).catch(function (e) { showBan(e.message || 'Falha'); });
+    });
+  }
+
+  var ultimos = [];
+  function aplicarLinhaAtualizada(prod) {
+    if (!prod) { carregar(); return; }
+    for (var i = 0; i < ultimos.length; i++) {
+      if (String(ultimos[i].id) === String(prod.id)) { ultimos[i] = prod; break; }
+    }
+    renderLista(ultimos);
+  }
+
+  function renderLista(rows) {
+    ultimos = rows || [];
+    listEl.innerHTML = '';
+    ultimos.forEach(function (p) {
+      var wrap = document.createElement('div');
+      wrap.innerHTML = renderRow(p).trim();
+      var row = wrap.firstElementChild;
+      bindRow(row, p);
+      listEl.appendChild(row);
+    });
+    if (!ultimos.length) {
+      listEl.innerHTML = '<p style="padding:2rem;text-align:center;color:#8b93a7;font-weight:600">Nenhum produto nesta página.</p>';
+    }
+  }
+
+  function carregar() {
+    showBan('');
+    fetch(URL_LISTA + '?' + paramsLista(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) throw new Error(j.erro || 'Erro');
+        metaEl.textContent = 'Página ' + j.pagina + (j.has_more ? ' · há próxima' : ' · fim');
+        pagPrev.disabled = j.pagina <= 1;
+        pagNext.disabled = !j.has_more;
+        renderLista(j.produtos || []);
+      })
+      .catch(function (e) {
+        showBan(e.message || 'Erro de rede');
+        listEl.innerHTML = '';
+        metaEl.textContent = '—';
+      });
+  }
+
+  function debCarregar() {
+    clearTimeout(deb);
+    deb = setTimeout(function () { pagina = 1; carregar(); }, 280);
+  }
+
+  qEl.addEventListener('input', debCarregar);
+  qEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); pagina = 1; carregar(); }
+  });
+  pagPrev.addEventListener('click', function () { if (pagina > 1) { pagina--; carregar(); } });
+  pagNext.addEventListener('click', function () { pagina++; carregar(); });
+  btnFilt.addEventListener('click', function () { filtPanel.classList.toggle('gm-open'); });
+  fAplicar.addEventListener('click', function () { pagina = 1; carregar(); });
+
+  nav.querySelectorAll('button[data-mode]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      vista = b.getAttribute('data-mode');
+      nav.querySelectorAll('button[data-mode]').forEach(function (x) { x.classList.remove('gm-nav-active'); });
+      b.classList.add('gm-nav-active');
+      chipMarca = chipCat = chipForn = '';
+      stripEl.classList.remove('gm-open');
+      stripEl.innerHTML = '';
+      if (vista === 'marcas' || vista === 'categorias' || vista === 'fornecedores') {
+        stripEl.classList.add('gm-open');
+        carregarFacetasStrip();
+      }
+      pagina = 1;
+      carregar();
+    });
+  });
+
+  function carregarFacetasStrip() {
+    fetch(URL_FAC, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) return;
+      var arr = vista === 'marcas' ? j.marcas : vista === 'categorias' ? j.categorias : j.fornecedores;
+      stripEl.innerHTML = '';
+      (arr || []).slice(0, 80).forEach(function (x) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'gm-chip';
+        btn.textContent = x;
+        btn.addEventListener('click', function () {
+          if (vista === 'marcas') { chipMarca = chipMarca === x ? '' : x; chipCat = ''; chipForn = ''; }
+          if (vista === 'categorias') { chipCat = chipCat === x ? '' : x; chipMarca = ''; chipForn = ''; }
+          if (vista === 'fornecedores') { chipForn = chipForn === x ? '' : x; chipMarca = ''; chipCat = ''; }
+          Array.prototype.forEach.call(stripEl.querySelectorAll('.gm-chip'), function (c) { c.classList.remove('gm-chip-on'); });
+          if ((vista === 'marcas' && chipMarca) || (vista === 'categorias' && chipCat) || (vista === 'fornecedores' && chipForn)) {
+            btn.classList.add('gm-chip-on');
+          }
+          pagina = 1;
+          carregar();
+        });
+        stripEl.appendChild(btn);
+      });
+    });
+  }
+
+  function fillFacetSelects() {
+    fetch(URL_FAC, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) return;
+      function fill(sel, arr) {
+        var cur = sel.value;
+        sel.innerHTML = '<option value="">(todas)</option>';
+        (arr || []).forEach(function (x) {
+          var o = document.createElement('option');
+          o.value = x;
+          o.textContent = x;
+          sel.appendChild(o);
+        });
+        sel.value = cur;
+      }
+      fill(fMarca, j.marcas);
+      fill(fCat, j.categorias);
+      fill(fForn, j.fornecedores);
+      fForn.querySelector('option').textContent = '(todos)';
+    });
+  }
+
+  function abrirDrawer(p) {
+    document.getElementById('ed-id').value = p.id;
+    document.getElementById('ed-nome').value = p.nome || '';
+    document.getElementById('ed-marca').value = p.marca || '';
+    document.getElementById('ed-cat').value = p.categoria || '';
+    document.getElementById('ed-forn').value = p.fornecedor || '';
+    document.getElementById('ed-un').value = p.unidade || '';
+    document.getElementById('ed-preco').value = p.preco_venda != null ? String(p.preco_venda).replace('.', ',') : '';
+    document.getElementById('ed-ativo').value = '';
+    drawer.classList.add('gm-open');
+    drawerBack.classList.add('gm-open');
+    drawer.setAttribute('aria-hidden', 'false');
+  }
+  function fecharDrawer() {
+    drawer.classList.remove('gm-open');
+    drawerBack.classList.remove('gm-open');
+    drawer.setAttribute('aria-hidden', 'true');
+  }
+  document.getElementById('gm-drawer-x').addEventListener('click', fecharDrawer);
+  drawerBack.addEventListener('click', fecharDrawer);
+  document.getElementById('ed-cancelar').addEventListener('click', fecharDrawer);
+  document.getElementById('ed-salvar').addEventListener('click', function () {
+    var id = document.getElementById('ed-id').value;
+    var av = document.getElementById('ed-ativo').value;
+    var body = {
+      produto_id: id,
+      nome: document.getElementById('ed-nome').value,
+      marca: document.getElementById('ed-marca').value,
+      categoria: document.getElementById('ed-cat').value,
+      fornecedor_texto: document.getElementById('ed-forn').value,
+      unidade: document.getElementById('ed-un').value,
+      preco_venda: document.getElementById('ed-preco').value
+    };
+    if (av === '') body.ativo_exibicao = null;
+    else body.ativo_exibicao = av === '1';
+    fetch(URL_OV, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify(body)
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok) throw new Error(j.erro || 'erro');
+      fecharDrawer();
+      aplicarLinhaAtualizada(j.produto);
+    }).catch(function (e) { showBan(e.message || 'Falha ao salvar'); });
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'F3') { e.preventDefault(); qEl.focus(); qEl.select(); }
+  });
+
+  fillFacetSelects();
+  carregar();
+})();
+  </script>
+</body>
+</html>

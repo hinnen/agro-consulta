@@ -105,9 +105,36 @@ class ConfiguracaoTransferencia(models.Model):
         return (self.venda_media_diaria * self.dias_cobertura) + self.estoque_seguranca
 
 class PedidoTransferencia(models.Model):
+    """Separação Vila→Centro: um registro aberto por produto (status IMPRESSO)."""
+
     produto_externo_id = models.CharField(max_length=100, db_index=True)
     quantidade = models.DecimalField(max_digits=10, decimal_places=3)
     criado_em = models.DateTimeField(auto_now_add=True)
+    lote_uuid = models.UUIDField(null=True, blank=True, db_index=True)
+    status = models.CharField(max_length=20, default="IMPRESSO", db_index=True)
+    impresso_em = models.DateTimeField(null=True, blank=True)
+
+
+class HistoricoTransferencia(models.Model):
+    """Auditoria: impressão de lote, transferências e cancelamentos de separação."""
+
+    TIPO_LOTE_IMPRESSO = "LOTE_IMPRESSO"
+    TIPO_TRANSFER_ITEM = "TRANSFER_VILA_ITEM"
+    TIPO_TRANSFER_LOTE = "TRANSFER_VILA_LOTE"
+    TIPO_CANCEL_SEP = "CANCELAR_SEPARACAO"
+
+    tipo = models.CharField(max_length=32, db_index=True)
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    lote_uuid = models.UUIDField(null=True, blank=True, db_index=True)
+    produto_externo_id = models.CharField(max_length=100, blank=True, db_index=True)
+    quantidade = models.DecimalField(max_digits=10, decimal_places=3, null=True, blank=True)
+    usuario_label = models.CharField(max_length=200, blank=True)
+    observacao = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-criado_em", "-id"]
+        verbose_name = "Histórico de transferência"
+        verbose_name_plural = "Históricos de transferências"
 
 
 class PoliticaEstoque(models.Model):

@@ -133,9 +133,16 @@
       chip.classList.remove('hidden');
       chip.classList.add('inline-flex');
     } else {
-      chip.textContent = '';
-      chip.classList.add('hidden');
-      chip.classList.remove('inline-flex');
+      var ph = (chip.getAttribute('data-placeholder-when-empty') || '').trim();
+      if (ph) {
+        chip.textContent = ph;
+        chip.classList.remove('hidden');
+        chip.classList.add('inline-flex');
+      } else {
+        chip.textContent = '';
+        chip.classList.add('hidden');
+        chip.classList.remove('inline-flex');
+      }
     }
   }
 

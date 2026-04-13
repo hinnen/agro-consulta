@@ -7,7 +7,7 @@ import re
 import time
 import unicodedata
 import hashlib
-from datetime import date, datetime, time as dtime, timedelta
+from datetime import date, datetime, time as dtime, timedelta, timezone
 from io import StringIO
 from decimal import Decimal
 from bson import ObjectId
@@ -31,7 +31,7 @@ from django.utils.safestring import mark_safe
 from django.db import IntegrityError, transaction
 
 from base.models import Empresa, Loja, PerfilUsuario, IntegracaoERP
-from estoque.models import AjusteRapidoEstoque, OrigemAjusteEstoque
+from estoque.models import AjusteRapidoEstoque, OrigemAjusteEstoque, PedidoTransferencia
 from .forms import ClienteAgroForm
 from .models import (
     ClienteAgro,
@@ -39,6 +39,9 @@ from .models import (
     LancamentoAtalhoFiltro,
     OpcaoBaixaFinanceiroExtra,
     PedidoEntrega,
+    ProdutoGestaoOverlayAgro,
+    ProdutoGrupoAgro,
+    ProdutoGrupoVarianteAgro,
     SessaoCaixa,
     VendaAgro,
 )
@@ -47,10 +50,13 @@ from integracoes.venda_erp_mongo import VendaERPMongoClient
 from integracoes.venda_erp_api import VendaERPAPIClient
 from .mongo_vendas_util import _filtro_venda_ativa_mongo
 from .nfe_entrada_util import (
+    atualizar_rascunho_entrada,
     buscar_fornecedores_entrada_nfe,
     casar_produtos_mongo,
+    excluir_rascunho_entrada,
     gravar_ult_nsu,
     listar_rascunhos_entrada,
+    obter_rascunho_entrada,
     obter_ult_nsu,
     parse_nfe_xml_bytes,
     salvar_rascunho_entrada,
@@ -69,6 +75,11 @@ from .mongo_financeiro_util import (
     excluir_lancamento_mongo_agro,
     financeiro_projecao_fluxo_diario,
     inserir_lancamentos_manual_lote,
+    criar_emprestimo_externo_agro,
+    emprestimo_defaults_para_ui,
+    listar_emprestimos_agro,
+    listar_lancamentos_emprestimo_do_mongo,
+    registrar_emprestimo_interno_agro,
     LANCAMENTOS_ORDENACOES_VALIDAS,
     lancamentos_buscar_pagina,
     lancamentos_montar_query_mongo,
@@ -204,6 +215,17 @@ def _extrair_codigo_barras(p):
     )
 
 
+def _float_api_json(val, default=0.0):
+    """Garante número finito para JsonResponse — ``NaN``/``Inf`` quebram ``JSON.parse`` no navegador."""
+    try:
+        v = float(val if val is not None else default)
+    except (TypeError, ValueError):
+        return default
+    if v != v or v in (float("inf"), float("-inf")):  # nan ou inf
+        return default
+    return v
+
+
 def _mapear_estoques_por_produto(estoques, client):
     mapa = {}
 
@@ -269,6 +291,403 @@ def _mapa_saldos_finais_por_produtos(db, client, p_ids):
             "saldo_erp_vila": s_v,
         }
     return out
+
+
+def _gestao_doc_passa_status(p: dict, status_q: str) -> bool:
+    if status_q == "inativos":
+        return bool(p.get("CadastroInativo"))
+    if status_q == "todos":
+        return True
+    return not bool(p.get("CadastroInativo"))
+
+
+def _gestao_doc_passa_filtros(p: dict, marca: str, categoria: str, fornecedor: str) -> bool:
+    if marca and str(p.get("Marca") or "").strip() != marca:
+        return False
+    if categoria:
+        cat = str(p.get("NomeCategoria") or p.get("Categoria") or p.get("Grupo") or "").strip()
+        if cat != categoria:
+            return False
+    if fornecedor:
+        f = str(p.get("NomeFornecedor") or p.get("Fornecedor") or "").strip().lower()
+        if fornecedor.strip().lower() not in f:
+            return False
+    return True
+
+
+def _overlay_mapa_por_ids(ids: list[str]) -> dict[str, ProdutoGestaoOverlayAgro]:
+    ids = [str(x) for x in ids if x]
+    if not ids:
+        return {}
+    return {o.produto_externo_id: o for o in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=ids)}
+
+
+def _linha_gestao_produto_json(
+    p: dict, saldos: dict[str, dict], ov: ProdutoGestaoOverlayAgro | None
+) -> dict:
+    pid = str(p.get("Id") or p["_id"])
+    s = saldos.get(pid) or {}
+    sc = float(s.get("saldo_centro") or 0)
+    sv = float(s.get("saldo_vila") or 0)
+    codigo_nfe = str(p.get("CodigoNFe") or p.get("Codigo") or "").strip()
+    cb = str(_extrair_codigo_barras(p) or "").strip()
+    nome = str(p.get("Nome") or "").strip()
+    marca = str(p.get("Marca") or "").strip()
+    cat = str(p.get("NomeCategoria") or p.get("Categoria") or p.get("Grupo") or "").strip()
+    forn = str(
+        p.get("NomeFornecedor") or p.get("Fornecedor") or p.get("RazaoSocialFornecedor") or ""
+    ).strip()
+    unidade = str(p.get("Unidade") or p.get("SiglaUnidade") or "").strip()
+    pv = _float_api_json(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
+    inativo_mongo = bool(p.get("CadastroInativo"))
+    inativo = inativo_mongo
+    tem_overlay = ov is not None
+    emin_c = emax_c = emin_v = emax_v = None
+    if ov:
+        if ov.nome.strip():
+            nome = ov.nome.strip()
+        if ov.marca.strip():
+            marca = ov.marca.strip()
+        if ov.categoria.strip():
+            cat = ov.categoria.strip()
+        if ov.fornecedor_texto.strip():
+            forn = ov.fornecedor_texto.strip()
+        if ov.unidade.strip():
+            unidade = ov.unidade.strip()
+        if ov.preco_venda is not None:
+            pv = float(ov.preco_venda)
+        if ov.ativo_exibicao is not None:
+            inativo = not bool(ov.ativo_exibicao)
+        if ov.estoque_min_centro is not None:
+            emin_c = float(ov.estoque_min_centro)
+        if ov.estoque_max_centro is not None:
+            emax_c = float(ov.estoque_max_centro)
+        if ov.estoque_min_vila is not None:
+            emin_v = float(ov.estoque_min_vila)
+        if ov.estoque_max_vila is not None:
+            emax_v = float(ov.estoque_max_vila)
+    return {
+        "id": pid,
+        "nome": nome,
+        "codigo_gm": codigo_nfe,
+        "codigo_barras": cb,
+        "marca": marca,
+        "categoria": cat,
+        "fornecedor": forn,
+        "unidade": unidade,
+        "preco_venda": round(pv, 2),
+        "saldo_centro": round(sc, 2),
+        "saldo_vila": round(sv, 2),
+        "saldo_total": round(sc + sv, 2),
+        "inativo": inativo,
+        "inativo_mongo": inativo_mongo,
+        "tem_overlay": tem_overlay,
+        "estoque_min_centro": emin_c,
+        "estoque_max_centro": emax_c,
+        "estoque_min_vila": emin_v,
+        "estoque_max_vila": emax_v,
+    }
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_produtos_gestao_facetas(request):
+    """Marcas, categorias e fornecedores distintos (Mongo) para filtros da gestão."""
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    col = db[client.col_p]
+    base = {"CadastroInativo": {"$ne": True}}
+    try:
+        marcas = sorted(
+            {str(x).strip() for x in col.distinct("Marca", base) if str(x or "").strip()},
+            key=lambda s: s.lower(),
+        )[:200]
+        cats: set[str] = set()
+        for k in ("NomeCategoria", "Categoria", "Grupo"):
+            for x in col.distinct(k, base):
+                s = str(x or "").strip()
+                if s:
+                    cats.add(s)
+        categorias = sorted(cats, key=lambda s: s.lower())[:200]
+        forns: set[str] = set()
+        for k in ("NomeFornecedor", "Fornecedor"):
+            for x in col.distinct(k, base):
+                s = str(x or "").strip()
+                if s:
+                    forns.add(s)
+        fornecedores = sorted(forns, key=lambda s: s.lower())[:300]
+    except Exception as e:
+        logger.warning("api_produtos_gestao_facetas: %s", e, exc_info=True)
+        return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+    return JsonResponse(
+        {
+            "ok": True,
+            "marcas": marcas,
+            "categorias": categorias,
+            "fornecedores": fornecedores,
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_produtos_gestao_lista(request):
+    """
+    Lista paginada para gestão operacional: saldos centro/vila (Agro), merge com overlay local.
+    """
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível", "produtos": []}, status=503)
+
+    q_raw = str(request.GET.get("q") or "").strip()
+    status_q = str(request.GET.get("status") or "ativos").strip().lower()
+    marca_f = str(request.GET.get("marca") or "").strip()
+    cat_f = str(request.GET.get("categoria") or "").strip()
+    forn_f = str(request.GET.get("fornecedor") or "").strip()
+
+    try:
+        por_pagina = int(request.GET.get("por_pagina") or 40)
+    except ValueError:
+        por_pagina = 40
+    por_pagina = max(10, min(por_pagina, 80))
+
+    try:
+        pagina = int(request.GET.get("pagina") or 1)
+    except ValueError:
+        pagina = 1
+    pagina = max(1, pagina)
+
+    include_inactive = status_q in ("todos", "inativos")
+
+    try:
+        if q_raw:
+            prods = motor_de_busca_agro(
+                q_raw, db, client, limit=120, include_inactive=include_inactive
+            )
+            prods = [
+                p
+                for p in prods
+                if _gestao_doc_passa_status(p, status_q)
+                and _gestao_doc_passa_filtros(p, marca_f, cat_f, forn_f)
+            ]
+            total = len(prods)
+            skip = (pagina - 1) * por_pagina
+            chunk = prods[skip : skip + por_pagina]
+            has_more = skip + por_pagina < total
+        else:
+            clauses: list[dict] = []
+            if status_q == "inativos":
+                clauses.append({"CadastroInativo": True})
+            elif status_q != "todos":
+                clauses.append({"CadastroInativo": {"$ne": True}})
+            if marca_f:
+                clauses.append({"Marca": marca_f})
+            if cat_f:
+                clauses.append(
+                    {
+                        "$or": [
+                            {"NomeCategoria": cat_f},
+                            {"Categoria": cat_f},
+                            {"Grupo": cat_f},
+                        ]
+                    }
+                )
+            if forn_f:
+                clauses.append(
+                    {"NomeFornecedor": {"$regex": re.escape(forn_f), "$options": "i"}}
+                )
+            filtro = {"$and": clauses} if len(clauses) > 1 else (clauses[0] if clauses else {})
+            skip = (pagina - 1) * por_pagina
+            cur = (
+                db[client.col_p]
+                .find(filtro)
+                .sort("Nome", 1)
+                .skip(skip)
+                .limit(por_pagina + 1)
+            )
+            chunk = list(cur)
+            has_more = len(chunk) > por_pagina
+            chunk = chunk[:por_pagina]
+            total = None
+
+        p_ids = [str(p.get("Id") or p["_id"]) for p in chunk]
+        saldos = _mapa_saldos_finais_por_produtos(db, client, p_ids)
+        ovs = _overlay_mapa_por_ids(p_ids)
+        rows = [_linha_gestao_produto_json(p, saldos, ovs.get(str(p.get("Id") or p["_id"]))) for p in chunk]
+        return JsonResponse(
+            {
+                "ok": True,
+                "modo": "busca" if q_raw else "lista",
+                "pagina": pagina,
+                "por_pagina": por_pagina,
+                "has_more": has_more,
+                "total": total,
+                "produtos": rows,
+            }
+        )
+    except Exception as e:
+        logger.warning("api_produtos_gestao_lista: %s", e, exc_info=True)
+        return JsonResponse({"ok": False, "erro": str(e), "produtos": []}, status=500)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_produtos_gestao_ajuste_estoque(request):
+    """
+    Ajuste de saldo exibido (camada Agro / AjusteRapidoEstoque), sem alterar Mongo ERP.
+    JSON: produto_id, saldo_centro (opcional), saldo_vila (opcional) — valores absolutos desejados.
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    pid = str(payload.get("produto_id") or "").strip()
+    if not pid:
+        return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
+
+    def _dec(key):
+        raw = payload.get(key)
+        if raw is None or str(raw).strip() == "":
+            return None
+        try:
+            return Decimal(str(raw).replace(",", ".").strip())
+        except Exception:
+            raise ValueError(f"Valor inválido: {key}")
+
+    try:
+        novo_c = _dec("saldo_centro")
+        novo_v = _dec("saldo_vila")
+    except ValueError as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+    if novo_c is None and novo_v is None:
+        return JsonResponse({"ok": False, "erro": "Informe saldo_centro e/ou saldo_vila"}, status=400)
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    doc = _produto_mongo_por_id_externo(db, client, pid)
+    if not doc:
+        return JsonResponse({"ok": False, "erro": "Produto não encontrado no espelho."}, status=404)
+    nome_p = str(doc.get("Nome") or "")[:200]
+    codigo = str(doc.get("CodigoNFe") or doc.get("Codigo") or "")[:100]
+
+    empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first() or Empresa.objects.first()
+
+    try:
+        with transaction.atomic():
+            if novo_c is not None:
+                erp_c = _saldo_erp_produto_deposito_mongo(db, client, pid, "centro")
+                AjusteRapidoEstoque.objects.create(
+                    empresa=empresa,
+                    produto_externo_id=pid[:100],
+                    codigo_interno=codigo,
+                    nome_produto=(nome_p or pid)[:255],
+                    deposito="centro",
+                    saldo_erp_referencia=erp_c,
+                    saldo_informado=novo_c,
+                    origem=OrigemAjusteEstoque.OUTRO,
+                    observacao="Gestão produtos — ajuste centro",
+                    usuario=request.user if request.user.is_authenticated else None,
+                )
+            if novo_v is not None:
+                erp_v = _saldo_erp_produto_deposito_mongo(db, client, pid, "vila")
+                AjusteRapidoEstoque.objects.create(
+                    empresa=empresa,
+                    produto_externo_id=pid[:100],
+                    codigo_interno=codigo,
+                    nome_produto=(nome_p or pid)[:255],
+                    deposito="vila",
+                    saldo_erp_referencia=erp_v,
+                    saldo_informado=novo_v,
+                    origem=OrigemAjusteEstoque.OUTRO,
+                    observacao="Gestão produtos — ajuste vila",
+                    usuario=request.user if request.user.is_authenticated else None,
+                )
+        _invalidar_caches_apos_ajuste_pin()
+    except Exception as e:
+        logger.warning("api_produtos_gestao_ajuste_estoque: %s", e, exc_info=True)
+        return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+
+    saldos = _mapa_saldos_finais_por_produtos(db, client, [pid])
+    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
+    row = _linha_gestao_produto_json(doc or {"Id": pid, "Nome": nome_p}, saldos, ov)
+    return JsonResponse({"ok": True, "produto": row})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_produtos_gestao_overlay_salvar(request):
+    """Grava ou atualiza overlay local (edição de cadastro na gestão)."""
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    pid = str(payload.get("produto_id") or "").strip()
+    if not pid:
+        return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
+
+    def _txt(key, mx=300):
+        return str(payload.get(key) or "").strip()[:mx]
+
+    def _dec_opt(key):
+        v = payload.get(key)
+        if v is None or str(v).strip() == "":
+            return None
+        try:
+            return Decimal(str(v).replace(",", ".").strip())
+        except Exception:
+            return None
+
+    ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
+        produto_externo_id=pid[:64],
+        defaults={"usuario": request.user if request.user.is_authenticated else None},
+    )
+    if "nome" in payload:
+        ov.nome = _txt("nome", 300)
+    if "marca" in payload:
+        ov.marca = _txt("marca", 120)
+    if "categoria" in payload:
+        ov.categoria = _txt("categoria", 200)
+    if "fornecedor_texto" in payload:
+        ov.fornecedor_texto = _txt("fornecedor_texto", 300)
+    if "unidade" in payload:
+        ov.unidade = _txt("unidade", 20)
+    pv = payload.get("preco_venda")
+    if pv is not None:
+        if str(pv).strip() == "":
+            ov.preco_venda = None
+        else:
+            try:
+                ov.preco_venda = Decimal(str(pv).replace(",", ".").strip()).quantize(Decimal("0.01"))
+            except Exception:
+                return JsonResponse({"ok": False, "erro": "preço inválido"}, status=400)
+    if "ativo_exibicao" in payload:
+        ae = payload.get("ativo_exibicao")
+        if ae is None or str(ae).strip() == "":
+            ov.ativo_exibicao = None
+        else:
+            ov.ativo_exibicao = str(ae).strip().lower() in ("1", "true", "yes", "on", "sim", "s")
+    for fld, key in (
+        ("estoque_min_centro", "estoque_min_centro"),
+        ("estoque_max_centro", "estoque_max_centro"),
+        ("estoque_min_vila", "estoque_min_vila"),
+        ("estoque_max_vila", "estoque_max_vila"),
+    ):
+        if key in payload:
+            d = _dec_opt(key)
+            setattr(ov, fld, d)
+    ov.usuario = request.user if request.user.is_authenticated else ov.usuario
+    ov.save()
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": True, "aviso": "Mongo indisponível — overlay salvo.", "produto": None})
+    doc = _produto_mongo_por_id_externo(db, client, pid) or {"Id": pid}
+    saldos = _mapa_saldos_finais_por_produtos(db, client, [pid])
+    row = _linha_gestao_produto_json(doc, saldos, ov)
+    return JsonResponse({"ok": True, "produto": row})
 
 
 # Lista de clientes PDV (ClienteAgro) — cache curto; invalida em sync e em save/delete (signals).
@@ -860,6 +1279,535 @@ def _custos_compra_produto(p):
     return {"preco_custo": preco_custo_val, "preco_custo_final": final}
 
 
+def _preco_unit_linha_compra_mongo(item):
+    """
+    Retorna (valor_unitário, já_é_custo_final_erp).
+    Quando o ERP grava custo com acréscimos na linha, não reaplicamos % do cadastro.
+    """
+    if not isinstance(item, dict):
+        return 0.0, False
+    for k in (
+        "ValorCustoComAcrescimos",
+        "PrecoCustoComAcrescimos",
+        "ValorUnitarioComAcrescimos",
+        "PrecoUnitarioComAcrescimos",
+    ):
+        raw = item.get(k)
+        if raw is None or raw == "":
+            continue
+        try:
+            v = float(str(raw).replace(",", "."))
+            if v > 0:
+                return v, True
+        except (ValueError, TypeError):
+            continue
+    for k in ("ValorUnitario", "PrecoUnitario", "ValorUnit", "Preco"):
+        raw = item.get(k)
+        if raw is None or raw == "":
+            continue
+        try:
+            v = float(str(raw).replace(",", "."))
+            if v > 0:
+                return v, False
+        except (ValueError, TypeError):
+            continue
+    try:
+        tot = float(str(item.get("ValorTotal") or item.get("Total") or 0).replace(",", "."))
+        q = float(str(item.get("Quantidade") or item.get("Qtd") or 0).replace(",", "."))
+        if tot > 0 and q > 0:
+            return tot / q, False
+    except (ValueError, TypeError, ZeroDivisionError):
+        pass
+    return 0.0, False
+
+
+def _preco_unitario_entrada_com_acrescimo_cadastro(p, preco_unit_nota, ja_final_erp=False):
+    """
+    Alinha à lógica da tela de compras: se a linha já traz custo c/ acréscimo do ERP, usa direto;
+    senão aplica a mesma proporção cadastral (custo final / custo base) ou % de compra do produto.
+    """
+    if ja_final_erp:
+        try:
+            return round(float(str(preco_unit_nota).replace(",", ".")), 2)
+        except (ValueError, TypeError):
+            return 0.0
+    try:
+        base = float(str(preco_unit_nota).replace(",", "."))
+    except (ValueError, TypeError):
+        base = 0.0
+    if base <= 0:
+        return 0.0
+    pp = p if isinstance(p, dict) else {}
+    custos = _custos_compra_produto(pp)
+    pc = float(custos.get("preco_custo") or 0)
+    fin = float(custos.get("preco_custo_final") or 0)
+    if pc > 0 and fin > 0:
+        return round(base * (fin / pc), 2)
+    est = _custo_com_acrescimos_estimado_percentuais_compra(pp, base)
+    if est is not None:
+        try:
+            return round(float(est), 2)
+        except (ValueError, TypeError):
+            pass
+    return round(base, 2)
+
+
+def _data_cabecalho_compra(h):
+    if not isinstance(h, dict):
+        return None
+    for k in (
+        "DataEntradaNota",
+        "DataEmissaoNota",
+        "Data",
+        "DataEmissao",
+        "DataEntrada",
+        "DataMovimento",
+    ):
+        d = h.get(k)
+        if isinstance(d, datetime):
+            return d
+    return None
+
+
+def _nome_fornecedor_compra_head(h):
+    if not isinstance(h, dict):
+        return ""
+    for key in (
+        "NomeFornecedor",
+        "RazaoSocialFornecedor",
+        "FornecedorNome",
+        "NomeFantasiaFornecedor",
+        "PessoaNome",
+        "NomePessoa",
+        "RazaoSocial",
+        "Fornecedor",
+        "Nome",
+    ):
+        v = h.get(key)
+        if v is not None and str(v).strip():
+            return str(v).strip()[:200]
+    return ""
+
+
+def _numero_documento_compra_head(h):
+    if not isinstance(h, dict):
+        return ""
+    for key in ("NumeroNF", "NumeroNFe", "NumeroNota", "NotaFiscal", "ChaveNFe", "Numero", "Documento"):
+        v = h.get(key)
+        if v is not None and str(v).strip() and str(v).strip().lower() not in ("null", "none"):
+            s = str(v).strip()
+            ser = h.get("SerieNota") or h.get("Serie")
+            if key == "NumeroNota" and ser and str(ser).strip():
+                return f"{str(ser).strip()}/{s}"[:120]
+            return s[:120]
+    ser = h.get("SerieNota") or h.get("Serie")
+    if ser and str(ser).strip():
+        return str(ser).strip()[:120]
+    return ""
+
+
+def _mongo_ids_para_query_in(ids_str: list[str]) -> list:
+    out = []
+    seen = set()
+    for s in ids_str:
+        t = str(s or "").strip()
+        if not t or t in seen:
+            continue
+        seen.add(t)
+        out.append(t)
+        if len(t) == 24 and all(c in "0123456789abcdefABCDEF" for c in t):
+            try:
+                oid = ObjectId(t)
+                if oid not in seen:
+                    seen.add(oid)
+                    out.append(oid)
+            except Exception:
+                pass
+    return out
+
+
+def _produto_ids_variants_mongo(p_ids: list[str]) -> list:
+    out = []
+    seen = set()
+    for raw in p_ids:
+        s = str(raw or "").strip()
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        out.append(s)
+        if s.isdigit():
+            try:
+                n = int(s)
+                if n not in seen:
+                    seen.add(n)
+                    out.append(n)
+            except Exception:
+                pass
+        if len(s) == 24 and all(c in "0123456789abcdefABCDEF" for c in s):
+            try:
+                oid = ObjectId(s)
+                if oid not in seen:
+                    seen.add(oid)
+                    out.append(oid)
+            except Exception:
+                pass
+    return out
+
+
+def _ultimas_compras_cutoff_dt() -> datetime:
+    """Limite inferior (UTC naive) para considerar compras recentes."""
+    return datetime.utcnow() - timedelta(days=800)
+
+
+def _mongo_dt_utc_naive(dt):
+    if dt is None or not isinstance(dt, datetime):
+        return None
+    if dt.tzinfo is None:
+        return dt
+    return dt.astimezone(timezone.utc).replace(tzinfo=None)
+
+
+def _mongo_dt_maior_ou_igual(dt, cutoff_naive_utc: datetime) -> bool:
+    """Evita TypeError entre datetime com fuso (Mongo) e cutoff naive."""
+    d = _mongo_dt_utc_naive(dt)
+    if d is None:
+        return False
+    return d >= cutoff_naive_utc
+
+
+def _mongo_dt_sort_key(dt):
+    d = _mongo_dt_utc_naive(dt) if isinstance(dt, datetime) else None
+    return d if d is not None else datetime.min
+
+
+def _append_eventos_dto_nota_entrada_por_linha(
+    db,
+    *,
+    variants: list,
+    pid_ok: set[str],
+    eventos: dict[str, list[dict]],
+    since: datetime,
+) -> None:
+    """
+    Nota de entrada VendaERP: ligação DtoNotaEntradaProduto.EntradaID → DtoNotaEntrada._id.
+    Busca por linha (ProdutoID) evita depender de filtro de data no cabeçalho, que varia por instalação.
+    """
+    try:
+        proj_ln = {
+            "ProdutoID": 1,
+            "EntradaID": 1,
+            "NotaEntradaID": 1,
+            "Quantidade": 1,
+            "Qtd": 1,
+            "Cancelada": 1,
+            "ValorUnitario": 1,
+            "PrecoUnitario": 1,
+            "ValorTotal": 1,
+            "Total": 1,
+            "ValorCustoComAcrescimos": 1,
+            "PrecoCustoComAcrescimos": 1,
+            "ValorUnitarioComAcrescimos": 1,
+            "PrecoUnitarioComAcrescimos": 1,
+            "LastUpdate": 1,
+        }
+        proj_h = {
+            "Id": 1,
+            "_id": 1,
+            "Data": 1,
+            "DataEmissao": 1,
+            "DataEntrada": 1,
+            "DataEntradaNota": 1,
+            "DataEmissaoNota": 1,
+            "Cancelada": 1,
+            "NomeFornecedor": 1,
+            "RazaoSocialFornecedor": 1,
+            "FornecedorNome": 1,
+            "Fornecedor": 1,
+            "NomeFantasiaFornecedor": 1,
+            "PessoaNome": 1,
+            "NomePessoa": 1,
+            "RazaoSocial": 1,
+            "NumeroNF": 1,
+            "NumeroNFe": 1,
+            "Numero": 1,
+            "NotaFiscal": 1,
+            "ChaveNFe": 1,
+            "Serie": 1,
+            "NumeroNota": 1,
+            "SerieNota": 1,
+        }
+        cur = db["DtoNotaEntradaProduto"].find(
+            {"ProdutoID": {"$in": variants}},
+            proj_ln,
+        ).sort("LastUpdate", -1).limit(12000)
+        lines = list(cur)
+    except Exception as exc:
+        logger.warning("ultimas_compras nota_entrada por_linha: %s", exc)
+        return
+    eids_ordered: list[str] = []
+    seen_e: set[str] = set()
+    for ln in lines:
+        eid = str(ln.get("EntradaID") or ln.get("NotaEntradaID") or "")
+        if eid and eid not in seen_e:
+            seen_e.add(eid)
+            eids_ordered.append(eid)
+    heads: dict[str, dict] = {}
+    chunk_sz = 400
+    for i in range(0, len(eids_ordered), chunk_sz):
+        chunk = eids_ordered[i : i + chunk_sz]
+        mixed = _mongo_ids_para_query_in(chunk)
+        if not mixed:
+            continue
+        try:
+            for h in db["DtoNotaEntrada"].find(
+                {"$or": [{"_id": {"$in": mixed}}, {"Id": {"$in": mixed}}]},
+                proj_h,
+            ):
+                hid = str(h.get("Id") or h.get("_id") or "")
+                if hid:
+                    heads[hid] = h
+        except Exception as exc:
+            logger.warning("ultimas_compras nota_entrada heads: %s", exc)
+            continue
+    for ln in lines:
+        if ln.get("Cancelada") in (True, "Sim", 1, "true", "True"):
+            continue
+        pid = str(ln.get("ProdutoID") or "")
+        if pid not in pid_ok:
+            continue
+        eid = str(ln.get("EntradaID") or ln.get("NotaEntradaID") or "")
+        h = heads.get(eid)
+        if not h:
+            continue
+        if h.get("Cancelada") in (True, "Sim", 1, "true", "True"):
+            continue
+        dt = _data_cabecalho_compra(h)
+        if not _mongo_dt_maior_ou_igual(dt, since):
+            continue
+        unit, ja_final = _preco_unit_linha_compra_mongo(ln)
+        qtd = _float_api_json(ln.get("Quantidade") or ln.get("Qtd") or 0)
+        eventos[pid].append(
+            {
+                "dt": dt,
+                "fornecedor": _nome_fornecedor_compra_head(h),
+                "qtd": qtd,
+                "unit_base": unit,
+                "unit_ja_final": ja_final,
+                "numero_doc": _numero_documento_compra_head(h),
+                "tipo_fonte": "nota_entrada",
+            }
+        )
+
+
+def _ultimas_compras_por_produto_ids(
+    db,
+    p_ids: list[str],
+    produtos_por_id: dict,
+    *,
+    limit: int = 3,
+) -> dict[str, list[dict]]:
+    """
+    Últimas compras por produto a partir de DtoCompra*, DtoNotaEntrada*, etc. (Mongo ERP).
+    """
+    out_map: dict[str, list[dict]] = {str(pid): [] for pid in p_ids}
+    if db is None or not p_ids:
+        return out_map
+    variants = _produto_ids_variants_mongo([str(x) for x in p_ids])
+    if not variants:
+        return out_map
+    try:
+        names = set(db.list_collection_names())
+    except Exception as exc:
+        logger.warning("ultimas_compras list_collection_names: %s", exc)
+        return out_map
+    since = _ultimas_compras_cutoff_dt()
+    pares = (
+        ("DtoCompraProduto", "CompraID", "DtoCompra", "compra"),
+        ("DtoPedidoCompraProduto", "PedidoCompraID", "DtoPedidoCompra", "pedido_compra"),
+        ("DtoEntradaMercadoriaProduto", "EntradaID", "DtoEntradaMercadoria", "entrada_mercadoria"),
+    )
+    proj_h = {
+        "Id": 1,
+        "_id": 1,
+        "Data": 1,
+        "DataEmissao": 1,
+        "DataEntrada": 1,
+        "DataEntradaNota": 1,
+        "DataEmissaoNota": 1,
+        "Cancelada": 1,
+        "NomeFornecedor": 1,
+        "RazaoSocialFornecedor": 1,
+        "FornecedorNome": 1,
+        "Fornecedor": 1,
+        "NomeFantasiaFornecedor": 1,
+        "PessoaNome": 1,
+        "NomePessoa": 1,
+        "RazaoSocial": 1,
+        "NumeroNF": 1,
+        "NumeroNFe": 1,
+        "Numero": 1,
+        "NotaFiscal": 1,
+        "ChaveNFe": 1,
+        "Serie": 1,
+        "NumeroNota": 1,
+        "SerieNota": 1,
+    }
+    eventos: dict[str, list[dict]] = {str(pid): [] for pid in p_ids}
+    pid_ok = {str(x) for x in p_ids}
+
+    if "DtoNotaEntradaProduto" in names and "DtoNotaEntrada" in names:
+        _append_eventos_dto_nota_entrada_por_linha(
+            db,
+            variants=variants,
+            pid_ok=pid_ok,
+            eventos=eventos,
+            since=since,
+        )
+
+    for col_p, fk, col_h, origem_label in pares:
+        if col_p not in names or col_h not in names:
+            continue
+        proj_ln = {
+            "ProdutoID": 1,
+            fk: 1,
+            "Quantidade": 1,
+            "Qtd": 1,
+            "Cancelada": 1,
+            "ValorUnitario": 1,
+            "PrecoUnitario": 1,
+            "ValorTotal": 1,
+            "Total": 1,
+            "ValorCustoComAcrescimos": 1,
+            "PrecoCustoComAcrescimos": 1,
+            "ValorUnitarioComAcrescimos": 1,
+            "PrecoUnitarioComAcrescimos": 1,
+        }
+        try:
+            q_head = {
+                "Cancelada": {"$ne": True},
+                "$or": [
+                    {"Data": {"$gte": since}},
+                    {"DataEmissao": {"$gte": since}},
+                    {"DataEntrada": {"$gte": since}},
+                    {"DataEntradaNota": {"$gte": since}},
+                    {"DataEmissaoNota": {"$gte": since}},
+                ],
+            }
+            heads = list(db[col_h].find(q_head, proj_h))
+        except Exception as exc:
+            logger.warning("ultimas_compras heads %s: %s", col_h, exc)
+            continue
+        if len(heads) > 25000:
+            heads.sort(
+                key=lambda h: _mongo_dt_sort_key(_data_cabecalho_compra(h)),
+                reverse=True,
+            )
+            heads = heads[:25000]
+        cmap: dict[str, dict] = {}
+        for h in heads:
+            hid = str(h.get("Id") or h.get("_id") or "")
+            if hid:
+                cmap[hid] = h
+        hid_all = list(cmap.keys())
+        chunk_sz = 400
+        for i in range(0, len(hid_all), chunk_sz):
+            chunk = hid_all[i : i + chunk_sz]
+            mixed = _mongo_ids_para_query_in(chunk)
+            try:
+                cur = db[col_p].find(
+                    {fk: {"$in": mixed}, "ProdutoID": {"$in": variants}},
+                    proj_ln,
+                )
+            except Exception as exc:
+                logger.warning("ultimas_compras find %s: %s", col_p, exc)
+                continue
+            for ln in cur:
+                if ln.get("Cancelada") in (True, "Sim", 1, "true", "True"):
+                    continue
+                pid = str(ln.get("ProdutoID") or "")
+                if pid not in pid_ok:
+                    continue
+                hid = str(ln.get(fk) or "")
+                h = cmap.get(hid)
+                if not h:
+                    continue
+                dt = _data_cabecalho_compra(h)
+                if not _mongo_dt_maior_ou_igual(dt, since):
+                    continue
+                unit, ja_final = _preco_unit_linha_compra_mongo(ln)
+                qtd = _float_api_json(ln.get("Quantidade") or ln.get("Qtd") or 0)
+                eventos[pid].append(
+                    {
+                        "dt": dt,
+                        "fornecedor": _nome_fornecedor_compra_head(h),
+                        "qtd": qtd,
+                        "unit_base": unit,
+                        "unit_ja_final": ja_final,
+                        "numero_doc": _numero_documento_compra_head(h),
+                        "tipo_fonte": origem_label,
+                    }
+                )
+
+    for pid in p_ids:
+        spid = str(pid)
+        evs = eventos.get(spid, [])
+        evs.sort(key=lambda e: _mongo_dt_sort_key(e.get("dt")), reverse=True)
+        deduped = []
+        seen_k = set()
+        for e in evs:
+            dt = e.get("dt")
+            try:
+                ub = round(float(e.get("unit_base") or 0), 4)
+            except (TypeError, ValueError):
+                ub = 0.0
+            key = (
+                dt.isoformat()[:16] if isinstance(dt, datetime) else "",
+                (e.get("fornecedor") or "")[:80],
+                (e.get("numero_doc") or "")[:40],
+                e.get("tipo_fonte") or "",
+                ub,
+            )
+            if key in seen_k:
+                continue
+            seen_k.add(key)
+            deduped.append(e)
+            if len(deduped) >= limit:
+                break
+        p_doc = produtos_por_id.get(spid)
+        for e in deduped:
+            pf = _preco_unitario_entrada_com_acrescimo_cadastro(
+                p_doc, e.get("unit_base") or 0, bool(e.get("unit_ja_final"))
+            )
+            dt = e.get("dt")
+            iso = dt.isoformat()[:19] if isinstance(dt, datetime) else ""
+            try:
+                ub = round(float(e.get("unit_base") or 0), 4)
+            except (TypeError, ValueError):
+                ub = 0.0
+            try:
+                qtdv = round(float(e.get("qtd") or 0), 4)
+            except (TypeError, ValueError):
+                qtdv = 0.0
+            forn = (e.get("fornecedor") or "—")[:200]
+            out_map[spid].append(
+                {
+                    "fornecedor": forn,
+                    "preco_final": round(float(pf), 2),
+                    "detalhe": {
+                        "data": iso,
+                        "quantidade": qtdv,
+                        "preco_unitario_nota": ub,
+                        "preco_unitario_final": round(float(pf), 2),
+                        "preco_ja_com_acrescimo_erp": bool(e.get("unit_ja_final")),
+                        "fornecedor": forn,
+                        "documento": (e.get("numero_doc") or "")[:120],
+                        "origem": e.get("tipo_fonte") or "",
+                    },
+                }
+            )
+    return out_map
+
+
 def _sanear_itens_checkout_sessao(itens):
     out = []
     if not isinstance(itens, list):
@@ -1092,6 +2040,14 @@ def _home_admin_navegacao():
             "icon": "wallet",
             "shortcut": "F7",
             "shortcut_key": "f7",
+            "pin_protected": True,
+        },
+        {
+            "title": "Gestão de empréstimos",
+            "href": reverse("emprestimos_gestao"),
+            "icon": "landmark",
+            "shortcut": "G",
+            "shortcut_key": "g",
             "pin_protected": True,
         },
         {
@@ -1605,8 +2561,30 @@ def sugestao_transferencia(request):
     )
 
 
+@ensure_csrf_cookie
 def compras_view(request):
     return render(request, "produtos/compras.html")
+
+
+@ensure_csrf_cookie
+def produtos_cadastro_erp_view(request):
+    """Consulta de cadastro de produtos espelhados do ERP (Mongo), sem saldo; aba de grupos locais."""
+    return render(request, "produtos/produtos_cadastro_erp.html")
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def produtos_gestao_view(request):
+    """Gestão operacional de produtos (espelho Mongo + overlay local + ajuste estoque Agro)."""
+    emp = Empresa.objects.first()
+    return render(
+        request,
+        "produtos/produtos_gestao.html",
+        {
+            "empresa_nome": getattr(emp, "nome_fantasia", None) or getattr(emp, "razao_social", None) or "",
+            "usuario_label": (getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk))[:120],
+        },
+    )
 
 
 def _lancamentos_parse_date_param(s):
@@ -2052,6 +3030,74 @@ def api_entrada_nota_rascunhos(request):
     except ValueError:
         lim = 25
     return JsonResponse({"itens": listar_rascunhos_entrada(db, limit=lim)})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_entrada_nota_rascunho_obter(request):
+    oid = (request.GET.get("id") or "").strip()
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    doc = obter_rascunho_entrada(db, oid)
+    if not doc:
+        return JsonResponse({"ok": False, "erro": "Rascunho não encontrado ou ID inválido."}, status=404)
+    return JsonResponse({"ok": True, "rascunho": doc})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_entrada_nota_rascunho_excluir(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    oid = str(payload.get("id") or "").strip()
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    r = excluir_rascunho_entrada(db, oid)
+    st = 200 if r.get("ok") else 400
+    return JsonResponse(r, status=st)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_entrada_nota_rascunho_atualizar(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    oid = str(payload.get("id") or "").strip()
+    modo = str(payload.get("modo") or "manual").strip()[:40]
+    cab = payload.get("cabecalho") if isinstance(payload.get("cabecalho"), dict) else {}
+    linhas = payload.get("linhas")
+    if not oid:
+        return JsonResponse({"ok": False, "erro": "Informe o id do rascunho."}, status=400)
+    if not isinstance(linhas, list) or not linhas:
+        return JsonResponse({"ok": False, "erro": "Inclua ao menos uma linha."}, status=400)
+    xml_chave = str(payload.get("xml_chave") or "").strip()[:44] or None
+    extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (
+            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
+        )[:120]
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    r = atualizar_rascunho_entrada(
+        db,
+        oid,
+        usuario=usuario,
+        modo=modo,
+        cabecalho=cab,
+        linhas=linhas,
+        xml_chave=xml_chave,
+        extra=extra,
+    )
+    st = 200 if r.get("ok") else 400
+    return JsonResponse(r, status=st)
 
 
 def _empresa_loja_padrao_agro_estoque(deposito: str) -> tuple[Empresa | None, Loja | None]:
@@ -3596,10 +4642,296 @@ def lancamentos_manual_view(request):
     return render(request, "produtos/lancamentos_manual.html")
 
 
+def _parse_decimal_dinheiro_br(s) -> Decimal | None:
+    raw = str(s or "").strip().replace("R$", "").replace(" ", "")
+    if not raw:
+        return None
+    if "," in raw and "." in raw:
+        raw = raw.replace(".", "").replace(",", ".")
+    elif "," in raw:
+        raw = raw.replace(",", ".")
+    try:
+        return Decimal(raw).quantize(Decimal("0.01"))
+    except Exception:
+        return None
+
+
+def _emprestimo_tentar_erp_batches(db, resultado_ext: dict) -> tuple[bool | None, str]:
+    """Envia cada lote (entrada + parcelas) ao ERP, se configurado."""
+    path_lanc = (
+        (config("VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", default="") or "")
+        or getattr(settings, "VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", "")
+        or ""
+    ).strip()
+    if not path_lanc:
+        return None, ""
+    avisos: list[str] = []
+    try:
+        cli = VendaERPAPIClient()
+        ent = resultado_ext.get("entrada") or {}
+        if ent.get("ids"):
+            body = montar_payload_erp_lancamentos_novos(
+                db, ent["ids"], str(ent.get("lote") or ""), False
+            )
+            ok_erp, api_msg = cli.financeiro_tentar_lancamentos_api(body)
+            if not ok_erp:
+                avisos.append(f"Entrada: {api_msg}")
+        for r_p in resultado_ext.get("parcelas") or []:
+            if not r_p.get("ids"):
+                continue
+            body = montar_payload_erp_lancamentos_novos(
+                db, r_p["ids"], str(r_p.get("lote") or ""), True
+            )
+            ok_erp, api_msg = cli.financeiro_tentar_lancamentos_api(body)
+            if not ok_erp:
+                avisos.append(f"Parcela: {api_msg}")
+    except Exception as exc:
+        return False, str(exc)[:800]
+    if not avisos:
+        return True, ""
+    return False, "; ".join(avisos)[:800]
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def emprestimos_gestao_view(request):
+    """Hub: escolha entre externo, interno e consulta (telas separadas)."""
+    return render(
+        request,
+        "produtos/emprestimos_hub.html",
+        {"emprestimos_nav": "hub"},
+    )
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def emprestimos_externo_view(request):
+    return render(
+        request,
+        "produtos/emprestimos_externo.html",
+        {
+            "emprestimos_defaults": emprestimo_defaults_para_ui(),
+            "emprestimos_nav": "externo",
+        },
+    )
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def emprestimos_interno_view(request):
+    return render(
+        request,
+        "produtos/emprestimos_interno.html",
+        {
+            "emprestimos_defaults": emprestimo_defaults_para_ui(),
+            "emprestimos_nav": "interno",
+        },
+    )
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def emprestimos_consulta_view(request):
+    return render(
+        request,
+        "produtos/emprestimos_consulta.html",
+        {"emprestimos_nav": "consulta"},
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_emprestimos_defaults(request):
+    return JsonResponse({"ok": True, **emprestimo_defaults_para_ui()})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_emprestimos_erp_lancamentos(request):
+    empresa_id = str(request.GET.get("empresa_id") or "").strip()
+    empresa_nome = str(request.GET.get("empresa_nome") or "").strip()
+    try:
+        lim = int(request.GET.get("limit") or 200)
+    except ValueError:
+        lim = 200
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível", "itens": []}, status=503)
+    itens = listar_lancamentos_emprestimo_do_mongo(
+        db,
+        empresa_id=empresa_id or None,
+        empresa_nome=empresa_nome or None,
+        limit=lim,
+    )
+    return JsonResponse({"ok": True, "itens": itens, "total": len(itens)})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_emprestimos_listar(request):
+    raw = (request.GET.get("tipo") or request.GET.get("categoria") or "").strip().lower()
+    aliases = {
+        "externos": "externo",
+        "externo": "externo",
+        "ext": "externo",
+        "internos": "interno",
+        "interno": "interno",
+        "int": "interno",
+        "socio": "interno",
+        "sócio": "interno",
+    }
+    tipo_filtro = aliases.get(raw, raw if raw in ("externo", "interno") else "")
+    try:
+        lim = int(request.GET.get("limit") or 80)
+    except ValueError:
+        lim = 80
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível", "itens": []}, status=503)
+    itens = listar_emprestimos_agro(
+        db, tipo=tipo_filtro if tipo_filtro in ("externo", "interno") else None, limit=lim
+    )
+    return JsonResponse({"ok": True, "itens": itens, "filtro_tipo": tipo_filtro or None})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_emprestimos_criar(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (
+            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
+        )[:120]
+
+    tipo = str(payload.get("tipo") or "").strip().lower()
+    empresa_nome = str(payload.get("empresa_nome") or "").strip()
+    empresa_id = str(payload.get("empresa_id") or "").strip() or None
+
+    def _d(key: str) -> date | None:
+        s = str(payload.get(key) or "").strip()[:10]
+        if not s:
+            return None
+        try:
+            return date.fromisoformat(s)
+        except ValueError:
+            return None
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    if tipo == "interno":
+        v_aporte = _parse_decimal_dinheiro_br(payload.get("valor_aporte"))
+        v_dev = _parse_decimal_dinheiro_br(payload.get("valor_devolucao_total"))
+        if v_aporte is None or v_dev is None:
+            return JsonResponse({"ok": False, "erro": "Valores inválidos."}, status=400)
+        try:
+            parc = int(payload.get("parcelas") or 1)
+        except (TypeError, ValueError):
+            parc = 1
+        try:
+            interv = int(payload.get("intervalo_dias") or 30)
+        except (TypeError, ValueError):
+            interv = 30
+        d0 = _d("primeira_data_prevista")
+        r = registrar_emprestimo_interno_agro(
+            db,
+            usuario_label=usuario,
+            empresa_nome=empresa_nome,
+            empresa_id=empresa_id,
+            mutuario_label=str(payload.get("mutuario_label") or "").strip(),
+            valor_aporte=v_aporte,
+            valor_devolucao_total=v_dev,
+            primeira_data_prevista=d0,
+            parcelas=parc,
+            intervalo_dias=interv,
+            observacao=str(payload.get("observacao") or "").strip(),
+        )
+        st = 200 if r.get("ok") else 400
+        return JsonResponse(r, status=st)
+
+    if tipo != "externo":
+        return JsonResponse({"ok": False, "erro": "tipo deve ser externo ou interno."}, status=400)
+
+    v_rec = _parse_decimal_dinheiro_br(payload.get("valor_recebido"))
+    v_tot = _parse_decimal_dinheiro_br(payload.get("valor_total_devido"))
+    if v_rec is None or v_tot is None:
+        return JsonResponse({"ok": False, "erro": "Valores inválidos."}, status=400)
+    data_entrada = _d("data_entrada") or timezone.localdate()
+    primeiro_venc = _d("primeiro_vencimento")
+    if primeiro_venc is None:
+        return JsonResponse({"ok": False, "erro": "Informe o primeiro vencimento das parcelas."}, status=400)
+    try:
+        parc = int(payload.get("parcelas") or 1)
+    except (TypeError, ValueError):
+        parc = 1
+    try:
+        interv = int(payload.get("intervalo_dias") or 30)
+    except (TypeError, ValueError):
+        interv = 30
+
+    v_juros = _parse_decimal_dinheiro_br(payload.get("valor_juros"))
+    if v_juros is None:
+        v_juros = Decimal("0")
+    eq_raw = payload.get("entrada_ja_quitada")
+    entrada_quitada = True if eq_raw is None else bool(eq_raw)
+
+    r = criar_emprestimo_externo_agro(
+        db,
+        usuario_label=usuario,
+        empresa_nome=empresa_nome,
+        empresa_id=empresa_id,
+        credor_nome=str(payload.get("credor_nome") or "").strip(),
+        credor_id=str(payload.get("credor_id") or "").strip() or None,
+        valor_recebido=v_rec,
+        valor_total_devido=v_tot,
+        data_entrada=data_entrada,
+        primeiro_vencimento=primeiro_venc,
+        parcelas=parc,
+        intervalo_dias=interv,
+        banco_nome=str(payload.get("banco_nome") or "").strip(),
+        banco_id=str(payload.get("banco_id") or "").strip() or None,
+        forma_nome=str(payload.get("forma_nome") or "").strip(),
+        forma_id=str(payload.get("forma_id") or "").strip() or None,
+        plano_entrada_nome=str(payload.get("plano_entrada_nome") or "").strip(),
+        plano_entrada_id=str(payload.get("plano_entrada_id") or "").strip() or None,
+        plano_divida_nome=str(payload.get("plano_divida_nome") or "").strip(),
+        plano_divida_id=str(payload.get("plano_divida_id") or "").strip() or None,
+        grupo_nome=str(payload.get("grupo_nome") or "").strip() or None,
+        grupo_id=str(payload.get("grupo_id") or "").strip() or None,
+        observacao=str(payload.get("observacao") or "").strip(),
+        entrada_ja_quitada=entrada_quitada,
+        valor_juros=v_juros,
+        plano_juros_nome=str(payload.get("plano_juros_nome") or "").strip() or None,
+        plano_juros_id=str(payload.get("plano_juros_id") or "").strip() or None,
+    )
+
+    erp_ok, erp_msg = _emprestimo_tentar_erp_batches(db, r)
+    out = dict(r)
+    if erp_ok is not None:
+        out["erp_lancamento_ok"] = erp_ok
+    if erp_msg:
+        out["aviso_api"] = erp_msg
+
+    st = 200 if r.get("ok") else (207 if (r.get("ids_entrada") or r.get("ids_divida")) else 400)
+    return JsonResponse(out, status=st)
+
+
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_lancamentos_sugestoes(request):
-    """Autocomplete: campo=empresa|cliente|plano|forma|banco|grupo|centro&q="""
+    """Autocomplete: campo=empresa|cliente|plano|forma|banco|grupo|centro&q=
+
+    Só para ``campo=cliente`` (credor/fornecedor no financeiro):
+    ``escopo`` = todos | pagar | receber | emprestimo;
+    ``ordenar`` = nome | nome_desc | recente | frequencia;
+    ``empresa_id`` = filtra lançamentos dessa empresa.
+    """
     _, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"erro": "Mongo indisponível", "itens": []}, status=503)
@@ -3611,7 +4943,18 @@ def api_lancamentos_sugestoes(request):
         raw_lim = 30
     cap = 500 if campo == "plano" else 80
     lim = min(max(raw_lim, 1), cap)
-    itens = lancamentos_sugestoes_campo(db, campo, q=q or None, limit=lim)
+    escopo = (request.GET.get("escopo") or "todos").strip().lower()
+    ordenar = (request.GET.get("ordenar") or "nome").strip().lower()
+    empresa_id = (request.GET.get("empresa_id") or "").strip() or None
+    itens = lancamentos_sugestoes_campo(
+        db,
+        campo,
+        q=q or None,
+        limit=lim,
+        escopo=escopo,
+        ordenar=ordenar,
+        empresa_id=empresa_id,
+    )
     return JsonResponse({"campo": campo, "itens": itens})
 
 
@@ -3717,14 +5060,14 @@ def ajuste_mobile_view(request):
 
 
 # --- MOTOR DE BUSCA ÚNICO ---
-def motor_de_busca_agro(termo_original, db, client, limit=20):
+def motor_de_busca_agro(termo_original, db, client, limit=20, include_inactive=False):
     termo_original = str(termo_original or "").strip()
     if not termo_original:
         return []
 
     termo_limpo = _somente_alnum(termo_original)
     palavras = [p for p in termo_original.split() if p]
-    base_filter = {"CadastroInativo": {"$ne": True}}
+    base_filter = {} if include_inactive else {"CadastroInativo": {"$ne": True}}
 
     candidatos = []
     vistos = set()
@@ -4036,43 +5379,82 @@ def api_buscar_produtos(request):
         estoque_map = {}
         try:
             if p_ids:
-                estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
-                estoque_map = _mapear_estoques_por_produto(estoques, client)
+                _emax = 2000
+                if len(p_ids) > _emax:
+                    for _ej in range(0, len(p_ids), _emax):
+                        _es = p_ids[_ej : _ej + _emax]
+                        estoques = list(db[client.col_e].find({"ProdutoID": {"$in": _es}}))
+                        estoque_map.update(_mapear_estoques_por_produto(estoques, client))
+                else:
+                    estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+                    estoque_map = _mapear_estoques_por_produto(estoques, client)
         except Exception:
             logger.warning("api_buscar_produtos: estoque indisponível — retornando saldo 0", exc_info=True)
 
         ajustes_map = {}
         try:
             if p_ids:
-                ajustes_bd = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=p_ids)
-                ajustes_map = {(aj.produto_externo_id, aj.deposito): aj for aj in ajustes_bd}
+                # SQLite (e outros) limitam variáveis por query; catálogo wizard pode ter ~25k ids.
+                _chunk = 400
+                for _i in range(0, len(p_ids), _chunk):
+                    _slice = p_ids[_i : _i + _chunk]
+                    for aj in AjusteRapidoEstoque.objects.filter(produto_externo_id__in=_slice):
+                        ajustes_map[(aj.produto_externo_id, aj.deposito)] = aj
         except Exception:
             logger.warning("api_buscar_produtos: ajustes PIN indisponíveis", exc_info=True)
+
+        pedido_sep_map: dict[str, float] = {}
+        try:
+            if p_ids:
+                _chunk_pt = 400
+                for _i in range(0, len(p_ids), _chunk_pt):
+                    _slice = p_ids[_i : _i + _chunk_pt]
+                    for ped in PedidoTransferencia.objects.filter(
+                        produto_externo_id__in=_slice, status="IMPRESSO"
+                    ):
+                        pedido_sep_map[str(ped.produto_externo_id)] = float(ped.quantidade)
+        except Exception:
+            logger.warning("api_buscar_produtos: pedidos transferência indisponível", exc_info=True)
+
+        ultimas_compras_map: dict[str, list] = {}
+        if compras and prods and not (wizard_catalog and len(prods) > 400):
+            try:
+                prod_por_id = {str(x.get("Id") or x.get("_id")): x for x in prods}
+                p_ids_busca = [str(x.get("Id") or x.get("_id")) for x in prods]
+                ultimas_compras_map = _ultimas_compras_por_produto_ids(
+                    db, p_ids_busca, prod_por_id, limit=3
+                )
+            except Exception as exc:
+                logger.warning("api_buscar_produtos: ultimas_compras indisponível — %s", exc)
 
         res = []
         for p in prods:
             pid = str(p.get("Id") or p["_id"])
 
-            saldo_centro_erp = float(estoque_map.get(pid, {}).get("centro", 0.0))
-            saldo_vila_erp = float(estoque_map.get(pid, {}).get("vila", 0.0))
+            saldo_centro_erp = _float_api_json(estoque_map.get(pid, {}).get("centro", 0.0))
+            saldo_vila_erp = _float_api_json(estoque_map.get(pid, {}).get("vila", 0.0))
 
             ac = ajustes_map.get((pid, "centro"))
             av = ajustes_map.get((pid, "vila"))
 
             saldo_centro = (
-                float(ac.saldo_informado) + (saldo_centro_erp - float(ac.saldo_erp_referencia))
+                _float_api_json(ac.saldo_informado) + (saldo_centro_erp - _float_api_json(ac.saldo_erp_referencia))
                 if ac else saldo_centro_erp
             )
             saldo_vila = (
-                float(av.saldo_informado) + (saldo_vila_erp - float(av.saldo_erp_referencia))
+                _float_api_json(av.saldo_informado) + (saldo_vila_erp - _float_api_json(av.saldo_erp_referencia))
                 if av else saldo_vila_erp
             )
 
             codigo = p.get("Codigo") or ""
             codigo_nfe = p.get("CodigoNFe") or codigo or ""
             codigo_barras = _extrair_codigo_barras(p)
-            media_d = float(medias_map.get(pid, 0.0))
-            pv = float(preco_por_id[pid]) if pid in preco_por_id else float(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
+            media_d = _float_api_json(medias_map.get(pid, 0.0))
+            pv = (
+                _float_api_json(preco_por_id[pid])
+                if pid in preco_por_id
+                else _float_api_json(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
+            )
             prateleira_busca = (
                 p.get("Prateleira")
                 or p.get("Localizacao")
@@ -4095,11 +5477,14 @@ def api_buscar_produtos(request):
                 "codigo": codigo,
                 "codigo_nfe": codigo_nfe,
                 "codigo_barras": codigo_barras,
-                "preco_venda": pv,
+                "preco_venda": round(_float_api_json(pv), 2),
                 "imagem": _formatar_url_imagem(_extrair_imagem_produto(p, {}, pid)),
-                "saldo_centro": round(saldo_centro, 2),
-                "saldo_vila": round(saldo_vila, 2),
-                "media_venda_diaria_30d": media_d,
+                "saldo_centro": round(_float_api_json(saldo_centro), 2),
+                "saldo_vila": round(_float_api_json(saldo_vila), 2),
+                "qtd_separacao_transferencia": round(
+                    _float_api_json(pedido_sep_map.get(pid, 0.0)), 3
+                ),
+                "media_venda_diaria_30d": round(_float_api_json(media_d), 4),
                 "preco_etiqueta_balanca": bool(pid in preco_por_id) and not compras,
             }
             if not wizard_mode:
@@ -4124,6 +5509,7 @@ def api_buscar_produtos(request):
                 row["preco_custo"] = custos["preco_custo"]
                 row["preco_custo_acrescimo"] = custos["preco_custo_final"]
                 row["preco_custo_final"] = custos["preco_custo_final"]
+                row["ultimas_compras"] = ultimas_compras_map.get(pid, [])
             res.append(row)
 
         if wizard_catalog:
@@ -4159,6 +5545,606 @@ def api_buscar_compras(request):
     finally:
         if hasattr(request, "_compras_mode"):
             delattr(request, "_compras_mode")
+
+
+def _produto_mongo_para_cadastro_row(p: dict) -> dict:
+    """Monta JSON de cadastro (sem estoque) a partir de um documento da coleção de produtos Mongo."""
+    pid = str(p.get("Id") or p["_id"])
+    codigo = p.get("Codigo")
+    codigo_s = "" if codigo is None else str(codigo).strip()
+    codigo_nfe = p.get("CodigoNFe")
+    codigo_nfe_s = codigo_s
+    if codigo_nfe is not None:
+        cn = str(codigo_nfe).strip()
+        if cn:
+            codigo_nfe_s = cn
+    codigo_barras = _extrair_codigo_barras(p) or ""
+    _sub_w = str(
+        p.get("SubGrupo") or p.get("Subcategoria") or p.get("NomeSubcategoria") or ""
+    ).strip()
+    _cat_w = p.get("NomeCategoria") or p.get("Categoria") or p.get("Grupo") or ""
+    if not str(_cat_w or "").strip() and _sub_w:
+        _cat_w = _sub_w
+    prateleira_raw = (
+        p.get("Prateleira")
+        or p.get("Localizacao")
+        or p.get("LocalEstoque")
+        or p.get("Setor")
+        or p.get("EnderecoPrateleira")
+        or ""
+    )
+    pv = _float_api_json(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
+    fornecedor = (
+        p.get("NomeFornecedor")
+        or p.get("Fornecedor")
+        or p.get("RazaoSocialFornecedor")
+        or p.get("Fabricante")
+        or ""
+    )
+    unidade = str(p.get("Unidade") or p.get("SiglaUnidade") or "").strip()
+    descricao = (
+        str(p.get("Descricao") or "").strip()
+        or str(p.get("Observacao") or "").strip()
+        or str(p.get("Complemento") or "").strip()
+    )
+    ncm = str(p.get("NCM") or p.get("CodigoNCM") or "").strip()
+    return {
+        "id": pid,
+        "nome": str(p.get("Nome") or "").strip(),
+        "marca": str(p.get("Marca") or "").strip(),
+        "codigo": codigo_s,
+        "codigo_nfe": codigo_nfe_s,
+        "codigo_barras": str(codigo_barras).strip() if codigo_barras else "",
+        "preco_venda": round(pv, 2),
+        "categoria": str(_cat_w or "").strip(),
+        "subcategoria": _sub_w,
+        "prateleira": str(prateleira_raw).strip() if prateleira_raw else "",
+        "fornecedor": str(fornecedor).strip(),
+        "imagem": _formatar_url_imagem(_extrair_imagem_produto(p, {}, pid)),
+        "inativo": bool(p.get("CadastroInativo")),
+        "unidade": unidade,
+        "descricao": descricao,
+        "ncm": ncm,
+    }
+
+
+def _mongo_primeiro_texto(p: dict, chaves: tuple[str, ...], default: str = "") -> str:
+    for k in chaves:
+        v = p.get(k)
+        if v is None:
+            continue
+        s = str(v).strip()
+        if s:
+            return s
+    return default
+
+
+def _mongo_primeiro_float(p: dict, chaves: tuple[str, ...]) -> float | None:
+    for k in chaves:
+        raw = p.get(k)
+        if raw is None or raw == "":
+            continue
+        try:
+            return float(str(raw).replace(",", "."))
+        except (ValueError, TypeError):
+            continue
+    return None
+
+
+def _mongo_primeiro_bool(p: dict, chaves: tuple[str, ...]) -> bool | None:
+    for k in chaves:
+        if k not in p:
+            continue
+        v = p.get(k)
+        if isinstance(v, bool):
+            return v
+        if v in (1, "1", "true", "True", "SIM", "Sim", "S", "s"):
+            return True
+        if v in (0, "0", "false", "False", "NAO", "Não", "N", "n"):
+            return False
+    return None
+
+
+def _extrair_composicao_produto_mongo(p: dict) -> list[dict]:
+    candidatos = (
+        "ItensComposicao",
+        "ComposicaoProduto",
+        "Composicao",
+        "KitItens",
+        "ProdutosComposicao",
+        "ListaComposicao",
+        "ItemComposicaoProduto",
+        "ItensKit",
+        "ProdutoComposicaoItens",
+        "DtoComposicaoProduto",
+        "ItensComposicaoProduto",
+        "ListaItemComposicao",
+        "ComposicaoItens",
+    )
+    for key in candidatos:
+        val = p.get(key)
+        if not isinstance(val, list):
+            continue
+        out: list[dict] = []
+        for it in val:
+            if not isinstance(it, dict):
+                continue
+            pid = (
+                it.get("ProdutoID")
+                or it.get("IdProduto")
+                or it.get("Produto_Id")
+                or it.get("ItemProdutoID")
+            )
+            nome = it.get("Nome") or it.get("NomeProduto") or it.get("ProdutoNome") or it.get("Produto")
+            cod = it.get("Codigo") or it.get("CodigoNFe") or it.get("CodigoProduto") or ""
+            qraw = it.get("Quantidade") or it.get("Qtd") or it.get("QuantidadeComposicao") or 1
+            try:
+                q = float(str(qraw).replace(",", "."))
+            except (ValueError, TypeError):
+                q = 1.0
+            dep = it.get("Deposito") or it.get("DepositoNome") or it.get("NomeDeposito") or ""
+            out.append(
+                {
+                    "produto_id": str(pid).strip() if pid is not None else "",
+                    "nome": str(nome or "").strip(),
+                    "codigo": str(cod or "").strip(),
+                    "quantidade": q,
+                    "deposito": str(dep or "").strip(),
+                }
+            )
+        if out:
+            return out
+    return []
+
+
+def _resolver_similares_produto_mongo(db, client_m, p: dict, limite: int = 40) -> list[dict]:
+    ids: list[str] = []
+    for k in ("ProdutosSimilares", "IdsProdutosSimilares", "SimilarProdutoIds", "Similares", "IdsSimilares"):
+        val = p.get(k)
+        if isinstance(val, list):
+            for x in val:
+                if x is None:
+                    continue
+                s = str(x).strip()
+                if s:
+                    ids.append(s)
+        elif val is not None and str(val).strip():
+            ids.append(str(val).strip())
+    seen = set()
+    uniq: list[str] = []
+    for i in ids:
+        if i in seen:
+            continue
+        seen.add(i)
+        uniq.append(i)
+        if len(uniq) >= limite:
+            break
+    if not uniq:
+        for k in ("NomesSimilares", "ProdutosSimilaresNomes"):
+            val = p.get(k)
+            if isinstance(val, list):
+                return [{"id": "", "nome": str(x).strip(), "codigo": ""} for x in val if str(x).strip()][
+                    :limite
+                ]
+        return []
+    ors = []
+    for pid in uniq:
+        ors.append({"Id": pid})
+        try:
+            ors.append({"_id": ObjectId(pid)})
+        except Exception:
+            pass
+    por_id: dict[str, dict] = {}
+    try:
+        cur = db[client_m.col_p].find({"$or": ors}, {"Nome": 1, "Codigo": 1, "CodigoNFe": 1, "Id": 1})
+        for doc in cur:
+            pid = str(doc.get("Id") or doc.get("_id"))
+            por_id[pid] = {
+                "id": pid,
+                "nome": str(doc.get("Nome") or "").strip(),
+                "codigo": str(doc.get("CodigoNFe") or doc.get("Codigo") or "").strip(),
+            }
+    except Exception:
+        logger.warning("similares: falha ao resolver nomes no Mongo", exc_info=True)
+    return [por_id.get(i, {"id": i, "nome": "", "codigo": ""}) for i in uniq]
+
+
+def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
+    """Enriquece o JSON de cadastro com campos usados na tela ERP (leitura Mongo)."""
+    row = _produto_mongo_para_cadastro_row(p)
+    custos = _custos_compra_produto(p)
+    pv = float(row.get("preco_venda") or 0)
+    pc = float(custos.get("preco_custo") or 0)
+    pca = float(custos.get("preco_custo_final") or 0)
+
+    mva_rs_doc = _mongo_primeiro_float(
+        p,
+        (
+            "ValorLucroMVA",
+            "LucroMVA",
+            "MVValorLucro",
+            "MargemValor",
+            "LucroReais",
+            "ValorMargemLucro",
+            "MvaValor",
+        ),
+    )
+    mva_pct_doc = _mongo_primeiro_float(
+        p,
+        (
+            "PercentualLucro",
+            "MargemLucro",
+            "MVAPercentual",
+            "MvaPercentual",
+            "PercentualMargem",
+            "LucroPercentual",
+        ),
+    )
+    base_mva = pca if pca > 0 else (pc if pc > 0 else None)
+    mva_rs = mva_rs_doc
+    if mva_rs is None and base_mva is not None and pv > 0:
+        mva_rs = round(pv - base_mva, 4)
+    mva_pct = mva_pct_doc
+    if mva_pct is None and mva_rs is not None and base_mva and base_mva > 0:
+        mva_pct = round((mva_rs / base_mva) * 100, 2)
+
+    def _b(chaves: tuple[str, ...]) -> bool:
+        v = _mongo_primeiro_bool(p, chaves)
+        return bool(v) if v is not None else False
+
+    extra = {
+        "modelo": _mongo_primeiro_texto(
+            p, ("Modelo", "NomeModelo", "ProdutoModelo", "DescricaoModelo")
+        ),
+        "fornecedor_padrao_id": _mongo_primeiro_texto(
+            p, ("FornecedorID", "IdFornecedor", "FornecedorId", "IdFornecedorPadrao")
+        ),
+        "cadastro_inativo": bool(p.get("CadastroInativo")),
+        "ocultar_nas_vendas": _b(
+            ("OcultarVendas", "OcultarNasVendas", "NaoExibirVendas", "OcultoPDV", "OcultoVenda")
+        ),
+        "preco_custo": round(pc, 4),
+        "preco_custo_com_acrescimos": round(pca, 4) if pca else round(pc, 4),
+        "mva_lucro_reais": round(mva_rs, 2) if mva_rs is not None else None,
+        "mva_lucro_percentual": round(mva_pct, 2) if mva_pct is not None else None,
+        "comissao_vendedor_reais": _mongo_primeiro_float(
+            p,
+            (
+                "ComissaoVendedor",
+                "ValorComissaoVendedor",
+                "ComissaoValor",
+                "VendedorComissaoValor",
+            ),
+        ),
+        "comissao_vendedor_percentual": _mongo_primeiro_float(
+            p,
+            (
+                "ComissaoVendedorPercentual",
+                "PercentualComissaoVendedor",
+                "ComissaoPercentual",
+                "PercentualComissao",
+            ),
+        ),
+        "unidade_estoque": (
+            _mongo_primeiro_texto(
+                p, ("UnidadeEstoque", "UnidadeMedidaEstoque", "SiglaUnidadeEstoque")
+            )
+            or (row.get("unidade") or "")
+        ),
+        "estoque_minimo": _mongo_primeiro_float(
+            p, ("EstoqueMinimo", "MinimoEstoque", "EstoqueMin", "QuantidadeMinimaEstoque")
+        ),
+        "estoque_maximo": _mongo_primeiro_float(
+            p, ("EstoqueMaximo", "MaximoEstoque", "EstoqueMax", "QuantidadeMaximaEstoque")
+        ),
+        "permite_venda_estoque_negativo": _b(
+            (
+                "PermitirEstoqueNegativo",
+                "VendaComEstoqueNegativo",
+                "PermiteVendaSemEstoque",
+                "EstoqueNegativo",
+                "PermiteVendaEstoqueNegativo",
+                "NaoEmitirAlertasPermitirVendaEstoqueNegativo",
+            )
+        ),
+        "nao_emitir_alertas_estoque": _b(
+            (
+                "NaoEmitirAlertaEstoque",
+                "DesativarAlertaEstoque",
+                "SemAlertaEstoqueMinimo",
+                "IgnorarEstoqueMinimo",
+                "NaoEmitirAlertasEstoque",
+                "SuprimirAlertaEstoque",
+            )
+        ),
+        "eh_kit": _b(("Kit", "ProdutoKit", "EhKit", "EKit", "IndicaKit")),
+        "calcular_custo_automaticamente": _b(
+            ("CalcularCustoAutomaticamente", "CustoAutomatico", "CalculoCustoAutomatico")
+        ),
+        "composicao": _extrair_composicao_produto_mongo(p),
+        "similares": _resolver_similares_produto_mongo(db, client_m, p),
+    }
+    row.update(extra)
+    return row
+
+
+@require_GET
+def api_produtos_cadastro_detalhe(request, produto_id: str):
+    """Detalhe completo do cadastro (Mongo / ERP) para a tela de consulta — sem saldos."""
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    pid = str(produto_id or "").strip()
+    if not pid:
+        return JsonResponse({"ok": False, "erro": "Id inválido"}, status=400)
+    p = _produto_mongo_por_id_externo(db, client, pid)
+    if not p:
+        return JsonResponse({"ok": False, "erro": "Produto não encontrado"}, status=404)
+    detalhe = _montar_produto_cadastro_detalhe(db, client, p)
+    return JsonResponse({"ok": True, "produto": detalhe})
+
+
+@require_GET
+def api_produtos_cadastro(request):
+    """
+    Lista / busca cadastro de produtos no Mongo (ERP), sem saldos nem médias.
+    - Com `q`: usa o mesmo motor de busca do PDV.
+    - Sem `q`: paginação alfabética por Nome (`pagina`, `por_pagina`).
+    - `inativos=1`: inclui cadastros inativos.
+    """
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível", "produtos": []}, status=503)
+
+    inativos = request.GET.get("inativos") in ("1", "true", "yes")
+    q_raw = str(request.GET.get("q") or "").strip()
+
+    try:
+        lim_busca = int(request.GET.get("limit") or 150)
+    except ValueError:
+        lim_busca = 150
+    lim_busca = max(1, min(lim_busca, 250))
+
+    try:
+        por_pagina = int(request.GET.get("por_pagina") or 72)
+    except ValueError:
+        por_pagina = 72
+    por_pagina = max(1, min(por_pagina, 120))
+
+    try:
+        pagina = int(request.GET.get("pagina") or 1)
+    except ValueError:
+        pagina = 1
+    pagina = max(1, pagina)
+
+    try:
+        if q_raw:
+            prods = motor_de_busca_agro(
+                q_raw, db, client, limit=lim_busca, include_inactive=inativos
+            )
+            rows = [_produto_mongo_para_cadastro_row(p) for p in prods]
+            rows.sort(key=lambda r: (str(r.get("nome") or "").lower(), r.get("id") or ""))
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "modo": "busca",
+                    "q": q_raw,
+                    "produtos": rows,
+                    "total_retornado": len(rows),
+                }
+            )
+
+        filtro = {} if inativos else {"CadastroInativo": {"$ne": True}}
+        skip = (pagina - 1) * por_pagina
+        cur = (
+            db[client.col_p]
+            .find(filtro)
+            .sort("Nome", 1)
+            .skip(skip)
+            .limit(por_pagina + 1)
+        )
+        chunk = list(cur)
+        has_more = len(chunk) > por_pagina
+        chunk = chunk[:por_pagina]
+        rows = [_produto_mongo_para_cadastro_row(p) for p in chunk]
+        return JsonResponse(
+            {
+                "ok": True,
+                "modo": "lista",
+                "pagina": pagina,
+                "por_pagina": por_pagina,
+                "has_more": has_more,
+                "produtos": rows,
+            }
+        )
+    except Exception as e:
+        logger.warning("api_produtos_cadastro falhou: %s", e, exc_info=True)
+        return JsonResponse({"ok": False, "erro": str(e), "produtos": []}, status=500)
+
+
+def _grupo_agro_para_json(g: ProdutoGrupoAgro) -> dict:
+    vars_ = [
+        {
+            "id": v.pk,
+            "marca": v.marca,
+            "codigo_barras": v.codigo_barras,
+            "produto_erp_id": v.produto_erp_id or "",
+        }
+        for v in g.variantes.all()
+    ]
+    return {
+        "id": g.pk,
+        "nome": g.nome,
+        "preco_venda": str(g.preco_venda),
+        "ativo": g.ativo,
+        "variantes": vars_,
+    }
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_produtos_grupos_listar(request):
+    """Lista grupos locais (nome + preço único + variantes marca/EAN), opcional filtro `q`."""
+    qs = ProdutoGrupoAgro.objects.annotate(n_variantes=Count("variantes")).order_by("nome")
+    qfilt = str(request.GET.get("q") or "").strip()
+    if qfilt:
+        qs = qs.filter(nome__icontains=qfilt)
+    grupos = [
+        {
+            "id": g.pk,
+            "nome": g.nome,
+            "preco_venda": str(g.preco_venda),
+            "ativo": g.ativo,
+            "n_variantes": g.n_variantes,
+        }
+        for g in qs[:500]
+    ]
+    return JsonResponse({"ok": True, "grupos": grupos})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_produtos_grupo_obter(request, pk: int):
+    g = get_object_or_404(ProdutoGrupoAgro.objects.prefetch_related("variantes"), pk=pk)
+    return JsonResponse({"ok": True, "grupo": _grupo_agro_para_json(g)})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_produtos_grupo_salvar(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    nome = str(payload.get("nome") or "").strip()[:300]
+    if not nome:
+        return JsonResponse({"ok": False, "erro": "Informe o nome do produto."}, status=400)
+
+    raw_preco = str(payload.get("preco_venda") or "").strip().replace(",", ".")
+    try:
+        preco_venda = Decimal(raw_preco)
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "Preço de venda inválido."}, status=400)
+    if preco_venda < 0 or preco_venda > Decimal("99999999.99"):
+        return JsonResponse({"ok": False, "erro": "Preço de venda fora do intervalo permitido."}, status=400)
+
+    ativo = payload.get("ativo", True)
+    if isinstance(ativo, str):
+        ativo = ativo.strip().lower() in ("1", "true", "yes", "on")
+    ativo = bool(ativo)
+
+    variantes = payload.get("variantes")
+    if not isinstance(variantes, list):
+        return JsonResponse({"ok": False, "erro": "O campo variantes deve ser uma lista."}, status=400)
+
+    cleaned = []
+    marcas_seen: set[str] = set()
+    cods_seen: set[str] = set()
+    for i, v in enumerate(variantes):
+        if not isinstance(v, dict):
+            return JsonResponse({"ok": False, "erro": "Cada variante deve ser um objeto."}, status=400)
+        marca = str(v.get("marca") or "").strip()[:120]
+        cb = str(v.get("codigo_barras") or "").strip().replace(" ", "")[:80]
+        if not marca:
+            return JsonResponse(
+                {"ok": False, "erro": f"Linha {i + 1}: informe a marca."},
+                status=400,
+            )
+        if not cb:
+            return JsonResponse(
+                {"ok": False, "erro": f"Linha {i + 1}: informe o código de barras."},
+                status=400,
+            )
+        mk = marca.casefold()
+        if mk in marcas_seen:
+            return JsonResponse(
+                {"ok": False, "erro": f'Marca repetida no formulário: "{marca}".'},
+                status=400,
+            )
+        marcas_seen.add(mk)
+        if cb in cods_seen:
+            return JsonResponse(
+                {"ok": False, "erro": "Código de barras repetido no formulário."},
+                status=400,
+            )
+        cods_seen.add(cb)
+        erp_id = str(v.get("produto_erp_id") or "").strip()[:64]
+        vid_raw = v.get("id")
+        vid = None
+        if vid_raw is not None and str(vid_raw).strip() != "":
+            try:
+                vid = int(vid_raw)
+            except (TypeError, ValueError):
+                return JsonResponse({"ok": False, "erro": f"Linha {i + 1}: id de variante inválido."}, status=400)
+        cleaned.append(
+            {
+                "id": vid,
+                "marca": marca,
+                "codigo_barras": cb,
+                "produto_erp_id": erp_id,
+            }
+        )
+
+    gid = payload.get("id")
+    try:
+        gid_int = int(gid) if gid is not None and str(gid).strip() != "" else None
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Id do grupo inválido."}, status=400)
+
+    try:
+        with transaction.atomic():
+            if gid_int:
+                g = get_object_or_404(ProdutoGrupoAgro, pk=gid_int)
+            else:
+                g = ProdutoGrupoAgro()
+                if request.user.is_authenticated:
+                    g.usuario = request.user
+            g.nome = nome
+            g.preco_venda = preco_venda
+            g.ativo = ativo
+            g.save()
+
+            kept_ids: list[int] = []
+            for cv in cleaned:
+                if cv["id"]:
+                    var = ProdutoGrupoVarianteAgro.objects.filter(pk=cv["id"], grupo=g).first()
+                    if not var:
+                        return JsonResponse({"ok": False, "erro": "Variante não encontrada neste grupo."}, status=400)
+                    var.marca = cv["marca"]
+                    var.codigo_barras = cv["codigo_barras"]
+                    var.produto_erp_id = cv["produto_erp_id"]
+                    var.save()
+                    kept_ids.append(var.pk)
+                else:
+                    var = ProdutoGrupoVarianteAgro.objects.create(
+                        grupo=g,
+                        marca=cv["marca"],
+                        codigo_barras=cv["codigo_barras"],
+                        produto_erp_id=cv["produto_erp_id"],
+                    )
+                    kept_ids.append(var.pk)
+            ProdutoGrupoVarianteAgro.objects.filter(grupo=g).exclude(pk__in=kept_ids).delete()
+    except IntegrityError:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Não foi possível salvar: marca já usada neste grupo ou código de barras já existe em outro cadastro.",
+            },
+            status=400,
+        )
+
+    g.refresh_from_db()
+    g = ProdutoGrupoAgro.objects.prefetch_related("variantes").get(pk=g.pk)
+    return JsonResponse({"ok": True, "grupo": _grupo_agro_para_json(g)})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_produtos_grupo_excluir(request, pk: int):
+    g = get_object_or_404(ProdutoGrupoAgro, pk=pk)
+    g.delete()
+    return JsonResponse({"ok": True})
 
 
 # --- APIs DE ESTOQUE E PEDIDO ---
@@ -4942,10 +6928,10 @@ def _atualizar_venda_agro_resposta_erp(v: VendaAgro, erp_http_status, erp_respos
     )
 
 
-def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
+def _pdv_pedido_linhas_e_valor_final(data: dict, *, client_m, db):
     """
-    Monta itens, chama Pedidos/Salvar (com retry Pascal) e devolve resultado.
-    Retorno: (JsonResponse de erro imediato | None, dict resultado | None).
+    Monta linhas do pedido ERP e valor final (mesma lógica usada em Pedidos/Salvar).
+    Retorno: (JsonResponse erro | None, list | None, float | None).
     """
     raw_itens = data.get("itens", [])
     if not isinstance(raw_itens, list):
@@ -5003,7 +6989,48 @@ def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
                 status=400,
             ),
             None,
+            None,
         )
+
+    valor_final = round(sum(float(r.get("valorTotal") or 0) for r in linhas), 2)
+    return None, linhas, valor_final
+
+
+def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
+    """
+    Monta itens, chama Pedidos/Salvar (com retry Pascal) e devolve resultado.
+    Retorno: (JsonResponse de erro imediato | None, dict resultado | None).
+    """
+    raw_itens = data.get("itens", [])
+    if not isinstance(raw_itens, list):
+        raw_itens = []
+
+    err_early, linhas, valor_final = _pdv_pedido_linhas_e_valor_final(data, client_m=client_m, db=db)
+    if err_early is not None:
+        return err_early, None
+
+    integ = (
+        IntegracaoERP.objects.filter(ativo=True, tipo_erp="venda_erp")
+        .order_by("-pk")
+        .first()
+    )
+
+    dep_id = ""
+    emp_id = ""
+    if db is not None and client_m is not None:
+        est = db[client_m.col_e].find_one({"DepositoID": client_m.DEPOSITO_CENTRO})
+        if est:
+            dep_id = str(est.get("DepositoID") or "")
+            emp_id = str(est.get("EmpresaID") or "")
+
+    plano_txt_cfg = _pedido_plano_conta_texto_erp(integ)
+    plano_id_cfg = _pedido_plano_conta_id_config_erp(integ)
+    plano_txt, plano_id = resolver_plano_conta_para_pedido_erp(
+        db,
+        texto_config=plano_txt_cfg,
+        id_config=plano_id_cfg or None,
+        empresa_id=emp_id or None,
+    )
 
     api_client = VendaERPAPIClient(
         base_url=(integ.url_base.strip() if integ and integ.url_base else None),
@@ -5025,7 +7052,6 @@ def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
             getattr(settings, "VENDA_ERP_PEDIDO_STATUS_SISTEMA", "") or "Pedido"
         ).strip() or "Pedido"
 
-    valor_final = round(sum(float(r.get("valorTotal") or 0) for r in linhas), 2)
     fp_txt = _forma_pagamento_rotulo_sem_valor_moeda(
         str(data.get("forma_pagamento") or data.get("formaPagamento") or "")
     ).strip()[:200]
@@ -7053,6 +9079,13 @@ def api_buscar_produto_id(request, id):
 
         img_url = _formatar_url_imagem(_extrair_imagem_produto(p, mapa_img, id))
 
+        ped_qty = 0.0
+        ped_sep = PedidoTransferencia.objects.filter(
+            produto_externo_id=str(id), status="IMPRESSO"
+        ).first()
+        if ped_sep:
+            ped_qty = float(ped_sep.quantidade)
+
         res = {
             "id": id,
             "nome": p.get("Nome"),
@@ -7064,6 +9097,7 @@ def api_buscar_produto_id(request, id):
             "saldo_vila": round(saldo_f_v, 2),
             "saldo_erp_centro": s_c,
             "saldo_erp_vila": s_v,
+            "qtd_separacao_transferencia": round(ped_qty, 3),
         }
         return JsonResponse(res)
     except Exception as e:

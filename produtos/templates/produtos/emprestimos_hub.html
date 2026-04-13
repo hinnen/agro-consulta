@@ -1,0 +1,46 @@
+{% extends "layouts/base_admin.html" %}
+{% load static %}
+
+{% block admin_title %}Agro Consulta | Empréstimos{% endblock %}
+{% block admin_header_title %}Empréstimos{% endblock %}
+{% block admin_header_meta %}{% endblock %}
+
+{% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col{% endblock %}
+{% block admin_header_inner_class %}w-full max-w-none px-4 sm:px-6 lg:px-8 py-3 sm:py-4{% endblock %}
+{% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-4 py-4 sm:px-6 lg:px-8 sm:py-6 overflow-y-auto{% endblock %}
+
+{% block admin_header_actions %}
+  {% include "produtos/_emprestimos_admin_actions.html" %}
+{% endblock %}
+
+{% block admin_content %}
+{% include "produtos/_gm_loading_bar.html" %}
+
+{% include "produtos/_emprestimos_subnav.html" %}
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8 w-full">
+  <a href="{% url 'emprestimos_externo' %}" class="group flex min-h-[min(28vh,220px)] flex-col justify-between rounded-2xl border-2 border-emerald-500 bg-white p-8 shadow-md transition hover:border-emerald-600 hover:bg-emerald-50/90">
+    <div>
+      <h2 class="text-2xl font-black uppercase tracking-tight text-emerald-800 md:text-3xl">Externo</h2>
+      <p class="mt-4 text-lg font-semibold text-slate-600 leading-relaxed">Financeiro: entrada a receber e parcelas a pagar.</p>
+    </div>
+    <span class="mt-6 text-base font-black uppercase text-emerald-700 group-hover:underline">Abrir formulário →</span>
+  </a>
+  <a href="{% url 'emprestimos_interno' %}" class="group flex min-h-[min(28vh,220px)] flex-col justify-between rounded-2xl border-2 border-orange-500 bg-white p-8 shadow-md transition hover:border-orange-600 hover:bg-orange-50/90">
+    <div>
+      <h2 class="text-2xl font-black uppercase tracking-tight text-orange-800 md:text-3xl">Interno</h2>
+      <p class="mt-4 text-lg font-semibold text-slate-600 leading-relaxed">Aporte de sócio: só registro e cronograma no Agro.</p>
+    </div>
+    <span class="mt-6 text-base font-black uppercase text-orange-800 group-hover:underline">Abrir formulário →</span>
+  </a>
+  <a href="{% url 'emprestimos_consulta' %}" class="group flex min-h-[min(28vh,220px)] flex-col justify-between rounded-2xl border-2 border-slate-400 bg-white p-8 shadow-md transition hover:border-slate-600 hover:bg-slate-50">
+    <div>
+      <h2 class="text-2xl font-black uppercase tracking-tight text-slate-900 md:text-3xl">Consulta</h2>
+      <p class="mt-4 text-lg font-semibold text-slate-600 leading-relaxed">Títulos no Mongo (ERP / Agro) e registros de gestão. Filtros Todos · Externos · Internos.</p>
+    </div>
+    <span class="mt-6 text-base font-black uppercase text-slate-700 group-hover:underline">Abrir consulta →</span>
+  </a>
+</div>
+
+{% include "produtos/_atalho_voltar_pdv.html" %}
+{% endblock %}
