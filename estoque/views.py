@@ -531,7 +531,21 @@ def api_transferir_vila_para_centro(request):
 def api_transferir_lote_vila_para_centro(request):
     """Transfere todos os itens de um lote (pedido IMPRESSO) com um único PIN."""
     try:
-        data = json.loads(request.body)
+        try:
+            raw_body = request.body.decode("utf-8") if request.body else "{}"
+            data = json.loads(raw_body) if raw_body.strip() else {}
+        except (json.JSONDecodeError, UnicodeDecodeError, AttributeError):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "JSON inválido no corpo da requisição.",
+                    "transferidos": [],
+                    "falhas": [],
+                },
+                status=400,
+            )
+        if not isinstance(data, dict):
+            data = {}
         pin = str(data.get("pin") or "").strip()
         lote_raw = str(data.get("lote_uuid") or "").strip()
         if not lote_raw:
