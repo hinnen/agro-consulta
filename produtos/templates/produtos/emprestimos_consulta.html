@@ -1,0 +1,535 @@
+{% extends "layouts/base_admin.html" %}
+{% load static %}
+
+{% block admin_title %}Agro Consulta | Empréstimos — consulta{% endblock %}
+{% block admin_header_title %}Empréstimos — consulta{% endblock %}
+{% block admin_header_meta %}
+  <p class="mt-1 text-lg font-bold text-slate-600 max-w-4xl leading-snug">Use as abas para alternar as listas. <strong class="text-slate-800">Filtros</strong> abre o painel sobreposto.</p>
+{% endblock %}
+
+{% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col{% endblock %}
+{% block admin_header_inner_class %}w-full max-w-none px-4 sm:px-6 lg:px-8 py-3 sm:py-4{% endblock %}
+{% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-4 py-4 sm:px-6 lg:px-8 sm:py-6 overflow-y-auto{% endblock %}
+
+{% block admin_header_actions %}
+  {% include "produtos/_emprestimos_admin_actions.html" %}
+{% endblock %}
+
+{% block admin_content %}
+{% include "produtos/_gm_loading_bar.html" %}
+
+{% include "produtos/_emprestimos_subnav.html" %}
+
+<div class="sticky top-0 z-30 -mx-4 mb-6 border-b-2 border-slate-200 bg-slate-100/95 px-4 py-4 backdrop-blur-sm sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+  <div class="flex w-full max-w-none flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+    <div class="flex min-w-0 flex-1 flex-wrap gap-2 sm:gap-3">
+      <button type="button" id="tab-btn-erp" class="tab-consulta min-h-[52px] flex-1 rounded-xl border-2 border-emerald-600 bg-emerald-600 px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-md sm:flex-none sm:px-8">
+        Títulos no Mongo
+      </button>
+      <button type="button" id="tab-btn-agro" class="tab-consulta min-h-[52px] flex-1 rounded-xl border-2 border-slate-200 bg-white px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-slate-700 shadow-sm hover:border-orange-400 sm:flex-none sm:px-8">
+        Registros Agro
+      </button>
+    </div>
+    <button type="button" id="btn-abrir-filtros" class="min-h-[52px] w-full shrink-0 rounded-xl border-2 border-slate-700 bg-slate-800 px-6 py-3 text-base font-black uppercase text-white shadow-md hover:bg-slate-900 sm:ml-auto sm:w-auto">
+      Filtros
+    </button>
+  </div>
+</div>
+
+<div id="panel-tab-erp" class="consulta-panel w-full">
+  <div class="flex min-h-0 w-full flex-col gap-4 rounded-2xl border-2 border-emerald-200/80 bg-slate-50 p-6 lg:p-8">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <h2 class="text-xl font-black uppercase tracking-tight text-emerald-900 lg:text-2xl">Títulos no Mongo (ERP / Agro)</h2>
+      <button type="button" id="btn-erp-carregar" class="min-h-[52px] shrink-0 rounded-xl border-2 border-emerald-600 bg-emerald-600 px-6 py-3 text-base font-black uppercase text-white shadow-md hover:bg-emerald-700">Carregar</button>
+    </div>
+    <label class="flex max-w-2xl flex-wrap items-center gap-3 text-lg font-bold text-slate-700">
+      <span class="shrink-0 font-black uppercase text-slate-600">Empresa ID</span>
+      <input type="text" id="erp-filtro-empresa-id" class="min-h-[52px] min-w-[12rem] flex-1 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 font-mono text-base" placeholder="opcional" autocomplete="off">
+    </label>
+    <div id="erp-lista-wrap" class="min-h-[min(58vh,32rem)] w-full flex-1 overflow-hidden rounded-xl border-2 border-slate-200 bg-white">
+      <div class="max-h-[min(65vh,36rem)] w-full overflow-x-auto overflow-y-auto">
+        <table class="w-full min-w-[720px] text-left text-lg">
+          <thead class="sticky top-0 z-10 border-b-2 border-slate-200 bg-slate-100 font-black uppercase text-sm text-slate-700">
+            <tr>
+              <th class="px-4 py-3">Tipo</th>
+              <th class="px-4 py-3">Plano</th>
+              <th class="px-4 py-3">Cliente</th>
+              <th class="px-4 py-3 text-right">Valor</th>
+              <th class="px-4 py-3">Venc.</th>
+              <th class="px-4 py-3">Situação</th>
+              <th class="px-4 py-3">Origem</th>
+            </tr>
+          </thead>
+          <tbody id="erp-tbody" class="font-semibold text-slate-800"></tbody>
+        </table>
+        <p id="erp-vazio" class="hidden p-6 text-lg font-bold text-slate-500">Nenhum lançamento encontrado.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="panel-tab-agro" class="consulta-panel hidden w-full">
+  <div class="flex min-h-0 w-full flex-col gap-4 rounded-2xl border-2 border-orange-200/80 bg-white p-6 lg:p-8 shadow-sm">
+    <h2 class="text-xl font-black uppercase tracking-tight text-orange-900 lg:text-2xl">Registros Agro (gestão)</h2>
+    <p class="text-base font-semibold text-slate-600">Tipo <strong>Todos / Externos / Internos</strong> está no painel <strong>Filtros</strong>.</p>
+    <div id="lista-emp" class="min-h-[min(58vh,32rem)] max-h-[min(65vh,36rem)] w-full overflow-y-auto text-lg font-semibold text-slate-600">Carregando…</div>
+  </div>
+</div>
+
+<div id="consulta-filtros-overlay" class="fixed inset-0 z-[100] hidden" aria-hidden="true">
+  <button type="button" id="consulta-filtros-backdrop" class="absolute inset-0 bg-slate-900/65" aria-label="Fechar filtros"></button>
+  <div class="pointer-events-none absolute inset-0 flex items-end justify-center sm:items-center sm:p-4">
+    <div id="consulta-filtros-panel" class="pointer-events-auto relative flex max-h-[min(92dvh,880px)] w-full max-w-3xl flex-col rounded-t-3xl border-2 border-slate-200 bg-white shadow-2xl sm:rounded-2xl" role="dialog" aria-labelledby="consulta-filtros-titulo">
+      <div class="flex shrink-0 items-start justify-between gap-4 border-b-2 border-slate-100 px-5 py-4 sm:px-6 sm:py-5">
+        <div>
+          <h2 id="consulta-filtros-titulo" class="text-xl font-black uppercase tracking-tight text-slate-900 sm:text-2xl">Filtros da consulta</h2>
+          <p class="mt-1 text-base font-semibold text-slate-600">Tudo abaixo vale para as duas abas. Alterações aplicam na hora.</p>
+        </div>
+        <button type="button" id="consulta-filtros-fechar" class="min-h-[48px] min-w-[48px] shrink-0 rounded-xl border-2 border-slate-200 bg-slate-50 text-2xl font-black leading-none text-slate-700 hover:bg-slate-100" aria-label="Fechar">&times;</button>
+      </div>
+      <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6 space-y-8">
+        <section class="space-y-4">
+          <h3 class="text-base font-black uppercase text-slate-800">Registros Agro — tipo</h3>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="filtro-lista min-h-[52px] rounded-xl border-2 border-slate-800 bg-slate-800 px-6 py-3 text-sm font-black uppercase text-white" data-filtro="">Todos</button>
+            <button type="button" class="filtro-lista min-h-[52px] rounded-xl border-2 border-emerald-200 bg-emerald-50 px-6 py-3 text-sm font-black uppercase text-emerald-900" data-filtro="externo">Externos</button>
+            <button type="button" class="filtro-lista min-h-[52px] rounded-xl border-2 border-orange-200 bg-orange-50 px-6 py-3 text-sm font-black uppercase text-orange-900" data-filtro="interno">Internos</button>
+          </div>
+        </section>
+        <section class="space-y-4 border-t border-slate-100 pt-6">
+          <h3 class="text-base font-black uppercase text-slate-800">Nome / pessoa</h3>
+          <label class="block">
+            <span class="mb-2 block text-sm font-black uppercase text-slate-600">Nome contém (credor, cliente ou sócio)</span>
+            <input type="text" id="consulta-filtro-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-emerald-500 outline-none" placeholder="Ex.: parte do nome…">
+          </label>
+          <label class="block">
+            <span class="mb-2 block text-sm font-black uppercase text-slate-600">Buscar no Mongo (sugestões)</span>
+            <div id="consulta-sug-wrap" class="relative z-[110]">
+              <input type="text" id="consulta-sug-q" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-base font-semibold focus:border-slate-400 outline-none" placeholder="Digite e aguarde sugestões…">
+              <ul id="consulta-sug-dd" class="hidden absolute left-0 right-0 top-full z-[120] mt-1 max-h-56 overflow-y-auto rounded-xl border-2 border-slate-200 bg-white shadow-xl"></ul>
+            </div>
+          </label>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label class="block">
+              <span class="mb-2 block text-sm font-black uppercase text-slate-600">Sugestões: escopo</span>
+              <select id="consulta-mongo-escopo" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 bg-white px-3 text-base font-bold">
+                <option value="todos">Qualquer lançamento</option>
+                <option value="pagar" selected>Só a pagar</option>
+                <option value="receber">Só a receber</option>
+                <option value="emprestimo">Só planos empréstimo</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="mb-2 block text-sm font-black uppercase text-slate-600">Sugestões: ordenar</span>
+              <select id="consulta-mongo-ordenar" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 bg-white px-3 text-base font-bold">
+                <option value="nome">Nome A–Z</option>
+                <option value="nome_desc">Nome Z–A</option>
+                <option value="recente">Mais recentes</option>
+                <option value="frequencia">Mais lançamentos</option>
+              </select>
+            </label>
+          </div>
+          <label class="flex cursor-pointer select-none items-center gap-3 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-4">
+            <input type="checkbox" id="consulta-mongo-usar-empresa" class="h-7 w-7 shrink-0 rounded border-slate-300 accent-emerald-600">
+            <span class="text-base font-bold text-slate-800 leading-snug">Nas sugestões Mongo, usar o <strong>Empresa ID</strong> informado na aba <em>Títulos no Mongo</em> (antes de Carregar).</span>
+          </label>
+        </section>
+        <section class="space-y-4 border-t border-slate-100 pt-6">
+          <h3 class="text-base font-black uppercase text-slate-800">Ordenação das listas</h3>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label class="block">
+              <span class="mb-2 block text-sm font-black uppercase text-emerald-800">Tabela ERP / Mongo</span>
+              <select id="consulta-erp-ordenar" class="w-full min-h-[52px] rounded-xl border-2 border-emerald-100 bg-white px-3 text-base font-bold">
+                <option value="venc_desc" selected>Vencimento (mais novo)</option>
+                <option value="venc_asc">Vencimento (mais antigo)</option>
+                <option value="cliente_az">Cliente A–Z</option>
+                <option value="cliente_za">Cliente Z–A</option>
+                <option value="valor_desc">Valor (maior)</option>
+                <option value="valor_asc">Valor (menor)</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="mb-2 block text-sm font-black uppercase text-orange-800">Registros Agro</span>
+              <select id="consulta-agro-ordenar" class="w-full min-h-[52px] rounded-xl border-2 border-orange-100 bg-white px-3 text-base font-bold">
+                <option value="data_desc" selected>Data (mais nova)</option>
+                <option value="data_asc">Data (mais antiga)</option>
+                <option value="nome_az">Nome A–Z</option>
+                <option value="nome_za">Nome Z–A</option>
+              </select>
+            </label>
+          </div>
+        </section>
+      </div>
+      <div class="shrink-0 border-t-2 border-slate-100 px-5 py-4 sm:px-6">
+        <button type="button" id="consulta-filtros-fechar-rodape" class="w-full min-h-[56px] rounded-xl border-2 border-slate-800 bg-slate-800 py-3 text-lg font-black uppercase text-white hover:bg-slate-900 sm:w-auto sm:px-10">
+          Fechar painel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include "produtos/_atalho_voltar_pdv.html" %}
+
+<script>
+(function () {
+  const API_LIST = "{% url 'api_emprestimos_listar' %}";
+  const API_ERP = "{% url 'api_emprestimos_erp_lancamentos' %}";
+  const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
+
+  let filtroLista = '';
+  let erpItensCache = null;
+  let agroItensCache = null;
+
+  function escHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function needle() {
+    return (document.getElementById('consulta-filtro-nome') || {}).value.trim().toLowerCase();
+  }
+
+  function filtrarPorNomeErp(itens) {
+    var n = needle();
+    if (!n) return itens.slice();
+    return itens.filter(function (it) {
+      var c = String(it.cliente || '').toLowerCase();
+      var p = String(it.plano_conta || '').toLowerCase();
+      return c.indexOf(n) !== -1 || p.indexOf(n) !== -1;
+    });
+  }
+
+  function filtrarPorNomeAgro(itens) {
+    var n = needle();
+    if (!n) return itens.slice();
+    return itens.filter(function (x) {
+      var a = (x.credor_nome || '').toLowerCase();
+      var b = (x.mutuario_label || '').toLowerCase();
+      var r = String(x.ref || '').toLowerCase();
+      return a.indexOf(n) !== -1 || b.indexOf(n) !== -1 || r.indexOf(n) !== -1;
+    });
+  }
+
+  function parseDv(s) {
+    var t = (s || '').slice(0, 10);
+    if (!t) return '';
+    return t;
+  }
+
+  function ordenarErpItens(itens, ord) {
+    var o = ord || 'venc_desc';
+    var arr = itens.slice();
+    function cliente(it) {
+      return String(it.cliente || '').toLowerCase();
+    }
+    function val(it) {
+      return Number(it.valor_bruto || 0);
+    }
+    if (o === 'venc_asc') {
+      arr.sort(function (a, b) { return parseDv(a.data_vencimento).localeCompare(parseDv(b.data_vencimento)); });
+    } else if (o === 'cliente_az') {
+      arr.sort(function (a, b) { return cliente(a).localeCompare(cliente(b)); });
+    } else if (o === 'cliente_za') {
+      arr.sort(function (a, b) { return cliente(b).localeCompare(cliente(a)); });
+    } else if (o === 'valor_asc') {
+      arr.sort(function (a, b) { return val(a) - val(b); });
+    } else if (o === 'valor_desc') {
+      arr.sort(function (a, b) { return val(b) - val(a); });
+    } else {
+      arr.sort(function (a, b) { return parseDv(b.data_vencimento).localeCompare(parseDv(a.data_vencimento)); });
+    }
+    return arr;
+  }
+
+  function nomeAgro(x) {
+    return String(x.credor_nome || x.mutuario_label || '').toLowerCase();
+  }
+
+  function ordenarAgroItens(itens, ord) {
+    var o = ord || 'data_desc';
+    var arr = itens.slice();
+    if (o === 'data_asc') {
+      arr.sort(function (a, b) { return String(a.created_at || '').localeCompare(String(b.created_at || '')); });
+    } else if (o === 'nome_az') {
+      arr.sort(function (a, b) { return nomeAgro(a).localeCompare(nomeAgro(b)); });
+    } else if (o === 'nome_za') {
+      arr.sort(function (a, b) { return nomeAgro(b).localeCompare(nomeAgro(a)); });
+    } else {
+      arr.sort(function (a, b) { return String(b.created_at || '').localeCompare(String(a.created_at || '')); });
+    }
+    return arr;
+  }
+
+  function aplicarFiltroListaErp(itens) {
+    var f = filtroLista.trim().toLowerCase();
+    if (f !== 'externo' && f !== 'interno') return itens.slice();
+    return itens.filter(function (it) {
+      return String(it.emprestimo_tipo || 'externo').toLowerCase() === f;
+    });
+  }
+
+  function aplicarFiltroTipoAgro(itens) {
+    var f = filtroLista.trim().toLowerCase();
+    if (f !== 'externo' && f !== 'interno') return itens.slice();
+    return itens.filter(function (x) {
+      var xt = String(x.tipo || '').trim().toLowerCase();
+      if (xt === f) return true;
+      if (f === 'externo' && (x.credor_nome || '').trim() && !(x.mutuario_label || '').trim()) return true;
+      if (f === 'interno' && (x.mutuario_label || '').trim()) return true;
+      return false;
+    });
+  }
+
+  function pipelineErpMostrar() {
+    if (erpItensCache === null) return;
+    var base = erpItensCache.slice();
+    var a = aplicarFiltroListaErp(base);
+    var b = filtrarPorNomeErp(a);
+    var ord = (document.getElementById('consulta-erp-ordenar') || {}).value || 'venc_desc';
+    var c = ordenarErpItens(b, ord);
+    renderErpTabela(c, {
+      vazioFiltrado: c.length === 0 && base.length > 0
+    });
+  }
+
+  function renderAgroHtml(itens) {
+    const el = document.getElementById('lista-emp');
+    if (!itens.length) {
+      el.innerHTML = '<p class="text-lg font-bold text-slate-500">Nenhum registro neste filtro.</p>';
+      return;
+    }
+    const rows = itens.map(function (x) {
+      const tipo = x.tipo === 'interno' ? '<span class="text-orange-700 font-black">INTERNO</span>' : '<span class="text-emerald-800 font-black">EXTERNO</span>';
+      const ref = x.ref || '—';
+      const quem = x.credor_nome || x.mutuario_label || '—';
+      const v1 = typeof x.valor_recebido === 'number' ? x.valor_recebido : (x.valor_aporte || 0);
+      const v2 = typeof x.valor_total_devido === 'number' ? x.valor_total_devido : (x.valor_devolucao_total || 0);
+      const dt = (x.created_at || '').slice(0, 19).replace('T', ' ');
+      return '<div class="rounded-xl border-2 border-slate-100 bg-slate-50/90 px-5 py-4 mb-3 flex flex-wrap items-center justify-between gap-3">' +
+        '<div><span class="text-sm font-black uppercase text-slate-500">' + tipo + ' · ref ' + escHtml(ref) + '</span>' +
+        '<div class="text-xl font-black text-slate-900 mt-1">' + escHtml(quem) + '</div>' +
+        '<div class="text-base font-semibold text-slate-600 mt-1">Entrada/aporte R$ ' + Number(v1).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) +
+        ' · Total R$ ' + Number(v2).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + '</div></div>' +
+        '<div class="text-sm font-bold text-slate-400">' + escHtml(dt) + '</div></div>';
+    });
+    el.innerHTML = rows.join('');
+  }
+
+  function pipelineAgroMostrar() {
+    if (!agroItensCache) return;
+    var a = aplicarFiltroTipoAgro(agroItensCache.slice());
+    var b = filtrarPorNomeAgro(a);
+    var ord = (document.getElementById('consulta-agro-ordenar') || {}).value || 'data_desc';
+    var c = ordenarAgroItens(b, ord);
+    renderAgroHtml(c);
+  }
+
+  function renderErpTabela(itens, opts) {
+    opts = opts || {};
+    var tb = document.getElementById('erp-tbody');
+    var vz = document.getElementById('erp-vazio');
+    tb.innerHTML = '';
+    if (!itens.length) {
+      vz.classList.remove('hidden');
+      vz.textContent = opts.vazioFiltrado
+        ? 'Nenhum resultado com estes filtros. Limpe o nome ou use “Todos” nos tipos.'
+        : 'Nenhum lançamento encontrado.';
+      return;
+    }
+    vz.classList.add('hidden');
+    itens.forEach(function (it) {
+      var tr = document.createElement('tr');
+      tr.className = 'border-t border-slate-100 align-top';
+      var tipo = it.despesa ? 'Pagar' : 'Receber';
+      var val = Number(it.valor_bruto || 0);
+      var orig = it.origem_erp ? 'ERP' : (it.manual_agro ? 'Agro' : '—');
+      var sit = it.pago ? 'Quitado' : 'Aberto';
+      var dv = (it.data_vencimento || '').slice(0, 10);
+      var rot = String(it.emprestimo_tipo || 'externo').toLowerCase() === 'interno' ? 'INT' : 'EXT';
+      tr.innerHTML =
+        '<td class="px-4 py-3">' + escHtml(tipo) + '</td>' +
+        '<td class="px-4 py-3 max-w-[14rem]" title="' + escHtml(it.plano_conta) + '"><span class="line-clamp-2">' + escHtml(it.plano_conta) + '</span></td>' +
+        '<td class="px-4 py-3 max-w-[12rem]" title="' + escHtml(it.cliente) + '"><span class="line-clamp-2">' + escHtml(it.cliente) + '</span></td>' +
+        '<td class="px-4 py-3 text-right tabular-nums font-bold">' + escHtml(val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })) + '</td>' +
+        '<td class="px-4 py-3 whitespace-nowrap">' + escHtml(dv) + '</td>' +
+        '<td class="px-4 py-3">' + escHtml(sit) + '</td>' +
+        '<td class="px-4 py-3 font-black text-sm">' + escHtml(orig + ' · ' + rot) + '</td>';
+      tb.appendChild(tr);
+    });
+  }
+
+  async function carregarLista() {
+    const el = document.getElementById('lista-emp');
+    el.textContent = 'Carregando…';
+    try {
+      const u = new URL(API_LIST, window.location.origin);
+      const f = filtroLista.trim().toLowerCase();
+      if (f === 'externo' || f === 'interno') u.searchParams.set('tipo', f);
+      else u.searchParams.delete('tipo');
+      const r = await fetch(u.toString(), { credentials: 'same-origin' });
+      const j = await r.json();
+      agroItensCache = j.itens || [];
+      pipelineAgroMostrar();
+    } catch (e) {
+      agroItensCache = null;
+      el.textContent = 'Erro ao carregar lista.';
+    }
+  }
+
+  function aplicarEstiloFiltroListaButtons() {
+    document.querySelectorAll('.filtro-lista').forEach(function (b) {
+      var on = (b.getAttribute('data-filtro') || '').trim().toLowerCase() === filtroLista;
+      var f = (b.getAttribute('data-filtro') || '').trim().toLowerCase();
+      var base = 'filtro-lista min-h-[52px] rounded-xl border-2 px-6 py-3 text-sm font-black uppercase';
+      if (on) {
+        b.className = base + ' border-slate-800 bg-slate-800 text-white';
+      } else if (f === 'externo') {
+        b.className = base + ' border-emerald-200 bg-emerald-50 text-emerald-900';
+      } else if (f === 'interno') {
+        b.className = base + ' border-orange-200 bg-orange-50 text-orange-900';
+      } else {
+        b.className = base + ' border-slate-200 bg-slate-50 text-slate-700';
+      }
+    });
+  }
+
+  document.querySelectorAll('.filtro-lista').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      filtroLista = (e.currentTarget.getAttribute('data-filtro') || '').trim().toLowerCase();
+      aplicarEstiloFiltroListaButtons();
+      carregarLista();
+      pipelineErpMostrar();
+    });
+  });
+  aplicarEstiloFiltroListaButtons();
+
+  function setConsultaTab(tab) {
+    var erp = document.getElementById('panel-tab-erp');
+    var ag = document.getElementById('panel-tab-agro');
+    var bErp = document.getElementById('tab-btn-erp');
+    var bAg = document.getElementById('tab-btn-agro');
+    var tInactive = 'tab-consulta min-h-[52px] flex-1 rounded-xl border-2 border-slate-200 bg-white px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-slate-700 shadow-sm sm:flex-none sm:px-8';
+    if (tab === 'agro') {
+      erp.classList.add('hidden');
+      ag.classList.remove('hidden');
+      bErp.className = tInactive + ' hover:border-emerald-400';
+      bAg.className = 'tab-consulta min-h-[52px] flex-1 rounded-xl border-2 border-orange-500 bg-orange-500 px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-md sm:flex-none sm:px-8';
+    } else {
+      erp.classList.remove('hidden');
+      ag.classList.add('hidden');
+      bErp.className = 'tab-consulta min-h-[52px] flex-1 rounded-xl border-2 border-emerald-600 bg-emerald-600 px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-md sm:flex-none sm:px-8';
+      bAg.className = tInactive + ' hover:border-orange-400';
+    }
+  }
+  document.getElementById('tab-btn-erp').addEventListener('click', function () { setConsultaTab('erp'); });
+  document.getElementById('tab-btn-agro').addEventListener('click', function () { setConsultaTab('agro'); });
+
+  var overlay = document.getElementById('consulta-filtros-overlay');
+  function abrirFiltrosConsulta() {
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('overflow-hidden');
+  }
+  function fecharFiltrosConsulta() {
+    overlay.classList.add('hidden');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('overflow-hidden');
+  }
+  document.getElementById('btn-abrir-filtros').addEventListener('click', abrirFiltrosConsulta);
+  document.getElementById('consulta-filtros-backdrop').addEventListener('click', fecharFiltrosConsulta);
+  document.getElementById('consulta-filtros-fechar').addEventListener('click', fecharFiltrosConsulta);
+  document.getElementById('consulta-filtros-fechar-rodape').addEventListener('click', fecharFiltrosConsulta);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !overlay.classList.contains('hidden')) fecharFiltrosConsulta();
+  });
+
+  async function carregarErpMongo() {
+    var tb = document.getElementById('erp-tbody');
+    var vz = document.getElementById('erp-vazio');
+    tb.innerHTML = '';
+    vz.textContent = 'Carregando…';
+    vz.classList.remove('hidden');
+    try {
+      var u = new URL(API_ERP, window.location.origin);
+      var fe = document.getElementById('erp-filtro-empresa-id').value.trim();
+      if (fe) u.searchParams.set('empresa_id', fe);
+      var r = await fetch(u.toString(), { credentials: 'same-origin' });
+      var j = await r.json();
+      erpItensCache = j.itens || [];
+      pipelineErpMostrar();
+    } catch (e) {
+      erpItensCache = null;
+      vz.classList.remove('hidden');
+      vz.textContent = 'Erro ao carregar.';
+    }
+  }
+
+  document.getElementById('btn-erp-carregar').addEventListener('click', carregarErpMongo);
+
+  var tNome = null;
+  document.getElementById('consulta-filtro-nome').addEventListener('input', function () {
+    clearTimeout(tNome);
+    tNome = setTimeout(function () {
+      pipelineErpMostrar();
+      pipelineAgroMostrar();
+    }, 200);
+  });
+
+  document.getElementById('consulta-erp-ordenar').addEventListener('change', pipelineErpMostrar);
+  document.getElementById('consulta-agro-ordenar').addEventListener('change', pipelineAgroMostrar);
+
+  var sugInp = document.getElementById('consulta-sug-q');
+  var sugDd = document.getElementById('consulta-sug-dd');
+  var sugTimer = null;
+  sugInp.addEventListener('input', function () {
+    clearTimeout(sugTimer);
+    sugTimer = setTimeout(async function () {
+      try {
+        var u = new URL(API_SUG, window.location.origin);
+        u.searchParams.set('campo', 'cliente');
+        u.searchParams.set('q', sugInp.value.trim());
+        u.searchParams.set('limit', '40');
+        u.searchParams.set('ordenar', document.getElementById('consulta-mongo-ordenar').value);
+        u.searchParams.set('escopo', document.getElementById('consulta-mongo-escopo').value);
+        if (document.getElementById('consulta-mongo-usar-empresa').checked) {
+          var eid = document.getElementById('erp-filtro-empresa-id').value.trim();
+          if (eid) u.searchParams.set('empresa_id', eid);
+        }
+        var r = await fetch(u.toString(), { credentials: 'same-origin' });
+        var j = await r.json();
+        sugDd.innerHTML = '';
+        (j.itens || []).forEach(function (it) {
+          var li = document.createElement('li');
+          li.textContent = it.nome;
+          li.className = 'px-4 py-3 cursor-pointer hover:bg-emerald-50 text-base font-semibold border-b border-slate-100 last:border-0 min-h-[44px] flex items-center';
+          li.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            document.getElementById('consulta-filtro-nome').value = it.nome;
+            sugDd.classList.add('hidden');
+            pipelineErpMostrar();
+            pipelineAgroMostrar();
+          });
+          sugDd.appendChild(li);
+        });
+        sugDd.classList.toggle('hidden', sugDd.children.length === 0);
+      } catch (e2) {
+        sugDd.classList.add('hidden');
+      }
+    }, 280);
+  });
+  sugInp.addEventListener('blur', function () {
+    setTimeout(function () { sugDd.classList.add('hidden'); }, 200);
+  });
+  ['consulta-mongo-escopo', 'consulta-mongo-ordenar', 'consulta-mongo-usar-empresa'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function () {
+      if (sugInp.value.trim().length) sugInp.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  });
+
+  carregarLista();
+})();
+</script>
+{% endblock %}

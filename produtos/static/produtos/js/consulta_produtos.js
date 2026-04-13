@@ -846,6 +846,7 @@ function prepararProduto(produto) {
         busca_texto: buscaTexto,
         saldo_centro: Number(produto.saldo_centro || produto.estoque_centro || produto.saldo || 0),
         saldo_vila: Number(produto.saldo_vila || produto.estoque_vila || produto.saldo_filial || 0),
+        qtd_separacao_transferencia: Number(produto.qtd_separacao_transferencia || 0),
         preco_venda: Number(produto.preco_venda || produto.preco || produto.valor || 0),
         media_venda_diaria_30d: Number(produto.media_venda_diaria_30d || 0)
     };
@@ -934,7 +935,7 @@ function renderizarCatalogoRapido(lista) {
                 </div>
                 <div class="shrink-0 text-right">
                     <div class="text-sm font-black text-emerald-600">${formatarMoeda(produto.preco_venda)}</div>
-                    <div class="text-[10px] font-bold uppercase text-slate-400"><span class="text-emerald-700">Centro: ${Number(produto.saldo_centro || 0)}</span> • Vila: ${Number(produto.saldo_vila || 0)} • Total: ${(Number(produto.saldo_centro || 0) + Number(produto.saldo_vila || 0)).toFixed(1)}</div>
+                    <div class="text-[10px] font-bold uppercase text-slate-400"><span class="text-emerald-700">Centro: ${Number(produto.saldo_centro || 0)}</span> • Vila: ${Number(produto.saldo_vila || 0)} • Total: ${(Number(produto.saldo_centro || 0) + Number(produto.saldo_vila || 0)).toFixed(1)}${Number(produto.qtd_separacao_transferencia || 0) > 0 ? ' <span class="text-sky-700 normal-case" title="Qtd na separação de transferência (impresso)">(' + Number(produto.qtd_separacao_transferencia) + ')</span>' : ''}</div>
                 </div>
             </div>
         `;
@@ -1322,6 +1323,11 @@ function renderizarSugestoes() {
         const codigoCopiar = gm || String(s.codigo_barras || '').trim();
         const c = Number(s.saldo_centro || 0);
         const v = Number(s.saldo_vila || 0);
+        const qSep = Number(s.qtd_separacao_transferencia || 0);
+        const sepSaldoHtml =
+            qSep > 0
+                ? `<span class="text-[10px] font-black text-sky-800 tabular-nums" title="Qtd na separação de transferência (impresso)"> (${Math.round(qSep)})</span>`
+                : '';
         const totalEstoque = c + v;
         const saldoRefC = Number(s.saldo_erp_centro ?? s.saldo_centro ?? 0);
         const saldoRefV = Number(s.saldo_erp_vila ?? s.saldo_vila ?? 0);
@@ -1352,12 +1358,12 @@ function renderizarSugestoes() {
                     <div class="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 shrink-0 ml-auto">
                         <div class="flex items-center gap-1 rounded-md bg-emerald-600/10 px-1.5 py-0.5 ring-1 ring-emerald-500/35">
                             <span class="text-[9px] font-black uppercase text-emerald-900">Centro</span>
-                            <span class="text-base sm:text-lg font-black text-emerald-950 tabular-nums leading-none">${saldoPiso(c)}</span>
+                            <span class="text-base sm:text-lg font-black text-emerald-950 tabular-nums leading-none">${saldoPiso(c)}</span>${sepSaldoHtml}
                             <button type="button" data-adj-c class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-white/90 text-emerald-800 ring-1 ring-emerald-300/60 hover:bg-emerald-50 transition-colors shrink-0" aria-label="Ajustar Centro">${lapiz}</button>
                         </div>
                         <div class="flex items-center gap-1 rounded-md bg-slate-100/90 px-1.5 py-0.5 ring-1 ring-slate-200/80">
                             <span class="text-[8px] font-bold uppercase text-slate-500">Vila</span>
-                            <span class="text-xs font-semibold text-slate-700 tabular-nums">${saldoPiso(v)}</span>
+                            <span class="text-xs font-semibold text-slate-700 tabular-nums">${saldoPiso(v)}</span>${sepSaldoHtml}
                             <button type="button" data-adj-v class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 transition-colors shrink-0" aria-label="Ajustar Vila Elias">${lapiz}</button>
                         </div>
                         <span class="text-[9px] text-slate-400 font-semibold tabular-nums px-1 py-0.5 rounded bg-slate-50 ring-1 ring-slate-100">Σ ${saldoPiso(totalEstoque)}</span>
@@ -2522,7 +2528,14 @@ function forcarAtualizacao(produtoId) {
                 baseProdutos[idx].preco_venda = produtoAtualizado.preco_venda;
                 baseProdutos[idx].saldo_centro = produtoAtualizado.saldo_centro;
                 baseProdutos[idx].saldo_vila = produtoAtualizado.saldo_vila;
+                if (typeof produtoAtualizado.qtd_separacao_transferencia !== 'undefined') {
+                    baseProdutos[idx].qtd_separacao_transferencia =
+                        produtoAtualizado.qtd_separacao_transferencia;
+                }
             }
+
+            sincronizarSaldosNasListasVisiveis();
+            if (sugestoesAtuais.length) renderizarSugestoes();
 
             // Dá o feedback de Sucesso e volta ao normal
             setTimeout(() => {
@@ -2865,6 +2878,7 @@ function enriquecerProdutoBusca(p) {
                 mediaApi != null && mediaApi !== '' ? mediaApi : 0
             ),
             preco_etiqueta_balanca: !!p.preco_etiqueta_balanca,
+            qtd_separacao_transferencia: Number(p.qtd_separacao_transferencia || 0),
         };
     }
     const prat =
@@ -2882,6 +2896,10 @@ function enriquecerProdutoBusca(p) {
         saldo_vila: p.saldo_vila != null ? p.saldo_vila : loc.saldo_vila,
         saldo_erp_centro: p.saldo_erp_centro != null ? p.saldo_erp_centro : loc.saldo_erp_centro,
         saldo_erp_vila: p.saldo_erp_vila != null ? p.saldo_erp_vila : loc.saldo_erp_vila,
+        qtd_separacao_transferencia:
+            p.qtd_separacao_transferencia != null && p.qtd_separacao_transferencia !== ''
+                ? Number(p.qtd_separacao_transferencia)
+                : Number(loc.qtd_separacao_transferencia || 0),
         busca_texto: loc.busca_texto || p.busca_texto || montarBuscaTextoRapido({ ...loc, ...p, prateleira: prat }),
         media_venda_diaria_30d: Number(
             mediaApi != null && mediaApi !== ''
@@ -3712,6 +3730,7 @@ function sincronizarSaldosNasListasVisiveis() {
             s.saldo_vila = u.saldo_vila;
             s.saldo_erp_centro = u.saldo_erp_centro;
             s.saldo_erp_vila = u.saldo_erp_vila;
+            s.qtd_separacao_transferencia = Number(u.qtd_separacao_transferencia || 0);
         });
     };
     patch(sugestoesAtuais);
@@ -3725,6 +3744,7 @@ function sincronizarSaldosNasListasVisiveis() {
                 saldo_vila: u.saldo_vila,
                 saldo_erp_centro: u.saldo_erp_centro,
                 saldo_erp_vila: u.saldo_erp_vila,
+                qtd_separacao_transferencia: Number(u.qtd_separacao_transferencia || 0),
             };
         }
     }

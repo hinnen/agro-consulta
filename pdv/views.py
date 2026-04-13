@@ -84,6 +84,10 @@ def pdv_home(request):
                 "apiPdvSalvarCheckoutDraft": reverse("api_pdv_salvar_checkout_draft"),
                 "apiPdvLimparCheckoutDraft": reverse("api_pdv_limpar_checkout_draft"),
                 "apiEnviarPedidoErp": reverse("api_enviar_pedido_erp"),
+                "apiPdvMpPointCriar": reverse("api_pdv_mp_point_criar"),
+                "apiPdvMpPointStatus": reverse("api_pdv_mp_point_status"),
+                "apiPdvMpPointFinalizar": reverse("api_pdv_mp_point_finalizar"),
+                "apiPdvMpPointAbandon": reverse("api_pdv_mp_point_abandon"),
                 "apiEntregaRegistrar": reverse("api_entrega_registrar"),
                 "apiLoginMobile": reverse("api_login_mobile"),
                 "pdvCheckout": reverse("pdv_checkout"),
@@ -111,6 +115,11 @@ def pdv_home(request):
                 "rurais": list(BAIRROS_JACUPI_RURAIS),
             },
             "pagamentoUi": {
+                "mpPointEnabled": bool(
+                    getattr(settings, "MP_POINT_ENABLED", False)
+                    and (getattr(settings, "MP_POINT_ACCESS_TOKEN", "") or "").strip()
+                    and (getattr(settings, "MP_POINT_TERMINAL_ID", "") or "").strip()
+                ),
                 "qrMercadoPagoUrl": settings.PDV_QR_MERCADOPAGO_URL,
                 "qrSicrediUrl": settings.PDV_QR_SICREDI_URL,
                 "chavePixSicob": settings.PDV_CHAVE_PIX_SICOB,

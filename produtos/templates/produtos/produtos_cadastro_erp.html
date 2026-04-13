@@ -1,0 +1,1006 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <title>Agro Mais | Cadastro de produtos (ERP)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .gm-bar-cad {
+      background: linear-gradient(90deg, rgba(5,150,105,0.12) 0%, rgba(234,88,12,0.10) 100%);
+    }
+    .scroll-cad::-webkit-scrollbar { width: 10px; height: 10px; }
+    .scroll-cad::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 8px; }
+    .scroll-cad::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+    .scroll-cad::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .scroll-cad { scrollbar-width: thin; scrollbar-color: #cbd5e1 #f1f5f9; }
+  </style>
+</head>
+<body class="h-screen overflow-hidden bg-slate-50 text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
+
+  <header class="gm-bar-cad border-b border-slate-200/80 shrink-0 z-20">
+    <div class="max-w-[1700px] mx-auto px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+          <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-base sm:text-lg font-black uppercase tracking-tight text-slate-800 leading-tight">
+            GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-orange-500">Cadastro produtos</span>
+          </h1>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Espelho ERP (Mongo) — sem saldo de estoque</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <details class="relative">
+          <summary class="list-none cursor-pointer text-xs font-black uppercase bg-white shadow-sm px-3 py-2 rounded-xl border border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-800 transition-colors min-h-[44px] inline-flex items-center select-none">
+            Ajuda <span class="text-slate-400 ml-1">?</span>
+          </summary>
+          <div class="absolute right-0 mt-1 w-[min(100vw-1.5rem,22rem)] z-30 bg-white border border-slate-200 rounded-xl shadow-xl p-3 text-sm text-slate-700 leading-snug">
+            <p class="font-bold text-slate-900 mb-2">Consulta de cadastro</p>
+            <ul class="list-disc pl-4 space-y-1 text-[13px]">
+              <li>Dados vêm do mesmo cadastro usado no PDV (sincronizado com o ERP).</li>
+              <li>Esta tela <strong>não</strong> mostra saldo; alterações definitivas de produto continuam no ERP.</li>
+              <li>Busque por nome, marca ou código. Lista alfabética quando a busca está vazia.</li>
+              <li>Ao escolher um produto, o painel direito carrega o <strong>detalhe completo</strong> (custos/MVA, composição, similares, flags de kit e estoque, etc.) a partir do Mongo — o que existir no documento do ERP.</li>
+              <li>Aba <strong>Grupos</strong>: cadastro local no Agro — um nome e um preço, com várias marcas/códigos de barras (preço igual para todas). Use <strong>Preencher do ERP</strong> na linha para copiar marca e código do espelho.</li>
+              <li><kbd class="text-[10px] px-1 rounded border border-slate-300 bg-slate-50 font-mono font-black">F2</kbd> foca na busca (aba ERP) ou no nome do grupo; fora de campos, <kbd class="text-[10px] px-1 rounded border border-slate-300 bg-slate-50 font-mono font-black">F1</kbd> volta ao PDV.</li>
+            </ul>
+          </div>
+        </details>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-3 py-2 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-orange-400 hover:text-orange-600 transition-colors shrink-0" %}
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-[1700px] mx-auto w-full px-3 sm:px-4 pt-2 pb-1 shrink-0 flex flex-wrap gap-2" role="tablist" aria-label="Modo de cadastro">
+    <button type="button" id="tab-erp" role="tab" aria-selected="true"
+      class="min-h-[44px] px-4 rounded-xl text-sm font-black uppercase border-2 border-emerald-600 bg-emerald-50 text-emerald-900 shadow-sm">
+      Espelho ERP
+    </button>
+    <button type="button" id="tab-grupos" role="tab" aria-selected="false"
+      class="min-h-[44px] px-4 rounded-xl text-sm font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-700 shadow-sm">
+      Grupos (várias marcas)
+    </button>
+  </div>
+
+  <div id="panel-erp" class="flex flex-col flex-1 min-h-0">
+  <div class="max-w-[1700px] mx-auto w-full px-3 sm:px-4 py-3 shrink-0 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+    <label class="flex-1 min-w-0 block">
+      <span class="sr-only">Buscar produto</span>
+      <input type="search" id="cadastro-busca" autocomplete="off" enterkeyhint="search" placeholder="Nome, marca, código ou código de barras…"
+        class="w-full min-h-[48px] px-4 rounded-xl border-[3px] border-emerald-500 text-lg font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-200/50 bg-white shadow-sm" />
+    </label>
+    <label class="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-sm cursor-pointer select-none min-h-[48px] shrink-0">
+      <input type="checkbox" id="cadastro-inativos" class="w-5 h-5 rounded border-slate-300 text-orange-600 focus:ring-orange-400" />
+      <span class="text-sm font-black uppercase text-slate-700">Incluir inativos</span>
+    </label>
+  </div>
+
+  <div id="cadastro-erro" class="hidden max-w-[1700px] mx-auto w-full px-3 sm:px-4 text-sm font-bold text-red-700 bg-red-50 border border-red-200 rounded-xl py-2 mb-2" role="alert"></div>
+
+  <main class="flex-1 min-h-0 max-w-[1700px] mx-auto w-full px-3 sm:px-4 pb-3 grid grid-cols-1 lg:grid-cols-5 gap-3">
+    <section class="lg:col-span-2 flex flex-col min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" aria-label="Lista de produtos">
+      <div class="px-3 py-2 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-slate-50/80">
+        <span id="cadastro-lista-meta" class="text-xs font-black uppercase text-slate-500 tracking-wide">Carregando…</span>
+        <div id="cadastro-paginacao" class="flex items-center gap-1 flex-wrap">
+          <button type="button" id="cadastro-prev" class="min-h-[40px] px-3 rounded-lg text-xs font-black uppercase bg-white border-2 border-slate-200 text-slate-700 hover:border-emerald-500 disabled:opacity-40 disabled:pointer-events-none">Anterior</button>
+          <button type="button" id="cadastro-next" class="min-h-[40px] px-3 rounded-lg text-xs font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700 hover:bg-emerald-700 disabled:opacity-40 disabled:pointer-events-none">Próxima</button>
+        </div>
+      </div>
+      <div id="cadastro-lista" class="flex-1 min-h-0 overflow-y-auto scroll-cad p-2 space-y-2" tabindex="-1"></div>
+    </section>
+    <section class="lg:col-span-3 flex flex-col min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" aria-label="Detalhe do produto">
+      <div class="px-3 py-2 border-b border-slate-100 bg-slate-50/80">
+        <h2 class="text-xs font-black uppercase tracking-widest text-slate-500">Detalhe</h2>
+      </div>
+      <div id="cadastro-detalhe" class="flex-1 min-h-0 overflow-y-auto scroll-cad p-4 text-slate-800">
+        <p class="text-base font-semibold text-slate-500">Selecione um item na lista.</p>
+      </div>
+    </section>
+  </main>
+  </div><!-- /panel-erp -->
+
+  <div id="panel-grupos" class="hidden flex flex-col flex-1 min-h-0" role="tabpanel" aria-hidden="true">
+    {% csrf_token %}
+    <div class="max-w-[1700px] mx-auto w-full px-3 sm:px-4 py-3 shrink-0 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+      <label class="flex-1 min-w-0 block">
+        <span class="sr-only">Buscar grupo</span>
+        <input type="search" id="grupos-busca" autocomplete="off" placeholder="Filtrar grupos pelo nome…"
+          class="w-full min-h-[48px] px-4 rounded-xl border-[3px] border-orange-400 text-lg font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-200/50 bg-white shadow-sm" />
+      </label>
+      <button type="button" id="grupos-btn-novo"
+        class="min-h-[48px] px-5 rounded-xl text-sm font-black uppercase bg-orange-500 hover:bg-orange-600 text-white border-2 border-orange-600 shadow-sm shrink-0">
+        Novo grupo
+      </button>
+    </div>
+    <div id="grupos-erro" class="hidden max-w-[1700px] mx-auto w-full px-3 sm:px-4 text-sm font-bold text-red-700 bg-red-50 border border-red-200 rounded-xl py-2 mb-2" role="alert"></div>
+    <main class="flex-1 min-h-0 max-w-[1700px] mx-auto w-full px-3 sm:px-4 pb-3 grid grid-cols-1 lg:grid-cols-5 gap-3">
+      <section class="lg:col-span-2 flex flex-col min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" aria-label="Lista de grupos">
+        <div class="px-3 py-2 border-b border-slate-100 bg-slate-50/80">
+          <span id="grupos-lista-meta" class="text-xs font-black uppercase text-slate-500 tracking-wide">—</span>
+        </div>
+        <div id="grupos-lista" class="flex-1 min-h-0 overflow-y-auto scroll-cad p-2 space-y-2" tabindex="-1"></div>
+      </section>
+      <section class="lg:col-span-3 flex flex-col min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" aria-label="Editar grupo">
+        <div class="px-3 py-2 border-b border-slate-100 bg-slate-50/80 flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-xs font-black uppercase tracking-widest text-slate-500">Grupo · mesmo preço para todas as marcas</h2>
+          <button type="button" id="grupos-btn-excluir" class="hidden min-h-[40px] px-3 rounded-lg text-xs font-black uppercase bg-red-50 text-red-800 border-2 border-red-200 hover:bg-red-100">
+            Excluir grupo
+          </button>
+        </div>
+        <div id="grupos-editor" class="flex-1 min-h-0 overflow-y-auto scroll-cad p-4 space-y-4 text-slate-800">
+          <p class="text-base font-semibold text-slate-500">Selecione um grupo ou clique em <strong>Novo grupo</strong>.</p>
+        </div>
+      </section>
+    </main>
+  </div><!-- /panel-grupos -->
+
+  <div id="modal-erp-pick" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 bg-slate-900/50" aria-modal="true" role="dialog">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2 bg-slate-50">
+        <h3 class="text-sm font-black uppercase text-slate-700">Escolher no espelho ERP</h3>
+        <button type="button" id="modal-erp-fechar" class="min-h-[40px] px-3 rounded-lg text-xs font-black uppercase border border-slate-200">Fechar</button>
+      </div>
+      <div class="p-3 border-b border-slate-100">
+        <input type="search" id="modal-erp-q" autocomplete="off" placeholder="Nome, marca ou código…"
+          class="w-full min-h-[44px] px-3 rounded-xl border-2 border-emerald-500 text-base font-bold" />
+      </div>
+      <div id="modal-erp-lista" class="flex-1 min-h-0 overflow-y-auto scroll-cad p-2 space-y-1"></div>
+    </div>
+  </div>
+
+  {% include "produtos/_atalho_voltar_pdv.html" %}
+  <script>
+(function () {
+  var API = "{% url 'api_produtos_cadastro' %}";
+  var API_DETALHE_TMPL = "{% url 'api_produtos_cadastro_detalhe' produto_id='x' %}";
+  function urlDetalheProduto(id) {
+    return API_DETALHE_TMPL.replace(/\/x\//, '/' + encodeURIComponent(String(id)) + '/');
+  }
+  var buscaEl = document.getElementById('cadastro-busca');
+  var inativosEl = document.getElementById('cadastro-inativos');
+  var listaEl = document.getElementById('cadastro-lista');
+  var metaEl = document.getElementById('cadastro-lista-meta');
+  var detalheEl = document.getElementById('cadastro-detalhe');
+  var erroEl = document.getElementById('cadastro-erro');
+  var prevEl = document.getElementById('cadastro-prev');
+  var nextEl = document.getElementById('cadastro-next');
+  var pagWrap = document.getElementById('cadastro-paginacao');
+
+  var pagina = 1;
+  var porPagina = 72;
+  var debounceTimer = null;
+  var ultimos = [];
+  var selecionadoId = null;
+  var modoLista = true;
+  var detalheReqSeq = 0;
+
+  function fmtMoney(n) {
+    var x = Number(n);
+    if (!isFinite(x)) x = 0;
+    return x.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function escapeHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function mostrarErro(msg, opcoes) {
+    if (!msg) {
+      erroEl.classList.add('hidden');
+      erroEl.textContent = '';
+      erroEl.innerHTML = '';
+      return;
+    }
+    var hintMongo = opcoes && opcoes.hintMongo;
+    if (hintMongo) {
+      erroEl.innerHTML =
+        '<p class="font-bold">' + escapeHtml(msg) + '</p>' +
+        '<p class="mt-2 text-sm leading-snug">O espelho ERP precisa do Mongo configurado no servidor (<code class="text-xs bg-white/80 px-1 rounded">VENDA_ERP_MONGO_URL</code> e <code class="text-xs bg-white/80 px-1 rounded">VENDA_ERP_MONGO_DB</code> no arquivo <code class="text-xs">.env</code>). Copie os mesmos valores do ambiente onde o PDV já funciona.</p>' +
+        '<button type="button" id="cadastro-erro-ir-grupos" class="mt-3 min-h-[44px] px-4 rounded-xl text-sm font-black uppercase bg-orange-500 hover:bg-orange-600 text-white border-2 border-orange-700">Abrir aba Grupos (funciona sem Mongo)</button>';
+      erroEl.classList.remove('hidden');
+      var b = document.getElementById('cadastro-erro-ir-grupos');
+      if (b) {
+        b.addEventListener('click', function () {
+          var t = document.getElementById('tab-grupos');
+          if (t) t.click();
+        });
+      }
+      return;
+    }
+    erroEl.innerHTML = '';
+    erroEl.textContent = msg;
+    erroEl.classList.remove('hidden');
+  }
+
+  function setLoading(on) {
+    if (window.gmLoadingBar) {
+      if (on) window.gmLoadingBar.show();
+      else window.gmLoadingBar.hide();
+    }
+  }
+
+  function urlFetch() {
+    var q = (buscaEl.value || '').trim();
+    var params = new URLSearchParams();
+    if (inativosEl.checked) params.set('inativos', '1');
+    if (q) {
+      params.set('q', q);
+      params.set('limit', '180');
+    } else {
+      params.set('pagina', String(pagina));
+      params.set('por_pagina', String(porPagina));
+    }
+    return API + '?' + params.toString();
+  }
+
+  function dlRow(label, val) {
+    var s = (val === undefined || val === null) ? '' : String(val).trim();
+    if (!s) return '';
+    return '<div class="flex flex-col sm:flex-row sm:gap-2 border-b border-slate-100 pb-2">' +
+      '<dt class="font-black text-slate-400 uppercase text-[11px] tracking-wide shrink-0 sm:w-40">' + escapeHtml(label) + '</dt>' +
+      '<dd class="font-semibold text-slate-800 break-words">' + escapeHtml(s) + '</dd></div>';
+  }
+
+  function dlRowHtml(label, innerHtml) {
+    return '<div class="flex flex-col sm:flex-row sm:gap-2 border-b border-slate-100 pb-2">' +
+      '<dt class="font-black text-slate-400 uppercase text-[11px] tracking-wide shrink-0 sm:w-40">' + escapeHtml(label) + '</dt>' +
+      '<dd class="font-semibold text-slate-800 break-words">' + innerHtml + '</dd></div>';
+  }
+
+  function badgeSim(v) {
+    return v
+      ? '<span class="text-emerald-900 bg-emerald-100 px-2 py-1 rounded-lg text-xs font-black uppercase">Sim</span>'
+      : '<span class="text-slate-600 bg-slate-100 px-2 py-1 rounded-lg text-xs font-black uppercase">Não</span>';
+  }
+
+  function fmtNumPt(n, dec) {
+    if (n === undefined || n === null || n === '') return '—';
+    var x = Number(n);
+    if (!isFinite(x)) return '—';
+    return x.toLocaleString('pt-BR', {
+      minimumFractionDigits: dec != null ? dec : 2,
+      maximumFractionDigits: dec != null ? dec : 4
+    });
+  }
+
+  function renderTabelaComposicao(itens) {
+    if (!itens || !itens.length) {
+      return '<p class="text-sm text-slate-500 py-2">Nenhum item de composição neste cadastro (ou estrutura não reconhecida no Mongo).</p>';
+    }
+    var h = '<div class="overflow-x-auto rounded-xl border border-slate-200"><table class="w-full text-sm"><thead><tr class="bg-slate-50 text-[10px] font-black uppercase text-slate-500">' +
+      '<th class="text-left px-3 py-2">Depósito</th><th class="text-left px-3 py-2">Produto</th><th class="text-left px-3 py-2">Código</th><th class="text-right px-3 py-2">Qtd</th></tr></thead><tbody>';
+    itens.forEach(function (it) {
+      h += '<tr class="border-t border-slate-100">' +
+        '<td class="px-3 py-2 font-semibold text-slate-700">' + escapeHtml(it.deposito || '—') + '</td>' +
+        '<td class="px-3 py-2">' + escapeHtml(it.nome || '—') + '</td>' +
+        '<td class="px-3 py-2 font-mono text-xs">' + escapeHtml(it.codigo || '') + '</td>' +
+        '<td class="px-3 py-2 text-right font-black">' + fmtNumPt(it.quantidade, 4) + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+    return h;
+  }
+
+  function renderSimilares(lista) {
+    if (!lista || !lista.length) {
+      return '<p class="text-sm text-slate-500">Nenhum similar vinculado.</p>';
+    }
+    var h = '<ul class="space-y-2">';
+    lista.forEach(function (s) {
+      h += '<li class="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm font-semibold text-slate-800">' +
+        escapeHtml(s.nome || '—') +
+        (s.codigo ? ' <span class="text-xs text-slate-500 font-mono">· ' + escapeHtml(s.codigo) + '</span>' : '') +
+        (s.id ? ' <span class="text-[10px] text-slate-400">ID ' + escapeHtml(s.id) + '</span>' : '') +
+        '</li>';
+    });
+    h += '</ul>';
+    return h;
+  }
+
+  function renderDetalheCompleto(p) {
+    var img = p.imagem
+      ? '<div class="mb-4 flex justify-center"><img src="' + String(p.imagem).replace(/"/g, '&quot;') + '" alt="" class="max-h-48 rounded-xl border border-slate-200 object-contain bg-slate-50" loading="lazy" /></div>'
+      : '';
+    var inativo = p.cadastro_inativo || p.inativo
+      ? '<span class="inline-block mb-2 mr-2 px-2 py-1 rounded-lg bg-amber-100 text-amber-900 text-xs font-black uppercase">Cadastro inativo</span>'
+      : '';
+    var oculto = p.ocultar_nas_vendas
+      ? '<span class="inline-block mb-2 px-2 py-1 rounded-lg bg-orange-100 text-orange-900 text-xs font-black uppercase">Ocultar nas vendas</span>'
+      : '';
+    var desc = p.descricao
+      ? '<p class="text-sm text-slate-600 mt-3 leading-relaxed whitespace-pre-wrap">' + escapeHtml(p.descricao) + '</p>'
+      : '';
+    var ncm = p.ncm
+      ? '<div class="mt-2 text-sm"><span class="font-bold text-slate-500">NCM</span> · ' + escapeHtml(p.ncm) + '</div>'
+      : '';
+    var pv = Number(p.preco_venda);
+    var pc = p.preco_custo != null ? Number(p.preco_custo) : null;
+    var pca = p.preco_custo_com_acrescimos != null ? Number(p.preco_custo_com_acrescimos) : null;
+    var mvaRs = p.mva_lucro_reais != null ? Number(p.mva_lucro_reais) : null;
+    var mvaPct = p.mva_lucro_percentual != null ? Number(p.mva_lucro_percentual) : null;
+    var prev =
+      '<div class="mt-4 rounded-2xl border-2 border-slate-200 bg-slate-50/80 p-3 sm:p-4">' +
+      '<h4 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">Pré-visualização · custos e precificação</h4>' +
+      '<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">' +
+      '<div class="rounded-xl bg-white border border-slate-200 p-3"><div class="text-[10px] font-black uppercase text-slate-400">Preço de custo (R$)</div>' +
+      '<div class="text-lg font-black text-slate-900 mt-1">' + (pc != null && isFinite(pc) ? fmtMoney(pc) : '—') + '</div></div>' +
+      '<div class="rounded-xl bg-white border border-slate-200 p-3"><div class="text-[10px] font-black uppercase text-slate-400">(MVA) Lucro R$</div>' +
+      '<div class="text-lg font-black text-emerald-800 mt-1">' + (mvaRs != null && isFinite(mvaRs) ? fmtMoney(mvaRs) : '—') + '</div></div>' +
+      '<div class="rounded-xl bg-white border border-slate-200 p-3"><div class="text-[10px] font-black uppercase text-slate-400">(MVA) Lucro %</div>' +
+      '<div class="text-lg font-black text-emerald-800 mt-1">' + (mvaPct != null && isFinite(mvaPct) ? fmtNumPt(mvaPct, 2) + ' %' : '—') + '</div></div>' +
+      '<div class="rounded-xl border border-orange-200 p-3 bg-orange-50/70"><div class="text-[10px] font-black uppercase text-orange-700">Preço de venda (R$)</div>' +
+      '<div class="text-lg font-black text-orange-700 mt-1">' + (isFinite(pv) ? fmtMoney(pv) : '—') + '</div></div>' +
+      '</div>' +
+      '<div class="mt-2 text-xs text-slate-500 font-semibold">Preço de custo com acréscimos: <span class="text-slate-800">' +
+      (pca != null && isFinite(pca) ? fmtMoney(pca) : '—') + '</span></div></div>';
+
+    var flags =
+      '<div class="mt-4 flex flex-wrap gap-2 items-center">' +
+      '<span class="text-[10px] font-black uppercase text-slate-500">Opções</span>' +
+      '<span class="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700">KIT ' + badgeSim(!!p.eh_kit) + '</span>' +
+      '<span class="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700">Custo auto ' + badgeSim(!!p.calcular_custo_automaticamente) + '</span>' +
+      '<span class="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700">Venda c/ estoque negativo ' + badgeSim(!!p.permite_venda_estoque_negativo) + '</span>' +
+      '<span class="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-slate-700">Não alertar estoque ' + badgeSim(!!p.nao_emitir_alertas_estoque) + '</span>' +
+      '</div>';
+
+    var comissaoLinha = '';
+    if (p.comissao_vendedor_reais != null && isFinite(Number(p.comissao_vendedor_reais))) {
+      comissaoLinha += dlRow('Comissão vendedor (R$)', fmtMoney(Number(p.comissao_vendedor_reais)));
+    }
+    if (p.comissao_vendedor_percentual != null && String(p.comissao_vendedor_percentual).trim() !== '') {
+      comissaoLinha += dlRow('Comissão vendedor (%)', fmtNumPt(p.comissao_vendedor_percentual, 2) + ' %');
+    }
+
+    detalheEl.innerHTML =
+      '<div class="max-w-3xl">' +
+      inativo + oculto +
+      img +
+      '<h3 class="text-xl sm:text-2xl font-black text-slate-900 leading-tight">' + escapeHtml(p.nome || '—') + '</h3>' +
+      prev +
+      flags +
+      '<dl class="mt-4 grid gap-2 text-sm">' +
+      dlRow('Modelo', p.modelo) +
+      dlRow('Fornecedor padrão (nome)', p.fornecedor) +
+      dlRow('Fornecedor padrão (ID)', p.fornecedor_padrao_id) +
+      dlRow('ID ERP', p.id) +
+      dlRow('Marca', p.marca) +
+      dlRow('Código', p.codigo) +
+      dlRow('Código NFe', p.codigo_nfe) +
+      dlRow('Código barras', p.codigo_barras) +
+      dlRow('Unidade', p.unidade) +
+      dlRow('Unidade de estoque', p.unidade_estoque) +
+      dlRow('Categoria', p.categoria) +
+      dlRow('Subcategoria', p.subcategoria) +
+      dlRow('Prateleira / local', p.prateleira) +
+      dlRow('Estoque mínimo', p.estoque_minimo != null ? fmtNumPt(p.estoque_minimo, 4) : '') +
+      dlRow('Estoque máximo', p.estoque_maximo != null ? fmtNumPt(p.estoque_maximo, 4) : '') +
+      dlRowHtml('Cadastro inativo', badgeSim(!!(p.cadastro_inativo || p.inativo))) +
+      dlRowHtml('Ocultar nas vendas', badgeSim(!!p.ocultar_nas_vendas)) +
+      comissaoLinha +
+      '</dl>' +
+      ncm +
+      desc +
+      '<details class="mt-6 rounded-2xl border border-slate-200 bg-white p-3 open:shadow-sm" open>' +
+      '<summary class="cursor-pointer text-sm font-black uppercase text-slate-700 min-h-[44px] flex items-center">Composição (kit / insumos)</summary>' +
+      '<div class="mt-3">' + renderTabelaComposicao(p.composicao) + '</div></details>' +
+      '<details class="mt-3 rounded-2xl border border-slate-200 bg-white p-3">' +
+      '<summary class="cursor-pointer text-sm font-black uppercase text-slate-700 min-h-[44px] flex items-center">Similares</summary>' +
+      '<div class="mt-3">' + renderSimilares(p.similares) + '</div></details>' +
+      '<p class="mt-6 text-xs text-slate-500 leading-relaxed">Leitura do espelho Mongo/ERP. Alterações definitivas continuam no ERP.</p>' +
+      '</div>';
+  }
+
+  function renderDetalheResumido(p) {
+    if (!p) {
+      detalheEl.innerHTML = '<p class="text-base font-semibold text-slate-500">Selecione um item na lista.</p>';
+      return;
+    }
+    var img = p.imagem
+      ? '<div class="mb-4 flex justify-center"><img src="' + String(p.imagem).replace(/"/g, '&quot;') + '" alt="" class="max-h-48 rounded-xl border border-slate-200 object-contain bg-slate-50" loading="lazy" /></div>'
+      : '';
+    var inativo = p.inativo
+      ? '<span class="inline-block mb-3 px-2 py-1 rounded-lg bg-amber-100 text-amber-900 text-xs font-black uppercase">Inativo no ERP</span>'
+      : '';
+    detalheEl.innerHTML =
+      '<div class="max-w-xl">' + inativo + img +
+      '<h3 class="text-xl font-black text-slate-900">' + escapeHtml(p.nome || '—') + '</h3>' +
+      '<p class="text-lg font-bold text-emerald-700 mt-2">' + fmtMoney(p.preco_venda) + '</p>' +
+      '<dl class="mt-4 grid gap-2 text-sm">' +
+      dlRow('ID ERP', p.id) + dlRow('Marca', p.marca) + dlRow('Código NFe', p.codigo_nfe) +
+      dlRow('Código barras', p.codigo_barras) + dlRow('Fornecedor', p.fornecedor) +
+      '</dl><p class="mt-3 text-sm text-slate-500">Detalhe completo indisponível.</p></div>';
+  }
+
+  function carregarDetalheProduto(id) {
+    var seq = ++detalheReqSeq;
+    detalheEl.innerHTML = '<p class="text-base font-semibold text-slate-500 py-8">Carregando cadastro completo…</p>';
+    fetch(urlDetalheProduto(id), { credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json().then(function (j) { return { ok: r.ok, j: j }; }).catch(function () { return { ok: r.ok, j: {} }; });
+      })
+      .then(function (x) {
+        if (seq !== detalheReqSeq) return;
+        if (!x.ok || !x.j || !x.j.ok) {
+          var row = ultimos.find(function (u) { return String(u.id) === String(id); });
+          detalheEl.innerHTML = '<p class="text-red-700 font-bold">' + escapeHtml((x.j && x.j.erro) || 'Falha ao carregar detalhe') + '</p>';
+          if (row) renderDetalheResumido(row);
+          return;
+        }
+        renderDetalheCompleto(x.j.produto);
+      })
+      .catch(function () {
+        if (seq !== detalheReqSeq) return;
+        var row = ultimos.find(function (u) { return String(u.id) === String(id); });
+        detalheEl.innerHTML = '<p class="text-red-700 font-bold">Erro de rede ao carregar detalhe.</p>';
+        if (row) renderDetalheResumido(row);
+      });
+  }
+
+  function renderDetalhe(p) {
+    if (!p) {
+      detalheEl.innerHTML = '<p class="text-base font-semibold text-slate-500">Selecione um item na lista.</p>';
+      return;
+    }
+    carregarDetalheProduto(p.id);
+  }
+
+  function renderLista(produtos) {
+    listaEl.innerHTML = '';
+    ultimos = produtos || [];
+    if (!ultimos.length) {
+      listaEl.innerHTML = '<p class="p-4 text-center text-slate-500 font-semibold">Nenhum produto encontrado.</p>';
+      selecionadoId = null;
+      renderDetalhe(null);
+      return;
+    }
+    ultimos.forEach(function (p) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'w-full text-left rounded-xl border-2 px-3 py-3 transition-colors bg-slate-50/50 border-slate-200 hover:border-orange-300 hover:bg-orange-50/40 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 min-h-[56px]';
+      if (String(p.id) === String(selecionadoId)) {
+        btn.className = 'w-full text-left rounded-xl border-2 px-3 py-3 transition-colors bg-emerald-50 border-emerald-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/60 min-h-[56px]';
+      }
+      var nome = escapeHtml(p.nome || '—');
+      var cod = escapeHtml((p.codigo_nfe || p.codigo || '').toString());
+      var preco = fmtMoney(p.preco_venda);
+      var badge = p.inativo ? '<span class="text-[10px] font-black uppercase text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded ml-1">inativo</span>' : '';
+      btn.innerHTML = '<div class="font-black text-base text-slate-900 leading-snug">' + nome + badge + '</div>' +
+        '<div class="text-xs font-bold text-slate-500 mt-1">' + (cod ? 'GM ' + cod + ' · ' : '') + '<span class="text-emerald-700">' + preco + '</span></div>';
+      btn.addEventListener('click', function () {
+        selecionadoId = p.id;
+        renderLista(ultimos);
+        renderDetalhe(p);
+      });
+      listaEl.appendChild(btn);
+    });
+    var first = ultimos[0];
+    if (selecionadoId == null || !ultimos.some(function (x) { return String(x.id) === String(selecionadoId); })) {
+      selecionadoId = first.id;
+      renderDetalhe(first);
+    } else {
+      var sel = ultimos.find(function (x) { return String(x.id) === String(selecionadoId); });
+      renderDetalhe(sel || first);
+    }
+  }
+
+  function atualizarMeta(data, produtos) {
+    var q = (buscaEl.value || '').trim();
+    if (data.modo === 'busca') {
+      modoLista = false;
+      metaEl.textContent = 'Busca · ' + (produtos.length) + ' resultado(s)';
+      pagWrap.classList.add('hidden');
+    } else {
+      modoLista = true;
+      metaEl.textContent = 'Lista A–Z · página ' + data.pagina + (data.has_more ? ' (há próxima)' : ' (fim)');
+      pagWrap.classList.remove('hidden');
+      prevEl.disabled = data.pagina <= 1;
+      nextEl.disabled = !data.has_more;
+    }
+  }
+
+  function carregar() {
+    mostrarErro('');
+    setLoading(true);
+    fetch(urlFetch(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (x) {
+        if (!x.j || !x.j.ok) {
+          throw new Error((x.j && x.j.erro) || 'Falha ao carregar');
+        }
+        var produtos = x.j.produtos || [];
+        atualizarMeta(x.j, produtos);
+        selecionadoId = null;
+        renderLista(produtos);
+      })
+      .catch(function (err) {
+        var m = err.message || 'Erro de rede';
+        var mongo = /mongo/i.test(m);
+        if (mongo) {
+          mostrarErro(m, { hintMongo: true });
+          listaEl.innerHTML = '<p class="p-4 text-center text-slate-600 font-semibold leading-relaxed">Lista do ERP indisponível sem Mongo. Use o botão acima para ir à aba <strong>Grupos</strong> ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</p>';
+        } else {
+          mostrarErro(m);
+          listaEl.innerHTML = '';
+        }
+        metaEl.textContent = '—';
+      })
+      .finally(function () { setLoading(false); });
+  }
+
+  function agendar() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function () {
+      var q = (buscaEl.value || '').trim();
+      pagina = 1;
+      if (!q) pagina = 1;
+      carregar();
+    }, 320);
+  }
+
+  buscaEl.addEventListener('input', agendar);
+  inativosEl.addEventListener('change', function () {
+    pagina = 1;
+    carregar();
+  });
+  prevEl.addEventListener('click', function () {
+    if (pagina > 1) {
+      pagina--;
+      carregar();
+    }
+  });
+  nextEl.addEventListener('click', function () {
+    pagina++;
+    carregar();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'F2') {
+      e.preventDefault();
+      buscaEl.focus();
+      buscaEl.select();
+    }
+  });
+
+  carregar();
+})();
+  </script>
+  <script>
+(function () {
+  var URL_GRUPOS = "{% url 'api_produtos_grupos_listar' %}";
+  var URL_SALVAR = "{% url 'api_produtos_grupo_salvar' %}";
+  function urlGrupo(pk) {
+    return "{% url 'api_produtos_grupo_obter' pk=999999 %}".replace('999999', String(pk));
+  }
+  function urlExcluir(pk) {
+    return "{% url 'api_produtos_grupo_excluir' pk=999999 %}".replace('999999', String(pk));
+  }
+  var API_ERP = "{% url 'api_produtos_cadastro' %}";
+
+  var tabErp = document.getElementById('tab-erp');
+  var tabGrupos = document.getElementById('tab-grupos');
+  var panelErp = document.getElementById('panel-erp');
+  var panelGrupos = document.getElementById('panel-grupos');
+  var gruposBusca = document.getElementById('grupos-busca');
+  var gruposLista = document.getElementById('grupos-lista');
+  var gruposMeta = document.getElementById('grupos-lista-meta');
+  var gruposEditor = document.getElementById('grupos-editor');
+  var gruposErro = document.getElementById('grupos-erro');
+  var btnNovo = document.getElementById('grupos-btn-novo');
+  var btnExcluir = document.getElementById('grupos-btn-excluir');
+  var modal = document.getElementById('modal-erp-pick');
+  var modalQ = document.getElementById('modal-erp-q');
+  var modalLista = document.getElementById('modal-erp-lista');
+  var modalFechar = document.getElementById('modal-erp-fechar');
+
+  var gruposCarregados = false;
+  var listaGrupos = [];
+  var selecionadoGrupoId = null;
+  var rowErpTarget = null;
+  var debounceGr = null;
+
+  function getCookie(name) {
+    var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return v ? decodeURIComponent(v[2]) : '';
+  }
+  function csrf() {
+    var el = document.querySelector('[name=csrfmiddlewaretoken]');
+    return el ? el.value : getCookie('csrftoken');
+  }
+
+  function mostrarErroGr(msg) {
+    if (!msg) {
+      gruposErro.classList.add('hidden');
+      gruposErro.textContent = '';
+      return;
+    }
+    gruposErro.textContent = msg;
+    gruposErro.classList.remove('hidden');
+  }
+
+  function setLoading(on) {
+    if (window.gmLoadingBar) {
+      if (on) window.gmLoadingBar.show();
+      else window.gmLoadingBar.hide();
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function fmtMoney(n) {
+    var x = Number(n);
+    if (!isFinite(x)) x = 0;
+    return x.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
+  }
+
+  function ativarTab(which) {
+    var erpOn = which === 'erp';
+    tabErp.setAttribute('aria-selected', erpOn ? 'true' : 'false');
+    tabGrupos.setAttribute('aria-selected', erpOn ? 'false' : 'true');
+    if (erpOn) {
+      tabErp.className = 'min-h-[44px] px-4 rounded-xl text-sm font-black uppercase border-2 border-emerald-600 bg-emerald-50 text-emerald-900 shadow-sm';
+      tabGrupos.className = 'min-h-[44px] px-4 rounded-xl text-sm font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-300 hover:text-orange-700 shadow-sm';
+      panelErp.classList.remove('hidden');
+      panelErp.classList.add('flex');
+      panelGrupos.classList.add('hidden');
+      panelGrupos.classList.remove('flex');
+      panelGrupos.setAttribute('aria-hidden', 'true');
+    } else {
+      tabGrupos.className = 'min-h-[44px] px-4 rounded-xl text-sm font-black uppercase border-2 border-orange-500 bg-orange-50 text-orange-900 shadow-sm';
+      tabErp.className = 'min-h-[44px] px-4 rounded-xl text-sm font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-emerald-400 hover:text-emerald-800 shadow-sm';
+      panelGrupos.classList.remove('hidden');
+      panelGrupos.classList.add('flex');
+      panelErp.classList.add('hidden');
+      panelErp.classList.remove('flex');
+      panelGrupos.setAttribute('aria-hidden', 'false');
+      if (!gruposCarregados) carregarGrupos();
+    }
+  }
+
+  tabErp.addEventListener('click', function () { ativarTab('erp'); });
+  tabGrupos.addEventListener('click', function () { ativarTab('grupos'); });
+
+  function renderListaGrupos() {
+    gruposLista.innerHTML = '';
+    var q = (gruposBusca.value || '').trim().toLowerCase();
+    var filtrados = listaGrupos.filter(function (g) {
+      if (!q) return true;
+      return String(g.nome || '').toLowerCase().indexOf(q) !== -1;
+    });
+    gruposMeta.textContent = filtrados.length + ' grupo(s)' + (q ? ' · filtro' : '');
+    if (!filtrados.length) {
+      gruposLista.innerHTML = '<p class="p-4 text-center text-slate-500 font-semibold">Nenhum grupo. Use <strong>Novo grupo</strong>.</p>';
+      return;
+    }
+    filtrados.forEach(function (g) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'w-full text-left rounded-xl border-2 px-3 py-3 transition-colors bg-slate-50/50 border-slate-200 hover:border-orange-300 hover:bg-orange-50/40 focus:outline-none focus:ring-2 focus:ring-orange-400/60 min-h-[56px]';
+      if (String(g.id) === String(selecionadoGrupoId)) {
+        btn.className = 'w-full text-left rounded-xl border-2 px-3 py-3 transition-colors bg-orange-50 border-orange-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-400/60 min-h-[56px]';
+      }
+      var inv = !g.ativo ? '<span class="text-[10px] font-black uppercase text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded ml-1">inativo</span>' : '';
+      btn.innerHTML = '<div class="font-black text-base text-slate-900 leading-snug">' + escapeHtml(g.nome) + inv + '</div>' +
+        '<div class="text-xs font-bold text-slate-500 mt-1">' + String(g.n_variantes || 0) + ' marca(s) · <span class="text-emerald-700">' + fmtMoney(g.preco_venda) + '</span></div>';
+      btn.addEventListener('click', function () {
+        selecionadoGrupoId = g.id;
+        renderListaGrupos();
+        carregarDetalheGrupo(g.id);
+      });
+      gruposLista.appendChild(btn);
+    });
+  }
+
+  function editorVazio() {
+    selecionadoGrupoId = null;
+    btnExcluir.classList.add('hidden');
+    gruposEditor.innerHTML = '<p class="text-base font-semibold text-slate-500">Selecione um grupo ou clique em <strong>Novo grupo</strong>.</p>';
+  }
+
+  function linhaVariante(v) {
+    var vid = v && v.id ? String(v.id) : '';
+    var marca = v && v.marca ? escapeHtml(v.marca) : '';
+    var cb = v && v.codigo_barras ? escapeHtml(v.codigo_barras) : '';
+    var erp = v && v.produto_erp_id ? escapeHtml(v.produto_erp_id) : '';
+    return '<tr class="border-b border-slate-100 align-top" data-vid="' + escapeHtml(vid) + '">' +
+      '<td class="py-2 pr-2"><label class="block text-[10px] font-black uppercase text-slate-400 mb-1">Marca</label>' +
+      '<input type="text" class="grupo-in-marca w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-200 text-base font-semibold" value="' + marca + '" maxlength="120" /></td>' +
+      '<td class="py-2 pr-2"><label class="block text-[10px] font-black uppercase text-slate-400 mb-1">Código barras</label>' +
+      '<input type="text" class="grupo-in-cb w-full min-h-[44px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold" value="' + cb + '" maxlength="80" inputmode="numeric" /></td>' +
+      '<td class="py-2 w-28 shrink-0"><label class="block text-[10px] font-black uppercase text-slate-400 mb-1">ERP</label>' +
+      '<button type="button" class="grupo-btn-erp w-full min-h-[44px] rounded-lg text-[10px] font-black uppercase bg-slate-100 border-2 border-slate-200 text-slate-700 hover:border-emerald-400">Preencher</button>' +
+      '<input type="hidden" class="grupo-in-erp" value="' + erp + '" /></td>' +
+      '<td class="py-2 w-12"><label class="block text-[10px] font-black uppercase text-slate-400 mb-1">&nbsp;</label>' +
+      '<button type="button" class="grupo-btn-del min-h-[44px] w-10 rounded-lg border-2 border-red-200 text-red-700 font-black hover:bg-red-50" title="Remover linha">✕</button></td></tr>';
+  }
+
+  function montarEditor(grupo, novo) {
+    btnExcluir.classList.toggle('hidden', novo);
+    var idVal = grupo && grupo.id ? grupo.id : '';
+    var nome = grupo && grupo.nome ? escapeHtml(grupo.nome) : '';
+    var pv = grupo && grupo.preco_venda != null ? String(grupo.preco_venda).replace('.', ',') : '';
+    var ativo = !grupo || grupo.ativo !== false;
+    var vars = (grupo && grupo.variantes) ? grupo.variantes : [];
+    var tbody = vars.map(linhaVariante).join('');
+    if (!tbody) tbody = linhaVariante(null);
+
+    gruposEditor.innerHTML =
+      '<input type="hidden" id="grupo-pk" value="' + escapeHtml(String(idVal)) + '" />' +
+      '<div class="space-y-2">' +
+      '<label class="block"><span class="text-xs font-black uppercase text-slate-500">Nome do produto (vitrine)</span>' +
+      '<input type="text" id="grupo-nome" class="mt-1 w-full min-h-[48px] px-4 rounded-xl border-[3px] border-emerald-500 text-lg font-black" value="' + nome + '" maxlength="300" /></label>' +
+      '<label class="block max-w-xs"><span class="text-xs font-black uppercase text-slate-500">Preço de venda (todas as marcas)</span>' +
+      '<input type="text" id="grupo-preco" class="mt-1 w-full min-h-[48px] px-4 rounded-xl border-[3px] border-orange-400 text-lg font-black" value="' + pv + '" inputmode="decimal" placeholder="0,00" /></label>' +
+      '<label class="inline-flex items-center gap-2 mt-2 cursor-pointer select-none">' +
+      '<input type="checkbox" id="grupo-ativo" class="w-5 h-5 rounded border-slate-300 text-emerald-600"' + (ativo ? ' checked' : '') + ' />' +
+      '<span class="text-sm font-black uppercase text-slate-700">Grupo ativo</span></label></div>' +
+      '<div class="mt-4">' +
+      '<div class="flex flex-wrap items-center justify-between gap-2 mb-2">' +
+      '<span class="text-xs font-black uppercase text-slate-500">Marcas / códigos de barras</span>' +
+      '<button type="button" id="grupo-add-var" class="min-h-[40px] px-3 rounded-lg text-xs font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700">+ Marca</button></div>' +
+      '<div class="overflow-x-auto rounded-xl border border-slate-200">' +
+      '<table class="w-full text-left"><thead><tr class="bg-slate-50 text-[10px] font-black uppercase text-slate-500">' +
+      '<th class="px-2 py-2">Marca</th><th class="px-2 py-2">Código barras</th><th class="px-2 py-2 w-28">ERP</th><th class="w-12"></th></tr></thead>' +
+      '<tbody id="grupo-tbody-variantes">' + tbody + '</tbody></table></div></div>' +
+      '<div class="flex flex-wrap gap-2 mt-6">' +
+      '<button type="button" id="grupo-btn-salvar" class="min-h-[48px] px-6 rounded-xl text-sm font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white border-2 border-emerald-800">Salvar grupo</button></div>';
+
+    var tbodyEl = document.getElementById('grupo-tbody-variantes');
+    tbodyEl.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t.classList.contains('grupo-btn-del')) {
+        var tr = t.closest('tr');
+        if (tbodyEl.querySelectorAll('tr').length <= 1) return;
+        tr.remove();
+        return;
+      }
+      if (t.classList.contains('grupo-btn-erp')) {
+        rowErpTarget = t.closest('tr');
+        abrirModalErp();
+      }
+    });
+    document.getElementById('grupo-add-var').addEventListener('click', function () {
+      tbodyEl.insertAdjacentHTML('beforeend', linhaVariante(null));
+    });
+    document.getElementById('grupo-btn-salvar').addEventListener('click', salvarGrupo);
+  }
+
+  function carregarDetalheGrupo(id) {
+    mostrarErroGr('');
+    setLoading(true);
+    fetch(urlGrupo(id), { credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json().then(function (j) { return { ok: r.ok, j: j }; }).catch(function () { return { ok: r.ok, j: {} }; });
+      })
+      .then(function (x) {
+        if (!x.ok || !x.j || !x.j.ok) {
+          throw new Error((x.j && x.j.erro) || (x.ok === false ? 'Acesso negado — faça login.' : 'Falha ao carregar'));
+        }
+        montarEditor(x.j.grupo, false);
+      })
+      .catch(function (err) {
+        mostrarErroGr(err.message || 'Erro ao carregar grupo');
+        editorVazio();
+      })
+      .finally(function () { setLoading(false); });
+  }
+
+  function novoGrupo() {
+    selecionadoGrupoId = null;
+    renderListaGrupos();
+    montarEditor(null, true);
+  }
+
+  function coletarVariantes() {
+    var rows = gruposEditor.querySelectorAll('#grupo-tbody-variantes tr');
+    var out = [];
+    rows.forEach(function (tr) {
+      var vid = tr.getAttribute('data-vid') || '';
+      var marca = (tr.querySelector('.grupo-in-marca') || {}).value || '';
+      var cb = (tr.querySelector('.grupo-in-cb') || {}).value || '';
+      var erp = (tr.querySelector('.grupo-in-erp') || {}).value || '';
+      var idNum = vid ? parseInt(vid, 10) : NaN;
+      out.push({
+        id: !isNaN(idNum) ? idNum : null,
+        marca: marca.trim(),
+        codigo_barras: cb.trim().replace(/\s+/g, ''),
+        produto_erp_id: erp.trim()
+      });
+    });
+    return out;
+  }
+
+  function salvarGrupo() {
+    mostrarErroGr('');
+    var pk = (document.getElementById('grupo-pk') || {}).value || '';
+    var nome = (document.getElementById('grupo-nome') || {}).value || '';
+    var preco = (document.getElementById('grupo-preco') || {}).value || '';
+    var ativo = !!(document.getElementById('grupo-ativo') || {}).checked;
+    var variantes = coletarVariantes();
+    var body = {
+      id: pk ? parseInt(pk, 10) : null,
+      nome: nome.trim(),
+      preco_venda: preco.trim().replace(/\./g, '').replace(',', '.'),
+      ativo: ativo,
+      variantes: variantes
+    };
+    setLoading(true);
+    fetch(URL_SALVAR, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrf()
+      },
+      body: JSON.stringify(body)
+    })
+      .then(function (r) {
+        return r.json().then(function (j) { return { ok: r.ok, j: j }; }).catch(function () { return { ok: r.ok, j: {} }; });
+      })
+      .then(function (x) {
+        if (!x.ok || !x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha ao salvar');
+        if (body.id) {
+          listaGrupos = listaGrupos.filter(function (g) { return String(g.id) !== String(body.id); });
+        }
+        var g = x.j.grupo;
+        listaGrupos.push({
+          id: g.id,
+          nome: g.nome,
+          preco_venda: g.preco_venda,
+          ativo: g.ativo,
+          n_variantes: (g.variantes || []).length
+        });
+        listaGrupos.sort(function (a, b) { return String(a.nome).localeCompare(String(b.nome), 'pt'); });
+        selecionadoGrupoId = g.id;
+        gruposCarregados = true;
+        renderListaGrupos();
+        montarEditor(g, false);
+      })
+      .catch(function (err) {
+        mostrarErroGr(err.message || 'Erro ao salvar');
+      })
+      .finally(function () { setLoading(false); });
+  }
+
+  function carregarGrupos() {
+    mostrarErroGr('');
+    setLoading(true);
+    fetch(URL_GRUPOS, { credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json().then(function (j) { return { ok: r.ok, j: j }; }).catch(function () { return { ok: r.ok, j: {} }; });
+      })
+      .then(function (x) {
+        if (!x.ok || !x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha ao listar (login necessário)');
+        listaGrupos = x.j.grupos || [];
+        gruposCarregados = true;
+        renderListaGrupos();
+        if (!listaGrupos.length) editorVazio();
+      })
+      .catch(function (err) {
+        mostrarErroGr('Grupos: ' + (err.message || 'erro') + '. É necessário estar logado.');
+        gruposLista.innerHTML = '';
+        gruposMeta.textContent = '—';
+        editorVazio();
+      })
+      .finally(function () { setLoading(false); });
+  }
+
+  btnNovo.addEventListener('click', function () { novoGrupo(); });
+
+  btnExcluir.addEventListener('click', function () {
+    var pk = (document.getElementById('grupo-pk') || {}).value;
+    if (!pk || !confirm('Excluir este grupo e todas as marcas vinculadas?')) return;
+    setLoading(true);
+    fetch(urlExcluir(pk), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'X-CSRFToken': csrf() }
+    })
+      .then(function (r) {
+        return r.json().then(function (j) { return { ok: r.ok, j: j }; }).catch(function () { return { ok: r.ok, j: {} }; });
+      })
+      .then(function (x) {
+        if (!x.ok || !x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha ao excluir');
+        listaGrupos = listaGrupos.filter(function (g) { return String(g.id) !== String(pk); });
+        selecionadoGrupoId = null;
+        renderListaGrupos();
+        editorVazio();
+      })
+      .catch(function (err) { mostrarErroGr(err.message || 'Erro ao excluir'); })
+      .finally(function () { setLoading(false); });
+  });
+
+  gruposBusca.addEventListener('input', function () {
+    clearTimeout(debounceGr);
+    debounceGr = setTimeout(renderListaGrupos, 200);
+  });
+
+  function fecharModalErp() {
+    modal.classList.add('hidden');
+    rowErpTarget = null;
+    modalLista.innerHTML = '';
+    modalQ.value = '';
+  }
+  modalFechar.addEventListener('click', fecharModalErp);
+  modal.addEventListener('click', function (e) { if (e.target === modal) fecharModalErp(); });
+
+  function abrirModalErp() {
+    modal.classList.remove('hidden');
+    modalQ.focus();
+    buscarModalErp();
+  }
+
+  var debounceModal = null;
+  modalQ.addEventListener('input', function () {
+    clearTimeout(debounceModal);
+    debounceModal = setTimeout(buscarModalErp, 350);
+  });
+
+  function buscarModalErp() {
+    var q = (modalQ.value || '').trim();
+    modalLista.innerHTML = '<p class="p-3 text-sm text-slate-500 font-semibold">Digite para buscar…</p>';
+    if (!q) return;
+    fetch(API_ERP + '?q=' + encodeURIComponent(q) + '&limit=40', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.erro || 'erro');
+        var prods = data.produtos || [];
+        modalLista.innerHTML = '';
+        if (!prods.length) {
+          modalLista.innerHTML = '<p class="p-3 text-sm text-slate-500">Nenhum resultado.</p>';
+          return;
+        }
+        prods.forEach(function (p) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'w-full text-left rounded-xl border-2 border-slate-200 px-3 py-2 hover:border-emerald-400 bg-slate-50/50 min-h-[52px]';
+          b.innerHTML = '<div class="font-bold text-slate-900">' + escapeHtml(p.nome || '—') + '</div>' +
+            '<div class="text-xs text-slate-500 mt-0.5">' + escapeHtml(p.marca || '—') + ' · EAN ' + escapeHtml(p.codigo_barras || '—') + '</div>';
+          b.addEventListener('click', function () {
+            if (rowErpTarget) {
+              var im = rowErpTarget.querySelector('.grupo-in-marca');
+              var ic = rowErpTarget.querySelector('.grupo-in-cb');
+              var ie = rowErpTarget.querySelector('.grupo-in-erp');
+              if (im) im.value = p.marca || '';
+              if (ic) ic.value = p.codigo_barras || '';
+              if (ie) ie.value = p.id != null ? String(p.id) : '';
+            }
+            fecharModalErp();
+          });
+          modalLista.appendChild(b);
+        });
+      })
+      .catch(function () {
+        modalLista.innerHTML = '<p class="p-3 text-sm text-red-600">Erro na busca.</p>';
+      });
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'F2') return;
+    if (!panelGrupos.classList.contains('hidden')) {
+      e.preventDefault();
+      var gn = document.getElementById('grupo-nome');
+      if (gn) { gn.focus(); gn.select(); }
+      else gruposBusca.focus();
+    }
+  });
+})();
+  </script>
+</body>
+</html>

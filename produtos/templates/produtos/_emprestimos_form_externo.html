@@ -1,0 +1,118 @@
+<section class="rounded-2xl border-2 border-emerald-200 bg-white p-6 lg:p-8 space-y-6 shadow-sm w-full">
+  <form id="form-ext" class="space-y-6">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3">
+      <label class="block">
+        <span class="mb-2 block text-base font-black uppercase tracking-wide text-slate-600">Empresa *</span>
+        <div class="relative sug-wrap" data-sug-campo="empresa">
+          <input type="text" id="ext-empresa-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-emerald-500 outline-none" placeholder="Buscar empresa…">
+          <input type="hidden" id="ext-empresa-id" value="">
+          <ul class="sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+        </div>
+      </label>
+      <label class="block 2xl:col-span-1">
+        <span class="mb-2 block text-base font-black uppercase tracking-wide text-slate-600">Credor *</span>
+        <div class="relative sug-wrap" data-sug-campo="cliente">
+          <input type="text" id="ext-credor-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-emerald-500 outline-none" placeholder="Quem emprestou…">
+          <input type="hidden" id="ext-credor-id" value="">
+          <ul class="sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+        </div>
+      </label>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-4 gap-6">
+      <label class="block">
+        <span class="mb-2 block text-base font-black uppercase text-slate-600">Valor recebido *</span>
+        <input type="text" id="ext-valor-rec" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-black tabular-nums" placeholder="0,00" inputmode="decimal">
+      </label>
+      <label class="block">
+        <span class="mb-2 block text-base font-black uppercase text-slate-600">Total a pagar *</span>
+        <input type="text" id="ext-valor-tot" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-black tabular-nums" placeholder="0,00" inputmode="decimal">
+      </label>
+      <label class="block">
+        <span class="mb-2 block text-base font-black uppercase text-slate-600">Data da entrada *</span>
+        <input type="date" id="ext-data-entrada" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-bold">
+      </label>
+      <label class="block">
+        <span class="mb-2 block text-base font-black uppercase text-slate-600">1º vencimento *</span>
+        <input type="date" id="ext-primeiro-ven" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-bold">
+      </label>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <label class="block">
+        <span class="mb-2 block text-base font-black uppercase text-slate-600">Nº parcelas *</span>
+        <input type="number" id="ext-parcelas" min="1" max="48" value="1" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-black">
+      </label>
+      <label class="block">
+        <span class="mb-2 block text-base font-black uppercase text-slate-600">Intervalo (dias) *</span>
+        <input type="number" id="ext-intervalo" min="1" max="366" value="30" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-black">
+      </label>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <label class="block">
+        <span class="mb-2 block text-base font-black uppercase text-slate-600">Conta bancária *</span>
+        <div class="relative sug-wrap" data-sug-campo="banco">
+          <input type="text" id="ext-banco-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-emerald-500 outline-none" placeholder="Onde entrou o recurso…">
+          <input type="hidden" id="ext-banco-id" value="">
+          <ul class="sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+        </div>
+      </label>
+      <label class="block">
+        <span class="mb-2 block text-base font-black uppercase text-slate-600">Forma de pagamento</span>
+        <div class="relative sug-wrap" data-sug-campo="forma">
+          <input type="text" id="ext-forma-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-emerald-500 outline-none" placeholder="Opcional">
+          <input type="hidden" id="ext-forma-id" value="">
+          <ul class="sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+        </div>
+      </label>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <label class="block">
+        <span class="mb-2 block text-base font-black uppercase text-emerald-800">Plano — entrada (receita) *</span>
+        <div class="relative sug-wrap" data-sug-campo="plano">
+          <input type="text" id="ext-plano-ent-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-emerald-200 px-4 py-3 text-lg font-semibold focus:border-emerald-500 outline-none" placeholder="Entrada de empréstimo…">
+          <input type="hidden" id="ext-plano-ent-id" value="">
+          <ul class="sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+        </div>
+      </label>
+      <label class="block">
+        <span class="mb-2 block text-base font-black uppercase text-amber-800">Plano — dívida (a pagar) *</span>
+        <div class="relative sug-wrap" data-sug-campo="plano">
+          <input type="text" id="ext-plano-div-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-amber-200 px-4 py-3 text-lg font-semibold focus:border-amber-500 outline-none" placeholder="Pagamento de empréstimos…">
+          <input type="hidden" id="ext-plano-div-id" value="">
+          <ul class="sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+        </div>
+      </label>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <label class="block">
+        <span class="mb-2 block text-base font-black uppercase text-orange-800">Valor juros (opcional)</span>
+        <input type="text" id="ext-valor-juros" class="w-full min-h-[52px] rounded-xl border-2 border-orange-100 px-4 py-3 text-lg font-black tabular-nums" placeholder="0,00" inputmode="decimal">
+      </label>
+      <label class="block">
+        <span class="mb-2 block text-base font-black uppercase text-orange-800">Plano — juros</span>
+        <div class="relative sug-wrap" data-sug-campo="plano">
+          <input type="text" id="ext-plano-juros-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-orange-200 px-4 py-3 text-lg font-semibold focus:border-orange-500 outline-none" placeholder="Juros de empréstimos…">
+          <input type="hidden" id="ext-plano-juros-id" value="">
+          <ul class="sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+        </div>
+      </label>
+    </div>
+    <label class="inline-flex items-start gap-3 cursor-pointer select-none min-h-[52px]">
+      <input type="checkbox" id="ext-entrada-quitada" checked class="mt-2 h-7 w-7 shrink-0 rounded border-slate-300 accent-emerald-600">
+      <span class="text-lg font-bold text-slate-800 leading-snug">Entrada já quitada (dinheiro já entrou no caixa / banco)</span>
+    </label>
+    <label class="block max-w-2xl">
+      <span class="mb-2 block text-base font-black uppercase text-slate-600">Grupo (opcional)</span>
+      <div class="relative sug-wrap" data-sug-campo="grupo">
+        <input type="text" id="ext-grupo-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-slate-400 outline-none" placeholder="Opcional">
+        <input type="hidden" id="ext-grupo-id" value="">
+        <ul class="sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+      </div>
+    </label>
+    <label class="block">
+      <span class="mb-2 block text-base font-black uppercase text-slate-600">Observação</span>
+      <textarea id="ext-obs" rows="3" class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold resize-y min-h-[6rem]"></textarea>
+    </label>
+    <button type="submit" id="btn-ext" class="w-full sm:w-auto min-h-[56px] rounded-xl bg-emerald-600 hover:bg-emerald-700 px-10 py-4 text-lg font-black text-white shadow-lg uppercase tracking-wide border-2 border-emerald-700 active:scale-[0.99] transition-transform">Registrar empréstimo externo</button>
+  </form>
+</section>

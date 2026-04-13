@@ -367,6 +367,76 @@
     </div>
   </div>
 
+  <div id="modal-ultima-compra-fornecedor" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[109] hidden items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-ultima-compra-fornecedor-titulo">
+    <div class="bg-white w-full max-w-[min(28rem,96vw)] rounded-2xl shadow-2xl border border-slate-200 max-h-[88vh] flex flex-col min-h-0">
+      <div class="px-4 py-3 border-b border-slate-100 flex justify-between items-start gap-3 shrink-0">
+        <div class="min-w-0 flex-1">
+          <h2 id="modal-ultima-compra-fornecedor-titulo" class="text-base font-black uppercase text-slate-800 tracking-tight">Detalhe da compra</h2>
+          <p id="modal-ultima-compra-fornecedor-sub" class="text-[11px] font-bold text-slate-600 mt-1 leading-snug"></p>
+        </div>
+        <button type="button" id="btn-fechar-ultima-compra-fornecedor" class="text-slate-400 hover:text-slate-700 font-bold text-sm px-2 shrink-0" aria-label="Fechar">✕</button>
+      </div>
+      <div class="p-4 space-y-2.5 text-sm overflow-y-auto">
+        <dl class="grid grid-cols-[minmax(0,7.2rem)_1fr] gap-x-3 gap-y-2.5 text-[12px]">
+          <dt class="font-black uppercase text-slate-500 text-[10px] leading-snug">Data</dt>
+          <dd id="modal-ultima-compra-c-data" class="font-bold text-slate-900 tabular-nums m-0"></dd>
+          <dt class="font-black uppercase text-slate-500 text-[10px] leading-snug">Fornecedor</dt>
+          <dd id="modal-ultima-compra-c-forn" class="font-bold text-slate-900 m-0 break-words"></dd>
+          <dt class="font-black uppercase text-slate-500 text-[10px] leading-snug">Quantidade</dt>
+          <dd id="modal-ultima-compra-c-qtd" class="font-bold text-slate-900 tabular-nums m-0"></dd>
+          <dt class="font-black uppercase text-slate-500 text-[10px] leading-snug">Unit. na NF</dt>
+          <dd id="modal-ultima-compra-c-preco-base" class="font-bold text-slate-700 tabular-nums m-0"></dd>
+          <dt class="font-black uppercase text-slate-500 text-[10px] leading-snug">Unit. c/ acrésc.</dt>
+          <dd id="modal-ultima-compra-c-preco-final" class="font-black text-orange-700 tabular-nums text-base m-0"></dd>
+          <dt class="font-black uppercase text-slate-500 text-[10px] leading-snug">Documento</dt>
+          <dd id="modal-ultima-compra-c-doc" class="font-bold text-slate-800 break-all m-0"></dd>
+          <dt class="font-black uppercase text-slate-500 text-[10px] leading-snug">Origem</dt>
+          <dd id="modal-ultima-compra-c-origem" class="font-bold text-slate-700 m-0"></dd>
+        </dl>
+        <p id="modal-ultima-compra-c-nota" class="hidden text-[10px] font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-2 leading-snug"></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-oc-pedido-compra" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[111] hidden items-center justify-center p-2 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-oc-pedido-titulo">
+    <div class="bg-white w-full max-w-[min(52rem,98vw)] rounded-2xl shadow-2xl border border-slate-200 max-h-[94vh] flex flex-col min-h-0">
+      <div class="px-3 sm:px-4 py-3 border-b border-slate-100 flex justify-between items-start gap-2 shrink-0">
+        <div class="min-w-0">
+          <h2 id="modal-oc-pedido-titulo" class="text-sm sm:text-base font-black uppercase text-slate-800 tracking-tight">Ordem de compra (pedido)</h2>
+          <p class="text-[9px] font-bold text-slate-500 mt-1 leading-snug">Ajuste quantidades e preços negociados, fornecedor e previsão. Ao confirmar, grava rascunho na Entrada NF-e e marca como pedido a caminho.</p>
+        </div>
+        <button type="button" id="btn-fechar-oc-pedido" class="text-slate-400 hover:text-slate-700 font-bold text-sm px-2 shrink-0" aria-label="Fechar">✕</button>
+      </div>
+      <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label class="block min-w-0"><span class="text-[10px] font-black uppercase text-slate-500">Fornecedor</span>
+            <div class="relative mt-1">
+              <input type="text" id="oc-forn-nome" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold min-h-[48px]" placeholder="Buscar cadastro ou digitar nome…">
+              <input type="hidden" id="oc-forn-id" value="">
+              <ul id="oc-forn-dd" class="hidden absolute left-0 right-0 top-full mt-0.5 max-h-52 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg text-sm z-10"></ul>
+            </div>
+          </label>
+          <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Previsão de chegada</span>
+            <input type="date" id="oc-previsao" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold min-h-[48px]"></label>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-2">
+          <div class="text-[10px] font-black uppercase text-slate-500 mb-2">Itens</div>
+          <div id="oc-itens-host" class="space-y-2"></div>
+          <div class="mt-3 flex flex-wrap gap-2 items-end">
+            <label class="flex-1 min-w-[10rem]"><span class="text-[9px] font-black uppercase text-slate-400">Adicionar produto (busca)</span>
+              <input type="text" id="oc-add-busca" class="mt-0.5 w-full rounded-lg border border-slate-200 px-2 py-2 text-xs font-bold" placeholder="Nome ou código…"></label>
+            <button type="button" id="btn-oc-add-prod" class="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase px-4 py-2.5 min-h-[44px]">Buscar</button>
+          </div>
+          <ul id="oc-add-res" class="hidden mt-2 max-h-40 overflow-y-auto border border-slate-200 rounded-lg bg-white text-xs"></ul>
+        </div>
+      </div>
+      <div class="px-3 sm:px-4 py-3 border-t border-slate-100 flex flex-wrap gap-2 justify-end shrink-0 bg-white">
+        <button type="button" id="btn-oc-cancelar" class="rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-black uppercase text-xs px-4 py-2.5 min-h-[48px]">Cancelar</button>
+        <button type="button" id="btn-oc-confirmar" class="rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-black uppercase text-xs px-4 py-2.5 min-h-[48px] shadow-md">Confirmar pedido e rascunho NF-e</button>
+      </div>
+    </div>
+  </div>
+
 {% include "produtos/_js_busca_produto_inteligente.html" %}
 <script>
 (() => {
@@ -435,7 +505,11 @@ function focoBuscaCompra(opts = {}) {
   const active = document.activeElement;
   const permitirSobreInput = !!opts.force;
   const modalAberta =
-    comprasModalBuscaAberta() || comprasModalHistoricoAberta() || comprasModalConferenciaAberta();
+    comprasModalOcPedidoAberta() ||
+    comprasModalBuscaAberta() ||
+    comprasModalHistoricoAberta() ||
+    comprasModalConferenciaAberta() ||
+    comprasModalUltimaCompraFornecAberta();
   if (modalAberta) return;
   if (
     !permitirSobreInput &&
@@ -606,6 +680,12 @@ let frequenciaUso = JSON.parse(localStorage.getItem('freqProdutos') || '{}');
 let buscaCompraMergeSeq = 0;
 let mergeCompraTimer = null;
 const BUSCA_COMPRA_LIM_MAX = 60;
+const URL_ENTRADA_NFA_SALVAR = "{% url 'api_entrada_nota_salvar' %}";
+const URL_ENTRADA_NFA_FORN = "{% url 'api_entrada_nota_fornecedores' %}";
+const URL_ENTRADA_NFA_PAGE = "{% url 'entrada_nota' %}";
+const LS_COMPRA_FORN_RECENTES = 'gmCompraFornecedoresRecentes_v1';
+/** @type {{ pedId: string, selEl: HTMLSelectElement|null, prevStatus: string }|null} */
+let ocPedidoModalCtx = null;
 
 function escapeHtml(texto) {
   return String(texto || '')
@@ -614,6 +694,423 @@ function escapeHtml(texto) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+}
+
+function compraGetCsrf() {
+  const m = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (m && m.value) return m.value;
+  const c = document.cookie.match(/csrftoken=([^;]+)/);
+  return c ? decodeURIComponent(c[1].trim()) : '';
+}
+
+function lerFornecedoresRecentesCompra() {
+  try {
+    const a = JSON.parse(localStorage.getItem(LS_COMPRA_FORN_RECENTES) || '[]');
+    return Array.isArray(a) ? a.filter((x) => x && String(x.nome || '').trim()) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function salvarFornecedorRecenteCompra(nome, id) {
+  const n = String(nome || '').trim();
+  if (!n) return;
+  const arr = lerFornecedoresRecentesCompra().filter((x) => String(x.nome).toLowerCase() !== n.toLowerCase());
+  arr.unshift({ nome: n.slice(0, 200), id: id ? String(id) : '' });
+  try {
+    localStorage.setItem(LS_COMPRA_FORN_RECENTES, JSON.stringify(arr.slice(0, 40)));
+  } catch (_) {}
+}
+
+function qtdPedidoACaminhoPorProduto(pid) {
+  const h = lerHistoricoCompra();
+  let sum = 0;
+  h.forEach((ped) => {
+    if (ped.status !== 'pedido') return;
+    (ped.itens || []).forEach((line) => {
+      if (String(line.id) === String(pid)) sum += Number(line.qtd) || 0;
+    });
+  });
+  return sum;
+}
+
+/** Saldo total (C+V) por id no catálogo atual — base para snapshot de pedido. */
+function compraSaldoTotalPorIdProduto(pid) {
+  const p = baseProdutos.find((x) => String(x.id) === String(pid));
+  return p ? saldoTotalProduto(p) : 0;
+}
+
+/** Atualiza o snapshot de estoque no momento do pedido (evita comparar qtd nova com saldo antigo da cotação). */
+function compraRefreshSnapshotPedido(ped) {
+  if (!ped || !Array.isArray(ped.itens)) return;
+  const snap = {};
+  ped.itens.forEach((line) => {
+    const id = String(line.id || '');
+    if (!id) return;
+    snap[id] = compraSaldoTotalPorIdProduto(id);
+  });
+  ped.snapshot = snap;
+}
+
+function comprasModalOcPedidoAberta() {
+  const m = document.getElementById('modal-oc-pedido-compra');
+  return !!(m && m.classList.contains('flex'));
+}
+
+function fecharModalOcPedidoCompra() {
+  const m = document.getElementById('modal-oc-pedido-compra');
+  if (m) {
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+  const dd = document.getElementById('oc-forn-dd');
+  if (dd) dd.classList.add('hidden');
+  const ar = document.getElementById('oc-add-res');
+  if (ar) ar.classList.add('hidden');
+  ocPedidoModalCtx = null;
+  focoBuscaCompra({ force: true });
+}
+
+function montarLinhasEntradaNfeDesdeOcItens(itens) {
+  return (itens || []).map((line) => {
+    const pid = String(line.id || '');
+    const p = baseProdutos.find((x) => String(x.id) === pid);
+    const nome = String(line.nome || (p && p.nome) || 'Produto').slice(0, 500);
+    const cprod = (p && (p.codigo_nfe || p.codigo)) ? String(p.codigo_nfe || p.codigo) : '';
+    const ean = p && p.codigo_barras ? String(p.codigo_barras).replace(/\D/g, '').slice(0, 14) : '';
+    const q = Number(line.qtd) || 0;
+    const vu = Number(line.precoUnit != null ? line.precoUnit : line.precoNegociado != null ? line.precoNegociado : 0) || 0;
+    return {
+      x_prod: nome,
+      c_prod: cprod,
+      ean,
+      q_com: q,
+      un_por_embalagem: 1,
+      q_estoque: q,
+      v_un_com: vu,
+      cfop: '',
+      produto_id: pid,
+      nome_catalogo: nome,
+      match_tipo: 'compras_oc',
+    };
+  });
+}
+
+function ocRenderItensRows(itens) {
+  const host = document.getElementById('oc-itens-host');
+  if (!host) return;
+  host.innerHTML = (itens || [])
+    .map((line, idx) => {
+      const nome = escapeHtml(line.nome || '—');
+      const pid = escapeHtml(String(line.id || ''));
+      const q = Number(line.qtd) || 0;
+      const pu = Number(line.precoUnit != null ? line.precoUnit : line.precoNegociado != null ? line.precoNegociado : 0) || 0;
+      return `<div class="oc-item-row flex flex-wrap gap-2 items-center rounded-lg border border-slate-200 bg-white px-2 py-2" data-oc-idx="${idx}">
+        <div class="oc-nome-txt flex-1 min-w-[8rem] text-xs font-black text-slate-800 leading-snug">${nome}</div>
+        <label class="text-[9px] font-black uppercase text-slate-500 shrink-0">Qtd
+          <input type="number" step="0.01" min="0.01" class="oc-in-qtd mt-0.5 w-20 rounded-lg border border-slate-200 px-1 py-1 text-xs font-bold text-right" value="${escapeHtml(String(q))}"></label>
+        <label class="text-[9px] font-black uppercase text-slate-500 shrink-0">Unit. R$
+          <input type="number" step="0.01" min="0" class="oc-in-preco mt-0.5 w-24 rounded-lg border border-slate-200 px-1 py-1 text-xs font-bold text-right" value="${escapeHtml(String(pu))}"></label>
+        <button type="button" class="oc-btn-del text-red-600 font-black text-sm px-2 py-1 rounded-lg border border-red-200 hover:bg-red-50 shrink-0" title="Remover">×</button>
+        <input type="hidden" class="oc-h-id" value="${pid}">
+      </div>`;
+    })
+    .join('');
+  host.querySelectorAll('.oc-btn-del').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('.oc-item-row');
+      if (row) row.remove();
+    });
+  });
+}
+
+function ocColetarItensDoDom() {
+  const host = document.getElementById('oc-itens-host');
+  if (!host) return [];
+  const out = [];
+  host.querySelectorAll('.oc-item-row').forEach((row) => {
+    const id = row.querySelector('.oc-h-id')?.value || '';
+    const nome = (row.querySelector('.oc-nome-txt')?.textContent || '').trim();
+    const q = Number(row.querySelector('.oc-in-qtd')?.value) || 0;
+    const precoUnit = Number(row.querySelector('.oc-in-preco')?.value) || 0;
+    if (!id || q <= 0) return;
+    out.push({ id, nome, qtd: q, precoUnit });
+  });
+  return out;
+}
+
+function ocAnexarItemProduto(p) {
+  if (!p || ehProdutoGranelCompra(p)) return;
+  const cur = ocColetarItensDoDom();
+  const id = String(p.id);
+  const ix = cur.findIndex((x) => String(x.id) === id);
+  if (ix >= 0) cur[ix].qtd = (Number(cur[ix].qtd) || 0) + 1;
+  else {
+    cur.push({
+      id,
+      nome: p.nome || 'Produto',
+      qtd: 1,
+      precoUnit: custoFinalDoProduto(p),
+    });
+  }
+  ocRenderItensRows(cur);
+  const ab = document.getElementById('oc-add-busca');
+  const ul = document.getElementById('oc-add-res');
+  if (ab) ab.value = '';
+  if (ul) {
+    ul.innerHTML = '';
+    ul.classList.add('hidden');
+  }
+}
+
+function ocExecutarBuscaAddProduto() {
+  const inp = document.getElementById('oc-add-busca');
+  const ul = document.getElementById('oc-add-res');
+  if (!inp || !ul) return;
+  const termoOriginal = String(inp.value || '').trim();
+  const termoN = normalizarBuscaLocal(termoOriginal);
+  ul.innerHTML = '';
+  if (termoN.length < 2) {
+    window.alert('Digite ao menos 2 caracteres para buscar o produto.');
+    ul.classList.add('hidden');
+    return;
+  }
+  const pool = (baseProdutos || []).filter((x) => x && !ehProdutoGranelCompra(x));
+  const hits = filtrarProdutosBuscaInteligente(pool, termoN, 'normal').slice(0, 35);
+  if (!hits.length) {
+    const li = document.createElement('li');
+    li.className = 'px-3 py-2 text-xs font-bold text-slate-500';
+    li.textContent = 'Nada encontrado no catálogo local.';
+    ul.appendChild(li);
+    ul.classList.remove('hidden');
+    return;
+  }
+  hits.forEach((p) => {
+    const li = document.createElement('li');
+    li.className =
+      'px-3 py-2 cursor-pointer hover:bg-orange-50 border-b border-slate-100 text-xs font-bold text-slate-800 leading-snug';
+    const c = p.codigo_nfe || p.codigo || p.codigo_barras || '';
+    li.textContent = (c ? `${c} · ` : '') + (p.nome || 'Produto');
+    li.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      ocAnexarItemProduto(p);
+    });
+    ul.appendChild(li);
+  });
+  ul.classList.remove('hidden');
+}
+
+async function ocBuscarFornecedoresDd(q) {
+  const dd = document.getElementById('oc-forn-dd');
+  if (!dd) return;
+  dd.innerHTML = '';
+  const recent = lerFornecedoresRecentesCompra();
+  const qn = String(q || '').trim().toLowerCase();
+  const filtrados = qn ? recent.filter((x) => String(x.nome).toLowerCase().includes(qn)) : recent.slice(0, 12);
+  filtrados.forEach((x) => {
+    const li = document.createElement('li');
+    li.className = 'px-3 py-2 cursor-pointer hover:bg-orange-50 text-sm font-bold border-b border-slate-50';
+    li.textContent = x.nome + (x.id ? ' · ID' : '');
+    li.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      document.getElementById('oc-forn-nome').value = x.nome;
+      document.getElementById('oc-forn-id').value = x.id || '';
+      dd.classList.add('hidden');
+    });
+    dd.appendChild(li);
+  });
+  try {
+    const u = new URL(URL_ENTRADA_NFA_FORN, window.location.origin);
+    if (qn.length >= 2) u.searchParams.set('q', String(q || '').trim());
+    else u.searchParams.set('inicial', '1');
+    u.searchParams.set('limit', '40');
+    const r = await fetch(u.toString(), { credentials: 'same-origin' });
+    const j = await r.json();
+    (j.itens || []).forEach((it) => {
+      const li = document.createElement('li');
+      li.className = 'px-3 py-2 cursor-pointer hover:bg-sky-50 text-sm font-semibold border-b border-slate-50';
+      const doc = it.documento ? ` · ${it.documento}` : '';
+      li.textContent = `${it.nome || '—'}${doc}`;
+      li.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        document.getElementById('oc-forn-nome').value = it.nome || '';
+        document.getElementById('oc-forn-id').value = it.id || '';
+        dd.classList.add('hidden');
+      });
+      dd.appendChild(li);
+    });
+  } catch (_) {}
+  dd.classList.toggle('hidden', dd.children.length === 0);
+}
+
+async function abrirModalOrdemCompra(pedId, selEl) {
+  const h = lerHistoricoCompra();
+  const ped = h.find((x) => String(x.id) === String(pedId));
+  if (!ped) return;
+  ocPedidoModalCtx = {
+    pedId: String(pedId),
+    selEl: selEl || null,
+    prevStatus: String(ped.status || 'cotacao'),
+  };
+  const itens = (ped.itens || []).map((i) => ({
+    id: i.id,
+    nome: i.nome,
+    qtd: Number(i.qtd) || 0,
+    precoUnit:
+      i.precoUnit != null
+        ? Number(i.precoUnit)
+        : i.precoNegociado != null
+          ? Number(i.precoNegociado)
+          : (() => {
+              const p = baseProdutos.find((x) => String(x.id) === String(i.id));
+              return p ? custoFinalDoProduto(p) : 0;
+            })(),
+  }));
+  const fn = document.getElementById('oc-forn-nome');
+  const fid = document.getElementById('oc-forn-id');
+  const prv = document.getElementById('oc-previsao');
+  if (fn) fn.value = (ped.oc && ped.oc.fornecedorNome) || ped.fornecedorNome || '';
+  if (fid) fid.value = (ped.oc && ped.oc.fornecedorId) || ped.fornecedorId || '';
+  if (prv) prv.value = (ped.previsaoChegada || (ped.oc && ped.oc.previsaoChegada) || '').toString().slice(0, 10);
+  ocRenderItensRows(itens);
+  const m = document.getElementById('modal-oc-pedido-compra');
+  if (m) {
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+  fn?.focus();
+}
+
+async function confirmarModalOrdemCompra() {
+  if (!ocPedidoModalCtx) return;
+  const ctx = ocPedidoModalCtx;
+  const pedId = ctx.pedId;
+  const h = lerHistoricoCompra();
+  const ped = h.find((x) => String(x.id) === String(pedId));
+  if (!ped) {
+    fecharModalOcPedidoCompra();
+    return;
+  }
+  const fornNome = String(document.getElementById('oc-forn-nome')?.value || '').trim();
+  const fornId = String(document.getElementById('oc-forn-id')?.value || '').trim();
+  const previsao = String(document.getElementById('oc-previsao')?.value || '').trim();
+  if (!fornNome) {
+    window.alert('Informe o fornecedor.');
+    return;
+  }
+  const itens = ocColetarItensDoDom();
+  if (!itens.length) {
+    window.alert('Inclua ao menos um item com quantidade.');
+    return;
+  }
+  const linhas = montarLinhasEntradaNfeDesdeOcItens(itens);
+  const t = new Date();
+  const isoDh = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}T${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+  const cab = {
+    emit_nome: fornNome,
+    emit_cnpj: '',
+    emit_fornecedor_id: fornId,
+    numero: '',
+    serie: '',
+    chave: '',
+    dh_emi: isoDh,
+    data_entrada: previsao || '',
+    plano_conta: '',
+    plano_conta_id: '',
+  };
+  const body = {
+    modo: 'manual',
+    cabecalho: cab,
+    linhas,
+    xml_chave: null,
+    extra: {
+      origem: 'compras_ordem_compra',
+      pedido_compra_id: pedId,
+      previsao_chegada: previsao || '',
+    },
+  };
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
+  try {
+    const r = await fetch(URL_ENTRADA_NFA_SALVAR, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': compraGetCsrf(),
+      },
+      body: JSON.stringify(body),
+    });
+    const j = await r.json();
+    if (!j.ok) {
+      window.alert(j.erro || 'Falha ao salvar rascunho na Entrada NF-e.');
+      return;
+    }
+    salvarFornecedorRecenteCompra(fornNome, fornId);
+    ped.status = 'pedido';
+    ped.itens = itens.map((x) => ({
+      id: x.id,
+      nome: x.nome,
+      qtd: x.qtd,
+      obs: String((ped.itens || []).find((o) => String(o.id) === String(x.id))?.obs || '').trim(),
+      precoUnit: x.precoUnit,
+    }));
+    compraRefreshSnapshotPedido(ped);
+    ped.fornecedorNome = fornNome;
+    ped.fornecedorId = fornId;
+    ped.previsaoChegada = previsao;
+    ped.oc = {
+      fornecedorNome: fornNome,
+      fornecedorId: fornId,
+      previsaoChegada: previsao,
+      rascunhoEntradaId: j.id || '',
+      salvoEm: new Date().toISOString(),
+    };
+    ped.registro = ped.registro || [];
+    ped.registro.unshift({
+      ts: new Date().toISOString(),
+      texto: `Pedido confirmado. Rascunho Entrada NF-e (Mongo) id ${j.id || '—'}. Previsão: ${previsao || '—'}.`,
+    });
+    salvarHistoricoCompra(h);
+    try {
+      sessionStorage.setItem(
+        'agro_entrada_oc_prefill_v1',
+        JSON.stringify({
+          cabecalho: cab,
+          linhas,
+          mensagem: 'Carregado a partir da Ordem de compra — revise plano de contas e número da NF quando chegar.',
+        })
+      );
+    } catch (_) {}
+    const sel = ctx.selEl;
+    fecharModalOcPedidoCompra();
+    renderHistoricoCompras();
+    if (sel) {
+      sel.value = 'pedido';
+      sel.dataset.prevStatus = 'pedido';
+    }
+    if (window.confirm('Rascunho gravado. Abrir a tela Entrada NF-e agora?')) {
+      window.open(URL_ENTRADA_NFA_PAGE, '_blank', 'noopener,noreferrer');
+    }
+    compraRefazerRenderResultados();
+  } catch (e) {
+    console.error(e);
+    window.alert('Erro de rede ao salvar rascunho.');
+  } finally {
+    if (window.gmLoadingBar) window.gmLoadingBar.hide();
+  }
+}
+
+function onStatusPedidoCompraChange(sel) {
+  const id = sel.getAttribute('data-pedido-id');
+  const novo = sel.value;
+  const prev = sel.dataset.prevStatus || 'cotacao';
+  if (novo === 'pedido' && prev !== 'pedido') {
+    sel.value = prev;
+    abrirModalOrdemCompra(id, sel);
+    return;
+  }
+  atualizarStatusPedidoCompra(id, novo);
+  sel.dataset.prevStatus = novo;
 }
 
 function normalizar(texto) {
@@ -821,6 +1318,8 @@ function aplicarSaldosNaBaseCompra(rows) {
     withPreservedResultadosScroll(() => buscar(inp.value));
   }
   atualizarIndicadorCompraAlerta();
+  renderHistoricoCompras();
+  compraRefazerRenderResultados();
   return true;
 }
 
@@ -952,6 +1451,124 @@ function custoFinalDoProduto(p) {
   return Number(v || 0);
 }
 
+function compraLabelOrigemUltimaCompra(orig) {
+  const m = {
+    compra: 'Compra (ERP)',
+    pedido_compra: 'Pedido de compra',
+    nota_entrada: 'Nota de entrada',
+    entrada_mercadoria: 'Entrada de mercadoria',
+  };
+  return m[orig] || (orig ? String(orig) : '—');
+}
+
+function compraFormatarDataIsoLocal(iso) {
+  if (!iso) return '—';
+  const s = String(iso).trim();
+  const d = new Date(s.length <= 10 ? s + 'T12:00:00' : s);
+  if (Number.isNaN(d.getTime())) return s;
+  return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function comprasModalUltimaCompraFornecAberta() {
+  const m = document.getElementById('modal-ultima-compra-fornecedor');
+  return !!(m && m.classList.contains('flex'));
+}
+
+function fecharModalUltimaCompraFornecedor() {
+  const m = document.getElementById('modal-ultima-compra-fornecedor');
+  if (!m) return;
+  m.classList.add('hidden');
+  m.classList.remove('flex');
+  focoBuscaCompra({ force: true });
+}
+
+function compraAbrirDetalheUltimaCompra(idxLinha, iUltima, ev) {
+  if (ev && ev.stopPropagation) ev.stopPropagation();
+  const p = ultimosResultadosCompra[idxLinha];
+  if (!p || !Array.isArray(p.ultimas_compras)) return;
+  const uc = p.ultimas_compras[iUltima];
+  if (!uc || !uc.detalhe) return;
+  const d = uc.detalhe;
+  const m = document.getElementById('modal-ultima-compra-fornecedor');
+  if (!m) return;
+  const nomeProd = String(p.nome || '').trim() || 'Produto';
+  const sub = document.getElementById('modal-ultima-compra-fornecedor-sub');
+  if (sub) sub.textContent = nomeProd;
+  const set = (id, txt) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt != null ? String(txt) : '';
+  };
+  set('modal-ultima-compra-c-data', compraFormatarDataIsoLocal(d.data));
+  set('modal-ultima-compra-c-forn', d.fornecedor || uc.fornecedor || '—');
+  const qtd = Number(d.quantidade);
+  set('modal-ultima-compra-c-qtd', Number.isFinite(qtd) ? qtd.toLocaleString('pt-BR', { maximumFractionDigits: 4 }) : '—');
+  set('modal-ultima-compra-c-preco-base', formatarMoeda(d.preco_unitario_nota != null ? d.preco_unitario_nota : 0));
+  set('modal-ultima-compra-c-preco-final', formatarMoeda(d.preco_unitario_final != null ? d.preco_unitario_final : uc.preco_final));
+  set('modal-ultima-compra-c-doc', d.documento || '—');
+  set('modal-ultima-compra-c-origem', compraLabelOrigemUltimaCompra(d.origem));
+  const nota = document.getElementById('modal-ultima-compra-c-nota');
+  if (nota) {
+    if (d.preco_ja_com_acrescimo_erp) {
+      nota.textContent = 'O valor unitário já vinha com acréscimos gravados pelo ERP nesta linha; não foi aplicada a proporção do cadastro do produto.';
+      nota.classList.remove('hidden');
+    } else {
+      nota.textContent = '';
+      nota.classList.add('hidden');
+    }
+  }
+  m.classList.remove('hidden');
+  m.classList.add('flex');
+}
+
+function compraMontarHtmlUltimasComprasResumo(p, idxLinha) {
+  const list = Array.isArray(p.ultimas_compras) ? p.ultimas_compras : [];
+  if (!list.length) {
+    return `<div class="px-2 sm:px-3 py-1.5 border-t border-dashed border-slate-100 bg-slate-50/30 text-[9px] font-bold text-slate-400 leading-snug">Sem histórico de compra recente no ERP para este produto.</div>`;
+  }
+  const chips = list
+    .slice(0, 3)
+    .map((uc, i) => {
+      const fn = escapeHtml(uc.fornecedor || '—');
+      const pr = formatarMoeda(uc.preco_final != null ? uc.preco_final : 0);
+      return `<button type="button" class="compra-chip-ultima inline-flex flex-col sm:flex-row sm:items-baseline sm:gap-1.5 text-left rounded-lg border-2 border-slate-200 bg-white px-2.5 py-1.5 hover:border-orange-400 hover:bg-orange-50/90 transition-colors min-h-[44px] min-w-0 max-w-full" title="Ver data, quantidade e documento" onclick="compraAbrirDetalheUltimaCompra(${idxLinha}, ${i}, event)">
+        <span class="text-[10px] sm:text-[11px] font-black text-slate-800 truncate max-w-[11rem] sm:max-w-[13rem]">${fn}</span>
+        <span class="text-[10px] sm:text-[11px] font-black tabular-nums text-orange-700 shrink-0">${pr}</span>
+      </button>`;
+    })
+    .join('');
+  return `<div class="px-2 sm:px-3 py-1.5 border-t border-slate-100 bg-slate-50/60" onclick="event.stopPropagation();">
+    <div class="text-[8px] font-black uppercase text-slate-500 tracking-wide mb-1">Últimas compras · fornecedor e unitário c/ acrésc. (toque para detalhes)</div>
+    <div class="flex flex-wrap gap-1.5">${chips}</div>
+  </div>`;
+}
+
+function compraMontarHtmlHistoricoPedidoLocal(pid) {
+  const h = lerHistoricoCompra();
+  const linhas = [];
+  h.forEach((ped) => {
+    const it = (ped.itens || []).find((x) => String(x.id) === String(pid));
+    if (!it) return;
+    const st = ped.status || 'cotacao';
+    const stLabel =
+      st === 'pedido' ? 'Pedido a caminho' : st === 'entregue' ? 'Entregue' : 'Cotação';
+    const regs = Array.isArray(ped.registro) ? ped.registro.slice(0, 2) : [];
+    const ult = regs[0] ? String(regs[0].texto || '').slice(0, 120) : '';
+    const dt = regs[0] && regs[0].ts ? new Date(regs[0].ts) : null;
+    const ds =
+      dt && !Number.isNaN(dt.getTime())
+        ? dt.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+        : '';
+    linhas.push(
+      `<div class="text-[10px] font-semibold text-slate-700 leading-snug"><span class="font-black text-sky-800">${escapeHtml(stLabel)}</span>${ds ? ` · ${escapeHtml(ds)}` : ''}${ult ? ` — ${escapeHtml(ult)}` : ''}</div>`
+    );
+  });
+  if (!linhas.length) return '';
+  return `<div class="px-2 sm:px-3 py-1.5 border-t border-dashed border-sky-200 bg-sky-50/40" onclick="event.stopPropagation();">
+    <div class="text-[8px] font-black uppercase text-sky-800 tracking-wide mb-1">Histórico local (Compras)</div>
+    <div class="space-y-1 max-h-20 overflow-y-auto pr-1">${linhas.slice(0, 4).join('')}</div>
+  </div>`;
+}
+
 function mediaParaOrdenacaoPdv(p) {
   const id = String(p.id);
   const loc = baseProdutos.length ? baseProdutos.find((x) => String(x.id) === id) : null;
@@ -1000,6 +1617,7 @@ function enriquecerProdutoCompraBusca(p) {
       _c_entrada_data: '',
       _c_entrada_qtd: 0,
       _c_spark: [0, 0, 0, 0],
+      ultimas_compras: Array.isArray(p.ultimas_compras) ? p.ultimas_compras : [],
     };
   }
   return {
@@ -1039,6 +1657,11 @@ function enriquecerProdutoCompraBusca(p) {
     _c_spark: Array.isArray(loc._c_spark) && loc._c_spark.length === 4
       ? loc._c_spark.map((x) => Math.max(0, Number(x) || 0))
       : [0, 0, 0, 0],
+    ultimas_compras: Array.isArray(p.ultimas_compras)
+      ? p.ultimas_compras
+      : Array.isArray(loc.ultimas_compras)
+        ? loc.ultimas_compras
+        : [],
   };
 }
 
@@ -1209,6 +1832,11 @@ function renderizarListaResultadosCompra(resultados) {
             : '';
 
     const saldoTot = (Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1);
+    const pedQtd = qtdPedidoACaminhoPorProduto(p.id);
+    const pedSuf =
+      pedQtd > 0
+        ? ` <span class="text-sky-800 font-black tabular-nums" title="Quantidade em pedidos a caminho (status Pedido)">(${Number(pedQtd).toLocaleString('pt-BR', { maximumFractionDigits: 2 })})</span>`
+        : '';
     const saldoCls =
       ala === 'ZERADO' ? 'text-red-800 font-black' : 'text-slate-800 font-bold';
 
@@ -1228,6 +1856,9 @@ function renderizarListaResultadosCompra(resultados) {
           escapeHtml(sug.textoLinha) +
           '</span> <span class="text-lg sm:text-xl font-black text-emerald-800 normal-case">u.</span>'
         : '<span class="text-slate-500">—</span>';
+    const ultimasComprasHtml = compraMontarHtmlUltimasComprasResumo(p, idx);
+    const historicoPedLocalHtml = compraMontarHtmlHistoricoPedidoLocal(p.id);
+
     const sugCardHtml =
       '<div class="mt-2.5 rounded-xl border-2 border-emerald-400/90 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 px-3 py-2.5 shadow-sm" title="' +
       escapeHtml(sug.titulo) +
@@ -1256,12 +1887,14 @@ function renderizarListaResultadosCompra(resultados) {
             <span class="text-[11px] sm:text-xs font-black text-slate-700 tabular-nums truncate">${escapeHtml(gmCode)}</span>
             <span class="text-[11px] sm:text-sm font-bold text-slate-900 truncate min-w-0" title="${escapeHtml(nomeReal)}">${escapeHtml(nomeReal)}</span>
             <span class="text-[11px] sm:text-sm tabular-nums text-right ${sugCls}" title="${escapeHtml(sug.titulo)}">${escapeHtml(sug.textoLinha)}</span>
-            <span class="text-[11px] sm:text-sm tabular-nums text-right ${saldoCls}">${saldoTot}</span>
+            <span class="text-[11px] sm:text-sm tabular-nums text-right ${saldoCls}">${saldoTot}${pedSuf}</span>
             <span class="text-[11px] sm:text-sm font-black text-slate-900 tabular-nums text-right">${formatarMoeda(custoFin)}</span>
           </button>
           <button type="button" class="flex items-center justify-center min-h-[48px] border-l border-slate-100 bg-emerald-50 text-emerald-700 font-black text-lg leading-none hover:bg-emerald-100 active:bg-emerald-200 shrink-0 px-0.5" title="Adicionar 1 ao pedido" aria-label="Adicionar ao pedido" onclick="event.stopPropagation(); adicionarProdutoResultadoCompra(${idx}, event);">+</button>
           <button type="button" class="flex items-center justify-center min-h-[48px] border-l border-slate-100 text-slate-500 font-black text-sm hover:bg-slate-50 shrink-0 w-full" onclick="event.stopPropagation(); compraToggleExpandir(${idx});" aria-label="Expandir ou recolher detalhe" title="Expandir detalhe"><span class="compra-linha-chevron" aria-hidden="true">▸</span></button>
         </div>
+        ${ultimasComprasHtml}
+        ${historicoPedLocalHtml}
         <div class="compra-detalhe hidden border-t border-slate-100 bg-slate-50/60">
           <div class="px-3 pt-3 pb-2 flex flex-wrap gap-2 justify-between items-center border-b border-slate-100/80 bg-white/80">
             <span class="text-[10px] font-black uppercase text-slate-500">Detalhe do produto</span>
@@ -1285,7 +1918,7 @@ function renderizarListaResultadosCompra(resultados) {
 
             <div class="flex flex-wrap items-center gap-2 mt-2.5">
               <span class="${ala === 'ZERADO' ? 'text-red-950 bg-red-50 border-red-300' : 'text-emerald-900 bg-emerald-50 border-emerald-200/90'} px-2.5 py-1 rounded-lg border font-black text-xs uppercase tracking-wide">
-                Est. total ${(Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1)}
+                Est. total ${(Number(p.saldo_centro || 0) + Number(p.saldo_vila || 0)).toFixed(1)}${pedQtd > 0 ? ` <span class="text-sky-900 normal-case">(${Number(pedQtd).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ped.)</span>` : ''}
               </span>
               <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_centro ?? p.saldo_centro ?? 0)}, '${escapeHtml(gmCode)}', 'centro'); event.stopPropagation();" class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Centro">C ${Number(p.saldo_centro || 0).toFixed(1)}</span>
               <span onclick="abrirAjuste('${String(p.id)}', '${nomeSeguro}', ${Number(p.saldo_erp_vila ?? p.saldo_vila ?? 0)}, '${escapeHtml(gmCode)}', 'vila'); event.stopPropagation();" class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100" title="Ajustar Vila">V ${Number(p.saldo_vila || 0).toFixed(1)}</span>
@@ -2235,10 +2868,16 @@ function verificarEntregasAutomaticas() {
       const snap = Number((ped.snapshot || {})[line.id] != null ? (ped.snapshot || {})[line.id] : 0);
       const cur = saldoTotalProduto(p);
       const q = Number(line.qtd) || 0;
-      return Math.floor(cur + 1e-9) >= Math.floor(snap + q);
+      const aumento = cur - snap;
+      return aumento >= q - 0.05;
     });
     if (ok) {
       ped.status = 'entregue';
+      ped.registro = ped.registro || [];
+      ped.registro.unshift({
+        ts: new Date().toISOString(),
+        texto: 'Marcado como entregue: estoque total (Centro+Vila) subiu o suficiente em relação ao momento do pedido.',
+      });
       mudou = true;
     }
   });
@@ -2265,7 +2904,14 @@ function registrarPedidoNoHistorico() {
       nome: i.nome,
       qtd: i.qtd,
       obs: String(i.obs || '').trim(),
+      precoUnit: Number(i.precoFinal) || 0,
     })),
+    registro: [
+      {
+        ts: new Date().toISOString(),
+        texto: 'Salvo como cotação (preço de referência: custo final da lista).',
+      },
+    ],
     snapshot
   });
   salvarHistoricoCompra(h);
@@ -2277,8 +2923,11 @@ function atualizarStatusPedidoCompra(id, status) {
   if (status === 'entregue') return;
   if (status !== 'cotacao' && status !== 'pedido') return;
   const h = lerHistoricoCompra();
-  const ped = h.find(x => x.id === id);
-  if (ped && ped.status !== 'entregue') ped.status = status;
+  const ped = h.find((x) => String(x.id) === String(id));
+  if (ped && ped.status !== 'entregue') {
+    if (status === 'pedido') compraRefreshSnapshotPedido(ped);
+    ped.status = status;
+  }
   salvarHistoricoCompra(h);
   renderHistoricoCompras();
 }
@@ -2372,6 +3021,20 @@ function renderHistoricoCompras() {
     const itensLinhas = (ped.itens || []).map(i =>
       `<div class="text-xs font-bold text-slate-800">${escapeHtml(i.nome)} <span class="text-slate-400 font-semibold">× ${escapeHtml(String(i.qtd))}</span></div>`
     ).join('');
+    const regLinhas =
+      Array.isArray(ped.registro) && ped.registro.length
+        ? `<div class="mt-2 pt-2 border-t border-slate-100/90 space-y-1 max-h-24 overflow-y-auto pr-1 hide-scroll">${ped.registro
+            .slice(0, 6)
+            .map((r) => {
+              const d = r && r.ts ? new Date(r.ts) : null;
+              const ds =
+                d && !Number.isNaN(d.getTime())
+                  ? d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+                  : '';
+              return `<div class="text-[9px] font-semibold text-slate-600 leading-snug"><span class="text-slate-400 font-bold">${escapeHtml(ds)}</span> ${escapeHtml(r.texto || '')}</div>`;
+            })
+            .join('')}</div>`
+        : '';
     const badgeEntregue = `<span class="inline-flex items-center gap-1 rounded-full bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wide px-3 py-1 shadow-sm">Entregue</span>`;
     const selDois = `
         <label class="text-[9px] font-black uppercase text-slate-500 tracking-wide">Status</label>
@@ -2386,6 +3049,7 @@ function renderHistoricoCompras() {
           ${entregue ? badgeEntregue : ''}
         </div>
         <div class="mt-2 space-y-1 max-h-40 overflow-y-auto pr-1 hide-scroll">${itensLinhas}</div>
+        ${regLinhas}
       </div>
       <div class="flex flex-col gap-2 shrink-0 sm:items-end">
         ${entregue ? '<span class="text-[9px] font-bold text-emerald-700 text-right max-w-[11rem] leading-snug">Fechado automaticamente quando o estoque subiu.</span>' : selDois}
@@ -2395,7 +3059,8 @@ function renderHistoricoCompras() {
     host.appendChild(card);
     const sel = card.querySelector('.sel-status-compra');
     if (sel) {
-      sel.addEventListener('change', () => atualizarStatusPedidoCompra(sel.getAttribute('data-pedido-id'), sel.value));
+      sel.dataset.prevStatus = st;
+      sel.addEventListener('change', () => onStatusPedidoCompraChange(sel));
     }
     const rm = card.querySelector('.btn-remove-compra');
     if (rm) {
@@ -2709,6 +3374,16 @@ document.getElementById('busca').addEventListener('keydown', (e) => {
 
 atualizarCarrinho();
 renderHistoricoCompras();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  if (!document.getElementById('busca')) return;
+  fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' })
+    .then((r) => r.json())
+    .then((sd) => {
+      if (sd.rows) aplicarSaldosNaBaseCompra(sd.rows);
+    })
+    .catch(() => {});
+});
 initPainelFornecedorCompra();
 initCompraDiasMediaVendasUi();
 initCompraSugestaoCompraUi();
@@ -2735,6 +3410,39 @@ document.getElementById('btn-fechar-historico-compra')?.addEventListener('click'
 document.getElementById('modal-historico-compra')?.addEventListener('click', (e) => {
   if (e.target && e.target.id === 'modal-historico-compra') fecharHistoricoCompraModal();
 });
+document.getElementById('btn-fechar-ultima-compra-fornecedor')?.addEventListener('click', () =>
+  fecharModalUltimaCompraFornecedor()
+);
+document.getElementById('modal-ultima-compra-fornecedor')?.addEventListener('click', (e) => {
+  if (e.target && e.target.id === 'modal-ultima-compra-fornecedor') fecharModalUltimaCompraFornecedor();
+});
+document.getElementById('btn-fechar-oc-pedido')?.addEventListener('click', () => fecharModalOcPedidoCompra());
+document.getElementById('btn-oc-cancelar')?.addEventListener('click', () => fecharModalOcPedidoCompra());
+document.getElementById('btn-oc-confirmar')?.addEventListener('click', () => {
+  void confirmarModalOrdemCompra();
+});
+document.getElementById('modal-oc-pedido-compra')?.addEventListener('click', (e) => {
+  if (e.target && e.target.id === 'modal-oc-pedido-compra') fecharModalOcPedidoCompra();
+});
+(() => {
+  let ocFornDdTimer = null;
+  document.getElementById('oc-forn-nome')?.addEventListener('input', () => {
+    clearTimeout(ocFornDdTimer);
+    ocFornDdTimer = setTimeout(() => {
+      ocBuscarFornecedoresDd(document.getElementById('oc-forn-nome')?.value || '');
+    }, 200);
+  });
+  document.getElementById('oc-forn-nome')?.addEventListener('focus', () => {
+    ocBuscarFornecedoresDd(document.getElementById('oc-forn-nome')?.value || '');
+  });
+})();
+document.getElementById('btn-oc-add-prod')?.addEventListener('click', () => ocExecutarBuscaAddProduto());
+document.getElementById('oc-add-busca')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    ocExecutarBuscaAddProduto();
+  }
+});
 function comprasModalBuscaAberta() {
   const m = document.getElementById('modal-busca-avancada-compra');
   return m && m.classList.contains('flex');
@@ -2752,6 +3460,20 @@ function comprasAtalhoIgnorarBarra() {
 
 document.addEventListener('keydown', (e) => {
   if (document.body.classList.contains('sspin-locked')) return;
+  if (comprasModalOcPedidoAberta()) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      fecharModalOcPedidoCompra();
+    }
+    return;
+  }
+  if (comprasModalUltimaCompraFornecAberta()) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      fecharModalUltimaCompraFornecedor();
+    }
+    return;
+  }
   if (comprasModalHistoricoAberta()) {
     if (e.key === 'Escape') {
       e.preventDefault();

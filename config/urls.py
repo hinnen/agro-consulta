@@ -26,11 +26,36 @@ urlpatterns = [
     path('estoque/api_definir_pin_rh/', estoque_views.api_definir_pin_rh, name='api_definir_pin_rh'),
     path('estoque/api_atualizar_medias/', estoque_views.api_atualizar_medias, name='api_atualizar_medias'),
     path('estoque/api_registrar_impressao/', estoque_views.api_registrar_impressao, name='api_registrar_impressao'),
+    path(
+        'estoque/api_listar_lotes_transferencia/',
+        estoque_views.api_listar_lotes_transferencia,
+        name='api_listar_lotes_transferencia',
+    ),
+    path(
+        'estoque/api_atualizar_pedido_transferencia/',
+        estoque_views.api_atualizar_pedido_transferencia,
+        name='api_atualizar_pedido_transferencia',
+    ),
+    path(
+        'estoque/api_adicionar_pedido_transferencia/',
+        estoque_views.api_adicionar_pedido_transferencia,
+        name='api_adicionar_pedido_transferencia',
+    ),
     path('estoque/api_cancelar_separacao/<str:id>/', estoque_views.api_cancelar_separacao, name='api_cancelar_separacao'),
     path(
         'estoque/api_transferir_vila_para_centro/',
         estoque_views.api_transferir_vila_para_centro,
         name='api_transferir_vila_para_centro',
+    ),
+    path(
+        'estoque/api_transferir_lote_vila_para_centro/',
+        estoque_views.api_transferir_lote_vila_para_centro,
+        name='api_transferir_lote_vila_para_centro',
+    ),
+    path(
+        'estoque/api_listar_historico_transferencia/',
+        estoque_views.api_listar_historico_transferencia,
+        name='api_listar_historico_transferencia',
     ),
     path(
         'api/estoque/sync-health/',

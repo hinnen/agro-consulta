@@ -270,6 +270,46 @@ class VendaAgro(models.Model):
         return self.ErpSyncStatus.ACEITO if self.enviado_erp else self.ErpSyncStatus.FALHA_COMUNICACAO
 
 
+class PdvMercadoPagoPointOrder(models.Model):
+    """Pedido Point criado a partir do PDV; após pagamento no terminal, dispara Pedidos/Salvar."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Aguardando pagamento"
+        ABANDONED = "abandoned", "Abandonado pelo operador"
+        FINALIZED = "finalized", "Finalizado (ERP)"
+        FAILED = "failed", "Falha"
+
+    external_reference = models.CharField(max_length=64, unique=True, db_index=True)
+    mp_order_id = models.CharField(max_length=80, db_index=True)
+    valor_cobrado = models.DecimalField(max_digits=12, decimal_places=2)
+    erp_payload = models.JSONField()
+    django_session_key = models.CharField(max_length=50, blank=True, default="")
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True,
+    )
+    venda = models.ForeignKey(
+        "VendaAgro",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pedidos_mp_point",
+    )
+    mp_last_status = models.CharField(max_length=48, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Pedido Mercado Pago Point (PDV)"
+        verbose_name_plural = "Pedidos Mercado Pago Point (PDV)"
+
+    def __str__(self):
+        return f"MP Point {self.external_reference} — {self.status}"
+
+
 class ItemVendaAgro(models.Model):
     venda = models.ForeignKey(
         VendaAgro,
@@ -450,3 +490,128 @@ class LancamentoAtalhoFiltro(models.Model):
 
     def __str__(self):
         return f"{self.usuario_id} · {self.slot} · {self.nome[:40]}"
+
+
+class ProdutoGrupoAgro(models.Model):
+    """
+    Agrupamento lógico no Agro: um nome comercial e um preço de venda únicos,
+    com variantes por marca + código de barras (cada variante pode apontar para um Id do ERP/Mongo).
+    """
+
+    nome = models.CharField("Nome do produto", max_length=300)
+    preco_venda = models.DecimalField("Preço de venda", max_digits=12, decimal_places=2)
+    ativo = models.BooleanField(default=True)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="produto_grupos_agro",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["nome"]
+        verbose_name = "Grupo de produto (Agro)"
+        verbose_name_plural = "Grupos de produto (Agro)"
+
+    def __str__(self):
+        return self.nome
+
+
+class ProdutoGrupoVarianteAgro(models.Model):
+    """Marca + EAN dentro de um grupo; opcional vínculo com cadastro ERP (Mongo)."""
+
+    grupo = models.ForeignKey(
+        ProdutoGrupoAgro,
+        on_delete=models.CASCADE,
+        related_name="variantes",
+    )
+    marca = models.CharField(max_length=120)
+    codigo_barras = models.CharField(max_length=80)
+    produto_erp_id = models.CharField(
+        "ID produto ERP/Mongo",
+        max_length=64,
+        blank=True,
+        default="",
+        db_index=True,
+    )
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "Variante (marca / código de barras)"
+        verbose_name_plural = "Variantes (marca / código de barras)"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["grupo", "marca"],
+                name="uniq_prod_grupo_variante_marca_por_grupo",
+            ),
+            models.UniqueConstraint(
+                fields=["codigo_barras"],
+                condition=~models.Q(codigo_barras=""),
+                name="uniq_prod_grupo_variante_codigo_barras",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.grupo_id} · {self.marca} · {self.codigo_barras}"
+
+
+class ProdutoGestaoOverlayAgro(models.Model):
+    """
+    Sobrescritas locais na tela de gestão (nome, preço, etc.) sobre o cadastro espelhado do ERP.
+    Campos vazios / nulos = usar valor do Mongo. Não altera o ERP.
+    """
+
+    produto_externo_id = models.CharField(
+        max_length=64,
+        unique=True,
+        db_index=True,
+        verbose_name="ID produto (Mongo/ERP)",
+    )
+    nome = models.CharField(max_length=300, blank=True, default="")
+    marca = models.CharField(max_length=120, blank=True, default="")
+    categoria = models.CharField(max_length=200, blank=True, default="")
+    fornecedor_texto = models.CharField(max_length=300, blank=True, default="")
+    unidade = models.CharField(max_length=20, blank=True, default="")
+    preco_venda = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Preço de venda (override)",
+    )
+    ativo_exibicao = models.BooleanField(
+        null=True,
+        blank=True,
+        verbose_name="Ativo na listagem",
+        help_text="None = seguir ERP; True/False forçar exibição de status.",
+    )
+    estoque_min_centro = models.DecimalField(
+        max_digits=12, decimal_places=3, null=True, blank=True
+    )
+    estoque_max_centro = models.DecimalField(
+        max_digits=12, decimal_places=3, null=True, blank=True
+    )
+    estoque_min_vila = models.DecimalField(
+        max_digits=12, decimal_places=3, null=True, blank=True
+    )
+    estoque_max_vila = models.DecimalField(
+        max_digits=12, decimal_places=3, null=True, blank=True
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="produto_overlays_gestao",
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Overlay gestão de produto"
+        verbose_name_plural = "Overlays gestão de produtos"
+
+    def __str__(self):
+        return f"{self.produto_externo_id} · overlay"

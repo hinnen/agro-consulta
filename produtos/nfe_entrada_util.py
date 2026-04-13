@@ -270,6 +270,24 @@ def salvar_rascunho_entrada(
         return {"ok": False, "erro": str(exc)[:500]}
 
 
+def _serialize_dt_mongo(val: Any) -> str | None:
+    if isinstance(val, datetime):
+        return val.replace(tzinfo=timezone.utc).isoformat()
+    return None
+
+
+def _serialize_rascunho_leitura(doc: dict[str, Any]) -> dict[str, Any]:
+    d = dict(doc)
+    if d.get("_id") is not None:
+        d["_id"] = str(d["_id"])
+    for k in ("criado_em", "atualizado_em"):
+        if k in d:
+            ser = _serialize_dt_mongo(d.get(k))
+            if ser is not None:
+                d[k] = ser
+    return d
+
+
 def listar_rascunhos_entrada(db, limit: int = 30) -> list[dict]:
     if db is None:
         return []
@@ -281,14 +299,91 @@ def listar_rascunhos_entrada(db, limit: int = 30) -> list[dict]:
         )
         out = []
         for d in cur:
-            d["_id"] = str(d["_id"])
-            if isinstance(d.get("criado_em"), datetime):
-                d["criado_em"] = d["criado_em"].replace(tzinfo=timezone.utc).isoformat()
-            out.append(d)
+            out.append(_serialize_rascunho_leitura(d))
         return out
     except Exception as exc:
         logger.exception("listar_rascunhos_entrada: %s", exc)
         return []
+
+
+def _object_id_rascunho(oid: str):
+    from bson.errors import InvalidId
+    from bson.objectid import ObjectId
+
+    try:
+        return ObjectId(str(oid).strip())
+    except (InvalidId, TypeError, ValueError):
+        return None
+
+
+def obter_rascunho_entrada(db, oid: str) -> dict[str, Any] | None:
+    if db is None:
+        return None
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return None
+    try:
+        d = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        if not d:
+            return None
+        return _serialize_rascunho_leitura(d)
+    except Exception as exc:
+        logger.exception("obter_rascunho_entrada: %s", exc)
+        return None
+
+
+def excluir_rascunho_entrada(db, oid: str) -> dict[str, Any]:
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return {"ok": False, "erro": "ID inválido."}
+    try:
+        r = db[COL_ENTRADA_RASCUNHO].delete_one({"_id": _id})
+        return {"ok": r.deleted_count == 1}
+    except Exception as exc:
+        logger.exception("excluir_rascunho_entrada")
+        return {"ok": False, "erro": str(exc)[:500]}
+
+
+def atualizar_rascunho_entrada(
+    db,
+    oid: str,
+    *,
+    usuario: str,
+    modo: str,
+    cabecalho: dict,
+    linhas: list,
+    xml_chave: str | None = None,
+    extra: dict | None = None,
+) -> dict[str, Any]:
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return {"ok": False, "erro": "ID inválido."}
+    try:
+        atual = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id}, {"_id": 1})
+        if not atual:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        db[COL_ENTRADA_RASCUNHO].update_one(
+            {"_id": _id},
+            {
+                "$set": {
+                    "atualizado_em": datetime.now(timezone.utc),
+                    "usuario_ultima_alteracao": (usuario or "")[:200],
+                    "modo": (modo or "manual")[:40],
+                    "cabecalho": cabecalho,
+                    "linhas": linhas,
+                    "xml_chave": (xml_chave or "")[:44] or None,
+                    "extra": extra or {},
+                }
+            },
+        )
+        return {"ok": True, "id": str(_id)}
+    except Exception as exc:
+        logger.exception("atualizar_rascunho_entrada")
+        return {"ok": False, "erro": str(exc)[:500]}
 
 
 def obter_ult_nsu(db, cnpj: str) -> str:

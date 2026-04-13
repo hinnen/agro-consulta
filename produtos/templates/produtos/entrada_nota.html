@@ -46,143 +46,198 @@
           <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">
             GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-orange-700">Entrada de NF-e</span>
           </h1>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Manual · XML · Distribuição DF-e (SEFAZ)</p>
+          <p class="text-xs sm:text-sm font-bold text-slate-600">Manual · XML · SEFAZ — três jeitos de montar a mesma grade</p>
         </div>
       </div>
       {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-orange-400 shrink-0" %}
     </div>
   </header>
 
-  <main class="max-w-[1400px] mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
-    <div class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-[11px] font-semibold text-amber-950 leading-relaxed space-y-2">
-      <p><strong class="font-black uppercase">Uso</strong> — conferir nota, buscar <strong>fornecedor</strong> e <strong>produtos</strong> cadastrados, <strong>ratear quantidade</strong> (ex.: 1 caixa = 10 un. no estoque), <strong>data de entrada</strong>, um <strong>plano de contas para a nota inteira</strong> (DRE / resumo gerencial) e opcionalmente gerar <strong>conta a pagar</strong> no Mongo (como o <a href="{% url 'lancamentos_manual' %}" class="underline font-black">lançamento manual</a>). <strong>Não</strong> altera estoque no ERP sozinho.</p>
-      <p><strong class="font-black uppercase">SEFAZ</strong> — consultar notas na Receita exige certificado digital e dados da empresa já instalados no servidor.</p>
-      <details class="group">
-        <summary class="cursor-pointer list-none inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-900">
-          <span aria-hidden="true">ℹ</span>
-          <span>Detalhes técnicos</span>
-          <span class="group-open:rotate-90 transition-transform inline-block text-[9px]">▸</span>
+  <main class="max-w-[1400px] mx-auto px-4 py-4 sm:py-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
+    <div class="rounded-2xl border-2 border-slate-200 bg-white px-4 py-3.5 sm:px-5 shadow-sm">
+      <p class="text-sm sm:text-base font-bold text-slate-900 leading-snug">
+        <span class="text-orange-600 font-black uppercase tracking-wide">Em poucas palavras</span>
+        — Preencha a nota e a grade, depois toque em <strong class="text-orange-700">Salvar só rascunho</strong>.
+        Isso grava no Agro para conferência. O estoque da loja (PDV / Compras) só muda quando você usar <strong class="text-slate-800">Entrada no estoque Agro</strong> ou outro ajuste autorizado.
+      </p>
+      <details class="mt-3 group border-t border-slate-100 pt-2">
+        <summary class="cursor-pointer list-none text-sm font-black text-orange-800 flex items-center gap-2 min-h-[44px]">
+          <span class="text-orange-500 text-lg leading-none" aria-hidden="true">▸</span>
+          <span>Texto completo: financeiro, SEFAZ e o que esta tela não faz sozinha</span>
         </summary>
-        <div class="mt-2 space-y-1 text-[10px] font-bold text-amber-900/90">
-          <p>Rascunhos na coleção <code class="bg-white/80 px-1 rounded">AgroEntradaNotaRascunho</code> (Mongo). O plano da nota fica em <code class="bg-white/80 px-1 rounded">cabecalho.plano_conta</code> / <code class="bg-white/80 px-1 rounded">plano_conta_id</code>.</p>
-          <p>Certificado A1 (.pfx), CNPJ e UF nas variáveis de ambiente. Homologação: <code class="bg-white/80 px-1 rounded">NFE_DIST_DFE_TP_AMB=2</code>.</p>
+        <div class="mt-2 space-y-2 text-xs sm:text-sm font-semibold text-slate-700 leading-relaxed pl-1 sm:pl-6 border-l-4 border-orange-200 ml-1 py-1">
+          <p>Conferir nota, buscar <strong>fornecedor</strong> e <strong>produtos</strong> cadastrados, <strong>ratear quantidade</strong> (ex.: 1 caixa = 10 un. no estoque), <strong>data de entrada</strong>, <strong>plano de contas da nota</strong> (DRE) e, se quiser, gerar <strong>conta a pagar</strong> no Mongo (como no <a href="{% url 'lancamentos_manual' %}" class="text-orange-700 underline font-black">lançamento manual</a>). <strong>Não</strong> altera o estoque do ERP sozinho ao salvar rascunho.</p>
+          <p class="text-slate-600">Consulta DF-e na Receita exige certificado digital e dados da empresa no servidor.</p>
+        </div>
+      </details>
+      <details class="mt-1 group">
+        <summary class="cursor-pointer list-none text-xs font-black uppercase text-slate-500 flex items-center gap-2 min-h-[40px] py-1">
+          <span aria-hidden="true">▸</span>
+          Detalhe técnico (Mongo / ambiente)
+        </summary>
+        <div class="mt-1.5 text-[11px] sm:text-xs font-semibold text-slate-600 space-y-1 pl-4">
+          <p>Rascunhos na coleção <code class="bg-slate-100 px-1.5 py-0.5 rounded">AgroEntradaNotaRascunho</code>. Plano da nota: <code class="bg-slate-100 px-1.5 py-0.5 rounded">cabecalho.plano_conta</code> / <code class="bg-slate-100 px-1.5 py-0.5 rounded">plano_conta_id</code>.</p>
+          <p>Certificado A1 (.pfx), CNPJ e UF nas variáveis de ambiente. Homologação SEFAZ: <code class="bg-slate-100 px-1.5 py-0.5 rounded">NFE_DIST_DFE_TP_AMB=2</code>.</p>
         </div>
       </details>
     </div>
 
-    <div id="msg-global" class="hidden rounded-2xl border px-4 py-3 text-sm font-bold"></div>
+    <div id="msg-global" role="status" aria-live="polite" class="hidden rounded-2xl border-2 px-4 py-3.5 text-sm sm:text-base font-bold min-h-[3.25rem] flex flex-wrap items-center gap-2 shadow-sm"></div>
 
-    <div class="flex flex-wrap gap-2">
-      <button type="button" class="tab-btn inline-flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl font-black text-xs uppercase border-2 tab-on" data-tab="manual" title="Alt + 1">
+    <div id="entrada-nfe-rasc-banner" class="hidden rounded-2xl border-2 border-sky-300 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-950 flex flex-wrap items-center justify-between gap-3">
+      <span>Editando rascunho Mongo <code id="entrada-nfe-rasc-banner-id" class="text-xs bg-white px-1.5 py-0.5 rounded border border-sky-200 font-mono"></code> — <strong>Salvar só rascunho</strong> substitui este registro.</span>
+      <button type="button" id="btn-entrada-nfe-sair-edicao" class="min-h-[44px] px-4 py-2 rounded-xl border-2 border-sky-400 bg-white text-xs font-black uppercase text-sky-900 hover:bg-sky-100 shrink-0">Novo rascunho (próxima gravação cria outro)</button>
+    </div>
+
+    <div class="flex flex-wrap gap-2 sm:gap-3">
+      <button type="button" class="tab-btn inline-flex items-center justify-center gap-2 px-4 sm:px-5 min-h-[48px] rounded-xl font-black text-sm uppercase border-2 tab-on" data-tab="manual" title="Alt + 1">
         <span>Entrada manual</span>
         <kbd class="gm-kbd whitespace-nowrap normal-case" title="Alt + 1">Alt + 1</kbd>
       </button>
-      <button type="button" class="tab-btn inline-flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl font-black text-xs uppercase border-2 tab-off" data-tab="xml" title="Alt + 2">
+      <button type="button" class="tab-btn inline-flex items-center justify-center gap-2 px-4 sm:px-5 min-h-[48px] rounded-xl font-black text-sm uppercase border-2 tab-off" data-tab="xml" title="Alt + 2">
         <span>Importar XML</span>
         <kbd class="gm-kbd whitespace-nowrap normal-case" title="Alt + 2">Alt + 2</kbd>
       </button>
-      <button type="button" class="tab-btn inline-flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl font-black text-xs uppercase border-2 tab-off" data-tab="sefaz" title="Alt + 3">
+      <button type="button" class="tab-btn inline-flex items-center justify-center gap-2 px-4 sm:px-5 min-h-[48px] rounded-xl font-black text-sm uppercase border-2 tab-off" data-tab="sefaz" title="Alt + 3">
         <span>SEFAZ (DF-e)</span>
         <kbd class="gm-kbd whitespace-nowrap normal-case" title="Alt + 3">Alt + 3</kbd>
       </button>
     </div>
 
-    <section id="panel-manual" class="tab-panel bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
-      <h2 class="text-sm font-black uppercase text-slate-700">Dados da nota</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        <label class="block lg:col-span-2"><span class="text-[10px] font-black uppercase text-slate-500">Fornecedor / emitente (cadastro)</span>
+    <section id="panel-manual" class="tab-panel bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-4 sm:p-6 space-y-5 sm:space-y-6">
+      <div class="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 sm:p-5 space-y-4">
+        <div class="flex flex-wrap items-start gap-3">
+          <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-orange-600 text-white text-lg font-black shrink-0 shadow-sm" aria-hidden="true">1</span>
+          <div class="min-w-0 flex-1">
+            <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight">Fornecedor e identificação da NF</h2>
+            <p class="text-xs sm:text-sm font-semibold text-slate-600 mt-1 leading-snug">Escolha o fornecedor na lista. Número, série e chave quando já tiver a nota.</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <label class="block lg:col-span-2"><span class="text-xs font-black uppercase text-slate-600">Fornecedor / emitente (cadastro)</span>
           <div class="relative mt-1">
-            <input type="text" id="m-emit-nome" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Digite para buscar Mongo / títulos / ClienteAgro…">
+            <input type="text" id="m-emit-nome" autocomplete="off" class="w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Digite para buscar na lista…">
             <input type="hidden" id="m-emit-forn-id" value="">
-            <ul id="forn-sug" class="forn-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg text-sm"></ul>
+            <ul id="forn-sug" class="forn-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg text-sm z-20"></ul>
           </div>
-          <p class="text-[9px] text-slate-500 font-semibold mt-1">Escolha da lista para gravar o ID do ERP (integração). CNPJ abaixo pode ser preenchido ao clicar no fornecedor.</p>
+          <p class="text-xs text-slate-600 font-semibold mt-1.5">Toque num nome da lista para gravar o ID do ERP. O CNPJ pode preencher sozinho.</p>
         </label>
-        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">CNPJ emitente</span>
-          <input type="text" id="m-emit-cnpj" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Somente números"></label>
-        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Número / Série</span>
+        <label class="block"><span class="text-xs font-black uppercase text-slate-600">CNPJ emitente</span>
+          <input type="text" id="m-emit-cnpj" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Somente números"></label>
+        <label class="block"><span class="text-xs font-black uppercase text-slate-600">Número / Série</span>
           <div class="flex gap-2 mt-1">
-            <input type="text" id="m-nf" class="flex-1 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold" placeholder="Nº">
-            <input type="text" id="m-serie" class="w-24 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold" placeholder="Sér.">
+            <input type="text" id="m-nf" class="flex-1 min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black" placeholder="Nº NF">
+            <input type="text" id="m-serie" class="w-24 min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black" placeholder="Sér.">
           </div></label>
-        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Chave (44 dígitos)</span>
-          <input type="text" id="m-chave" maxlength="44" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono text-xs" placeholder="Opcional"></label>
-        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Data emissão</span>
-          <input type="datetime-local" id="m-dh" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold"></label>
-        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Data entrada (física)</span>
-          <input type="date" id="m-data-entrada" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold" title="Quando a mercadoria entrou no estoque"></label>
-        <label class="block lg:col-span-3"><span class="text-[10px] font-black uppercase text-slate-500">Plano de conta (nota inteira · DRE / gerencial)</span>
+        <label class="block"><span class="text-xs font-black uppercase text-slate-600">Chave (44 dígitos)</span>
+          <input type="text" id="m-chave" maxlength="44" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-mono" placeholder="Opcional"></label>
+        <label class="block"><span class="text-xs font-black uppercase text-slate-600">Data emissão</span>
+          <input type="datetime-local" id="m-dh" class="mt-1 w-full max-w-xs min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold"></label>
+        <label class="block"><span class="text-xs font-black uppercase text-slate-600">Data entrada (física)</span>
+          <input type="date" id="m-data-entrada" class="mt-1 w-full max-w-xs min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black" title="Quando a mercadoria entrou no estoque"></label>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 sm:p-5 space-y-3">
+        <div class="flex flex-wrap items-start gap-3">
+          <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-emerald-600 text-white text-lg font-black shrink-0 shadow-sm" aria-hidden="true">2</span>
+          <div class="min-w-0 flex-1">
+            <h2 class="text-base sm:text-lg font-black uppercase text-emerald-950 tracking-tight">Plano de contas (nota inteira · DRE)</h2>
+            <p class="text-xs sm:text-sm font-semibold text-emerald-900/90 mt-1">Obrigatório para lançar a pagar; recomendado preencher também no rascunho só.</p>
+          </div>
+        </div>
+        <div class="block space-y-2">
+          <label for="m-plano-conta" class="sr-only">Plano de contas</label>
           <div class="relative sug-wrap mt-1" data-sug-campo="plano">
-            <input type="text" id="m-plano-conta" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold focus:border-orange-500 outline-none" placeholder="Busque ou escolha um atalho abaixo…">
+            <input type="text" id="m-plano-conta" autocomplete="off" class="w-full min-h-[48px] rounded-xl border-2 border-emerald-200/80 bg-white px-3 py-2.5 text-sm font-bold focus:border-orange-500 outline-none" placeholder="Busque ou toque num atalho abaixo…">
             <input type="hidden" id="m-plano-conta-id" value="">
-            <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+            <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg z-20"></ul>
           </div>
-          <div class="flex flex-wrap gap-2 mt-2">
-            <button type="button" class="btn-plano-rapido px-3 py-1.5 rounded-lg border-2 border-orange-200 bg-white text-[10px] font-black uppercase text-orange-900 hover:bg-orange-50" data-plano-nome="COMPRA MERCADORIA SN" title="Preenche o nome; confira na lista se quiser amarrar o ID do ERP">COMPRA MERCADORIA SN</button>
-            <button type="button" class="btn-plano-rapido px-3 py-1.5 rounded-lg border-2 border-orange-200 bg-white text-[10px] font-black uppercase text-orange-900 hover:bg-orange-50" data-plano-nome="COMPRA MERCADORIA CN">COMPRA MERCADORIA CN</button>
+          <div class="flex flex-wrap gap-2 mt-3">
+            <button type="button" class="btn-plano-rapido min-h-[44px] px-4 py-2 rounded-xl border-2 border-orange-300 bg-white text-xs font-black uppercase text-orange-950 hover:bg-orange-50 shadow-sm" data-plano-nome="COMPRA MERCADORIA SN" title="Preenche o nome; confira na lista se quiser amarrar o ID do ERP">COMPRA MERCADORIA SN</button>
+            <button type="button" class="btn-plano-rapido min-h-[44px] px-4 py-2 rounded-xl border-2 border-orange-300 bg-white text-xs font-black uppercase text-orange-950 hover:bg-orange-50 shadow-sm" data-plano-nome="COMPRA MERCADORIA CN">COMPRA MERCADORIA CN</button>
           </div>
-          <p class="text-[9px] text-slate-500 font-semibold mt-1">O mesmo plano vale para o <strong>título a pagar</strong> (um lançamento com a soma da nota) e aparece no Mongo como <code class="bg-slate-100 px-0.5 rounded">PlanoDeConta</code>, base do DRE.</p>
-        </label>
+          <details class="mt-2 rounded-lg border border-emerald-200/60 bg-white/80 px-3 py-2">
+            <summary class="text-xs font-black uppercase text-emerald-900 cursor-pointer">Por que o plano importa?</summary>
+            <p class="text-xs font-semibold text-slate-700 mt-2 leading-relaxed">O mesmo plano vale para o <strong>título a pagar</strong> (quando usar o botão verde) e aparece no Mongo como <code class="bg-slate-100 px-1 rounded">PlanoDeConta</code>, base do DRE.</p>
+          </details>
+        </div>
       </div>
-      <div class="flex flex-wrap gap-2 items-center justify-between border-t border-slate-100 pt-4">
-        <h3 class="text-sm font-black uppercase text-slate-700">Itens</h3>
-        <button type="button" id="btn-add-linha" class="px-4 py-2 rounded-xl bg-slate-100 border border-slate-200 text-xs font-black uppercase hover:bg-slate-200">+ Linha</button>
-      </div>
-      <p class="text-[10px] font-semibold text-slate-600"><strong class="text-orange-800">Rateio:</strong> coluna <em>Un/emb</em> = unidades dentro de cada embalagem da NF (ex.: 10). <strong>Qtd est.</strong> = Qtd NF × Un/emb (ajuste manual se precisar).</p>
-      <div class="overflow-x-auto rounded-xl border border-slate-200">
+
+      <div class="rounded-2xl border-2 border-orange-200 bg-gradient-to-br from-orange-50/80 to-white p-4 sm:p-5 space-y-3">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="flex flex-wrap items-start gap-3 min-w-0">
+            <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-orange-600 text-white text-lg font-black shrink-0 shadow-sm" aria-hidden="true">3</span>
+            <div class="min-w-0">
+              <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight">Produtos na nota</h2>
+              <p class="text-xs sm:text-sm font-semibold text-slate-700 mt-1 leading-snug">Em cada linha use <strong class="text-orange-800">Buscar</strong> no catálogo para o estoque da loja bater com Compras e PDV.</p>
+            </div>
+          </div>
+          <button type="button" id="btn-add-linha" class="min-h-[48px] px-5 py-2.5 rounded-xl bg-white border-2 border-orange-300 text-sm font-black uppercase text-orange-900 hover:bg-orange-50 shadow-sm shrink-0">+ Linha</button>
+        </div>
+        <details class="rounded-xl border border-slate-200 bg-white px-3 py-2 group">
+          <summary class="cursor-pointer list-none text-xs sm:text-sm font-black uppercase text-slate-700 flex items-center gap-2 min-h-[40px]">
+            <span class="text-orange-500 group-open:rotate-90 transition-transform inline-block" aria-hidden="true">▸</span>
+            Como ler Qtd NF, Un/emb e Qtd est.
+          </summary>
+          <p class="text-xs sm:text-sm font-semibold text-slate-700 mt-2 pb-1 leading-relaxed pl-6 border-l-2 border-orange-200"><strong class="text-orange-800">Rateio:</strong> <em>Un/emb</em> = unidades dentro de cada embalagem da NF (ex.: 10). <strong>Qtd est.</strong> = Qtd NF × Un/emb (pode editar na mão).</p>
+        </details>
+        <div class="overflow-x-auto rounded-xl border-2 border-slate-200 bg-white shadow-inner">
         <table class="w-full text-xs sm:text-sm min-w-[960px]">
-          <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-500">
+          <thead class="bg-slate-100 text-[11px] font-black uppercase text-slate-600">
             <tr>
-              <th class="text-left px-2 py-2 min-w-[140px]">Descrição</th>
-              <th class="text-left px-2 py-2 w-20">Cód.</th>
-              <th class="text-left px-2 py-2 w-24">EAN</th>
-              <th class="text-center px-1 py-2 w-14">Cat.</th>
-              <th class="text-right px-2 py-2 w-16">Qtd NF</th>
-              <th class="text-right px-2 py-2 w-16">Un/emb</th>
-              <th class="text-right px-2 py-2 w-20">Qtd est.</th>
-              <th class="text-right px-2 py-2 w-20">V. unit</th>
-              <th class="text-left px-2 py-2 w-14">CFOP</th>
-              <th class="text-left px-2 py-2 min-w-[100px]">Match</th>
-              <th class="w-8"></th>
+              <th class="text-left px-2 py-2.5 min-w-[140px]">Descrição</th>
+              <th class="text-left px-2 py-2.5 w-20">Cód.</th>
+              <th class="text-left px-2 py-2.5 w-24">EAN</th>
+              <th class="text-center px-1 py-2.5 w-[4.5rem]">Catálogo</th>
+              <th class="text-right px-2 py-2.5 w-16">Qtd NF</th>
+              <th class="text-right px-2 py-2.5 w-16">Un/emb</th>
+              <th class="text-right px-2 py-2.5 w-20">Qtd est.</th>
+              <th class="text-right px-2 py-2.5 w-20">V. unit</th>
+              <th class="text-left px-2 py-2.5 w-14">CFOP</th>
+              <th class="text-left px-2 py-2.5 min-w-[100px]">Match</th>
+              <th class="w-10"></th>
             </tr>
           </thead>
           <tbody id="tbody-itens"></tbody>
         </table>
       </div>
+      </div>
 
-      <details class="rounded-2xl border border-emerald-200 bg-emerald-50/40 px-4 py-3 group">
-        <summary class="cursor-pointer list-none text-sm font-black uppercase text-emerald-900 flex items-center gap-2">
-          <span class="group-open:rotate-90 transition-transform inline-block text-[10px]">▸</span>
-          Lançamento financeiro (conta a pagar) — opcional
+      <details class="rounded-2xl border-2 border-emerald-300 bg-emerald-50/50 px-4 py-3 sm:px-5 sm:py-4 group shadow-sm">
+        <summary class="cursor-pointer list-none text-sm sm:text-base font-black uppercase text-emerald-950 flex flex-wrap items-center gap-2 min-h-[48px]">
+          <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-700 text-white text-sm font-black shrink-0" aria-hidden="true">$</span>
+          <span>Passo extra — Conta a pagar no financeiro (opcional)</span>
+          <span class="text-xs font-bold normal-case text-emerald-800/90 w-full sm:w-auto sm:ml-auto">Só precisa se for usar o botão verde &quot;Salvar + lançar&quot;</span>
         </summary>
-        <div class="mt-4 space-y-3 text-[11px] font-semibold text-emerald-950">
-          <p>Grava o rascunho da NF e cria <strong>um título a pagar</strong> com a soma da nota (e envia ao ERP se <code class="bg-white/80 px-1 rounded text-[10px]">VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH</code> estiver ativo). O <strong>plano de contas</strong> é o definido acima em <em>Dados da nota</em> — é ele que alimenta o DRE.</p>
+        <div class="mt-4 space-y-3 text-xs sm:text-sm font-semibold text-emerald-950">
+          <p class="leading-relaxed">Abre este bloco, preencha empresa, datas e conta bancária. Depois use <strong>Salvar + lançar a pagar</strong> no final da página. O plano de contas é o do passo 2.</p>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Empresa *</span>
+            <label class="block"><span class="text-xs font-black uppercase text-slate-700">Empresa *</span>
               <div class="relative sug-wrap mt-1" data-sug-campo="empresa">
-                <input type="text" id="fin-empresa-nome" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Buscar…">
+                <input type="text" id="fin-empresa-nome" autocomplete="off" class="w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Buscar…">
                 <input type="hidden" id="fin-empresa-id" value="">
                 <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
               </div></label>
-            <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Competência *</span>
-              <input type="date" id="fin-dc" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold"></label>
-            <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Vencimento *</span>
-              <input type="date" id="fin-dv" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold"></label>
-            <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Forma pagamento *</span>
+            <label class="block"><span class="text-xs font-black uppercase text-slate-700">Competência *</span>
+              <input type="date" id="fin-dc" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black"></label>
+            <label class="block"><span class="text-xs font-black uppercase text-slate-700">Vencimento *</span>
+              <input type="date" id="fin-dv" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black"></label>
+            <label class="block"><span class="text-xs font-black uppercase text-slate-700">Forma pagamento *</span>
               <div class="relative sug-wrap mt-1" data-sug-campo="forma">
-                <input type="text" id="fin-forma-nome" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Buscar…">
+                <input type="text" id="fin-forma-nome" autocomplete="off" class="w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Buscar…">
                 <input type="hidden" id="fin-forma-id" value="">
                 <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
               </div></label>
-            <label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Banco / conta *</span>
+            <label class="block"><span class="text-xs font-black uppercase text-slate-700">Banco / conta *</span>
               <div class="relative sug-wrap mt-1" data-sug-campo="banco">
-                <input type="text" id="fin-banco-nome" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Buscar…">
+                <input type="text" id="fin-banco-nome" autocomplete="off" class="w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Buscar…">
                 <input type="hidden" id="fin-banco-id" value="">
                 <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
               </div></label>
-            <label class="block md:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Grupo (opcional)</span>
+            <label class="block md:col-span-2"><span class="text-xs font-black uppercase text-slate-700">Grupo (opcional)</span>
               <div class="relative sug-wrap mt-1" data-sug-campo="grupo">
-                <input type="text" id="fin-grupo-nome" autocomplete="off" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Buscar…">
+                <input type="text" id="fin-grupo-nome" autocomplete="off" class="w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Buscar…">
                 <input type="hidden" id="fin-grupo-id" value="">
                 <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
               </div></label>
@@ -190,75 +245,99 @@
         </div>
       </details>
 
-      <div class="flex flex-wrap gap-3">
-        <button type="button" id="btn-salvar-manual" class="px-8 py-3 rounded-xl bg-orange-600 text-white font-black text-sm uppercase hover:bg-orange-700 shadow-md">Salvar rascunho</button>
-        <button type="button" id="btn-salvar-fin" class="px-8 py-3 rounded-xl bg-emerald-700 text-white font-black text-sm uppercase hover:bg-emerald-800 shadow-md border-2 border-emerald-800">Salvar + lançar a pagar</button>
+      <div class="rounded-2xl border-2 border-orange-400 bg-white p-4 sm:p-6 shadow-md ring-1 ring-orange-200/60">
+        <div class="flex flex-wrap items-start gap-3 mb-4">
+          <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-slate-800 text-white text-lg font-black shrink-0" aria-hidden="true">4</span>
+          <div class="min-w-0 flex-1">
+            <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight">Gravar no sistema</h2>
+            <p class="text-xs sm:text-sm font-semibold text-slate-600 mt-1 leading-snug">Na dúvida use só o botão laranja. O verde exige o bloco financeiro aberto e preenchido.</p>
+          </div>
+        </div>
+        <div class="flex flex-col lg:flex-row flex-wrap gap-4 items-stretch">
+          <div class="flex-1 min-w-[min(100%,18rem)] flex flex-col gap-2">
+            <button type="button" id="btn-salvar-manual" class="min-h-[52px] w-full px-6 py-3.5 rounded-xl bg-orange-600 text-white font-black text-base uppercase tracking-wide hover:bg-orange-700 shadow-lg border-2 border-orange-700">Salvar só rascunho</button>
+            <p class="text-xs font-semibold text-slate-600 text-center lg:text-left">Confirma a nota na lista de rascunhos (Mongo). Para Compras marcar pedido como entregue, depois aumente o estoque (bloco azul abaixo ou ajuste).</p>
+          </div>
+          <div class="flex-1 min-w-[min(100%,18rem)] flex flex-col gap-2">
+            <button type="button" id="btn-salvar-fin" class="min-h-[52px] w-full px-6 py-3.5 rounded-xl bg-emerald-700 text-white font-black text-sm sm:text-base uppercase tracking-wide hover:bg-emerald-800 shadow-md border-2 border-emerald-900">Salvar + lançar a pagar</button>
+            <p class="text-xs font-semibold text-emerald-900/90 text-center lg:text-left">Abra o passo extra verde, preencha empresa, vencimento e banco.</p>
+          </div>
+        </div>
       </div>
 
-      <div class="rounded-2xl border border-blue-200 bg-blue-50/70 px-4 py-4 space-y-3">
-        <h3 class="text-xs font-black uppercase text-blue-950">Estoque Agro (PIN / ajuste rápido)</h3>
-        <p class="text-[10px] font-semibold text-blue-950/90 leading-relaxed">
-          Soma a coluna <strong>Qtd est.</strong> no saldo que o Agro já mostra (ERP + ajustes), <strong>sem</strong> alterar o Mongo do ERP — mesmo critério do PDV e do ajuste por PIN.
-          Só entram linhas com produto vinculado pelo <strong>Buscar</strong> (catálogo). Cada clique soma de novo: evite duplicar a mesma nota.
-        </p>
-        <div class="flex flex-wrap items-end gap-3">
-          <label class="block">
-            <span class="text-[10px] font-black uppercase text-slate-600">Depósito</span>
-            <select id="m-dep-estoque" class="mt-1 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold">
-              <option value="centro" selected>Centro</option>
-              <option value="vila">Vila Elias</option>
-            </select>
-          </label>
-          <label class="inline-flex items-center gap-2 cursor-pointer text-[11px] font-bold text-blue-900 mt-6">
-            <input type="checkbox" id="chk-estoque-com-rascunho" class="rounded border-slate-300 accent-blue-600">
-            Salvar rascunho no mesmo envio
-          </label>
+      <details class="rounded-2xl border-2 border-blue-200 bg-blue-50/80 px-4 py-3 sm:px-5 sm:py-4 group">
+        <summary class="cursor-pointer list-none text-sm sm:text-base font-black uppercase text-blue-950 flex flex-wrap items-center gap-2 min-h-[48px]">
+          <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-blue-700 text-white text-sm font-black shrink-0" aria-hidden="true">+</span>
+          <span>Depois que a mercadoria chegou — Entrada no estoque Agro</span>
+        </summary>
+        <div class="mt-4 space-y-3 text-xs sm:text-sm font-semibold text-blue-950">
+          <p class="leading-relaxed">Soma a coluna <strong>Qtd est.</strong> no saldo que o PDV e a tela Compras já mostram. Só vale para linhas em que você usou <strong>Buscar</strong> e escolheu o produto do catálogo. Cada clique soma de novo: <strong>não repita</strong> a mesma nota.</p>
+          <div class="flex flex-wrap items-end gap-4">
+            <label class="block">
+              <span class="text-xs font-black uppercase text-slate-700">Depósito</span>
+              <select id="m-dep-estoque" class="mt-1 min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black bg-white">
+                <option value="centro" selected>Centro</option>
+                <option value="vila">Vila Elias</option>
+              </select>
+            </label>
+            <label class="inline-flex items-center gap-2.5 cursor-pointer text-sm font-bold text-blue-950 min-h-[48px]">
+              <input type="checkbox" id="chk-estoque-com-rascunho" class="h-5 w-5 rounded border-slate-300 accent-blue-600">
+              Salvar rascunho no mesmo envio
+            </label>
+          </div>
+          <button type="button" id="btn-estoque-agro" class="min-h-[52px] px-8 py-3.5 rounded-xl bg-blue-700 text-white font-black text-sm sm:text-base uppercase hover:bg-blue-800 shadow-md border-2 border-blue-900 w-full sm:w-auto">
+            Registrar entrada no estoque Agro
+          </button>
         </div>
-        <button type="button" id="btn-estoque-agro" class="px-8 py-3 rounded-xl bg-blue-700 text-white font-black text-sm uppercase hover:bg-blue-800 shadow-md border-2 border-blue-900">
-          Registrar entrada no estoque Agro
-        </button>
-      </div>
+      </details>
     </section>
 
-    <div id="modal-prod" class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/45" role="dialog" aria-modal="true" aria-labelledby="modal-prod-titulo">
-      <div class="bg-white rounded-2xl shadow-xl max-w-[min(42rem,96vw)] w-full p-5 border border-slate-200 max-h-[85vh] overflow-hidden flex flex-col">
-        <h3 id="modal-prod-titulo" class="text-sm font-black uppercase text-slate-800">Buscar produto no catálogo</h3>
-        <p class="text-[10px] text-slate-600 font-semibold mt-1">Linha alvo: <span id="modal-prod-linha">—</span></p>
-        <input type="text" id="modal-prod-q" class="mt-3 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Nome, código ou EAN…" autocomplete="off">
-        <ul id="modal-prod-res" class="mt-2 flex-1 overflow-y-auto min-h-[120px] max-h-64 border border-slate-100 rounded-xl divide-y divide-slate-100 text-sm"></ul>
-        <button type="button" id="modal-prod-fechar" class="mt-3 px-4 py-2 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Fechar</button>
+    <div id="modal-prod" class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-prod-titulo">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-[min(42rem,96vw)] w-full p-5 sm:p-6 border-2 border-slate-200 max-h-[85vh] overflow-hidden flex flex-col">
+        <h3 id="modal-prod-titulo" class="text-base font-black uppercase text-slate-900">Buscar produto no catálogo</h3>
+        <p class="text-xs sm:text-sm text-slate-600 font-bold mt-2">Linha: <span id="modal-prod-linha" class="text-slate-900">—</span></p>
+        <input type="text" id="modal-prod-q" class="mt-4 w-full min-h-[52px] rounded-xl border-2 border-slate-300 px-3 py-3 text-base font-bold focus:border-orange-500 outline-none" placeholder="Nome, código ou EAN…" autocomplete="off">
+        <ul id="modal-prod-res" class="mt-3 flex-1 overflow-y-auto min-h-[140px] max-h-72 border-2 border-slate-100 rounded-xl divide-y divide-slate-100 text-sm"></ul>
+        <button type="button" id="modal-prod-fechar" class="mt-4 min-h-[48px] px-5 py-2.5 rounded-xl border-2 border-slate-300 font-black text-sm uppercase text-slate-700 hover:bg-slate-50">Fechar</button>
       </div>
     </div>
 
-    <section id="panel-xml" class="tab-panel hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
-      <p class="text-sm font-semibold text-slate-600">Envie o arquivo XML da NF-e autorizada (<strong>nfeProc</strong> ou <strong>NFe</strong>). Os campos e a grade serão preenchidos para conferência.</p>
+    <section id="panel-xml" class="tab-panel hidden bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
+      <h2 class="text-base font-black uppercase text-slate-800">Importar XML da NF-e</h2>
+      <p class="text-sm font-semibold text-slate-600 leading-relaxed">Arquivo autorizado (<strong>nfeProc</strong> ou <strong>NFe</strong>). A tela preenche cabeçalho e grade; depois confira na aba <strong>Entrada manual</strong> e toque em <strong>Salvar só rascunho</strong>.</p>
       <div class="flex flex-wrap items-end gap-3">
-        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Arquivo XML</span>
-          <input type="file" id="xml-file" accept=".xml,text/xml,application/xml" class="mt-1 block w-full text-sm font-semibold"></label>
-        <button type="button" id="btn-parse-xml" class="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-black text-xs uppercase hover:bg-blue-700">Ler XML</button>
+        <label class="block flex-1 min-w-[12rem] max-w-xl"><span class="text-xs font-black uppercase text-slate-600">Arquivo XML</span>
+          <input type="file" id="xml-file" accept=".xml,text/xml,application/xml" class="mt-1 block w-full min-h-[48px] text-sm font-bold border-2 border-slate-200 rounded-xl px-2 py-2 bg-white"></label>
+        <button type="button" id="btn-parse-xml" class="min-h-[48px] px-6 py-3 rounded-xl bg-blue-600 text-white font-black text-sm uppercase hover:bg-blue-700 shadow-sm">Ler XML</button>
       </div>
-      <p class="text-[11px] text-slate-500 font-semibold">Depois de carregar, revise a grade na aba manual ou salve direto:</p>
-      <button type="button" id="btn-salvar-xml" class="px-8 py-3 rounded-xl bg-orange-600 text-white font-black text-sm uppercase hover:bg-orange-700 shadow-md">Salvar rascunho (origem XML)</button>
+      <button type="button" id="btn-salvar-xml" class="min-h-[52px] px-8 py-3.5 rounded-xl bg-orange-600 text-white font-black text-sm uppercase hover:bg-orange-700 shadow-md border-2 border-orange-700 w-full sm:w-auto">Salvar rascunho (veio do XML)</button>
     </section>
 
-    <section id="panel-sefaz" class="tab-panel hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
-      <div id="sefaz-status" class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">Carregando status…</div>
+    <section id="panel-sefaz" class="tab-panel hidden bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
+      <h2 class="text-base font-black uppercase text-slate-800">Buscar nota na SEFAZ (DF-e)</h2>
+      <p class="text-sm font-semibold text-slate-600">Uso avançado — exige certificado no servidor. O resultado pode ser carregado na grade manual.</p>
+      <div id="sefaz-status" class="rounded-xl border-2 border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">Carregando status…</div>
       <div class="flex flex-wrap gap-3 items-end">
-        <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">ultNSU (opcional)</span>
-          <input type="text" id="sefaz-ult" class="mt-1 w-44 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono" placeholder="Deixe vazio para usar cursor salvo"></label>
-        <button type="button" id="btn-dist-dfe" class="px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700">Consultar SEFAZ</button>
+        <label class="block"><span class="text-xs font-black uppercase text-slate-600">ultNSU (opcional)</span>
+          <input type="text" id="sefaz-ult" class="mt-1 w-44 min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono" placeholder="Vazio = cursor salvo"></label>
+        <button type="button" id="btn-dist-dfe" class="min-h-[48px] px-6 py-3 rounded-xl bg-emerald-600 text-white font-black text-sm uppercase hover:bg-emerald-700 shadow-sm">Consultar SEFAZ</button>
       </div>
       <div id="sefaz-result" class="hidden rounded-xl border border-slate-200 p-4 space-y-2 text-sm"></div>
       <div id="sefaz-previews" class="space-y-2"></div>
     </section>
 
-    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6">
-      <div class="flex justify-between items-center gap-2 mb-3">
-        <h2 class="text-sm font-black uppercase text-slate-700">Últimos rascunhos</h2>
-        <button type="button" id="btn-refresh-rasc" class="text-[10px] font-black uppercase text-orange-700 hover:underline">Atualizar</button>
+    <details class="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden group">
+      <summary class="cursor-pointer list-none px-4 py-3 sm:px-5 sm:py-4 flex flex-wrap items-center justify-between gap-3 min-h-[52px] bg-slate-50/80 border-b border-slate-100">
+        <span class="text-sm sm:text-base font-black uppercase text-slate-800">Rascunhos já salvos</span>
+        <span class="text-xs font-bold text-slate-500">Toque para abrir ou fechar a lista</span>
+      </summary>
+      <div class="p-4 sm:p-5 space-y-3">
+        <div class="flex justify-end">
+          <button type="button" id="btn-refresh-rasc" class="min-h-[44px] px-4 py-2 rounded-xl border-2 border-orange-200 bg-orange-50 text-xs font-black uppercase text-orange-900 hover:bg-orange-100">Atualizar lista</button>
+        </div>
+        <div id="lista-rasc" class="text-sm space-y-2 max-h-64 overflow-y-auto font-semibold text-slate-700"></div>
       </div>
-      <div id="lista-rasc" class="text-sm space-y-2 max-h-64 overflow-y-auto"></div>
-    </section>
+    </details>
   </main>
 
   {{ csrf_token }}
@@ -274,6 +353,24 @@
   const URL_DFE = "{% url 'api_entrada_nota_dist_dfe' %}";
   const URL_SUG = "{% url 'api_lancamentos_sugestoes' %}";
   const URL_BUSCA = "{% url 'api_buscar_mobile' %}";
+  const URL_RASC_OBTER = "{% url 'api_entrada_nota_rascunho_obter' %}";
+  const URL_RASC_EXCLUIR = "{% url 'api_entrada_nota_rascunho_excluir' %}";
+  const URL_RASC_ATUALIZAR = "{% url 'api_entrada_nota_rascunho_atualizar' %}";
+
+  let entradaNfeRascunhoEditId = null;
+
+  function setEntradaNfeRascunhoEdit(id) {
+    entradaNfeRascunhoEditId = id ? String(id) : null;
+    const b = document.getElementById('entrada-nfe-rasc-banner');
+    const t = document.getElementById('entrada-nfe-rasc-banner-id');
+    if (!b || !t) return;
+    if (entradaNfeRascunhoEditId) {
+      t.textContent = entradaNfeRascunhoEditId;
+      b.classList.remove('hidden');
+    } else {
+      b.classList.add('hidden');
+    }
+  }
 
   function getCookie(name) {
     const m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
@@ -282,9 +379,18 @@
 
   function showMsg(text, ok) {
     const el = document.getElementById('msg-global');
+    if (!el) return;
     el.textContent = text;
-    el.classList.remove('hidden', 'border-red-200', 'bg-red-50', 'text-red-800', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-900');
-    el.classList.add(ok ? 'border-emerald-200' : 'border-red-200', ok ? 'bg-emerald-50' : 'bg-red-50', ok ? 'text-emerald-900' : 'text-red-800');
+    el.classList.remove('hidden', 'border-red-200', 'bg-red-50', 'text-red-800', 'border-red-300', 'text-red-900', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-900', 'border-emerald-300', 'text-emerald-950');
+    el.classList.add(
+      ok ? 'border-emerald-300' : 'border-red-300',
+      ok ? 'bg-emerald-50' : 'bg-red-50',
+      ok ? 'text-emerald-950' : 'text-red-900'
+    );
+    el.classList.remove('hidden');
+    try {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (_) {}
   }
 
   let ultimaNotaParse = null;
@@ -348,7 +454,7 @@
       <td class="px-2 py-1"><input type="text" class="in-desc w-full rounded border border-slate-200 px-1 py-1 text-xs font-semibold" value=""></td>
       <td class="px-2 py-1"><input type="text" class="in-cprod w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
       <td class="px-2 py-1"><input type="text" class="in-ean w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
-      <td class="px-1 py-1 text-center"><button type="button" class="btn-pick-prod text-[10px] font-black uppercase text-blue-700 border border-blue-200 rounded px-1 py-0.5" title="Catálogo">Buscar</button><input type="hidden" class="in-prod-id" value=""></td>
+      <td class="px-1 py-1.5 text-center"><button type="button" class="btn-pick-prod min-h-[40px] min-w-[3.25rem] px-2 py-1.5 text-xs font-black uppercase text-white bg-blue-600 border-2 border-blue-800 rounded-lg shadow-sm hover:bg-blue-700 active:bg-blue-800" title="Catálogo Agro">Buscar</button><input type="hidden" class="in-prod-id" value=""></td>
       <td class="px-2 py-1"><input type="number" step="0.0001" class="in-qtd w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value=""></td>
       <td class="px-2 py-1"><input type="number" step="0.0001" min="0.0001" class="in-un-emb w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="1" title="Unidades por embalagem NF"></td>
       <td class="px-2 py-1"><input type="number" step="0.0001" class="in-q-est w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="" title="Qtd p/ estoque (editar para sobrescrever)"></td>
@@ -517,6 +623,81 @@
   });
   fornInp.addEventListener('blur', () => { setTimeout(() => fornDd.classList.add('hidden'), 200); });
 
+  function aplicarRascunhoNaGrade(rz) {
+    const cab = rz.cabecalho || {};
+    aplicarCabecalho({
+      emit_nome: cab.emit_nome,
+      emit_cnpj: cab.emit_cnpj,
+      numero: cab.numero,
+      serie: cab.serie,
+      chave: cab.chave,
+      dh_emi: cab.dh_emi || '',
+    });
+    fornHid.value = cab.emit_fornecedor_id || '';
+    if (cab.data_entrada) document.getElementById('m-data-entrada').value = String(cab.data_entrada).slice(0, 10);
+    if (cab.plano_conta != null) document.getElementById('m-plano-conta').value = cab.plano_conta;
+    document.getElementById('m-plano-conta-id').value = cab.plano_conta_id != null ? String(cab.plano_conta_id || '') : '';
+    fornInp.value = cab.emit_nome || '';
+    tbodyClear();
+    (rz.linhas || []).forEach((row) => {
+      addLinhaRow({
+        x_prod: row.x_prod || '',
+        c_prod: row.c_prod || '',
+        ean: row.ean || '',
+        q_com: row.q_com != null ? row.q_com : 1,
+        un_por_embalagem: row.un_por_embalagem != null ? row.un_por_embalagem : 1,
+        q_estoque: row.q_estoque != null ? row.q_estoque : null,
+        v_un_com: row.v_un_com != null ? row.v_un_com : 0,
+        cfop: row.cfop || '',
+        produto_id: row.produto_id || '',
+        nome_catalogo: row.nome_catalogo || row.x_prod || '',
+        match_tipo: row.match_tipo || '',
+      });
+    });
+  }
+
+  async function carregarRascunhoNaTela(id) {
+    try {
+      const r = await fetch(`${URL_RASC_OBTER}?id=${encodeURIComponent(id)}`, { credentials: 'same-origin' });
+      const j = await r.json();
+      if (!j.ok || !j.rascunho) {
+        showMsg(j.erro || 'Rascunho não encontrado.', false);
+        return;
+      }
+      aplicarRascunhoNaGrade(j.rascunho);
+      setEntradaNfeRascunhoEdit(id);
+      document.querySelector('.tab-btn[data-tab="manual"]')?.click();
+      showMsg('Rascunho carregado na grade. Ajuste e use Salvar só rascunho para gravar alterações.', true);
+    } catch (_) {
+      showMsg('Erro de rede ao abrir rascunho.', false);
+    }
+  }
+
+  async function excluirRascunhoMongo(id) {
+    if (!window.confirm('Excluir este rascunho do Mongo? Não dá para desfazer.')) return;
+    try {
+      const r = await fetch(URL_RASC_EXCLUIR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ id }),
+      });
+      const j = await r.json();
+      if (!j.ok) {
+        showMsg(j.erro || 'Falha ao excluir.', false);
+        return;
+      }
+      if (entradaNfeRascunhoEditId === String(id)) setEntradaNfeRascunhoEdit(null);
+      showMsg('Rascunho excluído.', true);
+      carregarRascunhos();
+    } catch (_) {
+      showMsg('Erro de rede.', false);
+    }
+  }
+
   document.querySelectorAll('#panel-manual .sug-wrap').forEach(attachSuggest);
 
   document.querySelectorAll('.btn-plano-rapido').forEach((btn) => {
@@ -581,15 +762,28 @@
       showMsg('Inclua ao menos uma linha com descrição ou quantidade.', false);
       return;
     }
-    const body = {
-      modo,
-      cabecalho: cab,
-      linhas,
-      xml_chave: ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null),
-      extra: extra || {},
-    };
+    const xmlChave = ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null);
+    const ex = extra || {};
+    const jaEditando = !!entradaNfeRascunhoEditId;
+    const url = jaEditando ? URL_RASC_ATUALIZAR : URL_SALVAR;
+    const body = jaEditando
+      ? {
+          id: entradaNfeRascunhoEditId,
+          modo,
+          cabecalho: cab,
+          linhas,
+          xml_chave: xmlChave,
+          extra: ex,
+        }
+      : {
+          modo,
+          cabecalho: cab,
+          linhas,
+          xml_chave: xmlChave,
+          extra: ex,
+        };
     try {
-      const r = await fetch(URL_SALVAR, {
+      const r = await fetch(url, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -600,7 +794,8 @@
       });
       const j = await r.json();
       if (j.ok) {
-        showMsg('Rascunho salvo no Mongo.', true);
+        showMsg(jaEditando ? 'Rascunho atualizado no Mongo.' : 'Novo rascunho salvo no Mongo.', true);
+        if (!jaEditando && j.id) setEntradaNfeRascunhoEdit(j.id);
         carregarRascunhos();
       } else {
         showMsg(j.erro || 'Falha ao salvar.', false);
@@ -788,6 +983,7 @@
         return;
       }
       ultimaNotaParse = j.nota;
+      setEntradaNfeRascunhoEdit(null);
       aplicarCabecalho(j.nota);
       tbodyClear();
       (j.nota.itens || []).forEach((it) => addLinhaRow(linhaFromItem(it)));
@@ -846,6 +1042,7 @@
           div.querySelector('.btn-import-dfe').addEventListener('click', () => {
             const n = j.previews[idx].nota;
             ultimaNotaParse = n;
+            setEntradaNfeRascunhoEdit(null);
             aplicarCabecalho(n);
             tbodyClear();
             (n.itens || []).forEach((it) => addLinhaRow(linhaFromItem(it)));
@@ -876,11 +1073,34 @@
       }
       box.innerHTML = '';
       itens.forEach((it) => {
-        const d = document.createElement('div');
-        d.className = 'border border-slate-100 rounded-lg px-3 py-2 text-xs';
+        const rid = String(it._id || '');
+        const wrap = document.createElement('div');
+        wrap.className =
+          'flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs shadow-sm';
         const cab = it.cabecalho || {};
-        d.innerHTML = `<span class="font-black text-slate-800">${it.modo || ''}</span> · ${cab.emit_nome || '—'} · NF ${cab.numero || '—'} · ${it.linhas ? it.linhas.length : 0} linhas · <span class="text-slate-400">${it.criado_em || ''}</span>`;
-        box.appendChild(d);
+        const nLin = Array.isArray(it.linhas) ? it.linhas.length : 0;
+        const left = document.createElement('div');
+        left.className = 'min-w-0 font-semibold text-slate-800 leading-snug';
+        left.innerHTML = `<span class="font-black text-orange-800">${(it.modo || '').toString()}</span> · ${cab.emit_nome || '—'} · NF ${cab.numero || '—'} · <span class="text-slate-600">${nLin} linha(s)</span><br><span class="text-[10px] text-slate-500 font-mono break-all">${rid}</span><div class="text-[10px] text-slate-500 mt-0.5">${it.criado_em || ''}</div>`;
+        const actions = document.createElement('div');
+        actions.className = 'flex flex-wrap gap-2 shrink-0';
+        const bOpen = document.createElement('button');
+        bOpen.type = 'button';
+        bOpen.className =
+          'min-h-[40px] px-3 py-1.5 rounded-lg bg-sky-600 text-white font-black text-[10px] uppercase hover:bg-sky-700';
+        bOpen.textContent = 'Abrir';
+        bOpen.addEventListener('click', () => carregarRascunhoNaTela(rid));
+        const bDel = document.createElement('button');
+        bDel.type = 'button';
+        bDel.className =
+          'min-h-[40px] px-3 py-1.5 rounded-lg border-2 border-red-200 text-red-700 font-black text-[10px] uppercase hover:bg-red-50';
+        bDel.textContent = 'Excluir';
+        bDel.addEventListener('click', () => excluirRascunhoMongo(rid));
+        actions.appendChild(bOpen);
+        actions.appendChild(bDel);
+        wrap.appendChild(left);
+        wrap.appendChild(actions);
+        box.appendChild(wrap);
       });
     } catch (_) {
       box.textContent = 'Erro ao listar.';
@@ -890,6 +1110,10 @@
   }
 
   document.getElementById('btn-refresh-rasc').addEventListener('click', carregarRascunhos);
+  document.getElementById('btn-entrada-nfe-sair-edicao')?.addEventListener('click', () => {
+    setEntradaNfeRascunhoEdit(null);
+    showMsg('Próximo «Salvar só rascunho» cria um novo rascunho no Mongo.', true);
+  });
 
   document.addEventListener('keydown', (e) => {
     if (!e.altKey || e.ctrlKey || e.shiftKey) return;
@@ -912,8 +1136,55 @@
     if (!document.getElementById('fin-dc').value) document.getElementById('fin-dc').value = iso;
     if (!document.getElementById('fin-dv').value) document.getElementById('fin-dv').value = iso;
     if (!document.getElementById('m-data-entrada').value) document.getElementById('m-data-entrada').value = iso;
-    addLinhaRow({});
-    addLinhaRow({});
+    const rawOc = sessionStorage.getItem('agro_entrada_oc_prefill_v1');
+    setEntradaNfeRascunhoEdit(null);
+    if (rawOc) {
+      try {
+        const pr = JSON.parse(rawOc);
+        sessionStorage.removeItem('agro_entrada_oc_prefill_v1');
+        const cab = pr.cabecalho || {};
+        if (cab.emit_nome) fornInp.value = cab.emit_nome;
+        if (cab.emit_fornecedor_id) fornHid.value = cab.emit_fornecedor_id;
+        if (cab.emit_cnpj) document.getElementById('m-emit-cnpj').value = cab.emit_cnpj;
+        if (cab.numero != null) document.getElementById('m-nf').value = cab.numero;
+        if (cab.serie != null) document.getElementById('m-serie').value = cab.serie;
+        if (cab.chave) document.getElementById('m-chave').value = cab.chave;
+        if (cab.dh_emi) document.getElementById('m-dh').value = cab.dh_emi;
+        if (cab.data_entrada) document.getElementById('m-data-entrada').value = String(cab.data_entrada).slice(0, 10);
+        if (cab.plano_conta) document.getElementById('m-plano-conta').value = cab.plano_conta;
+        if (cab.plano_conta_id) document.getElementById('m-plano-conta-id').value = cab.plano_conta_id;
+        tbodyClear();
+        const lns = pr.linhas || [];
+        if (lns.length) {
+          lns.forEach((row) => {
+            addLinhaRow({
+              x_prod: row.x_prod || '',
+              c_prod: row.c_prod || '',
+              ean: row.ean || '',
+              q_com: row.q_com != null ? row.q_com : 1,
+              un_por_embalagem: row.un_por_embalagem != null ? row.un_por_embalagem : 1,
+              q_estoque: row.q_estoque != null ? row.q_estoque : null,
+              v_un_com: row.v_un_com != null ? row.v_un_com : 0,
+              cfop: row.cfop || '',
+              produto_id: row.produto_id || '',
+              nome_catalogo: row.nome_catalogo || row.x_prod || '',
+              match_tipo: row.match_tipo || 'compras',
+            });
+          });
+        } else {
+          addLinhaRow({});
+          addLinhaRow({});
+        }
+        if (pr.mensagem) showMsg(String(pr.mensagem), true);
+      } catch (e) {
+        console.error(e);
+        addLinhaRow({});
+        addLinhaRow({});
+      }
+    } else {
+      addLinhaRow({});
+      addLinhaRow({});
+    }
     carregarSefazStatus();
     carregarRascunhos();
   });
