@@ -66,7 +66,7 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 ## 4. Partials e UI compartilhada (templates)
 
 - `**produtos/templates/produtos/_agro_consulta_ui.html`** — tipografia/densidade GM Agro; inclui `**_agro_open_external.html`**.
-- `**_agro_open_external.html**` — `agroAbrirUrlExterna`, uso de `window.agroShell.openExternal` no Electron; monkey-patch de `window.open` para WhatsApp/Maps/Waze/goo.gl.
+- `**_agro_open_external.html`** — `agroAbrirUrlExterna`, uso de `window.agroShell.openExternal` no Electron; monkey-patch de `window.open` para WhatsApp/Maps/Waze/goo.gl.
 - `**_head_perf_mpa.html**` — performance MPA onde usado.
 - `**_gm_loading_bar.html**` — barra de loading em algumas telas.
 

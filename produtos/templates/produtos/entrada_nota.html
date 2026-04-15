@@ -44,11 +44,11 @@
         <div class="h-11 w-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
           <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
         </div>
-        <div class="min-w-0">
+        <div class="min-w-0 flex items-start gap-2">
           <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">
             GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-orange-700">Entrada de NF-e</span>
           </h1>
-          <p class="text-xs sm:text-sm font-bold text-slate-600">Manual · XML · SEFAZ — três jeitos de montar a mesma grade</p>
+          <button type="button" id="btn-entrada-nfe-ajuda" class="min-h-[44px] min-w-[44px] rounded-xl border-2 border-slate-300 bg-white text-xl font-black leading-none text-slate-700 hover:bg-orange-50 hover:border-orange-400 shrink-0" title="Ajuda desta tela" aria-haspopup="dialog" aria-controls="modal-entrada-nfe-ajuda">?</button>
         </div>
       </div>
       {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-orange-400 shrink-0" %}
@@ -56,39 +56,12 @@
   </header>
 
   <main class="max-w-[1400px] mx-auto px-4 py-4 sm:py-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
-    <div class="rounded-2xl border-2 border-slate-200 bg-white px-4 py-3.5 sm:px-5 shadow-sm">
-      <p class="text-sm sm:text-base font-bold text-slate-900 leading-snug">
-        <span class="text-orange-600 font-black uppercase tracking-wide">Em poucas palavras</span>
-        — Preencha a nota e a grade, depois toque em <strong class="text-orange-700">Salvar só rascunho</strong>.
-        Isso grava no Agro para conferência. O estoque da loja (PDV / Compras) só muda quando você usar <strong class="text-slate-800">Entrada no estoque Agro</strong> ou outro ajuste autorizado.
-      </p>
-      <details class="mt-3 group border-t border-slate-100 pt-2">
-        <summary class="cursor-pointer list-none text-sm font-black text-orange-800 flex items-center gap-2 min-h-[44px]">
-          <span class="text-orange-500 text-lg leading-none" aria-hidden="true">▸</span>
-          <span>Texto completo: financeiro, SEFAZ e o que esta tela não faz sozinha</span>
-        </summary>
-        <div class="mt-2 space-y-2 text-xs sm:text-sm font-semibold text-slate-700 leading-relaxed pl-1 sm:pl-6 border-l-4 border-orange-200 ml-1 py-1">
-          <p>Conferir nota, buscar <strong>fornecedor</strong> e <strong>produtos</strong> cadastrados, <strong>ratear quantidade</strong> (ex.: 1 caixa = 10 un. no estoque), <strong>data de entrada</strong>, <strong>plano de contas da nota</strong> (DRE) e, se quiser, gerar <strong>conta a pagar</strong> no Mongo (como no <a href="{% url 'lancamentos_manual' %}" class="text-orange-700 underline font-black">lançamento manual</a>). <strong>Não</strong> altera o estoque do ERP sozinho ao salvar rascunho.</p>
-          <p class="text-slate-600">Consulta DF-e na Receita exige certificado digital e dados da empresa no servidor.</p>
-        </div>
-      </details>
-      <details class="mt-1 group">
-        <summary class="cursor-pointer list-none text-xs font-black uppercase text-slate-500 flex items-center gap-2 min-h-[40px] py-1">
-          <span aria-hidden="true">▸</span>
-          Detalhe técnico (Mongo / ambiente)
-        </summary>
-        <div class="mt-1.5 text-[11px] sm:text-xs font-semibold text-slate-600 space-y-1 pl-4">
-          <p>Rascunhos na coleção <code class="bg-slate-100 px-1.5 py-0.5 rounded">AgroEntradaNotaRascunho</code>. Plano da nota: <code class="bg-slate-100 px-1.5 py-0.5 rounded">cabecalho.plano_conta</code> / <code class="bg-slate-100 px-1.5 py-0.5 rounded">plano_conta_id</code>.</p>
-          <p>Certificado A1 (.pfx), CNPJ e UF nas variáveis de ambiente. Homologação SEFAZ: <code class="bg-slate-100 px-1.5 py-0.5 rounded">NFE_DIST_DFE_TP_AMB=2</code>.</p>
-        </div>
-      </details>
-    </div>
 
     <div id="msg-global" role="status" aria-live="polite" class="hidden rounded-2xl border-2 px-4 py-3.5 text-sm sm:text-base font-bold min-h-[3.25rem] flex flex-wrap items-center gap-2 shadow-sm"></div>
 
     <div id="entrada-nfe-rasc-banner" class="hidden rounded-2xl border-2 border-sky-300 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-950 flex flex-wrap items-center justify-between gap-3">
-      <span>Editando rascunho Mongo <code id="entrada-nfe-rasc-banner-id" class="text-xs bg-white px-1.5 py-0.5 rounded border border-sky-200 font-mono"></code> — <strong>Salvar só rascunho</strong> substitui este registro.</span>
-      <button type="button" id="btn-entrada-nfe-sair-edicao" class="min-h-[44px] px-4 py-2 rounded-xl border-2 border-sky-400 bg-white text-xs font-black uppercase text-sky-900 hover:bg-sky-100 shrink-0">Novo rascunho (próxima gravação cria outro)</button>
+      <span>Editando <code id="entrada-nfe-rasc-banner-id" class="text-xs bg-white px-1.5 py-0.5 rounded border border-sky-200 font-mono"></code> — <strong>Salvar só rascunho</strong> substitui.</span>
+      <button type="button" id="btn-entrada-nfe-sair-edicao" class="min-h-[44px] px-4 py-2 rounded-xl border-2 border-sky-400 bg-white text-xs font-black uppercase text-sky-900 hover:bg-sky-100 shrink-0">Sair (novo)</button>
     </div>
 
     <div class="hidden" aria-hidden="true">
@@ -104,7 +77,7 @@
       <div class="bg-emerald-50/90 border-b-2 border-emerald-200 px-4 py-3 sm:px-5 flex flex-wrap items-center justify-between gap-3">
         <div class="min-w-0">
           <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight">Notas no Agro</h2>
-          <p class="text-xs sm:text-sm font-semibold text-slate-600 mt-0.5 leading-snug">Lista primeiro: status colorido · <strong class="text-slate-800">Abrir</strong> carrega na grade (aba manual)</p>
+          <p class="text-xs font-semibold text-slate-600 mt-0.5">Status · <strong class="text-slate-800">Abrir</strong> = grade (manual)</p>
         </div>
         <div class="flex flex-wrap gap-2 shrink-0">
           <button type="button" id="btn-entrada-nfe-nova" class="min-h-[44px] px-4 py-2 rounded-xl bg-emerald-700 text-white text-xs font-black uppercase hover:bg-emerald-800 border-2 border-emerald-900 shadow-sm">Nova entrada</button>
@@ -145,7 +118,7 @@
           <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-orange-600 text-white text-lg font-black shrink-0 shadow-sm" aria-hidden="true">1</span>
           <div class="min-w-0 flex-1">
             <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight">Fornecedor e identificação da NF</h2>
-            <p class="text-xs sm:text-sm font-semibold text-slate-600 mt-1 leading-snug">Escolha o fornecedor na lista, a <strong class="text-slate-800">empresa faturada</strong> e o <strong class="text-slate-800">depósito</strong> da mercadoria. Número, série e chave quando já tiver a nota.</p>
+            <p class="text-xs font-semibold text-slate-600 mt-1">Fornecedor, empresa faturada, depósito, NF e chave.</p>
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -155,7 +128,7 @@
             <input type="hidden" id="m-emit-forn-id" value="">
             <ul id="forn-sug" class="forn-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg text-sm z-20"></ul>
           </div>
-          <p class="text-xs text-slate-600 font-semibold mt-1.5">Toque num nome da lista para gravar o ID do ERP. O CNPJ pode preencher sozinho.</p>
+          <p class="text-[11px] text-slate-500 font-semibold mt-1">Toque na lista para gravar o fornecedor.</p>
         </label>
         <label class="block"><span class="text-xs font-black uppercase text-slate-600">CNPJ emitente</span>
           <input type="text" id="m-emit-cnpj" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Somente números"></label>
@@ -179,14 +152,14 @@
               <option value="">Cadastre empresas no Admin</option>
               {% endfor %}
             </select>
-            <span class="text-[11px] text-slate-600 font-semibold mt-1 block leading-snug">Conta no cadastro Django; a loja é escolhida pelo depósito abaixo (nome Centro ou Vila na mesma empresa).</span>
+            <span class="text-[11px] text-slate-500 font-semibold mt-1 block">Loja pelo depósito (Centro / Vila).</span>
           </label>
           <label class="block"><span class="text-xs font-black uppercase text-slate-600">Depósito da mercadoria *</span>
             <select id="m-deposito-entrada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Saldo de referência lido no Mongo do ERP para este depósito.">
               <option value="centro" selected>Centro</option>
               <option value="vila">Vila Elias</option>
             </select>
-            <span class="text-[11px] text-slate-600 font-semibold mt-1 block leading-snug">Usado em <strong>Registrar entrada no estoque Agro</strong> e gravado no rascunho.</span>
+            <span class="text-[11px] text-slate-500 font-semibold mt-1 block">Usado no estoque Agro.</span>
           </label>
         </div>
         </div>
@@ -197,7 +170,7 @@
           <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-emerald-600 text-white text-lg font-black shrink-0 shadow-sm" aria-hidden="true">2</span>
           <div class="min-w-0 flex-1">
             <h2 class="text-base sm:text-lg font-black uppercase text-emerald-950 tracking-tight">Plano de contas (nota inteira · DRE)</h2>
-            <p class="text-xs sm:text-sm font-semibold text-emerald-900/90 mt-1">Obrigatório para lançar a pagar; recomendado preencher também no rascunho só.</p>
+            <p class="text-xs font-semibold text-emerald-900/90 mt-1">Obrigatório para lançar a pagar.</p>
           </div>
         </div>
         <div class="block space-y-2">
@@ -211,10 +184,6 @@
             <button type="button" class="btn-plano-rapido min-h-[44px] px-4 py-2 rounded-xl border-2 border-orange-300 bg-white text-xs font-black uppercase text-orange-950 hover:bg-orange-50 shadow-sm" data-plano-nome="COMPRA MERCADORIA SN" title="Preenche o nome; confira na lista se quiser amarrar o ID do ERP">COMPRA MERCADORIA SN</button>
             <button type="button" class="btn-plano-rapido min-h-[44px] px-4 py-2 rounded-xl border-2 border-orange-300 bg-white text-xs font-black uppercase text-orange-950 hover:bg-orange-50 shadow-sm" data-plano-nome="COMPRA MERCADORIA CN">COMPRA MERCADORIA CN</button>
           </div>
-          <details class="mt-2 rounded-lg border border-emerald-200/60 bg-white/80 px-3 py-2">
-            <summary class="text-xs font-black uppercase text-emerald-900 cursor-pointer">Por que o plano importa?</summary>
-            <p class="text-xs font-semibold text-slate-700 mt-2 leading-relaxed">O mesmo plano vale para o <strong>título a pagar</strong> (quando usar o botão verde) e aparece no Mongo como <code class="bg-slate-100 px-1 rounded">PlanoDeConta</code>, base do DRE.</p>
-          </details>
         </div>
       </div>
 
@@ -224,18 +193,11 @@
             <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-orange-600 text-white text-lg font-black shrink-0 shadow-sm" aria-hidden="true">3</span>
             <div class="min-w-0">
               <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight">Produtos na nota</h2>
-              <p class="text-xs sm:text-sm font-semibold text-slate-700 mt-1 leading-snug">Em cada linha use <strong class="text-orange-800">Buscar</strong> no catálogo para o estoque da loja bater com Compras e PDV.</p>
+              <p class="text-xs font-semibold text-slate-600 mt-1"><strong class="text-orange-800">Buscar</strong> em cada linha.</p>
             </div>
           </div>
           <button type="button" id="btn-add-linha" class="min-h-[48px] px-5 py-2.5 rounded-xl bg-white border-2 border-orange-300 text-sm font-black uppercase text-orange-900 hover:bg-orange-50 shadow-sm shrink-0">+ Linha</button>
         </div>
-        <details class="rounded-xl border border-slate-200 bg-white px-3 py-2 group">
-          <summary class="cursor-pointer list-none text-xs sm:text-sm font-black uppercase text-slate-700 flex items-center gap-2 min-h-[40px]">
-            <span class="text-orange-500 group-open:rotate-90 transition-transform inline-block" aria-hidden="true">▸</span>
-            Como ler Qtd NF, Un/emb e Qtd est.
-          </summary>
-          <p class="text-xs sm:text-sm font-semibold text-slate-700 mt-2 pb-1 leading-relaxed pl-6 border-l-2 border-orange-200"><strong class="text-orange-800">Rateio:</strong> <em>Un/emb</em> = unidades dentro de cada embalagem da NF (ex.: 10). <strong>Qtd est.</strong> = Qtd NF × Un/emb (pode editar na mão).</p>
-        </details>
         <div class="overflow-x-auto rounded-xl border-2 border-slate-200 bg-white shadow-inner">
         <table class="w-full text-xs sm:text-sm min-w-[960px]">
           <thead class="bg-slate-100 text-[11px] font-black uppercase text-slate-600">
@@ -262,14 +224,13 @@
         </div>
       </div>
 
-      <details class="rounded-2xl border-2 border-emerald-300 bg-emerald-50/50 px-4 py-3 sm:px-5 sm:py-4 group shadow-sm">
-        <summary class="cursor-pointer list-none text-sm sm:text-base font-black uppercase text-emerald-950 flex flex-wrap items-center gap-2 min-h-[48px]">
+      <div class="rounded-2xl border-2 border-emerald-300 bg-emerald-50/50 px-4 py-3 sm:px-5 sm:py-4 shadow-sm">
+        <div class="flex flex-wrap items-center gap-2 min-h-[48px] mb-3">
           <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-700 text-white text-sm font-black shrink-0" aria-hidden="true">$</span>
-          <span>Passo extra — Conta a pagar no financeiro (opcional)</span>
-          <span class="text-xs font-bold normal-case text-emerald-800/90 w-full sm:w-auto sm:ml-auto">Só precisa se for usar o botão verde &quot;Salvar + lançar&quot;</span>
-        </summary>
-        <div class="mt-4 space-y-3 text-xs sm:text-sm font-semibold text-emerald-950">
-          <p class="leading-relaxed">Abre este bloco, preencha empresa, datas e conta bancária. Para <strong>vários boletos</strong>, use <strong>Nº parcelas</strong> e <strong>Intervalo (dias)</strong> — o campo de vencimento é o da <strong>1ª</strong> parcela. Depois use <strong>Salvar + lançar a pagar</strong> no final da página. O plano de contas é o do passo 2.</p>
+          <h3 class="text-sm sm:text-base font-black uppercase text-emerald-950">Financeiro (opcional)</h3>
+          <span class="text-xs font-bold text-emerald-800/90">Só para o botão verde «Salvar + lançar»</span>
+        </div>
+        <div class="space-y-3 text-xs sm:text-sm font-semibold text-emerald-950">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label class="block"><span class="text-xs font-black uppercase text-slate-700">Empresa *</span>
               <div class="relative sug-wrap mt-1" data-sug-campo="empresa">
@@ -305,35 +266,35 @@
               </div></label>
           </div>
         </div>
-      </details>
+      </div>
 
       <div class="rounded-2xl border-2 border-orange-400 bg-white p-4 sm:p-6 shadow-md ring-1 ring-orange-200/60">
         <div class="flex flex-wrap items-start gap-3 mb-4">
           <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-slate-800 text-white text-lg font-black shrink-0" aria-hidden="true">4</span>
           <div class="min-w-0 flex-1">
             <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight">Gravar no sistema</h2>
-            <p class="text-xs sm:text-sm font-semibold text-slate-600 mt-1 leading-snug">Na dúvida use só o botão laranja. O verde exige o bloco financeiro aberto e preenchido.</p>
+            <p class="text-xs font-semibold text-slate-600 mt-1">Laranja = rascunho · Verde = rascunho + financeiro (preencher bloco acima).</p>
           </div>
         </div>
         <div class="flex flex-col lg:flex-row flex-wrap gap-4 items-stretch">
           <div class="flex-1 min-w-[min(100%,18rem)] flex flex-col gap-2">
             <button type="button" id="btn-salvar-manual" class="min-h-[52px] w-full px-6 py-3.5 rounded-xl bg-orange-600 text-white font-black text-base uppercase tracking-wide hover:bg-orange-700 shadow-lg border-2 border-orange-700">Salvar só rascunho</button>
-            <p class="text-xs font-semibold text-slate-600 text-center lg:text-left">Confirma a nota na lista de rascunhos (Mongo). Para Compras marcar pedido como entregue, depois aumente o estoque (bloco azul abaixo ou ajuste).</p>
+            <p class="text-[11px] font-semibold text-slate-500 text-center lg:text-left">Grava na lista acima.</p>
           </div>
           <div class="flex-1 min-w-[min(100%,18rem)] flex flex-col gap-2">
             <button type="button" id="btn-salvar-fin" class="min-h-[52px] w-full px-6 py-3.5 rounded-xl bg-emerald-700 text-white font-black text-sm sm:text-base uppercase tracking-wide hover:bg-emerald-800 shadow-md border-2 border-emerald-900">Salvar + lançar a pagar</button>
-            <p class="text-xs font-semibold text-emerald-900/90 text-center lg:text-left">Abra o passo extra verde, preencha empresa, 1º vencimento, parcelas (se houver) e banco.</p>
+            <p class="text-[11px] font-semibold text-emerald-800/90 text-center lg:text-left">Exige bloco financeiro preenchido.</p>
           </div>
         </div>
       </div>
 
-      <details class="rounded-2xl border-2 border-blue-200 bg-blue-50/80 px-4 py-3 sm:px-5 sm:py-4 group">
-        <summary class="cursor-pointer list-none text-sm sm:text-base font-black uppercase text-blue-950 flex flex-wrap items-center gap-2 min-h-[48px]">
+      <div class="rounded-2xl border-2 border-blue-200 bg-blue-50/80 px-4 py-3 sm:px-5 sm:py-4">
+        <div class="flex flex-wrap items-center gap-2 min-h-[48px] mb-3">
           <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-blue-700 text-white text-sm font-black shrink-0" aria-hidden="true">+</span>
-          <span>Depois que a mercadoria chegou — Entrada no estoque Agro</span>
-        </summary>
-        <div class="mt-4 space-y-3 text-xs sm:text-sm font-semibold text-blue-950">
-          <p class="leading-relaxed">Soma a coluna <strong>Qtd est.</strong> no saldo que o PDV e a tela Compras já mostram. Só vale para linhas em que você usou <strong>Buscar</strong> e escolheu o produto do catálogo. Cada clique soma de novo: <strong>não repita</strong> a mesma nota. O <strong>depósito</strong> e a <strong>empresa faturada</strong> são os do <strong>passo 1</strong>.</p>
+          <h3 class="text-sm sm:text-base font-black uppercase text-blue-950">Entrada no estoque Agro</h3>
+        </div>
+        <div class="space-y-3 text-xs sm:text-sm font-semibold text-blue-950">
+          <p class="text-xs text-blue-900/95">Soma <strong>Qtd est.</strong> · só linhas com catálogo · não repita o mesmo clique.</p>
           <div class="flex flex-wrap items-end gap-4">
             <label class="inline-flex items-center gap-2.5 cursor-pointer text-sm font-bold text-blue-950 min-h-[48px]">
               <input type="checkbox" id="chk-estoque-com-rascunho" class="h-5 w-5 rounded border-slate-300 accent-blue-600">
@@ -344,7 +305,7 @@
             Registrar entrada no estoque Agro
           </button>
         </div>
-      </details>
+      </div>
     </section>
 
     <div id="modal-prod" class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-prod-titulo">
@@ -359,7 +320,7 @@
 
     <section id="panel-xml" class="tab-panel hidden bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
       <h2 class="text-base font-black uppercase text-slate-800">Importar XML da NF-e</h2>
-      <p class="text-sm font-semibold text-slate-600 leading-relaxed">Arquivo autorizado (<strong>nfeProc</strong> ou <strong>NFe</strong>). A tela preenche cabeçalho e grade; depois confira na aba <strong>Entrada manual</strong> e toque em <strong>Salvar só rascunho</strong>.</p>
+      <p class="text-xs font-semibold text-slate-600">NF-e autorizada · depois confira na aba manual e salve.</p>
       <div class="flex flex-wrap items-end gap-3">
         <label class="block flex-1 min-w-[12rem] max-w-xl"><span class="text-xs font-black uppercase text-slate-600">Arquivo XML</span>
           <input type="file" id="xml-file" accept=".xml,text/xml,application/xml" class="mt-1 block w-full min-h-[48px] text-sm font-bold border-2 border-slate-200 rounded-xl px-2 py-2 bg-white"></label>
@@ -370,7 +331,7 @@
 
     <section id="panel-sefaz" class="tab-panel hidden bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
       <h2 class="text-base font-black uppercase text-slate-800">Buscar nota na SEFAZ (DF-e)</h2>
-      <p class="text-sm font-semibold text-slate-600">Uso avançado — exige certificado no servidor. O resultado pode ser carregado na grade manual.</p>
+      <p class="text-xs font-semibold text-slate-600">Certificado no servidor · carrega na grade manual.</p>
       <div id="sefaz-status" class="rounded-xl border-2 border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">Carregando status…</div>
       <div class="flex flex-wrap gap-3 items-end">
         <label class="block"><span class="text-xs font-black uppercase text-slate-600">ultNSU (opcional)</span>
@@ -382,6 +343,44 @@
     </section>
 
   </main>
+
+  <div id="modal-entrada-nfe-ajuda" class="hidden fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-entrada-nfe-ajuda-titulo">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-[min(36rem,96vw)] w-full max-h-[min(85vh,640px)] overflow-hidden flex flex-col border-2 border-slate-200">
+      <div class="px-4 py-3 sm:px-5 border-b-2 border-slate-100 flex items-center justify-between gap-2 shrink-0 bg-slate-50/90">
+        <h2 id="modal-entrada-nfe-ajuda-titulo" class="text-base font-black uppercase text-slate-900">Ajuda — Entrada de NF-e</h2>
+        <button type="button" id="modal-entrada-nfe-ajuda-fechar" class="min-h-[44px] px-4 rounded-xl border-2 border-slate-300 text-xs font-black uppercase text-slate-700 hover:bg-slate-100">Fechar</button>
+      </div>
+      <div class="p-4 sm:p-5 overflow-y-auto text-sm font-semibold text-slate-700 space-y-4 leading-relaxed">
+        <p class="text-slate-900"><strong class="text-orange-700">Resumo:</strong> preencha a nota e a grade, depois <strong>Salvar só rascunho</strong> grava no Agro. O estoque da loja só muda com <strong>Entrada no estoque Agro</strong> (ou outro ajuste autorizado).</p>
+        <div class="border-l-4 border-orange-200 pl-3 space-y-2">
+          <p class="text-xs font-black uppercase text-slate-500">Uso</p>
+          <p>Conferir nota, buscar fornecedor e produtos cadastrados, ratear quantidade (ex.: 1 caixa = 10 un.), data de entrada, plano de contas da nota (DRE) e, se quiser, gerar conta a pagar no Mongo (como no <a href="{% url 'lancamentos_manual' %}" class="text-orange-700 underline font-black">lançamento manual</a>). Salvar rascunho <strong>não</strong> altera o estoque do ERP sozinho.</p>
+          <p class="text-slate-600">Consulta DF-e na Receita exige certificado e dados da empresa no servidor.</p>
+        </div>
+        <div class="border-l-4 border-emerald-200 pl-3 space-y-2">
+          <p class="text-xs font-black uppercase text-slate-500">Plano de contas</p>
+          <p>O mesmo plano vale para o título a pagar (botão verde) e no Mongo como plano do DRE.</p>
+        </div>
+        <div class="border-l-4 border-orange-200 pl-3 space-y-2">
+          <p class="text-xs font-black uppercase text-slate-500">Colunas da grade</p>
+          <p><strong>Rateio:</strong> Un/emb = unidades por embalagem na NF (ex.: 10). <strong>Qtd est.</strong> = Qtd NF × Un/emb (editável).</p>
+        </div>
+        <div class="border-l-4 border-emerald-200 pl-3 space-y-2">
+          <p class="text-xs font-black uppercase text-slate-500">Financeiro (opcional)</p>
+          <p>Preencha empresa, competência, 1º vencimento, parcelas se houver, forma e banco antes de <strong>Salvar + lançar a pagar</strong>.</p>
+        </div>
+        <div class="border-l-4 border-blue-200 pl-3 space-y-2">
+          <p class="text-xs font-black uppercase text-slate-500">Estoque Agro</p>
+          <p>Soma <strong>Qtd est.</strong> no saldo do PDV/Compras só para linhas com produto do catálogo (Buscar). Não repita o mesmo clique na mesma nota. Depósito e empresa vêm do passo 1.</p>
+        </div>
+        <div class="text-[11px] sm:text-xs font-semibold text-slate-600 space-y-1 pt-2 border-t border-slate-100">
+          <p class="font-black uppercase text-slate-500">Técnico</p>
+          <p>Rascunhos: coleção <code class="bg-slate-100 px-1 rounded">AgroEntradaNotaRascunho</code>. Plano: <code class="bg-slate-100 px-1 rounded">cabecalho.plano_conta</code> / <code class="bg-slate-100 px-1 rounded">plano_conta_id</code>.</p>
+          <p>Certificado A1 (.pfx), CNPJ e UF no ambiente. Homologação SEFAZ: <code class="bg-slate-100 px-1 rounded">NFE_DIST_DFE_TP_AMB=2</code>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
   {{ csrf_token }}
   <script>
@@ -465,6 +464,24 @@
     const m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
     return m ? decodeURIComponent(m[2]) : '';
   }
+
+  const elModalAjudaNfe = document.getElementById('modal-entrada-nfe-ajuda');
+  function abrirModalAjudaEntradaNfe() {
+    if (elModalAjudaNfe) {
+      elModalAjudaNfe.classList.remove('hidden');
+      document.getElementById('modal-entrada-nfe-ajuda-fechar')?.focus();
+    }
+  }
+  function fecharModalAjudaEntradaNfe() {
+    if (elModalAjudaNfe) elModalAjudaNfe.classList.add('hidden');
+    document.getElementById('btn-entrada-nfe-ajuda')?.focus();
+  }
+
+  document.getElementById('btn-entrada-nfe-ajuda')?.addEventListener('click', abrirModalAjudaEntradaNfe);
+  document.getElementById('modal-entrada-nfe-ajuda-fechar')?.addEventListener('click', fecharModalAjudaEntradaNfe);
+  elModalAjudaNfe?.addEventListener('click', (e) => {
+    if (e.target === elModalAjudaNfe) fecharModalAjudaEntradaNfe();
+  });
 
   function showMsg(text, ok) {
     const el = document.getElementById('msg-global');
@@ -784,7 +801,7 @@
       aplicarRascunhoNaGrade(j.rascunho);
       setEntradaNfeRascunhoEdit(id);
       document.querySelector('.tab-btn[data-tab="manual"]')?.click();
-      showMsg('Rascunho carregado na grade. Ajuste e use Salvar só rascunho para gravar alterações.', true);
+      showMsg('Nota aberta na grade (aba manual).', true);
     } catch (_) {
       showMsg('Erro de rede ao abrir rascunho.', false);
     }
@@ -1387,17 +1404,22 @@
   document.getElementById('btn-entrada-nfe-nova').addEventListener('click', () => {
     setEntradaNfeRascunhoEdit(null);
     document.querySelector('.tab-btn[data-tab="manual"]')?.click();
-    showMsg('Nova entrada: preencha a grade e use Salvar só rascunho.', true);
+    showMsg('Nova entrada.', true);
     document.getElementById('panel-manual')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   document.getElementById('btn-refresh-rasc').addEventListener('click', carregarRascunhos);
   document.getElementById('btn-entrada-nfe-sair-edicao')?.addEventListener('click', () => {
     setEntradaNfeRascunhoEdit(null);
-    showMsg('Próximo «Salvar só rascunho» cria um novo rascunho no Mongo.', true);
+    showMsg('Próximo salvar cria novo rascunho.', true);
   });
 
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && elModalAjudaNfe && !elModalAjudaNfe.classList.contains('hidden')) {
+      e.preventDefault();
+      fecharModalAjudaEntradaNfe();
+      return;
+    }
     if (!e.altKey || e.ctrlKey || e.shiftKey) return;
     const k = e.key;
     if (k === '1') {
