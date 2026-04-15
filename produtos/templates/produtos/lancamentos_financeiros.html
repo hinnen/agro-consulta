@@ -541,12 +541,18 @@
       </label>
       <div class="space-y-2">
         <span class="text-[10px] font-black uppercase text-slate-500">Forma de pagamento (na baixa)</span>
-        <p class="text-[10px] text-slate-500 leading-relaxed">Somente cadastros do ERP (uma opção por ID), conforme já sincronizados no Mongo.</p>
+        <p class="text-[10px] text-slate-500 leading-relaxed">Cadastro do ERP no Mongo (ex.: <span class="font-mono">DtoFormaPagamento</span>); se não houver coleção, lista derivada dos títulos com um ID por forma.</p>
         <select id="bx-forma-sel" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold"></select>
       </div>
       <div class="space-y-2">
         <span class="text-[10px] font-black uppercase text-slate-500">Conta / banco (na baixa)</span>
+        <p class="text-[10px] text-slate-500 leading-relaxed">Cadastro do ERP no Mongo (ex.: <span class="font-mono">DtoContaBancaria</span>); se não houver, lista derivada dos títulos. Rótulos CPF/CNPJ padronizados com <span class="font-mono">|</span>.</p>
         <select id="bx-banco-sel" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold"></select>
+      </div>
+      <div id="bx-juros-wrap" class="space-y-2 hidden">
+        <span class="text-[10px] font-black uppercase text-slate-500">Juros nesta quitação (opcional)</span>
+        <p class="text-[10px] text-slate-500 leading-relaxed">Valor em R$ gera um título a pagar no plano <strong>Juros de Emprestimos</strong>, quitado na mesma data, forma e conta abaixo (usa empresa e favorecido do primeiro título selecionado).</p>
+        <input type="text" id="bx-juros" placeholder="0,00" class="w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold tabular-nums">
       </div>
       <div class="flex flex-wrap gap-2 justify-end pt-2">
         <button type="button" id="bx-cancel" class="px-4 py-2.5 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Cancelar</button>
@@ -2003,6 +2009,10 @@
       document.getElementById('bx-data').value = hojeISO();
       document.getElementById('bx-forma-sel').selectedIndex = 0;
       document.getElementById('bx-banco-sel').selectedIndex = 0;
+      const jw = document.getElementById('bx-juros-wrap');
+      const ji = document.getElementById('bx-juros');
+      if (jw) jw.classList.toggle('hidden', tipoAtual !== 'pagar');
+      if (ji) ji.value = '';
       carregarOpcoesBaixa();
       document.getElementById('modal-baixa').classList.remove('hidden');
     });
@@ -2041,6 +2051,13 @@
         banco: bancoNome,
         banco_id: bancoId,
       };
+      if (tipoAtual === 'pagar') {
+        const jt = (document.getElementById('bx-juros')?.value || '').trim();
+        if (jt) {
+          const jn = parseValorPt(jt);
+          if (!Number.isNaN(jn) && jn > 0) body.valor_juros = jn.toFixed(2);
+        }
+      }
       document.getElementById('bx-ok').disabled = true;
       try {
         const r = await fetch(API_BAIXA, {
@@ -2060,6 +2077,8 @@
           let m = `Baixa registrada: ${out.atualizados.length} título(s) no Agro.`;
           if (out.erp_baixa_ok === true) m += '\n\nERP: sincronização da baixa aceita.';
           else if (out.aviso_api) m += '\n\nERP (atenção): ' + out.aviso_api;
+          if (out.juros_id) m += `\n\nJuros: título Mongo ${out.juros_id} (plano Juros de Emprestimos).`;
+          if (out.aviso_juros) m += `\n\nJuros (atenção): ${out.aviso_juros}`;
           alert(m);
         }
         document.getElementById('modal-baixa').classList.add('hidden');
