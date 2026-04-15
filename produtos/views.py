@@ -3582,6 +3582,8 @@ def api_entrada_nota_financeiro(request):
     ``modo_lancamento`` ``por_item`` ainda é aceito na API; a tela manual envia só ``unico``.
     Modo ``unico``: opcional ``num_parcelas`` (1–60) e ``parcelas_intervalo_dias`` (1–366);
     ``data_vencimento`` é o 1º vencimento; demais parcelas somam o intervalo em dias.
+    Opcional ``parcelas_manual``: lista ``[{ "valor", "data_vencimento", "data_competencia"? }]``
+    com soma igual ao total da nota (tol. 1 centavo); quando enviada, substitui o cálculo automático.
     """
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
@@ -3748,7 +3750,97 @@ def api_entrada_nota_financeiro(request):
             f"Entrada NF-e Agro · chave {cab.get('chave') or '—'} · {cab.get('data_entrada') or ''}"
         )[:500]
 
-        if nparc <= 1:
+        pm_raw = fin.get("parcelas_manual")
+        if isinstance(pm_raw, list) and len(pm_raw) > 0:
+            linhas_fin = []
+            sum_man = Decimal("0")
+            n_pm = len(pm_raw)
+            if n_pm > 60:
+                return JsonResponse(
+                    {"ok": False, "erro": "No máximo 60 parcelas.", "rascunho": r_rasc},
+                    status=400,
+                )
+            for i, row in enumerate(pm_raw):
+                if not isinstance(row, dict):
+                    return JsonResponse(
+                        {"ok": False, "erro": f"Parcela {i + 1}: formato inválido.", "rascunho": r_rasc},
+                        status=400,
+                    )
+                try:
+                    v_dec = Decimal(str(row.get("valor", "")).replace(",", ".").strip() or "0").quantize(
+                        Decimal("0.01")
+                    )
+                except Exception:
+                    return JsonResponse(
+                        {"ok": False, "erro": f"Parcela {i + 1}: valor inválido.", "rascunho": r_rasc},
+                        status=400,
+                    )
+                if v_dec <= 0:
+                    return JsonResponse(
+                        {"ok": False, "erro": f"Parcela {i + 1}: valor deve ser > 0.", "rascunho": r_rasc},
+                        status=400,
+                    )
+                sum_man += v_dec
+                vs = str(row.get("data_vencimento") or "").strip()[:10]
+                if not vs:
+                    return JsonResponse(
+                        {
+                            "ok": False,
+                            "erro": f"Parcela {i + 1}: informe data_vencimento (AAAA-MM-DD).",
+                            "rascunho": r_rasc,
+                        },
+                        status=400,
+                    )
+                try:
+                    date.fromisoformat(vs)
+                except ValueError:
+                    return JsonResponse(
+                        {
+                            "ok": False,
+                            "erro": f"Parcela {i + 1}: data_vencimento inválida.",
+                            "rascunho": r_rasc,
+                        },
+                        status=400,
+                    )
+                cs = str(row.get("data_competencia") or "").strip()[:10]
+                if cs:
+                    try:
+                        date.fromisoformat(cs)
+                    except ValueError:
+                        return JsonResponse(
+                            {
+                                "ok": False,
+                                "erro": f"Parcela {i + 1}: data_competencia inválida.",
+                                "rascunho": r_rasc,
+                            },
+                            status=400,
+                        )
+                else:
+                    cs = dc.isoformat()
+                linhas_fin.append(
+                    {
+                        "valor": float(v_dec),
+                        "descricao": f"{base_desc} (parcela {i + 1}/{n_pm})"[:500],
+                        "plano_conta": plano_pad,
+                        "plano_conta_id": plano_pad_id,
+                        "observacao": base_obs,
+                        "data_vencimento": vs,
+                        "data_competencia": cs,
+                    }
+                )
+            if abs(sum_man - tot_dec) > Decimal("0.02"):
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "erro": (
+                            f"Soma das parcelas ({sum_man}) difere do total da nota ({tot_dec}). "
+                            "Ajuste os valores na prévia."
+                        ),
+                        "rascunho": r_rasc,
+                    },
+                    status=400,
+                )
+        elif nparc <= 1:
             linhas_fin = [
                 {
                     "valor": tot_f,
