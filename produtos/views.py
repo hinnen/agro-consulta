@@ -4283,9 +4283,17 @@ def _mesclar_opcoes_baixa_com_extras(
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_lancamentos_opcoes_baixa(request):
-    """Formas de pagamento e bancos: Mongo (modo ERP ou histórico) + opções extras do usuário."""
+    """Formas de pagamento e bancos: Mongo (modo ERP ou histórico) + opções extras do usuário.
+
+    Query ``apenas_cadastro_erp=1`` (ou ``true``/``sim``): força modo ERP, sem lista pessoal
+    (útil na tela de lançamentos quando só se quer o cadastro visto no ERP via IDs nos títulos).
+    """
+    raw_apenas = (request.GET.get("apenas_cadastro_erp") or "").strip().lower()
+    apenas_cadastro_erp = raw_apenas in ("1", "true", "yes", "sim", "on")
     modo = (request.GET.get("modo") or "erp").strip().lower()
-    if modo not in ("erp", "historico"):
+    if apenas_cadastro_erp:
+        modo = "erp"
+    elif modo not in ("erp", "historico"):
         modo = "erp"
     _, db = obter_conexao_mongo()
     if db is None:
@@ -4294,13 +4302,17 @@ def api_lancamentos_opcoes_baixa(request):
             status=503,
         )
     formas, bancos = listar_formas_e_bancos_distintos(db, modo=modo)
-    extras_q = OpcaoBaixaFinanceiroExtra.objects.filter(usuario=request.user)
-    formas, det_f = _mesclar_opcoes_baixa_com_extras(
-        formas, extras_q.filter(tipo=OpcaoBaixaFinanceiroExtra.Tipo.FORMA)
-    )
-    bancos, det_b = _mesclar_opcoes_baixa_com_extras(
-        bancos, extras_q.filter(tipo=OpcaoBaixaFinanceiroExtra.Tipo.BANCO)
-    )
+    if apenas_cadastro_erp:
+        det_f: list[dict] = []
+        det_b: list[dict] = []
+    else:
+        extras_q = OpcaoBaixaFinanceiroExtra.objects.filter(usuario=request.user)
+        formas, det_f = _mesclar_opcoes_baixa_com_extras(
+            formas, extras_q.filter(tipo=OpcaoBaixaFinanceiroExtra.Tipo.FORMA)
+        )
+        bancos, det_b = _mesclar_opcoes_baixa_com_extras(
+            bancos, extras_q.filter(tipo=OpcaoBaixaFinanceiroExtra.Tipo.BANCO)
+        )
     formas.sort(key=lambda x: (x.get("nome") or "").lower())
     bancos.sort(key=lambda x: (x.get("nome") or "").lower())
     return JsonResponse(

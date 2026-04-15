@@ -541,23 +541,12 @@
       </label>
       <div class="space-y-2">
         <span class="text-[10px] font-black uppercase text-slate-500">Forma de pagamento (na baixa)</span>
+        <p class="text-[10px] text-slate-500 leading-relaxed">Somente cadastros do ERP (uma opção por ID), conforme já sincronizados no Mongo.</p>
         <select id="bx-forma-sel" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold"></select>
-        <input type="text" id="bx-forma-txt" placeholder="Emergência: texto livre (sobrescreve a lista)" class="w-full rounded-xl border-2 border-dashed border-amber-200 px-3 py-2 text-sm font-semibold">
       </div>
       <div class="space-y-2">
         <span class="text-[10px] font-black uppercase text-slate-500">Conta / banco (na baixa)</span>
         <select id="bx-banco-sel" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold"></select>
-        <input type="text" id="bx-banco-txt" placeholder="Emergência: texto livre (sem ID do ERP)" class="w-full rounded-xl border-2 border-dashed border-amber-200 px-3 py-2 text-sm font-semibold">
-      </div>
-      <div class="rounded-xl border border-slate-200 bg-slate-50/90 p-3 space-y-2 text-[11px]">
-        <label class="flex items-start gap-2 cursor-pointer font-bold text-slate-700 leading-snug">
-          <input type="checkbox" id="bx-modo-historico" class="mt-0.5 rounded border-slate-300 accent-emerald-600 shrink-0">
-          <span>Mostrar histórico completo no Mongo (todas as variações de nome, inclusive sem ID do ERP)</span>
-        </label>
-        <p class="text-[10px] text-slate-500 leading-relaxed pl-6">Desmarcado: uma linha por cadastro (ID de forma e de conta), alinhado ao ERP — recomendado.</p>
-        <div class="pl-6 flex flex-wrap gap-2 items-center">
-          <button type="button" id="bx-btn-opcoes-extras" class="text-[10px] font-black uppercase text-emerald-700 hover:underline">Minhas opções / cadastrar…</button>
-        </div>
       </div>
       <div class="flex flex-wrap gap-2 justify-end pt-2">
         <button type="button" id="bx-cancel" class="px-4 py-2.5 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Cancelar</button>
@@ -586,28 +575,6 @@
       <div class="flex flex-wrap gap-2 justify-end pt-2 border-t border-slate-100">
         <button type="button" id="bxp-cancel" class="px-4 py-2.5 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Cancelar</button>
         <button type="button" id="bxp-ok" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-black text-xs uppercase hover:bg-indigo-700">Confirmar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal opções extras (cadastro pessoal forma/banco) -->
-  <div id="modal-opcoes-extras" class="hidden fixed inset-0 z-[55] flex items-end sm:items-center justify-center p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-opcoes-extras-titulo">
-    <div class="bg-white rounded-2xl shadow-xl max-w-[min(40rem,96vw)] w-full p-5 sm:p-6 space-y-4 border border-slate-200 max-h-[90vh] overflow-y-auto">
-      <h2 id="modal-opcoes-extras-titulo" class="text-lg font-black text-slate-900 uppercase tracking-tight">Minhas opções na baixa</h2>
-      <p class="text-[10px] text-slate-600 font-semibold leading-relaxed">Entradas que você cadastra aqui aparecem nos selects junto com as do Mongo. Prefira informar o <strong>ID do ERP</strong> (cadastro de formas / contas) para evitar divergência.</p>
-      <div id="opx-lista" class="rounded-xl border border-slate-100 divide-y divide-slate-100 max-h-40 overflow-y-auto text-xs"></div>
-      <div class="space-y-2 border-t border-slate-100 pt-3">
-        <span class="text-[10px] font-black uppercase text-slate-500">Adicionar</span>
-        <select id="opx-tipo" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold">
-          <option value="forma">Forma de pagamento</option>
-          <option value="banco">Banco / conta</option>
-        </select>
-        <input type="text" id="opx-id-erp" placeholder="ID no ERP / Mongo (recomendado)" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" maxlength="80">
-        <input type="text" id="opx-nome" placeholder="Nome exibido na lista" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold" maxlength="300">
-        <button type="button" id="opx-salvar" class="w-full py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700">Salvar na minha lista</button>
-      </div>
-      <div class="flex justify-end">
-        <button type="button" id="opx-fechar" class="px-4 py-2 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Fechar</button>
       </div>
     </div>
   </div>
@@ -715,15 +682,12 @@
     const API_PDF_FIN = "{% url 'api_lancamentos_export_financeiro_pdf' %}";
     const API_PLANOS = "{% url 'api_lancamentos_planos_distintos' %}";
     const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
-    const API_OPCOES_EXTRA_CRIAR = "{% url 'api_lancamentos_opcoes_baixa_extra_criar' %}";
-    const API_OPCOES_EXTRA_EXCL_TMPL = "{% url 'api_lancamentos_opcoes_baixa_extra_excluir' pk=888888888 %}";
     const API_BAIXA = "{% url 'api_lancamentos_baixa' %}";
     const API_BAIXA_PARCIAL = "{% url 'api_lancamentos_baixa_parcial' %}";
     const API_LANC_ALTERAR = "{% url 'api_lancamentos_alterar' %}";
     const API_LANC_EXCLUIR = "{% url 'api_lancamentos_excluir' %}";
     const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
     const API_ATALHOS = "{% url 'api_lancamentos_atalhos_filtro' %}";
-    const LS_OPCOES_MODO = 'gm_fin_opcoes_modo';
     const LS_FAV = 'gm_fin_favs_v1';
     const LS_EXCL = 'gm_fin_planos_excl_v1';
     const LS_COLS = 'gm_fin_cols_v2';
@@ -1423,81 +1387,11 @@
       window.open('https://api.whatsapp.com/send', '_blank', 'noopener,noreferrer');
     }
 
-    function opcoesBaixaModoFromStorage() {
-      const v = (localStorage.getItem(LS_OPCOES_MODO) || 'erp').toLowerCase();
-      return v === 'historico' ? 'historico' : 'erp';
-    }
-
-    function setOpcoesBaixaModoStorage(m) {
-      localStorage.setItem(LS_OPCOES_MODO, m === 'historico' ? 'historico' : 'erp');
-    }
-
-    function syncCheckboxModoHistorico() {
-      const ch = document.getElementById('bx-modo-historico');
-      if (ch) ch.checked = opcoesBaixaModoFromStorage() === 'historico';
-    }
-
-    function urlExcluirOpcaoExtra(pk) {
-      return API_OPCOES_EXTRA_EXCL_TMPL.replace('888888888', String(pk));
-    }
-
-    function renderListaOpcoesExtras(extras) {
-      const el = document.getElementById('opx-lista');
-      if (!el) return;
-      const arr = Array.isArray(extras) ? extras : [];
-      if (!arr.length) {
-        el.innerHTML = '<p class="p-3 text-slate-400 font-semibold">Nenhuma opção cadastrada.</p>';
-        return;
-      }
-      el.innerHTML = arr.map((e) => `
-        <div class="flex items-center justify-between gap-2 px-3 py-2">
-          <div class="min-w-0">
-            <span class="font-black text-[9px] uppercase text-slate-500">${e.tipo === 'banco' ? 'Conta' : 'Forma'}</span>
-            <div class="font-bold text-slate-800 truncate">${esc(e.nome)}</div>
-            ${e.id_erp ? `<div class="text-[10px] text-slate-500 font-mono truncate">ID ${esc(e.id_erp)}</div>` : ''}
-          </div>
-          <button type="button" class="opx-del shrink-0 text-[10px] font-black uppercase text-red-600 hover:underline" data-pk="${e.pk}">Excluir</button>
-        </div>
-      `).join('');
-      el.querySelectorAll('.opx-del').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const pk = btn.getAttribute('data-pk');
-          if (!pk) return;
-          try {
-            const r = await fetch(urlExcluirOpcaoExtra(pk), {
-              method: 'POST',
-              credentials: 'same-origin',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken'),
-              },
-              body: '{}',
-            });
-            const out = await r.json();
-            if (!out.ok) {
-              alert(out.erro || 'Não foi possível excluir.');
-              return;
-            }
-            await carregarOpcoesBaixa();
-            renderListaOpcoesExtras(window._lastOpcoesExtras || []);
-          } catch (_) {
-            alert('Erro de rede.');
-          }
-        });
-      });
-    }
-
     async function carregarOpcoesBaixa() {
       try {
-        const ch = document.getElementById('bx-modo-historico');
-        const modo = ch
-          ? (ch.checked ? 'historico' : 'erp')
-          : opcoesBaixaModoFromStorage();
-        setOpcoesBaixaModoStorage(modo);
-        const url = `${API_OPCOES}?modo=${encodeURIComponent(modo)}`;
+        const url = `${API_OPCOES}?modo=erp&apenas_cadastro_erp=1`;
         const r = await fetch(url, { credentials: 'same-origin' });
         const d = await r.json();
-        window._lastOpcoesExtras = d.extras || [];
         const fs = document.getElementById('bx-forma-sel');
         const bs = document.getElementById('bx-banco-sel');
         fs.innerHTML = '<option value="">— Selecione —</option>';
@@ -1516,7 +1410,6 @@
           o.textContent = x.origem === 'manual' ? `${nome} · lista pessoal` : nome;
           bs.appendChild(o);
         });
-        renderListaOpcoesExtras(window._lastOpcoesExtras);
       } catch (_) {}
     }
 
@@ -1571,7 +1464,6 @@
         `1 título · Saldo em aberto ${brl(rest)} · ${tipoAtual === 'pagar' ? 'Contas a pagar' : 'Contas a receber'}`;
       document.getElementById('bxp-data').value = hojeISO();
       document.getElementById('bxp-linhas').innerHTML = '';
-      syncCheckboxModoHistorico();
       await carregarOpcoesBaixa();
       bxpAddLinha(Number(rest).toFixed(2));
     }
@@ -2109,11 +2001,8 @@
       document.getElementById('modal-baixa-resumo').textContent =
         `${selecionados.size} título(s) · Total saldo ${brl(Array.from(selecionados.values()).reduce((a, b) => a + b, 0))} · ${tipoAtual === 'pagar' ? 'Contas a pagar' : 'Contas a receber'}`;
       document.getElementById('bx-data').value = hojeISO();
-      document.getElementById('bx-forma-txt').value = '';
-      document.getElementById('bx-banco-txt').value = '';
       document.getElementById('bx-forma-sel').selectedIndex = 0;
       document.getElementById('bx-banco-sel').selectedIndex = 0;
-      syncCheckboxModoHistorico();
       carregarOpcoesBaixa();
       document.getElementById('modal-baixa').classList.remove('hidden');
     });
@@ -2122,85 +2011,25 @@
       document.getElementById('modal-baixa').classList.add('hidden');
     });
 
-    document.getElementById('bx-modo-historico')?.addEventListener('change', () => {
-      const ch = document.getElementById('bx-modo-historico');
-      setOpcoesBaixaModoStorage(ch && ch.checked ? 'historico' : 'erp');
-      carregarOpcoesBaixa();
-    });
-
-    document.getElementById('bx-btn-opcoes-extras')?.addEventListener('click', () => {
-      renderListaOpcoesExtras(window._lastOpcoesExtras || []);
-      document.getElementById('modal-opcoes-extras').classList.remove('hidden');
-    });
-
-    document.getElementById('opx-fechar')?.addEventListener('click', () => {
-      document.getElementById('modal-opcoes-extras').classList.add('hidden');
-    });
-
-    document.getElementById('modal-opcoes-extras')?.addEventListener('click', (e) => {
-      if (e.target && e.target.id === 'modal-opcoes-extras') {
-        document.getElementById('modal-opcoes-extras').classList.add('hidden');
-      }
-    });
-
-    document.getElementById('opx-salvar')?.addEventListener('click', async () => {
-      const tipo = (document.getElementById('opx-tipo').value || 'forma').toLowerCase();
-      const nome = (document.getElementById('opx-nome').value || '').trim();
-      const idErp = (document.getElementById('opx-id-erp').value || '').trim();
-      if (!nome) {
-        alert('Informe o nome exibido na lista.');
-        return;
-      }
-      document.getElementById('opx-salvar').disabled = true;
-      try {
-        const r = await fetch(API_OPCOES_EXTRA_CRIAR, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-          },
-          body: JSON.stringify({ tipo, nome, id_erp: idErp }),
-        });
-        const out = await r.json();
-        if (!out.ok) {
-          alert(out.erro || 'Não foi possível salvar.');
-          return;
-        }
-        document.getElementById('opx-nome').value = '';
-        document.getElementById('opx-id-erp').value = '';
-        await carregarOpcoesBaixa();
-        renderListaOpcoesExtras(window._lastOpcoesExtras || []);
-      } catch (_) {
-        alert('Erro de rede.');
-      } finally {
-        document.getElementById('opx-salvar').disabled = false;
-      }
-    });
-
     document.getElementById('bx-ok').addEventListener('click', async () => {
-      let formaNome = (document.getElementById('bx-forma-txt').value || '').trim();
+      let formaNome = '';
       let formaId = null;
-      if (!formaNome) {
-        const sv = document.getElementById('bx-forma-sel').value;
-        const fi = sv.indexOf('|||');
-        if (fi >= 0) {
-          formaId = sv.slice(0, fi) || null;
-          formaNome = sv.slice(fi + 3).trim();
-        }
+      const svf = document.getElementById('bx-forma-sel').value;
+      const fi = svf.indexOf('|||');
+      if (fi >= 0) {
+        formaId = svf.slice(0, fi) || null;
+        formaNome = svf.slice(fi + 3).trim();
       }
-      let bancoNome = (document.getElementById('bx-banco-txt').value || '').trim();
+      let bancoNome = '';
       let bancoId = null;
-      if (!bancoNome) {
-        const sv = document.getElementById('bx-banco-sel').value;
-        const bi = sv.indexOf('|||');
-        if (bi >= 0) {
-          bancoId = sv.slice(0, bi) || null;
-          bancoNome = sv.slice(bi + 3).trim();
-        }
+      const svb = document.getElementById('bx-banco-sel').value;
+      const bi = svb.indexOf('|||');
+      if (bi >= 0) {
+        bancoId = svb.slice(0, bi) || null;
+        bancoNome = svb.slice(bi + 3).trim();
       }
       if (!formaNome || !bancoNome) {
-        alert('Informe forma de pagamento e banco/conta (lista ou texto livre).');
+        alert('Selecione forma de pagamento e conta/banco na lista (cadastro ERP).');
         return;
       }
       const body = {
@@ -2507,7 +2336,8 @@
       const inField = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
       const modalAberto = !document.getElementById('modal-baixa')?.classList.contains('hidden');
       const modalParcial = !document.getElementById('modal-baixa-parcial')?.classList.contains('hidden');
-      const modalOpx = !document.getElementById('modal-opcoes-extras')?.classList.contains('hidden');
+      const elOpx = document.getElementById('modal-opcoes-extras');
+      const modalOpx = !!(elOpx && !elOpx.classList.contains('hidden'));
       const modalEdit = !document.getElementById('modal-edit-lanc')?.classList.contains('hidden');
       const modalFiltrosLista = !document.getElementById('modal-filtros-lista')?.classList.contains('hidden');
       const modalFerramentasLista = !document.getElementById('modal-ferramentas-lista')?.classList.contains('hidden');
