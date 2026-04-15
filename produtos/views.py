@@ -91,6 +91,7 @@ from .mongo_financeiro_util import (
     lancamentos_planos_distintos_no_filtro,
     lancamentos_sugestoes_campo,
     listar_formas_e_bancos_distintos,
+    registrar_titulo_juros_apos_baixa_contas_pagar,
     montar_payload_erp_baixa,
     montar_payload_erp_lancamentos_novos,
     candidatos_texto_plano_para_api_pedido,
@@ -4301,7 +4302,9 @@ def api_lancamentos_opcoes_baixa(request):
             {"erro": "Mongo indisponível", "formas": [], "bancos": [], "modo": modo, "extras": []},
             status=503,
         )
-    formas, bancos = listar_formas_e_bancos_distintos(db, modo=modo)
+    formas, bancos = listar_formas_e_bancos_distintos(
+        db, modo=modo, fonte_cadastro_mestre=apenas_cadastro_erp
+    )
     if apenas_cadastro_erp:
         det_f: list[dict] = []
         det_b: list[dict] = []
@@ -4409,6 +4412,16 @@ def api_lancamentos_baixa(request):
     except ValueError:
         return JsonResponse({"ok": False, "erro": "Data inválida (use AAAA-MM-DD)."}, status=400)
 
+    valor_juros_dec: Decimal | None = None
+    vj_raw = payload.get("valor_juros")
+    if vj_raw is not None and str(vj_raw).strip() != "":
+        try:
+            valor_juros_dec = Decimal(str(vj_raw).replace(",", ".").strip()).quantize(Decimal("0.01"))
+        except Exception:
+            return JsonResponse({"ok": False, "erro": "Valor de juros inválido."}, status=400)
+        if valor_juros_dec <= 0:
+            valor_juros_dec = None
+
     tz = timezone.get_current_timezone()
     data_movimento = timezone.make_aware(datetime.combine(dmov, dtime(12, 0, 0)), tz)
 
@@ -4456,6 +4469,25 @@ def api_lancamentos_baixa(request):
     ok_all = bool(resultado.get("ok"))
     atual = resultado.get("atualizados") or []
     erros = resultado.get("erros") or []
+    aviso_juros = None
+    juros_id = None
+    if despesa and valor_juros_dec and valor_juros_dec > 0 and atual:
+        rj = registrar_titulo_juros_apos_baixa_contas_pagar(
+            db,
+            mongo_id_titulo_referencia=str(atual[0]),
+            valor_juros=valor_juros_dec,
+            data_movimento=dmov,
+            forma_nome=forma_nome,
+            forma_id=str(forma_id).strip() if forma_id else None,
+            banco_nome=banco_nome,
+            banco_id=str(banco_id).strip() if banco_id else None,
+            usuario_label=usuario,
+        )
+        if rj.get("ok"):
+            juros_id = rj.get("id")
+        else:
+            aviso_juros = str(rj.get("erro") or "Não foi possível registrar o título de juros.")[:800]
+
     if ok_all:
         http_st = 200
     elif atual:
@@ -4471,6 +4503,10 @@ def api_lancamentos_baixa(request):
     }
     if "erp_baixa_ok" in resultado:
         out_j["erp_baixa_ok"] = resultado["erp_baixa_ok"]
+    if juros_id:
+        out_j["juros_id"] = juros_id
+    if aviso_juros:
+        out_j["aviso_juros"] = aviso_juros
     return JsonResponse(out_j, status=http_st)
 
 

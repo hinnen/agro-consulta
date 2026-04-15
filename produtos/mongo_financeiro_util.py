@@ -1390,6 +1390,172 @@ def _maybe_oid(s: str | None) -> ObjectId | str | None:
     return s
 
 
+def _doc_cadastro_financeiro_inativo(doc: dict[str, Any]) -> bool:
+    if doc.get("CadastroInativo") is True:
+        return True
+    if doc.get("Inativo") is True:
+        return True
+    if doc.get("Ativo") is False:
+        return True
+    return False
+
+
+def _extrair_id_conta_bancaria_doc(doc: dict[str, Any]) -> str:
+    for key in ("_id", "Id", "ContaBancariaID", "ContaBancariaId", "BancoID"):
+        if key not in doc:
+            continue
+        s = _financeiro_id_para_string(doc.get(key))
+        if s:
+            return s
+    return ""
+
+
+def _extrair_id_forma_pagamento_doc(doc: dict[str, Any]) -> str:
+    for key in ("_id", "Id", "FormaPagamentoID", "FormaPagamentoId"):
+        if key not in doc:
+            continue
+        s = _financeiro_id_para_string(doc.get(key))
+        if s:
+            return s
+    return ""
+
+
+def _extrair_nome_conta_bancaria_doc(doc: dict[str, Any]) -> str:
+    nome = str(
+        doc.get("Nome")
+        or doc.get("Descricao")
+        or doc.get("Titulo")
+        or doc.get("Apelido")
+        or doc.get("RazaoSocial")
+        or ""
+    ).strip()
+    if nome:
+        return nome
+    emp = str(doc.get("Empresa") or "").strip()
+    bco = str(doc.get("Banco") or doc.get("NomeBanco") or "").strip()
+    if emp and bco:
+        return f"{emp} — {bco}"
+    return bco or emp
+
+
+def _extrair_nome_forma_pagamento_doc(doc: dict[str, Any]) -> str:
+    return str(
+        doc.get("Nome")
+        or doc.get("Descricao")
+        or doc.get("Titulo")
+        or doc.get("FormaPagamento")
+        or ""
+    ).strip()
+
+
+_COLECOES_CONTA_BANCARIA_CADASTRO: tuple[str, ...] = (
+    "DtoContaBancaria",
+    "DtoContaFinanceira",
+    "ContaBancaria",
+    "DtoBancoConta",
+    "DtoContaCorrente",
+)
+
+_COLECOES_FORMA_PAGAMENTO_CADASTRO: tuple[str, ...] = (
+    "DtoFormaPagamento",
+    "DtoTipoFormaPagamento",
+    "FormaPagamento",
+)
+
+
+def listar_contas_bancarias_cadastro_mongo(db, limit: int = 400) -> list[dict[str, Any]]:
+    """
+    Contas do cadastro financeiro no Mongo (espelho ERP), quando a coleção existir.
+    Usa ``_id`` / ``Id`` como ``BancoID`` nos lançamentos.
+    """
+    out: list[dict[str, Any]] = []
+    if db is None:
+        return out
+    cap = min(max(int(limit or 400), 1), 800)
+    seen: set[str] = set()
+    try:
+        nomes = set(db.list_collection_names())
+    except Exception:
+        logger.exception("listar_contas_bancarias_cadastro_mongo: list_collection_names")
+        return out
+    for cname in _COLECOES_CONTA_BANCARIA_CADASTRO:
+        if cname not in nomes:
+            continue
+        try:
+            cur = db[cname].find({}).sort([("Nome", 1), ("Descricao", 1)]).limit(cap + 50)
+        except Exception:
+            try:
+                cur = db[cname].find({}).limit(cap + 50)
+            except Exception:
+                logger.exception("listar_contas_bancarias_cadastro_mongo find %s", cname)
+                continue
+        for doc in cur:
+            if not isinstance(doc, dict) or _doc_cadastro_financeiro_inativo(doc):
+                continue
+            bid = _extrair_id_conta_bancaria_doc(doc)
+            nome = _extrair_nome_conta_bancaria_doc(doc)
+            if not bid or not nome:
+                continue
+            low = nome.lower()
+            if low in ("adicionar banco", "adicionar banco."):
+                continue
+            if bid in seen:
+                continue
+            seen.add(bid)
+            nome_n = normalizar_rotulo_banco_erp(bid, nome)
+            out.append({"id": bid, "nome": nome_n})
+            if len(out) >= cap:
+                out.sort(key=lambda x: (x.get("nome") or "").lower())
+                return out
+        if out:
+            break
+    out.sort(key=lambda x: (x.get("nome") or "").lower())
+    return out
+
+
+def listar_formas_pagamento_cadastro_mongo(db, limit: int = 400) -> list[dict[str, Any]]:
+    """Formas do cadastro no Mongo (espelho ERP), quando a coleção existir."""
+    out: list[dict[str, Any]] = []
+    if db is None:
+        return out
+    cap = min(max(int(limit or 400), 1), 800)
+    seen: set[str] = set()
+    try:
+        nomes = set(db.list_collection_names())
+    except Exception:
+        return out
+    for cname in _COLECOES_FORMA_PAGAMENTO_CADASTRO:
+        if cname not in nomes:
+            continue
+        try:
+            cur = db[cname].find({}).sort([("Nome", 1)]).limit(cap + 50)
+        except Exception:
+            try:
+                cur = db[cname].find({}).limit(cap + 50)
+            except Exception:
+                continue
+        for doc in cur:
+            if not isinstance(doc, dict) or _doc_cadastro_financeiro_inativo(doc):
+                continue
+            fid = _extrair_id_forma_pagamento_doc(doc)
+            nome = _extrair_nome_forma_pagamento_doc(doc)
+            if not fid or not nome:
+                continue
+            if re.match(r"^criar\s+novo", nome, flags=re.I):
+                continue
+            if fid in seen:
+                continue
+            seen.add(fid)
+            out.append({"id": fid, "nome": nome})
+            if len(out) >= cap:
+                out.sort(key=lambda x: (x.get("nome") or "").lower())
+                return out
+        if out:
+            break
+    out.sort(key=lambda x: (x.get("nome") or "").lower())
+    return out
+
+
 def _listar_formas_e_bancos_modo_historico(db, limit: int) -> tuple[list[dict], list[dict]]:
     """Uma linha por combinação nome+ID vista em títulos (inclui digitação livre e duplicatas de rótulo)."""
     formas: list[dict] = []
@@ -1437,24 +1603,29 @@ def _listar_formas_e_bancos_modo_historico(db, limit: int) -> tuple[list[dict], 
     return formas, bancos
 
 
-# Rótulos alinhados ao cadastro de contas no ERP (Agro Mais) quando o BancoID identifica uma conta única.
+# Rótulos alinhados ao cadastro de contas no ERP (Agro Mais) quando o código bancário / ID bate com o WL.
 _BANCO_ID_ROTULO_ERP: dict[str, str] = {
     "323": "CPF | Mercado Pago ( Renan )",
     "001": "CPF | Banco Brasil ( Renan )",
     "237": "CPF | Bradesco ( Geraldinho )",
     "197": "CNPJ | Stone ( Cartões )",
     "756": "CPF | Sicoob ( Geraldinho )",
+    "748": "CNPJ | Sicredi ( Cartões )",
+    "033": "CNPJ | Santander",
 }
 
 
 def normalizar_rotulo_banco_erp(banco_id: str, nome: str) -> str:
-    """Uniformiza grafia (Santander, Sicredi, Sicoob) e aplica nome canônico por ID quando cadastrado."""
+    """Uniformiza grafia (Santander, Sicredi, Sicoob), ``CPF/`` → ``CPF |``, e nome canônico por código quando cadastrado."""
     bid = str(banco_id or "").strip()
     if bid in _BANCO_ID_ROTULO_ERP:
         return _BANCO_ID_ROTULO_ERP[bid]
     n = (nome or "").strip()
     if not n:
         return n
+    # Mesmo padrão visual do ERP: CPF | / CNPJ | (evita "CPF /" vindo de export ou digitação).
+    n = re.sub(r"\b(CPF|CNPJ)\s*[/\\]+\s*", r"\1 | ", n, flags=re.IGNORECASE)
+    n = re.sub(r"\b(CPF|CNPJ)\s*\|\s*", r"\1 | ", n, flags=re.IGNORECASE)
     n = n.replace("Satander", "Santander")
     n = re.sub(r"\bSicob\b", "Sicoob", n, flags=re.IGNORECASE)
     n = re.sub(r"\bSicred(?!i)([a-zA-ZÀ-ÿ]*)", r"Sicredi\1", n)
@@ -1538,13 +1709,15 @@ def _listar_formas_e_bancos_modo_erp(db, limit: int) -> tuple[list[dict], list[d
 
 
 def listar_formas_e_bancos_distintos(
-    db, limit: int = 400, *, modo: str = "erp"
+    db, limit: int = 400, *, modo: str = "erp", fonte_cadastro_mestre: bool = False
 ) -> tuple[list[dict], list[dict]]:
     """
     Listas para selects na baixa a partir do Mongo.
 
     - ``erp`` (padrão): uma entrada por ID de forma/conta (como no cadastro do ERP).
     - ``historico``: todas as combinações nome+ID já usadas em títulos (comportamento antigo).
+    - ``fonte_cadastro_mestre``: quando modo ERP, tenta coleções de cadastro (DtoContaBancaria, DtoFormaPagamento, …)
+      antes de cair no agregado só a partir de ``DtoLancamento``.
     """
     formas: list[dict] = []
     bancos: list[dict] = []
@@ -1556,7 +1729,15 @@ def listar_formas_e_bancos_distintos(
     try:
         if modo_n == "historico":
             return _listar_formas_e_bancos_modo_historico(db, limit)
-        return _listar_formas_e_bancos_modo_erp(db, limit)
+        formas, bancos = _listar_formas_e_bancos_modo_erp(db, limit)
+        if fonte_cadastro_mestre:
+            bm = listar_contas_bancarias_cadastro_mongo(db, limit)
+            if len(bm) >= 2:
+                bancos = _bancos_lista_com_placeholder_inicio(bm)
+            fm = listar_formas_pagamento_cadastro_mongo(db, limit)
+            if len(fm) >= 2:
+                formas = fm
+        return formas, bancos
     except Exception as exc:
         logger.exception("listar_formas_e_bancos_distintos: %s", exc)
     return formas, bancos
@@ -1670,6 +1851,117 @@ def baixar_lancamentos_mongo(
         "atualizados": res_ok,
         "erros": res_err,
     }
+
+
+def registrar_titulo_juros_apos_baixa_contas_pagar(
+    db,
+    *,
+    mongo_id_titulo_referencia: str,
+    valor_juros: Decimal,
+    data_movimento: date,
+    forma_nome: str,
+    forma_id: str | None,
+    banco_nome: str,
+    banco_id: str | None,
+    usuario_label: str,
+) -> dict[str, Any]:
+    """
+    Cria um título de **despesa** no plano ``Juros de Emprestimos`` e quita no ato,
+    com a mesma forma e conta da baixa (vínculo operacional com a quitação principal).
+    """
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    valor_juros = (valor_juros or Decimal("0")).quantize(Decimal("0.01"))
+    if valor_juros <= 0:
+        return {"ok": False, "erro": "Valor de juros inválido."}
+    try:
+        oid_ref = ObjectId(str(mongo_id_titulo_referencia).strip())
+    except Exception:
+        return {"ok": False, "erro": "ID de referência inválido."}
+    col = db[COL_DTO_LANCAMENTO]
+    ref = col.find_one({"_id": oid_ref})
+    if not ref or not bool(ref.get("Despesa")):
+        return {"ok": False, "erro": "Título de referência não encontrado ou não é conta a pagar."}
+    empresa_nome = str(ref.get("Empresa") or "").strip()
+    empresa_id = _financeiro_id_para_string(ref.get("EmpresaID")) or None
+    pessoa_nome = str(ref.get("Cliente") or "").strip()
+    pessoa_id = _financeiro_id_para_string(ref.get("ClienteID")) or None
+    if not empresa_nome:
+        return {"ok": False, "erro": "Empresa ausente no título de referência."}
+    if not pessoa_nome:
+        pessoa_nome = "—"
+
+    fn = (forma_nome or "").strip()
+    bid_s = _financeiro_id_para_string(banco_id)
+    bn = normalizar_rotulo_banco_erp(bid_s, (banco_nome or "").strip())[:200]
+    if not fn or not bn:
+        return {"ok": False, "erro": "Forma e conta são obrigatórios para lançar juros."}
+
+    pj_texto, pj_id = resolver_plano_conta_para_pedido_erp(
+        db,
+        texto_config=EMPRESTIMO_PLANO_JUROS_PADRAO,
+        id_config=None,
+        empresa_id=empresa_id,
+    )
+    pj_texto = ((pj_texto or "").strip() or EMPRESTIMO_PLANO_JUROS_PADRAO)[:200]
+    pj_id = (pj_id or "").strip()
+
+    r = inserir_lancamentos_manual_lote(
+        db,
+        despesa=True,
+        empresa_nome=empresa_nome,
+        empresa_id=empresa_id,
+        pessoa_nome=pessoa_nome,
+        pessoa_id=pessoa_id,
+        data_competencia=data_movimento,
+        data_vencimento=data_movimento,
+        banco_nome=bn,
+        banco_id=banco_id,
+        forma_nome=fn,
+        forma_id=forma_id,
+        grupo_nome=None,
+        grupo_id=None,
+        usuario_label=usuario_label,
+        linhas=[
+            {
+                "plano_conta": pj_texto,
+                "plano_conta_id": pj_id or None,
+                "valor": float(valor_juros),
+                "descricao": "Juros na quitação",
+                "observacao": f"Ref. título {mongo_id_titulo_referencia}"[:500],
+            }
+        ],
+    )
+    if not r.get("ok") or not r.get("ids"):
+        erros = r.get("erros") or []
+        msg = erros[0].get("erro") if erros else "Falha ao inserir título de juros."
+        return {"ok": False, "erro": str(msg)[:500]}
+
+    new_id = r["ids"][0]
+    try:
+        new_oid = ObjectId(new_id)
+    except Exception:
+        return {"ok": False, "erro": "ID do lançamento de juros inválido após insert."}
+
+    tz = timezone.get_current_timezone()
+    dm = timezone.make_aware(datetime.combine(data_movimento, dtime(12, 0, 0)), tz)
+    saida = float(valor_juros)
+    now = timezone.now()
+    mod = ((usuario_label or "Agro")[:80] + " — juros quitação Agro")[:200]
+    col.update_one(
+        {"_id": new_oid},
+        {
+            "$set": {
+                "Pago": True,
+                "DataPagamento": dm,
+                "ValorPago": saida,
+                "LastUpdate": now,
+                "ModificadoPor": mod,
+            }
+        },
+    )
+    _sanear_dto_lancamento_ids_erp_string(col, new_oid)
+    return {"ok": True, "id": new_id}
 
 
 def baixar_lancamento_parcial_mongo(
