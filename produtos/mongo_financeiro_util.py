@@ -1401,7 +1401,11 @@ def _doc_cadastro_financeiro_inativo(doc: dict[str, Any]) -> bool:
 
 
 def _extrair_id_conta_bancaria_doc(doc: dict[str, Any]) -> str:
-    for key in ("_id", "Id", "ContaBancariaID", "ContaBancariaId", "BancoID"):
+    """
+    Prioriza ID de negócio do ERP (``Id``, ``ContaBancariaID`` …), não o ``_id`` do BSON,
+    para o valor coincidir com ``BancoID`` em ``DtoLancamento`` e com o placeholder configurável.
+    """
+    for key in ("Id", "ContaBancariaID", "ContaBancariaId", "BancoID", "ContaID", "_id"):
         if key not in doc:
             continue
         s = _financeiro_id_para_string(doc.get(key))
@@ -1411,7 +1415,7 @@ def _extrair_id_conta_bancaria_doc(doc: dict[str, Any]) -> str:
 
 
 def _extrair_id_forma_pagamento_doc(doc: dict[str, Any]) -> str:
-    for key in ("_id", "Id", "FormaPagamentoID", "FormaPagamentoId"):
+    for key in ("Id", "FormaPagamentoID", "FormaPagamentoId", "_id"):
         if key not in doc:
             continue
         s = _financeiro_id_para_string(doc.get(key))
@@ -1423,16 +1427,21 @@ def _extrair_id_forma_pagamento_doc(doc: dict[str, Any]) -> str:
 def _extrair_nome_conta_bancaria_doc(doc: dict[str, Any]) -> str:
     nome = str(
         doc.get("Nome")
+        or doc.get("NomeConta")
         or doc.get("Descricao")
         or doc.get("Titulo")
         or doc.get("Apelido")
         or doc.get("RazaoSocial")
+        or doc.get("NomeFantasia")
+        or doc.get("Label")
+        or doc.get("Denominacao")
+        or doc.get("DescricaoConta")
         or ""
     ).strip()
     if nome:
         return nome
-    emp = str(doc.get("Empresa") or "").strip()
-    bco = str(doc.get("Banco") or doc.get("NomeBanco") or "").strip()
+    emp = str(doc.get("Empresa") or doc.get("EmpresaNome") or "").strip()
+    bco = str(doc.get("Banco") or doc.get("NomeBanco") or doc.get("BancoDescricao") or "").strip()
     if emp and bco:
         return f"{emp} — {bco}"
     return bco or emp
@@ -1466,7 +1475,7 @@ _COLECOES_FORMA_PAGAMENTO_CADASTRO: tuple[str, ...] = (
 def listar_contas_bancarias_cadastro_mongo(db, limit: int = 400) -> list[dict[str, Any]]:
     """
     Contas do cadastro financeiro no Mongo (espelho ERP), quando a coleção existir.
-    Usa ``_id`` / ``Id`` como ``BancoID`` nos lançamentos.
+    Usa o ID de negócio do ERP (``Id`` / ``ContaBancariaID`` / …) como ``BancoID`` nos lançamentos.
     """
     out: list[dict[str, Any]] = []
     if db is None:
@@ -1495,9 +1504,6 @@ def listar_contas_bancarias_cadastro_mongo(db, limit: int = 400) -> list[dict[st
             bid = _extrair_id_conta_bancaria_doc(doc)
             nome = _extrair_nome_conta_bancaria_doc(doc)
             if not bid or not nome:
-                continue
-            low = nome.lower()
-            if low in ("adicionar banco", "adicionar banco."):
                 continue
             if bid in seen:
                 continue
@@ -3263,13 +3269,14 @@ _SUGESTOES_CAMPOS = {
 }
 
 # Conta padrão do cadastro ERP (WL) — oferecida nas sugestões mesmo sem histórico no Mongo.
-_BANCO_ADICIONAR_ERP_FIXO = {"nome": "ADICIONAR BANCO", "id": "6990cf726c4d856abaa670c6"}
+# Rótulo «CONTA» alinha ao cadastro exibido no ERP (algumas bases usam «BANCO»).
+_BANCO_ADICIONAR_ERP_FIXO = {"nome": "ADICIONAR CONTA", "id": "6990cf726c4d856abaa670c6"}
 
 
 def _banco_placeholder_para_select() -> dict[str, str]:
     """Conta «a definir» do ERP — lista no Agro mesmo sendo filtrada nas agregações."""
     bid = (getattr(settings, "AGRO_FINANCEIRO_BANCO_PLACEHOLDER_ID", None) or "").strip()
-    nome = (getattr(settings, "AGRO_FINANCEIRO_BANCO_PLACEHOLDER_NOME", None) or "").strip() or "ADICIONAR BANCO"
+    nome = (getattr(settings, "AGRO_FINANCEIRO_BANCO_PLACEHOLDER_NOME", None) or "").strip() or "ADICIONAR CONTA"
     if bid:
         return {"id": bid, "nome": nome}
     return dict(_BANCO_ADICIONAR_ERP_FIXO)
@@ -3280,8 +3287,10 @@ def _bancos_lista_com_placeholder_inicio(bancos: list[dict]) -> list[dict]:
     pid = str(ph.get("id") or "").strip()
     if not pid:
         return bancos
-    if any(str(x.get("id") or "").strip() == pid for x in bancos):
-        return bancos
+    for x in bancos:
+        if str(x.get("id") or "").strip() == pid:
+            # Já veio do cadastro ERP: manter rótulo do Mongo (ex.: «ADICIONAR CONTA»).
+            return bancos
     return [ph, *bancos]
 
 
