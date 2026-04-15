@@ -19,6 +19,106 @@ NS_NFE = "http://www.portalfiscal.inf.br/nfe"
 COL_ENTRADA_RASCUNHO = "AgroEntradaNotaRascunho"
 COL_DFE_CURSOR = "AgroNFeDistribuicaoCursor"
 
+# Fluxo na tela Entrada NF-e (persistido em ``status``; exibição pode corrigir inconsistências).
+ENTRADA_NFE_STATUS_COM_PENDENCIAS = "com_pendencias"
+ENTRADA_NFE_STATUS_PRONTA = "pronta"
+ENTRADA_NFE_STATUS_ESTOQUE_APLICADO = "estoque_aplicado"
+ENTRADA_NFE_STATUS_ENCERRADA = "encerrada"
+ENTRADA_NFE_STATUS_DESCARTADA = "descartada"
+ENTRADA_NFE_STATUS_RASCUNHO_LEGACY = "rascunho"
+
+ENTRADA_NFE_STATUS_CONGELADOS = frozenset(
+    {ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO}
+)
+
+ENTRADA_NFE_STATUS_UI: dict[str, dict[str, str]] = {
+    ENTRADA_NFE_STATUS_COM_PENDENCIAS: {"label": "Com pendências"},
+    ENTRADA_NFE_STATUS_PRONTA: {"label": "Pronta"},
+    ENTRADA_NFE_STATUS_ESTOQUE_APLICADO: {"label": "Estoque aplicado"},
+    ENTRADA_NFE_STATUS_ENCERRADA: {"label": "Encerrada"},
+    ENTRADA_NFE_STATUS_DESCARTADA: {"label": "Descartada"},
+}
+
+
+def _entrada_nfe_qtd_linha(ln: dict) -> float:
+    try:
+        qe = float(str(ln.get("q_estoque") or "").replace(",", ".").strip() or 0)
+    except (TypeError, ValueError):
+        qe = 0.0
+    try:
+        qc = float(str(ln.get("q_com") or "").replace(",", ".").strip() or 0)
+    except (TypeError, ValueError):
+        qc = 0.0
+    return max(qe, qc)
+
+
+def entrada_nfe_produto_id_valido(pid: Any) -> bool:
+    s = str(pid or "").strip()
+    if not s:
+        return False
+    return not s.lower().startswith("local:")
+
+
+def entrada_nfe_linhas_tem_pendencias(linhas: list | None) -> bool:
+    """Linha com quantidade > 0 e sem produto de catálogo válido."""
+    for ln in linhas or []:
+        if not isinstance(ln, dict):
+            continue
+        desc = str(ln.get("x_prod") or "").strip()
+        qtd = _entrada_nfe_qtd_linha(ln)
+        if not desc and qtd == 0:
+            continue
+        if qtd > 0 and not entrada_nfe_produto_id_valido(ln.get("produto_id")):
+            return True
+    return False
+
+
+def entrada_nfe_status_derivado_linhas(linhas: list | None) -> str:
+    return (
+        ENTRADA_NFE_STATUS_COM_PENDENCIAS
+        if entrada_nfe_linhas_tem_pendencias(linhas)
+        else ENTRADA_NFE_STATUS_PRONTA
+    )
+
+
+def entrada_nfe_status_efetivo(doc: dict[str, Any]) -> str:
+    raw = str(doc.get("status") or ENTRADA_NFE_STATUS_RASCUNHO_LEGACY).strip().lower()
+    linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
+    pend = entrada_nfe_linhas_tem_pendencias(linhas)
+    if raw in (ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO):
+        return raw
+    if raw == ENTRADA_NFE_STATUS_RASCUNHO_LEGACY:
+        return ENTRADA_NFE_STATUS_COM_PENDENCIAS if pend else ENTRADA_NFE_STATUS_PRONTA
+    if raw == ENTRADA_NFE_STATUS_PRONTA:
+        return ENTRADA_NFE_STATUS_COM_PENDENCIAS if pend else ENTRADA_NFE_STATUS_PRONTA
+    if raw == ENTRADA_NFE_STATUS_COM_PENDENCIAS:
+        return ENTRADA_NFE_STATUS_COM_PENDENCIAS if pend else ENTRADA_NFE_STATUS_PRONTA
+    return ENTRADA_NFE_STATUS_COM_PENDENCIAS if pend else ENTRADA_NFE_STATUS_PRONTA
+
+
+def entrada_nfe_status_ui_por_codigo(codigo: str) -> dict[str, str]:
+    return ENTRADA_NFE_STATUS_UI.get(
+        codigo,
+        {"label": codigo or "—"},
+    )
+
+
+def entrada_nfe_extra_financeiro_ok(extra: Any) -> bool:
+    if not isinstance(extra, dict):
+        return False
+    return bool(extra.get("financeiro_lancado"))
+
+
+def entrada_nfe_enriquecer_doc_serializado(d: dict[str, Any]) -> dict[str, Any]:
+    """Acrescenta campos de UI (lista / detalhe) sem gravar no banco."""
+    eff = entrada_nfe_status_efetivo(d)
+    ui = entrada_nfe_status_ui_por_codigo(eff)
+    extra = d.get("extra") if isinstance(d.get("extra"), dict) else {}
+    d["entrada_status_efetivo"] = eff
+    d["entrada_status_label"] = ui["label"]
+    d["entrada_financeiro_lancado"] = entrada_nfe_extra_financeiro_ok(extra)
+    return d
+
 
 def _localname(tag: str) -> str:
     if not tag:
@@ -252,11 +352,12 @@ def salvar_rascunho_entrada(
 ) -> dict[str, Any]:
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
+    st = entrada_nfe_status_derivado_linhas(linhas)
     doc = {
         "criado_em": datetime.now(timezone.utc),
         "usuario": (usuario or "")[:200],
         "modo": (modo or "manual")[:40],
-        "status": "rascunho",
+        "status": st,
         "cabecalho": cabecalho,
         "linhas": linhas,
         "xml_chave": (xml_chave or "")[:44] or None,
@@ -280,15 +381,15 @@ def _serialize_rascunho_leitura(doc: dict[str, Any]) -> dict[str, Any]:
     d = dict(doc)
     if d.get("_id") is not None:
         d["_id"] = str(d["_id"])
-    for k in ("criado_em", "atualizado_em"):
+    for k in ("criado_em", "atualizado_em", "estoque_aplicado_em"):
         if k in d:
             ser = _serialize_dt_mongo(d.get(k))
             if ser is not None:
                 d[k] = ser
-    return d
+    return entrada_nfe_enriquecer_doc_serializado(d)
 
 
-def listar_rascunhos_entrada(db, limit: int = 30) -> list[dict]:
+def listar_rascunhos_entrada(db, limit: int = 30, *, filtro: str | None = None) -> list[dict]:
     if db is None:
         return []
     try:
@@ -300,7 +401,42 @@ def listar_rascunhos_entrada(db, limit: int = 30) -> list[dict]:
         out = []
         for d in cur:
             out.append(_serialize_rascunho_leitura(d))
-        return out
+        f = (filtro or "todas").strip().lower()
+        if f == "todas":
+            return out
+        valid_extra = frozenset(
+            {
+                "abertas",
+                "pendencias",
+                "prontas",
+                "estoque",
+                "encerradas",
+                "descartadas",
+                "financeiro",
+            }
+        )
+        if f not in valid_extra:
+            return out
+        filtrados: list[dict] = []
+        for item in out:
+            eff = str(item.get("entrada_status_efetivo") or "")
+            fin_ok = bool(item.get("entrada_financeiro_lancado"))
+            if f == "abertas":
+                if eff not in (ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA):
+                    filtrados.append(item)
+            elif f == "pendencias" and eff == ENTRADA_NFE_STATUS_COM_PENDENCIAS:
+                filtrados.append(item)
+            elif f == "prontas" and eff == ENTRADA_NFE_STATUS_PRONTA:
+                filtrados.append(item)
+            elif f == "estoque" and eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
+                filtrados.append(item)
+            elif f == "encerradas" and eff == ENTRADA_NFE_STATUS_ENCERRADA:
+                filtrados.append(item)
+            elif f == "descartadas" and eff == ENTRADA_NFE_STATUS_DESCARTADA:
+                filtrados.append(item)
+            elif f == "financeiro" and fin_ok:
+                filtrados.append(item)
+        return filtrados
     except Exception as exc:
         logger.exception("listar_rascunhos_entrada: %s", exc)
         return []
@@ -363,26 +499,161 @@ def atualizar_rascunho_entrada(
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
     try:
-        atual = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id}, {"_id": 1})
+        atual = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
         if not atual:
             return {"ok": False, "erro": "Rascunho não encontrado."}
+        st_atual = str(atual.get("status") or "").strip().lower()
+        novo_status: str | None = None
+        if st_atual in (ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO):
+            novo_status = None
+        else:
+            novo_status = entrada_nfe_status_derivado_linhas(linhas)
+        prev_ex = atual.get("extra") if isinstance(atual.get("extra"), dict) else {}
+        merged_extra = {**prev_ex, **(extra or {})}
+        set_doc: dict[str, Any] = {
+            "atualizado_em": datetime.now(timezone.utc),
+            "usuario_ultima_alteracao": (usuario or "")[:200],
+            "modo": (modo or "manual")[:40],
+            "cabecalho": cabecalho,
+            "linhas": linhas,
+            "xml_chave": (xml_chave or "")[:44] or None,
+            "extra": merged_extra,
+        }
+        if novo_status is not None:
+            set_doc["status"] = novo_status
+        db[COL_ENTRADA_RASCUNHO].update_one(
+            {"_id": _id},
+            {"$set": set_doc},
+        )
+        return {"ok": True, "id": str(_id)}
+    except Exception as exc:
+        logger.exception("atualizar_rascunho_entrada")
+        return {"ok": False, "erro": str(exc)[:500]}
+
+
+def marcar_rascunho_estoque_aplicado(
+    db,
+    oid: str,
+    *,
+    usuario: str = "",
+    patch_extra: dict | None = None,
+) -> dict[str, Any]:
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return {"ok": False, "erro": "ID inválido."}
+    agora = datetime.now(timezone.utc)
+    try:
+        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        if not doc:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        ex = dict(doc.get("extra") or {})
+        if patch_extra:
+            ex.update(patch_extra)
+        r = db[COL_ENTRADA_RASCUNHO].update_one(
+            {"_id": _id},
+            {
+                "$set": {
+                    "status": ENTRADA_NFE_STATUS_ESTOQUE_APLICADO,
+                    "estoque_aplicado_em": agora,
+                    "usuario_estoque_aplicado": (usuario or "")[:200],
+                    "atualizado_em": agora,
+                    "extra": ex,
+                }
+            },
+        )
+        if r.matched_count == 0:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        return {"ok": True, "id": str(_id)}
+    except Exception as exc:
+        logger.exception("marcar_rascunho_estoque_aplicado")
+        return {"ok": False, "erro": str(exc)[:500]}
+
+
+def marcar_rascunho_financeiro_lancado(
+    db,
+    oid: str,
+    *,
+    ids: list[str],
+    usuario: str = "",
+) -> dict[str, Any]:
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return {"ok": False, "erro": "ID inválido."}
+    agora = datetime.now(timezone.utc)
+    try:
+        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        if not doc:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        ex = dict(doc.get("extra") or {})
+        ex["financeiro_lancado"] = True
+        ex["financeiro_ids"] = [str(x) for x in (ids or [])][:80]
+        ex["financeiro_lancado_em"] = agora.isoformat()
         db[COL_ENTRADA_RASCUNHO].update_one(
             {"_id": _id},
             {
                 "$set": {
-                    "atualizado_em": datetime.now(timezone.utc),
+                    "atualizado_em": agora,
                     "usuario_ultima_alteracao": (usuario or "")[:200],
-                    "modo": (modo or "manual")[:40],
-                    "cabecalho": cabecalho,
-                    "linhas": linhas,
-                    "xml_chave": (xml_chave or "")[:44] or None,
-                    "extra": extra or {},
+                    "extra": ex,
                 }
             },
         )
         return {"ok": True, "id": str(_id)}
     except Exception as exc:
-        logger.exception("atualizar_rascunho_entrada")
+        logger.exception("marcar_rascunho_financeiro_lancado")
+        return {"ok": False, "erro": str(exc)[:500]}
+
+
+def pipeline_acao_rascunho_entrada(
+    db,
+    oid: str,
+    acao: str,
+    *,
+    usuario: str = "",
+) -> dict[str, Any]:
+    """encerrar | descartar | reabrir — altera só ``status`` (e timestamps)."""
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return {"ok": False, "erro": "ID inválido."}
+    ac = (acao or "").strip().lower()
+    agora = datetime.now(timezone.utc)
+    try:
+        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        if not doc:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        st = str(doc.get("status") or "").strip().lower()
+        linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
+        if ac == "encerrar":
+            if st == ENTRADA_NFE_STATUS_DESCARTADA:
+                return {"ok": False, "erro": "Nota descartada: reabra antes de encerrar."}
+            novo = ENTRADA_NFE_STATUS_ENCERRADA
+        elif ac == "descartar":
+            novo = ENTRADA_NFE_STATUS_DESCARTADA
+        elif ac == "reabrir":
+            if st not in (ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA):
+                return {"ok": False, "erro": "Só é possível reabrir notas encerradas ou descartadas."}
+            novo = entrada_nfe_status_derivado_linhas(linhas)
+        else:
+            return {"ok": False, "erro": "Ação inválida (use encerrar, descartar ou reabrir)."}
+        db[COL_ENTRADA_RASCUNHO].update_one(
+            {"_id": _id},
+            {
+                "$set": {
+                    "status": novo,
+                    "atualizado_em": agora,
+                    "usuario_ultima_alteracao": (usuario or "")[:200],
+                }
+            },
+        )
+        return {"ok": True, "id": str(_id), "status": novo}
+    except Exception as exc:
+        logger.exception("pipeline_acao_rascunho_entrada")
         return {"ok": False, "erro": str(exc)[:500]}
 
 

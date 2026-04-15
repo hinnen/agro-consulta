@@ -324,6 +324,11 @@ urlpatterns = [
         name='api_entrada_nota_rascunho_atualizar',
     ),
     path(
+        'api/entrada-nota/rascunho/acao/',
+        views.api_entrada_nota_rascunho_acao,
+        name='api_entrada_nota_rascunho_acao',
+    ),
+    path(
         'api/entrada-nota/fornecedores/',
         views.api_entrada_nota_fornecedores,
         name='api_entrada_nota_fornecedores',

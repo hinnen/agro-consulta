@@ -31,6 +31,8 @@
     .tab-btn.tab-on .gm-kbd { border-color: rgba(124, 45, 18, 0.25); background: rgba(255, 255, 255, 0.65); color: rgb(124, 45, 18); }
     .sug-dd { max-height: 220px; overflow-y: auto; z-index: 40; }
     .forn-dd { max-height: 260px; overflow-y: auto; z-index: 45; }
+    .filtro-nfe-chip { border-width: 2px; border-color: rgb(226 232 240); background: white; color: rgb(71 85 105); }
+    .filtro-nfe-chip.filtro-nfe-chip-on { border-color: rgb(249 115 22); background: rgb(255 247 237); color: rgb(124 45 18); }
   </style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
@@ -88,6 +90,39 @@
       <span>Editando rascunho Mongo <code id="entrada-nfe-rasc-banner-id" class="text-xs bg-white px-1.5 py-0.5 rounded border border-sky-200 font-mono"></code> — <strong>Salvar só rascunho</strong> substitui este registro.</span>
       <button type="button" id="btn-entrada-nfe-sair-edicao" class="min-h-[44px] px-4 py-2 rounded-xl border-2 border-sky-400 bg-white text-xs font-black uppercase text-sky-900 hover:bg-sky-100 shrink-0">Novo rascunho (próxima gravação cria outro)</button>
     </div>
+
+    <div class="hidden" aria-hidden="true">
+      <span class="rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex bg-amber-100 text-amber-950 border-2 border-amber-400"></span>
+      <span class="rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex bg-emerald-100 text-emerald-950 border-2 border-emerald-500"></span>
+      <span class="rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex bg-sky-100 text-sky-950 border-2 border-sky-600"></span>
+      <span class="rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex bg-slate-200 text-slate-900 border-2 border-slate-500"></span>
+      <span class="rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex bg-red-100 text-red-950 border-2 border-red-500"></span>
+      <span class="rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex bg-violet-100 text-violet-950 border-2 border-violet-500"></span>
+    </div>
+
+    <section id="entrada-nfe-lista-section" class="rounded-2xl border-2 border-emerald-200 bg-white shadow-sm overflow-hidden shrink-0" aria-label="Listagem de notas salvas">
+      <div class="bg-emerald-50/90 border-b-2 border-emerald-200 px-4 py-3 sm:px-5 flex flex-wrap items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight">Notas no Agro</h2>
+          <p class="text-xs sm:text-sm font-semibold text-slate-600 mt-0.5 leading-snug">Lista primeiro: status colorido · <strong class="text-slate-800">Abrir</strong> carrega na grade (aba manual)</p>
+        </div>
+        <div class="flex flex-wrap gap-2 shrink-0">
+          <button type="button" id="btn-entrada-nfe-nova" class="min-h-[44px] px-4 py-2 rounded-xl bg-emerald-700 text-white text-xs font-black uppercase hover:bg-emerald-800 border-2 border-emerald-900 shadow-sm">Nova entrada</button>
+          <button type="button" id="btn-refresh-rasc" class="min-h-[44px] px-4 py-2 rounded-xl border-2 border-orange-200 bg-orange-50 text-xs font-black uppercase text-orange-900 hover:bg-orange-100">Atualizar lista</button>
+        </div>
+      </div>
+      <div class="px-3 sm:px-4 py-3 flex flex-wrap gap-2 border-b border-slate-100 bg-slate-50/80" id="entrada-nfe-filtros-wrap" role="toolbar" aria-label="Filtrar por status">
+        <button type="button" class="filtro-nfe-chip filtro-nfe-chip-on min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="todas">Todas</button>
+        <button type="button" class="filtro-nfe-chip min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="abertas">Abertas</button>
+        <button type="button" class="filtro-nfe-chip min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="pendencias">Com pendências</button>
+        <button type="button" class="filtro-nfe-chip min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="prontas">Prontas</button>
+        <button type="button" class="filtro-nfe-chip min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="estoque">Estoque aplicado</button>
+        <button type="button" class="filtro-nfe-chip min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="financeiro">Com financeiro</button>
+        <button type="button" class="filtro-nfe-chip min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="encerradas">Encerradas</button>
+        <button type="button" class="filtro-nfe-chip min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="descartadas">Descartadas</button>
+      </div>
+      <div id="lista-rasc" class="p-3 sm:p-4 space-y-2 text-sm min-h-[100px] max-h-[min(52vh,520px)] overflow-y-auto font-semibold text-slate-700"></div>
+    </section>
 
     <div class="flex flex-wrap gap-2 sm:gap-3">
       <button type="button" class="tab-btn inline-flex items-center justify-center gap-2 px-4 sm:px-5 min-h-[48px] rounded-xl font-black text-sm uppercase border-2 tab-on" data-tab="manual" title="Alt + 1">
@@ -346,18 +381,6 @@
       <div id="sefaz-previews" class="space-y-2"></div>
     </section>
 
-    <details class="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden group">
-      <summary class="cursor-pointer list-none px-4 py-3 sm:px-5 sm:py-4 flex flex-wrap items-center justify-between gap-3 min-h-[52px] bg-slate-50/80 border-b border-slate-100">
-        <span class="text-sm sm:text-base font-black uppercase text-slate-800">Rascunhos já salvos</span>
-        <span class="text-xs font-bold text-slate-500">Toque para abrir ou fechar a lista</span>
-      </summary>
-      <div class="p-4 sm:p-5 space-y-3">
-        <div class="flex justify-end">
-          <button type="button" id="btn-refresh-rasc" class="min-h-[44px] px-4 py-2 rounded-xl border-2 border-orange-200 bg-orange-50 text-xs font-black uppercase text-orange-900 hover:bg-orange-100">Atualizar lista</button>
-        </div>
-        <div id="lista-rasc" class="text-sm space-y-2 max-h-64 overflow-y-auto font-semibold text-slate-700"></div>
-      </div>
-    </details>
   </main>
 
   {{ csrf_token }}
@@ -376,8 +399,54 @@
   const URL_RASC_OBTER = "{% url 'api_entrada_nota_rascunho_obter' %}";
   const URL_RASC_EXCLUIR = "{% url 'api_entrada_nota_rascunho_excluir' %}";
   const URL_RASC_ATUALIZAR = "{% url 'api_entrada_nota_rascunho_atualizar' %}";
+  const URL_RASC_ACAO = "{% url 'api_entrada_nota_rascunho_acao' %}";
 
   let entradaNfeRascunhoEditId = null;
+  let entradaNfeListaFiltro = 'todas';
+
+  const ENTRADA_STATUS_PILL = {
+    com_pendencias: 'rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex shrink-0 bg-amber-100 text-amber-950 border-2 border-amber-400',
+    pronta: 'rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex shrink-0 bg-emerald-100 text-emerald-950 border-2 border-emerald-500',
+    estoque_aplicado: 'rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex shrink-0 bg-sky-100 text-sky-950 border-2 border-sky-600',
+    encerrada: 'rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex shrink-0 bg-slate-200 text-slate-900 border-2 border-slate-500',
+    descartada: 'rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex shrink-0 bg-red-100 text-red-950 border-2 border-red-500',
+  };
+  const ENTRADA_FIN_PILL = 'rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide inline-flex shrink-0 bg-violet-100 text-violet-950 border-2 border-violet-500';
+
+  function entradaNfePillClass(cod) {
+    const c = String(cod || '');
+    return ENTRADA_STATUS_PILL[c] || ENTRADA_STATUS_PILL.pronta;
+  }
+
+  function entradaNfeSyncFiltroChips() {
+    document.querySelectorAll('#entrada-nfe-filtros-wrap .filtro-nfe-chip').forEach((btn) => {
+      const on = btn.getAttribute('data-filtro') === entradaNfeListaFiltro;
+      btn.classList.toggle('filtro-nfe-chip-on', on);
+    });
+  }
+
+  async function entradaNfeRascunhoAcao(id, acao) {
+    try {
+      const r = await fetch(URL_RASC_ACAO, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ id, acao }),
+      });
+      const j = await r.json();
+      if (j.ok) {
+        showMsg(acao === 'encerrar' ? 'Nota encerrada.' : acao === 'descartar' ? 'Nota descartada.' : 'Nota reaberta.', true);
+        carregarRascunhos();
+      } else {
+        showMsg(j.erro || 'Não foi possível alterar o status.', false);
+      }
+    } catch (_) {
+      showMsg('Erro de rede.', false);
+    }
+  }
 
   function setEntradaNfeRascunhoEdit(id) {
     entradaNfeRascunhoEditId = id ? String(id) : null;
@@ -1039,6 +1108,7 @@
       modo: 'manual',
       xml_chave: ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null),
       extra: { origem: 'entrada_nfe_estoque_agro' },
+      rascunho_id: entradaNfeRascunhoEditId || undefined,
     };
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
@@ -1056,8 +1126,10 @@
       const aplicados = est.aplicados || [];
       if (aplicados.length) {
         const resumo = aplicados.map((a) => `${a.produto_id}: +${a.quantidade} → saldo Agro ${a.saldo_agro_depois}`).join(' · ');
-        showMsg(`Estoque Agro atualizado. ${resumo}`, r.ok);
-        if (j.rascunho && j.rascunho.ok) carregarRascunhos();
+        let t = `Estoque Agro atualizado. ${resumo}`;
+        if (j.aviso_status_rascunho) t += ` (${j.aviso_status_rascunho})`;
+        showMsg(t, r.ok && !j.aviso_status_rascunho);
+        carregarRascunhos();
       } else {
         showMsg(j.erro || est.erros?.[0]?.erro || 'Nada foi aplicado.', false);
       }
@@ -1181,42 +1253,118 @@
   async function carregarRascunhos() {
     const box = document.getElementById('lista-rasc');
     box.innerHTML = 'Carregando…';
+    entradaNfeSyncFiltroChips();
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
-      const r = await fetch(URL_RASC, { credentials: 'same-origin' });
+      const u = new URL(URL_RASC, window.location.origin);
+      u.searchParams.set('limit', '40');
+      u.searchParams.set('filtro', entradaNfeListaFiltro);
+      const r = await fetch(u.toString(), { credentials: 'same-origin' });
       const j = await r.json();
       const itens = j.itens || [];
       if (!itens.length) {
-        box.innerHTML = '<p class="text-slate-400 font-semibold">Nenhum rascunho ainda.</p>';
+        box.innerHTML = '<p class="text-slate-400 font-semibold px-1">Nenhuma nota neste filtro.</p>';
         return;
       }
       box.innerHTML = '';
       itens.forEach((it) => {
         const rid = String(it._id || '');
+        const eff = String(it.entrada_status_efetivo || 'pronta');
         const wrap = document.createElement('div');
         wrap.className =
-          'flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs shadow-sm';
+          'flex flex-col lg:flex-row lg:flex-wrap lg:items-stretch gap-2 rounded-xl border-2 border-slate-200 bg-white px-3 py-3 text-xs shadow-sm';
         const cab = it.cabecalho || {};
         const nLin = Array.isArray(it.linhas) ? it.linhas.length : 0;
+        const ch = (cab.chave || '').toString();
+        const chShort = ch.length >= 20 ? `${ch.slice(0, 8)}…${ch.slice(-6)}` : (ch || '—');
+        const topRow = document.createElement('div');
+        topRow.className = 'flex flex-wrap items-center gap-2 min-w-0';
+        const pill = document.createElement('span');
+        pill.className = entradaNfePillClass(eff);
+        pill.textContent = it.entrada_status_label || eff;
+        topRow.appendChild(pill);
+        if (it.entrada_financeiro_lancado) {
+          const fp = document.createElement('span');
+          fp.className = ENTRADA_FIN_PILL;
+          fp.textContent = 'Financeiro';
+          topRow.appendChild(fp);
+        }
         const left = document.createElement('div');
-        left.className = 'min-w-0 font-semibold text-slate-800 leading-snug';
-        left.innerHTML = `<span class="font-black text-orange-800">${(it.modo || '').toString()}</span> · ${cab.emit_nome || '—'} · NF ${cab.numero || '—'} · <span class="text-slate-600">${nLin} linha(s)</span><br><span class="text-[10px] text-slate-500 font-mono break-all">${rid}</span><div class="text-[10px] text-slate-500 mt-0.5">${it.criado_em || ''}</div>`;
+        left.className = 'min-w-0 font-semibold text-slate-800 leading-snug flex-1';
+        left.appendChild(topRow);
+        const sub = document.createElement('div');
+        sub.className = 'mt-1.5 text-[11px] sm:text-xs text-slate-700 space-y-0.5';
+        const d1 = document.createElement('div');
+        const sm = document.createElement('span');
+        sm.className = 'font-black text-orange-800';
+        sm.textContent = (it.modo || '').toString();
+        d1.append(sm, document.createTextNode(` · ${cab.emit_nome || '—'} · NF ${cab.numero || '—'} · ${nLin} linha(s)`));
+        const d2 = document.createElement('div');
+        d2.className = 'text-slate-500 font-mono break-all';
+        d2.textContent = chShort;
+        const d3 = document.createElement('div');
+        d3.className = 'text-slate-500';
+        d3.textContent = (it.criado_em || '') + (it.atualizado_em ? ' · atual. ' + it.atualizado_em : '');
+        sub.append(d1, d2, d3);
+        left.appendChild(sub);
         const actions = document.createElement('div');
-        actions.className = 'flex flex-wrap gap-2 shrink-0';
-        const bOpen = document.createElement('button');
-        bOpen.type = 'button';
-        bOpen.className =
-          'min-h-[40px] px-3 py-1.5 rounded-lg bg-sky-600 text-white font-black text-[10px] uppercase hover:bg-sky-700';
-        bOpen.textContent = 'Abrir';
-        bOpen.addEventListener('click', () => carregarRascunhoNaTela(rid));
-        const bDel = document.createElement('button');
-        bDel.type = 'button';
-        bDel.className =
-          'min-h-[40px] px-3 py-1.5 rounded-lg border-2 border-red-200 text-red-700 font-black text-[10px] uppercase hover:bg-red-50';
-        bDel.textContent = 'Excluir';
-        bDel.addEventListener('click', () => excluirRascunhoMongo(rid));
-        actions.appendChild(bOpen);
-        actions.appendChild(bDel);
+        actions.className = 'flex flex-wrap gap-2 shrink-0 items-start lg:justify-end lg:max-w-[22rem]';
+        const mkBtn = (label, cls, onClick) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = cls;
+          b.textContent = label;
+          b.addEventListener('click', onClick);
+          return b;
+        };
+        const baseAct = 'min-h-[40px] px-3 py-1.5 rounded-lg font-black text-[10px] uppercase';
+        actions.appendChild(
+          mkBtn(
+            'Abrir',
+            `${baseAct} bg-sky-600 text-white hover:bg-sky-700`,
+            () => carregarRascunhoNaTela(rid),
+          ),
+        );
+        if (eff !== 'encerrada' && eff !== 'descartada') {
+          actions.appendChild(
+            mkBtn(
+              'Encerrar',
+              `${baseAct} border-2 border-slate-300 text-slate-800 hover:bg-slate-50`,
+              () => {
+                if (window.confirm('Encerrar esta nota na lista? (Continua salva no Mongo.)')) entradaNfeRascunhoAcao(rid, 'encerrar');
+              },
+            ),
+          );
+        }
+        if (eff !== 'descartada') {
+          actions.appendChild(
+            mkBtn(
+              'Descartar',
+              `${baseAct} border-2 border-amber-300 text-amber-900 hover:bg-amber-50`,
+              () => {
+                if (window.confirm('Marcar como descartada? Ela some dos filtros «Abertas».')) entradaNfeRascunhoAcao(rid, 'descartar');
+              },
+            ),
+          );
+        }
+        if (eff === 'encerrada' || eff === 'descartada') {
+          actions.appendChild(
+            mkBtn(
+              'Reabrir',
+              `${baseAct} border-2 border-emerald-400 text-emerald-900 hover:bg-emerald-50`,
+              () => {
+                if (window.confirm('Reabrir esta nota?')) entradaNfeRascunhoAcao(rid, 'reabrir');
+              },
+            ),
+          );
+        }
+        actions.appendChild(
+          mkBtn(
+            'Excluir',
+            `${baseAct} border-2 border-red-200 text-red-700 hover:bg-red-50`,
+            () => excluirRascunhoMongo(rid),
+          ),
+        );
         wrap.appendChild(left);
         wrap.appendChild(actions);
         box.appendChild(wrap);
@@ -1227,6 +1375,21 @@
       if (window.gmLoadingBar) window.gmLoadingBar.hide();
     }
   }
+
+  document.getElementById('entrada-nfe-filtros-wrap').addEventListener('click', (e) => {
+    const btn = e.target.closest('.filtro-nfe-chip');
+    if (!btn) return;
+    const f = btn.getAttribute('data-filtro') || 'todas';
+    entradaNfeListaFiltro = f;
+    carregarRascunhos();
+  });
+
+  document.getElementById('btn-entrada-nfe-nova').addEventListener('click', () => {
+    setEntradaNfeRascunhoEdit(null);
+    document.querySelector('.tab-btn[data-tab="manual"]')?.click();
+    showMsg('Nova entrada: preencha a grade e use Salvar só rascunho.', true);
+    document.getElementById('panel-manual')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 
   document.getElementById('btn-refresh-rasc').addEventListener('click', carregarRascunhos);
   document.getElementById('btn-entrada-nfe-sair-edicao')?.addEventListener('click', () => {
