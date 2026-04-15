@@ -1947,6 +1947,7 @@ function renderizarListaResultadosCompra(resultados) {
               onclick="adicionarProdutoResultadoCompra(${idx}, event);">Adicionar ao pedido</button>
           </div>
           <div class="p-3 sm:p-3.5">
+      ${historicoPedLocalHtml}
       <div class="compra-card bg-white p-3 sm:p-3.5 rounded-2xl border ${barraAlerta ? barraAlerta + ' border-slate-200' : 'border-slate-200'} grid grid-cols-1 sm:grid-cols-[minmax(0,1.62fr)_minmax(0,1.18fr)_minmax(8rem,0.82fr)] gap-2.5 sm:gap-3 items-stretch">
 
         <div class="flex items-start gap-3 min-w-0">
