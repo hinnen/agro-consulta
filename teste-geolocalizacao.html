@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Compartilhar localização</title>
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      padding: 40px;
+      background: #f5f5f5;
+    }
+    button {
+      padding: 15px 25px;
+      font-size: 18px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Compartilhar localização</h2>
+  <p>Clique no botão abaixo para enviar sua localização para entrega</p>
+
+  <button onclick="getLocation()">Compartilhar localização</button>
+
+  <p id="status"></p>
+
+  <script>
+    function getLocation() {
+      const status = document.getElementById("status");
+
+      if (!navigator.geolocation) {
+        status.innerHTML = "Geolocalização não suportada.";
+        return;
+      }
+
+      status.innerHTML = "Capturando localização...";
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+
+          status.innerHTML = "Localização capturada!";
+
+          // ENVIO PARA VOCÊ (AJUSTAR)
+          fetch("https://seudominio.com/api/localizacao", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              latitude: lat,
+              longitude: lon,
+              data: new Date()
+            })
+          });
+
+          // Abrir no WhatsApp (opcional)
+          window.location.href = `https://wa.me/13997851403?text=Minha localização: https://www.google.com/maps?q=${lat},${lon}`;
+        },
+        () => {
+          status.innerHTML = "Permissão negada.";
+        }
+      );
+    }
+  </script>
+
+</body>
+</html>

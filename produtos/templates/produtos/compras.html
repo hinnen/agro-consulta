@@ -416,8 +416,9 @@
               <ul id="oc-forn-dd" class="hidden absolute left-0 right-0 top-full mt-0.5 max-h-52 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-lg text-sm z-10"></ul>
             </div>
           </label>
-          <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Previsão de chegada</span>
-            <input type="date" id="oc-previsao" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold min-h-[48px]"></label>
+          <label class="block"><span class="text-[10px] font-black uppercase text-slate-500">Previsão de chegada <span class="font-semibold normal-case text-slate-400">(opcional)</span></span>
+            <input type="date" id="oc-previsao" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold min-h-[48px]" title="Se preencher, vira data de entrada no rascunho da Entrada NF-e.">
+            <span class="text-[9px] font-semibold text-slate-500 mt-1 block leading-snug">Vazio = sem data no rascunho; o histórico abaixo indica isso em texto claro.</span></label>
         </div>
         <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-2">
           <div class="text-[10px] font-black uppercase text-slate-500 mb-2">Itens</div>
@@ -981,6 +982,32 @@ async function abrirModalOrdemCompra(pedId, selEl) {
   fn?.focus();
 }
 
+function compraFmtDataIsoParaBR(iso) {
+  const s = String(iso || '').trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '';
+  const [y, m, d] = s.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function compraAbrevFornecedor8(nome) {
+  const s = String(nome || '').trim();
+  if (!s) return '—';
+  const short = s.length <= 8 ? s : `${s.slice(0, 8)}…`;
+  return escapeHtml(short);
+}
+
+function compraDataPedidoSoData(ped) {
+  const dt = new Date(ped.criadoEm);
+  if (Number.isNaN(dt.getTime())) return '—';
+  return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function compraPrevisaoExibicao(ped) {
+  const raw = String(ped.previsaoChegada || (ped.oc && ped.oc.previsaoChegada) || '').trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return '—';
+  return compraFmtDataIsoParaBR(raw) || '—';
+}
+
 async function confirmarModalOrdemCompra() {
   if (!ocPedidoModalCtx) return;
   const ctx = ocPedidoModalCtx;
@@ -1066,9 +1093,12 @@ async function confirmarModalOrdemCompra() {
       salvoEm: new Date().toISOString(),
     };
     ped.registro = ped.registro || [];
+    const prevHist = previsao
+      ? `Previsão de chegada: ${compraFmtDataIsoParaBR(previsao)}.`
+      : 'Previsão de chegada não informada (opcional — sem data de entrada no rascunho da NF-e).';
     ped.registro.unshift({
       ts: new Date().toISOString(),
-      texto: `Pedido confirmado. Rascunho Entrada NF-e (Mongo) id ${j.id || '—'}. Previsão: ${previsao || '—'}.`,
+      texto: `Pedido confirmado. Rascunho Entrada NF-e (Mongo) id ${j.id || '—'}. ${prevHist}`,
     });
     salvarHistoricoCompra(h);
     try {
@@ -1552,20 +1582,28 @@ function compraMontarHtmlHistoricoPedidoLocal(pid) {
     const stLabel =
       st === 'pedido' ? 'Pedido a caminho' : st === 'entregue' ? 'Entregue' : 'Cotação';
     const regs = Array.isArray(ped.registro) ? ped.registro.slice(0, 2) : [];
-    const ult = regs[0] ? String(regs[0].texto || '').slice(0, 120) : '';
-    const dt = regs[0] && regs[0].ts ? new Date(regs[0].ts) : null;
-    const ds =
-      dt && !Number.isNaN(dt.getTime())
-        ? dt.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-        : '';
+    const ult = regs[0] ? String(regs[0].texto || '').slice(0, 200) : '';
+    const fornNome = String(ped.fornecedorNome || (ped.oc && ped.oc.fornecedorNome) || '').trim();
+    const fornTit = escapeHtml(fornNome || '(sem fornecedor)');
+    const tipUlt = ult ? escapeHtml(ult) : '';
     linhas.push(
-      `<div class="text-[10px] font-semibold text-slate-700 leading-snug"><span class="font-black text-sky-800">${escapeHtml(stLabel)}</span>${ds ? ` · ${escapeHtml(ds)}` : ''}${ult ? ` — ${escapeHtml(ult)}` : ''}</div>`
+      `<div class="text-[9px] leading-tight text-slate-700 border-b border-sky-100/80 pb-1.5 last:border-0 mb-1 last:mb-0" ${tipUlt ? `title="${tipUlt}"` : ''}>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-1.5 gap-y-0.5 font-black uppercase text-[7px] text-slate-500 tracking-tight">
+          <span>Status</span><span>Data pedido</span><span>Fornec.</span><span>Data prev.</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-1.5 font-bold text-[10px] text-slate-800">
+          <span class="text-sky-900">${escapeHtml(stLabel)}</span>
+          <span class="tabular-nums">${escapeHtml(compraDataPedidoSoData(ped))}</span>
+          <span class="truncate cursor-default" title="${fornTit}">${compraAbrevFornecedor8(fornNome)}</span>
+          <span class="tabular-nums text-slate-700">${escapeHtml(compraPrevisaoExibicao(ped))}</span>
+        </div>
+      </div>`
     );
   });
   if (!linhas.length) return '';
   return `<div class="px-2 sm:px-3 py-1.5 border-t border-dashed border-sky-200 bg-sky-50/40" onclick="event.stopPropagation();">
     <div class="text-[8px] font-black uppercase text-sky-800 tracking-wide mb-1">Histórico local (Compras)</div>
-    <div class="space-y-1 max-h-20 overflow-y-auto pr-1">${linhas.slice(0, 4).join('')}</div>
+    <div class="space-y-0.5 max-h-24 overflow-y-auto pr-1">${linhas.slice(0, 4).join('')}</div>
   </div>`;
 }
 
@@ -3042,12 +3080,28 @@ function renderHistoricoCompras() {
           <option value="cotacao" ${st === 'cotacao' ? 'selected' : ''}>Cotação</option>
           <option value="pedido" ${st === 'pedido' ? 'selected' : ''}>Pedido</option>
         </select>`;
+    const stHuman = st === 'pedido' ? 'Pedido a caminho' : st === 'entregue' ? 'Entregue' : 'Cotação';
+    const fornNome = String(ped.fornecedorNome || (ped.oc && ped.oc.fornecedorNome) || '').trim();
+    const fornTit = escapeHtml(fornNome || '(sem fornecedor)');
+    const gridResumo = `
+        <div class="mt-0.5 mb-2 rounded-lg border border-slate-200/90 bg-white/80 px-2 py-2 sm:px-3">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-1 text-[8px] font-black uppercase text-slate-500 tracking-tight">
+            <span>Status</span><span>Data pedido</span><span>Fornec.</span><span>Data prev.</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-2 gap-y-1 text-[11px] sm:text-xs font-bold text-slate-900 leading-tight">
+            <span class="${entregue ? 'text-emerald-800' : st === 'pedido' ? 'text-sky-900' : 'text-amber-900'}">${escapeHtml(stHuman)}</span>
+            <span class="tabular-nums text-slate-800">${escapeHtml(compraDataPedidoSoData(ped))}</span>
+            <span class="truncate font-black cursor-default" title="${fornTit}">${compraAbrevFornecedor8(fornNome)}</span>
+            <span class="tabular-nums text-slate-700">${escapeHtml(compraPrevisaoExibicao(ped))}</span>
+          </div>
+        </div>`;
     card.innerHTML = `
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="text-[10px] font-black uppercase text-slate-500">${escapeHtml(dtStr)}</span>
+          <span class="text-[9px] font-bold uppercase text-slate-400">Criado ${escapeHtml(dtStr)}</span>
           ${entregue ? badgeEntregue : ''}
         </div>
+        ${gridResumo}
         <div class="mt-2 space-y-1 max-h-40 overflow-y-auto pr-1 hide-scroll">${itensLinhas}</div>
         ${regLinhas}
       </div>
