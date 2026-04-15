@@ -1560,7 +1560,7 @@ function compraMontarHtmlUltimasComprasResumo(p, idxLinha) {
   const temLocal = compraProdutoTemHistoricoLocal(p.id);
   if (!list.length) {
     if (temLocal) {
-      return `<div class="px-2 sm:px-3 py-2 border-t border-dashed border-sky-200/80 bg-sky-50/30 text-[9px] font-semibold text-slate-700 leading-snug">Sem últimas compras listadas no <strong class="text-slate-800">ERP</strong> para este produto. Há <strong class="text-sky-900">histórico local de pedido</strong> neste painel (bloco «Histórico local (Compras)» acima).</div>`;
+      return `<div class="px-2 sm:px-3 py-2 border-t border-dashed border-sky-200/80 bg-sky-50/30 text-[9px] font-semibold text-slate-700 leading-snug">Sem últimas compras listadas no <strong class="text-slate-800">ERP</strong> para este produto. Há <strong class="text-sky-900">histórico local de pedido</strong> — veja o bloco <strong class="text-sky-900">«Histórico local (Compras)»</strong> neste painel.</div>`;
     }
     return `<div class="px-2 sm:px-3 py-2 border-t border-dashed border-slate-200 bg-slate-50/60 text-[9px] font-bold text-slate-500 leading-snug">Sem histórico de compra recente no ERP para este produto.</div>`;
   }
