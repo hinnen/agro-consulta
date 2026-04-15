@@ -56,9 +56,12 @@ from .nfe_entrada_util import (
     excluir_rascunho_entrada,
     gravar_ult_nsu,
     listar_rascunhos_entrada,
+    marcar_rascunho_estoque_aplicado,
+    marcar_rascunho_financeiro_lancado,
     obter_rascunho_entrada,
     obter_ult_nsu,
     parse_nfe_xml_bytes,
+    pipeline_acao_rascunho_entrada,
     salvar_rascunho_entrada,
 )
 from .rota_entregas_geo import ordenar_entregas_por_proximidade
@@ -3039,7 +3042,8 @@ def api_entrada_nota_rascunhos(request):
         lim = min(int(request.GET.get("limit") or 25), 80)
     except ValueError:
         lim = 25
-    return JsonResponse({"itens": listar_rascunhos_entrada(db, limit=lim)})
+    filtro = (request.GET.get("filtro") or "todas").strip()[:24]
+    return JsonResponse({"itens": listar_rascunhos_entrada(db, limit=lim, filtro=filtro or None)})
 
 
 @login_required(login_url="/admin/login/")
@@ -3106,6 +3110,31 @@ def api_entrada_nota_rascunho_atualizar(request):
         xml_chave=xml_chave,
         extra=extra,
     )
+    st = 200 if r.get("ok") else 400
+    return JsonResponse(r, status=st)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_entrada_nota_rascunho_acao(request):
+    """Encerrar, descartar ou reabrir nota (rascunho) na listagem."""
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    oid = str(payload.get("id") or "").strip()
+    acao = str(payload.get("acao") or "").strip().lower()
+    if not oid:
+        return JsonResponse({"ok": False, "erro": "Informe o id do rascunho."}, status=400)
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (
+            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
+        )[:120]
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    r = pipeline_acao_rascunho_entrada(db, oid, acao, usuario=usuario)
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
 
@@ -3406,6 +3435,7 @@ def api_entrada_nota_estoque_agro(request):
     xml_chave = str(payload.get("xml_chave") or "").strip()[:44] or None
     extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
     extra = {**extra, "estoque_agro_registrado_em": timezone.now().isoformat()}
+    rascunho_id_req = str(payload.get("rascunho_id") or "").strip()
 
     empresa_fat_raw = cab.get("empresa_faturada_id") if isinstance(cab, dict) else None
     if empresa_fat_raw in (None, "") and isinstance(payload, dict):
@@ -3459,6 +3489,19 @@ def api_entrada_nota_estoque_agro(request):
         "estoque": resultado,
         "rascunho": r_rasc,
     }
+    if ok and db is not None:
+        rid_marcar = rascunho_id_req or (
+            str(r_rasc.get("id") or "").strip() if isinstance(r_rasc, dict) and r_rasc.get("ok") else ""
+        )
+        if rid_marcar:
+            mr = marcar_rascunho_estoque_aplicado(
+                db,
+                rid_marcar,
+                usuario=usuario,
+                patch_extra={"estoque_agro_registrado_em": extra.get("estoque_agro_registrado_em")},
+            )
+            if not mr.get("ok"):
+                out["aviso_status_rascunho"] = mr.get("erro")
     if not resultado.get("aplicados"):
         err = None
         if resultado.get("erros"):
@@ -3788,6 +3831,12 @@ def api_entrada_nota_financeiro(request):
         out["erp_lancamento_ok"] = erp_lanc_ok
     if aviso_api_erp:
         out["aviso_api"] = aviso_api_erp
+    if r_rasc.get("ok") and ids and db is not None:
+        rid_fin = str(r_rasc.get("id") or "").strip()
+        if rid_fin:
+            mf = marcar_rascunho_financeiro_lancado(db, rid_fin, ids=ids, usuario=usuario)
+            if not mf.get("ok"):
+                out["aviso_financeiro_rascunho"] = mf.get("erro")
     st = 200 if ok and not erros else (207 if ids else 400)
     return JsonResponse(out, status=st)
 
