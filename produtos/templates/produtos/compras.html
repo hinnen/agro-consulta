@@ -1560,7 +1560,7 @@ function compraMontarHtmlUltimasComprasResumo(p, idxLinha) {
   const temLocal = compraProdutoTemHistoricoLocal(p.id);
   if (!list.length) {
     if (temLocal) {
-      return `<div class="px-2 sm:px-3 py-2 border-t border-dashed border-sky-200/80 bg-sky-50/30 text-[9px] font-semibold text-slate-700 leading-snug">Sem últimas compras listadas no <strong class="text-slate-800">ERP</strong> para este produto. Há <strong class="text-sky-900">histórico local de pedido</strong> no bloco entre a linha e este detalhe.</div>`;
+      return `<div class="px-2 sm:px-3 py-2 border-t border-dashed border-sky-200/80 bg-sky-50/30 text-[9px] font-semibold text-slate-700 leading-snug">Sem últimas compras listadas no <strong class="text-slate-800">ERP</strong> para este produto. Há <strong class="text-sky-900">histórico local de pedido</strong> neste painel (bloco «Histórico local (Compras)» acima).</div>`;
     }
     return `<div class="px-2 sm:px-3 py-2 border-t border-dashed border-slate-200 bg-slate-50/60 text-[9px] font-bold text-slate-500 leading-snug">Sem histórico de compra recente no ERP para este produto.</div>`;
   }
@@ -1940,7 +1940,6 @@ function renderizarListaResultadosCompra(resultados) {
           <button type="button" class="flex items-center justify-center min-h-[48px] border-l border-slate-100 bg-emerald-50 text-emerald-700 font-black text-lg leading-none hover:bg-emerald-100 active:bg-emerald-200 shrink-0 px-0.5" title="Adicionar 1 ao pedido" aria-label="Adicionar ao pedido" onclick="event.stopPropagation(); adicionarProdutoResultadoCompra(${idx}, event);">+</button>
           <button type="button" class="flex items-center justify-center min-h-[48px] border-l border-slate-100 text-slate-500 font-black text-sm hover:bg-slate-50 shrink-0 w-full" onclick="event.stopPropagation(); compraToggleExpandir(${idx});" aria-label="Expandir ou recolher detalhe" title="Expandir detalhe"><span class="compra-linha-chevron" aria-hidden="true">▸</span></button>
         </div>
-        ${historicoPedLocalHtml}
         <div class="compra-detalhe hidden border-t border-slate-100 bg-slate-50/60">
           <div class="px-3 pt-3 pb-2 flex flex-wrap gap-2 justify-between items-center border-b border-slate-100/80 bg-white/80">
             <span class="text-[10px] font-black uppercase text-slate-500">Detalhe do produto</span>
