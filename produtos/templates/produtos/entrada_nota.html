@@ -183,7 +183,7 @@
           <button type="button" id="btn-add-linha" class="min-h-[44px] px-4 py-2 rounded-xl bg-white border-2 border-orange-300 text-xs font-black uppercase text-orange-900 hover:bg-orange-50 shrink-0">+ Linha</button>
         </div>
         <div class="overflow-x-auto rounded-xl border-2 border-slate-200 bg-white shadow-inner">
-        <table class="w-full text-xs sm:text-sm min-w-[960px]">
+        <table class="w-full text-xs sm:text-sm min-w-[1020px]">
           <thead class="bg-slate-100 text-[11px] font-black uppercase text-slate-600">
             <tr>
               <th class="text-left px-2 py-2.5 min-w-[140px]">Descrição</th>
@@ -196,6 +196,7 @@
               <th class="text-right px-2 py-2.5 w-20">V. unit</th>
               <th class="text-left px-2 py-2.5 w-14">CFOP</th>
               <th class="text-left px-2 py-2.5 min-w-[100px]">Match</th>
+              <th class="text-center px-1 py-2.5 w-11" title="Cadastro ERP">ERP</th>
               <th class="w-10"></th>
             </tr>
           </thead>
@@ -244,6 +245,21 @@
                 <input type="hidden" id="fin-grupo-id" value="">
                 <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
               </div></label>
+          </div>
+          <div id="fin-parcelas-preview-wrap" class="rounded-xl border border-emerald-300/80 bg-white p-2 mt-2">
+            <p class="text-[10px] font-black uppercase text-emerald-900 mb-1">Parcelas — prévia (antes de salvar)</p>
+            <p id="fin-parcelas-preview-msg" class="text-xs font-semibold text-slate-500">Preencha 1º vencimento e itens com valor na grade.</p>
+            <div id="fin-parcelas-preview-table" class="hidden mt-2 overflow-x-auto rounded-lg border border-slate-200">
+              <table class="w-full text-xs font-semibold text-slate-800 min-w-[280px]">
+                <thead class="bg-emerald-50 text-[10px] font-black uppercase text-emerald-900">
+                  <tr><th class="text-left px-2 py-1.5 w-10">#</th><th class="text-left px-2 py-1.5">Vencimento</th><th class="text-right px-2 py-1.5">Valor</th></tr>
+                </thead>
+                <tbody id="fin-parcelas-preview-tbody" class="divide-y divide-slate-100"></tbody>
+                <tfoot class="bg-slate-50 font-black text-slate-900">
+                  <tr><td class="px-2 py-1.5" colspan="2">Total da nota</td><td class="text-right px-2 py-1.5 tabular-nums" id="fin-parcelas-preview-total"></td></tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -298,6 +314,16 @@
     </div>
   </div>
 
+    <div id="modal-produto-cadastro" class="hidden fixed inset-0 z-[65] flex flex-col p-2 sm:p-4 bg-black/60" role="dialog" aria-modal="true" aria-labelledby="modal-produto-cadastro-titulo">
+      <div class="max-w-[min(1600px,100%)] w-full max-h-[min(96vh,100%)] mx-auto flex flex-col rounded-2xl border-2 border-slate-200 bg-slate-100 shadow-2xl overflow-hidden flex-1 min-h-0">
+        <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-slate-200 bg-white">
+          <h2 id="modal-produto-cadastro-titulo" class="text-sm font-black uppercase text-slate-800 truncate min-w-0">Cadastro do produto</h2>
+          <button type="button" id="modal-produto-cadastro-fechar" class="min-h-[44px] px-4 rounded-xl border-2 border-slate-300 text-xs font-black uppercase text-slate-700 hover:bg-slate-50 shrink-0">Fechar</button>
+        </div>
+        <iframe id="modal-produto-cadastro-iframe" class="flex-1 min-h-0 w-full border-0 bg-white" title="Cadastro ERP"></iframe>
+      </div>
+    </div>
+
     <div id="modal-prod" class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-prod-titulo">
       <div class="bg-white rounded-2xl shadow-2xl max-w-[min(42rem,96vw)] w-full p-5 sm:p-6 border-2 border-slate-200 max-h-[85vh] overflow-hidden flex flex-col">
         <h3 id="modal-prod-titulo" class="text-base font-black uppercase text-slate-900">Buscar produto</h3>
@@ -331,7 +357,11 @@
         </div>
         <div class="border-l-4 border-emerald-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Financeiro (opcional)</p>
-          <p>Preencha empresa, competência, 1º vencimento, parcelas se houver, forma e banco antes de <strong>Salvar + a pagar</strong>.</p>
+          <p>Preencha empresa, competência, 1º vencimento, parcelas se houver, forma e banco antes de <strong>Salvar + a pagar</strong>. A tabela <strong>Parcelas — prévia</strong> mostra vencimentos e valores antes de confirmar.</p>
+        </div>
+        <div class="border-l-4 border-slate-200 pl-3 space-y-2">
+          <p class="text-xs font-black uppercase text-slate-500">Coluna ERP (✎)</p>
+          <p>Com produto do catálogo na linha, o lápis abre o cadastro espelho (Mongo) em tela grande para conferir dados.</p>
         </div>
         <div class="border-l-4 border-blue-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Estoque Agro</p>
@@ -363,6 +393,7 @@
   const URL_RASC_EXCLUIR = "{% url 'api_entrada_nota_rascunho_excluir' %}";
   const URL_RASC_ATUALIZAR = "{% url 'api_entrada_nota_rascunho_atualizar' %}";
   const URL_RASC_ACAO = "{% url 'api_entrada_nota_rascunho_acao' %}";
+  const URL_CADASTRO_PROD = "{% url 'produtos_cadastro_erp' %}";
 
   let entradaNfeRascunhoEditId = null;
   let entradaNfeListaFiltro = 'todas';
@@ -519,6 +550,90 @@
     };
   }
 
+  function entradaNfeTotalCentavosFromDom() {
+    let c = 0;
+    document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
+      const q = Number(tr.querySelector('.in-qtd')?.value) || 0;
+      const v = Number(tr.querySelector('.in-vun')?.value) || 0;
+      if (!Number.isFinite(q) || !Number.isFinite(v)) return;
+      c += Math.round(q * v * 100);
+    });
+    return c;
+  }
+
+  function splitCentavosEmNParcelas(totalCents, n) {
+    const nn = Math.max(1, Math.min(60, Math.floor(Number(n)) || 1));
+    if (totalCents <= 0) return [];
+    const base = Math.floor(totalCents / nn);
+    const rem = totalCents % nn;
+    const out = [];
+    for (let i = 0; i < nn; i += 1) {
+      out.push((base + (i < rem ? 1 : 0)) / 100);
+    }
+    return out;
+  }
+
+  function entradaNfeAddDaysYmd(ymd, days) {
+    if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return '';
+    const [y, m, d] = ymd.split('-').map((x) => parseInt(x, 10));
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() + days);
+    const yy = dt.getFullYear();
+    const mm = String(dt.getMonth() + 1).padStart(2, '0');
+    const dd = String(dt.getDate()).padStart(2, '0');
+    return `${yy}-${mm}-${dd}`;
+  }
+
+  let finParcPreviewT = null;
+  function entradaNfeAtualizarPreviewParcelas() {
+    const msgEl = document.getElementById('fin-parcelas-preview-msg');
+    const tableEl = document.getElementById('fin-parcelas-preview-table');
+    const tbodyEl = document.getElementById('fin-parcelas-preview-tbody');
+    const totalEl = document.getElementById('fin-parcelas-preview-total');
+    if (!msgEl || !tableEl || !tbodyEl || !totalEl) return;
+
+    const dv = (document.getElementById('fin-dv')?.value || '').trim();
+    let nParc = parseInt(String(document.getElementById('fin-n-parc')?.value || '1'), 10);
+    if (!Number.isFinite(nParc) || nParc < 1) nParc = 1;
+    if (nParc > 60) nParc = 60;
+    let intDias = parseInt(String(document.getElementById('fin-parc-int')?.value || '30'), 10);
+    if (!Number.isFinite(intDias) || intDias < 1) intDias = 30;
+    if (intDias > 366) intDias = 366;
+
+    const totalCents = entradaNfeTotalCentavosFromDom();
+    if (totalCents <= 0) {
+      msgEl.textContent = 'Inclua itens com quantidade e valor unitário na grade.';
+      tableEl.classList.add('hidden');
+      tbodyEl.innerHTML = '';
+      return;
+    }
+    if (!dv) {
+      msgEl.textContent = 'Informe o 1º vencimento para calcular as datas das parcelas.';
+      tableEl.classList.add('hidden');
+      tbodyEl.innerHTML = '';
+      return;
+    }
+
+    const vals = splitCentavosEmNParcelas(totalCents, nParc);
+    tbodyEl.innerHTML = '';
+    vals.forEach((valorReais, i) => {
+      const tr = document.createElement('tr');
+      const venc = entradaNfeAddDaysYmd(dv, i * intDias);
+      tr.innerHTML = `<td class="px-2 py-1.5 font-black text-slate-600">${i + 1}</td><td class="px-2 py-1.5">${venc}</td><td class="px-2 py-1.5 text-right tabular-nums">${valorReais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>`;
+      tbodyEl.appendChild(tr);
+    });
+    totalEl.textContent = (totalCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    msgEl.textContent = nParc > 1
+      ? `${nParc} parcelas (mesma regra do servidor: centavos repartidos), intervalo ${intDias} dia(s).`
+      : 'Um título com o valor total da nota.';
+    tableEl.classList.remove('hidden');
+  }
+
+  function entradaNfeAgendarPreviewParcelas() {
+    clearTimeout(finParcPreviewT);
+    finParcPreviewT = setTimeout(() => entradaNfeAtualizarPreviewParcelas(), 120);
+  }
+
   function atualizarPainelTotalNfe() {
     let s = 0;
     document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
@@ -528,6 +643,38 @@
     });
     const el = document.getElementById('nfe-valor-total-itens');
     if (el) el.textContent = s.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    entradaNfeAgendarPreviewParcelas();
+  }
+
+  function entradaNfeProdutoIdErpValido(raw) {
+    const s = String(raw || '').trim();
+    if (!s || s.toLowerCase().startsWith('local:')) return false;
+    return true;
+  }
+
+  function entradaNfeSyncEditProdBtn(tr) {
+    const btn = tr.querySelector('.btn-edit-prod-erp');
+    const hid = tr.querySelector('.in-prod-id');
+    if (!btn || !hid) return;
+    const ok = entradaNfeProdutoIdErpValido(hid.value);
+    btn.disabled = !ok;
+    btn.classList.toggle('opacity-40', !ok);
+    btn.classList.toggle('cursor-not-allowed', !ok);
+  }
+
+  const elModalCadastroProd = document.getElementById('modal-produto-cadastro');
+  const elIframeCadastroProd = document.getElementById('modal-produto-cadastro-iframe');
+  function fecharModalCadastroProd() {
+    if (elModalCadastroProd) elModalCadastroProd.classList.add('hidden');
+    if (elIframeCadastroProd) elIframeCadastroProd.src = '';
+  }
+  function abrirModalCadastroProd(produtoId) {
+    if (!elModalCadastroProd || !elIframeCadastroProd) return;
+    const u = new URL(URL_CADASTRO_PROD, window.location.origin);
+    u.searchParams.set('produto', String(produtoId));
+    elIframeCadastroProd.src = u.toString();
+    elModalCadastroProd.classList.remove('hidden');
+    document.getElementById('modal-produto-cadastro-fechar')?.focus();
   }
 
   function tbodyClear() {
@@ -566,6 +713,7 @@
       <td class="px-2 py-1"><input type="number" step="0.01" class="in-vun w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value=""></td>
       <td class="px-2 py-1"><input type="text" class="in-cfop w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
       <td class="px-2 py-1 text-[10px] font-semibold text-slate-600 in-match">${mc}</td>
+      <td class="px-1 py-1 text-center"><button type="button" class="btn-edit-prod-erp min-h-[40px] min-w-[40px] rounded-lg border-2 border-slate-200 bg-white text-base leading-none text-slate-600 hover:border-orange-400 hover:text-orange-800 hover:bg-orange-50 disabled:opacity-40 disabled:pointer-events-none" title="Cadastro ERP (espelho)" aria-label="Abrir cadastro do produto">✎</button></td>
       <td class="px-1 py-1"><button type="button" class="btn-del text-red-600 font-black text-lg leading-none px-1" title="Remover">×</button></td>`;
     tr.querySelector('.in-desc').value = d.x_prod;
     tr.querySelector('.in-cprod').value = d.c_prod;
@@ -602,6 +750,7 @@
       atualizarPainelTotalNfe();
     });
     document.getElementById('tbody-itens').appendChild(tr);
+    entradaNfeSyncEditProdBtn(tr);
     atualizarPainelTotalNfe();
   }
 
@@ -868,6 +1017,7 @@
           e.preventDefault();
           if (!trProdAlvo) return;
           trProdAlvo.querySelector('.in-prod-id').value = p.id || '';
+          entradaNfeSyncEditProdBtn(trProdAlvo);
           const m = trProdAlvo.querySelector('.in-match');
           m.textContent = (p.nome || p.id || '—').slice(0, 120);
           if (p.codigo_nfe || p.codigo) trProdAlvo.querySelector('.in-cprod').value = p.codigo_nfe || p.codigo || '';
@@ -888,6 +1038,7 @@
     if (modalProdEl.classList.contains('hidden')) return;
     if (e.key === 'Escape') {
       e.preventDefault();
+      e.stopPropagation();
       document.getElementById('modal-prod-fechar').click();
       return;
     }
@@ -927,10 +1078,31 @@
   document.getElementById('tbody-itens').addEventListener('input', (e) => {
     const t = e.target;
     if (t && (t.classList.contains('in-qtd') || t.classList.contains('in-vun'))) atualizarPainelTotalNfe();
+    if (t && t.classList.contains('in-prod-id')) {
+      const tr = t.closest('tr');
+      if (tr) entradaNfeSyncEditProdBtn(tr);
+    }
   });
   document.getElementById('tbody-itens').addEventListener('change', (e) => {
     const t = e.target;
     if (t && (t.classList.contains('in-qtd') || t.classList.contains('in-vun'))) atualizarPainelTotalNfe();
+  });
+  document.getElementById('tbody-itens').addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-edit-prod-erp');
+    if (!btn || btn.disabled) return;
+    const tr = btn.closest('tr');
+    const pid = tr?.querySelector('.in-prod-id')?.value?.trim();
+    if (!entradaNfeProdutoIdErpValido(pid)) return;
+    abrirModalCadastroProd(pid);
+  });
+
+  ['fin-dv', 'fin-n-parc', 'fin-parc-int'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('input', entradaNfeAgendarPreviewParcelas);
+    document.getElementById(id)?.addEventListener('change', entradaNfeAgendarPreviewParcelas);
+  });
+  document.getElementById('modal-produto-cadastro-fechar')?.addEventListener('click', fecharModalCadastroProd);
+  elModalCadastroProd?.addEventListener('click', (e) => {
+    if (e.target === elModalCadastroProd) fecharModalCadastroProd();
   });
 
   async function salvar(modo, extra) {
@@ -1420,6 +1592,11 @@
       fecharModalAjudaEntradaNfe();
       return;
     }
+    if (e.key === 'Escape' && elModalCadastroProd && !elModalCadastroProd.classList.contains('hidden')) {
+      e.preventDefault();
+      fecharModalCadastroProd();
+      return;
+    }
     if (e.key === 'Escape' && document.body.classList.contains('entrada-nfe--editor')) {
       e.preventDefault();
       entradaNfeFecharEditor();
@@ -1506,6 +1683,7 @@
     carregarSefazStatus();
     carregarRascunhos();
     atualizarPainelTotalNfe();
+    entradaNfeAtualizarPreviewParcelas();
   });
 })();
   </script>

@@ -572,7 +572,17 @@
     }
   });
 
-  carregar();
+  var soloPid = (new URLSearchParams(window.location.search).get('produto') || '').trim();
+  if (soloPid) {
+    modoLista = false;
+    selecionadoId = soloPid;
+    listaEl.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-600 text-center leading-snug">Detalhe do produto (atalho externo). Use a busca acima para trocar de item.</p>';
+    metaEl.textContent = 'Produto · ' + soloPid;
+    pagWrap.classList.add('hidden');
+    carregarDetalheProduto(soloPid);
+  } else {
+    carregar();
+  }
 })();
   </script>
   <script>
