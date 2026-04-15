@@ -33,12 +33,15 @@
     .forn-dd { max-height: 260px; overflow-y: auto; z-index: 45; }
     .filtro-nfe-chip { border-width: 2px; border-color: rgb(226 232 240); background: white; color: rgb(71 85 105); }
     .filtro-nfe-chip.filtro-nfe-chip-on { border-color: rgb(249 115 22); background: rgb(255 247 237); color: rgb(124 45 18); }
+    body.entrada-nfe--editor { overflow: hidden; }
+    body.entrada-nfe--editor #entrada-nfe-header-principal { display: none; }
+    body.entrada-nfe--editor #entrada-nfe-main-lista { display: none; }
   </style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
 {% include "produtos/_gm_loading_bar.html" %}
 
-  <header class="gm-bar border-b border-slate-200/80 shrink-0">
+  <header id="entrada-nfe-header-principal" class="gm-bar border-b border-slate-200/80 shrink-0">
     <div class="max-w-[1400px] mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3 min-w-0">
         <div class="h-11 w-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
@@ -48,21 +51,16 @@
           <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">
             GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-orange-700">Entrada de NF-e</span>
           </h1>
-          <button type="button" id="btn-entrada-nfe-ajuda" class="min-h-[44px] min-w-[44px] rounded-xl border-2 border-slate-300 bg-white text-xl font-black leading-none text-slate-700 hover:bg-orange-50 hover:border-orange-400 shrink-0" title="Ajuda desta tela" aria-haspopup="dialog" aria-controls="modal-entrada-nfe-ajuda">?</button>
+          <button type="button" id="btn-entrada-nfe-ajuda" class="entrada-nfe-open-ajuda min-h-[44px] min-w-[44px] rounded-xl border-2 border-slate-300 bg-white text-xl font-black leading-none text-slate-700 hover:bg-orange-50 hover:border-orange-400 shrink-0" title="Ajuda" aria-haspopup="dialog" aria-controls="modal-entrada-nfe-ajuda">?</button>
         </div>
       </div>
       {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-orange-400 shrink-0" %}
     </div>
   </header>
 
-  <main class="max-w-[1400px] mx-auto px-4 py-4 sm:py-5 space-y-4 flex-1 min-h-0 overflow-y-auto">
+  <div id="msg-global" role="status" aria-live="polite" class="hidden fixed top-14 left-3 right-3 max-w-2xl mx-auto z-[55] rounded-xl border-2 px-3 py-2 text-sm font-bold flex flex-wrap items-center gap-2 shadow-lg pointer-events-none"></div>
 
-    <div id="msg-global" role="status" aria-live="polite" class="hidden rounded-2xl border-2 px-4 py-3.5 text-sm sm:text-base font-bold min-h-[3.25rem] flex flex-wrap items-center gap-2 shadow-sm"></div>
-
-    <div id="entrada-nfe-rasc-banner" class="hidden rounded-2xl border-2 border-sky-300 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-950 flex flex-wrap items-center justify-between gap-3">
-      <span>Editando <code id="entrada-nfe-rasc-banner-id" class="text-xs bg-white px-1.5 py-0.5 rounded border border-sky-200 font-mono"></code> — <strong>Salvar só rascunho</strong> substitui.</span>
-      <button type="button" id="btn-entrada-nfe-sair-edicao" class="min-h-[44px] px-4 py-2 rounded-xl border-2 border-sky-400 bg-white text-xs font-black uppercase text-sky-900 hover:bg-sky-100 shrink-0">Sair (novo)</button>
-    </div>
+  <main id="entrada-nfe-main-lista" class="max-w-[1400px] mx-auto w-full px-3 sm:px-4 flex flex-col flex-1 min-h-0 overflow-hidden py-2">
 
     <div class="hidden" aria-hidden="true">
       <span class="rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex bg-amber-100 text-amber-950 border-2 border-amber-400"></span>
@@ -73,54 +71,55 @@
       <span class="rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex bg-violet-100 text-violet-950 border-2 border-violet-500"></span>
     </div>
 
-    <section id="entrada-nfe-lista-section" class="rounded-2xl border-2 border-emerald-200 bg-white shadow-sm overflow-hidden shrink-0" aria-label="Listagem de notas salvas">
-      <div class="bg-emerald-50/90 border-b-2 border-emerald-200 px-4 py-3 sm:px-5 flex flex-wrap items-center justify-between gap-3">
-        <div class="min-w-0">
-          <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight">Notas no Agro</h2>
-          <p class="text-xs font-semibold text-slate-600 mt-0.5">Status · <strong class="text-slate-800">Abrir</strong> = grade (manual)</p>
-        </div>
-        <div class="flex flex-wrap gap-2 shrink-0">
-          <button type="button" id="btn-entrada-nfe-nova" class="min-h-[44px] px-4 py-2 rounded-xl bg-emerald-700 text-white text-xs font-black uppercase hover:bg-emerald-800 border-2 border-emerald-900 shadow-sm">Nova entrada</button>
-          <button type="button" id="btn-refresh-rasc" class="min-h-[44px] px-4 py-2 rounded-xl border-2 border-orange-200 bg-orange-50 text-xs font-black uppercase text-orange-900 hover:bg-orange-100">Atualizar lista</button>
+    <section id="entrada-nfe-lista-section" class="rounded-2xl border-2 border-emerald-200 bg-white shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden" aria-label="Notas">
+      <div class="bg-emerald-50/90 border-b-2 border-emerald-200 px-3 py-2 sm:px-4 flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <h2 class="text-sm sm:text-base font-black uppercase text-slate-900 tracking-tight">Notas</h2>
+        <div class="flex flex-wrap gap-2 shrink-0 items-center">
+          <button type="button" id="btn-entrada-nfe-nova" class="min-h-[44px] px-3 py-2 rounded-xl bg-emerald-700 text-white text-xs font-black uppercase hover:bg-emerald-800 border-2 border-emerald-900 shadow-sm">Nova</button>
+          <button type="button" id="btn-refresh-rasc" class="min-h-[44px] px-3 py-2 rounded-xl border-2 border-orange-200 bg-orange-50 text-xs font-black uppercase text-orange-900 hover:bg-orange-100">Atualizar</button>
+          <button type="button" class="entrada-nfe-open-ajuda min-h-[44px] min-w-[44px] rounded-xl border-2 border-slate-300 bg-white text-lg font-black text-slate-700 hover:bg-orange-50" title="Ajuda">?</button>
         </div>
       </div>
-      <div class="px-3 sm:px-4 py-3 flex flex-wrap gap-2 border-b border-slate-100 bg-slate-50/80" id="entrada-nfe-filtros-wrap" role="toolbar" aria-label="Filtrar por status">
-        <button type="button" class="filtro-nfe-chip filtro-nfe-chip-on min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="todas">Todas</button>
-        <button type="button" class="filtro-nfe-chip min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="abertas">Abertas</button>
-        <button type="button" class="filtro-nfe-chip min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="pendencias">Com pendências</button>
-        <button type="button" class="filtro-nfe-chip min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="prontas">Prontas</button>
-        <button type="button" class="filtro-nfe-chip min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="estoque">Estoque aplicado</button>
-        <button type="button" class="filtro-nfe-chip min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="financeiro">Com financeiro</button>
-        <button type="button" class="filtro-nfe-chip min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="encerradas">Encerradas</button>
-        <button type="button" class="filtro-nfe-chip min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-black uppercase" data-filtro="descartadas">Descartadas</button>
+      <div class="px-2 sm:px-3 py-2 flex flex-wrap gap-1.5 border-b border-slate-100 bg-slate-50/80 shrink-0" id="entrada-nfe-filtros-wrap" role="toolbar" aria-label="Filtro">
+        <button type="button" class="filtro-nfe-chip filtro-nfe-chip-on min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="todas">Todas</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="abertas">Abertas</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="pendencias">Pend.</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="prontas">Prontas</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="estoque">Estoque</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="financeiro">Financ.</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="encerradas">Enc.</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="descartadas">Desc.</button>
       </div>
-      <div id="lista-rasc" class="p-3 sm:p-4 space-y-2 text-sm min-h-[100px] max-h-[min(52vh,520px)] overflow-y-auto font-semibold text-slate-700"></div>
+      <div id="lista-rasc" class="flex-1 min-h-0 overflow-y-auto p-2 sm:p-3 space-y-2 text-sm font-semibold text-slate-700"></div>
     </section>
+  </main>
 
-    <div class="flex flex-wrap gap-2 sm:gap-3">
-      <button type="button" class="tab-btn inline-flex items-center justify-center gap-2 px-4 sm:px-5 min-h-[48px] rounded-xl font-black text-sm uppercase border-2 tab-on" data-tab="manual" title="Alt + 1">
-        <span>Entrada manual</span>
-        <kbd class="gm-kbd whitespace-nowrap normal-case" title="Alt + 1">Alt + 1</kbd>
-      </button>
-      <button type="button" class="tab-btn inline-flex items-center justify-center gap-2 px-4 sm:px-5 min-h-[48px] rounded-xl font-black text-sm uppercase border-2 tab-off" data-tab="xml" title="Alt + 2">
-        <span>Importar XML</span>
-        <kbd class="gm-kbd whitespace-nowrap normal-case" title="Alt + 2">Alt + 2</kbd>
-      </button>
-      <button type="button" class="tab-btn inline-flex items-center justify-center gap-2 px-4 sm:px-5 min-h-[48px] rounded-xl font-black text-sm uppercase border-2 tab-off" data-tab="sefaz" title="Alt + 3">
-        <span>SEFAZ (DF-e)</span>
-        <kbd class="gm-kbd whitespace-nowrap normal-case" title="Alt + 3">Alt + 3</kbd>
-      </button>
+  <div id="entrada-nfe-view-editor" class="fixed inset-0 z-[50] hidden flex-col bg-slate-50">
+    <div class="shrink-0 gm-bar border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+      <div class="flex flex-wrap items-center gap-2 min-w-0">
+        <button type="button" id="btn-entrada-nfe-voltar-lista" class="min-h-[44px] px-3 rounded-xl border-2 border-slate-300 bg-white text-xs font-black uppercase text-slate-800 hover:bg-slate-50">← Lista</button>
+        <span class="text-xs font-black uppercase text-slate-600 tracking-wide">Nota NF-e</span>
+        <button type="button" class="entrada-nfe-open-ajuda min-h-[40px] min-w-[40px] rounded-xl border-2 border-slate-300 bg-white text-lg font-black text-slate-700 hover:bg-orange-50" title="Ajuda">?</button>
+      </div>
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[40px] text-xs font-black uppercase bg-white shadow-sm px-3 py-2 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-orange-400 shrink-0" %}
+    </div>
+    <div id="entrada-nfe-editor-scroll" class="flex-1 min-h-0 overflow-y-auto">
+      <div class="max-w-[1400px] mx-auto px-3 sm:px-4 py-3 space-y-3">
+
+    <div id="entrada-nfe-rasc-banner" class="hidden rounded-xl border-2 border-sky-300 bg-sky-50 px-3 py-2 text-xs font-bold text-sky-950 flex flex-wrap items-center justify-between gap-2">
+      <span><code id="entrada-nfe-rasc-banner-id" class="text-[10px] bg-white px-1 py-0.5 rounded border border-sky-200 font-mono"></code> · <strong>Salvar</strong> atualiza.</span>
+      <button type="button" id="btn-entrada-nfe-sair-edicao" class="min-h-[40px] px-3 py-1.5 rounded-xl border-2 border-sky-400 bg-white text-[10px] font-black uppercase text-sky-900 hover:bg-sky-100 shrink-0">Novo</button>
     </div>
 
-    <section id="panel-manual" class="tab-panel bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-4 sm:p-6 space-y-5 sm:space-y-6">
-      <div class="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 sm:p-5 space-y-4">
-        <div class="flex flex-wrap items-start gap-3">
-          <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-orange-600 text-white text-lg font-black shrink-0 shadow-sm" aria-hidden="true">1</span>
-          <div class="min-w-0 flex-1">
-            <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight">Fornecedor e identificação da NF</h2>
-            <p class="text-xs font-semibold text-slate-600 mt-1">Fornecedor, empresa faturada, depósito, NF e chave.</p>
-          </div>
-        </div>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="tab-btn inline-flex items-center justify-center px-4 min-h-[44px] rounded-xl font-black text-xs uppercase border-2 tab-on" data-tab="manual" title="Manual">Manual</button>
+      <button type="button" class="tab-btn inline-flex items-center justify-center px-4 min-h-[44px] rounded-xl font-black text-xs uppercase border-2 tab-off" data-tab="xml" title="XML">XML</button>
+      <button type="button" class="tab-btn inline-flex items-center justify-center px-4 min-h-[44px] rounded-xl font-black text-xs uppercase border-2 tab-off" data-tab="sefaz" title="SEFAZ">SEFAZ</button>
+    </div>
+
+    <section id="panel-manual" class="tab-panel bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-3 sm:p-4 space-y-3">
+      <div class="rounded-xl border border-slate-200 bg-slate-50/90 p-3 sm:p-4 space-y-3">
+        <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">Fornecedor e NF</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <label class="block lg:col-span-2"><span class="text-xs font-black uppercase text-slate-600">Fornecedor / emitente (cadastro)</span>
           <div class="relative mt-1">
@@ -128,7 +127,6 @@
             <input type="hidden" id="m-emit-forn-id" value="">
             <ul id="forn-sug" class="forn-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg text-sm z-20"></ul>
           </div>
-          <p class="text-[11px] text-slate-500 font-semibold mt-1">Toque na lista para gravar o fornecedor.</p>
         </label>
         <label class="block"><span class="text-xs font-black uppercase text-slate-600">CNPJ emitente</span>
           <input type="text" id="m-emit-cnpj" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Somente números"></label>
@@ -144,35 +142,27 @@
         <label class="block"><span class="text-xs font-black uppercase text-slate-600">Data entrada (física)</span>
           <input type="date" id="m-data-entrada" class="mt-1 w-full max-w-xs min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black" title="Quando a mercadoria entrou no estoque"></label>
         <div class="md:col-span-2 lg:col-span-3 pt-3 mt-1 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-          <label class="block"><span class="text-xs font-black uppercase text-slate-600">Empresa faturada (estoque Agro) *</span>
-            <select id="m-empresa-faturada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Ajustes de estoque Agro ficam ligados a esta empresa e à loja (Centro/Vila) correspondente.">
+          <label class="block"><span class="text-xs font-black uppercase text-slate-600">Empresa (estoque) *</span>
+            <select id="m-empresa-faturada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Empresa faturada / estoque Agro">
               {% for e in empresas_entrada_nfe %}
               <option value="{{ e.id }}"{% if e.nome == "Agro Mais" %} selected{% endif %}>{{ e.nome }}</option>
               {% empty %}
               <option value="">Cadastre empresas no Admin</option>
               {% endfor %}
             </select>
-            <span class="text-[11px] text-slate-500 font-semibold mt-1 block">Loja pelo depósito (Centro / Vila).</span>
           </label>
-          <label class="block"><span class="text-xs font-black uppercase text-slate-600">Depósito da mercadoria *</span>
-            <select id="m-deposito-entrada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Saldo de referência lido no Mongo do ERP para este depósito.">
+          <label class="block"><span class="text-xs font-black uppercase text-slate-600">Depósito *</span>
+            <select id="m-deposito-entrada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Depósito">
               <option value="centro" selected>Centro</option>
               <option value="vila">Vila Elias</option>
             </select>
-            <span class="text-[11px] text-slate-500 font-semibold mt-1 block">Usado no estoque Agro.</span>
           </label>
         </div>
         </div>
       </div>
 
-      <div class="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 sm:p-5 space-y-3">
-        <div class="flex flex-wrap items-start gap-3">
-          <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-emerald-600 text-white text-lg font-black shrink-0 shadow-sm" aria-hidden="true">2</span>
-          <div class="min-w-0 flex-1">
-            <h2 class="text-base sm:text-lg font-black uppercase text-emerald-950 tracking-tight">Plano de contas (nota inteira · DRE)</h2>
-            <p class="text-xs font-semibold text-emerald-900/90 mt-1">Obrigatório para lançar a pagar.</p>
-          </div>
-        </div>
+      <div class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 sm:p-4 space-y-2">
+        <h2 class="text-sm font-black uppercase text-emerald-950 tracking-tight">Plano de contas</h2>
         <div class="block space-y-2">
           <label for="m-plano-conta" class="sr-only">Plano de contas</label>
           <div class="relative sug-wrap mt-1" data-sug-campo="plano">
@@ -187,16 +177,10 @@
         </div>
       </div>
 
-      <div class="rounded-2xl border-2 border-orange-200 bg-gradient-to-br from-orange-50/80 to-white p-4 sm:p-5 space-y-3">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div class="flex flex-wrap items-start gap-3 min-w-0">
-            <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-orange-600 text-white text-lg font-black shrink-0 shadow-sm" aria-hidden="true">3</span>
-            <div class="min-w-0">
-              <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight">Produtos na nota</h2>
-              <p class="text-xs font-semibold text-slate-600 mt-1"><strong class="text-orange-800">Buscar</strong> em cada linha.</p>
-            </div>
-          </div>
-          <button type="button" id="btn-add-linha" class="min-h-[48px] px-5 py-2.5 rounded-xl bg-white border-2 border-orange-300 text-sm font-black uppercase text-orange-900 hover:bg-orange-50 shadow-sm shrink-0">+ Linha</button>
+      <div class="rounded-xl border-2 border-orange-200 bg-gradient-to-br from-orange-50/80 to-white p-3 sm:p-4 space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">Itens</h2>
+          <button type="button" id="btn-add-linha" class="min-h-[44px] px-4 py-2 rounded-xl bg-white border-2 border-orange-300 text-xs font-black uppercase text-orange-900 hover:bg-orange-50 shrink-0">+ Linha</button>
         </div>
         <div class="overflow-x-auto rounded-xl border-2 border-slate-200 bg-white shadow-inner">
         <table class="w-full text-xs sm:text-sm min-w-[960px]">
@@ -218,18 +202,14 @@
           <tbody id="tbody-itens"></tbody>
         </table>
       </div>
-        <div id="nfe-painel-total-itens" class="flex flex-wrap items-center justify-between gap-2 mt-3 px-3 py-2.5 rounded-xl border-2 border-orange-300 bg-orange-50/95 text-sm font-black text-orange-950 shadow-sm">
-          <span class="leading-tight">Total itens <span class="text-[10px] font-bold uppercase text-orange-800/90 block sm:inline sm:ml-1">(Σ Qtd NF × V. unit)</span></span>
-          <span id="nfe-valor-total-itens" class="tabular-nums text-base sm:text-lg shrink-0">R$&nbsp;0,00</span>
+        <div id="nfe-painel-total-itens" class="flex flex-wrap items-center justify-between gap-2 mt-2 px-3 py-2 rounded-xl border-2 border-orange-300 bg-orange-50/95 text-sm font-black text-orange-950 shadow-sm">
+          <span>Total</span>
+          <span id="nfe-valor-total-itens" class="tabular-nums text-base shrink-0">R$&nbsp;0,00</span>
         </div>
       </div>
 
-      <div class="rounded-2xl border-2 border-emerald-300 bg-emerald-50/50 px-4 py-3 sm:px-5 sm:py-4 shadow-sm">
-        <div class="flex flex-wrap items-center gap-2 min-h-[48px] mb-3">
-          <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-700 text-white text-sm font-black shrink-0" aria-hidden="true">$</span>
-          <h3 class="text-sm sm:text-base font-black uppercase text-emerald-950">Financeiro (opcional)</h3>
-          <span class="text-xs font-bold text-emerald-800/90">Só para o botão verde «Salvar + lançar»</span>
-        </div>
+      <div class="rounded-xl border-2 border-emerald-300 bg-emerald-50/50 px-3 py-3 shadow-sm">
+        <h3 class="text-sm font-black uppercase text-emerald-950 mb-2">Financeiro <span class="text-[10px] font-bold text-emerald-800/90 normal-case">(opcional)</span></h3>
         <div class="space-y-3 text-xs sm:text-sm font-semibold text-emerald-950">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label class="block"><span class="text-xs font-black uppercase text-slate-700">Empresa *</span>
@@ -268,33 +248,17 @@
         </div>
       </div>
 
-      <div class="rounded-2xl border-2 border-orange-400 bg-white p-4 sm:p-6 shadow-md ring-1 ring-orange-200/60">
-        <div class="flex flex-wrap items-start gap-3 mb-4">
-          <span class="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-slate-800 text-white text-lg font-black shrink-0" aria-hidden="true">4</span>
-          <div class="min-w-0 flex-1">
-            <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 tracking-tight">Gravar no sistema</h2>
-            <p class="text-xs font-semibold text-slate-600 mt-1">Laranja = rascunho · Verde = rascunho + financeiro (preencher bloco acima).</p>
-          </div>
-        </div>
-        <div class="flex flex-col lg:flex-row flex-wrap gap-4 items-stretch">
-          <div class="flex-1 min-w-[min(100%,18rem)] flex flex-col gap-2">
-            <button type="button" id="btn-salvar-manual" class="min-h-[52px] w-full px-6 py-3.5 rounded-xl bg-orange-600 text-white font-black text-base uppercase tracking-wide hover:bg-orange-700 shadow-lg border-2 border-orange-700">Salvar só rascunho</button>
-            <p class="text-[11px] font-semibold text-slate-500 text-center lg:text-left">Grava na lista acima.</p>
-          </div>
-          <div class="flex-1 min-w-[min(100%,18rem)] flex flex-col gap-2">
-            <button type="button" id="btn-salvar-fin" class="min-h-[52px] w-full px-6 py-3.5 rounded-xl bg-emerald-700 text-white font-black text-sm sm:text-base uppercase tracking-wide hover:bg-emerald-800 shadow-md border-2 border-emerald-900">Salvar + lançar a pagar</button>
-            <p class="text-[11px] font-semibold text-emerald-800/90 text-center lg:text-left">Exige bloco financeiro preenchido.</p>
-          </div>
+      <div class="rounded-xl border-2 border-orange-400 bg-white p-3 sm:p-4 shadow-md ring-1 ring-orange-200/60">
+        <h2 class="text-sm font-black uppercase text-slate-900 mb-2">Gravar</h2>
+        <div class="flex flex-col sm:flex-row flex-wrap gap-3 items-stretch">
+          <button type="button" id="btn-salvar-manual" class="min-h-[48px] flex-1 min-w-[10rem] px-4 py-3 rounded-xl bg-orange-600 text-white font-black text-sm uppercase hover:bg-orange-700 shadow-lg border-2 border-orange-700">Salvar rascunho</button>
+          <button type="button" id="btn-salvar-fin" class="min-h-[48px] flex-1 min-w-[10rem] px-4 py-3 rounded-xl bg-emerald-700 text-white font-black text-sm uppercase hover:bg-emerald-800 shadow-md border-2 border-emerald-900">Salvar + a pagar</button>
         </div>
       </div>
 
-      <div class="rounded-2xl border-2 border-blue-200 bg-blue-50/80 px-4 py-3 sm:px-5 sm:py-4">
-        <div class="flex flex-wrap items-center gap-2 min-h-[48px] mb-3">
-          <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-blue-700 text-white text-sm font-black shrink-0" aria-hidden="true">+</span>
-          <h3 class="text-sm sm:text-base font-black uppercase text-blue-950">Entrada no estoque Agro</h3>
-        </div>
-        <div class="space-y-3 text-xs sm:text-sm font-semibold text-blue-950">
-          <p class="text-xs text-blue-900/95">Soma <strong>Qtd est.</strong> · só linhas com catálogo · não repita o mesmo clique.</p>
+      <div class="rounded-xl border-2 border-blue-200 bg-blue-50/80 px-3 py-3">
+        <h3 class="text-sm font-black uppercase text-blue-950 mb-2">Estoque Agro</h3>
+        <div class="space-y-2 text-xs font-semibold text-blue-950">
           <div class="flex flex-wrap items-end gap-4">
             <label class="inline-flex items-center gap-2.5 cursor-pointer text-sm font-bold text-blue-950 min-h-[48px]">
               <input type="checkbox" id="chk-estoque-com-rascunho" class="h-5 w-5 rounded border-slate-300 accent-blue-600">
@@ -308,31 +272,19 @@
       </div>
     </section>
 
-    <div id="modal-prod" class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-prod-titulo">
-      <div class="bg-white rounded-2xl shadow-2xl max-w-[min(42rem,96vw)] w-full p-5 sm:p-6 border-2 border-slate-200 max-h-[85vh] overflow-hidden flex flex-col">
-        <h3 id="modal-prod-titulo" class="text-base font-black uppercase text-slate-900">Buscar produto no catálogo</h3>
-        <p class="text-xs sm:text-sm text-slate-600 font-bold mt-2">Linha: <span id="modal-prod-linha" class="text-slate-900">—</span></p>
-        <input type="text" id="modal-prod-q" class="mt-4 w-full min-h-[52px] rounded-xl border-2 border-slate-300 px-3 py-3 text-base font-bold focus:border-orange-500 outline-none" placeholder="Nome, código ou EAN…" autocomplete="off">
-        <ul id="modal-prod-res" class="mt-3 flex-1 overflow-y-auto min-h-[140px] max-h-72 border-2 border-slate-100 rounded-xl divide-y divide-slate-100 text-sm"></ul>
-        <button type="button" id="modal-prod-fechar" class="mt-4 min-h-[48px] px-5 py-2.5 rounded-xl border-2 border-slate-300 font-black text-sm uppercase text-slate-700 hover:bg-slate-50">Fechar</button>
-      </div>
-    </div>
-
-    <section id="panel-xml" class="tab-panel hidden bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
-      <h2 class="text-base font-black uppercase text-slate-800">Importar XML da NF-e</h2>
-      <p class="text-xs font-semibold text-slate-600">NF-e autorizada · depois confira na aba manual e salve.</p>
+    <section id="panel-xml" class="tab-panel hidden bg-white rounded-xl border-2 border-slate-200 shadow-sm p-3 sm:p-4 space-y-3">
+      <h2 class="text-sm font-black uppercase text-slate-800">XML</h2>
       <div class="flex flex-wrap items-end gap-3">
         <label class="block flex-1 min-w-[12rem] max-w-xl"><span class="text-xs font-black uppercase text-slate-600">Arquivo XML</span>
           <input type="file" id="xml-file" accept=".xml,text/xml,application/xml" class="mt-1 block w-full min-h-[48px] text-sm font-bold border-2 border-slate-200 rounded-xl px-2 py-2 bg-white"></label>
         <button type="button" id="btn-parse-xml" class="min-h-[48px] px-6 py-3 rounded-xl bg-blue-600 text-white font-black text-sm uppercase hover:bg-blue-700 shadow-sm">Ler XML</button>
       </div>
-      <button type="button" id="btn-salvar-xml" class="min-h-[52px] px-8 py-3.5 rounded-xl bg-orange-600 text-white font-black text-sm uppercase hover:bg-orange-700 shadow-md border-2 border-orange-700 w-full sm:w-auto">Salvar rascunho (veio do XML)</button>
+      <button type="button" id="btn-salvar-xml" class="min-h-[48px] px-6 py-3 rounded-xl bg-orange-600 text-white font-black text-xs uppercase hover:bg-orange-700 shadow-md border-2 border-orange-700 w-full sm:w-auto">Salvar rascunho</button>
     </section>
 
-    <section id="panel-sefaz" class="tab-panel hidden bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-4 sm:p-6 space-y-4">
-      <h2 class="text-base font-black uppercase text-slate-800">Buscar nota na SEFAZ (DF-e)</h2>
-      <p class="text-xs font-semibold text-slate-600">Certificado no servidor · carrega na grade manual.</p>
-      <div id="sefaz-status" class="rounded-xl border-2 border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">Carregando status…</div>
+    <section id="panel-sefaz" class="tab-panel hidden bg-white rounded-xl border-2 border-slate-200 shadow-sm p-3 sm:p-4 space-y-3">
+      <h2 class="text-sm font-black uppercase text-slate-800">SEFAZ (DF-e)</h2>
+      <div id="sefaz-status" class="rounded-xl border-2 border-slate-200 bg-slate-50 p-3 text-xs font-semibold text-slate-700">Carregando…</div>
       <div class="flex flex-wrap gap-3 items-end">
         <label class="block"><span class="text-xs font-black uppercase text-slate-600">ultNSU (opcional)</span>
           <input type="text" id="sefaz-ult" class="mt-1 w-44 min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono" placeholder="Vazio = cursor salvo"></label>
@@ -342,7 +294,19 @@
       <div id="sefaz-previews" class="space-y-2"></div>
     </section>
 
-  </main>
+      </div>
+    </div>
+  </div>
+
+    <div id="modal-prod" class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-prod-titulo">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-[min(42rem,96vw)] w-full p-5 sm:p-6 border-2 border-slate-200 max-h-[85vh] overflow-hidden flex flex-col">
+        <h3 id="modal-prod-titulo" class="text-base font-black uppercase text-slate-900">Buscar produto</h3>
+        <p class="text-xs text-slate-600 font-bold mt-2">Linha: <span id="modal-prod-linha" class="text-slate-900">—</span></p>
+        <input type="text" id="modal-prod-q" class="mt-4 w-full min-h-[52px] rounded-xl border-2 border-slate-300 px-3 py-3 text-base font-bold focus:border-orange-500 outline-none" placeholder="Nome, código ou EAN…" autocomplete="off">
+        <ul id="modal-prod-res" class="mt-3 flex-1 overflow-y-auto min-h-[140px] max-h-72 border-2 border-slate-100 rounded-xl divide-y divide-slate-100 text-sm"></ul>
+        <button type="button" id="modal-prod-fechar" class="mt-4 min-h-[48px] px-5 py-2.5 rounded-xl border-2 border-slate-300 font-black text-sm uppercase text-slate-700 hover:bg-slate-50">Fechar</button>
+      </div>
+    </div>
 
   <div id="modal-entrada-nfe-ajuda" class="hidden fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-entrada-nfe-ajuda-titulo">
     <div class="bg-white rounded-2xl shadow-2xl max-w-[min(36rem,96vw)] w-full max-h-[min(85vh,640px)] overflow-hidden flex flex-col border-2 border-slate-200">
@@ -351,7 +315,7 @@
         <button type="button" id="modal-entrada-nfe-ajuda-fechar" class="min-h-[44px] px-4 rounded-xl border-2 border-slate-300 text-xs font-black uppercase text-slate-700 hover:bg-slate-100">Fechar</button>
       </div>
       <div class="p-4 sm:p-5 overflow-y-auto text-sm font-semibold text-slate-700 space-y-4 leading-relaxed">
-        <p class="text-slate-900"><strong class="text-orange-700">Resumo:</strong> preencha a nota e a grade, depois <strong>Salvar só rascunho</strong> grava no Agro. O estoque da loja só muda com <strong>Entrada no estoque Agro</strong> (ou outro ajuste autorizado).</p>
+        <p class="text-slate-900"><strong class="text-orange-700">Resumo:</strong> preencha a nota e a grade; <strong>Salvar rascunho</strong> grava no Agro. O estoque da loja só muda com <strong>Registrar entrada no estoque Agro</strong> (ou outro ajuste autorizado).</p>
         <div class="border-l-4 border-orange-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Uso</p>
           <p>Conferir nota, buscar fornecedor e produtos cadastrados, ratear quantidade (ex.: 1 caixa = 10 un.), data de entrada, plano de contas da nota (DRE) e, se quiser, gerar conta a pagar no Mongo (como no <a href="{% url 'lancamentos_manual' %}" class="text-orange-700 underline font-black">lançamento manual</a>). Salvar rascunho <strong>não</strong> altera o estoque do ERP sozinho.</p>
@@ -367,7 +331,7 @@
         </div>
         <div class="border-l-4 border-emerald-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Financeiro (opcional)</p>
-          <p>Preencha empresa, competência, 1º vencimento, parcelas se houver, forma e banco antes de <strong>Salvar + lançar a pagar</strong>.</p>
+          <p>Preencha empresa, competência, 1º vencimento, parcelas se houver, forma e banco antes de <strong>Salvar + a pagar</strong>.</p>
         </div>
         <div class="border-l-4 border-blue-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Estoque Agro</p>
@@ -465,6 +429,29 @@
     return m ? decodeURIComponent(m[2]) : '';
   }
 
+  const elEditorNfe = document.getElementById('entrada-nfe-view-editor');
+  const elEditorScroll = document.getElementById('entrada-nfe-editor-scroll');
+
+  function entradaNfeAbrirEditor() {
+    document.body.classList.add('entrada-nfe--editor');
+    if (elEditorNfe) {
+      elEditorNfe.classList.remove('hidden');
+      elEditorNfe.classList.add('flex');
+    }
+    try {
+      elEditorScroll?.scrollTo(0, 0);
+    } catch (_) {}
+  }
+
+  function entradaNfeFecharEditor() {
+    document.body.classList.remove('entrada-nfe--editor');
+    if (elEditorNfe) {
+      elEditorNfe.classList.add('hidden');
+      elEditorNfe.classList.remove('flex');
+    }
+    carregarRascunhos();
+  }
+
   const elModalAjudaNfe = document.getElementById('modal-entrada-nfe-ajuda');
   function abrirModalAjudaEntradaNfe() {
     if (elModalAjudaNfe) {
@@ -474,10 +461,13 @@
   }
   function fecharModalAjudaEntradaNfe() {
     if (elModalAjudaNfe) elModalAjudaNfe.classList.add('hidden');
-    document.getElementById('btn-entrada-nfe-ajuda')?.focus();
+    (document.querySelector('.entrada-nfe-open-ajuda') || document.getElementById('btn-entrada-nfe-voltar-lista'))?.focus();
   }
 
-  document.getElementById('btn-entrada-nfe-ajuda')?.addEventListener('click', abrirModalAjudaEntradaNfe);
+  document.querySelectorAll('.entrada-nfe-open-ajuda').forEach((btn) => {
+    btn.addEventListener('click', abrirModalAjudaEntradaNfe);
+  });
+  document.getElementById('btn-entrada-nfe-voltar-lista')?.addEventListener('click', () => entradaNfeFecharEditor());
   document.getElementById('modal-entrada-nfe-ajuda-fechar')?.addEventListener('click', fecharModalAjudaEntradaNfe);
   elModalAjudaNfe?.addEventListener('click', (e) => {
     if (e.target === elModalAjudaNfe) fecharModalAjudaEntradaNfe();
@@ -494,9 +484,6 @@
       ok ? 'text-emerald-950' : 'text-red-900'
     );
     el.classList.remove('hidden');
-    try {
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } catch (_) {}
   }
 
   let ultimaNotaParse = null;
@@ -791,6 +778,7 @@
   }
 
   async function carregarRascunhoNaTela(id) {
+    entradaNfeAbrirEditor();
     try {
       const r = await fetch(`${URL_RASC_OBTER}?id=${encodeURIComponent(id)}`, { credentials: 'same-origin' });
       const j = await r.json();
@@ -801,7 +789,7 @@
       aplicarRascunhoNaGrade(j.rascunho);
       setEntradaNfeRascunhoEdit(id);
       document.querySelector('.tab-btn[data-tab="manual"]')?.click();
-      showMsg('Nota aberta na grade (aba manual).', true);
+      showMsg('Nota aberta.', true);
     } catch (_) {
       showMsg('Erro de rede ao abrir rascunho.', false);
     }
@@ -1160,6 +1148,7 @@
 
   document.querySelectorAll('.tab-btn').forEach((b) => {
     b.addEventListener('click', () => {
+      entradaNfeAbrirEditor();
       const tab = b.dataset.tab;
       document.querySelectorAll('.tab-btn').forEach((x) => {
         x.classList.toggle('tab-on', x.dataset.tab === tab);
@@ -1402,10 +1391,21 @@
   });
 
   document.getElementById('btn-entrada-nfe-nova').addEventListener('click', () => {
+    entradaNfeAbrirEditor();
     setEntradaNfeRascunhoEdit(null);
     document.querySelector('.tab-btn[data-tab="manual"]')?.click();
+    fornHid.value = '';
+    fornInp.value = '';
+    document.getElementById('m-emit-cnpj').value = '';
+    document.getElementById('m-nf').value = '';
+    document.getElementById('m-serie').value = '';
+    document.getElementById('m-chave').value = '';
+    document.getElementById('m-dh').value = '';
+    tbodyClear();
+    addLinhaRow({});
+    addLinhaRow({});
+    atualizarPainelTotalNfe();
     showMsg('Nova entrada.', true);
-    document.getElementById('panel-manual')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   document.getElementById('btn-refresh-rasc').addEventListener('click', carregarRascunhos);
@@ -1418,6 +1418,11 @@
     if (e.key === 'Escape' && elModalAjudaNfe && !elModalAjudaNfe.classList.contains('hidden')) {
       e.preventDefault();
       fecharModalAjudaEntradaNfe();
+      return;
+    }
+    if (e.key === 'Escape' && document.body.classList.contains('entrada-nfe--editor')) {
+      e.preventDefault();
+      entradaNfeFecharEditor();
       return;
     }
     if (!e.altKey || e.ctrlKey || e.shiftKey) return;
@@ -1444,6 +1449,7 @@
     setEntradaNfeRascunhoEdit(null);
     if (rawOc) {
       try {
+        entradaNfeAbrirEditor();
         const pr = JSON.parse(rawOc);
         sessionStorage.removeItem('agro_entrada_oc_prefill_v1');
         const cab = pr.cabecalho || {};
