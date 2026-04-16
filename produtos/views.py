@@ -447,6 +447,7 @@ def _aplicar_produto_gestao_overlay_em_dict(
         row["inativo"] = not bool(ov.ativo_exibicao)
         if "cadastro_inativo" in row:
             row["cadastro_inativo"] = bool(row["inativo"])
+    row["ativo_exibicao"] = ov.ativo_exibicao
     return row
 
 
@@ -2685,7 +2686,14 @@ def compras_view(request):
 @ensure_csrf_cookie
 def produtos_cadastro_erp_view(request):
     """Consulta de cadastro de produtos espelhados do ERP (Mongo), sem saldo; aba de grupos locais."""
-    return render(request, "produtos/produtos_cadastro_erp.html")
+    return render(
+        request,
+        "produtos/produtos_cadastro_erp.html",
+        {
+            "pode_editar_overlay": getattr(request, "user", None) and request.user.is_authenticated,
+            "login_overlay_next": request.get_full_path() or reverse("produtos_cadastro_erp"),
+        },
+    )
 
 
 @ensure_csrf_cookie
