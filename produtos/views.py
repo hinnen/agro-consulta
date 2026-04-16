@@ -5878,8 +5878,8 @@ def api_buscar_produtos(request):
                     prods = [p_bal]
                 else:
                     prods = motor_de_busca_agro(q, db, client, limit=80)
-                else:
-                    prods = motor_de_busca_agro(q, db, client, limit=80)
+            else:
+                prods = motor_de_busca_agro(q, db, client, limit=80)
         vistos_busca = {str(p.get("Id") or p["_id"]) for p in prods}
         if not wizard_catalog and q:
             extras_ov = _mongo_produtos_por_overlay_codigo_busca(q, db, client, vistos_busca)
