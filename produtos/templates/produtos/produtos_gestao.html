@@ -6,323 +6,165 @@
   <title>Agro Mais | Gestão de produtos</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   {% include "produtos/_head_perf_mpa.html" %}
+  <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
   <style>
-    :root {
-      --gm-bg: #0f1115;
-      --gm-bg2: #12151a;
-      --gm-card: #171b21;
-      --gm-card2: #1b2027;
-      --gm-border: rgba(255,255,255,.08);
-      --gm-text: #e8eaef;
-      --gm-muted: #8b93a7;
-      --gm-orange: #f07a2b;
-      --gm-green: #4caf50;
-      --gm-danger: #ef5350;
-    }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; }
-    body.gm-body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: var(--gm-bg);
-      color: var(--gm-text);
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-    .gm-shell { display: flex; flex: 1; min-height: 0; }
-    .gm-side {
-      width: 13.5rem;
-      flex-shrink: 0;
-      background: var(--gm-bg2);
-      border-right: 1px solid var(--gm-border);
-      display: flex;
-      flex-direction: column;
-    }
-    .gm-side-brand {
-      padding: 1rem 1rem 0.75rem;
-      font-weight: 900;
-      font-size: 0.72rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--gm-muted);
-    }
-    .gm-side-brand span { color: var(--gm-orange); }
-    .gm-nav { padding: 0.35rem 0.5rem 1rem; display: flex; flex-direction: column; gap: 0.2rem; flex: 1; min-height: 0; overflow-y: auto; }
-    .gm-nav button {
-      display: flex; align-items: center; gap: 0.5rem;
-      width: 100%; text-align: left;
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--gm-muted);
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      padding: 0.55rem 0.65rem;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      min-height: 2.5rem;
-    }
-    .gm-nav button:hover { color: var(--gm-text); background: rgba(255,255,255,.04); }
-    .gm-nav button.gm-nav-active {
-      color: #fff;
-      background: rgba(240,122,43,.14);
-      border-color: rgba(240,122,43,.35);
-    }
-    .gm-nav-ic { width: 1.1rem; text-align: center; opacity: 0.85; }
-    .gm-side-foot {
-      padding: 0.75rem 0.85rem;
-      border-top: 1px solid var(--gm-border);
-      font-size: 0.68rem;
-      color: var(--gm-muted);
-      line-height: 1.35;
-    }
-    .gm-side-foot strong { color: #cbd5e1; display: block; font-size: 0.72rem; margin-bottom: 0.15rem; }
-    .gm-main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-    .gm-top {
-      flex-shrink: 0;
-      padding: 0.65rem 1rem;
-      background: var(--gm-bg2);
-      border-bottom: 1px solid var(--gm-border);
-      display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem;
-    }
-    .gm-search-wrap { flex: 1; min-width: 12rem; }
-    .gm-search {
-      width: 100%;
-      min-height: 2.65rem;
-      border-radius: 0.55rem;
-      border: 2px solid rgba(76,175,80,.35);
-      background: var(--gm-card);
-      color: var(--gm-text);
-      font-size: 1rem;
-      font-weight: 600;
-      padding: 0 0.85rem;
-      outline: none;
-    }
-    .gm-search:focus { border-color: var(--gm-orange); box-shadow: 0 0 0 3px rgba(240,122,43,.18); }
-    .gm-search-ph { font-size: 0.65rem; color: var(--gm-muted); margin-top: 0.2rem; padding-left: 0.1rem; }
-    .gm-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; }
-    .gm-btn {
-      border-radius: 0.5rem;
-      font-weight: 800;
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 0.55rem 0.85rem;
-      min-height: 2.5rem;
-      cursor: pointer;
-      border: 1px solid var(--gm-border);
-      background: var(--gm-card);
-      color: var(--gm-text);
-    }
-    .gm-btn:hover { background: var(--gm-card2); }
-    .gm-btn-primary {
-      background: var(--gm-orange);
-      border-color: #d66a24;
-      color: #1a0f08;
-    }
-    .gm-btn-primary:hover { filter: brightness(1.06); }
-    .gm-btn-ghost { background: transparent; color: var(--gm-muted); }
-    .gm-filters {
-      display: none;
-      padding: 0.5rem 1rem;
-      background: var(--gm-card);
-      border-bottom: 1px solid var(--gm-border);
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      align-items: flex-end;
-    }
-    .gm-filters.gm-open { display: flex; }
-    .gm-filters label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; color: var(--gm-muted); }
-    .gm-filters select {
-      min-height: 2.35rem; min-width: 9rem;
-      border-radius: 0.45rem;
-      border: 1px solid var(--gm-border);
-      background: var(--gm-bg2);
-      color: var(--gm-text);
-      font-weight: 600;
-      padding: 0 0.45rem;
-    }
-    .gm-strip { display: none; padding: 0.4rem 1rem; gap: 0.35rem; flex-wrap: wrap; border-bottom: 1px solid var(--gm-border); background: #141820; }
-    .gm-strip.gm-open { display: flex; }
-    .gm-chip {
-      font-size: 0.72rem; font-weight: 700;
-      padding: 0.35rem 0.65rem;
-      border-radius: 999px;
-      border: 1px solid var(--gm-border);
-      background: var(--gm-card);
-      color: var(--gm-muted);
-      cursor: pointer;
-    }
-    .gm-chip:hover { color: var(--gm-text); border-color: rgba(240,122,43,.4); }
-    .gm-chip.gm-chip-on { color: #fff; border-color: var(--gm-orange); background: rgba(240,122,43,.12); }
-    .gm-list { flex: 1; overflow-y: auto; padding: 0.55rem 0.85rem 1rem; }
-    .gm-row {
-      background: var(--gm-card);
-      border: 1px solid var(--gm-border);
-      border-radius: 0.65rem;
-      margin-bottom: 0.5rem;
-      overflow: hidden;
-    }
-    .gm-row.gm-row-editing { border-color: rgba(240,122,43,.55); box-shadow: 0 0 0 1px rgba(240,122,43,.2); }
-    .gm-row-hd {
-      display: flex; flex-wrap: wrap; gap: 0.65rem 1rem;
-      padding: 0.65rem 0.75rem; align-items: flex-start;
-    }
-    .gm-row-hd > div:first-child { flex: 1 1 14rem; min-width: 11rem; }
-    .gm-row-metrics { display: flex; flex-wrap: wrap; gap: 0.75rem 1.1rem; align-items: flex-end; flex: 2 1 22rem; }
-    .gm-code { font-size: 1.35rem; font-weight: 900; color: var(--gm-orange); line-height: 1.1; letter-spacing: -0.02em; }
-    .gm-name { font-size: 1rem; font-weight: 800; color: #fff; margin-top: 0.15rem; }
-    .gm-sub { font-size: 0.72rem; color: var(--gm-muted); font-weight: 600; margin-top: 0.2rem; }
-    .gm-ean { font-size: 0.68rem; color: #6b7280; font-family: ui-monospace, monospace; }
-    .gm-stk-c { text-align: right; }
-    .gm-stk-c .gm-stk-val { font-size: 1.25rem; font-weight: 900; color: var(--gm-green); }
-    .gm-stk-c .gm-stk-lbl { font-size: 0.58rem; font-weight: 800; text-transform: uppercase; color: #81c784; letter-spacing: 0.06em; }
-    .gm-stk-v, .gm-stk-t { text-align: right; }
-    .gm-stk-v .gm-stk-val, .gm-stk-t .gm-stk-val { font-size: 0.88rem; font-weight: 700; color: #9aa3b5; }
-    .gm-stk-v .gm-stk-lbl, .gm-stk-t .gm-stk-lbl { font-size: 0.55rem; font-weight: 800; text-transform: uppercase; color: #5c6578; }
-    .gm-preco { text-align: right; font-size: 1rem; font-weight: 800; color: #fff; }
-    .gm-row-act { display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: flex-end; align-items: center; margin-left: auto; }
-    .gm-act { font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.45rem 0.55rem; border-radius: 0.45rem; border: 1px solid var(--gm-border); background: #222831; color: #e8eaef; cursor: pointer; min-height: 2.25rem; }
-    .gm-act:hover { background: #2a313c; }
-    .gm-act-main { background: rgba(76,175,80,.18); border-color: rgba(76,175,80,.45); color: #c8e6c9; }
-    .gm-act-main:hover { background: rgba(76,175,80,.28); }
-    .gm-expand { display: none; padding: 0.65rem 0.75rem 0.85rem; border-top: 1px solid var(--gm-border); background: #141820; }
-    .gm-expand.gm-open { display: block; }
-    .gm-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; max-width: 28rem; }
-    .gm-grid2 label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; color: var(--gm-muted); }
-    .gm-grid2 input {
-      min-height: 2.4rem; border-radius: 0.45rem; border: 1px solid var(--gm-border);
-      background: var(--gm-card); color: #fff; font-weight: 700; padding: 0 0.5rem;
-    }
-    .gm-expand-actions { display: flex; gap: 0.45rem; margin-top: 0.65rem; flex-wrap: wrap; }
-    .gm-banner { display: none; margin: 0.5rem 1rem; padding: 0.65rem 0.85rem; border-radius: 0.5rem; background: rgba(239,83,80,.12); border: 1px solid rgba(239,83,80,.35); color: #ffcdd2; font-weight: 600; font-size: 0.85rem; }
-    .gm-banner.gm-open { display: block; }
-    .gm-pag { flex-shrink: 0; padding: 0.45rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; border-top: 1px solid var(--gm-border); background: var(--gm-bg2); font-size: 0.72rem; color: var(--gm-muted); font-weight: 700; }
-    .gm-drawer-back {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 80;
-    }
-    .gm-drawer-back.gm-open { display: block; }
-    .gm-drawer {
-      position: fixed; top: 0; right: 0; height: 100%; width: min(26rem, 96vw);
-      background: var(--gm-card2); border-left: 1px solid var(--gm-border);
-      z-index: 90; transform: translateX(100%); transition: transform 0.2s ease;
-      display: flex; flex-direction: column; box-shadow: -8px 0 32px rgba(0,0,0,.45);
-    }
-    .gm-drawer.gm-open { transform: translateX(0); }
-    .gm-drawer-hd { padding: 0.85rem 1rem; border-bottom: 1px solid var(--gm-border); font-weight: 900; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
-    .gm-drawer-bd { flex: 1; overflow-y: auto; padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.65rem; }
-    .gm-field label { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; color: var(--gm-muted); display: block; margin-bottom: 0.25rem; }
-    .gm-field input, .gm-field select {
-      width: 100%; min-height: 2.4rem; border-radius: 0.45rem; border: 1px solid var(--gm-border);
-      background: var(--gm-bg); color: #fff; font-weight: 600; padding: 0 0.55rem;
-    }
-    details.gm-more > summary { list-style: none; cursor: pointer; color: var(--gm-muted); font-weight: 900; padding: 0.35rem 0.45rem; border-radius: 0.35rem; }
-    details.gm-more > summary::-webkit-details-marker { display: none; }
-    details.gm-more[open] > summary { color: var(--gm-orange); }
-    .gm-more-body { position: absolute; right: 0; margin-top: 0.25rem; background: var(--gm-card); border: 1px solid var(--gm-border); border-radius: 0.45rem; padding: 0.35rem; min-width: 10rem; z-index: 5; }
-    .gm-more-body a, .gm-more-body button {
-      display: block; width: 100%; text-align: left; padding: 0.45rem 0.55rem; border: none; background: transparent;
-      color: var(--gm-text); font-size: 0.75rem; font-weight: 600; cursor: pointer; border-radius: 0.35rem;
-    }
-    .gm-more-body a:hover, .gm-more-body button:hover { background: rgba(255,255,255,.06); }
-    .gm-rel { position: relative; }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .gm-tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .gm-tbl thead th { position: sticky; top: 0; z-index: 2; }
   </style>
 </head>
-<body class="gm-body">
+<body class="min-h-screen bg-slate-100 text-slate-800 flex flex-col">
   {% csrf_token %}
-  <div id="gm-banner" class="gm-banner"></div>
-  <div class="gm-shell">
-    <aside class="gm-side" aria-label="Navegação gestão">
-      <div class="gm-side-brand">GM <span>AGRO MAIS</span></div>
-      <nav class="gm-nav" id="gm-nav">
-        <button type="button" data-mode="produtos" class="gm-nav-active"><span class="gm-nav-ic">▣</span> Produtos</button>
-        <button type="button" data-mode="marcas"><span class="gm-nav-ic">◆</span> Marcas</button>
-        <button type="button" data-mode="categorias"><span class="gm-nav-ic">◇</span> Categorias</button>
-        <button type="button" data-mode="fornecedores"><span class="gm-nav-ic">◎</span> Fornecedores</button>
-      </nav>
-      <div class="gm-side-foot">
-        <strong>Empresa</strong>
-        {{ empresa_nome|default:"—" }}
-        <strong style="margin-top:0.5rem">Usuário</strong>
-        {{ usuario_label }}
-        <div style="margin-top:0.65rem">
-          <a href="{% url 'produtos_cadastro_erp' %}" style="color:#f07a2b;font-weight:700;font-size:0.68rem;text-decoration:none">Grupos multi-marca →</a>
+  {% include "produtos/_gm_loading_bar.html" %}
+
+  <div id="gm-banner" class="hidden mx-3 mt-3 rounded-xl border-2 border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"></div>
+
+  <header class="shrink-0 border-b border-slate-200 bg-white shadow-sm">
+    <div class="max-w-[1800px] mx-auto px-3 sm:px-5 py-4 flex flex-wrap items-start justify-between gap-4">
+      <div class="flex items-start gap-3 min-w-0">
+        <div class="h-12 w-12 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0 shadow-md border border-emerald-700/30">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Gestão de produtos</h1>
+          <p class="text-xs sm:text-sm font-semibold text-slate-500 mt-0.5">Catálogo espelho ERP, estoque Agro e overlay local (login).</p>
         </div>
       </div>
-    </aside>
-    <main class="gm-main">
-      <header class="gm-top">
-        <div class="gm-search-wrap">
-          <input type="search" id="gm-q" autocomplete="off" placeholder="Código GM, nome ou código de barras…" class="gm-search" />
-          <div class="gm-search-ph">Enter busca · F3 foca aqui</div>
-        </div>
-        <div class="gm-actions">
-          <button type="button" class="gm-btn gm-btn-ghost" id="gm-filtros">Filtros</button>
-          <button type="button" class="gm-btn gm-btn-ghost" id="gm-importar" disabled title="Em breve">Importar</button>
-          <a class="gm-btn gm-btn-primary" href="/admin/produtos/produto/add/" target="_blank" rel="noopener">Novo produto</a>
-        </div>
-      </header>
-      <div id="gm-filters" class="gm-filters">
-        <label>Status
-          <select id="f-status">
-            <option value="ativos">Ativos</option>
-            <option value="inativos">Inativos</option>
-            <option value="todos">Todos</option>
-          </select>
-        </label>
-        <label>Marca
-          <select id="f-marca"><option value="">(todas)</option></select>
-        </label>
-        <label>Categoria
-          <select id="f-cat"><option value="">(todas)</option></select>
-        </label>
-        <label>Fornecedor
-          <select id="f-forn"><option value="">(todos)</option></select>
-        </label>
-        <button type="button" class="gm-btn gm-btn-primary" id="f-aplicar">Aplicar</button>
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-3 py-2 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-orange-400 hover:text-orange-600 transition-colors" %}
+        <a href="{% url 'produtos_cadastro_erp' %}" class="inline-flex items-center justify-center min-h-[44px] px-3 rounded-xl text-xs font-black uppercase border-2 border-emerald-200 bg-emerald-50 text-emerald-900 hover:border-emerald-400 transition-colors">Cadastro ERP</a>
+        <button type="button" id="gm-importar" disabled title="Em breve"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-xl text-xs font-black uppercase border-2 border-slate-200 bg-white text-slate-400 cursor-not-allowed">Importar CSV</button>
+        <a class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-xl text-xs font-black uppercase bg-orange-500 text-white border-2 border-orange-600 shadow-sm hover:bg-orange-600 transition-colors" href="/admin/produtos/produto/add/" target="_blank" rel="noopener">+ Novo produto</a>
       </div>
-      <div id="gm-strip" class="gm-strip"></div>
-      <div class="gm-list" id="gm-list"></div>
-      <div class="gm-pag">
-        <span id="gm-meta">—</span>
-        <div style="display:flex;gap:0.35rem;align-items:center">
-          <button type="button" class="gm-btn" id="gm-prev">Anterior</button>
-          <button type="button" class="gm-btn gm-btn-primary" id="gm-next">Próxima</button>
-        </div>
-      </div>
-    </main>
+    </div>
+  </header>
+
+  <div class="max-w-[1800px] mx-auto w-full px-3 sm:px-5 py-3 flex flex-wrap gap-2 border-b border-slate-200/80 bg-slate-50/80" role="tablist" aria-label="Vista da lista">
+    <button type="button" data-mode="produtos" class="gm-tab min-h-[44px] px-4 rounded-xl text-xs font-black uppercase border-2 border-emerald-600 bg-emerald-50 text-emerald-900 shadow-sm">Produtos</button>
+    <button type="button" data-mode="marcas" class="gm-tab min-h-[44px] px-4 rounded-xl text-xs font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-300">Marcas</button>
+    <button type="button" data-mode="categorias" class="gm-tab min-h-[44px] px-4 rounded-xl text-xs font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-300">Categorias</button>
+    <button type="button" data-mode="fornecedores" class="gm-tab min-h-[44px] px-4 rounded-xl text-xs font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-300">Fornecedores</button>
   </div>
 
-  <div id="gm-drawer-back" class="gm-drawer-back"></div>
-  <aside id="gm-drawer" class="gm-drawer" aria-hidden="true">
-    <div class="gm-drawer-hd">
-      <span>Editar produto</span>
-      <button type="button" class="gm-btn gm-btn-ghost" id="gm-drawer-x" style="min-height:2rem;padding:0.25rem 0.5rem">✕</button>
+  <div class="max-w-[1800px] mx-auto w-full px-3 sm:px-5 py-3 flex flex-col lg:flex-row gap-3 items-stretch lg:items-end bg-slate-50/80 border-b border-slate-200/80">
+    <label class="flex-1 min-w-[12rem] block">
+      <span class="sr-only">Buscar</span>
+      <input type="search" id="gm-q" autocomplete="off" placeholder="Buscar código GM, nome ou código de barras…"
+        class="w-full min-h-[48px] px-4 rounded-xl border-[3px] border-emerald-500 text-base font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-200/50 bg-white shadow-sm" />
+    </label>
+    <div class="flex flex-wrap gap-2 items-end">
+      <label class="flex flex-col gap-1 min-w-[9.5rem]">
+        <span class="text-[10px] font-black uppercase text-slate-500 tracking-wide">Status</span>
+        <select id="f-status" class="min-h-[44px] rounded-xl border-2 border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 shadow-sm">
+          <option value="ativos">Ativos</option>
+          <option value="inativos">Inativos</option>
+          <option value="todos">Todos</option>
+        </select>
+      </label>
+      <label class="flex flex-col gap-1 min-w-[9.5rem]">
+        <span class="text-[10px] font-black uppercase text-slate-500 tracking-wide">Marca</span>
+        <select id="f-marca" class="min-h-[44px] rounded-xl border-2 border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 shadow-sm"><option value="">Todas</option></select>
+      </label>
+      <label class="flex flex-col gap-1 min-w-[9.5rem]">
+        <span class="text-[10px] font-black uppercase text-slate-500 tracking-wide">Categoria</span>
+        <select id="f-cat" class="min-h-[44px] rounded-xl border-2 border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 shadow-sm"><option value="">Todas</option></select>
+      </label>
+      <label class="flex flex-col gap-1 min-w-[10rem]">
+        <span class="text-[10px] font-black uppercase text-slate-500 tracking-wide">Fornecedor</span>
+        <select id="f-forn" class="min-h-[44px] rounded-xl border-2 border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 shadow-sm"><option value="">Todos</option></select>
+      </label>
+      <button type="button" id="f-aplicar" class="min-h-[44px] px-5 rounded-xl text-xs font-black uppercase bg-slate-800 text-white border-2 border-slate-900 shadow-sm hover:bg-slate-900">Filtrar</button>
     </div>
-    <div class="gm-drawer-bd">
+  </div>
+
+  <div id="gm-strip" class="hidden max-w-[1800px] mx-auto w-full px-3 sm:px-5 py-2 flex flex-wrap gap-2 border-b border-slate-200 bg-white"></div>
+
+  <main class="flex-1 min-h-0 flex flex-col max-w-[1800px] mx-auto w-full px-3 sm:px-5 py-3">
+    <div class="gm-tbl-wrap flex-1 min-h-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <table class="w-full text-left text-sm border-collapse min-w-[960px]">
+        <thead class="bg-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">
+          <tr>
+            <th class="px-2 py-3 w-12 text-center">—</th>
+            <th class="px-3 py-3">Nome</th>
+            <th class="px-2 py-3 whitespace-nowrap">Código</th>
+            <th class="px-2 py-3">Categoria</th>
+            <th class="px-2 py-3">Marca</th>
+            <th class="px-2 py-3 text-center">Un.</th>
+            <th class="px-2 py-3 text-right whitespace-nowrap">Custo</th>
+            <th class="px-2 py-3 text-right whitespace-nowrap">Venda</th>
+            <th class="px-2 py-3 text-right whitespace-nowrap">Estoque</th>
+            <th class="px-2 py-3 text-center">Status</th>
+            <th class="px-3 py-3 text-right w-36">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="gm-list" class="divide-y divide-slate-100"></tbody>
+      </table>
+    </div>
+
+    <footer class="shrink-0 mt-3 flex flex-col gap-2">
+      <div class="flex flex-wrap items-center justify-between gap-3 py-2 px-1 text-xs font-bold text-slate-600">
+        <span id="gm-meta">—</span>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" id="gm-prev" class="min-h-[40px] px-3 rounded-xl border-2 border-slate-200 bg-white font-black uppercase text-slate-700 hover:border-orange-300 disabled:opacity-40 disabled:pointer-events-none">Anterior</button>
+          <span id="gm-page-label" class="px-3 py-2 rounded-lg bg-slate-200/80 text-slate-800 font-black tabular-nums">1</span>
+          <button type="button" id="gm-next" class="min-h-[40px] px-3 rounded-xl border-2 border-orange-500 bg-orange-500 text-white font-black uppercase hover:bg-orange-600 disabled:opacity-40 disabled:pointer-events-none">Próxima</button>
+        </div>
+      </div>
+      <p class="text-[10px] font-bold text-slate-400 text-center pb-2">{{ empresa_nome|default:"—" }} · {{ usuario_label }}</p>
+    </footer>
+  </main>
+
+  <div id="gm-drawer-back" class="fixed inset-0 bg-slate-900/50 z-[80] hidden"></div>
+  <aside id="gm-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-white border-l border-slate-200 shadow-2xl z-[90] translate-x-full transition-transform duration-200 flex flex-col" aria-hidden="true">
+    <div class="flex items-center justify-between gap-2 px-4 py-4 border-b border-slate-200 bg-slate-50">
+      <span class="text-sm font-black uppercase tracking-wide text-slate-800">Editar produto</span>
+      <button type="button" id="gm-drawer-x" class="min-h-[40px] min-w-[40px] rounded-xl border-2 border-slate-200 bg-white text-slate-600 font-black hover:border-orange-400" aria-label="Fechar">✕</button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-4 space-y-3">
       <input type="hidden" id="ed-id" />
-      <div class="gm-field"><label>Nome</label><input id="ed-nome" /></div>
-      <div class="gm-field"><label>Marca</label><input id="ed-marca" /></div>
-      <div class="gm-field"><label>Categoria</label><input id="ed-cat" /></div>
-      <div class="gm-field"><label>Fornecedor (texto)</label><input id="ed-forn" /></div>
-      <div class="gm-field"><label>Unidade</label><input id="ed-un" /></div>
-      <div class="gm-field"><label>Preço venda</label><input id="ed-preco" inputmode="decimal" /></div>
-      <div class="gm-field"><label>Status exibição</label>
-        <select id="ed-ativo">
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Nome</label><input id="ed-nome" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Marca</label><input id="ed-marca" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Categoria</label><input id="ed-cat" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Fornecedor (texto)</label><input id="ed-forn" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Unidade</label><input id="ed-un" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Código GM / NFe</label><input id="ed-codigo-nfe" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-mono font-bold" maxlength="64" autocomplete="off" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Código de barras</label><input id="ed-cb" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-mono font-bold" maxlength="80" inputmode="numeric" autocomplete="off" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Subcategoria</label><input id="ed-sub" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" maxlength="200" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Descrição</label><textarea id="ed-desc" rows="3" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold resize-y min-h-[5rem]"></textarea></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Preço venda</label><input id="ed-preco" inputmode="decimal" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Status exibição</label>
+        <select id="ed-ativo" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-bold">
           <option value="">Seguir ERP</option>
           <option value="1">Ativo</option>
           <option value="0">Inativo</option>
         </select>
       </div>
-      <p style="font-size:0.68rem;color:#8b93a7;margin:0">Alterações ficam só no Agro (overlay). O cadastro mestre continua no ERP.</p>
-      <div style="display:flex;gap:0.45rem;margin-top:0.5rem">
-        <button type="button" class="gm-btn gm-btn-primary" id="ed-salvar">Salvar</button>
-        <button type="button" class="gm-btn" id="ed-cancelar">Cancelar</button>
+      <p class="text-xs text-slate-500 font-medium leading-snug">Tudo que você salva aqui vale <strong>só no Agro</strong> (PDV, buscas e telas de cadastro). Deixe um campo em branco e salve para voltar ao valor do ERP naquele campo. O Mongo do ERP não é alterado.</p>
+      <div class="flex gap-2 pt-2">
+        <button type="button" id="ed-salvar" class="flex-1 min-h-[48px] rounded-xl bg-orange-500 text-white font-black uppercase border-2 border-orange-600 hover:bg-orange-600">Salvar</button>
+        <button type="button" id="ed-cancelar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 bg-white font-black uppercase text-slate-700">Cancelar</button>
       </div>
     </div>
   </aside>
+
+  <details class="gm-fab-help group fixed bottom-5 right-5 z-[60]">
+    <summary class="list-none cursor-pointer h-12 w-12 rounded-full bg-slate-800 text-white text-lg font-black shadow-lg border-2 border-slate-900 flex items-center justify-center hover:bg-slate-900 select-none" aria-label="Ajuda">?</summary>
+    <div class="absolute bottom-14 right-0 w-[min(100vw-2rem,22rem)] rounded-2xl border border-slate-200 bg-white shadow-xl p-4 text-sm text-slate-700 leading-snug">
+      <p class="font-bold text-slate-900 mb-2">Gestão de produtos</p>
+      <ul class="list-disc pl-4 space-y-1.5 text-[13px]">
+        <li>Lista espelhada do ERP com saldos <strong>Centro</strong> e <strong>Vila Elias</strong> (camada Agro).</li>
+        <li><strong>Filtrar</strong> aplica status, marca, categoria e fornecedor; a busca instantânea refaz a lista.</li>
+        <li><strong>Estoque</strong> na tabela é o total C+V; use <strong>Ajustar</strong> para saldo absoluto por loja.</li>
+        <li><strong>Editar</strong> grava overlay (nome, códigos, barras, preço, descrição, etc.). <strong>Ver</strong> abre o cadastro ERP em nova aba.</li>
+        <li><kbd class="text-[10px] px-1 rounded border bg-slate-100 font-mono">F3</kbd> foca a busca.</li>
+      </ul>
+    </div>
+  </details>
 
   {% include "produtos/_atalho_voltar_pdv.html" %}
   <script>
@@ -331,9 +173,7 @@
   var URL_FAC = "{% url 'api_produtos_gestao_facetas' %}";
   var URL_AJ = "{% url 'api_produtos_gestao_ajuste_estoque' %}";
   var URL_OV = "{% url 'api_produtos_gestao_overlay_salvar' %}";
-  function urlDet(id) {
-    return "{% url 'api_produtos_cadastro_detalhe' produto_id='x' %}".replace(/\/x\//, '/' + encodeURIComponent(String(id)) + '/');
-  }
+  var URL_CAD_ERP = "{% url 'produtos_cadastro_erp' %}";
   function getCookie(n) {
     var v = document.cookie.match('(^|;) ?' + n + '=([^;]*)(;|$)');
     return v ? decodeURIComponent(v[2]) : '';
@@ -350,22 +190,25 @@
   function esc(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+  function initialNome(nome) {
+    var t = String(nome || '').trim();
+    return t ? t.charAt(0).toUpperCase() : '?';
+  }
 
   var qEl = document.getElementById('gm-q');
   var listEl = document.getElementById('gm-list');
   var metaEl = document.getElementById('gm-meta');
+  var pageLabel = document.getElementById('gm-page-label');
   var banEl = document.getElementById('gm-banner');
   var pagPrev = document.getElementById('gm-prev');
   var pagNext = document.getElementById('gm-next');
-  var filtPanel = document.getElementById('gm-filters');
-  var btnFilt = document.getElementById('gm-filtros');
   var fStatus = document.getElementById('f-status');
   var fMarca = document.getElementById('f-marca');
   var fCat = document.getElementById('f-cat');
   var fForn = document.getElementById('f-forn');
   var fAplicar = document.getElementById('f-aplicar');
   var stripEl = document.getElementById('gm-strip');
-  var nav = document.getElementById('gm-nav');
+  var nav = document.querySelector('[role="tablist"]');
   var drawer = document.getElementById('gm-drawer');
   var drawerBack = document.getElementById('gm-drawer-back');
 
@@ -380,9 +223,9 @@
   var expandMm = null;
 
   function showBan(t) {
-    if (!t) { banEl.classList.remove('gm-open'); banEl.textContent = ''; return; }
+    if (!t) { banEl.classList.add('hidden'); banEl.textContent = ''; return; }
     banEl.textContent = t;
-    banEl.classList.add('gm-open');
+    banEl.classList.remove('hidden');
   }
 
   function paramsLista() {
@@ -401,109 +244,137 @@
     return p.toString();
   }
 
-  function renderRow(p) {
+  function icPencil() {
+    return '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>';
+  }
+  function icEye() {
+    return '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>';
+  }
+  function icWrench() {
+    return '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>';
+  }
+  function icSliders() {
+    return '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>';
+  }
+
+  function renderRowGroup(p) {
     var id = esc(p.id);
-    var ajOpen = expandAj === p.id ? ' gm-open' : '';
-    var mmOpen = expandMm === p.id ? ' gm-open' : '';
-    var editing = (expandAj === p.id || expandMm === p.id) ? ' gm-row-editing' : '';
-    var inat = p.inativo ? '<span style="font-size:0.58rem;font-weight:900;background:#3d2914;color:#ffb74d;padding:0.12rem 0.35rem;border-radius:0.25rem;margin-left:0.35rem">INATIVO</span>' : '';
+    var ajOpen = expandAj === p.id;
+    var mmOpen = expandMm === p.id;
+    var rowHi = (ajOpen || mmOpen) ? ' bg-orange-50/60' : ' hover:bg-slate-50/80';
+    var badge = p.inativo
+      ? '<span class="inline-flex items-center justify-center min-w-[4.5rem] px-2 py-1 rounded-full text-[10px] font-black uppercase bg-amber-200 text-amber-950 border border-amber-400/50">Inativo</span>'
+      : '<span class="inline-flex items-center justify-center min-w-[4.5rem] px-2 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-300/60">Ativo</span>';
+    var custo = fmtMoney(p.preco_custo != null ? p.preco_custo : 0);
+    var sub = esc((p.unidade || '—') + ' · Cód. ' + (p.codigo_gm || '—'));
+    if (p.codigo_barras) sub += ' · ' + esc(String(p.codigo_barras));
+    if (p.subcategoria) sub += ' · ' + esc(String(p.subcategoria));
+    var urlVer = esc(URL_CAD_ERP + '?produto=' + encodeURIComponent(String(p.id)));
     return (
-      '<div class="gm-row' + editing + '" data-id="' + id + '">' +
-        '<div class="gm-row-hd">' +
-          '<div>' +
-            '<div class="gm-code">' + esc(p.codigo_gm || '—') + '</div>' +
-            '<div class="gm-name">' + esc(p.nome) + inat + '</div>' +
-            '<div class="gm-sub">' + esc(p.marca || '—') + ' · ' + esc(p.categoria || '—') + '</div>' +
-            '<div class="gm-ean">' + esc(p.codigo_barras || '') + '</div>' +
+      '<tr data-main data-id="' + id + '" class="transition-colors' + rowHi + '">' +
+        '<td class="px-2 py-2 text-center align-middle">' +
+          '<div class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 font-black text-sm border border-emerald-200" title="">' + esc(initialNome(p.nome)) + '</div></td>' +
+        '<td class="px-3 py-2 align-middle min-w-[10rem]">' +
+          '<div class="font-extrabold text-slate-900 leading-tight">' + esc(p.nome) + '</div>' +
+          '<div class="text-xs font-semibold text-slate-500 mt-0.5">' + sub + '</div></td>' +
+        '<td class="px-2 py-2 align-middle font-mono text-xs text-slate-600 whitespace-nowrap">' + esc(p.codigo_gm || '—') + '</td>' +
+        '<td class="px-2 py-2 align-middle text-emerald-700 font-bold text-xs">' + esc(p.categoria || '—') + '</td>' +
+        '<td class="px-2 py-2 align-middle text-slate-700 font-semibold text-xs">' + esc(p.marca || '—') + '</td>' +
+        '<td class="px-2 py-2 align-middle text-center text-xs font-bold text-slate-600">' + esc(p.unidade || '—') + '</td>' +
+        '<td class="px-2 py-2 align-middle text-right font-bold text-slate-700 whitespace-nowrap">' + custo + '</td>' +
+        '<td class="px-2 py-2 align-middle text-right font-black text-slate-900 whitespace-nowrap">' + fmtMoney(p.preco_venda) + '</td>' +
+        '<td class="px-2 py-2 align-middle text-right whitespace-nowrap">' +
+          '<span class="font-black text-slate-900">' + esc(String(p.saldo_total)) + '</span>' +
+          '<div class="text-[10px] font-bold text-slate-400">C ' + esc(String(p.saldo_centro)) + ' · V ' + esc(String(p.saldo_vila)) + '</div></td>' +
+        '<td class="px-2 py-2 align-middle text-center">' + badge + '</td>' +
+        '<td class="px-3 py-2 align-middle text-right whitespace-nowrap">' +
+          '<div class="inline-flex items-center justify-end gap-1 flex-wrap">' +
+            '<button type="button" data-act="edit" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-400 hover:text-orange-600" title="Editar">' + icPencil() + '</button>' +
+            '<a href="' + urlVer + '" target="_blank" rel="noopener" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border-2 border-slate-200 bg-white text-slate-600 hover:border-emerald-500 hover:text-emerald-700" title="Ver cadastro ERP">' + icEye() + '</a>' +
+            '<button type="button" data-act="ajuste" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border-2 border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-400" title="Ajustar estoque">' + icWrench() + '</button>' +
+            '<button type="button" data-act="mm" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-400" title="Mín / máx">' + icSliders() + '</button>' +
+          '</div></td>' +
+      '</tr>' +
+      '<tr data-expand="aj" data-pid="' + id + '" class="' + (ajOpen ? '' : 'hidden') + ' bg-emerald-50/50 border-b border-slate-100">' +
+        '<td colspan="11" class="px-4 py-3">' +
+          '<div class="flex flex-wrap gap-4 items-end max-w-xl">' +
+            '<label class="flex flex-col gap-1 min-w-[8rem]"><span class="text-[10px] font-black uppercase text-slate-500">Novo Centro</span><input type="number" step="0.001" data-inp="c" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-bold" value="' + esc(String(p.saldo_centro)) + '" /></label>' +
+            '<label class="flex flex-col gap-1 min-w-[8rem]"><span class="text-[10px] font-black uppercase text-slate-500">Novo Vila</span><input type="number" step="0.001" data-inp="v" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-bold" value="' + esc(String(p.saldo_vila)) + '" /></label>' +
+            '<button type="button" data-save="aj" class="min-h-[44px] px-4 rounded-xl bg-orange-500 text-white font-black uppercase text-xs border-2 border-orange-600">Salvar</button>' +
+            '<button type="button" data-can="aj" class="min-h-[44px] px-4 rounded-xl border-2 border-slate-200 bg-white font-black uppercase text-xs">Cancelar</button>' +
+          '</div></td></tr>' +
+      '<tr data-expand="mm" data-pid="' + id + '" class="' + (mmOpen ? '' : 'hidden') + ' bg-orange-50/40 border-b border-slate-100">' +
+        '<td colspan="11" class="px-4 py-3">' +
+          '<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl">' +
+            '<label class="flex flex-col gap-1"><span class="text-[10px] font-black uppercase text-slate-500">Mín Centro</span><input type="number" step="0.001" data-mm="minc" class="min-h-[40px] rounded-xl border-2 border-slate-200 px-2 font-bold" value="' + (p.estoque_min_centro != null ? esc(String(p.estoque_min_centro)) : '') + '" /></label>' +
+            '<label class="flex flex-col gap-1"><span class="text-[10px] font-black uppercase text-slate-500">Máx Centro</span><input type="number" step="0.001" data-mm="maxc" class="min-h-[40px] rounded-xl border-2 border-slate-200 px-2 font-bold" value="' + (p.estoque_max_centro != null ? esc(String(p.estoque_max_centro)) : '') + '" /></label>' +
+            '<label class="flex flex-col gap-1"><span class="text-[10px] font-black uppercase text-slate-500">Mín Vila</span><input type="number" step="0.001" data-mm="minv" class="min-h-[40px] rounded-xl border-2 border-slate-200 px-2 font-bold" value="' + (p.estoque_min_vila != null ? esc(String(p.estoque_min_vila)) : '') + '" /></label>' +
+            '<label class="flex flex-col gap-1"><span class="text-[10px] font-black uppercase text-slate-500">Máx Vila</span><input type="number" step="0.001" data-mm="maxv" class="min-h-[40px] rounded-xl border-2 border-slate-200 px-2 font-bold" value="' + (p.estoque_max_vila != null ? esc(String(p.estoque_max_vila)) : '') + '" /></label>' +
           '</div>' +
-          '<div class="gm-row-metrics">' +
-          '<div class="gm-stk-c"><div class="gm-stk-lbl">Centro</div><div class="gm-stk-val">' + esc(String(p.saldo_centro)) + '</div></div>' +
-          '<div class="gm-stk-v"><div class="gm-stk-lbl">Vila Elias</div><div class="gm-stk-val">' + esc(String(p.saldo_vila)) + '</div></div>' +
-          '<div class="gm-stk-t"><div class="gm-stk-lbl">Total</div><div class="gm-stk-val">' + esc(String(p.saldo_total)) + '</div></div>' +
-          '<div class="gm-preco">' + fmtMoney(p.preco_venda) + '</div></div>' +
-          '<div class="gm-row-act">' +
-            '<button type="button" class="gm-act gm-act-main" data-act="ajuste">Ajustar</button>' +
-            '<button type="button" class="gm-act" data-act="edit">Editar</button>' +
-            '<button type="button" class="gm-act" data-act="mm">Mín/Máx</button>' +
-            '<div class="gm-rel"><details class="gm-more"><summary>⋮</summary><div class="gm-more-body">' +
-              '<button type="button" data-act="copiar">Copiar ID</button>' +
-              '<a href="' + esc(urlDet(p.id)) + '" target="_blank" rel="noopener">Detalhe JSON</a>' +
-            '</div></details></div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="gm-expand' + ajOpen + '" data-expand="aj">' +
-          '<div class="gm-grid2">' +
-            '<label>Novo saldo Centro<input type="number" step="0.001" data-inp="c" value="' + esc(String(p.saldo_centro)) + '" /></label>' +
-            '<label>Novo saldo Vila<input type="number" step="0.001" data-inp="v" value="' + esc(String(p.saldo_vila)) + '" /></label>' +
-          '</div>' +
-          '<div class="gm-expand-actions">' +
-            '<button type="button" class="gm-btn gm-btn-primary" data-save="aj">Salvar</button>' +
-            '<button type="button" class="gm-btn" data-can="aj">Cancelar</button>' +
-          '</div></div>' +
-        '<div class="gm-expand' + mmOpen + '" data-expand="mm">' +
-          '<div class="gm-grid2">' +
-            '<label>Mín Centro<input type="number" step="0.001" data-mm="minc" value="' + (p.estoque_min_centro != null ? esc(String(p.estoque_min_centro)) : '') + '" /></label>' +
-            '<label>Máx Centro<input type="number" step="0.001" data-mm="maxc" value="' + (p.estoque_max_centro != null ? esc(String(p.estoque_max_centro)) : '') + '" /></label>' +
-            '<label>Mín Vila<input type="number" step="0.001" data-mm="minv" value="' + (p.estoque_min_vila != null ? esc(String(p.estoque_min_vila)) : '') + '" /></label>' +
-            '<label>Máx Vila<input type="number" step="0.001" data-mm="maxv" value="' + (p.estoque_max_vila != null ? esc(String(p.estoque_max_vila)) : '') + '" /></label>' +
-          '</div>' +
-          '<div class="gm-expand-actions">' +
-            '<button type="button" class="gm-btn gm-btn-primary" data-save="mm">Salvar</button>' +
-            '<button type="button" class="gm-btn" data-can="mm">Cancelar</button>' +
-          '</div></div>' +
-      '</div>'
+          '<div class="flex gap-2 mt-3">' +
+            '<button type="button" data-save="mm" class="min-h-[44px] px-4 rounded-xl bg-orange-500 text-white font-black uppercase text-xs border-2 border-orange-600">Salvar</button>' +
+            '<button type="button" data-can="mm" class="min-h-[44px] px-4 rounded-xl border-2 border-slate-200 bg-white font-black uppercase text-xs">Cancelar</button>' +
+          '</div></td></tr>'
     );
   }
 
-  function bindRow(rowEl, p) {
-    rowEl.querySelector('[data-act="ajuste"]').addEventListener('click', function () {
+  function bindRow(mainTr, p) {
+    var pid = String(p.id);
+    function findExp(kind) {
+      return Array.prototype.find.call(listEl.querySelectorAll('tr[data-expand="' + kind + '"]'), function (r) {
+        return r.getAttribute('data-pid') === pid;
+      });
+    }
+    mainTr.querySelector('[data-act="ajuste"]').addEventListener('click', function () {
       expandMm = null;
       expandAj = expandAj === p.id ? null : p.id;
       carregar();
     });
-    rowEl.querySelector('[data-act="mm"]').addEventListener('click', function () {
+    mainTr.querySelector('[data-act="mm"]').addEventListener('click', function () {
       expandAj = null;
       expandMm = expandMm === p.id ? null : p.id;
       carregar();
     });
-    rowEl.querySelector('[data-act="edit"]').addEventListener('click', function () { abrirDrawer(p); });
-    rowEl.querySelector('[data-act="copiar"]').addEventListener('click', function () {
-      try { navigator.clipboard.writeText(String(p.id)); } catch (e) {}
-    });
-    rowEl.querySelector('[data-can="aj"]').addEventListener('click', function () { expandAj = null; carregar(); });
-    rowEl.querySelector('[data-can="mm"]').addEventListener('click', function () { expandMm = null; carregar(); });
-    rowEl.querySelector('[data-save="aj"]').addEventListener('click', function () {
-      var c = rowEl.querySelector('[data-inp="c"]').value;
-      var v = rowEl.querySelector('[data-inp="v"]').value;
-      fetch(URL_AJ, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-        body: JSON.stringify({ produto_id: p.id, saldo_centro: c, saldo_vila: v })
-      }).then(function (r) { return r.json(); }).then(function (j) {
-        if (!j.ok) throw new Error(j.erro || 'erro');
-        expandAj = null;
-        aplicarLinhaAtualizada(j.produto);
-      }).catch(function (e) { showBan(e.message || 'Falha ao salvar ajuste'); });
-    });
-    rowEl.querySelector('[data-save="mm"]').addEventListener('click', function () {
-      var body = { produto_id: p.id };
-      body.estoque_min_centro = rowEl.querySelector('[data-mm="minc"]').value || null;
-      body.estoque_max_centro = rowEl.querySelector('[data-mm="maxc"]').value || null;
-      body.estoque_min_vila = rowEl.querySelector('[data-mm="minv"]').value || null;
-      body.estoque_max_vila = rowEl.querySelector('[data-mm="maxv"]').value || null;
-      fetch(URL_OV, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-        body: JSON.stringify(body)
-      }).then(function (r) { return r.json();       }).then(function (j) {
-        if (!j.ok) throw new Error(j.erro || 'erro');
-        expandMm = null;
-        expandAj = null;
-        aplicarLinhaAtualizada(j.produto);
-      }).catch(function (e) { showBan(e.message || 'Falha'); });
-    });
+    mainTr.querySelector('[data-act="edit"]').addEventListener('click', function () { abrirDrawer(p); });
+    var ajR = findExp('aj');
+    var mmR = findExp('mm');
+    if (ajR) {
+      ajR.querySelector('[data-can="aj"]').addEventListener('click', function () { expandAj = null; carregar(); });
+      ajR.querySelector('[data-save="aj"]').addEventListener('click', function () {
+        var c = ajR.querySelector('[data-inp="c"]').value;
+        var v = ajR.querySelector('[data-inp="v"]').value;
+        fetch(URL_AJ, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+          body: JSON.stringify({ produto_id: p.id, saldo_centro: c, saldo_vila: v })
+        }).then(function (r) { return r.json(); }).then(function (j) {
+          if (!j.ok) throw new Error(j.erro || 'erro');
+          expandAj = null;
+          aplicarLinhaAtualizada(j.produto);
+        }).catch(function (e) { showBan(e.message || 'Falha ao salvar ajuste'); });
+      });
+    }
+    if (mmR) {
+      mmR.querySelector('[data-can="mm"]').addEventListener('click', function () { expandMm = null; carregar(); });
+      mmR.querySelector('[data-save="mm"]').addEventListener('click', function () {
+        var body = { produto_id: p.id };
+        body.estoque_min_centro = mmR.querySelector('[data-mm="minc"]').value || null;
+        body.estoque_max_centro = mmR.querySelector('[data-mm="maxc"]').value || null;
+        body.estoque_min_vila = mmR.querySelector('[data-mm="minv"]').value || null;
+        body.estoque_max_vila = mmR.querySelector('[data-mm="maxv"]').value || null;
+        fetch(URL_OV, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+          body: JSON.stringify(body)
+        }).then(function (r) { return r.json(); }).then(function (j) {
+          if (!j.ok) throw new Error(j.erro || 'erro');
+          expandMm = expandAj = null;
+          aplicarLinhaAtualizada(j.produto);
+        }).catch(function (e) { showBan(e.message || 'Falha'); });
+      });
+    }
   }
 
   var ultimos = [];
@@ -518,16 +389,22 @@
   function renderLista(rows) {
     ultimos = rows || [];
     listEl.innerHTML = '';
-    ultimos.forEach(function (p) {
-      var wrap = document.createElement('div');
-      wrap.innerHTML = renderRow(p).trim();
-      var row = wrap.firstElementChild;
-      bindRow(row, p);
-      listEl.appendChild(row);
-    });
     if (!ultimos.length) {
-      listEl.innerHTML = '<p style="padding:2rem;text-align:center;color:#8b93a7;font-weight:600">Nenhum produto nesta página.</p>';
+      listEl.innerHTML = '<tr><td colspan="11" class="p-10 text-center text-slate-500 font-bold">Nenhum produto nesta página.</td></tr>';
+      return;
     }
+    ultimos.forEach(function (p) {
+      var tpl = document.createElement('template');
+      tpl.innerHTML = renderRowGroup(p).trim();
+      var frag = tpl.content;
+      while (frag.firstChild) {
+        listEl.appendChild(frag.firstChild);
+      }
+      var main = Array.prototype.find.call(listEl.querySelectorAll('tr[data-main]'), function (tr) {
+        return tr.getAttribute('data-id') === String(p.id);
+      });
+      if (main) bindRow(main, p);
+    });
   }
 
   function carregar() {
@@ -536,14 +413,24 @@
       .then(function (r) { return r.json(); })
       .then(function (j) {
         if (!j.ok) throw new Error(j.erro || 'Erro');
-        metaEl.textContent = 'Página ' + j.pagina + (j.has_more ? ' · há próxima' : ' · fim');
+        pageLabel.textContent = String(j.pagina || 1);
+        var n = (j.produtos || []).length;
+        var from = (j.pagina - 1) * (j.por_pagina || porPagina) + (n ? 1 : 0);
+        var to = (j.pagina - 1) * (j.por_pagina || porPagina) + n;
+        if (j.total != null) {
+          metaEl.textContent = 'Mostrando ' + from + ' a ' + to + ' de ' + j.total + ' itens';
+        } else if (n) {
+          metaEl.textContent = 'Mostrando ' + from + ' a ' + to + (j.has_more ? ' — há mais páginas' : ' — fim da lista');
+        } else {
+          metaEl.textContent = 'Nenhum item nesta página';
+        }
         pagPrev.disabled = j.pagina <= 1;
         pagNext.disabled = !j.has_more;
         renderLista(j.produtos || []);
       })
       .catch(function (e) {
         showBan(e.message || 'Erro de rede');
-        listEl.innerHTML = '';
+        listEl.innerHTML = '<tr><td colspan="11" class="p-8 text-center text-red-600 font-bold">Erro ao carregar.</td></tr>';
         metaEl.textContent = '—';
       });
   }
@@ -559,19 +446,22 @@
   });
   pagPrev.addEventListener('click', function () { if (pagina > 1) { pagina--; carregar(); } });
   pagNext.addEventListener('click', function () { pagina++; carregar(); });
-  btnFilt.addEventListener('click', function () { filtPanel.classList.toggle('gm-open'); });
   fAplicar.addEventListener('click', function () { pagina = 1; carregar(); });
 
   nav.querySelectorAll('button[data-mode]').forEach(function (b) {
     b.addEventListener('click', function () {
       vista = b.getAttribute('data-mode');
-      nav.querySelectorAll('button[data-mode]').forEach(function (x) { x.classList.remove('gm-nav-active'); });
-      b.classList.add('gm-nav-active');
+      nav.querySelectorAll('button[data-mode]').forEach(function (x) {
+        x.classList.remove('border-emerald-600', 'bg-emerald-50', 'text-emerald-900', 'shadow-sm');
+        x.classList.add('border-slate-200', 'bg-white', 'text-slate-600');
+      });
+      b.classList.add('border-emerald-600', 'bg-emerald-50', 'text-emerald-900', 'shadow-sm');
+      b.classList.remove('border-slate-200', 'bg-white', 'text-slate-600');
       chipMarca = chipCat = chipForn = '';
-      stripEl.classList.remove('gm-open');
+      stripEl.classList.add('hidden');
       stripEl.innerHTML = '';
       if (vista === 'marcas' || vista === 'categorias' || vista === 'fornecedores') {
-        stripEl.classList.add('gm-open');
+        stripEl.classList.remove('hidden');
         carregarFacetasStrip();
       }
       pagina = 1;
@@ -587,16 +477,22 @@
       (arr || []).slice(0, 80).forEach(function (x) {
         var btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'gm-chip';
+        btn.className = 'min-h-[40px] px-3 rounded-xl text-xs font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-300';
         btn.textContent = x;
         btn.addEventListener('click', function () {
           if (vista === 'marcas') { chipMarca = chipMarca === x ? '' : x; chipCat = ''; chipForn = ''; }
           if (vista === 'categorias') { chipCat = chipCat === x ? '' : x; chipMarca = ''; chipForn = ''; }
           if (vista === 'fornecedores') { chipForn = chipForn === x ? '' : x; chipMarca = ''; chipCat = ''; }
-          Array.prototype.forEach.call(stripEl.querySelectorAll('.gm-chip'), function (c) { c.classList.remove('gm-chip-on'); });
-          if ((vista === 'marcas' && chipMarca) || (vista === 'categorias' && chipCat) || (vista === 'fornecedores' && chipForn)) {
-            btn.classList.add('gm-chip-on');
-          }
+          var sel = vista === 'marcas' ? chipMarca : vista === 'categorias' ? chipCat : chipForn;
+          Array.prototype.forEach.call(stripEl.querySelectorAll('button'), function (c) {
+            var on = sel && c.textContent === sel;
+            c.classList.toggle('border-emerald-500', on);
+            c.classList.toggle('bg-emerald-50', on);
+            c.classList.toggle('text-emerald-900', on);
+            c.classList.toggle('border-slate-200', !on);
+            c.classList.toggle('bg-white', !on);
+            c.classList.toggle('text-slate-600', !on);
+          });
           pagina = 1;
           carregar();
         });
@@ -608,9 +504,9 @@
   function fillFacetSelects() {
     fetch(URL_FAC, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
       if (!j.ok) return;
-      function fill(sel, arr) {
+      function fill(sel, arr, allLabel) {
         var cur = sel.value;
-        sel.innerHTML = '<option value="">(todas)</option>';
+        sel.innerHTML = '<option value="">' + allLabel + '</option>';
         (arr || []).forEach(function (x) {
           var o = document.createElement('option');
           o.value = x;
@@ -619,10 +515,9 @@
         });
         sel.value = cur;
       }
-      fill(fMarca, j.marcas);
-      fill(fCat, j.categorias);
-      fill(fForn, j.fornecedores);
-      fForn.querySelector('option').textContent = '(todos)';
+      fill(fMarca, j.marcas, 'Todas');
+      fill(fCat, j.categorias, 'Todas');
+      fill(fForn, j.fornecedores, 'Todos');
     });
   }
 
@@ -633,15 +528,21 @@
     document.getElementById('ed-cat').value = p.categoria || '';
     document.getElementById('ed-forn').value = p.fornecedor || '';
     document.getElementById('ed-un').value = p.unidade || '';
+    document.getElementById('ed-codigo-nfe').value = p.codigo_gm || '';
+    document.getElementById('ed-cb').value = p.codigo_barras || '';
+    document.getElementById('ed-sub').value = p.subcategoria || '';
+    document.getElementById('ed-desc').value = p.descricao || '';
     document.getElementById('ed-preco').value = p.preco_venda != null ? String(p.preco_venda).replace('.', ',') : '';
-    document.getElementById('ed-ativo').value = '';
-    drawer.classList.add('gm-open');
-    drawerBack.classList.add('gm-open');
+    if (p.ativo_exibicao === true) document.getElementById('ed-ativo').value = '1';
+    else if (p.ativo_exibicao === false) document.getElementById('ed-ativo').value = '0';
+    else document.getElementById('ed-ativo').value = '';
+    drawer.classList.remove('translate-x-full');
+    drawerBack.classList.remove('hidden');
     drawer.setAttribute('aria-hidden', 'false');
   }
   function fecharDrawer() {
-    drawer.classList.remove('gm-open');
-    drawerBack.classList.remove('gm-open');
+    drawer.classList.add('translate-x-full');
+    drawerBack.classList.add('hidden');
     drawer.setAttribute('aria-hidden', 'true');
   }
   document.getElementById('gm-drawer-x').addEventListener('click', fecharDrawer);
@@ -657,6 +558,10 @@
       categoria: document.getElementById('ed-cat').value,
       fornecedor_texto: document.getElementById('ed-forn').value,
       unidade: document.getElementById('ed-un').value,
+      codigo_nfe: document.getElementById('ed-codigo-nfe').value,
+      codigo_barras: document.getElementById('ed-cb').value,
+      subcategoria: document.getElementById('ed-sub').value,
+      descricao: document.getElementById('ed-desc').value,
       preco_venda: document.getElementById('ed-preco').value
     };
     if (av === '') body.ativo_exibicao = null;

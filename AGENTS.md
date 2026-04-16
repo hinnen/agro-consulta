@@ -54,12 +54,12 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 | `/pdv/checkout/`                 | `pdv_checkout`                 |                                               |
 | `/vendas/`                       | `vendas_lista`                 |                                               |
 | `/venda/<pk>/`                   | `venda_agro_detalhe`           |                                               |
-| `/clientes/` …                   | `clientes_*`, `cliente_*`      |                                               |
+| `/clientes/` …                   | `clientes_`*, `cliente_*`      |                                               |
 | `/rh/`                           | `rh_painel`                    |                                               |
 | `/caixa/` …                      | `caixa_*`                      | Painel, saída, abrir, fechar                  |
 
 
-**APIs (amostra; lista completa no arquivo):** `api/buscar/`, `api/lancamentos/`, export CSV/XLSX/PDF financeiro, `api/pdv/*`, `api/entrada-nota/*`, `api/ajustar/`, etc.
+**APIs (amostra; lista completa no arquivo):** `api/buscar/`, `api/lancamentos/`, export CSV/XLSX/PDF financeiro, `api/pdv/`*, `api/entrada-nota/*`, `api/ajustar/`, etc.
 
 ---
 

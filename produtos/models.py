@@ -560,8 +560,8 @@ class ProdutoGrupoVarianteAgro(models.Model):
 
 class ProdutoGestaoOverlayAgro(models.Model):
     """
-    Sobrescritas locais na tela de gestão (nome, preço, etc.) sobre o cadastro espelhado do ERP.
-    Campos vazios / nulos = usar valor do Mongo. Não altera o ERP.
+    Sobrescritas locais no Agro (PDV, gestão, cadastro ERP) sobre o espelho do ERP.
+    Texto vazio ou preço nulo = voltar a usar o valor do Mongo para aquele campo. Não grava no ERP.
     """
 
     produto_externo_id = models.CharField(
@@ -575,6 +575,22 @@ class ProdutoGestaoOverlayAgro(models.Model):
     categoria = models.CharField(max_length=200, blank=True, default="")
     fornecedor_texto = models.CharField(max_length=300, blank=True, default="")
     unidade = models.CharField(max_length=20, blank=True, default="")
+    codigo_barras = models.CharField(
+        max_length=80,
+        blank=True,
+        default="",
+        db_index=True,
+        verbose_name="Código de barras (override)",
+    )
+    codigo_nfe = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        db_index=True,
+        verbose_name="Código / NFe GM (override)",
+    )
+    subcategoria = models.CharField(max_length=200, blank=True, default="")
+    descricao = models.TextField(blank=True, default="", verbose_name="Descrição (override)")
     preco_venda = models.DecimalField(
         max_digits=12,
         decimal_places=2,

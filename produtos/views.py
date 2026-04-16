@@ -337,6 +337,12 @@ def _linha_gestao_produto_json(
     sv = float(s.get("saldo_vila") or 0)
     codigo_nfe = str(p.get("CodigoNFe") or p.get("Codigo") or "").strip()
     cb = str(_extrair_codigo_barras(p) or "").strip()
+    subcat = str(
+        p.get("SubGrupo") or p.get("Subcategoria") or p.get("NomeSubcategoria") or ""
+    ).strip()
+    descricao = str(
+        p.get("Descricao") or p.get("Observacao") or p.get("Complemento") or ""
+    ).strip()
     nome = str(p.get("Nome") or "").strip()
     marca = str(p.get("Marca") or "").strip()
     cat = str(p.get("NomeCategoria") or p.get("Categoria") or p.get("Grupo") or "").strip()
@@ -345,9 +351,11 @@ def _linha_gestao_produto_json(
     ).strip()
     unidade = str(p.get("Unidade") or p.get("SiglaUnidade") or "").strip()
     pv = _float_api_json(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
+    p_custo = _float_api_json(p.get("PrecoCusto") or p.get("ValorCusto") or 0)
     inativo_mongo = bool(p.get("CadastroInativo"))
     inativo = inativo_mongo
     tem_overlay = ov is not None
+    ativo_exibicao = ov.ativo_exibicao if ov else None
     emin_c = emax_c = emin_v = emax_v = None
     if ov:
         if ov.nome.strip():
@@ -372,27 +380,108 @@ def _linha_gestao_produto_json(
             emin_v = float(ov.estoque_min_vila)
         if ov.estoque_max_vila is not None:
             emax_v = float(ov.estoque_max_vila)
+        if ov.codigo_barras.strip():
+            cb = ov.codigo_barras.strip()
+        if ov.codigo_nfe.strip():
+            codigo_nfe = ov.codigo_nfe.strip()
+        if ov.subcategoria.strip():
+            subcat = ov.subcategoria.strip()
+        if ov.descricao.strip():
+            descricao = ov.descricao.strip()
     return {
         "id": pid,
         "nome": nome,
         "codigo_gm": codigo_nfe,
         "codigo_barras": cb,
+        "subcategoria": subcat,
+        "descricao": descricao,
         "marca": marca,
         "categoria": cat,
         "fornecedor": forn,
         "unidade": unidade,
+        "preco_custo": round(p_custo, 2),
         "preco_venda": round(pv, 2),
         "saldo_centro": round(sc, 2),
         "saldo_vila": round(sv, 2),
         "saldo_total": round(sc + sv, 2),
         "inativo": inativo,
         "inativo_mongo": inativo_mongo,
+        "ativo_exibicao": ativo_exibicao,
         "tem_overlay": tem_overlay,
         "estoque_min_centro": emin_c,
         "estoque_max_centro": emax_c,
         "estoque_min_vila": emin_v,
         "estoque_max_vila": emax_v,
     }
+
+
+def _aplicar_produto_gestao_overlay_em_dict(
+    row: dict, ov: ProdutoGestaoOverlayAgro | None
+) -> dict:
+    """Sobrescreve campos de exibição no Agro (PDV, cadastro ERP, APIs) sem alterar o Mongo."""
+    if not ov:
+        return row
+    if ov.nome.strip():
+        row["nome"] = ov.nome.strip()
+    if ov.marca.strip():
+        row["marca"] = ov.marca.strip()
+    if ov.categoria.strip():
+        row["categoria"] = ov.categoria.strip()
+    if ov.fornecedor_texto.strip():
+        row["fornecedor"] = ov.fornecedor_texto.strip()
+    if ov.unidade.strip():
+        row["unidade"] = ov.unidade.strip()
+    if ov.preco_venda is not None:
+        row["preco_venda"] = round(float(ov.preco_venda), 2)
+    if ov.codigo_barras.strip():
+        row["codigo_barras"] = ov.codigo_barras.strip()
+    if ov.codigo_nfe.strip():
+        cn = ov.codigo_nfe.strip()
+        row["codigo_nfe"] = cn
+        row["codigo"] = cn
+    if ov.subcategoria.strip():
+        row["subcategoria"] = ov.subcategoria.strip()
+    if ov.descricao.strip():
+        row["descricao"] = ov.descricao.strip()
+    if ov.ativo_exibicao is not None:
+        row["inativo"] = not bool(ov.ativo_exibicao)
+        if "cadastro_inativo" in row:
+            row["cadastro_inativo"] = bool(row["inativo"])
+    return row
+
+
+def _overlay_mapa_por_ids_chunked(ids: list[str]) -> dict[str, ProdutoGestaoOverlayAgro]:
+    ids_u = [str(x) for x in ids if x]
+    acc: dict[str, ProdutoGestaoOverlayAgro] = {}
+    step = 400
+    for i in range(0, len(ids_u), step):
+        acc.update(_overlay_mapa_por_ids(ids_u[i : i + step]))
+    return acc
+
+
+def _mongo_produtos_por_overlay_codigo_busca(
+    q_raw: str, db, client_m, ja_ids: set[str]
+) -> list[dict]:
+    """Resolve produtos pelo código/barras gravados só no overlay (não no ERP)."""
+    q_raw = str(q_raw or "").strip()
+    if not q_raw or not _termo_parece_codigo(q_raw):
+        return []
+    tl = _somente_alnum(q_raw)
+    q0 = Q(codigo_barras__iexact=q_raw) | Q(codigo_nfe__iexact=q_raw)
+    if tl and tl != q_raw:
+        q0 |= Q(codigo_barras__iexact=tl) | Q(codigo_nfe__iexact=tl)
+    pids = list(
+        ProdutoGestaoOverlayAgro.objects.filter(q0).values_list("produto_externo_id", flat=True)[:30]
+    )
+    out: list[dict] = []
+    for raw_pid in pids:
+        ps = str(raw_pid or "").strip()
+        if not ps or ps in ja_ids:
+            continue
+        doc = _produto_mongo_por_id_externo(db, client_m, ps)
+        if doc:
+            out.append(doc)
+    return out
 
 
 @login_required(login_url="/admin/login/")
@@ -660,6 +749,14 @@ def api_produtos_gestao_overlay_salvar(request):
         ov.fornecedor_texto = _txt("fornecedor_texto", 300)
     if "unidade" in payload:
         ov.unidade = _txt("unidade", 20)
+    if "codigo_barras" in payload:
+        ov.codigo_barras = _txt("codigo_barras", 80)
+    if "codigo_nfe" in payload:
+        ov.codigo_nfe = _txt("codigo_nfe", 64)
+    if "subcategoria" in payload:
+        ov.subcategoria = _txt("subcategoria", 200)
+    if "descricao" in payload:
+        ov.descricao = str(payload.get("descricao") or "")[:16000]
     pv = payload.get("preco_venda")
     if pv is not None:
         if str(pv).strip() == "":
@@ -686,6 +783,11 @@ def api_produtos_gestao_overlay_salvar(request):
             setattr(ov, fld, d)
     ov.usuario = request.user if request.user.is_authenticated else ov.usuario
     ov.save()
+    try:
+        cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+        cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
+    except Exception:
+        pass
 
     client, db = obter_conexao_mongo()
     if db is None:
@@ -2038,6 +2140,14 @@ def _home_admin_navegacao():
             "icon": "package",
             "shortcut": "F6",
             "shortcut_key": "f6",
+            "pin_protected": True,
+        },
+        {
+            "title": "Cadastro Produtos",
+            "href": reverse("produtos_cadastro_erp"),
+            "icon": "clipboard-list",
+            "shortcut": "R",
+            "shortcut_key": "r",
             "pin_protected": True,
         },
         {
@@ -5768,8 +5878,13 @@ def api_buscar_produtos(request):
                     prods = [p_bal]
                 else:
                     prods = motor_de_busca_agro(q, db, client, limit=80)
-            else:
-                prods = motor_de_busca_agro(q, db, client, limit=80)
+                else:
+                    prods = motor_de_busca_agro(q, db, client, limit=80)
+        vistos_busca = {str(p.get("Id") or p["_id"]) for p in prods}
+        if not wizard_catalog and q:
+            extras_ov = _mongo_produtos_por_overlay_codigo_busca(q, db, client, vistos_busca)
+            if extras_ov:
+                prods = extras_ov + prods
         p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
 
         medias_map = {}
@@ -5829,6 +5944,8 @@ def api_buscar_produtos(request):
                 )
             except Exception as exc:
                 logger.warning("api_buscar_produtos: ultimas_compras indisponível — %s", exc)
+
+        overlay_pdv_map = _overlay_mapa_por_ids_chunked(p_ids) if p_ids else {}
 
         res = []
         for p in prods:
@@ -5913,6 +6030,7 @@ def api_buscar_produtos(request):
                 row["preco_custo_acrescimo"] = custos["preco_custo_final"]
                 row["preco_custo_final"] = custos["preco_custo_final"]
                 row["ultimas_compras"] = ultimas_compras_map.get(pid, [])
+            _aplicar_produto_gestao_overlay_em_dict(row, overlay_pdv_map.get(pid))
             res.append(row)
 
         if wizard_catalog:
@@ -6155,6 +6273,9 @@ def _resolver_similares_produto_mongo(db, client_m, p: dict, limite: int = 40) -
 def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
     """Enriquece o JSON de cadastro com campos usados na tela ERP (leitura Mongo)."""
     row = _produto_mongo_para_cadastro_row(p)
+    pid_det = str(p.get("Id") or p.get("_id") or "")
+    ov_det = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid_det[:64]).first()
+    _aplicar_produto_gestao_overlay_em_dict(row, ov_det)
     custos = _custos_compra_produto(p)
     pv = float(row.get("preco_venda") or 0)
     pc = float(custos.get("preco_custo") or 0)
@@ -6326,6 +6447,9 @@ def api_produtos_cadastro(request):
                 q_raw, db, client, limit=lim_busca, include_inactive=inativos
             )
             rows = [_produto_mongo_para_cadastro_row(p) for p in prods]
+            _ovs = _overlay_mapa_por_ids_chunked([str(r.get("id") or "") for r in rows])
+            for _r in rows:
+                _aplicar_produto_gestao_overlay_em_dict(_r, _ovs.get(str(_r.get("id") or "")))
             rows.sort(key=lambda r: (str(r.get("nome") or "").lower(), r.get("id") or ""))
             return JsonResponse(
                 {
@@ -6350,6 +6474,9 @@ def api_produtos_cadastro(request):
         has_more = len(chunk) > por_pagina
         chunk = chunk[:por_pagina]
         rows = [_produto_mongo_para_cadastro_row(p) for p in chunk]
+        _ovs2 = _overlay_mapa_por_ids_chunked([str(r.get("id") or "") for r in rows])
+        for _r2 in rows:
+            _aplicar_produto_gestao_overlay_em_dict(_r2, _ovs2.get(str(_r2.get("id") or "")))
         return JsonResponse(
             {
                 "ok": True,
@@ -9489,11 +9616,32 @@ def api_buscar_produto_id(request, id):
         if ped_sep:
             ped_qty = float(ped_sep.quantidade)
 
+        cb_id = str(_extrair_codigo_barras(p) or "").strip()
+        _sub_id = str(
+            p.get("SubGrupo") or p.get("Subcategoria") or p.get("NomeSubcategoria") or ""
+        ).strip()
+        _cat_id = p.get("NomeCategoria") or p.get("Categoria") or p.get("Grupo") or ""
+        if not str(_cat_id or "").strip() and _sub_id:
+            _cat_id = _sub_id
         res = {
             "id": id,
             "nome": p.get("Nome"),
             "marca": p.get("Marca") or "",
+            "codigo": str(p.get("CodigoNFe") or p.get("Codigo") or ""),
             "codigo_nfe": p.get("CodigoNFe") or p.get("Codigo") or "",
+            "codigo_barras": cb_id,
+            "categoria": str(_cat_id or "").strip(),
+            "subcategoria": _sub_id,
+            "fornecedor": p.get("NomeFornecedor")
+            or p.get("Fornecedor")
+            or p.get("RazaoSocialFornecedor")
+            or "",
+            "unidade": str(p.get("Unidade") or p.get("SiglaUnidade") or "").strip(),
+            "descricao": (
+                str(p.get("Descricao") or "").strip()
+                or str(p.get("Observacao") or "").strip()
+                or str(p.get("Complemento") or "").strip()
+            ),
             "preco_venda": float(p.get("ValorVenda") or p.get("PrecoVenda") or 0),
             "imagem": img_url,
             "saldo_centro": round(saldo_f_c, 2),
@@ -9502,6 +9650,8 @@ def api_buscar_produto_id(request, id):
             "saldo_erp_vila": s_v,
             "qtd_separacao_transferencia": round(ped_qty, 3),
         }
+        ov_id = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=str(id)[:64]).first()
+        _aplicar_produto_gestao_overlay_em_dict(res, ov_id)
         return JsonResponse(res)
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)
