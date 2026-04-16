@@ -3118,7 +3118,7 @@ def api_entrada_nota_rascunho_atualizar(request):
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_entrada_nota_rascunho_acao(request):
-    """Encerrar, descartar ou reabrir nota (rascunho) na listagem."""
+    """Descartar ou reabrir nota (rascunho) na listagem. Encerrar manual está desativado."""
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
