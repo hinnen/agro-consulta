@@ -90,7 +90,7 @@
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="encerrada" title="Rascunhos antigos marcados como encerrados (antes do fluxo só estoque + financeiro).">Encerr. legado</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="descartada" title="Marcada como descartada.">Descartada</button>
       </div>
-      <div id="lista-rasc" class="flex-1 min-h-0 overflow-y-auto p-2 sm:p-3 space-y-2 text-sm font-semibold text-slate-700"></div>
+      <div id="lista-rasc" class="flex-1 min-h-0 overflow-y-auto p-2 sm:p-3 space-y-1.5 text-sm font-semibold text-slate-700"></div>
     </section>
   </main>
 
@@ -281,18 +281,13 @@
       </div>
 
       <div class="rounded-xl border-2 border-blue-200 bg-blue-50/80 px-3 py-3">
-        <h3 class="text-sm font-black uppercase text-blue-950 mb-2">Estoque Agro</h3>
-        <div class="space-y-2 text-xs font-semibold text-blue-950">
-          <div class="flex flex-wrap items-end gap-4">
-            <label class="inline-flex items-center gap-2.5 cursor-pointer text-sm font-bold text-blue-950 min-h-[48px]">
-              <input type="checkbox" id="chk-estoque-com-rascunho" class="h-5 w-5 rounded border-slate-300 accent-blue-600">
-              Salvar rascunho no mesmo envio
-            </label>
-          </div>
-          <button type="button" id="btn-estoque-agro" class="min-h-[52px] px-8 py-3.5 rounded-xl bg-blue-700 text-white font-black text-sm sm:text-base uppercase hover:bg-blue-800 shadow-md border-2 border-blue-900 w-full sm:w-auto">
-            Registrar entrada no estoque Agro
-          </button>
-        </div>
+        <h3 class="text-sm font-black uppercase text-blue-950 mb-1">Estoque Agro</h3>
+        <p class="text-[11px] font-semibold text-blue-900/90 mb-2 leading-snug">
+          Ao registrar, a nota é <strong>gravada no Agro</strong> (como na tela) e em seguida o estoque é atualizado — num passo só.
+        </p>
+        <button type="button" id="btn-estoque-agro" class="min-h-[52px] px-8 py-3.5 rounded-xl bg-blue-700 text-white font-black text-sm sm:text-base uppercase hover:bg-blue-800 shadow-md border-2 border-blue-900 w-full sm:w-auto">
+          Registrar entrada no estoque Agro
+        </button>
       </div>
     </section>
 
@@ -350,7 +345,7 @@
           <ul class="list-disc pl-4 space-y-1 text-[13px] text-slate-700">
             <li><strong>Em andamento</strong> — atalho: Nota aberta + Estoque + Financeiro juntos.</li>
             <li><strong>Nota aberta</strong> — falta produto do catálogo na linha (use Buscar).</li>
-            <li><strong>Estoque</strong> — grade ok; falta registrar entrada no estoque Agro.</li>
+            <li><strong>Estoque</strong> — grade ok (produtos casados); falta registrar entrada no estoque Agro. Na lista aparece só o chip da <strong>fila</strong>, para não confundir com “pronta” de outro sentido.</li>
             <li><strong>Financeiro</strong> — estoque já feito; falta gerar a pagar, se você for usar essa etapa.</li>
             <li><strong>Concluída</strong> — estoque Agro já registrado <strong>e</strong> conta a pagar gerada (Salvar + a pagar).</li>
             <li><strong>Encerrada (legado)</strong> — rascunhos antigos que tinham sido marcados manualmente como encerrados; use <strong>Reabrir</strong> se precisar seguir o fluxo normal.</li>
@@ -375,7 +370,7 @@
         </div>
         <div class="border-l-4 border-blue-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Estoque Agro</p>
-          <p>Soma <strong>Qtd est.</strong> no saldo do PDV/Compras só para linhas com produto do catálogo (Buscar). Não repita o mesmo clique na mesma nota. Depósito e empresa vêm do passo 1.</p>
+          <p>Soma <strong>Qtd est.</strong> no saldo do PDV/Compras só para linhas com produto do catálogo (Buscar). Não repita o mesmo clique na mesma nota. Depósito e empresa vêm do passo 1. O botão verde <strong>grava a nota e aplica o estoque</strong> no mesmo envio.</p>
         </div>
         <div class="text-[11px] sm:text-xs font-semibold text-slate-600 space-y-1 pt-2 border-t border-slate-100">
           <p class="font-black uppercase text-slate-500">Técnico</p>
@@ -442,6 +437,20 @@
   function entradaNfePillClass(cod) {
     const c = String(cod || '');
     return ENTRADA_STATUS_PILL[c] || ENTRADA_STATUS_PILL.pronta;
+  }
+
+  /** ISO-8601 do Mongo → texto legível (pt-BR). */
+  function entradaNfeFormatarDataBr(iso) {
+    if (iso == null || iso === '') return '—';
+    const d = Date.parse(String(iso).trim());
+    if (Number.isNaN(d)) return String(iso).slice(0, 19);
+    return new Date(d).toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
   function entradaNfeSyncFiltroChips() {
@@ -1439,7 +1448,7 @@
       linhas,
       cabecalho: cab,
       deposito: depVal,
-      salvar_rascunho: document.getElementById('chk-estoque-com-rascunho').checked,
+      salvar_rascunho: true,
       modo: 'manual',
       xml_chave: ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null),
       extra: { origem: 'entrada_nfe_estoque_agro' },
@@ -1608,13 +1617,11 @@
         const eff = String(it.entrada_status_efetivo || 'pronta');
         const wrap = document.createElement('div');
         wrap.className =
-          'flex flex-col lg:flex-row lg:flex-wrap lg:items-stretch gap-2 rounded-xl border-2 border-slate-200 bg-white px-3 py-3 text-xs shadow-sm';
+          'flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl border-2 border-slate-200 bg-white px-2.5 py-2 text-xs shadow-sm';
         const cab = it.cabecalho || {};
         const nLin = Array.isArray(it.linhas) ? it.linhas.length : 0;
-        const ch = (cab.chave || '').toString();
-        const chShort = ch.length >= 20 ? `${ch.slice(0, 8)}…${ch.slice(-6)}` : (ch || '—');
-        const topRow = document.createElement('div');
-        topRow.className = 'flex flex-wrap items-center gap-2 min-w-0';
+        const ch = (cab.chave || '').toString().trim();
+        const chShort = ch.length >= 20 ? `${ch.slice(0, 8)}…${ch.slice(-6)}` : ch;
         const bk = String(it.entrada_lista_bucket || '');
         const bkMap = {
           nota_aberta: 'Fila: Nota aberta',
@@ -1625,39 +1632,50 @@
           encerrada: 'Fila: Encerrada (legado)',
         };
         const bkLabel = bkMap[bk];
-        const soFila = bk === 'concluida' || bk === 'descartada' || bk === 'encerrada';
-        if (!soFila) {
-          const pill = document.createElement('span');
-          pill.className = entradaNfePillClass(eff);
-          pill.textContent = it.entrada_status_label || eff;
-          topRow.appendChild(pill);
-        }
+        const chipRow = document.createElement('div');
+        chipRow.className = 'flex flex-wrap items-center gap-1.5 shrink-0 self-center';
         if (bkLabel) {
           const fb = document.createElement('span');
           fb.className = entradaNfeFilaChipClass(bk);
           fb.textContent = bkLabel;
-          topRow.appendChild(fb);
+          chipRow.appendChild(fb);
+        } else {
+          const pill = document.createElement('span');
+          pill.className = entradaNfePillClass(eff);
+          pill.textContent = it.entrada_status_label || eff;
+          chipRow.appendChild(pill);
+        }
+        const textBlock = document.createElement('div');
+        textBlock.className = 'min-w-0 flex-1 flex flex-col gap-0.5';
+        const nomeForn = document.createElement('div');
+        nomeForn.className =
+          'text-[1.05rem] sm:text-lg font-black text-slate-900 leading-snug truncate max-w-[min(100%,42rem)]';
+        nomeForn.textContent = cab.emit_nome || '—';
+        nomeForn.title = (cab.emit_nome || '').toString();
+        const metaLine = document.createElement('div');
+        metaLine.className = 'text-[11px] text-slate-600 leading-tight flex flex-wrap items-center gap-x-1.5 gap-y-0';
+        const modo = (it.modo || '').toString();
+        const cr = entradaNfeFormatarDataBr(it.criado_em);
+        const at = it.atualizado_em ? entradaNfeFormatarDataBr(it.atualizado_em) : '';
+        metaLine.appendChild(document.createTextNode(`${modo} · NF ${cab.numero || '—'} · ${nLin} linha(s) · Criado ${cr}`));
+        if (at) {
+          metaLine.appendChild(document.createTextNode(` · Atual. ${at}`));
+        }
+        textBlock.appendChild(nomeForn);
+        textBlock.appendChild(metaLine);
+        if (ch) {
+          const chLine = document.createElement('div');
+          chLine.className = 'text-[10px] text-slate-500 font-mono truncate';
+          chLine.textContent = chShort;
+          chLine.title = ch;
+          textBlock.appendChild(chLine);
         }
         const left = document.createElement('div');
-        left.className = 'min-w-0 font-semibold text-slate-800 leading-snug flex-1';
-        left.appendChild(topRow);
-        const sub = document.createElement('div');
-        sub.className = 'mt-1.5 text-[11px] sm:text-xs text-slate-700 space-y-0.5';
-        const d1 = document.createElement('div');
-        const sm = document.createElement('span');
-        sm.className = 'font-black text-orange-800';
-        sm.textContent = (it.modo || '').toString();
-        d1.append(sm, document.createTextNode(` · ${cab.emit_nome || '—'} · NF ${cab.numero || '—'} · ${nLin} linha(s)`));
-        const d2 = document.createElement('div');
-        d2.className = 'text-slate-500 font-mono break-all';
-        d2.textContent = chShort;
-        const d3 = document.createElement('div');
-        d3.className = 'text-slate-500';
-        d3.textContent = (it.criado_em || '') + (it.atualizado_em ? ' · atual. ' + it.atualizado_em : '');
-        sub.append(d1, d2, d3);
-        left.appendChild(sub);
+        left.className = 'flex min-w-0 flex-1 items-center gap-2 sm:gap-3';
+        left.appendChild(chipRow);
+        left.appendChild(textBlock);
         const actions = document.createElement('div');
-        actions.className = 'flex flex-wrap gap-2 shrink-0 items-start lg:justify-end lg:max-w-[22rem]';
+        actions.className = 'flex flex-wrap gap-1.5 shrink-0 items-center self-center ml-auto';
         const mkBtn = (label, cls, onClick) => {
           const b = document.createElement('button');
           b.type = 'button';
@@ -1666,7 +1684,7 @@
           b.addEventListener('click', onClick);
           return b;
         };
-        const baseAct = 'min-h-[40px] px-3 py-1.5 rounded-lg font-black text-[10px] uppercase';
+        const baseAct = 'min-h-[36px] px-2.5 py-1 rounded-lg font-black text-[10px] uppercase';
         actions.appendChild(
           mkBtn(
             'Abrir',
