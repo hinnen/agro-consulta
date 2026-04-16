@@ -80,15 +80,14 @@
           <button type="button" class="entrada-nfe-open-ajuda min-h-[44px] min-w-[44px] rounded-xl border-2 border-slate-300 bg-white text-lg font-black text-slate-700 hover:bg-orange-50" title="Ajuda">?</button>
         </div>
       </div>
-      <div class="px-2 sm:px-3 py-2 flex flex-wrap gap-1.5 border-b border-slate-100 bg-slate-50/80 shrink-0" id="entrada-nfe-filtros-wrap" role="toolbar" aria-label="Filtro">
-        <button type="button" class="filtro-nfe-chip filtro-nfe-chip-on min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="todas">Todas</button>
-        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="abertas">Abertas</button>
-        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="pendencias">Pend.</button>
-        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="prontas">Prontas</button>
-        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="estoque">Estoque</button>
-        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="financeiro">Financ.</button>
-        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="encerradas">Enc.</button>
-        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2.5 py-1 rounded-lg text-[11px] font-black uppercase" data-filtro="descartadas">Desc.</button>
+      <div class="px-2 sm:px-3 py-2 flex flex-wrap gap-1.5 border-b border-slate-100 bg-slate-50/80 shrink-0" id="entrada-nfe-filtros-wrap" role="toolbar" aria-label="Fila da nota (cada nota aparece em um estágio)">
+        <button type="button" class="filtro-nfe-chip filtro-nfe-chip-on min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="todas" title="Todas as notas salvas.">Todas</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="em_andamento" title="Nota aberta, estoque ou financeiro (ainda em trabalho).">Em andamento</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="nota_aberta" title="Falta casar produto do catálogo na grade (Buscar).">Nota aberta</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="estoque" title="Grade ok; falta registrar entrada no estoque Agro.">Estoque</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="financeiro" title="Estoque já feito; falta gerar a pagar (Salvar + a pagar), se for o caso.">Financeiro</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="concluida" title="Encerrada na lista ou já com a pagar feito (e estoque quando aplicável).">Concluída</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="descartada" title="Marcada como descartada.">Descartada</button>
       </div>
       <div id="lista-rasc" class="flex-1 min-h-0 overflow-y-auto p-2 sm:p-3 space-y-2 text-sm font-semibold text-slate-700"></div>
     </section>
@@ -239,6 +238,10 @@
                 <input type="hidden" id="fin-banco-id" value="">
                 <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
               </div></label>
+            <label class="inline-flex items-center gap-2.5 cursor-pointer md:col-span-2 min-h-[44px] rounded-xl border-2 border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-950">
+              <input type="checkbox" id="fin-quitar-ao-salvar" class="h-5 w-5 rounded border-slate-300 accent-emerald-700 shrink-0">
+              <span>Já quitar no Mongo (e no ERP, se configurado) usando forma e conta acima — data de pagamento = vencimento de cada parcela.</span>
+            </label>
             <label class="block md:col-span-2"><span class="text-xs font-black uppercase text-slate-700">Grupo (opcional)</span>
               <div class="relative sug-wrap mt-1" data-sug-campo="grupo">
                 <input type="text" id="fin-grupo-nome" autocomplete="off" class="w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Buscar…">
@@ -341,6 +344,17 @@
           <p>Conferir nota, buscar fornecedor e produtos cadastrados, ratear quantidade (ex.: 1 caixa = 10 un.), data de entrada, plano de contas da nota (DRE) e, se quiser, gerar conta a pagar no Mongo (como no <a href="{% url 'lancamentos_manual' %}" class="text-orange-700 underline font-black">lançamento manual</a>). Salvar rascunho <strong>não</strong> altera o estoque do ERP sozinho.</p>
           <p class="text-slate-600">Consulta DF-e na Receita exige certificado e dados da empresa no servidor.</p>
         </div>
+        <div class="border-l-4 border-sky-200 pl-3 space-y-2">
+          <p class="text-xs font-black uppercase text-slate-500">Filas da lista (uma nota = um estágio)</p>
+          <ul class="list-disc pl-4 space-y-1 text-[13px] text-slate-700">
+            <li><strong>Em andamento</strong> — atalho: Nota aberta + Estoque + Financeiro juntos.</li>
+            <li><strong>Nota aberta</strong> — falta produto do catálogo na linha (use Buscar).</li>
+            <li><strong>Estoque</strong> — grade ok; falta registrar entrada no estoque Agro.</li>
+            <li><strong>Financeiro</strong> — estoque já feito; falta gerar a pagar, se você for usar essa etapa.</li>
+            <li><strong>Concluída</strong> — encerrada na lista <strong>ou</strong> já com a pagar gerado (inclui quem só fez financeiro sem precisar de estoque).</li>
+            <li><strong>Descartada</strong> — você marcou como descartada.</li>
+          </ul>
+        </div>
         <div class="border-l-4 border-emerald-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Plano de contas</p>
           <p>O mesmo plano vale para o título a pagar (botão verde) e no Mongo como plano do DRE.</p>
@@ -351,7 +365,7 @@
         </div>
         <div class="border-l-4 border-emerald-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Financeiro (opcional)</p>
-          <p>Preencha empresa, competência, 1º vencimento, parcelas se houver, forma e banco antes de <strong>Salvar + a pagar</strong>. Na tabela de parcelas você pode <strong>editar data e valor</strong> de cada linha; a soma deve fechar com o total da nota. Use <strong>Recalcular</strong> para voltar ao padrão (intervalo + divisão de centavos).</p>
+          <p>Preencha empresa, competência, 1º vencimento, parcelas se houver, forma e banco antes de <strong>Salvar + a pagar</strong>. Na tabela de parcelas você pode <strong>editar data e valor</strong> de cada linha; a soma deve fechar com o total da nota. Use <strong>Recalcular</strong> para voltar ao padrão (intervalo + divisão de centavos). Marque <strong>Já quitar</strong> se o pagamento já ocorreu: os títulos saem quitados no Agro; com API de baixa do ERP ativa, tenta registrar a baixa também.</p>
         </div>
         <div class="border-l-4 border-slate-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Coluna ERP (✎)</p>
@@ -1320,6 +1334,7 @@
       grupo_nome: document.getElementById('fin-grupo-nome').value.trim() || undefined,
       grupo_id: document.getElementById('fin-grupo-id').value.trim() || undefined,
       parcelas_manual: pmCol.parcelas,
+      quitar_ao_salvar: !!document.getElementById('fin-quitar-ao-salvar')?.checked,
     };
     const body = {
       modo,
@@ -1345,8 +1360,11 @@
         const fin = j.financeiro || {};
         const nIds = (fin.ids || []).length;
         if (nIds && fin.ok) {
-          let t = 'Rascunho salvo e conta(s) a pagar gerada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
+          let t = fin.quitar_ao_salvar
+            ? 'Rascunho salvo e conta(s) a pagar gerada(s) e quitada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.'
+            : 'Rascunho salvo e conta(s) a pagar gerada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
           if (j.erp_lancamento_ok === true) t += ' ERP: envio aceito.';
+          if (j.erp_baixa_ok === true) t += ' ERP: baixa aceita.';
           if (j.aviso_api) t += ' ' + j.aviso_api;
           showMsg(t, !j.aviso_api);
         } else if (nIds && !fin.ok) {
@@ -1578,6 +1596,21 @@
         pill.className = entradaNfePillClass(eff);
         pill.textContent = it.entrada_status_label || eff;
         topRow.appendChild(pill);
+        const bk = String(it.entrada_lista_bucket || '');
+        const bkMap = {
+          nota_aberta: 'Fila: Nota aberta',
+          estoque: 'Fila: Estoque',
+          financeiro: 'Fila: Financeiro',
+          concluida: 'Fila: Concluída',
+          descartada: 'Fila: Descartada',
+        };
+        const bkLabel = bkMap[bk];
+        if (bkLabel) {
+          const fb = document.createElement('span');
+          fb.className = 'text-[10px] font-black uppercase px-2 py-0.5 rounded-lg bg-sky-100 text-sky-900 border border-sky-300 shrink-0';
+          fb.textContent = bkLabel;
+          topRow.appendChild(fb);
+        }
         if (it.entrada_financeiro_lancado) {
           const fp = document.createElement('span');
           fp.className = ENTRADA_FIN_PILL;
@@ -1637,7 +1670,7 @@
               'Descartar',
               `${baseAct} border-2 border-amber-300 text-amber-900 hover:bg-amber-50`,
               () => {
-                if (window.confirm('Marcar como descartada? Ela some dos filtros «Abertas».')) entradaNfeRascunhoAcao(rid, 'descartar');
+                if (window.confirm('Marcar como descartada? Ela vai para a fila Descartada.')) entradaNfeRascunhoAcao(rid, 'descartar');
               },
             ),
           );

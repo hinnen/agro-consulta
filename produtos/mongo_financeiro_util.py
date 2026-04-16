@@ -3484,6 +3484,7 @@ def inserir_lancamentos_manual_lote(
     usuario_label: str,
     linhas: list[dict[str, Any]],
     marcar_quitado_receber: bool = False,
+    marcar_quitado_pagar: bool = False,
 ) -> dict[str, Any]:
     """
     Vários títulos compartilhando cabeçalho (empresa, favorecido, datas, banco; forma opcional);
@@ -3588,6 +3589,11 @@ def inserir_lancamentos_manual_lote(
             doc["Entrada"] = 0.0
             doc["ValorPago"] = 0.0
             doc["Recebido"] = 0.0
+            if marcar_quitado_pagar:
+                dpq = _dt_naive_meia_noite_erp(use_dv)
+                doc["Pago"] = True
+                doc["DataPagamento"] = dpq
+                doc["ValorPago"] = float(valor)
         else:
             doc["Entrada"] = valor
             doc["Saida"] = 0.0
