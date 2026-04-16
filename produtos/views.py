@@ -350,6 +350,16 @@ def _linha_gestao_produto_json(
         p.get("NomeFornecedor") or p.get("Fornecedor") or p.get("RazaoSocialFornecedor") or ""
     ).strip()
     unidade = str(p.get("Unidade") or p.get("SiglaUnidade") or "").strip()
+    tamanho = str(
+        p.get("Modelo")
+        or p.get("Tamanho")
+        or p.get("Volume")
+        or p.get("DescricaoTamanho")
+        or ""
+    ).strip()
+    if not tamanho:
+        tamanho = unidade
+    img_url = _formatar_url_imagem(_extrair_imagem_produto(p, {}, pid))
     pv = _float_api_json(p.get("ValorVenda") or p.get("PrecoVenda") or 0)
     p_custo = _float_api_json(p.get("PrecoCusto") or p.get("ValorCusto") or 0)
     inativo_mongo = bool(p.get("CadastroInativo"))
@@ -394,6 +404,8 @@ def _linha_gestao_produto_json(
         "codigo_gm": codigo_nfe,
         "codigo_barras": cb,
         "subcategoria": subcat,
+        "tamanho": tamanho,
+        "imagem": img_url or "",
         "descricao": descricao,
         "marca": marca,
         "categoria": cat,
