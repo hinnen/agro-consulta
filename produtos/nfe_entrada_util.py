@@ -109,6 +109,28 @@ def entrada_nfe_extra_financeiro_ok(extra: Any) -> bool:
     return bool(extra.get("financeiro_lancado"))
 
 
+def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
+    """
+    Estágio exclusivo para filtros da lista (Entrada NF-e), alinhado ao fluxo:
+    Nota aberta → Estoque → Financeiro → Concluída; Descartada à parte.
+    """
+    eff = str(d.get("entrada_status_efetivo") or "")
+    fin_ok = bool(d.get("entrada_financeiro_lancado"))
+    if eff == ENTRADA_NFE_STATUS_DESCARTADA:
+        return "descartada"
+    if eff == ENTRADA_NFE_STATUS_ENCERRADA:
+        return "concluida"
+    if fin_ok and eff in (ENTRADA_NFE_STATUS_ESTOQUE_APLICADO, ENTRADA_NFE_STATUS_PRONTA):
+        return "concluida"
+    if eff == ENTRADA_NFE_STATUS_COM_PENDENCIAS:
+        return "nota_aberta"
+    if eff == ENTRADA_NFE_STATUS_PRONTA:
+        return "estoque"
+    if eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO and not fin_ok:
+        return "financeiro"
+    return "nota_aberta"
+
+
 def entrada_nfe_enriquecer_doc_serializado(d: dict[str, Any]) -> dict[str, Any]:
     """Acrescenta campos de UI (lista / detalhe) sem gravar no banco."""
     eff = entrada_nfe_status_efetivo(d)
@@ -117,6 +139,7 @@ def entrada_nfe_enriquecer_doc_serializado(d: dict[str, Any]) -> dict[str, Any]:
     d["entrada_status_efetivo"] = eff
     d["entrada_status_label"] = ui["label"]
     d["entrada_financeiro_lancado"] = entrada_nfe_extra_financeiro_ok(extra)
+    d["entrada_lista_bucket"] = entrada_nfe_fila_bucket_lista(d)
     return d
 
 
@@ -404,15 +427,29 @@ def listar_rascunhos_entrada(db, limit: int = 30, *, filtro: str | None = None) 
         f = (filtro or "todas").strip().lower()
         if f == "todas":
             return out
+        # Novos filtros (fila exclusiva). Aliases antigos da URL.
+        legacy = {
+            "abertas": "em_andamento",
+            "pendencias": "nota_aberta",
+            "prontas": "estoque",
+            "encerradas": "encerrada_legacy",
+            "descartadas": "descartada",
+            "estoque": "estoque_aplicado_legacy",
+            "financeiro": "financeiro_lancado_legacy",
+        }
+        if f in legacy:
+            f = legacy[f]
         valid_extra = frozenset(
             {
-                "abertas",
-                "pendencias",
-                "prontas",
+                "nota_aberta",
                 "estoque",
-                "encerradas",
-                "descartadas",
                 "financeiro",
+                "concluida",
+                "descartada",
+                "em_andamento",
+                "estoque_aplicado_legacy",
+                "financeiro_lancado_legacy",
+                "encerrada_legacy",
             }
         )
         if f not in valid_extra:
@@ -421,20 +458,17 @@ def listar_rascunhos_entrada(db, limit: int = 30, *, filtro: str | None = None) 
         for item in out:
             eff = str(item.get("entrada_status_efetivo") or "")
             fin_ok = bool(item.get("entrada_financeiro_lancado"))
-            if f == "abertas":
-                if eff not in (ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA):
+            b = str(item.get("entrada_lista_bucket") or "")
+            if f == "em_andamento":
+                if b in ("nota_aberta", "estoque", "financeiro"):
                     filtrados.append(item)
-            elif f == "pendencias" and eff == ENTRADA_NFE_STATUS_COM_PENDENCIAS:
+            elif f == "estoque_aplicado_legacy" and eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
                 filtrados.append(item)
-            elif f == "prontas" and eff == ENTRADA_NFE_STATUS_PRONTA:
+            elif f == "financeiro_lancado_legacy" and fin_ok:
                 filtrados.append(item)
-            elif f == "estoque" and eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
+            elif f == "encerrada_legacy" and eff == ENTRADA_NFE_STATUS_ENCERRADA:
                 filtrados.append(item)
-            elif f == "encerradas" and eff == ENTRADA_NFE_STATUS_ENCERRADA:
-                filtrados.append(item)
-            elif f == "descartadas" and eff == ENTRADA_NFE_STATUS_DESCARTADA:
-                filtrados.append(item)
-            elif f == "financeiro" and fin_ok:
+            elif f == b:
                 filtrados.append(item)
         return filtrados
     except Exception as exc:

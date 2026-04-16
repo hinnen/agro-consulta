@@ -3585,6 +3585,9 @@ def api_entrada_nota_financeiro(request):
     ``data_vencimento`` é o 1º vencimento; demais parcelas somam o intervalo em dias.
     Opcional ``parcelas_manual``: lista ``[{ "valor", "data_vencimento", "data_competencia"? }]``
     com soma igual ao total da nota (tol. 1 centavo); quando enviada, substitui o cálculo automático.
+    Opcional ``quitar_ao_salvar`` (bool): grava os títulos a pagar já quitados no Mongo (data de
+    pagamento = vencimento de cada parcela) e, se ``VENDA_ERP_API_FINANCEIRO_BAIXA_PATH`` estiver
+    configurado, tenta a baixa no ERP após o envio dos lançamentos novos.
     """
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
@@ -3659,6 +3662,8 @@ def api_entrada_nota_financeiro(request):
             {"ok": False, "erro": "Informe forma de pagamento e banco/conta (financeiro).", "rascunho": r_rasc},
             status=400,
         )
+
+    quitar_ao_salvar = bool(fin.get("quitar_ao_salvar") or fin.get("quitar_na_entrada"))
 
     modo_lanc = str(fin.get("modo_lancamento") or "unico").strip().lower()
     plano_pad = str(fin.get("plano_padrao") or cab.get("plano_conta") or "").strip()
@@ -3886,6 +3891,7 @@ def api_entrada_nota_financeiro(request):
         grupo_id=str(fin.get("grupo_id") or "").strip() or None,
         usuario_label=usuario,
         linhas=linhas_fin,
+        marcar_quitado_pagar=quitar_ao_salvar,
     )
 
     ok = bool(resultado.get("ok"))
@@ -3893,6 +3899,7 @@ def api_entrada_nota_financeiro(request):
     erros = resultado.get("erros") or []
     aviso_api_erp = None
     erp_lanc_ok = None
+    erp_baixa_ok = None
     path_lanc = (
         (config("VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", default="") or "")
         or getattr(settings, "VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", "")
@@ -3910,6 +3917,47 @@ def api_entrada_nota_financeiro(request):
             erp_lanc_ok = False
             aviso_api_erp = str(exc)[:800]
 
+    path_baixa = (
+        (config("VENDA_ERP_API_FINANCEIRO_BAIXA_PATH", default="") or "")
+        or getattr(settings, "VENDA_ERP_API_FINANCEIRO_BAIXA_PATH", "")
+        or ""
+    ).strip()
+    if quitar_ao_salvar and ids and path_baixa:
+        try:
+            cli_b = VendaERPAPIClient()
+            dmov_fin = dv
+            for ln in linhas_fin:
+                if not isinstance(ln, dict):
+                    continue
+                dvs = str(ln.get("data_vencimento") or "").strip()[:10]
+                if dvs:
+                    try:
+                        dd = date.fromisoformat(dvs)
+                        if dd < dmov_fin:
+                            dmov_fin = dd
+                    except ValueError:
+                        pass
+            payload_baixa = {
+                "tipo": "pagar",
+                "forma_pagamento": forma_nome,
+                "forma_pagamento_id": str(fin.get("forma_id") or "").strip() or None,
+                "banco": banco_nome,
+                "banco_id": str(fin.get("banco_id") or "").strip() or None,
+                "data_movimento": dmov_fin.isoformat(),
+            }
+            body_b = montar_payload_erp_baixa(
+                db, ids, True, payload_baixa, extras={"operacao_baixa": "total"}
+            )
+            ok_b, api_msg_b = cli_b.financeiro_tentar_baixa_api(body_b)
+            erp_baixa_ok = bool(ok_b)
+            if not ok_b:
+                suf = str(api_msg_b)[:800]
+                aviso_api_erp = (aviso_api_erp + " " if aviso_api_erp else "") + ("Baixa ERP: " + suf)
+        except Exception as exc:
+            erp_baixa_ok = False
+            suf = str(exc)[:800]
+            aviso_api_erp = (aviso_api_erp + " " if aviso_api_erp else "") + ("Baixa ERP: " + suf)
+
     out = {
         "ok": ok and not erros,
         "rascunho": r_rasc,
@@ -3918,10 +3966,13 @@ def api_entrada_nota_financeiro(request):
             "lote": resultado.get("lote"),
             "ids": ids,
             "erros": erros,
+            "quitar_ao_salvar": quitar_ao_salvar,
         },
     }
     if erp_lanc_ok is not None:
         out["erp_lancamento_ok"] = erp_lanc_ok
+    if erp_baixa_ok is not None:
+        out["erp_baixa_ok"] = erp_baixa_ok
     if aviso_api_erp:
         out["aviso_api"] = aviso_api_erp
     if r_rasc.get("ok") and ids and db is not None:
