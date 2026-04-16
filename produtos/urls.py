@@ -19,6 +19,11 @@ urlpatterns = [
     path('ajuste-mobile/', views.ajuste_mobile_view, name='ajuste_mobile'), # <-- A rota que faltava
     path('compras/', views.compras_view, name='compras_view'),
     path(
+        'produtos/cadastro-erp/produto/<str:produto_id>/',
+        views.produtos_cadastro_erp_produto_view,
+        name='produtos_cadastro_erp_produto',
+    ),
+    path(
         'produtos/cadastro-erp/',
         views.produtos_cadastro_erp_view,
         name='produtos_cadastro_erp',

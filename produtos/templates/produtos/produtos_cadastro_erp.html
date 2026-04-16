@@ -49,7 +49,7 @@
               <li>Dados vêm do mesmo cadastro usado no PDV (sincronizado com o ERP).</li>
               <li>Esta tela <strong>não</strong> mostra saldo; alterações definitivas de produto continuam no ERP.</li>
               <li>Busque por nome, marca ou código. Lista alfabética quando a busca está vazia.</li>
-              <li>Ao escolher um produto, o painel direito carrega o <strong>detalhe completo</strong> (custos/MVA, composição, similares, flags de kit e estoque, etc.) a partir do Mongo — o que existir no documento do ERP.</li>
+              <li>Ao clicar em um produto, abre <strong>outra tela</strong> só com o detalhe (custos/MVA, composição, similares, flags de kit e estoque, etc.) a partir do Mongo.</li>
               <li>Com <strong>usuário logado</strong>, no detalhe do produto aparece o bloco <strong>Editar só no Agro</strong> (nome, preço, códigos, etc.); isso não altera o ERP.</li>
               <li>Aba <strong>Grupos</strong>: cadastro local no Agro — um nome e um preço, com várias marcas/códigos de barras (preço igual para todas). Use <strong>Preencher do ERP</strong> na linha para copiar marca e código do espelho.</li>
               <li><kbd class="text-[10px] px-1 rounded border border-slate-300 bg-slate-50 font-mono font-black">F2</kbd> foca na busca (aba ERP) ou no nome do grupo; fora de campos, <kbd class="text-[10px] px-1 rounded border border-slate-300 bg-slate-50 font-mono font-black">F1</kbd> volta ao PDV.</li>
@@ -73,22 +73,42 @@
   </div>
 
   <div id="panel-erp" class="flex flex-col flex-1 min-h-0">
-  <div class="max-w-[1700px] mx-auto w-full px-3 sm:px-4 py-3 shrink-0 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-    <label class="flex-1 min-w-0 block">
-      <span class="sr-only">Buscar produto</span>
-      <input type="search" id="cadastro-busca" autocomplete="off" enterkeyhint="search" placeholder="Nome, marca, código ou código de barras…"
-        class="w-full min-h-[48px] px-4 rounded-xl border-[3px] border-emerald-500 text-lg font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-200/50 bg-white shadow-sm" />
-    </label>
-    <label class="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-sm cursor-pointer select-none min-h-[48px] shrink-0">
-      <input type="checkbox" id="cadastro-inativos" class="w-5 h-5 rounded border-slate-300 text-orange-600 focus:ring-orange-400" />
-      <span class="text-sm font-black uppercase text-slate-700">Incluir inativos</span>
-    </label>
-  </div>
+  {% if cadastro_erp_modo == 'detalhe' %}
+    <div class="max-w-[1700px] mx-auto w-full px-3 sm:px-4 py-2 shrink-0">
+      <a href="{% url 'produtos_cadastro_erp' %}" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-xl text-xs font-black uppercase border-2 border-slate-200 bg-white text-slate-700 hover:border-emerald-500 hover:text-emerald-800 transition-colors">
+        ← Voltar à lista
+      </a>
+    </div>
+  {% else %}
+    <div class="max-w-[1700px] mx-auto w-full px-3 sm:px-4 py-3 shrink-0 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+      <label class="flex-1 min-w-0 block">
+        <span class="sr-only">Buscar produto</span>
+        <input type="search" id="cadastro-busca" autocomplete="off" enterkeyhint="search" placeholder="Nome, marca, código ou código de barras…"
+          class="w-full min-h-[48px] px-4 rounded-xl border-[3px] border-emerald-500 text-lg font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-200/50 bg-white shadow-sm" />
+      </label>
+      <label class="flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-sm cursor-pointer select-none min-h-[48px] shrink-0">
+        <input type="checkbox" id="cadastro-inativos" class="w-5 h-5 rounded border-slate-300 text-orange-600 focus:ring-orange-400" />
+        <span class="text-sm font-black uppercase text-slate-700">Incluir inativos</span>
+      </label>
+    </div>
+  {% endif %}
 
   <div id="cadastro-erro" class="hidden max-w-[1700px] mx-auto w-full px-3 sm:px-4 text-sm font-bold text-red-700 bg-red-50 border border-red-200 rounded-xl py-2 mb-2" role="alert"></div>
 
-  <main class="flex-1 min-h-0 max-w-[1700px] mx-auto w-full px-3 sm:px-4 pb-3 grid grid-cols-1 lg:grid-cols-5 gap-3">
-    <section class="lg:col-span-2 flex flex-col min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" aria-label="Lista de produtos">
+  {% if cadastro_erp_modo == 'detalhe' %}
+  <main class="flex-1 min-h-0 flex flex-col max-w-[1700px] mx-auto w-full px-3 sm:px-4 pb-3">
+    <section class="flex flex-col flex-1 min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" aria-label="Detalhe do produto">
+      <div class="px-3 py-2 border-b border-slate-100 bg-slate-50/80">
+        <h2 class="text-xs font-black uppercase tracking-widest text-slate-500">Detalhe do produto</h2>
+      </div>
+      <div id="cadastro-detalhe" class="flex-1 min-h-0 overflow-y-auto scroll-cad p-4 text-slate-800">
+        <p class="text-base font-semibold text-slate-500 py-4">Carregando cadastro…</p>
+      </div>
+    </section>
+  </main>
+  {% else %}
+  <main class="flex-1 min-h-0 flex flex-col max-w-[1700px] mx-auto w-full px-3 sm:px-4 pb-3">
+    <section class="flex flex-col flex-1 min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" aria-label="Lista de produtos">
       <div class="px-3 py-2 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 bg-slate-50/80">
         <span id="cadastro-lista-meta" class="text-xs font-black uppercase text-slate-500 tracking-wide">Carregando…</span>
         <div id="cadastro-paginacao" class="flex items-center gap-1 flex-wrap">
@@ -98,15 +118,8 @@
       </div>
       <div id="cadastro-lista" class="flex-1 min-h-0 overflow-y-auto scroll-cad p-2 space-y-2" tabindex="-1"></div>
     </section>
-    <section class="lg:col-span-3 flex flex-col min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" aria-label="Detalhe do produto">
-      <div class="px-3 py-2 border-b border-slate-100 bg-slate-50/80">
-        <h2 class="text-xs font-black uppercase tracking-widest text-slate-500">Detalhe</h2>
-      </div>
-      <div id="cadastro-detalhe" class="flex-1 min-h-0 overflow-y-auto scroll-cad p-4 text-slate-800">
-        <p class="text-base font-semibold text-slate-500">Selecione um item na lista.</p>
-      </div>
-    </section>
   </main>
+  {% endif %}
   </div><!-- /panel-erp -->
 
   <div id="panel-grupos" class="hidden flex flex-col flex-1 min-h-0" role="tabpanel" aria-hidden="true">
@@ -161,13 +174,19 @@
   {% include "produtos/_atalho_voltar_pdv.html" %}
   <script>
 (function () {
+  var CADASTRO_ERP_MODO = "{{ cadastro_erp_modo|default:'lista'|escapejs }}";
+  var CADASTRO_ERP_PID = "{{ cadastro_erp_produto_id|default:''|escapejs }}";
   var API = "{% url 'api_produtos_cadastro' %}";
   var API_DETALHE_TMPL = "{% url 'api_produtos_cadastro_detalhe' produto_id='x' %}";
+  var URL_CAD_ERP_PROD_TMPL = "{% url 'produtos_cadastro_erp_produto' produto_id='__AGRO_PH__' %}";
   var URL_OVERLAY_SALVAR = "{% url 'api_produtos_gestao_overlay_salvar' %}";
   var PODE_EDITAR_OVERLAY = {% if pode_editar_overlay %}true{% else %}false{% endif %};
   var LOGIN_OVERLAY_HREF = "{% url 'admin:login' %}?next={{ login_overlay_next|urlencode }}";
   function urlDetalheProduto(id) {
     return API_DETALHE_TMPL.replace(/\/x\//, '/' + encodeURIComponent(String(id)) + '/');
+  }
+  function urlCadastroErpProduto(pid) {
+    return URL_CAD_ERP_PROD_TMPL.replace('__AGRO_PH__', encodeURIComponent(String(pid)));
   }
   var buscaEl = document.getElementById('cadastro-busca');
   var inativosEl = document.getElementById('cadastro-inativos');
@@ -183,7 +202,6 @@
   var porPagina = 72;
   var debounceTimer = null;
   var ultimos = [];
-  var selecionadoId = null;
   var modoLista = true;
   var detalheReqSeq = 0;
 
@@ -237,6 +255,7 @@
   }
 
   function urlFetch() {
+    if (!buscaEl || !inativosEl) return API;
     var q = (buscaEl.value || '').trim();
     var params = new URLSearchParams();
     if (inativosEl.checked) params.set('inativos', '1');
@@ -437,6 +456,7 @@
   }
 
   function renderDetalheCompleto(p) {
+    if (!detalheEl) return;
     var img = p.imagem
       ? '<div class="mb-4 flex justify-center"><img src="' + String(p.imagem).replace(/"/g, '&quot;') + '" alt="" class="max-h-48 rounded-xl border border-slate-200 object-contain bg-slate-50" loading="lazy" /></div>'
       : '';
@@ -536,6 +556,7 @@
   }
 
   function renderDetalheResumido(p) {
+    if (!detalheEl) return;
     if (!p) {
       detalheEl.innerHTML = '<p class="text-base font-semibold text-slate-500">Selecione um item na lista.</p>';
       return;
@@ -557,6 +578,7 @@
   }
 
   function carregarDetalheProduto(id) {
+    if (!detalheEl) return;
     var seq = ++detalheReqSeq;
     detalheEl.innerHTML = '<p class="text-base font-semibold text-slate-500 py-8">Carregando cadastro completo…</p>';
     fetch(urlDetalheProduto(id), { credentials: 'same-origin' })
@@ -582,6 +604,7 @@
   }
 
   function renderDetalhe(p) {
+    if (!detalheEl) return;
     if (!p) {
       detalheEl.innerHTML = '<p class="text-base font-semibold text-slate-500">Selecione um item na lista.</p>';
       return;
@@ -590,21 +613,17 @@
   }
 
   function renderLista(produtos) {
+    if (!listaEl) return;
     listaEl.innerHTML = '';
     ultimos = produtos || [];
     if (!ultimos.length) {
       listaEl.innerHTML = '<p class="p-4 text-center text-slate-500 font-semibold">Nenhum produto encontrado.</p>';
-      selecionadoId = null;
-      renderDetalhe(null);
       return;
     }
     ultimos.forEach(function (p) {
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'w-full text-left rounded-xl border-2 px-3 py-3 transition-colors bg-slate-50/50 border-slate-200 hover:border-orange-300 hover:bg-orange-50/40 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 min-h-[56px]';
-      if (String(p.id) === String(selecionadoId)) {
-        btn.className = 'w-full text-left rounded-xl border-2 px-3 py-3 transition-colors bg-emerald-50 border-emerald-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/60 min-h-[56px]';
-      }
+      btn.className = 'w-full text-left rounded-xl border-2 px-3 py-3 transition-colors bg-slate-50/50 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/40 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 min-h-[56px]';
       var nome = escapeHtml(p.nome || '—');
       var cod = escapeHtml((p.codigo_nfe || p.codigo || '').toString());
       var preco = fmtMoney(p.preco_venda);
@@ -612,23 +631,14 @@
       btn.innerHTML = '<div class="font-black text-base text-slate-900 leading-snug">' + nome + badge + '</div>' +
         '<div class="text-xs font-bold text-slate-500 mt-1">' + (cod ? 'GM ' + cod + ' · ' : '') + '<span class="text-emerald-700">' + preco + '</span></div>';
       btn.addEventListener('click', function () {
-        selecionadoId = p.id;
-        renderLista(ultimos);
-        renderDetalhe(p);
+        window.location.href = urlCadastroErpProduto(p.id);
       });
       listaEl.appendChild(btn);
     });
-    var first = ultimos[0];
-    if (selecionadoId == null || !ultimos.some(function (x) { return String(x.id) === String(selecionadoId); })) {
-      selecionadoId = first.id;
-      renderDetalhe(first);
-    } else {
-      var sel = ultimos.find(function (x) { return String(x.id) === String(selecionadoId); });
-      renderDetalhe(sel || first);
-    }
   }
 
   function atualizarMeta(data, produtos) {
+    if (!metaEl || !pagWrap || !prevEl || !nextEl || !buscaEl) return;
     var q = (buscaEl.value || '').trim();
     if (data.modo === 'busca') {
       modoLista = false;
@@ -644,6 +654,7 @@
   }
 
   function carregar() {
+    if (!listaEl) return;
     mostrarErro('');
     setLoading(true);
     fetch(urlFetch(), { credentials: 'same-origin' })
@@ -654,7 +665,6 @@
         }
         var produtos = x.j.produtos || [];
         atualizarMeta(x.j, produtos);
-        selecionadoId = null;
         renderLista(produtos);
       })
       .catch(function (err) {
@@ -662,17 +672,20 @@
         var mongo = /mongo/i.test(m);
         if (mongo) {
           mostrarErro(m, { hintMongo: true });
-          listaEl.innerHTML = '<p class="p-4 text-center text-slate-600 font-semibold leading-relaxed">Lista do ERP indisponível sem Mongo. Use o botão acima para ir à aba <strong>Grupos</strong> ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</p>';
+          if (listaEl) {
+            listaEl.innerHTML = '<p class="p-4 text-center text-slate-600 font-semibold leading-relaxed">Lista do ERP indisponível sem Mongo. Use o botão acima para ir à aba <strong>Grupos</strong> ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</p>';
+          }
         } else {
           mostrarErro(m);
-          listaEl.innerHTML = '';
+          if (listaEl) listaEl.innerHTML = '';
         }
-        metaEl.textContent = '—';
+        if (metaEl) metaEl.textContent = '—';
       })
       .finally(function () { setLoading(false); });
   }
 
   function agendar() {
+    if (!buscaEl) return;
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(function () {
       var q = (buscaEl.value || '').trim();
@@ -682,38 +695,36 @@
     }, 320);
   }
 
-  buscaEl.addEventListener('input', agendar);
-  inativosEl.addEventListener('change', function () {
-    pagina = 1;
-    carregar();
-  });
-  prevEl.addEventListener('click', function () {
-    if (pagina > 1) {
-      pagina--;
+  if (buscaEl && inativosEl) {
+    buscaEl.addEventListener('input', agendar);
+    inativosEl.addEventListener('change', function () {
+      pagina = 1;
       carregar();
-    }
-  });
-  nextEl.addEventListener('click', function () {
-    pagina++;
-    carregar();
-  });
+    });
+  }
+  if (prevEl && nextEl) {
+    prevEl.addEventListener('click', function () {
+      if (pagina > 1) {
+        pagina--;
+        carregar();
+      }
+    });
+    nextEl.addEventListener('click', function () {
+      pagina++;
+      carregar();
+    });
+  }
 
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'F2') {
+    if (e.key === 'F2' && buscaEl) {
       e.preventDefault();
       buscaEl.focus();
       buscaEl.select();
     }
   });
 
-  var soloPid = (new URLSearchParams(window.location.search).get('produto') || '').trim();
-  if (soloPid) {
-    modoLista = false;
-    selecionadoId = soloPid;
-    listaEl.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-600 text-center leading-snug">Detalhe do produto (atalho externo). Use a busca acima para trocar de item.</p>';
-    metaEl.textContent = 'Produto · ' + soloPid;
-    pagWrap.classList.add('hidden');
-    carregarDetalheProduto(soloPid);
+  if (CADASTRO_ERP_MODO === 'detalhe' && CADASTRO_ERP_PID) {
+    carregarDetalheProduto(CADASTRO_ERP_PID);
   } else {
     carregar();
   }

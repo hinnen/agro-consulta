@@ -2695,17 +2695,32 @@ def compras_view(request):
     return render(request, "produtos/compras.html")
 
 
+def _ctx_produtos_cadastro_erp(request):
+    return {
+        "pode_editar_overlay": getattr(request, "user", None) and request.user.is_authenticated,
+        "login_overlay_next": request.get_full_path() or reverse("produtos_cadastro_erp"),
+    }
+
+
 @ensure_csrf_cookie
 def produtos_cadastro_erp_view(request):
-    """Consulta de cadastro de produtos espelhados do ERP (Mongo), sem saldo; aba de grupos locais."""
-    return render(
-        request,
-        "produtos/produtos_cadastro_erp.html",
-        {
-            "pode_editar_overlay": getattr(request, "user", None) and request.user.is_authenticated,
-            "login_overlay_next": request.get_full_path() or reverse("produtos_cadastro_erp"),
-        },
-    )
+    """Lista do cadastro espelho ERP; clique abre página dedicada de detalhe."""
+    q = (request.GET.get("produto") or "").strip()
+    if q:
+        return redirect("produtos_cadastro_erp_produto", produto_id=q)
+    ctx = _ctx_produtos_cadastro_erp(request)
+    ctx["cadastro_erp_modo"] = "lista"
+    ctx["cadastro_erp_produto_id"] = ""
+    return render(request, "produtos/produtos_cadastro_erp.html", ctx)
+
+
+@ensure_csrf_cookie
+def produtos_cadastro_erp_produto_view(request, produto_id: str):
+    """Detalhe de um produto do espelho ERP (tela cheia, sem lista ao lado)."""
+    ctx = _ctx_produtos_cadastro_erp(request)
+    ctx["cadastro_erp_modo"] = "detalhe"
+    ctx["cadastro_erp_produto_id"] = str(produto_id or "").strip()
+    return render(request, "produtos/produtos_cadastro_erp.html", ctx)
 
 
 @ensure_csrf_cookie

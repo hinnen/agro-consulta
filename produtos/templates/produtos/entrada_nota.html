@@ -399,7 +399,7 @@
   const URL_RASC_ATUALIZAR = "{% url 'api_entrada_nota_rascunho_atualizar' %}";
   const URL_RASC_ACAO = "{% url 'api_entrada_nota_rascunho_acao' %}";
   /** Path ou URL absoluta (evitar host fixo no iframe — usar só pathname + origem atual). */
-  const ENTRADA_NFE_PATH_CADASTRO_PROD = "{% url 'produtos_cadastro_erp' %}";
+  const ENTRADA_NFE_TMPL_CADASTRO_PROD = "{% url 'produtos_cadastro_erp_produto' produto_id='__AGRO_PH__' %}";
 
   let entradaNfeRascunhoEditId = null;
   let entradaNfeListaFiltro = 'todas';
@@ -779,33 +779,20 @@
     btn.classList.toggle('cursor-not-allowed', !ok);
   }
 
-  function entradaNfeSomentePathnameCadastro() {
-    const raw = String(ENTRADA_NFE_PATH_CADASTRO_PROD || '').trim();
-    if (!raw) return '/produtos/cadastro-erp';
-    if (/^https?:\/\//i.test(raw)) {
-      try {
-        const u = new URL(raw);
-        return (u.pathname || '/produtos/cadastro-erp').split('?')[0];
-      } catch (_) {
-        return '/produtos/cadastro-erp';
-      }
-    }
-    return raw.split('#')[0].split('?')[0] || '/produtos/cadastro-erp';
-  }
-
   /** Sempre o mesmo host da página (nunca o domínio que vier embutido no HTML do servidor). */
   function entradaNfeUrlCadastroProdNovaJanela(produtoId) {
-    let path = entradaNfeSomentePathnameCadastro();
+    let path = String(ENTRADA_NFE_TMPL_CADASTRO_PROD || '').replace('__AGRO_PH__', encodeURIComponent(String(produtoId)));
+    if (!path.trim()) {
+      path = `/produtos/cadastro-erp/produto/${encodeURIComponent(String(produtoId))}/`;
+    }
     if (!path.startsWith('/')) path = `/${path}`;
-    const params = new URLSearchParams();
-    params.set('produto', String(produtoId));
     const proto = window.location.protocol || 'https:';
     const host = window.location.hostname;
     const port = window.location.port ? `:${window.location.port}` : '';
     if (!host) {
-      return `${path}?${params.toString()}`;
+      return path;
     }
-    return `${proto}//${host}${port}${path}?${params.toString()}`;
+    return `${proto}//${host}${port}${path}`;
   }
 
   function abrirModalCadastroProd(produtoId) {
