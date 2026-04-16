@@ -184,7 +184,10 @@
   var URL_FAC = "{% url 'api_produtos_gestao_facetas' %}";
   var URL_AJ = "{% url 'api_produtos_gestao_ajuste_estoque' %}";
   var URL_OV = "{% url 'api_produtos_gestao_overlay_salvar' %}";
-  var URL_CAD_ERP = "{% url 'produtos_cadastro_erp' %}";
+  var URL_CAD_ERP_PROD_TMPL = "{% url 'produtos_cadastro_erp_produto' produto_id='__AGRO_PH__' %}";
+  function urlCadastroErpProduto(pid) {
+    return URL_CAD_ERP_PROD_TMPL.replace('__AGRO_PH__', encodeURIComponent(String(pid)));
+  }
   function getCookie(n) {
     var v = document.cookie.match('(^|;) ?' + n + '=([^;]*)(;|$)');
     return v ? decodeURIComponent(v[2]) : '';
@@ -283,7 +286,7 @@
     var sub = 'Cód. ' + esc(String(p.codigo_gm || '—'));
     if (p.unidade) sub += ' · ' + esc(String(p.unidade));
     if (p.codigo_barras) sub += ' · ' + esc(String(p.codigo_barras));
-    var urlVer = esc(URL_CAD_ERP + '?produto=' + encodeURIComponent(String(p.id)));
+    var urlVer = esc(urlCadastroErpProduto(p.id));
     var imgSrc = (p.imagem && String(p.imagem).trim()) ? String(p.imagem).trim() : '';
     var fotoCell = imgSrc
       ? '<td class="px-3 py-2 text-center align-middle"><img src="' + esc(imgSrc) + '" alt="" class="h-10 w-10 object-cover rounded-lg border border-slate-200 bg-slate-100 mx-auto" loading="lazy" decoding="async" /></td>'
