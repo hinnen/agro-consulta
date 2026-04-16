@@ -13,93 +13,104 @@
     body { font-family: 'Inter', system-ui, sans-serif; }
     .gm-tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .gm-tbl thead th { position: sticky; top: 0; z-index: 2; }
+    details.gm-adv > summary { list-style: none; }
+    details.gm-adv > summary::-webkit-details-marker { display: none; }
   </style>
 </head>
-<body class="min-h-screen bg-slate-100 text-slate-800 flex flex-col">
+<body class="min-h-screen bg-[#f7fafc] text-slate-800 flex flex-col">
   {% csrf_token %}
   {% include "produtos/_gm_loading_bar.html" %}
 
-  <div id="gm-banner" class="hidden mx-3 mt-3 rounded-xl border-2 border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800"></div>
+  <div id="gm-banner" class="hidden mt-3 max-w-[1400px] mx-auto px-4 sm:px-6 rounded-lg border border-red-200 bg-red-50 py-3 text-sm font-semibold text-red-800"></div>
 
-  <header class="shrink-0 border-b border-slate-200 bg-white shadow-sm">
-    <div class="max-w-[1800px] mx-auto px-3 sm:px-5 py-4 flex flex-wrap items-start justify-between gap-4">
-      <div class="flex items-start gap-3 min-w-0">
-        <div class="h-12 w-12 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0 shadow-md border border-emerald-700/30">
-          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+  <header class="shrink-0 border-b border-slate-200 bg-white">
+    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-5 flex flex-wrap items-start justify-between gap-4">
+      <div class="flex items-start gap-4 min-w-0">
+        <div class="h-14 w-14 rounded-lg bg-blue-600 flex items-center justify-center shrink-0 shadow-md">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
           </svg>
         </div>
         <div class="min-w-0">
-          <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Gestão de produtos</h1>
-          <p class="text-xs sm:text-sm font-semibold text-slate-500 mt-0.5">Catálogo espelho ERP, estoque Agro e overlay local (login).</p>
+          <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Gestão de Produtos</h1>
+          <p class="text-sm text-slate-500 mt-1">Gerencie seu catálogo de produtos.</p>
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2 shrink-0">
-        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-3 py-2 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-orange-400 hover:text-orange-600 transition-colors" %}
-        <a href="{% url 'produtos_cadastro_erp' %}" class="inline-flex items-center justify-center min-h-[44px] px-3 rounded-xl text-xs font-black uppercase border-2 border-emerald-200 bg-emerald-50 text-emerald-900 hover:border-emerald-400 transition-colors">Cadastro ERP</a>
-        <button type="button" id="gm-importar" disabled title="Em breve"
-          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-xl text-xs font-black uppercase border-2 border-slate-200 bg-white text-slate-400 cursor-not-allowed">Importar CSV</button>
-        <a class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-xl text-xs font-black uppercase bg-orange-500 text-white border-2 border-orange-600 shadow-sm hover:bg-orange-600 transition-colors" href="/admin/produtos/produto/add/" target="_blank" rel="noopener">+ Novo produto</a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center min-h-[40px] px-3 rounded-lg text-sm font-semibold text-slate-600 border border-slate-300 bg-white hover:bg-slate-50" %}
+        <a href="{% url 'produtos_cadastro_erp' %}" class="inline-flex items-center justify-center min-h-[40px] px-3 rounded-lg text-sm font-semibold text-blue-700 border border-blue-200 bg-blue-50 hover:bg-blue-100">Cadastro ERP</a>
+        <button type="button" id="gm-importar"
+          class="inline-flex items-center justify-center gap-2 min-h-[40px] px-4 rounded-lg text-sm font-semibold text-slate-700 border border-slate-300 bg-white hover:bg-slate-50">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          Importar CSV
+        </button>
+        <a class="inline-flex items-center justify-center gap-2 min-h-[40px] px-5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 shadow-sm border border-blue-700" href="/admin/produtos/produto/add/" target="_blank" rel="noopener">+ Novo Produto</a>
       </div>
     </div>
   </header>
 
-  <div class="max-w-[1800px] mx-auto w-full px-3 sm:px-5 py-3 flex flex-wrap gap-2 border-b border-slate-200/80 bg-slate-50/80" role="tablist" aria-label="Vista da lista">
-    <button type="button" data-mode="produtos" class="gm-tab min-h-[44px] px-4 rounded-xl text-xs font-black uppercase border-2 border-emerald-600 bg-emerald-50 text-emerald-900 shadow-sm">Produtos</button>
-    <button type="button" data-mode="marcas" class="gm-tab min-h-[44px] px-4 rounded-xl text-xs font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-300">Marcas</button>
-    <button type="button" data-mode="categorias" class="gm-tab min-h-[44px] px-4 rounded-xl text-xs font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-300">Categorias</button>
-    <button type="button" data-mode="fornecedores" class="gm-tab min-h-[44px] px-4 rounded-xl text-xs font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-300">Fornecedores</button>
-  </div>
-
-  <div class="max-w-[1800px] mx-auto w-full px-3 sm:px-5 py-3 flex flex-col lg:flex-row gap-3 items-stretch lg:items-end bg-slate-50/80 border-b border-slate-200/80">
-    <label class="flex-1 min-w-[12rem] block">
-      <span class="sr-only">Buscar</span>
-      <input type="search" id="gm-q" autocomplete="off" placeholder="Buscar código GM, nome ou código de barras…"
-        class="w-full min-h-[48px] px-4 rounded-xl border-[3px] border-emerald-500 text-base font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-200/50 bg-white shadow-sm" />
-    </label>
-    <div class="flex flex-wrap gap-2 items-end">
-      <label class="flex flex-col gap-1 min-w-[9.5rem]">
-        <span class="text-[10px] font-black uppercase text-slate-500 tracking-wide">Status</span>
-        <select id="f-status" class="min-h-[44px] rounded-xl border-2 border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 shadow-sm">
+  <div class="max-w-[1400px] mx-auto w-full px-4 sm:px-6 py-4 border-b border-slate-200 bg-white">
+    <div class="flex flex-col sm:flex-row gap-3 items-stretch">
+      <label class="flex-1 min-w-0">
+        <span class="sr-only">Buscar produtos</span>
+        <input type="search" id="gm-q" autocomplete="off" placeholder="Buscar produtos…"
+          class="w-full min-h-[44px] px-4 rounded-lg border border-slate-300 text-base text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white" />
+      </label>
+      <label class="sm:w-52 shrink-0 flex flex-col gap-1">
+        <span class="sr-only">Filtro rápido</span>
+        <select id="f-status" class="min-h-[44px] w-full rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-800 bg-white outline-none focus:border-blue-500">
+          <option value="todos">Todos</option>
           <option value="ativos">Ativos</option>
           <option value="inativos">Inativos</option>
-          <option value="todos">Todos</option>
         </select>
       </label>
-      <label class="flex flex-col gap-1 min-w-[9.5rem]">
-        <span class="text-[10px] font-black uppercase text-slate-500 tracking-wide">Marca</span>
-        <select id="f-marca" class="min-h-[44px] rounded-xl border-2 border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 shadow-sm"><option value="">Todas</option></select>
-      </label>
-      <label class="flex flex-col gap-1 min-w-[9.5rem]">
-        <span class="text-[10px] font-black uppercase text-slate-500 tracking-wide">Categoria</span>
-        <select id="f-cat" class="min-h-[44px] rounded-xl border-2 border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 shadow-sm"><option value="">Todas</option></select>
-      </label>
-      <label class="flex flex-col gap-1 min-w-[10rem]">
-        <span class="text-[10px] font-black uppercase text-slate-500 tracking-wide">Fornecedor</span>
-        <select id="f-forn" class="min-h-[44px] rounded-xl border-2 border-slate-200 bg-white px-3 text-sm font-bold text-slate-800 shadow-sm"><option value="">Todos</option></select>
-      </label>
-      <button type="button" id="f-aplicar" class="min-h-[44px] px-5 rounded-xl text-xs font-black uppercase bg-slate-800 text-white border-2 border-slate-900 shadow-sm hover:bg-slate-900">Filtrar</button>
     </div>
+    <details class="gm-adv mt-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3">
+      <summary class="text-sm font-semibold text-blue-600 hover:text-blue-800 cursor-pointer select-none py-1">Filtros avançados e vitrines</summary>
+      <div class="mt-3 pt-3 border-t border-slate-200 space-y-3">
+        <div class="flex flex-wrap gap-2 items-center" id="gm-adv-nav" role="tablist" aria-label="Vitrine">
+          <button type="button" data-mode="produtos" class="gm-tab min-h-[40px] px-3 rounded-lg text-xs font-bold uppercase border border-blue-600 bg-blue-50 text-blue-900">Produtos</button>
+          <button type="button" data-mode="marcas" class="gm-tab min-h-[40px] px-3 rounded-lg text-xs font-bold uppercase border border-slate-300 bg-white text-slate-600 hover:border-blue-300">Marcas</button>
+          <button type="button" data-mode="categorias" class="gm-tab min-h-[40px] px-3 rounded-lg text-xs font-bold uppercase border border-slate-300 bg-white text-slate-600 hover:border-blue-300">Categorias</button>
+          <button type="button" data-mode="fornecedores" class="gm-tab min-h-[40px] px-3 rounded-lg text-xs font-bold uppercase border border-slate-300 bg-white text-slate-600 hover:border-blue-300">Fornecedores</button>
+        </div>
+        <div id="gm-strip" class="hidden flex flex-wrap gap-2"></div>
+        <div class="flex flex-wrap gap-3 items-end">
+          <label class="flex flex-col gap-1 min-w-[10rem]">
+            <span class="text-[10px] font-bold uppercase text-slate-500">Marca</span>
+            <select id="f-marca" class="min-h-[40px] rounded-lg border border-slate-300 px-2 text-sm font-semibold bg-white"><option value="">Todas</option></select>
+          </label>
+          <label class="flex flex-col gap-1 min-w-[10rem]">
+            <span class="text-[10px] font-bold uppercase text-slate-500">Categoria</span>
+            <select id="f-cat" class="min-h-[40px] rounded-lg border border-slate-300 px-2 text-sm font-semibold bg-white"><option value="">Todas</option></select>
+          </label>
+          <label class="flex flex-col gap-1 min-w-[10rem]">
+            <span class="text-[10px] font-bold uppercase text-slate-500">Fornecedor</span>
+            <select id="f-forn" class="min-h-[40px] rounded-lg border border-slate-300 px-2 text-sm font-semibold bg-white"><option value="">Todos</option></select>
+          </label>
+          <button type="button" id="f-aplicar" class="min-h-[40px] px-5 rounded-lg text-sm font-semibold text-white bg-slate-700 hover:bg-slate-800 border border-slate-800">Filtrar</button>
+        </div>
+      </div>
+    </details>
   </div>
 
-  <div id="gm-strip" class="hidden max-w-[1800px] mx-auto w-full px-3 sm:px-5 py-2 flex flex-wrap gap-2 border-b border-slate-200 bg-white"></div>
-
-  <main class="flex-1 min-h-0 flex flex-col max-w-[1800px] mx-auto w-full px-3 sm:px-5 py-3">
-    <div class="gm-tbl-wrap flex-1 min-h-0 rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <table class="w-full text-left text-sm border-collapse min-w-[960px]">
-        <thead class="bg-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-500 border-b border-slate-200">
+  <main class="flex-1 min-h-0 flex flex-col max-w-[1400px] mx-auto w-full px-4 sm:px-6 py-4">
+    <div class="gm-tbl-wrap flex-1 min-h-0 rounded-lg border border-slate-200 bg-white shadow-sm">
+      <table class="w-full text-left text-sm border-collapse min-w-[1100px]">
+        <thead class="bg-slate-100 border-b border-slate-200">
           <tr>
-            <th class="px-2 py-3 w-12 text-center">—</th>
-            <th class="px-3 py-3">Nome</th>
-            <th class="px-2 py-3 whitespace-nowrap">Código</th>
-            <th class="px-2 py-3">Categoria</th>
-            <th class="px-2 py-3">Marca</th>
-            <th class="px-2 py-3 text-center">Un.</th>
-            <th class="px-2 py-3 text-right whitespace-nowrap">Custo</th>
-            <th class="px-2 py-3 text-right whitespace-nowrap">Venda</th>
-            <th class="px-2 py-3 text-right whitespace-nowrap">Estoque</th>
-            <th class="px-2 py-3 text-center">Status</th>
-            <th class="px-3 py-3 text-right w-36">Ações</th>
+            <th class="px-3 py-3 w-16 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">Foto</th>
+            <th class="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Nome</th>
+            <th class="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 whitespace-nowrap">Código</th>
+            <th class="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Categoria</th>
+            <th class="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Subcategoria</th>
+            <th class="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Marca</th>
+            <th class="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">Tamanho</th>
+            <th class="px-2 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600 whitespace-nowrap">Custo</th>
+            <th class="px-2 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600 whitespace-nowrap">Venda</th>
+            <th class="px-2 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600 whitespace-nowrap">Estoque</th>
+            <th class="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">Status</th>
+            <th class="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600 w-40">Ações</th>
           </tr>
         </thead>
         <tbody id="gm-list" class="divide-y divide-slate-100"></tbody>
@@ -110,9 +121,9 @@
       <div class="flex flex-wrap items-center justify-between gap-3 py-2 px-1 text-xs font-bold text-slate-600">
         <span id="gm-meta">—</span>
         <div class="flex items-center gap-2 flex-wrap">
-          <button type="button" id="gm-prev" class="min-h-[40px] px-3 rounded-xl border-2 border-slate-200 bg-white font-black uppercase text-slate-700 hover:border-orange-300 disabled:opacity-40 disabled:pointer-events-none">Anterior</button>
-          <span id="gm-page-label" class="px-3 py-2 rounded-lg bg-slate-200/80 text-slate-800 font-black tabular-nums">1</span>
-          <button type="button" id="gm-next" class="min-h-[40px] px-3 rounded-xl border-2 border-orange-500 bg-orange-500 text-white font-black uppercase hover:bg-orange-600 disabled:opacity-40 disabled:pointer-events-none">Próxima</button>
+        <button type="button" id="gm-prev" class="min-h-[40px] px-3 rounded-lg border border-slate-300 bg-white font-semibold text-slate-700 hover:border-blue-400 disabled:opacity-40 disabled:pointer-events-none">Anterior</button>
+        <span id="gm-page-label" class="px-3 py-2 rounded-lg bg-slate-200/80 text-slate-800 font-bold tabular-nums">1</span>
+        <button type="button" id="gm-next" class="min-h-[40px] px-3 rounded-lg border border-blue-700 bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-40 disabled:pointer-events-none">Próxima</button>
         </div>
       </div>
       <p class="text-[10px] font-bold text-slate-400 text-center pb-2">{{ empresa_nome|default:"—" }} · {{ usuario_label }}</p>
@@ -146,7 +157,7 @@
       </div>
       <p class="text-xs text-slate-500 font-medium leading-snug">Tudo que você salva aqui vale <strong>só no Agro</strong> (PDV, buscas e telas de cadastro). Deixe um campo em branco e salve para voltar ao valor do ERP naquele campo. O Mongo do ERP não é alterado.</p>
       <div class="flex gap-2 pt-2">
-        <button type="button" id="ed-salvar" class="flex-1 min-h-[48px] rounded-xl bg-orange-500 text-white font-black uppercase border-2 border-orange-600 hover:bg-orange-600">Salvar</button>
+        <button type="button" id="ed-salvar" class="flex-1 min-h-[48px] rounded-xl bg-blue-600 text-white font-black uppercase border-2 border-blue-700 hover:bg-blue-700">Salvar</button>
         <button type="button" id="ed-cancelar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 bg-white font-black uppercase text-slate-700">Cancelar</button>
       </div>
     </div>
@@ -208,7 +219,7 @@
   var fForn = document.getElementById('f-forn');
   var fAplicar = document.getElementById('f-aplicar');
   var stripEl = document.getElementById('gm-strip');
-  var nav = document.querySelector('[role="tablist"]');
+  var nav = document.getElementById('gm-adv-nav');
   var drawer = document.getElementById('gm-drawer');
   var drawerBack = document.getElementById('gm-drawer-back');
 
@@ -234,7 +245,7 @@
     p.set('por_pagina', String(porPagina));
     var q = (qEl.value || '').trim();
     if (q) p.set('q', q);
-    p.set('status', fStatus.value || 'ativos');
+    p.set('status', fStatus.value || 'todos');
     var m = (vista === 'marcas' && chipMarca) ? chipMarca : (fMarca.value || '').trim();
     var c = (vista === 'categorias' && chipCat) ? chipCat : (fCat.value || '').trim();
     var f = (vista === 'fornecedores' && chipForn) ? chipForn : (fForn.value || '').trim();
@@ -256,55 +267,63 @@
   function icSliders() {
     return '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>';
   }
+  function icTrash() {
+    return '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
+  }
 
   function renderRowGroup(p) {
     var id = esc(p.id);
     var ajOpen = expandAj === p.id;
     var mmOpen = expandMm === p.id;
-    var rowHi = (ajOpen || mmOpen) ? ' bg-orange-50/60' : ' hover:bg-slate-50/80';
+    var rowHi = (ajOpen || mmOpen) ? ' bg-blue-50/70' : ' hover:bg-slate-50/80';
     var badge = p.inativo
-      ? '<span class="inline-flex items-center justify-center min-w-[4.5rem] px-2 py-1 rounded-full text-[10px] font-black uppercase bg-amber-200 text-amber-950 border border-amber-400/50">Inativo</span>'
-      : '<span class="inline-flex items-center justify-center min-w-[4.5rem] px-2 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-300/60">Ativo</span>';
+      ? '<span class="inline-flex items-center justify-center min-w-[4.5rem] px-2 py-1 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-900 border border-amber-300">Inativo</span>'
+      : '<span class="inline-flex items-center justify-center min-w-[4.5rem] px-2 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-900 border border-emerald-300">Ativo</span>';
     var custo = fmtMoney(p.preco_custo != null ? p.preco_custo : 0);
-    var sub = esc((p.unidade || '—') + ' · Cód. ' + (p.codigo_gm || '—'));
+    var sub = 'Cód. ' + esc(String(p.codigo_gm || '—'));
+    if (p.unidade) sub += ' · ' + esc(String(p.unidade));
     if (p.codigo_barras) sub += ' · ' + esc(String(p.codigo_barras));
-    if (p.subcategoria) sub += ' · ' + esc(String(p.subcategoria));
     var urlVer = esc(URL_CAD_ERP + '?produto=' + encodeURIComponent(String(p.id)));
+    var imgSrc = (p.imagem && String(p.imagem).trim()) ? String(p.imagem).trim() : '';
+    var fotoCell = imgSrc
+      ? '<td class="px-3 py-2 text-center align-middle"><img src="' + esc(imgSrc) + '" alt="" class="h-10 w-10 object-cover rounded-lg border border-slate-200 bg-slate-100 mx-auto" loading="lazy" decoding="async" /></td>'
+      : '<td class="px-3 py-2 text-center align-middle"><div class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-slate-200 text-slate-600 font-bold text-sm border border-slate-300" title="">' + esc(initialNome(p.nome)) + '</div></td>';
     return (
       '<tr data-main data-id="' + id + '" class="transition-colors' + rowHi + '">' +
-        '<td class="px-2 py-2 text-center align-middle">' +
-          '<div class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800 font-black text-sm border border-emerald-200" title="">' + esc(initialNome(p.nome)) + '</div></td>' +
+        fotoCell +
         '<td class="px-3 py-2 align-middle min-w-[10rem]">' +
-          '<div class="font-extrabold text-slate-900 leading-tight">' + esc(p.nome) + '</div>' +
-          '<div class="text-xs font-semibold text-slate-500 mt-0.5">' + sub + '</div></td>' +
+          '<div class="font-bold text-slate-900 leading-tight">' + esc(p.nome) + '</div>' +
+          '<div class="text-xs font-medium text-slate-500 mt-0.5">' + sub + '</div></td>' +
         '<td class="px-2 py-2 align-middle font-mono text-xs text-slate-600 whitespace-nowrap">' + esc(p.codigo_gm || '—') + '</td>' +
-        '<td class="px-2 py-2 align-middle text-emerald-700 font-bold text-xs">' + esc(p.categoria || '—') + '</td>' +
+        '<td class="px-2 py-2 align-middle text-blue-800 font-semibold text-xs">' + esc(p.categoria || '—') + '</td>' +
+        '<td class="px-2 py-2 align-middle text-slate-700 font-medium text-xs">' + esc(p.subcategoria || '—') + '</td>' +
         '<td class="px-2 py-2 align-middle text-slate-700 font-semibold text-xs">' + esc(p.marca || '—') + '</td>' +
-        '<td class="px-2 py-2 align-middle text-center text-xs font-bold text-slate-600">' + esc(p.unidade || '—') + '</td>' +
-        '<td class="px-2 py-2 align-middle text-right font-bold text-slate-700 whitespace-nowrap">' + custo + '</td>' +
-        '<td class="px-2 py-2 align-middle text-right font-black text-slate-900 whitespace-nowrap">' + fmtMoney(p.preco_venda) + '</td>' +
+        '<td class="px-2 py-2 align-middle text-center text-xs font-semibold text-slate-600">' + esc(p.tamanho || '—') + '</td>' +
+        '<td class="px-2 py-2 align-middle text-right font-semibold text-slate-700 whitespace-nowrap">' + custo + '</td>' +
+        '<td class="px-2 py-2 align-middle text-right font-bold text-slate-900 whitespace-nowrap">' + fmtMoney(p.preco_venda) + '</td>' +
         '<td class="px-2 py-2 align-middle text-right whitespace-nowrap">' +
-          '<span class="font-black text-slate-900">' + esc(String(p.saldo_total)) + '</span>' +
-          '<div class="text-[10px] font-bold text-slate-400">C ' + esc(String(p.saldo_centro)) + ' · V ' + esc(String(p.saldo_vila)) + '</div></td>' +
+          '<span class="font-bold text-slate-900">' + esc(String(p.saldo_total)) + '</span>' +
+          '<div class="text-[10px] font-semibold text-slate-400">C ' + esc(String(p.saldo_centro)) + ' · V ' + esc(String(p.saldo_vila)) + '</div></td>' +
         '<td class="px-2 py-2 align-middle text-center">' + badge + '</td>' +
         '<td class="px-3 py-2 align-middle text-right whitespace-nowrap">' +
           '<div class="inline-flex items-center justify-end gap-1 flex-wrap">' +
-            '<button type="button" data-act="edit" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-400 hover:text-orange-600" title="Editar">' + icPencil() + '</button>' +
-            '<a href="' + urlVer + '" target="_blank" rel="noopener" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border-2 border-slate-200 bg-white text-slate-600 hover:border-emerald-500 hover:text-emerald-700" title="Ver cadastro ERP">' + icEye() + '</a>' +
-            '<button type="button" data-act="ajuste" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border-2 border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-400" title="Ajustar estoque">' + icWrench() + '</button>' +
-            '<button type="button" data-act="mm" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-400" title="Mín / máx">' + icSliders() + '</button>' +
+            '<button type="button" data-act="edit" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-blue-500 hover:text-blue-700" title="Editar">' + icPencil() + '</button>' +
+            '<a href="' + urlVer + '" target="_blank" rel="noopener" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-blue-500 hover:text-blue-700" title="Ver cadastro ERP">' + icEye() + '</a>' +
+            '<button type="button" data-act="ajuste" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-800 hover:border-blue-400" title="Ajustar estoque">' + icWrench() + '</button>' +
+            '<button type="button" data-act="mm" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-blue-400" title="Mín / máx">' + icSliders() + '</button>' +
+            '<button type="button" disabled class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-100 bg-slate-50 text-red-400 opacity-60 cursor-not-allowed" title="Exclusão somente no ERP">' + icTrash() + '</button>' +
           '</div></td>' +
       '</tr>' +
-      '<tr data-expand="aj" data-pid="' + id + '" class="' + (ajOpen ? '' : 'hidden') + ' bg-emerald-50/50 border-b border-slate-100">' +
-        '<td colspan="11" class="px-4 py-3">' +
+      '<tr data-expand="aj" data-pid="' + id + '" class="' + (ajOpen ? '' : 'hidden') + ' bg-blue-50/40 border-b border-slate-100">' +
+        '<td colspan="12" class="px-4 py-3">' +
           '<div class="flex flex-wrap gap-4 items-end max-w-xl">' +
             '<label class="flex flex-col gap-1 min-w-[8rem]"><span class="text-[10px] font-black uppercase text-slate-500">Novo Centro</span><input type="number" step="0.001" data-inp="c" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-bold" value="' + esc(String(p.saldo_centro)) + '" /></label>' +
             '<label class="flex flex-col gap-1 min-w-[8rem]"><span class="text-[10px] font-black uppercase text-slate-500">Novo Vila</span><input type="number" step="0.001" data-inp="v" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-bold" value="' + esc(String(p.saldo_vila)) + '" /></label>' +
-            '<button type="button" data-save="aj" class="min-h-[44px] px-4 rounded-xl bg-orange-500 text-white font-black uppercase text-xs border-2 border-orange-600">Salvar</button>' +
-            '<button type="button" data-can="aj" class="min-h-[44px] px-4 rounded-xl border-2 border-slate-200 bg-white font-black uppercase text-xs">Cancelar</button>' +
+            '<button type="button" data-save="aj" class="min-h-[44px] px-4 rounded-lg bg-blue-600 text-white font-bold uppercase text-xs border border-blue-700 hover:bg-blue-700">Salvar</button>' +
+            '<button type="button" data-can="aj" class="min-h-[44px] px-4 rounded-lg border border-slate-300 bg-white font-bold uppercase text-xs">Cancelar</button>' +
           '</div></td></tr>' +
-      '<tr data-expand="mm" data-pid="' + id + '" class="' + (mmOpen ? '' : 'hidden') + ' bg-orange-50/40 border-b border-slate-100">' +
-        '<td colspan="11" class="px-4 py-3">' +
+      '<tr data-expand="mm" data-pid="' + id + '" class="' + (mmOpen ? '' : 'hidden') + ' bg-slate-50 border-b border-slate-100">' +
+        '<td colspan="12" class="px-4 py-3">' +
           '<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl">' +
             '<label class="flex flex-col gap-1"><span class="text-[10px] font-black uppercase text-slate-500">Mín Centro</span><input type="number" step="0.001" data-mm="minc" class="min-h-[40px] rounded-xl border-2 border-slate-200 px-2 font-bold" value="' + (p.estoque_min_centro != null ? esc(String(p.estoque_min_centro)) : '') + '" /></label>' +
             '<label class="flex flex-col gap-1"><span class="text-[10px] font-black uppercase text-slate-500">Máx Centro</span><input type="number" step="0.001" data-mm="maxc" class="min-h-[40px] rounded-xl border-2 border-slate-200 px-2 font-bold" value="' + (p.estoque_max_centro != null ? esc(String(p.estoque_max_centro)) : '') + '" /></label>' +
@@ -312,8 +331,8 @@
             '<label class="flex flex-col gap-1"><span class="text-[10px] font-black uppercase text-slate-500">Máx Vila</span><input type="number" step="0.001" data-mm="maxv" class="min-h-[40px] rounded-xl border-2 border-slate-200 px-2 font-bold" value="' + (p.estoque_max_vila != null ? esc(String(p.estoque_max_vila)) : '') + '" /></label>' +
           '</div>' +
           '<div class="flex gap-2 mt-3">' +
-            '<button type="button" data-save="mm" class="min-h-[44px] px-4 rounded-xl bg-orange-500 text-white font-black uppercase text-xs border-2 border-orange-600">Salvar</button>' +
-            '<button type="button" data-can="mm" class="min-h-[44px] px-4 rounded-xl border-2 border-slate-200 bg-white font-black uppercase text-xs">Cancelar</button>' +
+            '<button type="button" data-save="mm" class="min-h-[44px] px-4 rounded-lg bg-blue-600 text-white font-bold uppercase text-xs border border-blue-700 hover:bg-blue-700">Salvar</button>' +
+            '<button type="button" data-can="mm" class="min-h-[44px] px-4 rounded-lg border border-slate-300 bg-white font-bold uppercase text-xs">Cancelar</button>' +
           '</div></td></tr>'
     );
   }
@@ -390,7 +409,7 @@
     ultimos = rows || [];
     listEl.innerHTML = '';
     if (!ultimos.length) {
-      listEl.innerHTML = '<tr><td colspan="11" class="p-10 text-center text-slate-500 font-bold">Nenhum produto nesta página.</td></tr>';
+      listEl.innerHTML = '<tr><td colspan="12" class="p-10 text-center text-slate-500 font-bold">Nenhum produto nesta página.</td></tr>';
       return;
     }
     ultimos.forEach(function (p) {
@@ -430,7 +449,7 @@
       })
       .catch(function (e) {
         showBan(e.message || 'Erro de rede');
-        listEl.innerHTML = '<tr><td colspan="11" class="p-8 text-center text-red-600 font-bold">Erro ao carregar.</td></tr>';
+        listEl.innerHTML = '<tr><td colspan="12" class="p-8 text-center text-red-600 font-bold">Erro ao carregar.</td></tr>';
         metaEl.textContent = '—';
       });
   }
@@ -447,27 +466,30 @@
   pagPrev.addEventListener('click', function () { if (pagina > 1) { pagina--; carregar(); } });
   pagNext.addEventListener('click', function () { pagina++; carregar(); });
   fAplicar.addEventListener('click', function () { pagina = 1; carregar(); });
+  fStatus.addEventListener('change', function () { pagina = 1; carregar(); });
 
-  nav.querySelectorAll('button[data-mode]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      vista = b.getAttribute('data-mode');
-      nav.querySelectorAll('button[data-mode]').forEach(function (x) {
-        x.classList.remove('border-emerald-600', 'bg-emerald-50', 'text-emerald-900', 'shadow-sm');
-        x.classList.add('border-slate-200', 'bg-white', 'text-slate-600');
+  if (nav) {
+    nav.querySelectorAll('button[data-mode]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        vista = b.getAttribute('data-mode');
+        nav.querySelectorAll('button[data-mode]').forEach(function (x) {
+          x.classList.remove('border-blue-600', 'bg-blue-50', 'text-blue-900');
+          x.classList.add('border-slate-300', 'bg-white', 'text-slate-600');
+        });
+        b.classList.add('border-blue-600', 'bg-blue-50', 'text-blue-900');
+        b.classList.remove('border-slate-300', 'bg-white', 'text-slate-600');
+        chipMarca = chipCat = chipForn = '';
+        stripEl.classList.add('hidden');
+        stripEl.innerHTML = '';
+        if (vista === 'marcas' || vista === 'categorias' || vista === 'fornecedores') {
+          stripEl.classList.remove('hidden');
+          carregarFacetasStrip();
+        }
+        pagina = 1;
+        carregar();
       });
-      b.classList.add('border-emerald-600', 'bg-emerald-50', 'text-emerald-900', 'shadow-sm');
-      b.classList.remove('border-slate-200', 'bg-white', 'text-slate-600');
-      chipMarca = chipCat = chipForn = '';
-      stripEl.classList.add('hidden');
-      stripEl.innerHTML = '';
-      if (vista === 'marcas' || vista === 'categorias' || vista === 'fornecedores') {
-        stripEl.classList.remove('hidden');
-        carregarFacetasStrip();
-      }
-      pagina = 1;
-      carregar();
     });
-  });
+  }
 
   function carregarFacetasStrip() {
     fetch(URL_FAC, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
@@ -477,7 +499,7 @@
       (arr || []).slice(0, 80).forEach(function (x) {
         var btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'min-h-[40px] px-3 rounded-xl text-xs font-black uppercase border-2 border-slate-200 bg-white text-slate-600 hover:border-orange-300';
+        btn.className = 'min-h-[40px] px-3 rounded-lg text-xs font-bold uppercase border border-slate-300 bg-white text-slate-600 hover:border-blue-300';
         btn.textContent = x;
         btn.addEventListener('click', function () {
           if (vista === 'marcas') { chipMarca = chipMarca === x ? '' : x; chipCat = ''; chipForn = ''; }
@@ -486,10 +508,10 @@
           var sel = vista === 'marcas' ? chipMarca : vista === 'categorias' ? chipCat : chipForn;
           Array.prototype.forEach.call(stripEl.querySelectorAll('button'), function (c) {
             var on = sel && c.textContent === sel;
-            c.classList.toggle('border-emerald-500', on);
-            c.classList.toggle('bg-emerald-50', on);
-            c.classList.toggle('text-emerald-900', on);
-            c.classList.toggle('border-slate-200', !on);
+            c.classList.toggle('border-blue-600', on);
+            c.classList.toggle('bg-blue-50', on);
+            c.classList.toggle('text-blue-900', on);
+            c.classList.toggle('border-slate-300', !on);
             c.classList.toggle('bg-white', !on);
             c.classList.toggle('text-slate-600', !on);
           });
@@ -581,6 +603,13 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'F3') { e.preventDefault(); qEl.focus(); qEl.select(); }
   });
+
+  var impEl = document.getElementById('gm-importar');
+  if (impEl) {
+    impEl.addEventListener('click', function () {
+      showBan('Importação por CSV ainda não está disponível nesta tela.');
+    });
+  }
 
   fillFacetSelects();
   carregar();
