@@ -22,6 +22,7 @@
   </style>
 </head>
 <body class="h-screen overflow-hidden bg-slate-50 text-slate-800 flex flex-col">
+{% csrf_token %}
 {% include "produtos/_gm_loading_bar.html" %}
 
   <header class="gm-bar-cad border-b border-slate-200/80 shrink-0 z-20">
@@ -49,6 +50,7 @@
               <li>Esta tela <strong>não</strong> mostra saldo; alterações definitivas de produto continuam no ERP.</li>
               <li>Busque por nome, marca ou código. Lista alfabética quando a busca está vazia.</li>
               <li>Ao escolher um produto, o painel direito carrega o <strong>detalhe completo</strong> (custos/MVA, composição, similares, flags de kit e estoque, etc.) a partir do Mongo — o que existir no documento do ERP.</li>
+              <li>Com <strong>usuário logado</strong>, no detalhe do produto aparece o bloco <strong>Editar só no Agro</strong> (nome, preço, códigos, etc.); isso não altera o ERP.</li>
               <li>Aba <strong>Grupos</strong>: cadastro local no Agro — um nome e um preço, com várias marcas/códigos de barras (preço igual para todas). Use <strong>Preencher do ERP</strong> na linha para copiar marca e código do espelho.</li>
               <li><kbd class="text-[10px] px-1 rounded border border-slate-300 bg-slate-50 font-mono font-black">F2</kbd> foca na busca (aba ERP) ou no nome do grupo; fora de campos, <kbd class="text-[10px] px-1 rounded border border-slate-300 bg-slate-50 font-mono font-black">F1</kbd> volta ao PDV.</li>
             </ul>
@@ -161,6 +163,9 @@
 (function () {
   var API = "{% url 'api_produtos_cadastro' %}";
   var API_DETALHE_TMPL = "{% url 'api_produtos_cadastro_detalhe' produto_id='x' %}";
+  var URL_OVERLAY_SALVAR = "{% url 'api_produtos_gestao_overlay_salvar' %}";
+  var PODE_EDITAR_OVERLAY = {% if pode_editar_overlay %}true{% else %}false{% endif %};
+  var LOGIN_OVERLAY_HREF = "{% url 'admin:login' %}?next={{ login_overlay_next|urlencode }}";
   function urlDetalheProduto(id) {
     return API_DETALHE_TMPL.replace(/\/x\//, '/' + encodeURIComponent(String(id)) + '/');
   }
@@ -308,6 +313,129 @@
     return h;
   }
 
+  function buildOverlayFormHtml(p) {
+    var pv = (p.preco_venda != null && isFinite(Number(p.preco_venda))) ? String(Number(p.preco_venda)).replace('.', ',') : '';
+    var av = '';
+    if (p.ativo_exibicao === true) av = '1';
+    else if (p.ativo_exibicao === false) av = '0';
+    var ic = 'w-full min-h-[44px] px-3 rounded-xl border-2 border-emerald-400 text-base font-bold text-slate-900 bg-white';
+    return (
+      '<div class="mt-6 rounded-2xl border-2 border-emerald-600 bg-emerald-50/90 p-4 sm:p-5 shadow-sm">' +
+      '<h4 class="text-sm font-black uppercase text-emerald-950 tracking-wide mb-1">Editar só no Agro</h4>' +
+      '<p class="text-xs text-slate-700 mb-4 leading-snug">Grava no Agro (PDV e buscas). <strong>Não altera o ERP.</strong> Campo vazio + salvar remove o override daquele texto; em «Exibir como», «Seguir ERP» remove o forçamento de ativo/inativo.</p>' +
+      '<div class="grid gap-3 sm:grid-cols-2">' +
+      '<label class="block sm:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Nome</span>' +
+      '<input type="text" id="cad-ov-nome" class="' + ic + '" maxlength="300" value="' + escapeHtml(p.nome || '') + '" autocomplete="off" /></label>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Marca</span>' +
+      '<input type="text" id="cad-ov-marca" class="' + ic + '" maxlength="120" value="' + escapeHtml(p.marca || '') + '" autocomplete="off" /></label>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Categoria</span>' +
+      '<input type="text" id="cad-ov-cat" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.categoria || '') + '" autocomplete="off" /></label>' +
+      '<label class="block sm:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Fornecedor (texto)</span>' +
+      '<input type="text" id="cad-ov-forn" class="' + ic + '" maxlength="300" value="' + escapeHtml(p.fornecedor || '') + '" autocomplete="off" /></label>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Código NFe / GM</span>' +
+      '<input type="text" id="cad-ov-codnfe" class="' + ic + ' font-mono text-sm" maxlength="64" value="' + escapeHtml(String(p.codigo_nfe || p.codigo || '')) + '" autocomplete="off" /></label>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Código de barras</span>' +
+      '<input type="text" id="cad-ov-cb" class="' + ic + ' font-mono text-sm" maxlength="80" value="' + escapeHtml(String(p.codigo_barras || '')) + '" inputmode="numeric" autocomplete="off" /></label>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria</span>' +
+      '<input type="text" id="cad-ov-sub" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria || '') + '" autocomplete="off" /></label>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Unidade</span>' +
+      '<input type="text" id="cad-ov-un" class="' + ic + '" maxlength="20" value="' + escapeHtml(p.unidade || '') + '" autocomplete="off" /></label>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Preço venda (R$)</span>' +
+      '<input type="text" id="cad-ov-preco" inputmode="decimal" class="' + ic + '" value="' + escapeHtml(pv) + '" autocomplete="off" /></label>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Exibir como</span>' +
+      '<select id="cad-ov-ativo" class="' + ic + '">' +
+      '<option value=""' + (av === '' ? ' selected' : '') + '>Seguir ERP</option>' +
+      '<option value="1"' + (av === '1' ? ' selected' : '') + '>Ativo</option>' +
+      '<option value="0"' + (av === '0' ? ' selected' : '') + '>Inativo</option>' +
+      '</select></label>' +
+      '</div>' +
+      '<label class="block mt-3"><span class="text-[10px] font-black uppercase text-slate-600">Descrição</span>' +
+      '<textarea id="cad-ov-desc" rows="3" class="w-full rounded-xl border-2 border-emerald-400 px-3 py-2 text-sm font-semibold text-slate-900 bg-white">' + escapeHtml(p.descricao || '') + '</textarea></label>' +
+      '<div class="mt-4">' +
+      '<button type="button" id="cadastro-overlay-salvar" class="min-h-[48px] px-6 rounded-xl bg-orange-500 text-white font-black uppercase text-sm border-2 border-orange-600 hover:bg-orange-600 shadow-sm">Salvar no Agro</button>' +
+      '</div>' +
+      '<p id="cadastro-overlay-msg" class="mt-2 text-sm font-bold hidden" role="status"></p>' +
+      '</div>'
+    );
+  }
+
+  function buildOverlayOuLoginHtml(p) {
+    if (PODE_EDITAR_OVERLAY) {
+      return buildOverlayFormHtml(p);
+    }
+    return (
+      '<div class="mt-6 rounded-xl border-2 border-slate-200 bg-slate-100/80 p-4">' +
+      '<p class="text-sm font-bold text-slate-800">Edição só no Agro (nome, preço, códigos…)</p>' +
+      '<p class="text-xs text-slate-600 mt-2 leading-snug">Entre com seu usuário do sistema para ver o formulário aqui. O cadastro mestre continua no ERP.</p>' +
+      '<a href="' + String(LOGIN_OVERLAY_HREF || '').replace(/"/g, '&quot;') + '" class="mt-3 inline-flex min-h-[44px] items-center px-4 rounded-xl bg-emerald-600 text-white font-black uppercase text-xs border-2 border-emerald-800 hover:bg-emerald-700">Entrar para editar</a>' +
+      '</div>'
+    );
+  }
+
+  function bindCadastroOverlaySalvar(p) {
+    if (!PODE_EDITAR_OVERLAY) return;
+    var btn = document.getElementById('cadastro-overlay-salvar');
+    if (!btn) return;
+    btn.onclick = function () {
+      var msg = document.getElementById('cadastro-overlay-msg');
+      function showMsg(t, ok) {
+        if (!msg) return;
+        msg.textContent = t || '';
+        msg.classList.remove('hidden', 'text-red-700', 'text-emerald-800');
+        if (t) {
+          msg.classList.remove('hidden');
+          msg.classList.add(ok ? 'text-emerald-800' : 'text-red-700');
+        } else {
+          msg.classList.add('hidden');
+        }
+      }
+      showMsg('');
+      function gv(id) {
+        var el = document.getElementById(id);
+        return el ? el.value : '';
+      }
+      var body = {
+        produto_id: String(p.id || ''),
+        nome: gv('cad-ov-nome'),
+        marca: gv('cad-ov-marca'),
+        categoria: gv('cad-ov-cat'),
+        fornecedor_texto: gv('cad-ov-forn'),
+        unidade: gv('cad-ov-un'),
+        codigo_nfe: gv('cad-ov-codnfe'),
+        codigo_barras: gv('cad-ov-cb'),
+        subcategoria: gv('cad-ov-sub'),
+        descricao: gv('cad-ov-desc'),
+        preco_venda: gv('cad-ov-preco')
+      };
+      var av = gv('cad-ov-ativo');
+      if (av === '') body.ativo_exibicao = null;
+      else body.ativo_exibicao = av === '1';
+      function getCk(n) {
+        var m = document.cookie.match('(^|;) ?' + n + '=([^;]*)(;|$)');
+        return m ? decodeURIComponent(m[2]) : '';
+      }
+      var csrfEl = document.querySelector('[name=csrfmiddlewaretoken]');
+      var tok = csrfEl ? csrfEl.value : getCk('csrftoken');
+      fetch(URL_OVERLAY_SALVAR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
+        body: JSON.stringify(body)
+      }).then(function (r) {
+        if (r.status === 403 || r.status === 401) {
+          throw new Error('Sem sessão ou permissão. Use «Entrar para editar» ou abra de novo após login.');
+        }
+        return r.json();
+      }).then(function (j) {
+        if (!j.ok) throw new Error(j.erro || 'Falha ao salvar');
+        showMsg('Salvo no Agro.', true);
+        carregarDetalheProduto(String(p.id || ''));
+      }).catch(function (e) {
+        showMsg(e.message || 'Erro ao salvar', false);
+      });
+    };
+  }
+
   function renderDetalheCompleto(p) {
     var img = p.imagem
       ? '<div class="mb-4 flex justify-center"><img src="' + String(p.imagem).replace(/"/g, '&quot;') + '" alt="" class="max-h-48 rounded-xl border border-slate-200 object-contain bg-slate-50" loading="lazy" /></div>'
@@ -397,8 +525,14 @@
       '<details class="mt-3 rounded-2xl border border-slate-200 bg-white p-3">' +
       '<summary class="cursor-pointer text-sm font-black uppercase text-slate-700 min-h-[44px] flex items-center">Similares</summary>' +
       '<div class="mt-3">' + renderSimilares(p.similares) + '</div></details>' +
-      '<p class="mt-6 text-xs text-slate-500 leading-relaxed">Leitura do espelho Mongo/ERP. Alterações definitivas continuam no ERP.</p>' +
+      buildOverlayOuLoginHtml(p) +
+      '<p class="mt-4 text-xs text-slate-500 leading-relaxed">' +
+      (PODE_EDITAR_OVERLAY
+        ? 'Bloco verde: edição só no Agro. Blocos acima (custos, kit, composição): leitura do espelho Mongo/ERP.'
+        : 'Conteúdo acima: leitura do espelho Mongo/ERP. Alterações definitivas continuam no ERP.') +
+      '</p>' +
       '</div>';
+    bindCadastroOverlaySalvar(p);
   }
 
   function renderDetalheResumido(p) {
