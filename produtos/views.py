@@ -3514,10 +3514,19 @@ def api_entrada_nota_estoque_agro(request):
     return JsonResponse(out, status=st)
 
 
+def _entrada_nota_fornecedor_chave_nome(nome) -> str:
+    """Uma entrada na lista por nome exibido (ignora origem): prioridade na ordem mongo → titulo → agro."""
+    return " ".join(str(nome or "").strip().lower().split())
+
+
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_entrada_nota_fornecedores(request):
-    """Fornecedores: Mongo (DtoPessoa) + nomes já usados em títulos + ClienteAgro local."""
+    """Fornecedores: Mongo (DtoPessoa) + nomes já usados em títulos + ClienteAgro local.
+
+    Mesmo nome em mais de uma origem vira **uma** linha (mantém a primeira: cadastro Mongo,
+    senão título, senão Agro local).
+    """
     client, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"itens": [], "erro": "Mongo indisponível"}, status=503)
@@ -3563,13 +3572,15 @@ def api_entrada_nota_fornecedores(request):
                 )
         except Exception:
             pass
-    seen: set[str] = set()
+    seen_nome: set[str] = set()
     merged: list[dict[str, str]] = []
     for row in mongo_rows + extras + agro_rows:
-        key = f"{(row.get('nome') or '').lower()}|{row.get('documento') or ''}|{row.get('origem')}"
-        if key in seen:
+        nk = _entrada_nota_fornecedor_chave_nome(row.get("nome"))
+        if not nk:
             continue
-        seen.add(key)
+        if nk in seen_nome:
+            continue
+        seen_nome.add(nk)
         merged.append(row)
     return JsonResponse({"itens": merged[:lim]})
 
