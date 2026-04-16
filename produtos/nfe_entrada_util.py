@@ -113,14 +113,17 @@ def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
     """
     Estágio exclusivo para filtros da lista (Entrada NF-e), alinhado ao fluxo:
     Nota aberta → Estoque → Financeiro → Concluída; Descartada à parte.
+
+    **Concluída** só com estoque Agro aplicado **e** financeiro (a pagar) lançado.
+    Status ``encerrada`` (legado, antes só por botão) fica em fila própria, não em Concluída.
     """
     eff = str(d.get("entrada_status_efetivo") or "")
     fin_ok = bool(d.get("entrada_financeiro_lancado"))
     if eff == ENTRADA_NFE_STATUS_DESCARTADA:
         return "descartada"
     if eff == ENTRADA_NFE_STATUS_ENCERRADA:
-        return "concluida"
-    if fin_ok and eff in (ENTRADA_NFE_STATUS_ESTOQUE_APLICADO, ENTRADA_NFE_STATUS_PRONTA):
+        return "encerrada"
+    if fin_ok and eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
         return "concluida"
     if eff == ENTRADA_NFE_STATUS_COM_PENDENCIAS:
         return "nota_aberta"
@@ -446,6 +449,7 @@ def listar_rascunhos_entrada(db, limit: int = 30, *, filtro: str | None = None) 
                 "financeiro",
                 "concluida",
                 "descartada",
+                "encerrada",
                 "em_andamento",
                 "estoque_aplicado_legacy",
                 "financeiro_lancado_legacy",
@@ -649,7 +653,10 @@ def pipeline_acao_rascunho_entrada(
     *,
     usuario: str = "",
 ) -> dict[str, Any]:
-    """encerrar | descartar | reabrir — altera só ``status`` (e timestamps)."""
+    """descartar | reabrir — altera só ``status`` (e timestamps).
+
+    ``encerrar`` está desativado: a lista trata **Concluída** só com estoque aplicado + financeiro.
+    """
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
     _id = _object_id_rascunho(oid)
@@ -664,9 +671,10 @@ def pipeline_acao_rascunho_entrada(
         st = str(doc.get("status") or "").strip().lower()
         linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
         if ac == "encerrar":
-            if st == ENTRADA_NFE_STATUS_DESCARTADA:
-                return {"ok": False, "erro": "Nota descartada: reabra antes de encerrar."}
-            novo = ENTRADA_NFE_STATUS_ENCERRADA
+            return {
+                "ok": False,
+                "erro": "Encerramento manual foi desativado. Use estoque Agro e Salvar + a pagar para concluir.",
+            }
         elif ac == "descartar":
             novo = ENTRADA_NFE_STATUS_DESCARTADA
         elif ac == "reabrir":
@@ -674,7 +682,7 @@ def pipeline_acao_rascunho_entrada(
                 return {"ok": False, "erro": "Só é possível reabrir notas encerradas ou descartadas."}
             novo = entrada_nfe_status_derivado_linhas(linhas)
         else:
-            return {"ok": False, "erro": "Ação inválida (use encerrar, descartar ou reabrir)."}
+            return {"ok": False, "erro": "Ação inválida (use descartar ou reabrir)."}
         db[COL_ENTRADA_RASCUNHO].update_one(
             {"_id": _id},
             {
