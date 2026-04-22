@@ -265,6 +265,18 @@
         return catalogLoadPromise;
     }
 
+    function matchQueryAgainstIndexCodigos(qt, qd, p) {
+        if (!Array.isArray(p.index_codigos) || !p.index_codigos.length) return false;
+        var ql = String(qt || '').trim().toLowerCase();
+        for (var i = 0; i < p.index_codigos.length; i++) {
+            var x = String(p.index_codigos[i] == null ? '' : p.index_codigos[i]).trim();
+            if (!x) continue;
+            if (x.toLowerCase() === ql) return true;
+            if (qd.length >= 6 && onlyDigits(x) === qd) return true;
+        }
+        return false;
+    }
+
     function findUniqueBarcodeMatch(q) {
         var qt = String(q || '').trim();
         if (!qt) return null;
@@ -278,6 +290,7 @@
             var match = false;
             if (qt && (ean === qt || nfe === qt || cod === qt)) match = true;
             else if (qd.length >= 6 && onlyDigits(ean) && onlyDigits(ean) === qd) match = true;
+            else if (matchQueryAgainstIndexCodigos(qt, qd, p)) match = true;
             if (match) {
                 var id = String(p.id || '');
                 if (id && !seen[id]) {
@@ -303,6 +316,7 @@
         var score = 0;
         if (nfe === q || cod === q || ean === q) score += 2500;
         if (qDigits.length >= 6 && eanD && eanD === qDigits) score += 2400;
+        if (matchQueryAgainstIndexCodigos(qRaw, qDigits, p)) score += 2600;
         if (barcodeMode) {
             if (ean.indexOf(q) !== -1 || nfe.indexOf(q) !== -1 || cod.indexOf(q) !== -1) score += 500;
         }
@@ -342,6 +356,11 @@
         var q = String(query || '').trim();
         if (!allowLocalQuery(q)) {
             return { list: [], message: 'Digite ao menos 2 letras ou 6+ dígitos do código.' };
+        }
+        var qDigitsOnly = onlyDigits(q);
+        // Catálogo wizard não traz index_codigos completo (payload). EAN/similar longo: servidor usa o mesmo motor do PDV.
+        if (qDigitsOnly.length >= 8) {
+            return { list: [], message: '', barcodeHit: null };
         }
         var barcodeMode = mode === 'barcode';
         if (barcodeMode) {

@@ -274,10 +274,14 @@ def api_buscar_produtos(request):
 
     if termo:
         try:
-            client = get_mongo_client()
-            produtos = client.buscar_produtos(termo)
+            from produtos.busca_produtos_mongo import buscar_produtos_motor_pdv
 
-            produto_ids = [str(produto["_id"]) for produto in produtos]
+            produtos = buscar_produtos_motor_pdv(termo, limit=120)
+            if not produtos:
+                produtos = []
+
+            client = get_mongo_client()
+            produto_ids = [str(produto.get("Id") or produto.get("_id")) for produto in produtos]
             estoques = client.buscar_estoques_por_produto_ids(produto_ids)
             ajustes = _buscar_ajustes_mais_recentes(produto_ids)
 
@@ -287,7 +291,7 @@ def api_buscar_produtos(request):
                 estoques_por_produto.setdefault(produto_id, []).append(estoque)
 
             for produto in produtos:
-                produto_id = str(produto.get("_id"))
+                produto_id = str(produto.get("Id") or produto.get("_id"))
                 saldo_centro_erp = Decimal('0')
                 saldo_vila_erp = Decimal('0')
 

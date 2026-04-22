@@ -121,15 +121,35 @@
     }
 
     function codigosSoDigitosProduto(p) {
-        const raw = [p.codigo_nfe, p.codigo_barras, p.codigo, p.ean];
+        const raw = [
+            p.codigo_nfe,
+            p.codigo_barras,
+            p.codigo,
+            p.ean,
+            p.referencia,
+            p.sku,
+            p.codigo_fornecedor,
+            p.codigo_interno,
+        ];
+        if (Array.isArray(p.index_codigos)) {
+            p.index_codigos.forEach((x) => raw.push(x));
+        }
         return raw
             .map(x => String(x ?? '').replace(/\D/g, ''))
             .filter(c => c.length > 0);
     }
 
+    function termoIgualAlgumIndexCodigo(termoNorm, p) {
+        if (!termoNorm || !Array.isArray(p.index_codigos)) return false;
+        const t = String(termoNorm).trim();
+        if (!t) return false;
+        return p.index_codigos.some((x) => normalizarBuscaLocal(String(x ?? '')) === t);
+    }
+
     function casaCodigoNumericoNoProduto(palavraBruta, p) {
         const d = String(palavraBruta || '').replace(/\D/g, '');
         if (d.length < 4) return false;
+        if (termoIgualAlgumIndexCodigo(normalizarBuscaLocal(String(palavraBruta || '')), p)) return true;
         return codigosSoDigitosProduto(p).some(c => {
             if (c === d) return true;
             if (d.length >= 6 && (c.endsWith(d) || c.includes(d))) return true;
@@ -200,6 +220,7 @@
             return pool.filter(p => {
                 const hay = textoBuscaProdutoNormalizado(p);
                 if (hay.includes(termo)) return true;
+                if (termoIgualAlgumIndexCodigo(termo, p)) return true;
                 const nfe = normalizarBuscaLocal(String(p.codigo_nfe ?? ''));
                 const cb = normalizarBuscaLocal(String(p.codigo_barras ?? ''));
                 if (termo === nfe || termo === cb) return true;
@@ -1475,10 +1496,14 @@ function normalizarIdProdutoPdv(id) {
 
 function metaOpcoesFromProd(p) {
     if (!p || typeof p !== 'object') return {};
-    return {
+    const out = {
         codigo_gm: String(p.codigo_nfe || p.codigo_gm || p.codigo || '').trim(),
         prateleira: String(p.prateleira || '').trim(),
     };
+    if (p.auditoria_codigo_bip) {
+        out.auditoria_codigo_bip = String(p.auditoria_codigo_bip).trim();
+    }
+    return out;
 }
 
 function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
@@ -1504,19 +1529,23 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
     const item = carrinho.find((i) => normalizarIdProdutoPdv(i.id) === idNorm);
     const cg = opcoes.codigo_gm != null ? String(opcoes.codigo_gm).trim() : '';
     const pr = opcoes.prateleira != null ? String(opcoes.prateleira).trim() : '';
+    const aud = opcoes.auditoria_codigo_bip != null ? String(opcoes.auditoria_codigo_bip).trim() : '';
     if (item) {
         item.qtd += qtd;
         if (cg && !item.codigo_gm) item.codigo_gm = cg;
         if (pr && !item.prateleira) item.prateleira = pr;
+        if (aud && !item.auditoria_codigo_bip) item.auditoria_codigo_bip = aud;
     } else {
-        carrinho.push({
+        const linha = {
             id: idNorm,
             nome,
             preco: Number(preco || 0),
             qtd: qtd,
             codigo_gm: cg,
             prateleira: pr,
-        });
+        };
+        if (aud) linha.auditoria_codigo_bip = aud;
+        carrinho.push(linha);
     }
 
     atualizarCarrinho();
@@ -2792,7 +2821,23 @@ function ordenarSugestoesPdv(lista, termoBuscaNorm) {
 }
 
 function montarBuscaTextoRapido(p) {
-    const partes = [p.nome, p.marca, p.codigo_nfe, p.codigo_barras, p.codigo, p.prateleira].filter(Boolean);
+    const partes = [
+        p.nome,
+        p.marca,
+        p.codigo_nfe,
+        p.codigo_barras,
+        p.codigo,
+        p.prateleira,
+        p.referencia,
+        p.sku,
+        p.codigo_fornecedor,
+        p.codigo_interno,
+    ].filter(Boolean);
+    if (Array.isArray(p.index_codigos)) {
+        p.index_codigos.slice(0, 120).forEach((c) => {
+            if (c != null && String(c).trim() !== '') partes.push(String(c));
+        });
+    }
     return normalizarBuscaLocal(partes.join(' '));
 }
 
@@ -2805,6 +2850,9 @@ function relevanciaTextoBuscaPdv(p, termoNorm) {
     if (!termoNorm || typeof termoNorm !== 'string') return 0;
     const t = termoNorm.trim();
     if (!t) return 0;
+    if (Array.isArray(p.index_codigos) && p.index_codigos.some((x) => normalizarBuscaLocal(String(x ?? '')) === t)) {
+        return 2_000_000;
+    }
     const nome = normalizarBuscaLocal(String(p.nome || ''));
     const blob = blobTextoBuscaRelevancia(p);
     if (nome.includes(t)) return 1_000_000;
@@ -2847,6 +2895,9 @@ function parseEtiquetaBalancaEan13(digits13) {
 
 function produtoCombinaCodigoInternoBalanca4(cod4, p) {
     const raw = [p.codigo_nfe, p.codigo, p.codigo_barras];
+    if (Array.isArray(p.index_codigos)) {
+        p.index_codigos.forEach((x) => raw.push(x));
+    }
     const candidatos = new Set([cod4, cod4.replace(/^0+/, '') || '0', cod4.padStart(5, '0'), cod4.padStart(6, '0')]);
     for (const field of raw) {
         const d = String(field ?? '').replace(/\D/g, '');
@@ -2879,6 +2930,8 @@ function enriquecerProdutoBusca(p) {
             ),
             preco_etiqueta_balanca: !!p.preco_etiqueta_balanca,
             qtd_separacao_transferencia: Number(p.qtd_separacao_transferencia || 0),
+            auditoria_codigo_bip: p.auditoria_codigo_bip || null,
+            index_codigos: Array.isArray(p.index_codigos) ? p.index_codigos : [],
         };
     }
     const prat =
@@ -2907,6 +2960,13 @@ function enriquecerProdutoBusca(p) {
                 : loc.media_venda_diaria_30d || 0
         ),
         preco_etiqueta_balanca: !!(p.preco_etiqueta_balanca || loc.preco_etiqueta_balanca),
+        auditoria_codigo_bip: p.auditoria_codigo_bip || loc.auditoria_codigo_bip || null,
+        index_codigos:
+            Array.isArray(p.index_codigos) && p.index_codigos.length
+                ? p.index_codigos
+                : Array.isArray(loc.index_codigos)
+                  ? loc.index_codigos
+                  : [],
     };
 }
 
@@ -3000,17 +3060,10 @@ function executarBuscaLocal(termo, modo) {
         if (bal) {
             if (!bal.checkOk) {
                 mostrarBannerScanner('⚠️ Etiqueta inválida (dígito verificador)');
-            } else if (baseProdutos.length) {
-                const prod = encontrarProdutoPorCodigoInternoBalanca(bal.codigo4, baseProdutos);
-                if (prod) {
-                    const linha = {
-                        ...prod,
-                        preco_venda: bal.valorReais,
-                        preco_etiqueta_balanca: true,
-                    };
-                    processarResultadosBusca([linha], modo, true);
-                    return;
-                }
+            } else {
+                /* Resolve mestre + preço no servidor (similares Mongo); auditoria no JSON */
+                executarBuscaAPI(digits, modo);
+                return;
             }
         }
     }
@@ -3064,6 +3117,9 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false,
             {
                 ...(precoEtiqueta ? { precoEtiquetaBalanca: true } : {}),
                 ...metaOpcoesFromProd(produto),
+                ...(produto.auditoria_codigo_bip
+                    ? { auditoria_codigo_bip: String(produto.auditoria_codigo_bip) }
+                    : {}),
             }
         );
         mostrarStatusBusca(`Código lido: ${quantidadeRapida}x ${produto.nome}`, 'emerald');
@@ -4330,7 +4386,19 @@ window.agroPdvSincronizarComApi = function () {
         apiBtn.setAttribute('aria-busy', 'true');
     }
     carregarCacheClientes({ force: true });
-    sincronizarCatalogoPdvServidor(false)
+    var invUrl =
+        (typeof AGRO_PDV_URLS !== 'undefined' && AGRO_PDV_URLS && AGRO_PDV_URLS.apiPdvInvalidarCatalogo) ||
+        '/api/pdv/invalidar-catalogo/';
+    fetch(invUrl, { credentials: 'same-origin' })
+        .catch(function () {
+            /* segue mesmo se invalidar falhar (rede) */
+        })
+        .then(function () {
+            try {
+                localStorage.removeItem(PDV_CACHE_KEY);
+            } catch (_) {}
+            return sincronizarCatalogoPdvServidor(false);
+        })
         .then(function () {
             return new Promise(function (resolve) {
                 setTimeout(function () {

@@ -668,7 +668,11 @@ function prepararProduto(produto) {
     const marca = obterValorCampoProduto(produto, 'marca');
     const fornecedor = obterValorCampoProduto(produto, 'fornecedor');
     const categoria = obterValorCampoProduto(produto, 'categoria');
-    const buscaTexto = [nome, codigo, codigoBarras, marca, fornecedor, categoria].map(normalizarBuscaLocal).join(' ');
+    const partesBusca = [nome, codigo, codigoBarras, marca, fornecedor, categoria];
+    if (Array.isArray(produto.index_codigos)) {
+        produto.index_codigos.slice(0, 120).forEach((c) => { if (c != null && String(c).trim() !== '') partesBusca.push(String(c)); });
+    }
+    const buscaTexto = partesBusca.map(normalizarBuscaLocal).join(' ');
     return {
         ...produto,
         nome,
@@ -1108,7 +1112,7 @@ function incrementarFrequencia(id) {
     localStorage.setItem('freqProdutos', JSON.stringify(frequenciaUso));
 }
 
-function addCarrinho(id, nome, preco, qtd = 1) {
+function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
     const agora = Date.now();
     // Trava de segurança absoluta (Hardware Lock) de 500ms para evitar "Ghost Keystrokes" de leitores físicos
     if (id === ultimoProdutoAdicionadoId && (agora - tempoUltimaAdicao) < 500) {
@@ -1119,9 +1123,16 @@ function addCarrinho(id, nome, preco, qtd = 1) {
 
     incrementarFrequencia(id); // Registra a "venda" para rankear esse produto depois
 
+    const aud = opcoes.auditoria_codigo_bip != null ? String(opcoes.auditoria_codigo_bip).trim() : '';
     const item = carrinho.find(i => i.id === id);
-    if (item) item.qtd += qtd;
-    else carrinho.push({ id, nome, preco: Number(preco || 0), qtd: qtd });
+    if (item) {
+        item.qtd += qtd;
+        if (aud && !item.auditoria_codigo_bip) item.auditoria_codigo_bip = aud;
+    } else {
+        const linha = { id, nome, preco: Number(preco || 0), qtd: qtd };
+        if (aud) linha.auditoria_codigo_bip = aud;
+        carrinho.push(linha);
+    }
 
     atualizarCarrinho();
     tocarSom('add');
@@ -1134,7 +1145,9 @@ function addCarrinho(id, nome, preco, qtd = 1) {
     esconderStatusBusca();
     focarBuscaProduto();
 
-    validarItemCarrinhoSilencioso(id, preco); // Trava de Segurança
+    if (!opcoes.precoEtiquetaBalanca) {
+        validarItemCarrinhoSilencioso(id, preco); // Trava de Segurança
+    }
 }
 
 function validarItemCarrinhoSilencioso(id, precoLocal) {
@@ -1773,17 +1786,37 @@ function buscarProdutos(q, modo = 'normal') {
 }
 
 function executarBuscaLocal(termo, modo) {
+    if (modo === 'scanner') {
+        const raw = removerSufixoQuantidade(inputBusca.value || '');
+        const dig = String(raw || '').replace(/\D/g, '');
+        if (dig.length === 13 && dig[0] === '2') {
+            executarBuscaAPI(dig, modo);
+            return;
+        }
+    }
     const palavras = termo.split(/\s+/);
     
+    function _matchIndexCodigosScanner(p, t) {
+        if (!Array.isArray(p.index_codigos) || !t) return false;
+        const tn = normalizarBuscaLocal(t);
+        const dTerm = String(t).replace(/\D/g, '');
+        return p.index_codigos.some(function (x) {
+            const xs = String(x ?? '');
+            if (normalizarBuscaLocal(xs) === tn) return true;
+            if (dTerm.length >= 4 && xs.replace(/\D/g, '').includes(dTerm)) return true;
+            return false;
+        });
+    }
+
     let resultados = baseProdutos.filter(p => {
         if (modo === 'scanner') {
-            return p.codigo_nfe === termo || p.codigo_barras === termo || p.busca_texto.includes(termo); 
+            return p.codigo_nfe === termo || p.codigo_barras === termo || (p.busca_texto && p.busca_texto.includes(termo)) || _matchIndexCodigosScanner(p, termo);
         }
         return palavras.every(palavra => p.busca_texto.includes(palavra));
     });
 
     if (modo === 'scanner') {
-        const exato = resultados.find(p => normalizarBuscaLocal(p.codigo_nfe) === termo || normalizarBuscaLocal(p.codigo_barras || '') === termo);
+        const exato = resultados.find(p => normalizarBuscaLocal(p.codigo_nfe) === termo || normalizarBuscaLocal(p.codigo_barras || '') === termo || _matchIndexCodigosScanner(p, termo));
         if (exato) {
             processarResultadosBusca([exato], modo, true);
             return;
@@ -1822,9 +1855,14 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false)
 
     if (matchExato && produtosEncontrados.length === 1) {
         const produto = produtosEncontrados[0];
+        const precoEt = !!produto.preco_etiqueta_balanca;
         flashScanner();
-        mostrarBannerScanner(`✅ Código lido • ${quantidadeRapida}x ${produto.nome}`);
-        addCarrinho(produto.id, produto.nome, produto.preco_venda, quantidadeRapida);
+        const avisoPreco = precoEt ? ' (valor da etiqueta)' : '';
+        mostrarBannerScanner(`✅ Código lido • ${quantidadeRapida}x ${produto.nome}${avisoPreco}`);
+        addCarrinho(produto.id, produto.nome, produto.preco_venda, quantidadeRapida, {
+            precoEtiquetaBalanca: precoEt,
+            ...(produto.auditoria_codigo_bip ? { auditoria_codigo_bip: String(produto.auditoria_codigo_bip) } : {}),
+        });
         mostrarStatusBusca(`Código lido: ${quantidadeRapida}x ${produto.nome}`, 'emerald');
         setTimeout(esconderStatusBusca, 1500);
         return;

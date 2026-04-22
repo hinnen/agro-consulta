@@ -130,6 +130,11 @@ urlpatterns = [
         views.api_produtos_cadastro_detalhe,
         name='api_produtos_cadastro_detalhe',
     ),
+    path(
+        'api/produtos/cadastro/compras-historico/',
+        views.api_produtos_cadastro_compras_historico,
+        name='api_produtos_cadastro_compras_historico',
+    ),
     path('api/produtos/grupos/', views.api_produtos_grupos_listar, name='api_produtos_grupos_listar'),
     path('api/produtos/grupos/salvar/', views.api_produtos_grupo_salvar, name='api_produtos_grupo_salvar'),
     path('api/produtos/grupos/<int:pk>/', views.api_produtos_grupo_obter, name='api_produtos_grupo_obter'),
