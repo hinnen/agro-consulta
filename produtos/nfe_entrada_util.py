@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
+from .mongo_busca_similares_util import encontrar_produto_casar_entrada_nfe
+
 logger = logging.getLogger(__name__)
 
 NS_NFE = "http://www.portalfiscal.inf.br/nfe"
@@ -325,10 +327,9 @@ def decodificar_doc_zip_base64(b64: str) -> str | None:
 
 
 def casar_produtos_mongo(db, col_p: str, itens: list[dict]) -> list[dict]:
-    """Enriquece itens com produto_id / nome_catalogo quando encontra por EAN ou código."""
+    """Enriquece itens com produto_id / nome_catalogo quando encontra por EAN ou código (incl. similares ERP)."""
     if db is None or not itens:
         return itens
-    col = db[col_p]
     for it in itens:
         it["produto_id"] = None
         it["nome_catalogo"] = None
@@ -336,26 +337,9 @@ def casar_produtos_mongo(db, col_p: str, itens: list[dict]) -> list[dict]:
         ean = (it.get("ean") or "").strip()
         cprod = (it.get("c_prod") or "").strip()
         doc = None
+        mtipo = None
         try:
-            if ean and len(ean) >= 8:
-                ors = [{"CodigoBarras": ean}, {"EAN_NFe": ean}]
-                if ean.isdigit():
-                    ors.append({"CodigoBarras": str(int(ean))})
-                doc = col.find_one({"$or": ors}, {"Id": 1, "_id": 1, "Nome": 1})
-                if doc:
-                    it["match_tipo"] = "ean"
-            if doc is None and cprod:
-                doc = col.find_one(
-                    {
-                        "$or": [
-                            {"CodigoNFe": cprod},
-                            {"Codigo": cprod},
-                        ]
-                    },
-                    {"Id": 1, "_id": 1, "Nome": 1},
-                )
-                if doc:
-                    it["match_tipo"] = "codigo"
+            doc, mtipo = encontrar_produto_casar_entrada_nfe(db, col_p, ean=ean, c_prod=cprod)
         except Exception as exc:
             logger.warning("casar_produtos_mongo: %s", exc)
             continue
@@ -363,6 +347,7 @@ def casar_produtos_mongo(db, col_p: str, itens: list[dict]) -> list[dict]:
             pid = str(doc.get("Id") or doc.get("_id") or "")
             it["produto_id"] = pid
             it["nome_catalogo"] = str(doc.get("Nome") or "")[:300]
+            it["match_tipo"] = mtipo
     return itens
 
 

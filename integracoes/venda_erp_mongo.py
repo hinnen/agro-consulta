@@ -39,3 +39,12 @@ class VendaERPMongoClient:
 
         self.DEPOSITO_CENTRO = "698e36e0d34f9b3013b16da6"
         self.DEPOSITO_VILA_ELIAS = "69960ed00a7abd17679e2ec7"
+
+    def buscar_estoques_por_produto_ids(self, produto_ids):
+        """Saldos por produto (``DtoEstoqueDepositoProduto``). Usado pelo endpoint legado em ``estoque.views``."""
+        if not produto_ids:
+            return []
+        ids = [str(x) for x in produto_ids if x is not None and str(x).strip() != ""]
+        if not ids:
+            return []
+        return list(self.db[self.col_e].find({"ProdutoID": {"$in": ids}}))
