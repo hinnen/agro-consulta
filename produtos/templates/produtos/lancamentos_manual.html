@@ -328,14 +328,29 @@
           headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
           body: JSON.stringify(payload),
         });
-        const j = await r.json();
-        if (!j.ok && !(j.ids && j.ids.length)) {
-          const er = (j.erros && j.erros[0] && j.erros[0].erro) || j.erro || 'Falha ao gravar.';
-          alert(er);
+        const raw = await r.text();
+        let j = {};
+        try {
+          j = raw ? JSON.parse(raw) : {};
+        } catch (_) {
+          alert('Resposta inválida do servidor (HTTP ' + r.status + '). Se a sessão expirou, faça login e tente de novo.');
           return;
         }
+        const ids = Array.isArray(j.ids) ? j.ids : [];
+        const erros = Array.isArray(j.erros) ? j.erros : [];
+        const msgs = erros.map((e) => (e && (e.erro || e.mensagem)) ? String(e.erro || e.mensagem) : '').filter(Boolean);
         const av = j.aviso_api ? `\n\nERP: ${j.aviso_api}` : '';
-        alert(`Lote gravado. IDs: ${(j.ids || []).join(', ')}${av}`);
+        if (!j.ok && !ids.length) {
+          alert(msgs[0] || j.erro || j.detail || ('Falha ao gravar (HTTP ' + r.status + ').'));
+          return;
+        }
+        if (!j.ok && ids.length) {
+          const det = msgs.length ? ('\n\n' + msgs.slice(0, 12).join('\n') + (msgs.length > 12 ? '\n…' : '')) : '';
+          alert('Gravação parcial. IDs gravados: ' + ids.join(', ') + det + av);
+          window.location.href = "{% url 'lancamentos_financeiros' %}";
+          return;
+        }
+        alert('Lote gravado. IDs: ' + ids.join(', ') + av);
         window.location.href = "{% url 'lancamentos_financeiros' %}";
       } catch (_) {
         alert('Erro de rede.');
