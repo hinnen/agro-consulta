@@ -616,6 +616,12 @@ class ProdutoGestaoOverlayAgro(models.Model):
     estoque_max_vila = models.DecimalField(
         max_digits=12, decimal_places=3, null=True, blank=True
     )
+    cadastro_extras = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Extras cadastro (fiscal local, kit PDV, etc.)",
+        help_text="JSON livre: fiscal (NCM, CFOP…), kit (baixa_componentes, deposito), etc.",
+    )
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -631,3 +637,38 @@ class ProdutoGestaoOverlayAgro(models.Model):
 
     def __str__(self):
         return f"{self.produto_externo_id} · overlay"
+
+
+class ProdutoMarcaVariacaoAgro(models.Model):
+    """
+    Variações de marca/código do produto mestre (espelho ERP) no Agro.
+    Estoque e custo por linha; o custo exibido no mestre pode ser média ponderada.
+    """
+
+    produto_externo_id = models.CharField(
+        max_length=64,
+        db_index=True,
+        verbose_name="ID produto (Mongo/ERP)",
+    )
+    marca = models.CharField(max_length=120)
+    codigo_barras = models.CharField(max_length=80, blank=True, default="")
+    codigo_fornecedor = models.CharField(max_length=80, blank=True, default="")
+    codigo_interno = models.CharField(
+        max_length=80,
+        blank=True,
+        default="",
+        db_index=True,
+        verbose_name="Código interno (variação)",
+    )
+    estoque = models.DecimalField(max_digits=14, decimal_places=4, default=0)
+    custo_unitario = models.DecimalField(max_digits=14, decimal_places=4, default=0)
+    ordem = models.PositiveSmallIntegerField(default=0)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["produto_externo_id", "ordem", "id"]
+        verbose_name = "Variação de marca (cadastro mestre)"
+        verbose_name_plural = "Variações de marca (cadastro mestre)"
+
+    def __str__(self):
+        return f"{self.produto_externo_id} · {self.marca}"

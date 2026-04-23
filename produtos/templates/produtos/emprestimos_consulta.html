@@ -71,7 +71,7 @@
 <div id="panel-tab-agro" class="consulta-panel hidden w-full">
   <div class="flex min-h-0 w-full flex-col gap-4 rounded-2xl border-2 border-orange-200/80 bg-white p-6 lg:p-8 shadow-sm">
     <h2 class="text-xl font-black uppercase tracking-tight text-orange-900 lg:text-2xl">Registros Agro (gestão)</h2>
-    <p class="text-base font-semibold text-slate-600">Tipo <strong>Todos / Externos / Internos</strong> está no painel <strong>Filtros</strong>. Nos <strong class="text-orange-800">internos</strong>, use <strong>Gerenciar</strong> para registrar pagamento ou devolução ao sócio (parcial ou integral).</p>
+    <p class="text-base font-semibold text-slate-600">Tipo <strong>Todos / Externos / Internos</strong> no painel <strong>Filtros</strong>. <strong>Saldo líquido</strong>: negativo = loja deve à pessoa; positivo = pessoa deve à loja. Clique na linha para ver os lançamentos. Em <strong class="text-orange-800">internos</strong>, <strong>Gerenciar</strong> registra pagamento ou devolução.</p>
     <div id="lista-emp" class="min-h-[min(58vh,32rem)] max-h-[min(65vh,36rem)] w-full overflow-y-auto text-lg font-semibold text-slate-600">Carregando…</div>
   </div>
 </div>
@@ -342,40 +342,128 @@
     return Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  /** Negativo = loja deve à pessoa; positivo = pessoa deve à loja (interno: −saldo restante a devolver). */
+  function saldoAssinadoAgro(x) {
+    var t = String(x.tipo || '').toLowerCase();
+    if (t === 'interno') {
+      var v2 = typeof x.valor_devolucao_total === 'number' ? x.valor_devolucao_total : 0;
+      var saldo = typeof x.interno_saldo_devedor === 'number' ? x.interno_saldo_devedor : v2;
+      return -Number(saldo || 0);
+    }
+    var dev = typeof x.valor_total_devido === 'number' ? x.valor_total_devido : 0;
+    return -Number(dev || 0);
+  }
+
+  function chavePessoaAgro(x) {
+    var t = String(x.tipo || '').toLowerCase();
+    var nome = (t === 'interno' ? (x.mutuario_label || x.credor_nome) : (x.credor_nome || x.mutuario_label)) || '';
+    return String(nome).trim() || '—';
+  }
+
+  function fmtBrlAssinado(n) {
+    var v = Number(n) || 0;
+    var abs = Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (v < 0) return '− R$ ' + abs;
+    if (v > 0) return '+ R$ ' + abs;
+    return 'R$ ' + abs;
+  }
+
+  function renderCardAgroItem(x) {
+    const tipo = x.tipo === 'interno' ? '<span class="text-orange-700 font-black">INTERNO</span>' : '<span class="text-emerald-800 font-black">EXTERNO</span>';
+    const ref = x.ref || '—';
+    const quem = x.credor_nome || x.mutuario_label || '—';
+    const v1 = typeof x.valor_recebido === 'number' ? x.valor_recebido : (x.valor_aporte || 0);
+    const v2 = typeof x.valor_total_devido === 'number' ? x.valor_total_devido : (x.valor_devolucao_total || 0);
+    const dt = (x.created_at || '').slice(0, 19).replace('T', ' ');
+    const isInt = String(x.tipo || '').toLowerCase() === 'interno';
+    let extra = '';
+    let btnGer = '';
+    if (isInt) {
+      const saldo = typeof x.interno_saldo_devedor === 'number' ? x.interno_saldo_devedor : v2;
+      const pago = typeof x.interno_total_pago === 'number' ? x.interno_total_pago : 0;
+      const quit = x.interno_quitado ? '<span class="ml-2 inline-flex items-center rounded-lg bg-emerald-600 px-2 py-0.5 text-xs font-black text-white uppercase">Quitado</span>' : '';
+      extra = '<div class="text-base font-bold text-slate-700 mt-1">Pago R$ ' + fmtBrl(pago) + ' · Saldo R$ ' + fmtBrl(saldo) + quit + '</div>';
+      const dis = x.interno_quitado ? ' disabled' : '';
+      btnGer = '<button type="button" class="btn-ger-int min-h-[48px] shrink-0 rounded-xl border-2 border-orange-500 bg-orange-500 px-4 py-2 text-sm font-black uppercase text-white hover:bg-orange-600 disabled:opacity-40 disabled:pointer-events-none" data-id="' + escHtml(x.id) + '"' + dis + '>Gerenciar</button>';
+    }
+    return '<div class="rounded-xl border-2 border-slate-100 bg-slate-50/90 px-5 py-4 mb-3 flex flex-wrap items-center justify-between gap-3">' +
+      '<div class="min-w-0 flex-1"><span class="text-sm font-black uppercase text-slate-500">' + tipo + ' · ref ' + escHtml(ref) + '</span>' +
+      '<div class="text-xl font-black text-slate-900 mt-1">' + escHtml(quem) + '</div>' +
+      '<div class="text-base font-semibold text-slate-600 mt-1">Entrada/aporte R$ ' + fmtBrl(v1) +
+      ' · Total a devolver R$ ' + fmtBrl(v2) + '</div>' + extra + '</div>' +
+      '<div class="flex flex-col items-end gap-2 shrink-0"><div class="text-sm font-bold text-slate-400">' + escHtml(dt) + '</div>' + btnGer + '</div></div>';
+  }
+
+  function ordenarGruposAgro(grupos, ord) {
+    var o = ord || 'data_desc';
+    var arr = grupos.slice();
+    function maxCreated(g) {
+      var m = '';
+      g.itens.forEach(function (x) {
+        var c = String(x.created_at || '');
+        if (c && c > m) m = c;
+      });
+      return m;
+    }
+    function minCreated(g) {
+      var m = '';
+      g.itens.forEach(function (x) {
+        var c = String(x.created_at || '');
+        if (c && (!m || c < m)) m = c;
+      });
+      return m;
+    }
+    if (o === 'data_asc') {
+      arr.sort(function (a, b) { return minCreated(a).localeCompare(minCreated(b)); });
+    } else if (o === 'nome_az') {
+      arr.sort(function (a, b) { return a.nome.toLowerCase().localeCompare(b.nome.toLowerCase()); });
+    } else if (o === 'nome_za') {
+      arr.sort(function (a, b) { return b.nome.toLowerCase().localeCompare(a.nome.toLowerCase()); });
+    } else {
+      arr.sort(function (a, b) { return maxCreated(b).localeCompare(maxCreated(a)); });
+    }
+    return arr;
+  }
+
   function renderAgroHtml(itens) {
     const el = document.getElementById('lista-emp');
     if (!itens.length) {
       el.innerHTML = '<p class="text-lg font-bold text-slate-500">Nenhum registro neste filtro.</p>';
       return;
     }
-    const rows = itens.map(function (x) {
-      const tipo = x.tipo === 'interno' ? '<span class="text-orange-700 font-black">INTERNO</span>' : '<span class="text-emerald-800 font-black">EXTERNO</span>';
-      const ref = x.ref || '—';
-      const quem = x.credor_nome || x.mutuario_label || '—';
-      const v1 = typeof x.valor_recebido === 'number' ? x.valor_recebido : (x.valor_aporte || 0);
-      const v2 = typeof x.valor_total_devido === 'number' ? x.valor_total_devido : (x.valor_devolucao_total || 0);
-      const dt = (x.created_at || '').slice(0, 19).replace('T', ' ');
-      const isInt = String(x.tipo || '').toLowerCase() === 'interno';
-      let extra = '';
-      let btnGer = '';
-      if (isInt) {
-        const saldo = typeof x.interno_saldo_devedor === 'number' ? x.interno_saldo_devedor : v2;
-        const pago = typeof x.interno_total_pago === 'number' ? x.interno_total_pago : 0;
-        const quit = x.interno_quitado ? '<span class="ml-2 inline-flex items-center rounded-lg bg-emerald-600 px-2 py-0.5 text-xs font-black text-white uppercase">Quitado</span>' : '';
-        extra = '<div class="text-base font-bold text-slate-700 mt-1">Pago R$ ' + fmtBrl(pago) + ' · Saldo R$ ' + fmtBrl(saldo) + quit + '</div>';
-        const dis = x.interno_quitado ? ' disabled' : '';
-        btnGer = '<button type="button" class="btn-ger-int min-h-[48px] shrink-0 rounded-xl border-2 border-orange-500 bg-orange-500 px-4 py-2 text-sm font-black uppercase text-white hover:bg-orange-600 disabled:opacity-40 disabled:pointer-events-none" data-id="' + escHtml(x.id) + '"' + dis + '>Gerenciar</button>';
-      }
-      return '<div class="rounded-xl border-2 border-slate-100 bg-slate-50/90 px-5 py-4 mb-3 flex flex-wrap items-center justify-between gap-3">' +
-        '<div class="min-w-0 flex-1"><span class="text-sm font-black uppercase text-slate-500">' + tipo + ' · ref ' + escHtml(ref) + '</span>' +
-        '<div class="text-xl font-black text-slate-900 mt-1">' + escHtml(quem) + '</div>' +
-        '<div class="text-base font-semibold text-slate-600 mt-1">Entrada/aporte R$ ' + fmtBrl(v1) +
-        ' · Total a devolver R$ ' + fmtBrl(v2) + '</div>' + extra + '</div>' +
-        '<div class="flex flex-col items-end gap-2 shrink-0"><div class="text-sm font-bold text-slate-400">' + escHtml(dt) + '</div>' + btnGer + '</div></div>';
+    const ord = (document.getElementById('consulta-agro-ordenar') || {}).value || 'data_desc';
+    const map = {};
+    itens.forEach(function (x) {
+      var k = chavePessoaAgro(x);
+      if (!map[k]) map[k] = { nome: k, itens: [], total: 0 };
+      map[k].itens.push(x);
+      map[k].total += saldoAssinadoAgro(x);
     });
-    el.innerHTML = rows.join('');
+    var grupos = Object.keys(map).map(function (k) { return map[k]; });
+    grupos.forEach(function (g) {
+      g.itens = ordenarAgroItens(g.itens, ord);
+    });
+    grupos = ordenarGruposAgro(grupos, ord);
+
+    const blocks = grupos.map(function (g) {
+      var tot = g.total;
+      var clsTot = tot < 0 ? 'text-red-800' : (tot > 0 ? 'text-emerald-800' : 'text-slate-600');
+      var inner = g.itens.map(renderCardAgroItem).join('');
+      return '<details class="group mb-4 rounded-2xl border-2 border-orange-100 bg-white shadow-sm open:shadow-md open:border-orange-200">' +
+        '<summary class="cursor-pointer list-none flex flex-wrap items-center justify-between gap-4 px-5 py-4 marker:content-none [&::-webkit-details-marker]:hidden">' +
+        '<div class="min-w-0 flex-1 flex items-center gap-3">' +
+        '<span class="text-slate-400 text-lg leading-none transition-transform group-open:rotate-90 motion-reduce:transition-none select-none" aria-hidden="true">▶</span>' +
+        '<div class="text-2xl font-black text-slate-900 leading-tight">' + escHtml(g.nome) + '</div></div>' +
+        '<div class="shrink-0 text-right">' +
+        '<div class="text-xs font-black uppercase text-slate-500">Saldo líquido</div>' +
+        '<div class="text-2xl font-black tabular-nums ' + clsTot + '">' + fmtBrlAssinado(tot) + '</div></div>' +
+        '<span class="sr-only">Abrir ou fechar lançamentos desta pessoa</span></summary>' +
+        '<div class="border-t-2 border-orange-50 bg-slate-50/80 px-4 py-4">' + inner + '</div></details>';
+    });
+    el.innerHTML = blocks.join('');
     el.querySelectorAll('.btn-ger-int').forEach(function (b) {
-      b.addEventListener('click', function () {
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
         const id = b.getAttribute('data-id');
         const item = (agroItensCache || []).find(function (z) { return String(z.id) === String(id); });
         if (item) abrirModalEmpInt(item);

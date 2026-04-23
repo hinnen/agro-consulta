@@ -1,0 +1,1320 @@
+<div id="modal-editar-produto" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm" aria-modal="true" role="dialog">
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col min-h-0 overflow-hidden font-['Inter']">
+
+    <div class="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
+      <h3 class="text-lg sm:text-xl font-black uppercase text-slate-800 tracking-tight">Editar Produto · <span class="text-emerald-600">Agro Mais</span></h3>
+      <button type="button" id="fechar-modal-editar" class="min-h-[50px] sm:min-h-[52px] px-4 sm:px-5 rounded-xl text-base sm:text-lg font-black uppercase border-2 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors">Fechar</button>
+    </div>
+
+    <div class="flex overflow-x-auto border-b border-slate-200 bg-white shrink-0 [scrollbar-width:thin]">
+      <button type="button" class="tab-btn active px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-emerald-500 text-emerald-700 whitespace-nowrap" data-tab="tab-gerais">1. Gerais</button>
+      <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-fiscal">2. Fiscal</button>
+      <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-custos">3. Preços/Margem</button>
+      <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-estoque">4. Estoque</button>
+      <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-composicao">5. Composição</button>
+      <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-variacoes">6. Marcas/Cód.</button>
+      <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-config">7. Config</button>
+    </div>
+
+    <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 [scrollbar-width:thin]">
+
+      <div id="tab-gerais" class="tab-content grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 font-['Inter']">
+
+        <label class="block sm:col-span-2 md:col-span-3">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Nome do Produto</span>
+          <input type="text" id="edit-nome" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" />
+        </label>
+
+        <label class="block sm:col-span-2 md:col-span-3">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Descrição Resumida</span>
+          <textarea id="edit-desc" rows="2" class="w-full px-3 py-2 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors"></textarea>
+        </label>
+
+        <div class="flex flex-col">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Marca</span>
+          <div class="flex gap-1 relative">
+            <input type="text" id="edit-marca" list="dl-marcas-agro" autocomplete="off" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Buscar..." />
+            <button type="button" id="btn-marca-nova" class="w-12 h-12 bg-slate-100 border-2 border-slate-200 rounded-lg text-xl font-black text-slate-600 hover:bg-white transition-colors shrink-0" title="Nova Marca">+</button>
+            <div id="marca-resultados" class="hidden absolute top-full left-0 right-14 bg-white border border-slate-200 rounded-b-lg shadow-xl z-20 max-h-40 overflow-y-auto [scrollbar-width:thin]"></div>
+          </div>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Fornecedor</span>
+          <div class="flex gap-1 relative">
+            <input type="text" id="edit-fornecedor" list="dl-forns-agro" autocomplete="off" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Buscar..." />
+            <button type="button" id="btn-fornec-nova" class="w-12 h-12 bg-slate-100 border-2 border-slate-200 rounded-lg text-xl font-black text-slate-600 hover:bg-white transition-colors shrink-0" title="Novo Fornecedor">+</button>
+            <div id="fornecedor-resultados" class="hidden absolute top-full left-0 right-14 bg-white border border-slate-200 rounded-b-lg shadow-xl z-20 max-h-40 overflow-y-auto [scrollbar-width:thin]"></div>
+          </div>
+        </div>
+
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Modelo</span>
+          <input type="text" id="edit-modelo" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" />
+        </label>
+
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Unidade</span>
+          <input type="text" id="edit-unidade" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Ex: Un, Kg, Sc" />
+        </label>
+
+        <div class="flex flex-col">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Categoria</span>
+          <div class="flex gap-1 relative">
+            <input type="text" id="edit-categoria" list="dl-cats-agro" autocomplete="off" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Buscar..." />
+            <button type="button" id="btn-categoria-nova" class="w-12 h-12 bg-slate-100 border-2 border-slate-200 rounded-lg text-xl font-black text-slate-600 hover:bg-white transition-colors shrink-0" title="Nova Categoria">+</button>
+            <div id="categoria-resultados" class="hidden absolute top-full left-0 right-14 bg-white border border-slate-200 rounded-b-lg shadow-xl z-20 max-h-40 overflow-y-auto [scrollbar-width:thin]"></div>
+          </div>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Subcategoria</span>
+          <div class="flex gap-1 relative">
+            <input type="text" id="edit-subcategoria" list="dl-subcats-agro" autocomplete="off" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Buscar..." />
+            <button type="button" id="btn-subcategoria-nova" class="w-12 h-12 bg-slate-100 border-2 border-slate-200 rounded-lg text-xl font-black text-slate-600 hover:bg-white transition-colors shrink-0" title="Nova Subcategoria">+</button>
+            <div id="subcategoria-resultados" class="hidden absolute top-full left-0 right-14 bg-white border border-slate-200 rounded-b-lg shadow-xl z-20 max-h-40 overflow-y-auto [scrollbar-width:thin]"></div>
+          </div>
+        </div>
+
+        <label class="block sm:col-span-2 md:col-span-3">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">URL da Imagem</span>
+          <input type="text" id="edit-img" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" />
+        </label>
+      </div>
+
+      <div id="tab-fiscal" class="tab-content hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Código Interno</span>
+          <input type="text" id="edit-codigo" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
+        </label>
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Código de Barras</span>
+          <input type="text" id="edit-cb" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" inputmode="numeric" />
+        </label>
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Código NFe</span>
+          <input type="text" id="edit-cod-nfe" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
+        </label>
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">NCM</span>
+          <input type="text" id="edit-ncm" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
+        </label>
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Origem Mercadoria</span>
+          <input type="text" id="edit-origem" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Ex: 0" />
+        </label>
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">CFOP Padrão</span>
+          <input type="text" id="edit-cfop" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Ex: 5102" />
+        </label>
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">CSOSN</span>
+          <input type="text" id="edit-csosn" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Ex: 102" />
+        </label>
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">CEST</span>
+          <input type="text" id="edit-cest" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">CST PIS/COFINS</span>
+          <input type="text" id="edit-pis-cofins" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Ex: 49" />
+        </label>
+      </div>
+
+      <div id="tab-custos" class="tab-content hidden flex flex-col gap-6 w-full font-['Inter']">
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 p-5 rounded-2xl border-2 border-slate-100 bg-white shadow-sm w-full">
+          <label class="block">
+            <span class="text-[11px] font-black uppercase text-slate-500 mb-1 block">Custo Unit. (R$)</span>
+            <input type="text" id="edit-custo" class="w-full h-[72px] px-4 rounded-xl border-2 border-slate-200 text-lg font-black text-slate-700 bg-slate-50 focus:border-emerald-500 outline-none transition-all box-border" inputmode="decimal" />
+          </label>
+
+          <label class="block">
+            <span class="text-[11px] font-black uppercase text-slate-500 mb-1 block">Custo + Acrésc. (R$)</span>
+            <input type="text" id="edit-custo-acrescimo" class="w-full h-[72px] px-4 rounded-xl border-2 border-slate-200 text-lg font-black text-slate-700 bg-slate-50 focus:border-emerald-500 outline-none transition-all box-border" inputmode="decimal" />
+          </label>
+
+          <label class="block bg-emerald-50/50 rounded-xl border-2 border-emerald-100 flex flex-col pt-2 px-2">
+            <span class="text-[11px] font-black uppercase text-emerald-900 mb-1 block">Lucro MVA (R$)</span>
+            <input type="text" id="edit-mva-rs" class="w-full h-[72px] px-3 bg-transparent text-xl font-black text-emerald-700 border-none outline-none focus:ring-0 box-border" inputmode="decimal" />
+          </label>
+
+          <label class="block bg-emerald-50/50 rounded-xl border-2 border-emerald-100 flex flex-col pt-2 px-2">
+            <span class="text-[11px] font-black uppercase text-emerald-900 mb-1 block">Lucro MVA (%)</span>
+            <input type="text" id="edit-mva-pct" class="w-full h-[72px] px-3 bg-transparent text-xl font-black text-emerald-700 border-none outline-none focus:ring-0 box-border" inputmode="decimal" />
+          </label>
+        </div>
+
+        <div class="w-full">
+          <label class="block w-full max-w-2xl mx-auto p-6 rounded-3xl border-[4px] border-orange-400 bg-orange-50/80 shadow-lg group transition-all hover:border-orange-500">
+            <span class="text-sm font-black uppercase text-orange-600 mb-2 block tracking-[0.2em] text-center">Preço de Venda Final (R$)</span>
+            <div class="flex justify-center w-full">
+              <div class="inline-flex items-baseline gap-2 font-black max-w-full min-w-0">
+                <span class="text-3xl text-orange-400 shrink-0">R$</span>
+                <input type="text" id="edit-venda" class="min-w-[5ch] w-auto max-w-[min(100%,16ch)] bg-transparent text-center text-6xl font-black text-slate-900 outline-none border-none focus:ring-0 p-0 min-h-[1em] box-border" placeholder="0,00" inputmode="decimal" />
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 rounded-2xl border-2 border-blue-50 bg-slate-50/50 w-full">
+          <label class="block">
+            <span class="text-[11px] font-black uppercase text-blue-800 mb-1 block">Comissão (R$)</span>
+            <input type="text" id="edit-comissao-rs" class="w-full h-[72px] px-4 rounded-xl border-2 border-blue-100 text-lg font-black text-blue-800 bg-white outline-none focus:border-blue-400 box-border" inputmode="decimal" />
+          </label>
+
+          <label class="block">
+            <span class="text-[11px] font-black uppercase text-blue-800 mb-1 block">Comissão (%)</span>
+            <input type="text" id="edit-comissao-pct" class="w-full h-[72px] px-4 rounded-xl border-2 border-blue-100 text-lg font-black text-blue-800 bg-white outline-none focus:border-blue-400 box-border" inputmode="decimal" />
+          </label>
+
+          <div class="block p-3 rounded-xl bg-slate-800 shadow-inner border-b-4 border-slate-900 flex flex-col min-h-0">
+            <span class="text-[10px] font-black uppercase text-slate-400 mb-1 block">Margem Bruta Livre (%)</span>
+            <div class="h-[72px] flex items-baseline justify-center gap-1.5">
+              <input type="text" id="edit-margem-livre" readonly tabindex="-1" class="flex-1 min-w-0 bg-transparent text-4xl font-black text-white border-none outline-none focus:ring-0 p-0 text-center" value="" title="(Preço venda − custo base − comissão R$) ÷ preço venda × 100" />
+              <span class="text-2xl font-black text-emerald-400 shrink-0 leading-none pb-1">%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-estoque" class="tab-content hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 font-['Inter']">
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Estoque Mínimo</span>
+          <input type="number" id="edit-est-min" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" />
+        </label>
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Estoque Máximo</span>
+          <input type="number" id="edit-est-max" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" />
+        </label>
+        <label class="block sm:col-span-2 md:col-span-1">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Prateleira / Local</span>
+          <input type="text" id="edit-prateleira" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" />
+        </label>
+
+        <label class="sm:col-span-2 md:col-span-3 flex items-center gap-3 cursor-pointer select-none p-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
+          <input type="checkbox" id="edit-permite-negativo" checked="checked" class="w-6 h-6 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+          <span class="text-base font-bold text-slate-700">Permitir venda com estoque negativo</span>
+        </label>
+
+        <div class="sm:col-span-2 md:col-span-3 mt-2">
+          <span class="text-base font-black uppercase text-slate-600 mb-2 block tracking-widest">Histórico de Fornecedores</span>
+          <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin]">
+            <table class="w-full text-base min-w-[500px]">
+              <thead class="bg-slate-50 text-base font-black uppercase text-slate-600">
+                <tr><th class="px-4 py-3 text-left">Fornecedor</th><th class="px-4 py-3 text-left">Data</th><th class="px-4 py-3 text-right">Preço Pago</th></tr>
+              </thead>
+              <tbody id="lista-fornecedores" class="divide-y divide-slate-100">
+                <tr><td colspan="3" class="px-4 py-6 text-center text-slate-400 font-semibold">Nenhum histórico disponível.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-composicao" class="tab-content hidden flex flex-col gap-4 font-['Inter']">
+
+        <div class="p-3 rounded-xl border border-blue-200 bg-blue-50/50 flex flex-wrap items-center gap-3">
+          <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" id="comp-baixa-auto" checked="checked" class="w-6 h-6 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+            <span class="text-base font-bold text-slate-700">Baixar estoque dos componentes na venda</span>
+          </label>
+
+          <div class="group relative px-3 py-2 bg-slate-200 rounded-full text-sm font-black cursor-help">
+            ?
+            <div class="hidden group-hover:block absolute left-0 bottom-full mb-3 w-72 p-4 bg-slate-800 text-white text-sm font-semibold rounded-lg shadow-xl z-50 leading-snug">
+              <p class="mb-2"><strong>Ativado (Padrão):</strong> O estoque do produto mestre não é alterado. O sistema diminui o saldo apenas dos insumos listados abaixo.</p>
+              <p><strong>Ideal para:</strong> Vendas a granel, kits de ração ou combos de produtos.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2 items-end p-4 rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div class="flex-1 min-w-[250px] relative">
+            <span class="text-base font-black uppercase text-slate-600 mb-1 block">Buscar Componente / Insumo</span>
+            <input type="text" id="comp-busca" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Nome ou código..." />
+            <div id="comp-resultados" class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-b-lg shadow-xl z-20 max-h-48 overflow-y-auto [scrollbar-width:thin]"></div>
+          </div>
+
+          <label class="w-24">
+            <span class="text-base font-black uppercase text-slate-600 mb-1 block">Qtd (Fracionar)</span>
+            <input type="number" id="comp-qtd" step="0.001" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" value="1" />
+          </label>
+
+          <div class="w-48 relative">
+            <div class="flex items-center gap-1 mb-1">
+              <span class="text-base font-black uppercase text-slate-600 block">Depósito Saída</span>
+              <div class="group relative px-2 py-0.5 bg-slate-200 rounded-full text-sm font-black cursor-help">
+                ?
+                <div class="hidden group-hover:block absolute right-0 bottom-full mb-2 w-64 p-3 bg-slate-800 text-white text-sm font-semibold rounded-lg shadow-xl z-50">
+                  Dinâmico: usa o depósito da venda (PDV). Selecione um local para travar a saída neste depósito.
+                </div>
+              </div>
+            </div>
+            <select id="comp-deposito" class="w-full min-h-[50px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white focus:border-emerald-500 outline-none">
+              <option value="" class="font-bold">Dinâmico (Padrão PDV)</option>
+              <option value="1">Loja Central</option>
+              <option value="2">Depósito 01</option>
+              <option value="3">Silo Grande</option>
+            </select>
+          </div>
+
+          <button type="button" id="comp-btn-adicionar" class="min-h-[50px] px-5 rounded-lg text-sm font-black uppercase bg-slate-200 text-slate-500 border-2 border-slate-300 cursor-not-allowed" disabled title="Composição definida no ERP">Add</button>
+        </div>
+
+        <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin]">
+          <table class="w-full text-base min-w-[750px]">
+            <thead class="bg-slate-50 text-base font-black uppercase text-slate-600">
+              <tr>
+                <th class="px-4 py-3 text-left">Produto</th>
+                <th class="px-4 py-3 text-left">Depósito Saída</th>
+                <th class="px-4 py-3 text-right">Custo Unit.</th>
+                <th class="px-4 py-3 text-right">Qtd</th>
+                <th class="px-4 py-3 text-right">Subtotal</th>
+                <th class="w-12"></th>
+              </tr>
+            </thead>
+            <tbody id="lista-composicao" class="divide-y divide-slate-100"></tbody>
+            <tfoot class="bg-slate-50 border-t border-slate-200">
+              <tr>
+                <td colspan="4" class="px-4 py-4 text-right text-base font-black uppercase text-slate-600 tracking-wider font-['Inter']">Custo Total Calculado Final:</td>
+                <td id="edit-comp-custo-total" class="px-4 py-4 text-right text-xl font-black text-emerald-700">R$ 0,00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div id="tab-config" class="tab-content hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="sm:col-span-2 flex flex-col sm:flex-row gap-4 p-5 rounded-xl border border-slate-200 bg-white">
+          <label class="flex-1 flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" id="edit-ativo-exibicao" class="w-6 h-6 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+            <span class="text-base font-bold text-slate-700">Aparecer no PDV / Buscas</span>
+          </label>
+          <label class="flex-1 flex items-center gap-3 cursor-pointer select-none">
+            <input type="checkbox" id="edit-inativo" class="w-6 h-6 rounded border-slate-300 text-red-600 focus:ring-red-500" />
+            <span class="text-base font-bold text-red-700">Inativar no ERP</span>
+          </label>
+        </div>
+      </div>
+
+      <div id="tab-variacoes" class="tab-content hidden flex flex-col gap-4">
+        <div id="bloco-similares-erp" class="rounded-xl border border-slate-300 bg-slate-50/90 p-4 shadow-sm">
+          <h4 class="text-base font-black uppercase tracking-widest text-slate-800 mb-1">Similares (ERP)</h4>
+          <p class="text-base text-slate-600 mb-3 leading-snug">Produtos vinculados como similares no espelho Mongo (somente leitura; alteração no ERP).</p>
+          <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin]">
+            <table class="w-full text-base min-w-[720px]">
+              <thead class="bg-slate-900 text-white text-sm sm:text-base font-black uppercase">
+                <tr>
+                  <th class="px-3 py-2.5 text-left">Código</th>
+                  <th class="px-3 py-2.5 text-left">Nome</th>
+                  <th class="px-3 py-2.5 text-left">Modelo</th>
+                  <th class="px-3 py-2.5 text-left">Marca</th>
+                  <th class="px-3 py-2.5 text-left">Fabricante</th>
+                </tr>
+              </thead>
+              <tbody id="lista-similares-erp-modal" class="divide-y divide-slate-100">
+                <tr><td colspan="5" class="px-4 py-6 text-center text-slate-400 font-semibold text-base">Carregando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="p-4 sm:p-5 rounded-xl border border-emerald-200 bg-emerald-50/50">
+          <p class="text-base font-bold text-emerald-800 mb-4 tracking-tight">Variações locais (Agro): o custo mestre (aba Preços) é a média ponderada (estoque × custo) das linhas abaixo.</p>
+
+          <div class="flex flex-wrap items-end gap-3">
+            <label class="flex-1 min-w-[100px]">
+              <span class="text-base font-black uppercase text-slate-600 mb-1 block">Cód. Interno</span>
+              <input type="text" id="var-codigo" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
+            </label>
+            <label class="flex-1 min-w-[120px]">
+              <span class="text-base font-black uppercase text-slate-600 mb-1 block">Marca</span>
+              <input type="text" id="var-marca" list="dl-marcas-agro" autocomplete="off" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Buscar…" />
+            </label>
+            <button type="button" id="btn-var-marca-nova" title="Nova marca" class="min-h-[50px] w-12 rounded-lg bg-white border-2 border-slate-200 text-lg font-black text-slate-500 hover:bg-slate-50 shrink-0">+</button>
+            <label class="flex-1 min-w-[140px]">
+              <span class="text-base font-black uppercase text-slate-600 mb-1 block">Cód. Barras</span>
+              <input type="text" id="var-cb" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" inputmode="numeric" />
+            </label>
+            <label class="flex-1 min-w-[120px]">
+              <span class="text-base font-black uppercase text-slate-600 mb-1 block">Cód. Fornecedor</span>
+              <input type="text" id="var-cod-forn" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
+            </label>
+            <label class="w-24">
+              <span class="text-base font-black uppercase text-slate-600 mb-1 block">Estoque</span>
+              <input type="number" id="var-estoque" step="any" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" value="0" />
+            </label>
+            <label class="w-28">
+              <span class="text-base font-black uppercase text-slate-600 mb-1 block">Custo (R$)</span>
+              <input type="text" id="var-custo" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" inputmode="decimal" placeholder="0,00" />
+            </label>
+            <button type="button" id="var-btn-adicionar" class="min-h-[50px] w-full sm:w-auto px-5 rounded-lg text-sm sm:text-base font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700 hover:bg-emerald-700 transition-colors">Adicionar</button>
+          </div>
+        </div>
+
+        <div class="border border-slate-200 rounded-xl overflow-x-auto bg-white [scrollbar-width:thin]">
+          <table class="w-full text-base min-w-[800px]">
+            <thead class="bg-slate-50 text-base font-black uppercase text-slate-600">
+              <tr>
+                <th class="px-4 py-3 text-left">Cód. Interno</th>
+                <th class="px-4 py-3 text-left">Marca</th>
+                <th class="px-4 py-3 text-left">Barras / Forn.</th>
+                <th class="px-4 py-3 text-right">Estoque</th>
+                <th class="px-4 py-3 text-right">Custo Unit.</th>
+                <th class="w-12"></th>
+              </tr>
+            </thead>
+            <tbody id="lista-variacoes" class="divide-y divide-slate-100">
+              <tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 font-semibold text-base">Nenhuma variação cadastrada.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="px-4 sm:px-6 py-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row justify-end gap-3 shrink-0">
+      <button type="button" id="btn-cancelar-edit" class="min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">Cancelar</button>
+      <button type="button" id="btn-salvar-edit" class="min-h-[52px] px-8 rounded-xl text-base font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700 hover:bg-emerald-700 shadow-sm transition-colors">Salvar Alterações</button>
+    </div>
+
+  </div>
+
+  <datalist id="dl-marcas-agro"></datalist>
+  <datalist id="dl-forns-agro"></datalist>
+  <datalist id="dl-cats-agro"></datalist>
+  <datalist id="dl-subcats-agro"></datalist>
+
+  <div id="modal-mini-agro" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/50" role="dialog" aria-modal="true">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-5">
+      <h4 id="modal-mini-agro-titulo" class="text-base font-black uppercase text-slate-800 mb-3">Novo</h4>
+      <input type="text" id="modal-mini-agro-input" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold mb-4" />
+      <div class="flex justify-end gap-2">
+        <button type="button" id="modal-mini-agro-cancelar" class="min-h-[50px] px-4 rounded-xl text-sm font-black uppercase border-2 border-slate-200 text-slate-700">Cancelar</button>
+        <button type="button" id="modal-mini-agro-ok" class="min-h-[50px] px-5 rounded-xl text-sm font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var modalEdit = document.getElementById('modal-editar-produto');
+  if (!modalEdit) return;
+
+  var U = window.AgroCadastroErpUtil;
+  function esc(s) {
+    if (U && U.escapeHtml) return U.escapeHtml(s);
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function asMoedaInput(v) {
+    if (v === undefined || v === null || v === '') return '';
+    var n = Number(v);
+    return isFinite(n) ? String(n).replace('.', ',') : String(v);
+  }
+
+  function setVal(id, v) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.value = v == null || v === undefined ? '' : String(v);
+  }
+
+  function setMoeda(id, v) {
+    setVal(id, asMoedaInput(v));
+  }
+
+  function setChk(id, on) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.checked = !!on;
+  }
+
+  var tabBtns = modalEdit.querySelectorAll('.tab-btn');
+  var tabContents = modalEdit.querySelectorAll('.tab-content');
+
+  function resetTabs() {
+    tabBtns.forEach(function (b, i) {
+      if (i === 0) {
+        b.classList.add('active');
+        b.classList.remove('border-transparent', 'text-slate-500');
+        b.classList.add('border-emerald-500', 'text-emerald-700');
+      } else {
+        b.classList.remove('active');
+        b.classList.add('border-transparent', 'text-slate-500');
+        b.classList.remove('border-emerald-500', 'text-emerald-700');
+      }
+    });
+    tabContents.forEach(function (c) {
+      if (c.id === 'tab-gerais') c.classList.remove('hidden');
+      else c.classList.add('hidden');
+    });
+  }
+
+  tabBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      tabBtns.forEach(function (b) {
+        b.classList.remove('active', 'border-emerald-500', 'text-emerald-700');
+        b.classList.add('border-transparent', 'text-slate-500');
+      });
+      tabContents.forEach(function (c) { c.classList.add('hidden'); });
+      btn.classList.add('active');
+      btn.classList.remove('border-transparent', 'text-slate-500');
+      btn.classList.add('border-emerald-500', 'text-emerald-700');
+      var pane = document.getElementById(btn.getAttribute('data-tab'));
+      if (pane) pane.classList.remove('hidden');
+    });
+  });
+
+  function fecharModal() {
+    modalEdit.classList.add('hidden');
+  }
+
+  function bindClick(id, fn) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('click', fn);
+  }
+
+  bindClick('fechar-modal-editar', fecharModal);
+  bindClick('btn-cancelar-edit', fecharModal);
+
+  modalEdit.addEventListener('click', function (e) {
+    if (e.target === modalEdit) fecharModal();
+  });
+
+  function parseMoeda(s) {
+    if (s === undefined || s === null || s === '') return 0;
+    var t = String(s).replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+    var n = parseFloat(t);
+    return isFinite(n) ? n : 0;
+  }
+
+  function fmtMoneyPt(n) {
+    var x = Number(n);
+    if (!isFinite(x)) x = 0;
+    return x.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  function round2(n) {
+    var x = Number(n);
+    if (!isFinite(x)) return 0;
+    return parseFloat(x.toFixed(2));
+  }
+
+  function fmtPctInput(n) {
+    var x = round2(n);
+    return String(x).replace('.', ',');
+  }
+
+  /** Duas casas decimais nos percentuais de MVA e comissão (evita lixo de float). */
+  function formatarMargem(valor) {
+    var x = parseFloat(String(valor).replace(',', '.'));
+    if (!isFinite(x)) return '';
+    return parseFloat(x.toFixed(2)).toFixed(2).replace('.', ',');
+  }
+
+  function fmtMoeda2(n) {
+    var x = Number(n);
+    if (!isFinite(x)) return '';
+    x = parseFloat(x.toFixed(2));
+    return x.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function setPct2(id, n) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (n == null || !isFinite(Number(n))) {
+      el.value = '';
+      return;
+    }
+    if (id === 'edit-mva-pct' || id === 'edit-comissao-pct') {
+      el.value = formatarMargem(Number(n));
+      return;
+    }
+    el.value = fmtPctInput(Number(n));
+  }
+
+  window._agroFacetas = { marcas: [], fornecedores: [], categorias: [], subcategorias: [] };
+
+  function atualizarMargemLivre() {
+    var el = document.getElementById('edit-margem-livre');
+    if (!el) return;
+    var vend = parseMoeda((document.getElementById('edit-venda') || {}).value);
+    var base = custoBasePrecificacao();
+    var com = parseMoeda((document.getElementById('edit-comissao-rs') || {}).value);
+    if (!isFinite(vend) || vend <= 0) {
+      el.value = '—';
+      return;
+    }
+    var livre = parseFloat((vend - base - (isFinite(com) ? com : 0)).toFixed(2));
+    var pct = parseFloat(((livre / vend) * 100).toFixed(2));
+    el.value = formatarMargem(pct);
+  }
+
+  function wireFacetAutocomplete(inputId, boxId, facetKey) {
+    var inp = document.getElementById(inputId);
+    var box = document.getElementById(boxId);
+    if (!inp || !box || inp._agroFacetaOk) return;
+    inp._agroFacetaOk = true;
+    function candidatos() {
+      var arr = (window._agroFacetas && window._agroFacetas[facetKey]) || [];
+      return Array.isArray(arr) ? arr : [];
+    }
+    function render(q) {
+      var list = candidatos();
+      var qq = (q || '').trim().toLowerCase();
+      var hit = !qq ? list.slice(0, 24) : list.filter(function (s) {
+        return String(s).toLowerCase().indexOf(qq) >= 0;
+      }).slice(0, 24);
+      if (!hit.length) {
+        box.classList.add('hidden');
+        box.innerHTML = '';
+        return;
+      }
+      box.innerHTML = hit.map(function (t) {
+        return '<button type="button" class="agro-facet-opt w-full text-left px-3 py-2.5 text-base font-semibold text-slate-800 hover:bg-emerald-50 border-b border-slate-100 last:border-0">' + esc(t) + '</button>';
+      }).join('');
+      box.classList.remove('hidden');
+    }
+    inp.addEventListener('focus', function () { render(inp.value); });
+    inp.addEventListener('input', function () { render(inp.value); });
+    box.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+    });
+    box.addEventListener('click', function (e) {
+      var b = e.target.closest('.agro-facet-opt');
+      if (!b) return;
+      inp.value = (b.textContent || '').trim();
+      box.classList.add('hidden');
+      box.innerHTML = '';
+      try {
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+      } catch (e0) { /* ignore */ }
+    });
+    document.addEventListener('click', function (e) {
+      if (e.target === inp || inp.contains(e.target) || e.target === box || box.contains(e.target)) return;
+      box.classList.add('hidden');
+    });
+  }
+
+  function wireAllFacetAutos() {
+    wireFacetAutocomplete('edit-marca', 'marca-resultados', 'marcas');
+    wireFacetAutocomplete('edit-fornecedor', 'fornecedor-resultados', 'fornecedores');
+    wireFacetAutocomplete('edit-categoria', 'categoria-resultados', 'categorias');
+    wireFacetAutocomplete('edit-subcategoria', 'subcategoria-resultados', 'subcategorias');
+  }
+
+  var _precoRecalc = false;
+  function custoBasePrecificacao() {
+    var elA = document.getElementById('edit-custo-acrescimo');
+    var elC = document.getElementById('edit-custo');
+    var ca = elA ? parseMoeda(elA.value) : 0;
+    var c = elC ? parseMoeda(elC.value) : 0;
+    if (isFinite(ca) && ca > 0) return ca;
+    if (isFinite(c) && c > 0) return c;
+    return 0;
+  }
+
+  function onPrecoCampoInput(ev) {
+    if (_precoRecalc) return;
+    var el = ev.target;
+    if (!el || !el.id) return;
+    if (el.readOnly && el.id === 'edit-custo') return;
+    var id = el.id;
+    var base = custoBasePrecificacao();
+    _precoRecalc = true;
+    try {
+      if (id === 'edit-venda') {
+        var v0 = parseMoeda(document.getElementById('edit-venda').value);
+        if (base > 0 && isFinite(v0)) {
+          var mrs = v0 - base;
+          setVal('edit-mva-rs', fmtMoeda2(mrs));
+          setPct2('edit-mva-pct', (mrs / base) * 100);
+        }
+      } else if (id === 'edit-mva-rs') {
+        var mvaRs = parseMoeda(document.getElementById('edit-mva-rs').value);
+        var b1 = custoBasePrecificacao();
+        if (b1 > 0) {
+          setVal('edit-venda', fmtMoeda2(b1 + mvaRs));
+          setPct2('edit-mva-pct', (mvaRs / b1) * 100);
+        }
+      } else if (id === 'edit-mva-pct') {
+        var pct = parseMoeda(document.getElementById('edit-mva-pct').value);
+        pct = round2(pct);
+        setPct2('edit-mva-pct', pct);
+        var b2 = custoBasePrecificacao();
+        if (b2 > 0) {
+          var mr2 = b2 * (pct / 100);
+          setVal('edit-mva-rs', fmtMoeda2(mr2));
+          setVal('edit-venda', fmtMoeda2(b2 + mr2));
+        }
+      } else if (id === 'edit-custo' || id === 'edit-custo-acrescimo') {
+        var b3 = custoBasePrecificacao();
+        var mvaP = round2(parseMoeda(document.getElementById('edit-mva-pct').value));
+        var mvaR = parseMoeda(document.getElementById('edit-mva-rs').value);
+        if (b3 > 0) {
+          if (isFinite(mvaP)) {
+            var mr4 = b3 * (mvaP / 100);
+            setVal('edit-mva-rs', fmtMoeda2(mr4));
+            setVal('edit-venda', fmtMoeda2(b3 + mr4));
+            setPct2('edit-mva-pct', mvaP);
+          } else if (isFinite(mvaR)) {
+            setVal('edit-venda', fmtMoeda2(b3 + mvaR));
+            setPct2('edit-mva-pct', b3 > 0 ? (mvaR / b3) * 100 : 0);
+          }
+        }
+      }
+      var vend = parseMoeda(document.getElementById('edit-venda').value);
+      if (id === 'edit-comissao-pct') {
+        var cp = round2(parseMoeda(document.getElementById('edit-comissao-pct').value));
+        setPct2('edit-comissao-pct', cp);
+        if (isFinite(vend) && vend > 0) setVal('edit-comissao-rs', fmtMoeda2(vend * (cp / 100)));
+      } else if (id === 'edit-comissao-rs') {
+        var cr = parseMoeda(document.getElementById('edit-comissao-rs').value);
+        if (isFinite(vend) && vend > 0) setPct2('edit-comissao-pct', (cr / vend) * 100);
+      } else if (['edit-venda', 'edit-mva-rs', 'edit-mva-pct', 'edit-custo', 'edit-custo-acrescimo'].indexOf(id) >= 0) {
+        var cp2 = round2(parseMoeda(document.getElementById('edit-comissao-pct').value));
+        if (isFinite(vend) && vend > 0 && isFinite(cp2) && cp2 > 0) {
+          setVal('edit-comissao-rs', fmtMoeda2(vend * (cp2 / 100)));
+        }
+      }
+      atualizarMargemLivre();
+    } finally {
+      _precoRecalc = false;
+    }
+  }
+
+  function wirePrecosListeners() {
+    ['edit-custo', 'edit-custo-acrescimo', 'edit-mva-rs', 'edit-mva-pct', 'edit-venda', 'edit-comissao-rs', 'edit-comissao-pct'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el || el._agroPrecoOk) return;
+      el._agroPrecoOk = true;
+      el.addEventListener('input', onPrecoCampoInput);
+    });
+  }
+
+  function loadFacetasDatalists() {
+    var cfg = window.AgroCadastroErpLista || {};
+    var url = cfg.URL_FACETAS || '';
+    if (!url) return;
+    fetch(url, { credentials: 'same-origin' })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (d) {
+        if (!d || !d.ok) return;
+        window._agroFacetas.marcas = Array.isArray(d.marcas) ? d.marcas.slice() : [];
+        window._agroFacetas.fornecedores = Array.isArray(d.fornecedores) ? d.fornecedores.slice() : [];
+        window._agroFacetas.categorias = Array.isArray(d.categorias) ? d.categorias.slice() : [];
+        window._agroFacetas.subcategorias = Array.isArray(d.subcategorias) ? d.subcategorias.slice() : [];
+        var dm = document.getElementById('dl-marcas-agro');
+        var df = document.getElementById('dl-forns-agro');
+        var dc = document.getElementById('dl-cats-agro');
+        var ds = document.getElementById('dl-subcats-agro');
+        if (dm && d.marcas && d.marcas.length) {
+          dm.innerHTML = d.marcas.map(function (m) {
+            return '<option value="' + String(m).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"></option>';
+          }).join('');
+        }
+        if (df && d.fornecedores && d.fornecedores.length) {
+          df.innerHTML = d.fornecedores.map(function (m) {
+            return '<option value="' + String(m).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"></option>';
+          }).join('');
+        }
+        if (dc && d.categorias && d.categorias.length) {
+          dc.innerHTML = d.categorias.map(function (m) {
+            return '<option value="' + String(m).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"></option>';
+          }).join('');
+        }
+        if (ds && d.subcategorias && d.subcategorias.length) {
+          ds.innerHTML = d.subcategorias.map(function (m) {
+            return '<option value="' + String(m).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"></option>';
+          }).join('');
+        }
+      })
+      .catch(function () { /* facetas opcional */ });
+  }
+
+  function renderFornecedoresLinhas(linhas) {
+    var tb = document.getElementById('lista-fornecedores');
+    if (!tb) return;
+    if (!linhas || !linhas.length) {
+      tb.innerHTML = '<tr><td colspan="3" class="px-4 py-6 text-center text-slate-400 font-semibold text-base">Nenhum histórico disponível.</td></tr>';
+      return;
+    }
+    var h = '';
+    linhas.forEach(function (ln) {
+      var dt = (ln.data || '').replace('T', ' ').slice(0, 16);
+      h += '<tr><td class="px-4 py-3 text-base font-semibold text-slate-800">' + esc(ln.fornecedor || '—') + '</td>' +
+        '<td class="px-4 py-3 text-base text-slate-600">' + esc(dt || '—') + '</td>' +
+        '<td class="px-4 py-3 text-right text-base font-bold text-slate-800">' + esc(fmtMoneyPt(ln.preco_pago)) + '</td></tr>';
+    });
+    tb.innerHTML = h;
+  }
+
+  var historicoTimer = null;
+  function agendarHistoricoCompras() {
+    if (historicoTimer) clearTimeout(historicoTimer);
+    historicoTimer = setTimeout(carregarHistoricoCompras, 450);
+  }
+
+  function carregarHistoricoCompras() {
+    var cfg = window.AgroCadastroErpLista || {};
+    var base = cfg.URL_COMPRAS_HISTORICO || '';
+    var pid = modalEdit.getAttribute('data-produto-id');
+    if (!base || !pid) return;
+    var params = new URLSearchParams();
+    params.set('produto_id', pid);
+    (modalEdit._variacoes || []).forEach(function (v) {
+      if (v.codigo_barras) params.append('cb', String(v.codigo_barras).trim());
+      if (v.codigo_fornecedor) params.append('cf', String(v.codigo_fornecedor).trim());
+      if (v.codigo_interno) params.append('ci', String(v.codigo_interno).trim());
+    });
+    fetch(base + '?' + params.toString(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (data) {
+        if (data && data.ok && data.linhas) renderFornecedoresLinhas(data.linhas);
+        else renderFornecedoresLinhas([]);
+      })
+      .catch(function () { renderFornecedoresLinhas([]); });
+  }
+
+  function fmtQtd(q) {
+    var n = Number(q);
+    if (!isFinite(n)) return '—';
+    return String(n).replace('.', ',');
+  }
+
+  function renderComposicao(lista) {
+    var tb = document.getElementById('lista-composicao');
+    var totEl = document.getElementById('edit-comp-custo-total');
+    if (!tb) return;
+    if (!lista || !lista.length) {
+      tb.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 font-semibold text-base">Sem itens de composição neste cadastro.</td></tr>';
+      if (totEl) totEl.textContent = 'R$ 0,00';
+      return;
+    }
+    var tot = 0;
+    var h = '';
+    lista.forEach(function (it) {
+      var q = Number(it.quantidade);
+      if (!isFinite(q)) q = 0;
+      var cu = it.custo_unitario_agro != null ? Number(it.custo_unitario_agro) : NaN;
+      var sub = isFinite(cu) && isFinite(q) ? cu * q : NaN;
+      if (isFinite(sub)) tot += sub;
+      var cuTxt = isFinite(cu) ? fmtMoneyPt(cu) : '—';
+      var subTxt = isFinite(sub) ? fmtMoneyPt(sub) : '—';
+      var depTxt = esc(String(it.deposito || '—').trim() || '—');
+      h += '<tr class="comp-linha"><td class="px-4 py-3 text-base font-semibold text-slate-800">' + esc(it.nome || '—') + '</td>' +
+        '<td class="px-4 py-3 text-slate-600 text-base font-semibold">' + depTxt + '</td>' +
+        '<td class="px-4 py-3 text-right text-base text-slate-700 font-bold">' + esc(cuTxt) + '</td>' +
+        '<td class="px-4 py-3 text-right text-base font-bold">' + esc(fmtQtd(it.quantidade)) + '</td>' +
+        '<td class="px-4 py-3 text-right text-base text-emerald-800 font-bold">' + esc(subTxt) + '</td><td></td></tr>';
+    });
+    tb.innerHTML = h;
+    if (totEl) totEl.textContent = fmtMoneyPt(tot);
+  }
+
+  function renderSimilaresErpModal(lista) {
+    var tb = document.getElementById('lista-similares-erp-modal');
+    if (!tb) return;
+    lista = lista || [];
+    if (!lista.length) {
+      tb.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-slate-400 font-semibold text-base">Nenhum produto similar vinculado no espelho ERP para este item.</td></tr>';
+      return;
+    }
+    var h = '';
+    lista.forEach(function (s) {
+      h += '<tr class="hover:bg-slate-50/80">' +
+        '<td class="px-3 py-2.5 font-mono text-base font-bold text-slate-800 align-top">' + esc(s.codigo || '—') + '</td>' +
+        '<td class="px-3 py-2.5 text-base font-semibold text-slate-800 align-top">' + esc(s.nome || '—') + '</td>' +
+        '<td class="px-3 py-2.5 text-base text-slate-700 align-top">' + esc(s.modelo || '') + '</td>' +
+        '<td class="px-3 py-2.5 text-base text-slate-700 align-top">' + esc(s.marca || '') + '</td>' +
+        '<td class="px-3 py-2.5 text-base text-slate-700 align-top">' + esc(s.fabricante || '') + '</td></tr>';
+    });
+    tb.innerHTML = h;
+  }
+
+  function renderVariacoes() {
+    var tb = document.getElementById('lista-variacoes');
+    if (!tb) return;
+    var rows = modalEdit._variacoes || [];
+    if (!rows.length) {
+      tb.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-slate-400 font-semibold text-base">Nenhuma variação cadastrada.</td></tr>';
+      return;
+    }
+    var h = '';
+    rows.forEach(function (v, i) {
+      h += '<tr data-var-i="' + i + '">' +
+        '<td class="px-3 py-2"><input type="text" class="var-inp-codin w-full min-h-[48px] px-2 rounded-lg border border-slate-200 font-mono text-base font-bold" value="' + esc(v.codigo_interno || '') + '" /></td>' +
+        '<td class="px-3 py-2"><input type="text" class="var-inp-marca w-full min-h-[48px] px-2 rounded-lg border border-slate-200 text-base font-bold" list="dl-marcas-agro" value="' + esc(v.marca || '') + '" /></td>' +
+        '<td class="px-3 py-2 text-sm"><div class="font-mono font-bold text-slate-800">' +
+        '<input type="text" class="var-inp-cb w-full min-h-[40px] px-2 rounded border border-slate-200 text-base" placeholder="Barras" value="' + esc(v.codigo_barras || '') + '" />' +
+        '<input type="text" class="var-inp-cf mt-1 w-full min-h-[40px] px-2 rounded border border-slate-200 text-base" placeholder="Fornecedor" value="' + esc(v.codigo_fornecedor || '') + '" /></div></td>' +
+        '<td class="px-3 py-2 text-right"><input type="number" step="any" class="var-inp-est w-24 min-h-[48px] px-2 rounded-lg border border-slate-200 text-right text-base font-bold" value="' + esc(String(v.estoque != null ? v.estoque : 0)) + '" /></td>' +
+        '<td class="px-3 py-2 text-right"><input type="text" inputmode="decimal" class="var-inp-custo w-28 min-h-[48px] px-2 rounded-lg border border-slate-200 text-right text-base font-bold" value="' + esc(asMoedaInput(v.custo_unitario)) + '" /></td>' +
+        '<td class="px-2 py-2"><button type="button" class="var-btn-rem h-12 w-12 rounded-lg border-2 border-red-200 text-xl text-red-700 font-black" title="Remover">×</button></td></tr>';
+    });
+    tb.innerHTML = h;
+  }
+
+  function syncVariacoesFromDom() {
+    var tb = document.getElementById('lista-variacoes');
+    if (!tb) return;
+    var rows = tb.querySelectorAll('tr[data-var-i]');
+    var arr = [];
+    rows.forEach(function (tr) {
+      var i = parseInt(tr.getAttribute('data-var-i'), 10);
+      if (!isFinite(i)) return;
+      var cin = tr.querySelector('.var-inp-codin');
+      var vm = tr.querySelector('.var-inp-marca');
+      var cb = tr.querySelector('.var-inp-cb');
+      var cf = tr.querySelector('.var-inp-cf');
+      var est = tr.querySelector('.var-inp-est');
+      var cu = tr.querySelector('.var-inp-custo');
+      arr.push({
+        codigo_interno: cin ? cin.value : '',
+        marca: vm ? vm.value : '',
+        codigo_barras: cb ? cb.value : '',
+        codigo_fornecedor: cf ? cf.value : '',
+        estoque: est ? est.value : '0',
+        custo_unitario: cu ? cu.value : '0'
+      });
+    });
+    modalEdit._variacoes = arr;
+  }
+
+  function syncCustoMestre() {
+    var p = modalEdit._snapshot || {};
+    var vlist = modalEdit._variacoes || [];
+    var editCusto = document.getElementById('edit-custo');
+    if (!editCusto) return;
+    editCusto.removeAttribute('title');
+    editCusto.classList.remove('bg-slate-100', 'cursor-not-allowed');
+    editCusto.readOnly = false;
+
+    if (p.eh_kit && p.composicao && p.composicao.length) {
+      var tot = 0;
+      p.composicao.forEach(function (it) {
+        var q = Number(it.quantidade);
+        if (!isFinite(q)) q = 0;
+        var cu = it.custo_unitario_agro != null ? Number(it.custo_unitario_agro) : 0;
+        if (isFinite(cu)) tot += q * cu;
+      });
+      setMoeda('edit-custo', tot);
+      editCusto.readOnly = true;
+      editCusto.classList.add('bg-slate-100', 'cursor-not-allowed');
+      editCusto.title = 'KIT: custo mestre = soma (quantidade × custo) dos itens da composição.';
+      return;
+    }
+
+    if (vlist.length) {
+      var se = 0;
+      var sv = 0;
+      vlist.forEach(function (v) {
+        var e = parseFloat(String(v.estoque != null ? v.estoque : '0').replace(',', '.'));
+        if (!isFinite(e)) e = 0;
+        var c = parseMoeda(v.custo_unitario);
+        se += e;
+        sv += e * c;
+      });
+      var cm = se > 0 ? sv / se : null;
+      if (cm != null && isFinite(cm)) {
+        setMoeda('edit-custo', cm);
+      } else if (p.custo_medio_variacoes != null && isFinite(Number(p.custo_medio_variacoes))) {
+        setMoeda('edit-custo', p.custo_medio_variacoes);
+      }
+      editCusto.readOnly = true;
+      editCusto.classList.add('bg-slate-100', 'cursor-not-allowed');
+      editCusto.title = 'Média ponderada das variações (aba Marcas/Cód.).';
+      return;
+    }
+  }
+
+  function preencherForm(produto) {
+    produto = produto || {};
+    modalEdit.setAttribute('data-produto-id', String(produto.id || ''));
+    modalEdit._snapshot = {
+      id: produto.id,
+      eh_kit: !!produto.eh_kit,
+      composicao: Array.isArray(produto.composicao) ? produto.composicao.slice() : [],
+      custo_medio_variacoes: produto.custo_medio_variacoes,
+      custo_kit_composicao: produto.custo_kit_composicao
+    };
+
+    var vm = produto.variacoes_marca;
+    if (Array.isArray(vm)) {
+      modalEdit._variacoes = vm.length
+        ? vm.map(function (x) {
+          return {
+            codigo_interno: x.codigo_interno || '',
+            marca: x.marca || '',
+            codigo_barras: x.codigo_barras || '',
+            codigo_fornecedor: x.codigo_fornecedor || '',
+            estoque: x.estoque != null ? x.estoque : 0,
+            custo_unitario: x.custo_unitario != null ? x.custo_unitario : 0
+          };
+        })
+        : [];
+    } else if (!modalEdit._variacoes) {
+      modalEdit._variacoes = [];
+    }
+
+    setVal('edit-img', produto.imagem || '');
+    setVal('edit-nome', produto.nome || '');
+    setVal('edit-desc', produto.descricao || '');
+    setVal('edit-marca', produto.marca || '');
+    setVal('edit-modelo', produto.modelo || '');
+    setVal('edit-categoria', produto.categoria || '');
+    setVal('edit-subcategoria', produto.subcategoria || '');
+    setVal('edit-unidade', produto.unidade || '');
+    setVal('edit-fornecedor', produto.fornecedor || '');
+
+    var ce = produto.cadastro_extras && typeof produto.cadastro_extras === 'object' ? produto.cadastro_extras : {};
+    var kit = ce.kit && typeof ce.kit === 'object' ? ce.kit : {};
+    var chkComp = document.getElementById('comp-baixa-auto');
+    if (chkComp) {
+      chkComp.checked = kit.baixa_componentes !== false && kit.baixa_componentes !== 0;
+    }
+    var sd = document.getElementById('comp-deposito');
+    if (sd) {
+      var kd = String(kit.deposito != null ? kit.deposito : '');
+      sd.value = ['', '1', '2', '3'].indexOf(kd) >= 0 ? kd : '';
+    }
+
+    setVal('edit-codigo', produto.codigo || '');
+    setVal('edit-cb', produto.codigo_barras || '');
+    setVal('edit-cod-nfe', produto.codigo_nfe || '');
+    setVal('edit-ncm', produto.ncm || '');
+    setVal('edit-origem', produto.origem_mercadoria != null ? produto.origem_mercadoria : '');
+    setVal('edit-cfop', produto.cfop_padrao != null ? produto.cfop_padrao : '');
+    setVal('edit-csosn', produto.csosn != null ? produto.csosn : '');
+    setVal('edit-cest', produto.cest != null ? produto.cest : '');
+    setVal('edit-pis-cofins', produto.cst_pis_cofins != null ? produto.cst_pis_cofins : '');
+
+    setMoeda('edit-custo', produto.preco_custo);
+    setMoeda('edit-custo-acrescimo', produto.preco_custo_com_acrescimos);
+    setVal('edit-mva-rs', produto.mva_lucro_reais != null && produto.mva_lucro_reais !== ''
+      ? fmtMoeda2(produto.mva_lucro_reais) : '');
+    setPct2('edit-mva-pct', produto.mva_lucro_percentual);
+    setVal('edit-venda', produto.preco_venda != null && produto.preco_venda !== ''
+      ? fmtMoeda2(produto.preco_venda) : '');
+
+    setVal('edit-est-min', produto.estoque_minimo != null && produto.estoque_minimo !== '' ? produto.estoque_minimo : '');
+    setVal('edit-est-max', produto.estoque_maximo != null && produto.estoque_maximo !== '' ? produto.estoque_maximo : '');
+    setVal('edit-prateleira', produto.prateleira || '');
+    var pneg = produto.permite_venda_estoque_negativo;
+    var negOn = true;
+    if (pneg === false || pneg === 0 || pneg === '0' || pneg === 'false') negOn = false;
+    else if (pneg === true || pneg === 1 || pneg === '1' || pneg === 'true') negOn = true;
+    setChk('edit-permite-negativo', negOn);
+
+    setVal('edit-comissao-rs', produto.comissao_vendedor_reais != null && produto.comissao_vendedor_reais !== ''
+      ? fmtMoeda2(produto.comissao_vendedor_reais) : '');
+    setPct2('edit-comissao-pct', produto.comissao_vendedor_percentual);
+
+    var chkEx = document.getElementById('edit-ativo-exibicao');
+    if (chkEx) {
+      chkEx.indeterminate = false;
+      if (produto.ativo_exibicao === true) chkEx.checked = true;
+      else if (produto.ativo_exibicao === false) chkEx.checked = false;
+      else chkEx.checked = !produto.inativo && !produto.ocultar_nas_vendas;
+    }
+    setChk('edit-inativo', !!(produto.inativo || produto.cadastro_inativo));
+
+    if (Object.prototype.hasOwnProperty.call(produto, 'similares')) {
+      renderSimilaresErpModal(produto.similares);
+    } else {
+      var tbsim = document.getElementById('lista-similares-erp-modal');
+      if (tbsim) {
+        tbsim.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-slate-500 font-semibold text-base">Carregando similares…</td></tr>';
+      }
+    }
+    renderVariacoes();
+    renderComposicao(produto.composicao || []);
+    syncCustoMestre();
+    atualizarMargemLivre();
+    renderFornecedoresLinhas([]);
+    carregarHistoricoCompras();
+  }
+
+  var listaVar = document.getElementById('lista-variacoes');
+  if (listaVar) {
+    listaVar.addEventListener('input', function () {
+      syncVariacoesFromDom();
+      syncCustoMestre();
+      agendarHistoricoCompras();
+    });
+    listaVar.addEventListener('click', function (e) {
+      var btn = e.target.closest('.var-btn-rem');
+      if (!btn) return;
+      var tr = btn.closest('tr[data-var-i]');
+      if (!tr) return;
+      syncVariacoesFromDom();
+      var ix = parseInt(tr.getAttribute('data-var-i'), 10);
+      if (isFinite(ix)) (modalEdit._variacoes || []).splice(ix, 1);
+      renderVariacoes();
+      syncCustoMestre();
+      agendarHistoricoCompras();
+    });
+  }
+
+  bindClick('var-btn-adicionar', function () {
+    var cdi = (document.getElementById('var-codigo') || {}).value || '';
+    var marca = (document.getElementById('var-marca') || {}).value || '';
+    var cb = (document.getElementById('var-cb') || {}).value || '';
+    var cf = (document.getElementById('var-cod-forn') || {}).value || '';
+    var est = (document.getElementById('var-estoque') || {}).value || '0';
+    var cu = (document.getElementById('var-custo') || {}).value || '0';
+    if (!String(marca).trim() && !String(cb).trim() && !String(cf).trim() && !String(cdi).trim()) return;
+    if (!modalEdit._variacoes) modalEdit._variacoes = [];
+    modalEdit._variacoes.push({
+      codigo_interno: String(cdi).trim(),
+      marca: marca.trim(),
+      codigo_barras: String(cb).trim(),
+      codigo_fornecedor: String(cf).trim(),
+      estoque: est,
+      custo_unitario: cu
+    });
+    setVal('var-codigo', '');
+    setVal('var-marca', '');
+    setVal('var-cb', '');
+    setVal('var-cod-forn', '');
+    setVal('var-estoque', '0');
+    setVal('var-custo', '');
+    renderVariacoes();
+    syncCustoMestre();
+    agendarHistoricoCompras();
+  });
+
+  bindClick('btn-salvar-edit', function () {
+    var cfg = window.AgroCadastroErpLista || {};
+    if (!cfg.URL_OVERLAY_SALVAR) return;
+    if (!cfg.PODE_EDITAR_OVERLAY) {
+      if (typeof alert !== 'undefined') alert('Entre no sistema para gravar alterações no Agro.');
+      return;
+    }
+    var pid = modalEdit.getAttribute('data-produto-id');
+    if (!pid) return;
+    syncVariacoesFromDom();
+    syncCustoMestre();
+    function gv(id) {
+      var el = document.getElementById(id);
+      return el ? el.value : '';
+    }
+    var chkEx = document.getElementById('edit-ativo-exibicao');
+    var chkComp = document.getElementById('comp-baixa-auto');
+    var depComp = document.getElementById('comp-deposito');
+    var body = {
+      produto_id: pid,
+      nome: gv('edit-nome'),
+      marca: gv('edit-marca'),
+      fornecedor_texto: gv('edit-fornecedor'),
+      categoria: gv('edit-categoria'),
+      unidade: gv('edit-unidade'),
+      codigo_barras: gv('edit-cb'),
+      codigo_nfe: gv('edit-cod-nfe'),
+      subcategoria: gv('edit-subcategoria'),
+      descricao: gv('edit-desc'),
+      preco_venda: gv('edit-venda'),
+      preco_custo: gv('edit-custo'),
+      estoque_min_centro: gv('edit-est-min'),
+      estoque_max_centro: gv('edit-est-max'),
+      permite_venda_estoque_negativo: !!(document.getElementById('edit-permite-negativo') || {}).checked,
+      fiscal: {
+        ncm: gv('edit-ncm'),
+        cest: gv('edit-cest'),
+        cfop: gv('edit-cfop'),
+        csosn: gv('edit-csosn'),
+        origem: gv('edit-origem')
+      },
+      kit: {
+        baixa_componentes: chkComp ? !!chkComp.checked : false,
+        deposito: depComp ? String(depComp.value || '') : ''
+      },
+      variacoes: (modalEdit._variacoes || []).map(function (v) {
+        return {
+          codigo_interno: String(v.codigo_interno || '').trim(),
+          marca: v.marca || '',
+          codigo_barras: v.codigo_barras || '',
+          codigo_fornecedor: v.codigo_fornecedor || '',
+          estoque: v.estoque != null ? String(v.estoque) : '0',
+          custo_unitario: v.custo_unitario != null ? String(v.custo_unitario) : '0'
+        };
+      })
+    };
+    if (chkEx) body.ativo_exibicao = chkEx.checked;
+    var tok = U && U.csrf ? U.csrf() : '';
+    fetch(cfg.URL_OVERLAY_SALVAR, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      if (r.status === 403 || r.status === 401) throw new Error('Sem permissão. Faça login.');
+      return r.json();
+    }).then(function (j) {
+      if (!j.ok) throw new Error(j.erro || 'Falha ao salvar');
+      if (typeof alert !== 'undefined') alert('Salvo no Agro.');
+      fecharModal();
+    }).catch(function (e) {
+      if (typeof alert !== 'undefined') alert(e.message || 'Erro ao salvar');
+    });
+  });
+
+  var modalDetGen = 0;
+  var modalDetAbort = null;
+
+  window.abrirModalProduto = function (produto) {
+    produto = produto || {};
+    var dg = ++modalDetGen;
+    if (modalDetAbort) {
+      try { modalDetAbort.abort(); } catch (e) { /* ignore */ }
+    }
+    modalDetAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    modalEdit._variacoes = [];
+    resetTabs();
+    preencherForm(produto);
+    if (Array.isArray(produto.similares) && produto.similares.length) {
+      renderSimilaresErpModal(produto.similares);
+    }
+    modalEdit.classList.remove('hidden');
+    loadFacetasDatalists();
+
+    var pid = String(produto.id || '').trim();
+    var cfg = window.AgroCadastroErpLista || {};
+    var tmpl = cfg.API_DETALHE_TMPL || '';
+    if (!pid || !tmpl) {
+      if (!Array.isArray(produto.similares)) renderSimilaresErpModal([]);
+      return;
+    }
+
+    var url = tmpl.replace(/\/x\//, '/' + encodeURIComponent(pid) + '/');
+    var sig = modalDetAbort ? modalDetAbort.signal : undefined;
+    fetch(url, { credentials: 'same-origin', signal: sig })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (data) {
+        if (dg !== modalDetGen) return;
+        if (data && data.ok && data.produto) {
+          preencherForm(data.produto);
+          renderSimilaresErpModal((data.produto && data.produto.similares) ? data.produto.similares : []);
+        } else {
+          renderSimilaresErpModal([]);
+        }
+      })
+      .catch(function (err) {
+        if (err && err.name === 'AbortError') return;
+        renderSimilaresErpModal([]);
+      });
+  };
+
+  var miniAgro = document.getElementById('modal-mini-agro');
+  var miniInp = document.getElementById('modal-mini-agro-input');
+  var miniTit = document.getElementById('modal-mini-agro-titulo');
+  var miniCb = null;
+  function fecharMiniAgro() {
+    if (miniAgro) miniAgro.classList.add('hidden');
+    miniCb = null;
+  }
+  function abrirMiniAgro(titulo, onOk) {
+    if (!miniAgro || !miniInp || !miniTit) return;
+    miniTit.textContent = titulo;
+    miniInp.value = '';
+    miniCb = onOk;
+    miniAgro.classList.remove('hidden');
+    setTimeout(function () { try { miniInp.focus(); } catch (e1) { /* ignore */ } }, 30);
+  }
+  var miniOk = document.getElementById('modal-mini-agro-ok');
+  if (miniOk) {
+    miniOk.addEventListener('click', function () {
+      var v = (miniInp && miniInp.value || '').trim();
+      if (miniCb) miniCb(v);
+      fecharMiniAgro();
+    });
+  }
+  bindClick('modal-mini-agro-cancelar', fecharMiniAgro);
+  if (miniAgro) {
+    miniAgro.addEventListener('click', function (e) {
+      if (e.target === miniAgro) fecharMiniAgro();
+    });
+  }
+
+  function appendDatalistOption(listId, val) {
+    var dl = document.getElementById(listId);
+    if (!dl || !val) return;
+    var exists = false;
+    dl.querySelectorAll('option').forEach(function (o) {
+      if ((o.value || '') === val) exists = true;
+    });
+    if (exists) return;
+    var op = document.createElement('option');
+    op.value = val;
+    dl.appendChild(op);
+    if (listId === 'dl-marcas-agro' && window._agroFacetas.marcas.indexOf(val) < 0) window._agroFacetas.marcas.push(val);
+    if (listId === 'dl-forns-agro' && window._agroFacetas.fornecedores.indexOf(val) < 0) window._agroFacetas.fornecedores.push(val);
+    if (listId === 'dl-cats-agro' && window._agroFacetas.categorias.indexOf(val) < 0) window._agroFacetas.categorias.push(val);
+    if (listId === 'dl-subcats-agro' && window._agroFacetas.subcategorias.indexOf(val) < 0) window._agroFacetas.subcategorias.push(val);
+  }
+
+  bindClick('btn-marca-nova', function () {
+    abrirMiniAgro('Nova marca (texto local)', function (v) {
+      if (!v) return;
+      setVal('edit-marca', v);
+      appendDatalistOption('dl-marcas-agro', v);
+    });
+  });
+  bindClick('btn-fornec-nova', function () {
+    abrirMiniAgro('Novo fornecedor (texto local)', function (v) {
+      if (!v) return;
+      setVal('edit-fornecedor', v);
+      appendDatalistOption('dl-forns-agro', v);
+    });
+  });
+  bindClick('btn-categoria-nova', function () {
+    abrirMiniAgro('Nova categoria (texto local)', function (v) {
+      if (!v) return;
+      setVal('edit-categoria', v);
+      appendDatalistOption('dl-cats-agro', v);
+    });
+  });
+  bindClick('btn-subcategoria-nova', function () {
+    abrirMiniAgro('Nova subcategoria (texto local)', function (v) {
+      if (!v) return;
+      setVal('edit-subcategoria', v);
+      appendDatalistOption('dl-subcats-agro', v);
+    });
+  });
+  bindClick('btn-var-marca-nova', function () {
+    abrirMiniAgro('Nova marca (variação)', function (v) {
+      if (!v) return;
+      setVal('var-marca', v);
+      appendDatalistOption('dl-marcas-agro', v);
+    });
+  });
+
+  var compBusca = document.getElementById('comp-busca');
+  if (compBusca) {
+    compBusca.addEventListener('input', function () {
+      var q = (compBusca.value || '').trim().toLowerCase();
+      var tb = document.getElementById('lista-composicao');
+      if (!tb) return;
+      tb.querySelectorAll('tr.comp-linha').forEach(function (tr) {
+        var show = !q || (tr.textContent || '').toLowerCase().indexOf(q) >= 0;
+        tr.classList.toggle('hidden', !show);
+      });
+    });
+  }
+
+  wirePrecosListeners();
+  wireAllFacetAutos();
+})();
+</script>

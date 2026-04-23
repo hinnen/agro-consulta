@@ -79,6 +79,7 @@ from .mongo_financeiro_util import (
     atualizar_lancamento_mongo_agro,
     baixar_lancamento_parcial_mongo,
     baixar_lancamentos_mongo,
+    definir_lancamento_recorrente_mongo,
     contas_pagar_buscar_pagina,
     contas_pagar_montar_query_mongo,
     dre_resumo_simples_mongo,
@@ -5705,6 +5706,31 @@ def api_lancamentos_criar_manual_lote(request):
     if not isinstance(linhas, list):
         return JsonResponse({"ok": False, "erro": "Campo linhas deve ser uma lista."}, status=400)
 
+    raw_q = payload.get("quitado")
+    quitado = raw_q is True or str(raw_q).strip().lower() in ("1", "true", "yes", "sim", "on")
+    raw_rec = payload.get("recorrente")
+    recorrente = raw_rec is True or str(raw_rec).strip().lower() in ("1", "true", "yes", "sim", "on")
+    rec_mod = str(payload.get("recorrente_modo") or "").strip().lower()
+    if rec_mod not in ("sempre", "normal"):
+        rec_mod = "sempre"
+    try:
+        rec_par = int(
+            payload.get("recorrente_parcelas")
+            or payload.get("recorrencia_intervalo_meses")
+            or payload.get("intervalo_meses")
+            or 1
+        )
+    except (TypeError, ValueError):
+        rec_par = 1
+    if quitado and not str(payload.get("banco_id") or "").strip():
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Para lançar quitado, informe a conta bancária no cabeçalho (conta com ID do ERP).",
+            },
+            status=400,
+        )
+
     _, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
@@ -5732,6 +5758,11 @@ def api_lancamentos_criar_manual_lote(request):
         grupo_id=str(payload.get("grupo_id") or "").strip() or None,
         usuario_label=usuario,
         linhas=linhas,
+        marcar_quitado_pagar=bool(quitado and despesa),
+        marcar_quitado_receber=bool(quitado and not despesa),
+        recorrente=bool(recorrente),
+        recorrente_modo=rec_mod,
+        recorrente_parcelas=rec_par,
     )
 
     ok = bool(resultado.get("ok"))
@@ -5772,6 +5803,51 @@ def api_lancamentos_criar_manual_lote(request):
     if aviso_api_erp:
         out_lm["aviso_api"] = aviso_api_erp
     return JsonResponse(out_lm, status=st)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_lancamentos_definir_recorrente(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    lid = str(payload.get("id") or "").strip()
+    if not lid:
+        return JsonResponse({"ok": False, "erro": "Informe o id do lançamento."}, status=400)
+    raw_r = payload.get("recorrente")
+    recorrente = raw_r is True or str(raw_r).strip().lower() in ("1", "true", "yes", "sim", "on")
+    try:
+        intervalo = int(payload.get("intervalo_meses") or payload.get("recorrencia_intervalo_meses") or 1)
+    except (TypeError, ValueError):
+        intervalo = 1
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (
+            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
+        )[:120]
+
+    r = definir_lancamento_recorrente_mongo(
+        db,
+        lid,
+        recorrente=bool(recorrente),
+        intervalo_meses=intervalo,
+        usuario_label=usuario,
+    )
+    if not r.get("ok"):
+        return JsonResponse({"ok": False, "erro": r.get("erro") or "Falha ao atualizar."}, status=400)
+    return JsonResponse(
+        {
+            "ok": True,
+            "recorrente": bool(recorrente),
+            "intervalo_meses": 1 if recorrente else max(1, min(intervalo, 36)),
+        }
+    )
 
 
 def ajuste_mobile_view(request):

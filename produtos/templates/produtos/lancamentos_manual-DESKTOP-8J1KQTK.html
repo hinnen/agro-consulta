@@ -1,0 +1,358 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <title>Agro Mais | Lote Financeiro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .gm-bar { background: linear-gradient(90deg, rgba(16,185,129,0.05) 0%, rgba(245,158,11,0.05) 100%); }
+    input:focus, select:focus { border-color: #10b981 !important; outline: none; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.1); }
+    .sug-dd { max-height: 200px; overflow-y: auto; z-index: 100; }
+    .scrollbar-agro::-webkit-scrollbar { width: 6px; }
+    .scrollbar-agro::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    details.gm-lanc-manual-ajuda > summary { list-style: none; }
+    details.gm-lanc-manual-ajuda > summary::-webkit-details-marker { display: none; }
+  </style>
+</head>
+<body class="bg-slate-100 h-screen overflow-hidden text-slate-800 flex flex-col">
+
+  <header class="gm-bar border-b border-slate-200 bg-white/90 backdrop-blur-md shrink-0">
+    <div class="max-w-[1600px] mx-auto px-6 py-2.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-xl bg-white border-2 border-slate-100 flex items-center justify-center shrink-0 shadow-sm">
+          <img src="{% static 'img/agro-mais-logo-buscador.png' %}" class="w-full h-full object-contain p-1">
+        </div>
+        <div>
+            <h1 class="text-lg font-black uppercase tracking-tighter leading-none">GM <span class="text-emerald-600">AGRO MAIS</span></h1>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Lote Financeiro</span>
+        </div>
+      </div>
+      <a href="{% url 'lancamentos_financeiros' %}" class="h-9 px-4 inline-flex items-center rounded-xl border-2 border-slate-200 text-[10px] font-black uppercase text-slate-500 hover:bg-slate-50 transition-all">Voltar</a>
+    </div>
+  </header>
+
+  <main class="flex-1 overflow-hidden flex flex-col p-4 gap-4">
+    <form id="form-lote" class="w-full max-w-[1550px] mx-auto h-full flex flex-col gap-4">
+      {% csrf_token %}
+
+      <div class="bg-white rounded-[24px] border-2 border-slate-200/60 p-5 shadow-xl shrink-0">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          
+          <div class="space-y-3">
+            <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border-2 border-slate-200 w-full justify-between">
+              <label class="flex-1 cursor-pointer"><input type="radio" name="tipo" value="pagar" checked class="hidden peer"><span class="text-center py-2 rounded-lg text-[10px] font-black uppercase block peer-checked:bg-amber-600 peer-checked:text-white text-slate-400">Pagar</span></label>
+              <label class="flex-1 cursor-pointer"><input type="radio" name="tipo" value="receber" class="hidden peer"><span class="text-center py-2 rounded-lg text-[10px] font-black uppercase block peer-checked:bg-emerald-600 peer-checked:text-white text-slate-400">Receber</span></label>
+            </div>
+            <label class="flex items-center gap-3 p-2.5 rounded-xl border-2 border-slate-100 bg-slate-50/50 cursor-pointer hover:border-emerald-500 transition-all">
+                <input type="checkbox" id="lanc-quitado" class="w-5 h-5 rounded-lg border-slate-300 text-emerald-600">
+                <div class="flex flex-col"><span class="text-[10px] font-black uppercase text-slate-700">Lançar Quitado</span><span class="text-[8px] font-bold text-slate-400 uppercase">Baixa Automática</span></div>
+            </label>
+          </div>
+
+          <div id="wrap-rec-bloco" class="space-y-2 p-3 bg-blue-50/30 rounded-2xl border-2 border-blue-100/50">
+            <div class="flex items-start justify-between gap-2">
+              <label class="flex items-center gap-3 cursor-pointer group min-w-0 flex-1">
+                <input type="checkbox" id="lanc-recorrente" class="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 shrink-0">
+                <div class="flex flex-col min-w-0">
+                  <span class="text-[10px] font-black uppercase text-blue-800">Recorrência</span>
+                  <span class="text-[9px] font-bold text-slate-600">Ativa os modos abaixo</span>
+                </div>
+              </label>
+              <details class="gm-lanc-manual-ajuda rounded-lg border border-slate-200 bg-white shadow-sm shrink-0">
+                <summary class="px-2 py-1.5 cursor-pointer flex items-center gap-1.5 hover:bg-slate-50 select-none">
+                  <span class="inline-flex h-6 w-6 items-center justify-center rounded-md bg-slate-100 text-slate-700 text-[11px] font-black" aria-hidden="true">?</span>
+                  <span class="text-[9px] font-black uppercase text-slate-500 tracking-wide">Ajuda</span>
+                </summary>
+                <div class="px-3 py-2 border-t border-slate-100 text-[11px] font-semibold text-slate-700 leading-relaxed space-y-2 max-w-[min(92vw,22rem)]">
+                  <p><strong class="text-slate-900">Sempre:</strong> um título por linha, sempre mensal. O próximo só entra na lista depois que você quitar este por completo no Agro.</p>
+                  <p><strong class="text-slate-900">Normal:</strong> cria já N títulos (mesmo valor e plano), com vencimento e competência em meses seguidos. Não continua gerando sozinho.</p>
+                  <p><strong class="text-slate-900">Quantidade:</strong> só no modo Normal (máx. 12). Não use com «Lançar quitado» se for mais de um.</p>
+                </div>
+              </details>
+            </div>
+            <div id="wrap-rec-opts" class="space-y-2">
+              <fieldset class="rounded-xl border border-blue-100/80 bg-white/60 px-2 py-2 space-y-2">
+                <legend class="text-[8px] font-black uppercase text-blue-500 px-1">Modo</legend>
+                <label class="flex items-start gap-2 cursor-pointer">
+                  <input type="radio" name="rec-modo" value="sempre" checked class="mt-0.5 accent-blue-600 shrink-0">
+                  <span class="text-[10px] font-bold text-slate-800 leading-snug"><span class="font-black text-blue-800">Sempre</span> — mensal; próximo só após quitar.</span>
+                </label>
+                <label class="flex items-start gap-2 cursor-pointer">
+                  <input type="radio" name="rec-modo" value="normal" class="mt-0.5 accent-blue-600 shrink-0">
+                  <span class="text-[10px] font-bold text-slate-800 leading-snug"><span class="font-black text-blue-800">Normal</span> — N títulos já, um mês após o outro.</span>
+                </label>
+              </fieldset>
+              <div id="wrap-rec-contagem" class="hidden rounded-xl border border-blue-100/80 bg-white/80 px-2 py-2">
+                <label class="block">
+                  <span class="text-[9px] font-black uppercase text-blue-600 mb-1 block ml-1">Quantidade</span>
+                  <select id="rec-parcelas" class="w-full h-9 px-3 rounded-lg border-2 border-blue-100 font-black text-[11px] bg-white text-blue-800">
+                    <option value="1" selected>1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="6">6</option>
+                    <option value="12">12</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="relative sug-wrap" data-sug-campo="empresa">
+              <span class="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Loja Agro *</span>
+              <input type="text" id="empresa-nome" placeholder="Selecione..." class="w-full h-9 px-3 rounded-lg border-2 border-slate-100 font-black text-[11px]">
+              <input type="hidden" id="empresa-id"><ul class="sug-dd hidden absolute left-0 right-0 top-full mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-xl"></ul>
+            </div>
+            <div class="relative sug-wrap" data-sug-campo="cliente">
+              <span class="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Pessoa (Cliente/Forn) *</span>
+              <input type="text" id="pessoa-nome" placeholder="Buscar..." class="w-full h-9 px-3 rounded-lg border-2 border-slate-100 font-black text-[11px]">
+              <input type="hidden" id="pessoa-id"><ul class="sug-dd hidden absolute left-0 right-0 top-full mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-xl"></ul>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="grid grid-cols-2 gap-2">
+                <label class="block"><span class="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Comp.</span><input type="date" id="data-comp" class="w-full h-9 px-2 rounded-lg border-2 border-slate-100 font-black text-[11px]"></label>
+                <label id="container-vencimento" class="block"><span class="text-[9px] font-black uppercase text-amber-600 mb-1 block ml-1">Venc.</span><input type="date" id="data-ven" class="w-full h-9 px-2 rounded-lg border-2 border-slate-100 font-black text-[11px]"></label>
+            </div>
+            <div class="relative sug-wrap" data-sug-campo="banco">
+                <span class="text-[9px] font-black uppercase text-slate-400 mb-1 block ml-1">Conta Bancária / Caixa *</span>
+                <input type="text" id="banco-nome" class="w-full h-9 px-3 rounded-lg border-2 border-slate-100 font-black text-[11px]">
+                <input type="hidden" id="banco-id"><ul class="sug-dd hidden absolute left-0 right-0 top-full mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-xl z-50"></ul>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="bg-white rounded-[24px] border-2 border-slate-200/60 flex flex-col flex-1 min-h-0 shadow-xl overflow-hidden">
+        <div class="px-6 py-3 border-b-2 border-slate-50 bg-slate-50/50 flex items-center justify-between shrink-0">
+            <h2 class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Itens do Lançamento</h2>
+            <div class="flex items-center gap-3">
+                <div class="relative sug-wrap" data-sug-campo="forma">
+                    <input type="text" id="forma-nome" placeholder="Forma Pagto..." class="h-9 w-40 px-3 rounded-lg border-2 border-slate-100 font-black text-[10px] uppercase">
+                    <input type="hidden" id="forma-id">
+                    <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-xl z-50 min-w-[12rem]"></ul>
+                </div>
+                <button type="button" onclick="addRow()" class="h-9 px-5 rounded-lg border-2 border-emerald-500 text-emerald-600 text-[10px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all shadow-sm">+ Linha</button>
+            </div>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto scrollbar-agro px-4">
+            <table class="w-full border-separate border-spacing-y-2">
+                <thead class="sticky top-0 bg-white text-[9px] font-black uppercase text-slate-400 z-10">
+                    <tr>
+                        <th class="text-left px-6 py-2 min-w-[350px]">Classificação (Plano)</th>
+                        <th class="text-left px-6 py-2 w-48 text-emerald-600">Valor (R$)</th>
+                        <th class="text-left px-6 py-2">Descrição / Histórico</th>
+                        <th class="w-16"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-linhas"></tbody>
+            </table>
+        </div>
+        
+        <div class="p-4 bg-slate-900 border-t-4 border-slate-950 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-6">
+                <div><span class="block text-[8px] font-black uppercase text-slate-500 tracking-widest">Total do Lote</span><span id="valor-total-lote" class="text-2xl font-black text-emerald-400 tabular-nums leading-none">R$ 0,00</span></div>
+            </div>
+            <button type="submit" id="btn-submit" class="h-12 px-12 bg-emerald-600 text-white rounded-xl font-black uppercase text-xs tracking-widest hover:bg-emerald-500 transition-all shadow-xl flex items-center gap-4">Finalizar Cadastro <span class="opacity-30 text-[9px] border border-white/30 px-2 py-0.5 rounded">F5</span></button>
+        </div>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    // MANTIVE TODO O SEU JS ORIGINAL PARA NÃO QUEBRAR A LÓGICA DE PERSISTÊNCIA
+    const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
+    const API_CRIAR = "{% url 'api_lancamentos_criar_manual_lote' %}";
+
+    function selectSug(nome, id, inpId, hidId, ddId) {
+        document.getElementById(inpId).value = nome;
+        document.getElementById(hidId).value = id;
+        document.getElementById(ddId).classList.add('hidden');
+    }
+
+    function attachSuggest(wrap) {
+        if (!wrap || wrap.dataset.sugBound === '1') return;
+        wrap.dataset.sugBound = '1';
+        const campo = wrap.getAttribute('data-sug-campo');
+        const inp = wrap.querySelector('input[type="text"]');
+        const hid = wrap.querySelector('input[type="hidden"]');
+        const dd = wrap.querySelector('.sug-dd');
+        let timer = null;
+        if (!dd) return;
+        inp.addEventListener('input', () => {
+            hid.value = '';
+            clearTimeout(timer);
+            timer = setTimeout(async () => {
+                if(inp.value.length < 2) return;
+                const r = await fetch(`${API_SUG}?campo=${encodeURIComponent(campo)}&q=${encodeURIComponent(inp.value)}`, { credentials: 'same-origin' });
+                const j = await r.json();
+                dd.innerHTML = (j.itens || []).map(it => `<li class="px-5 py-2.5 text-[10px] font-black uppercase hover:bg-emerald-50 cursor-pointer border-b border-slate-50 last:border-0" onclick="selectSug('${it.nome}', '${it.id}', '${inp.id}', '${hid.id}', '${dd.id}')">${it.nome}</li>`).join('');
+                dd.classList.toggle('hidden', (j.itens || []).length === 0);
+            }, 300);
+        });
+        inp.addEventListener('blur', () => setTimeout(() => dd.classList.add('hidden'), 200));
+    }
+
+    const tbody = document.getElementById('tbody-linhas');
+    let rowCount = 0;
+    function addRow() {
+      rowCount++;
+      const idStr = `row-${rowCount}`;
+      const html = `<tr class="linha bg-white"><td class="px-2 py-0"><div class="relative sug-wrap" data-sug-campo="plano"><input type="text" id="in-plano-${idStr}" class="w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-[11px] font-black" placeholder="Buscar..."><input type="hidden" id="in-plano-id-${idStr}"><ul id="dd-plano-${idStr}" class="sug-dd hidden absolute left-0 right-0 top-full mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-xl z-50"></ul></div></td><td class="px-2 py-0"><input type="text" class="in-valor w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-sm font-black tabular-nums text-slate-700" placeholder="0,00" oninput="calcTotal()"></td><td class="px-2 py-0"><input type="text" class="in-desc w-full h-10 px-4 rounded-lg border-2 border-slate-100 text-[11px] font-bold text-slate-500" placeholder="..."></td><td class="px-2 py-0 text-center"><button type="button" onclick="if(document.querySelectorAll('.linha').length > 1) { this.closest('tr').remove(); calcTotal(); }" class="w-8 h-8 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 font-black transition-all">×</button></td></tr>`;
+      tbody.insertAdjacentHTML('beforeend', html);
+      attachSuggest(tbody.lastElementChild.querySelector('.sug-wrap'));
+    }
+
+    function calcTotal() {
+      let t = 0;
+      document.querySelectorAll('.in-valor').forEach(i => t += parseFloat(i.value.replace(',','.')) || 0);
+      document.getElementById('valor-total-lote').textContent = t.toLocaleString('pt-BR', { style:'currency', currency:'BRL'});
+    }
+
+    for(let i=0; i<4; i++) addRow();
+
+    const cbQ = document.getElementById('lanc-quitado');
+    const divV = document.getElementById('container-vencimento');
+    const inputVen = document.getElementById('data-ven');
+    const inputComp = document.getElementById('data-comp');
+    cbQ.addEventListener('change', () => {
+      divV.style.opacity = cbQ.checked ? '0.3' : '1';
+      if (cbQ.checked && inputComp.value) inputVen.value = inputComp.value;
+    });
+    inputComp.addEventListener('change', () => { if (cbQ.checked) inputVen.value = inputComp.value; });
+
+    const cbRec = document.getElementById('lanc-recorrente');
+    const wrapRecOpts = document.getElementById('wrap-rec-opts');
+    const wrapRecContagem = document.getElementById('wrap-rec-contagem');
+    const selParcelas = document.getElementById('rec-parcelas');
+    function syncRecModoVisual() {
+      const on = cbRec && cbRec.checked;
+      const mod = (document.querySelector('input[name="rec-modo"]:checked') || {}).value || 'sempre';
+      if (wrapRecContagem) {
+        const showQ = on && mod === 'normal';
+        wrapRecContagem.classList.toggle('hidden', !showQ);
+        if (selParcelas) selParcelas.disabled = !showQ;
+      }
+      if (!on && wrapRecContagem) wrapRecContagem.classList.add('hidden');
+    }
+    function syncRecOpts() {
+      const on = cbRec && cbRec.checked;
+      if (!wrapRecOpts) return;
+      wrapRecOpts.style.opacity = on ? '1' : '0.45';
+      wrapRecOpts.querySelectorAll('input, select').forEach((el) => { el.disabled = !on; });
+      syncRecModoVisual();
+    }
+    if (cbRec) cbRec.addEventListener('change', syncRecOpts);
+    document.querySelectorAll('input[name="rec-modo"]').forEach((r) => r.addEventListener('change', syncRecModoVisual));
+    syncRecOpts();
+
+    function getCookie(name) { const m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)'); return m ? decodeURIComponent(m[2]) : ''; }
+    function todayISO() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+    if (inputComp && !inputComp.value) inputComp.value = todayISO();
+    if (inputVen && !inputVen.value && inputComp) inputVen.value = inputComp.value;
+
+    document.getElementById('form-lote').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const tipo = (document.querySelector('input[name="tipo"]:checked') || {}).value || 'pagar';
+      const dc = (inputComp.value || '').trim();
+      const dvRaw = (inputVen.value || '').trim();
+      const quitado = cbQ.checked;
+      const dv = quitado ? dc : dvRaw;
+      const empresa_nome = document.getElementById('empresa-nome').value.trim();
+      const empresa_id = document.getElementById('empresa-id').value.trim();
+      const pessoa_nome = document.getElementById('pessoa-nome').value.trim();
+      const pessoa_id = document.getElementById('pessoa-id').value.trim();
+      const banco_nome = document.getElementById('banco-nome').value.trim();
+      const banco_id = document.getElementById('banco-id').value.trim();
+      const forma_nome = document.getElementById('forma-nome').value.trim();
+      const forma_id = document.getElementById('forma-id').value.trim();
+      const recorrente = document.getElementById('lanc-recorrente').checked;
+      const recMod = (document.querySelector('input[name="rec-modo"]:checked') || {}).value || 'sempre';
+      const recParcelas = Math.max(1, Math.min(Number(document.getElementById('rec-parcelas').value || 1), 12));
+
+      const linhas = [];
+      document.querySelectorAll('#tbody-linhas tr.linha').forEach((tr) => {
+        const wrap = tr.querySelector('.sug-wrap[data-sug-campo="plano"]');
+        const inpPl = wrap ? wrap.querySelector('input[type="text"]') : null;
+        const hidPl = wrap ? wrap.querySelector('input[type="hidden"]') : null;
+        const plano_nome = inpPl ? inpPl.value.trim() : '';
+        const plano_id = hidPl ? hidPl.value.trim() : '';
+        const vel = tr.querySelector('.in-valor');
+        const valor = vel ? String(vel.value || '').trim() : '';
+        const dEl = tr.querySelector('.in-desc');
+        const descricao = dEl ? dEl.value.trim() : '';
+        if (plano_nome && valor) {
+          linhas.push({ plano_conta: plano_nome, plano_conta_id: plano_id || null, valor, descricao: descricao || undefined });
+        }
+      });
+
+      if (!dc || !dv) { alert('Informe competência e vencimento.'); return; }
+      if (!empresa_nome || !pessoa_nome || !banco_nome) { alert('Preencha loja, pessoa e conta bancária.'); return; }
+      if (quitado && !banco_id) { alert('Para lançar quitado, escolha uma conta com ID do ERP na lista.'); return; }
+      if (!linhas.length) { alert('Inclua ao menos uma linha com plano de conta e valor.'); return; }
+
+      const payload = {
+        tipo,
+        data_competencia: dc,
+        data_vencimento: dv,
+        empresa_nome,
+        empresa_id: empresa_id || null,
+        pessoa_nome,
+        pessoa_id: pessoa_id || null,
+        banco_nome,
+        banco_id: banco_id || null,
+        forma_nome,
+        forma_id: forma_id || null,
+        quitado,
+        recorrente,
+        recorrente_modo: recorrente ? recMod : 'sempre',
+        recorrente_parcelas: recorrente && recMod === 'normal' ? recParcelas : 1,
+        linhas,
+      };
+
+      const btn = document.getElementById('btn-submit');
+      if (btn) btn.disabled = true;
+      try {
+        const r = await fetch(API_CRIAR, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+          body: JSON.stringify(payload),
+        });
+        const j = await r.json();
+        if (!j.ok && !(j.ids && j.ids.length)) {
+          const er = (j.erros && j.erros[0] && j.erros[0].erro) || j.erro || 'Falha ao gravar.';
+          alert(er);
+          return;
+        }
+        const av = j.aviso_api ? `\n\nERP: ${j.aviso_api}` : '';
+        alert(`Lote gravado. IDs: ${(j.ids || []).join(', ')}${av}`);
+        window.location.href = "{% url 'lancamentos_financeiros' %}";
+      } catch (_) {
+        alert('Erro de rede.');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
+
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'F5') return;
+      const t = ev.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+      ev.preventDefault();
+      document.getElementById('form-lote').requestSubmit(document.getElementById('btn-submit'));
+    });
+
+    document.querySelectorAll('.sug-wrap').forEach(attachSuggest);
+  </script>
+</body>
+</html>

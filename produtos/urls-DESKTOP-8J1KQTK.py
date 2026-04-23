@@ -217,6 +217,11 @@ urlpatterns = [
         name='api_lancamentos_criar_manual_lote',
     ),
     path(
+        'api/lancamentos/definir-recorrente/',
+        views.api_lancamentos_definir_recorrente,
+        name='api_lancamentos_definir_recorrente',
+    ),
+    path(
         'api/emprestimos/listar/',
         views.api_emprestimos_listar,
         name='api_emprestimos_listar',
