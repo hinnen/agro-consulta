@@ -997,6 +997,8 @@ def api_listar_lotes_transferencia(request):
             PedidoTransferencia.objects.filter(status="IMPRESSO")
             .order_by("-impresso_em", "-id")
         )
+        pids = [str(r.produto_externo_id).strip()[:100] for r in rows if r.produto_externo_id]
+        nomes_map = _nomes_produtos_por_ids_transferencia(pids)
         por_lote = {}
         for r in rows:
             key = str(r.lote_uuid) if r.lote_uuid else f"legacy-{r.pk}"
@@ -1017,6 +1019,7 @@ def api_listar_lotes_transferencia(request):
                         {
                             "produto_id": str(x.produto_externo_id),
                             "quantidade": float(x.quantidade),
+                            "nome": (nomes_map.get(str(x.produto_externo_id).strip()) or "").strip(),
                         }
                         for x in linhas
                     ],
