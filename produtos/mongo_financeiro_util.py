@@ -31,6 +31,22 @@ EMPRESTIMO_PLANO_ENTRADA_PADRAO = "Entrada de Emprestimo"
 EMPRESTIMO_PLANO_DIVIDA_PADRAO = "Pagamento de Emprestimos"
 EMPRESTIMO_PLANO_JUROS_PADRAO = "Juros de Emprestimos"
 
+# Título Agro marcado para gerar clone no mês seguinte ao quitar integralmente (ex.: aluguel).
+AGRO_RECORRENTE = "AgroRecorrente"
+AGRO_RECORRENTE_INTERVALO_MESES = "AgroRecorrenteIntervaloMeses"
+# True (padrão): cada quitação gera o próximo título ainda com recorrência. False: só uma geração seguinte.
+AGRO_RECORRENTE_SEMPRE = "AgroRecorrenteSempre"
+
+
+def _doc_recorrente_sempre(doc: dict | None) -> bool:
+    """Sem campo no BSON = comportamento legado (sempre em cadeia)."""
+    if not doc:
+        return True
+    v = doc.get(AGRO_RECORRENTE_SEMPRE)
+    if v is None:
+        return True
+    return bool(v)
+
 EMPRESTIMO_CREDORES_INTERNOS_PADRAO: tuple[str, ...] = (
     "Renan Hinnen 1403",
     "Geraldo Hinnen",
@@ -512,6 +528,187 @@ def _lancamento_quitado_totalmente(doc: dict) -> bool:
     if bool(doc.get("Despesa")):
         return float(_restante_a_pagar(doc)) <= 0.02
     return float(_restante_a_receber(doc)) <= 0.02
+
+
+def _dto_mongo_val_para_date(v: Any) -> date | None:
+    if v is None or v == _SENTINEL:
+        return None
+    if isinstance(v, datetime):
+        if timezone.is_aware(v):
+            return timezone.localtime(v).date()
+        return v.date()
+    if isinstance(v, date):
+        return v
+    return None
+
+
+def _adicionar_meses_preservando_dia_referencia(d: date, meses: int) -> date:
+    """Avança ``meses`` mantendo o dia do mês quando possível (ex.: 31/01 → 28/02)."""
+    from calendar import monthrange
+
+    n = int(meses) if meses is not None else 1
+    n = max(1, min(n, 36))
+    total = d.year * 12 + d.month - 1 + n
+    y, m0 = divmod(total, 12)
+    m = m0 + 1
+    ult = monthrange(y, m)[1]
+    return date(y, m, min(d.day, ult))
+
+
+def criar_proximo_lancamento_recorrente_se_aplicavel(
+    db,
+    doc: dict[str, Any],
+    *,
+    usuario_label: str,
+) -> dict[str, Any]:
+    """
+    Se o título tiver ``AgroRecorrente`` e estiver quitado integralmente, insere **apenas** o próximo
+    título em aberto (não cria meses futuros antecipadamente). Com ``AgroRecorrenteSempre`` verdadeiro
+    (fluxo atual da tela), o avanço é **sempre 1 mês**, preservando o dia. Com ``Sempre`` falso (legado),
+    usa o intervalo gravado no BSON. Se após a quitação não deve haver nova cadeia, o clone nasce sem
+    ``AgroRecorrente``.
+    """
+    if db is None or not doc or not bool(doc.get(AGRO_RECORRENTE)):
+        return {"ok": True, "criado": False, "motivo": "sem_recorrencia"}
+    if not _lancamento_quitado_totalmente(doc):
+        return {"ok": True, "criado": False, "motivo": "nao_quitado"}
+    # Cadeia "Sempre" no Agro é sempre avanço de **1 mês** por quitação (legado com outro intervalo
+    # no BSON ainda respeita o campo se ``AgroRecorrenteSempre`` for falso; caso contrário força 1).
+    try:
+        intervalo_doc = int(doc.get(AGRO_RECORRENTE_INTERVALO_MESES) or 1)
+    except (TypeError, ValueError):
+        intervalo_doc = 1
+    intervalo_doc = max(1, min(intervalo_doc, 36))
+    intervalo = 1 if _doc_recorrente_sempre(doc) else intervalo_doc
+
+    dc = _dto_mongo_val_para_date(doc.get("DataCompetencia"))
+    dv = _dto_mongo_val_para_date(doc.get("DataVencimento")) or dc
+    if dc is None or dv is None:
+        logger.warning("recorrencia: datas ausentes no titulo %s", doc.get("_id"))
+        return {"ok": False, "criado": False, "erro": "Datas de competência/vencimento ausentes."}
+
+    ndc = _adicionar_meses_preservando_dia_referencia(dc, intervalo)
+    ndv = _adicionar_meses_preservando_dia_referencia(dv, intervalo)
+
+    novo = copy.deepcopy(doc)
+    novo.pop("_id", None)
+    orig_id = str(doc.get("_id") or "").strip()
+    for k in ("LancamentoID", "Id"):
+        if k in novo:
+            novo[k] = ""
+    if "NumeroLancamento" in novo:
+        novo["NumeroLancamento"] = None
+
+    desp = bool(novo.get("Despesa"))
+    if desp:
+        val_nom = float(_dec(novo.get("Saida")))
+        novo["Entrada"] = 0.0
+        novo["Saida"] = val_nom
+    else:
+        val_nom = float(_dec(novo.get("Entrada")))
+        novo["Saida"] = 0.0
+        novo["Entrada"] = val_nom
+
+    novo["Pago"] = False
+    novo["DataPagamento"] = _SENTINEL
+    novo["ValorPago"] = 0.0
+    novo["Recebido"] = 0.0
+
+    now = timezone.now()
+    user = (usuario_label or "Agro")[:200]
+    novo["DataCompetencia"] = _dt_naive_meia_noite_erp(ndc)
+    novo["DataVencimento"] = _dt_naive_meia_noite_erp(ndv)
+    novo["DataVencimentoOriginal"] = novo["DataVencimento"]
+    novo["DataFluxo"] = now
+    novo["DataModificacao"] = now
+    novo["LastUpdate"] = now
+    novo["CriadoPor"] = user
+    novo["ModificadoPor"] = f"{user} — recorrência Agro (após quitação)"[:200]
+
+    base_nd = str(novo.get("NumeroDocumento") or "MAN")[:60]
+    novo["NumeroDocumento"] = f"{base_nd}-R{secrets.token_hex(3).upper()}"[:80]
+    novo["FormaPagamento"] = ""
+    novo["FormaPagamentoID"] = ""
+
+    obs_ant = str(novo.get("Observacoes") or "").strip()
+    linha_rec = f"Gerado automaticamente (recorrência) a partir do título quitado {orig_id}."
+    novo["Observacoes"] = " | ".join(p for p in (linha_rec, obs_ant) if p)[:2000]
+
+    sempre = _doc_recorrente_sempre(doc)
+    if sempre:
+        novo[AGRO_RECORRENTE] = True
+        novo[AGRO_RECORRENTE_INTERVALO_MESES] = 1
+        novo[AGRO_RECORRENTE_SEMPRE] = True
+    else:
+        novo[AGRO_RECORRENTE] = False
+        novo.pop(AGRO_RECORRENTE_INTERVALO_MESES, None)
+        novo.pop(AGRO_RECORRENTE_SEMPRE, None)
+
+    _financeiro_doc_coerce_ids_oid_para_string(novo)
+    col = db[COL_DTO_LANCAMENTO]
+    try:
+        ins = col.insert_one(novo)
+        oid_novo = ins.inserted_id
+        _sanear_dto_lancamento_ids_erp_string(col, oid_novo)
+        return {"ok": True, "criado": True, "id": str(oid_novo)}
+    except Exception as exc:
+        logger.exception("criar_proximo_lancamento_recorrente_se_aplicavel")
+        return {"ok": False, "criado": False, "erro": str(exc)[:400]}
+
+
+def definir_lancamento_recorrente_mongo(
+    db,
+    lancamento_id: str,
+    *,
+    recorrente: bool,
+    intervalo_meses: int = 1,
+    usuario_label: str,
+) -> dict[str, Any]:
+    """
+    Liga ou desliga ``AgroRecorrente`` no título (Mongo). Só permite ativar em título **em aberto**;
+    desativar é permitido mesmo quitado (não apaga título já gerado). Ao ativar, a cadeia é **mensal**
+    (intervalo 1); o parâmetro ``intervalo_meses`` é mantido só por compatibilidade de chamada.
+    """
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    try:
+        oid = ObjectId(str(lancamento_id).strip())
+    except Exception:
+        return {"ok": False, "erro": "ID inválido"}
+    col = db[COL_DTO_LANCAMENTO]
+    doc = col.find_one({"_id": oid})
+    if not doc:
+        return {"ok": False, "erro": "Lançamento não encontrado"}
+    if recorrente and _lancamento_quitado_totalmente(doc):
+        return {"ok": False, "erro": "Título já quitado. Marque recorrência só em lançamento em aberto."}
+    now = timezone.now()
+    mod = ((usuario_label or "Agro")[:80] + " — recorrência Agro")[:200]
+    if not recorrente:
+        col.update_one(
+            {"_id": oid},
+            {
+                "$set": {
+                    AGRO_RECORRENTE: False,
+                    "LastUpdate": now,
+                    "ModificadoPor": mod,
+                },
+                "$unset": {AGRO_RECORRENTE_INTERVALO_MESES: "", AGRO_RECORRENTE_SEMPRE: ""},
+            },
+        )
+    else:
+        col.update_one(
+            {"_id": oid},
+            {
+                "$set": {
+                    AGRO_RECORRENTE: True,
+                    AGRO_RECORRENTE_INTERVALO_MESES: 1,
+                    AGRO_RECORRENTE_SEMPRE: True,
+                    "LastUpdate": now,
+                    "ModificadoPor": mod,
+                }
+            },
+        )
+    return {"ok": True}
 
 
 def _mongo_expr_valor_realizado_receita() -> dict[str, Any]:
@@ -1270,6 +1467,11 @@ def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
             )
         )
     mov_r = round(float(mov), 2)
+    try:
+        ri = int(doc.get(AGRO_RECORRENTE_INTERVALO_MESES) or 1)
+    except (TypeError, ValueError):
+        ri = 1
+    ri = max(1, min(ri, 36))
     return {
         "id": str(doc.get("_id", "")),
         "despesa": despesa,
@@ -1302,6 +1504,9 @@ def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
         "pode_editar": not quitado,
         "pode_editar_valor": (not quitado) and mov_r <= 0.02,
         "pode_excluir": _lancamento_pode_excluir_agro(doc, quitado, mov_r),
+        "agro_recorrente": bool(doc.get(AGRO_RECORRENTE)),
+        "recorrencia_intervalo_meses": ri,
+        "agro_recorrente_sempre": _doc_recorrente_sempre(doc),
     }
 
 
@@ -1851,6 +2056,9 @@ def baixar_lancamentos_mongo(
             )
         res_ok.append(str(oid))
         _sanear_dto_lancamento_ids_erp_string(col, oid)
+        doc_at = col.find_one({"_id": oid})
+        if doc_at:
+            criar_proximo_lancamento_recorrente_se_aplicavel(db, doc_at, usuario_label=usuario_label)
 
     return {
         "ok": len(res_err) == 0,
@@ -2163,6 +2371,10 @@ def baixar_lancamento_parcial_mongo(
                 )
 
     _sanear_dto_lancamento_ids_erp_string(col, oid)
+    if quitado_final:
+        doc_at = col.find_one({"_id": oid})
+        if doc_at:
+            criar_proximo_lancamento_recorrente_se_aplicavel(db, doc_at, usuario_label=usuario_label)
     return {"ok": True, "id": str(oid), "erro": None, "quitado": bool(quitado_final)}
 
 
@@ -3485,10 +3697,20 @@ def inserir_lancamentos_manual_lote(
     linhas: list[dict[str, Any]],
     marcar_quitado_receber: bool = False,
     marcar_quitado_pagar: bool = False,
+    recorrente: bool = False,
+    recorrente_modo: str = "sempre",
+    recorrente_parcelas: int = 1,
 ) -> dict[str, Any]:
     """
     Vários títulos compartilhando cabeçalho (empresa, favorecido, datas, banco; forma opcional);
     cada linha: plano de conta, valor, descrição, observação.
+
+    Com ``marcar_quitado_pagar`` / ``marcar_quitado_receber``, grava liquidação no próprio ``DtoLancamento``
+    (``Pago``, ``DataPagamento`` = vencimento da linha, ``ValorPago``/``Recebido`` = nominal, banco/forma do cabeçalho).
+
+    **Recorrência:** ``recorrente_modo='sempre'`` = um título por linha, mensal: só gera o próximo mês **após**
+    quitação integral (``AgroRecorrente`` + intervalo 1). ``recorrente_modo='normal'`` = cria já **N** títulos
+    idênticos em valor/plano com vencimento e competência em **meses consecutivos** (sem ``AgroRecorrente``).
     """
     if db is None:
         return {"ok": False, "ids": [], "erros": [{"erro": "Mongo indisponível"}]}
@@ -3505,6 +3727,31 @@ def inserir_lancamentos_manual_lote(
     linhas = [x for x in (linhas or []) if isinstance(x, dict)]
     if not linhas or len(linhas) > 60:
         return {"ok": False, "ids": [], "erros": [{"erro": "Informe de 1 a 60 linhas de detalhe."}]}
+
+    modo = (recorrente_modo or "sempre").strip().lower()
+    if modo not in ("sempre", "normal"):
+        modo = "sempre"
+    try:
+        N = int(recorrente_parcelas or 1)
+    except (TypeError, ValueError):
+        N = 1
+    N = max(1, min(N, 12))
+    if recorrente and modo == "normal" and len(linhas) * N > 60:
+        return {
+            "ok": False,
+            "ids": [],
+            "erros": [{"erro": "Modo Normal: no máximo 60 títulos no lote (linhas × quantidade)."}],
+        }
+    if recorrente and modo == "normal" and (marcar_quitado_pagar or marcar_quitado_receber) and N > 1:
+        return {
+            "ok": False,
+            "ids": [],
+            "erros": [
+                {
+                    "erro": "Modo Normal com mais de um título não combina com «Lançar quitado». Desmarque quitado ou use quantidade 1.",
+                }
+            ],
+        }
 
     tpl = _obter_template_lancamento(db, despesa)
     if not tpl:
@@ -3528,6 +3775,8 @@ def inserir_lancamentos_manual_lote(
     inserted: list[str] = []
     erros: list[dict] = []
 
+    parcela_seq = 0
+    planned_total = 0
     for idx, ln in enumerate(linhas):
         n = idx + 1
         try:
@@ -3544,77 +3793,112 @@ def inserir_lancamentos_manual_lote(
             erros.append({"linha": n, "erro": "Plano de conta obrigatório"})
             continue
 
-        doc = copy.deepcopy(tpl)
-        doc.pop("_id", None)
-        doc["Despesa"] = bool(despesa)
-        doc["Empresa"] = empresa_nome[:200]
-        doc["EmpresaID"] = eid
-        doc["Cliente"] = pessoa_nome[:300]
-        doc["ClienteID"] = pid
-        doc["Banco"] = banco_nome[:200]
-        doc["BancoID"] = bid
-        doc["FormaPagamento"] = forma_nome[:200]
-        doc["FormaPagamentoID"] = fid
-        if (grupo_nome or "").strip():
-            doc["LancamentoGrupo"] = grupo_nome.strip()[:200]
-            doc["LancamentoGrupoID"] = gid
-        doc["PlanoDeConta"] = plano_nome[:200]
-        # DtoLancamento (C#): PlanoDeContaID deve ser string no BSON, nunca ObjectId.
-        doc["PlanoDeContaID"] = _financeiro_id_para_string(plano_id_raw) if plano_id_raw else ""
-        doc["Descricao"] = (ln.get("descricao") or f"Lançamento manual {n}").strip()[:500]
-        obs_linha = (ln.get("observacao") or ln.get("observacoes") or "").strip()
-        doc["Observacoes"] = " | ".join(
-            p for p in (obs_linha, f"Lote manual Agro {lote}") if p
-        )[:2000]
-        use_dc = _fin_ln_parse_date(ln.get("data_competencia"), data_competencia)
-        use_dv = _fin_ln_parse_date(ln.get("data_vencimento"), data_vencimento)
-        dc = _dt_naive_meia_noite_erp(use_dc)
-        dv = _dt_naive_meia_noite_erp(use_dv)
-        doc["DataCompetencia"] = dc
-        doc["DataVencimento"] = dv
-        doc["DataVencimentoOriginal"] = dv
-        doc["DataFluxo"] = now
-        doc["DataModificacao"] = now
-        doc["LastUpdate"] = now
-        doc["DataPagamento"] = _SENTINEL
-        doc["Pago"] = False
-        doc["NumeroDocumento"] = f"{lote}-{n:02d}"[:80]
-        doc["NumeroParcela"] = idx
-        doc["CriadoPor"] = user
-        doc["ModificadoPor"] = f"{user} — inclusão manual em lote Agro"
-        doc["ValorLiquido"] = 0.0
-        doc["SaldoAtual"] = 0.0
-        if despesa:
-            doc["Saida"] = valor
-            doc["Entrada"] = 0.0
-            doc["ValorPago"] = 0.0
-            doc["Recebido"] = 0.0
-            if marcar_quitado_pagar:
-                dpq = _dt_naive_meia_noite_erp(use_dv)
-                doc["Pago"] = True
-                doc["DataPagamento"] = dpq
-                doc["ValorPago"] = float(valor)
-        else:
-            doc["Entrada"] = valor
-            doc["Saida"] = 0.0
-            doc["Recebido"] = 0.0
-            doc["ValorPago"] = 0.0
-            if marcar_quitado_receber:
-                dpq = dv
-                doc["Pago"] = True
-                doc["DataPagamento"] = dpq
-                doc["Recebido"] = float(valor)
-                doc["ValorPago"] = float(valor)
-        _financeiro_doc_coerce_ids_oid_para_string(doc)
-        try:
-            ins = col.insert_one(doc)
-            inserted.append(str(ins.inserted_id))
-        except Exception as exc:
-            logger.exception("insert manual lote linha %s", n)
-            erros.append({"linha": n, "erro": str(exc)[:300]})
+        n_copies = N if (recorrente and modo == "normal") else 1
+        planned_total += n_copies
+        base_dc = _fin_ln_parse_date(ln.get("data_competencia"), data_competencia)
+        base_dv = _fin_ln_parse_date(ln.get("data_vencimento"), data_vencimento)
+        desc_base = (ln.get("descricao") or f"Lançamento manual {n}").strip()[:500]
+
+        for sub in range(n_copies):
+            parcela_seq += 1
+            doc = copy.deepcopy(tpl)
+            doc.pop("_id", None)
+            doc["Despesa"] = bool(despesa)
+            doc["Empresa"] = empresa_nome[:200]
+            doc["EmpresaID"] = eid
+            doc["Cliente"] = pessoa_nome[:300]
+            doc["ClienteID"] = pid
+            doc["Banco"] = banco_nome[:200]
+            doc["BancoID"] = bid
+            doc["FormaPagamento"] = forma_nome[:200]
+            doc["FormaPagamentoID"] = fid
+            if (grupo_nome or "").strip():
+                doc["LancamentoGrupo"] = grupo_nome.strip()[:200]
+                doc["LancamentoGrupoID"] = gid
+            doc["PlanoDeConta"] = plano_nome[:200]
+            doc["PlanoDeContaID"] = _financeiro_id_para_string(plano_id_raw) if plano_id_raw else ""
+
+            use_dc_d = _adicionar_meses_preservando_dia_referencia(base_dc, sub)
+            use_dv_d = _adicionar_meses_preservando_dia_referencia(base_dv, sub)
+            dc = _dt_naive_meia_noite_erp(use_dc_d)
+            dv = _dt_naive_meia_noite_erp(use_dv_d)
+            doc["DataCompetencia"] = dc
+            doc["DataVencimento"] = dv
+            doc["DataVencimentoOriginal"] = dv
+            doc["DataFluxo"] = now
+            doc["DataModificacao"] = now
+            doc["LastUpdate"] = now
+            doc["DataPagamento"] = _SENTINEL
+            doc["Pago"] = False
+
+            desc_suf = ""
+            if recorrente and modo == "normal" and n_copies > 1:
+                desc_suf = f" ({sub + 1}/{n_copies})"
+            doc["Descricao"] = (desc_base + desc_suf)[:500]
+
+            obs_linha = (ln.get("observacao") or ln.get("observacoes") or "").strip()
+            obs_antecipado = ""
+            if recorrente and modo == "normal" and n_copies > 1:
+                obs_antecipado = f"Antecipado {sub + 1}/{n_copies} (modo Normal)"
+            obs_quitado = ""
+            if marcar_quitado_pagar or marcar_quitado_receber:
+                obs_quitado = "Título lançado como quitado via lote manual"
+            doc["Observacoes"] = " | ".join(
+                p for p in (obs_linha, obs_antecipado, obs_quitado, f"Lote manual Agro {lote}") if p
+            )[:2000]
+
+            doc["NumeroDocumento"] = (
+                f"{lote}-{n:02d}" if n_copies == 1 else f"{lote}-{n:02d}-p{sub + 1}"
+            )[:80]
+            doc["NumeroParcela"] = parcela_seq - 1
+            doc["CriadoPor"] = user
+            doc["ModificadoPor"] = f"{user} — inclusão manual em lote Agro"
+            doc["ValorLiquido"] = 0.0
+            doc["SaldoAtual"] = 0.0
+
+            doc.pop(AGRO_RECORRENTE, None)
+            doc.pop(AGRO_RECORRENTE_INTERVALO_MESES, None)
+            doc.pop(AGRO_RECORRENTE_SEMPRE, None)
+            if recorrente and modo == "sempre":
+                doc[AGRO_RECORRENTE] = True
+                doc[AGRO_RECORRENTE_INTERVALO_MESES] = 1
+                doc[AGRO_RECORRENTE_SEMPRE] = True
+
+            if despesa:
+                doc["Saida"] = valor
+                doc["Entrada"] = 0.0
+                doc["ValorPago"] = 0.0
+                doc["Recebido"] = 0.0
+                if marcar_quitado_pagar:
+                    dpq = _dt_naive_meia_noite_erp(use_dv_d)
+                    doc["Pago"] = True
+                    doc["DataPagamento"] = dpq
+                    doc["ValorPago"] = float(valor)
+            else:
+                doc["Entrada"] = valor
+                doc["Saida"] = 0.0
+                doc["Recebido"] = 0.0
+                doc["ValorPago"] = 0.0
+                if marcar_quitado_receber:
+                    dpq = dv
+                    doc["Pago"] = True
+                    doc["DataPagamento"] = dpq
+                    doc["Recebido"] = float(valor)
+                    doc["ValorPago"] = float(valor)
+            _financeiro_doc_coerce_ids_oid_para_string(doc)
+            try:
+                ins = col.insert_one(doc)
+                inserted.append(str(ins.inserted_id))
+                if doc.get(AGRO_RECORRENTE) and (marcar_quitado_pagar or marcar_quitado_receber):
+                    doc_r = col.find_one({"_id": ins.inserted_id})
+                    if doc_r:
+                        criar_proximo_lancamento_recorrente_se_aplicavel(db, doc_r, usuario_label=user)
+            except Exception as exc:
+                logger.exception("insert manual lote linha %s parcela %s", n, sub + 1)
+                erros.append({"linha": f"{n}-{sub + 1}", "erro": str(exc)[:300]})
 
     return {
-        "ok": len(inserted) == len(linhas) and not erros,
+        "ok": len(inserted) == planned_total and not erros,
         "lote": lote,
         "ids": inserted,
         "erros": erros,

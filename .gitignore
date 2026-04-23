@@ -7,3 +7,6 @@ db.sqlite3
 staticfiles/
 node_modules/
 dist-electron/
+
+# Cópias de conflito do Windows/OneDrive (não versionar; Django usa os ficheiros sem sufixo)
+*-DESKTOP-*
