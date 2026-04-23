@@ -2501,9 +2501,30 @@
         '#btn-open-modal-planos',
       ], 700);
 
-      const t = hojeISO();
-      document.getElementById('f-de').value = t;
-      document.getElementById('f-ate').value = t;
+      (function hidratarFiltrosDaUrl() {
+        try {
+          const ups = new URLSearchParams(window.location.search || '');
+          const st = (ups.get('status') || '').trim().toLowerCase();
+          const fs = document.getElementById('f-status');
+          if (fs && (st === 'quitados' || st === 'todos' || st === 'abertos')) fs.value = st;
+          const fde = document.getElementById('f-de');
+          const fate = document.getElementById('f-ate');
+          const vd = (ups.get('venc_de') || '').trim();
+          const va = (ups.get('venc_ate') || '').trim();
+          if (fde && fate) {
+            if (vd || va) {
+              if (vd) fde.value = vd;
+              if (va) fate.value = va;
+              if (vd && !va) fate.value = vd;
+              if (va && !vd) fde.value = va;
+            } else {
+              const t = hojeISO();
+              fde.value = t;
+              fate.value = t;
+            }
+          }
+        } catch (_) {}
+      })();
       favRefreshSelect();
       carregarAtalhosDoServidor();
       atualizarTabs();

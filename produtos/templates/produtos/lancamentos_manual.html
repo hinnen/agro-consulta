@@ -50,7 +50,7 @@
             </div>
             <label class="flex items-center gap-3 p-2.5 rounded-xl border-2 border-slate-100 bg-slate-50/50 cursor-pointer hover:border-emerald-500 transition-all">
                 <input type="checkbox" id="lanc-quitado" class="w-5 h-5 rounded-lg border-slate-300 text-emerald-600">
-                <div class="flex flex-col"><span class="text-[10px] font-black uppercase text-slate-700">Lançar Quitado</span><span class="text-[8px] font-bold text-slate-400 uppercase">Baixa Automática</span></div>
+                <div class="flex flex-col"><span class="text-[10px] font-black uppercase text-slate-700">Lançar Quitado</span><span class="text-[8px] font-bold text-slate-400 uppercase">Baixa Automática</span><span class="text-[8px] font-semibold text-slate-500 normal-case mt-0.5 max-w-[14rem] leading-snug">Na consulta, use «Quitados» (o padrão «Em aberto» esconde título já pago).</span></div>
             </label>
           </div>
 
@@ -172,6 +172,27 @@
     // MANTIVE TODO O SEU JS ORIGINAL PARA NÃO QUEBRAR A LÓGICA DE PERSISTÊNCIA
     const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
     const API_CRIAR = "{% url 'api_lancamentos_criar_manual_lote' %}";
+    const URL_LISTA_PAGAR = "{% url 'lancamentos_contas_pagar' %}";
+    const URL_LISTA_RECEBER = "{% url 'lancamentos_contas_receber' %}";
+
+    /** Volta para a lista (não o hub): quitados exigem filtro «Quitados»; vencimento cobre o título gravado. */
+    function urlAposGravarLoteManual(tipo, quitado, dc, dv) {
+      const base = tipo === 'receber' ? URL_LISTA_RECEBER : URL_LISTA_PAGAR;
+      const u = new URL(base, window.location.origin);
+      const d1 = (dc || '').trim();
+      const d2 = (dv || '').trim();
+      if (d1 && d2) {
+        const vmin = d1 <= d2 ? d1 : d2;
+        const vmax = d1 <= d2 ? d2 : d1;
+        u.searchParams.set('venc_de', vmin);
+        u.searchParams.set('venc_ate', vmax);
+      } else if (d1) {
+        u.searchParams.set('venc_de', d1);
+        u.searchParams.set('venc_ate', d1);
+      }
+      if (quitado) u.searchParams.set('status', 'quitados');
+      return u.pathname + u.search;
+    }
 
     function selectSug(nome, id, inpId, hidId, ddId) {
         document.getElementById(inpId).value = nome;
@@ -347,11 +368,11 @@
         if (!j.ok && ids.length) {
           const det = msgs.length ? ('\n\n' + msgs.slice(0, 12).join('\n') + (msgs.length > 12 ? '\n…' : '')) : '';
           alert('Gravação parcial. IDs gravados: ' + ids.join(', ') + det + av);
-          window.location.href = "{% url 'lancamentos_financeiros' %}";
+          window.location.href = urlAposGravarLoteManual(tipo, quitado, dc, dv);
           return;
         }
         alert('Lote gravado. IDs: ' + ids.join(', ') + av);
-        window.location.href = "{% url 'lancamentos_financeiros' %}";
+        window.location.href = urlAposGravarLoteManual(tipo, quitado, dc, dv);
       } catch (_) {
         alert('Erro de rede.');
       } finally {
