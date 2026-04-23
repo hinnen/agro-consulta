@@ -50,7 +50,7 @@
             </div>
             <label class="flex items-center gap-3 p-2.5 rounded-xl border-2 border-slate-100 bg-slate-50/50 cursor-pointer hover:border-emerald-500 transition-all">
                 <input type="checkbox" id="lanc-quitado" class="w-5 h-5 rounded-lg border-slate-300 text-emerald-600">
-                <div class="flex flex-col"><span class="text-[10px] font-black uppercase text-slate-700">Lançar Quitado</span><span class="text-[8px] font-bold text-slate-400 uppercase">Baixa Automática</span><span class="text-[8px] font-semibold text-slate-500 normal-case mt-0.5 max-w-[14rem] leading-snug">Na consulta, use «Quitados» (o padrão «Em aberto» esconde título já pago).</span></div>
+                <div class="flex flex-col"><span class="text-[10px] font-black uppercase text-slate-700">Lançar Quitado</span><span class="text-[8px] font-bold text-slate-400 uppercase">Baixa Automática</span><span class="text-[8px] font-semibold text-slate-500 normal-case mt-0.5 max-w-[14rem] leading-snug">Título quitado não aparece em «Em aberto»; ao voltar daqui a lista abre em «Todos» na data do lote.</span></div>
             </label>
           </div>
 
@@ -175,7 +175,7 @@
     const URL_LISTA_PAGAR = "{% url 'lancamentos_contas_pagar' %}";
     const URL_LISTA_RECEBER = "{% url 'lancamentos_contas_receber' %}";
 
-    /** Volta para a lista (não o hub): quitados exigem filtro «Quitados»; vencimento cobre o título gravado. */
+    /** Volta para a lista: «Todos» + vencimento do lote (quitado some em «Em aberto»). */
     function urlAposGravarLoteManual(tipo, quitado, dc, dv) {
       const base = tipo === 'receber' ? URL_LISTA_RECEBER : URL_LISTA_PAGAR;
       const u = new URL(base, window.location.origin);
@@ -190,7 +190,7 @@
         u.searchParams.set('venc_de', d1);
         u.searchParams.set('venc_ate', d1);
       }
-      if (quitado) u.searchParams.set('status', 'quitados');
+      if (quitado) u.searchParams.set('status', 'todos');
       return u.pathname + u.search;
     }
 

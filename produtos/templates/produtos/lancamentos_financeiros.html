@@ -1133,6 +1133,18 @@
       return p;
     }
 
+    /** Mantém a barra de endereço alinhada aos filtros (F5 não volta ao link antigo, ex.: status=quitados). */
+    function sincronizarUrlComFiltrosAtuais() {
+      if (window.AGRO_MANUAL_SYNC_ONLY) return;
+      try {
+        const qs = montarParams().toString();
+        const path = window.location.pathname;
+        const want = qs ? `${path}?${qs}` : path;
+        const cur = path + (window.location.search || '');
+        if (want !== cur) window.history.replaceState(null, '', want);
+      } catch (_) {}
+    }
+
     function _sortHeaderStyle(btn, on) {
       if (!btn) return;
       btn.classList.toggle('bg-emerald-50', on);
@@ -1724,6 +1736,8 @@
           sessionStorage.setItem(LS_FIN_LISTA, JSON.stringify({ params_qs: montarParams().toString(), data }));
         } catch (_) {}
         pintarListaLancamentosDaResposta(data);
+        sincronizarUrlComFiltrosAtuais();
+        refreshGavetaFiltrosResumo();
       } catch (e) {
         tb.innerHTML = '';
         mob.innerHTML = '';
