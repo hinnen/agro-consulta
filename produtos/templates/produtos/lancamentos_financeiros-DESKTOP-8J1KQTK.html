@@ -1,0 +1,2551 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <title>Agro Mais | {% if modo_contas == 'pagar' %}Contas a pagar{% else %}Contas a receber{% endif %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .gm-bar { background: linear-gradient(90deg, rgba(234,88,12,0.12) 0%, rgba(5,150,105,0.10) 100%); }
+    .gm-kbd {
+      pointer-events: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      line-height: 1;
+      padding: 0.2rem 0.35rem;
+      border-radius: 0.35rem;
+      font-weight: 900;
+      font-family: ui-monospace, monospace;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.92;
+    }
+    @media (min-width: 640px) { .gm-kbd { font-size: 10px; padding: 0.25rem 0.45rem; } }
+    #modal-edit-lanc .sug-dd { max-height: 220px; overflow-y: auto; z-index: 60; }
+    .gm-gaveta > summary { list-style: none; }
+    .gm-gaveta > summary::-webkit-details-marker { display: none; }
+    .gm-gaveta-chev {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 0.35rem;
+      background: rgba(245, 158, 11, 0.15);
+      color: rgb(180 83 9);
+      font-size: 10px;
+      font-weight: 900;
+      transition: transform 0.15s ease;
+      flex-shrink: 0;
+    }
+    details.gm-gaveta[open] > summary .gm-gaveta-chev { transform: rotate(90deg); }
+    .gm-gaveta-emerald > summary .gm-gaveta-chev {
+      background: rgba(5, 150, 105, 0.12);
+      color: rgb(6 95 70);
+    }
+    #btn-cols.gm-cols-open {
+      border-color: rgb(217 119 6);
+      background: rgb(255 251 235);
+    }
+    .gm-gaveta-ajuda { border-width: 1px; }
+    .gm-gaveta-ajuda > summary {
+      background: rgb(248 250 252);
+      border-bottom: 1px solid rgb(241 245 249);
+    }
+    .gm-gaveta-ajuda > summary .gm-gaveta-chev {
+      width: 2.25rem;
+      height: 2.25rem;
+      font-size: 14px;
+      font-weight: 900;
+      background: rgb(241 245 249);
+      color: rgb(100 116 139);
+      border: 1px solid rgb(226 232 240);
+    }
+    details.gm-gaveta-ajuda[open] > summary .gm-gaveta-chev {
+      transform: none;
+      background: rgb(236 253 245);
+      color: rgb(5 122 85);
+      border-color: rgb(167 243 208);
+    }
+    .gm-lanc-nav-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0.35rem 0.65rem;
+      border-radius: 0.5rem;
+      border: 1px solid rgb(226 232 240);
+      background: rgb(255 255 255);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      color: rgb(51 65 85);
+      transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    }
+    @media (min-width: 640px) {
+      .gm-lanc-nav-link { font-size: 11px; padding: 0.4rem 0.75rem; }
+    }
+    .gm-lanc-nav-link:hover {
+      border-color: rgb(251 191 36);
+      color: rgb(146 64 14);
+      background: rgb(255 251 235);
+    }
+    .gm-lanc-nav-accent {
+      border-color: rgb(252 211 77);
+      background: rgb(255 251 235);
+      color: rgb(146 64 14);
+    }
+    .gm-lanc-nav-accent:hover {
+      border-color: rgb(245 158 11);
+      background: rgb(254 243 199);
+    }
+    .gm-gaveta-ajuda .gm-ajuda-detalhes > summary {
+      list-style: none;
+    }
+    .gm-gaveta-ajuda .gm-ajuda-detalhes > summary::-webkit-details-marker {
+      display: none;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+{% include "produtos/_gm_loading_bar.html" %}
+
+  <header class="gm-bar border-b border-slate-200/80 shrink-0">
+    <div class="w-full px-2 sm:px-3 py-2 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+          <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-base sm:text-lg font-black uppercase tracking-tight text-slate-800 leading-tight">
+            <span class="text-emerald-600">GM Agro Mais</span><span class="text-slate-300 font-bold mx-1.5">·</span><span class="text-amber-800">Lançamentos</span>
+          </h1>
+          <p class="text-[10px] font-semibold text-slate-500">{% if modo_contas == 'pagar' %}Contas a pagar{% else %}Contas a receber{% endif %}</p>
+        </div>
+      </div>
+      <nav class="flex flex-wrap items-center gap-1.5 shrink-0 justify-end" aria-label="Atalhos do módulo">
+        <a href="{% url 'lancamentos_financeiros' %}" data-prefetch class="gm-lanc-nav-link" title="Escolher contas a pagar ou receber">Lançamentos</a>
+        <a href="{% url 'resumo_financeiro_gerencial' %}" data-prefetch class="gm-lanc-nav-link" title="DRE gerencial">Resumo gerencial</a>
+        <a href="{% url 'lancamentos_fluxo_calendario' %}" data-prefetch class="gm-lanc-nav-link">Calendário</a>
+        <a href="{% url 'lancamentos_manual' %}" data-prefetch class="gm-lanc-nav-link gm-lanc-nav-accent">Manual (lote)</a>
+        {% if lancamentos_dre_ativo %}
+        <a href="{% url 'lancamentos_dre' %}" data-prefetch class="gm-lanc-nav-link" title="DRE por plano">DRE</a>
+        {% endif %}
+        <button type="button" id="btn-fin-sync-api" class="inline-flex items-center gap-1 rounded-lg border border-amber-600 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-black uppercase px-3 py-2 min-h-[40px] shrink-0 transition-colors" title="Atualiza planos, opções de baixa e lista no servidor">Sincronizar</button>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[40px] text-[10px] font-black uppercase bg-white px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:border-amber-400 hover:text-amber-900 transition-colors" %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="w-full max-w-none flex-1 flex flex-col min-h-0 overflow-hidden px-2 sm:px-3 py-1.5 sm:py-2 gap-1.5">
+    <div class="shrink-0 max-h-[min(40vh,400px)] sm:max-h-[min(44vh,440px)] overflow-y-auto overscroll-y-contain space-y-1.5 pr-0.5 [scrollbar-gutter:stable]">
+    {% if modo_contas == 'receber' %}
+    <div class="flex flex-wrap items-center gap-1.5">
+      <details id="gaveta-ajuda" class="gm-gaveta gm-gaveta-ajuda rounded-lg border border-slate-200 bg-white overflow-hidden shrink-0">
+        <summary class="px-2 py-1.5 sm:px-2.5 sm:py-1.5 flex flex-wrap items-center gap-2 cursor-pointer hover:bg-slate-50 transition-colors list-none"
+          title="Integração com o ERP, baixa total e parcial, formas e contas no Mongo, lista pessoal e modal de baixa. Abra para o texto completo.">
+          <span class="gm-gaveta-chev" aria-hidden="true">?</span>
+          <span class="text-[10px] font-black text-slate-500 uppercase tracking-wide">Ajuda</span>
+        </summary>
+        <div class="px-3 py-3 sm:px-4 sm:py-4 space-y-3 border-t border-slate-100 text-[12px] sm:text-[13px] font-semibold text-slate-700 leading-relaxed">
+          <p>O Agro registra os lançamentos e baixas aqui e, quando a integração estiver habilitada, também tenta sincronizar com o ERP. <strong class="text-slate-900">Baixa total</strong> e <strong class="text-slate-900">baixa parcial</strong> enviam o título atualizado. Na baixa, a lista padrão mostra só formas e contas com ID no Mongo (cadastro ERP); você pode incluir itens na sua lista pessoal ou ver o histórico completo no modal de baixa.</p>
+          <details class="gm-ajuda-detalhes group rounded-xl border border-slate-200 bg-slate-50/70 overflow-hidden">
+            <summary class="px-3 py-2.5 cursor-pointer flex items-center gap-2 text-[10px] font-black uppercase text-slate-600 hover:bg-slate-100/80 list-none">
+              <span class="inline-flex h-6 w-6 items-center justify-center rounded-md bg-slate-200/80 text-slate-700 text-[11px]" aria-hidden="true">ℹ</span>
+              <span>Detalhes técnicos (variáveis de ambiente)</span>
+              <span class="text-[9px] opacity-70 ml-auto transition-transform group-open:rotate-90 inline-block" aria-hidden="true">▸</span>
+            </summary>
+            <div class="px-3 pb-3 pt-0 space-y-2 text-[10px] font-bold text-slate-700 border-t border-slate-200/80">
+              <p class="pt-2">Baixa: <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200">VENDA_ERP_API_FINANCEIRO_BAIXA_PATH</code></p>
+              <p>Baixa parcial: o POST também envia <code class="bg-white px-1 py-0.5 rounded border border-slate-200">pagamentos</code> / <code class="bg-white px-1 py-0.5 rounded border border-slate-200">pagamentos_relacionados</code> (formato parecido com a aba <em>Pagamentos</em> do lançamento no SisVale), além de <code class="bg-white px-1 py-0.5 rounded border border-slate-200">titulos</code>.</p>
+              <p>Lançamento manual: <code class="bg-white px-1.5 py-0.5 rounded border border-slate-200">VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH</code></p>
+            </div>
+          </details>
+        </div>
+      </details>
+    </div>
+    {% endif %}
+
+    <section id="bar-acoes-lancamentos" class="flex flex-nowrap sm:flex-wrap items-stretch gap-1.5 w-full min-w-0 overflow-x-auto pb-0.5 [scrollbar-gutter:stable]" aria-label="Filtros e ferramentas da lista">
+      <button type="button" id="btn-open-modal-filtros" class="flex-none min-w-[7rem] min-h-[44px] max-h-[52px] px-2.5 sm:px-3 py-1.5 rounded-xl border border-amber-300/90 bg-amber-50/80 hover:bg-amber-50 text-left transition-colors shrink-0">
+        <span class="block text-[10px] sm:text-xs font-black uppercase tracking-wide text-slate-800 leading-tight">Filtros</span>
+        <span id="filtros-btn-sub" class="block text-[9px] sm:text-[10px] font-semibold text-slate-600 truncate mt-0.5 leading-tight max-w-[min(28vw,12rem)] sm:max-w-[14rem]">—</span>
+      </button>
+      <button type="button" id="btn-filtro-rapido-hoje" class="flex-none shrink-0 min-h-[44px] min-w-[4.25rem] px-2 sm:px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 font-black text-[10px] sm:text-[11px] uppercase hover:border-amber-300 hover:bg-amber-50/80 transition-colors" title="Em aberto · vencimento hoje">Hoje</button>
+      <button type="button" id="btn-filtro-rapido-3d" class="flex-none shrink-0 min-h-[44px] min-w-[4.25rem] px-2 sm:px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 font-black text-[10px] sm:text-[11px] uppercase hover:border-amber-300 hover:bg-amber-50/80 transition-colors" title="Em aberto · vencimento de hoje−2 até hoje">3 dias</button>
+      <button type="button" id="btn-open-modal-planos" class="flex-none shrink-0 min-h-[44px] min-w-[4.5rem] px-2 sm:px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50/80 text-emerald-950 font-black text-[10px] sm:text-[11px] uppercase hover:bg-emerald-100/80 transition-colors" title="Planos de conta na lista">Planos</button>
+      <button type="button" id="btn-atalho-slot-1" data-slot="1" class="btn-atalho-slot flex-none shrink-0 min-h-[44px] min-w-[4.5rem] max-w-[7rem] sm:max-w-[9rem] px-2 py-2 rounded-xl border border-amber-200 bg-white text-amber-900 font-black text-[10px] sm:text-[11px] uppercase hover:bg-amber-50 truncate" title="Atalho 1 · clique para aplicar · Alt+clique para reconfigurar">Atalho 1</button>
+      <button type="button" id="btn-atalho-slot-2" data-slot="2" class="btn-atalho-slot flex-none shrink-0 min-h-[44px] min-w-[4.5rem] max-w-[7rem] sm:max-w-[9rem] px-2 py-2 rounded-xl border border-amber-200 bg-white text-amber-900 font-black text-[10px] sm:text-[11px] uppercase hover:bg-amber-50 truncate" title="Atalho 2 · clique para aplicar · Alt+clique para reconfigurar">Atalho 2</button>
+      <button type="button" id="btn-open-modal-ferramentas" class="flex-none shrink-0 min-h-[44px] min-w-[4.75rem] px-2.5 sm:px-3 py-2 rounded-xl border border-emerald-600 bg-emerald-600 text-white font-black text-[10px] sm:text-[11px] uppercase hover:bg-emerald-700 transition-colors text-center" title="CSV, Excel, PDF, WhatsApp, favoritos">Exportar</button>
+    </section>
+
+    <div id="sel-bar" class="hidden rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+      <div class="text-sm font-black text-emerald-950">
+        <span id="sel-count">0</span> selecionado(s) · Soma saldo: <span id="sel-soma" class="tabular-nums text-lg">R$ 0,00</span>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" id="btn-sel-clear" class="px-3 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-900 font-black text-[10px] uppercase">Limpar seleção</button>
+        <button type="button" id="btn-baixa-parcial" disabled title="Selecione exatamente 1 título em aberto." class="px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-black text-[10px] sm:text-xs uppercase hover:bg-indigo-700 shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
+          Baixa parcial…
+        </button>
+        <button type="button" id="btn-baixa" class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700 shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
+          Baixa total…
+        </button>
+      </div>
+    </div>
+
+    <div id="erro-box" class="hidden rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-800"></div>
+
+    </div>
+
+    <div class="flex flex-col flex-1 min-h-0 gap-1.5">
+    <section id="totais-box" class="hidden grid grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2">
+      <div class="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3">
+        <div class="text-[10px] sm:text-[11px] font-black uppercase text-slate-500">Títulos (filtro)</div>
+        <div id="t-qtd" class="text-lg sm:text-2xl font-black text-slate-800 tabular-nums leading-tight">0</div>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3">
+        <div id="lbl-bruto" class="text-[10px] sm:text-[11px] font-black uppercase text-slate-500">Valor bruto</div>
+        <div id="t-bruto" class="text-base sm:text-xl font-black text-slate-800 tabular-nums leading-tight">R$ 0,00</div>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3">
+        <div id="lbl-mov" class="text-[10px] sm:text-[11px] font-black uppercase text-slate-500">Movimentado</div>
+        <div id="t-mov" class="text-base sm:text-xl font-black text-emerald-700 tabular-nums leading-tight">R$ 0,00</div>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-white p-2.5 sm:p-3">
+        <div id="lbl-saldo" class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600">Saldo em aberto</div>
+        <div id="t-saldo" class="text-base sm:text-xl font-black text-amber-800 tabular-nums leading-tight">R$ 0,00</div>
+      </div>
+    </section>
+
+    <div class="flex flex-wrap items-end justify-between gap-2 text-xs sm:text-sm font-bold text-slate-600 px-0.5">
+      <div id="pag-info-wrap" class="flex flex-col sm:flex-row sm:flex-wrap sm:items-baseline gap-0.5 sm:gap-x-2 min-w-0">
+        <span id="pag-info"></span>
+        <span id="pag-info-meta" class="hidden text-[10px] sm:text-xs font-semibold text-slate-400"></span>
+      </div>
+      <div class="flex flex-wrap items-center gap-1.5">
+        <div class="relative">
+          <button type="button" id="btn-cols" class="inline-flex items-center gap-1.5 min-h-[40px] pl-2.5 pr-2.5 py-1.5 rounded-lg border border-emerald-600 bg-white text-emerald-900 font-black uppercase text-[10px] hover:bg-emerald-50 hover:border-amber-500 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1" aria-expanded="false" aria-haspopup="true" aria-controls="col-dropdown" title="Colunas visíveis na tabela">
+            <svg class="w-3.5 h-3.5 text-emerald-700 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path d="M4 5h4v14H4zM10 5h4v14h-4zM16 5h4v14h-4"/>
+            </svg>
+            <span>Colunas</span>
+            <span class="text-slate-400 text-[9px] leading-none" aria-hidden="true">▾</span>
+          </button>
+          <div id="col-dropdown" role="menu" class="hidden absolute right-0 mt-1 z-30 w-56 max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg p-2 space-y-1 text-[11px]"></div>
+        </div>
+        <button type="button" id="btn-prev" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 font-black uppercase text-[10px] min-h-[40px]">Anterior</button>
+        <button type="button" id="btn-next" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 font-black uppercase text-[10px] min-h-[40px]">Próxima</button>
+      </div>
+    </div>
+
+    <div class="rounded-xl border border-slate-200 bg-white flex flex-col flex-1 min-h-0 overflow-hidden shadow-sm">
+      <div class="flex-1 min-h-0 overflow-auto">
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-left text-sm hidden lg:table">
+          <thead class="bg-slate-100 text-[11px] font-black uppercase text-slate-600 border-b border-slate-200">
+            <tr>
+              <th data-col="chk" class="px-2 py-3 w-10" id="th-chk"><input type="checkbox" id="chk-all" class="rounded border-slate-300" title="Selecionar página"></th>
+              <th data-col="venc" class="px-1 py-2 align-bottom w-[7.5rem]">
+                <button type="button" id="th-sort-venc" class="w-full min-h-[44px] rounded-lg px-2 py-2 text-left text-[10px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 border border-transparent"
+                  title="Ordenar por data de vencimento. Clique para inverter (↑ mais antigo primeiro · ↓ mais novo primeiro).">
+                  <span data-sort-lbl>Vencimento</span><span data-sort-ind class="tabular-nums text-emerald-700" aria-hidden="true"></span>
+                </button>
+              </th>
+              <th data-col="fluxo" class="px-1 py-2 align-bottom w-[6.5rem]">
+                <button type="button" id="th-sort-fluxo" class="w-full min-h-[44px] rounded-lg px-2 py-2 text-left text-[10px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 border border-transparent"
+                  title="Ordenar pela data de fluxo (mais recente primeiro). Clique de novo para voltar ao vencimento ↑.">
+                  <span data-fluxo-lbl>Fluxo</span>
+                </button>
+              </th>
+              <th data-col="cli" class="px-1 py-2 align-bottom">
+                <button type="button" id="th-sort-cli" class="w-full min-h-[44px] rounded-lg px-2 py-2 text-left text-[10px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 border border-transparent"
+                  title="Ordenar por favorecido ou cliente. Clique para inverter A→Z / Z→A.">
+                  <span data-sort-lbl>Favorecido / cliente</span><span data-sort-ind class="tabular-nums text-emerald-700" aria-hidden="true"></span>
+                </button>
+              </th>
+              <th data-col="forma" class="px-1 py-2 align-bottom">
+                <button type="button" id="th-sort-forma" class="w-full min-h-[44px] rounded-lg px-2 py-2 text-left text-[10px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 border border-transparent"
+                  title="Ordenar por forma de pagamento. Clique para inverter A→Z / Z→A.">
+                  <span data-sort-lbl>Forma pagamento</span><span data-sort-ind class="tabular-nums text-emerald-700" aria-hidden="true"></span>
+                </button>
+              </th>
+              <th data-col="plano" class="px-1 py-2 align-bottom">
+                <button type="button" id="th-sort-plano" class="w-full min-h-[44px] rounded-lg px-2 py-2 text-left text-[10px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 border border-transparent"
+                  title="Ordenar por plano de conta e grupo. Clique para inverter A→Z / Z→A.">
+                  <span data-sort-lbl>Plano / grupo</span><span data-sort-ind class="tabular-nums text-emerald-700" aria-hidden="true"></span>
+                </button>
+              </th>
+              <th data-col="desc" class="px-2 py-3">Descrição</th>
+              <th data-col="banco" class="px-2 py-3">Banco / conta</th>
+              <th data-col="bruto" class="px-1 py-2 align-bottom">
+                <button type="button" id="th-sort-bruto" class="w-full min-h-[44px] rounded-lg px-2 py-2 text-right text-[10px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 border border-transparent"
+                  title="Ordenar pelo valor bruto do título. Clique para inverter menor primeiro / maior primeiro.">
+                  <span data-sort-lbl>Bruto</span><span data-sort-ind class="tabular-nums text-emerald-700" aria-hidden="true"></span>
+                </button>
+              </th>
+              <th data-col="mov" class="px-2 py-3 text-right" id="th-mov">Pago</th>
+              <th data-col="saldo" class="px-1 py-2 align-bottom">
+                <button type="button" id="th-sort-saldo" class="w-full min-h-[44px] rounded-lg px-2 py-2 text-right text-[10px] font-black uppercase tracking-wide text-slate-700 hover:bg-slate-200/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 border border-transparent"
+                  title="Ordenar pelo saldo em aberto (a pagar ou a receber). Clique para inverter menor / maior.">
+                  <span data-sort-lbl data-saldo-lbl>A pagar</span><span data-sort-ind class="tabular-nums text-emerald-700" aria-hidden="true"></span>
+                </button>
+              </th>
+              <th data-col="sit" class="px-2 py-3">Situação</th>
+              <th data-col="acoes" class="px-2 py-3 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-desk" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+      <div id="cards-mob" class="lg:hidden divide-y divide-slate-100 p-2 space-y-2"></div>
+      <div id="empty-state" class="hidden py-8 text-center text-slate-400 font-bold text-sm">Nenhum lançamento com os filtros atuais.</div>
+      <div id="loading-state" class="hidden py-6 px-4" aria-hidden="true">
+        <div class="max-w-xl mx-auto">
+          <div class="h-2 rounded-full bg-slate-200 overflow-hidden">
+            <div class="h-full w-2/5 bg-amber-500 animate-pulse"></div>
+          </div>
+          <div class="text-center text-slate-500 font-bold text-sm mt-3">Carregando lançamentos...</div>
+        </div>
+      </div>
+      </div>
+    </div>
+    </div>
+  </main>
+
+  <div id="wa-toast" class="fixed bottom-4 left-1/2 z-[60] -translate-x-1/2 max-w-[min(92vw,24rem)] rounded-xl border border-emerald-200 bg-emerald-950 text-white px-4 py-3 text-xs font-bold shadow-lg hidden text-center leading-snug" role="status" aria-live="polite"></div>
+
+  <!-- Modal: filtros da lista -->
+  <div id="modal-filtros-lista" class="hidden fixed inset-0 z-[48] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-filtros-lista-titulo">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-[min(56rem,96vw)] max-h-[min(92dvh,880px)] overflow-hidden flex flex-col border border-slate-200">
+      <div class="flex items-start justify-between gap-2 px-4 py-3 border-b border-slate-100 bg-slate-50/90 shrink-0">
+        <div class="min-w-0 pr-2">
+          <h2 id="modal-filtros-lista-titulo" class="text-base sm:text-lg font-black text-slate-900 uppercase tracking-tight">Filtros</h2>
+          <span id="gaveta-filtros-resumo" class="sr-only" aria-live="polite"></span>
+          <p id="modal-filtros-resumo-vis" class="text-[11px] font-semibold text-slate-600 mt-1 leading-snug max-w-[52ch]"></p>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button type="button" id="btn-filtros-ajuda" class="min-h-[44px] min-w-[44px] rounded-xl border border-slate-200 text-sm font-black text-slate-600 hover:bg-slate-100" title="Ajuda sobre datas" aria-label="Ajuda sobre datas do filtro">?</button>
+          <button type="button" id="btn-fechar-modal-filtros" class="min-h-[44px] min-w-[44px] rounded-xl border border-slate-200 font-black text-lg leading-none text-slate-700 hover:bg-slate-100" aria-label="Fechar">×</button>
+        </div>
+      </div>
+      <div id="modal-filtros-ajuda-pop" class="hidden mx-4 mt-2 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-[11px] font-semibold text-amber-950 leading-snug" role="note">
+        <strong class="font-black">Vencimento</strong> — data de vencimento do título. <strong class="font-black">Competência</strong> — competência contábil. <strong class="font-black">Pagamento</strong> — quitação (parcial/total). Com <strong>Em aberto</strong> e só filtro de pagamento, a lista pode ficar vazia; use <strong>Todos</strong> ou inclua vencimento.
+      </div>
+      <div class="p-3 sm:p-4 overflow-y-auto flex-1 min-h-0 space-y-4">
+        <section class="rounded-xl border border-slate-100 bg-slate-50/40 p-3 space-y-3" aria-label="Situação e ordenação">
+          <div class="text-[10px] font-black uppercase tracking-wide text-slate-500">Situação e ordem</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="block">
+              <span class="text-[11px] font-bold text-slate-600">Situação</span>
+              <select id="f-status" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-400 outline-none min-h-[48px]">
+                <option value="abertos" selected>Em aberto</option>
+                <option value="quitados">Quitados</option>
+                <option value="todos">Todos</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="text-[11px] font-bold text-slate-600">Ordenar por</span>
+              <select id="f-ord" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-400 outline-none min-h-[48px]">
+                <option value="vencimento_asc" selected>Vencimento ↑</option>
+                <option value="vencimento_desc">Vencimento ↓</option>
+                <option value="fluxo_desc">Data fluxo ↓</option>
+                <option value="cliente_asc">Favorecido A→Z</option>
+                <option value="cliente_desc">Favorecido Z→A</option>
+                <option value="forma_asc">Forma pagamento A→Z</option>
+                <option value="forma_desc">Forma pagamento Z→A</option>
+                <option value="plano_asc">Plano / grupo A→Z</option>
+                <option value="plano_desc">Plano / grupo Z→A</option>
+                <option value="bruto_asc">Bruto ↑ (menor)</option>
+                <option value="bruto_desc">Bruto ↓ (maior)</option>
+                <option value="saldo_asc">Saldo aberto ↑ (menor)</option>
+                <option value="saldo_desc">Saldo aberto ↓ (maior)</option>
+              </select>
+            </label>
+          </div>
+        </section>
+        <section class="rounded-xl border border-slate-100 p-3 space-y-3" aria-label="Datas de vencimento">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="text-[10px] font-black uppercase tracking-wide text-slate-500">Vencimento</div>
+            <button type="button" id="btn-filtros-limpar-datas" class="text-[11px] font-black uppercase text-amber-700 hover:text-amber-900 underline decoration-amber-400/80 underline-offset-2 min-h-[40px] px-1">Limpar todas as datas</button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="block">
+              <span class="text-[11px] font-bold text-slate-600">De</span>
+              <input type="date" id="f-de" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-400 outline-none min-h-[48px]">
+            </label>
+            <label class="block">
+              <span class="text-[11px] font-bold text-slate-600">Até</span>
+              <input type="date" id="f-ate" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-400 outline-none min-h-[48px]">
+            </label>
+          </div>
+          <details id="filtros-datas-extras" class="rounded-xl border border-slate-100 bg-white open:shadow-sm scroll-mt-2 group">
+            <summary class="cursor-pointer select-none list-none flex items-center justify-between gap-2 rounded-xl px-3 py-3 text-[12px] font-black uppercase text-slate-700 hover:bg-slate-50 min-h-[48px] [&::-webkit-details-marker]:hidden">
+              <span>Competência e pagamento <span class="text-slate-400 font-bold normal-case text-[11px]">(opcional)</span></span>
+              <span class="text-slate-400 text-xs transition-transform group-open:rotate-180" aria-hidden="true">▼</span>
+            </summary>
+            <div class="px-3 pb-3 pt-0 space-y-4 border-t border-slate-50">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
+                <div class="sm:col-span-2 text-[10px] font-black uppercase text-slate-500">Competência</div>
+                <label class="block">
+                  <span class="text-[11px] font-bold text-slate-600">De</span>
+                  <input type="date" id="f-comp-de" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none min-h-[48px]">
+                </label>
+                <label class="block">
+                  <span class="text-[11px] font-bold text-slate-600">Até</span>
+                  <input type="date" id="f-comp-ate" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none min-h-[48px]">
+                </label>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="sm:col-span-2 text-[10px] font-black uppercase text-slate-500">Pagamento / quitação</div>
+                <label class="block">
+                  <span class="text-[11px] font-bold text-slate-600">De</span>
+                  <input type="date" id="f-pag-de" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none min-h-[48px]" title="Data de quitação no título">
+                </label>
+                <label class="block">
+                  <span class="text-[11px] font-bold text-slate-600">Até</span>
+                  <input type="date" id="f-pag-ate" class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-3 text-sm font-bold text-slate-800 focus:border-amber-500 outline-none min-h-[48px]">
+                </label>
+              </div>
+            </div>
+          </details>
+        </section>
+        <section class="rounded-xl border border-slate-100 p-3" aria-label="Busca">
+          <label class="block">
+            <span class="text-[10px] font-black uppercase tracking-wide text-slate-500">Busca na lista</span>
+            <div class="relative mt-1">
+              <input type="search" id="f-q" placeholder="Nome, descrição, documento…" autocomplete="off"
+                class="w-full rounded-xl border border-slate-200 pl-4 pr-10 py-3 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-400 outline-none min-h-[48px]"
+                title="Enter aplica e atualiza a lista. Tecla / foca aqui (fora de campos).">
+              <kbd class="gm-kbd absolute right-2.5 top-1/2 -translate-y-1/2 border border-slate-200 bg-white text-slate-500 text-[10px]" title="Barra / foca a busca">/</kbd>
+            </div>
+          </label>
+        </section>
+        <section class="rounded-xl border border-amber-100 bg-amber-50/40 p-3 space-y-2" aria-label="Salvar atalho na barra">
+          <div class="text-[10px] font-black uppercase tracking-wide text-amber-900/90">Atalho (botão 1 ou 2)</div>
+          <div class="flex flex-wrap items-end gap-2">
+            <label class="block shrink-0">
+              <span class="text-[11px] font-bold text-slate-600">Onde</span>
+              <select id="atalho-save-slot" class="mt-1 rounded-xl border border-slate-200 px-2 py-2.5 text-sm font-bold min-h-[44px]">
+                <option value="1">Botão 1</option>
+                <option value="2">Botão 2</option>
+              </select>
+            </label>
+            <label class="block flex-1 min-w-[10rem]">
+              <span class="text-[11px] font-bold text-slate-600">Nome no botão</span>
+              <input type="text" id="atalho-save-nome" maxlength="80" placeholder="Ex.: Fornecedores semana"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold min-h-[44px]">
+            </label>
+            <button type="button" id="btn-atalho-salvar" class="min-h-[44px] px-4 rounded-xl bg-amber-600 text-white font-black text-[10px] uppercase hover:bg-amber-700 shrink-0">Salvar atalho</button>
+          </div>
+          <p class="text-[10px] font-semibold text-slate-600 leading-snug">Salva os filtros atuais (incluindo exclusão de planos). Na barra: clique aplica · Alt+clique reabre estes filtros.</p>
+        </section>
+        <div class="flex flex-col-reverse sm:flex-row flex-wrap items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" id="btn-cancelar-modal-filtros" class="order-last sm:order-none min-h-[48px] px-4 rounded-xl border border-slate-200 bg-white text-slate-700 font-black text-sm uppercase hover:bg-slate-50">Cancelar</button>
+          <div class="flex flex-1 flex-wrap items-center justify-end gap-2 min-w-0">
+            <label class="flex items-center gap-2 shrink-0">
+              <span class="text-[10px] font-black uppercase text-slate-500 whitespace-nowrap">Por página</span>
+              <select id="f-ps" class="rounded-xl border border-slate-200 px-2 py-2.5 text-sm font-bold min-h-[48px] min-w-[4.5rem]">
+                <option value="25">25</option>
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+              </select>
+            </label>
+            <button type="button" id="btn-buscar" class="inline-flex flex-1 sm:flex-none items-center justify-center gap-2 min-h-[48px] px-6 rounded-xl bg-amber-600 text-white font-black text-sm uppercase tracking-wide hover:bg-amber-700 shadow-sm" title="Aplicar filtros e atualizar a lista">
+              <span>Aplicar</span>
+              <kbd class="gm-kbd border border-white/30 bg-white/15 text-white text-[10px]">F5</kbd>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: exportar, favoritos e planos -->
+  <div id="modal-ferramentas-lista" class="hidden fixed inset-0 z-[48] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-ferramentas-lista-titulo">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-[min(52rem,96vw)] max-h-[min(92dvh,880px)] overflow-hidden flex flex-col border border-emerald-200/90">
+      <div class="flex items-start justify-between gap-2 px-4 py-3 border-b border-emerald-100/90 bg-emerald-50/70 shrink-0">
+        <div class="min-w-0 pr-2">
+          <h2 id="modal-ferramentas-lista-titulo" class="text-base sm:text-lg font-black text-emerald-950 uppercase tracking-tight">Exportar</h2>
+          <p class="text-[10px] font-semibold text-emerald-800/80 mt-0.5">Mesmos filtros da lista · favoritos</p>
+        </div>
+        <button type="button" id="btn-fechar-modal-ferramentas" class="shrink-0 min-h-[44px] min-w-[44px] rounded-xl border-2 border-emerald-200 font-black text-lg leading-none text-emerald-900 hover:bg-emerald-100/80" aria-label="Fechar">×</button>
+      </div>
+      <div class="p-3 sm:p-4 overflow-y-auto flex-1 min-h-0 space-y-3">
+        <div class="flex flex-wrap items-center gap-2" title="CSV completo; Excel e PDF no modelo do relatório financeiro.">
+          <button type="button" id="btn-csv" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black text-sm uppercase tracking-wide hover:bg-slate-100 shadow-sm min-h-[44px]" title="CSV: dados completos + totais e subtotais por plano (F4 ou F8).">
+            <span>CSV</span>
+            <kbd class="gm-kbd border border-slate-200 bg-slate-50 text-slate-600">F4</kbd>
+          </button>
+          <button type="button" id="btn-xlsx-fin" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-emerald-300 bg-white text-emerald-900 font-black text-sm uppercase tracking-wide hover:bg-emerald-100/80 shadow-sm min-h-[44px]" title="Excel .xlsx no layout do relatório financeiro.">
+            <span>Excel</span>
+          </button>
+          <button type="button" id="btn-pdf-fin" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border-2 border-slate-600 bg-slate-800 text-white font-black text-sm uppercase tracking-wide hover:bg-slate-900 shadow-sm min-h-[44px]" title="PDF no mesmo padrão do relatório.">
+            <span>PDF</span>
+          </button>
+          <button type="button" id="btn-whats" class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-sm uppercase tracking-wide hover:bg-emerald-700 min-h-[44px]" title="Resumo para WhatsApp (F9).">
+            <span>WhatsApp</span>
+            <kbd class="gm-kbd border border-white/25 bg-white/10 text-white">F9</kbd>
+          </button>
+        </div>
+        <div class="flex flex-wrap items-end gap-2 pt-1 border-t border-slate-100/90">
+          <label class="block flex-1 min-w-[10rem] max-w-xs">
+            <span class="text-[11px] font-black uppercase text-slate-500">Favoritos</span>
+            <select id="fav-load" class="mt-0.5 w-full rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-bold min-h-[44px]">
+              <option value="">— carregar —</option>
+            </select>
+          </label>
+          <input type="text" id="fav-name" maxlength="40" placeholder="Nome do favorito" class="rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-semibold w-40 max-w-full min-h-[44px]">
+          <button type="button" id="btn-fav-save" class="px-3 py-2 rounded-xl border-2 border-amber-200 text-amber-800 font-black text-[10px] uppercase hover:bg-amber-50 min-h-[44px]">Salvar</button>
+          <button type="button" id="btn-fav-del" class="px-3 py-2 rounded-xl border-2 border-red-100 text-red-700 font-black text-[10px] uppercase hover:bg-red-50 min-h-[44px]">Excluir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: planos de conta na lista -->
+  <div id="modal-planos-lista" class="hidden fixed inset-0 z-[48] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-planos-lista-titulo">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-[min(52rem,96vw)] max-h-[min(92dvh,880px)] overflow-hidden flex flex-col border border-emerald-200/90">
+      <div class="flex items-start justify-between gap-2 px-4 py-3 border-b border-emerald-100/90 bg-emerald-50/70 shrink-0">
+        <div class="min-w-0 pr-2">
+          <h2 id="modal-planos-lista-titulo" class="text-base sm:text-lg font-black text-emerald-950 uppercase tracking-tight">Planos de contas</h2>
+          <p class="text-[10px] font-semibold text-emerald-800/80 mt-0.5">Desmarque para ocultar títulos na lista (mesmos filtros atuais)</p>
+        </div>
+        <button type="button" id="btn-fechar-modal-planos" class="shrink-0 min-h-[44px] min-w-[44px] rounded-xl border-2 border-emerald-200 font-black text-lg leading-none text-emerald-900 hover:bg-emerald-100/80" aria-label="Fechar">×</button>
+      </div>
+      <div class="p-3 sm:p-4 overflow-y-auto flex-1 min-h-0 space-y-3">
+        <div class="flex flex-wrap gap-2">
+          <button type="button" id="plano-todas" class="px-2 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Marcar todos</button>
+          <button type="button" id="plano-nenhuma" class="px-2 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black uppercase bg-white hover:bg-slate-50">Desmarcar todos</button>
+        </div>
+        <div id="plano-chks" class="flex flex-wrap gap-2 min-h-[1.5rem] items-start content-start max-h-[min(40vh,320px)] overflow-y-auto p-1 rounded-lg border border-slate-100 bg-slate-50/50"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal baixa -->
+  <div id="modal-baixa" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-baixa-titulo">
+    <div class="bg-white rounded-2xl shadow-xl max-w-[min(40rem,96vw)] w-full p-5 sm:p-6 space-y-4 border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <h2 id="modal-baixa-titulo" class="text-lg font-black text-slate-900 uppercase tracking-tight">Confirmar baixa</h2>
+      <p class="text-xs text-slate-600 font-semibold" id="modal-baixa-resumo"></p>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Data do movimento</span>
+        <input type="date" id="bx-data" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold">
+      </label>
+      <div class="space-y-2">
+        <span class="text-[10px] font-black uppercase text-slate-500">Forma de pagamento (na baixa)</span>
+        <p class="text-[10px] text-slate-500 leading-relaxed">Cadastro do ERP no Mongo (ex.: <span class="font-mono">DtoFormaPagamento</span>); se não houver coleção, lista derivada dos títulos com um ID por forma.</p>
+        <select id="bx-forma-sel" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold"></select>
+      </div>
+      <div class="space-y-2">
+        <span class="text-[10px] font-black uppercase text-slate-500">Conta / banco (na baixa)</span>
+        <p class="text-[10px] text-slate-500 leading-relaxed">Cadastro do ERP no Mongo (ex.: <span class="font-mono">DtoContaBancaria</span>); se não houver, lista derivada dos títulos. Rótulos CPF/CNPJ padronizados com <span class="font-mono">|</span>.</p>
+        <select id="bx-banco-sel" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold"></select>
+      </div>
+      <div id="bx-juros-wrap" class="space-y-2 hidden">
+        <span class="text-[10px] font-black uppercase text-slate-500">Juros nesta quitação (opcional)</span>
+        <p class="text-[10px] text-slate-500 leading-relaxed">Valor em R$ gera um título a pagar no plano <strong>Juros de Emprestimos</strong>, quitado na mesma data, forma e conta abaixo (usa empresa e favorecido do primeiro título selecionado).</p>
+        <input type="text" id="bx-juros" placeholder="0,00" class="w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold tabular-nums">
+      </div>
+      <div class="flex flex-wrap gap-2 justify-end pt-2">
+        <button type="button" id="bx-cancel" class="px-4 py-2.5 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Cancelar</button>
+        <button type="button" id="bx-ok" class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700">Confirmar baixa total</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal baixa parcial (1 título, várias formas/contas) -->
+  <div id="modal-baixa-parcial" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-baixa-parcial-titulo">
+    <div class="bg-white rounded-2xl shadow-xl max-w-[min(52rem,96vw)] w-full p-5 sm:p-6 space-y-4 border border-slate-200 max-h-[92vh] overflow-y-auto">
+      <h2 id="modal-baixa-parcial-titulo" class="text-lg font-black text-slate-900 uppercase tracking-tight">Baixa parcial</h2>
+      <p class="text-xs text-slate-600 font-semibold" id="bxp-resumo"></p>
+      <p class="text-[10px] font-bold text-indigo-600">Informe uma ou mais linhas: cada uma com valor, forma e conta. A soma não pode passar do saldo em aberto.</p>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Data do movimento</span>
+        <input type="date" id="bxp-data" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold">
+      </label>
+      <div class="space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-[10px] font-black uppercase text-slate-500">Parcelas</span>
+          <button type="button" id="bxp-add-linha" class="text-[10px] font-black uppercase text-indigo-600 hover:underline">+ Linha</button>
+        </div>
+        <div id="bxp-linhas" class="space-y-2"></div>
+      </div>
+      <div class="flex flex-wrap gap-2 justify-end pt-2 border-t border-slate-100">
+        <button type="button" id="bxp-cancel" class="px-4 py-2.5 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Cancelar</button>
+        <button type="button" id="bxp-ok" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-black text-xs uppercase hover:bg-indigo-700">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal editar lançamento -->
+  <div id="modal-edit-lanc" class="hidden fixed inset-0 z-[52] flex items-end sm:items-center justify-center p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-edit-lanc-titulo">
+    <div class="bg-white rounded-2xl shadow-xl max-w-[min(40rem,96vw)] w-full p-5 sm:p-6 space-y-3 border border-slate-200 max-h-[90vh] overflow-y-auto">
+      <h2 id="modal-edit-lanc-titulo" class="text-lg font-black text-slate-900 uppercase tracking-tight">Editar lançamento</h2>
+      <p class="text-[10px] text-slate-600 font-semibold leading-relaxed">Apenas títulos em aberto. Valor (bruto) só aparece se ainda não houver pagamento. Exclusão na linha só vale para lançamento manual do Agro ou sem ID do ERP no Mongo.</p>
+      <input type="hidden" id="edl-id">
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Descrição</span>
+        <input type="text" id="edl-desc" maxlength="500" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold">
+      </label>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Favorecido / cliente</span>
+        <div class="relative sug-wrap mt-1" data-sug-campo="cliente">
+          <input type="text" id="edl-cliente" maxlength="300" autocomplete="off" placeholder="Digite para buscar…"
+            class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold focus:border-amber-500 outline-none">
+          <input type="hidden" id="edl-cliente-id" value="">
+          <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+        </div>
+      </label>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Vencimento</span>
+        <input type="date" id="edl-venc" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold">
+      </label>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Plano de conta</span>
+        <div class="relative sug-wrap mt-1" data-sug-campo="plano">
+          <input type="text" id="edl-plano" maxlength="200" autocomplete="off" placeholder="Digite para buscar ou escolha na lista…"
+            class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold focus:border-amber-500 outline-none">
+          <input type="hidden" id="edl-plano-id" value="">
+          <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
+        </div>
+      </label>
+      <div id="edl-valor-wrap" class="hidden">
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-500">Valor bruto (R$)</span>
+          <input type="text" id="edl-valor" placeholder="0,00" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold tabular-nums">
+        </label>
+      </div>
+      <details class="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2">
+        <summary class="text-[10px] font-black uppercase text-slate-600 cursor-pointer">Corrigir forma / conta (opcional)</summary>
+        <div class="mt-2 space-y-2 pt-1">
+          <label class="block">
+            <span class="text-[9px] font-black uppercase text-slate-500">Forma de pagamento</span>
+            <div class="relative sug-wrap mt-1" data-sug-campo="forma">
+              <input type="text" id="edl-forma" maxlength="200" autocomplete="off" placeholder="Digite para buscar…"
+                class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold focus:border-amber-500 outline-none">
+              <input type="hidden" id="edl-forma-id" value="">
+              <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-lg shadow-lg"></ul>
+            </div>
+          </label>
+          <label class="block">
+            <span class="text-[9px] font-black uppercase text-slate-500">Banco / conta</span>
+            <div class="relative sug-wrap mt-1" data-sug-campo="banco">
+              <input type="text" id="edl-banco" maxlength="200" autocomplete="off" placeholder="Digite para buscar…"
+                class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs font-semibold focus:border-amber-500 outline-none">
+              <input type="hidden" id="edl-banco-id" value="">
+              <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-lg shadow-lg"></ul>
+            </div>
+          </label>
+        </div>
+      </details>
+      <div class="flex flex-wrap gap-2 justify-end pt-2 border-t border-slate-100">
+        <button type="button" id="edl-cancel" class="px-4 py-2.5 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Cancelar</button>
+        <button type="button" id="edl-salvar" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-black text-xs uppercase hover:bg-indigo-700">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  {{ csrf_token }}
+  <script>
+    (() => {
+      const DELAY_MS = 320;
+      const patch = (obj) => {
+        if (!obj || obj.__delayedPatched || typeof obj.show !== 'function' || typeof obj.hide !== 'function') return;
+        const origShow = obj.show.bind(obj);
+        const origHide = obj.hide.bind(obj);
+        let t = null;
+        let visible = false;
+        obj.show = (...args) => {
+          clearTimeout(t);
+          t = setTimeout(() => {
+            visible = true;
+            origShow(...args);
+          }, DELAY_MS);
+        };
+        obj.hide = (...args) => {
+          clearTimeout(t);
+          if (!visible) return;
+          visible = false;
+          origHide(...args);
+        };
+        obj.__delayedPatched = true;
+      };
+      patch(window.gmLoadingBar);
+      patch(window.gmLoader);
+    })();
+
+    const API_LISTA = "{% url 'api_lancamentos_lista' %}";
+    const API_CSV = "{% url 'api_lancamentos_export_csv' %}";
+    const API_XLSX_FIN = "{% url 'api_lancamentos_export_financeiro_xlsx' %}";
+    const API_PDF_FIN = "{% url 'api_lancamentos_export_financeiro_pdf' %}";
+    const API_PLANOS = "{% url 'api_lancamentos_planos_distintos' %}";
+    const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
+    const API_BAIXA = "{% url 'api_lancamentos_baixa' %}";
+    const API_BAIXA_PARCIAL = "{% url 'api_lancamentos_baixa_parcial' %}";
+    const API_LANC_ALTERAR = "{% url 'api_lancamentos_alterar' %}";
+    const API_LANC_EXCLUIR = "{% url 'api_lancamentos_excluir' %}";
+    const API_RECORRE = "{% url 'api_lancamentos_definir_recorrente' %}";
+    const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
+    const API_ATALHOS = "{% url 'api_lancamentos_atalhos_filtro' %}";
+    const LS_FAV = 'gm_fin_favs_v1';
+    const LS_EXCL = 'gm_fin_planos_excl_v1';
+    const LS_COLS = 'gm_fin_cols_v2';
+    const LS_ATALHOS = 'gm_fin_atalhos_slots_v1';
+    const SEM_PLANO_KEY = '__SEM_PLANO__';
+    const modoContas = '{{ modo_contas }}';
+
+    const COL_DEFS = [
+      { id: 'chk', label: 'Seleção' },
+      { id: 'venc', label: 'Vencimento' },
+      { id: 'fluxo', label: 'Data fluxo' },
+      { id: 'cli', label: 'Cliente / favorecido' },
+      { id: 'forma', label: 'Forma pagamento' },
+      { id: 'plano', label: 'Plano / grupo' },
+      { id: 'desc', label: 'Descrição' },
+      { id: 'banco', label: 'Banco / conta' },
+      { id: 'bruto', label: 'Bruto' },
+      { id: 'mov', label: 'Movimentado' },
+      { id: 'saldo', label: 'Saldo' },
+      { id: 'sit', label: 'Situação' },
+      { id: 'acoes', label: 'Ações' },
+    ];
+
+    let tipoAtual = modoContas === 'receber' ? 'receber' : 'pagar';
+    let page = 1;
+    let lastTotal = 0;
+    let lastPageSize = 50;
+    let lastRows = [];
+    const selecionados = new Map();
+
+    function getCookie(name) {
+      const m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+      return m ? decodeURIComponent(m[2]) : '';
+    }
+
+    function hojeISO() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function isoAddDays(ymd, delta) {
+      const d = new Date(ymd + 'T12:00:00');
+      if (Number.isNaN(d.getTime())) return ymd;
+      d.setDate(d.getDate() + delta);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function aplicarFiltroRapidoHoje() {
+      document.getElementById('f-status').value = 'abertos';
+      ['f-comp-de', 'f-comp-ate', 'f-pag-de', 'f-pag-ate'].forEach((id) => {
+        const n = document.getElementById(id);
+        if (n) n.value = '';
+      });
+      const t = hojeISO();
+      document.getElementById('f-de').value = t;
+      document.getElementById('f-ate').value = t;
+      page = 1;
+      selecionados.clear();
+      refreshGavetaFiltrosResumo();
+      carregarPlanos().then(() => carregar());
+    }
+
+    function aplicarFiltroRapidoTresDias() {
+      document.getElementById('f-status').value = 'abertos';
+      ['f-comp-de', 'f-comp-ate', 'f-pag-de', 'f-pag-ate'].forEach((id) => {
+        const n = document.getElementById(id);
+        if (n) n.value = '';
+      });
+      const t = hojeISO();
+      document.getElementById('f-de').value = isoAddDays(t, -2);
+      document.getElementById('f-ate').value = t;
+      page = 1;
+      selecionados.clear();
+      refreshGavetaFiltrosResumo();
+      carregarPlanos().then(() => carregar());
+    }
+
+    function buildFavoritoPayload() {
+      return {
+        tipo: tipoAtual,
+        status: document.getElementById('f-status').value,
+        venc_de: document.getElementById('f-de').value,
+        venc_ate: document.getElementById('f-ate').value,
+        comp_de: document.getElementById('f-comp-de').value,
+        comp_ate: document.getElementById('f-comp-ate').value,
+        pag_de: document.getElementById('f-pag-de').value,
+        pag_ate: document.getElementById('f-pag-ate').value,
+        q: document.getElementById('f-q').value,
+        ordenacao: document.getElementById('f-ord').value,
+        page_size: document.getElementById('f-ps').value,
+        planos_excl: Array.from(getExcludedSet()),
+      };
+    }
+
+    const atalhoSlots = { 1: null, 2: null };
+
+    function aplicarPayloadFiltro(f) {
+      if (!f) return;
+      let t = f.tipo === 'receber' ? 'receber' : 'pagar';
+      if (modoContas === 'pagar') t = 'pagar';
+      else if (modoContas === 'receber') t = 'receber';
+      tipoAtual = t;
+      atualizarTabs();
+      document.getElementById('f-status').value = f.status || 'abertos';
+      document.getElementById('f-de').value = f.venc_de || '';
+      document.getElementById('f-ate').value = f.venc_ate || '';
+      document.getElementById('f-comp-de').value = f.comp_de || '';
+      document.getElementById('f-comp-ate').value = f.comp_ate || '';
+      document.getElementById('f-pag-de').value = f.pag_de || '';
+      document.getElementById('f-pag-ate').value = f.pag_ate || '';
+      document.getElementById('f-q').value = f.q || '';
+      document.getElementById('f-ord').value = f.ordenacao || 'vencimento_asc';
+      document.getElementById('f-ps').value = f.page_size || '50';
+      if (Array.isArray(f.planos_excl)) {
+        saveExcludedSet(new Set(f.planos_excl));
+      }
+      page = 1;
+      selecionados.clear();
+      syncSortHeaderButtons();
+      refreshGavetaFiltrosResumo();
+      carregarPlanos().then(() => carregar());
+    }
+
+    function refreshAtalhoButtonLabel(slot) {
+      const btn = document.getElementById(`btn-atalho-slot-${slot}`);
+      if (!btn) return;
+      const row = atalhoSlots[slot];
+      const nome = (row && row.nome) ? row.nome : `Atalho ${slot}`;
+      btn.textContent = nome;
+    }
+
+    function persistAtalhosLocalCache() {
+      try {
+        const o = {};
+        [1, 2].forEach((s) => {
+          if (atalhoSlots[s]) o[s] = atalhoSlots[s];
+        });
+        localStorage.setItem(LS_ATALHOS, JSON.stringify(o));
+      } catch (_) {}
+    }
+
+    function loadAtalhosFromLocalStorage() {
+      try {
+        const raw = localStorage.getItem(LS_ATALHOS);
+        if (!raw) return;
+        const o = JSON.parse(raw);
+        [1, 2].forEach((s) => {
+          if (o[s] && o[s].nome) {
+            atalhoSlots[s] = o[s];
+            refreshAtalhoButtonLabel(s);
+          }
+        });
+      } catch (_) {}
+    }
+
+    async function carregarAtalhosDoServidor() {
+      try {
+        const r = await fetch(API_ATALHOS, { credentials: 'same-origin', cache: 'no-store' });
+        const j = await r.json();
+        if (!j.ok || !Array.isArray(j.atalhos)) {
+          loadAtalhosFromLocalStorage();
+          return;
+        }
+        j.atalhos.forEach((a) => {
+          atalhoSlots[a.slot] = { nome: a.nome, payload: a.payload };
+          refreshAtalhoButtonLabel(a.slot);
+        });
+        persistAtalhosLocalCache();
+      } catch (_) {
+        loadAtalhosFromLocalStorage();
+      }
+    }
+
+    function abrirModalFiltrosParaAtalho(slot) {
+      document.getElementById('atalho-save-slot').value = String(slot);
+      const row = atalhoSlots[slot];
+      document.getElementById('atalho-save-nome').value = (row && row.nome) ? row.nome : '';
+      document.getElementById('modal-filtros-lista').classList.remove('hidden');
+      document.getElementById('modal-filtros-ajuda-pop')?.classList.add('hidden');
+      document.getElementById('atalho-save-nome')?.focus();
+    }
+
+    function attachSuggest(wrap) {
+      if (!wrap || wrap.dataset.sugBound === '1') return;
+      wrap.dataset.sugBound = '1';
+      const campo = wrap.getAttribute('data-sug-campo');
+      const inp = wrap.querySelector('input[type="text"]');
+      const hid = wrap.querySelector('input[type="hidden"]');
+      const dd = wrap.querySelector('.sug-dd');
+      if (!inp || !hid || !dd || !campo) return;
+      let timer = null;
+      inp.addEventListener('input', function () {
+        hid.value = '';
+        clearTimeout(timer);
+        timer = setTimeout(async function () {
+          try {
+            const u = new URL(API_SUG, window.location.origin);
+            u.searchParams.set('campo', campo);
+            u.searchParams.set('q', inp.value.trim());
+            const r = await fetch(u.toString(), { credentials: 'same-origin' });
+            const j = await r.json();
+            dd.innerHTML = '';
+            (j.itens || []).forEach(function (it) {
+              const li = document.createElement('li');
+              li.textContent = it.nome;
+              li.className = 'px-3 py-2 cursor-pointer hover:bg-amber-50 text-sm font-medium border-b border-slate-50 last:border-0';
+              li.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+                inp.value = it.nome;
+                hid.value = it.id || '';
+                dd.classList.add('hidden');
+              });
+              dd.appendChild(li);
+            });
+            dd.classList.toggle('hidden', dd.children.length === 0);
+          } catch (e) {
+            dd.classList.add('hidden');
+          }
+        }, 280);
+      });
+      inp.addEventListener('blur', function () {
+        setTimeout(function () { dd.classList.add('hidden'); }, 200);
+      });
+      inp.addEventListener('focus', function () {
+        if (dd.children.length) dd.classList.remove('hidden');
+      });
+    }
+
+    document.querySelectorAll('#modal-edit-lanc .sug-wrap').forEach(attachSuggest);
+
+    function brl(n) {
+      const x = Number(n) || 0;
+      return x.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function fmtData(iso) {
+      if (!iso) return '—';
+      try {
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
+        return d.toLocaleDateString('pt-BR');
+      } catch (_) { return '—'; }
+    }
+
+    function fmtInputDateBR(ymd) {
+      if (!ymd || String(ymd).length < 8) return '—';
+      const s = String(ymd).slice(0, 10);
+      return fmtData(`${s}T12:00:00`);
+    }
+
+    function refreshGavetaFiltrosResumo() {
+      const st = document.getElementById('f-status');
+      if (!st) return;
+      const el = document.getElementById('gaveta-filtros-resumo');
+      const btnOpen = document.getElementById('btn-open-modal-filtros');
+      const btnSub = document.getElementById('filtros-btn-sub');
+      const modalVis = document.getElementById('modal-filtros-resumo-vis');
+      const stText = st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : '';
+      const de = document.getElementById('f-de').value;
+      const ate = document.getElementById('f-ate').value;
+      const cde = document.getElementById('f-comp-de').value;
+      const cate = document.getElementById('f-comp-ate').value;
+      const pde = document.getElementById('f-pag-de').value;
+      const pate = document.getElementById('f-pag-ate').value;
+      const ord = document.getElementById('f-ord');
+      const ordText = ord && ord.options[ord.selectedIndex] ? ord.options[ord.selectedIndex].text : '';
+      const q = (document.getElementById('f-q').value || '').trim();
+      const ps = document.getElementById('f-ps').value;
+      const parts = [stText];
+      if (de || ate) {
+        parts.push(`venc. ${fmtInputDateBR(de)} → ${fmtInputDateBR(ate)}`);
+      }
+      if (cde || cate) {
+        parts.push(`comp. ${fmtInputDateBR(cde)} → ${fmtInputDateBR(cate)}`);
+      }
+      if (pde || pate) {
+        parts.push(`pag. ${fmtInputDateBR(pde)} → ${fmtInputDateBR(pate)}`);
+      }
+      parts.push(ordText, `${ps} por página`);
+      if (q) {
+        const short = q.length > 48 ? `${q.slice(0, 46)}…` : q;
+        parts.push(`busca: ${short}`);
+      }
+      const line = parts.join(' · ');
+      if (el) el.textContent = line;
+      if (btnSub) btnSub.textContent = line;
+      if (btnOpen) btnOpen.title = `Resumo dos filtros (passe o mouse): ${line}`;
+      if (modalVis) modalVis.textContent = line;
+    }
+
+    function setColsMenuOpen(open) {
+      const btn = document.getElementById('btn-cols');
+      if (!btn) return;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      btn.classList.toggle('gm-cols-open', open);
+    }
+
+    function esc(s) {
+      const t = document.createElement('div');
+      t.textContent = s == null ? '' : String(s);
+      return t.innerHTML;
+    }
+
+    function lancamentosSkeletonDeskRows() {
+      let html = '';
+      for (let i = 0; i < 10; i++) {
+        html += '<tr class="animate-pulse"><td colspan="13" class="px-2 py-3"><div class="h-4 bg-slate-200 rounded-md w-full max-w-[720px]"></div></td></tr>';
+      }
+      return html;
+    }
+    function lancamentosSkeletonMobCards() {
+      let html = '';
+      for (let i = 0; i < 6; i++) {
+        html += '<div class="rounded-xl border border-slate-200 bg-slate-50/90 p-3 space-y-2 animate-pulse"><div class="h-3 bg-slate-300 rounded w-1/3"></div><div class="h-4 bg-slate-200 rounded w-full"></div><div class="h-4 bg-slate-200 rounded w-4/5"></div><div class="h-4 bg-slate-200 rounded w-1/2"></div></div>';
+      }
+      return html;
+    }
+
+    function defaultColsMap() {
+      const o = {};
+      COL_DEFS.forEach((c) => { o[c.id] = true; });
+      o.fluxo = false;
+      o.desc = false;
+      o.banco = false;
+      o.bruto = false;
+      return o;
+    }
+    function loadColsMap() {
+      try {
+        const raw = localStorage.getItem(LS_COLS);
+        if (!raw) return defaultColsMap();
+        return { ...defaultColsMap(), ...JSON.parse(raw) };
+      } catch (_) {
+        return defaultColsMap();
+      }
+    }
+    function saveColsMap(m) {
+      localStorage.setItem(LS_COLS, JSON.stringify(m));
+    }
+    function applyTableCols() {
+      const m = loadColsMap();
+      COL_DEFS.forEach((c) => {
+        const on = m[c.id] !== false;
+        document.querySelectorAll(`thead [data-col="${c.id}"], #tbody-desk [data-col="${c.id}"]`).forEach((el) => {
+          el.classList.toggle('hidden', !on);
+        });
+      });
+    }
+    function buildColDropdown() {
+      const el = document.getElementById('col-dropdown');
+      if (!el) return;
+      const m = loadColsMap();
+      el.innerHTML = COL_DEFS.map((c) => `
+        <label class="flex items-center gap-2 cursor-pointer py-0.5 px-1 rounded hover:bg-slate-50">
+          <input type="checkbox" class="col-chk rounded border-slate-300 accent-amber-600" data-col-id="${c.id}" ${m[c.id] !== false ? 'checked' : ''}>
+          <span>${esc(c.label)}</span>
+        </label>
+      `).join('');
+      el.querySelectorAll('.col-chk').forEach((ch) => {
+        ch.addEventListener('change', () => {
+          const mm = loadColsMap();
+          mm[ch.dataset.colId] = ch.checked;
+          saveColsMap(mm);
+          applyTableCols();
+        });
+      });
+    }
+
+    function refreshBaixaParcialBtn() {
+      const el = document.getElementById('btn-baixa-parcial');
+      if (!el) return;
+      el.disabled = !(podeSelecionar() && selecionados.size === 1);
+    }
+
+    function refreshBtnsBaixa() {
+      document.getElementById('btn-baixa').disabled = !podeSelecionar() || selecionados.size === 0;
+      refreshBaixaParcialBtn();
+    }
+
+    function loadExclMap() {
+      try {
+        const x = JSON.parse(localStorage.getItem(LS_EXCL) || '{}');
+        return x && typeof x === 'object' ? x : {};
+      } catch (_) {
+        return {};
+      }
+    }
+
+    function getExcludedSet() {
+      const m = loadExclMap();
+      const arr = m[tipoAtual];
+      return new Set(Array.isArray(arr) ? arr : []);
+    }
+
+    function saveExcludedSet(set) {
+      const m = loadExclMap();
+      m[tipoAtual] = Array.from(set);
+      localStorage.setItem(LS_EXCL, JSON.stringify(m));
+    }
+
+    function montarParamsBaseLista() {
+      const p = new URLSearchParams();
+      p.set('tipo', tipoAtual);
+      p.set('status', document.getElementById('f-status').value);
+      p.set('ordenacao', document.getElementById('f-ord').value);
+      const de = document.getElementById('f-de').value;
+      const ate = document.getElementById('f-ate').value;
+      const cde = document.getElementById('f-comp-de').value;
+      const cate = document.getElementById('f-comp-ate').value;
+      const pde = document.getElementById('f-pag-de').value;
+      const pate = document.getElementById('f-pag-ate').value;
+      const q = document.getElementById('f-q').value.trim();
+      if (de) p.set('venc_de', de);
+      if (ate) p.set('venc_ate', ate);
+      if (cde) p.set('comp_de', cde);
+      if (cate) p.set('comp_ate', cate);
+      if (pde) p.set('pag_de', pde);
+      if (pate) p.set('pag_ate', pate);
+      if (q) p.set('q', q);
+      return p;
+    }
+
+    function montarParams() {
+      const p = montarParamsBaseLista();
+      p.set('page', String(page));
+      p.set('page_size', document.getElementById('f-ps').value);
+      getExcludedSet().forEach((nome) => {
+        p.append('excluir_plano', nome);
+      });
+      return p;
+    }
+
+    function _sortHeaderStyle(btn, on) {
+      if (!btn) return;
+      btn.classList.toggle('bg-emerald-50', on);
+      btn.classList.toggle('ring-1', on);
+      btn.classList.toggle('ring-emerald-300', on);
+      btn.classList.toggle('text-emerald-950', on);
+    }
+
+    function _setThSortInd(btnId, ord, asc, desc) {
+      const btn = document.getElementById(btnId);
+      const ind = btn && btn.querySelector('[data-sort-ind]');
+      if (!ind) return;
+      if (ord === asc) ind.textContent = ' ↑';
+      else if (ord === desc) ind.textContent = ' ↓';
+      else ind.textContent = '';
+      _sortHeaderStyle(btn, ord === asc || ord === desc);
+    }
+
+    function syncSortHeaderButtons() {
+      const sel = document.getElementById('f-ord');
+      const vBtn = document.getElementById('th-sort-venc');
+      const fBtn = document.getElementById('th-sort-fluxo');
+      if (!sel || !vBtn || !fBtn) return;
+      const ord = sel.value;
+      const vInd = vBtn.querySelector('[data-sort-ind]');
+      if (vInd) {
+        if (ord === 'vencimento_asc') vInd.textContent = ' ↑';
+        else if (ord === 'vencimento_desc') vInd.textContent = ' ↓';
+        else vInd.textContent = '';
+      }
+      const fLbl = fBtn.querySelector('[data-fluxo-lbl]');
+      if (fLbl) fLbl.textContent = ord === 'fluxo_desc' ? 'Fluxo ↓' : 'Fluxo';
+      const vOn = ord === 'vencimento_asc' || ord === 'vencimento_desc';
+      const fOn = ord === 'fluxo_desc';
+      _sortHeaderStyle(vBtn, vOn);
+      _sortHeaderStyle(fBtn, fOn);
+      _setThSortInd('th-sort-cli', ord, 'cliente_asc', 'cliente_desc');
+      _setThSortInd('th-sort-forma', ord, 'forma_asc', 'forma_desc');
+      _setThSortInd('th-sort-plano', ord, 'plano_asc', 'plano_desc');
+      _setThSortInd('th-sort-bruto', ord, 'bruto_asc', 'bruto_desc');
+      _setThSortInd('th-sort-saldo', ord, 'saldo_asc', 'saldo_desc');
+    }
+
+    function aplicarOrdenacaoPeloCabecalho(novo) {
+      document.getElementById('f-ord').value = novo;
+      page = 1;
+      selecionados.clear();
+      syncSortHeaderButtons();
+      carregar();
+    }
+
+    function alternarOrdenacaoAscDesc(ordAtual, ascVal, descVal) {
+      if (ordAtual === ascVal) return descVal;
+      if (ordAtual === descVal) return ascVal;
+      return ascVal;
+    }
+
+    function atualizarLabelsTotais() {
+      const pagar = tipoAtual === 'pagar';
+      document.getElementById('lbl-bruto').textContent = pagar ? 'Previsto (saída)' : 'Valor título (entrada)';
+      document.getElementById('lbl-mov').textContent = pagar ? 'Já pago' : 'Já recebido';
+      document.getElementById('lbl-saldo').textContent = pagar ? 'Saldo a pagar' : 'Saldo a receber';
+      document.getElementById('th-mov').textContent = pagar ? 'Pago' : 'Recebido';
+      const saldoLbl = document.querySelector('#th-sort-saldo [data-saldo-lbl]');
+      if (saldoLbl) saldoLbl.textContent = pagar ? 'A pagar' : 'A receber';
+    }
+
+    function atualizarTabs() {
+      document.querySelectorAll('.tab-tipo').forEach((b) => {
+        const on = b.dataset.tipo === tipoAtual;
+        b.classList.toggle('border-amber-500', on);
+        b.classList.toggle('bg-amber-500', on);
+        b.classList.toggle('text-white', on);
+        b.classList.toggle('border-slate-200', !on);
+        b.classList.toggle('bg-white', !on);
+        b.classList.toggle('text-slate-600', !on);
+      });
+    }
+
+    function podeSelecionar() {
+      return document.getElementById('f-status').value === 'abertos';
+    }
+
+    function refreshSelBar() {
+      let soma = 0;
+      selecionados.forEach((v) => { soma += v; });
+      const bar = document.getElementById('sel-bar');
+      const n = selecionados.size;
+      if (n === 0) {
+        bar.classList.add('hidden');
+        refreshBaixaParcialBtn();
+        return;
+      }
+      bar.classList.remove('hidden');
+      document.getElementById('sel-count').textContent = String(n);
+      document.getElementById('sel-soma').textContent = brl(soma);
+      refreshBaixaParcialBtn();
+    }
+
+    function parseFilenameContentDisposition(cd) {
+      if (!cd || typeof cd !== 'string') return null;
+      const utf = cd.match(/filename\*=UTF-8''([^;\s]+)/i);
+      if (utf) {
+        try {
+          return decodeURIComponent(utf[1]);
+        } catch (_) {
+          /* ignore */
+        }
+      }
+      const quoted = cd.match(/filename="([^"]+)"/i);
+      if (quoted) return quoted[1].trim();
+      const plain = cd.match(/filename=([^;\s]+)/i);
+      if (plain) return plain[1].trim().replace(/^["']|["']$/g, '');
+      return null;
+    }
+
+    async function baixarArquivoLancamentos(url, btnId, fallbackNome) {
+      const btn = btnId ? document.getElementById(btnId) : null;
+      if (btn && btn.disabled) return;
+      const p = montarParamsBaseLista();
+      getExcludedSet().forEach((nome) => {
+        p.append('excluir_plano', nome);
+      });
+      const fullUrl = `${url}?${p}`;
+      if (btn) btn.disabled = true;
+      if (window.gmLoadingBar) window.gmLoadingBar.show();
+      try {
+        const r = await fetch(fullUrl, { credentials: 'same-origin', cache: 'no-store' });
+        const fn =
+          parseFilenameContentDisposition(r.headers.get('Content-Disposition'))
+          || fallbackNome;
+        if (!r.ok) {
+          const ct = (r.headers.get('content-type') || '').toLowerCase();
+          const t = await r.text().catch(() => '');
+          const isHtml500 = ct.includes('html') && /server error|500/i.test(t);
+          alert(
+            isHtml500
+              ? 'Erro no servidor ao gerar o arquivo (500). Atualize a página e tente de novo; se persistir, avise o suporte.'
+              : (t || 'Erro ao baixar arquivo.').slice(0, 500),
+          );
+          return;
+        }
+        const blob = await r.blob();
+        const u = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = u;
+        a.download = fn;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(u);
+      } catch (_) {
+        alert('Falha de rede ao baixar o arquivo.');
+      } finally {
+        if (btn) btn.disabled = false;
+        if (window.gmLoadingBar) window.gmLoadingBar.hide();
+      }
+    }
+
+    function baixarCsvLancamentos() {
+      baixarArquivoLancamentos(
+        API_CSV,
+        'btn-csv',
+        `lancamentos_${tipoAtual}_${hojeISO()}.csv`,
+      );
+    }
+
+    function baixarExcelFinanceiroPadrao() {
+      baixarArquivoLancamentos(
+        API_XLSX_FIN,
+        'btn-xlsx-fin',
+        `Financeiro_${hojeISO()}.xlsx`,
+      );
+    }
+
+    function baixarPdfFinanceiroPadrao() {
+      baixarArquivoLancamentos(
+        API_PDF_FIN,
+        'btn-pdf-fin',
+        `Financeiro_${hojeISO()}.pdf`,
+      );
+    }
+
+    /** Limite seguro do parâmetro text= em URLs (GET); acima disso o navegador pode truncar e quebrar UTF-8 → no WhatsApp aparecem. */
+    const MAX_WA_TEXT_PARAM_LEN = 1700;
+
+    function mostrarToastWhats(msg) {
+      const el = document.getElementById('wa-toast');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      clearTimeout(window._waToastT);
+      window._waToastT = setTimeout(() => el.classList.add('hidden'), 6000);
+    }
+
+    /** Valor numérico pt-BR sem símbolo R$ (ex.: 834,38) — para linhas do WhatsApp. */
+    function fmtValorNumBR(n) {
+      const x = Number(n) || 0;
+      return x.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function textoWhatsResumo() {
+      if (!lastRows.length) return '';
+      function dataCurtaMMDD(iso) {
+        const s = String(iso || '').trim();
+        if (!s) return '—';
+        const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (m) return `${m[2]}/${m[3]}`;
+        return s;
+      }
+      /** Primeiras 8 letras do favorecido/cliente (sem agrupar por plano). */
+      function fornecedor8(raw) {
+        const nome = String(raw || '').trim().normalize('NFC');
+        if (!nome) return '—';
+        return nome.slice(0, 8);
+      }
+      const tit = tipoAtual === 'pagar' ? 'CONTAS A PAGAR' : 'CONTAS A RECEBER';
+      const de = document.getElementById('f-de').value || '—';
+      const ate = document.getElementById('f-ate').value || '—';
+      let totalBruto = 0;
+      let totalMov = 0;
+      let totalSaldo = 0;
+      lastRows.forEach((r) => {
+        totalBruto += Number(r.valor_bruto || 0);
+        totalMov += Number(r.valor_movimentado || 0);
+        totalSaldo += Number(r.restante || 0);
+      });
+
+      const linhas = [];
+      linhas.push(`✅ *${tit}*`);
+      linhas.push(`⏰ *Período:* ${dataCurtaMMDD(de)} á ${dataCurtaMMDD(ate)}`);
+      linhas.push('');
+      lastRows.forEach((r) => {
+        linhas.push(`• ${fornecedor8(r.cliente)} — ${fmtValorNumBR(r.restante)}`);
+      });
+      linhas.push('');
+      linhas.push(`• Bruto: ${fmtValorNumBR(totalBruto)}`);
+      const movLabel = tipoAtual === 'pagar' ? 'já pago' : 'já recebido';
+      linhas.push(`• ${movLabel}: ${fmtValorNumBR(totalMov)}`);
+      linhas.push(`• 🥴 Saldo: *${brl(totalSaldo)}*`);
+      return linhas.join('\n');
+    }
+
+    async function abrirWhatsAppComResumoLancamentos() {
+      const txt = textoWhatsResumo();
+      if (!txt) return;
+      const enc = encodeURIComponent(txt);
+      const base = 'https://api.whatsapp.com/send?text=';
+      if (enc.length <= MAX_WA_TEXT_PARAM_LEN) {
+        window.open(base + enc, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(txt);
+        mostrarToastWhats('Resumo longo: texto completo copiado. No WhatsApp, cole com Ctrl+V (ou toque em Colar).');
+      } catch (_) {
+        mostrarToastWhats('Resumo longo demais para enviar na URL. Reduza itens por página ou use CSV (F4).');
+      }
+      window.open('https://api.whatsapp.com/send', '_blank', 'noopener,noreferrer');
+    }
+
+    async function carregarOpcoesBaixa() {
+      try {
+        const url = `${API_OPCOES}?modo=erp&apenas_cadastro_erp=1`;
+        const r = await fetch(url, { credentials: 'same-origin' });
+        const d = await r.json();
+        const fs = document.getElementById('bx-forma-sel');
+        const bs = document.getElementById('bx-banco-sel');
+        fs.innerHTML = '<option value="">— Selecione —</option>';
+        bs.innerHTML = '<option value="">— Selecione —</option>';
+        (d.formas || []).forEach((x) => {
+          const o = document.createElement('option');
+          const nome = String(x.nome || '');
+          o.value = `${String(x.id || '')}|||${nome}`;
+          o.textContent = x.origem === 'manual' ? `${nome} · lista pessoal` : nome;
+          fs.appendChild(o);
+        });
+        (d.bancos || []).forEach((x) => {
+          const o = document.createElement('option');
+          const nome = String(x.nome || '');
+          o.value = `${String(x.id || '')}|||${nome}`;
+          o.textContent = x.origem === 'manual' ? `${nome} · lista pessoal` : nome;
+          bs.appendChild(o);
+        });
+      } catch (_) {}
+    }
+
+    let bxpIdAtual = null;
+    let bxpSaldoMax = 0;
+
+    function bxpHtmlOptsFormaBanco() {
+      const fs = document.getElementById('bx-forma-sel');
+      const bs = document.getElementById('bx-banco-sel');
+      return {
+        htmlF: fs ? fs.innerHTML : '<option value="">—</option>',
+        htmlB: bs ? bs.innerHTML : '<option value="">—</option>',
+      };
+    }
+
+    function bxpAddLinha(valorDefault) {
+      const { htmlF, htmlB } = bxpHtmlOptsFormaBanco();
+      const wrap = document.createElement('div');
+      wrap.className = 'bxp-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-end border border-slate-100 rounded-xl p-2 bg-slate-50/50';
+      const v0 = valorDefault != null && valorDefault !== '' ? String(valorDefault) : '';
+      wrap.innerHTML = `
+        <div class="sm:col-span-3">
+          <label class="block text-[9px] font-black uppercase text-slate-500">Valor R$</label>
+          <input type="text" class="bxp-val mt-1 w-full rounded-lg border-2 border-slate-200 px-2 py-1.5 text-sm font-bold tabular-nums" value="${esc(v0)}">
+        </div>
+        <div class="sm:col-span-4">
+          <label class="block text-[9px] font-black uppercase text-slate-500">Forma</label>
+          <select class="bxp-forma mt-1 w-full rounded-lg border-2 border-slate-200 px-2 py-1.5 text-xs font-bold">${htmlF}</select>
+        </div>
+        <div class="sm:col-span-4">
+          <label class="block text-[9px] font-black uppercase text-slate-500">Banco</label>
+          <select class="bxp-banco mt-1 w-full rounded-lg border-2 border-slate-200 px-2 py-1.5 text-xs font-bold">${htmlB}</select>
+        </div>
+        <div class="sm:col-span-1 flex justify-end pb-1">
+          <button type="button" class="bxp-remove text-red-600 text-[10px] font-black uppercase px-1" title="Remover linha">✕</button>
+        </div>`;
+      document.getElementById('bxp-linhas').appendChild(wrap);
+      const rm = wrap.querySelector('.bxp-remove');
+      rm.addEventListener('click', () => {
+        if (document.querySelectorAll('#bxp-linhas .bxp-row').length <= 1) return;
+        wrap.remove();
+      });
+    }
+
+    async function prepararModalBaixaParcial() {
+      if (selecionados.size !== 1) return;
+      const id = Array.from(selecionados.keys())[0];
+      const rest = selecionados.get(id) || 0;
+      bxpIdAtual = id;
+      bxpSaldoMax = rest;
+      document.getElementById('bxp-resumo').textContent =
+        `1 título · Saldo em aberto ${brl(rest)} · ${tipoAtual === 'pagar' ? 'Contas a pagar' : 'Contas a receber'}`;
+      document.getElementById('bxp-data').value = hojeISO();
+      document.getElementById('bxp-linhas').innerHTML = '';
+      await carregarOpcoesBaixa();
+      bxpAddLinha(Number(rest).toFixed(2));
+    }
+
+    function parseValorPt(s) {
+      const t = String(s || '').trim().replace(/\s/g, '');
+      if (!t) return NaN;
+      return parseFloat(t.replace(/\./g, '').replace(',', '.'));
+    }
+
+    async function carregarPlanos() {
+      const cont = document.getElementById('plano-chks');
+      if (!cont) return;
+      cont.innerHTML = '<span class="text-xs text-slate-400 px-1">Carregando planos…</span>';
+      try {
+        const p = montarParamsBaseLista();
+        const r = await fetch(`${API_PLANOS}?${p}`, { credentials: 'same-origin', cache: 'no-store' });
+        const data = await r.json();
+        cont.innerHTML = '';
+        const excl = getExcludedSet();
+        (data.planos || []).forEach((item) => {
+          const nome = item.nome || '';
+          const key = nome === '(sem plano)' ? SEM_PLANO_KEY : nome;
+          const wrap = document.createElement('label');
+          wrap.className = 'inline-flex items-center gap-1.5 text-xs font-semibold bg-white border border-slate-200 rounded-lg px-2 py-1.5 cursor-pointer hover:border-amber-300 max-w-full';
+          const chk = document.createElement('input');
+          chk.type = 'checkbox';
+          chk.className = 'rounded border-slate-300 accent-amber-600 shrink-0';
+          chk.checked = !excl.has(key);
+          chk.dataset.planoKey = key;
+          chk.addEventListener('change', () => {
+            const ex2 = getExcludedSet();
+            if (chk.checked) ex2.delete(key);
+            else ex2.add(key);
+            saveExcludedSet(ex2);
+            page = 1;
+            selecionados.clear();
+            carregar();
+          });
+          wrap.appendChild(chk);
+          const span = document.createElement('span');
+          span.className = 'truncate max-w-[220px]';
+          span.title = nome;
+          span.textContent = nome || '—';
+          wrap.appendChild(span);
+          cont.appendChild(wrap);
+        });
+        if (!(data.planos || []).length) {
+          cont.innerHTML = '<span class="text-xs text-slate-400 px-1">Nenhum plano distinto no filtro atual.</span>';
+        }
+      } catch (_) {
+        cont.innerHTML = '<span class="text-xs text-red-600 px-1">Erro ao carregar planos.</span>';
+      }
+    }
+
+    const LS_FIN_LISTA = 'gm_fin_lista_cache_v1';
+
+    function pintarListaLancamentosDaResposta(data) {
+      const err = document.getElementById('erro-box');
+      const empty = document.getElementById('empty-state');
+      const tb = document.getElementById('tbody-desk');
+      const mob = document.getElementById('cards-mob');
+      const tot = document.getElementById('totais-box');
+      err.classList.add('hidden');
+      empty.textContent = 'Nenhum lançamento com os filtros atuais.';
+      empty.classList.add('hidden');
+
+      lastTotal = data.total || 0;
+      lastPageSize = data.page_size || 50;
+      const t = data.totais || {};
+      document.getElementById('t-qtd').textContent = String(t.quantidade ?? 0);
+      document.getElementById('t-bruto').textContent = brl(t.bruto ?? t.previsto);
+      document.getElementById('t-mov').textContent = brl(t.movimentado ?? t.pago);
+      document.getElementById('t-saldo').textContent = brl(t.saldo_aberto ?? t.a_pagar ?? t.a_receber);
+      tot.classList.remove('hidden');
+
+      tb.innerHTML = '';
+      mob.innerHTML = '';
+      const lista = data.lancamentos || [];
+      lastRows = lista;
+      if (lista.length === 0) {
+        empty.classList.remove('hidden');
+      } else {
+        const showChk = podeSelecionar();
+        for (const row of lista) {
+          const sit = row.pago ? '<span class="text-emerald-700 font-black">Quitado</span>' : '<span class="text-amber-800 font-black">Aberto</span>';
+          const rest = Number(row.restante) || 0;
+          const chk = showChk && !row.pago
+            ? `<input type="checkbox" class="row-chk rounded border-slate-300" data-id="${esc(row.id)}" data-rest="${rest}" ${selecionados.has(row.id) ? 'checked' : ''}>`
+            : '';
+          const acoesBtns = [];
+          if (row.pode_editar) {
+            acoesBtns.push(`<button type="button" class="btn-edt-lanc text-[10px] font-black uppercase text-indigo-700 hover:underline px-1 py-0.5 rounded" data-id="${esc(row.id)}">Editar</button>`);
+            const recLabel = row.agro_recorrente ? 'Recorr. ✓' : 'Recorrente';
+            const recCls = row.agro_recorrente ? 'text-emerald-800' : 'text-slate-600';
+            acoesBtns.push(
+              `<button type="button" class="btn-recor-lanc text-[10px] font-black uppercase hover:underline px-1 py-0.5 rounded ${recCls}" data-id="${esc(row.id)}" title="Mensal: o próximo título só entra na lista após quitação total deste (nada antecipado).">${recLabel}</button>`,
+            );
+          }
+          if (row.pode_excluir) {
+            acoesBtns.push(`<button type="button" class="btn-del-lanc text-[10px] font-black uppercase text-red-700 hover:underline px-1 py-0.5 rounded" data-id="${esc(row.id)}">Excluir</button>`);
+          }
+          const acoesHtml = acoesBtns.length
+            ? `<div class="flex flex-wrap gap-1 justify-end">${acoesBtns.join('')}</div>`
+            : '<span class="text-slate-300">—</span>';
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50/80';
+          tr.innerHTML = `
+            <td data-col="chk" class="px-2 py-2">${chk}</td>
+            <td data-col="venc" class="px-2 py-2 text-xs font-semibold tabular-nums whitespace-nowrap">${esc(fmtData(row.data_vencimento))}</td>
+            <td data-col="fluxo" class="px-2 py-2 text-xs font-semibold tabular-nums whitespace-nowrap text-slate-600">${esc(fmtData(row.data_fluxo))}</td>
+            <td data-col="cli" class="px-2 py-2 text-xs font-bold text-slate-800 max-w-[160px]"><div class="truncate" title="${esc(row.cliente)}">${esc(row.cliente || '—')}</div></td>
+            <td data-col="forma" class="px-2 py-2 text-[11px] text-slate-700 max-w-[120px]"><div class="truncate" title="${esc(row.forma_pagamento)}">${esc(row.forma_pagamento || '—')}</div></td>
+            <td data-col="plano" class="px-2 py-2 text-[11px] text-slate-600 max-w-[140px]"><div class="truncate">${esc(row.plano_conta || '')}${row.grupo ? ' · ' + esc(row.grupo) : ''}</div></td>
+            <td data-col="desc" class="px-2 py-2 text-xs text-slate-700 max-w-[180px]"><div class="truncate" title="${esc(row.descricao)}">${esc(row.descricao || '—')}</div></td>
+            <td data-col="banco" class="px-2 py-2 text-[11px] text-slate-600 max-w-[120px]"><div class="truncate" title="${esc(row.banco)}">${esc(row.banco || '—')}</div></td>
+            <td data-col="bruto" class="px-2 py-2 text-xs text-right font-bold tabular-nums">${esc(brl(row.valor_bruto))}</td>
+            <td data-col="mov" class="px-2 py-2 text-xs text-right font-semibold text-emerald-800 tabular-nums">${esc(brl(row.valor_movimentado))}</td>
+            <td data-col="saldo" class="px-2 py-2 text-xs text-right font-black text-amber-900 tabular-nums">${esc(brl(row.restante))}</td>
+            <td data-col="sit" class="px-2 py-2 text-xs">${sit}</td>
+            <td data-col="acoes" class="px-2 py-2 text-xs text-right align-middle">${acoesHtml}</td>`;
+          tb.appendChild(tr);
+
+          const card = document.createElement('div');
+          card.className = 'rounded-xl border border-slate-200 bg-slate-50/50 p-3 space-y-2';
+          const chkM = showChk && !row.pago
+            ? `<label class="flex items-center gap-2 text-[11px] font-bold"><input type="checkbox" class="row-chk rounded" data-id="${esc(row.id)}" data-rest="${rest}" ${selecionados.has(row.id) ? 'checked' : ''}> Selecionar</label>`
+            : '';
+          const recLabelM = row.agro_recorrente ? 'Recorr. ✓' : 'Recorrente';
+          const recBtnMob = row.pode_editar
+            ? '<button type="button" class="btn-recor-lanc text-[10px] font-black uppercase border rounded-lg px-2 py-1 '
+              + (row.agro_recorrente ? 'text-emerald-800 border-emerald-200 bg-emerald-50' : 'text-slate-600 border-slate-200')
+              + '" data-id="' + esc(row.id) + '" title="Mensal após cada quitação.">' + recLabelM + '</button>'
+            : '';
+          card.innerHTML = `
+            ${chkM}
+            <div class="flex justify-between items-start gap-2">
+              <span class="text-[10px] font-black uppercase text-slate-500">Venc. ${esc(fmtData(row.data_vencimento))}${row.data_fluxo ? ' · Fluxo ' + esc(fmtData(row.data_fluxo)) : ''}</span>
+              ${sit}
+            </div>
+            <div class="font-black text-sm text-slate-900">${esc(row.cliente || '—')}</div>
+            <div class="text-[11px] text-slate-700"><span class="font-black text-slate-500">Forma:</span> ${esc(row.forma_pagamento || '—')}</div>
+            <div class="text-[11px] text-slate-700"><span class="font-black text-slate-500">Plano:</span> ${esc(row.plano_conta || '—')}${row.grupo ? ' · ' + esc(row.grupo) : ''}</div>
+            <div class="text-xs text-slate-600">${esc(row.descricao || '')}</div>
+            <div class="text-[11px] text-slate-700"><span class="font-black text-slate-500">Banco:</span> ${esc(row.banco || '—')}</div>
+            <div class="flex justify-between text-xs font-bold border-t border-slate-200 pt-2">
+              <span class="text-slate-500">Saldo</span>
+              <span class="text-amber-900 tabular-nums">${esc(brl(row.restante))}</span>
+            </div>
+            <div class="flex flex-wrap gap-2 justify-end pt-1">
+              ${row.pode_editar ? `<button type="button" class="btn-edt-lanc text-[10px] font-black uppercase text-indigo-700 border border-indigo-200 rounded-lg px-2 py-1" data-id="${esc(row.id)}">Editar</button>` : ''}
+              ${recBtnMob}
+              ${row.pode_excluir ? `<button type="button" class="btn-del-lanc text-[10px] font-black uppercase text-red-700 border border-red-200 rounded-lg px-2 py-1" data-id="${esc(row.id)}">Excluir</button>` : ''}
+            </div>`;
+          mob.appendChild(card);
+        }
+
+        applyTableCols();
+
+        document.querySelectorAll('.row-chk').forEach((el) => {
+          el.addEventListener('change', () => {
+            const id = el.dataset.id;
+            const rest = Number(el.dataset.rest) || 0;
+            if (el.checked) selecionados.set(id, rest);
+            else selecionados.delete(id);
+            refreshSelBar();
+            refreshBtnsBaixa();
+          });
+        });
+      }
+
+      const pi = Math.max(1, Math.ceil(lastTotal / lastPageSize) || 1);
+      const fz = data.filtros;
+      const piMain = document.getElementById('pag-info');
+      const piMeta = document.getElementById('pag-info-meta');
+      if (piMain) {
+        piMain.textContent = `Página ${data.page || 1} de ${pi} · ${lastTotal} título(s) no filtro`;
+      }
+      if (piMeta) {
+        if (fz && (fz.pag_de || fz.pag_ate)) {
+          piMeta.textContent = `API: pagamento ${fz.pag_de || '—'} → ${fz.pag_ate || '—'}`;
+          piMeta.classList.remove('hidden');
+        } else if (fz && (fz.venc_de || fz.venc_ate || fz.comp_de || fz.comp_ate)) {
+          piMeta.textContent = 'API: vencimento ou competência aplicados';
+          piMeta.classList.remove('hidden');
+        } else {
+          piMeta.textContent = '';
+          piMeta.classList.add('hidden');
+        }
+      }
+      document.getElementById('btn-prev').disabled = (data.page || 1) <= 1;
+      document.getElementById('btn-next').disabled = (data.page || 1) >= pi;
+      document.getElementById('chk-all').checked = false;
+      syncSortHeaderButtons();
+      refreshGavetaFiltrosResumo();
+    }
+
+    function tentarHidratarListaFinCache() {
+      if (!window.AGRO_MANUAL_SYNC_ONLY) return false;
+      try {
+        const raw = sessionStorage.getItem(LS_FIN_LISTA);
+        if (!raw) return false;
+        const o = JSON.parse(raw);
+        const cur = montarParams().toString();
+        if (String(o.params_qs || '') !== cur) return false;
+        pintarListaLancamentosDaResposta(o.data);
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    async function agroFinSincronizarComApi() {
+      await carregarOpcoesBaixa();
+      await carregarPlanos();
+      await carregar();
+    }
+
+    async function carregar() {
+      atualizarLabelsTotais();
+      const err = document.getElementById('erro-box');
+      const load = document.getElementById('loading-state');
+      const empty = document.getElementById('empty-state');
+      const tb = document.getElementById('tbody-desk');
+      const mob = document.getElementById('cards-mob');
+      const tot = document.getElementById('totais-box');
+      err.classList.add('hidden');
+      load.classList.add('hidden');
+      empty.classList.add('hidden');
+      tb.innerHTML = lancamentosSkeletonDeskRows();
+      mob.innerHTML = lancamentosSkeletonMobCards();
+      /* Sem gmLoadingBar aqui: o skeleton da tabela já sinaliza carga (evita “dois loads”). */
+
+      const st = document.getElementById('f-status').value;
+      document.getElementById('th-chk').style.visibility = st === 'abertos' ? 'visible' : 'hidden';
+      refreshBtnsBaixa();
+
+      try {
+        const r = await fetch(`${API_LISTA}?${montarParams()}`, { credentials: 'same-origin', cache: 'no-store' });
+        const data = await r.json();
+        if (!r.ok) {
+          tb.innerHTML = '';
+          mob.innerHTML = '';
+          err.textContent = data.erro || 'Erro ao carregar.';
+          err.classList.remove('hidden');
+          load.classList.add('hidden');
+          tot.classList.add('hidden');
+          return;
+        }
+        try {
+          sessionStorage.setItem(LS_FIN_LISTA, JSON.stringify({ params_qs: montarParams().toString(), data }));
+        } catch (_) {}
+        pintarListaLancamentosDaResposta(data);
+      } catch (e) {
+        tb.innerHTML = '';
+        mob.innerHTML = '';
+        err.textContent = 'Falha de rede.';
+        err.classList.remove('hidden');
+        tot.classList.add('hidden');
+      } finally {
+        load.classList.add('hidden');
+      }
+      refreshSelBar();
+      refreshBtnsBaixa();
+      syncSortHeaderButtons();
+    }
+
+    function favList() {
+      try {
+        return JSON.parse(localStorage.getItem(LS_FAV) || '[]');
+      } catch (_) { return []; }
+    }
+
+    function favRefreshSelect() {
+      const sel = document.getElementById('fav-load');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">— carregar —</option>';
+      favList().forEach((f, i) => {
+        const o = document.createElement('option');
+        o.value = String(i);
+        o.textContent = f.name || `Favorito ${i + 1}`;
+        sel.appendChild(o);
+      });
+      sel.value = cur;
+    }
+
+    document.querySelectorAll('.tab-tipo').forEach((b) => {
+      b.addEventListener('click', () => {
+        tipoAtual = b.dataset.tipo;
+        selecionados.clear();
+        atualizarTabs();
+        page = 1;
+        carregarPlanos().then(() => carregar());
+      });
+    });
+
+    document.getElementById('btn-buscar').addEventListener('click', () => {
+      page = 1;
+      selecionados.clear();
+      document.getElementById('modal-filtros-lista')?.classList.add('hidden');
+      document.getElementById('modal-filtros-ajuda-pop')?.classList.add('hidden');
+      carregarPlanos().then(() => carregar());
+    });
+    document.getElementById('btn-whats').addEventListener('click', () => {
+      if (!lastRows.length) {
+        alert('Nenhum lançamento na lista para exportar.');
+        return;
+      }
+      abrirWhatsAppComResumoLancamentos();
+    });
+    document.getElementById('btn-prev').addEventListener('click', () => { if (page > 1) { page--; carregar(); } });
+    document.getElementById('btn-next').addEventListener('click', () => { page++; carregar(); });
+    document.getElementById('btn-csv').addEventListener('click', () => { baixarCsvLancamentos(); });
+    document.getElementById('btn-xlsx-fin')?.addEventListener('click', () => { baixarExcelFinanceiroPadrao(); });
+    document.getElementById('btn-pdf-fin')?.addEventListener('click', () => { baixarPdfFinanceiroPadrao(); });
+    document.getElementById('f-status').addEventListener('change', () => {
+      selecionados.clear();
+      page = 1;
+      carregarPlanos().then(() => carregar());
+    });
+    document.getElementById('f-q').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        document.getElementById('btn-buscar')?.click();
+      }
+    });
+
+    document.getElementById('f-ord').addEventListener('change', () => {
+      page = 1;
+      selecionados.clear();
+      syncSortHeaderButtons();
+      refreshGavetaFiltrosResumo();
+      carregarPlanos().then(() => carregar());
+    });
+
+    ['f-status', 'f-de', 'f-ate', 'f-comp-de', 'f-comp-ate', 'f-pag-de', 'f-pag-ate', 'f-ps'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', () => refreshGavetaFiltrosResumo());
+    });
+    document.getElementById('f-q').addEventListener('input', () => refreshGavetaFiltrosResumo());
+
+    document.getElementById('th-sort-venc').addEventListener('click', () => {
+      const ord = document.getElementById('f-ord').value;
+      let n;
+      if (ord === 'vencimento_asc') n = 'vencimento_desc';
+      else if (ord === 'vencimento_desc') n = 'vencimento_asc';
+      else n = 'vencimento_asc';
+      aplicarOrdenacaoPeloCabecalho(n);
+    });
+    document.getElementById('th-sort-fluxo').addEventListener('click', () => {
+      const ord = document.getElementById('f-ord').value;
+      aplicarOrdenacaoPeloCabecalho(ord === 'fluxo_desc' ? 'vencimento_asc' : 'fluxo_desc');
+    });
+
+    document.getElementById('th-sort-cli').addEventListener('click', () => {
+      const ord = document.getElementById('f-ord').value;
+      aplicarOrdenacaoPeloCabecalho(alternarOrdenacaoAscDesc(ord, 'cliente_asc', 'cliente_desc'));
+    });
+    document.getElementById('th-sort-forma').addEventListener('click', () => {
+      const ord = document.getElementById('f-ord').value;
+      aplicarOrdenacaoPeloCabecalho(alternarOrdenacaoAscDesc(ord, 'forma_asc', 'forma_desc'));
+    });
+    document.getElementById('th-sort-plano').addEventListener('click', () => {
+      const ord = document.getElementById('f-ord').value;
+      aplicarOrdenacaoPeloCabecalho(alternarOrdenacaoAscDesc(ord, 'plano_asc', 'plano_desc'));
+    });
+    document.getElementById('th-sort-bruto').addEventListener('click', () => {
+      const ord = document.getElementById('f-ord').value;
+      aplicarOrdenacaoPeloCabecalho(alternarOrdenacaoAscDesc(ord, 'bruto_asc', 'bruto_desc'));
+    });
+    document.getElementById('th-sort-saldo').addEventListener('click', () => {
+      const ord = document.getElementById('f-ord').value;
+      aplicarOrdenacaoPeloCabecalho(alternarOrdenacaoAscDesc(ord, 'saldo_asc', 'saldo_desc'));
+    });
+
+    document.getElementById('plano-todas').addEventListener('click', () => {
+      saveExcludedSet(new Set());
+      carregarPlanos().then(() => carregar());
+    });
+    document.getElementById('plano-nenhuma').addEventListener('click', () => {
+      const keys = new Set();
+      document.querySelectorAll('#plano-chks input[type=checkbox][data-plano-key]').forEach((el) => {
+        keys.add(el.dataset.planoKey);
+      });
+      saveExcludedSet(keys);
+      carregarPlanos().then(() => carregar());
+    });
+
+    document.getElementById('chk-all').addEventListener('change', (e) => {
+      if (!podeSelecionar()) return;
+      document.querySelectorAll('.row-chk').forEach((c) => {
+        c.checked = e.target.checked;
+        const id = c.dataset.id;
+        const rest = Number(c.dataset.rest) || 0;
+        if (e.target.checked) selecionados.set(id, rest);
+        else selecionados.delete(id);
+      });
+      refreshSelBar();
+      refreshBtnsBaixa();
+    });
+
+    document.getElementById('btn-sel-clear').addEventListener('click', () => {
+      selecionados.clear();
+      document.getElementById('chk-all').checked = false;
+      carregar();
+    });
+
+    document.getElementById('btn-fav-save').addEventListener('click', () => {
+      const name = (document.getElementById('fav-name').value || '').trim();
+      if (!name) { alert('Digite um nome para o favorito.'); return; }
+      const item = {
+        name,
+        ...buildFavoritoPayload(),
+      };
+      const arr = favList().filter((x) => (x.name || '').toLowerCase() !== name.toLowerCase());
+      arr.push(item);
+      localStorage.setItem(LS_FAV, JSON.stringify(arr));
+      favRefreshSelect();
+      document.getElementById('fav-load').value = String(arr.length - 1);
+      alert('Filtro salvo.');
+    });
+
+    document.getElementById('fav-load').addEventListener('change', () => {
+      const i = document.getElementById('fav-load').value;
+      if (i === '') return;
+      const f = favList()[Number(i)];
+      if (!f) return;
+      aplicarPayloadFiltro(f);
+    });
+
+    document.getElementById('btn-fav-del').addEventListener('click', () => {
+      const i = document.getElementById('fav-load').value;
+      if (i === '') { alert('Escolha um favorito na lista.'); return; }
+      const arr = favList();
+      arr.splice(Number(i), 1);
+      localStorage.setItem(LS_FAV, JSON.stringify(arr));
+      favRefreshSelect();
+    });
+
+    document.getElementById('btn-cols').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dd = document.getElementById('col-dropdown');
+      dd.classList.toggle('hidden');
+      const nowOpen = !dd.classList.contains('hidden');
+      if (nowOpen) buildColDropdown();
+      setColsMenuOpen(nowOpen);
+    });
+    document.getElementById('col-dropdown').addEventListener('click', (e) => e.stopPropagation());
+    document.addEventListener('click', (e) => {
+      const dd = document.getElementById('col-dropdown');
+      const btn = document.getElementById('btn-cols');
+      if (!dd || dd.classList.contains('hidden')) return;
+      if (btn.contains(e.target) || dd.contains(e.target)) return;
+      dd.classList.add('hidden');
+      setColsMenuOpen(false);
+    });
+
+    document.getElementById('btn-baixa-parcial').addEventListener('click', async () => {
+      if (selecionados.size !== 1) return;
+      await prepararModalBaixaParcial();
+      document.getElementById('modal-baixa-parcial').classList.remove('hidden');
+    });
+    document.getElementById('bxp-cancel').addEventListener('click', () => {
+      document.getElementById('modal-baixa-parcial').classList.add('hidden');
+    });
+    document.getElementById('bxp-add-linha').addEventListener('click', () => bxpAddLinha(''));
+
+    document.getElementById('bxp-ok').addEventListener('click', async () => {
+      if (!bxpIdAtual) return;
+      const parcelas = [];
+      let soma = 0;
+      document.querySelectorAll('#bxp-linhas .bxp-row').forEach((row) => {
+        const v = parseValorPt(row.querySelector('.bxp-val').value);
+        let formaNome = '';
+        let formaId = '';
+        const sv = row.querySelector('.bxp-forma').value;
+        const fi = sv.indexOf('|||');
+        if (fi >= 0) {
+          formaId = sv.slice(0, fi) || '';
+          formaNome = sv.slice(fi + 3).trim();
+        }
+        let bancoNome = '';
+        let bancoId = '';
+        const bv = row.querySelector('.bxp-banco').value;
+        const bi = bv.indexOf('|||');
+        if (bi >= 0) {
+          bancoId = bv.slice(0, bi) || '';
+          bancoNome = bv.slice(bi + 3).trim();
+        }
+        if (!Number.isNaN(v) && v > 0 && formaNome && bancoNome) {
+          soma += v;
+          parcelas.push({
+            valor: v,
+            forma_pagamento: formaNome,
+            forma_pagamento_id: formaId,
+            banco: bancoNome,
+            banco_id: bancoId,
+          });
+        }
+      });
+      if (!parcelas.length) {
+        alert('Informe ao menos uma parcela válida (valor, forma e banco).');
+        return;
+      }
+      if (soma > bxpSaldoMax + 0.02) {
+        alert(`A soma (${brl(soma)}) não pode passar do saldo (${brl(bxpSaldoMax)}).`);
+        return;
+      }
+      document.getElementById('bxp-ok').disabled = true;
+      try {
+        const r = await fetch(API_BAIXA_PARCIAL, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify({
+            lancamento_id: bxpIdAtual,
+            tipo: tipoAtual,
+            data_movimento: document.getElementById('bxp-data').value,
+            parcelas,
+          }),
+        });
+        const out = await r.json();
+        if (!out.ok) {
+          alert(out.erro || 'Falha na baixa parcial.');
+          return;
+        }
+        let m = out.quitado ? 'Baixa concluída (título quitado).' : 'Parcela(s) registradas — ainda há saldo em aberto.';
+        if (out.erp_baixa_ok === true) m += '\nERP: baixa aceita.';
+        else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
+        alert(m);
+        document.getElementById('modal-baixa-parcial').classList.add('hidden');
+        selecionados.clear();
+        carregar();
+      } catch (_) {
+        alert('Erro de rede.');
+      } finally {
+        document.getElementById('bxp-ok').disabled = false;
+      }
+    });
+
+    document.getElementById('btn-baixa').addEventListener('click', () => {
+      if (selecionados.size === 0) return;
+      document.getElementById('modal-baixa-resumo').textContent =
+        `${selecionados.size} título(s) · Total saldo ${brl(Array.from(selecionados.values()).reduce((a, b) => a + b, 0))} · ${tipoAtual === 'pagar' ? 'Contas a pagar' : 'Contas a receber'}`;
+      document.getElementById('bx-data').value = hojeISO();
+      document.getElementById('bx-forma-sel').selectedIndex = 0;
+      document.getElementById('bx-banco-sel').selectedIndex = 0;
+      const jw = document.getElementById('bx-juros-wrap');
+      const ji = document.getElementById('bx-juros');
+      if (jw) jw.classList.toggle('hidden', tipoAtual !== 'pagar');
+      if (ji) ji.value = '';
+      carregarOpcoesBaixa();
+      document.getElementById('modal-baixa').classList.remove('hidden');
+    });
+
+    document.getElementById('bx-cancel').addEventListener('click', () => {
+      document.getElementById('modal-baixa').classList.add('hidden');
+    });
+
+    document.getElementById('bx-ok').addEventListener('click', async () => {
+      let formaNome = '';
+      let formaId = null;
+      const svf = document.getElementById('bx-forma-sel').value;
+      const fi = svf.indexOf('|||');
+      if (fi >= 0) {
+        formaId = svf.slice(0, fi) || null;
+        formaNome = svf.slice(fi + 3).trim();
+      }
+      let bancoNome = '';
+      let bancoId = null;
+      const svb = document.getElementById('bx-banco-sel').value;
+      const bi = svb.indexOf('|||');
+      if (bi >= 0) {
+        bancoId = svb.slice(0, bi) || null;
+        bancoNome = svb.slice(bi + 3).trim();
+      }
+      if (!formaNome || !bancoNome) {
+        alert('Selecione forma de pagamento e conta/banco na lista (cadastro ERP).');
+        return;
+      }
+      const body = {
+        ids: Array.from(selecionados.keys()),
+        tipo: tipoAtual,
+        data_movimento: document.getElementById('bx-data').value,
+        forma_pagamento: formaNome,
+        forma_pagamento_id: formaId,
+        banco: bancoNome,
+        banco_id: bancoId,
+      };
+      if (tipoAtual === 'pagar') {
+        const jt = (document.getElementById('bx-juros')?.value || '').trim();
+        if (jt) {
+          const jn = parseValorPt(jt);
+          if (!Number.isNaN(jn) && jn > 0) body.valor_juros = jn.toFixed(2);
+        }
+      }
+      document.getElementById('bx-ok').disabled = true;
+      try {
+        const r = await fetch(API_BAIXA, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify(body),
+        });
+        const out = await r.json();
+        if (out.erros && out.erros.length) {
+          alert('Alguns títulos não foram baixados:\n' + out.erros.map((e) => `${e.id}: ${e.erro}`).join('\n'));
+        }
+        if (out.atualizados && out.atualizados.length) {
+          let m = `Baixa registrada: ${out.atualizados.length} título(s) no Agro.`;
+          if (out.erp_baixa_ok === true) m += '\n\nERP: sincronização da baixa aceita.';
+          else if (out.aviso_api) m += '\n\nERP (atenção): ' + out.aviso_api;
+          if (out.juros_id) m += `\n\nJuros: título Mongo ${out.juros_id} (plano Juros de Emprestimos).`;
+          if (out.aviso_juros) m += `\n\nJuros (atenção): ${out.aviso_juros}`;
+          alert(m);
+        }
+        document.getElementById('modal-baixa').classList.add('hidden');
+        selecionados.clear();
+        carregar();
+      } catch (e) {
+        alert('Erro de rede na baixa.');
+      } finally {
+        document.getElementById('bx-ok').disabled = false;
+      }
+    });
+
+    function isoDateFromRowVenc(iso) {
+      if (!iso) return '';
+      const s = String(iso).trim();
+      return s.length >= 10 ? s.slice(0, 10) : '';
+    }
+
+    function abrirModalEditLanc(id) {
+      const row = lastRows.find((r) => r.id === id);
+      if (!row || !row.pode_editar) return;
+      document.getElementById('edl-id').value = id;
+      document.getElementById('edl-desc').value = row.descricao || '';
+      document.getElementById('edl-cliente').value = row.cliente || '';
+      document.getElementById('edl-cliente-id').value = row.cliente_id || '';
+      document.getElementById('edl-venc').value = isoDateFromRowVenc(row.data_vencimento);
+      document.getElementById('edl-plano').value = row.plano_conta || '';
+      document.getElementById('edl-plano-id').value = row.plano_conta_id || '';
+      document.getElementById('edl-forma').value = row.forma_pagamento || '';
+      document.getElementById('edl-forma-id').value = row.forma_pagamento_id || '';
+      document.getElementById('edl-banco').value = row.banco || '';
+      document.getElementById('edl-banco-id').value = row.banco_id || '';
+      const vw = document.getElementById('edl-valor-wrap');
+      const vi = document.getElementById('edl-valor');
+      if (row.pode_editar_valor) {
+        vw.classList.remove('hidden');
+        vi.value = Number(row.valor_bruto || 0).toFixed(2).replace('.', ',');
+      } else {
+        vw.classList.add('hidden');
+        vi.value = '';
+      }
+      document.getElementById('modal-edit-lanc').classList.remove('hidden');
+    }
+
+    async function definirRecorrenciaLancamento(id, recorrente, intervaloMeses) {
+      try {
+        const body = {
+          id,
+          recorrente: !!recorrente,
+          intervalo_meses: Math.max(1, Math.min(Number(intervaloMeses || 1), 36)),
+        };
+        const r = await fetch(API_RECORRE, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify(body),
+        });
+        const out = await r.json();
+        if (!out.ok) {
+          alert(out.erro || 'Não foi possível atualizar a recorrência.');
+          return;
+        }
+        carregar();
+      } catch (_) {
+        alert('Erro de rede.');
+      }
+    }
+
+    async function excluirLancamentoPorId(id) {
+      try {
+        const r = await fetch(API_LANC_EXCLUIR, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify({ id }),
+        });
+        const out = await r.json();
+        if (!out.ok) {
+          alert(out.erro || 'Não foi possível excluir.');
+          return;
+        }
+        selecionados.delete(id);
+        carregar();
+      } catch (_) {
+        alert('Erro de rede.');
+      }
+    }
+
+    function bindGestaoLancamentosClick(container) {
+      if (!container) return;
+      container.addEventListener('click', (e) => {
+        const edt = e.target.closest('.btn-edt-lanc');
+        if (edt && edt.dataset.id) {
+          e.preventDefault();
+          abrirModalEditLanc(edt.dataset.id);
+          return;
+        }
+        const del = e.target.closest('.btn-del-lanc');
+        if (del && del.dataset.id) {
+          e.preventDefault();
+          if (!window.confirm('Excluir este lançamento no Mongo? Esta ação não pode ser desfeita.')) return;
+          excluirLancamentoPorId(del.dataset.id);
+          return;
+        }
+        const rec = e.target.closest('.btn-recor-lanc');
+        if (rec && rec.dataset.id) {
+          e.preventDefault();
+          const id = rec.dataset.id;
+          const row = lastRows.find((r) => r.id === id);
+          const ativo = row && row.agro_recorrente;
+          const intervalo = row && row.recorrencia_intervalo_meses ? Number(row.recorrencia_intervalo_meses) : 1;
+          if (ativo) {
+            if (!window.confirm('Desativar recorrência neste título? (Não apaga lançamentos já gerados.)')) return;
+            definirRecorrenciaLancamento(id, false, 1);
+          } else {
+            definirRecorrenciaLancamento(id, true, 1);
+          }
+        }
+      });
+    }
+    bindGestaoLancamentosClick(document.getElementById('tbody-desk'));
+    bindGestaoLancamentosClick(document.getElementById('cards-mob'));
+
+    document.getElementById('edl-cancel')?.addEventListener('click', () => {
+      document.getElementById('modal-edit-lanc').classList.add('hidden');
+    });
+    document.getElementById('modal-edit-lanc')?.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'modal-edit-lanc') {
+        document.getElementById('modal-edit-lanc').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('btn-open-modal-filtros')?.addEventListener('click', () => {
+      document.getElementById('modal-filtros-lista').classList.remove('hidden');
+      refreshGavetaFiltrosResumo();
+      const det = document.getElementById('filtros-datas-extras');
+      if (det) {
+        const cde = document.getElementById('f-comp-de').value;
+        const cate = document.getElementById('f-comp-ate').value;
+        const pde = document.getElementById('f-pag-de').value;
+        const pate = document.getElementById('f-pag-ate').value;
+        det.open = !!(cde || cate || pde || pate);
+      }
+      document.getElementById('modal-filtros-ajuda-pop')?.classList.add('hidden');
+      document.getElementById('f-status')?.focus();
+    });
+    document.getElementById('btn-fechar-modal-filtros')?.addEventListener('click', () => {
+      document.getElementById('modal-filtros-lista').classList.add('hidden');
+    });
+    document.getElementById('btn-cancelar-modal-filtros')?.addEventListener('click', () => {
+      document.getElementById('modal-filtros-lista')?.classList.add('hidden');
+    });
+    document.getElementById('btn-filtros-ajuda')?.addEventListener('click', () => {
+      document.getElementById('modal-filtros-ajuda-pop')?.classList.toggle('hidden');
+    });
+    document.getElementById('btn-filtros-limpar-datas')?.addEventListener('click', () => {
+      ['f-de', 'f-ate', 'f-comp-de', 'f-comp-ate', 'f-pag-de', 'f-pag-ate'].forEach((id) => {
+        const n = document.getElementById(id);
+        if (n) n.value = '';
+      });
+      refreshGavetaFiltrosResumo();
+    });
+    document.getElementById('modal-filtros-lista')?.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'modal-filtros-lista') {
+        document.getElementById('modal-filtros-lista').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('btn-open-modal-ferramentas')?.addEventListener('click', () => {
+      document.getElementById('modal-ferramentas-lista').classList.remove('hidden');
+    });
+    document.getElementById('btn-fechar-modal-ferramentas')?.addEventListener('click', () => {
+      document.getElementById('modal-ferramentas-lista').classList.add('hidden');
+    });
+    document.getElementById('modal-ferramentas-lista')?.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'modal-ferramentas-lista') {
+        document.getElementById('modal-ferramentas-lista').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('btn-open-modal-planos')?.addEventListener('click', () => {
+      document.getElementById('modal-planos-lista')?.classList.remove('hidden');
+    });
+    document.getElementById('btn-fechar-modal-planos')?.addEventListener('click', () => {
+      document.getElementById('modal-planos-lista')?.classList.add('hidden');
+    });
+    document.getElementById('modal-planos-lista')?.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'modal-planos-lista') {
+        document.getElementById('modal-planos-lista').classList.add('hidden');
+      }
+    });
+
+    document.getElementById('btn-filtro-rapido-hoje')?.addEventListener('click', () => {
+      aplicarFiltroRapidoHoje();
+    });
+    document.getElementById('btn-filtro-rapido-3d')?.addEventListener('click', () => {
+      aplicarFiltroRapidoTresDias();
+    });
+
+    document.getElementById('btn-atalho-salvar')?.addEventListener('click', async () => {
+      const slot = Number(document.getElementById('atalho-save-slot').value);
+      const nome = (document.getElementById('atalho-save-nome').value || '').trim();
+      if (!nome) {
+        alert('Informe o nome exibido no botão.');
+        return;
+      }
+      const payload = buildFavoritoPayload();
+      try {
+        const r = await fetch(API_ATALHOS, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify({ slot, nome, payload }),
+        });
+        const j = await r.json();
+        if (!j.ok) {
+          alert(j.erro || 'Não foi possível salvar o atalho.');
+          return;
+        }
+        atalhoSlots[slot] = { nome, payload };
+        refreshAtalhoButtonLabel(slot);
+        persistAtalhosLocalCache();
+        document.getElementById('atalho-save-nome').value = '';
+        alert('Atalho salvo.');
+      } catch (_) {
+        alert('Erro de rede.');
+      }
+    });
+
+    document.querySelectorAll('.btn-atalho-slot').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const slot = Number(btn.dataset.slot);
+        if (e.altKey) {
+          e.preventDefault();
+          const row = atalhoSlots[slot];
+          if (row && row.payload) aplicarPayloadFiltro(row.payload);
+          abrirModalFiltrosParaAtalho(slot);
+          return;
+        }
+        const row = atalhoSlots[slot];
+        if (!row || !row.payload) {
+          abrirModalFiltrosParaAtalho(slot);
+          return;
+        }
+        aplicarPayloadFiltro(row.payload);
+        document.getElementById('modal-filtros-lista')?.classList.add('hidden');
+      });
+    });
+    document.getElementById('edl-salvar')?.addEventListener('click', async () => {
+      const id = (document.getElementById('edl-id').value || '').trim();
+      if (!id) return;
+      const body = {
+        id,
+        descricao: document.getElementById('edl-desc').value,
+        cliente: document.getElementById('edl-cliente').value,
+        data_vencimento: document.getElementById('edl-venc').value,
+        plano_conta: document.getElementById('edl-plano').value,
+      };
+      const cid = (document.getElementById('edl-cliente-id').value || '').trim();
+      if (cid) body.cliente_id = cid;
+      const pid = (document.getElementById('edl-plano-id').value || '').trim();
+      if (pid) body.plano_conta_id = pid;
+      const vw = document.getElementById('edl-valor-wrap');
+      if (vw && !vw.classList.contains('hidden')) {
+        const vpt = parseValorPt(document.getElementById('edl-valor').value);
+        if (!Number.isNaN(vpt) && vpt > 0) body.valor_bruto = vpt;
+      }
+      const fn = (document.getElementById('edl-forma').value || '').trim();
+      if (fn) {
+        body.forma_pagamento = fn;
+        const fids = (document.getElementById('edl-forma-id').value || '').trim();
+        if (fids) body.forma_pagamento_id = fids;
+      }
+      const bn = (document.getElementById('edl-banco').value || '').trim();
+      if (bn) {
+        body.banco = bn;
+        const bids = (document.getElementById('edl-banco-id').value || '').trim();
+        if (bids) body.banco_id = bids;
+      }
+      document.getElementById('edl-salvar').disabled = true;
+      try {
+        const r = await fetch(API_LANC_ALTERAR, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify(body),
+        });
+        const out = await r.json();
+        if (!out.ok) {
+          alert(out.erro || 'Não foi possível salvar.');
+          return;
+        }
+        document.getElementById('modal-edit-lanc').classList.add('hidden');
+        carregar();
+      } catch (_) {
+        alert('Erro de rede.');
+      } finally {
+        document.getElementById('edl-salvar').disabled = false;
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const tag = e.target && e.target.tagName;
+      const inField = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      const modalAberto = !document.getElementById('modal-baixa')?.classList.contains('hidden');
+      const modalParcial = !document.getElementById('modal-baixa-parcial')?.classList.contains('hidden');
+      const elOpx = document.getElementById('modal-opcoes-extras');
+      const modalOpx = !!(elOpx && !elOpx.classList.contains('hidden'));
+      const modalEdit = !document.getElementById('modal-edit-lanc')?.classList.contains('hidden');
+      const modalFiltrosLista = !document.getElementById('modal-filtros-lista')?.classList.contains('hidden');
+      const modalFerramentasLista = !document.getElementById('modal-ferramentas-lista')?.classList.contains('hidden');
+      const modalPlanosLista = !document.getElementById('modal-planos-lista')?.classList.contains('hidden');
+      if (modalPlanosLista) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          document.getElementById('modal-planos-lista')?.classList.add('hidden');
+          return;
+        }
+        return;
+      }
+      if (modalFiltrosLista) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          document.getElementById('modal-filtros-lista')?.classList.add('hidden');
+          return;
+        }
+        if (e.key === 'F5') {
+          e.preventDefault();
+          document.getElementById('btn-buscar')?.click();
+          return;
+        }
+        if (e.key === 'Enter' && (tag === 'INPUT' || tag === 'SELECT')) {
+          e.preventDefault();
+          document.getElementById('btn-buscar')?.click();
+          return;
+        }
+        return;
+      }
+      if (modalAberto || modalParcial || modalOpx || modalEdit || modalFerramentasLista) return;
+      if (e.key === 'F5') {
+        e.preventDefault();
+        document.getElementById('btn-buscar')?.click();
+        return;
+      }
+      if (e.key === 'F4' || e.key === 'F8') {
+        e.preventDefault();
+        baixarCsvLancamentos();
+        return;
+      }
+      if (e.key === 'F9') {
+        e.preventDefault();
+        document.getElementById('btn-whats')?.click();
+        return;
+      }
+      if (e.key === '/' && !inField) {
+        e.preventDefault();
+        document.getElementById('f-q')?.focus();
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const guard = (selectors, ms = 600) => {
+        selectors.forEach((sel) => {
+          document.querySelectorAll(sel).forEach((el) => {
+            el.addEventListener('click', (e) => {
+              const now = Date.now();
+              const last = Number(el.dataset.guardTs || 0);
+              if (now - last < ms) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return;
+              }
+              el.dataset.guardTs = String(now);
+            }, true);
+          });
+        });
+      };
+      guard([
+        '#btn-buscar',
+        '#btn-csv',
+        '#btn-xlsx-fin',
+        '#btn-pdf-fin',
+        '#btn-whats',
+        '#btn-prev',
+        '#btn-next',
+        '#btn-baixa',
+        '#bx-ok',
+        '#bxp-ok',
+        '#btn-fav-save',
+        '#btn-fav-del',
+        '#btn-fin-sync-api',
+        '#btn-filtro-rapido-hoje',
+        '#btn-filtro-rapido-3d',
+        '#btn-atalho-salvar',
+        '#btn-open-modal-planos',
+      ], 700);
+
+      const t = hojeISO();
+      document.getElementById('f-de').value = t;
+      document.getElementById('f-ate').value = t;
+      favRefreshSelect();
+      carregarAtalhosDoServidor();
+      atualizarTabs();
+      buildColDropdown();
+      applyTableCols();
+      syncSortHeaderButtons();
+      refreshGavetaFiltrosResumo();
+      document.getElementById('btn-fin-sync-api')?.addEventListener('click', () => {
+        agroFinSincronizarComApi().catch(() => {});
+      });
+      if (window.AGRO_MANUAL_SYNC_ONLY) {
+        const st0 = document.getElementById('f-status').value;
+        document.getElementById('th-chk').style.visibility = st0 === 'abertos' ? 'visible' : 'hidden';
+        if (!tentarHidratarListaFinCache()) {
+          const tb = document.getElementById('tbody-desk');
+          const mob = document.getElementById('cards-mob');
+          const tot = document.getElementById('totais-box');
+          tb.innerHTML = '';
+          mob.innerHTML = '';
+          tot.classList.add('hidden');
+          const empty = document.getElementById('empty-state');
+          empty.textContent = 'Nenhum dado em cache para estes filtros. Clique em “Sincronizar API”.';
+          empty.classList.remove('hidden');
+          const pi = document.getElementById('pag-info');
+          const pm = document.getElementById('pag-info-meta');
+          if (pi) pi.textContent = '';
+          if (pm) {
+            pm.textContent = '';
+            pm.classList.add('hidden');
+          }
+        } else {
+          const st = document.getElementById('f-status').value;
+          document.getElementById('th-chk').style.visibility = st === 'abertos' ? 'visible' : 'hidden';
+        }
+        refreshBtnsBaixa();
+        refreshSelBar();
+      } else {
+        carregarOpcoesBaixa();
+        carregarPlanos().then(() => carregar());
+      }
+    });
+  </script>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>
