@@ -539,7 +539,8 @@
                     html += '<div class="mt-2 space-y-2">';
                     (L.itens || []).forEach((it) => {
                         const nomeLinha = sugestoesGlobais.find((s) => String(s.produto_id) === String(it.produto_id));
-                        const nome = (nomeLinha && nomeLinha.nome) ? String(nomeLinha.nome) : String(it.produto_id);
+                        const nomeApi = (it.nome && String(it.nome).trim()) ? String(it.nome).trim() : '';
+                        const nome = nomeApi || ((nomeLinha && nomeLinha.nome) ? String(nomeLinha.nome) : String(it.produto_id));
                         const pid = escapeForSingleQuote(String(it.produto_id));
                         html += `<div class="flex flex-wrap items-center gap-2 text-[11px] border-b border-slate-100 pb-2">
                             <span class="font-bold text-slate-800 min-w-0 flex-1 leading-snug">${escHtml(nome)}</span>
