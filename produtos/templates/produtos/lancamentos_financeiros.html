@@ -692,6 +692,7 @@
     const API_BAIXA_PARCIAL = "{% url 'api_lancamentos_baixa_parcial' %}";
     const API_LANC_ALTERAR = "{% url 'api_lancamentos_alterar' %}";
     const API_LANC_EXCLUIR = "{% url 'api_lancamentos_excluir' %}";
+    const API_RECORRE = "{% url 'api_lancamentos_definir_recorrente' %}";
     const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
     const API_ATALHOS = "{% url 'api_lancamentos_atalhos_filtro' %}";
     const LS_FAV = 'gm_fin_favs_v1';
@@ -1563,6 +1564,11 @@
           const acoesBtns = [];
           if (row.pode_editar) {
             acoesBtns.push(`<button type="button" class="btn-edt-lanc text-[10px] font-black uppercase text-indigo-700 hover:underline px-1 py-0.5 rounded" data-id="${esc(row.id)}">Editar</button>`);
+            const recLabel = row.agro_recorrente ? 'Recorr. ✓' : 'Recorrente';
+            const recCls = row.agro_recorrente ? 'text-emerald-800' : 'text-slate-600';
+            acoesBtns.push(
+              `<button type="button" class="btn-recor-lanc text-[10px] font-black uppercase hover:underline px-1 py-0.5 rounded ${recCls}" data-id="${esc(row.id)}" title="Mensal: o próximo título só entra na lista após quitação total deste (nada antecipado).">${recLabel}</button>`,
+            );
           }
           if (row.pode_excluir) {
             acoesBtns.push(`<button type="button" class="btn-del-lanc text-[10px] font-black uppercase text-red-700 hover:underline px-1 py-0.5 rounded" data-id="${esc(row.id)}">Excluir</button>`);
@@ -1593,6 +1599,12 @@
           const chkM = showChk && !row.pago
             ? `<label class="flex items-center gap-2 text-[11px] font-bold"><input type="checkbox" class="row-chk rounded" data-id="${esc(row.id)}" data-rest="${rest}" ${selecionados.has(row.id) ? 'checked' : ''}> Selecionar</label>`
             : '';
+          const recLabelM = row.agro_recorrente ? 'Recorr. ✓' : 'Recorrente';
+          const recBtnMob = row.pode_editar
+            ? '<button type="button" class="btn-recor-lanc text-[10px] font-black uppercase border rounded-lg px-2 py-1 '
+              + (row.agro_recorrente ? 'text-emerald-800 border-emerald-200 bg-emerald-50' : 'text-slate-600 border-slate-200')
+              + '" data-id="' + esc(row.id) + '" title="Mensal após cada quitação.">' + recLabelM + '</button>'
+            : '';
           card.innerHTML = `
             ${chkM}
             <div class="flex justify-between items-start gap-2">
@@ -1610,6 +1622,7 @@
             </div>
             <div class="flex flex-wrap gap-2 justify-end pt-1">
               ${row.pode_editar ? `<button type="button" class="btn-edt-lanc text-[10px] font-black uppercase text-indigo-700 border border-indigo-200 rounded-lg px-2 py-1" data-id="${esc(row.id)}">Editar</button>` : ''}
+              ${recBtnMob}
               ${row.pode_excluir ? `<button type="button" class="btn-del-lanc text-[10px] font-black uppercase text-red-700 border border-red-200 rounded-lg px-2 py-1" data-id="${esc(row.id)}">Excluir</button>` : ''}
             </div>`;
           mob.appendChild(card);
@@ -2123,6 +2136,33 @@
       document.getElementById('modal-edit-lanc').classList.remove('hidden');
     }
 
+    async function definirRecorrenciaLancamento(id, recorrente, intervaloMeses) {
+      try {
+        const body = {
+          id,
+          recorrente: !!recorrente,
+          intervalo_meses: Math.max(1, Math.min(Number(intervaloMeses || 1), 36)),
+        };
+        const r = await fetch(API_RECORRE, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify(body),
+        });
+        const out = await r.json();
+        if (!out.ok) {
+          alert(out.erro || 'Não foi possível atualizar a recorrência.');
+          return;
+        }
+        carregar();
+      } catch (_) {
+        alert('Erro de rede.');
+      }
+    }
+
     async function excluirLancamentoPorId(id) {
       try {
         const r = await fetch(API_LANC_EXCLUIR, {
@@ -2160,6 +2200,21 @@
           e.preventDefault();
           if (!window.confirm('Excluir este lançamento no Mongo? Esta ação não pode ser desfeita.')) return;
           excluirLancamentoPorId(del.dataset.id);
+          return;
+        }
+        const rec = e.target.closest('.btn-recor-lanc');
+        if (rec && rec.dataset.id) {
+          e.preventDefault();
+          const id = rec.dataset.id;
+          const row = lastRows.find((r) => r.id === id);
+          const ativo = row && row.agro_recorrente;
+          const intervalo = row && row.recorrencia_intervalo_meses ? Number(row.recorrencia_intervalo_meses) : 1;
+          if (ativo) {
+            if (!window.confirm('Desativar recorrência neste título? (Não apaga lançamentos já gerados.)')) return;
+            definirRecorrenciaLancamento(id, false, 1);
+          } else {
+            definirRecorrenciaLancamento(id, true, 1);
+          }
         }
       });
     }
