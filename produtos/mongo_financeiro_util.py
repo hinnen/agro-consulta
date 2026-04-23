@@ -3823,6 +3823,14 @@ def inserir_lancamentos_manual_lote(
             parcela_seq += 1
             doc = copy.deepcopy(tpl)
             doc.pop("_id", None)
+            # O modelo vem de um DtoLancamento do ERP: ainda carrega Id/LancamentoID/NumeroLancamento.
+            # A lista agrega com dedup por título ERP; reaproveitar esses campos funde o insert novo
+            # com o lançamento antigo (some da grade). Mesmo critério da recorrência (linhas 596–600).
+            for k in ("LancamentoID", "Id"):
+                if k in doc:
+                    doc[k] = ""
+            if "NumeroLancamento" in doc:
+                doc["NumeroLancamento"] = None
             doc["Despesa"] = bool(despesa)
             doc["Empresa"] = empresa_nome[:200]
             doc["EmpresaID"] = eid
