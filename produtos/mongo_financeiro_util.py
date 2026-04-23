@@ -3662,6 +3662,26 @@ def _dt_naive_meia_noite_erp(d: date) -> datetime:
     return datetime.combine(d, dtime(3, 0, 0))
 
 
+def _fin_parse_valor_entrada_manual(val: Any) -> float:
+    """
+    Valor vindo da tela de lote manual (pt-BR): vírgula decimal; ponto como milhar (ex.: 1.234,56).
+    Sem vírgula: ``1.234.567`` → inteiro; ``12.34`` → decimal (ponto como separador decimal).
+    """
+    s = str(val if val is not None else "").strip()
+    if not s:
+        raise ValueError("vazio")
+    s = s.replace(" ", "").replace("\xa0", "")
+    if s.upper().startswith("R$"):
+        s = s[2:].lstrip()
+    if not s:
+        raise ValueError("vazio")
+    if "," in s:
+        return float(s.replace(".", "").replace(",", "."))
+    if re.fullmatch(r"\d{1,3}(\.\d{3})+", s):
+        return float(s.replace(".", ""))
+    return float(s)
+
+
 def _fin_ln_parse_date(val: Any, fallback: date) -> date:
     """Data opcional por linha (ISO ``YYYY-MM-DD`` ou ``date``/``datetime``)."""
     if val is None or val == "":
@@ -3780,7 +3800,7 @@ def inserir_lancamentos_manual_lote(
     for idx, ln in enumerate(linhas):
         n = idx + 1
         try:
-            valor = float(str(ln.get("valor", "")).replace(",", ".").strip())
+            valor = _fin_parse_valor_entrada_manual(ln.get("valor", ""))
         except (ValueError, TypeError):
             erros.append({"linha": n, "erro": "Valor inválido"})
             continue
