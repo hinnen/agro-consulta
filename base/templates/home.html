@@ -7,14 +7,12 @@
 {% block main_class %}h-full min-h-0 flex flex-col overflow-hidden{% endblock %}
 {% block admin_shell_class %}h-full min-h-0 flex flex-col bg-slate-100 overflow-hidden{% endblock %}
 {% block admin_header_inner_class %}!py-2 sm:!py-2{% endblock %}
-{% block admin_section_class %}flex-1 min-h-0 overflow-hidden flex flex-col mx-auto max-w-6xl w-full px-2 py-2 sm:px-3 sm:py-2{% endblock %}
+{% block admin_section_class %}flex-1 min-h-0 overflow-hidden flex flex-col mx-auto max-w-none w-full px-4 py-2 sm:px-6 sm:py-3{% endblock %}
 {% block head_extra %}
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <style>
     :root {
       --capri-blue: #00bfff;
-      --dark-bg: #020617;
-      --glass-bg: rgba(15, 23, 42, 0.65);
     }
     .text-capri-blue { color: var(--capri-blue); }
     .hide-scroll::-webkit-scrollbar { display: none; }
@@ -50,8 +48,8 @@
       container-name: home-hub;
       font-size: clamp(0.84rem, calc(0.76rem + var(--hh-wpx) * 0.0025), 1.01rem);
       background:
-        radial-gradient(circle at top right, rgba(0, 191, 255, 0.1), transparent 30%),
-        linear-gradient(180deg, var(--dark-bg) 0%, #0f172a 100%) !important;
+        radial-gradient(circle at top right, rgba(0, 191, 255, 0.12), transparent 40%),
+        linear-gradient(180deg, #020617 0%, #0f172a 100%) !important;
     }
     .home-hub-shell-pad {
       padding: clamp(0.3rem, calc(0.15rem + var(--hh-wpx) * 0.0045), 0.88rem);
@@ -90,6 +88,19 @@
         grid-template-columns: repeat(4, minmax(0, 1fr));
       }
     }
+    @container home-hub (min-width: 75rem) {
+      .home-hub-top {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      .home-hub-grid-wrap {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+    }
+    @container home-hub (min-width: 90rem) {
+      .home-hub-grid-wrap {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
+    }
     .home-top-card,
     .home-grid-card,
     .home-grid-card-disabled {
@@ -116,21 +127,29 @@
       align-self: stretch;
       padding: clamp(0.4rem, calc(0.24rem + var(--hh-wpx) * 0.0064), 1rem)
         clamp(0.4rem, calc(0.24rem + var(--hh-wpx) * 0.0055), 0.95rem);
-      background: var(--glass-bg) !important;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(0, 191, 255, 0.15) !important;
+    }
+    .home-grid-card {
+      border: 1px solid rgba(0, 191, 255, 0.1) !important;
+      background: rgba(30, 41, 59, 0.5) !important;
+    }
+    .home-grid-card-disabled {
+      border: 1px solid rgba(0, 191, 255, 0.08) !important;
+      background: rgba(30, 41, 59, 0.35) !important;
     }
     .home-hub-grid-wrap .home-grid-card > div:nth-child(2),
     .home-hub-grid-wrap .home-grid-card-disabled > div:nth-child(2) {
       flex: 1 1 auto;
       min-height: 0;
     }
-    .home-top-card:hover,
-    .home-grid-card:hover {
+    .home-top-card:hover {
       transform: translateY(-1px);
       border-color: var(--capri-blue) !important;
       box-shadow: 0 0 20px rgba(0, 191, 255, 0.2), 0 18px 36px rgba(2, 6, 23, 0.28);
+    }
+    .home-grid-card:hover {
+      transform: translateY(-1px);
+      border-color: #00bfff !important;
+      box-shadow: 0 0 15px rgba(0, 191, 255, 0.2);
     }
     .home-top-card-emerald {
       background: linear-gradient(135deg, #065f46 0%, #047857 48%, #064e3b 100%);
@@ -225,13 +244,13 @@
       padding: clamp(0.16rem, calc(0.06rem + var(--hh-wpx) * 0.0022), 0.34rem)
         clamp(0.3rem, calc(0.15rem + var(--hh-wpx) * 0.0035), 0.58rem);
       border-radius: clamp(0.48rem, calc(0.28rem + var(--hh-wpx) * 0.0035), 0.82rem);
-      border: 2px solid rgba(255, 255, 255, 0.22);
-      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(0, 191, 255, 0.4) !important;
+      background: rgba(15, 23, 42, 0.55);
       font-size: clamp(0.74rem, calc(0.58rem + var(--hh-wpx) * 0.008), 1.02rem);
       font-weight: 900;
       line-height: 1;
       letter-spacing: 0.04em;
-      color: rgba(255, 255, 255, 0.98);
+      color: #00bfff !important;
     }
     .home-card-title {
       margin-top: clamp(0.2rem, calc(0.1rem + var(--hh-wpx) * 0.003), 0.78rem);
@@ -262,7 +281,7 @@
     .home-grid-card-disabled:hover {
       transform: none;
       box-shadow: none;
-      border-color: rgba(51, 65, 85, 0.9);
+      border-color: rgba(0, 191, 255, 0.08) !important;
     }
   </style>
 {% endblock %}
