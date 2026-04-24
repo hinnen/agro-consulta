@@ -363,7 +363,16 @@
         const ids = Array.isArray(j.ids) ? j.ids : [];
         const erros = Array.isArray(j.erros) ? j.erros : [];
         const msgs = erros.map((e) => (e && (e.erro || e.mensagem)) ? String(e.erro || e.mensagem) : '').filter(Boolean);
-        const av = j.aviso_api ? `\n\nERP: ${j.aviso_api}` : '';
+        let erpLinha = '';
+        if (ids.length && j.erp_inclusao_configurada === false) {
+          erpLinha = '\n\nERP: integração de inclusão manual está desligada (variável VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH vazia no servidor). O título ficou só no Mongo até configurar a API ou usar outro fluxo de sincronismo.';
+        } else if (j.erp_lancamento_ok === true) {
+          erpLinha = '\n\nERP: a API respondeu OK. Se o título não aparecer no ERP, conferir rotina no WL/Swagger e logs do servidor.';
+        } else if (j.erp_lancamento_ok === false) {
+          erpLinha = '\n\nERP: envio à API falhou: ' + (j.aviso_api || '(sem detalhe)');
+        } else if (j.aviso_api) {
+          erpLinha = '\n\nERP: ' + j.aviso_api;
+        }
         const dicaLista = '\n\nNa consulta: cole o ID no campo de busca, ou «Todos» + vencimento cobrindo a data do título.';
         if (!j.ok && !ids.length) {
           alert(msgs[0] || j.erro || j.detail || ('Falha ao gravar (HTTP ' + r.status + ').'));
@@ -371,11 +380,11 @@
         }
         if (!j.ok && ids.length) {
           const det = msgs.length ? ('\n\n' + msgs.slice(0, 12).join('\n') + (msgs.length > 12 ? '\n…' : '')) : '';
-          alert('Gravação parcial. IDs gravados: ' + ids.join(', ') + det + av + dicaLista);
+          alert('Gravação parcial. IDs gravados: ' + ids.join(', ') + det + erpLinha + dicaLista);
           window.location.href = urlAposGravarLoteManual(tipo, quitado, dc, dv, dvRaw, ids[0] || '');
           return;
         }
-        alert('Lote gravado. IDs: ' + ids.join(', ') + av + dicaLista);
+        alert('Lote gravado. IDs: ' + ids.join(', ') + erpLinha + dicaLista);
         window.location.href = urlAposGravarLoteManual(tipo, quitado, dc, dv, dvRaw, ids[0] || '');
       } catch (_) {
         alert('Erro de rede.');
