@@ -11,8 +11,11 @@
 {% block head_extra %}
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <style>
+    /* Paleta premium: preto, branco e Azul Capri (#00BFFF) */
     :root {
       --capri-blue: #00bfff;
+      --capri-glow: rgba(0, 191, 255, 0.25);
+      --dark-bg: #020617;
     }
     .text-capri-blue { color: var(--capri-blue); }
     .hide-scroll::-webkit-scrollbar { display: none; }
@@ -48,8 +51,8 @@
       container-name: home-hub;
       font-size: clamp(0.84rem, calc(0.76rem + var(--hh-wpx) * 0.0025), 1.01rem);
       background:
-        radial-gradient(circle at top right, rgba(0, 191, 255, 0.12), transparent 40%),
-        linear-gradient(180deg, #020617 0%, #0f172a 100%) !important;
+        radial-gradient(circle at top right, rgba(0, 191, 255, 0.08), transparent 35%),
+        linear-gradient(180deg, var(--dark-bg) 0%, #0f172a 100%) !important;
     }
     .home-hub-shell-pad {
       padding: clamp(0.3rem, calc(0.15rem + var(--hh-wpx) * 0.0045), 0.88rem);
@@ -83,12 +86,15 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
-    @container home-hub (min-width: 56rem) {
+    @container home-hub (min-width: 60rem) {
+      .home-hub-top {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
       .home-hub-grid-wrap {
         grid-template-columns: repeat(4, minmax(0, 1fr));
       }
     }
-    @container home-hub (min-width: 75rem) {
+    @container home-hub (min-width: 85rem) {
       .home-hub-top {
         grid-template-columns: repeat(4, minmax(0, 1fr));
       }
@@ -96,7 +102,7 @@
         grid-template-columns: repeat(5, minmax(0, 1fr));
       }
     }
-    @container home-hub (min-width: 90rem) {
+    @container home-hub (min-width: 110rem) {
       .home-hub-grid-wrap {
         grid-template-columns: repeat(6, minmax(0, 1fr));
       }
@@ -109,9 +115,15 @@
       justify-content: flex-start;
       width: 100%;
       border-radius: clamp(0.92rem, calc(0.56rem + var(--hh-wpx) * 0.0078), 1.38rem);
-      border: 1px solid rgba(51, 65, 85, 0.9);
       color: #f8fafc;
       transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+    .home-top-card,
+    .home-grid-card {
+      border: 1px solid rgba(255, 255, 255, 0.05) !important;
+      background: rgba(30, 41, 59, 0.4) !important;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
     .home-top-card {
       min-height: auto;
@@ -128,13 +140,11 @@
       padding: clamp(0.4rem, calc(0.24rem + var(--hh-wpx) * 0.0064), 1rem)
         clamp(0.4rem, calc(0.24rem + var(--hh-wpx) * 0.0055), 0.95rem);
     }
-    .home-grid-card {
-      border: 1px solid rgba(0, 191, 255, 0.1) !important;
-      background: rgba(30, 41, 59, 0.5) !important;
-    }
     .home-grid-card-disabled {
-      border: 1px solid rgba(0, 191, 255, 0.08) !important;
-      background: rgba(30, 41, 59, 0.35) !important;
+      border: 1px solid rgba(255, 255, 255, 0.04) !important;
+      background: rgba(15, 23, 42, 0.35) !important;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
     }
     .home-hub-grid-wrap .home-grid-card > div:nth-child(2),
     .home-hub-grid-wrap .home-grid-card-disabled > div:nth-child(2) {
@@ -142,26 +152,26 @@
       min-height: 0;
     }
     .home-top-card:hover {
-      transform: translateY(-1px);
+      transform: translateY(-2px);
       border-color: var(--capri-blue) !important;
-      box-shadow: 0 0 20px rgba(0, 191, 255, 0.2), 0 18px 36px rgba(2, 6, 23, 0.28);
+      box-shadow: 0 0 20px var(--capri-glow), 0 14px 32px rgba(2, 6, 23, 0.35);
     }
     .home-grid-card:hover {
-      transform: translateY(-1px);
-      border-color: #00bfff !important;
-      box-shadow: 0 0 15px rgba(0, 191, 255, 0.2);
+      transform: translateY(-2px);
+      border-color: var(--capri-blue) !important;
+      box-shadow: 0 0 20px var(--capri-glow);
     }
     .home-top-card-emerald {
-      background: linear-gradient(135deg, #065f46 0%, #047857 48%, #064e3b 100%);
-      border-color: rgba(52, 211, 153, 0.34);
+      background: linear-gradient(135deg, #020617 0%, #004d40 100%) !important;
+      border-color: rgba(52, 211, 153, 0.28) !important;
     }
     .home-top-card-orange {
-      background: linear-gradient(135deg, #9a3412 0%, #c2410c 50%, #7c2d12 100%);
-      border-color: rgba(251, 146, 60, 0.34);
+      background: linear-gradient(135deg, #020617 0%, #9a3412 100%) !important;
+      border-color: rgba(251, 146, 60, 0.28) !important;
     }
     .home-top-card-capri {
-      background: linear-gradient(135deg, #082f49 0%, #0369a1 42%, #0c4a6e 100%);
-      border-color: rgba(0, 191, 255, 0.35);
+      background: linear-gradient(135deg, #020617 0%, #0e7490 45%, #082f49 100%) !important;
+      border-color: rgba(0, 191, 255, 0.35) !important;
     }
     .home-pdv-hero {
       display: flex;
@@ -205,8 +215,8 @@
       color: rgba(226, 232, 240, 0.82);
     }
     #agro-barra-sync-api-wrap {
-      border-color: rgba(0, 191, 255, 0.3) !important;
-      background: rgba(0, 30, 60, 0.4) !important;
+      border-color: rgba(0, 191, 255, 0.2) !important;
+      background: rgba(15, 23, 42, 0.6) !important;
       box-shadow: none !important;
     }
     #agro-btn-sincronizar-api {
@@ -245,12 +255,12 @@
         clamp(0.3rem, calc(0.15rem + var(--hh-wpx) * 0.0035), 0.58rem);
       border-radius: clamp(0.48rem, calc(0.28rem + var(--hh-wpx) * 0.0035), 0.82rem);
       border: 1px solid rgba(0, 191, 255, 0.4) !important;
-      background: rgba(15, 23, 42, 0.55);
+      background: rgba(0, 191, 255, 0.1) !important;
       font-size: clamp(0.74rem, calc(0.58rem + var(--hh-wpx) * 0.008), 1.02rem);
       font-weight: 900;
       line-height: 1;
       letter-spacing: 0.04em;
-      color: #00bfff !important;
+      color: var(--capri-blue) !important;
     }
     .home-card-title {
       margin-top: clamp(0.2rem, calc(0.1rem + var(--hh-wpx) * 0.003), 0.78rem);
@@ -281,7 +291,7 @@
     .home-grid-card-disabled:hover {
       transform: none;
       box-shadow: none;
-      border-color: rgba(0, 191, 255, 0.08) !important;
+      border-color: rgba(255, 255, 255, 0.04) !important;
     }
   </style>
 {% endblock %}
@@ -387,23 +397,25 @@
         </div>
       </a>
 
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-1 no-print shrink-0">
-        <div class="rounded-2xl border border-slate-700/50 bg-slate-900/50 p-2.5 sm:p-3 backdrop-blur-sm">
-          <span class="text-[10px] font-black uppercase tracking-wide text-slate-400">Vendas hoje</span>
-          <div class="mt-0.5 text-lg sm:text-xl font-black tabular-nums text-white">R$ {{ total_vendas_dia_fmt }}</div>
+      <div class="home-kpi-strip w-full min-w-0 no-print shrink-0 mb-1">
+        <div class="grid w-full min-w-0 grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-4">
+          <div class="rounded-2xl border border-white/5 bg-slate-900/60 p-3 sm:p-4 backdrop-blur-md">
+            <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Vendas hoje</span>
+            <div class="mt-1 text-xl sm:text-2xl font-black tabular-nums text-white">R$ {{ total_vendas_dia_fmt }}</div>
+          </div>
+          <a href="{% url 'entregas_painel' %}" class="rounded-2xl border border-white/5 bg-slate-900/60 p-3 sm:p-4 backdrop-blur-md transition-colors hover:border-cyan-400/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45">
+            <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Entregas</span>
+            <div class="mt-1 text-xl sm:text-2xl font-black tabular-nums text-capri-blue">{{ entregas_pendentes }} <small class="text-xs font-bold text-slate-500">pendentes</small></div>
+          </a>
+          <a href="{{ home_validade_url }}" class="rounded-2xl border border-white/5 bg-slate-900/60 p-3 sm:p-4 backdrop-blur-md transition-colors hover:border-red-400/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40">
+            <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Validade</span>
+            <div class="mt-1 text-xl sm:text-2xl font-black tabular-nums text-red-400">{{ produtos_vencendo }} <small class="text-xs font-bold text-slate-500">alertas</small></div>
+          </a>
+          <a href="{% url 'caixa_painel' %}" class="rounded-2xl border border-white/5 bg-slate-900/60 p-3 sm:p-4 backdrop-blur-md transition-colors hover:border-emerald-500/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/45">
+            <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Caixa</span>
+            <div class="mt-1 text-xl sm:text-2xl font-black {% if caixa_aberto %}text-emerald-400{% else %}text-slate-500{% endif %}">{% if caixa_aberto %}ABERTO{% else %}FECHADO{% endif %}</div>
+          </a>
         </div>
-        <a href="{% url 'entregas_painel' %}" class="rounded-2xl border border-slate-700/50 bg-slate-900/50 p-2.5 sm:p-3 backdrop-blur-sm transition-colors hover:border-cyan-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50">
-          <span class="text-[10px] font-black uppercase tracking-wide text-slate-400">Entregas</span>
-          <div class="mt-0.5 text-lg sm:text-xl font-black tabular-nums text-capri-blue">{{ entregas_pendentes }} <small class="text-xs font-bold text-slate-500">pendentes</small></div>
-        </a>
-        <a href="{{ home_validade_url }}" class="rounded-2xl border border-slate-700/50 bg-slate-900/50 p-2.5 sm:p-3 backdrop-blur-sm transition-colors hover:border-red-400/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40">
-          <span class="text-[10px] font-black uppercase tracking-wide text-slate-400">Validade</span>
-          <div class="mt-0.5 text-lg sm:text-xl font-black tabular-nums text-red-400">{{ produtos_vencendo }} <small class="text-xs font-bold text-slate-500">alertas</small></div>
-        </a>
-        <a href="{% url 'caixa_painel' %}" class="rounded-2xl border border-slate-700/50 bg-slate-900/50 p-2.5 sm:p-3 backdrop-blur-sm transition-colors hover:border-emerald-500/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/45">
-          <span class="text-[10px] font-black uppercase tracking-wide text-slate-400">Caixa</span>
-          <div class="mt-0.5 text-lg sm:text-xl font-black {% if caixa_aberto %}text-emerald-400{% else %}text-slate-500{% endif %}">{% if caixa_aberto %}ABERTO{% else %}FECHADO{% endif %}</div>
-        </a>
       </div>
 
       <div class="home-hub-top">
