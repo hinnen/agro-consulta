@@ -4,20 +4,22 @@
 
 {% block content %}
 <div class="{% block admin_shell_class %}min-h-screen bg-slate-100{% endblock %}">
-  <header class="{% block admin_header_shell_class %}border-b border-slate-200 bg-white/95 backdrop-blur shrink-0{% endblock %}">
-    <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4 {% block admin_header_inner_class %}{% endblock %}">
-      <div class="min-w-0">
-        <p class="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-700">Home administrativa</p>
-        <h1 class="truncate text-2xl font-black tracking-tight text-slate-900">
-          {% block admin_header_title %}Agro Consulta{% endblock %}
-        </h1>
-        {% block admin_header_meta %}{% endblock %}
+  {% block admin_header %}
+    <header class="{% block admin_header_shell_class %}border-b border-slate-200 bg-white/95 backdrop-blur shrink-0{% endblock %}">
+      <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4 {% block admin_header_inner_class %}{% endblock %}">
+        <div class="min-w-0">
+          <p class="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-700">Home administrativa</p>
+          <h1 class="truncate text-2xl font-black tracking-tight text-slate-900">
+            {% block admin_header_title %}Agro Consulta{% endblock %}
+          </h1>
+          {% block admin_header_meta %}{% endblock %}
+        </div>
+        <div class="flex shrink-0 items-center gap-2">
+          {% block admin_header_actions %}{% endblock %}
+        </div>
       </div>
-      <div class="flex shrink-0 items-center gap-2">
-        {% block admin_header_actions %}{% endblock %}
-      </div>
-    </div>
-  </header>
+    </header>
+  {% endblock %}
 
   <section class="{% block admin_section_class %}mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8{% endblock %}">
     {% block admin_content %}{% endblock %}
