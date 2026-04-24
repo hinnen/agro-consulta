@@ -639,6 +639,63 @@ class ProdutoGestaoOverlayAgro(models.Model):
         return f"{self.produto_externo_id} · overlay"
 
 
+class EstoqueLote(models.Model):
+    """Lote / validade com saldo local (Agro) associado a um overlay de produto."""
+
+    overlay = models.ForeignKey(
+        ProdutoGestaoOverlayAgro,
+        on_delete=models.CASCADE,
+        related_name="lotes",
+    )
+    lote_codigo = models.CharField("Código do lote", max_length=100)
+    data_validade = models.DateField("Data de validade")
+    quantidade_atual = models.DecimalField(
+        "Quantidade atual",
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+    )
+    data_entrada = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["data_validade", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["overlay", "lote_codigo"],
+                name="uniq_estoque_lote_overlay_lote",
+            ),
+        ]
+        verbose_name = "Estoque por lote (Agro)"
+        verbose_name_plural = "Estoque por lote (Agro)"
+
+    def __str__(self) -> str:
+        return f"{self.lote_codigo} — {self.data_validade}"
+
+
+def sync_overlay_validade_resumo_de_lotes(overlay: ProdutoGestaoOverlayAgro) -> None:
+    """
+    Atualiza cadastro_extras.validade e .lote com o lote mais crítico
+    (primeira data, preferindo quantidade > 0), para compatibilidade com o relatório.
+    """
+    lotes = list(
+        EstoqueLote.objects.filter(overlay=overlay).order_by("data_validade", "id")
+    )
+    ex = (
+        dict(overlay.cadastro_extras) if isinstance(overlay.cadastro_extras, dict) else {}
+    )
+    if not lotes:
+        ex.pop("validade", None)
+        ex.pop("lote", None)
+    else:
+        pick = next((L for L in lotes if L.quantidade_atual and L.quantidade_atual > 0), lotes[0])
+        ex["validade"] = pick.data_validade.isoformat()[:10]
+        ex["lote"] = str(pick.lote_codigo)[:80]
+        ex["validade_alerta"] = False
+        ex.pop("validade_msg", None)
+    overlay.cadastro_extras = ex
+    overlay.save(update_fields=["cadastro_extras", "atualizado_em"])
+
+
 class ProdutoMarcaVariacaoAgro(models.Model):
     """
     Variações de marca/código do produto mestre (espelho ERP) no Agro.

@@ -40,12 +40,14 @@ from .models import (
     LancamentoAtalhoFiltro,
     OpcaoBaixaFinanceiroExtra,
     PedidoEntrega,
+    EstoqueLote,
     ProdutoGestaoOverlayAgro,
     ProdutoGrupoAgro,
     ProdutoGrupoVarianteAgro,
     ProdutoMarcaVariacaoAgro,
     SessaoCaixa,
     VendaAgro,
+    sync_overlay_validade_resumo_de_lotes,
 )
 from integracoes.texto import normalizar, expandir_tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
@@ -2290,6 +2292,14 @@ def _home_admin_navegacao():
             "icon": "package",
             "shortcut": "F6",
             "shortcut_key": "f6",
+            "pin_protected": True,
+        },
+        {
+            "title": "Relatórios",
+            "href": reverse("relatorios_hub"),
+            "icon": "line-chart",
+            "shortcut": "T",
+            "shortcut_key": "t",
             "pin_protected": True,
         },
         {
@@ -7150,7 +7160,96 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
             wch = _custo_medio_ponderado_variacoes_rows(vchild)
             it["custo_medio_variacoes_componente"] = round(float(wch), 4) if wch is not None else None
 
+    if ov_det:
+        row["overlay_id"] = ov_det.pk
+        row["lotes"] = [
+            {
+                "id": el.pk,
+                "lote_codigo": el.lote_codigo,
+                "data_validade": el.data_validade.isoformat()[:10],
+                "quantidade_atual": str(el.quantidade_atual),
+            }
+            for el in EstoqueLote.objects.filter(overlay=ov_det).order_by(
+                "data_validade", "id"
+            )
+        ]
+    else:
+        row["overlay_id"] = None
+        row["lotes"] = []
+
     return row
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_overlay_lote_adicionar(request):
+    """Cria ou atualiza um lote (mesmo código de lote no mesmo overlay)."""
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    pid = str(payload.get("produto_id") or "").strip()
+    if not pid:
+        return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
+    lote_cod = str(payload.get("lote_codigo") or payload.get("lote") or "").strip()[:100]
+    if not lote_cod:
+        lote_cod = "—"
+    d_raw = str(payload.get("data_validade") or payload.get("validade") or "").strip()[:16]
+    if not d_raw:
+        return JsonResponse({"ok": False, "erro": "Data de validade obrigatória"}, status=400)
+    try:
+        dv = datetime.strptime(d_raw[:10], "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return JsonResponse({"ok": False, "erro": "Data inválida (use AAAA-MM-DD)"}, status=400)
+    q = payload.get("quantidade", 0)
+    try:
+        qtd = Decimal(str(q).replace(",", ".").strip() or "0").quantize(Decimal("0.01"))
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "Quantidade inválida"}, status=400)
+
+    ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
+        produto_externo_id=pid[:64],
+        defaults={
+            "usuario": request.user if request.user.is_authenticated else None,
+        },
+    )
+    el, _ = EstoqueLote.objects.update_or_create(
+        overlay=ov,
+        lote_codigo=lote_cod,
+        defaults={
+            "data_validade": dv,
+            "quantidade_atual": qtd,
+        },
+    )
+    sync_overlay_validade_resumo_de_lotes(ov)
+    return JsonResponse(
+        {
+            "ok": True,
+            "lote": {
+                "id": el.pk,
+                "lote_codigo": el.lote_codigo,
+                "data_validade": el.data_validade.isoformat()[:10],
+                "quantidade_atual": str(el.quantidade_atual),
+            },
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_overlay_lote_remover(request, lote_id: int):
+    lote = get_object_or_404(EstoqueLote, id=int(lote_id))
+    ov = lote.overlay
+    lote.delete()
+    if EstoqueLote.objects.filter(overlay=ov).exists():
+        sync_overlay_validade_resumo_de_lotes(ov)
+    else:
+        ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
+        ex.pop("validade", None)
+        ex.pop("lote", None)
+        ov.cadastro_extras = ex
+        ov.save(update_fields=["cadastro_extras", "atualizado_em"])
+    return JsonResponse({"ok": True})
 
 
 @require_GET

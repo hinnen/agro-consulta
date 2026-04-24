@@ -2,11 +2,16 @@ import csv
 import hashlib
 import os
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from django.core.management.base import BaseCommand
 
-from produtos.models import ProdutoGestaoOverlayAgro
+from produtos.models import (
+    EstoqueLote,
+    ProdutoGestaoOverlayAgro,
+    sync_overlay_validade_resumo_de_lotes,
+)
 
 _MARCADOR_GERACAO = "Geração do Relatório"
 _MARCADOR_GERACAO_ASC = "Geracao do Relatorio"
@@ -178,6 +183,31 @@ def _ler_xlsx(caminho: str) -> list[dict[str, Any]]:
     return out
 
 
+def _qtd_saldo_da_linha(row: dict[str, Any]) -> Decimal:
+    """Lê quantidade a partir de colunas comuns de relatórios; default 0."""
+    for k in ("Saldo", "Qtd", "Quantidade", "Qtde", "Estoque", "Qtd."):
+        if k not in row:
+            continue
+        v = row.get(k)
+        if v is None or v == "":
+            continue
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            return Decimal(str(v)).quantize(Decimal("0.01"))
+        s = _as_str_cel(v).strip()
+        if not s or s in ("None", "nan"):
+            continue
+        s = s.replace(" ", "")
+        if "," in s and "." in s:
+            s = s.replace(".", "").replace(",", ".")
+        elif "," in s and "." not in s:
+            s = s.replace(",", ".")
+        try:
+            return Decimal(s).quantize(Decimal("0.01"))
+        except (InvalidOperation, ValueError, TypeError):
+            continue
+    return Decimal("0.00")
+
+
 def _row_codigo_nome(row: dict[str, Any]) -> tuple[str, str]:
     cv = _as_str_cel(
         (row.get("Código") or row.get("Codigo") or row.get("codigo") or "")
@@ -295,19 +325,43 @@ class Command(BaseCommand):
 
             validade_raw, tem_erro, msg = _analisar_validade(row.get("Validade"))
             if tem_erro:
-                alertas += 1
-
-            ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
-            ex["validade"] = validade_raw
-            ex["lote"] = lote
-            ex["validade_alerta"] = bool(tem_erro)
-            if tem_erro:
+                ex = (
+                    dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
+                )
+                ex["validade"] = (validade_raw or "")[:16] if validade_raw else ex.get(
+                    "validade", ""
+                )
+                ex["lote"] = lote[:100] if lote else ex.get("lote", "")
+                ex["validade_alerta"] = True
                 ex["validade_msg"] = (msg or "Revisar data (origem do relatório).")[:300]
+                ov.cadastro_extras = ex
+                ov.save(update_fields=["cadastro_extras", "atualizado_em"])
+                alertas += 1
             else:
-                ex.pop("validade_msg", None)
-                ex["validade_alerta"] = False
-            ov.cadastro_extras = ex
-            ov.save()
+                try:
+                    d = datetime.strptime(
+                        (validade_raw or "")[:10], "%Y-%m-%d"
+                    ).date()
+                except (ValueError, TypeError):
+                    alertas += 1
+                    ex = (
+                        dict(ov.cadastro_extras)
+                        if isinstance(ov.cadastro_extras, dict)
+                        else {}
+                    )
+                    ex["validade_alerta"] = True
+                    ex["validade_msg"] = "Data inválida após análise."
+                    ov.cadastro_extras = ex
+                    ov.save(update_fields=["cadastro_extras", "atualizado_em"])
+                else:
+                    lote_c = lote.strip()[:100] or "—"
+                    qtd = _qtd_saldo_da_linha(row)
+                    EstoqueLote.objects.update_or_create(
+                        overlay=ov,
+                        lote_codigo=lote_c,
+                        defaults={"data_validade": d, "quantidade_atual": qtd},
+                    )
+                    sync_overlay_validade_resumo_de_lotes(ov)
             sucesso += 1
 
         self.stdout.write(
