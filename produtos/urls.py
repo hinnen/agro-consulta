@@ -29,6 +29,8 @@ urlpatterns = [
         name='produtos_cadastro_erp',
     ),
     path('produtos/gestao/', views.produtos_gestao_view, name='produtos_gestao'),
+    path('relatorios/', views.relatorios_hub, name='relatorios_hub'),
+    path('relatorios/validade/', views.relatorios_validade, name='relatorios_validade'),
     path(
         'entrada-nota/',
         views.entrada_nota_view,

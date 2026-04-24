@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Validade 80mm | Agro Mais</title>
+  <style>
+    body { width: 80mm; max-width: 80mm; font-family: ui-monospace, "Cascadia Code", "Segoe UI", monospace; font-size: 12px; margin: 0; padding: 5px; background: #fff; color: #000; }
+    .header { text-align: center; font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; border-bottom: 1px solid #000; font-size: 10px; text-transform: uppercase; }
+    td { padding: 4px 0; border-bottom: 1px dotted #ccc; vertical-align: top; }
+    .footer { margin-top: 10px; text-align: center; font-size: 10px; border-top: 1px dashed #000; padding-top: 6px; }
+    @media print {
+      .no-print { display: none !important; }
+      @page { size: 80mm auto; margin: 2mm; }
+    }
+  </style>
+</head>
+<body onload="window.print()">
+  <div class="header">
+    AGRO MAIS - VALIDADE<br>
+    {% now "d/m/Y H:i" %}
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Item / Est.</th>
+        <th>Venc.</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in produtos %}
+      <tr>
+        <td>{{ p.nome|truncatechars:20 }}<br>
+          <small>Lote: {{ p.lote|truncatechars:18 }}</small><br>
+          <small>{% if p.saldo_c_v is not None %}C+V {{ p.saldo_c_v|floatformat:1 }}{% if p.saldo_vencido is not None and p.saldo_vencido > 0 %} · Venc. {{ p.saldo_vencido|floatformat:1 }}{% endif %}{% else %}—{% endif %}</small>
+        </td>
+        <td>{% if p.status == 'erro_importacao' %}INV.{% else %}{{ p.data_validade|date:"d/m/y" }}{% endif %}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="2" style="text-align:center; padding:8px;">Nenhum item.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="footer">Fim do relatório</div>
+  <button type="button" onclick="window.history.back()" class="no-print" style="margin-top: 20px; width: 100%; min-height: 44px; font-weight: bold;">Voltar</button>
+</body>
+</html>

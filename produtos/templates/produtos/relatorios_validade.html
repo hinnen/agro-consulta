@@ -1,0 +1,272 @@
+{% extends "layouts/base_pdv.html" %}
+
+{% block pdv_title %}Relatório de validade | Agro Mais{% endblock %}
+{% block body_class %}min-h-screen bg-slate-950 text-slate-100{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    @page { size: A4; margin: 10mm; }
+    /* Tabela densa: mais linhas visíveis no ecrã */
+    #rv-tabela.rv-compact th,
+    #rv-tabela.rv-compact td { padding: 0.35rem 0.45rem; vertical-align: middle; }
+    @media (min-width: 640px) {
+      #rv-tabela.rv-compact th,
+      #rv-tabela.rv-compact td { padding: 0.45rem 0.6rem; }
+    }
+    #rv-tabela.rv-compact th.rv-td-prod,
+    #rv-tabela.rv-compact td.rv-td-prod { max-width: min(20rem, 32vw); }
+    @media (min-width: 1280px) {
+      #rv-tabela.rv-compact th.rv-td-prod,
+      #rv-tabela.rv-compact td.rv-td-prod { max-width: 26rem; }
+    }
+    @media print {
+      .no-print { display: none !important; }
+      body, .print-root { background: #fff !important; color: #0f172a !important; }
+      .print-table { border: 1px solid #cbd5e1 !important; }
+      .print-table th, .print-table td { color: #0f172a !important; border-color: #e2e8f0 !important; }
+    }
+  </style>
+{% endblock %}
+
+{% block pdv_shell_class %}min-h-screen bg-slate-950{% endblock %}
+{% block pdv_section_class %}mx-auto w-full max-w-7xl 2xl:max-w-[min(100rem,calc(100vw-1.5rem))] px-3 py-4 sm:px-5 sm:py-6{% endblock %}
+
+{% block pdv_header %}
+<header class="no-print border-b border-slate-800 bg-slate-900/90 shadow-sm">
+  <div class="mx-auto flex max-w-7xl 2xl:max-w-[min(100rem,calc(100vw-1.5rem))] flex-wrap items-center justify-between gap-3 px-3 py-3 sm:px-5">
+    <div class="min-w-0">
+      <p class="text-[10px] font-black uppercase tracking-[0.24em] text-orange-500">Perecíveis</p>
+      <h1 class="mt-0.5 truncate text-2xl font-black tracking-tight text-white">Relatório de validade</h1>
+    </div>
+    <div class="flex flex-wrap items-center justify-end gap-2">
+      <button type="button" onclick="window.print()"
+        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-blue-500 bg-blue-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-blue-700">
+        <i class="fas fa-print" aria-hidden="true"></i>Imprimir A4
+      </button>
+      <a href="?print=80mm&amp;status={{ filtros.status|urlencode }}&amp;periodo={{ filtros.periodo|urlencode }}&amp;ref_mes_ano={{ filtros.ref_mes_ano|urlencode }}{% if filtros.somente_com_estoque %}&amp;somente_com_estoque=1{% endif %}"
+        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border-2 border-amber-500 bg-amber-500 px-4 py-2 text-xs font-black uppercase text-slate-900 hover:bg-amber-400">
+        <i class="fas fa-receipt" aria-hidden="true"></i>Cupom 80mm
+      </a>
+      <a href="{% url 'relatorios_hub' %}"
+        class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-600 bg-slate-800 px-4 py-2 text-xs font-black uppercase text-slate-200 hover:border-slate-500">Voltar</a>
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block pdv_content %}
+<div class="print-root min-w-0 p-1 sm:p-2">
+  <form method="get" class="no-print mb-4 flex flex-wrap items-end gap-2 sm:gap-3 rounded-2xl border border-slate-700 bg-slate-800/90 p-3 sm:p-4" id="form-relatorio-validade">
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Prazo (validade)</label>
+      <select name="periodo" class="min-h-[44px] min-w-[10rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white focus:border-orange-500 focus:outline-none" id="filtro-periodo" title="Filtra pela data de vencimento no calendário">
+        <option value="todos" {% if filtros.periodo == 'todos' %}selected{% endif %}>Sem filtro de mês</option>
+        <option value="mes_atual" {% if filtros.periodo == 'mes_atual' %}selected{% endif %}>Mês atual</option>
+        <option value="proximo_mes" {% if filtros.periodo == 'proximo_mes' %}selected{% endif %}>Próximo mês</option>
+        <option value="mes" {% if filtros.periodo == 'mes' %}selected{% endif %}>Escolher mês</option>
+      </select>
+    </div>
+    <div class="{% if filtros.periodo != 'mes' %}hidden{% endif %}" id="wrap-ref-mes">
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Mês / ano</label>
+      <input type="month" name="ref_mes_ano" value="{{ filtros.ref_mes_ano }}"
+        class="min-h-[44px] min-w-[11rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white focus:border-orange-500 focus:outline-none"
+        title="Usado quando «Escolher mês» está ativo" />
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Status</label>
+      <select name="status" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white focus:border-orange-500 focus:outline-none" title="«Próximos» = a vencer em até 30 dias (não vencido)">
+        <option value="todos" {% if filtros.status == 'todos' %}selected{% endif %}>Todos</option>
+        <option value="alerta" {% if filtros.status == 'alerta' %}selected{% endif %}>Próximos ao vencimento</option>
+        <option value="vencido" {% if filtros.status == 'vencido' %}selected{% endif %}>Vencidos</option>
+      </select>
+    </div>
+    <div class="flex min-h-[44px] items-end">
+      <label class="inline-flex max-w-xs cursor-pointer items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/80 px-3 py-2 text-sm text-slate-200" title="Se marcado, remove linhas com estoque C+V = 0 (conectado ao Mongo)">
+        <input type="checkbox" name="somente_com_estoque" value="1" class="h-4 w-4 rounded border-slate-500"
+          {% if filtros.somente_com_estoque %}checked{% endif %} />
+        <span class="text-xs font-bold leading-tight">Só com estoque (C+V &gt; 0)</span>
+      </label>
+    </div>
+    <button type="submit" class="min-h-[44px] rounded-xl border-2 border-cyan-600 bg-cyan-600 px-4 text-xs font-black uppercase text-white hover:bg-cyan-500">Filtrar</button>
+  </form>
+  <script>
+  (function () {
+    var sel = document.getElementById('filtro-periodo');
+    var wrap = document.getElementById('wrap-ref-mes');
+    if (!sel || !wrap) return;
+    function sync() { wrap.classList.toggle('hidden', sel.value !== 'mes'); }
+    sel.addEventListener('change', sync);
+    sync();
+  })();
+  </script>
+
+  {% if not pode_editar_validade %}
+  <p class="no-print mb-4 rounded-xl border border-amber-500/40 bg-amber-950/40 px-4 py-3 text-sm font-semibold text-amber-200">
+    Para editar validade e lote na tabela, <a href="{{ login_validade_href }}" class="font-black text-white underline hover:text-amber-100">entre com seu usuário</a>.
+  </p>
+  {% else %}
+  {% csrf_token %}
+  {% endif %}
+  {% if not estoque_mongo_ok %}
+  <p class="no-print mb-4 rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-3 text-sm text-slate-300">
+    Estoque (centro + vila) indisponível: não foi possível ler o saldo. As linhas aparecem sem filtrar; totais de stock não serão exibidos.
+  </p>
+  {% endif %}
+
+  <div class="overflow-hidden rounded-2xl border border-slate-700 bg-slate-800/50">
+    <div class="min-w-0 overflow-x-auto">
+      <table class="print-table rv-compact w-full min-w-[46rem] text-left text-sm text-slate-200" id="rv-tabela">
+        <thead class="border-b border-slate-600 bg-slate-900/80 text-[10px] font-black uppercase leading-tight text-slate-400 sm:text-xs">
+          <tr>
+            <th class="rv-td-prod" scope="col">Produto</th>
+            <th class="w-[1%] whitespace-nowrap" scope="col">Lote</th>
+            <th class="w-[1%] whitespace-nowrap text-right tabular-nums" title="Centro + vila (PDV)">C+V</th>
+            <th class="w-[1%] whitespace-nowrap text-right tabular-nums" title="Stock em lote/linha já vencida">Venc.</th>
+            <th class="min-w-[11rem]" scope="col">Vencimento</th>
+            <th class="no-print w-[1%] max-w-[8rem] text-left" scope="col">Sit.</th>
+            {% if pode_editar_validade %}<th class="no-print w-[6.75rem] min-w-[6.75rem] whitespace-nowrap" scope="col">Gravar</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-700/80">
+          {% for p in produtos %}
+          <tr data-pid="{{ p.produto_id|escape }}" class="hover:bg-slate-800/40">
+            <td class="rv-td-prod text-sm font-semibold leading-snug" title="{{ p.nome|escape }}">{{ p.nome }}</td>
+            <td class="whitespace-nowrap">
+              {% if pode_editar_validade %}
+              <input type="text" name="lote" value="{{ p.lote_raw }}" maxlength="80" autocomplete="off"
+                class="rv-lote w-full min-w-[5.5rem] max-w-[8rem] rounded border border-slate-600 bg-slate-900 px-1.5 py-1 text-xs font-bold text-white focus:border-orange-500 focus:outline-none sm:text-sm" />
+              {% else %}
+              <span class="inline-block rounded border border-slate-700/80 bg-slate-900/90 px-1.5 py-0.5 text-xs font-bold text-slate-300">{{ p.lote }}</span>
+              {% endif %}
+            </td>
+            <td class="text-right text-xs font-mono tabular-nums sm:text-sm">
+              {% if p.saldo_c_v is None %}<span class="text-slate-500">—</span>{% else %}{{ p.saldo_c_v|floatformat:2 }}{% endif %}
+            </td>
+            <td class="text-right text-xs font-mono tabular-nums sm:text-sm">
+              {% if p.saldo_vencido is None %}<span class="text-slate-500">—</span>{% else %}{{ p.saldo_vencido|floatformat:2 }}{% endif %}
+            </td>
+            <td class="min-w-0">
+              {% if p.status == 'erro_importacao' %}
+                <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                  <span class="shrink-0 select-none rounded border border-red-500/50 bg-red-950/50 px-1 py-0.5 text-[10px] font-bold uppercase text-red-200 sm:text-[11px]">Data inv.</span>
+                {% if pode_editar_validade %}
+                  <input type="date" name="validade" value=""
+                    class="rv-val h-9 min-w-[10.5rem] flex-1 rounded border-2 border-orange-600 bg-slate-900 px-1 font-mono text-xs text-white focus:border-orange-500 focus:outline-none sm:min-w-[11rem] sm:max-w-[12rem] sm:px-2 sm:text-sm" title="Data correta, depois Salvar" />
+                {% endif %}
+                </div>
+              {% elif pode_editar_validade %}
+              <input type="date" name="validade" value="{{ p.data_validade|date:'Y-m-d' }}"
+                class="rv-val h-9 max-w-full rounded border-2 border-slate-600 bg-slate-900 px-1 font-mono text-xs font-bold text-white focus:border-orange-500 focus:outline-none sm:px-2 sm:text-sm" />
+              {% else %}
+              <span class="font-mono text-sm">{{ p.data_validade|date:"d/m/Y" }}</span>
+              {% endif %}
+            </td>
+            <td class="no-print max-w-[7rem] text-xs leading-tight text-slate-400 sm:text-sm">
+              {% if p.status == 'erro_importacao' %}
+                <span class="text-slate-500">—</span>
+              {% else %}
+                <div class="space-y-1">
+                  {% if p.validade_alerta %}
+                  <div class="text-[11px] text-red-400 sm:text-xs">
+                    <span class="font-bold"><i class="fas fa-exclamation-triangle mr-0.5" aria-hidden="true"></i>Revisar</span>
+                    {% if p.validade_msg %}
+                    <span class="mt-0.5 block break-words text-[10px] font-normal text-slate-500">{{ p.validade_msg|escape }}</span>
+                    {% endif %}
+                  </div>
+                  {% endif %}
+                  <div>
+                    {% if p.status == 'vencido' %}
+                      <span class="text-[11px] font-bold text-red-400 sm:text-xs">Venc. {{ p.dias_restantes_abs }}d</span>
+                    {% elif p.status == 'alerta' %}
+                      <span class="text-[11px] font-bold text-orange-400 sm:text-xs" title="Dias até o vencimento">em {{ p.dias_restantes }}d</span>
+                    {% else %}
+                      <span class="text-[11px] font-semibold text-emerald-400 sm:text-xs">Ok</span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endif %}
+            </td>
+            {% if pode_editar_validade %}
+            <td class="no-print w-[6.75rem] min-w-[6.75rem] align-top">
+              <div class="flex w-full min-w-0 flex-col gap-0.5">
+                <button type="button" class="rv-salvar flex w-full min-h-[38px] items-center justify-center whitespace-nowrap rounded border-2 border-emerald-600 bg-emerald-600 px-2 text-xs font-black uppercase leading-none text-white hover:bg-emerald-500 sm:min-h-[40px] sm:px-3 sm:text-sm">Salvar</button>
+                <span class="rv-msg block min-h-[1em] text-center text-[9px] font-bold leading-tight text-slate-500" aria-live="polite"></span>
+              </div>
+            </td>
+            {% endif %}
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="{% if pode_editar_validade %}7{% else %}6{% endif %}" class="px-4 py-8 text-center font-semibold text-slate-500">Nenhum produto com estes filtros (ou nenhum com estoque, se a leitura do Mongo estiver ativa).</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        {% if estoque_mongo_ok and produtos %}
+        <tfoot class="border-t-2 border-slate-600 bg-slate-900/90 text-[10px] font-bold uppercase text-slate-400 sm:text-xs print:text-slate-800">
+          <tr>
+            <td class="text-slate-300 print:text-slate-700" colspan="2">Totais</td>
+            <td class="text-right font-mono text-slate-100 print:text-slate-900 tabular-nums">{{ totais_estoque.c_v|floatformat:2 }}</td>
+            <td class="text-right font-mono text-slate-100 print:text-slate-900 tabular-nums">{{ totais_estoque.vencido|floatformat:2 }}</td>
+            <td class="" colspan="{% if pode_editar_validade %}3{% else %}2{% endif %}"></td>
+          </tr>
+        </tfoot>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+  {% if pode_editar_validade %}
+  <script>
+  (function () {
+    var api = "{{ url_api_overlay_salvar|escapejs }}";
+    function csrf() {
+      var el = document.querySelector('[name=csrfmiddlewaretoken]');
+      return el ? el.value : '';
+    }
+    function rowMsg(tr, t, ok) {
+      var s = tr.querySelector('.rv-msg');
+      if (!s) return;
+      s.textContent = t || '';
+      s.classList.remove('text-emerald-400', 'text-red-400');
+      if (ok === true) s.classList.add('text-emerald-400');
+      if (ok === false) s.classList.add('text-red-400');
+    }
+    document.getElementById('rv-tabela').addEventListener('click', function (e) {
+      var btn = e.target.closest('.rv-salvar');
+      if (!btn) return;
+      var tr = btn.closest('tr[data-pid]');
+      if (!tr) return;
+      var pid = tr.getAttribute('data-pid');
+      var v = (tr.querySelector('.rv-val') || {}).value || '';
+      var l = (tr.querySelector('.rv-lote') || {}).value || '';
+      rowMsg(tr, '…', null);
+      fetch(api, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrf()
+        },
+        body: JSON.stringify({
+          produto_id: pid,
+          extra_validade: v,
+          extra_lote: l
+        })
+      }).then(function (r) {
+        if (r.status === 403 || r.status === 401) throw new Error('Sessão expirada ou sem permissão. Entre de novo.');
+        return r.json();
+      }).then(function (j) {
+        if (!j.ok) throw new Error(j.erro || 'Falha ao gravar');
+        rowMsg(tr, 'Gravado.', true);
+        window.setTimeout(function () { window.location.reload(); }, 450);
+      }).catch(function (err) {
+        rowMsg(tr, err.message || 'Erro', false);
+      });
+    });
+  })();
+  </script>
+  {% endif %}
+</div>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+{% endblock %}
