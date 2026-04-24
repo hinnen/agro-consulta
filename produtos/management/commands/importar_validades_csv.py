@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import os
+import unicodedata
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -183,28 +184,94 @@ def _ler_xlsx(caminho: str) -> list[dict[str, Any]]:
     return out
 
 
+def _qtd_saldo_decimal_de_valor(v: Any) -> Decimal | None:
+    if v is None or v == "":
+        return None
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return Decimal(str(v)).quantize(Decimal("0.01"))
+    s = _as_str_cel(v).strip()
+    if not s or s in ("None", "nan"):
+        return None
+    s = s.replace(" ", "")
+    if "," in s and "." in s:
+        s = s.replace(".", "").replace(",", ".")
+    elif "," in s and "." not in s:
+        s = s.replace(",", ".")
+    try:
+        return Decimal(s).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError, TypeError):
+        return None
+
+
 def _qtd_saldo_da_linha(row: dict[str, Any]) -> Decimal:
-    """Lê quantidade a partir de colunas comuns de relatórios; default 0."""
-    for k in ("Saldo", "Qtd", "Quantidade", "Qtde", "Estoque", "Qtd."):
+    """Lê quantidade a partir de colunas comuns (incl. C+V de relatórios); default 0."""
+    chaves_diretas = (
+        "Saldo",
+        "Qtd",
+        "Quantidade",
+        "Qtde",
+        "Estoque",
+        "Qtd.",
+        "C+V",
+        "C + V",
+        "C+ V",
+        "C +V",
+        "SALDO",
+        "CV",
+        "Estoque Disponivel",
+        "Estoque disponível",
+    )
+    for k in chaves_diretas:
         if k not in row:
             continue
-        v = row.get(k)
-        if v is None or v == "":
+        d = _qtd_saldo_decimal_de_valor(row.get(k))
+        if d is not None:
+            return d
+
+    for k, v in row.items():
+        if v in (None, ""):
             continue
-        if isinstance(v, (int, float)) and not isinstance(v, bool):
-            return Decimal(str(v)).quantize(Decimal("0.01"))
-        s = _as_str_cel(v).strip()
-        if not s or s in ("None", "nan"):
+        if k is None:
             continue
-        s = s.replace(" ", "")
-        if "," in s and "." in s:
-            s = s.replace(".", "").replace(",", ".")
-        elif "," in s and "." not in s:
-            s = s.replace(",", ".")
-        try:
-            return Decimal(s).quantize(Decimal("0.01"))
-        except (InvalidOperation, ValueError, TypeError):
+        norm = (
+            "".join(
+                c
+                for c in unicodedata.normalize("NFKD", str(k))
+                if not unicodedata.combining(c)
+            )
+            .lower()
+            .replace(" ", "")
+        )
+        if norm in (
+            "lote",
+            "codigo",
+            "produto",
+            "product",
+            "validade",
+            "venc",
+            "vencimento",
+            "descricao",
+            "id",
+            "marca",
+        ):
             continue
+        if not any(
+            x in norm
+            for x in (
+                "c+v",
+                "saldo",
+                "estoque",
+                "qtd",
+                "qtde",
+                "quant",
+                "dispon",
+                "fisico",
+            )
+        ):
+            continue
+        d = _qtd_saldo_decimal_de_valor(v)
+        if d is not None:
+            return d
     return Decimal("0.00")
 
 
