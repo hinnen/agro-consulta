@@ -4306,10 +4306,11 @@ def listar_emprestimos_agro(db, *, tipo: str | None = None, limit: int = 100) ->
 
 def _serialize_pagamentos_interno_emp(pags: Any) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
-    for p in pags or []:
+    for i, p in enumerate(pags or []):
         if not isinstance(p, dict):
             continue
         q = dict(p)
+        q["indice"] = i
         if isinstance(q.get("created_at"), datetime):
             q["created_at"] = q["created_at"].isoformat()
         out.append(q)
@@ -4391,6 +4392,7 @@ def registrar_pagamento_emprestimo_interno_agro(
 
     now = timezone.now()
     pag: dict[str, Any] = {
+        "pagamento_id": secrets.token_hex(8),
         "valor": float(valor),
         "data_pagamento": data_pagamento.isoformat(),
         "observacao": (observacao or "").strip()[:2000],
@@ -4403,6 +4405,107 @@ def registrar_pagamento_emprestimo_interno_agro(
             return {"ok": False, "erro": "Registro não atualizado."}
     except Exception as exc:
         logger.exception("registrar_pagamento_emprestimo_interno_agro")
+        return {"ok": False, "erro": str(exc)[:300]}
+
+    doc2 = col.find_one({"_id": oid}) or {}
+    d2 = dict(doc2)
+    d2["pagamentos"] = _serialize_pagamentos_interno_emp(d2.get("pagamentos"))
+    enr = _enriquecer_interno_campos_calculados(d2)
+    return {
+        "ok": True,
+        "interno_total_pago": enr.get("interno_total_pago"),
+        "interno_saldo_devedor": enr.get("interno_saldo_devedor"),
+        "interno_quitado": enr.get("interno_quitado"),
+    }
+
+
+def excluir_pagamento_emprestimo_interno_agro(
+    db,
+    *,
+    meta_id: str,
+    pagamento_id: str | None,
+    indice: int | None,
+    motivo: str,
+    usuario_label: str,
+) -> dict[str, Any]:
+    """Remove uma linha de ``pagamentos`` do empréstimo interno; auditoria em ``pagamentos_exclusoes_auditoria``."""
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    meta_id = (meta_id or "").strip()
+    if not meta_id:
+        return {"ok": False, "erro": "Informe o id do registro."}
+    pid = (pagamento_id or "").strip()
+    try:
+        oid = ObjectId(meta_id)
+    except Exception:
+        return {"ok": False, "erro": "Id inválido."}
+
+    col = db[COL_AGRO_EMPRESTIMO]
+    doc = col.find_one({"_id": oid})
+    if not doc:
+        return {"ok": False, "erro": "Registro não encontrado."}
+    if str(doc.get("tipo") or "").strip().lower() != "interno":
+        return {"ok": False, "erro": "Só é possível excluir pagamento em empréstimo interno."}
+
+    pags_raw = doc.get("pagamentos") or []
+    if not isinstance(pags_raw, list) or not pags_raw:
+        return {"ok": False, "erro": "Não há pagamentos para excluir."}
+
+    pags: list[dict[str, Any]] = [p for p in pags_raw if isinstance(p, dict)]
+    if len(pags) != len(pags_raw):
+        return {"ok": False, "erro": "Dados de pagamentos inválidos."}
+
+    idx_remove: int | None = None
+    if pid:
+        for i, p in enumerate(pags):
+            if str(p.get("pagamento_id") or "").strip() == pid:
+                idx_remove = i
+                break
+        if idx_remove is None:
+            return {"ok": False, "erro": "Pagamento não encontrado (id)."}
+    else:
+        try:
+            ix = int(indice) if indice is not None else -1
+        except (TypeError, ValueError):
+            return {"ok": False, "erro": "Índice do pagamento inválido."}
+        if ix < 0 or ix >= len(pags):
+            return {"ok": False, "erro": "Índice do pagamento fora da faixa."}
+        idx_remove = ix
+
+    removed = dict(pags[idx_remove])
+    new_pags = [p for j, p in enumerate(pags) if j != idx_remove]
+
+    now = timezone.now()
+    ca_raw = removed.get("created_at")
+    if isinstance(ca_raw, datetime):
+        ca_s = ca_raw.isoformat()
+    else:
+        ca_s = str(ca_raw or "")[:40]
+
+    audit: dict[str, Any] = {
+        "valor": removed.get("valor"),
+        "data_pagamento": str(removed.get("data_pagamento") or "")[:32],
+        "observacao": str(removed.get("observacao") or "")[:2000],
+        "created_by": str(removed.get("created_by") or "")[:200],
+        "created_at_snapshot": ca_s,
+        "pagamento_id": str(removed.get("pagamento_id") or "")[:40],
+        "motivo_exclusao": (motivo or "").strip()[:500],
+        "excluido_em": now,
+        "excluido_por": (usuario_label or "")[:200],
+    }
+
+    try:
+        r = col.update_one(
+            {"_id": oid},
+            {
+                "$set": {"pagamentos": new_pags, "updated_at": now},
+                "$push": {"pagamentos_exclusoes_auditoria": audit},
+            },
+        )
+        if r.matched_count == 0:
+            return {"ok": False, "erro": "Registro não atualizado."}
+    except Exception as exc:
+        logger.exception("excluir_pagamento_emprestimo_interno_agro")
         return {"ok": False, "erro": str(exc)[:300]}
 
     doc2 = col.find_one({"_id": oid}) or {}

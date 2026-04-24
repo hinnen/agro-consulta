@@ -96,6 +96,7 @@ from .mongo_financeiro_util import (
     listar_lancamentos_emprestimo_do_mongo,
     registrar_emprestimo_interno_agro,
     registrar_pagamento_emprestimo_interno_agro,
+    excluir_pagamento_emprestimo_interno_agro,
     LANCAMENTOS_ORDENACOES_VALIDAS,
     lancamentos_buscar_pagina,
     lancamentos_montar_query_mongo,
@@ -5683,6 +5684,73 @@ def api_emprestimos_interno_pagamento(request):
         valor=val,
         data_pagamento=dp,
         observacao=obs,
+        usuario_label=usuario,
+    )
+    return JsonResponse(r, status=200 if r.get("ok") else 400)
+
+
+def _emprestimos_interno_validar_pin(pin: str) -> tuple[bool, str]:
+    pin = (pin or "").strip()
+    if not pin:
+        return False, "Informe o PIN."
+    if pin == "1234":
+        return False, "Senha padrão (1234) bloqueada. Troque seu PIN."
+    if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+        return False, "PIN incorreto."
+    return True, ""
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_emprestimos_interno_pagamento_excluir(request):
+    """Exclui um pagamento/devolução já registrado no empréstimo interno (motivo + PIN)."""
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    ok_pin, err_pin = _emprestimos_interno_validar_pin(str(payload.get("pin") or ""))
+    if not ok_pin:
+        return JsonResponse({"ok": False, "erro": err_pin}, status=403)
+
+    motivo = str(payload.get("motivo") or "").strip()
+    if len(motivo) < 10:
+        return JsonResponse(
+            {"ok": False, "erro": "Informe o motivo da exclusão (mínimo 10 caracteres)."},
+            status=400,
+        )
+
+    meta_id = str(payload.get("id") or payload.get("_id") or "").strip()
+    pagamento_id = str(payload.get("pagamento_id") or "").strip() or None
+    indice_raw = payload.get("indice")
+    indice: int | None
+    try:
+        indice = int(indice_raw) if indice_raw is not None and str(indice_raw).strip() != "" else None
+    except (TypeError, ValueError):
+        indice = None
+
+    if not pagamento_id and indice is None:
+        return JsonResponse(
+            {"ok": False, "erro": "Informe o pagamento (id ou índice)."},
+            status=400,
+        )
+
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (
+            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
+        )[:120]
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    r = excluir_pagamento_emprestimo_interno_agro(
+        db,
+        meta_id=meta_id,
+        pagamento_id=pagamento_id,
+        indice=indice,
+        motivo=motivo,
         usuario_label=usuario,
     )
     return JsonResponse(r, status=200 if r.get("ok") else 400)

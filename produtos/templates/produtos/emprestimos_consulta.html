@@ -169,6 +169,24 @@
   </div>
 </div>
 
+<div id="modal-emp-int-del" class="fixed inset-0 z-[120] hidden flex items-end justify-center p-0 sm:items-center sm:p-4 bg-slate-900/70" role="dialog" aria-modal="true" aria-labelledby="modal-emp-int-del-titulo">
+  <div class="flex max-h-[min(92dvh,520px)] w-full max-w-md flex-col rounded-t-2xl border-2 border-red-200 bg-white shadow-2xl sm:rounded-2xl">
+    <div class="shrink-0 border-b border-slate-100 px-4 py-3 sm:px-5 flex items-start justify-between gap-2">
+      <h2 id="modal-emp-int-del-titulo" class="text-lg font-black uppercase text-red-900 pr-2">Excluir pagamento</h2>
+      <button type="button" id="modal-emp-int-del-fechar" class="min-h-[44px] min-w-[44px] shrink-0 rounded-xl border-2 border-slate-200 text-xl font-black text-slate-600 hover:bg-slate-50" aria-label="Fechar">&times;</button>
+    </div>
+    <div class="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5 sm:py-4 space-y-4 text-sm font-semibold text-slate-800">
+      <p id="modal-emp-int-del-resumo" class="text-base leading-snug rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"></p>
+      <label class="block"><span class="text-xs font-black uppercase text-slate-600">Motivo da exclusão (mín. 10 caracteres) *</span>
+        <textarea id="modal-emp-int-del-motivo" rows="3" maxlength="500" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 resize-y text-base" placeholder="Descreva o motivo…"></textarea></label>
+      <label class="block"><span class="text-xs font-black uppercase text-slate-600">PIN *</span>
+        <input type="password" id="modal-emp-int-del-pin" inputmode="numeric" autocomplete="one-time-code" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 font-black tracking-widest" placeholder="••••"></label>
+      <p id="modal-emp-int-del-msg" class="hidden text-sm font-bold rounded-lg px-2 py-2"></p>
+      <button type="button" id="modal-emp-int-del-confirmar" class="w-full min-h-[52px] rounded-xl bg-red-600 px-4 py-3 text-base font-black uppercase text-white border-2 border-red-900 hover:bg-red-700">Confirmar exclusão</button>
+    </div>
+  </div>
+</div>
+
 <div id="modal-emp-int" class="fixed inset-0 z-[110] hidden flex items-end justify-center p-0 sm:items-center sm:p-4 bg-slate-900/60" role="dialog" aria-modal="true" aria-labelledby="modal-emp-int-titulo">
   <div class="flex max-h-[min(92dvh,640px)] w-full max-w-lg flex-col rounded-t-2xl border-2 border-orange-200 bg-white shadow-2xl sm:rounded-2xl">
     <div class="shrink-0 border-b border-slate-100 px-4 py-3 sm:px-5 sm:py-4 flex items-start justify-between gap-2">
@@ -214,10 +232,12 @@
   const API_ERP = "{% url 'api_emprestimos_erp_lancamentos' %}";
   const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
   const API_INT_PAG = "{% url 'api_emprestimos_interno_pagamento' %}";
+  const API_INT_DEL = "{% url 'api_emprestimos_interno_pagamento_excluir' %}";
 
   let filtroLista = '';
   let erpItensCache = null;
   let agroItensCache = null;
+  var _delEmpIntDelCtx = { metaId: '', pid: '', ind: null };
 
   function getCookie(name) {
     const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
@@ -471,7 +491,33 @@
     });
   }
 
+  function abrirModalEmpIntDel(metaId, pagamentoIdStr, indice, liNode) {
+    _delEmpIntDelCtx.metaId = metaId || '';
+    _delEmpIntDelCtx.pid = (pagamentoIdStr || '').trim();
+    _delEmpIntDelCtx.ind = indice;
+    var box = document.getElementById('modal-emp-int-del-resumo');
+    var inner = '';
+    if (liNode) {
+      var part = liNode.querySelector('.min-w-0');
+      inner = part ? part.innerHTML : '';
+    }
+    box.innerHTML = inner || '—';
+    document.getElementById('modal-emp-int-del-motivo').value = '';
+    document.getElementById('modal-emp-int-del-pin').value = '';
+    var dm = document.getElementById('modal-emp-int-del-msg');
+    dm.classList.add('hidden');
+    dm.textContent = '';
+    document.getElementById('modal-emp-int-del').classList.remove('hidden');
+  }
+
+  function fecharModalEmpIntDel() {
+    document.getElementById('modal-emp-int-del').classList.add('hidden');
+    var dm = document.getElementById('modal-emp-int-del-msg');
+    if (dm) { dm.classList.add('hidden'); dm.textContent = ''; }
+  }
+
   function fecharModalEmpInt() {
+    fecharModalEmpIntDel();
     document.getElementById('modal-emp-int').classList.add('hidden');
     document.body.classList.remove('overflow-hidden');
   }
@@ -510,10 +556,14 @@
     } else {
       pags.slice().reverse().forEach(function (p) {
         const li = document.createElement('li');
-        li.className = 'border-b border-slate-200 pb-2 last:border-0';
-        li.innerHTML = '<span class="font-black text-orange-900">R$ ' + fmtBrl(p.valor) + '</span> em <strong>' + escHtml((p.data_pagamento || '').slice(0, 10)) + '</strong>' +
+        li.className = 'border-b border-slate-200 pb-2 last:border-0 flex flex-wrap items-start justify-between gap-2';
+        const ind = (typeof p.indice === 'number') ? p.indice : parseInt(p.indice, 10);
+        const indSafe = Number.isFinite(ind) ? String(ind) : '0';
+        const pid = (p.pagamento_id != null && String(p.pagamento_id).trim()) ? escHtml(String(p.pagamento_id).trim()) : '';
+        li.innerHTML = '<div class="min-w-0 flex-1"><span class="font-black text-orange-900">R$ ' + fmtBrl(p.valor) + '</span> em <strong>' + escHtml((p.data_pagamento || '').slice(0, 10)) + '</strong>' +
           (p.observacao ? '<div class="text-slate-600 mt-0.5">' + escHtml(p.observacao) + '</div>' : '') +
-          '<div class="text-[10px] text-slate-400 mt-0.5">' + escHtml((p.created_by || '') + ' · ' + (String(p.created_at || '').slice(0, 19).replace('T', ' '))) + '</div>';
+          '<div class="text-[10px] text-slate-400 mt-0.5">' + escHtml((p.created_by || '') + ' · ' + (String(p.created_at || '').slice(0, 19).replace('T', ' '))) + '</div></div>' +
+          '<button type="button" class="btn-del-pag shrink-0 min-h-[44px] rounded-xl border-2 border-red-300 bg-red-50 px-3 py-2 text-xs font-black uppercase text-red-900 hover:bg-red-100" data-indice="' + indSafe + '" data-pid="' + pid + '">Excluir</button>';
         ul.appendChild(li);
       });
     }
@@ -526,6 +576,15 @@
     msg.textContent = '';
     m.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
+    ul.querySelectorAll('.btn-del-pag').forEach(function (btn) {
+      btn.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var pid = (btn.getAttribute('data-pid') || '').trim();
+        var inds = (btn.getAttribute('data-indice') || '').trim();
+        var ind = inds === '' ? null : parseInt(inds, 10);
+        abrirModalEmpIntDel(x.id || '', pid, Number.isFinite(ind) ? ind : null, btn.closest('li'));
+      });
+    });
     document.getElementById('modal-emp-int-salvar').disabled = !!x.interno_quitado;
     document.getElementById('modal-emp-int-valor').disabled = !!x.interno_quitado;
     document.getElementById('modal-emp-int-data').disabled = !!x.interno_quitado;
@@ -535,6 +594,64 @@
   document.getElementById('modal-emp-int-fechar').addEventListener('click', fecharModalEmpInt);
   document.getElementById('modal-emp-int').addEventListener('click', function (e) {
     if (e.target.id === 'modal-emp-int') fecharModalEmpInt();
+  });
+  document.getElementById('modal-emp-int-del-fechar').addEventListener('click', fecharModalEmpIntDel);
+  document.getElementById('modal-emp-int-del').addEventListener('click', function (e) {
+    if (e.target.id === 'modal-emp-int-del') fecharModalEmpIntDel();
+  });
+  document.getElementById('modal-emp-int-del-confirmar').addEventListener('click', async function () {
+    var msg = document.getElementById('modal-emp-int-del-msg');
+    msg.classList.add('hidden');
+    var motivo = document.getElementById('modal-emp-int-del-motivo').value.trim();
+    if (motivo.length < 10) {
+      msg.textContent = 'Informe o motivo (mínimo 10 caracteres).';
+      msg.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-900', 'border-emerald-200');
+      msg.classList.add('bg-red-50', 'text-red-900', 'border', 'border-red-200');
+      return;
+    }
+    var pin = document.getElementById('modal-emp-int-del-pin').value.trim();
+    if (!pin) {
+      msg.textContent = 'Informe o PIN.';
+      msg.classList.remove('hidden');
+      msg.classList.add('bg-red-50', 'text-red-900', 'border', 'border-red-200');
+      return;
+    }
+    var body = { id: _delEmpIntDelCtx.metaId, motivo: motivo, pin: pin };
+    if (_delEmpIntDelCtx.pid) {
+      body.pagamento_id = _delEmpIntDelCtx.pid;
+    } else if (_delEmpIntDelCtx.ind !== null && _delEmpIntDelCtx.ind !== undefined) {
+      body.indice = _delEmpIntDelCtx.ind;
+    } else {
+      msg.textContent = 'Pagamento inválido.';
+      msg.classList.remove('hidden');
+      msg.classList.add('bg-red-50', 'text-red-900', 'border', 'border-red-200');
+      return;
+    }
+    try {
+      var r = await fetch(API_INT_DEL, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify(body)
+      });
+      var j = await r.json();
+      if (j.ok) {
+        fecharModalEmpIntDel();
+        await carregarLista();
+        var mid = document.getElementById('modal-emp-int-id').value.trim();
+        var item = (agroItensCache || []).find(function (z) { return String(z.id) === String(mid); });
+        if (item) abrirModalEmpInt(item);
+        else fecharModalEmpInt();
+      } else {
+        msg.textContent = j.erro || 'Falha ao excluir.';
+        msg.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-900', 'border-emerald-200');
+        msg.classList.add('bg-red-50', 'text-red-900', 'border', 'border-red-200');
+      }
+    } catch (e2) {
+      msg.textContent = 'Erro de rede.';
+      msg.classList.remove('hidden');
+      msg.classList.add('bg-red-50', 'text-red-900', 'border', 'border-red-200');
+    }
   });
   document.getElementById('modal-emp-int-salvar').addEventListener('click', async function () {
     const msg = document.getElementById('modal-emp-int-msg');
@@ -696,9 +813,13 @@
   document.getElementById('consulta-filtros-fechar-rodape').addEventListener('click', fecharFiltrosConsulta);
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-      const mi = document.getElementById('modal-emp-int');
-      if (mi && !mi.classList.contains('hidden')) fecharModalEmpInt();
-      else if (!overlay.classList.contains('hidden')) fecharFiltrosConsulta();
+      const md = document.getElementById('modal-emp-int-del');
+      if (md && !md.classList.contains('hidden')) fecharModalEmpIntDel();
+      else {
+        const mi = document.getElementById('modal-emp-int');
+        if (mi && !mi.classList.contains('hidden')) fecharModalEmpInt();
+        else if (!overlay.classList.contains('hidden')) fecharFiltrosConsulta();
+      }
     }
   });
 

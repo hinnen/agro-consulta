@@ -249,6 +249,11 @@ urlpatterns = [
         name='api_emprestimos_interno_pagamento',
     ),
     path(
+        'api/emprestimos/interno-pagamento-excluir/',
+        views.api_emprestimos_interno_pagamento_excluir,
+        name='api_emprestimos_interno_pagamento_excluir',
+    ),
+    path(
         'api/emprestimos/defaults/',
         views.api_emprestimos_defaults,
         name='api_emprestimos_defaults',
