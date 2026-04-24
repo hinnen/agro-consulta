@@ -12,6 +12,7 @@
   <style>
     /* Paleta premium: preto, branco e Azul Capri (#00BFFF) */
     :root {
+      --capri: #00bfff;
       --capri-blue: #00bfff;
       --capri-glow: rgba(0, 191, 255, 0.25);
       --dark-bg: #020617;
@@ -50,19 +51,11 @@
       container-name: home-hub;
       font-size: clamp(0.84rem, calc(0.76rem + var(--hh-wpx) * 0.0025), 1.01rem);
       background:
-        radial-gradient(circle at top right, rgba(0, 191, 255, 0.08), transparent 35%),
-        linear-gradient(180deg, var(--dark-bg) 0%, #0f172a 100%) !important;
+        radial-gradient(circle at top right, rgba(0, 191, 255, 0.05), transparent 40%),
+        linear-gradient(180deg, #020617 0%, #0f172a 100%) !important;
     }
     .home-hub-shell-pad {
       padding: clamp(0.3rem, calc(0.15rem + var(--hh-wpx) * 0.0045), 0.88rem);
-    }
-    .home-hub-top {
-      flex-shrink: 0;
-      align-items: stretch;
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
     }
     .home-hub-grid-wrap {
       flex: 1 1 0;
@@ -86,14 +79,14 @@
         grid-template-columns: repeat(4, minmax(0, 1fr));
       }
     }
-    @container home-hub (min-width: 85rem) {
+    @container home-hub (min-width: 80rem) {
       .home-hub-grid-wrap {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
       }
     }
-    @container home-hub (min-width: 110rem) {
+    @container home-hub (min-width: 100rem) {
       .home-hub-grid-wrap {
-        grid-template-columns: repeat(6, minmax(0, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
       }
     }
     .home-top-card,
@@ -114,38 +107,17 @@
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
     }
+    .home-hub-grid-wrap .home-grid-card {
+      background: rgba(30, 41, 59, 0.3) !important;
+      border: 1px solid rgba(255, 255, 255, 0.03) !important;
+      padding: 1.25rem !important;
+    }
     .home-top-card {
       min-height: auto;
       align-self: stretch;
       padding: clamp(0.48rem, calc(0.28rem + var(--hh-wpx) * 0.0082), 1.22rem)
         clamp(0.52rem, calc(0.3rem + var(--hh-wpx) * 0.009), 1.22rem);
       box-shadow: 0 16px 40px rgba(2, 6, 23, 0.28);
-    }
-    .home-hub-top .home-top-card {
-      min-height: 120px !important;
-      display: flex !important;
-      flex-direction: column !important;
-      justify-content: center !important;
-      align-items: center !important;
-      text-align: center;
-      background: rgba(0, 191, 255, 0.05) !important;
-      border: 1px solid rgba(0, 191, 255, 0.2) !important;
-    }
-    .home-hub-top .home-top-card-capri,
-    .home-hub-top .home-top-card-emerald,
-    .home-hub-top .home-top-card-orange {
-      background: rgba(0, 191, 255, 0.05) !important;
-      border-color: rgba(0, 191, 255, 0.2) !important;
-    }
-    .home-hub-top .home-card-head {
-      flex-direction: column !important;
-      align-items: center !important;
-      justify-content: center;
-      gap: 0.5rem;
-    }
-    .home-hub-top .home-card-title {
-      margin-top: 0.35rem;
-      text-align: center;
     }
     .home-grid-card,
     .home-grid-card-disabled {
@@ -171,10 +143,11 @@
       border-color: var(--capri-blue) !important;
       box-shadow: 0 0 20px var(--capri-glow), 0 14px 32px rgba(2, 6, 23, 0.35);
     }
-    .home-grid-card:hover {
-      transform: translateY(-2px);
-      border-color: var(--capri-blue) !important;
-      box-shadow: 0 0 20px var(--capri-glow);
+    .home-hub-grid-wrap .home-grid-card:hover {
+      transform: none;
+      border-color: var(--capri) !important;
+      background: rgba(0, 191, 255, 0.03) !important;
+      box-shadow: none;
     }
     .home-top-card-emerald {
       background: linear-gradient(135deg, #020617 0%, #004d40 100%) !important;
@@ -197,6 +170,11 @@
       background: linear-gradient(135deg, #00bfff 0%, #0080ff 100%) !important;
       border: none !important;
       font-weight: 800;
+    }
+    .home-top-actions-grid a .home-lucide-top-slot svg {
+      width: 1.5rem;
+      height: 1.5rem;
+      stroke-width: 2;
     }
     .home-card-head {
       display: flex;
@@ -273,15 +251,33 @@
 {% block admin_content %}
 {% include "produtos/_gm_loading_bar.html" %}
 {{ home_pdv_bootstrap|json_script:"home-pdv-bootstrap" }}
-<div class="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-white/5 bg-slate-950 px-4 py-3 text-white sm:px-6 shrink-0">
-  <span class="text-xs font-black uppercase tracking-tighter text-capri-blue">Home administrativa</span>
-  <span class="text-slate-600" aria-hidden="true">|</span>
-  <h1 class="text-lg font-black tracking-tight">Agro Consulta</h1>
-  <span class="text-slate-600" aria-hidden="true">|</span>
-  {% if empresa_atual %}
-    <p class="text-sm font-bold text-slate-400">Empresa: <span class="text-white">{{ empresa_atual.nome_fantasia }}</span></p>
-  {% endif %}
+<div class="no-print flex min-h-0 shrink-0 items-center justify-between border-b border-white/5 bg-[#020617] px-4 py-2 text-white sm:px-6">
+  <div class="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
+    <span class="text-[10px] font-black uppercase tracking-widest text-[#00BFFF]">Home administrativa</span>
+    <span class="hidden h-3 w-px shrink-0 bg-slate-800 sm:block" aria-hidden="true"></span>
+    <h1 class="text-sm font-black uppercase tracking-tight">Agro Consulta</h1>
+    <span class="hidden h-3 w-px shrink-0 bg-slate-800 sm:block" aria-hidden="true"></span>
+    {% if empresa_atual %}
+      <p class="min-w-0 truncate text-[11px] font-bold text-slate-400">Loja: <span class="text-white">{{ empresa_atual.nome_fantasia }}</span></p>
+    {% endif %}
+  </div>
+  <div id="relogio-header" class="shrink-0 pl-2 font-mono text-[10px] text-slate-500 tabular-nums" aria-live="polite"></div>
 </div>
+<script>
+  (function () {
+    function tick() {
+      var el = document.getElementById("relogio-header");
+      if (!el) return;
+      el.textContent = new Date().toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    }
+    tick();
+    setInterval(tick, 1000);
+  })();
+</script>
 <section class="home-hub-outer flex w-full flex-1 min-h-0 flex-col">
   <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-none border-0 shadow-none sm:mx-4 sm:mb-4 sm:rounded-[1.75rem] sm:border sm:border-slate-800 sm:shadow-[0_24px_80px_rgba(2,6,23,0.45)]">
     <div class="home-hub-shell home-hub-shell-pad">
@@ -377,20 +373,25 @@
         </div>
       </div>
 
-      <div class="home-hub-top">
+      <div class="home-top-actions-grid grid min-w-0 grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
         {% for item in home_top_items %}
           <a
             href="{{ item.href }}"
-            class="home-top-card home-top-card-{{ item.accent }}"
+            class="group flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-[#00BFFF]/20 bg-slate-900/40 p-3 text-left no-underline transition-all hover:border-[#00BFFF] hover:bg-[#00BFFF]/5 sm:p-4"
             data-home-shortcut="{{ item.shortcut_key }}"
             {% if item.pin_protected %}data-pin-protected="true"{% endif %}
           >
-            <div class="home-card-head">
-              <span class="home-card-icon"><i data-lucide="{{ item.icon }}"></i></span>
-              <span class="home-shortcut-chip">{{ item.shortcut }}</span>
+            <div class="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+              <div class="home-lucide-top-slot flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#00BFFF]/10 text-[#00BFFF] transition-transform group-hover:scale-110">
+                <i data-lucide="{{ item.icon }}"></i>
+              </div>
+              <div class="min-w-0">
+                <div class="text-[10px] font-black uppercase tracking-widest text-[#00BFFF] opacity-70">Acessar</div>
+                <div class="truncate text-base font-black uppercase leading-none text-white sm:text-lg">{{ item.title }}</div>
+              </div>
             </div>
-            <div>
-              <div class="home-card-title">{{ item.title }}</div>
+            <div class="flex shrink-0 items-center justify-center rounded-lg border-2 border-white/10 bg-white/5 px-2.5 py-2 text-xs font-black text-white/40 transition-colors group-hover:border-[#00BFFF]/40 group-hover:text-[#00BFFF] sm:px-3 sm:text-sm">
+              {{ item.shortcut }}
             </div>
           </a>
         {% endfor %}
