@@ -226,6 +226,7 @@
     var btn = document.getElementById('cadastro-overlay-salvar');
     if (!btn) return;
     btn.onclick = function () {
+      if (btn.disabled) return;
       var msg = document.getElementById('cadastro-overlay-msg');
       function showMsg(t, ok) {
         if (!msg) return;
@@ -239,6 +240,9 @@
         }
       }
       showMsg('');
+      var originalLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Salvando…';
       function gv(id) {
         var el = document.getElementById(id);
         return el ? el.value : '';
@@ -276,6 +280,9 @@
         carregarDetalheProduto(String(p.id || ''));
       }).catch(function (e) {
         showMsg(e.message || 'Erro ao salvar', false);
+      }).finally(function () {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
       });
     };
   }

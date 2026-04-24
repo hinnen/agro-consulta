@@ -97,6 +97,7 @@ from .mongo_financeiro_util import (
     registrar_emprestimo_interno_agro,
     registrar_pagamento_emprestimo_interno_agro,
     excluir_pagamento_emprestimo_interno_agro,
+    excluir_registro_emprestimo_interno_agro,
     LANCAMENTOS_ORDENACOES_VALIDAS,
     lancamentos_buscar_pagina,
     lancamentos_montar_query_mongo,
@@ -5703,7 +5704,7 @@ def _emprestimos_interno_validar_pin(pin: str) -> tuple[bool, str]:
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_emprestimos_interno_pagamento_excluir(request):
-    """Exclui um pagamento/devolução já registrado no empréstimo interno (motivo + PIN)."""
+    """Exclui um pagamento no interno ou o cadastro inteiro (sem pagamentos), sempre motivo + PIN."""
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -5721,19 +5722,7 @@ def api_emprestimos_interno_pagamento_excluir(request):
         )
 
     meta_id = str(payload.get("id") or payload.get("_id") or "").strip()
-    pagamento_id = str(payload.get("pagamento_id") or "").strip() or None
-    indice_raw = payload.get("indice")
-    indice: int | None
-    try:
-        indice = int(indice_raw) if indice_raw is not None and str(indice_raw).strip() != "" else None
-    except (TypeError, ValueError):
-        indice = None
-
-    if not pagamento_id and indice is None:
-        return JsonResponse(
-            {"ok": False, "erro": "Informe o pagamento (id ou índice)."},
-            status=400,
-        )
+    excluir_registro = payload.get("excluir_registro") in (True, "true", "1", 1)
 
     usuario = ""
     if request.user.is_authenticated:
@@ -5744,6 +5733,26 @@ def api_emprestimos_interno_pagamento_excluir(request):
     _, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    if excluir_registro:
+        r = excluir_registro_emprestimo_interno_agro(
+            db, meta_id=meta_id, motivo=motivo, usuario_label=usuario
+        )
+        return JsonResponse(r, status=200 if r.get("ok") else 400)
+
+    pagamento_id = str(payload.get("pagamento_id") or "").strip() or None
+    indice_raw = payload.get("indice")
+    indice: int | None
+    try:
+        indice = int(indice_raw) if indice_raw is not None and str(indice_raw).strip() != "" else None
+    except (TypeError, ValueError):
+        indice = None
+
+    if not pagamento_id and indice is None:
+        return JsonResponse(
+            {"ok": False, "erro": "Informe o pagamento (id ou índice) ou marque exclusão do cadastro."},
+            status=400,
+        )
 
     r = excluir_pagamento_emprestimo_interno_agro(
         db,

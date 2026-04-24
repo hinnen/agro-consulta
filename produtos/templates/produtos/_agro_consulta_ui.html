@@ -218,5 +218,31 @@
     line-height: 1.35;
     max-width: 100%;
   }
+
+  @keyframes spinner-border {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Botões em processamento (opcional: classList.add('btn-loading') em JS). */
+  .btn-loading {
+    pointer-events: none !important;
+    opacity: 0.7 !important;
+    position: relative;
+  }
+
+  .btn-loading::after {
+    content: "";
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    margin-left: 0.5rem;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border 0.75s linear infinite;
+    vertical-align: text-bottom;
+  }
 </style>
 {% include "produtos/_agro_open_external.html" %}

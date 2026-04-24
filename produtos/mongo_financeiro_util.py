@@ -25,6 +25,7 @@ COL_DTO_LANCAMENTO = "DtoLancamento"
 # Cadastro de plano (Mongo shell: db.DtoPlanoDeConta.find().sort({ _id: -1 }).limit(10))
 COL_DTO_PLANO_CONTA = "DtoPlanoDeConta"
 COL_AGRO_EMPRESTIMO = "AgroEmprestimo"
+COL_AGRO_EMPRESTIMO_AUDITORIA = "AgroEmprestimoAuditoria"
 
 # Planos padrão informados pela operação (conferir grafia no ERP / Mongo).
 EMPRESTIMO_PLANO_ENTRADA_PADRAO = "Entrada de Emprestimo"
@@ -4518,6 +4519,67 @@ def excluir_pagamento_emprestimo_interno_agro(
         "interno_saldo_devedor": enr.get("interno_saldo_devedor"),
         "interno_quitado": enr.get("interno_quitado"),
     }
+
+
+def excluir_registro_emprestimo_interno_agro(
+    db,
+    *,
+    meta_id: str,
+    motivo: str,
+    usuario_label: str,
+) -> dict[str, Any]:
+    """Apaga o documento ``AgroEmprestimo`` interno só se não houver linhas em ``pagamentos``."""
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    meta_id = (meta_id or "").strip()
+    if not meta_id:
+        return {"ok": False, "erro": "Informe o id do registro."}
+    try:
+        oid = ObjectId(meta_id)
+    except Exception:
+        return {"ok": False, "erro": "Id inválido."}
+
+    col = db[COL_AGRO_EMPRESTIMO]
+    doc = col.find_one({"_id": oid})
+    if not doc:
+        return {"ok": False, "erro": "Registro não encontrado."}
+    if str(doc.get("tipo") or "").strip().lower() != "interno":
+        return {"ok": False, "erro": "Só é possível excluir cadastro de empréstimo interno."}
+
+    pags_raw = doc.get("pagamentos") or []
+    if isinstance(pags_raw, list) and len(pags_raw) > 0:
+        return {
+            "ok": False,
+            "erro": "Há pagamentos registrados. Use «Excluir» ao lado de cada linha em Pagamentos já registrados; depois você pode excluir o cadastro.",
+        }
+
+    now = timezone.now()
+    audit: dict[str, Any] = {
+        "acao": "exclusao_registro_interno",
+        "meta_id": str(oid),
+        "ref": str(doc.get("ref") or "")[:32],
+        "mutuario_label": str(doc.get("mutuario_label") or "")[:300],
+        "empresa_id": str(doc.get("empresa_id") or "")[:64],
+        "valor_aporte": doc.get("valor_aporte"),
+        "valor_devolucao_total": doc.get("valor_devolucao_total"),
+        "motivo_exclusao": (motivo or "").strip()[:500],
+        "excluido_em": now,
+        "excluido_por": (usuario_label or "")[:200],
+    }
+    try:
+        db[COL_AGRO_EMPRESTIMO_AUDITORIA].insert_one(audit)
+    except Exception:
+        logger.exception("AgroEmprestimoAuditoria insert exclusao registro interno")
+
+    try:
+        r = col.delete_one({"_id": oid})
+        if r.deleted_count == 0:
+            return {"ok": False, "erro": "Registro não excluído."}
+    except Exception as exc:
+        logger.exception("excluir_registro_emprestimo_interno_agro delete")
+        return {"ok": False, "erro": str(exc)[:300]}
+
+    return {"ok": True}
 
 
 def lancamentos_planos_distintos_no_filtro(

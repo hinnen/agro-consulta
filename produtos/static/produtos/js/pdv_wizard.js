@@ -15,6 +15,8 @@
     var mpBalcaoPickPending = null;
     /** Evita refocus na lista de máquinas quando o modo MP Balcão fechou após Automático/Manual (sucesso). */
     var mpBalcaoModoCloseAfterSuccess = false;
+    /** Trava duplo clique / F8+F9 repetido enquanto a confirmação de venda está em andamento. */
+    var isProcessingSale = false;
 
     var MP_POINT_WAIT_ABORT_MSG =
         'Espera do Point cancelada.\n\nEm “Pagamentos já lançados”, use Alterar (ex.: Balcão manual) ou Excluir e escolha outra forma.\n\nSe o valor ainda aparecer na maquininha, cancele a operação no próprio terminal Mercado Pago.';
@@ -2442,10 +2444,14 @@
         if (n) {
             n.disabled = !!busy;
             n.textContent = busy ? 'Confirmando…' : '';
+            n.classList.toggle('opacity-50', !!busy);
+            n.classList.toggle('cursor-not-allowed', !!busy);
         }
         if (p) {
             p.disabled = !!busy;
             p.textContent = busy ? 'Confirmando…' : '';
+            p.classList.toggle('opacity-50', !!busy);
+            p.classList.toggle('cursor-not-allowed', !!busy);
         }
         if (!busy) {
             if (n) {
@@ -2461,6 +2467,7 @@
     }
 
     function confirmSale(withPrint) {
+        if (isProcessingSale) return;
         var state = State.getState();
         var computed = State.getComputed();
         var validation = canAdvance(Object.assign({}, state, { currentStep: 'pagamento' }), computed);
@@ -2472,6 +2479,8 @@
             confirmSaleMercadoPagoPoint(!!withPrint);
             return;
         }
+        isProcessingSale = true;
+        setConfirmButtonsBusy(true);
         var printWin = null;
         if (withPrint) {
             printWin = window.open('about:blank', 'pdv_cupom_venda', 'width=480,height=720,scrollbars=yes');
@@ -2483,7 +2492,6 @@
         }
         State.setPagamentoField('imprimirCupom', !!withPrint);
         state = State.getState();
-        setConfirmButtonsBusy(true);
         if (window.gmLoadingBar) window.gmLoadingBar.show();
 
         jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(state, computed))
@@ -2524,12 +2532,14 @@
             })
             .finally(function () {
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                isProcessingSale = false;
                 setConfirmButtonsBusy(false);
             });
     }
 
     function confirmSaleMercadoPagoPoint(withPrint) {
         withPrint = !!withPrint;
+        if (isProcessingSale) return;
         if (!pagamentoUi.mpPointEnabled || !String(urls.apiPdvMpPointCriar || '').trim()) {
             alert('Mercado Pago Point não está configurado no servidor (.env).');
             return;
@@ -2545,6 +2555,8 @@
             alert('O envio automático ao Point só vale para pagamento único no “Mercado Pago — Balcão” cobrindo o total da venda.');
             return;
         }
+        isProcessingSale = true;
+        setConfirmButtonsBusy(true);
         var printWin = null;
         if (withPrint) {
             printWin = window.open('about:blank', 'pdv_cupom_venda', 'width=480,height=720,scrollbars=yes');
@@ -2556,7 +2568,6 @@
         }
         State.setPagamentoField('imprimirCupom', withPrint);
         state = State.getState();
-        setConfirmButtonsBusy(true);
         if (window.gmLoadingBar) window.gmLoadingBar.show();
 
         jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(state, computed))
@@ -2635,6 +2646,7 @@
             .finally(function () {
                 hideMpPointWaitBar();
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                isProcessingSale = false;
                 setConfirmButtonsBusy(false);
             });
     }
