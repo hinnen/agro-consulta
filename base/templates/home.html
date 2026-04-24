@@ -171,10 +171,91 @@
       border: none !important;
       font-weight: 800;
     }
-    .home-top-actions-grid a .home-lucide-top-slot svg {
+    /* Topo: cartões horizontais premium (Capri + Esmeralda) */
+    .home-hub-top {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 28rem) {
+      .home-hub-top {
+        grid-template-columns: 1fr;
+      }
+    }
+    .home-top-card-horizontal {
+      display: flex;
+      align-items: center;
+      border-radius: 1.25rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+      overflow: hidden;
+      position: relative;
+      text-decoration: none;
+      color: inherit;
+    }
+    .home-top-card-horizontal:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+    .home-hub-top .card-icon-box {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .home-hub-top .card-icon-box svg {
       width: 1.5rem;
       height: 1.5rem;
       stroke-width: 2;
+    }
+    .item-f1 {
+      border-color: rgba(0, 191, 255, 0.3) !important;
+    }
+    .item-f1 .card-icon-box {
+      background: rgba(0, 191, 255, 0.15);
+      color: #00bfff;
+      padding: 12px;
+      border-radius: 12px;
+    }
+    .item-f1:hover {
+      background: linear-gradient(135deg, rgba(0, 191, 255, 0.1) 0%, rgba(15, 23, 42, 0.9) 100%);
+      border-color: #00bfff !important;
+    }
+    .item-f2 {
+      border-color: rgba(16, 185, 129, 0.3) !important;
+    }
+    .item-f2 .card-icon-box {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      padding: 12px;
+      border-radius: 12px;
+    }
+    .item-f2:hover {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(15, 23, 42, 0.9) 100%);
+      border-color: #10b981 !important;
+    }
+    .shortcut-badge {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: 900;
+      color: #fff;
+      transition: border-color 0.2s ease, color 0.2s ease;
+      flex-shrink: 0;
+    }
+    .item-f1:hover .shortcut-badge {
+      border-color: #00bfff;
+      color: #00bfff;
+    }
+    .item-f2:hover .shortcut-badge {
+      border-color: #10b981;
+      color: #10b981;
     }
     .home-card-head {
       display: flex;
@@ -373,25 +454,23 @@
         </div>
       </div>
 
-      <div class="home-top-actions-grid grid min-w-0 grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+      <div class="home-hub-top min-w-0">
         {% for item in home_top_items %}
           <a
             href="{{ item.href }}"
-            class="group flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-[#00BFFF]/20 bg-slate-900/40 p-3 text-left no-underline transition-all hover:border-[#00BFFF] hover:bg-[#00BFFF]/5 sm:p-4"
+            class="home-top-card-horizontal group item-{{ item.shortcut_key }}"
             data-home-shortcut="{{ item.shortcut_key }}"
             {% if item.pin_protected %}data-pin-protected="true"{% endif %}
           >
-            <div class="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-              <div class="home-lucide-top-slot flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#00BFFF]/10 text-[#00BFFF] transition-transform group-hover:scale-110">
+            <div class="flex w-full min-w-0 items-center gap-4 px-5 py-4">
+              <div class="card-icon-box">
                 <i data-lucide="{{ item.icon }}"></i>
               </div>
-              <div class="min-w-0">
-                <div class="text-[10px] font-black uppercase tracking-widest text-[#00BFFF] opacity-70">Acessar</div>
-                <div class="truncate text-base font-black uppercase leading-none text-white sm:text-lg">{{ item.title }}</div>
+              <div class="min-w-0 flex-1">
+                <span class="mb-0.5 block text-[10px] font-black uppercase tracking-[0.2em] text-white/60">Acessar</span>
+                <h2 class="truncate text-xl font-black uppercase tracking-tight text-white">{{ item.title }}</h2>
               </div>
-            </div>
-            <div class="flex shrink-0 items-center justify-center rounded-lg border-2 border-white/10 bg-white/5 px-2.5 py-2 text-xs font-black text-white/40 transition-colors group-hover:border-[#00BFFF]/40 group-hover:text-[#00BFFF] sm:px-3 sm:text-sm">
-              {{ item.shortcut }}
+              <div class="shortcut-badge">{{ item.shortcut }}</div>
             </div>
           </a>
         {% endfor %}
