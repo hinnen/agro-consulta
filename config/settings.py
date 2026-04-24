@@ -239,6 +239,8 @@ AGRO_FINANCEIRO_BANCO_PLACEHOLDER_NOME = (
 AGRO_EMPRESTIMO_PLANO_ENTRADA = (config("AGRO_EMPRESTIMO_PLANO_ENTRADA", default="") or "").strip()
 AGRO_EMPRESTIMO_PLANO_DIVIDA = (config("AGRO_EMPRESTIMO_PLANO_DIVIDA", default="") or "").strip()
 AGRO_EMPRESTIMO_PLANO_JUROS = (config("AGRO_EMPRESTIMO_PLANO_JUROS", default="") or "").strip()
+# Empréstimos — consulta: nomes de cliente (Mongo) a ocultar na lista, separados por vírgula (normalização case-insensitive).
+AGRO_EMPRESTIMO_EXCLUIR_CLIENTES = (config("AGRO_EMPRESTIMO_EXCLUIR_CLIENTES", default="") or "").strip()
 
 # PDV: WhatsApp para aviso de separação/entrega ao salvar orçamento (somente dígitos, ex.: 5513999999999).
 # wa.me abre conversa com um número; não existe URL oficial para “postar” direto em grupo pelo navegador.

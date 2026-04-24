@@ -73,6 +73,39 @@ EMPRESTIMO_CREDORES_INTERNOS_PADRAO: tuple[str, ...] = (
     "🟡📍 Queila Hinnen a",
 )
 
+# Clientes cujos títulos Mongo (DtoLancamento) somem da consulta de empréstimos — ex.: lançamentos errados no plano de juros.
+# Amplie com ``AGRO_EMPRESTIMO_EXCLUIR_CLIENTES`` no .env (nomes separados por vírgula).
+EMPRESTIMO_MONGO_CLIENTES_EXCLUIDOS_PADRAO: tuple[str, ...] = (
+    "Adimax Industria E Comercio De Alimentos Ltda",
+    "Organização Contabil Martins",
+    "Ibiuna Alimentos",
+    "Nutrialfa Alimentos Ltda",
+    "Sn - Safra Mil",
+    "Sn - Rbs",
+    "Incofap Ind.E Com. De Farinhas De Penas Ltda",
+    "Marivet Comercio De Produtos Agropecuarios Ltda.",
+    "Sn - Washington Moledo Fernandes Me",
+    "Agromaia Ind E Com Imp Exp De Produtos Agropecuarios Ltda",
+)
+
+
+def emprestimo_mongo_excluir_cliente_listagem(cliente: str) -> bool:
+    """Se verdadeiro, o lançamento Mongo não entra em ``listar_lancamentos_emprestimo_do_mongo`` (consulta)."""
+    k = _normalizar_nome_credor_emprestimo(cliente)
+    if not k:
+        return False
+    excl: set[str] = set()
+    for name in EMPRESTIMO_MONGO_CLIENTES_EXCLUIDOS_PADRAO:
+        kn = _normalizar_nome_credor_emprestimo(str(name))
+        if kn:
+            excl.add(kn)
+    extra = (getattr(settings, "AGRO_EMPRESTIMO_EXCLUIR_CLIENTES", None) or "").strip()
+    for part in extra.split(","):
+        kn = _normalizar_nome_credor_emprestimo(part)
+        if kn:
+            excl.add(kn)
+    return k in excl
+
 
 def emprestimo_defaults_para_ui() -> dict[str, Any]:
     return {
@@ -174,6 +207,8 @@ def listar_lancamentos_emprestimo_do_mongo(
         row["origem_erp"] = _lancamento_tem_vinculo_erp(doc)
         row["manual_agro"] = _lancamento_e_manual_agro(doc)
         row["emprestimo_tipo"] = _classificar_lancamento_emprestimo_mongo(doc)
+        if emprestimo_mongo_excluir_cliente_listagem(str(row.get("cliente") or "")):
+            continue
         out.append(row)
     return out
 

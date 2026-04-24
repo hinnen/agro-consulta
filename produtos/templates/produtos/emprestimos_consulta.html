@@ -4,7 +4,7 @@
 {% block admin_title %}Agro Consulta | Empréstimos — consulta{% endblock %}
 {% block admin_header_title %}Empréstimos — consulta{% endblock %}
 {% block admin_header_meta %}
-  <p class="mt-1 text-lg font-bold text-slate-600 max-w-4xl leading-snug">Uma lista só: cadastros Agro e títulos de empréstimo no Mongo. <strong class="text-slate-800">Filtros</strong> abre tipo, nome, ordenação e sugestões.</p>
+  <p class="mt-1 text-base font-semibold text-slate-600">Tipo, nome e ordenação no botão <strong class="text-slate-800">Filtros</strong> na lista.</p>
 {% endblock %}
 
 {% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col{% endblock %}
@@ -20,23 +20,14 @@
 
 {% include "produtos/_emprestimos_subnav.html" %}
 
-<div class="sticky top-0 z-30 -mx-4 mb-6 border-b-2 border-slate-200 bg-slate-100/95 px-4 py-4 backdrop-blur-sm sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-  <div class="flex w-full max-w-none flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-    <button type="button" id="btn-abrir-filtros" class="min-h-[52px] w-full shrink-0 rounded-xl border-2 border-slate-700 bg-slate-800 px-6 py-3 text-base font-black uppercase text-white shadow-md hover:bg-slate-900 sm:ml-auto sm:w-auto">
-      Filtros
-    </button>
-  </div>
-</div>
-
 <div id="panel-consulta-emp" class="consulta-panel w-full">
-  <div class="flex min-h-0 w-full flex-col gap-4 rounded-2xl border-2 border-orange-200/80 bg-white p-6 lg:p-8 shadow-sm">
-    <h2 class="text-xl font-black uppercase tracking-tight text-orange-900 lg:text-2xl">Empréstimos — lista unificada</h2>
-    <label class="flex max-w-2xl flex-wrap items-center gap-3 text-lg font-bold text-slate-700">
-      <span class="shrink-0 font-black uppercase text-slate-600">Empresa ID</span>
-      <input type="text" id="erp-filtro-empresa-id" class="min-h-[52px] min-w-[12rem] flex-1 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 font-mono text-base" placeholder="opcional — filtra títulos Mongo" autocomplete="off">
-    </label>
-    <p class="text-sm font-semibold text-slate-500 -mt-2">Empresa ID: a lista recarrega ao pausar a digitação ou ao sair do campo.</p>
-    <p class="text-base font-semibold text-slate-600">Tipo <strong>Todos / Externos / Internos</strong> no painel <strong>Filtros</strong>. <strong>Saldo líquido</strong>: negativo = loja deve à pessoa; positivo = pessoa deve à loja. Inclui cadastros <strong>Agro</strong> e cada <strong>título de empréstimo</strong> já no <strong>Mongo</strong> (cartão <strong>Título Mongo</strong> — interno ou externo); baixa no fluxo de Lançamentos. Só cadastro interno Agro: botão <strong>Gerenciar</strong>.</p>
+  <div class="flex min-h-0 w-full flex-col gap-4 rounded-2xl border-2 border-orange-200/80 bg-white p-5 sm:p-6 lg:p-7 shadow-sm">
+    <div class="flex flex-wrap items-start justify-between gap-3 gap-y-2 border-b border-orange-100 pb-4">
+      <h2 class="min-w-0 flex-1 text-xl font-black uppercase tracking-tight text-orange-900 lg:text-2xl">Empréstimos — lista unificada</h2>
+      <button type="button" id="btn-abrir-filtros" class="min-h-[52px] shrink-0 rounded-xl border-2 border-slate-700 bg-slate-800 px-6 py-3 text-base font-black uppercase text-white shadow-md hover:bg-slate-900">
+        Filtros
+      </button>
+    </div>
     <div id="lista-emp" class="min-h-[min(58vh,32rem)] max-h-[min(65vh,36rem)] w-full overflow-y-auto text-lg font-semibold text-slate-600">Carregando…</div>
   </div>
 </div>
@@ -94,10 +85,6 @@
               </select>
             </label>
           </div>
-          <label class="flex cursor-pointer select-none items-center gap-3 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-4">
-            <input type="checkbox" id="consulta-mongo-usar-empresa" class="h-7 w-7 shrink-0 rounded border-slate-300 accent-emerald-600">
-            <span class="text-base font-bold text-slate-800 leading-snug">Nas sugestões Mongo, usar o <strong>Empresa ID</strong> do campo acima da lista.</span>
-          </label>
         </section>
         <section class="space-y-4 border-t border-slate-100 pt-6">
           <h3 class="text-base font-black uppercase text-slate-800">Ordenação da lista</h3>
@@ -293,7 +280,7 @@
       const bruto = Number(x.valor_devolucao_total != null ? x.valor_devolucao_total : x.valor_bruto || 0);
       const rest = Number(x.mongo_restante != null ? x.mongo_restante : 0);
       const dv = (x.mongo_data_vencimento || '').slice(0, 10);
-      const st = x.mongo_pago ? '<span class="ml-2 inline-flex items-center rounded-lg bg-emerald-600 px-2 py-0.5 text-xs font-black text-white uppercase">Quitado</span>' : '<span class="ml-2 inline-flex items-center rounded-lg bg-amber-500 px-2 py-0.5 text-xs font-black text-white uppercase">Aberto</span>';
+      const st = x.mongo_pago ? '<span class="inline-flex items-center rounded-md bg-emerald-600 px-2 py-0.5 text-xs font-black text-white uppercase">Quitado</span>' : '<span class="inline-flex items-center rounded-md bg-amber-500 px-2 py-0.5 text-xs font-black text-white uppercase">Aberto</span>';
       const tp = x.mongo_despesa ? 'A pagar' : 'A receber';
       const dt = (x.created_at || '').slice(0, 19).replace('T', ' ');
       const plan = x.mongo_plano_conta || '—';
@@ -301,14 +288,20 @@
       const labExt = isExt ? 'Externo' : 'Interno';
       const bdc = isExt ? 'border-emerald-200 bg-emerald-50/50' : 'border-violet-200 bg-violet-50/40';
       const ttc = isExt ? 'text-emerald-900' : 'text-violet-900';
-      return '<div class="rounded-xl border-2 ' + bdc + ' px-5 py-4 mb-3 flex flex-wrap items-center justify-between gap-3">' +
-        '<div class="min-w-0 flex-1"><span class="text-sm font-black uppercase ' + ttc + '">' + labExt + ' · <span class="text-slate-700">Título Mongo</span></span>' +
-        '<span class="text-slate-500 font-bold"> · ref ' + escHtml(ref) + '</span>' +
-        '<div class="text-xl font-black text-slate-900 mt-1">' + escHtml(quem) + '</div>' +
-        '<div class="text-base font-semibold text-slate-700 mt-1">' + escHtml(tp) + st + ' · Venc. ' + escHtml(dv) + '</div>' +
-        '<div class="text-sm font-semibold text-slate-600 mt-1 line-clamp-2" title="' + escHtml(plan) + '">' + escHtml(plan) + '</div>' +
-        '<div class="text-base font-bold text-slate-800 mt-1">Valor título R$ ' + fmtBrl(bruto) + ' · Em aberto R$ ' + fmtBrl(rest) + '</div></div>' +
-        '<div class="flex flex-col items-end gap-2 shrink-0"><div class="text-sm font-bold text-slate-400">' + escHtml(dt) + '</div></div></div>';
+      return '<div class="rounded-xl border-2 ' + bdc + ' px-4 py-3 mb-3">' +
+        '<div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">' +
+        '<span class="text-xs font-black uppercase tracking-tight ' + ttc + '">' + labExt + ' · <span class="text-slate-600">Mongo</span> · ref ' + escHtml(ref) + '</span>' +
+        '<span class="text-xs font-bold text-slate-400 tabular-nums shrink-0">' + escHtml(dt) + '</span></div>' +
+        '<div class="mt-1 text-lg sm:text-xl font-black leading-tight text-slate-900 break-words">' + escHtml(quem) + '</div>' +
+        '<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-slate-200/70 pt-2 text-sm sm:text-base font-semibold text-slate-800">' +
+        '<span class="inline-flex flex-wrap items-center gap-2">' + escHtml(tp) + st + '</span>' +
+        '<span class="hidden text-slate-300 sm:inline" aria-hidden="true">|</span>' +
+        '<span class="tabular-nums">Venc. <strong>' + escHtml(dv || '—') + '</strong></span>' +
+        '<span class="hidden text-slate-300 sm:inline" aria-hidden="true">|</span>' +
+        '<span class="tabular-nums">Título <strong>R$ ' + fmtBrl(bruto) + '</strong></span>' +
+        '<span class="hidden text-slate-300 sm:inline" aria-hidden="true">|</span>' +
+        '<span class="tabular-nums">Aberto <strong>R$ ' + fmtBrl(rest) + '</strong></span></div>' +
+        '<div class="mt-1.5 truncate text-xs font-semibold text-slate-500 sm:text-sm" title="' + escHtml(plan) + '">' + escHtml(plan) + '</div></div>';
     }
     const tipo = x.tipo === 'interno' ? '<span class="text-orange-700 font-black">INTERNO</span>' : '<span class="text-emerald-800 font-black">EXTERNO</span>';
     const ref = x.ref || '—';
@@ -322,17 +315,23 @@
     if (isInt) {
       const saldo = typeof x.interno_saldo_devedor === 'number' ? x.interno_saldo_devedor : v2;
       const pago = typeof x.interno_total_pago === 'number' ? x.interno_total_pago : 0;
-      const quit = x.interno_quitado ? '<span class="ml-2 inline-flex items-center rounded-lg bg-emerald-600 px-2 py-0.5 text-xs font-black text-white uppercase">Quitado</span>' : '';
-      extra = '<div class="text-base font-bold text-slate-700 mt-1">Pago R$ ' + fmtBrl(pago) + ' · Saldo R$ ' + fmtBrl(saldo) + quit + '</div>';
+      const quit = x.interno_quitado ? '<span class="inline-flex items-center rounded-md bg-emerald-600 px-2 py-0.5 text-xs font-black text-white uppercase">Quitado</span>' : '';
+      extra = '<span class="hidden text-slate-300 sm:inline" aria-hidden="true">|</span><span class="inline-flex flex-wrap items-center gap-2 tabular-nums">Pago <strong>R$ ' + fmtBrl(pago) + '</strong> · Saldo <strong>R$ ' + fmtBrl(saldo) + '</strong>' + quit + '</span>';
       const dis = x.interno_quitado ? ' disabled' : '';
       btnGer = '<button type="button" class="btn-ger-int min-h-[48px] shrink-0 rounded-xl border-2 border-orange-500 bg-orange-500 px-4 py-2 text-sm font-black uppercase text-white hover:bg-orange-600 disabled:opacity-40 disabled:pointer-events-none" data-id="' + escHtml(x.id) + '"' + dis + '>Gerenciar</button>';
     }
-    return '<div class="rounded-xl border-2 border-slate-100 bg-slate-50/90 px-5 py-4 mb-3 flex flex-wrap items-center justify-between gap-3">' +
-      '<div class="min-w-0 flex-1"><span class="text-sm font-black uppercase text-slate-500">' + tipo + ' · ref ' + escHtml(ref) + '</span>' +
-      '<div class="text-xl font-black text-slate-900 mt-1">' + escHtml(quem) + '</div>' +
-      '<div class="text-base font-semibold text-slate-600 mt-1">Entrada/aporte R$ ' + fmtBrl(v1) +
-      ' · Total a devolver R$ ' + fmtBrl(v2) + '</div>' + extra + '</div>' +
-      '<div class="flex flex-col items-end gap-2 shrink-0"><div class="text-sm font-bold text-slate-400">' + escHtml(dt) + '</div>' + btnGer + '</div></div>';
+    return '<div class="rounded-xl border-2 border-slate-100 bg-slate-50/90 px-4 py-3 mb-3 flex flex-wrap items-start justify-between gap-3">' +
+      '<div class="min-w-0 flex-1">' +
+      '<div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">' +
+      '<span class="text-xs font-black uppercase text-slate-500">' + tipo + ' · ref ' + escHtml(ref) + '</span>' +
+      '<span class="text-xs font-bold text-slate-400 tabular-nums shrink-0">' + escHtml(dt) + '</span></div>' +
+      '<div class="mt-1 text-lg sm:text-xl font-black text-slate-900 leading-tight break-words">' + escHtml(quem) + '</div>' +
+      '<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm sm:text-base font-semibold text-slate-700">' +
+      '<span class="tabular-nums">Entrada R$ <strong>' + fmtBrl(v1) + '</strong></span>' +
+      '<span class="text-slate-300">·</span>' +
+      '<span class="tabular-nums">A devolver R$ <strong>' + fmtBrl(v2) + '</strong></span>' +
+      extra + '</div></div>' +
+      '<div class="flex shrink-0 flex-col items-end gap-2 self-start sm:self-center">' + btnGer + '</div></div>';
   }
 
   function ordenarGruposAgro(grupos, ord) {
@@ -651,9 +650,6 @@
       const f = filtroLista.trim().toLowerCase();
       if (f === 'externo' || f === 'interno') u.searchParams.set('tipo', f);
       else u.searchParams.delete('tipo');
-      var eidAg = document.getElementById('erp-filtro-empresa-id').value.trim();
-      if (eidAg) u.searchParams.set('empresa_id', eidAg);
-      else u.searchParams.delete('empresa_id');
       u.searchParams.set('limit', '350');
       u.searchParams.set('limit_mongo', '450');
       const r = await fetch(u.toString(), { credentials: 'same-origin' });
@@ -719,15 +715,6 @@
     }
   });
 
-  var tEmpresa = null;
-  var inpEmp = document.getElementById('erp-filtro-empresa-id');
-  if (inpEmp) {
-    inpEmp.addEventListener('input', function () {
-      clearTimeout(tEmpresa);
-      tEmpresa = setTimeout(function () { carregarLista(); }, 450);
-    });
-  }
-
   var tNome = null;
   document.getElementById('consulta-filtro-nome').addEventListener('input', function () {
     clearTimeout(tNome);
@@ -751,10 +738,6 @@
         u.searchParams.set('limit', '40');
         u.searchParams.set('ordenar', document.getElementById('consulta-mongo-ordenar').value);
         u.searchParams.set('escopo', document.getElementById('consulta-mongo-escopo').value);
-        if (document.getElementById('consulta-mongo-usar-empresa').checked) {
-          var eid = document.getElementById('erp-filtro-empresa-id').value.trim();
-          if (eid) u.searchParams.set('empresa_id', eid);
-        }
         var r = await fetch(u.toString(), { credentials: 'same-origin' });
         var j = await r.json();
         sugDd.innerHTML = '';
@@ -779,7 +762,7 @@
   sugInp.addEventListener('blur', function () {
     setTimeout(function () { sugDd.classList.add('hidden'); }, 200);
   });
-  ['consulta-mongo-escopo', 'consulta-mongo-ordenar', 'consulta-mongo-usar-empresa'].forEach(function (id) {
+  ['consulta-mongo-escopo', 'consulta-mongo-ordenar'].forEach(function (id) {
     document.getElementById(id).addEventListener('change', function () {
       if (sugInp.value.trim().length) sugInp.dispatchEvent(new Event('input', { bubbles: true }));
     });
