@@ -4242,7 +4242,13 @@ def api_entrada_nota_financeiro(request):
             ok_erp, api_msg = cli.financeiro_tentar_lancamentos_api(body_erp)
             erp_lanc_ok = bool(ok_erp)
             if not ok_erp:
-                aviso_api_erp = str(api_msg)[:800]
+                if isinstance(api_msg, dict):
+                    try:
+                        aviso_api_erp = json.dumps(api_msg, ensure_ascii=False)[:800]
+                    except Exception:
+                        aviso_api_erp = str(api_msg)[:800]
+                else:
+                    aviso_api_erp = str(api_msg)[:800]
         except Exception as exc:
             erp_lanc_ok = False
             aviso_api_erp = str(exc)[:800]
@@ -5239,7 +5245,13 @@ def api_lancamentos_saida_caixa(request):
             ok_erp, api_msg = cli.financeiro_tentar_lancamentos_api(body_erp)
             erp_lanc_ok = bool(ok_erp)
             if not ok_erp:
-                aviso_api_erp = str(api_msg)[:800]
+                if isinstance(api_msg, dict):
+                    try:
+                        aviso_api_erp = json.dumps(api_msg, ensure_ascii=False)[:800]
+                    except Exception:
+                        aviso_api_erp = str(api_msg)[:800]
+                else:
+                    aviso_api_erp = str(api_msg)[:800]
         except Exception as exc:
             erp_lanc_ok = False
             aviso_api_erp = str(exc)[:800]
@@ -5782,7 +5794,13 @@ def api_lancamentos_criar_manual_lote(request):
             ok_erp, api_msg = cli.financeiro_tentar_lancamentos_api(body_erp)
             erp_lanc_ok = bool(ok_erp)
             if not ok_erp:
-                aviso_api_erp = str(api_msg)[:800]
+                if isinstance(api_msg, dict):
+                    try:
+                        aviso_api_erp = json.dumps(api_msg, ensure_ascii=False)[:800]
+                    except Exception:
+                        aviso_api_erp = str(api_msg)[:800]
+                else:
+                    aviso_api_erp = str(api_msg)[:800]
         except Exception as exc:
             erp_lanc_ok = False
             aviso_api_erp = str(exc)[:800]
@@ -5797,6 +5815,7 @@ def api_lancamentos_criar_manual_lote(request):
         "lote": resultado.get("lote"),
         "ids": ids,
         "erros": erros,
+        "erp_inclusao_configurada": bool(path_lanc),
     }
     if erp_lanc_ok is not None:
         out_lm["erp_lancamento_ok"] = erp_lanc_ok
