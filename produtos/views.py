@@ -2254,6 +2254,50 @@ def _obter_sessao_caixa_aberta(request):
         return None
 
 
+def _format_moeda_br(val: Decimal) -> str:
+    q = val.quantize(Decimal("0.01"))
+    neg = q < 0
+    q = abs(q)
+    inteiro, _, frac = f"{q:.2f}".partition(".")
+    out = []
+    while inteiro:
+        out.append(inteiro[-3:])
+        inteiro = inteiro[:-3]
+    corpo = ".".join(reversed(out)) if out else "0"
+    s = f"{corpo},{frac}"
+    return f"-{s}" if neg else s
+
+
+def _home_quick_stats(request):
+    """Indicadores leves para a home administrativa (sem agregações Mongo pesadas)."""
+    hoje = timezone.localdate()
+    limite_validade = hoje + timedelta(days=ALERTA_VALIDADE_DIAS)
+    agg = VendaAgro.objects.filter(criado_em__date=hoje).aggregate(soma=Sum("total"))
+    soma = agg["soma"] if agg["soma"] is not None else Decimal("0")
+    total_vendas_dia = soma.quantize(Decimal("0.01"))
+    entregas_pendentes = PedidoEntrega.objects.exclude(
+        status__in=(PedidoEntrega.Status.ENTREGUE, PedidoEntrega.Status.CANCELADO)
+    ).count()
+    produtos_vencendo = (
+        EstoqueLote.objects.filter(
+            quantidade_atual__gt=0,
+            data_validade__lte=limite_validade,
+        )
+        .values("overlay_id")
+        .distinct()
+        .count()
+    )
+    sess = getattr(request, "session", None)
+    caixa_aberto = _obter_sessao_caixa_aberta(request) is not None if sess is not None else False
+    return {
+        "total_vendas_dia": total_vendas_dia,
+        "total_vendas_dia_fmt": _format_moeda_br(total_vendas_dia),
+        "entregas_pendentes": entregas_pendentes,
+        "produtos_vencendo": produtos_vencendo,
+        "caixa_aberto": caixa_aberto,
+    }
+
+
 def _empresa_home_atual():
     empresas = list(
         Empresa.objects.filter(ativo=True).only("id", "nome_fantasia").order_by("nome_fantasia")[:2]
@@ -2267,23 +2311,15 @@ def _home_admin_navegacao():
     dre_ativo = getattr(settings, "LANCAMENTOS_DRE_ATIVO", False)
     agro_legado_url = reverse("consulta_produtos")
     # Teclas únicas (sem modificador), priorizando F2–F12 + letras para o restante — ver AGENTS.md §5 (teclado primeiro, fonte grande).
+    # PDV entra pelo herói F1 na home.html (atalho global na própria página).
     top_items = [
-        {
-            "title": "PDV",
-            "href": reverse("pdv_home"),
-            "icon": "shopping-cart",
-            "shortcut": "F2",
-            "shortcut_key": "f2",
-            "accent": "emerald",
-            "pin_protected": True,
-        },
         {
             "title": "Consulta / Orçamentos",
             "href": agro_legado_url,
             "icon": "search",
             "shortcut": "F3",
             "shortcut_key": "f3",
-            "accent": "orange",
+            "accent": "capri",
             "pin_protected": True,
         },
     ]
@@ -2450,6 +2486,7 @@ def home(request):
             "pdvWizardHome": reverse("pdv_home"),
         },
     }
+    stats = _home_quick_stats(request)
     return render(
         request,
         "home.html",
@@ -2458,6 +2495,9 @@ def home(request):
             "home_top_items": nav["top_items"],
             "home_grid_items": nav["grid_items"],
             "home_pdv_bootstrap": home_pdv_bootstrap,
+            "home_pdv_url": reverse("pdv_home"),
+            "home_validade_url": reverse("relatorios_validade"),
+            **stats,
         },
     )
 
