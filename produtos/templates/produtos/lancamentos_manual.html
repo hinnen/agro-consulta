@@ -175,23 +175,25 @@
     const URL_LISTA_PAGAR = "{% url 'lancamentos_contas_pagar' %}";
     const URL_LISTA_RECEBER = "{% url 'lancamentos_contas_receber' %}";
 
-    /** Volta para a lista: «Todos» + vencimento do lote (quitado some em «Em aberto»). */
-    function urlAposGravarLoteManual(tipo, quitado, dc, dv) {
+    /** Volta para a lista: «Todos» se quitado; venc. = menor/maior entre comp., venc. digitado e venc. efetivo; opcional ``q`` = _id Mongo. */
+    function urlAposGravarLoteManual(tipo, quitado, dc, dv, dvRaw, idMongo) {
       const base = tipo === 'receber' ? URL_LISTA_RECEBER : URL_LISTA_PAGAR;
       const u = new URL(base, window.location.origin);
-      const d1 = (dc || '').trim();
-      const d2 = (dv || '').trim();
-      if (d1 && d2) {
-        const vmin = d1 <= d2 ? d1 : d2;
-        const vmax = d1 <= d2 ? d2 : d1;
+      const partes = [dc, dv, dvRaw].map((x) => String(x || '').trim()).filter((x) => x.length >= 8);
+      if (partes.length) {
+        let vmin = partes[0];
+        let vmax = partes[0];
+        partes.forEach((p) => {
+          if (p < vmin) vmin = p;
+          if (p > vmax) vmax = p;
+        });
         u.searchParams.set('venc_de', vmin);
         u.searchParams.set('venc_ate', vmax);
-      } else if (d1) {
-        u.searchParams.set('venc_de', d1);
-        u.searchParams.set('venc_ate', d1);
       }
       if (quitado) u.searchParams.set('status', 'todos');
       u.searchParams.set('agro_fim_manual', '1');
+      const idm = String(idMongo || '').trim();
+      if (/^[a-fA-F0-9]{24}$/i.test(idm)) u.searchParams.set('q', idm);
       return u.pathname + u.search;
     }
 
@@ -370,11 +372,11 @@
         if (!j.ok && ids.length) {
           const det = msgs.length ? ('\n\n' + msgs.slice(0, 12).join('\n') + (msgs.length > 12 ? '\n…' : '')) : '';
           alert('Gravação parcial. IDs gravados: ' + ids.join(', ') + det + av + dicaLista);
-          window.location.href = urlAposGravarLoteManual(tipo, quitado, dc, dv);
+          window.location.href = urlAposGravarLoteManual(tipo, quitado, dc, dv, dvRaw, ids[0] || '');
           return;
         }
         alert('Lote gravado. IDs: ' + ids.join(', ') + av + dicaLista);
-        window.location.href = urlAposGravarLoteManual(tipo, quitado, dc, dv);
+        window.location.href = urlAposGravarLoteManual(tipo, quitado, dc, dv, dvRaw, ids[0] || '');
       } catch (_) {
         alert('Erro de rede.');
       } finally {
