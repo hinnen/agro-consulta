@@ -2542,6 +2542,9 @@
               fate.value = t;
             }
           }
+          const fq = (ups.get('q') || '').trim();
+          const iq = document.getElementById('f-q');
+          if (iq && fq) iq.value = fq;
         } catch (_) {}
       })();
       favRefreshSelect();

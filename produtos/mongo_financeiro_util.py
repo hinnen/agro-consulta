@@ -1065,7 +1065,9 @@ def lancamentos_montar_query_mongo(
             except Exception:
                 oid_lanc = None
         if oid_lanc is not None:
-            q = {"$and": [base, {"_id": oid_lanc}]}
+            # Só tipo + _id: não combinar com ``base`` (status/vencimento), senão o título some se a
+            # data na URL não cobrir o vencimento gravado no Mongo.
+            q = {"Despesa": despesa_bool, "_id": oid_lanc}
             skip_exclusao_planos = True
         else:
             esc = re.escape(t[:120])
