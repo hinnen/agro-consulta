@@ -46,16 +46,16 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: clamp(0.3rem, calc(0.18rem + var(--hh-wpx) * 0.004), 0.58rem);
+      gap: clamp(0.22rem, calc(0.12rem + var(--hh-wpx) * 0.003), 0.42rem);
       container-type: inline-size;
       container-name: home-hub;
-      font-size: clamp(0.84rem, calc(0.76rem + var(--hh-wpx) * 0.0025), 1.01rem);
+      font-size: clamp(0.78rem, calc(0.72rem + var(--hh-wpx) * 0.0018), 0.92rem);
       background:
         radial-gradient(circle at top right, rgba(0, 191, 255, 0.05), transparent 40%),
         linear-gradient(180deg, #020617 0%, #0f172a 100%) !important;
     }
     .home-hub-shell-pad {
-      padding: clamp(0.3rem, calc(0.15rem + var(--hh-wpx) * 0.0045), 0.88rem);
+      padding: clamp(0.22rem, calc(0.12rem + var(--hh-wpx) * 0.0035), 0.55rem);
     }
     .home-hub-grid-wrap {
       flex: 1 1 0;
@@ -67,7 +67,7 @@
       align-items: stretch;
       display: grid;
       grid-template-columns: minmax(0, 1fr);
-      gap: clamp(0.3rem, calc(0.18rem + var(--hh-wpx) * 0.0032), 0.68rem);
+      gap: clamp(0.22rem, calc(0.12rem + var(--hh-wpx) * 0.0024), 0.48rem);
     }
     @container home-hub (min-width: 30rem) {
       .home-hub-grid-wrap {
@@ -96,7 +96,7 @@
       flex-direction: column;
       justify-content: flex-start;
       width: 100%;
-      border-radius: clamp(0.92rem, calc(0.56rem + var(--hh-wpx) * 0.0078), 1.38rem);
+      border-radius: clamp(0.72rem, calc(0.48rem + var(--hh-wpx) * 0.005), 1.05rem);
       color: #f8fafc;
       transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
     }
@@ -110,7 +110,7 @@
     .home-hub-grid-wrap .home-grid-card {
       background: rgba(30, 41, 59, 0.3) !important;
       border: 1px solid rgba(255, 255, 255, 0.03) !important;
-      padding: 1.25rem !important;
+      padding: 0.55rem 0.65rem !important;
     }
     .home-top-card {
       min-height: auto;
@@ -124,14 +124,17 @@
       min-height: 0;
       height: auto;
       align-self: stretch;
-      padding: clamp(0.4rem, calc(0.24rem + var(--hh-wpx) * 0.0064), 1rem)
-        clamp(0.4rem, calc(0.24rem + var(--hh-wpx) * 0.0055), 0.95rem);
+      padding: clamp(0.32rem, calc(0.2rem + var(--hh-wpx) * 0.0045), 0.72rem)
+        clamp(0.32rem, calc(0.2rem + var(--hh-wpx) * 0.004), 0.68rem);
     }
     .home-grid-card-disabled {
       border: 1px solid rgba(255, 255, 255, 0.04) !important;
       background: rgba(15, 23, 42, 0.35) !important;
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
+    }
+    .home-hub-grid-wrap .home-grid-card-disabled {
+      padding: 0.55rem 0.65rem !important;
     }
     .home-hub-grid-wrap .home-grid-card > div:nth-child(2),
     .home-hub-grid-wrap .home-grid-card-disabled > div:nth-child(2) {
@@ -175,8 +178,8 @@
     .home-hub-top {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
+      gap: 0.65rem;
+      margin-bottom: 0.85rem;
     }
     @media (max-width: 28rem) {
       .home-hub-top {
@@ -186,7 +189,7 @@
     .home-top-card-horizontal {
       display: flex;
       align-items: center;
-      border-radius: 1.25rem;
+      border-radius: 0.95rem;
       border: 1px solid rgba(255, 255, 255, 0.08);
       background: rgba(15, 23, 42, 0.8);
       backdrop-filter: blur(10px);
@@ -208,8 +211,8 @@
       flex-shrink: 0;
     }
     .home-hub-top .card-icon-box svg {
-      width: 1.5rem;
-      height: 1.5rem;
+      width: 1.125rem;
+      height: 1.125rem;
       stroke-width: 2;
     }
     .item-f1 {
@@ -218,8 +221,8 @@
     .item-f1 .card-icon-box {
       background: rgba(16, 185, 129, 0.18);
       color: #34d399;
-      padding: 12px;
-      border-radius: 12px;
+      padding: 8px;
+      border-radius: 10px;
     }
     .item-f1 .min-w-0.flex-1 > span.block {
       color: rgba(52, 211, 153, 0.88) !important;
@@ -234,8 +237,8 @@
     .item-f2 .card-icon-box {
       background: rgba(249, 115, 22, 0.16);
       color: #fb923c;
-      padding: 12px;
-      border-radius: 12px;
+      padding: 8px;
+      border-radius: 10px;
     }
     .item-f2 .min-w-0.flex-1 > span.block {
       color: rgba(251, 146, 60, 0.92) !important;
@@ -246,10 +249,10 @@
     }
     .shortcut-badge {
       background: rgba(255, 255, 255, 0.05);
-      border: 2px solid rgba(255, 255, 255, 0.15);
-      border-radius: 10px;
-      padding: 6px 12px;
-      font-size: 0.85rem;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 0.72rem;
       font-weight: 900;
       color: #fff;
       transition: border-color 0.2s ease, color 0.2s ease;
@@ -273,37 +276,37 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: clamp(2.05rem, calc(1.1rem + var(--hh-wpx) * 0.018), 3.05rem);
-      height: clamp(2.05rem, calc(1.1rem + var(--hh-wpx) * 0.018), 3.05rem);
-      border-radius: clamp(0.62rem, calc(0.38rem + var(--hh-wpx) * 0.004), 0.95rem);
+      width: clamp(1.75rem, calc(1rem + var(--hh-wpx) * 0.012), 2.45rem);
+      height: clamp(1.75rem, calc(1rem + var(--hh-wpx) * 0.012), 2.45rem);
+      border-radius: clamp(0.5rem, calc(0.32rem + var(--hh-wpx) * 0.0032), 0.78rem);
       background: rgba(255, 255, 255, 0.14);
       flex-shrink: 0;
     }
     .home-card-icon svg {
-      width: clamp(1.05rem, calc(0.52rem + var(--hh-wpx) * 0.0112), 1.68rem);
-      height: clamp(1.05rem, calc(0.52rem + var(--hh-wpx) * 0.0112), 1.68rem);
-      stroke-width: 2.15;
+      width: clamp(0.92rem, calc(0.48rem + var(--hh-wpx) * 0.008), 1.28rem);
+      height: clamp(0.92rem, calc(0.48rem + var(--hh-wpx) * 0.008), 1.28rem);
+      stroke-width: 2.05;
     }
     .home-shortcut-chip {
       display: flex;
       align-items: center;
       justify-content: center;
-      min-width: clamp(2.35rem, calc(1.22rem + var(--hh-wpx) * 0.021), 3.4rem);
-      min-height: clamp(1.82rem, calc(0.9rem + var(--hh-wpx) * 0.0125), 2.58rem);
-      padding: clamp(0.16rem, calc(0.06rem + var(--hh-wpx) * 0.0022), 0.34rem)
-        clamp(0.3rem, calc(0.15rem + var(--hh-wpx) * 0.0035), 0.58rem);
-      border-radius: clamp(0.48rem, calc(0.28rem + var(--hh-wpx) * 0.0035), 0.82rem);
+      min-width: clamp(1.85rem, calc(1rem + var(--hh-wpx) * 0.014), 2.65rem);
+      min-height: clamp(1.45rem, calc(0.78rem + var(--hh-wpx) * 0.009), 2.05rem);
+      padding: clamp(0.12rem, calc(0.05rem + var(--hh-wpx) * 0.0018), 0.26rem)
+        clamp(0.22rem, calc(0.12rem + var(--hh-wpx) * 0.0028), 0.45rem);
+      border-radius: clamp(0.4rem, calc(0.24rem + var(--hh-wpx) * 0.0028), 0.65rem);
       border: 1px solid rgba(0, 191, 255, 0.4) !important;
       background: rgba(0, 191, 255, 0.1) !important;
-      font-size: clamp(0.74rem, calc(0.58rem + var(--hh-wpx) * 0.008), 1.02rem);
+      font-size: clamp(0.65rem, calc(0.54rem + var(--hh-wpx) * 0.0055), 0.82rem);
       font-weight: 900;
       line-height: 1;
       letter-spacing: 0.04em;
       color: var(--capri-blue) !important;
     }
     .home-card-title {
-      margin-top: clamp(0.2rem, calc(0.1rem + var(--hh-wpx) * 0.003), 0.78rem);
-      font-size: clamp(0.84rem, calc(0.65rem + var(--hh-wpx) * 0.009), 1.26rem);
+      margin-top: clamp(0.12rem, calc(0.08rem + var(--hh-wpx) * 0.0022), 0.5rem);
+      font-size: clamp(0.72rem, calc(0.58rem + var(--hh-wpx) * 0.0065), 1.02rem);
       font-weight: 900;
       line-height: 1.2;
       letter-spacing: -0.02em;
@@ -439,23 +442,23 @@
         })();
       </script>
 
-      <div class="home-kpi-strip w-full min-w-0 no-print shrink-0 mb-1">
-        <div class="grid w-full min-w-0 grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-4">
-          <div class="rounded-2xl border border-white/5 bg-slate-900/60 p-3 sm:p-4 backdrop-blur-md">
-            <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Vendas hoje</span>
-            <div class="mt-1 text-xl sm:text-2xl font-black tabular-nums text-white">R$ {{ total_vendas_dia_fmt }}</div>
+      <div class="home-kpi-strip w-full min-w-0 no-print shrink-0 mb-0.5">
+        <div class="grid w-full min-w-0 grid-cols-2 gap-2 sm:gap-2.5 lg:grid-cols-4 lg:gap-3">
+          <div class="rounded-xl border border-white/5 bg-slate-900/60 p-2 sm:p-2.5 backdrop-blur-md">
+            <span class="text-[9px] font-black uppercase tracking-wider text-slate-500">Vendas hoje</span>
+            <div class="mt-0.5 text-base font-black tabular-nums leading-tight text-white sm:text-lg">R$ {{ total_vendas_dia_fmt }}</div>
           </div>
-          <a href="{% url 'entregas_painel' %}" class="rounded-2xl border border-white/5 bg-slate-900/60 p-3 sm:p-4 backdrop-blur-md transition-colors hover:border-cyan-400/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45">
-            <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Entregas</span>
-            <div class="mt-1 text-xl sm:text-2xl font-black tabular-nums text-capri-blue">{{ entregas_pendentes }} <small class="text-xs font-bold text-slate-500">pendentes</small></div>
+          <a href="{% url 'entregas_painel' %}" class="rounded-xl border border-white/5 bg-slate-900/60 p-2 sm:p-2.5 backdrop-blur-md transition-colors hover:border-cyan-400/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45">
+            <span class="text-[9px] font-black uppercase tracking-wider text-slate-500">Entregas</span>
+            <div class="mt-0.5 text-base font-black tabular-nums leading-tight text-capri-blue sm:text-lg">{{ entregas_pendentes }} <small class="text-[10px] font-bold text-slate-500">pend.</small></div>
           </a>
-          <a href="{{ home_validade_url }}" class="rounded-2xl border border-white/5 bg-slate-900/60 p-3 sm:p-4 backdrop-blur-md transition-colors hover:border-red-400/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40">
-            <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Validade</span>
-            <div class="mt-1 text-xl sm:text-2xl font-black tabular-nums text-red-400">{{ produtos_vencendo }} <small class="text-xs font-bold text-slate-500">alertas</small></div>
+          <a href="{{ home_validade_url }}" class="rounded-xl border border-white/5 bg-slate-900/60 p-2 sm:p-2.5 backdrop-blur-md transition-colors hover:border-red-400/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40">
+            <span class="text-[9px] font-black uppercase tracking-wider text-slate-500">Validade</span>
+            <div class="mt-0.5 text-base font-black tabular-nums leading-tight text-red-400 sm:text-lg">{{ produtos_vencendo }} <small class="text-[10px] font-bold text-slate-500">alert.</small></div>
           </a>
-          <a href="{% url 'caixa_painel' %}" class="rounded-2xl border border-white/5 bg-slate-900/60 p-3 sm:p-4 backdrop-blur-md transition-colors hover:border-emerald-500/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/45">
-            <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">Caixa</span>
-            <div class="mt-1 text-xl sm:text-2xl font-black {% if caixa_aberto %}text-emerald-400{% else %}text-slate-500{% endif %}">{% if caixa_aberto %}ABERTO{% else %}FECHADO{% endif %}</div>
+          <a href="{% url 'caixa_painel' %}" class="rounded-xl border border-white/5 bg-slate-900/60 p-2 sm:p-2.5 backdrop-blur-md transition-colors hover:border-emerald-500/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/45">
+            <span class="text-[9px] font-black uppercase tracking-wider text-slate-500">Caixa</span>
+            <div class="mt-0.5 text-base font-black leading-tight sm:text-lg {% if caixa_aberto %}text-emerald-400{% else %}text-slate-500{% endif %}">{% if caixa_aberto %}ABERTO{% else %}FECHADO{% endif %}</div>
           </a>
         </div>
       </div>
@@ -468,13 +471,13 @@
             data-home-shortcut="{{ item.shortcut_key }}"
             {% if item.pin_protected %}data-pin-protected="true"{% endif %}
           >
-            <div class="flex w-full min-w-0 items-center gap-4 px-5 py-4">
+            <div class="flex w-full min-w-0 items-center gap-2.5 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3">
               <div class="card-icon-box">
                 <i data-lucide="{{ item.icon }}"></i>
               </div>
               <div class="min-w-0 flex-1">
-                <span class="mb-0.5 block text-[10px] font-black uppercase tracking-[0.2em] text-white/60">Acessar</span>
-                <h2 class="truncate text-xl font-black uppercase tracking-tight text-white">{{ item.title }}</h2>
+                <span class="mb-0.5 block text-[9px] font-black uppercase tracking-[0.14em] text-white/60">Acessar</span>
+                <h2 class="truncate text-base font-black uppercase leading-tight tracking-tight text-white sm:text-lg">{{ item.title }}</h2>
               </div>
               <div class="shortcut-badge">{{ item.shortcut }}</div>
             </div>
@@ -482,7 +485,7 @@
         {% endfor %}
       </div>
 
-      <div class="home-hub-grid-wrap mt-1 min-h-0 [grid-auto-rows:auto]">
+      <div class="home-hub-grid-wrap mt-0.5 min-h-0 [grid-auto-rows:auto]">
         {% for item in home_grid_items %}
           {% if item.disabled %}
             <span class="home-grid-card-disabled" aria-disabled="true">
@@ -537,8 +540,8 @@
       shell.style.setProperty('--hh-hpx', hAvail + 'px');
       requestAnimationFrame(function () {
         var need = shell.scrollHeight;
-        if (need > hAvail + 2 && hAvail > 80) {
-          var z = Math.max(0.62, Math.min(1, hAvail / need));
+        if (need > hAvail + 28 && hAvail > 96) {
+          var z = Math.max(0.52, Math.min(1, hAvail / need));
           var prev = shell.style.zoom;
           var zs = String(Math.round(z * 1000) / 1000);
           if (prev !== zs) shell.style.zoom = zs;
