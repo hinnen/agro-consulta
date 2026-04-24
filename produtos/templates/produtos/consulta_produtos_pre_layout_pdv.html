@@ -1497,6 +1497,9 @@ async function enviarPedidoERP() {
 
     const clienteNome = document.getElementById('nome-cliente').value || "Consumidor Final";
     const payload = { cliente: clienteNome, itens: carrinho };
+    payload.client_request_id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 11);
 
     try {
         const res = await fetch('/api/enviar-pedido-erp/', {

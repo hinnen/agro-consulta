@@ -51,4 +51,10 @@
         },
         true
     );
+
+    /** Chave nova para header ``Idempotency-Key`` / body (alinhado ao middleware ``AgroIdempotencyMiddleware``). */
+    window.agroNovaChaveIdempotencia = function () {
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+        return 'r-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 11);
+    };
 })();

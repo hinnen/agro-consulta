@@ -4,7 +4,7 @@
 {% block admin_title %}Agro Consulta | Empréstimos — consulta{% endblock %}
 {% block admin_header_title %}Empréstimos — consulta{% endblock %}
 {% block admin_header_meta %}
-  <p class="mt-1 text-lg font-bold text-slate-600 max-w-4xl leading-snug">Use as abas para alternar as listas. <strong class="text-slate-800">Filtros</strong> abre o painel sobreposto.</p>
+  <p class="mt-1 text-lg font-bold text-slate-600 max-w-4xl leading-snug">Uma lista só: cadastros Agro e títulos de empréstimo no Mongo. <strong class="text-slate-800">Filtros</strong> abre tipo, nome, ordenação e sugestões.</p>
 {% endblock %}
 
 {% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col{% endblock %}
@@ -21,57 +21,22 @@
 {% include "produtos/_emprestimos_subnav.html" %}
 
 <div class="sticky top-0 z-30 -mx-4 mb-6 border-b-2 border-slate-200 bg-slate-100/95 px-4 py-4 backdrop-blur-sm sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-  <div class="flex w-full max-w-none flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-    <div class="flex min-w-0 flex-1 flex-wrap gap-2 sm:gap-3">
-      <button type="button" id="tab-btn-erp" class="tab-consulta min-h-[52px] flex-1 rounded-xl border-2 border-emerald-600 bg-emerald-600 px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-md sm:flex-none sm:px-8">
-        Títulos no Mongo
-      </button>
-      <button type="button" id="tab-btn-agro" class="tab-consulta min-h-[52px] flex-1 rounded-xl border-2 border-slate-200 bg-white px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-slate-700 shadow-sm hover:border-orange-400 sm:flex-none sm:px-8">
-        Registros Agro
-      </button>
-    </div>
+  <div class="flex w-full max-w-none flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
     <button type="button" id="btn-abrir-filtros" class="min-h-[52px] w-full shrink-0 rounded-xl border-2 border-slate-700 bg-slate-800 px-6 py-3 text-base font-black uppercase text-white shadow-md hover:bg-slate-900 sm:ml-auto sm:w-auto">
       Filtros
     </button>
   </div>
 </div>
 
-<div id="panel-tab-erp" class="consulta-panel w-full">
-  <div class="flex min-h-0 w-full flex-col gap-4 rounded-2xl border-2 border-emerald-200/80 bg-slate-50 p-6 lg:p-8">
-    <div class="flex flex-wrap items-start justify-between gap-4">
-      <h2 class="text-xl font-black uppercase tracking-tight text-emerald-900 lg:text-2xl">Títulos no Mongo (ERP / Agro)</h2>
-      <button type="button" id="btn-erp-carregar" class="min-h-[52px] shrink-0 rounded-xl border-2 border-emerald-600 bg-emerald-600 px-6 py-3 text-base font-black uppercase text-white shadow-md hover:bg-emerald-700">Carregar</button>
-    </div>
+<div id="panel-consulta-emp" class="consulta-panel w-full">
+  <div class="flex min-h-0 w-full flex-col gap-4 rounded-2xl border-2 border-orange-200/80 bg-white p-6 lg:p-8 shadow-sm">
+    <h2 class="text-xl font-black uppercase tracking-tight text-orange-900 lg:text-2xl">Empréstimos — lista unificada</h2>
     <label class="flex max-w-2xl flex-wrap items-center gap-3 text-lg font-bold text-slate-700">
       <span class="shrink-0 font-black uppercase text-slate-600">Empresa ID</span>
-      <input type="text" id="erp-filtro-empresa-id" class="min-h-[52px] min-w-[12rem] flex-1 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 font-mono text-base" placeholder="opcional" autocomplete="off">
+      <input type="text" id="erp-filtro-empresa-id" class="min-h-[52px] min-w-[12rem] flex-1 rounded-xl border-2 border-slate-200 bg-white px-4 py-3 font-mono text-base" placeholder="opcional — filtra títulos Mongo" autocomplete="off">
     </label>
-    <div id="erp-lista-wrap" class="min-h-[min(58vh,32rem)] w-full flex-1 overflow-hidden rounded-xl border-2 border-slate-200 bg-white">
-      <div class="max-h-[min(65vh,36rem)] w-full overflow-x-auto overflow-y-auto">
-        <table class="w-full min-w-[720px] text-left text-lg">
-          <thead class="sticky top-0 z-10 border-b-2 border-slate-200 bg-slate-100 font-black uppercase text-sm text-slate-700">
-            <tr>
-              <th class="px-4 py-3">Tipo</th>
-              <th class="px-4 py-3">Plano</th>
-              <th class="px-4 py-3">Cliente</th>
-              <th class="px-4 py-3 text-right">Valor</th>
-              <th class="px-4 py-3">Venc.</th>
-              <th class="px-4 py-3">Situação</th>
-              <th class="px-4 py-3">Origem</th>
-            </tr>
-          </thead>
-          <tbody id="erp-tbody" class="font-semibold text-slate-800"></tbody>
-        </table>
-        <p id="erp-vazio" class="hidden p-6 text-lg font-bold text-slate-500">Nenhum lançamento encontrado.</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="panel-tab-agro" class="consulta-panel hidden w-full">
-  <div class="flex min-h-0 w-full flex-col gap-4 rounded-2xl border-2 border-orange-200/80 bg-white p-6 lg:p-8 shadow-sm">
-    <h2 class="text-xl font-black uppercase tracking-tight text-orange-900 lg:text-2xl">Registros Agro (gestão)</h2>
-    <p class="text-base font-semibold text-slate-600">Tipo <strong>Todos / Externos / Internos</strong> no painel <strong>Filtros</strong>. <strong>Saldo líquido</strong>: negativo = loja deve à pessoa; positivo = pessoa deve à loja. Aqui entram cadastros <strong>Agro</strong> e títulos <strong>internos</strong> já no <strong>Mongo</strong> (ERP); estes últimos aparecem como <strong>Título Mongo</strong> — baixa no fluxo de Lançamentos. Cadastro só Agro: <strong>Gerenciar</strong> para pagamento/devolução.</p>
+    <p class="text-sm font-semibold text-slate-500 -mt-2">Empresa ID: a lista recarrega ao pausar a digitação ou ao sair do campo.</p>
+    <p class="text-base font-semibold text-slate-600">Tipo <strong>Todos / Externos / Internos</strong> no painel <strong>Filtros</strong>. <strong>Saldo líquido</strong>: negativo = loja deve à pessoa; positivo = pessoa deve à loja. Inclui cadastros <strong>Agro</strong> e cada <strong>título de empréstimo</strong> já no <strong>Mongo</strong> (cartão <strong>Título Mongo</strong> — interno ou externo); baixa no fluxo de Lançamentos. Só cadastro interno Agro: botão <strong>Gerenciar</strong>.</p>
     <div id="lista-emp" class="min-h-[min(58vh,32rem)] max-h-[min(65vh,36rem)] w-full overflow-y-auto text-lg font-semibold text-slate-600">Carregando…</div>
   </div>
 </div>
@@ -83,7 +48,7 @@
       <div class="flex shrink-0 items-start justify-between gap-4 border-b-2 border-slate-100 px-5 py-4 sm:px-6 sm:py-5">
         <div>
           <h2 id="consulta-filtros-titulo" class="text-xl font-black uppercase tracking-tight text-slate-900 sm:text-2xl">Filtros da consulta</h2>
-          <p class="mt-1 text-base font-semibold text-slate-600">Tudo abaixo vale para as duas abas. Alterações aplicam na hora.</p>
+          <p class="mt-1 text-base font-semibold text-slate-600">Alterações de tipo e ordenação aplicam na hora na lista.</p>
         </div>
         <button type="button" id="consulta-filtros-fechar" class="min-h-[48px] min-w-[48px] shrink-0 rounded-xl border-2 border-slate-200 bg-slate-50 text-2xl font-black leading-none text-slate-700 hover:bg-slate-100" aria-label="Fechar">&times;</button>
       </div>
@@ -131,33 +96,20 @@
           </div>
           <label class="flex cursor-pointer select-none items-center gap-3 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-4">
             <input type="checkbox" id="consulta-mongo-usar-empresa" class="h-7 w-7 shrink-0 rounded border-slate-300 accent-emerald-600">
-            <span class="text-base font-bold text-slate-800 leading-snug">Nas sugestões Mongo, usar o <strong>Empresa ID</strong> informado na aba <em>Títulos no Mongo</em> (antes de Carregar).</span>
+            <span class="text-base font-bold text-slate-800 leading-snug">Nas sugestões Mongo, usar o <strong>Empresa ID</strong> do campo acima da lista.</span>
           </label>
         </section>
         <section class="space-y-4 border-t border-slate-100 pt-6">
-          <h3 class="text-base font-black uppercase text-slate-800">Ordenação das listas</h3>
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label class="block">
-              <span class="mb-2 block text-sm font-black uppercase text-emerald-800">Tabela ERP / Mongo</span>
-              <select id="consulta-erp-ordenar" class="w-full min-h-[52px] rounded-xl border-2 border-emerald-100 bg-white px-3 text-base font-bold">
-                <option value="venc_desc" selected>Vencimento (mais novo)</option>
-                <option value="venc_asc">Vencimento (mais antigo)</option>
-                <option value="cliente_az">Cliente A–Z</option>
-                <option value="cliente_za">Cliente Z–A</option>
-                <option value="valor_desc">Valor (maior)</option>
-                <option value="valor_asc">Valor (menor)</option>
-              </select>
-            </label>
-            <label class="block">
-              <span class="mb-2 block text-sm font-black uppercase text-orange-800">Registros Agro</span>
-              <select id="consulta-agro-ordenar" class="w-full min-h-[52px] rounded-xl border-2 border-orange-100 bg-white px-3 text-base font-bold">
-                <option value="data_desc" selected>Data (mais nova)</option>
-                <option value="data_asc">Data (mais antiga)</option>
-                <option value="nome_az">Nome A–Z</option>
-                <option value="nome_za">Nome Z–A</option>
-              </select>
-            </label>
-          </div>
+          <h3 class="text-base font-black uppercase text-slate-800">Ordenação da lista</h3>
+          <label class="block max-w-md">
+            <span class="mb-2 block text-sm font-black uppercase text-orange-800">Cartões na tela</span>
+            <select id="consulta-agro-ordenar" class="w-full min-h-[52px] rounded-xl border-2 border-orange-100 bg-white px-3 text-base font-bold">
+              <option value="data_desc" selected>Data (mais nova)</option>
+              <option value="data_asc">Data (mais antiga)</option>
+              <option value="nome_az">Nome A–Z</option>
+              <option value="nome_za">Nome Z–A</option>
+            </select>
+          </label>
         </section>
       </div>
       <div class="shrink-0 border-t-2 border-slate-100 px-5 py-4 sm:px-6">
@@ -231,13 +183,11 @@
 <script>
 (function () {
   const API_LIST = "{% url 'api_emprestimos_listar' %}";
-  const API_ERP = "{% url 'api_emprestimos_erp_lancamentos' %}";
   const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
   const API_INT_PAG = "{% url 'api_emprestimos_interno_pagamento' %}";
   const API_INT_DEL = "{% url 'api_emprestimos_interno_pagamento_excluir' %}";
 
   let filtroLista = '';
-  let erpItensCache = null;
   let agroItensCache = null;
   var _delEmpIntDelCtx = { metaId: '', pid: '', ind: null, modo: 'pagamento' };
 
@@ -257,16 +207,6 @@
     return (document.getElementById('consulta-filtro-nome') || {}).value.trim().toLowerCase();
   }
 
-  function filtrarPorNomeErp(itens) {
-    var n = needle();
-    if (!n) return itens.slice();
-    return itens.filter(function (it) {
-      var c = String(it.cliente || '').toLowerCase();
-      var p = String(it.plano_conta || '').toLowerCase();
-      return c.indexOf(n) !== -1 || p.indexOf(n) !== -1;
-    });
-  }
-
   function filtrarPorNomeAgro(itens) {
     var n = needle();
     if (!n) return itens.slice();
@@ -278,37 +218,6 @@
       var ds = String(x.mongo_descricao || '').toLowerCase();
       return a.indexOf(n) !== -1 || b.indexOf(n) !== -1 || r.indexOf(n) !== -1 || pl.indexOf(n) !== -1 || ds.indexOf(n) !== -1;
     });
-  }
-
-  function parseDv(s) {
-    var t = (s || '').slice(0, 10);
-    if (!t) return '';
-    return t;
-  }
-
-  function ordenarErpItens(itens, ord) {
-    var o = ord || 'venc_desc';
-    var arr = itens.slice();
-    function cliente(it) {
-      return String(it.cliente || '').toLowerCase();
-    }
-    function val(it) {
-      return Number(it.valor_bruto || 0);
-    }
-    if (o === 'venc_asc') {
-      arr.sort(function (a, b) { return parseDv(a.data_vencimento).localeCompare(parseDv(b.data_vencimento)); });
-    } else if (o === 'cliente_az') {
-      arr.sort(function (a, b) { return cliente(a).localeCompare(cliente(b)); });
-    } else if (o === 'cliente_za') {
-      arr.sort(function (a, b) { return cliente(b).localeCompare(cliente(a)); });
-    } else if (o === 'valor_asc') {
-      arr.sort(function (a, b) { return val(a) - val(b); });
-    } else if (o === 'valor_desc') {
-      arr.sort(function (a, b) { return val(b) - val(a); });
-    } else {
-      arr.sort(function (a, b) { return parseDv(b.data_vencimento).localeCompare(parseDv(a.data_vencimento)); });
-    }
-    return arr;
   }
 
   function nomeAgro(x) {
@@ -330,37 +239,15 @@
     return arr;
   }
 
-  function aplicarFiltroListaErp(itens) {
-    var f = filtroLista.trim().toLowerCase();
-    if (f !== 'externo' && f !== 'interno') return itens.slice();
-    return itens.filter(function (it) {
-      return String(it.emprestimo_tipo || 'externo').toLowerCase() === f;
-    });
-  }
-
   function aplicarFiltroTipoAgro(itens) {
     var f = filtroLista.trim().toLowerCase();
     if (f !== 'externo' && f !== 'interno') return itens.slice();
     return itens.filter(function (x) {
-      if (f === 'externo' && x.origem_lista === 'mongo_lancamento') return false;
-      if (f === 'interno' && x.origem_lista === 'mongo_lancamento') return true;
       var xt = String(x.tipo || '').trim().toLowerCase();
       if (xt === f) return true;
       if (f === 'externo' && (x.credor_nome || '').trim() && !(x.mutuario_label || '').trim()) return true;
       if (f === 'interno' && (x.mutuario_label || '').trim()) return true;
       return false;
-    });
-  }
-
-  function pipelineErpMostrar() {
-    if (erpItensCache === null) return;
-    var base = erpItensCache.slice();
-    var a = aplicarFiltroListaErp(base);
-    var b = filtrarPorNomeErp(a);
-    var ord = (document.getElementById('consulta-erp-ordenar') || {}).value || 'venc_desc';
-    var c = ordenarErpItens(b, ord);
-    renderErpTabela(c, {
-      vazioFiltrado: c.length === 0 && base.length > 0
     });
   }
 
@@ -402,7 +289,7 @@
   function renderCardAgroItem(x) {
     if (x.origem_lista === 'mongo_lancamento') {
       const ref = x.ref || '—';
-      const quem = x.mutuario_label || '—';
+      const quem = (x.mutuario_label || x.credor_nome || '—');
       const bruto = Number(x.valor_devolucao_total != null ? x.valor_devolucao_total : x.valor_bruto || 0);
       const rest = Number(x.mongo_restante != null ? x.mongo_restante : 0);
       const dv = (x.mongo_data_vencimento || '').slice(0, 10);
@@ -410,8 +297,12 @@
       const tp = x.mongo_despesa ? 'A pagar' : 'A receber';
       const dt = (x.created_at || '').slice(0, 19).replace('T', ' ');
       const plan = x.mongo_plano_conta || '—';
-      return '<div class="rounded-xl border-2 border-violet-200 bg-violet-50/40 px-5 py-4 mb-3 flex flex-wrap items-center justify-between gap-3">' +
-        '<div class="min-w-0 flex-1"><span class="text-sm font-black uppercase text-violet-900">Interno · <span class="text-slate-700">Título Mongo</span></span>' +
+      const isExt = String(x.tipo || '').toLowerCase() === 'externo';
+      const labExt = isExt ? 'Externo' : 'Interno';
+      const bdc = isExt ? 'border-emerald-200 bg-emerald-50/50' : 'border-violet-200 bg-violet-50/40';
+      const ttc = isExt ? 'text-emerald-900' : 'text-violet-900';
+      return '<div class="rounded-xl border-2 ' + bdc + ' px-5 py-4 mb-3 flex flex-wrap items-center justify-between gap-3">' +
+        '<div class="min-w-0 flex-1"><span class="text-sm font-black uppercase ' + ttc + '">' + labExt + ' · <span class="text-slate-700">Título Mongo</span></span>' +
         '<span class="text-slate-500 font-bold"> · ref ' + escHtml(ref) + '</span>' +
         '<div class="text-xl font-black text-slate-900 mt-1">' + escHtml(quem) + '</div>' +
         '<div class="text-base font-semibold text-slate-700 mt-1">' + escHtml(tp) + st + ' · Venc. ' + escHtml(dv) + '</div>' +
@@ -752,40 +643,6 @@
     renderAgroHtml(c);
   }
 
-  function renderErpTabela(itens, opts) {
-    opts = opts || {};
-    var tb = document.getElementById('erp-tbody');
-    var vz = document.getElementById('erp-vazio');
-    tb.innerHTML = '';
-    if (!itens.length) {
-      vz.classList.remove('hidden');
-      vz.textContent = opts.vazioFiltrado
-        ? 'Nenhum resultado com estes filtros. Limpe o nome ou use “Todos” nos tipos.'
-        : 'Nenhum lançamento encontrado.';
-      return;
-    }
-    vz.classList.add('hidden');
-    itens.forEach(function (it) {
-      var tr = document.createElement('tr');
-      tr.className = 'border-t border-slate-100 align-top';
-      var tipo = it.despesa ? 'Pagar' : 'Receber';
-      var val = Number(it.valor_bruto || 0);
-      var orig = it.origem_erp ? 'ERP' : (it.manual_agro ? 'Agro' : '—');
-      var sit = it.pago ? 'Quitado' : 'Aberto';
-      var dv = (it.data_vencimento || '').slice(0, 10);
-      var rot = String(it.emprestimo_tipo || 'externo').toLowerCase() === 'interno' ? 'INT' : 'EXT';
-      tr.innerHTML =
-        '<td class="px-4 py-3">' + escHtml(tipo) + '</td>' +
-        '<td class="px-4 py-3 max-w-[14rem]" title="' + escHtml(it.plano_conta) + '"><span class="line-clamp-2">' + escHtml(it.plano_conta) + '</span></td>' +
-        '<td class="px-4 py-3 max-w-[12rem]" title="' + escHtml(it.cliente) + '"><span class="line-clamp-2">' + escHtml(it.cliente) + '</span></td>' +
-        '<td class="px-4 py-3 text-right tabular-nums font-bold">' + escHtml(val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })) + '</td>' +
-        '<td class="px-4 py-3 whitespace-nowrap">' + escHtml(dv) + '</td>' +
-        '<td class="px-4 py-3">' + escHtml(sit) + '</td>' +
-        '<td class="px-4 py-3 font-black text-sm">' + escHtml(orig + ' · ' + rot) + '</td>';
-      tb.appendChild(tr);
-    });
-  }
-
   async function carregarLista() {
     const el = document.getElementById('lista-emp');
     el.textContent = 'Carregando…';
@@ -797,6 +654,8 @@
       var eidAg = document.getElementById('erp-filtro-empresa-id').value.trim();
       if (eidAg) u.searchParams.set('empresa_id', eidAg);
       else u.searchParams.delete('empresa_id');
+      u.searchParams.set('limit', '350');
+      u.searchParams.set('limit_mongo', '450');
       const r = await fetch(u.toString(), { credentials: 'same-origin' });
       const j = await r.json();
       agroItensCache = j.itens || [];
@@ -829,31 +688,9 @@
       filtroLista = (e.currentTarget.getAttribute('data-filtro') || '').trim().toLowerCase();
       aplicarEstiloFiltroListaButtons();
       carregarLista();
-      pipelineErpMostrar();
     });
   });
   aplicarEstiloFiltroListaButtons();
-
-  function setConsultaTab(tab) {
-    var erp = document.getElementById('panel-tab-erp');
-    var ag = document.getElementById('panel-tab-agro');
-    var bErp = document.getElementById('tab-btn-erp');
-    var bAg = document.getElementById('tab-btn-agro');
-    var tInactive = 'tab-consulta min-h-[52px] flex-1 rounded-xl border-2 border-slate-200 bg-white px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-slate-700 shadow-sm sm:flex-none sm:px-8';
-    if (tab === 'agro') {
-      erp.classList.add('hidden');
-      ag.classList.remove('hidden');
-      bErp.className = tInactive + ' hover:border-emerald-400';
-      bAg.className = 'tab-consulta min-h-[52px] flex-1 rounded-xl border-2 border-orange-500 bg-orange-500 px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-md sm:flex-none sm:px-8';
-    } else {
-      erp.classList.remove('hidden');
-      ag.classList.add('hidden');
-      bErp.className = 'tab-consulta min-h-[52px] flex-1 rounded-xl border-2 border-emerald-600 bg-emerald-600 px-5 py-3 text-center text-sm font-black uppercase tracking-wide text-white shadow-md sm:flex-none sm:px-8';
-      bAg.className = tInactive + ' hover:border-orange-400';
-    }
-  }
-  document.getElementById('tab-btn-erp').addEventListener('click', function () { setConsultaTab('erp'); });
-  document.getElementById('tab-btn-agro').addEventListener('click', function () { setConsultaTab('agro'); });
 
   var overlay = document.getElementById('consulta-filtros-overlay');
   function abrirFiltrosConsulta() {
@@ -882,39 +719,23 @@
     }
   });
 
-  async function carregarErpMongo() {
-    var tb = document.getElementById('erp-tbody');
-    var vz = document.getElementById('erp-vazio');
-    tb.innerHTML = '';
-    vz.textContent = 'Carregando…';
-    vz.classList.remove('hidden');
-    try {
-      var u = new URL(API_ERP, window.location.origin);
-      var fe = document.getElementById('erp-filtro-empresa-id').value.trim();
-      if (fe) u.searchParams.set('empresa_id', fe);
-      var r = await fetch(u.toString(), { credentials: 'same-origin' });
-      var j = await r.json();
-      erpItensCache = j.itens || [];
-      pipelineErpMostrar();
-    } catch (e) {
-      erpItensCache = null;
-      vz.classList.remove('hidden');
-      vz.textContent = 'Erro ao carregar.';
-    }
+  var tEmpresa = null;
+  var inpEmp = document.getElementById('erp-filtro-empresa-id');
+  if (inpEmp) {
+    inpEmp.addEventListener('input', function () {
+      clearTimeout(tEmpresa);
+      tEmpresa = setTimeout(function () { carregarLista(); }, 450);
+    });
   }
-
-  document.getElementById('btn-erp-carregar').addEventListener('click', carregarErpMongo);
 
   var tNome = null;
   document.getElementById('consulta-filtro-nome').addEventListener('input', function () {
     clearTimeout(tNome);
     tNome = setTimeout(function () {
-      pipelineErpMostrar();
       pipelineAgroMostrar();
     }, 200);
   });
 
-  document.getElementById('consulta-erp-ordenar').addEventListener('change', pipelineErpMostrar);
   document.getElementById('consulta-agro-ordenar').addEventListener('change', pipelineAgroMostrar);
 
   var sugInp = document.getElementById('consulta-sug-q');
@@ -945,7 +766,6 @@
             e.preventDefault();
             document.getElementById('consulta-filtro-nome').value = it.nome;
             sugDd.classList.add('hidden');
-            pipelineErpMostrar();
             pipelineAgroMostrar();
           });
           sugDd.appendChild(li);

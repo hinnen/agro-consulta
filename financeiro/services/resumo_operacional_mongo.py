@@ -70,6 +70,10 @@ def classificar_receita_plano(nome_plano: str) -> str:
 
 def classificar_despesa_plano(nome_plano: str) -> str:
     f = _fold(nome_plano)
+    # Juros do contrato de empréstimo (ex.: plano «Juros de Emprestimos»): mesmo eixo que
+    # «Pagamento de Emprestimos» / amortização ao credor — antes de «juros» genérico (cartão, etc.).
+    if "juros" in f and "emprestimo" in f:
+        return NF.NATUREZA_EMPRESTIMO_AMORTIZACAO
     if _match_any(
         f,
         (

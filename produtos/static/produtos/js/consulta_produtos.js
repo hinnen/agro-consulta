@@ -2044,6 +2044,10 @@ async function pdvEnviarOrcamentoErpCarrinho() {
     }
     const fp = document.getElementById('forma-pagamento-pdv');
     if (fp && fp.value) payload.forma_pagamento = fp.value;
+    payload.client_request_id =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 11);
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
         const res = await fetch(url, {

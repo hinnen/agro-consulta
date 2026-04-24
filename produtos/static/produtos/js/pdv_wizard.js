@@ -2323,6 +2323,8 @@
             payload.cliente_id = cliente.id;
         }
         if (cliente.documento) payload.cliente_documento = cliente.documento;
+        var idem = String((state.pagamento && state.pagamento.clientRequestId) || '').trim();
+        if (idem) payload.client_request_id = idem;
         return payload;
     }
 
@@ -2475,6 +2477,16 @@
             alert(validation);
             return;
         }
+        (function setSaleClientRequestId() {
+            var uuid =
+                typeof crypto !== 'undefined' && crypto.randomUUID
+                    ? crypto.randomUUID()
+                    : 'req-' +
+                      Date.now().toString(36) +
+                      '-' +
+                      Math.random().toString(36).slice(2, 11);
+            State.setPagamentoField('clientRequestId', uuid);
+        })();
         if (deveUsarMpPointNoFechar(state, computed)) {
             confirmSaleMercadoPagoPoint(!!withPrint);
             return;

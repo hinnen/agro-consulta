@@ -27,10 +27,25 @@ COL_DTO_PLANO_CONTA = "DtoPlanoDeConta"
 COL_AGRO_EMPRESTIMO = "AgroEmprestimo"
 COL_AGRO_EMPRESTIMO_AUDITORIA = "AgroEmprestimoAuditoria"
 
-# Planos padrão informados pela operação (conferir grafia no ERP / Mongo).
-EMPRESTIMO_PLANO_ENTRADA_PADRAO = "Entrada de Emprestimo"
-EMPRESTIMO_PLANO_DIVIDA_PADRAO = "Pagamento de Emprestimos"
-EMPRESTIMO_PLANO_JUROS_PADRAO = "Juros de Emprestimos"
+# Planos padrão (PT-BR com acento, comum no ERP). Sobrescreva via ``AGRO_EMPRESTIMO_PLANO_*`` no .env se o texto for outro.
+EMPRESTIMO_PLANO_ENTRADA_PADRAO = "Entrada de Empréstimo"
+EMPRESTIMO_PLANO_DIVIDA_PADRAO = "Pagamento de Empréstimos"
+EMPRESTIMO_PLANO_JUROS_PADRAO = "Juros de Empréstimos"
+
+
+def emprestimo_plano_entrada_resolvido() -> str:
+    v = (getattr(settings, "AGRO_EMPRESTIMO_PLANO_ENTRADA", None) or "").strip()
+    return v or EMPRESTIMO_PLANO_ENTRADA_PADRAO
+
+
+def emprestimo_plano_divida_resolvido() -> str:
+    v = (getattr(settings, "AGRO_EMPRESTIMO_PLANO_DIVIDA", None) or "").strip()
+    return v or EMPRESTIMO_PLANO_DIVIDA_PADRAO
+
+
+def emprestimo_plano_juros_resolvido() -> str:
+    v = (getattr(settings, "AGRO_EMPRESTIMO_PLANO_JUROS", None) or "").strip()
+    return v or EMPRESTIMO_PLANO_JUROS_PADRAO
 
 # Título Agro marcado para gerar clone no mês seguinte ao quitar integralmente (ex.: aluguel).
 AGRO_RECORRENTE = "AgroRecorrente"
@@ -61,21 +76,42 @@ EMPRESTIMO_CREDORES_INTERNOS_PADRAO: tuple[str, ...] = (
 
 def emprestimo_defaults_para_ui() -> dict[str, Any]:
     return {
-        "plano_entrada": EMPRESTIMO_PLANO_ENTRADA_PADRAO,
-        "plano_divida": EMPRESTIMO_PLANO_DIVIDA_PADRAO,
-        "plano_juros": EMPRESTIMO_PLANO_JUROS_PADRAO,
+        "plano_entrada": emprestimo_plano_entrada_resolvido(),
+        "plano_divida": emprestimo_plano_divida_resolvido(),
+        "plano_juros": emprestimo_plano_juros_resolvido(),
         "credores_internos": list(EMPRESTIMO_CREDORES_INTERNOS_PADRAO),
     }
 
 
 def _mongo_query_planos_emprestimo_erp() -> dict[str, Any]:
-    """Títulos cujo plano de conta é o de empréstimos usado no ERP (regex case-insensitive)."""
-    return {
-        "PlanoDeConta": {
-            "$regex": r"^\s*(Entrada|Pagamento|Juros)\s+de\s+Emprestim",
-            "$options": "i",
+    """
+    Títulos cujo ``PlanoDeConta`` é de empréstimo no ERP/Mongo:
+
+    - entrada (captação);
+    - pagamento (principal ao credor);
+    - juros (ao credor, no mesmo eixo operacional).
+
+    Usa os nomes resolvidos (``.env`` ``AGRO_EMPRESTIMO_PLANO_*`` ou padrões no código) como
+    substring case-insensitive, mais um padrão legado sem hierarquia fixa na coluna.
+    """
+    arms: list[dict[str, Any]] = []
+    for nm in (
+        emprestimo_plano_entrada_resolvido(),
+        emprestimo_plano_divida_resolvido(),
+        emprestimo_plano_juros_resolvido(),
+    ):
+        n = (nm or "").strip()
+        if n:
+            arms.append({"PlanoDeConta": {"$regex": re.escape(n), "$options": "i"}})
+    arms.append(
+        {
+            "PlanoDeConta": {
+                "$regex": r"(Entrada|Pagamento|Juros)(\s+de|\s+do)\s+Empr[eé]stim",
+                "$options": "i",
+            }
         }
-    }
+    )
+    return {"$or": arms}
 
 
 def _normalizar_nome_credor_emprestimo(nome: str) -> str:
@@ -124,7 +160,7 @@ def listar_lancamentos_emprestimo_do_mongo(
     if enome:
         and_parts.append({"Empresa": {"$regex": re.escape(enome[:120]), "$options": "i"}})
     query: dict[str, Any] = and_parts[0] if len(and_parts) == 1 else {"$and": and_parts}
-    lim = min(max(int(limit or 200), 1), 400)
+    lim = min(max(int(limit or 200), 1), 500)
     col = db[COL_DTO_LANCAMENTO]
     try:
         cur = col.find(query).sort("DataVencimento", -1).limit(lim)
@@ -142,29 +178,37 @@ def listar_lancamentos_emprestimo_do_mongo(
     return out
 
 
-def interno_mongo_emprestimo_como_item_agro(row: dict[str, Any]) -> dict[str, Any]:
+def mongo_emprestimo_como_item_agro(row: dict[str, Any]) -> dict[str, Any]:
     """
-    Adapta um lançamento ``DtoLancamento`` (já via ``lancamento_para_api`` + ``emprestimo_tipo`` interno)
-    para o mesmo formato superficial usado na lista «Registros Agro» da consulta.
+    Adapta um ``DtoLancamento`` de plano de empréstimo (``emprestimo_tipo`` interno ou externo)
+    para a lista unificada da consulta de empréstimos.
     ``id`` prefixado evita colisão com ``ObjectId`` de ``AgroEmprestimo``.
     """
+    et = str(row.get("emprestimo_tipo") or "").strip().lower()
+    if et not in ("interno", "externo"):
+        et = "externo"
     mid = str(row.get("id") or "").strip()
+    cli = str(row.get("cliente") or "").strip() or "—"
     ref = (str(row.get("numero_documento") or "").strip() or (mid[:12] if mid else "—")).upper()
     dv = str(row.get("data_vencimento") or row.get("data_fluxo") or "")[:10]
     created = (dv + "T12:00:00") if dv else ""
     desp = bool(row.get("despesa"))
     bruto = float(row.get("valor_bruto") or 0)
     rest = float(row.get("restante") or 0)
+    if et == "interno":
+        mutuario, credor = cli, ""
+    else:
+        mutuario, credor = "", cli
     return {
         "origem_lista": "mongo_lancamento",
-        "tipo": "interno",
+        "tipo": et,
         "id": f"ml:{mid}" if mid else "",
-        "mutuario_label": str(row.get("cliente") or "").strip() or "—",
-        "credor_nome": "",
+        "mutuario_label": mutuario,
+        "credor_nome": credor,
         "ref": ref[:40],
         "created_at": created,
         "valor_aporte": 0.0 if desp else bruto,
-        "valor_devolucao_total": bruto if desp else bruto,
+        "valor_devolucao_total": bruto,
         "mongo_despesa": desp,
         "mongo_restante": rest,
         "mongo_pago": bool(row.get("pago")),
@@ -2175,11 +2219,11 @@ def registrar_titulo_juros_apos_baixa_contas_pagar(
 
     pj_texto, pj_id = resolver_plano_conta_para_pedido_erp(
         db,
-        texto_config=EMPRESTIMO_PLANO_JUROS_PADRAO,
+        texto_config=emprestimo_plano_juros_resolvido(),
         id_config=None,
         empresa_id=empresa_id,
     )
-    pj_texto = ((pj_texto or "").strip() or EMPRESTIMO_PLANO_JUROS_PADRAO)[:200]
+    pj_texto = ((pj_texto or "").strip() or emprestimo_plano_juros_resolvido())[:200]
     pj_id = (pj_id or "").strip()
 
     r = inserir_lancamentos_manual_lote(
@@ -4308,7 +4352,7 @@ def listar_emprestimos_agro(db, *, tipo: str | None = None, limit: int = 100) ->
         q["tipo"] = {"$regex": "^externo$", "$options": "i"}
     elif t == "interno":
         q["tipo"] = {"$regex": "^interno$", "$options": "i"}
-    lim = min(max(int(limit or 100), 1), 200)
+    lim = min(max(int(limit or 100), 1), 500)
     cur = (
         db[COL_AGRO_EMPRESTIMO]
         .find(q)
