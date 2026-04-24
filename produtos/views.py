@@ -11198,6 +11198,19 @@ def relatorios_validade(request):
             scv, sv = _relatorio_validade_saldo_cv_e_vencido(
                 saldos_map, pid, stf
             )
+        # ERP 0 com Id divergente do código do relatório é comum: mostrar o saldo do lote (Agro).
+        if estoque_mongo_ok and row.get("lote_id") and (row.get("lote_qtd") is not None):
+            try:
+                lq = float(row.get("lote_qtd") or 0)
+            except (TypeError, ValueError):
+                lq = 0.0
+            if lq > 0 and (scv is None or float(scv) == 0.0):
+                scv, sv = _relatorio_validade_saldo_cv_e_vencido(
+                    {},
+                    pid,
+                    stf,
+                    saldo_lote_local=lq,
+                )
         row["saldo_c_v"] = scv
         row["saldo_vencido"] = sv
         if (
