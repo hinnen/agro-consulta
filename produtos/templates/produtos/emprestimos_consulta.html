@@ -71,7 +71,7 @@
 <div id="panel-tab-agro" class="consulta-panel hidden w-full">
   <div class="flex min-h-0 w-full flex-col gap-4 rounded-2xl border-2 border-orange-200/80 bg-white p-6 lg:p-8 shadow-sm">
     <h2 class="text-xl font-black uppercase tracking-tight text-orange-900 lg:text-2xl">Registros Agro (gestão)</h2>
-    <p class="text-base font-semibold text-slate-600">Tipo <strong>Todos / Externos / Internos</strong> no painel <strong>Filtros</strong>. <strong>Saldo líquido</strong>: negativo = loja deve à pessoa; positivo = pessoa deve à loja. Clique na linha para ver os lançamentos. Em <strong class="text-orange-800">internos</strong>, <strong>Gerenciar</strong> registra pagamento ou devolução.</p>
+    <p class="text-base font-semibold text-slate-600">Tipo <strong>Todos / Externos / Internos</strong> no painel <strong>Filtros</strong>. <strong>Saldo líquido</strong>: negativo = loja deve à pessoa; positivo = pessoa deve à loja. Aqui entram cadastros <strong>Agro</strong> e títulos <strong>internos</strong> já no <strong>Mongo</strong> (ERP); estes últimos aparecem como <strong>Título Mongo</strong> — baixa no fluxo de Lançamentos. Cadastro só Agro: <strong>Gerenciar</strong> para pagamento/devolução.</p>
     <div id="lista-emp" class="min-h-[min(58vh,32rem)] max-h-[min(65vh,36rem)] w-full overflow-y-auto text-lg font-semibold text-slate-600">Carregando…</div>
   </div>
 </div>
@@ -274,7 +274,9 @@
       var a = (x.credor_nome || '').toLowerCase();
       var b = (x.mutuario_label || '').toLowerCase();
       var r = String(x.ref || '').toLowerCase();
-      return a.indexOf(n) !== -1 || b.indexOf(n) !== -1 || r.indexOf(n) !== -1;
+      var pl = String(x.mongo_plano_conta || '').toLowerCase();
+      var ds = String(x.mongo_descricao || '').toLowerCase();
+      return a.indexOf(n) !== -1 || b.indexOf(n) !== -1 || r.indexOf(n) !== -1 || pl.indexOf(n) !== -1 || ds.indexOf(n) !== -1;
     });
   }
 
@@ -340,6 +342,8 @@
     var f = filtroLista.trim().toLowerCase();
     if (f !== 'externo' && f !== 'interno') return itens.slice();
     return itens.filter(function (x) {
+      if (f === 'externo' && x.origem_lista === 'mongo_lancamento') return false;
+      if (f === 'interno' && x.origem_lista === 'mongo_lancamento') return true;
       var xt = String(x.tipo || '').trim().toLowerCase();
       if (xt === f) return true;
       if (f === 'externo' && (x.credor_nome || '').trim() && !(x.mutuario_label || '').trim()) return true;
@@ -366,6 +370,11 @@
 
   /** Negativo = loja deve à pessoa; positivo = pessoa deve à loja (interno: −saldo restante a devolver). */
   function saldoAssinadoAgro(x) {
+    if (x.origem_lista === 'mongo_lancamento') {
+      var rem = Number(x.mongo_restante != null ? x.mongo_restante : 0);
+      if (x.mongo_despesa) return -rem;
+      return rem;
+    }
     var t = String(x.tipo || '').toLowerCase();
     if (t === 'interno') {
       var v2 = typeof x.valor_devolucao_total === 'number' ? x.valor_devolucao_total : 0;
@@ -391,6 +400,25 @@
   }
 
   function renderCardAgroItem(x) {
+    if (x.origem_lista === 'mongo_lancamento') {
+      const ref = x.ref || '—';
+      const quem = x.mutuario_label || '—';
+      const bruto = Number(x.valor_devolucao_total != null ? x.valor_devolucao_total : x.valor_bruto || 0);
+      const rest = Number(x.mongo_restante != null ? x.mongo_restante : 0);
+      const dv = (x.mongo_data_vencimento || '').slice(0, 10);
+      const st = x.mongo_pago ? '<span class="ml-2 inline-flex items-center rounded-lg bg-emerald-600 px-2 py-0.5 text-xs font-black text-white uppercase">Quitado</span>' : '<span class="ml-2 inline-flex items-center rounded-lg bg-amber-500 px-2 py-0.5 text-xs font-black text-white uppercase">Aberto</span>';
+      const tp = x.mongo_despesa ? 'A pagar' : 'A receber';
+      const dt = (x.created_at || '').slice(0, 19).replace('T', ' ');
+      const plan = x.mongo_plano_conta || '—';
+      return '<div class="rounded-xl border-2 border-violet-200 bg-violet-50/40 px-5 py-4 mb-3 flex flex-wrap items-center justify-between gap-3">' +
+        '<div class="min-w-0 flex-1"><span class="text-sm font-black uppercase text-violet-900">Interno · <span class="text-slate-700">Título Mongo</span></span>' +
+        '<span class="text-slate-500 font-bold"> · ref ' + escHtml(ref) + '</span>' +
+        '<div class="text-xl font-black text-slate-900 mt-1">' + escHtml(quem) + '</div>' +
+        '<div class="text-base font-semibold text-slate-700 mt-1">' + escHtml(tp) + st + ' · Venc. ' + escHtml(dv) + '</div>' +
+        '<div class="text-sm font-semibold text-slate-600 mt-1 line-clamp-2" title="' + escHtml(plan) + '">' + escHtml(plan) + '</div>' +
+        '<div class="text-base font-bold text-slate-800 mt-1">Valor título R$ ' + fmtBrl(bruto) + ' · Em aberto R$ ' + fmtBrl(rest) + '</div></div>' +
+        '<div class="flex flex-col items-end gap-2 shrink-0"><div class="text-sm font-bold text-slate-400">' + escHtml(dt) + '</div></div></div>';
+    }
     const tipo = x.tipo === 'interno' ? '<span class="text-orange-700 font-black">INTERNO</span>' : '<span class="text-emerald-800 font-black">EXTERNO</span>';
     const ref = x.ref || '—';
     const quem = x.credor_nome || x.mutuario_label || '—';
@@ -766,6 +794,9 @@
       const f = filtroLista.trim().toLowerCase();
       if (f === 'externo' || f === 'interno') u.searchParams.set('tipo', f);
       else u.searchParams.delete('tipo');
+      var eidAg = document.getElementById('erp-filtro-empresa-id').value.trim();
+      if (eidAg) u.searchParams.set('empresa_id', eidAg);
+      else u.searchParams.delete('empresa_id');
       const r = await fetch(u.toString(), { credentials: 'same-origin' });
       const j = await r.json();
       agroItensCache = j.itens || [];

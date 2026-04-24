@@ -142,6 +142,39 @@ def listar_lancamentos_emprestimo_do_mongo(
     return out
 
 
+def interno_mongo_emprestimo_como_item_agro(row: dict[str, Any]) -> dict[str, Any]:
+    """
+    Adapta um lançamento ``DtoLancamento`` (já via ``lancamento_para_api`` + ``emprestimo_tipo`` interno)
+    para o mesmo formato superficial usado na lista «Registros Agro» da consulta.
+    ``id`` prefixado evita colisão com ``ObjectId`` de ``AgroEmprestimo``.
+    """
+    mid = str(row.get("id") or "").strip()
+    ref = (str(row.get("numero_documento") or "").strip() or (mid[:12] if mid else "—")).upper()
+    dv = str(row.get("data_vencimento") or row.get("data_fluxo") or "")[:10]
+    created = (dv + "T12:00:00") if dv else ""
+    desp = bool(row.get("despesa"))
+    bruto = float(row.get("valor_bruto") or 0)
+    rest = float(row.get("restante") or 0)
+    return {
+        "origem_lista": "mongo_lancamento",
+        "tipo": "interno",
+        "id": f"ml:{mid}" if mid else "",
+        "mutuario_label": str(row.get("cliente") or "").strip() or "—",
+        "credor_nome": "",
+        "ref": ref[:40],
+        "created_at": created,
+        "valor_aporte": 0.0 if desp else bruto,
+        "valor_devolucao_total": bruto if desp else bruto,
+        "mongo_despesa": desp,
+        "mongo_restante": rest,
+        "mongo_pago": bool(row.get("pago")),
+        "mongo_data_vencimento": dv,
+        "mongo_plano_conta": str(row.get("plano_conta") or "")[:200],
+        "mongo_descricao": str(row.get("descricao") or "")[:300],
+        "mongo_lancamento_id": mid,
+    }
+
+
 # Campos que o DTO C# do ERP espera como string no BSON (não ObjectId).
 _COERCE_OID_CAMPOS_ERP = (
     "BancoID",
