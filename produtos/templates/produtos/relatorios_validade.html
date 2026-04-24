@@ -110,7 +110,7 @@
   {% endif %}
   {% if not estoque_mongo_ok %}
   <p class="no-print mb-4 rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-3 text-sm text-slate-300">
-    Estoque (centro + vila) indisponível: não foi possível ler o saldo. As linhas aparecem sem filtrar; totais de stock não serão exibidos.
+    Estoque (centro + vila) do ERP indisponível. A coluna C+V usa a <strong>quantidade por lote</strong> gravada no Agro, quando a linha vem de lotes. Filtro «Só com estoque» aplica a essa quantidade. Totais no rodapé somam o saldo por lote nesse modo.
   </p>
   {% endif %}
 
@@ -130,7 +130,9 @@
         </thead>
         <tbody class="divide-y divide-slate-700/80">
           {% for p in produtos %}
-          <tr data-pid="{{ p.produto_id|escape }}" class="hover:bg-slate-800/40">
+          <tr data-pid="{{ p.produto_id|escape }}"
+            {% if p.lote_id %}data-lote-id="{{ p.lote_id }}" data-lote-qtd="{{ p.lote_qtd|default:0 }}"{% endif %}
+            class="hover:bg-slate-800/40">
             <td class="rv-td-prod text-sm font-semibold leading-snug" title="{{ p.nome|escape }}">{{ p.nome }}</td>
             <td class="whitespace-nowrap">
               {% if pode_editar_validade %}
@@ -190,7 +192,11 @@
             {% if pode_editar_validade %}
             <td class="no-print w-[6.75rem] min-w-[6.75rem] align-top">
               <div class="flex w-full min-w-0 flex-col gap-0.5">
+                {% if p.lote_id and estoque_mongo_ok %}
+                <span class="block min-h-[38px] rounded border border-slate-600 bg-slate-900/50 px-1 py-1 text-center text-[9px] font-bold leading-tight text-slate-500" title="C+V vem do ERP. Ajuste lotes e saldos no cadastro Agro.">Usar<br/>cadastro</span>
+                {% else %}
                 <button type="button" class="rv-salvar flex w-full min-h-[38px] items-center justify-center whitespace-nowrap rounded border-2 border-emerald-600 bg-emerald-600 px-2 text-xs font-black uppercase leading-none text-white hover:bg-emerald-500 sm:min-h-[40px] sm:px-3 sm:text-sm">Salvar</button>
+                {% endif %}
                 <span class="rv-msg block min-h-[1em] text-center text-[9px] font-bold leading-tight text-slate-500" aria-live="polite"></span>
               </div>
             </td>
@@ -202,7 +208,7 @@
           </tr>
           {% endfor %}
         </tbody>
-        {% if estoque_mongo_ok and produtos %}
+        {% if exibir_rodape_totais and produtos %}
         <tfoot class="border-t-2 border-slate-600 bg-slate-900/90 text-[10px] font-bold uppercase text-slate-400 sm:text-xs print:text-slate-800">
           <tr>
             <td class="text-slate-300 print:text-slate-700" colspan="2">Totais</td>
@@ -220,6 +226,8 @@
   <script>
   (function () {
     var api = "{{ url_api_overlay_salvar|escapejs }}";
+    var apiLote = "{{ url_api_lote_upsert|escapejs }}";
+    var mongoOk = {{ estoque_mongo_ok|yesno:"true,false" }};
     function csrf() {
       var el = document.querySelector('[name=csrfmiddlewaretoken]');
       return el ? el.value : '';
@@ -238,9 +246,38 @@
       var tr = btn.closest('tr[data-pid]');
       if (!tr) return;
       var pid = tr.getAttribute('data-pid');
+      var loteId = tr.getAttribute('data-lote-id');
       var v = (tr.querySelector('.rv-val') || {}).value || '';
       var l = (tr.querySelector('.rv-lote') || {}).value || '';
       rowMsg(tr, '…', null);
+      if (loteId && !mongoOk) {
+        var q = tr.getAttribute('data-lote-qtd');
+        if (q === null || q === undefined || q === '') q = '0';
+        fetch(apiLote, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrf()
+          },
+          body: JSON.stringify({
+            produto_id: pid,
+            lote_codigo: l,
+            data_validade: v,
+            quantidade: q
+          })
+        }).then(function (r) {
+          if (r.status === 403 || r.status === 401) throw new Error('Sessão expirada ou sem permissão. Entre de novo.');
+          return r.json();
+        }).then(function (j) {
+          if (!j.ok) throw new Error(j.erro || 'Falha ao gravar lote');
+          rowMsg(tr, 'Gravado.', true);
+          window.setTimeout(function () { window.location.reload(); }, 450);
+        }).catch(function (err) {
+          rowMsg(tr, err.message || 'Erro', false);
+        });
+        return;
+      }
       fetch(api, {
         method: 'POST',
         credentials: 'same-origin',
