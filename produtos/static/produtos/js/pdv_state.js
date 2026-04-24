@@ -82,6 +82,8 @@
                 maquinaId: '',
                 maquinaNome: '',
                 mpBalcaoModo: '',
+                /** Chave por tentativa de confirmação (idempotência no servidor). */
+                clientRequestId: '',
                 lancamentos: []
             },
             venda: {

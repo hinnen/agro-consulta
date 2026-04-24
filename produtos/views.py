@@ -94,7 +94,7 @@ from .mongo_financeiro_util import (
     emprestimo_defaults_para_ui,
     listar_emprestimos_agro,
     listar_lancamentos_emprestimo_do_mongo,
-    interno_mongo_emprestimo_como_item_agro,
+    mongo_emprestimo_como_item_agro,
     registrar_emprestimo_interno_agro,
     registrar_pagamento_emprestimo_interno_agro,
     excluir_pagamento_emprestimo_interno_agro,
@@ -5512,29 +5512,35 @@ def api_emprestimos_listar(request):
     }
     tipo_filtro = aliases.get(raw, raw if raw in ("externo", "interno") else "")
     try:
-        lim = int(request.GET.get("limit") or 80)
+        lim = int(request.GET.get("limit") or 300)
     except ValueError:
-        lim = 80
+        lim = 300
+    lim = min(max(lim, 1), 500)
     empresa_id = str(request.GET.get("empresa_id") or "").strip() or None
     try:
-        lim_mongo = int(request.GET.get("limit_mongo_internos") or 220)
+        lim_mongo = int(request.GET.get("limit_mongo") or 400)
     except ValueError:
-        lim_mongo = 220
-    lim_mongo = min(max(lim_mongo, 1), 400)
+        lim_mongo = 400
+    lim_mongo = min(max(lim_mongo, 1), 500)
     _, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível", "itens": []}, status=503)
     itens = listar_emprestimos_agro(
         db, tipo=tipo_filtro if tipo_filtro in ("externo", "interno") else None, limit=lim
     )
-    if tipo_filtro in ("", "interno"):
+    if tipo_filtro in ("", "interno", "externo"):
         mongo_rows = listar_lancamentos_emprestimo_do_mongo(
             db, empresa_id=empresa_id, limit=lim_mongo
         )
         for row in mongo_rows:
-            if str(row.get("emprestimo_tipo") or "").strip().lower() != "interno":
+            et = str(row.get("emprestimo_tipo") or "").strip().lower()
+            if tipo_filtro == "interno" and et != "interno":
                 continue
-            itens.append(interno_mongo_emprestimo_como_item_agro(row))
+            if tipo_filtro == "externo" and et != "externo":
+                continue
+            if tipo_filtro == "" and et not in ("interno", "externo"):
+                continue
+            itens.append(mongo_emprestimo_como_item_agro(row))
 
         itens.sort(key=lambda x: str(x.get("created_at") or ""), reverse=True)
 
@@ -8970,6 +8976,11 @@ def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
 def api_enviar_pedido_erp(request):
     try:
         data = json.loads(request.body)
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    data.pop("client_request_id", None)
+    data.pop("idempotency_key", None)
+    try:
         client_m, db = obter_conexao_mongo()
         err, out = _fluxo_enviar_pedido_erp_interno(
             request, data, client_m=client_m, db=db

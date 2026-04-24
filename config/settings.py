@@ -75,9 +75,26 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # Idempotência global (header Idempotency-Key / X-Agro-Client-Request-Id ou body client_request_id)
+    'base.middleware.AgroIdempotencyMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# --- Idempotência HTTP (duplo clique / retry) — ver base/middleware.py ---
+AGRO_IDEMPOTENCY_ENABLED = config('AGRO_IDEMPOTENCY_ENABLED', default=True, cast=bool)
+AGRO_IDEMPOTENCY_EXEMPT_PREFIXES = tuple(
+    p.strip()
+    for p in config(
+        'AGRO_IDEMPOTENCY_EXEMPT_PREFIXES',
+        default='/admin/,/static/,/media/,/healthz',
+    ).split(',')
+    if p.strip()
+)
+AGRO_IDEMPOTENCY_MAX_BODY_PARSE = config('AGRO_IDEMPOTENCY_MAX_BODY_PARSE', default=524288, cast=int)
+AGRO_IDEMPOTENCY_MAX_RESPONSE_BYTES = config('AGRO_IDEMPOTENCY_MAX_RESPONSE_BYTES', default=524288, cast=int)
+AGRO_IDEMPOTENCY_CACHE_TTL = config('AGRO_IDEMPOTENCY_CACHE_TTL', default=86400, cast=int)
+AGRO_IDEMPOTENCY_LOCK_TTL = config('AGRO_IDEMPOTENCY_LOCK_TTL', default=120, cast=int)
 ROOT_URLCONF = 'config.urls'
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [
@@ -216,6 +233,12 @@ AGRO_FINANCEIRO_BANCO_PLACEHOLDER_NOME = (
     (config("AGRO_FINANCEIRO_BANCO_PLACEHOLDER_NOME", default="") or "").strip()
     or "ADICIONAR BANCO"
 )
+
+# Empréstimos: texto de ``PlanoDeConta`` no Mongo exatamente como no ERP (sobrescreve o padrão do código).
+# Vazio = usa padrão em ``mongo_financeiro_util`` + regex legada (com/sem acento).
+AGRO_EMPRESTIMO_PLANO_ENTRADA = (config("AGRO_EMPRESTIMO_PLANO_ENTRADA", default="") or "").strip()
+AGRO_EMPRESTIMO_PLANO_DIVIDA = (config("AGRO_EMPRESTIMO_PLANO_DIVIDA", default="") or "").strip()
+AGRO_EMPRESTIMO_PLANO_JUROS = (config("AGRO_EMPRESTIMO_PLANO_JUROS", default="") or "").strip()
 
 # PDV: WhatsApp para aviso de separação/entrega ao salvar orçamento (somente dígitos, ex.: 5513999999999).
 # wa.me abre conversa com um número; não existe URL oficial para “postar” direto em grupo pelo navegador.

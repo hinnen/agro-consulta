@@ -243,6 +243,9 @@
     }
     if (DRAFT.forma_pagamento) payload.forma_pagamento = DRAFT.forma_pagamento;
     if (DRAFT.pagamentos && DRAFT.pagamentos.length) payload.pagamentos = DRAFT.pagamentos;
+    payload.client_request_id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 11);
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
       var res = await fetch('{% url "api_enviar_pedido_erp" %}', {
