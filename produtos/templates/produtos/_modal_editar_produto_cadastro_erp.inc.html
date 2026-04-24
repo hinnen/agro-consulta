@@ -14,6 +14,7 @@
       <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-composicao">5. Composição</button>
       <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-variacoes">6. Marcas/Cód.</button>
       <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-config">7. Config</button>
+      <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-validade">8. Validade e Lote</button>
     </div>
 
     <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 [scrollbar-width:thin]">
@@ -296,6 +297,33 @@
             <input type="checkbox" id="edit-inativo" class="w-6 h-6 rounded border-slate-300 text-red-600 focus:ring-red-500" />
             <span class="text-base font-bold text-red-700">Inativar no ERP</span>
           </label>
+        </div>
+      </div>
+
+      <div id="tab-validade" class="tab-content hidden flex flex-col gap-4">
+        <div class="p-4 sm:p-5 rounded-xl border border-slate-200 bg-white shadow-sm">
+          <h4 class="text-base sm:text-lg font-black uppercase text-slate-800 mb-4 tracking-tight">Controle de perecíveis</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <label class="block">
+              <span class="text-base font-black uppercase text-slate-600 mb-1 block">Data de validade</span>
+              <input type="date" id="validade_data" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" />
+            </label>
+            <label class="block">
+              <span class="text-base font-black uppercase text-slate-600 mb-1 block">Número do lote</span>
+              <input type="text" id="validade_lote" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Ex: L2024-001" autocomplete="off" />
+            </label>
+            <label class="block">
+              <span class="text-base font-black uppercase text-slate-600 mb-1 block">Status</span>
+              <select id="validade_status" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none">
+                <option value="ok">Normal</option>
+                <option value="alerta">Vencimento próximo</option>
+                <option value="vencido">Vencido</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="p-3 sm:p-4 rounded-xl border border-blue-200 bg-blue-50/90 text-sm font-semibold text-blue-900 leading-snug">
+          Salve com <strong>Salvar no Agro</strong> (rodapé do modal) para gravar no overlay. O relatório de vencimentos classifica o status pela <strong>data</strong>; o seletor acima é só referência local.
         </div>
       </div>
 
@@ -991,6 +1019,9 @@
       sd.value = ['', '1', '2', '3'].indexOf(kd) >= 0 ? kd : '';
     }
 
+    setVal('validade_data', ce.validade != null && ce.validade !== undefined ? String(ce.validade) : '');
+    setVal('validade_lote', ce.lote != null && ce.lote !== undefined ? String(ce.lote) : '');
+
     setVal('edit-codigo', produto.codigo || '');
     setVal('edit-cb', produto.codigo_barras || '');
     setVal('edit-cod-nfe', produto.codigo_nfe || '');
@@ -1150,7 +1181,9 @@
           estoque: v.estoque != null ? String(v.estoque) : '0',
           custo_unitario: v.custo_unitario != null ? String(v.custo_unitario) : '0'
         };
-      })
+      }),
+      extra_validade: gv('validade_data'),
+      extra_lote: gv('validade_lote')
     };
     if (chkEx) body.ativo_exibicao = chkEx.checked;
     var tok = U && U.csrf ? U.csrf() : '';

@@ -1,0 +1,65 @@
+{% extends "layouts/base_pdv.html" %}
+
+{% block pdv_title %}Central de Relatórios | Agro Mais{% endblock %}
+{% block body_class %}min-h-screen bg-slate-950 text-slate-100{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+{% endblock %}
+
+{% block pdv_shell_class %}min-h-screen bg-slate-950{% endblock %}
+{% block pdv_section_class %}mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8{% endblock %}
+
+{% block pdv_header %}
+<header class="border-b border-slate-800 bg-slate-900/90 shadow-sm">
+  <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
+    <div class="min-w-0">
+      <p class="text-[10px] font-black uppercase tracking-[0.24em] text-orange-500">Relatórios</p>
+      <h1 class="mt-0.5 truncate text-2xl font-black tracking-tight text-white">Central de Relatórios</h1>
+      <p class="mt-1 text-sm font-medium text-slate-400">Gere análises e acompanhe os indicadores da Agro Mais.</p>
+    </div>
+    <div class="flex shrink-0 items-center gap-2">
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-600 bg-slate-800 px-3 py-2 text-xs font-black uppercase text-slate-100 shadow-sm hover:border-orange-500 hover:text-white" %}
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block pdv_content %}
+<div class="p-2 sm:p-4">
+  <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <a href="{% url 'relatorios_validade' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-orange-500/50 hover:bg-slate-700/50">
+      <div class="mb-4 flex items-center gap-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/20 text-orange-500 transition-transform group-hover:scale-110">
+          <i class="fas fa-calendar-alt text-2xl" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">Validade e Lote</h3>
+          <span class="text-xs font-bold uppercase tracking-wider text-orange-500">Perecíveis</span>
+        </div>
+      </div>
+      <p class="text-sm leading-relaxed text-slate-400">
+        Lista de produtos com data de vencimento próxima ou vencidos. Ideal para gestão de perdas.
+      </p>
+      <div class="mt-6 flex items-center text-sm font-bold text-orange-500">
+        <span>GERAR RELATÓRIO</span>
+        <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i>
+      </div>
+    </a>
+
+    <div class="cursor-not-allowed rounded-2xl border border-slate-700 bg-slate-800/90 p-6 opacity-50">
+      <div class="mb-4 flex items-center gap-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-500">
+          <i class="fas fa-chart-bar text-2xl" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">Vendas por Grupo</h3>
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-500">Em breve</span>
+        </div>
+      </div>
+      <p class="text-sm text-slate-400">Análise detalhada de performance por categoria de produto.</p>
+    </div>
+  </div>
+</div>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+{% endblock %}

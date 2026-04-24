@@ -8,6 +8,7 @@ import time
 import unicodedata
 import hashlib
 from datetime import date, datetime, time as dtime, timedelta, timezone
+from urllib.parse import urlencode
 from io import StringIO
 from decimal import Decimal
 from bson import ObjectId
@@ -898,6 +899,27 @@ def api_produtos_gestao_overlay_salvar(request):
                 "sim",
                 "s",
             )
+    if "extra_validade" in payload:
+        v = str(payload.get("extra_validade") or "").strip()[:16]
+        if v:
+            ex["validade"] = v
+            try:
+                dv = datetime.strptime(v[:10], "%Y-%m-%d").date()
+                if dv.year >= 2000:
+                    ex["validade_alerta"] = False
+                    ex.pop("validade_msg", None)
+            except (ValueError, TypeError):
+                pass
+        else:
+            ex.pop("validade", None)
+            ex.pop("validade_alerta", None)
+            ex.pop("validade_msg", None)
+    if "extra_lote" in payload:
+        l = str(payload.get("extra_lote") or "").strip()[:80]
+        if l:
+            ex["lote"] = l
+        else:
+            ex.pop("lote", None)
     ov.cadastro_extras = ex
 
     with transaction.atomic():
@@ -5804,6 +5826,12 @@ def api_lancamentos_criar_manual_lote(request):
         except Exception as exc:
             erp_lanc_ok = False
             aviso_api_erp = str(exc)[:800]
+    elif ids and not path_lanc:
+        logger.info(
+            "Lançamento manual: Mongo gravou %s título(s); POST ao ERP não executado "
+            "(VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH vazio no ambiente).",
+            len(ids),
+        )
     if ok:
         st = 200
     elif ids:
@@ -10921,3 +10949,237 @@ def api_entregas_ordenar_rota(request):
         st = 400 if not out.get("paradas") else 422
         return JsonResponse(out, status=st)
     return JsonResponse(out)
+
+
+@require_GET
+def relatorios_hub(request):
+    return render(request, "produtos/relatorios_hub.html")
+
+
+# Janela fixa (dias) para classificar "próximo ao vencimento" no relatório; não é filtro do utilizador.
+ALERTA_VALIDADE_DIAS = 30
+
+
+def _relatorio_validade_saldo_cv_e_vencido(
+    mapa: dict, produto_id: str, status_linha: str
+) -> tuple[float | None, float | None]:
+    """
+    Saldo operacional (centro + vila) e parte considerada «vencida».
+    Com um único lote/validade por produto no overlay, se a data já passou
+    o stock total conta como vencido; caso contrário 0. Sem mapa (Mongo fora) → (None, None).
+    """
+    if not mapa:
+        return None, None
+    s = mapa.get(str(produto_id))
+    if s is None:
+        return 0.0, 0.0
+    total = float(s.get("saldo_centro", 0) or 0) + float(s.get("saldo_vila", 0) or 0)
+    if status_linha == "vencido":
+        return total, total
+    return total, 0.0
+
+
+def _first_day_of_next_month(d: date) -> date:
+    if d.month == 12:
+        return date(d.year + 1, 1, 1)
+    return date(d.year, d.month + 1, 1)
+
+
+def _bounds_mes(ano: int, mes: int) -> tuple[date, date] | tuple[None, None]:
+    if not (1 <= mes <= 12) or not (2000 <= ano <= 3000):
+        return None, None
+    from calendar import monthrange
+
+    u = monthrange(ano, mes)[1]
+    return date(ano, mes, 1), date(ano, mes, u)
+
+
+def _bounds_mes_atual(hoje: date) -> tuple[date, date]:
+    a, b = _bounds_mes(hoje.year, hoje.month)
+    assert a is not None and b is not None
+    return a, b
+
+
+def _bounds_proximo_mes(hoje: date) -> tuple[date, date]:
+    f = _first_day_of_next_month(hoje)
+    a, b = _bounds_mes(f.year, f.month)
+    if a is None or b is None:
+        return _bounds_mes_atual(hoje)
+    return a, b
+
+
+@ensure_csrf_cookie
+@require_GET
+def relatorios_validade(request):
+    filtro_status = (request.GET.get("status") or "todos").strip() or "todos"
+    if filtro_status not in ("todos", "alerta", "vencido"):
+        filtro_status = "todos"
+    periodo = (request.GET.get("periodo") or "todos").strip() or "todos"
+    if periodo not in ("todos", "mes_atual", "proximo_mes", "mes"):
+        periodo = "todos"
+    hoje = timezone.now().date()
+    ref_mes_ano = (request.GET.get("ref_mes_ano") or "").strip()[:7]
+    if not ref_mes_ano:
+        ref_mes_ano = f"{hoje.year:04d}-{hoje.month:02d}"
+
+    inicio_p: date | None = None
+    fim_p: date | None = None
+    if periodo == "mes_atual":
+        inicio_p, fim_p = _bounds_mes_atual(hoje)
+    elif periodo == "proximo_mes":
+        a, b = _bounds_proximo_mes(hoje)
+        inicio_p, fim_p = a, b
+    elif periodo == "mes":
+        try:
+            y_str, m_str = ref_mes_ano.split("-", 1)
+            a, b = _bounds_mes(int(y_str), int(m_str))
+            if a is not None and b is not None:
+                inicio_p, fim_p = a, b
+        except (ValueError, TypeError):
+            inicio_p, fim_p = _bounds_mes_atual(hoje)
+    is_80 = (request.GET.get("print") or "").strip() == "80mm"
+    somente_com_estoque = (request.GET.get("somente_com_estoque") or "").strip() in (
+        "1",
+        "on",
+        "true",
+        "yes",
+        "sim",
+    )
+
+    overlays = list(
+        ProdutoGestaoOverlayAgro.objects.filter(
+            cadastro_extras__has_key="validade"
+        )
+    )
+    pids = [str(ov.produto_externo_id) for ov in overlays]
+    saldos_map: dict = {}
+    estoque_mongo_ok = False
+    client, db = obter_conexao_mongo()
+    if client is not None and db is not None and pids:
+        try:
+            saldos_map = _mapa_saldos_finais_por_produtos(db, client, pids)
+            estoque_mongo_ok = True
+        except Exception:
+            saldos_map = {}
+            estoque_mongo_ok = False
+
+    lista_validade = []
+    totais_saldo_c_v = 0.0
+    totais_saldo_vencido = 0.0
+
+    def anexa_linha_validade(row: dict) -> None:
+        nonlocal totais_saldo_c_v, totais_saldo_vencido
+        stf = str(row.get("status") or "")
+        scv, sv = _relatorio_validade_saldo_cv_e_vencido(
+            saldos_map, str(row.get("produto_id") or ""), stf
+        )
+        row["saldo_c_v"] = scv
+        row["saldo_vencido"] = sv
+        if (
+            somente_com_estoque
+            and estoque_mongo_ok
+            and scv is not None
+            and scv <= 0
+        ):
+            return
+        lista_validade.append(row)
+        if estoque_mongo_ok and scv is not None:
+            totais_saldo_c_v += scv
+            if sv is not None:
+                totais_saldo_vencido += float(sv)
+
+    for ov in overlays:
+        ex = ov.cadastro_extras if isinstance(getattr(ov, "cadastro_extras", None), dict) else {}
+        nome_base = (getattr(ov, "nome", None) or "").strip() or f"Produto {ov.produto_externo_id}"
+
+        if ex.get("validade_alerta"):
+            if filtro_status != "todos":
+                continue
+            lr = ex.get("lote")
+            lote_raw = str(lr).strip()[:80] if lr is not None else ""
+            lote = lote_raw or "N/A"
+            validade_msg = str(ex.get("validade_msg") or "Erro no ficheiro original.")[:200]
+            anexa_linha_validade(
+                {
+                    "produto_id": ov.produto_externo_id,
+                    "nome": nome_base,
+                    "lote": lote,
+                    "lote_raw": lote_raw,
+                    "data_validade": hoje,
+                    "dias_restantes": -999,
+                    "dias_restantes_abs": 999,
+                    "status": "erro_importacao",
+                    "validade_alerta": True,
+                    "validade_msg": validade_msg,
+                }
+            )
+            continue
+
+        validade_str = ex.get("validade")
+        if not validade_str:
+            continue
+        try:
+            data_venc = datetime.strptime(str(validade_str).strip()[:10], "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            continue
+        if inicio_p is not None and fim_p is not None and not (inicio_p <= data_venc <= fim_p):
+            continue
+        dias_restantes = (data_venc - hoje).days
+        st = "vencido" if dias_restantes < 0 else (
+            "alerta" if dias_restantes <= ALERTA_VALIDADE_DIAS else "ok"
+        )
+
+        if filtro_status != "todos" and st != filtro_status:
+            continue
+
+        dias_restantes_abs = abs(dias_restantes)
+        nome = nome_base
+        lr = ex.get("lote")
+        if lr is not None:
+            lote_raw = str(lr).strip()[:80]
+        else:
+            lote_raw = ""
+        lote = lote_raw or "N/A"
+        validade_alerta = bool(ex.get("validade_alerta"))
+        validade_msg = str(ex.get("validade_msg") or "")[:200]
+        anexa_linha_validade(
+            {
+                "produto_id": ov.produto_externo_id,
+                "nome": nome,
+                "lote": lote,
+                "lote_raw": lote_raw,
+                "data_validade": data_venc,
+                "dias_restantes": dias_restantes,
+                "dias_restantes_abs": dias_restantes_abs,
+                "status": st,
+                "validade_alerta": validade_alerta,
+                "validade_msg": validade_msg,
+            }
+        )
+
+    lista_validade.sort(
+        key=lambda x: (0, x["produto_id"])
+        if x.get("status") == "erro_importacao"
+        else (1, x["data_validade"], x["produto_id"])
+    )
+    login_href = f"{reverse('admin:login')}?{urlencode({'next': request.get_full_path()})}"
+    ctx = {
+        "produtos": lista_validade,
+        "estoque_mongo_ok": estoque_mongo_ok,
+        "totais_estoque": {
+            "c_v": totais_saldo_c_v,
+            "vencido": totais_saldo_vencido,
+        },
+        "filtros": {
+            "status": filtro_status,
+            "periodo": periodo,
+            "ref_mes_ano": ref_mes_ano,
+            "somente_com_estoque": somente_com_estoque,
+        },
+        "pode_editar_validade": getattr(request, "user", None) and request.user.is_authenticated,
+        "url_api_overlay_salvar": reverse("api_produtos_gestao_overlay_salvar"),
+        "login_validade_href": login_href,
+    }
+    if is_80:
+        return render(request, "produtos/relatorios_validade_80mm.html", ctx)
+    return render(request, "produtos/relatorios_validade.html", ctx)
