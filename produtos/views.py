@@ -2311,8 +2311,16 @@ def _home_admin_navegacao():
     dre_ativo = getattr(settings, "LANCAMENTOS_DRE_ATIVO", False)
     agro_legado_url = reverse("consulta_produtos")
     # Teclas únicas (sem modificador), priorizando F2–F12 + letras para o restante — ver AGENTS.md §5 (teclado primeiro, fonte grande).
-    # PDV entra pelo herói F1 na home.html (atalho global na própria página).
     top_items = [
+        {
+            "title": "Entrar no PDV",
+            "href": reverse("pdv_home"),
+            "icon": "shopping-cart",
+            "shortcut": "F1",
+            "shortcut_key": "f1",
+            "accent": "capri",
+            "pin_protected": True,
+        },
         {
             "title": "Consulta / Orçamentos",
             "href": agro_legado_url,
