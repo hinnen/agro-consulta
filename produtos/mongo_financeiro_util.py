@@ -1189,7 +1189,10 @@ def _lancamentos_mongo_stages_dedup_por_titulo_erp(
     Um documento por título no ERP: evita linhas repetidas quando o Mongo recebeu o mesmo
     DtoLancamento duas vezes (ex.: resync).
 
-    Ordem da chave (alinhada ao DRE quando há Id de ERP):
+    Inclusões pelo **lote manual Agro** (marca em ``Observacoes`` / ``ModificadoPor``) usam sempre
+    a chave ``O|_id`` — senão herdam ``Id`` do modelo clonado e somem na grade após o ``$group``.
+
+    Demais documentos — ordem da chave:
     1) ``Id`` não vazio e não parecendo ObjectId Mongo → dedup por título ERP;
     2) ``LancamentoID`` + parcela;
     3) ``NumeroLancamento`` + parcela (SisVale às vezes só preenche o número);
@@ -1284,7 +1287,7 @@ def _lancamentos_mongo_stages_dedup_por_titulo_erp(
             desc_sig,
         ]
     }
-    dup_key = {
+    dup_key_erp = {
         "$cond": [
             id_erp_valido,
             key_id,
@@ -1303,6 +1306,15 @@ def _lancamentos_mongo_stages_dedup_por_titulo_erp(
             },
         ]
     }
+    obs_dedup = {"$trim": {"input": {"$toString": {"$ifNull": ["$Observacoes", ""]}}}}
+    mod_dedup = {"$trim": {"input": {"$toString": {"$ifNull": ["$ModificadoPor", ""]}}}}
+    agro_lote_manual = {
+        "$or": [
+            {"$regexMatch": {"input": obs_dedup, "regex": "Lote manual Agro", "options": "i"}},
+            {"$regexMatch": {"input": mod_dedup, "regex": r"manual em lote Agro", "options": "i"}},
+        ]
+    }
+    dup_key = {"$cond": [agro_lote_manual, key_oid, dup_key_erp]}
     return [
         *(pre_stages or []),
         {

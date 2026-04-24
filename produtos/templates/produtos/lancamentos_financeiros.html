@@ -2518,6 +2518,11 @@
       (function hidratarFiltrosDaUrl() {
         try {
           const ups = new URLSearchParams(window.location.search || '');
+          if ((ups.get('agro_fim_manual') || '').trim() === '1') {
+            try {
+              saveExcludedSet(new Set());
+            } catch (_) {}
+          }
           const st = (ups.get('status') || '').trim().toLowerCase();
           const fs = document.getElementById('f-status');
           if (fs && (st === 'quitados' || st === 'todos' || st === 'abertos')) fs.value = st;
