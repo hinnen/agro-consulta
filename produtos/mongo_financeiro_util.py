@@ -1056,27 +1056,38 @@ def lancamentos_montar_query_mongo(
                     base.update(part)
 
     t = (texto or "").strip()
+    skip_exclusao_planos = False
     if t:
-        esc = re.escape(t[:120])
-        rx = re.compile(esc, re.IGNORECASE)
-        texto_or = {
-            "$or": [
-                {"Descricao": rx},
-                {"Cliente": rx},
-                {"NumeroDocumento": rx},
-                {"Observacoes": rx},
-                {"PlanoDeConta": rx},
-                {"LancamentoGrupo": rx},
-                {"FormaPagamento": rx},
-                {"Banco": rx},
-            ]
-        }
-        q: dict[str, Any] = {"$and": [base, texto_or]}
+        oid_lanc: ObjectId | None = None
+        if len(t) == 24 and re.match(r"^[a-fA-F0-9]{24}$", t, re.I):
+            try:
+                oid_lanc = ObjectId(t)
+            except Exception:
+                oid_lanc = None
+        if oid_lanc is not None:
+            q = {"$and": [base, {"_id": oid_lanc}]}
+            skip_exclusao_planos = True
+        else:
+            esc = re.escape(t[:120])
+            rx = re.compile(esc, re.IGNORECASE)
+            texto_or = {
+                "$or": [
+                    {"Descricao": rx},
+                    {"Cliente": rx},
+                    {"NumeroDocumento": rx},
+                    {"Observacoes": rx},
+                    {"PlanoDeConta": rx},
+                    {"LancamentoGrupo": rx},
+                    {"FormaPagamento": rx},
+                    {"Banco": rx},
+                ]
+            }
+            q = {"$and": [base, texto_or]}
     else:
         q = base
 
     frag = _fragmento_exclusao_planos(excluir_planos_nomes)
-    if frag is not None:
+    if frag is not None and not skip_exclusao_planos:
         q = {"$and": [q, frag]}
     return q
 
@@ -1308,10 +1319,13 @@ def _lancamentos_mongo_stages_dedup_por_titulo_erp(
     }
     obs_dedup = {"$trim": {"input": {"$toString": {"$ifNull": ["$Observacoes", ""]}}}}
     mod_dedup = {"$trim": {"input": {"$toString": {"$ifNull": ["$ModificadoPor", ""]}}}}
+    obs_lo = {"$toLower": obs_dedup}
+    mod_lo = {"$toLower": mod_dedup}
+    # $indexOfBytes (Mongo 3.4+) — evita $regexMatch (4.2+) quebrando agregação em clusters antigos.
     agro_lote_manual = {
         "$or": [
-            {"$regexMatch": {"input": obs_dedup, "regex": "Lote manual Agro", "options": "i"}},
-            {"$regexMatch": {"input": mod_dedup, "regex": r"manual em lote Agro", "options": "i"}},
+            {"$gte": [{"$indexOfBytes": [obs_lo, "lote manual agro"]}, 0]},
+            {"$gte": [{"$indexOfBytes": [mod_lo, "manual em lote agro"]}, 0]},
         ]
     }
     dup_key = {"$cond": [agro_lote_manual, key_oid, dup_key_erp]}

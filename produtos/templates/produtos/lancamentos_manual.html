@@ -362,17 +362,18 @@
         const erros = Array.isArray(j.erros) ? j.erros : [];
         const msgs = erros.map((e) => (e && (e.erro || e.mensagem)) ? String(e.erro || e.mensagem) : '').filter(Boolean);
         const av = j.aviso_api ? `\n\nERP: ${j.aviso_api}` : '';
+        const dicaLista = '\n\nNa consulta: cole o ID no campo de busca, ou «Todos» + vencimento cobrindo a data do título.';
         if (!j.ok && !ids.length) {
           alert(msgs[0] || j.erro || j.detail || ('Falha ao gravar (HTTP ' + r.status + ').'));
           return;
         }
         if (!j.ok && ids.length) {
           const det = msgs.length ? ('\n\n' + msgs.slice(0, 12).join('\n') + (msgs.length > 12 ? '\n…' : '')) : '';
-          alert('Gravação parcial. IDs gravados: ' + ids.join(', ') + det + av);
+          alert('Gravação parcial. IDs gravados: ' + ids.join(', ') + det + av + dicaLista);
           window.location.href = urlAposGravarLoteManual(tipo, quitado, dc, dv);
           return;
         }
-        alert('Lote gravado. IDs: ' + ids.join(', ') + av);
+        alert('Lote gravado. IDs: ' + ids.join(', ') + av + dicaLista);
         window.location.href = urlAposGravarLoteManual(tipo, quitado, dc, dv);
       } catch (_) {
         alert('Erro de rede.');
