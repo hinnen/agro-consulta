@@ -267,6 +267,8 @@
 })();
 
 let carrinho = [];
+/** Evita duplo disparo ao salvar orçamento (atalhos / cliques repetidos). */
+let isSavingOrcamento = false;
 let sugestoesAtuais = [];
 let indexSelecionado = -1;
 let indexSelecionadoCliente = -1;
@@ -1848,47 +1850,57 @@ function registrarPedidoEntregaServidor(orcId, extra) {
 }
 
 async function salvarOrcamentoManual() {
-    if (!carrinho.length) {
-        tocarSom('erro');
-        return alert('Carrinho vazio — adicione itens antes de salvar o orçamento.');
-    }
-    const chkEnt = document.getElementById('pdv-orcamento-entrega');
-    const comEntrega = chkEnt && chkEnt.checked;
-    const orcId = Date.now();
-    const fpEl = document.getElementById('forma-pagamento-pdv');
-    const fp = fpEl && fpEl.value ? fpEl.value : '';
-    let trocoPrecisa = null;
-    if (comEntrega && fp === 'Dinheiro') {
-        trocoPrecisa = await pdvModalPerguntaEntrega(
-            'Precisa de troco?',
-            'Sim = levar troco para o cliente. Não = pagamento em valor exato (sem troco).',
-            'Dinheiro'
-        );
-    }
-    salvarHistoricoLocal({ entrega: comEntrega, orcId });
-    tocarSom('add');
-    if (comEntrega) {
-        const escImp = await pdvModalEscolhaImpressaoEntrega();
-        if (escImp) imprimirPacoteEntregaTresViasPdv(orcId, escImp);
-        const zap = await pdvModalPerguntaEntrega(
-            'Enviar pelo WhatsApp?',
-            'Abre uma nova aba com o WhatsApp da loja e o texto pronto: cliente, telefone, endereço ou Plus Code, link do Maps e lista de itens.',
-            'WhatsApp'
-        );
-        if (zap) abrirWhatsappSeparacaoPdv(orcId);
-        const reg = await registrarPedidoEntregaServidor(orcId, {
-            forma_pagamento: fp,
-            troco_precisa: trocoPrecisa,
-        });
-        if (!reg || !reg.ok) {
-            alert((reg && reg.erro) ? reg.erro : 'Não foi possível registrar o pedido no painel Entregas.');
+    if (isSavingOrcamento || !carrinho.length) {
+        if (!carrinho.length) {
+            tocarSom('erro');
+            alert('Carrinho vazio — adicione itens antes de salvar o orçamento.');
         }
+        return;
     }
-    alert(
-        comEntrega
-            ? 'Orçamento salvo com entrega. O pedido foi registrado no painel Entregas (menu). Bipe ' + pdvCodigoBarrasOrcamento(orcId) + ' no buscador para retomar. F6 lista orçamentos.'
-            : 'Orçamento salvo neste navegador. Abra Orçamentos (F6) para listar ou recuperar.'
-    );
+    isSavingOrcamento = true;
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    try {
+        const chkEnt = document.getElementById('pdv-orcamento-entrega');
+        const comEntrega = chkEnt && chkEnt.checked;
+        const orcId = Date.now();
+        const fpEl = document.getElementById('forma-pagamento-pdv');
+        const fp = fpEl && fpEl.value ? fpEl.value : '';
+        let trocoPrecisa = null;
+        if (comEntrega && fp === 'Dinheiro') {
+            trocoPrecisa = await pdvModalPerguntaEntrega(
+                'Precisa de troco?',
+                'Sim = levar troco para o cliente. Não = pagamento em valor exato (sem troco).',
+                'Dinheiro'
+            );
+        }
+        salvarHistoricoLocal({ entrega: comEntrega, orcId });
+        tocarSom('add');
+        if (comEntrega) {
+            const escImp = await pdvModalEscolhaImpressaoEntrega();
+            if (escImp) imprimirPacoteEntregaTresViasPdv(orcId, escImp);
+            const zap = await pdvModalPerguntaEntrega(
+                'Enviar pelo WhatsApp?',
+                'Abre uma nova aba com o WhatsApp da loja e o texto pronto: cliente, telefone, endereço ou Plus Code, link do Maps e lista de itens.',
+                'WhatsApp'
+            );
+            if (zap) abrirWhatsappSeparacaoPdv(orcId);
+            const reg = await registrarPedidoEntregaServidor(orcId, {
+                forma_pagamento: fp,
+                troco_precisa: trocoPrecisa,
+            });
+            if (!reg || !reg.ok) {
+                alert((reg && reg.erro) ? reg.erro : 'Não foi possível registrar o pedido no painel Entregas.');
+            }
+        }
+        alert(
+            comEntrega
+                ? 'Orçamento salvo com entrega. O pedido foi registrado no painel Entregas (menu). Bipe ' + pdvCodigoBarrasOrcamento(orcId) + ' no buscador para retomar. F6 lista orçamentos.'
+                : 'Orçamento salvo neste navegador. Abra Orçamentos (F6) para listar ou recuperar.'
+        );
+    } finally {
+        isSavingOrcamento = false;
+        if (window.gmLoadingBar) window.gmLoadingBar.hide();
+    }
 }
 
 function pdvGerarTextoWhatsappOrcamentoCarrinho() {

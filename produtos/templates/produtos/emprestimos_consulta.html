@@ -208,6 +208,8 @@
       <div>
         <h3 class="text-xs font-black uppercase text-slate-500 mb-1">Pagamentos já registrados</h3>
         <ul id="modal-emp-int-hist" class="max-h-36 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50/80 p-2 text-xs space-y-2"></ul>
+        <p class="mt-2 text-xs font-semibold text-slate-600 leading-snug">Cada <strong>pagamento</strong> lançado aparece acima com o botão <strong class="text-red-800">Excluir</strong> (motivo + PIN). Para <strong>apagar o cadastro inteiro</strong> (ref, cronograma, sócio), use o botão vermelho abaixo — só é permitido enquanto <strong>não houver nenhum pagamento</strong> registrado.</p>
+        <button type="button" id="modal-emp-int-btn-excluir-registro" class="mt-2 w-full min-h-[48px] rounded-xl border-2 border-red-400 bg-red-50 px-3 py-2 text-sm font-black uppercase text-red-950 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-red-50">Excluir este cadastro (sem pagamentos)</button>
       </div>
       <div class="rounded-xl border-2 border-orange-100 bg-orange-50/50 p-3 space-y-3">
         <h3 class="text-sm font-black uppercase text-orange-900">Novo pagamento / devolução</h3>
@@ -237,7 +239,7 @@
   let filtroLista = '';
   let erpItensCache = null;
   let agroItensCache = null;
-  var _delEmpIntDelCtx = { metaId: '', pid: '', ind: null };
+  var _delEmpIntDelCtx = { metaId: '', pid: '', ind: null, modo: 'pagamento' };
 
   function getCookie(name) {
     const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
@@ -491,17 +493,25 @@
     });
   }
 
-  function abrirModalEmpIntDel(metaId, pagamentoIdStr, indice, liNode) {
+  function abrirModalEmpIntDel(metaId, pagamentoIdStr, indice, liNode, opts) {
+    opts = opts || {};
+    _delEmpIntDelCtx.modo = opts.modo === 'registro' ? 'registro' : 'pagamento';
     _delEmpIntDelCtx.metaId = metaId || '';
     _delEmpIntDelCtx.pid = (pagamentoIdStr || '').trim();
     _delEmpIntDelCtx.ind = indice;
+    var tit = document.getElementById('modal-emp-int-del-titulo');
+    tit.textContent = _delEmpIntDelCtx.modo === 'registro' ? 'Excluir cadastro interno' : 'Excluir pagamento';
     var box = document.getElementById('modal-emp-int-del-resumo');
-    var inner = '';
-    if (liNode) {
-      var part = liNode.querySelector('.min-w-0');
-      inner = part ? part.innerHTML : '';
+    if (_delEmpIntDelCtx.modo === 'registro' && opts.resumoHtml) {
+      box.innerHTML = opts.resumoHtml;
+    } else {
+      var inner = '';
+      if (liNode) {
+        var part = liNode.querySelector('.min-w-0');
+        inner = part ? part.innerHTML : '';
+      }
+      box.innerHTML = inner || '—';
     }
-    box.innerHTML = inner || '—';
     document.getElementById('modal-emp-int-del-motivo').value = '';
     document.getElementById('modal-emp-int-del-pin').value = '';
     var dm = document.getElementById('modal-emp-int-del-msg');
@@ -582,9 +592,19 @@
         var pid = (btn.getAttribute('data-pid') || '').trim();
         var inds = (btn.getAttribute('data-indice') || '').trim();
         var ind = inds === '' ? null : parseInt(inds, 10);
-        abrirModalEmpIntDel(x.id || '', pid, Number.isFinite(ind) ? ind : null, btn.closest('li'));
+        abrirModalEmpIntDel(x.id || '', pid, Number.isFinite(ind) ? ind : null, btn.closest('li'), { modo: 'pagamento' });
       });
     });
+    var btnExReg = document.getElementById('modal-emp-int-btn-excluir-registro');
+    var nPag = (x.pagamentos || []).length;
+    btnExReg.disabled = nPag > 0;
+    btnExReg.title = nPag > 0 ? 'Remova primeiro cada pagamento (Excluir ao lado da linha em Pagamentos já registrados).' : '';
+    btnExReg.onclick = function (ev) {
+      ev.stopPropagation();
+      if (btnExReg.disabled) return;
+      var rh = document.getElementById('modal-emp-int-resumo').innerHTML;
+      abrirModalEmpIntDel(x.id || '', '', null, null, { modo: 'registro', resumoHtml: rh });
+    };
     document.getElementById('modal-emp-int-salvar').disabled = !!x.interno_quitado;
     document.getElementById('modal-emp-int-valor').disabled = !!x.interno_quitado;
     document.getElementById('modal-emp-int-data').disabled = !!x.interno_quitado;
@@ -617,7 +637,9 @@
       return;
     }
     var body = { id: _delEmpIntDelCtx.metaId, motivo: motivo, pin: pin };
-    if (_delEmpIntDelCtx.pid) {
+    if (_delEmpIntDelCtx.modo === 'registro') {
+      body.excluir_registro = true;
+    } else if (_delEmpIntDelCtx.pid) {
       body.pagamento_id = _delEmpIntDelCtx.pid;
     } else if (_delEmpIntDelCtx.ind !== null && _delEmpIntDelCtx.ind !== undefined) {
       body.indice = _delEmpIntDelCtx.ind;
@@ -637,11 +659,17 @@
       var j = await r.json();
       if (j.ok) {
         fecharModalEmpIntDel();
-        await carregarLista();
-        var mid = document.getElementById('modal-emp-int-id').value.trim();
-        var item = (agroItensCache || []).find(function (z) { return String(z.id) === String(mid); });
-        if (item) abrirModalEmpInt(item);
-        else fecharModalEmpInt();
+        if (_delEmpIntDelCtx.modo === 'registro') {
+          fecharModalEmpInt();
+          await carregarLista();
+          pipelineAgroMostrar();
+        } else {
+          await carregarLista();
+          var mid = document.getElementById('modal-emp-int-id').value.trim();
+          var item = (agroItensCache || []).find(function (z) { return String(z.id) === String(mid); });
+          if (item) abrirModalEmpInt(item);
+          else fecharModalEmpInt();
+        }
       } else {
         msg.textContent = j.erro || 'Falha ao excluir.';
         msg.classList.remove('hidden', 'bg-emerald-50', 'text-emerald-900', 'border-emerald-200');
