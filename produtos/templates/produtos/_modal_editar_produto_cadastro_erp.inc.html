@@ -302,28 +302,43 @@
 
       <div id="tab-validade" class="tab-content hidden flex flex-col gap-4">
         <div class="p-4 sm:p-5 rounded-xl border border-slate-200 bg-white shadow-sm">
-          <h4 class="text-base sm:text-lg font-black uppercase text-slate-800 mb-4 tracking-tight">Controle de perecíveis</h4>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <label class="block">
-              <span class="text-base font-black uppercase text-slate-600 mb-1 block">Data de validade</span>
-              <input type="date" id="validade_data" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" />
+          <h4 class="text-base sm:text-lg font-black uppercase text-slate-800 mb-2 tracking-tight">Lotes, validade e saldo (Agro)</h4>
+          <p class="text-sm text-slate-600 mb-4">Cada lote fica no overlay; o resumo (data + lote) para o relatório é alinhado ao lote mais crítico. <strong>Adicionar / remover</strong> grava de imediato (é necessário login).</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/80 mb-4">
+            <label class="block min-w-0">
+              <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Lote</span>
+              <input type="text" id="lote-novo-cod" class="w-full min-h-[44px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white" placeholder="Ex. 001/25" autocomplete="off" />
             </label>
-            <label class="block">
-              <span class="text-base font-black uppercase text-slate-600 mb-1 block">Número do lote</span>
-              <input type="text" id="validade_lote" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Ex: L2024-001" autocomplete="off" />
+            <label class="block min-w-0">
+              <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Validade</span>
+              <input type="date" id="lote-novo-data" class="w-full min-h-[44px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white" />
             </label>
-            <label class="block">
-              <span class="text-base font-black uppercase text-slate-600 mb-1 block">Status</span>
-              <select id="validade_status" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none">
-                <option value="ok">Normal</option>
-                <option value="alerta">Vencimento próximo</option>
-                <option value="vencido">Vencido</option>
-              </select>
+            <label class="block min-w-0">
+              <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Qtd. (saldo local)</span>
+              <input type="text" id="lote-novo-qtd" class="w-full min-h-[44px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white" placeholder="0" inputmode="decimal" />
             </label>
+            <div class="flex items-end">
+              <button type="button" id="lote-btn-adicionar" class="w-full min-h-[44px] rounded-lg border-2 border-orange-500 bg-orange-500 px-2 text-xs font-black uppercase text-white hover:bg-orange-400">Adicionar</button>
+            </div>
+          </div>
+          <div class="border border-slate-200 rounded-xl overflow-x-auto">
+            <table class="w-full text-sm min-w-[520px]">
+              <thead class="bg-slate-800 text-white text-xs font-black uppercase">
+                <tr>
+                  <th class="px-3 py-2.5 text-left">Lote</th>
+                  <th class="px-3 py-2.5 text-left">Validade</th>
+                  <th class="px-3 py-2.5 text-right">Saldo</th>
+                  <th class="px-3 py-2.5 text-right w-20">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="lotes-tbody" class="divide-y divide-slate-100 text-slate-800">
+                <tr><td colspan="4" class="px-4 py-4 text-center text-slate-500">Carregue o produto para ver os lotes.</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
         <div class="p-3 sm:p-4 rounded-xl border border-blue-200 bg-blue-50/90 text-sm font-semibold text-blue-900 leading-snug">
-          Salve com <strong>Salvar no Agro</strong> (rodapé do modal) para gravar no overlay. O relatório de vencimentos classifica o status pela <strong>data</strong>; o seletor acima é só referência local.
+          O resumo (uma data / lote) usado no relatório de vencimentos segue o lote de validade <strong>mais antiga</strong> (se houver qtd. &gt; 0, prefere esses). O botão <strong>Salvar no Agro</strong> grava as outras abas, não a tabela de lotes (já salva por linha).
         </div>
       </div>
 
@@ -464,6 +479,37 @@
     el.checked = !!on;
   }
 
+  function fmtDataBr(iso) {
+    if (!iso || String(iso).length < 10) return '—';
+    var p = String(iso).slice(0, 10).split('-');
+    if (p.length !== 3) return esc(iso);
+    return p[2] + '/' + p[1] + '/' + p[0];
+  }
+
+  function renderLotesTabela() {
+    var tb = document.getElementById('lotes-tbody');
+    if (!tb) return;
+    var list = modalEdit._lotes || [];
+    var cfg = window.AgroCadastroErpLista || {};
+    var pode = cfg.PODE_EDITAR_OVERLAY;
+    if (!list.length) {
+      tb.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-slate-500">Nenhum lote. Preencha Lote, Validade e Qtd. e toque em Adicionar.</td></tr>';
+      return;
+    }
+    tb.innerHTML = list.map(function (L) {
+      var act = '<span class="text-slate-400">—</span>';
+      if (pode) {
+        act = '<button type="button" class="lote-btn-remover text-red-600 font-bold text-xs hover:underline" data-lote-id="' + esc(String(L.id)) + '">Remover</button>';
+      }
+      return (
+        '<tr class="align-middle"><td class="px-3 py-2 font-mono font-bold">' + esc(L.lote_codigo) + '</td>' +
+        '<td class="px-3 py-2 font-mono">' + fmtDataBr(L.data_validade) + '</td>' +
+        '<td class="px-3 py-2 text-right font-bold text-orange-600">' + esc(L.quantidade_atual) + '</td>' +
+        '<td class="px-3 py-2 text-right">' + act + '</td></tr>'
+      );
+    }).join('');
+  }
+
   var tabBtns = modalEdit.querySelectorAll('.tab-btn');
   var tabContents = modalEdit.querySelectorAll('.tab-content');
 
@@ -514,6 +560,82 @@
 
   modalEdit.addEventListener('click', function (e) {
     if (e.target === modalEdit) fecharModal();
+  });
+
+  bindClick('lote-btn-adicionar', function () {
+    var cfg = window.AgroCadastroErpLista || {};
+    if (!cfg.PODE_EDITAR_OVERLAY) {
+      if (typeof alert !== 'undefined') alert('Entre com seu usuário para gerir lotes.');
+      return;
+    }
+    if (!cfg.URL_LOTE_ADICIONAR) return;
+    var pid = modalEdit.getAttribute('data-produto-id');
+    if (!pid) return;
+    var cod = (document.getElementById('lote-novo-cod') || {}).value || '';
+    var d = (document.getElementById('lote-novo-data') || {}).value || '';
+    var q = (document.getElementById('lote-novo-qtd') || {}).value;
+    if (!d) {
+      if (typeof alert !== 'undefined') alert('Indique a data de validade.');
+      return;
+    }
+    var tok = (U && U.csrf) ? U.csrf() : '';
+    fetch(cfg.URL_LOTE_ADICIONAR, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
+      body: JSON.stringify({
+        produto_id: pid,
+        lote_codigo: cod,
+        data_validade: d,
+        quantidade: q
+      })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha ao adicionar lote');
+        if (j.lote) {
+          if (!modalEdit._lotes) modalEdit._lotes = [];
+          var ix = -1;
+          for (var k = 0; k < modalEdit._lotes.length; k++) {
+            if (String(modalEdit._lotes[k].id) === String(j.lote.id)) { ix = k; break; }
+          }
+          if (ix >= 0) modalEdit._lotes[ix] = j.lote;
+          else modalEdit._lotes.push(j.lote);
+          modalEdit._lotes.sort(function (a, b) {
+            return (a.data_validade || '').localeCompare(b.data_validade || '');
+          });
+        }
+        renderLotesTabela();
+        setVal('lote-novo-cod', '');
+        setVal('lote-novo-data', '');
+        setVal('lote-novo-qtd', '0');
+      })
+      .catch(function (e) { if (typeof alert !== 'undefined') alert(e.message || 'Erro'); });
+  });
+
+  modalEdit.addEventListener('click', function (e) {
+    var rmb = e.target && e.target.closest && e.target.closest('.lote-btn-remover');
+    if (!rmb) return;
+    var cfg = window.AgroCadastroErpLista || {};
+    if (!cfg.PODE_EDITAR_OVERLAY) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof window.confirm === 'function' && !window.confirm('Remover este lote?')) return;
+    var lid = rmb.getAttribute('data-lote-id');
+    if (!lid) return;
+    var u = (cfg.URL_LOTE_REMOVER_TMPL || '').replace(/lote\/0\//, 'lote/' + lid + '/');
+    if (!u) return;
+    var tok2 = (U && U.csrf) ? U.csrf() : '';
+    fetch(u, { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRFToken': tok2 } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha ao remover');
+        modalEdit._lotes = (modalEdit._lotes || []).filter(function (x) {
+          return String(x.id) !== String(lid);
+        });
+        renderLotesTabela();
+      })
+      .catch(function (e2) { if (typeof alert !== 'undefined') alert(e2.message || 'Erro'); });
   });
 
   function parseMoeda(s) {
@@ -1019,8 +1141,8 @@
       sd.value = ['', '1', '2', '3'].indexOf(kd) >= 0 ? kd : '';
     }
 
-    setVal('validade_data', ce.validade != null && ce.validade !== undefined ? String(ce.validade) : '');
-    setVal('validade_lote', ce.lote != null && ce.lote !== undefined ? String(ce.lote) : '');
+    modalEdit._lotes = Array.isArray(produto.lotes) ? produto.lotes.slice() : [];
+    renderLotesTabela();
 
     setVal('edit-codigo', produto.codigo || '');
     setVal('edit-cb', produto.codigo_barras || '');
@@ -1181,9 +1303,7 @@
           estoque: v.estoque != null ? String(v.estoque) : '0',
           custo_unitario: v.custo_unitario != null ? String(v.custo_unitario) : '0'
         };
-      }),
-      extra_validade: gv('validade_data'),
-      extra_lote: gv('validade_lote')
+      })
     };
     if (chkEx) body.ativo_exibicao = chkEx.checked;
     var tok = U && U.csrf ? U.csrf() : '';

@@ -128,6 +128,16 @@ urlpatterns = [
         name='api_produtos_gestao_overlay_salvar',
     ),
     path(
+        'api/overlay/lote/adicionar/',
+        views.api_overlay_lote_adicionar,
+        name='api_overlay_lote_adicionar',
+    ),
+    path(
+        'api/overlay/lote/<int:lote_id>/remover/',
+        views.api_overlay_lote_remover,
+        name='api_overlay_lote_remover',
+    ),
+    path(
         'api/produtos/cadastro/detalhe/<str:produto_id>/',
         views.api_produtos_cadastro_detalhe,
         name='api_produtos_cadastro_detalhe',
