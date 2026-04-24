@@ -201,6 +201,7 @@
   </div>
 
   {% include "produtos/_atalho_voltar_pdv.html" %}
+  {% include "produtos/_agro_double_submit_guard.html" %}
   <script>
   window.AgroCadastroErpLista = {
     CADASTRO_ERP_MODO: "{{ cadastro_erp_modo|default:'lista'|escapejs }}",

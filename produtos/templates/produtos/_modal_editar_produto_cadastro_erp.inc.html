@@ -1250,6 +1250,7 @@
   });
 
   bindClick('btn-salvar-edit', function () {
+    var btnSalvar = document.getElementById('btn-salvar-edit');
     var cfg = window.AgroCadastroErpLista || {};
     if (!cfg.URL_OVERLAY_SALVAR) return;
     if (!cfg.PODE_EDITAR_OVERLAY) {
@@ -1258,6 +1259,13 @@
     }
     var pid = modalEdit.getAttribute('data-produto-id');
     if (!pid) return;
+    if (btnSalvar && btnSalvar.disabled) return;
+    var origSalvarLabel = btnSalvar ? (btnSalvar.textContent || '').trim() : '';
+    if (btnSalvar) {
+      btnSalvar.disabled = true;
+      btnSalvar.classList.add('btn-loading');
+      btnSalvar.textContent = 'Salvando…';
+    }
     syncVariacoesFromDom();
     syncCustoMestre();
     function gv(id) {
@@ -1321,6 +1329,12 @@
       fecharModal();
     }).catch(function (e) {
       if (typeof alert !== 'undefined') alert(e.message || 'Erro ao salvar');
+    }).finally(function () {
+      if (btnSalvar) {
+        btnSalvar.disabled = false;
+        btnSalvar.classList.remove('btn-loading');
+        if (origSalvarLabel) btnSalvar.textContent = origSalvarLabel;
+      }
     });
   });
 
