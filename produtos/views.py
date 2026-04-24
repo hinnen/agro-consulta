@@ -11060,13 +11060,23 @@ ALERTA_VALIDADE_DIAS = 30
 
 
 def _relatorio_validade_saldo_cv_e_vencido(
-    mapa: dict, produto_id: str, status_linha: str
+    mapa: dict,
+    produto_id: str,
+    status_linha: str,
+    *,
+    saldo_lote_local: float | None = None,
 ) -> tuple[float | None, float | None]:
     """
     Saldo operacional (centro + vila) e parte considerada «vencida».
     Com um único lote/validade por produto no overlay, se a data já passou
-    o stock total conta como vencido; caso contrário 0. Sem mapa (Mongo fora) → (None, None).
+    o stock total conta como vencido; caso contrário 0. Sem mapa (Mongo fora) → (None, None),
+    exceto se `saldo_lote_local` (Agro) for informado: usa saldo do lote no SQL.
     """
+    if not mapa and saldo_lote_local is not None:
+        total = float(saldo_lote_local)
+        if status_linha == "vencido":
+            return total, total
+        return total, 0.0
     if not mapa:
         return None, None
     s = mapa.get(str(produto_id))
@@ -11147,8 +11157,10 @@ def relatorios_validade(request):
 
     overlays = list(
         ProdutoGestaoOverlayAgro.objects.filter(
-            cadastro_extras__has_key="validade"
+            Q(cadastro_extras__has_key="validade") | Q(lotes__isnull=False)
         )
+        .distinct()
+        .prefetch_related("lotes")
     )
     pids = [str(ov.produto_externo_id) for ov in overlays]
     saldos_map: dict = {}
@@ -11162,16 +11174,30 @@ def relatorios_validade(request):
             saldos_map = {}
             estoque_mongo_ok = False
 
-    lista_validade = []
+    lista_validade: list[dict] = []
     totais_saldo_c_v = 0.0
     totais_saldo_vencido = 0.0
 
-    def anexa_linha_validade(row: dict) -> None:
-        nonlocal totais_saldo_c_v, totais_saldo_vencido
+    def anexa_linha_validade(
+        row: dict, *, saldo_lote_local: float | None = None
+    ) -> None:
         stf = str(row.get("status") or "")
-        scv, sv = _relatorio_validade_saldo_cv_e_vencido(
-            saldos_map, str(row.get("produto_id") or ""), stf
-        )
+        pid = str(row.get("produto_id") or "")
+        if estoque_mongo_ok and saldos_map:
+            scv, sv = _relatorio_validade_saldo_cv_e_vencido(
+                saldos_map, pid, stf
+            )
+        elif not estoque_mongo_ok and saldo_lote_local is not None:
+            scv, sv = _relatorio_validade_saldo_cv_e_vencido(
+                {},
+                pid,
+                stf,
+                saldo_lote_local=saldo_lote_local,
+            )
+        else:
+            scv, sv = _relatorio_validade_saldo_cv_e_vencido(
+                saldos_map, pid, stf
+            )
         row["saldo_c_v"] = scv
         row["saldo_vencido"] = sv
         if (
@@ -11181,29 +11207,42 @@ def relatorios_validade(request):
             and scv <= 0
         ):
             return
+        if somente_com_estoque and (not estoque_mongo_ok) and saldo_lote_local is not None:
+            try:
+                if float(saldo_lote_local) <= 0:
+                    return
+            except (TypeError, ValueError):
+                return
         lista_validade.append(row)
-        if estoque_mongo_ok and scv is not None:
-            totais_saldo_c_v += scv
-            if sv is not None:
-                totais_saldo_vencido += float(sv)
 
     for ov in overlays:
-        ex = ov.cadastro_extras if isinstance(getattr(ov, "cadastro_extras", None), dict) else {}
+        ex = (
+            ov.cadastro_extras
+            if isinstance(getattr(ov, "cadastro_extras", None), dict)
+            else {}
+        )
         nome_base = (getattr(ov, "nome", None) or "").strip() or f"Produto {ov.produto_externo_id}"
+        lotes_ordenados = list(ov.lotes.all())
+        lotes_ordenados.sort(
+            key=lambda L: (L.data_validade, L.pk or 0)
+        )
 
-        if ex.get("validade_alerta"):
+        if ex.get("validade_alerta") and not lotes_ordenados:
             if filtro_status != "todos":
                 continue
             lr = ex.get("lote")
             lote_raw = str(lr).strip()[:80] if lr is not None else ""
             lote = lote_raw or "N/A"
-            validade_msg = str(ex.get("validade_msg") or "Erro no ficheiro original.")[:200]
+            validade_msg = str(
+                ex.get("validade_msg") or "Erro no ficheiro original."
+            )[:200]
             anexa_linha_validade(
                 {
                     "produto_id": ov.produto_externo_id,
                     "nome": nome_base,
                     "lote": lote,
                     "lote_raw": lote_raw,
+                    "lote_id": None,
                     "data_validade": hoje,
                     "dias_restantes": -999,
                     "dias_restantes_abs": 999,
@@ -11214,24 +11253,75 @@ def relatorios_validade(request):
             )
             continue
 
+        for el in lotes_ordenados:
+            data_venc = el.data_validade
+            if inicio_p is not None and fim_p is not None and not (
+                inicio_p <= data_venc <= fim_p
+            ):
+                continue
+            dias_restantes = (data_venc - hoje).days
+            st = (
+                "vencido"
+                if dias_restantes < 0
+                else (
+                    "alerta"
+                    if dias_restantes <= ALERTA_VALIDADE_DIAS
+                    else "ok"
+                )
+            )
+            if filtro_status != "todos" and st != filtro_status:
+                continue
+            lote_raw = str(el.lote_codigo or "").strip()[:100]
+            lote = lote_raw or "N/A"
+            qtd = float(el.quantidade_atual or 0)
+            anexa_linha_validade(
+                {
+                    "produto_id": ov.produto_externo_id,
+                    "nome": nome_base,
+                    "lote": lote,
+                    "lote_raw": lote_raw,
+                    "lote_id": el.pk,
+                    "lote_qtd": qtd,
+                    "data_validade": data_venc,
+                    "dias_restantes": dias_restantes,
+                    "dias_restantes_abs": abs(dias_restantes),
+                    "status": st,
+                    "validade_alerta": bool(ex.get("validade_alerta")),
+                    "validade_msg": str(ex.get("validade_msg") or "")[:200],
+                },
+                saldo_lote_local=qtd if not estoque_mongo_ok else None,
+            )
+
+        if lotes_ordenados:
+            continue
+
         validade_str = ex.get("validade")
         if not validade_str:
             continue
         try:
-            data_venc = datetime.strptime(str(validade_str).strip()[:10], "%Y-%m-%d").date()
+            data_venc = datetime.strptime(
+                str(validade_str).strip()[:10], "%Y-%m-%d"
+            ).date()
         except (ValueError, TypeError):
             continue
-        if inicio_p is not None and fim_p is not None and not (inicio_p <= data_venc <= fim_p):
+        if inicio_p is not None and fim_p is not None and not (
+            inicio_p <= data_venc <= fim_p
+        ):
             continue
         dias_restantes = (data_venc - hoje).days
-        st = "vencido" if dias_restantes < 0 else (
-            "alerta" if dias_restantes <= ALERTA_VALIDADE_DIAS else "ok"
+        st = (
+            "vencido"
+            if dias_restantes < 0
+            else (
+                "alerta"
+                if dias_restantes <= ALERTA_VALIDADE_DIAS
+                else "ok"
+            )
         )
 
         if filtro_status != "todos" and st != filtro_status:
             continue
 
-        dias_restantes_abs = abs(dias_restantes)
         nome = nome_base
         lr = ex.get("lote")
         if lr is not None:
@@ -11247,24 +11337,77 @@ def relatorios_validade(request):
                 "nome": nome,
                 "lote": lote,
                 "lote_raw": lote_raw,
+                "lote_id": None,
                 "data_validade": data_venc,
                 "dias_restantes": dias_restantes,
-                "dias_restantes_abs": dias_restantes_abs,
+                "dias_restantes_abs": abs(dias_restantes),
                 "status": st,
                 "validade_alerta": validade_alerta,
                 "validade_msg": validade_msg,
             }
         )
 
+    if lista_validade and estoque_mongo_ok:
+        totais_saldo_c_v = 0.0
+        totais_saldo_vencido = 0.0
+        por_produto: dict[str, dict] = {}
+        for r in lista_validade:
+            pid = str(r.get("produto_id") or "")
+            if not pid or r.get("status") == "erro_importacao":
+                continue
+            scv = r.get("saldo_c_v")
+            sv = r.get("saldo_vencido")
+            if pid not in por_produto:
+                por_produto[pid] = {"c_v": scv, "venc": sv}
+            else:
+                cur = por_produto[pid]
+                if scv is not None:
+                    if cur.get("c_v") is None:
+                        cur["c_v"] = scv
+                if sv is not None:
+                    a = float(cur["venc"] or 0) if cur.get("venc") is not None else 0.0
+                    b = float(sv or 0)
+                    cur["venc"] = max(a, b)
+        for _pid, t in por_produto.items():
+            c = t.get("c_v")
+            v = t.get("venc")
+            if c is not None:
+                totais_saldo_c_v += float(c)
+            if v is not None:
+                totais_saldo_vencido += float(v)
+    elif lista_validade and not estoque_mongo_ok:
+        totais_saldo_c_v = 0.0
+        totais_saldo_vencido = 0.0
+        for r in lista_validade:
+            if r.get("status") == "erro_importacao":
+                continue
+            c = r.get("saldo_c_v")
+            v = r.get("saldo_vencido")
+            if c is not None:
+                totais_saldo_c_v += float(c)
+            if v is not None:
+                totais_saldo_vencido += float(v)
+
     lista_validade.sort(
-        key=lambda x: (0, x["produto_id"])
+        key=lambda x: (0, x["produto_id"], str(x.get("lote") or ""))
         if x.get("status") == "erro_importacao"
-        else (1, x["data_validade"], x["produto_id"])
+        else (
+            1,
+            x["data_validade"],
+            x["produto_id"],
+            str(x.get("lote") or ""),
+        )
     )
     login_href = f"{reverse('admin:login')}?{urlencode({'next': request.get_full_path()})}"
+    exibir_rodape_totais = bool(lista_validade) and (
+        estoque_mongo_ok
+        or (not estoque_mongo_ok and (totais_saldo_c_v or totais_saldo_vencido))
+        or any(r.get("lote_id") for r in lista_validade)
+    )
     ctx = {
         "produtos": lista_validade,
         "estoque_mongo_ok": estoque_mongo_ok,
+        "exibir_rodape_totais": exibir_rodape_totais,
         "totais_estoque": {
             "c_v": totais_saldo_c_v,
             "vencido": totais_saldo_vencido,
@@ -11277,6 +11420,7 @@ def relatorios_validade(request):
         },
         "pode_editar_validade": getattr(request, "user", None) and request.user.is_authenticated,
         "url_api_overlay_salvar": reverse("api_produtos_gestao_overlay_salvar"),
+        "url_api_lote_upsert": reverse("api_overlay_lote_adicionar"),
         "login_validade_href": login_href,
     }
     if is_80:
