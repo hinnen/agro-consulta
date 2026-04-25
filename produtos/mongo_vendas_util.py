@@ -8,6 +8,8 @@ from datetime import date, datetime, timedelta, time as dtime
 from decimal import Decimal
 from typing import Any
 
+from bson import ObjectId
+
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -104,8 +106,6 @@ def _total_vendas_de_documentos_mongo(db, vendas: list) -> Decimal:
         venda_ids_str.append(vid)
         if len(vid) == 24:
             try:
-                from bson import ObjectId
-
                 venda_ids_obj.append(ObjectId(vid))
             except Exception:
                 pass
@@ -292,3 +292,318 @@ def fatores_vendas_por_calendario(db, dias_lookback: int = 84) -> dict[str, Any]
     out["mult_faixa"] = mult_fx
     out["suficiente"] = True
     return out
+
+
+def _q_dto_venda_janela_grafico(data_ini: date, data_fim: date) -> dict:
+    """
+    Mesmo filtro de DtoVenda que o gráfico do dashboard (DataFaturamento ou Data na janela).
+    Alinha rankings a ``_dashboard_mongo_vendas_serie`` / faturamento ERP.
+    """
+    dt_ini = datetime.combine(data_ini, dtime.min)
+    dt_fim = datetime.combine(data_fim, dtime.max)
+    return {
+        "$and": [
+            _filtro_venda_ativa_mongo(),
+            {
+                "$or": [
+                    {"DataFaturamento": {"$gte": dt_ini, "$lte": dt_fim}},
+                    {"Data": {"$gte": dt_ini, "$lte": dt_fim}},
+                ]
+            },
+        ]
+    }
+
+
+def _doc_data_venda_espelho(doc: dict) -> datetime | None:
+    for campo in ("DataFaturamento", "Data", "data", "CriadoEm", "criado_em"):
+        dt = doc.get(campo)
+        if isinstance(dt, datetime):
+            return dt
+    return None
+
+
+def _float_seguro(v) -> float:
+    try:
+        return float(v or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _doc_total_venda_espelho(doc: dict) -> float:
+    for campo in ("ValorTotal", "ValorLiquido", "Total", "Valor", "total", "ValorFinal"):
+        v = doc.get(campo)
+        if v is not None:
+            f = _float_seguro(v)
+            if f > 0:
+                return f
+    return 0.0
+
+
+def _nome_vendedor_dto_venda(doc: dict) -> str:
+    for chave in (
+        "VendedorNome",
+        "NomeVendedor",
+        "Vendedor",
+        "vendedor",
+        "UsuarioNome",
+        "NomeUsuario",
+        "Usuario",
+        "usuario",
+        "UserName",
+        "userName",
+        "Atendente",
+        "Funcionario",
+        "Operador",
+        "LancamentoUsuario",
+    ):
+        v = doc.get(chave)
+        if v is not None:
+            s = str(v).strip()
+            if s and s.lower() not in ("none", "null", "0"):
+                return s[:120]
+    for chave in ("VendedorID", "UsuarioID", "FuncionarioID"):
+        v = doc.get(chave)
+        if v is not None and str(v).strip() not in ("", "None", "null", "0"):
+            return f"ID {v}"[:120]
+    return "Não informado"
+
+
+def _nome_da_linha_produto_erp(item: dict) -> str:
+    for k in ("Descricao", "descricao", "Produto", "NomeProduto", "nome", "Nome"):
+        v = item.get(k)
+        if v is not None:
+            s = str(v).strip()
+            if len(s) >= 1:
+                return s[:200]
+    return ""
+
+
+def _chaves_produto_mapa_mongo(p: dict) -> list[str]:
+    keys: list[str] = []
+    vid = p.get("Id")
+    if vid is not None:
+        keys.append(str(vid))
+    keys.append(str(p.get("_id")))
+    cod = p.get("Codigo")
+    if cod is not None and str(cod).strip() != "":
+        keys.append(str(cod))
+    return [k for k in keys if k and k != "None"]
+
+
+def _coletar_vendas_dto_capri(
+    db, data_ini: date, data_fim: date
+) -> tuple[list[dict] | None, list[dict] | None]:
+    """
+    Vendas no espelho ERP para o período (mesma regra de inclusão do gráfico: ignora Data inválida).
+    """
+    try:
+        q = _q_dto_venda_janela_grafico(data_ini, data_fim)
+        proj = {
+            "Id": 1,
+            "_id": 1,
+            "DataFaturamento": 1,
+            "Data": 1,
+            "data": 1,
+            "CriadoEm": 1,
+            "criado_em": 1,
+            "ValorTotal": 1,
+            "ValorLiquido": 1,
+            "Total": 1,
+            "Valor": 1,
+            "total": 1,
+            "ValorFinal": 1,
+            "VendedorNome": 1,
+            "NomeVendedor": 1,
+            "Vendedor": 1,
+            "vendedor": 1,
+            "UsuarioNome": 1,
+            "NomeUsuario": 1,
+            "Usuario": 1,
+            "usuario": 1,
+            "UserName": 1,
+            "userName": 1,
+            "Atendente": 1,
+            "Funcionario": 1,
+            "Operador": 1,
+            "LancamentoUsuario": 1,
+            "VendedorID": 1,
+            "UsuarioID": 1,
+            "FuncionarioID": 1,
+        }
+        vendas = list(db["DtoVenda"].find(q, proj))
+    except Exception as exc:
+        logger.exception("coletar_vendas_dto_capri: %s", exc)
+        return None, None
+    if not vendas:
+        return [], []
+    filtrado: list[dict] = []
+    for v in vendas:
+        if _doc_data_venda_espelho(v) is None:
+            continue
+        filtrado.append(v)
+    return filtrado, vendas
+
+
+def dashboard_top_produtos_mongo(
+    client: Any, db, data_ini: date, data_fim: date, *, limite: int = 8
+) -> list[dict] | None:
+    """
+    Top produtos por faturamento (linhas DtoVendaProduto), mesma janela do gráfico.
+    Nomes via cadastro (DtoProduto) quando possível.
+    """
+    if db is None or client is None:
+        return None
+    limite = max(1, min(int(limite or 8), 30))
+    filtrado, _raw = _coletar_vendas_dto_capri(db, data_ini, data_fim)
+    if filtrado is None:
+        return None
+    if not filtrado:
+        return []
+
+    venda_ids_obj: list = []
+    venda_ids_str: list[str] = []
+    for v in filtrado:
+        vid = str(v.get("Id") or v.get("_id"))
+        if not vid or vid == "None":
+            continue
+        venda_ids_str.append(vid)
+        if len(vid) == 24:
+            try:
+                venda_ids_obj.append(ObjectId(vid))
+            except Exception:
+                pass
+
+    if not venda_ids_str:
+        return []
+
+    q_it = {
+        "$or": [
+            {"VendaID": {"$in": venda_ids_obj}},
+            {"VendaID": {"$in": venda_ids_str}},
+        ]
+    }
+
+    try:
+        cursor = db["DtoVendaProduto"].find(q_it)
+    except Exception as exc:
+        logger.exception("dashboard_top_produtos_mongo: itens: %s", exc)
+        return None
+
+    tot_por_id: dict[str, tuple[Decimal, Decimal]] = {}
+    desc_por_id: dict[str, str] = {}
+    for item in cursor:
+        raw_pid = item.get("ProdutoID")
+        if raw_pid is None:
+            continue
+        pid = str(raw_pid)
+        if not pid or pid == "None":
+            continue
+        if pid not in desc_por_id:
+            d = _nome_da_linha_produto_erp(item)
+            if d:
+                desc_por_id[pid] = d
+        linha = _valor_linha_item(item)
+        try:
+            qtd = _decimal_seguro(
+                item.get("Quantidade") or item.get("quantidade")
+            )
+        except Exception:
+            qtd = Decimal("0")
+        t = tot_por_id.get(pid, (Decimal("0"), Decimal("0")))
+        tot_por_id[pid] = (t[0] + linha, t[1] + qtd)
+
+    if not tot_por_id:
+        return []
+
+    ranked = sorted(tot_por_id.items(), key=lambda x: x[1][0], reverse=True)[:limite]
+    ids_top = [r[0] for r in ranked]
+    ors: list[dict] = []
+    for pid in ids_top:
+        ors.append({"Id": pid})
+        if pid.isdigit():
+            try:
+                n = int(pid)
+                ors.append({"Id": n})
+                ors.append({"Codigo": n})
+            except (TypeError, ValueError):
+                pass
+        if len(pid) == 24:
+            try:
+                oid = ObjectId(pid)
+                ors.append({"Id": oid})
+                ors.append({"_id": oid})
+            except Exception:
+                pass
+
+    pmap: dict[str, dict] = {}
+    if ors:
+        try:
+            col = db[client.col_p]
+            prods = list(
+                col.find(
+                    {"$or": ors},
+                    {"Id": 1, "_id": 1, "Nome": 1, "ValorVenda": 1, "PrecoVenda": 1, "Codigo": 1},
+                )
+            )
+        except Exception as exc:
+            logger.exception("dashboard_top_produtos_mongo: DtoProduto: %s", exc)
+            prods = []
+        for p in prods:
+            for k in _chaves_produto_mapa_mongo(p):
+                pmap[k] = p
+
+    out: list[dict] = []
+    for pid, (total, qtd) in ranked:
+        p = pmap.get(pid)
+        nome_cat = (p or {}).get("Nome")
+        nome = (str(nome_cat).strip() if nome_cat else "")
+        if not nome:
+            nome = desc_por_id.get(pid, "")
+        if not nome:
+            nome = f"Produto {pid}"
+        out.append(
+            {
+                "nome": nome[:50].strip() or f"Produto {pid}"[:50],
+                "total": round(float(total), 2),
+                "qtd_total": round(float(qtd), 3),
+            }
+        )
+    return out
+
+
+def _faturamento_venda_espelho(db, v: dict) -> float:
+    t = _doc_total_venda_espelho(v)
+    if t > 0:
+        return t
+    return float(_total_vendas_de_documentos_mongo(db, [v]))
+
+
+def dashboard_ranking_vendedores_mongo(
+    client: Any, db, data_ini: date, data_fim: date, *, limite: int = 8
+) -> list[dict] | None:
+    """
+    Ranking de vendedor por faturamento (DtoVenda), mesma janela do gráfico.
+    """
+    if db is None or client is None:
+        return None
+    limite = max(1, min(int(limite or 8), 30))
+    filtrado, _ = _coletar_vendas_dto_capri(db, data_ini, data_fim)
+    if filtrado is None:
+        return None
+    if not filtrado:
+        return []
+    ac: dict[str, tuple[float, int]] = {}
+    for v in filtrado:
+        nome = _nome_vendedor_dto_venda(v)
+        t = _faturamento_venda_espelho(db, v)
+        tot, n = ac.get(nome, (0.0, 0))
+        ac[nome] = (tot + t, n + 1)
+    ranked = sorted(ac.items(), key=lambda x: x[1][0], reverse=True)[:limite]
+    return [
+        {
+            "nome": nome[:120],
+            "total": round(val, 2),
+            "n_vendas": int(n_c),
+        }
+        for nome, (val, n_c) in ranked
+    ]
