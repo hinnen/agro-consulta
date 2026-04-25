@@ -55,8 +55,9 @@ AGRO_DASHBOARD_MONGO_RANKING_FALLBACK = config(
     "AGRO_DASHBOARD_MONGO_RANKING_FALLBACK", default=True, cast=bool
 )
 
-# Relatórios HTTP v3 no dashboard (PedidosItens / CondensadoVendedor). False = pula ERP e vai direto ao SQLite.
-AGRO_DASHBOARD_ERP_V3_REPORTS = config("AGRO_DASHBOARD_ERP_V3_REPORTS", default=True, cast=bool)
+# Relatórios HTTP v3 no dashboard: **lentos** na abertura (chamada síncrona ao ERP). Default False;
+# a página usa primeiro Mongo + SQLite; com True, tenta ERP só depois se ainda faltar dado.
+AGRO_DASHBOARD_ERP_V3_REPORTS = config("AGRO_DASHBOARD_ERP_V3_REPORTS", default=False, cast=bool)
 
 # Timeout por tentativa GET/POST em /v3/.../Report (segundos). Muitas tentativas × timeout alto travava o worker.
 AGRO_ERP_V3_REPORT_TIMEOUT_SEC = config(
