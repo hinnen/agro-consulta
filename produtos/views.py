@@ -102,6 +102,7 @@ from .mongo_financeiro_util import (
     LANCAMENTOS_ORDENACOES_VALIDAS,
     lancamentos_buscar_pagina,
     lancamentos_montar_query_mongo,
+    dashboard_gerencial_linhas_financeiras,
     lancamentos_planos_distintos_no_filtro,
     lancamentos_sugestoes_campo,
     listar_formas_e_bancos_distintos,
@@ -2382,6 +2383,14 @@ def _home_admin_navegacao():
             "pin_protected": True,
         },
         {
+            "title": "Dashboard gerencial",
+            "href": reverse("dashboard_gerencial"),
+            "icon": "layout-dashboard",
+            "shortcut": "B",
+            "shortcut_key": "b",
+            "pin_protected": True,
+        },
+        {
             "title": "DRE (off)" if not dre_ativo else "DRE simples",
             "href": reverse("lancamentos_dre") if dre_ativo else "",
             "icon": "bar-chart-3",
@@ -2473,6 +2482,448 @@ def _home_admin_navegacao():
     return {"top_items": top_items, "grid_items": grid_items}
 
 
+def _dashboard_periodo_from_request(request):
+    hoje = timezone.localdate()
+    preset = (request.GET.get("periodo") or "mes").strip().lower()
+    if preset == "hoje":
+        return hoje, hoje, "Hoje", preset
+    if preset == "7d":
+        return hoje - timedelta(days=6), hoje, "Últimos 7 dias", preset
+    if preset == "30d":
+        return hoje - timedelta(days=29), hoje, "Últimos 30 dias", preset
+    if preset == "ano":
+        ini = hoje.replace(month=1, day=1)
+        return ini, hoje, "Ano atual", preset
+    ini = hoje.replace(day=1)
+    return ini, hoje, "Mês atual", "mes"
+
+
+def _dashboard_prev_periodo(data_ini, data_fim):
+    span = (data_fim - data_ini).days + 1
+    prev_fim = data_ini - timedelta(days=1)
+    prev_ini = prev_fim - timedelta(days=span - 1)
+    return prev_ini, prev_fim
+
+
+def _dashboard_float(value):
+    try:
+        return float(value or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _dashboard_doc_total(doc):
+    for campo in ("ValorTotal", "ValorLiquido", "Total", "Valor", "total", "ValorFinal"):
+        v = doc.get(campo)
+        if v is not None:
+            f = _dashboard_float(v)
+            if f > 0:
+                return f
+    return 0.0
+
+
+def _dashboard_mongo_vendas_serie(data_ini, data_fim):
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível", "total": 0.0, "por_dia": {}}
+    dt_ini = datetime.combine(data_ini, dtime.min)
+    dt_fim = datetime.combine(data_fim, dtime.max)
+    por_dia = {}
+    total = 0.0
+    try:
+        # Fonte 1: coleção operacional consolidada do Agro.
+        vendas_agro = client.obter_vendas_agro_periodo(dt_ini, dt_fim)
+        for doc in vendas_agro:
+            dt = doc.get("data")
+            if not isinstance(dt, datetime):
+                continue
+            chave = dt.date().isoformat()
+            v = _dashboard_float(doc.get("valor_total"))
+            por_dia[chave] = por_dia.get(chave, 0.0) + v
+            total += v
+
+        # Fonte 2: DtoVenda legado (ERP espelho) para complementar dias sem registro.
+        q = {"Data": {"$gte": dt_ini, "$lte": dt_fim}, **_filtro_venda_ativa_mongo()}
+        proj = {"Data": 1, "ValorTotal": 1, "ValorLiquido": 1, "Total": 1, "Valor": 1}
+        for doc in db["DtoVenda"].find(q, proj):
+            dt = doc.get("Data")
+            if not isinstance(dt, datetime):
+                continue
+            chave = dt.date().isoformat()
+            if chave in por_dia:
+                continue
+            v = _dashboard_doc_total(doc)
+            por_dia[chave] = v
+            total += v
+    except Exception as exc:
+        logger.warning("dashboard_gerencial mongo serie: %s", exc, exc_info=True)
+        return {"ok": False, "erro": "Falha ao consultar Mongo", "total": 0.0, "por_dia": {}}
+    # Fallback local: se ERP/Mongo não trouxer valores no período, usa VendaAgro (SQLite/Postgres local).
+    if total <= 0:
+        rows = (
+            VendaAgro.objects.filter(criado_em__date__gte=data_ini, criado_em__date__lte=data_fim)
+            .values("criado_em__date")
+            .annotate(soma=Sum("total"))
+        )
+        por_dia = {}
+        total = 0.0
+        for row in rows:
+            d = row.get("criado_em__date")
+            if not d:
+                continue
+            v = _dashboard_float(row.get("soma"))
+            por_dia[d.isoformat()] = round(v, 2)
+            total += v
+    return {"ok": True, "erro": "", "total": total, "por_dia": por_dia}
+
+
+def _dashboard_perdas_validade_hoje():
+    hoje = timezone.localdate()
+    custo_por_produto = {}
+    for row in ProdutoMarcaVariacaoAgro.objects.values("produto_externo_id").annotate(
+        custo_medio=Sum("custo_unitario"), n=Count("id")
+    ):
+        n = int(row.get("n") or 0)
+        if n <= 0:
+            continue
+        custo_por_produto[str(row["produto_externo_id"])] = _dashboard_float(row["custo_medio"]) / n
+    total = 0.0
+    for lote in (
+        EstoqueLote.objects.select_related("overlay")
+        .filter(quantidade_atual__gt=0, data_validade__lte=hoje)
+        .only("quantidade_atual", "overlay__produto_externo_id", "overlay__preco_venda")
+    ):
+        pid = str(getattr(lote.overlay, "produto_externo_id", "") or "")
+        custo = custo_por_produto.get(pid)
+        if custo is None:
+            custo = _dashboard_float(getattr(lote.overlay, "preco_venda", 0)) * 0.65
+        total += _dashboard_float(lote.quantidade_atual) * max(custo, 0.0)
+    return total
+
+
+def _dashboard_top_produtos_sqlite(data_ini, data_fim, limite=8):
+    rows = (
+        ItemVendaAgro.objects.filter(venda__criado_em__date__gte=data_ini, venda__criado_em__date__lte=data_fim)
+        .values("descricao")
+        .annotate(total=Sum("valor_total"))
+        .order_by("-total")[:limite]
+    )
+    out = []
+    for row in rows:
+        nome = (row.get("descricao") or "Sem descrição").strip()[:50]
+        out.append({"nome": nome, "total": round(_dashboard_float(row.get("total")), 2)})
+    return out
+
+
+def _dashboard_entregas_pendentes_count() -> int:
+    """Pedidos de entrega ainda não entregues nem cancelados."""
+    return PedidoEntrega.objects.exclude(
+        status__in=(PedidoEntrega.Status.ENTREGUE, PedidoEntrega.Status.CANCELADO)
+    ).count()
+
+
+def _dashboard_entregas_criadas_por_dia_ultimos(n_dias: int = 7) -> list[int]:
+    """
+    Uma contagem por dia (mais antigo → mais recente) para o sparkline de entregas.
+    Base: pedidos criados naquele dia (volume operacional).
+    """
+    hoje = timezone.localdate()
+    n = max(1, min(int(n_dias or 7), 31))
+    out: list[int] = []
+    for i in range(n - 1, -1, -1):
+        d = hoje - timedelta(days=i)
+        out.append(PedidoEntrega.objects.filter(criado_em__date=d).count())
+    return out
+
+
+def _dashboard_vendas_por_loja(data_ini, data_fim):
+    client, _db = obter_conexao_mongo()
+    if client is None:
+        return [
+            {"loja": "Centro", "total": 0.0, "color": "#00BFFF"},
+            {"loja": "Vila Elias", "total": 0.0, "color": "#64748b"},
+        ]
+    dt_ini = datetime.combine(data_ini, dtime.min)
+    dt_fim = datetime.combine(data_fim, dtime.max)
+    centro = 0.0
+    vila = 0.0
+    try:
+        vendas = client.obter_vendas_agro_periodo(dt_ini, dt_fim)
+        dep_centro = str(getattr(client, "DEPOSITO_CENTRO", "") or "")
+        dep_vila = str(getattr(client, "DEPOSITO_VILA_ELIAS", "") or "")
+        for v in vendas:
+            raw = v.get("raw") if isinstance(v.get("raw"), dict) else {}
+            dep_id = str(raw.get("DepositoID") or "")
+            dep_nome = str(raw.get("Deposito") or "").lower()
+            empresa_nome = str(raw.get("Empresa") or "").lower()
+            total = _dashboard_float(v.get("valor_total"))
+            if dep_id == dep_centro or "centro" in dep_nome or "centro" in empresa_nome:
+                centro += total
+            elif dep_id == dep_vila or "vila" in dep_nome or "vila" in empresa_nome:
+                vila += total
+    except Exception:
+        pass
+    return [
+        {"loja": "Centro", "total": round(centro, 2), "color": "#00BFFF"},
+        {"loja": "Vila Elias", "total": round(vila, 2), "color": "#64748b"},
+    ]
+
+
+def _dashboard_contexto_dinamico(request):
+    data_ini, data_fim, periodo_label, periodo_key = _dashboard_periodo_from_request(request)
+    prev_ini, prev_fim = _dashboard_prev_periodo(data_ini, data_fim)
+    atual = _dashboard_mongo_vendas_serie(data_ini, data_fim)
+    anterior = _dashboard_mongo_vendas_serie(prev_ini, prev_fim)
+    dias = (data_fim - data_ini).days + 1
+    labels = [(data_ini + timedelta(days=i)).strftime("%d/%m") for i in range(dias)]
+    serie_atual = []
+    serie_prev = []
+    for i in range(dias):
+        d_atual = data_ini + timedelta(days=i)
+        d_prev = prev_ini + timedelta(days=i)
+        serie_atual.append(round(atual["por_dia"].get(d_atual.isoformat(), 0.0), 2))
+        serie_prev.append(round(anterior["por_dia"].get(d_prev.isoformat(), 0.0), 2))
+    vendas_hoje = _dashboard_mongo_vendas_serie(timezone.localdate(), timezone.localdate())["total"]
+    perdas_validade = _dashboard_perdas_validade_hoje()
+    top_produtos = _dashboard_top_produtos_sqlite(data_ini, data_fim)
+    produto_filtro = (request.GET.get("produto") or "").strip()
+    if produto_filtro:
+        top_produtos = [p for p in top_produtos if p["nome"] == produto_filtro] or top_produtos
+    return {
+        "periodo_label": periodo_label,
+        "periodo_key": periodo_key,
+        "kpi_vendas_hoje": round(vendas_hoje, 2),
+        "kpi_perdas_validade": round(perdas_validade, 2),
+        "kpi_faturamento_periodo": round(atual["total"], 2),
+        "kpi_variacao_periodo": (
+            round(((atual["total"] / anterior["total"]) - 1) * 100, 2)
+            if anterior["total"] > 0
+            else 0.0
+        ),
+        "labels_json": json.dumps(labels),
+        "serie_atual_json": json.dumps(serie_atual),
+        "serie_prev_json": json.dumps(serie_prev),
+        "top_produtos": top_produtos,
+        "mongo_ok": atual["ok"] and anterior["ok"],
+        "mongo_erro": (atual.get("erro") or anterior.get("erro") or "")[:180],
+        "produto_filtro": produto_filtro,
+    }
+
+
+def _dashboard_mongo_total_por_dia_vendas_agro(alvo: date) -> float:
+    """Soma de vendas do dia na coleção `vendas_agro` (fallback: DtoVenda)."""
+    client, db = obter_conexao_mongo()
+    if db is None or client is None:
+        return 0.0
+    ini_dt = datetime.combine(alvo, dtime.min)
+    fim_dt = datetime.combine(alvo, dtime.max)
+    try:
+        vendas = client.obter_vendas_agro_periodo(ini_dt, fim_dt)
+        if vendas:
+            return sum(_dashboard_float(v.get("valor_total")) for v in vendas)
+    except Exception:
+        pass
+    total = _dashboard_mongo_vendas_serie(alvo, alvo).get("total", 0.0)
+    if total > 0:
+        return total
+    agg = VendaAgro.objects.filter(criado_em__date=alvo).aggregate(soma=Sum("total"))
+    return _dashboard_float(agg.get("soma"))
+
+
+def _dashboard_sync_vendas_erp_para_mongo(data_ini: date, data_fim: date):
+    api = VendaERPAPIClient()
+    mongo = VendaERPMongoClient()
+    acumulado = []
+    skip = 0
+    page_size = 200
+    max_paginas = 20
+    paginas_lidas = 0
+    dt_ini = datetime.combine(data_ini, dtime.min)
+    dt_fim = datetime.combine(data_fim, dtime.max)
+
+    while paginas_lidas < max_paginas:
+        ok, rows = api.pedidos_listar_periodo(data_ini, data_fim, page_size=page_size, skip=skip)
+        if not ok:
+            if paginas_lidas == 0:
+                return {"ok": False, "erro": "Falha ao buscar vendas do ERP.", "inseridos": 0, "atualizados": 0}
+            break
+        if not rows:
+            break
+        paginas_lidas += 1
+        skip += len(rows)
+        for row in rows:
+            doc = mongo.normalizar_pedido_para_vendas_agro(row)
+            if not doc:
+                continue
+            dt = doc.get("data")
+            if isinstance(dt, datetime) and dt_ini <= dt <= dt_fim:
+                acumulado.append(row)
+        if len(rows) < page_size:
+            break
+
+    out = mongo.upsert_vendas_agro(acumulado)
+    return {"ok": True, **out, "linhas_erp": len(acumulado), "paginas_lidas": paginas_lidas}
+
+
+def _dashboard_capri_context(request):
+    data_ini, data_fim, periodo_label, periodo_key = _dashboard_periodo_from_request(request)
+    prev_ini, prev_fim = _dashboard_prev_periodo(data_ini, data_fim)
+    atual = _dashboard_mongo_vendas_serie(data_ini, data_fim)
+    anterior = _dashboard_mongo_vendas_serie(prev_ini, prev_fim)
+    dias = (data_fim - data_ini).days + 1
+    labels = [(data_ini + timedelta(days=i)).strftime("%d/%m") for i in range(dias)]
+    serie_atual = [round(atual["por_dia"].get((data_ini + timedelta(days=i)).isoformat(), 0.0), 2) for i in range(dias)]
+
+    hoje = timezone.localdate()
+    vendas_hoje = _dashboard_mongo_total_por_dia_vendas_agro(hoje)
+    vendas_ontem = _dashboard_mongo_total_por_dia_vendas_agro(hoje - timedelta(days=1))
+    variacao_dia = ((vendas_hoje / vendas_ontem) - 1) * 100 if vendas_ontem > 0 else 0.0
+
+    perdas_validade = _dashboard_perdas_validade_hoje()
+    ticket_qs = VendaAgro.objects.filter(criado_em__date__gte=data_ini, criado_em__date__lte=data_fim)
+    ticket_agg = ticket_qs.aggregate(total=Sum("total"), n=Count("id"))
+    total_ticket = _dashboard_float(ticket_agg.get("total"))
+    n_ticket = int(ticket_agg.get("n") or 0)
+    ticket_medio = (total_ticket / n_ticket) if n_ticket > 0 else 0.0
+
+    novos_clientes_30 = ClienteAgro.objects.filter(criado_em__date__gte=hoje - timedelta(days=30)).count()
+    prev_clientes_30 = ClienteAgro.objects.filter(
+        criado_em__date__gte=hoje - timedelta(days=60),
+        criado_em__date__lte=hoje - timedelta(days=31),
+    ).count()
+    tendencia_clientes = ((novos_clientes_30 / prev_clientes_30) - 1) * 100 if prev_clientes_30 > 0 else 0.0
+
+    total_entregas_pendentes = _dashboard_entregas_pendentes_count()
+    entregas_serie_7d = _dashboard_entregas_criadas_por_dia_ultimos(7)
+
+    kpis = [
+        {
+            "label": "Faturamento do Dia",
+            "value": _format_moeda_br(Decimal(str(round(vendas_hoje, 2)))),
+            "prefix": "R$",
+            "trend": f"{variacao_dia:+.1f}%",
+            "trend_class": "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300" if variacao_dia >= 0 else "text-red-800 bg-red-200 ring-1 ring-red-300",
+            "sparkline_json": json.dumps(serie_atual[-10:] or [0]),
+        },
+        {
+            "label": "Ticket Médio",
+            "value": _format_moeda_br(Decimal(str(round(ticket_medio, 2)))),
+            "prefix": "R$",
+            "trend": periodo_label,
+            "trend_class": "text-sky-800 bg-sky-200 ring-1 ring-sky-300",
+            "sparkline_json": json.dumps([round(v / max(n_ticket, 1), 2) for v in (serie_atual[-10:] or [0])]),
+        },
+        {
+            "label": "Perda Validade",
+            "value": _format_moeda_br(Decimal(str(round(perdas_validade, 2)))),
+            "prefix": "R$",
+            "trend": "Monitorado",
+            "trend_class": "text-rose-800 bg-rose-200 ring-1 ring-rose-300",
+            "sparkline_json": json.dumps([round(v * 0.08, 2) for v in (serie_atual[-10:] or [0])]),
+        },
+        {
+            "label": "Novos Clientes",
+            "value": str(novos_clientes_30),
+            "prefix": "",
+            "trend": f"{tendencia_clientes:+.1f}%",
+            "trend_class": "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300" if tendencia_clientes >= 0 else "text-red-800 bg-red-200 ring-1 ring-red-300",
+            "sparkline_json": json.dumps([(i + 1) * max(novos_clientes_30 / 12.0, 1) for i in range(12)]),
+        },
+        {
+            "label": "Entregas",
+            "value": str(total_entregas_pendentes),
+            "prefix": "",
+            "trend": "PENDENTES",
+            "trend_class": "text-amber-900 bg-amber-200 ring-1 ring-amber-300",
+            "sparkline_json": json.dumps(entregas_serie_7d),
+            "variant": "entregas",
+        },
+    ]
+    ticket_por_dia_rows = (
+        ticket_qs.values("criado_em__date").annotate(total=Sum("total"), n=Count("id")).order_by("criado_em__date")
+    )
+    ticket_por_dia_map = {}
+    for r in ticket_por_dia_rows:
+        d = r.get("criado_em__date")
+        if not d:
+            continue
+        n = int(r.get("n") or 0)
+        ticket_por_dia_map[d.isoformat()] = round(_dashboard_float(r.get("total")) / n, 2) if n > 0 else 0.0
+    ticket_por_dia = [ticket_por_dia_map.get((data_ini + timedelta(days=i)).isoformat(), 0.0) for i in range(dias)]
+
+    _mdb, db_fin = obter_conexao_mongo()
+    contas_receber: list = []
+    contas_pagar: list = []
+    total_receber_hoje = 0.0
+    total_pagar_hoje = 0.0
+    if db_fin is not None:
+        try:
+            contas_receber, contas_pagar = dashboard_gerencial_linhas_financeiras(
+                db_fin, hoje=hoje, limite=12
+            )
+            q_rec_hoje = lancamentos_montar_query_mongo(
+                despesa=False, status="abertos", vencimento_de=hoje, vencimento_ate=hoje
+            )
+            q_pag_hoje = lancamentos_montar_query_mongo(
+                despesa=True, status="abertos", vencimento_de=hoje, vencimento_ate=hoje
+            )
+            _lr, _tr, tot_rec_hoje = lancamentos_buscar_pagina(
+                db_fin, q_rec_hoje, False, page=1, page_size=1, ordenacao="vencimento_asc"
+            )
+            _lp, _tp, tot_pag_hoje = lancamentos_buscar_pagina(
+                db_fin, q_pag_hoje, True, page=1, page_size=1, ordenacao="vencimento_asc"
+            )
+            total_receber_hoje = round(_dashboard_float(tot_rec_hoje.get("saldo_aberto")), 2)
+            total_pagar_hoje = round(_dashboard_float(tot_pag_hoje.get("saldo_aberto")), 2)
+        except Exception:
+            logger.exception("dashboard_gerencial_linhas_financeiras")
+    ontem = hoje - timedelta(days=1)
+    total_receber_atraso = 0.0
+    total_pagar_atraso = 0.0
+    if db_fin is not None:
+        try:
+            q_rec_atraso = lancamentos_montar_query_mongo(
+                despesa=False, status="abertos", vencimento_ate=ontem
+            )
+            q_pag_atraso = lancamentos_montar_query_mongo(
+                despesa=True, status="abertos", vencimento_ate=ontem
+            )
+            _lra, _tra, tot_rec_atraso = lancamentos_buscar_pagina(
+                db_fin, q_rec_atraso, False, page=1, page_size=1, ordenacao="vencimento_asc"
+            )
+            _lpa, _tpa, tot_pag_atraso = lancamentos_buscar_pagina(
+                db_fin, q_pag_atraso, True, page=1, page_size=1, ordenacao="vencimento_asc"
+            )
+            total_receber_atraso = round(_dashboard_float(tot_rec_atraso.get("saldo_aberto")), 2)
+            total_pagar_atraso = round(_dashboard_float(tot_pag_atraso.get("saldo_aberto")), 2)
+        except Exception:
+            logger.exception("dashboard_gerencial_totais_atraso")
+
+    return {
+        "periodo_label": periodo_label,
+        "periodo_key": periodo_key,
+        "kpis": kpis,
+        "chart_labels": json.dumps(labels),
+        "chart_data": json.dumps(serie_atual),
+        "ticket_por_dia": json.dumps(ticket_por_dia),
+        "top_produtos": _dashboard_top_produtos_sqlite(data_ini, data_fim),
+        "vendas_por_loja": _dashboard_vendas_por_loja(data_ini, data_fim),
+        "contas_receber": contas_receber,
+        "contas_pagar": contas_pagar,
+        "total_receber_atraso": total_receber_atraso,
+        "total_pagar_atraso": total_pagar_atraso,
+        "total_receber_hoje": total_receber_hoje,
+        "total_pagar_hoje": total_pagar_hoje,
+        "lancamentos_hub_url": reverse("lancamentos_financeiros"),
+        "lancamentos_receber_url": reverse("lancamentos_contas_receber"),
+        "lancamentos_pagar_url": reverse("lancamentos_contas_pagar"),
+        "entregas_painel_url": reverse("entregas_painel"),
+        "total_entregas_pendentes": total_entregas_pendentes,
+        "mongo_ok": atual["ok"] and anterior["ok"],
+        "mongo_erro": (atual.get("erro") or anterior.get("erro") or "")[:180],
+    }
+
+
 # --- VIEWS DE PÁGINA ---
 @ensure_csrf_cookie
 def home(request):
@@ -2515,6 +2966,68 @@ def home(request):
 def estoque_sincronizacao_view(request):
     """Painel: saúde da leitura Mongo (espelho ERP), alertas e auditoria da camada Agro."""
     return render(request, "produtos/estoque_sincronizacao.html")
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def dashboard_gerencial_view(request):
+    sync_status = None
+    if request.GET.get("sync") == "1":
+        di, df, _lbl, _k = _dashboard_periodo_from_request(request)
+        sync_status = _dashboard_sync_vendas_erp_para_mongo(di, df)
+    return render(
+        request,
+        "produtos/dashboard_gerencial.html",
+        {**_dashboard_capri_context(request), "sync_status": sync_status},
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def dashboard_gerencial_sincronizar(request):
+    di, df, _lbl, _k = _dashboard_periodo_from_request(request)
+    out = _dashboard_sync_vendas_erp_para_mongo(di, df)
+    status = 200 if out.get("ok") else 502
+    return JsonResponse(out, status=status)
+
+
+@never_cache
+@login_required(login_url="/admin/login/")
+@require_GET
+def dashboard_gerencial_conteudo(request):
+    return render(
+        request,
+        "produtos/partials/dashboard_gerencial_body.html",
+        _dashboard_capri_context(request),
+    )
+
+
+@never_cache
+@login_required(login_url="/admin/login/")
+@require_GET
+def dashboard_gerencial_feed(request):
+    try:
+        offset = max(int(request.GET.get("offset") or 0), 0)
+    except ValueError:
+        offset = 0
+    limite = 20
+    produto_filtro = (request.GET.get("produto") or "").strip()
+    qs = VendaAgro.objects.order_by("-criado_em")
+    if produto_filtro:
+        qs = qs.filter(itens__descricao__icontains=produto_filtro).distinct()
+    vendas = list(qs[offset : offset + limite])
+    next_offset = offset + len(vendas)
+    has_more = len(vendas) == limite
+    return render(
+        request,
+        "produtos/partials/dashboard_gerencial_feed.html",
+        {
+            "vendas": vendas,
+            "next_offset": next_offset,
+            "has_more": has_more,
+            "produto_filtro": produto_filtro,
+        },
+    )
 
 
 @require_GET

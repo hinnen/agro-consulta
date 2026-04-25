@@ -7,6 +7,7 @@ Swagger da instância (troque o subdomínio): ``https://<wl>.vendaerp.com.br/api
 import logging
 import requests
 from decouple import config
+from datetime import date
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +138,57 @@ class VendaERPAPIClient:
             "App": self.app,
             "Accept": "application/json",
         }
+
+    @staticmethod
+    def _flatten_result_list(payload):
+        if isinstance(payload, list):
+            return payload
+        if not isinstance(payload, dict):
+            return []
+        for key in ("Data", "data", "Items", "items", "Result", "result", "Pedidos", "pedidos"):
+            v = payload.get(key)
+            if isinstance(v, list):
+                return v
+        return []
+
+    def pedidos_listar_periodo(self, data_ini: date, data_fim: date, page_size: int = 200, skip: int = 0):
+        """
+        Busca pedidos (vendas) no ERP para intervalo de datas.
+        Tenta variações de parâmetros/casing por compatibilidade entre WLs.
+        """
+        if not self.token:
+            return False, []
+        url = f"{self.base_url}/api/request/Pedidos/GetTodosPedidos"
+        di = (data_ini.isoformat() if hasattr(data_ini, "isoformat") else str(data_ini or ""))[:10]
+        df = (data_fim.isoformat() if hasattr(data_fim, "isoformat") else str(data_fim or ""))[:10]
+        ps = min(max(int(page_size or 200), 1), 500)
+        sk = max(int(skip or 0), 0)
+        param_sets = (
+            {"dataInicial": di, "dataFinal": df, "pageSize": ps, "skip": sk},
+            {"DataInicial": di, "DataFinal": df, "PageSize": ps, "Skip": sk},
+            {"dataDe": di, "dataAte": df, "pageSize": ps, "skip": sk},
+            {"DataDe": di, "DataAte": df, "PageSize": ps, "Skip": sk},
+            {"dtInicial": di, "dtFinal": df, "pageSize": ps, "skip": sk},
+            {"DtInicial": di, "DtFinal": df, "PageSize": ps, "Skip": sk},
+            {"dataInicial": di, "dataFinal": df},
+            {"DataInicial": di, "DataFinal": df},
+        )
+        try:
+            for params in param_sets:
+                res = requests.get(url, headers=self._headers_get(), params=params, timeout=45)
+                if not (200 <= res.status_code < 300):
+                    continue
+                try:
+                    payload = res.json()
+                except Exception:
+                    payload = []
+                rows = self._flatten_result_list(payload)
+                if rows or params is param_sets[-1]:
+                    return True, rows
+            return False, []
+        except Exception as e:
+            logger.warning("VendaERP pedidos_listar_periodo erro: %s", e)
+            return False, []
 
     def pessoas_pesquisar(
         self,

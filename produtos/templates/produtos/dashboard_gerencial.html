@@ -1,0 +1,232 @@
+{% extends "layouts/base_admin.html" %}
+{% load static %}
+
+{# Tema claro: fundo branco e contraste alto #}
+{% block body_class %}min-h-screen bg-white text-slate-900 antialiased{% endblock %}
+{% block main_class %}min-h-screen bg-white{% endblock %}
+
+{% block admin_title %}Agro Mais | Inteligência de Negócio{% endblock %}
+{% block admin_header %}{% endblock %}
+{% block admin_shell_class %}min-h-screen bg-white text-slate-900 overflow-x-hidden{% endblock %}
+{% block admin_section_class %}w-full max-w-none px-0 py-0{% endblock %}
+
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+{% include "produtos/_agro_consulta_ui.html" %}
+<style>
+    /* AGENTS.md: emerald / orange / slate + Capri para BI */
+    :root {
+        --capri: #00bfff;
+        --emerald: #10b981;
+        --orange: #ea580c;
+        --slate-ink: #ffffff;
+        --slate-card: #ffffff;
+        /* Densidade 14"–19" + zoom: encolhe sem “estourar” */
+        --dash-pad: clamp(0.65rem, 1.2vw + 0.35rem, 1.35rem);
+        --dash-gap: clamp(0.5rem, 0.8vw + 0.25rem, 1rem);
+        --dash-title: clamp(1.15rem, 1.8vw + 0.6rem, 1.75rem);
+        --dash-sub: clamp(0.65rem, 0.55vw + 0.45rem, 0.8rem);
+        --dash-chart-h: clamp(200px, 26vh, 320px);
+    }
+    /* !important: vence include _agro_consulta_ui (body { color: #0f172a }) quando especificidade empata */
+    body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        overflow-x: hidden;
+    }
+    .glass-card {
+        background: var(--slate-card);
+        border: 1px solid #bae6fd;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+        border-radius: clamp(1rem, 1.5vw + 0.5rem, 1.75rem);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .glass-card:hover {
+        border-color: #38bdf8;
+        box-shadow: 0 6px 24px rgba(14, 165, 233, 0.16);
+    }
+    .kpi-card { border-color: #7dd3fc; }
+    .kpi-card.kpi-warn { border-color: #fcd34d; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, var(--capri), rgba(16, 185, 129, 0.6));
+        border-radius: 10px;
+    }
+    .main-container {
+        width: 100% !important;
+        max-width: none !important;
+        padding: var(--dash-pad);
+        padding-bottom: clamp(0.75rem, 2vh, 1.25rem);
+    }
+    .dash-title { font-size: var(--dash-title); line-height: 1.15; }
+    .dash-sub { font-size: var(--dash-sub); line-height: 1.35; }
+    .dash-toolbar { padding: var(--dash-gap); gap: var(--dash-gap); }
+    .dash-chart-host { height: var(--dash-chart-h); min-height: 180px; }
+    .period-active {
+        background: linear-gradient(135deg, #00bfff 0%, #0891b2 100%);
+        color: #fff;
+        box-shadow: 0 4px 14px rgba(0, 191, 255, 0.22);
+    }
+    .period-inactive {
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        background: #ffffff;
+        color: #334155;
+    }
+    .period-inactive:hover {
+        border-color: rgba(234, 88, 12, 0.45);
+        background: #fff7ed;
+    }
+    .btn-sync-erp {
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        color: #fff;
+        border: 1px solid rgba(251, 146, 60, 0.5);
+        box-shadow: 0 3px 12px rgba(234, 88, 12, 0.18);
+    }
+    .btn-sync-erp:hover { filter: brightness(1.06); }
+    .dash-btn { min-height: clamp(38px, 4.5vw + 24px, 44px); padding-left: clamp(0.65rem, 1vw, 1rem); padding-right: clamp(0.65rem, 1vw, 1rem); }
+    /* Tooltips dos gráficos (hover): leitura confortável em loja / zoom */
+    .main-container .apexcharts-tooltip,
+    .main-container .apexcharts-tooltip.apexcharts-theme-light,
+    .main-container .apexcharts-xaxistooltip,
+    .main-container .apexcharts-yaxistooltip {
+        font-size: clamp(0.95rem, 1.1vw + 0.6rem, 1.2rem) !important;
+        line-height: 1.4 !important;
+    }
+    .main-container .apexcharts-tooltip-text,
+    .main-container .apexcharts-tooltip-text-y-label,
+    .main-container .apexcharts-tooltip-text-y-value,
+    .main-container .apexcharts-tooltip-text-z-label,
+    .main-container .apexcharts-tooltip-text-z-value,
+    .main-container .apexcharts-tooltip-title,
+    .main-container .apexcharts-tooltip-series-group,
+    .main-container .apexcharts-xaxistooltip-text,
+    .main-container .apexcharts-yaxistooltip-text {
+        font-size: inherit !important;
+        line-height: inherit !important;
+    }
+    .main-container .apexcharts-tooltip-marker {
+        width: 12px !important;
+        height: 12px !important;
+    }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+{% include "produtos/_gm_loading_bar.html" %}
+<div class="main-container">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+        <div>
+            <div class="flex items-center gap-2 mb-0.5">
+                <div class="w-1.5 h-5 bg-[#00BFFF] rounded-full shrink-0"></div>
+                <h1 class="dash-title font-black tracking-tight uppercase">Gestão Estratégica</h1>
+            </div>
+            <p class="dash-sub text-slate-600 font-bold uppercase tracking-[0.12em] ml-4">
+                <span class="text-emerald-700">Agro Mais</span>
+                <span class="text-slate-400">·</span>
+                <span class="text-sky-600">Business Intelligence</span>
+            </p>
+        </div>
+        <div class="dash-toolbar flex flex-wrap items-center bg-white rounded-xl border border-slate-200 shadow-sm">
+            {% include "produtos/_pdv_voltar_link.html" with link_class="dash-btn inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-50 border-2 border-emerald-500/35 text-emerald-900 hover:bg-emerald-100 text-xs font-black uppercase" %}
+            <button type="button" class="period-btn dash-btn py-1.5 text-xs font-black uppercase rounded-lg {% if periodo_key == 'hoje' %}period-active{% else %}period-inactive{% endif %}" data-periodo="hoje">Hoje</button>
+            <button type="button" class="period-btn dash-btn py-1.5 text-xs font-black uppercase rounded-lg {% if periodo_key == '7d' %}period-active{% else %}period-inactive{% endif %}" data-periodo="7d">7 dias</button>
+            <button type="button" class="period-btn dash-btn py-1.5 text-xs font-black uppercase rounded-lg {% if periodo_key == '30d' %}period-active{% else %}period-inactive{% endif %}" data-periodo="30d">30 dias</button>
+            <button type="button" class="period-btn dash-btn py-1.5 text-xs font-black uppercase rounded-lg {% if periodo_key == 'mes' %}period-active{% else %}period-inactive{% endif %}" data-periodo="mes">Mês</button>
+            <button id="btn-sync-dashboard" type="button" class="btn-sync-erp dash-btn py-1.5 text-xs font-black uppercase rounded-lg">Sincronizar ERP</button>
+        </div>
+    </div>
+
+    <p id="sync-feedback" class="mb-2 text-xs text-slate-600 font-medium">
+      {% if sync_status %}
+        {% if sync_status.ok %}
+          Sincronização concluída: {{ sync_status.inseridos }} inseridos, {{ sync_status.atualizados }} atualizados (ERP: {{ sync_status.linhas_erp }}).
+        {% else %}
+          Falha ao sincronizar ERP: {{ sync_status.erro|default:"erro inesperado" }}
+        {% endif %}
+      {% endif %}
+    </p>
+
+    {% if not mongo_ok %}
+      <div class="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900">
+        Mongo indisponível no momento. {{ mongo_erro }}
+      </div>
+    {% endif %}
+
+    <div id="dashboard-body">
+      {% include "produtos/partials/dashboard_gerencial_body.html" %}
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+
+    function readCookie(name) {
+      var value = "; " + document.cookie;
+      var parts = value.split("; " + name + "=");
+      if (parts.length === 2) return parts.pop().split(";").shift();
+      return "";
+    }
+
+    function carregarPeriodo(periodo) {
+      var url = "{% url 'dashboard_gerencial_conteudo' %}?periodo=" + encodeURIComponent(periodo);
+      htmx.ajax("GET", url, { target: "#dashboard-body", swap: "innerHTML" });
+      window.history.replaceState({}, "", "?periodo=" + encodeURIComponent(periodo));
+      document.querySelectorAll(".period-btn").forEach(function (b) {
+        b.classList.remove("period-active");
+        b.classList.add("period-inactive");
+      });
+      var active = document.querySelector('.period-btn[data-periodo="' + periodo + '"]');
+      if (active) {
+        active.classList.add("period-active");
+        active.classList.remove("period-inactive");
+      }
+    }
+
+    document.querySelectorAll(".period-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        carregarPeriodo(btn.dataset.periodo || "mes");
+      });
+    });
+
+    var btnSync = document.getElementById("btn-sync-dashboard");
+    if (btnSync) {
+      btnSync.addEventListener("click", function () {
+        var fb = document.getElementById("sync-feedback");
+        btnSync.disabled = true;
+        btnSync.textContent = "Sincronizando...";
+        var params = new URLSearchParams(window.location.search || "");
+        var periodo = params.get("periodo") || "mes";
+        fetch("{% url 'dashboard_gerencial_sincronizar' %}", {
+          method: "POST",
+          headers: { "X-CSRFToken": readCookie("csrftoken"), "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          body: "periodo=" + encodeURIComponent(periodo)
+        })
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+          .then(function (res) {
+            if (res.ok && res.body.ok) {
+              if (fb) fb.textContent = "Sincronização concluída: " + (res.body.inseridos || 0) + " inseridos, " + (res.body.atualizados || 0) + " atualizados.";
+              carregarPeriodo(periodo);
+              return;
+            }
+            if (fb) fb.textContent = "Falha ao sincronizar ERP: " + ((res.body && (res.body.erro || res.body.detail)) || "erro inesperado");
+          })
+          .catch(function () {
+            if (fb) fb.textContent = "Falha de comunicação ao sincronizar ERP.";
+          })
+          .finally(function () {
+            btnSync.disabled = false;
+            btnSync.textContent = "Sincronizar ERP";
+          });
+      });
+    }
+
+    document.body.addEventListener("htmx:afterSwap", function (evt) {
+      if (evt.target && evt.target.id === "dashboard-body" && window.lucide) {
+        window.lucide.createIcons();
+      }
+    });
+</script>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+{% endblock %}

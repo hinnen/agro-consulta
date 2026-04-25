@@ -1,0 +1,25 @@
+{% for v in vendas %}
+  <div class="rounded-xl border border-white/10 bg-slate-800/60 p-3">
+    <div class="flex items-center justify-between gap-2">
+      <p class="text-xs font-black text-white truncate">Venda #{{ v.id }} · {{ v.cliente_nome|default:"Cliente balcão" }}</p>
+      <span class="text-[10px] text-slate-400">{{ v.criado_em|date:"d/m H:i" }}</span>
+    </div>
+    <div class="mt-1 text-xs text-slate-300">
+      Total: <strong class="text-emerald-300">R$ {{ v.total|floatformat:2 }}</strong>
+      {% if v.forma_pagamento %} · {{ v.forma_pagamento }}{% endif %}
+    </div>
+  </div>
+{% empty %}
+  <div class="text-xs text-slate-400">Nenhum item para o filtro atual.</div>
+{% endfor %}
+
+{% if has_more %}
+  <div
+    hx-get="{% url 'dashboard_gerencial_feed' %}?offset={{ next_offset }}{% if produto_filtro %}&produto={{ produto_filtro|urlencode }}{% endif %}"
+    hx-trigger="revealed"
+    hx-swap="outerHTML"
+    class="h-10 flex items-center justify-center text-[10px] text-slate-500"
+  >
+    Carregando mais...
+  </div>
+{% endif %}
