@@ -1,6 +1,8 @@
 import copy
 import csv
+import os
 import secrets
+from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
 import json
 import logging
@@ -2660,6 +2662,14 @@ def _dashboard_serie_meta_c_vendas(data_ini: date, data_fim: date) -> list[float
 
 
 def _dashboard_mongo_vendas_serie(data_ini, data_fim):
+    """
+    Agregação por dia em DtoVenda (com fallbacks). Cache curto evita repetir a mesma
+    varredura quando o dashboard e a série de metas C disparam várias janelas iguais.
+    """
+    ck = f"dash:mvs:v1:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    cached = cache.get(ck)
+    if isinstance(cached, dict) and cached.get("_t") == "mvs":
+        return {k: v for k, v in cached.items() if k != "_t"}
     client, db = obter_conexao_mongo()
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível", "total": 0.0, "por_dia": {}, "qtd_por_dia": {}}
@@ -2733,7 +2743,9 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
             por_dia[d.isoformat()] = round(v, 2)
             qtd_por_dia[d.isoformat()] = int(row.get("n") or 0)
             total += v
-    return {"ok": True, "erro": "", "total": total, "por_dia": por_dia, "qtd_por_dia": qtd_por_dia}
+    out = {"ok": True, "erro": "", "total": total, "por_dia": por_dia, "qtd_por_dia": qtd_por_dia}
+    cache.set(ck, {**out, "_t": "mvs"}, timeout=90)
+    return out
 
 
 def _dashboard_perdas_validade_hoje():
@@ -3066,17 +3078,138 @@ def _dashboard_sync_vendas_erp_para_mongo(data_ini: date, data_fim: date):
     return {"ok": True, **out, "linhas_erp": len(acumulado), "paginas_lidas": paginas_lidas}
 
 
+def _dashboard_worker(fn, *args, **kwargs):
+    """ORM + Mongo em worker: uma conexão por thread (Django)."""
+    from django.db import close_old_connections
+
+    close_old_connections()
+    try:
+        return fn(*args, **kwargs)
+    finally:
+        close_old_connections()
+
+
+def _dashboard_capri_novos_clientes_counts(hoje: date) -> tuple[int, int]:
+    novos = ClienteAgro.objects.filter(criado_em__date__gte=hoje - timedelta(days=30)).count()
+    prev = ClienteAgro.objects.filter(
+        criado_em__date__gte=hoje - timedelta(days=60),
+        criado_em__date__lte=hoje - timedelta(days=31),
+    ).count()
+    return novos, prev
+
+
+def _dashboard_capri_financeiro(hoje: date, ontem: date) -> dict:
+    contas_receber: list = []
+    contas_pagar: list = []
+    total_receber_hoje = 0.0
+    total_pagar_hoje = 0.0
+    total_receber_atraso = 0.0
+    total_pagar_atraso = 0.0
+    _mdb, db_fin = obter_conexao_mongo()
+    if db_fin is None:
+        return {
+            "contas_receber": contas_receber,
+            "contas_pagar": contas_pagar,
+            "total_receber_hoje": total_receber_hoje,
+            "total_pagar_hoje": total_pagar_hoje,
+            "total_receber_atraso": total_receber_atraso,
+            "total_pagar_atraso": total_pagar_atraso,
+        }
+    try:
+        contas_receber, contas_pagar = dashboard_gerencial_linhas_financeiras(
+            db_fin, hoje=hoje, limite=12
+        )
+        q_rec_hoje = lancamentos_montar_query_mongo(
+            despesa=False, status="abertos", vencimento_de=hoje, vencimento_ate=hoje
+        )
+        q_pag_hoje = lancamentos_montar_query_mongo(
+            despesa=True, status="abertos", vencimento_de=hoje, vencimento_ate=hoje
+        )
+        _lr, _tr, tot_rec_hoje = lancamentos_buscar_pagina(
+            db_fin, q_rec_hoje, False, page=1, page_size=1, ordenacao="vencimento_asc"
+        )
+        _lp, _tp, tot_pag_hoje = lancamentos_buscar_pagina(
+            db_fin, q_pag_hoje, True, page=1, page_size=1, ordenacao="vencimento_asc"
+        )
+        total_receber_hoje = round(_dashboard_float(tot_rec_hoje.get("saldo_aberto")), 2)
+        total_pagar_hoje = round(_dashboard_float(tot_pag_hoje.get("saldo_aberto")), 2)
+    except Exception:
+        logger.exception("dashboard_gerencial_linhas_financeiras")
+    try:
+        q_rec_atraso = lancamentos_montar_query_mongo(
+            despesa=False, status="abertos", vencimento_ate=ontem
+        )
+        q_pag_atraso = lancamentos_montar_query_mongo(
+            despesa=True, status="abertos", vencimento_ate=ontem
+        )
+        _lra, _tra, tot_rec_atraso = lancamentos_buscar_pagina(
+            db_fin, q_rec_atraso, False, page=1, page_size=1, ordenacao="vencimento_asc"
+        )
+        _lpa, _tpa, tot_pag_atraso = lancamentos_buscar_pagina(
+            db_fin, q_pag_atraso, True, page=1, page_size=1, ordenacao="vencimento_asc"
+        )
+        total_receber_atraso = round(_dashboard_float(tot_rec_atraso.get("saldo_aberto")), 2)
+        total_pagar_atraso = round(_dashboard_float(tot_pag_atraso.get("saldo_aberto")), 2)
+    except Exception:
+        logger.exception("dashboard_gerencial_totais_atraso")
+    return {
+        "contas_receber": contas_receber,
+        "contas_pagar": contas_pagar,
+        "total_receber_hoje": total_receber_hoje,
+        "total_pagar_hoje": total_pagar_hoje,
+        "total_receber_atraso": total_receber_atraso,
+        "total_pagar_atraso": total_pagar_atraso,
+    }
+
+
 def _dashboard_capri_context(request):
     data_ini, data_fim, periodo_label, periodo_key = _dashboard_periodo_from_request(request)
     prev_ini, prev_fim = _dashboard_prev_periodo(data_ini, data_fim)
-    atual = _dashboard_mongo_vendas_serie(data_ini, data_fim)
-    anterior = _dashboard_mongo_vendas_serie(prev_ini, prev_fim)
+    hoje = timezone.localdate()
+    ontem = hoje - timedelta(days=1)
+    mes_ant_ini, mes_ant_fim = _dashboard_bounds_mes_anterior_para_dia(data_fim)
+
+    max_workers = min(14, (os.cpu_count() or 2) + 6)
+    fut = {}
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        fut["atual"] = ex.submit(_dashboard_worker, _dashboard_mongo_vendas_serie, data_ini, data_fim)
+        fut["anterior"] = ex.submit(_dashboard_worker, _dashboard_mongo_vendas_serie, prev_ini, prev_fim)
+        fut["perdas"] = ex.submit(_dashboard_worker, _dashboard_perdas_validade_hoje)
+        fut["vendas_hoje"] = ex.submit(_dashboard_worker, _dashboard_mongo_total_por_dia_vendas_agro, hoje)
+        fut["vendas_ontem"] = ex.submit(_dashboard_worker, _dashboard_mongo_total_por_dia_vendas_agro, ontem)
+        fut["novos_clientes"] = ex.submit(_dashboard_worker, _dashboard_capri_novos_clientes_counts, hoje)
+        fut["entregas_pen"] = ex.submit(_dashboard_worker, _dashboard_entregas_pendentes_count)
+        fut["entregas_7d"] = ex.submit(_dashboard_worker, _dashboard_entregas_criadas_por_dia_ultimos, 7)
+        fut["tkt_mes_ant"] = ex.submit(_dashboard_worker, _dashboard_ticket_medio_intervalo, mes_ant_ini, mes_ant_fim)
+        fut["top_prod"] = ex.submit(_dashboard_worker, _dashboard_top_produtos_capri, data_ini, data_fim)
+        fut["rank_vend"] = ex.submit(_dashboard_worker, _dashboard_ranking_vendedores_capri, data_ini, data_fim)
+        fut["vendas_loja"] = ex.submit(_dashboard_worker, _dashboard_vendas_por_loja, data_ini, data_fim)
+        fut["finance"] = ex.submit(_dashboard_worker, _dashboard_capri_financeiro, hoje, ontem)
+        if periodo_key != "ano":
+            fut["serie_compare"] = ex.submit(
+                _dashboard_worker, _dashboard_serie_meta_c_vendas, data_ini, data_fim
+            )
+        blk = {k: v.result() for k, v in fut.items()}
+
+    atual = blk["atual"]
+    anterior = blk["anterior"]
+    vendas_hoje = blk["vendas_hoje"]
+    vendas_ontem = blk["vendas_ontem"]
+    perdas_validade = blk["perdas"]
+    novos_clientes_30, prev_clientes_30 = blk["novos_clientes"]
+    total_entregas_pendentes = blk["entregas_pen"]
+    entregas_serie_7d = blk["entregas_7d"]
+    ticket_medio_mes_civil_anterior = blk["tkt_mes_ant"]
+    fin = blk["finance"]
+    top_produtos = blk["top_prod"]
+    ranking_vendedores = blk["rank_vend"]
+    vendas_por_loja = blk["vendas_loja"]
+
     dias = (data_fim - data_ini).days + 1
     labels = [(data_ini + timedelta(days=i)).strftime("%d/%m") for i in range(dias)]
     _wk_map = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"]
     weekday_initials = [_wk_map[(data_ini + timedelta(days=i)).weekday()] for i in range(dias)]
     serie_atual = [round(atual["por_dia"].get((data_ini + timedelta(days=i)).isoformat(), 0.0), 2) for i in range(dias)]
-    # Ticket médio por dia (série real — mesma regra de ticket_por_dia após a lista de kpis, antes reutilizada aqui)
     ticket_por_dia: list = []
     qtd_map = atual.get("qtd_por_dia") or {}
     for i in range(dias):
@@ -3085,12 +3218,8 @@ def _dashboard_capri_context(request):
         n = int(qtd_map.get(chave) or 0)
         ticket_por_dia.append(round((soma / n), 2) if n > 0 else 0.0)
 
-    hoje = timezone.localdate()
-    vendas_hoje = _dashboard_mongo_total_por_dia_vendas_agro(hoje)
-    vendas_ontem = _dashboard_mongo_total_por_dia_vendas_agro(hoje - timedelta(days=1))
     variacao_dia = ((vendas_hoje / vendas_ontem) - 1) * 100 if vendas_ontem > 0 else 0.0
 
-    perdas_validade = _dashboard_perdas_validade_hoje()
     qtd_total_periodo = sum(int(v or 0) for v in (atual.get("qtd_por_dia") or {}).values())
     total_ticket = _dashboard_float(atual.get("total"))
     if qtd_total_periodo <= 0:
@@ -3100,15 +3229,7 @@ def _dashboard_capri_context(request):
         qtd_total_periodo = int(ticket_agg.get("n") or 0)
     ticket_medio = (total_ticket / qtd_total_periodo) if qtd_total_periodo > 0 else 0.0
 
-    novos_clientes_30 = ClienteAgro.objects.filter(criado_em__date__gte=hoje - timedelta(days=30)).count()
-    prev_clientes_30 = ClienteAgro.objects.filter(
-        criado_em__date__gte=hoje - timedelta(days=60),
-        criado_em__date__lte=hoje - timedelta(days=31),
-    ).count()
     tendencia_clientes = ((novos_clientes_30 / prev_clientes_30) - 1) * 100 if prev_clientes_30 > 0 else 0.0
-
-    total_entregas_pendentes = _dashboard_entregas_pendentes_count()
-    entregas_serie_7d = _dashboard_entregas_criadas_por_dia_ultimos(7)
 
     u7 = serie_atual[-7:] if len(serie_atual) >= 7 else list(serie_atual)
     media_fat_7d = round(sum(u7) / max(len(u7), 1), 2)
@@ -3117,8 +3238,6 @@ def _dashboard_capri_context(request):
     media_tkt_7d = (
         round(sum(t7_com_venda) / max(len(t7_com_venda), 1), 2) if t7_com_venda else 0.0
     )
-    mes_ant_ini, mes_ant_fim = _dashboard_bounds_mes_anterior_para_dia(data_fim)
-    ticket_medio_mes_civil_anterior = _dashboard_ticket_medio_intervalo(mes_ant_ini, mes_ant_fim)
     if ticket_medio_mes_civil_anterior > 0 and ticket_medio > 0:
         var_tkt_vs_mes_ant = ((ticket_medio / ticket_medio_mes_civil_anterior) - 1) * 100
         tkt_trend = f"{var_tkt_vs_mes_ant:+.1f}% vs mês ant."
@@ -3194,57 +3313,15 @@ def _dashboard_capri_context(request):
         serie_compare = [0.0] * len(serie_atual)
         weekday_initials = []
     else:
-        serie_compare = _dashboard_serie_meta_c_vendas(data_ini, data_fim)
+        serie_compare = blk["serie_compare"]
 
-    _mdb, db_fin = obter_conexao_mongo()
-    contas_receber: list = []
-    contas_pagar: list = []
-    total_receber_hoje = 0.0
-    total_pagar_hoje = 0.0
-    if db_fin is not None:
-        try:
-            contas_receber, contas_pagar = dashboard_gerencial_linhas_financeiras(
-                db_fin, hoje=hoje, limite=12
-            )
-            q_rec_hoje = lancamentos_montar_query_mongo(
-                despesa=False, status="abertos", vencimento_de=hoje, vencimento_ate=hoje
-            )
-            q_pag_hoje = lancamentos_montar_query_mongo(
-                despesa=True, status="abertos", vencimento_de=hoje, vencimento_ate=hoje
-            )
-            _lr, _tr, tot_rec_hoje = lancamentos_buscar_pagina(
-                db_fin, q_rec_hoje, False, page=1, page_size=1, ordenacao="vencimento_asc"
-            )
-            _lp, _tp, tot_pag_hoje = lancamentos_buscar_pagina(
-                db_fin, q_pag_hoje, True, page=1, page_size=1, ordenacao="vencimento_asc"
-            )
-            total_receber_hoje = round(_dashboard_float(tot_rec_hoje.get("saldo_aberto")), 2)
-            total_pagar_hoje = round(_dashboard_float(tot_pag_hoje.get("saldo_aberto")), 2)
-        except Exception:
-            logger.exception("dashboard_gerencial_linhas_financeiras")
-    ontem = hoje - timedelta(days=1)
-    total_receber_atraso = 0.0
-    total_pagar_atraso = 0.0
-    if db_fin is not None:
-        try:
-            q_rec_atraso = lancamentos_montar_query_mongo(
-                despesa=False, status="abertos", vencimento_ate=ontem
-            )
-            q_pag_atraso = lancamentos_montar_query_mongo(
-                despesa=True, status="abertos", vencimento_ate=ontem
-            )
-            _lra, _tra, tot_rec_atraso = lancamentos_buscar_pagina(
-                db_fin, q_rec_atraso, False, page=1, page_size=1, ordenacao="vencimento_asc"
-            )
-            _lpa, _tpa, tot_pag_atraso = lancamentos_buscar_pagina(
-                db_fin, q_pag_atraso, True, page=1, page_size=1, ordenacao="vencimento_asc"
-            )
-            total_receber_atraso = round(_dashboard_float(tot_rec_atraso.get("saldo_aberto")), 2)
-            total_pagar_atraso = round(_dashboard_float(tot_pag_atraso.get("saldo_aberto")), 2)
-        except Exception:
-            logger.exception("dashboard_gerencial_totais_atraso")
+    contas_receber = fin["contas_receber"]
+    contas_pagar = fin["contas_pagar"]
+    total_receber_hoje = fin["total_receber_hoje"]
+    total_pagar_hoje = fin["total_pagar_hoje"]
+    total_receber_atraso = fin["total_receber_atraso"]
+    total_pagar_atraso = fin["total_pagar_atraso"]
 
-    vendas_por_loja = _dashboard_vendas_por_loja(data_ini, data_fim)
     return {
         "periodo_label": periodo_label,
         "periodo_key": periodo_key,
@@ -3255,8 +3332,8 @@ def _dashboard_capri_context(request):
         "chart_compare_data": json.dumps(serie_compare),
         "chart_total_periodo": _format_moeda_br(Decimal(str(round(_dashboard_float(atual.get("total")), 2)))),
         "ticket_por_dia": json.dumps(ticket_por_dia),
-        "top_produtos": _dashboard_top_produtos_capri(data_ini, data_fim),
-        "ranking_vendedores": _dashboard_ranking_vendedores_capri(data_ini, data_fim),
+        "top_produtos": top_produtos,
+        "ranking_vendedores": ranking_vendedores,
         "vendas_por_loja": vendas_por_loja,
         "stores_chart_json": json.dumps(
             {
