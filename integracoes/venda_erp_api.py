@@ -8,6 +8,7 @@ Relatórios HTTP **v3** (dashboard gerencial): ``{base}/v3/PedidosItens/Report``
 ``{base}/v3/CondensadoVendasPorVendedor/Report`` — ex.: host SisVale
 ``https://sisvale.vendaerp.com.br`` sem sufixo ``/api``.
 """
+import json
 import logging
 import re
 from collections import defaultdict
@@ -34,6 +35,60 @@ def _v3_report_timeout_sec() -> int:
         return max(3, min(int(config("AGRO_ERP_V3_REPORT_TIMEOUT_SEC", default="8")), 60))
     except (TypeError, ValueError):
         return 8
+
+
+def _v3_max_response_bytes() -> int:
+    try:
+        from django.conf import settings as dj
+
+        v = getattr(dj, "AGRO_ERP_V3_REPORT_MAX_BYTES", None)
+        if v is not None:
+            return max(256_000, min(int(v), 100_000_000))
+    except Exception:
+        pass
+    try:
+        return max(256_000, min(int(config("AGRO_ERP_V3_REPORT_MAX_BYTES", default="4000000")), 100_000_000))
+    except (TypeError, ValueError):
+        return 4_000_000
+
+
+def _v3_response_json_parsed(res, cap: int) -> object | None:
+    """
+    Lê o corpo com ``stream`` e teto de bytes. Evita ``res.json()`` carregar dezenas de MB na RAM
+    (OOM / SIGKILL no Gunicorn ao parsear relatório completo do ERP).
+    """
+    if res.status_code is None or not (200 <= int(res.status_code) < 300):
+        return None
+    cl = (res.headers.get("Content-Length") or "").strip()
+    try:
+        if cl and int(cl) > cap:
+            logger.warning(
+                "VendaERP v3: Content-Length %s acima do teto %s; ignorando corpo", cl, cap
+            )
+            return None
+    except (TypeError, ValueError):
+        pass
+    buf = bytearray()
+    try:
+        for chunk in res.iter_content(64 * 1024):
+            if not chunk:
+                break
+            buf.extend(chunk)
+            if len(buf) > cap:
+                logger.warning(
+                    "VendaERP v3: leitura truncada (>%s bytes); tente ampliar filtros de data no painel do ERP",
+                    cap,
+                )
+                return None
+    finally:
+        res.close()
+    if not buf:
+        return None
+    try:
+        return json.loads(buf.decode("utf-8", errors="replace"))
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        logger.warning("VendaERP v3: resposta não é JSON UTF-8 válido: %s", e)
+        return None
 
 
 def _django_setting(name, default=""):
@@ -411,6 +466,8 @@ class VendaERPAPIClient:
         if not self.token:
             return False, []
         t = int(timeout) if timeout is not None else _v3_report_timeout_sec()
+        cap = _v3_max_response_bytes()
+        t_pair = (5, t)
         base = self.base_url.rstrip("/")
         suf = (path_after_v3 or "").strip().lstrip("/")
         if not suf:
@@ -427,14 +484,21 @@ class VendaERPAPIClient:
         headers_post = self._headers_post()
         last_err = ""
         for params in query_variants:
+            res = None
             try:
-                res = requests.get(url, headers=headers_get, params=params, timeout=t)
+                res = requests.get(
+                    url,
+                    headers=headers_get,
+                    params=params,
+                    timeout=t_pair,
+                    stream=True,
+                )
                 last_err = f"GET {url} {params!r} → HTTP {res.status_code}"
                 if not (200 <= res.status_code < 300):
+                    res.close()
                     continue
-                try:
-                    payload = res.json()
-                except Exception:
+                payload = _v3_response_json_parsed(res, cap)
+                if payload is None:
                     continue
                 rows = self._linhas_de_resposta_relatorio_v3(payload)
                 if rows:
@@ -446,15 +510,28 @@ class VendaERPAPIClient:
             except Exception as e:
                 last_err = str(e)
                 logger.warning("VendaERP v3 GET %s: %s", url, e)
+            finally:
+                if res is not None:
+                    try:
+                        res.close()
+                    except Exception:
+                        pass
         for body in body_variants:
+            res = None
             try:
-                res = requests.post(url, headers=headers_post, json=body, timeout=t)
+                res = requests.post(
+                    url,
+                    headers=headers_post,
+                    json=body,
+                    timeout=t_pair,
+                    stream=True,
+                )
                 last_err = f"POST {url} → HTTP {res.status_code}"
                 if not (200 <= res.status_code < 300):
+                    res.close()
                     continue
-                try:
-                    payload = res.json()
-                except Exception:
+                payload = _v3_response_json_parsed(res, cap)
+                if payload is None:
                     continue
                 rows = self._linhas_de_resposta_relatorio_v3(payload)
                 if rows:
@@ -466,6 +543,12 @@ class VendaERPAPIClient:
             except Exception as e:
                 last_err = str(e)
                 logger.warning("VendaERP v3 POST %s: %s", url, e)
+            finally:
+                if res is not None:
+                    try:
+                        res.close()
+                    except Exception:
+                        pass
         logger.info("VendaERP v3 relatório sem linhas: %s", (last_err or "")[:300])
         return False, []
 

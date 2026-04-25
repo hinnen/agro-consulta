@@ -49,10 +49,10 @@ if _on_render and "https://*.onrender.com" not in CSRF_TRUSTED_ORIGINS:
 # POST de sync ERP continua com login; ?sync=1 na URL só roda se já autenticado.
 AGRO_PUBLIC_DASHBOARD = config("AGRO_PUBLIC_DASHBOARD", default=True, cast=bool)
 
-# Top produtos / ranking vendedor: fallback via Mongo (agregação em DtoVendaProduto) é pesado e pode
-# matar o worker (OOM / timeout) em Render — default False. Ordem: relatórios ERP v3, depois SQLite.
+# Após ERP v3: espelho Mongo (agregação no servidor). Default True = alinhado ao gráfico do BI;
+# defina false só se a instância esgotar RAM (worker).
 AGRO_DASHBOARD_MONGO_RANKING_FALLBACK = config(
-    "AGRO_DASHBOARD_MONGO_RANKING_FALLBACK", default=False, cast=bool
+    "AGRO_DASHBOARD_MONGO_RANKING_FALLBACK", default=True, cast=bool
 )
 
 # Relatórios HTTP v3 no dashboard (PedidosItens / CondensadoVendedor). False = pula ERP e vai direto ao SQLite.
@@ -62,6 +62,9 @@ AGRO_DASHBOARD_ERP_V3_REPORTS = config("AGRO_DASHBOARD_ERP_V3_REPORTS", default=
 AGRO_ERP_V3_REPORT_TIMEOUT_SEC = config(
     "AGRO_ERP_V3_REPORT_TIMEOUT_SEC", default=8, cast=int
 )
+
+# Teto de bytes lido por relatório v3 (resposta JSON pode ser enorme; ultrapassar evita OOM no worker).
+AGRO_ERP_V3_REPORT_MAX_BYTES = config("AGRO_ERP_V3_REPORT_MAX_BYTES", default=4_000_000, cast=int)
 
 # Application definition
 
