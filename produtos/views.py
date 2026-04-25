@@ -53,7 +53,11 @@ from .models import (
 from integracoes.texto import normalizar, expandir_tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 from integracoes.venda_erp_api import VendaERPAPIClient
-from .mongo_vendas_util import _filtro_venda_ativa_mongo
+from .mongo_vendas_util import (
+    _filtro_venda_ativa_mongo,
+    dashboard_ranking_vendedores_mongo,
+    dashboard_top_produtos_mongo,
+)
 from .nfe_entrada_util import (
     atualizar_rascunho_entrada,
     buscar_fornecedores_entrada_nfe,
@@ -2794,6 +2798,36 @@ def _dashboard_ranking_vendedores_sqlite(data_ini, data_fim, limite=8):
     return out
 
 
+def _dashboard_top_produtos_capri(data_ini, data_fim, limite=8):
+    """Espelho ERP (DtoVenda / DtoVendaProduto) na mesma janela do gráfico; se vazio, PDV local."""
+    client, db = obter_conexao_mongo()
+    if client is not None and db is not None:
+        try:
+            rows = dashboard_top_produtos_mongo(
+                client, db, data_ini, data_fim, limite=limite
+            )
+            if rows is not None and len(rows) > 0:
+                return rows
+        except Exception:
+            logger.exception("dashboard_top_produtos_capri: mongo")
+    return _dashboard_top_produtos_sqlite(data_ini, data_fim, limite=limite)
+
+
+def _dashboard_ranking_vendedores_capri(data_ini, data_fim, limite=8):
+    """Mesma fonte e período do gráfico (Mongo DtoVenda); se vazio, PDV local."""
+    client, db = obter_conexao_mongo()
+    if client is not None and db is not None:
+        try:
+            rows = dashboard_ranking_vendedores_mongo(
+                client, db, data_ini, data_fim, limite=limite
+            )
+            if rows is not None and len(rows) > 0:
+                return rows
+        except Exception:
+            logger.exception("dashboard_ranking_vendedores_capri: mongo")
+    return _dashboard_ranking_vendedores_sqlite(data_ini, data_fim, limite=limite)
+
+
 def _dashboard_entregas_pendentes_count() -> int:
     """Pedidos de entrega ainda não entregues nem cancelados."""
     return PedidoEntrega.objects.exclude(
@@ -3172,8 +3206,8 @@ def _dashboard_capri_context(request):
         "chart_compare_data": json.dumps(serie_compare),
         "chart_total_periodo": _format_moeda_br(Decimal(str(round(_dashboard_float(atual.get("total")), 2)))),
         "ticket_por_dia": json.dumps(ticket_por_dia),
-        "top_produtos": _dashboard_top_produtos_sqlite(data_ini, data_fim),
-        "ranking_vendedores": _dashboard_ranking_vendedores_sqlite(data_ini, data_fim),
+        "top_produtos": _dashboard_top_produtos_capri(data_ini, data_fim),
+        "ranking_vendedores": _dashboard_ranking_vendedores_capri(data_ini, data_fim),
         "vendas_por_loja": vendas_por_loja,
         "stores_chart_json": json.dumps(
             {
