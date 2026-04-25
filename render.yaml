@@ -11,6 +11,7 @@ services:
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --preload --timeout 120 --graceful-timeout 30 --no-control-socket --access-logfile - --error-logfile -
     healthCheckPath: /healthz
+    # Para fechar o painel e exigir login: defina AGRO_PUBLIC_DASHBOARD=false no Environment.
 
   - type: cron
     name: agro-estoque-mongo-ping

@@ -43,6 +43,12 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 if _on_render and "https://*.onrender.com" not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS = list(CSRF_TRUSTED_ORIGINS) + ["https://*.onrender.com"]
+
+# Painel BI (/, /dashboard/gerencial/, HTMX parcial e feed) sem exigir login.
+# Padrão True (painel aberto). Para exigir login de novo: AGRO_PUBLIC_DASHBOARD=false no .env / Render.
+# POST de sync ERP continua com login; ?sync=1 na URL só roda se já autenticado.
+AGRO_PUBLIC_DASHBOARD = config("AGRO_PUBLIC_DASHBOARD", default=True, cast=bool)
+
 # Application definition
 
 INSTALLED_APPS = [

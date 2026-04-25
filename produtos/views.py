@@ -1,6 +1,7 @@
 import copy
 import csv
 import secrets
+from functools import wraps
 import json
 import logging
 import re
@@ -116,6 +117,19 @@ from .mongo_financeiro_util import (
 
 
 logger = logging.getLogger(__name__)
+
+
+def _dashboard_login_required(view_func):
+    """login_required, exceto se settings.AGRO_PUBLIC_DASHBOARD (painel BI só leitura na web)."""
+    protected = login_required(login_url="/admin/login/")(view_func)
+
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if getattr(settings, "AGRO_PUBLIC_DASHBOARD", False):
+            return view_func(request, *args, **kwargs)
+        return protected(request, *args, **kwargs)
+
+    return wrapper
 
 
 def _token_cron_alerta_valido(request) -> bool:
@@ -3229,10 +3243,10 @@ def estoque_sincronizacao_view(request):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@_dashboard_login_required
 def dashboard_gerencial_view(request):
     sync_status = None
-    if request.GET.get("sync") == "1":
+    if request.GET.get("sync") == "1" and request.user.is_authenticated:
         di, df, _lbl, _k = _dashboard_periodo_from_request(request)
         sync_status = _dashboard_sync_vendas_erp_para_mongo(di, df)
     return render(
@@ -3252,7 +3266,7 @@ def dashboard_gerencial_sincronizar(request):
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@_dashboard_login_required
 @require_GET
 def dashboard_gerencial_conteudo(request):
     return render(
@@ -3263,7 +3277,7 @@ def dashboard_gerencial_conteudo(request):
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@_dashboard_login_required
 @require_GET
 def dashboard_gerencial_feed(request):
     try:
