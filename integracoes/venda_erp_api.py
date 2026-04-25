@@ -15,8 +15,25 @@ from collections import defaultdict
 import requests
 from decouple import config
 from datetime import date
+from requests.exceptions import RequestException
 
 logger = logging.getLogger(__name__)
+
+
+def _v3_report_timeout_sec() -> int:
+    """Limite curto por requisição (evita worker preso em SSL/read no Render)."""
+    try:
+        from django.conf import settings as dj
+
+        v = getattr(dj, "AGRO_ERP_V3_REPORT_TIMEOUT_SEC", None)
+        if v is not None:
+            return max(3, min(int(v), 60))
+    except Exception:
+        pass
+    try:
+        return max(3, min(int(config("AGRO_ERP_V3_REPORT_TIMEOUT_SEC", default="8")), 60))
+    except (TypeError, ValueError):
+        return 8
 
 
 def _django_setting(name, default=""):
@@ -385,79 +402,71 @@ class VendaERPAPIClient:
         data_ini: date,
         data_fim: date,
         *,
-        timeout: int = 90,
+        timeout: int | None = None,
     ) -> tuple[bool, list[dict]]:
         """
-        Busca linhas em ``{base_url}/v3/{path_after_v3}`` (GET com query e, se vazio, POST JSON).
-        Usa os mesmos headers de token que ``/api/request/``.
+        Busca linhas em ``{base_url}/v3/{path_after_v3}`` (GET com query e, se vazio, um POST JSON).
+        Poucas tentativas e timeout curto por requisição para não travar o Gunicorn no Render.
         """
         if not self.token:
             return False, []
+        t = int(timeout) if timeout is not None else _v3_report_timeout_sec()
         base = self.base_url.rstrip("/")
         suf = (path_after_v3 or "").strip().lstrip("/")
         if not suf:
             return False, []
-        urls = (f"{base}/v3/{suf}", f"{base}/v3/{suf}/")
+        url = f"{base}/v3/{suf}"
         di = data_ini.isoformat()[:10]
         df = data_fim.isoformat()[:10]
         query_variants = (
-            {"dataInicial": di, "dataFinal": df},
             {"DataInicial": di, "DataFinal": df},
-            {"dataDe": di, "dataAte": df},
-            {"DataDe": di, "DataAte": df},
-            {"dtInicial": di, "dtFinal": df},
-            {"DtInicial": di, "DtFinal": df},
-            {"Inicio": di, "Fim": df},
-            {"PeriodoInicial": di, "PeriodoFinal": df},
-        )
-        body_variants = (
             {"dataInicial": di, "dataFinal": df},
-            {"DataInicial": di, "DataFinal": df},
-            {"dataDe": di, "dataAte": df},
-            {"DataDe": di, "DataAte": df},
-            {"filtros": {"DataInicial": di, "DataFinal": df}},
-            {"filtros": {"dataInicial": di, "dataFinal": df}},
-            {"Filtros": {"DataInicial": di, "DataFinal": df}},
         )
+        body_variants = ({"DataInicial": di, "DataFinal": df},)
         headers_get = self._headers_get()
         headers_post = self._headers_post()
         last_err = ""
-        for url in urls:
-            for params in query_variants:
+        for params in query_variants:
+            try:
+                res = requests.get(url, headers=headers_get, params=params, timeout=t)
+                last_err = f"GET {url} {params!r} → HTTP {res.status_code}"
+                if not (200 <= res.status_code < 300):
+                    continue
                 try:
-                    res = requests.get(url, headers=headers_get, params=params, timeout=timeout)
-                    last_err = f"GET {url} {params!r} → HTTP {res.status_code}"
-                    if not (200 <= res.status_code < 300):
-                        continue
-                    try:
-                        payload = res.json()
-                    except Exception:
-                        continue
-                    rows = self._linhas_de_resposta_relatorio_v3(payload)
-                    if rows:
-                        logger.info("VendaERP v3 relatório OK: %s (%s linhas)", last_err, len(rows))
-                        return True, rows
-                except Exception as e:
-                    last_err = str(e)
-                    logger.warning("VendaERP v3 GET %s: %s", url, e)
-            for body in body_variants:
+                    payload = res.json()
+                except Exception:
+                    continue
+                rows = self._linhas_de_resposta_relatorio_v3(payload)
+                if rows:
+                    logger.info("VendaERP v3 relatório OK: %s (%s linhas)", last_err, len(rows))
+                    return True, rows
+            except RequestException as e:
+                last_err = str(e)
+                logger.warning("VendaERP v3 GET %s: %s", url, e)
+            except Exception as e:
+                last_err = str(e)
+                logger.warning("VendaERP v3 GET %s: %s", url, e)
+        for body in body_variants:
+            try:
+                res = requests.post(url, headers=headers_post, json=body, timeout=t)
+                last_err = f"POST {url} → HTTP {res.status_code}"
+                if not (200 <= res.status_code < 300):
+                    continue
                 try:
-                    res = requests.post(url, headers=headers_post, json=body, timeout=timeout)
-                    last_err = f"POST {url} → HTTP {res.status_code}"
-                    if not (200 <= res.status_code < 300):
-                        continue
-                    try:
-                        payload = res.json()
-                    except Exception:
-                        continue
-                    rows = self._linhas_de_resposta_relatorio_v3(payload)
-                    if rows:
-                        logger.info("VendaERP v3 relatório OK: %s (%s linhas)", last_err, len(rows))
-                        return True, rows
-                except Exception as e:
-                    last_err = str(e)
-                    logger.warning("VendaERP v3 POST %s: %s", url, e)
-        logger.info("VendaERP v3 relatório sem linhas: %s", last_err[:300])
+                    payload = res.json()
+                except Exception:
+                    continue
+                rows = self._linhas_de_resposta_relatorio_v3(payload)
+                if rows:
+                    logger.info("VendaERP v3 relatório OK: %s (%s linhas)", last_err, len(rows))
+                    return True, rows
+            except RequestException as e:
+                last_err = str(e)
+                logger.warning("VendaERP v3 POST %s: %s", url, e)
+            except Exception as e:
+                last_err = str(e)
+                logger.warning("VendaERP v3 POST %s: %s", url, e)
+        logger.info("VendaERP v3 relatório sem linhas: %s", (last_err or "")[:300])
         return False, []
 
     def relatorio_pedidos_itens_report(self, data_ini: date, data_fim: date):
@@ -465,13 +474,25 @@ class VendaERPAPIClient:
         Relatório de itens de pedidos (ex.: ``/v3/PedidosItens/Report`` no host configurado em
         ``VENDA_ERP_API_URL`` / ``VENDA_ERP_API_BASE_URL``).
         """
-        return self._v3_report_linhas("PedidosItens/Report", data_ini, data_fim)
+        for suf in ("PedidosItens/Report", "PedidosItens/Relatorio"):
+            ok, rows = self._v3_report_linhas(suf, data_ini, data_fim)
+            if ok and rows:
+                return True, rows
+        return False, []
 
     def relatorio_condensado_vendas_por_vendedor_report(self, data_ini: date, data_fim: date):
         """
         Condensado de vendas por vendedor (ex.: ``/v3/CondensadoVendasPorVendedor/Report``).
+        Tenta também ``Relatorio`` (hosts que não usam o nome em inglês).
         """
-        return self._v3_report_linhas("CondensadoVendasPorVendedor/Report", data_ini, data_fim)
+        for suf in (
+            "CondensadoVendasPorVendedor/Report",
+            "CondensadoVendasPorVendedor/Relatorio",
+        ):
+            ok, rows = self._v3_report_linhas(suf, data_ini, data_fim)
+            if ok and rows:
+                return True, rows
+        return False, []
 
 
 def _row_lc(row: dict) -> dict[str, object]:
