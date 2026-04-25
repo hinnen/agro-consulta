@@ -3,21 +3,17 @@
 
 {% block admin_title %}Agro Consulta | Home{% endblock %}
 {% block admin_header %}{% endblock %}
-{% block body_class %}bg-slate-950 text-slate-100 h-dvh max-h-dvh overflow-hidden{% endblock %}
+{% block body_class %}bg-white text-slate-900 h-dvh max-h-dvh overflow-hidden{% endblock %}
 {% block main_class %}h-full min-h-0 flex flex-col overflow-hidden{% endblock %}
-{% block admin_shell_class %}h-full min-h-0 flex flex-col bg-slate-950 overflow-hidden{% endblock %}
+{% block admin_shell_class %}h-full min-h-0 flex flex-col bg-white overflow-hidden{% endblock %}
 {% block admin_section_class %}flex-1 min-h-0 overflow-hidden flex flex-col mx-auto max-w-none w-full px-0{% endblock %}
 {% block head_extra %}
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <style>
-    /* Paleta premium: preto, branco e Azul Capri (#00BFFF) */
+    /* Loja: branco, emerald e orange (ver AGENTS.md) */
     :root {
-      --capri: #00bfff;
-      --capri-blue: #00bfff;
-      --capri-glow: rgba(0, 191, 255, 0.25);
-      --dark-bg: #020617;
+      --agro-glow: rgba(16, 185, 129, 0.22);
     }
-    .text-capri-blue { color: var(--capri-blue); }
     .hide-scroll::-webkit-scrollbar { display: none; }
     body.modal-open { overflow: hidden !important; }
     .reminder-due {
@@ -26,8 +22,8 @@
       background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
     }
     @keyframes homeReminderPulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.22); }
-      50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.25); }
+      50% { box-shadow: 0 0 0 8px rgba(234, 88, 12, 0); }
     }
     .done-reminder { opacity: 0.7; }
     .done-reminder .done-text { text-decoration: line-through; }
@@ -51,8 +47,9 @@
       container-name: home-hub;
       font-size: clamp(0.72rem, calc(0.68rem + var(--hh-wpx) * 0.0014), 0.84rem);
       background:
-        radial-gradient(circle at top right, rgba(0, 191, 255, 0.05), transparent 40%),
-        linear-gradient(180deg, #020617 0%, #0f172a 100%) !important;
+        radial-gradient(ellipse 90% 70% at 0% 0%, rgba(16, 185, 129, 0.12), transparent 55%),
+        radial-gradient(ellipse 80% 60% at 100% 100%, rgba(249, 115, 22, 0.1), transparent 50%),
+        linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
     }
     .home-hub-shell-pad {
       padding: clamp(0.16rem, calc(0.1rem + var(--hh-wpx) * 0.0028), 0.38rem);
@@ -97,19 +94,18 @@
       justify-content: flex-start;
       width: 100%;
       border-radius: clamp(0.58rem, calc(0.4rem + var(--hh-wpx) * 0.004), 0.82rem);
-      color: #f8fafc;
+      color: #0f172a;
       transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
     }
     .home-top-card,
     .home-grid-card {
-      border: 1px solid rgba(255, 255, 255, 0.05) !important;
-      background: rgba(30, 41, 59, 0.4) !important;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid #e2e8f0 !important;
+      background: #ffffff !important;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
     }
     .home-hub-grid-wrap .home-grid-card {
-      background: rgba(30, 41, 59, 0.3) !important;
-      border: 1px solid rgba(255, 255, 255, 0.03) !important;
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
       padding: 0.38rem 0.48rem !important;
     }
     .home-top-card {
@@ -117,7 +113,7 @@
       align-self: stretch;
       padding: clamp(0.48rem, calc(0.28rem + var(--hh-wpx) * 0.0082), 1.22rem)
         clamp(0.52rem, calc(0.3rem + var(--hh-wpx) * 0.009), 1.22rem);
-      box-shadow: 0 16px 40px rgba(2, 6, 23, 0.28);
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
     }
     .home-grid-card,
     .home-grid-card-disabled {
@@ -128,10 +124,8 @@
         clamp(0.26rem, calc(0.16rem + var(--hh-wpx) * 0.0032), 0.5rem);
     }
     .home-grid-card-disabled {
-      border: 1px solid rgba(255, 255, 255, 0.04) !important;
-      background: rgba(15, 23, 42, 0.35) !important;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid #e2e8f0 !important;
+      background: #f1f5f9 !important;
     }
     .home-hub-grid-wrap .home-grid-card-disabled {
       padding: 0.38rem 0.48rem !important;
@@ -143,34 +137,34 @@
     }
     .home-top-card:hover {
       transform: translateY(-2px);
-      border-color: var(--capri-blue) !important;
-      box-shadow: 0 0 20px var(--capri-glow), 0 14px 32px rgba(2, 6, 23, 0.35);
+      border-color: #10b981 !important;
+      box-shadow: 0 0 0 1px var(--agro-glow), 0 12px 28px rgba(15, 23, 42, 0.1);
     }
     .home-hub-grid-wrap .home-grid-card:hover {
       transform: none;
-      border-color: var(--capri) !important;
-      background: rgba(0, 191, 255, 0.03) !important;
-      box-shadow: none;
+      border-color: #10b981 !important;
+      background: #f0fdf4 !important;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
     }
     .home-top-card-emerald {
-      background: linear-gradient(135deg, #020617 0%, #004d40 100%) !important;
-      border-color: rgba(52, 211, 153, 0.28) !important;
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+      border-color: rgba(16, 185, 129, 0.45) !important;
     }
     .home-top-card-orange {
-      background: linear-gradient(135deg, #020617 0%, #9a3412 100%) !important;
-      border-color: rgba(251, 146, 60, 0.28) !important;
+      background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%) !important;
+      border-color: rgba(249, 115, 22, 0.45) !important;
     }
     .home-top-card-capri {
-      background: linear-gradient(135deg, #020617 0%, #0e7490 45%, #082f49 100%) !important;
-      border-color: rgba(0, 191, 255, 0.35) !important;
+      background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%) !important;
+      border-color: rgba(20, 184, 166, 0.4) !important;
     }
     #agro-barra-sync-api-wrap {
-      border-color: rgba(0, 191, 255, 0.2) !important;
-      background: rgba(15, 23, 42, 0.6) !important;
-      box-shadow: none !important;
+      border-color: rgba(16, 185, 129, 0.35) !important;
+      background: #ffffff !important;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05) !important;
     }
     #agro-btn-sincronizar-api {
-      background: linear-gradient(135deg, #00bfff 0%, #0080ff 100%) !important;
+      background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
       border: none !important;
       font-weight: 800;
     }
@@ -190,19 +184,18 @@
       display: flex;
       align-items: center;
       border-radius: 0.75rem;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(15, 23, 42, 0.8);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
       transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
       overflow: hidden;
       position: relative;
       text-decoration: none;
       color: inherit;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
     }
     .home-top-card-horizontal:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
     }
     .home-hub-top .card-icon-box {
       display: inline-flex;
@@ -216,55 +209,59 @@
       stroke-width: 2;
     }
     .item-f1 {
-      border-color: rgba(16, 185, 129, 0.35) !important;
+      border-color: rgba(16, 185, 129, 0.4) !important;
+      background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%) !important;
     }
     .item-f1 .card-icon-box {
-      background: rgba(16, 185, 129, 0.18);
-      color: #34d399;
+      background: rgba(16, 185, 129, 0.2);
+      color: #047857;
       padding: 6px;
       border-radius: 8px;
     }
     .item-f1 .min-w-0.flex-1 > span.block {
-      color: rgba(52, 211, 153, 0.88) !important;
+      color: #64748b !important;
     }
     .item-f1:hover {
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(15, 23, 42, 0.92) 100%);
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
       border-color: #10b981 !important;
     }
     .item-f2 {
-      border-color: rgba(249, 115, 22, 0.38) !important;
+      border-color: rgba(249, 115, 22, 0.42) !important;
+      background: linear-gradient(135deg, #ffffff 0%, #fff7ed 100%) !important;
     }
     .item-f2 .card-icon-box {
-      background: rgba(249, 115, 22, 0.16);
-      color: #fb923c;
+      background: rgba(249, 115, 22, 0.2);
+      color: #c2410c;
       padding: 6px;
       border-radius: 8px;
     }
     .item-f2 .min-w-0.flex-1 > span.block {
-      color: rgba(251, 146, 60, 0.92) !important;
+      color: #64748b !important;
     }
     .item-f2:hover {
-      background: linear-gradient(135deg, rgba(249, 115, 22, 0.12) 0%, rgba(15, 23, 42, 0.92) 100%);
+      background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%) !important;
       border-color: #f97316 !important;
     }
     .shortcut-badge {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 6px;
       padding: 2px 6px;
       font-size: 0.62rem;
       font-weight: 900;
-      color: #fff;
-      transition: border-color 0.2s ease, color 0.2s ease;
+      color: #475569;
+      transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
       flex-shrink: 0;
     }
     .item-f1:hover .shortcut-badge {
-      border-color: #34d399;
-      color: #6ee7b7;
+      border-color: #10b981;
+      color: #047857;
+      background: #ecfdf5;
     }
     .item-f2:hover .shortcut-badge {
-      border-color: #fb923c;
-      color: #fdba74;
+      border-color: #f97316;
+      color: #c2410c;
+      background: #fff7ed;
     }
     .home-card-head {
       display: flex;
@@ -279,7 +276,8 @@
       width: clamp(1.5rem, calc(0.9rem + var(--hh-wpx) * 0.009), 2.05rem);
       height: clamp(1.5rem, calc(0.9rem + var(--hh-wpx) * 0.009), 2.05rem);
       border-radius: clamp(0.42rem, calc(0.28rem + var(--hh-wpx) * 0.0026), 0.65rem);
-      background: rgba(255, 255, 255, 0.14);
+      background: rgba(16, 185, 129, 0.12);
+      color: #047857;
       flex-shrink: 0;
     }
     .home-card-icon svg {
@@ -296,13 +294,13 @@
       padding: clamp(0.08rem, calc(0.04rem + var(--hh-wpx) * 0.0014), 0.2rem)
         clamp(0.16rem, calc(0.1rem + var(--hh-wpx) * 0.0022), 0.36rem);
       border-radius: clamp(0.34rem, calc(0.2rem + var(--hh-wpx) * 0.0022), 0.52rem);
-      border: 1px solid rgba(0, 191, 255, 0.4) !important;
-      background: rgba(0, 191, 255, 0.1) !important;
+      border: 1px solid rgba(16, 185, 129, 0.4) !important;
+      background: #ecfdf5 !important;
       font-size: clamp(0.58rem, calc(0.5rem + var(--hh-wpx) * 0.004), 0.72rem);
       font-weight: 900;
       line-height: 1;
       letter-spacing: 0.04em;
-      color: var(--capri-blue) !important;
+      color: #047857 !important;
     }
     .home-card-title {
       margin-top: clamp(0.08rem, calc(0.06rem + var(--hh-wpx) * 0.0016), 0.36rem);
@@ -325,6 +323,7 @@
       font-weight: 900;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+      color: #64748b;
     }
     .home-grid-card-disabled {
       opacity: 0.42;
@@ -333,7 +332,7 @@
     .home-grid-card-disabled:hover {
       transform: none;
       box-shadow: none;
-      border-color: rgba(255, 255, 255, 0.04) !important;
+      border-color: #e2e8f0 !important;
     }
   </style>
 {% endblock %}
@@ -341,14 +340,14 @@
 {% block admin_content %}
 {% include "produtos/_gm_loading_bar.html" %}
 {{ home_pdv_bootstrap|json_script:"home-pdv-bootstrap" }}
-<div class="no-print flex min-h-0 shrink-0 items-center justify-between border-b border-white/5 bg-[#020617] px-3 py-1.5 text-white sm:px-4">
+<div class="no-print flex min-h-0 shrink-0 items-center justify-between border-b border-emerald-200/60 bg-white px-3 py-1.5 text-slate-800 sm:px-4">
   <div class="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
-    <span class="text-[9px] font-black uppercase tracking-wider text-[#00BFFF]">Home administrativa</span>
-    <span class="hidden h-3 w-px shrink-0 bg-slate-800 sm:block" aria-hidden="true"></span>
-    <h1 class="text-xs font-black uppercase tracking-tight sm:text-sm">Agro Consulta</h1>
-    <span class="hidden h-3 w-px shrink-0 bg-slate-800 sm:block" aria-hidden="true"></span>
+    <span class="text-[9px] font-black uppercase tracking-wider text-emerald-700">Home administrativa</span>
+    <span class="hidden h-3 w-px shrink-0 bg-slate-200 sm:block" aria-hidden="true"></span>
+    <h1 class="text-xs font-black uppercase tracking-tight text-slate-900 sm:text-sm">Agro Consulta</h1>
+    <span class="hidden h-3 w-px shrink-0 bg-slate-200 sm:block" aria-hidden="true"></span>
     {% if empresa_atual %}
-      <p class="min-w-0 truncate text-[10px] font-bold text-slate-400 sm:text-[11px]">Loja: <span class="text-white">{{ empresa_atual.nome_fantasia }}</span></p>
+      <p class="min-w-0 truncate text-[10px] font-bold text-slate-500 sm:text-[11px]">Loja: <span class="text-slate-900">{{ empresa_atual.nome_fantasia }}</span></p>
     {% endif %}
   </div>
   <div id="relogio-header" class="shrink-0 pl-1.5 font-mono text-[9px] text-slate-500 tabular-nums sm:text-[10px]" aria-live="polite"></div>
@@ -369,14 +368,14 @@
   })();
 </script>
 <section class="home-hub-outer flex w-full flex-1 min-h-0 flex-col">
-  <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-none border-0 shadow-none sm:mx-3 sm:mb-3 sm:rounded-[1.35rem] sm:border sm:border-slate-800 sm:shadow-[0_24px_80px_rgba(2,6,23,0.45)]">
+  <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-none border-0 shadow-none sm:mx-3 sm:mb-3 sm:rounded-[1.35rem] sm:border sm:border-slate-200/90 sm:shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
     <div class="home-hub-shell home-hub-shell-pad">
       <div
-        class="flex flex-wrap items-center gap-1.5 gap-y-1.5 shrink-0 border-b border-slate-600/50 pb-1.5 mb-0.5 rounded-lg bg-slate-900/35 p-1.5 ring-1 ring-slate-600/40"
+        class="flex flex-wrap items-center gap-1.5 gap-y-1.5 shrink-0 border-b border-slate-200/90 pb-1.5 mb-0.5 rounded-lg bg-slate-50/90 p-1.5 ring-1 ring-emerald-200/50"
         role="region"
         aria-label="Sincronização PDV — permanece na home"
       >
-        <span class="text-[9px] font-black uppercase tracking-wide text-slate-400 w-full sm:w-auto sm:mr-1">Dados PDV</span>
+        <span class="text-[9px] font-black uppercase tracking-wide text-emerald-800 w-full sm:w-auto sm:mr-1">Dados PDV</span>
         <div class="flex flex-wrap items-center gap-2">
           {% include "produtos/_barra_estoque_global.html" %}
           <div
@@ -401,14 +400,14 @@
             </button>
           </div>
         </div>
-        <div class="flex flex-wrap items-center gap-1.5 w-full mt-0.5 pt-1 border-t border-slate-600/40">
-          <label class="text-[8px] font-black uppercase text-slate-400 shrink-0" for="home-agro-loja">Loja</label>
-          <select id="home-agro-loja" class="min-w-[9rem] max-w-full rounded-md border border-slate-500/60 bg-slate-900/80 px-1.5 py-1 text-[10px] font-bold text-slate-100" title="Unidade usada na consulta / PDV (preferência neste aparelho)">
+        <div class="flex flex-wrap items-center gap-1.5 w-full mt-0.5 pt-1 border-t border-slate-200/90">
+          <label class="text-[8px] font-black uppercase text-slate-600 shrink-0" for="home-agro-loja">Loja</label>
+          <select id="home-agro-loja" class="min-w-[9rem] max-w-full rounded-md border border-slate-300 bg-white px-1.5 py-1 text-[10px] font-bold text-slate-800" title="Unidade usada na consulta / PDV (preferência neste aparelho)">
             <option value="1">Agro Mais — Principal (Centro)</option>
             <option value="2">Agro Mais — Vila Elias</option>
           </select>
           <button type="button" id="home-link-lembretes" class="inline-flex items-center gap-0.5 rounded-md border border-amber-400/50 bg-amber-950/40 px-2 py-1 text-[9px] font-black uppercase text-amber-100 hover:bg-amber-900/50 cursor-pointer">⏰ Lembretes</button>
-          <button type="button" id="home-link-orcamentos" class="inline-flex items-center gap-0.5 rounded-md border border-sky-400/45 bg-sky-950/35 px-2 py-1 text-[9px] font-black uppercase text-sky-100 hover:bg-sky-900/45 cursor-pointer">Orçamentos salvos</button>
+          <button type="button" id="home-link-orcamentos" class="inline-flex items-center gap-0.5 rounded-md border border-orange-300 bg-orange-50 px-2 py-1 text-[9px] font-black uppercase text-orange-900 hover:bg-orange-100/90 cursor-pointer">Orçamentos salvos</button>
         </div>
       </div>
       <script src="{% static 'js/home_pdv_sync.js' %}"></script>
@@ -444,21 +443,21 @@
 
       <div class="home-kpi-strip w-full min-w-0 no-print shrink-0 mb-0">
         <div class="grid w-full min-w-0 grid-cols-2 gap-1.5 sm:gap-2 lg:grid-cols-4 lg:gap-2">
-          <div class="rounded-lg border border-white/5 bg-slate-900/60 p-1.5 sm:p-2 backdrop-blur-md">
+          <div class="rounded-lg border border-slate-200/90 bg-white p-1.5 shadow-sm sm:p-2">
             <span class="text-[8px] font-black uppercase tracking-wide text-slate-500">Vendas hoje</span>
-            <div class="mt-px text-sm font-black tabular-nums leading-none text-white sm:text-base">R$ {{ total_vendas_dia_fmt }}</div>
+            <div class="mt-px text-sm font-black tabular-nums leading-none text-slate-900 sm:text-base">R$ {{ total_vendas_dia_fmt }}</div>
           </div>
-          <a href="{% url 'entregas_painel' %}" class="rounded-lg border border-white/5 bg-slate-900/60 p-1.5 sm:p-2 backdrop-blur-md transition-colors hover:border-cyan-400/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/45">
+          <a href="{% url 'entregas_painel' %}" class="rounded-lg border border-slate-200/90 bg-white p-1.5 shadow-sm sm:p-2 transition-colors hover:border-emerald-400/50 hover:bg-emerald-50/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40">
             <span class="text-[8px] font-black uppercase tracking-wide text-slate-500">Entregas</span>
-            <div class="mt-px text-sm font-black tabular-nums leading-none text-capri-blue sm:text-base">{{ entregas_pendentes }} <small class="text-[9px] font-bold text-slate-500">pend.</small></div>
+            <div class="mt-px text-sm font-black tabular-nums leading-none text-emerald-700 sm:text-base">{{ entregas_pendentes }} <small class="text-[9px] font-bold text-slate-500">pend.</small></div>
           </a>
-          <a href="{{ home_validade_url }}" class="rounded-lg border border-white/5 bg-slate-900/60 p-1.5 sm:p-2 backdrop-blur-md transition-colors hover:border-red-400/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/40">
+          <a href="{{ home_validade_url }}" class="rounded-lg border border-slate-200/90 bg-white p-1.5 shadow-sm sm:p-2 transition-colors hover:border-red-300/80 hover:bg-red-50/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/35">
             <span class="text-[8px] font-black uppercase tracking-wide text-slate-500">Validade</span>
-            <div class="mt-px text-sm font-black tabular-nums leading-none text-red-400 sm:text-base">{{ produtos_vencendo }} <small class="text-[9px] font-bold text-slate-500">alert.</small></div>
+            <div class="mt-px text-sm font-black tabular-nums leading-none text-red-600 sm:text-base">{{ produtos_vencendo }} <small class="text-[9px] font-bold text-slate-500">alert.</small></div>
           </a>
-          <a href="{% url 'caixa_painel' %}" class="rounded-lg border border-white/5 bg-slate-900/60 p-1.5 sm:p-2 backdrop-blur-md transition-colors hover:border-emerald-500/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/45">
+          <a href="{% url 'caixa_painel' %}" class="rounded-lg border border-slate-200/90 bg-white p-1.5 shadow-sm sm:p-2 transition-colors hover:border-emerald-400/50 hover:bg-emerald-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40">
             <span class="text-[8px] font-black uppercase tracking-wide text-slate-500">Caixa</span>
-            <div class="mt-px text-sm font-black leading-none sm:text-base {% if caixa_aberto %}text-emerald-400{% else %}text-slate-500{% endif %}">{% if caixa_aberto %}ABERTO{% else %}FECHADO{% endif %}</div>
+            <div class="mt-px text-sm font-black leading-none sm:text-base {% if caixa_aberto %}text-emerald-700{% else %}text-slate-500{% endif %}">{% if caixa_aberto %}ABERTO{% else %}FECHADO{% endif %}</div>
           </a>
         </div>
       </div>
@@ -476,8 +475,8 @@
                 <i data-lucide="{{ item.icon }}"></i>
               </div>
               <div class="min-w-0 flex-1">
-                <span class="mb-px block text-[8px] font-black uppercase tracking-[0.1em] text-white/60">Acessar</span>
-                <h2 class="truncate text-sm font-black uppercase leading-tight tracking-tight text-white sm:text-base">{{ item.title }}</h2>
+                <span class="mb-px block text-[8px] font-black uppercase tracking-[0.1em] text-slate-500">Acessar</span>
+                <h2 class="truncate text-sm font-black uppercase leading-tight tracking-tight text-slate-900 sm:text-base">{{ item.title }}</h2>
               </div>
               <div class="shortcut-badge">{{ item.shortcut }}</div>
             </div>

@@ -46,6 +46,7 @@ urlpatterns = [
         views.resumo_financeiro_gerencial_view,
         name='resumo_financeiro_gerencial',
     ),
+    path('dashboard/gerencial/', views.dashboard_gerencial_view, name='dashboard_gerencial'),
     path(
         'lancamentos/dre/',
         views.lancamentos_dre_view,
@@ -277,6 +278,21 @@ urlpatterns = [
         'api/lancamentos/fluxo-calendario/',
         views.api_lancamentos_fluxo_calendario,
         name='api_lancamentos_fluxo_calendario',
+    ),
+    path(
+        'api/dashboard/gerencial/conteudo/',
+        views.dashboard_gerencial_conteudo,
+        name='dashboard_gerencial_conteudo',
+    ),
+    path(
+        'api/dashboard/gerencial/feed/',
+        views.dashboard_gerencial_feed,
+        name='dashboard_gerencial_feed',
+    ),
+    path(
+        'api/dashboard/gerencial/sincronizar/',
+        views.dashboard_gerencial_sincronizar,
+        name='dashboard_gerencial_sincronizar',
     ),
     path(
         'api/lancamentos/contas-pagar/',

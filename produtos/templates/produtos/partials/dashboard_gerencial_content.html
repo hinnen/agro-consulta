@@ -1,0 +1,86 @@
+<div id="dashboard-chart-host" class="h-full min-h-0 flex flex-col gap-6">
+  {% if not mongo_ok %}
+    <div class="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-xs font-bold text-amber-200">
+      Mongo indisponível no momento. Exibindo somente indicadores locais possíveis. {{ mongo_erro }}
+    </div>
+  {% endif %}
+
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div class="bg-slate-900/40 border border-white/5 p-6 rounded-[2rem] backdrop-blur-xl group hover:border-sky-400/50 transition-all">
+      <div class="flex justify-between items-start">
+        <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Faturamento</span>
+        <span class="text-emerald-400 text-[10px] font-bold bg-emerald-500/10 px-2 py-1 rounded-lg">{{ kpi_variacao_periodo }}%</span>
+      </div>
+      <div class="text-3xl font-black text-white mt-2">R$ {{ kpi_faturamento_periodo|floatformat:2 }}</div>
+      <div id="sparkline-faturamento" class="mt-4"></div>
+    </div>
+    <div class="bg-slate-900/40 border border-white/5 p-6 rounded-[2rem] backdrop-blur-xl">
+      <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Vendas hoje</div>
+      <div class="text-3xl font-black text-white mt-2">R$ {{ kpi_vendas_hoje|floatformat:2 }}</div>
+      <div class="text-xs text-slate-400 mt-2">Atualiza com filtro global em tempo real.</div>
+    </div>
+    <div class="bg-slate-900/40 border border-white/5 p-6 rounded-[2rem] backdrop-blur-xl">
+      <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Perdas por validade</div>
+      <div class="text-3xl font-black text-red-300 mt-2">R$ {{ kpi_perdas_validade|floatformat:2 }}</div>
+      <div class="text-xs text-slate-400 mt-2">Estimativa de lotes vencidos com saldo.</div>
+    </div>
+    <div class="bg-slate-900/40 border border-white/5 p-6 rounded-[2rem] backdrop-blur-xl">
+      <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Período ativo</div>
+      <div class="text-xl font-black text-white mt-2">{{ periodo_label }}</div>
+      {% if produto_filtro %}
+        <button id="btn-limpar-drill" class="mt-3 px-3 py-2 rounded-lg bg-slate-800 text-xs font-bold hover:bg-slate-700">Limpar drill-down ({{ produto_filtro }})</button>
+      {% else %}
+        <div class="text-xs text-slate-400 mt-2">Clique em um produto para drill-down.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0 flex-1">
+    <div class="lg:col-span-2 bg-slate-900/40 border border-white/5 p-8 rounded-[2.5rem] backdrop-blur-2xl">
+      <h3 class="text-white font-black uppercase text-sm mb-6 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-sky-400"></span> Fluxo de Vendas vs Período Anterior
+      </h3>
+      <div id="main-performance-chart" style="height: 350px;"></div>
+    </div>
+
+    <div class="bg-slate-900/40 border border-white/5 p-8 rounded-[2.5rem] min-h-0 flex flex-col">
+      <h3 class="text-white font-black uppercase text-sm mb-6">Drill-down de Produtos</h3>
+      <div class="space-y-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+        {% for p in top_produtos %}
+          <button
+            type="button"
+            data-drill-produto="{{ p.nome }}"
+            class="w-full text-left flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-sky-500/10 hover:border-sky-300/30 transition-all cursor-pointer"
+          >
+            <div class="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-300 font-bold text-xs">Top</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-white font-bold text-xs uppercase truncate">{{ p.nome }}</p>
+              <p class="text-slate-500 text-[10px] font-bold">R$ {{ p.total|floatformat:2 }} no período</p>
+            </div>
+          </button>
+        {% empty %}
+          <div class="text-xs text-slate-400">Sem vendas no período selecionado.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 bg-slate-900/40 border border-white/5 p-8 rounded-[2.5rem]">
+      <h3 class="text-white font-black uppercase text-sm mb-3">Feed Operacional</h3>
+      <p class="text-xs text-slate-400 mb-4">Feed contínuo de vendas locais recentes (SQLite), com filtro por drill-down.</p>
+      <div
+        id="dashboard-live-feed"
+        class="space-y-2 max-h-[260px] overflow-y-auto pr-2 custom-scrollbar"
+        hx-get="{% url 'dashboard_gerencial_feed' %}?offset=0{% if produto_filtro %}&produto={{ produto_filtro|urlencode }}{% endif %}"
+        hx-trigger="load"
+        hx-swap="innerHTML"
+      ></div>
+    </div>
+  </div>
+
+  {{ labels_json|json_script:"db-labels-json" }}
+  {{ serie_atual_json|json_script:"db-serie-atual-json" }}
+  {{ serie_prev_json|json_script:"db-serie-prev-json" }}
+  {{ serie_atual_json|json_script:"db-faturamento-sparkline-json" }}
+</div>

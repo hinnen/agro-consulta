@@ -1724,6 +1724,83 @@ def contas_pagar_buscar_pagina(db, query: dict, **kwargs) -> tuple[list[dict], i
     return linhas, total, tot_legacy
 
 
+def _dashboard_parse_vencimento_api(s: str | None) -> date | None:
+    if not s:
+        return None
+    try:
+        return date.fromisoformat(str(s)[:10])
+    except ValueError:
+        return None
+
+
+def _dashboard_status_titulo(venc: date | None, hoje: date) -> tuple[str, str]:
+    """Rotulo + classes Tailwind para badge no dashboard (tema claro)."""
+    if venc is None:
+        return "—", "text-slate-700 bg-slate-100"
+    if venc < hoje:
+        return "Atrasado", "text-red-800 bg-red-100"
+    if venc == hoje:
+        return "Vence hoje", "text-amber-800 bg-amber-100"
+    return "Em aberto", "text-sky-800 bg-sky-100"
+
+
+def _dashboard_mapear_linha_financeiro(linha: dict[str, Any], hoje: date, *, despesa: bool) -> dict[str, Any]:
+    raw_id = str(linha.get("id") or "").strip()
+    doc = (str(linha.get("numero_documento") or "").strip()) or (f"#{raw_id[:8]}" if raw_id else "—")
+    pessoa = (str(linha.get("cliente") or "").strip() or "—")[:100]
+    dv = _dashboard_parse_vencimento_api(linha.get("data_vencimento"))
+    valor = round(float(linha.get("restante") or 0), 2)
+    st, st_cls = _dashboard_status_titulo(dv, hoje)
+    row: dict[str, Any] = {
+        "doc": doc,
+        "vencimento": dv,
+        "valor": valor,
+        "status": st,
+        "status_class": st_cls,
+    }
+    if despesa:
+        row["fornecedor"] = pessoa
+    else:
+        row["cliente"] = pessoa
+    return row
+
+
+def dashboard_gerencial_linhas_financeiras(
+    db,
+    *,
+    hoje: date,
+    limite: int = 12,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """
+    Contas a receber: títulos em aberto com vencimento entre ``hoje`` e ``hoje + 7 dias``.
+    Contas a pagar: títulos em aberto (pendentes), ordenados por vencimento.
+    """
+    if db is None:
+        return [], []
+    lim = min(max(int(limite or 12), 1), 50)
+    fim_janela = hoje + timedelta(days=7)
+    try:
+        q_rec = lancamentos_montar_query_mongo(
+            despesa=False,
+            status="abertos",
+            vencimento_de=hoje,
+            vencimento_ate=fim_janela,
+        )
+        q_pag = lancamentos_montar_query_mongo(despesa=True, status="abertos")
+        rec_rows, _, _ = lancamentos_buscar_pagina(
+            db, q_rec, False, page=1, page_size=lim, ordenacao="vencimento_asc"
+        )
+        pag_rows, _, _ = lancamentos_buscar_pagina(
+            db, q_pag, True, page=1, page_size=lim, ordenacao="vencimento_asc"
+        )
+    except Exception:
+        logger.exception("dashboard_gerencial_linhas_financeiras")
+        return [], []
+    out_rec = [_dashboard_mapear_linha_financeiro(r, hoje, despesa=False) for r in rec_rows]
+    out_pag = [_dashboard_mapear_linha_financeiro(r, hoje, despesa=True) for r in pag_rows]
+    return out_rec, out_pag
+
+
 def _maybe_oid(s: str | None) -> ObjectId | str | None:
     if not s or not str(s).strip():
         return None
