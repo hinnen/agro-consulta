@@ -2522,6 +2522,15 @@ def _dashboard_doc_total(doc):
     return 0.0
 
 
+def _dashboard_doc_data_venda(doc: dict):
+    """Data da venda com prioridade para faturamento no espelho ERP."""
+    for campo in ("DataFaturamento", "Data", "data", "CriadoEm", "criado_em"):
+        dt = doc.get(campo)
+        if isinstance(dt, datetime):
+            return dt
+    return None
+
+
 def _dashboard_mongo_vendas_serie(data_ini, data_fim):
     client, db = obter_conexao_mongo()
     if db is None:
@@ -2531,30 +2540,47 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
     por_dia = {}
     total = 0.0
     try:
-        # Fonte 1: coleção operacional consolidada do Agro.
-        vendas_agro = client.obter_vendas_agro_periodo(dt_ini, dt_fim)
-        for doc in vendas_agro:
-            dt = doc.get("data")
+        # Fonte principal: DtoVenda (espelho ERP), priorizando DataFaturamento.
+        q = {
+            "$and": [
+                _filtro_venda_ativa_mongo(),
+                {
+                    "$or": [
+                        {"DataFaturamento": {"$gte": dt_ini, "$lte": dt_fim}},
+                        {"Data": {"$gte": dt_ini, "$lte": dt_fim}},
+                    ]
+                },
+            ]
+        }
+        proj = {
+            "DataFaturamento": 1,
+            "Data": 1,
+            "ValorTotal": 1,
+            "ValorLiquido": 1,
+            "Total": 1,
+            "Valor": 1,
+            "ValorFinal": 1,
+        }
+        for doc in db["DtoVenda"].find(q, proj):
+            dt = _dashboard_doc_data_venda(doc)
             if not isinstance(dt, datetime):
                 continue
             chave = dt.date().isoformat()
-            v = _dashboard_float(doc.get("valor_total"))
+            v = _dashboard_doc_total(doc)
             por_dia[chave] = por_dia.get(chave, 0.0) + v
             total += v
 
-        # Fonte 2: DtoVenda legado (ERP espelho) para complementar dias sem registro.
-        q = {"Data": {"$gte": dt_ini, "$lte": dt_fim}, **_filtro_venda_ativa_mongo()}
-        proj = {"Data": 1, "ValorTotal": 1, "ValorLiquido": 1, "Total": 1, "Valor": 1}
-        for doc in db["DtoVenda"].find(q, proj):
-            dt = doc.get("Data")
-            if not isinstance(dt, datetime):
-                continue
-            chave = dt.date().isoformat()
-            if chave in por_dia:
-                continue
-            v = _dashboard_doc_total(doc)
-            por_dia[chave] = v
-            total += v
+        # Fallback: coleção consolidada local quando DtoVenda não trouxer dados.
+        if total <= 0:
+            vendas_agro = client.obter_vendas_agro_periodo(dt_ini, dt_fim)
+            for doc in vendas_agro:
+                dt = doc.get("data")
+                if not isinstance(dt, datetime):
+                    continue
+                chave = dt.date().isoformat()
+                v = _dashboard_float(doc.get("valor_total"))
+                por_dia[chave] = por_dia.get(chave, 0.0) + v
+                total += v
     except Exception as exc:
         logger.warning("dashboard_gerencial mongo serie: %s", exc, exc_info=True)
         return {"ok": False, "erro": "Falha ao consultar Mongo", "total": 0.0, "por_dia": {}}
@@ -2711,21 +2737,21 @@ def _dashboard_contexto_dinamico(request):
 
 
 def _dashboard_mongo_total_por_dia_vendas_agro(alvo: date) -> float:
-    """Soma de vendas do dia na coleção `vendas_agro` (fallback: DtoVenda)."""
+    """Soma de vendas do dia com prioridade no espelho ERP (DtoVenda)."""
     client, db = obter_conexao_mongo()
     if db is None or client is None:
         return 0.0
     ini_dt = datetime.combine(alvo, dtime.min)
     fim_dt = datetime.combine(alvo, dtime.max)
+    total = _dashboard_mongo_vendas_serie(alvo, alvo).get("total", 0.0)
+    if total > 0:
+        return total
     try:
         vendas = client.obter_vendas_agro_periodo(ini_dt, fim_dt)
         if vendas:
             return sum(_dashboard_float(v.get("valor_total")) for v in vendas)
     except Exception:
         pass
-    total = _dashboard_mongo_vendas_serie(alvo, alvo).get("total", 0.0)
-    if total > 0:
-        return total
     agg = VendaAgro.objects.filter(criado_em__date=alvo).aggregate(soma=Sum("total"))
     return _dashboard_float(agg.get("soma"))
 
