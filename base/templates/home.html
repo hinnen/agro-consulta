@@ -1,7 +1,7 @@
 {% extends "layouts/base_admin.html" %}
 {% load static %}
 
-{% block admin_title %}Agro Consulta | Home{% endblock %}
+{% block admin_title %}Agro Consulta | Menu de atalhos{% endblock %}
 {% block admin_header %}{% endblock %}
 {% block body_class %}bg-white text-slate-900 h-dvh max-h-dvh overflow-hidden{% endblock %}
 {% block main_class %}h-full min-h-0 flex flex-col overflow-hidden{% endblock %}
@@ -376,6 +376,12 @@
         aria-label="Sincronização PDV — permanece na home"
       >
         <span class="text-[9px] font-black uppercase tracking-wide text-emerald-800 w-full sm:w-auto sm:mr-1">Dados PDV</span>
+        <a
+          href="{% url 'home' %}"
+          class="inline-flex items-center rounded-md border border-sky-300 bg-white px-2 py-1 text-[9px] font-black uppercase text-sky-800 hover:bg-sky-50 shrink-0"
+          data-prefetch
+          title="Resumo, gráficos e indicadores (tela inicial)"
+        >Resumo</a>
         <div class="flex flex-wrap items-center gap-2">
           {% include "produtos/_barra_estoque_global.html" %}
           <div

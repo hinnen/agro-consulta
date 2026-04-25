@@ -3,8 +3,9 @@ from . import views, views_mp_point
 
 urlpatterns = [
     # --- PÁGINAS ---
-    path('', views.home, name='home'),
-    path('consulta/', views.consulta_produtos, name='consulta_produtos'),
+    path("", views.dashboard_gerencial_view, name="home"),
+    path("atalhos/", views.home, name="home_atalhos"),
+    path("consulta/", views.consulta_produtos, name="consulta_produtos"),
     path('historico/', views.historico_ajustes, name='historico_ajustes'),
     path('transferencias/', views.sugestao_transferencia, name='sugestao_transferencia'),
     path('entregas/', views.entregas_painel_view, name='entregas_painel'),

@@ -14,7 +14,7 @@
                 </div>
                 <div class="flex-1 flex items-center justify-end {% if pdv_dedicado %}gap-0.5 sm:gap-1 overflow-x-auto hide-scroll whitespace-nowrap{% else %}flex-wrap gap-1.5 sm:gap-2{% endif %} min-w-0">
                     {% if pdv_consulta_only %}
-                    <a href="{% url 'home' %}" class="inline-flex items-center justify-center min-h-[40px] px-2.5 py-1.5 rounded-xl border-2 border-slate-200 bg-white text-[10px] font-black uppercase text-slate-700 hover:bg-slate-50 hover:border-emerald-400 shrink-0" title="Tela inicial — menu de módulos">Início</a>
+                    <a href="{% url 'home' %}" class="inline-flex items-center justify-center min-h-[40px] px-2.5 py-1.5 rounded-xl border-2 border-slate-200 bg-white text-[10px] font-black uppercase text-slate-700 hover:bg-slate-50 hover:border-emerald-400 shrink-0" title="Resumo e indicadores (tela inicial)">Início</a>
                     <a href="{% url 'consulta_produtos' %}?orcamentos=1" class="inline-flex items-center justify-center min-h-[40px] px-2.5 py-1.5 rounded-xl border-2 border-sky-200 bg-sky-50 text-[10px] font-black uppercase text-sky-900 hover:bg-sky-100 shrink-0" title="Orçamentos salvos neste aparelho">Orç. salvos</a>
                     <a href="{% url 'pdv_home' %}" class="inline-flex items-center justify-center min-h-[40px] px-2.5 py-1.5 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-[10px] font-black uppercase text-emerald-900 hover:bg-emerald-100 shrink-0" title="PDV principal (venda)">PDV</a>
                     {% endif %}

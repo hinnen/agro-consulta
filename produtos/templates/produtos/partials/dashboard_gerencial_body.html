@@ -1,22 +1,31 @@
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4 mb-4">
   {% for kpi in kpis %}
-  <div class="glass-card kpi-card {% if kpi.variant == 'entregas' %}kpi-warn{% endif %} p-3 sm:p-4 group">
+  <div class="glass-card kpi-card {% if kpi.variant == 'entregas' %}kpi-warn{% endif %} p-3 sm:p-4 group relative overflow-visible">
     <div class="flex justify-between items-start mb-2 gap-2">
-      <span class="text-xs font-black text-slate-600 uppercase tracking-wide leading-tight">{{ kpi.label }}</span>
+      <div class="flex items-start gap-1 min-w-0">
+        <span class="text-xs font-black text-slate-600 uppercase tracking-wide leading-tight">{{ kpi.label }}</span>
+        {% if kpi.context_lines %}
+        <details class="relative inline-block text-left shrink-0" title="Detalhe deste indicador">
+          <summary class="flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border-2 border-slate-300 bg-slate-100 text-[11px] font-black text-slate-600 shadow-sm hover:border-sky-400 hover:bg-sky-50 hover:text-sky-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 [&::-webkit-details-marker]:hidden" aria-label="O que mostra este número?">?</summary>
+          <div class="absolute left-0 top-full z-40 mt-1 max-w-[min(20rem,85vw)] rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
+            {% for line in kpi.context_lines %}
+            <p class="m-0">{{ line }}</p>
+            {% endfor %}
+          </div>
+        </details>
+        {% endif %}
+      </div>
       <span class="{{ kpi.trend_class }} text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded-md shrink-0">{{ kpi.trend }}</span>
     </div>
     {% if kpi.variant == "entregas" %}
     <a href="{{ entregas_painel_url }}" class="block focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 rounded-lg -m-1 p-1">
       <div class="flex items-baseline gap-2 flex-wrap">
         <div class="text-3xl sm:text-4xl font-black text-slate-900 tabular-nums leading-none">{{ kpi.value }}</div>
-        <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Saídas</span>
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Pendentes</span>
       </div>
-      <p class="text-[10px] text-slate-500 font-semibold mt-0.5">Últimos 7 dias: pedidos criados por dia</p>
     </a>
-    <div class="kpi-sparkline-entregas mt-2 opacity-50 group-hover:opacity-100 transition-opacity" style="min-height: 40px;" data-series='{{ kpi.sparkline_json|safe }}'></div>
     {% else %}
     <div class="font-black text-slate-900 tabular-nums leading-none" style="font-size: clamp(1.2rem, 2vw + 0.45rem, 1.75rem);">{% if kpi.prefix %}<span class="text-slate-500">{{ kpi.prefix }}</span> {% endif %}{{ kpi.value }}</div>
-    <div class="kpi-sparkline mt-2 opacity-50 group-hover:opacity-100 transition-opacity" style="min-height: 40px;" data-series='{{ kpi.sparkline_json|safe }}'></div>
     {% endif %}
   </div>
   {% endfor %}
@@ -25,9 +34,23 @@
 <div class="grid grid-cols-1 xl:grid-cols-12 gap-3 mb-4">
   <div class="xl:col-span-8 glass-card p-4 sm:p-5">
     <div class="flex justify-between items-center mb-3">
-      <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-[#00BFFF] animate-pulse shrink-0"></span> Performance (R$) · {{ periodo_label }}
+      <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide flex items-center gap-1.5 flex-wrap">
+        <span class="w-2 h-2 rounded-full bg-[#00BFFF] animate-pulse shrink-0"></span>
+        <span>Performance (R$) · {{ periodo_label }} · {% if periodo_key == "ano" %}mês a mês{% else %}dia a dia{% endif %}</span>
+        {% if periodo_key != "ano" %}
+        <details class="relative inline-block text-left">
+          <summary class="flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border-2 border-slate-300 bg-slate-100 text-[11px] font-black text-slate-600 shadow-sm hover:border-sky-400 hover:bg-sky-50 hover:text-sky-900 [&::-webkit-details-marker]:hidden" title="O que significa este gráfico?">?</summary>
+          <div class="absolute left-0 z-30 mt-1 max-w-[20rem] rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
+            <p><span class="text-sky-800 font-extrabold">Barras</span> — faturamento de cada <strong>dia</strong> no período que você selecionou (filtro de cima). Em baixo: data e dia da semana.</p>
+            <p><span class="text-emerald-800 font-extrabold">Cores</span> — compara o dia com a <strong>meta (C)</strong> (regra de meta diária). Verde: bateu a meta. Amarelo e laranja: perto, mas abaixo. Vermelho: abaixo. Cinza: sem base para meta naquele dia.</p>
+            <p class="text-slate-500 font-semibold">No toque, o lembrete traz ainda o ticket e o desempenho frente à meta, para conferência rápida no balcão.</p>
+          </div>
+        </details>
+        {% endif %}
       </h3>
+      <span class="text-[11px] font-black text-sky-700 bg-sky-100 border border-sky-200 rounded-md px-2 py-1">
+        Total: R$ {{ chart_total_periodo }}
+      </span>
     </div>
     <div id="main-chart" class="dash-chart-host w-full"></div>
   </div>
@@ -38,20 +61,52 @@
   </div>
 </div>
 
-<div class="grid grid-cols-1 xl:grid-cols-12 gap-3 mb-4">
-  <div class="xl:col-span-12 glass-card p-4 sm:p-5">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+  <div class="glass-card p-4 sm:p-5 min-h-0">
     <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide mb-3">Produtos Mais Vendidos</h3>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 max-h-[min(40vh,260px)] overflow-y-auto custom-scrollbar pr-1">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[min(40vh,280px)] overflow-y-auto custom-scrollbar pr-1">
       {% for prod in top_produtos %}
-      <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:border-emerald-400/35 hover:bg-emerald-50 transition-all">
+      <div class="flex items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:border-emerald-400/35 hover:bg-emerald-50 transition-all">
         <div class="flex items-center gap-2 overflow-hidden min-w-0">
           <div class="w-7 h-7 rounded-md bg-emerald-100 border border-emerald-300 flex-shrink-0 flex items-center justify-center text-emerald-800 font-black text-[10px]">{{ forloop.counter }}</div>
           <span class="text-xs font-bold text-slate-800 uppercase truncate">{{ prod.nome }}</span>
         </div>
-        <span class="text-xs font-black text-[#00BFFF] ml-2 tabular-nums shrink-0">R$ {{ prod.total|floatformat:2 }}</span>
+        <div class="flex flex-col items-end shrink-0 tabular-nums text-right leading-tight">
+          <span class="text-xs font-black text-[#00BFFF]">R$ {{ prod.total|floatformat:2 }}</span>
+          <span class="text-[10px] font-bold text-slate-500">{{ prod.qtd_total|default:0|floatformat:3 }} un.</span>
+        </div>
       </div>
       {% empty %}
       <div class="text-xs text-slate-600 col-span-full">Sem vendas no período selecionado.</div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="glass-card p-4 sm:p-5 min-h-0">
+    <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide mb-3 flex items-center gap-1.5 flex-wrap">
+      <span class="w-2 h-2 rounded-full bg-orange-500 shrink-0"></span>
+      <span>Vendas por Vendedor</span>
+      <details class="relative inline-block text-left">
+        <summary class="flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border-2 border-slate-300 bg-slate-100 text-[11px] font-black text-slate-600 shadow-sm hover:border-orange-400 hover:bg-orange-50 hover:text-orange-900 [&::-webkit-details-marker]:hidden" title="Ajuda">?</summary>
+        <div class="absolute left-0 z-30 mt-1 max-w-[20rem] rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
+          <p>Lista o <span class="text-orange-800 font-extrabold">faturamento por usuário de caixa</span> no <strong>PDV local</strong> (este equipamento / base SQLite de vendas registradas aqui).</p>
+          <p class="text-slate-500">Não é o ranking corporativo do ERP completo. Para totais oficiais use relatórios do sistema integrado, se aplicável.</p>
+        </div>
+      </details>
+    </h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[min(40vh,280px)] overflow-y-auto custom-scrollbar pr-1">
+      {% for v in ranking_vendedores %}
+      <div class="flex items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:border-orange-300/50 hover:bg-orange-50/40 transition-all">
+        <div class="flex items-center gap-2 overflow-hidden min-w-0">
+          <div class="w-7 h-7 rounded-md bg-orange-100 border border-orange-300 flex-shrink-0 flex items-center justify-center text-orange-900 font-black text-[10px]">{{ forloop.counter }}</div>
+          <span class="text-xs font-bold text-slate-800 truncate">{{ v.nome }}</span>
+        </div>
+        <div class="flex flex-col items-end shrink-0 tabular-nums text-right leading-tight">
+          <span class="text-xs font-black text-orange-600">R$ {{ v.total|floatformat:2 }}</span>
+          <span class="text-[10px] font-bold text-slate-500">{{ v.n_vendas }} venda{{ v.n_vendas|pluralize }}</span>
+        </div>
+      </div>
+      {% empty %}
+      <div class="text-xs text-slate-600 col-span-full">Sem vendas locais no período.</div>
       {% endfor %}
     </div>
   </div>
@@ -111,104 +166,212 @@
     }
     var chartH = dashChartHeight("#main-chart");
 
+    var dashAno = "{{ periodo_key }}" === "ano";
     var chartLabels = {{ chart_labels|safe }};
+    var chartWeekdayInitials = {{ chart_weekday_initials|safe }};
     var chartData = {{ chart_data|safe }};
+    var chartLabelsDisplay = dashAno
+      ? chartLabels
+      : chartLabels.map(function (d, i) {
+          var wk = (chartWeekdayInitials && chartWeekdayInitials[i]) ? chartWeekdayInitials[i] : "";
+          return wk ? (d + "\n" + wk) : d;
+        });
+    var chartCompare = {{ chart_compare_data|safe }};
     var ticketPorDia = {{ ticket_por_dia|safe }};
+    var ticketValsBase = (ticketPorDia || []).filter(function (v) { return Number(v || 0) > 0; });
+    var ticketRefPeriodo = ticketValsBase.length
+      ? (ticketValsBase.reduce(function (acc, v) { return acc + Number(v || 0); }, 0) / ticketValsBase.length)
+      : 0;
     var tipFont = "clamp(15px, 1.1vw + 0.6rem, 19px)";
     var dashTooltip = { theme: "light", style: { fontSize: tipFont, fontFamily: "ui-sans-serif, system-ui, sans-serif" } };
-    window.__dashMainChart = new ApexCharts(document.querySelector("#main-chart"), {
-      series: [{ name: "Vendas", data: chartData }],
-      chart: { type: "area", height: chartH, toolbar: { show: false }, background: "transparent" },
-      colors: ["#00BFFF"],
-      markers: { size: 0, hover: { size: 5 } },
-      fill: { type: "gradient", gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0, stops: [0, 90, 100] } },
-      dataLabels: { enabled: false },
-      stroke: { curve: "smooth", width: 2 },
-      grid: { borderColor: "#e2e8f0", strokeDashArray: 4 },
-      xaxis: { categories: chartLabels, labels: { style: { colors: "#475569" } } },
-      yaxis: { labels: { style: { colors: "#475569" } } },
-      tooltip: Object.assign({}, dashTooltip, {
-        y: {
-          formatter: function (val, opts) {
-            var i = opts.dataPointIndex || 0;
-            var ticket = ticketPorDia[i] || 0;
-            return "R$ " + Number(val || 0).toFixed(2) + " | Ticket médio: R$ " + Number(ticket || 0).toFixed(2);
-          }
+    function dashFmtVendasTooltip(val, opts) {
+      var i = opts.dataPointIndex || 0;
+      var ticket = ticketPorDia[i] || 0;
+      var v = Number(val || 0);
+      var txt = "R$ " + v.toFixed(2) + " | Ticket: R$ " + Number(ticket || 0).toFixed(2);
+      if (ticketRefPeriodo > 0 && Number(ticket || 0) > 0) {
+        var p = ((Number(ticket) - ticketRefPeriodo) / ticketRefPeriodo) * 100;
+        txt += " | vs ref: " + (p >= 0 ? "+" : "") + p.toFixed(1) + "%";
+      }
+      return txt;
+    }
+    function dashTooltipDualHtml(ctx) {
+      var i = ctx.dataPointIndex;
+      if (i === undefined || i === null) i = 0;
+      var ser =
+        (ctx.series && ctx.series.length) ? ctx.series : (ctx.w && ctx.w.globals && ctx.w.globals.series) || [];
+      var s0 = ser[0];
+      var y0 = s0 && s0[i];
+      var real = Number((y0 && y0.y !== undefined ? y0.y : y0) || 0);
+      var meta = Number((chartCompare && chartCompare[i]) || 0);
+      var ticket = (ticketPorDia && ticketPorDia[i]) || 0;
+      var cat =
+        (ctx.w &&
+          ctx.w.globals &&
+          ctx.w.globals.categoryLabels &&
+          ctx.w.globals.categoryLabels[i]) ||
+        (chartLabels && chartLabels[i]) ||
+        "";
+      var baseV = "R$ " + real.toFixed(2) + " | Ticket: R$ " + Number(ticket).toFixed(2);
+      var pctPart = "";
+      if (meta > 0) {
+        var pct = ((real - meta) / meta) * 100;
+        var pc = (pct >= 0 ? "+" : "") + pct.toFixed(1) + "%";
+        var cPct = pct >= 0 ? "#059669" : "#dc2626";
+        pctPart =
+          ' | vs meta C: <span style="font-weight:800;color:' + cPct + '">' + pc + "</span>";
+      } else if (real > 0) {
+        pctPart = ' <span style="color:#64748b;font-weight:600">(sem base meta)</span>';
+      }
+      var line2 = "";
+      if (meta > 0) {
+        var diff = real - meta;
+        var diffAbs = Math.abs(diff).toFixed(2);
+        var diffInner =
+          diff >= 0
+            ? '<span style="font-weight:800;color:#059669">+R$ ' + diffAbs + " acima da meta</span>"
+            : '<span style="font-weight:800;color:#dc2626">-R$ ' + diffAbs + " falta para a meta</span>";
+        line2 =
+          '<div style="margin-top:8px;color:#334155"><span style="color:#ea580c;font-weight:800">Meta (C)</span> · R$ ' +
+          meta.toFixed(2) +
+          " · " +
+          diffInner +
+          "</div>";
+      } else {
+        line2 =
+          '<div style="margin-top:8px;color:#64748b">Meta (C): R$ ' +
+          meta.toFixed(2) +
+          " · sem base no mês ant.</div>";
+      }
+      var ticketPart = "";
+      if (ticketRefPeriodo > 0 && Number(ticket) > 0) {
+        var dt = ((Number(ticket) - ticketRefPeriodo) / ticketRefPeriodo) * 100;
+        var dtTxt = (dt >= 0 ? "+" : "") + dt.toFixed(1) + "%";
+        var dtCor = dt >= 0 ? "#059669" : "#dc2626";
+        ticketPart =
+          '<div style="margin-top:8px;color:#334155"><span style="color:#0284c7;font-weight:800">Ticket médio</span> · R$ ' +
+          Number(ticket).toFixed(2) +
+          ' · ref período R$ ' +
+          Number(ticketRefPeriodo).toFixed(2) +
+          ' · <span style="font-weight:800;color:' + dtCor + '">' + dtTxt + "</span></div>";
+      } else {
+        ticketPart =
+          '<div style="margin-top:8px;color:#64748b">Ticket médio: R$ ' +
+          Number(ticket || 0).toFixed(2) +
+          " · sem base para comparação</div>";
+      }
+      return (
+        '<div style="padding:10px 12px;font-family:ui-sans-serif,system-ui,sans-serif;font-size:' +
+        tipFont +
+        '">' +
+        '<div style="font-weight:800;color:#0f172a;margin-bottom:6px">' +
+        cat +
+        "</div>" +
+        '<div style="color:#334155"><span style="color:#0891b2;font-weight:800">Vendas</span> · ' +
+        baseV +
+        pctPart +
+        "</div>" +
+        line2 +
+        ticketPart +
+        "</div>"
+      );
+    }
+    var chartDataColored = chartData.map(function (v, i) {
+      var venda = Number(v || 0);
+      var meta = Number((chartCompare && chartCompare[i]) || 0);
+      var cor = "#00BFFF";
+      if (!dashAno) {
+        if (meta <= 0) cor = "#94a3b8";
+        else {
+          var razaoMeta = meta > 0 ? (venda / meta) : 0;
+          if (razaoMeta >= 1) cor = "#10b981";       /* bateu meta */
+          else if (razaoMeta >= 0.92) cor = "#facc15"; /* quase lá (amarelo) */
+          else if (razaoMeta >= 0.82) cor = "#f97316"; /* faltou pouco (laranja) */
+          else cor = "#ef4444";                      /* abaixo (vermelho) */
         }
-      }),
-      theme: { mode: "light" }
+      }
+      return { x: chartLabels[i], y: venda, fillColor: cor };
+    });
+    /* Meta por cor da própria barra de vendas (verde/vermelho) */
+    window.__dashMainChart = new ApexCharts(document.querySelector("#main-chart"), {
+      series: [{ name: "Vendas", data: dashAno ? chartData : chartDataColored }],
+      chart: {
+        type: "bar",
+        stacked: false,
+        height: chartH,
+        toolbar: { show: false },
+        background: "transparent",
+      },
+      colors: ["#00BFFF"],
+      fill: { type: "solid", opacity: 1 },
+      plotOptions: {
+        bar: {
+          borderRadius: 4,
+          columnWidth: dashAno ? "58%" : "62%",
+          borderRadiusApplication: "end",
+        },
+      },
+      dataLabels: { enabled: false },
+      stroke: { width: 0 },
+      legend: { show: false },
+      grid: { borderColor: "#e2e8f0", strokeDashArray: 4 },
+      xaxis: {
+        categories: chartLabelsDisplay,
+        labels: {
+          style: { colors: "#475569" },
+          maxHeight: 50,
+        },
+      },
+      yaxis: { labels: { style: { colors: "#475569" } } },
+      tooltip: Object.assign({}, dashTooltip, dashAno
+        ? {
+            y: {
+              formatter: function (val, opts) {
+                return dashFmtVendasTooltip(val, opts);
+              },
+            },
+          }
+        : {
+            shared: false,
+            intersect: true,
+            custom: function (ctx) {
+              return dashTooltipDualHtml(ctx);
+            },
+          }),
+      theme: { mode: "light" },
     });
     window.__dashMainChart.render();
 
-    var lojas = [{% for l in vendas_por_loja %}"{{ l.loja }}"{% if not forloop.last %}, {% endif %}{% endfor %}];
-    var lojaTotais = [{% for l in vendas_por_loja %}{{ l.total|floatformat:2 }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+    var storesPayload = {{ stores_chart_json|safe }};
+    var lojas = (storesPayload && storesPayload.labels) || [];
+    var lojaTotais = (storesPayload && storesPayload.values) || [];
+    var storeEl = document.querySelector("#stores-chart");
     var storeH = dashChartHeight("#stores-chart");
-    window.__dashStoreChart = new ApexCharts(document.querySelector("#stores-chart"), {
-      series: [{ data: lojaTotais }],
-      chart: { type: "bar", height: storeH, toolbar: { show: false }, background: "transparent" },
-      plotOptions: { bar: { horizontal: true, borderRadius: 8, distributed: true } },
-      colors: ["#10b981", "#ea580c"],
-      dataLabels: {
-        enabled: true,
-        style: { colors: ["#334155"] },
-        formatter: function (v) { return "R$ " + Number(v || 0).toFixed(2); }
-      },
-      xaxis: { categories: lojas, labels: { style: { colors: "#475569" } } },
-      yaxis: { labels: { style: { colors: "#334155" } } },
-      grid: { borderColor: "#e2e8f0", strokeDashArray: 4 },
-      tooltip: Object.assign({}, dashTooltip, {
-        y: {
-          formatter: function (v) {
-            return "R$ " + Number(v || 0).toFixed(2);
-          }
-        }
-      }),
-      theme: { mode: "light" }
-    });
-    window.__dashStoreChart.render();
-
-    document.querySelectorAll(".kpi-sparkline").forEach(function (el) {
-      var data = [];
-      try { data = JSON.parse(el.dataset.series || "[]"); } catch (e) { data = []; }
-      var s = new ApexCharts(el, {
-        chart: { type: "line", height: 40, sparkline: { enabled: true } },
-        series: [{ data: data }],
-        stroke: { curve: "smooth", width: 2 },
-        colors: ["#00BFFF"],
-        tooltip: Object.assign({}, dashTooltip, {
+    if (storeEl) {
+      window.__dashStoreChart = new ApexCharts(storeEl, {
+        series: [{ name: "Faturamento", data: lojaTotais }],
+        chart: { type: "bar", height: storeH, toolbar: { show: false }, background: "transparent" },
+        plotOptions: { bar: { horizontal: true, borderRadius: 8, distributed: true, barHeight: "70%" } },
+        colors: ["#10b981", "#ea580c"],
+        dataLabels: {
           enabled: true,
-          x: { show: false },
+          style: { colors: ["#334155"] },
+          formatter: function (v) { return "R$ " + Number(v || 0).toFixed(2); }
+        },
+        xaxis: { categories: lojas, labels: { style: { colors: "#475569" } } },
+        yaxis: { labels: { style: { colors: "#334155" } } },
+        grid: { borderColor: "#e2e8f0", strokeDashArray: 4 },
+        tooltip: Object.assign({}, dashTooltip, {
           y: {
             formatter: function (v) {
               return "R$ " + Number(v || 0).toFixed(2);
             }
           }
-        })
-      });
-      s.render();
-      window.__dashSparks.push(s);
-    });
-
-    document.querySelectorAll(".kpi-sparkline-entregas").forEach(function (el) {
-      var data = [];
-      try { data = JSON.parse(el.dataset.series || "[]"); } catch (e) { data = []; }
-      var s2 = new ApexCharts(el, {
-        chart: { type: "bar", height: 40, sparkline: { enabled: true } },
-        series: [{ name: "Entregas (criadas no dia)", data: data }],
-        colors: ["#F59E0B"],
-        plotOptions: { bar: { borderRadius: 3, columnWidth: "60%" } },
-        tooltip: Object.assign({}, dashTooltip, {
-          y: {
-            formatter: function (v) {
-              return (v != null ? Number(v) : 0) + " pedido(s) no dia";
-            }
-          }
         }),
-        dataLabels: { enabled: false }
+        theme: { mode: "light" }
       });
-      s2.render();
-      window.__dashSparks.push(s2);
-    });
+      window.__dashStoreChart.render();
+    }
 
     if (window.lucide) window.lucide.createIcons();
   })();
