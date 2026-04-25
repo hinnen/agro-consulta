@@ -2807,15 +2807,16 @@ def _dashboard_top_produtos_capri(data_ini, data_fim, limite=8):
     1) Relatório oficial HTTP v3 ``PedidosItens/Report`` (host de ``VENDA_ERP_API_URL``).
     2) Opcional: Mongo (``AGRO_DASHBOARD_MONGO_RANKING_FALLBACK``); 3) PDV local.
     """
-    try:
-        api = VendaERPAPIClient()
-        ok, rows = api.relatorio_pedidos_itens_report(data_ini, data_fim)
-        if ok and rows:
-            out = normalizar_linhas_top_produtos_v3(rows, limite=limite)
-            if out:
-                return out
-    except Exception:
-        logger.exception("dashboard_top_produtos_capri: erp v3")
+    if getattr(settings, "AGRO_DASHBOARD_ERP_V3_REPORTS", True):
+        try:
+            api = VendaERPAPIClient()
+            ok, rows = api.relatorio_pedidos_itens_report(data_ini, data_fim)
+            if ok and rows:
+                out = normalizar_linhas_top_produtos_v3(rows, limite=limite)
+                if out:
+                    return out
+        except Exception:
+            logger.exception("dashboard_top_produtos_capri: erp v3")
     if getattr(settings, "AGRO_DASHBOARD_MONGO_RANKING_FALLBACK", False):
         client, db = obter_conexao_mongo()
         if client is not None and db is not None:
@@ -2835,15 +2836,16 @@ def _dashboard_ranking_vendedores_capri(data_ini, data_fim, limite=8):
     1) Relatório oficial HTTP v3 ``CondensadoVendasPorVendedor/Report``.
     2) Opcional: Mongo; 3) PDV local.
     """
-    try:
-        api = VendaERPAPIClient()
-        ok, rows = api.relatorio_condensado_vendas_por_vendedor_report(data_ini, data_fim)
-        if ok and rows:
-            out = normalizar_linhas_ranking_vendedores_v3(rows, limite=limite)
-            if out:
-                return out
-    except Exception:
-        logger.exception("dashboard_ranking_vendedores_capri: erp v3")
+    if getattr(settings, "AGRO_DASHBOARD_ERP_V3_REPORTS", True):
+        try:
+            api = VendaERPAPIClient()
+            ok, rows = api.relatorio_condensado_vendas_por_vendedor_report(data_ini, data_fim)
+            if ok and rows:
+                out = normalizar_linhas_ranking_vendedores_v3(rows, limite=limite)
+                if out:
+                    return out
+        except Exception:
+            logger.exception("dashboard_ranking_vendedores_capri: erp v3")
     if getattr(settings, "AGRO_DASHBOARD_MONGO_RANKING_FALLBACK", False):
         client, db = obter_conexao_mongo()
         if client is not None and db is not None:
