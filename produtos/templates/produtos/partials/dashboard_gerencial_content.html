@@ -55,7 +55,7 @@
             <div class="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-300 font-bold text-xs">Top</div>
             <div class="flex-1 min-w-0">
               <p class="text-white font-bold text-xs uppercase truncate">{{ p.nome }}</p>
-              <p class="text-slate-500 text-[10px] font-bold">R$ {{ p.total|floatformat:2 }} no período</p>
+              <p class="text-slate-500 text-[10px] font-bold">R$ {{ p.total|floatformat:2 }} · {{ p.qtd_total|default:0|floatformat:3 }} un.</p>
             </div>
           </button>
         {% empty %}

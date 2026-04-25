@@ -2512,6 +2512,19 @@ def _dashboard_float(value):
         return 0.0
 
 
+def _dashboard_ticket_medio_intervalo(data_ini: date, data_fim: date) -> float:
+    """Ticket médio (Soma faturamento / N pedidos) no intervalo, Mongo + fallback SQLite como no dashboard."""
+    ser = _dashboard_mongo_vendas_serie(data_ini, data_fim)
+    qtd = sum(int(v or 0) for v in (ser.get("qtd_por_dia") or {}).values())
+    total = _dashboard_float(ser.get("total"))
+    if qtd <= 0:
+        ticket_qs = VendaAgro.objects.filter(criado_em__date__gte=data_ini, criado_em__date__lte=data_fim)
+        ticket_agg = ticket_qs.aggregate(total=Sum("total"), n=Count("id"))
+        total = _dashboard_float(ticket_agg.get("total"))
+        qtd = int(ticket_agg.get("n") or 0)
+    return round((total / qtd), 2) if qtd > 0 else 0.0
+
+
 def _dashboard_doc_total(doc):
     for campo in ("ValorTotal", "ValorLiquido", "Total", "Valor", "total", "ValorFinal"):
         v = doc.get(campo)
@@ -2531,14 +2544,108 @@ def _dashboard_doc_data_venda(doc: dict):
     return None
 
 
+def _dashboard_serie_mes_a_mes(data_ini: date, data_fim: date, atual: dict) -> tuple[list[str], list[float], list[float]]:
+    """
+    Agrupa a serie diaria em meses (rotulos, vendas, ticket medio).
+    Usado no filtro anual para visual mensal.
+    """
+    meses = [
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Set",
+        "Out",
+        "Nov",
+        "Dez",
+    ]
+    soma_mes: dict[int, float] = {m: 0.0 for m in range(1, 13)}
+    qtd_mes: dict[int, int] = {m: 0 for m in range(1, 13)}
+    por_dia = atual.get("por_dia") or {}
+    qtd_por_dia = atual.get("qtd_por_dia") or {}
+    cur = data_ini
+    while cur <= data_fim:
+        chave = cur.isoformat()
+        mes = cur.month
+        soma_mes[mes] += _dashboard_float(por_dia.get(chave))
+        qtd_mes[mes] += int(qtd_por_dia.get(chave) or 0)
+        cur += timedelta(days=1)
+
+    labels: list[str] = []
+    serie_vendas: list[float] = []
+    serie_ticket: list[float] = []
+    for m in range(1, 13):
+        if m > data_fim.month:
+            break
+        labels.append(meses[m - 1])
+        total_m = round(soma_mes[m], 2)
+        serie_vendas.append(total_m)
+        n = qtd_mes[m]
+        serie_ticket.append(round((total_m / n), 2) if n > 0 else 0.0)
+    return labels, serie_vendas, serie_ticket
+
+
+def _dashboard_bounds_mes_anterior_para_dia(d: date) -> tuple[date, date]:
+    """Primeiro e último dia do mês civil imediatamente anterior ao mês de `d`."""
+    first_cur = d.replace(day=1)
+    last_prev = first_cur - timedelta(days=1)
+    first_prev = last_prev.replace(day=1)
+    return first_prev, last_prev
+
+
+def _dashboard_vendas_meta_c_para_dia(d: date, por_dia_prev: dict) -> float:
+    """
+    Meta diária C = (A + B) / 2: A = média das vendas no mesmo weekday no mês anterior;
+    B = venda na primeira data desse weekday no mês anterior.
+    """
+    wd = d.weekday()
+    first_prev, last_prev = _dashboard_bounds_mes_anterior_para_dia(d)
+    vals_same: list[float] = []
+    b_val: float | None = None
+    cur = first_prev
+    while cur <= last_prev:
+        if cur.weekday() == wd:
+            v = round(_dashboard_float(por_dia_prev.get(cur.isoformat())), 2)
+            vals_same.append(v)
+            if b_val is None:
+                b_val = v
+        cur += timedelta(days=1)
+    if not vals_same:
+        return 0.0
+    a = sum(vals_same) / len(vals_same)
+    b = float(b_val or 0.0)
+    return round((a + b) / 2.0, 2)
+
+
+def _dashboard_serie_meta_c_vendas(data_ini: date, data_fim: date) -> list[float]:
+    """Uma meta C por dia no intervalo (visão anual mensal não aplica esta regra)."""
+    dias = (data_fim - data_ini).days + 1
+    cache: dict[tuple[date, date], dict] = {}
+    out: list[float] = []
+    for i in range(dias):
+        d = data_ini + timedelta(days=i)
+        fp, lp = _dashboard_bounds_mes_anterior_para_dia(d)
+        key = (fp, lp)
+        if key not in cache:
+            ser = _dashboard_mongo_vendas_serie(fp, lp)
+            cache[key] = ser.get("por_dia") or {}
+        out.append(_dashboard_vendas_meta_c_para_dia(d, cache[key]))
+    return out
+
+
 def _dashboard_mongo_vendas_serie(data_ini, data_fim):
     client, db = obter_conexao_mongo()
     if db is None:
-        return {"ok": False, "erro": "Mongo indisponível", "total": 0.0, "por_dia": {}}
+        return {"ok": False, "erro": "Mongo indisponível", "total": 0.0, "por_dia": {}, "qtd_por_dia": {}}
     dt_ini = datetime.combine(data_ini, dtime.min)
     dt_fim = datetime.combine(data_fim, dtime.max)
     por_dia = {}
     total = 0.0
+    qtd_por_dia = {}
     try:
         # Fonte principal: DtoVenda (espelho ERP), priorizando DataFaturamento.
         q = {
@@ -2568,6 +2675,7 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
             chave = dt.date().isoformat()
             v = _dashboard_doc_total(doc)
             por_dia[chave] = por_dia.get(chave, 0.0) + v
+            qtd_por_dia[chave] = qtd_por_dia.get(chave, 0) + 1
             total += v
 
         # Fallback: coleção consolidada local quando DtoVenda não trouxer dados.
@@ -2580,18 +2688,20 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
                 chave = dt.date().isoformat()
                 v = _dashboard_float(doc.get("valor_total"))
                 por_dia[chave] = por_dia.get(chave, 0.0) + v
+                qtd_por_dia[chave] = qtd_por_dia.get(chave, 0) + 1
                 total += v
     except Exception as exc:
         logger.warning("dashboard_gerencial mongo serie: %s", exc, exc_info=True)
-        return {"ok": False, "erro": "Falha ao consultar Mongo", "total": 0.0, "por_dia": {}}
+        return {"ok": False, "erro": "Falha ao consultar Mongo", "total": 0.0, "por_dia": {}, "qtd_por_dia": {}}
     # Fallback local: se ERP/Mongo não trouxer valores no período, usa VendaAgro (SQLite/Postgres local).
     if total <= 0:
         rows = (
             VendaAgro.objects.filter(criado_em__date__gte=data_ini, criado_em__date__lte=data_fim)
             .values("criado_em__date")
-            .annotate(soma=Sum("total"))
+            .annotate(soma=Sum("total"), n=Count("id"))
         )
         por_dia = {}
+        qtd_por_dia = {}
         total = 0.0
         for row in rows:
             d = row.get("criado_em__date")
@@ -2599,8 +2709,9 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
                 continue
             v = _dashboard_float(row.get("soma"))
             por_dia[d.isoformat()] = round(v, 2)
+            qtd_por_dia[d.isoformat()] = int(row.get("n") or 0)
             total += v
-    return {"ok": True, "erro": "", "total": total, "por_dia": por_dia}
+    return {"ok": True, "erro": "", "total": total, "por_dia": por_dia, "qtd_por_dia": qtd_por_dia}
 
 
 def _dashboard_perdas_validade_hoje():
@@ -2631,13 +2742,41 @@ def _dashboard_top_produtos_sqlite(data_ini, data_fim, limite=8):
     rows = (
         ItemVendaAgro.objects.filter(venda__criado_em__date__gte=data_ini, venda__criado_em__date__lte=data_fim)
         .values("descricao")
-        .annotate(total=Sum("valor_total"))
+        .annotate(total=Sum("valor_total"), qtd_total=Sum("quantidade"))
         .order_by("-total")[:limite]
     )
     out = []
     for row in rows:
         nome = (row.get("descricao") or "Sem descrição").strip()[:50]
-        out.append({"nome": nome, "total": round(_dashboard_float(row.get("total")), 2)})
+        out.append(
+            {
+                "nome": nome,
+                "total": round(_dashboard_float(row.get("total")), 2),
+                "qtd_total": round(_dashboard_float(row.get("qtd_total")), 3),
+            }
+        )
+    return out
+
+
+def _dashboard_ranking_vendedores_sqlite(data_ini, data_fim, limite=8):
+    """Ranking por faturamento (PDV local): campo ``usuario_registro`` da venda."""
+    rows = (
+        VendaAgro.objects.filter(criado_em__date__gte=data_ini, criado_em__date__lte=data_fim)
+        .values("usuario_registro")
+        .annotate(total=Sum("total"), n_vendas=Count("id"))
+        .order_by("-total")[:limite]
+    )
+    out = []
+    for row in rows:
+        raw = (row.get("usuario_registro") or "").strip()
+        nome = raw if raw else "Não informado"
+        out.append(
+            {
+                "nome": nome[:120],
+                "total": round(_dashboard_float(row.get("total")), 2),
+                "n_vendas": int(row.get("n_vendas") or 0),
+            }
+        )
     return out
 
 
@@ -2663,36 +2802,74 @@ def _dashboard_entregas_criadas_por_dia_ultimos(n_dias: int = 7) -> list[int]:
 
 
 def _dashboard_vendas_por_loja(data_ini, data_fim):
-    client, _db = obter_conexao_mongo()
-    if client is None:
-        return [
-            {"loja": "Centro", "total": 0.0, "color": "#00BFFF"},
-            {"loja": "Vila Elias", "total": 0.0, "color": "#64748b"},
-        ]
+    """Faturamento Centro × Vila Elias — mesma janela e fonte principal que o gráfico diário (DtoVenda)."""
+    out = [
+        {"loja": "Centro", "total": 0.0, "color": "#00BFFF"},
+        {"loja": "Vila Elias", "total": 0.0, "color": "#64748b"},
+    ]
+    client, db = obter_conexao_mongo()
+    if db is None or client is None:
+        return out
+    dep_centro = str(getattr(client, "DEPOSITO_CENTRO", "") or "")
+    dep_vila = str(getattr(client, "DEPOSITO_VILA_ELIAS", "") or "")
     dt_ini = datetime.combine(data_ini, dtime.min)
     dt_fim = datetime.combine(data_fim, dtime.max)
     centro = 0.0
     vila = 0.0
+
+    def _somar_por_deposito(doc: dict, total: float) -> None:
+        nonlocal centro, vila
+        dep_id = str(doc.get("DepositoID") or "")
+        dep_nome = str(doc.get("Deposito") or "").lower()
+        empresa_nome = str(doc.get("Empresa") or "").lower()
+        if dep_id == dep_centro or "centro" in dep_nome or "centro" in empresa_nome:
+            centro += total
+        elif dep_id == dep_vila or "vila" in dep_nome or "vila" in empresa_nome:
+            vila += total
+
     try:
-        vendas = client.obter_vendas_agro_periodo(dt_ini, dt_fim)
-        dep_centro = str(getattr(client, "DEPOSITO_CENTRO", "") or "")
-        dep_vila = str(getattr(client, "DEPOSITO_VILA_ELIAS", "") or "")
-        for v in vendas:
-            raw = v.get("raw") if isinstance(v.get("raw"), dict) else {}
-            dep_id = str(raw.get("DepositoID") or "")
-            dep_nome = str(raw.get("Deposito") or "").lower()
-            empresa_nome = str(raw.get("Empresa") or "").lower()
-            total = _dashboard_float(v.get("valor_total"))
-            if dep_id == dep_centro or "centro" in dep_nome or "centro" in empresa_nome:
-                centro += total
-            elif dep_id == dep_vila or "vila" in dep_nome or "vila" in empresa_nome:
-                vila += total
-    except Exception:
-        pass
-    return [
-        {"loja": "Centro", "total": round(centro, 2), "color": "#00BFFF"},
-        {"loja": "Vila Elias", "total": round(vila, 2), "color": "#64748b"},
-    ]
+        q = {
+            "$and": [
+                _filtro_venda_ativa_mongo(),
+                {
+                    "$or": [
+                        {"DataFaturamento": {"$gte": dt_ini, "$lte": dt_fim}},
+                        {"Data": {"$gte": dt_ini, "$lte": dt_fim}},
+                    ]
+                },
+            ]
+        }
+        proj = {
+            "DataFaturamento": 1,
+            "Data": 1,
+            "ValorTotal": 1,
+            "ValorLiquido": 1,
+            "Total": 1,
+            "Valor": 1,
+            "ValorFinal": 1,
+            "DepositoID": 1,
+            "Deposito": 1,
+            "Empresa": 1,
+        }
+        for doc in db["DtoVenda"].find(q, proj):
+            if not isinstance(_dashboard_doc_data_venda(doc), datetime):
+                continue
+            _somar_por_deposito(doc, _dashboard_doc_total(doc))
+
+        if centro + vila <= 0:
+            vendas = client.obter_vendas_agro_periodo(dt_ini, dt_fim)
+            for v in vendas:
+                raw = v if isinstance(v, dict) else {}
+                if isinstance(v.get("raw"), dict):
+                    raw = v.get("raw") or {}
+                total = _dashboard_float(v.get("valor_total"))
+                _somar_por_deposito(raw, total)
+    except Exception as exc:
+        logger.warning("dashboard_gerencial vendas_por_loja: %s", exc, exc_info=True)
+
+    out[0]["total"] = round(centro, 2)
+    out[1]["total"] = round(vila, 2)
+    return out
 
 
 def _dashboard_contexto_dinamico(request):
@@ -2730,6 +2907,7 @@ def _dashboard_contexto_dinamico(request):
         "serie_atual_json": json.dumps(serie_atual),
         "serie_prev_json": json.dumps(serie_prev),
         "top_produtos": top_produtos,
+        "ranking_vendedores": _dashboard_ranking_vendedores_sqlite(data_ini, data_fim),
         "mongo_ok": atual["ok"] and anterior["ok"],
         "mongo_erro": (atual.get("erro") or anterior.get("erro") or "")[:180],
         "produto_filtro": produto_filtro,
@@ -2798,7 +2976,17 @@ def _dashboard_capri_context(request):
     anterior = _dashboard_mongo_vendas_serie(prev_ini, prev_fim)
     dias = (data_fim - data_ini).days + 1
     labels = [(data_ini + timedelta(days=i)).strftime("%d/%m") for i in range(dias)]
+    _wk_map = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"]
+    weekday_initials = [_wk_map[(data_ini + timedelta(days=i)).weekday()] for i in range(dias)]
     serie_atual = [round(atual["por_dia"].get((data_ini + timedelta(days=i)).isoformat(), 0.0), 2) for i in range(dias)]
+    # Ticket médio por dia (série real — mesma regra de ticket_por_dia após a lista de kpis, antes reutilizada aqui)
+    ticket_por_dia: list = []
+    qtd_map = atual.get("qtd_por_dia") or {}
+    for i in range(dias):
+        chave = (data_ini + timedelta(days=i)).isoformat()
+        soma = _dashboard_float(atual["por_dia"].get(chave))
+        n = int(qtd_map.get(chave) or 0)
+        ticket_por_dia.append(round((soma / n), 2) if n > 0 else 0.0)
 
     hoje = timezone.localdate()
     vendas_hoje = _dashboard_mongo_total_por_dia_vendas_agro(hoje)
@@ -2806,11 +2994,14 @@ def _dashboard_capri_context(request):
     variacao_dia = ((vendas_hoje / vendas_ontem) - 1) * 100 if vendas_ontem > 0 else 0.0
 
     perdas_validade = _dashboard_perdas_validade_hoje()
-    ticket_qs = VendaAgro.objects.filter(criado_em__date__gte=data_ini, criado_em__date__lte=data_fim)
-    ticket_agg = ticket_qs.aggregate(total=Sum("total"), n=Count("id"))
-    total_ticket = _dashboard_float(ticket_agg.get("total"))
-    n_ticket = int(ticket_agg.get("n") or 0)
-    ticket_medio = (total_ticket / n_ticket) if n_ticket > 0 else 0.0
+    qtd_total_periodo = sum(int(v or 0) for v in (atual.get("qtd_por_dia") or {}).values())
+    total_ticket = _dashboard_float(atual.get("total"))
+    if qtd_total_periodo <= 0:
+        ticket_qs = VendaAgro.objects.filter(criado_em__date__gte=data_ini, criado_em__date__lte=data_fim)
+        ticket_agg = ticket_qs.aggregate(total=Sum("total"), n=Count("id"))
+        total_ticket = _dashboard_float(ticket_agg.get("total"))
+        qtd_total_periodo = int(ticket_agg.get("n") or 0)
+    ticket_medio = (total_ticket / qtd_total_periodo) if qtd_total_periodo > 0 else 0.0
 
     novos_clientes_30 = ClienteAgro.objects.filter(criado_em__date__gte=hoje - timedelta(days=30)).count()
     prev_clientes_30 = ClienteAgro.objects.filter(
@@ -2822,22 +3013,51 @@ def _dashboard_capri_context(request):
     total_entregas_pendentes = _dashboard_entregas_pendentes_count()
     entregas_serie_7d = _dashboard_entregas_criadas_por_dia_ultimos(7)
 
+    u7 = serie_atual[-7:] if len(serie_atual) >= 7 else list(serie_atual)
+    media_fat_7d = round(sum(u7) / max(len(u7), 1), 2)
+    t7 = ticket_por_dia[-7:] if len(ticket_por_dia) >= 7 else list(ticket_por_dia)
+    t7_com_venda = [x for x in t7 if (x or 0) > 0]
+    media_tkt_7d = (
+        round(sum(t7_com_venda) / max(len(t7_com_venda), 1), 2) if t7_com_venda else 0.0
+    )
+    mes_ant_ini, mes_ant_fim = _dashboard_bounds_mes_anterior_para_dia(data_fim)
+    ticket_medio_mes_civil_anterior = _dashboard_ticket_medio_intervalo(mes_ant_ini, mes_ant_fim)
+    if ticket_medio_mes_civil_anterior > 0 and ticket_medio > 0:
+        var_tkt_vs_mes_ant = ((ticket_medio / ticket_medio_mes_civil_anterior) - 1) * 100
+        tkt_trend = f"{var_tkt_vs_mes_ant:+.1f}% vs mês ant."
+        tkt_trend_class = (
+            "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300"
+            if var_tkt_vs_mes_ant >= 0
+            else "text-red-800 bg-red-200 ring-1 ring-red-300"
+        )
+    else:
+        tkt_trend = "Sem base mês ant."
+        tkt_trend_class = "text-slate-600 bg-slate-100 ring-1 ring-slate-300"
+    tot_ent_7d = int(sum(entregas_serie_7d)) if entregas_serie_7d else 0
+    hoje_cri = int(entregas_serie_7d[-1]) if entregas_serie_7d else 0
     kpis = [
         {
             "label": "Faturamento do Dia",
             "value": _format_moeda_br(Decimal(str(round(vendas_hoje, 2)))),
             "prefix": "R$",
-            "trend": f"{variacao_dia:+.1f}%",
+            "trend": f"{variacao_dia:+.1f}% vs ontem",
             "trend_class": "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300" if variacao_dia >= 0 else "text-red-800 bg-red-200 ring-1 ring-red-300",
-            "sparkline_json": json.dumps(serie_atual[-10:] or [0]),
+            "context_lines": [
+                f"Ontem: {_format_moeda_br(Decimal(str(round(vendas_ontem, 2))))}",
+                f"Média 7d (últ. dias do filtro): {_format_moeda_br(Decimal(str(round(media_fat_7d, 2))))}/dia",
+            ],
         },
         {
             "label": "Ticket Médio",
             "value": _format_moeda_br(Decimal(str(round(ticket_medio, 2)))),
             "prefix": "R$",
-            "trend": periodo_label,
-            "trend_class": "text-sky-800 bg-sky-200 ring-1 ring-sky-300",
-            "sparkline_json": json.dumps([round(v / max(n_ticket, 1), 2) for v in (serie_atual[-10:] or [0])]),
+            "trend": tkt_trend,
+            "trend_class": tkt_trend_class,
+            "context_lines": [
+                "Número grande: ticket médio do período filtrado (faturamento ÷ nº de vendas).",
+                f"O % do selo compara com o mês civil anterior completo ({mes_ant_ini.strftime('%d/%m/%Y')} a {mes_ant_fim.strftime('%d/%m/%Y')}: ticket {_format_moeda_br(Decimal(str(round(ticket_medio_mes_civil_anterior, 2))))}).",
+                f"Referência 7d (últ. dias do gráfico, só dia com venda): {_format_moeda_br(Decimal(str(round(media_tkt_7d, 2))))}.",
+            ],
         },
         {
             "label": "Perda Validade",
@@ -2845,15 +3065,19 @@ def _dashboard_capri_context(request):
             "prefix": "R$",
             "trend": "Monitorado",
             "trend_class": "text-rose-800 bg-rose-200 ring-1 ring-rose-300",
-            "sparkline_json": json.dumps([round(v * 0.08, 2) for v in (serie_atual[-10:] or [0])]),
+            "context_lines": [
+                "Valor = perda (lotes) hoje, não a série de vendas.",
+            ],
         },
         {
             "label": "Novos Clientes",
             "value": str(novos_clientes_30),
             "prefix": "",
-            "trend": f"{tendencia_clientes:+.1f}%",
+            "trend": f"{tendencia_clientes:+.1f}% vs 30d ant.",
             "trend_class": "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300" if tendencia_clientes >= 0 else "text-red-800 bg-red-200 ring-1 ring-red-300",
-            "sparkline_json": json.dumps([(i + 1) * max(novos_clientes_30 / 12.0, 1) for i in range(12)]),
+            "context_lines": [
+                "Cadastros com data de criação nos últimos 30 dias.",
+            ],
         },
         {
             "label": "Entregas",
@@ -2861,21 +3085,19 @@ def _dashboard_capri_context(request):
             "prefix": "",
             "trend": "PENDENTES",
             "trend_class": "text-amber-900 bg-amber-200 ring-1 ring-amber-300",
-            "sparkline_json": json.dumps(entregas_serie_7d),
+            "context_lines": [
+                f"Últ. 7 dias: {tot_ent_7d} pedido(s) criado(s) no agendador · hoje: {hoje_cri} pedido(s).",
+            ],
             "variant": "entregas",
         },
     ]
-    ticket_por_dia_rows = (
-        ticket_qs.values("criado_em__date").annotate(total=Sum("total"), n=Count("id")).order_by("criado_em__date")
-    )
-    ticket_por_dia_map = {}
-    for r in ticket_por_dia_rows:
-        d = r.get("criado_em__date")
-        if not d:
-            continue
-        n = int(r.get("n") or 0)
-        ticket_por_dia_map[d.isoformat()] = round(_dashboard_float(r.get("total")) / n, 2) if n > 0 else 0.0
-    ticket_por_dia = [ticket_por_dia_map.get((data_ini + timedelta(days=i)).isoformat(), 0.0) for i in range(dias)]
+
+    if periodo_key == "ano":
+        labels, serie_atual, ticket_por_dia = _dashboard_serie_mes_a_mes(data_ini, data_fim, atual)
+        serie_compare = [0.0] * len(serie_atual)
+        weekday_initials = []
+    else:
+        serie_compare = _dashboard_serie_meta_c_vendas(data_ini, data_fim)
 
     _mdb, db_fin = obter_conexao_mongo()
     contas_receber: list = []
@@ -2925,15 +3147,27 @@ def _dashboard_capri_context(request):
         except Exception:
             logger.exception("dashboard_gerencial_totais_atraso")
 
+    vendas_por_loja = _dashboard_vendas_por_loja(data_ini, data_fim)
     return {
         "periodo_label": periodo_label,
         "periodo_key": periodo_key,
         "kpis": kpis,
         "chart_labels": json.dumps(labels),
+        "chart_weekday_initials": json.dumps(weekday_initials),
         "chart_data": json.dumps(serie_atual),
+        "chart_compare_data": json.dumps(serie_compare),
+        "chart_total_periodo": _format_moeda_br(Decimal(str(round(_dashboard_float(atual.get("total")), 2)))),
         "ticket_por_dia": json.dumps(ticket_por_dia),
         "top_produtos": _dashboard_top_produtos_sqlite(data_ini, data_fim),
-        "vendas_por_loja": _dashboard_vendas_por_loja(data_ini, data_fim),
+        "ranking_vendedores": _dashboard_ranking_vendedores_sqlite(data_ini, data_fim),
+        "vendas_por_loja": vendas_por_loja,
+        "stores_chart_json": json.dumps(
+            {
+                "labels": [x["loja"] for x in vendas_por_loja],
+                "values": [round(_dashboard_float(x["total"]), 2) for x in vendas_por_loja],
+            },
+            ensure_ascii=False,
+        ),
         "contas_receber": contas_receber,
         "contas_pagar": contas_pagar,
         "total_receber_atraso": total_receber_atraso,
