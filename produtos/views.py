@@ -3311,6 +3311,9 @@ def estoque_sincronizacao_view(request):
 @ensure_csrf_cookie
 @_dashboard_login_required
 def dashboard_gerencial_view(request):
+    # A raiz ``/`` é esta view; probes (Render, uptime) usam HEAD e não precisam do BI completo.
+    if request.method == "HEAD":
+        return HttpResponse(status=200)
     sync_status = None
     if request.GET.get("sync") == "1" and request.user.is_authenticated:
         di, df, _lbl, _k = _dashboard_periodo_from_request(request)
