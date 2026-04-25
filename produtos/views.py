@@ -2805,7 +2805,7 @@ def _dashboard_ranking_vendedores_sqlite(data_ini, data_fim, limite=8):
 def _dashboard_top_produtos_capri(data_ini, data_fim, limite=8):
     """
     1) Relatório oficial HTTP v3 ``PedidosItens/Report`` (host de ``VENDA_ERP_API_URL``).
-    2) Espelho Mongo (DtoVenda / DtoVendaProduto); 3) PDV local.
+    2) Opcional: Mongo (``AGRO_DASHBOARD_MONGO_RANKING_FALLBACK``); 3) PDV local.
     """
     try:
         api = VendaERPAPIClient()
@@ -2816,23 +2816,24 @@ def _dashboard_top_produtos_capri(data_ini, data_fim, limite=8):
                 return out
     except Exception:
         logger.exception("dashboard_top_produtos_capri: erp v3")
-    client, db = obter_conexao_mongo()
-    if client is not None and db is not None:
-        try:
-            rows = dashboard_top_produtos_mongo(
-                client, db, data_ini, data_fim, limite=limite
-            )
-            if rows is not None and len(rows) > 0:
-                return rows
-        except Exception:
-            logger.exception("dashboard_top_produtos_capri: mongo")
+    if getattr(settings, "AGRO_DASHBOARD_MONGO_RANKING_FALLBACK", False):
+        client, db = obter_conexao_mongo()
+        if client is not None and db is not None:
+            try:
+                rows = dashboard_top_produtos_mongo(
+                    client, db, data_ini, data_fim, limite=limite
+                )
+                if rows is not None and len(rows) > 0:
+                    return rows
+            except Exception:
+                logger.exception("dashboard_top_produtos_capri: mongo")
     return _dashboard_top_produtos_sqlite(data_ini, data_fim, limite=limite)
 
 
 def _dashboard_ranking_vendedores_capri(data_ini, data_fim, limite=8):
     """
     1) Relatório oficial HTTP v3 ``CondensadoVendasPorVendedor/Report``.
-    2) Mongo DtoVenda; 3) PDV local.
+    2) Opcional: Mongo; 3) PDV local.
     """
     try:
         api = VendaERPAPIClient()
@@ -2843,16 +2844,17 @@ def _dashboard_ranking_vendedores_capri(data_ini, data_fim, limite=8):
                 return out
     except Exception:
         logger.exception("dashboard_ranking_vendedores_capri: erp v3")
-    client, db = obter_conexao_mongo()
-    if client is not None and db is not None:
-        try:
-            rows = dashboard_ranking_vendedores_mongo(
-                client, db, data_ini, data_fim, limite=limite
-            )
-            if rows is not None and len(rows) > 0:
-                return rows
-        except Exception:
-            logger.exception("dashboard_ranking_vendedores_capri: mongo")
+    if getattr(settings, "AGRO_DASHBOARD_MONGO_RANKING_FALLBACK", False):
+        client, db = obter_conexao_mongo()
+        if client is not None and db is not None:
+            try:
+                rows = dashboard_ranking_vendedores_mongo(
+                    client, db, data_ini, data_fim, limite=limite
+                )
+                if rows is not None and len(rows) > 0:
+                    return rows
+            except Exception:
+                logger.exception("dashboard_ranking_vendedores_capri: mongo")
     return _dashboard_ranking_vendedores_sqlite(data_ini, data_fim, limite=limite)
 
 
