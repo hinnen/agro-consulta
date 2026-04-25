@@ -14,6 +14,137 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
+# Dashboard: agregações com limite de tempo no servidor (evita OOM / SIGKILL no worker).
+_MONGO_DASHBOARD_AGG_OPTS: dict[str, Any] = {"maxTimeMS": 120_000, "allowDiskUse": True}
+
+
+def _mongo_conv_double(field_ref: str | dict) -> dict:
+    """``field_ref`` = campo ``"$ValorTotal"`` ou expressão (ex.: ``$ifNull``)."""
+    return {"$convert": {"input": field_ref, "to": "double", "onError": 0.0, "onNull": 0.0}}
+
+
+def _mongo_expr_linha_dto_venda_produto() -> dict:
+    """
+    Valor da linha de DtoVendaProduto alinhado a ``_valor_linha_item`` (primeiro total > 0; senão preço × qtd).
+    """
+    qtd = _mongo_conv_double({"$ifNull": ["$Quantidade", "$quantidade"]})
+    pu_in = {
+        "$ifNull": [
+            "$PrecoUnitario",
+            {"$ifNull": ["$ValorUnitario", {"$ifNull": ["$Preco", "$precoUnitario"]}]},
+        ]
+    }
+    pu = _mongo_conv_double(pu_in)
+    fallback: dict = {"$multiply": [pu, qtd]}
+    chain = fallback
+    for fld in ("TotalLinha", "valorTotal", "ValorLiquido", "SubTotal", "Total", "ValorTotal"):
+        v = _mongo_conv_double(f"${fld}")
+        chain = {"$cond": [{"$gt": [v, 0]}, v, chain]}
+    return chain
+
+
+def _match_venda_ids_clause(venda_ids_obj: list, venda_ids_str: list[str]) -> dict:
+    return {
+        "$or": [
+            {"VendaID": {"$in": venda_ids_obj}},
+            {"VendaID": {"$in": venda_ids_str}},
+        ]
+    }
+
+
+def _aggregate_soma_linhas_por_venda_id(
+    db, venda_ids_obj: list, venda_ids_str: list[str]
+) -> dict[str, Decimal] | None:
+    """
+    Soma valor das linhas por VendaID em uma agregação (sem trazer todos os itens para o Python).
+    Retorna None se a agregação falhar.
+    """
+    if not venda_ids_str:
+        return {}
+    coll = db["DtoVendaProduto"]
+    match = _match_venda_ids_clause(venda_ids_obj, venda_ids_str)
+    pipeline = [
+        {"$match": match},
+        {
+            "$addFields": {
+                "linha": _mongo_expr_linha_dto_venda_produto(),
+                "vid": {"$toString": "$VendaID"},
+            }
+        },
+        {"$group": {"_id": "$vid", "soma": {"$sum": "$linha"}}},
+    ]
+    try:
+        rows = list(coll.aggregate(pipeline, **_MONGO_DASHBOARD_AGG_OPTS))
+    except Exception as exc:
+        logger.warning("aggregate soma linhas por venda: %s", exc)
+        return None
+    out: dict[str, Decimal] = {}
+    for row in rows:
+        k = str(row.get("_id") or "")
+        if not k or k == "None":
+            continue
+        out[k] = _decimal_seguro(row.get("soma"))
+    return out
+
+
+def _aggregate_top_produtos_por_produto(
+    db, venda_ids_obj: list, venda_ids_str: list[str], limite: int
+) -> tuple[list[tuple[str, Decimal, Decimal]], dict[str, str]] | None:
+    """
+    Top produtos por soma de linha (servidor). Retorna lista (produto_id, total, qtd) ordenada
+    e mapa produto_id → primeira descrição de linha encontrada.
+    """
+    if not venda_ids_str:
+        return [], {}
+    coll = db["DtoVendaProduto"]
+    match = {"$and": [_match_venda_ids_clause(venda_ids_obj, venda_ids_str), {"ProdutoID": {"$ne": None}}]}
+    pipeline = [
+        {"$match": match},
+        {
+            "$addFields": {
+                "linha": _mongo_expr_linha_dto_venda_produto(),
+                "qtd": _mongo_conv_double({"$ifNull": ["$Quantidade", "$quantidade"]}),
+                "pid": {"$toString": "$ProdutoID"},
+                "dsc": {
+                    "$ifNull": [
+                        "$Descricao",
+                        {"$ifNull": ["$descricao", {"$ifNull": ["$NomeProduto", "$Produto"]}]},
+                    ]
+                },
+            }
+        },
+        {
+            "$group": {
+                "_id": "$pid",
+                "total": {"$sum": "$linha"},
+                "qtd_total": {"$sum": "$qtd"},
+                "desc_any": {"$first": "$dsc"},
+            }
+        },
+        {"$sort": {"total": -1}},
+        {"$limit": int(limite)},
+    ]
+    try:
+        rows = list(coll.aggregate(pipeline, **_MONGO_DASHBOARD_AGG_OPTS))
+    except Exception as exc:
+        logger.warning("aggregate top produtos: %s", exc)
+        return None
+    ranked: list[tuple[str, Decimal, Decimal]] = []
+    desc: dict[str, str] = {}
+    for row in rows:
+        pid = str(row.get("_id") or "")
+        if not pid or pid == "None":
+            continue
+        tot = _decimal_seguro(row.get("total"))
+        qtd = _decimal_seguro(row.get("qtd_total"))
+        ranked.append((pid, tot, qtd))
+        d = row.get("desc_any")
+        if d is not None:
+            s = str(d).strip()
+            if s:
+                desc[pid] = s[:200]
+    return ranked, desc
+
 
 def _filtro_venda_ativa_mongo():
     """
@@ -430,7 +561,7 @@ def _coletar_vendas_dto_capri(
             "UsuarioID": 1,
             "FuncionarioID": 1,
         }
-        vendas = list(db["DtoVenda"].find(q, proj))
+        vendas = list(db["DtoVenda"].find(q, proj).max_time_ms(120_000))
     except Exception as exc:
         logger.exception("coletar_vendas_dto_capri: %s", exc)
         return None, None
@@ -476,46 +607,13 @@ def dashboard_top_produtos_mongo(
     if not venda_ids_str:
         return []
 
-    q_it = {
-        "$or": [
-            {"VendaID": {"$in": venda_ids_obj}},
-            {"VendaID": {"$in": venda_ids_str}},
-        ]
-    }
-
-    try:
-        cursor = db["DtoVendaProduto"].find(q_it)
-    except Exception as exc:
-        logger.exception("dashboard_top_produtos_mongo: itens: %s", exc)
+    agg = _aggregate_top_produtos_por_produto(db, venda_ids_obj, venda_ids_str, limite)
+    if agg is None:
         return None
-
-    tot_por_id: dict[str, tuple[Decimal, Decimal]] = {}
-    desc_por_id: dict[str, str] = {}
-    for item in cursor:
-        raw_pid = item.get("ProdutoID")
-        if raw_pid is None:
-            continue
-        pid = str(raw_pid)
-        if not pid or pid == "None":
-            continue
-        if pid not in desc_por_id:
-            d = _nome_da_linha_produto_erp(item)
-            if d:
-                desc_por_id[pid] = d
-        linha = _valor_linha_item(item)
-        try:
-            qtd = _decimal_seguro(
-                item.get("Quantidade") or item.get("quantidade")
-            )
-        except Exception:
-            qtd = Decimal("0")
-        t = tot_por_id.get(pid, (Decimal("0"), Decimal("0")))
-        tot_por_id[pid] = (t[0] + linha, t[1] + qtd)
-
-    if not tot_por_id:
+    ranked, desc_por_id = agg
+    if not ranked:
         return []
 
-    ranked = sorted(tot_por_id.items(), key=lambda x: x[1][0], reverse=True)[:limite]
     ids_top = [r[0] for r in ranked]
     ors: list[dict] = []
     for pid in ids_top:
@@ -553,7 +651,7 @@ def dashboard_top_produtos_mongo(
                 pmap[k] = p
 
     out: list[dict] = []
-    for pid, (total, qtd) in ranked:
+    for pid, total, qtd in ranked:
         p = pmap.get(pid)
         nome_cat = (p or {}).get("Nome")
         nome = (str(nome_cat).strip() if nome_cat else "")
@@ -571,13 +669,6 @@ def dashboard_top_produtos_mongo(
     return out
 
 
-def _faturamento_venda_espelho(db, v: dict) -> float:
-    t = _doc_total_venda_espelho(v)
-    if t > 0:
-        return t
-    return float(_total_vendas_de_documentos_mongo(db, [v]))
-
-
 def dashboard_ranking_vendedores_mongo(
     client: Any, db, data_ini: date, data_fim: date, *, limite: int = 8
 ) -> list[dict] | None:
@@ -592,10 +683,37 @@ def dashboard_ranking_vendedores_mongo(
         return None
     if not filtrado:
         return []
+    venda_ids_obj: list = []
+    venda_ids_str: list[str] = []
+    for v in filtrado:
+        vid = str(v.get("Id") or v.get("_id"))
+        if not vid or vid == "None":
+            continue
+        venda_ids_str.append(vid)
+        if len(vid) == 24:
+            try:
+                venda_ids_obj.append(ObjectId(vid))
+            except Exception:
+                pass
+    soma_linhas = _aggregate_soma_linhas_por_venda_id(db, venda_ids_obj, venda_ids_str)
+    if soma_linhas is None:
+        logger.warning("ranking_vendedores_mongo: agregação de linhas falhou; usando só totais de cabeçalho")
+        soma_linhas = {}
+
+    def _faturamento_venda_cached(v: dict) -> float:
+        t = _doc_total_venda_espelho(v)
+        if t > 0:
+            return t
+        vid = str(v.get("Id") or v.get("_id"))
+        for k in (vid, str(v.get("Id")), str(v.get("_id"))):
+            if k and k != "None" and k in soma_linhas:
+                return float(soma_linhas[k])
+        return 0.0
+
     ac: dict[str, tuple[float, int]] = {}
     for v in filtrado:
         nome = _nome_vendedor_dto_venda(v)
-        t = _faturamento_venda_espelho(db, v)
+        t = _faturamento_venda_cached(v)
         tot, n = ac.get(nome, (0.0, 0))
         ac[nome] = (tot + t, n + 1)
     ranked = sorted(ac.items(), key=lambda x: x[1][0], reverse=True)[:limite]
