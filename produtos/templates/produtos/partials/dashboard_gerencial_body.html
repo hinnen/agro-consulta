@@ -88,8 +88,8 @@
       <details class="relative inline-block text-left">
         <summary class="flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border-2 border-slate-300 bg-slate-100 text-[11px] font-black text-slate-600 shadow-sm hover:border-orange-400 hover:bg-orange-50 hover:text-orange-900 [&::-webkit-details-marker]:hidden" title="Ajuda">?</summary>
         <div class="absolute left-0 z-30 mt-1 max-w-[20rem] rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
-          <p>Lista o <span class="text-orange-800 font-extrabold">faturamento por usuário de caixa</span> no <strong>PDV local</strong> (este equipamento / base SQLite de vendas registradas aqui).</p>
-          <p class="text-slate-500">Não é o ranking corporativo do ERP completo. Para totais oficiais use relatórios do sistema integrado, se aplicável.</p>
+          <p>Prioridade: relatório <strong>CondensadoVendasPorVendedor/Report</strong> (API v3 do ERP, mesmo host configurado para integração). Se indisponível, usa espelho Mongo ou PDV local.</p>
+          <p class="text-slate-500">Confira token e URL em variáveis de ambiente do deploy (ex.: <code class="text-[9px]">VENDA_ERP_API_URL</code> apontando para o white-label correto).</p>
         </div>
       </details>
     </h3>

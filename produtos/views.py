@@ -52,7 +52,11 @@ from .models import (
 )
 from integracoes.texto import normalizar, expandir_tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
-from integracoes.venda_erp_api import VendaERPAPIClient
+from integracoes.venda_erp_api import (
+    VendaERPAPIClient,
+    normalizar_linhas_ranking_vendedores_v3,
+    normalizar_linhas_top_produtos_v3,
+)
 from .mongo_vendas_util import (
     _filtro_venda_ativa_mongo,
     dashboard_ranking_vendedores_mongo,
@@ -2799,7 +2803,19 @@ def _dashboard_ranking_vendedores_sqlite(data_ini, data_fim, limite=8):
 
 
 def _dashboard_top_produtos_capri(data_ini, data_fim, limite=8):
-    """Espelho ERP (DtoVenda / DtoVendaProduto) na mesma janela do gráfico; se vazio, PDV local."""
+    """
+    1) Relatório oficial HTTP v3 ``PedidosItens/Report`` (host de ``VENDA_ERP_API_URL``).
+    2) Espelho Mongo (DtoVenda / DtoVendaProduto); 3) PDV local.
+    """
+    try:
+        api = VendaERPAPIClient()
+        ok, rows = api.relatorio_pedidos_itens_report(data_ini, data_fim)
+        if ok and rows:
+            out = normalizar_linhas_top_produtos_v3(rows, limite=limite)
+            if out:
+                return out
+    except Exception:
+        logger.exception("dashboard_top_produtos_capri: erp v3")
     client, db = obter_conexao_mongo()
     if client is not None and db is not None:
         try:
@@ -2814,7 +2830,19 @@ def _dashboard_top_produtos_capri(data_ini, data_fim, limite=8):
 
 
 def _dashboard_ranking_vendedores_capri(data_ini, data_fim, limite=8):
-    """Mesma fonte e período do gráfico (Mongo DtoVenda); se vazio, PDV local."""
+    """
+    1) Relatório oficial HTTP v3 ``CondensadoVendasPorVendedor/Report``.
+    2) Mongo DtoVenda; 3) PDV local.
+    """
+    try:
+        api = VendaERPAPIClient()
+        ok, rows = api.relatorio_condensado_vendas_por_vendedor_report(data_ini, data_fim)
+        if ok and rows:
+            out = normalizar_linhas_ranking_vendedores_v3(rows, limite=limite)
+            if out:
+                return out
+    except Exception:
+        logger.exception("dashboard_ranking_vendedores_capri: erp v3")
     client, db = obter_conexao_mongo()
     if client is not None and db is not None:
         try:

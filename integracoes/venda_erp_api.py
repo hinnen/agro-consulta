@@ -3,8 +3,15 @@ Cliente HTTP da API REST Venda ERP (white label).
 
 Swagger da instância (troque o subdomínio): ``https://<wl>.vendaerp.com.br/api/swagger/index.html``
 — use o mesmo host que ``VENDA_ERP_API_BASE_URL`` quando a API for nesse domínio.
+
+Relatórios HTTP **v3** (dashboard gerencial): ``{base}/v3/PedidosItens/Report`` e
+``{base}/v3/CondensadoVendasPorVendedor/Report`` — ex.: host SisVale
+``https://sisvale.vendaerp.com.br`` sem sufixo ``/api``.
 """
 import logging
+import re
+from collections import defaultdict
+
 import requests
 from decouple import config
 from datetime import date
@@ -332,3 +339,316 @@ class VendaERPAPIClient:
         """
         path = _env_or_setting_path("VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH")
         return self._financeiro_post(path, body, timeout=60)
+
+    # --- Relatórios HTTP v3 (ex.: ``https://<wl>.vendaerp.com.br/v3/.../Report``) ---
+
+    @staticmethod
+    def _linhas_de_resposta_relatorio_v3(payload) -> list[dict]:
+        """Extrai lista de objetos (linhas) de respostas JSON típicas de relatório."""
+        if isinstance(payload, list):
+            return [x for x in payload if isinstance(x, dict)]
+        if not isinstance(payload, dict):
+            return []
+        for key in (
+            "value",
+            "Data",
+            "data",
+            "Items",
+            "items",
+            "Result",
+            "result",
+            "Rows",
+            "rows",
+            "Lista",
+            "lista",
+            "Relatorio",
+            "relatorio",
+            "Pedidos",
+            "pedidos",
+        ):
+            v = payload.get(key)
+            if isinstance(v, list):
+                out = [x for x in v if isinstance(x, dict)]
+                if out:
+                    return out
+        best: list[dict] = []
+        for _k, v in payload.items():
+            if isinstance(v, list):
+                cand = [x for x in v if isinstance(x, dict)]
+                if len(cand) > len(best):
+                    best = cand
+        return best
+
+    def _v3_report_linhas(
+        self,
+        path_after_v3: str,
+        data_ini: date,
+        data_fim: date,
+        *,
+        timeout: int = 90,
+    ) -> tuple[bool, list[dict]]:
+        """
+        Busca linhas em ``{base_url}/v3/{path_after_v3}`` (GET com query e, se vazio, POST JSON).
+        Usa os mesmos headers de token que ``/api/request/``.
+        """
+        if not self.token:
+            return False, []
+        base = self.base_url.rstrip("/")
+        suf = (path_after_v3 or "").strip().lstrip("/")
+        if not suf:
+            return False, []
+        urls = (f"{base}/v3/{suf}", f"{base}/v3/{suf}/")
+        di = data_ini.isoformat()[:10]
+        df = data_fim.isoformat()[:10]
+        query_variants = (
+            {"dataInicial": di, "dataFinal": df},
+            {"DataInicial": di, "DataFinal": df},
+            {"dataDe": di, "dataAte": df},
+            {"DataDe": di, "DataAte": df},
+            {"dtInicial": di, "dtFinal": df},
+            {"DtInicial": di, "DtFinal": df},
+            {"Inicio": di, "Fim": df},
+            {"PeriodoInicial": di, "PeriodoFinal": df},
+        )
+        body_variants = (
+            {"dataInicial": di, "dataFinal": df},
+            {"DataInicial": di, "DataFinal": df},
+            {"dataDe": di, "dataAte": df},
+            {"DataDe": di, "DataAte": df},
+            {"filtros": {"DataInicial": di, "DataFinal": df}},
+            {"filtros": {"dataInicial": di, "dataFinal": df}},
+            {"Filtros": {"DataInicial": di, "DataFinal": df}},
+        )
+        headers_get = self._headers_get()
+        headers_post = self._headers_post()
+        last_err = ""
+        for url in urls:
+            for params in query_variants:
+                try:
+                    res = requests.get(url, headers=headers_get, params=params, timeout=timeout)
+                    last_err = f"GET {url} {params!r} → HTTP {res.status_code}"
+                    if not (200 <= res.status_code < 300):
+                        continue
+                    try:
+                        payload = res.json()
+                    except Exception:
+                        continue
+                    rows = self._linhas_de_resposta_relatorio_v3(payload)
+                    if rows:
+                        logger.info("VendaERP v3 relatório OK: %s (%s linhas)", last_err, len(rows))
+                        return True, rows
+                except Exception as e:
+                    last_err = str(e)
+                    logger.warning("VendaERP v3 GET %s: %s", url, e)
+            for body in body_variants:
+                try:
+                    res = requests.post(url, headers=headers_post, json=body, timeout=timeout)
+                    last_err = f"POST {url} → HTTP {res.status_code}"
+                    if not (200 <= res.status_code < 300):
+                        continue
+                    try:
+                        payload = res.json()
+                    except Exception:
+                        continue
+                    rows = self._linhas_de_resposta_relatorio_v3(payload)
+                    if rows:
+                        logger.info("VendaERP v3 relatório OK: %s (%s linhas)", last_err, len(rows))
+                        return True, rows
+                except Exception as e:
+                    last_err = str(e)
+                    logger.warning("VendaERP v3 POST %s: %s", url, e)
+        logger.info("VendaERP v3 relatório sem linhas: %s", last_err[:300])
+        return False, []
+
+    def relatorio_pedidos_itens_report(self, data_ini: date, data_fim: date):
+        """
+        Relatório de itens de pedidos (ex.: ``/v3/PedidosItens/Report`` no host configurado em
+        ``VENDA_ERP_API_URL`` / ``VENDA_ERP_API_BASE_URL``).
+        """
+        return self._v3_report_linhas("PedidosItens/Report", data_ini, data_fim)
+
+    def relatorio_condensado_vendas_por_vendedor_report(self, data_ini: date, data_fim: date):
+        """
+        Condensado de vendas por vendedor (ex.: ``/v3/CondensadoVendasPorVendedor/Report``).
+        """
+        return self._v3_report_linhas("CondensadoVendasPorVendedor/Report", data_ini, data_fim)
+
+
+def _row_lc(row: dict) -> dict[str, object]:
+    return {str(k).lower(): v for k, v in row.items()}
+
+
+def _g(row: dict, *names: str):
+    lm = _row_lc(row)
+    for n in names:
+        if not n:
+            continue
+        k = str(n).lower()
+        if k in lm:
+            return lm[k]
+    return None
+
+
+def _cell_float(v) -> float:
+    if v is None:
+        return 0.0
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip()
+    if not s:
+        return 0.0
+    s = re.sub(r"^\s*R\$\s*", "", s, flags=re.I).replace(" ", "")
+    if re.search(r",\d{1,2}$", s) and "." in s:
+        s = s.replace(".", "").replace(",", ".")
+    elif "," in s and "." not in s:
+        s = s.replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
+
+
+def _cell_str(v) -> str:
+    if v is None:
+        return ""
+    s = str(v).strip()
+    return s if s and s.lower() not in ("none", "null") else ""
+
+
+def normalizar_linhas_top_produtos_v3(rows: list[dict], *, limite: int = 8) -> list[dict]:
+    """
+    Converte linhas do relatório ``PedidosItens/Report`` para o formato do dashboard
+    (nome, total, qtd_total), agregando por nome normalizado.
+    """
+    limite = max(1, min(int(limite or 8), 30))
+    agg: dict[str, dict] = defaultdict(lambda: {"nome": "", "total": 0.0, "qtd_total": 0.0})
+    for row in rows:
+        nome = _cell_str(
+            _g(
+                row,
+                "nomeproduto",
+                "produto",
+                "descricao",
+                "nome",
+                "descricaoproduto",
+                "produtonome",
+                "item",
+                "denominacao",
+                "produtodescricao",
+            )
+        )
+        if not nome:
+            continue
+        key = nome.strip().upper()[:160]
+        qtd = _cell_float(
+            _g(
+                row,
+                "quantidade",
+                "qtd",
+                "qtde",
+                "quantidadetotal",
+                "qtdtotal",
+                "volume",
+                "quant",
+            )
+        )
+        val = _cell_float(
+            _g(
+                row,
+                "valortotal",
+                "total",
+                "valor",
+                "subtotal",
+                "valoritem",
+                "vltotal",
+                "faturamento",
+                "valorr",
+            )
+        )
+        if val <= 0 and qtd > 0:
+            pu = _cell_float(
+                _g(row, "precounitario", "valorunitario", "preco", "vlunitario", "unitario")
+            )
+            val = pu * qtd
+        e = agg[key]
+        if not e["nome"]:
+            e["nome"] = nome[:50]
+        e["total"] += val
+        e["qtd_total"] += qtd
+    out = sorted(agg.values(), key=lambda x: x["total"], reverse=True)[:limite]
+    return [
+        {
+            "nome": (x["nome"] or "?")[:50],
+            "total": round(float(x["total"]), 2),
+            "qtd_total": round(float(x["qtd_total"]), 3),
+        }
+        for x in out
+        if x["total"] > 0 or x["qtd_total"] > 0
+    ]
+
+
+def normalizar_linhas_ranking_vendedores_v3(rows: list[dict], *, limite: int = 8) -> list[dict]:
+    """Linhas de ``CondensadoVendasPorVendedor/Report`` → nome, total, n_vendas."""
+    limite = max(1, min(int(limite or 8), 30))
+    agg: dict[str, dict] = defaultdict(lambda: {"nome": "", "total": 0.0, "n_vendas": 0})
+    for row in rows:
+        nome = _cell_str(
+            _g(
+                row,
+                "vendedor",
+                "nomevendedor",
+                "usuario",
+                "nome",
+                "descricao",
+                "vendedornome",
+                "atendente",
+                "funcionario",
+            )
+        )
+        if not nome:
+            continue
+        key = nome.strip().upper()[:160]
+        val = _cell_float(
+            _g(
+                row,
+                "total",
+                "valortotal",
+                "faturamento",
+                "venda",
+                "valor",
+                "totalvenda",
+                "vlvendas",
+            )
+        )
+        nv = _cell_float(
+            _g(
+                row,
+                "quantidadepedidos",
+                "pedidos",
+                "nvendas",
+                "numeropedidos",
+                "qtdpedidos",
+                "vendas",
+                "n",
+                "qtde",
+                "qtd",
+            )
+        )
+        nvi = int(round(nv)) if nv > 0 else 0
+        if nvi <= 0 and val > 0:
+            nvi = 1
+        e = agg[key]
+        if not e["nome"]:
+            e["nome"] = nome[:120]
+        e["total"] += val
+        e["n_vendas"] += nvi
+    out = sorted(agg.values(), key=lambda x: x["total"], reverse=True)[:limite]
+    return [
+        {
+            "nome": x["nome"][:120],
+            "total": round(float(x["total"]), 2),
+            "n_vendas": int(x["n_vendas"]),
+        }
+        for x in out
+        if x["total"] > 0 or x["n_vendas"] > 0
+    ]
