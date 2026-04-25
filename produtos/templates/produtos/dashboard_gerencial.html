@@ -196,8 +196,8 @@
             </p>
         </div>
         <div class="dash-cta-strip flex flex-wrap items-center justify-center gap-2 min-w-0 px-1">
-            <a href="{% url 'consulta_produtos' %}" class="dash-cta-pdv-compact" data-prefetch title="Busca, carrinho e finalização na mesma tela">Abrir PDV</a>
-            <a href="{% url 'consulta_produtos' %}?orcamentos=1" class="dash-cta-orc-compact" data-prefetch title="Modo orçamento no PDV (lista e envio)">Orçamento</a>
+            <a href="{% url 'pdv_home' %}" class="dash-cta-pdv-compact" data-prefetch title="PDV de venda (wizard /pdv/)">Abrir PDV</a>
+            <a href="{% url 'consulta_produtos' %}?orcamentos=1" class="dash-cta-orc-compact" data-prefetch title="Consulta legada: histórico de orçamentos salvos">Orçamento</a>
             <a href="{% url 'home_atalhos' %}" class="dash-cta-atalhos" data-prefetch title="Outras telas: financeiro, estoque, RH e demais módulos">Menu de atalhos</a>
         </div>
         <div class="dash-toolbar flex flex-wrap items-center bg-white rounded-xl border border-slate-200 shadow-sm justify-self-stretch lg:justify-self-end">
