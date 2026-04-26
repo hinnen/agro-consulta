@@ -28,13 +28,19 @@ function createWindow() {
   win.webContents.setWindowOpenHandler((details) => {
     const url = String(details.url || '').trim();
     if (!url) return { action: 'deny' };
+    let absUrl = url;
     try {
-      if (_agroAppOrigin && url.startsWith(_agroAppOrigin)) {
+      if (_agroAppOrigin && url.startsWith('/')) {
+        absUrl = new URL(url, _agroAppOrigin).href;
+      }
+    } catch (_) {}
+    try {
+      if (_agroAppOrigin && absUrl.startsWith(_agroAppOrigin)) {
         return { action: 'allow' };
       }
     } catch (_) {}
-    if (/^https?:\/\//i.test(url) || /^whatsapp:/i.test(url)) {
-      void shell.openExternal(url);
+    if (/^https?:\/\//i.test(absUrl) || /^whatsapp:/i.test(absUrl)) {
+      void shell.openExternal(absUrl);
       return { action: 'deny' };
     }
     return { action: 'deny' };
