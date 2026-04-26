@@ -21,6 +21,7 @@ from decouple import config
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q, Sum
+from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse, JsonResponse
 from django.urls import reverse
@@ -2661,12 +2662,28 @@ def _dashboard_serie_meta_c_vendas(data_ini: date, data_fim: date) -> list[float
     return out
 
 
+def _dashboard_acum_venda_por_loja(client, doc: dict, valor: float, loja_acc: list[float]) -> None:
+    """``loja_acc`` = [Centro, Vila Elias] (mutável), mesma regra que o gráfico por unidade."""
+    if client is None or not doc:
+        return
+    dep_centro = str(getattr(client, "DEPOSITO_CENTRO", "") or "")
+    dep_vila = str(getattr(client, "DEPOSITO_VILA_ELIAS", "") or "")
+    dep_id = str(doc.get("DepositoID") or "")
+    dep_nome = str(doc.get("Deposito") or "").lower()
+    empresa_nome = str(doc.get("Empresa") or "").lower()
+    if dep_id == dep_centro or "centro" in dep_nome or "centro" in empresa_nome:
+        loja_acc[0] += valor
+    elif dep_id == dep_vila or "vila" in dep_nome or "vila" in empresa_nome:
+        loja_acc[1] += valor
+
+
 def _dashboard_mongo_vendas_serie(data_ini, data_fim):
     """
-    Agregação por dia em DtoVenda (com fallbacks). Cache curto evita repetir a mesma
-    varredura quando o dashboard e a série de metas C disparam várias janelas iguais.
+    Agregação por dia em DtoVenda (com fallbacks). Na mesma leitura acumula faturamento
+    Centro × Vila quando possível (evita um segundo ``find`` no dashboard).
+    Cache curto evita repetir a mesma varredura (metas C, ticket mês ant., etc.).
     """
-    ck = f"dash:mvs:v1:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    ck = f"dash:mvs:v3:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and cached.get("_t") == "mvs":
         return {k: v for k, v in cached.items() if k != "_t"}
@@ -2678,6 +2695,9 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
     por_dia = {}
     total = 0.0
     qtd_por_dia = {}
+    loja_acc = [0.0, 0.0]
+    total_apos_dto = 0.0
+    serie_so_sqlite = False
     try:
         # Fonte principal: DtoVenda (espelho ERP), priorizando DataFaturamento.
         q = {
@@ -2699,6 +2719,9 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
             "Total": 1,
             "Valor": 1,
             "ValorFinal": 1,
+            "DepositoID": 1,
+            "Deposito": 1,
+            "Empresa": 1,
         }
         for doc in db["DtoVenda"].find(q, proj):
             dt = _dashboard_doc_data_venda(doc)
@@ -2709,6 +2732,9 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
             por_dia[chave] = por_dia.get(chave, 0.0) + v
             qtd_por_dia[chave] = qtd_por_dia.get(chave, 0) + 1
             total += v
+            _dashboard_acum_venda_por_loja(client, doc, v, loja_acc)
+
+        total_apos_dto = total
 
         # Fallback: coleção consolidada local quando DtoVenda não trouxer dados.
         if total <= 0:
@@ -2722,6 +2748,10 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
                 por_dia[chave] = por_dia.get(chave, 0.0) + v
                 qtd_por_dia[chave] = qtd_por_dia.get(chave, 0) + 1
                 total += v
+                raw = doc if isinstance(doc, dict) else {}
+                if isinstance(doc.get("raw"), dict):
+                    raw = doc.get("raw") or {}
+                _dashboard_acum_venda_por_loja(client, raw, v, loja_acc)
     except Exception as exc:
         logger.warning("dashboard_gerencial mongo serie: %s", exc, exc_info=True)
         return {"ok": False, "erro": "Falha ao consultar Mongo", "total": 0.0, "por_dia": {}, "qtd_por_dia": {}}
@@ -2743,13 +2773,46 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
             por_dia[d.isoformat()] = round(v, 2)
             qtd_por_dia[d.isoformat()] = int(row.get("n") or 0)
             total += v
-    out = {"ok": True, "erro": "", "total": total, "por_dia": por_dia, "qtd_por_dia": qtd_por_dia}
-    cache.set(ck, {**out, "_t": "mvs"}, timeout=90)
+        serie_so_sqlite = total > 0
+
+    vendas_por_loja: list | None = None
+    if serie_so_sqlite:
+        vendas_por_loja = None
+    elif total > 0:
+        if total_apos_dto > 0 and (loja_acc[0] + loja_acc[1]) <= 0:
+            try:
+                vendas = client.obter_vendas_agro_periodo(dt_ini, dt_fim)
+                for vdoc in vendas:
+                    raw = vdoc if isinstance(vdoc, dict) else {}
+                    if isinstance(vdoc.get("raw"), dict):
+                        raw = vdoc.get("raw") or {}
+                    tv = _dashboard_float(vdoc.get("valor_total"))
+                    _dashboard_acum_venda_por_loja(client, raw, tv, loja_acc)
+            except Exception:
+                pass
+        vendas_por_loja = [
+            {"loja": "Centro", "total": round(loja_acc[0], 2), "color": "#00BFFF"},
+            {"loja": "Vila Elias", "total": round(loja_acc[1], 2), "color": "#64748b"},
+        ]
+
+    out = {
+        "ok": True,
+        "erro": "",
+        "total": total,
+        "por_dia": por_dia,
+        "qtd_por_dia": qtd_por_dia,
+        "vendas_por_loja": vendas_por_loja,
+    }
+    cache.set(ck, {**out, "_t": "mvs"}, timeout=120)
     return out
 
 
 def _dashboard_perdas_validade_hoje():
     hoje = timezone.localdate()
+    ck = f"dash:perdas:v1:{hoje.isoformat()}"
+    hit = cache.get(ck)
+    if isinstance(hit, (int, float)):
+        return float(hit)
     custo_por_produto = {}
     for row in ProdutoMarcaVariacaoAgro.objects.values("produto_externo_id").annotate(
         custo_medio=Sum("custo_unitario"), n=Count("id")
@@ -2769,6 +2832,7 @@ def _dashboard_perdas_validade_hoje():
         if custo is None:
             custo = _dashboard_float(getattr(lote.overlay, "preco_venda", 0)) * 0.65
         total += _dashboard_float(lote.quantidade_atual) * max(custo, 0.0)
+    cache.set(ck, total, timeout=90)
     return total
 
 
@@ -2903,11 +2967,22 @@ def _dashboard_entregas_criadas_por_dia_ultimos(n_dias: int = 7) -> list[int]:
     """
     hoje = timezone.localdate()
     n = max(1, min(int(n_dias or 7), 31))
-    out: list[int] = []
-    for i in range(n - 1, -1, -1):
-        d = hoje - timedelta(days=i)
-        out.append(PedidoEntrega.objects.filter(criado_em__date=d).count())
-    return out
+    primeiro = hoje - timedelta(days=n - 1)
+    qs = (
+        PedidoEntrega.objects.filter(criado_em__date__gte=primeiro, criado_em__date__lte=hoje)
+        .annotate(day=TruncDate("criado_em"))
+        .values("day")
+        .annotate(c=Count("id"))
+    )
+    by_day: dict[date, int] = {}
+    for row in qs:
+        day = row.get("day")
+        if day is None:
+            continue
+        if hasattr(day, "date"):
+            day = day.date()
+        by_day[day] = int(row.get("c") or 0)
+    return [by_day.get(hoje - timedelta(days=i), 0) for i in range(n - 1, -1, -1)]
 
 
 def _dashboard_vendas_por_loja(data_ini, data_fim):
@@ -2919,22 +2994,9 @@ def _dashboard_vendas_por_loja(data_ini, data_fim):
     client, db = obter_conexao_mongo()
     if db is None or client is None:
         return out
-    dep_centro = str(getattr(client, "DEPOSITO_CENTRO", "") or "")
-    dep_vila = str(getattr(client, "DEPOSITO_VILA_ELIAS", "") or "")
     dt_ini = datetime.combine(data_ini, dtime.min)
     dt_fim = datetime.combine(data_fim, dtime.max)
-    centro = 0.0
-    vila = 0.0
-
-    def _somar_por_deposito(doc: dict, total: float) -> None:
-        nonlocal centro, vila
-        dep_id = str(doc.get("DepositoID") or "")
-        dep_nome = str(doc.get("Deposito") or "").lower()
-        empresa_nome = str(doc.get("Empresa") or "").lower()
-        if dep_id == dep_centro or "centro" in dep_nome or "centro" in empresa_nome:
-            centro += total
-        elif dep_id == dep_vila or "vila" in dep_nome or "vila" in empresa_nome:
-            vila += total
+    loja_acc = [0.0, 0.0]
 
     try:
         q = {
@@ -2963,21 +3025,21 @@ def _dashboard_vendas_por_loja(data_ini, data_fim):
         for doc in db["DtoVenda"].find(q, proj):
             if not isinstance(_dashboard_doc_data_venda(doc), datetime):
                 continue
-            _somar_por_deposito(doc, _dashboard_doc_total(doc))
+            _dashboard_acum_venda_por_loja(client, doc, _dashboard_doc_total(doc), loja_acc)
 
-        if centro + vila <= 0:
+        if loja_acc[0] + loja_acc[1] <= 0:
             vendas = client.obter_vendas_agro_periodo(dt_ini, dt_fim)
             for v in vendas:
                 raw = v if isinstance(v, dict) else {}
                 if isinstance(v.get("raw"), dict):
                     raw = v.get("raw") or {}
                 total = _dashboard_float(v.get("valor_total"))
-                _somar_por_deposito(raw, total)
+                _dashboard_acum_venda_por_loja(client, raw, total, loja_acc)
     except Exception as exc:
         logger.warning("dashboard_gerencial vendas_por_loja: %s", exc, exc_info=True)
 
-    out[0]["total"] = round(centro, 2)
-    out[1]["total"] = round(vila, 2)
+    out[0]["total"] = round(loja_acc[0], 2)
+    out[1]["total"] = round(loja_acc[1], 2)
     return out
 
 
@@ -3183,7 +3245,6 @@ def _dashboard_capri_context(request):
         fut["tkt_mes_ant"] = ex.submit(_dashboard_worker, _dashboard_ticket_medio_intervalo, mes_ant_ini, mes_ant_fim)
         fut["top_prod"] = ex.submit(_dashboard_worker, _dashboard_top_produtos_capri, data_ini, data_fim)
         fut["rank_vend"] = ex.submit(_dashboard_worker, _dashboard_ranking_vendedores_capri, data_ini, data_fim)
-        fut["vendas_loja"] = ex.submit(_dashboard_worker, _dashboard_vendas_por_loja, data_ini, data_fim)
         fut["finance"] = ex.submit(_dashboard_worker, _dashboard_capri_financeiro, hoje, ontem)
         if periodo_key != "ano":
             fut["serie_compare"] = ex.submit(
@@ -3203,7 +3264,11 @@ def _dashboard_capri_context(request):
     fin = blk["finance"]
     top_produtos = blk["top_prod"]
     ranking_vendedores = blk["rank_vend"]
-    vendas_por_loja = blk["vendas_loja"]
+    vpl = atual.get("vendas_por_loja")
+    if isinstance(vpl, list) and len(vpl) >= 2:
+        vendas_por_loja = vpl
+    else:
+        vendas_por_loja = _dashboard_vendas_por_loja(data_ini, data_fim)
 
     dias = (data_fim - data_ini).days + 1
     labels = [(data_ini + timedelta(days=i)).strftime("%d/%m") for i in range(dias)]
