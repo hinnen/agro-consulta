@@ -699,4 +699,19 @@
   } else {
     carregar();
   }
+
+  window.agroCadastroErpRecarregarLista = function () {
+    try {
+      if (CADASTRO_ERP_MODO !== 'detalhe') carregar();
+    } catch (eRec) { /* ignore */ }
+  };
+
+  var btnNovoProd = document.getElementById('cadastro-btn-novo-produto');
+  if (btnNovoProd) {
+    btnNovoProd.addEventListener('click', function () {
+      if (typeof window.abrirModalProduto === 'function') {
+        window.abrirModalProduto({ id: '__novo__' });
+      }
+    });
+  }
 })();

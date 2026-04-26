@@ -2,7 +2,7 @@
   <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col min-h-0 overflow-hidden font-['Inter']">
 
     <div class="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
-      <h3 class="text-lg sm:text-xl font-black uppercase text-slate-800 tracking-tight">Editar Produto · <span class="text-emerald-600">Agro Mais</span></h3>
+      <h3 id="cadastro-modal-titulo" class="text-lg sm:text-xl font-black uppercase text-slate-800 tracking-tight">Editar Produto · <span class="text-emerald-600">Agro Mais</span></h3>
       <button type="button" id="fechar-modal-editar" class="min-h-[50px] sm:min-h-[52px] px-4 sm:px-5 rounded-xl text-base sm:text-lg font-black uppercase border-2 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors">Fechar</button>
     </div>
 
@@ -1093,6 +1093,13 @@
   function preencherForm(produto) {
     produto = produto || {};
     modalEdit.setAttribute('data-produto-id', String(produto.id || ''));
+    var titModal = document.getElementById('cadastro-modal-titulo');
+    if (titModal) {
+      var isNovo = String(produto.id || '').trim().toLowerCase() === '__novo__';
+      titModal.innerHTML = isNovo
+        ? 'Novo produto · <span class="text-emerald-600">Agro Mais</span>'
+        : 'Editar Produto · <span class="text-emerald-600">Agro Mais</span>';
+    }
     modalEdit._snapshot = {
       id: produto.id,
       eh_kit: !!produto.eh_kit,
@@ -1259,6 +1266,7 @@
     }
     var pid = modalEdit.getAttribute('data-produto-id');
     if (!pid) return;
+    var eraNovo = String(pid).trim().toLowerCase() === '__novo__';
     if (btnSalvar && btnSalvar.disabled) return;
     var origSalvarLabel = btnSalvar ? (btnSalvar.textContent || '').trim() : '';
     if (btnSalvar) {
@@ -1282,6 +1290,7 @@
       fornecedor_texto: gv('edit-fornecedor'),
       categoria: gv('edit-categoria'),
       unidade: gv('edit-unidade'),
+      codigo: gv('edit-codigo'),
       codigo_barras: gv('edit-cb'),
       codigo_nfe: gv('edit-cod-nfe'),
       subcategoria: gv('edit-subcategoria'),
@@ -1325,7 +1334,10 @@
       return r.json();
     }).then(function (j) {
       if (!j.ok) throw new Error(j.erro || 'Falha ao salvar');
-      if (typeof alert !== 'undefined') alert('Salvo no Agro.');
+      if (typeof window.agroCadastroErpRecarregarLista === 'function') {
+        try { window.agroCadastroErpRecarregarLista(); } catch (e0) { /* ignore */ }
+      }
+      if (typeof alert !== 'undefined') alert(eraNovo ? 'Produto criado e salvo no Agro.' : 'Salvo no Agro.');
       fecharModal();
     }).catch(function (e) {
       if (typeof alert !== 'undefined') alert(e.message || 'Erro ao salvar');
@@ -1480,6 +1492,18 @@
       });
     });
   }
+
+  setTimeout(function () {
+    try {
+      var qs = new URLSearchParams(window.location.search || '');
+      if (qs.get('novo') === '1' && typeof window.abrirModalProduto === 'function') {
+        window.abrirModalProduto({ id: '__novo__' });
+        var u = new URL(window.location.href);
+        u.searchParams.delete('novo');
+        window.history.replaceState({}, '', u.pathname + u.search + u.hash);
+      }
+    } catch (eOpen) { /* ignore */ }
+  }, 0);
 
   wirePrecosListeners();
   wireAllFacetAutos();
