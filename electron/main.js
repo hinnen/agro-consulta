@@ -107,12 +107,18 @@ async function createWindow() {
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (!url) return { action: 'deny' };
+    let absUrl = url;
     try {
-      if (appOrigin && url.startsWith(appOrigin)) {
+      if (appOrigin && url.startsWith('/')) {
+        absUrl = new URL(url, appOrigin).href;
+      }
+    } catch (_) {}
+    try {
+      if (appOrigin && absUrl.startsWith(appOrigin)) {
         return { action: 'allow' };
       }
     } catch (_) {}
-    if (openExternalHttp(url)) {
+    if (openExternalHttp(absUrl)) {
       return { action: 'deny' };
     }
     return { action: 'deny' };
