@@ -53,7 +53,7 @@ from .models import (
     VendaAgro,
     sync_overlay_validade_resumo_de_lotes,
 )
-from integracoes.texto import normalizar, expandir_tokens
+from integracoes.texto import eh_granel, expandir_tokens, montar_busca_texto, normalizar, tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 from integracoes.venda_erp_api import (
     VendaERPAPIClient,
@@ -772,6 +772,14 @@ def api_produtos_gestao_overlay_salvar(request):
     pid = str(payload.get("produto_id") or "").strip()
     if not pid:
         return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
+
+    if pid.lower() in ("__novo__", "novo", "_novo"):
+        err_c, novo_id = _try_criar_produto_mongo_somente_agro(request, payload)
+        if err_c is not None:
+            return err_c
+        payload = dict(payload)
+        payload["produto_id"] = novo_id
+        pid = novo_id
 
     def _txt(key, mx=300):
         return str(payload.get(key) or "").strip()[:mx]
@@ -8498,6 +8506,25 @@ def api_produtos_cadastro_detalhe(request, produto_id: str):
     pid = str(produto_id or "").strip()
     if not pid:
         return JsonResponse({"ok": False, "erro": "Id inválido"}, status=400)
+    if pid.lower() in ("__novo__", "novo", "_novo"):
+        stub = {
+            "Id": "__novo__",
+            "Nome": "",
+            "Marca": "",
+            "Codigo": "",
+            "CodigoNFe": "",
+            "CodigoBarras": "",
+            "ValorVenda": 0,
+            "PrecoCusto": 0,
+            "NomeCategoria": "",
+            "SubGrupo": "",
+            "Unidade": "UN",
+            "Descricao": "",
+            "CadastroInativo": False,
+        }
+        detalhe = _montar_produto_cadastro_detalhe(db, client, stub)
+        detalhe["cadastro_somente_agro"] = True
+        return JsonResponse({"ok": True, "produto": detalhe})
     p = _produto_mongo_por_id_externo(db, client, pid)
     if not p:
         return JsonResponse({"ok": False, "erro": "Produto não encontrado"}, status=404)
@@ -8901,6 +8928,158 @@ def _produto_mongo_por_id_externo(db, client_m, pid_str):
     except Exception:
         pass
     return db[client_m.col_p].find_one({"$or": ors})
+
+
+def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonResponse | None, str | None]:
+    """Cria documento mínimo em ``DtoProduto`` (somente Agro). Retorna (erro_response, None) ou (None, novo_id)."""
+
+    def pt(key: str, mx: int = 300) -> str:
+        return str(payload.get(key) or "").strip()[:mx]
+
+    nome = pt("nome", 300)
+    if len(nome) < 2:
+        return (
+            JsonResponse(
+                {"ok": False, "erro": "Informe o nome do produto (mínimo 2 caracteres)."},
+                status=400,
+            ),
+            None,
+        )
+
+    cod_int = pt("codigo", 80)
+    cod_nfe = pt("codigo_nfe", 64)
+    cod_cb = pt("codigo_barras", 80)
+    if not cod_int and not cod_nfe and not cod_cb:
+        return (
+            JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Informe código interno, código NFe ou código de barras.",
+                },
+                status=400,
+            ),
+            None,
+        )
+
+    marca = pt("marca", 120)
+    cat = pt("categoria", 200)
+    sub = pt("subcategoria", 200)
+    unidade = pt("unidade", 20) or "UN"
+    forn = pt("fornecedor_texto", 300)
+    desc = str(payload.get("descricao") or "")[:16000]
+
+    pv = float(_float_api_json(payload.get("preco_venda"), 0.0))
+    pc = float(_float_api_json(payload.get("preco_custo"), 0.0))
+
+    fiscal = payload.get("fiscal") if isinstance(payload.get("fiscal"), dict) else {}
+    ncm = str(fiscal.get("ncm") or "").strip()[:16]
+    cest = str(fiscal.get("cest") or "").strip()[:12]
+    cfop = str(fiscal.get("cfop") or "").strip()[:10]
+    csosn = str(fiscal.get("csosn") or "").strip()[:10]
+    origem = str(fiscal.get("origem") or "").strip()[:8]
+
+    client, db = obter_conexao_mongo()
+    if db is None or client is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503), None
+
+    col = client.col_p
+    or_dup: list[dict] = []
+    for v in (cod_int, cod_nfe, cod_cb):
+        s = str(v or "").strip()
+        if not s:
+            continue
+        for fld in ("Codigo", "CodigoNFe", "CodigoBarras", "EAN_NFe"):
+            or_dup.append({fld: s})
+    if or_dup and db[col].find_one({"$or": or_dup}):
+        return (
+            JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Já existe produto no espelho com este código (interno, NFe ou barras).",
+                },
+                status=400,
+            ),
+            None,
+        )
+
+    novo_id = None
+    for _ in range(16):
+        cand = "AGRO" + secrets.token_hex(12).upper()
+        if not db[col].find_one({"Id": cand}):
+            novo_id = cand
+            break
+    if not novo_id:
+        return JsonResponse({"ok": False, "erro": "Não foi possível gerar Id único."}, status=500), None
+
+    cod_mongo_codigo = cod_int or cod_nfe or cod_cb
+    cod_mongo_nfe = cod_nfe or cod_mongo_codigo
+
+    nome_norm = normalizar(nome)
+    nome_tokens_list = tokens(nome)
+    busca_texto = montar_busca_texto(
+        nome=nome, marca=marca, categoria=cat, subcategoria=sub
+    )
+    granel = eh_granel(categoria=cat, subcategoria=sub, nome=nome)
+
+    doc: dict = {
+        "Id": novo_id,
+        "Nome": nome,
+        "Marca": marca,
+        "NomeCategoria": cat or sub,
+        "SubGrupo": sub,
+        "Unidade": unidade,
+        "Codigo": cod_mongo_codigo,
+        "CodigoNFe": cod_mongo_nfe,
+        "CodigoBarras": cod_cb,
+        "EAN_NFe": cod_cb,
+        "ValorVenda": pv,
+        "PrecoCusto": pc,
+        "PrecoVenda": pv,
+        "ValorCusto": pc,
+        "Descricao": desc,
+        "NomeFornecedor": forn,
+        "CadastroInativo": False,
+        "CadastroSomenteAgro": True,
+        "NomeNormalizado": nome_norm,
+        "NomeTokens": nome_tokens_list,
+        "BuscaTexto": busca_texto,
+        "EhGranel": granel,
+    }
+    if ncm:
+        doc["NCM"] = ncm
+    if cest:
+        doc["CEST"] = cest
+    if cfop:
+        doc["CfopPadrao"] = cfop
+        doc["CFOP"] = cfop
+    if csosn:
+        doc["CSOSN"] = csosn
+    if origem:
+        doc["OrigemMercadoria"] = origem
+
+    try:
+        ins = db[col].insert_one(doc)
+    except Exception as exc:
+        logger.warning("criar produto mongo agro: insert_one", exc_info=True)
+        return (
+            JsonResponse(
+                {"ok": False, "erro": f"Falha ao gravar no Mongo: {exc}"[:500]},
+                status=500,
+            ),
+            None,
+        )
+
+    doc["_id"] = ins.inserted_id
+    try:
+        aplicar_index_codigos_no_mongo(db, col, doc, produto_externo_id=novo_id)
+    except Exception:
+        logger.warning("criar produto mongo agro: index_codigos", exc_info=True)
+    try:
+        cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+        cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
+    except Exception:
+        pass
+    return None, novo_id
 
 
 def _parece_object_id_mongo(s):
