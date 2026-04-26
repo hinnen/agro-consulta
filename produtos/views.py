@@ -2979,8 +2979,13 @@ def _dashboard_entregas_criadas_por_dia_ultimos(n_dias: int = 7) -> list[int]:
         day = row.get("day")
         if day is None:
             continue
-        if hasattr(day, "date"):
+        if isinstance(day, datetime):
             day = day.date()
+        elif not isinstance(day, date):
+            try:
+                day = datetime.strptime(str(day)[:10], "%Y-%m-%d").date()
+            except ValueError:
+                continue
         by_day[day] = int(row.get("c") or 0)
     return [by_day.get(hoje - timedelta(days=i), 0) for i in range(n - 1, -1, -1)]
 
