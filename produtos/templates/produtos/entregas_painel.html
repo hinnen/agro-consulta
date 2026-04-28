@@ -49,7 +49,7 @@
           <div class="mt-1.5 space-y-1 text-[10px] font-semibold text-slate-600">
             <p><strong class="text-slate-800">Pins</strong> — <code class="bg-slate-100 px-1 rounded border border-slate-200">LOJA_MAPS_ORIGEM_CENTRO</code>, <code class="bg-slate-100 px-1 rounded border border-slate-200">LOJA_MAPS_ORIGEM_VILA</code>; links <code class="bg-slate-100 px-1 rounded">LOJA_MAPS_LINK_*</code>.</p>
             <p><strong class="text-slate-800">WhatsApp</strong> — <code class="bg-slate-100 px-1 rounded">PDV_ENTREGA_WHATSAPP</code>.</p>
-            <p><strong class="text-slate-800">Geo</strong> — Nominatim; Plus Google no servidor.</p>
+            <p><strong class="text-slate-800">Geo</strong> — Nominatim; Plus no servidor; rota otimizada com distância por estrada se <code class="bg-slate-100 px-1 rounded border border-slate-200">GOOGLE_MAPS_API_KEY</code> (Distance Matrix).</p>
           </div>
         </details>
       </div>
@@ -163,7 +163,7 @@
     <div class="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
       <div class="shrink-0 px-4 py-3 border-b border-slate-100 bg-slate-50">
         <h2 id="modal-rota-titulo" class="text-base font-black uppercase text-slate-800">Rota por distância</h2>
-        <p class="text-[10px] font-semibold text-slate-500 mt-0.5">Sequência sugerida · distâncias aproximadas (não seguem estradas)</p>
+        <p class="text-[10px] font-semibold text-slate-500 mt-0.5">Sequência sugerida · km entre paradas (estrada se houver chave Google)</p>
       </div>
       <div class="flex-1 min-h-0 overflow-y-auto px-4 py-3">
         <p id="rota-opt-status" class="text-xs font-bold text-slate-800"></p>
@@ -1707,9 +1707,15 @@
           listEl.innerHTML = '<li class="text-orange-800 font-bold list-none">' + esc(j.erro || 'Falha ao ordenar.') + '</li>';
           return;
         }
-        st.textContent = 'Partida → paradas na ordem sugerida (km em linha reta entre pontos geocodificados).';
+        var modoDrive = j.modo_ordem === 'google_driving';
+        st.textContent = modoDrive
+          ? 'Partida → ordem pela menor distância de carro entre paradas (Google Distance Matrix; sem previsão de trânsito em tempo real).'
+          : 'Partida → ordem pela menor distância em linha reta (sem chave Google ou fallback).';
         tot.textContent =
-          'Distância acumulada aproximada: ' + String(j.km_total_estimado != null ? j.km_total_estimado : '—') + ' km (não é tempo de estrada).';
+          'Distância acumulada estimada: ' +
+          String(j.km_total_estimado != null ? j.km_total_estimado : '—') +
+          ' km' +
+          (modoDrive ? ' (soma dos trechos de carro entre paradas).' : ' (linha reta entre pontos).');
         tot.classList.remove('hidden');
         if (j.avisos && j.avisos.length) {
           av.textContent = j.avisos.join(' ');
