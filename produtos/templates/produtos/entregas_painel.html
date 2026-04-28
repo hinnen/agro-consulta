@@ -174,6 +174,7 @@
       <div class="shrink-0 flex flex-wrap gap-2 p-4 border-t border-slate-100 bg-white">
         <button type="button" id="rota-opt-open-maps" class="flex-1 min-w-[8rem] py-2.5 rounded-xl bg-emerald-700 text-white text-xs font-black uppercase border-2 border-emerald-800 hover:bg-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed" disabled>Abrir no Maps</button>
         <button type="button" id="rota-opt-copy" class="flex-1 min-w-[8rem] py-2.5 rounded-xl border-2 border-slate-200 text-slate-700 text-xs font-black uppercase hover:bg-slate-50 disabled:opacity-40" disabled>Copiar ordem</button>
+        <button type="button" id="rota-opt-print" class="flex-1 min-w-[8rem] py-2.5 rounded-xl bg-orange-500 text-white text-xs font-black uppercase border-2 border-orange-600 hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed" disabled>Imprimir ordem</button>
         <button type="button" id="rota-opt-close" class="w-full py-2 text-xs font-bold text-slate-500 uppercase">Fechar</button>
       </div>
     </div>
@@ -217,6 +218,8 @@
   var URL_REGISTRAR = "{% url 'api_entrega_registrar' %}";
   var URL_BUSCAR_CLIENTES = "{% url 'api_buscar_clientes' %}";
   var ultimaRotaMapsUrl = '';
+  var ultimaRotaOrdenada = [];
+  var ultimaRotaOrigemTexto = '';
   var addCliCtx = { timer: null, lista: [], selected: null };
 
   function origemObj() {
@@ -1024,6 +1027,63 @@
     idoc.head.appendChild(s);
   }
 
+  function imprimirSequenciaRota80mm(origem, paradas, kmTotal) {
+    paradas = Array.isArray(paradas) ? paradas : [];
+    if (!paradas.length) {
+      alert('Sem sequência para imprimir.');
+      return;
+    }
+    var dh = new Date();
+    var when = dh.toLocaleString('pt-BR');
+    var itensHtml = '';
+    paradas.forEach(function (p) {
+      var km = p.km_da_anterior != null ? (' + ' + String(p.km_da_anterior) + ' km') : ' (sem coord.)';
+      itensHtml +=
+        '<div style="border-top:1px dashed #000;padding-top:6px;margin-top:6px;">' +
+          '<div style="font-size:12px;font-weight:900;">#' + esc(String(p.ordem || '')) + ' · ' + esc(String(p.label || '')) + '</div>' +
+          '<div style="font-size:10px;margin-top:2px;">' + esc(km) + '</div>' +
+          '<div style="font-size:9px;color:#333;margin-top:3px;line-height:1.25;word-break:break-word;">' + esc(String(p.texto || '')) + '</div>' +
+        '</div>';
+    });
+    var html =
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rota Entregas</title><style>' +
+      '@page{margin:0;size:80mm auto}' +
+      'html,body{margin:0;padding:0}' +
+      'body{font-family:system-ui,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+      '.pg{width:72mm;margin:0 auto;padding:4mm 3mm;font-size:11px;line-height:1.35;box-sizing:border-box}' +
+      '</style></head><body><div class="pg">' +
+      '<div style="text-align:center;font-size:13px;font-weight:900;letter-spacing:.02em;">SEQUÊNCIA DE ENTREGA</div>' +
+      '<div style="font-size:9px;margin-top:4px;text-align:center;">' + esc(when) + '</div>' +
+      '<div style="border-top:2px solid #000;margin:8px 0 6px;"></div>' +
+      '<div style="font-size:10px;"><b>Partida:</b> ' + esc(String(origem || '—')) + '</div>' +
+      '<div style="font-size:10px;margin-top:2px;"><b>Paradas:</b> ' + esc(String(paradas.length)) + '</div>' +
+      '<div style="font-size:10px;margin-top:2px;"><b>Dist. estimada:</b> ' + esc(String(kmTotal != null ? kmTotal : '—')) + ' km</div>' +
+      '<div style="border-top:2px solid #000;margin:8px 0 4px;"></div>' +
+      itensHtml +
+      '<div style="border-top:1px dashed #000;margin-top:8px;padding-top:6px;text-align:center;font-size:9px;">Agro Mais · Entregas</div>' +
+      '</div></body></html>';
+
+    var iframe = document.getElementById('agro-print-iframe-rota');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'agro-print-iframe-rota';
+      iframe.title = 'Impressão rota';
+      iframe.setAttribute('aria-hidden', 'true');
+      iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;';
+      document.body.appendChild(iframe);
+    }
+    var d = iframe.contentDocument || iframe.contentWindow.document;
+    d.open();
+    d.write(html);
+    d.close();
+    setTimeout(function () {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (e) {}
+    }, 90);
+  }
+
   function postAtualizar(payload) {
     return fetch(URL_ATUAL, {
       method: 'POST',
@@ -1616,13 +1676,17 @@
     var tot = document.getElementById('rota-opt-total');
     var btnMaps = document.getElementById('rota-opt-open-maps');
     var btnCopy = document.getElementById('rota-opt-copy');
+    var btnPrint = document.getElementById('rota-opt-print');
     listEl.innerHTML = '';
     av.classList.add('hidden');
     av.textContent = '';
     tot.classList.add('hidden');
     btnMaps.disabled = true;
     btnCopy.disabled = true;
+    btnPrint.disabled = true;
     ultimaRotaMapsUrl = '';
+    ultimaRotaOrdenada = [];
+    ultimaRotaOrigemTexto = o;
     st.textContent = 'Calculando a melhor ordem de visitas… Endereços difíceis de localizar podem demorar um pouco.';
     abrirModalRotaOpt();
     if (window.gmLoadingBar) window.gmLoadingBar.show();
@@ -1671,8 +1735,10 @@
           listEl.appendChild(li);
         });
         ultimaRotaMapsUrl = urlMapsDirPartidas(o, j.paradas_ordenadas);
+        ultimaRotaOrdenada = Array.isArray(j.paradas_ordenadas) ? j.paradas_ordenadas : [];
         btnMaps.disabled = false;
         btnCopy.disabled = false;
+        btnPrint.disabled = !ultimaRotaOrdenada.length;
       })
       .catch(function () {
         st.textContent = '';
@@ -1708,6 +1774,15 @@
     } else {
       window.prompt('Copiar:', t);
     }
+  };
+  document.getElementById('rota-opt-print').onclick = function () {
+    imprimirSequenciaRota80mm(
+      ultimaRotaOrigemTexto || origemAtual(),
+      ultimaRotaOrdenada,
+      (document.getElementById('rota-opt-total').textContent || '').match(/([\d,.]+)\s*km/i)
+        ? (document.getElementById('rota-opt-total').textContent || '').match(/([\d,.]+)\s*km/i)[1]
+        : '—'
+    );
   };
 
   document.getElementById('modal-add-cliente-rota').addEventListener('click', function (ev) {

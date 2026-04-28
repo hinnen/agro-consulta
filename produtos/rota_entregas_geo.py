@@ -164,6 +164,12 @@ def resolve_parada_latlng(
         ll = extract_latlng_from_google_maps_url(mu)
         if ll:
             return ll, "coord_maps"
+    if mu:
+        # Quando o campo manual traz Plus com complemento (cidade/UF),
+        # respeita o texto completo e tenta resolver por ele primeiro.
+        ll_mu_pc, fonte_mu_pc = try_plus_code_latlng(mu, ref_ll)
+        if ll_mu_pc:
+            return ll_mu_pc, fonte_mu_pc or "plus_code"
     nq = normalize_q(texto_busca)
     if not nq:
         return None, "sem texto de busca"
