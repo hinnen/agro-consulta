@@ -26,6 +26,7 @@
       </div>
       <div class="flex flex-wrap items-center gap-2 shrink-0">
         <button type="button" id="btn-refresh" class="text-xs font-black uppercase bg-slate-800 text-white px-3.5 py-2.5 rounded-xl border-2 border-slate-900 shadow-sm hover:bg-slate-900 min-h-[2.75rem]">Atualizar</button>
+        <button type="button" id="btn-add-cliente-rota" class="text-xs font-black uppercase bg-emerald-600 text-white px-3.5 py-2.5 rounded-xl border-2 border-emerald-700 shadow-sm hover:bg-emerald-700 min-h-[2.75rem]">Adicionar cliente</button>
         <button type="button" id="btn-rota-multi" class="text-xs font-black uppercase bg-orange-600 text-white px-3.5 py-2.5 rounded-xl border-2 border-orange-700 shadow-sm hover:bg-orange-700 disabled:opacity-40 min-h-[2.75rem]" disabled title="Ordena as entregas por distância a partir da partida; pode abrir o Maps na sequência">Rota otimizada</button>
         {% include "produtos/_pdv_voltar_link.html" %}
       </div>
@@ -178,6 +179,33 @@
     </div>
   </div>
 
+  <div id="modal-add-cliente-rota" class="fixed inset-0 z-[86] hidden flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-addcli-titulo">
+    <div class="bg-white w-full sm:max-w-xl sm:rounded-2xl rounded-t-2xl shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col overflow-hidden" onclick="event.stopPropagation()">
+      <div class="shrink-0 px-4 py-3 border-b border-slate-100 bg-slate-50">
+        <h2 id="modal-addcli-titulo" class="text-base font-black uppercase text-slate-800">Adicionar cliente na rota</h2>
+        <p class="text-[10px] font-semibold text-slate-500 mt-0.5">Busca no cadastro de clientes e cria uma entrega pendente para devolução.</p>
+      </div>
+      <div class="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-2.5">
+        <label class="block">
+          <span class="text-[10px] font-black uppercase text-slate-600">Buscar cliente</span>
+          <input type="text" id="addcli-q" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2.5 py-2 font-semibold text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200 outline-none" placeholder="Nome, telefone, CPF, endereço ou Plus">
+        </label>
+        <p class="text-[10px] font-semibold text-slate-500">Clique no cliente para preencher e depois confirme.</p>
+        <div id="addcli-lista" class="rounded-xl border-2 border-slate-200 bg-white min-h-[8rem] max-h-[14rem] overflow-auto"></div>
+        <div class="rounded-xl border-2 border-emerald-200 bg-emerald-50/50 p-2 space-y-1.5">
+          <div class="text-[10px] font-black uppercase text-emerald-800">Selecionado</div>
+          <div id="addcli-sel-nome" class="text-sm font-black text-slate-900">Nenhum cliente selecionado</div>
+          <div id="addcli-sel-end" class="text-xs font-semibold text-slate-700">—</div>
+          <div id="addcli-sel-plus" class="text-xs font-mono font-bold text-orange-700">—</div>
+        </div>
+      </div>
+      <div class="shrink-0 flex gap-2 p-4 border-t border-slate-100 bg-white">
+        <button type="button" id="addcli-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-slate-300 text-slate-700 text-xs font-black uppercase hover:bg-slate-50">Cancelar</button>
+        <button type="button" id="addcli-save" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-black uppercase border-2 border-emerald-700 hover:bg-emerald-700 disabled:opacity-50" disabled>Adicionar na rota</button>
+      </div>
+    </div>
+  </div>
+
   <script>
 (function () {
   var ORIGENS = {{ origens_maps_json }};
@@ -186,7 +214,10 @@
   var URL_LISTAR = "{% url 'api_entregas_listar' %}";
   var URL_ATUAL = "{% url 'api_entrega_atualizar' %}";
   var URL_ORDENAR_ROTA = "{% url 'api_entregas_ordenar_rota' %}";
+  var URL_REGISTRAR = "{% url 'api_entrega_registrar' %}";
+  var URL_BUSCAR_CLIENTES = "{% url 'api_buscar_clientes' %}";
   var ultimaRotaMapsUrl = '';
+  var addCliCtx = { timer: null, lista: [], selected: null };
 
   function origemObj() {
     var sel = document.getElementById('origem-rota');
@@ -648,9 +679,12 @@
     if (httpU) return { modo: 'url', texto: httpU };
     var extra = textoExtraMapsSemHttp(e);
     var pc = String(e.plus_code || '').trim();
+    if (pc) return { modo: 'q', texto: pc };
+    var plusNoExtra = primeiroPlusCodeEmTexto(extra);
+    if (plusNoExtra) return { modo: 'q', texto: plusNoExtra };
     var end = String(e.endereco_linha || '').trim();
     /* Referência não entra no link do Maps / Zap — só orienta o entregador. */
-    var q = [pc, extra, end].filter(Boolean).join(' ').trim() || String(e.cliente_nome || '');
+    var q = [extra, end].filter(Boolean).join(' ').trim() || String(e.cliente_nome || '');
     return { modo: 'q', texto: q };
   }
 
@@ -1367,6 +1401,145 @@
     m.classList.remove('flex');
   }
 
+  function enderecoResumoCliente(c) {
+    var end = String(c.endereco || '').trim();
+    if (end) return end;
+    var log = String(c.logradouro || '').trim();
+    var num = String(c.numero || '').trim();
+    var bai = String(c.bairro || '').trim();
+    var cid = String(c.cidade || '').trim();
+    var uf = String(c.uf || '').trim().toUpperCase();
+    var cep = String(c.cep || '').trim();
+    var linha1 = [log, num].filter(Boolean).join(', ');
+    var linha2 = [bai, [cid, uf].filter(Boolean).join(' - '), cep].filter(Boolean).join(' · ');
+    return [linha1, linha2].filter(Boolean).join(' · ');
+  }
+
+  function resetAddCliSelecionado() {
+    addCliCtx.selected = null;
+    document.getElementById('addcli-sel-nome').textContent = 'Nenhum cliente selecionado';
+    document.getElementById('addcli-sel-end').textContent = '—';
+    document.getElementById('addcli-sel-plus').textContent = '—';
+    document.getElementById('addcli-save').disabled = true;
+  }
+
+  function renderAddCliLista() {
+    var box = document.getElementById('addcli-lista');
+    if (!addCliCtx.lista.length) {
+      box.innerHTML = '<div class="p-3 text-xs font-semibold text-slate-500">Nenhum cliente encontrado.</div>';
+      return;
+    }
+    var h = '';
+    addCliCtx.lista.forEach(function (c, idx) {
+      var end = enderecoResumoCliente(c);
+      h +=
+        '<button type="button" class="w-full text-left px-3 py-2 border-b border-slate-100 hover:bg-emerald-50 last:border-b-0 addcli-item" data-idx="' + idx + '">' +
+          '<div class="text-sm font-black text-slate-900">' + esc(c.nome || '') + '</div>' +
+          '<div class="text-xs font-semibold text-slate-700">' + esc(c.telefone || '') + '</div>' +
+          '<div class="text-[11px] font-semibold text-slate-500 mt-0.5">' + esc(end || 'Sem endereço') + '</div>' +
+          (c.plus_code ? '<div class="text-[11px] font-mono font-bold text-orange-700 mt-0.5">Plus: ' + esc(c.plus_code) + '</div>' : '') +
+        '</button>';
+    });
+    box.innerHTML = h;
+    box.querySelectorAll('.addcli-item').forEach(function (btn) {
+      btn.onclick = function () {
+        var idx = Number(btn.getAttribute('data-idx'));
+        var c = addCliCtx.lista[idx];
+        if (!c) return;
+        addCliCtx.selected = c;
+        document.getElementById('addcli-sel-nome').textContent = String(c.nome || '');
+        document.getElementById('addcli-sel-end').textContent = enderecoResumoCliente(c) || 'Sem endereço';
+        document.getElementById('addcli-sel-plus').textContent = c.plus_code ? ('Plus: ' + c.plus_code) : 'Sem plus code';
+        document.getElementById('addcli-save').disabled = false;
+      };
+    });
+  }
+
+  function carregarBuscaClientesAddRota(q) {
+    q = String(q || '').trim();
+    var box = document.getElementById('addcli-lista');
+    if (q.length < 2) {
+      addCliCtx.lista = [];
+      box.innerHTML = '<div class="p-3 text-xs font-semibold text-slate-500">Digite pelo menos 2 caracteres para buscar.</div>';
+      return;
+    }
+    box.innerHTML = '<div class="p-3 text-xs font-semibold text-slate-500">Buscando…</div>';
+    fetch(URL_BUSCAR_CLIENTES + '?q=' + encodeURIComponent(q))
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        addCliCtx.lista = Array.isArray(j.clientes) ? j.clientes : [];
+        renderAddCliLista();
+      })
+      .catch(function () {
+        addCliCtx.lista = [];
+        box.innerHTML = '<div class="p-3 text-xs font-semibold text-orange-700">Erro ao buscar clientes.</div>';
+      });
+  }
+
+  function abrirModalAddClienteRota() {
+    var m = document.getElementById('modal-add-cliente-rota');
+    var q = document.getElementById('addcli-q');
+    resetAddCliSelecionado();
+    addCliCtx.lista = [];
+    q.value = '';
+    document.getElementById('addcli-lista').innerHTML = '<div class="p-3 text-xs font-semibold text-slate-500">Digite pelo menos 2 caracteres para buscar.</div>';
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+    setTimeout(function () { q.focus(); }, 40);
+  }
+
+  function fecharModalAddClienteRota() {
+    var m = document.getElementById('modal-add-cliente-rota');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+    if (addCliCtx.timer) {
+      clearTimeout(addCliCtx.timer);
+      addCliCtx.timer = null;
+    }
+  }
+
+  function registrarEntregaDiretoCliente() {
+    var c = addCliCtx.selected;
+    if (!c) return;
+    var payload = {
+      cliente_nome: String(c.nome || '').trim(),
+      telefone: String(c.telefone || '').trim(),
+      endereco_linha: enderecoResumoCliente(c),
+      plus_code: String(c.plus_code || '').trim(),
+      referencia_rural: String(c.referencia_rural || '').trim(),
+      maps_url_manual: String(c.maps_url_manual || '').trim(),
+      itens: [],
+      total_texto: '',
+      operador: 'Entregas',
+      cliente_agro_id: c.cliente_agro_pk != null ? c.cliente_agro_pk : null,
+    };
+    if (!payload.cliente_nome) {
+      alert('Selecione um cliente válido.');
+      return;
+    }
+    if (!payload.endereco_linha && !payload.plus_code && !payload.maps_url_manual) {
+      alert('Cliente sem endereço/Plus/Maps no cadastro. Edite o local antes de salvar.');
+      return;
+    }
+    fetch(URL_REGISTRAR, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify(payload),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) {
+          alert((j && j.erro) || 'Falha ao adicionar cliente na rota.');
+          return;
+        }
+        fecharModalAddClienteRota();
+        carregar();
+      })
+      .catch(function () {
+        alert('Erro de rede ao adicionar cliente na rota.');
+      });
+  }
+
   function urlMapsDirPartidas(origem, paradasOrdenadas) {
     var parts = [origem];
     (paradasOrdenadas || []).forEach(function (p) {
@@ -1392,6 +1565,7 @@
   }
 
   document.getElementById('btn-refresh').onclick = carregar;
+  document.getElementById('btn-add-cliente-rota').onclick = abrirModalAddClienteRota;
   document.getElementById('filtro-status').onchange = function () {
     setStatusFiltroLista(this.value);
     carregar();
@@ -1536,6 +1710,19 @@
       window.prompt('Copiar:', t);
     }
   };
+
+  document.getElementById('modal-add-cliente-rota').addEventListener('click', function (ev) {
+    if (ev.target === this) fecharModalAddClienteRota();
+  });
+  document.getElementById('addcli-cancel').onclick = fecharModalAddClienteRota;
+  document.getElementById('addcli-q').addEventListener('input', function () {
+    var q = this.value;
+    if (addCliCtx.timer) clearTimeout(addCliCtx.timer);
+    addCliCtx.timer = setTimeout(function () {
+      carregarBuscaClientesAddRota(q);
+    }, 220);
+  });
+  document.getElementById('addcli-save').onclick = registrarEntregaDiretoCliente;
 
   document.getElementById('modal-edit-local').addEventListener('click', function (ev) {
     if (ev.target === this) fecharModalEditLocal();
