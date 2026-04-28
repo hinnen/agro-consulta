@@ -12,6 +12,8 @@ import json
 import logging
 import re
 from collections import defaultdict
+from collections.abc import Callable
+from typing import Any
 
 import requests
 from decouple import config
@@ -120,6 +122,83 @@ def _erp_json_tem_linhas_pessoa(data):
     return False
 
 
+def _unwrap_pessoas_lista_bruta(payload):
+    """Extrai lista de dicts da resposta de Pessoas/GetAll (alinha ``views._unwrap_pessoas_erp_response``)."""
+    if payload is None:
+        return []
+    if isinstance(payload, list):
+        return [x for x in payload if isinstance(x, dict)]
+    if not isinstance(payload, dict):
+        return []
+    if payload.get("_http_status") is not None or payload.get("_erro"):
+        return []
+    for key in (
+        "Data",
+        "data",
+        "Pessoas",
+        "pessoas",
+        "Items",
+        "items",
+        "Result",
+        "result",
+        "Lista",
+        "lista",
+        "Records",
+        "records",
+        "Rows",
+        "rows",
+    ):
+        d = payload.get(key)
+        if isinstance(d, list):
+            return [x for x in d if isinstance(x, dict)]
+    if any(payload.get(k) is not None for k in ("Id", "id", "NomeFantasia", "nomeFantasia")):
+        return [payload]
+    for _k, v in payload.items():
+        if isinstance(v, list) and v and isinstance(v[0], dict):
+            return v
+    return []
+
+
+def _primeiro_identificador_pessoa(d: dict) -> str:
+    if not isinstance(d, dict):
+        return ""
+    rid = (
+        d.get("_id")
+        or d.get("Id")
+        or d.get("id")
+        or d.get("PessoaID")
+        or d.get("pessoaID")
+        or d.get("PessoaId")
+        or d.get("ClienteID")
+        or d.get("clienteID")
+        or d.get("Codigo")
+        or d.get("codigo")
+        or ""
+    )
+    try:
+        if isinstance(rid, dict) and "$oid" in rid:
+            rid = rid.get("$oid")
+    except Exception:
+        pass
+    return str(rid).strip()
+
+
+def _getall_factories_para_page_size(ps: int) -> list[tuple[str, Callable[[int], dict[str, Any]]]]:
+    ps = min(max(int(ps or 200), 1), 500)
+
+    def cap_sk(sk: float | int) -> int:
+        return max(int(sk or 0), 0)
+
+    # PascalCase primeiro: em várias instâncias WL responde 200 mas ignora camelCase skip.
+    return [
+        ("PageSize_Skip_Pascal", lambda sk: {"PageSize": ps, "Skip": cap_sk(sk)}),
+        ("pageSize_skip", lambda sk: {"pageSize": ps, "skip": cap_sk(sk)}),
+        ("PageSize_skip_mix", lambda sk: {"PageSize": ps, "skip": cap_sk(sk)}),
+        ("pageSize_Skip_mix", lambda sk: {"pageSize": ps, "Skip": cap_sk(sk)}),
+        ("odata_$top_$skip", lambda sk: {"$top": ps, "$skip": cap_sk(sk)}),
+    ]
+
+
 class VendaERPAPIClient:
     def __init__(self, base_url=None, token=None, user=None, app=None):
         bu = (base_url or "").strip().rstrip("/") if base_url else ""
@@ -135,6 +214,8 @@ class VendaERPAPIClient:
         self.token = str(tok).strip()
         self.user = (user or config("VENDA_ERP_API_USER", default="")).strip()
         self.app = (app or config("VENDA_ERP_API_APP", default="")).strip()
+        self._pessoas_getall_ps = None
+        self._pessoas_getall_factory_idx = None
 
     def testar_conexao(self):
         """Tenta apenas listar os pedidos para ver se o Token é válido"""
@@ -338,27 +419,92 @@ class VendaERPAPIClient:
         except Exception:
             return False, []
 
+    def _detectar_variante_getall_pessoa(self, ps: int) -> tuple[int, str]:
+        """
+        Escolhe uma combinação de parâmetros em que ``skip`` realmente mudou a primeira linha.
+        Evita ficar sempre na primeira página quando a API aceita ``pageSize/skip`` mas ignora ``skip``.
+        """
+        url = f"{self.base_url}/api/request/Pessoas/GetAll"
+        headers = self._headers_get()
+        factories = _getall_factories_para_page_size(ps)
+        probe = max(1, min(ps - 1, max(ps // 2, 80)))
+        fallback_idx = 0
+        fallback_lbl = factories[0][0]
+        nonempty_ok = False
+        for idx, (lbl, fac) in enumerate(factories):
+            try:
+                r0 = requests.get(url, headers=headers, params=fac(0), timeout=45)
+                if not (200 <= r0.status_code < 300):
+                    continue
+                lst0 = _unwrap_pessoas_lista_bruta(r0.json())
+                if not lst0:
+                    continue
+                pid0 = _primeiro_identificador_pessoa(lst0[0])
+                if not nonempty_ok:
+                    nonempty_ok = True
+                    fallback_idx = idx
+                    fallback_lbl = lbl
+
+                r1 = requests.get(url, headers=headers, params=fac(probe), timeout=45)
+                if not (200 <= r1.status_code < 300):
+                    continue
+                lst1 = _unwrap_pessoas_lista_bruta(r1.json())
+                if not lst1:
+                    logger.info(
+                        "VendaERP GetAll variante `%s`: skip=%s retornou 0 registros; usando esta variante.",
+                        lbl,
+                        probe,
+                    )
+                    return idx, lbl
+                pid1 = _primeiro_identificador_pessoa(lst1[0])
+                if pid0 and pid1 and pid0 != pid1:
+                    logger.info(
+                        "VendaERP GetAll: paginação confirmada com variante `%s` (skip=%s).",
+                        lbl,
+                        probe,
+                    )
+                    return idx, lbl
+                logger.warning(
+                    "VendaERP GetAll variante `%s`: primeira linha igual com skip=%s (skip pode estar sendo ignorado).",
+                    lbl,
+                    probe,
+                )
+            except Exception as exc:
+                logger.warning("VendaERP GetAll probe erro variante %s: %s", lbl, exc)
+        logger.warning(
+            "VendaERP GetAll: nenhuma variante confirmou offset; usando fallback `%s`.",
+            fallback_lbl,
+        )
+        return fallback_idx, fallback_lbl
+
     def pessoas_get_all(self, page_size=200, skip=0):
-        """GET /api/request/Pessoas/GetAll (tenta pageSize/skip e PageSize/Skip)."""
+        """GET /api/request/Pessoas/GetAll; primeira chamada faz probe de paginação."""
         if not self.token:
             return False, []
         url = f"{self.base_url}/api/request/Pessoas/GetAll"
         ps = min(max(int(page_size or 200), 1), 500)
         sk = max(int(skip or 0), 0)
-        param_variants = (
-            {"pageSize": ps, "skip": sk},
-            {"PageSize": ps, "Skip": sk},
-        )
-        last_status = 0
+        factories = _getall_factories_para_page_size(ps)
+        if self._pessoas_getall_ps != ps:
+            self._pessoas_getall_ps = ps
+            self._pessoas_getall_factory_idx = None
+
         try:
-            for params in param_variants:
-                res = requests.get(url, headers=self._headers_get(), params=params, timeout=45)
-                last_status = res.status_code
-                if 200 <= res.status_code < 300:
-                    try:
-                        return True, res.json()
-                    except Exception:
-                        return True, []
+            if self._pessoas_getall_factory_idx is None:
+                self._pessoas_getall_factory_idx, _ = self._detectar_variante_getall_pessoa(ps)
+            idx = int(self._pessoas_getall_factory_idx)
+            if idx < 0 or idx >= len(factories):
+                idx = 0
+                self._pessoas_getall_factory_idx = idx
+            _, fac = factories[idx]
+            params = fac(sk)
+            res = requests.get(url, headers=self._headers_get(), params=params, timeout=45)
+            last_status = res.status_code
+            if 200 <= res.status_code < 300:
+                try:
+                    return True, res.json()
+                except Exception:
+                    return True, []
             return False, {"_http_status": last_status, "_body": ""}
         except Exception as e:
             return False, {"_erro": str(e)}
