@@ -1,5 +1,8 @@
 """
-Geocodificação e ordenação de paradas de entrega (vizinho mais próximo / Haversine).
+Geocodificação e ordenação de paradas de entrega (vizinho mais próximo).
+
+Distância entre paradas: por estrada via Google Distance Matrix (se ``GOOGLE_MAPS_API_KEY``),
+senão Haversine (linha reta).
 
 Usa Nominatim (OpenStreetMap): política de uso — 1 requisição/s, User-Agent identificável.
 Resultados em cache Django para reduzir chamadas.
@@ -14,10 +17,12 @@ import time
 from typing import Any
 
 import requests
+from django.conf import settings
 from django.core.cache import cache
 from openlocationcode import openlocationcode as olc
 
 NOMINATIM_SEARCH = "https://nominatim.openstreetmap.org/search"
+GOOGLE_DISTANCE_MATRIX_URL = "https://maps.googleapis.com/maps/api/distancematrix/json"
 # Plus Codes (OLC) no texto — captura código completo (587HCX4J+8R) ou curto (CX4J+8R).
 _PLUS_CODE_IN_TEXT_RE = re.compile(
     r"(?:\d{2,8})?[2-9CFGHJMPQRVWX]{2,8}\+[2-9CFGHJMPQRVWX]{2,3}",
@@ -108,6 +113,16 @@ def extract_latlng_from_google_maps_url(url: str) -> tuple[float, float] | None:
     return None
 
 
+def _haversine_matrix_km(points: list[tuple[float, float]]) -> list[list[float]]:
+    n = len(points)
+    m: list[list[float]] = [[0.0] * n for _ in range(n)]
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                m[i][j] = haversine_km(points[i], points[j])
+    return m
+
+
 def haversine_km(a: tuple[float, float], b: tuple[float, float]) -> float:
     lat1, lon1 = a
     lat2, lon2 = b
@@ -182,6 +197,103 @@ def resolve_parada_latlng(
     return None, err or "falha geocode"
 
 
+def _google_maps_api_key() -> str:
+    return getattr(settings, "GOOGLE_MAPS_API_KEY", "") or ""
+
+
+def google_drive_distance_matrix_km(
+    points: list[tuple[float, float]],
+    api_key: str,
+) -> tuple[list[list[float]] | None, list[str]]:
+    """
+    Matriz n×n em km (estrada, ``driving``). Pares sem rota no Google usam Haversine.
+
+    Limite da API: até 25 origens e 25 destinos por requisição (= até 24 paradas + origem).
+    """
+    avisos_loc: list[str] = []
+    n = len(points)
+    if n < 2:
+        return [[0.0] * n for _ in range(n)], avisos_loc
+    if n > 25:
+        return None, ["Máximo 25 pontos (origem + paradas) para matriz Google."]
+    fallback = _haversine_matrix_km(points)
+    if not (api_key or "").strip():
+        return None, avisos_loc
+
+    cache_key = (
+        "gdm_km_"
+        + hashlib.sha256(
+            "|".join(f"{a:.6f},{b:.6f}" for a, b in points).encode(),
+        ).hexdigest()[:48]
+    )
+    cached = cache.get(cache_key)
+    if isinstance(cached, dict) and cached.get("ver") == 1 and isinstance(cached.get("m"), list):
+        try:
+            cm = cached["m"]
+            if len(cm) == n and all(len(row) == n for row in cm):
+                return cm, list(cached.get("avisos", []) or [])
+        except Exception:
+            pass
+
+    pipe = "|".join(f"{lat},{lng}" for lat, lng in points)
+    try:
+        r = requests.get(
+            GOOGLE_DISTANCE_MATRIX_URL,
+            params={
+                "origins": pipe,
+                "destinations": pipe,
+                "mode": "driving",
+                "units": "metric",
+                "key": api_key.strip(),
+            },
+            timeout=35,
+        )
+        data = r.json()
+    except Exception as exc:
+        return None, [f"Google Distance Matrix indisponível: {str(exc)[:120]}"]
+
+    status = str(data.get("status") or "")
+    if status != "OK":
+        err = str(data.get("error_message") or data.get("status") or "?")
+        return None, [f"Google Distance Matrix: {err[:200]}"]
+
+    rows_raw = data.get("rows")
+    if not isinstance(rows_raw, list) or len(rows_raw) != n:
+        return None, ["Resposta Google Distance Matrix em formato inesperado."]
+
+    mat: list[list[float]] = [[0.0] * n for _ in range(n)]
+    any_fallback = False
+    for i in range(n):
+        row = rows_raw[i]
+        els = row.get("elements") if isinstance(row, dict) else None
+        if not isinstance(els, list) or len(els) != n:
+            return None, ["Resposta Google Distance Matrix (linhas) incompleta."]
+        for j in range(n):
+            if i == j:
+                mat[i][j] = 0.0
+                continue
+            el = els[j] if isinstance(els[j], dict) else {}
+            if str(el.get("status") or "") == "OK" and isinstance(el.get("distance"), dict):
+                val = el["distance"].get("value")
+                if val is not None:
+                    mat[i][j] = float(val) / 1000.0
+                    continue
+            mat[i][j] = fallback[i][j]
+            any_fallback = True
+
+    if any_fallback:
+        avisos_loc.append(
+            "Alguns trechos usaram distância em linha reta (Google não calculou rota de carro entre o par)."
+        )
+
+    cache.set(
+        cache_key,
+        {"ver": 1, "m": mat, "avisos": avisos_loc},
+        3600,
+    )
+    return mat, avisos_loc
+
+
 def ordenar_entregas_por_proximidade(
     origem_texto: str,
     paradas: list[dict[str, Any]],
@@ -243,19 +355,37 @@ def ordenar_entregas_por_proximidade(
             f"{len(bad_pts)} parada(s) sem coordenadas — ficaram por último na lista (confira manualmente)."
         )
 
+    all_points: list[tuple[float, float]] = [origin_ll] + [
+        (float(p["lat"]), float(p["lng"])) for p in ok_pts
+    ]
+    modo_ordem = "haversine"
+    dist_mat = _haversine_matrix_km(all_points)
+
+    api_key = _google_maps_api_key()
+    gmat, gavisos = google_drive_distance_matrix_km(all_points, api_key)
+    if gmat is not None:
+        dist_mat = gmat
+        modo_ordem = "google_driving"
+        avisos.extend(gavisos)
+    else:
+        if gavisos:
+            avisos.extend(gavisos)
+        if api_key:
+            avisos.append(
+                "Ordenação por distância em linha reta (falha na Google Distance Matrix — verifique a chave e a API)."
+            )
+
     ordered: list[dict[str, Any]] = []
-    remaining = list(ok_pts)
-    cur: tuple[float, float] = origin_ll
+    n_pts = len(all_points)
+    unvisited_ix = set(range(1, n_pts))
+    current_ix = 0
     ordem = 0
     total_km = 0.0
-    while remaining:
-        best_i = min(
-            range(len(remaining)),
-            key=lambda j: haversine_km(cur, (remaining[j]["lat"], remaining[j]["lng"])),
-        )
-        p = remaining.pop(best_i)
-        d = haversine_km(cur, (p["lat"], p["lng"]))
+    while unvisited_ix:
+        best_j = min(unvisited_ix, key=lambda j: dist_mat[current_ix][j])
+        d = float(dist_mat[current_ix][best_j])
         total_km += d
+        p = ok_pts[best_j - 1]
         ordem += 1
         ordered.append(
             {
@@ -270,7 +400,8 @@ def ordenar_entregas_por_proximidade(
                 "fonte_coord": p.get("fonte_coord"),
             }
         )
-        cur = (p["lat"], p["lng"])
+        current_ix = best_j
+        unvisited_ix.discard(best_j)
 
     for p in bad_pts:
         ordem += 1
