@@ -40,9 +40,9 @@
         {% if periodo_key != "ano" %}
         <details class="relative inline-block text-left">
           <summary class="flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border-2 border-slate-300 bg-slate-100 text-[11px] font-black text-slate-600 shadow-sm hover:border-sky-400 hover:bg-sky-50 hover:text-sky-900 [&::-webkit-details-marker]:hidden" title="O que significa este gráfico?">?</summary>
-          <div class="absolute left-0 z-30 mt-1 max-w-[20rem] rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
+          <div class="absolute left-0 z-30 mt-1 w-[min(22rem,88vw)] max-h-[55vh] overflow-y-auto rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
             <p><span class="text-sky-800 font-extrabold">Barras</span> — faturamento de cada <strong>dia</strong> no período que você selecionou (filtro de cima). Em baixo: data e dia da semana.</p>
-            <p><span class="text-emerald-800 font-extrabold">Cores</span> — compara o dia com a <strong>meta (C)</strong> (regra de meta diária). A barra usa gradiente contínuo entre vermelho, laranja, amarelo e verde conforme a distância da meta. Cinza: sem base para meta naquele dia.</p>
+            <p><span class="text-emerald-800 font-extrabold">Cores</span> — compara o dia com a <strong>meta (C)</strong>. Abaixo da meta: vermelho → laranja → amarelo. Acima da meta: tons de azul. Cinza: sem base de meta.</p>
             <p class="text-slate-500 font-semibold">No toque, o lembrete traz ainda o ticket e o desempenho frente à meta, para conferência rápida no balcão.</p>
           </div>
         </details>
@@ -182,8 +182,16 @@
     var ticketRefPeriodo = ticketValsBase.length
       ? (ticketValsBase.reduce(function (acc, v) { return acc + Number(v || 0); }, 0) / ticketValsBase.length)
       : 0;
-    var tipFont = "clamp(15px, 1.1vw + 0.6rem, 19px)";
-    var dashTooltip = { theme: "light", style: { fontSize: tipFont, fontFamily: "ui-sans-serif, system-ui, sans-serif" } };
+    /* Desktop um pouco menor; quando o viewport “encolhe” (zoom alto) o vmin/rem empurram para cima até o teto. */
+    var tipFont = "clamp(13px, 0.82vw + 0.52rem, 18px)";
+    var tipFontDense = "clamp(12px, 0.7vw + 0.48rem, 17px)";
+    var dashTooltip = {
+      theme: "light",
+      style: {
+        fontSize: tipFont,
+        fontFamily: "ui-sans-serif, system-ui, sans-serif",
+      },
+    };
     function dashFmtVendasTooltip(val, opts) {
       var i = opts.dataPointIndex || 0;
       var ticket = ticketPorDia[i] || 0;
@@ -212,67 +220,59 @@
           ctx.w.globals.categoryLabels[i]) ||
         (chartLabels && chartLabels[i]) ||
         "";
-      var baseV = "R$ " + real.toFixed(2) + " | Ticket: R$ " + Number(ticket).toFixed(2);
       var pctPart = "";
       if (meta > 0) {
         var pct = ((real - meta) / meta) * 100;
         var pc = (pct >= 0 ? "+" : "") + pct.toFixed(1) + "%";
         var cPct = pct >= 0 ? "#059669" : "#dc2626";
-        pctPart =
-          ' | vs meta C: <span style="font-weight:800;color:' + cPct + '">' + pc + "</span>";
-      } else if (real > 0) {
-        pctPart = ' <span style="color:#64748b;font-weight:600">(sem base meta)</span>';
+        pctPart = '<span style="font-weight:800;color:' + cPct + '">' + pc + "</span>";
+      } else {
+        pctPart = '<span style="color:#64748b;font-weight:700">sem base</span>';
       }
-      var line2 = "";
+      var metaLinha = "";
       if (meta > 0) {
         var diff = real - meta;
         var diffAbs = Math.abs(diff).toFixed(2);
-        var diffInner =
+        var diffTxt =
           diff >= 0
             ? '<span style="font-weight:800;color:#059669">+R$ ' + diffAbs + " acima da meta</span>"
             : '<span style="font-weight:800;color:#dc2626">-R$ ' + diffAbs + " falta para a meta</span>";
-        line2 =
-          '<div style="margin-top:8px;color:#334155"><span style="color:#ea580c;font-weight:800">Meta (C)</span> · R$ ' +
-          meta.toFixed(2) +
-          " · " +
-          diffInner +
-          "</div>";
+        metaLinha = "R$ " + meta.toFixed(2) + " · " + diffTxt;
       } else {
-        line2 =
-          '<div style="margin-top:8px;color:#64748b">Meta (C): R$ ' +
-          meta.toFixed(2) +
-          " · sem base no mês ant.</div>";
+        metaLinha = "R$ " + meta.toFixed(2) + " · sem base no mês ant.";
       }
-      var ticketPart = "";
+      var ticketLinha = "";
       if (ticketRefPeriodo > 0 && Number(ticket) > 0) {
         var dt = ((Number(ticket) - ticketRefPeriodo) / ticketRefPeriodo) * 100;
         var dtTxt = (dt >= 0 ? "+" : "") + dt.toFixed(1) + "%";
         var dtCor = dt >= 0 ? "#059669" : "#dc2626";
-        ticketPart =
-          '<div style="margin-top:8px;color:#334155"><span style="color:#0284c7;font-weight:800">Ticket médio</span> · R$ ' +
+        ticketLinha =
+          'R$ ' +
           Number(ticket).toFixed(2) +
-          ' · ref período R$ ' +
+          ' · ref R$ ' +
           Number(ticketRefPeriodo).toFixed(2) +
-          ' · <span style="font-weight:800;color:' + dtCor + '">' + dtTxt + "</span></div>";
+          ' · <span style="font-weight:800;color:' + dtCor + '">' + dtTxt + "</span>";
       } else {
-        ticketPart =
-          '<div style="margin-top:8px;color:#64748b">Ticket médio: R$ ' +
-          Number(ticket || 0).toFixed(2) +
-          " · sem base para comparação</div>";
+        ticketLinha = "R$ " + Number(ticket || 0).toFixed(2) + " · sem base para comparação";
+      }
+      function row(label, value) {
+        return (
+          '<div style="display:grid;grid-template-columns:108px 1fr;column-gap:10px;align-items:start;margin-top:6px">' +
+          '<div style="font-weight:800;color:#0f172a;white-space:nowrap">' + label + "</div>" +
+          '<div style="color:#334155;line-height:1.35">' + value + "</div>" +
+          "</div>"
+        );
       }
       return (
-        '<div style="padding:10px 12px;font-family:ui-sans-serif,system-ui,sans-serif;font-size:' +
-        tipFont +
+        '<div style="padding:10px 12px;min-width:320px;max-width:min(580px,92vw);font-family:ui-sans-serif,system-ui,sans-serif;font-size:' +
+        tipFontDense +
         '">' +
         '<div style="font-weight:800;color:#0f172a;margin-bottom:6px">' +
         cat +
         "</div>" +
-        '<div style="color:#334155"><span style="color:#0891b2;font-weight:800">Vendas</span> · ' +
-        baseV +
-        pctPart +
-        "</div>" +
-        line2 +
-        ticketPart +
+        row('<span style="color:#0891b2">Vendas</span>', 'R$ ' + real.toFixed(2) + ' · Ticket R$ ' + Number(ticket).toFixed(2) + ' · vs meta ' + pctPart) +
+        row('<span style="color:#ea580c">Meta (C)</span>', metaLinha) +
+        row('<span style="color:#0284c7">Ticket médio</span>', ticketLinha) +
         "</div>"
       );
     }
@@ -301,24 +301,28 @@
       });
     }
     function dashColorByRatio(ratio) {
-      var stops = [
-        { p: 0.00, c: "#dc2626" }, // vermelho forte
-        { p: 0.40, c: "#f97316" }, // laranja
-        { p: 0.70, c: "#facc15" }, // amarelo
-        { p: 0.90, c: "#84cc16" }, // lima
-        { p: 1.00, c: "#22c55e" }, // verde
-        { p: 1.12, c: "#059669" }, // verde escuro (acima da meta)
-      ];
-      var r = Math.max(0, Math.min(1.12, Number(ratio || 0)));
-      for (var si = 1; si < stops.length; si++) {
-        if (r <= stops[si].p) {
-          var s0 = stops[si - 1];
-          var s1 = stops[si];
-          var localT = (r - s0.p) / (s1.p - s0.p || 1);
-          return dashMixHex(s0.c, s1.c, localT);
+      var r = Math.max(0, Math.min(1.2, Number(ratio || 0)));
+      if (r <= 1) {
+        var belowStops = [
+          { p: 0.00, c: "#b91c1c" }, // vermelho agressivo (bem abaixo)
+          { p: 0.35, c: "#ef4444" }, // vermelho
+          { p: 0.55, c: "#f97316" }, // laranja
+          { p: 0.75, c: "#f59e0b" }, // laranja/amarelo
+          { p: 0.90, c: "#fde047" }, // amarelo forte no meio
+          { p: 1.00, c: "#22c55e" }, // encostou/bateu meta
+        ];
+        for (var si = 1; si < belowStops.length; si++) {
+          if (r <= belowStops[si].p) {
+            var s0 = belowStops[si - 1];
+            var s1 = belowStops[si];
+            var localT = (r - s0.p) / (s1.p - s0.p || 1);
+            return dashMixHex(s0.c, s1.c, localT);
+          }
         }
+        return belowStops[belowStops.length - 1].c;
       }
-      return stops[stops.length - 1].c;
+      // Acima da meta: gradiente azul.
+      return dashMixHex("#06b6d4", "#1d4ed8", (r - 1) / 0.2);
     }
     var chartDataColored = chartData.map(function (v, i) {
       var venda = Number(v || 0);
