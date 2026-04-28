@@ -56,3 +56,183 @@
   };
 })();
 </script>
+
+<script>
+(function () {
+  if (window.__agroTabLimitInit) return;
+  window.__agroTabLimitInit = true;
+  if (window.top !== window.self) return;
+
+  var REG_KEY = 'agro_tabs_registry_v1';
+  var TAB_KEY = 'agro_tab_id_v1';
+  var MAX_TABS = 3;
+  var STALE_MS = 65000;
+  var HEARTBEAT_MS = 10000;
+  var aliveTimer = null;
+  var blocked = false;
+
+  function nowMs() {
+    return Date.now();
+  }
+
+  function detectRole() {
+    var p = String((window.location && window.location.pathname) || '').toLowerCase();
+    if (!p) return 'extra';
+    if (p === '/' || p.indexOf('/pdv') === 0 || p.indexOf('consulta_produtos') >= 0) return 'pdv';
+    return 'extra';
+  }
+
+  function getTabId() {
+    try {
+      var cur = sessionStorage.getItem(TAB_KEY);
+      if (cur) return cur;
+      var id = 'tab_' + Math.random().toString(36).slice(2, 10) + '_' + nowMs().toString(36);
+      sessionStorage.setItem(TAB_KEY, id);
+      return id;
+    } catch (e) {
+      return 'tab_fallback_' + nowMs().toString(36);
+    }
+  }
+
+  function readReg() {
+    try {
+      var raw = localStorage.getItem(REG_KEY);
+      if (!raw) return { tabs: [] };
+      var obj = JSON.parse(raw);
+      if (!obj || !Array.isArray(obj.tabs)) return { tabs: [] };
+      return obj;
+    } catch (e) {
+      return { tabs: [] };
+    }
+  }
+
+  function writeReg(reg) {
+    try {
+      localStorage.setItem(REG_KEY, JSON.stringify(reg || { tabs: [] }));
+    } catch (e) {}
+  }
+
+  function cleanupAndUpsert(reg, tabId, role) {
+    var ts = nowMs();
+    var tabs = (reg && Array.isArray(reg.tabs) ? reg.tabs : []).filter(function (t) {
+      return t && t.id && t.lastSeen && (ts - Number(t.lastSeen) <= STALE_MS);
+    });
+    var found = false;
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].id === tabId) {
+        tabs[i].lastSeen = ts;
+        tabs[i].role = role;
+        tabs[i].path = String((window.location && window.location.pathname) || '');
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      tabs.push({
+        id: tabId,
+        role: role,
+        path: String((window.location && window.location.pathname) || ''),
+        lastSeen: ts,
+      });
+    }
+    return { tabs: tabs };
+  }
+
+  function removeTab(reg, tabId) {
+    var tabs = (reg && Array.isArray(reg.tabs) ? reg.tabs : []).filter(function (t) {
+      return t && t.id !== tabId;
+    });
+    return { tabs: tabs };
+  }
+
+  function showBlockedOverlay(reasonText) {
+    if (document.getElementById('agro-tab-limit-overlay')) return;
+    var root = document.createElement('div');
+    root.id = 'agro-tab-limit-overlay';
+    root.style.cssText = [
+      'position:fixed',
+      'inset:0',
+      'z-index:2147483647',
+      'background:rgba(2,6,23,0.92)',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'padding:16px',
+      'font-family:Inter,system-ui,sans-serif',
+    ].join(';');
+    root.innerHTML =
+      '<div style="width:min(560px,96vw);background:#fff;border:2px solid #f59e0b;border-radius:16px;padding:16px 16px 14px;box-shadow:0 20px 50px rgba(0,0,0,.35)">' +
+        '<div style="font-size:12px;font-weight:900;color:#b45309;text-transform:uppercase;letter-spacing:.04em">Limite de abas</div>' +
+        '<h2 style="margin:4px 0 8px;font-size:22px;line-height:1.1;font-weight:900;color:#0f172a">Esta aba foi bloqueada</h2>' +
+        '<p style="margin:0 0 8px;font-size:15px;line-height:1.4;color:#334155;font-weight:700">' + reasonText + '</p>' +
+        '<p style="margin:0 0 12px;font-size:14px;line-height:1.4;color:#475569">Regras: 1 aba do PDV + até 2 abas extras (máximo 3 no total).</p>' +
+        '<button type="button" id="agro-tab-limit-close" style="width:100%;min-height:44px;border-radius:12px;border:2px solid #0f172a;background:#0f172a;color:#fff;font-size:12px;font-weight:900;text-transform:uppercase;cursor:pointer">Fechar esta aba</button>' +
+      '</div>';
+    document.body.appendChild(root);
+    var b = document.getElementById('agro-tab-limit-close');
+    if (b) {
+      b.onclick = function () {
+        try { window.close(); } catch (e) {}
+        try { window.location.href = 'about:blank'; } catch (e2) {}
+      };
+    }
+  }
+
+  function evaluateAndRegister() {
+    var tabId = getTabId();
+    var role = detectRole();
+    var reg = cleanupAndUpsert(readReg(), tabId, role);
+    writeReg(reg);
+    var total = reg.tabs.length;
+    var pdvCount = reg.tabs.filter(function (t) { return t.role === 'pdv'; }).length;
+    if (total <= MAX_TABS && pdvCount <= 1) return { ok: true, tabId: tabId, role: role };
+    var regWithoutMe = removeTab(reg, tabId);
+    writeReg(regWithoutMe);
+    return {
+      ok: false,
+      tabId: tabId,
+      role: role,
+      reason: total > MAX_TABS
+        ? 'Já existem 3 abas do sistema abertas.'
+        : 'Já existe uma aba de PDV aberta. Mantenha apenas uma aba de PDV.',
+    };
+  }
+
+  function heartbeat(tabId, role) {
+    if (blocked) return;
+    var reg = cleanupAndUpsert(readReg(), tabId, role);
+    writeReg(reg);
+  }
+
+  function release(tabId) {
+    if (!tabId) return;
+    var reg = removeTab(cleanupAndUpsert(readReg(), tabId, detectRole()), tabId);
+    writeReg(reg);
+  }
+
+  var check = evaluateAndRegister();
+  if (!check.ok) {
+    blocked = true;
+    showBlockedOverlay(check.reason);
+    return;
+  }
+
+  aliveTimer = setInterval(function () {
+    heartbeat(check.tabId, check.role);
+  }, HEARTBEAT_MS);
+
+  window.addEventListener('beforeunload', function () {
+    if (aliveTimer) clearInterval(aliveTimer);
+    release(check.tabId);
+  });
+  window.addEventListener('pagehide', function () {
+    if (aliveTimer) clearInterval(aliveTimer);
+    release(check.tabId);
+  });
+  window.addEventListener('storage', function (ev) {
+    if (ev && ev.key === REG_KEY) {
+      heartbeat(check.tabId, check.role);
+    }
+  });
+})();
+</script>
