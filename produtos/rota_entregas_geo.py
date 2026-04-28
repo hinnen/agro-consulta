@@ -428,6 +428,7 @@ def ordenar_entregas_por_proximidade(
             "fonte": origem_fonte,
             "texto": ot,
         },
+        "modo_ordem": modo_ordem,
         "paradas_ordenadas": ordered,
         "km_total_estimado": round(total_km, 2),
         "avisos": avisos,
