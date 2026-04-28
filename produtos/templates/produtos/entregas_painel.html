@@ -680,8 +680,7 @@
     var extra = textoExtraMapsSemHttp(e);
     var pc = String(e.plus_code || '').trim();
     if (pc) return { modo: 'q', texto: pc };
-    var plusNoExtra = primeiroPlusCodeEmTexto(extra);
-    if (plusNoExtra) return { modo: 'q', texto: plusNoExtra };
+    if (extra && primeiroPlusCodeEmTexto(extra)) return { modo: 'q', texto: extra };
     var end = String(e.endereco_linha || '').trim();
     /* Referência não entra no link do Maps / Zap — só orienta o entregador. */
     var q = [extra, end].filter(Boolean).join(' ').trim() || String(e.cliente_nome || '');
@@ -748,9 +747,9 @@
     if (httpM) return httpM;
     var extra = textoExtraMapsSemHttp(e);
     var pc = String(e.plus_code || '').trim();
-    var blob = [pc, extra, String(e.endereco_linha || '').trim()].join(' ');
-    var p1 = primeiroPlusCodeEmTexto(pc) || primeiroPlusCodeEmTexto(extra) || primeiroPlusCodeEmTexto(blob);
-    if (p1) return 'https://maps.google.com/?q=' + encodeURIComponent(p1);
+    if (pc && primeiroPlusCodeEmTexto(pc)) return 'https://maps.google.com/?q=' + encodeURIComponent(pc);
+    if (extra && primeiroPlusCodeEmTexto(extra))
+      return 'https://maps.google.com/?q=' + encodeURIComponent(extra);
     var ll =
       primeiroLatLngEmTexto(pc) ||
       primeiroLatLngEmTexto(extra) ||
