@@ -44,6 +44,9 @@ CSRF_TRUSTED_ORIGINS = [
 if _on_render and "https://*.onrender.com" not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS = list(CSRF_TRUSTED_ORIGINS) + ["https://*.onrender.com"]
 
+# Render envia este SHA ao build/run; usar em ``?v=`` só no PDV pois lá o static vai sem Manifest.
+AGRO_PDV_ASSETS_V = (os.environ.get("RENDER_GIT_COMMIT") or "").strip()[:12]
+
 # Painel BI (/, /dashboard/gerencial/, HTMX parcial e feed) sem exigir login.
 # Padrão True (painel aberto). Para exigir login de novo: AGRO_PUBLIC_DASHBOARD=false no .env / Render.
 # POST de sync ERP continua com login; ?sync=1 na URL só roda se já autenticado.

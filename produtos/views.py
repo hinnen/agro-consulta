@@ -3610,6 +3610,7 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
         },
     }
     ctx["pdv_consulta_only"] = rota_nome == "consulta_produtos"
+    ctx["agro_pdv_assets_v"] = getattr(settings, "AGRO_PDV_ASSETS_V", "") or ""
     return render(request, "produtos/consulta_produtos.html", ctx)
 
 
@@ -11833,7 +11834,8 @@ def _clientes_lista_via_erp_api(max_total=900):
     # O reforço por prefixo captura cadastros novos que aparecem no Pesquisar.
     if len(all_rows) < max_total:
         page_s = 120
-        max_pages_por_prefixo = 6
+        # Custos ERP por sync; aumentar cobre cadastros além das primeiras N páginas por letra inicial.
+        max_pages_por_prefixo = 30
         for prefixo in "0123456789abcdefghijklmnopqrstuvwxyz":
             if len(all_rows) >= max_total:
                 break
