@@ -11792,6 +11792,16 @@ def _clientes_lista_via_erp_api(max_total=900):
     if not (getattr(api, "token", None) or "").strip():
         return []
     all_rows = []
+    seen_ids = set()
+
+    def _append_rows(rows):
+        for r in rows or []:
+            rid = str((r or {}).get("id") or "").strip()
+            if not rid or rid in seen_ids:
+                continue
+            seen_ids.add(rid)
+            all_rows.append(r)
+
     skip = 0
     page = 300
     while len(all_rows) < max_total:
@@ -11814,10 +11824,47 @@ def _clientes_lista_via_erp_api(max_total=900):
             )
         if not chunk:
             break
-        all_rows.extend(chunk)
+        _append_rows(chunk)
         if len(chunk) < page:
             break
         skip += page
+
+    # Fallback de cobertura: alguns hosts retornam só uma janela parcial no GetAll.
+    # O reforço por prefixo captura cadastros novos que aparecem no Pesquisar.
+    if len(all_rows) < max_total:
+        page_s = 120
+        max_pages_por_prefixo = 6
+        for prefixo in "0123456789abcdefghijklmnopqrstuvwxyz":
+            if len(all_rows) >= max_total:
+                break
+            for n in range(max_pages_por_prefixo):
+                skip_s = n * page_s
+                try:
+                    ok_s, raw_s = api.pessoas_pesquisar(
+                        nomefantasia=prefixo,
+                        page_size=page_s,
+                        skip=skip_s,
+                        cliente=True,
+                        fornecedor=False,
+                    )
+                except Exception:
+                    logger.exception(
+                        "pessoas_pesquisar fallback erro (prefixo=%s, skip=%s)", prefixo, skip_s
+                    )
+                    break
+                if not ok_s:
+                    break
+                chunk_s = _linhas_pessoas_erp_list(_unwrap_pessoas_erp_response(raw_s))
+                if not chunk_s:
+                    break
+                antes = len(all_rows)
+                _append_rows(chunk_s)
+                if len(chunk_s) < page_s:
+                    break
+                if len(all_rows) == antes:
+                    # Sem avanço após dedupe: evita ficar varrendo páginas repetidas.
+                    break
+
     return all_rows
 
 

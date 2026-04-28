@@ -368,11 +368,10 @@ def ordenar_entregas_por_proximidade(
         modo_ordem = "google_driving"
         avisos.extend(gavisos)
     else:
-        if gavisos:
-            avisos.extend(gavisos)
-        if api_key:
+        avisos.extend(gavisos)
+        if api_key and not gavisos:
             avisos.append(
-                "Ordenação por distância em linha reta (falha na Google Distance Matrix — verifique a chave e a API)."
+                "Ordenação por linha reta (Distance Matrix não retornou matriz)."
             )
 
     ordered: list[dict[str, Any]] = []
