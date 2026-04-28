@@ -372,3 +372,6 @@ LOJA_MAPS_ORIGEM_CENTRO = (
 LOJA_MAPS_ORIGEM_VILA = config("LOJA_MAPS_ORIGEM_VILA", default="").strip() or "-24.7022751,-48.0029425"
 # Legado: se você só definia uma origem, ela vira fallback do Centro (acima).
 LOJA_MAPS_ORIGEM_TEXTO = _legacy_loja_maps
+
+# Ordenação de entregas: matriz de distâncias por estrada (Distance Matrix API — faturamento no Google Cloud).
+GOOGLE_MAPS_API_KEY = config("GOOGLE_MAPS_API_KEY", default="").strip()
