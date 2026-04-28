@@ -3480,28 +3480,38 @@ inputCliente.addEventListener('input', function(e) {
 
     clienteDebounceTimer = setTimeout(() => {
         const locaisFiltrados = filtrarClientesLocais(q);
+        const qTrim = String(q || '').trim();
+        const montarLocalMap = (lista) => (lista || []).map((c) => ({
+            nome: c.nome,
+            documento: c.documento || '',
+            telefone: c.telefone || '',
+            endereco: c.endereco || '',
+            plus_code: c.plus_code || '',
+            id: c.id
+        }));
+
+        // Modo só cache: se o nome não está no snapshot local, ainda pode existir no Django (ClienteAgro).
         if (window.AGRO_MANUAL_SYNC_ONLY) {
             if (locaisFiltrados.length > 0) {
-                renderizarClientes(locaisFiltrados.map(c => ({
-                    nome: c.nome,
-                    documento: c.documento || '',
-                    telefone: c.telefone || '',
-                    endereco: c.endereco || '',
-                    plus_code: c.plus_code || '',
-                    id: c.id
-                })));
-            } else {
-                clienteResults.classList.add('hidden');
+                renderizarClientes(montarLocalMap(locaisFiltrados));
+                return;
             }
+            if (qTrim.length < 1) {
+                clienteResults.classList.add('hidden');
+                return;
+            }
+        } else if (qTrim.length < 1) {
+            clienteResults.classList.add('hidden');
             return;
         }
+
         if (window.gmLoadingBar) window.gmLoadingBar.show();
-        fetch(`${AGRO_PDV_URLS.apiBuscarClientes}?q=${encodeURIComponent(q.trim())}`)
+        fetch(`${AGRO_PDV_URLS.apiBuscarClientes}?q=${encodeURIComponent(qTrim)}`)
             .then(res => res.json())
             .then(data => {
                 const apiList = data.clientes || [];
                 if (data.contagem_fontes && typeof console !== 'undefined' && console.info) {
-                    console.info('[PDV clientes — busca ClienteAgro]', data.contagem_fontes, 'q=', q.trim());
+                    console.info('[PDV clientes — busca ClienteAgro]', data.contagem_fontes, 'q=', qTrim);
                 }
                 const msgEl = document.getElementById('cliente-api-msg');
                 if (msgEl && data.erro) {
@@ -3510,15 +3520,8 @@ inputCliente.addEventListener('input', function(e) {
                 }
                 if (apiList.length > 0) {
                     renderizarClientes(apiList);
-                } else if (locaisFiltrados.length > 0) {
-                    renderizarClientes(locaisFiltrados.map(c => ({
-                        nome: c.nome,
-                        documento: c.documento || '',
-                        telefone: c.telefone || '',
-                        endereco: c.endereco || '',
-                        plus_code: c.plus_code || '',
-                        id: c.id
-                    })));
+                } else if ((!window.AGRO_MANUAL_SYNC_ONLY) && locaisFiltrados.length > 0) {
+                    renderizarClientes(montarLocalMap(locaisFiltrados));
                 } else {
                     clienteResults.classList.add('hidden');
                 }
