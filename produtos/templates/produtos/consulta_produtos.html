@@ -475,7 +475,7 @@
 {% include "produtos/partials/pdv/modals.html" %}
 {{ pdv_bootstrap|json_script:"agro-pdv-bootstrap" }}
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-<script src="{% static 'produtos/js/consulta_produtos.js' %}"></script>
+<script src="{% static 'produtos/js/consulta_produtos.js' %}{% if agro_pdv_assets_v %}?v={{ agro_pdv_assets_v }}{% endif %}"></script>
 <script>
 (function () {
   function cleanSyncParam() {
