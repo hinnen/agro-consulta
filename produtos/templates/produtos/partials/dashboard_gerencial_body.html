@@ -42,7 +42,7 @@
           <summary class="flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border-2 border-slate-300 bg-slate-100 text-[11px] font-black text-slate-600 shadow-sm hover:border-sky-400 hover:bg-sky-50 hover:text-sky-900 [&::-webkit-details-marker]:hidden" title="O que significa este gráfico?">?</summary>
           <div class="absolute left-0 z-30 mt-1 max-w-[20rem] rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
             <p><span class="text-sky-800 font-extrabold">Barras</span> — faturamento de cada <strong>dia</strong> no período que você selecionou (filtro de cima). Em baixo: data e dia da semana.</p>
-            <p><span class="text-emerald-800 font-extrabold">Cores</span> — compara o dia com a <strong>meta (C)</strong> (regra de meta diária). Verde: bateu a meta. Amarelo e laranja: perto, mas abaixo. Vermelho: abaixo. Cinza: sem base para meta naquele dia.</p>
+            <p><span class="text-emerald-800 font-extrabold">Cores</span> — compara o dia com a <strong>meta (C)</strong> (regra de meta diária). A barra usa gradiente contínuo entre vermelho, laranja, amarelo e verde conforme a distância da meta. Cinza: sem base para meta naquele dia.</p>
             <p class="text-slate-500 font-semibold">No toque, o lembrete traz ainda o ticket e o desempenho frente à meta, para conferência rápida no balcão.</p>
           </div>
         </details>
@@ -276,6 +276,50 @@
         "</div>"
       );
     }
+    function dashHexToRgb(hex) {
+      var h = String(hex || "").replace("#", "");
+      if (h.length === 3) h = h.split("").map(function (c) { return c + c; }).join("");
+      var n = parseInt(h, 16);
+      if (Number.isNaN(n)) return { r: 0, g: 0, b: 0 };
+      return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+    }
+    function dashRgbToHex(rgb) {
+      function part(v) {
+        var n = Math.max(0, Math.min(255, Math.round(Number(v || 0))));
+        return n.toString(16).padStart(2, "0");
+      }
+      return "#" + part(rgb.r) + part(rgb.g) + part(rgb.b);
+    }
+    function dashMixHex(a, b, t) {
+      var c1 = dashHexToRgb(a);
+      var c2 = dashHexToRgb(b);
+      var p = Math.max(0, Math.min(1, Number(t || 0)));
+      return dashRgbToHex({
+        r: c1.r + (c2.r - c1.r) * p,
+        g: c1.g + (c2.g - c1.g) * p,
+        b: c1.b + (c2.b - c1.b) * p,
+      });
+    }
+    function dashColorByRatio(ratio) {
+      var stops = [
+        { p: 0.00, c: "#dc2626" }, // vermelho forte
+        { p: 0.40, c: "#f97316" }, // laranja
+        { p: 0.70, c: "#facc15" }, // amarelo
+        { p: 0.90, c: "#84cc16" }, // lima
+        { p: 1.00, c: "#22c55e" }, // verde
+        { p: 1.12, c: "#059669" }, // verde escuro (acima da meta)
+      ];
+      var r = Math.max(0, Math.min(1.12, Number(ratio || 0)));
+      for (var si = 1; si < stops.length; si++) {
+        if (r <= stops[si].p) {
+          var s0 = stops[si - 1];
+          var s1 = stops[si];
+          var localT = (r - s0.p) / (s1.p - s0.p || 1);
+          return dashMixHex(s0.c, s1.c, localT);
+        }
+      }
+      return stops[stops.length - 1].c;
+    }
     var chartDataColored = chartData.map(function (v, i) {
       var venda = Number(v || 0);
       var meta = Number((chartCompare && chartCompare[i]) || 0);
@@ -284,10 +328,7 @@
         if (meta <= 0) cor = "#94a3b8";
         else {
           var razaoMeta = meta > 0 ? (venda / meta) : 0;
-          if (razaoMeta >= 1) cor = "#10b981";       /* bateu meta */
-          else if (razaoMeta >= 0.92) cor = "#facc15"; /* quase lá (amarelo) */
-          else if (razaoMeta >= 0.82) cor = "#f97316"; /* faltou pouco (laranja) */
-          else cor = "#ef4444";                      /* abaixo (vermelho) */
+          cor = dashColorByRatio(razaoMeta);
         }
       }
       return { x: chartLabels[i], y: venda, fillColor: cor };
