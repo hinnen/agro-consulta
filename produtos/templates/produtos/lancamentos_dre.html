@@ -3,7 +3,7 @@
 <html lang="pt-br" class="h-full overflow-hidden">
 <head>
   <meta charset="UTF-8">
-  <title>Agro Mais | DRE simples (por plano)</title>
+  <title>SisVale | DRE simples (por plano)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   {% include "produtos/_head_perf_mpa.html" %}
   <script src="https://cdn.tailwindcss.com"></script>
@@ -25,7 +25,7 @@
         </div>
         <div class="min-w-0">
           <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">
-            GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-amber-800">DRE simples</span>
+            <span class="text-emerald-600">Sis</span>Vale · <span class="text-amber-800">DRE simples</span>
           </h1>
           <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Totais por plano · Mongo / DtoLancamento</p>
         </div>
@@ -92,7 +92,7 @@
         </label>
         <label class="block min-w-[12rem] flex-1 sm:flex-none">
           <span class="text-[10px] font-black uppercase text-slate-500">Empresa (opcional)</span>
-          <input type="text" id="dre-empresa" placeholder="Ex.: Agro Mais Centro" autocomplete="off"
+          <input type="text" id="dre-empresa" placeholder="Ex.: SisVale Centro" autocomplete="off"
             class="mt-1 w-full min-w-[10rem] rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-bold">
         </label>
         <label class="block min-w-[7rem]">
@@ -188,7 +188,7 @@
         if (d.empresa_id_filtro) loja += ` · EmpresaID: ${d.empresa_id_filtro}`;
         const linha1 = `Totais (${modo}) — Receita ${brl(t.total_receita)} · Despesa ${brl(t.total_despesa)} · Resultado ${brl(t.resultado)} · Base: ${d.campo_data || ''} · Valor: ${vm}${loja}`;
         if (!d.empresa_filtro && !d.empresa_id_filtro) {
-          tot.innerHTML = `<span class="block">${linha1}</span><span class="block mt-1.5 text-amber-800 font-semibold normal-case">Sem filtro de empresa: totais somam todas as lojas no Mongo (~2× em relação ao PDF de uma loja). Para bater com o ERP por unidade, preencha Empresa (ex.: Agro Mais Centro).</span>`;
+          tot.innerHTML = `<span class="block">${linha1}</span><span class="block mt-1.5 text-amber-800 font-semibold normal-case">Sem filtro de empresa: totais somam todas as lojas no Mongo (~2× em relação ao PDF de uma loja). Para bater com o ERP por unidade, preencha Empresa (ex.: SisVale Centro).</span>`;
         } else {
           tot.textContent = linha1;
         }

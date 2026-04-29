@@ -293,7 +293,7 @@ def montar_pdf_financeiro_padrao(
     story = [
         _p("Relatório financeiro", st_title),
         _p(
-            f"GM Agro Mais · Contas a {'pagar' if despesa else 'receber'} · Situação: {status}",
+            f"SisVale · Contas a {'pagar' if despesa else 'receber'} · Situação: {status}",
             st_sub,
         ),
         _p(f"Período: {ref_periodo_label(v_de, v_ate)}", st_period),

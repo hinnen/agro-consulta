@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% include "produtos/_head_perf_mpa.html" %}
-    <title>Agro Mais | PDV</title>
+    <title>SisVale | PDV</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     {% include "produtos/_agro_consulta_ui.html" %}
@@ -269,13 +269,13 @@
 
     <div class="max-w-[1400px] mx-auto flex items-center justify-between mb-2 pb-2 border-b border-slate-200 gap-3">
         <div class="flex items-center gap-3 min-w-0">
-            <div class="gm-logo-mark gm-logo-box" aria-label="GM Agro Mais">
+            <div class="gm-logo-mark gm-logo-box" aria-label="SisVale">
                 <span class="gm-logo-g">G</span>
                 <span class="gm-logo-m">M</span>
                 <span class="gm-logo-leaf" aria-hidden="true"></span>
             </div>
             <div class="min-w-0">
-                <div class="text-2xl font-black tracking-tight text-slate-800 leading-none">GM <span class="text-emerald-600">AGRO MAIS</span></div>
+                <div class="text-2xl font-black tracking-tight text-slate-800 leading-none"><span class="text-emerald-600">Sis</span>Vale</div>
                 <div class="text-[10px] md:text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Sistema de balcão</div>
             </div>
         </div>
@@ -436,7 +436,7 @@
                     <div class="text-[10px] uppercase font-black tracking-widest text-slate-400 mt-1">F7 zap • F8 imprime • F10 erp • F9 copia</div>
                 </div>
                 <div class="w-14 h-14 rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="Agro Mais" class="w-full h-full object-contain p-2">
+                    <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="SisVale" class="w-full h-full object-contain p-2">
                 </div>
             </div>
 
@@ -1369,7 +1369,7 @@ function recuperarOrcamento(id) {
 
 function gerarMensagemPedido() {
     const clienteNome = document.getElementById('nome-cliente').value || "Consumidor Final";
-    let msg = `🐎🌾 *ORÇAMENTO AGRO MAIS* 🌾🐔\n\n`;
+    let msg = `🐎🌾 *ORÇAMENTO SISVALE* 🌾🐔\n\n`;
     msg += `👤 *Cliente:* ${clienteNome}\n`;
     msg += `🛒 *Itens do pedido:*\n`;
     msg += `━━━━━━━━━━━━━━━━━━\n`;
@@ -1381,7 +1381,7 @@ function gerarMensagemPedido() {
 
     msg += `━━━━━━━━━━━━━━━━━━\n`;
     msg += `💵 *TOTAL: ${document.getElementById('total-geral').innerText}*\n\n`;
-    msg += `✨ Obrigado por escolher a *Agro Mais*!\n`;
+    msg += `✨ Obrigado por escolher a *SisVale*!\n`;
     msg += `📍 Qualquer dúvida, estamos à disposição.`;
     return msg;
 }
@@ -1423,7 +1423,7 @@ function imprimirOrcamento() {
     
     let html = `
         <div style="text-align:center; margin-bottom: 5px;">
-            <h2 style="margin: 0; font-size: 22px; font-weight: 900;">AGRO MAIS</h2>
+            <h2 style="margin: 0; font-size: 22px; font-weight: 900;">SISVALE</h2>
             <div style="font-size: 10px;">Av Principal, 123 - Centro</div>
         </div>
         <div style="border-bottom: 1px dashed #000; margin-bottom: 5px;"></div>

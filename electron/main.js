@@ -1,5 +1,5 @@
 /**
- * Shell Electron para o Agro Consulta (PDV web).
+ * Shell Electron para o SisVale — PDV web.
  * Defina a URL: AGRO_ELECTRON_URL ou AGRO_APP_URL ou padrão Render.
  *
  * disable-http-cache: cada recurso (HTML/JS/CSS) vem da rede — evita ficar preso em

@@ -203,12 +203,33 @@ STATIC_URL = 'static/'
 VENDA_ERP_MONGO_URL = config('VENDA_ERP_MONGO_URL', default='')
 VENDA_ERP_MONGO_DB = config('VENDA_ERP_MONGO_DB', default='')
 
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'agro-consulta-cache',
+# Cache compartilhado (Render: crie Redis e use o mesmo Environment Group; injeta REDIS_URL).
+# Sem Redis: LocMemCache — snapshot de saldos PDV fica desligado (ver AGRO_PDV_SALDOS_CACHE_SECONDS).
+REDIS_URL = (config('REDIS_URL', default='') or '').strip()
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            },
+            'KEY_PREFIX': 'agro',
+            'TIMEOUT': 600,
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'agro-consulta-cache',
+        }
+    }
+
+# Segundos de cache do GET /api/pdv/saldos/ no servidor. Só recomendado com Redis (cache global).
+AGRO_PDV_SALDOS_CACHE_SECONDS = int(
+    config('AGRO_PDV_SALDOS_CACHE_SECONDS', default='5' if REDIS_URL else '0')
+)
 
 CONSULTA_CACHE_TTL = 20
 # Configurações da API Venda ERP

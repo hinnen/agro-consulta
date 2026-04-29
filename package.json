@@ -2,7 +2,7 @@
   "name": "agro-consulta-desktop",
   "version": "0.2.0",
   "private": true,
-  "description": "Shell Electron para o PDV Agro Consulta (Django em rede ou localhost).",
+  "description": "Shell Electron para o PDV SisVale (Django em rede ou localhost).",
   "main": "electron/main.js",
   "scripts": {
     "electron": "electron .",
@@ -14,7 +14,7 @@
   },
   "build": {
     "appId": "br.com.agromais.consulta",
-    "productName": "Agro Consulta",
+    "productName": "SisVale",
     "icon": "build/icon.png",
     "directories": {
       "output": "dist-electron"
@@ -32,7 +32,7 @@
           ]
         }
       ],
-      "publisherName": "Agro Mais"
+      "publisherName": "SisVale"
     },
     "nsis": {
       "oneClick": false,

@@ -3,7 +3,7 @@
 <html lang="pt-br" class="h-full overflow-hidden">
 <head>
   <meta charset="UTF-8">
-  <title>Agro Mais | Entrada de NF-e</title>
+  <title>SisVale | Entrada de NF-e</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   {% include "produtos/_head_perf_mpa.html" %}
   <script src="https://cdn.tailwindcss.com"></script>
@@ -33,6 +33,9 @@
     .forn-dd { max-height: 260px; overflow-y: auto; z-index: 45; }
     .filtro-nfe-chip { border-width: 2px; border-color: rgb(226 232 240); background: white; color: rgb(71 85 105); }
     .filtro-nfe-chip.filtro-nfe-chip-on { border-color: rgb(249 115 22); background: rgb(255 247 237); color: rgb(124 45 18); }
+    .nfe-wiz-nav-btn { border-width: 2px; border-color: rgb(226 232 240); background: white; color: rgb(71 85 105); }
+    .nfe-wiz-nav-btn--on { border-color: rgb(249 115 22); background: rgb(255 247 237); color: rgb(124 45 18); }
+    #entrada-nfe-wizard-pages .nfe-wiz-page { min-height: min(70vh, 42rem); }
     body.entrada-nfe--editor { overflow: hidden; }
     body.entrada-nfe--editor #entrada-nfe-header-principal { display: none; }
     body.entrada-nfe--editor #entrada-nfe-main-lista { display: none; }
@@ -49,7 +52,7 @@
         </div>
         <div class="min-w-0 flex items-start gap-2">
           <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-800 leading-tight">
-            GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-orange-700">Entrada de NF-e</span>
+            <span class="text-emerald-600">Sis</span>Vale · <span class="text-orange-700">Entrada de NF-e</span>
           </h1>
           <button type="button" id="btn-entrada-nfe-ajuda" class="entrada-nfe-open-ajuda min-h-[44px] min-w-[44px] rounded-xl border-2 border-slate-300 bg-white text-xl font-black leading-none text-slate-700 hover:bg-orange-50 hover:border-orange-400 shrink-0" title="Ajuda" aria-haspopup="dialog" aria-controls="modal-entrada-nfe-ajuda">?</button>
         </div>
@@ -117,9 +120,36 @@
       <button type="button" class="tab-btn inline-flex items-center justify-center px-4 min-h-[44px] rounded-xl font-black text-xs uppercase border-2 tab-off" data-tab="sefaz" title="SEFAZ">SEFAZ</button>
     </div>
 
-    <section id="panel-manual" class="tab-panel bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-3 sm:p-4 space-y-3">
-      <div class="rounded-xl border border-slate-200 bg-slate-50/90 p-3 sm:p-4 space-y-3">
-        <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">Fornecedor e NF</h2>
+    <section id="panel-manual" class="tab-panel bg-white rounded-2xl border-2 border-slate-200 shadow-sm p-3 sm:p-4 flex flex-col gap-3 min-h-0">
+      <div class="rounded-xl border-2 border-indigo-200 bg-indigo-50/95 p-3 shadow-sm space-y-2 shrink-0" id="entrada-nfe-wizard-nav" role="navigation" aria-label="Passos da entrada">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-[11px] font-black uppercase text-indigo-950 tracking-wide">Passo a passo</p>
+          <div class="flex flex-wrap gap-1">
+            <button type="button" class="nfe-wiz-nav-btn nfe-wiz-nav-btn--on text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="1">1 · NF · Plano</button>
+            <button type="button" class="nfe-wiz-nav-btn text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="2">2 · Produtos</button>
+            <button type="button" class="nfe-wiz-nav-btn text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="3">3 · Estoque</button>
+            <button type="button" class="nfe-wiz-nav-btn text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="4">4 · Boletos</button>
+            <button type="button" class="nfe-wiz-nav-btn text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="5">5 · PIN</button>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2 pt-1 border-t border-indigo-200/80">
+          <button type="button" id="nfe-wiz-prev" class="min-h-[40px] px-3 rounded-xl border-2 border-indigo-300 bg-white text-[10px] font-black uppercase text-indigo-900">← Anterior</button>
+          <button type="button" id="nfe-wiz-next" class="min-h-[40px] px-3 rounded-xl border-2 border-indigo-500 bg-indigo-600 text-white text-[10px] font-black uppercase">Próximo →</button>
+        </div>
+      </div>
+
+      <div id="entrada-nfe-wizard-pages" class="flex-1 min-h-0 flex flex-col">
+      <div id="nfe-wiz-page-1" data-nfe-wiz-page="1" class="nfe-wiz-page flex flex-col gap-3 overflow-y-auto">
+        <div class="rounded-xl border-2 border-violet-200 bg-violet-50/90 p-3 sm:p-4 space-y-2">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <h2 class="text-sm font-black uppercase text-violet-950 tracking-tight">Pedido na compra <span class="text-[10px] font-bold text-violet-800 normal-case">(opcional)</span></h2>
+            <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-violet-300 bg-white text-sm font-black text-violet-900" title="Ajuda" data-help-w="1">?</button>
+          </div>
+          <p class="text-xs font-semibold text-violet-950 leading-snug">Se esta nota veio de um <strong>pedido de compra</strong>, registre ou confira na tela de Compras.</p>
+          <a href="{% url 'compras_view' %}" class="inline-flex min-h-[44px] items-center px-4 rounded-xl border-2 border-violet-500 bg-white text-xs font-black uppercase text-violet-900 hover:bg-violet-100" target="_blank" rel="noopener">Abrir Compras (nova aba)</a>
+        </div>
+        <div id="nfe-wiz-a2" class="rounded-xl border border-slate-200 bg-slate-50/90 p-3 sm:p-4 space-y-3">
+        <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">1 · Fornecedor e NF</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <label class="block lg:col-span-2"><span class="text-xs font-black uppercase text-slate-600">Fornecedor / emitente (cadastro)</span>
           <div class="relative mt-1">
@@ -141,28 +171,11 @@
           <input type="datetime-local" id="m-dh" class="mt-1 w-full max-w-xs min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold"></label>
         <label class="block"><span class="text-xs font-black uppercase text-slate-600">Data entrada (física)</span>
           <input type="date" id="m-data-entrada" class="mt-1 w-full max-w-xs min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black" title="Quando a mercadoria entrou no estoque"></label>
-        <div class="md:col-span-2 lg:col-span-3 pt-3 mt-1 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-          <label class="block"><span class="text-xs font-black uppercase text-slate-600">Empresa (estoque) *</span>
-            <select id="m-empresa-faturada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Empresa faturada / estoque Agro">
-              {% for e in empresas_entrada_nfe %}
-              <option value="{{ e.id }}"{% if e.nome == "Agro Mais" %} selected{% endif %}>{{ e.nome }}</option>
-              {% empty %}
-              <option value="">Cadastre empresas no Admin</option>
-              {% endfor %}
-            </select>
-          </label>
-          <label class="block"><span class="text-xs font-black uppercase text-slate-600">Depósito *</span>
-            <select id="m-deposito-entrada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Depósito">
-              <option value="centro" selected>Centro</option>
-              <option value="vila">Vila Elias</option>
-            </select>
-          </label>
         </div>
         </div>
-      </div>
 
       <div class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 sm:p-4 space-y-2">
-        <h2 class="text-sm font-black uppercase text-emerald-950 tracking-tight">Plano de contas</h2>
+        <h2 class="text-sm font-black uppercase text-emerald-950 tracking-tight">1 · Plano de contas</h2>
         <div class="block space-y-2">
           <label for="m-plano-conta" class="sr-only">Plano de contas</label>
           <div class="relative sug-wrap mt-1" data-sug-campo="plano">
@@ -177,11 +190,22 @@
         </div>
       </div>
 
+      </div>
+
+      <div id="nfe-wiz-page-2" data-nfe-wiz-page="2" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
+
       <div class="rounded-xl border-2 border-orange-200 bg-gradient-to-br from-orange-50/80 to-white p-3 sm:p-4 space-y-2">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">Itens</h2>
-          <button type="button" id="btn-add-linha" class="min-h-[44px] px-4 py-2 rounded-xl bg-white border-2 border-orange-300 text-xs font-black uppercase text-orange-900 hover:bg-orange-50 shrink-0">+ Linha</button>
+          <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">2 · Itens</h2>
+          <div class="flex flex-wrap gap-2 justify-end">
+            <a href="{% url 'produtos_cadastro_erp' %}?novo=1"
+              target="_blank" rel="noopener"
+              class="inline-flex min-h-[44px] items-center px-4 py-2 rounded-xl bg-white border-2 border-blue-600 text-xs font-black uppercase text-blue-950 hover:bg-blue-50 shrink-0"
+              title="Abre o cadastro de produtos em nova aba; ao criar no Agro, volte aqui e use Buscar na linha.">+ Produto novo</a>
+            <button type="button" id="btn-add-linha" class="min-h-[44px] px-4 py-2 rounded-xl bg-white border-2 border-orange-300 text-xs font-black uppercase text-orange-900 hover:bg-orange-50 shrink-0">+ Linha</button>
+          </div>
         </div>
+        <p class="text-[11px] font-semibold text-slate-600 leading-snug">Não existe no catálogo? Cadastre com <strong>+ Produto novo</strong> (nova aba) e depois localize o item em <strong>Buscar</strong> na linha.</p>
         <div class="overflow-x-auto rounded-xl border-2 border-slate-200 bg-white shadow-inner">
         <table class="w-full text-xs sm:text-sm min-w-[1020px]">
           <thead class="bg-slate-100 text-[11px] font-black uppercase text-slate-600">
@@ -209,8 +233,69 @@
         </div>
       </div>
 
-      <div class="rounded-xl border-2 border-emerald-300 bg-emerald-50/50 px-3 py-3 shadow-sm">
-        <h3 class="text-sm font-black uppercase text-emerald-950 mb-2">Financeiro <span class="text-[10px] font-bold text-emerald-800/90 normal-case">(opcional)</span></h3>
+      <div id="nfe-wiz-a2b" class="rounded-xl border-2 border-rose-200 bg-rose-50/90 p-3 sm:p-4 space-y-3 scroll-mt-24">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <h2 class="text-sm font-black uppercase text-rose-950 tracking-tight">2 · Conferência por código de barras</h2>
+          <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-rose-300 bg-white text-sm font-black text-rose-900" data-help-w="2b" title="Ajuda">?</button>
+        </div>
+        <p class="text-xs font-semibold text-rose-900 leading-snug">Bipe um código e confira se bate com o <strong>produto do catálogo</strong> na linha escolhida. Segundo campo = outro código válido do mesmo item. Marque <strong>não verificar</strong> quando não houver código.</p>
+        <div class="flex flex-wrap gap-2 items-end">
+          <label class="block min-w-[12rem] flex-1"><span class="text-[10px] font-black uppercase text-rose-900">Linha</span>
+            <select id="nfe-bip-linha-sel" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-rose-200 px-2 text-sm font-bold bg-white"></select>
+          </label>
+          <label class="block min-w-[10rem] flex-1"><span class="text-[10px] font-black uppercase text-rose-900">Código bipado</span>
+            <input type="text" id="nfe-bip-cod" autocomplete="off" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-rose-200 px-3 text-sm font-mono bg-white" placeholder="Somente números" inputmode="numeric">
+          </label>
+          <label class="block min-w-[10rem] flex-1"><span class="text-[10px] font-black uppercase text-rose-900">2º código (opcional)</span>
+            <input type="text" id="nfe-bip-cod-alt" autocomplete="off" class="mt-1 w-full min-h-[44px] rounded-xl border-2 border-rose-100 px-2 text-xs font-mono bg-white" placeholder="Outro EAN / código">
+          </label>
+          <label class="inline-flex items-center gap-2 px-2 py-2 rounded-xl border-2 border-rose-200 bg-white cursor-pointer shrink-0 min-h-[48px]">
+            <input type="checkbox" id="nfe-bip-ignorar" class="h-5 w-5 accent-rose-600">
+            <span class="text-xs font-bold text-rose-950">Não verificar esta linha</span>
+          </label>
+          <button type="button" id="nfe-bip-verificar" class="min-h-[48px] px-4 rounded-xl bg-rose-700 text-white text-xs font-black uppercase border-2 border-rose-900">Verificar</button>
+        </div>
+        <p id="nfe-bip-msg" class="text-sm font-bold text-slate-700 min-h-[1.25rem]" role="status"></p>
+      </div>
+      </div>
+
+      <div id="nfe-wiz-page-3" data-nfe-wiz-page="3" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
+      <div class="rounded-xl border-2 border-slate-200 bg-white p-3 sm:p-4 space-y-3 shadow-sm">
+        <h3 class="text-sm font-black uppercase text-slate-900 tracking-tight">3 · Empresa e depósito (estoque)</h3>
+        <p class="text-xs font-semibold text-slate-700 leading-snug">Escolha <strong>onde</strong> a entrada vai contar no Agro antes de registrar.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          <label class="block"><span class="text-xs font-black uppercase text-slate-600">Empresa (estoque) *</span>
+            <select id="m-empresa-faturada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Empresa faturada / estoque Agro">
+              {% for e in empresas_entrada_nfe %}
+              <option value="{{ e.id }}"{% if e.nome == "Agro Mais" %} selected{% endif %}>{{ e.nome }}</option>
+              {% empty %}
+              <option value="">Cadastre empresas no Admin</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="block"><span class="text-xs font-black uppercase text-slate-600">Depósito *</span>
+            <select id="m-deposito-entrada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Obrigatório — escolha e confira o depósito">
+              <option value="" selected>— Selecione —</option>
+              <option value="centro">Centro</option>
+              <option value="vila">Vila Elias</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div id="nfe-wiz-a3" class="rounded-xl border-2 border-blue-200 bg-blue-50/80 px-3 py-3">
+        <h3 class="text-sm font-black uppercase text-blue-950 mb-1">Registrar no estoque Agro</h3>
+        <p class="text-[11px] font-semibold text-blue-900/90 mb-2 leading-snug">
+          Com empresa e depósito conferidos acima, use o botão para gravar a nota e atualizar o estoque num passo só.
+        </p>
+        <button type="button" id="btn-estoque-agro" class="min-h-[52px] px-8 py-3.5 rounded-xl bg-blue-700 text-white font-black text-sm sm:text-base uppercase hover:bg-blue-800 shadow-md border-2 border-blue-900 w-full sm:w-auto">
+          Registrar entrada no estoque Agro
+        </button>
+      </div>
+      </div>
+
+      <div id="nfe-wiz-page-4" data-nfe-wiz-page="4" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
+      <div id="nfe-wiz-a4" class="rounded-xl border-2 border-emerald-300 bg-emerald-50/50 px-3 py-3 shadow-sm">
+        <h3 class="text-sm font-black uppercase text-emerald-950 mb-2">4 · Financeiro <span class="text-[10px] font-bold text-emerald-800/90 normal-case">(opcional)</span></h3>
         <div class="space-y-3 text-xs sm:text-sm font-semibold text-emerald-950">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label class="block"><span class="text-xs font-black uppercase text-slate-700">Empresa *</span>
@@ -279,15 +364,21 @@
           <button type="button" id="btn-salvar-fin" class="min-h-[48px] flex-1 min-w-[10rem] px-4 py-3 rounded-xl bg-emerald-700 text-white font-black text-sm uppercase hover:bg-emerald-800 shadow-md border-2 border-emerald-900">Salvar + a pagar</button>
         </div>
       </div>
+      </div>
 
-      <div class="rounded-xl border-2 border-blue-200 bg-blue-50/80 px-3 py-3">
-        <h3 class="text-sm font-black uppercase text-blue-950 mb-1">Estoque Agro</h3>
-        <p class="text-[11px] font-semibold text-blue-900/90 mb-2 leading-snug">
-          Ao registrar, a nota é <strong>gravada no Agro</strong> (como na tela) e em seguida o estoque é atualizado — num passo só.
-        </p>
-        <button type="button" id="btn-estoque-agro" class="min-h-[52px] px-8 py-3.5 rounded-xl bg-blue-700 text-white font-black text-sm sm:text-base uppercase hover:bg-blue-800 shadow-md border-2 border-blue-900 w-full sm:w-auto">
-          Registrar entrada no estoque Agro
-        </button>
+      <div id="nfe-wiz-page-5" data-nfe-wiz-page="5" class="nfe-wiz-page hidden flex flex-col gap-3 rounded-xl border-2 border-slate-300 bg-slate-50/95 p-3 sm:p-4 overflow-y-auto">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">5 · Fechamento com PIN</h2>
+          <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-slate-300 bg-white text-sm font-black text-slate-800" data-help-w="5" title="Ajuda">?</button>
+        </div>
+        <p class="text-xs font-semibold text-slate-800 leading-snug">Só é possível gravar aqui com as <strong>etapas 1 a 4</strong> corretas (NF, fornecedor e plano na etapa 1; produtos na etapa 2; empresa/depósito; rascunho salvo; se iniciou boletos, parcelas fechando com o total). Usa o <strong>mesmo PIN</strong> da senha rápida (estoque / empréstimo). Não substitui registrar estoque nem o financeiro no Mongo.</p>
+        <label class="block max-w-xs"><span class="text-[10px] font-black uppercase text-slate-700">PIN</span>
+          <input type="password" id="nfe-wiz-pin" autocomplete="current-password" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-300 px-3 text-lg font-mono tracking-widest bg-white" inputmode="numeric" maxlength="12">
+        </label>
+        <button type="button" id="nfe-wiz-btn-aprov" class="min-h-[48px] px-5 rounded-xl bg-slate-800 text-white text-xs font-black uppercase border-2 border-slate-950 hover:bg-slate-900">Gravar conferência (PIN)</button>
+        <p id="nfe-wiz-aprov-msg" class="text-sm font-bold text-slate-700 min-h-[1.25rem]" role="status"></p>
+        <div id="nfe-wiz-recap" class="rounded-xl border border-slate-200 bg-white p-3 text-xs font-semibold text-slate-700 space-y-1"></div>
+      </div>
       </div>
     </section>
 
@@ -370,7 +461,11 @@
         </div>
         <div class="border-l-4 border-blue-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Estoque Agro</p>
-          <p>Soma <strong>Qtd est.</strong> no saldo do PDV/Compras só para linhas com produto do catálogo (Buscar). Não repita o mesmo clique na mesma nota. Depósito e empresa vêm do passo 1. O botão verde <strong>grava a nota e aplica o estoque</strong> no mesmo envio.</p>
+          <p>Soma <strong>Qtd est.</strong> no saldo do PDV/Compras só para linhas com produto do catálogo (Buscar). Não repita o mesmo clique na mesma nota. <strong>Empresa (estoque)</strong> e <strong>depósito</strong> ficam no <strong>passo 3</strong> do assistente. O botão azul <strong>grava a nota e aplica o estoque</strong> no mesmo envio.</p>
+        </div>
+        <div class="border-l-4 border-indigo-200 pl-3 space-y-2">
+          <p class="text-xs font-black uppercase text-slate-500">Passo a passo (aba Manual)</p>
+          <p>Use <strong>Próximo</strong> / <strong>Anterior</strong> ou os botões no topo: cada passo aparece <strong>só um por vez</strong> (pedido opcional, NF/fornecedor e plano de contas; depois produtos; estoque; boletos; PIN). O PIN é o mesmo da <strong>senha rápida</strong> do usuário (estoque / empréstimo).</p>
         </div>
         <div class="text-[11px] sm:text-xs font-semibold text-slate-600 space-y-1 pt-2 border-t border-slate-100">
           <p class="font-black uppercase text-slate-500">Técnico</p>
@@ -398,6 +493,8 @@
   const URL_RASC_EXCLUIR = "{% url 'api_entrada_nota_rascunho_excluir' %}";
   const URL_RASC_ATUALIZAR = "{% url 'api_entrada_nota_rascunho_atualizar' %}";
   const URL_RASC_ACAO = "{% url 'api_entrada_nota_rascunho_acao' %}";
+  const URL_CONF_COD = "{% url 'api_entrada_nota_conferir_codigo' %}";
+  const URL_APROVAR_WIZ = "{% url 'api_entrada_nota_aprovar_wizard' %}";
   /** Path ou URL absoluta (evitar host fixo no iframe — usar só pathname + origem atual). */
   const ENTRADA_NFE_TMPL_CADASTRO_PROD = "{% url 'produtos_cadastro_erp_produto' produto_id='__AGRO_PH__' %}";
 
@@ -487,13 +584,17 @@
     entradaNfeRascunhoEditId = id ? String(id) : null;
     const b = document.getElementById('entrada-nfe-rasc-banner');
     const t = document.getElementById('entrada-nfe-rasc-banner-id');
-    if (!b || !t) return;
-    if (entradaNfeRascunhoEditId) {
-      t.textContent = entradaNfeRascunhoEditId;
-      b.classList.remove('hidden');
-    } else {
-      b.classList.add('hidden');
+    if (b && t) {
+      if (entradaNfeRascunhoEditId) {
+        t.textContent = entradaNfeRascunhoEditId;
+        b.classList.remove('hidden');
+      } else {
+        b.classList.add('hidden');
+      }
     }
+    try {
+      entradaNfeWizardSetStep(entradaNfeRascunhoEditId ? 2 : 1);
+    } catch (_) {}
   }
 
   function getCookie(name) {
@@ -503,6 +604,274 @@
 
   const elEditorNfe = document.getElementById('entrada-nfe-view-editor');
   const elEditorScroll = document.getElementById('entrada-nfe-editor-scroll');
+
+  let entradaNfeWizardStep = 1;
+
+  let entradaNfeDepositoConfirmSupresso = false;
+  let entradaNfeDepositoUltimoConfirmado = '';
+  function entradaNfeDepositoDefinir(val, silent) {
+    const sel = document.getElementById('m-deposito-entrada');
+    if (!sel) return;
+    const v = ['centro', 'vila'].includes(String(val || '').trim()) ? String(val).trim() : '';
+    if (silent) {
+      entradaNfeDepositoConfirmSupresso = true;
+      sel.value = v;
+      entradaNfeDepositoUltimoConfirmado = v;
+      queueMicrotask(() => { entradaNfeDepositoConfirmSupresso = false; });
+    } else {
+      sel.value = v;
+      entradaNfeDepositoUltimoConfirmado = v;
+    }
+  }
+
+  document.getElementById('m-deposito-entrada')?.addEventListener('change', function entradaNfeOnDepositoChange() {
+    if (entradaNfeDepositoConfirmSupresso) return;
+    const sel = this;
+    const v = sel.value.trim();
+    if (!v || !['centro', 'vila'].includes(v)) {
+      entradaNfeDepositoUltimoConfirmado = '';
+      return;
+    }
+    const label = sel.options[sel.selectedIndex]?.textContent?.trim() || v;
+    if (!window.confirm(`Tem certeza?\n\nO depósito escolhido é «${label}». Esta entrada será contabilizada neste estoque quando você registrar.`)) {
+      entradaNfeDepositoConfirmSupresso = true;
+      sel.value = entradaNfeDepositoUltimoConfirmado || '';
+      entradaNfeDepositoConfirmSupresso = false;
+      return;
+    }
+    entradaNfeDepositoUltimoConfirmado = v;
+  });
+
+  function entradaNfeWizardApplyStepUi(s) {
+    const step = Math.min(5, Math.max(1, Math.floor(Number(s)) || 1));
+    entradaNfeWizardStep = step;
+    document.querySelectorAll('#entrada-nfe-wizard-nav [data-nfe-w-go]').forEach((btn) => {
+      const v = Number(btn.getAttribute('data-nfe-w-go'));
+      btn.classList.toggle('nfe-wiz-nav-btn--on', v === step);
+    });
+    document.querySelectorAll('[data-nfe-wiz-page]').forEach((pane) => {
+      const p = Number(pane.getAttribute('data-nfe-wiz-page'));
+      const on = p === step;
+      pane.classList.toggle('hidden', !on);
+      pane.setAttribute('aria-hidden', on ? 'false' : 'true');
+    });
+    const btnP = document.getElementById('nfe-wiz-prev');
+    const btnN = document.getElementById('nfe-wiz-next');
+    if (btnP) {
+      btnP.disabled = step <= 1;
+      btnP.classList.toggle('opacity-40', step <= 1);
+      btnP.classList.toggle('pointer-events-none', step <= 1);
+    }
+    if (btnN) {
+      btnN.disabled = step >= 5;
+      btnN.classList.toggle('opacity-40', step >= 5);
+      btnN.classList.toggle('pointer-events-none', step >= 5);
+    }
+    try {
+      elEditorScroll?.scrollTo(0, 0);
+    } catch (_) {}
+    if (step === 5) entradaNfeRecapRefresh();
+  }
+
+  function entradaNfeWizardSetStep(n) {
+    const s = Math.min(5, Math.max(1, Math.floor(Number(n)) || 1));
+    if (s === 5) {
+      const v = entradaNfeWizardValidarPassosAnteriores();
+      if (!v.ok) {
+        showMsg(v.erro, false);
+        const elMsg = document.getElementById('nfe-wiz-aprov-msg');
+        if (elMsg) {
+          elMsg.textContent = v.erro;
+          elMsg.classList.remove('text-emerald-800');
+        }
+        entradaNfeWizardApplyStepUi(v.irPara);
+        return;
+      }
+      const elOk = document.getElementById('nfe-wiz-aprov-msg');
+      if (elOk) {
+        elOk.textContent = '';
+        elOk.classList.remove('text-emerald-800');
+      }
+    }
+    entradaNfeWizardApplyStepUi(s);
+  }
+
+  function entradaNfeRecapRefresh() {
+    const box = document.getElementById('nfe-wiz-recap');
+    if (!box) return;
+    const nf = document.getElementById('m-nf')?.value?.trim() || '—';
+    const ser = document.getElementById('m-serie')?.value?.trim() || '';
+    const forn = document.getElementById('m-emit-nome')?.value?.trim() || '—';
+    const dep = document.getElementById('m-deposito-entrada');
+    const depT = dep ? dep.options[dep.selectedIndex]?.text : '';
+    const emp = document.getElementById('m-empresa-faturada');
+    const empT = emp ? emp.options[emp.selectedIndex]?.text : '';
+    const rows = document.querySelectorAll('#tbody-itens tr');
+    let comProd = 0;
+    rows.forEach((tr) => {
+      if (tr.querySelector('.in-prod-id')?.value?.trim()) comProd += 1;
+    });
+    box.innerHTML = `<p><strong>NF</strong> ${nf}${ser ? ` · série ${ser}` : ''}</p><p><strong>Fornecedor</strong> ${forn}</p><p><strong>Estoque</strong> ${empT || '—'} — ${depT || '—'}</p><p><strong>Linhas com catálogo</strong> ${comProd} / ${rows.length}</p>`;
+  }
+
+  function entradaNfeBipRebuildSelect() {
+    const sel = document.getElementById('nfe-bip-linha-sel');
+    if (!sel) return;
+    const rows = [...document.querySelectorAll('#tbody-itens tr')];
+    const prev = sel.value;
+    sel.innerHTML = '';
+    rows.forEach((tr, i) => {
+      const opt = document.createElement('option');
+      opt.value = String(i);
+      const desc = (tr.querySelector('.in-desc')?.value || '').trim().slice(0, 56);
+      opt.textContent = `${i + 1}. ${desc || '(sem descrição)'}`;
+      sel.appendChild(opt);
+    });
+    if (rows.length) {
+      if (prev && [...sel.options].some((o) => o.value === prev)) sel.value = prev;
+      else sel.value = '0';
+    }
+  }
+
+  async function entradaNfeBipVerificar() {
+    const msg = document.getElementById('nfe-bip-msg');
+    if (msg) {
+      msg.textContent = '';
+      msg.classList.remove('text-emerald-800', 'text-red-700');
+    }
+    const sel = document.getElementById('nfe-bip-linha-sel');
+    const rows = [...document.querySelectorAll('#tbody-itens tr')];
+    if (!sel || !rows.length) {
+      if (msg) msg.textContent = 'Adicione linhas na grade primeiro.';
+      return;
+    }
+    const tr = rows[Number(sel.value) || 0];
+    if (!tr) return;
+    const pid = tr.querySelector('.in-prod-id')?.value?.trim();
+    const cod = document.getElementById('nfe-bip-cod')?.value?.trim() || '';
+    const codAlt = document.getElementById('nfe-bip-cod-alt')?.value?.trim() || '';
+    const ign = document.getElementById('nfe-bip-ignorar')?.checked;
+    const body = ign ? { ignorar: true } : { produto_id: pid, codigo: cod, codigo_alt: codAlt };
+    if (!ign && !pid) {
+      if (msg) msg.textContent = 'Escolha a linha com produto do catálogo (Buscar).';
+      return;
+    }
+    try {
+      const r = await fetch(URL_CONF_COD, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json();
+      if (!j.ok) {
+        if (msg) msg.textContent = j.erro || 'Falha na conferência.';
+        return;
+      }
+      if (j.ignorado) {
+        if (msg) msg.textContent = 'Verificação ignorada para esta linha.';
+        return;
+      }
+      if (j.bate) {
+        if (msg) {
+          msg.textContent = `Bate com o cadastro${j.nome ? `: ${j.nome}` : '.'}`;
+          msg.classList.add('text-emerald-800');
+        }
+      } else if (msg) {
+        msg.textContent = `Não bate com ${j.nome || 'o catálogo'}.`;
+        msg.classList.add('text-red-700');
+      }
+    } catch (_) {
+      if (msg) msg.textContent = 'Erro de rede.';
+    }
+  }
+
+  async function entradaNfeAprovarWizardPin() {
+    const elMsg = document.getElementById('nfe-wiz-aprov-msg');
+    if (elMsg) {
+      elMsg.textContent = '';
+      elMsg.classList.remove('text-emerald-800');
+    }
+    const v0 = entradaNfeWizardValidarPassosAnteriores();
+    if (!v0.ok) {
+      showMsg(v0.erro, false);
+      if (elMsg) elMsg.textContent = v0.erro;
+      entradaNfeWizardApplyStepUi(v0.irPara);
+      return;
+    }
+    const rid = entradaNfeRascunhoEditId;
+    if (!rid) {
+      const t = 'Salve um rascunho antes (Salvar rascunho).';
+      if (elMsg) elMsg.textContent = t;
+      showMsg(t, false);
+      entradaNfeWizardApplyStepUi(4);
+      return;
+    }
+    const pin = document.getElementById('nfe-wiz-pin')?.value?.trim() || '';
+    try {
+      const r = await fetch(URL_APROVAR_WIZ, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ rascunho_id: rid, pin }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) {
+        const err = j.erro || (r.status === 403 ? 'PIN inválido.' : 'Falha ao gravar.');
+        if (elMsg) elMsg.textContent = err;
+        showMsg(err, false);
+        return;
+      }
+      if (elMsg) {
+        elMsg.textContent = 'Conferência registrada.';
+        elMsg.classList.add('text-emerald-800');
+      }
+      showMsg('Conferência com PIN registrada no rascunho.', true);
+    } catch (_) {
+      if (elMsg) elMsg.textContent = 'Erro de rede.';
+    }
+  }
+
+  document.getElementById('entrada-nfe-wizard-nav')?.querySelectorAll('[data-nfe-w-go]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const n = Number(btn.getAttribute('data-nfe-w-go'));
+      entradaNfeWizardSetStep(n);
+    });
+  });
+  document.getElementById('nfe-wiz-prev')?.addEventListener('click', () => entradaNfeWizardSetStep(entradaNfeWizardStep - 1));
+  document.getElementById('nfe-wiz-next')?.addEventListener('click', () => entradaNfeWizardSetStep(entradaNfeWizardStep + 1));
+  document.getElementById('nfe-bip-verificar')?.addEventListener('click', () => { entradaNfeBipVerificar(); });
+  document.getElementById('nfe-bip-cod')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      entradaNfeBipVerificar();
+    }
+  });
+  document.getElementById('nfe-wiz-btn-aprov')?.addEventListener('click', () => { entradaNfeAprovarWizardPin(); });
+  document.getElementById('nfe-wiz-pin')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      entradaNfeAprovarWizardPin();
+    }
+  });
+  document.getElementById('panel-manual')?.addEventListener('click', (e) => {
+    const elT = e.target;
+    const h = elT instanceof Element ? elT.closest('.nfe-wiz-help') : null;
+    if (!h) return;
+    const w = h.getAttribute('data-help-w');
+    const tit = {
+      1: 'Etapa 1: pedido opcional na Compras (se aplicável), fornecedor/NF e plano de contas.',
+      '2b': 'Conferência por código: compare EAN/código do rótulo com o cadastro do item selecionado na linha.',
+      5: 'PIN igual ao de bloqueio / senha rápida. Só libera com etapas 1–4 válidas e rascunho salvo; se abriu boletos, precisa fechar parcelas com o total da nota.',
+    }[w] || 'Ajuda';
+    showMsg(tit, true);
+  });
 
   function entradaNfeAbrirEditor() {
     document.body.classList.add('entrada-nfe--editor');
@@ -746,6 +1115,68 @@
     return { parcelas };
   }
 
+  /** Regras alinhadas ao salvar / financeiro / estoque: etapas 1–4 antes da conferência com PIN (etapa 5). */
+  function entradaNfeWizardValidarPassosAnteriores() {
+    const cab = coletarCabecalho();
+    const linhas = coletarLinhas();
+    if (!cab.emit_nome) {
+      return { ok: false, irPara: 1, erro: 'Informe o fornecedor / emitente (etapa 1 · NF).' };
+    }
+    if (!String(cab.numero || '').trim()) {
+      return { ok: false, irPara: 1, erro: 'Informe o número da NF (etapa 1 · NF).' };
+    }
+    if (!String(cab.data_entrada || '').trim()) {
+      return { ok: false, irPara: 1, erro: 'Informe a data de entrada física (etapa 1 · NF).' };
+    }
+    if (!String(cab.plano_conta || '').trim()) {
+      return { ok: false, irPara: 1, erro: 'Defina o plano de contas da nota (etapa 1 · NF · Plano).' };
+    }
+    if (!linhas.length) {
+      return { ok: false, irPara: 2, erro: 'Inclua ao menos uma linha de item na grade (etapa 2 · Produtos).' };
+    }
+    for (let i = 0; i < linhas.length; i++) {
+      if (!entradaNfeProdutoIdErpValido(linhas[i].produto_id)) {
+        return { ok: false, irPara: 2, erro: `Linha ${i + 1}: use Buscar e escolha o produto do catálogo (etapa 2 · Produtos).` };
+      }
+    }
+    const empId = String(document.getElementById('m-empresa-faturada')?.value || '').trim();
+    if (!empId) {
+      return { ok: false, irPara: 3, erro: 'Selecione a empresa (estoque) na etapa 3.' };
+    }
+    const dep = String(document.getElementById('m-deposito-entrada')?.value || '').trim();
+    if (!['centro', 'vila'].includes(dep)) {
+      return { ok: false, irPara: 3, erro: 'Selecione o depósito na etapa 3.' };
+    }
+    const finE = document.getElementById('fin-empresa-nome')?.value?.trim() || '';
+    const finDc = document.getElementById('fin-dc')?.value || '';
+    const finDv = document.getElementById('fin-dv')?.value || '';
+    const finForma = document.getElementById('fin-forma-nome')?.value?.trim() || '';
+    const finBanco = document.getElementById('fin-banco-nome')?.value?.trim() || '';
+    const finTouched = !!(finE || finDc || finDv || finForma || finBanco);
+    if (finTouched) {
+      if (!finE || !finDc || !finDv || !finForma || !finBanco) {
+        return { ok: false, irPara: 4, erro: 'Financeiro iniciado: preencha empresa, competência, 1º vencimento, forma e banco (etapa 4 · Boletos).' };
+      }
+      entradaNfeAtualizarPreviewParcelas();
+      const pmCol = entradaNfeColetarParcelasManualFinanceiro(finDc);
+      if (pmCol.erro) {
+        return { ok: false, irPara: 4, erro: pmCol.erro };
+      }
+      if (!pmCol.parcelas.length) {
+        return { ok: false, irPara: 4, erro: 'Monte a prévia de parcelas na etapa 4 (Boletos).' };
+      }
+      const totalCentsChec = entradaNfeTotalCentavosFromDom();
+      const somaCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(Number(p.valor) * 100), 0));
+      if (Math.abs(somaCent - totalCentsChec) > 2) {
+        return { ok: false, irPara: 4, erro: 'A soma das parcelas precisa fechar com o total da nota na grade (etapa 4 · Boletos).' };
+      }
+    }
+    if (!entradaNfeRascunhoEditId) {
+      return { ok: false, irPara: 4, erro: 'Salve o rascunho na etapa 4 (botão laranja) antes da conferência com PIN.' };
+    }
+    return { ok: true, irPara: 5, erro: '' };
+  }
+
   function entradaNfeAgendarPreviewParcelas() {
     clearTimeout(finParcPreviewT);
     finParcPreviewT = setTimeout(() => entradaNfeAtualizarPreviewParcelas(), 120);
@@ -813,6 +1244,7 @@
   function tbodyClear() {
     document.getElementById('tbody-itens').innerHTML = '';
     atualizarPainelTotalNfe();
+    entradaNfeBipRebuildSelect();
   }
 
   function atualizarQtdEstoqueRow(tr) {
@@ -881,10 +1313,12 @@
     tr.querySelector('.btn-del').addEventListener('click', () => {
       tr.remove();
       atualizarPainelTotalNfe();
+      entradaNfeBipRebuildSelect();
     });
     document.getElementById('tbody-itens').appendChild(tr);
     entradaNfeSyncEditProdBtn(tr);
     atualizarPainelTotalNfe();
+    entradaNfeBipRebuildSelect();
   }
 
   function coletarLinhas() {
@@ -1035,7 +1469,9 @@
       if ([...selEmp.options].some((o) => o.value === v)) selEmp.value = v;
     }
     if (cab.deposito_entrada && ['centro', 'vila'].includes(String(cab.deposito_entrada))) {
-      document.getElementById('m-deposito-entrada').value = cab.deposito_entrada;
+      entradaNfeDepositoDefinir(cab.deposito_entrada, true);
+    } else {
+      entradaNfeDepositoDefinir('', true);
     }
     if (cab.plano_conta != null) document.getElementById('m-plano-conta').value = cab.plano_conta;
     document.getElementById('m-plano-conta-id').value = cab.plano_conta_id != null ? String(cab.plano_conta_id || '') : '';
@@ -1057,6 +1493,7 @@
       });
     });
     atualizarPainelTotalNfe();
+    entradaNfeBipRebuildSelect();
   }
 
   async function carregarRascunhoNaTela(id) {
@@ -1158,6 +1595,7 @@
           document.getElementById('modal-prod').classList.add('hidden');
           trProdAlvo = null;
           modProdHlIdx = -1;
+          entradaNfeBipRebuildSelect();
         });
         ul.appendChild(li);
       });
@@ -1307,7 +1745,7 @@
       return;
     }
     if (!planoPad) {
-      showMsg('Defina o plano de contas em Dados da nota (ex.: COMPRA MERCADORIA SN ou CN).', false);
+      showMsg('Defina o plano de contas na etapa 1 · NF · Plano (ex.: COMPRA MERCADORIA SN ou CN).', false);
       return;
     }
     if (!empresa || !dc || !dv || !forma || !banco) {
@@ -1362,6 +1800,7 @@
       xml_chave: ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null),
       extra: extra || {},
       financeiro,
+      rascunho_id: entradaNfeRascunhoEditId || undefined,
     };
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
@@ -1422,14 +1861,20 @@
       showMsg('Nenhuma linha com produto do catálogo (use Buscar em cada item).', false);
       return;
     }
-    const depVal = document.getElementById('m-deposito-entrada').value;
+    const depVal = String(document.getElementById('m-deposito-entrada').value || '').trim();
     const empSel = document.getElementById('m-empresa-faturada');
-    const empNome = empSel.options[empSel.selectedIndex]?.text || depVal;
+    const empNome = empSel.options[empSel.selectedIndex]?.text || '';
     if (!empSel.value) {
-      showMsg('Selecione a empresa faturada no passo 1.', false);
+      showMsg('Selecione a empresa faturada na etapa 3.', false);
       return;
     }
-    if (!window.confirm(`Registrar ${comPid.length} produto(s) no estoque Agro?\nEmpresa: ${empNome}\nDepósito: ${depVal}`)) return;
+    if (!depVal || !['centro', 'vila'].includes(depVal)) {
+      showMsg('Selecione o depósito na etapa 3 (obrigatório — confira o aviso ao escolher).', false);
+      return;
+    }
+    const depLbl = Array.from(document.getElementById('m-deposito-entrada').options).find((o) => o.value === depVal);
+    const depNome = depLbl ? depLbl.textContent.trim() : depVal;
+    if (!window.confirm(`Registrar ${comPid.length} produto(s) no estoque Agro?\nEmpresa: ${empNome}\nDepósito: ${depNome}`)) return;
     const cab = coletarCabecalho();
     const body = {
       linhas,
@@ -1482,6 +1927,11 @@
       });
       document.querySelectorAll('.tab-panel').forEach((p) => p.classList.add('hidden'));
       document.getElementById('panel-' + tab).classList.remove('hidden');
+      if (tab === 'manual') {
+        try {
+          entradaNfeWizardSetStep(entradaNfeWizardStep);
+        } catch (_) {}
+      }
     });
   });
 
@@ -1507,6 +1957,7 @@
       }
       ultimaNotaParse = j.nota;
       setEntradaNfeRascunhoEdit(null);
+      entradaNfeDepositoDefinir('', true);
       aplicarCabecalho(j.nota);
       tbodyClear();
       (j.nota.itens || []).forEach((it) => addLinhaRow(linhaFromItem(it)));
@@ -1566,6 +2017,7 @@
             const n = j.previews[idx].nota;
             ultimaNotaParse = n;
             setEntradaNfeRascunhoEdit(null);
+            entradaNfeDepositoDefinir('', true);
             aplicarCabecalho(n);
             tbodyClear();
             (n.itens || []).forEach((it) => addLinhaRow(linhaFromItem(it)));
@@ -1738,6 +2190,7 @@
     document.getElementById('m-serie').value = '';
     document.getElementById('m-chave').value = '';
     document.getElementById('m-dh').value = '';
+    entradaNfeDepositoDefinir('', true);
     tbodyClear();
     addLinhaRow({});
     addLinhaRow({});
@@ -1806,7 +2259,9 @@
           if ([...selEmpOc.options].some((o) => o.value === v)) selEmpOc.value = v;
         }
         if (cab.deposito_entrada && ['centro', 'vila'].includes(String(cab.deposito_entrada))) {
-          document.getElementById('m-deposito-entrada').value = cab.deposito_entrada;
+          entradaNfeDepositoDefinir(cab.deposito_entrada, true);
+        } else {
+          entradaNfeDepositoDefinir('', true);
         }
         tbodyClear();
         const lns = pr.linhas || [];

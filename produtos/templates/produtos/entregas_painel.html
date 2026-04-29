@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   {% include "produtos/_head_perf_mpa.html" %}
-  <title>Agro Mais | Entregas</title>
+  <title>SisVale | Entregas</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   {% include "produtos/_agro_consulta_ui.html" %}
@@ -20,7 +20,7 @@
           <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
         </div>
         <div class="min-w-0">
-          <h1 class="text-base sm:text-lg font-black uppercase tracking-tight text-slate-900">GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-orange-600">Entregas</span></h1>
+          <h1 class="text-base sm:text-lg font-black uppercase tracking-tight text-slate-900"><span class="text-emerald-600">Sis</span>Vale · <span class="text-orange-600">Entregas</span></h1>
           <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wide text-slate-500">Status · horários · Maps · impressão · WhatsApp</p>
         </div>
       </div>
@@ -942,7 +942,7 @@
     });
     var bc = codigoBarrasEntrega(e);
     var h = '<div class="pg">';
-    h += '<div style="text-align:center;font-weight:900;font-size:14px;">AGRO MAIS</div>';
+    h += '<div style="text-align:center;font-weight:900;font-size:14px;">SISVALE</div>';
     h += '<div style="text-align:center;font-size:10px;margin:2px 0;">Orçamento (não fiscal)</div>';
     h += '<div style="font-size:10px;">' + esc(dh) + '</div>';
     h += '<div style="border-top:1px dashed #000;margin:6px 0;"></div>';
@@ -1060,7 +1060,7 @@
       '<div style="font-size:10px;margin-top:2px;"><b>Dist. estimada:</b> ' + esc(String(kmTotal != null ? kmTotal : '—')) + ' km</div>' +
       '<div style="border-top:2px solid #000;margin:8px 0 4px;"></div>' +
       itensHtml +
-      '<div style="border-top:1px dashed #000;margin-top:8px;padding-top:6px;text-align:center;font-size:9px;">Agro Mais · Entregas</div>' +
+      '<div style="border-top:1px dashed #000;margin-top:8px;padding-top:6px;text-align:center;font-size:9px;">SisVale · Entregas</div>' +
       '</div></body></html>';
 
     var iframe = document.getElementById('agro-print-iframe-rota');

@@ -506,7 +506,7 @@ function imprimirPacoteEntregaTresViasPdv(orcId, opt) {
 
     const page3 =
         '<div class="pdv-entrega-page">' +
-        '<div style="text-align:center;font-weight:900;font-size:14px;">AGRO MAIS</div>' +
+        '<div style="text-align:center;font-weight:900;font-size:14px;">SISVALE</div>' +
         '<div style="text-align:center;font-size:10px;margin:2px 0;">Orçamento (não fiscal)</div>' +
         '<div style="font-size:10px;">' + escapeHtml(dh) + '</div>' +
         '<div style="border-top:1px dashed #000;margin:6px 0;"></div>' +
@@ -1905,7 +1905,7 @@ async function salvarOrcamentoManual() {
 
 function pdvGerarTextoWhatsappOrcamentoCarrinho() {
     const nome = nomeClientePdv();
-    let msg = '🐎🌾 *ORÇAMENTO AGRO MAIS* 🌾🐔\n\n';
+    let msg = '🐎🌾 *ORÇAMENTO SISVALE* 🌾🐔\n\n';
     msg += '👤 *Cliente:* ' + nome + '\n';
     msg += '🛒 *Itens:*\n';
     msg += '━━━━━━━━━━━━━━━━━━\n';
@@ -1916,7 +1916,7 @@ function pdvGerarTextoWhatsappOrcamentoCarrinho() {
     msg += '━━━━━━━━━━━━━━━━━━\n';
     const tot = document.getElementById('total-geral');
     msg += '💵 *TOTAL: ' + (tot ? tot.innerText : '') + '*\n\n';
-    msg += '✨ Obrigado por escolher a *Agro Mais*!';
+    msg += '✨ Obrigado por escolher a *SisVale*!';
     return msg;
 }
 
@@ -1949,7 +1949,7 @@ function pdvImprimirOrcamentoCarrinho() {
     const clienteNome = nomeClientePdv();
     const numOrcamento = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
     let html =
-        '<div style="text-align:center; margin-bottom: 5px;"><h2 style="margin: 0; font-size: 22px; font-weight: 900;">AGRO MAIS</h2><div style="font-size: 10px;">Orçamento</div></div>';
+        '<div style="text-align:center; margin-bottom: 5px;"><h2 style="margin: 0; font-size: 22px; font-weight: 900;">SISVALE</h2><div style="font-size: 10px;">Orçamento</div></div>';
     html += '<div style="border-bottom: 1px dashed #000; margin-bottom: 5px;"></div>';
     html +=
         '<div style="text-align:center; font-weight:bold; font-size: 14px; margin-bottom: 5px;">ORÇAMENTO DE VENDA</div>';

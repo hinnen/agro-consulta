@@ -2196,7 +2196,7 @@ def baixar_lancamentos_mongo(
         return {"ok": False, "atualizados": [], "erros": [{"id": "", "erro": "Informe forma de pagamento e conta/banco."}]}
 
     now = timezone.now()
-    mod = (usuario_label or "Agro")[:80] + " — baixa Agro Consulta"
+    mod = (usuario_label or "Agro")[:80] + " — baixa SisVale"
     mod = mod[:200]
     col = db[COL_DTO_LANCAMENTO]
     res_ok: list[str] = []

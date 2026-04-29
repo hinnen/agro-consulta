@@ -382,6 +382,35 @@ def salvar_rascunho_entrada(
         return {"ok": False, "erro": str(exc)[:500]}
 
 
+def rascunho_entrada_valido_para_aprovacao_wizard(doc: dict[str, Any]) -> tuple[bool, str]:
+    """Conteúdo mínimo persistido no rascunho antes do carimbo do assistente (PIN). Alinhado às regras da UI."""
+    cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+    if not str(cab.get("emit_nome") or "").strip():
+        return False, "Fornecedor não preenchido no rascunho."
+    if not str(cab.get("numero") or "").strip():
+        return False, "Número da NF ausente no rascunho."
+    if not str(cab.get("data_entrada") or "").strip():
+        return False, "Data de entrada ausente no rascunho."
+    if not str(cab.get("plano_conta") or "").strip():
+        return False, "Plano de contas ausente no rascunho."
+    linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
+    if not linhas:
+        return False, "Rascunho sem linhas de item."
+    for i, ln in enumerate(linhas):
+        if not isinstance(ln, dict):
+            return False, f"Linha {i + 1}: formato inválido."
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            return False, f"Linha {i + 1}: produto do catálogo obrigatório."
+    emp = str(cab.get("empresa_faturada_id") or "").strip()
+    if not emp:
+        return False, "Empresa (estoque) não definida no rascunho."
+    dep = str(cab.get("deposito_entrada") or "").strip()
+    if dep not in ("centro", "vila"):
+        return False, "Depósito inválido ou ausente no rascunho."
+    return True, ""
+
+
 def _serialize_dt_mongo(val: Any) -> str | None:
     if isinstance(val, datetime):
         return val.replace(tzinfo=timezone.utc).isoformat()
