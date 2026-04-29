@@ -1,7 +1,7 @@
 {% extends "layouts/base_admin.html" %}
 {% load static %}
 
-{% block admin_title %}Agro Consulta | Menu de atalhos{% endblock %}
+{% block admin_title %}SisVale | Menu de atalhos{% endblock %}
 {% block admin_header %}{% endblock %}
 {% block body_class %}bg-white text-slate-900 h-dvh max-h-dvh overflow-hidden{% endblock %}
 {% block main_class %}h-full min-h-0 flex flex-col overflow-hidden{% endblock %}
@@ -344,7 +344,7 @@
   <div class="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
     <span class="text-[9px] font-black uppercase tracking-wider text-emerald-700">Home administrativa</span>
     <span class="hidden h-3 w-px shrink-0 bg-slate-200 sm:block" aria-hidden="true"></span>
-    <h1 class="text-xs font-black uppercase tracking-tight text-slate-900 sm:text-sm">Agro Consulta</h1>
+    <h1 class="text-xs font-black uppercase tracking-tight text-slate-900 sm:text-sm">SisVale</h1>
     <span class="hidden h-3 w-px shrink-0 bg-slate-200 sm:block" aria-hidden="true"></span>
     {% if empresa_atual %}
       <p class="min-w-0 truncate text-[10px] font-bold text-slate-500 sm:text-[11px]">Loja: <span class="text-slate-900">{{ empresa_atual.nome_fantasia }}</span></p>
@@ -409,8 +409,8 @@
         <div class="flex flex-wrap items-center gap-1.5 w-full mt-0.5 pt-1 border-t border-slate-200/90">
           <label class="text-[8px] font-black uppercase text-slate-600 shrink-0" for="home-agro-loja">Loja</label>
           <select id="home-agro-loja" class="min-w-[9rem] max-w-full rounded-md border border-slate-300 bg-white px-1.5 py-1 text-[10px] font-bold text-slate-800" title="Unidade usada na consulta / PDV (preferência neste aparelho)">
-            <option value="1">Agro Mais — Principal (Centro)</option>
-            <option value="2">Agro Mais — Vila Elias</option>
+            <option value="1">SisVale — Principal (Centro)</option>
+            <option value="2">SisVale — Vila Elias</option>
           </select>
           <button type="button" id="home-link-lembretes" class="inline-flex items-center gap-0.5 rounded-md border border-amber-400/50 bg-amber-950/40 px-2 py-1 text-[9px] font-black uppercase text-amber-100 hover:bg-amber-900/50 cursor-pointer">⏰ Lembretes</button>
           <button type="button" id="home-link-orcamentos" class="inline-flex items-center gap-0.5 rounded-md border border-orange-300 bg-orange-50 px-2 py-1 text-[9px] font-black uppercase text-orange-900 hover:bg-orange-100/90 cursor-pointer">Orçamentos salvos</button>

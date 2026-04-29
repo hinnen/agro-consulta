@@ -433,7 +433,7 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Agro Mais: {sucesso} produtos atualizados | {alertas} alertas de revisão"
+                f"SisVale: {sucesso} produtos atualizados | {alertas} alertas de revisão"
                 + (f" | {skipped} linhas vazias ignoradas." if skipped else ".")
             )
         )

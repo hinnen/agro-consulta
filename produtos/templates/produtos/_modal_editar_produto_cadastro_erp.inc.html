@@ -2,7 +2,7 @@
   <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col min-h-0 overflow-hidden font-['Inter']">
 
     <div class="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
-      <h3 id="cadastro-modal-titulo" class="text-lg sm:text-xl font-black uppercase text-slate-800 tracking-tight">Editar Produto · <span class="text-emerald-600">Agro Mais</span></h3>
+      <h3 id="cadastro-modal-titulo" class="text-lg sm:text-xl font-black uppercase text-slate-800 tracking-tight">Editar Produto · <span class="text-emerald-600">SisVale</span></h3>
       <button type="button" id="fechar-modal-editar" class="min-h-[50px] sm:min-h-[52px] px-4 sm:px-5 rounded-xl text-base sm:text-lg font-black uppercase border-2 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors">Fechar</button>
     </div>
 
@@ -1097,8 +1097,8 @@
     if (titModal) {
       var isNovo = String(produto.id || '').trim().toLowerCase() === '__novo__';
       titModal.innerHTML = isNovo
-        ? 'Novo produto · <span class="text-emerald-600">Agro Mais</span>'
-        : 'Editar Produto · <span class="text-emerald-600">Agro Mais</span>';
+        ? 'Novo produto · <span class="text-emerald-600">SisVale</span>'
+        : 'Editar Produto · <span class="text-emerald-600">SisVale</span>';
     }
     modalEdit._snapshot = {
       id: produto.id,

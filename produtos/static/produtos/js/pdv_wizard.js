@@ -2395,7 +2395,7 @@
             'td{padding:5px 0;border-bottom:1px dashed #cbd5e1;font-size:12px}' +
             '.tot{font-weight:900;font-size:20px;margin-top:14px;padding-top:10px;border-top:2px solid #94a3b8}' +
             '</style></head><body>' +
-            '<h1>GM Agro</h1>' +
+            '<h1>SisVale</h1>' +
             '<div class="sub">Cupom de venda</div>' +
             '<div class="line"><strong>Cliente:</strong> ' + escapeHtml(currentClientName(state)) + '</div>' +
             '<div class="line"><strong>Pagamento:</strong> ' + escapeHtml(formaTxt || '—') + '</div>' +
@@ -3231,7 +3231,7 @@
         return h;
     }
 
-    /** Igual htmlPagCupom do painel Entregas (marca AGRO MAIS + linha de agradecimento). */
+    /** Igual htmlPagCupom do painel Entregas (marca SisVale + linha de agradecimento). */
     function wizardPrintHtmlCupom(e) {
         var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
         var items = Array.isArray(e.itens_json) ? e.itens_json : [];
@@ -3249,7 +3249,7 @@
         });
         var bc = wizardPrintCodigoBarrasEntrega(e);
         var h = '<div class="pg">';
-        h += '<div style="text-align:center;font-weight:900;font-size:14px;">AGRO MAIS</div>';
+        h += '<div style="text-align:center;font-weight:900;font-size:14px;">SISVALE</div>';
         h += '<div style="text-align:center;font-size:10px;margin:2px 0;">Orçamento (não fiscal)</div>';
         h += '<div style="font-size:10px;">' + escapeHtml(dh) + '</div>';
         h += '<div style="border-top:1px dashed #000;margin:6px 0;"></div>';

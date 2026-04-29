@@ -66,6 +66,7 @@ from .mongo_vendas_util import (
     dashboard_top_produtos_mongo,
 )
 from .nfe_entrada_util import (
+    COL_ENTRADA_RASCUNHO,
     atualizar_rascunho_entrada,
     buscar_fornecedores_entrada_nfe,
     casar_produtos_mongo,
@@ -78,6 +79,7 @@ from .nfe_entrada_util import (
     obter_ult_nsu,
     parse_nfe_xml_bytes,
     pipeline_acao_rascunho_entrada,
+    rascunho_entrada_valido_para_aprovacao_wizard,
     salvar_rascunho_entrada,
 )
 from .mongo_index_codigos import (
@@ -85,6 +87,7 @@ from .mongo_index_codigos import (
     aplicar_index_codigos_no_mongo,
     merge_busca_codigo_prioridade_principal,
     produto_termo_bate_campos_principais,
+    somente_alnum,
 )
 from .rota_entregas_geo import ordenar_entregas_por_proximidade
 from .lancamentos_financeiro_pdf import montar_pdf_financeiro_padrao
@@ -995,9 +998,8 @@ API_LIST_CUSTOMERS_TTL = 45
 CATALOGO_PDV_CACHE_ENTRY_KEY = "pdv_catalogo_produtos_por_dia_v1"
 CATALOGO_PDV_CACHE_PREV_ENTRY_KEY = "pdv_catalogo_produtos_prev_v1"
 
-# Snapshot de saldos: vários caixas/abas compartilham; TTL curto protege o Mongo sem atrasar o PDV.
+# Saldos PDV: cache curto só com Redis (settings.AGRO_PDV_SALDOS_CACHE_SECONDS > 0).
 _SALDOS_PDV_CACHE_KEY = "pdv_saldos_compacto_snapshot_v1"
-_SALDOS_PDV_CACHE_TTL = 5
 
 _METRICAS_PDV_BUCKETS_INVALIDAR = 4
 _METRICAS_PDV_DIAS_COMUNS = (7, 14, 21, 28, 30, 45, 60, 90, 120, 180, 365)
@@ -4889,15 +4891,33 @@ def api_entrada_nota_estoque_agro(request):
 
     r_rasc: dict | None = None
     if salvar_rascunho:
-        r_rasc = salvar_rascunho_entrada(
-            db,
-            usuario=usuario,
-            modo=modo,
-            cabecalho=cab,
-            linhas=linhas,
-            xml_chave=xml_chave,
-            extra=extra,
-        )
+        rid_sv = str(payload.get("rascunho_id") or "").strip()
+        if rid_sv:
+            try:
+                ObjectId(rid_sv)
+            except Exception:
+                rid_sv = ""
+        if rid_sv:
+            r_rasc = atualizar_rascunho_entrada(
+                db,
+                rid_sv,
+                usuario=usuario,
+                modo=modo,
+                cabecalho=cab,
+                linhas=linhas,
+                xml_chave=xml_chave,
+                extra=extra,
+            )
+        else:
+            r_rasc = salvar_rascunho_entrada(
+                db,
+                usuario=usuario,
+                modo=modo,
+                cabecalho=cab,
+                linhas=linhas,
+                xml_chave=xml_chave,
+                extra=extra,
+            )
         if not r_rasc.get("ok"):
             return JsonResponse({**r_rasc, "estoque": None}, status=400)
 
@@ -5018,6 +5038,105 @@ def api_entrada_nota_fornecedores(request):
 
 @login_required(login_url="/admin/login/")
 @require_POST
+def api_entrada_nota_conferir_codigo(request):
+    """Confere código bipado (EAN/código interno) contra o produto do catálogo (Mongo)."""
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    if payload.get("ignorar") in (True, "true", "1", 1):
+        return JsonResponse({"ok": True, "ignorado": True, "bate": None})
+    produto_id = str(payload.get("produto_id") or "").strip()
+    codigo = str(payload.get("codigo") or "").strip()
+    codigo_alt = str(payload.get("codigo_alt") or "").strip()
+    if not produto_id or not codigo:
+        return JsonResponse({"ok": False, "erro": "Informe produto e o código bipado."}, status=400)
+
+    client, db = obter_conexao_mongo()
+    if db is None or client is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    col = db[client.col_p]
+    ors = [{"Id": produto_id}]
+    try:
+        ors.append({"Id": int(produto_id)})
+    except Exception:
+        pass
+    doc = col.find_one({"$or": ors})
+    if not doc:
+        return JsonResponse({"ok": False, "erro": "Produto não encontrado no catálogo."}, status=404)
+
+    tl = somente_alnum(codigo).lower()
+    bate = bool(tl and produto_termo_bate_campos_principais(doc, tl))
+    if not bate and codigo_alt:
+        ta = somente_alnum(codigo_alt).lower()
+        bate = bool(ta and produto_termo_bate_campos_principais(doc, ta))
+    return JsonResponse(
+        {
+            "ok": True,
+            "bate": bate,
+            "ignorado": False,
+            "nome": str(doc.get("Nome") or "")[:300],
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_entrada_nota_aprovar_wizard(request):
+    """Grava carimbo de conferência final com o mesmo PIN usado em estoque / empréstimo (``PerfilUsuario.senha_rapida``)."""
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    oid = str(payload.get("rascunho_id") or payload.get("id") or "").strip()
+    ok_pin, err_pin = _emprestimos_interno_validar_pin(str(payload.get("pin") or ""))
+    if not ok_pin:
+        return JsonResponse({"ok": False, "erro": err_pin}, status=403)
+    if not oid:
+        return JsonResponse({"ok": False, "erro": "Informe o rascunho."}, status=400)
+    try:
+        _oid = ObjectId(oid)
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "ID inválido."}, status=400)
+
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (
+            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
+        )[:120]
+
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    agora = timezone.now()
+    doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _oid})
+    if not doc:
+        return JsonResponse({"ok": False, "erro": "Rascunho não encontrado."}, status=404)
+    ok_r, err_r = rascunho_entrada_valido_para_aprovacao_wizard(doc)
+    if not ok_r:
+        return JsonResponse({"ok": False, "erro": err_r}, status=400)
+    ex = dict(doc.get("extra") if isinstance(doc.get("extra"), dict) else {})
+    ex["aprovacao_wizard_em"] = agora.isoformat()
+    ex["aprovacao_wizard_usuario"] = usuario[:200]
+    try:
+        db[COL_ENTRADA_RASCUNHO].update_one(
+            {"_id": _oid},
+            {
+                "$set": {
+                    "extra": ex,
+                    "atualizado_em": agora,
+                    "usuario_ultima_alteracao": usuario[:200],
+                }
+            },
+        )
+    except Exception as exc:
+        logger.exception("api_entrada_nota_aprovar_wizard")
+        return JsonResponse({"ok": False, "erro": str(exc)[:500]}, status=500)
+    return JsonResponse({"ok": True, "id": oid})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
 def api_entrada_nota_financeiro(request):
     """
     Salva rascunho da NF-e e gera lançamento(amentos) a pagar no Mongo (mesmo fluxo do manual).
@@ -5030,6 +5149,9 @@ def api_entrada_nota_financeiro(request):
     Opcional ``quitar_ao_salvar`` (bool): grava os títulos a pagar já quitados no Mongo (data de
     pagamento = vencimento de cada parcela) e, se ``VENDA_ERP_API_FINANCEIRO_BAIXA_PATH`` estiver
     configurado, tenta a baixa no ERP após o envio dos lançamentos novos.
+
+    ``rascunho_id`` (opcional): quando informado, **atualiza** esse rascunho em vez de criar outro
+    (evita duplicata na lista ao usar Salvar + a pagar numa nota já aberta da lista).
     """
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
@@ -5059,15 +5181,33 @@ def api_entrada_nota_financeiro(request):
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
-    r_rasc = salvar_rascunho_entrada(
-        db,
-        usuario=usuario,
-        modo=modo,
-        cabecalho=cab,
-        linhas=linhas,
-        xml_chave=xml_chave,
-        extra=extra,
-    )
+    rid_up = str(payload.get("rascunho_id") or payload.get("id") or "").strip()
+    if rid_up:
+        try:
+            ObjectId(rid_up)
+        except Exception:
+            rid_up = ""
+    if rid_up:
+        r_rasc = atualizar_rascunho_entrada(
+            db,
+            rid_up,
+            usuario=usuario,
+            modo=modo,
+            cabecalho=cab,
+            linhas=linhas,
+            xml_chave=xml_chave,
+            extra=extra,
+        )
+    else:
+        r_rasc = salvar_rascunho_entrada(
+            db,
+            usuario=usuario,
+            modo=modo,
+            cabecalho=cab,
+            linhas=linhas,
+            xml_chave=xml_chave,
+            extra=extra,
+        )
     if not r_rasc.get("ok"):
         return JsonResponse(r_rasc, status=400)
 
@@ -10731,6 +10871,7 @@ def api_pdv_invalidar_cache_catalogo(request):
     """Limpa o snapshot diário do catálogo; próximo GET /api/todos-produtos/ refaz do Mongo."""
     cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
     cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
+    _invalidar_cache_saldos_pdv()
     return JsonResponse({"ok": True})
 
 
@@ -10772,12 +10913,15 @@ def api_cron_enviar_alerta_vendas_dia(request):
 def api_pdv_saldos_compacto(request):
     """
     Saldos atuais (espelho Mongo + camada Agro / ajustes) para todos os produtos ativos — payload compacto.
-    Cache de poucos segundos: muitas abas/caixas batem o mesmo snapshot e aliviam o Mongo.
+    Com Redis: usa snapshot TTL (AGRO_PDV_SALDOS_CACHE_SECONDS), compartilhado entre workers.
+    Sem Redis: cada GET consulta o Mongo (LocMem por worker não cacheia saldos).
     Resposta sem cache HTTP (evita saldo antigo no Electron / Chromium).
     """
-    cached = cache.get(_SALDOS_PDV_CACHE_KEY)
-    if cached is not None and isinstance(cached, dict) and "rows" in cached:
-        return JsonResponse(cached)
+    ttl = int(getattr(settings, "AGRO_PDV_SALDOS_CACHE_SECONDS", 0) or 0)
+    if ttl > 0:
+        cached = cache.get(_SALDOS_PDV_CACHE_KEY)
+        if cached is not None and isinstance(cached, dict) and "rows" in cached:
+            return JsonResponse(cached)
 
     client, db = obter_conexao_mongo()
     if db is None:
@@ -10806,7 +10950,8 @@ def api_pdv_saldos_compacto(request):
                 ]
             )
         payload = {"v": 1, "rows": rows}
-        cache.set(_SALDOS_PDV_CACHE_KEY, payload, timeout=_SALDOS_PDV_CACHE_TTL)
+        if ttl > 0:
+            cache.set(_SALDOS_PDV_CACHE_KEY, payload, timeout=ttl)
         try:
             from estoque.sync_health import registrar_ping_mongo
 

@@ -1,5 +1,5 @@
 /**
- * Agro Consulta — barra de estoque: botão manual, horário da última leitura,
+ * SisVale — barra de estoque: botão manual, horário da última leitura,
  * “termômetro” (verde → vermelho conforme o tempo sem atualizar).
  *
  * autoIdleRefresh + idleMs: após idleMs sem mouse/teclado/scroll/toque na página,

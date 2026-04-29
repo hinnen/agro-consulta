@@ -3,7 +3,7 @@
 <html lang="pt-br" class="h-full overflow-hidden">
 <head>
   <meta charset="UTF-8">
-  <title>Agro Mais | Pedido de Compra</title>
+  <title>SisVale | Pedido de Compra</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   {% include "produtos/_head_perf_mpa.html" %}
   <script src="https://cdn.tailwindcss.com"></script>
@@ -106,7 +106,7 @@
         </div>
         <div class="min-w-0">
           <h1 class="text-base sm:text-lg font-black uppercase tracking-tight text-slate-800 leading-tight">
-            GM <span class="text-emerald-600">AGRO MAIS</span> · <span class="text-orange-500">Compras</span>
+            <span class="text-emerald-600">Sis</span>Vale · <span class="text-orange-500">Compras</span>
           </h1>
           <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Custo final (taxas e impostos, quando informados no cadastro)</p>
         </div>
@@ -3310,7 +3310,7 @@ function buscar(q) {
 }
 
 function formatarTextoFornecedor() {
-  let texto = '📦 *PEDIDO — GM AGRO MAIS*\n\n';
+  let texto = '📦 *PEDIDO — SISVALE*\n\n';
   const chk = document.getElementById('chk-fornec-compra');
   const inp = document.getElementById('nome-fornec-compra');
   if (chk && chk.checked && inp) {

@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   {% include "produtos/_head_perf_mpa.html" %}
-  <title>Agro Mais | Fechar venda</title>
+  <title>SisVale | Fechar venda</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
@@ -152,7 +152,7 @@
 
   function gerarMensagemPedido() {
     var clienteNome = nomeClienteCheckout();
-    var msg = '🐎🌾 *ORÇAMENTO AGRO MAIS* 🌾🐔\n\n';
+    var msg = '🐎🌾 *ORÇAMENTO SISVALE* 🌾🐔\n\n';
     msg += '👤 *Cliente:* ' + clienteNome + '\n';
     msg += '🛒 *Itens do pedido:*\n';
     msg += '━━━━━━━━━━━━━━━━━━\n';
@@ -162,7 +162,7 @@
     });
     msg += '━━━━━━━━━━━━━━━━━━\n';
     msg += '💵 *TOTAL: ' + totalTextoCheckout() + '*\n\n';
-    msg += '✨ Obrigado por escolher a *Agro Mais*!\n';
+    msg += '✨ Obrigado por escolher a *SisVale*!\n';
     msg += '📍 Qualquer dúvida, estamos à disposição.';
     return msg;
   }
@@ -182,7 +182,7 @@
     salvarHistoricoLocal();
     var clienteNome = nomeClienteCheckout();
     var numOrcamento = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
-    var html = '<div style="text-align:center; margin-bottom: 5px;"><h2 style="margin: 0; font-size: 22px; font-weight: 900;">AGRO MAIS</h2><div style="font-size: 10px;">Av Principal, 123 - Centro</div></div>';
+    var html = '<div style="text-align:center; margin-bottom: 5px;"><h2 style="margin: 0; font-size: 22px; font-weight: 900;">SISVALE</h2><div style="font-size: 10px;">Av Principal, 123 - Centro</div></div>';
     html += '<div style="border-bottom: 1px dashed #000; margin-bottom: 5px;"></div>';
     html += '<div style="text-align:center; font-weight:bold; font-size: 14px; margin-bottom: 5px;">ORÇAMENTO DE VENDA</div>';
     html += '<div style="border-bottom: 1px dashed #000; margin-bottom: 8px;"></div>';
