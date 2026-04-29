@@ -95,6 +95,9 @@ INSTALLED_APPS = [
     'integracoes',
 ]
 
+# Abas internas SisVale (iframes mesma origem). O défaut DENY bloquearia qualquer frame.
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -145,6 +148,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'produtos.context_processors.home_launcher_nav',
             ],
         },
     },

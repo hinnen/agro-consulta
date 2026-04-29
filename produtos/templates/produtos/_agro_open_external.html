@@ -1,238 +1,351 @@
 {# Electron: agroShell.openExternal → shell.openExternal. Browser: window.open. Intercepta window.open para wa.me / Maps. #}
-<style id="agro-tabs-strip-styles">
-  #agro-system-tabs-indicator {
-    position: fixed;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%) translateZ(0);
-    isolation: isolate;
-    z-index: 2147483646;
-    pointer-events: auto;
-    font-family: Inter, system-ui, sans-serif;
-    padding-left: max(4px, env(safe-area-inset-left, 0));
-  }
-  #agro-system-tabs-indicator .agro-tabs-strip-inner {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 13px 10px 13px 7px;
-    border-radius: 0 12px 12px 0;
-    background: rgba(248, 250, 252, 0.65);
-    border: 1px solid rgba(148, 163, 184, 0.28);
-    border-left: 0;
-    box-shadow: 2px 1px 14px rgba(15, 23, 42, 0.06);
-    backdrop-filter: blur(5px);
-    pointer-events: auto;
-  }
-  #agro-system-tabs-indicator .agro-tab-slot-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
-  }
-  #agro-system-tabs-indicator .agro-tab-slot-wrap {
-    position: relative;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    flex-shrink: 0;
-    outline: none;
-  }
-  #agro-system-tabs-indicator .agro-tab-slot-wrap:focus-visible {
-    box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.35);
-    border-radius: 9999px;
-  }
-  /* Ponte entre a bolinha e o painel (evita hover “piscando” no vão). */
-  #agro-system-tabs-indicator .agro-tab-slot-wrap::before {
-    content: '';
-    position: absolute;
-    left: 100%;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 14px;
-    height: 32px;
-    z-index: 1;
-    pointer-events: none;
-  }
-  #agro-system-tabs-indicator .agro-tab-hover-panel {
-    position: absolute;
-    left: calc(100% + 6px);
-    top: 50%;
-    transform: translateY(-50%);
-    overflow: hidden;
-    max-width: 0;
-    opacity: 0;
+{{ home_launcher_nav_items|json_script:"agro-home-nav-data" }}
+<style id="agro-inapp-shell-styles">
+  /**
+   * Coluna interna PDV+: recolhe para uma “orelha” (hover na borda ou teclado no rail expande).
+   * Em touchscreen/ponta grossa mantém sempre expandida.
+   */
+  body.agro-has-inapp-tabbar {
+    /* Faixa lateral recolhida: largura suficiente para ler como “painel”, não só recorte escuro */
+    --agro-sidebar-nib: 20px;
+    --agro-inapp-expanded-inner: clamp(122px, 14vw, 156px);
+    --agro-inapp-side-w: var(--agro-inapp-expanded-inner);
     transition:
-      max-width 0.24s ease,
+      padding 0,
+      margin 0;
+  }
+
+  body.agro-has-inapp-tabbar #agro-inapp-primary-wrap,
+  body.agro-has-inapp-tabbar #agro-inapp-pane-stack,
+  body.agro-has-inapp-tabbar #agro-inapp-sidebar-rail {
+    transition:
+      margin-left 0.22s ease,
+      left 0.22s ease,
+      width 0.22s ease,
       opacity 0.18s ease;
-    z-index: 2;
-    border-radius: 0 10px 10px 0;
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    border-left: 0;
-    background: rgba(255, 255, 255, 0.97);
-    box-shadow: 4px 2px 16px rgba(15, 23, 42, 0.1);
-    pointer-events: none;
   }
-  #agro-system-tabs-indicator .agro-tab-hover-panel-inner {
-    width: min(268px, calc(100vw - 48px));
-    box-sizing: border-box;
-    padding: 7px 12px 7px 9px;
+
+  /** Recolher só onde há hover fino — loja tátil fica sempre aberta para tocar nos botões. */
+  @media (hover: hover) and (pointer: fine) {
+    body.agro-has-inapp-tabbar {
+      --agro-inapp-side-w: var(--agro-sidebar-nib);
+    }
+
+    body.agro-has-inapp-tabbar:has(#agro-inapp-sidebar-rail:hover),
+    body.agro-has-inapp-tabbar:has(#agro-inapp-sidebar-rail:focus-within),
+    body.agro-has-inapp-tabbar:has(#agro-inapp-preset-panel.agro-show),
+    body.agro-has-inapp-tabbar:has(#agro-inapp-preset-backdrop.agro-show) {
+      --agro-inapp-side-w: var(--agro-inapp-expanded-inner);
+    }
+
+    /** Indicador fino — some ao expandir */
+    body.agro-has-inapp-tabbar:has(#agro-inapp-sidebar-rail:hover) #agro-inapp-sidebar-rail::before,
+    body.agro-has-inapp-tabbar:has(#agro-inapp-sidebar-rail:focus-within)
+      #agro-inapp-sidebar-rail::before,
+    body.agro-has-inapp-tabbar:has(#agro-inapp-preset-panel.agro-show) #agro-inapp-sidebar-rail::before {
+      opacity: 0;
+    }
+
+    /**
+     * Recolhido: esconder a coluna de botões (bordas/sombras vazavam para fora do overflow).
+     * Só o fundo do rail + faixa ::before ficam visíveis até hover/foco/preset.
+     */
+    body.agro-has-inapp-tabbar:not(:has(#agro-inapp-sidebar-rail:hover)):not(
+        :has(#agro-inapp-sidebar-rail:focus-within)
+      ):not(:has(#agro-inapp-preset-panel.agro-show)):not(:has(#agro-inapp-preset-backdrop.agro-show))
+      #agro-inapp-tabs-bar {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      box-shadow: none !important;
+      filter: none !important;
+    }
   }
-  #agro-system-tabs-indicator .agro-tab-slot-wrap[data-slot='0'] .agro-tab-hover-panel-inner {
-    border-left: 3px solid #10b981;
-    padding-left: 10px;
-  }
-  #agro-system-tabs-indicator .agro-tab-slot-wrap[data-slot='1'] .agro-tab-hover-panel-inner {
-    border-left: 3px solid #f97316;
-    padding-left: 10px;
-  }
-  #agro-system-tabs-indicator .agro-tab-slot-wrap[data-slot='2'] .agro-tab-hover-panel-inner {
-    border-left: 3px solid #6366f1;
-    padding-left: 10px;
-  }
-  #agro-system-tabs-indicator .agro-tab-hover-line1 {
-    font-size: 11px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #0f172a;
-    line-height: 1.2;
-    margin-bottom: 3px;
-  }
-  #agro-system-tabs-indicator .agro-tab-hover-line2 {
-    font-size: 12px;
-    font-weight: 700;
-    color: #475569;
-    line-height: 1.35;
-    word-break: break-word;
-    max-height: 4.25em;
-    overflow-y: auto;
-  }
-  #agro-system-tabs-indicator .agro-tab-hover-here {
-    display: inline-block;
-    margin-top: 5px;
-    font-size: 10px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: #047857;
-  }
-  #agro-system-tabs-indicator .agro-tab-slot-wrap:hover .agro-tab-hover-panel,
-  #agro-system-tabs-indicator .agro-tab-slot-wrap:focus-within .agro-tab-hover-panel,
-  #agro-system-tabs-indicator .agro-tab-slot-wrap.agro-panel-open .agro-tab-hover-panel {
-    max-width: min(268px, calc(100vw - 48px));
-    opacity: 1;
-    pointer-events: auto;
-  }
+
   @media (prefers-reduced-motion: reduce) {
-    #agro-system-tabs-indicator .agro-tab-hover-panel {
+    body.agro-has-inapp-tabbar #agro-inapp-primary-wrap,
+    body.agro-has-inapp-tabbar #agro-inapp-pane-stack,
+    body.agro-has-inapp-tabbar #agro-inapp-sidebar-rail {
       transition: none;
     }
   }
-  /* type="button" — reset para não herdar estilo de <button> global */
-  #agro-system-tabs-indicator button.agro-tab-dot {
-    position: relative;
-    z-index: 4;
-    cursor: pointer;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    appearance: none;
-    -webkit-appearance: none;
-    border: 2px solid transparent;
-    border-radius: 9999px;
-    padding: 0;
-    margin: 0;
-    font: inherit;
-    display: inline-block;
-    vertical-align: middle;
-    width: 15px;
-    height: 15px;
-    flex-shrink: 0;
+
+  #agro-inapp-sidebar-rail {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--agro-inapp-side-w, 132px);
+    max-width: 100vw;
+    /* Acima do stack de iframes (3620), abaixo do backdrop do preset (3635) */
+    z-index: 2147483634;
+    overflow: hidden;
+    overflow: clip;
+    contain: paint;
     box-sizing: border-box;
-    transition: opacity 0.15s, box-shadow 0.15s, transform 0.15s, background 0.15s, border-color 0.15s;
-    color: inherit;
-    line-height: 0;
+    pointer-events: auto;
+    isolation: isolate;
+    /* Fundo explícito: a faixa recolhida lê-se como barra, não como buraco no layout */
+    background: linear-gradient(180deg, #0f172a 0%, #1e293b 55%, #0f172a 100%);
+    border-radius: 0 12px 12px 0;
+    border-right: 1px solid rgba(100, 116, 139, 0.45);
+    box-shadow: 4px 0 18px rgba(15, 23, 42, 0.28);
+    padding-right: 0;
   }
-  /* Uma cor fixa por posição (1 · 2 · 3) */
-  #agro-system-tabs-indicator button.agro-tab-dot[data-i="0"] {
-    --agro-dot: #10b981;
+
+  /**
+   * Linha de presença (só verde) — evita faixa multicor que parecia “vazar” dos botões PDV/+.
+   * Some ao expandir (hover/teclado/preset).
+   */
+  #agro-inapp-sidebar-rail::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    border-radius: 0 8px 8px 0;
+    pointer-events: none;
+    opacity: 0.88;
+    z-index: 2;
+    background: linear-gradient(180deg, rgba(52, 211, 153, 0.95) 0%, rgba(16, 185, 129, 0.75) 100%);
+    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
   }
-  #agro-system-tabs-indicator button.agro-tab-dot[data-i="1"] {
-    --agro-dot: #f97316;
-  }
-  #agro-system-tabs-indicator button.agro-tab-dot[data-i="2"] {
-    --agro-dot: #6366f1;
-  }
-  #agro-system-tabs-indicator button.agro-tab-dot.agro-dot-empty {
-    background: transparent;
-    opacity: 0.85;
-  }
-  #agro-system-tabs-indicator button.agro-tab-dot[data-i="0"].agro-dot-empty {
-    border: 2px solid rgba(16, 185, 129, 0.45);
-  }
-  #agro-system-tabs-indicator button.agro-tab-dot[data-i="1"].agro-dot-empty {
-    border: 2px solid rgba(249, 115, 22, 0.45);
-  }
-  #agro-system-tabs-indicator button.agro-tab-dot[data-i="2"].agro-dot-empty {
-    border: 2px solid rgba(99, 102, 241, 0.45);
-  }
-  #agro-system-tabs-indicator button.agro-tab-dot.agro-dot-remote {
-    border: 2px solid transparent;
-    opacity: 0.55;
-  }
-  #agro-system-tabs-indicator button.agro-tab-dot[data-i="0"].agro-dot-remote {
-    background: rgba(16, 185, 129, 0.42);
-  }
-  #agro-system-tabs-indicator button.agro-tab-dot[data-i="1"].agro-dot-remote {
-    background: rgba(249, 115, 22, 0.42);
-  }
-  #agro-system-tabs-indicator button.agro-tab-dot[data-i="2"].agro-dot-remote {
-    background: rgba(99, 102, 241, 0.42);
-  }
-  #agro-system-tabs-indicator button.agro-tab-dot.agro-dot-here {
-    background: var(--agro-dot);
-    border: 2px solid rgba(255, 255, 255, 0.95);
-    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12), 0 1px 4px rgba(15, 23, 42, 0.18);
+
+  /** Conteúdo real da barra: largura fixa de expandido, recortado quando o rail está em “orelha”. */
+  #agro-inapp-tabs-bar {
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    width: var(--agro-inapp-expanded-inner);
+    height: 100%;
+    flex-shrink: 0;
+    max-width: none;
+    padding: 10px 8px 10px max(6px, env(safe-area-inset-left, 0));
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.99) 0%, rgba(30, 41, 59, 0.98) 100%);
+    border-right: 1px solid rgba(148, 163, 184, 0.4);
+    font-family: Inter, system-ui, sans-serif;
+    pointer-events: auto;
+    box-shadow: 2px 0 12px rgba(15, 23, 42, 0.12);
     opacity: 1;
-    transform: scale(1.1);
+    visibility: visible;
   }
-  #agro-system-tabs-indicator button.agro-tab-dot.agro-dot-tap-flash {
-    box-shadow:
-      0 0 0 3px rgba(234, 88, 12, 0.9),
-      0 4px 14px rgba(15, 23, 42, 0.35) !important;
-    transform: scale(1.2) !important;
+  #agro-inapp-tabs-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    align-items: stretch;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
   }
-  #agro-system-tabs-indicator .agro-tabs-new-win {
+  button.agro-inapp-tab {
+    flex-shrink: 0;
+    width: 100%;
+    min-height: auto;
+    max-width: 100%;
+    padding: 9px 7px;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.22;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-radius: 10px;
+    border: 2px solid rgba(148, 163, 184, 0.4);
+    background: rgba(248, 250, 252, 0.1);
+    color: #e2e8f0;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    touch-action: manipulation;
+  }
+  button.agro-inapp-tab.agro-inapp-tab-pdv {
+    min-height: 58px;
+    padding: 10px 6px;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    border-radius: 12px;
+    border: 3px solid rgba(16, 185, 129, 0.85);
+    background: linear-gradient(160deg, rgba(16, 185, 129, 0.35), rgba(5, 150, 105, 0.45));
+    color: #ecfdf5;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);
+  }
+  button.agro-inapp-tab.agro-inapp-tab-active:not(.agro-inapp-tab-pdv) {
+    border-color: rgba(249, 115, 22, 0.75);
+    background: rgba(249, 115, 22, 0.2);
+    color: #fff7ed;
+  }
+  button.agro-inapp-tab.agro-inapp-tab-pdv.agro-inapp-tab-active {
+    border-color: rgba(251, 191, 36, 0.95);
+    background: linear-gradient(160deg, rgba(251, 191, 36, 0.4), rgba(249, 115, 22, 0.5));
+    color: #fffbeb;
+  }
+  button.agro-inapp-tab.agro-inapp-tab-plus {
+    min-height: 44px;
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1;
+    padding: 4px;
+    border-style: dashed;
+    color: #94a3b8;
+    background: rgba(248, 250, 252, 0.06);
+  }
+  span.agro-inapp-user-tab-wrap {
+    display: flex;
+    flex-shrink: 0;
+    align-items: stretch;
+    gap: 2px;
+    width: 100%;
+    max-width: 100%;
+  }
+  span.agro-inapp-user-tab-wrap button.agro-inapp-tab {
+    flex: 1;
+    min-width: 0;
+  }
+  button.agro-inapp-tab-close {
+    flex-shrink: 0;
+    width: 28px;
+    min-height: auto;
+    padding: 4px;
+    margin: 0;
+    margin-left: auto;
+    font-weight: 900;
+    font-size: 16px;
+    line-height: 1;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: rgba(15, 23, 42, 0.5);
+    color: #e2e8f0;
+    cursor: pointer;
+  }
+  #agro-inapp-primary-wrap {
+    display: none;
+    position: relative;
+    box-sizing: border-box;
+    margin-left: var(--agro-inapp-side-w, 132px);
+    min-height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  body.agro-inapp-show-primary #agro-inapp-primary-wrap {
+    display: block !important;
+  }
+  #agro-inapp-pane-stack {
+    display: none;
+    position: fixed;
+    left: var(--agro-inapp-side-w, 132px);
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 2147483620;
+    background: #fff;
+    box-sizing: border-box;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  body.agro-inapp-show-pane #agro-inapp-pane-stack {
+    display: block;
+  }
+  .agro-inapp-pane {
+    display: none;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  .agro-inapp-pane.agro-inapp-pane-active {
+    display: block;
+  }
+  iframe.agro-inapp-iframe {
     display: block;
     width: 100%;
-    max-width: 108px;
-    box-sizing: border-box;
-    margin: 0 0 10px 0;
-    padding: 7px 6px;
-    font-size: 10px;
-    font-weight: 900;
-    line-height: 1.2;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: #0f172a;
-    background: rgba(16, 185, 129, 0.14);
-    border: 2px solid rgba(16, 185, 129, 0.5);
-    border-radius: 10px;
-    cursor: pointer;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
+    height: 100%;
+    border: 0;
+    background: #fff;
+  }
+  #agro-inapp-preset-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483635;
+    background: rgba(15, 23, 42, 0.45);
+    display: none;
+  }
+  #agro-inapp-preset-backdrop.agro-show {
+    display: block;
+  }
+  #agro-inapp-preset-panel {
+    position: fixed;
+    z-index: 2147483636;
+    left: calc(var(--agro-inapp-side-w, 132px) + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    width: min(320px, calc(100vw - var(--agro-inapp-side-w, 132px) - 24px));
+    max-height: min(560px, 78vh);
+    overflow-y: auto;
+    background: #fff;
+    border: 2px solid #0f172a;
+    border-radius: 14px;
+    padding: 10px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    display: none;
+    flex-direction: column;
+    gap: 6px;
     font-family: Inter, system-ui, sans-serif;
   }
-  #agro-system-tabs-indicator .agro-tabs-new-win:hover,
-  #agro-system-tabs-indicator .agro-tabs-new-win:focus-visible {
-    outline: none;
-    background: rgba(249, 115, 22, 0.16);
-    border-color: rgba(249, 115, 22, 0.65);
+  #agro-inapp-preset-panel.agro-show {
+    display: flex;
   }
+  #agro-inapp-preset-panel div.agro-presets-title {
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #0f172a;
+    padding: 6px 4px;
+  }
+  #agro-inapp-preset-panel button.agro-preset-item {
+    width: 100%;
+    text-align: left;
+    padding: 10px 10px;
+    border-radius: 10px;
+    border: 2px solid #e2e8f0;
+    background: #f8fafc;
+    cursor: pointer;
+    font-weight: 800;
+    font-size: 12px;
+    color: #0f172a;
+  }
+  #agro-inapp-preset-panel button.agro-preset-item:hover:not(:disabled) {
+    border-color: #10b981;
+    background: #ecfdf5;
+  }
+  #agro-inapp-preset-panel button.agro-preset-item:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    border-color: #cbd5e1;
+    background: #f1f5f9;
+  }
+
   @media print {
-    #agro-system-tabs-indicator {
+    #agro-inapp-sidebar-rail,
+    #agro-inapp-tabs-bar,
+    #agro-inapp-pane-stack,
+    #agro-inapp-preset-backdrop,
+    #agro-inapp-preset-panel {
       display: none !important;
+    }
+    body.agro-has-inapp-tabbar #agro-inapp-primary-wrap {
+      margin-left: 0 !important;
     }
   }
 </style>
@@ -297,55 +410,24 @@
 <script>
 (function () {
   /**
-   * IMPORTANTE: deve existir SEMPRE, antes de if (__agroTabLimitInit) return.
-   * Se _agro_consulta_ui for incluído 2x na página, o 2.º bloco saía cedo e apagava esta função — o clique deixava de fazer nada.
-   * onclick inline nas bolinhas chama isto diretamente.
-   */
-  window.__agroConsultaTabDotToggle = function (ev, dotEl) {
-    try {
-      if (ev && ev.preventDefault) ev.preventDefault();
-      if (ev && ev.stopPropagation) ev.stopPropagation();
-      var grid = document.getElementById('agro-tab-slot-grid');
-      if (!grid || !dotEl) return;
-      var wrap =
-        dotEl.closest && dotEl.closest('.agro-tab-slot-wrap')
-          ? dotEl.closest('.agro-tab-slot-wrap')
-          : null;
-      if (!wrap || !grid.contains(wrap)) return;
-      if (dotEl.classList) {
-        dotEl.classList.add('agro-dot-tap-flash');
-        setTimeout(function () {
-          try {
-            dotEl.classList && dotEl.classList.remove('agro-dot-tap-flash');
-          } catch (_) {}
-        }, 380);
-      }
-      var wasOpen = wrap.classList.contains('agro-panel-open');
-      grid.querySelectorAll('.agro-tab-slot-wrap').forEach(function (w) {
-        w.classList.remove('agro-panel-open');
-        w.setAttribute('aria-expanded', 'false');
-        var b0 = w.querySelector('button.agro-tab-dot');
-        if (b0) b0.setAttribute('aria-expanded', 'false');
-      });
-      if (!wasOpen) {
-        wrap.classList.add('agro-panel-open');
-        wrap.setAttribute('aria-expanded', 'true');
-        var b1 = wrap.querySelector('button.agro-tab-dot');
-        if (b1) b1.setAttribute('aria-expanded', 'true');
-      }
-    } catch (e) {}
-  };
-
-  /**
-   * No Chrome “instalado” (site como aplicativo sem barra de abas), Ctrl+T costuma não existir —
-   * este helper abre nova janela com o mesmo URL (conta como outra sessão no mesmo limite).
+   * IMPORTANTE: __agroOpenAnotherAgroWindow deve existir SEMPRE antes de if (__agroTabLimitInit) return —
+   * se _agro_consulta_ui for incluído 2×, o 2.º bloco saía cedo sem isto.
+   * Preferir abas internas (barra lateral) quando existir; senão fallback para nova janela do browser.
    */
   window.__agroOpenAnotherAgroWindow = function (ev) {
     try {
       if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
       if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+      if (typeof window.__agroShowPresetLauncher === 'function') {
+        window.__agroShowPresetLauncher();
+        return;
+      }
       var href = String((window.location && window.location.href) || '').split('#')[0] || '';
       var u = href || '/';
+      if (typeof window.__agroInAppAddTab === 'function') {
+        window.__agroInAppAddTab(u);
+        return;
+      }
       window.open(u, '_blank', 'noopener,noreferrer');
     } catch (e2) {}
   };
@@ -362,7 +444,6 @@
   var HEARTBEAT_MS = 10000;
   var aliveTimer = null;
   var blocked = false;
-  var stripRoot = null;
 
   function nowMs() {
     return Date.now();
@@ -469,224 +550,6 @@
     return { tabs: tabs };
   }
 
-  function orderedTabsForStrip(tabs) {
-    var list = pruneStaleTabList(tabs);
-    var pdv = list.filter(function (t) {
-      return t.role === 'pdv';
-    });
-    var ext = list.filter(function (t) {
-      return t.role !== 'pdv';
-    });
-    ext.sort(function (a, b) {
-      return String(a.id).localeCompare(String(b.id));
-    });
-    return pdv.concat(ext).slice(0, MAX_TABS);
-  }
-
-  function escHtml(s) {
-    return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  function ensureNovaJanelaButtonInStrip(inner) {
-    if (!inner || inner.querySelector('.agro-tabs-new-win')) return;
-    try {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'agro-tabs-new-win';
-      b.textContent = 'Nova janela';
-      b.setAttribute(
-        'aria-label',
-        'Abrir nova janela do Agro (atalho novo separador costuma não existir quando o site abre como aplicativo)'
-      );
-      b.title =
-        'Abre nova janela do mesmo endereço. No Chrome instalado como app, Ctrl+T normalmente não cria novo separador.';
-      b.setAttribute(
-        'onclick',
-        'try{window.__agroOpenAnotherAgroWindow(event)}catch(_){};return false;'
-      );
-      inner.insertBefore(b, inner.firstChild);
-    } catch (_) {}
-  }
-
-  function ensureTabsStripDom() {
-    if (stripRoot && document.body.contains(stripRoot)) {
-      var innerEarly = stripRoot.querySelector('.agro-tabs-strip-inner');
-      ensureNovaJanelaButtonInStrip(innerEarly);
-      return stripRoot;
-    }
-    stripRoot = document.getElementById('agro-system-tabs-indicator');
-    if (stripRoot) {
-      ensureNovaJanelaButtonInStrip(stripRoot.querySelector('.agro-tabs-strip-inner'));
-      return stripRoot;
-    }
-    stripRoot = document.createElement('div');
-    stripRoot.id = 'agro-system-tabs-indicator';
-    stripRoot.setAttribute('aria-label', 'Abas do sistema (no máximo três)');
-    stripRoot.innerHTML =
-      '<div class="agro-tabs-strip-inner">' +
-        '<button type="button" class="agro-tabs-new-win"' +
-          ' onclick="try{window.__agroOpenAnotherAgroWindow(event)}catch(_){};return false;"' +
-          ' title="Abre nova janela do mesmo endereço. No Chrome instalado como app, Ctrl+T não cria novo separador." ' +
-          'aria-label="Abrir nova janela do Agro">' +
-          'Nova janela</button>' +
-        '<div class="agro-tab-slot-grid" id="agro-tab-slot-grid" role="list"></div>' +
-      '</div>';
-    document.body.appendChild(stripRoot);
-    return stripRoot;
-  }
-
-  function agroCloseAllTabPanels() {
-    var grid = document.getElementById('agro-tab-slot-grid');
-    if (!grid) return;
-    grid.querySelectorAll('.agro-tab-slot-wrap').forEach(function (w) {
-      w.classList.remove('agro-panel-open');
-      w.setAttribute('aria-expanded', 'false');
-      var bd = w.querySelector('button.agro-tab-dot');
-      if (bd) bd.setAttribute('aria-expanded', 'false');
-    });
-  }
-
-  function agroTabStripOnDocClick(ev) {
-    var ind = document.getElementById('agro-system-tabs-indicator');
-    if (!ind) return;
-    if (ind.contains(ev.target)) return;
-    agroCloseAllTabPanels();
-  }
-
-  function agroTabStripOnKey(ev) {
-    if (ev.key === 'Escape') agroCloseAllTabPanels();
-  }
-
-  function bindTabDotsKeyOnly(grid) {
-    if (!grid) return;
-    grid.querySelectorAll('button.agro-tab-dot').forEach(function (btn) {
-      btn.addEventListener(
-        'keydown',
-        function (ev) {
-          if (ev.key === 'Enter' || ev.key === ' ' || ev.which === 32) {
-            ev.preventDefault();
-            if (typeof window.__agroConsultaTabDotToggle === 'function')
-              window.__agroConsultaTabDotToggle(ev, btn);
-          }
-        },
-        false
-      );
-    });
-  }
-
-  function initAgroTabStripPanelControlsOnce() {
-    if (initAgroTabStripPanelControlsOnce.did) return;
-    initAgroTabStripPanelControlsOnce.did = true;
-    document.addEventListener('click', agroTabStripOnDocClick);
-    document.addEventListener('keydown', agroTabStripOnKey);
-  }
-
-  function updateTabsStrip(tabId, role) {
-    if (blocked) return;
-    if (!document.body) return;
-    try {
-      var reg = readReg();
-      var merged = orderedTabsForStrip(reg.tabs);
-      var here = tabId;
-
-      ensureTabsStripDom();
-      try {
-        var indTop = document.getElementById('agro-system-tabs-indicator');
-        if (indTop && document.body && document.body.lastElementChild !== indTop)
-          document.body.appendChild(indTop);
-      } catch (_) {}
-      var grid = document.getElementById('agro-tab-slot-grid');
-      if (!grid) return;
-
-      var keepSlot = null;
-      var prevOpen = grid.querySelector('.agro-tab-slot-wrap.agro-panel-open');
-      if (prevOpen) keepSlot = prevOpen.getAttribute('data-slot');
-
-      var html = '';
-      for (var i = 0; i < MAX_TABS; i++) {
-        var t = merged[i];
-        var isHere = t && t.id === here;
-        var cls = 'agro-tab-dot';
-        var alab = 'Vaga ' + (i + 1) + ': livre';
-        if (!t) {
-          cls += ' agro-dot-empty';
-        } else if (isHere) {
-          cls += ' agro-dot-here';
-          alab = 'Vaga ' + (i + 1) + ': esta janela';
-        } else {
-          cls += ' agro-dot-remote';
-          alab = 'Vaga ' + (i + 1) + ': outra janela aberta';
-        }
-        var line1 = 'Livre';
-        var line2 = '—';
-        var hereHtml = '';
-        if (t) {
-          line1 = t.role === 'pdv' ? 'PDV' : 'Outra tela';
-          line2 = (t.path && String(t.path).trim()) || '/';
-          if (isHere) hereHtml = '<span class="agro-tab-hover-here">Esta janela</span>';
-        }
-        html +=
-          '<div class="agro-tab-slot-wrap" role="listitem" data-slot="' +
-          i +
-          '" aria-expanded="false">' +
-          '<button type="button" class="' +
-          cls +
-          '" data-i="' +
-          i +
-          '" aria-label="' +
-          escHtml(alab) +
-          '" title="' +
-          escHtml(alab) +
-          '" aria-expanded="false" tabindex="0" onclick="try{window.__agroConsultaTabDotToggle(event,this)}catch(e){}return false;"></button>' +
-          '<div class="agro-tab-hover-panel">' +
-          '<div class="agro-tab-hover-panel-inner">' +
-          '<div class="agro-tab-hover-line1">' +
-          escHtml(line1) +
-          '</div>' +
-          '<div class="agro-tab-hover-line2">' +
-          escHtml(line2) +
-          '</div>' +
-          hereHtml +
-          '</div>' +
-          '</div>' +
-          '</div>';
-      }
-      grid.innerHTML = html;
-      if (keepSlot !== null && keepSlot !== '') {
-        var reopened = grid.querySelector(
-          '.agro-tab-slot-wrap[data-slot="' + keepSlot + '"]'
-        );
-        if (reopened) {
-          reopened.classList.add('agro-panel-open');
-          reopened.setAttribute('aria-expanded', 'true');
-        }
-      }
-      grid.querySelectorAll('.agro-tab-slot-wrap').forEach(function (w) {
-        var ao = w.classList.contains('agro-panel-open') ? 'true' : 'false';
-        w.setAttribute('aria-expanded', ao);
-        var bt = w.querySelector('button.agro-tab-dot');
-        if (bt) bt.setAttribute('aria-expanded', ao);
-      });
-      bindTabDotsKeyOnly(grid);
-      initAgroTabStripPanelControlsOnce();
-    } catch (e) {}
-  }
-
-  function scheduleStripMount(tabId, role) {
-    function paint() {
-      updateTabsStrip(tabId, role);
-    }
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', paint, { once: true });
-    } else {
-      paint();
-    }
-  }
-
   function showBlockedOverlay(reasonText) {
     if (document.getElementById('agro-tab-limit-overlay')) return;
     var root = document.createElement('div');
@@ -746,7 +609,6 @@
     reg = cleanupAndUpsert(reg, tabId, role);
     reg = reconcileMultiPdv(reg);
     writeReg(reg);
-    updateTabsStrip(tabId, role);
   }
 
   function release(tabId) {
@@ -761,9 +623,6 @@
     showBlockedOverlay(check.reason);
     return;
   }
-
-  initAgroTabStripPanelControlsOnce();
-  scheduleStripMount(check.tabId, check.role);
 
   function heartbeatPing() {
     heartbeat(check.tabId);
@@ -786,5 +645,550 @@
   window.addEventListener('storage', function (ev) {
     if (ev && ev.key === REG_KEY) heartbeatPing();
   });
+})();
+</script>
+<script>
+(function () {
+  if (window.__agroInAppTabsBootstrap) return;
+  window.__agroInAppTabsBootstrap = true;
+  if (window.top !== window.self) return;
+
+  var USER_SLOTS = 3;
+  /** Total: 1 PDV + 3 selecionadas = 4 */
+  function pdvHref() {
+    try {
+      return new URL('/pdv/', location.origin).href;
+    } catch (_) {
+      return '/pdv/';
+    }
+  }
+
+  function pathSegmentUpper(absUrlOrPathStr) {
+    try {
+      var p = typeof absUrlOrPathStr === 'string' && absUrlOrPathStr.indexOf('http') === 0 ? new URL(absUrlOrPathStr).pathname : String(absUrlOrPathStr || '/');
+      p = p.split('?')[0].toLowerCase();
+      var segs = p.replace(/^\/+|\/$/g, '').split('/').filter(Boolean);
+      var s = segs.length ? segs[segs.length - 1] : 'INÍCIO';
+      var out = String(s).replace(/-/g, ' ');
+      out = out.length > 26 ? out.slice(0, 22) + '…' : out;
+      return out.replace(/\b\s+\b/g, ' ').trim().toUpperCase();
+    } catch (_) {
+      return 'ABA';
+    }
+  }
+
+  /** Título bruto do documento no iframe (mesma origem). */
+  function iframeDocumentTitleRaw(iframeEl) {
+    try {
+      var td = iframeEl.contentDocument || iframeEl.contentWindow.document;
+      return td && td.title ? String(td.title).trim() : '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /**
+   * Texto da aba a partir de <title>: suporta "Página | SisVale" e "SisVale | Página"
+   * (este projeto usa os dois). Se sobrar só marca (ex. SisVale), devolve '' para cair no menu/URL.
+   */
+  function tabLabelFromDocumentTitle(raw) {
+    var t = String(raw || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!t) return '';
+    var parts = t.split(/\s*\|\s*/).map(function (s) {
+      return s.trim();
+    }).filter(Boolean);
+    var BRAND = /^(sisvale|gm\s*agro|sis\s*vale)$/i;
+    var pick = '';
+    if (parts.length >= 2) {
+      if (BRAND.test(parts[0]) && !BRAND.test(parts[parts.length - 1])) {
+        pick = parts[parts.length - 1];
+      } else if (!BRAND.test(parts[0]) && BRAND.test(parts[parts.length - 1])) {
+        pick = parts[0];
+      } else {
+        pick = parts[0];
+      }
+    } else {
+      pick = parts[0] || '';
+    }
+    if (!pick) return '';
+    if (BRAND.test(pick)) return '';
+    if (pick.length > 44) pick = pick.slice(0, 40) + '…';
+    return pick.toUpperCase();
+  }
+
+  function tabLabelFromMenuItem(title) {
+    if (!title) return '';
+    return String(title).trim().toUpperCase();
+  }
+
+  function withEmbedParam(absUrl) {
+    try {
+      var u = new URL(absUrl, location.href);
+      if (u.origin !== location.origin) return absUrl;
+      if (!u.searchParams.has('agro_inapp_embed')) u.searchParams.set('agro_inapp_embed', '1');
+      return u.toString();
+    } catch (_) {
+      return absUrl;
+    }
+  }
+
+  function pathLookLikePDV(uriPathOnly) {
+    var p = String(uriPathOnly || '').toLowerCase().split('?')[0];
+    return p === '/pdv' || p.indexOf('/pdv/') === 0;
+  }
+
+  function normPathUrl(absUrlStr) {
+    try {
+      var u = new URL(absUrlStr, location.origin);
+      var p = u.pathname.replace(/\/$/, '') || '/';
+      return { path: p.toLowerCase(), search: u.search || '' };
+    } catch (_) {
+      return { path: '', search: '' };
+    }
+  }
+
+  /** Casa URL carregada com o menu inicial (prioridade maior = path mais longo / match exato). */
+  function launcherTitleForUrl(absUrlStr) {
+    var rows = launcherRows();
+    if (!absUrlStr || !rows.length) return '';
+    var t = normPathUrl(absUrlStr);
+    var tp = t.path;
+    var ts = t.search;
+    if (!tp) return '';
+    var best = '';
+    var bestRank = -1;
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      if (!row.href || row.disabled) continue;
+      var h;
+      try {
+        h = normPathUrl(row.href);
+      } catch (_) {
+        continue;
+      }
+      var rp = h.path;
+      var rs = h.search;
+      var rank = -1;
+      if (rp === tp && rs === ts) rank = 300000 + rp.length;
+      else if (rp === tp) rank = 150000 + rp.length;
+      else if (rp !== '/' && tp.indexOf(rp + '/') === 0) rank = rp.length;
+      if (rank > bestRank && row.title) {
+        bestRank = rank;
+        best = row.title;
+      }
+    }
+    return best;
+  }
+
+  /** Rótulo da aba: título da página (quando não for só marca) → menu inicial → último segmento da URL. */
+  function resolveTabLabel(iframeEl, absUrl) {
+    if (iframeEl) {
+      var docRaw = iframeDocumentTitleRaw(iframeEl);
+      var fromDoc = tabLabelFromDocumentTitle(docRaw);
+      if (fromDoc) return fromDoc;
+    }
+    if (absUrl) {
+      var navTitle = launcherTitleForUrl(absUrl);
+      if (navTitle) return tabLabelFromMenuItem(navTitle);
+      return pathSegmentUpper(absUrl);
+    }
+    return 'TELA';
+  }
+
+  /** Lista estática apenas se falhar JSON do servidor (idem menu inicial). */
+  var PRESETS_FALLBACK = [
+    { title: 'Logística · Transf.', href: '/transferencias/', shortcut: '', disabled: false, pin_protected: true },
+    { title: 'Lançamentos', href: '/lancamentos/', shortcut: '', disabled: false, pin_protected: true },
+    { title: 'Compras', href: '/compras/', shortcut: '', disabled: false, pin_protected: true },
+    { title: 'Entregas', href: '/entregas/', shortcut: '', disabled: false, pin_protected: true },
+    { title: 'PDV Checkout', href: '/pdv/checkout/', shortcut: '', disabled: false, pin_protected: true },
+    { title: 'Dashboard BI', href: '/dashboard/gerencial/', shortcut: '', disabled: false, pin_protected: true },
+    { title: 'Financeiro ger.', href: '/financeiro/resumo-gerencial/', shortcut: '', disabled: false, pin_protected: true },
+    { title: 'Entrada NF', href: '/entrada-nota/', shortcut: '', disabled: false, pin_protected: true },
+    { title: 'Estoque sync', href: '/estoque/sincronizacao/', shortcut: '', disabled: false, pin_protected: true },
+    { title: 'Vendas', href: '/vendas/', shortcut: '', disabled: false, pin_protected: true },
+    { title: 'Clientes', href: '/clientes/', shortcut: '', disabled: false, pin_protected: true },
+    { title: 'Caixa', href: '/caixa/', shortcut: '', disabled: false, pin_protected: true },
+  ];
+
+  function readHomeLauncherRows() {
+    var el = document.getElementById('agro-home-nav-data');
+    if (!el || !el.textContent) return null;
+    try {
+      var data = JSON.parse(el.textContent);
+      return Array.isArray(data) && data.length ? data : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function launcherRows() {
+    return readHomeLauncherRows() || PRESETS_FALLBACK;
+  }
+
+  function presetButtonLabel(it) {
+    var t = (it && it.title) ? String(it.title) : 'Tela';
+    var s = it && it.shortcut ? String(it.shortcut).trim() : '';
+    return s ? t + ' · ' + s : t;
+  }
+
+  function launchFromLauncherItem(absResolved, pinProtected) {
+    function go() {
+      occupyUserSlotWithUrl(absResolved);
+    }
+    if (pinProtected && typeof window.gmSspinProtegerAcao === 'function') {
+      window.gmSspinProtegerAcao(go);
+    } else {
+      go();
+    }
+  }
+
+  var shell = {
+    bar: null,
+    stackEl: null,
+    paneEl: null,
+    pdvBtn: null,
+    pdvPane: null,
+    pdvIframe: null,
+    plusBtn: null,
+    wrapEl: null,
+    userWraps: [],
+    userSlots: [null, null, null],
+    activeWhich: null,
+    presetBackdrop: null,
+    presetPanel: null,
+  };
+
+  function setTabGlow(el, on) {
+    if (!el) return;
+    el.classList.toggle('agro-inapp-tab-active', !!on);
+  }
+
+  function showWhich(which) {
+    shell.activeWhich = which;
+    if (shell.wrapEl)
+      shell.wrapEl.style.display = which === 'prim' ? 'block' : 'none';
+
+    shell.pdvPane && shell.pdvPane.classList.toggle('agro-inapp-pane-active', which === 'pdv');
+
+    var u = 0;
+    for (; u < USER_SLOTS; u++) {
+      var S = shell.userSlots[u];
+      if (S && S.paneEl) S.paneEl.classList.toggle('agro-inapp-pane-active', which === 'u' + u);
+    }
+
+    setTabGlow(shell.pdvBtn, which === 'pdv');
+    for (u = 0; u < USER_SLOTS; u++) {
+      var tbtn = shell.userSlots[u];
+      if (tbtn && tbtn.mainBtn) setTabGlow(tbtn.mainBtn, which === 'u' + u);
+    }
+
+    document.body.classList.toggle('agro-inapp-show-primary', which === 'prim');
+    document.body.classList.toggle('agro-inapp-show-pane', which !== 'prim');
+  }
+
+  function nextFreeSlot() {
+    for (var z = 0; z < USER_SLOTS; z++) if (!shell.userSlots[z]) return z;
+    return -1;
+  }
+
+  function ensurePresetMarkup() {
+    if (shell.presetBackdrop) return;
+    var bd = document.createElement('div');
+    bd.id = 'agro-inapp-preset-backdrop';
+    shell.presetBackdrop = bd;
+    var pan = document.createElement('div');
+    pan.id = 'agro-inapp-preset-panel';
+    shell.presetPanel = pan;
+    var tit = document.createElement('div');
+    tit.className = 'agro-presets-title';
+    tit.textContent = 'Menus do início — escolha a tela';
+    pan.appendChild(tit);
+    var rows = launcherRows();
+    for (var p = 0; p < rows.length; p++) {
+      (function (item) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'agro-preset-item';
+        b.textContent = presetButtonLabel(item);
+        var dis = !!(item.disabled || !(item.href && String(item.href).trim()));
+        if (dis) {
+          b.disabled = true;
+        } else {
+          b.onclick = function () {
+            hidePresetPick();
+            var hrefSrc = String(item.href).trim();
+            var resolved = absUrl(hrefSrc);
+            launchFromLauncherItem(resolved, !!item.pin_protected);
+          };
+        }
+        pan.appendChild(b);
+      })(rows[p]);
+    }
+    bd.onclick = function () {
+      hidePresetPick();
+    };
+    document.body.appendChild(bd);
+    document.body.appendChild(pan);
+    pan.onclick = function (ev) {
+      ev.stopPropagation();
+    };
+  }
+
+  function absUrl(rel) {
+    try {
+      return new URL(rel, location.origin).href;
+    } catch (_) {
+      return rel;
+    }
+  }
+
+  function showPresetPick() {
+    mountShellEnsure();
+    ensurePresetMarkup();
+    shell.presetBackdrop.classList.add('agro-show');
+    shell.presetPanel.classList.add('agro-show');
+  }
+
+  function hidePresetPick() {
+    if (shell.presetBackdrop) shell.presetBackdrop.classList.remove('agro-show');
+    if (shell.presetPanel) shell.presetPanel.classList.remove('agro-show');
+  }
+
+  window.__agroShowPresetLauncher = showPresetPick;
+
+  function wireIframeTitleSync(slotIx, iframeEl, labelBtn) {
+    function pull() {
+      var u = shell.userSlots[slotIx] && shell.userSlots[slotIx].url;
+      labelBtn.textContent = resolveTabLabel(iframeEl, u || '');
+    }
+    iframeEl.addEventListener('load', pull);
+    setTimeout(pull, 650);
+    setInterval(pull, 3200);
+  }
+
+  function wirePdvTabLabelSync() {
+    function pull() {
+      var lab = resolveTabLabel(shell.pdvIframe, pdvHref());
+      shell.pdvBtn.textContent = lab;
+      shell.pdvBtn.title = lab;
+    }
+    shell.pdvIframe.addEventListener('load', pull);
+    setTimeout(pull, 450);
+    setTimeout(pull, 1200);
+    setInterval(pull, 3200);
+  }
+
+  function occupyUserSlotWithUrl(absUrlRaw, forceSlotIx, stripPrimaryDup) {
+    mountShellEnsure();
+    var resolved = '';
+    try {
+      resolved = new URL(absUrlRaw || '/', location.href).href;
+    } catch (_) {
+      resolved = '/';
+    }
+    var ix = typeof forceSlotIx === 'number' ? forceSlotIx : nextFreeSlot();
+    if (ix < 0) {
+      try {
+        alert('Já há 3 telas extras. Feche uma (×) para abrir outra.');
+      } catch (_) {}
+      return;
+    }
+
+    /** remove slot antiga mesmo índice se existia */
+    if (shell.userSlots[ix]) destroyUserSlot(ix);
+
+    shell.userSlots[ix] = { url: resolved };
+
+    var wrap = document.createElement('span');
+    wrap.className = 'agro-inapp-user-tab-wrap';
+    var hdr = document.createElement('button');
+    hdr.type = 'button';
+    hdr.className = 'agro-inapp-tab';
+    hdr.setAttribute('role', 'tab');
+    hdr.textContent = resolveTabLabel(ifr, resolved);
+    hdr.dataset.which = 'u' + ix;
+    hdr.onclick = function () {
+      showWhich('u' + ix);
+    };
+    shell.userSlots[ix].mainBtn = hdr;
+
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'agro-inapp-tab-close';
+    close.setAttribute('aria-label', 'Fechar');
+    close.textContent = '×';
+
+    wrap.appendChild(hdr);
+    wrap.appendChild(close);
+    shell.userWraps[ix] = wrap;
+    shell.stackEl.insertBefore(wrap, shell.plusBtn);
+
+    var pane = document.createElement('div');
+    pane.className = 'agro-inapp-pane';
+    pane.dataset.which = 'u' + ix;
+    var ifr = document.createElement('iframe');
+    ifr.className = 'agro-inapp-iframe';
+    ifr.loading = 'eager';
+    ifr.src = withEmbedParam(resolved);
+    ifr.title = 'SisVale';
+    pane.appendChild(ifr);
+    shell.paneEl.appendChild(pane);
+
+    shell.userSlots[ix].paneEl = pane;
+    shell.userSlots[ix].iframe = ifr;
+    wireIframeTitleSync(ix, ifr, hdr);
+
+    close.onclick = function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      destroyUserSlot(ix);
+    };
+
+    if (stripPrimaryDup && shell.wrapEl) {
+      ifr.addEventListener(
+        'load',
+        function stripDup() {
+          try {
+            shell.wrapEl.innerHTML = '';
+          } catch (_) {}
+        },
+        { once: true }
+      );
+    }
+
+    showWhich('u' + ix);
+  }
+
+  function destroyUserSlot(ix) {
+    var S = shell.userSlots[ix];
+    if (!S) return;
+    if (S.paneEl && S.paneEl.parentNode) S.paneEl.parentNode.removeChild(S.paneEl);
+    var w = shell.userWraps[ix];
+    if (w && w.parentNode) w.parentNode.removeChild(w);
+    shell.userSlots[ix] = null;
+    shell.userWraps[ix] = null;
+    if (shell.activeWhich === 'u' + ix) {
+      showWhich('pdv');
+    }
+  }
+
+  function mountShellEnsure() {
+    if (shell.bar && document.body.contains(shell.bar)) return;
+    mountShell();
+  }
+
+  function mountShell() {
+    if (shell.rail && shell.rail.parentNode === document.body) return;
+    var b = document.body;
+    shell.bar = document.createElement('div');
+    shell.bar.id = 'agro-inapp-tabs-bar';
+
+    shell.stackEl = document.createElement('div');
+    shell.stackEl.id = 'agro-inapp-tabs-stack';
+
+    shell.pdvBtn = document.createElement('button');
+    shell.pdvBtn.type = 'button';
+    shell.pdvBtn.className = 'agro-inapp-tab agro-inapp-tab-pdv';
+    shell.pdvBtn.textContent = 'PDV';
+    shell.pdvBtn.title = 'Ponto de venda';
+    shell.pdvBtn.onclick = function () {
+      showWhich('pdv');
+    };
+
+    shell.plusBtn = document.createElement('button');
+    shell.plusBtn.type = 'button';
+    shell.plusBtn.className = 'agro-inapp-tab agro-inapp-tab-plus';
+    shell.plusBtn.setAttribute('aria-label', 'Adicionar tela à escolha');
+    shell.plusBtn.title = 'Escolher outra área do sistema (máx. 3 além do PDV)';
+    shell.plusBtn.textContent = '+';
+    shell.plusBtn.onclick = function () {
+      showPresetPick();
+    };
+
+    shell.stackEl.appendChild(shell.pdvBtn);
+    shell.stackEl.appendChild(shell.plusBtn);
+    shell.bar.appendChild(shell.stackEl);
+
+    shell.rail = document.createElement('div');
+    shell.rail.id = 'agro-inapp-sidebar-rail';
+    shell.rail.setAttribute('aria-label', 'Painel lateral de telas SisVale');
+    shell.rail.appendChild(shell.bar);
+
+    shell.paneEl = document.createElement('div');
+    shell.paneEl.id = 'agro-inapp-pane-stack';
+
+    shell.pdvPane = document.createElement('div');
+    shell.pdvPane.className = 'agro-inapp-pane';
+    shell.pdvIframe = document.createElement('iframe');
+    shell.pdvIframe.className = 'agro-inapp-iframe';
+    shell.pdvIframe.src = withEmbedParam(pdvHref());
+    shell.pdvIframe.loading = 'eager';
+    shell.pdvPane.appendChild(shell.pdvIframe);
+
+    shell.paneEl.appendChild(shell.pdvPane);
+    wirePdvTabLabelSync();
+
+    b.insertBefore(shell.rail, b.firstChild);
+    shell.wrapEl = document.createElement('div');
+    shell.wrapEl.id = 'agro-inapp-primary-wrap';
+    while (shell.rail.nextSibling) shell.wrapEl.appendChild(shell.rail.nextSibling);
+    b.insertBefore(shell.wrapEl, shell.rail.nextSibling);
+    b.appendChild(shell.paneEl);
+
+    shell.userWraps = [null, null, null];
+    shell.userSlots = [null, null, null];
+
+    b.classList.add('agro-has-inapp-tabbar');
+
+    var pathNow = (location.pathname || '').split('?')[0];
+
+    /** Se já está no PDV, mostra só o iframe PDV esconde cópia duplicada do DOM inicial */
+    if (pathLookLikePDV(pathNow)) {
+      shell.wrapEl.style.display = 'none';
+      try {
+        shell.wrapEl.innerHTML = '';
+      } catch (_) {}
+      showWhich('pdv');
+    } else {
+      /** Primeira tela vira primeira das 3 abas opcionais; remove HTML duplicado após iframe carregar */
+      occupyUserSlotWithUrl(location.href.split('#')[0], 0, true);
+    }
+
+    hidePresetPick();
+  }
+
+  window.__agroInAppAddTab = function (urlStr) {
+    mountShellEnsure();
+    var u = urlStr ? String(urlStr).split('#')[0] : location.href.split('#')[0];
+    occupyUserSlotWithUrl(u, undefined, false);
+  };
+
+  document.addEventListener(
+    'keydown',
+    function (e) {
+      if (e.key === 'Escape' && shell.presetBackdrop && shell.presetBackdrop.classList.contains('agro-show')) {
+        hidePresetPick();
+        return;
+      }
+      var ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl || e.altKey || e.shiftKey) return;
+      if (e.key !== 't' && e.code !== 'KeyT') return;
+      var tg = e.target && e.target.tagName && e.target.tagName.toUpperCase();
+      if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT') return;
+      if (e.target && e.target.isContentEditable) return;
+      try {
+        mountShellEnsure();
+      } catch (_) {}
+      e.preventDefault();
+      showPresetPick();
+    },
+    true
+  );
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountShell, { once: true });
+  else mountShell();
 })();
 </script>
