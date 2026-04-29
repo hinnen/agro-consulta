@@ -39,6 +39,9 @@
     body.entrada-nfe--editor { overflow: hidden; }
     body.entrada-nfe--editor #entrada-nfe-header-principal { display: none; }
     body.entrada-nfe--editor #entrada-nfe-main-lista { display: none; }
+    #nfe-bip-linha-list {
+      max-height: min(22rem, 50vh);
+    }
   </style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
@@ -241,7 +244,8 @@
         <p class="text-xs font-semibold text-rose-900 leading-snug">Bipe um código e confira se bate com o <strong>produto do catálogo</strong> na linha escolhida. Segundo campo = outro código válido do mesmo item. Marque <strong>não verificar</strong> quando não houver código.</p>
         <div class="flex flex-wrap gap-2 items-end">
           <label class="block min-w-[12rem] flex-1"><span class="text-[10px] font-black uppercase text-rose-900">Linha</span>
-            <select id="nfe-bip-linha-sel" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-rose-200 px-2 text-sm font-bold bg-white"></select>
+            <div id="nfe-bip-linha-list" class="mt-1 w-full overflow-y-auto rounded-xl border-2 border-rose-200 bg-white p-1 space-y-1" role="listbox" aria-label="Produtos da nota para conferência de código"></div>
+            <p id="nfe-bip-linha-hint" class="text-[10px] font-bold text-rose-900/90 mt-1 leading-snug" hidden></p>
           </label>
           <label class="block min-w-[10rem] flex-1"><span class="text-[10px] font-black uppercase text-rose-900">Código bipado</span>
             <input type="text" id="nfe-bip-cod" autocomplete="off" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-rose-200 px-3 text-sm font-mono bg-white" placeholder="Somente números" inputmode="numeric">
@@ -500,6 +504,10 @@
 
   let entradaNfeRascunhoEditId = null;
   let entradaNfeListaFiltro = 'todas';
+  /** Índice da linha ativa na conferência por código (passo 2). */
+  let entradaNfeBipLinhaIdx = 0;
+  /** Rascunho local por índice de linha: código bipado / ignorar ao trocar de linha. */
+  const entradaNfeBipDraftPorLinha = {};
 
   const ENTRADA_STATUS_PILL = {
     com_pendencias: 'rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex shrink-0 bg-amber-100 text-amber-950 border-2 border-amber-400',
@@ -699,7 +707,16 @@
     try {
       elEditorScroll?.scrollTo(0, 0);
     } catch (_) {}
-    if (step === 2) entradaNfeBipRebuildSelect();
+    if (step === 2) {
+      entradaNfeBipRebuildSelect();
+      entradaNfeBipAplicarDraftLinhaAtual();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          entradaNfeBipRebuildSelect();
+          entradaNfeBipAplicarDraftLinhaAtual();
+        });
+      });
+    }
     if (step === 5) entradaNfeRecapRefresh();
   }
 
@@ -744,24 +761,125 @@
     box.innerHTML = `<p><strong>NF</strong> ${nf}${ser ? ` · série ${ser}` : ''}</p><p><strong>Fornecedor</strong> ${forn}</p><p><strong>Estoque</strong> ${empT || '—'} — ${depT || '—'}</p><p><strong>Linhas com catálogo</strong> ${comProd} / ${rows.length}</p>`;
   }
 
-  function entradaNfeBipRebuildSelect() {
-    const sel = document.getElementById('nfe-bip-linha-sel');
-    if (!sel) return;
-    const tb = document.getElementById('tbody-itens');
-    const rows = tb && tb.rows ? [...tb.rows] : [];
-    const prev = sel.value;
-    sel.innerHTML = '';
-    rows.forEach((tr, i) => {
-      const opt = document.createElement('option');
-      opt.value = String(i);
-      const desc = (tr.querySelector('.in-desc')?.value || '').trim().slice(0, 56);
-      opt.textContent = `${i + 1}. ${desc || '(sem descrição)'}`;
-      sel.appendChild(opt);
-    });
-    if (rows.length) {
-      if (prev && [...sel.options].some((o) => o.value === prev)) sel.value = prev;
-      else sel.value = '0';
+  /** Linhas da grade NF (somente TR filhos diretos do tbody — compatível com WebView/Electron). */
+  function entradaNfeBipLinhasTbody(tb) {
+    if (!tb) return [];
+    let out = [];
+    try {
+      out = Array.from(tb.querySelectorAll(':scope > tr'));
+    } catch (_) {
+      out = [];
     }
+    if (out.length) return out;
+    try {
+      if (tb.rows && tb.rows.length) return Array.from(tb.rows);
+    } catch (_) {}
+    return Array.from(tb.children || []).filter((n) => n.tagName === 'TR');
+  }
+
+  function entradaNfeBipEstadoLinha(tr) {
+    const v = (tr && tr.dataset && String(tr.dataset.bipConf || '').trim()) || '';
+    if (v === 'ok' || v === 'divergente' || v === 'dispensado') return v;
+    return 'pendente';
+  }
+
+  function entradaNfeBipClassesBtnLinha(est, selecionada) {
+    const base = 'w-full text-left rounded-lg border-2 px-2 py-2 text-sm font-bold min-h-[44px] flex items-center gap-2 transition-shadow shrink-0';
+    let paleta;
+    if (est === 'ok' || est === 'dispensado') paleta = 'bg-emerald-100 border-emerald-400 text-emerald-950';
+    else if (est === 'divergente') paleta = 'bg-red-100 border-red-400 text-red-950';
+    else paleta = 'bg-amber-100 border-amber-300 text-amber-950';
+    const sel = selecionada ? ' ring-2 ring-offset-1 ring-rose-600 shadow-sm' : '';
+    return `${base} ${paleta}${sel}`;
+  }
+
+  function entradaNfeBipRotuloBadge(est) {
+    if (est === 'ok') return 'Ok';
+    if (est === 'dispensado') return 'Disp.';
+    if (est === 'divergente') return '!');
+    return '…';
+  }
+
+  function entradaNfeBipLimparDraftEBipIdx() {
+    entradaNfeBipLinhaIdx = 0;
+    Object.keys(entradaNfeBipDraftPorLinha).forEach((k) => delete entradaNfeBipDraftPorLinha[k]);
+  }
+
+  function entradaNfeBipIxDeTr(tr) {
+    const rows = entradaNfeBipLinhasTbody(document.getElementById('tbody-itens'));
+    return rows.indexOf(tr);
+  }
+
+  function entradaNfeBipSalvarDraftAtual() {
+    const c = document.getElementById('nfe-bip-cod');
+    const a = document.getElementById('nfe-bip-cod-alt');
+    const ig = document.getElementById('nfe-bip-ignorar');
+    entradaNfeBipDraftPorLinha[String(entradaNfeBipLinhaIdx)] = {
+      cod: c ? c.value : '',
+      codAlt: a ? a.value : '',
+      ignorar: !!ig?.checked,
+    };
+  }
+
+  function entradaNfeBipAplicarDraftLinhaAtual() {
+    entradaNfeBipAplicarDraftIx(entradaNfeBipLinhaIdx);
+  }
+
+  function entradaNfeBipAplicarDraftIx(ix) {
+    const d = entradaNfeBipDraftPorLinha[String(ix)] || {};
+    const c = document.getElementById('nfe-bip-cod');
+    const a = document.getElementById('nfe-bip-cod-alt');
+    const ig = document.getElementById('nfe-bip-ignorar');
+    if (c) c.value = d.cod || '';
+    if (a) a.value = d.codAlt || '';
+    if (ig) ig.checked = !!d.ignorar;
+  }
+
+  function entradaNfeBipSelecionarLinha(ix) {
+    const rows = entradaNfeBipLinhasTbody(document.getElementById('tbody-itens'));
+    if (!rows.length) return;
+    entradaNfeBipSalvarDraftAtual();
+    entradaNfeBipLinhaIdx = Math.min(Math.max(0, ix), rows.length - 1);
+    entradaNfeBipAplicarDraftLinhaAtual();
+    entradaNfeBipRebuildSelect();
+  }
+
+  function entradaNfeBipRebuildSelect() {
+    const box = document.getElementById('nfe-bip-linha-list');
+    const hint = document.getElementById('nfe-bip-linha-hint');
+    if (!box) return;
+    const tb = document.getElementById('tbody-itens');
+    const rows = entradaNfeBipLinhasTbody(tb);
+    if (rows.length === 0) {
+      entradaNfeBipLinhaIdx = 0;
+    } else if (entradaNfeBipLinhaIdx >= rows.length) {
+      entradaNfeBipLinhaIdx = rows.length - 1;
+    }
+    box.innerHTML = '';
+    if (hint) {
+      if (rows.length) {
+        hint.removeAttribute('hidden');
+        hint.textContent = rows.length > 1
+          ? `${rows.length} produtos · verde = ok · amarelo = falta bipar · vermelho = diverge do catálogo.`
+          : 'Verde = ok · amarelo = falta bipar · vermelho = diverge do catálogo.';
+      } else {
+        hint.removeAttribute('hidden');
+        hint.textContent = 'Nenhuma linha na grade — verifique os itens acima.';
+      }
+    }
+    rows.forEach((tr, i) => {
+      const est = entradaNfeBipEstadoLinha(tr);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('role', 'option');
+      btn.setAttribute('aria-selected', i === entradaNfeBipLinhaIdx ? 'true' : 'false');
+      const desc = (tr.querySelector('.in-desc')?.value || '').trim().slice(0, 76);
+      const badge = entradaNfeBipRotuloBadge(est);
+      btn.className = entradaNfeBipClassesBtnLinha(est, i === entradaNfeBipLinhaIdx);
+      btn.innerHTML = `<span class="tabular-nums font-black shrink-0 w-7">${i + 1}.</span><span class="min-w-0 flex-1 break-words leading-snug">${desc || '(sem descrição)'}</span><span class="text-[10px] font-black uppercase shrink-0 opacity-90" title="Status">${badge}</span>`;
+      btn.addEventListener('click', () => entradaNfeBipSelecionarLinha(i));
+      box.appendChild(btn);
+    });
   }
 
   (function entradaNfeBipAttachTbObserver() {
@@ -781,14 +899,15 @@
       msg.textContent = '';
       msg.classList.remove('text-emerald-800', 'text-red-700');
     }
-    const sel = document.getElementById('nfe-bip-linha-sel');
+    entradaNfeBipSalvarDraftAtual();
     const tb = document.getElementById('tbody-itens');
-    const rows = tb && tb.rows ? [...tb.rows] : [];
-    if (!sel || !rows.length) {
+    const rows = entradaNfeBipLinhasTbody(tb);
+    if (!rows.length) {
       if (msg) msg.textContent = 'Adicione linhas na grade primeiro.';
       return;
     }
-    const tr = rows[Number(sel.value) || 0];
+    const ix = Math.min(Math.max(0, entradaNfeBipLinhaIdx), rows.length - 1);
+    const tr = rows[ix];
     if (!tr) return;
     const pid = tr.querySelector('.in-prod-id')?.value?.trim();
     const cod = document.getElementById('nfe-bip-cod')?.value?.trim() || '';
@@ -815,17 +934,25 @@
         return;
       }
       if (j.ignorado) {
+        tr.dataset.bipConf = 'dispensado';
+        entradaNfeBipRebuildSelect();
         if (msg) msg.textContent = 'Verificação ignorada para esta linha.';
         return;
       }
       if (j.bate) {
+        tr.dataset.bipConf = 'ok';
+        entradaNfeBipRebuildSelect();
         if (msg) {
           msg.textContent = `Bate com o cadastro${j.nome ? `: ${j.nome}` : '.'}`;
           msg.classList.add('text-emerald-800');
         }
-      } else if (msg) {
-        msg.textContent = `Não bate com ${j.nome || 'o catálogo'}.`;
-        msg.classList.add('text-red-700');
+      } else {
+        tr.dataset.bipConf = 'divergente';
+        entradaNfeBipRebuildSelect();
+        if (msg) {
+          msg.textContent = `Não bate com ${j.nome || 'o catálogo'}.`;
+          msg.classList.add('text-red-700');
+        }
       }
     } catch (_) {
       if (msg) msg.textContent = 'Erro de rede.';
@@ -895,6 +1022,11 @@
       e.preventDefault();
       entradaNfeBipVerificar();
     }
+  });
+  ['input', 'change'].forEach((ev) => {
+    document.getElementById('nfe-bip-cod')?.addEventListener(ev, () => entradaNfeBipSalvarDraftAtual());
+    document.getElementById('nfe-bip-cod-alt')?.addEventListener(ev, () => entradaNfeBipSalvarDraftAtual());
+    document.getElementById('nfe-bip-ignorar')?.addEventListener(ev, () => entradaNfeBipSalvarDraftAtual());
   });
   document.getElementById('nfe-wiz-btn-aprov')?.addEventListener('click', () => { entradaNfeAprovarWizardPin(); });
   document.getElementById('nfe-wiz-pin')?.addEventListener('keydown', (e) => {
@@ -1286,6 +1418,7 @@
   }
 
   function tbodyClear() {
+    entradaNfeBipLimparDraftEBipIdx();
     document.getElementById('tbody-itens').innerHTML = '';
     atualizarPainelTotalNfe();
     entradaNfeBipRebuildSelect();
@@ -1340,6 +1473,9 @@
       qe.dataset.manual = '';
       atualizarQtdEstoqueRow(tr);
     }
+    const bc = String(d.bip_conf != null ? d.bip_conf : '').trim();
+    if (bc === 'ok' || bc === 'divergente' || bc === 'dispensado') tr.dataset.bipConf = bc;
+    else delete tr.dataset.bipConf;
     ['input', 'change'].forEach((ev) => {
       tr.querySelector('.in-qtd').addEventListener(ev, () => { delete qe.dataset.manual; atualizarQtdEstoqueRow(tr); });
       tr.querySelector('.in-un-emb').addEventListener(ev, () => { delete qe.dataset.manual; atualizarQtdEstoqueRow(tr); });
@@ -1386,6 +1522,7 @@
           const t = (tr.querySelector('.in-match').textContent || '').trim();
           return t && t !== '—' ? t : '';
         })(),
+        bip_conf: entradaNfeBipEstadoLinha(tr),
       });
     });
     return linhas;
@@ -1535,6 +1672,7 @@
         produto_id: row.produto_id || '',
         nome_catalogo: row.nome_catalogo || row.x_prod || '',
         match_tipo: row.match_tipo || '',
+        bip_conf: row.bip_conf,
       });
     });
     atualizarPainelTotalNfe();
@@ -1638,6 +1776,9 @@
           if (p.codigo_nfe || p.codigo) trProdAlvo.querySelector('.in-cprod').value = p.codigo_nfe || p.codigo || '';
           if (p.codigo_barras) trProdAlvo.querySelector('.in-ean').value = String(p.codigo_barras).replace(/\D/g, '').slice(0, 14);
           document.getElementById('modal-prod').classList.add('hidden');
+          delete trProdAlvo.dataset.bipConf;
+          const bi = entradaNfeBipIxDeTr(trProdAlvo);
+          if (bi >= 0) delete entradaNfeBipDraftPorLinha[String(bi)];
           trProdAlvo = null;
           modProdHlIdx = -1;
           entradaNfeBipRebuildSelect();

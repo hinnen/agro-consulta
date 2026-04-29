@@ -2517,6 +2517,24 @@ def _home_admin_navegacao():
     return {"top_items": top_items, "grid_items": grid_items}
 
 
+def home_launcher_nav_items():
+    """Mesmo conjunto de entradas do menu inicial (flat), para picker de nova aba / Ctrl+T."""
+    nav = _home_admin_navegacao()
+    rows = []
+    for item in nav["top_items"] + nav["grid_items"]:
+        href = (item.get("href") or "").strip()
+        rows.append(
+            {
+                "title": item["title"],
+                "href": href,
+                "shortcut": item.get("shortcut") or "",
+                "disabled": bool(item.get("disabled")),
+                "pin_protected": bool(item.get("pin_protected")),
+            }
+        )
+    return rows
+
+
 def _dashboard_periodo_from_request(request):
     hoje = timezone.localdate()
     preset = (request.GET.get("periodo") or "mes").strip().lower()

@@ -29,7 +29,9 @@ Use o próprio navegador:
 
 ### Chrome com o site instalado (“Abrir como janela” / atalho de app)
 
-Nesse modo não há linha de **separadores** como no Chrome normal. O próprio navegador **não oferece** `Ctrl+T` como “nova aba” numa mesma janela (não há abas para abrir). Para outra sessão do Agro, use o botão **Nova janela** na própria faixa lateral (abre nova janela com o mesmo endereço), ou feche esse atalho e abra uma janela normal do Chrome com abas para ter `Ctrl+T`.
+Nesse modo não há separadores como no Chrome clássico. O SisVale mostra uma **coluna à esquerda** com até **quatro vistas**: sempre **uma aba destacada PDV** (`/consulta/`) mais **três telas à escolha** (lista ao clicar **+**, ou `Ctrl+T` quando o foco não está num campo). Os nomes das abas opcionais acompanham o **título** da página no iframe quando possível.
+
+As bolinhas de **sessões** ficam mais à direita, ao lado dessa coluna.
 
 O limite de **3 abas** continua a valer: se tentar abrir uma **4.ª**, o Agro **bloqueia** com um aviso a tela inteira.
 
