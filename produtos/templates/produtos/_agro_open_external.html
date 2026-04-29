@@ -2,94 +2,233 @@
 <style id="agro-tabs-strip-styles">
   #agro-system-tabs-indicator {
     position: fixed;
-    bottom: 0;
     left: 0;
-    right: 0;
-    z-index: 2147483640;
-    pointer-events: none;
+    top: 50%;
+    transform: translateY(-50%) translateZ(0);
+    isolation: isolate;
+    z-index: 2147483646;
+    pointer-events: auto;
     font-family: Inter, system-ui, sans-serif;
-    padding: 0 8px calc(10px + env(safe-area-inset-bottom, 0));
+    padding-left: max(4px, env(safe-area-inset-left, 0));
   }
   #agro-system-tabs-indicator .agro-tabs-strip-inner {
-    pointer-events: auto;
-    max-width: 720px;
-    margin: 0 auto;
     display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
-    padding: 8px 12px;
-    border-radius: 14px 14px 0 0;
-    border: 2px solid #0f766e;
-    border-bottom: none;
-    background: rgba(236, 253, 245, 0.98);
-    box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.15);
-    color: #0f172a;
-  }
-  #agro-system-tabs-indicator .agro-tabs-strip-caption {
-    font-size: 10px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #0f766e;
-    width: 100%;
-    text-align: center;
-    line-height: 1.25;
-    margin-bottom: 2px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 13px 10px 13px 7px;
+    border-radius: 0 12px 12px 0;
+    background: rgba(248, 250, 252, 0.65);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-left: 0;
+    box-shadow: 2px 1px 14px rgba(15, 23, 42, 0.06);
+    backdrop-filter: blur(5px);
+    pointer-events: auto;
   }
   #agro-system-tabs-indicator .agro-tab-slot-grid {
     display: flex;
-    flex: 1;
-    gap: 6px;
-    flex-wrap: wrap;
-    justify-content: center;
-    min-width: 0;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
   }
-  #agro-system-tabs-indicator .agro-tab-slot {
-    flex: 1;
-    min-width: 92px;
-    max-width: 200px;
-    border-radius: 10px;
-    border: 2px solid #cbd5e1;
-    background: #fff;
-    padding: 6px 8px;
-    text-align: center;
-    line-height: 1.25;
-    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  #agro-system-tabs-indicator .agro-tab-slot-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    outline: none;
   }
-  #agro-system-tabs-indicator .agro-tab-slot.agro-slot-empty {
-    border-style: dashed;
-    opacity: 0.65;
-    background: rgba(248, 250, 252, 0.92);
-    color: #64748b;
+  #agro-system-tabs-indicator .agro-tab-slot-wrap:focus-visible {
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.35);
+    border-radius: 9999px;
   }
-  #agro-system-tabs-indicator .agro-tab-slot.agro-slot-here {
-    border-color: #059669;
-    background: rgba(236, 253, 245, 0.95);
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.28);
-    color: #064e3b;
+  /* Ponte entre a bolinha e o painel (evita hover “piscando” no vão). */
+  #agro-system-tabs-indicator .agro-tab-slot-wrap::before {
+    content: '';
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 32px;
+    z-index: 1;
+    pointer-events: none;
   }
-  #agro-system-tabs-indicator .agro-tab-slot .agro-slot-n {
+  #agro-system-tabs-indicator .agro-tab-hover-panel {
+    position: absolute;
+    left: calc(100% + 6px);
+    top: 50%;
+    transform: translateY(-50%);
+    overflow: hidden;
+    max-width: 0;
+    opacity: 0;
+    transition:
+      max-width 0.24s ease,
+      opacity 0.18s ease;
+    z-index: 2;
+    border-radius: 0 10px 10px 0;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-left: 0;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 4px 2px 16px rgba(15, 23, 42, 0.1);
+    pointer-events: none;
+  }
+  #agro-system-tabs-indicator .agro-tab-hover-panel-inner {
+    width: min(268px, calc(100vw - 48px));
+    box-sizing: border-box;
+    padding: 7px 12px 7px 9px;
+  }
+  #agro-system-tabs-indicator .agro-tab-slot-wrap[data-slot='0'] .agro-tab-hover-panel-inner {
+    border-left: 3px solid #10b981;
+    padding-left: 10px;
+  }
+  #agro-system-tabs-indicator .agro-tab-slot-wrap[data-slot='1'] .agro-tab-hover-panel-inner {
+    border-left: 3px solid #f97316;
+    padding-left: 10px;
+  }
+  #agro-system-tabs-indicator .agro-tab-slot-wrap[data-slot='2'] .agro-tab-hover-panel-inner {
+    border-left: 3px solid #6366f1;
+    padding-left: 10px;
+  }
+  #agro-system-tabs-indicator .agro-tab-hover-line1 {
     font-size: 11px;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: #64748b;
+    color: #0f172a;
+    line-height: 1.2;
+    margin-bottom: 3px;
   }
-  #agro-system-tabs-indicator .agro-tab-slot.agro-slot-here .agro-slot-n {
-    color: #047857;
-  }
-  #agro-system-tabs-indicator .agro-tab-slot .agro-slot-role {
+  #agro-system-tabs-indicator .agro-tab-hover-line2 {
     font-size: 12px;
-    font-weight: 800;
-    margin-top: 2px;
+    font-weight: 700;
+    color: #475569;
+    line-height: 1.35;
+    word-break: break-word;
+    max-height: 4.25em;
+    overflow-y: auto;
   }
-  #agro-system-tabs-indicator .agro-tab-slot .agro-slot-pin {
+  #agro-system-tabs-indicator .agro-tab-hover-here {
+    display: inline-block;
+    margin-top: 5px;
     font-size: 10px;
     font-weight: 900;
-    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
     color: #047857;
+  }
+  #agro-system-tabs-indicator .agro-tab-slot-wrap:hover .agro-tab-hover-panel,
+  #agro-system-tabs-indicator .agro-tab-slot-wrap:focus-within .agro-tab-hover-panel,
+  #agro-system-tabs-indicator .agro-tab-slot-wrap.agro-panel-open .agro-tab-hover-panel {
+    max-width: min(268px, calc(100vw - 48px));
+    opacity: 1;
+    pointer-events: auto;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #agro-system-tabs-indicator .agro-tab-hover-panel {
+      transition: none;
+    }
+  }
+  /* type="button" — reset para não herdar estilo de <button> global */
+  #agro-system-tabs-indicator button.agro-tab-dot {
+    position: relative;
+    z-index: 4;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    appearance: none;
+    -webkit-appearance: none;
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    display: inline-block;
+    vertical-align: middle;
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    transition: opacity 0.15s, box-shadow 0.15s, transform 0.15s, background 0.15s, border-color 0.15s;
+    color: inherit;
+    line-height: 0;
+  }
+  /* Uma cor fixa por posição (1 · 2 · 3) */
+  #agro-system-tabs-indicator button.agro-tab-dot[data-i="0"] {
+    --agro-dot: #10b981;
+  }
+  #agro-system-tabs-indicator button.agro-tab-dot[data-i="1"] {
+    --agro-dot: #f97316;
+  }
+  #agro-system-tabs-indicator button.agro-tab-dot[data-i="2"] {
+    --agro-dot: #6366f1;
+  }
+  #agro-system-tabs-indicator button.agro-tab-dot.agro-dot-empty {
+    background: transparent;
+    opacity: 0.85;
+  }
+  #agro-system-tabs-indicator button.agro-tab-dot[data-i="0"].agro-dot-empty {
+    border: 2px solid rgba(16, 185, 129, 0.45);
+  }
+  #agro-system-tabs-indicator button.agro-tab-dot[data-i="1"].agro-dot-empty {
+    border: 2px solid rgba(249, 115, 22, 0.45);
+  }
+  #agro-system-tabs-indicator button.agro-tab-dot[data-i="2"].agro-dot-empty {
+    border: 2px solid rgba(99, 102, 241, 0.45);
+  }
+  #agro-system-tabs-indicator button.agro-tab-dot.agro-dot-remote {
+    border: 2px solid transparent;
+    opacity: 0.55;
+  }
+  #agro-system-tabs-indicator button.agro-tab-dot[data-i="0"].agro-dot-remote {
+    background: rgba(16, 185, 129, 0.42);
+  }
+  #agro-system-tabs-indicator button.agro-tab-dot[data-i="1"].agro-dot-remote {
+    background: rgba(249, 115, 22, 0.42);
+  }
+  #agro-system-tabs-indicator button.agro-tab-dot[data-i="2"].agro-dot-remote {
+    background: rgba(99, 102, 241, 0.42);
+  }
+  #agro-system-tabs-indicator button.agro-tab-dot.agro-dot-here {
+    background: var(--agro-dot);
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12), 0 1px 4px rgba(15, 23, 42, 0.18);
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  #agro-system-tabs-indicator button.agro-tab-dot.agro-dot-tap-flash {
+    box-shadow:
+      0 0 0 3px rgba(234, 88, 12, 0.9),
+      0 4px 14px rgba(15, 23, 42, 0.35) !important;
+    transform: scale(1.2) !important;
+  }
+  #agro-system-tabs-indicator .agro-tabs-new-win {
+    display: block;
+    width: 100%;
+    max-width: 108px;
+    box-sizing: border-box;
+    margin: 0 0 10px 0;
+    padding: 7px 6px;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #0f172a;
+    background: rgba(16, 185, 129, 0.14);
+    border: 2px solid rgba(16, 185, 129, 0.5);
+    border-radius: 10px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    font-family: Inter, system-ui, sans-serif;
+  }
+  #agro-system-tabs-indicator .agro-tabs-new-win:hover,
+  #agro-system-tabs-indicator .agro-tabs-new-win:focus-visible {
+    outline: none;
+    background: rgba(249, 115, 22, 0.16);
+    border-color: rgba(249, 115, 22, 0.65);
   }
   @media print {
     #agro-system-tabs-indicator {
@@ -157,8 +296,63 @@
 
 <script>
 (function () {
+  /**
+   * IMPORTANTE: deve existir SEMPRE, antes de if (__agroTabLimitInit) return.
+   * Se _agro_consulta_ui for incluído 2x na página, o 2.º bloco saía cedo e apagava esta função — o clique deixava de fazer nada.
+   * onclick inline nas bolinhas chama isto diretamente.
+   */
+  window.__agroConsultaTabDotToggle = function (ev, dotEl) {
+    try {
+      if (ev && ev.preventDefault) ev.preventDefault();
+      if (ev && ev.stopPropagation) ev.stopPropagation();
+      var grid = document.getElementById('agro-tab-slot-grid');
+      if (!grid || !dotEl) return;
+      var wrap =
+        dotEl.closest && dotEl.closest('.agro-tab-slot-wrap')
+          ? dotEl.closest('.agro-tab-slot-wrap')
+          : null;
+      if (!wrap || !grid.contains(wrap)) return;
+      if (dotEl.classList) {
+        dotEl.classList.add('agro-dot-tap-flash');
+        setTimeout(function () {
+          try {
+            dotEl.classList && dotEl.classList.remove('agro-dot-tap-flash');
+          } catch (_) {}
+        }, 380);
+      }
+      var wasOpen = wrap.classList.contains('agro-panel-open');
+      grid.querySelectorAll('.agro-tab-slot-wrap').forEach(function (w) {
+        w.classList.remove('agro-panel-open');
+        w.setAttribute('aria-expanded', 'false');
+        var b0 = w.querySelector('button.agro-tab-dot');
+        if (b0) b0.setAttribute('aria-expanded', 'false');
+      });
+      if (!wasOpen) {
+        wrap.classList.add('agro-panel-open');
+        wrap.setAttribute('aria-expanded', 'true');
+        var b1 = wrap.querySelector('button.agro-tab-dot');
+        if (b1) b1.setAttribute('aria-expanded', 'true');
+      }
+    } catch (e) {}
+  };
+
+  /**
+   * No Chrome “instalado” (site como aplicativo sem barra de abas), Ctrl+T costuma não existir —
+   * este helper abre nova janela com o mesmo URL (conta como outra sessão no mesmo limite).
+   */
+  window.__agroOpenAnotherAgroWindow = function (ev) {
+    try {
+      if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+      if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+      var href = String((window.location && window.location.href) || '').split('#')[0] || '';
+      var u = href || '/';
+      window.open(u, '_blank', 'noopener,noreferrer');
+    } catch (e2) {}
+  };
+
   if (window.__agroTabLimitInit) return;
   window.__agroTabLimitInit = true;
+
   if (window.top !== window.self) return;
 
   var REG_KEY = 'agro_tabs_registry_v1';
@@ -174,11 +368,15 @@
     return Date.now();
   }
 
-  function detectRole() {
-    var p = String((window.location && window.location.pathname) || '').toLowerCase();
+  function roleFromPath(pathStr) {
+    var p = String(pathStr || '').toLowerCase();
     if (!p) return 'extra';
     if (p === '/' || p.indexOf('/pdv') === 0 || p.indexOf('consulta_produtos') >= 0) return 'pdv';
     return 'extra';
+  }
+
+  function detectRole() {
+    return roleFromPath((window.location && window.location.pathname) || '');
   }
 
   function getTabId() {
@@ -251,6 +449,26 @@
     });
   }
 
+  /** Várias janelas no mesmo caminho PDV antes bloqueavam esta aba; mantém só 1 entrada como PDV (id menor), as outras ficam como “extra”. */
+  function reconcileMultiPdv(reg) {
+    var tabs = pruneStaleTabList(reg && Array.isArray(reg.tabs) ? reg.tabs : []);
+    var pdvIdx = [];
+    var i;
+    for (i = 0; i < tabs.length; i++) {
+      if (!tabs[i]) continue;
+      if (roleFromPath(String(tabs[i].path || '')) === 'pdv') pdvIdx.push(i);
+    }
+    if (pdvIdx.length <= 1) return { tabs: tabs };
+    pdvIdx.sort(function (a, b) {
+      return String(tabs[a].id).localeCompare(String(tabs[b].id));
+    });
+    for (var k = 1; k < pdvIdx.length; k++) {
+      var j = pdvIdx[k];
+      tabs[j] = Object.assign({}, tabs[j], { role: 'extra' });
+    }
+    return { tabs: tabs };
+  }
+
   function orderedTabsForStrip(tabs) {
     var list = pruneStaleTabList(tabs);
     var pdv = list.filter(function (t) {
@@ -265,20 +483,106 @@
     return pdv.concat(ext).slice(0, MAX_TABS);
   }
 
+  function escHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function ensureNovaJanelaButtonInStrip(inner) {
+    if (!inner || inner.querySelector('.agro-tabs-new-win')) return;
+    try {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'agro-tabs-new-win';
+      b.textContent = 'Nova janela';
+      b.setAttribute(
+        'aria-label',
+        'Abrir nova janela do Agro (atalho novo separador costuma não existir quando o site abre como aplicativo)'
+      );
+      b.title =
+        'Abre nova janela do mesmo endereço. No Chrome instalado como app, Ctrl+T normalmente não cria novo separador.';
+      b.setAttribute(
+        'onclick',
+        'try{window.__agroOpenAnotherAgroWindow(event)}catch(_){};return false;'
+      );
+      inner.insertBefore(b, inner.firstChild);
+    } catch (_) {}
+  }
+
   function ensureTabsStripDom() {
-    if (stripRoot && document.body.contains(stripRoot)) return stripRoot;
+    if (stripRoot && document.body.contains(stripRoot)) {
+      var innerEarly = stripRoot.querySelector('.agro-tabs-strip-inner');
+      ensureNovaJanelaButtonInStrip(innerEarly);
+      return stripRoot;
+    }
     stripRoot = document.getElementById('agro-system-tabs-indicator');
-    if (stripRoot) return stripRoot;
+    if (stripRoot) {
+      ensureNovaJanelaButtonInStrip(stripRoot.querySelector('.agro-tabs-strip-inner'));
+      return stripRoot;
+    }
     stripRoot = document.createElement('div');
     stripRoot.id = 'agro-system-tabs-indicator';
-    stripRoot.setAttribute('aria-label', 'Indicador de abas do sistema Agro');
+    stripRoot.setAttribute('aria-label', 'Abas do sistema (no máximo três)');
     stripRoot.innerHTML =
       '<div class="agro-tabs-strip-inner">' +
-        '<div class="agro-tabs-strip-caption" id="agro-tabs-strip-caption"></div>' +
+        '<button type="button" class="agro-tabs-new-win"' +
+          ' onclick="try{window.__agroOpenAnotherAgroWindow(event)}catch(_){};return false;"' +
+          ' title="Abre nova janela do mesmo endereço. No Chrome instalado como app, Ctrl+T não cria novo separador." ' +
+          'aria-label="Abrir nova janela do Agro">' +
+          'Nova janela</button>' +
         '<div class="agro-tab-slot-grid" id="agro-tab-slot-grid" role="list"></div>' +
       '</div>';
     document.body.appendChild(stripRoot);
     return stripRoot;
+  }
+
+  function agroCloseAllTabPanels() {
+    var grid = document.getElementById('agro-tab-slot-grid');
+    if (!grid) return;
+    grid.querySelectorAll('.agro-tab-slot-wrap').forEach(function (w) {
+      w.classList.remove('agro-panel-open');
+      w.setAttribute('aria-expanded', 'false');
+      var bd = w.querySelector('button.agro-tab-dot');
+      if (bd) bd.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  function agroTabStripOnDocClick(ev) {
+    var ind = document.getElementById('agro-system-tabs-indicator');
+    if (!ind) return;
+    if (ind.contains(ev.target)) return;
+    agroCloseAllTabPanels();
+  }
+
+  function agroTabStripOnKey(ev) {
+    if (ev.key === 'Escape') agroCloseAllTabPanels();
+  }
+
+  function bindTabDotsKeyOnly(grid) {
+    if (!grid) return;
+    grid.querySelectorAll('button.agro-tab-dot').forEach(function (btn) {
+      btn.addEventListener(
+        'keydown',
+        function (ev) {
+          if (ev.key === 'Enter' || ev.key === ' ' || ev.which === 32) {
+            ev.preventDefault();
+            if (typeof window.__agroConsultaTabDotToggle === 'function')
+              window.__agroConsultaTabDotToggle(ev, btn);
+          }
+        },
+        false
+      );
+    });
+  }
+
+  function initAgroTabStripPanelControlsOnce() {
+    if (initAgroTabStripPanelControlsOnce.did) return;
+    initAgroTabStripPanelControlsOnce.did = true;
+    document.addEventListener('click', agroTabStripOnDocClick);
+    document.addEventListener('keydown', agroTabStripOnKey);
   }
 
   function updateTabsStrip(tabId, role) {
@@ -287,58 +591,88 @@
     try {
       var reg = readReg();
       var merged = orderedTabsForStrip(reg.tabs);
-      var cap = merged.length;
       var here = tabId;
 
       ensureTabsStripDom();
-      var caption = document.getElementById('agro-tabs-strip-caption');
+      try {
+        var indTop = document.getElementById('agro-system-tabs-indicator');
+        if (indTop && document.body && document.body.lastElementChild !== indTop)
+          document.body.appendChild(indTop);
+      } catch (_) {}
       var grid = document.getElementById('agro-tab-slot-grid');
-      if (!caption || !grid) return;
+      if (!grid) return;
 
-      caption.textContent =
-        cap +
-        '/3 aba' +
-        (cap === 1 ? '' : 's') +
-        ' em uso no navegador — o quadro verde é esta janela';
+      var keepSlot = null;
+      var prevOpen = grid.querySelector('.agro-tab-slot-wrap.agro-panel-open');
+      if (prevOpen) keepSlot = prevOpen.getAttribute('data-slot');
 
       var html = '';
       for (var i = 0; i < MAX_TABS; i++) {
         var t = merged[i];
         var isHere = t && t.id === here;
-        var slotClass = 'agro-tab-slot';
+        var cls = 'agro-tab-dot';
+        var alab = 'Vaga ' + (i + 1) + ': livre';
         if (!t) {
-          slotClass += ' agro-slot-empty';
+          cls += ' agro-dot-empty';
         } else if (isHere) {
-          slotClass += ' agro-slot-here';
+          cls += ' agro-dot-here';
+          alab = 'Vaga ' + (i + 1) + ': esta janela';
+        } else {
+          cls += ' agro-dot-remote';
+          alab = 'Vaga ' + (i + 1) + ': outra janela aberta';
         }
-        var roleLine = 'Livre';
+        var line1 = 'Livre';
+        var line2 = '—';
+        var hereHtml = '';
         if (t) {
-          roleLine = t.role === 'pdv' ? 'PDV' : 'Outra tela';
-        }
-        var pin = isHere ? '<div class="agro-slot-pin">← Você está aqui</div>' : '';
-        var pathHint = '';
-        if (t && t.path) {
-          var shortp = String(t.path);
-          if (shortp.length > 22) shortp = shortp.slice(0, 20) + '…';
-          pathHint = '<div class="agro-slot-path" style="font-size:10px;font-weight:700;color:#64748b;margin-top:3px;word-break:break-all">' + shortp + '</div>';
+          line1 = t.role === 'pdv' ? 'PDV' : 'Outra tela';
+          line2 = (t.path && String(t.path).trim()) || '/';
+          if (isHere) hereHtml = '<span class="agro-tab-hover-here">Esta janela</span>';
         }
         html +=
-          '<div class="' +
-          slotClass +
-          '" role="listitem" title="' +
-          (t ? roleLine + (t.path ? ' — ' + t.path : '') : 'Vaga livre para nova aba') +
-          '">' +
-          '<div class="agro-slot-n">Aba ' +
-          (i + 1) +
+          '<div class="agro-tab-slot-wrap" role="listitem" data-slot="' +
+          i +
+          '" aria-expanded="false">' +
+          '<button type="button" class="' +
+          cls +
+          '" data-i="' +
+          i +
+          '" aria-label="' +
+          escHtml(alab) +
+          '" title="' +
+          escHtml(alab) +
+          '" aria-expanded="false" tabindex="0" onclick="try{window.__agroConsultaTabDotToggle(event,this)}catch(e){}return false;"></button>' +
+          '<div class="agro-tab-hover-panel">' +
+          '<div class="agro-tab-hover-panel-inner">' +
+          '<div class="agro-tab-hover-line1">' +
+          escHtml(line1) +
           '</div>' +
-          '<div class="agro-slot-role">' +
-          roleLine +
+          '<div class="agro-tab-hover-line2">' +
+          escHtml(line2) +
           '</div>' +
-          pathHint +
-          pin +
+          hereHtml +
+          '</div>' +
+          '</div>' +
           '</div>';
       }
       grid.innerHTML = html;
+      if (keepSlot !== null && keepSlot !== '') {
+        var reopened = grid.querySelector(
+          '.agro-tab-slot-wrap[data-slot="' + keepSlot + '"]'
+        );
+        if (reopened) {
+          reopened.classList.add('agro-panel-open');
+          reopened.setAttribute('aria-expanded', 'true');
+        }
+      }
+      grid.querySelectorAll('.agro-tab-slot-wrap').forEach(function (w) {
+        var ao = w.classList.contains('agro-panel-open') ? 'true' : 'false';
+        w.setAttribute('aria-expanded', ao);
+        var bt = w.querySelector('button.agro-tab-dot');
+        if (bt) bt.setAttribute('aria-expanded', ao);
+      });
+      bindTabDotsKeyOnly(grid);
+      initAgroTabStripPanelControlsOnce();
     } catch (e) {}
   }
 
@@ -373,7 +707,7 @@
         '<div style="font-size:12px;font-weight:900;color:#b45309;text-transform:uppercase;letter-spacing:.04em">Limite de abas</div>' +
         '<h2 style="margin:4px 0 8px;font-size:22px;line-height:1.1;font-weight:900;color:#0f172a">Esta aba foi bloqueada</h2>' +
         '<p style="margin:0 0 8px;font-size:15px;line-height:1.4;color:#334155;font-weight:700">' + reasonText + '</p>' +
-        '<p style="margin:0 0 12px;font-size:14px;line-height:1.4;color:#475569">Regras: 1 aba do PDV + até 2 abas extras (máximo 3 no total).</p>' +
+        '<p style="margin:0 0 12px;font-size:14px;line-height:1.4;color:#475569">Só aparece quando já existem 3 abas. Se duplicar o PDV, a mais fica marcada como outra sessão até ir para outro endereço.</p>' +
         '<button type="button" id="agro-tab-limit-close" style="width:100%;min-height:44px;border-radius:12px;border:2px solid #0f172a;background:#0f172a;color:#fff;font-size:12px;font-weight:900;text-transform:uppercase;cursor:pointer">Fechar esta aba</button>' +
       '</div>';
     document.body.appendChild(root);
@@ -389,26 +723,28 @@
   function evaluateAndRegister() {
     var tabId = getTabId();
     var role = detectRole();
-    var reg = cleanupAndUpsert(readReg(), tabId, role);
+    var reg = readReg();
+    reg = cleanupAndUpsert(reg, tabId, role);
+    reg = reconcileMultiPdv(reg);
     writeReg(reg);
     var total = reg.tabs.length;
-    var pdvCount = reg.tabs.filter(function (t) { return t.role === 'pdv'; }).length;
-    if (total <= MAX_TABS && pdvCount <= 1) return { ok: true, tabId: tabId, role: role };
+    if (total <= MAX_TABS) return { ok: true, tabId: tabId, role: role };
     var regWithoutMe = removeTab(reg, tabId);
     writeReg(regWithoutMe);
     return {
       ok: false,
       tabId: tabId,
       role: role,
-      reason: total > MAX_TABS
-        ? 'Já existem 3 abas do sistema abertas.'
-        : 'Já existe uma aba de PDV aberta. Mantenha apenas uma aba de PDV.',
+      reason: 'Já existem 3 abas do sistema abertas.',
     };
   }
 
-  function heartbeat(tabId, role) {
+  function heartbeat(tabId) {
     if (blocked) return;
-    var reg = cleanupAndUpsert(readReg(), tabId, role);
+    var role = detectRole();
+    var reg = readReg();
+    reg = cleanupAndUpsert(reg, tabId, role);
+    reg = reconcileMultiPdv(reg);
     writeReg(reg);
     updateTabsStrip(tabId, role);
   }
@@ -426,11 +762,18 @@
     return;
   }
 
+  initAgroTabStripPanelControlsOnce();
   scheduleStripMount(check.tabId, check.role);
 
-  aliveTimer = setInterval(function () {
-    heartbeat(check.tabId, check.role);
-  }, HEARTBEAT_MS);
+  function heartbeatPing() {
+    heartbeat(check.tabId);
+  }
+
+  heartbeatPing();
+  aliveTimer = setInterval(heartbeatPing, HEARTBEAT_MS);
+
+  window.addEventListener('popstate', heartbeatPing);
+  window.addEventListener('hashchange', heartbeatPing);
 
   window.addEventListener('beforeunload', function () {
     if (aliveTimer) clearInterval(aliveTimer);
@@ -441,9 +784,7 @@
     release(check.tabId);
   });
   window.addEventListener('storage', function (ev) {
-    if (ev && ev.key === REG_KEY) {
-      heartbeat(check.tabId, check.role);
-    }
+    if (ev && ev.key === REG_KEY) heartbeatPing();
   });
 })();
 </script>
