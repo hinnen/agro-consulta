@@ -4460,7 +4460,13 @@
                     if (dom.confirmSalePrint && !dom.confirmSalePrint.disabled) confirmSale(true);
                     return;
                 }
-                if (event.code === 'KeyT' && !event.target.closest('input,textarea,select')) {
+                if (
+                    event.code === 'KeyT' &&
+                    !event.ctrlKey &&
+                    !event.metaKey &&
+                    !event.altKey &&
+                    !event.target.closest('input,textarea,select')
+                ) {
                     var fa = document.getElementById('pdv-payment-flow-area');
                     if (fa && !fa.classList.contains('hidden')) {
                         event.preventDefault();
@@ -4468,7 +4474,13 @@
                     }
                     return;
                 }
-                if (event.code === 'KeyM' && !event.target.closest('input,textarea,select')) {
+                if (
+                    event.code === 'KeyM' &&
+                    !event.ctrlKey &&
+                    !event.metaKey &&
+                    !event.altKey &&
+                    !event.target.closest('input,textarea,select')
+                ) {
                     var mb = document.getElementById('pdv-pay-maquina-bar');
                     if (mb && !mb.classList.contains('hidden')) {
                         event.preventDefault();
