@@ -1,4 +1,102 @@
 {# Electron: agroShell.openExternal → shell.openExternal. Browser: window.open. Intercepta window.open para wa.me / Maps. #}
+<style id="agro-tabs-strip-styles">
+  #agro-system-tabs-indicator {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 2147483640;
+    pointer-events: none;
+    font-family: Inter, system-ui, sans-serif;
+    padding: 0 8px calc(10px + env(safe-area-inset-bottom, 0));
+  }
+  #agro-system-tabs-indicator .agro-tabs-strip-inner {
+    pointer-events: auto;
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 14px 14px 0 0;
+    border: 2px solid #0f766e;
+    border-bottom: none;
+    background: rgba(236, 253, 245, 0.98);
+    box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.15);
+    color: #0f172a;
+  }
+  #agro-system-tabs-indicator .agro-tabs-strip-caption {
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #0f766e;
+    width: 100%;
+    text-align: center;
+    line-height: 1.25;
+    margin-bottom: 2px;
+  }
+  #agro-system-tabs-indicator .agro-tab-slot-grid {
+    display: flex;
+    flex: 1;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    min-width: 0;
+  }
+  #agro-system-tabs-indicator .agro-tab-slot {
+    flex: 1;
+    min-width: 92px;
+    max-width: 200px;
+    border-radius: 10px;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    padding: 6px 8px;
+    text-align: center;
+    line-height: 1.25;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  }
+  #agro-system-tabs-indicator .agro-tab-slot.agro-slot-empty {
+    border-style: dashed;
+    opacity: 0.65;
+    background: rgba(248, 250, 252, 0.92);
+    color: #64748b;
+  }
+  #agro-system-tabs-indicator .agro-tab-slot.agro-slot-here {
+    border-color: #059669;
+    background: rgba(236, 253, 245, 0.95);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.28);
+    color: #064e3b;
+  }
+  #agro-system-tabs-indicator .agro-tab-slot .agro-slot-n {
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+  }
+  #agro-system-tabs-indicator .agro-tab-slot.agro-slot-here .agro-slot-n {
+    color: #047857;
+  }
+  #agro-system-tabs-indicator .agro-tab-slot .agro-slot-role {
+    font-size: 12px;
+    font-weight: 800;
+    margin-top: 2px;
+  }
+  #agro-system-tabs-indicator .agro-tab-slot .agro-slot-pin {
+    font-size: 10px;
+    font-weight: 900;
+    margin-top: 4px;
+    color: #047857;
+  }
+  @media print {
+    #agro-system-tabs-indicator {
+      display: none !important;
+    }
+  }
+</style>
 <script>
 (function () {
   if (window.__agroOpenExternalInit) return;
@@ -70,6 +168,7 @@
   var HEARTBEAT_MS = 10000;
   var aliveTimer = null;
   var blocked = false;
+  var stripRoot = null;
 
   function nowMs() {
     return Date.now();
@@ -145,6 +244,115 @@
     return { tabs: tabs };
   }
 
+  function pruneStaleTabList(tabs) {
+    var ts = nowMs();
+    return (tabs || []).filter(function (t) {
+      return t && t.id && t.lastSeen && ts - Number(t.lastSeen) <= STALE_MS;
+    });
+  }
+
+  function orderedTabsForStrip(tabs) {
+    var list = pruneStaleTabList(tabs);
+    var pdv = list.filter(function (t) {
+      return t.role === 'pdv';
+    });
+    var ext = list.filter(function (t) {
+      return t.role !== 'pdv';
+    });
+    ext.sort(function (a, b) {
+      return String(a.id).localeCompare(String(b.id));
+    });
+    return pdv.concat(ext).slice(0, MAX_TABS);
+  }
+
+  function ensureTabsStripDom() {
+    if (stripRoot && document.body.contains(stripRoot)) return stripRoot;
+    stripRoot = document.getElementById('agro-system-tabs-indicator');
+    if (stripRoot) return stripRoot;
+    stripRoot = document.createElement('div');
+    stripRoot.id = 'agro-system-tabs-indicator';
+    stripRoot.setAttribute('aria-label', 'Indicador de abas do sistema Agro');
+    stripRoot.innerHTML =
+      '<div class="agro-tabs-strip-inner">' +
+        '<div class="agro-tabs-strip-caption" id="agro-tabs-strip-caption"></div>' +
+        '<div class="agro-tab-slot-grid" id="agro-tab-slot-grid" role="list"></div>' +
+      '</div>';
+    document.body.appendChild(stripRoot);
+    return stripRoot;
+  }
+
+  function updateTabsStrip(tabId, role) {
+    if (blocked) return;
+    if (!document.body) return;
+    try {
+      var reg = readReg();
+      var merged = orderedTabsForStrip(reg.tabs);
+      var cap = merged.length;
+      var here = tabId;
+
+      ensureTabsStripDom();
+      var caption = document.getElementById('agro-tabs-strip-caption');
+      var grid = document.getElementById('agro-tab-slot-grid');
+      if (!caption || !grid) return;
+
+      caption.textContent =
+        cap +
+        '/3 aba' +
+        (cap === 1 ? '' : 's') +
+        ' em uso no navegador — o quadro verde é esta janela';
+
+      var html = '';
+      for (var i = 0; i < MAX_TABS; i++) {
+        var t = merged[i];
+        var isHere = t && t.id === here;
+        var slotClass = 'agro-tab-slot';
+        if (!t) {
+          slotClass += ' agro-slot-empty';
+        } else if (isHere) {
+          slotClass += ' agro-slot-here';
+        }
+        var roleLine = 'Livre';
+        if (t) {
+          roleLine = t.role === 'pdv' ? 'PDV' : 'Outra tela';
+        }
+        var pin = isHere ? '<div class="agro-slot-pin">← Você está aqui</div>' : '';
+        var pathHint = '';
+        if (t && t.path) {
+          var shortp = String(t.path);
+          if (shortp.length > 22) shortp = shortp.slice(0, 20) + '…';
+          pathHint = '<div class="agro-slot-path" style="font-size:10px;font-weight:700;color:#64748b;margin-top:3px;word-break:break-all">' + shortp + '</div>';
+        }
+        html +=
+          '<div class="' +
+          slotClass +
+          '" role="listitem" title="' +
+          (t ? roleLine + (t.path ? ' — ' + t.path : '') : 'Vaga livre para nova aba') +
+          '">' +
+          '<div class="agro-slot-n">Aba ' +
+          (i + 1) +
+          '</div>' +
+          '<div class="agro-slot-role">' +
+          roleLine +
+          '</div>' +
+          pathHint +
+          pin +
+          '</div>';
+      }
+      grid.innerHTML = html;
+    } catch (e) {}
+  }
+
+  function scheduleStripMount(tabId, role) {
+    function paint() {
+      updateTabsStrip(tabId, role);
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', paint, { once: true });
+    } else {
+      paint();
+    }
+  }
+
   function showBlockedOverlay(reasonText) {
     if (document.getElementById('agro-tab-limit-overlay')) return;
     var root = document.createElement('div');
@@ -202,6 +410,7 @@
     if (blocked) return;
     var reg = cleanupAndUpsert(readReg(), tabId, role);
     writeReg(reg);
+    updateTabsStrip(tabId, role);
   }
 
   function release(tabId) {
@@ -216,6 +425,8 @@
     showBlockedOverlay(check.reason);
     return;
   }
+
+  scheduleStripMount(check.tabId, check.role);
 
   aliveTimer = setInterval(function () {
     heartbeat(check.tabId, check.role);
