@@ -1000,15 +1000,11 @@ def _api_produtos_gestao_overlay_salvar_core(request):
 
     # Sincroniza cadastro no ERP automaticamente (sem saldo).
     # Overlay local só é salvo após ERP aceitar o cadastro.
-    codigo_sistema = _txt("codigo", 80) if "codigo" in payload else ""
+    # SisVale: não enviar Codigo/CodigoSistema/etc. — o ERP replica GM no “código sistema” e quebra Parse numérico;
+    # enviamos só SKU / referência fiscal (CodigoNFe + aliases), alinhado ao camelCase ``codigo`` abaixo.
     codigo_erp = _txt("codigo_nfe", 64) if "codigo_nfe" in payload else ""
     if not codigo_erp:
         codigo_erp = (ov.codigo_nfe or _mongo_primeiro_texto(p_doc or {}, ("CodigoNFe",), "") or "")[:64]
-    if not codigo_sistema:
-        codigo_sistema = _mongo_primeiro_texto(p_doc or {}, ("Codigo",), "")
-    codigo_sistema_digits = "".join(ch for ch in str(codigo_sistema or "") if ch.isdigit())
-    if codigo_sistema_digits:
-        codigo_sistema = codigo_sistema_digits
     digitos_codigo_informado_usuario = (
         "".join(ch for ch in _txt("codigo", 80) if ch.isdigit()) if "codigo" in payload else ""
     )
@@ -1016,12 +1012,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         "Id": pid,
         "Nome": (ov.nome or _mongo_primeiro_texto(p_doc or {}, ("Nome",), "") or "")[:300],
         "Marca": (ov.marca or _mongo_primeiro_texto(p_doc or {}, ("Marca",), "") or "")[:120],
-        # Código do sistema no ERP: numérico.
-        "Codigo": codigo_sistema,
-        # Mantemos redundância numérica para instâncias com nomes diferentes.
-        "CodigoSistema": codigo_sistema,
-        "CodigoInterno": codigo_sistema,
-        "CodigoAuxiliar": codigo_sistema,
         "CodigoNFe": codigo_erp,
         "Sku": codigo_erp,
         "SKU": codigo_erp,
