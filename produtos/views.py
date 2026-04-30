@@ -1000,15 +1000,11 @@ def _api_produtos_gestao_overlay_salvar_core(request):
 
     # Sincroniza cadastro no ERP automaticamente (sem saldo).
     # Overlay local só é salvo após ERP aceitar o cadastro.
-    codigo_sistema = _txt("codigo", 80) if "codigo" in payload else ""
+    # SisVale: não enviar Codigo/CodigoSistema/etc. — o ERP replica GM no “código sistema” e quebra Parse numérico;
+    # enviamos só SKU / referência fiscal (CodigoNFe + aliases), alinhado ao camelCase ``codigo`` abaixo.
     codigo_erp = _txt("codigo_nfe", 64) if "codigo_nfe" in payload else ""
     if not codigo_erp:
         codigo_erp = (ov.codigo_nfe or _mongo_primeiro_texto(p_doc or {}, ("CodigoNFe",), "") or "")[:64]
-    if not codigo_sistema:
-        codigo_sistema = _mongo_primeiro_texto(p_doc or {}, ("Codigo",), "")
-    codigo_sistema_digits = "".join(ch for ch in str(codigo_sistema or "") if ch.isdigit())
-    if codigo_sistema_digits:
-        codigo_sistema = codigo_sistema_digits
     digitos_codigo_informado_usuario = (
         "".join(ch for ch in _txt("codigo", 80) if ch.isdigit()) if "codigo" in payload else ""
     )
@@ -1016,12 +1012,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         "Id": pid,
         "Nome": (ov.nome or _mongo_primeiro_texto(p_doc or {}, ("Nome",), "") or "")[:300],
         "Marca": (ov.marca or _mongo_primeiro_texto(p_doc or {}, ("Marca",), "") or "")[:120],
-        # Código do sistema no ERP: numérico.
-        "Codigo": codigo_sistema,
-        # Mantemos redundância numérica para instâncias com nomes diferentes.
-        "CodigoSistema": codigo_sistema,
-        "CodigoInterno": codigo_sistema,
-        "CodigoAuxiliar": codigo_sistema,
         "CodigoNFe": codigo_erp,
         "Sku": codigo_erp,
         "SKU": codigo_erp,
@@ -9974,6 +9964,34 @@ def _pedido_plano_conta_id_config_erp(integ_obj) -> str:
     return str(getattr(settings, "VENDA_ERP_PEDIDO_PLANO_CONTA_ID", "") or "").strip()
 
 
+def _sisvale_pedido_id_compativel_decimal_erp(raw) -> bool:
+    """SisVale/.NET faz parse numérico em ``produtoID``; SKU tipo GM4000 quebra a venda."""
+    s = str(raw or "").strip().replace(" ", "")
+    if not s:
+        return False
+    return re.fullmatch(r"-?\d+(?:[.,]\d+)?", s.replace(",", ".")) is not None
+
+
+def _produto_interno_pedido_fallback_id_decimal(p_doc: dict | None) -> str:
+    """
+    SisVale espera ``produtoID`` numérico. Prioriza ``Codigo`` de sistema numérico; prefixo tipo GM→só dígitos;
+    ``CodigoNFe`` só se curto (evita usar EAN 13 díg. como Id interno por engano).
+    """
+    if not p_doc:
+        return ""
+    cod_sys = str(p_doc.get("Codigo") or "").strip()
+    if cod_sys and _sisvale_pedido_id_compativel_decimal_erp(cod_sys):
+        return cod_sys.replace(",", ".").strip()
+    if cod_sys and any(c.isalpha() for c in cod_sys):
+        digs = "".join(ch for ch in cod_sys if ch.isdigit())
+        if 2 <= len(digs) <= 14:
+            return digs
+    cod_nfe = str(p_doc.get("CodigoNFe") or "").strip()
+    if cod_nfe and _sisvale_pedido_id_compativel_decimal_erp(cod_nfe) and len(cod_nfe) <= 11:
+        return cod_nfe.replace(",", ".").strip()
+    return ""
+
+
 def _linha_item_pedido_erp(
     db, client_m, item: dict, *, plano_conta: str = "", plano_conta_id: str = ""
 ) -> dict | None:
@@ -9997,8 +10015,15 @@ def _linha_item_pedido_erp(
             str(p_doc.get("CodigoNFe") or p_doc.get("Codigo") or "").strip() or produto_id
         )
         codigo_barras = str(p_doc.get("CodigoBarras") or p_doc.get("EAN_NFe") or "").strip()
-        if _parece_object_id_mongo(produto_id) and codigo and not _parece_object_id_mongo(codigo):
-            produto_id = codigo
+        # SisVale: ``produtoID`` precisa passar decimal.Parse — nunca SKU alfanumérico (GM…).
+        if not _sisvale_pedido_id_compativel_decimal_erp(produto_id):
+            fb = _produto_interno_pedido_fallback_id_decimal(p_doc)
+            if fb:
+                produto_id = fb
+            elif _parece_object_id_mongo(produto_id) and codigo and _sisvale_pedido_id_compativel_decimal_erp(
+                codigo
+            ):
+                produto_id = codigo.replace(",", ".").strip()
     linha = {
         "produtoID": produto_id,
         "codigo": codigo,
