@@ -1574,7 +1574,17 @@
       if (r.status === 403 || r.status === 401) throw new Error('Sem permissão. Faça login.');
       return jsonOuErroHumano(r);
     }).then(function (j) {
-      if (!j.ok) throw new Error(j.erro || 'Falha ao salvar');
+      if (!j.ok) {
+        var base = j.erro || 'Falha ao salvar';
+        if (syncErp && j.erp_resposta != null) {
+          try {
+            var det = typeof j.erp_resposta === 'string' ? j.erp_resposta : JSON.stringify(j.erp_resposta);
+            if (det && det.length > 3500) det = det.slice(0, 3500) + '…';
+            if (det && String(det).trim()) base += '\n\n— Detalhe bruto do ERP —\n' + det;
+          } catch (eDet) { /* ignore */ }
+        }
+        throw new Error(base);
+      }
       if (typeof window.agroCadastroErpRecarregarLista === 'function') {
         try { window.agroCadastroErpRecarregarLista(); } catch (e0) { /* ignore */ }
       }

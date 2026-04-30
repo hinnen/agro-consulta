@@ -9595,12 +9595,18 @@ def _mongo_sincronizar_codigo_sistema_espelho(
     if db is None or not col or not pid or not p_doc or not ds or not usuario_enviou_codigo:
         return None
     ant_raw = p_doc.get("Codigo")
-    ant_ds = "".join(ch for ch in _valor_texto_campo(ant_raw) if ch.isdigit())
-    if ant_ds == ds:
-        return None
     novo_val = _mongo_valor_codigo_armazen_compat(ant_raw, ds)
     if novo_val is None:
         return None
+    # Não comparar só os dígitos: ``GM4000`` e ``4000`` têm os mesmos dígitos, mas o
+    # espelho precisa gravar o numérico para o SisVale parar de reexibir o prefixo ``GM``.
+    try:
+        if ant_raw is not None and ant_raw != "" and str(_valor_texto_campo(ant_raw)) == str(
+            _valor_texto_campo(novo_val)
+        ):
+            return None
+    except Exception:
+        pass
     excl: list = [pid]
     try:
         excl.append(int(pid))
