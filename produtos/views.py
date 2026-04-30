@@ -9974,6 +9974,34 @@ def _pedido_plano_conta_id_config_erp(integ_obj) -> str:
     return str(getattr(settings, "VENDA_ERP_PEDIDO_PLANO_CONTA_ID", "") or "").strip()
 
 
+def _sisvale_pedido_id_compativel_decimal_erp(raw) -> bool:
+    """SisVale/.NET faz parse numérico em ``produtoID``; SKU tipo GM4000 quebra a venda."""
+    s = str(raw or "").strip().replace(" ", "")
+    if not s:
+        return False
+    return re.fullmatch(r"-?\d+(?:[.,]\d+)?", s.replace(",", ".")) is not None
+
+
+def _produto_interno_pedido_fallback_id_decimal(p_doc: dict | None) -> str:
+    """
+    SisVale espera ``produtoID`` numérico. Prioriza ``Codigo`` de sistema numérico; prefixo tipo GM→só dígitos;
+    ``CodigoNFe`` só se curto (evita usar EAN 13 díg. como Id interno por engano).
+    """
+    if not p_doc:
+        return ""
+    cod_sys = str(p_doc.get("Codigo") or "").strip()
+    if cod_sys and _sisvale_pedido_id_compativel_decimal_erp(cod_sys):
+        return cod_sys.replace(",", ".").strip()
+    if cod_sys and any(c.isalpha() for c in cod_sys):
+        digs = "".join(ch for ch in cod_sys if ch.isdigit())
+        if 2 <= len(digs) <= 14:
+            return digs
+    cod_nfe = str(p_doc.get("CodigoNFe") or "").strip()
+    if cod_nfe and _sisvale_pedido_id_compativel_decimal_erp(cod_nfe) and len(cod_nfe) <= 11:
+        return cod_nfe.replace(",", ".").strip()
+    return ""
+
+
 def _linha_item_pedido_erp(
     db, client_m, item: dict, *, plano_conta: str = "", plano_conta_id: str = ""
 ) -> dict | None:
@@ -9997,8 +10025,15 @@ def _linha_item_pedido_erp(
             str(p_doc.get("CodigoNFe") or p_doc.get("Codigo") or "").strip() or produto_id
         )
         codigo_barras = str(p_doc.get("CodigoBarras") or p_doc.get("EAN_NFe") or "").strip()
-        if _parece_object_id_mongo(produto_id) and codigo and not _parece_object_id_mongo(codigo):
-            produto_id = codigo
+        # SisVale: ``produtoID`` precisa passar decimal.Parse — nunca SKU alfanumérico (GM…).
+        if not _sisvale_pedido_id_compativel_decimal_erp(produto_id):
+            fb = _produto_interno_pedido_fallback_id_decimal(p_doc)
+            if fb:
+                produto_id = fb
+            elif _parece_object_id_mongo(produto_id) and codigo and _sisvale_pedido_id_compativel_decimal_erp(
+                codigo
+            ):
+                produto_id = codigo.replace(",", ".").strip()
     linha = {
         "produtoID": produto_id,
         "codigo": codigo,
