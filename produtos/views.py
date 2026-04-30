@@ -20,7 +20,7 @@ from django.conf import settings
 from decouple import config
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Prefetch, Q, Sum
 from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
 from django.http import HttpResponse, JsonResponse
@@ -7688,6 +7688,20 @@ def _buscar_produto_por_codigo_interno_balanca(db, client, cod4: str):
         return None
 
 
+def _wizard_catalog_mongo_limit() -> int:
+    """
+    Teto de produtos para GET /api/buscar/?wizard=1&wizard_catalog=1 (catálogo local do assistente).
+    Antes: limit(25000) carregava Mongo + estoque + overlays num único request → RAM e tempo
+    gigantes (worker SIGKILL / 502 no Render com 1 worker).
+    Variável: AGRO_WIZARD_CATALOG_MAX (padrão 5000). Teto duro 12000 mesmo se o env for maior.
+    """
+    try:
+        n = int(str(config("AGRO_WIZARD_CATALOG_MAX", default="5000")).strip() or "5000")
+    except (TypeError, ValueError):
+        n = 5000
+    return max(400, min(n, 12000))
+
+
 # --- APIs DE BUSCA ---
 @require_GET
 def api_buscar_produtos(request):
@@ -7713,11 +7727,12 @@ def api_buscar_produtos(request):
     try:
         balanca_auditoria_q: str | None = None
         if wizard_catalog:
+            _wiz_n = _wizard_catalog_mongo_limit()
             prods = list(
                 db[client.col_p]
                 .find({"CadastroInativo": {"$ne": True}})
                 .sort("Nome", 1)
-                .limit(25000)
+                .limit(_wiz_n)
             )
             preco_por_id = {}
         else:
