@@ -1117,6 +1117,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             )
 
     aviso_codigo_mongo = None
+    aviso_custo_mongo = None
     if db is not None:
         aviso_codigo_mongo = _mongo_sincronizar_codigo_sistema_espelho(
             db,
@@ -1126,6 +1127,20 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             digitos_codigo_informado_usuario,
             usuario_enviou_codigo=usuario_enviou_codigo_sistema_mongo,
         )
+        # Custo não tem coluna no overlay SQLite: sem gravar no Mongo o espelho continua vazio e o
+        # cadastro «Salvar no Agro» parece «reverter» o custo ao reabrir (só ``Produtos/Salvar`` atualizava).
+        if "preco_custo" in payload and custo_payload is not None:
+            try:
+                cfloat = float(custo_payload)
+                res_c = db[client.col_p].update_one(
+                    _mongo_filtro_id_produto_externo(pid),
+                    {"$set": {"PrecoCusto": cfloat, "ValorCusto": cfloat}},
+                )
+                if not getattr(res_c, "matched_count", 0):
+                    aviso_custo_mongo = "Custo não atualizado: produto não encontrado no espelho Mongo."
+            except Exception as exc:
+                logger.warning("overlay salvar: sync PrecoCusto Mongo", exc_info=True)
+                aviso_custo_mongo = "Não foi possível gravar o custo no espelho Mongo."
 
     with transaction.atomic():
         ov.save()
@@ -1155,8 +1170,9 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         resp["erp_sync_ok"] = True
     else:
         resp["somente_agro"] = True
-    if aviso_codigo_mongo:
-        resp["aviso"] = aviso_codigo_mongo
+    avisos_m = [m for m in (aviso_codigo_mongo, aviso_custo_mongo) if m]
+    if avisos_m:
+        resp["aviso"] = "\n\n".join(avisos_m)
     return JsonResponse(resp)
 
 
