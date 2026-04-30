@@ -130,6 +130,11 @@ urlpatterns = [
         name='api_produtos_gestao_overlay_salvar',
     ),
     path(
+        'api/produtos/gestao/mongo-codigo-sistema-reparar/',
+        views.api_produtos_gestao_mongo_codigo_sistema_reparar,
+        name='api_produtos_gestao_mongo_codigo_sistema_reparar',
+    ),
+    path(
         'api/overlay/lote/adicionar/',
         views.api_overlay_lote_adicionar,
         name='api_overlay_lote_adicionar',
@@ -143,6 +148,11 @@ urlpatterns = [
         'api/produtos/cadastro/detalhe/<str:produto_id>/',
         views.api_produtos_cadastro_detalhe,
         name='api_produtos_cadastro_detalhe',
+    ),
+    path(
+        'api/produtos/cadastro/somente-agro/excluir/',
+        views.api_produtos_somente_agro_excluir,
+        name='api_produtos_somente_agro_excluir',
     ),
     path(
         'api/produtos/cadastro/compras-historico/',
