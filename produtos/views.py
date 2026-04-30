@@ -280,13 +280,20 @@ def _mapa_saldos_finais_por_produtos(db, client, p_ids):
         )
     )
     estoque_map = _mapear_estoques_por_produto(estoques, client)
-    ajustes_bd = AjusteRapidoEstoque.objects.all().order_by(
-        "produto_externo_id", "deposito", "-criado_em"
-    )
+    # Antes: .objects.all() puxava **todos** os ajustes históricos na RAM (~GB com tempo) para filtrar em Python.
     ajustes_map = {}
-    for aj in ajustes_bd:
-        if (aj.produto_externo_id, aj.deposito) not in ajustes_map:
-            ajustes_map[(aj.produto_externo_id, aj.deposito)] = aj
+    _chunk_aj = 800
+    for _aj_i in range(0, len(p_ids), _chunk_aj):
+        _slice_aj = p_ids[_aj_i : _aj_i + _chunk_aj]
+        _aq = (
+            AjusteRapidoEstoque.objects.filter(produto_externo_id__in=_slice_aj)
+            .order_by("produto_externo_id", "deposito", "-criado_em")
+            .only("produto_externo_id", "deposito", "saldo_informado", "saldo_erp_referencia")
+        )
+        for aj in _aq:
+            _kadj = (aj.produto_externo_id, aj.deposito)
+            if _kadj not in ajustes_map:
+                ajustes_map[_kadj] = aj
     out = {}
     for pid in p_ids:
         s_c = float(estoque_map.get(pid, {}).get("centro", 0.0))
@@ -10980,9 +10987,79 @@ def _obter_mapa_medias_venda_cache(db):
 
 
 # --- CARGA INICIAL E APIs AUXILIARES ---
+# Produto ERP inteiro pode ter MB de texto/listas não usadas na lista do PDV; find sem projeção estourava 512 MB no primeiro GET /api/todos-produtos/.
+# Heurística de custo `_heuristic_custo_maximo_doc` só “enxerga” estes campos (custos vindos dos explícitos + % já cobertos).
+_CATALOGO_PDV_MONGO_PROJECTION = {
+    "_id": 1,
+    "Id": 1,
+    "CadastroInativo": 1,
+    "Prateleira": 1,
+    "Localizacao": 1,
+    "LocalEstoque": 1,
+    "Setor": 1,
+    "EnderecoPrateleira": 1,
+    "SubGrupo": 1,
+    "Subcategoria": 1,
+    "NomeSubcategoria": 1,
+    "NomeCategoria": 1,
+    "Categoria": 1,
+    "Grupo": 1,
+    INDEX_CODIGOS_CAMPO: 1,
+    "Nome": 1,
+    "Marca": 1,
+    "CodigoNFe": 1,
+    "Codigo": 1,
+    "CodigoBarras": 1,
+    "EAN_NFe": 1,
+    "Referencia": 1,
+    "CodigoReferencia": 1,
+    "ReferenciaFornecedor": 1,
+    "Sku": 1,
+    "SKU": 1,
+    "CodigoSku": 1,
+    "CodigoInterno": 1,
+    "CodigoAuxiliar": 1,
+    "CodigoFornecedor": 1,
+    "CodFornecedor": 1,
+    "RefFornecedor": 1,
+    "GTIN": 1,
+    "BuscaTexto": 1,
+    "NomeFornecedor": 1,
+    "Fornecedor": 1,
+    "RazaoSocialFornecedor": 1,
+    "Fabricante": 1,
+    "ValorVenda": 1,
+    "PrecoVenda": 1,
+    "PrecoCusto": 1,
+    "ValorCusto": 1,
+    "PrecoCustoComAcrescimos": 1,
+    "ValorPrecoCustoComAcrescimos": 1,
+    "PrecoCustoComAcrescimo": 1,
+    "ValorCustoComAcrescimos": 1,
+    "ValorCustoComAcrescimo": 1,
+    "CustoComAcrescimos": 1,
+    "FreteCompraPercentual": 1,
+    "SeguroCompraPercentual": 1,
+    "IPICompraPercentual": 1,
+    "ICMSSTCompraPercentual": 1,
+    "FCPSTCompraPercentual": 1,
+    "PrecoCustoFinal": 1,
+    "ValorCustoFinal": 1,
+    "CustoFinal": 1,
+    "PrecoCustoComImposto": 1,
+    "PrecoCustoTotal": 1,
+    "ValorCustoComImposto": 1,
+    "CustoMedioCompra": 1,
+    "PrecoReposicao": 1,
+    "ValorCustoCompra": 1,
+    "CustoCompraFinal": 1,
+    "ValorCustoReposicao": 1,
+}
+
+
 def _catalogo_pdv_montar_produtos(db, client):
     query = {"CadastroInativo": {"$ne": True}}
-    produtos = list(db[client.col_p].find(query))
+    produtos = list(db[client.col_p].find(query, _CATALOGO_PDV_MONGO_PROJECTION))
     p_ids = [str(p.get("Id") or p["_id"]) for p in produtos]
     saldos_por_pid = _mapa_saldos_finais_por_produtos(db, client, p_ids)
     medias_venda = _obter_mapa_medias_venda_cache(db)
