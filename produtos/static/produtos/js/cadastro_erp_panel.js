@@ -192,8 +192,8 @@
     var ic = 'w-full min-h-[44px] px-3 rounded-xl border-2 border-emerald-400 text-base font-bold text-slate-900 bg-white';
     return (
       '<div class="mt-6 rounded-2xl border-2 border-emerald-600 bg-emerald-50/90 p-4 sm:p-5 shadow-sm">' +
-      '<h4 class="text-sm font-black uppercase text-emerald-950 tracking-wide mb-1">Editar no SisVale + ERP</h4>' +
-      '<p class="text-xs text-slate-700 mb-4 leading-snug">Grava no SisVale (PDV e buscas) e sincroniza automaticamente no ERP (sem saldo). Campo vazio + salvar remove o override daquele texto; em «Exibir como», «Seguir ERP» remove o forçamento de ativo/inativo.</p>' +
+      '<h4 class="text-sm font-black uppercase text-emerald-950 tracking-wide mb-1">Editar cadastro · Agro</h4>' +
+      '<p class="text-xs text-slate-700 mb-4 leading-snug"><strong>Salvar no Agro</strong> atualiza só o Agro (PDV e buscas). <strong>Enviar ao ERP</strong> replica no ERP legado quando você quiser. Campo vazio + salvar remove o override; em «Exibir como», «Seguir ERP» remove o forçamento de ativo/inativo.</p>' +
       '<div class="grid gap-3 sm:grid-cols-2">' +
       '<label class="block sm:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Nome</span>' +
       '<input type="text" id="cad-ov-nome" class="' + ic + '" maxlength="300" value="' + escapeHtml(p.nome || '') + '" autocomplete="off" /></label>' +
@@ -222,8 +222,9 @@
       '</div>' +
       '<label class="block mt-3"><span class="text-[10px] font-black uppercase text-slate-600">Descrição</span>' +
       '<textarea id="cad-ov-desc" rows="3" class="w-full rounded-xl border-2 border-emerald-400 px-3 py-2 text-sm font-semibold text-slate-900 bg-white">' + escapeHtml(p.descricao || '') + '</textarea></label>' +
-      '<div class="mt-4">' +
-      '<button type="button" id="cadastro-overlay-salvar" class="min-h-[48px] px-6 rounded-xl bg-orange-500 text-white font-black uppercase text-sm border-2 border-orange-600 hover:bg-orange-600 shadow-sm">Salvar no Agro</button>' +
+      '<div class="mt-4 flex flex-wrap gap-2">' +
+      '<button type="button" id="cadastro-overlay-salvar" class="min-h-[48px] px-5 rounded-xl bg-orange-500 text-white font-black uppercase text-sm border-2 border-orange-600 hover:bg-orange-600 shadow-sm">Salvar no Agro</button>' +
+      '<button type="button" id="cadastro-overlay-sync-erp" class="min-h-[48px] px-5 rounded-xl bg-amber-600 text-white font-black uppercase text-sm border-2 border-amber-700 hover:bg-amber-700 shadow-sm" title="Produtos/Salvar no ERP legado">Enviar ao ERP</button>' +
       '</div>' +
       '<p id="cadastro-overlay-msg" class="mt-2 text-sm font-bold hidden" role="status"></p>' +
       '</div>'
@@ -246,25 +247,10 @@
   function bindCadastroOverlaySalvar(p) {
     if (!PODE_EDITAR_OVERLAY) return;
     var btn = document.getElementById('cadastro-overlay-salvar');
+    var btnErp = document.getElementById('cadastro-overlay-sync-erp');
     if (!btn) return;
-    btn.onclick = function () {
-      if (btn.disabled) return;
-      var msg = document.getElementById('cadastro-overlay-msg');
-      function showMsg(t, ok) {
-        if (!msg) return;
-        msg.textContent = t || '';
-        msg.classList.remove('hidden', 'text-red-700', 'text-emerald-800');
-        if (t) {
-          msg.classList.remove('hidden');
-          msg.classList.add(ok ? 'text-emerald-800' : 'text-red-700');
-        } else {
-          msg.classList.add('hidden');
-        }
-      }
-      showMsg('');
-      var originalLabel = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Salvando…';
+
+    function montarBody() {
       function gv(id) {
         var el = document.getElementById(id);
         return el ? el.value : '';
@@ -285,6 +271,38 @@
       var av = gv('cad-ov-ativo');
       if (av === '') body.ativo_exibicao = null;
       else body.ativo_exibicao = av === '1';
+      return body;
+    }
+
+    function enviar(syncErp) {
+      syncErp = !!syncErp;
+      if (btn.disabled || (btnErp && btnErp.disabled)) return;
+      var msg = document.getElementById('cadastro-overlay-msg');
+      function showMsg(t, ok) {
+        if (!msg) return;
+        msg.textContent = t || '';
+        msg.classList.remove('hidden', 'text-red-700', 'text-emerald-800');
+        if (t) {
+          msg.classList.remove('hidden');
+          msg.classList.add(ok ? 'text-emerald-800' : 'text-red-700');
+        } else {
+          msg.classList.add('hidden');
+        }
+      }
+      showMsg('');
+      var origS = btn.textContent;
+      var origE = btnErp ? btnErp.textContent : '';
+      btn.disabled = true;
+      if (btnErp) btnErp.disabled = true;
+      if (syncErp) {
+        if (btnErp) btnErp.textContent = 'Enviando…';
+      } else {
+        btn.textContent = 'Salvando…';
+      }
+
+      var body = montarBody();
+      if (syncErp) body.sincronizar_erp = true;
+
       var tok = U.csrf();
       fetch(URL_OVERLAY_SALVAR, {
         method: 'POST',
@@ -298,15 +316,30 @@
         return jsonOuErroHumano(r);
       }).then(function (j) {
         if (!j.ok) throw new Error(j.erro || 'Falha ao salvar');
-        showMsg('Salvo no Agro.', true);
+        if (syncErp) showMsg('Salvo no Agro e replicado no ERP legado.', true);
+        else if (j.somente_agro) showMsg('Salvo no Agro. Use «Enviar ao ERP» quando quiser replicar.', true);
+        else showMsg('Salvo no Agro.', true);
         carregarDetalheProduto(String(p.id || ''));
       }).catch(function (e) {
         showMsg(e.message || 'Erro ao salvar', false);
       }).finally(function () {
         btn.disabled = false;
-        btn.textContent = originalLabel;
+        btn.textContent = origS;
+        if (btnErp) {
+          btnErp.disabled = false;
+          btnErp.textContent = origE;
+        }
       });
+    }
+
+    btn.onclick = function () {
+      enviar(false);
     };
+    if (btnErp) {
+      btnErp.onclick = function () {
+        enviar(true);
+      };
+    }
   }
 
   function renderDetalheCompleto(p) {

@@ -775,7 +775,7 @@ def api_produtos_gestao_ajuste_estoque(request):
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_produtos_gestao_overlay_salvar(request):
-    """Persistência overlay + sync ERP/Mongo."""
+    """Overlay no Agro; ``Produtos/Salvar`` no ERP só com ``{"sincronizar_erp": true}`` no corpo."""
     try:
         return _api_produtos_gestao_overlay_salvar_core(request)
     except Exception as exc:
@@ -789,8 +789,18 @@ def api_produtos_gestao_overlay_salvar(request):
         return JsonResponse(out, status=500)
 
 
+def _payload_truthy_sincronizar_erp_legado(payload: dict) -> bool:
+    """Se verdadeiro, após gravar overlay envia ``Produtos/Salvar`` ao ERP legado."""
+    v = payload.get("sincronizar_erp")
+    if v is None:
+        return False
+    if isinstance(v, bool):
+        return v
+    return str(v).strip().lower() in ("1", "true", "yes", "on", "sim", "s")
+
+
 def _api_produtos_gestao_overlay_salvar_core(request):
-    """Grava ou atualiza overlay local (edição de cadastro na gestão)."""
+    """Grava ou atualiza overlay no Agro; envio ao ERP legado só com ``sincronizar_erp`` explícito no JSON."""
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -998,103 +1008,99 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             ex.pop("lote", None)
     ov.cadastro_extras = ex
 
-    # Sincroniza cadastro no ERP automaticamente (sem saldo).
-    # Overlay local só é salvo após ERP aceitar o cadastro.
-    # SisVale: não enviar Codigo/CodigoSistema/etc. — o ERP replica GM no “código sistema” e quebra Parse numérico;
-    # enviamos só SKU / referência fiscal (CodigoNFe + aliases), alinhado ao camelCase ``codigo`` abaixo.
+    push_erp = _payload_truthy_sincronizar_erp_legado(payload)
+
     codigo_erp = _txt("codigo_nfe", 64) if "codigo_nfe" in payload else ""
     if not codigo_erp:
         codigo_erp = (ov.codigo_nfe or _mongo_primeiro_texto(p_doc or {}, ("CodigoNFe",), "") or "")[:64]
     digitos_codigo_informado_usuario = (
         "".join(ch for ch in _txt("codigo", 80) if ch.isdigit()) if "codigo" in payload else ""
     )
-    cadastro_erp_payload = {
-        "Id": pid,
-        "Nome": (ov.nome or _mongo_primeiro_texto(p_doc or {}, ("Nome",), "") or "")[:300],
-        "Marca": (ov.marca or _mongo_primeiro_texto(p_doc or {}, ("Marca",), "") or "")[:120],
-        "CodigoNFe": codigo_erp,
-        "Sku": codigo_erp,
-        "SKU": codigo_erp,
-        "CodigoSku": codigo_erp,
-        "CodigoProduto": codigo_erp,
-        "CodigoBarras": (ov.codigo_barras or _mongo_primeiro_texto(p_doc or {}, ("CodigoBarras",), "") or "")[:80],
-        "ValorVenda": float(ov.preco_venda) if ov.preco_venda is not None else _mongo_primeiro_float(p_doc or {}, ("ValorVenda",)),
-        "PrecoCusto": float(custo_payload) if custo_payload is not None else _mongo_primeiro_float(p_doc or {}, ("PrecoCusto",)),
-        "NomeCategoria": (ov.categoria or _mongo_primeiro_texto(p_doc or {}, ("NomeCategoria",), "") or "")[:200],
-        "SubGrupo": (ov.subcategoria or _mongo_primeiro_texto(p_doc or {}, ("SubGrupo",), "") or "")[:200],
-        "Unidade": (ov.unidade or _mongo_primeiro_texto(p_doc or {}, ("Unidade",), "") or "")[:20],
-        "Descricao": (ov.descricao or _mongo_primeiro_texto(p_doc or {}, ("Descricao",), "") or "")[:16000],
-    }
-    if inativar_erp_raw is not None:
-        cadastro_erp_payload["CadastroInativo"] = str(inativar_erp_raw).strip().lower() in (
-            "1",
-            "true",
-            "yes",
-            "on",
-            "sim",
-            "s",
-        )
-    elif ov.ativo_exibicao is not None:
-        cadastro_erp_payload["CadastroInativo"] = not bool(ov.ativo_exibicao)
-    elif p_doc:
-        cadastro_erp_payload["CadastroInativo"] = _mongo_primeiro_bool(
-            p_doc, ("CadastroInativo",), False
-        )
-    # Evita que o ERP converta a inativação para "Ocultar nas vendas" sem intenção explícita.
-    cadastro_erp_payload["OcultarNasVendas"] = False
-    for _k in ("ValorVenda", "PrecoCusto"):
-        if cadastro_erp_payload.get(_k) is None:
-            cadastro_erp_payload.pop(_k, None)
 
-    # Swagger ``Produtos/Salvar`` (SisVale / Venda ERP) usa **camelCase**; o modelo ``Produto`` expõe
-    # ``codigo`` como código de produto (SKU/NFe na tela), ``ean`` como barras e ``id`` como vínculo.
-    # Algumas instâncias ignoram apenas PascalCase (``CodigoNFe``, ``SKU``…) e repetem só o código numérico.
-    _forn_txt = (
-        ov.fornecedor_texto
-        if ov.fornecedor_texto and ov.fornecedor_texto.strip()
-        else _mongo_primeiro_texto(
-            p_doc or {},
-            ("NomeFornecedor", "Fornecedor", "RazaoSocialFornecedor", "Fabricante"),
-        )
-    ).strip()
-    cam = {
-        "id": str(pid),
-        "nome": cadastro_erp_payload.get("Nome") or "",
-        "marca": cadastro_erp_payload.get("Marca") or "",
-        "fornecedor": _forn_txt[:300] if _forn_txt else None,
-        "categoria": (cadastro_erp_payload.get("NomeCategoria") or "").strip()[:200]
-        if cadastro_erp_payload.get("NomeCategoria")
-        else None,
-        # SKU / código produto · **não** o código só numérico de sistema:
-        "codigo": codigo_erp.strip()[:64] if codigo_erp.strip() else None,
-        "ean": (cadastro_erp_payload.get("CodigoBarras") or "").strip()[:80]
-        if cadastro_erp_payload.get("CodigoBarras")
-        else None,
-        "precoVenda": cadastro_erp_payload.get("ValorVenda"),
-        "precoCusto": cadastro_erp_payload.get("PrecoCusto"),
-        "visivelVendas": True,
-    }
-    un_sc = str(cadastro_erp_payload.get("Unidade") or "").strip()[:20]
-    if un_sc:
-        cam["unidadeComercial"] = un_sc
-        cam["estoqueUnidade"] = un_sc
-    desc_sc = str(cadastro_erp_payload.get("Descricao") or "").strip()[:16000]
-    if desc_sc:
-        cam["especificacao"] = desc_sc
-    for ck, cv in cam.items():
-        if cv is not None and cv != "":
-            cadastro_erp_payload[ck] = cv
+    if push_erp:
+        # ERP legado · ``Produtos/Salvar``: não enviamos Codigo/CodigoSistema (ver histórico); só SKU/NFe + camelCase ``codigo``.
+        cadastro_erp_payload = {
+            "Id": pid,
+            "Nome": (ov.nome or _mongo_primeiro_texto(p_doc or {}, ("Nome",), "") or "")[:300],
+            "Marca": (ov.marca or _mongo_primeiro_texto(p_doc or {}, ("Marca",), "") or "")[:120],
+            "CodigoNFe": codigo_erp,
+            "Sku": codigo_erp,
+            "SKU": codigo_erp,
+            "CodigoSku": codigo_erp,
+            "CodigoProduto": codigo_erp,
+            "CodigoBarras": (ov.codigo_barras or _mongo_primeiro_texto(p_doc or {}, ("CodigoBarras",), "") or "")[:80],
+            "ValorVenda": float(ov.preco_venda) if ov.preco_venda is not None else _mongo_primeiro_float(p_doc or {}, ("ValorVenda",)),
+            "PrecoCusto": float(custo_payload) if custo_payload is not None else _mongo_primeiro_float(p_doc or {}, ("PrecoCusto",)),
+            "NomeCategoria": (ov.categoria or _mongo_primeiro_texto(p_doc or {}, ("NomeCategoria",), "") or "")[:200],
+            "SubGrupo": (ov.subcategoria or _mongo_primeiro_texto(p_doc or {}, ("SubGrupo",), "") or "")[:200],
+            "Unidade": (ov.unidade or _mongo_primeiro_texto(p_doc or {}, ("Unidade",), "") or "")[:20],
+            "Descricao": (ov.descricao or _mongo_primeiro_texto(p_doc or {}, ("Descricao",), "") or "")[:16000],
+        }
+        if inativar_erp_raw is not None:
+            cadastro_erp_payload["CadastroInativo"] = str(inativar_erp_raw).strip().lower() in (
+                "1",
+                "true",
+                "yes",
+                "on",
+                "sim",
+                "s",
+            )
+        elif ov.ativo_exibicao is not None:
+            cadastro_erp_payload["CadastroInativo"] = not bool(ov.ativo_exibicao)
+        elif p_doc:
+            cadastro_erp_payload["CadastroInativo"] = _mongo_primeiro_bool(
+                p_doc, ("CadastroInativo",), False
+            )
+        cadastro_erp_payload["OcultarNasVendas"] = False
+        for _k in ("ValorVenda", "PrecoCusto"):
+            if cadastro_erp_payload.get(_k) is None:
+                cadastro_erp_payload.pop(_k, None)
 
-    erp_ok, erp_resp = VendaERPAPIClient().produtos_tentar_salvar_api(cadastro_erp_payload)
-    if not erp_ok:
-        return JsonResponse(
-            {
-                "ok": False,
-                "erro": "Falha ao salvar cadastro no ERP. Nada foi salvo no SisVale.",
-                "erp_resposta": erp_resp,
-            },
-            status=502,
-        )
+        _forn_txt = (
+            ov.fornecedor_texto
+            if ov.fornecedor_texto and ov.fornecedor_texto.strip()
+            else _mongo_primeiro_texto(
+                p_doc or {},
+                ("NomeFornecedor", "Fornecedor", "RazaoSocialFornecedor", "Fabricante"),
+            )
+        ).strip()
+        cam = {
+            "id": str(pid),
+            "nome": cadastro_erp_payload.get("Nome") or "",
+            "marca": cadastro_erp_payload.get("Marca") or "",
+            "fornecedor": _forn_txt[:300] if _forn_txt else None,
+            "categoria": (cadastro_erp_payload.get("NomeCategoria") or "").strip()[:200]
+            if cadastro_erp_payload.get("NomeCategoria")
+            else None,
+            "codigo": codigo_erp.strip()[:64] if codigo_erp.strip() else None,
+            "ean": (cadastro_erp_payload.get("CodigoBarras") or "").strip()[:80]
+            if cadastro_erp_payload.get("CodigoBarras")
+            else None,
+            "precoVenda": cadastro_erp_payload.get("ValorVenda"),
+            "precoCusto": cadastro_erp_payload.get("PrecoCusto"),
+            "visivelVendas": True,
+        }
+        un_sc = str(cadastro_erp_payload.get("Unidade") or "").strip()[:20]
+        if un_sc:
+            cam["unidadeComercial"] = un_sc
+            cam["estoqueUnidade"] = un_sc
+        desc_sc = str(cadastro_erp_payload.get("Descricao") or "").strip()[:16000]
+        if desc_sc:
+            cam["especificacao"] = desc_sc
+        for ck, cv in cam.items():
+            if cv is not None and cv != "":
+                cadastro_erp_payload[ck] = cv
+
+        erp_ok, erp_resp = VendaERPAPIClient().produtos_tentar_salvar_api(cadastro_erp_payload)
+        if not erp_ok:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Falha ao enviar cadastro ao ERP legado. Nada foi salvo.",
+                    "erp_resposta": erp_resp,
+                },
+                status=502,
+            )
 
     aviso_codigo_mongo = None
     if db is not None:
@@ -1130,7 +1136,11 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             logger.warning("api_produtos_gestao_overlay_salvar: index_codigos", exc_info=True)
     saldos = _mapa_saldos_finais_por_produtos(db, client, [pid])
     row = _linha_gestao_produto_json(doc, saldos, ov)
-    resp = {"ok": True, "produto": row, "erp_sync_ok": True}
+    resp: dict = {"ok": True, "produto": row}
+    if push_erp:
+        resp["erp_sync_ok"] = True
+    else:
+        resp["somente_agro"] = True
     if aviso_codigo_mongo:
         resp["aviso"] = aviso_codigo_mongo
     return JsonResponse(resp)
