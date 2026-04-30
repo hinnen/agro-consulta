@@ -558,6 +558,36 @@ class VendaERPAPIClient:
         path = _env_or_setting_path("VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH")
         return self._financeiro_post(path, body, timeout=60)
 
+    def _request_post(self, path: str, body: dict, *, timeout: int = 60) -> tuple[bool, object]:
+        """POST genérico em /api/request/<path> com headers padrão da API ERP."""
+        if not path or not self.token:
+            return False, "API ERP não configurada ou sem token"
+        url = f"{self.base_url}/api/request/{path}"
+        try:
+            res = requests.post(url, json=body, headers=self._headers_post(), timeout=timeout)
+            logger.info("VendaERP POST %s → HTTP %s", path, res.status_code)
+            if 200 <= res.status_code < 300:
+                try:
+                    return True, res.json()
+                except Exception:
+                    return True, res.text or "OK"
+            try:
+                return False, res.json()
+            except Exception:
+                return False, (res.text or res.reason or "")[:2000]
+        except Exception as e:
+            logger.warning("VendaERP POST %s erro: %s", path, e)
+            return False, str(e)
+
+    def produtos_tentar_salvar_api(self, body: dict):
+        """
+        POST de cadastro de produto no ERP.
+        Usa VENDA_ERP_API_PRODUTO_SALVAR_PATH (sufixo após /api/request/).
+        Se vazio, assume ``Produtos/Salvar`` por padrão.
+        """
+        path = _env_or_setting_path("VENDA_ERP_API_PRODUTO_SALVAR_PATH") or "Produtos/Salvar"
+        return self._request_post(path, body, timeout=60)
+
     # --- Relatórios HTTP v3 (ex.: ``https://<wl>.vendaerp.com.br/v3/.../Report``) ---
 
     @staticmethod

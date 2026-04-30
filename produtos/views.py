@@ -964,6 +964,43 @@ def api_produtos_gestao_overlay_salvar(request):
             ex.pop("lote", None)
     ov.cadastro_extras = ex
 
+    # Sincroniza cadastro no ERP automaticamente (sem saldo).
+    # Overlay local só é salvo após ERP aceitar o cadastro.
+    cadastro_erp_payload = {
+        "Id": pid,
+        "Nome": (ov.nome or _mongo_primeiro_texto(p_doc or {}, ("Nome",), "") or "")[:300],
+        "Marca": (ov.marca or _mongo_primeiro_texto(p_doc or {}, ("Marca",), "") or "")[:120],
+        "Codigo": _mongo_primeiro_texto(p_doc or {}, ("Codigo",), ""),
+        "CodigoNFe": (ov.codigo_nfe or _mongo_primeiro_texto(p_doc or {}, ("CodigoNFe",), "") or "")[:64],
+        "CodigoBarras": (ov.codigo_barras or _mongo_primeiro_texto(p_doc or {}, ("CodigoBarras",), "") or "")[:80],
+        "ValorVenda": float(ov.preco_venda) if ov.preco_venda is not None else _mongo_primeiro_float(p_doc or {}, ("ValorVenda",)),
+        "PrecoCusto": float(custo_payload) if custo_payload is not None else _mongo_primeiro_float(p_doc or {}, ("PrecoCusto",)),
+        "NomeCategoria": (ov.categoria or _mongo_primeiro_texto(p_doc or {}, ("NomeCategoria",), "") or "")[:200],
+        "SubGrupo": (ov.subcategoria or _mongo_primeiro_texto(p_doc or {}, ("SubGrupo",), "") or "")[:200],
+        "Unidade": (ov.unidade or _mongo_primeiro_texto(p_doc or {}, ("Unidade",), "") or "")[:20],
+        "Descricao": (ov.descricao or _mongo_primeiro_texto(p_doc or {}, ("Descricao",), "") or "")[:16000],
+    }
+    if ov.ativo_exibicao is not None:
+        cadastro_erp_payload["CadastroInativo"] = not bool(ov.ativo_exibicao)
+    elif p_doc:
+        cadastro_erp_payload["CadastroInativo"] = _mongo_primeiro_bool(
+            p_doc, ("CadastroInativo",), False
+        )
+    for _k in ("ValorVenda", "PrecoCusto"):
+        if cadastro_erp_payload.get(_k) is None:
+            cadastro_erp_payload.pop(_k, None)
+
+    erp_ok, erp_resp = VendaERPAPIClient().produtos_tentar_salvar_api(cadastro_erp_payload)
+    if not erp_ok:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Falha ao salvar cadastro no ERP. Nada foi salvo no SisVale.",
+                "erp_resposta": erp_resp,
+            },
+            status=502,
+        )
+
     with transaction.atomic():
         ov.save()
         if variacoes_novas is not None:
@@ -987,7 +1024,7 @@ def api_produtos_gestao_overlay_salvar(request):
             logger.warning("api_produtos_gestao_overlay_salvar: index_codigos", exc_info=True)
     saldos = _mapa_saldos_finais_por_produtos(db, client, [pid])
     row = _linha_gestao_produto_json(doc, saldos, ov)
-    return JsonResponse({"ok": True, "produto": row})
+    return JsonResponse({"ok": True, "produto": row, "erp_sync_ok": True})
 
 
 # Lista de clientes PDV (ClienteAgro) — cache curto; invalida em sync e em save/delete (signals).
