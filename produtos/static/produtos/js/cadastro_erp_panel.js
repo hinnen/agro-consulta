@@ -170,8 +170,8 @@
     var ic = 'w-full min-h-[44px] px-3 rounded-xl border-2 border-emerald-400 text-base font-bold text-slate-900 bg-white';
     return (
       '<div class="mt-6 rounded-2xl border-2 border-emerald-600 bg-emerald-50/90 p-4 sm:p-5 shadow-sm">' +
-      '<h4 class="text-sm font-black uppercase text-emerald-950 tracking-wide mb-1">Editar só no Agro</h4>' +
-      '<p class="text-xs text-slate-700 mb-4 leading-snug">Grava no Agro (PDV e buscas). <strong>Não altera o ERP.</strong> Campo vazio + salvar remove o override daquele texto; em «Exibir como», «Seguir ERP» remove o forçamento de ativo/inativo.</p>' +
+      '<h4 class="text-sm font-black uppercase text-emerald-950 tracking-wide mb-1">Editar no SisVale + ERP</h4>' +
+      '<p class="text-xs text-slate-700 mb-4 leading-snug">Grava no SisVale (PDV e buscas) e sincroniza automaticamente no ERP (sem saldo). Campo vazio + salvar remove o override daquele texto; em «Exibir como», «Seguir ERP» remove o forçamento de ativo/inativo.</p>' +
       '<div class="grid gap-3 sm:grid-cols-2">' +
       '<label class="block sm:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Nome</span>' +
       '<input type="text" id="cad-ov-nome" class="' + ic + '" maxlength="300" value="' + escapeHtml(p.nome || '') + '" autocomplete="off" /></label>' +

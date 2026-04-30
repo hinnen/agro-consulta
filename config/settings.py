@@ -245,6 +245,8 @@ VENDA_ERP_API_TOKEN = config('VENDA_ERP_API_TOKEN', default='')
 # Financeiro: sufixo após /api/request/ (ex.: Lancamentos/SalvarBaixa). Vazio = não chama API.
 VENDA_ERP_API_FINANCEIRO_BAIXA_PATH = config('VENDA_ERP_API_FINANCEIRO_BAIXA_PATH', default='').strip()
 VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH = config('VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH', default='').strip()
+# Cadastro de produtos no ERP (sufixo após /api/request/). Ex.: Produtos/Salvar
+VENDA_ERP_API_PRODUTO_SALVAR_PATH = config('VENDA_ERP_API_PRODUTO_SALVAR_PATH', default='').strip()
 
 # DRE (resumo por plano): resultado | resultado_erp (colunas 1/5 receita · 2/10/11/12 despesa, como o PDF) | todas.
 DRE_RESULTADO_FILTRO = (config('DRE_RESULTADO_FILTRO', default='resultado') or 'resultado').strip().lower()
