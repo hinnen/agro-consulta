@@ -34,9 +34,12 @@
 
   <header class="shrink-0 bg-white border-b border-slate-200 shadow-sm">
     <div class="max-w-lg mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h1 class="text-lg font-black uppercase tracking-tight text-slate-900">Fechar venda</h1>
-        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Atalhos nos botões abaixo</p>
+      <div class="flex min-w-0 flex-1 flex-wrap items-start gap-2 sm:items-center">
+        <div class="min-w-0">
+          <h1 class="text-lg font-black uppercase tracking-tight text-slate-900">Fechar venda</h1>
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Atalhos nos botões abaixo</p>
+        </div>
+        <button type="button" id="btn-checkout-ajuda" class="shrink-0 min-h-[40px] min-w-[40px] rounded-xl border-2 border-slate-300 bg-white text-sm font-black text-slate-800 hover:bg-slate-50" title="Ajuda — esta tela">?</button>
       </div>
       <div class="flex flex-wrap gap-2 items-center">
         <a href="{% url 'consulta_produtos' %}?reabrir=1" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 text-slate-700 hover:bg-slate-50" title="Retoma o rascunho da venda no PDV">
@@ -93,6 +96,21 @@
     </div>
   </main>
 
+  <div id="modal-pdv-checkout-ajuda" class="fixed inset-0 bg-slate-900/50 z-[112] hidden items-center justify-center p-3 sm:p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-pdv-checkout-ajuda-titulo">
+    <div class="flex max-h-[min(88vh,36rem)] w-full max-w-[min(36rem,96vw)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+      <div class="flex shrink-0 items-start justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-4 py-3">
+        <div class="min-w-0">
+          <h2 id="modal-pdv-checkout-ajuda-titulo" class="text-sm font-black uppercase tracking-tight text-slate-900">Ajuda · Fechar venda</h2>
+          <p id="modal-pdv-checkout-ajuda-resumo" class="mt-1 text-xs font-semibold leading-snug text-slate-600">Orçamento: enviar, imprimir ou registrar sem voltar ao carrinho.</p>
+        </div>
+        <button type="button" id="btn-fechar-modal-pdv-checkout-ajuda" class="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50" aria-label="Fechar ajuda">Fechar</button>
+      </div>
+      <div class="min-h-0 flex-1 overflow-y-auto p-4">
+        <ul id="modal-pdv-checkout-ajuda-lista" class="list-disc space-y-2 pl-5 text-sm font-semibold leading-snug text-slate-700"></ul>
+      </div>
+    </div>
+  </div>
+
   <div id="cupom-orcamento-checkout" class="hidden"></div>
 
   <script>
@@ -121,6 +139,47 @@
   }
   var carrinho = DRAFT.itens || [];
   var clienteSelecionado = DRAFT.cliente_extra || null;
+
+  var CHECKOUT_AJUDA_ITENS = [
+    'WhatsApp (F7): monta mensagem do orçamento; salva também no histórico local neste aparelho.',
+    'Imprimir (F8): cupom formato orçamento; precisa permitir impressão/pop-up quando o navegador pedir.',
+    'Copiar texto (F9): cola mensagem igual à do WhatsApp na área de transferência.',
+    'ERP Orçamento (F10): envia o pedido conforme integração configurada no servidor.',
+    'Voltar ao carrinho: retoma edição dos itens no PDV; o rascunho continua até você descartar ou concluir.',
+    'Descartar: cancela este fechamento e limpa rascunho no servidor antes de voltar ao PDV.',
+  ];
+
+  function checkoutAbrirAjudaModal() {
+    var modal = document.getElementById('modal-pdv-checkout-ajuda');
+    var lista = document.getElementById('modal-pdv-checkout-ajuda-lista');
+    if (!modal || !lista) return;
+    lista.innerHTML = '';
+    CHECKOUT_AJUDA_ITENS.forEach(function (txt) {
+      var li = document.createElement('li');
+      li.textContent = txt;
+      lista.appendChild(li);
+    });
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function checkoutFecharAjudaModal() {
+    var modal = document.getElementById('modal-pdv-checkout-ajuda');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+
+  var btnAjudaChk = document.getElementById('btn-checkout-ajuda');
+  var btnFecharAjudaChk = document.getElementById('btn-fechar-modal-pdv-checkout-ajuda');
+  var modalAjudaChk = document.getElementById('modal-pdv-checkout-ajuda');
+  if (btnAjudaChk) btnAjudaChk.addEventListener('click', checkoutAbrirAjudaModal);
+  if (btnFecharAjudaChk) btnFecharAjudaChk.addEventListener('click', checkoutFecharAjudaModal);
+  if (modalAjudaChk) {
+    modalAjudaChk.addEventListener('click', function (ev) {
+      if (ev.target === modalAjudaChk) checkoutFecharAjudaModal();
+    });
+  }
 
   function nomeClienteCheckout() {
     return String(DRAFT.cliente || '').trim() || 'CONSUMIDOR NÃO IDENTIFICADO...';
@@ -275,6 +334,10 @@
   };
 
   document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modalAjudaChk && !modalAjudaChk.classList.contains('hidden')) {
+      checkoutFecharAjudaModal();
+      return;
+    }
     if (e.key === 'F7') {
       e.preventDefault();
       abrirWhatsappCheckout();
