@@ -7688,18 +7688,53 @@ def _buscar_produto_por_codigo_interno_balanca(db, client, cod4: str):
         return None
 
 
+# `_mapear_estoques_por_produto` só usa estes campos — projeção evita ler documentos grandes de estoque na busca PDV.
+_API_BUSCAR_ESTOQUE_PROJECTION = {"ProdutoID": 1, "DepositoID": 1, "Saldo": 1, "_id": 0}
+
+# Catálogo wizard: documentos ERP completos tinham até MB de campos/embeds; projetar reduz RAM e tempo (512 MB Render).
+_WIZARD_CATALOG_MONGO_PROJECTION = {
+    "_id": 1,
+    "Id": 1,
+    "Nome": 1,
+    "Marca": 1,
+    "CadastroInativo": 1,
+    "Codigo": 1,
+    "CodigoNFe": 1,
+    "ValorVenda": 1,
+    "PrecoVenda": 1,
+    "EAN_NFe": 1,
+    "CodigoBarras": 1,
+    "EAN": 1,
+    "CodigoDeBarras": 1,
+    "CodigoBarrasProduto": 1,
+    "GTIN": 1,
+    "UrlImagem": 1,
+    "Imagem": 1,
+    "CaminhoImagem": 1,
+    "Foto": 1,
+    "Url": 1,
+    "UrlImagemPrincipal": 1,
+    "ImagemPrincipal": 1,
+    # Sem Base64 no catálogo leve (evita picos de RAM); URLs/também não trazem payload enorme.
+    "Imagens": {"$slice": 1},
+    "Fotos": {"$slice": 1},
+    "ImagemProduto": {"$slice": 1},
+    "ProdutoImagem": {"$slice": 1},
+}
+
+
 def _wizard_catalog_mongo_limit() -> int:
     """
     Teto de produtos para GET /api/buscar/?wizard=1&wizard_catalog=1 (catálogo local do assistente).
     Antes: limit(25000) carregava Mongo + estoque + overlays num único request → RAM e tempo
     gigantes (worker SIGKILL / 502 no Render com 1 worker).
-    Variável: AGRO_WIZARD_CATALOG_MAX (padrão 5000). Teto duro 12000 mesmo se o env for maior.
+    Variável: AGRO_WIZARD_CATALOG_MAX (padrão 2600; plano 512 MB). Teto duro 8000 mesmo se o env for maior.
     """
     try:
-        n = int(str(config("AGRO_WIZARD_CATALOG_MAX", default="5000")).strip() or "5000")
+        n = int(str(config("AGRO_WIZARD_CATALOG_MAX", default="2600")).strip() or "2600")
     except (TypeError, ValueError):
-        n = 5000
-    return max(400, min(n, 12000))
+        n = 2600
+    return max(400, min(n, 8000))
 
 
 # --- APIs DE BUSCA ---
@@ -7730,7 +7765,7 @@ def api_buscar_produtos(request):
             _wiz_n = _wizard_catalog_mongo_limit()
             prods = list(
                 db[client.col_p]
-                .find({"CadastroInativo": {"$ne": True}})
+                .find({"CadastroInativo": {"$ne": True}}, _WIZARD_CATALOG_MONGO_PROJECTION)
                 .sort("Nome", 1)
                 .limit(_wiz_n)
             )
@@ -7773,10 +7808,18 @@ def api_buscar_produtos(request):
                 if len(p_ids) > _emax:
                     for _ej in range(0, len(p_ids), _emax):
                         _es = p_ids[_ej : _ej + _emax]
-                        estoques = list(db[client.col_e].find({"ProdutoID": {"$in": _es}}))
+                        estoques = list(
+                            db[client.col_e].find(
+                                {"ProdutoID": {"$in": _es}}, _API_BUSCAR_ESTOQUE_PROJECTION
+                            )
+                        )
                         estoque_map.update(_mapear_estoques_por_produto(estoques, client))
                 else:
-                    estoques = list(db[client.col_e].find({"ProdutoID": {"$in": p_ids}}))
+                    estoques = list(
+                        db[client.col_e].find(
+                            {"ProdutoID": {"$in": p_ids}}, _API_BUSCAR_ESTOQUE_PROJECTION
+                        )
+                    )
                     estoque_map = _mapear_estoques_por_produto(estoques, client)
         except Exception:
             logger.warning("api_buscar_produtos: estoque indisponível — retornando saldo 0", exc_info=True)
@@ -7788,7 +7831,10 @@ def api_buscar_produtos(request):
                 _chunk = 400
                 for _i in range(0, len(p_ids), _chunk):
                     _slice = p_ids[_i : _i + _chunk]
-                    for aj in AjusteRapidoEstoque.objects.filter(produto_externo_id__in=_slice):
+                    _ajqs = AjusteRapidoEstoque.objects.filter(
+                        produto_externo_id__in=_slice
+                    ).only("produto_externo_id", "deposito", "saldo_informado", "saldo_erp_referencia")
+                    for aj in _ajqs:
                         ajustes_map[(aj.produto_externo_id, aj.deposito)] = aj
         except Exception:
             logger.warning("api_buscar_produtos: ajustes PIN indisponíveis", exc_info=True)
@@ -7801,7 +7847,7 @@ def api_buscar_produtos(request):
                     _slice = p_ids[_i : _i + _chunk_pt]
                     for ped in PedidoTransferencia.objects.filter(
                         produto_externo_id__in=_slice, status="IMPRESSO"
-                    ):
+                    ).only("produto_externo_id", "quantidade"):
                         pedido_sep_map[str(ped.produto_externo_id)] = float(ped.quantidade)
         except Exception:
             logger.warning("api_buscar_produtos: pedidos transferência indisponível", exc_info=True)
