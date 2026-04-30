@@ -15,7 +15,7 @@ urlpatterns = [
     path("api/indicadores/", include("estoque.api.urls")),
     path("api/transferencias/", include("transferencias.api.urls")),
     path("pdv/", include("pdv.urls")),
-    # O include já vai tratar a rota vazia se ela estiver no produtos/urls.py
+    # Raiz ``/``: ``produtos.urls`` define ``home`` → dashboard gerencial (MPA BI + launchpad).
     path('', include('produtos.urls')), 
     path('admin/', admin.site.urls),
     path('estoque/api_sugestoes_transferencia/', estoque_views.api_sugestoes_transferencia, name='api_sugestoes_transferencia'),

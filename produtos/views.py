@@ -3173,6 +3173,23 @@ def _dashboard_sync_vendas_erp_para_mongo(data_ini: date, data_fim: date):
     return {"ok": True, **out, "linhas_erp": len(acumulado), "paginas_lidas": paginas_lidas}
 
 
+def _dashboard_estoque_sync_label() -> str:
+    """Texto curto para badge de estoque (último ping Mongo registrado pelo painel de sync)."""
+    try:
+        from estoque.models import EstoqueSyncHealth
+
+        row = EstoqueSyncHealth.objects.filter(pk=1).first()
+        if row is None or row.mongo_ultimo_ping_em is None:
+            return "sem ping"
+        dt = timezone.localtime(row.mongo_ultimo_ping_em)
+        base = dt.strftime("%d/%m %H:%M")
+        if not row.mongo_ultimo_ok:
+            return f"{base} · alerta"
+        return base
+    except Exception:
+        return "—"
+
+
 def _dashboard_worker(fn, *args, **kwargs):
     """ORM + Mongo em worker: uma conexão por thread (Django)."""
     from django.db import close_old_connections
@@ -3338,14 +3355,16 @@ def _dashboard_capri_context(request):
     )
     if ticket_medio_mes_civil_anterior > 0 and ticket_medio > 0:
         var_tkt_vs_mes_ant = ((ticket_medio / ticket_medio_mes_civil_anterior) - 1) * 100
-        tkt_trend = f"{var_tkt_vs_mes_ant:+.1f}% vs mês ant."
+        tkt_trend = f"{var_tkt_vs_mes_ant:+.1f}% vs mês"
+        tkt_trend_short = f"{var_tkt_vs_mes_ant:+.1f}%"
         tkt_trend_class = (
             "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300"
             if var_tkt_vs_mes_ant >= 0
             else "text-red-800 bg-red-200 ring-1 ring-red-300"
         )
     else:
-        tkt_trend = "Sem base mês ant."
+        tkt_trend = "Sem ref. mês"
+        tkt_trend_short = "S/ ref."
         tkt_trend_class = "text-slate-600 bg-slate-100 ring-1 ring-slate-300"
     tot_ent_7d = int(sum(entregas_serie_7d)) if entregas_serie_7d else 0
     hoje_cri = int(entregas_serie_7d[-1]) if entregas_serie_7d else 0
@@ -3354,11 +3373,14 @@ def _dashboard_capri_context(request):
             "label": "Faturamento do Dia",
             "value": _format_moeda_br(Decimal(str(round(vendas_hoje, 2)))),
             "prefix": "R$",
-            "trend": f"{variacao_dia:+.1f}% vs ontem",
+            "trend": f"{variacao_dia:+.1f}% vs ont.",
+            "trend_short": f"{variacao_dia:+.1f}%",
             "trend_class": "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300" if variacao_dia >= 0 else "text-red-800 bg-red-200 ring-1 ring-red-300",
             "context_lines": [
+                f"Hoje: {_format_moeda_br(Decimal(str(round(vendas_hoje, 2))))} · variação {variacao_dia:+.1f}% vs ontem.",
                 f"Ontem: {_format_moeda_br(Decimal(str(round(vendas_ontem, 2))))}",
                 f"Média 7d (últ. dias do filtro): {_format_moeda_br(Decimal(str(round(media_fat_7d, 2))))}/dia",
+                f"Período filtrado: {periodo_label}.",
             ],
         },
         {
@@ -3366,41 +3388,52 @@ def _dashboard_capri_context(request):
             "value": _format_moeda_br(Decimal(str(round(ticket_medio, 2)))),
             "prefix": "R$",
             "trend": tkt_trend,
+            "trend_short": tkt_trend_short,
             "trend_class": tkt_trend_class,
             "context_lines": [
                 "Número grande: ticket médio do período filtrado (faturamento ÷ nº de vendas).",
                 f"O % do selo compara com o mês civil anterior completo ({mes_ant_ini.strftime('%d/%m/%Y')} a {mes_ant_fim.strftime('%d/%m/%Y')}: ticket {_format_moeda_br(Decimal(str(round(ticket_medio_mes_civil_anterior, 2))))}).",
                 f"Referência 7d (últ. dias do gráfico, só dia com venda): {_format_moeda_br(Decimal(str(round(media_tkt_7d, 2))))}.",
+                f"Volume do período: {qtd_total_periodo} venda(s) e total {_format_moeda_br(Decimal(str(round(total_ticket, 2))))}.",
             ],
         },
         {
             "label": "Perda Validade",
             "value": _format_moeda_br(Decimal(str(round(perdas_validade, 2)))),
             "prefix": "R$",
-            "trend": "Monitorado",
+            "trend": "Monit.",
+            "trend_short": "i",
             "trend_class": "text-rose-800 bg-rose-200 ring-1 ring-rose-300",
             "context_lines": [
                 "Valor = perda (lotes) hoje, não a série de vendas.",
+                "Indicador de atenção operacional para itens vencidos/com risco de vencimento.",
+                f"Período de referência visual: {periodo_label} (o cálculo da perda é do dia).",
             ],
         },
         {
             "label": "Novos Clientes",
             "value": str(novos_clientes_30),
             "prefix": "",
-            "trend": f"{tendencia_clientes:+.1f}% vs 30d ant.",
+            "trend": f"{tendencia_clientes:+.1f}% vs 30d",
+            "trend_short": f"{tendencia_clientes:+.1f}%",
             "trend_class": "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300" if tendencia_clientes >= 0 else "text-red-800 bg-red-200 ring-1 ring-red-300",
             "context_lines": [
                 "Cadastros com data de criação nos últimos 30 dias.",
+                f"Janela atual: {novos_clientes_30} novo(s) cliente(s).",
+                f"Janela anterior (30 dias ant.): {prev_clientes_30} cliente(s).",
             ],
         },
         {
             "label": "Entregas",
             "value": str(total_entregas_pendentes),
             "prefix": "",
-            "trend": "PENDENTES",
+            "trend": "Pend.",
+            "trend_short": "Pend.",
             "trend_class": "text-amber-900 bg-amber-200 ring-1 ring-amber-300",
             "context_lines": [
+                f"Total pendente agora: {total_entregas_pendentes} entrega(s).",
                 f"Últ. 7 dias: {tot_ent_7d} pedido(s) criado(s) no agendador · hoje: {hoje_cri} pedido(s).",
+                "Clique no cartão para abrir o painel de entregas.",
             ],
             "variant": "entregas",
         },
@@ -3451,6 +3484,7 @@ def _dashboard_capri_context(request):
         "lancamentos_pagar_url": reverse("lancamentos_contas_pagar"),
         "entregas_painel_url": reverse("entregas_painel"),
         "total_entregas_pendentes": total_entregas_pendentes,
+        "ultima_sinc_estoque": _dashboard_estoque_sync_label(),
         "mongo_ok": atual["ok"] and anterior["ok"],
         "mongo_erro": (atual.get("erro") or anterior.get("erro") or "")[:180],
     }

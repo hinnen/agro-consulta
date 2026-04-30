@@ -201,14 +201,12 @@
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">2 · Itens</h2>
           <div class="flex flex-wrap gap-2 justify-end">
-            <a href="{% url 'produtos_cadastro_erp' %}?novo=1"
-              target="_blank" rel="noopener"
+            <button type="button" id="btn-prod-novo-popup"
               class="inline-flex min-h-[44px] items-center px-4 py-2 rounded-xl bg-white border-2 border-blue-600 text-xs font-black uppercase text-blue-950 hover:bg-blue-50 shrink-0"
-              title="Abre o cadastro de produtos em nova aba; ao criar no Agro, volte aqui e use Buscar na linha.">+ Produto novo</a>
+              title="Abre o cadastro de produtos em nova janela; ao criar no Agro, volte aqui e use Buscar na linha.">+ Produto novo</button>
             <button type="button" id="btn-add-linha" class="min-h-[44px] px-4 py-2 rounded-xl bg-white border-2 border-orange-300 text-xs font-black uppercase text-orange-900 hover:bg-orange-50 shrink-0">+ Linha</button>
           </div>
         </div>
-        <p class="text-[11px] font-semibold text-slate-600 leading-snug">Não existe no catálogo? Cadastre com <strong>+ Produto novo</strong> (nova aba) e depois localize o item em <strong>Buscar</strong> na linha.</p>
         <div class="overflow-x-auto rounded-xl border-2 border-slate-200 bg-white shadow-inner">
         <table class="w-full text-xs sm:text-sm min-w-[1020px]">
           <thead class="bg-slate-100 text-[11px] font-black uppercase text-slate-600">
@@ -241,23 +239,31 @@
           <h2 class="text-sm font-black uppercase text-rose-950 tracking-tight">2 · Conferência por código de barras</h2>
           <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-rose-300 bg-white text-sm font-black text-rose-900" data-help-w="2b" title="Ajuda">?</button>
         </div>
-        <p class="text-xs font-semibold text-rose-900 leading-snug">Bipe um código e confira se bate com o <strong>produto do catálogo</strong> na linha escolhida. Segundo campo = outro código válido do mesmo item. Marque <strong>não verificar</strong> quando não houver código.</p>
-        <div class="flex flex-wrap gap-2 items-end">
-          <label class="block min-w-[12rem] flex-1"><span class="text-[10px] font-black uppercase text-rose-900">Linha</span>
-            <div id="nfe-bip-linha-list" class="mt-1 w-full overflow-y-auto rounded-xl border-2 border-rose-200 bg-white p-1 space-y-1" role="listbox" aria-label="Produtos da nota para conferência de código"></div>
-            <p id="nfe-bip-linha-hint" class="text-[10px] font-bold text-rose-900/90 mt-1 leading-snug" hidden></p>
-          </label>
-          <label class="block min-w-[10rem] flex-1"><span class="text-[10px] font-black uppercase text-rose-900">Código bipado</span>
-            <input type="text" id="nfe-bip-cod" autocomplete="off" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-rose-200 px-3 text-sm font-mono bg-white" placeholder="Somente números" inputmode="numeric">
-          </label>
-          <label class="block min-w-[10rem] flex-1"><span class="text-[10px] font-black uppercase text-rose-900">2º código (opcional)</span>
-            <input type="text" id="nfe-bip-cod-alt" autocomplete="off" class="mt-1 w-full min-h-[44px] rounded-xl border-2 border-rose-100 px-2 text-xs font-mono bg-white" placeholder="Outro EAN / código">
-          </label>
-          <label class="inline-flex items-center gap-2 px-2 py-2 rounded-xl border-2 border-rose-200 bg-white cursor-pointer shrink-0 min-h-[48px]">
-            <input type="checkbox" id="nfe-bip-ignorar" class="h-5 w-5 accent-rose-600">
-            <span class="text-xs font-bold text-rose-950">Não verificar esta linha</span>
-          </label>
-          <button type="button" id="nfe-bip-verificar" class="min-h-[48px] px-4 rounded-xl bg-rose-700 text-white text-xs font-black uppercase border-2 border-rose-900">Verificar</button>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          <div class="lg:col-span-5 space-y-1 min-w-0">
+            <label class="block"><span class="sr-only">Selecionar linha</span>
+              <div id="nfe-bip-linha-list" class="mt-1 max-h-[min(18rem,40vh)] w-full overflow-y-auto rounded-xl border-2 border-rose-200 bg-white p-1 space-y-1" role="listbox" aria-label="Produtos da nota para conferência de código"></div>
+            </label>
+            <p id="nfe-bip-linha-hint" class="text-[10px] font-bold text-rose-900/90 leading-snug" hidden></p>
+          </div>
+          <div class="lg:col-span-7 space-y-3 min-w-0">
+            <label class="block"><span class="text-[10px] font-black uppercase text-rose-900">Código lido pelo leitor *</span>
+              <input type="text" id="nfe-bip-cod" autocomplete="off" class="mt-1 w-full min-h-[54px] rounded-xl border-2 border-rose-300 px-3 text-lg font-mono font-bold bg-white shadow-inner" placeholder="EAN ou código…" inputmode="numeric">
+            </label>
+            <details class="rounded-xl border border-rose-200 bg-white px-3 py-2">
+              <summary class="cursor-pointer text-xs font-black uppercase text-rose-900 select-none min-h-[40px] flex items-center">Código auxiliar (marca paralela)</summary>
+              <label class="block mt-2"><span class="text-[10px] font-semibold text-rose-800"> Segundo código (opcional)</span>
+                <input type="text" id="nfe-bip-cod-alt" autocomplete="off" class="mt-1 w-full min-h-[44px] rounded-xl border-2 border-rose-100 px-2 text-sm font-mono bg-white" placeholder="Outro EAN ou código na embalagem">
+              </label>
+            </details>
+            <label class="inline-flex flex-wrap items-center gap-2 px-2 py-2 rounded-xl border-2 border-rose-300 bg-white cursor-pointer shrink-0 min-h-[44px] w-full">
+              <input type="checkbox" id="nfe-bip-ignorar" class="h-5 w-5 accent-rose-600 shrink-0">
+              <span class="text-xs font-bold text-rose-950 leading-snug">Sem código na embalagem</span>
+            </label>
+            <div class="flex flex-wrap gap-2 pt-1">
+              <button type="button" id="nfe-bip-verificar" class="flex-1 min-w-[11rem] min-h-[52px] px-5 rounded-xl bg-rose-700 text-white text-sm font-black uppercase border-2 border-rose-900 shadow-sm hover:bg-rose-800">Confirmar código</button>
+            </div>
+          </div>
         </div>
         <p id="nfe-bip-msg" class="text-sm font-bold text-slate-700 min-h-[1.25rem]" role="status"></p>
       </div>
@@ -375,7 +381,6 @@
           <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">5 · Conferência final</h2>
           <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-slate-300 bg-white text-sm font-black text-slate-800" data-help-w="5" title="Ajuda">?</button>
         </div>
-        <p class="text-xs font-semibold text-slate-800 leading-snug">Só é possível gravar aqui com as <strong>etapas 1 a 4</strong> corretas (NF, fornecedor e plano na etapa 1; produtos na etapa 2; empresa/depósito; rascunho salvo; se iniciou o financeiro, parcelas fechando com o total). Usa o <strong>mesmo PIN</strong> da senha rápida (estoque / empréstimo). Não substitui registrar estoque nem o lançamento no Mongo.</p>
         <label class="block max-w-xs"><span class="text-[10px] font-black uppercase text-slate-700">PIN</span>
           <input type="password" id="nfe-wiz-pin" autocomplete="current-password" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-300 px-3 text-lg font-mono tracking-widest bg-white" inputmode="numeric" maxlength="12">
         </label>
@@ -422,6 +427,22 @@
       </div>
     </div>
 
+    <div id="modal-nfe-bip-vinculo" class="hidden fixed inset-0 z-[65] flex items-end sm:items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-nfe-bip-vinculo-titulo">
+      <div class="bg-white rounded-2xl shadow-2xl max-w-[min(42rem,96vw)] w-full max-h-[min(82vh,36rem)] overflow-hidden flex flex-col border-2 border-slate-300">
+        <div class="px-4 py-3 border-b border-slate-200 flex items-start justify-between gap-3 shrink-0 bg-slate-50/90">
+          <div class="min-w-0">
+            <h3 id="modal-nfe-bip-vinculo-titulo" class="text-base font-black uppercase text-slate-900 leading-tight">Qual produto da nota recebeu este código?</h3>
+            <p id="modal-nfe-bip-vinculo-sub" class="text-[11px] font-semibold text-slate-700 mt-1 break-words">—</p>
+          </div>
+          <button type="button" id="modal-nfe-bip-vinculo-fechar" class="shrink-0 min-h-[44px] px-4 rounded-xl border-2 border-slate-300 text-xs font-black uppercase bg-white text-slate-800 hover:bg-slate-100">Fechar</button>
+        </div>
+        <div class="p-4 overflow-y-auto min-h-[8rem] space-y-2">
+          <p class="text-xs font-semibold text-slate-700 leading-snug">Toque na linha correta. O item ficará <strong class="text-amber-900">âmbar (similar/opc.)</strong> — use quando veio igual na prática mas o código não fecha com o ERP.</p>
+          <div id="modal-nfe-bip-vinculo-lista" class="flex flex-col gap-2"></div>
+        </div>
+      </div>
+    </div>
+
   <div id="modal-entrada-nfe-ajuda" class="hidden fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-entrada-nfe-ajuda-titulo">
     <div class="bg-white rounded-2xl shadow-2xl max-w-[min(36rem,96vw)] w-full max-h-[min(85vh,640px)] overflow-hidden flex flex-col border-2 border-slate-200">
       <div class="px-4 py-3 sm:px-5 border-b-2 border-slate-100 flex items-center justify-between gap-2 shrink-0 bg-slate-50/90">
@@ -429,6 +450,11 @@
         <button type="button" id="modal-entrada-nfe-ajuda-fechar" class="min-h-[44px] px-4 rounded-xl border-2 border-slate-300 text-xs font-black uppercase text-slate-700 hover:bg-slate-100">Fechar</button>
       </div>
       <div class="p-4 sm:p-5 overflow-y-auto text-sm font-semibold text-slate-700 space-y-4 leading-relaxed">
+        <section id="entrada-nfe-ajuda-contexto" class="hidden rounded-xl border-2 border-sky-300 bg-sky-50 p-3 sm:p-4 space-y-2">
+          <h3 id="entrada-nfe-ajuda-contexto-titulo" class="text-sm font-black uppercase text-sky-950">Ajuda rápida</h3>
+          <p id="entrada-nfe-ajuda-contexto-resumo" class="text-sm font-semibold text-sky-950 leading-snug">—</p>
+          <ul id="entrada-nfe-ajuda-contexto-lista" class="list-disc pl-5 space-y-1 text-[13px] text-sky-900"></ul>
+        </section>
         <p class="text-slate-900"><strong class="text-orange-700">Resumo:</strong> preencha a nota e a grade; <strong>Salvar rascunho</strong> grava no Agro. O estoque da loja só muda com <strong>Registrar entrada no estoque Agro</strong> (ou outro ajuste autorizado).</p>
         <div class="border-l-4 border-orange-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Uso</p>
@@ -499,6 +525,7 @@
   const URL_RASC_ACAO = "{% url 'api_entrada_nota_rascunho_acao' %}";
   const URL_CONF_COD = "{% url 'api_entrada_nota_conferir_codigo' %}";
   const URL_APROVAR_WIZ = "{% url 'api_entrada_nota_aprovar_wizard' %}";
+  const URL_CAD_PRODUTO_NOVO = "{% url 'produtos_cadastro_erp' %}?novo=1";
   /** Path ou URL absoluta (evitar host fixo no iframe — usar só pathname + origem atual). */
   const ENTRADA_NFE_TMPL_CADASTRO_PROD = "{% url 'produtos_cadastro_erp_produto' produto_id='__AGRO_PH__' %}";
 
@@ -508,6 +535,8 @@
   let entradaNfeBipLinhaIdx = 0;
   /** Rascunho local por índice de linha: código bipado / ignorar ao trocar de linha. */
   const entradaNfeBipDraftPorLinha = {};
+  /** Estado do modal «vincular código similar». */
+  let entradaNfeBipVinculoPendente = null;
 
   const ENTRADA_STATUS_PILL = {
     com_pendencias: 'rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex shrink-0 bg-amber-100 text-amber-950 border-2 border-amber-400',
@@ -779,25 +808,128 @@
 
   function entradaNfeBipEstadoLinha(tr) {
     const v = (tr && tr.dataset && String(tr.dataset.bipConf || '').trim()) || '';
-    if (v === 'ok' || v === 'divergente' || v === 'dispensado') return v;
+    if (v === 'ok' || v === 'similar' || v === 'divergente' || v === 'dispensado') return v;
     return 'pendente';
   }
 
   function entradaNfeBipClassesBtnLinha(est, selecionada) {
     const base = 'w-full text-left rounded-lg border-2 px-2 py-2 text-sm font-bold min-h-[44px] flex items-center gap-2 transition-shadow shrink-0';
     let paleta;
-    if (est === 'ok' || est === 'dispensado') paleta = 'bg-emerald-100 border-emerald-400 text-emerald-950';
-    else if (est === 'divergente') paleta = 'bg-red-100 border-red-400 text-red-950';
-    else paleta = 'bg-amber-100 border-amber-300 text-amber-950';
-    const sel = selecionada ? ' ring-2 ring-offset-1 ring-rose-600 shadow-sm' : '';
+    if (est === 'ok') paleta = 'bg-emerald-100 border-emerald-400 text-emerald-950';
+    else if (est === 'similar' || est === 'dispensado') paleta = 'bg-amber-100 border-amber-300 text-amber-950';
+    else paleta = 'bg-rose-50 border-rose-200 text-slate-800';
+    const sel = selecionada ? ' ring-2 ring-offset-1 ring-sky-500 shadow-sm' : '';
     return `${base} ${paleta}${sel}`;
   }
 
   function entradaNfeBipRotuloBadge(est) {
     if (est === 'ok') return 'Ok';
-    if (est === 'dispensado') return 'Disp.';
-    if (est === 'divergente') return '!';
-    return '…';
+    if (est === 'similar') return 'Sim.';
+    if (est === 'dispensado') return 'Opc.';
+    return 'Pend.';
+  }
+
+  function entradaNfeSomenteAlnum(s) {
+    return String(s || '').replace(/[^a-zA-Z0-9]/g, '');
+  }
+
+  /** Mesma convenção visual do servidor (EAN pode vir com zeros à frente diferentes). */
+  function entradaNfeCodigosEquivalentes(a, b) {
+    const xa = entradaNfeSomenteAlnum(a).toLowerCase();
+    const xb = entradaNfeSomenteAlnum(b).toLowerCase();
+    if (!xa || !xb) return false;
+    if (xa === xb) return true;
+    if (/^\d+$/.test(xa) && /^\d+$/.test(xb)) {
+      const na = xa.replace(/^0+/, '') || '0';
+      const nb = xb.replace(/^0+/, '') || '0';
+      if (na === nb) return true;
+    }
+    return false;
+  }
+
+  /** Bate primeiro com **EAN / código já trazidos da NF na linha** (antes do catálogo Mongo). */
+  function entradaNfeBipBuscarMatchLocalNota(rows, codMain, codAux) {
+    const termos = [codMain, codAux].map((x) => String(x || '').trim()).filter(Boolean);
+    if (!termos.length) return null;
+    const ordem = rows.map((_, i) => i);
+    ordem.sort((a, b) => {
+      const pa = entradaNfeBipEstadoLinha(rows[a]) === 'pendente' ? 0 : 1;
+      const pb = entradaNfeBipEstadoLinha(rows[b]) === 'pendente' ? 0 : 1;
+      if (pa !== pb) return pa - pb;
+      return a - b;
+    });
+    for (const i of ordem) {
+      const tr = rows[i];
+      const pid = tr.querySelector('.in-prod-id')?.value?.trim();
+      if (!pid) continue;
+      const ean = tr.querySelector('.in-ean')?.value || '';
+      const cprod = tr.querySelector('.in-cprod')?.value || '';
+      let ok = false;
+      for (const t of termos) {
+        if (entradaNfeCodigosEquivalentes(t, ean) || entradaNfeCodigosEquivalentes(t, cprod)) {
+          ok = true;
+          break;
+        }
+      }
+      if (!ok) continue;
+      return {
+        tr,
+        ix: i,
+        payload: {
+          nome: (tr.querySelector('.in-match')?.textContent || '').trim(),
+          local: true,
+        },
+      };
+    }
+    return null;
+  }
+
+  async function entradaNfeBipBuscarMatchCombinado(rows, codMain, codAux) {
+    const loc = entradaNfeBipBuscarMatchLocalNota(rows, codMain, codAux);
+    if (loc) return loc;
+    return entradaNfeBipBuscarMatchNaNota(rows, codMain, codAux);
+  }
+
+  function entradaNfeBipAdicionarCodigoSimilar(tr, cod) {
+    if (!tr) return;
+    const limpo = String(cod || '').trim();
+    if (!limpo) return;
+    let arr = [];
+    try {
+      arr = JSON.parse(tr.dataset.bipSimilarCodigos || '[]');
+      if (!Array.isArray(arr)) arr = [];
+    } catch (_) {
+      arr = [];
+    }
+    if (!arr.includes(limpo)) arr.push(limpo);
+    tr.dataset.bipSimilarCodigos = JSON.stringify(arr.slice(0, 20));
+  }
+
+  async function entradaNfeBipBuscarMatchNaNota(rows, codigo, codigoAlt) {
+    const c0 = String(codigo || '').trim();
+    if (!c0) return null;
+    const cAlt = String(codigoAlt || '').trim();
+    for (let i = 0; i < rows.length; i++) {
+      const tr = rows[i];
+      const pid = tr.querySelector('.in-prod-id')?.value?.trim();
+      if (!pid) continue;
+      try {
+        const r = await fetch(URL_CONF_COD, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify({ produto_id: pid, codigo: c0, codigo_alt: cAlt }),
+        });
+        const j = await r.json();
+        if (j && j.ok && j.bate) return { tr, ix: i, payload: j };
+      } catch (_) {
+        // tenta próxima linha
+      }
+    }
+    return null;
   }
 
   function entradaNfeBipLimparDraftEBipIdx() {
@@ -857,15 +989,8 @@
     }
     box.innerHTML = '';
     if (hint) {
-      if (rows.length) {
-        hint.removeAttribute('hidden');
-        hint.textContent = rows.length > 1
-          ? `${rows.length} produtos · verde = ok · amarelo = falta bipar · vermelho = diverge do catálogo.`
-          : 'Verde = ok · amarelo = falta bipar · vermelho = diverge do catálogo.';
-      } else {
-        hint.removeAttribute('hidden');
-        hint.textContent = 'Nenhuma linha na grade — verifique os itens acima.';
-      }
+      hint.textContent = '';
+      hint.setAttribute('hidden', 'hidden');
     }
     rows.forEach((tr, i) => {
       const est = entradaNfeBipEstadoLinha(tr);
@@ -880,6 +1005,86 @@
       btn.addEventListener('click', () => entradaNfeBipSelecionarLinha(i));
       box.appendChild(btn);
     });
+    entradaNfeBipAtualizarProgress();
+  }
+
+  function entradaNfeBipAtualizarProgress() {
+    const el = document.getElementById('nfe-bip-progress');
+    if (!el) return;
+    el.hidden = true;
+    el.textContent = '';
+  }
+
+  function entradaNfeBipLimparCamposBip() {
+    const c = document.getElementById('nfe-bip-cod');
+    const a = document.getElementById('nfe-bip-cod-alt');
+    if (c) c.value = '';
+    if (a) a.value = '';
+    const ig = document.getElementById('nfe-bip-ignorar');
+    if (ig) ig.checked = false;
+  }
+
+  function entradaNfeBipModalVinculoFechar() {
+    entradaNfeBipVinculoPendente = null;
+    document.getElementById('modal-nfe-bip-vinculo')?.classList.add('hidden');
+  }
+
+  /** Quando não bate ERP nem texto da NF, escolha explícita de linha para similar/opcional. */
+  function entradaNfeBipModalVinculoAbrir(rows, codMain, codAux) {
+    entradaNfeBipVinculoPendente = { codMain, codAux };
+    const subt = document.getElementById('modal-nfe-bip-vinculo-sub');
+    if (subt) subt.textContent = `${codAux ? 'Códigos' : 'Código'} lido${codAux ? 's' : ''}: «${codMain}»${codAux ? ` e «${codAux}»` : ''}`;
+    const lista = document.getElementById('modal-nfe-bip-vinculo-lista');
+    if (!lista) return;
+    lista.innerHTML = '';
+    const cand = [];
+    rows.forEach((tr, i) => {
+      if (entradaNfeProdutoIdErpValido(tr.querySelector('.in-prod-id')?.value)) cand.push({ tr, i });
+    });
+    if (!cand.length) {
+      entradaNfeBipModalVinculoFechar();
+      const msgEl = document.getElementById('nfe-bip-msg');
+      if (msgEl) {
+        msgEl.textContent = 'Nenhuma linha com produto no catálogo — use Buscar na grade primeiro.';
+        msgEl.classList.add('text-rose-700');
+      }
+      return;
+    }
+    cand.forEach(({ tr, i }) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'w-full text-left rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-50 px-3 py-3 min-h-[52px] transition-colors';
+      const desc = (tr.querySelector('.in-desc')?.value || '').trim().slice(0, 88);
+      const mx = (tr.querySelector('.in-match')?.textContent || '').trim().slice(0, 92);
+      btn.innerHTML = `<div class="text-[10px] font-black uppercase tracking-wide text-slate-500">${i + 1}º item na nota</div><div class="text-sm sm:text-base font-black text-slate-900 mt-1 leading-snug break-words">${desc || '(sem descrição)'}</div>${mx ? `<div class="text-xs font-semibold text-slate-600 mt-2 leading-snug break-words">${mx}</div>` : ''}`;
+      btn.addEventListener('click', () => {
+        const pend = entradaNfeBipVinculoPendente;
+        if (!pend) return;
+        tr.dataset.bipConf = 'similar';
+        entradaNfeBipAdicionarCodigoSimilar(tr, pend.codMain);
+        entradaNfeBipAdicionarCodigoSimilar(tr, pend.codAux);
+        entradaNfeBipLinhaIdx = i;
+        entradaNfeBipLimparCamposBip();
+        entradaNfeBipDraftPorLinha[String(i)] = { cod: '', codAlt: '', ignorar: false };
+        entradaNfeBipModalVinculoFechar();
+        entradaNfeBipRebuildSelect();
+        entradaNfeBipAplicarDraftLinhaAtual();
+        const msgEl = document.getElementById('nfe-bip-msg');
+        if (msgEl) {
+          msgEl.textContent = `${i + 1}º item vinculado como similar/opcional.`;
+          msgEl.classList.add('text-amber-800');
+        }
+        entradaNfeBipFocusCod();
+      });
+      lista.appendChild(btn);
+    });
+    document.getElementById('modal-nfe-bip-vinculo')?.classList.remove('hidden');
+  }
+
+  function entradaNfeBipFocusCod() {
+    try {
+      requestAnimationFrame(() => document.getElementById('nfe-bip-cod')?.focus());
+    } catch (_) {}
   }
 
   (function entradaNfeBipAttachTbObserver() {
@@ -897,7 +1102,7 @@
     const msg = document.getElementById('nfe-bip-msg');
     if (msg) {
       msg.textContent = '';
-      msg.classList.remove('text-emerald-800', 'text-red-700');
+      msg.classList.remove('text-emerald-800', 'text-red-700', 'text-rose-700', 'text-amber-800');
     }
     entradaNfeBipSalvarDraftAtual();
     const tb = document.getElementById('tbody-itens');
@@ -907,56 +1112,61 @@
       return;
     }
     const ix = Math.min(Math.max(0, entradaNfeBipLinhaIdx), rows.length - 1);
-    const tr = rows[ix];
-    if (!tr) return;
-    const pid = tr.querySelector('.in-prod-id')?.value?.trim();
-    const cod = document.getElementById('nfe-bip-cod')?.value?.trim() || '';
-    const codAlt = document.getElementById('nfe-bip-cod-alt')?.value?.trim() || '';
+    const trSel = rows[ix];
+    if (!trSel) return;
+    const rawCod = document.getElementById('nfe-bip-cod')?.value?.trim() || '';
+    const rawAlt = document.getElementById('nfe-bip-cod-alt')?.value?.trim() || '';
+    const codMain = rawCod || rawAlt;
+    const codAux = rawCod && rawAlt ? rawAlt : '';
     const ign = document.getElementById('nfe-bip-ignorar')?.checked;
-    const body = ign ? { ignorar: true } : { produto_id: pid, codigo: cod, codigo_alt: codAlt };
-    if (!ign && !pid) {
-      if (msg) msg.textContent = 'Escolha a linha com produto do catálogo (Buscar).';
+    if (!ign && !String(codMain).trim()) {
+      if (msg) msg.textContent = 'Informe o código lido pelo leitor (principal).';
       return;
     }
-    try {
-      const r = await fetch(URL_CONF_COD, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
-        },
-        body: JSON.stringify(body),
-      });
-      const j = await r.json();
-      if (!j.ok) {
-        if (msg) msg.textContent = j.erro || 'Falha na conferência.';
+    if (ign) {
+      if (!entradaNfeProdutoIdErpValido(trSel.querySelector('.in-prod-id')?.value)) {
+        if (msg) msg.textContent = 'Escolha na lista um item já casado em Buscar (catálogo) antes de dispensar sem código.';
         return;
       }
-      if (j.ignorado) {
-        tr.dataset.bipConf = 'dispensado';
-        entradaNfeBipRebuildSelect();
-        if (msg) msg.textContent = 'Verificação ignorada para esta linha.';
-        return;
+      trSel.dataset.bipConf = 'dispensado';
+      entradaNfeBipAdicionarCodigoSimilar(trSel, codMain || codAux || '(dispensado)');
+      entradaNfeBipLimparCamposBip();
+      entradaNfeBipDraftPorLinha[String(entradaNfeBipLinhaIdx)] = { cod: '', codAlt: '', ignorar: false };
+      entradaNfeBipRebuildSelect();
+      if (msg) {
+        msg.textContent = 'Sem código na embalagem — linha marcada como dispensada.';
+        msg.classList.add('text-amber-800');
       }
-      if (j.bate) {
-        tr.dataset.bipConf = 'ok';
-        entradaNfeBipRebuildSelect();
-        if (msg) {
-          msg.textContent = `Bate com o cadastro${j.nome ? `: ${j.nome}` : '.'}`;
-          msg.classList.add('text-emerald-800');
-        }
-      } else {
-        tr.dataset.bipConf = 'divergente';
-        entradaNfeBipRebuildSelect();
-        if (msg) {
-          msg.textContent = `Não bate com ${j.nome || 'o catálogo'}.`;
-          msg.classList.add('text-red-700');
-        }
-      }
-    } catch (_) {
-      if (msg) msg.textContent = 'Erro de rede.';
+      entradaNfeBipFocusCod();
+      return;
     }
+    const match = await entradaNfeBipBuscarMatchCombinado(rows, codMain, codAux);
+    if (match && match.tr) {
+      match.tr.dataset.bipConf = 'ok';
+      entradaNfeBipLinhaIdx = match.ix;
+      let det = '';
+      if (match.payload?.local) {
+        det = ' (bate com EAN ou código já da NF)';
+      }
+      entradaNfeBipRebuildSelect();
+      entradaNfeBipLimparCamposBip();
+      entradaNfeBipDraftPorLinha[String(entradaNfeBipLinhaIdx)] = { cod: '', codAlt: '', ignorar: false };
+      entradaNfeBipAplicarDraftLinhaAtual();
+      if (msg) {
+        const nm = (match.payload && match.payload.nome) ? String(match.payload.nome).slice(0, 140) : '';
+        msg.textContent = nm
+          ? `Linha ${match.ix + 1}${det}: ${nm}`
+          : `Confirmado na linha ${match.ix + 1}${det}.`;
+        msg.classList.add('text-emerald-800');
+      }
+      entradaNfeBipFocusCod();
+      return;
+    }
+    if (msg) {
+      msg.textContent = 'Não ficou igual sozinho (NF + ERP). Na janela, toque na linha do produto que você acabou de bipar.';
+      msg.classList.add('text-amber-800');
+    }
+    entradaNfeBipModalVinculoAbrir(rows, codMain, codAux);
   }
 
   async function entradaNfeAprovarWizardPin() {
@@ -1016,6 +1226,7 @@
   });
   document.getElementById('nfe-wiz-prev')?.addEventListener('click', () => entradaNfeWizardSetStep(entradaNfeWizardStep - 1));
   document.getElementById('nfe-wiz-next')?.addEventListener('click', () => entradaNfeWizardSetStep(entradaNfeWizardStep + 1));
+  document.getElementById('btn-prod-novo-popup')?.addEventListener('click', () => abrirCadastroProdutoNovoPopup());
   document.getElementById('nfe-bip-verificar')?.addEventListener('click', () => { entradaNfeBipVerificar(); });
   document.getElementById('nfe-bip-cod')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -1028,6 +1239,14 @@
     document.getElementById('nfe-bip-cod-alt')?.addEventListener(ev, () => entradaNfeBipSalvarDraftAtual());
     document.getElementById('nfe-bip-ignorar')?.addEventListener(ev, () => entradaNfeBipSalvarDraftAtual());
   });
+  document.getElementById('modal-nfe-bip-vinculo-fechar')?.addEventListener('click', () => entradaNfeBipModalVinculoFechar());
+  document.getElementById('modal-nfe-bip-vinculo')?.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'modal-nfe-bip-vinculo') entradaNfeBipModalVinculoFechar();
+  });
+  document.addEventListener('keydown', (e) => {
+    const mv = document.getElementById('modal-nfe-bip-vinculo');
+    if (e.key === 'Escape' && mv && !mv.classList.contains('hidden')) entradaNfeBipModalVinculoFechar();
+  });
   document.getElementById('nfe-wiz-btn-aprov')?.addEventListener('click', () => { entradaNfeAprovarWizardPin(); });
   document.getElementById('nfe-wiz-pin')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -1035,17 +1254,66 @@
       entradaNfeAprovarWizardPin();
     }
   });
+  function entradaNfeAjudaContextoSet(key) {
+    const box = document.getElementById('entrada-nfe-ajuda-contexto');
+    const tit = document.getElementById('entrada-nfe-ajuda-contexto-titulo');
+    const resumo = document.getElementById('entrada-nfe-ajuda-contexto-resumo');
+    const lista = document.getElementById('entrada-nfe-ajuda-contexto-lista');
+    if (!box || !tit || !resumo || !lista) return;
+    const map = {
+      '1': {
+        titulo: 'Ajuda rápida · Pedido na compra',
+        resumo: 'Use este bloco para confirmar se a nota veio do fluxo de Compras (pedido/OC).',
+        itens: [
+          'Se aparecer como identificado, as linhas já vieram do pedido de compra.',
+          'Se não identificado, você ainda pode seguir a nota normalmente.',
+          'Use “Abrir Compras” para comparar pedido x recebimento quando necessário.',
+        ],
+      },
+      '2b': {
+        titulo: 'Ajuda rápida · Conferência por código',
+        resumo: 'Bipe no campo principal; o sistema tenta casar automaticamente.',
+        itens: [
+          'Primeiro compara com EAN/código da própria NF; depois com cadastro ERP.',
+          'Se não casar, escolha na caixa o item correto para marcar como similar/opcional.',
+          'Cores: verde = bateu; amarelo = similar/opcional; vermelho = pendente.',
+          '“Sem código na embalagem” dispensa apenas a linha selecionada.',
+        ],
+      },
+      '5': {
+        titulo: 'Ajuda rápida · Conferência final',
+        resumo: 'A etapa 5 só libera quando as etapas anteriores estiverem corretas.',
+        itens: [
+          'Valida NF/fornecedor/plano, produtos, estoque e financeiro (se iniciado).',
+          'Não permite finalizar com item pendente de conferência por código.',
+          'PIN é o mesmo da senha rápida usada no estoque.',
+        ],
+      },
+    };
+    const p = map[String(key || '')];
+    if (!p) {
+      box.classList.add('hidden');
+      lista.innerHTML = '';
+      return;
+    }
+    tit.textContent = p.titulo;
+    resumo.textContent = p.resumo;
+    lista.innerHTML = '';
+    (p.itens || []).forEach((txt) => {
+      const li = document.createElement('li');
+      li.textContent = txt;
+      lista.appendChild(li);
+    });
+    box.classList.remove('hidden');
+  }
+
   document.getElementById('panel-manual')?.addEventListener('click', (e) => {
     const elT = e.target;
     const h = elT instanceof Element ? elT.closest('.nfe-wiz-help') : null;
     if (!h) return;
-    const w = h.getAttribute('data-help-w');
-    const tit = {
-      1: 'Pedido Compras: o cartão acima indica automaticamente se este rascunho veio de pedido (Mongo + linhas). Etapa 1 inclui também fornecedor/NF e plano.',
-      '2b': 'Conferência por código: compare EAN/código do rótulo com o cadastro do item selecionado na linha.',
-      5: 'Passo · Conferência final: mesmo PIN da senha rápida. Só libera com etapas 1–4 válidas e rascunho salvo; se iniciou o financeiro, as parcelas precisam fechar com o total da nota.',
-    }[w] || 'Ajuda';
-    showMsg(tit, true);
+    const w = h.getAttribute('data-help-w') || '';
+    entradaNfeAjudaContextoSet(w);
+    abrirModalAjudaEntradaNfe(true);
   });
 
   function entradaNfeAbrirEditor() {
@@ -1069,7 +1337,8 @@
   }
 
   const elModalAjudaNfe = document.getElementById('modal-entrada-nfe-ajuda');
-  function abrirModalAjudaEntradaNfe() {
+  function abrirModalAjudaEntradaNfe(preservarContexto) {
+    if (!preservarContexto) entradaNfeAjudaContextoSet('');
     if (elModalAjudaNfe) {
       elModalAjudaNfe.classList.remove('hidden');
       document.getElementById('modal-entrada-nfe-ajuda-fechar')?.focus();
@@ -1313,6 +1582,10 @@
       if (!entradaNfeProdutoIdErpValido(linhas[i].produto_id)) {
         return { ok: false, irPara: 2, erro: `Linha ${i + 1}: use Buscar e escolha o produto do catálogo (etapa 2 · Produtos).` };
       }
+      const stBip = String(linhas[i].bip_conf || 'pendente');
+      if (!['ok', 'similar', 'dispensado'].includes(stBip)) {
+        return { ok: false, irPara: 2, erro: `Linha ${i + 1}: pendente de conferência por código de barras (etapa 2).` };
+      }
     }
     const empId = String(document.getElementById('m-empresa-faturada')?.value || '').trim();
     if (!empId) {
@@ -1402,19 +1675,33 @@
     return `${proto}//${host}${port}${path}`;
   }
 
-  function abrirModalCadastroProd(produtoId) {
-    const url = entradaNfeUrlCadastroProdNovaJanela(produtoId);
-    const w = Math.min(1680, Math.max(800, screen.availWidth - 48));
-    const h = Math.min(960, Math.max(600, screen.availHeight - 64));
-    const feat = `width=${w},height=${h},left=24,top=24`;
-    const win = window.open(url, 'agro_cad_prod_nfe', feat);
+  /** Popup ~80% da tela útil (cadastro novo e edição ERP). */
+  function entradaNfeAbrirPopupCadastroProd(url, nomeJanela) {
+    const sw = Number(screen.availWidth || window.innerWidth || 1280);
+    const sh = Number(screen.availHeight || window.innerHeight || 800);
+    const w = Math.max(920, Math.floor(sw * 0.8));
+    const h = Math.max(620, Math.floor(sh * 0.8));
+    const left = Math.max(0, Math.floor((sw - w) / 2));
+    const top = Math.max(0, Math.floor((sh - h) / 2));
+    const feat = `width=${w},height=${h},left=${left},top=${top}`;
+    const win = window.open(url, nomeJanela, feat);
     if (!win || win.closed) {
       showMsg('Não abriu o cadastro: o navegador bloqueou pop-up. Permita janelas para este endereço.', false);
-      return;
+      return null;
     }
     try {
       win.focus();
     } catch (_) {}
+    return win;
+  }
+
+  function abrirModalCadastroProd(produtoId) {
+    const url = entradaNfeUrlCadastroProdNovaJanela(produtoId);
+    entradaNfeAbrirPopupCadastroProd(url, 'agro_cad_prod_nfe');
+  }
+
+  function abrirCadastroProdutoNovoPopup() {
+    entradaNfeAbrirPopupCadastroProd(URL_CAD_PRODUTO_NOVO, 'agro_cad_prod_novo_nfe');
   }
 
   function tbodyClear() {
@@ -1474,8 +1761,15 @@
       atualizarQtdEstoqueRow(tr);
     }
     const bc = String(d.bip_conf != null ? d.bip_conf : '').trim();
-    if (bc === 'ok' || bc === 'divergente' || bc === 'dispensado') tr.dataset.bipConf = bc;
+    if (bc === 'ok' || bc === 'similar' || bc === 'divergente' || bc === 'dispensado') tr.dataset.bipConf = bc;
     else delete tr.dataset.bipConf;
+    if (Array.isArray(d.bip_similar_codigos) && d.bip_similar_codigos.length) {
+      tr.dataset.bipSimilarCodigos = JSON.stringify(
+        d.bip_similar_codigos.map((x) => String(x || '').trim()).filter(Boolean).slice(0, 20)
+      );
+    } else {
+      delete tr.dataset.bipSimilarCodigos;
+    }
     ['input', 'change'].forEach((ev) => {
       tr.querySelector('.in-qtd').addEventListener(ev, () => { delete qe.dataset.manual; atualizarQtdEstoqueRow(tr); });
       tr.querySelector('.in-un-emb').addEventListener(ev, () => { delete qe.dataset.manual; atualizarQtdEstoqueRow(tr); });
@@ -1523,6 +1817,14 @@
           return t && t !== '—' ? t : '';
         })(),
         bip_conf: entradaNfeBipEstadoLinha(tr),
+        bip_similar_codigos: (() => {
+          try {
+            const arr = JSON.parse(tr.dataset.bipSimilarCodigos || '[]');
+            return Array.isArray(arr) ? arr.slice(0, 20).map((x) => String(x || '').trim()).filter(Boolean) : [];
+          } catch (_) {
+            return [];
+          }
+        })(),
       });
     });
     return linhas;
@@ -1673,6 +1975,7 @@
         nome_catalogo: row.nome_catalogo || row.x_prod || '',
         match_tipo: row.match_tipo || '',
         bip_conf: row.bip_conf,
+        bip_similar_codigos: row.bip_similar_codigos,
       });
     });
     atualizarPainelTotalNfe();
@@ -1777,6 +2080,7 @@
           if (p.codigo_barras) trProdAlvo.querySelector('.in-ean').value = String(p.codigo_barras).replace(/\D/g, '').slice(0, 14);
           document.getElementById('modal-prod').classList.add('hidden');
           delete trProdAlvo.dataset.bipConf;
+          delete trProdAlvo.dataset.bipSimilarCodigos;
           const bi = entradaNfeBipIxDeTr(trProdAlvo);
           if (bi >= 0) delete entradaNfeBipDraftPorLinha[String(bi)];
           trProdAlvo = null;

@@ -85,6 +85,47 @@
         box-shadow: 0 3px 12px rgba(234, 88, 12, 0.18);
     }
     .btn-sync-erp:hover { filter: brightness(1.06); }
+    .btn-sync-erp.btn-sync-ok {
+        border-color: rgba(52, 211, 153, 0.65);
+        box-shadow: 0 3px 14px rgba(16, 185, 129, 0.26);
+    }
+    .btn-sync-erp.btn-sync-warn {
+        border-color: rgba(251, 191, 36, 0.7);
+        box-shadow: 0 3px 14px rgba(245, 158, 11, 0.28);
+    }
+    .btn-sync-erp.btn-sync-danger {
+        border-color: rgba(248, 113, 113, 0.78);
+        box-shadow: 0 3px 16px rgba(239, 68, 68, 0.35);
+    }
+    @keyframes sync-alert-pulse {
+        0%, 100% { transform: translateY(0); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35); }
+        50% { transform: translateY(-1px); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    }
+    .btn-sync-erp.btn-sync-pulse {
+        animation: sync-alert-pulse 1.3s ease-in-out infinite;
+    }
+    .sync-thermo-track {
+        width: 100%;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.22);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 4px;
+    }
+    .sync-thermo-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #34d399 0%, #facc15 58%, #ef4444 100%);
+        transition: width 0.35s ease;
+    }
+    .sync-thermo-text {
+        font-size: 9px;
+        line-height: 1.2;
+        font-weight: 800;
+        margin-top: 2px;
+        opacity: 0.95;
+    }
     .dash-btn { min-height: clamp(38px, 4.5vw + 24px, 44px); padding-left: clamp(0.65rem, 1vw, 1rem); padding-right: clamp(0.65rem, 1vw, 1rem); }
     .dash-cta-strip a { text-decoration: none; }
     .dash-cta-pdv-compact {
@@ -177,36 +218,218 @@
         fill: #64748b;
         font-weight: 700;
     }
+    /* Topo operacional — PDV / Orçamento pulsantes */
+    @keyframes pulse-capri-strong {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(0, 191, 255, 0.52), 0 0 14px rgba(14, 165, 233, 0.55);
+            filter: brightness(1);
+        }
+        42% {
+            transform: scale(1.028);
+            box-shadow: 0 0 0 15px rgba(0, 191, 255, 0), 0 0 20px rgba(56, 189, 248, 0.72);
+            filter: brightness(1.12);
+        }
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(0, 191, 255, 0), 0 0 8px rgba(56, 189, 248, 0.3);
+            filter: brightness(1);
+        }
+    }
+    @keyframes pulse-emerald-strong {
+        0% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5), 0 0 14px rgba(16, 185, 129, 0.5);
+            filter: brightness(1);
+        }
+        42% {
+            transform: scale(1.028);
+            box-shadow: 0 0 0 15px rgba(16, 185, 129, 0), 0 0 20px rgba(52, 211, 153, 0.68);
+            filter: brightness(1.12);
+        }
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0), 0 0 8px rgba(52, 211, 153, 0.28);
+            filter: brightness(1);
+        }
+    }
+    .btn-main-pulsing-capri {
+        animation: pulse-capri-strong 1.35s ease-in-out infinite;
+        will-change: transform, box-shadow, filter;
+    }
+    .btn-main-pulsing-emerald {
+        animation: pulse-emerald-strong 1.35s ease-in-out infinite;
+        will-change: transform, box-shadow, filter;
+    }
+    body.modal-open {
+        overflow: hidden !important;
+    }
+    @media print {
+        .no-print,
+        #launchpad {
+            display: none !important;
+        }
+    }
+    /* Launchpad (CDN Tailwind não processa @apply no <style> local) */
+    .launch-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.1rem 1.15rem;
+        min-height: 3.25rem;
+        border-radius: 1.1rem;
+        background: rgba(15, 23, 42, 0.94);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        color: #f8fafc;
+        font-weight: 900;
+        text-transform: uppercase;
+        font-size: 0.72rem;
+        letter-spacing: 0.06em;
+        text-align: left;
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+    }
+    .launch-btn:hover {
+        background: rgba(14, 165, 233, 0.32);
+        border-color: rgba(56, 189, 248, 0.85);
+        transform: translateY(-1px);
+    }
+    .launch-btn svg {
+        flex-shrink: 0;
+        width: 1.45rem;
+        height: 1.45rem;
+        color: #e2e8f0;
+    }
+    .launch-key {
+        font-size: 10px;
+        font-weight: 900;
+        padding: 3px 7px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        opacity: 0.45;
+        transition: opacity .15s ease, border-color .15s ease;
+        line-height: 1;
+        letter-spacing: .04em;
+    }
+    .launch-btn:hover .launch-key {
+        opacity: 1;
+        border-color: rgba(0, 191, 255, 0.55);
+    }
+    .launch-col {
+        border-radius: 1.15rem;
+        padding: 1.05rem 1rem 1.1rem;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        background: rgba(15, 23, 42, 0.88);
+    }
+    .launch-col--comercial {
+        background: linear-gradient(180deg, rgba(14, 165, 233, 0.32) 0%, rgba(15, 23, 42, 0.94) 100%);
+        border-color: rgba(14, 165, 233, 0.62);
+    }
+    .launch-col--estoque {
+        background: linear-gradient(180deg, rgba(245, 158, 11, 0.32) 0%, rgba(15, 23, 42, 0.94) 100%);
+        border-color: rgba(245, 158, 11, 0.62);
+    }
+    .launch-col--financeiro {
+        background: linear-gradient(180deg, rgba(239, 68, 68, 0.32) 0%, rgba(15, 23, 42, 0.94) 100%);
+        border-color: rgba(239, 68, 68, 0.62);
+    }
+    .launch-col--gestao {
+        background: linear-gradient(180deg, rgba(168, 85, 247, 0.32) 0%, rgba(15, 23, 42, 0.94) 100%);
+        border-color: rgba(168, 85, 247, 0.62);
+    }
+    @media (max-width: 1366px) {
+        .main-container {
+            padding: clamp(0.45rem, 0.7vw, 0.85rem);
+        }
+        .main-container .no-print {
+            gap: 0.4rem !important;
+        }
+        .main-container .no-print button {
+            padding-top: 0.4rem;
+            padding-bottom: 0.4rem;
+        }
+    }
+    @media (max-width: 1120px) {
+        .dash-title {
+            font-size: clamp(0.95rem, 1.2vw + 0.35rem, 1.2rem);
+        }
+        .dash-sub {
+            display: none;
+        }
+    }
+    @media (min-width: 1400px) {
+        .launch-col {
+            padding: 1.15rem 1.08rem 1.2rem;
+        }
+        .launch-btn {
+            padding: 1.2rem 1.2rem;
+            min-height: 3.4rem;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block admin_content %}
 {% include "produtos/_gm_loading_bar.html" %}
 <div class="main-container">
-    <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,auto)_minmax(0,1fr)_auto] gap-x-3 gap-y-3 items-center mb-4">
-        <div class="min-w-0">
-            <div class="flex items-center gap-2 mb-0.5">
-                <div class="w-1.5 h-5 bg-[#00BFFF] rounded-full shrink-0"></div>
-                <h1 class="dash-title font-black tracking-tight uppercase">Gestão Estratégica</h1>
+    <div class="flex flex-wrap xl:flex-nowrap items-center justify-between gap-2 p-2 bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/5 mb-6 no-print">
+        <div class="flex items-center gap-3 px-2 border-r border-white/10 mr-1">
+            <div class="w-8 h-8 bg-[#00BFFF] rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(0,191,255,0.3)]">
+                <i data-lucide="layout-dashboard" class="text-white w-4 h-4"></i>
             </div>
-            <p class="dash-sub text-slate-600 font-bold uppercase tracking-[0.12em] ml-4">
-                <span class="text-emerald-700">SisVale</span>
-                <span class="text-slate-400">·</span>
-                <span class="text-sky-600">Business Intelligence</span>
-            </p>
+            <div class="hidden xl:block">
+                <h1 class="text-xs font-black text-white uppercase leading-none">Gestão Estratégica</h1>
+                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">SisVale BI</p>
+            </div>
         </div>
-        <div class="dash-cta-strip flex flex-wrap items-center justify-center gap-2 min-w-0 px-1">
-            <a href="{% url 'pdv_home' %}" class="dash-cta-pdv-compact" data-prefetch title="PDV de venda (wizard /pdv/)">Abrir PDV</a>
-            <a href="{% url 'consulta_produtos' %}?orcamentos=1" class="dash-cta-orc-compact" data-prefetch title="Consulta legada: histórico de orçamentos salvos">Orçamento</a>
-            <a href="{% url 'home_atalhos' %}" class="dash-cta-atalhos" data-prefetch title="Outras telas: financeiro, estoque, RH e demais módulos">Menu de atalhos</a>
+
+        <div class="flex items-center gap-2">
+            <button type="button"
+                onclick="window.tabManager.addTab('PDV', '{% url 'pdv_home' %}', 'shopping-cart')"
+                class="btn-main-pulsing-capri bg-[#00BFFF]/10 border border-[#00BFFF]/30 hover:border-[#00BFFF] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all">
+                <i data-lucide="shopping-cart" class="w-4 h-4 text-[#00BFFF]"></i>
+                <span class="text-xs font-black uppercase italic">PDV <small class="opacity-50 ml-1">F1</small></span>
+            </button>
+
+            <button type="button"
+                onclick="window.tabManager.addTab('Orçamentos', '{% url 'consulta_produtos' %}?orcamentos=1', 'file-text')"
+                class="btn-main-pulsing-emerald bg-[#10B981]/10 border border-[#10B981]/30 hover:border-[#10B981] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all">
+                <i data-lucide="file-text" class="w-4 h-4 text-[#10B981]"></i>
+                <span class="text-xs font-black uppercase italic">Orçamento <small class="opacity-50 ml-1">F2</small></span>
+            </button>
+
+            <button type="button"
+                onclick="toggleLaunchpad()"
+                class="bg-slate-800 border border-white/10 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-slate-700 transition-all">
+                <i data-lucide="layout-grid" class="w-4 h-4 text-purple-400"></i>
+                <span class="text-xs font-black uppercase italic">Menu <small class="opacity-50 ml-1">F10</small></span>
+            </button>
         </div>
-        <div class="dash-toolbar flex flex-wrap items-center bg-white rounded-xl border border-slate-200 shadow-sm justify-self-stretch lg:justify-self-end">
-            <button type="button" class="period-btn dash-btn py-1.5 text-xs font-black uppercase rounded-lg {% if periodo_key == 'hoje' %}period-active{% else %}period-inactive{% endif %}" data-periodo="hoje">Hoje</button>
-            <button type="button" class="period-btn dash-btn py-1.5 text-xs font-black uppercase rounded-lg {% if periodo_key == '7d' %}period-active{% else %}period-inactive{% endif %}" data-periodo="7d">7 dias</button>
-            <button type="button" class="period-btn dash-btn py-1.5 text-xs font-black uppercase rounded-lg {% if periodo_key == '30d' %}period-active{% else %}period-inactive{% endif %}" data-periodo="30d">30 dias</button>
-            <button type="button" class="period-btn dash-btn py-1.5 text-xs font-black uppercase rounded-lg {% if periodo_key == 'mes' %}period-active{% else %}period-inactive{% endif %}" data-periodo="mes">Mês</button>
-            <button type="button" class="period-btn dash-btn py-1.5 text-xs font-black uppercase rounded-lg {% if periodo_key == 'ano' %}period-active{% else %}period-inactive{% endif %}" data-periodo="ano">Ano</button>
-            <button id="btn-sync-dashboard" type="button" class="btn-sync-erp dash-btn py-1.5 text-xs font-black uppercase rounded-lg">Sincronizar ERP</button>
+
+        <div class="flex items-center gap-1 bg-black/20 p-1 rounded-xl border border-white/5">
+            <button type="button" class="period-btn px-3 py-1.5 text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'hoje' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="hoje">Hoje</button>
+            <button type="button" class="period-btn px-3 py-1.5 text-[9px] font-black uppercase rounded-lg {% if periodo_key == '7d' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="7d">7 dias</button>
+            <button type="button" class="period-btn px-3 py-1.5 text-[9px] font-black uppercase rounded-lg {% if periodo_key == '30d' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="30d">30 dias</button>
+            <button type="button" class="period-btn px-3 py-1.5 text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'mes' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="mes">Mês</button>
+            <button type="button" class="period-btn px-3 py-1.5 text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'ano' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="ano">Ano</button>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button id="btn-sync-dashboard" type="button" class="btn-sync-erp flex flex-col items-end px-4 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl transition-all border border-orange-400/30 group">
+                <div class="flex items-center gap-2">
+                    <span id="sync-btn-title" class="text-[10px] font-black uppercase italic">Sincronizar ERP</span>
+                    <i data-lucide="refresh-cw" class="w-3 h-3 group-hover:rotate-180 transition-transform duration-500"></i>
+                </div>
+                <span id="sync-btn-sub" class="text-[8px] font-bold opacity-75">
+                    Estoque: {{ ultima_sinc_estoque|default:"—" }} · BI: {% if mongo_ok %}ok{% else %}alerta{% endif %}
+                </span>
+                <div class="w-full">
+                    <div class="sync-thermo-track"><div id="sync-thermo-fill" class="sync-thermo-fill"></div></div>
+                    <div id="sync-thermo-text" class="sync-thermo-text text-right">Termômetro: sem leitura</div>
+                </div>
+            </button>
         </div>
     </div>
 
@@ -231,7 +454,107 @@
     </div>
 </div>
 
+<!-- Launchpad: atalhos que antes ficavam na home /atalhos/ -->
+<div id="launchpad" class="fixed inset-0 z-[9999] hidden bg-slate-950 backdrop-blur-none p-5 sm:p-8 md:p-10 transition-opacity overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="launchpad-title">
+    <div class="w-full max-w-[120rem] mx-auto min-h-0 flex flex-col pb-8">
+        <div class="flex flex-wrap justify-between items-start gap-4 mb-10 md:mb-14">
+            <div>
+                <h2 id="launchpad-title" class="text-3xl sm:text-5xl font-black text-white tracking-tighter uppercase leading-tight">Menu de Atalhos</h2>
+                <p class="text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-[0.25em] mt-2">SisVale | Central de módulos</p>
+            </div>
+            <button type="button" onclick="toggleLaunchpad()" class="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-red-600 transition-colors text-3xl sm:text-4xl shrink-0" aria-label="Fechar menu">&times;</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 xl:gap-6 flex-1 min-h-0">
+            <div class="space-y-5 md:space-y-6 launch-col launch-col--comercial">
+                <h3 class="text-[#00BFFF] font-black uppercase text-xs tracking-widest border-b border-[#00BFFF]/25 pb-3">Comercial</h3>
+                <button type="button" onclick="dashLaunchpadAbrir('Vendas', '{% url 'vendas_lista' %}', 'dollar-sign')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="dollar-sign"></i><span>Gestão de Vendas</span></span><span class="launch-key">V</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Clientes', '{% url 'clientes_lista' %}', 'users')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="users"></i><span>Clientes</span></span><span class="launch-key">C</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Orçamentos', '{% url 'consulta_produtos' %}?orcamentos=1', 'history')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="history"></i><span>Orçamentos salvos</span></span><span class="launch-key">F2</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Compras', '{% url 'compras_view' %}', 'shopping-bag')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="shopping-bag"></i><span>Compras</span></span><span class="launch-key">F6</span></button>
+            </div>
+
+            <div class="space-y-5 md:space-y-6 launch-col launch-col--estoque">
+                <h3 class="text-amber-500 font-black uppercase text-xs tracking-widest border-b border-amber-500/25 pb-3">Logística e estoque</h3>
+                <button type="button" onclick="dashLaunchpadAbrir('Cadastro Produtos', '{% url 'produtos_cadastro_erp' %}', 'package')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="package"></i><span>Cadastro de produtos</span></span><span class="launch-key">R</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Entrada NF-e', '{% url 'entrada_nota' %}', 'file-input')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="file-input"></i><span>Entrada NF-e</span></span><span class="launch-key">N</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Estoque Agro', '{% url 'estoque_sincronizacao' %}', 'activity')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="activity"></i><span>Estoque (Agro)</span></span><span class="launch-key">Y</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Entregas', '{% url 'entregas_painel' %}', 'truck')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="truck"></i><span>Entregas</span></span><span class="launch-key">E</span></button>
+            </div>
+
+            <div class="space-y-5 md:space-y-6 launch-col launch-col--financeiro">
+                <h3 class="text-red-500 font-black uppercase text-xs tracking-widest border-b border-red-500/25 pb-3">Financeiro</h3>
+                <button type="button" onclick="dashLaunchpadAbrir('Caixa', '{% url 'caixa_painel' %}', 'banknote')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="banknote"></i><span>Painel de caixa</span></span><span class="launch-key">X</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Lançamentos', '{% url 'lancamentos_financeiros' %}', 'list-ordered')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="list-ordered"></i><span>Lançamentos</span></span><span class="launch-key">F7</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('DRE', '{% url 'lancamentos_dre' %}', 'bar-chart-3')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="bar-chart-3"></i><span>Relatório DRE</span></span><span class="launch-key">F9</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Resumo gerencial', '{% url 'resumo_financeiro_gerencial' %}', 'pie-chart')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="pie-chart"></i><span>Resumo financeiro</span></span><span class="launch-key">F8</span></button>
+            </div>
+
+            <div class="space-y-5 md:space-y-6 launch-col launch-col--gestao">
+                <h3 class="text-purple-400 font-black uppercase text-xs tracking-widest border-b border-purple-400/25 pb-3">Gestão</h3>
+                <button type="button" onclick="dashLaunchpadAbrir('RH', '{% url 'rh_painel' %}', 'user-check')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="user-check"></i><span>Recursos Humanos</span></span><span class="launch-key">H</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Relatórios', '{% url 'relatorios_hub' %}', 'file-bar-chart')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="file-bar-chart"></i><span>Relatórios gerais</span></span><span class="launch-key">T</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Gestão Produtos', '{% url 'produtos_gestao' %}', 'boxes')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="boxes"></i><span>Gestão de produtos</span></span><span class="launch-key">P</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Ajuste mobile', '{% url 'ajuste_mobile' %}', 'smartphone')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="smartphone"></i><span>Ajuste mobile</span></span><span class="launch-key">A</span></button>
+                <a href="{% url 'home_atalhos' %}" class="launch-btn no-underline justify-center opacity-90 hover:opacity-100" data-prefetch>Grade clássica de atalhos (página inteira)</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+(function () {
+    if (!window.tabManager) {
+        window.tabManager = {};
+    }
+    if (typeof window.tabManager.addTab !== "function") {
+        window.tabManager.addTab = function (_titulo, url, _icone) {
+            window.location.assign(url);
+        };
+    }
+})();
+
+function toggleLaunchpad() {
+    var lp = document.getElementById("launchpad");
+    if (!lp) return;
+    var estavaOculto = lp.classList.contains("hidden");
+    lp.classList.toggle("hidden", !estavaOculto);
+    document.body.classList.toggle("modal-open", estavaOculto);
+    if (estavaOculto && window.lucide) window.lucide.createIcons();
+}
+
+function dashLaunchpadAbrir(titulo, url, icone) {
+    if (window.tabManager && typeof window.tabManager.addTab === "function") {
+        window.tabManager.addTab(titulo, url, icone);
+    } else {
+        window.location.href = url;
+    }
+    var lp = document.getElementById("launchpad");
+    if (lp) {
+        lp.classList.add("hidden");
+        document.body.classList.remove("modal-open");
+    }
+}
+
+document.addEventListener("keydown", function (e) {
+    var tag = e.target && e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target && e.target.isContentEditable)) return;
+    if (e.key === "Escape") {
+        var lp = document.getElementById("launchpad");
+        if (lp && !lp.classList.contains("hidden")) toggleLaunchpad();
+        return;
+    }
+    if (e.key === "F1") {
+        e.preventDefault();
+        window.tabManager.addTab("PDV", "{% url 'pdv_home' %}", "shopping-cart");
+        return;
+    }
+    if (e.key === "F2") {
+        e.preventDefault();
+        window.tabManager.addTab("Orçamentos", "{% url 'consulta_produtos' %}?orcamentos=1", "file-text");
+    }
+});
+
     lucide.createIcons();
 
     function readCookie(name) {
@@ -264,10 +587,74 @@
 
     var btnSync = document.getElementById("btn-sync-dashboard");
     if (btnSync) {
+      var btnSyncTitle = document.getElementById("sync-btn-title");
+      var btnSyncSub = document.getElementById("sync-btn-sub");
+      var syncThermoFill = document.getElementById("sync-thermo-fill");
+      var syncThermoText = document.getElementById("sync-thermo-text");
+      var syncStockRaw = "{{ ultima_sinc_estoque|default:''|escapejs }}";
+      var syncBiStatus = "{% if mongo_ok %}ok{% else %}alerta{% endif %}";
+      function parseBrDateTimeToDate(raw) {
+        var txt = String(raw || "").trim();
+        var m = txt.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s+(\d{1,2}):(\d{2})$/);
+        if (!m) return null;
+        var d = Number(m[1]);
+        var mo = Number(m[2]) - 1;
+        var y = m[3] ? Number(m[3]) : (new Date()).getFullYear();
+        if (y < 100) y += 2000;
+        var h = Number(m[4]);
+        var mi = Number(m[5]);
+        var dt = new Date(y, mo, d, h, mi, 0, 0);
+        return Number.isNaN(dt.getTime()) ? null : dt;
+      }
+      function renderSyncThermometer(syncDate) {
+        var now = new Date();
+        var ageMin = syncDate ? Math.max(0, Math.floor((now - syncDate) / 60000)) : null;
+        var level = "none";
+        if (ageMin !== null) {
+          if (ageMin <= 15) level = "ok";
+          else if (ageMin <= 45) level = "warn";
+          else level = "danger";
+        }
+        btnSync.classList.remove("btn-sync-ok", "btn-sync-warn", "btn-sync-danger", "btn-sync-pulse");
+        if (level === "ok") btnSync.classList.add("btn-sync-ok");
+        if (level === "warn") btnSync.classList.add("btn-sync-warn");
+        if (level === "danger") btnSync.classList.add("btn-sync-danger", "btn-sync-pulse");
+        if (syncThermoFill) {
+          var pct = ageMin === null ? 0 : Math.max(4, Math.min(100, (ageMin / 60) * 100));
+          syncThermoFill.style.width = pct + "%";
+        }
+        if (syncThermoText) {
+          if (ageMin === null) {
+            syncThermoText.textContent = "Termômetro: sem leitura";
+          } else if (level === "ok") {
+            syncThermoText.textContent = "Termômetro: atualizado há " + ageMin + " min (ok)";
+          } else if (level === "warn") {
+            syncThermoText.textContent = "Termômetro: " + ageMin + " min sem sync (atenção)";
+          } else {
+            syncThermoText.textContent = "Termômetro: " + ageMin + " min sem sync (crítico)";
+          }
+        }
+      }
+      function syncSubText(stockText) {
+        return "Estoque: " + (stockText || "—") + " · BI: " + syncBiStatus;
+      }
+      function formatDatePtBrNoSec(dt) {
+        var d = String(dt.getDate()).padStart(2, "0");
+        var m = String(dt.getMonth() + 1).padStart(2, "0");
+        var h = String(dt.getHours()).padStart(2, "0");
+        var mi = String(dt.getMinutes()).padStart(2, "0");
+        return d + "/" + m + " " + h + ":" + mi;
+      }
+      var syncDate = parseBrDateTimeToDate(syncStockRaw);
+      renderSyncThermometer(syncDate);
+      setInterval(function () {
+        renderSyncThermometer(syncDate);
+      }, 30000);
       btnSync.addEventListener("click", function () {
         var fb = document.getElementById("sync-feedback");
         btnSync.disabled = true;
-        btnSync.textContent = "Sincronizando...";
+        if (btnSyncTitle) btnSyncTitle.textContent = "Sincronizando...";
+        if (btnSyncSub) btnSyncSub.textContent = "Aguarde alguns segundos...";
         var params = new URLSearchParams(window.location.search || "");
         var periodo = params.get("periodo") || "mes";
         fetch("{% url 'dashboard_gerencial_sincronizar' %}", {
@@ -279,6 +666,10 @@
           .then(function (res) {
             if (res.ok && res.body.ok) {
               if (fb) fb.textContent = "Sincronização concluída: " + (res.body.inseridos || 0) + " inseridos, " + (res.body.atualizados || 0) + " atualizados.";
+              syncDate = new Date();
+              syncStockRaw = formatDatePtBrNoSec(syncDate);
+              if (btnSyncSub) btnSyncSub.textContent = syncSubText(syncStockRaw);
+              renderSyncThermometer(syncDate);
               carregarPeriodo(periodo);
               return;
             }
@@ -289,7 +680,8 @@
           })
           .finally(function () {
             btnSync.disabled = false;
-            btnSync.textContent = "Sincronizar ERP";
+            if (btnSyncTitle) btnSyncTitle.textContent = "Sincronizar ERP";
+            if (btnSyncSub) btnSyncSub.textContent = syncSubText(syncStockRaw);
           });
       });
     }

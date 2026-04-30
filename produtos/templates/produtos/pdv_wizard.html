@@ -314,6 +314,22 @@
   </div>
 </div>
 <div id="pdv-pack-entrega-print" aria-hidden="true"></div>
+
+<div id="modal-pdv-wizard-ajuda" class="fixed inset-0 z-[130] hidden items-center justify-center bg-slate-900/50 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="modal-pdv-wizard-ajuda-titulo">
+  <div class="flex max-h-[min(88vh,40rem)] w-full max-w-[min(36rem,96vw)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+    <div class="flex shrink-0 items-start justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-4 py-3">
+      <div class="min-w-0">
+        <h2 id="modal-pdv-wizard-ajuda-titulo" class="text-sm font-black uppercase tracking-tight text-slate-900">Ajuda rápida</h2>
+        <p id="modal-pdv-wizard-ajuda-resumo" class="mt-1 text-xs font-semibold leading-snug text-slate-600">—</p>
+      </div>
+      <button type="button" id="btn-fechar-modal-pdv-wizard-ajuda" class="shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-50" aria-label="Fechar ajuda">Fechar</button>
+    </div>
+    <div class="min-h-0 flex-1 overflow-y-auto p-4">
+      <ul id="modal-pdv-wizard-ajuda-lista" class="list-disc space-y-2 pl-5 text-sm font-semibold leading-snug text-slate-700"></ul>
+    </div>
+  </div>
+</div>
+
 <div id="alerta-lembrete" class="fixed bottom-4 right-4 z-[126] hidden max-w-[min(24rem,92vw)] rounded-2xl border-[3px] border-orange-500 bg-white p-4 shadow-2xl" role="alert" aria-live="assertive">
   <div class="flex items-start gap-3">
     <div class="text-2xl" aria-hidden="true">⏰</div>
@@ -327,6 +343,110 @@
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<script>
+(function () {
+  const MAP = {
+    produtos: {
+      titulo: 'Ajuda · Etapa 1 · Produtos',
+      resumo: 'Monte o carrinho e confira o cliente antes de seguir.',
+      itens: [
+        'Campo amarelo: busque por nome, GM, EAN ou código; F2 foca na busca; setas ↑↓ escolhem e Enter confirma.',
+        'Ao lado você vê cliente atual; F4 ou “Trocar” para buscar outro cliente sem sair dos produtos.',
+        'Histórico de compras no cliente usa F5.',
+        'Painel direito mostra vale crédito, cashback e fiado quando existirem.',
+        '“Orçamento” salva/recupera rascunho neste aparelho (F6 histórico).',
+      ],
+    },
+    cliente: {
+      titulo: 'Ajuda · Etapa 2 · Cliente',
+      resumo: 'Revise quem está comprando e como a venda segue.',
+      itens: [
+        'Veja nome, telefone e endereço resumidos; “Editar dados” ou tecla E abre o pop-up rápido de contato e endereço.',
+        '“Edição avançada” abre o cadastro completo do cliente em nova aba.',
+        'Escolha retirada na loja ou entrega conforme combinado.',
+        'Observações da venda seguem junto até o pagamento.',
+      ],
+    },
+    entrega: {
+      titulo: 'Ajuda · Etapa 3 · Entrega',
+      resumo: 'Endereço, rota e regras de frete antes do pagamento.',
+      itens: [
+        'Escolha a loja de partida quando houver várias e use “Ver no Maps” para rota até o destino.',
+        'Painel ou WhatsApp de entregas abrem quando estiverem configurados.',
+        'Preencha logradouro, número e bairro; Plus Code complementa o endereço.',
+        'Horário pode gerar lembretes próximos do horário pedido.',
+        'Na primeira vez entrando aqui pedimos se o pagamento é na entrega ou na loja; depois aparece fluxo específico (dinheiro/cartão na entrega quando couber).',
+        'Frete: “Cobrar” usa R$ 10,00 como padrão; você pode mudar antes de fechar.',
+        '“Reiniciar escolha” zera apenas o assistente de pagamento na entrega para refazer.',
+      ],
+    },
+    pagamento: {
+      titulo: 'Ajuda · Etapa 4 · Pagamento',
+      resumo: 'Formas, valores e confirmação da venda.',
+      itens: [
+        'F3 ou “Escolher forma” abre formas disponíveis; teclas rápidas 1–9 quando o painel mostrar.',
+        'Você pode dividir entre várias formas até zerar “Restante”.',
+        'Cartão pode pedir máquina (Mercado Pago ou outras) ou fluxo Automático quando existir.',
+        'Vale crédito e cashback usam saldo já carregado; fiado só para clientes habilitados.',
+        'Ao concluir, os botões de impressão/confirmação seguem conforme configurado nesta loja.',
+      ],
+    },
+  };
+
+  function pdvWizardFecharAjuda() {
+    const m = document.getElementById('modal-pdv-wizard-ajuda');
+    if (!m) return;
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+
+  function pdvWizardAbrirAjuda(tipo) {
+    const p = MAP[String(tipo || '')];
+    const modal = document.getElementById('modal-pdv-wizard-ajuda');
+    const tit = document.getElementById('modal-pdv-wizard-ajuda-titulo');
+    const resumo = document.getElementById('modal-pdv-wizard-ajuda-resumo');
+    const lista = document.getElementById('modal-pdv-wizard-ajuda-lista');
+    if (!p || !modal || !tit || !resumo || !lista) return;
+    tit.textContent = p.titulo;
+    resumo.textContent = p.resumo;
+    lista.innerHTML = '';
+    (p.itens || []).forEach(function (txt) {
+      const li = document.createElement('li');
+      li.textContent = txt;
+      lista.appendChild(li);
+    });
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.pdv-wiz-help[data-pdv-help]');
+    if (btn) {
+      e.preventDefault();
+      pdvWizardAbrirAjuda(btn.getAttribute('data-pdv-help'));
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('modal-pdv-wizard-ajuda');
+    const fecharBtn = document.getElementById('btn-fechar-modal-pdv-wizard-ajuda');
+    if (fecharBtn) fecharBtn.addEventListener('click', pdvWizardFecharAjuda);
+    if (modal) {
+      modal.addEventListener('click', function (ev) {
+        if (ev.target === modal) pdvWizardFecharAjuda();
+      });
+    }
+    document.addEventListener('keydown', function (ev) {
+      const m = document.getElementById('modal-pdv-wizard-ajuda');
+      if (m && ev.key === 'Escape' && !m.classList.contains('hidden')) {
+        pdvWizardFecharAjuda();
+      }
+    });
+  });
+
+  window.pdvWizardAbrirAjuda = pdvWizardAbrirAjuda;
+})();
+</script>
 <script src="{% static 'produtos/js/pdv_state.js' %}"></script>
 <script src="{% static 'produtos/js/pdv_wizard.js' %}"></script>
 {% include "produtos/_screensaver_pin.html" %}
