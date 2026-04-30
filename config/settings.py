@@ -199,6 +199,9 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Auth: páginas com @login_required(login_url="/admin/login/"); após login sem ?next=, ir para o dashboard (mesma URL que ``name="home"``).
+LOGIN_URL = "/admin/login/"
+LOGIN_REDIRECT_URL = "/"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/

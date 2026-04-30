@@ -1,4 +1,109 @@
 <div id="modal-editar-produto" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm" aria-modal="true" role="dialog">
+  <style>
+    /* Ajuste de proporção: menos padding, valores em destaque (#modal-editar-produto só) */
+    #modal-editar-produto .info-card-compact {
+      padding: 0.75rem 1rem !important;
+      min-height: 0 !important;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    #modal-editar-produto .info-card-label {
+      font-size: 0.7rem !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 2px !important;
+      line-height: 1.15;
+    }
+    #modal-editar-produto input.info-card-value {
+      font-size: 1.5rem !important;
+      font-weight: 800;
+      line-height: 1 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+      outline: none !important;
+      background: transparent !important;
+      width: 100%;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    #modal-editar-produto label.info-card-compact input.info-card-value:focus-visible {
+      outline: 2px solid rgba(16, 185, 129, 0.35) !important;
+      outline-offset: 2px;
+      border-radius: 0.35rem;
+    }
+    #modal-editar-produto .info-card-compact--stroked input.info-card-value:focus-visible {
+      outline-color: rgba(100, 116, 139, 0.35) !important;
+    }
+    #modal-editar-produto .info-card-compact--green input.info-card-value:focus-visible {
+      outline-color: rgba(6, 95, 70, 0.35) !important;
+    }
+    #modal-editar-produto .price-main-card {
+      padding: 1rem 1.5rem !important;
+      border-width: 3px !important;
+      border-style: solid !important;
+      border-color: rgb(251 146 60) !important;
+      display: block;
+    }
+    @media (min-width: 768px) {
+      #modal-editar-produto .price-main-card {
+        padding: 1rem 2rem !important;
+      }
+    }
+    #modal-editar-produto input.price-main-value {
+      font-size: clamp(2.25rem, 5.5vmin, 3rem) !important;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1 !important;
+      padding: 0 !important;
+      border: none !important;
+      background: transparent !important;
+      outline: none !important;
+      width: auto;
+      max-width: min(100%, 18ch);
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    #modal-editar-produto input.price-main-value:focus-visible {
+      outline: 2px solid rgba(234, 88, 12, 0.35);
+      outline-offset: 3px;
+      border-radius: 0.25rem;
+    }
+    #modal-editar-produto .margin-dark-card {
+      padding: 1rem !important;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    #modal-editar-produto .margin-dark-card input.info-card-value--light {
+      font-size: 1.5rem !important;
+      font-weight: 800;
+      line-height: 1 !important;
+      color: #fff !important;
+    }
+    #modal-editar-produto .tab-custos-wrap {
+      gap: 0.75rem;
+      padding: 1rem;
+      border-radius: 1rem;
+      border-width: 2px;
+      border-style: solid;
+      border-color: rgb(241 245 249);
+      background: #fff;
+      box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+    }
+    #modal-editar-produto .tab-custos-footer {
+      gap: 0.75rem;
+      padding: 1rem;
+      border-radius: 1rem;
+      border-width: 2px;
+      border-style: solid;
+      border-color: rgb(239 246 255 / 0.95);
+      background: rgb(248 250 252 / 0.75);
+    }
+  </style>
   <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col min-h-0 overflow-hidden font-['Inter']">
 
     <div class="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
@@ -6,15 +111,15 @@
       <button type="button" id="fechar-modal-editar" class="min-h-[50px] sm:min-h-[52px] px-4 sm:px-5 rounded-xl text-base sm:text-lg font-black uppercase border-2 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors">Fechar</button>
     </div>
 
-    <div class="flex overflow-x-auto border-b border-slate-200 bg-white shrink-0 [scrollbar-width:thin]">
-      <button type="button" class="tab-btn active px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-emerald-500 text-emerald-700 whitespace-nowrap" data-tab="tab-gerais">1. Gerais</button>
-      <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-fiscal">2. Fiscal</button>
-      <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-custos">3. Preços/Margem</button>
-      <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-estoque">4. Estoque</button>
-      <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-composicao">5. Composição</button>
-      <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-variacoes">6. Marcas/Cód.</button>
-      <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-config">7. Config</button>
-      <button type="button" class="tab-btn px-4 py-3 text-base sm:text-lg font-black uppercase border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-validade">8. Validade e Lote</button>
+    <div class="flex flex-nowrap overflow-x-auto overflow-y-hidden border-b border-slate-200 bg-white shrink-0 [scrollbar-width:thin] hyphens-none">
+      <button type="button" class="tab-btn active shrink-0 px-2 py-2 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-xs lg:text-[13px] font-black uppercase tracking-tight border-b-4 border-emerald-500 text-emerald-700 whitespace-nowrap" data-tab="tab-gerais">1. Gerais</button>
+      <button type="button" class="tab-btn shrink-0 px-2 py-2 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-xs lg:text-[13px] font-black uppercase tracking-tight border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-fiscal">2. Fiscal</button>
+      <button type="button" class="tab-btn shrink-0 px-2 py-2 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-xs lg:text-[13px] font-black uppercase tracking-tight border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-custos">3. Preços/Margem</button>
+      <button type="button" class="tab-btn shrink-0 px-2 py-2 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-xs lg:text-[13px] font-black uppercase tracking-tight border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-estoque">4. Estoque</button>
+      <button type="button" class="tab-btn shrink-0 px-2 py-2 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-xs lg:text-[13px] font-black uppercase tracking-tight border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-composicao">5. Composição</button>
+      <button type="button" class="tab-btn shrink-0 px-2 py-2 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-xs lg:text-[13px] font-black uppercase tracking-tight border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-variacoes">6. Marcas/Cód.</button>
+      <button type="button" class="tab-btn shrink-0 px-2 py-2 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-xs lg:text-[13px] font-black uppercase tracking-tight border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-config">7. Config</button>
+      <button type="button" class="tab-btn shrink-0 px-2 py-2 sm:px-2.5 sm:py-2.5 text-[10px] sm:text-xs lg:text-[13px] font-black uppercase tracking-tight border-b-4 border-transparent text-slate-500 hover:text-slate-700 whitespace-nowrap" data-tab="tab-validade">8. Validade e Lote</button>
     </div>
 
     <div class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50/50 [scrollbar-width:thin]">
@@ -34,7 +139,7 @@
         <div class="flex flex-col">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Marca</span>
           <div class="flex gap-1 relative">
-            <input type="text" id="edit-marca" list="dl-marcas-agro" autocomplete="off" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Buscar..." />
+            <input type="text" id="edit-marca" autocomplete="off" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Buscar..." />
             <button type="button" id="btn-marca-nova" class="w-12 h-12 bg-slate-100 border-2 border-slate-200 rounded-lg text-xl font-black text-slate-600 hover:bg-white transition-colors shrink-0" title="Nova Marca">+</button>
             <div id="marca-resultados" class="hidden absolute top-full left-0 right-14 bg-white border border-slate-200 rounded-b-lg shadow-xl z-20 max-h-40 overflow-y-auto [scrollbar-width:thin]"></div>
           </div>
@@ -43,7 +148,7 @@
         <div class="flex flex-col">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Fornecedor</span>
           <div class="flex gap-1 relative">
-            <input type="text" id="edit-fornecedor" list="dl-forns-agro" autocomplete="off" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Buscar..." />
+            <input type="text" id="edit-fornecedor" autocomplete="off" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Buscar..." />
             <button type="button" id="btn-fornec-nova" class="w-12 h-12 bg-slate-100 border-2 border-slate-200 rounded-lg text-xl font-black text-slate-600 hover:bg-white transition-colors shrink-0" title="Novo Fornecedor">+</button>
             <div id="fornecedor-resultados" class="hidden absolute top-full left-0 right-14 bg-white border border-slate-200 rounded-b-lg shadow-xl z-20 max-h-40 overflow-y-auto [scrollbar-width:thin]"></div>
           </div>
@@ -62,7 +167,7 @@
         <div class="flex flex-col">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Categoria</span>
           <div class="flex gap-1 relative">
-            <input type="text" id="edit-categoria" list="dl-cats-agro" autocomplete="off" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Buscar..." />
+            <input type="text" id="edit-categoria" autocomplete="off" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Buscar..." />
             <button type="button" id="btn-categoria-nova" class="w-12 h-12 bg-slate-100 border-2 border-slate-200 rounded-lg text-xl font-black text-slate-600 hover:bg-white transition-colors shrink-0" title="Nova Categoria">+</button>
             <div id="categoria-resultados" class="hidden absolute top-full left-0 right-14 bg-white border border-slate-200 rounded-b-lg shadow-xl z-20 max-h-40 overflow-y-auto [scrollbar-width:thin]"></div>
           </div>
@@ -71,7 +176,7 @@
         <div class="flex flex-col">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Subcategoria</span>
           <div class="flex gap-1 relative">
-            <input type="text" id="edit-subcategoria" list="dl-subcats-agro" autocomplete="off" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Buscar..." />
+            <input type="text" id="edit-subcategoria" autocomplete="off" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" placeholder="Buscar..." />
             <button type="button" id="btn-subcategoria-nova" class="w-12 h-12 bg-slate-100 border-2 border-slate-200 rounded-lg text-xl font-black text-slate-600 hover:bg-white transition-colors shrink-0" title="Nova Subcategoria">+</button>
             <div id="subcategoria-resultados" class="hidden absolute top-full left-0 right-14 bg-white border border-slate-200 rounded-b-lg shadow-xl z-20 max-h-40 overflow-y-auto [scrollbar-width:thin]"></div>
           </div>
@@ -85,7 +190,7 @@
 
       <div id="tab-fiscal" class="tab-content hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <label class="block">
-          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Código Interno</span>
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Código Sistema</span>
           <input type="text" id="edit-codigo" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
         </label>
         <label class="block">
@@ -93,7 +198,7 @@
           <input type="text" id="edit-cb" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" inputmode="numeric" />
         </label>
         <label class="block">
-          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Código NFe</span>
+          <span class="text-base font-black text-slate-600 mb-1 block tracking-tight">Código Interno ( gm )</span>
           <input type="text" id="edit-cod-nfe" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
         </label>
         <label class="block">
@@ -122,58 +227,51 @@
         </label>
       </div>
 
-      <div id="tab-custos" class="tab-content hidden flex flex-col gap-6 w-full font-['Inter']">
+      <div id="tab-custos" class="tab-content hidden flex flex-col gap-4 w-full font-['Inter']">
 
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 p-5 rounded-2xl border-2 border-slate-100 bg-white shadow-sm w-full">
-          <label class="block">
-            <span class="text-[11px] font-black uppercase text-slate-500 mb-1 block">Custo Unit. (R$)</span>
-            <input type="text" id="edit-custo" class="w-full h-[72px] px-4 rounded-xl border-2 border-slate-200 text-lg font-black text-slate-700 bg-slate-50 focus:border-emerald-500 outline-none transition-all box-border" inputmode="decimal" />
-          </label>
-
-          <label class="block">
-            <span class="text-[11px] font-black uppercase text-slate-500 mb-1 block">Custo + Acrésc. (R$)</span>
-            <input type="text" id="edit-custo-acrescimo" class="w-full h-[72px] px-4 rounded-xl border-2 border-slate-200 text-lg font-black text-slate-700 bg-slate-50 focus:border-emerald-500 outline-none transition-all box-border" inputmode="decimal" />
-          </label>
-
-          <label class="block bg-emerald-50/50 rounded-xl border-2 border-emerald-100 flex flex-col pt-2 px-2">
-            <span class="text-[11px] font-black uppercase text-emerald-900 mb-1 block">Lucro MVA (R$)</span>
-            <input type="text" id="edit-mva-rs" class="w-full h-[72px] px-3 bg-transparent text-xl font-black text-emerald-700 border-none outline-none focus:ring-0 box-border" inputmode="decimal" />
-          </label>
-
-          <label class="block bg-emerald-50/50 rounded-xl border-2 border-emerald-100 flex flex-col pt-2 px-2">
-            <span class="text-[11px] font-black uppercase text-emerald-900 mb-1 block">Lucro MVA (%)</span>
-            <input type="text" id="edit-mva-pct" class="w-full h-[72px] px-3 bg-transparent text-xl font-black text-emerald-700 border-none outline-none focus:ring-0 box-border" inputmode="decimal" />
-          </label>
+        <div class="tab-custos-wrap w-full">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-0">
+            <label class="info-card-compact info-card-compact--stroked rounded-xl bg-slate-50 border-2 border-slate-200">
+              <span class="info-card-label text-slate-500 block text-left">Custo Unit. (R$)</span>
+              <input type="text" id="edit-custo" class="info-card-value text-slate-900" inputmode="decimal" autocomplete="off" />
+            </label>
+            <label class="info-card-compact info-card-compact--stroked rounded-xl bg-slate-50 border-2 border-slate-200">
+              <span class="info-card-label text-slate-500 block text-left">Custo + Acrésc. (R$)</span>
+              <input type="text" id="edit-custo-acrescimo" class="info-card-value text-slate-900" inputmode="decimal" autocomplete="off" />
+            </label>
+            <label class="info-card-compact info-card-compact--green rounded-xl bg-emerald-50 border-2 border-emerald-200">
+              <span class="info-card-label text-emerald-700 block text-left">Lucro MVA (R$)</span>
+              <input type="text" id="edit-mva-rs" class="info-card-value text-emerald-800" inputmode="decimal" autocomplete="off" />
+            </label>
+            <label class="info-card-compact info-card-compact--green rounded-xl bg-emerald-50 border-2 border-emerald-200">
+              <span class="info-card-label text-emerald-700 block text-left">Lucro MVA (%)</span>
+              <input type="text" id="edit-mva-pct" class="info-card-value text-emerald-800" inputmode="decimal" autocomplete="off" />
+            </label>
+          </div>
         </div>
 
-        <div class="w-full">
-          <label class="block w-full max-w-2xl mx-auto p-6 rounded-3xl border-[4px] border-orange-400 bg-orange-50/80 shadow-lg group transition-all hover:border-orange-500">
-            <span class="text-sm font-black uppercase text-orange-600 mb-2 block tracking-[0.2em] text-center">Preço de Venda Final (R$)</span>
-            <div class="flex justify-center w-full">
-              <div class="inline-flex items-baseline gap-2 font-black max-w-full min-w-0">
-                <span class="text-3xl text-orange-400 shrink-0">R$</span>
-                <input type="text" id="edit-venda" class="min-w-[5ch] w-auto max-w-[min(100%,16ch)] bg-transparent text-center text-6xl font-black text-slate-900 outline-none border-none focus:ring-0 p-0 min-h-[1em] box-border" placeholder="0,00" inputmode="decimal" />
-              </div>
-            </div>
-          </label>
-        </div>
+        <label class="price-main-card w-full mx-auto rounded-2xl border-orange-400 border-solid bg-orange-50/90 shadow-md text-center hover:border-orange-500 transition-colors cursor-text">
+          <span class="info-card-label text-orange-700 block mb-0.5">Preço de Venda Final (R$)</span>
+          <div class="flex flex-nowrap items-baseline justify-center gap-3 sm:gap-4 leading-none">
+            <span class="text-3xl sm:text-4xl font-black text-orange-500 shrink-0">R$</span>
+            <input type="text" id="edit-venda" class="price-main-value text-slate-950" placeholder="0,00" inputmode="decimal" autocomplete="off" />
+          </div>
+        </label>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 rounded-2xl border-2 border-blue-50 bg-slate-50/50 w-full">
-          <label class="block">
-            <span class="text-[11px] font-black uppercase text-blue-800 mb-1 block">Comissão (R$)</span>
-            <input type="text" id="edit-comissao-rs" class="w-full h-[72px] px-4 rounded-xl border-2 border-blue-100 text-lg font-black text-blue-800 bg-white outline-none focus:border-blue-400 box-border" inputmode="decimal" />
+        <div class="tab-custos-footer grid grid-cols-1 md:grid-cols-3 w-full">
+          <label class="info-card-compact rounded-xl bg-white border-2 border-blue-100">
+            <span class="info-card-label text-blue-900 block text-left">Comissão (R$)</span>
+            <input type="text" id="edit-comissao-rs" class="info-card-value text-blue-900" inputmode="decimal" autocomplete="off" />
           </label>
-
-          <label class="block">
-            <span class="text-[11px] font-black uppercase text-blue-800 mb-1 block">Comissão (%)</span>
-            <input type="text" id="edit-comissao-pct" class="w-full h-[72px] px-4 rounded-xl border-2 border-blue-100 text-lg font-black text-blue-800 bg-white outline-none focus:border-blue-400 box-border" inputmode="decimal" />
+          <label class="info-card-compact rounded-xl bg-white border-2 border-blue-100">
+            <span class="info-card-label text-blue-900 block text-left">Comissão (%)</span>
+            <input type="text" id="edit-comissao-pct" class="info-card-value text-blue-900" inputmode="decimal" autocomplete="off" />
           </label>
-
-          <div class="block p-3 rounded-xl bg-slate-800 shadow-inner border-b-4 border-slate-900 flex flex-col min-h-0">
-            <span class="text-[10px] font-black uppercase text-slate-400 mb-1 block">Margem Bruta Livre (%)</span>
-            <div class="h-[72px] flex items-baseline justify-center gap-1.5">
-              <input type="text" id="edit-margem-livre" readonly tabindex="-1" class="flex-1 min-w-0 bg-transparent text-4xl font-black text-white border-none outline-none focus:ring-0 p-0 text-center" value="" title="(Preço venda − custo base − comissão R$) ÷ preço venda × 100" />
-              <span class="text-2xl font-black text-emerald-400 shrink-0 leading-none pb-1">%</span>
+          <div class="margin-dark-card rounded-xl bg-slate-800 shadow-inner border-b-4 border-slate-950">
+            <span class="info-card-label text-slate-400 block text-center mb-0.5">Margem Bruta Livre (%)</span>
+            <div class="flex items-baseline justify-center gap-1.5">
+              <input type="text" id="edit-margem-livre" readonly tabindex="-1" class="info-card-value info-card-value--light flex-1 min-w-0 text-center" value="" title="(Preço venda − custo base − comissão R$) ÷ preço venda × 100" />
+              <span class="text-2xl sm:text-3xl font-black text-emerald-400 shrink-0 leading-none">%</span>
             </div>
           </div>
         </div>
@@ -374,7 +472,10 @@
             </label>
             <label class="flex-1 min-w-[120px]">
               <span class="text-base font-black uppercase text-slate-600 mb-1 block">Marca</span>
-              <input type="text" id="var-marca" list="dl-marcas-agro" autocomplete="off" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Buscar…" />
+              <div class="relative">
+                <input type="text" id="var-marca" autocomplete="off" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Buscar…" />
+                <div id="var-marca-resultados" class="var-marca-res hidden absolute top-full left-0 right-0 bg-white border border-slate-200 rounded-b-lg shadow-xl z-[45] max-h-40 overflow-y-auto [scrollbar-width:thin]"></div>
+              </div>
             </label>
             <button type="button" id="btn-var-marca-nova" title="Nova marca" class="min-h-[50px] w-12 rounded-lg bg-white border-2 border-slate-200 text-lg font-black text-slate-500 hover:bg-slate-50 shrink-0">+</button>
             <label class="flex-1 min-w-[140px]">
@@ -448,6 +549,31 @@
   if (!modalEdit) return;
 
   var U = window.AgroCadastroErpUtil;
+  /** Servidor pode devolver HTML (login redirect 200, erro Django, nginx) — evita SyntaxError ao dar .json(). */
+  function jsonOuErroHumano(response) {
+    return response.text().then(function (text) {
+      var raw = text || '';
+      var t = raw.trim();
+      var st = response.status;
+      if (!t.length) return Promise.reject(new Error('Resposta vazia do servidor (HTTP ' + st + ').'));
+      var head = t.slice(0, 12).toLowerCase();
+      if (head.indexOf('<!doctype') === 0 || (t.charAt(0) === '<' && raw.toLowerCase().indexOf('<html') !== -1)) {
+        if (st === 401 || st === 403 || /login/i.test(raw.slice(0, 900)))
+          return Promise.reject(new Error('Sessão expirada ou página de login. Entre no sistema de novo e tente salvar.'));
+        if (st === 502 || st === 503 || st === 504)
+          return Promise.reject(new Error('Serviço temporariamente indisponível (' + st + '). Mongo ou ERP pode estar offline.'));
+        return Promise.reject(
+          new Error('O servidor devolveu página HTML em vez de JSON (HTTP ' + st + '). Recarregue a página já logado.')
+        );
+      }
+      try {
+        return JSON.parse(t);
+      } catch (_e) {
+        return Promise.reject(new Error('Resposta inválida — não é JSON (HTTP ' + st + ').'));
+      }
+    });
+  }
+
   function esc(s) {
     if (U && U.escapeHtml) return U.escapeHtml(s);
     return String(s || '')
@@ -590,7 +716,7 @@
         quantidade: q
       })
     })
-      .then(function (r) { return r.json(); })
+      .then(function (r) { return jsonOuErroHumano(r); })
       .then(function (j) {
         if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha ao adicionar lote');
         if (j.lote) {
@@ -627,7 +753,7 @@
     if (!u) return;
     var tok2 = (U && U.csrf) ? U.csrf() : '';
     fetch(u, { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRFToken': tok2 } })
-      .then(function (r) { return r.json(); })
+      .then(function (r) { return jsonOuErroHumano(r); })
       .then(function (j) {
         if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha ao remover');
         modalEdit._lotes = (modalEdit._lotes || []).filter(function (x) {
@@ -712,33 +838,34 @@
     el.value = formatarMargem(pct);
   }
 
-  function wireFacetAutocomplete(inputId, boxId, facetKey) {
-    var inp = document.getElementById(inputId);
-    var box = document.getElementById(boxId);
+  function renderAgroFacetBox(box, q, facetKey) {
+    if (!box) return;
+    var arr = (window._agroFacetas && window._agroFacetas[facetKey]) || [];
+    var list = Array.isArray(arr) ? arr : [];
+    var qq = (q || '').trim().toLowerCase();
+    var hit = !qq ? list.slice(0, 24) : list.filter(function (s) {
+      return String(s).toLowerCase().indexOf(qq) >= 0;
+    }).slice(0, 24);
+    if (!hit.length) {
+      box.classList.add('hidden');
+      box.innerHTML = '';
+      return;
+    }
+    box.innerHTML = hit.map(function (t) {
+      return '<button type="button" class="agro-facet-opt w-full text-left px-3 py-2.5 text-base font-semibold text-slate-800 hover:bg-emerald-50 border-b border-slate-100 last:border-0">' + esc(t) + '</button>';
+    }).join('');
+    box.classList.remove('hidden');
+  }
+
+  /** Liga input à lista branca (#…-resultados); inputs não usam atributo list (evita sugestão nativa duplicada). */
+  function wireFacetAutocompleteElements(inp, box, facetKey) {
     if (!inp || !box || inp._agroFacetaOk) return;
     inp._agroFacetaOk = true;
-    function candidatos() {
-      var arr = (window._agroFacetas && window._agroFacetas[facetKey]) || [];
-      return Array.isArray(arr) ? arr : [];
+    function atualiza() {
+      renderAgroFacetBox(box, inp.value, facetKey);
     }
-    function render(q) {
-      var list = candidatos();
-      var qq = (q || '').trim().toLowerCase();
-      var hit = !qq ? list.slice(0, 24) : list.filter(function (s) {
-        return String(s).toLowerCase().indexOf(qq) >= 0;
-      }).slice(0, 24);
-      if (!hit.length) {
-        box.classList.add('hidden');
-        box.innerHTML = '';
-        return;
-      }
-      box.innerHTML = hit.map(function (t) {
-        return '<button type="button" class="agro-facet-opt w-full text-left px-3 py-2.5 text-base font-semibold text-slate-800 hover:bg-emerald-50 border-b border-slate-100 last:border-0">' + esc(t) + '</button>';
-      }).join('');
-      box.classList.remove('hidden');
-    }
-    inp.addEventListener('focus', function () { render(inp.value); });
-    inp.addEventListener('input', function () { render(inp.value); });
+    inp.addEventListener('focus', atualiza);
+    inp.addEventListener('input', atualiza);
     box.addEventListener('mousedown', function (e) {
       e.preventDefault();
     });
@@ -758,11 +885,77 @@
     });
   }
 
+  function wireFacetAutocomplete(inputId, boxId, facetKey) {
+    wireFacetAutocompleteElements(document.getElementById(inputId), document.getElementById(boxId), facetKey);
+  }
+
+  /** Fecha listas `.var-marca-res` das linhas de variação (uma aberta por vez). */
+  function fechaTodasVarMarcExceto(boxManter) {
+    modalEdit.querySelectorAll('.var-marca-res').forEach(function (b) {
+      if (boxManter && b === boxManter) return;
+      b.classList.add('hidden');
+      b.innerHTML = '';
+    });
+  }
+
+  function bindDelegacaoMarcaNasVariacoes() {
+    if (modalEdit._varMarcDelegationOk) return;
+    modalEdit._varMarcDelegationOk = true;
+    function abrePainelMarcasLinha(ev) {
+      var inp = ev.target;
+      if (!inp || !inp.classList || !inp.classList.contains('var-inp-marca')) return;
+      var wrap = inp.parentElement;
+      var box = wrap && wrap.querySelector('.var-marca-res');
+      if (!box) return;
+      fechaTodasVarMarcExceto(box);
+      renderAgroFacetBox(box, inp.value, 'marcas');
+    }
+    modalEdit.addEventListener('focusin', abrePainelMarcasLinha);
+    modalEdit.addEventListener('input', abrePainelMarcasLinha);
+    modalEdit.addEventListener(
+      'mousedown',
+      function (ev) {
+        var opt = ev.target.closest('.var-marca-res .agro-facet-opt');
+        if (!opt) return;
+        ev.preventDefault();
+        var box = opt.closest('.var-marca-res');
+        var inp = box && box.previousElementSibling;
+        if (!inp || inp.tagName !== 'INPUT') return;
+        if (!inp.classList.contains('var-inp-marca') && inp.id !== 'var-marca') return;
+        inp.value = (opt.textContent || '').trim();
+        box.classList.add('hidden');
+        box.innerHTML = '';
+        try {
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+        } catch (_e1) { /* ignore */ }
+      },
+      true
+    );
+
+    document.addEventListener(
+      'mousedown',
+      function (ev) {
+        if (!modalEdit || modalEdit.classList.contains('hidden')) return;
+        if (!modalEdit.contains(ev.target)) {
+          fechaTodasVarMarcExceto(null);
+          return;
+        }
+        var x = ev.target;
+        if (x.closest && x.closest('.var-marca-res')) return;
+        if (x.classList && x.classList.contains('var-inp-marca')) return;
+        fechaTodasVarMarcExceto(null);
+      },
+      true
+    );
+  }
+
   function wireAllFacetAutos() {
     wireFacetAutocomplete('edit-marca', 'marca-resultados', 'marcas');
     wireFacetAutocomplete('edit-fornecedor', 'fornecedor-resultados', 'fornecedores');
     wireFacetAutocomplete('edit-categoria', 'categoria-resultados', 'categorias');
     wireFacetAutocomplete('edit-subcategoria', 'subcategoria-resultados', 'subcategorias');
+    wireFacetAutocomplete('var-marca', 'var-marca-resultados', 'marcas');
+    bindDelegacaoMarcaNasVariacoes();
   }
 
   var _precoRecalc = false;
@@ -1006,7 +1199,10 @@
     rows.forEach(function (v, i) {
       h += '<tr data-var-i="' + i + '">' +
         '<td class="px-3 py-2"><input type="text" class="var-inp-codin w-full min-h-[48px] px-2 rounded-lg border border-slate-200 font-mono text-base font-bold" value="' + esc(v.codigo_interno || '') + '" /></td>' +
-        '<td class="px-3 py-2"><input type="text" class="var-inp-marca w-full min-h-[48px] px-2 rounded-lg border border-slate-200 text-base font-bold" list="dl-marcas-agro" value="' + esc(v.marca || '') + '" /></td>' +
+        '<td class="px-3 py-2"><div class="relative">' +
+        '<input type="text" class="var-inp-marca w-full min-h-[48px] px-2 rounded-lg border border-slate-200 text-base font-bold" value="' + esc(v.marca || '') + '" autocomplete="off" />' +
+        '<div class="var-marca-res hidden absolute left-0 right-0 top-full mt-px bg-white border border-slate-200 rounded-b-lg shadow-xl z-[40] max-h-36 overflow-y-auto [scrollbar-width:thin]"></div>' +
+        '</div></td>' +
         '<td class="px-3 py-2 text-sm"><div class="font-mono font-bold text-slate-800">' +
         '<input type="text" class="var-inp-cb w-full min-h-[40px] px-2 rounded border border-slate-200 text-base" placeholder="Barras" value="' + esc(v.codigo_barras || '') + '" />' +
         '<input type="text" class="var-inp-cf mt-1 w-full min-h-[40px] px-2 rounded border border-slate-200 text-base" placeholder="Fornecedor" value="' + esc(v.codigo_fornecedor || '') + '" /></div></td>' +
@@ -1183,6 +1379,17 @@
     setPct2('edit-comissao-pct', produto.comissao_vendedor_percentual);
 
     var chkEx = document.getElementById('edit-ativo-exibicao');
+    var chkInativoErp = document.getElementById('edit-inativo');
+    function syncConfigChecks(from) {
+      if (!chkEx || !chkInativoErp) return;
+      if (from === 'ativo') chkInativoErp.checked = !chkEx.checked;
+      else if (from === 'inativo') chkEx.checked = !chkInativoErp.checked;
+    }
+    if (chkEx && chkInativoErp && !chkEx.dataset.linkedConfigChecks) {
+      chkEx.dataset.linkedConfigChecks = '1';
+      chkEx.addEventListener('change', function () { syncConfigChecks('ativo'); });
+      chkInativoErp.addEventListener('change', function () { syncConfigChecks('inativo'); });
+    }
     if (chkEx) {
       chkEx.indeterminate = false;
       if (produto.ativo_exibicao === true) chkEx.checked = true;
@@ -1190,6 +1397,7 @@
       else chkEx.checked = !produto.inativo && !produto.ocultar_nas_vendas;
     }
     setChk('edit-inativo', !!(produto.inativo || produto.cadastro_inativo));
+    syncConfigChecks('inativo');
 
     if (Object.prototype.hasOwnProperty.call(produto, 'similares')) {
       renderSimilaresErpModal(produto.similares);
@@ -1281,6 +1489,7 @@
       return el ? el.value : '';
     }
     var chkEx = document.getElementById('edit-ativo-exibicao');
+    var chkInativoErp = document.getElementById('edit-inativo');
     var chkComp = document.getElementById('comp-baixa-auto');
     var depComp = document.getElementById('comp-deposito');
     var body = {
@@ -1323,6 +1532,7 @@
       })
     };
     if (chkEx) body.ativo_exibicao = chkEx.checked;
+    if (chkInativoErp) body.inativar_erp = !!chkInativoErp.checked;
     var tok = U && U.csrf ? U.csrf() : '';
     fetch(cfg.URL_OVERLAY_SALVAR, {
       method: 'POST',
@@ -1331,13 +1541,15 @@
       body: JSON.stringify(body)
     }).then(function (r) {
       if (r.status === 403 || r.status === 401) throw new Error('Sem permissão. Faça login.');
-      return r.json();
+      return jsonOuErroHumano(r);
     }).then(function (j) {
       if (!j.ok) throw new Error(j.erro || 'Falha ao salvar');
       if (typeof window.agroCadastroErpRecarregarLista === 'function') {
         try { window.agroCadastroErpRecarregarLista(); } catch (e0) { /* ignore */ }
       }
-      if (typeof alert !== 'undefined') alert(eraNovo ? 'Produto criado e salvo no Agro.' : 'Salvo no Agro.');
+      var msgSalvo = eraNovo ? 'Produto criado e salvo no Agro.' : 'Salvo no Agro.';
+      if (j.aviso && String(j.aviso).trim()) msgSalvo += '\n\n' + String(j.aviso).trim();
+      if (typeof alert !== 'undefined') alert(msgSalvo);
       fecharModal();
     }).catch(function (e) {
       if (typeof alert !== 'undefined') alert(e.message || 'Erro ao salvar');

@@ -201,6 +201,25 @@
     if (!isFinite(x)) x = 0;
     return x.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
+  function jsonOuErroHumano(response) {
+    return response.text().then(function (text) {
+      var raw = text || '';
+      var t = raw.trim();
+      var st = response.status;
+      if (!t.length) return Promise.reject(new Error('Resposta vazia (HTTP ' + st + ').'));
+      var headLow = t.slice(0, 12).toLowerCase();
+      if (headLow.indexOf('<!doctype') === 0 || (t.charAt(0) === '<' && raw.toLowerCase().indexOf('<html') !== -1)) {
+        if (st === 401 || st === 403 || /login/i.test(raw.slice(0, 900)))
+          return Promise.reject(new Error('Sessão expirada. Entre de novo.'));
+        return Promise.reject(new Error('Resposta não é JSON (HTTP ' + st + '). Recarregue logado.'));
+      }
+      try {
+        return JSON.parse(t);
+      } catch (_e) {
+        return Promise.reject(new Error('Resposta inválida — não JSON (HTTP ' + st + ').'));
+      }
+    });
+  }
   function esc(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
@@ -370,7 +389,7 @@
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
           body: JSON.stringify({ produto_id: p.id, saldo_centro: c, saldo_vila: v })
-        }).then(function (r) { return r.json(); }).then(function (j) {
+        }).then(function (r) { return jsonOuErroHumano(r); }).then(function (j) {
           if (!j.ok) throw new Error(j.erro || 'erro');
           expandAj = null;
           aplicarLinhaAtualizada(j.produto);
@@ -390,7 +409,7 @@
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
           body: JSON.stringify(body)
-        }).then(function (r) { return r.json(); }).then(function (j) {
+        }).then(function (r) { return jsonOuErroHumano(r); }).then(function (j) {
           if (!j.ok) throw new Error(j.erro || 'erro');
           expandMm = expandAj = null;
           aplicarLinhaAtualizada(j.produto);
@@ -432,7 +451,7 @@
   function carregar() {
     showBan('');
     fetch(URL_LISTA + '?' + paramsLista(), { credentials: 'same-origin' })
-      .then(function (r) { return r.json(); })
+      .then(function (r) { return jsonOuErroHumano(r); })
       .then(function (j) {
         if (!j.ok) throw new Error(j.erro || 'Erro');
         pageLabel.textContent = String(j.pagina || 1);
@@ -495,7 +514,7 @@
   }
 
   function carregarFacetasStrip() {
-    fetch(URL_FAC, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
+    fetch(URL_FAC, { credentials: 'same-origin' }).then(function (r) { return jsonOuErroHumano(r); }).then(function (j) {
       if (!j.ok) return;
       var arr = vista === 'marcas' ? j.marcas : vista === 'categorias' ? j.categorias : j.fornecedores;
       stripEl.innerHTML = '';
@@ -527,7 +546,7 @@
   }
 
   function fillFacetSelects() {
-    fetch(URL_FAC, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
+    fetch(URL_FAC, { credentials: 'same-origin' }).then(function (r) { return jsonOuErroHumano(r); }).then(function (j) {
       if (!j.ok) return;
       function fill(sel, arr, allLabel) {
         var cur = sel.value;
@@ -596,9 +615,10 @@
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
       body: JSON.stringify(body)
-    }).then(function (r) { return r.json(); }).then(function (j) {
+    }).then(function (r) { return jsonOuErroHumano(r); }).then(function (j) {
       if (!j.ok) throw new Error(j.erro || 'erro');
       fecharDrawer();
+      if (j.aviso && String(j.aviso).trim()) showBan(String(j.aviso).trim());
       aplicarLinhaAtualizada(j.produto);
     }).catch(function (e) { showBan(e.message || 'Falha ao salvar'); });
   });
