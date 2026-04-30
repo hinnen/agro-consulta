@@ -519,10 +519,14 @@
 
     </div>
 
-    <div class="px-4 sm:px-6 py-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row justify-end gap-3 shrink-0">
-      <button type="button" id="btn-cancelar-edit" class="min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">Cancelar</button>
-      <button type="button" id="btn-sync-erp-edit" class="min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-amber-600 text-white border-2 border-amber-700 hover:bg-amber-700 shadow-sm transition-colors" title="Replica este cadastro no ERP legado (Produtos/Salvar)">Enviar ao ERP</button>
-      <button type="button" id="btn-salvar-edit" class="min-h-[52px] px-8 rounded-xl text-base font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700 hover:bg-emerald-700 shadow-sm transition-colors">Salvar no Agro</button>
+    <div class="px-4 sm:px-6 py-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 shrink-0 sm:justify-between">
+      <button type="button" id="btn-excluir-somente-agro" class="hidden min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-red-600 text-white border-2 border-red-800 hover:bg-red-700 shadow-sm transition-colors order-last sm:order-first"
+        title="Remove só cadastros criados no SisVale; não use em produtos espelhados do ERP.">Excluir (só SisVale)</button>
+      <div class="flex flex-col sm:flex-row justify-end gap-3 flex-1 min-w-0">
+        <button type="button" id="btn-cancelar-edit" class="min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">Cancelar</button>
+        <button type="button" id="btn-sync-erp-edit" class="min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-amber-600 text-white border-2 border-amber-700 hover:bg-amber-700 shadow-sm transition-colors" title="Replica este cadastro no ERP legado (Produtos/Salvar)">Enviar ao ERP</button>
+        <button type="button" id="btn-salvar-edit" class="min-h-[52px] px-8 rounded-xl text-base font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700 hover:bg-emerald-700 shadow-sm transition-colors">Salvar no Agro</button>
+      </div>
     </div>
 
   </div>
@@ -1414,6 +1418,17 @@
     atualizarMargemLivre();
     renderFornecedoresLinhas([]);
     carregarHistoricoCompras();
+
+    var btnExcluirSomenteAgro = document.getElementById('btn-excluir-somente-agro');
+    if (btnExcluirSomenteAgro) {
+      var pidEx = String(produto.id || '').trim();
+      var mostrarEx =
+        !!(produto.cadastro_somente_agro) &&
+        pidEx &&
+        pidEx.toLowerCase() !== '__novo__';
+      if (mostrarEx) btnExcluirSomenteAgro.classList.remove('hidden');
+      else btnExcluirSomenteAgro.classList.add('hidden');
+    }
   }
 
   var listaVar = document.getElementById('lista-variacoes');
@@ -1594,6 +1609,53 @@
   });
   bindClick('btn-sync-erp-edit', function () {
     salvarCadastroModalAgro(true);
+  });
+
+  bindClick('btn-excluir-somente-agro', function () {
+    var cfg = window.AgroCadastroErpLista || {};
+    if (!cfg.URL_SOMENTE_AGRO_EXCLUIR) return;
+    if (!cfg.PODE_EDITAR_OVERLAY) {
+      if (typeof alert !== 'undefined') alert('Entre no sistema para excluir.');
+      return;
+    }
+    var pid = modalEdit.getAttribute('data-produto-id');
+    if (!pid || String(pid).trim().toLowerCase() === '__novo__') return;
+    var nome = (document.getElementById('edit-nome') || {}).value || pid;
+    if (!window.confirm(
+      'Excluir PERMANENTEMENTE este cadastro (criado só no SisVale)?\n\n' +
+      String(nome).trim().substring(0, 120) +
+      '\n\nIsto não pode ser desfeito. Não use em produtos espelhados do ERP.'
+    )) return;
+    var btn = document.getElementById('btn-excluir-somente-agro');
+    var tok = (U && U.csrf) ? U.csrf() : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add('opacity-60');
+    }
+    fetch(cfg.URL_SOMENTE_AGRO_EXCLUIR, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
+      body: JSON.stringify({ produto_id: String(pid).trim() })
+    }).then(function (r) {
+      if (r.status === 403 || r.status === 401) throw new Error('Sem permissão. Faça login.');
+      return jsonOuErroHumano(r);
+    }).then(function (j) {
+      if (!j.ok) throw new Error(j.erro || 'Falha ao excluir');
+      var modo = window.AgroCadastroErpLista && window.AgroCadastroErpLista.CADASTRO_ERP_MODO;
+      fecharModal();
+      if (modo === 'detalhe') window.location.reload();
+      else if (typeof window.agroCadastroErpRecarregarLista === 'function') {
+        try { window.agroCadastroErpRecarregarLista(); } catch (e1) { /* ignore */ }
+      }
+    }).catch(function (e) {
+      if (typeof alert !== 'undefined') alert(e.message || 'Erro ao excluir');
+    }).finally(function () {
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('opacity-60');
+      }
+    });
   });
 
   var modalDetGen = 0;

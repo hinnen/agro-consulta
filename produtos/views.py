@@ -36,7 +36,13 @@ from django.utils.safestring import mark_safe
 from django.db import IntegrityError, transaction
 
 from base.models import Empresa, Loja, PerfilUsuario, IntegracaoERP
-from estoque.models import AjusteRapidoEstoque, OrigemAjusteEstoque, PedidoTransferencia
+from estoque.models import (
+    AjusteRapidoEstoque,
+    ConfiguracaoTransferencia,
+    HistoricoTransferencia,
+    OrigemAjusteEstoque,
+    PedidoTransferencia,
+)
 from .forms import ClienteAgroForm
 from .models import (
     ClienteAgro,
@@ -1013,8 +1019,16 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     codigo_erp = _txt("codigo_nfe", 64) if "codigo_nfe" in payload else ""
     if not codigo_erp:
         codigo_erp = (ov.codigo_nfe or _mongo_primeiro_texto(p_doc or {}, ("CodigoNFe",), "") or "")[:64]
-    digitos_codigo_informado_usuario = (
+    digitos_de_codigo = (
         "".join(ch for ch in _txt("codigo", 80) if ch.isdigit()) if "codigo" in payload else ""
+    )
+    digitos_de_nfe = (
+        "".join(ch for ch in _txt("codigo_nfe", 64) if ch.isdigit()) if "codigo_nfe" in payload else ""
+    )
+    digitos_codigo_informado_usuario = digitos_de_codigo or digitos_de_nfe
+    usuario_enviou_codigo_sistema_mongo = bool(digitos_codigo_informado_usuario) and (
+        ("codigo" in payload and bool(digitos_de_codigo))
+        or ("codigo_nfe" in payload and bool(digitos_de_nfe) and not digitos_de_codigo)
     )
 
     if push_erp:
@@ -1110,7 +1124,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             pid,
             p_doc,
             digitos_codigo_informado_usuario,
-            usuario_enviou_codigo=bool(digitos_codigo_informado_usuario),
+            usuario_enviou_codigo=usuario_enviou_codigo_sistema_mongo,
         )
 
     with transaction.atomic():
@@ -8762,6 +8776,10 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
         row["overlay_id"] = None
         row["lotes"] = []
 
+    row["cadastro_somente_agro"] = (
+        _mongo_primeiro_bool(p, ("CadastroSomenteAgro", "cadastroSomenteAgro")) is True
+    )
+
     return row
 
 
@@ -8938,6 +8956,171 @@ def api_produtos_cadastro_detalhe(request, produto_id: str):
         return JsonResponse({"ok": False, "erro": "Produto não encontrado"}, status=404)
     detalhe = _montar_produto_cadastro_detalhe(db, client, p)
     return JsonResponse({"ok": True, "produto": detalhe})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_produtos_somente_agro_excluir(request):
+    """
+    Remove produto criado apenas no Agro (Mongo ``CadastroSomenteAgro``), overlays SQLite e vínculos locais.
+    Não permite excluir espelho de produto ERP.
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    pid_raw = str(payload.get("produto_id") or payload.get("id") or "").strip()
+    if not pid_raw or pid_raw.lower() in ("__novo__", "novo", "_novo"):
+        return JsonResponse({"ok": False, "erro": "produto_id inválido"}, status=400)
+
+    client, db = obter_conexao_mongo()
+    if db is None or client is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    col = client.col_p
+
+    doc = _produto_mongo_por_id_externo(db, client, pid_raw)
+    if not doc:
+        return JsonResponse({"ok": False, "erro": "Produto não encontrado no catálogo Mongo."}, status=404)
+
+    forcar_staff = bool(payload.get("forcar_exclusao_mongo_staff")) and getattr(
+        request.user, "is_staff", False
+    )
+    if _mongo_primeiro_bool(doc, ("CadastroSomenteAgro", "cadastroSomenteAgro")) is not True:
+        if not forcar_staff:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": (
+                        "Só é possível excluir aqui cadastros criados só no SisVale/Agro. "
+                        "Itens espelhados do ERP devem ser inativados ou removidos no sistema antigo. "
+                        "Em emergência, usuário staff pode chamar a mesma API com "
+                        '{"forcar_exclusao_mongo_staff": true} (remove só o espelho Mongo + dados locais Agro).'
+                    ),
+                },
+                status=403,
+            )
+        logger.warning(
+            "api_produtos_somente_agro_excluir: exclusão Mongo forçada (staff) produto_id=%s user_id=%s",
+            pid_raw,
+            getattr(request.user, "pk", None),
+        )
+
+    pid64 = pid_raw[:64]
+    pid100 = pid_raw[:100]
+    if ItemVendaAgro.objects.filter(Q(produto_id_externo=pid_raw) | Q(produto_id_externo=pid64)).exists():
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Este produto já aparece em vendas registradas pelo PDV. Não pode ser excluído.",
+            },
+            status=409,
+        )
+
+    mongo_issues: list[str] = []
+
+    def _mongo_pos_commit_delete() -> None:
+        try:
+            res = db[col].delete_one(_mongo_filtro_id_produto_externo(pid_raw))
+            cnt = getattr(res, "deleted_count", 0) or 0
+            if cnt < 1:
+                mongo_issues.append(
+                    "Não foi possível remover o documento no Mongo (já foi excluído ou ID não confere)."
+                )
+        except Exception as exc:
+            logger.warning("api_produtos_somente_agro_excluir: delete_one", exc_info=True)
+            mongo_issues.append(str(exc).strip()[:400] or "Falha ao excluir no Mongo.")
+        try:
+            cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+            cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
+        except Exception:
+            pass
+
+    try:
+        with transaction.atomic():
+            ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=pid64).delete()
+            ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid64).delete()
+            AjusteRapidoEstoque.objects.filter(produto_externo_id=pid100).delete()
+            PedidoTransferencia.objects.filter(produto_externo_id=pid100).delete()
+            ConfiguracaoTransferencia.objects.filter(produto_externo_id=pid100).delete()
+            HistoricoTransferencia.objects.filter(produto_externo_id=pid100).delete()
+            transaction.on_commit(_mongo_pos_commit_delete)
+    except Exception as exc:
+        logger.exception("api_produtos_somente_agro_excluir: Django")
+        return JsonResponse({"ok": False, "erro": "Erro ao limpar registros locais. Nada foi alterado."}, status=500)
+
+    if mongo_issues:
+        return JsonResponse(
+            {"ok": False, "erro": mongo_issues[0], "aviso_limpeza_parcial": True},
+            status=503,
+        )
+    return JsonResponse({"ok": True, "produto_id": pid_raw})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_produtos_gestao_mongo_codigo_sistema_reparar(request):
+    """
+    Emergência: grava o ``Codigo`` numérico de sistema **somente no espelho Mongo** (sem chamar o ERP).
+    Útil quando o código ficou vazio/inválido e a tela do ERP quebra; staff pode corrigir e depois sincronizar.
+    """
+    if not getattr(request.user, "is_staff", False):
+        return JsonResponse({"ok": False, "erro": "Somente usuários staff podem usar esta ação."}, status=403)
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    pid = str(payload.get("produto_id") or payload.get("id") or "").strip()
+    if not pid:
+        return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
+    ds_raw = str(payload.get("codigo_digitos") or payload.get("codigo_sistema_digitos") or "").strip()
+    ds = "".join(ch for ch in ds_raw if ch.isdigit())
+    if not ds or len(ds) > 20:
+        return JsonResponse(
+            {"ok": False, "erro": "Informe codigo_digitos com 1 a 20 dígitos (apenas números)."},
+            status=400,
+        )
+
+    client, db = obter_conexao_mongo()
+    if db is None or client is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    p_doc = _produto_mongo_por_id_externo(db, client, pid)
+    if not p_doc:
+        return JsonResponse({"ok": False, "erro": "Produto não encontrado no espelho Mongo."}, status=404)
+
+    aviso = _mongo_sincronizar_codigo_sistema_espelho(
+        db, client.col_p, pid, p_doc, ds, usuario_enviou_codigo=True
+    )
+    if aviso:
+        return JsonResponse({"ok": False, "erro": aviso}, status=400)
+
+    doc2 = _produto_mongo_por_id_externo(db, client, pid) or {"Id": pid}
+    if doc2.get("_id"):
+        try:
+            aplicar_index_codigos_no_mongo(db, client.col_p, doc2, produto_externo_id=pid)
+        except Exception:
+            logger.warning("api_produtos_gestao_mongo_codigo_sistema_reparar: index_codigos", exc_info=True)
+    try:
+        cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+        cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
+    except Exception:
+        pass
+
+    logger.warning(
+        "mongo_codigo_sistema_reparar: staff user_id=%s produto_id=%s digitos=%s",
+        getattr(request.user, "pk", None),
+        pid,
+        ds,
+    )
+    return JsonResponse(
+        {
+            "ok": True,
+            "produto_id": pid,
+            "codigo_digitos_aplicados": ds,
+            "mensagem": "Espelho Mongo atualizado. O ERP legado não foi chamado por esta rota.",
+        }
+    )
 
 
 _ALLOWED_SORT_CADASTRO = frozenset(
