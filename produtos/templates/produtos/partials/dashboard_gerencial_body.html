@@ -89,6 +89,42 @@
   </div>
 </div>
 
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-3 mb-4">
+  <div class="glass-card p-4 sm:p-5">
+    <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+      <h3 class="text-slate-900 font-black uppercase text-xs tracking-widest flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-[#00BFFF]"></span> Contas a Receber
+      </h3>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Próximos 7 dias</span>
+        <a href="{{ lancamentos_receber_url }}" class="text-[10px] font-black uppercase text-sky-700 hover:underline">Abrir lançamentos</a>
+      </div>
+    </div>
+    <div class="rounded-xl border border-sky-200 bg-sky-50 p-4">
+      <p class="text-[11px] font-black uppercase tracking-wide text-slate-500">A Receber Hoje</p>
+      <p class="mt-1 text-3xl font-black text-sky-700 tabular-nums">R$ {{ total_receber_hoje|floatformat:2 }}</p>
+      <p class="mt-2 text-xs font-semibold text-slate-600">Total em atraso: R$ {{ total_receber_atraso|floatformat:2 }}</p>
+    </div>
+  </div>
+
+  <div class="glass-card p-4 sm:p-5">
+    <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+      <h3 class="text-slate-900 font-black uppercase text-xs tracking-widest flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-red-500"></span> Contas a Pagar
+      </h3>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-[10px] font-bold text-slate-500 uppercase">Pendentes</span>
+        <a href="{{ lancamentos_pagar_url }}" class="text-[10px] font-black uppercase text-red-700 hover:underline">Abrir lançamentos</a>
+      </div>
+    </div>
+    <div class="rounded-xl border border-red-200 bg-red-50 p-4">
+      <p class="text-[11px] font-black uppercase tracking-wide text-slate-500">A Pagar Hoje</p>
+      <p class="mt-1 text-3xl font-black text-red-700 tabular-nums">R$ {{ total_pagar_hoje|floatformat:2 }}</p>
+      <p class="mt-2 text-xs font-semibold text-slate-600">Total em atraso: R$ {{ total_pagar_atraso|floatformat:2 }}</p>
+    </div>
+  </div>
+</div>
+
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
   <div class="glass-card p-4 sm:p-5 min-h-0">
     <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide mb-3">Produtos Mais Vendidos</h3>
@@ -136,42 +172,6 @@
       {% empty %}
       <div class="text-xs text-slate-600 col-span-full">Sem vendas locais no período.</div>
       {% endfor %}
-    </div>
-  </div>
-</div>
-
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-3 mt-2">
-  <div class="glass-card p-4 sm:p-5">
-    <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
-      <h3 class="text-slate-900 font-black uppercase text-xs tracking-widest flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-[#00BFFF]"></span> Contas a Receber
-      </h3>
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="text-[10px] font-bold text-slate-500 uppercase">Próximos 7 dias</span>
-        <a href="{{ lancamentos_receber_url }}" class="text-[10px] font-black uppercase text-sky-700 hover:underline">Abrir lançamentos</a>
-      </div>
-    </div>
-    <div class="rounded-xl border border-sky-200 bg-sky-50 p-4">
-      <p class="text-[11px] font-black uppercase tracking-wide text-slate-500">A Receber Hoje</p>
-      <p class="mt-1 text-3xl font-black text-sky-700 tabular-nums">R$ {{ total_receber_hoje|floatformat:2 }}</p>
-      <p class="mt-2 text-xs font-semibold text-slate-600">Total em atraso: R$ {{ total_receber_atraso|floatformat:2 }}</p>
-    </div>
-  </div>
-
-  <div class="glass-card p-4 sm:p-5">
-    <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
-      <h3 class="text-slate-900 font-black uppercase text-xs tracking-widest flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-red-500"></span> Contas a Pagar
-      </h3>
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="text-[10px] font-bold text-slate-500 uppercase">Pendentes</span>
-        <a href="{{ lancamentos_pagar_url }}" class="text-[10px] font-black uppercase text-red-700 hover:underline">Abrir lançamentos</a>
-      </div>
-    </div>
-    <div class="rounded-xl border border-red-200 bg-red-50 p-4">
-      <p class="text-[11px] font-black uppercase tracking-wide text-slate-500">A Pagar Hoje</p>
-      <p class="mt-1 text-3xl font-black text-red-700 tabular-nums">R$ {{ total_pagar_hoje|floatformat:2 }}</p>
-      <p class="mt-2 text-xs font-semibold text-slate-600">Total em atraso: R$ {{ total_pagar_atraso|floatformat:2 }}</p>
     </div>
   </div>
 </div>

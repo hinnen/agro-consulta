@@ -15,14 +15,17 @@
       margin 0;
   }
 
-  body.agro-has-inapp-tabbar #agro-inapp-primary-wrap,
-  body.agro-has-inapp-tabbar #agro-inapp-pane-stack,
+  /** Rail pode animar; painel de iframes sem transição — evita “piscada” quando a sidebar expande/recolhe (preset, hover). */
   body.agro-has-inapp-tabbar #agro-inapp-sidebar-rail {
     transition:
       margin-left 0.22s ease,
       left 0.22s ease,
       width 0.22s ease,
       opacity 0.18s ease;
+  }
+  body.agro-has-inapp-tabbar #agro-inapp-primary-wrap,
+  body.agro-has-inapp-tabbar #agro-inapp-pane-stack {
+    transition: none;
   }
 
   /** Recolher só onde há hover fino — loja tátil fica sempre aberta para tocar nos botões. */
@@ -63,8 +66,6 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    body.agro-has-inapp-tabbar #agro-inapp-primary-wrap,
-    body.agro-has-inapp-tabbar #agro-inapp-pane-stack,
     body.agro-has-inapp-tabbar #agro-inapp-sidebar-rail {
       transition: none;
     }
@@ -249,7 +250,8 @@
     top: 0;
     bottom: 0;
     z-index: 2147483620;
-    background: #fff;
+    /** Fundo igual ao tema app — primeiro paint do iframe ainda é branco; esse tom reduz o “flash” visível ao trocar de aba. */
+    background: #f1f5f9;
     box-sizing: border-box;
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
@@ -266,12 +268,48 @@
   .agro-inapp-pane.agro-inapp-pane-active {
     display: block;
   }
+  /**
+   * Abas extras (+): cortina cobre o iframe até o primeiro load — o branco interior do Chromium costuma aparecer antes do primeiro paint mesmo com opacity no elemento.
+   */
+  .agro-inapp-pane.agro-inapp-pane-user {
+    position: relative;
+    overflow: hidden;
+  }
+  .agro-inapp-pane-user .agro-inapp-pane-curtain {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background: linear-gradient(180deg, #e2e8f0 0%, #f1f5f9 45%, #f8fafc 100%);
+    pointer-events: none;
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity 0.22s ease-out,
+      visibility 0s linear 0s;
+    contain: strict;
+  }
+  .agro-inapp-pane.agro-inapp-pane-user.agro-inapp-pane-ready .agro-inapp-pane-curtain {
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 0.22s ease-out,
+      visibility 0s linear 0.21s;
+  }
   iframe.agro-inapp-iframe {
     display: block;
     width: 100%;
     height: 100%;
     border: 0;
-    background: #fff;
+    background: #f8fafc;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .agro-inapp-pane-user .agro-inapp-pane-curtain {
+      transition: none;
+    }
+    .agro-inapp-pane.agro-inapp-pane-user.agro-inapp-pane-ready .agro-inapp-pane-curtain {
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
   }
   #agro-inapp-preset-backdrop {
     position: fixed;
@@ -450,9 +488,11 @@
   }
 
   function roleFromPath(pathStr) {
-    var p = String(pathStr || '').toLowerCase();
+    var p = String(pathStr || '').split('?')[0].toLowerCase();
     if (!p) return 'extra';
-    if (p === '/' || p.indexOf('/pdv') === 0 || p.indexOf('consulta_produtos') >= 0) return 'pdv';
+    if (p === '/' || p.indexOf('/dashboard/gerencial') === 0) return 'dashboard';
+    if (p === '/pdv' || p.indexOf('/pdv/') === 0) return 'pdv';
+    if (p === '/consulta' || p.indexOf('/consulta/') === 0) return 'pdv';
     return 'extra';
   }
 
@@ -654,12 +694,20 @@
   if (window.top !== window.self) return;
 
   var USER_SLOTS = 3;
-  /** Total: 1 PDV + 3 selecionadas = 4 */
+  /** Total: 2 fixas (PDV + Dashboard) + 3 selecionadas = 5 */
   function pdvHref() {
     try {
       return new URL('/pdv/', location.origin).href;
     } catch (_) {
       return '/pdv/';
+    }
+  }
+
+  function dashboardHref() {
+    try {
+      return new URL('/dashboard/gerencial/', location.origin).href;
+    } catch (_) {
+      return '/dashboard/gerencial/';
     }
   }
 
@@ -737,6 +785,11 @@
   function pathLookLikePDV(uriPathOnly) {
     var p = String(uriPathOnly || '').toLowerCase().split('?')[0];
     return p === '/pdv' || p.indexOf('/pdv/') === 0;
+  }
+
+  function pathLookLikeDashboard(uriPathOnly) {
+    var p = String(uriPathOnly || '').toLowerCase().split('?')[0];
+    return p === '/' || p.indexOf('/dashboard/gerencial') === 0;
   }
 
   function normPathUrl(absUrlStr) {
@@ -836,7 +889,15 @@
 
   function launchFromLauncherItem(absResolved, pinProtected) {
     function go() {
-      occupyUserSlotWithUrl(absResolved);
+      var p = normPathUrl(absResolved).path;
+      if (pathLookLikePDV(p)) {
+        showWhich('pdv');
+      } else if (pathLookLikeDashboard(p)) {
+        showWhich('dash');
+      } else {
+        occupyUserSlotWithUrl(absResolved);
+      }
+      hidePresetPick();
     }
     if (pinProtected && typeof window.gmSspinProtegerAcao === 'function') {
       window.gmSspinProtegerAcao(go);
@@ -852,6 +913,9 @@
     pdvBtn: null,
     pdvPane: null,
     pdvIframe: null,
+    dashBtn: null,
+    dashPane: null,
+    dashIframe: null,
     plusBtn: null,
     wrapEl: null,
     userWraps: [],
@@ -871,7 +935,9 @@
     if (shell.wrapEl)
       shell.wrapEl.style.display = which === 'prim' ? 'block' : 'none';
 
+    if (which === 'dash') ensureDashboardHome();
     shell.pdvPane && shell.pdvPane.classList.toggle('agro-inapp-pane-active', which === 'pdv');
+    shell.dashPane && shell.dashPane.classList.toggle('agro-inapp-pane-active', which === 'dash');
 
     var u = 0;
     for (; u < USER_SLOTS; u++) {
@@ -880,6 +946,7 @@
     }
 
     setTabGlow(shell.pdvBtn, which === 'pdv');
+    setTabGlow(shell.dashBtn, which === 'dash');
     for (u = 0; u < USER_SLOTS; u++) {
       var tbtn = shell.userSlots[u];
       if (tbtn && tbtn.mainBtn) setTabGlow(tbtn.mainBtn, which === 'u' + u);
@@ -918,7 +985,6 @@
           b.disabled = true;
         } else {
           b.onclick = function () {
-            hidePresetPick();
             var hrefSrc = String(item.href).trim();
             var resolved = absUrl(hrefSrc);
             launchFromLauncherItem(resolved, !!item.pin_protected);
@@ -959,6 +1025,46 @@
 
   window.__agroShowPresetLauncher = showPresetPick;
 
+  function wireUserPaneReveal(pane, ifr) {
+    if (!pane || !ifr) return;
+    if (String(pane.getAttribute('data-agro-curtain') || '') === '1') return;
+    pane.setAttribute('data-agro-curtain', '1');
+
+    function unveil() {
+      if (!pane || !pane.isConnected) return;
+      requestAnimationFrame(function () {
+        if (!pane || !pane.isConnected) return;
+        requestAnimationFrame(function () {
+          if (!pane || !pane.isConnected) return;
+          pane.classList.add('agro-inapp-pane-ready');
+        });
+      });
+    }
+
+    var curtain = document.createElement('div');
+    curtain.className = 'agro-inapp-pane-curtain';
+    curtain.setAttribute('aria-hidden', 'true');
+    pane.appendChild(curtain);
+
+    var tmr = window.setTimeout(unveil, 6400);
+
+    /** load dispara mesmo com cache rápido; load + rAF garante primeiro frame da página já composto onde possível */
+    function onFrmLoad() {
+      if (tmr !== null) window.clearTimeout(tmr);
+      tmr = null;
+      unveil();
+      if (ifr && typeof ifr.removeEventListener === 'function') try {
+        ifr.removeEventListener('load', onFrmLoad);
+      } catch (_) {}
+    }
+    try {
+      ifr.addEventListener('load', onFrmLoad);
+    } catch (_) {
+      unveil();
+      return;
+    }
+  }
+
   function wireIframeTitleSync(slotIx, iframeEl, labelBtn) {
     function pull() {
       var u = shell.userSlots[slotIx] && shell.userSlots[slotIx].url;
@@ -981,6 +1087,92 @@
     setInterval(pull, 3200);
   }
 
+  function pathnameNorm(p) {
+    var s = String(p || '').replace(/\/+$/, '') || '/';
+    if (s[0] !== '/') s = '/' + s;
+    return s.toLowerCase();
+  }
+
+  function ensureDashboardHome() {
+    if (!shell || !shell.dashIframe) return;
+    var ifr = shell.dashIframe;
+    var target = withEmbedParam(dashboardHref());
+    var tgtBase = '';
+    try {
+      var uTo = new URL(target, location.href);
+      tgtBase = uTo.origin + pathnameNorm(uTo.pathname);
+    } catch (_) {
+      tgtBase = '';
+    }
+    /** Só pular reload se o *documento carregado* no iframe já for o mesmo path — nunca só `ifr.src` (com about:blank o src já vem definido antes da primeira navegação). */
+    try {
+      var ch = '';
+      try {
+        ch = String(ifr.contentWindow.location.href || '').trim();
+      } catch (_) {
+        ch = '';
+      }
+      if (!ch || ch.indexOf('about:') === 0 || ch.indexOf('javascript:') === 0) {
+        ifr.src = target;
+        return;
+      }
+      var uw = new URL(ch);
+      if (uw.protocol !== 'http:' && uw.protocol !== 'https:') {
+        ifr.src = target;
+        return;
+      }
+      var curBase = uw.origin + pathnameNorm(uw.pathname);
+      if (tgtBase && curBase === tgtBase && pathLookLikeDashboard(pathnameNorm(uw.pathname))) return;
+    } catch (_) {
+      ifr.src = target;
+      return;
+    }
+    ifr.src = target;
+  }
+
+  function wireDashboardTabLabelSync() {
+    var restoringDashboard = false;
+
+    function pull() {
+      shell.dashBtn.textContent = 'DASHBOARD';
+      shell.dashBtn.title = 'Dashboard gerencial';
+    }
+    shell.dashIframe.addEventListener('load', function () {
+      pull();
+      if (restoringDashboard) {
+        restoringDashboard = false;
+        return;
+      }
+      var curHref = '';
+      try {
+        curHref = String(
+          (shell.dashIframe.contentWindow && shell.dashIframe.contentWindow.location && shell.dashIframe.contentWindow.location.href) ||
+            ''
+        );
+      } catch (_) {
+        curHref = '';
+      }
+      var ch = String(curHref || '').trim();
+      if (!ch || ch.indexOf('about:') === 0 || ch.indexOf('javascript:') === 0) return;
+      try {
+        var cu = new URL(ch);
+        if (cu.protocol !== 'http:' && cu.protocol !== 'https:') return;
+      } catch (_) {
+        return;
+      }
+      var p = normPathUrl(curHref).path;
+      if (pathLookLikeDashboard(p)) return;
+
+      // Qualquer navegação “escapando” do Dashboard fixo vira aba livre.
+      restoringDashboard = true;
+      ensureDashboardHome();
+      occupyUserSlotWithUrl(curHref, undefined, false);
+    });
+    setTimeout(pull, 450);
+    setTimeout(pull, 1200);
+    setInterval(pull, 3200);
+  }
+
   function occupyUserSlotWithUrl(absUrlRaw, forceSlotIx, stripPrimaryDup) {
     mountShellEnsure();
     var resolved = '';
@@ -988,6 +1180,15 @@
       resolved = new URL(absUrlRaw || '/', location.href).href;
     } catch (_) {
       resolved = '/';
+    }
+    var routePath = normPathUrl(resolved).path;
+    if (pathLookLikePDV(routePath)) {
+      showWhich('pdv');
+      return;
+    }
+    if (pathLookLikeDashboard(routePath)) {
+      showWhich('dash');
+      return;
     }
     var ix = typeof forceSlotIx === 'number' ? forceSlotIx : nextFreeSlot();
     if (ix < 0) {
@@ -1008,7 +1209,7 @@
     hdr.type = 'button';
     hdr.className = 'agro-inapp-tab';
     hdr.setAttribute('role', 'tab');
-    hdr.textContent = resolveTabLabel(ifr, resolved);
+    hdr.textContent = pathSegmentUpper(resolved);
     hdr.dataset.which = 'u' + ix;
     hdr.onclick = function () {
       showWhich('u' + ix);
@@ -1027,18 +1228,24 @@
     shell.stackEl.insertBefore(wrap, shell.plusBtn);
 
     var pane = document.createElement('div');
-    pane.className = 'agro-inapp-pane';
+    pane.className = 'agro-inapp-pane agro-inapp-pane-user';
     pane.dataset.which = 'u' + ix;
     var ifr = document.createElement('iframe');
     ifr.className = 'agro-inapp-iframe';
     ifr.loading = 'eager';
-    ifr.src = withEmbedParam(resolved);
     ifr.title = 'SisVale';
     pane.appendChild(ifr);
     shell.paneEl.appendChild(pane);
+    wireUserPaneReveal(pane, ifr);
 
     shell.userSlots[ix].paneEl = pane;
     shell.userSlots[ix].iframe = ifr;
+
+    requestAnimationFrame(function () {
+      if (!ifr || !ifr.isConnected) return;
+      ifr.src = withEmbedParam(resolved);
+    });
+
     wireIframeTitleSync(ix, ifr, hdr);
 
     close.onclick = function (ev) {
@@ -1098,17 +1305,27 @@
       showWhich('pdv');
     };
 
+    shell.dashBtn = document.createElement('button');
+    shell.dashBtn.type = 'button';
+    shell.dashBtn.className = 'agro-inapp-tab';
+    shell.dashBtn.textContent = 'Dashboard';
+    shell.dashBtn.title = 'Dashboard gerencial';
+    shell.dashBtn.onclick = function () {
+      showWhich('dash');
+    };
+
     shell.plusBtn = document.createElement('button');
     shell.plusBtn.type = 'button';
     shell.plusBtn.className = 'agro-inapp-tab agro-inapp-tab-plus';
     shell.plusBtn.setAttribute('aria-label', 'Adicionar tela à escolha');
-    shell.plusBtn.title = 'Escolher outra área do sistema (máx. 3 além do PDV)';
+    shell.plusBtn.title = 'Escolher outra área do sistema (máx. 3 além de PDV e Dashboard)';
     shell.plusBtn.textContent = '+';
     shell.plusBtn.onclick = function () {
       showPresetPick();
     };
 
     shell.stackEl.appendChild(shell.pdvBtn);
+    shell.stackEl.appendChild(shell.dashBtn);
     shell.stackEl.appendChild(shell.plusBtn);
     shell.bar.appendChild(shell.stackEl);
 
@@ -1127,9 +1344,18 @@
     shell.pdvIframe.src = withEmbedParam(pdvHref());
     shell.pdvIframe.loading = 'eager';
     shell.pdvPane.appendChild(shell.pdvIframe);
+    shell.dashPane = document.createElement('div');
+    shell.dashPane.className = 'agro-inapp-pane';
+    shell.dashIframe = document.createElement('iframe');
+    shell.dashIframe.className = 'agro-inapp-iframe';
+    shell.dashIframe.src = withEmbedParam(dashboardHref());
+    shell.dashIframe.loading = 'eager';
+    shell.dashPane.appendChild(shell.dashIframe);
 
     shell.paneEl.appendChild(shell.pdvPane);
+    shell.paneEl.appendChild(shell.dashPane);
     wirePdvTabLabelSync();
+    wireDashboardTabLabelSync();
 
     b.insertBefore(shell.rail, b.firstChild);
     shell.wrapEl = document.createElement('div');
@@ -1145,13 +1371,19 @@
 
     var pathNow = (location.pathname || '').split('?')[0];
 
-    /** Se já está no PDV, mostra só o iframe PDV esconde cópia duplicada do DOM inicial */
+    /** Se já está em aba fixa (PDV/Dashboard), mostra iframe fixo e esconde cópia duplicada do DOM inicial */
     if (pathLookLikePDV(pathNow)) {
       shell.wrapEl.style.display = 'none';
       try {
         shell.wrapEl.innerHTML = '';
       } catch (_) {}
       showWhich('pdv');
+    } else if (pathLookLikeDashboard(pathNow)) {
+      shell.wrapEl.style.display = 'none';
+      try {
+        shell.wrapEl.innerHTML = '';
+      } catch (_) {}
+      showWhich('dash');
     } else {
       /** Primeira tela vira primeira das 3 abas opcionais; remove HTML duplicado após iframe carregar */
       occupyUserSlotWithUrl(location.href.split('#')[0], 0, true);
@@ -1165,6 +1397,21 @@
     var u = urlStr ? String(urlStr).split('#')[0] : location.href.split('#')[0];
     occupyUserSlotWithUrl(u, undefined, false);
   };
+
+  window.addEventListener(
+    'message',
+    function (ev) {
+      try {
+        if (!ev || ev.origin !== location.origin) return;
+        var d = ev.data || {};
+        if (d.type !== 'agro-open-inapp-tab') return;
+        var href = d.href ? String(d.href) : '';
+        if (!href) return;
+        window.__agroInAppAddTab(href);
+      } catch (_) {}
+    },
+    false
+  );
 
   document.addEventListener(
     'keydown',

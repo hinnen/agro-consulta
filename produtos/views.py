@@ -344,10 +344,10 @@ def _overlay_mapa_por_ids(ids: list[str]) -> dict[str, ProdutoGestaoOverlayAgro]
 def _linha_gestao_produto_json(
     p: dict, saldos: dict[str, dict], ov: ProdutoGestaoOverlayAgro | None
 ) -> dict:
-    pid = str(p.get("Id") or p["_id"])
+    pid = str(p.get("Id") or p.get("_id") or "").strip()
     s = saldos.get(pid) or {}
-    sc = float(s.get("saldo_centro") or 0)
-    sv = float(s.get("saldo_vila") or 0)
+    sc = _float_api_json(s.get("saldo_centro"), 0.0)
+    sv = _float_api_json(s.get("saldo_vila"), 0.0)
     codigo_nfe = str(p.get("CodigoNFe") or p.get("Codigo") or "").strip()
     cb = str(_extrair_codigo_barras(p) or "").strip()
     subcat = str(
@@ -463,7 +463,8 @@ def _aplicar_produto_gestao_overlay_em_dict(
     if ov.codigo_nfe.strip():
         cn = ov.codigo_nfe.strip()
         row["codigo_nfe"] = cn
-        row["codigo"] = cn
+        # Mantém ``row["codigo"]`` como no Mongo (ERP: código do sistema, numérico).
+        # Não repetir SKU/GM aqui — evita igualar campo interno e NFe no modal/PDV.
     if ov.subcategoria.strip():
         row["subcategoria"] = ov.subcategoria.strip()
     if ov.descricao.strip():
@@ -767,6 +768,21 @@ def api_produtos_gestao_ajuste_estoque(request):
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_produtos_gestao_overlay_salvar(request):
+    """Persistência overlay + sync ERP/Mongo."""
+    try:
+        return _api_produtos_gestao_overlay_salvar_core(request)
+    except Exception as exc:
+        logger.exception("api_produtos_gestao_overlay_salvar não tratado")
+        out = {"ok": False, "erro": "Erro interno ao salvar o cadastro. Tente de novo.", "tipo": exc.__class__.__name__}
+        try:
+            if getattr(settings, "DEBUG", False):
+                out["detalhe"] = str(exc).strip()[:3000]
+        except Exception:
+            pass
+        return JsonResponse(out, status=500)
+
+
+def _api_produtos_gestao_overlay_salvar_core(request):
     """Grava ou atualiza overlay local (edição de cadastro na gestão)."""
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
@@ -827,7 +843,18 @@ def api_produtos_gestao_overlay_salvar(request):
                 ov.preco_venda = Decimal(str(pv).replace(",", ".").strip()).quantize(Decimal("0.01"))
             except Exception:
                 return JsonResponse({"ok": False, "erro": "preço inválido"}, status=400)
-    if "ativo_exibicao" in payload:
+    inativar_erp_raw = payload.get("inativar_erp") if "inativar_erp" in payload else None
+    if inativar_erp_raw is not None:
+        inativar_erp = str(inativar_erp_raw).strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+            "sim",
+            "s",
+        )
+        ov.ativo_exibicao = not inativar_erp
+    elif "ativo_exibicao" in payload:
         ae = payload.get("ativo_exibicao")
         if ae is None or str(ae).strip() == "":
             ov.ativo_exibicao = None
@@ -966,12 +993,33 @@ def api_produtos_gestao_overlay_salvar(request):
 
     # Sincroniza cadastro no ERP automaticamente (sem saldo).
     # Overlay local só é salvo após ERP aceitar o cadastro.
+    codigo_sistema = _txt("codigo", 80) if "codigo" in payload else ""
+    codigo_erp = _txt("codigo_nfe", 64) if "codigo_nfe" in payload else ""
+    if not codigo_erp:
+        codigo_erp = (ov.codigo_nfe or _mongo_primeiro_texto(p_doc or {}, ("CodigoNFe",), "") or "")[:64]
+    if not codigo_sistema:
+        codigo_sistema = _mongo_primeiro_texto(p_doc or {}, ("Codigo",), "")
+    codigo_sistema_digits = "".join(ch for ch in str(codigo_sistema or "") if ch.isdigit())
+    if codigo_sistema_digits:
+        codigo_sistema = codigo_sistema_digits
+    digitos_codigo_informado_usuario = (
+        "".join(ch for ch in _txt("codigo", 80) if ch.isdigit()) if "codigo" in payload else ""
+    )
     cadastro_erp_payload = {
         "Id": pid,
         "Nome": (ov.nome or _mongo_primeiro_texto(p_doc or {}, ("Nome",), "") or "")[:300],
         "Marca": (ov.marca or _mongo_primeiro_texto(p_doc or {}, ("Marca",), "") or "")[:120],
-        "Codigo": _mongo_primeiro_texto(p_doc or {}, ("Codigo",), ""),
-        "CodigoNFe": (ov.codigo_nfe or _mongo_primeiro_texto(p_doc or {}, ("CodigoNFe",), "") or "")[:64],
+        # Código do sistema no ERP: numérico.
+        "Codigo": codigo_sistema,
+        # Mantemos redundância numérica para instâncias com nomes diferentes.
+        "CodigoSistema": codigo_sistema,
+        "CodigoInterno": codigo_sistema,
+        "CodigoAuxiliar": codigo_sistema,
+        "CodigoNFe": codigo_erp,
+        "Sku": codigo_erp,
+        "SKU": codigo_erp,
+        "CodigoSku": codigo_erp,
+        "CodigoProduto": codigo_erp,
         "CodigoBarras": (ov.codigo_barras or _mongo_primeiro_texto(p_doc or {}, ("CodigoBarras",), "") or "")[:80],
         "ValorVenda": float(ov.preco_venda) if ov.preco_venda is not None else _mongo_primeiro_float(p_doc or {}, ("ValorVenda",)),
         "PrecoCusto": float(custo_payload) if custo_payload is not None else _mongo_primeiro_float(p_doc or {}, ("PrecoCusto",)),
@@ -980,15 +1028,65 @@ def api_produtos_gestao_overlay_salvar(request):
         "Unidade": (ov.unidade or _mongo_primeiro_texto(p_doc or {}, ("Unidade",), "") or "")[:20],
         "Descricao": (ov.descricao or _mongo_primeiro_texto(p_doc or {}, ("Descricao",), "") or "")[:16000],
     }
-    if ov.ativo_exibicao is not None:
+    if inativar_erp_raw is not None:
+        cadastro_erp_payload["CadastroInativo"] = str(inativar_erp_raw).strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+            "sim",
+            "s",
+        )
+    elif ov.ativo_exibicao is not None:
         cadastro_erp_payload["CadastroInativo"] = not bool(ov.ativo_exibicao)
     elif p_doc:
         cadastro_erp_payload["CadastroInativo"] = _mongo_primeiro_bool(
             p_doc, ("CadastroInativo",), False
         )
+    # Evita que o ERP converta a inativação para "Ocultar nas vendas" sem intenção explícita.
+    cadastro_erp_payload["OcultarNasVendas"] = False
     for _k in ("ValorVenda", "PrecoCusto"):
         if cadastro_erp_payload.get(_k) is None:
             cadastro_erp_payload.pop(_k, None)
+
+    # Swagger ``Produtos/Salvar`` (SisVale / Venda ERP) usa **camelCase**; o modelo ``Produto`` expõe
+    # ``codigo`` como código de produto (SKU/NFe na tela), ``ean`` como barras e ``id`` como vínculo.
+    # Algumas instâncias ignoram apenas PascalCase (``CodigoNFe``, ``SKU``…) e repetem só o código numérico.
+    _forn_txt = (
+        ov.fornecedor_texto
+        if ov.fornecedor_texto and ov.fornecedor_texto.strip()
+        else _mongo_primeiro_texto(
+            p_doc or {},
+            ("NomeFornecedor", "Fornecedor", "RazaoSocialFornecedor", "Fabricante"),
+        )
+    ).strip()
+    cam = {
+        "id": str(pid),
+        "nome": cadastro_erp_payload.get("Nome") or "",
+        "marca": cadastro_erp_payload.get("Marca") or "",
+        "fornecedor": _forn_txt[:300] if _forn_txt else None,
+        "categoria": (cadastro_erp_payload.get("NomeCategoria") or "").strip()[:200]
+        if cadastro_erp_payload.get("NomeCategoria")
+        else None,
+        # SKU / código produto · **não** o código só numérico de sistema:
+        "codigo": codigo_erp.strip()[:64] if codigo_erp.strip() else None,
+        "ean": (cadastro_erp_payload.get("CodigoBarras") or "").strip()[:80]
+        if cadastro_erp_payload.get("CodigoBarras")
+        else None,
+        "precoVenda": cadastro_erp_payload.get("ValorVenda"),
+        "precoCusto": cadastro_erp_payload.get("PrecoCusto"),
+        "visivelVendas": True,
+    }
+    un_sc = str(cadastro_erp_payload.get("Unidade") or "").strip()[:20]
+    if un_sc:
+        cam["unidadeComercial"] = un_sc
+        cam["estoqueUnidade"] = un_sc
+    desc_sc = str(cadastro_erp_payload.get("Descricao") or "").strip()[:16000]
+    if desc_sc:
+        cam["especificacao"] = desc_sc
+    for ck, cv in cam.items():
+        if cv is not None and cv != "":
+            cadastro_erp_payload[ck] = cv
 
     erp_ok, erp_resp = VendaERPAPIClient().produtos_tentar_salvar_api(cadastro_erp_payload)
     if not erp_ok:
@@ -999,6 +1097,17 @@ def api_produtos_gestao_overlay_salvar(request):
                 "erp_resposta": erp_resp,
             },
             status=502,
+        )
+
+    aviso_codigo_mongo = None
+    if db is not None:
+        aviso_codigo_mongo = _mongo_sincronizar_codigo_sistema_espelho(
+            db,
+            client.col_p,
+            pid,
+            p_doc,
+            digitos_codigo_informado_usuario,
+            usuario_enviou_codigo=bool(digitos_codigo_informado_usuario),
         )
 
     with transaction.atomic():
@@ -1024,7 +1133,10 @@ def api_produtos_gestao_overlay_salvar(request):
             logger.warning("api_produtos_gestao_overlay_salvar: index_codigos", exc_info=True)
     saldos = _mapa_saldos_finais_por_produtos(db, client, [pid])
     row = _linha_gestao_produto_json(doc, saldos, ov)
-    return JsonResponse({"ok": True, "produto": row, "erp_sync_ok": True})
+    resp = {"ok": True, "produto": row, "erp_sync_ok": True}
+    if aviso_codigo_mongo:
+        resp["aviso"] = aviso_codigo_mongo
+    return JsonResponse(resp)
 
 
 # Lista de clientes PDV (ClienteAgro) — cache curto; invalida em sync e em save/delete (signals).
@@ -3713,7 +3825,7 @@ def pdv_checkout(request):
     """Legado: rascunho vai para o wizard PDV (sem tela intermediária)."""
     draft = request.session.get("pdv_checkout")
     if not draft or not draft.get("itens"):
-        return redirect("consulta_produtos")
+        return redirect("home")
     return redirect(f"{reverse('pdv_home')}?reabrir=1")
 
 
@@ -3935,7 +4047,7 @@ def caixa_abrir(request):
         )
         request.session["pdv_sessao_caixa_id"] = s.pk
         messages.success(request, f"Caixa #{s.pk} aberto. Valor de abertura: R$ {s.valor_abertura}")
-        return redirect("consulta_produtos")
+        return redirect("home")
     return render(request, "produtos/caixa_abrir.html")
 
 
@@ -7711,8 +7823,9 @@ def api_buscar_produtos(request):
                 if av else saldo_vila_erp
             )
 
-            codigo = p.get("Codigo") or ""
-            codigo_nfe = p.get("CodigoNFe") or codigo or ""
+            codigo = _valor_texto_campo(p.get("Codigo"))
+            cod_nf = p.get("CodigoNFe")
+            codigo_nfe = (_valor_texto_campo(cod_nf) if cod_nf not in (None, "") else "") or codigo
             codigo_barras = _extrair_codigo_barras(p)
             media_d = _float_api_json(medias_map.get(pid, 0.0))
             pv = (
@@ -7844,14 +7957,11 @@ def api_buscar_compras(request):
 def _produto_mongo_para_cadastro_row(p: dict) -> dict:
     """Monta JSON de cadastro (sem estoque) a partir de um documento da coleção de produtos Mongo."""
     pid = str(p.get("Id") or p["_id"])
-    codigo = p.get("Codigo")
-    codigo_s = "" if codigo is None else str(codigo).strip()
-    codigo_nfe = p.get("CodigoNFe")
+    codigo_s = _valor_texto_campo(p.get("Codigo"))
     codigo_nfe_s = codigo_s
-    if codigo_nfe is not None:
-        cn = str(codigo_nfe).strip()
-        if cn:
-            codigo_nfe_s = cn
+    cn_try = _valor_texto_campo(p.get("CodigoNFe"))
+    if cn_try:
+        codigo_nfe_s = cn_try
     codigo_barras = _extrair_codigo_barras(p) or ""
     _sub_w = str(
         p.get("SubGrupo") or p.get("Subcategoria") or p.get("NomeSubcategoria") or ""
@@ -9158,6 +9268,115 @@ def _produto_mongo_por_id_externo(db, client_m, pid_str):
     except Exception:
         pass
     return db[client_m.col_p].find_one({"$or": ors})
+
+
+def _mongo_filtro_id_produto_externo(pid_str: str) -> dict:
+    """``{$or: [...]}`` alinhado a ``_produto_mongo_por_id_externo``."""
+    pid_str = str(pid_str or "").strip()
+    if not pid_str:
+        return {"_id": None}
+    ors = [{"Id": pid_str}]
+    try:
+        ors.append({"Id": int(pid_str)})
+    except (TypeError, ValueError):
+        pass
+    try:
+        ors.append({"_id": ObjectId(pid_str)})
+    except Exception:
+        pass
+    return {"$or": ors}
+
+
+def _mongo_valor_codigo_armazen_compat(anterior: object, digits_only: str) -> object | None:
+    """Mantém int/float/str como já está no espelho DtoProduto."""
+    ds = "".join(ch for ch in str(digits_only or "") if ch.isdigit())
+    if not ds:
+        return None
+    try:
+        n = int(ds)
+    except ValueError:
+        return None
+    if anterior is None or anterior == "":
+        return n
+    if isinstance(anterior, bool):
+        return None
+    if isinstance(anterior, int):
+        return n
+    if isinstance(anterior, float):
+        return float(n)
+    if isinstance(anterior, str):
+        return ds
+    return n
+
+
+def _mongo_codigo_digitos_campos_duplicidade(novo: object) -> list[dict]:
+    out: list[dict] = [{"Codigo": novo}]
+    try:
+        out.append({"Codigo": str(int(novo))})
+    except Exception:
+        if isinstance(novo, str):
+            out.append({"Codigo": novo})
+    try:
+        out.append({"Codigo": float(int(novo))})
+    except Exception:
+        pass
+    seen: set[tuple] = set()
+    uniq: list[dict] = []
+    for d in out:
+        k = tuple(sorted(d.items()))
+        if k in seen:
+            continue
+        seen.add(k)
+        uniq.append(d)
+    return uniq
+
+
+def _mongo_sincronizar_codigo_sistema_espelho(
+    db, col: str, pid: str, p_doc: dict | None, digits_str: str, usuario_enviou_codigo: bool
+) -> str | None:
+    """
+    ``Produtos/Salvar`` (integração Swagger) não expõe alteração segura do ``Codigo`` numérico de sistema;
+    o SKU usa ``codigo``. Gravamos ``Codigo`` direto no espelho Mongo (mesma coleção do ERP) quando o usuário altera no Agro.
+    """
+    pid = str(pid or "").strip()
+    ds = "".join(ch for ch in str(digits_str or "") if ch.isdigit())
+    # PyMongo ``Database`` não permite ``if not db`` (levanta NotImplementedError).
+    if db is None or not col or not pid or not p_doc or not ds or not usuario_enviou_codigo:
+        return None
+    ant_raw = p_doc.get("Codigo")
+    ant_ds = "".join(ch for ch in _valor_texto_campo(ant_raw) if ch.isdigit())
+    if ant_ds == ds:
+        return None
+    novo_val = _mongo_valor_codigo_armazen_compat(ant_raw, ds)
+    if novo_val is None:
+        return None
+    excl: list = [pid]
+    try:
+        excl.append(int(pid))
+    except (TypeError, ValueError):
+        pass
+    dup = db[col].find_one(
+        {
+            "$and": [
+                {"$or": _mongo_codigo_digitos_campos_duplicidade(novo_val)},
+                {"Id": {"$nin": excl}},
+            ]
+        }
+    )
+    if dup:
+        return (
+            "Código do sistema «%s» já está em uso em outro produto no catálogo. "
+            "Demais dados foram gravados; o código numérico deste item não foi alterado."
+            % ds
+        )
+    try:
+        res = db[col].update_one(_mongo_filtro_id_produto_externo(pid), {"$set": {"Codigo": novo_val}})
+    except Exception as exc:
+        logger.warning("mongo sync Codigo sistema: %s", exc, exc_info=True)
+        return "Não foi possível atualizar o código do sistema no espelho do catálogo (Mongo)."
+    if not res.matched_count:
+        return "Produto não encontrado no espelho para atualizar o código do sistema."
+    return None
 
 
 def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonResponse | None, str | None]:

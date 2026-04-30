@@ -14,6 +14,28 @@
   var URL_OVERLAY_SALVAR = C.URL_OVERLAY_SALVAR || '';
   var PODE_EDITAR_OVERLAY = !!C.PODE_EDITAR_OVERLAY;
   var LOGIN_OVERLAY_HREF = C.LOGIN_OVERLAY_HREF || '';
+
+  function jsonOuErroHumano(response) {
+    return response.text().then(function (text) {
+      var raw = text || '';
+      var t = raw.trim();
+      var st = response.status;
+      if (!t.length) throw new Error('Resposta vazia do servidor (HTTP ' + st + ').');
+      var headLow = t.slice(0, 12).toLowerCase();
+      if (headLow.indexOf('<!doctype') === 0 || (t.charAt(0) === '<' && raw.toLowerCase().indexOf('<html') !== -1)) {
+        if (st === 401 || st === 403 || /login/i.test(raw.slice(0, 900))) {
+          throw new Error('Sessão expirada. Entre no sistema de novo.');
+        }
+        throw new Error('Servidor devolveu HTML em vez de JSON (HTTP ' + st + '). Recarregue já logado.');
+      }
+      try {
+        return JSON.parse(t);
+      } catch (_e) {
+        throw new Error('Resposta inválida — não é JSON (HTTP ' + st + ').');
+      }
+    });
+  }
+
   function urlDetalheProduto(id) {
     return API_DETALHE_TMPL.replace(/\/x\//, '/' + encodeURIComponent(String(id)) + '/');
   }
@@ -273,7 +295,7 @@
         if (r.status === 403 || r.status === 401) {
           throw new Error('Sem sessão ou permissão. Use «Entrar para editar» ou abra de novo após login.');
         }
-        return r.json();
+        return jsonOuErroHumano(r);
       }).then(function (j) {
         if (!j.ok) throw new Error(j.erro || 'Falha ao salvar');
         showMsg('Salvo no Agro.', true);

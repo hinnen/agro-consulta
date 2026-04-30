@@ -587,21 +587,55 @@
       }
     }
 
-    function pedirPinAntesDeEntrar(event) {
-      var link = event.target.closest('[data-pin-protected="true"]');
-      if (!link) return;
-      if (typeof window.gmSspinProtegerAcao !== 'function') return;
-      event.preventDefault();
-      var href = link.getAttribute('href');
-      window.gmSspinProtegerAcao(function () {
+    function abrirEmGuiaInternaSeDisponivel(href) {
+      var url = String(href || '').trim();
+      if (!url) return false;
+      try {
+        if (window.top && window.top !== window) {
+          window.top.postMessage({ type: 'agro-open-inapp-tab', href: url }, window.location.origin);
+          return true;
+        }
+      } catch (_) {}
+      try {
+        if (window.top && window.top !== window && typeof window.top.__agroInAppAddTab === 'function') {
+          window.top.__agroInAppAddTab(url);
+          return true;
+        }
+      } catch (_) {}
+      return false;
+    }
+
+    function navegarComFallback(href) {
+      if (!href) return;
+      if (!abrirEmGuiaInternaSeDisponivel(href)) {
         window.location.href = href;
-      });
+      }
+    }
+
+    function abrirAtalhoHome(linkEl) {
+      if (!linkEl) return;
+      var href = linkEl.getAttribute('href');
+      var exigePin = linkEl.getAttribute('data-pin-protected') === 'true';
+      if (exigePin && typeof window.gmSspinProtegerAcao === 'function') {
+        window.gmSspinProtegerAcao(function () {
+          navegarComFallback(href);
+        });
+        return;
+      }
+      navegarComFallback(href);
+    }
+
+    function interceptarCliqueHome(event) {
+      var link = event.target.closest('a[data-home-shortcut], a[data-pin-protected="true"]');
+      if (!link) return;
+      event.preventDefault();
+      abrirAtalhoHome(link);
     }
 
     function dispararAtalho(shortcutKey) {
       var el = document.querySelector('[data-home-shortcut="' + shortcutKey + '"]');
       if (!el) return;
-      el.click();
+      abrirAtalhoHome(el);
     }
 
     function normalizarTeclaUnica(event) {
@@ -626,7 +660,7 @@
       dispararAtalho(k);
     }
 
-    document.addEventListener('click', pedirPinAntesDeEntrar);
+    document.addEventListener('click', interceptarCliqueHome, true);
     document.addEventListener('keydown', onHomeShortcut);
 
     function initHomePage() {

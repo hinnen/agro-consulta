@@ -296,6 +296,18 @@
         border-color: rgba(56, 189, 248, 0.85);
         transform: translateY(-1px);
     }
+    .launch-btn.is-disabled,
+    .launch-btn:disabled {
+        opacity: 0.52;
+        cursor: not-allowed;
+        filter: grayscale(0.2);
+        transform: none !important;
+    }
+    .launch-btn.is-disabled:hover,
+    .launch-btn:disabled:hover {
+        background: rgba(15, 23, 42, 0.94);
+        border-color: rgba(255, 255, 255, 0.22);
+    }
     .launch-btn svg {
         flex-shrink: 0;
         width: 1.45rem;
@@ -479,6 +491,7 @@
                 <button type="button" onclick="dashLaunchpadAbrir('Cadastro Produtos', '{% url 'produtos_cadastro_erp' %}', 'package')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="package"></i><span>Cadastro de produtos</span></span><span class="launch-key">R</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Entrada NF-e', '{% url 'entrada_nota' %}', 'file-input')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="file-input"></i><span>Entrada NF-e</span></span><span class="launch-key">N</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Estoque Agro', '{% url 'estoque_sincronizacao' %}', 'activity')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="activity"></i><span>Estoque (Agro)</span></span><span class="launch-key">Y</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Logística', '{% url 'sugestao_transferencia' %}', 'git-compare-arrows')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="git-compare-arrows"></i><span>Logística (Transferências)</span></span><span class="launch-key">L</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Entregas', '{% url 'entregas_painel' %}', 'truck')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="truck"></i><span>Entregas</span></span><span class="launch-key">E</span></button>
             </div>
 
@@ -494,7 +507,7 @@
                 <h3 class="text-purple-400 font-black uppercase text-xs tracking-widest border-b border-purple-400/25 pb-3">Gestão</h3>
                 <button type="button" onclick="dashLaunchpadAbrir('RH', '{% url 'rh_painel' %}', 'user-check')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="user-check"></i><span>Recursos Humanos</span></span><span class="launch-key">H</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Relatórios', '{% url 'relatorios_hub' %}', 'file-bar-chart')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="file-bar-chart"></i><span>Relatórios gerais</span></span><span class="launch-key">T</span></button>
-                <button type="button" onclick="dashLaunchpadAbrir('Gestão Produtos', '{% url 'produtos_gestao' %}', 'boxes')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="boxes"></i><span>Gestão de produtos</span></span><span class="launch-key">P</span></button>
+                <button type="button" class="launch-btn group is-disabled" disabled title="Temporariamente desativado"><span class="inline-flex items-center gap-3"><i data-lucide="boxes"></i><span>Gestão de produtos</span></span><span class="launch-key">off</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Ajuste mobile', '{% url 'ajuste_mobile' %}', 'smartphone')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="smartphone"></i><span>Ajuste mobile</span></span><span class="launch-key">A</span></button>
                 <a href="{% url 'home_atalhos' %}" class="launch-btn no-underline justify-center opacity-90 hover:opacity-100" data-prefetch>Grade clássica de atalhos (página inteira)</a>
             </div>
@@ -524,15 +537,24 @@ function toggleLaunchpad() {
 }
 
 function dashLaunchpadAbrir(titulo, url, icone) {
-    if (window.tabManager && typeof window.tabManager.addTab === "function") {
-        window.tabManager.addTab(titulo, url, icone);
-    } else {
-        window.location.href = url;
-    }
     var lp = document.getElementById("launchpad");
     if (lp) {
         lp.classList.add("hidden");
         document.body.classList.remove("modal-open");
+    }
+    function go() {
+        if (window.tabManager && typeof window.tabManager.addTab === "function") {
+            window.tabManager.addTab(titulo, url, icone);
+        } else {
+            window.location.assign(url);
+        }
+    }
+    if (typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(go);
+        });
+    } else {
+        setTimeout(go, 0);
     }
 }
 
@@ -552,6 +574,12 @@ document.addEventListener("keydown", function (e) {
     if (e.key === "F2") {
         e.preventDefault();
         window.tabManager.addTab("Orçamentos", "{% url 'consulta_produtos' %}?orcamentos=1", "file-text");
+        return;
+    }
+    if (e.key === "F10") {
+        e.preventDefault();
+        toggleLaunchpad();
+        return;
     }
 });
 

@@ -37,7 +37,8 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 
 | Caminho                          | Nome (name)                    | Nota                                          |
 | -------------------------------- | ------------------------------ | --------------------------------------------- |
-| `/`                              | `consulta_produtos`            | PDV principal                                 |
+| `/`                              | `home`                         | Dashboard gerencial (BI + launchpad); alias `/dashboard/gerencial/` (`dashboard_gerencial`) |
+| `/consulta/`                     | `consulta_produtos`            | PDV legado MPA (busca / orçamentos)           |
 | `/historico/`                    | `historico_ajustes`            |                                               |
 | `/transferencias/`               | `sugestao_transferencia`       |                                               |
 | `/entregas/`                     | `entregas_painel`              | APIs sob `/entregas/api/...`                  |
