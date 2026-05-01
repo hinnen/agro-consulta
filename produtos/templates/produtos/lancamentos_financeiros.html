@@ -729,6 +729,11 @@
     const selecionados = new Map();
     /** Deep link: ``/lancamentos/contas-pagar/?mongo_id=...`` (definido em hidratarFiltrosDaUrl). */
     let agroFinMongoIdParaFocar = '';
+    /**
+     * Só o 1º GET da página usa ``mongo_id`` (deep link). Se copiarmos da URL em todo request,
+     * a API fixa no modo «um título» e ignora status / vencimento / busca — parece que o filtro não funciona.
+     */
+    let agroFinMongoIdListaDeepLink = '';
 
     function getCookie(name) {
       const m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
@@ -1119,8 +1124,11 @@
 
     function montarParamsBaseLista() {
       const p = new URLSearchParams();
-      p.set('tipo', tipoAtual);
-      p.set('status', document.getElementById('f-status').value);
+      p.set('tipo', tipoAtual === 'receber' ? 'receber' : 'pagar');
+      const stEl = document.getElementById('f-status');
+      let st = (stEl && stEl.value ? String(stEl.value) : 'abertos').trim().toLowerCase();
+      if (!['abertos', 'quitados', 'todos'].includes(st)) st = 'abertos';
+      p.set('status', st);
       p.set('ordenacao', document.getElementById('f-ord').value);
       const de = document.getElementById('f-de').value;
       const ate = document.getElementById('f-ate').value;
@@ -1146,11 +1154,8 @@
       getExcludedSet().forEach((nome) => {
         p.append('excluir_plano', nome);
       });
-      try {
-        const ups0 = new URLSearchParams(window.location.search || '');
-        const mid0 = (ups0.get('mongo_id') || ups0.get('lancamento_id') || '').trim();
-        if (mid0) p.set('mongo_id', mid0);
-      } catch (_) {}
+      const midDl = String(agroFinMongoIdListaDeepLink || '').trim();
+      if (midDl) p.set('mongo_id', midDl);
       return p;
     }
 
@@ -1856,6 +1861,7 @@
           err.classList.add('hidden');
         }
         pintarListaLancamentosDaResposta(data);
+        agroFinMongoIdListaDeepLink = '';
         sincronizarUrlComFiltrosAtuais();
         refreshGavetaFiltrosResumo();
       } catch (e) {
@@ -2652,7 +2658,10 @@
           const fs = document.getElementById('f-status');
           if (fs && (st === 'quitados' || st === 'todos' || st === 'abertos')) fs.value = st;
           const mongoFocus = ((ups.get('mongo_id') || ups.get('lancamento_id') || '').trim());
-          if (mongoFocus) agroFinMongoIdParaFocar = mongoFocus;
+          if (mongoFocus) {
+            agroFinMongoIdParaFocar = mongoFocus;
+            agroFinMongoIdListaDeepLink = mongoFocus;
+          }
           const fde = document.getElementById('f-de');
           const fate = document.getElementById('f-ate');
           const vd = (ups.get('venc_de') || '').trim();
