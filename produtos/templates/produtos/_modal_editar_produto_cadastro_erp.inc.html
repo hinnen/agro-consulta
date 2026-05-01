@@ -524,7 +524,7 @@
         title="Remove só cadastros criados no SisVale; não use em produtos espelhados do ERP.">Excluir (só SisVale)</button>
       <div class="flex flex-col sm:flex-row justify-end gap-3 flex-1 min-w-0">
         <button type="button" id="btn-cancelar-edit" class="min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">Cancelar</button>
-        <button type="button" id="btn-sync-erp-edit" class="min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-amber-600 text-white border-2 border-amber-700 hover:bg-amber-700 shadow-sm transition-colors" title="Replica este cadastro no ERP legado (Produtos/Salvar)">Enviar ao ERP</button>
+        <button type="button" id="btn-sync-erp-edit" class="hidden min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-amber-600 text-white border-2 border-amber-700 hover:bg-amber-700 shadow-sm transition-colors" title="Use «Enviar pendentes ao ERP» na lista do cadastro">Enviar ao ERP</button>
         <button type="button" id="btn-salvar-edit" class="min-h-[52px] px-8 rounded-xl text-base font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700 hover:bg-emerald-700 shadow-sm transition-colors">Salvar no Agro</button>
       </div>
     </div>
@@ -1589,14 +1589,26 @@
         try { window.agroCadastroErpRecarregarLista(); } catch (e0) { /* ignore */ }
       }
       var msgSalvo;
-      if (syncErp) {
+      if (syncErp && j.erp_sync_ok === false) {
+        msgSalvo = String(j.aviso_erp || 'Salvo no SisVale. O ERP legado não confirmou o envio.').trim();
+        if (j.erp_resposta != null) {
+          try {
+            var detE = typeof j.erp_resposta === 'string' ? j.erp_resposta : JSON.stringify(j.erp_resposta);
+            if (detE && detE.length > 2800) detE = detE.slice(0, 2800) + '…';
+            if (detE && String(detE).trim()) msgSalvo += '\n\n— Detalhe bruto do ERP —\n' + detE;
+          } catch (eE2) { /* ignore */ }
+        }
+      } else if (syncErp) {
         msgSalvo = eraNovo ? 'Criado no Agro e enviado ao ERP legado.' : 'Salvo no Agro e replicado no ERP legado.';
       } else {
         msgSalvo = eraNovo ? 'Produto criado no Agro.' : 'Salvo no Agro.';
-        if (j.somente_agro) msgSalvo += '\n\nAinda não enviado ao ERP — use «Enviar ao ERP» quando quiser replicar.';
+        if (j.somente_agro) msgSalvo += '\n\nPendente de envio ao ERP — use «Enviar pendentes ao ERP» na lista do cadastro.';
       }
       if (j.aviso && String(j.aviso).trim()) msgSalvo += '\n\n' + String(j.aviso).trim();
       if (typeof alert !== 'undefined') alert(msgSalvo);
+      if (typeof window.agroCadastroErpRefreshPendentesBadge === 'function') {
+        try { window.agroCadastroErpRefreshPendentesBadge(); } catch (ePb) { /* ignore */ }
+      }
       fecharModal();
     }).catch(function (e) {
       if (typeof alert !== 'undefined') alert(e.message || 'Erro ao salvar');

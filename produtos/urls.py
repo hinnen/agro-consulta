@@ -135,6 +135,16 @@ urlpatterns = [
         name='api_produtos_gestao_mongo_codigo_sistema_reparar',
     ),
     path(
+        'api/produtos/gestao/erp-pendentes/',
+        views.api_produtos_gestao_erp_pendentes,
+        name='api_produtos_gestao_erp_pendentes',
+    ),
+    path(
+        'api/produtos/gestao/erp-sincronizar-pendentes/',
+        views.api_produtos_gestao_erp_sincronizar_pendentes,
+        name='api_produtos_gestao_erp_sincronizar_pendentes',
+    ),
+    path(
         'api/overlay/lote/adicionar/',
         views.api_overlay_lote_adicionar,
         name='api_overlay_lote_adicionar',

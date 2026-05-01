@@ -805,6 +805,136 @@ def _payload_truthy_sincronizar_erp_legado(payload: dict) -> bool:
     return str(v).strip().lower() in ("1", "true", "yes", "on", "sim", "s")
 
 
+_ERP_PROD_PEND_TTL = 86400 * 7
+_ERP_PROD_PEND_MAX = 400
+
+
+def _erp_produto_pendentes_cache_key(user_pk: int) -> str:
+    return f"agro_erp_prod_pending:{int(user_pk)}"
+
+
+def _erp_produto_pendentes_list(user_pk: int) -> list[str]:
+    if not user_pk:
+        return []
+    raw = cache.get(_erp_produto_pendentes_cache_key(user_pk))
+    if not isinstance(raw, list):
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for x in raw:
+        s = str(x or "").strip()[:64]
+        if s and s not in seen and s.lower() != "__novo__":
+            seen.add(s)
+            out.append(s)
+    return out[:_ERP_PROD_PEND_MAX]
+
+
+def _erp_produto_pendentes_set(user_pk: int, ids: list[str]) -> None:
+    if not user_pk:
+        return
+    cache.set(_erp_produto_pendentes_cache_key(user_pk), ids[:_ERP_PROD_PEND_MAX], _ERP_PROD_PEND_TTL)
+
+
+def _erp_produto_pendentes_add(user_pk: int, pid: str) -> None:
+    pid = str(pid or "").strip()[:64]
+    if not user_pk or not pid or pid.lower() == "__novo__":
+        return
+    cur = _erp_produto_pendentes_list(user_pk)
+    if pid not in cur:
+        cur.append(pid)
+    _erp_produto_pendentes_set(user_pk, cur)
+
+
+def _erp_produto_pendentes_remove(user_pk: int, pid: str) -> None:
+    pid = str(pid or "").strip()[:64]
+    if not user_pk or not pid:
+        return
+    cur = [x for x in _erp_produto_pendentes_list(user_pk) if x != pid]
+    _erp_produto_pendentes_set(user_pk, cur)
+
+
+def _montar_cadastro_erp_payload_produtos_salvar(
+    pid: str,
+    ov: ProdutoGestaoOverlayAgro,
+    p_doc: dict | None,
+    *,
+    codigo_erp: str,
+    custo_payload: Decimal | None,
+    inativar_erp_raw: object | None,
+) -> dict:
+    """Corpo ``Produtos/Salvar`` (ERP legado) a partir do overlay + espelho Mongo."""
+    cadastro_erp_payload: dict = {
+        "Id": pid,
+        "Nome": (ov.nome or _mongo_primeiro_texto(p_doc or {}, ("Nome",), "") or "")[:300],
+        "Marca": (ov.marca or _mongo_primeiro_texto(p_doc or {}, ("Marca",), "") or "")[:120],
+        "CodigoNFe": codigo_erp,
+        "Sku": codigo_erp,
+        "SKU": codigo_erp,
+        "CodigoSku": codigo_erp,
+        "CodigoProduto": codigo_erp,
+        "CodigoBarras": (ov.codigo_barras or _mongo_primeiro_texto(p_doc or {}, ("CodigoBarras",), "") or "")[:80],
+        "ValorVenda": float(ov.preco_venda) if ov.preco_venda is not None else _mongo_primeiro_float(p_doc or {}, ("ValorVenda",)),
+        "PrecoCusto": float(custo_payload) if custo_payload is not None else _mongo_primeiro_float(p_doc or {}, ("PrecoCusto",)),
+        "NomeCategoria": (ov.categoria or _mongo_primeiro_texto(p_doc or {}, ("NomeCategoria",), "") or "")[:200],
+        "SubGrupo": (ov.subcategoria or _mongo_primeiro_texto(p_doc or {}, ("SubGrupo",), "") or "")[:200],
+        "Unidade": (ov.unidade or _mongo_primeiro_texto(p_doc or {}, ("Unidade",), "") or "")[:20],
+        "Descricao": (ov.descricao or _mongo_primeiro_texto(p_doc or {}, ("Descricao",), "") or "")[:16000],
+    }
+    if inativar_erp_raw is not None:
+        cadastro_erp_payload["CadastroInativo"] = str(inativar_erp_raw).strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+            "sim",
+            "s",
+        )
+    elif ov.ativo_exibicao is not None:
+        cadastro_erp_payload["CadastroInativo"] = not bool(ov.ativo_exibicao)
+    elif p_doc:
+        cadastro_erp_payload["CadastroInativo"] = _mongo_primeiro_bool(p_doc, ("CadastroInativo",), False)
+    cadastro_erp_payload["OcultarNasVendas"] = False
+    for _k in ("ValorVenda", "PrecoCusto"):
+        if cadastro_erp_payload.get(_k) is None:
+            cadastro_erp_payload.pop(_k, None)
+
+    _forn_txt = (
+        ov.fornecedor_texto
+        if ov.fornecedor_texto and ov.fornecedor_texto.strip()
+        else _mongo_primeiro_texto(
+            p_doc or {},
+            ("NomeFornecedor", "Fornecedor", "RazaoSocialFornecedor", "Fabricante"),
+        )
+    ).strip()
+    cam = {
+        "id": str(pid),
+        "nome": cadastro_erp_payload.get("Nome") or "",
+        "marca": cadastro_erp_payload.get("Marca") or "",
+        "fornecedor": _forn_txt[:300] if _forn_txt else None,
+        "categoria": (cadastro_erp_payload.get("NomeCategoria") or "").strip()[:200]
+        if cadastro_erp_payload.get("NomeCategoria")
+        else None,
+        "codigo": codigo_erp.strip()[:64] if codigo_erp.strip() else None,
+        "ean": (cadastro_erp_payload.get("CodigoBarras") or "").strip()[:80]
+        if cadastro_erp_payload.get("CodigoBarras")
+        else None,
+        "precoVenda": cadastro_erp_payload.get("ValorVenda"),
+        "precoCusto": cadastro_erp_payload.get("PrecoCusto"),
+        "visivelVendas": True,
+    }
+    un_sc = str(cadastro_erp_payload.get("Unidade") or "").strip()[:20]
+    if un_sc:
+        cam["unidadeComercial"] = un_sc
+        cam["estoqueUnidade"] = un_sc
+    desc_sc = str(cadastro_erp_payload.get("Descricao") or "").strip()[:16000]
+    if desc_sc:
+        cam["especificacao"] = desc_sc
+    for ck, cv in cam.items():
+        if cv is not None and cv != "":
+            cadastro_erp_payload[ck] = cv
+    return cadastro_erp_payload
+
+
 def _api_produtos_gestao_overlay_salvar_core(request):
     """Grava ou atualiza overlay no Agro; envio ao ERP legado só com ``sincronizar_erp`` explícito no JSON."""
     try:
@@ -1031,91 +1161,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         or ("codigo_nfe" in payload and bool(digitos_de_nfe) and not digitos_de_codigo)
     )
 
-    if push_erp:
-        # ERP legado · ``Produtos/Salvar``: não enviamos Codigo/CodigoSistema (ver histórico); só SKU/NFe + camelCase ``codigo``.
-        cadastro_erp_payload = {
-            "Id": pid,
-            "Nome": (ov.nome or _mongo_primeiro_texto(p_doc or {}, ("Nome",), "") or "")[:300],
-            "Marca": (ov.marca or _mongo_primeiro_texto(p_doc or {}, ("Marca",), "") or "")[:120],
-            "CodigoNFe": codigo_erp,
-            "Sku": codigo_erp,
-            "SKU": codigo_erp,
-            "CodigoSku": codigo_erp,
-            "CodigoProduto": codigo_erp,
-            "CodigoBarras": (ov.codigo_barras or _mongo_primeiro_texto(p_doc or {}, ("CodigoBarras",), "") or "")[:80],
-            "ValorVenda": float(ov.preco_venda) if ov.preco_venda is not None else _mongo_primeiro_float(p_doc or {}, ("ValorVenda",)),
-            "PrecoCusto": float(custo_payload) if custo_payload is not None else _mongo_primeiro_float(p_doc or {}, ("PrecoCusto",)),
-            "NomeCategoria": (ov.categoria or _mongo_primeiro_texto(p_doc or {}, ("NomeCategoria",), "") or "")[:200],
-            "SubGrupo": (ov.subcategoria or _mongo_primeiro_texto(p_doc or {}, ("SubGrupo",), "") or "")[:200],
-            "Unidade": (ov.unidade or _mongo_primeiro_texto(p_doc or {}, ("Unidade",), "") or "")[:20],
-            "Descricao": (ov.descricao or _mongo_primeiro_texto(p_doc or {}, ("Descricao",), "") or "")[:16000],
-        }
-        if inativar_erp_raw is not None:
-            cadastro_erp_payload["CadastroInativo"] = str(inativar_erp_raw).strip().lower() in (
-                "1",
-                "true",
-                "yes",
-                "on",
-                "sim",
-                "s",
-            )
-        elif ov.ativo_exibicao is not None:
-            cadastro_erp_payload["CadastroInativo"] = not bool(ov.ativo_exibicao)
-        elif p_doc:
-            cadastro_erp_payload["CadastroInativo"] = _mongo_primeiro_bool(
-                p_doc, ("CadastroInativo",), False
-            )
-        cadastro_erp_payload["OcultarNasVendas"] = False
-        for _k in ("ValorVenda", "PrecoCusto"):
-            if cadastro_erp_payload.get(_k) is None:
-                cadastro_erp_payload.pop(_k, None)
-
-        _forn_txt = (
-            ov.fornecedor_texto
-            if ov.fornecedor_texto and ov.fornecedor_texto.strip()
-            else _mongo_primeiro_texto(
-                p_doc or {},
-                ("NomeFornecedor", "Fornecedor", "RazaoSocialFornecedor", "Fabricante"),
-            )
-        ).strip()
-        cam = {
-            "id": str(pid),
-            "nome": cadastro_erp_payload.get("Nome") or "",
-            "marca": cadastro_erp_payload.get("Marca") or "",
-            "fornecedor": _forn_txt[:300] if _forn_txt else None,
-            "categoria": (cadastro_erp_payload.get("NomeCategoria") or "").strip()[:200]
-            if cadastro_erp_payload.get("NomeCategoria")
-            else None,
-            "codigo": codigo_erp.strip()[:64] if codigo_erp.strip() else None,
-            "ean": (cadastro_erp_payload.get("CodigoBarras") or "").strip()[:80]
-            if cadastro_erp_payload.get("CodigoBarras")
-            else None,
-            "precoVenda": cadastro_erp_payload.get("ValorVenda"),
-            "precoCusto": cadastro_erp_payload.get("PrecoCusto"),
-            "visivelVendas": True,
-        }
-        un_sc = str(cadastro_erp_payload.get("Unidade") or "").strip()[:20]
-        if un_sc:
-            cam["unidadeComercial"] = un_sc
-            cam["estoqueUnidade"] = un_sc
-        desc_sc = str(cadastro_erp_payload.get("Descricao") or "").strip()[:16000]
-        if desc_sc:
-            cam["especificacao"] = desc_sc
-        for ck, cv in cam.items():
-            if cv is not None and cv != "":
-                cadastro_erp_payload[ck] = cv
-
-        erp_ok, erp_resp = VendaERPAPIClient().produtos_tentar_salvar_api(cadastro_erp_payload)
-        if not erp_ok:
-            return JsonResponse(
-                {
-                    "ok": False,
-                    "erro": "Falha ao enviar cadastro ao ERP legado. Nada foi salvo.",
-                    "erp_resposta": erp_resp,
-                },
-                status=502,
-            )
-
     aviso_codigo_mongo = None
     aviso_custo_mongo = None
     if db is not None:
@@ -1165,15 +1210,117 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             logger.warning("api_produtos_gestao_overlay_salvar: index_codigos", exc_info=True)
     saldos = _mapa_saldos_finais_por_produtos(db, client, [pid])
     row = _linha_gestao_produto_json(doc, saldos, ov)
+    p_live: dict | None = doc if isinstance(doc, dict) and doc.get("_id") else p_doc
+
+    uid = int(getattr(request.user, "pk", None) or 0)
+    erp_ok = True
+    erp_resp: object | None = None
+    if push_erp:
+        cadastro_erp_payload = _montar_cadastro_erp_payload_produtos_salvar(
+            pid,
+            ov,
+            p_live,
+            codigo_erp=codigo_erp,
+            custo_payload=custo_payload,
+            inativar_erp_raw=inativar_erp_raw,
+        )
+        erp_ok, erp_resp = VendaERPAPIClient().produtos_tentar_salvar_api(cadastro_erp_payload)
+        if erp_ok and uid:
+            _erp_produto_pendentes_remove(uid, pid)
+
     resp: dict = {"ok": True, "produto": row}
     if push_erp:
-        resp["erp_sync_ok"] = True
+        resp["erp_sync_ok"] = bool(erp_ok)
+        if not erp_ok:
+            resp["aviso_erp"] = (
+                "Alterações gravadas no SisVale (Mongo + cadastro local). "
+                "O ERP legado não confirmou o envio — use «Enviar pendentes ao ERP» na lista ou tente de novo."
+            )
+            resp["erp_resposta"] = erp_resp
     else:
         resp["somente_agro"] = True
+        if uid:
+            _erp_produto_pendentes_add(uid, pid)
+
     avisos_m = [m for m in (aviso_codigo_mongo, aviso_custo_mongo) if m]
     if avisos_m:
         resp["aviso"] = "\n\n".join(avisos_m)
     return JsonResponse(resp)
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_produtos_gestao_erp_pendentes(request):
+    """Lista ids de produtos com alteração local ainda não confirmada no ERP (fila por usuário)."""
+    uid = int(getattr(request.user, "pk", None) or 0)
+    ids = _erp_produto_pendentes_list(uid)
+    return JsonResponse({"ok": True, "ids": ids, "n": len(ids)})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_produtos_gestao_erp_sincronizar_pendentes(request):
+    """Dispara ``Produtos/Salvar`` no ERP para até N itens pendentes (após «Salvar no Agro»)."""
+    uid = int(getattr(request.user, "pk", None) or 0)
+    if not uid:
+        return JsonResponse({"ok": False, "erro": "Sessão inválida."}, status=401)
+    try:
+        pl = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        pl = {}
+    try:
+        limite = int(str(pl.get("limite") or "40").strip() or "40")
+    except ValueError:
+        limite = 40
+    limite = max(1, min(limite, 80))
+
+    client, db = obter_conexao_mongo()
+    if db is None or client is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+
+    pendentes = _erp_produto_pendentes_list(uid)[:limite]
+    if not pendentes:
+        return JsonResponse({"ok": True, "mensagem": "Nenhum produto pendente.", "resultados": [], "n": 0})
+
+    resultados: list[dict] = []
+    for pid in pendentes:
+        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
+        if ov is None:
+            ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
+                produto_externo_id=pid[:64],
+                defaults={"usuario": request.user if request.user.is_authenticated else None},
+            )
+        p_doc = _produto_mongo_por_id_externo(db, client, pid)
+        if not p_doc:
+            resultados.append({"produto_id": pid, "ok": False, "erro": "Produto não encontrado no Mongo."})
+            continue
+        codigo_erp = (ov.codigo_nfe or _mongo_primeiro_texto(p_doc, ("CodigoNFe",), "") or "")[:64]
+        cadastro_erp_payload = _montar_cadastro_erp_payload_produtos_salvar(
+            pid,
+            ov,
+            p_doc,
+            codigo_erp=codigo_erp,
+            custo_payload=None,
+            inativar_erp_raw=None,
+        )
+        erp_ok, erp_resp = VendaERPAPIClient().produtos_tentar_salvar_api(cadastro_erp_payload)
+        if erp_ok:
+            _erp_produto_pendentes_remove(uid, pid)
+            resultados.append({"produto_id": pid, "ok": True})
+        else:
+            resultados.append({"produto_id": pid, "ok": False, "erp_resposta": erp_resp})
+
+    n_ok = sum(1 for r in resultados if r.get("ok"))
+    return JsonResponse(
+        {
+            "ok": True,
+            "processados": len(resultados),
+            "ok_count": n_ok,
+            "falhas": len(resultados) - n_ok,
+            "resultados": resultados,
+            "pendentes_restantes": len(_erp_produto_pendentes_list(uid)),
+        }
+    )
 
 
 # Lista de clientes PDV (ClienteAgro) — cache curto; invalida em sync e em save/delete (signals).
