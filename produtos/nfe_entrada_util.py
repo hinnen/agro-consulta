@@ -525,7 +525,7 @@ def claim_rascunho_para_estoque_agro(db, oid: str) -> dict[str, Any]:
         if str(doc.get("status") or "").strip().lower() == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
             return {
                 "ok": False,
-                "erro": "Estoque Agro já foi registrado para este rascunho. Atualize a página se o botão ainda aparecer.",
+                "erro": "Estoque Agro já foi registrado para este rascunho.",
             }
         r = db[COL_ENTRADA_RASCUNHO].update_one(
             {
