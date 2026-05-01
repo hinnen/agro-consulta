@@ -2868,20 +2868,105 @@ def home_launcher_nav_items():
     return rows
 
 
+def _dashboard_query_param(request, key: str, default=None):
+    """Lê parâmetro da querystring ou do POST (útil no sync ERP)."""
+    if request.method == "POST":
+        val = request.POST.get(key)
+        if val is not None and str(val).strip() != "":
+            return str(val).strip()
+    val = request.GET.get(key)
+    if val is not None and str(val).strip() != "":
+        return str(val).strip()
+    return default
+
+
+def _parse_dashboard_date_param(s: str | None) -> date | None:
+    """Aceita ``YYYY-MM-DD`` (input date) ou ``DD/MM/AAAA``."""
+    if not s:
+        return None
+    s = str(s).strip()
+    if re.match(r"^\d{4}-\d{2}-\d{2}$", s):
+        try:
+            return date.fromisoformat(s)
+        except ValueError:
+            return None
+    m = re.match(r"^(\d{1,2})/(\d{1,2})/(\d{4})$", s)
+    if m:
+        d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        try:
+            return date(y, mo, d)
+        except ValueError:
+            return None
+    return None
+
+
+def _dashboard_ultimo_dia_mes(y: int, m: int) -> date:
+    if m == 12:
+        return date(y, 12, 31)
+    return date(y, m + 1, 1) - timedelta(days=1)
+
+
 def _dashboard_periodo_from_request(request):
     hoje = timezone.localdate()
-    preset = (request.GET.get("periodo") or "mes").strip().lower()
+    preset = (_dashboard_query_param(request, "periodo") or "mes_ate_hoje").strip().lower()
+
+    if preset == "personalizado":
+        di = _parse_dashboard_date_param(_dashboard_query_param(request, "data_ini"))
+        df = _parse_dashboard_date_param(_dashboard_query_param(request, "data_fim"))
+        if not di:
+            di = _parse_dashboard_date_param(_dashboard_query_param(request, "de"))
+        if not df:
+            df = _parse_dashboard_date_param(_dashboard_query_param(request, "ate"))
+        if di and df:
+            if df < di:
+                di, df = df, di
+            rotulo = f"{di.strftime('%d/%m/%Y')} — {df.strftime('%d/%m/%Y')}"
+            return di, df, rotulo, "personalizado"
+        ini = hoje.replace(day=1)
+        return ini, hoje, "Mês até hoje", "mes_ate_hoje"
+
+    if preset in ("mes", "mes_ate_hoje"):
+        ini = hoje.replace(day=1)
+        return ini, hoje, "Mês até hoje", "mes_ate_hoje"
+
+    if preset == "mes_atual":
+        ini = hoje.replace(day=1)
+        fim = _dashboard_ultimo_dia_mes(hoje.year, hoje.month)
+        return ini, fim, "Mês atual", "mes_atual"
+
+    if preset == "mes_anterior":
+        primeiro_este_mes = hoje.replace(day=1)
+        ultimo_anterior = primeiro_este_mes - timedelta(days=1)
+        primeiro_anterior = ultimo_anterior.replace(day=1)
+        return primeiro_anterior, ultimo_anterior, "Mês anterior", "mes_anterior"
+
+    if preset == "proximo_mes":
+        if hoje.month == 12:
+            primeiro_proximo = date(hoje.year + 1, 1, 1)
+        else:
+            primeiro_proximo = date(hoje.year, hoje.month + 1, 1)
+        ultimo_proximo = _dashboard_ultimo_dia_mes(primeiro_proximo.year, primeiro_proximo.month)
+        return primeiro_proximo, ultimo_proximo, "Próximo mês", "proximo_mes"
+
+    if preset == "semana_atual":
+        wd = hoje.weekday()
+        ini = hoje - timedelta(days=wd)
+        fim = ini + timedelta(days=6)
+        return ini, fim, "Semana atual", "semana_atual"
+
+    if preset == "ano":
+        ini = hoje.replace(month=1, day=1)
+        return ini, hoje, "Ano atual", "ano"
+
     if preset == "hoje":
         return hoje, hoje, "Hoje", preset
     if preset == "7d":
         return hoje - timedelta(days=6), hoje, "Últimos 7 dias", preset
     if preset == "30d":
         return hoje - timedelta(days=29), hoje, "Últimos 30 dias", preset
-    if preset == "ano":
-        ini = hoje.replace(month=1, day=1)
-        return ini, hoje, "Ano atual", preset
+
     ini = hoje.replace(day=1)
-    return ini, hoje, "Mês atual", "mes"
+    return ini, hoje, "Mês até hoje", "mes_ate_hoje"
 
 
 def _dashboard_prev_periodo(data_ini, data_fim):
@@ -3820,6 +3905,8 @@ def _dashboard_capri_context(request):
         "ultima_sinc_estoque": _dashboard_estoque_sync_label(),
         "mongo_ok": atual["ok"] and anterior["ok"],
         "mongo_erro": (atual.get("erro") or anterior.get("erro") or "")[:180],
+        "periodo_cal_ini": data_ini.isoformat(),
+        "periodo_cal_fim": data_fim.isoformat(),
     }
 
 

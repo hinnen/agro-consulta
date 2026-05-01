@@ -420,12 +420,14 @@
             </button>
         </div>
 
-        <div class="flex items-center gap-1 bg-black/20 p-1 rounded-xl border border-white/5">
-            <button type="button" class="period-btn px-3 py-1.5 text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'hoje' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="hoje">Hoje</button>
-            <button type="button" class="period-btn px-3 py-1.5 text-[9px] font-black uppercase rounded-lg {% if periodo_key == '7d' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="7d">7 dias</button>
-            <button type="button" class="period-btn px-3 py-1.5 text-[9px] font-black uppercase rounded-lg {% if periodo_key == '30d' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="30d">30 dias</button>
-            <button type="button" class="period-btn px-3 py-1.5 text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'mes' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="mes">Mês</button>
-            <button type="button" class="period-btn px-3 py-1.5 text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'ano' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="ano">Ano</button>
+        <div class="flex flex-wrap items-center justify-center gap-1 bg-black/20 p-1 rounded-xl border border-white/5 max-w-full">
+            <button type="button" title="Do dia 1 do mês civil até hoje" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'mes_ate_hoje' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="mes_ate_hoje">Mês até hoje</button>
+            <button type="button" title="Mês civil completo (1º ao último dia)" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'mes_atual' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="mes_atual">Mês atual</button>
+            <button type="button" title="Mês civil anterior completo" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'mes_anterior' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="mes_anterior">Mês ant.</button>
+            <button type="button" title="Próximo mês civil (inteiro)" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'proximo_mes' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="proximo_mes">Próx. mês</button>
+            <button type="button" title="Segunda a domingo da semana corrente" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'semana_atual' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="semana_atual">Semana</button>
+            <button type="button" title="1º de janeiro até hoje" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'ano' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="ano">Ano</button>
+            <button type="button" title="Escolher um dia ou intervalo de datas" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'personalizado' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="personalizado" id="btn-periodo-cal"><i data-lucide="calendar-range" class="inline w-3 h-3 mr-0.5 align-middle opacity-90"></i><span class="align-middle">Datas</span></button>
         </div>
 
         <div class="flex items-center gap-2">
@@ -463,6 +465,27 @@
 
     <div id="dashboard-body">
       {% include "produtos/partials/dashboard_gerencial_body.html" %}
+    </div>
+</div>
+
+<div id="dash-periodo-cal-modal" class="hidden fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/75" role="dialog" aria-modal="true" aria-labelledby="dash-periodo-cal-titulo">
+    <div class="bg-white rounded-2xl border-2 border-slate-200 shadow-2xl max-w-md w-full p-5 sm:p-6">
+        <h2 id="dash-periodo-cal-titulo" class="text-sm font-black uppercase text-slate-900 tracking-wide mb-1">Período personalizado</h2>
+        <p class="text-xs font-semibold text-slate-600 mb-4">Um dia: mesma data em &quot;De&quot; e &quot;Até&quot;. Intervalo: escolha início e fim.</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+            <label class="block">
+                <span class="text-[10px] font-black uppercase text-slate-500">De</span>
+                <input type="date" id="dash-cal-ini" value="{{ periodo_cal_ini }}" class="mt-1 w-full min-h-[44px] rounded-xl border-2 border-slate-200 px-3 text-sm font-bold text-slate-900" />
+            </label>
+            <label class="block">
+                <span class="text-[10px] font-black uppercase text-slate-500">Até</span>
+                <input type="date" id="dash-cal-fim" value="{{ periodo_cal_fim }}" class="mt-1 w-full min-h-[44px] rounded-xl border-2 border-slate-200 px-3 text-sm font-bold text-slate-900" />
+            </label>
+        </div>
+        <div class="flex flex-wrap justify-end gap-2">
+            <button type="button" id="dash-cal-cancelar" class="min-h-[44px] px-4 rounded-xl text-xs font-black uppercase border-2 border-slate-200 text-slate-700 hover:bg-slate-50">Cancelar</button>
+            <button type="button" id="dash-cal-aplicar" class="min-h-[44px] px-4 rounded-xl text-xs font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700 hover:bg-emerald-700">Aplicar</button>
+        </div>
     </div>
 </div>
 
@@ -559,6 +582,15 @@ function dashLaunchpadAbrir(titulo, url, icone) {
 }
 
 document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+        var cal = document.getElementById("dash-periodo-cal-modal");
+        if (cal && !cal.classList.contains("hidden")) {
+            e.preventDefault();
+            cal.classList.add("hidden");
+            document.body.classList.remove("modal-open");
+            return;
+        }
+    }
     var tag = e.target && e.target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target && e.target.isContentEditable)) return;
     if (e.key === "Escape") {
@@ -592,10 +624,17 @@ document.addEventListener("keydown", function (e) {
       return "";
     }
 
-    function carregarPeriodo(periodo) {
-      var url = "{% url 'dashboard_gerencial_conteudo' %}?periodo=" + encodeURIComponent(periodo);
-      htmx.ajax("GET", url, { target: "#dashboard-body", swap: "innerHTML" });
-      window.history.replaceState({}, "", "?periodo=" + encodeURIComponent(periodo));
+    function dashPeriodoQueryString(periodo, opts) {
+      var qs = new URLSearchParams();
+      qs.set("periodo", periodo || "mes_ate_hoje");
+      if (periodo === "personalizado" && opts && opts.dataIni && opts.dataFim) {
+        qs.set("data_ini", opts.dataIni);
+        qs.set("data_fim", opts.dataFim);
+      }
+      return qs.toString();
+    }
+
+    function dashPeriodoHighlight(periodo) {
       document.querySelectorAll(".period-btn").forEach(function (b) {
         b.classList.remove("period-active");
         b.classList.add("period-inactive");
@@ -607,11 +646,86 @@ document.addEventListener("keydown", function (e) {
       }
     }
 
+    function carregarPeriodo(periodo, opts) {
+      var qstr = dashPeriodoQueryString(periodo, opts);
+      var url = "{% url 'dashboard_gerencial_conteudo' %}?" + qstr;
+      htmx.ajax("GET", url, { target: "#dashboard-body", swap: "innerHTML" });
+      window.history.replaceState({}, "", "?" + qstr);
+      dashPeriodoHighlight(periodo);
+    }
+
+    function refreshDashboardFromUrl() {
+      var raw = window.location.search || "";
+      var q = raw.charAt(0) === "?" ? raw.slice(1) : raw;
+      if (!q) q = "periodo=mes_ate_hoje";
+      var url = "{% url 'dashboard_gerencial_conteudo' %}?" + q;
+      htmx.ajax("GET", url, { target: "#dashboard-body", swap: "innerHTML" });
+      try {
+        var p = new URLSearchParams(q);
+        dashPeriodoHighlight(p.get("periodo") || "mes_ate_hoje");
+      } catch (e0) {}
+    }
+
+    function dashPeriodoCalFechar() {
+      var cal = document.getElementById("dash-periodo-cal-modal");
+      if (cal) cal.classList.add("hidden");
+      document.body.classList.remove("modal-open");
+    }
+
+    function dashPeriodoCalAbrir() {
+      var cal = document.getElementById("dash-periodo-cal-modal");
+      if (!cal) return;
+      try {
+        var p = new URLSearchParams(window.location.search || "");
+        var ini = document.getElementById("dash-cal-ini");
+        var fim = document.getElementById("dash-cal-fim");
+        if (ini && p.get("periodo") === "personalizado" && p.get("data_ini")) ini.value = p.get("data_ini");
+        if (fim && p.get("periodo") === "personalizado" && p.get("data_fim")) fim.value = p.get("data_fim");
+      } catch (e1) {}
+      cal.classList.remove("hidden");
+      document.body.classList.add("modal-open");
+    }
+
     document.querySelectorAll(".period-btn").forEach(function (btn) {
       btn.addEventListener("click", function () {
-        carregarPeriodo(btn.dataset.periodo || "mes");
+        var p = btn.dataset.periodo || "mes_ate_hoje";
+        if (p === "personalizado") {
+          dashPeriodoCalAbrir();
+          return;
+        }
+        carregarPeriodo(p);
       });
     });
+
+    (function bindDashCalModal() {
+      var cal = document.getElementById("dash-periodo-cal-modal");
+      var btnC = document.getElementById("dash-cal-cancelar");
+      var btnA = document.getElementById("dash-cal-aplicar");
+      if (cal) {
+        cal.addEventListener("click", function (e) {
+          if (e.target === cal) dashPeriodoCalFechar();
+        });
+      }
+      if (btnC) btnC.addEventListener("click", dashPeriodoCalFechar);
+      if (btnA) {
+        btnA.addEventListener("click", function () {
+          var ini = document.getElementById("dash-cal-ini");
+          var fim = document.getElementById("dash-cal-fim");
+          var vi = ini && ini.value;
+          var vf = fim && fim.value;
+          if (!vi || !vf) {
+            window.alert("Informe as datas De e Até.");
+            return;
+          }
+          if (vi > vf) {
+            window.alert("A data inicial não pode ser depois da final.");
+            return;
+          }
+          dashPeriodoCalFechar();
+          carregarPeriodo("personalizado", { dataIni: vi, dataFim: vf });
+        });
+      }
+    })();
 
     var btnSync = document.getElementById("btn-sync-dashboard");
     if (btnSync) {
@@ -684,11 +798,16 @@ document.addEventListener("keydown", function (e) {
         if (btnSyncTitle) btnSyncTitle.textContent = "Sincronizando...";
         if (btnSyncSub) btnSyncSub.textContent = "Aguarde alguns segundos...";
         var params = new URLSearchParams(window.location.search || "");
-        var periodo = params.get("periodo") || "mes";
+        var periodo = params.get("periodo") || "mes_ate_hoje";
+        var body = "periodo=" + encodeURIComponent(periodo);
+        if (periodo === "personalizado") {
+          body += "&data_ini=" + encodeURIComponent(params.get("data_ini") || "");
+          body += "&data_fim=" + encodeURIComponent(params.get("data_fim") || "");
+        }
         fetch("{% url 'dashboard_gerencial_sincronizar' %}", {
           method: "POST",
           headers: { "X-CSRFToken": readCookie("csrftoken"), "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-          body: "periodo=" + encodeURIComponent(periodo)
+          body: body
         })
           .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
           .then(function (res) {
@@ -698,7 +817,7 @@ document.addEventListener("keydown", function (e) {
               syncStockRaw = formatDatePtBrNoSec(syncDate);
               if (btnSyncSub) btnSyncSub.textContent = syncSubText(syncStockRaw);
               renderSyncThermometer(syncDate);
-              carregarPeriodo(periodo);
+              refreshDashboardFromUrl();
               return;
             }
             if (fb) fb.textContent = "Falha ao sincronizar ERP: " + ((res.body && (res.body.erro || res.body.detail)) || "erro inesperado");
