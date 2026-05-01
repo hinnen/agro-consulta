@@ -9,7 +9,7 @@ import gzip
 import logging
 import re
 import xml.etree.ElementTree as ET
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -32,6 +32,9 @@ ENTRADA_NFE_STATUS_RASCUNHO_LEGACY = "rascunho"
 ENTRADA_NFE_STATUS_CONGELADOS = frozenset(
     {ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO}
 )
+
+# Lock anti-duplo POST em ``api_entrada_nota_estoque_agro`` (Mongo ``extra.estoque_agro_lock``).
+ESTOQUE_AGRO_LOCK_MAX_AGE = timedelta(minutes=15)
 
 ENTRADA_NFE_STATUS_UI: dict[str, dict[str, str]] = {
     ENTRADA_NFE_STATUS_COM_PENDENCIAS: {"label": "Com pendências"},
@@ -504,6 +507,69 @@ def _object_id_rascunho(oid: str):
         return None
 
 
+def claim_rascunho_para_estoque_agro(db, oid: str) -> dict[str, Any]:
+    """
+    Trava o rascunho para um único POST de estoque Agro (evita somar várias vezes no duplo clique).
+    """
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return {"ok": False, "erro": "ID de rascunho inválido."}
+    agora = datetime.now(timezone.utc)
+    stale = agora - ESTOQUE_AGRO_LOCK_MAX_AGE
+    try:
+        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        if not doc:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        if str(doc.get("status") or "").strip().lower() == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
+            return {
+                "ok": False,
+                "erro": "Estoque Agro já foi registrado para este rascunho. Atualize a página se o botão ainda aparecer.",
+            }
+        r = db[COL_ENTRADA_RASCUNHO].update_one(
+            {
+                "_id": _id,
+                "status": {"$nin": list(ENTRADA_NFE_STATUS_CONGELADOS)},
+                "$or": [
+                    {"extra.estoque_agro_lock": {"$exists": False}},
+                    {"extra.estoque_agro_lock": None},
+                    {"extra.estoque_agro_lock": {"$lte": stale}},
+                ],
+            },
+            {"$set": {"extra.estoque_agro_lock": agora}},
+        )
+        if r.modified_count == 1:
+            return {"ok": True}
+        doc2 = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id}) or {}
+        ex2 = doc2.get("extra") if isinstance(doc2.get("extra"), dict) else {}
+        if ex2.get("estoque_agro_lock"):
+            return {
+                "ok": False,
+                "erro": "Registro de estoque em andamento ou repetido. Aguarde alguns segundos e atualize a página.",
+            }
+        return {"ok": False, "erro": "Não foi possível registrar o estoque (rascunho encerrado ou indisponível)."}
+    except Exception as exc:
+        logger.exception("claim_rascunho_para_estoque_agro")
+        return {"ok": False, "erro": str(exc)[:500]}
+
+
+def release_rascunho_estoque_agro_claim(db, oid: str) -> None:
+    """Remove a trava de POST duplicado (falha antes de marcar estoque aplicado)."""
+    if db is None:
+        return
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return
+    try:
+        db[COL_ENTRADA_RASCUNHO].update_one(
+            {"_id": _id},
+            {"$unset": {"extra.estoque_agro_lock": ""}},
+        )
+    except Exception:
+        logger.exception("release_rascunho_estoque_agro_claim")
+
+
 def obter_rascunho_entrada(db, oid: str) -> dict[str, Any] | None:
     if db is None:
         return None
@@ -601,6 +667,7 @@ def marcar_rascunho_estoque_aplicado(
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         ex = dict(doc.get("extra") or {})
+        ex.pop("estoque_agro_lock", None)
         if patch_extra:
             ex.update(patch_extra)
         r = db[COL_ENTRADA_RASCUNHO].update_one(

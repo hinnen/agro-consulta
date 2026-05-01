@@ -76,6 +76,7 @@ from .nfe_entrada_util import (
     atualizar_rascunho_entrada,
     buscar_fornecedores_entrada_nfe,
     casar_produtos_mongo,
+    claim_rascunho_para_estoque_agro,
     excluir_rascunho_entrada,
     gravar_ult_nsu,
     listar_rascunhos_entrada,
@@ -86,6 +87,7 @@ from .nfe_entrada_util import (
     parse_nfe_xml_bytes,
     pipeline_acao_rascunho_entrada,
     rascunho_entrada_valido_para_aprovacao_wizard,
+    release_rascunho_estoque_agro_claim,
     salvar_rascunho_entrada,
 )
 from .mongo_index_codigos import (
@@ -5499,6 +5501,20 @@ def api_entrada_nota_estoque_agro(request):
         if not r_rasc.get("ok"):
             return JsonResponse({**r_rasc, "estoque": None}, status=400)
 
+    draft_lock_id = str(payload.get("rascunho_id") or "").strip()
+    if isinstance(r_rasc, dict) and r_rasc.get("ok") and r_rasc.get("id"):
+        draft_lock_id = draft_lock_id or str(r_rasc["id"])
+
+    claimed_draft_id: str | None = None
+    if draft_lock_id:
+        cg = claim_rascunho_para_estoque_agro(db, draft_lock_id)
+        if not cg["ok"]:
+            return JsonResponse(
+                {"ok": False, "erro": cg.get("erro"), "estoque": None, "rascunho": r_rasc},
+                status=409,
+            )
+        claimed_draft_id = draft_lock_id
+
     resultado = aplicar_entrada_nota_estoque_agro(
         db=db,
         client_m=client,
@@ -5519,7 +5535,7 @@ def api_entrada_nota_estoque_agro(request):
         "estoque": resultado,
         "rascunho": r_rasc,
     }
-    if ok and db is not None:
+    if resultado.get("aplicados") and db is not None:
         rid_marcar = rascunho_id_req or (
             str(r_rasc.get("id") or "").strip() if isinstance(r_rasc, dict) and r_rasc.get("ok") else ""
         )
@@ -5532,6 +5548,12 @@ def api_entrada_nota_estoque_agro(request):
             )
             if not mr.get("ok"):
                 out["aviso_status_rascunho"] = mr.get("erro")
+                if claimed_draft_id:
+                    release_rascunho_estoque_agro_claim(db, claimed_draft_id)
+        elif claimed_draft_id:
+            release_rascunho_estoque_agro_claim(db, claimed_draft_id)
+    elif claimed_draft_id:
+        release_rascunho_estoque_agro_claim(db, claimed_draft_id)
     if not resultado.get("aplicados"):
         err = None
         if resultado.get("erros"):
