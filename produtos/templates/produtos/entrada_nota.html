@@ -909,6 +909,45 @@
     }
   }
 
+  const ENTRADA_NFE_BTN_ESTOQUE_PADRAO = 'REGISTRAR ENTRADA NO ESTOQUE AGRO';
+
+  /** Alinha o botão da etapa 3 ao ``status`` Mongo (ex.: após F5 com estoque já aplicado). */
+  function entradaNfeAtualizarUiBotaoEstoqueAgro(rz) {
+    const btn = document.getElementById('btn-estoque-agro');
+    if (!btn) return;
+    if (!rz || typeof rz !== 'object') {
+      btn.disabled = false;
+      btn.textContent = ENTRADA_NFE_BTN_ESTOQUE_PADRAO;
+      btn.classList.remove('opacity-90', 'cursor-not-allowed');
+      btn.removeAttribute('aria-busy');
+      return;
+    }
+    const st = String(rz.status != null ? rz.status : '').trim().toLowerCase();
+    if (st === 'estoque_aplicado') {
+      btn.disabled = true;
+      btn.textContent = 'Estoque já registrado';
+      btn.classList.add('opacity-90', 'cursor-not-allowed');
+      btn.removeAttribute('aria-busy');
+      return;
+    }
+    if (st === 'encerrada') {
+      btn.disabled = true;
+      btn.textContent = 'Nota encerrada';
+      btn.classList.add('opacity-90', 'cursor-not-allowed');
+      return;
+    }
+    if (st === 'descartada') {
+      btn.disabled = true;
+      btn.textContent = 'Rascunho descartado';
+      btn.classList.add('opacity-90', 'cursor-not-allowed');
+      return;
+    }
+    btn.disabled = false;
+    btn.textContent = ENTRADA_NFE_BTN_ESTOQUE_PADRAO;
+    btn.classList.remove('opacity-90', 'cursor-not-allowed');
+    btn.removeAttribute('aria-busy');
+  }
+
   function setEntradaNfeRascunhoEdit(id) {
     entradaNfeRascunhoEditId = id ? String(id) : null;
     const b = document.getElementById('entrada-nfe-rasc-banner');
@@ -921,6 +960,7 @@
         b.classList.add('hidden');
       }
     }
+    if (!entradaNfeRascunhoEditId) entradaNfeAtualizarUiBotaoEstoqueAgro(null);
     try {
       entradaNfeWizardSetStep(entradaNfeRascunhoEditId ? 2 : 1);
     } catch (_) {}
@@ -2542,6 +2582,7 @@
       });
       atualizarPainelTotalNfe();
       entradaNfeEnsureTrailingCompactRow();
+      entradaNfeAtualizarUiBotaoEstoqueAgro(rz);
     } finally {
       queueMicrotask(() => {
         requestAnimationFrame(() => {
@@ -3010,27 +3051,27 @@
     }
   }
 
-  /** Garante venda + custo assim que possível (mesmo formato que cadastro rápido). */
+  /** Garante venda + custo do ERP (documento completo), sem depender só da busca por código. */
   async function entradaNfeEnriquecerLinhaAposEscolherCatalogo(tr, pRef) {
     const pid = String(pRef && pRef.id != null ? pRef.id : '').trim();
     if (!tr || !pid || !tr.isConnected) return;
     try {
       const cod = entradaNfeStrCampo(pRef.codigo_nfe || pRef.codigo);
       const urlDet = `/api/buscar-produto-id/${encodeURIComponent(pid)}/`;
-      const [det, cmp] = await Promise.all([
-        fetch(urlDet, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)),
-        entradaNfeBuscarLinhaComprasPorId(pid, cod),
-      ]);
+      let det = await fetch(urlDet, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null));
+      if (!det) {
+        det = await entradaNfeBuscarLinhaComprasPorId(pid, cod);
+      }
       if (!tr.isConnected) return;
       if (String(tr.querySelector('.in-prod-id')?.value || '').trim() !== pid) return;
       const vunInp = tr.querySelector('.in-vun');
       const pvInp = tr.querySelector('.in-pvenda');
       if (det && pvInp) {
         const pv = entradaNfeParseDecimalApi(det.preco_venda);
-        if (pv != null && pv > 0) entradaNfeDefinirInputPrecoNum(pvInp, pv);
+        if (pv != null && pv >= 0) entradaNfeDefinirInputPrecoNum(pvInp, pv);
       }
-      if (cmp && vunInp) {
-        const custo = entradaNfeValorCustoProduto(cmp);
+      if (det && vunInp) {
+        const custo = entradaNfeValorCustoProduto(det);
         if (custo != null && custo >= 0) entradaNfeDefinirInputPrecoNum(vunInp, custo);
       }
       atualizarPainelTotalNfe();
@@ -3895,7 +3936,7 @@
         if (j.aviso_status_rascunho) t += ` (${j.aviso_status_rascunho})`;
         showMsg(t, r.ok && !j.aviso_status_rascunho);
         carregarRascunhos();
-        btnEstoqueAgro.textContent = 'Estoque já registrado';
+        entradaNfeAtualizarUiBotaoEstoqueAgro({ status: 'estoque_aplicado' });
       } else {
         showMsg(j.erro || est.erros?.[0]?.erro || 'Nada foi aplicado.', false);
         btnEstoqueAgro.disabled = false;

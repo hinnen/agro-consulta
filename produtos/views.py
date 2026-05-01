@@ -13439,6 +13439,10 @@ def api_buscar_produto_id(request, id):
             "saldo_erp_vila": s_v,
             "qtd_separacao_transferencia": round(ped_qty, 3),
         }
+        custos_doc = _custos_compra_produto(p)
+        res["preco_custo"] = round(_float_api_json(custos_doc.get("preco_custo")), 4)
+        res["preco_custo_final"] = round(_float_api_json(custos_doc.get("preco_custo_final")), 4)
+        res["preco_custo_acrescimo"] = res["preco_custo_final"]
         ov_id = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=str(id)[:64]).first()
         _aplicar_produto_gestao_overlay_em_dict(res, ov_id)
         return JsonResponse(res)
