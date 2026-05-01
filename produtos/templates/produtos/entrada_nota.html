@@ -845,6 +845,8 @@
   };
 
   let entradaNfeRascunhoEditId = null;
+  /** sessionStorage: último rascunho editado (sobrevive a F5 na mesma aba). */
+  const ENTRADA_NFE_SS_RASC_ID = 'agro_entrada_nfe_rascunho_id_v1';
   /** Evita POST automático enquanto o rascunho está sendo montado na grade. */
   let entradaNfeRascunhoAplicandoGrade = false;
   let entradaNfeAutosaveTimer = null;
@@ -977,6 +979,10 @@
 
   function setEntradaNfeRascunhoEdit(id) {
     entradaNfeRascunhoEditId = id ? String(id) : null;
+    try {
+      if (entradaNfeRascunhoEditId) sessionStorage.setItem(ENTRADA_NFE_SS_RASC_ID, entradaNfeRascunhoEditId);
+      else sessionStorage.removeItem(ENTRADA_NFE_SS_RASC_ID);
+    } catch (_) {}
     if (!entradaNfeRascunhoEditId) entradaNfeWizardConferenciaRegistrada = false;
     const b = document.getElementById('entrada-nfe-rasc-banner');
     const t = document.getElementById('entrada-nfe-rasc-banner-id');
@@ -2093,6 +2099,105 @@
     entradaNfeFinParcelasIntervaloUiSync();
   }
 
+  /** Snapshot do bloco financeiro para gravar em ``extra.financeiro_ui`` (Mongo). */
+  function entradaNfeColetarFinanceiroParaExtra() {
+    const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
+    const parcelas_preview = rows.map((tr) => ({
+      data_vencimento: (tr.querySelector('.fin-parc-dv')?.value || '').trim(),
+      valor: parseFloat(String(tr.querySelector('.fin-parc-val')?.value || '').replace(',', '.')) || 0,
+    })).filter((p) => p.data_vencimento && /^\d{4}-\d{2}-\d{2}$/.test(p.data_vencimento) && p.valor > 0);
+    const intD = entradaNfeFinParcelasIntervaloDias();
+    return {
+      empresa_nome: document.getElementById('fin-empresa-nome')?.value?.trim() || '',
+      empresa_id: document.getElementById('fin-empresa-id')?.value?.trim() || '',
+      fin_dc: document.getElementById('fin-dc')?.value || '',
+      fin_dv: document.getElementById('fin-dv')?.value || '',
+      n_parcelas: (() => {
+        let np = parseInt(String(document.getElementById('fin-n-parc')?.value || '1'), 10);
+        if (!Number.isFinite(np) || np < 1) np = 1;
+        return Math.min(60, np);
+      })(),
+      financeiro_parcelas_intervalo_dias: intD,
+      forma_nome: document.getElementById('fin-forma-nome')?.value?.trim() || '',
+      forma_id: document.getElementById('fin-forma-id')?.value?.trim() || '',
+      banco_nome: document.getElementById('fin-banco-nome')?.value?.trim() || '',
+      banco_id: document.getElementById('fin-banco-id')?.value?.trim() || '',
+      grupo_nome: document.getElementById('fin-grupo-nome')?.value?.trim() || '',
+      grupo_id: document.getElementById('fin-grupo-id')?.value?.trim() || '',
+      quitar_ao_salvar: !!document.getElementById('fin-quitar-ao-salvar')?.checked,
+      parcelas_preview: parcelas_preview.length ? parcelas_preview : undefined,
+    };
+  }
+
+  function entradaNfeAnexarFinanceiroAoExtra(base) {
+    const out = base && typeof base === 'object' ? { ...base } : {};
+    const fin = entradaNfeColetarFinanceiroParaExtra();
+    out.financeiro_ui = fin;
+    out.financeiro_parcelas_intervalo_dias = fin.financeiro_parcelas_intervalo_dias;
+    return out;
+  }
+
+  /** Preenche etapa 4 a partir de ``extra.financeiro_ui`` (reabrir rascunho / F5). */
+  function entradaNfeAplicarFinanceiroExtra(ex) {
+    const exR = ex && typeof ex === 'object' ? ex : {};
+    const fu = exR.financeiro_ui && typeof exR.financeiro_ui === 'object' ? exR.financeiro_ui : null;
+    const legacyInt = exR.financeiro_parcelas_intervalo_dias;
+    if (!fu) {
+      if (legacyInt != null && legacyInt !== '') entradaNfeDefinirIntervaloUIPorDias(legacyInt);
+      entradaNfeFinParcelasIntervaloUiSync();
+      return;
+    }
+    if (fu.empresa_nome != null) document.getElementById('fin-empresa-nome').value = String(fu.empresa_nome);
+    if (fu.empresa_id != null) document.getElementById('fin-empresa-id').value = String(fu.empresa_id);
+    if (fu.fin_dc) document.getElementById('fin-dc').value = String(fu.fin_dc).slice(0, 10);
+    if (fu.fin_dv) document.getElementById('fin-dv').value = String(fu.fin_dv).slice(0, 10);
+    if (fu.n_parcelas != null) {
+      let np = parseInt(String(fu.n_parcelas), 10);
+      if (!Number.isFinite(np) || np < 1) np = 1;
+      document.getElementById('fin-n-parc').value = String(Math.min(60, np));
+    }
+    const idias = fu.financeiro_parcelas_intervalo_dias != null && fu.financeiro_parcelas_intervalo_dias !== ''
+      ? fu.financeiro_parcelas_intervalo_dias
+      : legacyInt;
+    if (idias != null && idias !== '') entradaNfeDefinirIntervaloUIPorDias(idias);
+    if (fu.forma_nome != null) document.getElementById('fin-forma-nome').value = String(fu.forma_nome);
+    if (fu.forma_id != null) document.getElementById('fin-forma-id').value = String(fu.forma_id);
+    if (fu.banco_nome != null) document.getElementById('fin-banco-nome').value = String(fu.banco_nome);
+    if (fu.banco_id != null) document.getElementById('fin-banco-id').value = String(fu.banco_id);
+    if (fu.grupo_nome != null) document.getElementById('fin-grupo-nome').value = String(fu.grupo_nome);
+    if (fu.grupo_id != null) document.getElementById('fin-grupo-id').value = String(fu.grupo_id);
+    const q = document.getElementById('fin-quitar-ao-salvar');
+    if (q && fu.quitar_ao_salvar != null) q.checked = !!fu.quitar_ao_salvar;
+    entradaNfeFinParcelasIntervaloUiSync();
+    _finParcForcarPadrao = true;
+    entradaNfeAtualizarPreviewParcelas();
+    const pp = fu.parcelas_preview;
+    if (Array.isArray(pp) && pp.length) {
+      const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
+      if (rows.length === pp.length) {
+        pp.forEach((p, i) => {
+          const tr = rows[i];
+          if (!tr) return;
+          const dv = tr.querySelector('.fin-parc-dv');
+          const vl = tr.querySelector('.fin-parc-val');
+          if (dv && p.data_vencimento && /^\d{4}-\d{2}-\d{2}$/.test(String(p.data_vencimento))) {
+            dv.value = String(p.data_vencimento).slice(0, 10);
+          }
+          if (vl != null && p.valor != null && Number.isFinite(Number(p.valor))) vl.value = String(Number(p.valor));
+        });
+        entradaNfeAtualizarRodapeParcelas();
+      }
+    }
+  }
+
+  function entradaNfeFinDefaultsHoje() {
+    const t = new Date();
+    const iso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+    if (!document.getElementById('fin-dc').value) document.getElementById('fin-dc').value = iso;
+    if (!document.getElementById('fin-dv').value) document.getElementById('fin-dv').value = iso;
+    if (!document.getElementById('m-data-entrada').value) document.getElementById('m-data-entrada').value = iso;
+  }
+
   let finParcPreviewT = null;
   let _finParcForcarPadrao = false;
 
@@ -2698,10 +2803,6 @@
         && typeof rz.extra === 'object'
         && rz.extra.aprovacao_wizard_em
       );
-      const exR = rz.extra && typeof rz.extra === 'object' ? rz.extra : {};
-      if (exR.financeiro_parcelas_intervalo_dias != null && exR.financeiro_parcelas_intervalo_dias !== '') {
-        entradaNfeDefinirIntervaloUIPorDias(exR.financeiro_parcelas_intervalo_dias);
-      }
       const cab = rz.cabecalho || {};
       aplicarCabecalho({
         emit_nome: cab.emit_nome,
@@ -2747,6 +2848,7 @@
         });
       });
       atualizarPainelTotalNfe();
+      entradaNfeAplicarFinanceiroExtra(rz.extra);
       entradaNfeEnsureTrailingCompactRow();
       entradaNfeAtualizarUiBotaoEstoqueAgro(rz);
     } finally {
@@ -3785,8 +3887,7 @@
       return;
     }
     const xmlChave = ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null);
-    const ex = extra || {};
-    ex.financeiro_parcelas_intervalo_dias = entradaNfeFinParcelasIntervaloDias();
+    const ex = entradaNfeAnexarFinanceiroAoExtra(extra && typeof extra === 'object' ? { ...extra } : {});
     const jaEditando = !!entradaNfeRascunhoEditId;
     const url = jaEditando ? URL_RASC_ATUALIZAR : URL_SALVAR;
     const body = jaEditando
@@ -3817,6 +3918,7 @@
       });
       const j = await r.json();
       if (j.ok) {
+        entradaNfeExtraUltimo = { ...ex };
         showMsg(jaEditando ? 'Rascunho atualizado no Mongo.' : 'Novo rascunho salvo no Mongo.', true);
         if (!jaEditando && j.id) setEntradaNfeRascunhoEdit(j.id);
         carregarRascunhos();
@@ -3857,8 +3959,9 @@
     if (!linhas.length) return;
     const cab = coletarCabecalho();
     const xmlChave = ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null);
-    const extraMerge = entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? { ...entradaNfeExtraUltimo } : {};
-    extraMerge.financeiro_parcelas_intervalo_dias = entradaNfeFinParcelasIntervaloDias();
+    const extraMerge = entradaNfeAnexarFinanceiroAoExtra(
+      entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {},
+    );
     entradaNfeAutosaveSaving = true;
     const jaEditando = !!entradaNfeRascunhoEditId;
     const url = jaEditando ? URL_RASC_ATUALIZAR : URL_SALVAR;
@@ -3890,6 +3993,7 @@
       });
       const j = await r.json();
       if (j.ok) {
+        entradaNfeExtraUltimo = { ...extraMerge };
         if (!jaEditando && j.id) setEntradaNfeRascunhoEdit(j.id);
         const hm = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         entradaNfeAutosaveHint(`Rascunho salvo ${hm}`, true);
@@ -3978,8 +4082,7 @@
       parcelas_manual: pmCol.parcelas,
       quitar_ao_salvar: !!document.getElementById('fin-quitar-ao-salvar')?.checked,
     };
-    const exFin = extra && typeof extra === 'object' ? { ...extra } : {};
-    exFin.financeiro_parcelas_intervalo_dias = entradaNfeFinParcelasIntervaloDias();
+    const exFin = entradaNfeAnexarFinanceiroAoExtra(extra && typeof extra === 'object' ? { ...extra } : {});
     const body = {
       modo,
       cabecalho: cab,
@@ -4002,6 +4105,7 @@
       });
       const j = await r.json();
       if ((r.status === 200 || r.status === 207) && j.rascunho && j.rascunho.ok) {
+        entradaNfeExtraUltimo = { ...exFin };
         const fin = j.financeiro || {};
         const nIds = (fin.ids || []).length;
         if (nIds && fin.ok) {
@@ -4517,18 +4621,26 @@
         pm.addEventListener('change', entradaNfeWizardAgendarAtualizarCores, true);
       }
     } catch (_) {}
-    const t = new Date();
-    const iso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
-    if (!document.getElementById('fin-dc').value) document.getElementById('fin-dc').value = iso;
-    if (!document.getElementById('fin-dv').value) document.getElementById('fin-dv').value = iso;
-    if (!document.getElementById('m-data-entrada').value) document.getElementById('m-data-entrada').value = iso;
     const rawOc = sessionStorage.getItem('agro_entrada_oc_prefill_v1');
-    setEntradaNfeRascunhoEdit(null);
+    let storedRid = '';
+    try {
+      storedRid = sessionStorage.getItem(ENTRADA_NFE_SS_RASC_ID) || '';
+    } catch (_) {}
+    const finalizeEntradaNfeInit = () => {
+      carregarRascunhos();
+      atualizarPainelTotalNfe();
+      entradaNfeAtualizarPreviewParcelas();
+      entradaNfeCatalogLoad().catch(() => {});
+    };
     if (rawOc) {
       try {
         entradaNfeAbrirEditor();
         const pr = JSON.parse(rawOc);
         sessionStorage.removeItem('agro_entrada_oc_prefill_v1');
+        try {
+          sessionStorage.removeItem(ENTRADA_NFE_SS_RASC_ID);
+        } catch (_) {}
+        setEntradaNfeRascunhoEdit(null);
         entradaNfeExtraUltimo = pr.extra && typeof pr.extra === 'object' ? { ...pr.extra } : null;
         const cab = pr.cabecalho || {};
         if (cab.emit_nome) fornInp.value = cab.emit_nome;
@@ -4575,18 +4687,51 @@
           entradaNfeEnsureTrailingCompactRow();
         }
         if (pr.mensagem) showMsg(String(pr.mensagem), true);
+        entradaNfeAplicarFinanceiroExtra(entradaNfeExtraUltimo || {});
+        entradaNfeFinDefaultsHoje();
       } catch (e) {
         console.error(e);
         tbodyClear();
         entradaNfeEnsureTrailingCompactRow();
+        entradaNfeFinDefaultsHoje();
+        finalizeEntradaNfeInit();
+        return;
       }
+      finalizeEntradaNfeInit();
+    } else if (storedRid && /^[a-f0-9]{24}$/i.test(storedRid)) {
+      (async () => {
+        try {
+          const r = await fetch(`${URL_RASC_OBTER}?id=${encodeURIComponent(storedRid)}`, { credentials: 'same-origin' });
+          const j = await r.json();
+          if (j.ok && j.rascunho) {
+            entradaNfeAbrirEditor();
+            aplicarRascunhoNaGrade(j.rascunho);
+            setEntradaNfeRascunhoEdit(storedRid);
+            document.querySelector('.tab-btn[data-tab="manual"]')?.click();
+          } else {
+            try {
+              sessionStorage.removeItem(ENTRADA_NFE_SS_RASC_ID);
+            } catch (_) {}
+            setEntradaNfeRascunhoEdit(null);
+            entradaNfeFinDefaultsHoje();
+            entradaNfeEnsureTrailingCompactRow();
+          }
+        } catch (_) {
+          try {
+            sessionStorage.removeItem(ENTRADA_NFE_SS_RASC_ID);
+          } catch (__) {}
+          setEntradaNfeRascunhoEdit(null);
+          entradaNfeFinDefaultsHoje();
+          entradaNfeEnsureTrailingCompactRow();
+        }
+        finalizeEntradaNfeInit();
+      })();
     } else {
+      setEntradaNfeRascunhoEdit(null);
+      entradaNfeFinDefaultsHoje();
       entradaNfeEnsureTrailingCompactRow();
+      finalizeEntradaNfeInit();
     }
-    carregarRascunhos();
-    atualizarPainelTotalNfe();
-    entradaNfeAtualizarPreviewParcelas();
-    entradaNfeCatalogLoad().catch(() => {});
   });
 })();
   </script>
