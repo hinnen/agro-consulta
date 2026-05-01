@@ -121,6 +121,7 @@ from .mongo_financeiro_util import (
     excluir_pagamento_emprestimo_interno_agro,
     excluir_registro_emprestimo_interno_agro,
     LANCAMENTOS_ORDENACOES_VALIDAS,
+    lancamento_para_api,
     lancamentos_buscar_pagina,
     lancamentos_montar_query_mongo,
     dashboard_gerencial_linhas_financeiras,
@@ -4502,6 +4503,9 @@ def _api_lancamentos_lista_core(request, despesa: bool):
     p_ate = _lancamentos_parse_date_param(request.GET.get("pag_ate"))
     filtros_echo = _lancamentos_filtros_echo_dict(v_de, v_ate, c_de, c_ate, p_de, p_ate)
     texto = (request.GET.get("q") or "").strip() or None
+    mongo_id_deep = (
+        request.GET.get("mongo_id") or request.GET.get("lancamento_id") or ""
+    ).strip()
 
     _, db = obter_conexao_mongo()
     if db is None:
@@ -4516,6 +4520,104 @@ def _api_lancamentos_lista_core(request, despesa: bool):
                 "filtros": filtros_echo,
             },
             status=503,
+        )
+
+    if mongo_id_deep:
+        texto = None
+        emp_totais = {
+            "quantidade": 0,
+            "bruto": 0.0,
+            "movimentado": 0.0,
+            "saldo_aberto": 0.0,
+            "previsto": 0.0,
+            "pago": 0.0,
+            "a_pagar": 0.0 if despesa else 0.0,
+            "a_receber": 0.0 if not despesa else 0.0,
+        }
+        try:
+            page_ps = int(request.GET.get("page_size") or 50)
+        except ValueError:
+            page_ps = 50
+        try:
+            oid_l = ObjectId(mongo_id_deep)
+        except Exception:
+            return JsonResponse(
+                {
+                    "lancamentos": [],
+                    "total": 0,
+                    "page": 1,
+                    "page_size": page_ps,
+                    "totais": emp_totais,
+                    "status_filtro": status,
+                    "tipo": "pagar" if despesa else "receber",
+                    "planos_excluidos_aplicados": 0,
+                    "filtros": filtros_echo,
+                    "erro_deep_link": "ID do título inválido.",
+                }
+            )
+        doc0 = db[COL_DTO_LANCAMENTO].find_one({"_id": oid_l})
+        if not doc0:
+            return JsonResponse(
+                {
+                    "lancamentos": [],
+                    "total": 0,
+                    "page": 1,
+                    "page_size": page_ps,
+                    "totais": emp_totais,
+                    "status_filtro": status,
+                    "tipo": "pagar" if despesa else "receber",
+                    "planos_excluidos_aplicados": 0,
+                    "filtros": filtros_echo,
+                    "erro_deep_link": "Título não encontrado no Mongo.",
+                }
+            )
+        desp_doc = bool(doc0.get("Despesa"))
+        if desp_doc != despesa:
+            return JsonResponse(
+                {
+                    "lancamentos": [],
+                    "total": 0,
+                    "page": 1,
+                    "page_size": page_ps,
+                    "totais": emp_totais,
+                    "status_filtro": status,
+                    "tipo": "pagar" if despesa else "receber",
+                    "planos_excluidos_aplicados": 0,
+                    "filtros": filtros_echo,
+                    "erro_deep_link": (
+                        "Este título é conta a RECEBER — abra Lançamentos em Contas a receber."
+                        if not desp_doc
+                        else "Este título é conta a PAGAR — abra Lançamentos em Contas a pagar."
+                    ),
+                }
+            )
+        linha = lancamento_para_api(doc0, desp_doc)
+        qb = round(float(linha.get("valor_bruto") or 0), 2)
+        mv = round(float(linha.get("valor_movimentado") or 0), 2)
+        rs = round(float(linha.get("restante") or 0), 2)
+        tot_out = {
+            "quantidade": 1,
+            "bruto": qb,
+            "movimentado": mv,
+            "saldo_aberto": rs,
+            "previsto": qb,
+            "pago": mv,
+            "a_pagar": rs if despesa else 0.0,
+            "a_receber": rs if not despesa else 0.0,
+        }
+        return JsonResponse(
+            {
+                "lancamentos": [linha],
+                "total": 1,
+                "page": 1,
+                "page_size": page_ps,
+                "totais": tot_out,
+                "status_filtro": status,
+                "tipo": "pagar" if despesa else "receber",
+                "planos_excluidos_aplicados": 0,
+                "filtros": filtros_echo,
+                "mongo_id_aplicado": mongo_id_deep,
+            }
         )
 
     try:

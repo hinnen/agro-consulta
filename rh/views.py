@@ -503,9 +503,6 @@ def rh_fechamento_salvar(request, pk: int):
 @csrf_protect
 def rh_fechamento_titulo_financeiro(request, pk: int):
     f = get_object_or_404(FechamentoFolhaSimplificado, pk=pk)
-    if f.status != FechamentoFolhaSimplificado.Status.ABERTO:
-        messages.error(request, "Só é possível gerir título com fechamento Aberto.")
-        return redirect("rh_fechamento_detalhe", pk=f.pk)
     formas_c, bancos_c = montar_choices_formas_bancos(request.user, modo="erp")
     form = FechamentoTituloFinanceiroForm(
         request.POST,
@@ -521,9 +518,10 @@ def rh_fechamento_titulo_financeiro(request, pk: int):
 
     cd = form.cleaned_data
     dv = cd["data_vencimento"]
+    mid = (f.mongo_lancamento_salario_id or "").strip()
 
     if acao == "sync_valores":
-        if not (f.mongo_lancamento_salario_id or "").strip():
+        if not mid:
             messages.error(request, "Ainda não há título no financeiro — use «Gerar / atualizar título».")
             return redirect("rh_fechamento_detalhe", pk=f.pk)
         f.data_vencimento_pagamento = dv
@@ -537,6 +535,14 @@ def rh_fechamento_titulo_financeiro(request, pk: int):
 
     if acao != "publicar":
         messages.error(request, "Ação inválida.")
+        return redirect("rh_fechamento_detalhe", pk=f.pk)
+
+    if f.status != FechamentoFolhaSimplificado.Status.ABERTO and mid:
+        messages.error(
+            request,
+            "Para alterar vencimento ou cabeçalho no financeiro, reabra a competência (Aberto). "
+            "Ou use apenas «Igualar ao que está na folha» depois de lançar vales em atraso.",
+        )
         return redirect("rh_fechamento_detalhe", pk=f.pk)
 
     r = criar_ou_atualizar_titulo_salario_mongo(

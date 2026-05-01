@@ -14,7 +14,7 @@ app.commandLine.appendSwitch('disable-http-cache');
 const DEFAULT_URL =
   process.env.AGRO_ELECTRON_URL ||
   process.env.AGRO_APP_URL ||
-  'https://agro-consulta.onrender.com';
+  'https://www.sistvale.com.br';
 
 /** Evita query duplicada */
 function urlComBust(u) {

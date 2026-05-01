@@ -122,7 +122,6 @@
       </div>
       {% endif %}
 
-      {% if fechamento.status == 'ABERTO' %}
       <details class="agro-fech-details rounded-2xl border-2 border-emerald-200 bg-white shadow-sm overflow-hidden">
         <summary class="min-h-[52px] px-4 py-3 cursor-pointer select-none flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100 bg-emerald-50/90 font-black uppercase text-emerald-950 text-sm">
           <span class="flex items-center gap-2 min-w-0"><span class="agro-fech-chev text-emerald-700" aria-hidden="true">▶</span> 2 · Conta a pagar no financeiro <span class="text-slate-600 font-semibold normal-case text-xs">(opcional)</span></span>
@@ -130,6 +129,11 @@
         </summary>
         <div class="p-4 space-y-3">
           <p class="text-sm font-black text-slate-800">Vencimento + conta (forma pode ficar em branco). Texto completo no <strong>?</strong> abaixo.</p>
+          {% if fechamento.status != 'ABERTO' and not fechamento.mongo_lancamento_salario_id %}
+          <p class="text-sm font-bold text-amber-950 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 leading-snug">Competência não está «Aberta» e ainda não há título no financeiro — gere abaixo para poder lançar vales (incluindo data passada) com Mongo. Se precisar editar o passo 1, use «Reabrir folha» no passo 3.</p>
+          {% elif fechamento.status != 'ABERTO' and fechamento.mongo_lancamento_salario_id %}
+          <p class="text-sm font-bold text-slate-800 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 leading-snug">Competência encerrada — use «Igualar ao que está na folha» depois de lançar vales em atraso na ficha (atualiza ValorPago no financeiro). Para mudar vencimento ou conta do título, reabra a folha.</p>
+          {% endif %}
           {% with rh_help="fechamento_passo2" %}{% include "rh/includes/rh_help_agents.html" %}{% endwith %}
           {% with rh_help="fechamento_passo2_tecnica" %}{% include "rh/includes/rh_help_agents.html" %}{% endwith %}
           <form method="post" action="{% url 'rh_fechamento_titulo_financeiro' fechamento.pk %}" class="space-y-2 border-t border-emerald-100 pt-3">
@@ -143,7 +147,11 @@
             </div>
             {% endfor %}
             <div class="flex flex-wrap gap-2 pt-2">
+              {% if fechamento.status == 'ABERTO' %}
               <button type="submit" name="titulo_acao" value="publicar" class="min-h-[48px] px-5 rounded-xl bg-emerald-700 text-white text-sm font-black uppercase hover:bg-emerald-800 shadow-md">Criar ou atualizar lançamento</button>
+              {% elif not fechamento.mongo_lancamento_salario_id %}
+              <button type="submit" name="titulo_acao" value="publicar" class="min-h-[48px] px-5 rounded-xl bg-emerald-700 text-white text-sm font-black uppercase hover:bg-emerald-800 shadow-md">Gerar título no financeiro (pendente)</button>
+              {% endif %}
               {% if fechamento.mongo_lancamento_salario_id %}
               <button type="submit" name="titulo_acao" value="sync_valores" class="min-h-[48px] px-5 rounded-xl border-2 border-emerald-600 bg-white text-emerald-900 text-sm font-black uppercase hover:bg-emerald-50">Igualar ao que está na folha</button>
               {% endif %}
@@ -151,7 +159,6 @@
           </form>
         </div>
       </details>
-      {% endif %}
 
       <details class="agro-fech-details rounded-2xl border-2 border-slate-200 bg-slate-100 shadow-sm overflow-hidden">
         <summary class="min-h-[48px] px-4 py-3 cursor-pointer select-none flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-100 font-black uppercase text-slate-900 text-sm">

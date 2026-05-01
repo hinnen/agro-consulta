@@ -47,7 +47,8 @@ if _on_render and ".onrender.com" not in ALLOWED_HOSTS:
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1",
     "http://localhost",
-    "https://agro-consulta.onrender.com",
+    "https://www.sistvale.com.br",
+    "https://sistvale.com.br",
 ]
 if _on_render and "https://*.onrender.com" not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS = list(CSRF_TRUSTED_ORIGINS) + ["https://*.onrender.com"]
@@ -64,6 +65,18 @@ for _h in [h.strip() for h in _env_csv_or_config("ALLOWED_HOSTS_EXTRA").split(",
 for _o in [o.strip() for o in _env_csv_or_config("CSRF_TRUSTED_ORIGINS_EXTRA").split(",") if o.strip()]:
     if _o not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(_o)
+
+# Domínio oficial (produção): redireciona ``RENDER_EXTERNAL_HOSTNAME`` (*.onrender.com do serviço) para cá.
+# Render: ``AGRO_CANONICAL_ORIGIN=https://www.sistvale.com.br``
+# Previews de PR (``IS_PULL_REQUEST=true``) não redirecionam. Homolog: omita a variável.
+_render_pr_preview = os.environ.get("IS_PULL_REQUEST", "").strip().lower() == "true"
+if "AGRO_CANONICAL_ORIGIN" in os.environ:
+    AGRO_CANONICAL_ORIGIN = (os.environ.get("AGRO_CANONICAL_ORIGIN") or "").strip().rstrip("/")
+else:
+    AGRO_CANONICAL_ORIGIN = config("AGRO_CANONICAL_ORIGIN", default="").strip().rstrip("/")
+AGRO_CANONICAL_REDIRECT_FROM_RENDER_ENABLED = (
+    bool(AGRO_CANONICAL_ORIGIN) and _on_render and not _render_pr_preview
+)
 
 # Render envia este SHA ao build/run; usar em ``?v=`` só no PDV pois lá o static vai sem Manifest.
 AGRO_PDV_ASSETS_V = (os.environ.get("RENDER_GIT_COMMIT") or "").strip()[:12]
@@ -121,6 +134,7 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'base.canonical_redirect_middleware.AgroCanonicalHostRedirectMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -158,7 +172,7 @@ if _on_render:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 else:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-#sadasdas#
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',

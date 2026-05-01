@@ -12,6 +12,7 @@ services:
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --preload --timeout 180 --graceful-timeout 45 --no-control-socket --access-logfile - --error-logfile -
     # Preferir /healthz (resposta mínima). No painel Render, confira se o health check não aponta para ``/``.
     healthCheckPath: /healthz
+    # Produção com domínio próprio: defina AGRO_CANONICAL_ORIGIN=https://www.example.com.br (redirect 301 do host ``onrender.com`` do serviço). Previews de PR não redirecionam.
     # Redis (opcional): crie um Redis no Render, anexe ao mesmo env do web — injeta REDIS_URL;
     # cache Django fica compartilhado e o PDV pode usar snapshot curto de /api/pdv/saldos/.
     # Para fechar o painel e exigir login: defina AGRO_PUBLIC_DASHBOARD=false no Environment.
