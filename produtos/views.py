@@ -86,6 +86,7 @@ from .nfe_entrada_util import (
     obter_ult_nsu,
     parse_nfe_xml_bytes,
     pipeline_acao_rascunho_entrada,
+    propagar_precos_venda_catalogo_entrada_nota,
     rascunho_entrada_valido_para_aprovacao_wizard,
     release_rascunho_estoque_agro_claim,
     salvar_rascunho_entrada,
@@ -4976,7 +4977,9 @@ def api_entrada_nota_salvar(request):
         usuario = (
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
-    _, db = obter_conexao_mongo()
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
     r = salvar_rascunho_entrada(
         db,
         usuario=usuario,
@@ -4986,6 +4989,8 @@ def api_entrada_nota_salvar(request):
         xml_chave=xml_chave,
         extra=extra,
     )
+    if r.get("ok"):
+        _entrada_nota_propagar_precos_e_invalidar_catalogo(client, db, linhas, usuario)
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
 
@@ -5055,7 +5060,7 @@ def api_entrada_nota_rascunho_atualizar(request):
         usuario = (
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
-    _, db = obter_conexao_mongo()
+    client, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
     r = atualizar_rascunho_entrada(
@@ -5068,6 +5073,8 @@ def api_entrada_nota_rascunho_atualizar(request):
         xml_chave=xml_chave,
         extra=extra,
     )
+    if r.get("ok"):
+        _entrada_nota_propagar_precos_e_invalidar_catalogo(client, db, linhas, usuario)
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
 
@@ -5095,6 +5102,16 @@ def api_entrada_nota_rascunho_acao(request):
     r = pipeline_acao_rascunho_entrada(db, oid, acao, usuario=usuario)
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
+
+
+def _entrada_nota_propagar_precos_e_invalidar_catalogo(client, db, linhas, usuario: str = "") -> None:
+    """P. venda da grade → Mongo + overlay; invalida cache do catálogo PDV quando houver alteração."""
+    if not linhas or db is None or client is None:
+        return
+    pr = propagar_precos_venda_catalogo_entrada_nota(db, client, linhas, _usuario_label=usuario)
+    if (pr.get("atualizados_mongo") or 0) > 0 or (pr.get("atualizados_overlay") or 0) > 0:
+        cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+        cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
 
 
 def _empresa_loja_padrao_agro_estoque(deposito: str) -> tuple[Empresa | None, Loja | None]:
@@ -5468,6 +5485,7 @@ def api_entrada_nota_estoque_agro(request):
     client, db = obter_conexao_mongo()
     if db is None or client is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    _entrada_nota_propagar_precos_e_invalidar_catalogo(client, db, linhas, usuario)
 
     r_rasc: dict | None = None
     if salvar_rascunho:
@@ -5777,7 +5795,7 @@ def api_entrada_nota_financeiro(request):
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
 
-    _, db = obter_conexao_mongo()
+    client, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
@@ -5810,6 +5828,7 @@ def api_entrada_nota_financeiro(request):
         )
     if not r_rasc.get("ok"):
         return JsonResponse(r_rasc, status=400)
+    _entrada_nota_propagar_precos_e_invalidar_catalogo(client, db, linhas, usuario)
 
     def _d_fin(key: str):
         s = str(fin.get(key) or "").strip()[:10]

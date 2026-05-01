@@ -656,11 +656,23 @@ def _dto_mongo_val_para_date(v: Any) -> date | None:
 
 
 def _adicionar_meses_preservando_dia_referencia(d: date, meses: int) -> date:
-    """Avança ``meses`` mantendo o dia do mês quando possível (ex.: 31/01 → 28/02)."""
+    """Avança ``meses`` mantendo o dia do mês quando possível (ex.: 31/01 → 28/02).
+
+    ``meses`` 0 retorna a mesma data (1ª cópia no lote manual). O ``max(1, …)`` antigo
+    transformava 0 em 1 e deslocava indevidamente o vencimento da primeira parcela.
+    """
     from calendar import monthrange
 
-    n = int(meses) if meses is not None else 1
-    n = max(1, min(n, 36))
+    if meses is None:
+        n = 1
+    else:
+        try:
+            n = int(meses)
+        except (TypeError, ValueError):
+            n = 1
+    if n <= 0:
+        return d
+    n = min(n, 36)
     total = d.year * 12 + d.month - 1 + n
     y, m0 = divmod(total, 12)
     m = m0 + 1

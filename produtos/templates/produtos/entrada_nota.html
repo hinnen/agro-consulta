@@ -478,8 +478,25 @@
               <input type="date" id="fin-dv" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black" title="Com várias parcelas, este é o vencimento da 1ª."></label>
             <label class="block"><span class="text-xs font-black uppercase text-slate-700">Nº parcelas (boletos)</span>
               <input type="number" id="fin-n-parc" min="1" max="60" step="1" value="1" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black" title="1 = um título só. Acima de 1 divide o total da nota em parcelas iguais."></label>
-            <label class="block"><span class="text-xs font-black uppercase text-slate-700">Intervalo (dias)</span>
-              <input type="number" id="fin-parc-int" min="1" max="366" step="1" value="30" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black" title="Dias entre um vencimento e o próximo (ex.: 30)."></label>
+            <label class="block"><span class="text-xs font-black uppercase text-slate-700">Intervalo entre parcelas</span>
+              <select id="fin-parc-int-preset" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-black bg-white">
+                <option value="7">7 dias — semanal</option>
+                <option value="15">15 dias — quinzenal</option>
+                <option value="21">21 dias</option>
+                <option value="28">28 dias — 4 semanas</option>
+                <option value="30" selected>30 dias — mensal (boletos / cheques)</option>
+                <option value="35">35 dias</option>
+                <option value="45">45 dias</option>
+                <option value="60">60 dias — bimestral</option>
+                <option value="90">90 dias — trimestral</option>
+                <option value="__outro__">Outro… (informar dias)</option>
+              </select>
+              <div id="fin-parc-int-outro-wrap" class="hidden mt-2 rounded-xl border border-amber-200 bg-amber-50/80 px-2 py-2">
+                <label class="block text-[10px] font-black uppercase text-amber-950">Outros dias</label>
+                <input type="number" id="fin-parc-int-custom" min="1" max="366" step="1" value="30" class="mt-1 w-full min-h-[44px] rounded-lg border-2 border-amber-300 px-2 py-2 text-sm font-black" title="Quantidade de dias entre parcelas.">
+              </div>
+              <p class="mt-1 text-[10px] font-semibold text-slate-500 leading-snug">Com 2 ou mais parcelas: dias entre uma e a próxima. Com 1 parcela, só conta o 1º vencimento.</p>
+            </label>
             <label class="block md:col-span-2"><span class="text-xs font-black uppercase text-slate-700">Forma pagamento *</span>
               <div class="relative sug-wrap mt-1" data-sug-campo="forma">
                 <input type="text" id="fin-forma-nome" autocomplete="off" class="w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Buscar…">
@@ -2031,6 +2048,51 @@
     return `${yy}-${mm}-${dd}`;
   }
 
+  /** Dias entre parcelas (preset comum ou campo «Outro»). */
+  function entradaNfeFinParcelasIntervaloDias() {
+    const preset = document.getElementById('fin-parc-int-preset');
+    const custom = document.getElementById('fin-parc-int-custom');
+    if (preset && String(preset.value) === '__outro__') {
+      let n = parseInt(String(custom?.value || '30'), 10);
+      if (!Number.isFinite(n) || n < 1) n = 30;
+      if (n > 366) n = 366;
+      return n;
+    }
+    if (preset && preset.value && preset.value !== '__outro__') {
+      const n = parseInt(String(preset.value), 10);
+      if (Number.isFinite(n) && n >= 1 && n <= 366) return n;
+    }
+    let n = parseInt(String(custom?.value || '30'), 10);
+    if (!Number.isFinite(n) || n < 1) n = 30;
+    if (n > 366) n = 366;
+    return n;
+  }
+
+  function entradaNfeFinParcelasIntervaloUiSync() {
+    const preset = document.getElementById('fin-parc-int-preset');
+    const wrap = document.getElementById('fin-parc-int-outro-wrap');
+    if (preset && String(preset.value) === '__outro__') wrap?.classList.remove('hidden');
+    else wrap?.classList.add('hidden');
+  }
+
+  /** Restaura select «Outro» ou preset ao reabrir rascunho (extra.financeiro_parcelas_intervalo_dias). */
+  function entradaNfeDefinirIntervaloUIPorDias(n) {
+    const preset = document.getElementById('fin-parc-int-preset');
+    const custom = document.getElementById('fin-parc-int-custom');
+    if (!preset || custom == null) return;
+    let d = parseInt(String(n), 10);
+    if (!Number.isFinite(d) || d < 1) d = 30;
+    if (d > 366) d = 366;
+    const permitidos = [...preset.options].map((o) => o.value).filter((v) => v && v !== '__outro__');
+    const s = String(d);
+    if (permitidos.includes(s)) preset.value = s;
+    else {
+      preset.value = '__outro__';
+      custom.value = String(d);
+    }
+    entradaNfeFinParcelasIntervaloUiSync();
+  }
+
   let finParcPreviewT = null;
   let _finParcForcarPadrao = false;
 
@@ -2067,9 +2129,7 @@
     let nParc = parseInt(String(document.getElementById('fin-n-parc')?.value || '1'), 10);
     if (!Number.isFinite(nParc) || nParc < 1) nParc = 1;
     if (nParc > 60) nParc = 60;
-    let intDias = parseInt(String(document.getElementById('fin-parc-int')?.value || '30'), 10);
-    if (!Number.isFinite(intDias) || intDias < 1) intDias = 30;
-    if (intDias > 366) intDias = 366;
+    let intDias = entradaNfeFinParcelasIntervaloDias();
 
     const totalCents = entradaNfeTotalCentavosFromDom();
     if (totalCents <= 0) {
@@ -2638,6 +2698,10 @@
         && typeof rz.extra === 'object'
         && rz.extra.aprovacao_wizard_em
       );
+      const exR = rz.extra && typeof rz.extra === 'object' ? rz.extra : {};
+      if (exR.financeiro_parcelas_intervalo_dias != null && exR.financeiro_parcelas_intervalo_dias !== '') {
+        entradaNfeDefinirIntervaloUIPorDias(exR.financeiro_parcelas_intervalo_dias);
+      }
       const cab = rz.cabecalho || {};
       aplicarCabecalho({
         emit_nome: cab.emit_nome,
@@ -3690,10 +3754,18 @@
     entradaNfeAplicarProdutoNaLinha(tr, p, 'scan');
   });
 
-  ['fin-dv', 'fin-n-parc', 'fin-parc-int'].forEach((id) => {
-    document.getElementById(id)?.addEventListener('input', entradaNfeAgendarPreviewParcelas);
-    document.getElementById(id)?.addEventListener('change', entradaNfeAgendarPreviewParcelas);
+  ['fin-dv', 'fin-n-parc', 'fin-parc-int-preset', 'fin-parc-int-custom'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const sched = () => {
+      entradaNfeFinParcelasIntervaloUiSync();
+      _finParcForcarPadrao = true;
+      entradaNfeAgendarPreviewParcelas();
+    };
+    el.addEventListener('input', sched);
+    el.addEventListener('change', sched);
   });
+  entradaNfeFinParcelasIntervaloUiSync();
   document.getElementById('btn-fin-parc-recalc')?.addEventListener('click', () => {
     _finParcForcarPadrao = true;
     entradaNfeAtualizarPreviewParcelas();
@@ -3714,6 +3786,7 @@
     }
     const xmlChave = ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null);
     const ex = extra || {};
+    ex.financeiro_parcelas_intervalo_dias = entradaNfeFinParcelasIntervaloDias();
     const jaEditando = !!entradaNfeRascunhoEditId;
     const url = jaEditando ? URL_RASC_ATUALIZAR : URL_SALVAR;
     const body = jaEditando
@@ -3785,6 +3858,7 @@
     const cab = coletarCabecalho();
     const xmlChave = ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null);
     const extraMerge = entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? { ...entradaNfeExtraUltimo } : {};
+    extraMerge.financeiro_parcelas_intervalo_dias = entradaNfeFinParcelasIntervaloDias();
     entradaNfeAutosaveSaving = true;
     const jaEditando = !!entradaNfeRascunhoEditId;
     const url = jaEditando ? URL_RASC_ATUALIZAR : URL_SALVAR;
@@ -3884,9 +3958,7 @@
     let nParc = parseInt(String(document.getElementById('fin-n-parc').value || '1'), 10);
     if (!Number.isFinite(nParc) || nParc < 1) nParc = 1;
     if (nParc > 60) nParc = 60;
-    let intDias = parseInt(String(document.getElementById('fin-parc-int').value || '30'), 10);
-    if (!Number.isFinite(intDias) || intDias < 1) intDias = 30;
-    if (intDias > 366) intDias = 366;
+    let intDias = entradaNfeFinParcelasIntervaloDias();
     const financeiro = {
       modo_lancamento: 'unico',
       empresa_nome: empresa,
@@ -3906,12 +3978,14 @@
       parcelas_manual: pmCol.parcelas,
       quitar_ao_salvar: !!document.getElementById('fin-quitar-ao-salvar')?.checked,
     };
+    const exFin = extra && typeof extra === 'object' ? { ...extra } : {};
+    exFin.financeiro_parcelas_intervalo_dias = entradaNfeFinParcelasIntervaloDias();
     const body = {
       modo,
       cabecalho: cab,
       linhas,
       xml_chave: ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null),
-      extra: extra || {},
+      extra: exFin,
       financeiro,
       rascunho_id: entradaNfeRascunhoEditId || undefined,
     };

@@ -890,3 +890,67 @@ def gravar_ult_nsu(db, cnpj: str, ult_nsu: str) -> None:
         )
     except Exception as exc:
         logger.warning("gravar_ult_nsu: %s", exc)
+
+
+def propagar_precos_venda_catalogo_entrada_nota(
+    db,
+    client_m,
+    linhas: list,
+    *,
+    _usuario_label: str = "",
+) -> dict[str, Any]:
+    """
+    Copia o P. venda das linhas da NF para o espelho Mongo (``DtoProduto``) e para o overlay SQLite,
+    para o PDV e a busca refletirem o preço após salvar / atualizar rascunho ou fluxos ligados.
+    Ignora linhas sem ``produto_id`` de catálogo ou com preço ≤ 0.
+    """
+    from bson import ObjectId
+
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    out: dict[str, Any] = {
+        "ok": True,
+        "atualizados_mongo": 0,
+        "atualizados_overlay": 0,
+    }
+    if db is None or client_m is None or not linhas:
+        return out
+    col = client_m.col_p
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            continue
+        try:
+            pv = float(ln.get("preco_venda") or 0)
+        except (TypeError, ValueError):
+            continue
+        if pv <= 0.004:
+            continue
+        pv = round(float(pv), 2)
+        or_filt: list[dict[str, Any]] = [{"Id": pid}]
+        try:
+            or_filt.append({"Id": int(pid)})
+        except (TypeError, ValueError):
+            pass
+        try:
+            or_filt.append({"_id": ObjectId(pid)})
+        except Exception:
+            pass
+        try:
+            r = db[col].update_one({"$or": or_filt}, {"$set": {"ValorVenda": pv, "PrecoVenda": pv}})
+            if r.matched_count:
+                out["atualizados_mongo"] += 1
+        except Exception as exc:
+            logger.warning("propagar_precos mongo %s: %s", pid, exc)
+        try:
+            dec = Decimal(str(pv))
+            ProdutoGestaoOverlayAgro.objects.update_or_create(
+                produto_externo_id=pid[:64],
+                defaults={"preco_venda": dec},
+            )
+            out["atualizados_overlay"] += 1
+        except Exception as exc:
+            logger.warning("propagar_precos overlay %s: %s", pid, exc)
+    return out
