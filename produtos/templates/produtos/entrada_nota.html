@@ -235,7 +235,7 @@
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="estoque" title="Grade ok; falta registrar entrada no estoque Agro.">Estoque</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="financeiro" title="Estoque já feito; falta gerar a pagar (Salvar + a pagar), se for o caso.">Financeiro</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="concluida" title="Estoque Agro aplicado e conta a pagar gerada.">Concluída</button>
-        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="encerrada" title="Rascunhos antigos marcados como encerrados (antes do fluxo só estoque + financeiro).">Encerr. legado</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="encerrada" title="Entradas antigas marcadas como encerradas (antes do fluxo só estoque + financeiro).">Encerr. legado</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="descartada" title="Marcada como descartada.">Descartada</button>
       </div>
       <div id="lista-rasc" class="flex-1 min-h-0 overflow-y-auto p-2 sm:p-3 space-y-1.5 text-sm font-semibold text-slate-700" role="status" aria-live="polite"></div>
@@ -248,15 +248,14 @@
         <button type="button" id="btn-entrada-nfe-voltar-lista" class="min-h-[44px] px-3 rounded-xl border-2 border-slate-300 bg-white text-xs font-black uppercase text-slate-800 hover:bg-slate-50">← Lista</button>
         <span class="text-xs font-black uppercase text-slate-600 tracking-wide">Nota NF-e</span>
         <button type="button" class="entrada-nfe-open-ajuda min-h-[40px] min-w-[40px] rounded-xl border-2 border-slate-300 bg-white text-lg font-black text-slate-700 hover:bg-orange-50" title="Ajuda">?</button>
-        <span id="entrada-nfe-autosave-hint" class="hidden sm:inline-block text-[10px] font-bold text-slate-500 truncate max-w-[10rem]" title="Último salvamento automático do rascunho"></span>
+        <span id="entrada-nfe-autosave-hint" class="hidden sm:inline-block text-[10px] font-bold text-slate-500 truncate max-w-[10rem]" title="Último salvamento automático no Agro"></span>
       </div>
       {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[40px] text-xs font-black uppercase bg-white shadow-sm px-3 py-2 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-orange-400 shrink-0" %}
     </div>
     <div id="entrada-nfe-editor-scroll" class="flex-1 min-h-0 overflow-y-auto">
       <div class="max-w-[1400px] mx-auto px-3 sm:px-4 py-3 space-y-3">
 
-    <div id="entrada-nfe-rasc-banner" class="hidden rounded-xl border-2 border-sky-300 bg-sky-50 px-3 py-2 text-xs font-bold text-sky-950 flex flex-wrap items-center justify-between gap-2">
-      <span><code id="entrada-nfe-rasc-banner-id" class="text-[10px] bg-white px-1 py-0.5 rounded border border-sky-200 font-mono"></code> · <strong>Salvar</strong> atualiza.</span>
+    <div id="entrada-nfe-rasc-banner" class="hidden rounded-xl border-2 border-sky-300 bg-sky-50 px-3 py-2 flex flex-wrap items-center justify-end gap-2">
       <button type="button" id="btn-entrada-nfe-sair-edicao" class="min-h-[40px] px-3 py-1.5 rounded-xl border-2 border-sky-400 bg-white text-[10px] font-black uppercase text-sky-900 hover:bg-sky-100 shrink-0">Novo</button>
     </div>
 
@@ -271,11 +270,12 @@
         <div class="flex flex-wrap items-center justify-between gap-2">
           <p class="text-[11px] font-black uppercase text-indigo-950 tracking-wide">Passo a passo</p>
           <div class="flex flex-wrap gap-1">
-            <button type="button" class="nfe-wiz-nav-btn nfe-wiz-nav-btn--on text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="1">1 · NF · Plano</button>
+            <button type="button" class="nfe-wiz-nav-btn nfe-wiz-nav-btn--on text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="1">1 · Fornecedor</button>
             <button type="button" class="nfe-wiz-nav-btn text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="2">2 · Produtos</button>
-            <button type="button" class="nfe-wiz-nav-btn text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="3">3 · Estoque</button>
-            <button type="button" class="nfe-wiz-nav-btn text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="4">4 · Financeiro</button>
-            <button type="button" class="nfe-wiz-nav-btn text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="5">5 · Conferência final</button>
+            <button type="button" class="nfe-wiz-nav-btn text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="3">3 · Código de barras</button>
+            <button type="button" class="nfe-wiz-nav-btn text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="4">4 · Estoque</button>
+            <button type="button" class="nfe-wiz-nav-btn text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="5">5 · Financeiro</button>
+            <button type="button" class="nfe-wiz-nav-btn text-[10px] font-black uppercase px-2 py-1.5 rounded-lg min-h-[36px]" data-nfe-w-go="6">6 · Finalizar</button>
           </div>
         </div>
         <div class="flex flex-wrap gap-2 pt-1 border-t border-indigo-200/80">
@@ -291,11 +291,11 @@
             <h2 class="text-sm font-black uppercase text-violet-950 tracking-tight">Pedido na compra <span class="text-[10px] font-bold text-violet-800 normal-case">(opcional)</span></h2>
             <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-violet-300 bg-white text-sm font-black text-violet-900" title="Ajuda" data-help-w="1">?</button>
           </div>
-          <p id="nfe-pedido-compra-msg" class="rounded-lg border border-violet-300/80 bg-white px-3 py-2 text-xs font-semibold text-violet-950 leading-snug min-h-[2.75rem]" role="status">Analisando rascunho e linhas…</p>
+          <p id="nfe-pedido-compra-msg" class="rounded-lg border border-violet-300/80 bg-white px-3 py-2 text-xs font-semibold text-violet-950 leading-snug min-h-[2.75rem]" role="status">Analisando entrada e linhas…</p>
           <a href="{% url 'compras_view' %}" class="inline-flex min-h-[44px] items-center px-4 rounded-xl border-2 border-violet-500 bg-white text-xs font-black uppercase text-violet-900 hover:bg-violet-100" target="_blank" rel="noopener">Abrir Compras (nova aba)</a>
         </div>
         <div id="nfe-wiz-a2" class="rounded-xl border border-slate-200 bg-slate-50/90 p-3 sm:p-4 space-y-3">
-        <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">1 · Fornecedor e NF</h2>
+        <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">1 · Fornecedor</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <label class="block lg:col-span-2"><span class="text-xs font-black uppercase text-slate-600">Fornecedor / emitente (cadastro)</span>
           <div class="relative mt-1">
@@ -321,7 +321,7 @@
         </div>
 
       <div class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 sm:p-4 space-y-2">
-        <h2 class="text-sm font-black uppercase text-emerald-950 tracking-tight">1 · Plano de contas</h2>
+        <h2 class="text-sm font-black uppercase text-emerald-950 tracking-tight">Plano de contas</h2>
         <div class="block space-y-2">
           <label for="m-plano-conta" class="sr-only">Plano de contas</label>
           <div class="relative sug-wrap mt-1" data-sug-campo="plano">
@@ -342,7 +342,7 @@
 
       <div class="rounded-xl border-2 border-orange-200 bg-gradient-to-br from-orange-50/80 to-white p-3 sm:p-4 space-y-2">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">2 · Itens</h2>
+          <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">2 · Produtos</h2>
           <div class="flex flex-wrap gap-2 justify-end">
             <button type="button" id="btn-prod-novo-popup"
               class="inline-flex min-h-[44px] items-center px-4 py-2 rounded-xl bg-white border-2 border-blue-600 text-xs font-black uppercase text-blue-950 hover:bg-blue-50 shrink-0"
@@ -391,11 +391,13 @@
           <span id="nfe-valor-total-itens" class="tabular-nums text-base shrink-0">R$&nbsp;0,00</span>
         </div>
       </div>
+      </div>
 
+      <div id="nfe-wiz-page-3" data-nfe-wiz-page="3" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
       <div id="nfe-wiz-a2b" class="rounded-xl border-2 border-violet-300/90 bg-gradient-to-br from-violet-50/95 via-white to-indigo-50/40 p-3 sm:p-4 space-y-3 scroll-mt-24">
         <div class="flex flex-wrap items-start justify-between gap-2">
-          <h2 class="text-sm font-black uppercase text-violet-950 tracking-tight">2 · Conferência por código de barras</h2>
-          <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-violet-400 bg-white text-sm font-black text-violet-900 hover:bg-violet-50" data-help-w="2b" title="Ajuda">?</button>
+          <h2 class="text-sm font-black uppercase text-violet-950 tracking-tight">3 · Código de barras</h2>
+          <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-violet-400 bg-white text-sm font-black text-violet-900 hover:bg-violet-50" data-help-w="3" title="Ajuda">?</button>
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           <div class="lg:col-span-5 space-y-1 min-w-0">
@@ -427,9 +429,9 @@
       </div>
       </div>
 
-      <div id="nfe-wiz-page-3" data-nfe-wiz-page="3" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
+      <div id="nfe-wiz-page-4" data-nfe-wiz-page="4" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
       <div class="rounded-xl border-2 border-slate-200 bg-white p-3 sm:p-4 space-y-3 shadow-sm">
-        <h3 class="text-sm font-black uppercase text-slate-900 tracking-tight">3 · Empresa e depósito (estoque)</h3>
+        <h3 class="text-sm font-black uppercase text-slate-900 tracking-tight">4 · Empresa e depósito (estoque)</h3>
         <p class="text-xs font-semibold text-slate-700 leading-snug">Escolha <strong>onde</strong> a entrada vai contar no Agro antes de registrar.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <label class="block"><span class="text-xs font-black uppercase text-slate-600">Empresa (estoque) *</span>
@@ -461,9 +463,9 @@
       </div>
       </div>
 
-      <div id="nfe-wiz-page-4" data-nfe-wiz-page="4" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
+      <div id="nfe-wiz-page-5" data-nfe-wiz-page="5" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
       <div id="nfe-wiz-a4" class="rounded-xl border-2 border-emerald-300 bg-emerald-50/50 px-3 py-3 shadow-sm">
-        <h3 class="text-sm font-black uppercase text-emerald-950 mb-2">4 · Financeiro <span class="text-[10px] font-bold text-emerald-800/90 normal-case">(opcional)</span></h3>
+        <h3 class="text-sm font-black uppercase text-emerald-950 mb-2">5 · Financeiro <span class="text-[10px] font-bold text-emerald-800/90 normal-case">(opcional)</span></h3>
         <div class="space-y-3 text-xs sm:text-sm font-semibold text-emerald-950">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label class="block"><span class="text-xs font-black uppercase text-slate-700">Empresa *</span>
@@ -476,7 +478,7 @@
               <input type="date" id="fin-dc" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black"></label>
             <label class="block"><span class="text-xs font-black uppercase text-slate-700">1º vencimento *</span>
               <input type="date" id="fin-dv" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black" title="Com várias parcelas, este é o vencimento da 1ª."></label>
-            <label class="block"><span class="text-xs font-black uppercase text-slate-700">Nº parcelas (boletos)</span>
+            <label class="block"><span class="text-xs font-black uppercase text-slate-700">Nº parcelas</span>
               <input type="number" id="fin-n-parc" min="1" max="60" step="1" value="1" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black" title="1 = um título só. Acima de 1 divide o total da nota em parcelas iguais."></label>
             <label class="block"><span class="text-xs font-black uppercase text-slate-700">Intervalo entre parcelas</span>
               <select id="fin-parc-int-preset" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-2 py-2 text-sm font-black bg-white">
@@ -484,7 +486,7 @@
                 <option value="15">15 dias — quinzenal</option>
                 <option value="21">21 dias</option>
                 <option value="28">28 dias — 4 semanas</option>
-                <option value="30" selected>30 dias — mensal (boletos / cheques)</option>
+                <option value="30" selected>30 dias — mensal</option>
                 <option value="35">35 dias</option>
                 <option value="45">45 dias</option>
                 <option value="60">60 dias — bimestral</option>
@@ -495,7 +497,6 @@
                 <label class="block text-[10px] font-black uppercase text-amber-950">Outros dias</label>
                 <input type="number" id="fin-parc-int-custom" min="1" max="366" step="1" value="30" class="mt-1 w-full min-h-[44px] rounded-lg border-2 border-amber-300 px-2 py-2 text-sm font-black" title="Quantidade de dias entre parcelas.">
               </div>
-              <p class="mt-1 text-[10px] font-semibold text-slate-500 leading-snug">Com 2 ou mais parcelas: dias entre uma e a próxima. Com 1 parcela, só conta o 1º vencimento.</p>
             </label>
             <label class="block md:col-span-2"><span class="text-xs font-black uppercase text-slate-700">Forma pagamento *</span>
               <div class="relative sug-wrap mt-1" data-sug-campo="forma">
@@ -542,24 +543,22 @@
         </div>
       </div>
 
-      <div class="rounded-xl border-2 border-orange-400 bg-white p-3 sm:p-4 shadow-md ring-1 ring-orange-200/60">
-        <h2 class="text-sm font-black uppercase text-slate-900 mb-2">Gravar</h2>
-        <div class="flex flex-col sm:flex-row flex-wrap gap-3 items-stretch">
-          <button type="button" id="btn-salvar-manual" class="min-h-[48px] flex-1 min-w-[10rem] px-4 py-3 rounded-xl bg-orange-600 text-white font-black text-sm uppercase hover:bg-orange-700 shadow-lg border-2 border-orange-700">Salvar rascunho</button>
-          <button type="button" id="btn-salvar-fin" class="min-h-[48px] flex-1 min-w-[10rem] px-4 py-3 rounded-xl bg-emerald-700 text-white font-black text-sm uppercase hover:bg-emerald-800 shadow-md border-2 border-emerald-900">Salvar + a pagar</button>
-        </div>
+      <div class="rounded-xl border-2 border-emerald-400 bg-white p-3 sm:p-4 shadow-md ring-1 ring-emerald-200/60">
+        <h2 class="text-sm font-black uppercase text-slate-900 mb-1">Gerar conta a pagar</h2>
+        <p class="text-[11px] font-semibold text-slate-600 mb-3 leading-snug">A nota é gravada no Agro automaticamente ao editar. Use o botão abaixo apenas para criar o título no financeiro (Mongo).</p>
+        <button type="button" id="btn-salvar-fin" class="min-h-[48px] w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-700 text-white font-black text-sm uppercase hover:bg-emerald-800 shadow-md border-2 border-emerald-900">Salvar + a pagar</button>
       </div>
       </div>
 
-      <div id="nfe-wiz-page-5" data-nfe-wiz-page="5" class="nfe-wiz-page hidden flex flex-col gap-3 rounded-xl border-2 border-slate-300 bg-slate-50/95 p-3 sm:p-4 overflow-y-auto">
+      <div id="nfe-wiz-page-6" data-nfe-wiz-page="6" class="nfe-wiz-page hidden flex flex-col gap-3 rounded-xl border-2 border-slate-300 bg-slate-50/95 p-3 sm:p-4 overflow-y-auto">
         <div class="flex flex-wrap items-start justify-between gap-2">
-          <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">5 · Conferência final</h2>
-          <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-slate-300 bg-white text-sm font-black text-slate-800" data-help-w="5" title="Ajuda">?</button>
+          <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">6 · Finalizar</h2>
+          <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-slate-300 bg-white text-sm font-black text-slate-800" data-help-w="6" title="Ajuda">?</button>
         </div>
         <label class="block max-w-xs"><span class="text-[10px] font-black uppercase text-slate-700">PIN</span>
           <input type="password" id="nfe-wiz-pin" autocomplete="current-password" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-300 px-3 text-lg font-mono tracking-widest bg-white" inputmode="numeric" maxlength="12">
         </label>
-        <button type="button" id="nfe-wiz-btn-aprov" class="min-h-[48px] px-5 rounded-xl bg-slate-800 text-white text-xs font-black uppercase border-2 border-slate-950 hover:bg-slate-900">Gravar conferência final</button>
+        <button type="button" id="nfe-wiz-btn-aprov" class="min-h-[48px] px-5 rounded-xl bg-slate-800 text-white text-xs font-black uppercase border-2 border-slate-950 hover:bg-slate-900">Gravar finalização</button>
         <p id="nfe-wiz-aprov-msg" class="text-sm font-bold text-slate-700 min-h-[1.25rem]" role="status"></p>
         <div id="nfe-wiz-recap" class="rounded-xl border border-slate-200 bg-white p-3 text-xs font-semibold text-slate-700 space-y-1"></div>
       </div>
@@ -573,7 +572,7 @@
           <input type="file" id="xml-file" accept=".xml,text/xml,application/xml" class="mt-1 block w-full min-h-[48px] text-sm font-bold border-2 border-slate-200 rounded-xl px-2 py-2 bg-white"></label>
         <button type="button" id="btn-parse-xml" class="min-h-[48px] px-6 py-3 rounded-xl bg-blue-600 text-white font-black text-sm uppercase hover:bg-blue-700 shadow-sm">Ler XML</button>
       </div>
-      <button type="button" id="btn-salvar-xml" class="min-h-[48px] px-6 py-3 rounded-xl bg-orange-600 text-white font-black text-xs uppercase hover:bg-orange-700 shadow-md border-2 border-orange-700 w-full sm:w-auto">Salvar rascunho</button>
+      <button type="button" id="btn-salvar-xml" class="min-h-[48px] px-6 py-3 rounded-xl bg-orange-600 text-white font-black text-xs uppercase hover:bg-orange-700 shadow-md border-2 border-orange-700 w-full sm:w-auto">Salvar entrada</button>
     </section>
 
     <section id="panel-sefaz" class="tab-panel hidden bg-white rounded-xl border-2 border-slate-200 shadow-sm p-3 sm:p-4 space-y-3">
@@ -655,10 +654,10 @@
           <p id="entrada-nfe-ajuda-contexto-resumo" class="text-sm font-semibold text-sky-950 leading-snug">—</p>
           <ul id="entrada-nfe-ajuda-contexto-lista" class="list-disc pl-5 space-y-1 text-[13px] text-sky-900"></ul>
         </section>
-        <p class="text-slate-900"><strong class="text-orange-700">Resumo:</strong> preencha a nota e a grade; <strong>Salvar rascunho</strong> grava no Agro. O estoque da loja só muda com <strong>Registrar entrada no estoque Agro</strong> (ou outro ajuste autorizado).</p>
+        <p class="text-slate-900"><strong class="text-orange-700">Resumo:</strong> preencha a nota e a grade — <strong>gravação automática no Agro</strong> ao editar. O estoque da loja só muda com <strong>Registrar entrada no estoque Agro</strong> (ou outro ajuste autorizado).</p>
         <div class="border-l-4 border-orange-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Uso</p>
-          <p>Conferir nota, buscar fornecedor e produtos cadastrados, ratear quantidade (ex.: 1 caixa = 10 un.), data de entrada, plano de contas da nota (DRE) e, se quiser, gerar conta a pagar no Mongo (como no <a href="{% url 'lancamentos_manual' %}" class="text-orange-700 underline font-black">lançamento manual</a>). Salvar rascunho <strong>não</strong> altera o estoque do ERP sozinho.</p>
+          <p>Conferir nota, buscar fornecedor e produtos cadastrados, ratear quantidade (ex.: 1 caixa = 10 un.), data de entrada, plano de contas da nota (DRE) e, na etapa financeira, gerar conta a pagar no Mongo (botão verde), como no <a href="{% url 'lancamentos_manual' %}" class="text-orange-700 underline font-black">lançamento manual</a>. O salvamento automático da nota <strong>não</strong> altera o estoque do ERP sozinho.</p>
           <p class="text-slate-600">Consulta DF-e na Receita exige certificado e dados da empresa no servidor.</p>
         </div>
         <div class="border-l-4 border-sky-200 pl-3 space-y-2">
@@ -669,7 +668,7 @@
             <li><strong>Estoque</strong> — grade ok (produtos casados); falta registrar entrada no estoque Agro. Na lista aparece só o chip da <strong>fila</strong>, para não confundir com “pronta” de outro sentido.</li>
             <li><strong>Financeiro</strong> — estoque já feito; falta gerar a pagar, se você for usar essa etapa.</li>
             <li><strong>Concluída</strong> — estoque Agro já registrado <strong>e</strong> conta a pagar gerada (Salvar + a pagar).</li>
-            <li><strong>Encerrada (legado)</strong> — rascunhos antigos que tinham sido marcados manualmente como encerrados; use <strong>Reabrir</strong> se precisar seguir o fluxo normal.</li>
+            <li><strong>Encerrada (legado)</strong> — entradas antigas marcadas manualmente como encerradas; use <strong>Reabrir</strong> se precisar seguir o fluxo normal.</li>
             <li><strong>Descartada</strong> — você marcou como descartada.</li>
           </ul>
         </div>
@@ -683,7 +682,7 @@
         </div>
         <div class="border-l-4 border-emerald-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Financeiro (opcional)</p>
-          <p>Preencha empresa, competência, 1º vencimento, parcelas se houver, forma e banco antes de <strong>Salvar + a pagar</strong>. Na tabela de parcelas você pode <strong>editar data e valor</strong> de cada linha; a soma deve fechar com o total da nota. Use <strong>Recalcular</strong> para voltar ao padrão (intervalo + divisão de centavos). Marque <strong>Já quitar</strong> se o pagamento já ocorreu: os títulos saem quitados no Agro; com API de baixa do ERP ativa, tenta registrar a baixa também.</p>
+          <p>A nota já vai sendo gravada sozinha; na etapa 5 · Financeiro preencha empresa, competência, 1º vencimento, parcelas se houver, forma e banco e use <strong>Salvar + a pagar</strong> só para criar o título. Na tabela de parcelas você pode <strong>editar data e valor</strong> de cada linha; a soma deve fechar com o total da nota. Use <strong>Recalcular</strong> para voltar ao padrão (intervalo + divisão de centavos). Marque <strong>Já quitar</strong> se o pagamento já ocorreu: os títulos saem quitados no Agro; com API de baixa do ERP ativa, tenta registrar a baixa também.</p>
         </div>
         <div class="border-l-4 border-slate-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Coluna ERP (✎)</p>
@@ -691,15 +690,15 @@
         </div>
         <div class="border-l-4 border-blue-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Estoque Agro</p>
-          <p>Soma <strong>Qtd est.</strong> no saldo do PDV/Compras só para linhas com produto do catálogo (botão <strong>Mudar</strong> ou busca na linha). Não repita o mesmo clique na mesma nota. <strong>Empresa (estoque)</strong> e <strong>depósito</strong> ficam no <strong>passo 3</strong> do assistente. O botão azul <strong>grava a nota e aplica o estoque</strong> no mesmo envio.</p>
+          <p>Soma <strong>Qtd est.</strong> no saldo do PDV/Compras só para linhas com produto do catálogo (botão <strong>Mudar</strong> ou busca na linha). Não repita o mesmo clique na mesma nota. <strong>Empresa (estoque)</strong> e <strong>depósito</strong> ficam no <strong>passo 4 · Estoque</strong>. O botão azul <strong>grava a nota e aplica o estoque</strong> no mesmo envio.</p>
         </div>
         <div class="border-l-4 border-indigo-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Passo a passo (aba Manual)</p>
-          <p>Use <strong>Próximo</strong> / <strong>Anterior</strong> ou os botões no topo: cada passo aparece <strong>só um por vez</strong>. O chip fica <strong>verde</strong> só quando os obrigatórios daquele passo estão ok; <strong>Próximo</strong> só avança se o passo atual estiver válido. A etapa 5 (PIN) exige as quatro primeiras completas. O PIN é o mesmo da <strong>senha rápida</strong> do usuário (estoque / empréstimo).</p>
+          <p>Use <strong>Próximo</strong> / <strong>Anterior</strong> ou os botões no topo: cada passo aparece <strong>só um por vez</strong>. O chip fica <strong>verde</strong> só quando os obrigatórios daquele passo estão ok; <strong>Próximo</strong> só avança se o passo atual estiver válido. A etapa 6 · Finalizar (PIN) exige os passos anteriores completos. O PIN é o mesmo da <strong>senha rápida</strong> do usuário (estoque / empréstimo).</p>
         </div>
         <div class="text-[11px] sm:text-xs font-semibold text-slate-600 space-y-1 pt-2 border-t border-slate-100">
           <p class="font-black uppercase text-slate-500">Técnico</p>
-          <p>Rascunhos: coleção <code class="bg-slate-100 px-1 rounded">AgroEntradaNotaRascunho</code>. Plano: <code class="bg-slate-100 px-1 rounded">cabecalho.plano_conta</code> / <code class="bg-slate-100 px-1 rounded">plano_conta_id</code>.</p>
+          <p>No Mongo, cada entrada fica na coleção <code class="bg-slate-100 px-1 rounded">AgroEntradaNotaRascunho</code> (nome técnico herdado). Plano: <code class="bg-slate-100 px-1 rounded">cabecalho.plano_conta</code> / <code class="bg-slate-100 px-1 rounded">plano_conta_id</code>.</p>
           <p>Certificado A1 (.pfx), CNPJ e UF no ambiente. Homologação SEFAZ: <code class="bg-slate-100 px-1 rounded">NFE_DIST_DFE_TP_AMB=2</code>.</p>
         </div>
       </div>
@@ -852,7 +851,7 @@
   let entradaNfeAutosaveTimer = null;
   let entradaNfeAutosaveSaving = false;
   let entradaNfeListaFiltro = 'todas';
-  /** Índice da linha ativa na conferência por código (passo 2). */
+  /** Índice da linha ativa na conferência por código (passo 3). */
   let entradaNfeBipLinhaIdx = 0;
   /** Rascunho local por índice de linha: código bipado / ignorar ao trocar de linha. */
   const entradaNfeBipDraftPorLinha = {};
@@ -940,7 +939,7 @@
 
   const ENTRADA_NFE_BTN_ESTOQUE_PADRAO = 'REGISTRAR ENTRADA NO ESTOQUE AGRO';
 
-  /** Alinha o botão da etapa 3 ao ``status`` Mongo (ex.: após F5 com estoque já aplicado). */
+  /** Alinha o botão da etapa 4 · Estoque ao ``status`` Mongo (ex.: após F5 com estoque já aplicado). */
   function entradaNfeAtualizarUiBotaoEstoqueAgro(rz) {
     const btn = document.getElementById('btn-estoque-agro');
     if (!btn) return;
@@ -967,12 +966,74 @@
     }
     if (st === 'descartada') {
       btn.disabled = true;
-      btn.textContent = 'Rascunho descartado';
+      btn.textContent = 'Entrada descartada';
       btn.classList.add('opacity-90', 'cursor-not-allowed');
       return;
     }
     btn.disabled = false;
     btn.textContent = ENTRADA_NFE_BTN_ESTOQUE_PADRAO;
+    btn.classList.remove('opacity-90', 'cursor-not-allowed');
+    btn.removeAttribute('aria-busy');
+  }
+
+  const ENTRADA_NFE_BTN_FIN_PADRAO = 'SALVAR + A PAGAR';
+
+  function entradaNfeFinanceiroTituloJaGerado(rz) {
+    if (!rz || typeof rz !== 'object') return false;
+    if (rz.entrada_financeiro_lancado === true) return true;
+    const ex = rz.extra;
+    return !!(ex && typeof ex === 'object' && ex.financeiro_lancado);
+  }
+
+  /** Alinha o botão da etapa 5 · Financeiro ao ``extra.financeiro_lancado`` / status (como o estoque na etapa 4). */
+  function entradaNfeAtualizarUiBotaoFinanceiro(rz) {
+    const btn = document.getElementById('btn-salvar-fin');
+    if (!btn) return;
+    if (rz == null) {
+      btn.disabled = false;
+      btn.textContent = ENTRADA_NFE_BTN_FIN_PADRAO;
+      btn.classList.remove('opacity-90', 'cursor-not-allowed');
+      return;
+    }
+    const st = String(rz.status != null ? rz.status : '').trim().toLowerCase();
+    if (st === 'descartada') {
+      btn.disabled = true;
+      btn.textContent = 'Nota descartada';
+      btn.classList.add('opacity-90', 'cursor-not-allowed');
+      return;
+    }
+    if (st === 'encerrada') {
+      btn.disabled = true;
+      btn.textContent = 'Nota encerrada';
+      btn.classList.add('opacity-90', 'cursor-not-allowed');
+      return;
+    }
+    if (entradaNfeFinanceiroTituloJaGerado(rz)) {
+      btn.disabled = true;
+      btn.textContent = 'Conta a pagar já gerada';
+      btn.classList.add('opacity-90', 'cursor-not-allowed');
+      return;
+    }
+    btn.disabled = false;
+    btn.textContent = ENTRADA_NFE_BTN_FIN_PADRAO;
+    btn.classList.remove('opacity-90', 'cursor-not-allowed');
+  }
+
+  const ENTRADA_NFE_BTN_WIZ_FINAL_PADRAO = 'GRAVAR FINALIZAÇÃO';
+
+  /** Desativa o botão do PIN quando a finalização já foi gravada (Mongo ou nesta sessão). */
+  function entradaNfeAtualizarUiBotaoWizardFinalizar() {
+    const btn = document.getElementById('nfe-wiz-btn-aprov');
+    if (!btn) return;
+    if (entradaNfeWizardConferenciaRegistrada) {
+      btn.disabled = true;
+      btn.textContent = 'FINALIZAÇÃO JÁ REGISTRADA';
+      btn.classList.add('opacity-90', 'cursor-not-allowed');
+      btn.removeAttribute('aria-busy');
+      return;
+    }
+    btn.disabled = false;
+    btn.textContent = ENTRADA_NFE_BTN_WIZ_FINAL_PADRAO;
     btn.classList.remove('opacity-90', 'cursor-not-allowed');
     btn.removeAttribute('aria-busy');
   }
@@ -985,16 +1046,15 @@
     } catch (_) {}
     if (!entradaNfeRascunhoEditId) entradaNfeWizardConferenciaRegistrada = false;
     const b = document.getElementById('entrada-nfe-rasc-banner');
-    const t = document.getElementById('entrada-nfe-rasc-banner-id');
-    if (b && t) {
-      if (entradaNfeRascunhoEditId) {
-        t.textContent = entradaNfeRascunhoEditId;
-        b.classList.remove('hidden');
-      } else {
-        b.classList.add('hidden');
-      }
+    if (b) {
+      if (entradaNfeRascunhoEditId) b.classList.remove('hidden');
+      else b.classList.add('hidden');
     }
-    if (!entradaNfeRascunhoEditId) entradaNfeAtualizarUiBotaoEstoqueAgro(null);
+    if (!entradaNfeRascunhoEditId) {
+      entradaNfeAtualizarUiBotaoEstoqueAgro(null);
+      entradaNfeAtualizarUiBotaoFinanceiro(null);
+      entradaNfeAtualizarUiBotaoWizardFinalizar();
+    }
     try {
       entradaNfeWizardSetStep(entradaNfeRascunhoEditId ? 2 : 1);
     } catch (_) {}
@@ -1035,7 +1095,7 @@
       if (tipo.includes('compras_oc') || (tit && tit.toLowerCase().includes('compras_oc'))) temLinhaOc = true;
     });
     if (origemOc && pid) {
-      msg.innerHTML = `<span class="text-emerald-950 font-black">Sim</span> — este rascunho está vinculado ao pedido de compra <span class="font-mono text-[11px]">${pid}</span>. Confira número e série da NF ao receber.`;
+      msg.innerHTML = `<span class="text-emerald-950 font-black">Sim</span> — esta entrada está vinculada ao pedido de compra <span class="font-mono text-[11px]">${pid}</span>. Confira número e série da NF ao receber.`;
       wrap.classList.add('border-emerald-300', 'bg-emerald-50/95');
       return;
     }
@@ -1044,7 +1104,7 @@
       wrap.classList.add('border-emerald-300', 'bg-emerald-50/95');
       return;
     }
-    msg.innerHTML = '<span class="text-amber-950 font-black">Não identificado</span> neste rascunho como pedido de compra. Se a nota veio de pedido, use Compras para conferir.';
+    msg.innerHTML = '<span class="text-amber-950 font-black">Não identificado</span> nesta entrada como pedido de compra. Se a nota veio de pedido, use Compras para conferir.';
     wrap.classList.add('border-amber-300', 'bg-amber-50/95');
   }
 
@@ -1097,21 +1157,21 @@
    * (não depende de em qual tela o usuário está).
    */
   function entradaNfeWizardValidarEtapaDetalhe(st) {
-    const s = Math.min(5, Math.max(1, Math.floor(Number(st)) || 1));
+    const s = Math.min(6, Math.max(1, Math.floor(Number(st)) || 1));
     const cab = coletarCabecalho();
     const linhas = coletarLinhas();
     if (s === 1) {
       if (!cab.emit_nome) {
-        return { ok: false, irPara: 1, erro: 'Informe o fornecedor / emitente (etapa 1 · NF).' };
+        return { ok: false, irPara: 1, erro: 'Informe o fornecedor / emitente (etapa 1 · Fornecedor).' };
       }
       if (!String(cab.numero || '').trim()) {
-        return { ok: false, irPara: 1, erro: 'Informe o número da NF (etapa 1 · NF).' };
+        return { ok: false, irPara: 1, erro: 'Informe o número da NF (etapa 1 · Fornecedor).' };
       }
       if (!String(cab.data_entrada || '').trim()) {
-        return { ok: false, irPara: 1, erro: 'Informe a data de entrada física (etapa 1 · NF).' };
+        return { ok: false, irPara: 1, erro: 'Informe a data de entrada física (etapa 1 · Fornecedor).' };
       }
       if (!String(cab.plano_conta || '').trim()) {
-        return { ok: false, irPara: 1, erro: 'Defina o plano de contas da nota (etapa 1 · NF · Plano).' };
+        return { ok: false, irPara: 1, erro: 'Defina o plano de contas da nota (etapa 1 · Fornecedor).' };
       }
       return { ok: true, irPara: 1, erro: '' };
     }
@@ -1130,25 +1190,34 @@
         if (!entradaNfeProdutoIdErpValido(linhas[i].produto_id)) {
           return { ok: false, irPara: 2, erro: `Linha ${i + 1}: escolha o produto do catálogo (botão Mudar ou busca na linha) na etapa 2 · Produtos.` };
         }
-        const stBip = String(linhas[i].bip_conf || 'pendente');
-        if (!['ok', 'similar', 'dispensado'].includes(stBip)) {
-          return { ok: false, irPara: 2, erro: `Linha ${i + 1}: pendente de conferência por código de barras (etapa 2).` };
-        }
       }
       return { ok: true, irPara: 2, erro: '' };
     }
     if (s === 3) {
-      const empId = String(document.getElementById('m-empresa-faturada')?.value || '').trim();
-      if (!empId) {
-        return { ok: false, irPara: 3, erro: 'Selecione a empresa (estoque) na etapa 3.' };
-      }
-      const dep = String(document.getElementById('m-deposito-entrada')?.value || '').trim();
-      if (!['centro', 'vila'].includes(dep)) {
-        return { ok: false, irPara: 3, erro: 'Selecione o depósito na etapa 3.' };
+      for (let i = 0; i < linhas.length; i++) {
+        const stBip = String(linhas[i].bip_conf || 'pendente');
+        if (!['ok', 'similar', 'dispensado'].includes(stBip)) {
+          return {
+            ok: false,
+            irPara: 3,
+            erro: `Linha ${i + 1}: pendente de conferência por código de barras (etapa 3 · Código de barras).`,
+          };
+        }
       }
       return { ok: true, irPara: 3, erro: '' };
     }
     if (s === 4) {
+      const empId = String(document.getElementById('m-empresa-faturada')?.value || '').trim();
+      if (!empId) {
+        return { ok: false, irPara: 4, erro: 'Selecione a empresa (estoque) na etapa 4 · Estoque.' };
+      }
+      const dep = String(document.getElementById('m-deposito-entrada')?.value || '').trim();
+      if (!['centro', 'vila'].includes(dep)) {
+        return { ok: false, irPara: 4, erro: 'Selecione o depósito na etapa 4 · Estoque.' };
+      }
+      return { ok: true, irPara: 4, erro: '' };
+    }
+    if (s === 5) {
       const finE = document.getElementById('fin-empresa-nome')?.value?.trim() || '';
       const finDc = document.getElementById('fin-dc')?.value || '';
       const finDv = document.getElementById('fin-dv')?.value || '';
@@ -1159,42 +1228,46 @@
         if (!finE || !finDc || !finDv || !finForma || !finBanco) {
           return {
             ok: false,
-            irPara: 4,
-            erro: 'Financeiro iniciado: preencha empresa, competência, 1º vencimento, forma e banco (etapa 4 · Financeiro).',
+            irPara: 5,
+            erro: 'Financeiro iniciado: preencha empresa, competência, 1º vencimento, forma e banco (etapa 5 · Financeiro).',
           };
         }
         entradaNfeAtualizarPreviewParcelas();
         const pmCol = entradaNfeColetarParcelasManualFinanceiro(finDc);
         if (pmCol.erro) {
-          return { ok: false, irPara: 4, erro: pmCol.erro };
+          return { ok: false, irPara: 5, erro: pmCol.erro };
         }
         if (!pmCol.parcelas.length) {
-          return { ok: false, irPara: 4, erro: 'Monte a prévia de parcelas na etapa 4 · Financeiro.' };
+          return { ok: false, irPara: 5, erro: 'Monte a prévia de parcelas na etapa 5 · Financeiro.' };
         }
         const totalCentsChec = entradaNfeTotalCentavosFromDom();
         const somaCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(Number(p.valor) * 100), 0));
         if (Math.abs(somaCent - totalCentsChec) > 2) {
           return {
             ok: false,
-            irPara: 4,
-            erro: 'A soma das parcelas precisa fechar com o total da nota na grade (etapa 4 · Financeiro).',
+            irPara: 5,
+            erro: 'A soma das parcelas precisa fechar com o total da nota na grade (etapa 5 · Financeiro).',
           };
         }
       }
       if (!entradaNfeRascunhoEditId) {
-        return { ok: false, irPara: 4, erro: 'Salve o rascunho na etapa 4 · Financeiro (botão laranja) antes da conferência final.' };
-      }
-      return { ok: true, irPara: 4, erro: '' };
-    }
-    if (s === 5) {
-      if (!entradaNfeWizardConferenciaRegistrada) {
         return {
           ok: false,
           irPara: 5,
-          erro: 'Registre a conferência final com o PIN (etapa 5 · Conferência).',
+          erro: 'Aguarde a entrada gravar no Agro (automático) ou abra a etapa 5 · Financeiro antes de finalizar.',
         };
       }
       return { ok: true, irPara: 5, erro: '' };
+    }
+    if (s === 6) {
+      if (!entradaNfeWizardConferenciaRegistrada) {
+        return {
+          ok: false,
+          irPara: 6,
+          erro: 'Registre a finalização com o PIN (etapa 6 · Finalizar).',
+        };
+      }
+      return { ok: true, irPara: 6, erro: '' };
     }
     return { ok: false, irPara: 1, erro: '' };
   }
@@ -1204,7 +1277,7 @@
   }
 
   function entradaNfeWizardAtualizarCoresNav(stepAtual) {
-    const step = Math.min(5, Math.max(1, Math.floor(Number(stepAtual)) || 1));
+    const step = Math.min(6, Math.max(1, Math.floor(Number(stepAtual)) || 1));
     document.querySelectorAll('#entrada-nfe-wizard-nav [data-nfe-w-go]').forEach((btn) => {
       const v = Number(btn.getAttribute('data-nfe-w-go'));
       const completo = entradaNfeWizardValidarEtapa(v).ok;
@@ -1218,7 +1291,7 @@
   }
 
   function entradaNfeWizardApplyStepUi(s) {
-    const step = Math.min(5, Math.max(1, Math.floor(Number(s)) || 1));
+    const step = Math.min(6, Math.max(1, Math.floor(Number(s)) || 1));
     entradaNfeWizardStep = step;
     entradaNfeWizardAtualizarCoresNav(step);
     document.querySelectorAll('[data-nfe-wiz-page]').forEach((pane) => {
@@ -1235,14 +1308,14 @@
       btnP.classList.toggle('pointer-events-none', step <= 1);
     }
     if (btnN) {
-      btnN.disabled = step >= 5;
-      btnN.classList.toggle('opacity-40', step >= 5);
-      btnN.classList.toggle('pointer-events-none', step >= 5);
+      btnN.disabled = step >= 6;
+      btnN.classList.toggle('opacity-40', step >= 6);
+      btnN.classList.toggle('pointer-events-none', step >= 6);
     }
     try {
       elEditorScroll?.scrollTo(0, 0);
     } catch (_) {}
-    if (step === 2) {
+    if (step === 3) {
       entradaNfeBipRebuildSelect();
       entradaNfeBipAplicarDraftLinhaAtual();
       requestAnimationFrame(() => {
@@ -1252,12 +1325,15 @@
         });
       });
     }
-    if (step === 5) entradaNfeRecapRefresh();
+    if (step === 6) {
+      entradaNfeRecapRefresh();
+      entradaNfeAtualizarUiBotaoWizardFinalizar();
+    }
   }
 
   function entradaNfeWizardSetStep(n) {
-    const s = Math.min(5, Math.max(1, Math.floor(Number(n)) || 1));
-    if (s === 5) {
+    const s = Math.min(6, Math.max(1, Math.floor(Number(n)) || 1));
+    if (s === 6) {
       const v = entradaNfeWizardValidarPassosAnteriores();
       if (!v.ok) {
         showMsg(v.erro, false);
@@ -1770,11 +1846,16 @@
     }
     const rid = entradaNfeRascunhoEditId;
     if (!rid) {
-      const t = 'Salve um rascunho antes (Salvar rascunho).';
+      const t = 'Aguarde a entrada gravar no Agro (salvamento automático) antes de finalizar.';
       if (elMsg) elMsg.textContent = t;
       showMsg(t, false);
-      entradaNfeWizardApplyStepUi(4);
+      entradaNfeWizardApplyStepUi(5);
       return;
+    }
+    const btnAprov = document.getElementById('nfe-wiz-btn-aprov');
+    if (btnAprov) {
+      btnAprov.disabled = true;
+      btnAprov.setAttribute('aria-busy', 'true');
     }
     const pin = document.getElementById('nfe-wiz-pin')?.value?.trim() || '';
     try {
@@ -1792,20 +1873,23 @@
         const err = j.erro || (r.status === 403 ? 'PIN inválido.' : 'Falha ao gravar.');
         if (elMsg) elMsg.textContent = err;
         showMsg(err, false);
+        entradaNfeAtualizarUiBotaoWizardFinalizar();
         return;
       }
       if (elMsg) {
-        elMsg.textContent = 'Conferência final registrada.';
+        elMsg.textContent = 'Finalização registrada.';
         elMsg.classList.add('text-emerald-800');
       }
       showMsg(
-        'Conferência final registrada no Agro (permanente). Se a lista ainda mostrar «Nota aberta», falta casar produto do catálogo em alguma linha da grade.',
+        'Finalização registrada no Agro (permanente). Se a lista ainda mostrar «Nota aberta», falta casar produto do catálogo em alguma linha da grade.',
         true,
       );
       entradaNfeWizardConferenciaRegistrada = true;
+      entradaNfeAtualizarUiBotaoWizardFinalizar();
       entradaNfeWizardAgendarAtualizarCores();
     } catch (_) {
       if (elMsg) elMsg.textContent = 'Erro de rede.';
+      entradaNfeAtualizarUiBotaoWizardFinalizar();
     }
   }
 
@@ -1818,7 +1902,7 @@
   document.getElementById('nfe-wiz-prev')?.addEventListener('click', () => entradaNfeWizardSetStep(entradaNfeWizardStep - 1));
   document.getElementById('nfe-wiz-next')?.addEventListener('click', () => {
     const cur = entradaNfeWizardStep;
-    if (cur < 5) {
+    if (cur < 6) {
       const dCur = entradaNfeWizardValidarEtapaDetalhe(cur);
       if (!dCur.ok) {
         showMsg(dCur.erro, false);
@@ -1886,8 +1970,8 @@
           'Use “Abrir Compras” para comparar pedido x recebimento quando necessário.',
         ],
       },
-      '2b': {
-        titulo: 'Ajuda rápida · Conferência por código',
+      '3': {
+        titulo: 'Ajuda rápida · Código de barras',
         resumo: 'Bipe no campo principal; o sistema tenta casar automaticamente.',
         itens: [
           'Primeiro compara com EAN/código da própria NF; depois com cadastro ERP.',
@@ -1896,11 +1980,11 @@
           '“Sem código na embalagem” dispensa apenas a linha selecionada.',
         ],
       },
-      '5': {
-        titulo: 'Ajuda rápida · Conferência final',
-        resumo: 'A etapa 5 só libera quando as etapas anteriores estiverem corretas.',
+      '6': {
+        titulo: 'Ajuda rápida · Finalizar',
+        resumo: 'A etapa 6 só libera quando as etapas anteriores estiverem corretas.',
         itens: [
-          'Valida NF/fornecedor/plano, produtos, estoque e financeiro (se iniciado).',
+          'Valida fornecedor/plano, produtos, código de barras, estoque e financeiro (se iniciado).',
           'Não permite finalizar com item pendente de conferência por código.',
           'PIN é o mesmo da senha rápida usada no estoque.',
         ],
@@ -2080,8 +2164,30 @@
   function entradaNfeFinParcelasIntervaloUiSync() {
     const preset = document.getElementById('fin-parc-int-preset');
     const wrap = document.getElementById('fin-parc-int-outro-wrap');
-    if (preset && String(preset.value) === '__outro__') wrap?.classList.remove('hidden');
-    else wrap?.classList.add('hidden');
+    const custom = document.getElementById('fin-parc-int-custom');
+    let np = parseInt(String(document.getElementById('fin-n-parc')?.value || '1'), 10);
+    if (!Number.isFinite(np) || np < 1) np = 1;
+    const umaParcela = np <= 1;
+    const hintUma = 'Inativo: com 1 parcela só vale o 1º vencimento.';
+    if (preset) {
+      preset.disabled = umaParcela;
+      preset.classList.toggle('opacity-60', umaParcela);
+      preset.classList.toggle('cursor-not-allowed', umaParcela);
+      preset.title = umaParcela ? hintUma : '';
+    }
+    if (custom) {
+      custom.disabled = umaParcela;
+      custom.classList.toggle('opacity-60', umaParcela);
+      custom.classList.toggle('cursor-not-allowed', umaParcela);
+      custom.title = umaParcela ? hintUma : 'Quantidade de dias entre parcelas.';
+    }
+    if (umaParcela) {
+      wrap?.classList.add('hidden');
+    } else if (preset && String(preset.value) === '__outro__') {
+      wrap?.classList.remove('hidden');
+    } else {
+      wrap?.classList.add('hidden');
+    }
   }
 
   /** Restaura select «Outro» ou preset ao reabrir rascunho (extra.financeiro_parcelas_intervalo_dias). */
@@ -2140,7 +2246,7 @@
     return out;
   }
 
-  /** Preenche etapa 4 a partir de ``extra.financeiro_ui`` (reabrir rascunho / F5). */
+  /** Preenche etapa 5 · Financeiro a partir de ``extra.financeiro_ui`` (reabrir entrada / F5). */
   function entradaNfeAplicarFinanceiroExtra(ex) {
     const exR = ex && typeof ex === 'object' ? ex : {};
     const fu = exR.financeiro_ui && typeof exR.financeiro_ui === 'object' ? exR.financeiro_ui : null;
@@ -2320,13 +2426,13 @@
     return { parcelas };
   }
 
-  /** Regras alinhadas ao salvar / financeiro / estoque: etapas 1–4 antes da conferência final (etapa 5). */
+  /** Etapas 1–5 válidas antes do PIN (etapa 6 · Finalizar). */
   function entradaNfeWizardValidarPassosAnteriores() {
-    for (let st = 1; st <= 4; st++) {
+    for (let st = 1; st <= 5; st++) {
       const d = entradaNfeWizardValidarEtapaDetalhe(st);
       if (!d.ok) return d;
     }
-    return { ok: true, irPara: 5, erro: '' };
+    return { ok: true, irPara: 6, erro: '' };
   }
 
   function entradaNfeAgendarPreviewParcelas() {
@@ -2854,6 +2960,8 @@
       entradaNfeAplicarFinanceiroExtra(rz.extra);
       entradaNfeEnsureTrailingCompactRow();
       entradaNfeAtualizarUiBotaoEstoqueAgro(rz);
+      entradaNfeAtualizarUiBotaoFinanceiro(rz);
+      entradaNfeAtualizarUiBotaoWizardFinalizar();
     } finally {
       queueMicrotask(() => {
         requestAnimationFrame(() => {
@@ -2870,7 +2978,7 @@
       const r = await fetch(`${URL_RASC_OBTER}?id=${encodeURIComponent(id)}`, { credentials: 'same-origin' });
       const j = await r.json();
       if (!j.ok || !j.rascunho) {
-        showMsg(j.erro || 'Rascunho não encontrado.', false);
+        showMsg(j.erro || 'Entrada não encontrada.', false);
         return;
       }
       aplicarRascunhoNaGrade(j.rascunho);
@@ -2888,17 +2996,17 @@
       }[bk];
       showMsg(
         bkMsg
-          ? `Rascunho carregado · ${bkMsg}.`
-          : `Rascunho carregado${rz.entrada_status_label ? ` · ${rz.entrada_status_label}` : ''}.`,
+          ? `Entrada carregada · ${bkMsg}.`
+          : `Entrada carregada${rz.entrada_status_label ? ` · ${rz.entrada_status_label}` : ''}.`,
         true,
       );
     } catch (_) {
-      showMsg('Erro de rede ao abrir rascunho.', false);
+      showMsg('Erro de rede ao abrir entrada.', false);
     }
   }
 
   async function excluirRascunhoMongo(id) {
-    if (!window.confirm('Excluir este rascunho do Mongo? Não dá para desfazer.')) return;
+    if (!window.confirm('Excluir esta entrada do Agro? Não dá para desfazer.')) return;
     try {
       const r = await fetch(URL_RASC_EXCLUIR, {
         method: 'POST',
@@ -2915,7 +3023,7 @@
         return;
       }
       if (entradaNfeRascunhoEditId === String(id)) setEntradaNfeRascunhoEdit(null);
-      showMsg('Rascunho excluído.', true);
+      showMsg('Entrada excluída.', true);
       carregarRascunhos();
     } catch (_) {
       showMsg('Erro de rede.', false);
@@ -3937,7 +4045,7 @@
       const j = await r.json();
       if (j.ok) {
         entradaNfeExtraUltimo = { ...ex };
-        showMsg(jaEditando ? 'Rascunho atualizado no Mongo.' : 'Novo rascunho salvo no Mongo.', true);
+        showMsg(jaEditando ? 'Entrada atualizada no Agro.' : 'Nova entrada salva no Agro.', true);
         if (!jaEditando && j.id) setEntradaNfeRascunhoEdit(j.id);
         carregarRascunhos();
       } else {
@@ -4014,7 +4122,7 @@
         entradaNfeExtraUltimo = { ...extraMerge };
         if (!jaEditando && j.id) setEntradaNfeRascunhoEdit(j.id);
         const hm = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        entradaNfeAutosaveHint(`Rascunho salvo ${hm}`, true);
+        entradaNfeAutosaveHint(`Salvo ${hm}`, true);
         carregarRascunhos();
       } else {
         entradaNfeAutosaveHint(String(j.erro || 'Salvar automático falhou').slice(0, 48), false);
@@ -4054,7 +4162,7 @@
       return;
     }
     if (!planoPad) {
-      showMsg('Defina o plano de contas na etapa 1 · NF · Plano (ex.: COMPRA MERCADORIA SN ou CN).', false);
+      showMsg('Defina o plano de contas na etapa 1 · Fornecedor (ex.: COMPRA MERCADORIA SN ou CN).', false);
       return;
     }
     if (!empresa || !dc || !dv || !forma || !banco) {
@@ -4123,13 +4231,15 @@
       });
       const j = await r.json();
       if ((r.status === 200 || r.status === 207) && j.rascunho && j.rascunho.ok) {
-        entradaNfeExtraUltimo = { ...exFin };
         const fin = j.financeiro || {};
         const nIds = (fin.ids || []).length;
+        entradaNfeExtraUltimo = { ...exFin };
         if (nIds && fin.ok) {
+          entradaNfeExtraUltimo = { ...entradaNfeExtraUltimo, financeiro_lancado: true };
+          entradaNfeAtualizarUiBotaoFinanceiro({ entrada_financeiro_lancado: true, status: '' });
           let t = fin.quitar_ao_salvar
-            ? 'Rascunho salvo e conta(s) a pagar gerada(s) e quitada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.'
-            : 'Rascunho salvo e conta(s) a pagar gerada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
+            ? 'Entrada salva e conta(s) a pagar gerada(s) e quitada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.'
+            : 'Entrada salva e conta(s) a pagar gerada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
           const fnTit = (cab.emit_nome || '').trim();
           if (fnTit) {
             t += ' Favorecido do título: «' + fnTit + '».';
@@ -4151,11 +4261,11 @@
           showMsg(t, !j.aviso_api);
         } else if (nIds && !fin.ok) {
           const er = (fin.erros || []).map((x) => (x.linha ? 'L' + x.linha + ': ' : '') + (x.erro || '')).join(' · ');
-          showMsg('Rascunho salvo. Lançamento parcial: ' + (er || 'ver detalhes') + '. IDs: ' + fin.ids.join(', ') + '.', false);
+          showMsg('Entrada salva. Lançamento parcial: ' + (er || 'ver detalhes') + '. IDs: ' + fin.ids.join(', ') + '.', false);
         } else {
           const er = j.erro
             || (fin.erros && fin.erros[0] && fin.erros[0].erro)
-            || 'Rascunho OK; financeiro não gerou título (revise plano, valores ou empresa).';
+            || 'Entrada OK; financeiro não gerou título (revise plano, valores ou empresa).';
           showMsg(er, false);
         }
         carregarRascunhos();
@@ -4170,8 +4280,7 @@
     }
   }
 
-  document.getElementById('btn-salvar-manual').addEventListener('click', () => salvar('manual', {}));
-  document.getElementById('btn-salvar-fin').addEventListener('click', () => salvarComFinanceiro('manual', { com_financeiro: true }));
+  document.getElementById('btn-salvar-fin')?.addEventListener('click', () => salvarComFinanceiro('manual', { com_financeiro: true }));
 
   const btnEstoqueAgro = document.getElementById('btn-estoque-agro');
   let entradaNfeEstoqueAgroEmCurso = false;
@@ -4195,11 +4304,11 @@
     const empSel = document.getElementById('m-empresa-faturada');
     const empNome = empSel.options[empSel.selectedIndex]?.text || '';
     if (!empSel.value) {
-      showMsg('Selecione a empresa faturada na etapa 3.', false);
+      showMsg('Selecione a empresa faturada na etapa 4 · Estoque.', false);
       return;
     }
     if (!depVal || !['centro', 'vila'].includes(depVal)) {
-      showMsg('Selecione o depósito na etapa 3 (obrigatório — confira o aviso ao escolher).', false);
+      showMsg('Selecione o depósito na etapa 4 · Estoque (obrigatório — confira o aviso ao escolher).', false);
       return;
     }
     const depLbl = Array.from(document.getElementById('m-deposito-entrada').options).find((o) => o.value === depVal);
@@ -4600,7 +4709,7 @@
   document.getElementById('btn-refresh-rasc').addEventListener('click', carregarRascunhos);
   document.getElementById('btn-entrada-nfe-sair-edicao')?.addEventListener('click', () => {
     setEntradaNfeRascunhoEdit(null);
-    showMsg('Próximo salvar cria novo rascunho.', true);
+    showMsg('Próximo salvar inicia nova entrada.', true);
   });
 
   document.addEventListener('keydown', (e) => {
@@ -4649,6 +4758,7 @@
       atualizarPainelTotalNfe();
       entradaNfeAtualizarPreviewParcelas();
       entradaNfeCatalogLoad().catch(() => {});
+      entradaNfeAtualizarUiBotaoWizardFinalizar();
     };
     if (rawOc) {
       try {
