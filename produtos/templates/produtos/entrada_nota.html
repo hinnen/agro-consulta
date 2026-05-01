@@ -2644,15 +2644,291 @@
   }
 
   /**
-   * Mesmo critério do PDV Wizard ao digitar: `wizard=1&q=` (ordena por match exato em código/EAN/index_codigos + teto 24).
-   * Mantém `compras=1` para custos / últimas compras no JSON (`api_buscar_produtos`).
-   * Ver `fetchWizardServerSearch` em `produtos/static/produtos/js/pdv_wizard.js`.
+   * Catálogo local + custos (mesma ideia do PDV Wizard: GET `wizard=1&wizard_catalog=1&compras=1`),
+   * cache em memória + sessionStorage; filtro no cliente evita um GET por tecla.
+   */
+  const ENTRADA_NFE_CATALOG_STORAGE_KEY = 'agro_entrada_nfe_catalog_compras_v1';
+  const ENTRADA_NFE_CATALOG_MAX_RESULTS = 24;
+  let entradaNfeCatalogProdutos = [];
+  let entradaNfeCatalogReady = false;
+  let entradaNfeCatalogLoadPromise = null;
+
+  /** Fragmentos RegExp — não interpolar escapers dentro de template literals (`${` quebra o parser). */
+  const ENTRADA_NFE_RX_ESC_TN = /[.*+?^${}()|[\]\\]/g;
+  function entradaNfeCatalogEscTn(s) {
+    return String(s || '').replace(ENTRADA_NFE_RX_ESC_TN, '\\$&');
+  }
+
+  function entradaNfeCatalogStripAccents(s) {
+    return String(s || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function entradaNfeCatalogOnlyDigits(s) {
+    return String(s || '').replace(/\D/g, '');
+  }
+
+  function entradaNfeCatalogAllowLocal(q) {
+    const z = String(q || '').trim();
+    if (z.length >= 2) return true;
+    return /^\d{6,}$/.test(z);
+  }
+
+  function entradaNfeCatalogMatchIx(qt, qd, p) {
+    if (!Array.isArray(p.index_codigos) || !p.index_codigos.length) return false;
+    const ql = String(qt || '').trim().toLowerCase();
+    for (let i = 0; i < p.index_codigos.length; i += 1) {
+      const x = String(p.index_codigos[i] == null ? '' : p.index_codigos[i]).trim();
+      if (!x) continue;
+      if (x.toLowerCase() === ql) return true;
+      if (qd.length >= 6 && entradaNfeCatalogOnlyDigits(x) === qd) return true;
+    }
+    return false;
+  }
+
+  function entradaNfeCatalogScoreProduct(p, qRaw, barcodeMode) {
+    const q = entradaNfeCatalogStripAccents(qRaw.trim());
+    if (!q) return 0;
+    const nome = entradaNfeCatalogStripAccents(p.nome || '');
+    const marca = entradaNfeCatalogStripAccents(p.marca || '');
+    const nfe = entradaNfeCatalogStripAccents(String(p.codigo_nfe || ''));
+    const cod = entradaNfeCatalogStripAccents(String(p.codigo || ''));
+    const ean = entradaNfeCatalogStripAccents(String(p.codigo_barras || '').replace(/\s/g, ''));
+    const qDigits = entradaNfeCatalogOnlyDigits(qRaw);
+    const eanD = entradaNfeCatalogOnlyDigits(ean);
+
+    let score = 0;
+    if (nfe === q || cod === q || ean === q) score += 2500;
+    if (qDigits.length >= 6 && eanD && eanD === qDigits) score += 2400;
+    if (entradaNfeCatalogMatchIx(qRaw, qDigits, p)) score += 2600;
+    if (barcodeMode) {
+      if ((ean && ean.indexOf(q) !== -1) || nfe.indexOf(q) !== -1 || cod.indexOf(q) !== -1) score += 500;
+    }
+    if (nfe.indexOf(q) === 0) score += 900;
+    else if (nfe.indexOf(q) !== -1) score += 450;
+    if (cod.indexOf(q) === 0) score += 850;
+    else if (cod.indexOf(q) !== -1) score += 400;
+    if (ean && q && ean.indexOf(q) === 0) score += 880;
+    else if (ean && q && ean.indexOf(q) !== -1) score += 420;
+
+    if (nome.indexOf(q) !== -1) score += 200;
+
+    const tokens = q.split(/\s+/).filter((t) => t.length > 0);
+    if (tokens.length > 1) {
+      const allIn = tokens.every((tk) => nome.indexOf(tk) !== -1);
+      if (allIn) score += 320;
+      tokens.forEach((tk) => {
+        if (nome.split(/\s+/).some((w) => w.indexOf(tk) === 0)) score += 70;
+      });
+      let hitPart = 0;
+      tokens.forEach((tk) => {
+        if (tk.length < 2) return;
+        if (nome.indexOf(tk) !== -1 || (marca && marca.indexOf(tk) !== -1)) hitPart += 1;
+      });
+      if (hitPart > 0) score += hitPart * 130;
+    } else if (tokens.length === 1 && tokens[0].length >= 2) {
+      const t0 = tokens[0];
+      if (nome.indexOf(t0) === 0) score += 180;
+      else if (nome.split(/\s+/).some((w) => w.indexOf(t0) === 0)) score += 120;
+    }
+
+    if (marca && marca.indexOf(q) !== -1) score += 90;
+    return score;
+  }
+
+  function entradaNfeWizardRowBateQueryExataRow(row, q) {
+    const qRaw = String(q || '').trim();
+    if (!qRaw) return false;
+    const qWiz = qRaw.toLowerCase();
+    const qAl = entradaNfeSomenteAlnum(qRaw).toLowerCase();
+    if (!qAl) return false;
+    const keys = ['codigo_barras', 'codigo_nfe', 'codigo'];
+    for (let i = 0; i < keys.length; i += 1) {
+      const v = row[keys[i]];
+      if (v == null || v === '') continue;
+      const vs = String(v).trim();
+      if (!vs) continue;
+      if (vs === qRaw || vs.toLowerCase() === qWiz) return true;
+      if (entradaNfeSomenteAlnum(vs).toLowerCase() === qAl) return true;
+    }
+    const ix = row.index_codigos;
+    if (Array.isArray(ix)) {
+      for (let j = 0; j < ix.length; j += 1) {
+        const x = ix[j];
+        if (x == null) continue;
+        const xs = String(x).trim();
+        if (!xs) continue;
+        if (xs.toLowerCase() === qWiz || entradaNfeSomenteAlnum(xs).toLowerCase() === qAl) return true;
+      }
+    }
+    return false;
+  }
+
+  function entradaNfeCatalogRelevanceNomeRow(row, qStrip) {
+    const q = String(qStrip || '').trim().toLowerCase();
+    if (!q) return 0;
+    const nomeSrc = String(row.nome || '');
+    const nome = nomeSrc.trim().toLowerCase();
+    const marca = String(row.marca || '').trim().toLowerCase();
+    const tokens = q.split(/\s+/).filter((x) => x && String(x).trim());
+    if (!tokens.length) return 0;
+    const nomeLower = nomeSrc.toLowerCase();
+
+    let score = 0;
+    const nt = tokens.length;
+    let matched = 0;
+
+    const digitsOnlyTok = (s) => !!(s && /^\d+$/.test(String(s)));
+
+    for (let ti = 0; ti < tokens.length; ti += 1) {
+      const tn = tokens[ti];
+      const present = tn && (nome.includes(tn) || marca.includes(tn));
+
+      if (!digitsOnlyTok(tn)) {
+        if (present) {
+          matched += 1;
+          score += 55 + Math.min(tn.length * 2, 80);
+        }
+        continue;
+      }
+
+      if (present) {
+        matched += 1;
+        const esc = entradaNfeCatalogEscTn(tn);
+        const rxMed = new RegExp(
+          '\\|\\s*' +
+            esc +
+            '(?:["\'\u201c\u201d\u2033\u2018\u2019\u2032\xB4\x60\xBA\xB0.]|\\s+["\u201c\u201d\u2018\u2019\u2033]?|\\s*$)',
+          'i',
+        );
+        const rxInch = new RegExp(
+          '(?<!\\d)' +
+            esc +
+            '(?:["\u201c\u201d\u2033]|\'\'|\\s*["\u2018\u2019\u2032\u2033]\\b|\\s*mm\\b|\\s*cm\\b|\\s*")',
+          'i',
+        );
+        const rxWord = new RegExp('(?<!\\d)' + esc + '(?!\\d)');
+
+        if (rxMed.test(nomeLower)) score += 260;
+        else if (rxInch.test(nomeLower)) score += 200;
+        else if (rxWord.test(nomeLower)) score += 95;
+        else score += 15;
+      } else {
+        score -= 40;
+      }
+    }
+
+    if (nt >= 2) {
+      if (matched >= nt) score += 450;
+      else score -= (nt - Math.min(matched, nt)) * 140;
+    } else if (nt === 1) {
+      score += matched ? 80 : -20;
+    }
+
+    const qc = q.replace(/"/g, '').replace(/'/g, '').replace(/”/g, '').replace(/′/g, '').replace(/″/g, '').replace(/\s+/g, ' ').trim();
+    if (qc.length >= 3 && qc.replace(/\s/g, '') && nome.replace(/\s/g, '').includes(qc.replace(/\s/g, ''))) {
+      score += 120;
+    }
+
+    if (matched >= nt && nt >= 2) {
+      score += Math.max(0, 72 - Math.min(nome.length, 72) * 0.42);
+    }
+
+    return score;
+  }
+
+  function entradaNfeCatalogRankCompare(a, b, qStrip) {
+    const exA = entradaNfeWizardRowBateQueryExataRow(a, qStrip) ? 0 : 1;
+    const exB = entradaNfeWizardRowBateQueryExataRow(b, qStrip) ? 0 : 1;
+    if (exA !== exB) return exA - exB;
+
+    const relA = entradaNfeCatalogRelevanceNomeRow(a, qStrip);
+    const relB = entradaNfeCatalogRelevanceNomeRow(b, qStrip);
+    if (relA !== relB) return relB - relA;
+
+    const scA = entradaNfeCatalogScoreProduct(a, qStrip, false);
+    const scB = entradaNfeCatalogScoreProduct(b, qStrip, false);
+    if (scA !== scB) return scB - scA;
+
+    const na = String(a.nome || '').toLowerCase();
+    const nb = String(b.nome || '').toLowerCase();
+    return na < nb ? -1 : na > nb ? 1 : 0;
+  }
+
+  function entradaNfeCatalogSearchLocal(termo) {
+    const q = String(termo || '').trim();
+    const qd = entradaNfeCatalogOnlyDigits(q);
+    if (!entradaNfeCatalogAllowLocal(q) || qd.length >= 8) return [];
+    return entradaNfeCatalogProdutos
+      .filter((p) => entradaNfeCatalogScoreProduct(p, q, false) > 0)
+      .sort((a, b) => entradaNfeCatalogRankCompare(a, b, q))
+      .slice(0, ENTRADA_NFE_CATALOG_MAX_RESULTS);
+  }
+
+  function entradaNfeCatalogLoad() {
+    if (entradaNfeCatalogReady) return Promise.resolve();
+    if (entradaNfeCatalogLoadPromise) return entradaNfeCatalogLoadPromise;
+
+    entradaNfeCatalogLoadPromise = (async () => {
+      try {
+        const raw = sessionStorage.getItem(ENTRADA_NFE_CATALOG_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.produtos) && parsed.produtos.length) {
+            entradaNfeCatalogProdutos = parsed.produtos;
+            entradaNfeCatalogReady = true;
+            return;
+          }
+        }
+      } catch (_) {}
+
+      const u = new URL(URL_BUSCA, window.location.origin);
+      u.searchParams.set('wizard', '1');
+      u.searchParams.set('wizard_catalog', '1');
+      u.searchParams.set('compras', '1');
+      const r = await fetch(u.toString(), { credentials: 'same-origin' });
+      if (!r.ok) throw new Error('catalog_http');
+      const j = await r.json();
+      const arr = Array.isArray(j.produtos) ? j.produtos : [];
+      entradaNfeCatalogProdutos = arr;
+      entradaNfeCatalogReady = arr.length > 0;
+      try {
+        sessionStorage.setItem(ENTRADA_NFE_CATALOG_STORAGE_KEY, JSON.stringify({ produtos: arr, t: Date.now() }));
+      } catch (_) {}
+    })().finally(() => {
+      entradaNfeCatalogLoadPromise = null;
+    });
+
+    return entradaNfeCatalogLoadPromise;
+  }
+
+  /**
+   * Cache local (wizard_catalog + compras) quando possível; senão mesmo endpoint server-side que antes.
    */
   let _entradaNfeBuscaSeq = 0;
   async function entradaNfeBuscarProdutosArr(termo) {
     const t = String(termo || '').trim();
     if (t.length < 2) return [];
     const sid = ++_entradaNfeBuscaSeq;
+
+    const qDigits = t.replace(/\D/g, '');
+    const tryLocal = entradaNfeCatalogAllowLocal(t) && qDigits.length < 8;
+
+    if (tryLocal) {
+      try {
+        await entradaNfeCatalogLoad();
+        if (sid !== _entradaNfeBuscaSeq) return null;
+        if (entradaNfeCatalogReady && entradaNfeCatalogProdutos.length) {
+          const loc = entradaNfeCatalogSearchLocal(t);
+          if (loc.length) return loc;
+        }
+      } catch (_) {
+        /* servidor abaixo */
+      }
+    }
+
     try {
       const u = new URL(URL_BUSCA, window.location.origin);
       u.searchParams.set('q', t);
@@ -4001,6 +4277,7 @@
     carregarRascunhos();
     atualizarPainelTotalNfe();
     entradaNfeAtualizarPreviewParcelas();
+    entradaNfeCatalogLoad().catch(() => {});
   });
 })();
   </script>
