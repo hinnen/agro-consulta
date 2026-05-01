@@ -3831,6 +3831,9 @@
           let t = fin.quitar_ao_salvar
             ? 'Rascunho salvo e conta(s) a pagar gerada(s) e quitada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.'
             : 'Rascunho salvo e conta(s) a pagar gerada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
+          if (fin.quitar_ao_salvar) {
+            t += ' Em Lançamentos (contas a pagar), veja na aba Quitados.';
+          }
           if (j.erp_lancamento_ok === true) t += ' ERP: envio aceito.';
           if (j.erp_baixa_ok === true) t += ' ERP: baixa aceita.';
           if (j.aviso_api) t += ' ' + j.aviso_api;

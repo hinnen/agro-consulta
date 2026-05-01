@@ -2663,11 +2663,9 @@
               if (va) fate.value = va;
               if (vd && !va) fate.value = vd;
               if (va && !vd) fde.value = va;
-            } else if (!mongoFocus) {
-              const t = hojeISO();
-              fde.value = t;
-              fate.value = t;
             } else {
+              // Sem intervalo na URL: não preencher vencimento (antes era «só hoje», o que escondia
+              // títulos novos com vencimento futuro/p.ex. NF-e). Use «Filtro rápido hoje» se quiser.
               fde.value = '';
               fate.value = '';
             }
