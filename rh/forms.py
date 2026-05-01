@@ -106,7 +106,18 @@ class ValeManualRHForm(forms.Form):
 
     _ctl = "mt-1 w-full rounded-lg border-2 border-slate-200 px-2 py-2 text-sm font-semibold"
 
-    data = forms.DateField(label="Data")
+    data = forms.DateField(
+        label="Data do vale",
+        input_formats=["%Y-%m-%d", "%d/%m/%Y", "%d/%m/%y"],
+        widget=forms.DateInput(
+            format="%Y-%m-%d",
+            attrs={
+                "type": "date",
+                "class": _ctl,
+                "title": "Pode ser data passada (ex.: ontem); vale entra na competência do mês desta data.",
+            },
+        ),
+    )
     valor = forms.DecimalField(
         label="Valor (R$)",
         max_digits=12,

@@ -4,7 +4,10 @@
 {% block admin_title %}SisVale | Empréstimos — consulta{% endblock %}
 {% block admin_header_title %}Empréstimos — consulta{% endblock %}
 {% block admin_header_meta %}
-  <p class="mt-1 text-base font-semibold text-slate-600">Tipo, nome e ordenação no botão <strong class="text-slate-800">Filtros</strong> na lista.</p>
+  <details class="mt-1 max-w-4xl">
+    <summary class="cursor-pointer select-none font-black uppercase text-xs text-slate-500 hover:text-slate-800">Ajuda rápida</summary>
+    <p class="mt-2 text-sm font-semibold text-slate-600 leading-snug">Use <strong class="text-slate-800">Filtros</strong> para tipo, situação (aberto/quitado) e nome. Em título Mongo, <strong>Baixa / pagar</strong> abre este quadro; <strong>Nova guia interna</strong> cria mais uma aba só dentro do quadro.</p>
+  </details>
 {% endblock %}
 
 {% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col{% endblock %}
@@ -32,6 +35,21 @@
   </div>
 </div>
 
+<div id="consulta-shell-lanc" class="fixed inset-0 z-[135] hidden" aria-hidden="true">
+  <button type="button" id="consulta-shell-lanc-backdrop" class="absolute inset-0 bg-slate-900/70" aria-label="Fechar"></button>
+  <div class="pointer-events-none absolute inset-0 flex items-center justify-center p-[clamp(8px,2vh,24px)]">
+    <div class="pointer-events-auto flex h-[min(90vh,calc(100dvh-16px))] w-[min(90vw,calc(100vw-16px))] max-w-[1600px] flex-col overflow-hidden rounded-2xl border-2 border-slate-800 bg-white shadow-2xl" role="dialog" aria-labelledby="consulta-shell-lanc-titulo">
+      <div class="flex shrink-0 flex-wrap items-center gap-3 border-b-2 border-slate-100 bg-slate-50 px-4 py-3">
+        <h2 id="consulta-shell-lanc-titulo" class="min-w-0 flex-1 text-base font-black uppercase tracking-tight text-slate-900 sm:text-lg">Lançamentos (baixa)</h2>
+        <button type="button" id="consulta-shell-lanc-nova-guia-interna" class="min-h-[44px] shrink-0 rounded-xl border-2 border-emerald-600 bg-emerald-50 px-4 py-2 text-xs font-black uppercase text-emerald-900 hover:bg-emerald-100">Nova guia interna</button>
+        <button type="button" id="consulta-shell-lanc-fechar" class="min-h-[44px] shrink-0 rounded-xl border-2 border-slate-800 bg-slate-800 px-5 py-2 text-xs font-black uppercase text-white hover:bg-slate-900">Fechar (Esc)</button>
+      </div>
+      <div id="consulta-shell-lanc-tabstrip" class="hidden shrink-0 flex-wrap gap-2 border-b border-slate-200 bg-white px-3 py-2"></div>
+      <iframe id="consulta-shell-lanc-if" class="min-h-0 w-full flex-1 border-0 bg-white" title="Lançamentos"></iframe>
+    </div>
+  </div>
+</div>
+
 <div id="consulta-filtros-overlay" class="fixed inset-0 z-[100] hidden" aria-hidden="true">
   <button type="button" id="consulta-filtros-backdrop" class="absolute inset-0 bg-slate-900/65" aria-label="Fechar filtros"></button>
   <div class="pointer-events-none absolute inset-0 flex items-end justify-center sm:items-center sm:p-4">
@@ -50,6 +68,15 @@
             <button type="button" class="filtro-lista min-h-[52px] rounded-xl border-2 border-slate-800 bg-slate-800 px-6 py-3 text-sm font-black uppercase text-white" data-filtro="">Todos</button>
             <button type="button" class="filtro-lista min-h-[52px] rounded-xl border-2 border-emerald-200 bg-emerald-50 px-6 py-3 text-sm font-black uppercase text-emerald-900" data-filtro="externo">Externos</button>
             <button type="button" class="filtro-lista min-h-[52px] rounded-xl border-2 border-orange-200 bg-orange-50 px-6 py-3 text-sm font-black uppercase text-orange-900" data-filtro="interno">Internos</button>
+          </div>
+        </section>
+        <section class="space-y-4 border-t border-slate-100 pt-6">
+          <h3 class="text-base font-black uppercase text-slate-800">Situação na lista</h3>
+          <p class="text-sm font-semibold text-slate-600">Por padrão mostra só títulos <strong class="text-slate-800">em aberto</strong> (Mongo ou interno Agro).</p>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="filtro-estado-consulta min-h-[52px] rounded-xl border-2 border-slate-800 bg-slate-800 px-6 py-3 text-sm font-black uppercase text-white" data-estado="aberto">Em aberto</button>
+            <button type="button" class="filtro-estado-consulta min-h-[52px] rounded-xl border-2 border-emerald-200 bg-emerald-50 px-6 py-3 text-sm font-black uppercase text-emerald-900" data-estado="quitado">Quitados</button>
+            <button type="button" class="filtro-estado-consulta min-h-[52px] rounded-xl border-2 border-slate-200 bg-slate-50 px-6 py-3 text-sm font-black uppercase text-slate-700" data-estado="todos">Todos</button>
           </div>
         </section>
         <section class="space-y-4 border-t border-slate-100 pt-6">
@@ -91,8 +118,10 @@
           <label class="block max-w-md">
             <span class="mb-2 block text-sm font-black uppercase text-orange-800">Cartões na tela</span>
             <select id="consulta-agro-ordenar" class="w-full min-h-[52px] rounded-xl border-2 border-orange-100 bg-white px-3 text-base font-bold">
-              <option value="data_desc" selected>Data (mais nova)</option>
-              <option value="data_asc">Data (mais antiga)</option>
+              <option value="venc_asc" selected>Vencimento (mais antigo primeiro)</option>
+              <option value="venc_desc">Vencimento (mais novo primeiro)</option>
+              <option value="data_desc">Data cadastro (mais nova)</option>
+              <option value="data_asc">Data cadastro (mais antiga)</option>
               <option value="nome_az">Nome A–Z</option>
               <option value="nome_za">Nome Z–A</option>
             </select>
@@ -173,8 +202,12 @@
   const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
   const API_INT_PAG = "{% url 'api_emprestimos_interno_pagamento' %}";
   const API_INT_DEL = "{% url 'api_emprestimos_interno_pagamento_excluir' %}";
+  const URL_LANC_PAGAR = "{% url 'lancamentos_contas_pagar' %}";
+  const URL_LANC_RECEBER = "{% url 'lancamentos_contas_receber' %}";
 
   let filtroLista = '';
+  /** aberto | quitado | todos — padrão: só em aberto. */
+  let filtroEstado = 'aberto';
   let agroItensCache = null;
   var _delEmpIntDelCtx = { metaId: '', pid: '', ind: null, modo: 'pagamento' };
 
@@ -211,10 +244,40 @@
     return String(x.credor_nome || x.mutuario_label || '').toLowerCase();
   }
 
+  /** ISO YYYY-MM-DD para ordenar ou '' se não houver. */
+  function dataVencimentoSortStr(x) {
+    if (!x) return '';
+    function pick(s) {
+      var t = String(s || '').trim().slice(0, 10);
+      return (/^\d{4}-\d{2}-\d{2}$/.test(t)) ? t : '';
+    }
+    if (x.origem_lista === 'mongo_lancamento') {
+      var m = pick(x.mongo_data_vencimento);
+      if (m) return m;
+    }
+    var dv = pick(x.vencimento_previsto) || pick(x.primeiro_vencimento) || pick(x.primeira_data_prevista);
+    if (dv) return dv;
+    var cr = x.cronograma;
+    if (Array.isArray(cr) && cr.length) return pick(cr[0].vencimento_previsto);
+    return '';
+  }
+
   function ordenarAgroItens(itens, ord) {
-    var o = ord || 'data_desc';
+    var o = ord || 'venc_asc';
     var arr = itens.slice();
-    if (o === 'data_asc') {
+    function keyAscVenc(xx) {
+      var d = dataVencimentoSortStr(xx);
+      return d || '9999-12-31';
+    }
+    function keyDescVenc(xx) {
+      var d = dataVencimentoSortStr(xx);
+      return d || '0000-01-01';
+    }
+    if (o === 'venc_asc') {
+      arr.sort(function (a, b) { return keyAscVenc(a).localeCompare(keyAscVenc(b)); });
+    } else if (o === 'venc_desc') {
+      arr.sort(function (a, b) { return keyDescVenc(b).localeCompare(keyDescVenc(a)); });
+    } else if (o === 'data_asc') {
       arr.sort(function (a, b) { return String(a.created_at || '').localeCompare(String(b.created_at || '')); });
     } else if (o === 'nome_az') {
       arr.sort(function (a, b) { return nomeAgro(a).localeCompare(nomeAgro(b)); });
@@ -236,6 +299,18 @@
       if (f === 'interno' && (x.mutuario_label || '').trim()) return true;
       return false;
     });
+  }
+
+  function itemEmprestimoEstaAberto(x) {
+    if (x.origem_lista === 'mongo_lancamento') return !x.mongo_pago;
+    if (String(x.tipo || '').toLowerCase() === 'interno') return !x.interno_quitado;
+    return true;
+  }
+
+  function filtrarPorEstadoEmp(itens) {
+    if (filtroEstado === 'todos') return itens.slice();
+    if (filtroEstado === 'aberto') return itens.filter(itemEmprestimoEstaAberto);
+    return itens.filter(function (x) { return !itemEmprestimoEstaAberto(x); });
   }
 
   function fmtBrl(n) {
@@ -273,6 +348,17 @@
     return 'R$ ' + abs;
   }
 
+  /** Data brasileira DD/MM/AA (entrada YYYY-MM-DD ou prefixo). */
+  function fmtDataBrAaIso(s) {
+    if (!s) return '—';
+    var iso = String(s).trim().slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+      var p = iso.split('-');
+      return p[2] + '/' + p[1] + '/' + p[0].slice(2);
+    }
+    return iso || '—';
+  }
+
   function renderCardAgroItem(x) {
     if (x.origem_lista === 'mongo_lancamento') {
       const ref = x.ref || '—';
@@ -282,33 +368,58 @@
       const dv = (x.mongo_data_vencimento || '').slice(0, 10);
       const st = x.mongo_pago ? '<span class="inline-flex items-center rounded-md bg-emerald-600 px-2 py-0.5 text-xs font-black text-white uppercase">Quitado</span>' : '<span class="inline-flex items-center rounded-md bg-amber-500 px-2 py-0.5 text-xs font-black text-white uppercase">Aberto</span>';
       const tp = x.mongo_despesa ? 'A pagar' : 'A receber';
-      const dt = (x.created_at || '').slice(0, 19).replace('T', ' ');
       const plan = x.mongo_plano_conta || '—';
       const isExt = String(x.tipo || '').toLowerCase() === 'externo';
       const labExt = isExt ? 'Externo' : 'Interno';
       const bdc = isExt ? 'border-emerald-200 bg-emerald-50/50' : 'border-violet-200 bg-violet-50/40';
       const ttc = isExt ? 'text-emerald-900' : 'text-violet-900';
+      var midMongo = String(x.mongo_lancamento_id || '').trim() || String(x.id || '').replace(/^ml:/i, '').trim();
+      var baseL = x.mongo_despesa ? URL_LANC_PAGAR : URL_LANC_RECEBER;
+      var qsL = '?mongo_id=' + encodeURIComponent(midMongo) + '&status=' + (x.mongo_pago ? 'quitados' : 'abertos') + '&agro_popup_sync=1';
+      var lblBx = x.mongo_pago ? 'Ver' : (x.mongo_despesa ? 'Baixa / pagar' : 'Baixa / receber');
+      var helpTituloMongo = midMongo
+        ? 'Quadro sobre esta tela (90%). Sincronização automática ao abrir. Nova guia interna = outra aba dentro do quadro.'
+        : 'Este cartão não tem ID Mongo; use Contas a pagar ou receber e busque pelo número de referência.';
+      var helpEl = '<span class="consulta-mongo-help inline-flex h-9 w-9 shrink-0 cursor-help items-center justify-center rounded-full border-2 border-slate-400 bg-white text-sm font-black text-slate-600 hover:bg-slate-100" title="' + escHtml(helpTituloMongo) + '" aria-label="Ajuda Mongo">?</span>';
+      var btnBaixa = midMongo
+        ? '<button type="button" data-agro-shell-path="' + encodeURIComponent(baseL + qsL) + '" class="consulta-mongo-baixa-btn inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-800 bg-slate-800 px-3 py-1.5 text-xs font-black uppercase tracking-tight text-white shadow hover:bg-slate-900">' + lblBx + '</button>'
+        : '';
+      var acoesLinha = btnBaixa
+        ? '<span class="inline-flex items-center gap-1.5 sm:gap-2">' + btnBaixa + helpEl + '</span>'
+        : helpEl;
+      var dvLbl = fmtDataBrAaIso(dv);
+      var cre = String(x.created_at || '');
+      var hrMini = cre.length >= 16 ? cre.slice(11, 16) : '';
+      var stampHdr = fmtDataBrAaIso(cre.slice(0, 10)) + (hrMini ? (' · ' + hrMini) : '');
       return '<div class="rounded-xl border-2 ' + bdc + ' px-4 py-3 mb-3">' +
         '<div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">' +
         '<span class="text-xs font-black uppercase tracking-tight ' + ttc + '">' + labExt + ' · <span class="text-slate-600">Mongo</span> · ref ' + escHtml(ref) + '</span>' +
-        '<span class="text-xs font-bold text-slate-400 tabular-nums shrink-0">' + escHtml(dt) + '</span></div>' +
+        '<span class="text-sm font-bold text-slate-400 tabular-nums shrink-0">' + escHtml(stampHdr) + '</span></div>' +
         '<div class="mt-1 text-lg sm:text-xl font-black leading-tight text-slate-900 break-words">' + escHtml(quem) + '</div>' +
-        '<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-slate-200/70 pt-2 text-sm sm:text-base font-semibold text-slate-800">' +
+        '<div class="mt-3 grid gap-3 border-t border-slate-200/70 pt-3 lg:grid-cols-12 lg:items-end">' +
+        '<div class="lg:col-span-6 lg:min-w-0 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm font-semibold text-slate-900 sm:text-base">' +
         '<span class="inline-flex flex-wrap items-center gap-2">' + escHtml(tp) + st + '</span>' +
-        '<span class="hidden text-slate-300 sm:inline" aria-hidden="true">|</span>' +
-        '<span class="tabular-nums">Venc. <strong>' + escHtml(dv || '—') + '</strong></span>' +
-        '<span class="hidden text-slate-300 sm:inline" aria-hidden="true">|</span>' +
+        '<span class="hidden text-slate-300 xl:inline" aria-hidden="true">|</span>' +
+        '<span class="tabular-nums">Venc. <strong>' + escHtml(dvLbl) + '</strong></span>' +
+        '<span class="hidden text-slate-300 xl:inline" aria-hidden="true">|</span>' +
         '<span class="tabular-nums">Título <strong>R$ ' + fmtBrl(bruto) + '</strong></span>' +
-        '<span class="hidden text-slate-300 sm:inline" aria-hidden="true">|</span>' +
-        '<span class="tabular-nums">Aberto <strong>R$ ' + fmtBrl(rest) + '</strong></span></div>' +
-        '<div class="mt-1.5 truncate text-xs font-semibold text-slate-500 sm:text-sm" title="' + escHtml(plan) + '">' + escHtml(plan) + '</div></div>';
+        '<span class="hidden text-slate-300 xl:inline" aria-hidden="true">|</span>' +
+        '<span class="tabular-nums whitespace-nowrap">Aberto <strong>R$ ' + fmtBrl(rest) + '</strong></span>' +
+        '</div>' +
+        '<div class="lg:col-span-4 flex min-h-0 min-w-0 justify-end lg:border-l lg:border-dashed lg:border-slate-200 lg:pl-3">' +
+        '<div class="min-w-0 w-full max-w-full text-right">' +
+        '<span class="block text-[10px] font-black uppercase tracking-wide text-slate-500">Plano de contas</span>' +
+        '<span class="block truncate text-sm font-bold leading-snug text-slate-800 sm:text-base" title="' + escHtml(plan) + '">' + escHtml(plan) + '</span></div></div>' +
+        '<div class="flex shrink-0 justify-end lg:col-span-2">' + acoesLinha + '</div>' +
+        '</div></div>';
     }
     const tipo = x.tipo === 'interno' ? '<span class="text-orange-700 font-black">INTERNO</span>' : '<span class="text-emerald-800 font-black">EXTERNO</span>';
     const ref = x.ref || '—';
     const quem = x.credor_nome || x.mutuario_label || '—';
     const v1 = typeof x.valor_recebido === 'number' ? x.valor_recebido : (x.valor_aporte || 0);
     const v2 = typeof x.valor_total_devido === 'number' ? x.valor_total_devido : (x.valor_devolucao_total || 0);
-    const dt = (x.created_at || '').slice(0, 19).replace('T', ' ');
+    var creN = String(x.created_at || '');
+    var dt = fmtDataBrAaIso(creN.slice(0, 10)) + (creN.length >= 16 ? (' · ' + creN.slice(11, 16)) : '');
     const isInt = String(x.tipo || '').toLowerCase() === 'interno';
     let extra = '';
     let btnGer = '';
@@ -324,7 +435,7 @@
       '<div class="min-w-0 flex-1">' +
       '<div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">' +
       '<span class="text-xs font-black uppercase text-slate-500">' + tipo + ' · ref ' + escHtml(ref) + '</span>' +
-      '<span class="text-xs font-bold text-slate-400 tabular-nums shrink-0">' + escHtml(dt) + '</span></div>' +
+      '<span class="text-sm font-bold text-slate-400 tabular-nums shrink-0">' + escHtml(dt) + '</span></div>' +
       '<div class="mt-1 text-lg sm:text-xl font-black text-slate-900 leading-tight break-words">' + escHtml(quem) + '</div>' +
       '<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm sm:text-base font-semibold text-slate-700">' +
       '<span class="tabular-nums">Entrada R$ <strong>' + fmtBrl(v1) + '</strong></span>' +
@@ -335,7 +446,7 @@
   }
 
   function ordenarGruposAgro(grupos, ord) {
-    var o = ord || 'data_desc';
+    var o = ord || 'venc_asc';
     var arr = grupos.slice();
     function maxCreated(g) {
       var m = '';
@@ -353,7 +464,27 @@
       });
       return m;
     }
-    if (o === 'data_asc') {
+    function minVencGrupo(g) {
+      var best = '';
+      g.itens.forEach(function (x) {
+        var d = dataVencimentoSortStr(x);
+        if (d && (!best || d < best)) best = d;
+      });
+      return best || '9999-12-31';
+    }
+    function maxVencGrupo(g) {
+      var best = '';
+      g.itens.forEach(function (x) {
+        var d = dataVencimentoSortStr(x);
+        if (d && (!best || d > best)) best = d;
+      });
+      return best || '0000-01-01';
+    }
+    if (o === 'venc_asc') {
+      arr.sort(function (a, b) { return minVencGrupo(a).localeCompare(minVencGrupo(b)); });
+    } else if (o === 'venc_desc') {
+      arr.sort(function (a, b) { return maxVencGrupo(b).localeCompare(maxVencGrupo(a)); });
+    } else if (o === 'data_asc') {
       arr.sort(function (a, b) { return minCreated(a).localeCompare(minCreated(b)); });
     } else if (o === 'nome_az') {
       arr.sort(function (a, b) { return a.nome.toLowerCase().localeCompare(b.nome.toLowerCase()); });
@@ -365,13 +496,135 @@
     return arr;
   }
 
+  function resolverUrlConsultaShell(pathEnc) {
+    var rel = decodeURIComponent(pathEnc || '').trim();
+    if (!rel) return '';
+    try {
+      return new URL(rel, window.location.origin).href;
+    } catch (e3) {
+      return rel.startsWith('http') ? rel : (window.location.origin + rel);
+    }
+  }
+
+  /** Abas dentro do quadro (não aba do navegador). Cada entrada: { url, label }. */
+  var shellLancTabs = [];
+  var shellLancIx = 0;
+
+  function shellLancUrlSemBust(u) {
+    try {
+      var x = new URL(String(u || ''), window.location.origin);
+      x.searchParams.delete('_tb');
+      return x.href;
+    } catch (eU) {
+      return String(u || '');
+    }
+  }
+
+  function shellLancSrcComBust(tabUrl) {
+    var base = shellLancUrlSemBust(tabUrl);
+    if (!base) return '';
+    try {
+      var x = new URL(base);
+      x.searchParams.set('_tb', String(Date.now()));
+      return x.href;
+    } catch (eV) {
+      var sep = base.indexOf('?') >= 0 ? '&' : '?';
+      return base + sep + '_tb=' + Date.now();
+    }
+  }
+
+  function shellLancTituloParaUrl(full) {
+    try {
+      var u = new URL(full);
+      var mid = (u.searchParams.get('mongo_id') || '').trim();
+      if (mid.length >= 10) return 'Título ' + mid.slice(0, 6) + '…';
+      if (mid) return 'Título ' + mid;
+    } catch (e0) {}
+    return 'Lançamentos';
+  }
+
+  function renderShellLancTabstrip() {
+    var strip = document.getElementById('consulta-shell-lanc-tabstrip');
+    if (!strip) return;
+    if (!shellLancTabs.length) {
+      strip.classList.add('hidden');
+      strip.innerHTML = '';
+      return;
+    }
+    strip.classList.remove('hidden');
+    strip.innerHTML = '';
+    shellLancTabs.forEach(function (tab, i) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      var on = i === shellLancIx;
+      btn.className = 'min-h-[40px] shrink-0 rounded-xl border-2 px-3 py-1.5 text-[11px] font-black uppercase tracking-tight ' +
+        (on ? 'border-orange-500 bg-orange-50 text-orange-950' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50');
+      btn.textContent = tab.label + (shellLancTabs.length > 1 ? ' · ' + String(i + 1) : '');
+      btn.title = tab.url;
+      btn.addEventListener('click', function () {
+        definirShellLancAba(i);
+      });
+      strip.appendChild(btn);
+    });
+  }
+
+  function definirShellLancAba(ix) {
+    if (ix < 0 || ix >= shellLancTabs.length) return;
+    shellLancIx = ix;
+    var ifr = document.getElementById('consulta-shell-lanc-if');
+    var tab = shellLancTabs[shellLancIx];
+    if (ifr && tab) ifr.src = shellLancSrcComBust(tab.url);
+    renderShellLancTabstrip();
+  }
+
+  function novaGuiaInternaShellLanc() {
+    if (!shellLancTabs.length) return;
+    var cur = shellLancTabs[shellLancIx] || shellLancTabs[0];
+    var nu = shellLancUrlSemBust(cur.url);
+    shellLancTabs.push({ url: nu, label: shellLancTituloParaUrl(nu) });
+    definirShellLancAba(shellLancTabs.length - 1);
+  }
+
+  function abrirConsultaShellLancamentos(pathEnc) {
+    var full = resolverUrlConsultaShell(pathEnc);
+    if (!full) return;
+    var shell = document.getElementById('consulta-shell-lanc');
+    var ifr = document.getElementById('consulta-shell-lanc-if');
+    if (!shell || !ifr) return;
+    var nu = shellLancUrlSemBust(full);
+    shellLancTabs = [{ url: nu, label: shellLancTituloParaUrl(nu) }];
+    shellLancIx = 0;
+    renderShellLancTabstrip();
+    ifr.src = shellLancSrcComBust(nu);
+    shell.classList.remove('hidden');
+    shell.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('overflow-hidden');
+  }
+
+  function fecharConsultaShellLancamentos() {
+    var shell = document.getElementById('consulta-shell-lanc');
+    var ifr = document.getElementById('consulta-shell-lanc-if');
+    var strip = document.getElementById('consulta-shell-lanc-tabstrip');
+    if (!shell) return;
+    shellLancTabs = [];
+    shellLancIx = 0;
+    if (strip) {
+      strip.innerHTML = '';
+      strip.classList.add('hidden');
+    }
+    shell.classList.add('hidden');
+    shell.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('overflow-hidden');
+    if (ifr) ifr.src = 'about:blank';
+  }
+
   function renderAgroHtml(itens) {
     const el = document.getElementById('lista-emp');
     if (!itens.length) {
       el.innerHTML = '<p class="text-lg font-bold text-slate-500">Nenhum registro neste filtro.</p>';
       return;
     }
-    const ord = (document.getElementById('consulta-agro-ordenar') || {}).value || 'data_desc';
+    const ord = (document.getElementById('consulta-agro-ordenar') || {}).value || 'venc_asc';
     const map = {};
     itens.forEach(function (x) {
       var k = chavePessoaAgro(x);
@@ -401,6 +654,19 @@
         '<div class="border-t-2 border-orange-50 bg-slate-50/80 px-4 py-4">' + inner + '</div></details>';
     });
     el.innerHTML = blocks.join('');
+    el.querySelectorAll('.consulta-mongo-baixa-btn').forEach(function (btn) {
+      btn.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var enc = btn.getAttribute('data-agro-shell-path') || '';
+        abrirConsultaShellLancamentos(enc);
+      });
+    });
+    el.querySelectorAll('.consulta-mongo-help').forEach(function (hEl) {
+      hEl.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+      hEl.addEventListener('click', function (e) { e.stopPropagation(); });
+    });
     el.querySelectorAll('.btn-ger-int').forEach(function (b) {
       b.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -636,8 +902,9 @@
   function pipelineAgroMostrar() {
     if (!agroItensCache) return;
     var a = aplicarFiltroTipoAgro(agroItensCache.slice());
-    var b = filtrarPorNomeAgro(a);
-    var ord = (document.getElementById('consulta-agro-ordenar') || {}).value || 'data_desc';
+    var a2 = filtrarPorEstadoEmp(a);
+    var b = filtrarPorNomeAgro(a2);
+    var ord = (document.getElementById('consulta-agro-ordenar') || {}).value || 'venc_asc';
     var c = ordenarAgroItens(b, ord);
     renderAgroHtml(c);
   }
@@ -688,6 +955,31 @@
   });
   aplicarEstiloFiltroListaButtons();
 
+  function aplicarEstiloFiltroEstadoConsultaButtons() {
+    document.querySelectorAll('.filtro-estado-consulta').forEach(function (b) {
+      var fe = (b.getAttribute('data-estado') || '').trim().toLowerCase();
+      var on = fe === filtroEstado;
+      var base = 'filtro-estado-consulta min-h-[52px] rounded-xl border-2 px-6 py-3 text-sm font-black uppercase';
+      if (on) {
+        b.className = base + ' border-slate-800 bg-slate-800 text-white';
+      } else if (fe === 'aberto') {
+        b.className = base + ' border-amber-200 bg-amber-50 text-amber-950';
+      } else if (fe === 'quitado') {
+        b.className = base + ' border-emerald-200 bg-emerald-50 text-emerald-900';
+      } else {
+        b.className = base + ' border-slate-200 bg-slate-50 text-slate-700';
+      }
+    });
+  }
+  document.querySelectorAll('.filtro-estado-consulta').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      filtroEstado = (e.currentTarget.getAttribute('data-estado') || '').trim().toLowerCase();
+      aplicarEstiloFiltroEstadoConsultaButtons();
+      pipelineAgroMostrar();
+    });
+  });
+  aplicarEstiloFiltroEstadoConsultaButtons();
+
   var overlay = document.getElementById('consulta-filtros-overlay');
   function abrirFiltrosConsulta() {
     overlay.classList.remove('hidden');
@@ -703,8 +995,19 @@
   document.getElementById('consulta-filtros-backdrop').addEventListener('click', fecharFiltrosConsulta);
   document.getElementById('consulta-filtros-fechar').addEventListener('click', fecharFiltrosConsulta);
   document.getElementById('consulta-filtros-fechar-rodape').addEventListener('click', fecharFiltrosConsulta);
+
+  document.getElementById('consulta-shell-lanc-fechar').addEventListener('click', fecharConsultaShellLancamentos);
+  document.getElementById('consulta-shell-lanc-backdrop').addEventListener('click', fecharConsultaShellLancamentos);
+  var btnNgInt = document.getElementById('consulta-shell-lanc-nova-guia-interna');
+  if (btnNgInt) btnNgInt.addEventListener('click', novaGuiaInternaShellLanc);
+
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
+      const sh = document.getElementById('consulta-shell-lanc');
+      if (sh && !sh.classList.contains('hidden')) {
+        fecharConsultaShellLancamentos();
+        return;
+      }
       const md = document.getElementById('modal-emp-int-del');
       if (md && !md.classList.contains('hidden')) fecharModalEmpIntDel();
       else {

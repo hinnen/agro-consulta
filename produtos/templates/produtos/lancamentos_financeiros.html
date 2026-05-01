@@ -565,11 +565,14 @@
   <div id="modal-baixa-parcial" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40" role="dialog" aria-modal="true" aria-labelledby="modal-baixa-parcial-titulo">
     <div class="bg-white rounded-2xl shadow-xl max-w-[min(52rem,96vw)] w-full p-5 sm:p-6 space-y-4 border border-slate-200 max-h-[92vh] overflow-y-auto">
       <h2 id="modal-baixa-parcial-titulo" class="text-lg font-black text-slate-900 uppercase tracking-tight">Baixa parcial</h2>
-      <p class="text-xs text-slate-600 font-semibold" id="bxp-resumo"></p>
-      <p class="text-[10px] font-bold text-indigo-600">Informe uma ou mais linhas: cada uma com valor, forma e conta. A soma não pode passar do saldo em aberto.</p>
+      <p class="text-sm text-slate-700 font-semibold" id="bxp-resumo"></p>
+      <p class="text-xs font-bold text-indigo-700">Informe uma ou mais linhas: cada uma com valor, forma e conta. A soma não pode passar do saldo em aberto.</p>
       <label class="block">
         <span class="text-[10px] font-black uppercase text-slate-500">Data do movimento</span>
-        <input type="date" id="bxp-data" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold">
+        <div class="mt-1 flex flex-wrap items-center gap-3">
+          <input type="date" id="bxp-data" class="w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2.5 text-base font-bold">
+          <span id="bxp-data-vis" class="text-base font-black tabular-nums text-slate-800" aria-live="polite"></span>
+        </div>
       </label>
       <div class="space-y-2">
         <div class="flex flex-wrap items-center justify-between gap-2">
@@ -724,6 +727,8 @@
     let lastPageSize = 50;
     let lastRows = [];
     const selecionados = new Map();
+    /** Deep link: ``/lancamentos/contas-pagar/?mongo_id=...`` (definido em hidratarFiltrosDaUrl). */
+    let agroFinMongoIdParaFocar = '';
 
     function getCookie(name) {
       const m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
@@ -938,11 +943,22 @@
 
     function fmtData(iso) {
       if (!iso) return '—';
+      const s = String(iso).trim();
+      const ymd = s.slice(0, 10);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+        const [, y, m, d] = ymd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        return `${d}/${m}/${y.slice(2)}`;
+      }
       try {
-        const d = new Date(iso);
-        if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
-        return d.toLocaleDateString('pt-BR');
-      } catch (_) { return '—'; }
+        const dd = new Date(s);
+        if (Number.isNaN(dd.getTime())) return ymd || '—';
+        const yy = dd.getFullYear();
+        const m = String(dd.getMonth() + 1).padStart(2, '0');
+        const da = String(dd.getDate()).padStart(2, '0');
+        return `${da}/${m}/${String(yy).slice(2)}`;
+      } catch (_) {
+        return '—';
+      }
     }
 
     function fmtInputDateBR(ymd) {
@@ -1130,6 +1146,11 @@
       getExcludedSet().forEach((nome) => {
         p.append('excluir_plano', nome);
       });
+      try {
+        const ups0 = new URLSearchParams(window.location.search || '');
+        const mid0 = (ups0.get('mongo_id') || ups0.get('lancamento_id') || '').trim();
+        if (mid0) p.set('mongo_id', mid0);
+      } catch (_) {}
       return p;
     }
 
@@ -1444,28 +1465,40 @@
       };
     }
 
-    function bxpAddLinha(valorDefault) {
+    function bxpRefreshDataVisModal() {
+      const inp = document.getElementById('bxp-data');
+      const vis = document.getElementById('bxp-data-vis');
+      if (vis && inp) vis.textContent = inp.value ? fmtInputDateBR(inp.value) : '—';
+    }
+
+    function bxpAddLinha(valorDefault, planoTxt) {
       const { htmlF, htmlB } = bxpHtmlOptsFormaBanco();
       const wrap = document.createElement('div');
       wrap.className = 'bxp-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-end border border-slate-100 rounded-xl p-2 bg-slate-50/50';
       const v0 = valorDefault != null && valorDefault !== '' ? String(valorDefault) : '';
       wrap.innerHTML = `
         <div class="sm:col-span-3">
-          <label class="block text-[9px] font-black uppercase text-slate-500">Valor R$</label>
-          <input type="text" class="bxp-val mt-1 w-full rounded-lg border-2 border-slate-200 px-2 py-1.5 text-sm font-bold tabular-nums" value="${esc(v0)}">
+          <label class="block text-[10px] font-black uppercase text-slate-500">Plano de contas</label>
+          <div class="bxp-plano mt-1 min-h-[2.75rem] w-full rounded-lg border-2 border-slate-200 bg-white px-2 py-2 text-sm font-bold leading-snug break-words text-slate-800"></div>
         </div>
-        <div class="sm:col-span-4">
-          <label class="block text-[9px] font-black uppercase text-slate-500">Forma</label>
-          <select class="bxp-forma mt-1 w-full rounded-lg border-2 border-slate-200 px-2 py-1.5 text-xs font-bold">${htmlF}</select>
+        <div class="sm:col-span-3">
+          <label class="block text-[10px] font-black uppercase text-slate-500">Valor R$</label>
+          <input type="text" class="bxp-val mt-1 w-full rounded-lg border-2 border-slate-200 px-2 py-2 text-base font-bold tabular-nums" value="${esc(v0)}">
         </div>
-        <div class="sm:col-span-4">
-          <label class="block text-[9px] font-black uppercase text-slate-500">Banco</label>
-          <select class="bxp-banco mt-1 w-full rounded-lg border-2 border-slate-200 px-2 py-1.5 text-xs font-bold">${htmlB}</select>
+        <div class="sm:col-span-3">
+          <label class="block text-[10px] font-black uppercase text-slate-500">Forma</label>
+          <select class="bxp-forma mt-1 w-full rounded-lg border-2 border-slate-200 px-2 py-2 text-sm font-bold">${htmlF}</select>
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-[10px] font-black uppercase text-slate-500">Banco</label>
+          <select class="bxp-banco mt-1 w-full rounded-lg border-2 border-slate-200 px-2 py-2 text-sm font-bold">${htmlB}</select>
         </div>
         <div class="sm:col-span-1 flex justify-end pb-1">
           <button type="button" class="bxp-remove text-red-600 text-[10px] font-black uppercase px-1" title="Remover linha">✕</button>
         </div>`;
       document.getElementById('bxp-linhas').appendChild(wrap);
+      const plEl = wrap.querySelector('.bxp-plano');
+      if (plEl) plEl.textContent = (planoTxt != null && planoTxt !== '') ? String(planoTxt) : '';
       const rm = wrap.querySelector('.bxp-remove');
       rm.addEventListener('click', () => {
         if (document.querySelectorAll('#bxp-linhas .bxp-row').length <= 1) return;
@@ -1481,10 +1514,17 @@
       bxpSaldoMax = rest;
       document.getElementById('bxp-resumo').textContent =
         `1 título · Saldo em aberto ${brl(rest)} · ${tipoAtual === 'pagar' ? 'Contas a pagar' : 'Contas a receber'}`;
-      document.getElementById('bxp-data').value = hojeISO();
+      const inpD = document.getElementById('bxp-data');
+      inpD.value = hojeISO();
       document.getElementById('bxp-linhas').innerHTML = '';
       await carregarOpcoesBaixa();
-      bxpAddLinha(Number(rest).toFixed(2));
+      let planoLbl = '';
+      try {
+        const rowSel = (lastRows || []).find((r) => String(r.id) === String(id));
+        if (rowSel) planoLbl = `${rowSel.plano_conta || '—'}${rowSel.grupo ? ` · ${rowSel.grupo}` : ''}`;
+      } catch (_) {}
+      bxpAddLinha(Number(rest).toFixed(2), planoLbl);
+      bxpRefreshDataVisModal();
     }
 
     function parseValorPt(s) {
@@ -1590,24 +1630,26 @@
             : '<span class="text-slate-300">—</span>';
           const tr = document.createElement('tr');
           tr.className = 'hover:bg-slate-50/80';
+          tr.setAttribute('data-lanc-id', String(row.id || ''));
           tr.innerHTML = `
             <td data-col="chk" class="px-2 py-2">${chk}</td>
-            <td data-col="venc" class="px-2 py-2 text-xs font-semibold tabular-nums whitespace-nowrap">${esc(fmtData(row.data_vencimento))}</td>
-            <td data-col="fluxo" class="px-2 py-2 text-xs font-semibold tabular-nums whitespace-nowrap text-slate-600">${esc(fmtData(row.data_fluxo))}</td>
+            <td data-col="venc" class="px-2 py-2 text-sm font-semibold tabular-nums whitespace-nowrap">${esc(fmtData(row.data_vencimento))}</td>
+            <td data-col="fluxo" class="px-2 py-2 text-sm font-semibold tabular-nums whitespace-nowrap text-slate-600">${esc(fmtData(row.data_fluxo))}</td>
             <td data-col="cli" class="px-2 py-2 text-xs font-bold text-slate-800 max-w-[160px]"><div class="truncate" title="${esc(row.cliente)}">${esc(row.cliente || '—')}</div></td>
             <td data-col="forma" class="px-2 py-2 text-[11px] text-slate-700 max-w-[120px]"><div class="truncate" title="${esc(row.forma_pagamento)}">${esc(row.forma_pagamento || '—')}</div></td>
             <td data-col="plano" class="px-2 py-2 text-[11px] text-slate-600 max-w-[140px]"><div class="truncate">${esc(row.plano_conta || '')}${row.grupo ? ' · ' + esc(row.grupo) : ''}</div></td>
             <td data-col="desc" class="px-2 py-2 text-xs text-slate-700 max-w-[180px]"><div class="truncate" title="${esc(row.descricao)}">${esc(row.descricao || '—')}</div></td>
             <td data-col="banco" class="px-2 py-2 text-[11px] text-slate-600 max-w-[120px]"><div class="truncate" title="${esc(row.banco)}">${esc(row.banco || '—')}</div></td>
-            <td data-col="bruto" class="px-2 py-2 text-xs text-right font-bold tabular-nums">${esc(brl(row.valor_bruto))}</td>
-            <td data-col="mov" class="px-2 py-2 text-xs text-right font-semibold text-emerald-800 tabular-nums">${esc(brl(row.valor_movimentado))}</td>
-            <td data-col="saldo" class="px-2 py-2 text-xs text-right font-black text-amber-900 tabular-nums">${esc(brl(row.restante))}</td>
+            <td data-col="bruto" class="px-2 py-2 text-sm text-right font-bold tabular-nums">${esc(brl(row.valor_bruto))}</td>
+            <td data-col="mov" class="px-2 py-2 text-sm text-right font-semibold text-emerald-800 tabular-nums">${esc(brl(row.valor_movimentado))}</td>
+            <td data-col="saldo" class="px-2 py-2 text-sm text-right font-black text-amber-900 tabular-nums">${esc(brl(row.restante))}</td>
             <td data-col="sit" class="px-2 py-2 text-xs">${sit}</td>
             <td data-col="acoes" class="px-2 py-2 text-xs text-right align-middle">${acoesHtml}</td>`;
           tb.appendChild(tr);
 
           const card = document.createElement('div');
           card.className = 'rounded-xl border border-slate-200 bg-slate-50/50 p-3 space-y-2';
+          card.setAttribute('data-lanc-id', String(row.id || ''));
           const chkM = showChk && !row.pago
             ? `<label class="flex items-center gap-2 text-[11px] font-bold"><input type="checkbox" class="row-chk rounded" data-id="${esc(row.id)}" data-rest="${rest}" ${selecionados.has(row.id) ? 'checked' : ''}> Selecionar</label>`
             : '';
@@ -1620,7 +1662,7 @@
           card.innerHTML = `
             ${chkM}
             <div class="flex justify-between items-start gap-2">
-              <span class="text-[10px] font-black uppercase text-slate-500">Venc. ${esc(fmtData(row.data_vencimento))}${row.data_fluxo ? ' · Fluxo ' + esc(fmtData(row.data_fluxo)) : ''}</span>
+              <span class="text-[12px] font-black uppercase text-slate-600 leading-snug">Venc. ${esc(fmtData(row.data_vencimento))}${row.data_fluxo ? ' · Fluxo ' + esc(fmtData(row.data_fluxo)) : ''}</span>
               ${sit}
             </div>
             <div class="font-black text-sm text-slate-900">${esc(row.cliente || '—')}</div>
@@ -1628,7 +1670,7 @@
             <div class="text-[11px] text-slate-700"><span class="font-black text-slate-500">Plano:</span> ${esc(row.plano_conta || '—')}${row.grupo ? ' · ' + esc(row.grupo) : ''}</div>
             <div class="text-xs text-slate-600">${esc(row.descricao || '')}</div>
             <div class="text-[11px] text-slate-700"><span class="font-black text-slate-500">Banco:</span> ${esc(row.banco || '—')}</div>
-            <div class="flex justify-between text-xs font-bold border-t border-slate-200 pt-2">
+            <div class="flex justify-between text-sm font-bold border-t border-slate-200 pt-2">
               <span class="text-slate-500">Saldo</span>
               <span class="text-amber-900 tabular-nums">${esc(brl(row.restante))}</span>
             </div>
@@ -1678,6 +1720,77 @@
       document.getElementById('chk-all').checked = false;
       syncSortHeaderButtons();
       refreshGavetaFiltrosResumo();
+      agroFinTentarFocarLancamentoMongoNaLista();
+    }
+
+    function agroFinTentarFocarLancamentoMongoNaLista() {
+      const want = String(agroFinMongoIdParaFocar || '').trim();
+      if (!want) return;
+      if (!lastRows.length) {
+        agroFinMongoIdParaFocar = '';
+        return;
+      }
+      const escSel = window.CSS && typeof window.CSS.escape === 'function'
+        ? window.CSS.escape(want)
+        : want.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      const chk = document.querySelector(`.row-chk[data-id="${escSel}"]`);
+      if (chk) {
+        document.getElementById('chk-all').checked = false;
+        document.querySelectorAll('.row-chk').forEach((c) => {
+          c.checked = false;
+          selecionados.delete(c.dataset.id);
+        });
+        chk.checked = true;
+        selecionados.set(chk.dataset.id, Number(chk.dataset.rest) || 0);
+        refreshSelBar();
+        refreshBtnsBaixa();
+        const sc = chk.closest('tr') || chk.closest('[data-lanc-id]');
+        if (sc) sc.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        agroFinMongoIdParaFocar = '';
+        window.setTimeout(() => {
+          void (async () => {
+            try {
+              if (selecionados.size !== 1) return;
+              await prepararModalBaixaParcial();
+              const m = document.getElementById('modal-baixa-parcial');
+              if (m) {
+                m.classList.remove('hidden');
+                window.setTimeout(() => {
+                  const v0 = document.querySelector('#bxp-linhas .bxp-val');
+                  if (v0 && typeof v0.focus === 'function') v0.focus();
+                  else document.getElementById('bxp-data')?.focus?.();
+                }, 0);
+              }
+            } catch (_) {}
+          })();
+        }, 120);
+        return;
+      }
+      const anyRow = document.querySelector(`[data-lanc-id="${escSel}"]`);
+      if (anyRow) {
+        const hit = lastRows.find((r) => String(r.id) === want);
+        agroFinMongoIdParaFocar = '';
+        anyRow.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        anyRow.classList.add('ring-2', 'ring-amber-400', 'ring-offset-1');
+        setTimeout(() => anyRow.classList.remove('ring-2', 'ring-amber-400', 'ring-offset-1'), 3500);
+        if (hit && hit.pago) {
+          try {
+            alert('Este título já está quitado nesta lista. Para nova baixa, use outro registro.');
+          } catch (_) {}
+        }
+        return;
+      }
+      if (lastRows.length >= lastPageSize && lastTotal > lastPageSize) {
+        try {
+          alert('Título com este ID não está nesta página. Avance páginas ou use a busca por favorecido.');
+        } catch (_) {}
+        agroFinMongoIdParaFocar = '';
+        return;
+      }
+      try {
+        alert('Título não aparece com os filtros atuais. Limpe datas de vencimento ou mude Situação para «Todos» / «Quitados».');
+      } catch (_) {}
+      agroFinMongoIdParaFocar = '';
     }
 
     function tentarHidratarListaFinCache() {
@@ -1735,6 +1848,13 @@
         try {
           sessionStorage.setItem(LS_FIN_LISTA, JSON.stringify({ params_qs: montarParams().toString(), data }));
         } catch (_) {}
+        const linhasNl = Array.isArray(data.lancamentos) ? data.lancamentos.length : 0;
+        if (data.erro_deep_link && linhasNl === 0) {
+          err.textContent = data.erro_deep_link;
+          err.classList.remove('hidden');
+        } else {
+          err.classList.add('hidden');
+        }
         pintarListaLancamentosDaResposta(data);
         sincronizarUrlComFiltrosAtuais();
         refreshGavetaFiltrosResumo();
@@ -1951,7 +2071,12 @@
     document.getElementById('bxp-cancel').addEventListener('click', () => {
       document.getElementById('modal-baixa-parcial').classList.add('hidden');
     });
-    document.getElementById('bxp-add-linha').addEventListener('click', () => bxpAddLinha(''));
+    document.getElementById('bxp-add-linha').addEventListener('click', () => bxpAddLinha('', ''));
+    const inpBxpDt = document.getElementById('bxp-data');
+    if (inpBxpDt) {
+      inpBxpDt.addEventListener('input', bxpRefreshDataVisModal);
+      inpBxpDt.addEventListener('change', bxpRefreshDataVisModal);
+    }
 
     document.getElementById('bxp-ok').addEventListener('click', async () => {
       if (!bxpIdAtual) return;
@@ -2526,6 +2651,8 @@
           const st = (ups.get('status') || '').trim().toLowerCase();
           const fs = document.getElementById('f-status');
           if (fs && (st === 'quitados' || st === 'todos' || st === 'abertos')) fs.value = st;
+          const mongoFocus = ((ups.get('mongo_id') || ups.get('lancamento_id') || '').trim());
+          if (mongoFocus) agroFinMongoIdParaFocar = mongoFocus;
           const fde = document.getElementById('f-de');
           const fate = document.getElementById('f-ate');
           const vd = (ups.get('venc_de') || '').trim();
@@ -2536,10 +2663,13 @@
               if (va) fate.value = va;
               if (vd && !va) fate.value = vd;
               if (va && !vd) fde.value = va;
-            } else {
+            } else if (!mongoFocus) {
               const t = hojeISO();
               fde.value = t;
               fate.value = t;
+            } else {
+              fde.value = '';
+              fate.value = '';
             }
           }
           const fq = (ups.get('q') || '').trim();
@@ -2560,7 +2690,13 @@
       if (window.AGRO_MANUAL_SYNC_ONLY) {
         const st0 = document.getElementById('f-status').value;
         document.getElementById('th-chk').style.visibility = st0 === 'abertos' ? 'visible' : 'hidden';
-        if (!tentarHidratarListaFinCache()) {
+        let agroPopupAutoSync = false;
+        try {
+          agroPopupAutoSync = new URLSearchParams(window.location.search || '').get('agro_popup_sync') === '1';
+        } catch (_) {}
+        if (agroPopupAutoSync) {
+          agroFinSincronizarComApi().catch(() => {});
+        } else if (!tentarHidratarListaFinCache()) {
           const tb = document.getElementById('tbody-desk');
           const mob = document.getElementById('cards-mob');
           const tot = document.getElementById('totais-box');
