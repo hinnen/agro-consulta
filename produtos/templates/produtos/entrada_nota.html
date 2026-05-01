@@ -49,84 +49,37 @@
     .in-pvenda:focus {
       outline-color: rgb(139 92 246 / 0.55);
     }
-    /* Sugestões: 5 colunas com larguras fixas (descr | código | EAN | C | V) — alinha entre linhas. */
-    li.nfe-sug-item {
-      width: 100%;
-      max-width: 100%;
-      box-sizing: border-box;
-      font-size: clamp(0.9375rem, 1.05vw, 1.0625rem);
-      line-height: 1.35;
-    }
-    .nfe-sug-row {
-      display: grid;
-      grid-template-columns:
-        minmax(0, 1fr)
-        minmax(5.75rem, 9.25rem)
-        minmax(7.75rem, 11.75rem)
-        minmax(5.5rem, 6.75rem)
-        minmax(5.5rem, 6.75rem);
-      column-gap: 0.5rem 0.65rem;
-      align-items: center;
-      width: 100%;
-      max-width: none;
-      box-sizing: border-box;
-    }
+    /* Sugestões: mesmo layout flex do PDV wizard (thumb + texto + preço à direita). */
     ul.nfe-busca-dd {
+      list-style: none;
+      margin: 0;
+      padding: 0.25rem;
       min-width: 0;
       width: 100%;
       max-width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
     }
     ul.nfe-busca-dd:not(.hidden) {
       box-sizing: border-box;
+    }
+    li.nfe-sug-item {
       width: 100%;
-      max-width: 100%;
+      margin: 0;
+      padding: 0;
+      list-style: none;
     }
-    #modal-prod-res .nfe-sug-row {
-      max-width: none;
+    #modal-prod-res {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      padding: 0.25rem;
     }
-    .nfe-sug-name {
-      min-width: 0;
-      overflow: hidden;
-      font-weight: 800;
-      color: rgb(15 23 42);
-      line-height: 1.28;
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-    }
-    .nfe-sug-codnf,
-    .nfe-sug-ean {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-size: 0.88em;
-      font-weight: 700;
-      font-variant-numeric: tabular-nums;
-    }
-    .nfe-sug-pc,
-    .nfe-sug-pv {
-      white-space: nowrap;
-      justify-self: end;
-      text-align: right;
-    }
-    .nfe-sug-custo .nfe-sug-num {
-      font-weight: 900;
-    }
-    .nfe-sug-venda .nfe-sug-num {
-      font-weight: 900;
-    }
-    .nfe-sug-custo {
-      font-weight: 800;
-      color: rgb(51 65 85);
-    }
-    .nfe-sug-venda {
-      font-weight: 900;
-      color: rgb(6 95 70);
-      letter-spacing: -0.02em;
-    }
-    .nfe-sug-num {
-      font-variant-numeric: tabular-nums;
+    #modal-prod-res li.modal-prod-li-sel {
+      margin: 0;
+      padding: 0;
+      list-style: none;
     }
     .btn-pick-prod {
       white-space: nowrap;
@@ -616,8 +569,12 @@
       <div class="bg-white rounded-2xl shadow-2xl max-w-[min(42rem,96vw)] w-full p-5 sm:p-6 border-2 border-slate-200 max-h-[85vh] overflow-hidden flex flex-col">
         <h3 id="modal-prod-titulo" class="text-base font-black uppercase text-slate-900">Buscar produto</h3>
         <p class="text-xs text-slate-600 font-bold mt-2">Linha: <span id="modal-prod-linha" class="text-slate-900">—</span></p>
-        <input type="text" id="modal-prod-q" class="mt-4 w-full min-h-[52px] rounded-xl border-2 border-slate-300 px-3 py-3 text-base font-bold focus:border-orange-500 outline-none" placeholder="Nome, código ou EAN…" autocomplete="off">
-        <ul id="modal-prod-res" class="mt-3 flex-1 overflow-y-auto min-h-[140px] max-h-72 border-2 border-slate-100 rounded-xl divide-y divide-slate-100 text-sm"></ul>
+        <div class="relative mt-4">
+          <label class="sr-only" for="modal-prod-q">Buscar produto</label>
+          <input type="text" id="modal-prod-q" class="w-full min-h-[52px] rounded-xl border-2 border-amber-200/90 bg-amber-50/30 px-3 py-3 pr-16 text-base font-bold focus:border-emerald-600 outline-none" placeholder="Nome, GM, EAN ou código…" autocomplete="off" title="Mesmo motor e visual do PDV">
+          <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black uppercase text-amber-800">Enter</span>
+        </div>
+        <ul id="modal-prod-res" class="mt-3 flex-1 overflow-y-auto min-h-[140px] max-h-72 rounded-2xl border-2 border-amber-200/80 bg-white p-1 text-sm shadow-inner"></ul>
         <button type="button" id="modal-prod-fechar" class="mt-4 min-h-[48px] px-5 py-2.5 rounded-xl border-2 border-slate-300 font-black text-sm uppercase text-slate-700 hover:bg-slate-50">Fechar</button>
       </div>
     </div>
@@ -739,6 +696,8 @@
   const URL_CONF_COD = "{% url 'api_entrada_nota_conferir_codigo' %}";
   const URL_APROVAR_WIZ = "{% url 'api_entrada_nota_aprovar_wizard' %}";
   const URL_CAD_PRODUTO_NOVO = "{% url 'produtos_cadastro_erp' %}?novo=1";
+  /** Miniatura quando a API não manda foto (mesmo recurso que o wizard PDV). */
+  const ENT_NFE_PLACEHOLDER_PROD_IMG = "{% static 'img/agro-mais-logo-buscador.png' %}";
   /** Path ou URL absoluta (evitar host fixo no iframe — usar só pathname + origem atual). */
   const ENTRADA_NFE_TMPL_CADASTRO_PROD = "{% url 'produtos_cadastro_erp_produto' produto_id='__AGRO_PH__' %}";
 
@@ -782,6 +741,47 @@
     if (acr != null && acr >= 0) return acr;
     if (base != null && base >= 0) return base;
     return null;
+  }
+
+  /** Segunda linha do autocomplete igual ao PDV wizard: código · (categoria | marca | EAN). */
+  function entradaNfePdvSugSub(p) {
+    if (!p || typeof p !== 'object') return '';
+    const gm = entradaNfeStrCampo(p.codigo_nfe || p.codigo)
+      || entradaNfeStrCampo(p.codigo_barras) || '';
+    const ean = entradaNfeStrCampo(p.codigo_barras) || '';
+    const cat = entradaNfeStrCampo(p.categoria || p.subcategoria || '');
+    const marca = entradaNfeStrCampo(p.marca || '');
+    const g = gm || '—';
+    if (cat) return `${g} · ${cat}`;
+    if (marca) return `${g} · ${marca}`;
+    if (gm && ean && gm !== ean) return `${gm} · ${ean}`;
+    return g;
+  }
+
+  /**
+   * HTML do item de autocomplete (mesma composição visual que `productAutocompleteHtml`
+   * em produtos/static/produtos/js/pdv_wizard.js).
+   */
+  function entradaNfePdvSugBtnHtml(p, selected, escText) {
+    const imgSrc = String(p.imagem || '').trim() || ENT_NFE_PLACEHOLDER_PROD_IMG;
+    const nm = entradaNfeStrCampo(p.nome) || '—';
+    const sub = entradaNfePdvSugSub(p);
+    const pv = entradaNfeFmtMoedaLista(p.preco_venda);
+    const hl = selected
+      ? 'bg-emerald-50 ring-2 ring-emerald-200 '
+      : 'hover:bg-emerald-50 ';
+    return (
+      `<button type="button" class="nfe-pdv-ac-btn flex w-full items-stretch gap-2 rounded-xl px-2 py-2 text-left ${hl}">`
+      + '<span class="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50" role="presentation">'
+      + `<img src="${escText(imgSrc)}" alt="" class="pointer-events-none h-full w-full object-cover" />`
+      + '</span>'
+      + '<span class="flex min-w-0 flex-1 flex-col justify-center gap-0.5 overflow-hidden">'
+      + `<span class="truncate text-sm font-black text-slate-900">${escText(nm)}</span>`
+      + `<span class="truncate text-[10px] font-bold text-slate-500">${escText(sub)}</span>`
+      + '</span>'
+      + `<span class="shrink-0 self-center text-sm font-black text-emerald-700">${escText(pv)}</span>`
+      + '</button>'
+    );
   }
 
   function entradaNfeDefinirInputPrecoNum(inp, n) {
@@ -1610,6 +1610,21 @@
   document.addEventListener('keydown', (e) => {
     const mv = document.getElementById('modal-nfe-bip-vinculo');
     if (e.key === 'Escape' && mv && !mv.classList.contains('hidden')) entradaNfeBipModalVinculoFechar();
+    if (e.key === 'F2') {
+      const mp = document.getElementById('modal-prod');
+      if (mp && !mp.classList.contains('hidden')) {
+        e.preventDefault();
+        document.getElementById('modal-prod-q')?.focus();
+        return;
+      }
+      const bus = document.querySelector('tr[data-nfe-linha-modo="compact"] .in-linha-busca-rapida');
+      if (!bus || !document.body.contains(bus)) return;
+      e.preventDefault();
+      try {
+        bus.focus();
+        bus.select?.();
+      } catch (_) {}
+    }
   });
   document.getElementById('nfe-wiz-btn-aprov')?.addEventListener('click', () => { entradaNfeAprovarWizardPin(); });
   document.getElementById('nfe-wiz-pin')?.addEventListener('keydown', (e) => {
@@ -2261,10 +2276,19 @@
   function entradaNfeLinhaMontarCompacta(tr) {
     tr.dataset.nfeLinhaModo = 'compact';
     tr.innerHTML = `
-      <td colspan="13" class="px-2 py-3 bg-gradient-to-r from-slate-50 via-orange-50/40 to-white border-b-2 border-orange-100">
-        <div class="nfe-busca-inline-wrap relative w-full">
-          <input type="text" class="in-linha-busca-rapida w-full min-h-[52px] rounded-xl border-2 border-orange-400 bg-white px-3 text-base font-bold shadow-inner focus:border-emerald-500 outline-none" placeholder="EAN, código ou nome — igual ao PDV; Enter ou sugestões" autocomplete="off" spellcheck="false">
-          <ul class="nfe-busca-dd hidden max-h-60 overflow-auto rounded-xl border-2 border-slate-200 bg-white shadow-xl p-0 list-none m-0" role="listbox" aria-hidden="true"></ul>
+      <td colspan="13" class="px-2 py-2 sm:px-3 border-b-2 border-amber-200/60">
+        <div class="rounded-[1.1rem] border-2 border-amber-400/90 bg-gradient-to-b from-amber-50/95 to-white px-2.5 py-2 sm:px-3 sm:py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+          <div class="flex items-center justify-between gap-2">
+            <h3 class="text-[13px] font-black uppercase tracking-wide text-amber-950">Busca</h3>
+            <div class="rounded-2xl border-2 border-amber-200 bg-white px-2 py-1.5 text-[10px] font-black uppercase text-amber-900 whitespace-nowrap">Entrada NF</div>
+          </div>
+          <div class="nfe-busca-inline-wrap relative mt-2 w-full">
+            <input type="text" class="in-linha-busca-rapida h-11 w-full rounded-xl border-2 border-amber-200/90 bg-amber-50/30 px-3 pr-16 text-[14px] font-bold outline-none focus:border-emerald-600 shadow-inner"
+              placeholder="Nome, GM, EAN ou código de barras" autocomplete="off" spellcheck="false"
+              aria-label="Buscar produto para nova linha (mesmo motor do PDV)" title="Mesmo motor que o PDV · Enter ou sugestões · ↑↓">
+            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black uppercase text-amber-800">F2</span>
+            <ul class="nfe-busca-dd hidden z-[220] max-h-[min(50vh,22rem)] overflow-y-auto rounded-2xl border-2 border-amber-200/90 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.18)] list-none m-0" role="listbox" aria-hidden="true"></ul>
+          </div>
         </div>
       </td>`;
     entradaNfeLinhaCompactaBindAutosuggestCompacta(tr);
@@ -2687,7 +2711,7 @@
       width = Math.min(minWant, window.innerWidth - 2 * pad);
       left = Math.max(pad, Math.min(left, window.innerWidth - pad - width));
     }
-    const maxH = Math.min(320, Math.max(120, window.innerHeight - below.bottom - 16));
+    const maxH = Math.min(352, Math.max(120, window.innerHeight - below.bottom - 16));
     dd.style.position = 'fixed';
     dd.style.left = `${left}px`;
     dd.style.top = `${below.bottom + 4}px`;
@@ -2757,10 +2781,13 @@
     function renderHighlight() {
       const items = [...dd.querySelectorAll('li.nfe-sug-item')];
       items.forEach((li, i) => {
-        li.classList.toggle('bg-amber-100', i === sugHl);
-        li.classList.toggle('ring-2', i === sugHl);
-        li.classList.toggle('ring-inset', i === sugHl);
-        li.classList.toggle('ring-orange-500', i === sugHl);
+        const b = li.querySelector('.nfe-pdv-ac-btn');
+        if (!b) return;
+        const on = i === sugHl;
+        b.classList.toggle('bg-emerald-50', on);
+        b.classList.toggle('ring-2', on);
+        b.classList.toggle('ring-emerald-200', on);
+        b.classList.toggle('hover:bg-emerald-50', !on);
       });
       if (sugHl >= 0 && items[sugHl]) items[sugHl].scrollIntoView({ block: 'nearest' });
     }
@@ -2792,36 +2819,26 @@
           entradaNfeLinhaCompactaSincDdPos(busca, dd);
           return;
         }
+        const esc = (s) => String(s ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/"/g, '&quot;');
         lastArr.slice(0, 22).forEach((p, i) => {
           const li = document.createElement('li');
-          li.className =
-            'nfe-sug-item px-3 py-2.5 cursor-pointer hover:bg-orange-50 border-b border-slate-100';
-          const nm = entradaNfeStrCampo(p.nome) || '—';
-          const cx = entradaNfeStrCampo(p.codigo_nfe || p.codigo) || '—';
-          const ean = entradaNfeStrCampo(p.codigo_barras) || '—';
-          const pvNum = entradaNfeFmtMoedaLista(p.preco_venda);
-          const pcRaw = entradaNfeValorCustoProduto(p);
-          const pcNum = entradaNfeFmtMoedaLista(pcRaw);
-          const esc = (s) => String(s ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/"/g, '&quot;');
-          const nm1 = nm.length > 320 ? nm.slice(0, 320) + '…' : nm;
-          li.innerHTML =
-            `<div class="nfe-sug-row" role="option" aria-label="Preços: custo e venda">`
-            + `<span class="nfe-sug-name">${esc(nm1)}</span>`
-            + `<span class="nfe-sug-codnf font-mono text-slate-600" title="Código">${esc(cx)}</span>`
-            + `<span class="nfe-sug-ean font-mono text-slate-600" title="EAN">${esc(ean)}</span>`
-            + `<span class="nfe-sug-pc nfe-sug-custo" title="Custo">C <span class="nfe-sug-num">${esc(pcNum)}</span></span>`
-            + `<span class="nfe-sug-pv nfe-sug-venda" title="Venda">V <span class="nfe-sug-num">${esc(pvNum)}</span></span>`
-            + `</div>`;
-          li.addEventListener('mousedown', (ev) => {
-            ev.preventDefault();
-            sugHl = i;
-            aplicarSugIx(i);
-          });
+          li.className = 'nfe-sug-item';
+          li.setAttribute('role', 'presentation');
+          li.innerHTML = entradaNfePdvSugBtnHtml(p, false, esc);
+          const btn = li.querySelector('.nfe-pdv-ac-btn');
+          if (btn) {
+            btn.addEventListener('mousedown', (ev) => {
+              ev.preventDefault();
+              sugHl = i;
+              aplicarSugIx(i);
+            });
+          }
           dd.appendChild(li);
         });
+        sugHl = lastArr.length ? 0 : -1;
         renderHighlight();
         entradaNfeLinhaCompactaSincDdPos(busca, dd);
       } catch (_) {
@@ -2952,10 +2969,13 @@
   }
   function modProdApplyHl() {
     modProdSelectableLis().forEach((li, i) => {
-      li.classList.toggle('bg-blue-100', i === modProdHlIdx);
-      li.classList.toggle('ring-2', i === modProdHlIdx);
-      li.classList.toggle('ring-inset', i === modProdHlIdx);
-      li.classList.toggle('ring-orange-500', i === modProdHlIdx);
+      const b = li.querySelector('.nfe-pdv-ac-btn');
+      if (!b) return;
+      const on = i === modProdHlIdx;
+      b.classList.toggle('bg-emerald-50', on);
+      b.classList.toggle('ring-2', on);
+      b.classList.toggle('ring-emerald-200', on);
+      b.classList.toggle('hover:bg-emerald-50', !on);
     });
     const lis = modProdSelectableLis();
     if (modProdHlIdx >= 0 && lis[modProdHlIdx]) lis[modProdHlIdx].scrollIntoView({ block: 'nearest' });
@@ -2973,39 +2993,33 @@
         ul.innerHTML = '<li class="px-3 py-2 text-slate-400 text-xs">Nenhum produto.</li>';
         return;
       }
-      arr.slice(0, 40).forEach((p) => {
+      const escM = (s) => String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/"/g, '&quot;');
+      arr.slice(0, 40).forEach((p, ix) => {
         const li = document.createElement('li');
-        li.className =
-          'modal-prod-li-sel nfe-sug-item px-3 py-2.5 cursor-pointer hover:bg-blue-50 border-b border-slate-50';
-        const nm = entradaNfeStrCampo(p.nome) || '—';
-        const cx = entradaNfeStrCampo(p.codigo_nfe || p.codigo) || '—';
-        const ean = entradaNfeStrCampo(p.codigo_barras) || '—';
-        const pv = entradaNfeFmtMoedaLista(p.preco_venda);
-        const pc = entradaNfeFmtMoedaLista(entradaNfeValorCustoProduto(p));
-        const escM = (s) => String(s ?? '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/"/g, '&quot;');
-        const nm1 = nm.length > 320 ? nm.slice(0, 320) + '…' : nm;
-        li.innerHTML =
-          `<div class="nfe-sug-row" role="option" aria-label="Preços: custo e venda">`
-          + `<span class="nfe-sug-name">${escM(nm1)}</span>`
-          + `<span class="nfe-sug-codnf font-mono text-slate-600" title="Código">${escM(cx)}</span>`
-          + `<span class="nfe-sug-ean font-mono text-slate-600" title="EAN">${escM(ean)}</span>`
-          + `<span class="nfe-sug-pc nfe-sug-custo" title="Custo">C <span class="nfe-sug-num">${escM(pc)}</span></span>`
-          + `<span class="nfe-sug-pv nfe-sug-venda" title="Venda">V <span class="nfe-sug-num">${escM(pv)}</span></span>`
-          + `</div>`;
-        li.addEventListener('mousedown', (e) => {
-          e.preventDefault();
-          const trSel = trProdAlvo;
-          if (!trSel) return;
-          document.getElementById('modal-prod').classList.add('hidden');
-          trProdAlvo = null;
-          modProdHlIdx = -1;
-          entradaNfeAplicarProdutoNaLinha(trSel, p, 'modal');
-        });
+        li.className = 'modal-prod-li-sel nfe-sug-item';
+        li.setAttribute('role', 'presentation');
+        li.innerHTML = entradaNfePdvSugBtnHtml(p, ix === modProdHlIdx, escM);
+        const bt = li.querySelector('.nfe-pdv-ac-btn');
+        if (bt) {
+          bt.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            const trSel = trProdAlvo;
+            if (!trSel) return;
+            document.getElementById('modal-prod').classList.add('hidden');
+            trProdAlvo = null;
+            modProdHlIdx = -1;
+            entradaNfeAplicarProdutoNaLinha(trSel, p, 'modal');
+          });
+        }
         ul.appendChild(li);
       });
+      if (arr.length) {
+        modProdHlIdx = 0;
+        modProdApplyHl();
+      }
     } catch (_) {
       ul.innerHTML = '<li class="px-3 py-2 text-red-600 text-xs">Erro na busca.</li>';
     }
@@ -3034,7 +3048,8 @@
       modProdApplyHl();
     } else if (e.key === 'Enter' && modProdHlIdx >= 0 && lis[modProdHlIdx]) {
       e.preventDefault();
-      lis[modProdHlIdx].dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, which: 1 }));
+      const tb = lis[modProdHlIdx].querySelector('.nfe-pdv-ac-btn');
+      if (tb) tb.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, which: 1 }));
     }
   }, true);
 
