@@ -7767,6 +7767,32 @@ def motor_de_busca_agro(
         }
         adicionar(list(db[client.col_p].find(query_cod_prefixo).limit(30)))
 
+        # 1b) EAN/GTIN nos campos do documento (fallback quando ``index_codigos`` não lista o código)
+        if termo_limpo.isdigit() and len(termo_limpo) >= 8:
+            or_br = []
+            to_strip = termo_original.strip()
+            for fld in (
+                "CodigoBarras",
+                "EAN_NFe",
+                "EAN",
+                "CodigoDeBarras",
+                "CodigoBarrasProduto",
+                "GTIN",
+            ):
+                if to_strip:
+                    or_br.append({fld: to_strip})
+                or_br.append({fld: termo_limpo})
+            try:
+                adicionar(
+                    list(
+                        db[client.col_p]
+                        .find({**base_filter, "$or": or_br})
+                        .limit(max(limit, 16))
+                    )
+                )
+            except Exception:
+                logger.warning("motor_de_busca_agro: fallback barras legado", exc_info=True)
+
     # 2) Busca por palavras com expansão
     condicoes_and = []
     for p in palavras:

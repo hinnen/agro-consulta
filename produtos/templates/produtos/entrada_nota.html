@@ -42,6 +42,10 @@
     #nfe-bip-linha-list {
       max-height: min(22rem, 50vh);
     }
+    .in-qtd:focus, .in-vun:focus, .in-un-emb:focus, .in-q-est:focus {
+      outline: 2px solid rgb(16 185 129 / 0.55);
+      outline-offset: 1px;
+    }
   </style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
@@ -549,6 +553,7 @@
     nome_catalogo: '',
     match_tipo: '',
     catalogo_via: '',
+    compact: false,
   };
 
   let entradaNfeRascunhoEditId = null;
@@ -828,6 +833,17 @@
     return Array.from(tb.children || []).filter((n) => n.tagName === 'TR');
   }
 
+  /** Itens da grade já expandidos (exclui linha só com campo de busca). Usada na conferência por código. */
+  function entradaNfeBipLinhasConferencia() {
+    const tb = document.getElementById('tbody-itens');
+    return entradaNfeBipLinhasTbody(tb).filter((r) => r.dataset.nfeLinhaModo !== 'compact');
+  }
+
+  function entradaNfeTemLinhaCompactaAberta() {
+    const tb = document.getElementById('tbody-itens');
+    return entradaNfeBipLinhasTbody(tb).some((r) => r.dataset.nfeLinhaModo === 'compact');
+  }
+
   function entradaNfeBipEstadoLinha(tr) {
     const v = (tr && tr.dataset && String(tr.dataset.bipConf || '').trim()) || '';
     if (v === 'ok' || v === 'similar' || v === 'divergente' || v === 'dispensado') return v;
@@ -960,8 +976,7 @@
   }
 
   function entradaNfeBipIxDeTr(tr) {
-    const rows = entradaNfeBipLinhasTbody(document.getElementById('tbody-itens'));
-    return rows.indexOf(tr);
+    return entradaNfeBipLinhasConferencia().indexOf(tr);
   }
 
   function entradaNfeBipSalvarDraftAtual() {
@@ -990,7 +1005,7 @@
   }
 
   function entradaNfeBipSelecionarLinha(ix) {
-    const rows = entradaNfeBipLinhasTbody(document.getElementById('tbody-itens'));
+    const rows = entradaNfeBipLinhasConferencia();
     if (!rows.length) return;
     entradaNfeBipSalvarDraftAtual();
     entradaNfeBipLinhaIdx = Math.min(Math.max(0, ix), rows.length - 1);
@@ -1003,7 +1018,7 @@
     const hint = document.getElementById('nfe-bip-linha-hint');
     if (!box) return;
     const tb = document.getElementById('tbody-itens');
-    const rows = entradaNfeBipLinhasTbody(tb);
+    const rows = entradaNfeBipLinhasConferencia();
     if (rows.length === 0) {
       entradaNfeBipLinhaIdx = 0;
     } else if (entradaNfeBipLinhaIdx >= rows.length) {
@@ -1128,9 +1143,13 @@
     }
     entradaNfeBipSalvarDraftAtual();
     const tb = document.getElementById('tbody-itens');
-    const rows = entradaNfeBipLinhasTbody(tb);
+    const rows = entradaNfeBipLinhasConferencia();
     if (!rows.length) {
-      if (msg) msg.textContent = 'Adicione linhas na grade primeiro.';
+      if (msg) {
+        msg.textContent = entradaNfeTemLinhaCompactaAberta()
+          ? 'Termine a busca do produto na linha em aberto (catálogo) antes da conferência.'
+          : 'Adicione linhas na grade primeiro.';
+      }
       return;
     }
     const ix = Math.min(Math.max(0, entradaNfeBipLinhaIdx), rows.length - 1);
@@ -1424,6 +1443,7 @@
       nome_catalogo: entradaNfeStrCampo(it.nome_catalogo),
       match_tipo: entradaNfeStrCampo(it.match_tipo),
       catalogo_via: entradaNfeStrCampo(it.catalogo_via),
+      compact: false,
     };
   }
 
@@ -1586,6 +1606,13 @@
   function entradaNfeWizardValidarPassosAnteriores() {
     const cab = coletarCabecalho();
     const linhas = coletarLinhas();
+    if (entradaNfeTemLinhaCompactaAberta()) {
+      return {
+        ok: false,
+        irPara: 2,
+        erro: 'Há linha só com busca — escolha o produto no catálogo ou remova a linha vazia (etapa 2 · Produtos).',
+      };
+    }
     if (!cab.emit_nome) {
       return { ok: false, irPara: 1, erro: 'Informe o fornecedor / emitente (etapa 1 · NF).' };
     }
@@ -1745,10 +1772,26 @@
 
   let trProdAlvo = null;
 
-  function addLinhaRow(data) {
-    const tr = document.createElement('tr');
-    tr.className = 'border-t border-slate-100';
-    const merged = { ...ENTRADA_NFE_LINHA_PADRAO, ...(data && typeof data === 'object' ? data : {}) };
+  function entradaNfeLinhaBindSpinners(tr) {
+    const iq = tr.querySelector('.in-qtd');
+    const vm = tr.querySelector('.nfe-q-menos');
+    const vp = tr.querySelector('.nfe-q-mais');
+    const bump = (delta) => {
+      if (!iq) return;
+      const cur = Number(String(iq.value || '').replace(',', '.')) || 0;
+      const next = Math.max(0, cur + delta);
+      iq.value = next;
+      iq.dispatchEvent(new Event('input', { bubbles: true }));
+      atualizarPainelTotalNfe();
+    };
+    if (vm) vm.addEventListener('click', () => bump(-1));
+    if (vp) vp.addEventListener('click', () => bump(1));
+  }
+
+  /** Grade completa (uma linha da NF) com destaque em qtd / valor unitário. */
+  function entradaNfeLinhaMontarDetalhe(tr, mergedRaw) {
+    delete tr.dataset.nfeLinhaModo;
+    const merged = { ...ENTRADA_NFE_LINHA_PADRAO, ...(mergedRaw && typeof mergedRaw === 'object' ? mergedRaw : {}) };
     const d = {
       ...merged,
       x_prod: entradaNfeStrCampo(merged.x_prod),
@@ -1771,10 +1814,22 @@
       <td class="px-2 py-1"><input type="text" class="in-cprod w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
       <td class="px-2 py-1"><input type="text" class="in-ean w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
       <td class="px-1 py-1.5 text-center"><button type="button" class="btn-pick-prod min-h-[40px] min-w-[3.25rem] px-2 py-1.5 text-xs font-black uppercase text-white bg-blue-600 border-2 border-blue-800 rounded-lg shadow-sm hover:bg-blue-700 active:bg-blue-800" title="Catálogo Agro">Buscar</button><input type="hidden" class="in-prod-id" value=""></td>
-      <td class="px-2 py-1"><input type="number" step="0.0001" class="in-qtd w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value=""></td>
+      <td class="px-1 py-1 align-middle">
+        <div class="rounded-xl border-[3px] border-amber-500 bg-gradient-to-b from-amber-50 to-white px-1 py-1 shadow-md ring-1 ring-amber-400/70">
+          <div class="flex items-stretch justify-center gap-0.5">
+            <button type="button" tabindex="-1" class="nfe-q-menos self-center min-h-[40px] min-w-[38px] shrink-0 rounded-lg border-2 border-amber-800 bg-white text-lg font-black leading-none text-amber-950 hover:bg-amber-100">−</button>
+            <input type="number" step="any" class="in-qtd min-w-0 flex-1 rounded-lg border-2 border-amber-600 bg-white px-1 py-2 text-center text-base font-black text-amber-950 shadow-inner" value="">
+            <button type="button" tabindex="-1" class="nfe-q-mais self-center min-h-[40px] min-w-[38px] shrink-0 rounded-lg border-2 border-amber-800 bg-white text-lg font-black leading-none text-amber-950 hover:bg-amber-100">+</button>
+          </div>
+        </div>
+      </td>
       <td class="px-2 py-1"><input type="number" step="0.0001" min="0.0001" class="in-un-emb w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="1" title="Unidades por embalagem NF"></td>
       <td class="px-2 py-1"><input type="number" step="0.0001" class="in-q-est w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="" title="Qtd p/ estoque (editar para sobrescrever)"></td>
-      <td class="px-2 py-1"><input type="number" step="0.01" class="in-vun w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value=""></td>
+      <td class="px-1 py-1 align-middle">
+        <div class="rounded-xl border-[3px] border-emerald-500 bg-gradient-to-b from-emerald-50 to-white px-1 py-1 shadow-md ring-1 ring-emerald-400/70 flex items-center justify-center min-h-[44px]">
+          <input type="number" step="any" class="in-vun w-full rounded-lg border-2 border-emerald-600 bg-white px-2 py-2 text-center text-base font-black text-emerald-950 shadow-inner" value="">
+        </div>
+      </td>
       <td class="px-2 py-1"><input type="text" class="in-cfop w-full rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
       <td class="px-2 py-1 text-[10px] font-semibold text-slate-600 in-match">${mc}</td>
       <td class="px-1 py-1 text-center"><button type="button" class="btn-edit-prod-erp min-h-[40px] min-w-[40px] rounded-lg border-2 border-slate-200 bg-white text-base leading-none text-slate-600 hover:border-orange-400 hover:text-orange-800 hover:bg-orange-50 disabled:opacity-40 disabled:pointer-events-none" title="Abrir cadastro ERP (nova janela)" aria-label="Abrir cadastro do produto">✎</button></td>
@@ -1813,6 +1868,7 @@
       tr.querySelector('.in-un-emb').addEventListener(ev, () => { delete qe.dataset.manual; atualizarQtdEstoqueRow(tr); });
     });
     qe.addEventListener('input', () => { qe.dataset.manual = '1'; });
+    entradaNfeLinhaBindSpinners(tr);
     tr.querySelector('.btn-pick-prod').addEventListener('click', () => {
       trProdAlvo = tr;
       modProdHlIdx = -1;
@@ -1827,8 +1883,64 @@
       atualizarPainelTotalNfe();
       entradaNfeBipRebuildSelect();
     });
-    document.getElementById('tbody-itens').appendChild(tr);
     entradaNfeSyncEditProdBtn(tr);
+  }
+
+  /** Uma linha nova começa só com busca; depois do produto escolhido vira a grade completa. */
+  function entradaNfeLinhaMontarCompacta(tr) {
+    tr.dataset.nfeLinhaModo = 'compact';
+    tr.innerHTML = `
+      <td colspan="12" class="px-2 py-3 bg-gradient-to-r from-slate-50 via-orange-50/40 to-white border-b-2 border-orange-100">
+        <div class="flex flex-wrap items-end gap-2">
+          <label class="flex-1 min-w-[min(100%,18rem)] flex flex-col gap-1">
+            <span class="text-[10px] font-black uppercase text-orange-950 tracking-wide">Buscar produto (depois aparece quantidade e valor)</span>
+            <input type="text" class="in-linha-busca-rapida w-full min-h-[52px] rounded-xl border-2 border-orange-400 bg-white px-3 text-base font-bold shadow-inner focus:border-emerald-500 outline-none" placeholder="EAN, código ou nome — bip, Enter ou Catálogo" autocomplete="off">
+          </label>
+          <button type="button" class="btn-nfe-cat-inline shrink-0 min-h-[52px] px-4 rounded-xl text-xs font-black uppercase text-white bg-blue-600 border-2 border-blue-800 shadow-sm hover:bg-blue-700">Catálogo</button>
+          <button type="button" class="btn-del shrink-0 min-h-[52px] min-w-[52px] rounded-xl border-2 border-red-200 text-red-700 font-black text-xl leading-none hover:bg-red-50" title="Remover linha">×</button>
+        </div>
+      </td>`;
+    const busca = tr.querySelector('.in-linha-busca-rapida');
+    tr.querySelector('.btn-nfe-cat-inline').addEventListener('click', () => {
+      entradaNfeLinhaCompactaExecutarBusca(tr);
+    });
+    tr.querySelector('.btn-del').addEventListener('click', () => {
+      tr.remove();
+      atualizarPainelTotalNfe();
+      entradaNfeBipRebuildSelect();
+    });
+    let compactBuscaDebounceT = null;
+    busca.addEventListener('input', () => {
+      clearTimeout(compactBuscaDebounceT);
+      const raw = String(busca.value || '').trim();
+      if (!/^\d{8,}$/.test(raw)) return;
+      compactBuscaDebounceT = setTimeout(() => {
+        compactBuscaDebounceT = null;
+        entradaNfeLinhaCompactaExecutarBusca(tr);
+      }, 90);
+    });
+    busca.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      const raw = String(busca.value || '').trim();
+      if (raw.length < 2) return;
+      e.preventDefault();
+      entradaNfeLinhaCompactaExecutarBusca(tr);
+    });
+  }
+
+  function addLinhaRow(data) {
+    const tr = document.createElement('tr');
+    tr.className = 'border-t border-slate-100';
+    const merged = { ...ENTRADA_NFE_LINHA_PADRAO, ...(data && typeof data === 'object' ? data : {}) };
+    if (merged.compact === true) {
+      entradaNfeLinhaMontarCompacta(tr);
+      document.getElementById('tbody-itens').appendChild(tr);
+      atualizarPainelTotalNfe();
+      entradaNfeBipRebuildSelect();
+      return;
+    }
+    entradaNfeLinhaMontarDetalhe(tr, merged);
+    document.getElementById('tbody-itens').appendChild(tr);
     atualizarPainelTotalNfe();
     entradaNfeBipRebuildSelect();
   }
@@ -1837,6 +1949,7 @@
     const rows = document.querySelectorAll('#tbody-itens tr');
     const linhas = [];
     rows.forEach((tr) => {
+      if (tr.dataset.nfeLinhaModo === 'compact') return;
       const desc = tr.querySelector('.in-desc').value.trim();
       const qtd = Number(tr.querySelector('.in-qtd').value) || 0;
       if (!desc && qtd === 0) return;
@@ -2108,9 +2221,41 @@
     }
   }
 
+  /** Busca na API e expande a linha compacta sem abrir o modal (bip, Enter, Catálogo, colar). */
+  async function entradaNfeLinhaCompactaExecutarBusca(tr) {
+    if (!tr || tr.dataset.nfeLinhaModo !== 'compact') return;
+    if (tr.dataset.nfeCompactBusy === '1') return;
+    const busca = tr.querySelector('.in-linha-busca-rapida');
+    if (!busca) return;
+    const raw = String(busca.value || '').trim();
+    if (raw.length < 2) {
+      showMsg('Digite ao menos 2 caracteres ou bip o código de barras.', false);
+      return;
+    }
+    tr.dataset.nfeCompactBusy = '1';
+    try {
+      const arr = await entradaNfeBuscarProdutosArr(raw);
+      if (!tr || tr.dataset.nfeLinhaModo !== 'compact') return;
+      if (!arr.length) {
+        showMsg('Nenhum produto encontrado. Confira o código ou o nome.', false);
+        return;
+      }
+      const p = entradaNfeEscolherProdutoDaBusca(arr, raw);
+      if (!p || tr.dataset.nfeLinhaModo !== 'compact') return;
+      entradaNfeAplicarProdutoNaLinha(tr, p, 'scan');
+    } finally {
+      try {
+        delete tr.dataset.nfeCompactBusy;
+      } catch (_) {}
+    }
+  }
+
   /** via: 'modal' = busca na lista (conferência pendente); 'scan' = Enter/bip na grade (confere OK). */
   function entradaNfeAplicarProdutoNaLinha(tr, p, via) {
     if (!tr || !p) return;
+    if (tr.dataset.nfeLinhaModo === 'compact') {
+      entradaNfeLinhaMontarDetalhe(tr, { ...ENTRADA_NFE_LINHA_PADRAO });
+    }
     const nome =
       entradaNfeStrCampo(p.nome)
       || entradaNfeStrCampo(p.Nome)
@@ -2212,10 +2357,21 @@
   }, true);
 
   let prodModalTimer = null;
-  document.getElementById('modal-prod-q').addEventListener('input', () => {
+  function entradaNfeModalAgendarBuscaProd() {
+    const inp = document.getElementById('modal-prod-q');
+    if (!inp) return;
     clearTimeout(prodModalTimer);
-    const t = document.getElementById('modal-prod-q').value.trim();
-    prodModalTimer = setTimeout(() => { if (t.length >= 2) buscarProdutosModal(t); }, 350);
+    const t = inp.value.trim();
+    if (t.length < 2) return;
+    const ms = /^\d{8,}$/.test(t) ? 60 : 300;
+    prodModalTimer = setTimeout(() => buscarProdutosModal(t), ms);
+  }
+  document.getElementById('modal-prod-q').addEventListener('input', entradaNfeModalAgendarBuscaProd);
+  document.getElementById('modal-prod-q').addEventListener('paste', () => {
+    setTimeout(() => {
+      const t = document.getElementById('modal-prod-q').value.trim();
+      if (t.length >= 2) buscarProdutosModal(t);
+    }, 0);
   });
   document.getElementById('modal-prod-fechar').addEventListener('click', () => {
     document.getElementById('modal-prod').classList.add('hidden');
@@ -2237,6 +2393,15 @@
   document.getElementById('tbody-itens').addEventListener('change', (e) => {
     const t = e.target;
     if (t && (t.classList.contains('in-qtd') || t.classList.contains('in-vun'))) atualizarPainelTotalNfe();
+  });
+  document.getElementById('tbody-itens').addEventListener('focusin', (e) => {
+    const t = e.target;
+    if (!t || !t.matches('.in-qtd, .in-vun, .in-un-emb, .in-q-est')) return;
+    requestAnimationFrame(() => {
+      try {
+        t.select();
+      } catch (_) {}
+    });
   });
   document.getElementById('tbody-itens').addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-edit-prod-erp');
@@ -2275,6 +2440,10 @@
 
   async function salvar(modo, extra) {
     const cab = coletarCabecalho();
+    if (entradaNfeTemLinhaCompactaAberta()) {
+      showMsg('Termine a busca do produto na linha em aberto (catálogo) ou remova a linha antes de salvar.', false);
+      return;
+    }
     const linhas = coletarLinhas();
     if (!linhas.length) {
       showMsg('Inclua ao menos uma linha com descrição ou quantidade.', false);
@@ -2325,6 +2494,10 @@
 
   async function salvarComFinanceiro(modo, extra) {
     const cab = coletarCabecalho();
+    if (entradaNfeTemLinhaCompactaAberta()) {
+      showMsg('Termine a busca do produto na linha em aberto (catálogo) ou remova a linha antes de salvar.', false);
+      return;
+    }
     const linhas = coletarLinhas();
     if (!linhas.length) {
       showMsg('Inclua ao menos uma linha com descrição ou quantidade.', false);
@@ -2443,11 +2616,15 @@
     }
   }
 
-  document.getElementById('btn-add-linha').addEventListener('click', () => addLinhaRow({}));
+  document.getElementById('btn-add-linha').addEventListener('click', () => addLinhaRow({ compact: true }));
   document.getElementById('btn-salvar-manual').addEventListener('click', () => salvar('manual', {}));
   document.getElementById('btn-salvar-fin').addEventListener('click', () => salvarComFinanceiro('manual', { com_financeiro: true }));
 
   document.getElementById('btn-estoque-agro').addEventListener('click', async () => {
+    if (entradaNfeTemLinhaCompactaAberta()) {
+      showMsg('Termine a busca do produto na linha em aberto (catálogo) ou remova a linha antes de registrar estoque.', false);
+      return;
+    }
     const linhas = coletarLinhas();
     if (!linhas.length) {
       showMsg('Inclua ao menos uma linha com descrição ou quantidade.', false);
@@ -2792,8 +2969,8 @@
     document.getElementById('m-dh').value = '';
     entradaNfeDepositoDefinir('', true);
     tbodyClear();
-    addLinhaRow({});
-    addLinhaRow({});
+    addLinhaRow({ compact: true });
+    addLinhaRow({ compact: true });
     atualizarPainelTotalNfe();
     showMsg('Nova entrada.', true);
   });
@@ -2884,18 +3061,18 @@
             });
           });
         } else {
-          addLinhaRow({});
-          addLinhaRow({});
+          addLinhaRow({ compact: true });
+          addLinhaRow({ compact: true });
         }
         if (pr.mensagem) showMsg(String(pr.mensagem), true);
       } catch (e) {
         console.error(e);
-        addLinhaRow({});
-        addLinhaRow({});
+        addLinhaRow({ compact: true });
+        addLinhaRow({ compact: true });
       }
     } else {
-      addLinhaRow({});
-      addLinhaRow({});
+      addLinhaRow({ compact: true });
+      addLinhaRow({ compact: true });
     }
     carregarSefazStatus();
     carregarRascunhos();
