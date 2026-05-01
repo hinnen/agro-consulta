@@ -708,6 +708,8 @@
   const URL_RASC_ACAO = "{% url 'api_entrada_nota_rascunho_acao' %}";
   const URL_CONF_COD = "{% url 'api_entrada_nota_conferir_codigo' %}";
   const URL_APROVAR_WIZ = "{% url 'api_entrada_nota_aprovar_wizard' %}";
+  /** Abrir Lançamentos (contas a pagar) com foco no título recém-criado. */
+  const URL_LANC_CP = "{% url 'lancamentos_contas_pagar' %}";
   const URL_CAD_PRODUTO_NOVO = "{% url 'produtos_cadastro_erp' %}?novo=1";
   /** Miniatura quando a API não manda foto (mesmo recurso que o wizard PDV). */
   const ENT_NFE_PLACEHOLDER_PROD_IMG = "{% static 'img/agro-mais-logo-buscador.png' %}";
@@ -3932,6 +3934,18 @@
           let t = fin.quitar_ao_salvar
             ? 'Rascunho salvo e conta(s) a pagar gerada(s) e quitada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.'
             : 'Rascunho salvo e conta(s) a pagar gerada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
+          const fnTit = (cab.emit_nome || '').trim();
+          if (fnTit) {
+            t += ' Favorecido do título: «' + fnTit + '».';
+          }
+          t +=
+            ' Na mesma data podem existir vários títulos (outros fornecedores); use o nome acima ou o ID na busca de Lançamentos.';
+          try {
+            const u = new URL(URL_LANC_CP, window.location.origin);
+            const id0 = fin.ids && fin.ids[0] ? String(fin.ids[0]) : '';
+            if (id0) u.searchParams.set('mongo_id', id0);
+            t += ' Abrir: ' + u.href;
+          } catch (_) {}
           if (fin.quitar_ao_salvar) {
             t += ' Em Lançamentos (contas a pagar), veja na aba Quitados.';
           }

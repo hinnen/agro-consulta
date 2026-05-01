@@ -3876,8 +3876,16 @@ def _obter_template_lancamento(db, despesa: bool) -> dict | None:
 
 
 def _dt_naive_meia_noite_erp(d: date) -> datetime:
-    """Mesmo padrão de hora visto nos documentos do WL (03:00 local, armazenado naive)."""
-    return datetime.combine(d, dtime(3, 0, 0))
+    """
+    Mesmo horário local que o ERP/WL costuma usar (03:00).
+    Grava como datetime **aware** no fuso atual para casar com filtros por data em ``lancamentos_montar_query_mongo``.
+    """
+    dt_local = datetime.combine(d, dtime(3, 0, 0))
+    try:
+        tz = timezone.get_current_timezone()
+        return timezone.make_aware(dt_local, tz)
+    except Exception:
+        return dt_local
 
 
 def _fin_parse_valor_entrada_manual(val: Any) -> float:
