@@ -529,6 +529,28 @@
   /** Path ou URL absoluta (evitar host fixo no iframe — usar só pathname + origem atual). */
   const ENTRADA_NFE_TMPL_CADASTRO_PROD = "{% url 'produtos_cadastro_erp_produto' produto_id='__AGRO_PH__' %}";
 
+  /** Evita o texto literal "undefined" quando o valor JS ou JSON veio ausente. */
+  function entradaNfeStrCampo(v) {
+    if (v === undefined || v === null) return '';
+    const s = String(v).trim();
+    return s === 'undefined' ? '' : s;
+  }
+
+  const ENTRADA_NFE_LINHA_PADRAO = {
+    x_prod: '',
+    c_prod: '',
+    ean: '',
+    q_com: 1,
+    un_por_embalagem: 1,
+    q_estoque: null,
+    v_un_com: 0,
+    cfop: '',
+    produto_id: '',
+    nome_catalogo: '',
+    match_tipo: '',
+    catalogo_via: '',
+  };
+
   let entradaNfeRascunhoEditId = null;
   let entradaNfeListaFiltro = 'todas';
   /** Índice da linha ativa na conferência por código (passo 2). */
@@ -1390,17 +1412,18 @@
     const qnf = it.q_com != null ? it.q_com : 1;
     const qest = it.q_estoque != null ? it.q_estoque : (Number(qnf) * Number(un));
     return {
-      x_prod: it.x_prod || '',
-      c_prod: it.c_prod || '',
-      ean: it.ean || '',
+      x_prod: entradaNfeStrCampo(it.x_prod),
+      c_prod: entradaNfeStrCampo(it.c_prod),
+      ean: entradaNfeStrCampo(it.ean),
       q_com: qnf,
       un_por_embalagem: un,
       q_estoque: qest,
       v_un_com: it.v_un_com != null ? it.v_un_com : 0,
-      cfop: it.cfop || '',
-      produto_id: it.produto_id || '',
-      nome_catalogo: it.nome_catalogo || '',
-      match_tipo: it.match_tipo || '',
+      cfop: entradaNfeStrCampo(it.cfop),
+      produto_id: entradaNfeStrCampo(it.produto_id),
+      nome_catalogo: entradaNfeStrCampo(it.nome_catalogo),
+      match_tipo: entradaNfeStrCampo(it.match_tipo),
+      catalogo_via: entradaNfeStrCampo(it.catalogo_via),
     };
   }
 
@@ -1725,9 +1748,21 @@
   function addLinhaRow(data) {
     const tr = document.createElement('tr');
     tr.className = 'border-t border-slate-100';
-    const d = data || {
-      x_prod: '', c_prod: '', ean: '', q_com: 1, un_por_embalagem: 1, q_estoque: 1,
-      v_un_com: 0, cfop: '', produto_id: '', nome_catalogo: '', match_tipo: '',
+    const merged = { ...ENTRADA_NFE_LINHA_PADRAO, ...(data && typeof data === 'object' ? data : {}) };
+    const d = {
+      ...merged,
+      x_prod: entradaNfeStrCampo(merged.x_prod),
+      c_prod: entradaNfeStrCampo(merged.c_prod),
+      ean: entradaNfeStrCampo(merged.ean),
+      cfop: entradaNfeStrCampo(merged.cfop),
+      produto_id: entradaNfeStrCampo(merged.produto_id),
+      nome_catalogo: entradaNfeStrCampo(merged.nome_catalogo),
+      match_tipo: entradaNfeStrCampo(merged.match_tipo),
+      catalogo_via: entradaNfeStrCampo(merged.catalogo_via),
+      q_com: merged.q_com != null ? merged.q_com : 1,
+      un_por_embalagem: merged.un_por_embalagem != null ? merged.un_por_embalagem : 1,
+      v_un_com: merged.v_un_com != null ? merged.v_un_com : 0,
+      q_estoque: merged.q_estoque,
     };
     const mt = d.match_tipo ? ` (${d.match_tipo})` : '';
     const mc = d.nome_catalogo ? `${d.nome_catalogo}${mt}` : (d.produto_id ? d.produto_id : '—');
@@ -1770,6 +1805,9 @@
     } else {
       delete tr.dataset.bipSimilarCodigos;
     }
+    const viaCat = String(d.catalogo_via || '').trim();
+    if (viaCat === 'scan' || viaCat === 'modal') tr.dataset.nfeCatVia = viaCat;
+    else delete tr.dataset.nfeCatVia;
     ['input', 'change'].forEach((ev) => {
       tr.querySelector('.in-qtd').addEventListener(ev, () => { delete qe.dataset.manual; atualizarQtdEstoqueRow(tr); });
       tr.querySelector('.in-un-emb').addEventListener(ev, () => { delete qe.dataset.manual; atualizarQtdEstoqueRow(tr); });
@@ -1778,7 +1816,7 @@
     tr.querySelector('.btn-pick-prod').addEventListener('click', () => {
       trProdAlvo = tr;
       modProdHlIdx = -1;
-      document.getElementById('modal-prod-linha').textContent = (tr.querySelector('.in-desc').value || '(nova linha)').slice(0, 60);
+      document.getElementById('modal-prod-linha').textContent = (entradaNfeStrCampo(tr.querySelector('.in-desc').value) || '(nova linha)').slice(0, 60);
       document.getElementById('modal-prod-q').value = '';
       document.getElementById('modal-prod-res').innerHTML = '';
       document.getElementById('modal-prod').classList.remove('hidden');
@@ -1816,6 +1854,7 @@
           const t = (tr.querySelector('.in-match').textContent || '').trim();
           return t && t !== '—' ? t : '';
         })(),
+        catalogo_via: String(tr.dataset.nfeCatVia || '').trim(),
         bip_conf: entradaNfeBipEstadoLinha(tr),
         bip_similar_codigos: (() => {
           try {
@@ -1974,6 +2013,7 @@
         produto_id: row.produto_id || '',
         nome_catalogo: row.nome_catalogo || row.x_prod || '',
         match_tipo: row.match_tipo || '',
+        catalogo_via: row.catalogo_via || '',
         bip_conf: row.bip_conf,
         bip_similar_codigos: row.bip_similar_codigos,
       });
@@ -2037,6 +2077,66 @@
     });
   });
 
+  function entradaNfeEscolherProdutoDaBusca(arr, q) {
+    if (!arr || !arr.length) return null;
+    const qDigits = String(q || '').replace(/\D/g, '');
+    const qLow = String(q || '').trim().toLowerCase();
+    if (qDigits.length >= 7) {
+      for (let i = 0; i < arr.length; i += 1) {
+        const p = arr[i];
+        const e = String(p.codigo_barras || '').replace(/\D/g, '');
+        if (e && (e === qDigits || entradaNfeCodigosEquivalentes(e, qDigits))) return p;
+      }
+    }
+    for (let i = 0; i < arr.length; i += 1) {
+      const p = arr[i];
+      const c = String(p.codigo_nfe || p.codigo || '').trim().toLowerCase();
+      if (qLow && c && c === qLow) return p;
+    }
+    return arr[0];
+  }
+
+  async function entradaNfeBuscarProdutosArr(termo) {
+    const t = String(termo || '').trim();
+    if (t.length < 2) return [];
+    try {
+      const r = await fetch(`${URL_BUSCA}?q=${encodeURIComponent(t)}`, { credentials: 'same-origin' });
+      const j = await r.json();
+      return Array.isArray(j.produtos) ? j.produtos : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /** via: 'modal' = busca na lista (conferência pendente); 'scan' = Enter/bip na grade (confere OK). */
+  function entradaNfeAplicarProdutoNaLinha(tr, p, via) {
+    if (!tr || !p) return;
+    const nome =
+      entradaNfeStrCampo(p.nome)
+      || entradaNfeStrCampo(p.Nome)
+      || String(p.id != null ? p.id : '').trim();
+    tr.querySelector('.in-prod-id').value = String(p.id != null ? p.id : '').trim();
+    entradaNfeSyncEditProdBtn(tr);
+    tr.querySelector('.in-match').textContent = nome.slice(0, 120);
+    if (p.codigo_nfe || p.codigo) tr.querySelector('.in-cprod').value = String(p.codigo_nfe || p.codigo || '').trim();
+    if (p.codigo_barras) tr.querySelector('.in-ean').value = String(p.codigo_barras).replace(/\D/g, '').slice(0, 14);
+    const elDesc = tr.querySelector('.in-desc');
+    if (!entradaNfeStrCampo(elDesc.value)) elDesc.value = nome;
+    if (via === 'scan') {
+      tr.dataset.nfeCatVia = 'scan';
+      tr.dataset.bipConf = 'ok';
+      delete tr.dataset.bipSimilarCodigos;
+    } else {
+      tr.dataset.nfeCatVia = 'modal';
+      delete tr.dataset.bipConf;
+      delete tr.dataset.bipSimilarCodigos;
+    }
+    const bi = entradaNfeBipIxDeTr(tr);
+    if (bi >= 0) delete entradaNfeBipDraftPorLinha[String(bi)];
+    entradaNfeBipRebuildSelect();
+    entradaNfeAtualizarPainelPedidoCompra();
+  }
+
   let modProdHlIdx = -1;
   function modProdSelectableLis() {
     return [...document.querySelectorAll('#modal-prod-res li.modal-prod-li-sel')];
@@ -2068,25 +2168,14 @@
       arr.slice(0, 40).forEach((p) => {
         const li = document.createElement('li');
         li.className = 'modal-prod-li-sel px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm border-b border-slate-50';
-        li.innerHTML = `<div class="font-bold text-slate-800">${p.nome || '—'}</div><div class="text-[10px] text-slate-500 font-mono">ID ${p.id} · ${p.codigo_nfe || p.codigo || ''} · EAN ${p.codigo_barras || '—'}</div>`;
+        li.innerHTML = `<div class="font-bold text-slate-800">${entradaNfeStrCampo(p.nome) || '—'}</div><div class="text-[10px] text-slate-500 font-mono">ID ${p.id} · ${p.codigo_nfe || p.codigo || ''} · EAN ${p.codigo_barras || '—'}</div>`;
         li.addEventListener('mousedown', (e) => {
           e.preventDefault();
           if (!trProdAlvo) return;
-          trProdAlvo.querySelector('.in-prod-id').value = p.id || '';
-          entradaNfeSyncEditProdBtn(trProdAlvo);
-          const m = trProdAlvo.querySelector('.in-match');
-          m.textContent = (p.nome || p.id || '—').slice(0, 120);
-          if (p.codigo_nfe || p.codigo) trProdAlvo.querySelector('.in-cprod').value = p.codigo_nfe || p.codigo || '';
-          if (p.codigo_barras) trProdAlvo.querySelector('.in-ean').value = String(p.codigo_barras).replace(/\D/g, '').slice(0, 14);
+          entradaNfeAplicarProdutoNaLinha(trProdAlvo, p, 'modal');
           document.getElementById('modal-prod').classList.add('hidden');
-          delete trProdAlvo.dataset.bipConf;
-          delete trProdAlvo.dataset.bipSimilarCodigos;
-          const bi = entradaNfeBipIxDeTr(trProdAlvo);
-          if (bi >= 0) delete entradaNfeBipDraftPorLinha[String(bi)];
           trProdAlvo = null;
           modProdHlIdx = -1;
-          entradaNfeBipRebuildSelect();
-          entradaNfeAtualizarPainelPedidoCompra();
         });
         ul.appendChild(li);
       });
@@ -2156,6 +2245,23 @@
     const pid = tr?.querySelector('.in-prod-id')?.value?.trim();
     if (!entradaNfeProdutoIdErpValido(pid)) return;
     abrirModalCadastroProd(pid);
+  });
+
+  /** Bip/leitor ou Enter no EAN/código GM: resolve catálogo e marca conferência como OK. */
+  document.getElementById('tbody-itens').addEventListener('keydown', async (e) => {
+    const t = e.target;
+    if (!t || (!t.classList.contains('in-ean') && !t.classList.contains('in-cprod'))) return;
+    if (e.key !== 'Enter') return;
+    const raw = String(t.value || '').trim();
+    if (raw.length < 3) return;
+    e.preventDefault();
+    const tr = t.closest('tr');
+    if (!tr) return;
+    const arr = await entradaNfeBuscarProdutosArr(raw);
+    if (!arr.length) return;
+    const p = entradaNfeEscolherProdutoDaBusca(arr, raw);
+    if (!p) return;
+    entradaNfeAplicarProdutoNaLinha(tr, p, 'scan');
   });
 
   ['fin-dv', 'fin-n-parc', 'fin-parc-int'].forEach((id) => {
@@ -2774,6 +2880,7 @@
               produto_id: row.produto_id || '',
               nome_catalogo: row.nome_catalogo || row.x_prod || '',
               match_tipo: row.match_tipo || 'compras',
+              catalogo_via: row.catalogo_via || '',
             });
           });
         } else {
