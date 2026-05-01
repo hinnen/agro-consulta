@@ -44,6 +44,14 @@ CSRF_TRUSTED_ORIGINS = [
 if _on_render and "https://*.onrender.com" not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS = list(CSRF_TRUSTED_ORIGINS) + ["https://*.onrender.com"]
 
+# Domínio próprio no Render: defina no painel (separado por vírgula), ex. www.loja.com.br,loja.com.br
+for _h in [h.strip() for h in config("ALLOWED_HOSTS_EXTRA", default="").split(",") if h.strip()]:
+    if _h not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_h)
+for _o in [o.strip() for o in config("CSRF_TRUSTED_ORIGINS_EXTRA", default="").split(",") if o.strip()]:
+    if _o not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_o)
+
 # Render envia este SHA ao build/run; usar em ``?v=`` só no PDV pois lá o static vai sem Manifest.
 AGRO_PDV_ASSETS_V = (os.environ.get("RENDER_GIT_COMMIT") or "").strip()[:12]
 
