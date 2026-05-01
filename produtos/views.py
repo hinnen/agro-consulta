@@ -8095,7 +8095,36 @@ def _buscar_produto_por_codigo_interno_balanca(db, client, cod4: str):
 _API_BUSCAR_ESTOQUE_PROJECTION = {"ProdutoID": 1, "DepositoID": 1, "Saldo": 1, "_id": 0}
 
 # Catálogo wizard: documentos ERP completos tinham até MB de campos/embeds; projetar reduz RAM e tempo (512 MB Render).
+# Custos: mesmos campos que ``_custos_compra_produto`` / helpers — sem isto, GET ``?wizard_catalog=1&compras=1``
+# montava JSON com preco_custo zerado (autocomplete entrada NF / compras enquanto a busca “cheia” vinha correta).
+_WIZARD_CATALOG_MONGO_CUSTO_CAMPOS = {
+    "PrecoCusto": 1,
+    "ValorCusto": 1,
+    "PrecoCustoComAcrescimos": 1,
+    "ValorPrecoCustoComAcrescimos": 1,
+    "PrecoCustoComAcrescimo": 1,
+    "ValorCustoComAcrescimos": 1,
+    "ValorCustoComAcrescimo": 1,
+    "CustoComAcrescimos": 1,
+    "FreteCompraPercentual": 1,
+    "SeguroCompraPercentual": 1,
+    "IPICompraPercentual": 1,
+    "ICMSSTCompraPercentual": 1,
+    "FCPSTCompraPercentual": 1,
+    "PrecoCustoFinal": 1,
+    "ValorCustoFinal": 1,
+    "CustoFinal": 1,
+    "PrecoCustoComImposto": 1,
+    "PrecoCustoTotal": 1,
+    "ValorCustoComImposto": 1,
+    "CustoMedioCompra": 1,
+    "PrecoReposicao": 1,
+    "ValorCustoCompra": 1,
+    "CustoCompraFinal": 1,
+    "ValorCustoReposicao": 1,
+}
 _WIZARD_CATALOG_MONGO_PROJECTION = {
+    **_WIZARD_CATALOG_MONGO_CUSTO_CAMPOS,
     "_id": 1,
     "Id": 1,
     "Nome": 1,
@@ -8111,6 +8140,12 @@ _WIZARD_CATALOG_MONGO_PROJECTION = {
     "CodigoDeBarras": 1,
     "CodigoBarrasProduto": 1,
     "GTIN": 1,
+    "NomeCategoria": 1,
+    "Categoria": 1,
+    "Grupo": 1,
+    "SubGrupo": 1,
+    "Subcategoria": 1,
+    "NomeSubcategoria": 1,
     "UrlImagem": 1,
     "Imagem": 1,
     "CaminhoImagem": 1,
