@@ -12,8 +12,31 @@
   var API_DETALHE_TMPL = C.API_DETALHE_TMPL || '';
   var URL_CAD_ERP_PROD_TMPL = C.URL_CAD_ERP_PROD_TMPL || '';
   var URL_OVERLAY_SALVAR = C.URL_OVERLAY_SALVAR || '';
+  var URL_ERP_PENDENTES = C.URL_ERP_PENDENTES || '';
+  var URL_ERP_SYNC_PENDENTES = C.URL_ERP_SYNC_PENDENTES || '';
   var PODE_EDITAR_OVERLAY = !!C.PODE_EDITAR_OVERLAY;
   var LOGIN_OVERLAY_HREF = C.LOGIN_OVERLAY_HREF || '';
+  var btnErpPend = document.getElementById('cadastro-btn-erp-pendentes');
+  var lblErpPendN = document.getElementById('cadastro-erp-pend-n');
+
+  function csrfTokErp() {
+    return (U && U.csrf) ? U.csrf() : ((document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '');
+  }
+
+  function refreshPendentesBadge() {
+    if (!URL_ERP_PENDENTES || !lblErpPendN || !btnErpPend) return;
+    if (!PODE_EDITAR_OVERLAY) return;
+    fetch(URL_ERP_PENDENTES, { credentials: 'same-origin' })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        var n = (j && j.ok && typeof j.n === 'number') ? j.n : 0;
+        lblErpPendN.textContent = '(' + n + ')';
+        if (n > 0) btnErpPend.classList.remove('hidden');
+        else btnErpPend.classList.add('hidden');
+      })
+      .catch(function () { /* ignore */ });
+  }
+  window.agroCadastroErpRefreshPendentesBadge = refreshPendentesBadge;
 
   function jsonOuErroHumano(response) {
     return response.text().then(function (text) {
@@ -640,6 +663,7 @@
         var produtos = x.j.produtos || [];
         atualizarMeta(x.j, produtos);
         renderLista(produtos);
+        refreshPendentesBadge();
       })
       .catch(function (err) {
         if (err && err.name === 'AbortError') return;
@@ -748,6 +772,31 @@
       buscaEl.select();
     }
   });
+
+  if (btnErpPend && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY) {
+    btnErpPend.addEventListener('click', function () {
+      if (!window.confirm('Enviar ao ERP legado todos os produtos pendentes desta sessão (até 40 por vez)?')) return;
+      btnErpPend.disabled = true;
+      fetch(URL_ERP_SYNC_PENDENTES, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfTokErp() },
+        body: JSON.stringify({ limite: 40 })
+      })
+        .then(function (r) { return jsonOuErroHumano(r); })
+        .then(function (j) {
+          if (!j.ok) throw new Error(j.erro || 'Falha ao sincronizar');
+          var okc = j.ok_count != null ? j.ok_count : 0;
+          var f = j.falhas != null ? j.falhas : 0;
+          var rest = j.pendentes_restantes != null ? j.pendentes_restantes : '?';
+          window.alert('ERP: ' + okc + ' ok, ' + f + ' falha(s). Pendentes restantes: ' + rest);
+          refreshPendentesBadge();
+          carregar();
+        })
+        .catch(function (e) { window.alert(e.message || 'Erro ao sincronizar'); })
+        .finally(function () { btnErpPend.disabled = false; });
+    });
+  }
 
   if (CADASTRO_ERP_MODO === 'detalhe' && CADASTRO_ERP_PID) {
     carregarDetalheProduto(CADASTRO_ERP_PID);

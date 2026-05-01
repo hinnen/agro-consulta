@@ -692,6 +692,8 @@
   if (window.__agroInAppTabsBootstrap) return;
   window.__agroInAppTabsBootstrap = true;
   if (window.top !== window.self) return;
+  /** Só no app Electron (preload expõe agroShell). No browser evita 2–3 cargas paralelas (PDV + Dashboard + URL atual em iframe) por tela. */
+  if (!window.agroShell || typeof window.agroShell.openExternal !== 'function') return;
 
   var USER_SLOTS = 3;
   /** Total: 2 fixas (PDV + Dashboard) + 3 selecionadas = 5 */
