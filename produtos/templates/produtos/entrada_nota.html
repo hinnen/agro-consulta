@@ -3818,7 +3818,10 @@
   document.getElementById('btn-salvar-manual').addEventListener('click', () => salvar('manual', {}));
   document.getElementById('btn-salvar-fin').addEventListener('click', () => salvarComFinanceiro('manual', { com_financeiro: true }));
 
-  document.getElementById('btn-estoque-agro').addEventListener('click', async () => {
+  const btnEstoqueAgro = document.getElementById('btn-estoque-agro');
+  let entradaNfeEstoqueAgroEmCurso = false;
+  btnEstoqueAgro.addEventListener('click', async () => {
+    if (entradaNfeEstoqueAgroEmCurso || btnEstoqueAgro.disabled) return;
     if (entradaNfeTemLinhaCompactaDigitacaoPendente()) {
       showMsg('Há texto na linha de busca de novo item — escolha na lista, confirme com Enter ou apague antes de registrar estoque.', false);
       return;
@@ -3847,6 +3850,9 @@
     const depLbl = Array.from(document.getElementById('m-deposito-entrada').options).find((o) => o.value === depVal);
     const depNome = depLbl ? depLbl.textContent.trim() : depVal;
     if (!window.confirm(`Registrar ${comPid.length} produto(s) no estoque Agro?\nEmpresa: ${empNome}\nDepósito: ${depNome}`)) return;
+    entradaNfeEstoqueAgroEmCurso = true;
+    btnEstoqueAgro.disabled = true;
+    btnEstoqueAgro.setAttribute('aria-busy', 'true');
     const cab = coletarCabecalho();
     const body = {
       linhas,
@@ -3869,7 +3875,18 @@
         },
         body: JSON.stringify(body),
       });
-      const j = await r.json();
+      const j = await r.json().catch(() => ({}));
+      if (r.status === 409 && j.erro) {
+        showMsg(j.erro, false);
+        btnEstoqueAgro.disabled = false;
+        btnEstoqueAgro.removeAttribute('aria-busy');
+        return;
+      }
+      const jrasc = j.rascunho;
+      if (jrasc && jrasc.id && !entradaNfeRascunhoEditId) {
+        entradaNfeRascunhoEditId = String(jrasc.id);
+        setEntradaNfeRascunhoEdit(entradaNfeRascunhoEditId);
+      }
       const est = j.estoque || {};
       const aplicados = est.aplicados || [];
       if (aplicados.length) {
@@ -3878,12 +3895,18 @@
         if (j.aviso_status_rascunho) t += ` (${j.aviso_status_rascunho})`;
         showMsg(t, r.ok && !j.aviso_status_rascunho);
         carregarRascunhos();
+        btnEstoqueAgro.textContent = 'Estoque já registrado';
       } else {
         showMsg(j.erro || est.erros?.[0]?.erro || 'Nada foi aplicado.', false);
+        btnEstoqueAgro.disabled = false;
+        btnEstoqueAgro.removeAttribute('aria-busy');
       }
     } catch (_) {
       showMsg('Erro de rede.', false);
+      btnEstoqueAgro.disabled = false;
+      btnEstoqueAgro.removeAttribute('aria-busy');
     } finally {
+      entradaNfeEstoqueAgroEmCurso = false;
       if (window.gmLoadingBar) window.gmLoadingBar.hide();
     }
   });
