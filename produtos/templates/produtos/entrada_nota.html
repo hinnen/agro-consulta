@@ -1798,7 +1798,10 @@
         elMsg.textContent = 'Conferência final registrada.';
         elMsg.classList.add('text-emerald-800');
       }
-      showMsg('Conferência final registrada no rascunho.', true);
+      showMsg(
+        'Conferência final registrada no Agro (permanente). Se a lista ainda mostrar «Nota aberta», falta casar produto do catálogo em alguma linha da grade.',
+        true,
+      );
       entradaNfeWizardConferenciaRegistrada = true;
       entradaNfeWizardAgendarAtualizarCores();
     } catch (_) {
@@ -2873,7 +2876,22 @@
       aplicarRascunhoNaGrade(j.rascunho);
       setEntradaNfeRascunhoEdit(id);
       document.querySelector('.tab-btn[data-tab="manual"]')?.click();
-      showMsg('Nota aberta.', true);
+      const rz = j.rascunho;
+      const bk = String(rz.entrada_lista_bucket || '');
+      const bkMsg = {
+        nota_aberta: 'Fila: Nota aberta',
+        estoque: 'Fila: Estoque',
+        financeiro: 'Fila: Financeiro',
+        concluida: 'Fila: Concluída',
+        descartada: 'Fila: Descartada',
+        encerrada: 'Fila: Encerrada (legado)',
+      }[bk];
+      showMsg(
+        bkMsg
+          ? `Rascunho carregado · ${bkMsg}.`
+          : `Rascunho carregado${rz.entrada_status_label ? ` · ${rz.entrada_status_label}` : ''}.`,
+        true,
+      );
     } catch (_) {
       showMsg('Erro de rede ao abrir rascunho.', false);
     }
