@@ -39,7 +39,15 @@
     .filtro-nfe-chip { border-width: 2px; border-color: rgb(226 232 240); background: white; color: rgb(71 85 105); }
     .filtro-nfe-chip.filtro-nfe-chip-on { border-color: rgb(249 115 22); background: rgb(255 247 237); color: rgb(124 45 18); }
     .nfe-wiz-nav-btn { border-width: 2px; border-color: rgb(226 232 240); background: white; color: rgb(71 85 105); }
+    .nfe-wiz-nav-btn--pending { border-color: rgb(226 232 240); background: rgb(248 250 252); color: rgb(100 116 139); }
     .nfe-wiz-nav-btn--on { border-color: rgb(249 115 22); background: rgb(255 247 237); color: rgb(124 45 18); }
+    .nfe-wiz-nav-btn--complete { border-color: rgb(16 185 129); background: rgb(236 253 245); color: rgb(6 78 59); }
+    .nfe-wiz-nav-btn--on.nfe-wiz-nav-btn--complete {
+      border-color: rgb(16 185 129);
+      background: rgb(209 250 229);
+      color: rgb(6 78 59);
+      box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.45);
+    }
     #entrada-nfe-wizard-pages .nfe-wiz-page { min-height: min(70vh, 42rem); }
     body.entrada-nfe--editor { overflow: hidden; }
     body.entrada-nfe--editor #entrada-nfe-header-principal { display: none; }
@@ -670,7 +678,7 @@
         </div>
         <div class="border-l-4 border-indigo-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Passo a passo (aba Manual)</p>
-          <p>Use <strong>Próximo</strong> / <strong>Anterior</strong> ou os botões no topo: cada passo aparece <strong>só um por vez</strong> (pedido opcional, NF/fornecedor e plano de contas; depois produtos; estoque; financeiro opcional; conferência final com PIN). O PIN é o mesmo da <strong>senha rápida</strong> do usuário (estoque / empréstimo).</p>
+          <p>Use <strong>Próximo</strong> / <strong>Anterior</strong> ou os botões no topo: cada passo aparece <strong>só um por vez</strong>. O chip fica <strong>verde</strong> só quando os obrigatórios daquele passo estão ok; <strong>Próximo</strong> só avança se o passo atual estiver válido. A etapa 5 (PIN) exige as quatro primeiras completas. O PIN é o mesmo da <strong>senha rápida</strong> do usuário (estoque / empréstimo).</p>
         </div>
         <div class="text-[11px] sm:text-xs font-semibold text-slate-600 space-y-1 pt-2 border-t border-slate-100">
           <p class="font-black uppercase text-slate-500">Técnico</p>
@@ -950,6 +958,7 @@
 
   function setEntradaNfeRascunhoEdit(id) {
     entradaNfeRascunhoEditId = id ? String(id) : null;
+    if (!entradaNfeRascunhoEditId) entradaNfeWizardConferenciaRegistrada = false;
     const b = document.getElementById('entrada-nfe-rasc-banner');
     const t = document.getElementById('entrada-nfe-rasc-banner-id');
     if (b && t) {
@@ -964,6 +973,9 @@
     try {
       entradaNfeWizardSetStep(entradaNfeRascunhoEditId ? 2 : 1);
     } catch (_) {}
+    try {
+      entradaNfeWizardAgendarAtualizarCores();
+    } catch (_) {}
   }
 
   function getCookie(name) {
@@ -975,6 +987,9 @@
   const elEditorScroll = document.getElementById('entrada-nfe-editor-scroll');
 
   let entradaNfeWizardStep = 1;
+  /** Conferência final (PIN) registrada nesta sessão ou já vinda do rascunho (`aprovacao_wizard_em`). */
+  let entradaNfeWizardConferenciaRegistrada = false;
+  let entradaNfeWizardCoresTimer = null;
   /** Snapshot do `extra` Mongo do rascunho (ex.: pedido vindo da Compras). */
   let entradaNfeExtraUltimo = null;
 
@@ -1043,13 +1058,144 @@
     entradaNfeDepositoUltimoConfirmado = v;
   });
 
+  function entradaNfeWizardAgendarAtualizarCores() {
+    clearTimeout(entradaNfeWizardCoresTimer);
+    entradaNfeWizardCoresTimer = setTimeout(() => {
+      try {
+        entradaNfeWizardAtualizarCoresNav(entradaNfeWizardStep);
+      } catch (_) {}
+    }, 50);
+  }
+
+  /**
+   * Validação por etapa: verde no chip só quando tudo obrigatório daquela etapa está ok
+   * (não depende de em qual tela o usuário está).
+   */
+  function entradaNfeWizardValidarEtapaDetalhe(st) {
+    const s = Math.min(5, Math.max(1, Math.floor(Number(st)) || 1));
+    const cab = coletarCabecalho();
+    const linhas = coletarLinhas();
+    if (s === 1) {
+      if (!cab.emit_nome) {
+        return { ok: false, irPara: 1, erro: 'Informe o fornecedor / emitente (etapa 1 · NF).' };
+      }
+      if (!String(cab.numero || '').trim()) {
+        return { ok: false, irPara: 1, erro: 'Informe o número da NF (etapa 1 · NF).' };
+      }
+      if (!String(cab.data_entrada || '').trim()) {
+        return { ok: false, irPara: 1, erro: 'Informe a data de entrada física (etapa 1 · NF).' };
+      }
+      if (!String(cab.plano_conta || '').trim()) {
+        return { ok: false, irPara: 1, erro: 'Defina o plano de contas da nota (etapa 1 · NF · Plano).' };
+      }
+      return { ok: true, irPara: 1, erro: '' };
+    }
+    if (s === 2) {
+      if (entradaNfeTemLinhaCompactaDigitacaoPendente()) {
+        return {
+          ok: false,
+          irPara: 2,
+          erro: 'Há texto na linha de busca de novo item — escolha na lista, Enter ou apague (etapa 2 · Produtos).',
+        };
+      }
+      if (!linhas.length) {
+        return { ok: false, irPara: 2, erro: 'Inclua ao menos uma linha de item na grade (etapa 2 · Produtos).' };
+      }
+      for (let i = 0; i < linhas.length; i++) {
+        if (!entradaNfeProdutoIdErpValido(linhas[i].produto_id)) {
+          return { ok: false, irPara: 2, erro: `Linha ${i + 1}: escolha o produto do catálogo (botão Mudar ou busca na linha) na etapa 2 · Produtos.` };
+        }
+        const stBip = String(linhas[i].bip_conf || 'pendente');
+        if (!['ok', 'similar', 'dispensado'].includes(stBip)) {
+          return { ok: false, irPara: 2, erro: `Linha ${i + 1}: pendente de conferência por código de barras (etapa 2).` };
+        }
+      }
+      return { ok: true, irPara: 2, erro: '' };
+    }
+    if (s === 3) {
+      const empId = String(document.getElementById('m-empresa-faturada')?.value || '').trim();
+      if (!empId) {
+        return { ok: false, irPara: 3, erro: 'Selecione a empresa (estoque) na etapa 3.' };
+      }
+      const dep = String(document.getElementById('m-deposito-entrada')?.value || '').trim();
+      if (!['centro', 'vila'].includes(dep)) {
+        return { ok: false, irPara: 3, erro: 'Selecione o depósito na etapa 3.' };
+      }
+      return { ok: true, irPara: 3, erro: '' };
+    }
+    if (s === 4) {
+      const finE = document.getElementById('fin-empresa-nome')?.value?.trim() || '';
+      const finDc = document.getElementById('fin-dc')?.value || '';
+      const finDv = document.getElementById('fin-dv')?.value || '';
+      const finForma = document.getElementById('fin-forma-nome')?.value?.trim() || '';
+      const finBanco = document.getElementById('fin-banco-nome')?.value?.trim() || '';
+      const finTouched = !!(finE || finDc || finDv || finForma || finBanco);
+      if (finTouched) {
+        if (!finE || !finDc || !finDv || !finForma || !finBanco) {
+          return {
+            ok: false,
+            irPara: 4,
+            erro: 'Financeiro iniciado: preencha empresa, competência, 1º vencimento, forma e banco (etapa 4 · Financeiro).',
+          };
+        }
+        entradaNfeAtualizarPreviewParcelas();
+        const pmCol = entradaNfeColetarParcelasManualFinanceiro(finDc);
+        if (pmCol.erro) {
+          return { ok: false, irPara: 4, erro: pmCol.erro };
+        }
+        if (!pmCol.parcelas.length) {
+          return { ok: false, irPara: 4, erro: 'Monte a prévia de parcelas na etapa 4 · Financeiro.' };
+        }
+        const totalCentsChec = entradaNfeTotalCentavosFromDom();
+        const somaCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(Number(p.valor) * 100), 0));
+        if (Math.abs(somaCent - totalCentsChec) > 2) {
+          return {
+            ok: false,
+            irPara: 4,
+            erro: 'A soma das parcelas precisa fechar com o total da nota na grade (etapa 4 · Financeiro).',
+          };
+        }
+      }
+      if (!entradaNfeRascunhoEditId) {
+        return { ok: false, irPara: 4, erro: 'Salve o rascunho na etapa 4 · Financeiro (botão laranja) antes da conferência final.' };
+      }
+      return { ok: true, irPara: 4, erro: '' };
+    }
+    if (s === 5) {
+      if (!entradaNfeWizardConferenciaRegistrada) {
+        return {
+          ok: false,
+          irPara: 5,
+          erro: 'Registre a conferência final com o PIN (etapa 5 · Conferência).',
+        };
+      }
+      return { ok: true, irPara: 5, erro: '' };
+    }
+    return { ok: false, irPara: 1, erro: '' };
+  }
+
+  function entradaNfeWizardValidarEtapa(st) {
+    return { ok: entradaNfeWizardValidarEtapaDetalhe(st).ok };
+  }
+
+  function entradaNfeWizardAtualizarCoresNav(stepAtual) {
+    const step = Math.min(5, Math.max(1, Math.floor(Number(stepAtual)) || 1));
+    document.querySelectorAll('#entrada-nfe-wizard-nav [data-nfe-w-go]').forEach((btn) => {
+      const v = Number(btn.getAttribute('data-nfe-w-go'));
+      const completo = entradaNfeWizardValidarEtapa(v).ok;
+      const ativo = v === step;
+      btn.classList.toggle('nfe-wiz-nav-btn--complete', completo);
+      btn.classList.toggle('nfe-wiz-nav-btn--on', ativo);
+      btn.classList.toggle('nfe-wiz-nav-btn--pending', !completo && !ativo);
+      if (ativo) btn.setAttribute('aria-current', 'step');
+      else btn.removeAttribute('aria-current');
+    });
+  }
+
   function entradaNfeWizardApplyStepUi(s) {
     const step = Math.min(5, Math.max(1, Math.floor(Number(s)) || 1));
     entradaNfeWizardStep = step;
-    document.querySelectorAll('#entrada-nfe-wizard-nav [data-nfe-w-go]').forEach((btn) => {
-      const v = Number(btn.getAttribute('data-nfe-w-go'));
-      btn.classList.toggle('nfe-wiz-nav-btn--on', v === step);
-    });
+    entradaNfeWizardAtualizarCoresNav(step);
     document.querySelectorAll('[data-nfe-wiz-page]').forEach((pane) => {
       const p = Number(pane.getAttribute('data-nfe-wiz-page'));
       const on = p === step;
@@ -1628,6 +1774,8 @@
         elMsg.classList.add('text-emerald-800');
       }
       showMsg('Conferência final registrada no rascunho.', true);
+      entradaNfeWizardConferenciaRegistrada = true;
+      entradaNfeWizardAgendarAtualizarCores();
     } catch (_) {
       if (elMsg) elMsg.textContent = 'Erro de rede.';
     }
@@ -1640,7 +1788,17 @@
     });
   });
   document.getElementById('nfe-wiz-prev')?.addEventListener('click', () => entradaNfeWizardSetStep(entradaNfeWizardStep - 1));
-  document.getElementById('nfe-wiz-next')?.addEventListener('click', () => entradaNfeWizardSetStep(entradaNfeWizardStep + 1));
+  document.getElementById('nfe-wiz-next')?.addEventListener('click', () => {
+    const cur = entradaNfeWizardStep;
+    if (cur < 5) {
+      const dCur = entradaNfeWizardValidarEtapaDetalhe(cur);
+      if (!dCur.ok) {
+        showMsg(dCur.erro, false);
+        return;
+      }
+    }
+    entradaNfeWizardSetStep(cur + 1);
+  });
   document.getElementById('btn-prod-novo-popup')?.addEventListener('click', () => abrirCadastroProdutoNovoPopup());
   document.getElementById('nfe-bip-verificar')?.addEventListener('click', () => { entradaNfeBipVerificar(); });
   document.getElementById('nfe-bip-cod')?.addEventListener('keydown', (e) => {
@@ -1994,73 +2152,9 @@
 
   /** Regras alinhadas ao salvar / financeiro / estoque: etapas 1–4 antes da conferência final (etapa 5). */
   function entradaNfeWizardValidarPassosAnteriores() {
-    const cab = coletarCabecalho();
-    const linhas = coletarLinhas();
-    if (entradaNfeTemLinhaCompactaDigitacaoPendente()) {
-      return {
-        ok: false,
-        irPara: 2,
-        erro: 'Há texto na linha de busca de novo item — escolha na lista, Enter ou apague (etapa 2 · Produtos).',
-      };
-    }
-    if (!cab.emit_nome) {
-      return { ok: false, irPara: 1, erro: 'Informe o fornecedor / emitente (etapa 1 · NF).' };
-    }
-    if (!String(cab.numero || '').trim()) {
-      return { ok: false, irPara: 1, erro: 'Informe o número da NF (etapa 1 · NF).' };
-    }
-    if (!String(cab.data_entrada || '').trim()) {
-      return { ok: false, irPara: 1, erro: 'Informe a data de entrada física (etapa 1 · NF).' };
-    }
-    if (!String(cab.plano_conta || '').trim()) {
-      return { ok: false, irPara: 1, erro: 'Defina o plano de contas da nota (etapa 1 · NF · Plano).' };
-    }
-    if (!linhas.length) {
-      return { ok: false, irPara: 2, erro: 'Inclua ao menos uma linha de item na grade (etapa 2 · Produtos).' };
-    }
-    for (let i = 0; i < linhas.length; i++) {
-      if (!entradaNfeProdutoIdErpValido(linhas[i].produto_id)) {
-        return { ok: false, irPara: 2, erro: `Linha ${i + 1}: escolha o produto do catálogo (botão Mudar ou busca na linha) na etapa 2 · Produtos.` };
-      }
-      const stBip = String(linhas[i].bip_conf || 'pendente');
-      if (!['ok', 'similar', 'dispensado'].includes(stBip)) {
-        return { ok: false, irPara: 2, erro: `Linha ${i + 1}: pendente de conferência por código de barras (etapa 2).` };
-      }
-    }
-    const empId = String(document.getElementById('m-empresa-faturada')?.value || '').trim();
-    if (!empId) {
-      return { ok: false, irPara: 3, erro: 'Selecione a empresa (estoque) na etapa 3.' };
-    }
-    const dep = String(document.getElementById('m-deposito-entrada')?.value || '').trim();
-    if (!['centro', 'vila'].includes(dep)) {
-      return { ok: false, irPara: 3, erro: 'Selecione o depósito na etapa 3.' };
-    }
-    const finE = document.getElementById('fin-empresa-nome')?.value?.trim() || '';
-    const finDc = document.getElementById('fin-dc')?.value || '';
-    const finDv = document.getElementById('fin-dv')?.value || '';
-    const finForma = document.getElementById('fin-forma-nome')?.value?.trim() || '';
-    const finBanco = document.getElementById('fin-banco-nome')?.value?.trim() || '';
-    const finTouched = !!(finE || finDc || finDv || finForma || finBanco);
-    if (finTouched) {
-      if (!finE || !finDc || !finDv || !finForma || !finBanco) {
-        return { ok: false, irPara: 4, erro: 'Financeiro iniciado: preencha empresa, competência, 1º vencimento, forma e banco (etapa 4 · Financeiro).' };
-      }
-      entradaNfeAtualizarPreviewParcelas();
-      const pmCol = entradaNfeColetarParcelasManualFinanceiro(finDc);
-      if (pmCol.erro) {
-        return { ok: false, irPara: 4, erro: pmCol.erro };
-      }
-      if (!pmCol.parcelas.length) {
-        return { ok: false, irPara: 4, erro: 'Monte a prévia de parcelas na etapa 4 · Financeiro.' };
-      }
-      const totalCentsChec = entradaNfeTotalCentavosFromDom();
-      const somaCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(Number(p.valor) * 100), 0));
-      if (Math.abs(somaCent - totalCentsChec) > 2) {
-        return { ok: false, irPara: 4, erro: 'A soma das parcelas precisa fechar com o total da nota na grade (etapa 4 · Financeiro).' };
-      }
-    }
-    if (!entradaNfeRascunhoEditId) {
-      return { ok: false, irPara: 4, erro: 'Salve o rascunho na etapa 4 · Financeiro (botão laranja) antes da conferência final.' };
+    for (let st = 1; st <= 4; st++) {
+      const d = entradaNfeWizardValidarEtapaDetalhe(st);
+      if (!d.ok) return d;
     }
     return { ok: true, irPara: 5, erro: '' };
   }
@@ -2082,6 +2176,7 @@
     entradaNfeAgendarPreviewParcelas();
     entradaNfeAtualizarPainelPedidoCompra();
     entradaNfeSentinelAtualizaContadorGrade();
+    entradaNfeWizardAgendarAtualizarCores();
   }
 
   const ENTRADA_NFE_SENTINEL_FB_IDLE = 'Pronto para buscar.';
@@ -2536,6 +2631,11 @@
     entradaNfeRascunhoAplicandoGrade = true;
     try {
       entradaNfeExtraUltimo = rz.extra && typeof rz.extra === 'object' ? { ...rz.extra } : null;
+      entradaNfeWizardConferenciaRegistrada = !!(
+        rz.extra
+        && typeof rz.extra === 'object'
+        && rz.extra.aprovacao_wizard_em
+      );
       const cab = rz.cabecalho || {};
       aplicarCabecalho({
         emit_nome: cab.emit_nome,
@@ -2588,6 +2688,7 @@
         requestAnimationFrame(() => {
           entradaNfeRascunhoAplicandoGrade = false;
         });
+        entradaNfeWizardAgendarAtualizarCores();
       });
     }
   }
@@ -4318,6 +4419,16 @@
   });
 
   document.addEventListener('DOMContentLoaded', () => {
+    try {
+      entradaNfeWizardApplyStepUi(entradaNfeWizardStep);
+    } catch (_) {}
+    try {
+      const pm = document.getElementById('panel-manual');
+      if (pm) {
+        pm.addEventListener('input', entradaNfeWizardAgendarAtualizarCores, true);
+        pm.addEventListener('change', entradaNfeWizardAgendarAtualizarCores, true);
+      }
+    } catch (_) {}
     const t = new Date();
     const iso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
     if (!document.getElementById('fin-dc').value) document.getElementById('fin-dc').value = iso;
