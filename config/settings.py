@@ -29,10 +29,18 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = [host.strip() for host in config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',') if host.strip()]
-
 # Render injeta RENDER=true; sem isso, ALLOWED_HOSTS só com localhost → 400 DisallowedHost no deploy.
 _on_render = str(os.environ.get("RENDER", "")).lower() in ("1", "true", "yes")
+
+
+def _env_csv_or_config(key: str, default: str = "") -> str:
+    """Valor CSV do ambiente; no Render o painel define os.environ (prioridade sobre .env do decouple)."""
+    if key in os.environ:
+        return (os.environ.get(key) or "").strip()
+    return config(key, default=default)
+
+
+ALLOWED_HOSTS = [host.strip() for host in config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',') if host.strip()]
 if _on_render and ".onrender.com" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS = list(ALLOWED_HOSTS) + [".onrender.com"]
 
@@ -44,11 +52,16 @@ CSRF_TRUSTED_ORIGINS = [
 if _on_render and "https://*.onrender.com" not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS = list(CSRF_TRUSTED_ORIGINS) + ["https://*.onrender.com"]
 
-# Domínio próprio no Render: defina no painel (separado por vírgula), ex. www.loja.com.br,loja.com.br
-for _h in [h.strip() for h in config("ALLOWED_HOSTS_EXTRA", default="").split(",") if h.strip()]:
+# Painel pode definir lista CSV (tutorial Django): mescla com defaults acima e com *_EXTRA abaixo.
+for _o in [o.strip() for o in _env_csv_or_config("CSRF_TRUSTED_ORIGINS").split(",") if o.strip()]:
+    if _o not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_o)
+
+# Domínio próprio no Render: no painel, ex. ALLOWED_HOSTS_EXTRA=www.sistvale.com.br,sistvale.com.br
+for _h in [h.strip() for h in _env_csv_or_config("ALLOWED_HOSTS_EXTRA").split(",") if h.strip()]:
     if _h not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(_h)
-for _o in [o.strip() for o in config("CSRF_TRUSTED_ORIGINS_EXTRA", default="").split(",") if o.strip()]:
+for _o in [o.strip() for o in _env_csv_or_config("CSRF_TRUSTED_ORIGINS_EXTRA").split(",") if o.strip()]:
     if _o not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(_o)
 
