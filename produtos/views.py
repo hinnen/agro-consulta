@@ -216,6 +216,10 @@ def _termo_parece_codigo(termo_original):
     if termo_limpo.isdigit() and len(termo_limpo) >= 6:
         return True
 
+    # GM / código interno só dígitos (espelho costuma usar 4–6 dígitos; <6 não entra como EAN aqui).
+    if termo_limpo.isdigit() and 4 <= len(termo_limpo) <= 5:
+        return True
+
     # Código misto tipo GM123 / 123ABC
     tem_letra = any(c.isalpha() for c in termo_limpo)
     tem_numero = any(c.isdigit() for c in termo_limpo)
@@ -8136,6 +8140,114 @@ def _wizard_catalog_mongo_limit() -> int:
     return max(400, min(n, 8000))
 
 
+def _wizard_json_row_bate_query_exata(row: dict, q: str) -> bool:
+    """Prioridade do sort wizard: ignora caixa / pontuação (ex.: GM vs gm, 123 vs 000123 no índice)."""
+    q_raw = str(q or "").strip()
+    if not q_raw:
+        return False
+    q_wiz = q_raw.lower()
+    q_al = _somente_alnum(q_raw).lower()
+    if not q_al:
+        return False
+    for k in ("codigo_barras", "codigo_nfe", "codigo"):
+        v = row.get(k)
+        if v in (None, ""):
+            continue
+        vs = str(v).strip()
+        if not vs:
+            continue
+        if vs == q_raw or vs.lower() == q_wiz:
+            return True
+        if _somente_alnum(vs).lower() == q_al:
+            return True
+    ix = row.get("index_codigos")
+    if isinstance(ix, list):
+        for x in ix:
+            if x is None:
+                continue
+            xs = str(x).strip()
+            if not xs:
+                continue
+            if xs.lower() == q_wiz or _somente_alnum(xs).lower() == q_al:
+                return True
+    return False
+
+
+def _wizard_relevancia_texto_busca(row: dict, q_strip: str) -> float:
+    """
+    Desempate em ``wizard_mode``: consultas com várias palavras (ex.: «bainha 18») não podem virar só ordem alfabética no nome — isso enfia o match completo lá em baixo.
+
+    Maior pontuação = mais relevante. Usado como segundo nível da tupla de ordenação (negado).
+    """
+    q = str(q_strip or "").strip().lower()
+    if not q:
+        return 0.0
+
+    nome_src = str(row.get("nome") or "")
+    nome = nome_src.strip().lower()
+    marca = str(row.get("marca") or "").strip().lower()
+
+    tokens = [str(t).lower() for t in re.split(r"\s+", q) if str(t).strip()]
+    if not tokens:
+        return 0.0
+
+    nome_lower = nome_src.lower()
+
+    score = 0.0
+    nt = len(tokens)
+    matched = 0
+
+    def _digits_only(s: str) -> bool:
+        return bool(s) and bool(re.fullmatch(r"\d+", str(s)))
+
+    for tn in tokens:
+        present = tn in nome or tn in marca
+
+        # Palavras (texto livre na busca)
+        if not _digits_only(tn):
+            if present:
+                matched += 1
+                score += 55.0 + min(len(tn) * 2.0, 80.0)
+            continue
+
+        # Token só-dígitos: medidas «| 18"», etc.; ``present`` já confere se aparece como substring no nome
+        if present:
+            matched += 1
+            rx_med = re.search(rf"\|\s*{re.escape(tn)}(?:[\"'”“″''´`º°.]|\s+[\"'”“″]?|\s*$)", nome_lower)
+            rx_inch_like = re.search(
+                rf"(?<!\d){re.escape(tn)}(?:[\"'”“″]|''|\s*[\"'”“′″]\b|\s*mm\b|\s*cm\b|\s*\")",
+                nome_lower,
+            )
+            if rx_med:
+                score += 260.0
+            elif rx_inch_like:
+                score += 200.0
+            elif re.search(rf"(?<!\d){re.escape(tn)}(?!\d)", nome_lower):
+                score += 95.0
+            else:
+                score += 15.0  # dígito em meio a texto longo (menos prio)
+        else:
+            score -= 40.0
+
+    if nt >= 2:
+        if matched >= nt:
+            score += 450.0
+        else:
+            score -= float(nt - min(matched, nt)) * 140.0
+    elif nt == 1:
+        score += 80.0 if matched else -20.0
+
+    qc = re.sub(r"[\s]+", " ", q.replace('"', "").replace("'", "").replace("”", "").replace("′", "").replace("″", ""))
+    if qc and len(qc) >= 3 and qc.replace(" ", "") in nome.replace(" ", ""):
+        score += 120.0
+
+    # Com todos os tokens, favorecer nome mais curto (= menos «genérico»)
+    if matched >= nt and nt >= 2:
+        score += max(0.0, 72.0 - min(len(nome), 72) * 0.42)
+
+    return score
+
+
 # --- APIs DE BUSCA ---
 @require_GET
 def api_buscar_produtos(request):
@@ -8364,27 +8476,21 @@ def api_buscar_produtos(request):
                 row["preco_custo_acrescimo"] = custos["preco_custo_final"]
                 row["preco_custo_final"] = custos["preco_custo_final"]
                 row["ultimas_compras"] = ultimas_compras_map.get(pid, [])
+            # Wizard omite vários campos; na entrada NF (wizard+compras) ainda queremos categoria nas sugestões.
+            if wizard_mode and compras:
+                row["categoria"] = str(_cat_w or "").strip()
+                row["subcategoria"] = _sub_w or ""
             _aplicar_produto_gestao_overlay_em_dict(row, overlay_pdv_map.get(pid))
             res.append(row)
 
         if wizard_catalog:
             res.sort(key=lambda r: str(r.get("nome") or "").lower())
         elif wizard_mode:
-            q_wiz = str(q or "").strip().lower()
+            q_wiz_strip = str(q or "").strip()
             res.sort(
                 key=lambda r: (
-                    -1
-                    if str(r.get("codigo_barras") or "") == q
-                    or str(r.get("codigo_nfe") or "") == q
-                    or (
-                        q_wiz
-                        and any(
-                            str(x).lower() == q_wiz
-                            for x in (r.get("index_codigos") or [])
-                            if x is not None
-                        )
-                    )
-                    else 0,
+                    -1 if _wizard_json_row_bate_query_exata(r, q_wiz_strip) else 0,
+                    -(_wizard_relevancia_texto_busca(r, q_wiz_strip)),
                     str(r.get("nome") or "").lower(),
                 )
             )

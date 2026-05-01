@@ -11,6 +11,11 @@
   {% include "produtos/_agro_consulta_ui.html" %}
   <style>
     body { font-family: 'Inter', sans-serif; }
+    /* Igual ao bloco PDV Wizard (`produtos/templates/produtos/pdv_wizard.html`). */
+    .pdv-wizard-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+    .pdv-wizard-scroll::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.55); border-radius: 999px; }
+    .pdv-input { width: 100%; border-radius: 1rem; border: 2px solid #e2e8f0; background: #fff; padding: 0.72rem 0.9rem; font-size: 0.95rem; font-weight: 700; color: #0f172a; outline: none; transition: border-color .15s ease, box-shadow .15s ease; }
+    .pdv-input:focus { border-color: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.14); }
     .gm-bar { background: linear-gradient(90deg, rgba(234,88,12,0.12) 0%, rgba(59,130,246,0.10) 100%); }
     .tab-on { border-color: rgb(249 115 22); background: rgb(255 247 237); color: rgb(124 45 18); }
     .tab-off { border-color: rgb(226 232 240); background: white; color: rgb(71 85 105); }
@@ -53,7 +58,7 @@
     ul.nfe-busca-dd {
       list-style: none;
       margin: 0;
-      padding: 0.25rem;
+      padding: 0;
       min-width: 0;
       width: 100%;
       max-width: 100%;
@@ -336,7 +341,7 @@
               title="Abre o cadastro de produtos em nova janela; ao criar no Agro, volte aqui e use Mudar ou a linha de busca embaixo da tabela.">+ Produto novo</button>
           </div>
         </div>
-        <div class="overflow-x-auto rounded-xl border-2 border-slate-200 bg-white shadow-inner">
+        <div id="entrada-nfe-grade-scroll" class="overflow-x-auto rounded-xl border-2 border-slate-200 bg-white shadow-inner">
         <table class="nfe-grade-itens w-full table-fixed text-xs sm:text-sm min-w-[1140px] border-separate border-spacing-0">
           <colgroup>
             <col class="w-[17%]" />
@@ -571,10 +576,10 @@
         <p class="text-xs text-slate-600 font-bold mt-2">Linha: <span id="modal-prod-linha" class="text-slate-900">—</span></p>
         <div class="relative mt-4">
           <label class="sr-only" for="modal-prod-q">Buscar produto</label>
-          <input type="text" id="modal-prod-q" class="w-full min-h-[52px] rounded-xl border-2 border-amber-200/90 bg-amber-50/30 px-3 py-3 pr-16 text-base font-bold focus:border-emerald-600 outline-none" placeholder="Nome, GM, EAN ou código…" autocomplete="off" title="Mesmo motor e visual do PDV">
+          <input type="text" id="modal-prod-q" class="pdv-input w-full h-11 pr-14 text-[14px] border-amber-200/90 bg-amber-50/30 focus:border-emerald-500" placeholder="Nome, GM, EAN ou código de barras" autocomplete="off" title="↑↓ lista · Enter confirma (mesmo motor do PDV)">
           <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black uppercase text-amber-800">Enter</span>
         </div>
-        <ul id="modal-prod-res" class="mt-3 flex-1 overflow-y-auto min-h-[140px] max-h-72 rounded-2xl border-2 border-amber-200/80 bg-white p-1 text-sm shadow-inner"></ul>
+        <ul id="modal-prod-res" class="pdv-wizard-scroll mt-3 flex-1 overflow-y-auto min-h-[140px] max-h-72 rounded-2xl border-2 border-amber-200/90 bg-white p-1 shadow-[0_18px_48px_rgba(15,23,42,0.12)] text-sm"></ul>
         <button type="button" id="modal-prod-fechar" class="mt-4 min-h-[48px] px-5 py-2.5 rounded-xl border-2 border-slate-300 font-black text-sm uppercase text-slate-700 hover:bg-slate-50">Fechar</button>
       </div>
     </div>
@@ -767,19 +772,24 @@
     const nm = entradaNfeStrCampo(p.nome) || '—';
     const sub = entradaNfePdvSugSub(p);
     const pv = entradaNfeFmtMoedaLista(p.preco_venda);
+    const custoVal = entradaNfeValorCustoProduto(p);
+    const pc = entradaNfeFmtMoedaLista(custoVal);
     const hl = selected
       ? 'bg-emerald-50 ring-2 ring-emerald-200 '
       : 'hover:bg-emerald-50 ';
     return (
       `<button type="button" class="nfe-pdv-ac-btn flex w-full items-stretch gap-2 rounded-xl px-2 py-2 text-left ${hl}">`
-      + '<span class="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50" role="presentation">'
+      + '<span class="relative h-11 w-11 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border border-slate-200 bg-slate-50 outline-none" role="presentation" title="Miniatura do produto">'
       + `<img src="${escText(imgSrc)}" alt="" class="pointer-events-none h-full w-full object-cover" />`
       + '</span>'
       + '<span class="flex min-w-0 flex-1 flex-col justify-center gap-0.5 overflow-hidden">'
       + `<span class="truncate text-sm font-black text-slate-900">${escText(nm)}</span>`
       + `<span class="truncate text-[10px] font-bold text-slate-500">${escText(sub)}</span>`
       + '</span>'
-      + `<span class="shrink-0 self-center text-sm font-black text-emerald-700">${escText(pv)}</span>`
+      + '<span class="flex shrink-0 flex-col items-end justify-center gap-1 self-center tabular-nums leading-tight">'
+      + `<span class="text-sm font-black text-emerald-700">${escText(pv)}</span>`
+      + `<span class="text-[11px] font-black text-orange-800">${escText(pc)}</span>`
+      + '</span>'
       + '</button>'
     );
   }
@@ -1141,6 +1151,7 @@
     }
     if (added) atualizarPainelTotalNfe();
     entradaNfeBipRebuildSelect();
+    entradaNfeSentinelAtualizaContadorGrade();
   }
 
   function entradaNfeBipEstadoLinha(tr) {
@@ -2030,6 +2041,23 @@
     if (el) el.textContent = s.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     entradaNfeAgendarPreviewParcelas();
     entradaNfeAtualizarPainelPedidoCompra();
+    entradaNfeSentinelAtualizaContadorGrade();
+  }
+
+  const ENTRADA_NFE_SENTINEL_FB_IDLE = 'Pronto para buscar.';
+  function entradaNfeSentinelFeedbackSet(msg) {
+    const fb = document.getElementById('entrada-nfe-sentinel-feedback');
+    if (!fb) return;
+    fb.textContent = msg != null && String(msg).length ? msg : ENTRADA_NFE_SENTINEL_FB_IDLE;
+  }
+  /** Cartão Busca na sentinela: mesmo contador conceitual do PDV («N itens» na grade). */
+  function entradaNfeSentinelAtualizaContadorGrade() {
+    const nEl = document.getElementById('entrada-nfe-sentinel-grade-count');
+    if (!nEl) return;
+    const tb = document.getElementById('tbody-itens');
+    if (!tb) return;
+    const n = entradaNfeBipLinhasTbody(tb).filter((r) => r.dataset.nfeLinhaModo !== 'compact').length;
+    nEl.textContent = String(n);
   }
 
   function entradaNfeProdutoIdErpValido(raw) {
@@ -2276,22 +2304,35 @@
   function entradaNfeLinhaMontarCompacta(tr) {
     tr.dataset.nfeLinhaModo = 'compact';
     tr.innerHTML = `
-      <td colspan="13" class="px-2 py-2 sm:px-3 border-b-2 border-amber-200/60">
-        <div class="rounded-[1.1rem] border-2 border-amber-400/90 bg-gradient-to-b from-amber-50/95 to-white px-2.5 py-2 sm:px-3 sm:py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-          <div class="flex items-center justify-between gap-2">
-            <h3 class="text-[13px] font-black uppercase tracking-wide text-amber-950">Busca</h3>
-            <div class="rounded-2xl border-2 border-amber-200 bg-white px-2 py-1.5 text-[10px] font-black uppercase text-amber-900 whitespace-nowrap">Entrada NF</div>
-          </div>
-          <div class="nfe-busca-inline-wrap relative mt-2 w-full">
-            <input type="text" class="in-linha-busca-rapida h-11 w-full rounded-xl border-2 border-amber-200/90 bg-amber-50/30 px-3 pr-16 text-[14px] font-bold outline-none focus:border-emerald-600 shadow-inner"
-              placeholder="Nome, GM, EAN ou código de barras" autocomplete="off" spellcheck="false"
-              aria-label="Buscar produto para nova linha (mesmo motor do PDV)" title="Mesmo motor que o PDV · Enter ou sugestões · ↑↓">
-            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black uppercase text-amber-800">F2</span>
-            <ul class="nfe-busca-dd hidden z-[220] max-h-[min(50vh,22rem)] overflow-y-auto rounded-2xl border-2 border-amber-200/90 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.18)] list-none m-0" role="listbox" aria-hidden="true"></ul>
+      <td colspan="13" class="px-2 py-2 sm:px-3 bg-slate-50/40 border-t border-slate-100 align-top">
+        <div class="w-full min-w-0 max-w-none">
+          <div class="rounded-[1.15rem] border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="shrink-0 rounded-t-[1.1rem] border-2 border-amber-400/90 bg-gradient-to-b from-amber-50/95 to-white px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] sm:px-3 sm:py-2.5">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="text-[13px] font-black uppercase tracking-wide text-amber-950">Busca</h3>
+                <div class="flex items-center justify-center rounded-2xl border-2 border-amber-200 bg-white px-2 py-1.5 text-[10px] font-black uppercase text-amber-900 whitespace-nowrap">
+                  <span id="entrada-nfe-sentinel-grade-count">0</span>&nbsp;itens
+                </div>
+              </div>
+              <div id="entrada-nfe-product-search-wrap" class="relative mt-2 rounded-xl">
+                <label class="sr-only" for="entrada-nfe-busca-sentinel-field">Buscar produto para nova linha</label>
+                <input id="entrada-nfe-busca-sentinel-field" type="text"
+                  class="in-linha-busca-rapida pdv-input h-11 w-full pr-14 text-[14px] border-amber-200/90 bg-amber-50/30 focus:border-emerald-500"
+                  placeholder="Nome, GM, EAN ou código de barras" autocomplete="off" spellcheck="false"
+                  aria-label="Buscar produto para nova linha" title="F2 · ↑↓ lista · Enter">
+                <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black uppercase text-amber-800">F2</span>
+                <ul class="nfe-busca-dd pdv-wizard-scroll hidden z-[230] max-h-[min(50vh,22rem)] overflow-y-auto rounded-2xl border-2 border-amber-200/90 bg-white p-1 shadow-[0_18px_48px_rgba(15,23,42,0.18)] list-none m-0" role="listbox" aria-hidden="true"></ul>
+              </div>
+              <div class="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold text-amber-900/85">
+                <div id="entrada-nfe-sentinel-feedback">${ENTRADA_NFE_SENTINEL_FB_IDLE}</div>
+                <div id="entrada-nfe-sentinel-meta" class="text-right">↑↓ Enter · +/−</div>
+              </div>
+            </div>
           </div>
         </div>
       </td>`;
     entradaNfeLinhaCompactaBindAutosuggestCompacta(tr);
+    entradaNfeSentinelAtualizaContadorGrade();
   }
 
   function addLinhaRow(data) {
@@ -2569,11 +2610,29 @@
     if (!arr || !arr.length) return null;
     const qDigits = String(q || '').replace(/\D/g, '');
     const qLow = String(q || '').trim().toLowerCase();
+    const qAl = entradaNfeSomenteAlnum(q).toLowerCase();
     if (qDigits.length >= 7) {
       for (let i = 0; i < arr.length; i += 1) {
         const p = arr[i];
         const e = String(p.codigo_barras || '').replace(/\D/g, '');
         if (e && (e === qDigits || entradaNfeCodigosEquivalentes(e, qDigits))) return p;
+      }
+    }
+    if (qAl) {
+      for (let i = 0; i < arr.length; i += 1) {
+        const p = arr[i];
+        const campos = [p.codigo_nfe, p.codigo, p.codigo_barras];
+        for (let k = 0; k < campos.length; k += 1) {
+          const c = campos[k];
+          if (c != null && String(c).trim() && entradaNfeCodigosEquivalentes(q, c)) return p;
+        }
+        const ix = p.index_codigos;
+        if (Array.isArray(ix)) {
+          for (let j = 0; j < ix.length; j += 1) {
+            const x = ix[j];
+            if (x != null && String(x).trim() && entradaNfeCodigosEquivalentes(q, String(x))) return p;
+          }
+        }
       }
     }
     for (let i = 0; i < arr.length; i += 1) {
@@ -2584,7 +2643,11 @@
     return arr[0];
   }
 
-  /** PDV + `compras=1` (custos no JSON, como tela Compras). Retorna `null` se resposta for obsoleta. */
+  /**
+   * Mesmo critério do PDV Wizard ao digitar: `wizard=1&q=` (ordena por match exato em código/EAN/index_codigos + teto 24).
+   * Mantém `compras=1` para custos / últimas compras no JSON (`api_buscar_produtos`).
+   * Ver `fetchWizardServerSearch` em `produtos/static/produtos/js/pdv_wizard.js`.
+   */
   let _entradaNfeBuscaSeq = 0;
   async function entradaNfeBuscarProdutosArr(termo) {
     const t = String(termo || '').trim();
@@ -2593,6 +2656,7 @@
     try {
       const u = new URL(URL_BUSCA, window.location.origin);
       u.searchParams.set('q', t);
+      u.searchParams.set('wizard', '1');
       u.searchParams.set('compras', '1');
       const r = await fetch(u.toString(), { credentials: 'same-origin' });
       if (sid !== _entradaNfeBuscaSeq) return null;
@@ -2614,6 +2678,7 @@
     try {
       const u = new URL(URL_BUSCA, window.location.origin);
       u.searchParams.set('q', c);
+      u.searchParams.set('wizard', '1');
       u.searchParams.set('compras', '1');
       const r = await fetch(u.toString(), { credentials: 'same-origin' });
       if (!r.ok) return null;
@@ -2697,20 +2762,15 @@
     }
   }
 
-  /** Dropdown fixo à viewport: largura da linha da tabela (aproveita a área da grade), não só do input. */
+  /** Dropdown fixo (evita clip do `overflow-x-auto` na grade): mesma âncora visual do PDV — só a faixa `#entrada-nfe-product-search-wrap`. */
   function entradaNfeLinhaCompactaSincDdPos(busca, dd) {
     if (!busca || !dd || dd.classList.contains('hidden')) return;
     const pad = 10;
-    const row = busca.closest('tr');
-    const r = row ? row.getBoundingClientRect() : busca.getBoundingClientRect();
+    const wrap = typeof busca.closest === 'function' ? busca.closest('#entrada-nfe-product-search-wrap') : null;
+    const r = (wrap || busca).getBoundingClientRect();
     const below = busca.getBoundingClientRect();
     let left = Math.max(pad, r.left);
-    let width = Math.min(r.width, window.innerWidth - left - pad);
-    const minWant = Math.min(520, window.innerWidth - 2 * pad);
-    if (width < minWant) {
-      width = Math.min(minWant, window.innerWidth - 2 * pad);
-      left = Math.max(pad, Math.min(left, window.innerWidth - pad - width));
-    }
+    let width = Math.max(240, Math.min(r.width, window.innerWidth - left - pad));
     const maxH = Math.min(352, Math.max(120, window.innerHeight - below.bottom - 16));
     dd.style.position = 'fixed';
     dd.style.left = `${left}px`;
@@ -2718,7 +2778,7 @@
     dd.style.width = `${width}px`;
     dd.style.maxWidth = `${window.innerWidth - 2 * pad}px`;
     dd.style.maxHeight = `${maxH}px`;
-    dd.style.zIndex = '200';
+    dd.style.zIndex = '230';
     dd.style.overflowY = 'auto';
   }
 
@@ -2735,6 +2795,7 @@
     dd.setAttribute('aria-hidden', 'true');
     dd.innerHTML = '';
     dd.removeAttribute('style');
+    entradaNfeSentinelFeedbackSet(ENTRADA_NFE_SENTINEL_FB_IDLE);
   }
 
   /** Sugestões ao digitar (nome/código/EAN curto); código só dígitos 8+ aplica bip silencioso na sentinela. */
@@ -2802,7 +2863,8 @@
       }
       dd.classList.remove('hidden');
       dd.setAttribute('aria-hidden', 'false');
-      dd.innerHTML = '<li class="px-3 py-2 text-xs text-slate-500">Buscando…</li>';
+      entradaNfeSentinelFeedbackSet('Buscando…');
+      dd.innerHTML = '<li class="px-3 py-2 text-xs text-slate-500 font-bold">Buscando…</li>';
       armarDdSyncViewport();
       entradaNfeLinhaCompactaSincDdPos(busca, dd);
       try {
@@ -2815,7 +2877,8 @@
         lastArr = arr || [];
         dd.innerHTML = '';
         if (!lastArr.length) {
-          dd.innerHTML = '<li class="px-3 py-2 text-xs text-slate-500">Nenhum produto.</li>';
+          entradaNfeSentinelFeedbackSet('Nenhum produto encontrado.');
+          dd.innerHTML = '<li class="px-3 py-2 text-xs text-slate-500 font-bold">Nenhum produto.</li>';
           entradaNfeLinhaCompactaSincDdPos(busca, dd);
           return;
         }
@@ -2840,6 +2903,8 @@
         });
         sugHl = lastArr.length ? 0 : -1;
         renderHighlight();
+        const nShow = Math.min(lastArr.length, 22);
+        entradaNfeSentinelFeedbackSet(`${nShow} na lista`);
         entradaNfeLinhaCompactaSincDdPos(busca, dd);
       } catch (_) {
         entradaNfeLinhaCompactaFecharDd(tr);
