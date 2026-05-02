@@ -59,12 +59,25 @@
       pointer-events: none !important;
       opacity: 0.72;
     }
+    /* Etapa já confirmada / integração (estoque, financeiro, etc.): bloqueia edição sem depender só do PIN final. */
+    #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] input,
+    #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] select,
+    #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] textarea,
+    #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] button:not(.nfe-wiz-help),
+    #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] summary,
+    #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] a[href] {
+      pointer-events: none !important;
+      opacity: 0.72;
+    }
     body.entrada-nfe--editor { overflow: hidden; }
     body.entrada-nfe--editor #entrada-nfe-header-principal { display: none; }
     body.entrada-nfe--editor #entrada-nfe-main-lista { display: none; }
-    .in-qtd:focus, .in-vun:focus, .in-pvenda:focus, .in-un-emb:focus, .in-q-est:focus {
+    .in-qtd:focus, .in-vun:focus, .in-pvenda:focus, .in-margem:focus, .in-un-emb:focus, .in-q-est:focus {
       outline: 2px solid rgb(16 185 129 / 0.55);
       outline-offset: 1px;
+    }
+    .in-margem:focus {
+      outline-color: rgb(14 165 233 / 0.55);
     }
     .in-pvenda:focus {
       outline-color: rgb(139 92 246 / 0.55);
@@ -343,6 +356,13 @@
         </div>
       </div>
 
+        <div class="flex flex-wrap items-center justify-end gap-2 pt-1">
+          <button type="button" id="nfe-btn-confirmar-fornecedor"
+            class="min-h-[48px] px-4 rounded-xl border-2 border-indigo-700 bg-indigo-600 text-white text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-indigo-700 disabled:opacity-40 disabled:pointer-events-none shrink-0 shadow-sm">
+            Confirmar fornecedor e continuar
+          </button>
+        </div>
+
       </div>
 
       <div id="nfe-wiz-page-2" data-nfe-wiz-page="2" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
@@ -357,7 +377,7 @@
           </div>
         </div>
         <div id="entrada-nfe-grade-scroll" class="overflow-x-auto rounded-xl border-2 border-slate-200 bg-white shadow-inner">
-        <table class="nfe-grade-itens w-full table-fixed text-xs sm:text-sm min-w-[1140px] border-separate border-spacing-0">
+        <table class="nfe-grade-itens w-full table-fixed text-xs sm:text-sm min-w-[1240px] border-separate border-spacing-0">
           <colgroup>
             <col class="w-[17%]" />
             <col class="w-[5.25rem]" />
@@ -367,6 +387,7 @@
             <col class="w-[4.25rem]" />
             <col class="w-[5.25rem]" />
             <col class="w-[5.75rem]" />
+            <col class="w-[5.25rem]" />
             <col class="w-[5.75rem]" />
             <col class="w-[3rem]" />
             <col class="w-[2rem]" />
@@ -383,6 +404,7 @@
               <th class="text-right align-bottom px-2 py-2" title="Unidades por embalagem conforme NF">Un/emb</th>
               <th class="text-right align-bottom px-2 py-2" title="Quantidade a lançar no estoque Agro">Qtd est.</th>
               <th class="text-right align-bottom px-2 py-2" title="Valor unitário de compra (NF)">V. unit</th>
+              <th class="text-right align-bottom px-2 py-2" title="Margem % sobre o custo (cadastro Agro; editável)">Margem %</th>
               <th class="text-right align-bottom px-2 py-2" title="Preço de venda de referência no Agro (editável)">P. venda</th>
               <th class="text-left align-bottom px-2 py-2" title="Código fiscal de operações">CFOP</th>
               <th class="text-center align-bottom px-1 py-2" title="Catálogo casado. Aponte o mouse na coluna Descrição para ver o nome completo cadastrado no Agro.">Cat.</th>
@@ -754,6 +776,7 @@
   const URL_CONF_COD = "{% url 'api_entrada_nota_conferir_codigo' %}";
   const URL_APROVAR_WIZ = "{% url 'api_entrada_nota_aprovar_wizard' %}";
   const URL_REABRIR_NOTA = "{% url 'api_entrada_nota_reabrir_nota' %}";
+  const URL_MARGEM_PROD = "{% url 'api_entrada_nota_produto_margem' %}";
   /** Abrir Lançamentos (contas a pagar) com foco no título recém-criado. */
   const URL_LANC_CP = "{% url 'lancamentos_contas_pagar' %}";
   const URL_CAD_PRODUTO_NOVO = "{% url 'produtos_cadastro_erp' %}?novo=1";
@@ -864,6 +887,7 @@
     un_por_embalagem: 1,
     q_estoque: null,
     v_un_com: 0,
+    margem_percentual: null,
     preco_venda: 0,
     cfop: '',
     produto_id: '',
@@ -1079,6 +1103,7 @@
     } catch (_) {}
     if (!entradaNfeRascunhoEditId) {
       entradaNfeWizardConferenciaRegistrada = false;
+      entradaNfeFornecedorEtapaConfirmada = false;
       entradaNfeProdutosEtapaConfirmada = false;
       entradaNfeCodigosEtapaConfirmada = false;
       entradaNfeRascunhoStatusUltimo = '';
@@ -1094,7 +1119,10 @@
       entradaNfeAtualizarUiBotaoWizardFinalizar();
     }
     try {
-      entradaNfeWizardSetStep(entradaNfeRascunhoEditId ? 2 : 1);
+      const goStep = entradaNfeRascunhoEditId
+        ? (entradaNfeFornecedorEtapaConfirmada ? 2 : 1)
+        : 1;
+      entradaNfeWizardSetStep(goStep);
     } catch (_) {}
     try {
       entradaNfeWizardAgendarAtualizarCores();
@@ -1113,6 +1141,11 @@
   const elEditorScroll = document.getElementById('entrada-nfe-editor-scroll');
 
   let entradaNfeWizardStep = 1;
+  /** Etapa 1 · Fornecedor + plano (persistido em Mongo ``wizard_etapa1_confirmada_em``). */
+  let entradaNfeFornecedorEtapaConfirmada = false;
+  const ENTRADA_NFE_BTN_FORN_CONFIRM_PADRAO = 'Confirmar fornecedor e continuar';
+  const ENTRADA_NFE_BTN_FORN_CONFIRM_OK = 'Fornecedor confirmado';
+
   /** Etapa 2 · Produtos: confirmação explícita no rodapé antes de código de barras / próximas etapas. */
   let entradaNfeProdutosEtapaConfirmada = false;
   const ENTRADA_NFE_BTN_PROD_CONFIRM_PADRAO = 'Confirmar produtos e continuar';
@@ -1142,8 +1175,9 @@
     return entradaNfeFinanceiroTituloJaGerado({ extra: entradaNfeExtraUltimo });
   }
 
-  /** Alguma etapa 2–5 travada (fluxo normal, sem reabrir). */
+  /** Alguma etapa 1–5 travada por confirmação ou integração (fluxo normal, sem reabrir). */
   function entradaNfeWizardAlgumaEtapaIntermediariaTravada() {
+    if (entradaNfeFornecedorEtapaConfirmada) return true;
     if (entradaNfeProdutosEtapaConfirmada) return true;
     if (entradaNfeCodigosEtapaConfirmada) return true;
     if (String(entradaNfeRascunhoStatusUltimo || '').trim().toLowerCase() === 'estoque_aplicado') return true;
@@ -1153,11 +1187,19 @@
 
   function entradaNfeWizardPaginaPrecisaTrava(numPagina) {
     const p = Math.min(6, Math.max(1, Math.floor(Number(numPagina)) || 1));
+    if (p === 1) return !!entradaNfeFornecedorEtapaConfirmada;
     if (p === 2) return !!entradaNfeProdutosEtapaConfirmada;
     if (p === 3) return !!entradaNfeCodigosEtapaConfirmada;
     if (p === 4) return String(entradaNfeRascunhoStatusUltimo || '').trim().toLowerCase() === 'estoque_aplicado';
     if (p === 5) return entradaNfeFinanceiroJaLancadoCliente();
     return false;
+  }
+
+  /** Grade produtos (passo 2) editável: sem PIN final nem etapa já confirmada. */
+  function entradaNfeGradeProdutosPodeEditar() {
+    if (entradaNfeEditorCongeladoAtivo()) return false;
+    if (entradaNfeWizardPaginaPrecisaTrava(2)) return false;
+    return true;
   }
 
   /** Travamento por etapa (inputs da página) — independente do PIN final. */
@@ -1276,10 +1318,87 @@
     entradaNfeWizardCoresTimer = setTimeout(() => {
       try {
         entradaNfeWizardAtualizarCoresNav(entradaNfeWizardStep);
+        entradaNfeAtualizarUiBotaoConfirmarFornecedor();
         entradaNfeAtualizarUiBotaoConfirmarProdutos();
         entradaNfeAtualizarUiBotaoConfirmarCodigos();
       } catch (_) {}
     }, 50);
+  }
+
+  function entradaNfeAtualizarUiBotaoConfirmarFornecedor() {
+    const btn = document.getElementById('nfe-btn-confirmar-fornecedor');
+    if (!btn) return;
+    const dOk = entradaNfeWizardValidarEtapaDetalhe(1, { ignorarConfirmacaoFornecedor: true }).ok;
+    if (entradaNfeFornecedorEtapaConfirmada) {
+      btn.disabled = true;
+      btn.textContent = ENTRADA_NFE_BTN_FORN_CONFIRM_OK;
+      btn.classList.remove('opacity-50');
+      btn.classList.add('opacity-80', 'cursor-not-allowed');
+      btn.title = 'Altere fornecedor, NF ou plano para editar de novo e confirmar outra vez.';
+      return;
+    }
+    btn.disabled = !dOk;
+    btn.textContent = ENTRADA_NFE_BTN_FORN_CONFIRM_PADRAO;
+    btn.classList.remove('opacity-80');
+    btn.classList.toggle('opacity-50', !dOk);
+    btn.classList.toggle('cursor-not-allowed', !dOk);
+    btn.title = dOk ? 'Avança para a etapa 2 · Produtos.' : 'Preencha fornecedor, número da NF, data de entrada e plano de contas.';
+  }
+
+  function entradaNfeFornecedorEtapaInvalidate() {
+    if (entradaNfeRascunhoAplicandoGrade) return;
+    const tinha = entradaNfeFornecedorEtapaConfirmada;
+    if (!tinha && !entradaNfeProdutosEtapaConfirmada && !entradaNfeCodigosEtapaConfirmada) {
+      entradaNfeAtualizarUiBotaoConfirmarFornecedor();
+      return;
+    }
+    entradaNfeFornecedorEtapaConfirmada = false;
+    entradaNfeProdutosEtapaConfirmada = false;
+    entradaNfeCodigosEtapaConfirmada = false;
+    entradaNfeExtraUltimo = {
+      ...(entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {}),
+      wizard_etapa1_confirmada_em: '',
+      wizard_etapa2_confirmada_em: '',
+      wizard_etapa3_confirmada_em: '',
+    };
+    entradaNfeWizardPersistExtraPatchFireForget({
+      wizard_etapa1_confirmada_em: '',
+      wizard_etapa2_confirmada_em: '',
+      wizard_etapa3_confirmada_em: '',
+    });
+    entradaNfeAtualizarUiBotaoConfirmarFornecedor();
+    entradaNfeAtualizarUiBotaoConfirmarProdutos();
+    entradaNfeAtualizarUiBotaoConfirmarCodigos();
+    if (entradaNfeWizardStep > 1) {
+      showMsg('Dados da etapa 1 alterados: confirme fornecedor e plano de novo antes das próximas etapas.', false);
+      entradaNfeWizardApplyStepUi(1);
+    }
+    entradaNfeWizardAgendarAtualizarCores();
+    try {
+      entradaNfeAplicarCongelamentoEditorUi();
+    } catch (_) {}
+  }
+
+  async function entradaNfeConfirmarFornecedorEtapa() {
+    const d = entradaNfeWizardValidarEtapaDetalhe(1, { ignorarConfirmacaoFornecedor: true });
+    if (!d.ok) {
+      showMsg(d.erro || 'Revise fornecedor e plano de contas.', false);
+      entradaNfeAtualizarUiBotaoConfirmarFornecedor();
+      return;
+    }
+    const iso = new Date().toISOString();
+    entradaNfeFornecedorEtapaConfirmada = true;
+    entradaNfeExtraUltimo = {
+      ...(entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {}),
+      wizard_etapa1_confirmada_em: iso,
+    };
+    entradaNfeAtualizarUiBotaoConfirmarFornecedor();
+    await entradaNfeWizardPersistExtraPatch({ wizard_etapa1_confirmada_em: iso });
+    entradaNfeWizardSetStep(2);
+    entradaNfeWizardAgendarAtualizarCores();
+    try {
+      entradaNfeAplicarCongelamentoEditorUi();
+    } catch (_) {}
   }
 
   function entradaNfeAtualizarUiBotaoConfirmarProdutos() {
@@ -1425,10 +1544,12 @@
    * Validação por etapa: verde no chip só quando tudo obrigatório daquela etapa está ok
    * (não depende de em qual tela o usuário está).
    * @param {object} [opt]
+   * @param {boolean} [opt.ignorarConfirmacaoFornecedor] — só etapa 1: não exige botão «Confirmar fornecedor».
    * @param {boolean} [opt.ignorarConfirmacaoProdutos] — só etapa 2: não exige botão «Confirmar produtos».
    * @param {boolean} [opt.ignorarConfirmacaoCodigos] — só etapa 3: não exige botão «Confirmar códigos».
    */
   function entradaNfeWizardValidarEtapaDetalhe(st, opt) {
+    const ignFornConf = !!(opt && opt.ignorarConfirmacaoFornecedor);
     const ignProdConf = !!(opt && opt.ignorarConfirmacaoProdutos);
     const ignCodConf = !!(opt && opt.ignorarConfirmacaoCodigos);
     const s = Math.min(6, Math.max(1, Math.floor(Number(st)) || 1));
@@ -1446,6 +1567,13 @@
       }
       if (!String(cab.plano_conta || '').trim()) {
         return { ok: false, irPara: 1, erro: 'Defina o plano de contas da nota (etapa 1 · Fornecedor).' };
+      }
+      if (!ignFornConf && !entradaNfeFornecedorEtapaConfirmada) {
+        return {
+          ok: false,
+          irPara: 1,
+          erro: 'Confirme fornecedor e plano com o botão no fim da etapa 1 antes de avançar.',
+        };
       }
       return { ok: true, irPara: 1, erro: '' };
     }
@@ -1617,6 +1745,7 @@
       entradaNfeRecapRefresh();
       entradaNfeAtualizarUiBotaoWizardFinalizar();
     }
+    entradaNfeAtualizarUiBotaoConfirmarFornecedor();
     entradaNfeAtualizarUiBotaoConfirmarProdutos();
     entradaNfeAtualizarUiBotaoConfirmarCodigos();
     try {
@@ -1644,7 +1773,7 @@
         elOk.textContent = '';
         elOk.classList.remove('text-emerald-800');
       }
-    } else if (s >= 3 && s <= 5) {
+    } else if (s >= 2 && s <= 5) {
       for (let st = 1; st < s; st++) {
         const d = entradaNfeWizardValidarEtapaDetalhe(st);
         if (!d.ok) {
@@ -2242,6 +2371,7 @@
       aplicarRascunhoNaGrade(j2.rascunho);
       entradaNfeWizardConferenciaRegistrada = false;
       entradaNfeAtualizarUiBotaoWizardFinalizar();
+      entradaNfeAtualizarUiBotaoConfirmarFornecedor();
       entradaNfeAtualizarUiBotaoConfirmarProdutos();
       entradaNfeAtualizarUiBotaoConfirmarCodigos();
       entradaNfeWizardSetStep(1);
@@ -2252,7 +2382,7 @@
       showMsg(
         'Nota reaberta para edição.'
           + (det.length ? ` Estornados: ${det.join(' · ')}.` : '')
-          + ' Confirme produtos, códigos de barras, estoque e financeiro de novo; depois grave a finalização com o PIN.',
+          + ' Confirme fornecedor, produtos, códigos de barras, estoque e financeiro de novo; depois grave a finalização com o PIN.',
         true,
       );
     } catch (_) {
@@ -2285,6 +2415,7 @@
     entradaNfeWizardSetStep(cur + 1);
   });
   document.getElementById('btn-prod-novo-popup')?.addEventListener('click', () => abrirCadastroProdutoNovoPopup());
+  document.getElementById('nfe-btn-confirmar-fornecedor')?.addEventListener('click', () => { entradaNfeConfirmarFornecedorEtapa(); });
   document.getElementById('nfe-btn-confirmar-produtos')?.addEventListener('click', () => { entradaNfeConfirmarProdutosEtapa(); });
   document.getElementById('nfe-btn-confirmar-codigos')?.addEventListener('click', () => { entradaNfeConfirmarCodigosEtapa(); });
   document.getElementById('nfe-bip-verificar')?.addEventListener('click', () => { entradaNfeBipVerificar(); });
@@ -2931,10 +3062,14 @@
   function tbodyClear() {
     entradaNfeBipLimparDraftEBipIdx();
     document.getElementById('tbody-itens').innerHTML = '';
+    entradaNfeFornecedorEtapaConfirmada = false;
     entradaNfeProdutosEtapaConfirmada = false;
+    entradaNfeCodigosEtapaConfirmada = false;
     atualizarPainelTotalNfe();
     entradaNfeEnsureTrailingCompactRow();
+    entradaNfeAtualizarUiBotaoConfirmarFornecedor();
     entradaNfeAtualizarUiBotaoConfirmarProdutos();
+    entradaNfeAtualizarUiBotaoConfirmarCodigos();
   }
 
   function atualizarQtdEstoqueRow(tr) {
@@ -2997,6 +3132,69 @@
     }
   }
 
+  /** Atualiza a coluna margem % a partir de V. unit e P. venda na linha (sem gravar no Mongo). */
+  function entradaNfeLinhaRecalcMargemDisplay(tr) {
+    if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
+    const mEl = tr.querySelector('.in-margem');
+    const vunInp = tr.querySelector('.in-vun');
+    const pvInp = tr.querySelector('.in-pvenda');
+    if (!mEl || !vunInp || !pvInp) return;
+    const vu = Number(String(vunInp.value || '').replace(',', '.')) || 0;
+    const pv = Number(String(pvInp.value || '').replace(',', '.')) || 0;
+    if (vu > 0 && pv >= 0) {
+      const pct = ((pv / vu) - 1) * 100;
+      entradaNfeDefinirInputPrecoNum(mEl, Math.round(pct * 100) / 100);
+    }
+  }
+
+  async function entradaNfeLinhaPersistirMargemAgro(tr) {
+    if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
+    if (!entradaNfeGradeProdutosPodeEditar()) return;
+    const pid = String(tr.querySelector('.in-prod-id')?.value || '').trim();
+    if (!entradaNfeProdutoIdErpValido(pid)) return;
+    const mInp = tr.querySelector('.in-margem');
+    const pvInp = tr.querySelector('.in-pvenda');
+    const vunInp = tr.querySelector('.in-vun');
+    if (!mInp || !pvInp || !vunInp) return;
+    const mRaw = String(mInp.value || '').replace(',', '.').trim();
+    const m = Number(mRaw);
+    if (!Number.isFinite(m)) return;
+    const vu = Number(String(vunInp.value || '').replace(',', '.')) || 0;
+    if (vu > 0) {
+      const pvMark = vu * (1 + m / 100);
+      entradaNfeDefinirInputPrecoNum(pvInp, pvMark);
+    }
+    const pv = Number(String(pvInp.value || '').replace(',', '.')) || 0;
+    if (tr.dataset.nfeMargemSaving === '1') return;
+    tr.dataset.nfeMargemSaving = '1';
+    try {
+      const r = await fetch(URL_MARGEM_PROD, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({
+          produto_id: pid,
+          margem_percentual: m,
+          preco_venda: pv,
+        }),
+      });
+      const j = await r.json();
+      if (!j.ok) {
+        showMsg(String(j.erro || 'Não gravou margem no cadastro.').slice(0, 220), false);
+        return;
+      }
+      entradaNfeLinhaRecalcMargemDisplay(tr);
+      entradaNfeAgendarAutosaveRascunho();
+    } catch (_) {
+      showMsg('Rede ao gravar margem no cadastro.', false);
+    } finally {
+      delete tr.dataset.nfeMargemSaving;
+    }
+  }
+
   /** Grade completa (uma linha da NF) com destaque em qtd / valor unitário. */
   function entradaNfeLinhaMontarDetalhe(tr, mergedRaw) {
     delete tr.dataset.nfeLinhaModo;
@@ -3014,6 +3212,7 @@
       q_com: merged.q_com != null ? merged.q_com : 1,
       un_por_embalagem: merged.un_por_embalagem != null ? merged.un_por_embalagem : 1,
       v_un_com: merged.v_un_com != null ? merged.v_un_com : 0,
+      margem_percentual: merged.margem_percentual != null ? merged.margem_percentual : null,
       preco_venda: merged.preco_venda != null ? merged.preco_venda : 0,
       q_estoque: merged.q_estoque,
     };
@@ -3046,6 +3245,11 @@
         </div>
       </td>
       <td class="px-1 py-1 align-middle">
+        <div class="rounded-xl border-[3px] border-sky-500 bg-gradient-to-b from-sky-50 to-white px-1 py-1 shadow-md ring-1 ring-sky-400/70 flex items-center justify-center min-h-[44px]">
+          <input type="number" step="any" class="in-margem w-full rounded-lg border-2 border-sky-600 bg-white px-1.5 py-2 text-center text-sm font-black text-sky-950 shadow-inner" value="" title="Margem % (sobre custo Agro). Ao sair do campo, grava no cadastro e recalcula P. venda a partir do V. unit desta NF.">
+        </div>
+      </td>
+      <td class="px-1 py-1 align-middle">
         <div class="rounded-xl border-[3px] border-violet-400 bg-gradient-to-b from-violet-50 to-white px-1 py-1 shadow-md ring-1 ring-violet-300/80 flex items-center justify-center min-h-[44px]">
           <input type="number" step="any" class="in-pvenda w-full rounded-lg border-2 border-violet-600 bg-white px-2 py-2 text-center text-base font-black text-violet-950 shadow-inner" value="" title="Preço de venda (referência / conferência)">
         </div>
@@ -3060,7 +3264,18 @@
     tr.querySelector('.in-qtd').value = d.q_com;
     tr.querySelector('.in-un-emb').value = d.un_por_embalagem != null ? d.un_por_embalagem : 1;
     tr.querySelector('.in-vun').value = d.v_un_com;
+    const mEl0 = tr.querySelector('.in-margem');
+    if (mEl0) {
+      if (d.margem_percentual != null && d.margem_percentual !== '' && !Number.isNaN(Number(d.margem_percentual))) {
+        entradaNfeDefinirInputPrecoNum(mEl0, Number(d.margem_percentual));
+      } else {
+        mEl0.value = '';
+      }
+    }
     tr.querySelector('.in-pvenda').value = d.preco_venda != null ? d.preco_venda : '';
+    if (mEl0 && (d.margem_percentual == null || d.margem_percentual === '')) {
+      entradaNfeLinhaRecalcMargemDisplay(tr);
+    }
     tr.querySelector('.in-cfop').value = d.cfop;
     tr.querySelector('.in-prod-id').value = d.produto_id || '';
     const qe = tr.querySelector('.in-q-est');
@@ -3091,6 +3306,9 @@
     });
     qe.addEventListener('input', () => { qe.dataset.manual = '1'; });
     entradaNfeLinhaBindSpinners(tr);
+    tr.querySelector('.in-margem')?.addEventListener('blur', () => {
+      void entradaNfeLinhaPersistirMargemAgro(tr);
+    });
     tr.querySelector('.btn-pick-prod').addEventListener('click', () => {
       trProdAlvo = tr;
       modProdHlIdx = -1;
@@ -3114,7 +3332,7 @@
   function entradaNfeLinhaMontarCompacta(tr) {
     tr.dataset.nfeLinhaModo = 'compact';
     tr.innerHTML = `
-      <td colspan="13" class="px-2 py-2 sm:px-3 bg-slate-50/40 border-t border-slate-100 align-top">
+      <td colspan="14" class="px-2 py-2 sm:px-3 bg-slate-50/40 border-t border-slate-100 align-top">
         <div class="w-full min-w-0 max-w-none">
           <div class="rounded-[1.15rem] border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div class="shrink-0 rounded-t-[1.1rem] border-2 border-amber-400/90 bg-gradient-to-b from-amber-50/95 to-white px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] sm:px-3 sm:py-2.5">
@@ -3179,6 +3397,11 @@
         un_por_embalagem: Number(tr.querySelector('.in-un-emb').value) || 1,
         q_estoque: Number(tr.querySelector('.in-q-est').value) || 0,
         v_un_com: Number(tr.querySelector('.in-vun').value) || 0,
+        margem_percentual: (() => {
+          const raw = tr.querySelector('.in-margem')?.value;
+          const n = Number(String(raw ?? '').replace(',', '.'));
+          return Number.isFinite(n) ? n : null;
+        })(),
         preco_venda: Number(tr.querySelector('.in-pvenda')?.value) || 0,
         cfop: tr.querySelector('.in-cfop').value.trim(),
         produto_id: tr.querySelector('.in-prod-id').value.trim(),
@@ -3286,6 +3509,11 @@
               inp.value = it.nome;
               hid.value = it.id || '';
               dd.classList.add('hidden');
+              if (campo === 'plano') {
+                try {
+                  entradaNfeFornecedorEtapaInvalidate();
+                } catch (_) {}
+              }
             });
             dd.appendChild(li);
           });
@@ -3325,6 +3553,9 @@
           fornHid.value = it.id || '';
           if (it.documento) document.getElementById('m-emit-cnpj').value = it.documento;
           fornDd.classList.add('hidden');
+          try {
+            entradaNfeFornecedorEtapaInvalidate();
+          } catch (_) {}
         });
         fornDd.appendChild(li);
       });
@@ -3411,10 +3642,13 @@
       const legadoFluxoAvancado = pinCarimbado
         || entradaNfeRascunhoStatusUltimo === 'estoque_aplicado'
         || !!(exW.financeiro_lancado);
+      entradaNfeFornecedorEtapaConfirmada = legadoFluxoAvancado
+        || !!(exW.wizard_etapa1_confirmada_em && String(exW.wizard_etapa1_confirmada_em).trim());
       entradaNfeProdutosEtapaConfirmada = legadoFluxoAvancado
         || !!(exW.wizard_etapa2_confirmada_em && String(exW.wizard_etapa2_confirmada_em).trim());
       entradaNfeCodigosEtapaConfirmada = legadoFluxoAvancado
         || !!(exW.wizard_etapa3_confirmada_em && String(exW.wizard_etapa3_confirmada_em).trim());
+      entradaNfeAtualizarUiBotaoConfirmarFornecedor();
       entradaNfeAtualizarUiBotaoConfirmarProdutos();
       entradaNfeAtualizarUiBotaoConfirmarCodigos();
     } finally {
@@ -3944,6 +4178,12 @@
         const custo = entradaNfeValorCustoProduto(det);
         if (custo != null && custo >= 0) entradaNfeDefinirInputPrecoNum(vunInp, custo);
       }
+      const mEl = tr.querySelector('.in-margem');
+      if (mEl && det) {
+        const mm = entradaNfeParseDecimalApi(det.margem_percentual);
+        if (mm != null && Number.isFinite(mm)) entradaNfeDefinirInputPrecoNum(mEl, mm);
+        else entradaNfeLinhaRecalcMargemDisplay(tr);
+      }
       atualizarPainelTotalNfe();
       entradaNfeAgendarAutosaveRascunho();
     } catch (_) {}
@@ -3953,10 +4193,14 @@
     if (!tr || !p) return;
     const vunInp = tr.querySelector('.in-vun');
     const pvInp = tr.querySelector('.in-pvenda');
+    const mEl = tr.querySelector('.in-margem');
     const custoLista = entradaNfeValorCustoProduto(p);
     if (vunInp && custoLista != null) entradaNfeDefinirInputPrecoNum(vunInp, custoLista);
     const pv = entradaNfeParseDecimalApi(p.preco_venda);
     if (pvInp && pv != null && pv >= 0) entradaNfeDefinirInputPrecoNum(pvInp, pv);
+    const mm = entradaNfeParseDecimalApi(p.margem_percentual);
+    if (mEl && mm != null && Number.isFinite(mm)) entradaNfeDefinirInputPrecoNum(mEl, mm);
+    else entradaNfeLinhaRecalcMargemDisplay(tr);
   }
 
   /** Busca na API e expande a linha compacta sem abrir o modal (bip, Enter, modal Mudar, colar). */
@@ -4379,6 +4623,10 @@
     const t = e.target;
     if (t && !t.classList.contains('in-linha-busca-rapida')) entradaNfeProdutosEtapaInvalidate();
     if (t && (t.classList.contains('in-qtd') || t.classList.contains('in-vun'))) atualizarPainelTotalNfe();
+    if (t && (t.classList.contains('in-vun') || t.classList.contains('in-pvenda'))) {
+      const trM = t.closest('tr');
+      if (trM) entradaNfeLinhaRecalcMargemDisplay(trM);
+    }
     if (t && t.classList.contains('in-desc')) {
       const tr = t.closest('tr');
       if (tr) entradaNfeLinhaApplyCatalogoUi(tr);
@@ -4396,11 +4644,15 @@
     const t = e.target;
     if (t && !t.classList.contains('in-linha-busca-rapida')) entradaNfeProdutosEtapaInvalidate();
     if (t && (t.classList.contains('in-qtd') || t.classList.contains('in-vun'))) atualizarPainelTotalNfe();
+    if (t && (t.classList.contains('in-vun') || t.classList.contains('in-pvenda'))) {
+      const trM = t.closest('tr');
+      if (trM) entradaNfeLinhaRecalcMargemDisplay(trM);
+    }
     entradaNfeAgendarAutosaveRascunho();
   });
   document.getElementById('tbody-itens').addEventListener('focusin', (e) => {
     const t = e.target;
-    if (!t || !t.matches('.in-qtd, .in-vun, .in-pvenda, .in-un-emb, .in-q-est')) return;
+    if (!t || !t.matches('.in-qtd, .in-vun, .in-margem, .in-pvenda, .in-un-emb, .in-q-est')) return;
     requestAnimationFrame(() => {
       try {
         t.select();
@@ -4434,7 +4686,19 @@
       }
       if (qt && qt.classList.contains('in-vun')) {
         const trV = qt.closest('tr');
-        const pvEl = trV && trV.querySelector('.in-pvenda');
+        const mEl = trV && trV.querySelector('.in-margem');
+        if (mEl) {
+          e.preventDefault();
+          try {
+            mEl.focus();
+            mEl.select();
+          } catch (_) {}
+          return;
+        }
+      }
+      if (qt && qt.classList.contains('in-margem')) {
+        const trM = qt.closest('tr');
+        const pvEl = trM && trM.querySelector('.in-pvenda');
         if (pvEl) {
           e.preventDefault();
           try {
@@ -5259,6 +5523,28 @@
       if (pm) {
         pm.addEventListener('input', entradaNfeWizardAgendarAtualizarCores, true);
         pm.addEventListener('change', entradaNfeWizardAgendarAtualizarCores, true);
+        const step1CamposIds = new Set([
+          'm-emit-nome',
+          'm-emit-cnpj',
+          'm-emit-forn-id',
+          'm-nf',
+          'm-serie',
+          'm-chave',
+          'm-dh',
+          'm-data-entrada',
+          'm-plano-conta',
+          'm-plano-conta-id',
+        ]);
+        const entradaNfeStep1DirtyGuard = (e) => {
+          const t = e.target;
+          if (!t || !t.id || !step1CamposIds.has(t.id)) return;
+          entradaNfeFornecedorEtapaInvalidate();
+        };
+        pm.addEventListener('input', entradaNfeStep1DirtyGuard, true);
+        pm.addEventListener('change', entradaNfeStep1DirtyGuard, true);
+        pm.addEventListener('click', (e) => {
+          if (e.target && e.target.closest && e.target.closest('.btn-plano-rapido')) entradaNfeFornecedorEtapaInvalidate();
+        }, true);
       }
     } catch (_) {}
     const rawOc = sessionStorage.getItem('agro_entrada_oc_prefill_v1');
@@ -5272,7 +5558,9 @@
       entradaNfeAtualizarPreviewParcelas();
       entradaNfeCatalogLoad().catch(() => {});
       entradaNfeAtualizarUiBotaoWizardFinalizar();
+      entradaNfeAtualizarUiBotaoConfirmarFornecedor();
       entradaNfeAtualizarUiBotaoConfirmarProdutos();
+      entradaNfeAtualizarUiBotaoConfirmarCodigos();
       entradaNfeAplicarCongelamentoEditorUi();
     };
     if (rawOc) {
