@@ -690,6 +690,159 @@ def marcar_rascunho_estoque_aplicado(
         return {"ok": False, "erro": str(exc)[:500]}
 
 
+def reverter_integracao_entrada_nota_para_reabertura(
+    db,
+    oid: str,
+    *,
+    usuario: str = "",
+) -> dict[str, Any]:
+    """
+    Remove carimbo ``aprovacao_wizard_*``, flags de etapa do assistente e estorna o que for rastreável:
+
+    - Títulos Mongo em ``extra.financeiro_ids`` (só se ``financeiro_lancado``), via
+      ``excluir_lancamento_mongo_agro`` (falha se quitado ou vínculo ERP).
+    - Ajustes ``AjusteRapidoEstoque`` em ``extra.estoque_agro_ajuste_ids`` (só se o status
+      do rascunho é ``estoque_aplicado``), origem ``entrada_nf_agro``.
+
+    Pode ser chamado **sem** PIN final na nota quando há só travas de etapa (``wizard_etapa*_confirmada_em``)
+    ou integrações já lançadas — assim «Reabrir nota» desfaz duplicidade antes de novo envio.
+
+    Falha sem alterar o documento se alguma exclusão financeira não for permitida.
+    """
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return {"ok": False, "erro": "ID inválido."}
+    from estoque.models import AjusteRapidoEstoque, OrigemAjusteEstoque
+
+    from produtos.mongo_financeiro_util import excluir_lancamento_mongo_agro
+
+    try:
+        doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        if not doc:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        ex = dict(doc.get("extra") or {})
+        had_pin = bool(str(ex.get("aprovacao_wizard_em") or "").strip())
+        had_wiz2 = bool(str(ex.get("wizard_etapa2_confirmada_em") or "").strip())
+        had_wiz3 = bool(str(ex.get("wizard_etapa3_confirmada_em") or "").strip())
+
+        st_doc = str(doc.get("status") or "").strip().lower()
+        had_estoque = st_doc == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
+        had_fin = bool(ex.get("financeiro_lancado"))
+
+        if not (had_pin or had_wiz2 or had_wiz3 or had_estoque or had_fin):
+            return {
+                "ok": False,
+                "erro": "Nada para reabrir: assistente sem etapas confirmadas nem estoque/financeiro registrado.",
+            }
+
+        raw_aj = ex.get("estoque_agro_ajuste_ids") or []
+        ajuste_ids: list[int] = []
+        for x in raw_aj:
+            try:
+                ajuste_ids.append(int(x))
+            except (TypeError, ValueError):
+                continue
+
+        fin_raw = ex.get("financeiro_ids") or []
+        fin_ids = [str(x).strip() for x in fin_raw if str(x).strip()]
+
+        if had_estoque and not ajuste_ids:
+            return {
+                "ok": False,
+                "erro": (
+                    "Esta entrada tem estoque aplicado sem lista de ajustes rastreada (nota antiga). "
+                    "Não é possível reabrir com segurança — contate suporte."
+                ),
+            }
+        if had_fin and not fin_ids:
+            return {
+                "ok": False,
+                "erro": (
+                    "Esta entrada tem financeiro marcado sem IDs dos títulos. "
+                    "Não é possível reabrir com segurança — contate suporte."
+                ),
+            }
+
+        fin_falhas: list[dict[str, str]] = []
+        for fid in fin_ids:
+            r = excluir_lancamento_mongo_agro(db, fid, usuario or "")
+            if not r.get("ok"):
+                msg = str(r.get("erro") or "exclusão não permitida")[:400]
+                fin_falhas.append({"id": fid, "erro": msg})
+
+        if fin_falhas:
+            primeiro = fin_falhas[0]
+            return {
+                "ok": False,
+                "erro": (
+                    f"Não foi possível estornar o título financeiro {primeiro.get('id')}: "
+                    f"{primeiro.get('erro')} "
+                    "(quitado, com baixa ou vínculo ERP). Ajuste em Lançamentos ou no ERP e tente de novo."
+                ),
+                "financeiro_falhas": fin_falhas,
+            }
+
+        n_estoque_del = 0
+        if had_estoque and ajuste_ids:
+            try:
+                qs = AjusteRapidoEstoque.objects.filter(
+                    pk__in=ajuste_ids,
+                    origem=OrigemAjusteEstoque.ENTRADA_NF_AGRO,
+                )
+                n_estoque_del, _ = qs.delete()
+            except Exception as exc:
+                logger.exception("reverter_integracao_entrada_nota_para_reabertura estoque")
+                return {"ok": False, "erro": f"Falha ao estornar ajustes de estoque: {exc}"[:500]}
+
+        linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
+        novo_status = entrada_nfe_status_derivado_linhas(linhas)
+
+        for k in (
+            "aprovacao_wizard_em",
+            "aprovacao_wizard_usuario",
+            "wizard_etapa2_confirmada_em",
+            "wizard_etapa3_confirmada_em",
+            "financeiro_lancado",
+            "financeiro_ids",
+            "financeiro_lancado_em",
+            "estoque_agro_ajuste_ids",
+            "estoque_agro_registrado_em",
+        ):
+            ex.pop(k, None)
+        ex.pop("estoque_agro_lock", None)
+
+        agora = datetime.now(timezone.utc)
+        unset_doc: dict[str, str] = {}
+        if had_estoque:
+            unset_doc["estoque_aplicado_em"] = ""
+            unset_doc["usuario_estoque_aplicado"] = ""
+
+        upd: dict[str, Any] = {
+            "$set": {
+                "status": novo_status,
+                "extra": ex,
+                "atualizado_em": agora,
+                "usuario_ultima_alteracao": (usuario or "")[:200],
+            }
+        }
+        if unset_doc:
+            upd["$unset"] = unset_doc
+
+        db[COL_ENTRADA_RASCUNHO].update_one({"_id": _id}, upd)
+        return {
+            "ok": True,
+            "id": str(_id),
+            "status": novo_status,
+            "estoque_ajustes_removidos": int(n_estoque_del),
+            "financeiro_titulos_removidos": len(fin_ids),
+        }
+    except Exception as exc:
+        logger.exception("reverter_integracao_entrada_nota_para_reabertura")
+        return {"ok": False, "erro": str(exc)[:500]}
+
+
 def marcar_rascunho_financeiro_lancado(
     db,
     oid: str,

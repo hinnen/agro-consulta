@@ -49,12 +49,19 @@
       box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.45);
     }
     #entrada-nfe-wizard-pages .nfe-wiz-page { min-height: min(70vh, 42rem); }
+    /* Nota finalizada (PIN): bloqueia edição nas etapas 1–5; etapa 6 mantém PIN + Reabrir. */
+    #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] input,
+    #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] select,
+    #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] textarea,
+    #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] button:not(.nfe-wiz-help),
+    #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] summary,
+    #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] a[href] {
+      pointer-events: none !important;
+      opacity: 0.72;
+    }
     body.entrada-nfe--editor { overflow: hidden; }
     body.entrada-nfe--editor #entrada-nfe-header-principal { display: none; }
     body.entrada-nfe--editor #entrada-nfe-main-lista { display: none; }
-    #nfe-bip-linha-list {
-      max-height: min(22rem, 50vh);
-    }
     .in-qtd:focus, .in-vun:focus, .in-pvenda:focus, .in-un-emb:focus, .in-q-est:focus {
       outline: 2px solid rgb(16 185 129 / 0.55);
       outline-offset: 1px;
@@ -285,7 +292,7 @@
       </div>
 
       <div id="entrada-nfe-wizard-pages" class="flex-1 min-h-0 flex flex-col">
-      <div id="nfe-wiz-page-1" data-nfe-wiz-page="1" class="nfe-wiz-page flex flex-col gap-3 overflow-y-auto">
+      <div id="nfe-wiz-page-1" data-nfe-wiz-page="1" data-nfe-wiz-lock="1" class="nfe-wiz-page flex flex-col gap-3 overflow-y-auto">
         <div id="nfe-pedido-compra-card" class="rounded-xl border-2 border-violet-200 bg-violet-50/90 p-3 sm:p-4 space-y-2">
           <div class="flex flex-wrap items-start justify-between gap-2">
             <h2 class="text-sm font-black uppercase text-violet-950 tracking-tight">Pedido na compra <span class="text-[10px] font-bold text-violet-800 normal-case">(opcional)</span></h2>
@@ -338,7 +345,7 @@
 
       </div>
 
-      <div id="nfe-wiz-page-2" data-nfe-wiz-page="2" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
+      <div id="nfe-wiz-page-2" data-nfe-wiz-page="2" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
 
       <div class="rounded-xl border-2 border-orange-200 bg-gradient-to-br from-orange-50/80 to-white p-3 sm:p-4 space-y-2">
         <div class="flex flex-wrap items-center justify-between gap-2">
@@ -386,14 +393,20 @@
           <tbody id="tbody-itens"></tbody>
         </table>
       </div>
-        <div id="nfe-painel-total-itens" class="flex flex-wrap items-center justify-between gap-2 mt-2 px-3 py-2 rounded-xl border-2 border-orange-300 bg-orange-50/95 text-sm font-black text-orange-950 shadow-sm">
-          <span>Total</span>
-          <span id="nfe-valor-total-itens" class="tabular-nums text-base shrink-0">R$&nbsp;0,00</span>
+        <div id="nfe-painel-total-itens" class="flex flex-wrap items-center justify-between gap-3 mt-2 px-3 py-2.5 rounded-xl border-2 border-orange-300 bg-orange-50/95 text-orange-950 shadow-sm">
+          <div class="flex flex-wrap items-baseline gap-2 min-w-0">
+            <span class="text-sm font-black uppercase tracking-wide text-orange-950 shrink-0">Total</span>
+            <span id="nfe-valor-total-itens" class="tabular-nums text-2xl sm:text-3xl font-black text-orange-950 leading-none shrink-0">R$&nbsp;0,00</span>
+          </div>
+          <button type="button" id="nfe-btn-confirmar-produtos"
+            class="min-h-[48px] px-4 rounded-xl border-2 border-emerald-700 bg-emerald-600 text-white text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-emerald-700 disabled:opacity-40 disabled:pointer-events-none shrink-0 shadow-sm">
+            Confirmar produtos e continuar
+          </button>
         </div>
       </div>
       </div>
 
-      <div id="nfe-wiz-page-3" data-nfe-wiz-page="3" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
+      <div id="nfe-wiz-page-3" data-nfe-wiz-page="3" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3">
       <div id="nfe-wiz-a2b" class="rounded-xl border-2 border-violet-300/90 bg-gradient-to-br from-violet-50/95 via-white to-indigo-50/40 p-3 sm:p-4 space-y-3 scroll-mt-24">
         <div class="flex flex-wrap items-start justify-between gap-2">
           <h2 class="text-sm font-black uppercase text-violet-950 tracking-tight">3 · Código de barras</h2>
@@ -402,7 +415,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
           <div class="lg:col-span-5 space-y-1 min-w-0">
             <label class="block"><span class="sr-only">Selecionar linha</span>
-              <div id="nfe-bip-linha-list" class="mt-1 max-h-[min(18rem,40vh)] w-full overflow-y-auto rounded-xl border-2 border-violet-200 bg-white p-1 space-y-1" role="listbox" aria-label="Produtos da nota para conferência de código"></div>
+              <div id="nfe-bip-linha-list" class="mt-1 w-full rounded-xl border-2 border-violet-200 bg-white p-1 space-y-1" role="listbox" aria-label="Produtos da nota para conferência de código"></div>
             </label>
             <p id="nfe-bip-linha-hint" class="text-[10px] font-bold text-violet-950/90 leading-snug" hidden></p>
           </div>
@@ -423,16 +436,24 @@
             <div class="flex flex-wrap gap-2 pt-1">
               <button type="button" id="nfe-bip-verificar" class="flex-1 min-w-[11rem] min-h-[52px] px-5 rounded-xl bg-violet-700 text-white text-sm font-black uppercase border-2 border-violet-900 shadow-sm hover:bg-violet-800">Confirmar código</button>
             </div>
+            <div class="flex flex-wrap justify-end pt-2 border-t border-violet-200 mt-2">
+              <button type="button" id="nfe-btn-confirmar-codigos"
+                class="min-h-[48px] px-4 rounded-xl border-2 border-emerald-700 bg-emerald-600 text-white text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-emerald-700 disabled:opacity-40 disabled:pointer-events-none shrink-0 shadow-sm">
+                Confirmar códigos e continuar
+              </button>
+            </div>
           </div>
         </div>
         <p id="nfe-bip-msg" class="text-sm font-bold text-slate-700 min-h-[1.25rem]" role="status"></p>
       </div>
       </div>
 
-      <div id="nfe-wiz-page-4" data-nfe-wiz-page="4" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
+      <div id="nfe-wiz-page-4" data-nfe-wiz-page="4" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
       <div class="rounded-xl border-2 border-slate-200 bg-white p-3 sm:p-4 space-y-3 shadow-sm">
-        <h3 class="text-sm font-black uppercase text-slate-900 tracking-tight">4 · Empresa e depósito (estoque)</h3>
-        <p class="text-xs font-semibold text-slate-700 leading-snug">Escolha <strong>onde</strong> a entrada vai contar no Agro antes de registrar.</p>
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <h3 class="text-sm font-black uppercase text-slate-900 tracking-tight">4 · Empresa e depósito (estoque)</h3>
+          <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-slate-300 bg-white text-sm font-black text-slate-800 shrink-0 hover:bg-slate-50" data-help-w="4" title="Ajuda" aria-label="Ajuda: Escolha onde a entrada vai contar no Agro antes de registrar.">?</button>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <label class="block"><span class="text-xs font-black uppercase text-slate-600">Empresa (estoque) *</span>
             <select id="m-empresa-faturada" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Empresa faturada / estoque Agro">
@@ -453,17 +474,17 @@
         </div>
       </div>
       <div id="nfe-wiz-a3" class="rounded-xl border-2 border-blue-200 bg-blue-50/80 px-3 py-3">
-        <h3 class="text-sm font-black uppercase text-blue-950 mb-1">Registrar no estoque Agro</h3>
-        <p class="text-[11px] font-semibold text-blue-900/90 mb-2 leading-snug">
-          Com empresa e depósito conferidos acima, use o botão para gravar a nota e atualizar o estoque num passo só.
-        </p>
+        <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+          <h3 class="text-sm font-black uppercase text-blue-950">Registrar no estoque Agro</h3>
+          <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-blue-400 bg-white text-sm font-black text-blue-950 shrink-0 hover:bg-blue-50" data-help-w="4b" title="Ajuda" aria-label="Ajuda: Com empresa e depósito conferidos acima, use o botão para gravar a nota e atualizar o estoque num passo só.">?</button>
+        </div>
         <button type="button" id="btn-estoque-agro" class="min-h-[52px] px-8 py-3.5 rounded-xl bg-blue-700 text-white font-black text-sm sm:text-base uppercase hover:bg-blue-800 shadow-md border-2 border-blue-900 w-full sm:w-auto">
           Registrar entrada no estoque Agro
         </button>
       </div>
       </div>
 
-      <div id="nfe-wiz-page-5" data-nfe-wiz-page="5" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
+      <div id="nfe-wiz-page-5" data-nfe-wiz-page="5" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
       <div id="nfe-wiz-a4" class="rounded-xl border-2 border-emerald-300 bg-emerald-50/50 px-3 py-3 shadow-sm">
         <h3 class="text-sm font-black uppercase text-emerald-950 mb-2">5 · Financeiro <span class="text-[10px] font-bold text-emerald-800/90 normal-case">(opcional)</span></h3>
         <div class="space-y-3 text-xs sm:text-sm font-semibold text-emerald-950">
@@ -510,10 +531,11 @@
                 <input type="hidden" id="fin-banco-id" value="">
                 <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
               </div></label>
-            <label class="inline-flex items-center gap-2.5 cursor-pointer md:col-span-2 min-h-[44px] rounded-xl border-2 border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-950">
+            <div class="inline-flex flex-wrap items-center gap-2.5 md:col-span-2 min-h-[44px] rounded-xl border-2 border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-950">
               <input type="checkbox" id="fin-quitar-ao-salvar" class="h-5 w-5 rounded border-slate-300 accent-emerald-700 shrink-0">
-              <span>Já quitar no Mongo (e no ERP, se configurado) usando forma e conta acima — data de pagamento = vencimento de cada parcela.</span>
-            </label>
+              <label for="fin-quitar-ao-salvar" class="cursor-pointer">JÁ LANÇAR QUITADO</label>
+              <button type="button" class="min-h-[32px] min-w-[32px] rounded-lg border-2 border-violet-300 bg-white text-xs font-black text-violet-900 shrink-0 hover:bg-violet-50" title="Já quitar no Mongo (e no ERP, se configurado) usando forma e conta acima — data de pagamento = vencimento de cada parcela." aria-label="Ajuda sobre lançar quitado">?</button>
+            </div>
             <label class="block md:col-span-2"><span class="text-xs font-black uppercase text-slate-700">Grupo (opcional)</span>
               <div class="relative sug-wrap mt-1" data-sug-campo="grupo">
                 <input type="text" id="fin-grupo-nome" autocomplete="off" class="w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Buscar…">
@@ -523,10 +545,12 @@
           </div>
           <div id="fin-parcelas-preview-wrap" class="rounded-xl border border-emerald-300/80 bg-white p-2 mt-2">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
-              <p class="text-[10px] font-black uppercase text-emerald-900">Parcelas (editar data e valor)</p>
+              <div class="flex flex-wrap items-center gap-2 min-w-0">
+                <p class="text-[10px] font-black uppercase text-emerald-900 shrink-0">Parcelas (editar data e valor)</p>
+                <button type="button" id="fin-parcelas-preview-help" class="nfe-wiz-help min-h-[40px] min-w-[40px] rounded-lg border-2 border-emerald-400 bg-white text-sm font-black text-emerald-900 shrink-0 hover:bg-emerald-50" title="Preencha 1º vencimento e itens com valor na grade." aria-label="Preencha 1º vencimento e itens com valor na grade.">?</button>
+              </div>
               <button type="button" id="btn-fin-parc-recalc" class="min-h-[36px] px-2 py-1 rounded-lg border-2 border-emerald-400 bg-emerald-50 text-[10px] font-black uppercase text-emerald-900 hover:bg-emerald-100 shrink-0">Recalcular</button>
             </div>
-            <p id="fin-parcelas-preview-msg" class="text-xs font-semibold text-slate-500">Preencha 1º vencimento e itens com valor na grade.</p>
             <p id="fin-parcelas-sum-warn" class="hidden text-xs font-black text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mt-1"></p>
             <div id="fin-parcelas-preview-table" class="hidden mt-2 overflow-x-auto rounded-lg border border-slate-200">
               <table class="w-full text-xs font-semibold text-slate-800 min-w-[280px]">
@@ -544,8 +568,10 @@
       </div>
 
       <div class="rounded-xl border-2 border-emerald-400 bg-white p-3 sm:p-4 shadow-md ring-1 ring-emerald-200/60">
-        <h2 class="text-sm font-black uppercase text-slate-900 mb-1">Gerar conta a pagar</h2>
-        <p class="text-[11px] font-semibold text-slate-600 mb-3 leading-snug">A nota é gravada no Agro automaticamente ao editar. Use o botão abaixo apenas para criar o título no financeiro (Mongo).</p>
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <h2 class="text-sm font-black uppercase text-slate-900">Gerar conta a pagar</h2>
+          <button type="button" class="nfe-wiz-help min-h-[40px] min-w-[40px] rounded-lg border-2 border-emerald-400 bg-white text-sm font-black text-emerald-900 hover:bg-emerald-50 shrink-0" title="A nota é gravada no Agro automaticamente ao editar. Use o botão abaixo apenas para criar o título no financeiro (Mongo)." aria-label="A nota é gravada no Agro automaticamente ao editar. Use o botão abaixo apenas para criar o título no financeiro (Mongo).">?</button>
+        </div>
         <button type="button" id="btn-salvar-fin" class="min-h-[48px] w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-700 text-white font-black text-sm uppercase hover:bg-emerald-800 shadow-md border-2 border-emerald-900">Salvar + a pagar</button>
       </div>
       </div>
@@ -559,6 +585,9 @@
           <input type="password" id="nfe-wiz-pin" autocomplete="current-password" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-300 px-3 text-lg font-mono tracking-widest bg-white" inputmode="numeric" maxlength="12">
         </label>
         <button type="button" id="nfe-wiz-btn-aprov" class="min-h-[48px] px-5 rounded-xl bg-slate-800 text-white text-xs font-black uppercase border-2 border-slate-950 hover:bg-slate-900">Gravar finalização</button>
+        <button type="button" id="nfe-wiz-btn-reabrir" class="hidden min-h-[48px] px-5 rounded-xl border-2 border-amber-700 bg-amber-500 text-white text-xs font-black uppercase hover:bg-amber-600 shadow-sm">
+          Reabrir nota
+        </button>
         <p id="nfe-wiz-aprov-msg" class="text-sm font-bold text-slate-700 min-h-[1.25rem]" role="status"></p>
         <div id="nfe-wiz-recap" class="rounded-xl border border-slate-200 bg-white p-3 text-xs font-semibold text-slate-700 space-y-1"></div>
       </div>
@@ -724,6 +753,7 @@
   const URL_RASC_ACAO = "{% url 'api_entrada_nota_rascunho_acao' %}";
   const URL_CONF_COD = "{% url 'api_entrada_nota_conferir_codigo' %}";
   const URL_APROVAR_WIZ = "{% url 'api_entrada_nota_aprovar_wizard' %}";
+  const URL_REABRIR_NOTA = "{% url 'api_entrada_nota_reabrir_nota' %}";
   /** Abrir Lançamentos (contas a pagar) com foco no título recém-criado. */
   const URL_LANC_CP = "{% url 'lancamentos_contas_pagar' %}";
   const URL_CAD_PRODUTO_NOVO = "{% url 'produtos_cadastro_erp' %}?novo=1";
@@ -1030,12 +1060,15 @@
       btn.textContent = 'FINALIZAÇÃO JÁ REGISTRADA';
       btn.classList.add('opacity-90', 'cursor-not-allowed');
       btn.removeAttribute('aria-busy');
-      return;
+    } else {
+      btn.disabled = false;
+      btn.textContent = ENTRADA_NFE_BTN_WIZ_FINAL_PADRAO;
+      btn.classList.remove('opacity-90', 'cursor-not-allowed');
+      btn.removeAttribute('aria-busy');
     }
-    btn.disabled = false;
-    btn.textContent = ENTRADA_NFE_BTN_WIZ_FINAL_PADRAO;
-    btn.classList.remove('opacity-90', 'cursor-not-allowed');
-    btn.removeAttribute('aria-busy');
+    try {
+      entradaNfeAplicarCongelamentoEditorUi();
+    } catch (_) {}
   }
 
   function setEntradaNfeRascunhoEdit(id) {
@@ -1044,7 +1077,12 @@
       if (entradaNfeRascunhoEditId) sessionStorage.setItem(ENTRADA_NFE_SS_RASC_ID, entradaNfeRascunhoEditId);
       else sessionStorage.removeItem(ENTRADA_NFE_SS_RASC_ID);
     } catch (_) {}
-    if (!entradaNfeRascunhoEditId) entradaNfeWizardConferenciaRegistrada = false;
+    if (!entradaNfeRascunhoEditId) {
+      entradaNfeWizardConferenciaRegistrada = false;
+      entradaNfeProdutosEtapaConfirmada = false;
+      entradaNfeCodigosEtapaConfirmada = false;
+      entradaNfeRascunhoStatusUltimo = '';
+    }
     const b = document.getElementById('entrada-nfe-rasc-banner');
     if (b) {
       if (entradaNfeRascunhoEditId) b.classList.remove('hidden');
@@ -1061,6 +1099,9 @@
     try {
       entradaNfeWizardAgendarAtualizarCores();
     } catch (_) {}
+    try {
+      entradaNfeAplicarCongelamentoEditorUi();
+    } catch (_) {}
   }
 
   function getCookie(name) {
@@ -1072,11 +1113,98 @@
   const elEditorScroll = document.getElementById('entrada-nfe-editor-scroll');
 
   let entradaNfeWizardStep = 1;
+  /** Etapa 2 · Produtos: confirmação explícita no rodapé antes de código de barras / próximas etapas. */
+  let entradaNfeProdutosEtapaConfirmada = false;
+  const ENTRADA_NFE_BTN_PROD_CONFIRM_PADRAO = 'Confirmar produtos e continuar';
+  const ENTRADA_NFE_BTN_PROD_CONFIRM_OK = 'Produtos confirmados';
+
+  /** Etapa 3 · Código de barras: confirmação explícita (persistida em Mongo ``wizard_etapa3_confirmada_em``). */
+  let entradaNfeCodigosEtapaConfirmada = false;
+  const ENTRADA_NFE_BTN_COD_CONFIRM_PADRAO = 'Confirmar códigos e continuar';
+  const ENTRADA_NFE_BTN_COD_CONFIRM_OK = 'Códigos confirmados';
+
+  /** ``status`` do último rascunho carregado (ex.: ``estoque_aplicado`` trava etapa 4). */
+  let entradaNfeRascunhoStatusUltimo = '';
+
   /** Conferência final (PIN) registrada nesta sessão ou já vinda do rascunho (`aprovacao_wizard_em`). */
   let entradaNfeWizardConferenciaRegistrada = false;
   let entradaNfeWizardCoresTimer = null;
   /** Snapshot do `extra` Mongo do rascunho (ex.: pedido vindo da Compras). */
   let entradaNfeExtraUltimo = null;
+
+  function entradaNfeEditorCongeladoAtivo() {
+    if (!document.body.classList.contains('entrada-nfe--editor')) return false;
+    const ex = entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {};
+    return !!(ex.aprovacao_wizard_em && String(ex.aprovacao_wizard_em).trim());
+  }
+
+  function entradaNfeFinanceiroJaLancadoCliente() {
+    return entradaNfeFinanceiroTituloJaGerado({ extra: entradaNfeExtraUltimo });
+  }
+
+  /** Alguma etapa 2–5 travada (fluxo normal, sem reabrir). */
+  function entradaNfeWizardAlgumaEtapaIntermediariaTravada() {
+    if (entradaNfeProdutosEtapaConfirmada) return true;
+    if (entradaNfeCodigosEtapaConfirmada) return true;
+    if (String(entradaNfeRascunhoStatusUltimo || '').trim().toLowerCase() === 'estoque_aplicado') return true;
+    if (entradaNfeFinanceiroJaLancadoCliente()) return true;
+    return false;
+  }
+
+  function entradaNfeWizardPaginaPrecisaTrava(numPagina) {
+    const p = Math.min(6, Math.max(1, Math.floor(Number(numPagina)) || 1));
+    if (p === 2) return !!entradaNfeProdutosEtapaConfirmada;
+    if (p === 3) return !!entradaNfeCodigosEtapaConfirmada;
+    if (p === 4) return String(entradaNfeRascunhoStatusUltimo || '').trim().toLowerCase() === 'estoque_aplicado';
+    if (p === 5) return entradaNfeFinanceiroJaLancadoCliente();
+    return false;
+  }
+
+  /** Travamento por etapa (inputs da página) — independente do PIN final. */
+  function entradaNfeAplicarTravasEtapasWizardUi() {
+    document.querySelectorAll('[data-nfe-wiz-page]').forEach((pane) => {
+      const pg = Number(pane.getAttribute('data-nfe-wiz-page'));
+      const travar = entradaNfeWizardPaginaPrecisaTrava(pg);
+      pane.classList.toggle('nfe-wiz-page--locked', travar);
+    });
+  }
+
+  /** Travamento visual + abas: só após carimbo Mongo (`aprovacao_wizard_em`). */
+  function entradaNfeAplicarCongelamentoEditorUi() {
+    const on = entradaNfeEditorCongeladoAtivo();
+    const shell = document.getElementById('entrada-nfe-view-editor');
+    if (shell) shell.classList.toggle('entrada-nfe-editor--congelado', on);
+    document.querySelectorAll('.tab-btn[data-tab]').forEach((btn) => {
+      const tab = btn.getAttribute('data-tab');
+      if (tab === 'manual') {
+        btn.disabled = false;
+        btn.classList.remove('opacity-40', 'pointer-events-none');
+        return;
+      }
+      btn.disabled = on;
+      btn.classList.toggle('opacity-40', on);
+      btn.classList.toggle('pointer-events-none', on);
+    });
+    const novoBtn = document.getElementById('btn-entrada-nfe-sair-edicao');
+    if (novoBtn) {
+      novoBtn.disabled = on;
+      novoBtn.classList.toggle('opacity-40', on);
+      novoBtn.classList.toggle('pointer-events-none', on);
+    }
+    const reabrir = document.getElementById('nfe-wiz-btn-reabrir');
+    if (reabrir) {
+      const show = !!entradaNfeRascunhoEditId
+        && (on || entradaNfeWizardAlgumaEtapaIntermediariaTravada());
+      reabrir.classList.toggle('hidden', !show);
+      if (!reabrir.classList.contains('hidden')) {
+        reabrir.disabled = false;
+        reabrir.removeAttribute('aria-busy');
+      }
+    }
+    try {
+      entradaNfeAplicarTravasEtapasWizardUi();
+    } catch (_) {}
+  }
 
   /** Cartão «Pedido na compra»: Sim / Não conforme `extra` e linhas (marca compras_oc na grade). */
   function entradaNfeAtualizarPainelPedidoCompra() {
@@ -1148,15 +1276,161 @@
     entradaNfeWizardCoresTimer = setTimeout(() => {
       try {
         entradaNfeWizardAtualizarCoresNav(entradaNfeWizardStep);
+        entradaNfeAtualizarUiBotaoConfirmarProdutos();
+        entradaNfeAtualizarUiBotaoConfirmarCodigos();
       } catch (_) {}
     }, 50);
+  }
+
+  function entradaNfeAtualizarUiBotaoConfirmarProdutos() {
+    const btn = document.getElementById('nfe-btn-confirmar-produtos');
+    if (!btn) return;
+    const dOk = entradaNfeWizardValidarEtapaDetalhe(2, { ignorarConfirmacaoProdutos: true }).ok;
+    if (entradaNfeProdutosEtapaConfirmada) {
+      btn.disabled = true;
+      btn.textContent = ENTRADA_NFE_BTN_PROD_CONFIRM_OK;
+      btn.classList.remove('opacity-50');
+      btn.classList.add('opacity-80', 'cursor-not-allowed');
+      btn.title = 'Altere um item na grade para editar de novo e confirmar outra vez.';
+      return;
+    }
+    btn.disabled = !dOk;
+    btn.textContent = ENTRADA_NFE_BTN_PROD_CONFIRM_PADRAO;
+    btn.classList.remove('opacity-80');
+    btn.classList.toggle('opacity-50', !dOk);
+    btn.classList.toggle('cursor-not-allowed', !dOk);
+    btn.title = dOk ? 'Avança para a etapa 3 · Código de barras.' : 'Preencha e casando todos os itens antes de confirmar.';
+  }
+
+  function entradaNfeAtualizarUiBotaoConfirmarCodigos() {
+    const btn = document.getElementById('nfe-btn-confirmar-codigos');
+    if (!btn) return;
+    const dOk = entradaNfeWizardValidarEtapaDetalhe(3, { ignorarConfirmacaoCodigos: true }).ok;
+    if (entradaNfeCodigosEtapaConfirmada) {
+      btn.disabled = true;
+      btn.textContent = ENTRADA_NFE_BTN_COD_CONFIRM_OK;
+      btn.classList.remove('opacity-50');
+      btn.classList.add('opacity-80', 'cursor-not-allowed');
+      btn.title = 'Altere uma conferência de código para editar de novo e confirmar outra vez.';
+      return;
+    }
+    btn.disabled = !dOk;
+    btn.textContent = ENTRADA_NFE_BTN_COD_CONFIRM_PADRAO;
+    btn.classList.remove('opacity-80');
+    btn.classList.toggle('opacity-50', !dOk);
+    btn.classList.toggle('cursor-not-allowed', !dOk);
+    btn.title = dOk ? 'Avança para a etapa 4 · Estoque.' : 'Conclua o código de barras em todas as linhas antes de confirmar.';
+  }
+
+  function entradaNfeCodigosConferenciaAlterada() {
+    if (entradaNfeRascunhoAplicandoGrade) return;
+    if (!entradaNfeCodigosEtapaConfirmada) {
+      entradaNfeAtualizarUiBotaoConfirmarCodigos();
+      return;
+    }
+    entradaNfeCodigosEtapaConfirmada = false;
+    entradaNfeExtraUltimo = {
+      ...(entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {}),
+      wizard_etapa3_confirmada_em: '',
+    };
+    entradaNfeWizardPersistExtraPatchFireForget({ wizard_etapa3_confirmada_em: '' });
+    entradaNfeAtualizarUiBotaoConfirmarCodigos();
+    if (entradaNfeWizardStep > 3) {
+      showMsg('Conferência de código alterada: confirme a etapa 3 de novo antes das próximas etapas.', false);
+      entradaNfeWizardApplyStepUi(3);
+    }
+    entradaNfeWizardAgendarAtualizarCores();
+    try {
+      entradaNfeAplicarCongelamentoEditorUi();
+    } catch (_) {}
+  }
+
+  function entradaNfeProdutosEtapaInvalidate() {
+    if (entradaNfeRascunhoAplicandoGrade) return;
+    const tinha2 = entradaNfeProdutosEtapaConfirmada;
+    const tinha3 = entradaNfeCodigosEtapaConfirmada;
+    if (!tinha2 && !tinha3) {
+      entradaNfeAtualizarUiBotaoConfirmarProdutos();
+      entradaNfeAtualizarUiBotaoConfirmarCodigos();
+      return;
+    }
+    entradaNfeProdutosEtapaConfirmada = false;
+    entradaNfeCodigosEtapaConfirmada = false;
+    entradaNfeExtraUltimo = {
+      ...(entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {}),
+      wizard_etapa2_confirmada_em: '',
+      wizard_etapa3_confirmada_em: '',
+    };
+    entradaNfeWizardPersistExtraPatchFireForget({
+      wizard_etapa2_confirmada_em: '',
+      wizard_etapa3_confirmada_em: '',
+    });
+    entradaNfeAtualizarUiBotaoConfirmarProdutos();
+    entradaNfeAtualizarUiBotaoConfirmarCodigos();
+    if (entradaNfeWizardStep > 2) {
+      showMsg('Itens alterados: confirme os produtos de novo antes das próximas etapas.', false);
+      entradaNfeWizardApplyStepUi(2);
+    }
+    entradaNfeWizardAgendarAtualizarCores();
+    try {
+      entradaNfeAplicarCongelamentoEditorUi();
+    } catch (_) {}
+  }
+
+  async function entradaNfeConfirmarProdutosEtapa() {
+    const d = entradaNfeWizardValidarEtapaDetalhe(2, { ignorarConfirmacaoProdutos: true });
+    if (!d.ok) {
+      showMsg(d.erro || 'Revise a grade de produtos.', false);
+      entradaNfeAtualizarUiBotaoConfirmarProdutos();
+      return;
+    }
+    const iso = new Date().toISOString();
+    entradaNfeProdutosEtapaConfirmada = true;
+    entradaNfeExtraUltimo = {
+      ...(entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {}),
+      wizard_etapa2_confirmada_em: iso,
+    };
+    entradaNfeAtualizarUiBotaoConfirmarProdutos();
+    await entradaNfeWizardPersistExtraPatch({ wizard_etapa2_confirmada_em: iso });
+    entradaNfeWizardSetStep(3);
+    entradaNfeWizardAgendarAtualizarCores();
+    try {
+      entradaNfeAplicarCongelamentoEditorUi();
+    } catch (_) {}
+  }
+
+  async function entradaNfeConfirmarCodigosEtapa() {
+    const d = entradaNfeWizardValidarEtapaDetalhe(3, { ignorarConfirmacaoCodigos: true });
+    if (!d.ok) {
+      showMsg(d.erro || 'Revise o código de barras em todas as linhas.', false);
+      entradaNfeAtualizarUiBotaoConfirmarCodigos();
+      return;
+    }
+    const iso = new Date().toISOString();
+    entradaNfeCodigosEtapaConfirmada = true;
+    entradaNfeExtraUltimo = {
+      ...(entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {}),
+      wizard_etapa3_confirmada_em: iso,
+    };
+    entradaNfeAtualizarUiBotaoConfirmarCodigos();
+    await entradaNfeWizardPersistExtraPatch({ wizard_etapa3_confirmada_em: iso });
+    entradaNfeWizardSetStep(4);
+    entradaNfeWizardAgendarAtualizarCores();
+    try {
+      entradaNfeAplicarCongelamentoEditorUi();
+    } catch (_) {}
   }
 
   /**
    * Validação por etapa: verde no chip só quando tudo obrigatório daquela etapa está ok
    * (não depende de em qual tela o usuário está).
+   * @param {object} [opt]
+   * @param {boolean} [opt.ignorarConfirmacaoProdutos] — só etapa 2: não exige botão «Confirmar produtos».
+   * @param {boolean} [opt.ignorarConfirmacaoCodigos] — só etapa 3: não exige botão «Confirmar códigos».
    */
-  function entradaNfeWizardValidarEtapaDetalhe(st) {
+  function entradaNfeWizardValidarEtapaDetalhe(st, opt) {
+    const ignProdConf = !!(opt && opt.ignorarConfirmacaoProdutos);
+    const ignCodConf = !!(opt && opt.ignorarConfirmacaoCodigos);
     const s = Math.min(6, Math.max(1, Math.floor(Number(st)) || 1));
     const cab = coletarCabecalho();
     const linhas = coletarLinhas();
@@ -1191,6 +1465,13 @@
           return { ok: false, irPara: 2, erro: `Linha ${i + 1}: escolha o produto do catálogo (botão Mudar ou busca na linha) na etapa 2 · Produtos.` };
         }
       }
+      if (!ignProdConf && !entradaNfeProdutosEtapaConfirmada) {
+        return {
+          ok: false,
+          irPara: 2,
+          erro: 'Confirme os produtos no rodapé da grade (botão à direita) antes de avançar.',
+        };
+      }
       return { ok: true, irPara: 2, erro: '' };
     }
     if (s === 3) {
@@ -1203,6 +1484,13 @@
             erro: `Linha ${i + 1}: pendente de conferência por código de barras (etapa 3 · Código de barras).`,
           };
         }
+      }
+      if (!ignCodConf && !entradaNfeCodigosEtapaConfirmada) {
+        return {
+          ok: false,
+          irPara: 3,
+          erro: 'Confira os códigos e use «Confirmar códigos e continuar» na etapa 3 antes de avançar.',
+        };
       }
       return { ok: true, irPara: 3, erro: '' };
     }
@@ -1329,6 +1617,12 @@
       entradaNfeRecapRefresh();
       entradaNfeAtualizarUiBotaoWizardFinalizar();
     }
+    entradaNfeAtualizarUiBotaoConfirmarProdutos();
+    entradaNfeAtualizarUiBotaoConfirmarCodigos();
+    try {
+      entradaNfeAplicarTravasEtapasWizardUi();
+      entradaNfeAplicarCongelamentoEditorUi();
+    } catch (_) {}
   }
 
   function entradaNfeWizardSetStep(n) {
@@ -1349,6 +1643,15 @@
       if (elOk) {
         elOk.textContent = '';
         elOk.classList.remove('text-emerald-800');
+      }
+    } else if (s >= 3 && s <= 5) {
+      for (let st = 1; st < s; st++) {
+        const d = entradaNfeWizardValidarEtapaDetalhe(st);
+        if (!d.ok) {
+          showMsg(d.erro, false);
+          entradaNfeWizardApplyStepUi(d.irPara);
+          return;
+        }
       }
     }
     entradaNfeWizardApplyStepUi(s);
@@ -1720,6 +2023,7 @@
         entradaNfeBipModalVinculoFechar();
         entradaNfeBipRebuildSelect();
         entradaNfeBipAplicarDraftLinhaAtual();
+        entradaNfeCodigosConferenciaAlterada();
         const msgEl = document.getElementById('nfe-bip-msg');
         if (msgEl) {
           msgEl.textContent = `${i + 1}º item vinculado como similar/opcional.`;
@@ -1795,6 +2099,7 @@
       entradaNfeBipLimparCamposBip();
       entradaNfeBipDraftPorLinha[String(entradaNfeBipLinhaIdx)] = { cod: '', codAlt: '', ignorar: false };
       entradaNfeBipRebuildSelect();
+      entradaNfeCodigosConferenciaAlterada();
       if (msg) {
         msg.textContent = 'Sem código na embalagem — linha marcada como dispensada.';
         msg.classList.add('text-amber-800');
@@ -1814,6 +2119,7 @@
       entradaNfeBipLimparCamposBip();
       entradaNfeBipDraftPorLinha[String(entradaNfeBipLinhaIdx)] = { cod: '', codAlt: '', ignorar: false };
       entradaNfeBipAplicarDraftLinhaAtual();
+      entradaNfeCodigosConferenciaAlterada();
       if (msg) {
         const nm = (match.payload && match.payload.nome) ? String(match.payload.nome).slice(0, 140) : '';
         msg.textContent = nm
@@ -1885,11 +2191,78 @@
         true,
       );
       entradaNfeWizardConferenciaRegistrada = true;
+      if (entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object') {
+        entradaNfeExtraUltimo = { ...entradaNfeExtraUltimo, aprovacao_wizard_em: new Date().toISOString() };
+      } else {
+        entradaNfeExtraUltimo = { aprovacao_wizard_em: new Date().toISOString() };
+      }
       entradaNfeAtualizarUiBotaoWizardFinalizar();
       entradaNfeWizardAgendarAtualizarCores();
     } catch (_) {
       if (elMsg) elMsg.textContent = 'Erro de rede.';
       entradaNfeAtualizarUiBotaoWizardFinalizar();
+    }
+  }
+
+  async function entradaNfeReabrirNota() {
+    const rid = entradaNfeRascunhoEditId;
+    if (!rid) return;
+    if (!entradaNfeEditorCongeladoAtivo() && !entradaNfeWizardAlgumaEtapaIntermediariaTravada()) return;
+    const pin = document.getElementById('nfe-wiz-pin')?.value?.trim() || '';
+    if (!pin) {
+      showMsg('Informe o PIN para reabrir a nota.', false);
+      return;
+    }
+    const btn = document.getElementById('nfe-wiz-btn-reabrir');
+    if (btn) {
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+    }
+    try {
+      const r = await fetch(URL_REABRIR_NOTA, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ rascunho_id: rid, pin }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) {
+        showMsg(j.erro || 'Não foi possível reabrir.', false);
+        return;
+      }
+      const r2 = await fetch(`${URL_RASC_OBTER}?id=${encodeURIComponent(rid)}`, { credentials: 'same-origin' });
+      const j2 = await r2.json();
+      if (!j2.ok || !j2.rascunho) {
+        showMsg('Servidor reabriu, mas não foi possível recarregar o rascunho.', false);
+        return;
+      }
+      aplicarRascunhoNaGrade(j2.rascunho);
+      entradaNfeWizardConferenciaRegistrada = false;
+      entradaNfeAtualizarUiBotaoWizardFinalizar();
+      entradaNfeAtualizarUiBotaoConfirmarProdutos();
+      entradaNfeAtualizarUiBotaoConfirmarCodigos();
+      entradaNfeWizardSetStep(1);
+      entradaNfeWizardAgendarAtualizarCores();
+      const det = [];
+      if (Number(j.estoque_ajustes_removidos) > 0) det.push(`${j.estoque_ajustes_removidos} ajuste(s) de estoque Agro`);
+      if (Number(j.financeiro_titulos_removidos) > 0) det.push(`${j.financeiro_titulos_removidos} título(s) no Mongo`);
+      showMsg(
+        'Nota reaberta para edição.'
+          + (det.length ? ` Estornados: ${det.join(' · ')}.` : '')
+          + ' Confirme produtos, códigos de barras, estoque e financeiro de novo; depois grave a finalização com o PIN.',
+        true,
+      );
+    } catch (_) {
+      showMsg('Erro de rede.', false);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+      }
+      entradaNfeAplicarCongelamentoEditorUi();
     }
   }
 
@@ -1912,6 +2285,8 @@
     entradaNfeWizardSetStep(cur + 1);
   });
   document.getElementById('btn-prod-novo-popup')?.addEventListener('click', () => abrirCadastroProdutoNovoPopup());
+  document.getElementById('nfe-btn-confirmar-produtos')?.addEventListener('click', () => { entradaNfeConfirmarProdutosEtapa(); });
+  document.getElementById('nfe-btn-confirmar-codigos')?.addEventListener('click', () => { entradaNfeConfirmarCodigosEtapa(); });
   document.getElementById('nfe-bip-verificar')?.addEventListener('click', () => { entradaNfeBipVerificar(); });
   document.getElementById('nfe-bip-cod')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -1948,6 +2323,7 @@
     }
   });
   document.getElementById('nfe-wiz-btn-aprov')?.addEventListener('click', () => { entradaNfeAprovarWizardPin(); });
+  document.getElementById('nfe-wiz-btn-reabrir')?.addEventListener('click', () => { entradaNfeReabrirNota(); });
   document.getElementById('nfe-wiz-pin')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -1979,6 +2355,16 @@
           'Cores nos botões da lista: verde = bateu; âmbar = similar/opcional; cinza = pendente.',
           '“Sem código na embalagem” dispensa apenas a linha selecionada.',
         ],
+      },
+      '4': {
+        titulo: 'Ajuda rápida · Empresa e depósito',
+        resumo: 'Escolha onde a entrada vai contar no Agro antes de registrar.',
+        itens: [],
+      },
+      '4b': {
+        titulo: 'Ajuda rápida · Registrar no estoque Agro',
+        resumo: 'Com empresa e depósito conferidos acima, use o botão para gravar a nota e atualizar o estoque num passo só.',
+        itens: [],
       },
       '6': {
         titulo: 'Ajuda rápida · Finalizar',
@@ -2333,11 +2719,15 @@
   }
 
   function entradaNfeAtualizarPreviewParcelas() {
-    const msgEl = document.getElementById('fin-parcelas-preview-msg');
+    const helpBtn = document.getElementById('fin-parcelas-preview-help');
     const tableEl = document.getElementById('fin-parcelas-preview-table');
     const tbodyEl = document.getElementById('fin-parcelas-preview-tbody');
     const totalEl = document.getElementById('fin-parcelas-preview-total');
-    if (!msgEl || !tableEl || !tbodyEl || !totalEl) return;
+    if (!helpBtn || !tableEl || !tbodyEl || !totalEl) return;
+    const setParcelasHelpMsg = (msg) => {
+      helpBtn.title = msg;
+      helpBtn.setAttribute('aria-label', msg);
+    };
 
     const dv = (document.getElementById('fin-dv')?.value || '').trim();
     let nParc = parseInt(String(document.getElementById('fin-n-parc')?.value || '1'), 10);
@@ -2347,14 +2737,14 @@
 
     const totalCents = entradaNfeTotalCentavosFromDom();
     if (totalCents <= 0) {
-      msgEl.textContent = 'Inclua itens com quantidade e valor unitário na grade.';
+      setParcelasHelpMsg('Inclua itens com quantidade e valor unitário na grade.');
       tableEl.classList.add('hidden');
       tbodyEl.innerHTML = '';
       document.getElementById('fin-parcelas-sum-warn')?.classList.add('hidden');
       return;
     }
     if (!dv) {
-      msgEl.textContent = 'Informe o 1º vencimento para as datas das parcelas.';
+      setParcelasHelpMsg('Informe o 1º vencimento para as datas das parcelas.');
       tableEl.classList.add('hidden');
       tbodyEl.innerHTML = '';
       document.getElementById('fin-parcelas-sum-warn')?.classList.add('hidden');
@@ -2392,9 +2782,9 @@
       tbodyEl.appendChild(tr);
     });
     totalEl.textContent = (totalCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    msgEl.textContent = nParc > 1
+    setParcelasHelpMsg(nParc > 1
       ? `${nParc} parcelas. Edite vencimento e valor; a soma deve fechar com o total da nota.`
-      : 'Uma parcela com o total da nota (pode ajustar data e valor).';
+      : 'Uma parcela com o total da nota (pode ajustar data e valor).');
     tableEl.classList.remove('hidden');
     tbodyEl.querySelectorAll('.fin-parc-dv, .fin-parc-val').forEach((inp) => {
       inp.addEventListener('input', () => entradaNfeAtualizarRodapeParcelas());
@@ -2456,10 +2846,16 @@
   }
 
   const ENTRADA_NFE_SENTINEL_FB_IDLE = 'Pronto para buscar.';
+  const ENTRADA_NFE_SENTINEL_FB_LOADING = 'Carregando catálogo…';
+  let entradaNfeCatalogoPronto = false;
   function entradaNfeSentinelFeedbackSet(msg) {
     const fb = document.getElementById('entrada-nfe-sentinel-feedback');
     if (!fb) return;
-    fb.textContent = msg != null && String(msg).length ? msg : ENTRADA_NFE_SENTINEL_FB_IDLE;
+    if (msg != null && String(msg).length) {
+      fb.textContent = msg;
+      return;
+    }
+    fb.textContent = entradaNfeCatalogoPronto ? ENTRADA_NFE_SENTINEL_FB_IDLE : ENTRADA_NFE_SENTINEL_FB_LOADING;
   }
   /** Cartão Busca na sentinela: mesmo contador conceitual do PDV («N itens» na grade). */
   function entradaNfeSentinelAtualizaContadorGrade() {
@@ -2535,8 +2931,10 @@
   function tbodyClear() {
     entradaNfeBipLimparDraftEBipIdx();
     document.getElementById('tbody-itens').innerHTML = '';
+    entradaNfeProdutosEtapaConfirmada = false;
     atualizarPainelTotalNfe();
     entradaNfeEnsureTrailingCompactRow();
+    entradaNfeAtualizarUiBotaoConfirmarProdutos();
   }
 
   function atualizarQtdEstoqueRow(tr) {
@@ -2706,6 +3104,7 @@
       tr.remove();
       atualizarPainelTotalNfe();
       entradaNfeEnsureTrailingCompactRow();
+      entradaNfeProdutosEtapaInvalidate();
       entradaNfeAgendarAutosaveRascunho();
     });
     entradaNfeSyncEditProdBtn(tr);
@@ -2734,9 +3133,8 @@
                 <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black uppercase text-amber-800">F2</span>
                 <ul class="nfe-busca-dd pdv-wizard-scroll hidden z-[230] max-h-[min(50vh,22rem)] overflow-y-auto rounded-2xl border-2 border-amber-200/90 bg-white p-1 shadow-[0_18px_48px_rgba(15,23,42,0.18)] list-none m-0" role="listbox" aria-hidden="true"></ul>
               </div>
-              <div class="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-[10px] font-bold text-amber-900/85">
-                <div id="entrada-nfe-sentinel-feedback">${ENTRADA_NFE_SENTINEL_FB_IDLE}</div>
-                <div id="entrada-nfe-sentinel-meta" class="text-right">↑↓ Enter · +/−</div>
+              <div class="mt-1.5 text-[10px] font-bold text-amber-900/85">
+                <div id="entrada-nfe-sentinel-feedback">${ENTRADA_NFE_SENTINEL_FB_LOADING}</div>
               </div>
             </div>
           </div>
@@ -2762,6 +3160,7 @@
     else entradaNfeEnsureTrailingCompactRow();
     atualizarPainelTotalNfe();
     entradaNfeBipRebuildSelect();
+    if (!entradaNfeRascunhoAplicandoGrade) entradaNfeProdutosEtapaInvalidate();
   }
 
   function coletarLinhas() {
@@ -2814,6 +3213,50 @@
       empresa_faturada_id: document.getElementById('m-empresa-faturada').value.trim(),
       deposito_entrada: document.getElementById('m-deposito-entrada').value.trim(),
     };
+  }
+
+  async function entradaNfeWizardPersistExtraPatch(patch) {
+    const p = patch && typeof patch === 'object' ? patch : {};
+    entradaNfeExtraUltimo = entradaNfeAnexarFinanceiroAoExtra({
+      ...(entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {}),
+      ...p,
+    });
+    const rid = entradaNfeRascunhoEditId;
+    if (!rid) return;
+    if (entradaNfeEditorCongeladoAtivo()) return;
+    if (entradaNfeTemLinhaCompactaDigitacaoPendente()) return;
+    const linhas = coletarLinhas();
+    if (!linhas.length) return;
+    const cab = coletarCabecalho();
+    const xmlChave = ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null);
+    try {
+      const r = await fetch(URL_RASC_ATUALIZAR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({
+          id: rid,
+          modo: 'manual',
+          cabecalho: cab,
+          linhas,
+          xml_chave: xmlChave,
+          extra: entradaNfeExtraUltimo,
+        }),
+      });
+      const j = await r.json();
+      if (!j.ok) {
+        entradaNfeAutosaveHint(String(j.erro || 'Gravar etapa falhou').slice(0, 48), false);
+      }
+    } catch (_) {
+      entradaNfeAutosaveHint('Rede (gravar etapa)', false);
+    }
+  }
+
+  function entradaNfeWizardPersistExtraPatchFireForget(patch) {
+    entradaNfeWizardPersistExtraPatch(patch).catch(() => {});
   }
 
   function attachSuggest(wrap) {
@@ -2962,6 +3405,18 @@
       entradaNfeAtualizarUiBotaoEstoqueAgro(rz);
       entradaNfeAtualizarUiBotaoFinanceiro(rz);
       entradaNfeAtualizarUiBotaoWizardFinalizar();
+      const exW = rz.extra && typeof rz.extra === 'object' ? rz.extra : {};
+      entradaNfeRascunhoStatusUltimo = String(rz.status != null ? rz.status : '').trim().toLowerCase();
+      const pinCarimbado = !!(exW.aprovacao_wizard_em && String(exW.aprovacao_wizard_em).trim());
+      const legadoFluxoAvancado = pinCarimbado
+        || entradaNfeRascunhoStatusUltimo === 'estoque_aplicado'
+        || !!(exW.financeiro_lancado);
+      entradaNfeProdutosEtapaConfirmada = legadoFluxoAvancado
+        || !!(exW.wizard_etapa2_confirmada_em && String(exW.wizard_etapa2_confirmada_em).trim());
+      entradaNfeCodigosEtapaConfirmada = legadoFluxoAvancado
+        || !!(exW.wizard_etapa3_confirmada_em && String(exW.wizard_etapa3_confirmada_em).trim());
+      entradaNfeAtualizarUiBotaoConfirmarProdutos();
+      entradaNfeAtualizarUiBotaoConfirmarCodigos();
     } finally {
       queueMicrotask(() => {
         requestAnimationFrame(() => {
@@ -3343,8 +3798,22 @@
   }
 
   function entradaNfeCatalogLoad() {
-    if (entradaNfeCatalogReady) return Promise.resolve();
-    if (entradaNfeCatalogLoadPromise) return entradaNfeCatalogLoadPromise;
+    if (entradaNfeCatalogReady) {
+      entradaNfeCatalogoPronto = true;
+      queueMicrotask(() => {
+        try {
+          entradaNfeSentinelFeedbackSet('');
+        } catch (_) {}
+      });
+      return Promise.resolve();
+    }
+    if (entradaNfeCatalogLoadPromise) {
+      return entradaNfeCatalogLoadPromise.then(() => {
+        try {
+          entradaNfeSentinelFeedbackSet('');
+        } catch (_) {}
+      });
+    }
 
     entradaNfeCatalogLoadPromise = (async () => {
       try {
@@ -3355,6 +3824,7 @@
             entradaNfeCatalogProdutos = parsed.produtos;
             entradaNfeCatalogRebuildEanIndex();
             entradaNfeCatalogReady = true;
+            entradaNfeCatalogoPronto = true;
             return;
           }
         }
@@ -3371,6 +3841,7 @@
       entradaNfeCatalogProdutos = arr;
       entradaNfeCatalogRebuildEanIndex();
       entradaNfeCatalogReady = arr.length > 0;
+      entradaNfeCatalogoPronto = true;
       try {
         sessionStorage.setItem(ENTRADA_NFE_CATALOG_STORAGE_KEY, JSON.stringify({ produtos: arr, t: Date.now() }));
       } catch (_) {}
@@ -3378,7 +3849,11 @@
       entradaNfeCatalogLoadPromise = null;
     });
 
-    return entradaNfeCatalogLoadPromise;
+    return entradaNfeCatalogLoadPromise.then(() => {
+      try {
+        entradaNfeSentinelFeedbackSet('');
+      } catch (_) {}
+    });
   }
 
   /**
@@ -3550,7 +4025,7 @@
     dd.setAttribute('aria-hidden', 'true');
     dd.innerHTML = '';
     dd.removeAttribute('style');
-    entradaNfeSentinelFeedbackSet(ENTRADA_NFE_SENTINEL_FB_IDLE);
+    entradaNfeSentinelFeedbackSet('');
   }
 
   /** Sugestões ao digitar (nome/código/EAN curto); código só dígitos 8+ aplica bip silencioso na sentinela. */
@@ -3781,6 +4256,7 @@
       });
     });
     entradaNfeAgendarAutosaveRascunho();
+    entradaNfeProdutosEtapaInvalidate();
   }
 
   let modProdHlIdx = -1;
@@ -3901,6 +4377,7 @@
 
   document.getElementById('tbody-itens').addEventListener('input', (e) => {
     const t = e.target;
+    if (t && !t.classList.contains('in-linha-busca-rapida')) entradaNfeProdutosEtapaInvalidate();
     if (t && (t.classList.contains('in-qtd') || t.classList.contains('in-vun'))) atualizarPainelTotalNfe();
     if (t && t.classList.contains('in-desc')) {
       const tr = t.closest('tr');
@@ -3917,6 +4394,7 @@
   });
   document.getElementById('tbody-itens').addEventListener('change', (e) => {
     const t = e.target;
+    if (t && !t.classList.contains('in-linha-busca-rapida')) entradaNfeProdutosEtapaInvalidate();
     if (t && (t.classList.contains('in-qtd') || t.classList.contains('in-vun'))) atualizarPainelTotalNfe();
     entradaNfeAgendarAutosaveRascunho();
   });
@@ -4000,6 +4478,10 @@
   });
 
   async function salvar(modo, extra) {
+    if (entradaNfeEditorCongeladoAtivo()) {
+      showMsg('Nota finalizada: use «Reabrir nota» na etapa 6 para alterar.', false);
+      return;
+    }
     clearTimeout(entradaNfeAutosaveTimer);
     entradaNfeAutosaveTimer = null;
     const cab = coletarCabecalho();
@@ -4068,6 +4550,7 @@
 
   function entradaNfeAgendarAutosaveRascunho() {
     if (!document.body.classList.contains('entrada-nfe--editor')) return;
+    if (entradaNfeEditorCongeladoAtivo()) return;
     if (entradaNfeRascunhoAplicandoGrade) return;
     clearTimeout(entradaNfeAutosaveTimer);
     entradaNfeAutosaveTimer = setTimeout(() => {
@@ -4078,6 +4561,7 @@
 
   async function entradaNfeAutosaveRascunhoSilencioso() {
     if (!document.body.classList.contains('entrada-nfe--editor')) return;
+    if (entradaNfeEditorCongeladoAtivo()) return;
     if (entradaNfeRascunhoAplicandoGrade) return;
     if (entradaNfeAutosaveSaving) return;
     if (entradaNfeTemLinhaCompactaDigitacaoPendente()) return;
@@ -4138,6 +4622,10 @@
   elEditorNfe?.addEventListener('change', entradaNfeAgendarAutosaveRascunho, true);
 
   async function salvarComFinanceiro(modo, extra) {
+    if (entradaNfeEditorCongeladoAtivo()) {
+      showMsg('Nota finalizada: use «Reabrir nota» na etapa 6 para alterar.', false);
+      return;
+    }
     clearTimeout(entradaNfeAutosaveTimer);
     entradaNfeAutosaveTimer = null;
     const cab = coletarCabecalho();
@@ -4237,6 +4725,10 @@
         if (nIds && fin.ok) {
           entradaNfeExtraUltimo = { ...entradaNfeExtraUltimo, financeiro_lancado: true };
           entradaNfeAtualizarUiBotaoFinanceiro({ entrada_financeiro_lancado: true, status: '' });
+          try {
+            entradaNfeAplicarTravasEtapasWizardUi();
+            entradaNfeAplicarCongelamentoEditorUi();
+          } catch (_) {}
           let t = fin.quitar_ao_salvar
             ? 'Entrada salva e conta(s) a pagar gerada(s) e quitada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.'
             : 'Entrada salva e conta(s) a pagar gerada(s) no Mongo. IDs: ' + fin.ids.join(', ') + '.';
@@ -4286,6 +4778,10 @@
   let entradaNfeEstoqueAgroEmCurso = false;
   btnEstoqueAgro.addEventListener('click', async () => {
     if (entradaNfeEstoqueAgroEmCurso || btnEstoqueAgro.disabled) return;
+    if (entradaNfeEditorCongeladoAtivo()) {
+      showMsg('Nota finalizada: use «Reabrir nota» na etapa 6 para alterar.', false);
+      return;
+    }
     if (entradaNfeTemLinhaCompactaDigitacaoPendente()) {
       showMsg('Há texto na linha de busca de novo item — escolha na lista, confirme com Enter ou apague antes de registrar estoque.', false);
       return;
@@ -4359,7 +4855,12 @@
         if (j.aviso_status_rascunho) t += ` (${j.aviso_status_rascunho})`;
         showMsg(t, r.ok && !j.aviso_status_rascunho);
         carregarRascunhos();
+        entradaNfeRascunhoStatusUltimo = 'estoque_aplicado';
         entradaNfeAtualizarUiBotaoEstoqueAgro({ status: 'estoque_aplicado' });
+        try {
+          entradaNfeAplicarTravasEtapasWizardUi();
+          entradaNfeAplicarCongelamentoEditorUi();
+        } catch (_) {}
       } else {
         showMsg(j.erro || est.erros?.[0]?.erro || 'Nada foi aplicado.', false);
         btnEstoqueAgro.disabled = false;
@@ -4396,6 +4897,10 @@
   });
 
   document.getElementById('btn-parse-xml').addEventListener('click', async () => {
+    if (entradaNfeEditorCongeladoAtivo()) {
+      showMsg('Nota finalizada: use «Reabrir nota» na etapa 6 para alterar.', false);
+      return;
+    }
     const inp = document.getElementById('xml-file');
     if (!inp.files || !inp.files[0]) {
       showMsg('Escolha um arquivo XML.', false);
@@ -4466,6 +4971,10 @@
   }
 
   document.getElementById('btn-dist-dfe').addEventListener('click', async () => {
+    if (entradaNfeEditorCongeladoAtivo()) {
+      showMsg('Nota finalizada: use «Reabrir nota» na etapa 6 para alterar.', false);
+      return;
+    }
     const ult = document.getElementById('sefaz-ult').value.trim();
     const resBox = document.getElementById('sefaz-result');
     const prevBox = document.getElementById('sefaz-previews');
@@ -4493,6 +5002,10 @@
             <div class="text-xs text-slate-600">Chave ${pv.chave || '—'} · ${pv.n_itens} itens</div>
             <button type="button" class="mt-2 text-[10px] font-black uppercase text-orange-700 btn-import-dfe" data-idx="${idx}">Carregar na grade</button>`;
           div.querySelector('.btn-import-dfe').addEventListener('click', () => {
+            if (entradaNfeEditorCongeladoAtivo()) {
+              showMsg('Nota finalizada: use «Reabrir nota» na etapa 6 para alterar.', false);
+              return;
+            }
             const n = j.previews[idx].nota;
             ultimaNotaParse = n;
             setEntradaNfeRascunhoEdit(null);
@@ -4759,6 +5272,8 @@
       entradaNfeAtualizarPreviewParcelas();
       entradaNfeCatalogLoad().catch(() => {});
       entradaNfeAtualizarUiBotaoWizardFinalizar();
+      entradaNfeAtualizarUiBotaoConfirmarProdutos();
+      entradaNfeAplicarCongelamentoEditorUi();
     };
     if (rawOc) {
       try {
