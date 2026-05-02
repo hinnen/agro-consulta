@@ -413,6 +413,11 @@ urlpatterns = [
         name='api_entrada_nota_aprovar_wizard',
     ),
     path(
+        'api/entrada-nota/reabrir-nota/',
+        views.api_entrada_nota_reabrir_nota,
+        name='api_entrada_nota_reabrir_nota',
+    ),
+    path(
         'api/entrada-nota/financeiro/',
         views.api_entrada_nota_financeiro,
         name='api_entrada_nota_financeiro',

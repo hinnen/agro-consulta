@@ -89,6 +89,7 @@ from .nfe_entrada_util import (
     propagar_precos_venda_catalogo_entrada_nota,
     rascunho_entrada_valido_para_aprovacao_wizard,
     release_rascunho_estoque_agro_claim,
+    reverter_integracao_entrada_nota_para_reabertura,
     salvar_rascunho_entrada,
 )
 from .mongo_index_codigos import (
@@ -5063,6 +5064,20 @@ def api_entrada_nota_rascunho_atualizar(request):
     client, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    try:
+        _oid_chk = ObjectId(oid)
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "ID inválido."}, status=400)
+    doc_prev = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _oid_chk})
+    ex_prev = doc_prev.get("extra") if isinstance(doc_prev.get("extra"), dict) else {}
+    if str(ex_prev.get("aprovacao_wizard_em") or "").strip():
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Nota finalizada no assistente: use «Reabrir nota» na etapa 6 antes de alterar.",
+            },
+            status=403,
+        )
     r = atualizar_rascunho_entrada(
         db,
         oid,
@@ -5523,6 +5538,24 @@ def api_entrada_nota_estoque_agro(request):
     if isinstance(r_rasc, dict) and r_rasc.get("ok") and r_rasc.get("id"):
         draft_lock_id = draft_lock_id or str(r_rasc["id"])
 
+    if draft_lock_id:
+        try:
+            _oid_st = ObjectId(draft_lock_id)
+            doc_st = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _oid_st})
+            ex_st = doc_st.get("extra") if isinstance(doc_st.get("extra"), dict) else {}
+            if str(ex_st.get("aprovacao_wizard_em") or "").strip():
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "erro": "Nota finalizada no assistente. Reabra na etapa 6 antes de registrar estoque de novo.",
+                        "estoque": None,
+                        "rascunho": r_rasc,
+                    },
+                    status=403,
+                )
+        except Exception:
+            pass
+
     claimed_draft_id: str | None = None
     if draft_lock_id:
         cg = claim_rascunho_para_estoque_agro(db, draft_lock_id)
@@ -5564,6 +5597,24 @@ def api_entrada_nota_estoque_agro(request):
                 usuario=usuario,
                 patch_extra={"estoque_agro_registrado_em": extra.get("estoque_agro_registrado_em")},
             )
+            if mr.get("ok"):
+                ajuste_ids = [
+                    a.get("ajuste_id")
+                    for a in (resultado.get("aplicados") or [])
+                    if a.get("ajuste_id") is not None
+                ]
+                if ajuste_ids:
+                    try:
+                        doc_u = db[COL_ENTRADA_RASCUNHO].find_one({"_id": ObjectId(rid_marcar)})
+                        if doc_u:
+                            ex_u = dict(doc_u.get("extra") or {})
+                            ex_u["estoque_agro_ajuste_ids"] = ajuste_ids
+                            db[COL_ENTRADA_RASCUNHO].update_one(
+                                {"_id": ObjectId(rid_marcar)},
+                                {"$set": {"extra": ex_u, "atualizado_em": timezone.now()}},
+                            )
+                    except Exception:
+                        logger.exception("persistir estoque_agro_ajuste_ids entrada nf")
             if not mr.get("ok"):
                 out["aviso_status_rascunho"] = mr.get("erro")
                 if claimed_draft_id:
@@ -5755,6 +5806,42 @@ def api_entrada_nota_aprovar_wizard(request):
 
 @login_required(login_url="/admin/login/")
 @require_POST
+def api_entrada_nota_reabrir_nota(request):
+    """
+    Desfaz travas do assistente (etapas 2–5), remove o PIN se existir e estorna integrações rastreadas
+    (estoque Agro / títulos Mongo) para permitir edição e novo envio sem duplicar.
+    Exige o PIN de conferência (mesmo da finalização).
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    oid = str(payload.get("rascunho_id") or payload.get("id") or "").strip()
+    ok_pin, err_pin = _emprestimos_interno_validar_pin(str(payload.get("pin") or ""))
+    if not ok_pin:
+        return JsonResponse({"ok": False, "erro": err_pin}, status=403)
+    if not oid:
+        return JsonResponse({"ok": False, "erro": "Informe o rascunho."}, status=400)
+    usuario = ""
+    if request.user.is_authenticated:
+        usuario = (
+            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
+        )[:120]
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    rr = reverter_integracao_entrada_nota_para_reabertura(db, oid, usuario=usuario)
+    if not rr.get("ok"):
+        return JsonResponse(rr, status=400)
+    try:
+        _invalidar_caches_apos_ajuste_pin()
+    except Exception:
+        pass
+    return JsonResponse(rr)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
 def api_entrada_nota_financeiro(request):
     """
     Salva rascunho da NF-e e gera lançamento(amentos) a pagar no Mongo (mesmo fluxo do manual).
@@ -5806,6 +5893,24 @@ def api_entrada_nota_financeiro(request):
         except Exception:
             rid_up = ""
     if rid_up:
+        doc_nf = db[COL_ENTRADA_RASCUNHO].find_one({"_id": ObjectId(rid_up)})
+        ex_nf = doc_nf.get("extra") if isinstance(doc_nf.get("extra"), dict) else {}
+        if str(ex_nf.get("aprovacao_wizard_em") or "").strip():
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Nota finalizada no assistente. Reabra na etapa 6 antes de gerar financeiro de novo.",
+                },
+                status=403,
+            )
+        if ex_nf.get("financeiro_lancado"):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Conta a pagar já gerada para este rascunho. Use «Reabrir nota» na etapa 6 antes de gerar de novo.",
+                },
+                status=409,
+            )
         r_rasc = atualizar_rascunho_entrada(
             db,
             rid_up,
