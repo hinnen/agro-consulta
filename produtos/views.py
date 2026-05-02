@@ -6356,6 +6356,67 @@ def api_entrada_nota_dist_dfe(request):
 
 
 @login_required(login_url="/admin/login/")
+@require_POST
+def api_entrada_nota_produto_margem(request):
+    """Grava margem % (e opcionalmente preço de venda) no espelho Mongo do produto — entrada NF."""
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    pid = str(data.get("produto_id") or data.get("id") or "").strip()
+    if not pid or pid.lower().startswith("local:"):
+        return JsonResponse({"ok": False, "erro": "Produto inválido."}, status=400)
+    try:
+        margem = float(str(data.get("margem_percentual")).replace(",", "."))
+    except (TypeError, ValueError, AttributeError):
+        return JsonResponse({"ok": False, "erro": "Margem inválida."}, status=400)
+    if not (-999.99 <= margem <= 99999):
+        return JsonResponse({"ok": False, "erro": "Margem fora do intervalo permitido."}, status=400)
+    pv = None
+    if data.get("preco_venda") is not None and str(data.get("preco_venda")).strip() != "":
+        try:
+            pv = float(str(data.get("preco_venda")).replace(",", "."))
+        except (TypeError, ValueError):
+            pv = None
+        if pv is not None and pv < 0:
+            pv = None
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
+
+    mround = round(margem, 2)
+    set_doc: dict[str, object] = {
+        "PercentualLucro": mround,
+        "MargemLucro": mround,
+        "PercentualMargem": mround,
+    }
+    if pv is not None:
+        pvr = round(pv, 2)
+        set_doc["ValorVenda"] = pvr
+        set_doc["PrecoVenda"] = pvr
+
+    try:
+        res_u = db[client.col_p].update_one(_mongo_filtro_id_produto_externo(pid), {"$set": set_doc})
+    except Exception as e:
+        logger.exception("api_entrada_nota_produto_margem")
+        return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=500)
+    if not getattr(res_u, "matched_count", 0):
+        return JsonResponse({"ok": False, "erro": "Produto não encontrado no espelho."}, status=404)
+
+    try:
+        cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+        cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
+    except Exception:
+        pass
+
+    out = {"ok": True, "margem_percentual": mround}
+    if pv is not None:
+        out["preco_venda"] = round(pv, 2)
+    return JsonResponse(out)
+
+
+@login_required(login_url="/admin/login/")
 @require_GET
 def api_lancamentos_contas_pagar(request):
     """Compatibilidade: sempre contas a pagar."""
@@ -8269,8 +8330,25 @@ _WIZARD_CATALOG_MONGO_CUSTO_CAMPOS = {
     "CustoCompraFinal": 1,
     "ValorCustoReposicao": 1,
 }
+# Margem / MVA: mesmos aliases de ``_montar_produto_cadastro_detalhe`` (projeção catálogo wizard).
+_WIZARD_CATALOG_MONGO_MARGEM = {
+    "PercentualLucro": 1,
+    "MargemLucro": 1,
+    "MVAPercentual": 1,
+    "MvaPercentual": 1,
+    "PercentualMargem": 1,
+    "LucroPercentual": 1,
+    "ValorLucroMVA": 1,
+    "LucroMVA": 1,
+    "MVValorLucro": 1,
+    "MargemValor": 1,
+    "LucroReais": 1,
+    "ValorMargemLucro": 1,
+    "MvaValor": 1,
+}
 _WIZARD_CATALOG_MONGO_PROJECTION = {
     **_WIZARD_CATALOG_MONGO_CUSTO_CAMPOS,
+    **_WIZARD_CATALOG_MONGO_MARGEM,
     "_id": 1,
     "Id": 1,
     "Nome": 1,
@@ -8662,6 +8740,11 @@ def api_buscar_produtos(request):
                 row["categoria"] = str(_cat_w or "").strip()
                 row["subcategoria"] = _sub_w or ""
             _aplicar_produto_gestao_overlay_em_dict(row, overlay_pdv_map.get(pid))
+            if compras:
+                pv_m = _float_api_json(row.get("preco_venda") or 0)
+                m_lm = _margem_percentual_produto_pv(p, float(pv_m))
+                if m_lm is not None:
+                    row["margem_percentual"] = m_lm
             res.append(row)
 
         if wizard_catalog:
@@ -8796,6 +8879,47 @@ def _mongo_primeiro_bool(p: dict, chaves: tuple[str, ...]) -> bool | None:
         if v in (0, "0", "false", "False", "NAO", "Não", "N", "n"):
             return False
     return None
+
+
+def _margem_percentual_produto_pv(p: dict, pv: float) -> float | None:
+    """Regra alinhada a ``mva_lucro_percentual`` em ``_montar_produto_cadastro_detalhe``."""
+    custos = _custos_compra_produto(p)
+    pc = float(custos.get("preco_custo") or 0)
+    pca = float(custos.get("preco_custo_final") or 0)
+    pv = float(pv or 0)
+    mva_rs_doc = _mongo_primeiro_float(
+        p,
+        (
+            "ValorLucroMVA",
+            "LucroMVA",
+            "MVValorLucro",
+            "MargemValor",
+            "LucroReais",
+            "ValorMargemLucro",
+            "MvaValor",
+        ),
+    )
+    mva_pct_doc = _mongo_primeiro_float(
+        p,
+        (
+            "PercentualLucro",
+            "MargemLucro",
+            "MVAPercentual",
+            "MvaPercentual",
+            "PercentualMargem",
+            "LucroPercentual",
+        ),
+    )
+    base_mva = pca if pca > 0 else (pc if pc > 0 else None)
+    mva_rs = mva_rs_doc
+    if mva_rs is None and base_mva is not None and pv > 0:
+        mva_rs = round(pv - base_mva, 4)
+    mva_pct = mva_pct_doc
+    if mva_pct is None and mva_rs is not None and base_mva and base_mva > 0:
+        mva_pct = round((mva_rs / base_mva) * 100, 2)
+    if mva_pct is None:
+        return None
+    return round(float(mva_pct), 2)
 
 
 def _extrair_composicao_produto_mongo(p: dict) -> list[dict]:
@@ -13569,6 +13693,10 @@ def api_buscar_produto_id(request, id):
         res["preco_custo_acrescimo"] = res["preco_custo_final"]
         ov_id = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=str(id)[:64]).first()
         _aplicar_produto_gestao_overlay_em_dict(res, ov_id)
+        pv_res = _float_api_json(res.get("preco_venda") or 0)
+        m_lm = _margem_percentual_produto_pv(p, float(pv_res))
+        if m_lm is not None:
+            res["margem_percentual"] = m_lm
         return JsonResponse(res)
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)

@@ -704,7 +704,7 @@ def reverter_integracao_entrada_nota_para_reabertura(
     - Ajustes ``AjusteRapidoEstoque`` em ``extra.estoque_agro_ajuste_ids`` (só se o status
       do rascunho é ``estoque_aplicado``), origem ``entrada_nf_agro``.
 
-    Pode ser chamado **sem** PIN final na nota quando há só travas de etapa (``wizard_etapa*_confirmada_em``)
+    Pode ser chamado **sem** PIN final na nota quando há só travas de etapa (``wizard_etapa1/2/3_confirmada_em``)
     ou integrações já lançadas — assim «Reabrir nota» desfaz duplicidade antes de novo envio.
 
     Falha sem alterar o documento se alguma exclusão financeira não for permitida.
@@ -724,6 +724,7 @@ def reverter_integracao_entrada_nota_para_reabertura(
             return {"ok": False, "erro": "Rascunho não encontrado."}
         ex = dict(doc.get("extra") or {})
         had_pin = bool(str(ex.get("aprovacao_wizard_em") or "").strip())
+        had_wiz1 = bool(str(ex.get("wizard_etapa1_confirmada_em") or "").strip())
         had_wiz2 = bool(str(ex.get("wizard_etapa2_confirmada_em") or "").strip())
         had_wiz3 = bool(str(ex.get("wizard_etapa3_confirmada_em") or "").strip())
 
@@ -731,7 +732,7 @@ def reverter_integracao_entrada_nota_para_reabertura(
         had_estoque = st_doc == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
         had_fin = bool(ex.get("financeiro_lancado"))
 
-        if not (had_pin or had_wiz2 or had_wiz3 or had_estoque or had_fin):
+        if not (had_pin or had_wiz1 or had_wiz2 or had_wiz3 or had_estoque or had_fin):
             return {
                 "ok": False,
                 "erro": "Nada para reabrir: assistente sem etapas confirmadas nem estoque/financeiro registrado.",
@@ -802,6 +803,7 @@ def reverter_integracao_entrada_nota_para_reabertura(
         for k in (
             "aprovacao_wizard_em",
             "aprovacao_wizard_usuario",
+            "wizard_etapa1_confirmada_em",
             "wizard_etapa2_confirmada_em",
             "wizard_etapa3_confirmada_em",
             "financeiro_lancado",

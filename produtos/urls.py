@@ -432,4 +432,9 @@ urlpatterns = [
         views.api_entrada_nota_dist_dfe,
         name='api_entrada_nota_dist_dfe',
     ),
+    path(
+        'api/entrada-nota/produto-margem/',
+        views.api_entrada_nota_produto_margem,
+        name='api_entrada_nota_produto_margem',
+    ),
 ]
