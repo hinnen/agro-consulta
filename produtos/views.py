@@ -6753,6 +6753,17 @@ def api_entrada_nota_produto_margem(request):
             status=404,
         )
 
+    if pv is not None:
+        try:
+            ov_id = _mongo_produto_externo_id_overlay(db, client.col_p, pid)
+            if ov_id:
+                ProdutoGestaoOverlayAgro.objects.update_or_create(
+                    produto_externo_id=ov_id[:64],
+                    defaults={"preco_venda": Decimal(str(pvr))},
+                )
+        except Exception as exc:
+            logger.warning("api_entrada_nota_produto_margem overlay: %s", exc)
+
     try:
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
         cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
@@ -10674,6 +10685,25 @@ def _mongo_filtro_id_produto_externo(pid_str: str) -> dict:
     except Exception:
         pass
     return {"$or": ors}
+
+
+def _mongo_produto_externo_id_overlay(db, col: str, pid_str: str) -> str:
+    """Chave ``produto_externo_id`` do overlay alinhada a ``str(doc['Id'] or doc['_id'])`` na gestão."""
+    pid_str = str(pid_str or "").strip()
+    if not pid_str or db is None:
+        return pid_str[:64] if pid_str else ""
+    try:
+        doc = db[col].find_one(_mongo_filtro_id_produto_externo(pid_str), projection=["Id", "_id"])
+    except Exception:
+        doc = None
+    if not isinstance(doc, dict):
+        return pid_str[:64]
+    if doc.get("Id") is not None and str(doc.get("Id")).strip() != "":
+        return str(doc.get("Id")).strip()[:64]
+    oid = doc.get("_id")
+    if oid is not None:
+        return str(oid).strip()[:64]
+    return pid_str[:64]
 
 
 def _mongo_valor_codigo_armazen_compat(anterior: object, digits_only: str) -> object | None:

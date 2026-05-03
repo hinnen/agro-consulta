@@ -1063,6 +1063,11 @@ def propagar_precos_venda_catalogo_entrada_nota(
 
     from produtos.models import ProdutoGestaoOverlayAgro
 
+    try:
+        from produtos.views import _mongo_produto_externo_id_overlay as _ov_id_entrada
+    except Exception:  # pragma: no cover - import circular em alguns testes mínimos
+        _ov_id_entrada = None
+
     out: dict[str, Any] = {
         "ok": True,
         "atualizados_mongo": 0,
@@ -1093,16 +1098,18 @@ def propagar_precos_venda_catalogo_entrada_nota(
             or_filt.append({"_id": ObjectId(pid)})
         except Exception:
             pass
+        filt = {"$or": or_filt}
         try:
-            r = db[col].update_one({"$or": or_filt}, {"$set": {"ValorVenda": pv, "PrecoVenda": pv}})
+            r = db[col].update_one(filt, {"$set": {"ValorVenda": pv, "PrecoVenda": pv}})
             if r.matched_count:
                 out["atualizados_mongo"] += 1
         except Exception as exc:
             logger.warning("propagar_precos mongo %s: %s", pid, exc)
         try:
+            ov_key = (_ov_id_entrada(db, col, pid) if _ov_id_entrada else None) or pid
             dec = Decimal(str(pv))
             ProdutoGestaoOverlayAgro.objects.update_or_create(
-                produto_externo_id=pid[:64],
+                produto_externo_id=str(ov_key)[:64],
                 defaults={"preco_venda": dec},
             )
             out["atualizados_overlay"] += 1
