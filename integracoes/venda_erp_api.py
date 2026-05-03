@@ -110,6 +110,26 @@ def _env_or_setting_path(key: str) -> str:
     return (_django_setting(key) or "").strip().strip("/")
 
 
+def _erp_enriquecer_resposta_erro_http(http_status: int, parsed: object | None, raw_text: str) -> dict:
+    """
+    Resposta de falha normalizada para JSON (logs Render + UI / Network).
+    Inclui sempre ``_http_status`` (código HTTP real da API WL; 0 = não chegou a resposta HTTP).
+    """
+    if isinstance(parsed, dict):
+        out = dict(parsed)
+        out["_http_status"] = int(http_status)
+        return out
+    if isinstance(parsed, list):
+        return {"_http_status": int(http_status), "_body": parsed}
+    if isinstance(parsed, str):
+        return {"_http_status": int(http_status), "_body": parsed[:2000]}
+    text = (raw_text or "").strip()
+    return {
+        "_http_status": int(http_status),
+        "_body": (text[:2000] if text else "(sem corpo)"),
+    }
+
+
 def _erp_json_tem_linhas_pessoa(data):
     if isinstance(data, list) and len(data) > 0:
         return True
@@ -561,23 +581,43 @@ class VendaERPAPIClient:
     def _request_post(self, path: str, body: dict, *, timeout: int = 60) -> tuple[bool, object]:
         """POST genérico em /api/request/<path> com headers padrão da API ERP."""
         if not path or not self.token:
-            return False, "API ERP não configurada ou sem token"
+            err = {"_http_status": 0, "_erro": "API ERP não configurada ou sem token"}
+            logger.warning("VendaERP POST %s não enviado: %s", path, err["_erro"])
+            return False, err
         url = f"{self.base_url}/api/request/{path}"
         try:
             res = requests.post(url, json=body, headers=self._headers_post(), timeout=timeout)
-            logger.info("VendaERP POST %s → HTTP %s", path, res.status_code)
-            if 200 <= res.status_code < 300:
+            sc = int(res.status_code)
+            logger.info("VendaERP POST %s → HTTP %s", path, sc)
+            if 200 <= sc < 300:
                 try:
                     return True, res.json()
                 except Exception:
                     return True, res.text or "OK"
+            raw_text = (res.text or res.reason or "")[:4000]
+            parsed: object | None = None
             try:
-                return False, res.json()
+                parsed = res.json()
             except Exception:
-                return False, (res.text or res.reason or "")[:2000]
+                parsed = None
+            payload = _erp_enriquecer_resposta_erro_http(sc, parsed, raw_text)
+            preview = raw_text.replace("\n", " ").strip()[:800]
+            if not preview and isinstance(payload, dict):
+                try:
+                    preview = json.dumps(payload, ensure_ascii=False)[:800]
+                except Exception:
+                    preview = repr(payload)[:800]
+            logger.warning(
+                "VendaERP POST %s falhou HTTP %s url=%s preview=%s",
+                path,
+                sc,
+                url,
+                preview,
+            )
+            return False, payload
         except Exception as e:
-            logger.warning("VendaERP POST %s erro: %s", path, e)
-            return False, str(e)
+            logger.warning("VendaERP POST %s erro de rede/timeout url=%s: %s", path, url, e)
+            return False, {"_http_status": 0, "_erro": str(e)}
 
     def produtos_tentar_salvar_api(self, body: dict):
         """
