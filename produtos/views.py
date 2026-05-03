@@ -907,6 +907,175 @@ def _resolver_codigo_produto_salvar_erp(
     return (_mongo_primeiro_texto(p_doc or {}, ("Codigo", "CodigoNFe"), "") or "")[:64]
 
 
+def _erp_wl_id_produto_eh_prefixo_agro(s: str) -> bool:
+    t = str(s or "").strip()
+    return len(t) >= 4 and t[:4].upper() == "AGRO"
+
+
+def _erp_wl_produto_id_json_produtos_salvar(pid: str, p_doc: dict | None) -> str | None:
+    """
+    Valor para a chave ``id`` no JSON de ``Produtos/Salvar``, ou ``None`` para **omitir** a chave.
+
+    Produtos criados só no Agro usam ``Id`` ``AGRO…`` no Mongo; o ERP legado não possui esse id —
+    enviar ``id: AGRO…`` costuma gerar 400 genérico. Omitimos para o WL tratar como inclusão.
+    """
+    p = p_doc or {}
+    doc_id = str(p.get("Id") or "").strip()
+    pid_s = str(pid or "").strip()
+    candidato = doc_id or pid_s
+    if _erp_wl_id_produto_eh_prefixo_agro(candidato):
+        return None
+    out = candidato[:96] if candidato else None
+    return out if out else None
+
+
+def _id_nativo_wl_extraido_resposta_salvar(s: str) -> bool:
+    """Heurística: id retornado pelo WL que não é prefixo AGRO (ObjectId, GUID, numérico longo, etc.)."""
+    t = str(s or "").strip()
+    if not t or _erp_wl_id_produto_eh_prefixo_agro(t):
+        return False
+    if _parece_object_id_mongo(t):
+        return True
+    if len(t) == 36 and t.count("-") == 4:
+        return True
+    if t.isdigit() and len(t) >= 6:
+        return True
+    return len(t) >= 8
+
+
+def _extrair_id_produto_resposta_erp_salvar(resp: object) -> str | None:
+    """Tenta obter o id nativo do produto na resposta de sucesso do ``Produtos/Salvar``."""
+    if isinstance(resp, str):
+        s = resp.strip()
+        return s[:96] if _id_nativo_wl_extraido_resposta_salvar(s) else None
+    if not isinstance(resp, dict):
+        return None
+    for k in ("Id", "id", "ID"):
+        if k not in resp:
+            continue
+        v = resp.get(k)
+        if v is None:
+            continue
+        s = str(v).strip()
+        if _id_nativo_wl_extraido_resposta_salvar(s):
+            return s[:96]
+    for nest in (
+        "produto",
+        "Produto",
+        "dto",
+        "Dto",
+        "data",
+        "Data",
+        "result",
+        "Result",
+        "retorno",
+        "Retorno",
+    ):
+        sub = resp.get(nest)
+        if isinstance(sub, dict):
+            got = _extrair_id_produto_resposta_erp_salvar(sub)
+            if got:
+                return got
+    v = resp.get("value")
+    if isinstance(v, dict):
+        got = _extrair_id_produto_resposta_erp_salvar(v)
+        if got:
+            return got
+    if isinstance(v, list) and v and isinstance(v[0], dict):
+        got = _extrair_id_produto_resposta_erp_salvar(v[0])
+        if got:
+            return got
+    return None
+
+
+def _realinhar_produto_agro_id_apos_salvar_erp(
+    *,
+    db,
+    client,
+    agro_id: str,
+    novo_id: str,
+) -> None:
+    """
+    Após ``Produtos/Salvar`` bem-sucedido com corpo **sem** ``id`` (insert no WL):
+    substitui ``Id`` AGRO… no Mongo pelo id nativo e atualiza FKs locais (overlay, variações, estoque).
+    """
+    agro_id = str(agro_id or "").strip()
+    novo_id = str(novo_id or "").strip()
+    if not agro_id or not novo_id or agro_id == novo_id:
+        return
+    if not _erp_wl_id_produto_eh_prefixo_agro(agro_id):
+        return
+    if not _id_nativo_wl_extraido_resposta_salvar(novo_id):
+        return
+    if db is None or client is None:
+        return
+    col = client.col_p
+    try:
+        cur = db[col].find_one(_mongo_filtro_id_produto_externo(agro_id))
+        if not cur:
+            logger.warning("realinhar produto ERP: documento não encontrado para Id=%s", agro_id[:48])
+            return
+        oid = cur.get("_id")
+        dup = db[col].find_one({"Id": novo_id, "_id": {"$ne": oid}})
+        if dup:
+            logger.warning(
+                "realinhar produto ERP: id %s já existe em outro documento; não alterando Mongo.",
+                novo_id[:48],
+            )
+            return
+    except Exception:
+        logger.warning("realinhar produto ERP: checagem duplicata", exc_info=True)
+        return
+    try:
+        res = db[col].update_one(
+            {"_id": oid},
+            {"$set": {"Id": novo_id, "CadastroSomenteAgro": False}},
+        )
+        if not getattr(res, "matched_count", 0):
+            logger.warning("realinhar produto ERP: nenhum documento Mongo para Id=%s", agro_id[:48])
+            return
+    except Exception:
+        logger.warning("realinhar produto ERP: update Mongo", exc_info=True)
+        return
+    ag64, nv64 = agro_id[:64], novo_id[:64]
+    try:
+        ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=ag64).update(produto_externo_id=nv64)
+        ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=ag64).update(produto_externo_id=nv64)
+        ItemVendaAgro.objects.filter(produto_id_externo=ag64).update(produto_id_externo=nv64)
+        AjusteRapidoEstoque.objects.filter(produto_externo_id=agro_id[:100]).update(
+            produto_externo_id=novo_id[:100]
+        )
+        PedidoTransferencia.objects.filter(produto_externo_id=agro_id[:100]).update(
+            produto_externo_id=novo_id[:100]
+        )
+        HistoricoTransferencia.objects.filter(produto_externo_id=agro_id[:100]).update(
+            produto_externo_id=novo_id[:100]
+        )
+        try:
+            ConfiguracaoTransferencia.objects.filter(produto_externo_id=agro_id[:100]).update(
+                produto_externo_id=novo_id[:100]
+            )
+        except IntegrityError:
+            logger.warning(
+                "realinhar produto ERP: ConfiguracaoTransferencia conflito unique para %s",
+                novo_id[:48],
+                exc_info=True,
+            )
+    except Exception:
+        logger.warning("realinhar produto ERP: update Django", exc_info=True)
+    try:
+        doc2 = _produto_mongo_por_id_externo(db, client, novo_id)
+        if isinstance(doc2, dict) and doc2.get("_id"):
+            aplicar_index_codigos_no_mongo(db, col, doc2, produto_externo_id=novo_id)
+    except Exception:
+        logger.warning("realinhar produto ERP: index_codigos", exc_info=True)
+    try:
+        cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+        cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
+    except Exception:
+        pass
+
+
 def _montar_cadastro_erp_payload_produtos_salvar(
     pid: str,
     ov: ProdutoGestaoOverlayAgro,
@@ -916,12 +1085,24 @@ def _montar_cadastro_erp_payload_produtos_salvar(
     custo_payload: Decimal | None,
     inativar_erp_raw: object | None,
 ) -> dict:
-    """Corpo ``Produtos/Salvar`` (ERP legado) a partir do overlay + espelho Mongo."""
-    pv_mongo = _mongo_primeiro_float(p_doc or {}, ("ValorVenda", "PrecoVenda"))
+    """
+    Corpo ``Produtos/Salvar`` (ERP legado) a partir do overlay + espelho Mongo.
+
+    Um único objeto **camelCase**, sem duplicar o mesmo conceito em Pascal+camel
+    (o WL devolvia HTTP 400 genérico com payload misto ``Id``/``id``, ``Nome``/``nome``, etc.).
+
+    Para ``Id``/``pid`` com prefixo ``AGRO…`` (cadastro só Agro), a chave ``id`` é **omitida**
+    para o WL aceitar inclusão; em sucesso, ``_extrair_id_produto_resposta_erp_salvar`` + realinhamento
+    gravam o id nativo no Mongo e nos overlays.
+    """
+    p = p_doc or {}
+    pv_mongo = _mongo_primeiro_float(p, ("ValorVenda", "PrecoVenda"))
     pv_venda = float(ov.preco_venda) if ov.preco_venda is not None else pv_mongo
-    nome_erp = (ov.nome or _mongo_primeiro_texto(p_doc or {}, ("Nome",), "") or "").strip()[:300]
+
+    nome_erp = (ov.nome or _mongo_primeiro_texto(p, ("Nome",), "") or "").strip()[:300]
     if not nome_erp:
         nome_erp = (codigo_erp.strip() or str(pid or "").strip() or "Produto")[:300]
+
     tipo_do_produto = 0
     if isinstance(p_doc, dict):
         for _tk in ("TipoDoProduto", "TipoProduto", "Tipo"):
@@ -933,27 +1114,26 @@ def _montar_cadastro_erp_payload_produtos_salvar(
                 break
             except (ValueError, TypeError):
                 continue
-    cadastro_erp_payload: dict = {
-        "Id": pid,
-        "Nome": nome_erp,
-        "Marca": (ov.marca or _mongo_primeiro_texto(p_doc or {}, ("Marca",), "") or "")[:120],
-        "CodigoNFe": codigo_erp,
-        "Sku": codigo_erp,
-        "SKU": codigo_erp,
-        "CodigoSku": codigo_erp,
-        "CodigoProduto": codigo_erp,
-        "CodigoBarras": (ov.codigo_barras or _mongo_primeiro_texto(p_doc or {}, ("CodigoBarras",), "") or "")[:80],
-        "ValorVenda": pv_venda,
-        "PrecoCusto": float(custo_payload) if custo_payload is not None else _mongo_primeiro_float(
-            p_doc or {}, ("PrecoCusto", "ValorCusto")
-        ),
-        "NomeCategoria": (ov.categoria or _mongo_primeiro_texto(p_doc or {}, ("NomeCategoria",), "") or "")[:200],
-        "SubGrupo": (ov.subcategoria or _mongo_primeiro_texto(p_doc or {}, ("SubGrupo",), "") or "")[:200],
-        "Unidade": (ov.unidade or _mongo_primeiro_texto(p_doc or {}, ("Unidade",), "") or "")[:20],
-        "Descricao": (ov.descricao or _mongo_primeiro_texto(p_doc or {}, ("Descricao",), "") or "")[:16000],
-    }
+
+    pc: float | None = None
+    if custo_payload is not None:
+        try:
+            pc = float(custo_payload)
+        except (TypeError, ValueError):
+            pc = None
+    if pc is None:
+        pc = _mongo_primeiro_float(p, ("PrecoCusto", "ValorCusto"))
+    if pc is None:
+        pc = 0.0
+    else:
+        try:
+            pc = float(pc)
+        except (TypeError, ValueError):
+            pc = 0.0
+
+    cadastro_inativo = False
     if inativar_erp_raw is not None:
-        cadastro_erp_payload["CadastroInativo"] = str(inativar_erp_raw).strip().lower() in (
+        cadastro_inativo = str(inativar_erp_raw).strip().lower() in (
             "1",
             "true",
             "yes",
@@ -962,70 +1142,68 @@ def _montar_cadastro_erp_payload_produtos_salvar(
             "s",
         )
     elif ov.ativo_exibicao is not None:
-        cadastro_erp_payload["CadastroInativo"] = not bool(ov.ativo_exibicao)
+        cadastro_inativo = not bool(ov.ativo_exibicao)
     elif p_doc:
-        cadastro_erp_payload["CadastroInativo"] = _mongo_primeiro_bool(p_doc, ("CadastroInativo",), False)
-    cadastro_erp_payload["OcultarNasVendas"] = False
-    for _k in ("ValorVenda", "PrecoCusto"):
-        if cadastro_erp_payload.get(_k) is None:
-            cadastro_erp_payload.pop(_k, None)
-    # DTO Produto (Swagger): ``preçoCusto`` obrigatório — sem valor o WL devolve 400 genérico.
-    if cadastro_erp_payload.get("PrecoCusto") is None:
-        cadastro_erp_payload["PrecoCusto"] = 0.0
-    cadastro_erp_payload["TipoDoProduto"] = tipo_do_produto
-    # WL costuma persistir «preço de venda» em PrecoVenda na base; espelho Mongo grava ValorVenda+PrecoVenda iguais.
-    # Enviar só ValorVenda pode atualizar código no Salvar e deixar tela v3 com preço antigo (400 genérico no fim).
-    if cadastro_erp_payload.get("ValorVenda") is not None:
-        try:
-            cadastro_erp_payload["PrecoVenda"] = float(cadastro_erp_payload["ValorVenda"])
-        except (TypeError, ValueError):
-            cadastro_erp_payload.pop("PrecoVenda", None)
-    # Mesmo espelho do insert Mongo (produto somente Agro): custo em PrecoCusto e ValorCusto.
-    if cadastro_erp_payload.get("PrecoCusto") is not None:
-        try:
-            cadastro_erp_payload["ValorCusto"] = float(cadastro_erp_payload["PrecoCusto"])
-        except (TypeError, ValueError):
-            cadastro_erp_payload.pop("ValorCusto", None)
+        cadastro_inativo = _mongo_primeiro_bool(p_doc, ("CadastroInativo",), False)
+
+    id_json = _erp_wl_produto_id_json_produtos_salvar(pid, p_doc)
+    out: dict = {
+        "nome": nome_erp,
+        "precoCusto": pc,
+        "tipoDoProduto": tipo_do_produto,
+        "visivelVendas": True,
+        "cadastroInativo": bool(cadastro_inativo),
+    }
+    if id_json is not None:
+        out["id"] = id_json
+
+    ce = codigo_erp.strip()[:64]
+    if ce:
+        out["codigo"] = ce
+
+    ean = (ov.codigo_barras or _mongo_primeiro_texto(p, ("CodigoBarras",), "") or "").strip()[:80]
+    if ean:
+        out["ean"] = ean
+
+    marca = (ov.marca or _mongo_primeiro_texto(p, ("Marca",), "") or "").strip()[:120]
+    if marca:
+        out["marca"] = marca
 
     _forn_txt = (
         ov.fornecedor_texto
         if ov.fornecedor_texto and ov.fornecedor_texto.strip()
         else _mongo_primeiro_texto(
-            p_doc or {},
+            p,
             ("NomeFornecedor", "Fornecedor", "RazaoSocialFornecedor", "Fabricante"),
         )
     ).strip()
-    cam = {
-        "id": str(pid),
-        "nome": cadastro_erp_payload.get("Nome") or "",
-        "marca": cadastro_erp_payload.get("Marca") or "",
-        "fornecedor": _forn_txt[:300] if _forn_txt else None,
-        "categoria": (cadastro_erp_payload.get("NomeCategoria") or "").strip()[:200]
-        if cadastro_erp_payload.get("NomeCategoria")
-        else None,
-        "codigo": codigo_erp.strip()[:64] if codigo_erp.strip() else None,
-        "ean": (cadastro_erp_payload.get("CodigoBarras") or "").strip()[:80]
-        if cadastro_erp_payload.get("CodigoBarras")
-        else None,
-        "precoVenda": cadastro_erp_payload.get("ValorVenda"),
-        "precoCusto": cadastro_erp_payload.get("PrecoCusto"),
-        "tipoDoProduto": tipo_do_produto,
-        "visivelVendas": True,
-    }
-    un_sc = str(cadastro_erp_payload.get("Unidade") or "").strip()[:20]
+    if _forn_txt:
+        out["fornecedor"] = _forn_txt[:300]
+
+    cat = (ov.categoria or _mongo_primeiro_texto(p, ("NomeCategoria", "Categoria"), "") or "").strip()[:200]
+    if cat:
+        out["categoria"] = cat
+
+    sub = (ov.subcategoria or _mongo_primeiro_texto(p, ("SubGrupo", "Subgrupo"), "") or "").strip()[:200]
+    if sub:
+        out["subGrupo"] = sub
+
+    un_sc = (ov.unidade or _mongo_primeiro_texto(p, ("Unidade",), "") or "").strip()[:20]
     if un_sc:
-        cam["unidadeComercial"] = un_sc
-        cam["estoqueUnidade"] = un_sc
-    desc_sc = str(cadastro_erp_payload.get("Descricao") or "").strip()[:16000]
+        out["unidadeComercial"] = un_sc
+        out["estoqueUnidade"] = un_sc
+
+    desc_sc = (ov.descricao or _mongo_primeiro_texto(p, ("Descricao",), "") or "").strip()[:16000]
     if desc_sc:
-        cam["especificacao"] = desc_sc
-    for ck, cv in cam.items():
-        if cv is None:
-            continue
-        if isinstance(cv, str) and not cv.strip():
-            continue
-        cadastro_erp_payload[ck] = cv
-    return cadastro_erp_payload
+        out["especificacao"] = desc_sc
+
+    if pv_venda is not None:
+        try:
+            out["precoVenda"] = float(pv_venda)
+        except (TypeError, ValueError):
+            pass
+
+    return out
 
 
 def _api_produtos_gestao_overlay_salvar_core(request):
@@ -1318,6 +1496,21 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         erp_ok, erp_resp = VendaERPAPIClient().produtos_tentar_salvar_api(cadastro_erp_payload)
         if erp_ok and uid:
             _erp_produto_pendentes_remove(uid, pid)
+        if erp_ok and db is not None and client is not None:
+            nw = _extrair_id_produto_resposta_erp_salvar(erp_resp)
+            if nw and _erp_wl_id_produto_eh_prefixo_agro(pid):
+                _realinhar_produto_agro_id_apos_salvar_erp(db=db, client=client, agro_id=pid, novo_id=nw)
+                doc2 = _produto_mongo_por_id_externo(db, client, nw)
+                if isinstance(doc2, dict) and doc2.get("_id"):
+                    saldos2 = _mapa_saldos_finais_por_produtos(db, client, [nw])
+                    ov2 = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=nw[:64]).first() or ov
+                    row = _linha_gestao_produto_json(doc2, saldos2, ov2)
+            elif "id" not in cadastro_erp_payload and _erp_wl_id_produto_eh_prefixo_agro(pid):
+                logger.warning(
+                    "Produtos/Salvar ok sem chave id no payload, mas resposta sem id nativo "
+                    "para realinhar (pid=%s). Conferir duplicidade no ERP se reenviar.",
+                    pid[:48],
+                )
 
     resp: dict = {"ok": True, "produto": row}
     if push_erp:
@@ -1397,7 +1590,17 @@ def api_produtos_gestao_erp_sincronizar_pendentes(request):
         erp_ok, erp_resp = VendaERPAPIClient().produtos_tentar_salvar_api(cadastro_erp_payload)
         if erp_ok:
             _erp_produto_pendentes_remove(uid, pid)
-            resultados.append({"produto_id": pid, "ok": True})
+            r_ok: dict = {"produto_id": pid, "ok": True}
+            nw = _extrair_id_produto_resposta_erp_salvar(erp_resp)
+            if nw and _erp_wl_id_produto_eh_prefixo_agro(pid):
+                _realinhar_produto_agro_id_apos_salvar_erp(db=db, client=client, agro_id=pid, novo_id=nw)
+                r_ok["produto_id_novo"] = nw
+            elif "id" not in cadastro_erp_payload and _erp_wl_id_produto_eh_prefixo_agro(pid):
+                logger.warning(
+                    "erp-sincronizar-pendentes: Salvar ok sem id no payload, resposta sem id nativo (pid=%s).",
+                    pid[:48],
+                )
+            resultados.append(r_ok)
         else:
             resultados.append({"produto_id": pid, "ok": False, "erp_resposta": erp_resp})
 
