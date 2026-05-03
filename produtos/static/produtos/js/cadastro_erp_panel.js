@@ -789,7 +789,24 @@
           var okc = j.ok_count != null ? j.ok_count : 0;
           var f = j.falhas != null ? j.falhas : 0;
           var rest = j.pendentes_restantes != null ? j.pendentes_restantes : '?';
-          window.alert('ERP: ' + okc + ' ok, ' + f + ' falha(s). Pendentes restantes: ' + rest);
+          var msg = 'ERP: ' + okc + ' ok, ' + f + ' falha(s). Pendentes restantes: ' + rest;
+          var res = j.resultados;
+          if (f > 0 && res && res.length) {
+            for (var ri = 0; ri < res.length; ri++) {
+              var rr = res[ri];
+              if (rr && rr.ok === false && rr.erp_resposta != null) {
+                try {
+                  var det = typeof rr.erp_resposta === 'string' ? rr.erp_resposta : JSON.stringify(rr.erp_resposta);
+                  if (det && String(det).trim()) {
+                    if (det.length > 1400) det = det.slice(0, 1400) + '…';
+                    msg += '\n\n— Primeira falha (produto ' + String(rr.produto_id || '') + ') —\n' + det;
+                  }
+                } catch (eDet) { /* ignore */ }
+                break;
+              }
+            }
+          }
+          window.alert(msg);
           refreshPendentesBadge();
           carregar();
         })
