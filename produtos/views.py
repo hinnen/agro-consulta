@@ -890,21 +890,21 @@ def _resolver_codigo_produto_salvar_erp(
     p_doc: dict | None,
 ) -> str:
     """
-    Código enviado ao WL em ``codigo`` / ``CodigoNFe`` / Sku (mesmo valor hoje em todo o payload).
+    Valor da chave ``codigo`` no JSON de ``Produtos/Salvar`` (SKU / «Código do Produto» no WL).
 
-    A UI «Código sistema» grava em ``payload.codigo``, mas o overlay só persiste ``codigo_nfe``;
-    antes o Salvar ignorava ``codigo`` e só ia NFe/overlay — típico «só o 5000 vai» (Mongo ``Codigo``)
-    enquanto preço/EAN não batiam na mesma requisição ou na fila de pendentes.
+    A UI grava o **código sistema** (só dígitos) em ``payload.codigo`` e o **GM / interno**
+    (ex.: ``GM3598``) em ``codigo_nfe``. O WL precisa do GM no SKU — por isso **priorizamos**
+    ``codigo_nfe`` e o overlay ``codigo_nfe`` antes do ``codigo`` numérico.
     """
     pl = payload or {}
-    if "codigo" in pl and str(pl.get("codigo") or "").strip():
-        return str(pl.get("codigo") or "").strip()[:64]
     if "codigo_nfe" in pl and str(pl.get("codigo_nfe") or "").strip():
         return str(pl.get("codigo_nfe") or "").strip()[:64]
+    if "codigo" in pl and str(pl.get("codigo") or "").strip():
+        return str(pl.get("codigo") or "").strip()[:64]
     ovn = (getattr(ov, "codigo_nfe", None) or "").strip()
     if ovn:
         return ovn[:64]
-    return (_mongo_primeiro_texto(p_doc or {}, ("Codigo", "CodigoNFe"), "") or "")[:64]
+    return (_mongo_primeiro_texto(p_doc or {}, ("CodigoNFe", "Codigo"), "") or "")[:64]
 
 
 def _erp_wl_id_produto_eh_prefixo_agro(s: str) -> bool:
