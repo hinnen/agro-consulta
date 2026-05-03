@@ -883,6 +883,30 @@ def _erp_produto_pendentes_remove(user_pk: int, pid: str) -> None:
     _erp_produto_pendentes_set(user_pk, cur)
 
 
+def _resolver_codigo_produto_salvar_erp(
+    *,
+    payload: dict | None,
+    ov: ProdutoGestaoOverlayAgro,
+    p_doc: dict | None,
+) -> str:
+    """
+    Código enviado ao WL em ``codigo`` / ``CodigoNFe`` / Sku (mesmo valor hoje em todo o payload).
+
+    A UI «Código sistema» grava em ``payload.codigo``, mas o overlay só persiste ``codigo_nfe``;
+    antes o Salvar ignorava ``codigo`` e só ia NFe/overlay — típico «só o 5000 vai» (Mongo ``Codigo``)
+    enquanto preço/EAN não batiam na mesma requisição ou na fila de pendentes.
+    """
+    pl = payload or {}
+    if "codigo" in pl and str(pl.get("codigo") or "").strip():
+        return str(pl.get("codigo") or "").strip()[:64]
+    if "codigo_nfe" in pl and str(pl.get("codigo_nfe") or "").strip():
+        return str(pl.get("codigo_nfe") or "").strip()[:64]
+    ovn = (getattr(ov, "codigo_nfe", None) or "").strip()
+    if ovn:
+        return ovn[:64]
+    return (_mongo_primeiro_texto(p_doc or {}, ("Codigo", "CodigoNFe"), "") or "")[:64]
+
+
 def _montar_cadastro_erp_payload_produtos_salvar(
     pid: str,
     ov: ProdutoGestaoOverlayAgro,
@@ -906,7 +930,9 @@ def _montar_cadastro_erp_payload_produtos_salvar(
         "CodigoProduto": codigo_erp,
         "CodigoBarras": (ov.codigo_barras or _mongo_primeiro_texto(p_doc or {}, ("CodigoBarras",), "") or "")[:80],
         "ValorVenda": pv_venda,
-        "PrecoCusto": float(custo_payload) if custo_payload is not None else _mongo_primeiro_float(p_doc or {}, ("PrecoCusto",)),
+        "PrecoCusto": float(custo_payload) if custo_payload is not None else _mongo_primeiro_float(
+            p_doc or {}, ("PrecoCusto", "ValorCusto")
+        ),
         "NomeCategoria": (ov.categoria or _mongo_primeiro_texto(p_doc or {}, ("NomeCategoria",), "") or "")[:200],
         "SubGrupo": (ov.subcategoria or _mongo_primeiro_texto(p_doc or {}, ("SubGrupo",), "") or "")[:200],
         "Unidade": (ov.unidade or _mongo_primeiro_texto(p_doc or {}, ("Unidade",), "") or "")[:20],
@@ -1191,9 +1217,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
 
     push_erp = _payload_truthy_sincronizar_erp_legado(payload)
 
-    codigo_erp = _txt("codigo_nfe", 64) if "codigo_nfe" in payload else ""
-    if not codigo_erp:
-        codigo_erp = (ov.codigo_nfe or _mongo_primeiro_texto(p_doc or {}, ("CodigoNFe",), "") or "")[:64]
+    codigo_erp = _resolver_codigo_produto_salvar_erp(payload=payload, ov=ov, p_doc=p_doc)
     digitos_de_codigo = (
         "".join(ch for ch in _txt("codigo", 80) if ch.isdigit()) if "codigo" in payload else ""
     )
@@ -1339,7 +1363,7 @@ def api_produtos_gestao_erp_sincronizar_pendentes(request):
         if not p_doc:
             resultados.append({"produto_id": pid, "ok": False, "erro": "Produto não encontrado no Mongo."})
             continue
-        codigo_erp = (ov.codigo_nfe or _mongo_primeiro_texto(p_doc, ("CodigoNFe",), "") or "")[:64]
+        codigo_erp = _resolver_codigo_produto_salvar_erp(payload=None, ov=ov, p_doc=p_doc)
         cadastro_erp_payload = _montar_cadastro_erp_payload_produtos_salvar(
             pid,
             ov,
