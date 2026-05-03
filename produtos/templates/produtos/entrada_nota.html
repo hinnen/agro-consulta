@@ -49,7 +49,7 @@
       box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.45);
     }
     #entrada-nfe-wizard-pages .nfe-wiz-page { min-height: min(70vh, 42rem); }
-    /* Nota finalizada (PIN): bloqueia edição nas etapas 1–5; etapa 6 mantém PIN + Reabrir. */
+    /* Nota finalizada (PIN etapa 6 · ``aprovacao_wizard_em``): bloqueia edição; etapa 6 sem atributo lock mantém PIN + Reabrir. */
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] input,
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] select,
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] textarea,
@@ -59,7 +59,7 @@
       pointer-events: none !important;
       opacity: 0.72;
     }
-    /* Etapa já confirmada / integração (estoque, financeiro, etc.): bloqueia edição sem depender só do PIN final. */
+    /* Confirmações das etapas 1–5 / estoque / financeiro não congelam a UI — só a finalização (etapa 6). */
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] input,
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] select,
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] textarea,
@@ -1232,28 +1232,19 @@
     return false;
   }
 
-  function entradaNfeWizardPaginaPrecisaTrava(numPagina) {
-    const p = Math.min(6, Math.max(1, Math.floor(Number(numPagina)) || 1));
-    if (p === 1) return !!entradaNfeFornecedorEtapaConfirmada;
-    if (p === 2) return !!entradaNfeProdutosEtapaConfirmada;
-    if (p === 3) return !!entradaNfeCodigosEtapaConfirmada;
-    if (p === 4) return String(entradaNfeRascunhoStatusUltimo || '').trim().toLowerCase() === 'estoque_aplicado';
-    if (p === 5) return entradaNfeFinanceiroJaLancadoCliente();
-    return false;
-  }
-
-  /** Grade produtos (passo 2) editável: sem PIN final nem etapa já confirmada. */
+  /** Grade produtos (passo 2) editável até gravar a finalização (etapa 6 · PIN / ``aprovacao_wizard_em``). */
   function entradaNfeGradeProdutosPodeEditar() {
     if (entradaNfeEditorCongeladoAtivo()) return false;
-    if (entradaNfeWizardPaginaPrecisaTrava(2)) return false;
     return true;
   }
 
-  /** Travamento por etapa (inputs da página) — independente do PIN final. */
+  /**
+   * Travamento visual por página: só com nota finalizada na etapa 6.
+   * Confirmações das etapas 1–5 (fornecedor, produtos, códigos) não bloqueiam edição.
+   */
   function entradaNfeAplicarTravasEtapasWizardUi() {
+    const travar = entradaNfeEditorCongeladoAtivo();
     document.querySelectorAll('[data-nfe-wiz-page]').forEach((pane) => {
-      const pg = Number(pane.getAttribute('data-nfe-wiz-page'));
-      const travar = entradaNfeWizardPaginaPrecisaTrava(pg);
       pane.classList.toggle('nfe-wiz-page--locked', travar);
     });
   }
