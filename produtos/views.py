@@ -5329,7 +5329,13 @@ def api_entrada_nota_salvar(request):
         extra=extra,
     )
     if r.get("ok"):
-        _entrada_nota_propagar_precos_e_invalidar_catalogo(client, db, linhas, usuario)
+        _entrada_nota_propagar_precos_e_invalidar_catalogo(
+            client,
+            db,
+            linhas,
+            usuario,
+            user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+        )
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
 
@@ -5427,7 +5433,13 @@ def api_entrada_nota_rascunho_atualizar(request):
         extra=extra,
     )
     if r.get("ok"):
-        _entrada_nota_propagar_precos_e_invalidar_catalogo(client, db, linhas, usuario)
+        _entrada_nota_propagar_precos_e_invalidar_catalogo(
+            client,
+            db,
+            linhas,
+            usuario,
+            user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+        )
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
 
@@ -5457,7 +5469,14 @@ def api_entrada_nota_rascunho_acao(request):
     return JsonResponse(r, status=st)
 
 
-def _entrada_nota_propagar_precos_e_invalidar_catalogo(client, db, linhas, usuario: str = "") -> None:
+def _entrada_nota_propagar_precos_e_invalidar_catalogo(
+    client,
+    db,
+    linhas,
+    usuario: str = "",
+    *,
+    user_pk: int | None = None,
+) -> None:
     """P. venda da grade → Mongo + overlay; invalida cache do catálogo PDV quando houver alteração."""
     if not linhas or db is None or client is None:
         return
@@ -5465,6 +5484,12 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(client, db, linhas, usuar
     if (pr.get("atualizados_mongo") or 0) > 0 or (pr.get("atualizados_overlay") or 0) > 0:
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
         cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
+    uid = int(user_pk or 0)
+    if uid:
+        for x in pr.get("produto_ids") or []:
+            sx = str(x or "").strip()
+            if sx:
+                _erp_produto_pendentes_add(uid, sx)
 
 
 def _empresa_loja_padrao_agro_estoque(deposito: str) -> tuple[Empresa | None, Loja | None]:
@@ -5838,7 +5863,13 @@ def api_entrada_nota_estoque_agro(request):
     client, db = obter_conexao_mongo()
     if db is None or client is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-    _entrada_nota_propagar_precos_e_invalidar_catalogo(client, db, linhas, usuario)
+    _entrada_nota_propagar_precos_e_invalidar_catalogo(
+        client,
+        db,
+        linhas,
+        usuario,
+        user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+    )
 
     r_rasc: dict | None = None
     if salvar_rascunho:
@@ -6271,7 +6302,13 @@ def api_entrada_nota_financeiro(request):
         )
     if not r_rasc.get("ok"):
         return JsonResponse(r_rasc, status=400)
-    _entrada_nota_propagar_precos_e_invalidar_catalogo(client, db, linhas, usuario)
+    _entrada_nota_propagar_precos_e_invalidar_catalogo(
+        client,
+        db,
+        linhas,
+        usuario,
+        user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+    )
 
     def _d_fin(key: str):
         s = str(fin.get(key) or "").strip()[:10]
@@ -6764,6 +6801,14 @@ def api_entrada_nota_produto_margem(request):
             },
             status=404,
         )
+
+    uid_m = int(getattr(request.user, "pk", None) or 0)
+    if uid_m:
+        ep = str(doc_hit.get("Id") or "").strip() if isinstance(doc_hit, dict) else ""
+        if not ep:
+            ep = str(id_para_filtro or "").strip()
+        if ep:
+            _erp_produto_pendentes_add(uid_m, ep)
 
     if pv is not None:
         try:

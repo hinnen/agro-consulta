@@ -95,8 +95,11 @@
           <option>Categoria</option>
         </select>
         <button type="button" id="cadastro-filtrar" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-xl font-semibold min-h-[44px]">Filtrar</button>
-        <button type="button" id="cadastro-btn-erp-pendentes" class="hidden min-h-[44px] px-4 py-2 rounded-xl text-xs font-black uppercase bg-amber-600 hover:bg-amber-700 text-white border-2 border-amber-800 shadow-sm shrink-0" title="Envia ao ERP legado os produtos alterados com «Salvar no Agro» nesta sessão">
-          Enviar pendentes ao ERP <span id="cadastro-erp-pend-n" class="opacity-90 font-mono">(0)</span>
+        <button type="button" id="cadastro-btn-erp-pendentes" class="hidden min-h-[44px] px-4 py-2 rounded-xl text-xs font-black uppercase bg-amber-600 hover:bg-amber-700 text-white border-2 border-amber-800 shadow-sm shrink-0" title="Envia ao ERP legado até 80 produtos pendentes desta sessão (uma rodada)">
+          Enviar lote ao ERP <span id="cadastro-erp-pend-n" class="opacity-90 font-mono">(0)</span>
+        </button>
+        <button type="button" id="cadastro-btn-erp-forcar-todos" class="hidden min-h-[44px] px-4 py-2 rounded-xl text-xs font-black uppercase bg-teal-600 hover:bg-teal-700 text-white border-2 border-teal-800 shadow-sm shrink-0" title="Repete o envio em várias rodadas até a fila desta sessão esvaziar (máx. ~3200 itens por clique)">
+          Enviar todos ao ERP (filas)
         </button>
         <div class="relative ml-auto">
           <button type="button" id="btn-colunas" class="border border-slate-300 px-3 py-2 rounded-xl bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">☰ Colunas</button>

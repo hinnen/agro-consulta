@@ -1078,10 +1078,12 @@ def propagar_precos_venda_catalogo_entrada_nota(
         "ok": True,
         "atualizados_mongo": 0,
         "atualizados_overlay": 0,
+        "produto_ids": [],
     }
     if db is None or client_m is None or not linhas:
         return out
     col = client_m.col_p
+    ids_erp: set[str] = set()
     for ln in linhas:
         if not isinstance(ln, dict):
             continue
@@ -1122,6 +1124,13 @@ def propagar_precos_venda_catalogo_entrada_nota(
             r = db[col].update_one(filt, {"$set": {"ValorVenda": pv, "PrecoVenda": pv}})
             if r.matched_count:
                 out["atualizados_mongo"] += 1
+                pid_erp = ""
+                if isinstance(doc_ln, dict) and str(doc_ln.get("Id") or "").strip():
+                    pid_erp = str(doc_ln.get("Id")).strip()[:64]
+                elif str(id_u or "").strip():
+                    pid_erp = str(id_u).strip()[:64]
+                if pid_erp:
+                    ids_erp.add(pid_erp)
         except Exception as exc:
             logger.warning("propagar_precos mongo %s: %s", pid, exc)
         try:
@@ -1134,4 +1143,6 @@ def propagar_precos_venda_catalogo_entrada_nota(
             out["atualizados_overlay"] += 1
         except Exception as exc:
             logger.warning("propagar_precos overlay %s: %s", pid, exc)
+    if ids_erp:
+        out["produto_ids"] = sorted(ids_erp)
     return out

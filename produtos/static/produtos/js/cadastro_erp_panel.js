@@ -17,6 +17,7 @@
   var PODE_EDITAR_OVERLAY = !!C.PODE_EDITAR_OVERLAY;
   var LOGIN_OVERLAY_HREF = C.LOGIN_OVERLAY_HREF || '';
   var btnErpPend = document.getElementById('cadastro-btn-erp-pendentes');
+  var btnErpForcarTodos = document.getElementById('cadastro-btn-erp-forcar-todos');
   var lblErpPendN = document.getElementById('cadastro-erp-pend-n');
 
   function csrfTokErp() {
@@ -31,8 +32,13 @@
       .then(function (j) {
         var n = (j && j.ok && typeof j.n === 'number') ? j.n : 0;
         lblErpPendN.textContent = '(' + n + ')';
-        if (n > 0) btnErpPend.classList.remove('hidden');
-        else btnErpPend.classList.add('hidden');
+        if (n > 0) {
+          if (btnErpPend) btnErpPend.classList.remove('hidden');
+          if (btnErpForcarTodos) btnErpForcarTodos.classList.remove('hidden');
+        } else {
+          if (btnErpPend) btnErpPend.classList.add('hidden');
+          if (btnErpForcarTodos) btnErpForcarTodos.classList.add('hidden');
+        }
       })
       .catch(function () { /* ignore */ });
   }
@@ -773,45 +779,111 @@
     }
   });
 
+  function erpSyncUmaRodada(limite) {
+    return fetch(URL_ERP_SYNC_PENDENTES, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfTokErp() },
+      body: JSON.stringify({ limite: limite != null ? limite : 80 })
+    }).then(function (r) { return jsonOuErroHumano(r); }).then(function (j) {
+      if (!j.ok) throw new Error(j.erro || 'Falha ao sincronizar');
+      return j;
+    });
+  }
+
+  function erpMontarMsgResumo(j, titulo) {
+    var okc = j.ok_count != null ? j.ok_count : 0;
+    var f = j.falhas != null ? j.falhas : 0;
+    var rest = j.pendentes_restantes != null ? j.pendentes_restantes : '?';
+    var msg = (titulo || 'ERP') + ': ' + okc + ' ok, ' + f + ' falha(s). Pendentes restantes: ' + rest;
+    var res = j.resultados;
+    if (f > 0 && res && res.length) {
+      for (var ri = 0; ri < res.length; ri++) {
+        var rr = res[ri];
+        if (rr && rr.ok === false && rr.erp_resposta != null) {
+          try {
+            var det = typeof rr.erp_resposta === 'string' ? rr.erp_resposta : JSON.stringify(rr.erp_resposta);
+            if (det && String(det).trim()) {
+              if (det.length > 1400) det = det.slice(0, 1400) + '…';
+              msg += '\n\n— Primeira falha (produto ' + String(rr.produto_id || '') + ') —\n' + det;
+            }
+          } catch (eDet) { /* ignore */ }
+          break;
+        }
+      }
+    }
+    return msg;
+  }
+
   if (btnErpPend && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY) {
     btnErpPend.addEventListener('click', function () {
-      if (!window.confirm('Enviar ao ERP legado todos os produtos pendentes desta sessão (até 40 por vez)?')) return;
+      if (!window.confirm('Enviar ao ERP legado um lote de até 80 produtos pendentes desta sessão?')) return;
       btnErpPend.disabled = true;
-      fetch(URL_ERP_SYNC_PENDENTES, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfTokErp() },
-        body: JSON.stringify({ limite: 40 })
-      })
-        .then(function (r) { return jsonOuErroHumano(r); })
+      if (btnErpForcarTodos) btnErpForcarTodos.disabled = true;
+      erpSyncUmaRodada(80)
         .then(function (j) {
-          if (!j.ok) throw new Error(j.erro || 'Falha ao sincronizar');
-          var okc = j.ok_count != null ? j.ok_count : 0;
-          var f = j.falhas != null ? j.falhas : 0;
-          var rest = j.pendentes_restantes != null ? j.pendentes_restantes : '?';
-          var msg = 'ERP: ' + okc + ' ok, ' + f + ' falha(s). Pendentes restantes: ' + rest;
-          var res = j.resultados;
-          if (f > 0 && res && res.length) {
-            for (var ri = 0; ri < res.length; ri++) {
-              var rr = res[ri];
-              if (rr && rr.ok === false && rr.erp_resposta != null) {
-                try {
-                  var det = typeof rr.erp_resposta === 'string' ? rr.erp_resposta : JSON.stringify(rr.erp_resposta);
-                  if (det && String(det).trim()) {
-                    if (det.length > 1400) det = det.slice(0, 1400) + '…';
-                    msg += '\n\n— Primeira falha (produto ' + String(rr.produto_id || '') + ') —\n' + det;
-                  }
-                } catch (eDet) { /* ignore */ }
-                break;
-              }
-            }
-          }
-          window.alert(msg);
+          window.alert(erpMontarMsgResumo(j, 'Lote ERP'));
           refreshPendentesBadge();
           carregar();
         })
         .catch(function (e) { window.alert(e.message || 'Erro ao sincronizar'); })
-        .finally(function () { btnErpPend.disabled = false; });
+        .finally(function () {
+          btnErpPend.disabled = false;
+          if (btnErpForcarTodos) btnErpForcarTodos.disabled = false;
+        });
+    });
+  }
+
+  if (btnErpForcarTodos && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY) {
+    btnErpForcarTodos.addEventListener('click', function () {
+      if (!window.confirm(
+        'Enviar ao ERP legado todos os produtos pendentes desta sessão, em várias rodadas (até ~3200 por clique), até a fila esvaziar ou ocorrer falha. Continuar?'
+      )) return;
+      btnErpPend.disabled = true;
+      btnErpForcarTodos.disabled = true;
+      var totOk = 0;
+      var totFal = 0;
+      var rodadas = 0;
+      var maxRodadas = 40;
+      function passo() {
+        return erpSyncUmaRodada(80).then(function (j) {
+          rodadas += 1;
+          totOk += j.ok_count != null ? j.ok_count : 0;
+          totFal += j.falhas != null ? j.falhas : 0;
+          var rest = j.pendentes_restantes != null ? j.pendentes_restantes : 0;
+          btnErpForcarTodos.textContent = 'Enviando… ' + rodadas + 'ª rodada (' + rest + ' rest.)';
+          if (totFal > 0) {
+            window.alert(
+              'Parado após ' + rodadas + ' rodada(s). Acumulado: ' + totOk + ' ok, ' + totFal + ' falha(s).\n\n' +
+              erpMontarMsgResumo(j, 'Última rodada')
+            );
+            refreshPendentesBadge();
+            carregar();
+            return;
+          }
+          if (rest > 0 && rodadas < maxRodadas) return passo();
+          if (rest > 0) {
+            window.alert(
+              'Limite de ' + maxRodadas + ' rodadas atingido. Ainda há ' + rest +
+                ' pendente(s). Clique de novo em «Enviar todos ao ERP» ou use «Enviar lote».\n\nAcumulado nesta série: ' +
+                totOk + ' ok, ' + totFal + ' falha(s).'
+            );
+          } else {
+            window.alert(
+              'Concluído em ' + rodadas + ' rodada(s). Total enviado com sucesso: ' + totOk + '. Fila desta sessão vazia.'
+            );
+          }
+          refreshPendentesBadge();
+          carregar();
+        });
+      }
+      passo()
+        .catch(function (e) { window.alert(e.message || 'Erro ao sincronizar'); })
+        .finally(function () {
+          btnErpPend.disabled = false;
+          btnErpForcarTodos.disabled = false;
+          btnErpForcarTodos.textContent = 'Enviar todos ao ERP (filas)';
+        });
     });
   }
 
