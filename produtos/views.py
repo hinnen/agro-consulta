@@ -740,7 +740,11 @@ def api_produtos_gestao_ajuste_estoque(request):
 
     doc = _produto_mongo_por_id_externo(db, client, pid)
     if not doc:
-        return JsonResponse({"ok": False, "erro": "Produto não encontrado no espelho."}, status=404)
+        pid_ex = (pid[:56] + "…") if len(pid) > 56 else pid
+        return JsonResponse(
+            {"ok": False, "erro": f"Produto não encontrado no espelho (id «{pid_ex}»).", "produto_id": pid[:64]},
+            status=404,
+        )
     nome_p = str(doc.get("Nome") or "")[:200]
     codigo = str(doc.get("CodigoNFe") or doc.get("Codigo") or "")[:100]
 
@@ -6736,7 +6740,18 @@ def api_entrada_nota_produto_margem(request):
         logger.exception("api_entrada_nota_produto_margem")
         return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=500)
     if not getattr(res_u, "matched_count", 0):
-        return JsonResponse({"ok": False, "erro": "Produto não encontrado no espelho."}, status=404)
+        pid_ex = (pid[:56] + "…") if len(pid) > 56 else pid
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": (
+                    f"Produto não encontrado no espelho Mongo (id «{pid_ex}»). "
+                    "Recasou a linha com «Mudar» se o item existir no catálogo."
+                ),
+                "produto_id": pid[:64],
+            },
+            status=404,
+        )
 
     try:
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)

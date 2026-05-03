@@ -38,6 +38,11 @@
     .forn-dd { max-height: 260px; overflow-y: auto; z-index: 45; }
     .filtro-nfe-chip { border-width: 2px; border-color: rgb(226 232 240); background: white; color: rgb(71 85 105); }
     .filtro-nfe-chip.filtro-nfe-chip-on { border-color: rgb(249 115 22); background: rgb(255 247 237); color: rgb(124 45 18); }
+    /* Destaque temporário na linha quando margem/P. venda falha (produto sem espelho Mongo). */
+    tr.nfe-linha-erro-margem td {
+      box-shadow: inset 0 0 0 2px rgb(239 68 68);
+      background-color: rgba(254, 226, 226, 0.45);
+    }
     .nfe-wiz-nav-btn { border-width: 2px; border-color: rgb(226 232 240); background: white; color: rgb(71 85 105); }
     .nfe-wiz-nav-btn--pending { border-color: rgb(226 232 240); background: rgb(248 250 252); color: rgb(100 116 139); }
     .nfe-wiz-nav-btn--on { border-color: rgb(249 115 22); background: rgb(255 247 237); color: rgb(124 45 18); }
@@ -3220,7 +3225,20 @@
       });
       const j = await r.json();
       if (!j.ok) {
-        showMsg(String(j.erro || 'Não gravou margem no cadastro.').slice(0, 220), false);
+        const descLinha = String(tr.querySelector('.in-desc')?.value || '').trim().slice(0, 120);
+        const catNome = entradaNfeLinhaNomeCatalogoTexto(tr);
+        const rot = [descLinha, catNome].filter(Boolean).join(' · ') || ('id ' + pid.slice(0, 28));
+        const base = String(j.erro || 'Não gravou margem no cadastro.').slice(0, 420);
+        showMsg('Linha: «' + rot.slice(0, 200) + '» — ' + base, false);
+        tr.classList.add('nfe-linha-erro-margem');
+        try {
+          tr.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        } catch (_) {}
+        setTimeout(function () {
+          try {
+            tr.classList.remove('nfe-linha-erro-margem');
+          } catch (_) {}
+        }, 6000);
         return;
       }
       entradaNfeLinhaRecalcMargemDisplay(tr);
