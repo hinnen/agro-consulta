@@ -607,12 +607,22 @@ class VendaERPAPIClient:
                     preview = json.dumps(payload, ensure_ascii=False)[:800]
                 except Exception:
                     preview = repr(payload)[:800]
+            extra_keys = ""
+            if isinstance(body, dict) and "Produtos" in (path or "") and "Salvar" in (path or ""):
+                try:
+                    keys = sorted(str(k) for k in body.keys() if not str(k).startswith("_"))
+                    extra_keys = " payload_keys=" + ",".join(keys[:72])
+                    if len(keys) > 72:
+                        extra_keys += ",…"
+                except Exception:
+                    extra_keys = ""
             logger.warning(
-                "VendaERP POST %s falhou HTTP %s url=%s preview=%s",
+                "VendaERP POST %s falhou HTTP %s url=%s preview=%s%s",
                 path,
                 sc,
                 url,
                 preview,
+                extra_keys,
             )
             return False, payload
         except Exception as e:

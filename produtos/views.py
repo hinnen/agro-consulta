@@ -818,6 +818,20 @@ _ERP_PROD_PEND_TTL = 86400 * 7
 _ERP_PROD_PEND_MAX = 400
 
 
+def _erp_produto_pending_id_normalizado(pid: object) -> str:
+    """
+    Chave única na fila «pendentes ERP».
+    Evita o mesmo produto AGRO… duas vezes (ex.: ``AGROabc`` vs ``agroabc``) → dois ``Produtos/Salvar``
+    no mesmo clique (1 ok + 1 falha 400) para o mesmo item.
+    """
+    s = str(pid or "").strip()[:64]
+    if not s or s.lower() == "__novo__":
+        return ""
+    if len(s) >= 4 and s[:4].upper() == "AGRO":
+        return "AGRO" + s[4:].upper()
+    return s
+
+
 def _erp_produto_pendentes_cache_key(user_pk: int) -> str:
     return f"agro_erp_prod_pending:{int(user_pk)}"
 
@@ -831,8 +845,8 @@ def _erp_produto_pendentes_list(user_pk: int) -> list[str]:
     out: list[str] = []
     seen: set[str] = set()
     for x in raw:
-        s = str(x or "").strip()[:64]
-        if s and s not in seen and s.lower() != "__novo__":
+        s = _erp_produto_pending_id_normalizado(x)
+        if s and s not in seen:
             seen.add(s)
             out.append(s)
     return out[:_ERP_PROD_PEND_MAX]
@@ -841,12 +855,19 @@ def _erp_produto_pendentes_list(user_pk: int) -> list[str]:
 def _erp_produto_pendentes_set(user_pk: int, ids: list[str]) -> None:
     if not user_pk:
         return
-    cache.set(_erp_produto_pendentes_cache_key(user_pk), ids[:_ERP_PROD_PEND_MAX], _ERP_PROD_PEND_TTL)
+    norm = []
+    seen: set[str] = set()
+    for x in ids or []:
+        s = _erp_produto_pending_id_normalizado(x)
+        if s and s not in seen:
+            seen.add(s)
+            norm.append(s)
+    cache.set(_erp_produto_pendentes_cache_key(user_pk), norm[:_ERP_PROD_PEND_MAX], _ERP_PROD_PEND_TTL)
 
 
 def _erp_produto_pendentes_add(user_pk: int, pid: str) -> None:
-    pid = str(pid or "").strip()[:64]
-    if not user_pk or not pid or pid.lower() == "__novo__":
+    pid = _erp_produto_pending_id_normalizado(pid)
+    if not user_pk or not pid:
         return
     cur = _erp_produto_pendentes_list(user_pk)
     if pid not in cur:
@@ -855,7 +876,7 @@ def _erp_produto_pendentes_add(user_pk: int, pid: str) -> None:
 
 
 def _erp_produto_pendentes_remove(user_pk: int, pid: str) -> None:
-    pid = str(pid or "").strip()[:64]
+    pid = _erp_produto_pending_id_normalizado(pid)
     if not user_pk or not pid:
         return
     cur = [x for x in _erp_produto_pendentes_list(user_pk) if x != pid]
@@ -915,6 +936,12 @@ def _montar_cadastro_erp_payload_produtos_salvar(
             cadastro_erp_payload["PrecoVenda"] = float(cadastro_erp_payload["ValorVenda"])
         except (TypeError, ValueError):
             cadastro_erp_payload.pop("PrecoVenda", None)
+    # Mesmo espelho do insert Mongo (produto somente Agro): custo em PrecoCusto e ValorCusto.
+    if cadastro_erp_payload.get("PrecoCusto") is not None:
+        try:
+            cadastro_erp_payload["ValorCusto"] = float(cadastro_erp_payload["PrecoCusto"])
+        except (TypeError, ValueError):
+            cadastro_erp_payload.pop("ValorCusto", None)
 
     _forn_txt = (
         ov.fornecedor_texto
