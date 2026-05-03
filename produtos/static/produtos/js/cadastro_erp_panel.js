@@ -24,23 +24,30 @@
     return (U && U.csrf) ? U.csrf() : ((document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '');
   }
 
-  function refreshPendentesBadge() {
-    if (!URL_ERP_PENDENTES || !lblErpPendN || !btnErpPend) return;
-    if (!PODE_EDITAR_OVERLAY) return;
-    fetch(URL_ERP_PENDENTES, { credentials: 'same-origin' })
+  function aplicarRespostaPendentesBadge(j) {
+    var n = (j && j.ok && typeof j.n === 'number') ? j.n : 0;
+    lblErpPendN.textContent = '(' + n + ')';
+    if (n > 0) {
+      if (btnErpPend) btnErpPend.classList.remove('hidden');
+      if (btnErpForcarTodos) btnErpForcarTodos.classList.remove('hidden');
+    } else {
+      if (btnErpPend) btnErpPend.classList.add('hidden');
+      if (btnErpForcarTodos) btnErpForcarTodos.classList.add('hidden');
+    }
+  }
+
+  function fetchPendentesBadgePromise(opt) {
+    var sig = opt && opt.signal;
+    if (!URL_ERP_PENDENTES || !lblErpPendN || !btnErpPend) return Promise.resolve();
+    if (!PODE_EDITAR_OVERLAY) return Promise.resolve();
+    return fetch(URL_ERP_PENDENTES, { credentials: 'same-origin', signal: sig })
       .then(function (r) { return r.json().catch(function () { return {}; }); })
-      .then(function (j) {
-        var n = (j && j.ok && typeof j.n === 'number') ? j.n : 0;
-        lblErpPendN.textContent = '(' + n + ')';
-        if (n > 0) {
-          if (btnErpPend) btnErpPend.classList.remove('hidden');
-          if (btnErpForcarTodos) btnErpForcarTodos.classList.remove('hidden');
-        } else {
-          if (btnErpPend) btnErpPend.classList.add('hidden');
-          if (btnErpForcarTodos) btnErpForcarTodos.classList.add('hidden');
-        }
-      })
+      .then(aplicarRespostaPendentesBadge)
       .catch(function () { /* ignore */ });
+  }
+
+  function refreshPendentesBadge() {
+    fetchPendentesBadgePromise();
   }
   window.agroCadastroErpRefreshPendentesBadge = refreshPendentesBadge;
 
@@ -659,9 +666,12 @@
     mostrarErro('');
     setLoading(true);
     var sig = carregarAbort ? carregarAbort.signal : undefined;
-    fetch(urlFetch(), { credentials: 'same-origin', signal: sig })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
-      .then(function (x) {
+    var optSig = sig ? { signal: sig } : undefined;
+    var pLista = fetch(urlFetch(), { credentials: 'same-origin', signal: sig })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
+    Promise.all([pLista, fetchPendentesBadgePromise(optSig)])
+      .then(function (pair) {
+        var x = pair[0];
         if (g !== carregarGen) return;
         if (!x.j || !x.j.ok) {
           throw new Error((x.j && x.j.erro) || 'Falha ao carregar');
@@ -669,7 +679,6 @@
         var produtos = x.j.produtos || [];
         atualizarMeta(x.j, produtos);
         renderLista(produtos);
-        refreshPendentesBadge();
       })
       .catch(function (err) {
         if (err && err.name === 'AbortError') return;

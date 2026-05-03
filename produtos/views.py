@@ -93,6 +93,7 @@ from .nfe_entrada_util import (
     salvar_rascunho_entrada,
 )
 from .mongo_index_codigos import (
+    CAMPOS_CODIGO_RAIZ_MONGO,
     INDEX_CODIGOS_CAMPO,
     aplicar_index_codigos_no_mongo,
     merge_busca_codigo_prioridade_principal,
@@ -354,6 +355,64 @@ def _gestao_doc_passa_filtros(p: dict, marca: str, categoria: str, fornecedor: s
         if fornecedor.strip().lower() not in f:
             return False
     return True
+
+
+# Lista gestão: projeção + pós-enxugamento após ``motor_de_busca_agro`` — evita trazer Base64/embeds
+# gigantes no wire (decode PyMongo + JSON) mantendo os campos usados em ``_linha_gestao_produto_json``.
+_GESTAO_LISTA_PROJ: dict[str, int] = {
+    "_id": 1,
+    "Id": 1,
+    "CadastroInativo": 1,
+    "Marca": 1,
+    "NomeCategoria": 1,
+    "Categoria": 1,
+    "Grupo": 1,
+    "NomeFornecedor": 1,
+    "Fornecedor": 1,
+    "RazaoSocialFornecedor": 1,
+    "SubGrupo": 1,
+    "Subcategoria": 1,
+    "NomeSubcategoria": 1,
+    "Descricao": 1,
+    "Observacao": 1,
+    "Complemento": 1,
+    "Nome": 1,
+    "CodigoNFe": 1,
+    "Codigo": 1,
+    "CodigoBarras": 1,
+    "EAN_NFe": 1,
+    "EAN": 1,
+    "CodigoDeBarras": 1,
+    "CodigoBarrasProduto": 1,
+    "GTIN": 1,
+    "Unidade": 1,
+    "SiglaUnidade": 1,
+    "Modelo": 1,
+    "Tamanho": 1,
+    "Volume": 1,
+    "DescricaoTamanho": 1,
+    "ValorVenda": 1,
+    "PrecoVenda": 1,
+    "PrecoCusto": 1,
+    "ValorCusto": 1,
+    "UrlImagem": 1,
+    "Imagem": 1,
+    "CaminhoImagem": 1,
+    "Foto": 1,
+    "Url": 1,
+    "UrlImagemPrincipal": 1,
+    "ImagemPrincipal": 1,
+    INDEX_CODIGOS_CAMPO: 1,
+}
+for _fc in CAMPOS_CODIGO_RAIZ_MONGO:
+    _GESTAO_LISTA_PROJ.setdefault(_fc, 1)
+_GESTAO_LISTA_KEYS = frozenset(_GESTAO_LISTA_PROJ)
+
+
+def _gestao_slim_doc_para_lista(p: dict) -> dict:
+    if not isinstance(p, dict):
+        return {}
+    return {k: v for k, v in p.items() if k in _GESTAO_LISTA_KEYS}
 
 
 def _overlay_mapa_por_ids(ids: list[str]) -> dict[str, ProdutoGestaoOverlayAgro]:
@@ -633,12 +692,20 @@ def api_produtos_gestao_lista(request):
 
     try:
         if q_raw:
-            prods = motor_de_busca_agro(
-                q_raw, db, client, limit=120, include_inactive=include_inactive
+            prods_raw = motor_de_busca_agro(
+                q_raw,
+                db,
+                client,
+                limit=120,
+                include_inactive=include_inactive,
+                regex_stage2_cap=100,
+                regex_stage3_cap=100,
+                regex_stage3b_cap=0,
+                projection=_GESTAO_LISTA_PROJ,
             )
             prods = [
-                p
-                for p in prods
+                _gestao_slim_doc_para_lista(p)
+                for p in prods_raw
                 if _gestao_doc_passa_status(p, status_q)
                 and _gestao_doc_passa_filtros(p, marca_f, cat_f, forn_f)
             ]
@@ -672,7 +739,7 @@ def api_produtos_gestao_lista(request):
             skip = (pagina - 1) * por_pagina
             cur = (
                 db[client.col_p]
-                .find(filtro)
+                .find(filtro, _GESTAO_LISTA_PROJ)
                 .sort("Nome", 1)
                 .skip(skip)
                 .limit(por_pagina + 1)
@@ -8449,11 +8516,15 @@ def motor_de_busca_agro(
     regex_stage2_cap: int | None = None,
     regex_stage3_cap: int | None = None,
     regex_stage3b_cap: int | None = None,
+    projection: dict[str, int] | None = None,
 ):
     """Busca produtos no Mongo (PDV e cadastro).
 
     ``regex_stage*_cap`` reduz documentos lidos em consultas com ``$regex``
     (telas como cadastro ERP podem passar caps menores para resposta mais rápida).
+
+    ``projection`` (opcional): segundo argumento de ``find`` em todas as leituras
+    do catálogo — use na gestão de produtos para não decodificar documentos DTO inteiros.
     """
     termo_original = str(termo_original or "").strip()
     if not termo_original:
@@ -8481,6 +8552,12 @@ def motor_de_busca_agro(
 
     candidatos = []
     vistos = set()
+    col_pd = db[client.col_p]
+
+    def find_prod(filtro: dict, lim: int) -> list:
+        lim = max(1, int(lim))
+        cur = col_pd.find(filtro, projection) if projection is not None else col_pd.find(filtro)
+        return list(cur.limit(lim))
 
     def adicionar(lista):
         for item in lista:
@@ -8492,7 +8569,7 @@ def motor_de_busca_agro(
     # 1) Código / barras — campo denormalizado ``index_codigos`` (+ índice multikey)
     if termo_limpo and _termo_parece_codigo(termo_original):
         query_cod_exato = {**base_filter, INDEX_CODIGOS_CAMPO: termo_ix}
-        exatos = list(db[client.col_p].find(query_cod_exato).limit(max(limit, 10)))
+        exatos = find_prod(query_cod_exato, max(limit, 10))
         if exatos:
             return merge_busca_codigo_prioridade_principal(exatos, [], termo_limpo, limit)
 
@@ -8500,7 +8577,7 @@ def motor_de_busca_agro(
             **base_filter,
             INDEX_CODIGOS_CAMPO: _regex_inicio_ci(termo_limpo),
         }
-        adicionar(list(db[client.col_p].find(query_cod_prefixo).limit(30)))
+        adicionar(find_prod(query_cod_prefixo, 30))
 
         # 1b) EAN/GTIN nos campos do documento (fallback quando ``index_codigos`` não lista o código)
         if termo_limpo.isdigit() and len(termo_limpo) >= 8:
@@ -8518,13 +8595,7 @@ def motor_de_busca_agro(
                     or_br.append({fld: to_strip})
                 or_br.append({fld: termo_limpo})
             try:
-                adicionar(
-                    list(
-                        db[client.col_p]
-                        .find({**base_filter, "$or": or_br})
-                        .limit(max(limit, 16))
-                    )
-                )
+                adicionar(find_prod({**base_filter, "$or": or_br}, max(limit, 16)))
             except Exception:
                 logger.warning("motor_de_busca_agro: fallback barras legado", exc_info=True)
 
@@ -8553,10 +8624,7 @@ def motor_de_busca_agro(
             condicoes_and.append({"$or": or_palavra})
 
     if condicoes_and:
-        adicionar(list(db[client.col_p].find({
-            **base_filter,
-            "$and": condicoes_and
-        }).limit(lim_s2)))
+        adicionar(find_prod({**base_filter, "$and": condicoes_and}, lim_s2))
 
     # 3) Fallback por frase inteira
     if len(candidatos) < limit:
@@ -8568,7 +8636,7 @@ def motor_de_busca_agro(
             {"NomeNormalizado": termo_regex},
             {INDEX_CODIGOS_CAMPO: termo_regex},
         ]
-        adicionar(list(db[client.col_p].find({**base_filter, "$or": or_frase}).limit(lim_s3)))
+        adicionar(find_prod({**base_filter, "$or": or_frase}, lim_s3))
 
     # 3b) Qualquer palavra/token bate (recall alto; útil com BuscaTexto defasado)
     if lim_s3b > 0 and len(candidatos) < max(limit, 24) and palavras:
@@ -8595,10 +8663,7 @@ def motor_de_busca_agro(
                 {"NomeNormalizado": rx},
             ])
         if or_clauses:
-            adicionar(list(db[client.col_p].find({
-                **base_filter,
-                "$or": or_clauses,
-            }).limit(lim_s3b)))
+            adicionar(find_prod({**base_filter, "$or": or_clauses}, lim_s3b))
 
     # 4) Ordenação de relevância
     termo_norm = normalizar(termo_original)
