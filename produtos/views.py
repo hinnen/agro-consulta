@@ -10838,6 +10838,32 @@ def _mongo_codigo_digitos_campos_duplicidade(novo: object) -> list[dict]:
     return uniq
 
 
+def _mongo_doc_codigo_sistema_equivale_valor(doc: dict | None, novo_val: object) -> bool:
+    """True se ``doc['Codigo']`` equivale a ``novo_val`` (variantes de ``_mongo_codigo_digitos_campos_duplicidade``)."""
+    if not isinstance(doc, dict):
+        return False
+    cur = doc.get("Codigo")
+    if cur is None or cur == "":
+        return False
+    for cl in _mongo_codigo_digitos_campos_duplicidade(novo_val):
+        v = cl.get("Codigo")
+        if v is None:
+            continue
+        if cur == v:
+            return True
+        try:
+            if int(float(cur)) == int(float(v)):
+                return True
+        except (TypeError, ValueError):
+            pass
+        try:
+            if str(_valor_texto_campo(cur)) == str(_valor_texto_campo(v)):
+                return True
+        except Exception:
+            pass
+    return False
+
+
 def _mongo_sincronizar_codigo_sistema_espelho(
     db, col: str, pid: str, p_doc: dict | None, digits_str: str, usuario_enviou_codigo: bool
 ) -> str | None:
@@ -10868,14 +10894,33 @@ def _mongo_sincronizar_codigo_sistema_espelho(
         excl.append(int(pid))
     except (TypeError, ValueError):
         pass
-    dup = db[col].find_one(
-        {
-            "$and": [
-                {"$or": _mongo_codigo_digitos_campos_duplicidade(novo_val)},
-                {"Id": {"$nin": excl}},
-            ]
-        }
-    )
+    dup: dict | None = None
+    tl_idx = somente_alnum(str(ds)).lower()
+    if tl_idx:
+        try:
+            for cand in db[col].find(
+                {"$and": [{INDEX_CODIGOS_CAMPO: tl_idx}, {"Id": {"$nin": excl}}]},
+                projection={"Id": 1, "Codigo": 1, "_id": 1},
+                limit=48,
+            ):
+                if _mongo_doc_codigo_sistema_equivale_valor(cand, novo_val):
+                    dup = cand
+                    break
+        except Exception:
+            dup = None
+    if dup is None:
+        try:
+            dup = db[col].find_one(
+                {
+                    "$and": [
+                        {"$or": _mongo_codigo_digitos_campos_duplicidade(novo_val)},
+                        {"Id": {"$nin": excl}},
+                    ]
+                },
+                max_time_ms=12_000,
+            )
+        except Exception:
+            dup = None
     if dup:
         return (
             "Código do sistema «%s» já está em uso em outro produto no catálogo. "
