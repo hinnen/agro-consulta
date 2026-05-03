@@ -3190,23 +3190,31 @@
     }
   }
 
-  async function entradaNfeLinhaPersistirMargemAgro(tr) {
+  async function entradaNfeLinhaPersistirMargemAgro(tr, opts) {
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
     if (!entradaNfeGradeProdutosPodeEditar()) return;
+    const o = opts && typeof opts === 'object' ? opts : {};
+    const recalcPvDeMargem = !!o.recalcPvDeMargem;
     const pid = String(tr.querySelector('.in-prod-id')?.value || '').trim();
     if (!entradaNfeProdutoIdErpValido(pid)) return;
     const mInp = tr.querySelector('.in-margem');
     const pvInp = tr.querySelector('.in-pvenda');
     const vunInp = tr.querySelector('.in-vun');
     if (!mInp || !pvInp || !vunInp) return;
-    const m = entradaNfeParseMargemInt(mInp.value);
-    if (m == null) return;
+    const mInt = entradaNfeParseMargemInt(mInp.value);
     const vu = entradaNfeParseDecimalApi(vunInp.value) ?? 0;
-    if (vu > 0) {
-      const pvMark = vu * (1 + m / 100);
+    if (recalcPvDeMargem && vu > 0 && mInt != null) {
+      const pvMark = vu * (1 + mInt / 100);
       entradaNfeDefinirInputMoedaBr2(pvInp, pvMark);
     }
     const pv = entradaNfeParseDecimalApi(pvInp.value) ?? 0;
+    let mApi = null;
+    if (vu > 0 && pv >= 0) {
+      mApi = ((pv / vu) - 1) * 100;
+    } else if (mInt != null) {
+      mApi = mInt;
+    }
+    if (mApi == null || !Number.isFinite(mApi)) return;
     if (tr.dataset.nfeMargemSaving === '1') return;
     tr.dataset.nfeMargemSaving = '1';
     try {
@@ -3219,7 +3227,7 @@
         },
         body: JSON.stringify({
           produto_id: pid,
-          margem_percentual: m,
+          margem_percentual: mApi,
           preco_venda: pv,
         }),
       });
@@ -3368,12 +3376,14 @@
     });
     tr.querySelector('.in-pvenda')?.addEventListener('blur', () => {
       entradaNfeLinhaNormalizarMoedaBlur(tr.querySelector('.in-pvenda'));
+      entradaNfeLinhaRecalcMargemDisplay(tr);
+      void entradaNfeLinhaPersistirMargemAgro(tr);
     });
     tr.querySelector('.in-margem')?.addEventListener('blur', () => {
       const el = tr.querySelector('.in-margem');
       const mi = entradaNfeParseMargemInt(el?.value);
       if (mi != null && el) el.value = String(mi);
-      void entradaNfeLinhaPersistirMargemAgro(tr);
+      void entradaNfeLinhaPersistirMargemAgro(tr, { recalcPvDeMargem: true });
     });
     tr.querySelector('.btn-pick-prod').addEventListener('click', () => {
       trProdAlvo = tr;
