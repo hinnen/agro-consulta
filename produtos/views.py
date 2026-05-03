@@ -94,6 +94,7 @@ from .nfe_entrada_util import (
 )
 from .mongo_index_codigos import (
     CAMPOS_CODIGO_RAIZ_MONGO,
+    CAMPOS_NCM_FISCAL,
     INDEX_CODIGOS_CAMPO,
     aplicar_index_codigos_no_mongo,
     merge_busca_codigo_prioridade_principal,
@@ -943,6 +944,22 @@ def _erp_produto_pendentes_add(user_pk: int, pid: str) -> None:
     cur = _erp_produto_pendentes_list(user_pk)
     if pid not in cur:
         cur.append(pid)
+    _erp_produto_pendentes_set(user_pk, cur)
+
+
+def _erp_produto_pendentes_extend_batch(user_pk: int, novos: list[str]) -> None:
+    """Uma leitura/escrita de cache — evita N× get/set após NF com muitas linhas."""
+    if not user_pk or not novos:
+        return
+    cur = list(_erp_produto_pendentes_list(user_pk))
+    seen = {_erp_produto_pending_id_normalizado(x) for x in cur}
+    seen.discard("")
+    for raw in novos:
+        s = _erp_produto_pending_id_normalizado(raw)
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        cur.append(s)
     _erp_produto_pendentes_set(user_pk, cur)
 
 
@@ -5553,10 +5570,9 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
         cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
     uid = int(user_pk or 0)
     if uid:
-        for x in pr.get("produto_ids") or []:
-            sx = str(x or "").strip()
-            if sx:
-                _erp_produto_pendentes_add(uid, sx)
+        batch = [str(x or "").strip() for x in (pr.get("produto_ids") or []) if str(x or "").strip()]
+        if batch:
+            _erp_produto_pendentes_extend_batch(uid, batch)
 
 
 def _empresa_loja_padrao_agro_estoque(deposito: str) -> tuple[Empresa | None, Loja | None]:
@@ -10412,6 +10428,60 @@ _MONGO_SORT_CADASTRO = {
     "preco_venda": "ValorVenda",
 }
 
+# GET ``api_produtos_cadastro`` (SisVale lista) — campos usados em ``_produto_mongo_para_cadastro_row``;
+# sem projeção, cada página traz o DTO inteiro (MB) e após escritas (entrada NF) o Mongo degrada visivelmente.
+_CADASTRO_LISTA_MONGO_PROJ: dict[str, int] = {
+    "_id": 1,
+    "Id": 1,
+    "Codigo": 1,
+    "CodigoNFe": 1,
+    "CodigoBarras": 1,
+    "EAN_NFe": 1,
+    "EAN": 1,
+    "CodigoDeBarras": 1,
+    "CodigoBarrasProduto": 1,
+    "GTIN": 1,
+    "SubGrupo": 1,
+    "Subcategoria": 1,
+    "NomeSubcategoria": 1,
+    "NomeCategoria": 1,
+    "Categoria": 1,
+    "Grupo": 1,
+    "Prateleira": 1,
+    "Localizacao": 1,
+    "LocalEstoque": 1,
+    "Setor": 1,
+    "EnderecoPrateleira": 1,
+    "ValorVenda": 1,
+    "PrecoVenda": 1,
+    "PrecoCusto": 1,
+    "ValorCusto": 1,
+    "NomeFornecedor": 1,
+    "Fornecedor": 1,
+    "RazaoSocialFornecedor": 1,
+    "Fabricante": 1,
+    "Unidade": 1,
+    "SiglaUnidade": 1,
+    "Descricao": 1,
+    "Observacao": 1,
+    "Complemento": 1,
+    "Nome": 1,
+    "Marca": 1,
+    "CadastroInativo": 1,
+    "UrlImagem": 1,
+    "Imagem": 1,
+    "CaminhoImagem": 1,
+    "Foto": 1,
+    "Url": 1,
+    "UrlImagemPrincipal": 1,
+    "ImagemPrincipal": 1,
+    INDEX_CODIGOS_CAMPO: 1,
+}
+for _ccad in CAMPOS_CODIGO_RAIZ_MONGO:
+    _CADASTRO_LISTA_MONGO_PROJ.setdefault(_ccad, 1)
+for _ncad in CAMPOS_NCM_FISCAL:
+    _CADASTRO_LISTA_MONGO_PROJ.setdefault(_ncad, 1)
+
 
 def _parse_sort_cadastro_request(request) -> tuple[str, int]:
     raw = str(request.GET.get("sort") or "").strip().lower()
@@ -10501,6 +10571,7 @@ def api_produtos_cadastro(request):
                     regex_stage2_cap=56,
                     regex_stage3_cap=56,
                     regex_stage3b_cap=0,
+                    projection=_CADASTRO_LISTA_MONGO_PROJ,
                 )
             vistos_cad = {str(p.get("Id") or p.get("_id")) for p in prods if p}
             extras_cad = _mongo_produtos_por_overlay_codigo_busca(q_raw, db, client, vistos_cad)
@@ -10529,7 +10600,7 @@ def api_produtos_cadastro(request):
         mongo_field = _MONGO_SORT_CADASTRO.get(sort_key, "Nome")
         cur = (
             db[client.col_p]
-            .find(filtro)
+            .find(filtro, _CADASTRO_LISTA_MONGO_PROJ)
             .sort(mongo_field, sort_direction)
             .skip(skip)
             .limit(por_pagina + 1)
