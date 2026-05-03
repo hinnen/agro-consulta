@@ -890,21 +890,21 @@ def _resolver_codigo_produto_salvar_erp(
     p_doc: dict | None,
 ) -> str:
     """
-    Código enviado ao WL em ``codigo`` / ``CodigoNFe`` / Sku (mesmo valor hoje em todo o payload).
+    Valor da chave ``codigo`` no JSON de ``Produtos/Salvar`` (SKU / «Código do Produto» no WL).
 
-    A UI «Código sistema» grava em ``payload.codigo``, mas o overlay só persiste ``codigo_nfe``;
-    antes o Salvar ignorava ``codigo`` e só ia NFe/overlay — típico «só o 5000 vai» (Mongo ``Codigo``)
-    enquanto preço/EAN não batiam na mesma requisição ou na fila de pendentes.
+    A UI grava o **código sistema** (só dígitos) em ``payload.codigo`` e o **GM / interno**
+    (ex.: ``GM3598``) em ``codigo_nfe``. O WL precisa do GM no SKU — por isso **priorizamos**
+    ``codigo_nfe`` e o overlay ``codigo_nfe`` antes do ``codigo`` numérico.
     """
     pl = payload or {}
-    if "codigo" in pl and str(pl.get("codigo") or "").strip():
-        return str(pl.get("codigo") or "").strip()[:64]
     if "codigo_nfe" in pl and str(pl.get("codigo_nfe") or "").strip():
         return str(pl.get("codigo_nfe") or "").strip()[:64]
+    if "codigo" in pl and str(pl.get("codigo") or "").strip():
+        return str(pl.get("codigo") or "").strip()[:64]
     ovn = (getattr(ov, "codigo_nfe", None) or "").strip()
     if ovn:
         return ovn[:64]
-    return (_mongo_primeiro_texto(p_doc or {}, ("Codigo", "CodigoNFe"), "") or "")[:64]
+    return (_mongo_primeiro_texto(p_doc or {}, ("CodigoNFe", "Codigo"), "") or "")[:64]
 
 
 def _erp_wl_id_produto_eh_prefixo_agro(s: str) -> bool:
@@ -994,10 +994,14 @@ def _realinhar_produto_agro_id_apos_salvar_erp(
     client,
     agro_id: str,
     novo_id: str,
+    p_doc: dict | None = None,
 ) -> None:
     """
     Após ``Produtos/Salvar`` bem-sucedido com corpo **sem** ``id`` (insert no WL):
     substitui ``Id`` AGRO… no Mongo pelo id nativo e atualiza FKs locais (overlay, variações, estoque).
+
+    O espelho Mongo pode já ter sido atualizado pelo WL antes deste trecho (``Id`` nativo);
+    por isso usamos ``p_doc["_id"]`` quando existir, e ainda assim migramos overlays de AGRO→nativo.
     """
     agro_id = str(agro_id or "").strip()
     novo_id = str(novo_id or "").strip()
@@ -1007,62 +1011,103 @@ def _realinhar_produto_agro_id_apos_salvar_erp(
         return
     if not _id_nativo_wl_extraido_resposta_salvar(novo_id):
         return
-    if db is None or client is None:
-        return
-    col = client.col_p
-    try:
-        cur = db[col].find_one(_mongo_filtro_id_produto_externo(agro_id))
-        if not cur:
-            logger.warning("realinhar produto ERP: documento não encontrado para Id=%s", agro_id[:48])
-            return
-        oid = cur.get("_id")
-        dup = db[col].find_one({"Id": novo_id, "_id": {"$ne": oid}})
-        if dup:
-            logger.warning(
-                "realinhar produto ERP: id %s já existe em outro documento; não alterando Mongo.",
-                novo_id[:48],
-            )
-            return
-    except Exception:
-        logger.warning("realinhar produto ERP: checagem duplicata", exc_info=True)
-        return
-    try:
-        res = db[col].update_one(
-            {"_id": oid},
-            {"$set": {"Id": novo_id, "CadastroSomenteAgro": False}},
-        )
-        if not getattr(res, "matched_count", 0):
-            logger.warning("realinhar produto ERP: nenhum documento Mongo para Id=%s", agro_id[:48])
-            return
-    except Exception:
-        logger.warning("realinhar produto ERP: update Mongo", exc_info=True)
-        return
-    ag64, nv64 = agro_id[:64], novo_id[:64]
-    try:
-        ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=ag64).update(produto_externo_id=nv64)
-        ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=ag64).update(produto_externo_id=nv64)
-        ItemVendaAgro.objects.filter(produto_id_externo=ag64).update(produto_id_externo=nv64)
-        AjusteRapidoEstoque.objects.filter(produto_externo_id=agro_id[:100]).update(
-            produto_externo_id=novo_id[:100]
-        )
-        PedidoTransferencia.objects.filter(produto_externo_id=agro_id[:100]).update(
-            produto_externo_id=novo_id[:100]
-        )
-        HistoricoTransferencia.objects.filter(produto_externo_id=agro_id[:100]).update(
-            produto_externo_id=novo_id[:100]
-        )
+    col = client.col_p if db is not None and client is not None else None
+
+    def _django_fks_agro_para_nativo() -> None:
+        ag64, nv64 = agro_id[:64], novo_id[:64]
         try:
-            ConfiguracaoTransferencia.objects.filter(produto_externo_id=agro_id[:100]).update(
+            ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=ag64).update(produto_externo_id=nv64)
+            ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=ag64).update(produto_externo_id=nv64)
+            ItemVendaAgro.objects.filter(produto_id_externo=ag64).update(produto_id_externo=nv64)
+            AjusteRapidoEstoque.objects.filter(produto_externo_id=agro_id[:100]).update(
                 produto_externo_id=novo_id[:100]
             )
-        except IntegrityError:
-            logger.warning(
-                "realinhar produto ERP: ConfiguracaoTransferencia conflito unique para %s",
-                novo_id[:48],
-                exc_info=True,
+            PedidoTransferencia.objects.filter(produto_externo_id=agro_id[:100]).update(
+                produto_externo_id=novo_id[:100]
             )
+            HistoricoTransferencia.objects.filter(produto_externo_id=agro_id[:100]).update(
+                produto_externo_id=novo_id[:100]
+            )
+            try:
+                ConfiguracaoTransferencia.objects.filter(produto_externo_id=agro_id[:100]).update(
+                    produto_externo_id=novo_id[:100]
+                )
+            except IntegrityError:
+                logger.warning(
+                    "realinhar produto ERP: ConfiguracaoTransferencia conflito unique para %s",
+                    novo_id[:48],
+                    exc_info=True,
+                )
+        except Exception:
+            logger.warning("realinhar produto ERP: update Django", exc_info=True)
+
+    if db is None or client is None or col is None:
+        _django_fks_agro_para_nativo()
+        return
+
+    cur: dict | None = None
+    oid = None
+    try:
+        if isinstance(p_doc, dict) and p_doc.get("_id") is not None:
+            cur = db[col].find_one({"_id": p_doc.get("_id")})
+        if not cur:
+            cur = db[col].find_one(_mongo_filtro_id_produto_externo(agro_id))
+        if not cur:
+            cur = db[col].find_one(_mongo_filtro_id_produto_externo(novo_id))
+        if cur:
+            oid = cur.get("_id")
     except Exception:
-        logger.warning("realinhar produto ERP: update Django", exc_info=True)
+        logger.warning("realinhar produto ERP: leitura Mongo", exc_info=True)
+
+    id_no_espelho = str((cur or {}).get("Id") or "").strip()
+
+    if cur is None or oid is None:
+        logger.info(
+            "realinhar produto ERP: sem documento Mongo por _id/AGRO/nativo (agro=%s novo=%s); só Django.",
+            agro_id[:48],
+            novo_id[:48],
+        )
+        _django_fks_agro_para_nativo()
+        try:
+            cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+            cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
+        except Exception:
+            pass
+        return
+
+    if id_no_espelho != novo_id:
+        try:
+            dup = db[col].find_one({"Id": novo_id, "_id": {"$ne": oid}})
+            if dup:
+                logger.warning(
+                    "realinhar produto ERP: id %s já existe em outro documento; não alterando Mongo.",
+                    novo_id[:48],
+                )
+                _django_fks_agro_para_nativo()
+                return
+        except Exception:
+            logger.warning("realinhar produto ERP: checagem duplicata", exc_info=True)
+            _django_fks_agro_para_nativo()
+            return
+        try:
+            res = db[col].update_one(
+                {"_id": oid},
+                {"$set": {"Id": novo_id, "CadastroSomenteAgro": False}},
+            )
+            if not getattr(res, "matched_count", 0):
+                logger.warning("realinhar produto ERP: update Mongo não aplicado (_id=%s)", str(oid)[:32])
+        except Exception:
+            logger.warning("realinhar produto ERP: update Mongo", exc_info=True)
+    else:
+        try:
+            db[col].update_one(
+                {"_id": oid},
+                {"$set": {"CadastroSomenteAgro": False}},
+            )
+        except Exception:
+            logger.warning("realinhar produto ERP: limpar CadastroSomenteAgro", exc_info=True)
+
+    _django_fks_agro_para_nativo()
     try:
         doc2 = _produto_mongo_por_id_externo(db, client, novo_id)
         if isinstance(doc2, dict) and doc2.get("_id"):
@@ -1499,7 +1544,9 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         if erp_ok and db is not None and client is not None:
             nw = _extrair_id_produto_resposta_erp_salvar(erp_resp)
             if nw and _erp_wl_id_produto_eh_prefixo_agro(pid):
-                _realinhar_produto_agro_id_apos_salvar_erp(db=db, client=client, agro_id=pid, novo_id=nw)
+                _realinhar_produto_agro_id_apos_salvar_erp(
+                    db=db, client=client, agro_id=pid, novo_id=nw, p_doc=p_live
+                )
                 doc2 = _produto_mongo_por_id_externo(db, client, nw)
                 if isinstance(doc2, dict) and doc2.get("_id"):
                     saldos2 = _mapa_saldos_finais_por_produtos(db, client, [nw])
@@ -1593,7 +1640,9 @@ def api_produtos_gestao_erp_sincronizar_pendentes(request):
             r_ok: dict = {"produto_id": pid, "ok": True}
             nw = _extrair_id_produto_resposta_erp_salvar(erp_resp)
             if nw and _erp_wl_id_produto_eh_prefixo_agro(pid):
-                _realinhar_produto_agro_id_apos_salvar_erp(db=db, client=client, agro_id=pid, novo_id=nw)
+                _realinhar_produto_agro_id_apos_salvar_erp(
+                    db=db, client=client, agro_id=pid, novo_id=nw, p_doc=p_doc
+                )
                 r_ok["produto_id_novo"] = nw
             elif "id" not in cadastro_erp_payload and _erp_wl_id_produto_eh_prefixo_agro(pid):
                 logger.warning(
