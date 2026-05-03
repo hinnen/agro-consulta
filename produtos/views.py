@@ -919,9 +919,23 @@ def _montar_cadastro_erp_payload_produtos_salvar(
     """Corpo ``Produtos/Salvar`` (ERP legado) a partir do overlay + espelho Mongo."""
     pv_mongo = _mongo_primeiro_float(p_doc or {}, ("ValorVenda", "PrecoVenda"))
     pv_venda = float(ov.preco_venda) if ov.preco_venda is not None else pv_mongo
+    nome_erp = (ov.nome or _mongo_primeiro_texto(p_doc or {}, ("Nome",), "") or "").strip()[:300]
+    if not nome_erp:
+        nome_erp = (codigo_erp.strip() or str(pid or "").strip() or "Produto")[:300]
+    tipo_do_produto = 0
+    if isinstance(p_doc, dict):
+        for _tk in ("TipoDoProduto", "TipoProduto", "Tipo"):
+            _raw = p_doc.get(_tk)
+            if _raw is None or (isinstance(_raw, str) and not str(_raw).strip()):
+                continue
+            try:
+                tipo_do_produto = int(float(str(_raw).replace(",", ".").strip()))
+                break
+            except (ValueError, TypeError):
+                continue
     cadastro_erp_payload: dict = {
         "Id": pid,
-        "Nome": (ov.nome or _mongo_primeiro_texto(p_doc or {}, ("Nome",), "") or "")[:300],
+        "Nome": nome_erp,
         "Marca": (ov.marca or _mongo_primeiro_texto(p_doc or {}, ("Marca",), "") or "")[:120],
         "CodigoNFe": codigo_erp,
         "Sku": codigo_erp,
@@ -955,6 +969,10 @@ def _montar_cadastro_erp_payload_produtos_salvar(
     for _k in ("ValorVenda", "PrecoCusto"):
         if cadastro_erp_payload.get(_k) is None:
             cadastro_erp_payload.pop(_k, None)
+    # DTO Produto (Swagger): ``preçoCusto`` obrigatório — sem valor o WL devolve 400 genérico.
+    if cadastro_erp_payload.get("PrecoCusto") is None:
+        cadastro_erp_payload["PrecoCusto"] = 0.0
+    cadastro_erp_payload["TipoDoProduto"] = tipo_do_produto
     # WL costuma persistir «preço de venda» em PrecoVenda na base; espelho Mongo grava ValorVenda+PrecoVenda iguais.
     # Enviar só ValorVenda pode atualizar código no Salvar e deixar tela v3 com preço antigo (400 genérico no fim).
     if cadastro_erp_payload.get("ValorVenda") is not None:
@@ -991,6 +1009,7 @@ def _montar_cadastro_erp_payload_produtos_salvar(
         else None,
         "precoVenda": cadastro_erp_payload.get("ValorVenda"),
         "precoCusto": cadastro_erp_payload.get("PrecoCusto"),
+        "tipoDoProduto": tipo_do_produto,
         "visivelVendas": True,
     }
     un_sc = str(cadastro_erp_payload.get("Unidade") or "").strip()[:20]
@@ -1001,8 +1020,11 @@ def _montar_cadastro_erp_payload_produtos_salvar(
     if desc_sc:
         cam["especificacao"] = desc_sc
     for ck, cv in cam.items():
-        if cv is not None and cv != "":
-            cadastro_erp_payload[ck] = cv
+        if cv is None:
+            continue
+        if isinstance(cv, str) and not cv.strip():
+            continue
+        cadastro_erp_payload[ck] = cv
     return cadastro_erp_payload
 
 
