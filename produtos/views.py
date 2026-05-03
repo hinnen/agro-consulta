@@ -872,6 +872,8 @@ def _montar_cadastro_erp_payload_produtos_salvar(
     inativar_erp_raw: object | None,
 ) -> dict:
     """Corpo ``Produtos/Salvar`` (ERP legado) a partir do overlay + espelho Mongo."""
+    pv_mongo = _mongo_primeiro_float(p_doc or {}, ("ValorVenda", "PrecoVenda"))
+    pv_venda = float(ov.preco_venda) if ov.preco_venda is not None else pv_mongo
     cadastro_erp_payload: dict = {
         "Id": pid,
         "Nome": (ov.nome or _mongo_primeiro_texto(p_doc or {}, ("Nome",), "") or "")[:300],
@@ -882,7 +884,7 @@ def _montar_cadastro_erp_payload_produtos_salvar(
         "CodigoSku": codigo_erp,
         "CodigoProduto": codigo_erp,
         "CodigoBarras": (ov.codigo_barras or _mongo_primeiro_texto(p_doc or {}, ("CodigoBarras",), "") or "")[:80],
-        "ValorVenda": float(ov.preco_venda) if ov.preco_venda is not None else _mongo_primeiro_float(p_doc or {}, ("ValorVenda",)),
+        "ValorVenda": pv_venda,
         "PrecoCusto": float(custo_payload) if custo_payload is not None else _mongo_primeiro_float(p_doc or {}, ("PrecoCusto",)),
         "NomeCategoria": (ov.categoria or _mongo_primeiro_texto(p_doc or {}, ("NomeCategoria",), "") or "")[:200],
         "SubGrupo": (ov.subcategoria or _mongo_primeiro_texto(p_doc or {}, ("SubGrupo",), "") or "")[:200],
@@ -906,6 +908,13 @@ def _montar_cadastro_erp_payload_produtos_salvar(
     for _k in ("ValorVenda", "PrecoCusto"):
         if cadastro_erp_payload.get(_k) is None:
             cadastro_erp_payload.pop(_k, None)
+    # WL costuma persistir «preço de venda» em PrecoVenda na base; espelho Mongo grava ValorVenda+PrecoVenda iguais.
+    # Enviar só ValorVenda pode atualizar código no Salvar e deixar tela v3 com preço antigo (400 genérico no fim).
+    if cadastro_erp_payload.get("ValorVenda") is not None:
+        try:
+            cadastro_erp_payload["PrecoVenda"] = float(cadastro_erp_payload["ValorVenda"])
+        except (TypeError, ValueError):
+            cadastro_erp_payload.pop("PrecoVenda", None)
 
     _forn_txt = (
         ov.fornecedor_texto
