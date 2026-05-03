@@ -1064,8 +1064,14 @@ def propagar_precos_venda_catalogo_entrada_nota(
     from produtos.models import ProdutoGestaoOverlayAgro
 
     try:
-        from produtos.views import _mongo_produto_externo_id_overlay as _ov_id_entrada
+        from produtos.views import (
+            _mongo_doc_produto_entrada_resolve as _doc_entrada_ln,
+            _mongo_filtro_id_produto_externo as _filt_entrada_ln,
+            _mongo_produto_externo_id_overlay as _ov_id_entrada,
+        )
     except Exception:  # pragma: no cover - import circular em alguns testes mínimos
+        _doc_entrada_ln = None
+        _filt_entrada_ln = None
         _ov_id_entrada = None
 
     out: dict[str, Any] = {
@@ -1089,16 +1095,29 @@ def propagar_precos_venda_catalogo_entrada_nota(
         if pv <= 0.004:
             continue
         pv = round(float(pv), 2)
-        or_filt: list[dict[str, Any]] = [{"Id": pid}]
-        try:
-            or_filt.append({"Id": int(pid)})
-        except (TypeError, ValueError):
-            pass
-        try:
-            or_filt.append({"_id": ObjectId(pid)})
-        except Exception:
-            pass
-        filt = {"$or": or_filt}
+        c_prod = str(ln.get("c_prod") or "").strip()
+        ean_d = "".join(ch for ch in str(ln.get("ean") or "") if ch.isdigit())
+        doc_ln = None
+        if _doc_entrada_ln:
+            doc_ln = _doc_entrada_ln(db, col, pid, codigo_catalogo=c_prod, ean=ean_d)
+        id_u = pid
+        if isinstance(doc_ln, dict):
+            id_u = (
+                str(doc_ln.get("Id") or "").strip() or str(doc_ln.get("_id") or "").strip() or pid
+            )
+        if _filt_entrada_ln:
+            filt = _filt_entrada_ln(id_u)
+        else:
+            or_filt: list[dict[str, Any]] = [{"Id": pid}]
+            try:
+                or_filt.append({"Id": int(pid)})
+            except (TypeError, ValueError):
+                pass
+            try:
+                or_filt.append({"_id": ObjectId(pid)})
+            except Exception:
+                pass
+            filt = {"$or": or_filt}
         try:
             r = db[col].update_one(filt, {"$set": {"ValorVenda": pv, "PrecoVenda": pv}})
             if r.matched_count:
@@ -1106,7 +1125,7 @@ def propagar_precos_venda_catalogo_entrada_nota(
         except Exception as exc:
             logger.warning("propagar_precos mongo %s: %s", pid, exc)
         try:
-            ov_key = (_ov_id_entrada(db, col, pid) if _ov_id_entrada else None) or pid
+            ov_key = (_ov_id_entrada(db, col, id_u) if _ov_id_entrada else None) or id_u
             dec = Decimal(str(pv))
             ProdutoGestaoOverlayAgro.objects.update_or_create(
                 produto_externo_id=str(ov_key)[:64],

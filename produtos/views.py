@@ -6734,8 +6734,20 @@ def api_entrada_nota_produto_margem(request):
         set_doc["ValorVenda"] = pvr
         set_doc["PrecoVenda"] = pvr
 
+    codigo_cat = str(data.get("codigo_nfe") or data.get("codigo_catalogo") or data.get("c_prod") or "").strip()
+    ean_digits = "".join(ch for ch in str(data.get("ean") or "") if ch.isdigit())
+    doc_hit = _mongo_doc_produto_entrada_resolve(
+        db, client.col_p, pid, codigo_catalogo=codigo_cat, ean=ean_digits
+    )
+    id_para_filtro = pid
+    if isinstance(doc_hit, dict):
+        id_para_filtro = (
+            str(doc_hit.get("Id") or "").strip() or str(doc_hit.get("_id") or "").strip() or pid
+        )
+    filt_mongo = _mongo_filtro_id_produto_externo(id_para_filtro)
+
     try:
-        res_u = db[client.col_p].update_one(_mongo_filtro_id_produto_externo(pid), {"$set": set_doc})
+        res_u = db[client.col_p].update_one(filt_mongo, {"$set": set_doc})
     except Exception as e:
         logger.exception("api_entrada_nota_produto_margem")
         return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=500)
@@ -6755,7 +6767,7 @@ def api_entrada_nota_produto_margem(request):
 
     if pv is not None:
         try:
-            ov_id = _mongo_produto_externo_id_overlay(db, client.col_p, pid)
+            ov_id = _mongo_produto_externo_id_overlay(db, client.col_p, id_para_filtro)
             if ov_id:
                 ProdutoGestaoOverlayAgro.objects.update_or_create(
                     produto_externo_id=ov_id[:64],
@@ -6773,6 +6785,11 @@ def api_entrada_nota_produto_margem(request):
     out = {"ok": True, "margem_percentual": mround}
     if pv is not None:
         out["preco_venda"] = round(pv, 2)
+    id_canon = ""
+    if isinstance(doc_hit, dict):
+        id_canon = str(doc_hit.get("Id") or "").strip()
+    if id_canon and id_canon != pid:
+        out["produto_id_atualizado"] = id_canon
     return JsonResponse(out)
 
 
@@ -10685,6 +10702,77 @@ def _mongo_filtro_id_produto_externo(pid_str: str) -> dict:
     except Exception:
         pass
     return {"$or": ors}
+
+
+def _mongo_doc_produto_entrada_resolve(
+    db,
+    col: str,
+    pid: str,
+    *,
+    codigo_catalogo: str = "",
+    ean: str = "",
+) -> dict | None:
+    """
+    Localiza o DtoProduto no espelho para gravar margem/preço na entrada NF.
+
+    Cobre: variação de maiúsculas em ``AGRO…``, ``Id`` obsoleto após realinhamento ERP→nativo
+    (rascunho ainda com ``AGRO…``) e resolução por ``CodigoNFe``/``Codigo`` ou EAN da linha.
+    """
+    if db is None:
+        return None
+    pid = str(pid or "").strip()
+    if not pid:
+        return None
+    cands: list[str] = []
+    if pid:
+        cands.append(pid)
+    if _erp_wl_id_produto_eh_prefixo_agro(pid):
+        n = _erp_produto_pending_id_normalizado(pid)
+        if n and n not in cands:
+            cands.append(n)
+    for c in cands:
+        try:
+            doc = db[col].find_one(_mongo_filtro_id_produto_externo(c))
+        except Exception:
+            doc = None
+        if isinstance(doc, dict) and (doc.get("Id") is not None or doc.get("_id") is not None):
+            return doc
+    cc = str(codigo_catalogo or "").strip()
+    if cc:
+        or_cod: list[dict[str, object]] = [
+            {"CodigoNFe": cc},
+            {"CodigoNFe": cc.upper()},
+            {"CodigoNFe": cc.lower()},
+            {"Codigo": cc},
+            {"Codigo": cc.upper()},
+            {"Codigo": cc.lower()},
+        ]
+        if cc.isdigit():
+            try:
+                or_cod.append({"Codigo": int(cc)})
+            except (TypeError, ValueError):
+                pass
+        try:
+            doc = db[col].find_one({"$or": or_cod})
+        except Exception:
+            doc = None
+        if isinstance(doc, dict) and (doc.get("Id") is not None or doc.get("_id") is not None):
+            return doc
+    ean = "".join(ch for ch in str(ean or "") if ch.isdigit())
+    if len(ean) >= 8:
+        or_ean = [
+            {"CodigoBarras": ean},
+            {"EAN": ean},
+            {"EAN_NFe": ean},
+            {"CodigoDeBarras": ean},
+        ]
+        try:
+            doc = db[col].find_one({"$or": or_ean})
+        except Exception:
+            doc = None
+        if isinstance(doc, dict) and (doc.get("Id") is not None or doc.get("_id") is not None):
+            return doc
+    return None
 
 
 def _mongo_produto_externo_id_overlay(db, col: str, pid_str: str) -> str:

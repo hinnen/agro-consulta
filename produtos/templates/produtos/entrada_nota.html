@@ -3229,6 +3229,8 @@
           produto_id: pid,
           margem_percentual: mApi,
           preco_venda: pv,
+          c_prod: String(tr.querySelector('.in-cprod')?.value || '').trim(),
+          ean: String(tr.querySelector('.in-ean')?.value || '').trim(),
         }),
       });
       const j = await r.json();
@@ -3248,6 +3250,12 @@
           } catch (_) {}
         }, 6000);
         return;
+      }
+      if (j.produto_id_atualizado) {
+        const hid = tr.querySelector('.in-prod-id');
+        if (hid) hid.value = String(j.produto_id_atualizado).trim();
+        entradaNfeLinhaApplyCatalogoUi(tr);
+        entradaNfeSyncEditProdBtn(tr);
       }
       entradaNfeLinhaRecalcMargemDisplay(tr);
       entradaNfeAgendarAutosaveRascunho();
