@@ -105,6 +105,13 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 - Opção **descontar ou não** estoque total **C+V** (localStorage).  
 - F5 / textos: **atualizar métricas**; não confundir com horizonte da sugestão.
 
+**Gestão / cadastro de produtos — lentidão após entrada NF (investigação aberta)**  
+
+- **Sintoma:** primeira abertura aceitável; depois de **entrada de nota** e voltar à **gestão de produtos**, carga muito longa (minutos em casos extremos). Usuário reportou persistência após otimizações iniciais.  
+- **Duas telas:** (1) **SisVale cadastro** `produtos_cadastro_erp.html` + `cadastro_erp_panel.js` → API **`api_produtos_cadastro`** em `produtos/views.py` (lista/busca Mongo **sem** saldo). (2) **Gestão operacional** `produtos_gestao.html` → **`api_produtos_gestao_lista`** (+ **`api_produtos_gestao_facetas`** no load). Não misturar as rotas ao depurar.  
+- **Já feito (código):** projeção slim em **`api_produtos_gestao_lista`** e em **`motor_de_busca_agro`** quando usado pela gestão; **`_CADASTRO_LISTA_MONGO_PROJ`** em **`api_produtos_cadastro`** (find + motor); após propagar preços da NF, fila «pendentes ERP» em **batch** (`_erp_produto_pendentes_extend_batch`); no painel ERP, **lista + badge pendentes** em paralelo (`cadastro_erp_panel.js`).  
+- **Se ainda estiver lento, próximo passo:** medir no browser/rede **qual URL** trava (`api_produtos_cadastro`, `api_produtos_gestao_facetas`, `api_produtos_gestao_erp_pendentes`, etc.); revisar **`api_produtos_gestao_facetas`** (vários `distinct` no Mongo); **`explain`** / índices em **`Nome`**, **`CadastroInativo`**, campos de **sort** do cadastro; pool **`obter_conexao_mongo`**; cache Redis.
+
 **PDF financeiro (`produtos/lancamentos_financeiro_pdf.py`)**  
 
 - Removidos blocos “OBSERVAÇÃO” / “ENTROU ALGUM DINHEIRO…”.  

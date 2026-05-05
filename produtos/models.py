@@ -671,6 +671,10 @@ class EstoqueLote(models.Model):
     def __str__(self) -> str:
         return f"{self.lote_codigo} — {self.data_validade}"
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        sync_overlay_validade_resumo_de_lotes(self.overlay)
+
 
 def sync_overlay_validade_resumo_de_lotes(overlay: ProdutoGestaoOverlayAgro) -> None:
     """
@@ -687,11 +691,18 @@ def sync_overlay_validade_resumo_de_lotes(overlay: ProdutoGestaoOverlayAgro) -> 
         ex.pop("validade", None)
         ex.pop("lote", None)
     else:
-        pick = next((L for L in lotes if L.quantidade_atual and L.quantidade_atual > 0), lotes[0])
-        ex["validade"] = pick.data_validade.isoformat()[:10]
-        ex["lote"] = str(pick.lote_codigo)[:80]
-        ex["validade_alerta"] = False
-        ex.pop("validade_msg", None)
+        pick = next(
+            (L for L in lotes if L.quantidade_atual and L.quantidade_atual > 0),
+            None,
+        )
+        if pick is None:
+            ex.pop("validade", None)
+            ex.pop("lote", None)
+        else:
+            ex["validade"] = pick.data_validade.isoformat()[:10]
+            ex["lote"] = str(pick.lote_codigo)[:80]
+            ex["validade_alerta"] = False
+            ex.pop("validade_msg", None)
     overlay.cadastro_extras = ex
     overlay.save(update_fields=["cadastro_extras", "atualizado_em"])
 

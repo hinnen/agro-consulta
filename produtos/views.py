@@ -3071,17 +3071,19 @@ def _format_moeda_br(val: Decimal) -> str:
 def _home_quick_stats(request):
     """Indicadores leves para a home administrativa (sem agregações Mongo pesadas)."""
     hoje = timezone.localdate()
-    limite_validade = hoje + timedelta(days=ALERTA_VALIDADE_DIAS)
+    inicio_mes, fim_mes = _bounds_mes_atual(hoje)
     agg = VendaAgro.objects.filter(criado_em__date=hoje).aggregate(soma=Sum("total"))
     soma = agg["soma"] if agg["soma"] is not None else Decimal("0")
     total_vendas_dia = soma.quantize(Decimal("0.01"))
     entregas_pendentes = PedidoEntrega.objects.exclude(
         status__in=(PedidoEntrega.Status.ENTREGUE, PedidoEntrega.Status.CANCELADO)
     ).count()
+    # Vencidos com saldo no lote (Agro) OU validade no mês civil atual (com saldo).
     produtos_vencendo = (
-        EstoqueLote.objects.filter(
-            quantidade_atual__gt=0,
-            data_validade__lte=limite_validade,
+        EstoqueLote.objects.filter(quantidade_atual__gt=0)
+        .filter(
+            Q(data_validade__lt=hoje)
+            | Q(data_validade__gte=inicio_mes, data_validade__lte=fim_mes)
         )
         .values("overlay_id")
         .distinct()
@@ -5642,6 +5644,67 @@ def _saldo_final_agro_com_pin(produto_id: str, deposito: str, saldo_erp: Decimal
     ref = Decimal(str(aj.saldo_erp_referencia))
     inf = Decimal(str(aj.saldo_informado))
     return (inf + (saldo_erp - ref)).quantize(Decimal("0.001"))
+
+
+OBSERVACAO_BAIXA_VENCIMENTO_LOJA = "Vencimento em Loja"
+
+
+def _aplicar_baixa_operacional_vencimento_loja(
+    *,
+    db,
+    client_m,
+    produto_externo_id: str,
+    quantidade: Decimal,
+    usuario_django,
+    nome_produto: str,
+    codigo_interno: str,
+    observacao_extra: str = "",
+) -> tuple[bool, str | None]:
+    """
+    Reduz o saldo visto pelo Agro (C+V), consumindo primeiro o depósito Centro, depois Vila.
+    Registra ``AjusteRapidoEstoque`` com origem ``VENCIMENTO_EM_LOJA``.
+    """
+    pid = str(produto_externo_id or "").strip()[:100]
+    if not pid or quantidade <= 0:
+        return True, None
+    restante = quantidade.quantize(Decimal("0.001"))
+    empresa_fb = Empresa.objects.filter(nome_fantasia="Agro Mais").first()
+    obs = OBSERVACAO_BAIXA_VENCIMENTO_LOJA
+    if observacao_extra:
+        obs = f"{obs} · {observacao_extra}"[:2000]
+    for dep in ("centro", "vila"):
+        if restante <= 0:
+            break
+        saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid, dep)
+        saldo_antes = _saldo_final_agro_com_pin(pid, dep, saldo_erp)
+        if saldo_antes <= 0:
+            continue
+        take = min(restante, saldo_antes).quantize(Decimal("0.001"))
+        saldo_depois = (saldo_antes - take).quantize(Decimal("0.001"))
+        empresa, loja = _empresa_loja_padrao_agro_estoque(dep)
+        try:
+            AjusteRapidoEstoque.objects.create(
+                empresa=empresa or empresa_fb,
+                loja=loja,
+                produto_externo_id=pid,
+                codigo_interno=str(codigo_interno or "")[:100],
+                nome_produto=(f"{(nome_produto or '')[:120]} · {OBSERVACAO_BAIXA_VENCIMENTO_LOJA}")[
+                    :255
+                ],
+                deposito=dep,
+                saldo_erp_referencia=saldo_erp,
+                saldo_informado=saldo_depois,
+                origem=OrigemAjusteEstoque.VENCIMENTO_EM_LOJA,
+                observacao=obs[:2000],
+                usuario=usuario_django if usuario_django is not None else None,
+            )
+        except Exception as exc:
+            logger.exception("_aplicar_baixa_operacional_vencimento_loja pid=%s dep=%s", pid, dep)
+            return False, str(exc)[:300]
+        restante -= take
+    if restante > Decimal("0.000"):
+        return False, f"Saldo operacional insuficiente (faltam {float(restante):.3f})."
+    return True, None
 
 
 def aplicar_entrada_nota_estoque_agro(
@@ -10145,6 +10208,100 @@ def api_overlay_lote_remover(request, lote_id: int):
         ov.cadastro_extras = ex
         ov.save(update_fields=["cadastro_extras", "atualizado_em"])
     return JsonResponse({"ok": True})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_relatorio_validade_baixa(request):
+    """
+    Zera quantidade do lote (Agro) e baixa o estoque operacional (C+V) com origem
+    «Vencimento em Loja» (campo observação + ``OrigemAjusteEstoque.VENCIMENTO_EM_LOJA``).
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    try:
+        lote_id = int(payload.get("lote_id") or 0)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "lote_id inválido"}, status=400)
+    if lote_id <= 0:
+        return JsonResponse({"ok": False, "erro": "lote_id obrigatório"}, status=400)
+
+    pid = ""
+    q_lote = Decimal("0")
+    q_remove = Decimal("0")
+    aviso_mongo: str | None = None
+
+    try:
+        with transaction.atomic():
+            el = (
+                EstoqueLote.objects.select_for_update()
+                .select_related("overlay")
+                .filter(pk=lote_id)
+                .first()
+            )
+            if el is None:
+                return JsonResponse({"ok": False, "erro": "Lote não encontrado."}, status=404)
+            ov = el.overlay
+            pid = str(ov.produto_externo_id or "").strip()[:100]
+            try:
+                q_lote = Decimal(str(el.quantidade_atual or 0)).quantize(Decimal("0.01"))
+            except Exception:
+                return JsonResponse({"ok": False, "erro": "Quantidade do lote inválida."}, status=400)
+            if q_lote <= 0:
+                return JsonResponse({"ok": False, "erro": "Lote já está sem quantidade."}, status=400)
+
+            el.quantidade_atual = Decimal("0")
+            el.save(update_fields=["quantidade_atual"])
+
+            client_m, db = obter_conexao_mongo()
+            if db is None or client_m is None:
+                aviso_mongo = (
+                    "Mongo indisponível: lote zerado no Agro; sem baixa no estoque operacional (C+V)."
+                )
+            else:
+                saldo_erp_c = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "centro")
+                saldo_erp_v = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "vila")
+                ag_c = _saldo_final_agro_com_pin(pid, "centro", saldo_erp_c)
+                ag_v = _saldo_final_agro_com_pin(pid, "vila", saldo_erp_v)
+                total_ag = (ag_c + ag_v).quantize(Decimal("0.001"))
+                q_remove = min(q_lote, total_ag).quantize(Decimal("0.001"))
+
+                p_doc = _produto_mongo_por_id_externo(db, client_m, pid)
+                nome_p = str((p_doc or {}).get("Nome") or ov.nome or pid)[:200]
+                codigo = str(
+                    (p_doc or {}).get("CodigoNFe") or (p_doc or {}).get("Codigo") or ""
+                )[:100]
+
+                if q_remove > 0:
+                    ok_adj, err_adj = _aplicar_baixa_operacional_vencimento_loja(
+                        db=db,
+                        client_m=client_m,
+                        produto_externo_id=pid,
+                        quantidade=q_remove,
+                        usuario_django=request.user if request.user.is_authenticated else None,
+                        nome_produto=nome_p,
+                        codigo_interno=codigo,
+                        observacao_extra=f"lote_id={lote_id} lote={str(el.lote_codigo)[:80]}",
+                    )
+                    if not ok_adj:
+                        raise ValueError(err_adj or "Falha ao registrar baixa operacional.")
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=409)
+
+    if q_remove > 0:
+        _invalidar_caches_apos_ajuste_pin()
+
+    out = {
+        "ok": True,
+        "produto_id": pid,
+        "quantidade_lote": float(q_lote),
+        "quantidade_baixa_operacional": float(q_remove),
+    }
+    if aviso_mongo:
+        out["aviso"] = aviso_mongo
+    return JsonResponse(out)
 
 
 @require_GET
@@ -15141,6 +15298,7 @@ def relatorios_validade(request):
         "pode_editar_validade": getattr(request, "user", None) and request.user.is_authenticated,
         "url_api_overlay_salvar": reverse("api_produtos_gestao_overlay_salvar"),
         "url_api_lote_upsert": reverse("api_overlay_lote_adicionar"),
+        "url_api_validade_baixa": reverse("api_relatorio_validade_baixa"),
         "login_validade_href": login_href,
     }
     if is_80:

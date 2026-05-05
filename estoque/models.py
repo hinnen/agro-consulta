@@ -24,6 +24,7 @@ class OrigemAjusteEstoque(models.TextChoices):
     BAIXA_VENDA_PDV = "baixa_venda_pdv", "Baixa venda PDV"
     TRANSFERENCIA_UI = "transferencia_ui", "Transferência / tela"
     PLANILHA = "planilha", "Importação planilha"
+    VENCIMENTO_EM_LOJA = "vencimento_em_loja", "Vencimento em Loja"
     OUTRO = "outro", "Outro"
 
 
