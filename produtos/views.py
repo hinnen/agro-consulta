@@ -3686,6 +3686,12 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
     return out
 
 
+def _invalidar_cache_dashboard_perdas_validade(d: date | None = None) -> None:
+    """KPI «Validade» do dashboard usa cache diário; invalidar após baixa de lote."""
+    ref = d or timezone.localdate()
+    cache.delete(f"dash:perdas:v1:{ref.isoformat()}")
+
+
 def _dashboard_perdas_validade_hoje():
     hoje = timezone.localdate()
     ck = f"dash:perdas:v1:{hoje.isoformat()}"
@@ -10193,12 +10199,8 @@ def api_overlay_lote_adicionar(request):
     )
 
 
-@login_required(login_url="/admin/login/")
-@require_POST
-def api_overlay_lote_remover(request, lote_id: int):
-    lote = get_object_or_404(EstoqueLote, id=int(lote_id))
-    ov = lote.overlay
-    lote.delete()
+def _sync_overlay_apos_exclusao_lote(ov: ProdutoGestaoOverlayAgro) -> None:
+    """Após apagar um ``EstoqueLote``: sincroniza resumo ou limpa extras se não houver mais lotes."""
     if EstoqueLote.objects.filter(overlay=ov).exists():
         sync_overlay_validade_resumo_de_lotes(ov)
     else:
@@ -10207,6 +10209,16 @@ def api_overlay_lote_remover(request, lote_id: int):
         ex.pop("lote", None)
         ov.cadastro_extras = ex
         ov.save(update_fields=["cadastro_extras", "atualizado_em"])
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_overlay_lote_remover(request, lote_id: int):
+    lote = get_object_or_404(EstoqueLote, id=int(lote_id))
+    ov = lote.overlay
+    lote.delete()
+    _sync_overlay_apos_exclusao_lote(ov)
+    _invalidar_cache_dashboard_perdas_validade()
     return JsonResponse({"ok": True})
 
 
@@ -10214,7 +10226,7 @@ def api_overlay_lote_remover(request, lote_id: int):
 @require_POST
 def api_relatorio_validade_baixa(request):
     """
-    Zera quantidade do lote (Agro) e baixa o estoque operacional (C+V) com origem
+    Remove o registo do lote (Agro) e baixa o estoque operacional (C+V) com origem
     «Vencimento em Loja» (campo observação + ``OrigemAjusteEstoque.VENCIMENTO_EM_LOJA``).
     """
     try:
@@ -10245,6 +10257,7 @@ def api_relatorio_validade_baixa(request):
                 return JsonResponse({"ok": False, "erro": "Lote não encontrado."}, status=404)
             ov = el.overlay
             pid = str(ov.produto_externo_id or "").strip()[:100]
+            lote_codigo_ref = str(el.lote_codigo or "")[:80]
             try:
                 q_lote = Decimal(str(el.quantidade_atual or 0)).quantize(Decimal("0.01"))
             except Exception:
@@ -10252,14 +10265,13 @@ def api_relatorio_validade_baixa(request):
             if q_lote <= 0:
                 return JsonResponse({"ok": False, "erro": "Lote já está sem quantidade."}, status=400)
 
-            el.quantidade_atual = Decimal("0")
-            el.save(update_fields=["quantidade_atual"])
-
             client_m, db = obter_conexao_mongo()
             if db is None or client_m is None:
                 aviso_mongo = (
-                    "Mongo indisponível: lote zerado no Agro; sem baixa no estoque operacional (C+V)."
+                    "Mongo indisponível: lote removido no Agro; sem baixa no estoque operacional (C+V)."
                 )
+                el.delete()
+                _sync_overlay_apos_exclusao_lote(ov)
             else:
                 saldo_erp_c = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "centro")
                 saldo_erp_v = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "vila")
@@ -10283,13 +10295,16 @@ def api_relatorio_validade_baixa(request):
                         usuario_django=request.user if request.user.is_authenticated else None,
                         nome_produto=nome_p,
                         codigo_interno=codigo,
-                        observacao_extra=f"lote_id={lote_id} lote={str(el.lote_codigo)[:80]}",
+                        observacao_extra=f"lote_id={lote_id} lote={lote_codigo_ref}",
                     )
                     if not ok_adj:
                         raise ValueError(err_adj or "Falha ao registrar baixa operacional.")
+                el.delete()
+                _sync_overlay_apos_exclusao_lote(ov)
     except ValueError as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=409)
 
+    _invalidar_cache_dashboard_perdas_validade()
     if q_remove > 0:
         _invalidar_caches_apos_ajuste_pin()
 
@@ -15131,6 +15146,8 @@ def relatorios_validade(request):
             continue
 
         for el in lotes_ordenados:
+            if el.quantidade_atual is None or el.quantidade_atual <= 0:
+                continue
             data_venc = el.data_validade
             if inicio_p is not None and fim_p is not None and not (
                 inicio_p <= data_venc <= fim_p
