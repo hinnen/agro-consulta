@@ -125,6 +125,7 @@
             <th class="w-[1%] whitespace-nowrap text-right tabular-nums" title="Stock em lote/linha já vencida">Venc.</th>
             <th class="min-w-[11rem]" scope="col">Vencimento</th>
             <th class="no-print w-[1%] max-w-[8rem] text-left" scope="col">Sit.</th>
+            {% if pode_editar_validade %}<th class="no-print w-[6.75rem] min-w-[6.75rem] whitespace-nowrap" scope="col">Baixa</th>{% endif %}
             {% if pode_editar_validade %}<th class="no-print w-[6.75rem] min-w-[6.75rem] whitespace-nowrap" scope="col">Gravar</th>{% endif %}
           </tr>
         </thead>
@@ -192,6 +193,16 @@
             {% if pode_editar_validade %}
             <td class="no-print w-[6.75rem] min-w-[6.75rem] align-top">
               <div class="flex w-full min-w-0 flex-col gap-0.5">
+                {% if p.lote_id %}
+                <button type="button" class="rv-baixa flex w-full min-h-[38px] items-center justify-center whitespace-nowrap rounded border-2 border-red-600 bg-red-700 px-2 text-[10px] font-black uppercase leading-none text-white hover:bg-red-600 sm:min-h-[40px] sm:px-2 sm:text-xs" title="Baixa por vencimento — registra motivo «Vencimento em Loja»">Dar baixa</button>
+                {% else %}
+                <span class="block min-h-[38px] rounded border border-slate-700/80 bg-slate-900/40 px-1 py-1 text-center text-[9px] font-bold leading-tight text-slate-600" title="Sem linha de lote Agro nesta linha">—</span>
+                {% endif %}
+                <span class="rv-msg-baixa block min-h-[1em] text-center text-[9px] font-bold leading-tight text-slate-500" aria-live="polite"></span>
+              </div>
+            </td>
+            <td class="no-print w-[6.75rem] min-w-[6.75rem] align-top">
+              <div class="flex w-full min-w-0 flex-col gap-0.5">
                 {% if p.lote_id and estoque_mongo_ok %}
                 <span class="block min-h-[38px] rounded border border-slate-600 bg-slate-900/50 px-1 py-1 text-center text-[9px] font-bold leading-tight text-slate-500" title="C+V vem do ERP. Ajuste lotes e saldos no cadastro Agro.">Usar<br/>cadastro</span>
                 {% else %}
@@ -204,7 +215,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="{% if pode_editar_validade %}7{% else %}6{% endif %}" class="px-4 py-8 text-center font-semibold text-slate-500">Nenhum produto com estes filtros (ou nenhum com estoque, se a leitura do Mongo estiver ativa).</td>
+            <td colspan="{% if pode_editar_validade %}8{% else %}6{% endif %}" class="px-4 py-8 text-center font-semibold text-slate-500">Nenhum produto com estes filtros (ou nenhum com estoque, se a leitura do Mongo estiver ativa).</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -214,7 +225,7 @@
             <td class="text-slate-300 print:text-slate-700" colspan="2">Totais</td>
             <td class="text-right font-mono text-slate-100 print:text-slate-900 tabular-nums">{{ totais_estoque.c_v|floatformat:2 }}</td>
             <td class="text-right font-mono text-slate-100 print:text-slate-900 tabular-nums">{{ totais_estoque.vencido|floatformat:2 }}</td>
-            <td class="" colspan="{% if pode_editar_validade %}3{% else %}2{% endif %}"></td>
+            <td class="" colspan="{% if pode_editar_validade %}4{% else %}2{% endif %}"></td>
           </tr>
         </tfoot>
         {% endif %}
@@ -227,6 +238,7 @@
   (function () {
     var api = "{{ url_api_overlay_salvar|escapejs }}";
     var apiLote = "{{ url_api_lote_upsert|escapejs }}";
+    var apiBaixa = "{{ url_api_validade_baixa|escapejs }}";
     var mongoOk = {{ estoque_mongo_ok|yesno:"true,false" }};
     function csrf() {
       var el = document.querySelector('[name=csrfmiddlewaretoken]');
@@ -240,7 +252,48 @@
       if (ok === true) s.classList.add('text-emerald-400');
       if (ok === false) s.classList.add('text-red-400');
     }
+    function rowMsgBaixa(tr, t, ok) {
+      var s = tr.querySelector('.rv-msg-baixa');
+      if (!s) return;
+      s.textContent = t || '';
+      s.classList.remove('text-emerald-400', 'text-amber-300', 'text-red-400');
+      if (ok === true) s.classList.add('text-emerald-400');
+      if (ok === 'warn') s.classList.add('text-amber-300');
+      if (ok === false) s.classList.add('text-red-400');
+    }
     document.getElementById('rv-tabela').addEventListener('click', function (e) {
+      var btnB = e.target.closest('.rv-baixa');
+      if (btnB) {
+        var trb = btnB.closest('tr[data-pid]');
+        if (!trb) return;
+        var lid = trb.getAttribute('data-lote-id');
+        if (!lid) {
+          rowMsgBaixa(trb, 'Sem lote Agro.', false);
+          return;
+        }
+        if (!window.confirm('Dar baixa neste lote? O estoque operacional será reduzido e o motivo «Vencimento em Loja» ficará registrado.')) return;
+        rowMsgBaixa(trb, '…', null);
+        fetch(apiBaixa, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrf()
+          },
+          body: JSON.stringify({ lote_id: parseInt(lid, 10) })
+        }).then(function (r) {
+          if (r.status === 403 || r.status === 401) throw new Error('Sessão expirada ou sem permissão. Entre de novo.');
+          return r.json();
+        }).then(function (j) {
+          if (!j.ok) throw new Error(j.erro || 'Falha na baixa');
+          if (j.aviso) rowMsgBaixa(trb, j.aviso, 'warn');
+          else rowMsgBaixa(trb, 'Baixa registrada.', true);
+          window.setTimeout(function () { window.location.reload(); }, j.aviso ? 900 : 450);
+        }).catch(function (err) {
+          rowMsgBaixa(trb, err.message || 'Erro', false);
+        });
+        return;
+      }
       var btn = e.target.closest('.rv-salvar');
       if (!btn) return;
       var tr = btn.closest('tr[data-pid]');

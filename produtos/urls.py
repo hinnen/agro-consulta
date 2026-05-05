@@ -155,6 +155,11 @@ urlpatterns = [
         name='api_overlay_lote_remover',
     ),
     path(
+        'api/relatorios/validade/baixa/',
+        views.api_relatorio_validade_baixa,
+        name='api_relatorio_validade_baixa',
+    ),
+    path(
         'api/produtos/cadastro/detalhe/<str:produto_id>/',
         views.api_produtos_cadastro_detalhe,
         name='api_produtos_cadastro_detalhe',
