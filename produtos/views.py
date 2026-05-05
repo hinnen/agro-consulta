@@ -3071,7 +3071,6 @@ def _format_moeda_br(val: Decimal) -> str:
 def _home_quick_stats(request):
     """Indicadores leves para a home administrativa (sem agregações Mongo pesadas)."""
     hoje = timezone.localdate()
-    inicio_mes, fim_mes = _bounds_mes_atual(hoje)
     agg = VendaAgro.objects.filter(criado_em__date=hoje).aggregate(soma=Sum("total"))
     soma = agg["soma"] if agg["soma"] is not None else Decimal("0")
     total_vendas_dia = soma.quantize(Decimal("0.01"))
@@ -3079,16 +3078,7 @@ def _home_quick_stats(request):
         status__in=(PedidoEntrega.Status.ENTREGUE, PedidoEntrega.Status.CANCELADO)
     ).count()
     # Vencidos com saldo no lote (Agro) OU validade no mês civil atual (com saldo).
-    produtos_vencendo = (
-        EstoqueLote.objects.filter(quantidade_atual__gt=0)
-        .filter(
-            Q(data_validade__lt=hoje)
-            | Q(data_validade__gte=inicio_mes, data_validade__lte=fim_mes)
-        )
-        .values("overlay_id")
-        .distinct()
-        .count()
-    )
+    produtos_vencendo = _contagem_alertas_validade_lotes_agro()
     sess = getattr(request, "session", None)
     caixa_aberto = _obter_sessao_caixa_aberta(request) is not None if sess is not None else False
     return {
@@ -4143,7 +4133,9 @@ def _dashboard_capri_context(request):
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         fut["atual"] = ex.submit(_dashboard_worker, _dashboard_mongo_vendas_serie, data_ini, data_fim)
         fut["anterior"] = ex.submit(_dashboard_worker, _dashboard_mongo_vendas_serie, prev_ini, prev_fim)
-        fut["perdas"] = ex.submit(_dashboard_worker, _dashboard_perdas_validade_hoje)
+        fut["alertas_validade"] = ex.submit(
+            _dashboard_worker, _contagem_alertas_validade_lotes_agro
+        )
         fut["vendas_hoje"] = ex.submit(_dashboard_worker, _dashboard_mongo_total_por_dia_vendas_agro, hoje)
         fut["vendas_ontem"] = ex.submit(_dashboard_worker, _dashboard_mongo_total_por_dia_vendas_agro, ontem)
         fut["novos_clientes"] = ex.submit(_dashboard_worker, _dashboard_capri_novos_clientes_counts, hoje)
@@ -4163,7 +4155,7 @@ def _dashboard_capri_context(request):
     anterior = blk["anterior"]
     vendas_hoje = blk["vendas_hoje"]
     vendas_ontem = blk["vendas_ontem"]
-    perdas_validade = blk["perdas"]
+    alertas_validade_n = int(blk["alertas_validade"] or 0)
     novos_clientes_30, prev_clientes_30 = blk["novos_clientes"]
     total_entregas_pendentes = blk["entregas_pen"]
     entregas_serie_7d = blk["entregas_7d"]
@@ -4256,16 +4248,17 @@ def _dashboard_capri_context(request):
         },
         {
             "label": "Perda Validade",
-            "value": _format_moeda_br(Decimal(str(round(perdas_validade, 2)))),
-            "prefix": "R$",
-            "trend": "Monit.",
-            "trend_short": "i",
+            "value": str(alertas_validade_n),
+            "prefix": "",
+            "trend": "Itens p/ atenção",
+            "trend_short": "alert.",
             "trend_class": "text-rose-800 bg-rose-200 ring-1 ring-rose-300",
             "context_lines": [
-                "Valor = perda (lotes) hoje, não a série de vendas.",
-                "Indicador de atenção operacional para itens vencidos/com risco de vencimento.",
-                f"Período de referência visual: {periodo_label} (o cálculo da perda é do dia).",
+                "Conta produtos (cadastro Agro) com lote ainda com saldo e validade vencida ou no mês atual.",
+                "Use para expor no balcão e baixar no relatório de validade (vencimento em loja).",
+                "Clique no número para abrir o relatório.",
             ],
+            "variant": "validade",
         },
         {
             "label": "Novos Clientes",
@@ -4340,6 +4333,7 @@ def _dashboard_capri_context(request):
         "lancamentos_receber_url": reverse("lancamentos_contas_receber"),
         "lancamentos_pagar_url": reverse("lancamentos_contas_pagar"),
         "entregas_painel_url": reverse("entregas_painel"),
+        "relatorios_validade_url": reverse("relatorios_validade"),
         "total_entregas_pendentes": total_entregas_pendentes,
         "ultima_sinc_estoque": _dashboard_estoque_sync_label(),
         "mongo_ok": atual["ok"] and anterior["ok"],
@@ -14986,6 +14980,26 @@ def _bounds_mes_atual(hoje: date) -> tuple[date, date]:
     a, b = _bounds_mes(hoje.year, hoje.month)
     assert a is not None and b is not None
     return a, b
+
+
+def _contagem_alertas_validade_lotes_agro() -> int:
+    """
+    Produtos distintos (overlay) com lote Agro com saldo > 0 e
+    (validade já passou OU validade no mês civil atual).
+    Mesma regra do cartão na home «atalhos».
+    """
+    hoje = timezone.localdate()
+    inicio_mes, fim_mes = _bounds_mes_atual(hoje)
+    return (
+        EstoqueLote.objects.filter(quantidade_atual__gt=0)
+        .filter(
+            Q(data_validade__lt=hoje)
+            | Q(data_validade__gte=inicio_mes, data_validade__lte=fim_mes)
+        )
+        .values("overlay_id")
+        .distinct()
+        .count()
+    )
 
 
 def _bounds_proximo_mes(hoje: date) -> tuple[date, date]:
