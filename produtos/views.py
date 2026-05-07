@@ -99,6 +99,7 @@ from .mongo_index_codigos import (
     aplicar_index_codigos_no_mongo,
     merge_busca_codigo_prioridade_principal,
     produto_termo_bate_campos_principais,
+    produto_termo_bate_somente_codigo_barras,
     somente_alnum,
 )
 from .rota_entregas_geo import ordenar_entregas_por_proximidade
@@ -3491,28 +3492,47 @@ def _dashboard_bounds_mes_anterior_para_dia(d: date) -> tuple[date, date]:
     return first_prev, last_prev
 
 
-def _dashboard_vendas_meta_c_para_dia(d: date, por_dia_prev: dict) -> float:
+def _dashboard_meta_c_um_mes(
+    wd: int, por_dia: dict, first_m: date, last_m: date
+) -> float | None:
     """
-    Meta diária C = (A + B) / 2: A = média das vendas no mesmo weekday no mês anterior;
-    B = venda na primeira data desse weekday no mês anterior.
+    Meta parcial para um único mês civil: (A + B) / 2 — A = média das vendas no mesmo weekday;
+    B = venda na primeira data desse weekday no mês.
     """
-    wd = d.weekday()
-    first_prev, last_prev = _dashboard_bounds_mes_anterior_para_dia(d)
     vals_same: list[float] = []
     b_val: float | None = None
-    cur = first_prev
-    while cur <= last_prev:
+    cur = first_m
+    while cur <= last_m:
         if cur.weekday() == wd:
-            v = round(_dashboard_float(por_dia_prev.get(cur.isoformat())), 2)
+            v = round(_dashboard_float(por_dia.get(cur.isoformat())), 2)
             vals_same.append(v)
             if b_val is None:
                 b_val = v
         cur += timedelta(days=1)
     if not vals_same:
-        return 0.0
+        return None
     a = sum(vals_same) / len(vals_same)
     b = float(b_val or 0.0)
     return round((a + b) / 2.0, 2)
+
+
+def _dashboard_vendas_meta_c_para_dia(
+    d: date, por_dia_mes_m1: dict, por_dia_mes_m2: dict
+) -> float:
+    """
+    Meta diária C = média aritmética das metas dos dois últimos meses civis (M-1 e M-2
+    em relação ao mês de ``d``). Em cada mês aplica-se a mesma regra interna
+    ``_dashboard_meta_c_um_mes``. Se só um mês tiver base, usa-se só esse valor.
+    """
+    fp1, lp1 = _dashboard_bounds_mes_anterior_para_dia(d)
+    fp2, lp2 = _dashboard_bounds_mes_anterior_para_dia(fp1)
+    wd = d.weekday()
+    m1 = _dashboard_meta_c_um_mes(wd, por_dia_mes_m1, fp1, lp1)
+    m2 = _dashboard_meta_c_um_mes(wd, por_dia_mes_m2, fp2, lp2)
+    partes = [x for x in (m1, m2) if x is not None]
+    if not partes:
+        return 0.0
+    return round(sum(partes) / len(partes), 2)
 
 
 def _dashboard_serie_meta_c_vendas(data_ini: date, data_fim: date) -> list[float]:
@@ -3522,12 +3542,15 @@ def _dashboard_serie_meta_c_vendas(data_ini: date, data_fim: date) -> list[float
     out: list[float] = []
     for i in range(dias):
         d = data_ini + timedelta(days=i)
-        fp, lp = _dashboard_bounds_mes_anterior_para_dia(d)
-        key = (fp, lp)
-        if key not in cache:
-            ser = _dashboard_mongo_vendas_serie(fp, lp)
-            cache[key] = ser.get("por_dia") or {}
-        out.append(_dashboard_vendas_meta_c_para_dia(d, cache[key]))
+        fp1, lp1 = _dashboard_bounds_mes_anterior_para_dia(d)
+        fp2, lp2 = _dashboard_bounds_mes_anterior_para_dia(fp1)
+        for key in ((fp1, lp1), (fp2, lp2)):
+            if key not in cache:
+                ser = _dashboard_mongo_vendas_serie(key[0], key[1])
+                cache[key] = ser.get("por_dia") or {}
+        out.append(
+            _dashboard_vendas_meta_c_para_dia(d, cache[(fp1, lp1)], cache[(fp2, lp2)])
+        )
     return out
 
 
@@ -6223,7 +6246,7 @@ def api_entrada_nota_fornecedores(request):
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_entrada_nota_conferir_codigo(request):
-    """Confere código bipado (EAN/código interno) contra o produto do catálogo (Mongo)."""
+    """Confere código bipado somente como código de barras / EAN no cadastro Mongo (não GM/referência)."""
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -6250,10 +6273,10 @@ def api_entrada_nota_conferir_codigo(request):
         return JsonResponse({"ok": False, "erro": "Produto não encontrado no catálogo."}, status=404)
 
     tl = somente_alnum(codigo).lower()
-    bate = bool(tl and produto_termo_bate_campos_principais(doc, tl))
+    bate = bool(tl and produto_termo_bate_somente_codigo_barras(doc, tl))
     if not bate and codigo_alt:
         ta = somente_alnum(codigo_alt).lower()
-        bate = bool(ta and produto_termo_bate_campos_principais(doc, ta))
+        bate = bool(ta and produto_termo_bate_somente_codigo_barras(doc, ta))
     return JsonResponse(
         {
             "ok": True,
