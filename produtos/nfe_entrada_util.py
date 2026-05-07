@@ -114,6 +114,18 @@ def entrada_nfe_extra_financeiro_ok(extra: Any) -> bool:
     return bool(extra.get("financeiro_lancado"))
 
 
+def _entrada_nfe_extra_wizard_data_ok(extra: Any) -> bool:
+    """
+    Etapas mínimas para considerar a nota realmente pronta para seguir à etapa de estoque:
+    etapa 2 (produtos) e etapa 3 (códigos) confirmadas.
+    """
+    if not isinstance(extra, dict):
+        return False
+    e2 = str(extra.get("wizard_etapa2_confirmada_em") or "").strip()
+    e3 = str(extra.get("wizard_etapa3_confirmada_em") or "").strip()
+    return bool(e2 and e3)
+
+
 def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
     """
     Estágio exclusivo para filtros da lista (Entrada NF-e), alinhado ao fluxo:
@@ -124,6 +136,8 @@ def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
     """
     eff = str(d.get("entrada_status_efetivo") or "")
     fin_ok = bool(d.get("entrada_financeiro_lancado"))
+    ex = d.get("extra") if isinstance(d.get("extra"), dict) else {}
+    wizard_ok = _entrada_nfe_extra_wizard_data_ok(ex)
     if eff == ENTRADA_NFE_STATUS_DESCARTADA:
         return "descartada"
     if eff == ENTRADA_NFE_STATUS_ENCERRADA:
@@ -133,7 +147,7 @@ def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
     if eff == ENTRADA_NFE_STATUS_COM_PENDENCIAS:
         return "nota_aberta"
     if eff == ENTRADA_NFE_STATUS_PRONTA:
-        return "estoque"
+        return "estoque" if wizard_ok else "nota_aberta"
     if eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO and not fin_ok:
         return "financeiro"
     return "nota_aberta"
@@ -454,8 +468,6 @@ def listar_rascunhos_entrada(db, limit: int = 30, *, filtro: str | None = None) 
             "prontas": "estoque",
             "encerradas": "encerrada_legacy",
             "descartadas": "descartada",
-            "estoque": "estoque_aplicado_legacy",
-            "financeiro": "financeiro_lancado_legacy",
         }
         if f in legacy:
             f = legacy[f]

@@ -29,6 +29,7 @@
         </details>
         {% endif %}
       </div>
+      {% if kpi.variant != "ticket_duplo" %}
       <span class="relative inline-flex shrink-0 group">
         <span class="{{ kpi.trend_class }} text-[9px] sm:text-[10px] font-bold px-1 py-0.5 rounded-md leading-tight max-w-[95px] whitespace-nowrap overflow-hidden text-ellipsis cursor-help">
           {{ kpi.trend_short|default:kpi.trend }}
@@ -44,6 +45,7 @@
           {% endif %}
         </span>
       </span>
+      {% endif %}
     </div>
     {% if kpi.variant == "entregas" %}
     <a href="{{ entregas_painel_url }}" class="block focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 rounded-lg -m-1 p-1">
@@ -52,6 +54,23 @@
         <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Pend.</span>
       </div>
     </a>
+    {% elif kpi.variant == "ticket_duplo" %}
+    <div class="rounded-lg border border-slate-200 bg-white/80 p-2">
+      <div class="grid grid-cols-4 gap-x-2 gap-y-1 items-center">
+        <div class="text-[10px] font-black uppercase tracking-wide text-slate-500">Ticket</div>
+        <div class="text-right">
+          <span class="{{ kpi.trend_mes_class }} inline-flex text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-tight">{{ kpi.trend_mes_short }}</span>
+        </div>
+        <div class="text-[10px] font-black uppercase tracking-wide text-slate-500">Hoje</div>
+        <div class="text-right">
+          <span class="{{ kpi.trend_dia_class }} inline-flex text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-tight">{{ kpi.trend_dia_short }}</span>
+        </div>
+        <div class="text-[10px] font-black uppercase tracking-wide text-slate-500">Mês</div>
+        <div class="text-[1.15rem] sm:text-[1.25rem] font-black text-slate-900 tabular-nums leading-none text-right">{{ kpi.value_mes }}</div>
+        <div class="text-[10px] font-black uppercase tracking-wide text-slate-500">Hoje</div>
+        <div class="text-[1.15rem] sm:text-[1.25rem] font-black text-slate-900 tabular-nums leading-none text-right">{{ kpi.value_dia }}</div>
+      </div>
+    </div>
     {% elif kpi.variant == "validade" %}
     <a href="{{ relatorios_validade_url }}" class="block cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg -m-1 p-1 hover:bg-red-50/60">
       <div class="flex items-baseline gap-2 flex-wrap">
@@ -83,7 +102,7 @@
         </details>
         {% endif %}
       </h3>
-      <span class="text-[11px] font-black text-sky-700 bg-sky-100 border border-sky-200 rounded-md px-2 py-1">
+      <span id="dash-total-periodo" class="text-[11px] font-black text-sky-700 bg-sky-100 border border-sky-200 rounded-md px-2 py-1 cursor-help">
         Total: R$ {{ chart_total_periodo }}
       </span>
     </div>
@@ -238,28 +257,23 @@
       }
       return txt;
     }
-    function dashTooltipDualHtml(ctx) {
-      var i = ctx.dataPointIndex;
-      if (i === undefined || i === null) i = 0;
-      var ser =
-        (ctx.series && ctx.series.length) ? ctx.series : (ctx.w && ctx.w.globals && ctx.w.globals.series) || [];
-      var s0 = ser[0];
-      var y0 = s0 && s0[i];
-      var real = Number((y0 && y0.y !== undefined ? y0.y : y0) || 0);
-      var meta = Number((chartCompare && chartCompare[i]) || 0);
-      var ticket = (ticketPorDia && ticketPorDia[i]) || 0;
-      var cat =
-        (ctx.w &&
-          ctx.w.globals &&
-          ctx.w.globals.categoryLabels &&
-          ctx.w.globals.categoryLabels[i]) ||
-        (chartLabels && chartLabels[i]) ||
-        "";
+    function dashTooltipResumoHtml(cat, real, meta) {
+      function perfColor(pct) {
+        var p = Number(pct || 0);
+        if (p >= 0) {
+          // 0%..+25%: amarelo/verde -> verde forte
+          var g = Math.min(1, p / 25);
+          return dashMixHex("#16a34a", "#047857", g);
+        }
+        // -35%..0%: vermelho forte -> laranja/amarelo
+        var r = Math.min(1, Math.abs(p) / 35);
+        return dashMixHex("#f59e0b", "#b91c1c", r);
+      }
       var pctPart = "";
       if (meta > 0) {
         var pct = ((real - meta) / meta) * 100;
         var pc = (pct >= 0 ? "+" : "") + pct.toFixed(1) + "%";
-        var cPct = pct >= 0 ? "#059669" : "#dc2626";
+        var cPct = perfColor(pct);
         pctPart = '<span style="font-weight:800;color:' + cPct + '">' + pc + "</span>";
       } else {
         pctPart = '<span style="color:#64748b;font-weight:700">sem base</span>';
@@ -268,27 +282,40 @@
       if (meta > 0) {
         var diff = real - meta;
         var diffAbs = Math.abs(diff).toFixed(2);
+        var pctDiffMedia = ((real - meta) / meta) * 100;
+        var cMedia = perfColor(pctDiffMedia);
         var diffTxt =
           diff >= 0
-            ? '<span style="font-weight:800;color:#059669">+R$ ' + diffAbs + " acima da meta</span>"
-            : '<span style="font-weight:800;color:#dc2626">-R$ ' + diffAbs + " falta para a meta</span>";
+            ? '<span style="font-weight:800;color:' + cMedia + '">+R$ ' + diffAbs + " acima da média</span>"
+            : '<span style="font-weight:800;color:' + cMedia + '">-R$ ' + diffAbs + " abaixo da média</span>";
         metaLinha = "R$ " + meta.toFixed(2) + " · " + diffTxt;
       } else {
         metaLinha = "R$ " + meta.toFixed(2) + " · sem base nos 2 meses anteriores";
       }
-      var ticketLinha = "";
-      if (ticketRefPeriodo > 0 && Number(ticket) > 0) {
-        var dt = ((Number(ticket) - ticketRefPeriodo) / ticketRefPeriodo) * 100;
-        var dtTxt = (dt >= 0 ? "+" : "") + dt.toFixed(1) + "%";
-        var dtCor = dt >= 0 ? "#059669" : "#dc2626";
-        ticketLinha =
-          'R$ ' +
-          Number(ticket).toFixed(2) +
-          ' · ref R$ ' +
-          Number(ticketRefPeriodo).toFixed(2) +
-          ' · <span style="font-weight:800;color:' + dtCor + '">' + dtTxt + "</span>";
-      } else {
-        ticketLinha = "R$ " + Number(ticket || 0).toFixed(2) + " · sem base para comparação";
+      function pctSpan(v) {
+        var cor = perfColor(v);
+        var s = (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
+        return '<span style="font-weight:800;color:' + cor + '">' + s + "</span>";
+      }
+      function brMoney(v) {
+        return Number(v || 0).toFixed(2);
+      }
+      var metaRows = "";
+      var pcts = [5, 10, 13, 15, 20, 30];
+      for (var pi = 0; pi < pcts.length; pi++) {
+        var pv = pcts[pi];
+        var alvo = meta > 0 ? (meta * (1 + pv / 100)) : 0;
+        var d = real - alvo;
+        var dAbs = Math.abs(d);
+        var pvMeta = alvo > 0 ? ((real - alvo) / alvo) * 100 : 0;
+        var corDif = perfColor(pvMeta);
+        metaRows +=
+          '<tr>' +
+          '<td style="padding:1px 6px 1px 0;color:#475569;white-space:nowrap;font-weight:700">meta ' + pv + '%</td>' +
+          '<td style="padding:1px 6px;text-align:right;color:#0f172a;white-space:nowrap;font-variant-numeric:tabular-nums">R$ ' + brMoney(alvo) + '</td>' +
+          '<td style="padding:1px 6px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;color:' + corDif + ';font-weight:800">' + (d >= 0 ? '+' : '-') + 'R$ ' + brMoney(dAbs) + '</td>' +
+          '<td style="padding:1px 0 1px 6px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">' + pctSpan(pvMeta) + '</td>' +
+          '</tr>';
       }
       function row(label, value) {
         return (
@@ -301,15 +328,42 @@
       return (
         '<div style="padding:10px 12px;min-width:320px;max-width:min(580px,92vw);font-family:ui-sans-serif,system-ui,sans-serif;font-size:' +
         tipFontDense +
+        ';background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 10px 28px rgba(15,23,42,0.18);' +
         '">' +
         '<div style="font-weight:800;color:#0f172a;margin-bottom:6px">' +
         cat +
         "</div>" +
-        row('<span style="color:#0891b2">Vendas</span>', 'R$ ' + real.toFixed(2) + ' · Ticket R$ ' + Number(ticket).toFixed(2) + ' · vs meta ' + pctPart) +
-        row('<span style="color:#ea580c">Meta (C)</span>', metaLinha) +
-        row('<span style="color:#0284c7">Ticket médio</span>', ticketLinha) +
+        row(
+          '<span style="color:#0891b2">Vendas</span>',
+          '<span style="font-weight:900;font-size:1.08em;color:#0f172a">R$ ' + real.toFixed(2) + '</span> · vs média(base) ' + pctPart
+        ) +
+        row('<span style="color:#ea580c">Média base</span>', metaLinha) +
+        '<div style="margin-top:8px;border-top:1px solid #e2e8f0;padding-top:6px">' +
+        '<div style="font-weight:800;color:#334155;margin-bottom:4px">Falta para bater a meta</div>' +
+        '<table style="width:100%;border-collapse:collapse;font-size:' + tipFontDense + ';line-height:1.2">' +
+        '<tbody>' + metaRows + '</tbody>' +
+        '</table>' +
+        '</div>' +
         "</div>"
       );
+    }
+    function dashTooltipDualHtml(ctx) {
+      var i = ctx.dataPointIndex;
+      if (i === undefined || i === null) i = 0;
+      var ser =
+        (ctx.series && ctx.series.length) ? ctx.series : (ctx.w && ctx.w.globals && ctx.w.globals.series) || [];
+      var s0 = ser[0];
+      var y0 = s0 && s0[i];
+      var real = Number((y0 && y0.y !== undefined ? y0.y : y0) || 0);
+      var meta = Number((chartCompare && chartCompare[i]) || 0);
+      var cat =
+        (ctx.w &&
+          ctx.w.globals &&
+          ctx.w.globals.categoryLabels &&
+          ctx.w.globals.categoryLabels[i]) ||
+        (chartLabels && chartLabels[i]) ||
+        "";
+      return dashTooltipResumoHtml(cat, real, meta);
     }
     function dashHexToRgb(hex) {
       var h = String(hex || "").replace("#", "");
@@ -421,6 +475,32 @@
       theme: { mode: "light" },
     });
     window.__dashMainChart.render();
+    var totalBadge = document.getElementById("dash-total-periodo");
+    if (totalBadge && !dashAno) {
+      var totalVendaMes = (chartData || []).reduce(function (acc, v) { return acc + Number(v || 0); }, 0);
+      var totalMetaMes = (chartCompare || []).reduce(function (acc, v) { return acc + Number(v || 0); }, 0);
+      var totalTip = document.createElement("div");
+      totalTip.style.position = "fixed";
+      totalTip.style.zIndex = "1200";
+      totalTip.style.pointerEvents = "none";
+      totalTip.style.display = "none";
+      document.body.appendChild(totalTip);
+      function posTotalTip(evt) {
+        var x = (evt.clientX || 0) + 14;
+        var y = (evt.clientY || 0) + 14;
+        totalTip.style.left = x + "px";
+        totalTip.style.top = y + "px";
+      }
+      totalBadge.addEventListener("mouseenter", function (evt) {
+        totalTip.innerHTML = dashTooltipResumoHtml("Total do mês", totalVendaMes, totalMetaMes);
+        totalTip.style.display = "block";
+        posTotalTip(evt);
+      });
+      totalBadge.addEventListener("mousemove", posTotalTip);
+      totalBadge.addEventListener("mouseleave", function () {
+        totalTip.style.display = "none";
+      });
+    }
 
     var storesPayload = {{ stores_chart_json|safe }};
     var lojas = (storesPayload && storesPayload.labels) || [];

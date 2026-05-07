@@ -3493,26 +3493,28 @@ def _dashboard_bounds_mes_anterior_para_dia(d: date) -> tuple[date, date]:
 
 
 def _dashboard_meta_c_um_mes(
-    wd: int, por_dia: dict, first_m: date, last_m: date
+    wd: int, ocorrencia_idx: int, por_dia: dict, first_m: date, last_m: date
 ) -> float | None:
     """
     Meta parcial para um único mês civil: (A + B) / 2 — A = média das vendas no mesmo weekday;
-    B = venda na primeira data desse weekday no mês.
+    B = venda da ocorrência equivalente (1ª, 2ª, 3ª...) daquele weekday no mês.
     """
     vals_same: list[float] = []
-    b_val: float | None = None
+    picked_seq: float | None = None
     cur = first_m
     while cur <= last_m:
         if cur.weekday() == wd:
             v = round(_dashboard_float(por_dia.get(cur.isoformat())), 2)
             vals_same.append(v)
-            if b_val is None:
-                b_val = v
         cur += timedelta(days=1)
     if not vals_same:
         return None
+    if 1 <= ocorrencia_idx <= len(vals_same):
+        picked_seq = vals_same[ocorrencia_idx - 1]
+    elif vals_same:
+        picked_seq = vals_same[-1]
     a = sum(vals_same) / len(vals_same)
-    b = float(b_val or 0.0)
+    b = float(picked_seq or 0.0)
     return round((a + b) / 2.0, 2)
 
 
@@ -3527,8 +3529,9 @@ def _dashboard_vendas_meta_c_para_dia(
     fp1, lp1 = _dashboard_bounds_mes_anterior_para_dia(d)
     fp2, lp2 = _dashboard_bounds_mes_anterior_para_dia(fp1)
     wd = d.weekday()
-    m1 = _dashboard_meta_c_um_mes(wd, por_dia_mes_m1, fp1, lp1)
-    m2 = _dashboard_meta_c_um_mes(wd, por_dia_mes_m2, fp2, lp2)
+    ocorrencia_idx = ((d.day - 1) // 7) + 1
+    m1 = _dashboard_meta_c_um_mes(wd, ocorrencia_idx, por_dia_mes_m1, fp1, lp1)
+    m2 = _dashboard_meta_c_um_mes(wd, ocorrencia_idx, por_dia_mes_m2, fp2, lp2)
     partes = [x for x in (m1, m2) if x is not None]
     if not partes:
         return 0.0
@@ -4071,13 +4074,26 @@ def _dashboard_worker(fn, *args, **kwargs):
         close_old_connections()
 
 
+_DASH_CLIENTES_MEDIA_START = date(2026, 4, 20)
+
+
 def _dashboard_capri_novos_clientes_counts(hoje: date) -> tuple[int, int]:
-    novos = ClienteAgro.objects.filter(criado_em__date__gte=hoje - timedelta(days=30)).count()
-    prev = ClienteAgro.objects.filter(
-        criado_em__date__gte=hoje - timedelta(days=60),
-        criado_em__date__lte=hoje - timedelta(days=31),
+    novos_30 = ClienteAgro.objects.filter(criado_em__date__gte=hoje - timedelta(days=30)).count()
+    # Referência = média diária dos últimos até 90 dias, começando em 20/04/2026.
+    # Enquanto não houver 90 dias completos, usa a amostra disponível (autoajuste).
+    fim_hist = hoje - timedelta(days=1)
+    inicio_90 = hoje - timedelta(days=90)
+    hist_ini = max(_DASH_CLIENTES_MEDIA_START, inicio_90)
+    if fim_hist < hist_ini:
+        return novos_30, 0
+    dias_hist = (fim_hist - hist_ini).days + 1
+    total_hist = ClienteAgro.objects.filter(
+        criado_em__date__gte=hist_ini,
+        criado_em__date__lte=fim_hist,
     ).count()
-    return novos, prev
+    media_dia = (total_hist / dias_hist) if dias_hist > 0 else 0.0
+    ref_media_90_em_30 = int(round(media_dia * 30))
+    return novos_30, ref_media_90_em_30
 
 
 def _dashboard_capri_financeiro(hoje: date, ontem: date) -> dict:
@@ -4179,7 +4195,7 @@ def _dashboard_capri_context(request):
     vendas_hoje = blk["vendas_hoje"]
     vendas_ontem = blk["vendas_ontem"]
     alertas_validade_n = int(blk["alertas_validade"] or 0)
-    novos_clientes_30, prev_clientes_30 = blk["novos_clientes"]
+    novos_clientes_30, ref_clientes_media_90 = blk["novos_clientes"]
     total_entregas_pendentes = blk["entregas_pen"]
     entregas_serie_7d = blk["entregas_7d"]
     ticket_medio_mes_civil_anterior = blk["tkt_mes_ant"]
@@ -4216,7 +4232,11 @@ def _dashboard_capri_context(request):
         qtd_total_periodo = int(ticket_agg.get("n") or 0)
     ticket_medio = (total_ticket / qtd_total_periodo) if qtd_total_periodo > 0 else 0.0
 
-    tendencia_clientes = ((novos_clientes_30 / prev_clientes_30) - 1) * 100 if prev_clientes_30 > 0 else 0.0
+    tendencia_clientes = (
+        ((novos_clientes_30 / ref_clientes_media_90) - 1) * 100
+        if ref_clientes_media_90 > 0
+        else 0.0
+    )
 
     u7 = serie_atual[-7:] if len(serie_atual) >= 7 else list(serie_atual)
     media_fat_7d = round(sum(u7) / max(len(u7), 1), 2)
@@ -4238,6 +4258,22 @@ def _dashboard_capri_context(request):
         tkt_trend = "Sem ref. mês"
         tkt_trend_short = "S/ ref."
         tkt_trend_class = "text-slate-600 bg-slate-100 ring-1 ring-slate-300"
+    serie_hoje = _dashboard_mongo_vendas_serie(hoje, hoje)
+    qtd_vendas_hoje = int((serie_hoje.get("qtd_por_dia") or {}).get(hoje.isoformat()) or 0)
+    if qtd_vendas_hoje <= 0:
+        qtd_vendas_hoje = VendaAgro.objects.filter(criado_em__date=hoje).count()
+    ticket_hoje = (vendas_hoje / qtd_vendas_hoje) if qtd_vendas_hoje > 0 else 0.0
+    if ticket_medio_mes_civil_anterior > 0 and ticket_hoje > 0:
+        tkt_hoje_var = ((ticket_hoje / ticket_medio_mes_civil_anterior) - 1) * 100
+        tkt_hoje_trend_short = f"{tkt_hoje_var:+.1f}%"
+        tkt_hoje_trend_class = (
+            "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300"
+            if tkt_hoje_var >= 0
+            else "text-red-800 bg-red-200 ring-1 ring-red-300"
+        )
+    else:
+        tkt_hoje_trend_short = "S/ ref."
+        tkt_hoje_trend_class = "text-slate-600 bg-slate-100 ring-1 ring-slate-300"
     tot_ent_7d = int(sum(entregas_serie_7d)) if entregas_serie_7d else 0
     hoje_cri = int(entregas_serie_7d[-1]) if entregas_serie_7d else 0
     kpis = [
@@ -4262,9 +4298,17 @@ def _dashboard_capri_context(request):
             "trend": tkt_trend,
             "trend_short": tkt_trend_short,
             "trend_class": tkt_trend_class,
+            "value_mes": _format_moeda_br(Decimal(str(round(ticket_medio, 2)))),
+            "value_dia": _format_moeda_br(Decimal(str(round(ticket_hoje, 2)))),
+            "trend_mes_short": tkt_trend_short,
+            "trend_mes_class": tkt_trend_class,
+            "trend_dia_short": tkt_hoje_trend_short,
+            "trend_dia_class": tkt_hoje_trend_class,
+            "variant": "ticket_duplo",
             "context_lines": [
                 "Número grande: ticket médio do período filtrado (faturamento ÷ nº de vendas).",
                 f"O % do selo compara com o mês civil anterior completo ({mes_ant_ini.strftime('%d/%m/%Y')} a {mes_ant_fim.strftime('%d/%m/%Y')}: ticket {_format_moeda_br(Decimal(str(round(ticket_medio_mes_civil_anterior, 2))))}).",
+                f"Ticket do dia usa vendas de hoje dividido por {qtd_vendas_hoje} venda(s).",
                 f"Referência 7d (últ. dias do gráfico, só dia com venda): {_format_moeda_br(Decimal(str(round(media_tkt_7d, 2))))}.",
                 f"Volume do período: {qtd_total_periodo} venda(s) e total {_format_moeda_br(Decimal(str(round(total_ticket, 2))))}.",
             ],
@@ -4293,7 +4337,7 @@ def _dashboard_capri_context(request):
             "context_lines": [
                 "Cadastros com data de criação nos últimos 30 dias.",
                 f"Janela atual: {novos_clientes_30} novo(s) cliente(s).",
-                f"Janela anterior (30 dias ant.): {prev_clientes_30} cliente(s).",
+                f"Referência: média até 90 dias (início em 20/04) normalizada p/ 30 dias = {ref_clientes_media_90} cliente(s).",
             ],
         },
         {

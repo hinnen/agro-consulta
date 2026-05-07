@@ -117,9 +117,15 @@
           <label class="block min-w-0"><span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Telefone <span class="text-orange-600">*</span></span><input type="text" id="edloc-tel" inputmode="tel" autocomplete="tel" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2.5 py-2 font-mono text-[15px] sm:text-base" maxlength="40"></label>
         </div>
         <div class="rounded-xl border-2 border-slate-200 bg-slate-50/90 p-2.5 sm:p-3 space-y-2">
-          <div class="grid grid-cols-1 sm:grid-cols-[1fr_5.5rem] gap-2 sm:gap-3 items-end">
-            <label class="block min-w-0 sm:col-span-1"><span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Logradouro <span class="text-orange-600">*</span></span><input type="text" id="edloc-logr" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2.5 py-2 text-[15px] sm:text-base bg-white" maxlength="320" placeholder="Rua, estrada, BR…"></label>
-            <label class="block w-full sm:w-auto sm:max-w-[5.5rem]"><span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Nº <span class="text-orange-600">*</span></span><input type="text" id="edloc-num" inputmode="numeric" pattern="[0-9]*" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2 py-2 text-[15px] sm:text-base font-mono bg-white" maxlength="12" placeholder="123" title="Somente algarismos"></label>
+          <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:gap-3 items-end">
+            <label class="block min-w-0 sm:col-span-1"><span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Logradouro</span><input type="text" id="edloc-logr" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2.5 py-2 text-[15px] sm:text-base bg-white" maxlength="320" placeholder="Rua, estrada, BR…"></label>
+            <div class="flex items-end gap-2">
+              <label class="block w-full sm:w-auto sm:max-w-[5.5rem]"><span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Nº</span><input type="text" id="edloc-num" inputmode="text" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2 py-2 text-[15px] sm:text-base font-mono bg-white" maxlength="12" placeholder="123" title="Digite número"></label>
+              <label class="inline-flex items-center gap-2 text-[11px] font-black uppercase text-slate-700 mb-1">
+                <input type="checkbox" id="edloc-num-sn" class="w-4 h-4 accent-emerald-600 rounded border-slate-300">
+                Sem número (SN)
+              </label>
+            </div>
           </div>
           <div class="block min-w-0">
             <span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Bairro <span class="text-orange-600">*</span></span>
@@ -147,7 +153,7 @@
               <span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Plus / link Maps</span>
               <button type="button" class="min-w-7 min-h-7 rounded-md border-2 border-slate-300 text-slate-600 font-black text-[10px] hover:bg-slate-50 hover:border-orange-400" title="Um campo só: URL (http…) ou código Plus. Se o CEP não aparecer no mapa, use o Plus aqui (ex.: 8FW4+V5)." aria-label="Ajuda Plus e Maps">?</button>
             </span>
-            <input type="text" id="edloc-plus-ou-link" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2.5 py-2 text-[14px] sm:text-[15px] font-mono" maxlength="600" placeholder="https://… ou Plus">
+            <input type="text" id="edloc-plus-ou-link" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2.5 py-2 text-[14px] sm:text-[15px] font-mono" maxlength="600" placeholder="Ex: CXHC+2J2 Registro, SP (ou global 87G8CXHC+2J2)">
           </label>
           <label class="block min-w-0"><span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-600 tracking-wide">Referência</span><textarea id="edloc-ref" class="mt-0.5 w-full border-2 border-slate-200 rounded-lg px-2.5 py-2 min-h-[44px] text-[15px] sm:text-base resize-y" rows="2" maxlength="300" placeholder="Porteira, cor, km…"></textarea></label>
         </div>
@@ -207,6 +213,21 @@
     </div>
   </div>
 
+  <div id="modal-plus-sync" class="fixed inset-0 z-[87] hidden flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/55 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="plus-sync-titulo">
+    <div class="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl border border-slate-200 overflow-hidden" onclick="event.stopPropagation()">
+      <div class="px-4 py-3 border-b border-slate-100 bg-emerald-50">
+        <h2 id="plus-sync-titulo" class="text-sm font-black uppercase text-emerald-900">Atualizar cadastro do cliente?</h2>
+      </div>
+      <div class="px-4 py-3 space-y-2">
+        <p id="plus-sync-msg" class="text-sm font-semibold text-slate-700 leading-relaxed"></p>
+      </div>
+      <div class="flex gap-2 p-4 border-t border-slate-100 bg-white">
+        <button type="button" id="plus-sync-cancel" class="flex-1 py-2.5 rounded-xl border-2 border-slate-300 text-slate-700 text-xs font-black uppercase hover:bg-slate-50">Manter como esta</button>
+        <button type="button" id="plus-sync-ok" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-black uppercase border-2 border-emerald-700 hover:bg-emerald-700">Sim, atualizar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
 (function () {
   var ORIGENS = {{ origens_maps_json }};
@@ -221,6 +242,8 @@
   var ultimaRotaOrdenada = [];
   var ultimaRotaOrigemTexto = '';
   var addCliCtx = { timer: null, lista: [], selected: null };
+  var plusSyncCtx = { onOk: null, onCancel: null, open: false };
+  var edlocPlusTimer = null;
 
   function origemObj() {
     var sel = document.getElementById('origem-rota');
@@ -319,13 +342,124 @@
     return /^https?:\/\//i.test(m) ? m : '';
   }
 
-  /** Mesmo padrão de `rota_entregas_geo` (OLC no texto). */
-  var RE_PLUS_CODE_OLC = /(?:\d{2,8})?[2-9CFGHJMPQRVWX]{2,8}\+[2-9CFGHJMPQRVWX]{2,3}/gi;
+  /**
+   * Plus Code (OLC) no texto:
+   * - completo: 8 chars + "+" + 2-3 chars (ex.: 58FH+3X7)
+   * - curto: 4-6 chars + "+" + 2-3 chars (ex.: 5WCJ+5C5)
+   * Alfabeto OLC: 23456789CFGHJMPQRVWX.
+   */
+  var RE_PLUS_CODE_OLC = /(?:^|[^23456789CFGHJMPQRVWX])([23456789CFGHJMPQRVWX]{8}\+[23456789CFGHJMPQRVWX]{2,3}|[23456789CFGHJMPQRVWX]{4,6}\+[23456789CFGHJMPQRVWX]{2,3})(?=$|[^23456789CFGHJMPQRVWX])/gi;
 
   function primeiroPlusCodeEmTexto(s) {
     RE_PLUS_CODE_OLC.lastIndex = 0;
     var m = RE_PLUS_CODE_OLC.exec(String(s || ''));
-    return m ? m[0].toUpperCase() : '';
+    return m ? m[1].toUpperCase() : '';
+  }
+
+  /**
+   * Validação estrita para status visual:
+   * - completo (8+2/3) aceita sozinho ou com localidade
+   * - curto (4-6+2/3) exige localidade (cidade/UF/estado), com ou sem vírgula
+   * Não considera "PLUS texto livre" como válido.
+   */
+  function plusCodeEstritoParaStatus(s) {
+    var txt = String(s || '').trim().toUpperCase();
+    if (!txt) return '';
+    var olc = '[23456789CFGHJMPQRVWX]';
+    var codigoCompleto = '(' + olc + '{8}\\+' + olc + '{2,3})';
+    var codigoCurto = '(' + olc + '{4,6}\\+' + olc + '{2,3})';
+    // Cidade: palavras com 3+ caracteres; UF: 2 letras.
+    var palavraCidade = '[A-ZÀ-Ý0-9][A-ZÀ-Ý0-9.-]{2,}';
+    var tokenCidade = palavraCidade + '(?:\\s+' + palavraCidade + ')*';
+    var tokenUf = '[A-Z]{2}';
+    var localidadeComVirgula = '(?:\\s*,\\s*' + tokenCidade + '(?:\\s*,\\s*(?:' + tokenUf + '|' + tokenCidade + '))?)';
+    var localidadeSemVirgula = '(?:\\s+' + tokenCidade + '(?:\\s+(?:' + tokenUf + '|' + tokenCidade + '))?)';
+    var localidadeEspacoComVirgula = '(?:\\s+' + tokenCidade + '\\s*,\\s*(?:' + tokenUf + '|' + tokenCidade + '))';
+    var localidade = '(?:' + localidadeComVirgula + '|' + localidadeSemVirgula + '|' + localidadeEspacoComVirgula + ')';
+    var rgxCompleto = new RegExp('^' + codigoCompleto + '(?:' + localidade + ')?$', 'i');
+    var rgxCurtoComCidade = new RegExp('^' + codigoCurto + localidade + '$', 'i');
+    var m = txt.match(rgxCompleto);
+    if (m) return m[1].toUpperCase();
+    m = txt.match(rgxCurtoComCidade);
+    if (m) return m[1].toUpperCase();
+    return '';
+  }
+
+  function isPlusCodeCurtoPuro(s) {
+    var txt = String(s || '').trim().toUpperCase();
+    if (!txt) return false;
+    var olc = '[23456789CFGHJMPQRVWX]';
+    var rgxCurtoPuro = new RegExp('^' + olc + '{4,6}\\+' + olc + '{2,3}$', 'i');
+    return rgxCurtoPuro.test(txt);
+  }
+
+  function temPlusCodeCurtoNoInicio(s) {
+    var txt = String(s || '').trim().toUpperCase();
+    if (!txt) return false;
+    var olc = '[23456789CFGHJMPQRVWX]';
+    var rgx = new RegExp('^' + olc + '{4,6}\\+' + olc + '{2,3}(?:\\b|$)', 'i');
+    return rgx.test(txt);
+  }
+
+  function normalizarTextoComparacao(s) {
+    return String(s || '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toUpperCase();
+  }
+
+  function devePerguntarAtualizarCadastroPlus(entrega, valorInformado) {
+    var novo = String(valorInformado || '').trim();
+    if (!plusCodeEstritoParaStatus(novo)) return false;
+    var atualCadastro = String(valorExibirPlusOuLink(entrega) || '').trim();
+    if (!atualCadastro) return false;
+    if (normalizarTextoComparacao(novo) === normalizarTextoComparacao(atualCadastro)) return false;
+    return !plusCodeEstritoParaStatus(atualCadastro);
+  }
+
+  function chavePromptPlusValor(v) {
+    return normalizarTextoComparacao(v);
+  }
+
+  function abrirModalPlusSync(msg, onOk, onCancel) {
+    var m = document.getElementById('modal-plus-sync');
+    var p = document.getElementById('plus-sync-msg');
+    if (!m || !p) return;
+    plusSyncCtx.onOk = typeof onOk === 'function' ? onOk : null;
+    plusSyncCtx.onCancel = typeof onCancel === 'function' ? onCancel : null;
+    plusSyncCtx.open = true;
+    p.textContent = msg || 'Deseja atualizar agora o cadastro do cliente em "Plus / link Maps"?';
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+
+  function fecharModalPlusSync() {
+    var m = document.getElementById('modal-plus-sync');
+    if (!m) return;
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+    plusSyncCtx.open = false;
+    plusSyncCtx.onOk = null;
+    plusSyncCtx.onCancel = null;
+  }
+
+  function sincronizarCadastroPlusAgora(entrega, valorInformado) {
+    var dpol = distribuirPlusOuLink(valorInformado);
+    var payload = {
+      id: entrega.id,
+      plus_code: dpol.plus_code,
+      maps_url_manual: dpol.maps_url_manual,
+      sincronizar_cliente: true,
+      cliente_agro_id: entrega.cliente_agro_id != null && entrega.cliente_agro_id !== '' ? entrega.cliente_agro_id : null,
+    };
+    return postAtualizar(payload).then(function (j) {
+      if (!j || !j.ok) {
+        alert((j && j.erro) || 'Falha ao atualizar cadastro do cliente.');
+        return;
+      }
+      entrega.plus_code = payload.plus_code;
+      entrega.maps_url_manual = payload.maps_url_manual;
+    });
   }
 
   function primeiroLatLngEmTexto(s) {
@@ -346,14 +480,13 @@
     val = String(val || '').trim();
     if (!val) return { plus_code: '', maps_url_manual: '' };
     if (/^https?:\/\//i.test(val)) return { plus_code: '', maps_url_manual: val.slice(0, 600) };
-    var p = primeiroPlusCodeEmTexto(val);
+    var p = plusCodeEstritoParaStatus(val);
     if (!p) return { plus_code: '', maps_url_manual: val.slice(0, 600) };
-    var vCompact = val.replace(/\s/g, '').toUpperCase();
-    var pCompact = p.replace(/\s/g, '');
-    if (vCompact === pCompact) return { plus_code: p, maps_url_manual: '' };
-    if (val.length <= 36 && vCompact.indexOf(pCompact) >= 0 && vCompact.length <= pCompact.length + 3)
-      return { plus_code: p, maps_url_manual: '' };
-    return { plus_code: '', maps_url_manual: val.slice(0, 600) };
+    if (isPlusCodeCurtoPuro(p)) {
+      // Curto válido depende da localidade; mantém texto completo no campo Maps.
+      return { plus_code: '', maps_url_manual: val.slice(0, 600) };
+    }
+    return { plus_code: p, maps_url_manual: '' };
   }
 
   function valorExibirPlusOuLink(e) {
@@ -657,10 +790,28 @@
 
   function bindModalEdlocAntiErroOnce() {
     var numEl = document.getElementById('edloc-num');
+    var snEl = document.getElementById('edloc-num-sn');
     if (numEl && !numEl.dataset.agroNumBound) {
       numEl.dataset.agroNumBound = '1';
       numEl.addEventListener('input', function () {
-        numEl.value = numEl.value.replace(/\D/g, '');
+        if (snEl && snEl.checked) return;
+        var v = String(numEl.value || '').replace(/\D/g, '');
+        numEl.value = v.slice(0, 10);
+      });
+    }
+    if (snEl && !snEl.dataset.agroBound) {
+      snEl.dataset.agroBound = '1';
+      snEl.addEventListener('change', function () {
+        if (snEl.checked) {
+          numEl.value = 'SN';
+          numEl.readOnly = true;
+          numEl.classList.add('bg-slate-100');
+        } else {
+          if (String(numEl.value || '').trim().toUpperCase() === 'SN') numEl.value = '';
+          numEl.readOnly = false;
+          numEl.classList.remove('bg-slate-100');
+          numEl.focus();
+        }
       });
     }
     var uf = document.getElementById('edloc-uf');
@@ -693,20 +844,28 @@
   /** Verificador local (sem geocoding): verde = destino provável; vermelho = revisar. */
   function destinoLocalConfiavel(e) {
     var httpM = mapsUrlHttp(e);
-    if (httpM) return { ok: true, msg: '✓ Link do Maps (URL)' };
+    if (httpM) return { ok: true, msg: 'Link do Maps valido' };
     var extra = textoExtraMapsSemHttp(e);
     var pc = String(e.plus_code || '').trim();
-    var end = String(e.endereco_linha || '').trim();
-    var blob = [pc, extra, end].join(' ');
-    if (primeiroPlusCodeEmTexto(blob)) return { ok: true, msg: '✓ Plus Code reconhecido' };
-    if (primeiroLatLngEmTexto(pc) || primeiroLatLngEmTexto(extra) || primeiroLatLngEmTexto(end))
-      return { ok: true, msg: '✓ Coordenadas lat, lng' };
-    if (end.length >= 12) return { ok: true, msg: '✓ Endereço para busca no Maps' };
-    if (end.length >= 8 && end.length < 12)
-      return { ok: false, msg: '⚠ Endereço curto — confira ou use Plus / link Maps' };
-    if (!blob.replace(/\s/g, '') && String(e.cliente_nome || '').trim())
-      return { ok: false, msg: '⚠ Só o nome no Maps — informe endereço, Plus ou link' };
-    return { ok: false, msg: '⚠ Sem destino claro — Plus, link Maps ou endereço completo' };
+    var campoVazio = !String(pc || '').trim() && !String(extra || '').trim();
+    if (campoVazio) {
+      return { ok: false, msg: 'Informe Plus Code ou link do Maps' };
+    }
+    var pcVal = plusCodeEstritoParaStatus(pc) || plusCodeEstritoParaStatus(extra);
+    if (pcVal) {
+      if (isPlusCodeCurtoPuro(pcVal)) return { ok: true, msg: 'Plus Code valido (curto com cidade)' };
+      return { ok: true, msg: 'Plus Code valido (global)' };
+    }
+    if (
+      isPlusCodeCurtoPuro(pc) ||
+      isPlusCodeCurtoPuro(extra) ||
+      temPlusCodeCurtoNoInicio(pc) ||
+      temPlusCodeCurtoNoInicio(extra)
+    )
+      return { ok: false, msg: 'Plus Code curto: adicione cidade (UF recomendado)' };
+    if (primeiroLatLngEmTexto(pc) || primeiroLatLngEmTexto(extra))
+      return { ok: true, msg: 'Coordenadas validas (lat, lng)' };
+    return { ok: false, msg: 'Formato invalido: use Plus valido ou URL do Maps' };
   }
 
   function urlBuscaMaps(e) {
@@ -1170,10 +1329,12 @@
     if (!st) return;
     var ex = mergeEntregaDaLinha(tr, e);
     var r = destinoLocalConfiavel(ex);
-    st.textContent = r.msg;
+    st.innerHTML = (r.ok ? '✅ ' : '⚠️ ') + esc(r.msg);
     st.className =
-      'ent-loc-status mt-1 text-xs font-bold leading-snug min-h-[1.35rem] ' +
-      (r.ok ? 'text-emerald-700' : 'text-orange-800');
+      'ent-loc-status mt-1 text-xs font-bold leading-snug min-h-[1.35rem] rounded-md px-2 py-1 inline-flex items-center ' +
+      (r.ok
+        ? 'text-emerald-800 bg-emerald-50 border border-emerald-200'
+        : 'text-orange-900 bg-orange-50 border border-orange-200');
   }
 
   function optsFormaHtml(valAtual) {
@@ -1244,7 +1405,7 @@
         (e.referencia_rural ? '<div class="text-xs font-bold text-orange-800 mt-1 leading-snug">Ref.: ' + esc(e.referencia_rural) + '</div>' : '') +
         '<div class="flex flex-col sm:flex-row gap-1.5 mt-1.5 items-stretch">' +
         '<div class="flex-1 min-w-0">' +
-        '<input type="text" class="ent-plus-ou-link w-full text-xs border-2 border-slate-200 rounded-lg px-2 py-1.5 font-mono bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200 outline-none" placeholder="Plus ou link Maps" title="URL https… ou código Plus" aria-label="Plus ou link do Maps" value="' + esc(valorExibirPlusOuLink(e)) + '">' +
+        '<input type="text" class="ent-plus-ou-link w-full text-xs border-2 border-slate-200 rounded-lg px-2 py-1.5 font-mono bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200 outline-none" placeholder="Ex: CXHC+2J2 Registro, SP" title="URL https… ou Plus. Curto: use cidade (estado recomendado). Global funciona sozinho." aria-label="Plus ou link do Maps" value="' + esc(valorExibirPlusOuLink(e)) + '">' +
         '</div>' +
         '<button type="button" class="ent-btn-edit-local shrink-0 px-2.5 py-1.5 rounded-lg border-2 border-slate-300 bg-white text-[10px] font-black uppercase text-slate-800 hover:bg-emerald-50 hover:border-emerald-400 min-h-[2.25rem] sm:min-w-[6.5rem]">Editar local</button>' +
         '</div>' +
@@ -1347,8 +1508,27 @@
 
     var mapsInp = tr.querySelector('.ent-plus-ou-link');
     if (mapsInp) {
-      mapsInp.addEventListener('input', function () {
-        atualizarIndicadorLocal(tr, e);
+      ['input', 'change', 'keyup', 'paste'].forEach(function (evn) {
+        mapsInp.addEventListener(evn, function () {
+          atualizarIndicadorLocal(tr, e);
+          if (plusSyncCtx.open) return;
+          if (!(e.cliente_agro_id != null || String(e.telefone || '').trim())) return;
+          var valorAtual = mapsInp.value || '';
+          var chave = chavePromptPlusValor(valorAtual);
+          if (tr.dataset.plusPromptKey === chave) return;
+          clearTimeout(tr.__plusPromptTimer);
+          tr.__plusPromptTimer = setTimeout(function () {
+            if (!devePerguntarAtualizarCadastroPlus(e, valorAtual)) return;
+            tr.dataset.plusPromptKey = chave;
+            abrirModalPlusSync(
+              'O Plus Code informado está no padrão correto. Deseja salvar esse Plus Code no cadastro do cliente?',
+              function () {
+                sincronizarCadastroPlusAgora(e, valorAtual);
+              },
+              function () {}
+            );
+          }, 220);
+        });
       });
     }
     tr.querySelector('.ent-btn-edit-local').onclick = function () {
@@ -1380,7 +1560,13 @@
     var pe = partirEnderecoLinha(ex.endereco_linha || '');
     document.getElementById('edloc-logr').value = pe.log;
     var numRaw = String(pe.num || '').trim();
-    document.getElementById('edloc-num').value = /^\d+$/.test(numRaw) ? numRaw : '';
+    var numEl = document.getElementById('edloc-num');
+    var snEl = document.getElementById('edloc-num-sn');
+    var isSN = numRaw.toUpperCase() === 'SN';
+    numEl.value = isSN ? 'SN' : (/^\d+$/.test(numRaw) ? numRaw : '');
+    snEl.checked = isSN;
+    numEl.readOnly = isSN;
+    numEl.classList.toggle('bg-slate-100', isSN);
     aplicarBairroNoSelect(pe.bairro);
     var cid = String(pe.cidade || '').trim();
     document.getElementById('edloc-cidade').value = cid || EDLOC_CIDADE_PADRAO;
@@ -1794,6 +1980,23 @@
   document.getElementById('modal-add-cliente-rota').addEventListener('click', function (ev) {
     if (ev.target === this) fecharModalAddClienteRota();
   });
+  document.getElementById('modal-plus-sync').addEventListener('click', function (ev) {
+    if (ev.target === this) {
+      var fn = plusSyncCtx.onCancel;
+      fecharModalPlusSync();
+      if (fn) fn();
+    }
+  });
+  document.getElementById('plus-sync-cancel').onclick = function () {
+    var fn = plusSyncCtx.onCancel;
+    fecharModalPlusSync();
+    if (fn) fn();
+  };
+  document.getElementById('plus-sync-ok').onclick = function () {
+    var fn = plusSyncCtx.onOk;
+    fecharModalPlusSync();
+    if (fn) fn();
+  };
   document.getElementById('addcli-cancel').onclick = fecharModalAddClienteRota;
   document.getElementById('addcli-q').addEventListener('input', function () {
     var q = this.value;
@@ -1803,6 +2006,26 @@
     }, 220);
   });
   document.getElementById('addcli-save').onclick = registrarEntregaDiretoCliente;
+  document.getElementById('edloc-plus-ou-link').addEventListener('input', function () {
+    if (!editLocalCtx || !editLocalCtx.e) return;
+    if (plusSyncCtx.open) return;
+    if (!(editLocalCtx.e.cliente_agro_id != null || String(editLocalCtx.e.telefone || '').trim())) return;
+    var valorAtual = this.value || '';
+    var chave = chavePromptPlusValor(valorAtual);
+    if (editLocalCtx.plusPromptKey === chave) return;
+    clearTimeout(edlocPlusTimer);
+    edlocPlusTimer = setTimeout(function () {
+      if (!devePerguntarAtualizarCadastroPlus(editLocalCtx.e, valorAtual)) return;
+      editLocalCtx.plusPromptKey = chave;
+      abrirModalPlusSync(
+        'O Plus Code informado está no padrão correto. Deseja salvar esse Plus Code no cadastro do cliente?',
+        function () {
+          sincronizarCadastroPlusAgora(editLocalCtx.e, valorAtual);
+        },
+        function () {}
+      );
+    }, 220);
+  });
 
   document.getElementById('modal-edit-local').addEventListener('click', function (ev) {
     if (ev.target === this) fecharModalEditLocal();
@@ -1816,19 +2039,20 @@
       document.getElementById('edloc-tel').focus();
       return;
     }
-    if (!document.getElementById('edloc-logr').value.trim()) {
-      alert('Logradouro é obrigatório.');
-      document.getElementById('edloc-logr').focus();
-      return;
-    }
+    var snMarcado = !!document.getElementById('edloc-num-sn').checked;
+    if (snMarcado) document.getElementById('edloc-num').value = 'SN';
     var numVal = document.getElementById('edloc-num').value.trim();
-    if (!numVal) {
-      alert('Número é obrigatório (apenas algarismos).');
-      document.getElementById('edloc-num').focus();
-      return;
+    if (numVal) {
+      var numNorm = String(numVal).toUpperCase().replace(/\s+/g, '');
+      if (!(numNorm === 'SN' || /^\d+$/.test(numNorm))) {
+        alert('Número: use somente algarismos ou SN (sem número).');
+        document.getElementById('edloc-num').focus();
+        return;
+      }
+      document.getElementById('edloc-num').value = numNorm;
     }
-    if (!/^\d+$/.test(numVal)) {
-      alert('Número: use somente algarismos, sem letras.');
+    if (!document.getElementById('edloc-logr').value.trim() && !numVal) {
+      alert('Informe ao menos logradouro ou número (pode usar SN).');
       document.getElementById('edloc-num').focus();
       return;
     }
@@ -1860,8 +2084,6 @@
       referencia_rural: document.getElementById('edloc-ref').value,
       plus_code: pol.plus_code,
       maps_url_manual: pol.maps_url_manual,
-      sincronizar_cliente: true,
-      cliente_agro_id: caid != null && caid !== '' ? caid : null,
       cli_logradouro: document.getElementById('edloc-logr').value.trim(),
       cli_numero: document.getElementById('edloc-num').value.trim(),
       cli_bairro: bairroSelecionadoModal(),
