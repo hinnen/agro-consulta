@@ -982,9 +982,17 @@
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
     const qRaw = tr.querySelector('.in-q-est')?.value;
     const q = Number(String(qRaw ?? '').replace(/\s/g, '').replace(',', '.')) || 0;
-    const v = entradaNfeParseDecimalApi(tr.querySelector('.in-vun')?.value) ?? 0;
+    const v = entradaNfeLinhaValorUnitarioCalculo(tr);
     const el = tr.querySelector('.nfe-total-linha');
     if (el) el.textContent = entradaNfeFmtMoedaBr2(q * v);
+  }
+
+  /** Usa precisão interna quando houver rateio por embalagem; fallback no valor exibido no input. */
+  function entradaNfeLinhaValorUnitarioCalculo(tr) {
+    if (!tr) return 0;
+    const vp = entradaNfeParseDecimalApi(tr.dataset.nfeVunPreciso || '');
+    if (vp != null && Number.isFinite(vp) && vp >= 0) return vp;
+    return entradaNfeParseDecimalApi(tr.querySelector('.in-vun')?.value) ?? 0;
   }
 
   /**
@@ -1012,6 +1020,7 @@
     if (un <= 1) {
       const emb = entradaNfeParseDecimalApi(tr.dataset.nfeCustoEmbalagem || '');
       if (emb != null && Number.isFinite(emb) && emb > 0) {
+        tr.dataset.nfeVunPreciso = String(emb);
         entradaNfeDefinirInputMoedaBr2(vunEl, emb);
       }
       delete tr.dataset.nfeCustoEmbalagem;
@@ -1028,7 +1037,8 @@
 
     const unit = custoEmb / un;
     if (Number.isFinite(unit) && unit >= 0) {
-      entradaNfeDefinirInputMoedaBrPrecisa(vunEl, unit, 6);
+      tr.dataset.nfeVunPreciso = String(unit);
+      entradaNfeDefinirInputMoedaBr2(vunEl, unit);
     }
   }
 
@@ -2810,7 +2820,7 @@
     let c = 0;
     document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
       const q = Number(tr.querySelector('.in-q-est')?.value) || 0;
-      const v = entradaNfeParseDecimalApi(tr.querySelector('.in-vun')?.value) ?? 0;
+      const v = entradaNfeLinhaValorUnitarioCalculo(tr);
       if (!Number.isFinite(q) || !Number.isFinite(v)) return;
       c += entradaNfeRoundHalfUp(q * v * 100, 0);
     });
@@ -3147,7 +3157,7 @@
     let s = 0;
     document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
       const q = Number(tr.querySelector('.in-q-est')?.value) || 0;
-      const v = entradaNfeParseDecimalApi(tr.querySelector('.in-vun')?.value) ?? 0;
+      const v = entradaNfeLinhaValorUnitarioCalculo(tr);
       s += q * v;
       entradaNfeLinhaAtualizarTotalProduto(tr);
     });
@@ -3646,7 +3656,7 @@
         un_por_embalagem: Number(tr.querySelector('.in-un-emb').value) || 1,
         q_estoque: Number(tr.querySelector('.in-q-est').value) || 0,
         v_un_com: (() => {
-          const x = entradaNfeParseDecimalApi(tr.querySelector('.in-vun')?.value);
+          const x = entradaNfeLinhaValorUnitarioCalculo(tr);
           return x != null && Number.isFinite(x) ? entradaNfeRoundHalfUp(x, 6) : 0;
         })(),
         margem_percentual: entradaNfeParseMargemInt(tr.querySelector('.in-margem')?.value),
