@@ -377,6 +377,48 @@ def merge_busca_codigo_prioridade_principal(
     return merged[: max(1, int(limit))]
 
 
+CAMPOS_SO_CODIGO_BARRAS_EAN_GTIN: tuple[str, ...] = (
+    "CodigoBarras",
+    "EAN_NFe",
+    "EAN",
+    "CodigoDeBarras",
+    "CodigoBarrasProduto",
+    "GTIN",
+)
+
+
+def produto_termo_bate_somente_codigo_barras(doc: dict, termo_limpo: str) -> bool:
+    """
+    Só código de barras / EAN / GTIN do cadastro (não código GM, referência nem índice geral).
+    Usado na etapa «Confirmar código» da entrada NF para marcar OK automaticamente.
+    """
+    tl = somente_alnum(termo_limpo).lower()
+    if not tl:
+        return False
+
+    def _scan_igual_campo(scan: str, cand) -> bool:
+        if cand is None or cand == "":
+            return False
+        if isinstance(cand, (int, float)):
+            try:
+                cand = str(int(cand))
+            except (TypeError, ValueError):
+                cand = str(cand)
+        v = somente_alnum(str(cand)).lower()
+        if not v:
+            return False
+        if v == scan:
+            return True
+        if scan.isdigit() and v.isdigit():
+            return (scan.lstrip("0") or "0") == (v.lstrip("0") or "0")
+        return False
+
+    for fld in CAMPOS_SO_CODIGO_BARRAS_EAN_GTIN:
+        if _scan_igual_campo(tl, doc.get(fld)):
+            return True
+    return False
+
+
 def produto_termo_bate_campos_principais(doc: dict, termo_limpo: str) -> bool:
     tl = somente_alnum(termo_limpo).lower()
     if not tl:

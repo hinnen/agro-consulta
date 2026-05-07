@@ -99,6 +99,7 @@ from .mongo_index_codigos import (
     aplicar_index_codigos_no_mongo,
     merge_busca_codigo_prioridade_principal,
     produto_termo_bate_campos_principais,
+    produto_termo_bate_somente_codigo_barras,
     somente_alnum,
 )
 from .rota_entregas_geo import ordenar_entregas_por_proximidade
@@ -6223,7 +6224,7 @@ def api_entrada_nota_fornecedores(request):
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_entrada_nota_conferir_codigo(request):
-    """Confere código bipado (EAN/código interno) contra o produto do catálogo (Mongo)."""
+    """Confere código bipado somente como código de barras / EAN no cadastro Mongo (não GM/referência)."""
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -6250,10 +6251,10 @@ def api_entrada_nota_conferir_codigo(request):
         return JsonResponse({"ok": False, "erro": "Produto não encontrado no catálogo."}, status=404)
 
     tl = somente_alnum(codigo).lower()
-    bate = bool(tl and produto_termo_bate_campos_principais(doc, tl))
+    bate = bool(tl and produto_termo_bate_somente_codigo_barras(doc, tl))
     if not bate and codigo_alt:
         ta = somente_alnum(codigo_alt).lower()
-        bate = bool(ta and produto_termo_bate_campos_principais(doc, ta))
+        bate = bool(ta and produto_termo_bate_somente_codigo_barras(doc, ta))
     return JsonResponse(
         {
             "ok": True,

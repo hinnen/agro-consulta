@@ -90,6 +90,27 @@
       outline: 2px solid rgb(148 163 184 / 0.45);
       outline-offset: 1px;
     }
+    /* Faixas de cor na margem % (entrada NF). */
+    .in-margem.nfe-margem--crit {
+      background-color: rgb(254 226 226);
+      border-color: rgb(248 113 113);
+      color: rgb(127 29 29);
+    }
+    .in-margem.nfe-margem--warn {
+      background-color: rgb(254 249 195);
+      border-color: rgb(234 179 8);
+      color: rgb(113 63 18);
+    }
+    .in-margem.nfe-margem--ok {
+      background-color: rgb(220 252 231);
+      border-color: rgb(74 222 128);
+      color: rgb(6 78 59);
+    }
+    .in-margem.nfe-margem--high {
+      background-color: rgb(219 234 254);
+      border-color: rgb(96 165 250);
+      color: rgb(30 64 175);
+    }
     /* Sugestões: mesmo layout flex do PDV wizard (thumb + texto + preço à direita). */
     ul.nfe-busca-dd {
       list-style: none;
@@ -385,19 +406,19 @@
           </div>
         </div>
         <div id="entrada-nfe-grade-scroll" class="overflow-x-auto rounded-xl border-2 border-slate-200 bg-white shadow-inner">
-        <table class="nfe-grade-itens w-full table-fixed text-xs sm:text-sm min-w-[1280px] border-separate border-spacing-0">
+        <table class="nfe-grade-itens w-full table-fixed text-xs sm:text-sm min-w-[1320px] border-separate border-spacing-0">
           <colgroup>
             <col class="w-[17%]" />
             <col class="w-[5.25rem]" />
             <col class="w-[5.75rem]" />
             <col class="w-[4.5rem]" />
-            <col class="w-[7.25rem]" />
+            <col class="w-[10.5rem]" />
             <col class="w-[4.25rem]" />
             <col class="w-[5.25rem]" />
             <col class="w-[5.75rem]" />
             <col class="w-[5.25rem]" />
             <col class="w-[5.75rem]" />
-            <col class="w-[3rem]" />
+            <col class="w-[5.75rem]" />
             <col class="w-[2rem]" />
             <col class="w-[3.25rem]" />
             <col class="w-10" />
@@ -414,7 +435,7 @@
               <th class="text-right align-bottom px-2 py-2" title="Valor unitário de compra (NF)">V. unit</th>
               <th class="text-right align-bottom px-2 py-2" title="Margem % sobre o custo (cadastro Agro; editável)">Margem %</th>
               <th class="text-right align-bottom px-2 py-2" title="Preço de venda de referência no Agro (editável)">P. venda</th>
-              <th class="text-left align-bottom px-2 py-2" title="Código fiscal de operações">CFOP</th>
+              <th class="text-right align-bottom px-2 py-2" title="Qtd NF × valor unitário (linha)">Total</th>
               <th class="text-center align-bottom px-1 py-2" title="Catálogo casado. Aponte o mouse na coluna Descrição para ver o nome completo cadastrado no Agro.">Cat.</th>
               <th class="text-center align-bottom px-1 py-2" title="Abrir cadastro do produto no ERP (nova janela)">ERP</th>
               <th class="w-10 align-bottom px-0 py-2" aria-label="Remover">&nbsp;</th>
@@ -929,6 +950,30 @@
       return;
     }
     entradaNfeDefinirInputMoedaBr2(inp, n);
+  }
+
+  /** Total da linha (Qtd NF × V. unit), só exibição. */
+  function entradaNfeLinhaAtualizarTotalProduto(tr) {
+    if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
+    const qRaw = tr.querySelector('.in-qtd')?.value;
+    const q = Number(String(qRaw ?? '').replace(/\s/g, '').replace(',', '.')) || 0;
+    const v = entradaNfeParseDecimalApi(tr.querySelector('.in-vun')?.value) ?? 0;
+    const el = tr.querySelector('.nfe-total-linha');
+    if (el) el.textContent = entradaNfeFmtMoedaBr2(q * v);
+  }
+
+  /** Abaixo de 25% ou negativa: vermelho; 25–34%: amarelo; 35–70%: verde; acima de 70%: azul. */
+  function entradaNfeLinhaApplyMargemCor(tr) {
+    if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
+    const mEl = tr.querySelector('.in-margem');
+    if (!mEl) return;
+    ['nfe-margem--crit', 'nfe-margem--warn', 'nfe-margem--ok', 'nfe-margem--high'].forEach((c) => mEl.classList.remove(c));
+    const mInt = entradaNfeParseMargemInt(mEl.value);
+    if (mInt == null) return;
+    if (mInt < 25) mEl.classList.add('nfe-margem--crit');
+    else if (mInt < 35) mEl.classList.add('nfe-margem--warn');
+    else if (mInt <= 70) mEl.classList.add('nfe-margem--ok');
+    else mEl.classList.add('nfe-margem--high');
   }
 
   const ENTRADA_NFE_LINHA_PADRAO = {
@@ -1914,6 +1959,12 @@
     if (added) atualizarPainelTotalNfe();
     entradaNfeBipRebuildSelect();
     entradaNfeSentinelAtualizaContadorGrade();
+    /* MontarCompacta injeta sempre «Carregando…» — alinhar ao estado real do catálogo. */
+    queueMicrotask(() => {
+      try {
+        entradaNfeSentinelFeedbackSet('');
+      } catch (_) {}
+    });
   }
 
   function entradaNfeBipEstadoLinha(tr) {
@@ -1957,7 +2008,7 @@
     return false;
   }
 
-  /** Bate primeiro com **EAN / código já trazidos da NF na linha** (antes do catálogo Mongo). */
+  /** Bate só com **EAN/código de barras já trazidos da NF na linha** — não usa código GM (NF). */
   function entradaNfeBipBuscarMatchLocalNota(rows, codMain, codAux) {
     const termos = [codMain, codAux].map((x) => String(x || '').trim()).filter(Boolean);
     if (!termos.length) return null;
@@ -1972,11 +2023,11 @@
       const tr = rows[i];
       const pid = tr.querySelector('.in-prod-id')?.value?.trim();
       if (!pid) continue;
-      const ean = tr.querySelector('.in-ean')?.value || '';
-      const cprod = tr.querySelector('.in-cprod')?.value || '';
+      const ean = String(tr.querySelector('.in-ean')?.value || '').trim();
+      if (!ean) continue;
       let ok = false;
       for (const t of termos) {
-        if (entradaNfeCodigosEquivalentes(t, ean) || entradaNfeCodigosEquivalentes(t, cprod)) {
+        if (entradaNfeCodigosEquivalentes(t, ean)) {
           ok = true;
           break;
         }
@@ -2285,7 +2336,7 @@
       entradaNfeBipLinhaIdx = match.ix;
       let det = '';
       if (match.payload?.local) {
-        det = ' (bate com EAN ou código já da NF)';
+        det = ' (bate com código de barras da NF)';
       }
       entradaNfeBipRebuildSelect();
       entradaNfeBipLimparCamposBip();
@@ -2524,8 +2575,8 @@
         titulo: 'Ajuda rápida · Código de barras',
         resumo: 'Bipe no campo principal; o sistema tenta casar automaticamente.',
         itens: [
-          'Primeiro compara com EAN/código da própria NF; depois com cadastro ERP.',
-          'Se não casar, escolha na caixa o item correto para marcar como similar/opcional.',
+          'Confirmação automática (verde): só se o lido bater com o EAN da linha na NF ou com código de barras/EAN no cadastro — código GM da NF não basta.',
+          'Se não casar, abre a janela: toque na linha do produto certo para marcar como similar/opcional.',
           'Cores nos botões da lista: verde = bateu; âmbar = similar/opcional; cinza = pendente.',
           '“Sem código na embalagem” dispensa apenas a linha selecionada.',
         ],
@@ -3010,6 +3061,7 @@
       const q = Number(tr.querySelector('.in-qtd')?.value) || 0;
       const v = entradaNfeParseDecimalApi(tr.querySelector('.in-vun')?.value) ?? 0;
       s += q * v;
+      entradaNfeLinhaAtualizarTotalProduto(tr);
     });
     const el = document.getElementById('nfe-valor-total-itens');
     if (el) el.textContent = s.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -3188,6 +3240,7 @@
       const pct = ((pv / vu) - 1) * 100;
       entradaNfeDefinirInputMargemInt(mEl, pct);
     }
+    entradaNfeLinhaApplyMargemCor(tr);
   }
 
   async function entradaNfeLinhaPersistirMargemAgro(tr, opts) {
@@ -3303,7 +3356,7 @@
         <div class="rounded-xl border-[3px] border-amber-500 bg-gradient-to-b from-amber-50 to-white px-1 py-1 shadow-md ring-1 ring-amber-400/70">
           <div class="flex items-stretch justify-center gap-0.5">
             <button type="button" tabindex="-1" class="nfe-q-menos self-center min-h-[40px] min-w-[38px] shrink-0 rounded-lg border-2 border-amber-800 bg-white text-lg font-black leading-none text-amber-950 hover:bg-amber-100">−</button>
-            <input type="number" step="any" class="in-qtd min-w-0 flex-1 rounded-lg border-2 border-amber-600 bg-white px-1 py-2 text-center text-base font-black text-amber-950 shadow-inner" value="">
+            <input type="number" step="any" class="in-qtd min-w-[3rem] flex-1 rounded-lg border-2 border-amber-600 bg-white px-1.5 py-2 text-center text-base font-black tabular-nums text-amber-950 shadow-inner" value="">
             <button type="button" tabindex="-1" class="nfe-q-mais self-center min-h-[40px] min-w-[38px] shrink-0 rounded-lg border-2 border-amber-800 bg-white text-lg font-black leading-none text-amber-950 hover:bg-amber-100">+</button>
           </div>
         </div>
@@ -3319,7 +3372,7 @@
       </td>
       <td class="px-2 py-1 align-middle">
         <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
-          class="in-margem w-full min-w-[3rem] rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-sm font-semibold text-slate-900 tabular-nums"
+          class="in-margem w-full min-w-[3rem] rounded-lg border-2 border-slate-200 bg-white px-2 py-2 text-center text-sm font-semibold text-slate-900 tabular-nums"
           title="Margem % inteira (ex.: 25). Ao sair, grava no cadastro e recalcula P. venda a partir do V. unit.">
       </td>
       <td class="px-2 py-1 align-middle">
@@ -3327,7 +3380,10 @@
           class="in-pvenda w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-base font-semibold text-slate-900 tabular-nums tracking-tight"
           title="Preço de venda (referência), formato 0,00">
       </td>
-      <td class="px-2 py-1"><input type="text" class="in-cfop w-full min-w-0 rounded border border-slate-200 px-1 py-1 text-xs" value=""></td>
+      <td class="px-2 py-1 align-middle text-right">
+        <span class="nfe-total-linha block tabular-nums text-sm font-black text-slate-900 whitespace-nowrap" title="Qtd NF × V. unit">0,00</span>
+        <input type="hidden" class="in-cfop" value="">
+      </td>
       <td class="px-1 py-1 text-center align-middle"><span class="in-match inline-block min-w-[1.1rem] text-sm font-black leading-none">—</span></td>
       <td class="px-1 py-1 text-center"><button type="button" class="btn-edit-prod-erp min-h-[40px] min-w-[40px] rounded-lg border-2 border-slate-200 bg-white text-base leading-none text-slate-600 hover:border-orange-400 hover:text-orange-800 hover:bg-orange-50 disabled:opacity-40 disabled:pointer-events-none" title="Abrir cadastro ERP (nova janela)" aria-label="Abrir cadastro do produto">✎</button></td>
       <td class="px-1 py-1"><button type="button" class="btn-del text-red-600 font-black text-lg leading-none px-1" title="Remover">×</button></td>`;
@@ -3373,24 +3429,38 @@
     if (viaCat === 'scan' || viaCat === 'modal' || viaCat === 'lookup') tr.dataset.nfeCatVia = viaCat;
     else delete tr.dataset.nfeCatVia;
     entradaNfeLinhaApplyCatalogoUi(tr);
+    entradaNfeLinhaAtualizarTotalProduto(tr);
+    entradaNfeLinhaApplyMargemCor(tr);
     ['input', 'change'].forEach((ev) => {
-      tr.querySelector('.in-qtd').addEventListener(ev, () => { delete qe.dataset.manual; atualizarQtdEstoqueRow(tr); });
-      tr.querySelector('.in-un-emb').addEventListener(ev, () => { delete qe.dataset.manual; atualizarQtdEstoqueRow(tr); });
+      tr.querySelector('.in-qtd').addEventListener(ev, () => {
+        delete qe.dataset.manual;
+        atualizarQtdEstoqueRow(tr);
+        entradaNfeLinhaAtualizarTotalProduto(tr);
+      });
+      tr.querySelector('.in-un-emb').addEventListener(ev, () => {
+        delete qe.dataset.manual;
+        atualizarQtdEstoqueRow(tr);
+      });
     });
     qe.addEventListener('input', () => { qe.dataset.manual = '1'; });
     entradaNfeLinhaBindSpinners(tr);
     tr.querySelector('.in-vun')?.addEventListener('blur', () => {
       entradaNfeLinhaNormalizarMoedaBlur(tr.querySelector('.in-vun'));
+      atualizarPainelTotalNfe();
     });
     tr.querySelector('.in-pvenda')?.addEventListener('blur', () => {
       entradaNfeLinhaNormalizarMoedaBlur(tr.querySelector('.in-pvenda'));
       entradaNfeLinhaRecalcMargemDisplay(tr);
       void entradaNfeLinhaPersistirMargemAgro(tr);
     });
+    tr.querySelector('.in-margem')?.addEventListener('input', () => {
+      entradaNfeLinhaApplyMargemCor(tr);
+    });
     tr.querySelector('.in-margem')?.addEventListener('blur', () => {
       const el = tr.querySelector('.in-margem');
       const mi = entradaNfeParseMargemInt(el?.value);
       if (mi != null && el) el.value = String(mi);
+      entradaNfeLinhaApplyMargemCor(tr);
       void entradaNfeLinhaPersistirMargemAgro(tr, { recalcPvDeMargem: true });
     });
     tr.querySelector('.btn-pick-prod').addEventListener('click', () => {
@@ -4128,14 +4198,15 @@
       return Promise.resolve();
     }
     if (entradaNfeCatalogLoadPromise) {
-      return entradaNfeCatalogLoadPromise.then(() => {
+      return entradaNfeCatalogLoadPromise.finally(() => {
         try {
+          if (!entradaNfeCatalogoPronto) entradaNfeCatalogoPronto = true;
           entradaNfeSentinelFeedbackSet('');
         } catch (_) {}
       });
     }
 
-    entradaNfeCatalogLoadPromise = (async () => {
+    const loadCore = (async () => {
       try {
         const raw = sessionStorage.getItem(ENTRADA_NFE_CATALOG_STORAGE_KEY);
         if (raw) {
@@ -4165,12 +4236,15 @@
       try {
         sessionStorage.setItem(ENTRADA_NFE_CATALOG_STORAGE_KEY, JSON.stringify({ produtos: arr, t: Date.now() }));
       } catch (_) {}
-    })().finally(() => {
+    })();
+
+    entradaNfeCatalogLoadPromise = loadCore.finally(() => {
       entradaNfeCatalogLoadPromise = null;
     });
 
-    return entradaNfeCatalogLoadPromise.then(() => {
+    return loadCore.finally(() => {
       try {
+        if (!entradaNfeCatalogoPronto) entradaNfeCatalogoPronto = true;
         entradaNfeSentinelFeedbackSet('');
       } catch (_) {}
     });
@@ -4270,6 +4344,7 @@
         if (mm != null && Number.isFinite(mm)) entradaNfeDefinirInputMargemInt(mEl, mm);
         else entradaNfeLinhaRecalcMargemDisplay(tr);
       }
+      entradaNfeLinhaApplyMargemCor(tr);
       atualizarPainelTotalNfe();
       entradaNfeAgendarAutosaveRascunho();
     } catch (_) {}
@@ -4287,6 +4362,7 @@
     const mm = entradaNfeParseDecimalApi(p.margem_percentual);
     if (mEl && mm != null && Number.isFinite(mm)) entradaNfeDefinirInputMargemInt(mEl, mm);
     else entradaNfeLinhaRecalcMargemDisplay(tr);
+    entradaNfeLinhaApplyMargemCor(tr);
   }
 
   /** Busca na API e expande a linha compacta sem abrir o modal (bip, Enter, modal Mudar, colar). */
