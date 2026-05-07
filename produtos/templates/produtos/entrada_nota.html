@@ -432,10 +432,10 @@
               <th class="text-center align-bottom px-1 py-2" title="Quantidade declarada na nota fiscal (+/− rápidos)">Qtd NF</th>
               <th class="text-right align-bottom px-2 py-2" title="Unidades por embalagem conforme NF">Un/emb</th>
               <th class="text-right align-bottom px-2 py-2" title="Quantidade a lançar no estoque Agro">Qtd est.</th>
-              <th class="text-right align-bottom px-2 py-2" title="Valor unitário de compra (NF)">V. unit</th>
+              <th class="text-right align-bottom px-2 py-2" title="Custo unitário (rateado por Un/emb quando > 1)">V. unit</th>
               <th class="text-right align-bottom px-2 py-2" title="Margem % sobre o custo (cadastro Agro; editável)">Margem %</th>
               <th class="text-right align-bottom px-2 py-2" title="Preço de venda de referência no Agro (editável)">P. venda</th>
-              <th class="text-right align-bottom px-2 py-2" title="Qtd NF × valor unitário (linha)">Total</th>
+              <th class="text-right align-bottom px-2 py-2" title="Qtd est. × valor unitário (linha)">Total</th>
               <th class="text-center align-bottom px-1 py-2" title="Catálogo casado. Aponte o mouse na coluna Descrição para ver o nome completo cadastrado no Agro.">Cat.</th>
               <th class="text-center align-bottom px-1 py-2" title="Abrir cadastro do produto no ERP (nova janela)">ERP</th>
               <th class="w-10 align-bottom px-0 py-2" aria-label="Remover">&nbsp;</th>
@@ -904,14 +904,25 @@
 
   function entradaNfeDefinirInputPrecoNum(inp, n) {
     if (!inp || n == null || !Number.isFinite(n)) return;
-    const r = Math.round(n * 1e6) / 1e6;
+    const r = entradaNfeRoundHalfUp(n, 6);
     inp.value = r === 0 ? '0' : String(r);
+  }
+
+  /** Regra half-up: abaixo de meio arredonda para baixo; de meio para cima, arredonda para cima. */
+  function entradaNfeRoundHalfUp(n, casas) {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return 0;
+    const c = Math.max(0, Math.min(10, Number(casas) || 0));
+    const f = 10 ** c;
+    const v = x * f;
+    if (v >= 0) return Math.floor(v + 0.5 + Number.EPSILON) / f;
+    return Math.ceil(v - 0.5 - Number.EPSILON) / f;
   }
 
   /** Moeda pt-BR sempre com 2 decimais (0,00 … 1.000,00). */
   function entradaNfeFmtMoedaBr2(n) {
     if (n == null || !Number.isFinite(Number(n))) return '';
-    const x = Math.round(Number(n) * 100) / 100;
+    const x = entradaNfeRoundHalfUp(Number(n), 2);
     return x.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
@@ -922,6 +933,20 @@
       return;
     }
     inp.value = entradaNfeFmtMoedaBr2(n);
+  }
+
+  /** Número pt-BR com mais precisão (até 6 casas), para custo unitário rateado. */
+  function entradaNfeDefinirInputMoedaBrPrecisa(inp, n, maxDec) {
+    if (!inp) return;
+    if (n == null || !Number.isFinite(Number(n))) {
+      inp.value = '';
+      return;
+    }
+    const md = Math.max(2, Math.min(6, Number(maxDec) || 6));
+    inp.value = Number(n).toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: md,
+    });
   }
 
   /** Margem % só inteiro (25, 100, -10). */
@@ -952,14 +977,59 @@
     entradaNfeDefinirInputMoedaBr2(inp, n);
   }
 
-  /** Total da linha (Qtd NF × V. unit), só exibição. */
+  /** Total da linha (Qtd est. × V. unit), só exibição. */
   function entradaNfeLinhaAtualizarTotalProduto(tr) {
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
-    const qRaw = tr.querySelector('.in-qtd')?.value;
+    const qRaw = tr.querySelector('.in-q-est')?.value;
     const q = Number(String(qRaw ?? '').replace(/\s/g, '').replace(',', '.')) || 0;
     const v = entradaNfeParseDecimalApi(tr.querySelector('.in-vun')?.value) ?? 0;
     const el = tr.querySelector('.nfe-total-linha');
     if (el) el.textContent = entradaNfeFmtMoedaBr2(q * v);
+  }
+
+  /**
+   * Rateia custo unitário quando a linha está em embalagem (>1 un/emb).
+   * Ex.: 1 pacote de R$14 com 135 un/emb => V.unit = 14/135.
+   */
+  function entradaNfeLinhaRatearCustoPorEmbalagem(tr, opts) {
+    if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
+    const o = opts && typeof opts === 'object' ? opts : {};
+    const fromInputVun = !!o.fromInputVun;
+    const vunEl = tr.querySelector('.in-vun');
+    const unEl = tr.querySelector('.in-un-emb');
+    if (!vunEl || !unEl) return;
+
+    const un = Number(String(unEl.value || '').replace(',', '.')) || 1;
+    if (!(un > 0)) return;
+
+    if (fromInputVun) {
+      const atual = entradaNfeParseDecimalApi(vunEl.value);
+      if (atual != null && Number.isFinite(atual) && atual > 0) {
+        tr.dataset.nfeCustoEmbalagem = String(atual);
+      }
+    }
+
+    if (un <= 1) {
+      const emb = entradaNfeParseDecimalApi(tr.dataset.nfeCustoEmbalagem || '');
+      if (emb != null && Number.isFinite(emb) && emb > 0) {
+        entradaNfeDefinirInputMoedaBr2(vunEl, emb);
+      }
+      delete tr.dataset.nfeCustoEmbalagem;
+      return;
+    }
+
+    let custoEmb = entradaNfeParseDecimalApi(tr.dataset.nfeCustoEmbalagem || '');
+    if (custoEmb == null || !Number.isFinite(custoEmb) || custoEmb <= 0) {
+      const atual = entradaNfeParseDecimalApi(vunEl.value);
+      if (atual == null || !Number.isFinite(atual) || atual <= 0) return;
+      custoEmb = atual;
+      tr.dataset.nfeCustoEmbalagem = String(custoEmb);
+    }
+
+    const unit = custoEmb / un;
+    if (Number.isFinite(unit) && unit >= 0) {
+      entradaNfeDefinirInputMoedaBrPrecisa(vunEl, unit, 6);
+    }
   }
 
   /** Abaixo de 25% ou negativa: vermelho; 25–34%: amarelo; 35–70%: verde; acima de 70%: azul. */
@@ -1001,6 +1071,8 @@
   let entradaNfeRascunhoAplicandoGrade = false;
   let entradaNfeAutosaveTimer = null;
   let entradaNfeAutosaveSaving = false;
+  let entradaNfeAutosaveDirty = false;
+  let entradaNfeAutosaveLastSig = '';
   let entradaNfeListaFiltro = 'em_andamento';
   /** Índice da linha ativa na conferência por código (passo 3). */
   let entradaNfeBipLinhaIdx = 0;
@@ -2737,10 +2809,10 @@
   function entradaNfeTotalCentavosFromDom() {
     let c = 0;
     document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
-      const q = Number(tr.querySelector('.in-qtd')?.value) || 0;
+      const q = Number(tr.querySelector('.in-q-est')?.value) || 0;
       const v = entradaNfeParseDecimalApi(tr.querySelector('.in-vun')?.value) ?? 0;
       if (!Number.isFinite(q) || !Number.isFinite(v)) return;
-      c += Math.round(q * v * 100);
+      c += entradaNfeRoundHalfUp(q * v * 100, 0);
     });
     return c;
   }
@@ -3074,7 +3146,7 @@
   function atualizarPainelTotalNfe() {
     let s = 0;
     document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
-      const q = Number(tr.querySelector('.in-qtd')?.value) || 0;
+      const q = Number(tr.querySelector('.in-q-est')?.value) || 0;
       const v = entradaNfeParseDecimalApi(tr.querySelector('.in-vun')?.value) ?? 0;
       s += q * v;
       entradaNfeLinhaAtualizarTotalProduto(tr);
@@ -3383,7 +3455,7 @@
         <div class="rounded-xl border-[3px] border-emerald-500 bg-gradient-to-b from-emerald-50 to-white px-2 py-2 shadow-md ring-1 ring-emerald-400/70 flex items-center min-h-[48px] min-w-0 overflow-visible">
           <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
             class="in-vun w-full min-w-0 rounded-lg bg-white px-2.5 py-2.5 text-center text-base font-black text-emerald-950 tabular-nums tracking-tight border-0 shadow-none ring-0 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
-            title="Valor unitário de compra (NF), formato 0,00">
+            title="Custo unitário (rateado por Un/emb quando > 1), formato 0,00">
         </div>
       </td>
       <td class="px-2 py-1 align-middle">
@@ -3397,7 +3469,7 @@
           title="Preço de venda (referência), formato 0,00">
       </td>
       <td class="px-2 py-1 align-middle text-right">
-        <span class="nfe-total-linha block tabular-nums text-sm font-black text-slate-900 whitespace-nowrap" title="Qtd NF × V. unit">0,00</span>
+        <span class="nfe-total-linha block tabular-nums text-sm font-black text-slate-900 whitespace-nowrap" title="Qtd est. × V. unit">0,00</span>
         <input type="hidden" class="in-cfop" value="">
       </td>
       <td class="px-1 py-1 text-center align-middle"><span class="in-match inline-block min-w-[1.1rem] text-sm font-black leading-none">—</span></td>
@@ -3456,12 +3528,19 @@
       tr.querySelector('.in-un-emb').addEventListener(ev, () => {
         delete qe.dataset.manual;
         atualizarQtdEstoqueRow(tr);
+        entradaNfeLinhaRatearCustoPorEmbalagem(tr);
+        entradaNfeLinhaAtualizarTotalProduto(tr);
       });
     });
     qe.addEventListener('input', () => { qe.dataset.manual = '1'; });
     entradaNfeLinhaBindSpinners(tr);
+    tr.querySelector('.in-vun')?.addEventListener('input', () => {
+      tr.dataset.nfeVunDirty = '1';
+    });
     tr.querySelector('.in-vun')?.addEventListener('blur', () => {
       entradaNfeLinhaNormalizarMoedaBlur(tr.querySelector('.in-vun'));
+      entradaNfeLinhaRatearCustoPorEmbalagem(tr, { fromInputVun: tr.dataset.nfeVunDirty === '1' });
+      delete tr.dataset.nfeVunDirty;
       atualizarPainelTotalNfe();
     });
     tr.querySelector('.in-pvenda')?.addEventListener('blur', () => {
@@ -3568,12 +3647,12 @@
         q_estoque: Number(tr.querySelector('.in-q-est').value) || 0,
         v_un_com: (() => {
           const x = entradaNfeParseDecimalApi(tr.querySelector('.in-vun')?.value);
-          return x != null && Number.isFinite(x) ? Math.round(x * 100) / 100 : 0;
+          return x != null && Number.isFinite(x) ? entradaNfeRoundHalfUp(x, 6) : 0;
         })(),
         margem_percentual: entradaNfeParseMargemInt(tr.querySelector('.in-margem')?.value),
         preco_venda: (() => {
           const x = entradaNfeParseDecimalApi(tr.querySelector('.in-pvenda')?.value);
-          return x != null && Number.isFinite(x) ? Math.round(x * 100) / 100 : 0;
+          return x != null && Number.isFinite(x) ? entradaNfeRoundHalfUp(x, 2) : 0;
         })(),
         cfop: tr.querySelector('.in-cfop').value.trim(),
         produto_id: tr.querySelector('.in-prod-id').value.trim(),
@@ -4990,15 +5069,30 @@
     else el.classList.add('text-slate-500');
   }
 
+  function entradaNfeAutosaveAssinatura(jaEditando, cab, linhas, xmlChave, extraMerge) {
+    try {
+      return JSON.stringify({
+        id: jaEditando ? String(entradaNfeRascunhoEditId || '') : '',
+        cabecalho: cab || {},
+        linhas: linhas || [],
+        xml_chave: xmlChave || null,
+        extra: extraMerge || {},
+      });
+    } catch (_) {
+      return '';
+    }
+  }
+
   function entradaNfeAgendarAutosaveRascunho() {
     if (!document.body.classList.contains('entrada-nfe--editor')) return;
     if (entradaNfeEditorCongeladoAtivo()) return;
     if (entradaNfeRascunhoAplicandoGrade) return;
+    entradaNfeAutosaveDirty = true;
     clearTimeout(entradaNfeAutosaveTimer);
     entradaNfeAutosaveTimer = setTimeout(() => {
       entradaNfeAutosaveTimer = null;
       entradaNfeAutosaveRascunhoSilencioso();
-    }, 1000);
+    }, 3000);
   }
 
   async function entradaNfeAutosaveRascunhoSilencioso() {
@@ -5014,8 +5108,14 @@
     const extraMerge = entradaNfeAnexarFinanceiroAoExtra(
       entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {},
     );
-    entradaNfeAutosaveSaving = true;
     const jaEditando = !!entradaNfeRascunhoEditId;
+    const sig = entradaNfeAutosaveAssinatura(jaEditando, cab, linhas, xmlChave, extraMerge);
+    if (!entradaNfeAutosaveDirty && sig && sig === entradaNfeAutosaveLastSig) return;
+    if (sig && sig === entradaNfeAutosaveLastSig) {
+      entradaNfeAutosaveDirty = false;
+      return;
+    }
+    entradaNfeAutosaveSaving = true;
     const url = jaEditando ? URL_RASC_ATUALIZAR : URL_SALVAR;
     const body = jaEditando
       ? {
@@ -5047,9 +5147,10 @@
       if (j.ok) {
         entradaNfeExtraUltimo = { ...extraMerge };
         if (!jaEditando && j.id) setEntradaNfeRascunhoEdit(j.id);
+        entradaNfeAutosaveLastSig = sig || '';
+        entradaNfeAutosaveDirty = false;
         const hm = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         entradaNfeAutosaveHint(`Salvo ${hm}`, true);
-        carregarRascunhos();
       } else {
         entradaNfeAutosaveHint(String(j.erro || 'Salvar automático falhou').slice(0, 48), false);
       }
