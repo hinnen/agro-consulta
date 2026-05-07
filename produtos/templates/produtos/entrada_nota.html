@@ -278,8 +278,8 @@
         </div>
       </div>
       <div class="px-2 sm:px-3 py-2 flex flex-wrap gap-1.5 border-b border-slate-100 bg-slate-50/80 shrink-0" id="entrada-nfe-filtros-wrap" role="toolbar" aria-label="Fila da nota (cada nota aparece em um estágio)">
-        <button type="button" class="filtro-nfe-chip filtro-nfe-chip-on min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="todas" title="Todas as notas salvas.">Todas</button>
-        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="em_andamento" title="Nota aberta, estoque ou financeiro (ainda em trabalho).">Em andamento</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="todas" title="Todas as notas salvas.">Todas</button>
+        <button type="button" class="filtro-nfe-chip filtro-nfe-chip-on min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="em_andamento" title="Nota aberta, estoque ou financeiro (ainda em trabalho).">Em andamento</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="nota_aberta" title="Falta casar produto do catálogo na grade (botão Mudar ou linha de busca).">Nota aberta</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="estoque" title="Grade ok; falta registrar entrada no estoque Agro.">Estoque</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="financeiro" title="Estoque já feito; falta gerar a pagar (Salvar + a pagar), se for o caso.">Financeiro</button>
@@ -1001,7 +1001,7 @@
   let entradaNfeRascunhoAplicandoGrade = false;
   let entradaNfeAutosaveTimer = null;
   let entradaNfeAutosaveSaving = false;
-  let entradaNfeListaFiltro = 'todas';
+  let entradaNfeListaFiltro = 'em_andamento';
   /** Índice da linha ativa na conferência por código (passo 3). */
   let entradaNfeBipLinhaIdx = 0;
   /** Rascunho local por índice de linha: código bipado / ignorar ao trocar de linha. */
@@ -2633,6 +2633,7 @@
       elEditorNfe.classList.remove('hidden');
       elEditorNfe.classList.add('flex');
     }
+    entradaNfeClearMsgGlobal();
     try {
       elEditorScroll?.scrollTo(0, 0);
     } catch (_) {}
@@ -2644,6 +2645,7 @@
       elEditorNfe.classList.add('hidden');
       elEditorNfe.classList.remove('flex');
     }
+    entradaNfeClearMsgGlobal();
     carregarRascunhos();
   }
 
@@ -2669,9 +2671,22 @@
     if (e.target === elModalAjudaNfe) fecharModalAjudaEntradaNfe();
   });
 
+  let entradaNfeMsgGlobalTimer = null;
+  function entradaNfeClearMsgGlobal() {
+    const el = document.getElementById('msg-global');
+    if (!el) return;
+    clearTimeout(entradaNfeMsgGlobalTimer);
+    entradaNfeMsgGlobalTimer = null;
+    el.textContent = '';
+    el.classList.add('hidden');
+    el.classList.remove('border-red-200', 'bg-red-50', 'text-red-800', 'border-red-300', 'text-red-900', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-900', 'border-emerald-300', 'text-emerald-950');
+  }
+
   function showMsg(text, ok) {
     const el = document.getElementById('msg-global');
     if (!el) return;
+    clearTimeout(entradaNfeMsgGlobalTimer);
+    entradaNfeMsgGlobalTimer = null;
     el.textContent = text;
     el.classList.remove('hidden', 'border-red-200', 'bg-red-50', 'text-red-800', 'border-red-300', 'text-red-900', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-900', 'border-emerald-300', 'text-emerald-950');
     el.classList.add(
@@ -2680,6 +2695,7 @@
       ok ? 'text-emerald-950' : 'text-red-900'
     );
     el.classList.remove('hidden');
+    entradaNfeMsgGlobalTimer = setTimeout(() => entradaNfeClearMsgGlobal(), 5200);
   }
 
   let ultimaNotaParse = null;
@@ -5470,6 +5486,7 @@
   async function carregarRascunhos() {
     const box = document.getElementById('lista-rasc');
     const btnRef = document.getElementById('btn-refresh-rasc');
+    entradaNfeClearMsgGlobal();
     box.innerHTML = entradaNfeListaRascunhosLoadingMarkup();
     box.setAttribute('aria-busy', 'true');
     if (btnRef) {
@@ -5792,33 +5809,14 @@
       }
       finalizeEntradaNfeInit();
     } else if (storedRid && /^[a-f0-9]{24}$/i.test(storedRid)) {
-      (async () => {
-        try {
-          const r = await fetch(`${URL_RASC_OBTER}?id=${encodeURIComponent(storedRid)}`, { credentials: 'same-origin' });
-          const j = await r.json();
-          if (j.ok && j.rascunho) {
-            entradaNfeAbrirEditor();
-            aplicarRascunhoNaGrade(j.rascunho);
-            setEntradaNfeRascunhoEdit(storedRid);
-            document.querySelector('.tab-btn[data-tab="manual"]')?.click();
-          } else {
-            try {
-              sessionStorage.removeItem(ENTRADA_NFE_SS_RASC_ID);
-            } catch (_) {}
-            setEntradaNfeRascunhoEdit(null);
-            entradaNfeFinDefaultsHoje();
-            entradaNfeEnsureTrailingCompactRow();
-          }
-        } catch (_) {
-          try {
-            sessionStorage.removeItem(ENTRADA_NFE_SS_RASC_ID);
-          } catch (__) {}
-          setEntradaNfeRascunhoEdit(null);
-          entradaNfeFinDefaultsHoje();
-          entradaNfeEnsureTrailingCompactRow();
-        }
-        finalizeEntradaNfeInit();
-      })();
+      /* Abertura padrão da tela deve permanecer na LISTA (filtro Em andamento). */
+      try {
+        sessionStorage.removeItem(ENTRADA_NFE_SS_RASC_ID);
+      } catch (_) {}
+      setEntradaNfeRascunhoEdit(null);
+      entradaNfeFinDefaultsHoje();
+      entradaNfeEnsureTrailingCompactRow();
+      finalizeEntradaNfeInit();
     } else {
       setEntradaNfeRascunhoEdit(null);
       entradaNfeFinDefaultsHoje();
