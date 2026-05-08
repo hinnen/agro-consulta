@@ -771,6 +771,14 @@ def criar_proximo_lancamento_recorrente_se_aplicavel(
 
     _financeiro_doc_coerce_ids_oid_para_string(novo)
     col = db[COL_DTO_LANCAMENTO]
+    dup = _buscar_lancamento_duplicado_sem_vinculo_erp(col, novo)
+    if dup:
+        return {
+            "ok": True,
+            "criado": False,
+            "motivo": "duplicidade_bloqueada",
+            "id_existente": str(dup.get("_id") or ""),
+        }
     try:
         ins = col.insert_one(novo)
         oid_novo = ins.inserted_id
@@ -3935,6 +3943,51 @@ def _fin_ln_parse_date(val: Any, fallback: date) -> date:
         return fallback
 
 
+def _lancamento_sem_vinculo_erp_filter() -> dict[str, Any]:
+    return {
+        "$and": [
+            {"$or": [{"Id": {"$exists": False}}, {"Id": None}, {"Id": ""}]},
+            {"$or": [{"LancamentoID": {"$exists": False}}, {"LancamentoID": None}, {"LancamentoID": ""}]},
+            {
+                "$or": [
+                    {"NumeroLancamento": {"$exists": False}},
+                    {"NumeroLancamento": None},
+                    {"NumeroLancamento": ""},
+                ]
+            },
+        ]
+    }
+
+
+def _buscar_lancamento_duplicado_sem_vinculo_erp(col, doc: dict[str, Any]) -> dict[str, Any] | None:
+    """
+    Proteção de idempotência para inserts Agro: evita inserir novo título quando já existe outro
+    sem vínculo ERP com mesma assinatura funcional (fornecedor + vencimento + valor + contexto).
+    """
+    desp = bool(doc.get("Despesa"))
+    bruto_key = round(float((doc.get("Saida") if desp else doc.get("Entrada")) or 0), 2)
+    pago_key = round(float(doc.get("ValorPago") or 0), 2)
+    rec_key = round(float(doc.get("Recebido") or 0), 2)
+    q: dict[str, Any] = {
+        **_lancamento_sem_vinculo_erp_filter(),
+        "Despesa": desp,
+        "Empresa": doc.get("Empresa") or "",
+        "Cliente": doc.get("Cliente") or "",
+        "PlanoDeConta": doc.get("PlanoDeConta") or "",
+        "FormaPagamento": doc.get("FormaPagamento") or "",
+        "DataVencimento": doc.get("DataVencimento"),
+        "DataPagamento": doc.get("DataPagamento"),
+        "Descricao": doc.get("Descricao") or "",
+        "Saida" if desp else "Entrada": bruto_key,
+        "ValorPago": pago_key,
+        "Recebido": rec_key,
+    }
+    oid = doc.get("_id")
+    if oid:
+        q["_id"] = {"$ne": oid}
+    return col.find_one(q, {"_id": 1, "NumeroParcela": 1, "LastUpdate": 1})
+
+
 def inserir_lancamentos_manual_lote(
     db,
     *,
@@ -4152,6 +4205,18 @@ def inserir_lancamentos_manual_lote(
                     doc["Recebido"] = float(valor)
                     doc["ValorPago"] = float(valor)
             _financeiro_doc_coerce_ids_oid_para_string(doc)
+            dup = _buscar_lancamento_duplicado_sem_vinculo_erp(col, doc)
+            if dup:
+                erros.append(
+                    {
+                        "linha": f"{n}-{sub + 1}",
+                        "erro": (
+                            "Possível duplicidade bloqueada: já existe título equivalente "
+                            f"(id {dup.get('_id')})."
+                        ),
+                    }
+                )
+                continue
             try:
                 ins = col.insert_one(doc)
                 inserted.append(str(ins.inserted_id))

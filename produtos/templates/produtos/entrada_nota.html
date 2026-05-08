@@ -3494,6 +3494,19 @@
     tr.querySelector('.in-ean').value = d.ean;
     tr.querySelector('.in-qtd').value = d.q_com;
     tr.querySelector('.in-un-emb').value = d.un_por_embalagem != null ? d.un_por_embalagem : 1;
+    const vunPrecisoInicial = entradaNfeParseDecimalApi(d.v_un_com);
+    if (vunPrecisoInicial != null && Number.isFinite(vunPrecisoInicial) && vunPrecisoInicial >= 0) {
+      // Mantém precisão de cálculo após recarregar: visual segue 2 casas, cálculo usa dataset.
+      tr.dataset.nfeVunPreciso = String(vunPrecisoInicial);
+    } else {
+      delete tr.dataset.nfeVunPreciso;
+    }
+    const unEmbInicial = Number(d.un_por_embalagem != null ? d.un_por_embalagem : 1) || 1;
+    if (unEmbInicial > 1 && vunPrecisoInicial != null && Number.isFinite(vunPrecisoInicial) && vunPrecisoInicial >= 0) {
+      tr.dataset.nfeCustoEmbalagem = String(vunPrecisoInicial * unEmbInicial);
+    } else {
+      delete tr.dataset.nfeCustoEmbalagem;
+    }
     entradaNfeDefinirInputMoedaBr2(tr.querySelector('.in-vun'), Number(d.v_un_com != null ? d.v_un_com : 0));
     const mEl0 = tr.querySelector('.in-margem');
     if (mEl0) {
