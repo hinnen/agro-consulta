@@ -2905,18 +2905,17 @@
   }
 
   /**
-   * Total da grade em centavos: soma das linhas com o mesmo arredondamento exibido em «Total»
-   * (Fmt 2 casas → centavos). Evita diferença entre painel/visual e etapa Financeiro ou parcelas.
+   * Total da grade em centavos: **mesma regra** de ``atualizarPainelTotalNfe`` (atualiza cada
+   * «Total» da linha e soma o texto pt-BR). Evita divergência painel R$ X vs financeiro/parcelas
+   * que recalculavam q×v por outro caminho (embalagem, ``nfeVunPreciso``, etc.).
    */
   function entradaNfeTotalCentavosFromDom() {
     let c = 0;
     document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
       if (tr.dataset.nfeLinhaModo === 'compact') return;
-      const q = entradaNfeLinhaQtyEstoqueCalculo(tr);
-      const v = entradaNfeLinhaValorUnitarioCalculo(tr);
-      if (!Number.isFinite(q) || !Number.isFinite(v)) return;
-      const brlLinha = entradaNfeFmtMoedaBr2(q * v);
-      const linhaTot = entradaNfeParseDecimalApi(brlLinha);
+      entradaNfeLinhaAtualizarTotalProduto(tr);
+      const txt = tr.querySelector('.nfe-total-linha')?.textContent;
+      const linhaTot = entradaNfeParseDecimalApi(String(txt ?? '').trim());
       if (linhaTot == null || !Number.isFinite(linhaTot)) return;
       c += entradaNfeRoundHalfUp(linhaTot * 100, 0);
     });
