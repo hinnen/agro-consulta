@@ -677,6 +677,21 @@ def atualizar_rascunho_entrada(
             novo_status = entrada_nfe_status_derivado_linhas(linhas)
         prev_ex = atual.get("extra") if isinstance(atual.get("extra"), dict) else {}
         merged_extra = {**prev_ex, **(extra or {})}
+        # Evita corrida autosave/manual vs. ``marcar_rascunho_financeiro_lancado``: merge com snapshot
+        # antigo não pode reapagar nem reintroduzir sozinho o carimbo de financeiro.
+        fresh_mini = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id}, projection={"extra": 1}) or {}
+        fresh_ex = fresh_mini.get("extra") if isinstance(fresh_mini.get("extra"), dict) else {}
+        if entrada_nfe_extra_financeiro_ok(fresh_ex):
+            merged_extra["financeiro_lancado"] = True
+            if "financeiro_ids" in fresh_ex:
+                ids_f = fresh_ex["financeiro_ids"]
+                merged_extra["financeiro_ids"] = list(ids_f) if isinstance(ids_f, list) else ids_f
+            if "financeiro_lancado_em" in fresh_ex:
+                merged_extra["financeiro_lancado_em"] = fresh_ex["financeiro_lancado_em"]
+        else:
+            merged_extra.pop("financeiro_lancado", None)
+            merged_extra.pop("financeiro_ids", None)
+            merged_extra.pop("financeiro_lancado_em", None)
         set_doc: dict[str, Any] = {
             "atualizado_em": datetime.now(timezone.utc),
             "usuario_ultima_alteracao": (usuario or "")[:200],
@@ -911,17 +926,16 @@ def marcar_rascunho_financeiro_lancado(
         doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
-        ex = dict(doc.get("extra") or {})
-        ex["financeiro_lancado"] = True
-        ex["financeiro_ids"] = [str(x) for x in (ids or [])][:80]
-        ex["financeiro_lancado_em"] = agora.isoformat()
+        fin_ids_lim = [str(x) for x in (ids or [])][:80]
         db[COL_ENTRADA_RASCUNHO].update_one(
             {"_id": _id},
             {
                 "$set": {
                     "atualizado_em": agora,
                     "usuario_ultima_alteracao": (usuario or "")[:200],
-                    "extra": ex,
+                    "extra.financeiro_lancado": True,
+                    "extra.financeiro_ids": fin_ids_lim,
+                    "extra.financeiro_lancado_em": agora.isoformat(),
                 }
             },
         )
