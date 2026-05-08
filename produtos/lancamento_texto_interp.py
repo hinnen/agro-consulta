@@ -1,20 +1,20 @@
 """Interpretação livre de texto para pré-preencher lote manual de lançamentos (pt-BR).
 
-1) Heurísticas locais (sempre, sem custo).
-2) Opcional: refinamento via LLM (Gemini / Groq / OpenAI) **somente** se houver chave
-   em variável de ambiente — sem chave não há chamada externa."""
+1) Heurísticas locais (sempre, sem rede).
+2) Opcional (*com chave*): modelo extrai tipo/datas/plano textual; falhas caem só na parte local.
+
+A escolha final do **nome de plano** entre cadastros reais faz-se em ``lancamento_plano_resolver``:
+lista de planos ancorada ao Mongo + **modelo só escolhe um índice** (sem inventar conta). Sem chave, usa só roteiro de pontuação."""
 from __future__ import annotations
 
 import copy
-import json
 import logging
 import re
 import unicodedata
 from datetime import date
 from typing import Any
 
-import requests
-from decouple import config
+from .lancamento_llm_client import gerar_json_llm, resolver_credencial_llm
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +22,27 @@ logger = logging.getLogger(__name__)
 _STOP = frozenset(
     """
     lance lances lançe lança lançar lancamento lancamentos lote conta contas despesa desp
-    pagar pg crédito credito débito debito receber já ja manual ap a
+    pagar pg crédito credito débito debito receber já ja manual ap
+    de da do das dos e em no na nos nas pelo pela pelos pelas por para pra pro
+    com sem um uma uns umas o os as a ao aos à às que se esse essa esses essas esse
     registrar registro grava gravação
     """.split()
 )
+
+
+def _limpar_dica_plano(s: str) -> str:
+    x = _nfc(s).strip()
+    while True:
+        stripped = re.sub(
+            r"^(de|da|do|das|dos|e|em|no|na|nos|nas|pelo|pela|pelos|pelas|por|para|pra|pro|com|sem)\s+",
+            "",
+            x,
+            flags=re.I,
+        )
+        if stripped == x:
+            break
+        x = stripped.strip()
+    return x
 
 
 def _nfc(s: str) -> str:
@@ -122,15 +139,19 @@ def _span_remove(s: str, spans: list[tuple[int, int]]) -> str:
     return " ".join(" ".join(chunks).split())
 
 
-def interpretar_so_heuristica(texto: str) -> dict:
-    """Só regex/local; resultado inclui ``fonte_interp: heuristica``."""
+def parse_data_qualquer_na_string(s: str) -> date | None:
+    """Primeira data dd/mm/aaaa ou yyyy-mm-dd encontrada em ``s``."""
+    dts = _coletar_datas(_nfc(s))
+    return dts[0][2] if dts else None
+
+
+def extrair_parcial_local(texto: str) -> dict[str, Any]:
+    """Extrai tipo, texto livre útil para plano/descrição, datas e valor quando existirem (sem falhar cedo)."""
     raw = _nfc(texto)
     if not raw:
-        return {"ok": False, "erro": "Digite uma frase com valor e data (ex.: «energia 479,03 22/04/2026»)."}
-
+        return {"tipo": "pagar", "quitado_hint": False, "data_competencia": None, "data_vencimento": None, "valor": "", "plano_hint": "", "descricao": ""}
     s = _glue_pagar_receber(raw)
     low = s.lower()
-
     if re.search(r"\b(conta\s+a\s+)?receber\b", low) or re.search(
         r"\b(créditos?|creditos?|entrada\s+financeira)\b",
         low,
@@ -138,7 +159,6 @@ def interpretar_so_heuristica(texto: str) -> dict:
         tipo = "receber"
     else:
         tipo = "pagar"
-
     quitado_hint = bool(
         re.search(
             r"\b(quitad[oa]s?|quitei|quite|liquidad[oa]s?|baixad[oa]s?)"
@@ -146,27 +166,20 @@ def interpretar_so_heuristica(texto: str) -> dict:
             low,
         )
     )
-
     datas = _coletar_datas(s)
     valores = _extrair_valores(s)
-
-    if not valores:
-        return {"ok": False, "erro": "Não achei valor monetário no texto (ex.: 479,03 ou 1.234,56)."}
-    if not datas:
-        return {"ok": False, "erro": "Não achei data (use DD/MM/AAAA ou AAAA-MM-DD)."}
-
-    valor_display = valores[-1][2]
-    if len(datas) >= 2:
-        dc = datas[0][2]
-        dv = datas[1][2]
-    else:
-        dc = datas[0][2]
-        dv = datas[0][2]
+    dc_dt: date | None = None
+    dv_dt: date | None = None
+    if datas:
+        if len(datas) >= 2:
+            dc_dt, dv_dt = datas[0][2], datas[1][2]
+        else:
+            dc_dt = dv_dt = datas[0][2]
+    valor_display = valores[-1][2] if valores else ""
 
     spans_val = [(vs, ve) for vs, ve, _ in valores]
     spans_dt = [(a, b) for a, b, _ in datas]
     resto = _span_remove(s, spans_val + spans_dt)
-
     tokens = [_nfc(tok) for tok in re.split(r"[\s,;:]+", resto) if len(_nfc(tok)) > 1]
     hints: list[str] = []
     for tok in tokens:
@@ -176,30 +189,51 @@ def interpretar_so_heuristica(texto: str) -> dict:
         if tl.isdigit():
             continue
         hints.append(tok)
+    plano_hint = _limpar_dica_plano(" ".join(hints).strip())
+    return {
+        "tipo": tipo,
+        "quitado_hint": quitado_hint,
+        "data_competencia": dc_dt.isoformat() if dc_dt else None,
+        "data_vencimento": dv_dt.isoformat() if dv_dt else None,
+        "valor": valor_display,
+        "plano_hint": plano_hint,
+        "descricao": "",
+    }
 
-    plano_hint = " ".join(hints).strip()
-    descricao_hint = ""
+
+def interpretar_so_heuristica(texto: str) -> dict:
+    """Só regex/local; resultado inclui ``fonte_interp: heuristica``."""
+    raw = _nfc(texto)
+    if not raw:
+        return {"ok": False, "erro": "Digite uma frase com valor e data (ex.: «energia 479,03 22/04/2026»)."}
+
+    par = extrair_parcial_local(texto)
+    if not par.get("valor"):
+        return {"ok": False, "erro": "Não achei valor monetário no texto (ex.: 479,03 ou 1.234,56)."}
+    if not par.get("data_competencia"):
+        return {"ok": False, "erro": "Não achei data (use DD/MM/AAAA ou AAAA-MM-DD)."}
+
     avisos: list[str] = []
+    plano_hint = str(par.get("plano_hint") or "")
     if not plano_hint:
         avisos.append("Complete o plano de contas na primeira linha (escolha na lista).")
 
-    out = {
+    return {
         "ok": True,
-        "tipo": tipo,
-        "data_competencia": dc.isoformat(),
-        "data_vencimento": dv.isoformat(),
-        "quitado_hint": quitado_hint,
+        "tipo": par["tipo"],
+        "data_competencia": par["data_competencia"],
+        "data_vencimento": par["data_vencimento"],
+        "quitado_hint": bool(par.get("quitado_hint")),
         "linhas": [
             {
                 "plano_hint": plano_hint,
-                "valor": valor_display,
-                "descricao": descricao_hint or None,
+                "valor": par["valor"],
+                "descricao": None,
             }
         ],
         "avisos": avisos,
         "fonte_interp": "heuristica",
     }
-    return out
 
 
 def _normalizar_valor_display(v: Any) -> str:
@@ -245,7 +279,7 @@ def _resultado_flat_llm(payload: dict[str, Any], *, fonte_interp: str) -> dict |
     if not vd:
         return None
 
-    plano_hint = _nfc(str(payload.get("plano_hint") or ""))
+    plano_hint = _limpar_dica_plano(_nfc(str(payload.get("plano_hint") or "")))
     ds = _nfc(str(payload.get("descricao") or "")).strip()
 
     avisos: list[str] = []
@@ -279,7 +313,8 @@ def _prompt_extracao(frase: str) -> str:
         '- data_vencimento: "AAAA-MM-DD" ou null (se houver só uma data no texto, use a mesma em ambos)\n'
         '- quitado_hint: true ou false (título já pago ou baixado)\n'
         '- valor: string no formato brasileiro com vírgula decimal, exemplo "479,03"\n'
-        '- plano_hint: palavras curtas do tipo de despesa/receita (ex.: energia, frete)\n'
+        '- plano_hint: termos próximos de plano de contas no Brasil (ex.: conta de luz → energia elétrica), '
+        'sem artigo nem preposição sobrando;\n'
         "- descricao: histórico curto ou string vazia\n"
         "Não invente valor nem datas que não estejam no texto ou claramente implícitas pela frase "
         '("hoje"/"amanhã" não existem; retorne null nesses campos).\n'
@@ -290,144 +325,9 @@ def _prompt_extracao(frase: str) -> str:
     )
 
 
-def _resolver_credencial_llm() -> tuple[str, str] | None:
-    """(provider, api_key). Sem chave → None."""
-    provider = config("AGRO_LANCAMENTO_LLM_PROVIDER", default="").strip().lower()
-    key_agg = config("AGRO_LANCAMENTO_LLM_API_KEY", default="").strip()
-    gem = config("GEMINI_API_KEY", default="").strip() or config("GOOGLE_API_KEY", default="").strip()
-    groq = config("GROQ_API_KEY", default="").strip()
-    oai = config("OPENAI_API_KEY", default="").strip()
-
-    if key_agg:
-        if provider in ("gemini", "groq", "openai"):
-            return provider, key_agg
-        return "gemini", key_agg
-    if not provider:
-        if gem:
-            return "gemini", gem
-        if groq:
-            return "groq", groq
-        if oai:
-            return "openai", oai
-    if provider == "gemini" and gem:
-        return "gemini", gem
-    if provider == "groq" and groq:
-        return "groq", groq
-    if provider == "openai" and oai:
-        return "openai", oai
-    return None
-
-
-def _parse_json_llm(text: str) -> dict[str, Any] | None:
-    text = text.strip()
-    if not text:
-        return None
-    try:
-        obj = json.loads(text)
-        return obj if isinstance(obj, dict) else None
-    except json.JSONDecodeError:
-        m = re.search(r"\{[\s\S]*\}", text)
-        if not m:
-            return None
-        try:
-            obj = json.loads(m.group(0))
-            return obj if isinstance(obj, dict) else None
-        except json.JSONDecodeError:
-            return None
-
-
-def _gemini_extrair(frase: str, api_key: str) -> dict[str, Any] | None:
-    model = (
-        config("AGRO_LANCAMENTO_LLM_GEMINI_MODEL", default="gemini-2.0-flash").strip()
-        or "gemini-2.0-flash"
-    )
-    url = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{model}:generateContent?key={api_key}"
-    )
-    body = {
-        "contents": [{"parts": [{"text": _prompt_extracao(frase)}]}],
-        "generationConfig": {"temperature": 0.05, "responseMimeType": "application/json"},
-    }
-    try:
-        r = requests.post(url, json=body, timeout=18)
-        r.raise_for_status()
-        data = r.json()
-    except requests.RequestException as exc:
-        logger.warning("GEMINI LANCAM TEXT: %s", exc)
-        return None
-    cands = data.get("candidates") or []
-    if not cands:
-        return None
-    parts = ((cands[0].get("content") or {}).get("parts")) or []
-    if not parts:
-        return None
-    raw = parts[0].get("text") or ""
-    return _parse_json_llm(str(raw))
-
-
-def _openai_compatible_extrair(
-    frase: str, api_key: str, *, endpoint: str, model: str, extra_headers: dict | None = None
-) -> dict[str, Any] | None:
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-    if extra_headers:
-        headers.update(extra_headers)
-    body = {
-        "model": model,
-        "temperature": 0.05,
-        "messages": [{"role": "user", "content": _prompt_extracao(frase)}],
-        "response_format": {"type": "json_object"},
-    }
-    try:
-        r = requests.post(endpoint, headers=headers, json=body, timeout=22)
-        r.raise_for_status()
-        data = r.json()
-        raw = ((((data.get("choices") or [None])[0] or {}).get("message")) or {}).get("content") or ""
-        return _parse_json_llm(str(raw))
-    except requests.RequestException as exc:
-        logger.warning("LLM LANCAM OPENAI-compat: %s", exc)
-        return None
-
-
-def _groq_extrair(frase: str, api_key: str) -> dict[str, Any] | None:
-    model = (
-        config("AGRO_LANCAMENTO_LLM_GROQ_MODEL", default="llama-3.1-8b-instant").strip()
-        or "llama-3.1-8b-instant"
-    )
-    return _openai_compatible_extrair(
-        frase,
-        api_key,
-        endpoint="https://api.groq.com/openai/v1/chat/completions",
-        model=model,
-    )
-
-
-def _openai_extrair(frase: str, api_key: str) -> dict[str, Any] | None:
-    model = config("AGRO_LANCAMENTO_LLM_OPENAI_MODEL", default="gpt-4o-mini").strip() or "gpt-4o-mini"
-    endpoint = (
-        config("OPENAI_API_BASE_URL", default="https://api.openai.com/v1/chat/completions")
-        .strip()
-        or "https://api.openai.com/v1/chat/completions"
-    )
-    return _openai_compatible_extrair(frase, api_key, endpoint=endpoint, model=model)
-
-
 def _extrair_via_llm(frase: str) -> tuple[dict[str, Any] | None, str]:
-    cred = _resolver_credencial_llm()
-    if not cred:
-        return None, ""
-    provider, api_key = cred
-    raw: dict[str, Any] | None = None
-    if provider == "gemini":
-        raw = _gemini_extrair(frase, api_key)
-    elif provider == "groq":
-        raw = _groq_extrair(frase, api_key)
-    elif provider == "openai":
-        raw = _openai_extrair(frase, api_key)
-    return raw, provider
+    raw, provedor = gerar_json_llm(_prompt_extracao(frase))
+    return raw, provedor
 
 
 def _misturar_plano_llm(heur_ok: dict, llm_flat: dict, provedor: str) -> dict:
@@ -437,7 +337,7 @@ def _misturar_plano_llm(heur_ok: dict, llm_flat: dict, provedor: str) -> dict:
     if not linhas:
         return out
     h0 = dict(linhas[0])
-    ph = _nfc(str(llm_flat.get("plano_hint") or "")).strip()
+    ph = _limpar_dica_plano(_nfc(str(llm_flat.get("plano_hint") or "")).strip())
     dh = _nfc(str(llm_flat.get("descricao") or "")).strip()
     antes_vazio_plano = not (h0.get("plano_hint") or "").strip()
     antes_vazio_desc = not (h0.get("descricao") or "").strip()
@@ -468,13 +368,53 @@ def _misturar_plano_llm(heur_ok: dict, llm_flat: dict, provedor: str) -> dict:
     return out
 
 
-def interpretar_texto_lancamento_manual(texto: str, *, permitir_llm: bool = True) -> dict:
+def refinar_lancamento_pos_extracao(payload: dict[str, Any], texto: str, *, permitir_llm: bool) -> dict[str, Any]:
+    """Se o grosso já veio OK mas falta dica de plano, opcionalmente chama LLM só para texto."""
+    if not permitir_llm or not payload.get("ok"):
+        return payload
+    try:
+        if resolver_credencial_llm() is None:
+            return payload
+    except Exception:
+        return payload
+    lin0 = ((payload.get("linhas") or [{}])[0] if isinstance(payload.get("linhas"), list) else {}) or {}
+    if (lin0.get("plano_hint") or "").strip():
+        return payload
+    llm_flat, provedor = _extrair_via_llm(texto.strip())
+    if llm_flat:
+        return _misturar_plano_llm(payload, llm_flat, provedor or "")
+    return payload
+
+
+def interpretar_texto_lancamento_manual(
+    texto: str,
+    *,
+    permitir_llm: bool = True,
+    dados_parciais: dict[str, Any] | None = None,
+    respostas_dialogo: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    from . import lancamento_interpret_dialogo as lid
+
+    return lid.rodada_interpretacao_inteligente(
+        texto,
+        permitir_llm=permitir_llm,
+        dados_parciais=dados_parciais,
+        respostas_dialogo=respostas_dialogo,
+    )
+
+
+def interpretar_texto_lancamento_manual_legacy_llm_fallback(
+    texto: str,
+    *,
+    permitir_llm: bool = True,
+) -> dict[str, Any]:
+    """Fluxo anterior (heurística + LLM só p/ lacunas): usado apenas se ``rodada_*`` falhar."""
     heur = interpretar_so_heuristica(texto)
     if not permitir_llm:
         return heur
 
     try:
-        if _resolver_credencial_llm() is None:
+        if resolver_credencial_llm() is None:
             return heur
     except Exception:
         logger.debug("credencial LLM indisponível", exc_info=True)

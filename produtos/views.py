@@ -106,6 +106,7 @@ from .mongo_index_codigos import (
 from .rota_entregas_geo import ordenar_entregas_por_proximidade
 from .lancamentos_financeiro_pdf import montar_pdf_financeiro_padrao
 from .lancamentos_financeiro_xlsx import montar_planilha_financeiro_padrao
+from .lancamento_plano_resolver import enriquecer_interpretacao_com_plano_mongo
 from .lancamento_texto_interp import interpretar_texto_lancamento_manual
 from .mongo_financeiro_util import (
     COL_DTO_LANCAMENTO,
@@ -8548,11 +8549,27 @@ def api_lancamentos_interpretar_texto(request):
         body = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
-    texto = str(body.get("texto") or "").strip()
+    texto = str(body.get("texto") or body.get("texto_original") or "").strip()
+    dados_parciais = body.get("dados_parciais") if isinstance(body.get("dados_parciais"), dict) else None
+    respostas_dialogo = body.get("respostas_dialogo") if isinstance(body.get("respostas_dialogo"), dict) else None
     raw_llm = body.get("llm", True)
     permitir_llm = raw_llm is not False and str(raw_llm).strip().lower() not in ("0", "false", "no", "off")
-    r = interpretar_texto_lancamento_manual(texto, permitir_llm=permitir_llm)
-    return JsonResponse(r, status=200 if r.get("ok") else 400)
+    r = interpretar_texto_lancamento_manual(
+        texto,
+        permitir_llm=permitir_llm,
+        dados_parciais=dados_parciais,
+        respostas_dialogo=respostas_dialogo,
+    )
+    if r.get("ok"):
+        try:
+            _, db = obter_conexao_mongo()
+            r = enriquecer_interpretacao_com_plano_mongo(
+                r, db, frase_original=texto, permitir_llm=permitir_llm
+            )
+        except Exception:
+            logger.exception("enriquecer_interpretacao_com_plano_mongo")
+    st = 200 if r.get("ok") or r.get("precisa_esclarecimento") else 400
+    return JsonResponse(r, status=st)
 
 
 @login_required(login_url="/admin/login/")
