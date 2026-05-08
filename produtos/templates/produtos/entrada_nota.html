@@ -1990,6 +1990,11 @@
         });
       });
     }
+    if (step === 5) {
+      queueMicrotask(() => {
+        entradaNfeAtualizarRodapeParcelas();
+      });
+    }
     if (step === 6) {
       entradaNfeRecapRefresh();
       entradaNfeAtualizarUiBotaoWizardFinalizar();
@@ -3011,10 +3016,13 @@
   /** Snapshot do bloco financeiro para gravar em ``extra.financeiro_ui`` (Mongo). */
   function entradaNfeColetarFinanceiroParaExtra() {
     const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
-    const parcelas_preview = rows.map((tr) => ({
-      data_vencimento: (tr.querySelector('.fin-parc-dv')?.value || '').trim(),
-      valor: parseFloat(String(tr.querySelector('.fin-parc-val')?.value || '').replace(',', '.')) || 0,
-    })).filter((p) => p.data_vencimento && /^\d{4}-\d{2}-\d{2}$/.test(p.data_vencimento) && p.valor > 0);
+    const parcelas_preview = rows.map((tr) => {
+      const vRaw = entradaNfeParseDecimalApi(tr.querySelector('.fin-parc-val')?.value);
+      return {
+        data_vencimento: (tr.querySelector('.fin-parc-dv')?.value || '').trim(),
+        valor: vRaw != null && Number.isFinite(vRaw) && vRaw > 0 ? vRaw : 0,
+      };
+    }).filter((p) => p.data_vencimento && /^\d{4}-\d{2}-\d{2}$/.test(p.data_vencimento) && p.valor > 0);
     const intD = entradaNfeFinParcelasIntervaloDias();
     return {
       empresa_nome: document.getElementById('fin-empresa-nome')?.value?.trim() || '',
@@ -3087,8 +3095,8 @@
         const totalCentsFv = entradaNfeTotalCentavosFromDom();
         let sumPpCent = 0;
         for (const pr of pp) {
-          const vr = Number(pr && pr.valor);
-          if (Number.isFinite(vr) && vr > 0) sumPpCent += Math.round(vr * 100);
+          const vr = entradaNfeParseDecimalApi(pr && pr.valor);
+          if (vr != null && vr > 0) sumPpCent += Math.round(vr * 100);
         }
         const valoresSalvosBatendoTotal = Math.abs(sumPpCent - totalCentsFv) <= 5;
         pp.forEach((p, i) => {
@@ -3123,16 +3131,39 @@
 
   let finParcPreviewT = null;
   let _finParcForcarPadrao = false;
+  /** Evita loop ao auto-redistribuir parcelas quando a soma diverge muito da grade. */
+  let _entradaNfeRodapeRecoalescendoParcelas = false;
 
   function entradaNfeAtualizarRodapeParcelas() {
     const warnEl = document.getElementById('fin-parcelas-sum-warn');
     const totalEl = document.getElementById('fin-parcelas-preview-total');
-    const totalNota = entradaNfeTotalCentavosFromDom() / 100;
+    const dvOk = !!(document.getElementById('fin-dv')?.value || '').trim();
+    const dc = entradaNfeTotalCentavosFromDom();
+    const totalNota = dc / 100;
     const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
+    let sumCent = 0;
     const soma = rows.reduce((acc, tr) => {
-      const x = parseFloat(String(tr.querySelector('.fin-parc-val')?.value || '').replace(',', '.'));
-      return acc + (Number.isFinite(x) ? x : 0);
+      const x = entradaNfeParseDecimalApi(tr.querySelector('.fin-parc-val')?.value);
+      const xv = x != null && Number.isFinite(x) && x >= 0 ? x : 0;
+      sumCent += Math.round(xv * 100);
+      return acc + xv;
     }, 0);
+    if (
+      !_entradaNfeRodapeRecoalescendoParcelas
+      && dvOk
+      && rows.length > 0
+      && dc > 0
+      && Math.abs(sumCent - dc) > 300
+    ) {
+      _entradaNfeRodapeRecoalescendoParcelas = true;
+      _finParcForcarPadrao = true;
+      try {
+        entradaNfeAtualizarPreviewParcelas();
+      } finally {
+        _entradaNfeRodapeRecoalescendoParcelas = false;
+      }
+      return;
+    }
     if (totalEl) totalEl.textContent = totalNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     if (warnEl) {
       const diff = Math.round((soma - totalNota) * 100) / 100;
@@ -3188,8 +3219,8 @@
       const prevDates = prevRows.map((tr) => (tr.querySelector('.fin-parc-dv')?.value || '').trim());
       dates = prevDates.map((d, i) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? d : datesDefault[i]));
       const prevVals = prevRows.map((tr) => {
-        const x = parseFloat(String(tr.querySelector('.fin-parc-val')?.value || '').replace(',', '.'));
-        return Number.isFinite(x) ? x : 0;
+        const x = entradaNfeParseDecimalApi(tr.querySelector('.fin-parc-val')?.value);
+        return x != null && Number.isFinite(x) ? x : 0;
       });
       const sump = Math.round(prevVals.reduce((a, b) => a + b, 0) * 100);
       if (Math.abs(sump - totalCents) <= 5) vals = prevVals;
@@ -3231,8 +3262,8 @@
       if (!dvLin || !/^\d{4}-\d{2}-\d{2}$/.test(dvLin)) {
         return { erro: `Parcela ${i + 1}: informe a data de vencimento.` };
       }
-      const v = parseFloat(vStr.replace(',', '.'));
-      if (!Number.isFinite(v) || v <= 0) {
+      const v = entradaNfeParseDecimalApi(vStr);
+      if (v == null || !Number.isFinite(v) || v <= 0) {
         return { erro: `Parcela ${i + 1}: valor inválido.` };
       }
       parcelas.push({
