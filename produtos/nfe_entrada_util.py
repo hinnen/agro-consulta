@@ -88,7 +88,16 @@ def entrada_nfe_status_derivado_linhas(linhas: list | None) -> str:
 
 def entrada_nfe_status_efetivo(doc: dict[str, Any]) -> str:
     raw = str(doc.get("status") or ENTRADA_NFE_STATUS_RASCUNHO_LEGACY).strip().lower()
-    linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
+    linhas_raw = doc.get("linhas")
+    if not isinstance(linhas_raw, list):
+        # Em payloads resumidos (lista), "linhas" pode não vir.
+        # Nessa situação, preserva o status persistido sem rederivar por pendências.
+        if raw in (ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO):
+            return raw
+        if raw in (ENTRADA_NFE_STATUS_COM_PENDENCIAS, ENTRADA_NFE_STATUS_PRONTA):
+            return raw
+        return ENTRADA_NFE_STATUS_COM_PENDENCIAS
+    linhas = linhas_raw
     pend = entrada_nfe_linhas_tem_pendencias(linhas)
     if raw in (ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO):
         return raw
@@ -450,10 +459,27 @@ def listar_rascunhos_entrada(db, limit: int = 30, *, filtro: str | None = None) 
     if db is None:
         return []
     try:
-        cur = (
-            db[COL_ENTRADA_RASCUNHO]
-            .find({}, sort=[("criado_em", -1)])
-            .limit(min(max(limit, 1), 100))
+        lim = min(max(limit, 1), 100)
+        cur = db[COL_ENTRADA_RASCUNHO].aggregate(
+            [
+                {"$sort": {"criado_em": -1}},
+                {"$limit": lim},
+                {
+                    "$project": {
+                        "_id": 1,
+                        "status": 1,
+                        "cabecalho": 1,
+                        "modo": 1,
+                        "extra": 1,
+                        "criado_em": 1,
+                        "atualizado_em": 1,
+                        "estoque_aplicado_em": 1,
+                        "linhas_count": {
+                            "$cond": [{"$isArray": "$linhas"}, {"$size": "$linhas"}, 0]
+                        },
+                    }
+                },
+            ]
         )
         out = []
         for d in cur:

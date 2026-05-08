@@ -5629,7 +5629,9 @@
         wrap.className =
           'flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl border-2 border-slate-200 bg-white px-2.5 py-2 text-xs shadow-sm';
         const cab = it.cabecalho || {};
-        const nLin = Array.isArray(it.linhas) ? it.linhas.length : 0;
+        const nLin = Number.isFinite(Number(it.linhas_count))
+          ? Number(it.linhas_count)
+          : (Array.isArray(it.linhas) ? it.linhas.length : 0);
         const ch = (cab.chave || '').toString().trim();
         const chShort = ch.length >= 20 ? `${ch.slice(0, 8)}…${ch.slice(-6)}` : ch;
         const bk = String(it.entrada_lista_bucket || '');
