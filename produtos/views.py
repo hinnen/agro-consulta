@@ -6366,15 +6366,13 @@ def api_entrada_nota_aprovar_wizard(request):
     ok_r, err_r = rascunho_entrada_valido_para_aprovacao_wizard(doc)
     if not ok_r:
         return JsonResponse({"ok": False, "erro": err_r}, status=400)
-    ex = dict(doc.get("extra") if isinstance(doc.get("extra"), dict) else {})
-    ex["aprovacao_wizard_em"] = agora.isoformat()
-    ex["aprovacao_wizard_usuario"] = usuario[:200]
     try:
         db[COL_ENTRADA_RASCUNHO].update_one(
             {"_id": _oid},
             {
                 "$set": {
-                    "extra": ex,
+                    "extra.aprovacao_wizard_em": agora.isoformat(),
+                    "extra.aprovacao_wizard_usuario": usuario[:200],
                     "atualizado_em": agora,
                     "usuario_ultima_alteracao": usuario[:200],
                 }
