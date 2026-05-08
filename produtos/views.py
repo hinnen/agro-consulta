@@ -6466,6 +6466,32 @@ def api_entrada_nota_reabrir_nota(request):
     return JsonResponse(rr)
 
 
+def _entrada_nota_q_grade_linha(ln: dict) -> Decimal:
+    """
+    Quantidade usada no total da linha na tela de NF-e (entrada_nota.html): coluna «Qtd est.».
+    Se ausente ou zero, espelha o default da UI: q_com × un_por_embalagem.
+    O backend não pode somar só q_com × v_un — isso subfatura quando Un/emb > 1.
+    """
+    if not isinstance(ln, dict):
+        return Decimal("0")
+    try:
+        raw_es = str(ln.get("q_estoque") or "").replace(",", ".").strip()
+        q_es = Decimal(raw_es) if raw_es else Decimal("0")
+    except Exception:
+        q_es = Decimal("0")
+    if q_es > 0:
+        return q_es
+    try:
+        qc = Decimal(str(ln.get("q_com") or "").replace(",", ".").strip() or "0")
+        un_raw = str(ln.get("un_por_embalagem") or "").replace(",", ".").strip()
+        emb = Decimal(un_raw if un_raw else "1")
+    except Exception:
+        return Decimal("0")
+    if emb <= 0:
+        emb = Decimal("1")
+    return qc * emb
+
+
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_entrada_nota_financeiro(request):
@@ -6617,7 +6643,7 @@ def api_entrada_nota_financeiro(request):
             if not isinstance(ln, dict):
                 continue
             try:
-                qtd = float(str(ln.get("q_com", "")).replace(",", ".").strip() or 0)
+                qtd = float(_entrada_nota_q_grade_linha(ln))
                 vu = float(str(ln.get("v_un_com", "")).replace(",", ".").strip() or 0)
             except (TypeError, ValueError):
                 continue
@@ -6656,7 +6682,7 @@ def api_entrada_nota_financeiro(request):
             if not isinstance(ln, dict):
                 continue
             try:
-                qtd = Decimal(str(ln.get("q_com", "")).replace(",", ".").strip() or "0")
+                qtd = _entrada_nota_q_grade_linha(ln)
                 vu = Decimal(str(ln.get("v_un_com", "")).replace(",", ".").strip() or "0")
             except Exception:
                 continue
