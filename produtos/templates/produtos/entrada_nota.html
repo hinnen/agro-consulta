@@ -4565,7 +4565,7 @@
     }
   }
 
-  /** Garante venda + custo do ERP (documento completo), sem depender só da busca por código. */
+  /** Refina custo e margem do ERP após escolher o produto; P. venda permanece o da busca/lista (não sobrescrever). */
   async function entradaNfeEnriquecerLinhaAposEscolherCatalogo(tr, pRef) {
     const pid = String(pRef && pRef.id != null ? pRef.id : '').trim();
     if (!tr || !pid || !tr.isConnected) return;
