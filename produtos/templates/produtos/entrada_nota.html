@@ -77,7 +77,7 @@
     body.entrada-nfe--editor { overflow: hidden; }
     body.entrada-nfe--editor #entrada-nfe-header-principal { display: none; }
     body.entrada-nfe--editor #entrada-nfe-main-lista { display: none; }
-    .in-qtd:focus, .in-un-emb:focus, .in-q-est:focus {
+    .in-qtd:focus, .in-un-emb:focus, .in-q-est:focus, .in-preco-pacote:focus:not(:disabled) {
       outline: 2px solid rgb(16 185 129 / 0.55);
       outline-offset: 1px;
     }
@@ -429,8 +429,8 @@
               <th class="text-center align-bottom px-1 py-2" title="Quantidade declarada na nota fiscal">Qtd NF</th>
               <th class="text-right align-bottom px-2 py-2" title="Unidades por embalagem conforme NF">Un/emb</th>
               <th class="text-right align-bottom px-2 py-2" title="Quantidade a lançar no estoque Agro">Qtd est.</th>
-              <th class="text-right align-bottom px-2 py-2" title="Custo de uma embalagem (quando Un/emb maior que 1). Igual a V. unit × Un/emb ou ao valor digitado como pacote no V. unit.">R$ pacote</th>
-              <th class="text-right align-bottom px-2 py-2" title="Custo unitário (NF). Se Un/emb maior que 1 você pode informar valor do pacote; ao sair do campo divide pela embalagem.">V. unit</th>
+              <th class="text-right align-bottom px-2 py-2" title="Custo de uma embalagem (editável quando Un/emb maior que 1). Ao sair do campo: calcula o V. unit dividindo pelo Un/emb.">R$ pacote</th>
+              <th class="text-right align-bottom px-2 py-2" title="Custo unitário na NF. Com Un/emb maior que 1, use R$ pacote para informar o valor da embalagem (ex.: 14,00); ou edite aqui o custo por unidade — o pacote é atualizado (× Un/emb).">V. unit</th>
               <th class="text-right align-bottom px-2 py-2" title="Margem % sobre o custo (cadastro Agro; editável)">Margem %</th>
               <th class="text-right align-bottom px-2 py-2" title="Preço de venda de referência no Agro (editável)">P. venda</th>
               <th class="text-right align-bottom px-2 py-2" title="Qtd est. × valor unitário (linha)">Total</th>
@@ -1008,39 +1008,42 @@
     return entradaNfeParseDecimalApi(tr.querySelector('.in-vun')?.value) ?? 0;
   }
 
-  /** Coluna só leitura: custo da embalagem quando Un/emb &gt; 1. */
+  /** Campo R$ pacote: Un/emb &gt; 1 editável; sincroniza com dataset e V. unit. */
   function entradaNfeLinhaAtualizarPrecoPacoteTd(tr) {
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
-    const el = tr.querySelector('.nfe-preco-pacote');
+    const el = tr.querySelector('.in-preco-pacote');
     if (!el) return;
     const un = Number(String(tr.querySelector('.in-un-emb')?.value ?? '').replace(',', '.')) || 1;
     if (!(un > 1)) {
-      el.textContent = '—';
-      el.title = 'Só aparece quando Un/emb é maior que 1 (várias unidades por embalagem).';
+      el.disabled = true;
+      el.value = '';
+      el.placeholder = '—';
+      el.title = 'Só editável quando Un/emb é maior que 1.';
       return;
     }
+    el.disabled = false;
+    el.placeholder = '0,00';
     let pac = entradaNfeParseDecimalApi(tr.dataset.nfeCustoEmbalagem || '');
     if (pac == null || !Number.isFinite(pac) || pac <= 0) {
       const v = entradaNfeLinhaValorUnitarioCalculo(tr);
       if (v != null && Number.isFinite(v) && v >= 0) pac = v * un;
     }
-    if (pac != null && Number.isFinite(pac) && pac > 0) {
-      el.textContent = entradaNfeFmtMoedaBr2(pac);
-      el.title = 'Preço de custo de uma embalagem (conforme NF ou digitado em V. unit).';
-    } else {
-      el.textContent = '—';
-      el.title = '';
-    }
+    el.title =
+      pac != null && Number.isFinite(pac) && pac > 0
+        ? 'Custo de uma embalagem na NF — ao alterar e sair, o V. unit é recalculado (÷ Un/emb).'
+        : '';
+    entradaNfeDefinirInputMoedaBr2(el, pac != null && Number.isFinite(pac) && pac > 0 ? pac : 0);
   }
 
   /**
    * Rateia custo unitário quando a linha está em embalagem (>1 un/emb).
-   * Ex.: 1 pacote de R$14 com 135 un/emb => V.unit = 14/135.
+   * Ex.: R$ pacote 14 com 135 un/emb => V.unit = 14/135.
    */
   function entradaNfeLinhaRatearCustoPorEmbalagem(tr, opts) {
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
     const o = opts && typeof opts === 'object' ? opts : {};
-    const fromInputVun = !!o.fromInputVun;
+    const fromPacoteInput = !!o.fromPacoteInput;
+    const fromUnitInput = !!o.fromUnitInput;
     const vunEl = tr.querySelector('.in-vun');
     const unEl = tr.querySelector('.in-un-emb');
     if (!vunEl || !unEl) return;
@@ -1048,29 +1051,64 @@
     const un = Number(String(unEl.value || '').replace(',', '.')) || 1;
     if (!(un > 0)) return;
 
-    if (fromInputVun) {
-      const atual = entradaNfeParseDecimalApi(vunEl.value);
-      if (atual != null && Number.isFinite(atual) && atual > 0) {
-        tr.dataset.nfeCustoEmbalagem = String(atual);
+    if (fromUnitInput && un > 1) {
+      const unit = entradaNfeParseDecimalApi(vunEl.value);
+      if (unit != null && Number.isFinite(unit) && unit >= 0) {
+        tr.dataset.nfeVunPreciso = String(unit);
+        tr.dataset.nfeCustoEmbalagem = String(unit * un);
+        entradaNfeDefinirInputMoedaBr2(vunEl, unit);
       }
+      entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
+      return;
+    }
+
+    if (fromPacoteInput && un > 1) {
+      const pacEl = tr.querySelector('.in-preco-pacote');
+      const pac = entradaNfeParseDecimalApi(pacEl?.value || '');
+      if (!(pac != null && Number.isFinite(pac) && pac > 0)) {
+        delete tr.dataset.nfeCustoEmbalagem;
+        delete tr.dataset.nfeVunPreciso;
+        entradaNfeDefinirInputMoedaBr2(vunEl, 0);
+        entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
+        return;
+      }
+      tr.dataset.nfeCustoEmbalagem = String(pac);
     }
 
     if (un <= 1) {
-      const emb = entradaNfeParseDecimalApi(tr.dataset.nfeCustoEmbalagem || '');
-      if (emb != null && Number.isFinite(emb) && emb > 0) {
-        tr.dataset.nfeVunPreciso = String(emb);
-        entradaNfeDefinirInputMoedaBr2(vunEl, emb);
-      }
+      const embWas = entradaNfeParseDecimalApi(tr.dataset.nfeCustoEmbalagem || '');
       delete tr.dataset.nfeCustoEmbalagem;
+      if (fromUnitInput) {
+        const unit = entradaNfeParseDecimalApi(vunEl.value);
+        if (unit != null && Number.isFinite(unit) && unit >= 0) {
+          tr.dataset.nfeVunPreciso = String(unit);
+          entradaNfeDefinirInputMoedaBr2(vunEl, unit);
+        }
+      } else if (embWas != null && Number.isFinite(embWas) && embWas > 0) {
+        tr.dataset.nfeVunPreciso = String(embWas);
+        entradaNfeDefinirInputMoedaBr2(vunEl, embWas);
+      } else {
+        const unit = entradaNfeParseDecimalApi(vunEl.value);
+        if (unit != null && Number.isFinite(unit) && unit >= 0) {
+          tr.dataset.nfeVunPreciso = String(unit);
+          entradaNfeDefinirInputMoedaBr2(vunEl, unit);
+        }
+      }
+      entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
       return;
     }
 
     let custoEmb = entradaNfeParseDecimalApi(tr.dataset.nfeCustoEmbalagem || '');
     if (custoEmb == null || !Number.isFinite(custoEmb) || custoEmb <= 0) {
-      const atual = entradaNfeParseDecimalApi(vunEl.value);
-      if (atual == null || !Number.isFinite(atual) || atual <= 0) return;
-      custoEmb = atual;
-      tr.dataset.nfeCustoEmbalagem = String(custoEmb);
+      const u =
+        entradaNfeParseDecimalApi(tr.dataset.nfeVunPreciso || '') ?? entradaNfeParseDecimalApi(vunEl.value);
+      if (u != null && Number.isFinite(u) && u >= 0 && un > 0) {
+        custoEmb = u * un;
+        tr.dataset.nfeCustoEmbalagem = String(custoEmb);
+      } else {
+        entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
+        return;
+      }
     }
 
     const unit = custoEmb / un;
@@ -1078,6 +1116,7 @@
       tr.dataset.nfeVunPreciso = String(unit);
       entradaNfeDefinirInputMoedaBr2(vunEl, unit);
     }
+    entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
   }
 
   /** Abaixo de 25% ou negativa: vermelho; 25–34%: amarelo; 35–70%: verde; acima de 70%: azul. */
@@ -3490,14 +3529,16 @@
       </td>
       <td class="px-2 py-1"><input type="number" step="0.0001" min="0.0001" class="in-un-emb w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="1" title="Unidades por embalagem NF"></td>
       <td class="px-2 py-1"><input type="number" step="0.0001" class="in-q-est w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="" title="Qtd p/ estoque (editar para sobrescrever)"></td>
-      <td class="px-1 py-1 align-middle text-right">
-        <span class="nfe-preco-pacote block tabular-nums text-xs font-black text-slate-800 whitespace-nowrap">—</span>
+      <td class="px-1 py-1 align-middle">
+        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+          class="in-preco-pacote w-full min-w-0 min-h-[44px] rounded-lg border-2 border-sky-500 bg-white px-2 py-2 text-center text-xs sm:text-sm font-black text-slate-900 tabular-nums tracking-tight disabled:pointer-events-none disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 shadow-inner"
+          title="Quando Un/emb maior que 1: valor de uma embalagem (ex. 14,00). Ao sair, calcula o V. unit.">
       </td>
       <td class="px-1 py-1 align-middle">
         <div class="rounded-xl border-[3px] border-emerald-500 bg-gradient-to-b from-emerald-50 to-white px-1.5 py-1.5 shadow-md ring-1 ring-emerald-400/70 min-h-[44px] min-w-0 flex items-center">
           <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
             class="in-vun w-full min-w-0 rounded-lg bg-white px-2 py-2 text-center text-base font-black text-emerald-950 tabular-nums tracking-tight border-0 shadow-none ring-0 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
-            title="Custo unitário (0,00). Un/emb maior que 1: pode digitar valor do pacote; ao sair divide pela embalagem.">
+            title="Custo por unidade. Com várias unidades por embalagem, pode usar R$ pacote ou editar aqui (o pacote acompanha).">
         </div>
       </td>
       <td class="px-2 py-1 align-middle">
@@ -3588,12 +3629,19 @@
       });
     });
     qe.addEventListener('input', () => { qe.dataset.manual = '1'; });
+    tr.querySelector('.in-preco-pacote')?.addEventListener('blur', () => {
+      const pe = tr.querySelector('.in-preco-pacote');
+      if (!pe || pe.disabled) return;
+      entradaNfeLinhaNormalizarMoedaBlur(pe);
+      entradaNfeLinhaRatearCustoPorEmbalagem(tr, { fromPacoteInput: true });
+      atualizarPainelTotalNfe();
+    });
     tr.querySelector('.in-vun')?.addEventListener('input', () => {
       tr.dataset.nfeVunDirty = '1';
     });
     tr.querySelector('.in-vun')?.addEventListener('blur', () => {
       entradaNfeLinhaNormalizarMoedaBlur(tr.querySelector('.in-vun'));
-      entradaNfeLinhaRatearCustoPorEmbalagem(tr, { fromInputVun: tr.dataset.nfeVunDirty === '1' });
+      entradaNfeLinhaRatearCustoPorEmbalagem(tr, { fromUnitInput: tr.dataset.nfeVunDirty === '1' });
       delete tr.dataset.nfeVunDirty;
       atualizarPainelTotalNfe();
     });
@@ -5011,7 +5059,7 @@
   });
   document.getElementById('tbody-itens').addEventListener('focusin', (e) => {
     const t = e.target;
-    if (!t || !t.matches('.in-qtd, .in-vun, .in-margem, .in-pvenda, .in-un-emb, .in-q-est')) return;
+    if (!t || !t.matches('.in-qtd, .in-preco-pacote, .in-vun, .in-margem, .in-pvenda, .in-un-emb, .in-q-est')) return;
     requestAnimationFrame(() => {
       try {
         t.select();
@@ -5033,12 +5081,14 @@
       const qt = e.target;
       if (qt && qt.classList.contains('in-qtd')) {
         const trQ = qt.closest('tr');
-        const vunEl = trQ && trQ.querySelector('.in-vun');
-        if (vunEl) {
+        const unFocus = Number(String(trQ?.querySelector('.in-un-emb')?.value ?? '').replace(',', '.')) || 1;
+        const pacFocus = unFocus > 1 ? trQ?.querySelector('.in-preco-pacote') : null;
+        const nextEl = pacFocus && !pacFocus.disabled ? pacFocus : trQ?.querySelector('.in-vun');
+        if (nextEl) {
           e.preventDefault();
           try {
-            vunEl.focus();
-            vunEl.select();
+            nextEl.focus();
+            nextEl.select();
           } catch (_) {}
           return;
         }
