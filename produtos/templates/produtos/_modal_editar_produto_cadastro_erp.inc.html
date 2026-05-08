@@ -205,6 +205,9 @@
           <span class="text-base font-black text-slate-600 mb-1 block tracking-tight">Código Interno ( gm )</span>
           <input type="text" id="edit-cod-nfe" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
         </label>
+        <p id="edit-codigo-auto-hint" class="hidden sm:col-span-2 md:col-span-3 text-xs font-semibold text-slate-600 leading-snug px-0.5">
+          Novo no SisVale: deixe «Código sistema» e «Código interno (GM)» em branco para gerar sequência automática (4 dígitos a partir de 6000 · GM + mesmo número · pula ocupados).
+        </p>
         <label class="block">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">NCM</span>
           <input type="text" id="edit-ncm" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
@@ -1313,13 +1316,15 @@
   function preencherForm(produto) {
     produto = produto || {};
     modalEdit.setAttribute('data-produto-id', String(produto.id || ''));
+    var isNovoProd = String(produto.id || '').trim().toLowerCase() === '__novo__';
     var titModal = document.getElementById('cadastro-modal-titulo');
     if (titModal) {
-      var isNovo = String(produto.id || '').trim().toLowerCase() === '__novo__';
-      titModal.innerHTML = isNovo
+      titModal.innerHTML = isNovoProd
         ? 'Novo produto · <span class="text-emerald-600">SisVale</span>'
         : 'Editar Produto · <span class="text-emerald-600">SisVale</span>';
     }
+    var hintCodSeq = document.getElementById('edit-codigo-auto-hint');
+    if (hintCodSeq) hintCodSeq.classList.toggle('hidden', !isNovoProd);
     modalEdit._snapshot = {
       id: produto.id,
       eh_kit: !!produto.eh_kit,
