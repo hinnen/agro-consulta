@@ -135,6 +135,13 @@ def _entrada_nfe_extra_wizard_data_ok(extra: Any) -> bool:
     return bool(e2 and e3)
 
 
+def _entrada_nfe_extra_finalizacao_ok(extra: Any) -> bool:
+    """Etapa 6 confirmada (PIN/finalização gravada no Mongo)."""
+    if not isinstance(extra, dict):
+        return False
+    return bool(str(extra.get("aprovacao_wizard_em") or "").strip())
+
+
 def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
     """
     Estágio exclusivo para filtros da lista (Entrada NF-e), alinhado ao fluxo:
@@ -147,10 +154,14 @@ def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
     fin_ok = bool(d.get("entrada_financeiro_lancado"))
     ex = d.get("extra") if isinstance(d.get("extra"), dict) else {}
     wizard_ok = _entrada_nfe_extra_wizard_data_ok(ex)
+    final_ok = _entrada_nfe_extra_finalizacao_ok(ex)
     if eff == ENTRADA_NFE_STATUS_DESCARTADA:
         return "descartada"
     if eff == ENTRADA_NFE_STATUS_ENCERRADA:
         return "encerrada"
+    # Finalização (etapa 6) registrada: tira da fila Estoque e trata como concluída.
+    if final_ok:
+        return "concluida"
     if fin_ok and eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
         return "concluida"
     if eff == ENTRADA_NFE_STATUS_COM_PENDENCIAS:
