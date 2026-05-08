@@ -402,7 +402,7 @@
           </div>
         </div>
         <div id="entrada-nfe-grade-scroll" class="overflow-x-auto rounded-xl border-2 border-slate-200 bg-white shadow-inner">
-        <table class="nfe-grade-itens w-full table-fixed text-xs sm:text-sm min-w-[1260px] border-separate border-spacing-0">
+        <table class="nfe-grade-itens w-full table-fixed text-xs sm:text-sm min-w-[1340px] border-separate border-spacing-0">
           <colgroup>
             <col class="w-[17%]" />
             <col class="w-[5.25rem]" />
@@ -410,6 +410,7 @@
             <col class="w-[4.5rem]" />
             <col class="w-[5.5rem]" />
             <col class="w-[4.25rem]" />
+            <col class="w-[5.25rem]" />
             <col class="w-[5.25rem]" />
             <col class="w-[7rem]" />
             <col class="w-[5.25rem]" />
@@ -425,9 +426,10 @@
               <th class="text-left align-bottom px-2 py-2" title="Código interno / GM da linha na NF">Cód.</th>
               <th class="text-left align-bottom px-2 py-2" title="EAN ou código de barras">EAN</th>
               <th class="text-center align-bottom px-1 py-2" title="Mudar ou escolher produto do Agro nesta linha">Cat.</th>
-              <th class="text-center align-bottom px-1 py-2" title="Quantidade declarada na nota fiscal (+/− rápidos)">Qtd NF</th>
+              <th class="text-center align-bottom px-1 py-2" title="Quantidade declarada na nota fiscal">Qtd NF</th>
               <th class="text-right align-bottom px-2 py-2" title="Unidades por embalagem conforme NF">Un/emb</th>
               <th class="text-right align-bottom px-2 py-2" title="Quantidade a lançar no estoque Agro">Qtd est.</th>
+              <th class="text-right align-bottom px-2 py-2" title="Custo de uma embalagem (quando Un/emb maior que 1). Igual a V. unit × Un/emb ou ao valor digitado como pacote no V. unit.">R$ pacote</th>
               <th class="text-right align-bottom px-2 py-2" title="Custo unitário (NF). Se Un/emb maior que 1 você pode informar valor do pacote; ao sair do campo divide pela embalagem.">V. unit</th>
               <th class="text-right align-bottom px-2 py-2" title="Margem % sobre o custo (cadastro Agro; editável)">Margem %</th>
               <th class="text-right align-bottom px-2 py-2" title="Preço de venda de referência no Agro (editável)">P. venda</th>
@@ -995,6 +997,7 @@
     const v = entradaNfeLinhaValorUnitarioCalculo(tr);
     const el = tr.querySelector('.nfe-total-linha');
     if (el) el.textContent = entradaNfeFmtMoedaBr2(q * v);
+    entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
   }
 
   /** Usa precisão interna quando houver rateio por embalagem; fallback no valor exibido no input. */
@@ -1003,6 +1006,31 @@
     const vp = entradaNfeParseDecimalApi(tr.dataset.nfeVunPreciso || '');
     if (vp != null && Number.isFinite(vp) && vp >= 0) return vp;
     return entradaNfeParseDecimalApi(tr.querySelector('.in-vun')?.value) ?? 0;
+  }
+
+  /** Coluna só leitura: custo da embalagem quando Un/emb &gt; 1. */
+  function entradaNfeLinhaAtualizarPrecoPacoteTd(tr) {
+    if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
+    const el = tr.querySelector('.nfe-preco-pacote');
+    if (!el) return;
+    const un = Number(String(tr.querySelector('.in-un-emb')?.value ?? '').replace(',', '.')) || 1;
+    if (!(un > 1)) {
+      el.textContent = '—';
+      el.title = 'Só aparece quando Un/emb é maior que 1 (várias unidades por embalagem).';
+      return;
+    }
+    let pac = entradaNfeParseDecimalApi(tr.dataset.nfeCustoEmbalagem || '');
+    if (pac == null || !Number.isFinite(pac) || pac <= 0) {
+      const v = entradaNfeLinhaValorUnitarioCalculo(tr);
+      if (v != null && Number.isFinite(v) && v >= 0) pac = v * un;
+    }
+    if (pac != null && Number.isFinite(pac) && pac > 0) {
+      el.textContent = entradaNfeFmtMoedaBr2(pac);
+      el.title = 'Preço de custo de uma embalagem (conforme NF ou digitado em V. unit).';
+    } else {
+      el.textContent = '—';
+      el.title = '';
+    }
   }
 
   /**
@@ -3462,6 +3490,9 @@
       </td>
       <td class="px-2 py-1"><input type="number" step="0.0001" min="0.0001" class="in-un-emb w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="1" title="Unidades por embalagem NF"></td>
       <td class="px-2 py-1"><input type="number" step="0.0001" class="in-q-est w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="" title="Qtd p/ estoque (editar para sobrescrever)"></td>
+      <td class="px-1 py-1 align-middle text-right">
+        <span class="nfe-preco-pacote block tabular-nums text-xs font-black text-slate-800 whitespace-nowrap">—</span>
+      </td>
       <td class="px-1 py-1 align-middle">
         <div class="rounded-xl border-[3px] border-emerald-500 bg-gradient-to-b from-emerald-50 to-white px-1.5 py-1.5 shadow-md ring-1 ring-emerald-400/70 min-h-[44px] min-w-0 flex items-center">
           <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
@@ -3604,7 +3635,7 @@
   function entradaNfeLinhaMontarCompacta(tr) {
     tr.dataset.nfeLinhaModo = 'compact';
     tr.innerHTML = `
-      <td colspan="14" class="px-2 py-2 sm:px-3 bg-slate-50/40 border-t border-slate-100 align-top">
+      <td colspan="15" class="px-2 py-2 sm:px-3 bg-slate-50/40 border-t border-slate-100 align-top">
         <div class="w-full min-w-0 max-w-none">
           <div class="rounded-[1.15rem] border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div class="shrink-0 rounded-t-[1.1rem] border-2 border-amber-400/90 bg-gradient-to-b from-amber-50/95 to-white px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] sm:px-3 sm:py-2.5">
