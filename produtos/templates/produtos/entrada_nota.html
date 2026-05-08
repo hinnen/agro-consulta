@@ -3084,6 +3084,13 @@
     if (Array.isArray(pp) && pp.length) {
       const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
       if (rows.length === pp.length) {
+        const totalCentsFv = entradaNfeTotalCentavosFromDom();
+        let sumPpCent = 0;
+        for (const pr of pp) {
+          const vr = Number(pr && pr.valor);
+          if (Number.isFinite(vr) && vr > 0) sumPpCent += Math.round(vr * 100);
+        }
+        const valoresSalvosBatendoTotal = Math.abs(sumPpCent - totalCentsFv) <= 5;
         pp.forEach((p, i) => {
           const tr = rows[i];
           if (!tr) return;
@@ -3092,7 +3099,14 @@
           if (dv && p.data_vencimento && /^\d{4}-\d{2}-\d{2}$/.test(String(p.data_vencimento))) {
             dv.value = String(p.data_vencimento).slice(0, 10);
           }
-          if (vl != null && p.valor != null && Number.isFinite(Number(p.valor))) vl.value = String(Number(p.valor));
+          if (
+            valoresSalvosBatendoTotal
+            && vl != null
+            && p.valor != null
+            && Number.isFinite(Number(p.valor))
+          ) {
+            vl.value = String(Number(p.valor));
+          }
         });
         entradaNfeAtualizarRodapeParcelas();
       }
