@@ -401,8 +401,8 @@
               title="Abre o cadastro de produtos em nova janela; ao criar no Agro, volte aqui e use Mudar ou a linha de busca embaixo da tabela.">+ Produto novo</button>
           </div>
         </div>
-        <div id="entrada-nfe-grade-scroll" class="overflow-x-auto rounded-xl border-2 border-slate-200 bg-white shadow-inner">
-        <table class="nfe-grade-itens w-full table-fixed text-xs sm:text-sm min-w-[1340px] border-separate border-spacing-0">
+        <div id="entrada-nfe-grade-scroll" class="rounded-xl border-2 border-slate-200 bg-white shadow-inner overflow-x-hidden">
+        <table class="nfe-grade-itens w-full min-w-0 table-fixed text-xs sm:text-sm border-separate border-spacing-0">
           <colgroup>
             <col class="w-[17%]" />
             <col class="w-[5.25rem]" />
@@ -1059,6 +1059,7 @@
         entradaNfeDefinirInputMoedaBr2(vunEl, unit);
       }
       entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
+      entradaNfeLinhaRecalcMargemDisplay(tr);
       return;
     }
 
@@ -1070,6 +1071,7 @@
         delete tr.dataset.nfeVunPreciso;
         entradaNfeDefinirInputMoedaBr2(vunEl, 0);
         entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
+        entradaNfeLinhaRecalcMargemDisplay(tr);
         return;
       }
       tr.dataset.nfeCustoEmbalagem = String(pac);
@@ -1095,6 +1097,7 @@
         }
       }
       entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
+      entradaNfeLinhaRecalcMargemDisplay(tr);
       return;
     }
 
@@ -1107,6 +1110,7 @@
         tr.dataset.nfeCustoEmbalagem = String(custoEmb);
       } else {
         entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
+        entradaNfeLinhaRecalcMargemDisplay(tr);
         return;
       }
     }
@@ -1117,6 +1121,7 @@
       entradaNfeDefinirInputMoedaBr2(vunEl, unit);
     }
     entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
+    entradaNfeLinhaRecalcMargemDisplay(tr);
   }
 
   /** Abaixo de 25% ou negativa: vermelho; 25–34%: amarelo; 35–70%: verde; acima de 70%: azul. */
@@ -3397,14 +3402,14 @@
     }
   }
 
-  /** Atualiza a coluna margem % a partir de V. unit e P. venda na linha (sem gravar no Mongo). */
+  /** Atualiza a coluna margem % a partir de V. unit e P. venda na linha (sem gravar no Mongo). P. venda fixo; custo recalcula só a margem. */
   function entradaNfeLinhaRecalcMargemDisplay(tr) {
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
     const mEl = tr.querySelector('.in-margem');
     const vunInp = tr.querySelector('.in-vun');
     const pvInp = tr.querySelector('.in-pvenda');
     if (!mEl || !vunInp || !pvInp) return;
-    const vu = entradaNfeParseDecimalApi(vunInp.value) ?? 0;
+    const vu = entradaNfeLinhaValorUnitarioCalculo(tr);
     const pv = entradaNfeParseDecimalApi(pvInp.value) ?? 0;
     if (vu > 0 && pv >= 0) {
       const pct = ((pv / vu) - 1) * 100;
@@ -4574,11 +4579,6 @@
       if (!tr.isConnected) return;
       if (String(tr.querySelector('.in-prod-id')?.value || '').trim() !== pid) return;
       const vunInp = tr.querySelector('.in-vun');
-      const pvInp = tr.querySelector('.in-pvenda');
-      if (det && pvInp) {
-        const pv = entradaNfeParseDecimalApi(det.preco_venda);
-        if (pv != null && pv >= 0) entradaNfeDefinirInputMoedaBr2(pvInp, pv);
-      }
       if (det && vunInp) {
         const custo = entradaNfeValorCustoProduto(det);
         if (custo != null && custo >= 0) entradaNfeDefinirInputMoedaBr2(vunInp, custo);
@@ -4643,7 +4643,7 @@
     }
   }
 
-  /** Dropdown fixo (evita clip do `overflow-x-auto` na grade): mesma âncora visual do PDV — só a faixa `#entrada-nfe-product-search-wrap`. */
+  /** Dropdown fixo (evita clip do container da grade): mesma âncora visual do PDV — só a faixa `#entrada-nfe-product-search-wrap`. */
   function entradaNfeLinhaCompactaSincDdPos(busca, dd) {
     if (!busca || !dd || dd.classList.contains('hidden')) return;
     const pad = 10;
