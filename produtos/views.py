@@ -11359,6 +11359,76 @@ def _mongo_sincronizar_codigo_sistema_espelho(
     return None
 
 
+def _mongo_codigo_sequencial_variantes_colisao(ds: str, gm: str, n: int) -> list:
+    """Valores que não podem repetir em outros produtos para o par sistema + GM."""
+    raw: list = [ds, gm, n]
+    try:
+        raw.append(float(int(n)))
+    except (TypeError, ValueError):
+        pass
+    out: list = []
+    seen: set = set()
+    for v in raw:
+        if v is None or v == "":
+            continue
+        key = (type(v).__name__, repr(v))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(v)
+    return out
+
+
+def _mongo_codigo_seq_ocupado(db, col: str, ds: str, gm: str, n: int) -> bool:
+    or_dup: list[dict] = []
+    for v in _mongo_codigo_sequencial_variantes_colisao(ds, gm, n):
+        for fld in ("Codigo", "CodigoNFe", "CodigoBarras", "EAN_NFe"):
+            or_dup.append({fld: v})
+    if not or_dup:
+        return False
+    try:
+        return db[col].find_one({"$or": or_dup}) is not None
+    except Exception:
+        logger.warning("mongo cod seq: find_one colisão", exc_info=True)
+        return True
+
+
+def _mongo_alocar_codigo_sequencial_novo_agro(db, col: str) -> tuple[JsonResponse | None, str | None, str | None]:
+    """
+    Próximo código livre para cadastro só Agro: sistema = numérico (a partir de ``AGRO_NOVO_PRODUTO_COD_MIN``,
+    default 6000), código interno GM = ``GM`` + mesmo número. Pula valores já usados no espelho.
+    """
+    try:
+        n0 = int(os.environ.get("AGRO_NOVO_PRODUTO_COD_MIN", "6000"))
+    except ValueError:
+        n0 = 6000
+    n0 = max(0, min(n0, 9_999_999))
+    max_steps = 65_000
+    n = n0
+    steps = 0
+    while steps < max_steps:
+        ds = str(int(n))
+        gm = f"GM{ds}"
+        if not _mongo_codigo_seq_ocupado(db, col, ds, gm, int(n)):
+            return None, ds, gm
+        n += 1
+        steps += 1
+    return (
+        JsonResponse(
+            {
+                "ok": False,
+                "erro": (
+                    "Não foi possível gerar código sequencial automático: faixa esgotada ou muitas tentativas. "
+                    "Informe manualmente «Código sistema» e «Código interno (GM)»."
+                ),
+            },
+            status=400,
+        ),
+        None,
+        None,
+    )
+
+
 def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonResponse | None, str | None]:
     """Cria documento mínimo em ``DtoProduto`` (somente Agro). Retorna (erro_response, None) ou (None, novo_id)."""
 
@@ -11378,6 +11448,20 @@ def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonR
     cod_int = pt("codigo", 80)
     cod_nfe = pt("codigo_nfe", 64)
     cod_cb = pt("codigo_barras", 80)
+
+    client, db = obter_conexao_mongo()
+    if db is None or client is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503), None
+
+    col = client.col_p
+
+    if not cod_int and not cod_nfe:
+        err_al, c_sys, c_gm = _mongo_alocar_codigo_sequencial_novo_agro(db, col)
+        if err_al is not None:
+            return err_al, None
+        cod_int = str(c_sys or "").strip()
+        cod_nfe = str(c_gm or "").strip()
+
     if not cod_int and not cod_nfe and not cod_cb:
         return (
             JsonResponse(
@@ -11407,11 +11491,6 @@ def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonR
     csosn = str(fiscal.get("csosn") or "").strip()[:10]
     origem = str(fiscal.get("origem") or "").strip()[:8]
 
-    client, db = obter_conexao_mongo()
-    if db is None or client is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503), None
-
-    col = client.col_p
     or_dup: list[dict] = []
     for v in (cod_int, cod_nfe, cod_cb):
         s = str(v or "").strip()
@@ -11440,8 +11519,15 @@ def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonR
     if not novo_id:
         return JsonResponse({"ok": False, "erro": "Não foi possível gerar Id único."}, status=500), None
 
-    cod_mongo_codigo = cod_int or cod_nfe or cod_cb
-    cod_mongo_nfe = cod_nfe or cod_mongo_codigo
+    cod_mongo_codigo: object = cod_int or cod_nfe or cod_cb
+    cis = str(cod_int or "").strip()
+    if cis.isdigit():
+        try:
+            cod_mongo_codigo = int(cis)
+        except ValueError:
+            pass
+    cns = str(cod_nfe or "").strip()
+    cod_mongo_nfe = cns if cns else (str(cod_mongo_codigo) if cod_mongo_codigo not in (None, "") else "")
 
     nome_norm = normalizar(nome)
     nome_tokens_list = tokens(nome)
