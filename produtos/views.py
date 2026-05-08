@@ -92,6 +92,7 @@ from .nfe_entrada_util import (
     reverter_integracao_entrada_nota_para_reabertura,
     salvar_rascunho_entrada,
 )
+from .agro_produto_fiscal_defaults import merge_fiscal_padrao_cadastro_manual_sp_sn
 from .mongo_index_codigos import (
     CAMPOS_CODIGO_RAIZ_MONGO,
     CAMPOS_NCM_FISCAL,
@@ -1498,12 +1499,25 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     ex: dict = {}
     if isinstance(getattr(ov, "cadastro_extras", None), dict):
         ex = dict(ov.cadastro_extras)
+    f_prev = dict(ex.get("fiscal") or {}) if isinstance(ex.get("fiscal"), dict) else {}
     if "fiscal" in payload and isinstance(payload.get("fiscal"), dict):
         f_in = payload["fiscal"]
-        f_prev = dict(ex.get("fiscal") or {}) if isinstance(ex.get("fiscal"), dict) else {}
         for k, mx in (("ncm", 14), ("cest", 10), ("cfop", 7), ("csosn", 7), ("origem", 4)):
             if k in f_in:
                 f_prev[k] = str(f_in.get(k) or "").strip()[:mx]
+    somente_agro_overlay = bool(
+        p_doc is not None and _mongo_primeiro_bool(p_doc, ("CadastroSomenteAgro", "cadastroSomenteAgro"))
+    )
+    if somente_agro_overlay:
+        mf = merge_fiscal_padrao_cadastro_manual_sp_sn(f_prev)
+        ex["fiscal"] = {
+            "ncm": mf["ncm"][:14],
+            "cest": mf.get("cest", "").strip()[:10],
+            "cfop": mf["cfop"][:7],
+            "csosn": mf["csosn"][:7],
+            "origem": mf["origem"][:4],
+        }
+    elif "fiscal" in payload and isinstance(payload.get("fiscal"), dict):
         ex["fiscal"] = f_prev
     if "kit" in payload and isinstance(payload.get("kit"), dict):
         k_in = payload["kit"]
@@ -1548,6 +1562,38 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         else:
             ex.pop("lote", None)
     ov.cadastro_extras = ex
+
+    if db is not None and client is not None and somente_agro_overlay and isinstance(ex.get("fiscal"), dict):
+        mff = ex["fiscal"]
+        set_fiscal: dict = {}
+        nc = str(mff.get("ncm") or "").strip()
+        if nc:
+            set_fiscal["NCM"] = nc[:16]
+        cest_mx = str(mff.get("cest") or "").strip()
+        if cest_mx:
+            set_fiscal["CEST"] = cest_mx[:12]
+        cfp_f = str(mff.get("cfop") or "").strip()
+        if cfp_f:
+            cfp_f = cfp_f[:10]
+            set_fiscal["CFOP"] = cfp_f
+            set_fiscal["CfopPadrao"] = cfp_f
+        cs_f = str(mff.get("csosn") or "").strip()
+        if cs_f:
+            set_fiscal["CSOSN"] = cs_f[:10]
+        ori_f = str(mff.get("origem") or "").strip()
+        if ori_f:
+            set_fiscal["OrigemMercadoria"] = ori_f[:8]
+        if set_fiscal:
+            try:
+                db[client.col_p].update_one(
+                    _mongo_filtro_id_produto_externo(pid),
+                    {"$set": set_fiscal},
+                )
+            except Exception:
+                logger.warning(
+                    "overlay salvar: sync campos fiscais Mongo (CadastroSomenteAgro)",
+                    exc_info=True,
+                )
 
     push_erp = _payload_truthy_sincronizar_erp_legado(payload)
 
@@ -11482,12 +11528,13 @@ def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonR
     pv = float(_float_api_json(payload.get("preco_venda"), 0.0))
     pc = float(_float_api_json(payload.get("preco_custo"), 0.0))
 
-    fiscal = payload.get("fiscal") if isinstance(payload.get("fiscal"), dict) else {}
-    ncm = str(fiscal.get("ncm") or "").strip()[:16]
-    cest = str(fiscal.get("cest") or "").strip()[:12]
-    cfop = str(fiscal.get("cfop") or "").strip()[:10]
-    csosn = str(fiscal.get("csosn") or "").strip()[:10]
-    origem = str(fiscal.get("origem") or "").strip()[:8]
+    fiscal_raw = payload.get("fiscal") if isinstance(payload.get("fiscal"), dict) else {}
+    fiscal_m = merge_fiscal_padrao_cadastro_manual_sp_sn(fiscal_raw)
+    ncm = str(fiscal_m.get("ncm") or "").strip()[:16]
+    cest = str(fiscal_m.get("cest") or "").strip()[:12]
+    cfop = str(fiscal_m.get("cfop") or "").strip()[:10]
+    csosn = str(fiscal_m.get("csosn") or "").strip()[:10]
+    origem = str(fiscal_m.get("origem") or "").strip()[:8]
 
     or_dup: list[dict] = []
     for v in (cod_int, cod_nfe, cod_cb):
@@ -11557,18 +11604,14 @@ def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonR
         "NomeTokens": nome_tokens_list,
         "BuscaTexto": busca_texto,
         "EhGranel": granel,
+        "NCM": ncm,
+        "CfopPadrao": cfop,
+        "CFOP": cfop,
+        "CSOSN": csosn,
+        "OrigemMercadoria": origem,
     }
-    if ncm:
-        doc["NCM"] = ncm
     if cest:
         doc["CEST"] = cest
-    if cfop:
-        doc["CfopPadrao"] = cfop
-        doc["CFOP"] = cfop
-    if csosn:
-        doc["CSOSN"] = csosn
-    if origem:
-        doc["OrigemMercadoria"] = origem
 
     try:
         ins = db[col].insert_one(doc)
