@@ -1905,7 +1905,7 @@
         if (!pmCol.parcelas.length) {
           return { ok: false, irPara: 5, erro: 'Monte a prévia de parcelas na etapa 5 · Financeiro.' };
         }
-        const totalCentsChec = entradaNfeTotalCentavosFromDom();
+        const totalCentsChec = entradaNfeTotalGradeCentavosUnificado();
         const somaCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(Number(p.valor) * 100), 0));
         if (Math.abs(somaCent - totalCentsChec) > 2) {
           return {
@@ -2922,6 +2922,19 @@
     return c;
   }
 
+  /**
+   * Total da grade em centavos para o financeiro: **prefere** o painel ``#nfe-valor-total-itens``
+   * (o que o operador vê), quando o valor exibido é maior que zero; senão recalcula pela soma das linhas.
+   * Evita duas passadas na grade retornarem valores diferentes (ex.: aviso com R$ 8,01 e parcelas ~ R$ 208).
+   */
+  function entradaNfeTotalGradeCentavosUnificado() {
+    const raw = entradaNfeParseDecimalApi(document.getElementById('nfe-valor-total-itens')?.textContent);
+    if (raw != null && Number.isFinite(raw) && raw > 0) {
+      return entradaNfeRoundHalfUp(raw * 100, 0);
+    }
+    return entradaNfeTotalCentavosFromDom();
+  }
+
   function splitCentavosEmNParcelas(totalCents, n) {
     const nn = Math.max(1, Math.min(60, Math.floor(Number(n)) || 1));
     if (totalCents <= 0) return [];
@@ -3091,7 +3104,7 @@
     if (Array.isArray(pp) && pp.length) {
       const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
       if (rows.length === pp.length) {
-        const totalCentsFv = entradaNfeTotalCentavosFromDom();
+        const totalCentsFv = entradaNfeTotalGradeCentavosUnificado();
         let sumPpCent = 0;
         for (const pr of pp) {
           const vr = entradaNfeParseDecimalApi(pr && pr.valor);
@@ -3133,11 +3146,14 @@
   /** Evita loop ao auto-redistribuir parcelas quando a soma diverge muito da grade. */
   let _entradaNfeRodapeRecoalescendoParcelas = false;
 
-  function entradaNfeAtualizarRodapeParcelas() {
+  function entradaNfeAtualizarRodapeParcelas(totalCentsPinned) {
     const warnEl = document.getElementById('fin-parcelas-sum-warn');
     const totalEl = document.getElementById('fin-parcelas-preview-total');
     const dvOk = !!(document.getElementById('fin-dv')?.value || '').trim();
-    const dc = entradaNfeTotalCentavosFromDom();
+    const pin = Number(totalCentsPinned);
+    const dc = Number.isFinite(pin) && pin >= 0
+      ? Math.round(pin)
+      : entradaNfeTotalGradeCentavosUnificado();
     const totalNota = dc / 100;
     const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
     let sumCent = 0;
@@ -3193,7 +3209,7 @@
     if (nParc > 60) nParc = 60;
     let intDias = entradaNfeFinParcelasIntervaloDias();
 
-    const totalCents = entradaNfeTotalCentavosFromDom();
+    const totalCents = entradaNfeTotalGradeCentavosUnificado();
     if (totalCents <= 0) {
       setParcelasHelpMsg('Inclua itens com quantidade e valor unitário na grade.');
       tableEl.classList.add('hidden');
@@ -3248,7 +3264,7 @@
       inp.addEventListener('input', () => entradaNfeAtualizarRodapeParcelas());
       inp.addEventListener('change', () => entradaNfeAtualizarRodapeParcelas());
     });
-    entradaNfeAtualizarRodapeParcelas();
+    entradaNfeAtualizarRodapeParcelas(totalCents);
   }
 
   function entradaNfeColetarParcelasManualFinanceiro(dcVal) {
@@ -5406,7 +5422,7 @@
       showMsg('Monte a prévia de parcelas (vencimento e valor em cada linha).', false);
       return;
     }
-    const totalCentsChec = entradaNfeTotalCentavosFromDom();
+    const totalCentsChec = entradaNfeTotalGradeCentavosUnificado();
     const somaCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(p.valor * 100), 0));
     if (Math.abs(somaCent - totalCentsChec) > 2) {
       showMsg('A soma das parcelas precisa fechar com o total da nota na grade.', false);
