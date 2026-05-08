@@ -251,6 +251,11 @@ urlpatterns = [
         name='api_lancamentos_sugestoes',
     ),
     path(
+        'api/lancamentos/interpretar-texto/',
+        views.api_lancamentos_interpretar_texto,
+        name='api_lancamentos_interpretar_texto',
+    ),
+    path(
         'api/lancamentos/criar-manual-lote/',
         views.api_lancamentos_criar_manual_lote,
         name='api_lancamentos_criar_manual_lote',
