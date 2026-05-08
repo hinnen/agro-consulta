@@ -977,11 +977,21 @@
     entradaNfeDefinirInputMoedaBr2(inp, n);
   }
 
+  /** Qtd estoque na linha — mesmo parser em toda grade / financeiro (evita NaN com vírgula). */
+  function entradaNfeLinhaQtyEstoqueCalculo(tr) {
+    if (!tr || tr.dataset.nfeLinhaModo === 'compact') return 0;
+    const el = tr.querySelector('.in-q-est');
+    if (!el) return 0;
+    const raw = String(el.value ?? '').trim().replace(/\s/g, '');
+    if (!raw) return 0;
+    const x = entradaNfeParseDecimalApi(raw);
+    return x != null && Number.isFinite(x) && x >= 0 ? x : 0;
+  }
+
   /** Total da linha (Qtd est. × V. unit), só exibição. */
   function entradaNfeLinhaAtualizarTotalProduto(tr) {
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
-    const qRaw = tr.querySelector('.in-q-est')?.value;
-    const q = Number(String(qRaw ?? '').replace(/\s/g, '').replace(',', '.')) || 0;
+    const q = entradaNfeLinhaQtyEstoqueCalculo(tr);
     const v = entradaNfeLinhaValorUnitarioCalculo(tr);
     const el = tr.querySelector('.nfe-total-linha');
     if (el) el.textContent = entradaNfeFmtMoedaBr2(q * v);
@@ -993,6 +1003,25 @@
     const vp = entradaNfeParseDecimalApi(tr.dataset.nfeVunPreciso || '');
     if (vp != null && Number.isFinite(vp) && vp >= 0) return vp;
     return entradaNfeParseDecimalApi(tr.querySelector('.in-vun')?.value) ?? 0;
+  }
+
+  /**
+   * Feedback visual para evitar confusão no rateio:
+   * mantém visível o valor do pacote digitado quando Un/emb > 1.
+   */
+  function entradaNfeLinhaAtualizarHintCustoEmbalagem(tr) {
+    if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
+    const hint = tr.querySelector('.nfe-vun-hint');
+    if (!hint) return;
+    const un = Number(String(tr.querySelector('.in-un-emb')?.value || '').replace(',', '.')) || 1;
+    const custoEmb = entradaNfeParseDecimalApi(tr.dataset.nfeCustoEmbalagem || '');
+    if (un > 1 && custoEmb != null && Number.isFinite(custoEmb) && custoEmb > 0) {
+      hint.textContent = `Pacote: ${entradaNfeFmtMoedaBr2(custoEmb)} (÷ ${entradaNfeRoundHalfUp(un, 4)} = unitário)`;
+      hint.classList.remove('hidden');
+      return;
+    }
+    hint.textContent = '';
+    hint.classList.add('hidden');
   }
 
   /**
@@ -1024,6 +1053,7 @@
         entradaNfeDefinirInputMoedaBr2(vunEl, emb);
       }
       delete tr.dataset.nfeCustoEmbalagem;
+      entradaNfeLinhaAtualizarHintCustoEmbalagem(tr);
       return;
     }
 
@@ -1040,6 +1070,7 @@
       tr.dataset.nfeVunPreciso = String(unit);
       entradaNfeDefinirInputMoedaBr2(vunEl, unit);
     }
+    entradaNfeLinhaAtualizarHintCustoEmbalagem(tr);
   }
 
   /** Abaixo de 25% ou negativa: vermelho; 25–34%: amarelo; 35–70%: verde; acima de 70%: azul. */
@@ -1531,11 +1562,8 @@
       wizard_etapa2_confirmada_em: '',
       wizard_etapa3_confirmada_em: '',
     };
-    entradaNfeWizardPersistExtraPatchFireForget({
-      wizard_etapa1_confirmada_em: '',
-      wizard_etapa2_confirmada_em: '',
-      wizard_etapa3_confirmada_em: '',
-    });
+    // Evita POST pesado imediato ao alterar etapa 1; o autosave consolidado persiste o patch.
+    entradaNfeAgendarAutosaveRascunho();
     entradaNfeAtualizarUiBotaoConfirmarFornecedor();
     entradaNfeAtualizarUiBotaoConfirmarProdutos();
     entradaNfeAtualizarUiBotaoConfirmarCodigos();
@@ -2820,13 +2848,21 @@
     };
   }
 
+  /**
+   * Total da grade em centavos: soma das linhas com o mesmo arredondamento exibido em «Total»
+   * (Fmt 2 casas → centavos). Evita diferença entre painel/visual e etapa Financeiro ou parcelas.
+   */
   function entradaNfeTotalCentavosFromDom() {
     let c = 0;
     document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
-      const q = Number(tr.querySelector('.in-q-est')?.value) || 0;
+      if (tr.dataset.nfeLinhaModo === 'compact') return;
+      const q = entradaNfeLinhaQtyEstoqueCalculo(tr);
       const v = entradaNfeLinhaValorUnitarioCalculo(tr);
       if (!Number.isFinite(q) || !Number.isFinite(v)) return;
-      c += entradaNfeRoundHalfUp(q * v * 100, 0);
+      const brlLinha = entradaNfeFmtMoedaBr2(q * v);
+      const linhaTot = entradaNfeParseDecimalApi(brlLinha);
+      if (linhaTot == null || !Number.isFinite(linhaTot)) return;
+      c += entradaNfeRoundHalfUp(linhaTot * 100, 0);
     });
     return c;
   }
@@ -3158,13 +3194,15 @@
   }
 
   function atualizarPainelTotalNfe() {
-    let s = 0;
+    let centsSum = 0;
     document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
-      const q = Number(tr.querySelector('.in-q-est')?.value) || 0;
-      const v = entradaNfeLinhaValorUnitarioCalculo(tr);
-      s += q * v;
+      if (tr.dataset.nfeLinhaModo === 'compact') return;
       entradaNfeLinhaAtualizarTotalProduto(tr);
+      const txt = tr.querySelector('.nfe-total-linha')?.textContent;
+      const x = entradaNfeParseDecimalApi(String(txt ?? '').trim());
+      if (x != null && Number.isFinite(x)) centsSum += entradaNfeRoundHalfUp(x * 100, 0);
     });
+    const s = centsSum / 100;
     const el = document.getElementById('nfe-valor-total-itens');
     if (el) el.textContent = s.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     entradaNfeAgendarPreviewParcelas();
@@ -3466,10 +3504,11 @@
       <td class="px-2 py-1"><input type="number" step="0.0001" min="0.0001" class="in-un-emb w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="1" title="Unidades por embalagem NF"></td>
       <td class="px-2 py-1"><input type="number" step="0.0001" class="in-q-est w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="" title="Qtd p/ estoque (editar para sobrescrever)"></td>
       <td class="px-1.5 py-1 align-middle">
-        <div class="rounded-xl border-[3px] border-emerald-500 bg-gradient-to-b from-emerald-50 to-white px-2 py-2 shadow-md ring-1 ring-emerald-400/70 flex items-center min-h-[48px] min-w-0 overflow-visible">
+        <div class="rounded-xl border-[3px] border-emerald-500 bg-gradient-to-b from-emerald-50 to-white px-2 py-2 shadow-md ring-1 ring-emerald-400/70 min-h-[48px] min-w-0 overflow-visible">
           <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
             class="in-vun w-full min-w-0 rounded-lg bg-white px-2.5 py-2.5 text-center text-base font-black text-emerald-950 tabular-nums tracking-tight border-0 shadow-none ring-0 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
             title="Custo unitário (rateado por Un/emb quando > 1), formato 0,00">
+          <div class="nfe-vun-hint hidden mt-1 text-[10px] leading-tight font-bold text-emerald-900/85 text-center"></div>
         </div>
       </td>
       <td class="px-2 py-1 align-middle">
@@ -3543,6 +3582,7 @@
     const viaCat = String(d.catalogo_via || '').trim();
     if (viaCat === 'scan' || viaCat === 'modal' || viaCat === 'lookup') tr.dataset.nfeCatVia = viaCat;
     else delete tr.dataset.nfeCatVia;
+    entradaNfeLinhaAtualizarHintCustoEmbalagem(tr);
     entradaNfeLinhaApplyCatalogoUi(tr);
     entradaNfeLinhaAtualizarTotalProduto(tr);
     entradaNfeLinhaApplyMargemCor(tr);
@@ -3671,7 +3711,7 @@
         ean: tr.querySelector('.in-ean').value.trim(),
         q_com: qtd,
         un_por_embalagem: Number(tr.querySelector('.in-un-emb').value) || 1,
-        q_estoque: Number(tr.querySelector('.in-q-est').value) || 0,
+        q_estoque: entradaNfeLinhaQtyEstoqueCalculo(tr),
         v_un_com: (() => {
           const x = entradaNfeLinhaValorUnitarioCalculo(tr);
           return x != null && Number.isFinite(x) ? entradaNfeRoundHalfUp(x, 6) : 0;
@@ -3809,17 +3849,62 @@
   const fornHid = document.getElementById('m-emit-forn-id');
   const fornDd = document.getElementById('forn-sug');
   let fornTimer = null;
+  let fornReqSeq = 0;
+  let fornAbortCtrl = null;
+  const fornCache = new Map();
+  const ENTRADA_NFE_FORN_CACHE_TTL_MS = 45 * 1000;
 
   async function carregarFornecedores(q, inicial) {
+    const termo = String(q || '').trim();
+    const usarInicial = !!inicial && !termo;
+    if (!usarInicial && termo.length > 0 && termo.length < 2) {
+      fornDd.innerHTML = '';
+      fornDd.classList.add('hidden');
+      return;
+    }
+    const cacheKey = `${usarInicial ? 'i' : 'q'}:${termo.toLowerCase()}`;
+    const now = Date.now();
+    const cached = fornCache.get(cacheKey);
+    if (cached && (now - cached.ts) < ENTRADA_NFE_FORN_CACHE_TTL_MS) {
+      fornDd.innerHTML = '';
+      (cached.itens || []).forEach((it) => {
+        const li = document.createElement('li');
+        const doc = it.documento ? ` · ${it.documento}` : '';
+        const og = it.origem ? ` [${it.origem}]` : '';
+        li.textContent = `${it.nome}${doc}${og}`;
+        li.className = 'px-3 py-2 cursor-pointer hover:bg-orange-50 text-sm font-medium border-b border-slate-50 last:border-0';
+        li.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          fornInp.value = it.nome;
+          fornHid.value = it.id || '';
+          if (it.documento) document.getElementById('m-emit-cnpj').value = it.documento;
+          fornDd.classList.add('hidden');
+          try {
+            entradaNfeFornecedorEtapaInvalidate();
+          } catch (_) {}
+        });
+        fornDd.appendChild(li);
+      });
+      fornDd.classList.toggle('hidden', fornDd.children.length === 0);
+      return;
+    }
+    if (fornAbortCtrl) {
+      try { fornAbortCtrl.abort(); } catch (_) {}
+    }
+    fornAbortCtrl = new AbortController();
+    const reqSeq = ++fornReqSeq;
     try {
       const u = new URL(URL_FORN, window.location.origin);
-      if (inicial) u.searchParams.set('inicial', '1');
-      else if (q) u.searchParams.set('q', q);
+      if (usarInicial) u.searchParams.set('inicial', '1');
+      else if (termo) u.searchParams.set('q', termo);
       u.searchParams.set('limit', '50');
-      const r = await fetch(u.toString(), { credentials: 'same-origin' });
+      const r = await fetch(u.toString(), { credentials: 'same-origin', signal: fornAbortCtrl.signal });
       const j = await r.json();
+      if (reqSeq !== fornReqSeq) return;
+      const itens = Array.isArray(j.itens) ? j.itens : [];
+      fornCache.set(cacheKey, { ts: now, itens });
       fornDd.innerHTML = '';
-      (j.itens || []).forEach((it) => {
+      itens.forEach((it) => {
         const li = document.createElement('li');
         const doc = it.documento ? ` · ${it.documento}` : '';
         const og = it.origem ? ` [${it.origem}]` : '';
@@ -3839,7 +3924,10 @@
       });
       fornDd.classList.toggle('hidden', fornDd.children.length === 0);
     } catch (_) {
+      if (reqSeq !== fornReqSeq) return;
       fornDd.classList.add('hidden');
+    } finally {
+      if (reqSeq === fornReqSeq) fornAbortCtrl = null;
     }
   }
 
@@ -3847,7 +3935,7 @@
     fornHid.value = '';
     clearTimeout(fornTimer);
     const q = fornInp.value.trim();
-    fornTimer = setTimeout(() => carregarFornecedores(q, false), 300);
+    fornTimer = setTimeout(() => carregarFornecedores(q, false), 420);
   });
   fornInp.addEventListener('focus', () => {
     if (!fornDd.children.length) carregarFornecedores('', true);
