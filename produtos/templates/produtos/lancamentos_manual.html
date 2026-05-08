@@ -136,7 +136,12 @@
               </label>
               <button type="button" id="btn-nlp-interp" class="shrink-0 h-11 px-6 rounded-xl border-2 border-indigo-200 bg-indigo-50 text-indigo-900 text-[10px] font-black uppercase tracking-wide hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm">Preencher pela frase</button>
             </div>
-            <p class="text-[9px] font-semibold text-slate-400 leading-snug ml-1">Reconhece valor (pt-BR) e data. Loja, fornecedor e banco continuam nos campos de cima; Enter só preenche a frase — não envia o lote. Opcional no servidor (sem chave não há gasto nem chamada externa): <code class="text-[9px] text-slate-600">GEMINI_API_KEY</code>, <code class="text-[9px] text-slate-600">GROQ_API_KEY</code> ou <code class="text-[9px] text-slate-600">OPENAI_API_KEY</code>; use <code class="text-[9px] text-slate-600">AGRO_LANCAMENTO_LLM_PROVIDER=groq</code> se a chave genérica não for Gemini.</p>
+            <p class="text-[9px] font-semibold text-slate-400 leading-snug ml-1">Interpreta a frase (regras locais + modelo se houver API key). Se faltar algo ou houver dúvida, aparecem perguntas curtas antes de preencher o lote. Plano: lista real do financeiro + modelo escolhe só entre esses nomes ou regras auxiliam sem chave.</p>
+          </div>
+          <div id="nlp-escl-wrap" class="col-span-1 lg:col-span-4 hidden rounded-2xl border-2 border-indigo-200 bg-indigo-50/40 px-4 py-3 space-y-3">
+            <p id="nlp-escl-motivo" class="text-[11px] font-bold text-indigo-950 leading-snug"></p>
+            <div id="nlp-escl-campos" class="space-y-3"></div>
+            <button type="button" id="nlp-escl-aplicar" class="h-10 px-5 rounded-xl bg-indigo-600 text-white text-[10px] font-black uppercase hover:bg-indigo-500">Responder e preencher</button>
           </div>
 
         </div>
@@ -296,51 +301,91 @@
     if (inputComp && !inputComp.value) inputComp.value = todayISO();
     if (inputVen && !inputVen.value && inputComp) inputVen.value = inputComp.value;
 
-    async function preencherPorTexto() {
-      const inpNlp = document.getElementById('nlp-texto');
-      const btnNlp = document.getElementById('btn-nlp-interp');
-      const t = (inpNlp && inpNlp.value || '').trim();
-      if (!t) { alert('Digite a frase no campo «Por texto».'); return; }
-      if (btnNlp) btnNlp.disabled = true;
-      try {
-        const r = await fetch(API_TEXTO, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-          body: JSON.stringify({ texto: t }),
-        });
-        const raw = await r.text();
-        let j = {};
-        try { j = raw ? JSON.parse(raw) : {}; } catch (_) {
-          alert('Resposta inválida do servidor.');
-          return;
+    const nlpDialogCache = { textoOriginal: '', dadosParciais: {}, perguntas: [] };
+
+    function esconderNlpDialog() {
+      document.getElementById('nlp-escl-wrap').classList.add('hidden');
+    }
+
+    function renderizarPerguntasNlp(perguntas) {
+      const host = document.getElementById('nlp-escl-campos');
+      if (!host) return;
+      host.innerHTML = '';
+      (perguntas || []).forEach((p, idx) => {
+        const lid = document.createElement('label');
+        lid.className = 'block space-y-1';
+        const sp = document.createElement('span');
+        sp.className = 'text-[10px] font-black uppercase text-indigo-900';
+        sp.textContent = p.texto || p.id || '';
+        lid.appendChild(sp);
+        const uid = `nlp-r-${idx}`;
+        const tin = String(p.tipo_input || 'texto').toLowerCase();
+        if (tin === 'opcoes' && Array.isArray(p.opcoes) && p.opcoes.length) {
+          const sel = document.createElement('select');
+          sel.id = uid;
+          sel.className = 'w-full h-11 px-3 rounded-xl border-2 border-indigo-200 bg-white font-black text-[12px] text-slate-800';
+          const z = document.createElement('option'); z.value = ''; z.textContent = 'Escolha...'; sel.appendChild(z);
+          p.opcoes.forEach((o) => {
+            const op = document.createElement('option');
+            op.value = String(o.valor || '');
+            op.textContent = String(o.rotulo || o.valor || '');
+            sel.appendChild(op);
+          });
+          lid.appendChild(sel);
+        } else {
+          const inp = document.createElement('input');
+          inp.type = 'text';
+          inp.id = uid;
+          inp.className = 'w-full h-11 px-3 rounded-xl border-2 border-indigo-200 bg-white font-bold text-[12px]';
+          inp.autocomplete = 'off';
+          lid.appendChild(inp);
         }
-        if (!j.ok) {
-          alert(j.erro || 'Não foi possível interpretar. Inclua valor e data na frase.');
-          return;
-        }
-        const tipo = j.tipo === 'receber' ? 'receber' : 'pagar';
-        document.querySelectorAll('input[name="tipo"]').forEach((el) => { el.checked = el.value === tipo; });
-        if (j.data_competencia) inputComp.value = j.data_competencia;
-        if (j.data_vencimento) inputVen.value = j.data_vencimento;
-        if (cbQ) {
-          cbQ.checked = !!j.quitado_hint;
-          cbQ.dispatchEvent(new Event('change'));
-        }
-        const tr0 = document.querySelector('#tbody-linhas tr.linha');
-        if (!tr0) { addRow(); }
-        const tr = document.querySelector('#tbody-linhas tr.linha');
-        if (!tr) return;
-        const wrapPl = tr.querySelector('.sug-wrap[data-sug-campo="plano"]');
-        const inpPl = wrapPl ? wrapPl.querySelector('input[type="text"]') : null;
-        const hidPl = wrapPl ? wrapPl.querySelector('input[type="hidden"]') : null;
-        const linha0 = (j.linhas && j.linhas[0]) || {};
-        const hint = String(linha0.plano_hint || '').trim();
-        const valStr = String(linha0.valor || '').trim();
-        const descr = linha0.descricao ? String(linha0.descricao).trim() : '';
-        if (hidPl) hidPl.value = '';
-        if (inpPl && hint) inpPl.value = hint;
-        if (hint.length >= 2 && inpPl && hidPl) {
+        lid.dataset.fieldId = String(p.id || '');
+        host.appendChild(lid);
+      });
+    }
+
+    function coletarRespostasDialogo(perguntas) {
+      const r = {};
+      (perguntas || []).forEach((p, idx) => {
+        const el = document.getElementById(`nlp-r-${idx}`);
+        const fid = String(p.id || '').trim();
+        if (!fid || !el) return;
+        const v = String(el.value || '').trim();
+        if (v) r[fid] = v;
+      });
+      return r;
+    }
+
+    async function aplicarPayloadInterpretado(j) {
+      const tipo = j.tipo === 'receber' ? 'receber' : 'pagar';
+      document.querySelectorAll('input[name="tipo"]').forEach((el) => { el.checked = el.value === tipo; });
+      if (j.data_competencia) inputComp.value = j.data_competencia;
+      if (j.data_vencimento) inputVen.value = j.data_vencimento;
+      if (cbQ) {
+        cbQ.checked = !!j.quitado_hint;
+        cbQ.dispatchEvent(new Event('change'));
+      }
+      const tr0 = document.querySelector('#tbody-linhas tr.linha');
+      if (!tr0) { addRow(); }
+      const tr = document.querySelector('#tbody-linhas tr.linha');
+      if (!tr) return;
+      const wrapPl = tr.querySelector('.sug-wrap[data-sug-campo="plano"]');
+      const inpPl = wrapPl ? wrapPl.querySelector('input[type="text"]') : null;
+      const hidPl = wrapPl ? wrapPl.querySelector('input[type="hidden"]') : null;
+      const linha0 = (j.linhas && j.linhas[0]) || {};
+      const hint = String(linha0.plano_hint || '').trim();
+      const sugNome = String(linha0.plano_sugerido_nome || '').trim();
+      const sugId = String(linha0.plano_sugerido_id || '').trim();
+      const valStr = String(linha0.valor || '').trim();
+      const descr = linha0.descricao ? String(linha0.descricao).trim() : '';
+      if (hidPl) hidPl.value = '';
+      if (sugNome && inpPl && hidPl) {
+        inpPl.value = sugNome;
+        hidPl.value = sugId;
+      } else if (inpPl && hint) {
+        inpPl.value = hint;
+        if (hint.length >= 2 && hidPl) {
           const rs = await fetch(`${API_SUG}?campo=plano&q=${encodeURIComponent(hint)}`, { credentials: 'same-origin' });
           const sj = await rs.json().catch(() => ({}));
           const itens = sj.itens || [];
@@ -353,14 +398,60 @@
             hidPl.value = String(pick.id || '');
           }
         }
-        const vel = tr.querySelector('.in-valor');
-        if (vel && valStr) vel.value = valStr;
-        const dEl = tr.querySelector('.in-desc');
-        if (dEl) dEl.value = descr || hint;
-        calcTotal();
-        const msgA = Array.isArray(j.avisos) ? j.avisos.filter(Boolean).join('\n') : '';
-        if (msgA) alert(msgA);
-        if (inpPl && hint && !hidPl.value) inpPl.focus();
+      }
+      const vel = tr.querySelector('.in-valor');
+      if (vel && valStr) vel.value = valStr;
+      const dEl = tr.querySelector('.in-desc');
+      if (dEl) dEl.value = descr || hint || sugNome;
+      calcTotal();
+      const msgA = Array.isArray(j.avisos) ? j.avisos.filter(Boolean).join('\n') : '';
+      if (msgA) alert(msgA);
+      if (inpPl && !hidPl.value) inpPl.focus();
+    }
+
+    async function preencherPorTexto(opc) {
+      opc = opc || {};
+      const inpNlp = document.getElementById('nlp-texto');
+      const btnNlp = document.getElementById('btn-nlp-interp');
+      const digitado = (inpNlp && inpNlp.value || '').trim();
+      const tBase = opc.segundaRodada ? String(nlpDialogCache.textoOriginal || '').trim() : digitado;
+      if (!tBase && !opc.segundaRodada) { alert('Digite a frase no campo «Por texto».'); return; }
+      if (opc.segundaRodada && !tBase) { alert('Referência da frase perdida. Digite de novo.'); return; }
+      if (btnNlp) btnNlp.disabled = true;
+      try {
+        const payload = { texto: tBase, llm: true };
+        if (opc.segundaRodada) {
+          payload.dados_parciais = nlpDialogCache.dadosParciais || {};
+          payload.respostas_dialogo = opc.respostasDialogo || {};
+        }
+        const r = await fetch(API_TEXTO, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+          body: JSON.stringify(payload),
+        });
+        const raw = await r.text();
+        let j = {};
+        try { j = raw ? JSON.parse(raw) : {}; } catch (_) {
+          alert('Resposta inválida do servidor.');
+          return;
+        }
+        if (j.precisa_esclarecimento) {
+          nlpDialogCache.textoOriginal = String(j.texto_original || tBase || digitado);
+          nlpDialogCache.dadosParciais = j.dados_parciais || {};
+          nlpDialogCache.perguntas = Array.isArray(j.perguntas) ? j.perguntas : [];
+          const m = document.getElementById('nlp-escl-motivo');
+          if (m) m.textContent = j.motivo_curto || 'Confirme ou complete:';
+          renderizarPerguntasNlp(nlpDialogCache.perguntas);
+          document.getElementById('nlp-escl-wrap').classList.remove('hidden');
+          return;
+        }
+        if (!j.ok) {
+          alert(j.erro || 'Não foi possível interpretar.');
+          return;
+        }
+        esconderNlpDialog();
+        await aplicarPayloadInterpretado(j);
       } catch (_) {
         alert('Erro de rede ao interpretar texto.');
       } finally {
@@ -368,7 +459,16 @@
       }
     }
 
-    document.getElementById('btn-nlp-interp')?.addEventListener('click', preencherPorTexto);
+    document.getElementById('btn-nlp-interp')?.addEventListener('click', () => preencherPorTexto());
+    document.getElementById('nlp-escl-aplicar')?.addEventListener('click', () => {
+      const rsp = coletarRespostasDialogo(nlpDialogCache.perguntas);
+      const n = Object.keys(rsp).length;
+      if (!n) {
+        alert('Responda às perguntas acima antes de aplicar.');
+        return;
+      }
+      preencherPorTexto({ segundaRodada: true, respostasDialogo: rsp });
+    });
     document.getElementById('nlp-texto')?.addEventListener('keydown', (ev) => {
       if (ev.key === 'Enter') {
         ev.preventDefault();
