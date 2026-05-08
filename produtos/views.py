@@ -6791,6 +6791,13 @@ def api_entrada_nota_financeiro(request):
     ok = bool(resultado.get("ok"))
     ids = resultado.get("ids") or []
     erros = resultado.get("erros") or []
+    dup_bloq = 0
+    for e in erros:
+        if not isinstance(e, dict):
+            continue
+        msg_e = str(e.get("erro") or e.get("mensagem") or "").lower()
+        if "duplicidade bloqueada" in msg_e:
+            dup_bloq += 1
     aviso_api_erp = None
     erp_lanc_ok = None
     erp_baixa_ok = None
@@ -8591,6 +8598,7 @@ def api_lancamentos_criar_manual_lote(request):
         "lote": resultado.get("lote"),
         "ids": ids,
         "erros": erros,
+        "duplicidades_bloqueadas": dup_bloq,
         "erp_inclusao_configurada": bool(path_lanc),
     }
     if erp_lanc_ok is not None:
