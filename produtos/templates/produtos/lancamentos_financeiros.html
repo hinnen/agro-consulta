@@ -133,6 +133,7 @@
       <nav class="flex flex-wrap items-center gap-1.5 shrink-0 justify-end" aria-label="Atalhos do módulo">
         <a href="{% url 'lancamentos_financeiros' %}" data-prefetch class="gm-lanc-nav-link" title="Escolher contas a pagar ou receber">Lançamentos</a>
         <a href="{% url 'resumo_financeiro_gerencial' %}" data-prefetch class="gm-lanc-nav-link" title="DRE gerencial">Resumo gerencial</a>
+        <a href="{% url 'dashboard_financeiro_completo' %}" data-prefetch class="gm-lanc-nav-link" title="Indicadores, comparativo e fluxo (Postgres)">Indicadores</a>
         <a href="{% url 'lancamentos_fluxo_calendario' %}" data-prefetch class="gm-lanc-nav-link">Calendário</a>
         <a href="{% url 'lancamentos_manual' %}" data-prefetch class="gm-lanc-nav-link gm-lanc-nav-accent">Manual (lote)</a>
         {% if lancamentos_dre_ativo %}
@@ -181,8 +182,8 @@
       <button type="button" id="btn-filtro-rapido-hoje" class="flex-none shrink-0 min-h-[44px] min-w-[4.25rem] px-2 sm:px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 font-black text-[10px] sm:text-[11px] uppercase hover:border-amber-300 hover:bg-amber-50/80 transition-colors" title="Em aberto · vencimento hoje">Hoje</button>
       <button type="button" id="btn-filtro-rapido-3d" class="flex-none shrink-0 min-h-[44px] min-w-[4.25rem] px-2 sm:px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-800 font-black text-[10px] sm:text-[11px] uppercase hover:border-amber-300 hover:bg-amber-50/80 transition-colors" title="Em aberto · vencimento de hoje−2 até hoje">3 dias</button>
       <button type="button" id="btn-open-modal-planos" class="flex-none shrink-0 min-h-[44px] min-w-[4.5rem] px-2 sm:px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50/80 text-emerald-950 font-black text-[10px] sm:text-[11px] uppercase hover:bg-emerald-100/80 transition-colors" title="Planos de conta na lista">Planos</button>
-      <button type="button" id="btn-atalho-slot-1" data-slot="1" class="btn-atalho-slot flex-none shrink-0 min-h-[44px] min-w-[4.5rem] max-w-[7rem] sm:max-w-[9rem] px-2 py-2 rounded-xl border border-amber-200 bg-white text-amber-900 font-black text-[10px] sm:text-[11px] uppercase hover:bg-amber-50 truncate" title="Atalho 1 · clique para aplicar · Alt+clique para reconfigurar">Atalho 1</button>
-      <button type="button" id="btn-atalho-slot-2" data-slot="2" class="btn-atalho-slot flex-none shrink-0 min-h-[44px] min-w-[4.5rem] max-w-[7rem] sm:max-w-[9rem] px-2 py-2 rounded-xl border border-amber-200 bg-white text-amber-900 font-black text-[10px] sm:text-[11px] uppercase hover:bg-amber-50 truncate" title="Atalho 2 · clique para aplicar · Alt+clique para reconfigurar">Atalho 2</button>
+      <button type="button" id="btn-atalho-slot-1" data-slot="1" class="btn-atalho-slot hidden flex-none shrink-0 min-h-[44px] min-w-[4.5rem] max-w-[7rem] sm:max-w-[9rem] px-2 py-2 rounded-xl border border-amber-200 bg-white text-amber-900 font-black text-[10px] sm:text-[11px] uppercase hover:bg-amber-50 truncate" title="Atalho 1 · clique para aplicar · Alt+clique para reconfigurar">Atalho 1</button>
+      <button type="button" id="btn-atalho-slot-2" data-slot="2" class="btn-atalho-slot hidden flex-none shrink-0 min-h-[44px] min-w-[4.5rem] max-w-[7rem] sm:max-w-[9rem] px-2 py-2 rounded-xl border border-amber-200 bg-white text-amber-900 font-black text-[10px] sm:text-[11px] uppercase hover:bg-amber-50 truncate" title="Atalho 2 · clique para aplicar · Alt+clique para reconfigurar">Atalho 2</button>
       <button type="button" id="btn-open-modal-ferramentas" class="flex-none shrink-0 min-h-[44px] min-w-[4.75rem] px-2.5 sm:px-3 py-2 rounded-xl border border-emerald-600 bg-emerald-600 text-white font-black text-[10px] sm:text-[11px] uppercase hover:bg-emerald-700 transition-colors text-center" title="CSV, Excel, PDF, WhatsApp, favoritos">Exportar</button>
     </section>
 
@@ -421,14 +422,15 @@
           <label class="block">
             <span class="text-[10px] font-black uppercase tracking-wide text-slate-500">Busca na lista</span>
             <div class="relative mt-1">
-              <input type="search" id="f-q" placeholder="Nome, descrição, documento…" autocomplete="off"
+              <input type="search" id="f-q" placeholder="Favorecido, NF, plano, obs., empresa, forma, conta, IDs…" autocomplete="off"
                 class="w-full rounded-xl border border-slate-200 pl-4 pr-10 py-3 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-400 outline-none min-h-[48px]"
-                title="Enter aplica e atualiza a lista. Tecla / foca aqui (fora de campos).">
+                title="Busca em texto do título (vários campos). Várias palavras: todas devem aparecer (em qualquer campo). Enter aplica. Tecla / foca aqui.">
               <kbd class="gm-kbd absolute right-2.5 top-1/2 -translate-y-1/2 border border-slate-200 bg-white text-slate-500 text-[10px]" title="Barra / foca a busca">/</kbd>
             </div>
+            <p class="mt-1.5 text-[10px] font-semibold text-slate-500 leading-snug">Separe termos com espaço; cada termo pode cair em favorecido, descrição, documento, plano, grupo, forma, banco, empresa, centro de custo, observações ou IDs.</p>
           </label>
         </section>
-        <section class="rounded-xl border border-amber-100 bg-amber-50/40 p-3 space-y-2" aria-label="Salvar atalho na barra">
+        <section id="sec-salvar-atalho-filtros" class="hidden rounded-xl border border-amber-100 bg-amber-50/40 p-3 space-y-2" aria-label="Salvar atalho na barra" data-feature-pausada="1">
           <div class="text-[10px] font-black uppercase tracking-wide text-amber-900/90">Atalho (botão 1 ou 2)</div>
           <div class="flex flex-wrap items-end gap-2">
             <label class="block shrink-0">

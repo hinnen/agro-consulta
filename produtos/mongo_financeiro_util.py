@@ -1083,6 +1083,84 @@ def _lancamentos_or_datapagamento_ou_obs_parcial_agro(
     return {"$or": [{"DataPagamento": pay_filt}, parcial_obs]}
 
 
+def _lancamentos_normalizar_tokens_busca(texto: str) -> list[str]:
+    """Separa por espaços; remove pontuação nas bordas; até 12 termos (AND entre eles)."""
+    t = (texto or "").strip()
+    if not t:
+        return []
+    parts = re.split(r"\s+", t)
+    out: list[str] = []
+    for p in parts:
+        p2 = p.strip('.,;:|()[]{}"\'').strip()
+        if not p2:
+            continue
+        out.append(p2[:120])
+        if len(out) >= 12:
+            break
+    if not out:
+        return [t[:120]]
+    return out
+
+
+def _lancamentos_um_token_busca_or(tok: str) -> dict[str, Any]:
+    """Um termo deve aparecer em qualquer campo textual ou ID stringificado ($regexMatch)."""
+    esc = re.escape(tok[:120])
+    rx = re.compile(esc, re.IGNORECASE)
+    str_fields = (
+        "Descricao",
+        "Cliente",
+        "NumeroDocumento",
+        "Observacoes",
+        "PlanoDeConta",
+        "LancamentoGrupo",
+        "FormaPagamento",
+        "Banco",
+        "Empresa",
+        "CentroDeCusto",
+        "CategoriaLancamento",
+        "CriadoPor",
+        "ModificadoPor",
+    )
+    or_list: list[dict[str, Any]] = [{f: rx} for f in str_fields]
+    id_like = (
+        "Id",
+        "ClienteID",
+        "PlanoDeContaID",
+        "FormaPagamentoID",
+        "BancoID",
+        "EmpresaID",
+        "LancamentoGrupoID",
+        "CentroDeCustoID",
+        "LancamentoID",
+        "NumeroLancamento",
+        "NumeroParcela",
+    )
+    for fld in id_like:
+        or_list.append(
+            {
+                "$expr": {
+                    "$regexMatch": {
+                        "input": {"$toString": {"$ifNull": [f"${fld}", ""]}},
+                        "regex": esc,
+                        "options": "i",
+                    }
+                }
+            }
+        )
+    return {"$or": or_list}
+
+
+def _lancamentos_montar_subquery_texto_busca(texto: str) -> dict[str, Any]:
+    """Vários termos = todos devem casar (em qualquer campo, podendo ser campos diferentes)."""
+    tokens = _lancamentos_normalizar_tokens_busca(texto)
+    if not tokens:
+        return {"$expr": {"$eq": [0, 1]}}
+    partes = [_lancamentos_um_token_busca_or(tok) for tok in tokens]
+    if len(partes) == 1:
+        return partes[0]
+    return {"$and": partes}
+
+
 def lancamentos_montar_query_mongo(
     *,
     despesa: bool,
@@ -1203,21 +1281,8 @@ def lancamentos_montar_query_mongo(
             q = {"Despesa": despesa_bool, "_id": oid_lanc}
             skip_exclusao_planos = True
         else:
-            esc = re.escape(t[:120])
-            rx = re.compile(esc, re.IGNORECASE)
-            texto_or = {
-                "$or": [
-                    {"Descricao": rx},
-                    {"Cliente": rx},
-                    {"NumeroDocumento": rx},
-                    {"Observacoes": rx},
-                    {"PlanoDeConta": rx},
-                    {"LancamentoGrupo": rx},
-                    {"FormaPagamento": rx},
-                    {"Banco": rx},
-                ]
-            }
-            q = {"$and": [base, texto_or]}
+            texto_q = _lancamentos_montar_subquery_texto_busca(t)
+            q = {"$and": [base, texto_q]}
     else:
         q = base
 
