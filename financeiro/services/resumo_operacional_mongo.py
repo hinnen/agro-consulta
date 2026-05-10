@@ -159,18 +159,26 @@ def _buckets_vazios() -> dict[str, Decimal]:
     }
 
 
-def agregar_linhas_dre_em_resumo(linhas: list[dict[str, Any]]) -> dict[str, Any]:
+def natureza_buckets_from_linhas_dre(
+    linhas: list[dict[str, Any]] | None,
+) -> dict[str, Decimal]:
+    """Totais por natureza gerencial a partir das linhas do DRE Mongo."""
     b = _buckets_vazios()
-    for linha in linhas:
+    for linha in linhas or []:
         plano = str(linha.get("plano") or "")
         rec = _dec(linha.get("receita"))
         des = _dec(linha.get("despesa"))
         if rec > 0:
             nat = classificar_receita_plano(plano)
-            b[nat] = b.get(nat, Decimal("0")) + rec
+            b[nat] = b[nat] + rec
         if des > 0:
             nat = classificar_despesa_plano(plano)
-            b[nat] = b.get(nat, Decimal("0")) + des
+            b[nat] = b[nat] + des
+    return b
+
+
+def agregar_linhas_dre_em_resumo(linhas: list[dict[str, Any]]) -> dict[str, Any]:
+    b = natureza_buckets_from_linhas_dre(linhas)
 
     receita_operacional = b[NF.NATUREZA_RECEITA_OPERACIONAL]
     receita_nao_operacional = b[NF.NATUREZA_RECEITA_NAO_OPERACIONAL]
