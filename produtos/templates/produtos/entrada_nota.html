@@ -604,11 +604,11 @@
             <div id="fin-parcelas-preview-table" class="hidden mt-2 overflow-x-auto rounded-lg border border-slate-200">
               <table class="w-full text-xs font-semibold text-slate-800 min-w-[280px]">
                 <thead class="bg-emerald-50 text-[10px] font-black uppercase text-emerald-900">
-                  <tr><th class="text-left px-2 py-1.5 w-10">#</th><th class="text-left px-2 py-1.5 min-w-[9rem]">Vencimento</th><th class="text-right px-2 py-1.5 min-w-[7rem]">Valor (R$)</th></tr>
+                  <tr><th class="text-left px-2 py-1.5 w-10">#</th><th class="text-left px-2 py-1.5 min-w-[9rem]">Vencimento</th><th class="text-right px-2 py-1.5 min-w-[7rem]">Valor (R$)</th><th class="text-left px-2 py-1.5 min-w-[10rem]">Boleto</th></tr>
                 </thead>
                 <tbody id="fin-parcelas-preview-tbody" class="divide-y divide-slate-100"></tbody>
                 <tfoot class="bg-slate-50 font-black text-slate-900">
-                  <tr><td class="px-2 py-1.5" colspan="2">Total da nota</td><td class="text-right px-2 py-1.5 tabular-nums" id="fin-parcelas-preview-total"></td></tr>
+                  <tr><td class="px-2 py-1.5" colspan="3">Total da nota</td><td class="text-right px-2 py-1.5 tabular-nums" id="fin-parcelas-preview-total"></td></tr>
                 </tfoot>
               </table>
             </div>
@@ -3030,10 +3030,13 @@
     const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
     const parcelas_preview = rows.map((tr) => {
       const vRaw = entradaNfeParseDecimalApi(tr.querySelector('.fin-parc-val')?.value);
-      return {
+      const bol = (tr.querySelector('.fin-parc-boleto')?.value || '').trim();
+      const o = {
         data_vencimento: (tr.querySelector('.fin-parc-dv')?.value || '').trim(),
         valor: vRaw != null && Number.isFinite(vRaw) && vRaw > 0 ? vRaw : 0,
       };
+      if (bol) o.boleto_codigo_barras = bol;
+      return o;
     }).filter((p) => p.data_vencimento && /^\d{4}-\d{2}-\d{2}$/.test(p.data_vencimento) && p.valor > 0);
     const intD = entradaNfeFinParcelasIntervaloDias();
     return {
@@ -3116,6 +3119,7 @@
           if (!tr) return;
           const dv = tr.querySelector('.fin-parc-dv');
           const vl = tr.querySelector('.fin-parc-val');
+          const bl = tr.querySelector('.fin-parc-boleto');
           if (dv && p.data_vencimento && /^\d{4}-\d{2}-\d{2}$/.test(String(p.data_vencimento))) {
             dv.value = String(p.data_vencimento).slice(0, 10);
           }
@@ -3126,6 +3130,9 @@
             && Number.isFinite(Number(p.valor))
           ) {
             vl.value = String(Number(p.valor));
+          }
+          if (bl && p.boleto_codigo_barras != null) {
+            bl.value = String(p.boleto_codigo_barras);
           }
         });
         entradaNfeAtualizarRodapeParcelas();
@@ -3192,6 +3199,13 @@
     }
   }
 
+  function entradaNfeEscAttrValor(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;');
+  }
+
   function entradaNfeAtualizarPreviewParcelas() {
     const helpBtn = document.getElementById('fin-parcelas-preview-help');
     const tableEl = document.getElementById('fin-parcelas-preview-table');
@@ -3226,6 +3240,7 @@
     }
 
     const prevRows = [...tbodyEl.querySelectorAll('tr.fin-parc-row')];
+    const prevBoleto = prevRows.map((tr) => (tr.querySelector('.fin-parc-boleto')?.value || '').trim());
     const valsDefault = splitCentavosEmNParcelas(totalCents, nParc);
     const datesDefault = valsDefault.map((_, i) => entradaNfeAddDaysYmd(dv, i * intDias));
     let vals = [...valsDefault];
@@ -3249,10 +3264,12 @@
       const venc = dates[i] || datesDefault[i] || '';
       const vnum = Number(valorReais);
       const vdisp = Number.isFinite(vnum) ? String(vnum) : '';
+      const bolRaw = prevBoleto[i] || '';
       tr.innerHTML = `
         <td class="px-2 py-1 font-black text-slate-600 align-middle">${i + 1}</td>
         <td class="px-1 py-1 align-middle"><input type="date" class="fin-parc-dv w-full min-h-[40px] rounded-lg border-2 border-slate-200 px-1 text-xs font-bold bg-white" value="${venc}"></td>
-        <td class="px-1 py-1 align-middle"><input type="number" step="0.01" min="0.01" class="fin-parc-val w-full min-h-[40px] rounded-lg border-2 border-slate-200 px-1 text-xs font-black text-right tabular-nums bg-white" value="${vdisp}"></td>`;
+        <td class="px-1 py-1 align-middle"><input type="number" step="0.01" min="0.01" class="fin-parc-val w-full min-h-[40px] rounded-lg border-2 border-slate-200 px-1 text-xs font-black text-right tabular-nums bg-white" value="${vdisp}"></td>
+        <td class="px-1 py-1 align-middle"><input type="text" inputmode="numeric" autocomplete="off" maxlength="60" class="fin-parc-boleto w-full min-h-[40px] rounded-lg border-2 border-slate-200 px-1 text-[11px] font-mono font-bold bg-white" placeholder="Linha / barras" value="${entradaNfeEscAttrValor(bolRaw)}" title="Opcional: linha digitável ou código de barras para pagar sem o papel"></td>`;
       tbodyEl.appendChild(tr);
     });
     totalEl.textContent = (totalCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -3260,7 +3277,7 @@
       ? `${nParc} parcelas. Edite vencimento e valor; a soma deve fechar com o total da nota.`
       : 'Uma parcela com o total da nota (pode ajustar data e valor).');
     tableEl.classList.remove('hidden');
-    tbodyEl.querySelectorAll('.fin-parc-dv, .fin-parc-val').forEach((inp) => {
+    tbodyEl.querySelectorAll('.fin-parc-dv, .fin-parc-val, .fin-parc-boleto').forEach((inp) => {
       inp.addEventListener('input', () => entradaNfeAtualizarRodapeParcelas());
       inp.addEventListener('change', () => entradaNfeAtualizarRodapeParcelas());
     });
@@ -3281,11 +3298,14 @@
       if (v == null || !Number.isFinite(v) || v <= 0) {
         return { erro: `Parcela ${i + 1}: valor inválido.` };
       }
-      parcelas.push({
+      const parc = {
         valor: Math.round(v * 100) / 100,
         data_vencimento: dvLin,
         data_competencia: dcVal,
-      });
+      };
+      const bol = (tr.querySelector('.fin-parc-boleto')?.value || '').trim();
+      if (bol) parc.boleto_codigo_barras = bol;
+      parcelas.push(parc);
     }
     return { parcelas };
   }

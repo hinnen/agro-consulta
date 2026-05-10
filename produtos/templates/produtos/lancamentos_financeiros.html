@@ -199,6 +199,11 @@
         <button type="button" id="btn-baixa" class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700 shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
           Baixa total…
         </button>
+        {% if modo_contas == 'pagar' %}
+        <button type="button" id="btn-sel-zap-boletos" class="px-4 py-2.5 rounded-xl bg-green-600 text-white font-black text-[10px] sm:text-xs uppercase hover:bg-green-700 shadow-md disabled:opacity-40 disabled:cursor-not-allowed" title="Só entra na mensagem o título que tiver linha digitável cadastrada (Editar).">
+          WhatsApp · boletos
+        </button>
+        {% endif %}
       </div>
     </div>
 
@@ -628,6 +633,13 @@
           <input type="text" id="edl-valor" placeholder="0,00" class="mt-1 w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold tabular-nums">
         </label>
       </div>
+      {% if modo_contas == 'pagar' %}
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-500">Boleto — linha digitável ou código de barras</span>
+        <input type="text" id="edl-boleto" maxlength="60" inputmode="numeric" autocomplete="off" placeholder="Opcional — para copiar ou enviar no Zap"
+          class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono font-semibold tracking-tight">
+      </label>
+      {% endif %}
       <details class="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2">
         <summary class="text-[10px] font-black uppercase text-slate-600 cursor-pointer">Corrigir forma / conta (opcional)</summary>
         <div class="mt-2 space-y-2 pt-1">
@@ -1100,6 +1112,8 @@
 
     function refreshBtnsBaixa() {
       document.getElementById('btn-baixa').disabled = !podeSelecionar() || selecionados.size === 0;
+      const bz = document.getElementById('btn-sel-zap-boletos');
+      if (bz) bz.disabled = !podeSelecionar() || selecionados.size === 0;
       refreshBaixaParcialBtn();
     }
 
@@ -1434,6 +1448,45 @@
       window.open('https://api.whatsapp.com/send', '_blank', 'noopener,noreferrer');
     }
 
+    function agroFinSomenteDigitosBoleto(s) {
+      return String(s || '').replace(/\D/g, '').slice(0, 54);
+    }
+
+    function agroFinMontarTextoWhatsBoletos(rows) {
+      const lines = [];
+      let n = 0;
+      (rows || []).forEach((r) => {
+        const cod = agroFinSomenteDigitosBoleto(r && r.boleto_codigo_barras);
+        if (!cod) return;
+        n += 1;
+        lines.push(`*${n}* ${r.cliente || '—'} · Venc. ${fmtData(r.data_vencimento)} · ${brl(r.restante)}`);
+        lines.push(cod);
+        lines.push('');
+      });
+      return lines.join('\n').trim();
+    }
+
+    async function agroFinAbrirWhatsComTexto(txt) {
+      const t = String(txt || '').trim();
+      if (!t) {
+        alert('Nada para enviar.');
+        return;
+      }
+      const enc = encodeURIComponent(t);
+      const base = 'https://api.whatsapp.com/send?text=';
+      if (enc.length <= MAX_WA_TEXT_PARAM_LEN) {
+        window.open(base + enc, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(t);
+        mostrarToastWhats('Texto longo: copiado. Abra o WhatsApp e cole (Ctrl+V).');
+      } catch (_) {
+        alert('Texto longo demais para a URL e não foi possível copiar automaticamente.');
+      }
+      window.open('https://api.whatsapp.com/send', '_blank', 'noopener,noreferrer');
+    }
+
     async function carregarOpcoesBaixa() {
       try {
         const url = `${API_OPCOES}?modo=erp&apenas_cadastro_erp=1`;
@@ -1632,6 +1685,14 @@
           if (row.pode_excluir) {
             acoesBtns.push(`<button type="button" class="btn-del-lanc text-[10px] font-black uppercase text-red-700 hover:underline px-1 py-0.5 rounded" data-id="${esc(row.id)}">Excluir</button>`);
           }
+          if (tipoAtual === 'pagar' && !row.pago) {
+            acoesBtns.push(
+              `<button type="button" class="btn-agro-fin-boleto-copy text-[10px] font-black uppercase text-slate-600 hover:underline px-1 py-0.5 rounded border border-slate-200" data-id="${esc(row.id)}" title="Copiar só os dígitos do boleto">Copiar boleto</button>`,
+            );
+            acoesBtns.push(
+              `<button type="button" class="btn-agro-fin-boleto-zap text-[10px] font-black uppercase text-green-700 hover:underline px-1 py-0.5 rounded border border-green-200" data-id="${esc(row.id)}" title="Abrir WhatsApp com favorecido, valor e linha digitável">Zap boleto</button>`,
+            );
+          }
           const acoesHtml = acoesBtns.length
             ? `<div class="flex flex-wrap gap-1 justify-end">${acoesBtns.join('')}</div>`
             : '<span class="text-slate-300">—</span>';
@@ -1683,6 +1744,7 @@
             </div>
             <div class="flex flex-wrap gap-2 justify-end pt-1">
               ${row.pode_editar ? `<button type="button" class="btn-edt-lanc text-[10px] font-black uppercase text-indigo-700 border border-indigo-200 rounded-lg px-2 py-1" data-id="${esc(row.id)}">Editar</button>` : ''}
+              ${tipoAtual === 'pagar' && !row.pago ? `<button type="button" class="btn-agro-fin-boleto-copy text-[10px] font-black uppercase text-slate-600 border border-slate-200 rounded-lg px-2 py-1" data-id="${esc(row.id)}">Copiar boleto</button><button type="button" class="btn-agro-fin-boleto-zap text-[10px] font-black uppercase text-green-800 border border-green-200 rounded-lg px-2 py-1" data-id="${esc(row.id)}">Zap boleto</button>` : ''}
               ${recBtnMob}
               ${row.pode_excluir ? `<button type="button" class="btn-del-lanc text-[10px] font-black uppercase text-red-700 border border-red-200 rounded-lg px-2 py-1" data-id="${esc(row.id)}">Excluir</button>` : ''}
             </div>`;
@@ -2162,6 +2224,23 @@
       }
     });
 
+    document.getElementById('btn-sel-zap-boletos')?.addEventListener('click', async () => {
+      if (tipoAtual !== 'pagar' || selecionados.size === 0) return;
+      const ids = Array.from(selecionados.keys());
+      const rows = ids.map((id) => lastRows.find((r) => r.id === id)).filter(Boolean);
+      const com = rows.filter((r) => agroFinSomenteDigitosBoleto(r.boleto_codigo_barras));
+      const sem = rows.length - com.length;
+      if (!com.length) {
+        alert('Nenhum título selecionado tem linha digitável. Use Editar em cada linha ou cadastre na Entrada NF.');
+        return;
+      }
+      if (sem > 0) {
+        mostrarToastWhats(`${sem} título(s) sem código — a mensagem leva só os que têm boleto.`);
+      }
+      const txt = agroFinMontarTextoWhatsBoletos(com);
+      await agroFinAbrirWhatsComTexto(txt);
+    });
+
     document.getElementById('btn-baixa').addEventListener('click', () => {
       if (selecionados.size === 0) return;
       document.getElementById('modal-baixa-resumo').textContent =
@@ -2271,6 +2350,8 @@
       document.getElementById('edl-forma-id').value = row.forma_pagamento_id || '';
       document.getElementById('edl-banco').value = row.banco || '';
       document.getElementById('edl-banco-id').value = row.banco_id || '';
+      const eb = document.getElementById('edl-boleto');
+      if (eb) eb.value = row.boleto_codigo_barras || '';
       const vw = document.getElementById('edl-valor-wrap');
       const vi = document.getElementById('edl-valor');
       if (row.pode_editar_valor) {
@@ -2362,6 +2443,37 @@
           } else {
             definirRecorrenciaLancamento(id, true, 1);
           }
+          return;
+        }
+        const bc = e.target.closest('.btn-agro-fin-boleto-copy');
+        if (bc && bc.dataset.id) {
+          e.preventDefault();
+          const row = lastRows.find((r) => r.id === bc.dataset.id);
+          const cod = agroFinSomenteDigitosBoleto(row && row.boleto_codigo_barras);
+          if (!cod) {
+            alert('Sem linha digitável neste título. Abra Editar e informe o boleto.');
+            return;
+          }
+          (navigator.clipboard && navigator.clipboard.writeText
+            ? navigator.clipboard.writeText(cod)
+            : Promise.reject())
+            .then(() => mostrarToastWhats('Código do boleto copiado.'))
+            .catch(() => {
+              window.prompt('Copie o código:', cod);
+            });
+          return;
+        }
+        const bz = e.target.closest('.btn-agro-fin-boleto-zap');
+        if (bz && bz.dataset.id) {
+          e.preventDefault();
+          const row = lastRows.find((r) => r.id === bz.dataset.id);
+          const cod = agroFinSomenteDigitosBoleto(row && row.boleto_codigo_barras);
+          if (!cod) {
+            alert('Sem linha digitável neste título. Abra Editar e informe o boleto.');
+            return;
+          }
+          const txt = agroFinMontarTextoWhatsBoletos([row]);
+          agroFinAbrirWhatsComTexto(txt);
         }
       });
     }
@@ -2527,6 +2639,8 @@
         const bids = (document.getElementById('edl-banco-id').value || '').trim();
         if (bids) body.banco_id = bids;
       }
+      const ebol = document.getElementById('edl-boleto');
+      if (ebol) body.boleto_codigo_barras = ebol.value;
       document.getElementById('edl-salvar').disabled = true;
       try {
         const r = await fetch(API_LANC_ALTERAR, {
@@ -2637,6 +2751,7 @@
         '#btn-prev',
         '#btn-next',
         '#btn-baixa',
+        '#btn-sel-zap-boletos',
         '#bx-ok',
         '#bxp-ok',
         '#btn-fav-save',

@@ -6511,7 +6511,7 @@ def api_entrada_nota_financeiro(request):
     ``modo_lancamento`` ``por_item`` ainda é aceito na API; a tela manual envia só ``unico``.
     Modo ``unico``: opcional ``num_parcelas`` (1–60) e ``parcelas_intervalo_dias`` (1–366);
     ``data_vencimento`` é o 1º vencimento; demais parcelas somam o intervalo em dias.
-    Opcional ``parcelas_manual``: lista ``[{ "valor", "data_vencimento", "data_competencia"? }]``
+    Opcional ``parcelas_manual``: lista ``[{ "valor", "data_vencimento", "data_competencia"?, "boleto_codigo_barras"? }]``
     com soma igual ao total da nota (tol. 1 centavo); quando enviada, substitui o cálculo automático.
     Opcional ``quitar_ao_salvar`` (bool): grava os títulos a pagar já quitados no Mongo (data de
     pagamento = vencimento de cada parcela) e, se ``VENDA_ERP_API_FINANCEIRO_BAIXA_PATH`` estiver
@@ -6672,15 +6672,17 @@ def api_entrada_nota_financeiro(request):
                     },
                     status=400,
                 )
-            linhas_fin.append(
-                {
-                    "valor": val,
-                    "descricao": desc,
-                    "plano_conta": pn,
-                    "plano_conta_id": pid,
-                    "observacao": f"Entrada NF-e {cab.get('numero') or ''} item",
-                }
-            )
+            item_nf = {
+                "valor": val,
+                "descricao": desc,
+                "plano_conta": pn,
+                "plano_conta_id": pid,
+                "observacao": f"Entrada NF-e {cab.get('numero') or ''} item",
+            }
+            bcb_ln = str(ln.get("boleto_codigo_barras") or ln.get("codigo_barras_boleto") or "").strip()
+            if bcb_ln:
+                item_nf["boleto_codigo_barras"] = bcb_ln
+            linhas_fin.append(item_nf)
         if not linhas_fin:
             return JsonResponse(
                 {"ok": False, "erro": "Nenhum item com valor > 0 para lançar.", "rascunho": r_rasc},
@@ -6797,17 +6799,19 @@ def api_entrada_nota_financeiro(request):
                         )
                 else:
                     cs = dc.isoformat()
-                linhas_fin.append(
-                    {
-                        "valor": float(v_dec),
-                        "descricao": f"{base_desc} (parcela {i + 1}/{n_pm})"[:500],
-                        "plano_conta": plano_pad,
-                        "plano_conta_id": plano_pad_id,
-                        "observacao": base_obs,
-                        "data_vencimento": vs,
-                        "data_competencia": cs,
-                    }
-                )
+                parc_nf = {
+                    "valor": float(v_dec),
+                    "descricao": f"{base_desc} (parcela {i + 1}/{n_pm})"[:500],
+                    "plano_conta": plano_pad,
+                    "plano_conta_id": plano_pad_id,
+                    "observacao": base_obs,
+                    "data_vencimento": vs,
+                    "data_competencia": cs,
+                }
+                bcb_p = str(row.get("boleto_codigo_barras") or row.get("codigo_barras_boleto") or "").strip()
+                if bcb_p:
+                    parc_nf["boleto_codigo_barras"] = bcb_p
+                linhas_fin.append(parc_nf)
             if abs(sum_man - tot_dec) > Decimal("0.02"):
                 return JsonResponse(
                     {
