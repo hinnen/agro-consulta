@@ -38,6 +38,7 @@
       </div>
       <div class="rg-head__actions">
         <a href="{% url 'lancamentos_financeiros' %}" class="rg-btn-ghost">Lançamentos</a>
+        <a href="{% url 'dashboard_financeiro_completo' %}" class="rg-btn-ghost" title="Margens, comparativo e fluxo (Postgres)">Indicadores</a>
         <button type="button" id="btn-ajuda" class="rg-btn-ghost rg-btn-icon" title="Ajuda">?</button>
         {% include "produtos/_barra_estoque_global.html" %}
         {% include "produtos/_pdv_voltar_link.html" with link_class="rg-btn-ghost inline-flex items-center justify-center gap-1.5 min-h-[44px]" %}

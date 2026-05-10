@@ -3223,6 +3223,14 @@ def _home_admin_navegacao():
             "pin_protected": True,
         },
         {
+            "title": "Indicadores financeiros",
+            "href": reverse("dashboard_financeiro_completo"),
+            "icon": "trending-up",
+            "shortcut": "K",
+            "shortcut_key": "k",
+            "pin_protected": True,
+        },
+        {
             "title": "Dashboard gerencial",
             "href": reverse("dashboard_gerencial"),
             "icon": "layout-dashboard",

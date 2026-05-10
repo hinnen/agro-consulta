@@ -62,6 +62,10 @@
                     <span class="pdv-nav-icon"><i data-lucide="pie-chart"></i></span>
                     <span class="pdv-nav-label">Resumo gerencial</span>
                 </a>
+                <a href="{% url 'dashboard_financeiro_completo' %}" class="pdv-nav-item" title="Indicadores financeiros — margens, comparativo e fluxo (Postgres, login).">
+                    <span class="pdv-nav-icon"><i data-lucide="trending-up"></i></span>
+                    <span class="pdv-nav-label">Indicadores</span>
+                </a>
                 {% if lancamentos_dre_ativo %}
                 <a href="{% url 'lancamentos_dre' %}" class="pdv-nav-item" title="DRE simples — totais por plano de conta (Mongo).">
                     <span class="pdv-nav-icon"><i data-lucide="bar-chart-3"></i></span>

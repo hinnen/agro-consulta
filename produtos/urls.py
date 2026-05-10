@@ -1,4 +1,7 @@
 from django.urls import include, path
+
+from financeiro.views import dashboard_financeiro_completo
+
 from . import views, views_mp_point
 
 urlpatterns = [
@@ -46,6 +49,11 @@ urlpatterns = [
         'financeiro/resumo-gerencial/',
         views.resumo_financeiro_gerencial_view,
         name='resumo_financeiro_gerencial',
+    ),
+    path(
+        'financeiro/dashboard-gerencial/',
+        dashboard_financeiro_completo,
+        name='dashboard_financeiro_completo',
     ),
     path('dashboard/gerencial/', views.dashboard_gerencial_view, name='dashboard_gerencial'),
     path(

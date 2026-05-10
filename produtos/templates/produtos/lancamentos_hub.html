@@ -44,6 +44,8 @@
       </div>
       <div class="px-4 sm:px-6 pb-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/80">
         <a href="{% url 'lancamentos_fluxo_calendario' %}" data-prefetch class="text-[10px] font-black uppercase text-slate-600 hover:text-amber-800 px-2 py-1.5 rounded-lg border border-transparent hover:border-amber-200">Calendário</a>
+        <a href="{% url 'resumo_financeiro_gerencial' %}" data-prefetch class="text-[10px] font-black uppercase text-slate-600 hover:text-slate-900 px-2 py-1.5 rounded-lg border border-transparent hover:border-slate-200">Resumo gerencial</a>
+        <a href="{% url 'dashboard_financeiro_completo' %}" data-prefetch class="text-[10px] font-black uppercase text-slate-600 hover:text-emerald-800 px-2 py-1.5 rounded-lg border border-transparent hover:border-emerald-200">Indicadores</a>
         {% if lancamentos_dre_ativo %}
         <a href="{% url 'lancamentos_dre' %}" data-prefetch class="text-[10px] font-black uppercase text-slate-600 hover:text-emerald-800 px-2 py-1.5 rounded-lg border border-transparent hover:border-emerald-200">DRE</a>
         {% endif %}

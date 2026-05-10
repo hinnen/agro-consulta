@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}SisVale | Dashboard financeiro gerencial{% endblock %}
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+<style>
+  .df-card { border-radius: 0.75rem; border: 1px solid rgb(226 232 240); background: #fff; box-shadow: 0 1px 2px rgba(15,23,42,0.06); }
+  .df-kpi-num { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .df-up { color: rgb(5 122 85); }
+  .df-down { color: rgb(185 28 28); }
+  .df-muted { color: rgb(100 116 139); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+  .df-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-100 text-slate-800 pb-10">
+  <header class="border-b border-slate-200 bg-gradient-to-r from-orange-50/90 via-white to-emerald-50/80">
+    <div class="max-w-[1600px] mx-auto px-3 sm:px-4 py-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div class="flex items-start gap-3 min-w-0">
+        <div class="h-12 w-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
+          <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-lg sm:text-xl font-black tracking-tight text-slate-900 leading-tight">
+            <span class="text-emerald-600">Dashboard</span><span class="text-slate-400 font-bold mx-1">·</span><span class="text-amber-900">Financeiro gerencial</span>
+          </h1>
+          <p class="text-xs sm:text-sm font-semibold text-slate-600 mt-0.5">
+            DRE por competência, caixa por movimento, comparativo de janelas e leituras rápidas.
+          </p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 justify-end">
+        <a href="{% url 'lancamentos_financeiros' %}" class="inline-flex items-center justify-center min-h-[44px] px-3 rounded-lg border border-slate-200 bg-white text-xs font-black uppercase text-slate-700 hover:border-amber-400 hover:text-amber-950 transition-colors">Lançamentos</a>
+        <a href="{% url 'resumo_financeiro_gerencial' %}" class="inline-flex items-center justify-center min-h-[44px] px-3 rounded-lg border border-slate-200 bg-white text-xs font-black uppercase text-slate-700 hover:border-amber-400 hover:text-amber-950 transition-colors">Resumo gerencial</a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg border border-slate-200 bg-white text-xs font-black uppercase text-slate-600 hover:border-emerald-400 hover:text-emerald-900 transition-colors" %}
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-[1600px] mx-auto px-3 sm:px-4 pt-4 space-y-4">
+    <form method="get" class="df-card p-3 sm:p-4 flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-end">
+      <div class="flex-1 min-w-[200px]">
+        <label for="empresa" class="block df-muted mb-1">Empresa</label>
+        <select name="empresa" id="empresa" class="w-full min-h-[48px] rounded-lg border border-slate-300 px-3 text-base font-semibold text-slate-900 bg-white">
+          {% for e in empresas %}
+          <option value="{{ e.id }}" {% if e.id == empresa_id %}selected{% endif %}>{{ e.nome_fantasia }}</option>
+          {% empty %}
+          <option value="">Cadastre uma empresa ativa</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="w-full sm:w-52">
+        <label for="dias" class="block df-muted mb-1">Janela</label>
+        <select name="dias" id="dias" class="w-full min-h-[48px] rounded-lg border border-slate-300 px-3 text-base font-semibold text-slate-900 bg-white">
+          <option value="30" {% if dados and dados.dias == 30 %}selected{% endif %}>Últimos 30 dias</option>
+          <option value="60" {% if not dados or dados.dias == 60 %}selected{% endif %}>Últimos 60 dias</option>
+          <option value="90" {% if dados and dados.dias == 90 %}selected{% endif %}>Últimos 90 dias</option>
+          <option value="180" {% if dados and dados.dias == 180 %}selected{% endif %}>Últimos 180 dias</option>
+          <option value="365" {% if dados and dados.dias == 365 %}selected{% endif %}>Últimos 365 dias</option>
+        </select>
+      </div>
+      <button type="submit" class="min-h-[48px] px-5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black uppercase tracking-wide shrink-0">Aplicar</button>
+    </form>
+
+    {% if not empresa_id %}
+    <div class="df-card p-6 text-center text-slate-600 font-semibold">
+      Nenhuma empresa ativa encontrada. Cadastre uma empresa no sistema para ver o painel.
+    </div>
+    {% else %}
+
+    <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-600">
+      <strong class="text-slate-900">Período atual:</strong>
+      {{ dados.data_inicio_atual|date:"d/m/Y" }} — {{ dados.data_fim_atual|date:"d/m/Y" }}
+      <span class="text-slate-400 mx-2">|</span>
+      <strong class="text-slate-900">Comparativo:</strong>
+      {{ dados.data_inicio_anterior|date:"d/m/Y" }} — {{ dados.data_fim_anterior|date:"d/m/Y" }}
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      {% with a=dados.atual p=dados.anterior %}
+      <div class="df-card p-4 border-l-4 border-l-blue-500">
+        <p class="df-muted">Receita operacional</p>
+        <p class="text-2xl font-black df-kpi-num text-slate-900">R$ {{ a.receita_op|floatformat:2 }}</p>
+        <p class="text-xs font-bold mt-1 {% if a.receita_op >= p.receita_op %}df-up{% else %}df-down{% endif %}">vs anterior R$ {{ p.receita_op|floatformat:2 }}</p>
+      </div>
+      <div class="df-card p-4 border-l-4 border-l-emerald-500">
+        <p class="df-muted">Margem bruta / Markup</p>
+        <p class="text-2xl font-black df-kpi-num text-slate-900">{{ a.margem_bruta_pct|floatformat:1 }}% <span class="text-base text-slate-500 font-bold">/</span> {{ a.markup_pct|floatformat:1 }}%</p>
+        <p class="text-xs font-bold mt-1 {% if a.margem_bruta_pct >= p.margem_bruta_pct %}df-up{% else %}df-down{% endif %}">vs {{ p.margem_bruta_pct|floatformat:1 }}% / {{ p.markup_pct|floatformat:1 }}%</p>
+      </div>
+      <div class="df-card p-4 border-l-4 border-l-amber-500">
+        <p class="df-muted">Margem de contribuição</p>
+        <p class="text-2xl font-black df-kpi-num text-slate-900">{{ a.margem_contrib_pct|floatformat:1 }}%</p>
+        <p class="text-sm font-bold text-slate-600">R$ {{ a.margem_contrib|floatformat:2 }}</p>
+        <p class="text-xs font-bold mt-1 {% if a.margem_contrib_pct >= p.margem_contrib_pct %}df-up{% else %}df-down{% endif %}">vs {{ p.margem_contrib_pct|floatformat:1 }}%</p>
+      </div>
+      <div class="df-card p-4 border-l-4 border-l-violet-500">
+        <p class="df-muted">EBITDA / Lucro líquido</p>
+        <p class="text-xl font-black df-kpi-num text-slate-900">R$ {{ a.ebitda|floatformat:0 }} <span class="text-slate-400">|</span> R$ {{ a.resultado_liquido|floatformat:0 }}</p>
+        <p class="text-xs font-bold mt-1 {% if a.resultado_liquido >= p.resultado_liquido %}df-up{% else %}df-down{% endif %}">Líquido vs R$ {{ p.resultado_liquido|floatformat:2 }}</p>
+      </div>
+      <div class="df-card p-4 border-l-4 border-l-orange-500">
+        <p class="df-muted">Ponto de equilíbrio (período)</p>
+        <p class="text-2xl font-black df-kpi-num text-slate-900">R$ {{ a.ponto_equilibrio|floatformat:2 }}</p>
+        <p class="text-xs font-bold mt-1 {% if a.ponto_equilibrio <= p.ponto_equilibrio %}df-up{% else %}df-down{% endif %}">vs R$ {{ p.ponto_equilibrio|floatformat:2 }} (menor é melhor)</p>
+      </div>
+      <div class="df-card p-4 border-l-4 border-l-teal-500">
+        <p class="df-muted">Índice de segurança</p>
+        <p class="text-2xl font-black df-kpi-num text-slate-900">{{ a.indice_seguranca_pct|floatformat:1 }}%</p>
+        <p class="text-xs font-bold mt-1 {% if a.indice_seguranca_pct >= p.indice_seguranca_pct %}df-up{% else %}df-down{% endif %}">vs {{ p.indice_seguranca_pct|floatformat:1 }}%</p>
+      </div>
+      <div class="df-card p-4 border-l-4 border-l-rose-500">
+        <p class="df-muted">Geração de caixa (realizado)</p>
+        <p class="text-2xl font-black df-kpi-num {% if a.geracao_caixa >= 0 %}text-emerald-700{% else %}text-rose-700{% endif %}">R$ {{ a.geracao_caixa|floatformat:2 }}</p>
+        <p class="text-xs text-slate-500 font-semibold">Entradas R$ {{ a.entradas_caixa|floatformat:2 }} · Saídas R$ {{ a.saidas_caixa|floatformat:2 }}</p>
+      </div>
+      <div class="df-card p-4 border-l-4 border-l-slate-500">
+        <p class="df-muted">Previsão 30 dias (ritmo médio)</p>
+        <p class="text-2xl font-black df-kpi-num text-slate-900">R$ {{ dados.extras.previsao_30|floatformat:2 }}</p>
+        <p class="text-xs font-bold text-slate-600">Tendência: <strong>{{ dados.extras.tendencia }}</strong> (últimos 7 dias)</p>
+      </div>
+      {% endwith %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="lg:col-span-2 df-card p-4">
+        <h2 class="text-base font-black text-slate-900 uppercase tracking-wide">Receita operacional — últimos 7 dias</h2>
+        <p class="text-xs text-slate-500 font-semibold mb-3">Soma por dia (competência), para enxergar ritmo recente.</p>
+        <div class="relative h-56 sm:h-64">
+          <canvas id="dashReceitaChart" aria-label="Gráfico de receita"></canvas>
+        </div>
+      </div>
+      <div class="space-y-3">
+        <div class="df-card p-4 bg-slate-900 text-white border-slate-800">
+          <h2 class="text-sm font-black uppercase tracking-wide text-emerald-300">Leitura rápida</h2>
+          <ul class="mt-2 space-y-2 text-sm font-semibold text-slate-200">
+            <li>Markup e margem bruta usam <strong class="text-white">receita operacional</strong> e CMV do período.</li>
+            <li>Ponto de equilíbrio usa <strong class="text-white">despesas fixas ÷ margem de contribuição</strong> (mesma lógica do módulo de equilíbrio).</li>
+            <li>Caixa soma naturezas por <strong class="text-white">data de movimento</strong> (realizado).</li>
+          </ul>
+        </div>
+        <div class="df-card p-4">
+          <h2 class="text-base font-black text-slate-900 uppercase tracking-wide mb-2">Alertas e dicas</h2>
+          {% for d in dados.extras.dicas %}
+          <div class="mb-2 rounded-lg px-3 py-2 text-sm font-semibold border
+            {% if d.nivel == 'danger' %}border-rose-200 bg-rose-50 text-rose-950
+            {% else %}border-amber-200 bg-amber-50 text-amber-950{% endif %}">
+            <strong>{{ d.titulo }}:</strong> {{ d.msg }}
+          </div>
+          {% empty %}
+          <p class="text-sm font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">Nenhum alerta automático para este período. Confira mesmo assim despesas e caixa.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <details class="df-card p-4 group">
+      <summary class="cursor-pointer text-sm font-black uppercase text-slate-700 list-none flex items-center gap-2">
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 border border-slate-200 text-slate-600 group-open:bg-emerald-50 group-open:border-emerald-200 group-open:text-emerald-800">?</span>
+        Como interpretar previsão e alertas
+      </summary>
+      <div class="mt-3 text-sm text-slate-700 font-semibold leading-relaxed space-y-2 border-t border-slate-100 pt-3">
+        <p>A <strong>previsão em 30 dias</strong> projeta receita operacional multiplicando a média diária da janela escolhida. É uma referência simples, não substitui planejamento sazonal.</p>
+        <p>O alerta de <strong>projeção x equilíbrio</strong> compara essa projeção com o faturamento necessário em 30 dias usando o <em>ponto de equilíbrio diário</em> atual do período.</p>
+        <p>Lançamentos internos de grupo (<code class="text-xs bg-slate-100 px-1 rounded">eh_interno_grupo</code>) ficam de fora para focar na operação “externa”.</p>
+      </div>
+    </details>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div class="df-card p-4">
+        <h2 class="text-base font-black text-slate-900 uppercase tracking-wide mb-3">DRE gerencial (competência)</h2>
+        <div class="df-table-wrap">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 text-left text-xs font-black uppercase text-slate-500">
+                <th class="py-2 pr-2">Linha</th>
+                <th class="py-2 pr-2 text-right">Atual</th>
+                <th class="py-2 text-right">Anterior</th>
+              </tr>
+            </thead>
+            <tbody class="font-semibold text-slate-800">
+              {% with a=dados.atual p=dados.anterior %}
+              <tr class="border-b border-slate-100"><td class="py-2">Receita operacional</td><td class="text-right">R$ {{ a.receita_op|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.receita_op|floatformat:2 }}</td></tr>
+              <tr class="border-b border-slate-100"><td class="py-2">(−) CMV</td><td class="text-right">R$ {{ a.cmv|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.cmv|floatformat:2 }}</td></tr>
+              <tr class="border-b border-slate-100 bg-emerald-50/50"><td class="py-2 font-black">(=) Lucro bruto</td><td class="text-right font-black">R$ {{ a.lucro_bruto|floatformat:2 }}</td><td class="text-right">R$ {{ p.lucro_bruto|floatformat:2 }}</td></tr>
+              <tr class="border-b border-slate-100"><td class="py-2">(−) Despesas variáveis</td><td class="text-right">R$ {{ a.dv|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.dv|floatformat:2 }}</td></tr>
+              <tr class="border-b border-slate-100 bg-sky-50/50"><td class="py-2 font-black">(=) Margem de contribuição</td><td class="text-right font-black">R$ {{ a.margem_contrib|floatformat:2 }}</td><td class="text-right">R$ {{ p.margem_contrib|floatformat:2 }}</td></tr>
+              <tr class="border-b border-slate-100"><td class="py-2">(−) Despesas fixas</td><td class="text-right">R$ {{ a.df|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.df|floatformat:2 }}</td></tr>
+              <tr class="border-b border-slate-100 bg-indigo-50/50"><td class="py-2 font-black">(=) EBITDA</td><td class="text-right font-black">R$ {{ a.ebitda|floatformat:2 }}</td><td class="text-right">R$ {{ p.ebitda|floatformat:2 }}</td></tr>
+              <tr class="border-b border-slate-100"><td class="py-2">(−) Despesas financeiras</td><td class="text-right">R$ {{ a.desp_fin|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.desp_fin|floatformat:2 }}</td></tr>
+              <tr class="border-b border-slate-100"><td class="py-2">(+) Receitas não operacionais</td><td class="text-right">R$ {{ a.receita_nao_op|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.receita_nao_op|floatformat:2 }}</td></tr>
+              <tr class="bg-emerald-100/60"><td class="py-2 font-black">(=) Resultado líquido (gerencial)</td><td class="text-right font-black">R$ {{ a.resultado_liquido|floatformat:2 }}</td><td class="text-right font-black">R$ {{ p.resultado_liquido|floatformat:2 }}</td></tr>
+              {% endwith %}
+            </tbody>
+          </table>
+        </div>
+        <p class="text-xs text-slate-500 font-semibold mt-2">Margem líquida sobre receita total (op. + não op.): <strong>{{ dados.atual.margem_liquida_pct|floatformat:2 }}%</strong> (anterior {{ dados.anterior.margem_liquida_pct|floatformat:2 }}%).</p>
+      </div>
+
+      <div class="df-card p-4">
+        <h2 class="text-base font-black text-slate-900 uppercase tracking-wide mb-3">Fluxo de caixa (movimento)</h2>
+        <div class="df-table-wrap">
+          <table class="min-w-full text-sm">
+            <tbody class="font-semibold text-slate-800">
+              {% with a=dados.atual p=dados.anterior %}
+              <tr class="border-b border-slate-100"><td class="py-2">Entradas (receitas + empréstimos + aportes)</td><td class="text-right text-emerald-800">R$ {{ a.entradas_caixa|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.entradas_caixa|floatformat:2 }}</td></tr>
+              <tr class="border-b border-slate-100"><td class="py-2">Saídas (CMV, despesas, amortizações, retiradas)</td><td class="text-right text-rose-800">R$ {{ a.saidas_caixa|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.saidas_caixa|floatformat:2 }}</td></tr>
+              <tr class="bg-slate-50"><td class="py-2 font-black">Saldo do período</td><td class="text-right font-black">R$ {{ a.geracao_caixa|floatformat:2 }}</td><td class="text-right">R$ {{ p.geracao_caixa|floatformat:2 }}</td></tr>
+              <tr class="border-t border-slate-200"><td class="py-2 text-slate-600">Aportes (competência)</td><td class="text-right">R$ {{ a.aportes|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.aportes|floatformat:2 }}</td></tr>
+              <tr><td class="py-2 text-slate-600">Retiradas (competência)</td><td class="text-right">R$ {{ a.retiradas|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.retiradas|floatformat:2 }}</td></tr>
+              {% endwith %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if chart_bootstrap %}
+{{ chart_bootstrap|json_script:"dash-chart-bootstrap" }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const el = document.getElementById('dash-chart-bootstrap');
+  if (!el || typeof Chart === 'undefined') return;
+  let payload;
+  try { payload = JSON.parse(el.textContent); } catch (e) { return; }
+  const ctx = document.getElementById('dashReceitaChart');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: payload.labels,
+      datasets: [{
+        label: 'Receita R$',
+        data: payload.data,
+        borderColor: 'rgb(5 150 105)',
+        backgroundColor: 'rgba(5, 150, 105, 0.12)',
+        fill: true,
+        tension: 0.35,
+        pointRadius: 3,
+        pointHoverRadius: 5
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { font: { size: 11, weight: '600' } } },
+        x: { ticks: { font: { size: 11, weight: '600' } } }
+      }
+    }
+  });
+});
+</script>
+{% endif %}
+{% endblock %}
