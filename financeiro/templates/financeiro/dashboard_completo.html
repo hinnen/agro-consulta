@@ -10,6 +10,20 @@
   .df-down { color: rgb(185 28 28); }
   .df-muted { color: rgb(100 116 139); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
   .df-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .fin-period-active {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.22);
+  }
+  .fin-period-btn {
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: #fff;
+    color: #334155;
+  }
+  .fin-period-btn:hover {
+    border-color: rgba(234, 88, 12, 0.45);
+    background: #fff7ed;
+  }
 </style>
 {% endblock %}
 
@@ -39,7 +53,21 @@
   </header>
 
   <div class="max-w-[1600px] mx-auto px-3 sm:px-4 pt-4 space-y-4">
-    <form method="get" class="df-card p-3 sm:p-4 flex flex-col gap-3">
+    <form method="get" id="form-fin-dash" class="df-card p-3 sm:p-4 flex flex-col gap-3">
+      <input type="hidden" name="periodo" id="fin-periodo" value="{{ periodo_key|default:'mes_ate_hoje' }}" />
+      <input type="hidden" name="data_ini" id="fin-data-ini" value="{% if periodo_key == 'personalizado' %}{{ periodo_cal_ini }}{% endif %}" />
+      <input type="hidden" name="data_fim" id="fin-data-fim" value="{% if periodo_key == 'personalizado' %}{{ periodo_cal_fim }}{% endif %}" />
+
+      <div class="flex flex-wrap justify-center gap-1 bg-slate-800 p-1 rounded-xl border border-slate-700 max-w-full">
+        <button type="button" title="Do dia 1 do mês civil até hoje" class="fin-period-btn px-2 sm:px-2.5 py-2 text-[8px] sm:text-[9px] font-black uppercase rounded-lg min-h-[40px] {% if periodo_key == 'mes_ate_hoje' %}fin-period-active{% endif %}" data-fin-period="mes_ate_hoje">Mês até hoje</button>
+        <button type="button" title="Mês civil completo" class="fin-period-btn px-2 sm:px-2.5 py-2 text-[8px] sm:text-[9px] font-black uppercase rounded-lg min-h-[40px] {% if periodo_key == 'mes_atual' %}fin-period-active{% endif %}" data-fin-period="mes_atual">Mês atual</button>
+        <button type="button" title="Mês anterior completo" class="fin-period-btn px-2 sm:px-2.5 py-2 text-[8px] sm:text-[9px] font-black uppercase rounded-lg min-h-[40px] {% if periodo_key == 'mes_anterior' %}fin-period-active{% endif %}" data-fin-period="mes_anterior">Mês ant.</button>
+        <button type="button" title="Próximo mês civil" class="fin-period-btn px-2 sm:px-2.5 py-2 text-[8px] sm:text-[9px] font-black uppercase rounded-lg min-h-[40px] {% if periodo_key == 'proximo_mes' %}fin-period-active{% endif %}" data-fin-period="proximo_mes">Próx. mês</button>
+        <button type="button" title="Semana corrente (seg–dom)" class="fin-period-btn px-2 sm:px-2.5 py-2 text-[8px] sm:text-[9px] font-black uppercase rounded-lg min-h-[40px] {% if periodo_key == 'semana_atual' %}fin-period-active{% endif %}" data-fin-period="semana_atual">Semana</button>
+        <button type="button" title="1º de janeiro até hoje" class="fin-period-btn px-2 sm:px-2.5 py-2 text-[8px] sm:text-[9px] font-black uppercase rounded-lg min-h-[40px] {% if periodo_key == 'ano' %}fin-period-active{% endif %}" data-fin-period="ano">Ano</button>
+        <button type="button" title="Escolher datas" id="btn-fin-periodo-cal" class="fin-period-btn px-2 sm:px-2.5 py-2 text-[8px] sm:text-[9px] font-black uppercase rounded-lg min-h-[40px] {% if periodo_key == 'personalizado' %}fin-period-active{% endif %}" data-fin-period="personalizado">Datas</button>
+      </div>
+
       <div class="flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-end">
       <div class="flex-1 min-w-[200px]">
         <label for="empresa" class="block df-muted mb-1">Empresa</label>
@@ -58,17 +86,7 @@
           <option value="postgres" {% if filtro_dashboard.fonte == 'postgres' %}selected{% endif %}>Postgres (Agro)</option>
         </select>
       </div>
-      <div class="w-full sm:w-52">
-        <label for="dias" class="block df-muted mb-1">Janela</label>
-        <select name="dias" id="dias" class="w-full min-h-[48px] rounded-lg border border-slate-300 px-3 text-base font-semibold text-slate-900 bg-white">
-          <option value="30" {% if dados and dados.dias == 30 %}selected{% endif %}>Últimos 30 dias</option>
-          <option value="60" {% if not dados or dados.dias == 60 %}selected{% endif %}>Últimos 60 dias</option>
-          <option value="90" {% if dados and dados.dias == 90 %}selected{% endif %}>Últimos 90 dias</option>
-          <option value="180" {% if dados and dados.dias == 180 %}selected{% endif %}>Últimos 180 dias</option>
-          <option value="365" {% if dados and dados.dias == 365 %}selected{% endif %}>Últimos 365 dias</option>
-        </select>
-      </div>
-      <button type="submit" class="min-h-[48px] px-5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black uppercase tracking-wide shrink-0">Aplicar</button>
+      <button type="submit" class="min-h-[48px] px-5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black uppercase tracking-wide shrink-0">Aplicar filtros</button>
       </div>
       <div id="dash-filtros-mongo" class="flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-end {% if filtro_dashboard.fonte == 'postgres' %}hidden{% endif %}">
         <div class="w-full sm:w-48">
@@ -97,6 +115,28 @@
         </div>
       </div>
     </form>
+
+    <div id="fin-periodo-cal-modal" class="hidden fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/75" role="dialog" aria-modal="true">
+      <div class="bg-white rounded-2xl border-2 border-slate-200 shadow-2xl max-w-md w-full p-5 sm:p-6">
+        <h2 class="text-sm font-black uppercase text-slate-900 tracking-wide mb-1">Período personalizado</h2>
+        <p class="text-xs font-semibold text-slate-600 mb-4">Um dia: mesma data em De e Até. Intervalo: início e fim.</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+          <label class="block">
+            <span class="text-[10px] font-black uppercase text-slate-500">De</span>
+            <input type="date" id="fin-cal-ini" value="{{ periodo_cal_ini }}" class="mt-1 w-full min-h-[44px] rounded-xl border-2 border-slate-200 px-3 text-sm font-bold text-slate-900" />
+          </label>
+          <label class="block">
+            <span class="text-[10px] font-black uppercase text-slate-500">Até</span>
+            <input type="date" id="fin-cal-fim" value="{{ periodo_cal_fim }}" class="mt-1 w-full min-h-[44px] rounded-xl border-2 border-slate-200 px-3 text-sm font-bold text-slate-900" />
+          </label>
+        </div>
+        <div class="flex flex-wrap justify-end gap-2">
+          <button type="button" id="fin-cal-cancelar" class="min-h-[44px] px-4 rounded-xl text-xs font-black uppercase border-2 border-slate-200 text-slate-700 hover:bg-slate-50">Cancelar</button>
+          <button type="button" id="fin-cal-aplicar" class="min-h-[44px] px-4 rounded-xl text-xs font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700 hover:bg-emerald-700">Aplicar</button>
+        </div>
+      </div>
+    </div>
+
     <script>
     (function(){
       var f = document.getElementById('fonte');
@@ -105,6 +145,44 @@
       function sync(){ row.classList.toggle('hidden', f.value === 'postgres'); }
       f.addEventListener('change', sync);
       sync();
+    })();
+    (function(){
+      function finSubmitPeriod(key, ini, fim) {
+        var form = document.getElementById('form-fin-dash');
+        var hp = document.getElementById('fin-periodo');
+        var hi = document.getElementById('fin-data-ini');
+        var hf = document.getElementById('fin-data-fim');
+        if (!form || !hp) return;
+        hp.value = key || 'mes_ate_hoje';
+        if (hi) hi.value = ini || '';
+        if (hf) hf.value = fim || '';
+        form.submit();
+      }
+      document.querySelectorAll('[data-fin-period]').forEach(function(btn){
+        if (btn.id === 'btn-fin-periodo-cal') return;
+        btn.addEventListener('click', function(){
+          var k = btn.getAttribute('data-fin-period');
+          if (k === 'personalizado') return;
+          finSubmitPeriod(k, '', '');
+        });
+      });
+      var modal = document.getElementById('fin-periodo-cal-modal');
+      var btnCal = document.getElementById('btn-fin-periodo-cal');
+      var calIni = document.getElementById('fin-cal-ini');
+      var calFim = document.getElementById('fin-cal-fim');
+      var btnCancel = document.getElementById('fin-cal-cancelar');
+      var btnAplicar = document.getElementById('fin-cal-aplicar');
+      function openM(){ if (modal) { modal.classList.remove('hidden'); document.body.classList.add('overflow-hidden'); } }
+      function closeM(){ if (modal) { modal.classList.add('hidden'); document.body.classList.remove('overflow-hidden'); } }
+      if (btnCal) btnCal.addEventListener('click', openM);
+      if (btnCancel) btnCancel.addEventListener('click', closeM);
+      if (btnAplicar) btnAplicar.addEventListener('click', function(){
+        var i = calIni && calIni.value ? calIni.value : '';
+        var fm = calFim && calFim.value ? calFim.value : '';
+        if (!i || !fm) { alert('Informe De e Até.'); return; }
+        finSubmitPeriod('personalizado', i, fm);
+      });
+      if (modal) modal.addEventListener('click', function(e){ if (e.target === modal) closeM(); });
     })();
     </script>
 
@@ -123,22 +201,23 @@
     {% endif %}
 
     <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-600">
-      <strong class="text-slate-900">Período atual:</strong>
+      <strong class="text-slate-900">{{ periodo_label }}</strong>
+      <span class="text-slate-400 mx-1">·</span>
       {{ dados.data_inicio_atual|date:"d/m/Y" }} — {{ dados.data_fim_atual|date:"d/m/Y" }}
       <span class="text-slate-400 mx-2">|</span>
-      <strong class="text-slate-900">Comparativo:</strong>
-      {{ dados.data_inicio_anterior|date:"d/m/Y" }} — {{ dados.data_fim_anterior|date:"d/m/Y" }}
+      <strong class="text-slate-900">Ref.:</strong>
+      média dos últimos {{ dados.meta.ref_dias }} dias ({{ dados.ref60_inicio|date:"d/m/Y" }} — {{ dados.ref60_fim|date:"d/m/Y" }}), projetada para {{ dados.dias_periodo }} dia(s)
       <span class="text-slate-400 mx-2">|</span>
       <strong class="text-slate-900">Fonte:</strong>
       {% if dados.meta.fonte == 'postgres' %}Postgres{% else %}Mongo · {{ dados.meta.por }} · {{ dados.meta.valor }} · contas {{ dados.meta.filtro_contas }}{% endif %}
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-      {% with a=dados.atual p=dados.anterior %}
+      {% with a=dados.atual p=dados.referencia %}
       <div class="df-card p-4 border-l-4 border-l-blue-500">
         <p class="df-muted">Receita operacional</p>
         <p class="text-2xl font-black df-kpi-num text-slate-900">R$ {{ a.receita_op|floatformat:2 }}</p>
-        <p class="text-xs font-bold mt-1 {% if a.receita_op >= p.receita_op %}df-up{% else %}df-down{% endif %}">vs anterior R$ {{ p.receita_op|floatformat:2 }}</p>
+        <p class="text-xs font-bold mt-1 {% if a.receita_op >= p.receita_op %}df-up{% else %}df-down{% endif %}">vs média 60d R$ {{ p.receita_op|floatformat:2 }}</p>
       </div>
       <div class="df-card p-4 border-l-4 border-l-emerald-500">
         <p class="df-muted">Margem bruta / Markup</p>
@@ -172,16 +251,16 @@
         <p class="text-xs text-slate-500 font-semibold">Entradas R$ {{ a.entradas_caixa|floatformat:2 }} · Saídas R$ {{ a.saidas_caixa|floatformat:2 }}</p>
       </div>
       <div class="df-card p-4 border-l-4 border-l-slate-500">
-        <p class="df-muted">Previsão 30 dias (ritmo médio)</p>
+        <p class="df-muted">Previsão 30 dias (média 60d)</p>
         <p class="text-2xl font-black df-kpi-num text-slate-900">R$ {{ dados.extras.previsao_30|floatformat:2 }}</p>
-        <p class="text-xs font-bold text-slate-600">Tendência: <strong>{{ dados.extras.tendencia }}</strong> (últimos 7 dias)</p>
+        <p class="text-xs font-bold text-slate-600">Tendência gráfico: <strong>{{ dados.extras.tendencia }}</strong></p>
       </div>
       {% endwith %}
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div class="lg:col-span-2 df-card p-4">
-        <h2 class="text-base font-black text-slate-900 uppercase tracking-wide">Receita operacional — últimos 7 dias</h2>
+        <h2 class="text-base font-black text-slate-900 uppercase tracking-wide">Receita operacional — até 7 dias no período</h2>
         <p class="text-xs text-slate-500 font-semibold mb-3">Cada dia: receita operacional com o mesmo critério do DRE (Mongo: data base e valor escolhidos acima; Postgres: competência).</p>
         <div class="relative h-56 sm:h-64">
           <canvas id="dashReceitaChart" aria-label="Gráfico de receita"></canvas>
@@ -191,6 +270,7 @@
         <div class="df-card p-4 bg-slate-900 text-white border-slate-800">
           <h2 class="text-sm font-black uppercase tracking-wide text-emerald-300">Leitura rápida</h2>
           <ul class="mt-2 space-y-2 text-sm font-semibold text-slate-200">
+            <li>A coluna <strong class="text-white">Ref. média 60d</strong> projeta os últimos {{ dados.meta.ref_dias }} dias para o <strong class="text-white">mesmo número de dias</strong> do período escolhido.</li>
             <li>Markup e margem bruta usam <strong class="text-white">receita operacional</strong> e CMV do período.</li>
             <li>Ponto de equilíbrio usa <strong class="text-white">despesas fixas ÷ margem de contribuição</strong> (mesma lógica do módulo de equilíbrio).</li>
             {% if dados.meta.fonte == 'postgres' %}
@@ -221,8 +301,8 @@
         Como interpretar previsão e alertas
       </summary>
       <div class="mt-3 text-sm text-slate-700 font-semibold leading-relaxed space-y-2 border-t border-slate-100 pt-3">
-        <p>A <strong>previsão em 30 dias</strong> projeta receita operacional multiplicando a média diária da janela escolhida. É uma referência simples, não substitui planejamento sazonal.</p>
-        <p>O alerta de <strong>projeção x equilíbrio</strong> compara essa projeção com o faturamento necessário em 30 dias usando o <em>ponto de equilíbrio diário</em> atual do período.</p>
+        <p>A <strong>previsão em 30 dias</strong> usa a média diária dos últimos {{ dados.meta.ref_dias }} dias (referência), não o período exibido nos botões.</p>
+        <p>O alerta de <strong>projeção x equilíbrio</strong> compara essa previsão ao patamar estimado a partir do <em>ponto de equilíbrio diário</em> do período selecionado.</p>
         {% if dados.meta.fonte == 'postgres' %}
         <p>No Postgres, lançamentos internos de grupo (<code class="text-xs bg-slate-100 px-1 rounded">eh_interno_grupo</code>) ficam de fora.</p>
         {% else %}
@@ -240,11 +320,11 @@
               <tr class="border-b border-slate-200 text-left text-xs font-black uppercase text-slate-500">
                 <th class="py-2 pr-2">Linha</th>
                 <th class="py-2 pr-2 text-right">Atual</th>
-                <th class="py-2 text-right">Anterior</th>
+                <th class="py-2 text-right">Ref. média 60d</th>
               </tr>
             </thead>
             <tbody class="font-semibold text-slate-800">
-              {% with a=dados.atual p=dados.anterior %}
+              {% with a=dados.atual p=dados.referencia %}
               <tr class="border-b border-slate-100"><td class="py-2">Receita operacional</td><td class="text-right">R$ {{ a.receita_op|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.receita_op|floatformat:2 }}</td></tr>
               <tr class="border-b border-slate-100"><td class="py-2">(−) CMV</td><td class="text-right">R$ {{ a.cmv|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.cmv|floatformat:2 }}</td></tr>
               <tr class="border-b border-slate-100 bg-emerald-50/50"><td class="py-2 font-black">(=) Lucro bruto</td><td class="text-right font-black">R$ {{ a.lucro_bruto|floatformat:2 }}</td><td class="text-right">R$ {{ p.lucro_bruto|floatformat:2 }}</td></tr>
@@ -259,7 +339,7 @@
             </tbody>
           </table>
         </div>
-        <p class="text-xs text-slate-500 font-semibold mt-2">Margem líquida sobre receita total (op. + não op.): <strong>{{ dados.atual.margem_liquida_pct|floatformat:2 }}%</strong> (anterior {{ dados.anterior.margem_liquida_pct|floatformat:2 }}%).</p>
+        <p class="text-xs text-slate-500 font-semibold mt-2">Margem líquida sobre receita total (op. + não op.): <strong>{{ dados.atual.margem_liquida_pct|floatformat:2 }}%</strong> (ref. média 60d {{ dados.referencia.margem_liquida_pct|floatformat:2 }}%).</p>
       </div>
 
       <div class="df-card p-4">
@@ -267,7 +347,7 @@
         <div class="df-table-wrap">
           <table class="min-w-full text-sm">
             <tbody class="font-semibold text-slate-800">
-              {% with a=dados.atual p=dados.anterior %}
+              {% with a=dados.atual p=dados.referencia %}
               <tr class="border-b border-slate-100"><td class="py-2">Entradas (receitas + empréstimos + aportes)</td><td class="text-right text-emerald-800">R$ {{ a.entradas_caixa|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.entradas_caixa|floatformat:2 }}</td></tr>
               <tr class="border-b border-slate-100"><td class="py-2">Saídas (CMV, despesas, amortizações, retiradas)</td><td class="text-right text-rose-800">R$ {{ a.saidas_caixa|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.saidas_caixa|floatformat:2 }}</td></tr>
               <tr class="bg-slate-50"><td class="py-2 font-black">Saldo do período</td><td class="text-right font-black">R$ {{ a.geracao_caixa|floatformat:2 }}</td><td class="text-right">R$ {{ p.geracao_caixa|floatformat:2 }}</td></tr>
