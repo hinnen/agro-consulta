@@ -26,7 +26,7 @@
             <span class="text-emerald-600">Dashboard</span><span class="text-slate-400 font-bold mx-1">·</span><span class="text-amber-900">Financeiro gerencial</span>
           </h1>
           <p class="text-xs sm:text-sm font-semibold text-slate-600 mt-0.5">
-            DRE por competência, caixa por movimento, comparativo de janelas e leituras rápidas.
+            Padrão: <strong class="text-slate-800">Mongo (DtoLancamento)</strong>, como no Resumo gerencial. Opcional: Postgres (<code class="text-[11px] bg-slate-100 px-1 rounded">LancamentoFinanceiro</code>).
           </p>
         </div>
       </div>
@@ -39,7 +39,8 @@
   </header>
 
   <div class="max-w-[1600px] mx-auto px-3 sm:px-4 pt-4 space-y-4">
-    <form method="get" class="df-card p-3 sm:p-4 flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-end">
+    <form method="get" class="df-card p-3 sm:p-4 flex flex-col gap-3">
+      <div class="flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-end">
       <div class="flex-1 min-w-[200px]">
         <label for="empresa" class="block df-muted mb-1">Empresa</label>
         <select name="empresa" id="empresa" class="w-full min-h-[48px] rounded-lg border border-slate-300 px-3 text-base font-semibold text-slate-900 bg-white">
@@ -48,6 +49,13 @@
           {% empty %}
           <option value="">Cadastre uma empresa ativa</option>
           {% endfor %}
+        </select>
+      </div>
+      <div class="w-full sm:w-44">
+        <label for="fonte" class="block df-muted mb-1">Fonte</label>
+        <select name="fonte" id="fonte" class="w-full min-h-[48px] rounded-lg border border-slate-300 px-3 text-base font-semibold text-slate-900 bg-white">
+          <option value="mongo" {% if filtro_dashboard.fonte != 'postgres' %}selected{% endif %}>Mongo (ERP)</option>
+          <option value="postgres" {% if filtro_dashboard.fonte == 'postgres' %}selected{% endif %}>Postgres (Agro)</option>
         </select>
       </div>
       <div class="w-full sm:w-52">
@@ -61,7 +69,44 @@
         </select>
       </div>
       <button type="submit" class="min-h-[48px] px-5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black uppercase tracking-wide shrink-0">Aplicar</button>
+      </div>
+      <div id="dash-filtros-mongo" class="flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-end {% if filtro_dashboard.fonte == 'postgres' %}hidden{% endif %}">
+        <div class="w-full sm:w-48">
+          <label for="por" class="block df-muted mb-1">Data base (DRE)</label>
+          <select name="por" id="por" class="w-full min-h-[48px] rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-900 bg-white">
+            <option value="competencia" {% if filtro_dashboard.por == 'competencia' %}selected{% endif %}>Competência</option>
+            <option value="vencimento" {% if filtro_dashboard.por == 'vencimento' %}selected{% endif %}>Vencimento</option>
+            <option value="pagamento" {% if filtro_dashboard.por == 'pagamento' %}selected{% endif %}>Pagamento</option>
+          </select>
+        </div>
+        <div class="w-full sm:w-44">
+          <label for="valor" class="block df-muted mb-1">Valor (DRE)</label>
+          <select name="valor" id="valor" class="w-full min-h-[48px] rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-900 bg-white">
+            <option value="bruto" {% if filtro_dashboard.valor == 'bruto' %}selected{% endif %}>Bruto (título)</option>
+            <option value="realizado" {% if filtro_dashboard.valor == 'realizado' %}selected{% endif %}>Realizado</option>
+          </select>
+        </div>
+        <div class="flex-1 min-w-[200px]">
+          <label for="contas" class="block df-muted mb-1">Filtro contas</label>
+          <select name="contas" id="contas" class="w-full min-h-[48px] rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-900 bg-white">
+            <option value="" {% if not filtro_dashboard.contas %}selected{% endif %}>Padrão (.env)</option>
+            <option value="resultado" {% if filtro_dashboard.contas == 'resultado' %}selected{% endif %}>Resultado</option>
+            <option value="resultado_erp" {% if filtro_dashboard.contas == 'resultado_erp' %}selected{% endif %}>Resultado ERP (PDF)</option>
+            <option value="todas" {% if filtro_dashboard.contas == 'todas' %}selected{% endif %}>Todas</option>
+          </select>
+        </div>
+      </div>
     </form>
+    <script>
+    (function(){
+      var f = document.getElementById('fonte');
+      var row = document.getElementById('dash-filtros-mongo');
+      if (!f || !row) return;
+      function sync(){ row.classList.toggle('hidden', f.value === 'postgres'); }
+      f.addEventListener('change', sync);
+      sync();
+    })();
+    </script>
 
     {% if not empresa_id %}
     <div class="df-card p-6 text-center text-slate-600 font-semibold">
@@ -69,12 +114,23 @@
     </div>
     {% else %}
 
+    {% if dados.meta.avisos %}
+    <div class="rounded-xl border border-amber-300 bg-amber-50 px-3 py-3 text-sm font-semibold text-amber-950 space-y-1">
+      {% for av in dados.meta.avisos %}
+      <p class="m-0">{{ av }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs sm:text-sm font-semibold text-slate-600">
       <strong class="text-slate-900">Período atual:</strong>
       {{ dados.data_inicio_atual|date:"d/m/Y" }} — {{ dados.data_fim_atual|date:"d/m/Y" }}
       <span class="text-slate-400 mx-2">|</span>
       <strong class="text-slate-900">Comparativo:</strong>
       {{ dados.data_inicio_anterior|date:"d/m/Y" }} — {{ dados.data_fim_anterior|date:"d/m/Y" }}
+      <span class="text-slate-400 mx-2">|</span>
+      <strong class="text-slate-900">Fonte:</strong>
+      {% if dados.meta.fonte == 'postgres' %}Postgres{% else %}Mongo · {{ dados.meta.por }} · {{ dados.meta.valor }} · contas {{ dados.meta.filtro_contas }}{% endif %}
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -126,7 +182,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div class="lg:col-span-2 df-card p-4">
         <h2 class="text-base font-black text-slate-900 uppercase tracking-wide">Receita operacional — últimos 7 dias</h2>
-        <p class="text-xs text-slate-500 font-semibold mb-3">Soma por dia (competência), para enxergar ritmo recente.</p>
+        <p class="text-xs text-slate-500 font-semibold mb-3">Cada dia: receita operacional com o mesmo critério do DRE (Mongo: data base e valor escolhidos acima; Postgres: competência).</p>
         <div class="relative h-56 sm:h-64">
           <canvas id="dashReceitaChart" aria-label="Gráfico de receita"></canvas>
         </div>
@@ -137,7 +193,11 @@
           <ul class="mt-2 space-y-2 text-sm font-semibold text-slate-200">
             <li>Markup e margem bruta usam <strong class="text-white">receita operacional</strong> e CMV do período.</li>
             <li>Ponto de equilíbrio usa <strong class="text-white">despesas fixas ÷ margem de contribuição</strong> (mesma lógica do módulo de equilíbrio).</li>
-            <li>Caixa soma naturezas por <strong class="text-white">data de movimento</strong> (realizado).</li>
+            {% if dados.meta.fonte == 'postgres' %}
+            <li>Caixa: naturezas por <strong class="text-white">data de movimento</strong> no Agro.</li>
+            {% else %}
+            <li>Caixa Mongo: <strong class="text-white">data de pagamento</strong> + <strong class="text-white">valor realizado</strong>, classificado por plano (como no Resumo gerencial).</li>
+            {% endif %}
           </ul>
         </div>
         <div class="df-card p-4">
@@ -163,13 +223,17 @@
       <div class="mt-3 text-sm text-slate-700 font-semibold leading-relaxed space-y-2 border-t border-slate-100 pt-3">
         <p>A <strong>previsão em 30 dias</strong> projeta receita operacional multiplicando a média diária da janela escolhida. É uma referência simples, não substitui planejamento sazonal.</p>
         <p>O alerta de <strong>projeção x equilíbrio</strong> compara essa projeção com o faturamento necessário em 30 dias usando o <em>ponto de equilíbrio diário</em> atual do período.</p>
-        <p>Lançamentos internos de grupo (<code class="text-xs bg-slate-100 px-1 rounded">eh_interno_grupo</code>) ficam de fora para focar na operação “externa”.</p>
+        {% if dados.meta.fonte == 'postgres' %}
+        <p>No Postgres, lançamentos internos de grupo (<code class="text-xs bg-slate-100 px-1 rounded">eh_interno_grupo</code>) ficam de fora.</p>
+        {% else %}
+        <p>No Mongo, o nome fantasia da empresa no Agro precisa bater com o campo <strong>Empresa</strong> dos títulos — igual ao Resumo gerencial.</p>
+        {% endif %}
       </div>
     </details>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
       <div class="df-card p-4">
-        <h2 class="text-base font-black text-slate-900 uppercase tracking-wide mb-3">DRE gerencial (competência)</h2>
+        <h2 class="text-base font-black text-slate-900 uppercase tracking-wide mb-3">DRE gerencial{% if dados.meta.fonte != 'postgres' %} <span class="text-slate-500 font-bold normal-case text-sm">(Mongo · {{ dados.meta.por }} · {{ dados.meta.valor }})</span>{% endif %}</h2>
         <div class="df-table-wrap">
           <table class="min-w-full text-sm">
             <thead>
@@ -199,7 +263,7 @@
       </div>
 
       <div class="df-card p-4">
-        <h2 class="text-base font-black text-slate-900 uppercase tracking-wide mb-3">Fluxo de caixa (movimento)</h2>
+        <h2 class="text-base font-black text-slate-900 uppercase tracking-wide mb-3">Fluxo de caixa{% if dados.meta.fonte == 'postgres' %} <span class="text-slate-500 font-bold normal-case text-sm">(data movimento)</span>{% else %} <span class="text-slate-500 font-bold normal-case text-sm">(Mongo · pagamento · realizado)</span>{% endif %}</h2>
         <div class="df-table-wrap">
           <table class="min-w-full text-sm">
             <tbody class="font-semibold text-slate-800">
@@ -207,8 +271,8 @@
               <tr class="border-b border-slate-100"><td class="py-2">Entradas (receitas + empréstimos + aportes)</td><td class="text-right text-emerald-800">R$ {{ a.entradas_caixa|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.entradas_caixa|floatformat:2 }}</td></tr>
               <tr class="border-b border-slate-100"><td class="py-2">Saídas (CMV, despesas, amortizações, retiradas)</td><td class="text-right text-rose-800">R$ {{ a.saidas_caixa|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.saidas_caixa|floatformat:2 }}</td></tr>
               <tr class="bg-slate-50"><td class="py-2 font-black">Saldo do período</td><td class="text-right font-black">R$ {{ a.geracao_caixa|floatformat:2 }}</td><td class="text-right">R$ {{ p.geracao_caixa|floatformat:2 }}</td></tr>
-              <tr class="border-t border-slate-200"><td class="py-2 text-slate-600">Aportes (competência)</td><td class="text-right">R$ {{ a.aportes|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.aportes|floatformat:2 }}</td></tr>
-              <tr><td class="py-2 text-slate-600">Retiradas (competência)</td><td class="text-right">R$ {{ a.retiradas|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.retiradas|floatformat:2 }}</td></tr>
+              <tr class="border-t border-slate-200"><td class="py-2 text-slate-600">Aportes (no DRE)</td><td class="text-right">R$ {{ a.aportes|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.aportes|floatformat:2 }}</td></tr>
+              <tr><td class="py-2 text-slate-600">Retiradas (no DRE)</td><td class="text-right">R$ {{ a.retiradas|floatformat:2 }}</td><td class="text-right text-slate-600">R$ {{ p.retiradas|floatformat:2 }}</td></tr>
               {% endwith %}
             </tbody>
           </table>
