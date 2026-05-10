@@ -52,6 +52,14 @@ AGRO_RECORRENTE = "AgroRecorrente"
 AGRO_RECORRENTE_INTERVALO_MESES = "AgroRecorrenteIntervaloMeses"
 # True (padrão): cada quitação gera o próximo título ainda com recorrência. False: só uma geração seguinte.
 AGRO_RECORRENTE_SEMPRE = "AgroRecorrenteSempre"
+# Linha digitável / código de barras (somente Agro; não entra no recorte enviado ao ERP).
+AGRO_BOLETO_CODIGO_BARRAS = "AgroBoletoCodigoBarras"
+
+
+def normalizar_boleto_codigo_barras_mongo(raw: Any) -> str:
+    """Apenas dígitos; até 54 posições (linha digitável / código FEBRABAN)."""
+    s = re.sub(r"\D", "", str(raw or ""))
+    return s[:54]
 
 
 def _doc_recorrente_sempre(doc: dict | None) -> bool:
@@ -1120,6 +1128,7 @@ def _lancamentos_um_token_busca_or(tok: str) -> dict[str, Any]:
         "CategoriaLancamento",
         "CriadoPor",
         "ModificadoPor",
+        AGRO_BOLETO_CODIGO_BARRAS,
     )
     or_list: list[dict[str, Any]] = [{f: rx} for f in str_fields]
     id_like = (
@@ -1733,6 +1742,7 @@ def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
         "agro_recorrente": bool(doc.get(AGRO_RECORRENTE)),
         "recorrencia_intervalo_meses": ri,
         "agro_recorrente_sempre": _doc_recorrente_sempre(doc),
+        "boleto_codigo_barras": str(doc.get(AGRO_BOLETO_CODIGO_BARRAS) or "").strip()[:54],
     }
 
 
@@ -4248,6 +4258,12 @@ def inserir_lancamentos_manual_lote(
                 doc[AGRO_RECORRENTE_INTERVALO_MESES] = 1
                 doc[AGRO_RECORRENTE_SEMPRE] = True
 
+            bc = normalizar_boleto_codigo_barras_mongo(
+                ln.get("boleto_codigo_barras") or ln.get("codigo_barras_boleto")
+            )
+            if bc and despesa:
+                doc[AGRO_BOLETO_CODIGO_BARRAS] = bc
+
             if despesa:
                 doc["Saida"] = valor
                 doc["Entrada"] = 0.0
@@ -5266,6 +5282,7 @@ def atualizar_lancamento_mongo_agro(
     now = timezone.now()
     mod = ((usuario_label or "Agro")[:80] + " — edição lançamento Agro")[:200]
     set_doc: dict[str, Any] = {"LastUpdate": now, "ModificadoPor": mod, "DataModificacao": now}
+    unset_doc: dict[str, Any] = {}
 
     if "descricao" in patch:
         set_doc["Descricao"] = str(patch.get("descricao") or "").strip()[:500]
@@ -5312,9 +5329,21 @@ def atualizar_lancamento_mongo_agro(
             set_doc["FormaPagamento"] = fn[:200]
             set_doc["FormaPagamentoID"] = _financeiro_id_para_string(patch.get("forma_pagamento_id"))
 
-    if len(set_doc) <= 3:
+    if "boleto_codigo_barras" in patch:
+        bv = normalizar_boleto_codigo_barras_mongo(patch.get("boleto_codigo_barras"))
+        if bv:
+            set_doc[AGRO_BOLETO_CODIGO_BARRAS] = bv
+        else:
+            unset_doc[AGRO_BOLETO_CODIGO_BARRAS] = ""
+
+    core_meta = {"LastUpdate", "ModificadoPor", "DataModificacao"}
+    tem_alteracao = bool(unset_doc) or any(k not in core_meta for k in set_doc)
+    if not tem_alteracao:
         return {"ok": False, "erro": "Nenhum campo para atualizar."}
 
     _financeiro_doc_coerce_ids_oid_para_string(set_doc)
-    col.update_one({"_id": oid}, {"$set": set_doc})
+    upd: dict[str, Any] = {"$set": set_doc}
+    if unset_doc:
+        upd["$unset"] = unset_doc
+    col.update_one({"_id": oid}, upd)
     return {"ok": True, "id": str(oid)}

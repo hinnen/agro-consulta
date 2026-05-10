@@ -1,8 +1,6 @@
 """
-Dashboard gerencial: Postgres (LancamentoFinanceiro) ou Mongo (DtoLancamento),
-comparativo de janelas, insights e série para gráfico.
-
-O padrão é **Mongo**, alinhado ao módulo Resumo gerencial e aos lançamentos do ERP.
+Dashboard gerencial: Postgres ou Mongo, período configurável (presets como o BI),
+comparativo = média dos últimos 60 dias projetada para o mesmo número de dias do período.
 """
 from __future__ import annotations
 
@@ -15,6 +13,8 @@ from django.utils import timezone
 
 from financeiro.models import LancamentoFinanceiro
 from financeiro.services.equilibrio import EquilibrioFinanceiroService
+
+REF_MESES_COMPARACAO_DIAS = 60
 
 
 def _zero_map() -> dict[str, Decimal]:
@@ -136,7 +136,6 @@ def _zeros_indicadores(dias_janela: int) -> dict:
 def calcular_indicadores_periodo(
     empresa_id: int, data_inicio: date, data_fim: date
 ) -> dict:
-    """DRE por competência + caixa por data_movimento (Postgres)."""
     base = dict(empresa_id=empresa_id, eh_interno_grupo=False)
     qs_dre = LancamentoFinanceiro.objects.filter(
         **base,
@@ -189,7 +188,6 @@ def calcular_indicadores_periodo_mongo(
     valor: str,
     filtro_contas: str,
 ) -> dict:
-    """DRE Mongo (por/valor do painel) + caixa por pagamento realizado."""
     from financeiro.services.resumo_operacional_mongo import (
         consolidar_empresa_mongo,
         natureza_buckets_from_linhas_dre,
@@ -257,55 +255,101 @@ def calcular_indicadores_periodo_mongo(
     )
 
 
-def _serie_receita_operacional_diaria(
-    empresa_id: int, data_fim: date, dias: int = 7
-) -> tuple[list[str], list[float]]:
-    labels: list[str] = []
-    valores: list[float] = []
-    qs_base = LancamentoFinanceiro.objects.filter(
-        empresa_id=empresa_id,
-        natureza=LancamentoFinanceiro.NATUREZA_RECEITA_OPERACIONAL,
-        eh_interno_grupo=False,
-    )
-    for i in range(dias - 1, -1, -1):
-        d = data_fim - timedelta(days=i)
-        s = qs_base.filter(data_competencia=d).aggregate(t=Sum("valor"))["t"]
-        labels.append(d.strftime("%d/%m"))
-        valores.append(float(s or 0))
-    return labels, valores
-
-
-def _serie_receita_mongo(
-    db,
-    empresa_id: int,
-    data_fim: date,
+def _fetch_indicadores(
     *,
+    fonte: str,
+    mongo_db,
+    empresa_id: int,
+    data_inicio: date,
+    data_fim: date,
+    por: str,
+    valor: str,
+    fc: str,
+) -> dict:
+    dias_j = max((data_fim - data_inicio).days + 1, 1)
+    if fonte == "mongo":
+        if mongo_db is None:
+            return _zeros_indicadores(dias_j)
+        return calcular_indicadores_periodo_mongo(
+            mongo_db,
+            empresa_id,
+            data_inicio,
+            data_fim,
+            por=por,
+            valor=valor,
+            filtro_contas=fc,
+        )
+    return calcular_indicadores_periodo(empresa_id, data_inicio, data_fim)
+
+
+def _benchmark_media_60(
+    ref60: dict, dias_periodo: int, dias_ref: int = REF_MESES_COMPARACAO_DIAS
+) -> dict:
+    """Escala os totais dos últimos `dias_ref` dias para `dias_periodo` e recalcula indicadores."""
+    k = Decimal(dias_periodo) / Decimal(max(dias_ref, 1))
+    return _indicadores_from_componentes(
+        receita_op=ref60["receita_op"] * k,
+        receita_nao_op=ref60["receita_nao_op"] * k,
+        cmv=ref60["cmv"] * k,
+        df=ref60["df"] * k,
+        dv=ref60["dv"] * k,
+        desp_fin=ref60["desp_fin"] * k,
+        entradas_caixa=ref60["entradas_caixa"] * k,
+        saidas_caixa=ref60["saidas_caixa"] * k,
+        aportes=ref60["aportes"] * k,
+        retiradas=ref60["retiradas"] * k,
+        dias_janela=max(dias_periodo, 1),
+    )
+
+
+def _serie_grafico_receita(
+    *,
+    fonte: str,
+    mongo_db,
+    empresa_id: int,
+    data_inicio: date,
+    data_fim: date,
     por: str,
     valor: str,
     filtro_contas: str,
-    dias: int = 7,
+    max_days: int = 7,
 ) -> tuple[list[str], list[float]]:
     from financeiro.services.resumo_operacional_mongo import consolidar_empresa_mongo
 
+    start_d = max(data_inicio, data_fim - timedelta(days=max_days - 1))
     labels: list[str] = []
     valores: list[float] = []
-    for i in range(dias - 1, -1, -1):
-        d = data_fim - timedelta(days=i)
-        sub = consolidar_empresa_mongo(
-            db,
-            empresa_id=empresa_id,
-            data_inicio=d,
-            data_fim=d,
-            por=por,
-            valor=valor,
-            filtro_contas=filtro_contas or "",
-        )
-        if sub.get("erro"):
-            v = 0.0
+    d = start_d
+    while d <= data_fim:
+        if fonte == "postgres":
+            qs = LancamentoFinanceiro.objects.filter(
+                empresa_id=empresa_id,
+                natureza=LancamentoFinanceiro.NATUREZA_RECEITA_OPERACIONAL,
+                eh_interno_grupo=False,
+                data_competencia=d,
+            )
+            agg = qs.aggregate(t=Sum("valor"))["t"]
+            v = float(agg or 0)
+        elif mongo_db is not None:
+            sub = consolidar_empresa_mongo(
+                mongo_db,
+                empresa_id=empresa_id,
+                data_inicio=d,
+                data_fim=d,
+                por=por,
+                valor=valor,
+                filtro_contas=filtro_contas or "",
+            )
+            v = (
+                float(sub.get("receita_operacional") or 0)
+                if not sub.get("erro")
+                else 0.0
+            )
         else:
-            v = float(sub.get("receita_operacional") or 0)
+            v = 0.0
         labels.append(d.strftime("%d/%m"))
         valores.append(v)
+        d += timedelta(days=1)
     return labels, valores
 
 
@@ -369,7 +413,7 @@ def _build_dicas(
         dicas.append(
             {
                 "titulo": "Projeção x ponto de equilíbrio",
-                "msg": "Se o ritmo recente se mantiver, o faturamento em 30 dias pode ficar abaixo do necessário para cobrir fixos (pelo MC atual).",
+                "msg": "A média dos últimos 60 dias, projetada em 30 dias, fica abaixo do patamar de equilíbrio estimado para o período exibido.",
                 "nivel": "danger",
             }
         )
@@ -377,7 +421,7 @@ def _build_dicas(
         dicas.append(
             {
                 "titulo": "Fluxo de caixa líquido negativo",
-                "msg": "No período, as entradas classificadas ficaram abaixo das saídas no recorte de caixa. Confira pagamentos e recebimentos.",
+                "msg": "No período, as entradas classificadas ficaram abaixo das saídas no recorte de caixa.",
                 "nivel": "warning",
             }
         )
@@ -394,9 +438,11 @@ def _build_dicas(
 
 def _extras_periodo_atual(
     empresa_id: int,
-    dias: int,
+    dias_periodo: int,
+    data_inicio: date,
     data_fim: date,
     bloco_periodo: dict,
+    ref60_bruto: dict,
     *,
     fonte: str,
     mongo_db,
@@ -405,23 +451,23 @@ def _extras_periodo_atual(
     filtro_contas: str,
 ) -> dict:
     receita_op = bloco_periodo["receita_op"]
-    dias_u = max(dias, 1)
-    media_diaria = receita_op / Decimal(dias_u)
-    previsao_30 = media_diaria * Decimal("30")
+    dias_u = max(dias_periodo, 1)
+    media_periodo = receita_op / Decimal(dias_u)
+    media_60 = ref60_bruto["receita_op"] / Decimal(str(REF_MESES_COMPARACAO_DIAS))
+    previsao_30 = media_60 * Decimal("30")
     pe_d = bloco_periodo["pe_diario"] or Decimal("0")
     pe_30 = pe_d * Decimal("30")
-    if fonte == "mongo" and mongo_db is not None:
-        labels, serie = _serie_receita_mongo(
-            mongo_db,
-            empresa_id,
-            data_fim,
-            por=por,
-            valor=valor,
-            filtro_contas=filtro_contas,
-            dias=7,
-        )
-    else:
-        labels, serie = _serie_receita_operacional_diaria(empresa_id, data_fim, dias=7)
+    labels, serie = _serie_grafico_receita(
+        fonte=fonte,
+        mongo_db=mongo_db,
+        empresa_id=empresa_id,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        por=por,
+        valor=valor,
+        filtro_contas=filtro_contas,
+        max_days=7,
+    )
     tendencia = _tendencia_linear_simples(serie)
     dicas = _build_dicas(
         receita_op=receita_op,
@@ -434,7 +480,8 @@ def _extras_periodo_atual(
         indice_seguranca_pct=bloco_periodo["indice_seguranca_pct"],
     )
     return {
-        "media_diaria": media_diaria,
+        "media_diaria_periodo": media_periodo,
+        "media_diaria_60": media_60,
         "previsao_30": previsao_30,
         "pe_30": pe_30,
         "tendencia": tendencia,
@@ -461,7 +508,8 @@ def _norm_filtro_contas(raw: str) -> str:
 
 def get_dashboard_data(
     empresa_id: int,
-    dias: int = 60,
+    data_inicio: date,
+    data_fim: date,
     *,
     fonte: str = "mongo",
     por: str = "competencia",
@@ -469,11 +517,11 @@ def get_dashboard_data(
     filtro_contas: str = "",
     mongo_db=None,
 ) -> dict:
-    hoje = timezone.now().date()
-    dias = max(int(dias), 1)
-    inicio_atual = hoje - timedelta(days=dias - 1)
-    inicio_anterior = inicio_atual - timedelta(days=dias)
-    fim_anterior = inicio_atual - timedelta(days=1)
+    hoje = timezone.localdate()
+    dias_periodo = max((data_fim - data_inicio).days + 1, 1)
+
+    ref_ini = hoje - timedelta(days=REF_MESES_COMPARACAO_DIAS - 1)
+    ref_fim = hoje
 
     fonte = (fonte or "mongo").strip().lower()
     if fonte not in ("mongo", "postgres"):
@@ -487,45 +535,46 @@ def get_dashboard_data(
     fc = _norm_filtro_contas(filtro_contas)
 
     avisos: list[str] = []
-    if fonte == "mongo":
-        if mongo_db is None:
-            avisos.append("Mongo indisponível — não foi possível carregar os dados do ERP.")
-            atual = _zeros_indicadores(max((hoje - inicio_atual).days + 1, 1))
-            anterior = _zeros_indicadores(max((fim_anterior - inicio_anterior).days + 1, 1))
-        else:
-            atual = calcular_indicadores_periodo_mongo(
-                mongo_db,
-                empresa_id,
-                inicio_atual,
-                hoje,
-                por=por,
-                valor=valor,
-                filtro_contas=fc,
-            )
-            anterior = calcular_indicadores_periodo_mongo(
-                mongo_db,
-                empresa_id,
-                inicio_anterior,
-                fim_anterior,
-                por=por,
-                valor=valor,
-                filtro_contas=fc,
-            )
-    else:
-        atual = calcular_indicadores_periodo(empresa_id, inicio_atual, hoje)
-        anterior = calcular_indicadores_periodo(empresa_id, inicio_anterior, fim_anterior)
+
+    if fonte == "mongo" and mongo_db is None:
+        avisos.append("Mongo indisponível — não foi possível carregar os dados do ERP.")
+
+    atual = _fetch_indicadores(
+        fonte=fonte,
+        mongo_db=mongo_db,
+        empresa_id=empresa_id,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        por=por,
+        valor=valor,
+        fc=fc,
+    )
+    ref60 = _fetch_indicadores(
+        fonte=fonte,
+        mongo_db=mongo_db,
+        empresa_id=empresa_id,
+        data_inicio=ref_ini,
+        data_fim=ref_fim,
+        por=por,
+        valor=valor,
+        fc=fc,
+    )
 
     atual, e1 = _pop_erro(atual)
-    anterior, e2 = _pop_erro(anterior)
+    ref60, e2 = _pop_erro(ref60)
     for e in (e1, e2):
         if e:
             avisos.append(e)
 
+    referencia = _benchmark_media_60(ref60, dias_periodo)
+
     extras = _extras_periodo_atual(
         empresa_id,
-        dias,
-        hoje,
+        dias_periodo,
+        data_inicio,
+        data_fim,
         atual,
+        ref60,
         fonte=fonte,
         mongo_db=mongo_db,
         por=por,
@@ -535,18 +584,20 @@ def get_dashboard_data(
 
     return {
         "atual": atual,
-        "anterior": anterior,
+        "referencia": referencia,
+        "ref60_bruto": ref60,
         "extras": extras,
-        "dias": dias,
-        "data_inicio_atual": inicio_atual,
-        "data_fim_atual": hoje,
-        "data_inicio_anterior": inicio_anterior,
-        "data_fim_anterior": fim_anterior,
+        "dias_periodo": dias_periodo,
+        "data_inicio_atual": data_inicio,
+        "data_fim_atual": data_fim,
+        "ref60_inicio": ref_ini,
+        "ref60_fim": ref_fim,
         "meta": {
             "fonte": fonte,
             "por": por,
             "valor": valor,
             "filtro_contas": fc,
             "avisos": avisos,
+            "ref_dias": REF_MESES_COMPARACAO_DIAS,
         },
     }

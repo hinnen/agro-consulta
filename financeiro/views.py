@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404, render
 from base.models import Empresa
 
 from financeiro.services.dashboard_financeiro import get_dashboard_data
-from produtos.views import obter_conexao_mongo
+from produtos.views import _dashboard_periodo_from_request, obter_conexao_mongo
 
 
 @login_required(login_url="/admin/login/")
@@ -14,8 +14,11 @@ def dashboard_financeiro_completo(request):
     empresa_id = int(request.GET.get("empresa") or default_eid or 0)
     if empresa_id:
         get_object_or_404(Empresa, pk=empresa_id, ativo=True)
-    dias = int(request.GET.get("dias", 60))
-    dias = max(min(dias, 366), 7)
+
+    data_ini, data_fim, periodo_label, periodo_key = _dashboard_periodo_from_request(
+        request
+    )
+
     fonte = (request.GET.get("fonte") or "mongo").strip().lower()
     por = (request.GET.get("por") or "competencia").strip().lower()
     valor = (request.GET.get("valor") or "bruto").strip().lower()
@@ -26,7 +29,8 @@ def dashboard_financeiro_completo(request):
     dados = (
         get_dashboard_data(
             empresa_id,
-            dias,
+            data_ini,
+            data_fim,
             fonte=fonte,
             por=por,
             valor=valor,
@@ -57,5 +61,9 @@ def dashboard_financeiro_completo(request):
             "dados": dados,
             "chart_bootstrap": chart_bootstrap,
             "filtro_dashboard": filtro_dashboard,
+            "periodo_key": periodo_key,
+            "periodo_label": periodo_label,
+            "periodo_cal_ini": data_ini.isoformat(),
+            "periodo_cal_fim": data_fim.isoformat(),
         },
     )
