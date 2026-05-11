@@ -13,8 +13,9 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 COPY . /app/
 
 COPY entrypoint.sh /app/
-RUN chmod +x /app/entrypoint.sh
+# Windows/OneDrive: entrypoint.sh pode vir com CRLF → "exec ...: no such file or directory" no Linux
+RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
 EXPOSE 8000
 
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "/app/entrypoint.sh"]
