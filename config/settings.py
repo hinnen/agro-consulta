@@ -31,6 +31,8 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 # Render injeta RENDER=true; sem isso, ALLOWED_HOSTS só com localhost → 400 DisallowedHost no deploy.
 _on_render = str(os.environ.get("RENDER", "")).lower() in ("1", "true", "yes")
+# Docker / SaveinCloud (PaaS): defina SAVEINCLOUD=true no painel para o mesmo critério de estáticos que no Render.
+_on_saveincloud = str(os.environ.get("SAVEINCLOUD", "")).lower() in ("1", "true", "yes")
 
 
 def _env_csv_or_config(key: str, default: str = "") -> str:
@@ -166,9 +168,9 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-# No Render: sem manifest evita 500 em runtime se algum asset faltar no manifest pós-collectstatic
+# Render / Docker (SAVEINCLOUD): sem manifest evita 500 em runtime se algum asset faltar no manifest pós-collectstatic
 # (o edge costuma devolver 502 quando o worker cai ou responde mal).
-if _on_render:
+if _on_render or _on_saveincloud:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 else:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -194,6 +196,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
+# Produção (Render, SaveinCloud, Docker): injete DATABASE_URL (PostgreSQL) pelo painel; sem ela, fallback SQLite local.
 
 DATABASES = {
     'default': dj_database_url.config(
