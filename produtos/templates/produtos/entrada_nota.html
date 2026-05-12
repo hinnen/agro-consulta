@@ -341,6 +341,19 @@
         </div>
         <div id="nfe-wiz-a2" class="rounded-xl border border-slate-200 bg-slate-50/90 p-3 sm:p-4 space-y-3">
         <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">1 · Fornecedor</h2>
+        <fieldset class="rounded-xl border-2 border-amber-200 bg-amber-50/90 p-3 space-y-2">
+          <legend class="text-[10px] font-black uppercase text-amber-950 px-1">Tipo de entrada</legend>
+          <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-6">
+            <label class="inline-flex items-start gap-2 cursor-pointer min-h-[44px] max-w-md">
+              <input type="radio" name="nfe-tipo-entrada" id="nfe-tipo-compras" value="compras" checked class="mt-1 h-5 w-5 accent-emerald-600 shrink-0">
+              <span class="text-xs font-bold text-amber-950 leading-snug"><span class="font-black">Compras</span></span>
+            </label>
+            <label class="inline-flex items-start gap-2 cursor-pointer min-h-[44px] max-w-md">
+              <input type="radio" name="nfe-tipo-entrada" id="nfe-tipo-bonificacao" value="bonificacao" class="mt-1 h-5 w-5 accent-emerald-600 shrink-0">
+              <span class="text-xs font-bold text-amber-950 leading-snug"><span class="font-black">Bonificação</span></span>
+            </label>
+          </div>
+        </fieldset>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <label class="block lg:col-span-2"><span class="text-xs font-black uppercase text-slate-600">Fornecedor / emitente (cadastro)</span>
           <div class="relative mt-1">
@@ -534,6 +547,9 @@
       </div>
 
       <div id="nfe-wiz-page-5" data-nfe-wiz-page="5" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
+      <p id="nfe-fin-bonif-banner" class="hidden rounded-xl border-2 border-amber-400 bg-amber-100 px-3 py-2 text-xs font-black text-amber-950 leading-snug" role="status">
+        Bonificação: esta entrada não gera contas a pagar. Use a etapa 4 para registrar o estoque; a etapa 5 pode ser ignorada.
+      </p>
       <div id="nfe-wiz-a4" class="rounded-xl border-2 border-emerald-300 bg-emerald-50/50 px-3 py-3 shadow-sm">
         <h3 class="text-sm font-black uppercase text-emerald-950 mb-2">5 · Financeiro <span class="text-[10px] font-bold text-emerald-800/90 normal-case">(opcional)</span></h3>
         <div class="space-y-3 text-xs sm:text-sm font-semibold text-emerald-950">
@@ -629,6 +645,11 @@
         <div class="flex flex-wrap items-start justify-between gap-2">
           <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">6 · Finalizar</h2>
           <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-slate-300 bg-white text-sm font-black text-slate-800" data-help-w="6" title="Ajuda">?</button>
+        </div>
+        <div id="nfe-wiz-custo-wrap" class="rounded-xl border-2 border-indigo-200 bg-indigo-50/80 p-3 space-y-2 text-xs font-semibold text-slate-800">
+          <h3 class="text-[11px] font-black uppercase text-indigo-950 tracking-tight">Custo no catálogo (média C+V)</h3>
+          <p id="nfe-wiz-custo-hint" class="text-[11px] font-bold text-indigo-900/90 leading-snug">Carregando prévia…</p>
+          <div id="nfe-wiz-custo-list" class="space-y-2 max-h-[min(42vh,22rem)] overflow-y-auto"></div>
         </div>
         <label class="block max-w-xs"><span class="text-[10px] font-black uppercase text-slate-700">PIN</span>
           <input type="password" id="nfe-wiz-pin" autocomplete="current-password" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-300 px-3 text-lg font-mono tracking-widest bg-white" inputmode="numeric" maxlength="12">
@@ -762,6 +783,10 @@
           <p class="text-xs font-black uppercase text-slate-500">Colunas da grade</p>
           <p><strong>Rateio:</strong> Un/emb = unidades por embalagem na NF (ex.: 10). <strong>Qtd est.</strong> = Qtd NF × Un/emb (editável).</p>
         </div>
+        <div class="border-l-4 border-violet-200 pl-3 space-y-2">
+          <p class="text-xs font-black uppercase text-slate-500">EAN da nota (caixa) × unidade no Agro</p>
+          <p>Quando o XML traz o EAN da <strong>caixa</strong> e o cadastro do Agro usa o da <strong>unidade</strong>, use <strong>Mudar</strong> ou a busca na linha. Ao confirmar o produto certo, o sistema <strong>memoriza o EAN da linha</strong> naquele SKU (overlay + índice Mongo) para o próximo «Ler XML». Opcional: conferir ou editar no cadastro (ERP), campo <strong>EAN na NF (embalagem / caixa)</strong>.</p>
+        </div>
         <div class="border-l-4 border-emerald-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Financeiro (opcional)</p>
           <p>A nota já vai sendo gravada sozinha; na etapa 5 · Financeiro preencha empresa, competência, 1º vencimento, parcelas se houver, forma e banco e use <strong>Salvar + a pagar</strong> só para criar o título. Na tabela de parcelas você pode <strong>editar data e valor</strong> de cada linha; a soma deve fechar com o total da nota. Use <strong>Recalcular</strong> para voltar ao padrão (intervalo + divisão de centavos). Marque <strong>Já quitar</strong> se o pagamento já ocorreu: os títulos saem quitados no Agro; com API de baixa do ERP ativa, tenta registrar a baixa também.</p>
@@ -806,8 +831,10 @@
   const URL_RASC_ACAO = "{% url 'api_entrada_nota_rascunho_acao' %}";
   const URL_CONF_COD = "{% url 'api_entrada_nota_conferir_codigo' %}";
   const URL_APROVAR_WIZ = "{% url 'api_entrada_nota_aprovar_wizard' %}";
+  const URL_PREVIEW_CUSTO = "{% url 'api_entrada_nota_preview_custo' %}";
   const URL_REABRIR_NOTA = "{% url 'api_entrada_nota_reabrir_nota' %}";
   const URL_MARGEM_PROD = "{% url 'api_entrada_nota_produto_margem' %}";
+  const URL_OVERLAY_SALVAR = "{% url 'api_produtos_gestao_overlay_salvar' %}";
   /** Abrir Lançamentos (contas a pagar) com foco no título recém-criado. */
   const URL_LANC_CP = "{% url 'lancamentos_contas_pagar' %}";
   const URL_CAD_PRODUTO_NOVO = "{% url 'produtos_cadastro_erp' %}?novo=1";
@@ -1426,6 +1453,26 @@
   /** Snapshot do `extra` Mongo do rascunho (ex.: pedido vindo da Compras). */
   let entradaNfeExtraUltimo = null;
 
+  function entradaNfeTipoEntradaLe() {
+    const r = document.querySelector('input[name="nfe-tipo-entrada"]:checked');
+    const v = String(r?.value || 'compras').trim().toLowerCase();
+    return v === 'bonificacao' ? 'bonificacao' : 'compras';
+  }
+
+  function entradaNfeBonificacaoAtiva() {
+    return entradaNfeTipoEntradaLe() === 'bonificacao';
+  }
+
+  function entradaNfeAplicarTipoEntradaNaUiFromExtra(ex) {
+    const t = ex && typeof ex === 'object' && String(ex.nfe_tipo_entrada || '').trim().toLowerCase() === 'bonificacao'
+      ? 'bonificacao'
+      : 'compras';
+    const elC = document.getElementById('nfe-tipo-compras');
+    const elB = document.getElementById('nfe-tipo-bonificacao');
+    if (t === 'bonificacao' && elB) elB.checked = true;
+    else if (elC) elC.checked = true;
+  }
+
   function entradaNfeEditorCongeladoAtivo() {
     if (!document.body.classList.contains('entrada-nfe--editor')) return false;
     const ex = entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {};
@@ -1724,14 +1771,17 @@
     }
     entradaNfeProdutosEtapaConfirmada = false;
     entradaNfeCodigosEtapaConfirmada = false;
+    const ex0 = entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? { ...entradaNfeExtraUltimo } : {};
+    delete ex0.entrada_custo_escolhas;
     entradaNfeExtraUltimo = {
-      ...(entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {}),
+      ...ex0,
       wizard_etapa2_confirmada_em: '',
       wizard_etapa3_confirmada_em: '',
     };
     entradaNfeWizardPersistExtraPatchFireForget({
       wizard_etapa2_confirmada_em: '',
       wizard_etapa3_confirmada_em: '',
+      entrada_custo_escolhas: {},
     });
     entradaNfeAtualizarUiBotaoConfirmarProdutos();
     entradaNfeAtualizarUiBotaoConfirmarCodigos();
@@ -1883,6 +1933,9 @@
       return { ok: true, irPara: 4, erro: '' };
     }
     if (s === 5) {
+      if (entradaNfeBonificacaoAtiva()) {
+        return { ok: true, irPara: 5, erro: '' };
+      }
       const finE = document.getElementById('fin-empresa-nome')?.value?.trim() || '';
       const finDc = document.getElementById('fin-dc')?.value || '';
       const finDv = document.getElementById('fin-dv')?.value || '';
@@ -1995,6 +2048,8 @@
         entradaNfeAtualizarRodapeParcelas();
       });
     }
+    const bonB = document.getElementById('nfe-fin-bonif-banner');
+    if (bonB) bonB.classList.toggle('hidden', step !== 5 || !entradaNfeBonificacaoAtiva());
     if (step === 6) {
       entradaNfeRecapRefresh();
       entradaNfeAtualizarUiBotaoWizardFinalizar();
@@ -2040,7 +2095,17 @@
     entradaNfeWizardApplyStepUi(s);
   }
 
-  function entradaNfeRecapRefresh() {
+  function entradaNfeCustoColetarEscolhasDom() {
+    const out = {};
+    document.querySelectorAll('input[name^="nfe-custo-"]:checked').forEach((inp) => {
+      const pid = inp.getAttribute('data-pid');
+      const v = String(inp.value || '').trim().toLowerCase();
+      if (pid && (v === 'media' || v === 'nota')) out[pid] = v;
+    });
+    return out;
+  }
+
+  async function entradaNfeRecapRefresh() {
     const box = document.getElementById('nfe-wiz-recap');
     if (!box) return;
     const nf = document.getElementById('m-nf')?.value?.trim() || '—';
@@ -2055,7 +2120,81 @@
     rows.forEach((tr) => {
       if (tr.querySelector('.in-prod-id')?.value?.trim()) comProd += 1;
     });
-    box.innerHTML = `<p><strong>NF</strong> ${nf}${ser ? ` · série ${ser}` : ''}</p><p><strong>Fornecedor</strong> ${forn}</p><p><strong>Estoque</strong> ${empT || '—'} — ${depT || '—'}</p><p><strong>Linhas com catálogo</strong> ${comProd} / ${rows.length}</p>`;
+    const tipoL = entradaNfeTipoEntradaLe() === 'bonificacao' ? 'Bonificação' : 'Compras';
+    box.innerHTML = `<p><strong>NF</strong> ${nf}${ser ? ` · série ${ser}` : ''}</p><p><strong>Fornecedor</strong> ${forn}</p><p><strong>Tipo</strong> ${tipoL}</p><p><strong>Estoque</strong> ${empT || '—'} — ${depT || '—'}</p><p><strong>Linhas com catálogo</strong> ${comProd} / ${rows.length}</p>`;
+    const hint = document.getElementById('nfe-wiz-custo-hint');
+    const list = document.getElementById('nfe-wiz-custo-list');
+    const rid = entradaNfeRascunhoEditId;
+    if (!hint || !list) return;
+    if (entradaNfeEditorCongeladoAtivo()) {
+      hint.textContent = 'Finalização já registrada — o custo no catálogo foi aplicado ao gravar o PIN.';
+      list.innerHTML = '';
+      return;
+    }
+    if (!rid) {
+      hint.textContent = 'Salve a entrada no Agro (automático após editar) para carregar a prévia de custo.';
+      list.innerHTML = '';
+      return;
+    }
+    hint.textContent = 'Carregando prévia de custo…';
+    list.innerHTML = '';
+    const fmt = (n) => {
+      const x = Number(n);
+      if (!Number.isFinite(x)) return '—';
+      return x.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    };
+    const saved = (entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' && entradaNfeExtraUltimo.entrada_custo_escolhas && typeof entradaNfeExtraUltimo.entrada_custo_escolhas === 'object')
+      ? entradaNfeExtraUltimo.entrada_custo_escolhas
+      : {};
+    try {
+      const r = await fetch(`${URL_PREVIEW_CUSTO}?id=${encodeURIComponent(rid)}`, { credentials: 'same-origin' });
+      const j = await r.json();
+      if (!r.ok || !j.ok || !Array.isArray(j.itens)) {
+        hint.textContent = j.erro || 'Não foi possível carregar a prévia de custo.';
+        return;
+      }
+      const parts = [];
+      j.itens.forEach((it, ix) => {
+        if (!it.ok) {
+          parts.push(`<div class="rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] font-bold text-slate-600">Linha ${ix + 1}: ${String(it.erro || '—')}</div>`);
+          return;
+        }
+        const pid = String(it.produto_id || '').trim();
+        const def = String(it.default_escolha || 'nota').toLowerCase() === 'media' ? 'media' : 'nota';
+        const cur = (saved[pid] === 'media' || saved[pid] === 'nota') ? saved[pid] : def;
+        const n = String(it.nome || pid).slice(0, 80);
+        const badges = [];
+        if (Number(it.saldo_total_pre || 0) < 1) badges.push('<span class="inline-block rounded px-1.5 py-0.5 bg-slate-200 text-[10px] font-black uppercase text-slate-800">Saldo total &lt; 1</span>');
+        if (it.divergencia_maior_15pct) badges.push('<span class="inline-block rounded px-1.5 py-0.5 bg-amber-200 text-[10px] font-black uppercase text-amber-950">Dif. &gt; 15%</span>');
+        const nm = `nfe-custo-${ix}`;
+        parts.push(`<div class="rounded-lg border border-indigo-200 bg-white px-2 py-2 space-y-1.5">
+          <div class="text-[11px] font-black text-slate-900">${ix + 1}. ${n.replace(/</g, '')}</div>
+          <div class="flex flex-wrap gap-1">${badges.join(' ') || '<span class="text-[10px] font-bold text-slate-500">Regra: média se saldo C+V ≥ 1 e dif. ≤ 15%</span>'}</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[10px] font-semibold text-slate-700">
+            <span>Saldo C+V (antes desta NF): ${Number(it.saldo_total_pre || 0).toLocaleString('pt-BR', { maximumFractionDigits: 3 })}</span>
+            <span>Qtd entrada: ${Number(it.qtd_entrada || 0).toLocaleString('pt-BR', { maximumFractionDigits: 4 })}</span>
+            <span>Custo catálogo (antes): ${fmt(it.custo_catalogo_anterior)}</span>
+            <span>Custo unit. NF: ${fmt(it.custo_unitario_nota)}</span>
+            <span class="sm:col-span-2 font-black text-indigo-950">Média ponderada sugerida: ${fmt(it.custo_medio_ponderado)}</span>
+          </div>
+          <div class="flex flex-col gap-2 pt-1 border-t border-slate-100">
+            <span class="text-[10px] font-black uppercase text-slate-600">Gravar no catálogo após PIN</span>
+            <label class="inline-flex items-center gap-2 cursor-pointer min-h-[40px]">
+              <input type="radio" name="${nm}" data-pid="${pid.replace(/"/g, '')}" value="media" class="h-4 w-4 accent-indigo-600 shrink-0" ${cur === 'media' ? 'checked' : ''}>
+              <span class="text-[11px] font-bold">Usar média ponderada (${fmt(it.custo_medio_ponderado)})</span>
+            </label>
+            <label class="inline-flex items-center gap-2 cursor-pointer min-h-[40px]">
+              <input type="radio" name="${nm}" data-pid="${pid.replace(/"/g, '')}" value="nota" class="h-4 w-4 accent-indigo-600 shrink-0" ${cur === 'nota' ? 'checked' : ''}>
+              <span class="text-[11px] font-bold">Usar custo da NF (${fmt(it.custo_unitario_nota)})</span>
+            </label>
+          </div>
+        </div>`);
+      });
+      list.innerHTML = parts.join('');
+      hint.textContent = 'Confira cada item e escolha o custo que irá para o catálogo ao gravar o PIN abaixo.';
+    } catch (_) {
+      hint.textContent = 'Erro de rede ao carregar prévia de custo.';
+    }
   }
 
   /** Linhas da grade NF (somente TR filhos diretos do tbody — compatível com WebView/Electron). */
@@ -2557,6 +2696,12 @@
       btnAprov.setAttribute('aria-busy', 'true');
     }
     const pin = document.getElementById('nfe-wiz-pin')?.value?.trim() || '';
+    try {
+      await entradaNfeWizardPersistExtraPatch({
+        entrada_custo_escolhas: entradaNfeCustoColetarEscolhasDom(),
+        nfe_tipo_entrada: entradaNfeTipoEntradaLe(),
+      });
+    } catch (_) {}
     try {
       const r = await fetch(URL_APROVAR_WIZ, {
         method: 'POST',
@@ -3066,6 +3211,9 @@
     const fin = entradaNfeColetarFinanceiroParaExtra();
     out.financeiro_ui = fin;
     out.financeiro_parcelas_intervalo_dias = fin.financeiro_parcelas_intervalo_dias;
+    const te = entradaNfeTipoEntradaLe();
+    if (te === 'bonificacao') out.nfe_tipo_entrada = 'bonificacao';
+    else out.nfe_tipo_entrada = 'compras';
     return out;
   }
 
@@ -3645,7 +3793,17 @@
       <td class="px-1 py-1"><button type="button" class="btn-del text-red-600 font-black text-lg leading-none px-1" title="Remover">×</button></td>`;
     tr.querySelector('.in-desc').value = d.x_prod;
     tr.querySelector('.in-cprod').value = d.c_prod;
-    tr.querySelector('.in-ean').value = d.ean;
+    const eanInp = tr.querySelector('.in-ean');
+    if (eanInp) eanInp.value = d.ean;
+    const digOrig = entradaNfeCatalogOnlyDigits(d.ean).slice(0, 20);
+    if (digOrig.length >= 8) tr.dataset.nfeEanOrig = digOrig;
+    else delete tr.dataset.nfeEanOrig;
+    if (eanInp) {
+      eanInp.addEventListener('input', () => {
+        const dg = entradaNfeCatalogOnlyDigits(eanInp.value).slice(0, 20);
+        if (dg.length >= 8) tr.dataset.nfeEanOrig = dg;
+      });
+    }
     tr.querySelector('.in-qtd').value = d.q_com;
     tr.querySelector('.in-un-emb').value = d.un_por_embalagem != null ? d.un_por_embalagem : 1;
     const vunPrecisoInicial = entradaNfeParseDecimalApi(d.v_un_com);
@@ -4067,6 +4225,7 @@
     entradaNfeRascunhoAplicandoGrade = true;
     try {
       entradaNfeExtraUltimo = rz.extra && typeof rz.extra === 'object' ? { ...rz.extra } : null;
+      entradaNfeAplicarTipoEntradaNaUiFromExtra(rz.extra || {});
       entradaNfeWizardConferenciaRegistrada = !!(
         rz.extra
         && typeof rz.extra === 'object'
@@ -4258,7 +4417,7 @@
    * Catálogo local + custos (mesma ideia do PDV Wizard: GET `wizard=1&wizard_catalog=1&compras=1`),
    * cache em memória + sessionStorage; filtro no cliente evita um GET por tecla.
    */
-  const ENTRADA_NFE_CATALOG_STORAGE_KEY = 'agro_entrada_nfe_catalog_compras_v2';
+  const ENTRADA_NFE_CATALOG_STORAGE_KEY = 'agro_entrada_nfe_catalog_compras_v3';
   const ENTRADA_NFE_CATALOG_MAX_RESULTS = 24;
   let entradaNfeCatalogProdutos = [];
   let entradaNfeCatalogReady = false;
@@ -4935,9 +5094,67 @@
     });
   }
 
+  /**
+   * Grava no Agro o EAN lido na linha da NF (embalagem) quando difere do código de barras
+   * unitário do produto — usado após «Mudar» / busca para o próximo «Ler XML» casar sozinho.
+   */
+  async function entradaNfeLembrarEanEmbalagemAposPick(p, eanNfLinha, pidAnterior) {
+    try {
+      const pid = String(p && p.id != null ? p.id : '').trim();
+      if (!pid || pid.toLowerCase().startsWith('local:')) return;
+      const eanNf = entradaNfeCatalogOnlyDigits(String(eanNfLinha || '')).slice(0, 20);
+      if (eanNf.length < 8 || eanNf.length > 20) return;
+      const eanCat = entradaNfeCatalogOnlyDigits(String(p.codigo_barras || '')).slice(0, 20);
+      if (eanNf === eanCat) return;
+      const tok = getCookie('csrftoken');
+      if (!tok) return;
+      const oldId = String(pidAnterior || '').trim();
+      const body = { produto_id: pid, ean_embalagem_nf: eanNf };
+      if (oldId && oldId !== pid && !oldId.toLowerCase().startsWith('local:')) {
+        body.ean_embalagem_nf_desvincular_de = oldId;
+      }
+      const r = await fetch(URL_OVERLAY_SALVAR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) return;
+      try {
+        const arr = entradaNfeCatalogProdutos;
+        if (Array.isArray(arr)) {
+          for (let i = 0; i < arr.length; i += 1) {
+            const row = arr[i];
+            if (!row || String(row.id).trim() !== pid) continue;
+            if (!Array.isArray(row.index_codigos)) row.index_codigos = [];
+            if (row.index_codigos.indexOf(eanNf) === -1) row.index_codigos.push(eanNf);
+            break;
+          }
+          if (oldId && oldId !== pid) {
+            for (let i = 0; i < arr.length; i += 1) {
+              const row = arr[i];
+              if (!row || String(row.id).trim() !== oldId) continue;
+              if (Array.isArray(row.index_codigos)) {
+                const ix = row.index_codigos.indexOf(eanNf);
+                if (ix !== -1) row.index_codigos.splice(ix, 1);
+              }
+              break;
+            }
+          }
+        }
+        entradaNfeCatalogRebuildEanIndex();
+      } catch (_) {}
+    } catch (_) {}
+  }
+
   /** via: 'scan' = Enter/bip em EAN·código na linha já expandida (confere OK); 'lookup' = busca na linha sentinela (fica pendente); 'modal' = escolha no popup. */
   function entradaNfeAplicarProdutoNaLinha(tr, p, via) {
     if (!tr || !p) return;
+    const eanNfLinha =
+      entradaNfeCatalogOnlyDigits(tr.dataset.nfeEanOrig || '').slice(0, 20) ||
+      entradaNfeCatalogOnlyDigits(tr.querySelector('.in-ean')?.value || '').slice(0, 20);
+    const pidAnterior = String(tr.querySelector('.in-prod-id')?.value || '').trim();
     if (tr.dataset.nfeLinhaModo === 'compact') {
       entradaNfeLinhaMontarDetalhe(tr, { ...ENTRADA_NFE_LINHA_PADRAO });
     }
@@ -4988,6 +5205,7 @@
     });
     entradaNfeAgendarAutosaveRascunho();
     entradaNfeProdutosEtapaInvalidate();
+    void entradaNfeLembrarEanEmbalagemAposPick(p, eanNfLinha, pidAnterior);
   }
 
   let modProdHlIdx = -1;
@@ -6058,6 +6276,13 @@
         pm.addEventListener('change', entradaNfeStep1DirtyGuard, true);
         pm.addEventListener('click', (e) => {
           if (e.target && e.target.closest && e.target.closest('.btn-plano-rapido')) entradaNfeFornecedorEtapaInvalidate();
+        }, true);
+        pm.addEventListener('change', (e) => {
+          const t = e.target;
+          if (t && t.name === 'nfe-tipo-entrada') {
+            entradaNfeWizardPersistExtraPatchFireForget({ nfe_tipo_entrada: entradaNfeTipoEntradaLe() });
+            entradaNfeFornecedorEtapaInvalidate();
+          }
         }, true);
       }
     } catch (_) {}

@@ -18,6 +18,11 @@ logger = logging.getLogger(__name__)
 INDEX_CODIGOS_CAMPO = "index_codigos"
 AGRO_INDEX_AT_CAMPO = "AgroIndexCodigosAt"
 
+# EAN da embalagem/caixa que vem na NF (unitário no Agro com outro código de barras).
+_CAD_EXTRAS_EAN_EMBALAGEM_KEYS = ("entrada_nfe_ean_embalagem", "ean_embalagem_nf")
+_MIN_EAN_EMBALAGEM_NF = 8
+_MAX_EAN_EMBALAGEM_NF = 20
+
 _MAX_VALORES = 450
 _MAX_LEN_STR = 96
 
@@ -250,6 +255,30 @@ def projection_documento_para_rebuild_index() -> dict:
     return {k: 1 for k in chaves}
 
 
+def _eans_embalagem_nf_de_cadastro_extras(cadastro_extras: dict | None) -> list[str]:
+    """Códigos extras só-dígitos (EAN da caixa / nota) gravados no overlay ``cadastro_extras``."""
+    if not isinstance(cadastro_extras, dict):
+        return []
+    raw: Any = None
+    for k in _CAD_EXTRAS_EAN_EMBALAGEM_KEYS:
+        if k in cadastro_extras:
+            raw = cadastro_extras.get(k)
+            break
+    if raw is None:
+        return []
+    partes: list[str]
+    if isinstance(raw, list):
+        partes = [str(x) for x in raw]
+    else:
+        partes = [str(raw)]
+    out: list[str] = []
+    for s in partes:
+        d = "".join(ch for ch in s if ch.isdigit())
+        if _MIN_EAN_EMBALAGEM_NF <= len(d) <= _MAX_EAN_EMBALAGEM_NF:
+            out.append(d)
+    return out
+
+
 def coletar_extras_agro_para_busca(produto_externo_id: str) -> list[str]:
     """
     Códigos cadastrados no Agro que entram no mesmo ``index_codigos`` do ERP:
@@ -263,7 +292,7 @@ def coletar_extras_agro_para_busca(produto_externo_id: str) -> list[str]:
     out: list[str] = []
     ov = (
         ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64])
-        .only("codigo_barras", "codigo_nfe")
+        .only("codigo_barras", "codigo_nfe", "cadastro_extras")
         .first()
     )
     if ov:
@@ -271,6 +300,7 @@ def coletar_extras_agro_para_busca(produto_externo_id: str) -> list[str]:
             s = (z or "").strip()
             if s:
                 out.append(s)
+        out.extend(_eans_embalagem_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
     for row in ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=pid[:64]).only(
         "codigo_barras",
         "codigo_fornecedor",
@@ -294,6 +324,7 @@ def mapa_extras_agro_por_produto_externo_id() -> dict[str, list[str]]:
         "produto_externo_id",
         "codigo_barras",
         "codigo_nfe",
+        "cadastro_extras",
     ).iterator(chunk_size=2000):
         pid = str(ov.produto_externo_id or "").strip()
         if not pid:
@@ -302,6 +333,8 @@ def mapa_extras_agro_por_produto_externo_id() -> dict[str, list[str]]:
             s = (z or "").strip()
             if s:
                 out[pid].append(s)
+        for d in _eans_embalagem_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
+            out[pid].append(d)
     for row in ProdutoMarcaVariacaoAgro.objects.all().only(
         "produto_externo_id",
         "codigo_barras",

@@ -426,6 +426,11 @@ urlpatterns = [
         name='api_entrada_nota_conferir_codigo',
     ),
     path(
+        'api/entrada-nota/preview-custo/',
+        views.api_entrada_nota_preview_custo,
+        name='api_entrada_nota_preview_custo',
+    ),
+    path(
         'api/entrada-nota/aprovar-wizard/',
         views.api_entrada_nota_aprovar_wizard,
         name='api_entrada_nota_aprovar_wizard',

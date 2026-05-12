@@ -2,6 +2,7 @@ import copy
 import csv
 import os
 import secrets
+from typing import Any
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
 import json
@@ -139,6 +140,7 @@ from .mongo_financeiro_util import (
     lancamentos_sugestoes_campo,
     listar_formas_e_bancos_distintos,
     registrar_titulo_juros_apos_baixa_contas_pagar,
+    registrar_titulo_impostos_taxas_variaveis_apos_baixa_contas_pagar,
     montar_payload_erp_baixa,
     montar_payload_erp_lancamentos_novos,
     candidatos_texto_plano_para_api_pedido,
@@ -1563,6 +1565,16 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             ex["lote"] = l
         else:
             ex.pop("lote", None)
+    desvincular_ean_de_pid = str(payload.get("ean_embalagem_nf_desvincular_de") or "").strip()[:64]
+    dig_ean_embalagem_payload: str | None = None
+    if "ean_embalagem_nf" in payload:
+        raw_nf = str(payload.get("ean_embalagem_nf") or "").strip()
+        dig_nf = "".join(ch for ch in raw_nf if ch.isdigit())
+        if len(dig_nf) >= 8 and len(dig_nf) <= 20:
+            ex["entrada_nfe_ean_embalagem"] = dig_nf
+            dig_ean_embalagem_payload = dig_nf
+        elif not raw_nf:
+            ex.pop("entrada_nfe_ean_embalagem", None)
     ov.cadastro_extras = ex
 
     if db is not None and client is not None and somente_agro_overlay and isinstance(ex.get("fiscal"), dict):
@@ -1659,6 +1671,32 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             aplicar_index_codigos_no_mongo(db, client.col_p, doc, produto_externo_id=pid)
         except Exception:
             logger.warning("api_produtos_gestao_overlay_salvar: index_codigos", exc_info=True)
+    if (
+        dig_ean_embalagem_payload
+        and desvincular_ean_de_pid
+        and desvincular_ean_de_pid != pid[:64]
+        and not desvincular_ean_de_pid.lower().startswith("local:")
+    ):
+        try:
+            ov_old = ProdutoGestaoOverlayAgro.objects.filter(
+                produto_externo_id=desvincular_ean_de_pid[:64]
+            ).first()
+            if ov_old:
+                ex_o = dict(ov_old.cadastro_extras) if isinstance(ov_old.cadastro_extras, dict) else {}
+                if str(ex_o.get("entrada_nfe_ean_embalagem") or "").strip() == dig_ean_embalagem_payload:
+                    ex_o.pop("entrada_nfe_ean_embalagem", None)
+                    ov_old.cadastro_extras = ex_o
+                    ov_old.save(update_fields=["cadastro_extras", "atualizado_em"])
+            doc_old = _produto_mongo_por_id_externo(db, client, desvincular_ean_de_pid)
+            if isinstance(doc_old, dict) and doc_old.get("_id"):
+                aplicar_index_codigos_no_mongo(
+                    db, client.col_p, doc_old, produto_externo_id=desvincular_ean_de_pid
+                )
+        except Exception:
+            logger.warning(
+                "api_produtos_gestao_overlay_salvar: desvincular ean embalagem NF",
+                exc_info=True,
+            )
     saldos = _mapa_saldos_finais_por_produtos(db, client, [pid])
     row = _linha_gestao_produto_json(doc, saldos, ov)
     p_live: dict | None = doc if isinstance(doc, dict) and doc.get("_id") else p_doc
@@ -6437,7 +6475,25 @@ def api_entrada_nota_aprovar_wizard(request):
     except Exception as exc:
         logger.exception("api_entrada_nota_aprovar_wizard")
         return JsonResponse({"ok": False, "erro": str(exc)[:500]}, status=500)
-    return JsonResponse({"ok": True, "id": oid})
+    client, db2 = obter_conexao_mongo()
+    custo_out: dict[str, Any] = {"ok": False, "atualizados": 0, "erros": []}
+    if db2 is not None and client is not None:
+        try:
+            cab_ap = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+            linhas_ap = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
+            ex_ap = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+            custo_out = _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
+                db=db2,
+                client_m=client,
+                linhas=linhas_ap,
+                cab=cab_ap,
+                extra=ex_ap,
+                user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+            )
+        except Exception as exc:
+            logger.exception("api_entrada_nota_aprovar_wizard custo catalogo")
+            custo_out = {"ok": False, "atualizados": 0, "erros": [{"erro": str(exc)[:300]}]}
+    return JsonResponse({"ok": True, "id": oid, "custo_catalogo": custo_out})
 
 
 @login_required(login_url="/admin/login/")
@@ -6500,6 +6556,238 @@ def _entrada_nota_q_grade_linha(ln: dict) -> Decimal:
     if emb <= 0:
         emb = Decimal("1")
     return qc * emb
+
+
+def _entrada_nfe_decimal_v_un(ln: dict) -> Decimal:
+    if not isinstance(ln, dict):
+        return Decimal("0")
+    try:
+        return Decimal(str(ln.get("v_un_com") or "0").replace(",", ".").strip() or "0").quantize(
+            Decimal("0.000001")
+        )
+    except Exception:
+        return Decimal("0")
+
+
+def _entrada_nfe_tipo_entrada(extra: dict | None) -> str:
+    t = str((extra or {}).get("nfe_tipo_entrada") or "compras").strip().lower()
+    return "bonificacao" if t == "bonificacao" else "compras"
+
+
+def _entrada_nfe_estoque_agro_ja_aplicado(extra: dict | None) -> bool:
+    ex = extra or {}
+    if ex.get("estoque_agro_registrado_em"):
+        return True
+    raw = ex.get("estoque_agro_ajuste_ids")
+    return isinstance(raw, list) and len(raw) > 0
+
+
+def _entrada_nfe_preview_custo_linha(
+    *,
+    db,
+    client_m,
+    ln: dict,
+    cab: dict,
+    extra: dict | None,
+    linha_ix: int,
+) -> dict[str, Any]:
+    """Pré-cálculo de custo (média C+V vs NF) para uma linha da entrada NF-e."""
+    pid = str(ln.get("produto_id") or "").strip()
+    if not pid or pid.lower().startswith("local:"):
+        return {
+            "linha_ix": linha_ix,
+            "produto_id": pid,
+            "ok": False,
+            "erro": "Sem produto de catálogo.",
+        }
+    tipo = _entrada_nfe_tipo_entrada(extra)
+    dep_n = str(cab.get("deposito_entrada") or "centro").strip().lower()
+    if dep_n not in ("centro", "vila"):
+        dep_n = "centro"
+    q_in = _entrada_nota_q_grade_linha(ln)
+    if q_in <= 0:
+        return {
+            "linha_ix": linha_ix,
+            "produto_id": pid,
+            "ok": False,
+            "erro": "Quantidade a estocar zero.",
+        }
+    custo_nota = Decimal("0") if tipo == "bonificacao" else _entrada_nfe_decimal_v_un(ln)
+    custo_nota = custo_nota.quantize(Decimal("0.01"))
+
+    saldo_erp_c = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "centro")
+    saldo_erp_v = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "vila")
+    sc = _saldo_final_agro_com_pin(pid, "centro", saldo_erp_c)
+    sv = _saldo_final_agro_com_pin(pid, "vila", saldo_erp_v)
+    if _entrada_nfe_estoque_agro_ja_aplicado(extra):
+        if dep_n == "centro":
+            sc = sc - q_in
+        else:
+            sv = sv - q_in
+        if sc < 0:
+            sc = Decimal("0")
+        if sv < 0:
+            sv = Decimal("0")
+    s_tot = (sc + sv).quantize(Decimal("0.001"))
+    doc = _produto_mongo_por_id_externo(db, client_m, pid) or {}
+    nome = str(doc.get("Nome") or ln.get("x_prod") or "")[:200]
+    custo_prev = doc.get("PrecoCusto")
+    if custo_prev is None:
+        custo_prev = doc.get("ValorCusto")
+    try:
+        c_prev = Decimal(str(float(custo_prev or 0))).quantize(Decimal("0.01"))
+    except Exception:
+        c_prev = Decimal("0")
+
+    diverge_15 = False
+    if custo_nota > 0 and c_prev > 0:
+        try:
+            diverge_15 = abs(c_prev - custo_nota) / custo_nota > Decimal("0.15")
+        except Exception:
+            diverge_15 = False
+
+    pode_media = s_tot >= Decimal("1")
+
+    media_teoria = custo_nota
+    if s_tot >= Decimal("1"):
+        den = s_tot + q_in
+        if den > 0:
+            media_teoria = ((s_tot * c_prev) + (q_in * custo_nota)) / den
+    media_teoria = media_teoria.quantize(Decimal("0.01"))
+
+    if not pode_media or diverge_15:
+        default_escolha = "nota"
+        c_media = custo_nota.quantize(Decimal("0.01"))
+    else:
+        default_escolha = "media"
+        c_media = media_teoria
+
+    return {
+        "linha_ix": linha_ix,
+        "produto_id": pid,
+        "nome": nome,
+        "ok": True,
+        "tipo_entrada": tipo,
+        "saldo_centro": float(sc),
+        "saldo_vila": float(sv),
+        "saldo_total_pre": float(s_tot),
+        "qtd_entrada": float(q_in),
+        "custo_catalogo_anterior": float(c_prev),
+        "custo_unitario_nota": float(custo_nota),
+        "custo_medio_ponderado": float(media_teoria),
+        "custo_medio_aplicado_padrao": float(c_media),
+        "divergencia_maior_15pct": diverge_15,
+        "default_escolha": default_escolha,
+    }
+
+
+def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
+    *,
+    db,
+    client_m,
+    linhas: list,
+    cab: dict | None,
+    extra: dict | None,
+    user_pk: int | None,
+) -> dict[str, Any]:
+    """Após PIN na etapa 6: grava custo no espelho Mongo conforme escolhas (média vs NF)."""
+    out: dict[str, Any] = {"ok": True, "atualizados": 0, "erros": []}
+    if db is None or client_m is None or not linhas:
+        return out
+    ex = extra if isinstance(extra, dict) else {}
+    cab_d = cab if isinstance(cab, dict) else {}
+    esc_raw = ex.get("entrada_custo_escolhas")
+    escolhas: dict[str, str] = {}
+    if isinstance(esc_raw, dict):
+        for k, v in esc_raw.items():
+            ks = str(k or "").strip()
+            vs = str(v or "").strip().lower()
+            if ks and vs in ("media", "nota"):
+                escolhas[ks] = vs
+    col = client_m.col_p
+    ids_erp: list[str] = []
+    for ix, ln in enumerate(linhas):
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            continue
+        prev = _entrada_nfe_preview_custo_linha(
+            db=db,
+            client_m=client_m,
+            ln=ln,
+            cab=cab_d,
+            extra=ex,
+            linha_ix=ix,
+        )
+        if not prev.get("ok"):
+            continue
+        modo = escolhas.get(pid) or prev.get("default_escolha") or "nota"
+        if modo == "media" and (
+            Decimal(str(prev.get("saldo_total_pre") or 0)) < Decimal("1")
+            or prev.get("divergencia_maior_15pct")
+        ):
+            modo = "nota"
+        if modo == "media":
+            val = Decimal(str(prev.get("custo_medio_ponderado") or 0)).quantize(Decimal("0.01"))
+        else:
+            val = Decimal(str(prev.get("custo_unitario_nota") or 0)).quantize(Decimal("0.01"))
+        tipo = _entrada_nfe_tipo_entrada(ex)
+        if tipo == "bonificacao" and modo == "nota":
+            val = Decimal("0").quantize(Decimal("0.01"))
+        try:
+            doc_ln = _produto_mongo_por_id_externo(db, client_m, pid)
+            id_u = pid
+            if isinstance(doc_ln, dict):
+                id_u = str(doc_ln.get("Id") or "").strip() or str(doc_ln.get("_id") or "").strip() or pid
+            filt_u = _mongo_filtro_id_produto_externo(id_u)
+            vf = float(val)
+            r = db[col].update_one(filt_u, {"$set": {"PrecoCusto": vf, "ValorCusto": vf}})
+            if r.matched_count:
+                out["atualizados"] += 1
+                pid_erp = str((doc_ln or {}).get("Id") or "").strip() or str(id_u).strip()
+                if pid_erp:
+                    ids_erp.append(pid_erp[:64])
+        except Exception as exc:
+            out["erros"].append({"produto_id": pid, "erro": str(exc)[:300]})
+            logger.warning("entrada_nfe aplicar custo %s: %s", pid, exc)
+    uid = int(user_pk or 0)
+    if uid and ids_erp:
+        _erp_produto_pendentes_extend_batch(uid, sorted(set(ids_erp)))
+    if out["atualizados"]:
+        cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+        cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
+    return out
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_entrada_nota_preview_custo(request):
+    """Prévia de custo (média C+V vs NF) para etapa 6 — requer rascunho salvo com linhas."""
+    rid = str(request.GET.get("id") or request.GET.get("rascunho_id") or "").strip()
+    if not rid:
+        return JsonResponse({"ok": False, "erro": "Informe id do rascunho."}, status=400)
+    try:
+        _oid = ObjectId(rid)
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "ID inválido."}, status=400)
+    client, db = obter_conexao_mongo()
+    if db is None or client is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    doc = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _oid})
+    if not doc:
+        return JsonResponse({"ok": False, "erro": "Rascunho não encontrado."}, status=404)
+    cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+    linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
+    extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    itens = []
+    for ix, ln in enumerate(linhas):
+        if not isinstance(ln, dict):
+            continue
+        itens.append(
+            _entrada_nfe_preview_custo_linha(db=db, client_m=client, ln=ln, cab=cab, extra=extra, linha_ix=ix)
+        )
+    return JsonResponse({"ok": True, "itens": itens, "tipo_entrada": _entrada_nfe_tipo_entrada(extra)})
 
 
 @login_required(login_url="/admin/login/")
@@ -6573,6 +6861,14 @@ def api_entrada_nota_financeiro(request):
                 },
                 status=409,
             )
+        if _entrada_nfe_tipo_entrada(ex_nf) == "bonificacao":
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Entrada tipo Bonificação não gera contas a pagar. Pule a etapa 5 ou limpe o financeiro.",
+                },
+                status=400,
+            )
         r_rasc = atualizar_rascunho_entrada(
             db,
             rid_up,
@@ -6584,6 +6880,14 @@ def api_entrada_nota_financeiro(request):
             extra=extra,
         )
     else:
+        if _entrada_nfe_tipo_entrada(extra) == "bonificacao":
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Entrada tipo Bonificação não gera contas a pagar.",
+                },
+                status=400,
+            )
         r_rasc = salvar_rascunho_entrada(
             db,
             usuario=usuario,
@@ -7572,6 +7876,16 @@ def api_lancamentos_baixa(request):
         if valor_juros_dec <= 0:
             valor_juros_dec = None
 
+    valor_impostos_dec: Decimal | None = None
+    vi_raw = payload.get("valor_impostos_taxas")
+    if vi_raw is not None and str(vi_raw).strip() != "":
+        try:
+            valor_impostos_dec = Decimal(str(vi_raw).replace(",", ".").strip()).quantize(Decimal("0.01"))
+        except Exception:
+            return JsonResponse({"ok": False, "erro": "Valor de impostos/taxas inválido."}, status=400)
+        if valor_impostos_dec <= 0:
+            valor_impostos_dec = None
+
     tz = timezone.get_current_timezone()
     data_movimento = timezone.make_aware(datetime.combine(dmov, dtime(12, 0, 0)), tz)
 
@@ -7638,6 +7952,25 @@ def api_lancamentos_baixa(request):
         else:
             aviso_juros = str(rj.get("erro") or "Não foi possível registrar o título de juros.")[:800]
 
+    aviso_impostos = None
+    impostos_id = None
+    if despesa and valor_impostos_dec and valor_impostos_dec > 0 and atual:
+        ri = registrar_titulo_impostos_taxas_variaveis_apos_baixa_contas_pagar(
+            db,
+            mongo_id_titulo_referencia=str(atual[0]),
+            valor_impostos=valor_impostos_dec,
+            data_movimento=dmov,
+            forma_nome=forma_nome,
+            forma_id=str(forma_id).strip() if forma_id else None,
+            banco_nome=banco_nome,
+            banco_id=str(banco_id).strip() if banco_id else None,
+            usuario_label=usuario,
+        )
+        if ri.get("ok"):
+            impostos_id = ri.get("id")
+        else:
+            aviso_impostos = str(ri.get("erro") or "Não foi possível registrar o título de impostos/taxas.")[:800]
+
     if ok_all:
         http_st = 200
     elif atual:
@@ -7657,6 +7990,10 @@ def api_lancamentos_baixa(request):
         out_j["juros_id"] = juros_id
     if aviso_juros:
         out_j["aviso_juros"] = aviso_juros
+    if impostos_id:
+        out_j["impostos_id"] = impostos_id
+    if aviso_impostos:
+        out_j["aviso_impostos"] = aviso_impostos
     return JsonResponse(out_j, status=http_st)
 
 
@@ -8867,6 +9204,69 @@ def motor_de_busca_agro(
                 adicionar(find_prod({**base_filter, "$or": or_br}, max(limit, 16)))
             except Exception:
                 logger.warning("motor_de_busca_agro: fallback barras legado", exc_info=True)
+
+        # 1c) Código misto (ex.: GM0022-10): campos raiz — cobre espelho sem ``index_codigos`` atualizado
+        if any(ch.isalpha() for ch in termo_limpo) and any(ch.isdigit() for ch in termo_limpo):
+            or_mix: list[dict] = []
+            esc0 = re.escape(termo_original.strip())
+            if esc0:
+                rx_lit = re.compile(rf"^{esc0}$", re.IGNORECASE)
+                or_mix.extend(
+                    [
+                        {"CodigoNFe": {"$regex": rx_lit}},
+                        {"Codigo": {"$regex": rx_lit}},
+                        {"CodigoInterno": {"$regex": rx_lit}},
+                    ]
+                )
+            tl_norm = termo_limpo.lower()
+            or_mix.extend(
+                [
+                    {
+                        "$expr": {
+                            "$eq": [
+                                {
+                                    "$replaceAll": {
+                                        "input": {
+                                            "$replaceAll": {
+                                                "input": {"$toLower": {"$ifNull": ["$CodigoNFe", ""]}},
+                                                "find": " ",
+                                                "replacement": "",
+                                            }
+                                        },
+                                        "find": "-",
+                                        "replacement": "",
+                                    }
+                                },
+                                tl_norm,
+                            ]
+                        }
+                    },
+                    {
+                        "$expr": {
+                            "$eq": [
+                                {
+                                    "$replaceAll": {
+                                        "input": {
+                                            "$replaceAll": {
+                                                "input": {"$toLower": {"$ifNull": ["$Codigo", ""]}},
+                                                "find": " ",
+                                                "replacement": "",
+                                            }
+                                        },
+                                        "find": "-",
+                                        "replacement": "",
+                                    }
+                                },
+                                tl_norm,
+                            ]
+                        }
+                    },
+                ]
+            )
+            try:
+                adicionar(find_prod({**base_filter, "$or": or_mix}, max(limit, 14)))
+            except Exception:
+                logger.warning("motor_de_busca_agro: fallback codigo raiz misto", exc_info=True)
 
     # 2) Busca por palavras com expansão
     condicoes_and = []

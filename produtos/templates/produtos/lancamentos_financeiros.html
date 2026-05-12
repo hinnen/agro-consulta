@@ -243,9 +243,19 @@
       <button type="button" id="btn-open-modal-ferramentas" class="flex-none shrink-0 min-h-[44px] min-w-[4.75rem] px-2.5 sm:px-3 py-2 rounded-xl border border-emerald-600 bg-emerald-600 text-white font-black text-[10px] sm:text-[11px] uppercase hover:bg-emerald-700 transition-colors text-center" title="CSV, Excel, PDF, WhatsApp, favoritos">Exportar</button>
     </section>
 
+    {% if modo_contas == 'pagar' %}
+    <div id="sel-imp-global-wrap" class="rounded-xl border border-emerald-300/80 bg-emerald-50/70 px-3 py-2 flex flex-wrap items-center gap-2 text-[11px] font-bold text-emerald-950" role="region" aria-label="Impostos e taxas fora da nota fiscal">
+      <label for="sel-imp-extra" class="shrink-0">Impostos/taxas fora da NF (R$)</label>
+      <input type="text" id="sel-imp-extra" inputmode="decimal" placeholder="0,00" autocomplete="off" class="w-28 min-h-[40px] rounded-lg border-2 border-emerald-300 bg-white px-2 py-1.5 text-sm font-black tabular-nums" title="Soma no total (WhatsApp/boletos) e, na baixa total, gera título quitado no plano Impostos e Taxas variaveis.">
+      <span id="sel-total-imp-hint" class="hidden text-[10px] font-semibold text-emerald-800/90">Total c/ imp.: <span id="sel-total-com-imp" class="tabular-nums font-black">R$ 0,00</span></span>
+    </div>
+    {% endif %}
+
     <div id="sel-bar" class="hidden rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
-      <div class="text-sm font-black text-emerald-950">
-        <span id="sel-count">0</span> selecionado(s) · Soma saldo: <span id="sel-soma" class="tabular-nums text-lg">R$ 0,00</span>
+      <div class="min-w-0 flex-1 space-y-1">
+        <div class="text-sm font-black text-emerald-950">
+          <span id="sel-count">0</span> selecionado(s) · Soma saldo: <span id="sel-soma" class="tabular-nums text-lg">R$ 0,00</span>
+        </div>
       </div>
       <div class="flex flex-wrap gap-2">
         <button type="button" id="btn-sel-clear" class="px-3 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-900 font-black text-[10px] uppercase">Limpar seleção</button>
@@ -616,6 +626,11 @@
         <span class="text-[10px] font-black uppercase text-slate-500">Juros nesta quitação (opcional)</span>
         <p class="text-[10px] text-slate-500 leading-relaxed">Valor em R$ gera um título a pagar no plano <strong>Juros de Emprestimos</strong>, quitado na mesma data, forma e conta abaixo (usa empresa e favorecido do primeiro título selecionado).</p>
         <input type="text" id="bx-juros" placeholder="0,00" class="w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold tabular-nums">
+      </div>
+      <div id="bx-impostos-wrap" class="space-y-2 hidden">
+        <span class="text-[10px] font-black uppercase text-slate-500">Impostos/taxas fora da NF (opcional)</span>
+        <p class="text-[10px] text-slate-500 leading-relaxed">Valor em R$ gera um título a pagar no plano <strong>Impostos e Taxas variaveis</strong>, quitado na mesma data, forma e conta (usa empresa e favorecido do primeiro título selecionado). Preencha também na barra de seleção para somar no WhatsApp.</p>
+        <input type="text" id="bx-impostos" placeholder="0,00" class="w-full max-w-xs rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold tabular-nums">
       </div>
       <div class="flex flex-wrap gap-2 justify-end pt-2">
         <button type="button" id="bx-cancel" class="px-4 py-2.5 rounded-xl border-2 border-slate-200 font-black text-xs uppercase text-slate-600">Cancelar</button>
@@ -1331,14 +1346,30 @@
       selecionados.forEach((v) => { soma += v; });
       const bar = document.getElementById('sel-bar');
       const n = selecionados.size;
+      const impEl = document.getElementById('sel-imp-extra');
+      const hint = document.getElementById('sel-total-imp-hint');
+      const totImp = document.getElementById('sel-total-com-imp');
       if (n === 0) {
         bar.classList.add('hidden');
+        if (hint) hint.classList.add('hidden');
         refreshBaixaParcialBtn();
         return;
       }
       bar.classList.remove('hidden');
       document.getElementById('sel-count').textContent = String(n);
       document.getElementById('sel-soma').textContent = brl(soma);
+      if (impEl && hint && totImp && tipoAtual === 'pagar') {
+        const imp = parseValorPt(impEl.value || '');
+        const extra = !Number.isNaN(imp) && imp > 0 ? imp : 0;
+        if (extra > 0) {
+          hint.classList.remove('hidden');
+          totImp.textContent = brl(soma + extra);
+        } else {
+          hint.classList.add('hidden');
+        }
+      } else if (hint) {
+        hint.classList.add('hidden');
+      }
       refreshBaixaParcialBtn();
     }
 
@@ -1508,18 +1539,27 @@
       return String(s || '').replace(/\D/g, '').slice(0, 54);
     }
 
-    function agroFinMontarTextoWhatsBoletos(rows) {
+    function agroFinMontarTextoWhatsBoletos(rows, extraImpostos) {
       const lines = [];
       let n = 0;
+      let somaTitulos = 0;
       (rows || []).forEach((r) => {
         const cod = agroFinSomenteDigitosBoleto(r && r.boleto_codigo_barras);
         if (!cod) return;
         n += 1;
+        const rest = Number(r && r.restante);
+        somaTitulos += Number.isFinite(rest) ? rest : 0;
         lines.push(`*${n}* ${r.cliente || '—'} · Venc. ${fmtData(r.data_vencimento)} · ${brl(r.restante)}`);
         lines.push(cod);
         lines.push('');
       });
-      return lines.join('\n').trim();
+      let out = lines.join('\n').trim();
+      const imp = Number(extraImpostos);
+      if (n > 0 && Number.isFinite(imp) && imp > 0) {
+        out += `\n\n——————————\nImpostos/taxas (fora NF · plano Impostos e Taxas variaveis): ${fmtValorNumBR(imp)}`;
+        out += `\n*Total títulos + impostos:* *${fmtValorNumBR(somaTitulos + imp)}*`;
+      }
+      return out;
     }
 
     async function agroFinAbrirWhatsComTexto(txt) {
@@ -1648,6 +1688,10 @@
       if (!t) return NaN;
       return parseFloat(t.replace(/\./g, '').replace(',', '.'));
     }
+
+    document.getElementById('sel-imp-extra')?.addEventListener('input', () => {
+      refreshSelBar();
+    });
 
     async function carregarPlanos() {
       const cont = document.getElementById('plano-chks');
@@ -2308,14 +2352,28 @@
       if (sem > 0) {
         mostrarToastWhats(`${sem} título(s) sem código — a mensagem leva só os que têm boleto.`);
       }
-      const txt = agroFinMontarTextoWhatsBoletos(com);
+      const rawImp = (document.getElementById('sel-imp-extra')?.value || '').trim();
+      const extraIm = rawImp ? parseValorPt(rawImp) : NaN;
+      const extraN = !Number.isNaN(extraIm) && extraIm > 0 ? extraIm : 0;
+      const txt = agroFinMontarTextoWhatsBoletos(com, extraN);
       await agroFinAbrirWhatsComTexto(txt);
     });
 
     document.getElementById('btn-baixa').addEventListener('click', () => {
       if (selecionados.size === 0) return;
-      document.getElementById('modal-baixa-resumo').textContent =
-        `${selecionados.size} título(s) · Total saldo ${brl(Array.from(selecionados.values()).reduce((a, b) => a + b, 0))} · ${tipoAtual === 'pagar' ? 'Contas a pagar' : 'Contas a receber'}`;
+      const totalTitulos = Array.from(selecionados.values()).reduce((a, b) => a + b, 0);
+      let resumo = `${selecionados.size} título(s) · Total saldo ${brl(totalTitulos)}`;
+      if (tipoAtual === 'pagar') {
+        const rawI = (document.getElementById('sel-imp-extra')?.value || '').trim();
+        if (rawI) {
+          const vi = parseValorPt(rawI);
+          if (!Number.isNaN(vi) && vi > 0) {
+            resumo += ` · Impostos/taxas extra ${brl(vi)} · Total geral ${brl(totalTitulos + vi)}`;
+          }
+        }
+      }
+      resumo += ` · ${tipoAtual === 'pagar' ? 'Contas a pagar' : 'Contas a receber'}`;
+      document.getElementById('modal-baixa-resumo').textContent = resumo;
       document.getElementById('bx-data').value = hojeISO();
       document.getElementById('bx-forma-sel').selectedIndex = 0;
       document.getElementById('bx-banco-sel').selectedIndex = 0;
@@ -2323,6 +2381,13 @@
       const ji = document.getElementById('bx-juros');
       if (jw) jw.classList.toggle('hidden', tipoAtual !== 'pagar');
       if (ji) ji.value = '';
+      const iw = document.getElementById('bx-impostos-wrap');
+      const ii = document.getElementById('bx-impostos');
+      if (iw) iw.classList.toggle('hidden', tipoAtual !== 'pagar');
+      if (ii) {
+        const sy = document.getElementById('sel-imp-extra');
+        ii.value = (sy && sy.value) ? String(sy.value).trim() : '';
+      }
       carregarOpcoesBaixa();
       document.getElementById('modal-baixa').classList.remove('hidden');
     });
@@ -2367,6 +2432,11 @@
           const jn = parseValorPt(jt);
           if (!Number.isNaN(jn) && jn > 0) body.valor_juros = jn.toFixed(2);
         }
+        const it = (document.getElementById('bx-impostos')?.value || '').trim();
+        if (it) {
+          const inum = parseValorPt(it);
+          if (!Number.isNaN(inum) && inum > 0) body.valor_impostos_taxas = inum.toFixed(2);
+        }
       }
       document.getElementById('bx-ok').disabled = true;
       try {
@@ -2389,7 +2459,11 @@
           else if (out.aviso_api) m += '\n\nERP (atenção): ' + out.aviso_api;
           if (out.juros_id) m += `\n\nJuros: título Mongo ${out.juros_id} (plano Juros de Emprestimos).`;
           if (out.aviso_juros) m += `\n\nJuros (atenção): ${out.aviso_juros}`;
+          if (out.impostos_id) m += `\n\nImpostos/taxas: título Mongo ${out.impostos_id} (plano Impostos e Taxas variaveis).`;
+          if (out.aviso_impostos) m += `\n\nImpostos/taxas (atenção): ${out.aviso_impostos}`;
           alert(m);
+          const si = document.getElementById('sel-imp-extra');
+          if (si) si.value = '';
         }
         document.getElementById('modal-baixa').classList.add('hidden');
         selecionados.clear();

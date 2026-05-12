@@ -1,0 +1,54 @@
+# Git / IDE
+.git
+.github
+.cursor
+.idea
+.vscode
+
+# Secrets e ambientes locais (variáveis vêm do painel)
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+pip-log.txt
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Node (frontend/Electron não entram na imagem do Django)
+node_modules/
+dist-electron/
+
+# Dados gerados localmente — no PaaS use PostgreSQL + collectstatic no entrypoint
+*.sqlite3
+staticfiles/
+media/
+.uploads/
+
+# Electron / front local (imagem só Django + Gunicorn)
+electron/
+build/
+
+# Logs e temporários
+*.log
+tmp/
+temp/
+
+# OneDrive / cópias de conflito (Windows)
+*-DESKTOP-*
+
+# Documentação (não necessária em runtime)
+*.md
+docs/
