@@ -31,7 +31,7 @@ COL_AGRO_EMPRESTIMO_AUDITORIA = "AgroEmprestimoAuditoria"
 EMPRESTIMO_PLANO_ENTRADA_PADRAO = "Entrada de Empréstimo"
 EMPRESTIMO_PLANO_DIVIDA_PADRAO = "Pagamento de Empréstimos"
 EMPRESTIMO_PLANO_JUROS_PADRAO = "Juros de Empréstimos"
-# Baixa total (contas a pagar): valor extra fora dos títulos → título no plano abaixo. Sobrescreva com AGRO_LANCAMENTOS_PLANO_IMPOSTOS_TAXAS_VARIAVEIS.
+# Plano para titulo extra na Entrada NF-e (financeiro). Sobrescreva com AGRO_LANCAMENTOS_PLANO_IMPOSTOS_TAXAS_VARIAVEIS.
 LANCAMENTOS_PLANO_IMPOSTOS_TAXAS_VARIAVEIS_PADRAO = "Impostos e Taxas variaveis"
 
 
@@ -2483,117 +2483,6 @@ def registrar_titulo_juros_apos_baixa_contas_pagar(
     saida = float(valor_juros)
     now = timezone.now()
     mod = ((usuario_label or "Agro")[:80] + " — juros quitação Agro")[:200]
-    col.update_one(
-        {"_id": new_oid},
-        {
-            "$set": {
-                "Pago": True,
-                "DataPagamento": dm,
-                "ValorPago": saida,
-                "LastUpdate": now,
-                "ModificadoPor": mod,
-            }
-        },
-    )
-    _sanear_dto_lancamento_ids_erp_string(col, new_oid)
-    return {"ok": True, "id": new_id}
-
-
-def registrar_titulo_impostos_taxas_variaveis_apos_baixa_contas_pagar(
-    db,
-    *,
-    mongo_id_titulo_referencia: str,
-    valor_impostos: Decimal,
-    data_movimento: date,
-    forma_nome: str,
-    forma_id: str | None,
-    banco_nome: str,
-    banco_id: str | None,
-    usuario_label: str,
-) -> dict[str, Any]:
-    """
-    Cria um título de **despesa** no plano ``Impostos e Taxas variaveis`` e quita no ato,
-    com a mesma forma e conta da baixa (vínculo operacional com a quitação principal).
-    """
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível"}
-    valor_impostos = (valor_impostos or Decimal("0")).quantize(Decimal("0.01"))
-    if valor_impostos <= 0:
-        return {"ok": False, "erro": "Valor de impostos/taxas inválido."}
-    try:
-        oid_ref = ObjectId(str(mongo_id_titulo_referencia).strip())
-    except Exception:
-        return {"ok": False, "erro": "ID de referência inválido."}
-    col = db[COL_DTO_LANCAMENTO]
-    ref = col.find_one({"_id": oid_ref})
-    if not ref or not bool(ref.get("Despesa")):
-        return {"ok": False, "erro": "Título de referência não encontrado ou não é conta a pagar."}
-    empresa_nome = str(ref.get("Empresa") or "").strip()
-    empresa_id = _financeiro_id_para_string(ref.get("EmpresaID")) or None
-    pessoa_nome = str(ref.get("Cliente") or "").strip()
-    pessoa_id = _financeiro_id_para_string(ref.get("ClienteID")) or None
-    if not empresa_nome:
-        return {"ok": False, "erro": "Empresa ausente no título de referência."}
-    if not pessoa_nome:
-        pessoa_nome = "—"
-
-    fn = (forma_nome or "").strip()
-    bid_s = _financeiro_id_para_string(banco_id)
-    bn = normalizar_rotulo_banco_erp(bid_s, (banco_nome or "").strip())[:200]
-    if not fn or not bn:
-        return {"ok": False, "erro": "Forma e conta são obrigatórios para lançar impostos/taxas."}
-
-    plano_txt, plano_id = resolver_plano_conta_para_pedido_erp(
-        db,
-        texto_config=lancamentos_plano_impostos_taxas_variaveis_resolvido(),
-        id_config=None,
-        empresa_id=empresa_id,
-    )
-    plano_txt = ((plano_txt or "").strip() or lancamentos_plano_impostos_taxas_variaveis_resolvido())[:200]
-    plano_id = (plano_id or "").strip()
-
-    r = inserir_lancamentos_manual_lote(
-        db,
-        despesa=True,
-        empresa_nome=empresa_nome,
-        empresa_id=empresa_id,
-        pessoa_nome=pessoa_nome,
-        pessoa_id=pessoa_id,
-        data_competencia=data_movimento,
-        data_vencimento=data_movimento,
-        banco_nome=bn,
-        banco_id=banco_id,
-        forma_nome=fn,
-        forma_id=forma_id,
-        grupo_nome=None,
-        grupo_id=None,
-        usuario_label=usuario_label,
-        linhas=[
-            {
-                "plano_conta": plano_txt,
-                "plano_conta_id": plano_id or None,
-                "valor": float(valor_impostos),
-                "descricao": "Impostos/taxas fora da NF (quitação)",
-                "observacao": f"Ref. título {mongo_id_titulo_referencia}"[:500],
-            }
-        ],
-    )
-    if not r.get("ok") or not r.get("ids"):
-        erros = r.get("erros") or []
-        msg = erros[0].get("erro") if erros else "Falha ao inserir título de impostos/taxas."
-        return {"ok": False, "erro": str(msg)[:500]}
-
-    new_id = r["ids"][0]
-    try:
-        new_oid = ObjectId(new_id)
-    except Exception:
-        return {"ok": False, "erro": "ID do lançamento de impostos/taxas inválido após insert."}
-
-    tz = timezone.get_current_timezone()
-    dm = timezone.make_aware(datetime.combine(data_movimento, dtime(12, 0, 0)), tz)
-    saida = float(valor_impostos)
-    now = timezone.now()
-    mod = ((usuario_label or "Agro")[:80] + " — impostos/taxas quitação Agro")[:200]
     col.update_one(
         {"_id": new_oid},
         {
