@@ -140,6 +140,7 @@ from .mongo_financeiro_util import (
     lancamentos_sugestoes_campo,
     listar_formas_e_bancos_distintos,
     registrar_titulo_juros_apos_baixa_contas_pagar,
+    registrar_titulo_impostos_taxas_variaveis_apos_baixa_contas_pagar,
     montar_payload_erp_baixa,
     montar_payload_erp_lancamentos_novos,
     candidatos_texto_plano_para_api_pedido,
@@ -7875,6 +7876,16 @@ def api_lancamentos_baixa(request):
         if valor_juros_dec <= 0:
             valor_juros_dec = None
 
+    valor_impostos_dec: Decimal | None = None
+    vi_raw = payload.get("valor_impostos_taxas")
+    if vi_raw is not None and str(vi_raw).strip() != "":
+        try:
+            valor_impostos_dec = Decimal(str(vi_raw).replace(",", ".").strip()).quantize(Decimal("0.01"))
+        except Exception:
+            return JsonResponse({"ok": False, "erro": "Valor de impostos/taxas inválido."}, status=400)
+        if valor_impostos_dec <= 0:
+            valor_impostos_dec = None
+
     tz = timezone.get_current_timezone()
     data_movimento = timezone.make_aware(datetime.combine(dmov, dtime(12, 0, 0)), tz)
 
@@ -7941,6 +7952,25 @@ def api_lancamentos_baixa(request):
         else:
             aviso_juros = str(rj.get("erro") or "Não foi possível registrar o título de juros.")[:800]
 
+    aviso_impostos = None
+    impostos_id = None
+    if despesa and valor_impostos_dec and valor_impostos_dec > 0 and atual:
+        ri = registrar_titulo_impostos_taxas_variaveis_apos_baixa_contas_pagar(
+            db,
+            mongo_id_titulo_referencia=str(atual[0]),
+            valor_impostos=valor_impostos_dec,
+            data_movimento=dmov,
+            forma_nome=forma_nome,
+            forma_id=str(forma_id).strip() if forma_id else None,
+            banco_nome=banco_nome,
+            banco_id=str(banco_id).strip() if banco_id else None,
+            usuario_label=usuario,
+        )
+        if ri.get("ok"):
+            impostos_id = ri.get("id")
+        else:
+            aviso_impostos = str(ri.get("erro") or "Não foi possível registrar o título de impostos/taxas.")[:800]
+
     if ok_all:
         http_st = 200
     elif atual:
@@ -7960,6 +7990,10 @@ def api_lancamentos_baixa(request):
         out_j["juros_id"] = juros_id
     if aviso_juros:
         out_j["aviso_juros"] = aviso_juros
+    if impostos_id:
+        out_j["impostos_id"] = impostos_id
+    if aviso_impostos:
+        out_j["aviso_impostos"] = aviso_impostos
     return JsonResponse(out_j, status=http_st)
 
 
@@ -9170,6 +9204,69 @@ def motor_de_busca_agro(
                 adicionar(find_prod({**base_filter, "$or": or_br}, max(limit, 16)))
             except Exception:
                 logger.warning("motor_de_busca_agro: fallback barras legado", exc_info=True)
+
+        # 1c) Código misto (ex.: GM0022-10): campos raiz — cobre espelho sem ``index_codigos`` atualizado
+        if any(ch.isalpha() for ch in termo_limpo) and any(ch.isdigit() for ch in termo_limpo):
+            or_mix: list[dict] = []
+            esc0 = re.escape(termo_original.strip())
+            if esc0:
+                rx_lit = re.compile(rf"^{esc0}$", re.IGNORECASE)
+                or_mix.extend(
+                    [
+                        {"CodigoNFe": {"$regex": rx_lit}},
+                        {"Codigo": {"$regex": rx_lit}},
+                        {"CodigoInterno": {"$regex": rx_lit}},
+                    ]
+                )
+            tl_norm = termo_limpo.lower()
+            or_mix.extend(
+                [
+                    {
+                        "$expr": {
+                            "$eq": [
+                                {
+                                    "$replaceAll": {
+                                        "input": {
+                                            "$replaceAll": {
+                                                "input": {"$toLower": {"$ifNull": ["$CodigoNFe", ""]}},
+                                                "find": " ",
+                                                "replacement": "",
+                                            }
+                                        },
+                                        "find": "-",
+                                        "replacement": "",
+                                    }
+                                },
+                                tl_norm,
+                            ]
+                        }
+                    },
+                    {
+                        "$expr": {
+                            "$eq": [
+                                {
+                                    "$replaceAll": {
+                                        "input": {
+                                            "$replaceAll": {
+                                                "input": {"$toLower": {"$ifNull": ["$Codigo", ""]}},
+                                                "find": " ",
+                                                "replacement": "",
+                                            }
+                                        },
+                                        "find": "-",
+                                        "replacement": "",
+                                    }
+                                },
+                                tl_norm,
+                            ]
+                        }
+                    },
+                ]
+            )
+            try:
+                adicionar(find_prod({**base_filter, "$or": or_mix}, max(limit, 14)))
+            except Exception:
+                logger.warning("motor_de_busca_agro: fallback codigo raiz misto", exc_info=True)
 
     # 2) Busca por palavras com expansão
     condicoes_and = []
