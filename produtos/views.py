@@ -6801,9 +6801,9 @@ def api_entrada_nota_financeiro(request):
     ``data_vencimento`` é o 1º vencimento; demais parcelas somam o intervalo em dias.
     Opcional ``parcelas_manual``: lista ``[{ "valor", "data_vencimento", "data_competencia"?, "boleto_codigo_barras"? }]``
     com soma igual ao total da nota (tol. 1 centavo); quando enviada, substitui o cálculo automático.
-    Opcional ``valor_impostos_taxas`` (decimal > 0): gera **outro** título a pagar no plano
+    Opcional ``valor_impostos_taxas`` (decimal > 0): gera **outro(s)** título(s) a pagar no plano
     ``Impostos e Taxas variaveis`` (fora do valor das parcelas da NF), mesma forma/conta/fornecedor;
-    vencimento/competência alinhados à 1ª parcela quando existir.
+    o valor é **repartido em N linhas** com as mesmas datas de vencimento/competência das parcelas da NF.
     Opcional ``quitar_ao_salvar`` (bool): grava os títulos a pagar já quitados no Mongo (data de
     pagamento = vencimento de cada parcela) e, se ``VENDA_ERP_API_FINANCEIRO_BAIXA_PATH`` estiver
     configurado, tenta a baixa no ERP após o envio dos lançamentos novos.
@@ -7209,38 +7209,46 @@ def api_entrada_nota_financeiro(request):
             f"Entrada NF-e Agro · chave {cab.get('chave') or '—'} · {cab.get('data_entrada') or ''}"
         )[:500]
         nf_num_l = str(cab.get("numero") or "").strip()
-        desc_imp = (
-            (f"Impostos/taxas fora da NF · NF {nf_num_l}" if nf_num_l else "Impostos/taxas fora da NF (entrada)")
-        )[:500]
-        dv_imp = dv
-        dc_imp_use = dc
-        for ln0 in linhas_fin or []:
-            if not isinstance(ln0, dict):
-                continue
-            dvs0 = str(ln0.get("data_vencimento") or "").strip()[:10]
+        linhas_fin_nf = [x for x in (linhas_fin or []) if isinstance(x, dict)]
+        if not linhas_fin_nf:
+            linhas_fin_nf = [{"data_vencimento": dv.isoformat(), "data_competencia": dc.isoformat()}]
+        n_imp_lin = len(linhas_fin_nf)
+        vals_imp = split_decimal_em_parcelas(valor_impostos_dec, n_imp_lin)
+        linha_imp = []
+        for i, v_imp in enumerate(vals_imp):
+            row_nf = linhas_fin_nf[i] if i < len(linhas_fin_nf) else linhas_fin_nf[-1]
+            dv_imp = dv
+            dvs0 = str(row_nf.get("data_vencimento") or "").strip()[:10]
             if dvs0:
                 try:
                     dv_imp = date.fromisoformat(dvs0)
                 except ValueError:
                     pass
-            dcs0 = str(ln0.get("data_competencia") or "").strip()[:10]
+            dc_imp_use = dc
+            dcs0 = str(row_nf.get("data_competencia") or "").strip()[:10]
             if dcs0:
                 try:
                     dc_imp_use = date.fromisoformat(dcs0)
                 except ValueError:
                     pass
-            break
-        linha_imp = [
-            {
-                "valor": float(valor_impostos_dec),
-                "descricao": desc_imp,
-                "plano_conta": imp_txt,
-                "plano_conta_id": (str(imp_id).strip() if imp_id else None) or None,
-                "observacao": base_obs_imp,
-                "data_vencimento": dv_imp.isoformat(),
-                "data_competencia": dc_imp_use.isoformat(),
-            }
-        ]
+            desc_imp_i = (
+                (
+                    f"Impostos/taxas fora da NF · NF {nf_num_l} ({i + 1}/{n_imp_lin})"
+                    if nf_num_l
+                    else f"Impostos/taxas fora da NF (entrada) ({i + 1}/{n_imp_lin})"
+                )
+            )[:500]
+            linha_imp.append(
+                {
+                    "valor": float(v_imp),
+                    "descricao": desc_imp_i,
+                    "plano_conta": imp_txt,
+                    "plano_conta_id": (str(imp_id).strip() if imp_id else None) or None,
+                    "observacao": base_obs_imp,
+                    "data_vencimento": dv_imp.isoformat(),
+                    "data_competencia": dc_imp_use.isoformat(),
+                }
+            )
         r_imp = inserir_lancamentos_manual_lote(
             db,
             despesa=True,
@@ -7248,8 +7256,8 @@ def api_entrada_nota_financeiro(request):
             empresa_id=empresa_id_fin,
             pessoa_nome=pessoa_nome,
             pessoa_id=pessoa_id_raw,
-            data_competencia=dc_imp_use,
-            data_vencimento=dv_imp,
+            data_competencia=dc,
+            data_vencimento=dv,
             banco_nome=banco_nome,
             banco_id=str(fin.get("banco_id") or "").strip() or None,
             forma_nome=forma_nome,

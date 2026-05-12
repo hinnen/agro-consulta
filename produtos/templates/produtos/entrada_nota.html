@@ -608,8 +608,15 @@
                 <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
               </div></label>
             <div class="block md:col-span-2 rounded-xl border-2 border-amber-200 bg-amber-50/80 px-3 py-2">
-              <label for="fin-imposto-extra" class="text-xs font-black uppercase text-amber-950">Impostos/taxas fora da NF (R$)</label>
-              <p class="text-[10px] font-semibold text-amber-900/90 mt-0.5 mb-1 leading-snug">Opcional. Valor <strong>à parte</strong> do total da nota; gera outro título a pagar no plano <strong>Impostos e Taxas variaveis</strong> (mesma forma, conta e fornecedor). Ajuda a somar no total a pagar / boleto.</p>
+              <div class="flex flex-wrap items-center gap-2">
+                <label for="fin-imposto-extra" class="text-xs font-black uppercase text-amber-950">Impostos/taxas fora da NF (R$)</label>
+                <details class="group">
+                  <summary class="nfe-wiz-help min-h-[32px] min-w-[32px] cursor-pointer list-none rounded-lg border-2 border-amber-400 bg-white text-xs font-black text-amber-900 shrink-0 hover:bg-amber-50 flex items-center justify-center marker:content-none [&::-webkit-details-marker]:hidden" aria-label="Ajuda: impostos fora da NF">?</summary>
+                  <div class="mt-2 rounded-lg border border-amber-200 bg-white px-2 py-2 text-[10px] font-semibold text-amber-950 leading-snug max-w-lg">
+                    Opcional. Valor <strong>à parte</strong> do total da nota; gera outro título a pagar no plano <strong>Impostos e Taxas variaveis</strong> (mesma forma, conta e fornecedor). Ajuda a somar no total a pagar / boleto.
+                  </div>
+                </details>
+              </div>
               <input type="text" id="fin-imposto-extra" inputmode="decimal" placeholder="0,00" autocomplete="off" class="mt-1 w-full max-w-[12rem] min-h-[44px] rounded-lg border-2 border-amber-300 bg-white px-2 py-2 text-sm font-black tabular-nums">
             </div>
           </div>
@@ -1936,6 +1943,14 @@
       if (!['centro', 'vila'].includes(dep)) {
         return { ok: false, irPara: 4, erro: 'Selecione o depósito na etapa 4 · Estoque.' };
       }
+      const stE = String(entradaNfeRascunhoStatusUltimo || '').trim().toLowerCase();
+      if (stE !== 'estoque_aplicado' && stE !== 'encerrada') {
+        return {
+          ok: false,
+          irPara: 4,
+          erro: 'Registre a entrada no estoque Agro com o botão azul desta etapa e aguarde a confirmação antes de avançar.',
+        };
+      }
       return { ok: true, irPara: 4, erro: '' };
     }
     if (s === 5) {
@@ -1964,13 +1979,27 @@
         if (!pmCol.parcelas.length) {
           return { ok: false, irPara: 5, erro: 'Monte a prévia de parcelas na etapa 5 · Financeiro.' };
         }
-        const totalCentsChec = entradaNfeTotalGradeCentavosUnificado();
-        const somaCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(Number(p.valor) * 100), 0));
-        if (Math.abs(somaCent - totalCentsChec) > 2) {
+        const gradeCents = entradaNfeTotalGradeCentavosUnificado();
+        const alvoPagarCents = gradeCents + entradaNfeFinImpostoExtraCentavos();
+        const rowsPv = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
+        let sumComb = 0;
+        rowsPv.forEach((tr) => {
+          const v = entradaNfeParseDecimalApi(tr.querySelector('.fin-parc-val')?.value);
+          if (v != null && Number.isFinite(v) && v > 0) sumComb += Math.round(v * 100);
+        });
+        if (Math.abs(sumComb - alvoPagarCents) > 2) {
           return {
             ok: false,
             irPara: 5,
-            erro: 'A soma das parcelas precisa fechar com o total da nota na grade (etapa 5 · Financeiro).',
+            erro: 'A soma das parcelas precisa fechar com o total a pagar (nota + impostos fora da NF, se houver) na etapa 5 · Financeiro.',
+          };
+        }
+        const somaNfCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(Number(p.valor) * 100), 0));
+        if (Math.abs(somaNfCent - gradeCents) > 2) {
+          return {
+            ok: false,
+            irPara: 5,
+            erro: 'Parcelas inconsistentes com o total da nota (etapa 5 · Financeiro). Use Recalcular.',
           };
         }
       }
@@ -3098,6 +3127,53 @@
     return out;
   }
 
+  /** Centavos do campo «Impostos/taxas fora da NF» (0 se vazio/ inválido). */
+  function entradaNfeFinImpostoExtraCentavos() {
+    const raw = (document.getElementById('fin-imposto-extra')?.value || '').trim();
+    if (!raw) return 0;
+    const v = entradaNfeParseDecimalApi(raw.replace(/\s/g, ' '));
+    if (v == null || !Number.isFinite(v) || v <= 0) return 0;
+    return Math.round(v * 100);
+  }
+
+  /**
+   * Cada linha da prévia mostra valor combinado (NF + imposto). Para o POST, só a parte NF entra em
+   * parcelas_manual; esta função reparte os centavos da NF proporcionalmente ao combinado.
+   */
+  function entradaNfeDecomporParcelasCombinadasCents(combinedCents, gradeCents, impCents) {
+    const n = combinedCents.length;
+    const total = combinedCents.reduce((a, b) => a + b, 0);
+    if (!n || total <= 0) {
+      return { nf: new Array(n).fill(0), imp: [...combinedCents] };
+    }
+    if (impCents <= 0) {
+      return { nf: [...combinedCents], imp: new Array(n).fill(0) };
+    }
+    const nf = [];
+    let sn = 0;
+    for (let i = 0; i < n; i += 1) {
+      const ci = combinedCents[i];
+      const ni = Math.floor((gradeCents * ci) / total);
+      nf.push(ni);
+      sn += ni;
+    }
+    let drift = gradeCents - sn;
+    let guard = 0;
+    while (drift !== 0 && guard < n * 8) {
+      const i = guard % n;
+      if (drift > 0 && nf[i] + 1 <= combinedCents[i]) {
+        nf[i] += 1;
+        drift -= 1;
+      } else if (drift < 0 && nf[i] > 0) {
+        nf[i] -= 1;
+        drift += 1;
+      }
+      guard += 1;
+    }
+    const imp = combinedCents.map((c, i) => c - nf[i]);
+    return { nf, imp };
+  }
+
   function entradaNfeAddDaysYmd(ymd, days) {
     if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return '';
     const [y, m, d] = ymd.split('-').map((x) => parseInt(x, 10));
@@ -3280,7 +3356,7 @@
     if (Array.isArray(pp) && pp.length) {
       const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
       if (rows.length === pp.length) {
-        const totalCentsFv = entradaNfeTotalGradeCentavosUnificado();
+        const totalCentsFv = entradaNfeTotalGradeCentavosUnificado() + entradaNfeFinImpostoExtraCentavos();
         let sumPpCent = 0;
         for (const pr of pp) {
           const vr = entradaNfeParseDecimalApi(pr && pr.valor);
@@ -3331,10 +3407,12 @@
     const totalEl = document.getElementById('fin-parcelas-preview-total');
     const dvOk = !!(document.getElementById('fin-dv')?.value || '').trim();
     const pin = Number(totalCentsPinned);
-    const dc = Number.isFinite(pin) && pin >= 0
+    const gradeCents = Number.isFinite(pin) && pin >= 0
       ? Math.round(pin)
       : entradaNfeTotalGradeCentavosUnificado();
-    const totalNota = dc / 100;
+    const impCents = entradaNfeFinImpostoExtraCentavos();
+    const targetPagarCents = gradeCents + impCents;
+    const totalNota = gradeCents / 100;
     const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
     let sumCent = 0;
     const soma = rows.reduce((acc, tr) => {
@@ -3347,8 +3425,8 @@
       !_entradaNfeRodapeRecoalescendoParcelas
       && dvOk
       && rows.length > 0
-      && dc > 0
-      && Math.abs(sumCent - dc) > 300
+      && targetPagarCents > 0
+      && Math.abs(sumCent - targetPagarCents) > 300
     ) {
       _entradaNfeRodapeRecoalescendoParcelas = true;
       _finParcForcarPadrao = true;
@@ -3362,18 +3440,21 @@
     if (totalEl) totalEl.textContent = totalNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const rowImp = document.getElementById('fin-parcelas-imp-hint-row');
     const totalRef = document.getElementById('fin-parcelas-preview-total-ref');
-    const rawIm = (document.getElementById('fin-imposto-extra')?.value || '').trim();
-    const imx = rawIm ? entradaNfeParseDecimalApi(rawIm) : null;
-    if (rowImp && totalRef && imx != null && Number.isFinite(imx) && imx > 0) {
+    const imx = impCents / 100;
+    if (rowImp && totalRef && impCents > 0) {
       rowImp.classList.remove('hidden');
       totalRef.textContent = (totalNota + imx).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     } else if (rowImp) {
       rowImp.classList.add('hidden');
     }
     if (warnEl) {
-      const diff = Math.round((soma - totalNota) * 100) / 100;
+      const targetReais = targetPagarCents / 100;
+      const diff = Math.round((soma - targetReais) * 100) / 100;
       if (rows.length && Math.abs(diff) > 0.02) {
-        warnEl.textContent = `Soma das parcelas (${soma.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}) difere do total da nota (${totalNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}). Ajuste os valores ou use Recalcular.`;
+        const refNome = impCents > 0
+          ? `total a pagar (nota + impostos fora da NF: ${targetReais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})`
+          : `total da nota (${targetReais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})`;
+        warnEl.textContent = `Soma das parcelas (${soma.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}) difere do ${refNome}. Ajuste os valores ou use Recalcular.`;
         warnEl.classList.remove('hidden');
       } else {
         warnEl.textContent = '';
@@ -3406,8 +3487,10 @@
     if (nParc > 60) nParc = 60;
     let intDias = entradaNfeFinParcelasIntervaloDias();
 
-    const totalCents = entradaNfeTotalGradeCentavosUnificado();
-    if (totalCents <= 0) {
+    const totalCentsGrade = entradaNfeTotalGradeCentavosUnificado();
+    const impCents = entradaNfeFinImpostoExtraCentavos();
+    const totalPagarCents = totalCentsGrade + impCents;
+    if (totalCentsGrade <= 0) {
       setParcelasHelpMsg('Inclua itens com quantidade e valor unitário na grade.');
       tableEl.classList.add('hidden');
       tbodyEl.innerHTML = '';
@@ -3426,7 +3509,7 @@
 
     const prevRows = [...tbodyEl.querySelectorAll('tr.fin-parc-row')];
     const prevBoleto = prevRows.map((tr) => (tr.querySelector('.fin-parc-boleto')?.value || '').trim());
-    const valsDefault = splitCentavosEmNParcelas(totalCents, nParc);
+    const valsDefault = splitCentavosEmNParcelas(totalPagarCents, nParc);
     const datesDefault = valsDefault.map((_, i) => entradaNfeAddDaysYmd(dv, i * intDias));
     let vals = [...valsDefault];
     let dates = [...datesDefault];
@@ -3438,7 +3521,7 @@
         return x != null && Number.isFinite(x) ? x : 0;
       });
       const sump = Math.round(prevVals.reduce((a, b) => a + b, 0) * 100);
-      if (Math.abs(sump - totalCents) <= 5) vals = prevVals;
+      if (Math.abs(sump - totalPagarCents) <= 5) vals = prevVals;
     }
     _finParcForcarPadrao = false;
 
@@ -3457,22 +3540,25 @@
         <td class="px-1 py-1 align-middle"><input type="text" inputmode="numeric" autocomplete="off" maxlength="60" class="fin-parc-boleto w-full min-h-[40px] rounded-lg border-2 border-slate-200 px-1 text-[11px] font-mono font-bold bg-white" placeholder="Linha / barras" value="${entradaNfeEscAttrValor(bolRaw)}" title="Opcional: linha digitável ou código de barras para pagar sem o papel"></td>`;
       tbodyEl.appendChild(tr);
     });
-    totalEl.textContent = (totalCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    totalEl.textContent = (totalCentsGrade / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     setParcelasHelpMsg(nParc > 1
-      ? `${nParc} parcelas. Edite vencimento e valor; a soma deve fechar com o total da nota.`
-      : 'Uma parcela com o total da nota (pode ajustar data e valor).');
+      ? `${nParc} parcelas. Soma = total a pagar (nota + imposto fora da NF, se houver).`
+      : 'Uma parcela com o total a pagar (nota + imposto fora da NF, se houver).');
     tableEl.classList.remove('hidden');
     tbodyEl.querySelectorAll('.fin-parc-dv, .fin-parc-val, .fin-parc-boleto').forEach((inp) => {
       inp.addEventListener('input', () => entradaNfeAtualizarRodapeParcelas());
       inp.addEventListener('change', () => entradaNfeAtualizarRodapeParcelas());
     });
-    entradaNfeAtualizarRodapeParcelas(totalCents);
+    entradaNfeAtualizarRodapeParcelas(totalCentsGrade);
   }
 
   function entradaNfeColetarParcelasManualFinanceiro(dcVal) {
     const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
-    const parcelas = [];
-    for (let i = 0; i < rows.length; i++) {
+    const gradeCents = entradaNfeTotalGradeCentavosUnificado();
+    const impCents = entradaNfeFinImpostoExtraCentavos();
+    const combinedCents = [];
+    const metas = [];
+    for (let i = 0; i < rows.length; i += 1) {
       const tr = rows[i];
       const dvLin = (tr.querySelector('.fin-parc-dv')?.value || '').trim();
       const vStr = String(tr.querySelector('.fin-parc-val')?.value || '').trim();
@@ -3483,13 +3569,22 @@
       if (v == null || !Number.isFinite(v) || v <= 0) {
         return { erro: `Parcela ${i + 1}: valor inválido.` };
       }
+      combinedCents.push(Math.round(v * 100));
+      metas.push({
+        dvLin,
+        bol: (tr.querySelector('.fin-parc-boleto')?.value || '').trim(),
+      });
+    }
+    const dec = entradaNfeDecomporParcelasCombinadasCents(combinedCents, gradeCents, impCents);
+    const parcelas = [];
+    for (let i = 0; i < rows.length; i += 1) {
+      const centsNf = dec.nf[i] != null ? dec.nf[i] : 0;
       const parc = {
-        valor: Math.round(v * 100) / 100,
-        data_vencimento: dvLin,
+        valor: Math.round(centsNf) / 100,
+        data_vencimento: metas[i].dvLin,
         data_competencia: dcVal,
       };
-      const bol = (tr.querySelector('.fin-parc-boleto')?.value || '').trim();
-      if (bol) parc.boleto_codigo_barras = bol;
+      if (metas[i].bol) parc.boleto_codigo_barras = metas[i].bol;
       parcelas.push(parc);
     }
     return { parcelas };
@@ -3528,8 +3623,6 @@
   }
 
   const ENTRADA_NFE_SENTINEL_FB_IDLE = 'Pronto para buscar.';
-  const ENTRADA_NFE_SENTINEL_FB_LOADING = 'Carregando catálogo…';
-  let entradaNfeCatalogoPronto = false;
   function entradaNfeSentinelFeedbackSet(msg) {
     const fb = document.getElementById('entrada-nfe-sentinel-feedback');
     if (!fb) return;
@@ -3537,7 +3630,7 @@
       fb.textContent = msg;
       return;
     }
-    fb.textContent = entradaNfeCatalogoPronto ? ENTRADA_NFE_SENTINEL_FB_IDLE : ENTRADA_NFE_SENTINEL_FB_LOADING;
+    fb.textContent = ENTRADA_NFE_SENTINEL_FB_IDLE;
   }
   /** Cartão Busca na sentinela: mesmo contador conceitual do PDV («N itens» na grade). */
   function entradaNfeSentinelAtualizaContadorGrade() {
@@ -3983,7 +4076,7 @@
                 <ul class="nfe-busca-dd pdv-wizard-scroll hidden z-[230] max-h-[min(50vh,22rem)] overflow-y-auto rounded-2xl border-2 border-amber-200/90 bg-white p-1 shadow-[0_18px_48px_rgba(15,23,42,0.18)] list-none m-0" role="listbox" aria-hidden="true"></ul>
               </div>
               <div class="mt-1.5 text-[10px] font-bold text-amber-900/85">
-                <div id="entrada-nfe-sentinel-feedback">${ENTRADA_NFE_SENTINEL_FB_LOADING}</div>
+                <div id="entrada-nfe-sentinel-feedback">${ENTRADA_NFE_SENTINEL_FB_IDLE}</div>
               </div>
             </div>
           </div>
@@ -4450,363 +4543,23 @@
     return arr[0];
   }
 
-  /**
-   * Catálogo local + custos (mesma ideia do PDV Wizard: GET `wizard=1&wizard_catalog=1&compras=1`),
-   * cache em memória + sessionStorage; filtro no cliente evita um GET por tecla.
-   */
-  const ENTRADA_NFE_CATALOG_STORAGE_KEY = 'agro_entrada_nfe_catalog_compras_v3';
-  const ENTRADA_NFE_CATALOG_MAX_RESULTS = 24;
-  let entradaNfeCatalogProdutos = [];
-  let entradaNfeCatalogReady = false;
-  let entradaNfeCatalogLoadPromise = null;
-  /** Map só dígitos (EAN/códigos 8–18) → produto — lookup O(1) no bip. */
-  let entradaNfeCatalogEanByDigits = null;
-
-  /** Fragmentos RegExp — não interpolar escapers dentro de template literals (`${` quebra o parser). */
-  const ENTRADA_NFE_RX_ESC_TN = /[.*+?^${}()|[\]\\]/g;
-  function entradaNfeCatalogEscTn(s) {
-    return String(s || '').replace(ENTRADA_NFE_RX_ESC_TN, '\\$&');
-  }
-
-  function entradaNfeCatalogStripAccents(s) {
-    return String(s || '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-  }
-
+  /** Só dígitos (EAN, códigos) — helpers da linha NF. */
   function entradaNfeCatalogOnlyDigits(s) {
     return String(s || '').replace(/\D/g, '');
   }
 
-  function entradaNfeCatalogLooksLikeGtin(t) {
-    const z = String(t || '').trim();
-    const qd = entradaNfeCatalogOnlyDigits(z);
-    if (qd.length < 8 || qd.length > 18) return false;
-    return !/[^\d\s.\-]/.test(z);
-  }
-
-  function entradaNfeCatalogRebuildEanIndex() {
-    const m = new Map();
-    const arr = entradaNfeCatalogProdutos;
-    for (let i = 0; i < arr.length; i += 1) {
-      const p = arr[i];
-      const dEan = entradaNfeCatalogOnlyDigits(String(p.codigo_barras || ''));
-      if (dEan.length >= 8 && !m.has(dEan)) m.set(dEan, p);
-      const ix = p.index_codigos;
-      if (Array.isArray(ix)) {
-        for (let j = 0; j < ix.length; j += 1) {
-          const idg = entradaNfeCatalogOnlyDigits(String(ix[j] == null ? '' : ix[j]));
-          if (idg.length >= 8 && !m.has(idg)) m.set(idg, p);
-        }
-      }
-    }
-    entradaNfeCatalogEanByDigits = m;
-  }
-
-  function entradaNfeCatalogAllowLocal(q) {
-    const z = String(q || '').trim();
-    if (z.length >= 2) return true;
-    return /^\d{6,}$/.test(z);
-  }
-
-  function entradaNfeCatalogMatchIx(qt, qd, p) {
-    if (!Array.isArray(p.index_codigos) || !p.index_codigos.length) return false;
-    const ql = String(qt || '').trim().toLowerCase();
-    for (let i = 0; i < p.index_codigos.length; i += 1) {
-      const x = String(p.index_codigos[i] == null ? '' : p.index_codigos[i]).trim();
-      if (!x) continue;
-      if (x.toLowerCase() === ql) return true;
-      if (qd.length >= 6 && entradaNfeCatalogOnlyDigits(x) === qd) return true;
-    }
-    return false;
-  }
-
-  function entradaNfeCatalogScoreProduct(p, qRaw, barcodeMode) {
-    const q = entradaNfeCatalogStripAccents(qRaw.trim());
-    if (!q) return 0;
-    const nome = entradaNfeCatalogStripAccents(p.nome || '');
-    const marca = entradaNfeCatalogStripAccents(p.marca || '');
-    const nfe = entradaNfeCatalogStripAccents(String(p.codigo_nfe || ''));
-    const cod = entradaNfeCatalogStripAccents(String(p.codigo || ''));
-    const ean = entradaNfeCatalogStripAccents(String(p.codigo_barras || '').replace(/\s/g, ''));
-    const qDigits = entradaNfeCatalogOnlyDigits(qRaw);
-    const eanD = entradaNfeCatalogOnlyDigits(ean);
-
-    let score = 0;
-    if (nfe === q || cod === q || ean === q) score += 2500;
-    if (qDigits.length >= 6 && eanD && eanD === qDigits) score += 2400;
-    if (entradaNfeCatalogMatchIx(qRaw, qDigits, p)) score += 2600;
-    if (barcodeMode) {
-      if ((ean && ean.indexOf(q) !== -1) || nfe.indexOf(q) !== -1 || cod.indexOf(q) !== -1) score += 500;
-    }
-    if (nfe.indexOf(q) === 0) score += 900;
-    else if (nfe.indexOf(q) !== -1) score += 450;
-    if (cod.indexOf(q) === 0) score += 850;
-    else if (cod.indexOf(q) !== -1) score += 400;
-    if (ean && q && ean.indexOf(q) === 0) score += 880;
-    else if (ean && q && ean.indexOf(q) !== -1) score += 420;
-
-    if (nome.indexOf(q) !== -1) score += 200;
-
-    const tokens = q.split(/\s+/).filter((t) => t.length > 0);
-    if (tokens.length > 1) {
-      const allIn = tokens.every((tk) => nome.indexOf(tk) !== -1);
-      if (allIn) score += 320;
-      tokens.forEach((tk) => {
-        if (nome.split(/\s+/).some((w) => w.indexOf(tk) === 0)) score += 70;
-      });
-      let hitPart = 0;
-      tokens.forEach((tk) => {
-        if (tk.length < 2) return;
-        if (nome.indexOf(tk) !== -1 || (marca && marca.indexOf(tk) !== -1)) hitPart += 1;
-      });
-      if (hitPart > 0) score += hitPart * 130;
-    } else if (tokens.length === 1 && tokens[0].length >= 2) {
-      const t0 = tokens[0];
-      if (nome.indexOf(t0) === 0) score += 180;
-      else if (nome.split(/\s+/).some((w) => w.indexOf(t0) === 0)) score += 120;
-    }
-
-    if (marca && marca.indexOf(q) !== -1) score += 90;
-    return score;
-  }
-
-  function entradaNfeWizardRowBateQueryExataRow(row, q) {
-    const qRaw = String(q || '').trim();
-    if (!qRaw) return false;
-    const qWiz = qRaw.toLowerCase();
-    const qAl = entradaNfeSomenteAlnum(qRaw).toLowerCase();
-    if (!qAl) return false;
-    const keys = ['codigo_barras', 'codigo_nfe', 'codigo'];
-    for (let i = 0; i < keys.length; i += 1) {
-      const v = row[keys[i]];
-      if (v == null || v === '') continue;
-      const vs = String(v).trim();
-      if (!vs) continue;
-      if (vs === qRaw || vs.toLowerCase() === qWiz) return true;
-      if (entradaNfeSomenteAlnum(vs).toLowerCase() === qAl) return true;
-    }
-    const ix = row.index_codigos;
-    if (Array.isArray(ix)) {
-      for (let j = 0; j < ix.length; j += 1) {
-        const x = ix[j];
-        if (x == null) continue;
-        const xs = String(x).trim();
-        if (!xs) continue;
-        if (xs.toLowerCase() === qWiz || entradaNfeSomenteAlnum(xs).toLowerCase() === qAl) return true;
-      }
-    }
-    return false;
-  }
-
-  function entradaNfeCatalogRelevanceNomeRow(row, qStrip) {
-    const q = String(qStrip || '').trim().toLowerCase();
-    if (!q) return 0;
-    const nomeSrc = String(row.nome || '');
-    const nome = nomeSrc.trim().toLowerCase();
-    const marca = String(row.marca || '').trim().toLowerCase();
-    const tokens = q.split(/\s+/).filter((x) => x && String(x).trim());
-    if (!tokens.length) return 0;
-    const nomeLower = nomeSrc.toLowerCase();
-
-    let score = 0;
-    const nt = tokens.length;
-    let matched = 0;
-
-    const digitsOnlyTok = (s) => !!(s && /^\d+$/.test(String(s)));
-
-    for (let ti = 0; ti < tokens.length; ti += 1) {
-      const tn = tokens[ti];
-      const present = tn && (nome.includes(tn) || marca.includes(tn));
-
-      if (!digitsOnlyTok(tn)) {
-        if (present) {
-          matched += 1;
-          score += 55 + Math.min(tn.length * 2, 80);
-        }
-        continue;
-      }
-
-      if (present) {
-        matched += 1;
-        const esc = entradaNfeCatalogEscTn(tn);
-        const rxMed = new RegExp(
-          '\\|\\s*' +
-            esc +
-            '(?:["\'\u201c\u201d\u2033\u2018\u2019\u2032\xB4\x60\xBA\xB0.]|\\s+["\u201c\u201d\u2018\u2019\u2033]?|\\s*$)',
-          'i',
-        );
-        const rxInch = new RegExp(
-          '(?<!\\d)' +
-            esc +
-            '(?:["\u201c\u201d\u2033]|\'\'|\\s*["\u2018\u2019\u2032\u2033]\\b|\\s*mm\\b|\\s*cm\\b|\\s*")',
-          'i',
-        );
-        const rxWord = new RegExp('(?<!\\d)' + esc + '(?!\\d)');
-
-        if (rxMed.test(nomeLower)) score += 260;
-        else if (rxInch.test(nomeLower)) score += 200;
-        else if (rxWord.test(nomeLower)) score += 95;
-        else score += 15;
-      } else {
-        score -= 40;
-      }
-    }
-
-    if (nt >= 2) {
-      if (matched >= nt) score += 450;
-      else score -= (nt - Math.min(matched, nt)) * 140;
-    } else if (nt === 1) {
-      score += matched ? 80 : -20;
-    }
-
-    const qc = q.replace(/"/g, '').replace(/'/g, '').replace(/”/g, '').replace(/′/g, '').replace(/″/g, '').replace(/\s+/g, ' ').trim();
-    if (qc.length >= 3 && qc.replace(/\s/g, '') && nome.replace(/\s/g, '').includes(qc.replace(/\s/g, ''))) {
-      score += 120;
-    }
-
-    if (matched >= nt && nt >= 2) {
-      score += Math.max(0, 72 - Math.min(nome.length, 72) * 0.42);
-    }
-
-    return score;
-  }
-
-  function entradaNfeCatalogRankCompare(a, b, qStrip) {
-    const exA = entradaNfeWizardRowBateQueryExataRow(a, qStrip) ? 0 : 1;
-    const exB = entradaNfeWizardRowBateQueryExataRow(b, qStrip) ? 0 : 1;
-    if (exA !== exB) return exA - exB;
-
-    const relA = entradaNfeCatalogRelevanceNomeRow(a, qStrip);
-    const relB = entradaNfeCatalogRelevanceNomeRow(b, qStrip);
-    if (relA !== relB) return relB - relA;
-
-    const scA = entradaNfeCatalogScoreProduct(a, qStrip, false);
-    const scB = entradaNfeCatalogScoreProduct(b, qStrip, false);
-    if (scA !== scB) return scB - scA;
-
-    const na = String(a.nome || '').toLowerCase();
-    const nb = String(b.nome || '').toLowerCase();
-    return na < nb ? -1 : na > nb ? 1 : 0;
-  }
-
-  function entradaNfeCatalogSearchLocal(termo) {
-    const q = String(termo || '').trim();
-    if (!entradaNfeCatalogAllowLocal(q)) return [];
-    const qd = entradaNfeCatalogOnlyDigits(q);
-    const gtin = entradaNfeCatalogLooksLikeGtin(q);
-
-    if (gtin) {
-      if (entradaNfeCatalogEanByDigits && entradaNfeCatalogEanByDigits.has(qd)) {
-        return [entradaNfeCatalogEanByDigits.get(qd)];
-      }
-      return entradaNfeCatalogProdutos
-        .filter((p) => entradaNfeCatalogScoreProduct(p, q, true) > 0)
-        .sort((a, b) => entradaNfeCatalogRankCompare(a, b, q))
-        .slice(0, ENTRADA_NFE_CATALOG_MAX_RESULTS);
-    }
-
-    return entradaNfeCatalogProdutos
-      .filter((p) => entradaNfeCatalogScoreProduct(p, q, false) > 0)
-      .sort((a, b) => entradaNfeCatalogRankCompare(a, b, q))
-      .slice(0, ENTRADA_NFE_CATALOG_MAX_RESULTS);
-  }
-
-  function entradaNfeCatalogLoad() {
-    if (entradaNfeCatalogReady) {
-      entradaNfeCatalogoPronto = true;
-      queueMicrotask(() => {
-        try {
-          entradaNfeSentinelFeedbackSet('');
-        } catch (_) {}
-      });
-      return Promise.resolve();
-    }
-    if (entradaNfeCatalogLoadPromise) {
-      return entradaNfeCatalogLoadPromise.finally(() => {
-        try {
-          if (!entradaNfeCatalogoPronto) entradaNfeCatalogoPronto = true;
-          entradaNfeSentinelFeedbackSet('');
-        } catch (_) {}
-      });
-    }
-
-    const loadCore = (async () => {
-      try {
-        const raw = sessionStorage.getItem(ENTRADA_NFE_CATALOG_STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (parsed && Array.isArray(parsed.produtos) && parsed.produtos.length) {
-            entradaNfeCatalogProdutos = parsed.produtos;
-            entradaNfeCatalogRebuildEanIndex();
-            entradaNfeCatalogReady = true;
-            entradaNfeCatalogoPronto = true;
-            return;
-          }
-        }
-      } catch (_) {}
-
-      const u = new URL(URL_BUSCA, window.location.origin);
-      u.searchParams.set('wizard', '1');
-      u.searchParams.set('wizard_catalog', '1');
-      u.searchParams.set('compras', '1');
-      const r = await fetch(u.toString(), { credentials: 'same-origin' });
-      if (!r.ok) throw new Error('catalog_http');
-      const j = await r.json();
-      const arr = Array.isArray(j.produtos) ? j.produtos : [];
-      entradaNfeCatalogProdutos = arr;
-      entradaNfeCatalogRebuildEanIndex();
-      entradaNfeCatalogReady = arr.length > 0;
-      entradaNfeCatalogoPronto = true;
-      try {
-        sessionStorage.setItem(ENTRADA_NFE_CATALOG_STORAGE_KEY, JSON.stringify({ produtos: arr, t: Date.now() }));
-      } catch (_) {}
-    })();
-
-    entradaNfeCatalogLoadPromise = loadCore.finally(() => {
-      entradaNfeCatalogLoadPromise = null;
-    });
-
-    return loadCore.finally(() => {
-      try {
-        if (!entradaNfeCatalogoPronto) entradaNfeCatalogoPronto = true;
-        entradaNfeSentinelFeedbackSet('');
-      } catch (_) {}
-    });
-  }
-
   /**
-   * Cache local (wizard_catalog + compras) quando possível; senão mesmo endpoint server-side que antes.
+   * Mesmo motor da consulta / orçamento: `GET /api/buscar/?q=…` + `compras=1` (custo/margem na NF).
+   * Sem catálogo local nem `wizard=1` (evita ordenação diferente e subset do Mongo).
    */
   let _entradaNfeBuscaSeq = 0;
   async function entradaNfeBuscarProdutosArr(termo) {
     const t = String(termo || '').trim();
     if (t.length < 2) return [];
     const sid = ++_entradaNfeBuscaSeq;
-
-    const qDigits = t.replace(/\D/g, '');
-    const tryLocal =
-      entradaNfeCatalogAllowLocal(t) &&
-      (qDigits.length < 8 || entradaNfeCatalogLooksLikeGtin(t));
-
-    if (tryLocal) {
-      try {
-        await entradaNfeCatalogLoad();
-        if (sid !== _entradaNfeBuscaSeq) return null;
-        if (entradaNfeCatalogReady && entradaNfeCatalogProdutos.length) {
-          const loc = entradaNfeCatalogSearchLocal(t);
-          if (loc.length) return loc;
-        }
-      } catch (_) {
-        /* servidor abaixo */
-      }
-    }
-
     try {
       const u = new URL(URL_BUSCA, window.location.origin);
       u.searchParams.set('q', t);
-      u.searchParams.set('wizard', '1');
       u.searchParams.set('compras', '1');
       const r = await fetch(u.toString(), { credentials: 'same-origin' });
       if (sid !== _entradaNfeBuscaSeq) return null;
@@ -4828,7 +4581,6 @@
     try {
       const u = new URL(URL_BUSCA, window.location.origin);
       u.searchParams.set('q', c);
-      u.searchParams.set('wizard', '1');
       u.searchParams.set('compras', '1');
       const r = await fetch(u.toString(), { credentials: 'same-origin' });
       if (!r.ok) return null;
@@ -5158,30 +4910,6 @@
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) return;
-      try {
-        const arr = entradaNfeCatalogProdutos;
-        if (Array.isArray(arr)) {
-          for (let i = 0; i < arr.length; i += 1) {
-            const row = arr[i];
-            if (!row || String(row.id).trim() !== pid) continue;
-            if (!Array.isArray(row.index_codigos)) row.index_codigos = [];
-            if (row.index_codigos.indexOf(eanNf) === -1) row.index_codigos.push(eanNf);
-            break;
-          }
-          if (oldId && oldId !== pid) {
-            for (let i = 0; i < arr.length; i += 1) {
-              const row = arr[i];
-              if (!row || String(row.id).trim() !== oldId) continue;
-              if (Array.isArray(row.index_codigos)) {
-                const ix = row.index_codigos.indexOf(eanNf);
-                if (ix !== -1) row.index_codigos.splice(ix, 1);
-              }
-              break;
-            }
-          }
-        }
-        entradaNfeCatalogRebuildEanIndex();
-      } catch (_) {}
     } catch (_) {}
   }
 
@@ -5480,10 +5208,12 @@
     el.addEventListener('change', sched);
   });
   document.getElementById('fin-imposto-extra')?.addEventListener('input', () => {
-    entradaNfeAtualizarRodapeParcelas();
+    _finParcForcarPadrao = true;
+    entradaNfeAgendarPreviewParcelas();
   });
   document.getElementById('fin-imposto-extra')?.addEventListener('change', () => {
-    entradaNfeAtualizarRodapeParcelas();
+    _finParcForcarPadrao = true;
+    entradaNfeAgendarPreviewParcelas();
   });
   entradaNfeFinParcelasIntervaloUiSync();
   document.getElementById('btn-fin-parc-recalc')?.addEventListener('click', () => {
@@ -5703,10 +5433,21 @@
       showMsg('Monte a prévia de parcelas (vencimento e valor em cada linha).', false);
       return;
     }
-    const totalCentsChec = entradaNfeTotalGradeCentavosUnificado();
-    const somaCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(p.valor * 100), 0));
-    if (Math.abs(somaCent - totalCentsChec) > 2) {
-      showMsg('A soma das parcelas precisa fechar com o total da nota na grade.', false);
+    const gradeCents = entradaNfeTotalGradeCentavosUnificado();
+    const alvoPagarCents = gradeCents + entradaNfeFinImpostoExtraCentavos();
+    const rowsPv = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
+    let sumComb = 0;
+    rowsPv.forEach((tr) => {
+      const v = entradaNfeParseDecimalApi(tr.querySelector('.fin-parc-val')?.value);
+      if (v != null && Number.isFinite(v) && v > 0) sumComb += Math.round(v * 100);
+    });
+    if (Math.abs(sumComb - alvoPagarCents) > 2) {
+      showMsg('A soma das parcelas precisa fechar com o total a pagar (itens da nota + impostos fora da NF, se houver).', false);
+      return;
+    }
+    const somaNfCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(p.valor * 100), 0));
+    if (Math.abs(somaNfCent - gradeCents) > 2) {
+      showMsg('Parcelas inconsistentes com o total da nota. Use Recalcular.', false);
       return;
     }
     let nParc = parseInt(String(document.getElementById('fin-n-parc').value || '1'), 10);
@@ -6346,7 +6087,6 @@
       carregarRascunhos();
       atualizarPainelTotalNfe();
       entradaNfeAtualizarPreviewParcelas();
-      entradaNfeCatalogLoad().catch(() => {});
       entradaNfeAtualizarUiBotaoWizardFinalizar();
       entradaNfeAtualizarUiBotaoConfirmarFornecedor();
       entradaNfeAtualizarUiBotaoConfirmarProdutos();
