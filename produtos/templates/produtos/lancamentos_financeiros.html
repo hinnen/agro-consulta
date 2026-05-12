@@ -243,18 +243,19 @@
       <button type="button" id="btn-open-modal-ferramentas" class="flex-none shrink-0 min-h-[44px] min-w-[4.75rem] px-2.5 sm:px-3 py-2 rounded-xl border border-emerald-600 bg-emerald-600 text-white font-black text-[10px] sm:text-[11px] uppercase hover:bg-emerald-700 transition-colors text-center" title="CSV, Excel, PDF, WhatsApp, favoritos">Exportar</button>
     </section>
 
+    {% if modo_contas == 'pagar' %}
+    <div id="sel-imp-global-wrap" class="rounded-xl border border-emerald-300/80 bg-emerald-50/70 px-3 py-2 flex flex-wrap items-center gap-2 text-[11px] font-bold text-emerald-950" role="region" aria-label="Impostos e taxas fora da nota fiscal">
+      <label for="sel-imp-extra" class="shrink-0">Impostos/taxas fora da NF (R$)</label>
+      <input type="text" id="sel-imp-extra" inputmode="decimal" placeholder="0,00" autocomplete="off" class="w-28 min-h-[40px] rounded-lg border-2 border-emerald-300 bg-white px-2 py-1.5 text-sm font-black tabular-nums" title="Soma no total (WhatsApp/boletos) e, na baixa total, gera título quitado no plano Impostos e Taxas variaveis.">
+      <span id="sel-total-imp-hint" class="hidden text-[10px] font-semibold text-emerald-800/90">Total c/ imp.: <span id="sel-total-com-imp" class="tabular-nums font-black">R$ 0,00</span></span>
+    </div>
+    {% endif %}
+
     <div id="sel-bar" class="hidden rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
       <div class="min-w-0 flex-1 space-y-1">
         <div class="text-sm font-black text-emerald-950">
           <span id="sel-count">0</span> selecionado(s) · Soma saldo: <span id="sel-soma" class="tabular-nums text-lg">R$ 0,00</span>
         </div>
-        {% if modo_contas == 'pagar' %}
-        <div id="sel-imp-wrap" class="flex flex-wrap items-center gap-2 text-[11px] font-bold text-emerald-900">
-          <label for="sel-imp-extra" class="shrink-0">Impostos/taxas fora da NF (R$)</label>
-          <input type="text" id="sel-imp-extra" inputmode="decimal" placeholder="0,00" autocomplete="off" class="w-28 min-h-[40px] rounded-lg border-2 border-emerald-300 bg-white px-2 py-1.5 text-sm font-black tabular-nums" title="Soma no total (WhatsApp/boletos) e, na baixa total, gera título quitado no plano Impostos e Taxas variaveis.">
-          <span id="sel-total-imp-hint" class="hidden text-[10px] font-semibold text-emerald-800/90">Total c/ imp.: <span id="sel-total-com-imp" class="tabular-nums font-black">R$ 0,00</span></span>
-        </div>
-        {% endif %}
       </div>
       <div class="flex flex-wrap gap-2">
         <button type="button" id="btn-sel-clear" class="px-3 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-900 font-black text-[10px] uppercase">Limpar seleção</button>
@@ -1345,17 +1346,18 @@
       selecionados.forEach((v) => { soma += v; });
       const bar = document.getElementById('sel-bar');
       const n = selecionados.size;
+      const impEl = document.getElementById('sel-imp-extra');
+      const hint = document.getElementById('sel-total-imp-hint');
+      const totImp = document.getElementById('sel-total-com-imp');
       if (n === 0) {
         bar.classList.add('hidden');
+        if (hint) hint.classList.add('hidden');
         refreshBaixaParcialBtn();
         return;
       }
       bar.classList.remove('hidden');
       document.getElementById('sel-count').textContent = String(n);
       document.getElementById('sel-soma').textContent = brl(soma);
-      const impEl = document.getElementById('sel-imp-extra');
-      const hint = document.getElementById('sel-total-imp-hint');
-      const totImp = document.getElementById('sel-total-com-imp');
       if (impEl && hint && totImp && tipoAtual === 'pagar') {
         const imp = parseValorPt(impEl.value || '');
         const extra = !Number.isNaN(imp) && imp > 0 ? imp : 0;
