@@ -607,6 +607,11 @@
                 <input type="hidden" id="fin-grupo-id" value="">
                 <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
               </div></label>
+            <div class="block md:col-span-2 rounded-xl border-2 border-amber-200 bg-amber-50/80 px-3 py-2">
+              <label for="fin-imposto-extra" class="text-xs font-black uppercase text-amber-950">Impostos/taxas fora da NF (R$)</label>
+              <p class="text-[10px] font-semibold text-amber-900/90 mt-0.5 mb-1 leading-snug">Opcional. Valor <strong>à parte</strong> do total da nota; gera outro título a pagar no plano <strong>Impostos e Taxas variaveis</strong> (mesma forma, conta e fornecedor). Ajuda a somar no total a pagar / boleto.</p>
+              <input type="text" id="fin-imposto-extra" inputmode="decimal" placeholder="0,00" autocomplete="off" class="mt-1 w-full max-w-[12rem] min-h-[44px] rounded-lg border-2 border-amber-300 bg-white px-2 py-2 text-sm font-black tabular-nums">
+            </div>
           </div>
           <div id="fin-parcelas-preview-wrap" class="rounded-xl border border-emerald-300/80 bg-white p-2 mt-2">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
@@ -625,6 +630,7 @@
                 <tbody id="fin-parcelas-preview-tbody" class="divide-y divide-slate-100"></tbody>
                 <tfoot class="bg-slate-50 font-black text-slate-900">
                   <tr><td class="px-2 py-1.5" colspan="3">Total da nota</td><td class="text-right px-2 py-1.5 tabular-nums" id="fin-parcelas-preview-total"></td></tr>
+                  <tr id="fin-parcelas-imp-hint-row" class="hidden bg-emerald-50/90 text-emerald-950 text-[10px] font-black uppercase"><td class="px-2 py-1.5" colspan="3">Total nota + imp. fora NF (ref.)</td><td class="text-right px-2 py-1.5 tabular-nums text-sm" id="fin-parcelas-preview-total-ref"></td></tr>
                 </tfoot>
               </table>
             </div>
@@ -3184,7 +3190,13 @@
       return o;
     }).filter((p) => p.data_vencimento && /^\d{4}-\d{2}-\d{2}$/.test(p.data_vencimento) && p.valor > 0);
     const intD = entradaNfeFinParcelasIntervaloDias();
-    return {
+    let valor_impostos_taxas;
+    const ri = (document.getElementById('fin-imposto-extra')?.value || '').trim();
+    if (ri) {
+      const pv = entradaNfeParseDecimalApi(ri);
+      if (pv != null && Number.isFinite(pv) && pv > 0) valor_impostos_taxas = pv.toFixed(2);
+    }
+    const snap = {
       empresa_nome: document.getElementById('fin-empresa-nome')?.value?.trim() || '',
       empresa_id: document.getElementById('fin-empresa-id')?.value?.trim() || '',
       fin_dc: document.getElementById('fin-dc')?.value || '',
@@ -3204,6 +3216,8 @@
       quitar_ao_salvar: !!document.getElementById('fin-quitar-ao-salvar')?.checked,
       parcelas_preview: parcelas_preview.length ? parcelas_preview : undefined,
     };
+    if (valor_impostos_taxas) snap.valor_impostos_taxas = valor_impostos_taxas;
+    return snap;
   }
 
   function entradaNfeAnexarFinanceiroAoExtra(base) {
@@ -3225,6 +3239,8 @@
     if (!fu) {
       if (legacyInt != null && legacyInt !== '') entradaNfeDefinirIntervaloUIPorDias(legacyInt);
       entradaNfeFinParcelasIntervaloUiSync();
+      const i0 = document.getElementById('fin-imposto-extra');
+      if (i0) i0.value = '';
       return;
     }
     if (fu.empresa_nome != null) document.getElementById('fin-empresa-nome').value = String(fu.empresa_nome);
@@ -3248,6 +3264,15 @@
     if (fu.grupo_id != null) document.getElementById('fin-grupo-id').value = String(fu.grupo_id);
     const q = document.getElementById('fin-quitar-ao-salvar');
     if (q && fu.quitar_ao_salvar != null) q.checked = !!fu.quitar_ao_salvar;
+    const fim = document.getElementById('fin-imposto-extra');
+    if (fim) {
+      if (fu.valor_impostos_taxas != null && String(fu.valor_impostos_taxas).trim() !== '') {
+        const n = Number(String(fu.valor_impostos_taxas).replace(',', '.'));
+        fim.value = Number.isFinite(n) && n > 0 ? String(n).replace('.', ',') : '';
+      } else {
+        fim.value = '';
+      }
+    }
     entradaNfeFinParcelasIntervaloUiSync();
     _finParcForcarPadrao = true;
     entradaNfeAtualizarPreviewParcelas();
@@ -3335,6 +3360,16 @@
       return;
     }
     if (totalEl) totalEl.textContent = totalNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const rowImp = document.getElementById('fin-parcelas-imp-hint-row');
+    const totalRef = document.getElementById('fin-parcelas-preview-total-ref');
+    const rawIm = (document.getElementById('fin-imposto-extra')?.value || '').trim();
+    const imx = rawIm ? entradaNfeParseDecimalApi(rawIm) : null;
+    if (rowImp && totalRef && imx != null && Number.isFinite(imx) && imx > 0) {
+      rowImp.classList.remove('hidden');
+      totalRef.textContent = (totalNota + imx).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    } else if (rowImp) {
+      rowImp.classList.add('hidden');
+    }
     if (warnEl) {
       const diff = Math.round((soma - totalNota) * 100) / 100;
       if (rows.length && Math.abs(diff) > 0.02) {
@@ -3377,6 +3412,7 @@
       tableEl.classList.add('hidden');
       tbodyEl.innerHTML = '';
       document.getElementById('fin-parcelas-sum-warn')?.classList.add('hidden');
+      document.getElementById('fin-parcelas-imp-hint-row')?.classList.add('hidden');
       return;
     }
     if (!dv) {
@@ -3384,6 +3420,7 @@
       tableEl.classList.add('hidden');
       tbodyEl.innerHTML = '';
       document.getElementById('fin-parcelas-sum-warn')?.classList.add('hidden');
+      document.getElementById('fin-parcelas-imp-hint-row')?.classList.add('hidden');
       return;
     }
 
@@ -5442,6 +5479,12 @@
     el.addEventListener('input', sched);
     el.addEventListener('change', sched);
   });
+  document.getElementById('fin-imposto-extra')?.addEventListener('input', () => {
+    entradaNfeAtualizarRodapeParcelas();
+  });
+  document.getElementById('fin-imposto-extra')?.addEventListener('change', () => {
+    entradaNfeAtualizarRodapeParcelas();
+  });
   entradaNfeFinParcelasIntervaloUiSync();
   document.getElementById('btn-fin-parc-recalc')?.addEventListener('click', () => {
     _finParcForcarPadrao = true;
@@ -5689,6 +5732,13 @@
       parcelas_manual: pmCol.parcelas,
       quitar_ao_salvar: !!document.getElementById('fin-quitar-ao-salvar')?.checked,
     };
+    const rawIm = (document.getElementById('fin-imposto-extra')?.value || '').trim();
+    if (rawIm) {
+      const imv = entradaNfeParseDecimalApi(rawIm);
+      if (imv != null && Number.isFinite(imv) && imv > 0) {
+        financeiro.valor_impostos_taxas = imv.toFixed(2);
+      }
+    }
     const exFin = entradaNfeAnexarFinanceiroAoExtra(extra && typeof extra === 'object' ? { ...extra } : {});
     const body = {
       modo,
@@ -5743,7 +5793,8 @@
           if (j.erp_lancamento_ok === true) t += ' ERP: envio aceito.';
           if (j.erp_baixa_ok === true) t += ' ERP: baixa aceita.';
           if (j.aviso_api) t += ' ' + j.aviso_api;
-          showMsg(t, !j.aviso_api);
+          if (j.aviso_impostos) t += ' Atenção (impostos fora da NF): ' + j.aviso_impostos;
+          showMsg(t, !j.aviso_api && !j.aviso_impostos);
         } else if (nIds && !fin.ok) {
           const er = (fin.erros || []).map((x) => (x.linha ? 'L' + x.linha + ': ' : '') + (x.erro || '')).join(' · ');
           showMsg('Entrada salva. Lançamento parcial: ' + (er || 'ver detalhes') + '. IDs: ' + fin.ids.join(', ') + '.', false);
