@@ -346,11 +346,11 @@
           <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-6">
             <label class="inline-flex items-start gap-2 cursor-pointer min-h-[44px] max-w-md">
               <input type="radio" name="nfe-tipo-entrada" id="nfe-tipo-compras" value="compras" checked class="mt-1 h-5 w-5 accent-emerald-600 shrink-0">
-              <span class="text-xs font-bold text-amber-950 leading-snug"><span class="font-black">Compras</span> — custo da NF e financeiro opcional (comportamento atual).</span>
+              <span class="text-xs font-bold text-amber-950 leading-snug"><span class="font-black">Compras</span></span>
             </label>
             <label class="inline-flex items-start gap-2 cursor-pointer min-h-[44px] max-w-md">
               <input type="radio" name="nfe-tipo-entrada" id="nfe-tipo-bonificacao" value="bonificacao" class="mt-1 h-5 w-5 accent-emerald-600 shrink-0">
-              <span class="text-xs font-bold text-amber-950 leading-snug"><span class="font-black">Bonificação</span> — só movimenta estoque; custo unitário da NF tratado como zero na conferência de custo.</span>
+              <span class="text-xs font-bold text-amber-950 leading-snug"><span class="font-black">Bonificação</span></span>
             </label>
           </div>
         </fieldset>
@@ -414,9 +414,6 @@
               title="Abre o cadastro de produtos em nova janela; ao criar no Agro, volte aqui e use Mudar ou a linha de busca embaixo da tabela.">+ Produto novo</button>
           </div>
         </div>
-        <p class="text-[11px] sm:text-xs font-bold text-slate-800 leading-snug rounded-lg border border-violet-200 bg-violet-50/90 px-2.5 py-2">
-          <strong class="text-violet-900">EAN da NF (caixa):</strong> a nota costuma trazer o código da <strong>embalagem</strong>; no Agro o item pode ser a <strong>unidade</strong> com outro EAN. Quando o «Ler XML» não casar, use <strong>Mudar</strong> (ou a busca na linha): ao vincular o produto certo, o Agro <strong>grava o EAN da linha</strong> para esse SKU — na próxima nota o casamento costuma vir sozinho. Opcional: ajuste manual em cadastro (ERP), campo <strong>EAN na NF (embalagem / caixa)</strong>.
-        </p>
         <div id="entrada-nfe-grade-scroll" class="rounded-xl border-2 border-slate-200 bg-white shadow-inner overflow-x-hidden">
         <table class="nfe-grade-itens w-full min-w-0 table-fixed text-xs sm:text-sm border-separate border-spacing-0">
           <colgroup>
