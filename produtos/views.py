@@ -139,8 +139,8 @@ from .mongo_financeiro_util import (
     lancamentos_planos_distintos_no_filtro,
     lancamentos_sugestoes_campo,
     listar_formas_e_bancos_distintos,
+    lancamentos_plano_impostos_taxas_variaveis_resolvido,
     registrar_titulo_juros_apos_baixa_contas_pagar,
-    registrar_titulo_impostos_taxas_variaveis_apos_baixa_contas_pagar,
     montar_payload_erp_baixa,
     montar_payload_erp_lancamentos_novos,
     candidatos_texto_plano_para_api_pedido,
@@ -6801,6 +6801,9 @@ def api_entrada_nota_financeiro(request):
     ``data_vencimento`` é o 1º vencimento; demais parcelas somam o intervalo em dias.
     Opcional ``parcelas_manual``: lista ``[{ "valor", "data_vencimento", "data_competencia"?, "boleto_codigo_barras"? }]``
     com soma igual ao total da nota (tol. 1 centavo); quando enviada, substitui o cálculo automático.
+    Opcional ``valor_impostos_taxas`` (decimal > 0): gera **outro(s)** título(s) a pagar no plano
+    ``Impostos e Taxas variaveis`` (fora do valor das parcelas da NF), mesma forma/conta/fornecedor;
+    o valor é **repartido em N linhas** com as mesmas datas de vencimento/competência das parcelas da NF.
     Opcional ``quitar_ao_salvar`` (bool): grava os títulos a pagar já quitados no Mongo (data de
     pagamento = vencimento de cada parcela) e, se ``VENDA_ERP_API_FINANCEIRO_BAIXA_PATH`` estiver
     configurado, tenta a baixa no ERP após o envio dos lançamentos novos.
@@ -6942,6 +6945,19 @@ def api_entrada_nota_financeiro(request):
         )
 
     quitar_ao_salvar = bool(fin.get("quitar_ao_salvar") or fin.get("quitar_na_entrada"))
+
+    valor_impostos_dec: Decimal | None = None
+    vi_raw = fin.get("valor_impostos_taxas")
+    if vi_raw is not None and str(vi_raw).strip() != "":
+        try:
+            valor_impostos_dec = Decimal(str(vi_raw).replace(",", ".").strip()).quantize(Decimal("0.01"))
+        except Exception:
+            return JsonResponse(
+                {"ok": False, "erro": "Valor de impostos/taxas inválido.", "rascunho": r_rasc},
+                status=400,
+            )
+        if valor_impostos_dec <= 0:
+            valor_impostos_dec = None
 
     modo_lanc = str(fin.get("modo_lancamento") or "unico").strip().lower()
     plano_pad = str(fin.get("plano_padrao") or cab.get("plano_conta") or "").strip()
@@ -7177,8 +7193,88 @@ def api_entrada_nota_financeiro(request):
     )
 
     ok = bool(resultado.get("ok"))
-    ids = resultado.get("ids") or []
-    erros = resultado.get("erros") or []
+    ids = list(resultado.get("ids") or [])
+    erros = list(resultado.get("erros") or [])
+    aviso_impostos = None
+    if ok and ids and valor_impostos_dec and valor_impostos_dec > Decimal("0"):
+        empresa_id_fin = str(fin.get("empresa_id") or "").strip() or None
+        imp_txt, imp_id = resolver_plano_conta_para_pedido_erp(
+            db,
+            texto_config=lancamentos_plano_impostos_taxas_variaveis_resolvido(),
+            id_config=None,
+            empresa_id=empresa_id_fin,
+        )
+        imp_txt = ((imp_txt or "").strip() or lancamentos_plano_impostos_taxas_variaveis_resolvido())[:200]
+        base_obs_imp = (
+            f"Entrada NF-e Agro · chave {cab.get('chave') or '—'} · {cab.get('data_entrada') or ''}"
+        )[:500]
+        nf_num_l = str(cab.get("numero") or "").strip()
+        linhas_fin_nf = [x for x in (linhas_fin or []) if isinstance(x, dict)]
+        if not linhas_fin_nf:
+            linhas_fin_nf = [{"data_vencimento": dv.isoformat(), "data_competencia": dc.isoformat()}]
+        n_imp_lin = len(linhas_fin_nf)
+        vals_imp = split_decimal_em_parcelas(valor_impostos_dec, n_imp_lin)
+        linha_imp = []
+        for i, v_imp in enumerate(vals_imp):
+            row_nf = linhas_fin_nf[i] if i < len(linhas_fin_nf) else linhas_fin_nf[-1]
+            dv_imp = dv
+            dvs0 = str(row_nf.get("data_vencimento") or "").strip()[:10]
+            if dvs0:
+                try:
+                    dv_imp = date.fromisoformat(dvs0)
+                except ValueError:
+                    pass
+            dc_imp_use = dc
+            dcs0 = str(row_nf.get("data_competencia") or "").strip()[:10]
+            if dcs0:
+                try:
+                    dc_imp_use = date.fromisoformat(dcs0)
+                except ValueError:
+                    pass
+            desc_imp_i = (
+                (
+                    f"Impostos/taxas fora da NF · NF {nf_num_l} ({i + 1}/{n_imp_lin})"
+                    if nf_num_l
+                    else f"Impostos/taxas fora da NF (entrada) ({i + 1}/{n_imp_lin})"
+                )
+            )[:500]
+            linha_imp.append(
+                {
+                    "valor": float(v_imp),
+                    "descricao": desc_imp_i,
+                    "plano_conta": imp_txt,
+                    "plano_conta_id": (str(imp_id).strip() if imp_id else None) or None,
+                    "observacao": base_obs_imp,
+                    "data_vencimento": dv_imp.isoformat(),
+                    "data_competencia": dc_imp_use.isoformat(),
+                }
+            )
+        r_imp = inserir_lancamentos_manual_lote(
+            db,
+            despesa=True,
+            empresa_nome=empresa_nome,
+            empresa_id=empresa_id_fin,
+            pessoa_nome=pessoa_nome,
+            pessoa_id=pessoa_id_raw,
+            data_competencia=dc,
+            data_vencimento=dv,
+            banco_nome=banco_nome,
+            banco_id=str(fin.get("banco_id") or "").strip() or None,
+            forma_nome=forma_nome,
+            forma_id=str(fin.get("forma_id") or "").strip() or None,
+            grupo_nome=str(fin.get("grupo_nome") or "").strip() or None,
+            grupo_id=str(fin.get("grupo_id") or "").strip() or None,
+            usuario_label=usuario,
+            linhas=linha_imp,
+            marcar_quitado_pagar=quitar_ao_salvar,
+        )
+        if r_imp.get("ok") and r_imp.get("ids"):
+            ids.extend(str(x) for x in r_imp["ids"])
+        else:
+            ei_l = r_imp.get("erros") or []
+            ei = ei_l[0].get("erro") if ei_l and isinstance(ei_l[0], dict) else None
+            aviso_impostos = str(ei or r_imp.get("erro") or "Falha ao gerar título de impostos/taxas.")[:500]
+
     dup_bloq = 0
     for e in erros:
         if not isinstance(e, dict):
@@ -7254,7 +7350,7 @@ def api_entrada_nota_financeiro(request):
             aviso_api_erp = (aviso_api_erp + " " if aviso_api_erp else "") + ("Baixa ERP: " + suf)
 
     out = {
-        "ok": ok and not erros,
+        "ok": ok and not erros and not bool(aviso_impostos),
         "rascunho": r_rasc,
         "financeiro": {
             "ok": ok,
@@ -7264,6 +7360,8 @@ def api_entrada_nota_financeiro(request):
             "quitar_ao_salvar": quitar_ao_salvar,
         },
     }
+    if aviso_impostos:
+        out["aviso_impostos"] = aviso_impostos
     if erp_lanc_ok is not None:
         out["erp_lancamento_ok"] = erp_lanc_ok
     if erp_baixa_ok is not None:
@@ -7276,7 +7374,7 @@ def api_entrada_nota_financeiro(request):
             mf = marcar_rascunho_financeiro_lancado(db, rid_fin, ids=ids, usuario=usuario)
             if not mf.get("ok"):
                 out["aviso_financeiro_rascunho"] = mf.get("erro")
-    st = 200 if ok and not erros else (207 if ids else 400)
+    st = 200 if ok and not erros and not aviso_impostos else (207 if ids else 400)
     return JsonResponse(out, status=st)
 
 
@@ -7876,16 +7974,6 @@ def api_lancamentos_baixa(request):
         if valor_juros_dec <= 0:
             valor_juros_dec = None
 
-    valor_impostos_dec: Decimal | None = None
-    vi_raw = payload.get("valor_impostos_taxas")
-    if vi_raw is not None and str(vi_raw).strip() != "":
-        try:
-            valor_impostos_dec = Decimal(str(vi_raw).replace(",", ".").strip()).quantize(Decimal("0.01"))
-        except Exception:
-            return JsonResponse({"ok": False, "erro": "Valor de impostos/taxas inválido."}, status=400)
-        if valor_impostos_dec <= 0:
-            valor_impostos_dec = None
-
     tz = timezone.get_current_timezone()
     data_movimento = timezone.make_aware(datetime.combine(dmov, dtime(12, 0, 0)), tz)
 
@@ -7952,25 +8040,6 @@ def api_lancamentos_baixa(request):
         else:
             aviso_juros = str(rj.get("erro") or "Não foi possível registrar o título de juros.")[:800]
 
-    aviso_impostos = None
-    impostos_id = None
-    if despesa and valor_impostos_dec and valor_impostos_dec > 0 and atual:
-        ri = registrar_titulo_impostos_taxas_variaveis_apos_baixa_contas_pagar(
-            db,
-            mongo_id_titulo_referencia=str(atual[0]),
-            valor_impostos=valor_impostos_dec,
-            data_movimento=dmov,
-            forma_nome=forma_nome,
-            forma_id=str(forma_id).strip() if forma_id else None,
-            banco_nome=banco_nome,
-            banco_id=str(banco_id).strip() if banco_id else None,
-            usuario_label=usuario,
-        )
-        if ri.get("ok"):
-            impostos_id = ri.get("id")
-        else:
-            aviso_impostos = str(ri.get("erro") or "Não foi possível registrar o título de impostos/taxas.")[:800]
-
     if ok_all:
         http_st = 200
     elif atual:
@@ -7990,10 +8059,6 @@ def api_lancamentos_baixa(request):
         out_j["juros_id"] = juros_id
     if aviso_juros:
         out_j["aviso_juros"] = aviso_juros
-    if impostos_id:
-        out_j["impostos_id"] = impostos_id
-    if aviso_impostos:
-        out_j["aviso_impostos"] = aviso_impostos
     return JsonResponse(out_j, status=http_st)
 
 
