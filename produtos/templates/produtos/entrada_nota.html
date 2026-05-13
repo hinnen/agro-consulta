@@ -285,6 +285,7 @@
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="estoque" title="Grade ok; falta registrar entrada no estoque Agro.">Estoque</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="financeiro" title="Estoque já feito; falta gerar a pagar (Salvar + a pagar), se for o caso.">Financeiro</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="finalizar" title="Estoque + financeiro ok; falta gravar a finalização com PIN (etapa 6 do assistente).">Finalizar</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="correcao_sistemica" title="Notas em andamento marcadas manualmente como CORREÇÃO SISTEMICA (aguardando ajuste no sistema).">Correção sistemica</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="concluida" title="PIN da etapa 6 gravado no Agro (finalização do assistente).">Concluída</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="encerrada" title="Entradas antigas marcadas como encerradas (antes do fluxo só estoque + financeiro).">Encerr. legado</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="descartada" title="Marcada como descartada.">Descartada</button>
@@ -1311,7 +1312,12 @@
       });
       const j = await r.json();
       if (j.ok) {
-        showMsg(acao === 'descartar' ? 'Nota descartada.' : 'Nota reaberta.', true);
+        let msg = 'Atualizado.';
+        if (acao === 'descartar') msg = 'Nota descartada.';
+        else if (acao === 'reabrir') msg = 'Nota reaberta.';
+        else if (acao === 'correcao_sistemica_on') msg = 'Marcada como CORREÇÃO SISTEMICA.';
+        else if (acao === 'correcao_sistemica_off') msg = 'Marca CORREÇÃO SISTEMICA removida.';
+        showMsg(msg, true);
         carregarRascunhos();
       } else {
         showMsg(j.erro || 'Não foi possível alterar o status.', false);
@@ -4894,8 +4900,10 @@
   }
 
   /**
-   * Mesmo motor da consulta / orçamento: `GET /api/buscar/?q=…` + `compras=1` (custo/margem na NF).
-   * Sem catálogo local nem `wizard=1` (evita ordenação diferente e subset do Mongo).
+   * Sugestões na grade: mesmo request base da consulta — `GET /api/buscar/?q=…` **sem** `compras=1`.
+   * Com `compras=1`, o servidor calcula últimas compras para até ~80 itens por tecla (lento e pode
+   * atrasar resultados que a consulta já mostra via índice local + merge). Custo/margem na linha
+   * vêm de `entradaNfeEnriquecerLinhaAposEscolherCatalogo` (detalhe por id + fallback compras).
    */
   let _entradaNfeBuscaSeq = 0;
   async function entradaNfeBuscarProdutosArr(termo) {
@@ -4905,7 +4913,6 @@
     try {
       const u = new URL(URL_BUSCA, window.location.origin);
       u.searchParams.set('q', t);
-      u.searchParams.set('compras', '1');
       const r = await fetch(u.toString(), { credentials: 'same-origin' });
       if (sid !== _entradaNfeBuscaSeq) return null;
       if (!r.ok) return [];
@@ -5140,7 +5147,7 @@
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
           .replace(/"/g, '&quot;');
-        lastArr.slice(0, 22).forEach((p, i) => {
+        lastArr.slice(0, 60).forEach((p, i) => {
           const li = document.createElement('li');
           li.className = 'nfe-sug-item';
           li.setAttribute('role', 'presentation');
@@ -5157,7 +5164,7 @@
         });
         sugHl = lastArr.length ? 0 : -1;
         renderHighlight();
-        const nShow = Math.min(lastArr.length, 22);
+        const nShow = Math.min(lastArr.length, 60);
         entradaNfeSentinelFeedbackSet(`${nShow} na lista`);
         entradaNfeLinhaCompactaSincDdPos(busca, dd);
       } catch (_) {
@@ -5352,7 +5359,7 @@
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/"/g, '&quot;');
-      arr.slice(0, 40).forEach((p, ix) => {
+      arr.slice(0, 60).forEach((p, ix) => {
         const li = document.createElement('li');
         li.className = 'modal-prod-li-sel nfe-sug-item';
         li.setAttribute('role', 'presentation');
@@ -6241,6 +6248,15 @@
           pill.textContent = it.entrada_status_label || eff;
           chipRow.appendChild(pill);
         }
+        if (it.entrada_correcao_sistemica) {
+          const cx = document.createElement('span');
+          cx.className =
+            'text-[10px] font-black uppercase px-2 py-0.5 rounded-lg bg-rose-100 text-rose-950 border border-rose-500 shrink-0';
+          cx.textContent = 'CORREÇÃO SISTEMICA';
+          cx.title =
+            'Marcado pelo usuário: aguardando ajuste no sistema. A nota continua na mesma fila operacional até concluir o fluxo.';
+          chipRow.appendChild(cx);
+        }
         const textBlock = document.createElement('div');
         textBlock.className = 'min-w-0 flex-1 flex flex-col gap-0.5';
         const nomeForn = document.createElement('div');
@@ -6288,6 +6304,36 @@
             () => carregarRascunhoNaTela(rid),
           ),
         );
+        const exL = it.extra && typeof it.extra === 'object' ? it.extra : {};
+        const finalWiz = String(exL.aprovacao_wizard_em || '').trim();
+        if (eff !== 'descartada' && !finalWiz) {
+          if (it.entrada_correcao_sistemica) {
+            actions.appendChild(
+              mkBtn(
+                'Retirar marca',
+                `${baseAct} border-2 border-rose-300 text-rose-900 hover:bg-rose-50`,
+                () => {
+                  if (window.confirm('Remover a marca CORREÇÃO SISTEMICA desta nota?')) entradaNfeRascunhoAcao(rid, 'correcao_sistemica_off');
+                },
+              ),
+            );
+          } else {
+            actions.appendChild(
+              mkBtn(
+                'Correção sistemica',
+                `${baseAct} border-2 border-rose-400 text-rose-950 hover:bg-rose-50`,
+                () => {
+                  if (
+                    window.confirm(
+                      'Marcar como CORREÇÃO SISTEMICA? A nota continua em andamento na mesma fila (Nota aberta, Estoque, etc.) até concluir o fluxo.',
+                    )
+                  )
+                    entradaNfeRascunhoAcao(rid, 'correcao_sistemica_on');
+                },
+              ),
+            );
+          }
+        }
         if (eff !== 'descartada') {
           actions.appendChild(
             mkBtn(

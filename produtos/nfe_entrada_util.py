@@ -142,6 +142,18 @@ def _entrada_nfe_extra_finalizacao_ok(extra: Any) -> bool:
     return bool(str(extra.get("aprovacao_wizard_em") or "").strip())
 
 
+def _entrada_nfe_extra_correcao_sistemica(extra: Any) -> bool:
+    """Marca manual (lista Entrada NF-e): aguardando correção no sistema — não altera fila operacional."""
+    if not isinstance(extra, dict):
+        return False
+    v = extra.get("correcao_sistemica")
+    if v is True:
+        return True
+    if isinstance(v, str) and v.strip().lower() in ("1", "true", "sim", "yes"):
+        return True
+    return False
+
+
 def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
     """
     Estágio exclusivo para filtros da lista (Entrada NF-e), alinhado ao fluxo:
@@ -182,6 +194,7 @@ def entrada_nfe_enriquecer_doc_serializado(d: dict[str, Any]) -> dict[str, Any]:
     d["entrada_status_label"] = ui["label"]
     d["entrada_financeiro_lancado"] = entrada_nfe_extra_financeiro_ok(extra)
     d["entrada_lista_bucket"] = entrada_nfe_fila_bucket_lista(d)
+    d["entrada_correcao_sistemica"] = _entrada_nfe_extra_correcao_sistemica(extra)
     return d
 
 
@@ -518,6 +531,7 @@ def listar_rascunhos_entrada(db, limit: int = 30, *, filtro: str | None = None) 
                 "descartada",
                 "encerrada",
                 "em_andamento",
+                "correcao_sistemica",
                 "estoque_aplicado_legacy",
                 "financeiro_lancado_legacy",
                 "encerrada_legacy",
@@ -532,6 +546,14 @@ def listar_rascunhos_entrada(db, limit: int = 30, *, filtro: str | None = None) 
             b = str(item.get("entrada_lista_bucket") or "")
             if f == "em_andamento":
                 if b in ("nota_aberta", "estoque", "financeiro", "finalizar"):
+                    filtrados.append(item)
+            elif f == "correcao_sistemica":
+                if item.get("entrada_correcao_sistemica") and b in (
+                    "nota_aberta",
+                    "estoque",
+                    "financeiro",
+                    "finalizar",
+                ):
                     filtrados.append(item)
             elif f == "estoque_aplicado_legacy" and eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
                 filtrados.append(item)
@@ -953,7 +975,7 @@ def pipeline_acao_rascunho_entrada(
     *,
     usuario: str = "",
 ) -> dict[str, Any]:
-    """descartar | reabrir — altera só ``status`` (e timestamps).
+    """descartar | reabrir | correcao_sistemica_on | correcao_sistemica_off.
 
     ``encerrar`` está desativado: a lista trata **Concluída** só com estoque aplicado + financeiro.
     """
@@ -981,8 +1003,44 @@ def pipeline_acao_rascunho_entrada(
             if st not in (ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA):
                 return {"ok": False, "erro": "Só é possível reabrir notas encerradas ou descartadas."}
             novo = entrada_nfe_status_derivado_linhas(linhas)
+        elif ac in ("correcao_sistemica_on", "correcao_sistemica_off"):
+            ex0 = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+            if str(ex0.get("aprovacao_wizard_em") or "").strip():
+                return {
+                    "ok": False,
+                    "erro": "Nota já finalizada no assistente — não é possível alterar esta marca.",
+                }
+            if st == ENTRADA_NFE_STATUS_DESCARTADA:
+                return {"ok": False, "erro": "Nota descartada."}
+            if ac == "correcao_sistemica_on":
+                db[COL_ENTRADA_RASCUNHO].update_one(
+                    {"_id": _id},
+                    {
+                        "$set": {
+                            "extra.correcao_sistemica": True,
+                            "extra.correcao_sistemica_em": agora.isoformat(),
+                            "atualizado_em": agora,
+                            "usuario_ultima_alteracao": (usuario or "")[:200],
+                        }
+                    },
+                )
+            else:
+                db[COL_ENTRADA_RASCUNHO].update_one(
+                    {"_id": _id},
+                    {
+                        "$unset": {
+                            "extra.correcao_sistemica": "",
+                            "extra.correcao_sistemica_em": "",
+                        },
+                        "$set": {
+                            "atualizado_em": agora,
+                            "usuario_ultima_alteracao": (usuario or "")[:200],
+                        },
+                    },
+                )
+            return {"ok": True, "id": str(_id), "correcao_sistemica": ac == "correcao_sistemica_on"}
         else:
-            return {"ok": False, "erro": "Ação inválida (use descartar ou reabrir)."}
+            return {"ok": False, "erro": "Ação inválida."}
         db[COL_ENTRADA_RASCUNHO].update_one(
             {"_id": _id},
             {

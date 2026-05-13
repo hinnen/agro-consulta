@@ -5694,7 +5694,7 @@ def api_entrada_nota_rascunho_atualizar(request):
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_entrada_nota_rascunho_acao(request):
-    """Descartar ou reabrir nota (rascunho) na listagem. Encerrar manual está desativado."""
+    """Descartar, reabrir ou marcar/desmarcar correção sistêmica (extra no rascunho). Encerrar manual está desativado."""
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -5805,6 +5805,92 @@ def _saldo_final_agro_com_pin(produto_id: str, deposito: str, saldo_erp: Decimal
     ref = Decimal(str(aj.saldo_erp_referencia))
     inf = Decimal(str(aj.saldo_informado))
     return (inf + (saldo_erp - ref)).quantize(Decimal("0.001"))
+
+
+def _saldo_final_agro_com_pin_de_map(
+    pin_latest: dict[tuple[str, str], object],
+    produto_id: str,
+    deposito: str,
+    saldo_erp: Decimal,
+) -> Decimal:
+    """Mesma regra que ``_saldo_final_agro_com_pin`` usando mapa pré-carregado (uma query Django)."""
+    aj = pin_latest.get((str(produto_id).strip(), str(deposito).strip()))
+    if aj is None:
+        return saldo_erp.quantize(Decimal("0.001"))
+    ref = Decimal(str(getattr(aj, "saldo_erp_referencia", 0)))
+    inf = Decimal(str(getattr(aj, "saldo_informado", 0)))
+    return (inf + (saldo_erp - ref)).quantize(Decimal("0.001"))
+
+
+def _saldos_erp_produtos_depositos_batch(
+    db, client_m, pids_ord: list[str]
+) -> dict[tuple[str, str], Decimal]:
+    """Soma ``Saldo`` (Mongo ERP) por (produto_id, centro|vila) — uma leitura para a prévia etapa 6."""
+    out: dict[tuple[str, str], Decimal] = {}
+    if db is None or client_m is None:
+        return out
+    uniq: list[str] = []
+    seen: set[str] = set()
+    for raw in pids_ord:
+        p = str(raw or "").strip()
+        if not p or p.lower().startswith("local:") or p in seen:
+            continue
+        seen.add(p)
+        uniq.append(p)
+    if not uniq:
+        return out
+    dep_c = client_m.DEPOSITO_CENTRO
+    dep_v = client_m.DEPOSITO_VILA_ELIAS
+    for p in uniq:
+        out[(p, "centro")] = Decimal("0")
+        out[(p, "vila")] = Decimal("0")
+    try:
+        cur = db[client_m.col_e].find({"ProdutoID": {"$in": uniq}, "DepositoID": {"$in": [dep_c, dep_v]}})
+    except Exception:
+        return out
+    for e in cur:
+        raw_pid = e.get("ProdutoID")
+        pid = str(raw_pid).strip() if raw_pid is not None else ""
+        did = e.get("DepositoID")
+        if not pid:
+            continue
+        dep = None
+        if did == dep_c:
+            dep = "centro"
+        elif did == dep_v:
+            dep = "vila"
+        if not dep:
+            continue
+        k = (pid, dep)
+        if k not in out:
+            out[k] = Decimal("0")
+        out[k] = (out[k] + Decimal(str(float(e.get("Saldo") or 0)))).quantize(Decimal("0.001"))
+    for k in list(out.keys()):
+        out[k] = out[k].quantize(Decimal("0.001"))
+    return out
+
+
+def _pin_ajustes_latest_por_produtos_depositos(pids_ord: list[str]) -> dict[tuple[str, str], object]:
+    """Último ``AjusteRapidoEstoque`` por (produto_externo_id, deposito) numa ida ao Postgres."""
+    out: dict[tuple[str, str], object] = {}
+    uniq: list[str] = []
+    seen: set[str] = set()
+    for raw in pids_ord:
+        p = str(raw or "").strip()
+        if not p or p.lower().startswith("local:") or p in seen:
+            continue
+        seen.add(p)
+        uniq.append(p)
+    if not uniq:
+        return out
+    qs = AjusteRapidoEstoque.objects.filter(
+        produto_externo_id__in=uniq, deposito__in=["centro", "vila"]
+    ).order_by("produto_externo_id", "deposito", "-criado_em")
+    for aj in qs:
+        key = (str(aj.produto_externo_id).strip(), str(aj.deposito).strip())
+        if key not in out:
+            out[key] = aj
+    return out
 
 
 OBSERVACAO_BAIXA_VENCIMENTO_LOJA = "Vencimento em Loja"
@@ -6612,7 +6698,60 @@ def _entrada_nfe_data_nf_cab_iso(cab: dict | None) -> str:
     return ""
 
 
-def _entrada_nfe_compras_mapa_batch_para_spark(db, client_m, linhas: list) -> dict[str, list]:
+def _produtos_mongo_map_por_ids_externos_batch(db, client_m, pids_ord: list[str]) -> dict[str, dict]:
+    """Espelho de produtos por Id externo — reduz N× ``find_one`` na prévia etapa 6."""
+    if db is None or client_m is None:
+        return {}
+    uniq: list[str] = []
+    seen: set[str] = set()
+    for raw in pids_ord:
+        p = str(raw or "").strip()
+        if not p or p.lower().startswith("local:") or p in seen:
+            continue
+        seen.add(p)
+        uniq.append(p)
+    if not uniq:
+        return {}
+    col = client_m.col_p
+    id_candidates: list = []
+    for p in uniq:
+        id_candidates.append(p)
+        try:
+            n = int(p)
+            id_candidates.append(n)
+        except (TypeError, ValueError):
+            pass
+    id_candidates = list(dict.fromkeys(id_candidates))
+    by_norm: dict[str, dict] = {}
+    try:
+        for doc in db[col].find({"Id": {"$in": id_candidates}}):
+            if not isinstance(doc, dict):
+                continue
+            ik = doc.get("Id")
+            if ik is None:
+                continue
+            k = str(ik).strip()
+            if k:
+                by_norm[k] = doc
+    except Exception:
+        by_norm = {}
+    out: dict[str, dict] = {}
+    for p in uniq:
+        if p in by_norm:
+            out[p] = by_norm[p]
+            continue
+        doc = _produto_mongo_por_id_externo(db, client_m, p)
+        out[p] = doc if isinstance(doc, dict) else {}
+    return out
+
+
+def _entrada_nfe_compras_mapa_batch_para_spark(
+    db,
+    client_m,
+    linhas: list,
+    *,
+    produtos_por_id: dict[str, dict] | None = None,
+) -> dict[str, list]:
     """
     Uma chamada a ``_ultimas_compras_por_produto_ids`` para todos os produtos da grade,
     evitando N× a mesma agregação na prévia da etapa 6.
@@ -6627,7 +6766,13 @@ def _entrada_nfe_compras_mapa_batch_para_spark(db, client_m, linhas: list) -> di
             continue
         if pid in por_id:
             continue
-        por_id[pid] = _produto_mongo_por_id_externo(db, client_m, pid) or {}
+        if produtos_por_id is not None:
+            if pid in produtos_por_id and isinstance(produtos_por_id[pid], dict):
+                por_id[pid] = produtos_por_id[pid]
+            else:
+                por_id[pid] = _produto_mongo_por_id_externo(db, client_m, pid) or {}
+        else:
+            por_id[pid] = _produto_mongo_por_id_externo(db, client_m, pid) or {}
         pids_ord.append(pid)
     if not pids_ord:
         return {}
@@ -6695,6 +6840,9 @@ def _entrada_nfe_preview_custo_linha(
     extra: dict | None,
     linha_ix: int,
     compras_mapa: dict[str, list] | None = None,
+    produto_doc: dict | None = None,
+    saldos_erp_batch: dict[tuple[str, str], Decimal] | None = None,
+    pin_latest: dict[tuple[str, str], object] | None = None,
 ) -> dict[str, Any]:
     """Pré-cálculo de custo (média C+V vs NF) para uma linha da entrada NF-e."""
     pid = str(ln.get("produto_id") or "").strip()
@@ -6720,10 +6868,18 @@ def _entrada_nfe_preview_custo_linha(
     custo_nota = Decimal("0") if tipo == "bonificacao" else _entrada_nfe_decimal_v_un(ln)
     custo_nota = custo_nota.quantize(Decimal("0.01"))
 
-    saldo_erp_c = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "centro")
-    saldo_erp_v = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "vila")
-    sc = _saldo_final_agro_com_pin(pid, "centro", saldo_erp_c)
-    sv = _saldo_final_agro_com_pin(pid, "vila", saldo_erp_v)
+    if saldos_erp_batch is not None:
+        saldo_erp_c = saldos_erp_batch.get((pid, "centro"), Decimal("0"))
+        saldo_erp_v = saldos_erp_batch.get((pid, "vila"), Decimal("0"))
+    else:
+        saldo_erp_c = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "centro")
+        saldo_erp_v = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "vila")
+    if pin_latest is not None:
+        sc = _saldo_final_agro_com_pin_de_map(pin_latest, pid, "centro", saldo_erp_c)
+        sv = _saldo_final_agro_com_pin_de_map(pin_latest, pid, "vila", saldo_erp_v)
+    else:
+        sc = _saldo_final_agro_com_pin(pid, "centro", saldo_erp_c)
+        sv = _saldo_final_agro_com_pin(pid, "vila", saldo_erp_v)
     if _entrada_nfe_estoque_agro_ja_aplicado(extra):
         if dep_n == "centro":
             sc = sc - q_in
@@ -6734,7 +6890,10 @@ def _entrada_nfe_preview_custo_linha(
         if sv < 0:
             sv = Decimal("0")
     s_tot = (sc + sv).quantize(Decimal("0.001"))
-    doc = _produto_mongo_por_id_externo(db, client_m, pid) or {}
+    if produto_doc is not None:
+        doc = produto_doc if isinstance(produto_doc, dict) else {}
+    else:
+        doc = _produto_mongo_por_id_externo(db, client_m, pid) or {}
     nome = str(doc.get("Nome") or ln.get("x_prod") or "")[:200]
     custo_prev = doc.get("PrecoCusto")
     if custo_prev is None:
@@ -6825,7 +6984,21 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
                 escolhas[ks] = vs
     col = client_m.col_p
     ids_erp: list[str] = []
-    compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(db, client_m, linhas)
+    uniq_pids: list[str] = []
+    seen_u: set[str] = set()
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            continue
+        p = str(ln.get("produto_id") or "").strip()
+        if p and not p.lower().startswith("local:") and p not in seen_u:
+            seen_u.add(p)
+            uniq_pids.append(p)
+    docs_map = _produtos_mongo_map_por_ids_externos_batch(db, client_m, uniq_pids)
+    saldos_map = _saldos_erp_produtos_depositos_batch(db, client_m, uniq_pids)
+    pin_map = _pin_ajustes_latest_por_produtos_depositos(uniq_pids)
+    compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(
+        db, client_m, linhas, produtos_por_id=docs_map
+    )
     for ix, ln in enumerate(linhas):
         if not isinstance(ln, dict):
             continue
@@ -6840,6 +7013,9 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
             extra=ex,
             linha_ix=ix,
             compras_mapa=compras_mapa,
+            produto_doc=docs_map.get(pid),
+            saldos_erp_batch=saldos_map,
+            pin_latest=pin_map,
         )
         if not prev.get("ok"):
             continue
@@ -6857,7 +7033,9 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
         if tipo == "bonificacao" and modo == "nota":
             val = Decimal("0").quantize(Decimal("0.01"))
         try:
-            doc_ln = _produto_mongo_por_id_externo(db, client_m, pid)
+            doc_ln = docs_map.get(pid)
+            if not isinstance(doc_ln, dict) or not doc_ln:
+                doc_ln = _produto_mongo_por_id_externo(db, client_m, pid) or {}
             id_u = pid
             if isinstance(doc_ln, dict):
                 id_u = str(doc_ln.get("Id") or "").strip() or str(doc_ln.get("_id") or "").strip() or pid
@@ -6901,11 +7079,26 @@ def api_entrada_nota_preview_custo(request):
     cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
     linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
     extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
-    compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(db, client, linhas)
+    uniq_pids: list[str] = []
+    seen_u: set[str] = set()
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            continue
+        p = str(ln.get("produto_id") or "").strip()
+        if p and not p.lower().startswith("local:") and p not in seen_u:
+            seen_u.add(p)
+            uniq_pids.append(p)
+    docs_map = _produtos_mongo_map_por_ids_externos_batch(db, client, uniq_pids)
+    saldos_map = _saldos_erp_produtos_depositos_batch(db, client, uniq_pids)
+    pin_map = _pin_ajustes_latest_por_produtos_depositos(uniq_pids)
+    compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(
+        db, client, linhas, produtos_por_id=docs_map
+    )
     itens = []
     for ix, ln in enumerate(linhas):
         if not isinstance(ln, dict):
             continue
+        pid_linha = str(ln.get("produto_id") or "").strip()
         itens.append(
             _entrada_nfe_preview_custo_linha(
                 db=db,
@@ -6915,6 +7108,9 @@ def api_entrada_nota_preview_custo(request):
                 extra=extra,
                 linha_ix=ix,
                 compras_mapa=compras_mapa,
+                produto_doc=docs_map.get(pid_linha) if pid_linha else None,
+                saldos_erp_batch=saldos_map,
+                pin_latest=pin_map,
             )
         )
     return JsonResponse({"ok": True, "itens": itens, "tipo_entrada": _entrada_nfe_tipo_entrada(extra)})
