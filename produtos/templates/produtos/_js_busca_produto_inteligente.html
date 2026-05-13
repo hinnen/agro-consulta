@@ -101,15 +101,35 @@
     }
 
     function codigosSoDigitosProduto(p) {
-        const raw = [p.codigo_nfe, p.codigo_barras, p.codigo, p.ean];
+        const raw = [
+            p.codigo_nfe,
+            p.codigo_barras,
+            p.codigo,
+            p.ean,
+            p.referencia,
+            p.sku,
+            p.codigo_fornecedor,
+            p.codigo_interno,
+        ];
+        if (Array.isArray(p.index_codigos)) {
+            p.index_codigos.forEach((x) => raw.push(x));
+        }
         return raw
             .map(x => String(x ?? '').replace(/\D/g, ''))
             .filter(c => c.length > 0);
     }
 
+    function termoIgualAlgumIndexCodigo(termoNorm, p) {
+        if (!termoNorm || !Array.isArray(p.index_codigos)) return false;
+        const t = String(termoNorm).trim();
+        if (!t) return false;
+        return p.index_codigos.some((x) => normalizarBuscaLocal(String(x ?? '')) === t);
+    }
+
     function casaCodigoNumericoNoProduto(palavraBruta, p) {
         const d = String(palavraBruta || '').replace(/\D/g, '');
         if (d.length < 4) return false;
+        if (termoIgualAlgumIndexCodigo(normalizarBuscaLocal(String(palavraBruta || '')), p)) return true;
         return codigosSoDigitosProduto(p).some(c => {
             if (c === d) return true;
             if (d.length >= 6 && (c.endsWith(d) || c.includes(d))) return true;
@@ -180,6 +200,7 @@
             return pool.filter(p => {
                 const hay = textoBuscaProdutoNormalizado(p);
                 if (hay.includes(termo)) return true;
+                if (termoIgualAlgumIndexCodigo(termo, p)) return true;
                 const nfe = normalizarBuscaLocal(String(p.codigo_nfe ?? ''));
                 const cb = normalizarBuscaLocal(String(p.codigo_barras ?? ''));
                 if (termo === nfe || termo === cb) return true;
