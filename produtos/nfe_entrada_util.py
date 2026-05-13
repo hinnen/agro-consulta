@@ -145,9 +145,10 @@ def _entrada_nfe_extra_finalizacao_ok(extra: Any) -> bool:
 def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
     """
     Estágio exclusivo para filtros da lista (Entrada NF-e), alinhado ao fluxo:
-    Nota aberta → Estoque → Financeiro → Concluída; Descartada à parte.
+    Nota aberta → Estoque → Financeiro → Finalizar (PIN etapa 6) → Concluída; Descartada à parte.
 
-    **Concluída** só com estoque Agro aplicado **e** financeiro (a pagar) lançado.
+    **Concluída** só com finalização do assistente (``extra.aprovacao_wizard_em`` / PIN etapa 6),
+    alinhado ao chip verde do passo 6. Estoque + financeiro sem PIN ficam em **finalizar**.
     Status ``encerrada`` (legado, antes só por botão) fica em fila própria, não em Concluída.
     """
     eff = str(d.get("entrada_status_efetivo") or "")
@@ -159,17 +160,16 @@ def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
         return "descartada"
     if eff == ENTRADA_NFE_STATUS_ENCERRADA:
         return "encerrada"
-    # Finalização (etapa 6) registrada: tira da fila Estoque e trata como concluída.
     if final_ok:
-        return "concluida"
-    if fin_ok and eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
         return "concluida"
     if eff == ENTRADA_NFE_STATUS_COM_PENDENCIAS:
         return "nota_aberta"
     if eff == ENTRADA_NFE_STATUS_PRONTA:
         return "estoque" if wizard_ok else "nota_aberta"
-    if eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO and not fin_ok:
-        return "financeiro"
+    if eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
+        if not fin_ok:
+            return "financeiro"
+        return "finalizar"
     return "nota_aberta"
 
 
@@ -513,6 +513,7 @@ def listar_rascunhos_entrada(db, limit: int = 30, *, filtro: str | None = None) 
                 "nota_aberta",
                 "estoque",
                 "financeiro",
+                "finalizar",
                 "concluida",
                 "descartada",
                 "encerrada",
@@ -530,7 +531,7 @@ def listar_rascunhos_entrada(db, limit: int = 30, *, filtro: str | None = None) 
             fin_ok = bool(item.get("entrada_financeiro_lancado"))
             b = str(item.get("entrada_lista_bucket") or "")
             if f == "em_andamento":
-                if b in ("nota_aberta", "estoque", "financeiro"):
+                if b in ("nota_aberta", "estoque", "financeiro", "finalizar"):
                     filtrados.append(item)
             elif f == "estoque_aplicado_legacy" and eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
                 filtrados.append(item)
