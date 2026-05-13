@@ -2910,8 +2910,10 @@ def _ultimas_compras_por_produto_ids(
             except Exception as exc:
                 logger.warning("ultimas_compras find %s: %s", col_p, exc)
                 continue
-        spid = str(pid)
-        evs = eventos.get(spid, [])
+
+    for spid in p_ids:
+        spid = str(spid)
+        evs = list(eventos.get(spid, []))
         evs.sort(key=lambda e: _mongo_dt_sort_key(e.get("dt")), reverse=True)
         deduped = []
         seen_k = set()
@@ -2935,6 +2937,7 @@ def _ultimas_compras_por_produto_ids(
             if len(deduped) >= limit:
                 break
         p_doc = produtos_por_id.get(spid)
+        rows_out: list[dict] = []
         for e in deduped:
             pf = _preco_unitario_entrada_com_acrescimo_cadastro(
                 p_doc, e.get("unit_base") or 0, bool(e.get("unit_ja_final"))
@@ -2950,7 +2953,7 @@ def _ultimas_compras_por_produto_ids(
             except (TypeError, ValueError):
                 qtdv = 0.0
             forn = (e.get("fornecedor") or "—")[:200]
-            out_map[spid].append(
+            rows_out.append(
                 {
                     "fornecedor": forn,
                     "preco_final": round(float(pf), 2),
@@ -2966,6 +2969,7 @@ def _ultimas_compras_por_produto_ids(
                     },
                 }
             )
+        out_map[spid] = rows_out
     return out_map
 
 
