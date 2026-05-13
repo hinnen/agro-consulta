@@ -2388,10 +2388,36 @@
       : {};
     try {
       const r = await fetch(`${URL_PREVIEW_CUSTO}?id=${encodeURIComponent(rid)}`, { credentials: 'same-origin' });
-      const j = await r.json();
+      const raw = await r.text();
+      let j = null;
+      try {
+        j = raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        list.innerHTML = '';
+        const st = r.status || 0;
+        entradaNfeWizCustoHintShow(
+          st
+            ? `Prévia de custo: resposta não é JSON (HTTP ${st}). Pode ser falha no servidor — tente «Atualizar» na lista ou abra de novo.`
+            : 'Prévia de custo: resposta inválida do servidor. Tente de novo.',
+          'err',
+        );
+        return;
+      }
+      if (!j || typeof j !== 'object') {
+        list.innerHTML = '';
+        entradaNfeWizCustoHintShow('Prévia de custo: resposta vazia ou inválida.', 'err');
+        return;
+      }
       if (!r.ok || !j.ok || !Array.isArray(j.itens)) {
         list.innerHTML = '';
-        entradaNfeWizCustoHintShow(j.erro || 'Não foi possível carregar a prévia de custo.', 'err');
+        const apiErr = String(j.erro || j.detail || j.message || '').trim();
+        const st = r.status || 0;
+        const msg = apiErr
+          ? apiErr.slice(0, 400)
+          : st
+            ? `Prévia de custo indisponível (HTTP ${st}).`
+            : 'Não foi possível carregar a prévia de custo.';
+        entradaNfeWizCustoHintShow(msg, 'err');
         return;
       }
       const parts = [];
@@ -2507,7 +2533,10 @@
       entradaNfeWizCustoHintShow('', null);
     } catch (_) {
       list.innerHTML = '';
-      entradaNfeWizCustoHintShow('Erro de rede ao carregar prévia de custo.', 'err');
+      entradaNfeWizCustoHintShow(
+        'Sem resposta do servidor ao carregar a prévia de custo. Verifique a conexão ou tente de novo em instantes.',
+        'err',
+      );
     }
   }
 
