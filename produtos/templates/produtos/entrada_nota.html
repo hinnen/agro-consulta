@@ -280,11 +280,12 @@
       </div>
       <div class="px-2 sm:px-3 py-2 flex flex-wrap gap-1.5 border-b border-slate-100 bg-slate-50/80 shrink-0" id="entrada-nfe-filtros-wrap" role="toolbar" aria-label="Fila da nota (cada nota aparece em um estágio)">
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="todas" title="Todas as notas salvas.">Todas</button>
-        <button type="button" class="filtro-nfe-chip filtro-nfe-chip-on min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="em_andamento" title="Nota aberta, estoque ou financeiro (ainda em trabalho).">Em andamento</button>
+        <button type="button" class="filtro-nfe-chip filtro-nfe-chip-on min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="em_andamento" title="Nota aberta, estoque, financeiro ou finalização PIN (ainda em trabalho).">Em andamento</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="nota_aberta" title="Falta casar produto do catálogo na grade (botão Mudar ou linha de busca).">Nota aberta</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="estoque" title="Grade ok; falta registrar entrada no estoque Agro.">Estoque</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="financeiro" title="Estoque já feito; falta gerar a pagar (Salvar + a pagar), se for o caso.">Financeiro</button>
-        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="concluida" title="Estoque Agro aplicado e conta a pagar gerada.">Concluída</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="finalizar" title="Estoque + financeiro ok; falta gravar a finalização com PIN (etapa 6 do assistente).">Finalizar</button>
+        <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="concluida" title="PIN da etapa 6 gravado no Agro (finalização do assistente).">Concluída</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="encerrada" title="Entradas antigas marcadas como encerradas (antes do fluxo só estoque + financeiro).">Encerr. legado</button>
         <button type="button" class="filtro-nfe-chip min-h-[36px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="descartada" title="Marcada como descartada.">Descartada</button>
       </div>
@@ -803,11 +804,12 @@
         <div class="border-l-4 border-sky-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Filas da lista (uma nota = um estágio)</p>
           <ul class="list-disc pl-4 space-y-1 text-[13px] text-slate-700">
-            <li><strong>Em andamento</strong> — atalho: Nota aberta + Estoque + Financeiro juntos.</li>
+            <li><strong>Em andamento</strong> — atalho: Nota aberta + Estoque + Financeiro + Finalizar (PIN) juntos.</li>
             <li><strong>Nota aberta</strong> — falta produto do catálogo na linha (use <strong>Mudar</strong> ou a busca rápida).</li>
             <li><strong>Estoque</strong> — grade ok (produtos casados); falta registrar entrada no estoque Agro. Na lista aparece só o chip da <strong>fila</strong>, para não confundir com “pronta” de outro sentido.</li>
             <li><strong>Financeiro</strong> — estoque já feito; falta gerar a pagar, se você for usar essa etapa.</li>
-            <li><strong>Concluída</strong> — estoque Agro já registrado <strong>e</strong> conta a pagar gerada (Salvar + a pagar).</li>
+            <li><strong>Finalizar</strong> — estoque e financeiro ok; falta a etapa 6 do assistente (<strong>Gravar finalização</strong> com PIN e custo no catálogo).</li>
+            <li><strong>Concluída</strong> — finalização do assistente registrada (PIN etapa 6). Não confunda com só estoque + a pagar.</li>
             <li><strong>Encerrada (legado)</strong> — entradas antigas marcadas manualmente como encerradas; use <strong>Reabrir</strong> se precisar seguir o fluxo normal.</li>
             <li><strong>Descartada</strong> — você marcou como descartada.</li>
           </ul>
@@ -1257,6 +1259,9 @@
     }
     if (b === 'financeiro') {
       return 'text-[10px] font-black uppercase px-2 py-0.5 rounded-lg bg-violet-100 text-violet-950 border border-violet-400 shrink-0';
+    }
+    if (b === 'finalizar') {
+      return 'text-[10px] font-black uppercase px-2 py-0.5 rounded-lg bg-orange-100 text-orange-950 border border-orange-400 shrink-0';
     }
     if (b === 'estoque') {
       return 'text-[10px] font-black uppercase px-2 py-0.5 rounded-lg bg-sky-100 text-sky-900 border border-sky-300 shrink-0';
@@ -4730,6 +4735,7 @@
         nota_aberta: 'Fila: Nota aberta',
         estoque: 'Fila: Estoque',
         financeiro: 'Fila: Financeiro',
+        finalizar: 'Fila: Finalizar (PIN etapa 6)',
         concluida: 'Fila: Concluída',
         descartada: 'Fila: Descartada',
         encerrada: 'Fila: Encerrada (legado)',
@@ -6153,6 +6159,7 @@
           nota_aberta: 'Fila: Nota aberta',
           estoque: 'Fila: Estoque',
           financeiro: 'Fila: Financeiro',
+          finalizar: 'Fila: Finalizar (PIN etapa 6)',
           concluida: 'Fila: Concluída',
           descartada: 'Fila: Descartada',
           encerrada: 'Fila: Encerrada (legado)',
