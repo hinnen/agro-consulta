@@ -51,15 +51,18 @@
     }
     @media (min-width: 768px) {
       .nfe-lista-row {
-        /* Coluna 1 fixa: badges com larguras diferentes não empurram o bloco de meta. */
-        grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+        /* Coluna 1: largura ao conteúdo para chips «Nota aberta» / «PIN etapa 6» em uma linha. */
+        grid-template-columns: max-content minmax(0, 1fr) auto;
         align-items: center;
       }
     }
     .nfe-lista-chip-col {
       min-width: 0;
-      width: 100%;
-      max-width: 7.5rem;
+      width: max-content;
+      max-width: min(100%, 12rem);
+    }
+    .nfe-lista-chip-fila {
+      white-space: nowrap;
     }
     .nfe-lista-text { min-width: 0; }
     .nfe-lista-fornecedor {
@@ -1637,30 +1640,35 @@
   function entradaNfeFilaChipClassLista(bk) {
     const b = String(bk || '');
     if (b === 'encerrada') {
-      return 'text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-900 border border-slate-400 shrink-0 leading-tight';
+      return 'nfe-lista-chip-fila text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-900 border border-slate-400 shrink-0 leading-tight';
     }
     if (b === 'descartada') {
-      return 'text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-red-100 text-red-950 border border-red-300 shrink-0 leading-tight';
+      return 'nfe-lista-chip-fila text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-red-100 text-red-950 border border-red-300 shrink-0 leading-tight';
     }
     if (b === 'concluida') {
-      return 'text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-950 border border-emerald-400 shrink-0 leading-tight';
+      return 'nfe-lista-chip-fila text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-950 border border-emerald-400 shrink-0 leading-tight';
     }
     if (b === 'financeiro') {
-      return 'text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-violet-100 text-violet-950 border border-violet-300 shrink-0 leading-tight';
+      return 'nfe-lista-chip-fila text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-violet-100 text-violet-950 border border-violet-300 shrink-0 leading-tight';
     }
     if (b === 'finalizar') {
-      return 'text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-orange-100 text-orange-950 border border-orange-300 shrink-0 leading-tight';
+      return 'nfe-lista-chip-fila text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-orange-100 text-orange-950 border border-orange-300 shrink-0 leading-tight';
     }
     if (b === 'estoque') {
-      return 'text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-900 border border-sky-200 shrink-0 leading-tight';
+      return 'nfe-lista-chip-fila text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-900 border border-sky-200 shrink-0 leading-tight';
     }
     if (b === 'nota_aberta') {
-      return 'text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-950 border border-amber-300 shrink-0 leading-tight';
+      return 'nfe-lista-chip-fila text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-950 border border-amber-300 shrink-0 leading-tight';
     }
-    return 'text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-900 border border-slate-200 shrink-0 leading-tight';
+    return 'nfe-lista-chip-fila text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-900 border border-slate-200 shrink-0 leading-tight';
   }
 
-  function entradaNfeListaMetaItem(label, value) {
+  /** Rascunho vindo da tela Compras (pedido) — fila ainda «nota aberta», visual mais discreto. */
+  function entradaNfeFilaChipPedidoComprasClass() {
+    return 'nfe-lista-chip-fila text-[8px] font-semibold tracking-wide px-1.5 py-0.5 rounded border border-slate-200/90 bg-slate-50 text-slate-500 normal-case shrink-0 leading-tight';
+  }
+
+  function entradaNfeListaMetaItem(label, value, titleOpt) {
     const w = document.createElement('div');
     w.className = 'nfe-lista-meta-item';
     const lb = document.createElement('span');
@@ -1670,7 +1678,9 @@
     v.className = 'nfe-lista-meta-val';
     v.textContent = value;
     const full = String(value ?? '');
-    if (full.length > 14) v.title = full;
+    const t = titleOpt != null && String(titleOpt).trim() !== '' ? String(titleOpt).trim() : '';
+    if (t) v.title = t;
+    else if (full.length > 14) v.title = full;
     w.appendChild(lb);
     w.appendChild(v);
     return w;
@@ -6895,6 +6905,8 @@
       itens.forEach((it) => {
         const rid = String(it._id || '');
         const eff = String(it.entrada_status_efetivo || 'pronta');
+        const exLista = it.extra && typeof it.extra === 'object' ? it.extra : {};
+        const isPedidoCompra = String(exLista.origem || '').trim() === 'compras_ordem_compra';
         const wrap = document.createElement('div');
         wrap.className = 'nfe-lista-row';
         const cab = it.cabecalho || {};
@@ -6927,9 +6939,16 @@
         chipRow.className = 'nfe-lista-chip-col flex flex-col gap-1 shrink-0';
         if (bkLabel) {
           const fb = document.createElement('span');
-          fb.className = entradaNfeFilaChipClassLista(bk);
-          fb.textContent = bkLabel;
-          fb.title = bkTitleMap[bk] || bkLabel;
+          if (bk === 'nota_aberta' && isPedidoCompra) {
+            fb.className = entradaNfeFilaChipPedidoComprasClass();
+            fb.textContent = 'Pedido';
+            fb.title =
+              'Criado na tela Compras: aguarde a chegada da mercadoria. A entrada fiscal segue quando os produtos e a NF estiverem disponíveis.';
+          } else {
+            fb.className = entradaNfeFilaChipClassLista(bk);
+            fb.textContent = bkLabel;
+            fb.title = bkTitleMap[bk] || bkLabel;
+          }
           chipRow.appendChild(fb);
         } else {
           const pill = document.createElement('span');
@@ -6940,7 +6959,7 @@
         if (it.entrada_correcao_sistemica) {
           const cx = document.createElement('span');
           cx.className =
-            'text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-900 border border-rose-300/80 shrink-0 leading-tight';
+            'nfe-lista-chip-fila text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-900 border border-rose-300/80 shrink-0 leading-tight';
           cx.textContent = 'Correção sistêmica';
           cx.title =
             'Marcado pelo usuário: aguardando ajuste no sistema. A nota continua na mesma fila operacional até concluir o fluxo.';
@@ -6957,20 +6976,15 @@
         const modo = (it.modo || '').toString().trim() || '—';
         const cr = entradaNfeFormatarDataBr(it.criado_em);
         const at = it.atualizado_em ? entradaNfeFormatarDataBr(it.atualizado_em) : '';
-        metaWrap.appendChild(entradaNfeListaMetaItem('Origem', modo));
+        const origemExibir = ch ? `${modo} · ${chShort}` : modo;
+        const origemTitulo = ch ? `${modo} — chave NFe ${ch}` : '';
+        metaWrap.appendChild(entradaNfeListaMetaItem('Origem', origemExibir, origemTitulo));
         metaWrap.appendChild(entradaNfeListaMetaItem('NF', cab.numero != null && cab.numero !== '' ? String(cab.numero) : '—'));
         metaWrap.appendChild(entradaNfeListaMetaItem('Linhas', String(nLin)));
         metaWrap.appendChild(entradaNfeListaMetaItem('Criado', cr));
         metaWrap.appendChild(entradaNfeListaMetaItem('Atualizado', at || '—'));
         textBlock.appendChild(nomeForn);
         textBlock.appendChild(metaWrap);
-        if (ch) {
-          const chLine = document.createElement('div');
-          chLine.className = 'nfe-lista-chave truncate';
-          chLine.textContent = chShort;
-          chLine.title = ch;
-          textBlock.appendChild(chLine);
-        }
         const actions = document.createElement('div');
         actions.className = 'nfe-lista-actions';
         const mkBtn = (label, variant, titleOpt, onClick) => {

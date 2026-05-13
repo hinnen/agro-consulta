@@ -517,9 +517,37 @@
             }
         }
 
+        /** UUIDs dos lotes com <details> aberto no popup de pedidos (evita “fechar” o pedido ao recarregar após Remover). */
+        function coletarLotesAbertosPedidosTransfer(el) {
+            const out = new Set();
+            if (!el) return out;
+            el.querySelectorAll('details').forEach((det) => {
+                if (!det.open) return;
+                const uuidAttr = det.getAttribute('data-lote-uuid');
+                if (uuidAttr && String(uuidAttr).trim()) {
+                    out.add(String(uuidAttr).trim());
+                    return;
+                }
+                const inp = det.querySelector('input.qtde-lote-input[data-lote]');
+                const lid = inp && String(inp.getAttribute('data-lote') || '').trim();
+                if (lid) out.add(lid);
+            });
+            return out;
+        }
+
+        function restaurarLotesAbertosPedidosTransfer(el, uuids) {
+            if (!el || !uuids || !uuids.size) return;
+            el.querySelectorAll('details[data-lote-uuid]').forEach((det) => {
+                const id = String(det.getAttribute('data-lote-uuid') || '').trim();
+                if (id && uuids.has(id)) det.open = true;
+            });
+        }
+
         async function carregarLotesPedidos() {
             const el = document.getElementById('corpo-lotes-transferencia');
             if (!el) return;
+            const lotesAbertos = coletarLotesAbertosPedidosTransfer(el);
+            const scrollPedidos = el.scrollTop || 0;
             try {
                 const r = await fetch('/estoque/api_listar_lotes_transferencia/');
                 const d = await r.json();
@@ -535,7 +563,8 @@
                 d.lotes.forEach((L) => {
                     const lid = L.lote_uuid ? String(L.lote_uuid) : '';
                     const lidJs = escapeForSingleQuote(lid);
-                    html += `<details class="mb-2 rounded-xl border border-sky-200 bg-white p-2 shadow-sm"><summary class="cursor-pointer select-none font-black text-sky-950 text-[11px] uppercase tracking-wide">${escHtml(L.impresso_em || '—')} — ${L.n_itens} item(ns)</summary>`;
+                    const lidAttr = escHtml(lid);
+                    html += `<details data-lote-uuid="${lidAttr}" class="mb-2 rounded-xl border border-sky-200 bg-white p-2 shadow-sm"><summary class="cursor-pointer select-none font-black text-sky-950 text-[11px] uppercase tracking-wide">${escHtml(L.impresso_em || '—')} — ${L.n_itens} item(ns)</summary>`;
                     html += '<div class="mt-2 space-y-2">';
                     (L.itens || []).forEach((it) => {
                         const nomeLinha = sugestoesGlobais.find((s) => String(s.produto_id) === String(it.produto_id));
@@ -557,6 +586,8 @@
                     html += '</div></details>';
                 });
                 el.innerHTML = html;
+                restaurarLotesAbertosPedidosTransfer(el, lotesAbertos);
+                requestAnimationFrame(() => { el.scrollTop = scrollPedidos; });
             } catch (e) {
                 el.textContent = 'Erro de rede ao listar pedidos.';
             }
@@ -708,7 +739,7 @@
             } finally {
                 if (window.gmLoader) window.gmLoader.hide(180);
                 else if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                carregarLotesPedidos();
+                await carregarLotesPedidos();
             }
         }
 
@@ -1104,7 +1135,6 @@
                 const j = await r.json().catch(() => ({}));
                 if (!j.ok) alert(j.erro || 'Erro ao cancelar.');
                 await carregarDados({ preserveScroll: true });
-                await carregarLotesPedidos();
                 const mh = document.getElementById('modal-historico-transfer');
                 if (mh && !mh.classList.contains('hidden')) await carregarHistoricoTransferencias();
             } catch (e) {}
