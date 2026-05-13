@@ -203,19 +203,20 @@
     #entrada-nfe-wizard-nav .nfe-wiz-nav-btn {
       box-sizing: border-box;
       width: 100%;
-      min-height: 3rem;
+      min-height: 2.75rem;
       margin: 0;
-      padding: 0.35rem 0.25rem;
+      padding: 0.4rem 0.35rem;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
+      flex-wrap: nowrap;
       align-items: center;
       justify-content: center;
-      gap: 0.1rem;
+      gap: 0.35rem;
       border-radius: 0.65rem;
       border: 1px solid rgb(226 232 240);
       background: rgb(255 255 255);
       color: rgb(71 85 105);
-      line-height: 1.1;
+      line-height: 1.15;
       cursor: pointer;
       transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
     }
@@ -224,22 +225,23 @@
       outline-offset: 2px;
     }
     #entrada-nfe-wizard-nav .nfe-wiz-nav-btn .nfe-wiz-num {
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 900;
       letter-spacing: -0.02em;
       color: inherit;
+      flex-shrink: 0;
     }
     #entrada-nfe-wizard-nav .nfe-wiz-nav-btn .nfe-wiz-name {
-      font-size: 0.62rem;
+      font-size: 0.72rem;
       font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
+      text-transform: none;
+      letter-spacing: 0.01em;
       color: rgb(100 116 139);
-      max-width: 100%;
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      padding: 0 1px;
+      text-align: left;
     }
     #entrada-nfe-wizard-nav .nfe-wiz-nav-btn--pending {
       border-color: rgb(226 232 240);
@@ -549,6 +551,9 @@
       #entrada-nfe-wizard-nav .nfe-wiz-track {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
+      #entrada-nfe-wizard-nav .nfe-wiz-nav-btn .nfe-wiz-name {
+        font-size: 0.64rem;
+      }
     }
     #entrada-nfe-wizard-nav .nfe-wiz-actions {
       display: flex;
@@ -692,22 +697,22 @@
         <span class="nfe-wiz-nav-eyebrow">Passo a passo</span>
         <div class="nfe-wiz-track">
           <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn nfe-wiz-nav-btn--on" data-nfe-w-go="1" title="Fornecedor e plano">
-            <span class="nfe-wiz-num">1</span><span class="nfe-wiz-name">Fornec.</span>
+            <span class="nfe-wiz-num">1</span><span class="nfe-wiz-name">Fornecedor</span>
           </button>
           <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="2" title="Produtos da nota">
-            <span class="nfe-wiz-num">2</span><span class="nfe-wiz-name">Prod.</span>
+            <span class="nfe-wiz-num">2</span><span class="nfe-wiz-name">Produtos</span>
           </button>
           <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="3" title="Código de barras / vínculo">
-            <span class="nfe-wiz-num">3</span><span class="nfe-wiz-name">Bip</span>
+            <span class="nfe-wiz-num">3</span><span class="nfe-wiz-name">Código de barras</span>
           </button>
           <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="4" title="Estoque Agro">
-            <span class="nfe-wiz-num">4</span><span class="nfe-wiz-name">Est.</span>
+            <span class="nfe-wiz-num">4</span><span class="nfe-wiz-name">Estoque</span>
           </button>
           <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="5" title="Financeiro">
-            <span class="nfe-wiz-num">5</span><span class="nfe-wiz-name">Fin.</span>
+            <span class="nfe-wiz-num">5</span><span class="nfe-wiz-name">Financeiro</span>
           </button>
           <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="6" title="Finalizar (PIN e custo)">
-            <span class="nfe-wiz-num">6</span><span class="nfe-wiz-name">PIN</span>
+            <span class="nfe-wiz-num">6</span><span class="nfe-wiz-name">Finalizar</span>
           </button>
         </div>
         <div class="nfe-wiz-actions">
@@ -2637,6 +2642,34 @@
     return new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
+  /** Normaliza 4 valores para o spark (API pode mandar string decimal ou lista incompleta). */
+  function entradaNfeCustoSparkQuatroPontos(it) {
+    const toNum = (x) => {
+      if (x === null || x === undefined) return NaN;
+      if (typeof x === 'number') return Number.isFinite(x) ? x : NaN;
+      const s = String(x).trim().replace(/\s/g, '').replace(',', '.');
+      const n = Number(s);
+      return Number.isFinite(n) ? n : NaN;
+    };
+    const cPrev = Math.max(0, toNum(it && it.custo_catalogo_anterior));
+    const cNf = Math.max(0, toNum(it && it.custo_unitario_nota));
+    const raw = Array.isArray(it && it.custo_spark_vals) ? it.custo_spark_vals.map(toNum) : [];
+    const fromApi = raw.length === 4 && raw.every((n) => Number.isFinite(n));
+    let vals;
+    if (fromApi) {
+      vals = raw.slice();
+    } else {
+      const pad = Number.isFinite(cPrev) ? cPrev : 0;
+      const last = Number.isFinite(cNf) ? cNf : pad;
+      vals = [pad, pad, pad, last];
+    }
+    const dRaw = Array.isArray(it && it.custo_spark_datas_iso) ? it.custo_spark_datas_iso.map((x) => String(x || '').trim()) : [];
+    let dates = dRaw.slice(0, 4);
+    while (dates.length < 4) dates.push('');
+    dates = dates.slice(0, 4);
+    return { vals, dates, fromApi };
+  }
+
   /** Mini gráfico (4 pontos): estilo Compras — valores = custo unitário; último ponto = esta NF (laranja). */
   function entradaNfeSparklineSvg4Custo(vals) {
     const v = (vals || []).map((x) => Math.max(0, Number(x) || 0));
@@ -2954,22 +2987,20 @@
         if (it.divergencia_maior_15pct) {
           badges.push('<span class="inline-flex items-center rounded-md border border-amber-400 bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-amber-950">Dif. &gt; 15%</span>');
         }
-        const sparkVals = Array.isArray(it.custo_spark_vals) && it.custo_spark_vals.length === 4
-          ? it.custo_spark_vals.map((x) => Number(x))
-          : null;
-        const sparkOk = sparkVals && sparkVals.every((x) => Number.isFinite(x));
-        const sparkValsFmt = sparkOk
-          ? sparkVals.map((v) =>
-              Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-            )
-          : [];
-        const sparkDates = Array.isArray(it.custo_spark_datas_iso) && it.custo_spark_datas_iso.length === 4
-          ? it.custo_spark_datas_iso.map((x) => String(x || '').trim())
-          : ['', '', '', ''];
-        const sparkDatesFmt = sparkOk ? sparkDates.map((d) => entradaNfeSparkDataFmt(d)) : [];
-        const sparkHtml = sparkOk
-          ? `<div class="mt-3 rounded-xl border border-slate-100 bg-gradient-to-br from-slate-50/90 to-white px-2.5 py-2" title="Quatro pontos: até 3 últimas compras no ERP (custo unitário final, da mais antiga à mais recente) e à direita o custo unitário desta NF. Em cada coluna: data (quando existir no ERP) e valor. Colunas à esquerda sem data indicam preenchimento com o custo de catálogo anterior (sem compra naquela posição). A última coluna usa a data de emissão ou de entrada da NF no cabeçalho.">
-            <div class="text-[9px] font-black uppercase tracking-wide text-slate-500 mb-1">Custo unit. · últimas compras + esta NF</div>
+        const spark = entradaNfeCustoSparkQuatroPontos(it);
+        const sparkVals = spark.vals;
+        const sparkValsFmt = sparkVals.map((v) =>
+          Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        );
+        const sparkDatesFmt = spark.dates.map((d) => entradaNfeSparkDataFmt(d));
+        const sparkTitle = spark.fromApi
+          ? 'Quatro pontos: até 3 últimas compras no ERP (custo unitário final, da mais antiga à mais recente) e à direita o custo unitário desta NF. Colunas à esquerda sem data indicam preenchimento com o custo de catálogo anterior (sem compra naquela posição).'
+          : 'Sem histórico de compras válido na resposta — linha mostra custo de catálogo anterior (repetido) até o custo unitário desta NF.';
+        const sparkHtml = `<div class="mt-3 rounded-xl border border-slate-100 bg-gradient-to-br from-slate-50/90 to-white px-2.5 py-2" title="${esc(sparkTitle)}">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+              <div class="text-[9px] font-black uppercase tracking-wide text-slate-500">Custo unit. · últimas compras + esta NF</div>
+              ${spark.fromApi ? '' : '<span class="text-[8px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">Catálogo + NF</span>'}
+            </div>
             <div class="flex items-end justify-start w-full max-w-[16rem]">${entradaNfeSparklineSvg4Custo(sparkVals)}</div>
             <div class="grid grid-cols-4 gap-1 mt-0.5 w-full max-w-[16rem]">
               <span class="text-[9px] font-black text-slate-600 bg-white border border-slate-200 rounded px-0.5 py-0.5 text-center">C1</span>
@@ -2986,8 +3017,7 @@
             <div class="flex justify-between text-[8px] font-bold text-slate-400 mt-0.5 px-0.5 w-full max-w-[16rem]">
               <span>Mais antigo</span><span>esta NF</span>
             </div>
-          </div>`
-          : '';
+          </div>`;
         const nm = `nfe-custo-${ix}`;
         const pidAttr = pid.replace(/"/g, '');
         parts.push(`<article class="nfe-wiz-custo-card rounded-xl border border-slate-200 bg-white overflow-hidden">
@@ -2998,6 +3028,17 @@
               <div class="mt-2 flex flex-wrap gap-1.5">${badges.join('') || '<span class="text-[10px] font-semibold text-slate-400">Sem alerta de regra</span>'}</div>
             </div>
           </header>
+          <fieldset class="border-b border-slate-100 bg-white px-3 py-3 space-y-0">
+            <legend class="text-[10px] font-black uppercase tracking-wide text-slate-700 mb-2 px-0.5">Qual custo gravar no catálogo após o PIN</legend>
+            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-slate-50/80 px-2 py-2.5 hover:border-emerald-200 hover:bg-emerald-50/40 min-h-[48px]">
+              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="media" class="h-5 w-5 shrink-0 accent-emerald-600" ${cur === 'media' ? 'checked' : ''}>
+              <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-emerald-800">Média ponderada (C+V + entrada)</span> · ${fmt(it.custo_medio_ponderado)}</span>
+            </label>
+            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-slate-50/80 px-2 py-2.5 hover:border-slate-300 hover:bg-white min-h-[48px] mt-2">
+              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="nota" class="h-5 w-5 shrink-0 accent-slate-700" ${cur === 'nota' ? 'checked' : ''}>
+              <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-slate-600">Custo unitário desta NF</span> · ${fmt(it.custo_unitario_nota)}</span>
+            </label>
+          </fieldset>
           <div class="px-3 py-3">
             <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-left">
               <div class="min-w-0">
@@ -3023,18 +3064,6 @@
               <span class="text-lg font-black text-emerald-950 tabular-nums">${fmt(it.custo_medio_ponderado)}</span>
             </div>
           </div>
-          <fieldset class="border-t border-slate-100 bg-slate-50/50 px-3 py-3 space-y-0">
-            <legend class="sr-only">Custo a gravar no catálogo após o PIN</legend>
-            <p class="text-[9px] font-black uppercase tracking-wider text-slate-500 mb-2 px-0.5">Gravar no catálogo após PIN</p>
-            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-white/80 px-2 py-2.5 hover:border-emerald-200 hover:bg-emerald-50/40 min-h-[48px]">
-              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="media" class="h-5 w-5 shrink-0 accent-emerald-600" ${cur === 'media' ? 'checked' : ''}>
-              <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-emerald-800">Média ponderada</span> · ${fmt(it.custo_medio_ponderado)}</span>
-            </label>
-            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-white/80 px-2 py-2.5 hover:border-slate-300 hover:bg-white min-h-[48px]">
-              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="nota" class="h-5 w-5 shrink-0 accent-slate-700" ${cur === 'nota' ? 'checked' : ''}>
-              <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-slate-600">Custo da NF</span> · ${fmt(it.custo_unitario_nota)}</span>
-            </label>
-          </fieldset>
         </article>`);
       });
       if (reqGen !== entradaNfePreviewCustoReqGen) return;
