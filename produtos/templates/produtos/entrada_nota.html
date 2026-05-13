@@ -51,11 +51,16 @@
     }
     @media (min-width: 768px) {
       .nfe-lista-row {
-        grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr) auto;
+        /* Coluna 1 fixa: badges com larguras diferentes não empurram o bloco de meta. */
+        grid-template-columns: 7.5rem minmax(0, 1fr) auto;
         align-items: center;
       }
     }
-    .nfe-lista-chip-col { min-width: 0; }
+    .nfe-lista-chip-col {
+      min-width: 0;
+      width: 100%;
+      max-width: 7.5rem;
+    }
     .nfe-lista-text { min-width: 0; }
     .nfe-lista-fornecedor {
       font-size: clamp(0.95rem, 1.4vw, 1.08rem);
@@ -64,12 +69,31 @@
       line-height: 1.25;
       letter-spacing: -0.02em;
     }
+    /* Metadados em colunas fixas — alinha «Criado/Atualizado» entre linhas da lista. */
     .nfe-lista-meta {
-      display: flex;
-      flex-wrap: wrap;
-      column-gap: 0.85rem;
-      row-gap: 0.35rem;
-      margin-top: 0.2rem;
+      display: grid;
+      grid-template-columns: 4.75rem 6.25rem 2.65rem minmax(0, 8.75rem) minmax(0, 8.75rem);
+      column-gap: 0.4rem;
+      row-gap: 0.2rem;
+      margin-top: 0.25rem;
+      align-items: start;
+      width: 100%;
+      max-width: 100%;
+    }
+    @media (max-width: 1100px) {
+      .nfe-lista-meta {
+        grid-template-columns: 4.5rem 5.5rem 2.5rem minmax(0, 7.75rem) minmax(0, 7.75rem);
+        column-gap: 0.3rem;
+      }
+    }
+    @media (max-width: 767px) {
+      .nfe-lista-meta {
+        width: max-content;
+        max-width: min(100%, 36rem);
+        overflow-x: auto;
+        padding-bottom: 0.15rem;
+        -webkit-overflow-scrolling: touch;
+      }
     }
     .nfe-lista-meta-item {
       display: flex;
@@ -90,6 +114,9 @@
       font-weight: 700;
       color: rgb(71 85 105);
       line-height: 1.2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .nfe-lista-chave {
       margin-top: 0.25rem;
@@ -172,15 +199,78 @@
       box-shadow: inset 0 0 0 2px rgb(239 68 68);
       background-color: rgba(254, 226, 226, 0.45);
     }
-    .nfe-wiz-nav-btn { border-width: 2px; border-color: rgb(226 232 240); background: white; color: rgb(71 85 105); }
-    .nfe-wiz-nav-btn--pending { border-color: rgb(226 232 240); background: rgb(248 250 252); color: rgb(100 116 139); }
-    .nfe-wiz-nav-btn--on { border-color: rgb(249 115 22); background: rgb(255 247 237); color: rgb(124 45 18); }
-    .nfe-wiz-nav-btn--complete { border-color: rgb(16 185 129); background: rgb(236 253 245); color: rgb(6 78 59); }
-    .nfe-wiz-nav-btn--on.nfe-wiz-nav-btn--complete {
-      border-color: rgb(16 185 129);
-      background: rgb(209 250 229);
+    /* Wizard — só dentro do editor NF-e (evita caixas «dupla borda» e texto minúsculo). */
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-btn {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 3rem;
+      margin: 0;
+      padding: 0.35rem 0.25rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.1rem;
+      border-radius: 0.65rem;
+      border: 1px solid rgb(226 232 240);
+      background: rgb(255 255 255);
+      color: rgb(71 85 105);
+      line-height: 1.1;
+      cursor: pointer;
+      transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-btn:focus-visible {
+      outline: 2px solid rgb(251 146 60 / 0.75);
+      outline-offset: 2px;
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-btn .nfe-wiz-num {
+      font-size: 1rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: inherit;
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-btn .nfe-wiz-name {
+      font-size: 0.62rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: rgb(100 116 139);
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 0 1px;
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-btn--pending {
+      border-color: rgb(226 232 240);
+      background: rgb(248 250 252);
+      color: rgb(71 85 105);
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-btn--pending .nfe-wiz-name {
+      color: rgb(148 163 184);
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-btn--complete {
+      border-color: rgb(167 243 208);
+      background: rgb(240 253 244);
       color: rgb(6 78 59);
-      box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.45);
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-btn--complete .nfe-wiz-name {
+      color: rgb(5 150 105);
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-btn--on {
+      border-color: rgb(251 146 60);
+      background: rgb(255 247 237);
+      color: rgb(124 45 18);
+      box-shadow: 0 1px 0 rgb(253 186 116 / 0.55);
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-btn--on .nfe-wiz-name {
+      color: rgb(154 52 18);
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-btn--on.nfe-wiz-nav-btn--complete {
+      border-color: rgb(251 146 60);
+      background: rgb(255 247 237);
+      color: rgb(124 45 18);
+      box-shadow: 0 0 0 1px rgb(253 186 116 / 0.65), 0 2px 8px rgb(15 23 42 / 0.06);
     }
     #entrada-nfe-wizard-pages .nfe-wiz-page { min-height: min(70vh, 42rem); }
     /* Etapa 6 · custo no catálogo: cartões alinhados e leitura rápida */
@@ -361,12 +451,30 @@
       outline-offset: 0;
     }
     /* Editor NF-e: contexto da nota + abas e wizard menos «pesados» */
+    /* Editor: mesma lógica de colunas da lista (origem … atualizado). */
     .entrada-nfe-editor-meta {
-      display: flex;
-      flex-wrap: wrap;
-      column-gap: 0.75rem;
-      row-gap: 0.3rem;
-      align-items: stretch;
+      display: grid;
+      grid-template-columns: 4.75rem 6.25rem 2.65rem minmax(0, 8.75rem) minmax(0, 8.75rem);
+      column-gap: 0.4rem;
+      row-gap: 0.2rem;
+      align-items: start;
+      width: 100%;
+      max-width: 100%;
+    }
+    @media (max-width: 1100px) {
+      .entrada-nfe-editor-meta {
+        grid-template-columns: 4.5rem 5.5rem 2.5rem minmax(0, 7.75rem) minmax(0, 7.75rem);
+        column-gap: 0.3rem;
+      }
+    }
+    @media (max-width: 639px) {
+      .entrada-nfe-editor-meta {
+        width: max-content;
+        max-width: 100%;
+        overflow-x: auto;
+        padding-bottom: 0.15rem;
+        -webkit-overflow-scrolling: touch;
+      }
     }
     .entrada-nfe-editor-meta .nfe-em-kv {
       display: flex;
@@ -387,6 +495,9 @@
       font-weight: 700;
       color: rgb(71 85 105);
       line-height: 1.2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .entrada-nfe-tabs {
       display: inline-flex;
@@ -415,21 +526,78 @@
       background: transparent !important;
     }
     #entrada-nfe-wizard-nav.entrada-nfe-wiz-nav--compact {
+      border-style: solid;
       border-width: 1px;
-      border-color: rgb(199 210 254);
-      background: rgb(238 242 255 / 0.65);
+      border-color: rgb(226 232 240);
+      background: rgb(248 250 252);
     }
-    .entrada-nfe-wiz-nav-btn.nfe-wiz-nav-btn {
-      border-width: 1px;
-      min-height: 2rem;
-      padding: 0.2rem 0.45rem;
-      font-size: 0.6rem;
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-eyebrow {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgb(100 116 139);
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-track {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 0.35rem;
+      margin-top: 0.45rem;
+    }
+    @media (max-width: 639px) {
+      #entrada-nfe-wizard-nav .nfe-wiz-track {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.65rem;
+      padding-top: 0.65rem;
+      border-top: 1px solid rgb(226 232 240);
     }
     .nfe-wiz-pn {
-      min-height: 2.25rem;
-      padding: 0.25rem 0.65rem;
+      min-height: 2.5rem;
+      padding: 0.35rem 0.85rem;
       border-width: 1px;
-      font-size: 0.62rem;
+      font-size: 0.68rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-radius: 0.6rem;
+      cursor: pointer;
+      transition: background 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+    }
+    #nfe-wiz-prev.nfe-wiz-pn {
+      border-color: rgb(203 213 225);
+      background: rgb(255 255 255);
+      color: rgb(51 65 85);
+    }
+    #nfe-wiz-prev.nfe-wiz-pn:hover:not(:disabled) {
+      border-color: rgb(148 163 184);
+      background: rgb(248 250 252);
+    }
+    #nfe-wiz-next.nfe-wiz-pn {
+      border-color: rgb(5 150 105);
+      background: rgb(5 150 105);
+      color: rgb(255 255 255);
+    }
+    #nfe-wiz-next.nfe-wiz-pn:hover:not(:disabled) {
+      border-color: rgb(4 120 87);
+      background: rgb(4 120 87);
+    }
+    #nfe-wiz-next.nfe-wiz-pn:disabled,
+    #nfe-wiz-prev.nfe-wiz-pn:disabled {
+      cursor: not-allowed;
+      opacity: 0.42;
+    }
+    #nfe-wiz-next.nfe-wiz-pn:disabled {
+      border-color: rgb(203 213 225);
+      background: rgb(241 245 249);
+      color: rgb(148 163 184);
     }
   </style>
   <script>
@@ -520,21 +688,31 @@
     <div id="entrada-nfe-editor-meta" class="entrada-nfe-editor-meta rounded-lg border border-slate-200/90 bg-white px-2.5 py-2 sm:px-3" aria-live="polite"></div>
 
     <section id="panel-manual" class="tab-panel bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 flex flex-col gap-3 min-h-0">
-      <div class="rounded-xl entrada-nfe-wiz-nav--compact p-2.5 shadow-sm space-y-2 shrink-0" id="entrada-nfe-wizard-nav" role="navigation" aria-label="Passos da entrada">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <p class="text-[10px] font-black uppercase text-indigo-950/90 tracking-wide">Passo a passo</p>
-          <div class="flex flex-wrap gap-0.5">
-            <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn nfe-wiz-nav-btn--on" data-nfe-w-go="1" title="Fornecedor e plano">1 · Fornec.</button>
-            <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="2" title="Produtos da nota">2 · Prod.</button>
-            <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="3" title="Código de barras / vínculo">3 · Bip</button>
-            <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="4" title="Estoque Agro">4 · Est.</button>
-            <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="5" title="Financeiro">5 · Fin.</button>
-            <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="6" title="Finalizar (PIN e custo)">6 · PIN</button>
-          </div>
+      <div class="rounded-xl entrada-nfe-wiz-nav--compact p-3 shadow-sm shrink-0" id="entrada-nfe-wizard-nav" role="navigation" aria-label="Passos da entrada">
+        <span class="nfe-wiz-nav-eyebrow">Passo a passo</span>
+        <div class="nfe-wiz-track">
+          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn nfe-wiz-nav-btn--on" data-nfe-w-go="1" title="Fornecedor e plano">
+            <span class="nfe-wiz-num">1</span><span class="nfe-wiz-name">Fornec.</span>
+          </button>
+          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="2" title="Produtos da nota">
+            <span class="nfe-wiz-num">2</span><span class="nfe-wiz-name">Prod.</span>
+          </button>
+          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="3" title="Código de barras / vínculo">
+            <span class="nfe-wiz-num">3</span><span class="nfe-wiz-name">Bip</span>
+          </button>
+          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="4" title="Estoque Agro">
+            <span class="nfe-wiz-num">4</span><span class="nfe-wiz-name">Est.</span>
+          </button>
+          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="5" title="Financeiro">
+            <span class="nfe-wiz-num">5</span><span class="nfe-wiz-name">Fin.</span>
+          </button>
+          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="6" title="Finalizar (PIN e custo)">
+            <span class="nfe-wiz-num">6</span><span class="nfe-wiz-name">PIN</span>
+          </button>
         </div>
-        <div class="flex flex-wrap gap-1.5 pt-1.5 border-t border-indigo-200/50">
-          <button type="button" id="nfe-wiz-prev" class="nfe-wiz-pn rounded-lg border border-indigo-300 bg-white text-indigo-900 font-black uppercase">← Anterior</button>
-          <button type="button" id="nfe-wiz-next" class="nfe-wiz-pn rounded-lg border border-indigo-600 bg-indigo-600 text-white font-black uppercase">Próximo →</button>
+        <div class="nfe-wiz-actions">
+          <button type="button" id="nfe-wiz-prev" class="nfe-wiz-pn">← Anterior</button>
+          <button type="button" id="nfe-wiz-next" class="nfe-wiz-pn">Próximo →</button>
         </div>
       </div>
 
@@ -1486,6 +1664,8 @@
     const v = document.createElement('span');
     v.className = 'nfe-lista-meta-val';
     v.textContent = value;
+    const full = String(value ?? '');
+    if (full.length > 14) v.title = full;
     w.appendChild(lb);
     w.appendChild(v);
     return w;
@@ -1521,7 +1701,9 @@
     a.textContent = lb;
     const b = document.createElement('span');
     b.className = 'nfe-em-val';
-    b.textContent = String(val ?? '').trim() || '—';
+    const t = String(val ?? '').trim() || '—';
+    b.textContent = t;
+    if (t.length > 14) b.title = t;
     wrap.appendChild(a);
     wrap.appendChild(b);
     host.appendChild(wrap);
@@ -1553,7 +1735,7 @@
     entradaNfeMetaAppendKv(host, 'NF', nfTxt);
     entradaNfeMetaAppendKv(host, 'Linhas', String(nLin));
     entradaNfeMetaAppendKv(host, 'Criado', cr);
-    if (at) entradaNfeMetaAppendKv(host, 'Atualizado', at);
+    entradaNfeMetaAppendKv(host, 'Atualizado', at || '—');
   }
 
   function entradaNfeSyncFiltroChips() {
@@ -2577,14 +2759,47 @@
       'border-slate-300',
       'bg-slate-100',
       'text-slate-800',
+      'border-sky-300',
+      'bg-sky-50',
+      'text-sky-950',
     );
     if (kind === 'err') {
       hint.classList.add('border-red-200', 'bg-red-50', 'text-red-900');
     } else if (kind === 'warn') {
       hint.classList.add('border-amber-200/80', 'bg-amber-50/90', 'text-amber-950');
+    } else if (kind === 'load') {
+      hint.classList.add('border-sky-300', 'bg-sky-50', 'text-sky-950');
     } else {
       hint.classList.add('border-slate-300', 'bg-slate-100', 'text-slate-800');
     }
+  }
+
+  /** AbortSignal com limite em ms (fallback para navegadores sem ``AbortSignal.timeout``). */
+  function entradaNfeAbortSignalMs(ms) {
+    const n = Math.max(5000, Math.floor(Number(ms)) || 120000);
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+      try {
+        return AbortSignal.timeout(n);
+      } catch (_) {
+        /* continua com AbortController */
+      }
+    }
+    const ctl = new AbortController();
+    const t = setTimeout(() => {
+      try {
+        ctl.abort();
+      } catch (_) {}
+    }, n);
+    try {
+      ctl.signal.addEventListener(
+        'abort',
+        () => {
+          clearTimeout(t);
+        },
+        { once: true },
+      );
+    } catch (_) {}
+    return ctl.signal;
   }
 
   /** Evita aplicar HTML da prévia se outra chamada sobrescreveu (troca rápida de nota / etapa). */
@@ -2656,8 +2871,17 @@
       list.innerHTML = '';
       return;
     }
-    entradaNfeWizCustoHintShow('Carregando prévia de custo…', 'load');
-    list.innerHTML = '';
+    entradaNfeWizCustoHintShow(
+      'Montando prévia de custo (consulta histórico de compras no ERP — pode levar até ~1 min em notas grandes).',
+      'load',
+    );
+    const skelN = Math.min(8, Math.max(4, comProd || 4));
+    list.innerHTML = Array.from({ length: skelN }, () => `
+      <div class="rounded-xl border border-slate-100 bg-slate-50/90 p-3 space-y-2.5 animate-pulse" aria-hidden="true">
+        <div class="h-4 w-44 max-w-[75%] rounded-md bg-slate-200"></div>
+        <div class="h-3 w-full rounded-md bg-slate-100"></div>
+        <div class="h-3 w-[88%] rounded-md bg-slate-100"></div>
+      </div>`).join('');
     const reqGen = ++entradaNfePreviewCustoReqGen;
     const fmt = (n) => {
       const x = Number(n);
@@ -2668,10 +2892,7 @@
       ? entradaNfeExtraUltimo.entrada_custo_escolhas
       : {};
     try {
-      const sig =
-        typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
-          ? AbortSignal.timeout(240000)
-          : undefined;
+      const sig = entradaNfeAbortSignalMs(150000);
       const r = await fetch(`${URL_PREVIEW_CUSTO}?id=${encodeURIComponent(rid)}`, {
         credentials: 'same-origin',
         signal: sig,
@@ -2839,7 +3060,7 @@
       const name = err && err.name ? String(err.name) : '';
       if (name === 'AbortError' || name === 'TimeoutError') {
         entradaNfeWizCustoHintShow(
-          'Tempo máximo (4 min) ao carregar a prévia de custo. A nota tem muitas linhas ou o servidor está lento — tente de novo; se repetir, avise o suporte.',
+          'Tempo esgotado ao carregar a prévia (rede ou Mongo lento). Saia e abra a nota de novo, ou use «Atualizar» na lista; se persistir, avise o suporte.',
           'err',
         );
       } else {
@@ -6674,7 +6895,7 @@
         };
         const bkLabel = bkMap[bk];
         const chipRow = document.createElement('div');
-        chipRow.className = 'nfe-lista-chip-col flex flex-col gap-1 shrink-0 max-w-[9.5rem]';
+        chipRow.className = 'nfe-lista-chip-col flex flex-col gap-1 shrink-0';
         if (bkLabel) {
           const fb = document.createElement('span');
           fb.className = entradaNfeFilaChipClassLista(bk);
@@ -6711,7 +6932,7 @@
         metaWrap.appendChild(entradaNfeListaMetaItem('NF', cab.numero != null && cab.numero !== '' ? String(cab.numero) : '—'));
         metaWrap.appendChild(entradaNfeListaMetaItem('Linhas', String(nLin)));
         metaWrap.appendChild(entradaNfeListaMetaItem('Criado', cr));
-        if (at) metaWrap.appendChild(entradaNfeListaMetaItem('Atualizado', at));
+        metaWrap.appendChild(entradaNfeListaMetaItem('Atualizado', at || '—'));
         textBlock.appendChild(nomeForn);
         textBlock.appendChild(metaWrap);
         if (ch) {

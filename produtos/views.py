@@ -2637,6 +2637,7 @@ def _append_eventos_dto_nota_entrada_por_linha(
     pid_ok: set[str],
     eventos: dict[str, list[dict]],
     since: datetime,
+    mongo_max_time_ms: int | None = None,
 ) -> None:
     """
     Nota de entrada VendaERP: ligação DtoNotaEntradaProduto.EntradaID → DtoNotaEntrada._id.
@@ -2690,6 +2691,8 @@ def _append_eventos_dto_nota_entrada_por_linha(
             {"ProdutoID": {"$in": variants}},
             proj_ln,
         ).sort("LastUpdate", -1).limit(12000)
+        if mongo_max_time_ms is not None:
+            cur = cur.max_time_ms(int(mongo_max_time_ms))
         lines = list(cur)
     except Exception as exc:
         logger.warning("ultimas_compras nota_entrada por_linha: %s", exc)
@@ -2709,10 +2712,13 @@ def _append_eventos_dto_nota_entrada_por_linha(
         if not mixed:
             continue
         try:
-            for h in db["DtoNotaEntrada"].find(
+            cur_h = db["DtoNotaEntrada"].find(
                 {"$or": [{"_id": {"$in": mixed}}, {"Id": {"$in": mixed}}]},
                 proj_h,
-            ):
+            )
+            if mongo_max_time_ms is not None:
+                cur_h = cur_h.max_time_ms(int(mongo_max_time_ms))
+            for h in cur_h:
                 hid = str(h.get("Id") or h.get("_id") or "")
                 if hid:
                     heads[hid] = h
@@ -2755,6 +2761,7 @@ def _ultimas_compras_por_produto_ids(
     produtos_por_id: dict,
     *,
     limit: int = 3,
+    mongo_max_time_ms: int | None = None,
 ) -> dict[str, list[dict]]:
     """
     Últimas compras por produto a partir de DtoCompra*, DtoNotaEntrada*, etc. (Mongo ERP).
@@ -2812,6 +2819,7 @@ def _ultimas_compras_por_produto_ids(
             pid_ok=pid_ok,
             eventos=eventos,
             since=since,
+            mongo_max_time_ms=mongo_max_time_ms,
         )
 
     for col_p, fk, col_h, origem_label in pares:
@@ -2843,16 +2851,19 @@ def _ultimas_compras_por_produto_ids(
                     {"DataEmissaoNota": {"$gte": since}},
                 ],
             }
-            heads = list(db[col_h].find(q_head, proj_h))
+            cur_heads = db[col_h].find(q_head, proj_h)
+            if mongo_max_time_ms is not None:
+                cur_heads = cur_heads.max_time_ms(int(mongo_max_time_ms))
+            heads = list(cur_heads)
         except Exception as exc:
             logger.warning("ultimas_compras heads %s: %s", col_h, exc)
             continue
-        if len(heads) > 25000:
+        if len(heads) > 12000:
             heads.sort(
                 key=lambda h: _mongo_dt_sort_key(_data_cabecalho_compra(h)),
                 reverse=True,
             )
-            heads = heads[:25000]
+            heads = heads[:12000]
         cmap: dict[str, dict] = {}
         for h in heads:
             hid = str(h.get("Id") or h.get("_id") or "")
@@ -2868,37 +2879,37 @@ def _ultimas_compras_por_produto_ids(
                     {fk: {"$in": mixed}, "ProdutoID": {"$in": variants}},
                     proj_ln,
                 )
+                if mongo_max_time_ms is not None:
+                    cur = cur.max_time_ms(int(mongo_max_time_ms))
+                for ln in cur:
+                    if ln.get("Cancelada") in (True, "Sim", 1, "true", "True"):
+                        continue
+                    pid = str(ln.get("ProdutoID") or "")
+                    if pid not in pid_ok:
+                        continue
+                    hid = str(ln.get(fk) or "")
+                    h = cmap.get(hid)
+                    if not h:
+                        continue
+                    dt = _data_cabecalho_compra(h)
+                    if not _mongo_dt_maior_ou_igual(dt, since):
+                        continue
+                    unit, ja_final = _preco_unit_linha_compra_mongo(ln)
+                    qtd = _float_api_json(ln.get("Quantidade") or ln.get("Qtd") or 0)
+                    eventos[pid].append(
+                        {
+                            "dt": dt,
+                            "fornecedor": _nome_fornecedor_compra_head(h),
+                            "qtd": qtd,
+                            "unit_base": unit,
+                            "unit_ja_final": ja_final,
+                            "numero_doc": _numero_documento_compra_head(h),
+                            "tipo_fonte": origem_label,
+                        }
+                    )
             except Exception as exc:
                 logger.warning("ultimas_compras find %s: %s", col_p, exc)
                 continue
-            for ln in cur:
-                if ln.get("Cancelada") in (True, "Sim", 1, "true", "True"):
-                    continue
-                pid = str(ln.get("ProdutoID") or "")
-                if pid not in pid_ok:
-                    continue
-                hid = str(ln.get(fk) or "")
-                h = cmap.get(hid)
-                if not h:
-                    continue
-                dt = _data_cabecalho_compra(h)
-                if not _mongo_dt_maior_ou_igual(dt, since):
-                    continue
-                unit, ja_final = _preco_unit_linha_compra_mongo(ln)
-                qtd = _float_api_json(ln.get("Quantidade") or ln.get("Qtd") or 0)
-                eventos[pid].append(
-                    {
-                        "dt": dt,
-                        "fornecedor": _nome_fornecedor_compra_head(h),
-                        "qtd": qtd,
-                        "unit_base": unit,
-                        "unit_ja_final": ja_final,
-                        "numero_doc": _numero_documento_compra_head(h),
-                        "tipo_fonte": origem_label,
-                    }
-                )
-
-    for pid in p_ids:
         spid = str(pid)
         evs = eventos.get(spid, [])
         evs.sort(key=lambda e: _mongo_dt_sort_key(e.get("dt")), reverse=True)
@@ -6751,6 +6762,7 @@ def _entrada_nfe_compras_mapa_batch_para_spark(
     linhas: list,
     *,
     produtos_por_id: dict[str, dict] | None = None,
+    mongo_max_time_ms: int | None = None,
 ) -> dict[str, list]:
     """
     Uma chamada a ``_ultimas_compras_por_produto_ids`` para todos os produtos da grade,
@@ -6776,7 +6788,9 @@ def _entrada_nfe_compras_mapa_batch_para_spark(
         pids_ord.append(pid)
     if not pids_ord:
         return {}
-    return _ultimas_compras_por_produto_ids(db, pids_ord, por_id, limit=3)
+    return _ultimas_compras_por_produto_ids(
+        db, pids_ord, por_id, limit=3, mongo_max_time_ms=mongo_max_time_ms
+    )
 
 
 def _entrada_nfe_custo_spark_quatro_pontos(
@@ -6997,7 +7011,7 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
     saldos_map = _saldos_erp_produtos_depositos_batch(db, client_m, uniq_pids)
     pin_map = _pin_ajustes_latest_por_produtos_depositos(uniq_pids)
     compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(
-        db, client_m, linhas, produtos_por_id=docs_map
+        db, client_m, linhas, produtos_por_id=docs_map, mongo_max_time_ms=70000
     )
     for ix, ln in enumerate(linhas):
         if not isinstance(ln, dict):
@@ -7092,7 +7106,7 @@ def api_entrada_nota_preview_custo(request):
     saldos_map = _saldos_erp_produtos_depositos_batch(db, client, uniq_pids)
     pin_map = _pin_ajustes_latest_por_produtos_depositos(uniq_pids)
     compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(
-        db, client, linhas, produtos_por_id=docs_map
+        db, client, linhas, produtos_por_id=docs_map, mongo_max_time_ms=55000
     )
     itens = []
     for ix, ln in enumerate(linhas):
