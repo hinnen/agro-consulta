@@ -2541,7 +2541,11 @@
       });
       if (reqGen !== entradaNfePreviewCustoReqGen) return;
       list.innerHTML = parts.join('');
-      entradaNfeCustoRadiosSyncAll();
+      try {
+        entradaNfeCustoRadiosSyncAll();
+      } catch (_) {
+        /* Estilos dos rádios não podem apagar a prévia já montada. */
+      }
       const nOk = j.itens.filter((x) => x && x.ok).length;
       if (cntEl && j.itens.length) {
         cntEl.textContent = `${j.itens.length} ${j.itens.length === 1 ? 'item' : 'itens'} na prévia${nOk !== j.itens.length ? ` · ${nOk} ok` : ''}`;
@@ -2551,6 +2555,10 @@
     } catch (err) {
       if (reqGen !== entradaNfePreviewCustoReqGen) return;
       list.innerHTML = '';
+      if (cntEl) {
+        cntEl.textContent = '';
+        cntEl.classList.add('hidden');
+      }
       const name = err && err.name ? String(err.name) : '';
       if (name === 'AbortError' || name === 'TimeoutError') {
         entradaNfeWizCustoHintShow(
