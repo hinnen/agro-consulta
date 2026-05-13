@@ -6612,6 +6612,28 @@ def _entrada_nfe_data_nf_cab_iso(cab: dict | None) -> str:
     return ""
 
 
+def _entrada_nfe_compras_mapa_batch_para_spark(db, client_m, linhas: list) -> dict[str, list]:
+    """
+    Uma chamada a ``_ultimas_compras_por_produto_ids`` para todos os produtos da grade,
+    evitando N× a mesma agregação na prévia da etapa 6.
+    """
+    por_id: dict[str, dict] = {}
+    pids_ord: list[str] = []
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            continue
+        if pid in por_id:
+            continue
+        por_id[pid] = _produto_mongo_por_id_externo(db, client_m, pid) or {}
+        pids_ord.append(pid)
+    if not pids_ord:
+        return {}
+    return _ultimas_compras_por_produto_ids(db, pids_ord, por_id, limit=3)
+
+
 def _entrada_nfe_custo_spark_quatro_pontos(
     *,
     db,
@@ -6621,11 +6643,13 @@ def _entrada_nfe_custo_spark_quatro_pontos(
     custo_unit_nf: Decimal,
     custo_catalogo_prev: Decimal,
     cab: dict | None,
+    compras_rows_precalc: list[dict] | None = None,
 ) -> tuple[list[float], list[str]]:
     """
     Quatro pontos para mini gráfico na etapa 6: até 3 últimas compras (Mongo ERP,
     custo unitário final, mais antigo → mais recente) + custo unitário desta NF à direita.
     Compras a menos de 3: preenche à esquerda com o custo de catálogo anterior (data vazia).
+    Quando ``compras_rows_precalc`` vem do lote da API (etapa 6), não consulta o Mongo de novo.
     """
     try:
         xnf = float(custo_unit_nf.quantize(Decimal("0.01")))
@@ -6637,16 +6661,19 @@ def _entrada_nfe_custo_spark_quatro_pontos(
         cpad = 0.0
     hist_pairs: list[tuple[float, str]] = []
     try:
-        if db is not None and client_m is not None and pid and not pid.lower().startswith("local:"):
-            rows = (_ultimas_compras_por_produto_ids(db, [pid], {pid: doc}, limit=3).get(pid)) or []
-            for row in rows[:3]:
-                if not isinstance(row, dict):
-                    continue
-                try:
-                    val = round(float(row.get("preco_final") or 0), 2)
-                except (TypeError, ValueError):
-                    continue
-                hist_pairs.append((val, _entrada_nfe_row_compra_data_iso(row)))
+        rows_src: list[dict] = []
+        if compras_rows_precalc is not None:
+            rows_src = [r for r in compras_rows_precalc[:3] if isinstance(r, dict)]
+        elif db is not None and client_m is not None and pid and not pid.lower().startswith("local:"):
+            rows_src = list(
+                (_ultimas_compras_por_produto_ids(db, [pid], {pid: doc}, limit=3).get(pid)) or []
+            )[:3]
+        for row in rows_src:
+            try:
+                val = round(float(row.get("preco_final") or 0), 2)
+            except (TypeError, ValueError):
+                continue
+            hist_pairs.append((val, _entrada_nfe_row_compra_data_iso(row)))
     except Exception:
         hist_pairs = []
     hist_pairs.reverse()
@@ -6667,6 +6694,7 @@ def _entrada_nfe_preview_custo_linha(
     cab: dict,
     extra: dict | None,
     linha_ix: int,
+    compras_mapa: dict[str, list] | None = None,
 ) -> dict[str, Any]:
     """Pré-cálculo de custo (média C+V vs NF) para uma linha da entrada NF-e."""
     pid = str(ln.get("produto_id") or "").strip()
@@ -6739,6 +6767,7 @@ def _entrada_nfe_preview_custo_linha(
         default_escolha = "media"
         c_media = media_teoria
 
+    rows_spark = (compras_mapa.get(pid) if isinstance(compras_mapa, dict) else None) or []
     custo_spark_vals, custo_spark_datas_iso = _entrada_nfe_custo_spark_quatro_pontos(
         db=db,
         client_m=client_m,
@@ -6747,6 +6776,7 @@ def _entrada_nfe_preview_custo_linha(
         custo_unit_nf=custo_nota,
         custo_catalogo_prev=c_prev,
         cab=cab,
+        compras_rows_precalc=rows_spark if compras_mapa is not None else None,
     )
 
     return {
@@ -6795,6 +6825,7 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
                 escolhas[ks] = vs
     col = client_m.col_p
     ids_erp: list[str] = []
+    compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(db, client_m, linhas)
     for ix, ln in enumerate(linhas):
         if not isinstance(ln, dict):
             continue
@@ -6808,6 +6839,7 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
             cab=cab_d,
             extra=ex,
             linha_ix=ix,
+            compras_mapa=compras_mapa,
         )
         if not prev.get("ok"):
             continue
@@ -6869,12 +6901,21 @@ def api_entrada_nota_preview_custo(request):
     cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
     linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
     extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    compras_mapa = _entrada_nfe_compras_mapa_batch_para_spark(db, client, linhas)
     itens = []
     for ix, ln in enumerate(linhas):
         if not isinstance(ln, dict):
             continue
         itens.append(
-            _entrada_nfe_preview_custo_linha(db=db, client_m=client, ln=ln, cab=cab, extra=extra, linha_ix=ix)
+            _entrada_nfe_preview_custo_linha(
+                db=db,
+                client_m=client,
+                ln=ln,
+                cab=cab,
+                extra=extra,
+                linha_ix=ix,
+                compras_mapa=compras_mapa,
+            )
         )
     return JsonResponse({"ok": True, "itens": itens, "tipo_entrada": _entrada_nfe_tipo_entrada(extra)})
 
