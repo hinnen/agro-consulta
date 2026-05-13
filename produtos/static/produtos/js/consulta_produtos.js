@@ -1312,12 +1312,10 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
         pdvDestacarBotoesCarrinho();
     }
 
-    inputBusca.value = '';
-        bufferScanner = ''; // Trava de segurança contra leitura duplicada
-        clearTimeout(scannerTimer); // Desliga o cronômetro se ainda estiver rodando
+    /* Mantém termo e lista de sugestões visíveis; foco na busca com texto selecionado para nova digitação rápida. */
+    bufferScanner = '';
+    clearTimeout(scannerTimer);
     quantidadeRapida = 1;
-    limparBuscaVisual();
-    esconderStatusBusca();
     focarBuscaProduto();
 
     if (!opcoes.precoEtiquetaBalanca) {
