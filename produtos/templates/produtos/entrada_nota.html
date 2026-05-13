@@ -54,6 +54,11 @@
       box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.45);
     }
     #entrada-nfe-wizard-pages .nfe-wiz-page { min-height: min(70vh, 42rem); }
+    /* Etapa 6 · custo no catálogo: cartões alinhados e leitura rápida */
+    #nfe-wiz-custo-list .nfe-wiz-custo-card { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06); }
+    #nfe-wiz-custo-hint.nfe-wiz-custo-hint--hidden { display: none !important; }
+    .nfe-wiz-custo-help > summary { list-style: none; }
+    .nfe-wiz-custo-help > summary::-webkit-details-marker { display: none; }
     /* Nota finalizada (PIN etapa 6 · ``aprovacao_wizard_em``): bloqueia edição; etapa 6 sem atributo lock mantém PIN + Reabrir. */
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] input,
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] select,
@@ -654,25 +659,44 @@
       </div>
       </div>
 
-      <div id="nfe-wiz-page-6" data-nfe-wiz-page="6" class="nfe-wiz-page hidden flex flex-col gap-3 rounded-xl border-2 border-slate-300 bg-slate-50/95 p-3 sm:p-4 overflow-y-auto">
-        <div class="flex flex-wrap items-start justify-between gap-2">
-          <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">6 · Finalizar</h2>
-          <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-slate-300 bg-white text-sm font-black text-slate-800" data-help-w="6" title="Ajuda">?</button>
+      <div id="nfe-wiz-page-6" data-nfe-wiz-page="6" class="nfe-wiz-page hidden flex flex-col gap-4 rounded-2xl border-2 border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4 sm:p-5 overflow-y-auto min-h-0">
+        <div class="flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div class="min-w-0">
+            <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">6 · Finalizar</h2>
+            <p class="text-[10px] font-bold text-slate-500 mt-0.5 uppercase tracking-wide">PIN e custo no catálogo</p>
+          </div>
+          <button type="button" class="nfe-wiz-help min-h-[40px] min-w-[40px] rounded-xl border-2 border-slate-300 bg-white text-sm font-black text-slate-800 hover:bg-slate-50 shrink-0" data-help-w="6" title="Ajuda da etapa 6" aria-label="Ajuda da etapa 6">?</button>
         </div>
-        <div id="nfe-wiz-custo-wrap" class="rounded-xl border-2 border-indigo-200 bg-indigo-50/80 p-3 space-y-2 text-xs font-semibold text-slate-800">
-          <h3 class="text-[11px] font-black uppercase text-indigo-950 tracking-tight">Custo no catálogo (média C+V)</h3>
-          <p id="nfe-wiz-custo-hint" class="text-[11px] font-bold text-indigo-900/90 leading-snug">Carregando prévia…</p>
-          <div id="nfe-wiz-custo-list" class="space-y-2 max-h-[min(42vh,22rem)] overflow-y-auto"></div>
+        <div id="nfe-wiz-custo-wrap" class="flex flex-col min-h-0 flex-1 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="shrink-0 flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-emerald-50/90 via-white to-white">
+            <div class="min-w-0">
+              <h3 class="text-xs font-black uppercase tracking-wide text-slate-900">Custo no catálogo · média C+V</h3>
+              <p id="nfe-wiz-custo-count" class="mt-1 text-[10px] font-bold text-slate-500 tabular-nums hidden" aria-live="polite"></p>
+            </div>
+            <details class="nfe-wiz-custo-help group shrink-0 w-full sm:w-auto sm:max-w-[20rem]">
+              <summary class="cursor-pointer min-h-[40px] min-w-[40px] sm:min-w-0 sm:px-3 inline-flex items-center justify-center sm:justify-start gap-2 rounded-xl border-2 border-emerald-300 bg-white text-xs font-black text-emerald-900 hover:bg-emerald-50 marker:content-none w-full sm:w-auto" aria-label="O que é esta prévia">
+                <span class="tabular-nums">?</span><span class="hidden sm:inline font-bold normal-case tracking-normal">Como funciona</span>
+              </summary>
+              <div class="mt-2 rounded-xl border-2 border-emerald-100 bg-emerald-50/60 p-3 text-[11px] font-semibold text-slate-800 leading-relaxed">Confira cada item e escolha se o custo gravado no catálogo após o PIN será a <strong>média ponderada</strong> (estoque + NF) ou o <strong>custo unitário da NF</strong>. Com saldo C+V abaixo de 1 ou diferença grande entre custos, o padrão sugerido pode mudar — veja os selos em cada card. O mini gráfico em cada linha mostra até <strong>três últimas compras</strong> no ERP (custo unitário final, da mais antiga à mais recente) e o <strong>quarto ponto</strong> é o custo unitário <strong>desta NF</strong>; em cada coluna aparecem <strong>data</strong> (quando o ERP tem) e valor. Se não houver histórico suficiente, o início repete o custo de catálogo anterior só para completar as quatro colunas (nessas colunas a data fica em branco).</div>
+            </details>
+          </div>
+          <p id="nfe-wiz-custo-hint" class="shrink-0 mx-4 mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-800 leading-snug nfe-wiz-custo-hint--hidden" role="status"></p>
+          <div id="nfe-wiz-custo-list" class="pdv-wizard-scroll flex-1 min-h-[8rem] max-h-[min(48vh,28rem)] overflow-y-auto px-4 pb-4 pt-3 flex flex-col gap-3"></div>
         </div>
-        <label class="block max-w-xs"><span class="text-[10px] font-black uppercase text-slate-700">PIN</span>
-          <input type="password" id="nfe-wiz-pin" autocomplete="current-password" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-300 px-3 text-lg font-mono tracking-widest bg-white" inputmode="numeric" maxlength="12">
-        </label>
-        <button type="button" id="nfe-wiz-btn-aprov" class="min-h-[48px] px-5 rounded-xl bg-slate-800 text-white text-xs font-black uppercase border-2 border-slate-950 hover:bg-slate-900">Gravar finalização</button>
-        <button type="button" id="nfe-wiz-btn-reabrir" class="hidden min-h-[48px] px-5 rounded-xl border-2 border-amber-700 bg-amber-500 text-white text-xs font-black uppercase hover:bg-amber-600 shadow-sm">
-          Reabrir nota
-        </button>
-        <p id="nfe-wiz-aprov-msg" class="text-sm font-bold text-slate-700 min-h-[1.25rem]" role="status"></p>
-        <div id="nfe-wiz-recap" class="rounded-xl border border-slate-200 bg-white p-3 text-xs font-semibold text-slate-700 space-y-1"></div>
+        <div class="shrink-0 rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-sm space-y-3">
+          <label class="block max-w-sm">
+            <span class="text-[10px] font-black uppercase text-slate-600 tracking-wide">PIN (senha rápida)</span>
+            <input type="password" id="nfe-wiz-pin" autocomplete="current-password" class="mt-1.5 w-full min-h-[52px] rounded-xl border-2 border-slate-300 px-4 text-xl font-mono tracking-[0.2em] bg-slate-50 focus:bg-white focus:border-emerald-500 outline-none transition-colors" inputmode="numeric" maxlength="12" placeholder="····">
+          </label>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" id="nfe-wiz-btn-aprov" class="min-h-[52px] flex-1 min-w-[12rem] px-5 rounded-xl bg-slate-900 text-white text-xs font-black uppercase border-2 border-slate-950 hover:bg-slate-800 shadow-sm">Gravar finalização</button>
+            <button type="button" id="nfe-wiz-btn-reabrir" class="hidden min-h-[52px] px-5 rounded-xl border-2 border-amber-700 bg-amber-500 text-white text-xs font-black uppercase hover:bg-amber-600 shadow-sm">
+              Reabrir nota
+            </button>
+          </div>
+          <p id="nfe-wiz-aprov-msg" class="text-sm font-bold text-slate-700 min-h-[1.35rem]" role="status"></p>
+          <div id="nfe-wiz-recap" class="rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-xs text-slate-700"></div>
+        </div>
       </div>
       </div>
     </section>
@@ -2140,9 +2164,155 @@
     return out;
   }
 
+  function entradaNfeSparkDataFmt(iso) {
+    const s = String(iso || '').trim();
+    if (!s) return '—';
+    const d = s.length >= 10 ? s.slice(0, 10) : s;
+    const t = Date.parse(`${d}T12:00:00`);
+    if (!Number.isFinite(t)) return '—';
+    return new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  /** Mini gráfico (4 pontos): estilo Compras — valores = custo unitário; último ponto = esta NF (laranja). */
+  function entradaNfeSparklineSvg4Custo(vals) {
+    const v = (vals || []).map((x) => Math.max(0, Number(x) || 0));
+    const n = 4;
+    const w = 320;
+    const h = 58;
+    const padX = 4;
+    const padY = 6;
+    const max = Math.max(...v, 1e-6);
+    const innerW = w - 2 * padX;
+    const innerH = h - 2 * padY;
+    const step = n <= 1 ? 0 : innerW / (n - 1);
+    const pts = v
+      .map((val, i) => {
+        const x = padX + i * step;
+        const y = padY + innerH - (val / max) * innerH;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(' ');
+    const circles = v
+      .map((val, i) => {
+        const x = padX + i * step;
+        const y = padY + innerH - (val / max) * innerH;
+        const cls = i === n - 1 ? 'text-orange-500' : 'text-emerald-600';
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.8" fill="currentColor" class="${cls}"/>`;
+      })
+      .join('');
+    const area =
+      `${padX},${padY + innerH} ` +
+      v
+        .map((val, i) => {
+          const x = padX + i * step;
+          const y = padY + innerH - (val / max) * innerH;
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        })
+        .join(' ') +
+      ` ${padX + 3 * step},${padY + innerH}`;
+    return (
+      '<svg viewBox="0 0 ' +
+      w +
+      ' ' +
+      h +
+      '" class="w-full h-[3.2rem] text-emerald-600" preserveAspectRatio="none" aria-hidden="true">' +
+      '<line x1="' +
+      padX +
+      '" y1="' +
+      (padY + innerH) +
+      '" x2="' +
+      (w - padX) +
+      '" y2="' +
+      (padY + innerH) +
+      '" stroke="currentColor" stroke-opacity="0.18" stroke-width="1"/>' +
+      '<polygon fill="currentColor" fill-opacity="0.12" stroke="none" points="' +
+      area +
+      '" class="text-emerald-500"/>' +
+      '<polyline fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" points="' +
+      pts +
+      '"/>' +
+      circles +
+      '</svg>'
+    );
+  }
+
+  function entradaNfeCustoRadioRefreshGroup(name) {
+    if (!name) return;
+    document.querySelectorAll('input[type="radio"][name^="nfe-custo-"]').forEach((inp) => {
+      if (inp.name !== name) return;
+      const lb = inp.closest('label');
+      if (!lb) return;
+      lb.classList.remove(
+        'ring-2',
+        'ring-emerald-300',
+        'border-emerald-500',
+        'bg-emerald-50',
+        'ring-slate-300',
+        'border-slate-700',
+        'bg-slate-100',
+      );
+      lb.classList.add('border-slate-100', 'bg-white/80');
+    });
+    const escNm = String(name).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    const chk = document.querySelector(`input[type="radio"][name="${escNm}"]:checked`);
+    if (!chk) return;
+    const lb = chk.closest('label');
+    if (!lb) return;
+    lb.classList.remove('border-slate-100', 'bg-white/80');
+    if (chk.value === 'media') {
+      lb.classList.add('ring-2', 'ring-emerald-300', 'border-emerald-500', 'bg-emerald-50');
+    } else {
+      lb.classList.add('ring-2', 'ring-slate-300', 'border-slate-700', 'bg-slate-100');
+    }
+  }
+
+  function entradaNfeCustoRadiosSyncAll() {
+    const seen = new Set();
+    document.querySelectorAll('input[type="radio"][name^="nfe-custo-"]').forEach((inp) => {
+      if (seen.has(inp.name)) return;
+      seen.add(inp.name);
+      entradaNfeCustoRadioRefreshGroup(inp.name);
+    });
+  }
+
+  function entradaNfeWizCustoHintShow(text, kind) {
+    const hint = document.getElementById('nfe-wiz-custo-hint');
+    if (!hint) return;
+    if (!text) {
+      hint.textContent = '';
+      hint.classList.add('nfe-wiz-custo-hint--hidden');
+      return;
+    }
+    hint.textContent = text;
+    hint.classList.remove(
+      'nfe-wiz-custo-hint--hidden',
+      'border-amber-200/80',
+      'bg-amber-50/90',
+      'text-amber-950',
+      'border-red-200',
+      'bg-red-50',
+      'text-red-900',
+      'border-slate-300',
+      'bg-slate-100',
+      'text-slate-800',
+    );
+    if (kind === 'err') {
+      hint.classList.add('border-red-200', 'bg-red-50', 'text-red-900');
+    } else if (kind === 'warn') {
+      hint.classList.add('border-amber-200/80', 'bg-amber-50/90', 'text-amber-950');
+    } else {
+      hint.classList.add('border-slate-300', 'bg-slate-100', 'text-slate-800');
+    }
+  }
+
   async function entradaNfeRecapRefresh() {
     const box = document.getElementById('nfe-wiz-recap');
+    const cntEl = document.getElementById('nfe-wiz-custo-count');
     if (!box) return;
+    const esc = (s) => String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/"/g, '&quot;');
     const nf = document.getElementById('m-nf')?.value?.trim() || '—';
     const ser = document.getElementById('m-serie')?.value?.trim() || '';
     const forn = document.getElementById('m-emit-nome')?.value?.trim() || '—';
@@ -2156,22 +2326,52 @@
       if (tr.querySelector('.in-prod-id')?.value?.trim()) comProd += 1;
     });
     const tipoL = entradaNfeTipoEntradaLe() === 'bonificacao' ? 'Bonificação' : 'Compras';
-    box.innerHTML = `<p><strong>NF</strong> ${nf}${ser ? ` · série ${ser}` : ''}</p><p><strong>Fornecedor</strong> ${forn}</p><p><strong>Tipo</strong> ${tipoL}</p><p><strong>Estoque</strong> ${empT || '—'} — ${depT || '—'}</p><p><strong>Linhas com catálogo</strong> ${comProd} / ${rows.length}</p>`;
+    box.innerHTML = `
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-[11px]">
+        <div>
+          <div class="text-[9px] font-black uppercase tracking-wider text-slate-500">NF</div>
+          <div class="mt-0.5 text-sm font-black text-slate-900 tabular-nums">${esc(nf)}${ser ? `<span class="text-slate-500 font-bold"> · sér. </span>${esc(ser)}` : ''}</div>
+        </div>
+        <div>
+          <div class="text-[9px] font-black uppercase tracking-wider text-slate-500">Tipo</div>
+          <div class="mt-0.5 text-sm font-black text-slate-900">${esc(tipoL)}</div>
+        </div>
+        <div class="sm:col-span-2">
+          <div class="text-[9px] font-black uppercase tracking-wider text-slate-500">Fornecedor</div>
+          <div class="mt-0.5 font-bold text-slate-800 leading-snug break-words">${esc(forn)}</div>
+        </div>
+        <div>
+          <div class="text-[9px] font-black uppercase tracking-wider text-slate-500">Estoque</div>
+          <div class="mt-0.5 font-bold text-slate-800">${esc(empT || '—')}</div>
+        </div>
+        <div>
+          <div class="text-[9px] font-black uppercase tracking-wider text-slate-500">Depósito</div>
+          <div class="mt-0.5 font-bold text-slate-800">${esc(depT || '—')}</div>
+        </div>
+        <div class="sm:col-span-2 pt-1 border-t border-slate-200/80 flex flex-wrap items-baseline justify-between gap-2">
+          <span class="text-[9px] font-black uppercase text-slate-500">Linhas com catálogo</span>
+          <span class="text-sm font-black text-emerald-900 tabular-nums">${comProd} <span class="text-slate-400 font-bold">/</span> ${rows.length}</span>
+        </div>
+      </div>`;
     const hint = document.getElementById('nfe-wiz-custo-hint');
     const list = document.getElementById('nfe-wiz-custo-list');
     const rid = entradaNfeRascunhoEditId;
     if (!hint || !list) return;
+    if (cntEl) {
+      cntEl.textContent = '';
+      cntEl.classList.add('hidden');
+    }
     if (entradaNfeEditorCongeladoAtivo()) {
-      hint.textContent = 'Finalização já registrada — o custo no catálogo foi aplicado ao gravar o PIN.';
+      entradaNfeWizCustoHintShow('Finalização já registrada — custo do catálogo foi aplicado ao gravar o PIN.', 'warn');
       list.innerHTML = '';
       return;
     }
     if (!rid) {
-      hint.textContent = 'Salve a entrada no Agro (automático após editar) para carregar a prévia de custo.';
+      entradaNfeWizCustoHintShow('Salve a entrada no Agro (automático ao editar) para carregar a prévia de custo.', 'warn');
       list.innerHTML = '';
       return;
     }
-    hint.textContent = 'Carregando prévia de custo…';
+    entradaNfeWizCustoHintShow('Carregando prévia de custo…', 'load');
     list.innerHTML = '';
     const fmt = (n) => {
       const x = Number(n);
@@ -2185,50 +2385,124 @@
       const r = await fetch(`${URL_PREVIEW_CUSTO}?id=${encodeURIComponent(rid)}`, { credentials: 'same-origin' });
       const j = await r.json();
       if (!r.ok || !j.ok || !Array.isArray(j.itens)) {
-        hint.textContent = j.erro || 'Não foi possível carregar a prévia de custo.';
+        list.innerHTML = '';
+        entradaNfeWizCustoHintShow(j.erro || 'Não foi possível carregar a prévia de custo.', 'err');
         return;
       }
       const parts = [];
       j.itens.forEach((it, ix) => {
         if (!it.ok) {
-          parts.push(`<div class="rounded-lg border border-slate-200 bg-white px-2 py-2 text-[11px] font-bold text-slate-600">Linha ${ix + 1}: ${String(it.erro || '—')}</div>`);
+          parts.push(`<article class="nfe-wiz-custo-card rounded-xl border-2 border-red-200 bg-red-50/50 px-3 py-3" role="status">
+            <div class="text-[10px] font-black uppercase text-red-900">Linha ${ix + 1}</div>
+            <p class="mt-1 text-xs font-bold text-red-950 leading-snug">${esc(String(it.erro || '—'))}</p>
+          </article>`);
           return;
         }
         const pid = String(it.produto_id || '').trim();
         const def = String(it.default_escolha || 'nota').toLowerCase() === 'media' ? 'media' : 'nota';
         const cur = (saved[pid] === 'media' || saved[pid] === 'nota') ? saved[pid] : def;
-        const n = String(it.nome || pid).slice(0, 80);
+        const n = String(it.nome || pid).slice(0, 120);
         const badges = [];
-        if (Number(it.saldo_total_pre || 0) < 1) badges.push('<span class="inline-block rounded px-1.5 py-0.5 bg-slate-200 text-[10px] font-black uppercase text-slate-800">Saldo total &lt; 1</span>');
-        if (it.divergencia_maior_15pct) badges.push('<span class="inline-block rounded px-1.5 py-0.5 bg-amber-200 text-[10px] font-black uppercase text-amber-950">Dif. &gt; 15%</span>');
+        if (Number(it.saldo_total_pre || 0) < 1) {
+          badges.push('<span class="inline-flex items-center rounded-md border border-slate-300 bg-slate-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-slate-800">Saldo total &lt; 1</span>');
+        }
+        if (it.divergencia_maior_15pct) {
+          badges.push('<span class="inline-flex items-center rounded-md border border-amber-400 bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-amber-950">Dif. &gt; 15%</span>');
+        }
+        const sparkVals = Array.isArray(it.custo_spark_vals) && it.custo_spark_vals.length === 4
+          ? it.custo_spark_vals.map((x) => Number(x))
+          : null;
+        const sparkOk = sparkVals && sparkVals.every((x) => Number.isFinite(x));
+        const sparkValsFmt = sparkOk
+          ? sparkVals.map((v) =>
+              Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            )
+          : [];
+        const sparkDates = Array.isArray(it.custo_spark_datas_iso) && it.custo_spark_datas_iso.length === 4
+          ? it.custo_spark_datas_iso.map((x) => String(x || '').trim())
+          : ['', '', '', ''];
+        const sparkDatesFmt = sparkOk ? sparkDates.map((d) => entradaNfeSparkDataFmt(d)) : [];
+        const sparkHtml = sparkOk
+          ? `<div class="mt-3 rounded-xl border border-slate-100 bg-gradient-to-br from-slate-50/90 to-white px-2.5 py-2" title="Quatro pontos: até 3 últimas compras no ERP (custo unitário final, da mais antiga à mais recente) e à direita o custo unitário desta NF. Em cada coluna: data (quando existir no ERP) e valor. Colunas à esquerda sem data indicam preenchimento com o custo de catálogo anterior (sem compra naquela posição). A última coluna usa a data de emissão ou de entrada da NF no cabeçalho.">
+            <div class="text-[9px] font-black uppercase tracking-wide text-slate-500 mb-1">Custo unit. · últimas compras + esta NF</div>
+            <div class="flex items-end justify-start w-full max-w-[16rem]">${entradaNfeSparklineSvg4Custo(sparkVals)}</div>
+            <div class="grid grid-cols-4 gap-1 mt-0.5 w-full max-w-[16rem]">
+              <span class="text-[9px] font-black text-slate-600 bg-white border border-slate-200 rounded px-0.5 py-0.5 text-center">C1</span>
+              <span class="text-[9px] font-black text-slate-600 bg-white border border-slate-200 rounded px-0.5 py-0.5 text-center">C2</span>
+              <span class="text-[9px] font-black text-slate-600 bg-white border border-slate-200 rounded px-0.5 py-0.5 text-center">C3</span>
+              <span class="text-[9px] font-black text-orange-900 bg-orange-50 border border-orange-200 rounded px-0.5 py-0.5 text-center">NF</span>
+            </div>
+            <div class="grid grid-cols-4 gap-1 mt-0.5 w-full max-w-[16rem]">
+              ${sparkDatesFmt.map((s) => `<span class="text-[8px] font-bold text-slate-500 tabular-nums text-center leading-tight">${esc(s)}</span>`).join('')}
+            </div>
+            <div class="grid grid-cols-4 gap-1 mt-0.5 w-full max-w-[16rem]">
+              ${sparkValsFmt.map((s) => `<span class="text-[9px] font-black text-slate-900 tabular-nums text-center leading-tight">${esc(s)}</span>`).join('')}
+            </div>
+            <div class="flex justify-between text-[8px] font-bold text-slate-400 mt-0.5 px-0.5 w-full max-w-[16rem]">
+              <span>Mais antigo</span><span>esta NF</span>
+            </div>
+          </div>`
+          : '';
         const nm = `nfe-custo-${ix}`;
-        parts.push(`<div class="rounded-lg border border-indigo-200 bg-white px-2 py-2 space-y-1.5">
-          <div class="text-[11px] font-black text-slate-900">${ix + 1}. ${n.replace(/</g, '')}</div>
-          <div class="flex flex-wrap gap-1">${badges.join(' ') || '<span class="text-[10px] font-bold text-slate-500">Regra: média se saldo C+V ≥ 1 e dif. ≤ 15%</span>'}</div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[10px] font-semibold text-slate-700">
-            <span>Saldo C+V (antes desta NF): ${Number(it.saldo_total_pre || 0).toLocaleString('pt-BR', { maximumFractionDigits: 3 })}</span>
-            <span>Qtd entrada: ${Number(it.qtd_entrada || 0).toLocaleString('pt-BR', { maximumFractionDigits: 4 })}</span>
-            <span>Custo catálogo (antes): ${fmt(it.custo_catalogo_anterior)}</span>
-            <span>Custo unit. NF: ${fmt(it.custo_unitario_nota)}</span>
-            <span class="sm:col-span-2 font-black text-indigo-950">Média ponderada sugerida: ${fmt(it.custo_medio_ponderado)}</span>
+        const pidAttr = pid.replace(/"/g, '');
+        parts.push(`<article class="nfe-wiz-custo-card rounded-xl border border-slate-200 bg-white overflow-hidden">
+          <header class="flex flex-wrap items-start gap-3 px-3 py-3 bg-slate-50/90 border-b border-slate-100">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-xs font-black text-emerald-950 border border-emerald-200/80 tabular-nums">${ix + 1}</span>
+            <div class="min-w-0 flex-1">
+              <h4 class="text-sm font-black text-slate-900 leading-snug break-words">${esc(n)}</h4>
+              <div class="mt-2 flex flex-wrap gap-1.5">${badges.join('') || '<span class="text-[10px] font-semibold text-slate-400">Sem alerta de regra</span>'}</div>
+            </div>
+          </header>
+          <div class="px-3 py-3">
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-left">
+              <div class="min-w-0">
+                <dt class="text-[9px] font-black uppercase tracking-wide text-slate-500 leading-tight">Saldo C+V (antes)</dt>
+                <dd class="mt-0.5 text-sm font-black text-slate-900 tabular-nums">${Number(it.saldo_total_pre || 0).toLocaleString('pt-BR', { maximumFractionDigits: 3 })}</dd>
+              </div>
+              <div class="min-w-0">
+                <dt class="text-[9px] font-black uppercase tracking-wide text-slate-500 leading-tight">Qtd entrada</dt>
+                <dd class="mt-0.5 text-sm font-black text-slate-900 tabular-nums">${Number(it.qtd_entrada || 0).toLocaleString('pt-BR', { maximumFractionDigits: 4 })}</dd>
+              </div>
+              <div class="min-w-0">
+                <dt class="text-[9px] font-black uppercase tracking-wide text-slate-500 leading-tight">Custo catálogo (antes)</dt>
+                <dd class="mt-0.5 text-sm font-black text-slate-900 tabular-nums">${fmt(it.custo_catalogo_anterior)}</dd>
+              </div>
+              <div class="min-w-0">
+                <dt class="text-[9px] font-black uppercase tracking-wide text-slate-500 leading-tight">Custo unit. NF</dt>
+                <dd class="mt-0.5 text-sm font-black text-slate-900 tabular-nums">${fmt(it.custo_unitario_nota)}</dd>
+              </div>
+            </dl>
+            ${sparkHtml}
+            <div class="mt-4 flex items-center justify-between gap-3 rounded-xl border-2 border-emerald-200/90 bg-gradient-to-r from-emerald-50 to-white px-3 py-2.5">
+              <span class="text-[10px] font-black uppercase tracking-wide text-emerald-900">Média sugerida</span>
+              <span class="text-lg font-black text-emerald-950 tabular-nums">${fmt(it.custo_medio_ponderado)}</span>
+            </div>
           </div>
-          <div class="flex flex-col gap-2 pt-1 border-t border-slate-100">
-            <span class="text-[10px] font-black uppercase text-slate-600">Gravar no catálogo após PIN</span>
-            <label class="inline-flex items-center gap-2 cursor-pointer min-h-[40px]">
-              <input type="radio" name="${nm}" data-pid="${pid.replace(/"/g, '')}" value="media" class="h-4 w-4 accent-indigo-600 shrink-0" ${cur === 'media' ? 'checked' : ''}>
-              <span class="text-[11px] font-bold">Usar média ponderada (${fmt(it.custo_medio_ponderado)})</span>
+          <fieldset class="border-t border-slate-100 bg-slate-50/50 px-3 py-3 space-y-0">
+            <legend class="sr-only">Custo a gravar no catálogo após o PIN</legend>
+            <p class="text-[9px] font-black uppercase tracking-wider text-slate-500 mb-2 px-0.5">Gravar no catálogo após PIN</p>
+            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-white/80 px-2 py-2.5 hover:border-emerald-200 hover:bg-emerald-50/40 min-h-[48px]">
+              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="media" class="h-5 w-5 shrink-0 accent-emerald-600" ${cur === 'media' ? 'checked' : ''}>
+              <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-emerald-800">Média ponderada</span> · ${fmt(it.custo_medio_ponderado)}</span>
             </label>
-            <label class="inline-flex items-center gap-2 cursor-pointer min-h-[40px]">
-              <input type="radio" name="${nm}" data-pid="${pid.replace(/"/g, '')}" value="nota" class="h-4 w-4 accent-indigo-600 shrink-0" ${cur === 'nota' ? 'checked' : ''}>
-              <span class="text-[11px] font-bold">Usar custo da NF (${fmt(it.custo_unitario_nota)})</span>
+            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-white/80 px-2 py-2.5 hover:border-slate-300 hover:bg-white min-h-[48px]">
+              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="nota" class="h-5 w-5 shrink-0 accent-slate-700" ${cur === 'nota' ? 'checked' : ''}>
+              <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-slate-600">Custo da NF</span> · ${fmt(it.custo_unitario_nota)}</span>
             </label>
-          </div>
-        </div>`);
+          </fieldset>
+        </article>`);
       });
       list.innerHTML = parts.join('');
-      hint.textContent = 'Confira cada item e escolha o custo que irá para o catálogo ao gravar o PIN abaixo.';
+      entradaNfeCustoRadiosSyncAll();
+      const nOk = j.itens.filter((x) => x && x.ok).length;
+      if (cntEl && j.itens.length) {
+        cntEl.textContent = `${j.itens.length} ${j.itens.length === 1 ? 'item' : 'itens'} na prévia${nOk !== j.itens.length ? ` · ${nOk} ok` : ''}`;
+        cntEl.classList.remove('hidden');
+      }
+      entradaNfeWizCustoHintShow('', null);
     } catch (_) {
-      hint.textContent = 'Erro de rede ao carregar prévia de custo.';
+      list.innerHTML = '';
+      entradaNfeWizCustoHintShow('Erro de rede ao carregar prévia de custo.', 'err');
     }
   }
 
@@ -2943,11 +3217,13 @@
       },
       '6': {
         titulo: 'Ajuda rápida · Finalizar',
-        resumo: 'A etapa 6 só libera quando as etapas anteriores estiverem corretas.',
+        resumo: 'PIN (mesma senha rápida do estoque) e escolha do custo que vai para o catálogo.',
         itens: [
-          'Valida fornecedor/plano, produtos, código de barras, estoque e financeiro (se iniciado).',
-          'Não permite finalizar com item pendente de conferência por código.',
-          'PIN é o mesmo da senha rápida usada no estoque.',
+          'Só avança para esta etapa com fornecedor, produtos, códigos e estoque confirmados; financeiro completo se você tiver iniciado o bloco.',
+          'A lista «Custo no catálogo» mostra média ponderada (C+V + NF) versus custo unitário da NF — marque uma opção por produto.',
+          'O mini gráfico em cada card mostra até três últimas compras no ERP (custo unitário final) e o quarto ponto é o custo desta NF; em cada coluna há data (pt-BR) e valor. Falta de histórico preenche custo com o catálogo anterior e deixa a data em branco; a coluna NF usa a data de emissão/entrada do cabeçalho da nota.',
+          'Com saldo total C+V abaixo de 1 ou diferença acima de 15% entre custos, aparecem avisos no card; a sugestão padrão pode ser média ou NF.',
+          'Após gravar o PIN, o custo escolhido é aplicado ao catálogo conforme a regra da loja.',
         ],
       },
     };
@@ -5386,6 +5662,16 @@
 
   elEditorNfe?.addEventListener('input', entradaNfeAgendarAutosaveRascunho, true);
   elEditorNfe?.addEventListener('change', entradaNfeAgendarAutosaveRascunho, true);
+  elEditorNfe?.addEventListener(
+    'change',
+    (ev) => {
+      const t = ev.target;
+      if (t && t.matches && t.matches('input[type="radio"][name^="nfe-custo-"]')) {
+        entradaNfeCustoRadioRefreshGroup(t.name);
+      }
+    },
+    true,
+  );
 
   async function salvarComFinanceiro(modo, extra) {
     if (entradaNfeEditorCongeladoAtivo()) {

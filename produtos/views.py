@@ -6582,6 +6582,83 @@ def _entrada_nfe_estoque_agro_ja_aplicado(extra: dict | None) -> bool:
     return isinstance(raw, list) and len(raw) > 0
 
 
+def _entrada_nfe_row_compra_data_iso(row: dict) -> str:
+    """Data da linha de compra (Mongo) como YYYY-MM-DD para exibição no gráfico."""
+    det = row.get("detalhe") if isinstance(row.get("detalhe"), dict) else {}
+    ds = str(det.get("data") or "").strip()
+    if not ds:
+        return ""
+    if "T" in ds:
+        return ds.split("T", 1)[0][:10]
+    if len(ds) >= 10 and ds[4:5] == "-":
+        return ds[:10]
+    return ds[:10] if len(ds) >= 8 else ""
+
+
+def _entrada_nfe_data_nf_cab_iso(cab: dict | None) -> str:
+    """Emissão ou data de entrada da NF no rascunho (YYYY-MM-DD)."""
+    cab = cab if isinstance(cab, dict) else {}
+    for k in ("dh_emi", "data_entrada"):
+        raw = str(cab.get(k) or "").strip()
+        if not raw:
+            continue
+        try:
+            if "T" in raw:
+                return raw.split("T", 1)[0][:10]
+            if len(raw) >= 10 and raw[4:5] == "-":
+                return raw[:10]
+        except Exception:
+            continue
+    return ""
+
+
+def _entrada_nfe_custo_spark_quatro_pontos(
+    *,
+    db,
+    client_m,
+    pid: str,
+    doc: dict,
+    custo_unit_nf: Decimal,
+    custo_catalogo_prev: Decimal,
+    cab: dict | None,
+) -> tuple[list[float], list[str]]:
+    """
+    Quatro pontos para mini gráfico na etapa 6: até 3 últimas compras (Mongo ERP,
+    custo unitário final, mais antigo → mais recente) + custo unitário desta NF à direita.
+    Compras a menos de 3: preenche à esquerda com o custo de catálogo anterior (data vazia).
+    """
+    try:
+        xnf = float(custo_unit_nf.quantize(Decimal("0.01")))
+    except Exception:
+        xnf = 0.0
+    try:
+        cpad = float(custo_catalogo_prev.quantize(Decimal("0.01")))
+    except Exception:
+        cpad = 0.0
+    hist_pairs: list[tuple[float, str]] = []
+    try:
+        if db is not None and client_m is not None and pid and not pid.lower().startswith("local:"):
+            rows = (_ultimas_compras_por_produto_ids(db, [pid], {pid: doc}, limit=3).get(pid)) or []
+            for row in rows[:3]:
+                if not isinstance(row, dict):
+                    continue
+                try:
+                    val = round(float(row.get("preco_final") or 0), 2)
+                except (TypeError, ValueError):
+                    continue
+                hist_pairs.append((val, _entrada_nfe_row_compra_data_iso(row)))
+    except Exception:
+        hist_pairs = []
+    hist_pairs.reverse()
+    while len(hist_pairs) < 3:
+        hist_pairs.insert(0, (cpad, ""))
+    hist_pairs = hist_pairs[-3:]
+    data_nf = _entrada_nfe_data_nf_cab_iso(cab)
+    vals = [hist_pairs[0][0], hist_pairs[1][0], hist_pairs[2][0], xnf]
+    datas = [hist_pairs[0][1], hist_pairs[1][1], hist_pairs[2][1], data_nf]
+    return vals, datas
+
+
 def _entrada_nfe_preview_custo_linha(
     *,
     db,
@@ -6662,6 +6739,16 @@ def _entrada_nfe_preview_custo_linha(
         default_escolha = "media"
         c_media = media_teoria
 
+    custo_spark_vals, custo_spark_datas_iso = _entrada_nfe_custo_spark_quatro_pontos(
+        db=db,
+        client_m=client_m,
+        pid=pid,
+        doc=doc,
+        custo_unit_nf=custo_nota,
+        custo_catalogo_prev=c_prev,
+        cab=cab,
+    )
+
     return {
         "linha_ix": linha_ix,
         "produto_id": pid,
@@ -6678,6 +6765,8 @@ def _entrada_nfe_preview_custo_linha(
         "custo_medio_aplicado_padrao": float(c_media),
         "divergencia_maior_15pct": diverge_15,
         "default_escolha": default_escolha,
+        "custo_spark_vals": custo_spark_vals,
+        "custo_spark_datas_iso": custo_spark_datas_iso,
     }
 
 
