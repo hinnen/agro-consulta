@@ -105,6 +105,12 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 - Opção **descontar ou não** estoque total **C+V** (localStorage).  
 - F5 / textos: **atualizar métricas**; não confundir com horizonte da sugestão.
 
+**Entrada NF — pré-visualização XML (`entrada_nota.html`, botão Ler XML)**  
+
+- Após o parse: **modal grande** em duas colunas (grade vs XML), com sugestão automática de vínculo (**EAN** / **código**), **arrastar e soltar** para casar, **descartar** por linha, **zona de lixo** (soltar o cartão) e **descartar todos os não vinculados** (com confirmação). Texto longo no bloco **Ajuda** (`<details>`), alinhado à UX do projeto.
+- A **grade não muda** até **Confirmar na grade**; **clique fora do painel não fecha** o modal (evita fecho acidental). **Cancelar**, **Fechar** e **Esc** pedem confirmação antes de sair.
+- Ao confirmar: aplica cabeçalho da NF, limpa a grade e monta linhas na ordem da nota (XML fundido com a grade quando há vínculo; em seguida linhas só da grade que não foram descartadas). Atualiza `ultimaNotaParse`. No fluxo de só pré-visualizar/parse **não** zera rascunho em edição, **não** limpa `entradaNfeExtraUltimo` e **não** reseta depósito (comportamento anterior fazia isso já ao ler o arquivo).
+
 **Gestão / cadastro de produtos — lentidão após entrada NF (investigação aberta)**  
 
 - **Sintoma:** primeira abertura aceitável; depois de **entrada de nota** e voltar à **gestão de produtos**, carga muito longa (minutos em casos extremos). Usuário reportou persistência após otimizações iniciais.  
