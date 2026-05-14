@@ -186,8 +186,20 @@
           </div>
         </div>
 
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Subcategoria 2</span>
+          <input type="text" id="edit-subcategoria-2" maxlength="200" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" autocomplete="off" />
+        </label>
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Subcategoria 3</span>
+          <input type="text" id="edit-subcategoria-3" maxlength="200" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" autocomplete="off" />
+        </label>
+        <label class="block">
+          <span class="text-base font-black uppercase text-slate-600 mb-1 block">Subcategoria 4</span>
+          <input type="text" id="edit-subcategoria-4" maxlength="200" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" autocomplete="off" />
+        </label>
+
         <label class="block sm:col-span-2 md:col-span-3">
-          <span class="text-base font-black uppercase text-slate-600 mb-1 block">URL da Imagem</span>
           <input type="text" id="edit-img" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none transition-colors" />
         </label>
       </div>
@@ -1363,6 +1375,9 @@
     setVal('edit-modelo', produto.modelo || '');
     setVal('edit-categoria', produto.categoria || '');
     setVal('edit-subcategoria', produto.subcategoria || '');
+    setVal('edit-subcategoria-2', produto.subcategoria_2 || '');
+    setVal('edit-subcategoria-3', produto.subcategoria_3 || '');
+    setVal('edit-subcategoria-4', produto.subcategoria_4 || '');
     setVal('edit-unidade', produto.unidade || '');
     setVal('edit-fornecedor', produto.fornecedor || '');
 
@@ -1569,6 +1584,9 @@
       ean_embalagem_nf: gv('edit-ean-embalagem-nf'),
       codigo_nfe: gv('edit-cod-nfe'),
       subcategoria: gv('edit-subcategoria'),
+      subcategoria_2: gv('edit-subcategoria-2'),
+      subcategoria_3: gv('edit-subcategoria-3'),
+      subcategoria_4: gv('edit-subcategoria-4'),
       descricao: gv('edit-desc'),
       preco_venda: gv('edit-venda'),
       preco_custo: gv('edit-custo'),

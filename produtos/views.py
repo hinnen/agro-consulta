@@ -419,6 +419,41 @@ for _fc in CAMPOS_CODIGO_RAIZ_MONGO:
 _GESTAO_LISTA_KEYS = frozenset(_GESTAO_LISTA_PROJ)
 
 
+def _categoria_ultima_listagem(
+    categoria: str,
+    sub1: str,
+    sub2: str,
+    sub3: str,
+    sub4: str,
+) -> str:
+    """Último nível preenchido: sub4 → sub3 → sub2 → sub1 → categoria."""
+    for v in (sub4, sub3, sub2, sub1, categoria):
+        t = str(v or "").strip()
+        if t:
+            return t
+    return ""
+
+
+def _subgrupo_mongo_de_subs(sub1: str, sub2: str, sub3: str, sub4: str) -> str:
+    """Deepest among sub níveis only (sem categoria)."""
+    return _categoria_ultima_listagem("", sub1, sub2, sub3, sub4)
+
+
+def _overlay_subcategorias_para_row(row: dict, ov: ProdutoGestaoOverlayAgro | None) -> None:
+    cat = str(row.get("categoria") or "").strip()
+    s1 = str(row.get("subcategoria") or "").strip()
+    if ov:
+        s2 = str(ov.subcategoria_2 or "").strip()
+        s3 = str(ov.subcategoria_3 or "").strip()
+        s4 = str(ov.subcategoria_4 or "").strip()
+    else:
+        s2 = s3 = s4 = ""
+    row["subcategoria_2"] = s2
+    row["subcategoria_3"] = s3
+    row["subcategoria_4"] = s4
+    row["categoria_listagem"] = _categoria_ultima_listagem(cat, s1, s2, s3, s4)
+
+
 def _gestao_slim_doc_para_lista(p: dict) -> dict:
     if not isinstance(p, dict):
         return {}
@@ -502,12 +537,22 @@ def _linha_gestao_produto_json(
             subcat = ov.subcategoria.strip()
         if ov.descricao.strip():
             descricao = ov.descricao.strip()
+    s2 = s3 = s4 = ""
+    if ov:
+        s2 = str(ov.subcategoria_2 or "").strip()
+        s3 = str(ov.subcategoria_3 or "").strip()
+        s4 = str(ov.subcategoria_4 or "").strip()
+    categoria_listagem = _categoria_ultima_listagem(cat, subcat, s2, s3, s4)
     return {
         "id": pid,
         "nome": nome,
         "codigo_gm": codigo_nfe,
         "codigo_barras": cb,
         "subcategoria": subcat,
+        "subcategoria_2": s2,
+        "subcategoria_3": s3,
+        "subcategoria_4": s4,
+        "categoria_listagem": categoria_listagem,
         "tamanho": tamanho,
         "imagem": img_url or "",
         "descricao": descricao,
@@ -535,36 +580,36 @@ def _aplicar_produto_gestao_overlay_em_dict(
     row: dict, ov: ProdutoGestaoOverlayAgro | None
 ) -> dict:
     """Sobrescreve campos de exibição no Agro (PDV, cadastro ERP, APIs) sem alterar o Mongo."""
-    if not ov:
-        return row
-    if ov.nome.strip():
-        row["nome"] = ov.nome.strip()
-    if ov.marca.strip():
-        row["marca"] = ov.marca.strip()
-    if ov.categoria.strip():
-        row["categoria"] = ov.categoria.strip()
-    if ov.fornecedor_texto.strip():
-        row["fornecedor"] = ov.fornecedor_texto.strip()
-    if ov.unidade.strip():
-        row["unidade"] = ov.unidade.strip()
-    if ov.preco_venda is not None:
-        row["preco_venda"] = round(float(ov.preco_venda), 2)
-    if ov.codigo_barras.strip():
-        row["codigo_barras"] = ov.codigo_barras.strip()
-    if ov.codigo_nfe.strip():
-        cn = ov.codigo_nfe.strip()
-        row["codigo_nfe"] = cn
-        # Mantém ``row["codigo"]`` como no Mongo (ERP: código do sistema, numérico).
-        # Não repetir SKU/GM aqui — evita igualar campo interno e NFe no modal/PDV.
-    if ov.subcategoria.strip():
-        row["subcategoria"] = ov.subcategoria.strip()
-    if ov.descricao.strip():
-        row["descricao"] = ov.descricao.strip()
-    if ov.ativo_exibicao is not None:
-        row["inativo"] = not bool(ov.ativo_exibicao)
-        if "cadastro_inativo" in row:
-            row["cadastro_inativo"] = bool(row["inativo"])
-    row["ativo_exibicao"] = ov.ativo_exibicao
+    if ov:
+        if ov.nome.strip():
+            row["nome"] = ov.nome.strip()
+        if ov.marca.strip():
+            row["marca"] = ov.marca.strip()
+        if ov.categoria.strip():
+            row["categoria"] = ov.categoria.strip()
+        if ov.fornecedor_texto.strip():
+            row["fornecedor"] = ov.fornecedor_texto.strip()
+        if ov.unidade.strip():
+            row["unidade"] = ov.unidade.strip()
+        if ov.preco_venda is not None:
+            row["preco_venda"] = round(float(ov.preco_venda), 2)
+        if ov.codigo_barras.strip():
+            row["codigo_barras"] = ov.codigo_barras.strip()
+        if ov.codigo_nfe.strip():
+            cn = ov.codigo_nfe.strip()
+            row["codigo_nfe"] = cn
+            # Mantém ``row["codigo"]`` como no Mongo (ERP: código do sistema, numérico).
+            # Não repetir SKU/GM aqui — evita igualar campo interno e NFe no modal/PDV.
+        if ov.subcategoria.strip():
+            row["subcategoria"] = ov.subcategoria.strip()
+        if ov.descricao.strip():
+            row["descricao"] = ov.descricao.strip()
+        if ov.ativo_exibicao is not None:
+            row["inativo"] = not bool(ov.ativo_exibicao)
+            if "cadastro_inativo" in row:
+                row["cadastro_inativo"] = bool(row["inativo"])
+        row["ativo_exibicao"] = ov.ativo_exibicao
+    _overlay_subcategorias_para_row(row, ov)
     return row
 
 
@@ -1326,9 +1371,20 @@ def _montar_cadastro_erp_payload_produtos_salvar(
     if cat:
         out["categoria"] = cat
 
-    sub = (ov.subcategoria or _mongo_primeiro_texto(p, ("SubGrupo", "Subgrupo"), "") or "").strip()[:200]
-    if sub:
-        out["subGrupo"] = sub
+    s1 = (
+        (ov.subcategoria or "").strip()
+        if ov.subcategoria and str(ov.subcategoria).strip()
+        else (_mongo_primeiro_texto(p, ("SubGrupo", "Subgrupo"), "") or "").strip()
+    )[:200]
+    s2 = str(ov.subcategoria_2 or "").strip()[:200]
+    s3 = str(ov.subcategoria_3 or "").strip()[:200]
+    s4 = str(ov.subcategoria_4 or "").strip()[:200]
+    if any((s1, s2, s3, s4)):
+        deepest = _categoria_ultima_listagem(cat, s1, s2, s3, s4)
+        if deepest and deepest.casefold() != (cat or "").casefold():
+            out["subGrupo"] = deepest[:200]
+        elif deepest and not (cat or "").strip():
+            out["subGrupo"] = deepest[:200]
 
     un_sc = (ov.unidade or _mongo_primeiro_texto(p, ("Unidade",), "") or "").strip()[:20]
     if un_sc:
@@ -1398,6 +1454,12 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         ov.codigo_nfe = _txt("codigo_nfe", 64)
     if "subcategoria" in payload:
         ov.subcategoria = _txt("subcategoria", 200)
+    if "subcategoria_2" in payload:
+        ov.subcategoria_2 = _txt("subcategoria_2", 200)
+    if "subcategoria_3" in payload:
+        ov.subcategoria_3 = _txt("subcategoria_3", 200)
+    if "subcategoria_4" in payload:
+        ov.subcategoria_4 = _txt("subcategoria_4", 200)
     if "descricao" in payload:
         ov.descricao = str(payload.get("descricao") or "")[:16000]
     pv = payload.get("preco_venda")
@@ -11298,6 +11360,10 @@ def _produto_mongo_para_cadastro_row(p: dict) -> dict:
         "preco_custo": round(p_custo, 2),
         "categoria": str(_cat_w or "").strip(),
         "subcategoria": _sub_w,
+        "subcategoria_2": "",
+        "subcategoria_3": "",
+        "subcategoria_4": "",
+        "categoria_listagem": "",
         "prateleira": str(prateleira_raw).strip() if prateleira_raw else "",
         "fornecedor": str(fornecedor).strip(),
         "imagem": _formatar_url_imagem(_extrair_imagem_produto(p, {}, pid)),
@@ -13299,7 +13365,10 @@ def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonR
 
     marca = pt("marca", 120)
     cat = pt("categoria", 200)
-    sub = pt("subcategoria", 200)
+    sub1 = pt("subcategoria", 200)
+    sub2 = pt("subcategoria_2", 200)
+    sub3 = pt("subcategoria_3", 200)
+    sub4 = pt("subcategoria_4", 200)
     unidade = pt("unidade", 20) or "UN"
     forn = pt("fornecedor_texto", 300)
     desc = str(payload.get("descricao") or "")[:16000]
@@ -13355,17 +13424,32 @@ def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonR
 
     nome_norm = normalizar(nome)
     nome_tokens_list = tokens(nome)
+    sub_mongo = _subgrupo_mongo_de_subs(sub1, sub2, sub3, sub4)
+    nome_cat_mongo = (cat or sub1 or sub_mongo).strip()
     busca_texto = montar_busca_texto(
-        nome=nome, marca=marca, categoria=cat, subcategoria=sub
+        nome=nome,
+        marca=marca,
+        categoria=cat,
+        subcategoria=sub1,
+        subcategoria_2=sub2,
+        subcategoria_3=sub3,
+        subcategoria_4=sub4,
     )
-    granel = eh_granel(categoria=cat, subcategoria=sub, nome=nome)
+    granel = eh_granel(
+        categoria=cat,
+        subcategoria=sub1,
+        nome=nome,
+        subcategoria_2=sub2,
+        subcategoria_3=sub3,
+        subcategoria_4=sub4,
+    )
 
     doc: dict = {
         "Id": novo_id,
         "Nome": nome,
         "Marca": marca,
-        "NomeCategoria": cat or sub,
-        "SubGrupo": sub,
+        "NomeCategoria": nome_cat_mongo,
+        "SubGrupo": sub_mongo,
         "Unidade": unidade,
         "Codigo": cod_mongo_codigo,
         "CodigoNFe": cod_mongo_nfe,

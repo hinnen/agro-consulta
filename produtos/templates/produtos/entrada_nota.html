@@ -285,7 +285,7 @@
     /* Etapa 6 · custo no catálogo: cartões densos, uma coluna, sem «média» duplicada ao lado do gráfico */
     #nfe-wiz-custo-list .nfe-wiz-custo-card {
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
-      overflow: hidden;
+      overflow: visible;
       border-radius: 0.65rem;
     }
     /* Etapa 6: faixa fixa 3 colunas (saldo / custo antes / custo NF) — mesma grade em todos os cartões. */
@@ -3102,7 +3102,6 @@
   async function entradaNfeRecapRefresh() {
     const box = document.getElementById('nfe-wiz-recap');
     const cntEl = document.getElementById('nfe-wiz-custo-count');
-    if (!box) return;
     const esc = (s) => String(s ?? '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -3120,7 +3119,8 @@
       if (tr.querySelector('.in-prod-id')?.value?.trim()) comProd += 1;
     });
     const tipoL = entradaNfeTipoEntradaLe() === 'bonificacao' ? 'Bonificação' : 'Compras';
-    box.innerHTML = `
+    if (box) {
+      box.innerHTML = `
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-[11px]">
         <div>
           <div class="text-[9px] font-black uppercase tracking-wider text-slate-500">NF</div>
@@ -3147,6 +3147,7 @@
           <span class="text-sm font-black text-emerald-900 tabular-nums">${comProd} <span class="text-slate-400 font-bold">/</span> ${rows.length}</span>
         </div>
       </div>`;
+    }
     const hint = document.getElementById('nfe-wiz-custo-hint');
     const list = document.getElementById('nfe-wiz-custo-list');
     const rid = entradaNfeRascunhoEditId;
@@ -3178,9 +3179,23 @@
       </div>`).join('');
     const reqGen = ++entradaNfePreviewCustoReqGen;
     const fmt = (n) => {
-      const x = Number(n);
+      let x = n;
+      if (typeof x === 'string') {
+        const raw = String(x).trim().replace(/\s/g, '');
+        if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(raw)) {
+          x = Number(raw.replace(/\./g, '').replace(',', '.'));
+        } else {
+          x = Number(raw.replace(/\./g, '').replace(',', '.'));
+        }
+      } else {
+        x = Number(x);
+      }
       if (!Number.isFinite(x)) return '—';
-      return x.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      try {
+        return x.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      } catch (_) {
+        return `R$ ${x.toFixed(2)}`;
+      }
     };
     const saved = (entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' && entradaNfeExtraUltimo.entrada_custo_escolhas && typeof entradaNfeExtraUltimo.entrada_custo_escolhas === 'object')
       ? entradaNfeExtraUltimo.entrada_custo_escolhas

@@ -245,6 +245,12 @@
       '<input type="text" id="cad-ov-cb" class="' + ic + ' font-mono text-sm" maxlength="80" value="' + escapeHtml(String(p.codigo_barras || '')) + '" inputmode="numeric" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria</span>' +
       '<input type="text" id="cad-ov-sub" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria || '') + '" autocomplete="off" /></label>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria 2</span>' +
+      '<input type="text" id="cad-ov-sub2" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria_2 || '') + '" autocomplete="off" /></label>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria 3</span>' +
+      '<input type="text" id="cad-ov-sub3" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria_3 || '') + '" autocomplete="off" /></label>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria 4</span>' +
+      '<input type="text" id="cad-ov-sub4" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria_4 || '') + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Unidade</span>' +
       '<input type="text" id="cad-ov-un" class="' + ic + '" maxlength="20" value="' + escapeHtml(p.unidade || '') + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Preço venda (R$)</span>' +
@@ -301,6 +307,9 @@
         codigo_nfe: gv('cad-ov-codnfe'),
         codigo_barras: gv('cad-ov-cb'),
         subcategoria: gv('cad-ov-sub'),
+        subcategoria_2: gv('cad-ov-sub2'),
+        subcategoria_3: gv('cad-ov-sub3'),
+        subcategoria_4: gv('cad-ov-sub4'),
         descricao: gv('cad-ov-desc'),
         preco_venda: gv('cad-ov-preco')
       };
@@ -453,6 +462,10 @@
       dlRow('Unidade de estoque', p.unidade_estoque) +
       dlRow('Categoria', p.categoria) +
       dlRow('Subcategoria', p.subcategoria) +
+      dlRow('Subcategoria 2', p.subcategoria_2) +
+      dlRow('Subcategoria 3', p.subcategoria_3) +
+      dlRow('Subcategoria 4', p.subcategoria_4) +
+      dlRow('Categoria na lista', p.categoria_listagem) +
       dlRow('Prateleira / local', p.prateleira) +
       dlRow('Estoque mínimo', p.estoque_minimo != null ? fmtNumPt(p.estoque_minimo, 4) : '') +
       dlRow('Estoque máximo', p.estoque_maximo != null ? fmtNumPt(p.estoque_maximo, 4) : '') +
@@ -573,7 +586,9 @@
         '<td data-coluna="marca" class="px-4 py-3 text-slate-700">' + escapeHtml(p.marca || '-') + '</td>' +
         '<td data-coluna="unidade" class="px-4 py-3 text-slate-700">' + escapeHtml(p.unidade || '-') + '</td>' +
         '<td data-coluna="categoria" class="px-4 py-3 text-slate-700">' + escapeHtml(p.categoria || '-') + '</td>' +
-        '<td data-coluna="subcategoria" class="px-4 py-3 text-slate-600">' + escapeHtml(p.subcategoria || '-') + '</td>' +
+        '<td data-coluna="subcategoria" class="px-4 py-3 text-slate-600">' +
+        escapeHtml((p.categoria_listagem != null && String(p.categoria_listagem).trim()) ? String(p.categoria_listagem).trim() : (p.subcategoria || '-')) +
+        '</td>' +
         '<td data-coluna="preco_custo" class="px-4 py-3 text-slate-600 whitespace-nowrap">' + custoTxt + '</td>' +
         '<td class="px-4 py-3 font-semibold text-emerald-600 whitespace-nowrap">' + vendaTxt + '</td>' +
         '<td class="px-4 py-3 text-right cadastro-acoes">' +

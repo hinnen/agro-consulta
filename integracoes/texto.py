@@ -83,12 +83,24 @@ def similaridade(a: str, b: str) -> float:
     return SequenceMatcher(None, a, b).ratio()
 
 
-def eh_granel(categoria: str = "", subcategoria: str = "", nome: str = "") -> bool:
-    texto = " ".join([
-        normalizar(categoria),
-        normalizar(subcategoria),
-        normalizar(nome),
-    ]).strip()
+def eh_granel(
+    categoria: str = "",
+    subcategoria: str = "",
+    nome: str = "",
+    subcategoria_2: str = "",
+    subcategoria_3: str = "",
+    subcategoria_4: str = "",
+) -> bool:
+    texto = " ".join(
+        [
+            normalizar(categoria),
+            normalizar(subcategoria),
+            normalizar(subcategoria_2),
+            normalizar(subcategoria_3),
+            normalizar(subcategoria_4),
+            normalizar(nome),
+        ]
+    ).strip()
 
     if not texto:
         return False
@@ -96,11 +108,22 @@ def eh_granel(categoria: str = "", subcategoria: str = "", nome: str = "") -> bo
     return any(termo in texto for termo in GRANEL_TERMOS)
 
 
-def montar_busca_texto(nome: str = "", marca: str = "", categoria: str = "", subcategoria: str = "") -> str:
+def montar_busca_texto(
+    nome: str = "",
+    marca: str = "",
+    categoria: str = "",
+    subcategoria: str = "",
+    subcategoria_2: str = "",
+    subcategoria_3: str = "",
+    subcategoria_4: str = "",
+) -> str:
     partes = [
         normalizar(nome),
         normalizar(marca),
         normalizar(categoria),
         normalizar(subcategoria),
+        normalizar(subcategoria_2),
+        normalizar(subcategoria_3),
+        normalizar(subcategoria_4),
     ]
     return " ".join([p for p in partes if p]).strip()
