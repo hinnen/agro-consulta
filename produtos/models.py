@@ -590,6 +590,24 @@ class ProdutoGestaoOverlayAgro(models.Model):
         verbose_name="Código / NFe GM (override)",
     )
     subcategoria = models.CharField(max_length=200, blank=True, default="")
+    subcategoria_2 = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        verbose_name="Subcategoria 2",
+    )
+    subcategoria_3 = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        verbose_name="Subcategoria 3",
+    )
+    subcategoria_4 = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        verbose_name="Subcategoria 4",
+    )
     descricao = models.TextField(blank=True, default="", verbose_name="Descrição (override)")
     preco_venda = models.DecimalField(
         max_digits=12,

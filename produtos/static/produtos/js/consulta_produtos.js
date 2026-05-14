@@ -1096,7 +1096,10 @@ function renderizarSugestoes() {
             'suggestion-item group flex flex-row items-stretch gap-2 sm:gap-2.5 px-2 py-1.5 sm:px-2.5 sm:py-2 rounded-xl bg-white border border-slate-200/70 shadow-sm hover:shadow hover:border-slate-300/60 cursor-pointer transition-[box-shadow,border-color] duration-200';
 
         const marcaRaw = (s.marca && String(s.marca).trim()) ? String(s.marca).trim() : '';
-        const catRaw = (s.categoria && String(s.categoria).trim()) ? String(s.categoria).trim() : '';
+        const catRaw =
+            (s.categoria_listagem != null && String(s.categoria_listagem).trim())
+                ? String(s.categoria_listagem).trim()
+                : (s.categoria && String(s.categoria).trim() ? String(s.categoria).trim() : '');
         const gm = String(s.codigo_nfe || s.codigo || '').trim();
         const codigoCopiar = gm || String(s.codigo_barras || '').trim();
         const c = Number(s.saldo_centro || 0);

@@ -103,7 +103,7 @@
             <th class="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Nome</th>
             <th class="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 whitespace-nowrap">Código</th>
             <th class="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Categoria</th>
-            <th class="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Subcategoria</th>
+            <th class="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600" title="Último nível preenchido entre subcategorias e categoria">Na lista</th>
             <th class="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Marca</th>
             <th class="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">Tamanho</th>
             <th class="px-2 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600 whitespace-nowrap">Custo</th>
@@ -146,6 +146,9 @@
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Código GM / NFe</label><input id="ed-codigo-nfe" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-mono font-bold" maxlength="64" autocomplete="off" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Código de barras</label><input id="ed-cb" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-mono font-bold" maxlength="80" inputmode="numeric" autocomplete="off" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Subcategoria</label><input id="ed-sub" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" maxlength="200" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Subcategoria 2</label><input id="ed-sub2" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" maxlength="200" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Subcategoria 3</label><input id="ed-sub3" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" maxlength="200" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Subcategoria 4</label><input id="ed-sub4" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" maxlength="200" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Descrição</label><textarea id="ed-desc" rows="3" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold resize-y min-h-[5rem]"></textarea></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Preço venda</label><input id="ed-preco" inputmode="decimal" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Status exibição</label>
@@ -319,7 +322,7 @@
           '<div class="text-xs font-medium text-slate-500 mt-0.5">' + sub + '</div></td>' +
         '<td class="px-2 py-2 align-middle font-mono text-xs text-slate-600 whitespace-nowrap">' + esc(p.codigo_gm || '—') + '</td>' +
         '<td class="px-2 py-2 align-middle text-blue-800 font-semibold text-xs">' + esc(p.categoria || '—') + '</td>' +
-        '<td class="px-2 py-2 align-middle text-slate-700 font-medium text-xs">' + esc(p.subcategoria || '—') + '</td>' +
+        '<td class="px-2 py-2 align-middle text-slate-700 font-medium text-xs">' + esc((p.categoria_listagem != null && String(p.categoria_listagem).trim()) ? String(p.categoria_listagem).trim() : (p.subcategoria || '—')) + '</td>' +
         '<td class="px-2 py-2 align-middle text-slate-700 font-semibold text-xs">' + esc(p.marca || '—') + '</td>' +
         '<td class="px-2 py-2 align-middle text-center text-xs font-semibold text-slate-600">' + esc(p.tamanho || '—') + '</td>' +
         '<td class="px-2 py-2 align-middle text-right font-semibold text-slate-700 whitespace-nowrap">' + custo + '</td>' +
@@ -576,6 +579,9 @@
     document.getElementById('ed-codigo-nfe').value = p.codigo_gm || '';
     document.getElementById('ed-cb').value = p.codigo_barras || '';
     document.getElementById('ed-sub').value = p.subcategoria || '';
+    document.getElementById('ed-sub2').value = p.subcategoria_2 || '';
+    document.getElementById('ed-sub3').value = p.subcategoria_3 || '';
+    document.getElementById('ed-sub4').value = p.subcategoria_4 || '';
     document.getElementById('ed-desc').value = p.descricao || '';
     document.getElementById('ed-preco').value = p.preco_venda != null ? String(p.preco_venda).replace('.', ',') : '';
     if (p.ativo_exibicao === true) document.getElementById('ed-ativo').value = '1';
@@ -606,6 +612,9 @@
       codigo_nfe: document.getElementById('ed-codigo-nfe').value,
       codigo_barras: document.getElementById('ed-cb').value,
       subcategoria: document.getElementById('ed-sub').value,
+      subcategoria_2: document.getElementById('ed-sub2').value,
+      subcategoria_3: document.getElementById('ed-sub3').value,
+      subcategoria_4: document.getElementById('ed-sub4').value,
       descricao: document.getElementById('ed-desc').value,
       preco_venda: document.getElementById('ed-preco').value
     };
