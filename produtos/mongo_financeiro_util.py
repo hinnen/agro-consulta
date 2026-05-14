@@ -1118,29 +1118,70 @@ def _lancamentos_normalizar_tokens_busca(texto: str) -> list[str]:
     return out
 
 
-def _lancamentos_try_parse_busca_valor(tok: str) -> float | None:
+def _lancamentos_busca_valor_literal_dot_2(tok: str) -> list[str] | None:
     """
-    Se o termo parece valor monetário (pt-BR ou simples), retorna float arredondado em 2 casas.
-    Evita inteiros ``123`` / ``2024`` (NF, ano, IDs) sem separador decimal.
+    Retorna variantes de string para igualar a ``$toString($round($convert(...), 2))`` no Mongo
+    (ex.: ``["833.33"]`` ou ``["100.00", "100"]`` se o arredondado vier sem decimais).
     """
     s = (tok or "").strip()
     if not s:
         return None
-    s = s.replace("\xa0", " ").strip()
+    s = unicodedata.normalize("NFKC", s)
+    s = s.replace("\xa0", " ").replace("\u202f", " ").strip()
     if s.upper().startswith("R$"):
         s = s[2:].lstrip().strip()
     if not s or not re.search(r"\d", s):
         return None
-    # Só dígitos: ambíguo (parcela, NF, CEP parcial)
+    # Só dígitos: ambíguo (parcela, NF, ano)
     if re.fullmatch(r"\d+$", s):
         return None
+    s = s.replace(" ", "")
     try:
-        v = float(_fin_parse_valor_entrada_manual(s))
-    except (ValueError, TypeError, ArithmeticError):
+        if "," in s:
+            q = Decimal(s.replace(".", "").replace(",", "."))
+        elif re.fullmatch(r"\d{1,3}(\.\d{3})+", s):
+            q = Decimal(s.replace(".", ""))
+        else:
+            q = Decimal(s)
+    except Exception:
         return None
-    if abs(v) >= 1e12:
+    if abs(q) >= Decimal("1e12"):
         return None
-    return float(round(v, 2))
+    q = q.quantize(Decimal("0.01"))
+    lit = format(q, "f")
+    # ``$toString($round(x,2))`` às vezes devolve ``"100"`` em vez de ``"100.00"``.
+    alts = {lit}
+    if lit.endswith(".00"):
+        alts.add(lit[:-3])
+    return sorted(alts, key=len, reverse=True)  # preferir o mais específico primeiro na lista
+
+
+def _lancamentos_regex_valor_pt_br_obs(valor_s: str) -> str | None:
+    """Padrão seguro p.ex. ``833[.,]33`` a partir de ``833.33``."""
+    if "." not in valor_s:
+        return re.escape(valor_s)
+    inteiro, frac = valor_s.split(".", 1)
+    if not frac:
+        return None
+    return re.escape(inteiro) + r"[.,]" + re.escape(frac)
+
+
+def _mongo_expr_valor_realizado_receita_convert_double() -> dict[str, Any]:
+    """Como ``_mongo_expr_valor_realizado_receita``, com ``$convert`` para double nos nós."""
+    soma_rv: dict[str, Any] = {
+        "$add": [
+            {"$convert": {"input": "$Recebido", "to": "double", "onError": 0, "onNull": 0}},
+            {"$convert": {"input": "$ValorPago", "to": "double", "onError": 0, "onNull": 0}},
+        ]
+    }
+    ent = {"$convert": {"input": "$Entrada", "to": "double", "onError": 0, "onNull": 0}}
+    return {
+        "$cond": [
+            {"$gt": [ent, 0]},
+            {"$min": [ent, soma_rv]},
+            soma_rv,
+        ]
+    }
 
 
 def _lancamentos_um_token_busca_or(tok: str) -> dict[str, Any]:
@@ -1189,47 +1230,69 @@ def _lancamentos_um_token_busca_or(tok: str) -> dict[str, Any]:
                 }
             }
         )
-    valor = _lancamentos_try_parse_busca_valor(tok)
-    if valor is not None:
-        tol = 0.03
+    valor_variants = _lancamentos_busca_valor_literal_dot_2(tok)
+    if valor_variants:
+        lit0 = valor_variants[0]
+        valor_f = float(Decimal(lit0))
 
-        def _cmp_campo_monetario(campo: str) -> dict[str, Any]:
+        def _conv_dbl(field: str) -> dict[str, Any]:
+            return {"$convert": {"input": f"${field}", "to": "double", "onError": 0, "onNull": 0}}
+
+        def _expr_round2_str_in_campo(campo: str) -> dict[str, Any]:
             return {
                 "$expr": {
-                    "$lte": [
-                        {
-                            "$abs": {
-                                "$subtract": [
-                                    {"$toDouble": {"$ifNull": [f"${campo}", 0]}},
-                                    valor,
-                                ]
-                            }
-                        },
-                        tol,
+                    "$in": [
+                        {"$toString": {"$round": [_conv_dbl(campo), 2]}},
+                        valor_variants,
                     ]
                 }
             }
 
-        mov = _mongo_expr_valor_realizado_receita()
+        def _expr_abs_near(expr: dict[str, Any], tol: float = 0.02) -> dict[str, Any]:
+            return {"$expr": {"$lte": [{"$abs": {"$subtract": [expr, valor_f]}}, tol]}}
+
+        mov = _mongo_expr_valor_realizado_receita_convert_double()
         rest_desp = {
             "$max": [
                 0,
-                {"$subtract": [{"$ifNull": ["$Saida", 0]}, {"$ifNull": ["$ValorPago", 0]}]},
+                {"$subtract": [_conv_dbl("Saida"), _conv_dbl("ValorPago")]},
             ]
         }
-        rest_rec = {"$max": [0, {"$subtract": [{"$ifNull": ["$Entrada", 0]}, mov]}]}
-        or_list.append(_cmp_campo_monetario("Saida"))
-        or_list.append(_cmp_campo_monetario("Entrada"))
-        or_list.append(_cmp_campo_monetario("ValorPago"))
-        or_list.append(_cmp_campo_monetario("Recebido"))
-        or_list.append(_cmp_campo_monetario("ValorLiquido"))
-        or_list.append(_cmp_campo_monetario("SaldoAtual"))
+        rest_rec = {
+            "$max": [
+                0,
+                {"$subtract": [{"$convert": {"input": "$Entrada", "to": "double", "onError": 0, "onNull": 0}}, mov]},
+            ]
+        }
+        for campo in ("Saida", "Entrada", "ValorPago", "Recebido", "ValorLiquido", "SaldoAtual"):
+            or_list.append(_expr_round2_str_in_campo(campo))
+            or_list.append(_expr_abs_near(_conv_dbl(campo)))
         or_list.append(
-            {"$expr": {"$lte": [{"$abs": {"$subtract": [rest_desp, valor]}}, tol]}}
+            {
+                "$expr": {
+                    "$in": [
+                        {"$toString": {"$round": [rest_desp, 2]}},
+                        valor_variants,
+                    ]
+                }
+            }
         )
+        or_list.append(_expr_abs_near(rest_desp))
         or_list.append(
-            {"$expr": {"$lte": [{"$abs": {"$subtract": [rest_rec, valor]}}, tol]}}
+            {
+                "$expr": {
+                    "$in": [
+                        {"$toString": {"$round": [rest_rec, 2]}},
+                        valor_variants,
+                    ]
+                }
+            }
         )
+        or_list.append(_expr_abs_near(rest_rec))
+        rx_br = _lancamentos_regex_valor_pt_br_obs(lit0)
+        if rx_br:
+            or_list.append({"Observacoes": re.compile(rx_br, re.IGNORECASE)})
+            or_list.append({"Descricao": re.compile(rx_br, re.IGNORECASE)})
     return {"$or": or_list}
 
 
