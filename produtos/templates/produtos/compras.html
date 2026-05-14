@@ -251,6 +251,22 @@
             <span class="hidden sm:inline text-[10px] text-slate-400 font-semibold">· custo final</span>
             <span id="total-estimado" class="ml-auto text-base sm:text-lg text-emerald-600 font-black tabular-nums">R$ 0,00</span>
           </div>
+          <div class="shrink-0 border-b border-slate-100 px-2.5 py-2 sm:px-3 sm:py-2.5 space-y-2">
+            <div class="rounded-xl border border-violet-200 bg-violet-50/60 p-2.5 space-y-2">
+              <div class="text-[10px] font-black uppercase text-violet-900 tracking-wide">Relatório A4 (só fornecedor)</div>
+              <label class="block min-w-0"><span class="text-[9px] font-black uppercase text-violet-800/90">Fornecedor</span>
+                <div class="relative mt-1">
+                  <input type="text" id="rel-compra-forn-nome" autocomplete="off" class="w-full rounded-xl border-2 border-violet-200 px-3 py-2 text-xs font-bold min-h-[44px] bg-white text-slate-900" placeholder="Buscar cadastro ou digitar…">
+                  <input type="hidden" id="rel-compra-forn-id" value="">
+                  <ul id="rel-compra-forn-dd" class="hidden absolute left-0 right-0 top-full z-30 mt-0.5 max-h-44 overflow-y-auto bg-white border border-violet-200 rounded-xl shadow-lg text-xs"></ul>
+                </div>
+              </label>
+              <button type="button" id="btn-compra-relatorio-a4" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-violet-600 bg-violet-600 text-white font-black py-2.5 uppercase text-[10px] sm:text-xs tracking-wide shadow-sm hover:bg-violet-700 hover:border-violet-700 min-h-[48px]" title="Produtos do catálogo com este fornecedor: última compra ERP, vendas desde então e média semanal (até 8 sem.)">
+                Imprimir tabela
+              </button>
+              <p class="text-[9px] font-semibold text-violet-950/80 leading-snug">Monta a tabela com <strong>todos os produtos do catálogo</strong> ligados a este fornecedor (até 800). <span class="text-slate-600">Colunas 3 e 4 com * = sem última compra ERP para o fornecedor.</span></p>
+            </div>
+          </div>
           <div id="carrinho" class="scroll-compras-carrinho space-y-1.5 flex-1 min-h-0 overflow-y-auto overscroll-contain px-2.5 py-2 sm:px-3"></div>
           <div class="shrink-0 border-t border-slate-100 p-2 sm:p-2.5">
             <button type="button" id="btn-abrir-conferencia-compra" disabled class="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black py-3 rounded-xl uppercase text-xs tracking-wide shadow-md hover:from-orange-600 hover:to-orange-700 active:scale-[0.99] min-h-[52px] disabled:opacity-40 disabled:pointer-events-none" title="Conferir itens, observações e enviar">
@@ -698,6 +714,7 @@ let mergeCompraTimer = null;
 const BUSCA_COMPRA_LIM_MAX = 60;
 const URL_ENTRADA_NFA_SALVAR = "{% url 'api_entrada_nota_salvar' %}";
 const URL_ENTRADA_NFA_FORN = "{% url 'api_entrada_nota_fornecedores' %}";
+const URL_COMPRA_REL_FORN = "{% url 'api_compras_relatorio_fornecedor' %}";
 const URL_ENTRADA_NFA_PAGE = "{% url 'entrada_nota' %}";
 const LS_COMPRA_FORN_RECENTES = 'gmCompraFornecedoresRecentes_v1';
 /** @type {{ pedId: string, selEl: HTMLSelectElement|null, prevStatus: string }|null} */
@@ -736,6 +753,177 @@ function salvarFornecedorRecenteCompra(nome, id) {
   try {
     localStorage.setItem(LS_COMPRA_FORN_RECENTES, JSON.stringify(arr.slice(0, 40)));
   } catch (_) {}
+}
+
+let relCompraFornDdTimer = null;
+
+async function relCompraBuscarFornecedoresDd(q) {
+  const dd = document.getElementById('rel-compra-forn-dd');
+  if (!dd) return;
+  dd.innerHTML = '';
+  const recent = lerFornecedoresRecentesCompra();
+  const qn = String(q || '').trim().toLowerCase();
+  const filtrados = qn ? recent.filter((x) => String(x.nome).toLowerCase().includes(qn)) : recent.slice(0, 12);
+  filtrados.forEach((x) => {
+    const li = document.createElement('li');
+    li.className = 'px-3 py-2 cursor-pointer hover:bg-violet-50 text-sm font-bold border-b border-violet-50';
+    li.textContent = x.nome + (x.id ? ' · ID' : '');
+    li.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const fn = document.getElementById('rel-compra-forn-nome');
+      const fid = document.getElementById('rel-compra-forn-id');
+      if (fn) fn.value = x.nome;
+      if (fid) fid.value = x.id || '';
+      dd.classList.add('hidden');
+    });
+    dd.appendChild(li);
+  });
+  try {
+    const u = new URL(URL_ENTRADA_NFA_FORN, window.location.origin);
+    if (qn.length >= 2) u.searchParams.set('q', String(q || '').trim());
+    else u.searchParams.set('inicial', '1');
+    u.searchParams.set('limit', '40');
+    const r = await fetch(u.toString(), { credentials: 'same-origin' });
+    const j = await r.json();
+    (j.itens || []).forEach((it) => {
+      const li = document.createElement('li');
+      li.className = 'px-3 py-2 cursor-pointer hover:bg-sky-50 text-sm font-semibold border-b border-slate-50';
+      const doc = it.documento ? ` · ${it.documento}` : '';
+      li.textContent = `${it.nome || '—'}${doc}`;
+      li.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        const fn = document.getElementById('rel-compra-forn-nome');
+        const fid = document.getElementById('rel-compra-forn-id');
+        if (fn) fn.value = it.nome || '';
+        if (fid) fid.value = it.id || '';
+        dd.classList.add('hidden');
+      });
+      dd.appendChild(li);
+    });
+  } catch (_) {}
+  dd.classList.toggle('hidden', dd.children.length === 0);
+}
+
+function compraFmtCelulaRelatorioNum(v) {
+  if (v === null || v === undefined) return '*';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '*';
+  return n.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+}
+
+async function compraImprimirRelatorioA4() {
+  const fn = document.getElementById('rel-compra-forn-nome');
+  const fid = document.getElementById('rel-compra-forn-id');
+  const fornNome = String(fn?.value || '').trim();
+  const fornId = String(fid?.value || '').trim();
+  if (!fornNome && !fornId) {
+    window.alert('Selecione ou digite o fornecedor.');
+    fn?.focus();
+    return;
+  }
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
+  try {
+    const r = await fetch(URL_COMPRA_REL_FORN, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': compraGetCsrf(),
+      },
+      body: JSON.stringify({
+        fornecedor_nome: fornNome,
+        fornecedor_id: fornId,
+      }),
+    });
+    const j = await r.json();
+    if (!j.ok) {
+      window.alert(j.erro || 'Falha ao montar relatório.');
+      return;
+    }
+    salvarFornecedorRecenteCompra(fornNome || fornId, fornId);
+    const agora = new Date().toLocaleString('pt-BR');
+    const ud = j.ultimo_documento || {};
+    const origemPt = (
+      {
+        pedido_compra: 'Pedido de compra',
+        compra: 'Compra',
+        entrada_mercadoria: 'Entrada de mercadoria',
+        nota_entrada: 'Nota de entrada',
+      }[String(ud.origem || '').trim()] || String(ud.origem || '').trim() || '—'
+    );
+    const sem = j.sem_ultimo_documento
+      ? 'Sem documento de compra ERP encontrado para este fornecedor — colunas 3 e 4 com *.'
+      : `Último documento: ${escapeHtml(origemPt)} · ${escapeHtml(ud.data || '—')} · ${escapeHtml(ud.documento || '—')}`;
+    const rowsHtml = (j.linhas || [])
+      .map(
+        (ln) => `
+      <tr>
+        <td>${escapeHtml(ln.codigo || '—')}</td>
+        <td>${escapeHtml(ln.nome || '—')}</td>
+        <td class="num">${compraFmtCelulaRelatorioNum(ln.qtd_ultimo_pedido)}</td>
+        <td class="num">${compraFmtCelulaRelatorioNum(ln.qtd_vendida_desde_ultima)}</td>
+        <td class="num">${compraFmtCelulaRelatorioNum(ln.media_venda_semana)}</td>
+      </tr>`
+      )
+      .join('');
+    const html = `<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Relatório compras</title>
+  <style>
+    @page { size: A4; margin: 10mm; }
+    body { font-family: system-ui, Segoe UI, Arial, sans-serif; font-size: 10pt; color: #0f172a; margin: 0; }
+    h1 { font-size: 13pt; margin: 0 0 6px; font-weight: 800; }
+    .sub { font-size: 9pt; color: #475569; margin-bottom: 10px; line-height: 1.35; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #94a3b8; padding: 5px 6px; vertical-align: top; }
+    th { background: #e2e8f0; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.03em; font-weight: 800; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    caption { text-align: left; font-weight: 700; font-size: 9pt; margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Relatório de compras — fornecedor</h1>
+  <div class="sub"><strong>Fornecedor:</strong> ${escapeHtml(j.fornecedor_nome || fornNome)}<br>
+  <strong>Gerado em:</strong> ${escapeHtml(agora)}<br>
+  ${sem}</div>
+  <table>
+    <caption>Catálogo · ${Number(j.total_produtos || (j.linhas || []).length || 0).toLocaleString('pt-BR')} produto(s)</caption>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Produto</th>
+        <th>Qtd últ. pedido / compra</th>
+        <th>Qtd vendida desde últ. compra</th>
+        <th>Média vendas / semana</th>
+      </tr>
+    </thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>
+  <p class="sub" style="margin-top:12px">Média: total vendido nas últimas 8 semanas (56 dias), dividido pelo nº de semanas com histórico de venda nesse intervalo (máx. 8). Coluna 3 = quantidade na última nota/pedido/compra ERP deste fornecedor; produto fora do documento = 0.</p>
+</body>
+</html>`;
+    const w = window.open('', '_blank', 'noopener,noreferrer');
+    if (!w) {
+      window.alert('Permita pop-up para imprimir.');
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => {
+      try {
+        w.print();
+      } catch (_) {}
+    }, 250);
+  } catch (err) {
+    console.error(err);
+    window.alert('Falha de rede ao gerar relatório.');
+  } finally {
+    if (window.gmLoadingBar) window.gmLoadingBar.hide();
+  }
 }
 
 function qtdPedidoACaminhoPorProduto(pid) {
@@ -3576,6 +3764,28 @@ document.addEventListener('keydown', (e) => {
   });
   document.getElementById('oc-forn-nome')?.addEventListener('focus', () => {
     ocBuscarFornecedoresDd(document.getElementById('oc-forn-nome')?.value || '');
+  });
+})();
+(() => {
+  document.getElementById('rel-compra-forn-nome')?.addEventListener('input', () => {
+    clearTimeout(relCompraFornDdTimer);
+    relCompraFornDdTimer = setTimeout(() => {
+      relCompraBuscarFornecedoresDd(document.getElementById('rel-compra-forn-nome')?.value || '');
+    }, 200);
+  });
+  document.getElementById('rel-compra-forn-nome')?.addEventListener('focus', () => {
+    relCompraBuscarFornecedoresDd(document.getElementById('rel-compra-forn-nome')?.value || '');
+  });
+  document.getElementById('btn-compra-relatorio-a4')?.addEventListener('click', () => {
+    compraImprimirRelatorioA4();
+  });
+  document.addEventListener('mousedown', (e) => {
+    const dd = document.getElementById('rel-compra-forn-dd');
+    const wrap = document.getElementById('rel-compra-forn-nome');
+    if (!dd || dd.classList.contains('hidden')) return;
+    const t = e.target;
+    if (t && (dd.contains(t) || (wrap && wrap.contains(t)))) return;
+    dd.classList.add('hidden');
   });
 })();
 document.getElementById('btn-oc-add-prod')?.addEventListener('click', () => ocExecutarBuscaAddProduto());

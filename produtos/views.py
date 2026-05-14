@@ -2973,6 +2973,548 @@ def _ultimas_compras_por_produto_ids(
     return out_map
 
 
+def _agro_txt_cmp_fornecedor(s: str) -> str:
+    raw = str(s or "").strip().lower()
+    if not raw:
+        return ""
+    nk = unicodedata.normalize("NFKD", raw)
+    sem = "".join(c for c in nk if unicodedata.category(c) != "Mn")
+    return " ".join(sem.split())
+
+
+def _cabeca_compra_equiv_fornecedor(
+    h: dict, fornecedor_nome: str, fornecedor_id: str | None
+) -> bool:
+    fnid = str(fornecedor_id or "").strip()
+    if fnid:
+        for k in (
+            "FornecedorID",
+            "IdFornecedor",
+            "FornecedorId",
+            "PessoaID",
+            "PessoaId",
+            "IdPessoa",
+            "ClienteFornecedorID",
+            "IdClienteFornecedor",
+        ):
+            v = h.get(k)
+            if v is None:
+                continue
+            vs = str(v).strip()
+            if vs and vs == fnid:
+                return True
+    nbusca = _agro_txt_cmp_fornecedor(fornecedor_nome)
+    nf = _agro_txt_cmp_fornecedor(_nome_fornecedor_compra_head(h))
+    if not nbusca or not nf:
+        return False
+    if nbusca == nf:
+        return True
+    if len(nbusca) >= 4 and (nbusca in nf or nf in nbusca):
+        return True
+    return False
+
+
+def _ultimo_documento_compra_do_fornecedor(
+    db,
+    fornecedor_nome: str,
+    fornecedor_id: str | None,
+    *,
+    mongo_max_time_ms: int | None = 90_000,
+) -> dict | None:
+    """
+    Documento de compra/pedido/nota mais recente do fornecedor (Mongo ERP).
+    Retorno: col_p, fk_cabeca, hid, dt, head, tier, origem_label
+    """
+    try:
+        names = set(db.list_collection_names())
+    except Exception:
+        return None
+    since = _ultimas_compras_cutoff_dt()
+    proj_h = {
+        "Id": 1,
+        "_id": 1,
+        "Data": 1,
+        "DataEmissao": 1,
+        "DataEntrada": 1,
+        "DataEntradaNota": 1,
+        "DataEmissaoNota": 1,
+        "Cancelada": 1,
+        "NomeFornecedor": 1,
+        "RazaoSocialFornecedor": 1,
+        "FornecedorNome": 1,
+        "Fornecedor": 1,
+        "NomeFantasiaFornecedor": 1,
+        "PessoaNome": 1,
+        "NomePessoa": 1,
+        "RazaoSocial": 1,
+        "FornecedorID": 1,
+        "IdFornecedor": 1,
+        "FornecedorId": 1,
+        "PessoaID": 1,
+        "PessoaId": 1,
+        "NumeroNF": 1,
+        "NumeroNFe": 1,
+        "Numero": 1,
+        "NotaFiscal": 1,
+        "ChaveNFe": 1,
+        "Serie": 1,
+        "NumeroNota": 1,
+        "SerieNota": 1,
+    }
+    specs = [
+        (0, "DtoPedidoCompra", "DtoPedidoCompraProduto", "PedidoCompraID", "pedido_compra"),
+        (1, "DtoCompra", "DtoCompraProduto", "CompraID", "compra"),
+        (2, "DtoEntradaMercadoria", "DtoEntradaMercadoriaProduto", "EntradaID", "entrada_mercadoria"),
+        (3, "DtoNotaEntrada", "DtoNotaEntradaProduto", "__nota_entrada__", "nota_entrada"),
+    ]
+    candidatos: list[tuple[datetime, int, str, str, str, str, dict, str]] = []
+    q_head = {
+        "Cancelada": {"$ne": True},
+        "$or": [
+            {"Data": {"$gte": since}},
+            {"DataEmissao": {"$gte": since}},
+            {"DataEntrada": {"$gte": since}},
+            {"DataEntradaNota": {"$gte": since}},
+            {"DataEmissaoNota": {"$gte": since}},
+        ],
+    }
+    for tier, col_h, col_p, fk, origem in specs:
+        if col_h not in names or col_p not in names:
+            continue
+        try:
+            cur = db[col_h].find(q_head, proj_h)
+            if mongo_max_time_ms is not None:
+                cur = cur.max_time_ms(int(mongo_max_time_ms))
+            heads = list(cur)
+        except Exception as exc:
+            logger.warning("relatorio_compras heads %s: %s", col_h, exc)
+            continue
+        if len(heads) > 12000:
+            heads.sort(key=lambda h: _mongo_dt_sort_key(_data_cabecalho_compra(h)), reverse=True)
+            heads = heads[:12000]
+        for h in heads:
+            if not _cabeca_compra_equiv_fornecedor(h, fornecedor_nome, fornecedor_id):
+                continue
+            dt = _data_cabecalho_compra(h)
+            if not _mongo_dt_maior_ou_igual(dt, since):
+                continue
+            hid = str(h.get("Id") or h.get("_id") or "")
+            if not hid:
+                continue
+            candidatos.append((dt, tier, col_p, fk, hid, h, origem))
+    if not candidatos:
+        return None
+    candidatos.sort(
+        key=lambda row: (_mongo_dt_sort_key(row[0]), -int(row[1])),
+        reverse=True,
+    )
+    dt, tier, col_p, fk, hid, h, origem = candidatos[0]
+    return {
+        "dt": dt,
+        "tier": tier,
+        "col_p": col_p,
+        "fk": fk,
+        "hid": hid,
+        "head": h,
+        "origem": origem,
+    }
+
+
+def _mapa_qtd_linhas_documento_compra(db, doc: dict | None, *, mongo_max_time_ms: int | None = 90_000) -> dict[str, float]:
+    if not doc:
+        return {}
+    col_p = doc.get("col_p")
+    fk = doc.get("fk")
+    hid = str(doc.get("hid") or "")
+    if not col_p or not hid or not isinstance(col_p, str):
+        return {}
+    variants = _mongo_ids_para_query_in([hid])
+    if not variants:
+        return {}
+    out: dict[str, float] = {}
+    try:
+        if fk == "__nota_entrada__":
+            q = {"$or": [{"EntradaID": {"$in": variants}}, {"NotaEntradaID": {"$in": variants}}]}
+        else:
+            q = {fk: {"$in": variants}}
+        cur = db[col_p].find(
+            q,
+            {"ProdutoID": 1, "Quantidade": 1, "Qtd": 1, "Cancelada": 1},
+        )
+        if mongo_max_time_ms is not None:
+            cur = cur.max_time_ms(int(mongo_max_time_ms))
+        for ln in cur:
+            if ln.get("Cancelada") in (True, "Sim", 1, "true", "True"):
+                continue
+            pid = str(ln.get("ProdutoID") or "")
+            if not pid or pid == "None":
+                continue
+            try:
+                qtd = float(ln.get("Quantidade") or ln.get("Qtd") or 0)
+            except (TypeError, ValueError):
+                qtd = 0.0
+            out[pid] = out.get(pid, 0.0) + qtd
+    except Exception as exc:
+        logger.warning("relatorio_compras linhas %s: %s", col_p, exc)
+    return out
+
+
+def _vendas_qtd_por_produto_intervalo(
+    db,
+    p_ids: list[str],
+    desde: datetime,
+    ate: datetime,
+    *,
+    mongo_max_time_ms: int | None = 90_000,
+) -> tuple[dict[str, float], dict[str, datetime]]:
+    """
+    Quantidades vendidas no intervalo [desde, ate] (inclusive nas datas, pelo campo Data do cabeçalho).
+    Retorna também a primeira data de venda por produto nesse intervalo.
+    """
+    tot: dict[str, float] = {}
+    first_dt: dict[str, datetime] = {}
+    if db is None or not p_ids:
+        return tot, first_dt
+    if desde > ate:
+        return tot, first_dt
+    q = {"Data": {"$gte": desde, "$lte": ate}, **_filtro_venda_ativa_mongo()}
+    try:
+        cur = db["DtoVenda"].find(q, {"Id": 1, "_id": 1, "Data": 1})
+        if mongo_max_time_ms is not None:
+            cur = cur.max_time_ms(int(mongo_max_time_ms))
+        vendas = list(cur)
+    except Exception as exc:
+        logger.warning("relatorio_compras DtoVenda: %s", exc)
+        return tot, first_dt
+    if not vendas:
+        return tot, first_dt
+    vmap: dict[str, datetime] = {}
+    venda_ids_obj = []
+    venda_ids_str = []
+    for v in vendas:
+        dt = v.get("Data")
+        if not isinstance(dt, datetime):
+            continue
+        for key in (str(v.get("Id")), str(v.get("_id"))):
+            if key and key != "None":
+                vmap[key] = dt
+        vid = str(v.get("Id") or v.get("_id"))
+        venda_ids_str.append(vid)
+        if len(vid) == 24:
+            try:
+                venda_ids_obj.append(ObjectId(vid))
+            except Exception:
+                pass
+    query_itens = {
+        "$and": [
+            {
+                "$or": [
+                    {"VendaID": {"$in": venda_ids_obj}},
+                    {"VendaID": {"$in": venda_ids_str}},
+                ]
+            },
+            {"ProdutoID": {"$in": _produto_ids_variants_mongo(p_ids)}},
+        ]
+    }
+    try:
+        cur_it = db["DtoVendaProduto"].find(
+            query_itens,
+            {"ProdutoID": 1, "Quantidade": 1, "quantidade": 1, "VendaID": 1},
+        )
+        if mongo_max_time_ms is not None:
+            cur_it = cur_it.max_time_ms(int(mongo_max_time_ms))
+        for item in cur_it:
+            raw_pid = item.get("ProdutoID")
+            if raw_pid is None:
+                continue
+            pid = str(raw_pid)
+            if not pid or pid == "None":
+                continue
+            vid_raw = item.get("VendaID")
+            vid = str(vid_raw) if vid_raw is not None else ""
+            dt = vmap.get(vid)
+            if dt is None or not isinstance(dt, datetime):
+                continue
+            try:
+                qtd = float(item.get("Quantidade") or item.get("quantidade") or 0)
+            except (TypeError, ValueError):
+                qtd = 0.0
+            tot[pid] = tot.get(pid, 0.0) + qtd
+            prev = first_dt.get(pid)
+            if prev is None or dt < prev:
+                first_dt[pid] = dt
+    except Exception as exc:
+        logger.warning("relatorio_compras DtoVendaProduto: %s", exc)
+    return tot, first_dt
+
+
+def _resolver_qtd_por_pid(mapa: dict[str, float], pid: str) -> float:
+    v = mapa.get(pid)
+    if v is not None:
+        return float(v)
+    if pid.isdigit():
+        v = mapa.get(str(int(pid)))
+        if v is not None:
+            return float(v)
+    if len(pid) == 24:
+        try:
+            oid = ObjectId(pid)
+            v = mapa.get(str(oid))
+            if v is not None:
+                return float(v)
+        except Exception:
+            pass
+    return 0.0
+
+
+def _resolver_dt_mapa(mapa: dict[str, datetime], pid: str) -> datetime | None:
+    v = mapa.get(pid)
+    if v is not None:
+        return v
+    if pid.isdigit():
+        v = mapa.get(str(int(pid)))
+        if v is not None:
+            return v
+    if len(pid) == 24:
+        try:
+            oid = ObjectId(pid)
+            v = mapa.get(str(oid))
+            if v is not None:
+                return v
+        except Exception:
+            pass
+    return None
+
+
+def _lista_produto_ids_catalogo_por_fornecedor(
+    db,
+    client,
+    fornecedor_nome: str,
+    fornecedor_id: str | None,
+    *,
+    limit: int = 800,
+    mongo_max_time_ms: int | None = 90_000,
+) -> list[str]:
+    """
+    IDs de produtos ativos no catálogo Mongo cujo fornecedor (campos típicos do ERP) casa
+    com o nome e/ou id informados.
+    """
+    col = db[client.col_p]
+    base: dict = {"CadastroInativo": {"$ne": True}}
+    ors: list[dict] = []
+    fn = str(fornecedor_nome or "").strip()
+    if fn:
+        esc = re.escape(fn[:120])
+        for fld in ("NomeFornecedor", "Fornecedor", "RazaoSocialFornecedor", "Fabricante"):
+            ors.append({fld: {"$regex": esc, "$options": "i"}})
+    fid = str(fornecedor_id or "").strip()
+    if fid:
+        for fld in ("FornecedorID", "IdFornecedor", "FornecedorId", "IdFornecedorPadrao"):
+            ors.append({fld: fid})
+            if fid.isdigit():
+                try:
+                    ors.append({fld: int(fid)})
+                except (TypeError, ValueError):
+                    pass
+    if not ors:
+        return []
+    q = {"$and": [base, {"$or": ors}]}
+    try:
+        cur = col.find(q, {"Id": 1, "_id": 1, "Nome": 1}).limit(max(1, min(int(limit), 1200)))
+        if mongo_max_time_ms is not None:
+            cur = cur.max_time_ms(int(mongo_max_time_ms))
+        docs = list(cur)
+    except Exception as exc:
+        logger.warning("relatorio_compras catalogo fornecedor: %s", exc)
+        return []
+    docs.sort(key=lambda p: str(p.get("Nome") or "").strip().lower())
+    out: list[str] = []
+    seen: set[str] = set()
+    for p in docs:
+        pid = str(p.get("Id") or p.get("_id") or "").strip()
+        if not pid or pid == "None" or pid in seen:
+            continue
+        seen.add(pid)
+        out.append(pid)
+    return out
+
+
+@never_cache
+@require_POST
+def api_compras_relatorio_fornecedor(request):
+    """
+    Dados para relatório de compras por fornecedor: último documento ERP, qtd na última compra,
+    vendas desde essa compra, média semanal (até 8 semanas / 56 dias, denominador pela janela com vendas).
+    Lista de produtos: catálogo Mongo filtrado pelo fornecedor (não exige carrinho).
+    """
+    try:
+        body = json.loads((request.body or b"").decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    fornecedor_nome = str(body.get("fornecedor_nome") or "").strip()
+    fornecedor_id = str(body.get("fornecedor_id") or "").strip() or None
+    raw_ids = body.get("produto_ids")
+    if not fornecedor_nome and not fornecedor_id:
+        return JsonResponse({"ok": False, "erro": "Informe o fornecedor."}, status=400)
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
+
+    p_ids: list[str] = []
+    if isinstance(raw_ids, list) and raw_ids:
+        seen: set[str] = set()
+        for raw in raw_ids[:400]:
+            s = str(raw or "").strip()
+            if not s or s in seen:
+                continue
+            seen.add(s)
+            p_ids.append(s)
+    if not p_ids:
+        p_ids = _lista_produto_ids_catalogo_por_fornecedor(
+            db, client, fornecedor_nome, fornecedor_id, limit=800
+        )
+    if not p_ids:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Nenhum produto no catálogo encontrado para este fornecedor. Ajuste o nome ou escolha na lista de cadastro.",
+            },
+            status=400,
+        )
+
+    ultimo = _ultimo_documento_compra_do_fornecedor(db, fornecedor_nome, fornecedor_id)
+    ref_dt: datetime | None = None
+    ultimo_iso = ""
+    ultimo_doc_txt = ""
+    ultimo_origem = ""
+    sem_doc = ultimo is None
+    linhas_doc: dict[str, float] = {}
+    if ultimo and isinstance(ultimo.get("dt"), datetime):
+        ref_dt = ultimo["dt"]
+        ultimo_iso = ref_dt.isoformat()[:19]
+        ultimo_doc_txt = _numero_documento_compra_head(ultimo.get("head") or {})
+        ultimo_origem = str(ultimo.get("origem") or "")
+        linhas_doc = _mapa_qtd_linhas_documento_compra(db, ultimo)
+
+    now = datetime.now()
+    t56 = now - timedelta(days=56)
+    tot56, first_in56 = _vendas_qtd_por_produto_intervalo(db, p_ids, t56, now)
+
+    desde_pos_compra = ref_dt + timedelta(seconds=1) if ref_dt is not None else None
+    tot_pos, _fpos = (
+        _vendas_qtd_por_produto_intervalo(db, p_ids, desde_pos_compra, now)
+        if desde_pos_compra is not None and desde_pos_compra <= now
+        else ({}, {})
+    )
+
+    col = db[client.col_p]
+    ors = []
+    for pid in p_ids:
+        ors.append({"Id": pid})
+        if pid.isdigit():
+            try:
+                n = int(pid)
+                ors.append({"Id": n})
+                ors.append({"Codigo": n})
+            except (TypeError, ValueError):
+                pass
+        if len(pid) == 24:
+            try:
+                oid = ObjectId(pid)
+                ors.append({"Id": oid})
+                ors.append({"_id": oid})
+            except Exception:
+                pass
+    prods = list(
+        col.find(
+            {"$or": ors},
+            {"Id": 1, "_id": 1, "Nome": 1, "Codigo": 1, "CodigoNFe": 1, "CodigoBarras": 1},
+        )
+    )
+
+    def _chaves_produto(p) -> list[str]:
+        keys: list[str] = []
+        vid = p.get("Id")
+        if vid is not None:
+            keys.append(str(vid))
+        keys.append(str(p.get("_id")))
+        cod = p.get("Codigo")
+        if cod is not None and str(cod).strip() != "":
+            keys.append(str(cod))
+        return [k for k in keys if k and k != "None"]
+
+    pmap: dict[str, dict] = {}
+    for p in prods:
+        for k in _chaves_produto(p):
+            pmap[k] = p
+
+    rows_out: list[dict] = []
+    for pid in p_ids:
+        p = pmap.get(pid)
+        canon = str(p.get("Id") or p.get("_id") or pid) if p else pid
+        nome = str(p.get("Nome") or "").strip() if p else ""
+        if not nome:
+            nome = "—"
+        codigo = ""
+        if p:
+            codigo = str(p.get("Codigo") or p.get("CodigoNFe") or p.get("CodigoBarras") or "").strip()
+        qtd_ult = None
+        if not sem_doc:
+            qtd_ult = round(_resolver_qtd_por_pid(linhas_doc, canon), 4)
+        qtd_pos = None
+        if not sem_doc:
+            qtd_pos = round(_resolver_qtd_por_pid(tot_pos, canon), 4)
+        t56p = round(_resolver_qtd_por_pid(tot56, canon), 4)
+        first_dt = _resolver_dt_mapa(first_in56, canon)
+        if first_dt is None and p:
+            for k in _chaves_produto(p):
+                first_dt = _resolver_dt_mapa(first_in56, k)
+                if first_dt is not None:
+                    break
+        anchor = t56
+        if isinstance(first_dt, datetime):
+            fd = _mongo_dt_utc_naive(first_dt) or first_dt
+            ad = _mongo_dt_utc_naive(anchor) or anchor
+            if fd > ad:
+                anchor = fd
+        now_n = _mongo_dt_utc_naive(now) or now
+        an_n = _mongo_dt_utc_naive(anchor) or anchor
+        try:
+            dias_hist = max(1.0, (now_n - an_n).total_seconds() / 86400.0)
+        except Exception:
+            dias_hist = 56.0
+        semanas_den = int(max(1, min(8, (dias_hist + 6.999999) // 7)))
+        media_sem = round((t56p / float(semanas_den)) if semanas_den else 0.0, 4)
+        rows_out.append(
+            {
+                "produto_id": str(canon),
+                "codigo": codigo[:80],
+                "nome": nome[:500],
+                "qtd_ultimo_pedido": qtd_ult,
+                "qtd_vendida_desde_ultima": qtd_pos,
+                "media_venda_semana": media_sem,
+                "semanas_media": semanas_den,
+            }
+        )
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "fornecedor_nome": (fornecedor_nome or fornecedor_id or "")[:200],
+            "fornecedor_id": fornecedor_id or "",
+            "total_produtos": len(rows_out),
+            "sem_ultimo_documento": sem_doc,
+            "ultimo_documento": {
+                "data": ultimo_iso,
+                "documento": ultimo_doc_txt[:120],
+                "origem": ultimo_origem,
+            },
+            "linhas": rows_out,
+        }
+    )
+
+
 def _sanear_itens_checkout_sessao(itens):
     out = []
     if not isinstance(itens, list):
