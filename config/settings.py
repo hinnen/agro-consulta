@@ -106,6 +106,12 @@ AGRO_ERP_V3_REPORT_TIMEOUT_SEC = config(
 # Teto de bytes lido por relatório v3 (resposta JSON pode ser enorme; ultrapassar evita OOM no worker).
 AGRO_ERP_V3_REPORT_MAX_BYTES = config("AGRO_ERP_V3_REPORT_MAX_BYTES", default=4_000_000, cast=int)
 
+# Top 8 clientes (mês civil anterior) no dashboard: JSON opcional até haver integração Curva ABC ERP.
+# Ex.: [{"nome":"Cliente A","total":1500.5},{"nome":"B","total":900}] — ver ajuda na tela do BI.
+AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON = (
+    config("AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON", default="") or ""
+).strip()
+
 # Application definition
 
 INSTALLED_APPS = [

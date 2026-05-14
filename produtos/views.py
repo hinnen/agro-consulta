@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
 import json
 import logging
+import math
 import re
 import time
 import unicodedata
@@ -70,6 +71,7 @@ from integracoes.venda_erp_api import (
 from .mongo_vendas_util import (
     _filtro_venda_ativa_mongo,
     dashboard_ranking_vendedores_mongo,
+    dashboard_top_clientes_mongo,
     dashboard_top_produtos_mongo,
 )
 from .nfe_entrada_util import (
@@ -3159,6 +3161,177 @@ def _mapa_qtd_linhas_documento_compra(db, doc: dict | None, *, mongo_max_time_ms
     return out
 
 
+def _linhas_doc_mapa_contem_produto(mapa: dict[str, float], canon: str, chaves: list[str]) -> bool:
+    """True se o produto consta no mapa do último documento (chaves Id/Código variantes)."""
+    candidatos: list[str] = []
+    for raw in [canon] + (chaves or []):
+        s = str(raw or "").strip()
+        if not s or s == "None":
+            continue
+        if s not in candidatos:
+            candidatos.append(s)
+    for s in candidatos:
+        if s in mapa:
+            return True
+        if s.isdigit():
+            if str(int(s)) in mapa:
+                return True
+            try:
+                n = int(s)
+                if n in mapa:
+                    return True
+            except Exception:
+                pass
+        if len(s) == 24 and all(c in "0123456789abcdefABCDEF" for c in s):
+            try:
+                oid = ObjectId(s)
+                if str(oid) in mapa:
+                    return True
+            except Exception:
+                pass
+    return False
+
+
+def _conjunto_compra_contem_produto(conj: set[str], canon: str, chaves: list[str]) -> bool:
+    """True se alguma variante do produto aparece no conjunto de ProdutoID das linhas de compra."""
+    candidatos: list[str] = []
+    for raw in [canon] + (chaves or []):
+        s = str(raw or "").strip()
+        if not s or s == "None":
+            continue
+        if s not in candidatos:
+            candidatos.append(s)
+    for s in candidatos:
+        if s in conj:
+            return True
+        if s.isdigit():
+            if str(int(s)) in conj:
+                return True
+        if len(s) == 24 and all(c in "0123456789abcdefABCDEF" for c in s):
+            try:
+                oid = ObjectId(s)
+                if str(oid) in conj:
+                    return True
+            except Exception:
+                pass
+    return False
+
+
+def _conjunto_produto_ids_linhas_qualquer_compra_fornecedor(
+    db,
+    fornecedor_nome: str,
+    fornecedor_id: str | None,
+    p_ids: list[str],
+    *,
+    mongo_max_time_ms: int | None = 90_000,
+) -> set[str]:
+    """
+    ProdutoID (string) que aparece em pelo menos uma linha de pedido/compra/entrada/nota
+    do fornecedor no período do cutoff (mesma janela de ``_ultimo_documento_compra_do_fornecedor``).
+    """
+    out: set[str] = set()
+    if db is None or not p_ids:
+        return out
+    try:
+        names = set(db.list_collection_names())
+    except Exception:
+        return out
+    since = _ultimas_compras_cutoff_dt()
+    q_head = {
+        "Cancelada": {"$ne": True},
+        "$or": [
+            {"Data": {"$gte": since}},
+            {"DataEmissao": {"$gte": since}},
+            {"DataEntrada": {"$gte": since}},
+            {"DataEntradaNota": {"$gte": since}},
+            {"DataEmissaoNota": {"$gte": since}},
+        ],
+    }
+    proj_h = {"Id": 1, "_id": 1, "Data": 1, "DataEmissao": 1, "DataEntrada": 1, "DataEntradaNota": 1, "DataEmissaoNota": 1}
+    specs = [
+        ("DtoPedidoCompra", "DtoPedidoCompraProduto", "PedidoCompraID"),
+        ("DtoCompra", "DtoCompraProduto", "CompraID"),
+        ("DtoEntradaMercadoria", "DtoEntradaMercadoriaProduto", "EntradaID"),
+        ("DtoNotaEntrada", "DtoNotaEntradaProduto", "__nota_entrada__"),
+    ]
+    prod_in = _produto_ids_variants_mongo(p_ids)
+    if not prod_in:
+        return out
+    max_heads = 5000
+    for col_h, col_p, fk in specs:
+        if col_h not in names or col_p not in names:
+            continue
+        try:
+            cur = db[col_h].find(q_head, proj_h)
+            if mongo_max_time_ms is not None:
+                cur = cur.max_time_ms(int(mongo_max_time_ms))
+            heads = list(cur)
+        except Exception as exc:
+            logger.warning("relatorio_compras hist heads %s: %s", col_h, exc)
+            continue
+        hids: list[str] = []
+        for h in heads:
+            if not _cabeca_compra_equiv_fornecedor(h, fornecedor_nome, fornecedor_id):
+                continue
+            dt = _data_cabecalho_compra(h)
+            if not _mongo_dt_maior_ou_igual(dt, since):
+                continue
+            hid = str(h.get("Id") or h.get("_id") or "")
+            if hid:
+                hids.append(hid)
+        if len(hids) > max_heads:
+            hids = hids[:max_heads]
+        if not hids:
+            continue
+        variants = _mongo_ids_para_query_in(hids)
+        if not variants:
+            continue
+        try:
+            if fk == "__nota_entrada__":
+                q_lines = {
+                    "$and": [
+                        {"$or": [{"EntradaID": {"$in": variants}}, {"NotaEntradaID": {"$in": variants}}]},
+                        {"ProdutoID": {"$in": prod_in}},
+                    ]
+                }
+            else:
+                q_lines = {"$and": [{fk: {"$in": variants}}, {"ProdutoID": {"$in": prod_in}}]}
+            cur_ln = db[col_p].find(
+                q_lines,
+                {"ProdutoID": 1, "Cancelada": 1},
+            )
+            if mongo_max_time_ms is not None:
+                cur_ln = cur_ln.max_time_ms(int(mongo_max_time_ms))
+            for ln in cur_ln:
+                if ln.get("Cancelada") in (True, "Sim", 1, "true", "True"):
+                    continue
+                pid = str(ln.get("ProdutoID") or "")
+                if pid and pid != "None":
+                    out.add(pid)
+        except Exception as exc:
+            logger.warning("relatorio_compras hist linhas %s: %s", col_p, exc)
+    return out
+
+
+def _arred_int_meio_para_cima(x: float | int | None) -> int:
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return 0
+    if v < 0:
+        v = 0.0
+    return int(math.floor(v + 0.5))
+
+
+def _fmt_relatorio_gm_display(s: str) -> str:
+    t = str(s or "").strip()
+    if not t:
+        return ""
+    if re.match(r"^\d+\.0$", t):
+        return t[:-2]
+    return t
+
+
 def _vendas_qtd_por_produto_intervalo(
     db,
     p_ids: list[str],
@@ -3397,6 +3570,12 @@ def api_compras_relatorio_fornecedor(request):
         ultimo_origem = str(ultimo.get("origem") or "")
         linhas_doc = _mapa_qtd_linhas_documento_compra(db, ultimo)
 
+    hist_linhas: set[str] = set()
+    if not sem_doc:
+        hist_linhas = _conjunto_produto_ids_linhas_qualquer_compra_fornecedor(
+            db, fornecedor_nome, fornecedor_id, p_ids
+        )
+
     now = datetime.now()
     t56 = now - timedelta(days=56)
     tot56, first_in56 = _vendas_qtd_por_produto_intervalo(db, p_ids, t56, now)
@@ -3429,7 +3608,17 @@ def api_compras_relatorio_fornecedor(request):
     prods = list(
         col.find(
             {"$or": ors},
-            {"Id": 1, "_id": 1, "Nome": 1, "Codigo": 1, "CodigoNFe": 1, "CodigoBarras": 1},
+            {
+                "Id": 1,
+                "_id": 1,
+                "Nome": 1,
+                "Codigo": 1,
+                "CodigoNFe": 1,
+                "CodigoBarras": 1,
+                "Sku": 1,
+                "SKU": 1,
+                "CodigoInterno": 1,
+            },
         )
     )
 
@@ -3456,16 +3645,30 @@ def api_compras_relatorio_fornecedor(request):
         nome = str(p.get("Nome") or "").strip() if p else ""
         if not nome:
             nome = "—"
-        codigo = ""
+        chaves = _chaves_produto(p) if p else [canon]
         if p:
-            codigo = str(p.get("Codigo") or p.get("CodigoNFe") or p.get("CodigoBarras") or "").strip()
-        qtd_ult = None
-        if not sem_doc:
-            qtd_ult = round(_resolver_qtd_por_pid(linhas_doc, canon), 4)
+            gm_raw = _mongo_primeiro_texto(
+                p,
+                ("CodigoNFe", "Sku", "SKU", "CodigoInterno", "Codigo", "CodigoBarras"),
+            )
+            codigo = (_fmt_relatorio_gm_display(gm_raw) or _fmt_relatorio_gm_display(str(canon)))[:80]
+        else:
+            codigo = _fmt_relatorio_gm_display(str(canon))[:80]
+
+        qtd_ult: int | None
+        if sem_doc:
+            qtd_ult = None
+        elif _linhas_doc_mapa_contem_produto(linhas_doc, canon, chaves):
+            qtd_ult = _arred_int_meio_para_cima(_resolver_qtd_por_pid(linhas_doc, canon))
+        elif _conjunto_compra_contem_produto(hist_linhas, canon, chaves):
+            qtd_ult = 0
+        else:
+            qtd_ult = None
+
         qtd_pos = None
         if not sem_doc:
-            qtd_pos = round(_resolver_qtd_por_pid(tot_pos, canon), 4)
-        t56p = round(_resolver_qtd_por_pid(tot56, canon), 4)
+            qtd_pos = _arred_int_meio_para_cima(_resolver_qtd_por_pid(tot_pos, canon))
+        t56p = _resolver_qtd_por_pid(tot56, canon)
         first_dt = _resolver_dt_mapa(first_in56, canon)
         if first_dt is None and p:
             for k in _chaves_produto(p):
@@ -3485,7 +3688,7 @@ def api_compras_relatorio_fornecedor(request):
         except Exception:
             dias_hist = 56.0
         semanas_den = int(max(1, min(8, (dias_hist + 6.999999) // 7)))
-        media_sem = round((t56p / float(semanas_den)) if semanas_den else 0.0, 4)
+        media_sem = _arred_int_meio_para_cima((t56p / float(semanas_den)) if semanas_den else 0.0)
         rows_out.append(
             {
                 "produto_id": str(canon),
@@ -3497,6 +3700,13 @@ def api_compras_relatorio_fornecedor(request):
                 "semanas_media": semanas_den,
             }
         )
+
+    rows_out.sort(
+        key=lambda r: (
+            1 if (not sem_doc and r.get("qtd_ultimo_pedido") is None) else 0,
+            str(r.get("nome") or "").strip().lower(),
+        )
+    )
 
     return JsonResponse(
         {
@@ -4505,6 +4715,119 @@ def _dashboard_ranking_vendedores_capri(data_ini, data_fim, limite=8):
     return out
 
 
+def _dashboard_top_clientes_manual_json() -> list[dict] | None:
+    """
+    Override opcional (Curva ABC no ERP): JSON no env ``AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON``.
+    Formato: [{"nome":"...","total":123.45}, ...] até 8 linhas (ordem preservada).
+    """
+    raw = (getattr(settings, "AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON", "") or "").strip()
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        logger.warning("AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON inválido (JSON)")
+        return None
+    if not isinstance(data, list):
+        return None
+    out: list[dict] = []
+    for row in data[:8]:
+        if not isinstance(row, dict):
+            continue
+        nome = str(row.get("nome") or row.get("Nome") or "").strip()
+        if not nome:
+            continue
+        tot = row.get("total") if row.get("total") is not None else row.get("valor")
+        try:
+            total = round(float(tot), 2)
+        except (TypeError, ValueError):
+            continue
+        out.append({"nome": nome[:200], "total": total})
+    return out or None
+
+
+def _dashboard_top_clientes_sqlite(data_ini, data_fim, limite=8):
+    """Top clientes PDV local no mês civil: nome preenchido ou só ``cliente_id_erp``."""
+    acc: dict[str, float] = {}
+    qs_base = VendaAgro.objects.filter(criado_em__date__gte=data_ini, criado_em__date__lte=data_fim)
+    for row in (
+        qs_base.exclude(cliente_nome__exact="")
+        .values("cliente_nome")
+        .annotate(total=Sum("total"))
+    ):
+        nm = (row.get("cliente_nome") or "").strip()
+        if not nm:
+            continue
+        acc[nm] = acc.get(nm, 0.0) + _dashboard_float(row.get("total"))
+    for row in (
+        qs_base.filter(cliente_nome__exact="")
+        .exclude(cliente_id_erp__exact="")
+        .values("cliente_id_erp")
+        .annotate(total=Sum("total"))
+    ):
+        cid = (row.get("cliente_id_erp") or "").strip()
+        if not cid:
+            continue
+        label = f"Cliente ERP {cid}"
+        acc[label] = acc.get(label, 0.0) + _dashboard_float(row.get("total"))
+    ranked = sorted(acc.items(), key=lambda kv: kv[1], reverse=True)[:limite]
+    return [{"nome": k[:200], "total": round(v, 2)} for k, v in ranked]
+
+
+def _dashboard_top_clientes_mes_anterior_capri(hoje: date) -> dict:
+    """
+    Top 8 do mês civil anterior a ``hoje`` (independente do filtro de período do gráfico).
+    Ordem: JSON manual (env) → Mongo DtoVenda (se ``AGRO_DASHBOARD_MONGO_RANKING_FALLBACK``) → SQLite PDV.
+    """
+    mes_ini, mes_fim = _dashboard_bounds_mes_anterior_para_dia(hoje)
+    raw_manual = (getattr(settings, "AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON", "") or "").strip()
+    ck_suffix = hashlib.sha256(raw_manual.encode("utf-8")).hexdigest()[:12] if raw_manual else "auto"
+    ck = f"dash:tcma:v2:{mes_ini.isoformat()}:{mes_fim.isoformat()}:{ck_suffix}"
+    hit = cache.get(ck)
+    if isinstance(hit, dict) and hit.get("_t") == "tcma":
+        return hit["payload"]
+
+    mes_label = mes_ini.strftime("%m/%Y")
+    manual = _dashboard_top_clientes_manual_json()
+    if manual:
+        payload = {
+            "mes_label": mes_label,
+            "mes_ini": mes_ini,
+            "mes_fim": mes_fim,
+            "fonte": "manual",
+            "itens": manual[:8],
+        }
+        cache.set(ck, {"_t": "tcma", "payload": payload}, timeout=3600)
+        return payload
+
+    out: list[dict] = []
+    fonte = ""
+    # Este card usa só o mês civil anterior (janela fixa + cache); tenta Mongo sempre que houver espelho,
+    # independente de ``AGRO_DASHBOARD_MONGO_RANKING_FALLBACK`` (flag vale para rankings do período filtrado).
+    client, db = obter_conexao_mongo()
+    if client is not None and db is not None:
+        try:
+            rows = dashboard_top_clientes_mongo(client, db, mes_ini, mes_fim, limite=8)
+            if rows:
+                out = rows
+                fonte = "mongo"
+        except Exception:
+            logger.exception("top_clientes_mes_anterior: mongo")
+    if not out:
+        out = _dashboard_top_clientes_sqlite(mes_ini, mes_fim, limite=8)
+        fonte = "pdv" if out else ""
+
+    payload = {
+        "mes_label": mes_label,
+        "mes_ini": mes_ini,
+        "mes_fim": mes_fim,
+        "fonte": fonte,
+        "itens": out,
+    }
+    cache.set(ck, {"_t": "tcma", "payload": payload}, timeout=1800)
+    return payload
+
+
 def _dashboard_entregas_pendentes_count() -> int:
     """Pedidos de entrega ainda não entregues nem cancelados."""
     return PedidoEntrega.objects.exclude(
@@ -4834,6 +5157,7 @@ def _dashboard_capri_context(request):
         fut["tkt_mes_ant"] = ex.submit(_dashboard_worker, _dashboard_ticket_medio_intervalo, mes_ant_ini, mes_ant_fim)
         fut["top_prod"] = ex.submit(_dashboard_worker, _dashboard_top_produtos_capri, data_ini, data_fim)
         fut["rank_vend"] = ex.submit(_dashboard_worker, _dashboard_ranking_vendedores_capri, data_ini, data_fim)
+        fut["top_cli_mes_ant"] = ex.submit(_dashboard_worker, _dashboard_top_clientes_mes_anterior_capri, hoje)
         fut["finance"] = ex.submit(_dashboard_worker, _dashboard_capri_financeiro, hoje, ontem)
         if periodo_key != "ano":
             fut["serie_compare"] = ex.submit(
@@ -4853,6 +5177,10 @@ def _dashboard_capri_context(request):
     fin = blk["finance"]
     top_produtos = blk["top_prod"]
     ranking_vendedores = blk["rank_vend"]
+    top_cli_blk = blk["top_cli_mes_ant"]
+    top_clientes_mes_anterior = (top_cli_blk or {}).get("itens") or []
+    top_clientes_mes_anterior_label = (top_cli_blk or {}).get("mes_label") or ""
+    top_clientes_mes_anterior_fonte = (top_cli_blk or {}).get("fonte") or ""
     vpl = atual.get("vendas_por_loja")
     if isinstance(vpl, list) and len(vpl) >= 2:
         vendas_por_loja = vpl
@@ -5033,6 +5361,9 @@ def _dashboard_capri_context(request):
         "ticket_por_dia": json.dumps(ticket_por_dia),
         "top_produtos": top_produtos,
         "ranking_vendedores": ranking_vendedores,
+        "top_clientes_mes_anterior": top_clientes_mes_anterior,
+        "top_clientes_mes_anterior_label": top_clientes_mes_anterior_label,
+        "top_clientes_mes_anterior_fonte": top_clientes_mes_anterior_fonte,
         "vendas_por_loja": vendas_por_loja,
         "stores_chart_json": json.dumps(
             {
