@@ -23,7 +23,6 @@
 </head>
 <body class="min-h-[100dvh] bg-gradient-to-b from-violet-50/90 via-slate-50 to-slate-100 text-slate-800 safe-pad">
 {% include "produtos/_gm_loading_bar.html" %}
-{% include "produtos/_agro_open_external.html" %}
 
   <div class="mx-auto w-full max-w-lg flex min-h-[100dvh] min-h-0 flex-col">
     <header class="shrink-0 flex flex-wrap items-start justify-between gap-3 pb-3">
@@ -49,7 +48,7 @@
             <p>Até <strong>800</strong> produtos ativos do catálogo cujo fornecedor no cadastro (Mongo) casa com o nome ou ID.</p>
             <p><strong>*</strong> na coluna «Qtd últ. pedido / compra» = sem nenhuma linha de compra deste fornecedor no ERP no período. <strong>0</strong> = já houve compra, mas o item não entrou no último documento (ou veio zerado).</p>
             <p><strong>Média/semana:</strong> vendas em até 8 semanas (56 dias), com média ajustada quando o histórico de venda no período é mais curto. Quantidades inteiras (meio para cima).</p>
-            <p class="text-violet-800">O botão <strong>Notas de entrada (ERP)</strong> abre a lista web do SisVale (login). Os dados do relatório vêm do espelho Mongo sincronizado com o ERP.</p>
+            <p class="text-violet-800">Os dados do relatório vêm do espelho Mongo sincronizado com o ERP.</p>
           </div>
         </details>
       </div>
@@ -68,16 +67,11 @@
               style="-webkit-overflow-scrolling: touch;"></ul>
           </div>
         </label>
-        <p class="text-[11px] font-bold text-slate-500 leading-snug">Toque na lista para escolher. Em telas pequenas a lista ocupa até metade da altura útil.</p>
+        <p class="text-[11px] font-bold text-slate-500 leading-snug">Toque na lista para escolher. Em telemóvel, ao imprimir pode abrir-se um separador com o relatório (evita imprimir a captura da página).</p>
 
         <button type="button" id="btn-compra-relatorio-a4" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-violet-600 bg-violet-600 text-white font-black py-3.5 uppercase text-sm tracking-wide shadow-sm hover:bg-violet-700 hover:border-violet-700 min-h-[52px] touch-manipulation active:scale-[0.99]">
           Imprimir tabela
         </button>
-        {% if erp_notas_entrada_list_url %}
-        <button type="button" id="btn-compra-abrir-erp-notas-entrada" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black py-3.5 uppercase text-sm tracking-wide shadow-sm hover:bg-slate-50 hover:border-slate-400 min-h-[52px] touch-manipulation active:scale-[0.99]">
-          Notas de entrada (ERP)
-        </button>
-        {% endif %}
       </div>
     </main>
   </div>
@@ -137,12 +131,6 @@
   });
   document.getElementById('btn-compra-relatorio-a4')?.addEventListener('click', () => {
     void compraImprimirRelatorioA4();
-  });
-  document.getElementById('btn-compra-abrir-erp-notas-entrada')?.addEventListener('click', () => {
-    const u = String(ERP_NOTAS_ENTRADA_LIST_URL || '').trim();
-    if (!u) return;
-    if (typeof agroAbrirUrlExterna === 'function') agroAbrirUrlExterna(u);
-    else window.open(u, '_blank', 'noopener,noreferrer');
   });
   document.addEventListener('mousedown', (e) => {
     const dd = document.getElementById('rel-compra-forn-dd');

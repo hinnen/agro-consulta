@@ -347,6 +347,18 @@
     #nfe-wiz-custo-list .nfe-wiz-spark-wrap {
       min-width: 0;
     }
+    /* Altura explícita: sem isso o SVG pode colapsar (só «faixa» cinza / baseline). */
+    #nfe-wiz-custo-list .nfe-wiz-spark-svg-hold {
+      width: 100%;
+      min-height: 2.85rem;
+      height: 2.85rem;
+      flex-shrink: 0;
+    }
+    #nfe-wiz-custo-list .nfe-wiz-spark-svg-hold svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
     #nfe-wiz-custo-list .nfe-wiz-custo-escolha {
       padding: 0.45rem 0.65rem 0.5rem;
       background: rgb(248 250 252);
@@ -599,11 +611,12 @@
     .entrada-nfe-editor-meta {
       display: grid;
       grid-template-columns: 4.75rem 6.25rem 2.65rem minmax(0, 8.75rem) minmax(0, 8.75rem);
-      column-gap: 0.4rem;
-      row-gap: 0.2rem;
+      column-gap: 0.35rem;
+      row-gap: 0.12rem;
       align-items: start;
       width: 100%;
       max-width: 100%;
+      padding: 0.35rem 0.45rem;
     }
     @media (max-width: 1100px) {
       .entrada-nfe-editor-meta {
@@ -623,7 +636,7 @@
     .entrada-nfe-editor-meta .nfe-em-kv {
       display: flex;
       flex-direction: column;
-      gap: 0.06rem;
+      gap: 0.04rem;
       min-width: 0;
     }
     .entrada-nfe-editor-meta .nfe-em-lb {
@@ -674,6 +687,7 @@
       border-width: 1px;
       border-color: rgb(226 232 240);
       background: rgb(248 250 252);
+      padding: 0.4rem 0.5rem !important;
     }
     #entrada-nfe-wizard-nav .nfe-wiz-nav-eyebrow {
       display: block;
@@ -845,10 +859,10 @@
       <button type="button" class="tab-btn inline-flex items-center justify-center font-black text-[11px] uppercase tab-off" data-tab="sefaz" title="SEFAZ">SEFAZ</button>
     </div>
 
-    <div id="entrada-nfe-editor-meta" class="entrada-nfe-editor-meta rounded-lg border border-slate-200/90 bg-white px-2.5 py-2 sm:px-3" aria-live="polite"></div>
+    <div id="entrada-nfe-editor-meta" class="entrada-nfe-editor-meta rounded-lg border border-slate-200/90 bg-white" aria-live="polite"></div>
 
-    <section id="panel-manual" class="tab-panel bg-white rounded-xl border border-slate-200 shadow-sm p-2.5 sm:p-3 flex flex-col gap-2 min-h-0">
-      <div class="rounded-xl entrada-nfe-wiz-nav--compact p-2.5 sm:p-3 shadow-sm shrink-0" id="entrada-nfe-wizard-nav" role="navigation" aria-label="Passos da entrada">
+    <section id="panel-manual" class="tab-panel bg-white rounded-xl border border-slate-200 shadow-sm p-2 sm:p-2.5 flex flex-col gap-1.5 min-h-0">
+      <div class="rounded-xl entrada-nfe-wiz-nav--compact shadow-sm shrink-0" id="entrada-nfe-wizard-nav" role="navigation" aria-label="Passos da entrada">
         <div class="nfe-wiz-nav-top">
           <div class="nfe-wiz-nav-head">
             <span class="nfe-wiz-nav-eyebrow">Passo a passo</span>
@@ -1205,21 +1219,17 @@
       </div>
       </div>
 
-      <div id="nfe-wiz-page-6" data-nfe-wiz-page="6" class="nfe-wiz-page hidden flex flex-col gap-2 rounded-2xl border-2 border-slate-200 bg-gradient-to-b from-slate-50 to-white p-3 sm:p-3.5 overflow-y-auto min-h-0">
-        <div class="flex flex-wrap items-center justify-between gap-2 shrink-0">
-          <div class="min-w-0">
-            <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">6 · Finalizar</h2>
-          </div>
-          <button type="button" class="nfe-wiz-help min-h-[40px] min-w-[40px] rounded-xl border-2 border-slate-300 bg-white text-sm font-black text-slate-800 hover:bg-slate-50 shrink-0" data-help-w="6" title="Ajuda da etapa 6" aria-label="Ajuda da etapa 6">?</button>
-        </div>
+      <div id="nfe-wiz-page-6" data-nfe-wiz-page="6" class="nfe-wiz-page hidden flex flex-col gap-2 rounded-2xl border-2 border-slate-200 bg-gradient-to-b from-slate-50 to-white p-2.5 sm:p-3 overflow-y-auto min-h-0">
         <div id="nfe-wiz-custo-wrap" class="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4 border-b border-slate-100 bg-gradient-to-r from-emerald-50/90 via-white to-white">
+          <div class="shrink-0 flex flex-wrap items-start justify-between gap-2 px-2.5 py-1.5 sm:px-3 border-b border-slate-100 bg-gradient-to-r from-emerald-50/90 via-white to-white">
             <div class="min-w-0">
-              <h3 class="text-xs font-black uppercase tracking-wide text-slate-900">Custo no catálogo · média C+V</h3>
+              <p class="text-[9px] font-black uppercase tracking-wide text-slate-500 leading-none">6 · Finalizar</p>
+              <h3 class="text-[11px] sm:text-xs font-black uppercase tracking-wide text-slate-900 mt-0.5">Custo no catálogo · média C+V</h3>
               <p id="nfe-wiz-custo-count" class="mt-0.5 text-[10px] font-bold text-slate-500 tabular-nums hidden" aria-live="polite"></p>
             </div>
+            <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-slate-300 bg-white text-sm font-black text-slate-800 hover:bg-slate-50 shrink-0" data-help-w="6" title="Ajuda da etapa 6" aria-label="Ajuda da etapa 6">?</button>
           </div>
-          <p id="nfe-wiz-custo-hint" class="shrink-0 mx-3 sm:mx-4 mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold text-slate-800 leading-snug nfe-wiz-custo-hint--hidden" role="status"></p>
+          <p id="nfe-wiz-custo-hint" class="shrink-0 mx-2.5 sm:mx-3 mt-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-800 leading-snug nfe-wiz-custo-hint--hidden" role="status"></p>
           <div id="nfe-wiz-custo-list" class="pdv-wizard-scroll min-h-0 max-h-[min(58vh,28rem)] overflow-y-auto overflow-x-auto px-2 sm:px-3 pb-2 pt-1 flex flex-col gap-2"></div>
         </div>
         <div class="shrink-0 rounded-2xl border-2 border-slate-200 bg-white p-3 shadow-sm space-y-2.5">
@@ -2767,9 +2777,12 @@
       btnP.classList.toggle('pointer-events-none', step <= 1);
     }
     if (btnN) {
-      btnN.disabled = step >= 6;
-      btnN.classList.toggle('opacity-40', step >= 6);
-      btnN.classList.toggle('pointer-events-none', step >= 6);
+      const last = step >= 6;
+      btnN.disabled = last;
+      btnN.setAttribute('aria-hidden', last ? 'true' : 'false');
+      btnN.classList.toggle('hidden', last);
+      btnN.classList.toggle('opacity-40', last);
+      btnN.classList.toggle('pointer-events-none', last);
     }
     try {
       elEditorScroll?.scrollTo(0, 0);
@@ -2896,28 +2909,38 @@
     return { vals, dates, fromApi };
   }
 
-  /** Mini gráfico (4 pontos): escala **mín–máx** nos 4 valores para a linha não ficar chapada quando todos são próximos do máximo. */
+  /** Mini gráfico (4 pontos): escala mín–máx + inset vertical; cores explícitas; wrapper com altura fixa (evita SVG colapsado). */
   function entradaNfeSparklineSvg4Custo(vals) {
-    const v = (vals || []).map((x) => Math.max(0, Number(x) || 0));
+    let v = (vals || []).map((x) => {
+      const n = Number(x);
+      return Number.isFinite(n) && n >= 0 ? n : 0;
+    });
+    while (v.length < 4) v.push(v.length ? v[v.length - 1] : 0);
+    v = v.slice(0, 4);
+    const wrapOpen = '<div class="nfe-wiz-spark-svg-hold">';
+    const wrapClose = '</div>';
     if (!v.length) {
       return (
-        '<svg viewBox="0 0 320 50" class="w-full h-[3rem] sm:h-[3.25rem] text-slate-300" preserveAspectRatio="none" aria-hidden="true">' +
-        '<line x1="4" y1="25" x2="316" y2="25" stroke="currentColor" stroke-width="1" stroke-dasharray="4 3"/>' +
-        '</svg>'
+        wrapOpen +
+        '<svg viewBox="0 0 320 50" class="w-full h-full block" preserveAspectRatio="none" aria-hidden="true">' +
+        '<line x1="4" y1="25" x2="316" y2="25" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 3" opacity="0.65"/>' +
+        '</svg>' +
+        wrapClose
       );
     }
     const n = 4;
     const w = 320;
     const h = 50;
     const padX = 4;
-    const padY = 6;
+    const padY = 5;
     const innerW = w - 2 * padX;
     const innerH = h - 2 * padY;
+    const yInset = innerH * 0.12;
+    const hEff = Math.max(innerH - 2 * yInset, 6);
     let vmin = Math.min(...v);
     let vmax = Math.max(...v);
     let spread = vmax - vmin;
     const ref = Math.max(vmax, 1e-6);
-    /* Se a faixa for minúscula (ex.: todos ~R$ 139), expande só para visualização — não altera dados. */
     const minSpreadRel = 0.012;
     if (spread < ref * minSpreadRel) {
       const mid = (vmin + vmax) / 2;
@@ -2926,7 +2949,8 @@
       vmax = mid + padAmt;
       spread = vmax - vmin;
     }
-    const yFor = (val) => padY + innerH - ((Number(val) || 0) - vmin) / spread * innerH;
+    if (!(spread > 0)) spread = 1e-6;
+    const yFor = (val) => padY + yInset + hEff - ((Number(val) || 0) - vmin) / spread * hEff;
     const step = n <= 1 ? 0 : innerW / (n - 1);
     const pts = v
       .map((val, i) => {
@@ -2939,8 +2963,8 @@
       .map((val, i) => {
         const x = padX + i * step;
         const y = yFor(val);
-        const cls = i === n - 1 ? 'text-orange-500' : 'text-emerald-600';
-        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.8" fill="currentColor" class="${cls}"/>`;
+        const fill = i === n - 1 ? '#ea580c' : '#059669';
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.2" fill="${fill}" stroke="#fff" stroke-width="0.75"/>`;
       })
       .join('');
     const area =
@@ -2953,30 +2977,21 @@
         })
         .join(' ') +
       ` ${padX + 3 * step},${padY + innerH}`;
-    return (
+    const innerSvg =
       '<svg viewBox="0 0 ' +
       w +
       ' ' +
       h +
-      '" class="w-full h-[3rem] sm:h-[3.25rem] text-emerald-600" preserveAspectRatio="none" aria-hidden="true">' +
-      '<line x1="' +
-      padX +
-      '" y1="' +
-      (padY + innerH) +
-      '" x2="' +
-      (w - padX) +
-      '" y2="' +
-      (padY + innerH) +
-      '" stroke="currentColor" stroke-opacity="0.18" stroke-width="1"/>' +
-      '<polygon fill="currentColor" fill-opacity="0.12" stroke="none" points="' +
+      '" class="w-full h-full block" preserveAspectRatio="none" aria-hidden="true">' +
+      '<polygon fill="rgb(16 185 129)" fill-opacity="0.1" stroke="none" points="' +
       area +
-      '" class="text-emerald-500"/>' +
-      '<polyline fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" points="' +
+      '"/>' +
+      '<polyline fill="none" stroke="#059669" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" points="' +
       pts +
       '"/>' +
       circles +
-      '</svg>'
-    );
+      '</svg>';
+    return wrapOpen + innerSvg + wrapClose;
   }
 
   function entradaNfeCustoRadioRefreshGroup(name) {
