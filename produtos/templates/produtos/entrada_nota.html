@@ -279,7 +279,55 @@
     }
     #entrada-nfe-wizard-pages .nfe-wiz-page { min-height: min(70vh, 42rem); }
     /* Etapa 6 · custo no catálogo: cartões alinhados e leitura rápida */
-    #nfe-wiz-custo-list .nfe-wiz-custo-card { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06); }
+    #nfe-wiz-custo-list .nfe-wiz-custo-card { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06); overflow: visible; }
+    /* Etapa 6: faixa fixa 3 colunas (saldo / custo antes / custo NF) — mesma grade em todos os cartões. */
+    #nfe-wiz-custo-list .nfe-wiz-custo-metrics {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+      gap: 0.4rem 0.65rem;
+      padding: 0.55rem 0.75rem;
+      background: rgb(248 250 252);
+      border-bottom: 1px solid rgb(226 232 240);
+      align-items: start;
+    }
+    @media (max-width: 520px) {
+      #nfe-wiz-custo-list .nfe-wiz-custo-metrics {
+        grid-template-columns: 1fr;
+        gap: 0.45rem;
+      }
+    }
+    #nfe-wiz-custo-list .nfe-wiz-custo-metrics .nfe-wiz-metric-lb {
+      display: block;
+      font-size: 0.58rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: rgb(100 116 139);
+      line-height: 1.15;
+      margin-bottom: 0.12rem;
+    }
+    #nfe-wiz-custo-list .nfe-wiz-custo-metrics .nfe-wiz-metric-val {
+      display: block;
+      font-size: 0.95rem;
+      font-weight: 900;
+      color: rgb(15 23 42);
+      font-variant-numeric: tabular-nums;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+    #nfe-wiz-custo-list .nfe-wiz-custo-metrics .nfe-wiz-metric-sub {
+      display: block;
+      margin-top: 0.2rem;
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: rgb(100 116 139);
+      font-variant-numeric: tabular-nums;
+    }
+    #nfe-wiz-custo-list .nfe-wiz-custo-badges-row {
+      padding: 0.45rem 0.75rem 0.35rem;
+      border-bottom: 1px solid rgb(241 245 249);
+      background: rgb(255 255 255);
+    }
     #nfe-wiz-custo-hint.nfe-wiz-custo-hint--hidden { display: none !important; }
     .nfe-wiz-custo-help > summary { list-style: none; }
     .nfe-wiz-custo-help > summary::-webkit-details-marker { display: none; }
@@ -1071,7 +1119,7 @@
             </details>
           </div>
           <p id="nfe-wiz-custo-hint" class="shrink-0 mx-4 mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-800 leading-snug nfe-wiz-custo-hint--hidden" role="status"></p>
-          <div id="nfe-wiz-custo-list" class="pdv-wizard-scroll min-h-[220px] max-h-[min(65vh,32rem)] overflow-y-auto overflow-x-hidden px-4 pb-4 pt-3 flex flex-col gap-3"></div>
+          <div id="nfe-wiz-custo-list" class="pdv-wizard-scroll min-h-[220px] max-h-[min(65vh,32rem)] overflow-y-auto overflow-x-auto px-4 pb-4 pt-3 flex flex-col gap-3"></div>
         </div>
         <div class="shrink-0 rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-sm space-y-3">
           <label class="block max-w-sm">
@@ -1171,6 +1219,54 @@
         </div>
       </div>
     </div>
+
+  {# Pré-visualização XML × grade: só aplica ao confirmar; clique fora NÃO fecha (evita fecho acidental). #}
+  <div id="modal-xml-merge" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-900/80" role="dialog" aria-modal="true" aria-labelledby="modal-xml-merge-titulo">
+    <div id="modal-xml-merge-panel" class="relative flex w-full max-w-[min(98vw,1520px)] h-[min(94vh,960px)] min-h-[420px] flex-col overflow-hidden rounded-2xl border-[3px] border-slate-700 bg-white shadow-2xl">
+      <div class="shrink-0 flex flex-wrap items-start gap-2 border-b-2 border-slate-200 bg-slate-50 px-3 py-3 sm:px-5 sm:py-4">
+        <div class="min-w-0 flex-1 basis-[min(100%,28rem)]">
+          <h2 id="modal-xml-merge-titulo" class="text-base sm:text-xl font-black uppercase tracking-tight text-slate-900 leading-tight">Pré-visualizar XML na grade</h2>
+          <p class="mt-1 text-sm font-semibold text-slate-600 leading-snug">Compare a grade atual (ex.: pré-pedido de Compras) com os itens da NF-e. A grade <strong>só muda</strong> ao tocar em <strong>Confirmar na grade</strong>. Clique fora desta janela <strong>não fecha</strong> — use Cancelar ou Fechar.</p>
+        </div>
+        <details class="relative shrink-0 group z-10">
+          <summary class="cursor-pointer list-none min-h-[48px] min-w-[48px] flex items-center justify-center rounded-xl border-2 border-emerald-600 bg-emerald-50 px-3 font-black text-emerald-900 hover:bg-emerald-100 text-sm uppercase tracking-wide select-none marker:content-none before:content-['?']">Ajuda</summary>
+          <div class="absolute right-0 top-[calc(100%+6px)] w-[min(32rem,calc(100vw-2rem))] max-h-[min(70vh,28rem)] overflow-y-auto rounded-xl border-2 border-emerald-200 bg-white p-4 shadow-2xl text-[13px] font-semibold text-slate-800 leading-snug space-y-2">
+            <p class="font-black uppercase text-slate-500 text-xs">Vínculo</p>
+            <p>Arraste um cartão da esquerda sobre um da direita (ou o contrário) para casar linha da grade com item do XML. O sistema também sugere vínculos por <strong>EAN</strong> ou <strong>código do produto</strong> quando batem.</p>
+            <p class="font-black uppercase text-slate-500 text-xs">Descartar</p>
+            <p>Você pode <strong>descartar por linha</strong>, arrastar para a <strong>zona de lixo</strong> ou usar <strong>Descartar todos os não vinculados</strong> (com confirmação). Descartados não entram na grade ao confirmar; use <strong>Restaurar</strong> na lista abaixo se mudar de ideia.</p>
+            <p class="font-black uppercase text-slate-500 text-xs">Itens só de um lado</p>
+            <p>Linhas só na grade ou só no XML podem ficar sem par — não é obrigatório casar tudo. Ao confirmar: primeiro entram os itens do XML (na ordem da nota), fundidos com a grade quando houver vínculo; depois entram linhas da grade que sobraram e não foram descartadas.</p>
+          </div>
+        </details>
+        <button type="button" id="modal-xml-merge-fechar" class="shrink-0 min-h-[48px] px-4 rounded-xl border-2 border-slate-400 bg-white text-xs sm:text-sm font-black uppercase text-slate-800 hover:bg-slate-100">Fechar</button>
+      </div>
+      <div class="flex-1 min-h-0 flex flex-col gap-2 p-2 sm:p-4 overflow-hidden">
+        <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <section class="flex flex-col min-h-0 rounded-xl border-2 border-slate-200 bg-slate-50/80 overflow-hidden" aria-label="Itens da grade atual">
+            <h3 class="shrink-0 px-3 py-2 text-sm font-black uppercase text-slate-800 border-b border-slate-200 bg-white/90">Grade / pré-pedido</h3>
+            <div id="xml-merge-col-pre" class="flex-1 overflow-y-auto p-2 sm:p-3 space-y-2 min-h-[8rem]"></div>
+          </section>
+          <section class="flex flex-col min-h-0 rounded-xl border-2 border-blue-200 bg-blue-50/40 overflow-hidden" aria-label="Itens do XML">
+            <h3 class="shrink-0 px-3 py-2 text-sm font-black uppercase text-slate-800 border-b border-blue-100 bg-white/90">Itens do XML (NF-e)</h3>
+            <div id="xml-merge-col-xml" class="flex-1 overflow-y-auto p-2 sm:p-3 space-y-2 min-h-[8rem]"></div>
+          </section>
+        </div>
+        <div id="xml-merge-descartados-wrap" class="shrink-0 hidden rounded-xl border-2 border-orange-200 bg-orange-50/60 p-3">
+          <p class="text-xs font-black uppercase text-orange-900 mb-2">Descartados (não entram ao confirmar)</p>
+          <div id="xml-merge-descartados-list" class="flex flex-wrap gap-2 text-sm"></div>
+        </div>
+        <div id="xml-merge-trash" class="shrink-0 flex items-center justify-center gap-2 min-h-[56px] rounded-xl border-2 border-dashed border-orange-400 bg-orange-50/90 text-orange-950 text-sm font-black uppercase tracking-wide transition-colors">
+          <span>Zona de lixo — solte um cartão aqui para descartar</span>
+        </div>
+        <div class="shrink-0 flex flex-wrap items-center justify-end gap-2 border-t-2 border-slate-100 pt-3">
+          <button type="button" id="btn-xml-merge-descartar-soltos" class="min-h-[48px] px-4 rounded-xl border-2 border-amber-600 bg-amber-50 text-xs sm:text-sm font-black uppercase text-amber-950 hover:bg-amber-100">Descartar todos os não vinculados</button>
+          <button type="button" id="modal-xml-merge-cancelar" class="min-h-[48px] px-5 rounded-xl border-2 border-slate-400 bg-white text-sm font-black uppercase text-slate-800 hover:bg-slate-100">Cancelar</button>
+          <button type="button" id="modal-xml-merge-confirmar" class="min-h-[52px] px-6 rounded-xl bg-emerald-600 text-white text-sm font-black uppercase border-2 border-emerald-800 hover:bg-emerald-700 shadow-sm">Confirmar na grade</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div id="modal-entrada-nfe-ajuda" class="hidden fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-entrada-nfe-ajuda-titulo">
     <div class="bg-white rounded-2xl shadow-2xl max-w-[min(36rem,96vw)] w-full max-h-[min(85vh,640px)] overflow-hidden flex flex-col border-2 border-slate-200">
@@ -2997,16 +3093,18 @@
         if (it.divergencia_maior_15pct) {
           badges.push('<span class="inline-flex items-center rounded-md border border-amber-400 bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-amber-950">Dif. &gt; 15%</span>');
         }
-        const spark = entradaNfeCustoSparkQuatroPontos(it);
-        const sparkVals = spark.vals;
-        const sparkValsFmt = sparkVals.map((v) =>
-          Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-        );
-        const sparkDatesFmt = spark.dates.map((d) => entradaNfeSparkDataFmt(d));
-        const sparkTitle = spark.fromApi
-          ? 'Quatro pontos: até 3 últimas compras no ERP (custo unitário final, da mais antiga à mais recente) e à direita o custo unitário desta NF. Colunas à esquerda sem data indicam preenchimento com o custo de catálogo anterior (sem compra naquela posição).'
-          : 'Sem histórico de compras válido na resposta — linha mostra custo de catálogo anterior (repetido) até o custo unitário desta NF.';
-        const sparkHtml = `<div class="mt-3 rounded-xl border border-slate-100 bg-gradient-to-br from-slate-50/90 to-white px-2.5 py-2" title="${esc(sparkTitle)}">
+        let sparkHtml = '';
+        try {
+          const spark = entradaNfeCustoSparkQuatroPontos(it);
+          const sparkVals = spark.vals;
+          const sparkValsFmt = sparkVals.map((v) =>
+            Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          );
+          const sparkDatesFmt = spark.dates.map((d) => entradaNfeSparkDataFmt(d));
+          const sparkTitle = spark.fromApi
+            ? 'Quatro pontos: até 3 últimas compras no ERP (custo unitário final, da mais antiga à mais recente) e à direita o custo unitário desta NF. Colunas à esquerda sem data indicam preenchimento com o custo de catálogo anterior (sem compra naquela posição).'
+            : 'Sem histórico de compras válido na resposta — linha mostra custo de catálogo anterior (repetido) até o custo unitário desta NF.';
+          sparkHtml = `<div class="mt-3 rounded-xl border border-slate-100 bg-gradient-to-br from-slate-50/90 to-white px-2.5 py-2" title="${esc(sparkTitle)}">
             <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
               <div class="text-[9px] font-black uppercase tracking-wide text-slate-500">Custo unit. · últimas compras + esta NF</div>
               ${spark.fromApi ? '' : '<span class="text-[8px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">Catálogo + NF</span>'}
@@ -3028,51 +3126,53 @@
               <span>Mais antigo</span><span>esta NF</span>
             </div>
           </div>`;
+        } catch (_) {
+          sparkHtml = '';
+        }
+        const saldoFmt = Number(it.saldo_total_pre || 0).toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+        const qtdFmt = Number(it.qtd_entrada || 0).toLocaleString('pt-BR', { maximumFractionDigits: 4 });
         const nm = `nfe-custo-${ix}`;
         const pidAttr = pid.replace(/"/g, '');
-        parts.push(`<article class="nfe-wiz-custo-card rounded-xl border border-slate-200 bg-white overflow-hidden">
+        parts.push(`<article class="nfe-wiz-custo-card rounded-xl border border-slate-200 bg-white">
           <header class="flex flex-wrap items-start gap-3 px-3 py-3 bg-slate-50/90 border-b border-slate-100">
             <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-xs font-black text-emerald-950 border border-emerald-200/80 tabular-nums">${ix + 1}</span>
             <div class="min-w-0 flex-1">
               <h4 class="text-sm font-black text-slate-900 leading-snug break-words">${esc(n)}</h4>
-              <div class="mt-2 flex flex-wrap gap-1.5">${badges.join('') || '<span class="text-[10px] font-semibold text-slate-400">Sem alerta de regra</span>'}</div>
             </div>
           </header>
-          <fieldset class="border-b border-slate-100 bg-white px-3 py-3 space-y-0">
-            <legend class="text-[10px] font-black uppercase tracking-wide text-slate-700 mb-2 px-0.5">Qual custo gravar no catálogo após o PIN</legend>
-            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-slate-50/80 px-2 py-2.5 hover:border-emerald-200 hover:bg-emerald-50/40 min-h-[48px]">
-              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="media" class="h-5 w-5 shrink-0 accent-emerald-600" ${cur === 'media' ? 'checked' : ''}>
-              <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-emerald-800">Média ponderada (C+V + entrada)</span> · ${fmt(it.custo_medio_ponderado)}</span>
-            </label>
-            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-slate-50/80 px-2 py-2.5 hover:border-slate-300 hover:bg-white min-h-[48px] mt-2">
-              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="nota" class="h-5 w-5 shrink-0 accent-slate-700" ${cur === 'nota' ? 'checked' : ''}>
-              <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-slate-600">Custo unitário desta NF</span> · ${fmt(it.custo_unitario_nota)}</span>
-            </label>
-          </fieldset>
-          <div class="px-3 py-3">
-            <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-left">
-              <div class="min-w-0">
-                <dt class="text-[9px] font-black uppercase tracking-wide text-slate-500 leading-tight">Saldo C+V (antes)</dt>
-                <dd class="mt-0.5 text-sm font-black text-slate-900 tabular-nums">${Number(it.saldo_total_pre || 0).toLocaleString('pt-BR', { maximumFractionDigits: 3 })}</dd>
-              </div>
-              <div class="min-w-0">
-                <dt class="text-[9px] font-black uppercase tracking-wide text-slate-500 leading-tight">Qtd entrada</dt>
-                <dd class="mt-0.5 text-sm font-black text-slate-900 tabular-nums">${Number(it.qtd_entrada || 0).toLocaleString('pt-BR', { maximumFractionDigits: 4 })}</dd>
-              </div>
-              <div class="min-w-0">
-                <dt class="text-[9px] font-black uppercase tracking-wide text-slate-500 leading-tight">Custo catálogo (antes)</dt>
-                <dd class="mt-0.5 text-sm font-black text-slate-900 tabular-nums">${fmt(it.custo_catalogo_anterior)}</dd>
-              </div>
-              <div class="min-w-0">
-                <dt class="text-[9px] font-black uppercase tracking-wide text-slate-500 leading-tight">Custo unit. NF</dt>
-                <dd class="mt-0.5 text-sm font-black text-slate-900 tabular-nums">${fmt(it.custo_unitario_nota)}</dd>
-              </div>
-            </dl>
+          <div class="nfe-wiz-custo-metrics" role="group" aria-label="Saldo e custos antes desta NF">
+            <div class="min-w-0">
+              <span class="nfe-wiz-metric-lb">Saldo até esta entrada (C+V)</span>
+              <span class="nfe-wiz-metric-val">${esc(saldoFmt)}</span>
+              <span class="nfe-wiz-metric-sub">Qtd entrada: ${esc(qtdFmt)}</span>
+            </div>
+            <div class="min-w-0">
+              <span class="nfe-wiz-metric-lb">Custo catálogo antes da NF</span>
+              <span class="nfe-wiz-metric-val">${fmt(it.custo_catalogo_anterior)}</span>
+            </div>
+            <div class="min-w-0">
+              <span class="nfe-wiz-metric-lb">Custo unitário desta NF</span>
+              <span class="nfe-wiz-metric-val">${fmt(it.custo_unitario_nota)}</span>
+            </div>
+          </div>
+          <div class="nfe-wiz-custo-badges-row flex flex-wrap gap-1.5 items-center min-h-[1.5rem]">${badges.join('') || '<span class="text-[10px] font-semibold text-slate-400">Sem alerta de regra</span>'}</div>
+          <div class="px-3 py-3 border-b border-slate-100 bg-white">
             ${sparkHtml}
             <div class="mt-4 flex items-center justify-between gap-3 rounded-xl border-2 border-emerald-200/90 bg-gradient-to-r from-emerald-50 to-white px-3 py-2.5">
               <span class="text-[10px] font-black uppercase tracking-wide text-emerald-900">Média sugerida</span>
               <span class="text-lg font-black text-emerald-950 tabular-nums">${fmt(it.custo_medio_ponderado)}</span>
             </div>
+          </div>
+          <div class="nfe-wiz-custo-escolha px-3 py-3 bg-slate-50/50 border-b border-slate-100 space-y-2" role="radiogroup" aria-label="Custo a gravar no catálogo após o PIN">
+            <p class="text-[10px] font-black uppercase tracking-wide text-slate-700 leading-snug">Custo após o PIN · escolha uma opção</p>
+            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-white/90 px-2 py-2.5 hover:border-emerald-200 hover:bg-emerald-50/40 min-h-[48px]">
+              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="media" class="h-5 w-5 shrink-0 accent-emerald-600" ${cur === 'media' ? 'checked' : ''}>
+              <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-emerald-800">Média ponderada (C+V + entrada)</span> · ${fmt(it.custo_medio_ponderado)}</span>
+            </label>
+            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-white/90 px-2 py-2.5 hover:border-slate-300 hover:bg-white min-h-[48px]">
+              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="nota" class="h-5 w-5 shrink-0 accent-slate-700" ${cur === 'nota' ? 'checked' : ''}>
+              <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-slate-600">Custo unitário desta NF</span> · ${fmt(it.custo_unitario_nota)}</span>
+            </label>
           </div>
         </article>`);
       });
@@ -5441,6 +5541,489 @@
     return String(s || '').replace(/\D/g, '');
   }
 
+  /** Pré-visualização XML × grade: estado e UI (só aplica na grade ao confirmar). */
+  let entradaNfeXmlMergeCtx = null;
+  let entradaNfeXmlMergeEscHandler = null;
+
+  function entradaNfeXmlMergeNormEan(s) {
+    return entradaNfeCatalogOnlyDigits(String(s || '')).slice(0, 14);
+  }
+
+  function entradaNfeXmlMergeNormCod(s) {
+    return String(s || '').trim().toLowerCase();
+  }
+
+  function entradaNfeXmlMergeAutoLinks(preLinhas, xmlLinhas) {
+    const links = [];
+    const preUsed = new Set();
+    const xmlUsed = new Set();
+    function tentar(matchXml, matchPre) {
+      xmlLinhas.forEach((x, xi) => {
+        if (xmlUsed.has(xi)) return;
+        const kx = matchXml(x);
+        if (!kx) return;
+        preLinhas.forEach((p, pi) => {
+          if (preUsed.has(pi)) return;
+          const kp = matchPre(p);
+          if (kp && kx === kp) {
+            links.push({ preIdx: pi, xmlIdx: xi });
+            preUsed.add(pi);
+            xmlUsed.add(xi);
+          }
+        });
+      });
+    }
+    tentar(
+      (x) => {
+        const e = entradaNfeXmlMergeNormEan(x.ean);
+        return e.length >= 8 ? e : '';
+      },
+      (p) => entradaNfeXmlMergeNormEan(p.ean)
+    );
+    tentar(
+      (x) => {
+        const e = entradaNfeXmlMergeNormEan(x.ean);
+        return e.length >= 8 ? e : '';
+      },
+      (p) => entradaNfeXmlMergeNormEan(p.c_prod)
+    );
+    tentar(
+      (x) => entradaNfeXmlMergeNormCod(x.c_prod),
+      (p) => entradaNfeXmlMergeNormCod(p.c_prod)
+    );
+    return links;
+  }
+
+  function entradaNfeXmlMergeCombinar(pre, xml) {
+    const out = { ...(xml && typeof xml === 'object' ? xml : {}) };
+    if (!pre || typeof pre !== 'object') return out;
+    const pid = entradaNfeStrCampo(pre.produto_id || out.produto_id);
+    if (pid) out.produto_id = pid;
+    const nc = entradaNfeStrCampo(pre.nome_catalogo || out.nome_catalogo);
+    if (nc) out.nome_catalogo = nc;
+    const mt = entradaNfeStrCampo(pre.match_tipo || '');
+    out.match_tipo = mt || entradaNfeStrCampo(out.match_tipo) || 'xml_vinculo_pre';
+    const via = entradaNfeStrCampo(pre.catalogo_via || out.catalogo_via);
+    if (via) out.catalogo_via = via;
+    if (pre.margem_percentual != null && pre.margem_percentual !== '') out.margem_percentual = pre.margem_percentual;
+    if (pre.preco_venda != null && Number(pre.preco_venda) > 0) out.preco_venda = pre.preco_venda;
+    if (pre.bip_conf) out.bip_conf = pre.bip_conf;
+    if (Array.isArray(pre.bip_similar_codigos) && pre.bip_similar_codigos.length) {
+      out.bip_similar_codigos = [...pre.bip_similar_codigos];
+    }
+    return out;
+  }
+
+  function entradaNfeXmlMergeMontarGradeFinal(ctx) {
+    const { preLinhas, xmlLinhas, links, preDiscarded, xmlDiscarded } = ctx;
+    const linkByXml = new Map();
+    const usedPre = new Set();
+    links.forEach((l) => {
+      linkByXml.set(l.xmlIdx, l);
+    });
+    const out = [];
+    xmlLinhas.forEach((xmlRow, xi) => {
+      if (xmlDiscarded.has(xi)) return;
+      const l = linkByXml.get(xi);
+      if (l) {
+        usedPre.add(l.preIdx);
+        out.push(entradaNfeXmlMergeCombinar(preLinhas[l.preIdx], xmlRow));
+      } else {
+        out.push({ ...xmlRow });
+      }
+    });
+    preLinhas.forEach((preRow, pi) => {
+      if (preDiscarded.has(pi) || usedPre.has(pi)) return;
+      out.push({ ...preRow });
+    });
+    return out;
+  }
+
+  function entradaNfeXmlMergeResumoHtml(row) {
+    const esc = (s) =>
+      String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    const c = entradaNfeStrCampo(row?.c_prod).slice(0, 28);
+    const d = entradaNfeStrCampo(row?.x_prod || row?.nome_catalogo).replace(/\s+/g, ' ').trim().slice(0, 80);
+    const e = entradaNfeStrCampo(row?.ean).slice(0, 16);
+    const q = row?.q_com != null ? String(row.q_com) : '';
+    const bits = [];
+    if (c) bits.push(`<span class="text-slate-500 font-bold">${esc(c)}</span>`);
+    if (e) bits.push(`EAN ${esc(e)}`);
+    if (q) bits.push(`×${esc(q)}`);
+    const head = bits.join(' · ');
+    return `<div class="text-[11px] font-bold text-slate-600 leading-tight">${head || '—'}</div><div class="mt-1 text-sm font-black text-slate-900 leading-snug line-clamp-3">${esc(d) || '(sem descrição)'}</div>`;
+  }
+
+  function entradaNfeXmlMergeRender() {
+    const ctx = entradaNfeXmlMergeCtx;
+    const colPre = document.getElementById('xml-merge-col-pre');
+    const colXml = document.getElementById('xml-merge-col-xml');
+    const discWrap = document.getElementById('xml-merge-descartados-wrap');
+    const discList = document.getElementById('xml-merge-descartados-list');
+    if (!ctx || !colPre || !colXml || !discWrap || !discList) return;
+    const linkPorPre = new Map();
+    const linkPorXml = new Map();
+    ctx.links.forEach((l) => {
+      linkPorPre.set(l.preIdx, l);
+      linkPorXml.set(l.xmlIdx, l);
+    });
+    let htmlPre = '';
+    ctx.preLinhas.forEach((row, pi) => {
+      if (ctx.preDiscarded.has(pi)) return;
+      const l = linkPorPre.get(pi);
+      const badge = l
+        ? `<span class="inline-flex items-center rounded-lg bg-emerald-100 border border-emerald-400 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-900">Vinculado ao XML #${l.xmlIdx + 1}</span>`
+        : `<span class="inline-flex items-center rounded-lg bg-slate-200 border border-slate-300 px-2 py-0.5 text-[10px] font-black uppercase text-slate-700">Sem vínculo</span>`;
+      const acoes = [];
+      if (l) {
+        acoes.push(
+          `<button type="button" data-xml-merge-act="unlink" data-kind="pre" data-idx="${pi}" class="min-h-[40px] px-2 rounded-lg border-2 border-slate-300 bg-white text-[11px] font-black uppercase text-slate-800 hover:bg-slate-50">Desfazer</button>`
+        );
+      }
+      acoes.push(
+        `<button type="button" data-xml-merge-act="discard" data-kind="pre" data-idx="${pi}" class="min-h-[40px] px-2 rounded-lg border-2 border-orange-500 bg-orange-50 text-[11px] font-black uppercase text-orange-950 hover:bg-orange-100">Descartar</button>`
+      );
+      htmlPre += `
+      <div class="xml-merge-card rounded-xl border-2 ${l ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-300 bg-white'} p-3 shadow-sm cursor-grab active:cursor-grabbing"
+        draggable="true" data-xml-merge-card="pre" data-xml-merge-drop="pre" data-idx="${pi}">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <span class="text-xs font-black uppercase text-slate-500">Grade #${pi + 1}</span>
+          <div class="flex flex-wrap gap-1">${badge}</div>
+        </div>
+        ${entradaNfeXmlMergeResumoHtml(row)}
+        <div class="mt-2 flex flex-wrap gap-2">${acoes.join('')}</div>
+      </div>`;
+    });
+    let htmlXml = '';
+    ctx.xmlLinhas.forEach((row, xi) => {
+      if (ctx.xmlDiscarded.has(xi)) return;
+      const l = linkPorXml.get(xi);
+      const badge = l
+        ? `<span class="inline-flex items-center rounded-lg bg-emerald-100 border border-emerald-400 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-900">Vinculado à grade #${l.preIdx + 1}</span>`
+        : `<span class="inline-flex items-center rounded-lg bg-slate-200 border border-slate-300 px-2 py-0.5 text-[10px] font-black uppercase text-slate-700">Sem vínculo</span>`;
+      const acoes = [];
+      if (l) {
+        acoes.push(
+          `<button type="button" data-xml-merge-act="unlink" data-kind="xml" data-idx="${xi}" class="min-h-[40px] px-2 rounded-lg border-2 border-slate-300 bg-white text-[11px] font-black uppercase text-slate-800 hover:bg-slate-50">Desfazer</button>`
+        );
+      }
+      acoes.push(
+        `<button type="button" data-xml-merge-act="discard" data-kind="xml" data-idx="${xi}" class="min-h-[40px] px-2 rounded-lg border-2 border-orange-500 bg-orange-50 text-[11px] font-black uppercase text-orange-950 hover:bg-orange-100">Descartar</button>`
+      );
+      htmlXml += `
+      <div class="xml-merge-card rounded-xl border-2 ${l ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200 bg-white'} p-3 shadow-sm cursor-grab active:cursor-grabbing"
+        draggable="true" data-xml-merge-card="xml" data-xml-merge-drop="xml" data-idx="${xi}">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <span class="text-xs font-black uppercase text-slate-500">XML #${xi + 1}</span>
+          <div class="flex flex-wrap gap-1">${badge}</div>
+        </div>
+        ${entradaNfeXmlMergeResumoHtml(row)}
+        <div class="mt-2 flex flex-wrap gap-2">${acoes.join('')}</div>
+      </div>`;
+    });
+    if (!htmlPre) {
+      htmlPre =
+        '<p class="p-4 text-sm font-semibold text-slate-600">Nenhuma linha na grade (ou todas descartadas). Itens só do XML podem ser confirmados.</p>';
+    }
+    if (!htmlXml) {
+      htmlXml =
+        '<p class="p-4 text-sm font-semibold text-slate-600">Nenhum item no XML (ou todos descartados).</p>';
+    }
+    colPre.innerHTML = htmlPre;
+    colXml.innerHTML = htmlXml;
+    const discParts = [];
+    Array.from(ctx.preDiscarded)
+      .sort((a, b) => a - b)
+      .forEach((pi) => {
+        discParts.push(
+          `<span class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-bold text-slate-800">Grade #${pi + 1} <button type="button" class="ml-1 min-h-[36px] px-2 rounded-md border border-emerald-600 text-[10px] font-black uppercase text-emerald-800" data-xml-merge-act="restore" data-kind="pre" data-idx="${pi}">Restaurar</button></span>`
+        );
+      });
+    Array.from(ctx.xmlDiscarded)
+      .sort((a, b) => a - b)
+      .forEach((xi) => {
+        discParts.push(
+          `<span class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-bold text-slate-800">XML #${xi + 1} <button type="button" class="ml-1 min-h-[36px] px-2 rounded-md border border-emerald-600 text-[10px] font-black uppercase text-emerald-800" data-xml-merge-act="restore" data-kind="xml" data-idx="${xi}">Restaurar</button></span>`
+        );
+      });
+    if (discParts.length) {
+      discWrap.classList.remove('hidden');
+      discList.innerHTML = discParts.join('');
+    } else {
+      discWrap.classList.add('hidden');
+      discList.innerHTML = '';
+    }
+  }
+
+  function entradaNfeXmlMergeSetLink(preIdx, xmlIdx) {
+    const ctx = entradaNfeXmlMergeCtx;
+    if (!ctx) return;
+    if (ctx.preDiscarded.has(preIdx) || ctx.xmlDiscarded.has(xmlIdx)) return;
+    ctx.links = ctx.links.filter((l) => l.preIdx !== preIdx && l.xmlIdx !== xmlIdx);
+    ctx.links.push({ preIdx, xmlIdx });
+    ctx.dirty = true;
+    entradaNfeXmlMergeRender();
+  }
+
+  function entradaNfeXmlMergeUnlink(kind, idx) {
+    const ctx = entradaNfeXmlMergeCtx;
+    if (!ctx) return;
+    if (kind === 'pre') ctx.links = ctx.links.filter((l) => l.preIdx !== idx);
+    else if (kind === 'xml') ctx.links = ctx.links.filter((l) => l.xmlIdx !== idx);
+    ctx.dirty = true;
+    entradaNfeXmlMergeRender();
+  }
+
+  function entradaNfeXmlMergeDescartarLinha(kind, idx) {
+    const ctx = entradaNfeXmlMergeCtx;
+    if (!ctx) return;
+    if (kind === 'pre') {
+      ctx.preDiscarded.add(idx);
+      ctx.links = ctx.links.filter((l) => l.preIdx !== idx);
+    } else if (kind === 'xml') {
+      ctx.xmlDiscarded.add(idx);
+      ctx.links = ctx.links.filter((l) => l.xmlIdx !== idx);
+    }
+    ctx.dirty = true;
+    entradaNfeXmlMergeRender();
+  }
+
+  function entradaNfeXmlMergeRestaurar(kind, idx) {
+    const ctx = entradaNfeXmlMergeCtx;
+    if (!ctx) return;
+    if (kind === 'pre') ctx.preDiscarded.delete(idx);
+    else if (kind === 'xml') ctx.xmlDiscarded.delete(idx);
+    ctx.dirty = true;
+    entradaNfeXmlMergeRender();
+  }
+
+  function entradaNfeXmlMergeDescartarTodosNaoVinculados() {
+    const ctx = entradaNfeXmlMergeCtx;
+    if (!ctx) return;
+    const preL = new Set(ctx.links.map((l) => l.preIdx));
+    const xmlL = new Set(ctx.links.map((l) => l.xmlIdx));
+    let n = 0;
+    ctx.preLinhas.forEach((_, pi) => {
+      if (!preL.has(pi) && !ctx.preDiscarded.has(pi)) n += 1;
+    });
+    ctx.xmlLinhas.forEach((_, xi) => {
+      if (!xmlL.has(xi) && !ctx.xmlDiscarded.has(xi)) n += 1;
+    });
+    if (!n) {
+      showMsg('Nada para descartar: não há itens sem vínculo pendentes.', true);
+      return;
+    }
+    if (!window.confirm(`Descartar ${n} item(ns) sem vínculo? Eles não entrarão na grade ao confirmar.`)) return;
+    ctx.preLinhas.forEach((_, pi) => {
+      if (!preL.has(pi)) ctx.preDiscarded.add(pi);
+    });
+    ctx.xmlLinhas.forEach((_, xi) => {
+      if (!xmlL.has(xi)) ctx.xmlDiscarded.add(xi);
+    });
+    ctx.links = ctx.links.filter((l) => !ctx.preDiscarded.has(l.preIdx) && !ctx.xmlDiscarded.has(l.xmlIdx));
+    ctx.dirty = true;
+    entradaNfeXmlMergeRender();
+  }
+
+  function entradaNfeXmlMergeBindEsc(on) {
+    if (on) {
+      entradaNfeXmlMergeEscHandler = (e) => {
+        if (e.key !== 'Escape') return;
+        const modal = document.getElementById('modal-xml-merge');
+        if (!modal || modal.classList.contains('hidden')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        entradaNfeXmlMergeCancelar();
+      };
+      document.addEventListener('keydown', entradaNfeXmlMergeEscHandler, true);
+    } else if (entradaNfeXmlMergeEscHandler) {
+      document.removeEventListener('keydown', entradaNfeXmlMergeEscHandler, true);
+      entradaNfeXmlMergeEscHandler = null;
+    }
+  }
+
+  function entradaNfeXmlMergeFechar() {
+    entradaNfeXmlMergeBindEsc(false);
+    document.getElementById('modal-xml-merge')?.classList.add('hidden');
+    entradaNfeXmlMergeCtx = null;
+  }
+
+  function entradaNfeXmlMergeCancelar() {
+    if (!entradaNfeXmlMergeCtx) return;
+    if (!window.confirm('Fechar a pré-visualização sem aplicar o XML na grade?')) return;
+    const inp = entradaNfeXmlMergeCtx.fileInput;
+    entradaNfeXmlMergeFechar();
+    if (inp) inp.value = '';
+  }
+
+  function entradaNfeXmlMergeConfirmar() {
+    const ctx = entradaNfeXmlMergeCtx;
+    if (!ctx) return;
+    const rows = entradaNfeXmlMergeMontarGradeFinal(ctx);
+    if (!rows.length) {
+      if (
+        !window.confirm(
+          'Nenhum item será importado para a grade. Deseja continuar (grade vazia, mantendo o cabeçalho da NF)?'
+        )
+      ) {
+        return;
+      }
+    }
+    ultimaNotaParse = ctx.nota;
+    aplicarCabecalho(ctx.nota);
+    tbodyClear();
+    rows.forEach((row) => addLinhaRow(row));
+    const inp = ctx.fileInput;
+    entradaNfeXmlMergeFechar();
+    if (inp) inp.value = '';
+    showMsg(`NF-e ${ctx.nota.numero || ''} aplicada na grade — ${rows.length} item(ns). Revise e salve.`, true);
+    document.querySelector('.tab-btn[data-tab="manual"]')?.click();
+  }
+
+  function entradaNfeXmlMergeAbrir(nota, fileInput) {
+    entradaNfeXmlMergeInitDom();
+    const preLinhas = coletarLinhas().map((L) => {
+      try {
+        return JSON.parse(JSON.stringify(L));
+      } catch (_) {
+        return { ...L };
+      }
+    });
+    const xmlLinhas = (nota.itens || []).map((it) => ({ ...linhaFromItem(it) }));
+    const links = entradaNfeXmlMergeAutoLinks(preLinhas, xmlLinhas);
+    entradaNfeXmlMergeCtx = {
+      nota,
+      preLinhas,
+      xmlLinhas,
+      links,
+      preDiscarded: new Set(),
+      xmlDiscarded: new Set(),
+      dirty: false,
+      fileInput: fileInput || null,
+    };
+    entradaNfeXmlMergeRender();
+    document.getElementById('modal-xml-merge')?.classList.remove('hidden');
+    entradaNfeXmlMergeBindEsc(true);
+    try {
+      document.getElementById('modal-xml-merge-confirmar')?.focus();
+    } catch (_) {}
+  }
+
+  function entradaNfeXmlMergeOnDragStart(e) {
+    const card = e.target.closest('[data-xml-merge-card]');
+    if (!card || !entradaNfeXmlMergeCtx) return;
+    const kind = card.getAttribute('data-xml-merge-card');
+    const idx = Number(card.getAttribute('data-idx'));
+    if (!kind || Number.isNaN(idx)) return;
+    try {
+      e.dataTransfer.setData('application/json', JSON.stringify({ kind, idx }));
+    } catch (_) {}
+    e.dataTransfer.setData('text/plain', `${kind}:${idx}`);
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function entradaNfeXmlMergeParsePayload(dt) {
+    let payload = null;
+    try {
+      payload = JSON.parse(dt.getData('application/json') || '{}');
+    } catch (_) {
+      payload = null;
+    }
+    if (!payload || !payload.kind || payload.idx == null || Number.isNaN(Number(payload.idx))) {
+      const t = dt.getData('text/plain') || '';
+      const m = t.match(/^(pre|xml):(\d+)$/);
+      if (m) payload = { kind: m[1], idx: Number(m[2]) };
+    }
+    return payload && (payload.kind === 'pre' || payload.kind === 'xml') && !Number.isNaN(Number(payload.idx))
+      ? payload
+      : null;
+  }
+
+  function entradaNfeXmlMergeOnDragOver(e) {
+    if (!entradaNfeXmlMergeCtx) return;
+    const t = e.target.closest('#xml-merge-trash, [data-xml-merge-drop]');
+    if (t) e.preventDefault();
+  }
+
+  function entradaNfeXmlMergeOnDrop(e) {
+    if (!entradaNfeXmlMergeCtx) return;
+    e.preventDefault();
+    const payload = entradaNfeXmlMergeParsePayload(e.dataTransfer);
+    if (!payload) return;
+    if (e.target.closest('#xml-merge-trash')) {
+      entradaNfeXmlMergeDescartarLinha(payload.kind, payload.idx);
+      return;
+    }
+    const tgt = e.target.closest('[data-xml-merge-drop]');
+    if (!tgt) return;
+    const tk = tgt.getAttribute('data-xml-merge-drop');
+    const tidx = Number(tgt.getAttribute('data-idx'));
+    if (Number.isNaN(tidx)) return;
+    if (payload.kind === tk && payload.idx === tidx) return;
+    if (payload.kind === 'pre' && tk === 'xml') {
+      entradaNfeXmlMergeSetLink(payload.idx, tidx);
+    } else if (payload.kind === 'xml' && tk === 'pre') {
+      entradaNfeXmlMergeSetLink(tidx, payload.idx);
+    }
+  }
+
+  function entradaNfeXmlMergeInitDom() {
+    const root = document.getElementById('modal-xml-merge');
+    const panel = document.getElementById('modal-xml-merge-panel');
+    if (!root || !panel || panel.dataset.xmlMergeInit === '1') return;
+    panel.dataset.xmlMergeInit = '1';
+    panel.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-xml-merge-act]');
+      if (!b || !entradaNfeXmlMergeCtx) return;
+      const act = b.getAttribute('data-xml-merge-act');
+      const kind = b.getAttribute('data-kind');
+      const idx = Number(b.getAttribute('data-idx'));
+      if (!act || !kind || Number.isNaN(idx)) return;
+      if (act === 'unlink') entradaNfeXmlMergeUnlink(kind, idx);
+      else if (act === 'discard') entradaNfeXmlMergeDescartarLinha(kind, idx);
+      else if (act === 'restore') entradaNfeXmlMergeRestaurar(kind, idx);
+    });
+    panel.addEventListener('dragstart', entradaNfeXmlMergeOnDragStart);
+    panel.addEventListener('dragover', entradaNfeXmlMergeOnDragOver);
+    panel.addEventListener('drop', entradaNfeXmlMergeOnDrop);
+    document.getElementById('modal-xml-merge-cancelar')?.addEventListener('click', () => {
+      entradaNfeXmlMergeCancelar();
+    });
+    document.getElementById('modal-xml-merge-fechar')?.addEventListener('click', () => {
+      entradaNfeXmlMergeCancelar();
+    });
+    document.getElementById('modal-xml-merge-confirmar')?.addEventListener('click', () => {
+      entradaNfeXmlMergeConfirmar();
+    });
+    document.getElementById('btn-xml-merge-descartar-soltos')?.addEventListener('click', () => {
+      entradaNfeXmlMergeDescartarTodosNaoVinculados();
+    });
+    const trash = document.getElementById('xml-merge-trash');
+    if (trash) {
+      trash.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        trash.classList.add('ring-4', 'ring-orange-500', 'bg-orange-100');
+      });
+      trash.addEventListener('dragover', (e) => {
+        e.preventDefault();
+      });
+      trash.addEventListener('dragleave', () => {
+        trash.classList.remove('ring-4', 'ring-orange-500', 'bg-orange-100');
+      });
+      trash.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        trash.classList.remove('ring-4', 'ring-orange-500', 'bg-orange-100');
+        if (!entradaNfeXmlMergeCtx) return;
+        const payload = entradaNfeXmlMergeParsePayload(e.dataTransfer);
+        if (payload) entradaNfeXmlMergeDescartarLinha(payload.kind, payload.idx);
+      });
+    }
+  }
+
   /**
    * Busca alinhada à consulta/orçamentos: cache PDV (`agro_pdv_catalog_cache_v2`) + `filtrarProdutosBuscaInteligente`
    * + ordenação por relevância + merge com `GET /api/buscar/?q=` (sem `compras=1`). Sanitiza `|`, `;`, vírgulas.
@@ -6757,15 +7340,12 @@
         showMsg(j.erro || 'Falha ao ler XML.', false);
         return;
       }
-      ultimaNotaParse = j.nota;
-      setEntradaNfeRascunhoEdit(null);
-      entradaNfeExtraUltimo = null;
-      entradaNfeDepositoDefinir('', true);
-      aplicarCabecalho(j.nota);
-      tbodyClear();
-      (j.nota.itens || []).forEach((it) => addLinhaRow(linhaFromItem(it)));
-      showMsg(`NF-e ${j.nota.numero || ''} carregada — ${(j.nota.itens || []).length} item(ns). Revise e salve.`, true);
-      document.querySelector('.tab-btn[data-tab="manual"]').click();
+      entradaNfeXmlMergeAbrir(j.nota, inp);
+      showMsg(
+        `NF-e ${j.nota.numero || ''} — ${(j.nota.itens || []).length} item(ns) no XML. Revise o pareamento e confirme na grade.`,
+        true
+      );
+      document.querySelector('.tab-btn[data-tab="manual"]')?.click();
     } catch (e) {
       showMsg('Erro de rede no upload.', false);
     }
