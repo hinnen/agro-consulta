@@ -3108,6 +3108,9 @@ function executarBuscaLocal(termo, modo) {
     }
 
     let resultados = filtrarBuscaLocal(termo, modo);
+    if (pdvRapidoFiltroCategoria && pdvRapidoFiltroCategoria.rotulo) {
+        resultados = resultados.filter((p) => pdvProdutoPassaFiltroRapidoAtivo(p));
+    }
 
     if (modo === 'scanner') {
         const exato = resultados.find(p => {
@@ -3386,6 +3389,7 @@ inputBusca.addEventListener('keydown', function(e) {
             atualizarBannerSlotMaisVendidos();
             renderSlotsMaisVendidosPdv();
         }
+        if (typeof pdvRapidoLimparFiltro === 'function') pdvRapidoLimparFiltro();
         limparBuscaVisual();
         inputBusca.value = '';
         esconderStatusBusca();
@@ -4254,6 +4258,7 @@ function aplicarBasePdv(produtos, statusTxt) {
     }
     setTimeout(esconderStatusBusca, 2500);
     setTimeout(atualizarPrecosBotoesTopVendidos, 100);
+    if (typeof pdvRapidoRefreshListaSeAtivo === 'function') setTimeout(pdvRapidoRefreshListaSeAtivo, 0);
     return true;
 }
 
@@ -4664,6 +4669,7 @@ window.removerItem = removerItem;
 window.abrirBuscaAvancada = abrirBuscaAvancada;
 window.fecharBuscaAvancada = fecharBuscaAvancada;
 window.aplicarBuscaAvancada = aplicarBuscaAvancada;
+window.pdvRapidoLimparFiltro = pdvRapidoLimparFiltro;
 window.preencherSelectBuscaAvancadaDimensao = preencherSelectBuscaAvancadaDimensao;
 window.abrirModalLembretes = abrirModalLembretes;
 window.fecharModalLembretes = fecharModalLembretes;
