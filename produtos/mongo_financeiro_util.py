@@ -1118,8 +1118,33 @@ def _lancamentos_normalizar_tokens_busca(texto: str) -> list[str]:
     return out
 
 
+def _lancamentos_try_parse_busca_valor(tok: str) -> float | None:
+    """
+    Se o termo parece valor monetário (pt-BR ou simples), retorna float arredondado em 2 casas.
+    Evita inteiros ``123`` / ``2024`` (NF, ano, IDs) sem separador decimal.
+    """
+    s = (tok or "").strip()
+    if not s:
+        return None
+    s = s.replace("\xa0", " ").strip()
+    if s.upper().startswith("R$"):
+        s = s[2:].lstrip().strip()
+    if not s or not re.search(r"\d", s):
+        return None
+    # Só dígitos: ambíguo (parcela, NF, CEP parcial)
+    if re.fullmatch(r"\d+$", s):
+        return None
+    try:
+        v = float(_fin_parse_valor_entrada_manual(s))
+    except (ValueError, TypeError, ArithmeticError):
+        return None
+    if abs(v) >= 1e12:
+        return None
+    return float(round(v, 2))
+
+
 def _lancamentos_um_token_busca_or(tok: str) -> dict[str, Any]:
-    """Um termo deve aparecer em qualquer campo textual ou ID stringificado ($regexMatch)."""
+    """Um termo: texto/ID (regex) ou valor monetário (bruto, pago, saldo em aberto, líquido)."""
     esc = re.escape(tok[:120])
     rx = re.compile(esc, re.IGNORECASE)
     str_fields = (
@@ -1163,6 +1188,47 @@ def _lancamentos_um_token_busca_or(tok: str) -> dict[str, Any]:
                     }
                 }
             }
+        )
+    valor = _lancamentos_try_parse_busca_valor(tok)
+    if valor is not None:
+        tol = 0.03
+
+        def _cmp_campo_monetario(campo: str) -> dict[str, Any]:
+            return {
+                "$expr": {
+                    "$lte": [
+                        {
+                            "$abs": {
+                                "$subtract": [
+                                    {"$toDouble": {"$ifNull": [f"${campo}", 0]}},
+                                    valor,
+                                ]
+                            }
+                        },
+                        tol,
+                    ]
+                }
+            }
+
+        mov = _mongo_expr_valor_realizado_receita()
+        rest_desp = {
+            "$max": [
+                0,
+                {"$subtract": [{"$ifNull": ["$Saida", 0]}, {"$ifNull": ["$ValorPago", 0]}]},
+            ]
+        }
+        rest_rec = {"$max": [0, {"$subtract": [{"$ifNull": ["$Entrada", 0]}, mov]}]}
+        or_list.append(_cmp_campo_monetario("Saida"))
+        or_list.append(_cmp_campo_monetario("Entrada"))
+        or_list.append(_cmp_campo_monetario("ValorPago"))
+        or_list.append(_cmp_campo_monetario("Recebido"))
+        or_list.append(_cmp_campo_monetario("ValorLiquido"))
+        or_list.append(_cmp_campo_monetario("SaldoAtual"))
+        or_list.append(
+            {"$expr": {"$lte": [{"$abs": {"$subtract": [rest_desp, valor]}}, tol]}}
+        )
+        or_list.append(
+            {"$expr": {"$lte": [{"$abs": {"$subtract": [rest_rec, valor]}}, tol]}}
         )
     return {"$or": or_list}
 

@@ -121,8 +121,7 @@
           <kbd class="gm-kbd ml-1 border border-orange-200 bg-orange-50 text-orange-800 align-middle">F10</kbd>
         </button>
         {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-3 py-2 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-orange-400 hover:text-orange-600 transition-colors shrink-0" %}
-        {% include "produtos/_barra_estoque_global.html" %}
-        <button type="button" onclick="if (window.agroComprasSincronizarComApi) window.agroComprasSincronizarComApi()" class="inline-flex items-center gap-1 rounded-xl border-2 border-amber-400 bg-amber-500 hover:bg-amber-600 text-white text-[9px] sm:text-[10px] font-black uppercase px-2.5 py-2 shadow-sm shrink-0" title="Catálogo, médias de venda e saldos — consulta o servidor">Sincronizar API</button>
+        {% include "produtos/_barra_estoque_global.html" with barra_estoque_btn_title="Catálogo, médias de venda e saldos — um toque no servidor." %}
       </div>
     </div>
   </header>
@@ -282,6 +281,7 @@
               <p>Até <strong>800</strong> produtos ativos do catálogo cujo fornecedor no cadastro (Mongo) casa com o nome ou ID.</p>
               <p><strong>*</strong> na coluna «Qtd últ. pedido / compra» = sem nenhuma linha de compra deste fornecedor no ERP no período. <strong>0</strong> = já houve compra, mas o item não entrou no último documento (ou veio zerado).</p>
               <p><strong>Média/semana:</strong> vendas em até 8 semanas (56 dias), com média ajustada quando o histórico de venda no período é mais curto. Quantidades inteiras (meio para cima).</p>
+              <p class="text-violet-800">O botão <strong>Notas de entrada (ERP)</strong> abre a lista web do SisVale (login). Os dados do relatório vêm do espelho Mongo sincronizado com o ERP.</p>
             </div>
           </details>
           <button type="button" id="btn-fechar-modal-relatorio-compra" class="text-slate-400 hover:text-slate-800 font-black text-lg px-2 py-1 rounded-lg hover:bg-slate-100 leading-none" aria-label="Fechar">✕</button>
@@ -296,6 +296,9 @@
           </div>
         </label>
         <button type="button" id="btn-compra-relatorio-a4" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-violet-600 bg-violet-600 text-white font-black py-3 uppercase text-xs tracking-wide shadow-sm hover:bg-violet-700 hover:border-violet-700 min-h-[52px]">Imprimir tabela</button>
+        {% if erp_notas_entrada_list_url %}
+        <button type="button" id="btn-compra-abrir-erp-notas-entrada" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black py-3 uppercase text-xs tracking-wide shadow-sm hover:bg-slate-50 hover:border-slate-400 min-h-[52px]">Notas de entrada (ERP)</button>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -737,6 +740,8 @@ function compraAbrirAjusteProduto(id) {
 
 carregarCompraOcultos();
 const PLACEHOLDER_IMG = "{% static 'img/agro-mais-logo-buscador.png' %}";
+/** Marca horizontal (nome + slogan) para rodapé do relatório A4 em impressão. */
+const URL_COMPRA_REL_LOGO_MARCA = "{% static 'img/agro-mais-marca-horizontal.svg' %}";
 const LS_HISTORICO_COMPRA = 'gmHistoricoPedidosCompra';
 let indiceSelecionadoCompra = -1;
 let ultimosResultadosCompra = [];
@@ -748,6 +753,7 @@ const BUSCA_COMPRA_LIM_MAX = 60;
 const URL_ENTRADA_NFA_SALVAR = "{% url 'api_entrada_nota_salvar' %}";
 const URL_ENTRADA_NFA_FORN = "{% url 'api_entrada_nota_fornecedores' %}";
 const URL_COMPRA_REL_FORN = "{% url 'api_compras_relatorio_fornecedor' %}";
+const ERP_NOTAS_ENTRADA_LIST_URL = "{{ erp_notas_entrada_list_url|default:''|escapejs }}";
 const URL_ENTRADA_NFA_PAGE = "{% url 'entrada_nota' %}";
 const LS_COMPRA_FORN_RECENTES = 'gmCompraFornecedoresRecentes_v1';
 /** @type {{ pedId: string, selEl: HTMLSelectElement|null, prevStatus: string }|null} */
@@ -955,6 +961,12 @@ async function compraImprimirRelatorioA4() {
         nota_entrada: 'Nota de entrada',
       }[String(ud.origem || '').trim()] || String(ud.origem || '').trim() || '—'
     );
+    const neUrl = String(
+      (j.erp_portal && j.erp_portal.notas_entrada_list) || ERP_NOTAS_ENTRADA_LIST_URL || ''
+    ).trim();
+    const neBlock = neUrl
+      ? `<p class="erp-link"><strong>ERP (SisVale):</strong> <a href="${escapeHtml(neUrl)}">${escapeHtml(neUrl)}</a> — notas de entrada (lista web; exige login).</p>`
+      : '';
     const sem = j.sem_ultimo_documento
       ? 'Sem documento de compra ERP para este fornecedor no período analisado — ver legenda no rodapé para o símbolo *.'
       : `Último documento: ${escapeHtml(origemPt)} · ${escapeHtml(ud.data || '—')} · ${escapeHtml(ud.documento || '—')}`;
@@ -970,9 +982,9 @@ async function compraImprimirRelatorioA4() {
       </tr>`
       )
       .join('');
-    let logoAbs = PLACEHOLDER_IMG;
+    let logoAbs = URL_COMPRA_REL_LOGO_MARCA;
     try {
-      logoAbs = new URL(PLACEHOLDER_IMG, window.location.origin).href;
+      logoAbs = new URL(URL_COMPRA_REL_LOGO_MARCA, window.location.origin).href;
     } catch (_) {}
     const html = `<!DOCTYPE html>
 <html lang="pt-br">
@@ -980,7 +992,7 @@ async function compraImprimirRelatorioA4() {
   <meta charset="utf-8">
   <title>Relatório compras</title>
   <style>
-    @page { size: A4; margin: 10mm 10mm 12mm; }
+    @page { size: A4; margin: 10mm 10mm 16mm; }
     * { box-sizing: border-box; }
     body {
       font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif;
@@ -1033,8 +1045,8 @@ async function compraImprimirRelatorioA4() {
       color: #334155;
     }
     .print-foot {
-      margin-top: 12px;
-      padding-top: 10px;
+      margin-top: 18px;
+      padding-top: 14px;
       border-top: 2px solid #cbd5e1;
       page-break-inside: avoid;
       break-inside: avoid;
@@ -1044,23 +1056,28 @@ async function compraImprimirRelatorioA4() {
       font-size: 9pt;
       color: #334155;
       line-height: 1.4;
-      margin: 0 0 10px;
+      margin: 0 0 14px;
       max-width: 100%;
     }
     .foot-brand {
       display: flex;
-      justify-content: flex-end;
-      align-items: center;
-      gap: 8px;
+      justify-content: center;
+      align-items: flex-end;
+      width: 100%;
+      margin-top: 4px;
     }
     .foot-brand img {
-      max-height: 34px;
-      width: auto;
-      max-width: 220px;
+      width: min(100%, 178mm);
+      height: auto;
+      max-height: 46mm;
+      min-height: 24mm;
       object-fit: contain;
+      object-position: center bottom;
       print-color-adjust: exact;
       -webkit-print-color-adjust: exact;
     }
+    .erp-link { font-size: 9.5pt; color: #1e3a8a; margin: 0 0 12px; line-height: 1.45; }
+    .erp-link a { color: #1d4ed8; word-break: break-all; }
   </style>
 </head>
 <body>
@@ -1068,6 +1085,7 @@ async function compraImprimirRelatorioA4() {
   <div class="sub"><strong>Fornecedor:</strong> ${escapeHtml(j.fornecedor_nome || fornNome)}<br>
   <strong>Gerado em:</strong> ${escapeHtml(agora)}<br>
   ${sem}</div>
+  ${neBlock}
   <table>
     <caption>Catálogo · ${Number(j.total_produtos || (j.linhas || []).length || 0).toLocaleString('pt-BR')} produto(s)</caption>
     <thead>
@@ -1085,7 +1103,7 @@ async function compraImprimirRelatorioA4() {
     <div class="print-foot-inner">
       <p class="foot-legend"><strong>Legenda:</strong> <strong>*</strong> na coluna «Qtd últ. pedido / compra» indica produto <strong>sem linha de compra</strong> deste fornecedor no ERP no período considerado. <strong>0</strong> indica que já houve compra desse fornecedor, mas o item <strong>não consta no último documento</strong> (ou veio com quantidade zero). Quantidades arredondadas ao inteiro (0,500 ou mais para cima).</p>
       <div class="foot-brand">
-        <img src="${escapeHtml(logoAbs)}" alt="Agro Mais">
+        <img src="${escapeHtml(logoAbs)}" alt="Agro Mais — Sua casa de ração com um toque a mais">
       </div>
     </div>
   </footer>
@@ -2683,19 +2701,37 @@ function abrirAjuste(id, nome, saldoAtual, codigo, deposito) {
 }
 
 window.agroComprasSincronizarComApi = function () {
-  sincronizarCatalogoComprasServidor();
-  setTimeout(function () {
-    carregarMetricasCompra(true);
-    fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' })
-      .then(function (r) { return r.json(); })
-      .then(function (sd) {
-        if (sd.rows) aplicarSaldosNaBaseCompra(sd.rows);
-        if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
-          AgroEstoqueSync.markFresh(document.getElementById('agro-saldos-ultima-atualizacao'));
-        }
-      })
-      .catch(function () {});
-  }, 900);
+  var b = document.getElementById('agro-btn-atualizar-saldos');
+  if (b) {
+    b.disabled = true;
+    b.setAttribute('aria-busy', 'true');
+  }
+  try {
+    sincronizarCatalogoComprasServidor();
+    setTimeout(function () {
+      carregarMetricasCompra(true);
+      fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (sd) {
+          if (sd.rows) aplicarSaldosNaBaseCompra(sd.rows);
+          if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
+            AgroEstoqueSync.markFresh(document.getElementById('agro-saldos-ultima-atualizacao'));
+          }
+        })
+        .catch(function () {})
+        .finally(function () {
+          if (b) {
+            b.disabled = false;
+            b.removeAttribute('aria-busy');
+          }
+        });
+    }, 900);
+  } catch (e) {
+    if (b) {
+      b.disabled = false;
+      b.removeAttribute('aria-busy');
+    }
+  }
 };
 
 window.addEventListener('load', () => {
@@ -2705,7 +2741,7 @@ window.addEventListener('load', () => {
   if (!warmed) {
     compraOcultarCabecalhoListaResultados();
     div.innerHTML = manual
-      ? `<div class="bg-white text-amber-800 border border-amber-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm leading-relaxed">Sem catálogo em cache neste aparelho.<br><span class="text-slate-600 font-semibold text-xs mt-2 block">Use o botão <strong>Sincronizar API</strong> no topo.</span></div>`
+      ? `<div class="bg-white text-amber-800 border border-amber-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm leading-relaxed">Sem catálogo em cache neste aparelho.<br><span class="text-slate-600 font-semibold text-xs mt-2 block">Use o botão <strong>Estoque</strong> no topo.</span></div>`
       : `<div class="bg-white text-slate-500 border border-slate-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm">Carregando catálogo…</div>`;
   }
   if (!manual) {
@@ -2718,6 +2754,12 @@ window.addEventListener('load', () => {
         const r = await fetch("{% url 'api_pdv_saldos' %}", { cache: 'no-store' });
         const sd = await r.json();
         if (sd.rows) aplicarSaldosNaBaseCompra(sd.rows);
+      },
+      onManualClick: function () {
+        if (typeof window.agroComprasSincronizarComApi === 'function') {
+          window.agroComprasSincronizarComApi();
+        }
+        return Promise.resolve();
       },
     });
   }
@@ -3891,6 +3933,12 @@ document.getElementById('btn-abrir-modal-relatorio-compra')?.addEventListener('c
 document.getElementById('btn-fechar-modal-relatorio-compra')?.addEventListener('click', () => fecharModalRelatorioCompra());
 document.getElementById('modal-relatorio-compra-fornecedor')?.addEventListener('click', (e) => {
   if (e.target && e.target.id === 'modal-relatorio-compra-fornecedor') fecharModalRelatorioCompra();
+});
+document.getElementById('btn-compra-abrir-erp-notas-entrada')?.addEventListener('click', () => {
+  const u = String(ERP_NOTAS_ENTRADA_LIST_URL || '').trim();
+  if (!u) return;
+  if (typeof agroAbrirUrlExterna === 'function') agroAbrirUrlExterna(u);
+  else window.open(u, '_blank', 'noopener,noreferrer');
 });
 document.getElementById('btn-abrir-historico-compra')?.addEventListener('click', () => abrirHistoricoCompraModal());
 document.getElementById('btn-abrir-conferencia-compra')?.addEventListener('click', () => abrirConferenciaCompraModal());

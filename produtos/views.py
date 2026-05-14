@@ -65,6 +65,7 @@ from integracoes.texto import eh_granel, expandir_tokens, montar_busca_texto, no
 from integracoes.venda_erp_mongo import VendaERPMongoClient
 from integracoes.venda_erp_api import (
     VendaERPAPIClient,
+    erp_portal_notas_entrada_list_url,
     normalizar_linhas_ranking_vendedores_v3,
     normalizar_linhas_top_produtos_v3,
 )
@@ -3708,6 +3709,9 @@ def api_compras_relatorio_fornecedor(request):
         )
     )
 
+    ne_list = erp_portal_notas_entrada_list_url()
+    erp_portal = {"notas_entrada_list": ne_list} if ne_list else {}
+
     return JsonResponse(
         {
             "ok": True,
@@ -3721,6 +3725,7 @@ def api_compras_relatorio_fornecedor(request):
                 "origem": ultimo_origem,
             },
             "linhas": rows_out,
+            "erp_portal": erp_portal,
         }
     )
 
@@ -5878,7 +5883,11 @@ def sugestao_transferencia(request):
 
 @ensure_csrf_cookie
 def compras_view(request):
-    return render(request, "produtos/compras.html")
+    return render(
+        request,
+        "produtos/compras.html",
+        {"erp_notas_entrada_list_url": erp_portal_notas_entrada_list_url()},
+    )
 
 
 def _ctx_produtos_cadastro_erp(request):

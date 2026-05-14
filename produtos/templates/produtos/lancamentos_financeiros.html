@@ -483,12 +483,12 @@
           <label class="block">
             <span class="text-[10px] font-black uppercase tracking-wide text-slate-500">Busca na lista</span>
             <div class="relative mt-1">
-              <input type="search" id="f-q" placeholder="Favorecido, NF, plano, obs., empresa, forma, conta, IDs…" autocomplete="off"
+              <input type="search" id="f-q" placeholder="Favorecido, valor (ex.: 833,33), NF, plano, IDs…" autocomplete="off"
                 class="w-full rounded-xl border border-slate-200 pl-4 pr-10 py-3 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-400 outline-none min-h-[48px]"
                 title="Busca em texto do título (vários campos). Várias palavras: todas devem aparecer (em qualquer campo). Enter aplica. Tecla / foca aqui.">
               <kbd class="gm-kbd absolute right-2.5 top-1/2 -translate-y-1/2 border border-slate-200 bg-white text-slate-500 text-[10px]" title="Barra / foca a busca">/</kbd>
             </div>
-            <p class="mt-1.5 text-[10px] font-semibold text-slate-500 leading-snug">Separe termos com espaço; cada termo pode cair em favorecido, descrição, documento, plano, grupo, forma, banco, empresa, centro de custo, observações ou IDs.</p>
+            <p class="mt-1.5 text-[10px] font-semibold text-slate-500 leading-snug">Separe termos com espaço; cada termo pode cair em favorecido, descrição, documento, plano, grupo, forma, banco, empresa, centro de custo, observações, IDs ou valor (bruto, pago ou saldo em aberto; use vírgula decimal ou R$).</p>
           </label>
         </section>
         <section id="sec-salvar-atalho-filtros" class="hidden rounded-xl border border-amber-100 bg-amber-50/40 p-3 space-y-2" aria-label="Salvar atalho na barra" data-feature-pausada="1">
@@ -2899,7 +2899,7 @@
           mob.innerHTML = '';
           tot.classList.add('hidden');
           const empty = document.getElementById('empty-state');
-          empty.textContent = 'Nenhum dado em cache para estes filtros. Clique em “Sincronizar API”.';
+          empty.textContent = 'Nenhum dado em cache para estes filtros. Clique em “Sincronizar”.';
           empty.classList.remove('hidden');
           const pi = document.getElementById('pag-info');
           const pm = document.getElementById('pag-info-meta');

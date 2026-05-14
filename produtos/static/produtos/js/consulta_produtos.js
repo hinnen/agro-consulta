@@ -2274,7 +2274,7 @@ function abrirAjuste(id, nome, saldo, codigo, dep) {
     }
     var pid = id != null && id !== '' ? String(id) : '';
     if (!pid) {
-        alert('Produto sem identificador. Use «Sincronizar API» ou «Estoque» para atualizar a base e tente de novo.');
+        alert('Produto sem identificador. Use o botão «Estoque» no topo para atualizar a base e tente de novo.');
         return;
     }
     var m = document.getElementById('modal-pdv-ajuste-estoque');
@@ -2545,7 +2545,7 @@ function buscarProdutos(q, modo = 'normal') {
         if (baseProdutos.length > 0) {
             executarBuscaLocal(termoBusca, modo);
         } else if (window.AGRO_MANUAL_SYNC_ONLY) {
-            mostrarStatusBusca('Sem catálogo local. Use “Sincronizar API” antes de buscar.', 'orange');
+            mostrarStatusBusca('Sem catálogo local. Use o botão «Estoque» no topo antes de buscar.', 'orange');
             limparBuscaVisual();
         } else {
             executarBuscaAPI(termoBruto, modo); // Fallback enquanto a base carrega
@@ -3157,7 +3157,7 @@ function carregarCacheClientes(opts) {
                         msgEl.classList.add('hidden');
                         msgEl.textContent = '';
                     } else {
-                        msgEl.textContent = 'Lista de clientes vazia no cache. Use “Sincronizar API”.';
+                        msgEl.textContent = 'Lista de clientes vazia no cache. Use o botão «Estoque» no topo.';
                         msgEl.classList.remove('hidden');
                     }
                 }
@@ -3166,7 +3166,7 @@ function carregarCacheClientes(opts) {
         } catch (_) {}
         cacheClientesPDV = [];
         if (msgEl) {
-            msgEl.textContent = 'Clientes não carregados (modo só cache). Use “Sincronizar API”.';
+            msgEl.textContent = 'Clientes não carregados (modo só cache). Use o botão «Estoque» no topo.';
             msgEl.classList.remove('hidden');
         }
         return;
@@ -3957,10 +3957,10 @@ function carregarBaseLocal() {
     const warmed = hidratarCatalogoPdvDoCache();
     if (manual) {
         if (warmed) {
-            mostrarStatusBusca('Catálogo em cache (sem sync automático). Use “Sincronizar API”.', 'emerald');
+            mostrarStatusBusca('Catálogo em cache (sem sync automático). Use o botão «Estoque» no topo.', 'emerald');
             setTimeout(esconderStatusBusca, 4200);
         } else {
-            mostrarStatusBusca('Sem cache de produtos. Clique em “Sincronizar API” no topo.', 'orange');
+            mostrarStatusBusca('Sem cache de produtos. Clique em «Estoque» no topo.', 'orange');
         }
         return;
     }
@@ -4121,24 +4121,18 @@ function atualizarRelogioPdv() {
     });
 }
 
-function pdvMarcarSyncApiFresh() {
-    var lab = document.getElementById('agro-api-sync-ultima');
-    var btn = document.getElementById('agro-btn-sincronizar-api');
-    if (lab && btn && typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.markFresh) {
-        AgroEstoqueSync.markFresh(lab, undefined, btn);
-    }
-}
-
-function pdvHidratarIndicadorSyncApiDoCache() {
+function pdvHidratarTermometroDesdeCacheCatalogo() {
     try {
         var raw = localStorage.getItem(PDV_CACHE_KEY);
         if (!raw) return;
         var p = JSON.parse(raw);
         var at = Number(p.saved_at || 0);
         if (!at) return;
-        var lab = document.getElementById('agro-api-sync-ultima');
-        var btn = document.getElementById('agro-btn-sincronizar-api');
+        var lab = document.getElementById('agro-saldos-ultima-atualizacao');
+        var btn = document.getElementById('agro-btn-atualizar-saldos');
         if (!lab || !btn || typeof AgroEstoqueSync === 'undefined') return;
+        var cur = parseInt(lab.dataset.gmFreshAt || '0', 10) || 0;
+        if (at <= cur) return;
         lab.dataset.gmFreshAt = String(at);
         if (AgroEstoqueSync.formatHorario) {
             lab.textContent = AgroEstoqueSync.formatHorario(new Date(at));
@@ -4152,16 +4146,17 @@ function pdvHidratarIndicadorSyncApiDoCache() {
 }
 
 window.agroPdvSincronizarComApi = function () {
-    var apiBtn = document.getElementById('agro-btn-sincronizar-api');
-    if (apiBtn) {
-        apiBtn.disabled = true;
-        apiBtn.setAttribute('aria-busy', 'true');
+    var syncBtn =
+        document.getElementById('agro-btn-atualizar-saldos') || document.getElementById('agro-btn-sincronizar-api');
+    if (syncBtn) {
+        syncBtn.disabled = true;
+        syncBtn.setAttribute('aria-busy', 'true');
     }
     carregarCacheClientes({ force: true });
     var invUrl =
         (typeof AGRO_PDV_URLS !== 'undefined' && AGRO_PDV_URLS && AGRO_PDV_URLS.apiPdvInvalidarCatalogo) ||
         '/api/pdv/invalidar-catalogo/';
-    fetch(invUrl, { credentials: 'same-origin' })
+    return fetch(invUrl, { credentials: 'same-origin' })
         .catch(function () {
             /* segue mesmo se invalidar falhar (rede) */
         })
@@ -4178,13 +4173,10 @@ window.agroPdvSincronizarComApi = function () {
                 }, 700);
             });
         })
-        .then(function () {
-            pdvMarcarSyncApiFresh();
-        })
         .finally(function () {
-            if (apiBtn) {
-                apiBtn.disabled = false;
-                apiBtn.removeAttribute('aria-busy');
+            if (syncBtn) {
+                syncBtn.disabled = false;
+                syncBtn.removeAttribute('aria-busy');
             }
         });
 };
@@ -4246,6 +4238,12 @@ window.addEventListener('load', () => {
                     });
                 }
             },
+            onManualClick: function () {
+                if (typeof window.agroPdvSincronizarComApi === 'function') {
+                    return window.agroPdvSincronizarComApi();
+                }
+                return Promise.resolve();
+            },
         };
         if (!window.AGRO_MANUAL_SYNC_ONLY) {
             mountEstoque.autoIdleRefresh = true;
@@ -4253,10 +4251,10 @@ window.addEventListener('load', () => {
         }
         AgroEstoqueSync.mount(mountEstoque);
     }
-    pdvHidratarIndicadorSyncApiDoCache();
+    pdvHidratarTermometroDesdeCacheCatalogo();
     setInterval(function () {
-        var b = document.getElementById('agro-btn-sincronizar-api');
-        var l = document.getElementById('agro-api-sync-ultima');
+        var b = document.getElementById('agro-btn-atualizar-saldos');
+        var l = document.getElementById('agro-saldos-ultima-atualizacao');
         if (b && l && typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.paintThermo) {
             AgroEstoqueSync.paintThermo(b, l, AgroEstoqueSync.staleMsDefault);
         }

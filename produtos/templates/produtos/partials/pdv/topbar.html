@@ -22,23 +22,7 @@
                     <a href="{% url 'caixa_painel' %}" class="{% if pdv_dedicado %}hidden lg:inline-flex{% else %}hidden sm:inline-flex{% endif %} items-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-200 hover:bg-emerald-200/80 shrink-0" title="Caixa aberto — ver painel">Caixa #{{ caixa_aberto.pk }}</a>
                     {% endif %}
                     <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-700 border border-slate-200 shrink-0 max-w-[7rem] truncate" title="Operador (modo descanso)"></span>
-                    {% include "produtos/_barra_estoque_global.html" %}
-                    <div id="agro-barra-sync-api-wrap" class="inline-flex items-center {% if pdv_dedicado %}gap-0.5 px-0.5 py-0.5{% else %}gap-1 sm:gap-1.5 px-1.5 py-1{% endif %} rounded-xl border border-amber-300/90 bg-gradient-to-r from-amber-50/95 to-orange-50/90 shadow-sm shrink-0" role="region" aria-label="Sincronização completa com o servidor" title="Baixa catálogo, clientes e saldos. Data e hora da última sync aparecem dentro do botão.">
-                        <button type="button" id="agro-btn-sincronizar-api" class="relative inline-flex items-center {% if pdv_dedicado %}gap-0.5 rounded-md pl-1 pr-1.5 py-0.5 min-h-[30px] min-w-[62px]{% else %}gap-1.5 rounded-lg pl-1.5 pr-2 py-1.5{% endif %} border-2 border-amber-500/55 bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white text-[9px] sm:text-[10px] font-black uppercase shadow-md transition-[border-color,transform] active:scale-[0.98] shrink-0 overflow-hidden" onclick="if (window.agroPdvSincronizarComApi) window.agroPdvSincronizarComApi()">
-                            <span class="agro-termo-track flex flex-col justify-end w-2 h-8 rounded-full bg-black/25 shrink-0 border border-white/30 overflow-hidden shadow-inner" aria-hidden="true">
-                                <span class="agro-termo-fil w-full rounded-b-full transition-all duration-500 ease-out" style="height:0%;min-height:0"></span>
-                            </span>
-                            <span class="relative z-[1] flex min-w-0 flex-col items-start gap-0.5 text-left leading-tight">
-                                {% if pdv_dedicado %}
-                                <span class="whitespace-nowrap sm:hidden">Sync</span>
-                                <span class="whitespace-nowrap hidden sm:inline">Sincronizar API</span>
-                                {% else %}
-                                <span class="whitespace-nowrap">Sincronizar API</span>
-                                {% endif %}
-                                <span id="agro-api-sync-ultima" class="text-[8px] font-bold text-white/90 tabular-nums truncate max-w-[9rem]" title="Última sincronização completa">—</span>
-                            </span>
-                        </button>
-                    </div>
+                    {% include "produtos/_barra_estoque_global.html" with barra_estoque_btn_title="Atualiza catálogo no servidor, clientes e saldos Centro/Vila (um toque)." %}
                     <button type="button" id="btn-pdv-sair-usuario-pin" class="inline-flex items-center justify-center {% if pdv_dedicado %}px-1.5 py-0.5 min-h-[30px] min-w-[52px]{% else %}px-2.5 py-1.5{% endif %} rounded-lg text-[10px] font-black uppercase border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 shrink-0" title="Encerra o usuário neste aparelho e abre a tela de PIN" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">
                         <span class="{% if pdv_dedicado %}hidden sm:inline{% endif %}">Sair / PIN</span>
                         {% if pdv_dedicado %}
