@@ -282,7 +282,7 @@
               <p>Até <strong>800</strong> produtos ativos do catálogo cujo fornecedor no cadastro (Mongo) casa com o nome ou ID.</p>
               <p><strong>*</strong> na coluna «Qtd últ. pedido / compra» = sem nenhuma linha de compra deste fornecedor no ERP no período. <strong>0</strong> = já houve compra, mas o item não entrou no último documento (ou veio zerado).</p>
               <p><strong>Média/semana:</strong> vendas em até 8 semanas (56 dias), com média ajustada quando o histórico de venda no período é mais curto. Quantidades inteiras (meio para cima).</p>
-              <p class="text-violet-800">O botão <strong>Notas de entrada (ERP)</strong> abre a lista web do SisVale (login). Os dados do relatório vêm do espelho Mongo sincronizado com o ERP.</p>
+              <p class="text-violet-800">Os dados do relatório vêm do espelho Mongo sincronizado com o ERP.</p>
             </div>
           </details>
           <button type="button" id="btn-fechar-modal-relatorio-compra" class="text-slate-400 hover:text-slate-800 font-black text-lg px-2 py-1 rounded-lg hover:bg-slate-100 leading-none" aria-label="Fechar">✕</button>
@@ -297,9 +297,6 @@
           </div>
         </label>
         <button type="button" id="btn-compra-relatorio-a4" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-violet-600 bg-violet-600 text-white font-black py-3 uppercase text-xs tracking-wide shadow-sm hover:bg-violet-700 hover:border-violet-700 min-h-[52px]">Imprimir tabela</button>
-        {% if erp_notas_entrada_list_url %}
-        <button type="button" id="btn-compra-abrir-erp-notas-entrada" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black py-3 uppercase text-xs tracking-wide shadow-sm hover:bg-slate-50 hover:border-slate-400 min-h-[52px]">Notas de entrada (ERP)</button>
-        {% endif %}
       </div>
     </div>
   </div>
@@ -3609,12 +3606,6 @@ document.getElementById('btn-abrir-modal-relatorio-compra')?.addEventListener('c
 document.getElementById('btn-fechar-modal-relatorio-compra')?.addEventListener('click', () => fecharModalRelatorioCompra());
 document.getElementById('modal-relatorio-compra-fornecedor')?.addEventListener('click', (e) => {
   if (e.target && e.target.id === 'modal-relatorio-compra-fornecedor') fecharModalRelatorioCompra();
-});
-document.getElementById('btn-compra-abrir-erp-notas-entrada')?.addEventListener('click', () => {
-  const u = String(ERP_NOTAS_ENTRADA_LIST_URL || '').trim();
-  if (!u) return;
-  if (typeof agroAbrirUrlExterna === 'function') agroAbrirUrlExterna(u);
-  else window.open(u, '_blank', 'noopener,noreferrer');
 });
 document.getElementById('btn-abrir-historico-compra')?.addEventListener('click', () => abrirHistoricoCompraModal());
 document.getElementById('btn-abrir-conferencia-compra')?.addEventListener('click', () => abrirConferenciaCompraModal());

@@ -3,7 +3,80 @@
 /** Marca horizontal (rodapé impressão A4). */
 const URL_COMPRA_REL_LOGO_MARCA = "{% static 'img/agro-mais-marca-horizontal.svg' %}";
 
-/** Impressão sem `window.open`+`noopener` (retorna `null` → aba em branco). */
+/** iOS/Android: iframe oculto + print() costuma capturar a página visível; precisamos de janela real. */
+function compraPrintPreferirJanela() {
+  try {
+    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return true;
+  } catch (_) {}
+  if (typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent || '';
+    if (/Mobi|Android|iPhone|iPad|iPod|IEMobile|webOS|Silk/i.test(ua)) return true;
+  }
+  return false;
+}
+
+function compraFecharJanelaPrintOpcional(win) {
+  try {
+    if (win && !win.closed) win.close();
+  } catch (_) {}
+}
+
+/**
+ * Abre já no toque do botão (antes de await fetch), para o Safari não bloquear pop-up.
+ * @returns {Window|null}
+ */
+function compraPrepararJanelaPrintMovel() {
+  if (!compraPrintPreferirJanela()) return null;
+  let w = null;
+  try {
+    w = window.open('', '_blank');
+  } catch (_) {
+    w = null;
+  }
+  if (!w || !w.document) return null;
+  try {
+    w.document.write(
+      '<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Relatório</title><style>html,body{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;background:#f1f5f9;color:#334155;padding:1.25rem;text-align:center}</style></head><body><p style="font-weight:800;font-size:1.05rem">A preparar relatório…</p></body></html>'
+    );
+    w.document.close();
+  } catch (_) {
+    compraFecharJanelaPrintOpcional(w);
+    return null;
+  }
+  return w;
+}
+
+function compraEntregarHtmlNaJanelaPrint(win, html) {
+  if (!win || win.closed) return false;
+  try {
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+  } catch (_) {
+    return false;
+  }
+  const run = () => {
+    try {
+      win.focus();
+      win.print();
+    } catch (_) {}
+  };
+  setTimeout(run, 350);
+  try {
+    win.addEventListener(
+      'afterprint',
+      () => {
+        try {
+          win.close();
+        } catch (_) {}
+      },
+      { once: true }
+    );
+  } catch (_) {}
+  return true;
+}
+
+/** Desktop: iframe oculto (evita `window.open` bloqueado). Mobile: usar `compraPrepararJanelaPrintMovel` + `compraEntregarHtmlNaJanelaPrint`. */
 function compraAbrirPrintHtml(html) {
   const ifr = document.createElement('iframe');
   ifr.setAttribute(
@@ -149,6 +222,7 @@ async function compraImprimirRelatorioA4() {
     fn?.focus();
     return;
   }
+  const prePrintWin = compraPrepararJanelaPrintMovel();
   if (window.gmLoadingBar) window.gmLoadingBar.show();
   try {
     const r = await fetch(URL_COMPRA_REL_FORN, {
@@ -165,6 +239,7 @@ async function compraImprimirRelatorioA4() {
     });
     const j = await r.json();
     if (!j.ok) {
+      compraFecharJanelaPrintOpcional(prePrintWin);
       window.alert(j.erro || 'Falha ao montar relatório.');
       return;
     }
@@ -208,6 +283,7 @@ async function compraImprimirRelatorioA4() {
 <html lang="pt-br">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Relatório compras</title>
   <style>
     @page { size: A4; margin: 10mm 10mm 16mm; }
@@ -327,7 +403,9 @@ async function compraImprimirRelatorioA4() {
   </footer>
 </body>
 </html>`;
-    compraAbrirPrintHtml(html);
+    if (!compraEntregarHtmlNaJanelaPrint(prePrintWin, html)) {
+      compraAbrirPrintHtml(html);
+    }
 {% if compras_relatorio_a4_embedded %}
     setTimeout(() => {
       try {
@@ -337,6 +415,7 @@ async function compraImprimirRelatorioA4() {
 {% endif %}
   } catch (err) {
     console.error(err);
+    compraFecharJanelaPrintOpcional(prePrintWin);
     window.alert('Falha de rede ao gerar relatório.');
   } finally {
     if (window.gmLoadingBar) window.gmLoadingBar.hide();
