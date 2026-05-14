@@ -324,9 +324,10 @@
       font-variant-numeric: tabular-nums;
     }
     #nfe-wiz-custo-list .nfe-wiz-custo-badges-row {
-      padding: 0.45rem 0.75rem 0.35rem;
+      padding: 0.35rem 0.75rem 0.3rem;
       border-bottom: 1px solid rgb(241 245 249);
       background: rgb(255 255 255);
+      min-height: 0;
     }
     /* Etapa 6: em telas largas, histórico (spark) à esquerda e média/legenda à direita — evita faixa vazia. */
     #nfe-wiz-custo-list .nfe-wiz-custo-body {
@@ -347,7 +348,7 @@
       min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 0.65rem;
+      gap: 0.4rem;
     }
     #nfe-wiz-custo-list .nfe-wiz-spark-block {
       min-width: 0;
@@ -405,8 +406,6 @@
     #modal-xml-merge-panel .xml-merge-card-actions button {
       width: 100%;
     }
-    .nfe-wiz-custo-help > summary { list-style: none; }
-    .nfe-wiz-custo-help > summary::-webkit-details-marker { display: none; }
     /* Nota finalizada (PIN etapa 6 · ``aprovacao_wizard_em``): bloqueia edição; etapa 6 sem atributo lock mantém PIN + Reabrir. */
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] input,
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] select,
@@ -668,11 +667,27 @@
       letter-spacing: 0.08em;
       color: rgb(100 116 139);
     }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 0.45rem 0.75rem;
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-head {
+      flex: 1 1 min(0, 100%);
+      min-width: 0;
+    }
+    @media (min-width: 640px) {
+      #entrada-nfe-wizard-nav .nfe-wiz-nav-head {
+        flex: 1 1 auto;
+      }
+    }
     #entrada-nfe-wizard-nav .nfe-wiz-track {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
       gap: 0.35rem;
-      margin-top: 0.45rem;
+      margin-top: 0.35rem;
     }
     @media (max-width: 639px) {
       #entrada-nfe-wizard-nav .nfe-wiz-track {
@@ -686,14 +701,15 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 0.5rem;
-      margin-top: 0.65rem;
-      padding-top: 0.65rem;
-      border-top: 1px solid rgb(226 232 240);
+      gap: 0.45rem;
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+      flex: 0 0 auto;
     }
     .nfe-wiz-pn {
-      min-height: 2.5rem;
-      padding: 0.35rem 0.85rem;
+      min-height: 2.25rem;
+      padding: 0.3rem 0.75rem;
       border-width: 1px;
       font-size: 0.68rem;
       font-weight: 900;
@@ -805,11 +821,7 @@
       {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[40px] text-[11px] font-black uppercase bg-white shadow-sm px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:border-orange-400 shrink-0" %}
     </div>
     <div id="entrada-nfe-editor-scroll" class="flex-1 min-h-0 overflow-y-auto">
-      <div class="max-w-[1400px] mx-auto px-3 sm:px-4 py-3 space-y-3">
-
-    <div id="entrada-nfe-rasc-banner" class="hidden rounded-xl border-2 border-sky-300 bg-sky-50 px-3 py-2 flex flex-wrap items-center justify-end gap-2">
-      <button type="button" id="btn-entrada-nfe-sair-edicao" class="min-h-[40px] px-3 py-1.5 rounded-xl border-2 border-sky-400 bg-white text-[10px] font-black uppercase text-sky-900 hover:bg-sky-100 shrink-0">Novo</button>
-    </div>
+      <div class="max-w-[1400px] mx-auto px-3 sm:px-4 py-2 space-y-2">
 
     <div class="entrada-nfe-tabs">
       <button type="button" class="tab-btn inline-flex items-center justify-center font-black text-[11px] uppercase tab-on" data-tab="manual" title="Manual">Manual</button>
@@ -819,32 +831,36 @@
 
     <div id="entrada-nfe-editor-meta" class="entrada-nfe-editor-meta rounded-lg border border-slate-200/90 bg-white px-2.5 py-2 sm:px-3" aria-live="polite"></div>
 
-    <section id="panel-manual" class="tab-panel bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 flex flex-col gap-3 min-h-0">
-      <div class="rounded-xl entrada-nfe-wiz-nav--compact p-3 shadow-sm shrink-0" id="entrada-nfe-wizard-nav" role="navigation" aria-label="Passos da entrada">
-        <span class="nfe-wiz-nav-eyebrow">Passo a passo</span>
-        <div class="nfe-wiz-track">
-          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn nfe-wiz-nav-btn--on" data-nfe-w-go="1" title="Fornecedor e plano">
-            <span class="nfe-wiz-num">1</span><span class="nfe-wiz-name">Fornecedor</span>
-          </button>
-          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="2" title="Produtos da nota">
-            <span class="nfe-wiz-num">2</span><span class="nfe-wiz-name">Produtos</span>
-          </button>
-          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="3" title="Código de barras / vínculo">
-            <span class="nfe-wiz-num">3</span><span class="nfe-wiz-name">Código de barras</span>
-          </button>
-          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="4" title="Estoque Agro">
-            <span class="nfe-wiz-num">4</span><span class="nfe-wiz-name">Estoque</span>
-          </button>
-          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="5" title="Financeiro">
-            <span class="nfe-wiz-num">5</span><span class="nfe-wiz-name">Financeiro</span>
-          </button>
-          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="6" title="Finalizar (PIN e custo)">
-            <span class="nfe-wiz-num">6</span><span class="nfe-wiz-name">Finalizar</span>
-          </button>
-        </div>
-        <div class="nfe-wiz-actions">
-          <button type="button" id="nfe-wiz-prev" class="nfe-wiz-pn">← Anterior</button>
-          <button type="button" id="nfe-wiz-next" class="nfe-wiz-pn">Próximo →</button>
+    <section id="panel-manual" class="tab-panel bg-white rounded-xl border border-slate-200 shadow-sm p-2.5 sm:p-3 flex flex-col gap-2 min-h-0">
+      <div class="rounded-xl entrada-nfe-wiz-nav--compact p-2.5 sm:p-3 shadow-sm shrink-0" id="entrada-nfe-wizard-nav" role="navigation" aria-label="Passos da entrada">
+        <div class="nfe-wiz-nav-top">
+          <div class="nfe-wiz-nav-head">
+            <span class="nfe-wiz-nav-eyebrow">Passo a passo</span>
+            <div class="nfe-wiz-track">
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn nfe-wiz-nav-btn--on" data-nfe-w-go="1" title="Fornecedor e plano">
+                <span class="nfe-wiz-num">1</span><span class="nfe-wiz-name">Fornecedor</span>
+              </button>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="2" title="Produtos da nota">
+                <span class="nfe-wiz-num">2</span><span class="nfe-wiz-name">Produtos</span>
+              </button>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="3" title="Código de barras / vínculo">
+                <span class="nfe-wiz-num">3</span><span class="nfe-wiz-name">Código de barras</span>
+              </button>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="4" title="Estoque Agro">
+                <span class="nfe-wiz-num">4</span><span class="nfe-wiz-name">Estoque</span>
+              </button>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="5" title="Financeiro">
+                <span class="nfe-wiz-num">5</span><span class="nfe-wiz-name">Financeiro</span>
+              </button>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="6" title="Finalizar (PIN e custo)">
+                <span class="nfe-wiz-num">6</span><span class="nfe-wiz-name">Finalizar</span>
+              </button>
+            </div>
+          </div>
+          <div class="nfe-wiz-actions">
+            <button type="button" id="nfe-wiz-prev" class="nfe-wiz-pn">← Anterior</button>
+            <button type="button" id="nfe-wiz-next" class="nfe-wiz-pn">Próximo →</button>
+          </div>
         </div>
       </div>
 
@@ -1173,29 +1189,22 @@
       </div>
       </div>
 
-      <div id="nfe-wiz-page-6" data-nfe-wiz-page="6" class="nfe-wiz-page hidden flex flex-col gap-4 rounded-2xl border-2 border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4 sm:p-5 overflow-y-auto min-h-0">
-        <div class="flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div id="nfe-wiz-page-6" data-nfe-wiz-page="6" class="nfe-wiz-page hidden flex flex-col gap-3 rounded-2xl border-2 border-slate-200 bg-gradient-to-b from-slate-50 to-white p-3 sm:p-4 overflow-y-auto min-h-0">
+        <div class="flex flex-wrap items-center justify-between gap-2 shrink-0">
           <div class="min-w-0">
             <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">6 · Finalizar</h2>
-            <p class="text-[10px] font-bold text-slate-500 mt-0.5 uppercase tracking-wide">PIN e custo no catálogo</p>
           </div>
           <button type="button" class="nfe-wiz-help min-h-[40px] min-w-[40px] rounded-xl border-2 border-slate-300 bg-white text-sm font-black text-slate-800 hover:bg-slate-50 shrink-0" data-help-w="6" title="Ajuda da etapa 6" aria-label="Ajuda da etapa 6">?</button>
         </div>
         <div id="nfe-wiz-custo-wrap" class="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div class="shrink-0 flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-emerald-50/90 via-white to-white">
+          <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4 border-b border-slate-100 bg-gradient-to-r from-emerald-50/90 via-white to-white">
             <div class="min-w-0">
               <h3 class="text-xs font-black uppercase tracking-wide text-slate-900">Custo no catálogo · média C+V</h3>
-              <p id="nfe-wiz-custo-count" class="mt-1 text-[10px] font-bold text-slate-500 tabular-nums hidden" aria-live="polite"></p>
+              <p id="nfe-wiz-custo-count" class="mt-0.5 text-[10px] font-bold text-slate-500 tabular-nums hidden" aria-live="polite"></p>
             </div>
-            <details class="nfe-wiz-custo-help group shrink-0 w-full sm:w-auto sm:max-w-[20rem]">
-              <summary class="cursor-pointer min-h-[40px] min-w-[40px] sm:min-w-0 sm:px-3 inline-flex items-center justify-center sm:justify-start gap-2 rounded-xl border-2 border-emerald-300 bg-white text-xs font-black text-emerald-900 hover:bg-emerald-50 marker:content-none w-full sm:w-auto" aria-label="O que é esta prévia">
-                <span class="tabular-nums">?</span><span class="hidden sm:inline font-bold normal-case tracking-normal">Como funciona</span>
-              </summary>
-              <div class="mt-2 rounded-xl border-2 border-emerald-100 bg-emerald-50/60 p-3 text-[11px] font-semibold text-slate-800 leading-relaxed">Confira cada item e escolha se o custo gravado no catálogo após o PIN será a <strong>média ponderada</strong> (estoque + NF) ou o <strong>custo unitário da NF</strong>. Com saldo C+V abaixo de 1 ou diferença grande entre custos, o padrão sugerido pode mudar — veja os selos em cada card. O mini gráfico em cada linha mostra até <strong>três últimas compras</strong> no ERP (custo unitário final, da mais antiga à mais recente) e o <strong>quarto ponto</strong> é o custo unitário <strong>desta NF</strong>; em cada coluna aparecem <strong>data</strong> (quando o ERP tem) e valor. Se não houver histórico suficiente, o início repete o custo de catálogo anterior só para completar as quatro colunas (nessas colunas a data fica em branco).</div>
-            </details>
           </div>
-          <p id="nfe-wiz-custo-hint" class="shrink-0 mx-4 mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-800 leading-snug nfe-wiz-custo-hint--hidden" role="status"></p>
-          <div id="nfe-wiz-custo-list" class="pdv-wizard-scroll min-h-[220px] max-h-[min(65vh,32rem)] overflow-y-auto overflow-x-auto px-4 pb-4 pt-3 flex flex-col gap-3"></div>
+          <p id="nfe-wiz-custo-hint" class="shrink-0 mx-3 sm:mx-4 mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold text-slate-800 leading-snug nfe-wiz-custo-hint--hidden" role="status"></p>
+          <div id="nfe-wiz-custo-list" class="pdv-wizard-scroll min-h-[180px] max-h-[min(65vh,32rem)] overflow-y-auto overflow-x-auto px-3 sm:px-4 pb-3 pt-2 flex flex-col gap-2.5"></div>
         </div>
         <div class="shrink-0 rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-sm space-y-3">
           <label class="block max-w-sm">
@@ -1933,7 +1942,25 @@
     });
   }
 
+  /** Prompt do PIN (senha rápida) na lista de notas; ``null`` = cancelou. */
+  function entradaNfeSolicitarPinLista(titulo) {
+    const p = window.prompt(`${titulo}\n\nDigite seu PIN (senha rápida):`);
+    if (p === null) return null;
+    return String(p).trim();
+  }
+
   async function entradaNfeRascunhoAcao(id, acao) {
+    let pin;
+    if (acao === 'descartar') {
+      pin = entradaNfeSolicitarPinLista(
+        'DESCARTAR esta entrada. Ela vai para a fila «Descartada».',
+      );
+      if (pin === null) return;
+      if (!pin) {
+        showMsg('Informe o PIN para descartar.', false);
+        return;
+      }
+    }
     try {
       const r = await fetch(URL_RASC_ACAO, {
         method: 'POST',
@@ -1942,7 +1969,9 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken'),
         },
-        body: JSON.stringify({ id, acao }),
+        body: JSON.stringify(
+          pin !== undefined ? { id, acao, pin } : { id, acao },
+        ),
       });
       const j = await r.json();
       if (j.ok) {
@@ -1954,7 +1983,8 @@
         showMsg(msg, true);
         carregarRascunhos();
       } else {
-        showMsg(j.erro || 'Não foi possível alterar o status.', false);
+        const fallback = r.status === 403 ? 'PIN incorreto ou inválido.' : 'Não foi possível alterar o status.';
+        showMsg(j.erro || fallback, false);
       }
     } catch (_) {
       showMsg('Erro de rede.', false);
@@ -2078,13 +2108,6 @@
       entradaNfeCodigosEtapaConfirmada = false;
       entradaNfeRascunhoStatusUltimo = '';
       entradaNfeRascunhoMetaTs = { criado_em: '', atualizado_em: '' };
-    }
-    const b = document.getElementById('entrada-nfe-rasc-banner');
-    if (b) {
-      if (entradaNfeRascunhoEditId) b.classList.remove('hidden');
-      else b.classList.add('hidden');
-    }
-    if (!entradaNfeRascunhoEditId) {
       entradaNfeAtualizarUiBotaoEstoqueAgro(null);
       entradaNfeAtualizarUiBotaoFinanceiro(null);
       entradaNfeAtualizarUiBotaoWizardFinalizar();
@@ -2212,12 +2235,6 @@
       btn.classList.toggle('opacity-40', on);
       btn.classList.toggle('pointer-events-none', on);
     });
-    const novoBtn = document.getElementById('btn-entrada-nfe-sair-edicao');
-    if (novoBtn) {
-      novoBtn.disabled = on;
-      novoBtn.classList.toggle('opacity-40', on);
-      novoBtn.classList.toggle('pointer-events-none', on);
-    }
     const reabrir = document.getElementById('nfe-wiz-btn-reabrir');
     if (reabrir) {
       const show = !!entradaNfeRascunhoEditId
@@ -3242,29 +3259,30 @@
               <span class="nfe-wiz-metric-val">${fmt(it.custo_unitario_nota)}</span>
             </div>
           </div>
-          <div class="nfe-wiz-custo-badges-row flex flex-wrap gap-1.5 items-center min-h-[1.5rem]">${badges.join('') || '<span class="text-[10px] font-semibold text-slate-400">Sem alerta de regra</span>'}</div>
-          <div class="px-3 py-3 sm:px-4 border-b border-slate-100 bg-white nfe-wiz-custo-body">
+          <div class="nfe-wiz-custo-badges-row flex flex-wrap gap-1.5 items-center">${badges.join('')}</div>
+          <div class="px-3 py-2.5 sm:px-4 border-b border-slate-100 bg-white nfe-wiz-custo-body">
             <div class="nfe-wiz-spark-wrap min-w-0">
               ${sparkHtml || '<div class="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-3 py-6 text-center text-[10px] font-bold text-slate-500">Sem gráfico de histórico para este item.</div>'}
             </div>
-            <aside class="nfe-wiz-custo-side" aria-label="Média sugerida e legenda">
-              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border-2 border-emerald-200/90 bg-gradient-to-br from-emerald-50 to-white px-3 py-3 sm:py-3.5 min-h-[4.5rem]">
+            <aside class="nfe-wiz-custo-side" aria-label="Média sugerida">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border-2 border-emerald-200/90 bg-gradient-to-br from-emerald-50 to-white px-3 py-2.5 min-h-0">
                 <span class="text-[10px] font-black uppercase tracking-wide text-emerald-900 leading-snug">Média sugerida</span>
                 <span class="text-xl sm:text-2xl font-black text-emerald-950 tabular-nums text-right sm:text-right">${fmt(it.custo_medio_ponderado)}</span>
               </div>
-              <p class="text-[9px] sm:text-[10px] font-semibold text-slate-500 leading-snug border border-slate-100 rounded-lg bg-slate-50/90 px-2.5 py-2">C1 a C3: compras no ERP, da mais antiga à mais recente. <strong class="text-slate-700">NF</strong>: custo unitário desta nota. Sem data em alguma coluna = catálogo anterior (sem compra naquela posição).</p>
             </aside>
           </div>
-          <div class="nfe-wiz-custo-escolha px-3 py-3 sm:px-4 bg-slate-50/50 border-b border-slate-100 space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0" role="radiogroup" aria-label="Custo a gravar no catálogo após o PIN">
+          <div class="nfe-wiz-custo-escolha px-3 py-2 sm:px-4 bg-slate-50/50 border-b border-slate-100 flex flex-col gap-2" role="radiogroup" aria-label="Custo a gravar no catálogo após o PIN">
             <p class="text-[10px] font-black uppercase tracking-wide text-slate-700 leading-snug">Custo após o PIN · escolha uma opção</p>
-            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-white/90 px-2 py-2.5 hover:border-emerald-200 hover:bg-emerald-50/40 min-h-[48px]">
-              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="media" class="h-5 w-5 shrink-0 accent-emerald-600" ${cur === 'media' ? 'checked' : ''}>
-              <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-emerald-800">Média ponderada (C+V + entrada)</span> · ${fmt(it.custo_medio_ponderado)}</span>
-            </label>
-            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-white/90 px-2 py-2.5 hover:border-slate-300 hover:bg-white min-h-[48px]">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 w-full min-w-0 items-stretch">
+            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-white/90 px-2 py-2.5 hover:border-slate-300 hover:bg-white min-h-[48px] h-full">
               <input type="radio" name="${nm}" data-pid="${pidAttr}" value="nota" class="h-5 w-5 shrink-0 accent-slate-700" ${cur === 'nota' ? 'checked' : ''}>
               <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-slate-600">Custo unitário desta NF</span> · ${fmt(it.custo_unitario_nota)}</span>
             </label>
+            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-white/90 px-2 py-2.5 hover:border-emerald-200 hover:bg-emerald-50/40 min-h-[48px] h-full">
+              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="media" class="h-5 w-5 shrink-0 accent-emerald-600" ${cur === 'media' ? 'checked' : ''}>
+              <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-emerald-800">Média ponderada (C+V + entrada)</span> · ${fmt(it.custo_medio_ponderado)}</span>
+            </label>
+            </div>
           </div>
         </article>`);
       });
@@ -4153,6 +4171,7 @@
       un_por_embalagem: un,
       q_estoque: qest,
       v_un_com: it.v_un_com != null ? it.v_un_com : 0,
+      v_prod: it.v_prod != null ? it.v_prod : null,
       preco_venda: it.preco_venda != null ? it.preco_venda : 0,
       cfop: entradaNfeStrCampo(it.cfop),
       produto_id: entradaNfeStrCampo(it.produto_id),
@@ -4958,6 +4977,8 @@
     tr.dataset.nfeNomeCatalogo =
       textoCatCompleto.trim() !== '' ? textoCatCompleto.trim().slice(0, 500) : '';
     tr.dataset.nfeMatchTipo = d.match_tipo ? String(d.match_tipo).trim().slice(0, 80) : '';
+    if (d.preservar_custo_nf) tr.dataset.nfeCustNfPreservado = '1';
+    else delete tr.dataset.nfeCustNfPreservado;
 
     tr.innerHTML = `
       <td class="px-2 py-1"><input type="text" class="in-desc w-full min-w-0 rounded border border-slate-200 px-1 py-1 text-xs font-semibold" value=""></td>
@@ -5221,6 +5242,7 @@
             return [];
           }
         })(),
+        preservar_custo_nf: tr.dataset.nfeCustNfPreservado === '1',
       });
     });
     return linhas;
@@ -5474,6 +5496,7 @@
           un_por_embalagem: row.un_por_embalagem != null ? row.un_por_embalagem : 1,
           q_estoque: row.q_estoque != null ? row.q_estoque : null,
           v_un_com: row.v_un_com != null ? row.v_un_com : 0,
+          margem_percentual: row.margem_percentual != null ? row.margem_percentual : null,
           preco_venda: row.preco_venda != null ? row.preco_venda : 0,
           cfop: row.cfop || '',
           produto_id: row.produto_id || '',
@@ -5482,6 +5505,7 @@
           catalogo_via: row.catalogo_via || '',
           bip_conf: row.bip_conf,
           bip_similar_codigos: row.bip_similar_codigos,
+          preservar_custo_nf: !!row.preservar_custo_nf,
         });
       });
       atualizarPainelTotalNfe();
@@ -5555,7 +5579,14 @@
   }
 
   async function excluirRascunhoMongo(id) {
-    if (!window.confirm('Excluir esta entrada do Agro? Não dá para desfazer.')) return;
+    const pin = entradaNfeSolicitarPinLista(
+      'EXCLUIR permanentemente esta entrada no Agro. Não dá para desfazer.',
+    );
+    if (pin === null) return;
+    if (!pin) {
+      showMsg('Informe o PIN para excluir.', false);
+      return;
+    }
     try {
       const r = await fetch(URL_RASC_EXCLUIR, {
         method: 'POST',
@@ -5564,11 +5595,12 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken'),
         },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, pin }),
       });
       const j = await r.json();
       if (!j.ok) {
-        showMsg(j.erro || 'Falha ao excluir.', false);
+        const fallback = r.status === 403 ? 'PIN incorreto ou inválido.' : 'Falha ao excluir.';
+        showMsg(j.erro || fallback, false);
         return;
       }
       if (entradaNfeRascunhoEditId === String(id)) setEntradaNfeRascunhoEdit(null);
@@ -5693,6 +5725,21 @@
     return links;
   }
 
+  /** Custo unitário da NF: ``vUnCom`` ou, se vier zerado, ``vProd / qCom`` do XML. */
+  function entradaNfeXmlMergeVUnNfDoItem(xml) {
+    if (!xml || typeof xml !== 'object') return null;
+    let v = entradaNfeParseDecimalApi(xml.v_un_com);
+    if (v != null && Number.isFinite(v) && v > 0) return entradaNfeRoundHalfUp(v, 6);
+    const vp = entradaNfeParseDecimalApi(xml.v_prod);
+    const q = Number(xml.q_com);
+    if (vp != null && Number.isFinite(vp) && vp > 0 && Number.isFinite(q) && q > 0) {
+      return entradaNfeRoundHalfUp(vp / q, 6);
+    }
+    v = entradaNfeParseDecimalApi(xml.v_un_com);
+    if (v != null && Number.isFinite(v) && v >= 0) return entradaNfeRoundHalfUp(v, 6);
+    return null;
+  }
+
   function entradaNfeXmlMergeCombinar(pre, xml) {
     const out = { ...(xml && typeof xml === 'object' ? xml : {}) };
     if (!pre || typeof pre !== 'object') return out;
@@ -5710,6 +5757,18 @@
     if (Array.isArray(pre.bip_similar_codigos) && pre.bip_similar_codigos.length) {
       out.bip_similar_codigos = [...pre.bip_similar_codigos];
     }
+    /* Sempre manter dados fiscais da NF (XML), nunca o custo exibido na pré-linha / catálogo. */
+    out.x_prod = entradaNfeStrCampo(xml && xml.x_prod != null ? xml.x_prod : out.x_prod);
+    out.c_prod = entradaNfeStrCampo(xml && xml.c_prod != null ? xml.c_prod : out.c_prod);
+    out.ean = entradaNfeStrCampo(xml && xml.ean != null ? xml.ean : out.ean);
+    if (xml && xml.q_com != null) out.q_com = xml.q_com;
+    if (xml && xml.un_por_embalagem != null) out.un_por_embalagem = xml.un_por_embalagem;
+    if (xml && xml.q_estoque != null) out.q_estoque = xml.q_estoque;
+    if (xml && xml.cfop != null) out.cfop = entradaNfeStrCampo(xml.cfop);
+    if (xml && xml.v_prod != null) out.v_prod = xml.v_prod;
+    const vunNf = entradaNfeXmlMergeVUnNfDoItem(xml);
+    if (vunNf != null && Number.isFinite(vunNf)) out.v_un_com = vunNf;
+    out.preservar_custo_nf = true;
     return out;
   }
 
@@ -6376,7 +6435,7 @@
       if (!tr.isConnected) return;
       if (String(tr.querySelector('.in-prod-id')?.value || '').trim() !== pid) return;
       const vunInp = tr.querySelector('.in-vun');
-      if (det && vunInp) {
+      if (det && vunInp && tr.dataset.nfeCustNfPreservado !== '1') {
         const custo = entradaNfeValorCustoProduto(det);
         if (custo != null && custo >= 0) entradaNfeDefinirInputMoedaBr2(vunInp, custo);
       }
@@ -6398,7 +6457,9 @@
     const pvInp = tr.querySelector('.in-pvenda');
     const mEl = tr.querySelector('.in-margem');
     const custoLista = entradaNfeValorCustoProduto(p);
-    if (vunInp && custoLista != null) entradaNfeDefinirInputMoedaBr2(vunInp, custoLista);
+    if (vunInp && custoLista != null && tr.dataset.nfeCustNfPreservado !== '1') {
+      entradaNfeDefinirInputMoedaBr2(vunInp, custoLista);
+    }
     const pv = entradaNfeParseDecimalApi(p.preco_venda);
     if (pvInp && pv != null && pv >= 0) entradaNfeDefinirInputMoedaBr2(pvInp, pv);
     const mm = entradaNfeParseDecimalApi(p.margem_percentual);
@@ -6685,6 +6746,7 @@
   /** via: 'scan' = Enter/bip em EAN·código na linha já expandida (confere OK); 'lookup' = busca na linha sentinela (fica pendente); 'modal' = escolha no popup. */
   function entradaNfeAplicarProdutoNaLinha(tr, p, via) {
     if (!tr || !p) return;
+    delete tr.dataset.nfeCustNfPreservado;
     const eanNfLinha =
       entradaNfeCatalogOnlyDigits(tr.dataset.nfeEanOrig || '').slice(0, 20) ||
       entradaNfeCatalogOnlyDigits(tr.querySelector('.in-ean')?.value || '').slice(0, 20);
@@ -7774,9 +7836,9 @@
             mkBtn(
               'Descartar',
               'warn',
-              'Marcar como descartada; vai para a fila Descartada',
+              'Marcar como descartada; vai para a fila Descartada (confirmação com PIN)',
               () => {
-                if (window.confirm('Marcar como descartada? Ela vai para a fila Descartada.')) entradaNfeRascunhoAcao(rid, 'descartar');
+                void entradaNfeRascunhoAcao(rid, 'descartar');
               },
             ),
           );
@@ -7797,7 +7859,7 @@
           mkBtn(
             'Excluir',
             'danger',
-            'Excluir permanentemente este rascunho',
+            'Excluir permanentemente este rascunho (confirmação com PIN)',
             () => excluirRascunhoMongo(rid),
           ),
         );
@@ -7849,10 +7911,6 @@
   });
 
   document.getElementById('btn-refresh-rasc').addEventListener('click', carregarRascunhos);
-  document.getElementById('btn-entrada-nfe-sair-edicao')?.addEventListener('click', () => {
-    setEntradaNfeRascunhoEdit(null);
-    showMsg('Próximo salvar inicia nova entrada.', true);
-  });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && elModalAjudaNfe && !elModalAjudaNfe.classList.contains('hidden')) {
