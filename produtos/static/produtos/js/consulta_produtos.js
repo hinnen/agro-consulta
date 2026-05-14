@@ -4604,6 +4604,10 @@ window.addEventListener('load', () => {
     pdvRefreshLucide();
 })();
 
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof pdvInicializarCategoriasRapidasPdv === 'function') pdvInicializarCategoriasRapidasPdv();
+});
+
 
 
 document.addEventListener('DOMContentLoaded', function () {
