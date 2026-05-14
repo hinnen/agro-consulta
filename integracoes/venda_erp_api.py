@@ -982,3 +982,32 @@ def normalizar_linhas_ranking_vendedores_v3(rows: list[dict], *, limite: int = 8
         for x in out
         if x["total"] > 0 or x["n_vendas"] > 0
     ]
+
+
+def erp_portal_base_url() -> str:
+    """
+    Origem do painel web ERP (rotas /v3/...), ex.: ``https://sisvale.vendaerp.com.br``.
+
+    Prioridade: ``settings.AGRO_ERP_PORTAL_BASE_URL`` (ou env homônima). Se vazio, deduz de
+    ``VENDA_ERP_API_BASE_URL`` removendo sufixo ``/api`` quando existir.
+    """
+    try:
+        from django.conf import settings as dj
+
+        explicit = (getattr(dj, "AGRO_ERP_PORTAL_BASE_URL", None) or "").strip().rstrip("/")
+        if explicit:
+            return explicit
+        base = (getattr(dj, "VENDA_ERP_API_BASE_URL", None) or "").strip().rstrip("/")
+        if not base:
+            return ""
+        if base.lower().endswith("/api"):
+            base = base[:-4].rstrip("/")
+        return base
+    except Exception:
+        return ""
+
+
+def erp_portal_notas_entrada_list_url() -> str:
+    """URL da lista web «Notas de entrada» (v3), ex.: ``.../v3/NotasEntrada/List``."""
+    b = erp_portal_base_url()
+    return f"{b}/v3/NotasEntrada/List" if b else ""

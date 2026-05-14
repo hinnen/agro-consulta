@@ -1,6 +1,6 @@
 /**
  * Home administrativa — sincroniza catálogo/saldos no localStorage (mesmo cache do PDV)
- * sem navegar para a consulta. Termômetros + “última leitura” iguais ao PDV.
+ * sem navegar para a consulta. Termômetro + “última leitura” iguais ao PDV.
  */
 (function () {
   'use strict';
@@ -168,26 +168,30 @@
       AgroEstoqueSync.paintThermo(btn, lab, AgroEstoqueSync.staleMsDefault);
   }
 
-  function homeHidratarApiSyncDoCache() {
-    var lab = document.getElementById('agro-api-sync-ultima');
-    var btn = document.getElementById('agro-btn-sincronizar-api');
+  /** Se o catálogo em cache foi salvo depois da última leitura de saldos, alinha o termômetro. */
+  function homeHidratarTermometroDesdeCacheCatalogo() {
+    var lab = document.getElementById('agro-saldos-ultima-atualizacao');
+    var btn = document.getElementById('agro-btn-atualizar-saldos');
     if (!lab || !btn || typeof AgroEstoqueSync === 'undefined') return;
     try {
       var raw = localStorage.getItem(PDV_CACHE_KEY);
       if (!raw) return;
       var p = JSON.parse(raw);
-      var at = Number(p.saved_at || 0);
-      if (!at) return;
-      lab.dataset.gmFreshAt = String(at);
-      if (AgroEstoqueSync.formatHorario) lab.textContent = AgroEstoqueSync.formatHorario(new Date(at));
-      else lab.textContent = new Date(at).toLocaleString('pt-BR');
-      if (AgroEstoqueSync.paintThermo)
-        AgroEstoqueSync.paintThermo(btn, lab, AgroEstoqueSync.staleMsDefault);
+      var catAt = Number(p.saved_at || 0);
+      if (!catAt) return;
+      var cur = parseInt(lab.dataset.gmFreshAt || '0', 10) || 0;
+      if (catAt > cur) {
+        lab.dataset.gmFreshAt = String(catAt);
+        if (AgroEstoqueSync.formatHorario) lab.textContent = AgroEstoqueSync.formatHorario(new Date(catAt));
+        else lab.textContent = new Date(catAt).toLocaleString('pt-BR');
+        if (AgroEstoqueSync.paintThermo)
+          AgroEstoqueSync.paintThermo(btn, lab, AgroEstoqueSync.staleMsDefault);
+      }
     } catch (e) {}
   }
 
   async function homeSincronizarApiCompleto() {
-    var btn = document.getElementById('agro-btn-sincronizar-api');
+    var btn = document.getElementById('agro-btn-atualizar-saldos');
     if (btn) {
       btn.disabled = true;
       btn.setAttribute('aria-busy', 'true');
@@ -209,7 +213,6 @@
           document.getElementById('agro-btn-atualizar-saldos'),
         );
       }
-      homeHidratarApiSyncDoCache();
     } catch (e) {
       if (typeof console !== 'undefined' && console.error) console.error(e);
       alert('Não foi possível sincronizar. Verifique a rede e tente de novo.');
@@ -225,7 +228,7 @@
   function init() {
     if (!document.getElementById('home-pdv-bootstrap')) return;
     homeHidratarSaldosDoLS();
-    homeHidratarApiSyncDoCache();
+    homeHidratarTermometroDesdeCacheCatalogo();
 
     if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.mount) {
       AgroEstoqueSync.mount({
@@ -234,25 +237,15 @@
           if (sd && sd.rows) homeAplicarSaldosNoCache(sd.rows);
           homeMarcarSaldosFreshPersist();
         },
-      });
-    }
-
-    var apiBtn = document.getElementById('agro-btn-sincronizar-api');
-    if (apiBtn) {
-      apiBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        homeSincronizarApiCompleto();
+        onManualClick: homeSincronizarApiCompleto,
       });
     }
 
     setInterval(function () {
       var sb = document.getElementById('agro-btn-atualizar-saldos');
       var sl = document.getElementById('agro-saldos-ultima-atualizacao');
-      var ab = document.getElementById('agro-btn-sincronizar-api');
-      var al = document.getElementById('agro-api-sync-ultima');
       if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.paintThermo) {
         if (sb && sl) AgroEstoqueSync.paintThermo(sb, sl, AgroEstoqueSync.staleMsDefault);
-        if (ab && al) AgroEstoqueSync.paintThermo(ab, al, AgroEstoqueSync.staleMsDefault);
       }
     }, 15000);
   }

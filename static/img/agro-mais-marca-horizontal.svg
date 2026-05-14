@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 160" width="720" height="160" role="img" aria-labelledby="t1">
+  <title id="t1">Agro Mais  Sua casa de ra˜˜o com um toque a mais</title>
+  <defs>
+    <linearGradient id="gradAgro" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fb923c"/>
+      <stop offset="55%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+    <linearGradient id="gradSol" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="100%" stop-color="#fdba74"/>
+    </linearGradient>
+  </defs>
+  <!-- Emblema circular -->
+  <circle cx="82" cy="80" r="68" fill="url(#gradSol)" stroke="#f97316" stroke-width="3"/>
+  <ellipse cx="82" cy="108" rx="52" ry="22" fill="#16a34a" opacity="0.95"/>
+  <path d="M38 102 Q82 88 126 102" fill="none" stroke="#ecfccb" stroke-width="2" opacity="0.9"/>
+  <path d="M48 108 Q82 98 116 108" fill="none" stroke="#bbf7d0" stroke-width="1.5" opacity="0.85"/>
+  <path d="M118 62 Q132 48 142 58 Q130 72 118 62" fill="#22c55e"/>
+  <path d="M128 70 Q138 58 148 68" fill="none" stroke="#15803d" stroke-width="2" stroke-linecap="round"/>
+  <!-- Silhuetas simplificadas -->
+  <ellipse cx="62" cy="72" rx="14" ry="18" fill="#0f172a" transform="rotate(-12 62 72)"/>
+  <ellipse cx="100" cy="74" rx="16" ry="20" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1" transform="rotate(10 100 74)"/>
+  <!-- AGRO MAIS -->
+  <text x="168" y="72" font-family="Segoe UI, system-ui, Arial, sans-serif" font-size="52" font-weight="900" letter-spacing="-2">
+    <tspan fill="url(#gradAgro)">AGRO</tspan><tspan fill="#0f172a"> MAIS</tspan>
+  </text>
+  <!-- Slogan -->
+  <text x="168" y="118" font-family="Segoe UI, system-ui, Arial, sans-serif" font-size="17" font-weight="600" fill="#0f172a">
+    Sua casa de ra˜˜o com um toque a mais
+  </text>
+  <line x1="168" y1="128" x2="700" y2="128" stroke="#0f172a" stroke-width="1.2" opacity="0.85"/>
+</svg>

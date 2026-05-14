@@ -278,14 +278,22 @@
       box-shadow: 0 0 0 1px rgb(253 186 116 / 0.65), 0 2px 8px rgb(15 23 42 / 0.06);
     }
     #entrada-nfe-wizard-pages .nfe-wiz-page { min-height: min(70vh, 42rem); }
-    /* Etapa 6 · custo no catálogo: cartões alinhados e leitura rápida */
-    #nfe-wiz-custo-list .nfe-wiz-custo-card { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06); overflow: visible; }
+    /* Etapa 6: não forçar altura mínima — evita faixa vazia sob a prévia. */
+    #nfe-wiz-page-6.nfe-wiz-page {
+      min-height: 0 !important;
+    }
+    /* Etapa 6 · custo no catálogo: cartões densos, uma coluna, sem «média» duplicada ao lado do gráfico */
+    #nfe-wiz-custo-list .nfe-wiz-custo-card {
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+      overflow: hidden;
+      border-radius: 0.65rem;
+    }
     /* Etapa 6: faixa fixa 3 colunas (saldo / custo antes / custo NF) — mesma grade em todos os cartões. */
     #nfe-wiz-custo-list .nfe-wiz-custo-metrics {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
-      gap: 0.4rem 0.65rem;
-      padding: 0.55rem 0.75rem;
+      gap: 0.35rem 0.5rem;
+      padding: 0.45rem 0.65rem;
       background: rgb(248 250 252);
       border-bottom: 1px solid rgb(226 232 240);
       align-items: start;
@@ -316,21 +324,104 @@
       word-break: break-word;
     }
     #nfe-wiz-custo-list .nfe-wiz-custo-metrics .nfe-wiz-metric-sub {
-      display: block;
-      margin-top: 0.2rem;
+      display: inline;
+      margin-left: 0.35rem;
       font-size: 0.62rem;
       font-weight: 700;
       color: rgb(100 116 139);
       font-variant-numeric: tabular-nums;
+      white-space: nowrap;
     }
     #nfe-wiz-custo-list .nfe-wiz-custo-badges-row {
-      padding: 0.45rem 0.75rem 0.35rem;
+      padding: 0.25rem 0.65rem;
+      border-bottom: 1px solid rgb(241 245 249);
+      background: rgb(255 255 255);
+      min-height: 0;
+    }
+    #nfe-wiz-custo-list .nfe-wiz-custo-body {
+      display: block;
+      padding: 0.45rem 0.65rem 0.35rem;
       border-bottom: 1px solid rgb(241 245 249);
       background: rgb(255 255 255);
     }
+    #nfe-wiz-custo-list .nfe-wiz-spark-wrap {
+      min-width: 0;
+    }
+    #nfe-wiz-custo-list .nfe-wiz-custo-escolha {
+      padding: 0.45rem 0.65rem 0.5rem;
+      background: rgb(248 250 252);
+      border-top: 1px solid rgb(226 232 240);
+      border-bottom: none;
+    }
+    #nfe-wiz-custo-list .nfe-wiz-custo-escolha-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem;
+      width: 100%;
+      min-width: 0;
+      align-items: stretch;
+    }
+    @media (max-width: 560px) {
+      #nfe-wiz-custo-list .nfe-wiz-custo-escolha-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    #nfe-wiz-custo-list .nfe-custo-lbl {
+      min-height: 2.65rem;
+      padding: 0.35rem 0.45rem !important;
+      gap: 0.45rem !important;
+      border-radius: 0.5rem;
+    }
+    #nfe-wiz-custo-list .nfe-wiz-spark-block {
+      min-width: 0;
+    }
+    #nfe-wiz-custo-list .nfe-wiz-spark-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.35rem 0.45rem;
+      width: 100%;
+    }
+    #nfe-wiz-custo-list .nfe-wiz-spark-grid-4 > span {
+      min-width: 0;
+      word-break: break-word;
+      hyphens: manual;
+    }
+    @media (min-width: 720px) {
+      #nfe-wiz-custo-list .nfe-wiz-custo-metrics {
+        padding: 0.5rem 0.75rem;
+        gap: 0.4rem 0.65rem;
+      }
+      #nfe-wiz-custo-list .nfe-wiz-custo-metrics .nfe-wiz-metric-lb {
+        font-size: 0.62rem;
+      }
+      #nfe-wiz-custo-list .nfe-wiz-custo-metrics .nfe-wiz-metric-val {
+        font-size: 1.05rem;
+      }
+    }
     #nfe-wiz-custo-hint.nfe-wiz-custo-hint--hidden { display: none !important; }
-    .nfe-wiz-custo-help > summary { list-style: none; }
-    .nfe-wiz-custo-help > summary::-webkit-details-marker { display: none; }
+    /* Modal «Pré-visualizar XML na grade»: cartões, arrastar e destaque de par. */
+    #modal-xml-merge-panel .xml-merge-card {
+      transition: box-shadow 0.14s ease, opacity 0.14s ease, transform 0.14s ease;
+    }
+    #modal-xml-merge-panel .xml-merge-card--dragging {
+      opacity: 0.58;
+      transform: scale(0.982);
+      box-shadow: 0 22px 52px rgba(15, 23, 42, 0.32);
+      outline: 3px dashed rgb(16 185 129);
+      outline-offset: 3px;
+      z-index: 6;
+      position: relative;
+    }
+    #modal-xml-merge-panel .xml-merge-card--drop-target {
+      box-shadow: 0 0 0 3px rgb(16 185 129), 0 10px 32px rgba(16, 185, 129, 0.28);
+      background-color: rgb(236 253 245) !important;
+    }
+    #modal-xml-merge-panel .xml-merge-card-actions {
+      min-width: 6.75rem;
+    }
+    #modal-xml-merge-panel .xml-merge-card-actions button {
+      width: 100%;
+    }
     /* Nota finalizada (PIN etapa 6 · ``aprovacao_wizard_em``): bloqueia edição; etapa 6 sem atributo lock mantém PIN + Reabrir. */
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] input,
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] select,
@@ -592,11 +683,27 @@
       letter-spacing: 0.08em;
       color: rgb(100 116 139);
     }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 0.45rem 0.75rem;
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-head {
+      flex: 1 1 min(0, 100%);
+      min-width: 0;
+    }
+    @media (min-width: 640px) {
+      #entrada-nfe-wizard-nav .nfe-wiz-nav-head {
+        flex: 1 1 auto;
+      }
+    }
     #entrada-nfe-wizard-nav .nfe-wiz-track {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
       gap: 0.35rem;
-      margin-top: 0.45rem;
+      margin-top: 0.35rem;
     }
     @media (max-width: 639px) {
       #entrada-nfe-wizard-nav .nfe-wiz-track {
@@ -610,14 +717,15 @@
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 0.5rem;
-      margin-top: 0.65rem;
-      padding-top: 0.65rem;
-      border-top: 1px solid rgb(226 232 240);
+      gap: 0.45rem;
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+      flex: 0 0 auto;
     }
     .nfe-wiz-pn {
-      min-height: 2.5rem;
-      padding: 0.35rem 0.85rem;
+      min-height: 2.25rem;
+      padding: 0.3rem 0.75rem;
       border-width: 1px;
       font-size: 0.68rem;
       font-weight: 900;
@@ -729,11 +837,7 @@
       {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[40px] text-[11px] font-black uppercase bg-white shadow-sm px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:border-orange-400 shrink-0" %}
     </div>
     <div id="entrada-nfe-editor-scroll" class="flex-1 min-h-0 overflow-y-auto">
-      <div class="max-w-[1400px] mx-auto px-3 sm:px-4 py-3 space-y-3">
-
-    <div id="entrada-nfe-rasc-banner" class="hidden rounded-xl border-2 border-sky-300 bg-sky-50 px-3 py-2 flex flex-wrap items-center justify-end gap-2">
-      <button type="button" id="btn-entrada-nfe-sair-edicao" class="min-h-[40px] px-3 py-1.5 rounded-xl border-2 border-sky-400 bg-white text-[10px] font-black uppercase text-sky-900 hover:bg-sky-100 shrink-0">Novo</button>
-    </div>
+      <div class="max-w-[1400px] mx-auto px-3 sm:px-4 py-2 space-y-2">
 
     <div class="entrada-nfe-tabs">
       <button type="button" class="tab-btn inline-flex items-center justify-center font-black text-[11px] uppercase tab-on" data-tab="manual" title="Manual">Manual</button>
@@ -743,32 +847,36 @@
 
     <div id="entrada-nfe-editor-meta" class="entrada-nfe-editor-meta rounded-lg border border-slate-200/90 bg-white px-2.5 py-2 sm:px-3" aria-live="polite"></div>
 
-    <section id="panel-manual" class="tab-panel bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 flex flex-col gap-3 min-h-0">
-      <div class="rounded-xl entrada-nfe-wiz-nav--compact p-3 shadow-sm shrink-0" id="entrada-nfe-wizard-nav" role="navigation" aria-label="Passos da entrada">
-        <span class="nfe-wiz-nav-eyebrow">Passo a passo</span>
-        <div class="nfe-wiz-track">
-          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn nfe-wiz-nav-btn--on" data-nfe-w-go="1" title="Fornecedor e plano">
-            <span class="nfe-wiz-num">1</span><span class="nfe-wiz-name">Fornecedor</span>
-          </button>
-          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="2" title="Produtos da nota">
-            <span class="nfe-wiz-num">2</span><span class="nfe-wiz-name">Produtos</span>
-          </button>
-          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="3" title="Código de barras / vínculo">
-            <span class="nfe-wiz-num">3</span><span class="nfe-wiz-name">Código de barras</span>
-          </button>
-          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="4" title="Estoque Agro">
-            <span class="nfe-wiz-num">4</span><span class="nfe-wiz-name">Estoque</span>
-          </button>
-          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="5" title="Financeiro">
-            <span class="nfe-wiz-num">5</span><span class="nfe-wiz-name">Financeiro</span>
-          </button>
-          <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="6" title="Finalizar (PIN e custo)">
-            <span class="nfe-wiz-num">6</span><span class="nfe-wiz-name">Finalizar</span>
-          </button>
-        </div>
-        <div class="nfe-wiz-actions">
-          <button type="button" id="nfe-wiz-prev" class="nfe-wiz-pn">← Anterior</button>
-          <button type="button" id="nfe-wiz-next" class="nfe-wiz-pn">Próximo →</button>
+    <section id="panel-manual" class="tab-panel bg-white rounded-xl border border-slate-200 shadow-sm p-2.5 sm:p-3 flex flex-col gap-2 min-h-0">
+      <div class="rounded-xl entrada-nfe-wiz-nav--compact p-2.5 sm:p-3 shadow-sm shrink-0" id="entrada-nfe-wizard-nav" role="navigation" aria-label="Passos da entrada">
+        <div class="nfe-wiz-nav-top">
+          <div class="nfe-wiz-nav-head">
+            <span class="nfe-wiz-nav-eyebrow">Passo a passo</span>
+            <div class="nfe-wiz-track">
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn nfe-wiz-nav-btn--on" data-nfe-w-go="1" title="Fornecedor e plano">
+                <span class="nfe-wiz-num">1</span><span class="nfe-wiz-name">Fornecedor</span>
+              </button>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="2" title="Produtos da nota">
+                <span class="nfe-wiz-num">2</span><span class="nfe-wiz-name">Produtos</span>
+              </button>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="3" title="Código de barras / vínculo">
+                <span class="nfe-wiz-num">3</span><span class="nfe-wiz-name">Código de barras</span>
+              </button>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="4" title="Estoque Agro">
+                <span class="nfe-wiz-num">4</span><span class="nfe-wiz-name">Estoque</span>
+              </button>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="5" title="Financeiro">
+                <span class="nfe-wiz-num">5</span><span class="nfe-wiz-name">Financeiro</span>
+              </button>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="6" title="Finalizar (PIN e custo)">
+                <span class="nfe-wiz-num">6</span><span class="nfe-wiz-name">Finalizar</span>
+              </button>
+            </div>
+          </div>
+          <div class="nfe-wiz-actions">
+            <button type="button" id="nfe-wiz-prev" class="nfe-wiz-pn">← Anterior</button>
+            <button type="button" id="nfe-wiz-next" class="nfe-wiz-pn">Próximo →</button>
+          </div>
         </div>
       </div>
 
@@ -1097,31 +1205,24 @@
       </div>
       </div>
 
-      <div id="nfe-wiz-page-6" data-nfe-wiz-page="6" class="nfe-wiz-page hidden flex flex-col gap-4 rounded-2xl border-2 border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4 sm:p-5 overflow-y-auto min-h-0">
-        <div class="flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div id="nfe-wiz-page-6" data-nfe-wiz-page="6" class="nfe-wiz-page hidden flex flex-col gap-2 rounded-2xl border-2 border-slate-200 bg-gradient-to-b from-slate-50 to-white p-3 sm:p-3.5 overflow-y-auto min-h-0">
+        <div class="flex flex-wrap items-center justify-between gap-2 shrink-0">
           <div class="min-w-0">
             <h2 class="text-sm font-black uppercase text-slate-900 tracking-tight">6 · Finalizar</h2>
-            <p class="text-[10px] font-bold text-slate-500 mt-0.5 uppercase tracking-wide">PIN e custo no catálogo</p>
           </div>
           <button type="button" class="nfe-wiz-help min-h-[40px] min-w-[40px] rounded-xl border-2 border-slate-300 bg-white text-sm font-black text-slate-800 hover:bg-slate-50 shrink-0" data-help-w="6" title="Ajuda da etapa 6" aria-label="Ajuda da etapa 6">?</button>
         </div>
         <div id="nfe-wiz-custo-wrap" class="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div class="shrink-0 flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-emerald-50/90 via-white to-white">
+          <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4 border-b border-slate-100 bg-gradient-to-r from-emerald-50/90 via-white to-white">
             <div class="min-w-0">
               <h3 class="text-xs font-black uppercase tracking-wide text-slate-900">Custo no catálogo · média C+V</h3>
-              <p id="nfe-wiz-custo-count" class="mt-1 text-[10px] font-bold text-slate-500 tabular-nums hidden" aria-live="polite"></p>
+              <p id="nfe-wiz-custo-count" class="mt-0.5 text-[10px] font-bold text-slate-500 tabular-nums hidden" aria-live="polite"></p>
             </div>
-            <details class="nfe-wiz-custo-help group shrink-0 w-full sm:w-auto sm:max-w-[20rem]">
-              <summary class="cursor-pointer min-h-[40px] min-w-[40px] sm:min-w-0 sm:px-3 inline-flex items-center justify-center sm:justify-start gap-2 rounded-xl border-2 border-emerald-300 bg-white text-xs font-black text-emerald-900 hover:bg-emerald-50 marker:content-none w-full sm:w-auto" aria-label="O que é esta prévia">
-                <span class="tabular-nums">?</span><span class="hidden sm:inline font-bold normal-case tracking-normal">Como funciona</span>
-              </summary>
-              <div class="mt-2 rounded-xl border-2 border-emerald-100 bg-emerald-50/60 p-3 text-[11px] font-semibold text-slate-800 leading-relaxed">Confira cada item e escolha se o custo gravado no catálogo após o PIN será a <strong>média ponderada</strong> (estoque + NF) ou o <strong>custo unitário da NF</strong>. Com saldo C+V abaixo de 1 ou diferença grande entre custos, o padrão sugerido pode mudar — veja os selos em cada card. O mini gráfico em cada linha mostra até <strong>três últimas compras</strong> no ERP (custo unitário final, da mais antiga à mais recente) e o <strong>quarto ponto</strong> é o custo unitário <strong>desta NF</strong>; em cada coluna aparecem <strong>data</strong> (quando o ERP tem) e valor. Se não houver histórico suficiente, o início repete o custo de catálogo anterior só para completar as quatro colunas (nessas colunas a data fica em branco).</div>
-            </details>
           </div>
-          <p id="nfe-wiz-custo-hint" class="shrink-0 mx-4 mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-800 leading-snug nfe-wiz-custo-hint--hidden" role="status"></p>
-          <div id="nfe-wiz-custo-list" class="pdv-wizard-scroll min-h-[220px] max-h-[min(65vh,32rem)] overflow-y-auto overflow-x-auto px-4 pb-4 pt-3 flex flex-col gap-3"></div>
+          <p id="nfe-wiz-custo-hint" class="shrink-0 mx-3 sm:mx-4 mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold text-slate-800 leading-snug nfe-wiz-custo-hint--hidden" role="status"></p>
+          <div id="nfe-wiz-custo-list" class="pdv-wizard-scroll min-h-0 max-h-[min(58vh,28rem)] overflow-y-auto overflow-x-auto px-2 sm:px-3 pb-2 pt-1 flex flex-col gap-2"></div>
         </div>
-        <div class="shrink-0 rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-sm space-y-3">
+        <div class="shrink-0 rounded-2xl border-2 border-slate-200 bg-white p-3 shadow-sm space-y-2.5">
           <label class="block max-w-sm">
             <span class="text-[10px] font-black uppercase text-slate-600 tracking-wide">PIN (senha rápida)</span>
             <input type="password" id="nfe-wiz-pin" autocomplete="current-password" class="mt-1.5 w-full min-h-[52px] rounded-xl border-2 border-slate-300 px-4 text-xl font-mono tracking-[0.2em] bg-slate-50 focus:bg-white focus:border-emerald-500 outline-none transition-colors" inputmode="numeric" maxlength="12" placeholder="····">
@@ -1221,18 +1322,19 @@
     </div>
 
   {# Pré-visualização XML × grade: só aplica ao confirmar; clique fora NÃO fecha (evita fecho acidental). #}
-  <div id="modal-xml-merge" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-900/80" role="dialog" aria-modal="true" aria-labelledby="modal-xml-merge-titulo">
-    <div id="modal-xml-merge-panel" class="relative flex w-full max-w-[min(98vw,1520px)] h-[min(94vh,960px)] min-h-[420px] flex-col overflow-hidden rounded-2xl border-[3px] border-slate-700 bg-white shadow-2xl">
+  <div id="modal-xml-merge" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-[1.25vh] sm:p-[2vh] bg-slate-900/80" role="dialog" aria-modal="true" aria-labelledby="modal-xml-merge-titulo">
+    <div id="modal-xml-merge-panel" class="relative flex w-[95vw] max-w-[95vw] h-[95vh] max-h-[95vh] min-h-[min(420px,90vh)] flex-col overflow-hidden rounded-2xl border-[3px] border-slate-700 bg-white shadow-2xl">
       <div class="shrink-0 flex flex-wrap items-start gap-2 border-b-2 border-slate-200 bg-slate-50 px-3 py-3 sm:px-5 sm:py-4">
         <div class="min-w-0 flex-1 basis-[min(100%,28rem)]">
           <h2 id="modal-xml-merge-titulo" class="text-base sm:text-xl font-black uppercase tracking-tight text-slate-900 leading-tight">Pré-visualizar XML na grade</h2>
-          <p class="mt-1 text-sm font-semibold text-slate-600 leading-snug">Compare a grade atual (ex.: pré-pedido de Compras) com os itens da NF-e. A grade <strong>só muda</strong> ao tocar em <strong>Confirmar na grade</strong>. Clique fora desta janela <strong>não fecha</strong> — use Cancelar ou Fechar.</p>
         </div>
         <details class="relative shrink-0 group z-10">
           <summary class="cursor-pointer list-none min-h-[48px] min-w-[48px] flex items-center justify-center rounded-xl border-2 border-emerald-600 bg-emerald-50 px-3 font-black text-emerald-900 hover:bg-emerald-100 text-sm uppercase tracking-wide select-none marker:content-none before:content-['?']">Ajuda</summary>
           <div class="absolute right-0 top-[calc(100%+6px)] w-[min(32rem,calc(100vw-2rem))] max-h-[min(70vh,28rem)] overflow-y-auto rounded-xl border-2 border-emerald-200 bg-white p-4 shadow-2xl text-[13px] font-semibold text-slate-800 leading-snug space-y-2">
+            <p class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-semibold text-slate-800">Compare a grade atual (ex.: pré-pedido de Compras) com os itens da NF-e. A grade <strong>só muda</strong> ao tocar em <strong>Confirmar na grade</strong>. Clique fora desta janela <strong>não fecha</strong> — use Cancelar ou Fechar.</p>
             <p class="font-black uppercase text-slate-500 text-xs">Vínculo</p>
-            <p>Arraste um cartão da esquerda sobre um da direita (ou o contrário) para casar linha da grade com item do XML. O sistema também sugere vínculos por <strong>EAN</strong> ou <strong>código do produto</strong> quando batem.</p>
+            <p>Cada par recebe a <strong>mesma cor</strong> no selo «Par G… ↔ X…» e na <strong>faixa vertical</strong> à esquerda do cartão — assim fica explícito qual linha da grade casou com qual linha do XML.</p>
+            <p>Arraste um cartão da esquerda sobre um da direita (ou o contrário) para casar linha da grade com item do XML — ao arrastar, o cartão fica com <strong>contorno tracejado verde</strong> e o destino válido ganha <strong>realce</strong>. O sistema também sugere vínculos por <strong>EAN</strong> ou <strong>código do produto</strong> quando batem.</p>
             <p class="font-black uppercase text-slate-500 text-xs">Descartar</p>
             <p>Você pode <strong>descartar por linha</strong>, arrastar para a <strong>zona de lixo</strong> ou usar <strong>Descartar todos os não vinculados</strong> (com confirmação). Descartados não entram na grade ao confirmar; use <strong>Restaurar</strong> na lista abaixo se mudar de ideia.</p>
             <p class="font-black uppercase text-slate-500 text-xs">Itens só de um lado</p>
@@ -1856,7 +1958,25 @@
     });
   }
 
+  /** Prompt do PIN (senha rápida) na lista de notas; ``null`` = cancelou. */
+  function entradaNfeSolicitarPinLista(titulo) {
+    const p = window.prompt(`${titulo}\n\nDigite seu PIN (senha rápida):`);
+    if (p === null) return null;
+    return String(p).trim();
+  }
+
   async function entradaNfeRascunhoAcao(id, acao) {
+    let pin;
+    if (acao === 'descartar') {
+      pin = entradaNfeSolicitarPinLista(
+        'DESCARTAR esta entrada. Ela vai para a fila «Descartada».',
+      );
+      if (pin === null) return;
+      if (!pin) {
+        showMsg('Informe o PIN para descartar.', false);
+        return;
+      }
+    }
     try {
       const r = await fetch(URL_RASC_ACAO, {
         method: 'POST',
@@ -1865,7 +1985,9 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken'),
         },
-        body: JSON.stringify({ id, acao }),
+        body: JSON.stringify(
+          pin !== undefined ? { id, acao, pin } : { id, acao },
+        ),
       });
       const j = await r.json();
       if (j.ok) {
@@ -1877,7 +1999,8 @@
         showMsg(msg, true);
         carregarRascunhos();
       } else {
-        showMsg(j.erro || 'Não foi possível alterar o status.', false);
+        const fallback = r.status === 403 ? 'PIN incorreto ou inválido.' : 'Não foi possível alterar o status.';
+        showMsg(j.erro || fallback, false);
       }
     } catch (_) {
       showMsg('Erro de rede.', false);
@@ -2001,13 +2124,6 @@
       entradaNfeCodigosEtapaConfirmada = false;
       entradaNfeRascunhoStatusUltimo = '';
       entradaNfeRascunhoMetaTs = { criado_em: '', atualizado_em: '' };
-    }
-    const b = document.getElementById('entrada-nfe-rasc-banner');
-    if (b) {
-      if (entradaNfeRascunhoEditId) b.classList.remove('hidden');
-      else b.classList.add('hidden');
-    }
-    if (!entradaNfeRascunhoEditId) {
       entradaNfeAtualizarUiBotaoEstoqueAgro(null);
       entradaNfeAtualizarUiBotaoFinanceiro(null);
       entradaNfeAtualizarUiBotaoWizardFinalizar();
@@ -2135,12 +2251,6 @@
       btn.classList.toggle('opacity-40', on);
       btn.classList.toggle('pointer-events-none', on);
     });
-    const novoBtn = document.getElementById('btn-entrada-nfe-sair-edicao');
-    if (novoBtn) {
-      novoBtn.disabled = on;
-      novoBtn.classList.toggle('opacity-40', on);
-      novoBtn.classList.toggle('pointer-events-none', on);
-    }
     const reabrir = document.getElementById('nfe-wiz-btn-reabrir');
     if (reabrir) {
       const show = !!entradaNfeRascunhoEditId
@@ -2748,6 +2858,16 @@
     return new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
+  /** Data curta para grade de 4 colunas (menos sobreposição em telas estreitas). */
+  function entradaNfeSparkDataFmtCurta(iso) {
+    const s = String(iso || '').trim();
+    if (!s) return '—';
+    const d = s.length >= 10 ? s.slice(0, 10) : s;
+    const t = Date.parse(`${d}T12:00:00`);
+    if (!Number.isFinite(t)) return '—';
+    return new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  }
+
   /** Normaliza 4 valores para o spark (API pode mandar string decimal ou lista incompleta). */
   function entradaNfeCustoSparkQuatroPontos(it) {
     const toNum = (x) => {
@@ -2776,29 +2896,49 @@
     return { vals, dates, fromApi };
   }
 
-  /** Mini gráfico (4 pontos): estilo Compras — valores = custo unitário; último ponto = esta NF (laranja). */
+  /** Mini gráfico (4 pontos): escala **mín–máx** nos 4 valores para a linha não ficar chapada quando todos são próximos do máximo. */
   function entradaNfeSparklineSvg4Custo(vals) {
     const v = (vals || []).map((x) => Math.max(0, Number(x) || 0));
+    if (!v.length) {
+      return (
+        '<svg viewBox="0 0 320 50" class="w-full h-[3rem] sm:h-[3.25rem] text-slate-300" preserveAspectRatio="none" aria-hidden="true">' +
+        '<line x1="4" y1="25" x2="316" y2="25" stroke="currentColor" stroke-width="1" stroke-dasharray="4 3"/>' +
+        '</svg>'
+      );
+    }
     const n = 4;
     const w = 320;
-    const h = 58;
+    const h = 50;
     const padX = 4;
     const padY = 6;
-    const max = Math.max(...v, 1e-6);
     const innerW = w - 2 * padX;
     const innerH = h - 2 * padY;
+    let vmin = Math.min(...v);
+    let vmax = Math.max(...v);
+    let spread = vmax - vmin;
+    const ref = Math.max(vmax, 1e-6);
+    /* Se a faixa for minúscula (ex.: todos ~R$ 139), expande só para visualização — não altera dados. */
+    const minSpreadRel = 0.012;
+    if (spread < ref * minSpreadRel) {
+      const mid = (vmin + vmax) / 2;
+      const padAmt = Math.max(ref * minSpreadRel * 0.5, 0.02);
+      vmin = mid - padAmt;
+      vmax = mid + padAmt;
+      spread = vmax - vmin;
+    }
+    const yFor = (val) => padY + innerH - ((Number(val) || 0) - vmin) / spread * innerH;
     const step = n <= 1 ? 0 : innerW / (n - 1);
     const pts = v
       .map((val, i) => {
         const x = padX + i * step;
-        const y = padY + innerH - (val / max) * innerH;
+        const y = yFor(val);
         return `${x.toFixed(1)},${y.toFixed(1)}`;
       })
       .join(' ');
     const circles = v
       .map((val, i) => {
         const x = padX + i * step;
-        const y = padY + innerH - (val / max) * innerH;
+        const y = yFor(val);
         const cls = i === n - 1 ? 'text-orange-500' : 'text-emerald-600';
         return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.8" fill="currentColor" class="${cls}"/>`;
       })
@@ -2808,7 +2948,7 @@
       v
         .map((val, i) => {
           const x = padX + i * step;
-          const y = padY + innerH - (val / max) * innerH;
+          const y = yFor(val);
           return `${x.toFixed(1)},${y.toFixed(1)}`;
         })
         .join(' ') +
@@ -2818,7 +2958,7 @@
       w +
       ' ' +
       h +
-      '" class="w-full h-[3.2rem] text-emerald-600" preserveAspectRatio="none" aria-hidden="true">' +
+      '" class="w-full h-[3rem] sm:h-[3.25rem] text-emerald-600" preserveAspectRatio="none" aria-hidden="true">' +
       '<line x1="' +
       padX +
       '" y1="' +
@@ -2854,14 +2994,14 @@
         'border-slate-700',
         'bg-slate-100',
       );
-      lb.classList.add('border-slate-100', 'bg-white/80');
+      lb.classList.add('border-slate-100', 'bg-white');
     });
     const escNm = String(name).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     const chk = document.querySelector(`input[type="radio"][name="${escNm}"]:checked`);
     if (!chk) return;
     const lb = chk.closest('label');
     if (!lb) return;
-    lb.classList.remove('border-slate-100', 'bg-white/80');
+    lb.classList.remove('border-slate-100', 'bg-white');
     if (chk.value === 'media') {
       lb.classList.add('ring-2', 'ring-emerald-300', 'border-emerald-500', 'bg-emerald-50');
     } else {
@@ -3100,30 +3240,27 @@
           const sparkValsFmt = sparkVals.map((v) =>
             Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
           );
-          const sparkDatesFmt = spark.dates.map((d) => entradaNfeSparkDataFmt(d));
+          const sparkDatesFmt = spark.dates.map((d) => entradaNfeSparkDataFmtCurta(d));
           const sparkTitle = spark.fromApi
             ? 'Quatro pontos: até 3 últimas compras no ERP (custo unitário final, da mais antiga à mais recente) e à direita o custo unitário desta NF. Colunas à esquerda sem data indicam preenchimento com o custo de catálogo anterior (sem compra naquela posição).'
             : 'Sem histórico de compras válido na resposta — linha mostra custo de catálogo anterior (repetido) até o custo unitário desta NF.';
-          sparkHtml = `<div class="mt-3 rounded-xl border border-slate-100 bg-gradient-to-br from-slate-50/90 to-white px-2.5 py-2" title="${esc(sparkTitle)}">
-            <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
-              <div class="text-[9px] font-black uppercase tracking-wide text-slate-500">Custo unit. · últimas compras + esta NF</div>
-              ${spark.fromApi ? '' : '<span class="text-[8px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">Catálogo + NF</span>'}
+          sparkHtml = `<div class="nfe-wiz-spark-block rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-1.5 w-full min-w-0" title="${esc(sparkTitle)}">
+            <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
+              <div class="text-[8px] sm:text-[9px] font-black uppercase tracking-wide text-slate-500 leading-tight">Histórico C1–C3 + NF</div>
+              ${spark.fromApi ? '' : '<span class="text-[7px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded px-1 py-0.5 shrink-0">Catálogo + NF</span>'}
             </div>
-            <div class="flex items-end justify-start w-full max-w-[16rem]">${entradaNfeSparklineSvg4Custo(sparkVals)}</div>
-            <div class="grid grid-cols-4 gap-1 mt-0.5 w-full max-w-[16rem]">
-              <span class="text-[9px] font-black text-slate-600 bg-white border border-slate-200 rounded px-0.5 py-0.5 text-center">C1</span>
-              <span class="text-[9px] font-black text-slate-600 bg-white border border-slate-200 rounded px-0.5 py-0.5 text-center">C2</span>
-              <span class="text-[9px] font-black text-slate-600 bg-white border border-slate-200 rounded px-0.5 py-0.5 text-center">C3</span>
-              <span class="text-[9px] font-black text-orange-900 bg-orange-50 border border-orange-200 rounded px-0.5 py-0.5 text-center">NF</span>
+            <div class="w-full min-w-0">${entradaNfeSparklineSvg4Custo(sparkVals)}</div>
+            <div class="nfe-wiz-spark-grid-4 mt-1">
+              <span class="text-[8px] font-black text-slate-600 bg-white border border-slate-200 rounded px-0.5 py-0.5 text-center">C1</span>
+              <span class="text-[8px] font-black text-slate-600 bg-white border border-slate-200 rounded px-0.5 py-0.5 text-center">C2</span>
+              <span class="text-[8px] font-black text-slate-600 bg-white border border-slate-200 rounded px-0.5 py-0.5 text-center">C3</span>
+              <span class="text-[8px] font-black text-orange-900 bg-orange-50 border border-orange-200 rounded px-0.5 py-0.5 text-center">NF</span>
             </div>
-            <div class="grid grid-cols-4 gap-1 mt-0.5 w-full max-w-[16rem]">
-              ${sparkDatesFmt.map((s) => `<span class="text-[8px] font-bold text-slate-500 tabular-nums text-center leading-tight">${esc(s)}</span>`).join('')}
+            <div class="nfe-wiz-spark-grid-4 mt-0.5">
+              ${sparkDatesFmt.map((s) => `<span class="text-[7px] sm:text-[8px] font-bold text-slate-600 tabular-nums text-center leading-tight">${esc(s)}</span>`).join('')}
             </div>
-            <div class="grid grid-cols-4 gap-1 mt-0.5 w-full max-w-[16rem]">
-              ${sparkValsFmt.map((s) => `<span class="text-[9px] font-black text-slate-900 tabular-nums text-center leading-tight">${esc(s)}</span>`).join('')}
-            </div>
-            <div class="flex justify-between text-[8px] font-bold text-slate-400 mt-0.5 px-0.5 w-full max-w-[16rem]">
-              <span>Mais antigo</span><span>esta NF</span>
+            <div class="nfe-wiz-spark-grid-4 mt-0.5">
+              ${sparkValsFmt.map((s) => `<span class="text-[8px] sm:text-[9px] font-black text-slate-900 tabular-nums text-center leading-tight">${esc(s)}</span>`).join('')}
             </div>
           </div>`;
         } catch (_) {
@@ -3133,18 +3270,18 @@
         const qtdFmt = Number(it.qtd_entrada || 0).toLocaleString('pt-BR', { maximumFractionDigits: 4 });
         const nm = `nfe-custo-${ix}`;
         const pidAttr = pid.replace(/"/g, '');
+        const badgesHtml = badges.join('');
         parts.push(`<article class="nfe-wiz-custo-card rounded-xl border border-slate-200 bg-white">
-          <header class="flex flex-wrap items-start gap-3 px-3 py-3 bg-slate-50/90 border-b border-slate-100">
-            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-xs font-black text-emerald-950 border border-emerald-200/80 tabular-nums">${ix + 1}</span>
+          <header class="flex flex-wrap items-start gap-2 px-2.5 py-2 bg-slate-50/90 border-b border-slate-100">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-100 text-[11px] font-black text-emerald-950 border border-emerald-200/80 tabular-nums">${ix + 1}</span>
             <div class="min-w-0 flex-1">
-              <h4 class="text-sm font-black text-slate-900 leading-snug break-words">${esc(n)}</h4>
+              <h4 class="text-[13px] font-black text-slate-900 leading-snug break-words">${esc(n)}</h4>
             </div>
           </header>
           <div class="nfe-wiz-custo-metrics" role="group" aria-label="Saldo e custos antes desta NF">
             <div class="min-w-0">
               <span class="nfe-wiz-metric-lb">Saldo até esta entrada (C+V)</span>
-              <span class="nfe-wiz-metric-val">${esc(saldoFmt)}</span>
-              <span class="nfe-wiz-metric-sub">Qtd entrada: ${esc(qtdFmt)}</span>
+              <span class="nfe-wiz-metric-val">${esc(saldoFmt)}<span class="nfe-wiz-metric-sub">· ${esc(qtdFmt)} un.</span></span>
             </div>
             <div class="min-w-0">
               <span class="nfe-wiz-metric-lb">Custo catálogo antes da NF</span>
@@ -3155,24 +3292,24 @@
               <span class="nfe-wiz-metric-val">${fmt(it.custo_unitario_nota)}</span>
             </div>
           </div>
-          <div class="nfe-wiz-custo-badges-row flex flex-wrap gap-1.5 items-center min-h-[1.5rem]">${badges.join('') || '<span class="text-[10px] font-semibold text-slate-400">Sem alerta de regra</span>'}</div>
-          <div class="px-3 py-3 border-b border-slate-100 bg-white">
-            ${sparkHtml}
-            <div class="mt-4 flex items-center justify-between gap-3 rounded-xl border-2 border-emerald-200/90 bg-gradient-to-r from-emerald-50 to-white px-3 py-2.5">
-              <span class="text-[10px] font-black uppercase tracking-wide text-emerald-900">Média sugerida</span>
-              <span class="text-lg font-black text-emerald-950 tabular-nums">${fmt(it.custo_medio_ponderado)}</span>
+          ${badgesHtml ? `<div class="nfe-wiz-custo-badges-row flex flex-wrap gap-1 items-center">${badgesHtml}</div>` : ''}
+          <div class="nfe-wiz-custo-body">
+            <div class="nfe-wiz-spark-wrap min-w-0">
+              ${sparkHtml || '<div class="rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-2 py-4 text-center text-[9px] font-bold text-slate-500">Sem histórico de compras para este item.</div>'}
             </div>
           </div>
-          <div class="nfe-wiz-custo-escolha px-3 py-3 bg-slate-50/50 border-b border-slate-100 space-y-2" role="radiogroup" aria-label="Custo a gravar no catálogo após o PIN">
-            <p class="text-[10px] font-black uppercase tracking-wide text-slate-700 leading-snug">Custo após o PIN · escolha uma opção</p>
-            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-white/90 px-2 py-2.5 hover:border-emerald-200 hover:bg-emerald-50/40 min-h-[48px]">
-              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="media" class="h-5 w-5 shrink-0 accent-emerald-600" ${cur === 'media' ? 'checked' : ''}>
-              <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-emerald-800">Média ponderada (C+V + entrada)</span> · ${fmt(it.custo_medio_ponderado)}</span>
+          <div class="nfe-wiz-custo-escolha flex flex-col gap-1.5" role="radiogroup" aria-label="Custo a gravar no catálogo após o PIN">
+            <p class="text-[9px] font-black uppercase tracking-wide text-slate-600 leading-none">Após o PIN — gravar no catálogo</p>
+            <div class="nfe-wiz-custo-escolha-grid">
+            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-2 rounded-lg border-2 border-slate-100 bg-white px-2 py-2 hover:border-slate-400 hover:bg-slate-50">
+              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="nota" class="h-4 w-4 shrink-0 accent-slate-700" ${cur === 'nota' ? 'checked' : ''}>
+              <span class="text-[11px] font-bold text-slate-900 leading-snug"><span class="text-slate-600">NF</span> ${fmt(it.custo_unitario_nota)}</span>
             </label>
-            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-3 rounded-lg border-2 border-slate-100 bg-white/90 px-2 py-2.5 hover:border-slate-300 hover:bg-white min-h-[48px]">
-              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="nota" class="h-5 w-5 shrink-0 accent-slate-700" ${cur === 'nota' ? 'checked' : ''}>
-              <span class="text-xs font-bold text-slate-900 leading-snug"><span class="text-slate-600">Custo unitário desta NF</span> · ${fmt(it.custo_unitario_nota)}</span>
+            <label class="nfe-custo-lbl flex cursor-pointer items-center gap-2 rounded-lg border-2 border-slate-100 bg-white px-2 py-2 hover:border-emerald-300 hover:bg-emerald-50/50">
+              <input type="radio" name="${nm}" data-pid="${pidAttr}" value="media" class="h-4 w-4 shrink-0 accent-emerald-600" ${cur === 'media' ? 'checked' : ''}>
+              <span class="text-[11px] font-bold text-slate-900 leading-snug"><span class="text-emerald-800">Média C+V</span> ${fmt(it.custo_medio_ponderado)}</span>
             </label>
+            </div>
           </div>
         </article>`);
       });
@@ -4061,6 +4198,7 @@
       un_por_embalagem: un,
       q_estoque: qest,
       v_un_com: it.v_un_com != null ? it.v_un_com : 0,
+      v_prod: it.v_prod != null ? it.v_prod : null,
       preco_venda: it.preco_venda != null ? it.preco_venda : 0,
       cfop: entradaNfeStrCampo(it.cfop),
       produto_id: entradaNfeStrCampo(it.produto_id),
@@ -4866,6 +5004,8 @@
     tr.dataset.nfeNomeCatalogo =
       textoCatCompleto.trim() !== '' ? textoCatCompleto.trim().slice(0, 500) : '';
     tr.dataset.nfeMatchTipo = d.match_tipo ? String(d.match_tipo).trim().slice(0, 80) : '';
+    if (d.preservar_custo_nf) tr.dataset.nfeCustNfPreservado = '1';
+    else delete tr.dataset.nfeCustNfPreservado;
 
     tr.innerHTML = `
       <td class="px-2 py-1"><input type="text" class="in-desc w-full min-w-0 rounded border border-slate-200 px-1 py-1 text-xs font-semibold" value=""></td>
@@ -5129,6 +5269,7 @@
             return [];
           }
         })(),
+        preservar_custo_nf: tr.dataset.nfeCustNfPreservado === '1',
       });
     });
     return linhas;
@@ -5382,6 +5523,7 @@
           un_por_embalagem: row.un_por_embalagem != null ? row.un_por_embalagem : 1,
           q_estoque: row.q_estoque != null ? row.q_estoque : null,
           v_un_com: row.v_un_com != null ? row.v_un_com : 0,
+          margem_percentual: row.margem_percentual != null ? row.margem_percentual : null,
           preco_venda: row.preco_venda != null ? row.preco_venda : 0,
           cfop: row.cfop || '',
           produto_id: row.produto_id || '',
@@ -5390,6 +5532,7 @@
           catalogo_via: row.catalogo_via || '',
           bip_conf: row.bip_conf,
           bip_similar_codigos: row.bip_similar_codigos,
+          preservar_custo_nf: !!row.preservar_custo_nf,
         });
       });
       atualizarPainelTotalNfe();
@@ -5463,7 +5606,14 @@
   }
 
   async function excluirRascunhoMongo(id) {
-    if (!window.confirm('Excluir esta entrada do Agro? Não dá para desfazer.')) return;
+    const pin = entradaNfeSolicitarPinLista(
+      'EXCLUIR permanentemente esta entrada no Agro. Não dá para desfazer.',
+    );
+    if (pin === null) return;
+    if (!pin) {
+      showMsg('Informe o PIN para excluir.', false);
+      return;
+    }
     try {
       const r = await fetch(URL_RASC_EXCLUIR, {
         method: 'POST',
@@ -5472,11 +5622,12 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken'),
         },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, pin }),
       });
       const j = await r.json();
       if (!j.ok) {
-        showMsg(j.erro || 'Falha ao excluir.', false);
+        const fallback = r.status === 403 ? 'PIN incorreto ou inválido.' : 'Falha ao excluir.';
+        showMsg(j.erro || fallback, false);
         return;
       }
       if (entradaNfeRascunhoEditId === String(id)) setEntradaNfeRascunhoEdit(null);
@@ -5544,6 +5695,13 @@
   /** Pré-visualização XML × grade: estado e UI (só aplica na grade ao confirmar). */
   let entradaNfeXmlMergeCtx = null;
   let entradaNfeXmlMergeEscHandler = null;
+  /** Elemento sendo arrastado (feedback visual). */
+  let entradaNfeXmlMergeDragSource = null;
+
+  function entradaNfeXmlMergePairHue(pairIdx) {
+    if (pairIdx == null || pairIdx < 0) return null;
+    return (pairIdx * 53) % 360;
+  }
 
   function entradaNfeXmlMergeNormEan(s) {
     return entradaNfeCatalogOnlyDigits(String(s || '')).slice(0, 14);
@@ -5594,6 +5752,21 @@
     return links;
   }
 
+  /** Custo unitário da NF: ``vUnCom`` ou, se vier zerado, ``vProd / qCom`` do XML. */
+  function entradaNfeXmlMergeVUnNfDoItem(xml) {
+    if (!xml || typeof xml !== 'object') return null;
+    let v = entradaNfeParseDecimalApi(xml.v_un_com);
+    if (v != null && Number.isFinite(v) && v > 0) return entradaNfeRoundHalfUp(v, 6);
+    const vp = entradaNfeParseDecimalApi(xml.v_prod);
+    const q = Number(xml.q_com);
+    if (vp != null && Number.isFinite(vp) && vp > 0 && Number.isFinite(q) && q > 0) {
+      return entradaNfeRoundHalfUp(vp / q, 6);
+    }
+    v = entradaNfeParseDecimalApi(xml.v_un_com);
+    if (v != null && Number.isFinite(v) && v >= 0) return entradaNfeRoundHalfUp(v, 6);
+    return null;
+  }
+
   function entradaNfeXmlMergeCombinar(pre, xml) {
     const out = { ...(xml && typeof xml === 'object' ? xml : {}) };
     if (!pre || typeof pre !== 'object') return out;
@@ -5611,6 +5784,18 @@
     if (Array.isArray(pre.bip_similar_codigos) && pre.bip_similar_codigos.length) {
       out.bip_similar_codigos = [...pre.bip_similar_codigos];
     }
+    /* Sempre manter dados fiscais da NF (XML), nunca o custo exibido na pré-linha / catálogo. */
+    out.x_prod = entradaNfeStrCampo(xml && xml.x_prod != null ? xml.x_prod : out.x_prod);
+    out.c_prod = entradaNfeStrCampo(xml && xml.c_prod != null ? xml.c_prod : out.c_prod);
+    out.ean = entradaNfeStrCampo(xml && xml.ean != null ? xml.ean : out.ean);
+    if (xml && xml.q_com != null) out.q_com = xml.q_com;
+    if (xml && xml.un_por_embalagem != null) out.un_por_embalagem = xml.un_por_embalagem;
+    if (xml && xml.q_estoque != null) out.q_estoque = xml.q_estoque;
+    if (xml && xml.cfop != null) out.cfop = entradaNfeStrCampo(xml.cfop);
+    if (xml && xml.v_prod != null) out.v_prod = xml.v_prod;
+    const vunNf = entradaNfeXmlMergeVUnNfDoItem(xml);
+    if (vunNf != null && Number.isFinite(vunNf)) out.v_un_com = vunNf;
+    out.preservar_custo_nf = true;
     return out;
   }
 
@@ -5674,54 +5859,78 @@
     ctx.preLinhas.forEach((row, pi) => {
       if (ctx.preDiscarded.has(pi)) return;
       const l = linkPorPre.get(pi);
+      const pairIdx = l ? ctx.links.findIndex((x) => x.preIdx === pi && x.xmlIdx === l.xmlIdx) : -1;
+      const ph = entradaNfeXmlMergePairHue(pairIdx);
+      const stripeStyle = ph != null ? `background:hsl(${ph},72%,44%)` : 'background:rgb(226 232 240 / 0.75)';
+      const cardBg = ph != null ? `background:hsl(${ph},58%,96.5%)` : '';
+      const cardBr = ph != null ? `border-color:hsl(${ph},52%,38%)` : '';
       const badge = l
-        ? `<span class="inline-flex items-center rounded-lg bg-emerald-100 border border-emerald-400 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-900">Vinculado ao XML #${l.xmlIdx + 1}</span>`
+        ? `<span class="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-black uppercase border-2 leading-tight" style="border-color:hsl(${ph},55%,40%);background:hsl(${ph},62%,92%);color:hsl(${ph},32%,16%)"><span class="tabular-nums">Par</span> G${pi + 1} ↔ X${l.xmlIdx + 1}</span>`
         : `<span class="inline-flex items-center rounded-lg bg-slate-200 border border-slate-300 px-2 py-0.5 text-[10px] font-black uppercase text-slate-700">Sem vínculo</span>`;
       const acoes = [];
       if (l) {
         acoes.push(
-          `<button type="button" data-xml-merge-act="unlink" data-kind="pre" data-idx="${pi}" class="min-h-[40px] px-2 rounded-lg border-2 border-slate-300 bg-white text-[11px] font-black uppercase text-slate-800 hover:bg-slate-50">Desfazer</button>`
+          `<button type="button" draggable="false" data-xml-merge-act="unlink" data-kind="pre" data-idx="${pi}" class="min-h-[40px] px-2 rounded-lg border-2 border-slate-300 bg-white text-[11px] font-black uppercase text-slate-800 hover:bg-slate-50">Desfazer</button>`
         );
       }
       acoes.push(
-        `<button type="button" data-xml-merge-act="discard" data-kind="pre" data-idx="${pi}" class="min-h-[40px] px-2 rounded-lg border-2 border-orange-500 bg-orange-50 text-[11px] font-black uppercase text-orange-950 hover:bg-orange-100">Descartar</button>`
+        `<button type="button" draggable="false" data-xml-merge-act="discard" data-kind="pre" data-idx="${pi}" class="min-h-[40px] px-2 rounded-lg border-2 border-orange-500 bg-orange-50 text-[11px] font-black uppercase text-orange-950 hover:bg-orange-100">Descartar</button>`
       );
       htmlPre += `
-      <div class="xml-merge-card rounded-xl border-2 ${l ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-300 bg-white'} p-3 shadow-sm cursor-grab active:cursor-grabbing"
-        draggable="true" data-xml-merge-card="pre" data-xml-merge-drop="pre" data-idx="${pi}">
-        <div class="flex flex-wrap items-start justify-between gap-2">
-          <span class="text-xs font-black uppercase text-slate-500">Grade #${pi + 1}</span>
-          <div class="flex flex-wrap gap-1">${badge}</div>
+      <div class="xml-merge-card flex rounded-xl border-2 ${l ? '' : 'border-slate-300 bg-white'} shadow-sm cursor-grab active:cursor-grabbing overflow-hidden"
+        draggable="true" data-xml-merge-card="pre" data-xml-merge-drop="pre" data-idx="${pi}"${l && ph != null ? ` data-xml-merge-pair="${pairIdx}" style="${cardBr};${cardBg}"` : ''}>
+        <div class="w-2.5 shrink-0 self-stretch rounded-l-md" style="${stripeStyle}" aria-hidden="true"></div>
+        <div class="flex flex-1 min-w-0 flex-row items-stretch gap-2 sm:gap-3 p-2.5 sm:p-3">
+          <div class="min-w-0 flex-1 flex flex-col gap-1">
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <span class="text-xs font-black uppercase text-slate-500 shrink-0">Grade #${pi + 1}</span>
+              <div class="flex flex-wrap gap-1 justify-end min-w-0">${badge}</div>
+            </div>
+            ${entradaNfeXmlMergeResumoHtml(row)}
+          </div>
+          <div class="xml-merge-card-actions shrink-0 flex flex-col gap-1.5 justify-center self-stretch border-l border-slate-200/90 pl-2 sm:pl-3" role="group" aria-label="Ações da linha">
+            ${acoes.join('')}
+          </div>
         </div>
-        ${entradaNfeXmlMergeResumoHtml(row)}
-        <div class="mt-2 flex flex-wrap gap-2">${acoes.join('')}</div>
       </div>`;
     });
     let htmlXml = '';
     ctx.xmlLinhas.forEach((row, xi) => {
       if (ctx.xmlDiscarded.has(xi)) return;
       const l = linkPorXml.get(xi);
+      const pairIdx = l ? ctx.links.findIndex((x) => x.preIdx === l.preIdx && x.xmlIdx === xi) : -1;
+      const ph = entradaNfeXmlMergePairHue(pairIdx);
+      const stripeStyle = ph != null ? `background:hsl(${ph},72%,44%)` : 'background:rgb(226 232 240 / 0.75)';
+      const cardBg = ph != null ? `background:hsl(${ph},58%,96.5%)` : '';
+      const cardBr = ph != null ? `border-color:hsl(${ph},52%,38%)` : '';
       const badge = l
-        ? `<span class="inline-flex items-center rounded-lg bg-emerald-100 border border-emerald-400 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-900">Vinculado à grade #${l.preIdx + 1}</span>`
+        ? `<span class="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-black uppercase border-2 leading-tight" style="border-color:hsl(${ph},55%,40%);background:hsl(${ph},62%,92%);color:hsl(${ph},32%,16%)"><span class="tabular-nums">Par</span> G${l.preIdx + 1} ↔ X${xi + 1}</span>`
         : `<span class="inline-flex items-center rounded-lg bg-slate-200 border border-slate-300 px-2 py-0.5 text-[10px] font-black uppercase text-slate-700">Sem vínculo</span>`;
       const acoes = [];
       if (l) {
         acoes.push(
-          `<button type="button" data-xml-merge-act="unlink" data-kind="xml" data-idx="${xi}" class="min-h-[40px] px-2 rounded-lg border-2 border-slate-300 bg-white text-[11px] font-black uppercase text-slate-800 hover:bg-slate-50">Desfazer</button>`
+          `<button type="button" draggable="false" data-xml-merge-act="unlink" data-kind="xml" data-idx="${xi}" class="min-h-[40px] px-2 rounded-lg border-2 border-slate-300 bg-white text-[11px] font-black uppercase text-slate-800 hover:bg-slate-50">Desfazer</button>`
         );
       }
       acoes.push(
-        `<button type="button" data-xml-merge-act="discard" data-kind="xml" data-idx="${xi}" class="min-h-[40px] px-2 rounded-lg border-2 border-orange-500 bg-orange-50 text-[11px] font-black uppercase text-orange-950 hover:bg-orange-100">Descartar</button>`
+        `<button type="button" draggable="false" data-xml-merge-act="discard" data-kind="xml" data-idx="${xi}" class="min-h-[40px] px-2 rounded-lg border-2 border-orange-500 bg-orange-50 text-[11px] font-black uppercase text-orange-950 hover:bg-orange-100">Descartar</button>`
       );
       htmlXml += `
-      <div class="xml-merge-card rounded-xl border-2 ${l ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200 bg-white'} p-3 shadow-sm cursor-grab active:cursor-grabbing"
-        draggable="true" data-xml-merge-card="xml" data-xml-merge-drop="xml" data-idx="${xi}">
-        <div class="flex flex-wrap items-start justify-between gap-2">
-          <span class="text-xs font-black uppercase text-slate-500">XML #${xi + 1}</span>
-          <div class="flex flex-wrap gap-1">${badge}</div>
+      <div class="xml-merge-card flex rounded-xl border-2 ${l ? '' : 'border-slate-200 bg-white'} shadow-sm cursor-grab active:cursor-grabbing overflow-hidden"
+        draggable="true" data-xml-merge-card="xml" data-xml-merge-drop="xml" data-idx="${xi}"${l && ph != null ? ` data-xml-merge-pair="${pairIdx}" style="${cardBr};${cardBg}"` : ''}>
+        <div class="w-2.5 shrink-0 self-stretch rounded-l-md" style="${stripeStyle}" aria-hidden="true"></div>
+        <div class="flex flex-1 min-w-0 flex-row items-stretch gap-2 sm:gap-3 p-2.5 sm:p-3">
+          <div class="min-w-0 flex-1 flex flex-col gap-1">
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <span class="text-xs font-black uppercase text-slate-500 shrink-0">XML #${xi + 1}</span>
+              <div class="flex flex-wrap gap-1 justify-end min-w-0">${badge}</div>
+            </div>
+            ${entradaNfeXmlMergeResumoHtml(row)}
+          </div>
+          <div class="xml-merge-card-actions shrink-0 flex flex-col gap-1.5 justify-center self-stretch border-l border-slate-200/90 pl-2 sm:pl-3" role="group" aria-label="Ações da linha">
+            ${acoes.join('')}
+          </div>
         </div>
-        ${entradaNfeXmlMergeResumoHtml(row)}
-        <div class="mt-2 flex flex-wrap gap-2">${acoes.join('')}</div>
       </div>`;
     });
     if (!htmlPre) {
@@ -5847,6 +6056,7 @@
 
   function entradaNfeXmlMergeFechar() {
     entradaNfeXmlMergeBindEsc(false);
+    entradaNfeXmlMergeOnDragEnd();
     document.getElementById('modal-xml-merge')?.classList.add('hidden');
     entradaNfeXmlMergeCtx = null;
   }
@@ -5912,17 +6122,35 @@
     } catch (_) {}
   }
 
+  function entradaNfeXmlMergeClearDropHints() {
+    document.querySelectorAll('#modal-xml-merge-panel .xml-merge-card--drop-target').forEach((el) => {
+      el.classList.remove('xml-merge-card--drop-target');
+    });
+  }
+
   function entradaNfeXmlMergeOnDragStart(e) {
     const card = e.target.closest('[data-xml-merge-card]');
     if (!card || !entradaNfeXmlMergeCtx) return;
+    if (e.target.closest('button')) return;
     const kind = card.getAttribute('data-xml-merge-card');
     const idx = Number(card.getAttribute('data-idx'));
     if (!kind || Number.isNaN(idx)) return;
+    entradaNfeXmlMergeDragSource = card;
+    entradaNfeXmlMergeClearDropHints();
+    card.classList.add('xml-merge-card--dragging');
     try {
       e.dataTransfer.setData('application/json', JSON.stringify({ kind, idx }));
     } catch (_) {}
     e.dataTransfer.setData('text/plain', `${kind}:${idx}`);
     e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function entradaNfeXmlMergeOnDragEnd() {
+    if (entradaNfeXmlMergeDragSource) {
+      entradaNfeXmlMergeDragSource.classList.remove('xml-merge-card--dragging');
+      entradaNfeXmlMergeDragSource = null;
+    }
+    entradaNfeXmlMergeClearDropHints();
   }
 
   function entradaNfeXmlMergeParsePayload(dt) {
@@ -5946,11 +6174,21 @@
     if (!entradaNfeXmlMergeCtx) return;
     const t = e.target.closest('#xml-merge-trash, [data-xml-merge-drop]');
     if (t) e.preventDefault();
+    const src = entradaNfeXmlMergeDragSource;
+    if (!src) return;
+    entradaNfeXmlMergeClearDropHints();
+    const over = e.target.closest('[data-xml-merge-card]');
+    if (!over || over === src) return;
+    const sk = src.getAttribute('data-xml-merge-card');
+    const ok =
+      sk === 'pre' && over.getAttribute('data-xml-merge-card') === 'xml' ? true : sk === 'xml' && over.getAttribute('data-xml-merge-card') === 'pre';
+    if (ok) over.classList.add('xml-merge-card--drop-target');
   }
 
   function entradaNfeXmlMergeOnDrop(e) {
     if (!entradaNfeXmlMergeCtx) return;
     e.preventDefault();
+    entradaNfeXmlMergeClearDropHints();
     const payload = entradaNfeXmlMergeParsePayload(e.dataTransfer);
     if (!payload) return;
     if (e.target.closest('#xml-merge-trash')) {
@@ -5987,6 +6225,7 @@
       else if (act === 'restore') entradaNfeXmlMergeRestaurar(kind, idx);
     });
     panel.addEventListener('dragstart', entradaNfeXmlMergeOnDragStart);
+    panel.addEventListener('dragend', entradaNfeXmlMergeOnDragEnd);
     panel.addEventListener('dragover', entradaNfeXmlMergeOnDragOver);
     panel.addEventListener('drop', entradaNfeXmlMergeOnDrop);
     document.getElementById('modal-xml-merge-cancelar')?.addEventListener('click', () => {
@@ -6223,7 +6462,7 @@
       if (!tr.isConnected) return;
       if (String(tr.querySelector('.in-prod-id')?.value || '').trim() !== pid) return;
       const vunInp = tr.querySelector('.in-vun');
-      if (det && vunInp) {
+      if (det && vunInp && tr.dataset.nfeCustNfPreservado !== '1') {
         const custo = entradaNfeValorCustoProduto(det);
         if (custo != null && custo >= 0) entradaNfeDefinirInputMoedaBr2(vunInp, custo);
       }
@@ -6245,7 +6484,9 @@
     const pvInp = tr.querySelector('.in-pvenda');
     const mEl = tr.querySelector('.in-margem');
     const custoLista = entradaNfeValorCustoProduto(p);
-    if (vunInp && custoLista != null) entradaNfeDefinirInputMoedaBr2(vunInp, custoLista);
+    if (vunInp && custoLista != null && tr.dataset.nfeCustNfPreservado !== '1') {
+      entradaNfeDefinirInputMoedaBr2(vunInp, custoLista);
+    }
     const pv = entradaNfeParseDecimalApi(p.preco_venda);
     if (pvInp && pv != null && pv >= 0) entradaNfeDefinirInputMoedaBr2(pvInp, pv);
     const mm = entradaNfeParseDecimalApi(p.margem_percentual);
@@ -6532,6 +6773,7 @@
   /** via: 'scan' = Enter/bip em EAN·código na linha já expandida (confere OK); 'lookup' = busca na linha sentinela (fica pendente); 'modal' = escolha no popup. */
   function entradaNfeAplicarProdutoNaLinha(tr, p, via) {
     if (!tr || !p) return;
+    delete tr.dataset.nfeCustNfPreservado;
     const eanNfLinha =
       entradaNfeCatalogOnlyDigits(tr.dataset.nfeEanOrig || '').slice(0, 20) ||
       entradaNfeCatalogOnlyDigits(tr.querySelector('.in-ean')?.value || '').slice(0, 20);
@@ -7621,9 +7863,9 @@
             mkBtn(
               'Descartar',
               'warn',
-              'Marcar como descartada; vai para a fila Descartada',
+              'Marcar como descartada; vai para a fila Descartada (confirmação com PIN)',
               () => {
-                if (window.confirm('Marcar como descartada? Ela vai para a fila Descartada.')) entradaNfeRascunhoAcao(rid, 'descartar');
+                void entradaNfeRascunhoAcao(rid, 'descartar');
               },
             ),
           );
@@ -7644,7 +7886,7 @@
           mkBtn(
             'Excluir',
             'danger',
-            'Excluir permanentemente este rascunho',
+            'Excluir permanentemente este rascunho (confirmação com PIN)',
             () => excluirRascunhoMongo(rid),
           ),
         );
@@ -7696,10 +7938,6 @@
   });
 
   document.getElementById('btn-refresh-rasc').addEventListener('click', carregarRascunhos);
-  document.getElementById('btn-entrada-nfe-sair-edicao')?.addEventListener('click', () => {
-    setEntradaNfeRascunhoEdit(null);
-    showMsg('Próximo salvar inicia nova entrada.', true);
-  });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && elModalAjudaNfe && !elModalAjudaNfe.classList.contains('hidden')) {

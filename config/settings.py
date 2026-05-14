@@ -289,6 +289,8 @@ CONSULTA_CACHE_TTL = 20
 # Endpoints usados pelo Agro costumam estar sob /api/request/... (ex.: Pedidos/Salvar).
 VENDA_ERP_API_BASE_URL = config('VENDA_ERP_API_BASE_URL', default='https://cw.vendaerp.com.br')
 VENDA_ERP_API_TOKEN = config('VENDA_ERP_API_TOKEN', default='')
+# Base do painel web (v3) quando difere da API, ex.: https://sisvale.vendaerp.com.br — vazio = deduz de VENDA_ERP_API_BASE_URL.
+AGRO_ERP_PORTAL_BASE_URL = config('AGRO_ERP_PORTAL_BASE_URL', default='').strip().rstrip('/')
 # Financeiro: sufixo após /api/request/ (ex.: Lancamentos/SalvarBaixa). Vazio = não chama API.
 VENDA_ERP_API_FINANCEIRO_BAIXA_PATH = config('VENDA_ERP_API_FINANCEIRO_BAIXA_PATH', default='').strip()
 VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH = config('VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH', default='').strip()

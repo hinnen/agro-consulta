@@ -1,0 +1,10 @@
+{# Ajuda alinhada ao AGENTS.md §10 — use {% with lanc_help="slug" %}{% include ... %}{% endwith %} #}
+{% if lanc_help == "filtros_busca_lista" %}
+<details class="lanc-help-agents mt-1.5 rounded-lg border border-amber-200 bg-amber-50/60 px-2.5 py-1.5 text-sm text-slate-800">
+  <summary class="min-h-[40px] cursor-pointer select-none font-black uppercase text-amber-900 text-[10px] tracking-wide list-none flex items-center gap-2"><span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-amber-600 bg-white text-sm" aria-hidden="true">?</span> Busca na lista — o que entra</summary>
+  <div class="mt-2 space-y-2 text-[11px] font-semibold leading-snug border-t border-amber-200/80 pt-2 text-slate-700">
+    <p>Separe termos com <strong>espaço</strong>; cada termo pode cair em favorecido, descrição, documento, plano, grupo, forma, banco, empresa, centro de custo, observações, IDs ou <strong>valor</strong> (bruto, pago ou saldo em aberto; use vírgula decimal ou R$).</p>
+    <p class="text-[10px] text-slate-500 font-bold">Documentação: <strong>AGENTS.md</strong> no repositório (seção 10).</p>
+  </div>
+</details>
+{% endif %}

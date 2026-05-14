@@ -134,6 +134,12 @@
     if (btn) {
       btn.addEventListener('click', function () {
         clearTimeout(debounceTimer);
+        if (opts && typeof opts.onManualClick === 'function') {
+          Promise.resolve(opts.onManualClick()).catch(function (e) {
+            console.error('[AgroEstoqueSync] onManualClick', e);
+          });
+          return;
+        }
         exec('manual');
       });
     }

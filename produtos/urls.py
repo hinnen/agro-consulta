@@ -22,6 +22,7 @@ urlpatterns = [
     ),
     path('ajuste-mobile/', views.ajuste_mobile_view, name='ajuste_mobile'), # <-- A rota que faltava
     path('compras/', views.compras_view, name='compras_view'),
+    path('compras/relatorio-a4/', views.compras_relatorio_a4_view, name='compras_relatorio_a4'),
     path(
         'api/compras/relatorio-fornecedor/',
         views.api_compras_relatorio_fornecedor,
