@@ -753,9 +753,6 @@ def api_produtos_gestao_lista(request):
                 client,
                 limit=120,
                 include_inactive=include_inactive,
-                regex_stage2_cap=100,
-                regex_stage3_cap=100,
-                regex_stage3b_cap=0,
                 projection=_GESTAO_LISTA_PROJ,
             )
             prods = [
@@ -1404,12 +1401,43 @@ def _montar_cadastro_erp_payload_produtos_salvar(
     return out
 
 
+def _overlay_erro_validacao_cadastro_minimo(payload: dict) -> str | None:
+    """Campos mínimos quando o cliente envia ``validar_cadastro_minimo`` (modal/drawer de cadastro)."""
+    if not str(payload.get("nome") or "").strip():
+        return "Informe o nome do produto."
+    if not str(payload.get("marca") or "").strip():
+        return "Informe a marca."
+    if not str(payload.get("categoria") or "").strip():
+        return "Informe a categoria."
+    if not str(payload.get("codigo_barras") or "").strip():
+        return "Informe o código de barras."
+    pv_raw = payload.get("preco_venda")
+    if pv_raw is None or str(pv_raw).strip() == "":
+        return "Informe o preço de venda."
+    try:
+        Decimal(str(pv_raw).replace(",", ".").strip())
+    except Exception:
+        return "Preço de venda inválido."
+    pc_raw = payload.get("preco_custo")
+    if pc_raw is None or str(pc_raw).strip() == "":
+        return "Informe o custo unitário."
+    try:
+        Decimal(str(pc_raw).replace(",", ".").strip())
+    except Exception:
+        return "Custo unitário inválido."
+    return None
+
+
 def _api_produtos_gestao_overlay_salvar_core(request):
     """Grava ou atualiza overlay no Agro; envio ao ERP legado só com ``sincronizar_erp`` explícito no JSON."""
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    if payload.get("validar_cadastro_minimo"):
+        vmsg = _overlay_erro_validacao_cadastro_minimo(payload)
+        if vmsg:
+            return JsonResponse({"ok": False, "erro": vmsg}, status=400)
     pid = str(payload.get("produto_id") or "").strip()
     if not pid:
         return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
@@ -10496,8 +10524,8 @@ def motor_de_busca_agro(
 ):
     """Busca produtos no Mongo (PDV e cadastro).
 
-    ``regex_stage*_cap`` reduz documentos lidos em consultas com ``$regex``
-    (telas como cadastro ERP podem passar caps menores para resposta mais rápida).
+    ``regex_stage*_cap`` reduz documentos lidos em consultas com ``$regex``;
+    omitir para o mesmo recall que o PDV (caps padrão 160 / 160 / 220).
 
     ``projection`` (opcional): segundo argumento de ``find`` em todas as leituras
     do catálogo — use na gestão de produtos para não decodificar documentos DTO inteiros.
@@ -12692,15 +12720,14 @@ def api_produtos_cadastro(request):
                 if p_bal_cad:
                     prods = [p_bal_cad]
             if not prods:
+                # Mesmos limites internos do PDV (`api_buscar_produtos`): caps baixos aqui
+                # cortavam candidatos antes do score (ex.: prefixo «GM0050» sem match exato em index_codigos).
                 prods = motor_de_busca_agro(
                     q_raw,
                     db,
                     client,
                     limit=lim_busca,
                     include_inactive=inativos,
-                    regex_stage2_cap=56,
-                    regex_stage3_cap=56,
-                    regex_stage3b_cap=0,
                     projection=_CADASTRO_LISTA_MONGO_PROJ,
                 )
             vistos_cad = {str(p.get("Id") or p.get("_id")) for p in prods if p}

@@ -222,6 +222,7 @@
 
   function buildOverlayFormHtml(p) {
     var pv = (p.preco_venda != null && isFinite(Number(p.preco_venda))) ? String(Number(p.preco_venda)).replace('.', ',') : '';
+    var pc = (p.preco_custo != null && isFinite(Number(p.preco_custo))) ? String(Number(p.preco_custo)).replace('.', ',') : '';
     var av = '';
     if (p.ativo_exibicao === true) av = '1';
     else if (p.ativo_exibicao === false) av = '0';
@@ -229,19 +230,20 @@
     return (
       '<div class="mt-6 rounded-2xl border-2 border-emerald-600 bg-emerald-50/90 p-4 sm:p-5 shadow-sm">' +
       '<h4 class="text-sm font-black uppercase text-emerald-950 tracking-wide mb-1">Editar cadastro · Agro</h4>' +
-      '<p class="text-xs text-slate-700 mb-4 leading-snug"><strong>Salvar no Agro</strong> atualiza só o Agro (PDV e buscas). <strong>Enviar ao ERP</strong> replica no ERP legado quando você quiser. Campo vazio + salvar remove o override; em «Exibir como», «Seguir ERP» remove o forçamento de ativo/inativo.</p>' +
+      '<p class="text-xs font-bold text-slate-800 mt-1 mb-3"><span class="text-red-600 font-black">*</span> Somente os campos com asterisco são obrigatórios para salvar ou enviar ao ERP.</p>' +
+      '<p class="text-xs text-slate-700 mb-4 leading-snug"><strong>Salvar no Agro</strong> atualiza só o Agro (PDV e buscas). <strong>Enviar ao ERP</strong> replica no ERP legado quando você quiser. Nos demais campos, vazio + salvar remove o override; em «Exibir como», «Seguir ERP» remove o forçamento de ativo/inativo.</p>' +
       '<div class="grid gap-3 sm:grid-cols-2">' +
-      '<label class="block sm:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Nome</span>' +
+      '<label class="block sm:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Nome <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-nome" class="' + ic + '" maxlength="300" value="' + escapeHtml(p.nome || '') + '" autocomplete="off" /></label>' +
-      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Marca</span>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Marca <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-marca" class="' + ic + '" maxlength="120" value="' + escapeHtml(p.marca || '') + '" autocomplete="off" /></label>' +
-      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Categoria</span>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Categoria <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-cat" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.categoria || '') + '" autocomplete="off" /></label>' +
       '<label class="block sm:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Fornecedor (texto)</span>' +
       '<input type="text" id="cad-ov-forn" class="' + ic + '" maxlength="300" value="' + escapeHtml(p.fornecedor || '') + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Código NFe / GM</span>' +
       '<input type="text" id="cad-ov-codnfe" class="' + ic + ' font-mono text-sm" maxlength="64" value="' + escapeHtml(String(p.codigo_nfe || p.codigo || '')) + '" autocomplete="off" /></label>' +
-      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Código de barras</span>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Código de barras <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-cb" class="' + ic + ' font-mono text-sm" maxlength="80" value="' + escapeHtml(String(p.codigo_barras || '')) + '" inputmode="numeric" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Subcategoria</span>' +
       '<input type="text" id="cad-ov-sub" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria || '') + '" autocomplete="off" /></label>' +
@@ -253,7 +255,9 @@
       '<input type="text" id="cad-ov-sub4" class="' + ic + '" maxlength="200" value="' + escapeHtml(p.subcategoria_4 || '') + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Unidade</span>' +
       '<input type="text" id="cad-ov-un" class="' + ic + '" maxlength="20" value="' + escapeHtml(p.unidade || '') + '" autocomplete="off" /></label>' +
-      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Preço venda (R$)</span>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Custo unit. (R$) <span class="text-red-600 font-black">*</span></span>' +
+      '<input type="text" id="cad-ov-custo" inputmode="decimal" class="' + ic + '" value="' + escapeHtml(pc) + '" autocomplete="off" /></label>' +
+      '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Preço venda (R$) <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-preco" inputmode="decimal" class="' + ic + '" value="' + escapeHtml(pv) + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Exibir como</span>' +
       '<select id="cad-ov-ativo" class="' + ic + '">' +
@@ -311,7 +315,9 @@
         subcategoria_3: gv('cad-ov-sub3'),
         subcategoria_4: gv('cad-ov-sub4'),
         descricao: gv('cad-ov-desc'),
-        preco_venda: gv('cad-ov-preco')
+        preco_custo: gv('cad-ov-custo'),
+        preco_venda: gv('cad-ov-preco'),
+        validar_cadastro_minimo: true
       };
       var av = gv('cad-ov-ativo');
       if (av === '') body.ativo_exibicao = null;
@@ -333,6 +339,42 @@
         } else {
           msg.classList.add('hidden');
         }
+      }
+      function parseMoedaStrictLocal(s) {
+        var t = String(s == null ? '' : s).trim();
+        if (!t) return null;
+        var t2 = t.replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+        var n = parseFloat(t2);
+        if (!isFinite(n) || n < 0) return null;
+        return n;
+      }
+      function gvLoc(id) {
+        var el = document.getElementById(id);
+        return el ? String(el.value || '').trim() : '';
+      }
+      if (!gvLoc('cad-ov-nome')) {
+        showMsg('Preencha o Nome (obrigatório).', false);
+        return;
+      }
+      if (!gvLoc('cad-ov-marca')) {
+        showMsg('Preencha a Marca (obrigatório).', false);
+        return;
+      }
+      if (!gvLoc('cad-ov-cat')) {
+        showMsg('Preencha a Categoria (obrigatório).', false);
+        return;
+      }
+      if (!gvLoc('cad-ov-cb')) {
+        showMsg('Preencha o Código de barras (obrigatório).', false);
+        return;
+      }
+      if (parseMoedaStrictLocal(gvLoc('cad-ov-custo')) === null) {
+        showMsg('Preencha o Custo unit. (R$) com número ≥ 0 (obrigatório).', false);
+        return;
+      }
+      if (parseMoedaStrictLocal(gvLoc('cad-ov-preco')) === null) {
+        showMsg('Preencha o Preço venda (R$) com número ≥ 0 (obrigatório).', false);
+        return;
       }
       showMsg('');
       var origS = btn.textContent;
@@ -461,11 +503,11 @@
       dlRow('Unidade', p.unidade) +
       dlRow('Unidade de estoque', p.unidade_estoque) +
       dlRow('Categoria', p.categoria) +
-      dlRow('Subcategoria', p.subcategoria) +
+      dlRow('Subcategoria 1', p.subcategoria) +
       dlRow('Subcategoria 2', p.subcategoria_2) +
       dlRow('Subcategoria 3', p.subcategoria_3) +
       dlRow('Subcategoria 4', p.subcategoria_4) +
-      dlRow('Categoria na lista', p.categoria_listagem) +
+      dlRow('Subcategoria', p.categoria_listagem) +
       dlRow('Prateleira / local', p.prateleira) +
       dlRow('Estoque mínimo', p.estoque_minimo != null ? fmtNumPt(p.estoque_minimo, 4) : '') +
       dlRow('Estoque máximo', p.estoque_maximo != null ? fmtNumPt(p.estoque_maximo, 4) : '') +
