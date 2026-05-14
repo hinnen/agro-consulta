@@ -3192,6 +3192,31 @@ def _linhas_doc_mapa_contem_produto(mapa: dict[str, float], canon: str, chaves: 
     return False
 
 
+def _conjunto_compra_contem_produto(conj: set[str], canon: str, chaves: list[str]) -> bool:
+    """True se alguma variante do produto aparece no conjunto de ProdutoID das linhas de compra."""
+    candidatos: list[str] = []
+    for raw in [canon] + (chaves or []):
+        s = str(raw or "").strip()
+        if not s or s == "None":
+            continue
+        if s not in candidatos:
+            candidatos.append(s)
+    for s in candidatos:
+        if s in conj:
+            return True
+        if s.isdigit():
+            if str(int(s)) in conj:
+                return True
+        if len(s) == 24 and all(c in "0123456789abcdefABCDEF" for c in s):
+            try:
+                oid = ObjectId(s)
+                if str(oid) in conj:
+                    return True
+            except Exception:
+                pass
+    return False
+
+
 def _conjunto_produto_ids_linhas_qualquer_compra_fornecedor(
     db,
     fornecedor_nome: str,
@@ -3296,6 +3321,15 @@ def _arred_int_meio_para_cima(x: float | int | None) -> int:
     if v < 0:
         v = 0.0
     return int(math.floor(v + 0.5))
+
+
+def _fmt_relatorio_gm_display(s: str) -> str:
+    t = str(s or "").strip()
+    if not t:
+        return ""
+    if re.match(r"^\d+\.0$", t):
+        return t[:-2]
+    return t
 
 
 def _vendas_qtd_por_produto_intervalo(
@@ -3536,6 +3570,12 @@ def api_compras_relatorio_fornecedor(request):
         ultimo_origem = str(ultimo.get("origem") or "")
         linhas_doc = _mapa_qtd_linhas_documento_compra(db, ultimo)
 
+    hist_linhas: set[str] = set()
+    if not sem_doc:
+        hist_linhas = _conjunto_produto_ids_linhas_qualquer_compra_fornecedor(
+            db, fornecedor_nome, fornecedor_id, p_ids
+        )
+
     now = datetime.now()
     t56 = now - timedelta(days=56)
     tot56, first_in56 = _vendas_qtd_por_produto_intervalo(db, p_ids, t56, now)
@@ -3568,7 +3608,17 @@ def api_compras_relatorio_fornecedor(request):
     prods = list(
         col.find(
             {"$or": ors},
-            {"Id": 1, "_id": 1, "Nome": 1, "Codigo": 1, "CodigoNFe": 1, "CodigoBarras": 1},
+            {
+                "Id": 1,
+                "_id": 1,
+                "Nome": 1,
+                "Codigo": 1,
+                "CodigoNFe": 1,
+                "CodigoBarras": 1,
+                "Sku": 1,
+                "SKU": 1,
+                "CodigoInterno": 1,
+            },
         )
     )
 
@@ -3595,16 +3645,30 @@ def api_compras_relatorio_fornecedor(request):
         nome = str(p.get("Nome") or "").strip() if p else ""
         if not nome:
             nome = "—"
-        codigo = ""
+        chaves = _chaves_produto(p) if p else [canon]
         if p:
-            codigo = str(p.get("Codigo") or p.get("CodigoNFe") or p.get("CodigoBarras") or "").strip()
-        qtd_ult = None
-        if not sem_doc:
-            qtd_ult = round(_resolver_qtd_por_pid(linhas_doc, canon), 4)
+            gm_raw = _mongo_primeiro_texto(
+                p,
+                ("CodigoNFe", "Sku", "SKU", "CodigoInterno", "Codigo", "CodigoBarras"),
+            )
+            codigo = (_fmt_relatorio_gm_display(gm_raw) or _fmt_relatorio_gm_display(str(canon)))[:80]
+        else:
+            codigo = _fmt_relatorio_gm_display(str(canon))[:80]
+
+        qtd_ult: int | None
+        if sem_doc:
+            qtd_ult = None
+        elif _linhas_doc_mapa_contem_produto(linhas_doc, canon, chaves):
+            qtd_ult = _arred_int_meio_para_cima(_resolver_qtd_por_pid(linhas_doc, canon))
+        elif _conjunto_compra_contem_produto(hist_linhas, canon, chaves):
+            qtd_ult = 0
+        else:
+            qtd_ult = None
+
         qtd_pos = None
         if not sem_doc:
-            qtd_pos = round(_resolver_qtd_por_pid(tot_pos, canon), 4)
-        t56p = round(_resolver_qtd_por_pid(tot56, canon), 4)
+            qtd_pos = _arred_int_meio_para_cima(_resolver_qtd_por_pid(tot_pos, canon))
+        t56p = _resolver_qtd_por_pid(tot56, canon)
         first_dt = _resolver_dt_mapa(first_in56, canon)
         if first_dt is None and p:
             for k in _chaves_produto(p):
@@ -3624,7 +3688,7 @@ def api_compras_relatorio_fornecedor(request):
         except Exception:
             dias_hist = 56.0
         semanas_den = int(max(1, min(8, (dias_hist + 6.999999) // 7)))
-        media_sem = round((t56p / float(semanas_den)) if semanas_den else 0.0, 4)
+        media_sem = _arred_int_meio_para_cima((t56p / float(semanas_den)) if semanas_den else 0.0)
         rows_out.append(
             {
                 "produto_id": str(canon),
@@ -3636,6 +3700,13 @@ def api_compras_relatorio_fornecedor(request):
                 "semanas_media": semanas_den,
             }
         )
+
+    rows_out.sort(
+        key=lambda r: (
+            1 if (not sem_doc and r.get("qtd_ultimo_pedido") is None) else 0,
+            str(r.get("nome") or "").strip().lower(),
+        )
+    )
 
     return JsonResponse(
         {
