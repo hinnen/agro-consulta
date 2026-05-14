@@ -382,6 +382,29 @@
       }
     }
     #nfe-wiz-custo-hint.nfe-wiz-custo-hint--hidden { display: none !important; }
+    /* Modal «Pré-visualizar XML na grade»: cartões, arrastar e destaque de par. */
+    #modal-xml-merge-panel .xml-merge-card {
+      transition: box-shadow 0.14s ease, opacity 0.14s ease, transform 0.14s ease;
+    }
+    #modal-xml-merge-panel .xml-merge-card--dragging {
+      opacity: 0.58;
+      transform: scale(0.982);
+      box-shadow: 0 22px 52px rgba(15, 23, 42, 0.32);
+      outline: 3px dashed rgb(16 185 129);
+      outline-offset: 3px;
+      z-index: 6;
+      position: relative;
+    }
+    #modal-xml-merge-panel .xml-merge-card--drop-target {
+      box-shadow: 0 0 0 3px rgb(16 185 129), 0 10px 32px rgba(16, 185, 129, 0.28);
+      background-color: rgb(236 253 245) !important;
+    }
+    #modal-xml-merge-panel .xml-merge-card-actions {
+      min-width: 6.75rem;
+    }
+    #modal-xml-merge-panel .xml-merge-card-actions button {
+      width: 100%;
+    }
     .nfe-wiz-custo-help > summary { list-style: none; }
     .nfe-wiz-custo-help > summary::-webkit-details-marker { display: none; }
     /* Nota finalizada (PIN etapa 6 · ``aprovacao_wizard_em``): bloqueia edição; etapa 6 sem atributo lock mantém PIN + Reabrir. */
@@ -1274,18 +1297,19 @@
     </div>
 
   {# Pré-visualização XML × grade: só aplica ao confirmar; clique fora NÃO fecha (evita fecho acidental). #}
-  <div id="modal-xml-merge" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 bg-slate-900/80" role="dialog" aria-modal="true" aria-labelledby="modal-xml-merge-titulo">
-    <div id="modal-xml-merge-panel" class="relative flex w-full max-w-[min(98vw,1520px)] h-[min(94vh,960px)] min-h-[420px] flex-col overflow-hidden rounded-2xl border-[3px] border-slate-700 bg-white shadow-2xl">
+  <div id="modal-xml-merge" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-[1.25vh] sm:p-[2vh] bg-slate-900/80" role="dialog" aria-modal="true" aria-labelledby="modal-xml-merge-titulo">
+    <div id="modal-xml-merge-panel" class="relative flex w-[95vw] max-w-[95vw] h-[95vh] max-h-[95vh] min-h-[min(420px,90vh)] flex-col overflow-hidden rounded-2xl border-[3px] border-slate-700 bg-white shadow-2xl">
       <div class="shrink-0 flex flex-wrap items-start gap-2 border-b-2 border-slate-200 bg-slate-50 px-3 py-3 sm:px-5 sm:py-4">
         <div class="min-w-0 flex-1 basis-[min(100%,28rem)]">
           <h2 id="modal-xml-merge-titulo" class="text-base sm:text-xl font-black uppercase tracking-tight text-slate-900 leading-tight">Pré-visualizar XML na grade</h2>
-          <p class="mt-1 text-sm font-semibold text-slate-600 leading-snug">Compare a grade atual (ex.: pré-pedido de Compras) com os itens da NF-e. A grade <strong>só muda</strong> ao tocar em <strong>Confirmar na grade</strong>. Clique fora desta janela <strong>não fecha</strong> — use Cancelar ou Fechar.</p>
         </div>
         <details class="relative shrink-0 group z-10">
           <summary class="cursor-pointer list-none min-h-[48px] min-w-[48px] flex items-center justify-center rounded-xl border-2 border-emerald-600 bg-emerald-50 px-3 font-black text-emerald-900 hover:bg-emerald-100 text-sm uppercase tracking-wide select-none marker:content-none before:content-['?']">Ajuda</summary>
           <div class="absolute right-0 top-[calc(100%+6px)] w-[min(32rem,calc(100vw-2rem))] max-h-[min(70vh,28rem)] overflow-y-auto rounded-xl border-2 border-emerald-200 bg-white p-4 shadow-2xl text-[13px] font-semibold text-slate-800 leading-snug space-y-2">
+            <p class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] font-semibold text-slate-800">Compare a grade atual (ex.: pré-pedido de Compras) com os itens da NF-e. A grade <strong>só muda</strong> ao tocar em <strong>Confirmar na grade</strong>. Clique fora desta janela <strong>não fecha</strong> — use Cancelar ou Fechar.</p>
             <p class="font-black uppercase text-slate-500 text-xs">Vínculo</p>
-            <p>Arraste um cartão da esquerda sobre um da direita (ou o contrário) para casar linha da grade com item do XML. O sistema também sugere vínculos por <strong>EAN</strong> ou <strong>código do produto</strong> quando batem.</p>
+            <p>Cada par recebe a <strong>mesma cor</strong> no selo «Par G… ↔ X…» e na <strong>faixa vertical</strong> à esquerda do cartão — assim fica explícito qual linha da grade casou com qual linha do XML.</p>
+            <p>Arraste um cartão da esquerda sobre um da direita (ou o contrário) para casar linha da grade com item do XML — ao arrastar, o cartão fica com <strong>contorno tracejado verde</strong> e o destino válido ganha <strong>realce</strong>. O sistema também sugere vínculos por <strong>EAN</strong> ou <strong>código do produto</strong> quando batem.</p>
             <p class="font-black uppercase text-slate-500 text-xs">Descartar</p>
             <p>Você pode <strong>descartar por linha</strong>, arrastar para a <strong>zona de lixo</strong> ou usar <strong>Descartar todos os não vinculados</strong> (com confirmação). Descartados não entram na grade ao confirmar; use <strong>Restaurar</strong> na lista abaixo se mudar de ideia.</p>
             <p class="font-black uppercase text-slate-500 text-xs">Itens só de um lado</p>
@@ -5612,6 +5636,13 @@
   /** Pré-visualização XML × grade: estado e UI (só aplica na grade ao confirmar). */
   let entradaNfeXmlMergeCtx = null;
   let entradaNfeXmlMergeEscHandler = null;
+  /** Elemento sendo arrastado (feedback visual). */
+  let entradaNfeXmlMergeDragSource = null;
+
+  function entradaNfeXmlMergePairHue(pairIdx) {
+    if (pairIdx == null || pairIdx < 0) return null;
+    return (pairIdx * 53) % 360;
+  }
 
   function entradaNfeXmlMergeNormEan(s) {
     return entradaNfeCatalogOnlyDigits(String(s || '')).slice(0, 14);
@@ -5742,54 +5773,78 @@
     ctx.preLinhas.forEach((row, pi) => {
       if (ctx.preDiscarded.has(pi)) return;
       const l = linkPorPre.get(pi);
+      const pairIdx = l ? ctx.links.findIndex((x) => x.preIdx === pi && x.xmlIdx === l.xmlIdx) : -1;
+      const ph = entradaNfeXmlMergePairHue(pairIdx);
+      const stripeStyle = ph != null ? `background:hsl(${ph},72%,44%)` : 'background:rgb(226 232 240 / 0.75)';
+      const cardBg = ph != null ? `background:hsl(${ph},58%,96.5%)` : '';
+      const cardBr = ph != null ? `border-color:hsl(${ph},52%,38%)` : '';
       const badge = l
-        ? `<span class="inline-flex items-center rounded-lg bg-emerald-100 border border-emerald-400 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-900">Vinculado ao XML #${l.xmlIdx + 1}</span>`
+        ? `<span class="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-black uppercase border-2 leading-tight" style="border-color:hsl(${ph},55%,40%);background:hsl(${ph},62%,92%);color:hsl(${ph},32%,16%)"><span class="tabular-nums">Par</span> G${pi + 1} ↔ X${l.xmlIdx + 1}</span>`
         : `<span class="inline-flex items-center rounded-lg bg-slate-200 border border-slate-300 px-2 py-0.5 text-[10px] font-black uppercase text-slate-700">Sem vínculo</span>`;
       const acoes = [];
       if (l) {
         acoes.push(
-          `<button type="button" data-xml-merge-act="unlink" data-kind="pre" data-idx="${pi}" class="min-h-[40px] px-2 rounded-lg border-2 border-slate-300 bg-white text-[11px] font-black uppercase text-slate-800 hover:bg-slate-50">Desfazer</button>`
+          `<button type="button" draggable="false" data-xml-merge-act="unlink" data-kind="pre" data-idx="${pi}" class="min-h-[40px] px-2 rounded-lg border-2 border-slate-300 bg-white text-[11px] font-black uppercase text-slate-800 hover:bg-slate-50">Desfazer</button>`
         );
       }
       acoes.push(
-        `<button type="button" data-xml-merge-act="discard" data-kind="pre" data-idx="${pi}" class="min-h-[40px] px-2 rounded-lg border-2 border-orange-500 bg-orange-50 text-[11px] font-black uppercase text-orange-950 hover:bg-orange-100">Descartar</button>`
+        `<button type="button" draggable="false" data-xml-merge-act="discard" data-kind="pre" data-idx="${pi}" class="min-h-[40px] px-2 rounded-lg border-2 border-orange-500 bg-orange-50 text-[11px] font-black uppercase text-orange-950 hover:bg-orange-100">Descartar</button>`
       );
       htmlPre += `
-      <div class="xml-merge-card rounded-xl border-2 ${l ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-300 bg-white'} p-3 shadow-sm cursor-grab active:cursor-grabbing"
-        draggable="true" data-xml-merge-card="pre" data-xml-merge-drop="pre" data-idx="${pi}">
-        <div class="flex flex-wrap items-start justify-between gap-2">
-          <span class="text-xs font-black uppercase text-slate-500">Grade #${pi + 1}</span>
-          <div class="flex flex-wrap gap-1">${badge}</div>
+      <div class="xml-merge-card flex rounded-xl border-2 ${l ? '' : 'border-slate-300 bg-white'} shadow-sm cursor-grab active:cursor-grabbing overflow-hidden"
+        draggable="true" data-xml-merge-card="pre" data-xml-merge-drop="pre" data-idx="${pi}"${l && ph != null ? ` data-xml-merge-pair="${pairIdx}" style="${cardBr};${cardBg}"` : ''}>
+        <div class="w-2.5 shrink-0 self-stretch rounded-l-md" style="${stripeStyle}" aria-hidden="true"></div>
+        <div class="flex flex-1 min-w-0 flex-row items-stretch gap-2 sm:gap-3 p-2.5 sm:p-3">
+          <div class="min-w-0 flex-1 flex flex-col gap-1">
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <span class="text-xs font-black uppercase text-slate-500 shrink-0">Grade #${pi + 1}</span>
+              <div class="flex flex-wrap gap-1 justify-end min-w-0">${badge}</div>
+            </div>
+            ${entradaNfeXmlMergeResumoHtml(row)}
+          </div>
+          <div class="xml-merge-card-actions shrink-0 flex flex-col gap-1.5 justify-center self-stretch border-l border-slate-200/90 pl-2 sm:pl-3" role="group" aria-label="Ações da linha">
+            ${acoes.join('')}
+          </div>
         </div>
-        ${entradaNfeXmlMergeResumoHtml(row)}
-        <div class="mt-2 flex flex-wrap gap-2">${acoes.join('')}</div>
       </div>`;
     });
     let htmlXml = '';
     ctx.xmlLinhas.forEach((row, xi) => {
       if (ctx.xmlDiscarded.has(xi)) return;
       const l = linkPorXml.get(xi);
+      const pairIdx = l ? ctx.links.findIndex((x) => x.preIdx === l.preIdx && x.xmlIdx === xi) : -1;
+      const ph = entradaNfeXmlMergePairHue(pairIdx);
+      const stripeStyle = ph != null ? `background:hsl(${ph},72%,44%)` : 'background:rgb(226 232 240 / 0.75)';
+      const cardBg = ph != null ? `background:hsl(${ph},58%,96.5%)` : '';
+      const cardBr = ph != null ? `border-color:hsl(${ph},52%,38%)` : '';
       const badge = l
-        ? `<span class="inline-flex items-center rounded-lg bg-emerald-100 border border-emerald-400 px-2 py-0.5 text-[10px] font-black uppercase text-emerald-900">Vinculado à grade #${l.preIdx + 1}</span>`
+        ? `<span class="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-black uppercase border-2 leading-tight" style="border-color:hsl(${ph},55%,40%);background:hsl(${ph},62%,92%);color:hsl(${ph},32%,16%)"><span class="tabular-nums">Par</span> G${l.preIdx + 1} ↔ X${xi + 1}</span>`
         : `<span class="inline-flex items-center rounded-lg bg-slate-200 border border-slate-300 px-2 py-0.5 text-[10px] font-black uppercase text-slate-700">Sem vínculo</span>`;
       const acoes = [];
       if (l) {
         acoes.push(
-          `<button type="button" data-xml-merge-act="unlink" data-kind="xml" data-idx="${xi}" class="min-h-[40px] px-2 rounded-lg border-2 border-slate-300 bg-white text-[11px] font-black uppercase text-slate-800 hover:bg-slate-50">Desfazer</button>`
+          `<button type="button" draggable="false" data-xml-merge-act="unlink" data-kind="xml" data-idx="${xi}" class="min-h-[40px] px-2 rounded-lg border-2 border-slate-300 bg-white text-[11px] font-black uppercase text-slate-800 hover:bg-slate-50">Desfazer</button>`
         );
       }
       acoes.push(
-        `<button type="button" data-xml-merge-act="discard" data-kind="xml" data-idx="${xi}" class="min-h-[40px] px-2 rounded-lg border-2 border-orange-500 bg-orange-50 text-[11px] font-black uppercase text-orange-950 hover:bg-orange-100">Descartar</button>`
+        `<button type="button" draggable="false" data-xml-merge-act="discard" data-kind="xml" data-idx="${xi}" class="min-h-[40px] px-2 rounded-lg border-2 border-orange-500 bg-orange-50 text-[11px] font-black uppercase text-orange-950 hover:bg-orange-100">Descartar</button>`
       );
       htmlXml += `
-      <div class="xml-merge-card rounded-xl border-2 ${l ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-200 bg-white'} p-3 shadow-sm cursor-grab active:cursor-grabbing"
-        draggable="true" data-xml-merge-card="xml" data-xml-merge-drop="xml" data-idx="${xi}">
-        <div class="flex flex-wrap items-start justify-between gap-2">
-          <span class="text-xs font-black uppercase text-slate-500">XML #${xi + 1}</span>
-          <div class="flex flex-wrap gap-1">${badge}</div>
+      <div class="xml-merge-card flex rounded-xl border-2 ${l ? '' : 'border-slate-200 bg-white'} shadow-sm cursor-grab active:cursor-grabbing overflow-hidden"
+        draggable="true" data-xml-merge-card="xml" data-xml-merge-drop="xml" data-idx="${xi}"${l && ph != null ? ` data-xml-merge-pair="${pairIdx}" style="${cardBr};${cardBg}"` : ''}>
+        <div class="w-2.5 shrink-0 self-stretch rounded-l-md" style="${stripeStyle}" aria-hidden="true"></div>
+        <div class="flex flex-1 min-w-0 flex-row items-stretch gap-2 sm:gap-3 p-2.5 sm:p-3">
+          <div class="min-w-0 flex-1 flex flex-col gap-1">
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <span class="text-xs font-black uppercase text-slate-500 shrink-0">XML #${xi + 1}</span>
+              <div class="flex flex-wrap gap-1 justify-end min-w-0">${badge}</div>
+            </div>
+            ${entradaNfeXmlMergeResumoHtml(row)}
+          </div>
+          <div class="xml-merge-card-actions shrink-0 flex flex-col gap-1.5 justify-center self-stretch border-l border-slate-200/90 pl-2 sm:pl-3" role="group" aria-label="Ações da linha">
+            ${acoes.join('')}
+          </div>
         </div>
-        ${entradaNfeXmlMergeResumoHtml(row)}
-        <div class="mt-2 flex flex-wrap gap-2">${acoes.join('')}</div>
       </div>`;
     });
     if (!htmlPre) {
@@ -5915,6 +5970,7 @@
 
   function entradaNfeXmlMergeFechar() {
     entradaNfeXmlMergeBindEsc(false);
+    entradaNfeXmlMergeOnDragEnd();
     document.getElementById('modal-xml-merge')?.classList.add('hidden');
     entradaNfeXmlMergeCtx = null;
   }
@@ -5980,17 +6036,35 @@
     } catch (_) {}
   }
 
+  function entradaNfeXmlMergeClearDropHints() {
+    document.querySelectorAll('#modal-xml-merge-panel .xml-merge-card--drop-target').forEach((el) => {
+      el.classList.remove('xml-merge-card--drop-target');
+    });
+  }
+
   function entradaNfeXmlMergeOnDragStart(e) {
     const card = e.target.closest('[data-xml-merge-card]');
     if (!card || !entradaNfeXmlMergeCtx) return;
+    if (e.target.closest('button')) return;
     const kind = card.getAttribute('data-xml-merge-card');
     const idx = Number(card.getAttribute('data-idx'));
     if (!kind || Number.isNaN(idx)) return;
+    entradaNfeXmlMergeDragSource = card;
+    entradaNfeXmlMergeClearDropHints();
+    card.classList.add('xml-merge-card--dragging');
     try {
       e.dataTransfer.setData('application/json', JSON.stringify({ kind, idx }));
     } catch (_) {}
     e.dataTransfer.setData('text/plain', `${kind}:${idx}`);
     e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function entradaNfeXmlMergeOnDragEnd() {
+    if (entradaNfeXmlMergeDragSource) {
+      entradaNfeXmlMergeDragSource.classList.remove('xml-merge-card--dragging');
+      entradaNfeXmlMergeDragSource = null;
+    }
+    entradaNfeXmlMergeClearDropHints();
   }
 
   function entradaNfeXmlMergeParsePayload(dt) {
@@ -6014,11 +6088,21 @@
     if (!entradaNfeXmlMergeCtx) return;
     const t = e.target.closest('#xml-merge-trash, [data-xml-merge-drop]');
     if (t) e.preventDefault();
+    const src = entradaNfeXmlMergeDragSource;
+    if (!src) return;
+    entradaNfeXmlMergeClearDropHints();
+    const over = e.target.closest('[data-xml-merge-card]');
+    if (!over || over === src) return;
+    const sk = src.getAttribute('data-xml-merge-card');
+    const ok =
+      sk === 'pre' && over.getAttribute('data-xml-merge-card') === 'xml' ? true : sk === 'xml' && over.getAttribute('data-xml-merge-card') === 'pre';
+    if (ok) over.classList.add('xml-merge-card--drop-target');
   }
 
   function entradaNfeXmlMergeOnDrop(e) {
     if (!entradaNfeXmlMergeCtx) return;
     e.preventDefault();
+    entradaNfeXmlMergeClearDropHints();
     const payload = entradaNfeXmlMergeParsePayload(e.dataTransfer);
     if (!payload) return;
     if (e.target.closest('#xml-merge-trash')) {
@@ -6055,6 +6139,7 @@
       else if (act === 'restore') entradaNfeXmlMergeRestaurar(kind, idx);
     });
     panel.addEventListener('dragstart', entradaNfeXmlMergeOnDragStart);
+    panel.addEventListener('dragend', entradaNfeXmlMergeOnDragEnd);
     panel.addEventListener('dragover', entradaNfeXmlMergeOnDragOver);
     panel.addEventListener('drop', entradaNfeXmlMergeOnDrop);
     document.getElementById('modal-xml-merge-cancelar')?.addEventListener('click', () => {
