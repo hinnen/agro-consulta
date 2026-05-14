@@ -1,0 +1,170 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f3ff">
+  <title>SisVale | Relatório A4 — Compras</title>
+  {% include "produtos/_head_perf_mpa.html" %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    /* Área segura em notch / home indicator */
+    .safe-pad {
+      padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+      padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+      padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+    }
+  </style>
+</head>
+<body class="min-h-[100dvh] bg-gradient-to-b from-violet-50/90 via-slate-50 to-slate-100 text-slate-800 safe-pad">
+{% include "produtos/_gm_loading_bar.html" %}
+{% include "produtos/_agro_open_external.html" %}
+
+  <div class="mx-auto w-full max-w-lg flex min-h-[100dvh] min-h-0 flex-col">
+    <header class="shrink-0 flex flex-wrap items-start justify-between gap-3 pb-3">
+      <div class="min-w-0">
+        <p class="text-[10px] font-black uppercase tracking-widest text-violet-700">SisVale · Compras</p>
+        <h1 class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-900 leading-tight">Relatório A4</h1>
+        <p class="mt-1 text-sm font-semibold text-slate-600 leading-snug">Busque o fornecedor e imprima a tabela. Funciona no celular.</p>
+      </div>
+      <div class="flex shrink-0 flex-col items-end gap-2">
+        <a href="{% url 'compras_view' %}" class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-200 bg-white px-3 text-xs font-black uppercase text-slate-700 hover:border-orange-400 hover:text-orange-700">
+          Voltar às Compras
+        </a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-200 bg-white px-3 text-xs font-black uppercase text-slate-600 hover:border-orange-400 hover:text-orange-600" %}
+      </div>
+    </header>
+
+    <main class="flex-1 min-h-0 flex flex-col rounded-2xl border-2 border-violet-200/80 bg-white shadow-xl shadow-violet-900/5 overflow-hidden">
+      <div class="shrink-0 flex items-start justify-between gap-2 border-b border-slate-100 px-4 py-3 bg-violet-50/50">
+        <span class="text-xs font-black uppercase text-violet-900 tracking-wide">Fornecedor</span>
+        <details class="relative">
+          <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-violet-300 bg-white text-violet-900 font-black text-sm hover:bg-violet-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda do relatório" title="Ajuda">?</summary>
+          <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(22rem,calc(100vw-1.5rem))] max-h-[min(70dvh,24rem)] overflow-y-auto overscroll-contain rounded-xl border border-violet-200 bg-white p-3 text-xs font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
+            <p>Até <strong>800</strong> produtos ativos do catálogo cujo fornecedor no cadastro (Mongo) casa com o nome ou ID.</p>
+            <p><strong>*</strong> na coluna «Qtd últ. pedido / compra» = sem nenhuma linha de compra deste fornecedor no ERP no período. <strong>0</strong> = já houve compra, mas o item não entrou no último documento (ou veio zerado).</p>
+            <p><strong>Média/semana:</strong> vendas em até 8 semanas (56 dias), com média ajustada quando o histórico de venda no período é mais curto. Quantidades inteiras (meio para cima).</p>
+            <p class="text-violet-800">O botão <strong>Notas de entrada (ERP)</strong> abre a lista web do SisVale (login). Os dados do relatório vêm do espelho Mongo sincronizado com o ERP.</p>
+          </div>
+        </details>
+      </div>
+
+      <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">
+        {% csrf_token %}
+        <label class="block min-w-0">
+          <span class="sr-only">Fornecedor</span>
+          <div class="relative mt-0">
+            <input type="text" id="rel-compra-forn-nome" name="rel_compra_forn_nome" autocomplete="off" enterkeyhint="search" inputmode="text"
+              class="w-full rounded-xl border-2 border-slate-200 px-3 py-3.5 text-base font-bold min-h-[52px] bg-white text-slate-900 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/25 outline-none touch-manipulation"
+              placeholder="Buscar cadastro ou digitar…">
+            <input type="hidden" id="rel-compra-forn-id" value="">
+            <ul id="rel-compra-forn-dd" role="listbox" aria-label="Sugestões de fornecedor"
+              class="hidden absolute left-0 right-0 top-full z-20 mt-1 max-h-[min(55dvh,22rem)] overflow-y-auto overscroll-contain rounded-xl border-2 border-violet-100 bg-white shadow-lg text-base"
+              style="-webkit-overflow-scrolling: touch;"></ul>
+          </div>
+        </label>
+        <p class="text-[11px] font-bold text-slate-500 leading-snug">Toque na lista para escolher. Em telas pequenas a lista ocupa até metade da altura útil.</p>
+
+        <button type="button" id="btn-compra-relatorio-a4" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-violet-600 bg-violet-600 text-white font-black py-3.5 uppercase text-sm tracking-wide shadow-sm hover:bg-violet-700 hover:border-violet-700 min-h-[52px] touch-manipulation active:scale-[0.99]">
+          Imprimir tabela
+        </button>
+        {% if erp_notas_entrada_list_url %}
+        <button type="button" id="btn-compra-abrir-erp-notas-entrada" class="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black py-3.5 uppercase text-sm tracking-wide shadow-sm hover:bg-slate-50 hover:border-slate-400 min-h-[52px] touch-manipulation active:scale-[0.99]">
+          Notas de entrada (ERP)
+        </button>
+        {% endif %}
+      </div>
+    </main>
+  </div>
+
+  <script>
+(function () {
+  const URL_ENTRADA_NFA_FORN = "{% url 'api_entrada_nota_fornecedores' %}";
+  const URL_COMPRA_REL_FORN = "{% url 'api_compras_relatorio_fornecedor' %}";
+  const ERP_NOTAS_ENTRADA_LIST_URL = "{{ erp_notas_entrada_list_url|default:''|escapejs }}";
+  const LS_COMPRA_FORN_RECENTES = 'gmCompraFornecedoresRecentes_v1';
+
+  function escapeHtml(texto) {
+    return String(texto || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function compraGetCsrf() {
+    const m = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (m && m.value) return m.value;
+    const c = document.cookie.match(/csrftoken=([^;]+)/);
+    return c ? decodeURIComponent(c[1].trim()) : '';
+  }
+
+  function lerFornecedoresRecentesCompra() {
+    try {
+      const a = JSON.parse(localStorage.getItem(LS_COMPRA_FORN_RECENTES) || '[]');
+      return Array.isArray(a) ? a.filter((x) => x && String(x.nome || '').trim()) : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function salvarFornecedorRecenteCompra(nome, id) {
+    const n = String(nome || '').trim();
+    if (!n) return;
+    const arr = lerFornecedoresRecentesCompra().filter((x) => String(x.nome).toLowerCase() !== n.toLowerCase());
+    arr.unshift({ nome: n.slice(0, 200), id: id ? String(id) : '' });
+    try {
+      localStorage.setItem(LS_COMPRA_FORN_RECENTES, JSON.stringify(arr.slice(0, 40)));
+    } catch (_) {}
+  }
+
+{% include "produtos/includes/_compras_relatorio_a4_core_js.html" with compras_relatorio_a4_embedded=False %}
+
+  document.getElementById('rel-compra-forn-nome')?.addEventListener('input', () => {
+    clearTimeout(relCompraFornDdTimer);
+    relCompraFornDdTimer = setTimeout(() => {
+      relCompraBuscarFornecedoresDd(document.getElementById('rel-compra-forn-nome')?.value || '');
+    }, 200);
+  });
+  document.getElementById('rel-compra-forn-nome')?.addEventListener('focus', () => {
+    relCompraBuscarFornecedoresDd(document.getElementById('rel-compra-forn-nome')?.value || '');
+  });
+  document.getElementById('btn-compra-relatorio-a4')?.addEventListener('click', () => {
+    void compraImprimirRelatorioA4();
+  });
+  document.getElementById('btn-compra-abrir-erp-notas-entrada')?.addEventListener('click', () => {
+    const u = String(ERP_NOTAS_ENTRADA_LIST_URL || '').trim();
+    if (!u) return;
+    if (typeof agroAbrirUrlExterna === 'function') agroAbrirUrlExterna(u);
+    else window.open(u, '_blank', 'noopener,noreferrer');
+  });
+  document.addEventListener('mousedown', (e) => {
+    const dd = document.getElementById('rel-compra-forn-dd');
+    const wrap = document.getElementById('rel-compra-forn-nome');
+    if (!dd || dd.classList.contains('hidden')) return;
+    const t = e.target;
+    if (t && (dd.contains(t) || (wrap && wrap.contains(t)))) return;
+    dd.classList.add('hidden');
+  });
+  document.addEventListener('touchstart', (e) => {
+    const dd = document.getElementById('rel-compra-forn-dd');
+    const wrap = document.getElementById('rel-compra-forn-nome');
+    if (!dd || dd.classList.contains('hidden')) return;
+    const t = e.target;
+    if (t && (dd.contains(t) || (wrap && wrap.contains(t)))) return;
+    dd.classList.add('hidden');
+  }, { passive: true });
+
+  try {
+    document.getElementById('rel-compra-forn-nome')?.focus({ preventScroll: true });
+  } catch (_) {}
+})();
+  </script>
+</body>
+</html>

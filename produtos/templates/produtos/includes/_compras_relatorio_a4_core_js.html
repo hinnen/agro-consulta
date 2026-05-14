@@ -1,0 +1,344 @@
+{% load static %}
+{# Fragmento JS: relatório A4 por fornecedor (Compras). Incluir dentro de <script> após escapeHtml, compraGetCsrf, ler/salvar fornecedores e constantes URL_ENTRADA_NFA_FORN, URL_COMPRA_REL_FORN, ERP_NOTAS_ENTRADA_LIST_URL. #}
+/** Marca horizontal (rodapé impressão A4). */
+const URL_COMPRA_REL_LOGO_MARCA = "{% static 'img/agro-mais-marca-horizontal.svg' %}";
+
+/** Impressão sem `window.open`+`noopener` (retorna `null` → aba em branco). */
+function compraAbrirPrintHtml(html) {
+  const ifr = document.createElement('iframe');
+  ifr.setAttribute(
+    'style',
+    'position:fixed;right:0;bottom:0;width:0;height:0;border:0;pointer-events:none;visibility:hidden',
+  );
+  ifr.setAttribute('title', 'Impressão');
+  document.body.appendChild(ifr);
+  const rm = () => {
+    try {
+      ifr.remove();
+    } catch (_) {}
+  };
+  let printed = false;
+  const run = () => {
+    if (printed) return;
+    printed = true;
+    try {
+      const iw = ifr.contentWindow;
+      if (iw) {
+        iw.focus();
+        iw.print();
+      }
+    } catch (_) {}
+    setTimeout(rm, 1600);
+  };
+  const schedule = () => {
+    requestAnimationFrame(() => requestAnimationFrame(run));
+  };
+  ifr.onload = () => schedule();
+  try {
+    ifr.srcdoc = html;
+  } catch (_) {
+    let u = '';
+    try {
+      u = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+      ifr.onload = () => {
+        schedule();
+        setTimeout(() => {
+          try {
+            URL.revokeObjectURL(u);
+          } catch (_) {}
+        }, 120000);
+      };
+      ifr.removeAttribute('srcdoc');
+      ifr.src = u;
+    } catch (_) {
+      rm();
+      throw new Error('print_iframe');
+    }
+  }
+  setTimeout(() => {
+    if (!printed) schedule();
+  }, 900);
+}
+
+let relCompraFornDdTimer = null;
+
+function relCompraFornDdSelecionar(li, nome, id) {
+  const fn = document.getElementById('rel-compra-forn-nome');
+  const fid = document.getElementById('rel-compra-forn-id');
+  const dd = document.getElementById('rel-compra-forn-dd');
+  if (fn) fn.value = nome || '';
+  if (fid) fid.value = id || '';
+  if (dd) dd.classList.add('hidden');
+}
+
+async function relCompraBuscarFornecedoresDd(q) {
+  const dd = document.getElementById('rel-compra-forn-dd');
+  if (!dd) return;
+  dd.innerHTML = '';
+  const recent = lerFornecedoresRecentesCompra();
+  const qn = String(q || '').trim().toLowerCase();
+  const filtrados = qn ? recent.filter((x) => String(x.nome).toLowerCase().includes(qn)) : recent.slice(0, 12);
+  filtrados.forEach((x) => {
+    const li = document.createElement('li');
+    li.setAttribute('role', 'option');
+    li.className =
+      'px-3 py-3 sm:py-2 cursor-pointer active:bg-violet-100 hover:bg-violet-50 text-sm font-bold border-b border-violet-50 touch-manipulation min-h-[48px] flex items-center';
+    li.textContent = x.nome + (x.id ? ' · ID' : '');
+    const go = (e) => {
+      e.preventDefault();
+      relCompraFornDdSelecionar(li, x.nome, x.id || '');
+    };
+    li.addEventListener('mousedown', go);
+    li.addEventListener('click', go);
+    dd.appendChild(li);
+  });
+  try {
+    const u = new URL(URL_ENTRADA_NFA_FORN, window.location.origin);
+    if (qn.length >= 2) u.searchParams.set('q', String(q || '').trim());
+    else u.searchParams.set('inicial', '1');
+    u.searchParams.set('limit', '40');
+    const r = await fetch(u.toString(), { credentials: 'same-origin' });
+    const j = await r.json();
+    (j.itens || []).forEach((it) => {
+      const li = document.createElement('li');
+      li.setAttribute('role', 'option');
+      li.className =
+        'px-3 py-3 sm:py-2 cursor-pointer active:bg-sky-100 hover:bg-sky-50 text-sm font-semibold border-b border-slate-50 touch-manipulation min-h-[48px] flex items-center';
+      const doc = it.documento ? ` · ${it.documento}` : '';
+      li.textContent = `${it.nome || '—'}${doc}`;
+      const go = (e) => {
+        e.preventDefault();
+        relCompraFornDdSelecionar(li, it.nome || '', it.id || '');
+      };
+      li.addEventListener('mousedown', go);
+      li.addEventListener('click', go);
+      dd.appendChild(li);
+    });
+  } catch (_) {}
+  dd.classList.toggle('hidden', dd.children.length === 0);
+}
+
+function compraFmtRelatorioUlt(v) {
+  if (v === null || v === undefined) return '*';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '*';
+  return n.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+}
+
+function compraFmtRelatorioInt(v) {
+  if (v === null || v === undefined) return '—';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '—';
+  return n.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+}
+
+function compraFmtRelatorioVendDesdeUlt(v) {
+  if (v === null || v === undefined) return '*';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '*';
+  return n.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+}
+
+async function compraImprimirRelatorioA4() {
+  const fn = document.getElementById('rel-compra-forn-nome');
+  const fid = document.getElementById('rel-compra-forn-id');
+  const fornNome = String(fn?.value || '').trim();
+  const fornId = String(fid?.value || '').trim();
+  if (!fornNome && !fornId) {
+    window.alert('Selecione ou digite o fornecedor.');
+    fn?.focus();
+    return;
+  }
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
+  try {
+    const r = await fetch(URL_COMPRA_REL_FORN, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': compraGetCsrf(),
+      },
+      body: JSON.stringify({
+        fornecedor_nome: fornNome,
+        fornecedor_id: fornId,
+      }),
+    });
+    const j = await r.json();
+    if (!j.ok) {
+      window.alert(j.erro || 'Falha ao montar relatório.');
+      return;
+    }
+    salvarFornecedorRecenteCompra(fornNome || fornId, fornId);
+    const agora = new Date().toLocaleString('pt-BR');
+    const ud = j.ultimo_documento || {};
+    const origemPt = (
+      {
+        pedido_compra: 'Pedido de compra',
+        compra: 'Compra',
+        entrada_mercadoria: 'Entrada de mercadoria',
+        nota_entrada: 'Nota de entrada',
+      }[String(ud.origem || '').trim()] || String(ud.origem || '').trim() || '—'
+    );
+    const neUrl = String(
+      (j.erp_portal && j.erp_portal.notas_entrada_list) || ERP_NOTAS_ENTRADA_LIST_URL || ''
+    ).trim();
+    const neBlock = neUrl
+      ? `<p class="erp-link"><strong>ERP (SisVale):</strong> <a href="${escapeHtml(neUrl)}">${escapeHtml(neUrl)}</a> — notas de entrada (lista web; exige login).</p>`
+      : '';
+    const sem = j.sem_ultimo_documento
+      ? 'Sem documento de compra ERP para este fornecedor no período analisado — ver legenda no rodapé para o símbolo *.'
+      : `Último documento: ${escapeHtml(origemPt)} · ${escapeHtml(ud.data || '—')} · ${escapeHtml(ud.documento || '—')}`;
+    const rowsHtml = (j.linhas || [])
+      .map(
+        (ln) => `
+      <tr>
+        <td class="td-gm">${escapeHtml(ln.codigo || '—')}</td>
+        <td>${escapeHtml(ln.nome || '—')}</td>
+        <td class="num">${compraFmtRelatorioUlt(ln.qtd_ultimo_pedido)}</td>
+        <td class="num">${compraFmtRelatorioVendDesdeUlt(ln.qtd_vendida_desde_ultima)}</td>
+        <td class="num">${compraFmtRelatorioInt(ln.media_venda_semana)}</td>
+      </tr>`
+      )
+      .join('');
+    let logoAbs = URL_COMPRA_REL_LOGO_MARCA;
+    try {
+      logoAbs = new URL(URL_COMPRA_REL_LOGO_MARCA, window.location.origin).href;
+    } catch (_) {}
+    const html = `<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Relatório compras</title>
+  <style>
+    @page { size: A4; margin: 10mm 10mm 16mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 12pt;
+      line-height: 1.35;
+      color: #0f172a;
+      margin: 0;
+      background: #fff;
+    }
+    h1 {
+      font-size: 15pt;
+      margin: 0 0 8px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+    .sub { font-size: 10pt; color: #475569; margin-bottom: 12px; line-height: 1.45; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      box-shadow: 0 1px 0 #e2e8f0;
+    }
+    thead { display: table-header-group; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    th, td {
+      border: 1px solid #94a3b8;
+      padding: 7px 8px;
+      vertical-align: top;
+    }
+    th {
+      background: linear-gradient(180deg, #e2e8f0 0%, #cbd5e1 100%);
+      font-size: 9pt;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 800;
+      color: #1e293b;
+    }
+    td { font-size: 10.5pt; }
+    td.td-gm { font-weight: 700; white-space: nowrap; color: #0f172a; }
+    td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    caption {
+      text-align: left;
+      font-weight: 800;
+      font-size: 10pt;
+      margin-bottom: 8px;
+      color: #334155;
+    }
+    .print-foot {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 2px solid #cbd5e1;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .print-foot-inner { page-break-inside: avoid; break-inside: avoid; }
+    .foot-legend {
+      font-size: 9pt;
+      color: #334155;
+      line-height: 1.4;
+      margin: 0 0 14px;
+      max-width: 100%;
+    }
+    .foot-brand {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      width: 100%;
+      margin-top: 4px;
+    }
+    .foot-brand img {
+      width: min(100%, 178mm);
+      height: auto;
+      max-height: 46mm;
+      min-height: 24mm;
+      object-fit: contain;
+      object-position: center bottom;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+    .erp-link { font-size: 9.5pt; color: #1e3a8a; margin: 0 0 12px; line-height: 1.45; }
+    .erp-link a { color: #1d4ed8; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <h1>Relatório de compras — fornecedor</h1>
+  <div class="sub"><strong>Fornecedor:</strong> ${escapeHtml(j.fornecedor_nome || fornNome)}<br>
+  <strong>Gerado em:</strong> ${escapeHtml(agora)}<br>
+  ${sem}</div>
+  ${neBlock}
+  <table>
+    <caption>Catálogo · ${Number(j.total_produtos || (j.linhas || []).length || 0).toLocaleString('pt-BR')} produto(s)</caption>
+    <thead>
+      <tr>
+        <th>GM</th>
+        <th>Produto</th>
+        <th>Qtd últ. pedido / compra</th>
+        <th>Qtd vendida desde últ. compra</th>
+        <th>Média vendas / semana</th>
+      </tr>
+    </thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>
+  <footer class="print-foot">
+    <div class="print-foot-inner">
+      <p class="foot-legend"><strong>Legenda:</strong> <strong>*</strong> na coluna «Qtd últ. pedido / compra» indica produto <strong>sem linha de compra</strong> deste fornecedor no ERP no período considerado. <strong>0</strong> indica que já houve compra desse fornecedor, mas o item <strong>não consta no último documento</strong> (ou veio com quantidade zero). Quantidades arredondadas ao inteiro (0,500 ou mais para cima).</p>
+      <div class="foot-brand">
+        <img src="${escapeHtml(logoAbs)}" alt="Agro Mais — Sua casa de ração com um toque a mais">
+      </div>
+    </div>
+  </footer>
+</body>
+</html>`;
+    compraAbrirPrintHtml(html);
+{% if compras_relatorio_a4_embedded %}
+    setTimeout(() => {
+      try {
+        fecharModalRelatorioCompra();
+      } catch (_) {}
+    }, 450);
+{% endif %}
+  } catch (err) {
+    console.error(err);
+    window.alert('Falha de rede ao gerar relatório.');
+  } finally {
+    if (window.gmLoadingBar) window.gmLoadingBar.hide();
+  }
+}

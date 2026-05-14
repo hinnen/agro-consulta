@@ -44,6 +44,7 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 | `/entregas/`                     | `entregas_painel`              | APIs sob `/entregas/api/...`                  |
 | `/ajuste-mobile/`                | `ajuste_mobile`                |                                               |
 | `/compras/`                      | `compras_view`                 | Pedido fornecedor, WhatsApp                   |
+| `/compras/relatorio-a4/`         | `compras_relatorio_a4`         | Relatório A4 por fornecedor (página dedicada; link direto, mobile) |
 | `/entrada-nota/`                 | `entrada_nota`                 |                                               |
 | `/lancamentos/`                  | `lancamentos_financeiros`      | Contas a pagar/receber                        |
 | `/financeiro/resumo-gerencial/`  | `resumo_financeiro_gerencial`  |                                               |
@@ -70,6 +71,7 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 - `**_agro_open_external.html`** — `agroAbrirUrlExterna`, uso de `window.agroShell.openExternal` no Electron; monkey-patch de `window.open` para WhatsApp/Maps/Waze/goo.gl.
 - `**_head_perf_mpa.html`** — performance MPA onde usado.
 - `**_gm_loading_bar.html`** — barra de loading em algumas telas.
+- `**produtos/templates/produtos/includes/lancamentos_help_agents.html**` — textos longos de ajuda em Lançamentos (filtros / busca na lista), espelhados na **§10**; na tela ficam em bloco **«?»** (`<details>`), no padrão do RH (`rh_help_agents.html`).
 
 ---
 
@@ -104,6 +106,7 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 - Sugestão de compra em destaque no **card**; horizonte em dias **independente** do período da média (média em `<details>` “Métricas avançadas”).  
 - Opção **descontar ou não** estoque total **C+V** (localStorage).  
 - F5 / textos: **atualizar métricas**; não confundir com horizonte da sugestão.
+- **Relatório A4:** também em **`/compras/relatorio-a4/`** (`compras_relatorio_a4`) — mesma lógica do modal na tela Compras; layout pensado para **celular** (área segura, toques grandes, lista rolável). Na Compras há atalho **«Página»** ao lado do botão do modal.
 
 **Entrada NF — pré-visualização XML (`entrada_nota.html`, botão Ler XML)**  
 
@@ -135,6 +138,10 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 
 - Backend hoje: principalmente `vencimento_asc` / `vencimento_desc` / `fluxo_desc` em `mongo_financeiro_util.py`. Ordenar **todas** as colunas no servidor exige estender o aggregate; sort só no cliente **não** substitui paginação global.
 
+**Lançamentos — busca na lista (filtros)**  
+
+- Texto longo da busca no modal Filtros em **«?»** (`<details>`); canônico em `produtos/templates/produtos/includes/lancamentos_help_agents.html`, espelho em **AGENTS.md §10**. Busca por **valor** (vírgula decimal / R$) alinhada a bruto, pago e saldo em aberto no Mongo (`mongo_financeiro_util.py`).
+
 **Estoque — Agro como operação (espelho ERP + ajustes)**  
 
 - Saldo operacional no PDV: referência ERP (Mongo) + correções em `AjusteRapidoEstoque` (`origem`, `usuario`, `observacao`). Painel `/estoque/sincronizacao/`, APIs `/api/estoque/sync-health/` e `/api/estoque/divergencia-ajustes/`, ping automático leve (`manage.py estoque_mongo_ping` no Cron Render ou HTTP `/api/cron/estoque-mongo-ping/`), comando `reconciliar_estoque_agro`. Doc interna: `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md`.
@@ -155,6 +162,7 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 - Atualizar **§7** quando houver decisão de produto relevante.
 - Atualizar **§3** se `produtos/urls.py` ganhar rotas importantes (ou referenciar “ver arquivo”).
 - Atualizar **§9** quando mudar textos de ajuda do RH em tela (manter alinhado a `rh/templates/rh/includes/rh_help_agents.html`).
+- Atualizar **§10** quando mudar textos de ajuda de **Lançamentos** em tela (manter alinhado a `produtos/templates/produtos/includes/lancamentos_help_agents.html`).
 - Evitar duplicar **cada** template aqui — manter mapa enxuto.
 
 ---
@@ -223,4 +231,14 @@ Textos longos nas telas **Fechamento de folha** e **Ficha do funcionário** fica
 
 ---
 
-*Última revisão estrutural: documento inicial + mapa de rotas a partir de `produtos/urls.py` e `config/urls.py`; §9 ajuda RH.*
+## 10. Ajuda em tela — Lançamentos / filtros (fonte para o `?`)
+
+Texto longo da **busca na lista** (modal Filtros em Contas a pagar / receber) fica no bloco **«?»** (`<details>`). O HTML canônico está em `**produtos/templates/produtos/includes/lancamentos_help_agents.html**` (slug `filtros_busca_lista`); esta seção espelha o conteúdo para humanos e para `@AGENTS.md`.
+
+### 10.0 Busca na lista
+
+- Separe termos com **espaço**; cada termo pode cair em favorecido, descrição, documento, plano, grupo, forma, banco, empresa, centro de custo, observações, IDs ou **valor** (bruto, pago ou saldo em aberto; use vírgula decimal ou R$).
+
+---
+
+*Última revisão estrutural: documento inicial + mapa de rotas a partir de `produtos/urls.py` e `config/urls.py`; §9 ajuda RH; §10 ajuda Lançamentos (filtros).*

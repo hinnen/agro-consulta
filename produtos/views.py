@@ -5882,6 +5882,16 @@ def sugestao_transferencia(request):
 
 
 @ensure_csrf_cookie
+def compras_relatorio_a4_view(request):
+    """Página dedicada ao relatório A4 por fornecedor (link direto; mobile)."""
+    return render(
+        request,
+        "produtos/compras_relatorio_a4.html",
+        {"erp_notas_entrada_list_url": erp_portal_notas_entrada_list_url()},
+    )
+
+
+@ensure_csrf_cookie
 def compras_view(request):
     return render(
         request,
@@ -6519,6 +6529,9 @@ def api_entrada_nota_rascunho_excluir(request):
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
     oid = str(payload.get("id") or "").strip()
+    ok_pin, err_pin = _emprestimos_interno_validar_pin(str(payload.get("pin") or ""))
+    if not ok_pin:
+        return JsonResponse({"ok": False, "erro": err_pin}, status=403)
     _, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
@@ -6600,6 +6613,10 @@ def api_entrada_nota_rascunho_acao(request):
     acao = str(payload.get("acao") or "").strip().lower()
     if not oid:
         return JsonResponse({"ok": False, "erro": "Informe o id do rascunho."}, status=400)
+    if acao == "descartar":
+        ok_pin, err_pin = _emprestimos_interno_validar_pin(str(payload.get("pin") or ""))
+        if not ok_pin:
+            return JsonResponse({"ok": False, "erro": err_pin}, status=403)
     usuario = ""
     if request.user.is_authenticated:
         usuario = (
