@@ -470,6 +470,42 @@ def _doc_total_venda_espelho(doc: dict) -> float:
     return 0.0
 
 
+def _nome_cliente_dto_venda(doc: dict) -> str:
+    for chave in (
+        "ClienteNome",
+        "NomeCliente",
+        "cliente",
+        "Cliente",
+        "RazaoSocial",
+        "NomeFantasia",
+        "PessoaNome",
+    ):
+        v = doc.get(chave)
+        if v is not None:
+            s = str(v).strip()
+            if s and s.lower() not in ("none", "null"):
+                return s[:200]
+    return ""
+
+
+def _cliente_grupo_key_dto_venda(doc: dict) -> str:
+    """Chave estável para agregar faturamento (preferência por IDs ERP)."""
+    for chave in (
+        "ClienteID",
+        "ClienteId",
+        "PessoaID",
+        "ClienteFornecedorID",
+        "IdClienteFornecedor",
+    ):
+        v = doc.get(chave)
+        if v is not None and str(v).strip() not in ("", "None", "null", "0"):
+            return f"id:{chave}:{v}"
+    n = _nome_cliente_dto_venda(doc).strip()
+    if n:
+        return f"nome:{n.lower()[:160]}"
+    return "nome:_sem_cliente_"
+
+
 def _nome_vendedor_dto_venda(doc: dict) -> str:
     for chave in (
         "VendedorNome",
@@ -560,6 +596,18 @@ def _coletar_vendas_dto_capri(
             "VendedorID": 1,
             "UsuarioID": 1,
             "FuncionarioID": 1,
+            "ClienteNome": 1,
+            "NomeCliente": 1,
+            "cliente": 1,
+            "Cliente": 1,
+            "RazaoSocial": 1,
+            "NomeFantasia": 1,
+            "PessoaNome": 1,
+            "ClienteID": 1,
+            "ClienteId": 1,
+            "PessoaID": 1,
+            "ClienteFornecedorID": 1,
+            "IdClienteFornecedor": 1,
         }
         vendas = list(db["DtoVenda"].find(q, proj).max_time_ms(120_000))
     except Exception as exc:
@@ -725,3 +773,59 @@ def dashboard_ranking_vendedores_mongo(
         }
         for nome, (val, n_c) in ranked
     ]
+
+
+def dashboard_top_clientes_mongo(
+    client: Any, db, data_ini: date, data_fim: date, *, limite: int = 8
+) -> list[dict] | None:
+    """
+    Top clientes por faturamento (DtoVenda), mesma janela e totais que o ranking de vendedores.
+    Retorna apenas ``nome`` e ``total`` (ordenado).
+    """
+    if db is None or client is None:
+        return None
+    limite = max(1, min(int(limite or 8), 30))
+    filtrado, _ = _coletar_vendas_dto_capri(db, data_ini, data_fim)
+    if filtrado is None:
+        return None
+    if not filtrado:
+        return []
+
+    venda_ids_obj: list = []
+    venda_ids_str: list[str] = []
+    for v in filtrado:
+        vid = str(v.get("Id") or v.get("_id"))
+        if not vid or vid == "None":
+            continue
+        venda_ids_str.append(vid)
+        if len(vid) == 24:
+            try:
+                venda_ids_obj.append(ObjectId(vid))
+            except Exception:
+                pass
+    soma_linhas = _aggregate_soma_linhas_por_venda_id(db, venda_ids_obj, venda_ids_str)
+    if soma_linhas is None:
+        logger.warning("top_clientes_mongo: agregação de linhas falhou; usando só totais de cabeçalho")
+        soma_linhas = {}
+
+    def _faturamento_venda_cached(v: dict) -> float:
+        t = _doc_total_venda_espelho(v)
+        if t > 0:
+            return t
+        vid = str(v.get("Id") or v.get("_id"))
+        for k in (vid, str(v.get("Id")), str(v.get("_id"))):
+            if k and k != "None" and k in soma_linhas:
+                return float(soma_linhas[k])
+        return 0.0
+
+    ac: dict[str, tuple[float, str]] = {}
+    for v in filtrado:
+        gkey = _cliente_grupo_key_dto_venda(v)
+        nome = _nome_cliente_dto_venda(v).strip() or "Cliente não identificado"
+        t = _faturamento_venda_cached(v)
+        tot, nome_prev = ac.get(gkey, (0.0, nome))
+        escolha = nome_prev if len(nome_prev) >= len(nome) else nome
+        ac[gkey] = (tot + t, escolha)
+
+    ranked = sorted(ac.values(), key=lambda x: x[0], reverse=True)[:limite]
+    return [{"nome": nome[:200], "total": round(val, 2)} for val, nome in ranked]
