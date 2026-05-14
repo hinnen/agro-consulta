@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Fonte completa
 
-Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**. Ajuda longa do **RH** (fechamento / ficha): **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_help_agents.html` (blocos «?» nas telas). Para tarefas grandes ou pouco claras, o usuário pode anexar `@AGENTS.md`; não é obrigatório pedir leitura em todo chat se esta regra já estiver ativa.
+Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**. Ajuda longa do **RH** (fechamento / ficha): **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_help_agents.html` (blocos «?» nas telas). **Lançamentos** (filtros / busca na lista): **§10** e `produtos/templates/produtos/includes/lancamentos_help_agents.html`. Para tarefas grandes ou pouco claras, o usuário pode anexar `@AGENTS.md`; não é obrigatório pedir leitura em todo chat se esta regra já estiver ativa.
 
 ## UX (resumo)
 
@@ -30,5 +30,6 @@ Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**.
 - Rotas web principais: `produtos/urls.py`; raiz Django: `config/urls.py`.
 - Financeiro Mongo/agregações: `produtos/mongo_financeiro_util.py`.
 - PDF financeiro padrão: `produtos/lancamentos_financeiro_pdf.py`.
+- Ajuda longa Lançamentos (filtros / busca na lista): `produtos/templates/produtos/includes/lancamentos_help_agents.html` (AGENTS.md §10).
 - Electron empacotado: `electron/main.js`, `electron/preload.js`.
 - Links externos / WhatsApp no browser: `produtos/templates/produtos/_agro_open_external.html` (puxado por `_agro_consulta_ui.html`).
