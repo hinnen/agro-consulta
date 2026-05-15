@@ -3936,19 +3936,108 @@ def _mongo_or_clauses_produto_ids_catalogo(p_chunk: list[str]) -> list[dict]:
 
 
 def _mongo_find_produtos_catalogo_relatorio_por_pids(col, p_ids: list[str]) -> list[dict]:
-    """Carrega cadastro em lotes para evitar único ``$or`` muito grande."""
+    """Carrega cadastro em lotes para evitar ``$or`` muito grande e isolar falhas por lote."""
     if not p_ids:
         return []
     merged: list[dict] = []
-    step = 100
+    step = 50
     for i in range(0, len(p_ids), step):
         chunk = p_ids[i : i + step]
         ors = _mongo_or_clauses_produto_ids_catalogo(chunk)
-        merged.extend(col.find({"$or": ors}, _CAT_PROJ_RELATORIO))
+        if not ors:
+            continue
+        try:
+            merged.extend(list(col.find({"$or": ors}, _CAT_PROJ_RELATORIO)))
+        except Exception as exc:
+            logger.warning(
+                "mongo find catalogo relatorio chunk [%s,%s): %s", i, i + len(chunk), exc
+            )
     return merged
 
 
-def _compras_relatorio_rows_catalogo_sem_ult_doc(
+def _catalogo_pmap_resolve(pmap: dict[str, dict], pid) -> dict | None:
+    """Resolve produto em ``pmap`` tolerando dígitos com zeros à esquerda."""
+    s = str(pid or "").strip()
+    if not s:
+        return None
+    got = pmap.get(s)
+    if got is not None:
+        return got
+    if s.isdigit():
+        n = str(int(s))
+        return pmap.get(n)
+    return None
+
+
+def _compras_relatorio_planilha_linhas_fallback(p_ids: list[str]) -> list[dict]:
+    """Planilha ainda imprimível se métricas ou Mongo quebrarem totalmente."""
+    out: list[dict] = []
+    for raw in p_ids:
+        pid = str(raw or "").strip()
+        if not pid:
+            continue
+        out.append(
+            {
+                "produto_id": pid,
+                "codigo": pid[:80],
+                "nome": "—",
+                "qtd_ultimo_pedido": None,
+                "qtd_vendida_desde_ultima": None,
+                "media_venda_semana": 0,
+                "semanas_media": 1,
+            }
+        )
+    out.sort(key=lambda r: (0, str(r.get("nome") or "").strip().lower()))
+    return out
+
+
+def _compras_relatorio_fornecedor_resposta_degradada(
+    p_ids: list[str],
+    *,
+    fornecedor_nome: str,
+    fornecedor_id: str | None,
+) -> JsonResponse:
+    """Resposta válida quando a montagem completa falha (timeout/driver/ORM)."""
+    ne_list = erp_portal_notas_entrada_list_url()
+    erp_portal = {"notas_entrada_list": ne_list} if ne_list else {}
+    rows_out: list[dict] = []
+    for raw in p_ids:
+        pid = str(raw or "").strip()
+        if not pid:
+            continue
+        rows_out.append(
+            {
+                "produto_id": pid,
+                "codigo": pid[:80],
+                "nome": "—",
+                "qtd_ultimo_pedido": None,
+                "qtd_vendida_desde_ultima": None,
+                "media_venda_semana": 0,
+                "semanas_media": 1,
+            }
+        )
+    rows_out.sort(
+        key=lambda r: (
+            1,
+            str(r.get("nome") or "").strip().lower(),
+        )
+    )
+    return JsonResponse(
+        {
+            "ok": True,
+            "fornecedor_nome": (fornecedor_nome or fornecedor_id or "")[:200],
+            "fornecedor_id": fornecedor_id or "",
+            "total_produtos": len(rows_out),
+            "sem_ultimo_documento": True,
+            "ultimo_documento": {"data": "", "documento": "", "origem": ""},
+            "linhas": rows_out,
+            "erp_portal": erp_portal,
+            "relatorio_parcial": True,
+        }
+    )
+
+
+def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
     db, client, p_ids: list[str]
 ) -> list[dict]:
     """
@@ -3981,13 +4070,13 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc(
 
     produtos_map: dict[str, dict] = {}
     for pid in p_ids:
-        px = pmap.get(str(pid))
+        px = _catalogo_pmap_resolve(pmap, pid)
         if px:
             produtos_map[str(pid)] = px
 
     variant_to_canon: dict[str, str] = {}
     for pid in p_ids:
-        p = pmap.get(pid)
+        p = _catalogo_pmap_resolve(pmap, pid)
         canon = str(p.get("Id") or p.get("_id") or pid) if p else str(pid)
         chs = _chaves_produto(p) if p else [str(pid)]
         for k in chs:
@@ -4006,7 +4095,7 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc(
             mongo_max_time_ms=120_000,
         )
         for pid in p_ids:
-            p = pmap.get(pid)
+            p = _catalogo_pmap_resolve(pmap, pid)
             canon = str(p.get("Id") or p.get("_id") or pid) if p else str(pid)
             lum = ultimas.get(str(pid), [])
             if lum:
@@ -4031,60 +4120,82 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc(
 
     rows_out: list[dict] = []
     for pid in p_ids:
-        p = pmap.get(pid)
-        canon = str(p.get("Id") or p.get("_id") or pid) if p else pid
-        nome = str(p.get("Nome") or "").strip() if p else ""
-        if not nome:
-            nome = "—"
-        if p:
-            gm_raw = _mongo_primeiro_texto(
-                p,
-                ("CodigoNFe", "Sku", "SKU", "CodigoInterno", "Codigo", "CodigoBarras"),
-            )
-            codigo = (_fmt_relatorio_gm_display(gm_raw) or _fmt_relatorio_gm_display(str(canon)))[:80]
-        else:
-            codigo = _fmt_relatorio_gm_display(str(canon))[:80]
-
-        cs = str(canon)
-        qtd_ult: int | None = None
-        qtd_pos: int | None = None
-        if cs in qtd_ult_linha:
-            qtd_ult = _arred_int_meio_para_cima(qtd_ult_linha[cs])
-        if cs in ref_por_canon:
-            qtd_pos = _arred_int_meio_para_cima(vendas_pos.get(cs, 0.0))
-
-        t56p = _resolver_qtd_por_pid(tot56, canon)
-        first_dt = _resolver_dt_mapa(first_in56, canon)
-        if first_dt is None and p:
-            for k in _chaves_produto(p):
-                first_dt = _resolver_dt_mapa(first_in56, k)
-                if first_dt is not None:
-                    break
-        anchor = t56
-        if isinstance(first_dt, datetime):
-            fd = _mongo_dt_utc_naive(first_dt) or first_dt
-            ad = _mongo_dt_utc_naive(anchor) or anchor
-            if fd > ad:
-                anchor = fd
-        now_n = _mongo_dt_utc_naive(now) or now
-        an_n = _mongo_dt_utc_naive(anchor) or anchor
         try:
-            dias_hist = max(1.0, (now_n - an_n).total_seconds() / 86400.0)
+            p = _catalogo_pmap_resolve(pmap, pid)
+            canon = str(p.get("Id") or p.get("_id") or pid) if p else str(pid)
+            nome = str(p.get("Nome") or "").strip() if p else ""
+            if not nome:
+                nome = "—"
+            if p:
+                gm_raw = _mongo_primeiro_texto(
+                    p,
+                    ("CodigoNFe", "Sku", "SKU", "CodigoInterno", "Codigo", "CodigoBarras"),
+                )
+                codigo = (_fmt_relatorio_gm_display(gm_raw) or _fmt_relatorio_gm_display(str(canon)))[:80]
+            else:
+                codigo = _fmt_relatorio_gm_display(str(canon))[:80]
+
+            cs = str(canon)
+            qtd_ult: int | None = None
+            qtd_pos: int | None = None
+            if cs in qtd_ult_linha:
+                qtd_ult = _arred_int_meio_para_cima(qtd_ult_linha[cs])
+            if cs in ref_por_canon:
+                qtd_pos = _arred_int_meio_para_cima(vendas_pos.get(cs, 0.0))
+
+            t56p = _resolver_qtd_por_pid(tot56, canon)
+            first_dt = _resolver_dt_mapa(first_in56, canon)
+            if first_dt is None and p:
+                for k in _chaves_produto(p):
+                    first_dt = _resolver_dt_mapa(first_in56, k)
+                    if first_dt is not None:
+                        break
+            anchor = t56
+            if isinstance(first_dt, datetime):
+                fd = _mongo_dt_utc_naive(first_dt) or first_dt
+                ad = _mongo_dt_utc_naive(anchor) or anchor
+                if fd > ad:
+                    anchor = fd
+            now_n = _mongo_dt_utc_naive(now) or now
+            an_n = _mongo_dt_utc_naive(anchor) or anchor
+            try:
+                dias_hist = max(1.0, (now_n - an_n).total_seconds() / 86400.0)
+            except Exception:
+                dias_hist = 56.0
+            if not math.isfinite(dias_hist):
+                dias_hist = 56.0
+            semanas_den = int(max(1, min(8, (dias_hist + 6.999999) // 7)))
+            media_sem = _arred_int_meio_para_cima((t56p / float(semanas_den)) if semanas_den else 0.0)
+            rows_out.append(
+                {
+                    "produto_id": str(canon),
+                    "codigo": codigo[:80],
+                    "nome": nome[:500],
+                    "qtd_ultimo_pedido": qtd_ult,
+                    "qtd_vendida_desde_ultima": qtd_pos,
+                    "media_venda_semana": media_sem,
+                    "semanas_media": semanas_den,
+                }
+            )
         except Exception:
-            dias_hist = 56.0
-        semanas_den = int(max(1, min(8, (dias_hist + 6.999999) // 7)))
-        media_sem = _arred_int_meio_para_cima((t56p / float(semanas_den)) if semanas_den else 0.0)
-        rows_out.append(
-            {
-                "produto_id": str(canon),
-                "codigo": codigo[:80],
-                "nome": nome[:500],
-                "qtd_ultimo_pedido": qtd_ult,
-                "qtd_vendida_desde_ultima": qtd_pos,
-                "media_venda_semana": media_sem,
-                "semanas_media": semanas_den,
-            }
-        )
+            logger.warning(
+                "_compras_relatorio_rows_catalogo_sem_ult_doc_build linha pid=%s falhou",
+                pid,
+                exc_info=True,
+            )
+            sp = str(pid or "").strip()
+            if sp:
+                rows_out.append(
+                    {
+                        "produto_id": sp,
+                        "codigo": sp[:80],
+                        "nome": "—",
+                        "qtd_ultimo_pedido": None,
+                        "qtd_vendida_desde_ultima": None,
+                        "media_venda_semana": 0,
+                        "semanas_media": 1,
+                    }
+                )
 
     rows_out.sort(
         key=lambda r: (
@@ -4093,6 +4204,15 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc(
         )
     )
     return rows_out
+
+
+def _compras_relatorio_rows_catalogo_sem_ult_doc(db, client, p_ids: list[str]) -> list[dict]:
+    """Monta linhas da planilha; em falha grave devolve uma lista mínima (ainda imprimível)."""
+    try:
+        return _compras_relatorio_rows_catalogo_sem_ult_doc_build(db, client, p_ids)
+    except Exception:
+        logger.exception("_compras_relatorio_rows_catalogo_sem_ult_doc")
+        return _compras_relatorio_planilha_linhas_fallback(p_ids)
 
 
 @never_cache
@@ -4391,166 +4511,197 @@ def _api_compras_relatorio_fornecedor_impl(request):
         return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
 
     p_ids: list[str] = []
-    if isinstance(raw_ids, list) and raw_ids:
-        seen: set[str] = set()
-        for raw in raw_ids[:400]:
-            s = str(raw or "").strip()
-            if not s or s in seen:
-                continue
-            seen.add(s)
-            p_ids.append(s)
-    if not p_ids:
-        p_ids = _lista_produto_ids_catalogo_por_fornecedor(
-            db, client, fornecedor_nome, fornecedor_id, limit=800
+    try:
+        local_ids: list[str] = []
+        if isinstance(raw_ids, list) and raw_ids:
+            seen_l: set[str] = set()
+            for raw in raw_ids[:400]:
+                s = str(raw or "").strip()
+                if not s or s in seen_l:
+                    continue
+                seen_l.add(s)
+                local_ids.append(s)
+        if not local_ids:
+            local_ids = _lista_produto_ids_catalogo_por_fornecedor(
+                db, client, fornecedor_nome, fornecedor_id, limit=800
+            )
+        if not local_ids:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Nenhum produto no catálogo encontrado para este fornecedor. Ajuste o nome ou escolha na lista de cadastro.",
+                },
+                status=400,
+            )
+        p_ids = local_ids
+
+        ultimo = _ultimo_documento_compra_do_fornecedor(db, fornecedor_nome, fornecedor_id)
+        ref_dt: datetime | None = None
+        ultimo_iso = ""
+        ultimo_doc_txt = ""
+        ultimo_origem = ""
+        sem_doc = ultimo is None
+        linhas_doc: dict[str, float] = {}
+        if ultimo and isinstance(ultimo.get("dt"), datetime):
+            ref_dt = ultimo["dt"]
+            ultimo_iso = ref_dt.isoformat()[:19]
+            ultimo_doc_txt = _numero_documento_compra_head(ultimo.get("head") or {})
+            ultimo_origem = str(ultimo.get("origem") or "")
+            linhas_doc = _mapa_qtd_linhas_documento_compra(db, ultimo)
+
+        hist_linhas: set[str] = set()
+        if not sem_doc:
+            hist_linhas = _conjunto_produto_ids_linhas_qualquer_compra_fornecedor(
+                db, fornecedor_nome, fornecedor_id, p_ids
+            )
+
+        now = datetime.now()
+        t56 = now - timedelta(days=56)
+        tot56, first_in56 = _vendas_qtd_por_produto_intervalo(db, p_ids, t56, now)
+
+        desde_pos_compra = ref_dt + timedelta(seconds=1) if ref_dt is not None else None
+        tot_pos, _fpos = (
+            _vendas_qtd_por_produto_intervalo(db, p_ids, desde_pos_compra, now)
+            if desde_pos_compra is not None and desde_pos_compra <= now
+            else ({}, {})
         )
-    if not p_ids:
+
+        col = db[client.col_p]
+        prods = _mongo_find_produtos_catalogo_relatorio_por_pids(col, p_ids)
+
+        def _chaves_produto(p) -> list[str]:
+            keys: list[str] = []
+            vid = p.get("Id")
+            if vid is not None:
+                keys.append(str(vid))
+            keys.append(str(p.get("_id")))
+            cod = p.get("Codigo")
+            if cod is not None and str(cod).strip() != "":
+                keys.append(str(cod))
+            return [k for k in keys if k and k != "None"]
+
+        pmap: dict[str, dict] = {}
+        for p in prods:
+            for k in _chaves_produto(p):
+                pmap[k] = p
+
+        rows_out: list[dict] = []
+        for pid in p_ids:
+            try:
+                p = _catalogo_pmap_resolve(pmap, pid)
+                canon = str(p.get("Id") or p.get("_id") or pid) if p else str(pid)
+                nome = str(p.get("Nome") or "").strip() if p else ""
+                if not nome:
+                    nome = "—"
+                chaves = _chaves_produto(p) if p else [canon]
+                if p:
+                    gm_raw = _mongo_primeiro_texto(
+                        p,
+                        ("CodigoNFe", "Sku", "SKU", "CodigoInterno", "Codigo", "CodigoBarras"),
+                    )
+                    codigo = (_fmt_relatorio_gm_display(gm_raw) or _fmt_relatorio_gm_display(str(canon)))[:80]
+                else:
+                    codigo = _fmt_relatorio_gm_display(str(canon))[:80]
+
+                qtd_ult: int | None
+                if sem_doc:
+                    qtd_ult = None
+                elif _linhas_doc_mapa_contem_produto(linhas_doc, str(canon), chaves):
+                    qtd_ult = _arred_int_meio_para_cima(_resolver_qtd_por_pid(linhas_doc, str(canon)))
+                elif _conjunto_compra_contem_produto(hist_linhas, str(canon), chaves):
+                    qtd_ult = 0
+                else:
+                    qtd_ult = None
+
+                qtd_pos = None
+                if not sem_doc:
+                    qtd_pos = _arred_int_meio_para_cima(_resolver_qtd_por_pid(tot_pos, str(canon)))
+                t56p = _resolver_qtd_por_pid(tot56, str(canon))
+                first_dt = _resolver_dt_mapa(first_in56, str(canon))
+                if first_dt is None and p:
+                    for k in _chaves_produto(p):
+                        first_dt = _resolver_dt_mapa(first_in56, k)
+                        if first_dt is not None:
+                            break
+                anchor = t56
+                if isinstance(first_dt, datetime):
+                    fd = _mongo_dt_utc_naive(first_dt) or first_dt
+                    ad = _mongo_dt_utc_naive(anchor) or anchor
+                    if fd > ad:
+                        anchor = fd
+                now_n = _mongo_dt_utc_naive(now) or now
+                an_n = _mongo_dt_utc_naive(anchor) or anchor
+                try:
+                    dias_hist = max(1.0, (now_n - an_n).total_seconds() / 86400.0)
+                except Exception:
+                    dias_hist = 56.0
+                if not math.isfinite(dias_hist):
+                    dias_hist = 56.0
+                semanas_den = int(max(1, min(8, (dias_hist + 6.999999) // 7)))
+                media_sem = _arred_int_meio_para_cima((t56p / float(semanas_den)) if semanas_den else 0.0)
+                rows_out.append(
+                    {
+                        "produto_id": str(canon),
+                        "codigo": codigo[:80],
+                        "nome": nome[:500],
+                        "qtd_ultimo_pedido": qtd_ult,
+                        "qtd_vendida_desde_ultima": qtd_pos,
+                        "media_venda_semana": media_sem,
+                        "semanas_media": semanas_den,
+                    }
+                )
+            except Exception:
+                logger.warning(
+                    "relatorio fornecedor linha pid=%s falhou", pid, exc_info=True
+                )
+                sp = str(pid or "").strip()
+                if sp:
+                    rows_out.append(
+                        {
+                            "produto_id": sp,
+                            "codigo": sp[:80],
+                            "nome": "—",
+                            "qtd_ultimo_pedido": None,
+                            "qtd_vendida_desde_ultima": None,
+                            "media_venda_semana": 0,
+                            "semanas_media": 1,
+                        }
+                    )
+
+        rows_out.sort(
+            key=lambda r: (
+                1 if (not sem_doc and r.get("qtd_ultimo_pedido") is None) else 0,
+                str(r.get("nome") or "").strip().lower(),
+            )
+        )
+
+        ne_list = erp_portal_notas_entrada_list_url()
+        erp_portal = {"notas_entrada_list": ne_list} if ne_list else {}
+
         return JsonResponse(
             {
-                "ok": False,
-                "erro": "Nenhum produto no catálogo encontrado para este fornecedor. Ajuste o nome ou escolha na lista de cadastro.",
+                "ok": True,
+                "fornecedor_nome": (fornecedor_nome or fornecedor_id or "")[:200],
+                "fornecedor_id": fornecedor_id or "",
+                "total_produtos": len(rows_out),
+                "sem_ultimo_documento": sem_doc,
+                "ultimo_documento": {
+                    "data": ultimo_iso,
+                    "documento": ultimo_doc_txt[:120],
+                    "origem": ultimo_origem,
+                },
+                "linhas": rows_out,
+                "erp_portal": erp_portal,
             },
-            status=400,
         )
 
-    ultimo = _ultimo_documento_compra_do_fornecedor(db, fornecedor_nome, fornecedor_id)
-    ref_dt: datetime | None = None
-    ultimo_iso = ""
-    ultimo_doc_txt = ""
-    ultimo_origem = ""
-    sem_doc = ultimo is None
-    linhas_doc: dict[str, float] = {}
-    if ultimo and isinstance(ultimo.get("dt"), datetime):
-        ref_dt = ultimo["dt"]
-        ultimo_iso = ref_dt.isoformat()[:19]
-        ultimo_doc_txt = _numero_documento_compra_head(ultimo.get("head") or {})
-        ultimo_origem = str(ultimo.get("origem") or "")
-        linhas_doc = _mapa_qtd_linhas_documento_compra(db, ultimo)
-
-    hist_linhas: set[str] = set()
-    if not sem_doc:
-        hist_linhas = _conjunto_produto_ids_linhas_qualquer_compra_fornecedor(
-            db, fornecedor_nome, fornecedor_id, p_ids
+    except Exception:
+        logger.exception("_api_compras_relatorio_fornecedor_impl montagem")
+        return _compras_relatorio_fornecedor_resposta_degradada(
+            p_ids,
+            fornecedor_nome=fornecedor_nome,
+            fornecedor_id=fornecedor_id,
         )
-
-    now = datetime.now()
-    t56 = now - timedelta(days=56)
-    tot56, first_in56 = _vendas_qtd_por_produto_intervalo(db, p_ids, t56, now)
-
-    desde_pos_compra = ref_dt + timedelta(seconds=1) if ref_dt is not None else None
-    tot_pos, _fpos = (
-        _vendas_qtd_por_produto_intervalo(db, p_ids, desde_pos_compra, now)
-        if desde_pos_compra is not None and desde_pos_compra <= now
-        else ({}, {})
-    )
-
-    col = db[client.col_p]
-    prods = _mongo_find_produtos_catalogo_relatorio_por_pids(col, p_ids)
-
-    def _chaves_produto(p) -> list[str]:
-        keys: list[str] = []
-        vid = p.get("Id")
-        if vid is not None:
-            keys.append(str(vid))
-        keys.append(str(p.get("_id")))
-        cod = p.get("Codigo")
-        if cod is not None and str(cod).strip() != "":
-            keys.append(str(cod))
-        return [k for k in keys if k and k != "None"]
-
-    pmap: dict[str, dict] = {}
-    for p in prods:
-        for k in _chaves_produto(p):
-            pmap[k] = p
-
-    rows_out: list[dict] = []
-    for pid in p_ids:
-        p = pmap.get(pid)
-        canon = str(p.get("Id") or p.get("_id") or pid) if p else pid
-        nome = str(p.get("Nome") or "").strip() if p else ""
-        if not nome:
-            nome = "—"
-        chaves = _chaves_produto(p) if p else [canon]
-        if p:
-            gm_raw = _mongo_primeiro_texto(
-                p,
-                ("CodigoNFe", "Sku", "SKU", "CodigoInterno", "Codigo", "CodigoBarras"),
-            )
-            codigo = (_fmt_relatorio_gm_display(gm_raw) or _fmt_relatorio_gm_display(str(canon)))[:80]
-        else:
-            codigo = _fmt_relatorio_gm_display(str(canon))[:80]
-
-        qtd_ult: int | None
-        if sem_doc:
-            qtd_ult = None
-        elif _linhas_doc_mapa_contem_produto(linhas_doc, canon, chaves):
-            qtd_ult = _arred_int_meio_para_cima(_resolver_qtd_por_pid(linhas_doc, canon))
-        elif _conjunto_compra_contem_produto(hist_linhas, canon, chaves):
-            qtd_ult = 0
-        else:
-            qtd_ult = None
-
-        qtd_pos = None
-        if not sem_doc:
-            qtd_pos = _arred_int_meio_para_cima(_resolver_qtd_por_pid(tot_pos, canon))
-        t56p = _resolver_qtd_por_pid(tot56, canon)
-        first_dt = _resolver_dt_mapa(first_in56, canon)
-        if first_dt is None and p:
-            for k in _chaves_produto(p):
-                first_dt = _resolver_dt_mapa(first_in56, k)
-                if first_dt is not None:
-                    break
-        anchor = t56
-        if isinstance(first_dt, datetime):
-            fd = _mongo_dt_utc_naive(first_dt) or first_dt
-            ad = _mongo_dt_utc_naive(anchor) or anchor
-            if fd > ad:
-                anchor = fd
-        now_n = _mongo_dt_utc_naive(now) or now
-        an_n = _mongo_dt_utc_naive(anchor) or anchor
-        try:
-            dias_hist = max(1.0, (now_n - an_n).total_seconds() / 86400.0)
-        except Exception:
-            dias_hist = 56.0
-        semanas_den = int(max(1, min(8, (dias_hist + 6.999999) // 7)))
-        media_sem = _arred_int_meio_para_cima((t56p / float(semanas_den)) if semanas_den else 0.0)
-        rows_out.append(
-            {
-                "produto_id": str(canon),
-                "codigo": codigo[:80],
-                "nome": nome[:500],
-                "qtd_ultimo_pedido": qtd_ult,
-                "qtd_vendida_desde_ultima": qtd_pos,
-                "media_venda_semana": media_sem,
-                "semanas_media": semanas_den,
-            }
-        )
-
-    rows_out.sort(
-        key=lambda r: (
-            1 if (not sem_doc and r.get("qtd_ultimo_pedido") is None) else 0,
-            str(r.get("nome") or "").strip().lower(),
-        )
-    )
-
-    ne_list = erp_portal_notas_entrada_list_url()
-    erp_portal = {"notas_entrada_list": ne_list} if ne_list else {}
-
-    return JsonResponse(
-        {
-            "ok": True,
-            "fornecedor_nome": (fornecedor_nome or fornecedor_id or "")[:200],
-            "fornecedor_id": fornecedor_id or "",
-            "total_produtos": len(rows_out),
-            "sem_ultimo_documento": sem_doc,
-            "ultimo_documento": {
-                "data": ultimo_iso,
-                "documento": ultimo_doc_txt[:120],
-                "origem": ultimo_origem,
-            },
-            "linhas": rows_out,
-            "erp_portal": erp_portal,
-        }
-    )
 
 
 def _sanear_itens_checkout_sessao(itens):
