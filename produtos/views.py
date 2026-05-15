@@ -3890,13 +3890,22 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc(
 @never_cache
 @require_GET
 def api_compras_relatorio_dim_sugestao(request):
-    """Sugestões de categoria ou unidade para relatórios (catálogo Mongo ativo)."""
+    """Sugestões de categoria ou unidade para relatórios (catálogo Mongo ativo + overlay Agro).
+    Parâmetros: ``completa=1`` amplia o scan (até 500 itens) para preencher listas fechadas na UI.
+    """
     tipo = (request.GET.get("tipo") or "").strip().lower()
     q = (request.GET.get("q") or "").strip()
+    completa = str(request.GET.get("completa") or "").strip().lower() in (
+        "1",
+        "true",
+        "sim",
+        "yes",
+    )
     try:
-        lim = min(int(request.GET.get("limit") or 40), 80)
+        lim_req = int(request.GET.get("limit") or ("400" if completa else "40"))
     except ValueError:
-        lim = 40
+        lim_req = 400 if completa else 40
+    lim = min(max(lim_req, 1), 500 if completa else 80)
 
     client, db = obter_conexao_mongo()
     if db is None:
@@ -3937,8 +3946,9 @@ def api_compras_relatorio_dim_sugestao(request):
 
     seen: set[str] = set()
     out: list[str] = []
+    mongo_docs_cap = 5000 if completa else 400
     try:
-        cur = col.find(query, proj).limit(400)
+        cur = col.find(query, proj).limit(mongo_docs_cap)
         for doc in cur:
             if tipo == "categoria":
                 for fld in ("NomeCategoria", "Categoria", "Grupo"):
@@ -3953,7 +3963,7 @@ def api_compras_relatorio_dim_sugestao(request):
                         continue
                     seen.add(k)
                     out.append(s)
-                    if len(out) >= lim:
+                    if not completa and len(out) >= lim:
                         break
             else:
                 for fld in (
@@ -3974,15 +3984,34 @@ def api_compras_relatorio_dim_sugestao(request):
                         continue
                     seen.add(k)
                     out.append(s)
-                    if len(out) >= lim:
+                    if not completa and len(out) >= lim:
                         break
-            if len(out) >= lim:
+            if not completa and len(out) >= lim:
                 break
-        if tipo == "unidade":
+        if tipo == "categoria":
+            oqs = ProdutoGestaoOverlayAgro.objects.exclude(categoria="")
+            if q:
+                oqs = oqs.filter(categoria__icontains=q[:120])
+            cap_ov = min(2400 if completa else 240, 3000)
+            for cw in (
+                oqs.order_by("categoria").values_list("categoria", flat=True).distinct()[:cap_ov]
+            ):
+                s = str(cw or "").strip()
+                if not s:
+                    continue
+                k = s.lower()
+                if k in seen:
+                    continue
+                seen.add(k)
+                out.append(s)
+                if not completa and len(out) >= lim:
+                    break
+        elif tipo == "unidade":
             oqs = ProdutoGestaoOverlayAgro.objects.exclude(unidade="")
             if q:
                 oqs = oqs.filter(unidade__icontains=q[:120])
-            for uw in oqs.order_by("unidade").values_list("unidade", flat=True).distinct()[:240]:
+            cap_ov = min(2400 if completa else 240, 3000)
+            for uw in oqs.order_by("unidade").values_list("unidade", flat=True).distinct()[:cap_ov]:
                 s = str(uw or "").strip()
                 if not s:
                     continue
@@ -3991,7 +4020,7 @@ def api_compras_relatorio_dim_sugestao(request):
                     continue
                 seen.add(k)
                 out.append(s)
-                if len(out) >= lim:
+                if not completa and len(out) >= lim:
                     break
     except Exception as exc:
         logger.warning("api_compras_relatorio_dim_sugestao: %s", exc)
@@ -6491,7 +6520,7 @@ def compras_relatorio_planilha_categoria_view(request):
             "planilha_dim": "categoria",
             "planilha_titulo": "Relatório planilha — categoria",
             "planilha_label": "Categoria",
-            "planilha_placeholder": "Digite ou busque a categoria…",
+            "planilha_placeholder": "Selecione uma categoria…",
             "api_relatorio_url": reverse("api_compras_relatorio_categoria"),
             "api_dim_sugestao_url": reverse("api_compras_relatorio_dim_sugestao"),
             "campo_payload": "categoria",
@@ -6509,7 +6538,7 @@ def compras_relatorio_planilha_unidade_view(request):
             "planilha_dim": "unidade",
             "planilha_titulo": "Relatório planilha — unidade",
             "planilha_label": "Unidade",
-            "planilha_placeholder": "Ex.: Saco, UN, KG…",
+            "planilha_placeholder": "Selecione uma unidade…",
             "api_relatorio_url": reverse("api_compras_relatorio_unidade"),
             "api_dim_sugestao_url": reverse("api_compras_relatorio_dim_sugestao"),
             "campo_payload": "unidade",
@@ -11079,6 +11108,7 @@ def motor_de_busca_agro(
     else:
         lim_s3 = 160
     # ``regex_stage3b_cap <= 0`` desliga o estágio 3b (OR gigante de regex), mais leve no cadastro.
+    # Com 2+ palavras no termo, 3b também fica desligado: senão «a 25» vira lixo que só casou «25».
     if regex_stage3b_cap is not None:
         _raw3b = int(regex_stage3b_cap)
         lim_s3b = 0 if _raw3b <= 0 else max(40, min(_raw3b, 280))
@@ -11088,6 +11118,11 @@ def motor_de_busca_agro(
     termo_limpo = _somente_alnum(termo_original)
     termo_ix = termo_limpo.lower() if termo_limpo else ""
     palavras = [p for p in termo_original.split() if p]
+    # Com 2+ palavras, o estágio 3b (OR por token) polui: ex. "quirera 25" traz tudo com "25".
+    # O PDV/Consulta muitas vezes pré-filtra com AND no catálogo local; telas só API (cadastro ERP)
+    # herdavam esse ruído. Mantém conjunção nos estágios 2–3 apenas.
+    if len(palavras) >= 2:
+        lim_s3b = 0
     base_filter = {} if include_inactive else {"CadastroInativo": {"$ne": True}}
 
     candidatos = []

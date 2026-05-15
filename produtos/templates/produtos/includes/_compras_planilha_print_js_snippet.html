@@ -289,13 +289,15 @@ function montarHtmlImpressaoPlanilha(j, opts) {
 }
 
 function planilhaImprimir() {
-  const inp = document.getElementById('planilha-filtro');
-  const val = String(inp?.value || '').trim();
+  const sel = document.getElementById('planilha-filtro-select');
+  const val = String(sel?.value || '').trim();
   if (!val) {
-    window.alert(document.getElementById('planilha-label')?.textContent.trim() === 'Categoria'
-      ? 'Informe ou escolha a categoria.'
-      : 'Informe ou escolha a unidade.');
-    inp?.focus();
+    window.alert(
+      PLANILHA_DIM === 'categoria'
+        ? 'Selecione uma categoria na lista.'
+        : 'Selecione uma unidade na lista.',
+    );
+    sel?.focus();
     return;
   }
   const pageSizeRaw = document.getElementById('planilha-tamanho-papel')?.value || 'A4';
@@ -349,43 +351,61 @@ function compraPlanilhaGetCsrf() {
   return c ? decodeURIComponent(c[1].trim()) : '';
 }
 
-let planilhaDdTimer = null;
+async function planilhaPreencherSelect() {
+  const sel = document.getElementById('planilha-filtro-select');
+  if (!sel) return;
+  const hint = sel.options[0] ? String(sel.options[0].textContent || '').trim() : 'Selecione…';
+  sel.innerHTML = '';
+  const loading = document.createElement('option');
+  loading.value = '';
+  loading.textContent = 'Carregando lista…';
+  sel.appendChild(loading);
+  sel.disabled = true;
 
-async function planilhaBuscarSugests(q) {
-  const dd = document.getElementById('planilha-dd');
-  if (!dd) return;
-  dd.innerHTML = '';
   const u = new URL(PLANILHA_API_DIM, window.location.origin);
   u.searchParams.set('tipo', PLANILHA_DIM);
-  u.searchParams.set('limit', '40');
-  if (String(q || '').trim().length >= 1) {
-    u.searchParams.set('q', String(q).trim());
-  }
+  u.searchParams.set('completa', '1');
+  u.searchParams.set('limit', '500');
+
   try {
     const r = await fetch(u.toString(), { credentials: 'same-origin' });
-    const j = await r.json();
-    const arr = (j.itens || []).slice(0, 60);
-    if (!arr.length) {
-      dd.classList.add('hidden');
+    const j = await r.json().catch(() => ({}));
+    if (!j.ok) {
+      sel.innerHTML = '';
+      const head = document.createElement('option');
+      head.value = '';
+      head.textContent = hint;
+      sel.appendChild(head);
+      window.alert(j.erro || 'Falha ao carregar a lista.');
       return;
     }
+    const arr = Array.isArray(j.itens) ? j.itens : [];
+    sel.innerHTML = '';
+    const head = document.createElement('option');
+    head.value = '';
+    head.textContent = hint;
+    sel.appendChild(head);
     arr.forEach((txt) => {
-      const li = document.createElement('li');
-      li.setAttribute('role', 'option');
-      li.className =
-        'px-3 py-3 sm:py-2 cursor-pointer active:bg-violet-100 hover:bg-violet-50 text-sm font-bold border-b border-violet-50 touch-manipulation min-h-[48px] flex items-center';
-      li.textContent = txt;
-      const go = (e) => {
-        e.preventDefault();
-        document.getElementById('planilha-filtro').value = txt;
-        dd.classList.add('hidden');
-      };
-      li.addEventListener('mousedown', go);
-      li.addEventListener('click', go);
-      dd.appendChild(li);
+      const o = document.createElement('option');
+      o.value = txt;
+      o.textContent = txt;
+      sel.appendChild(o);
     });
-    dd.classList.remove('hidden');
+    if (!arr.length) {
+      window.alert(
+        PLANILHA_DIM === 'categoria'
+          ? 'Nenhuma categoria encontrada para listar. Recarregue após atualizar cadastros.'
+          : 'Nenhuma unidade encontrada para listar. Recarregue após atualizar cadastros.',
+      );
+    }
   } catch (_) {
-    dd.classList.add('hidden');
+    sel.innerHTML = '';
+    const head = document.createElement('option');
+    head.value = '';
+    head.textContent = hint;
+    sel.appendChild(head);
+    window.alert('Não foi possível carregar a lista. Confira a conexão e recarregue a página.');
+  } finally {
+    sel.disabled = false;
   }
 }
