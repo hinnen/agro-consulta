@@ -221,16 +221,20 @@ function montarHtmlImpressaoPlanilha(j, opts) {
       font-weight: 800;
       color: #1e293b;
     }
-    td { font-size: 12.6pt; }
-    td.nome { font-weight: 600; }
+    td { font-size: 17.01pt; }
+    td.nome {
+      font-size: 15.12pt;
+      font-weight: 600;
+    }
     td.num {
       text-align: right;
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
     }
     td.livre {
-      min-width: 2.4rem;
-      height: 1.6rem;
+      min-width: 2.75rem;
+      min-height: 1.85rem;
+      height: 1.85rem;
       background: #fff;
     }
     caption {
@@ -262,8 +266,7 @@ function montarHtmlImpressaoPlanilha(j, opts) {
 <body>
   <h1>Relatório de compras — ${esc(tipo)}</h1>
   <div class="sub"><strong>${esc(tipo)}:</strong> ${esc(rotulo)}<br>
-  <strong>Gerado em:</strong> ${esc(agora)}<br>
-  Até 800 produtos por ${esc(String(tipo).toLowerCase())}. Sem vínculo com último documento de compra por fornecedor neste relatório: há <strong>*</strong> onde o número não aplica. «Contagem» e «Pedir» ficam em branco para preencher à caneta.</div>
+  <strong>Gerado em:</strong> ${esc(agora)}</div>
   <table>
     <caption>Lista · ${Number(j.total_produtos || (j.linhas || []).length || 0).toLocaleString('pt-BR')} produto(s) · papel ${pageSz}</caption>
     <thead>
@@ -279,7 +282,7 @@ function montarHtmlImpressaoPlanilha(j, opts) {
     <tbody>${rowsHtml}</tbody>
   </table>
   <footer class="print-foot">
-    <p class="foot-legend"><strong>*</strong>: sem número aplicável neste relatório por categoria/unidade (sem última NF por fornecedor aqui). <strong>—</strong>: média/indicador não calculado. Tipografia maior (cerca de +20%) que o relatório só por fornecedor.</p>
+    <p class="foot-legend"><strong>*</strong>: sem compra recente deste produto no ERP na janela usada pelo sistema (cerca de 800 dias) — ou não há quantidade na última linha encontrada. <strong>—</strong>: média/indicador não calculado. A coluna «desde última compra» soma vendas após a data da última compra ERP encontrada para aquele produto.</p>
     <div class="foot-brand">
       <img src="${esc(logoAbs)}" alt="Agro Mais — Sua casa de ração com um toque a mais">
     </div>
