@@ -3823,12 +3823,15 @@ def _lista_produto_ids_catalogo_por_unidade(
     *,
     limit: int = 800,
     mongo_max_time_ms: int | None = 90_000,
-) -> list[str]:
-    """Produtos ativos cuja unidade (Mongo e/ou overlay Agro) casa com o texto informado."""
+) -> tuple[list[str], dict[str, str]]:
+    """Produtos ativos cuja unidade (Mongo e/ou overlay Agro) casa com o texto informado.
+
+    Retorna também ``nomes_por_id`` (Nome visto na listagem Mongo) para não perder rótulos ao remontar o relatório.
+    """
     col = db[client.col_p]
     u = str(unidade or "").strip()
     if len(u) < 1:
-        return []
+        return [], {}
     esc = re.escape(u[:80])
     rex = {"$regex": esc, "$options": "i"}
     mongo_field_or = [
@@ -3847,7 +3850,7 @@ def _lista_produto_ids_catalogo_por_unidade(
         docs = list(cur)
     except Exception as exc:
         logger.warning("relatorio_compras catalogo unidade: %s", exc)
-        return []
+        return [], {}
 
     def _pid_of(p_doc) -> str:
         return str(p_doc.get("Id") or p_doc.get("_id") or "").strip()
@@ -3888,16 +3891,22 @@ def _lista_produto_ids_catalogo_por_unidade(
     docs = list(uniq.values())
     docs.sort(key=lambda p: str(p.get("Nome") or "").strip().lower())
     out: list[str] = []
+    nomes_out: dict[str, str] = {}
     seen: set[str] = set()
     for p in docs:
         pid = _pid_of(p)
         if not pid or pid == "None" or pid in seen:
             continue
         seen.add(pid)
+        nm = str(p.get("Nome") or "").strip()
+        if nm:
+            nomes_out[pid] = nm
+            if pid.isdigit():
+                nomes_out[str(int(pid))] = nm
         out.append(pid)
         if len(out) >= lim:
             break
-    return out
+    return out, nomes_out
 
 
 _CAT_PROJ_RELATORIO: dict[str, int] = {
@@ -4005,18 +4014,39 @@ def _catalogo_pmap_resolve(pmap: dict[str, dict], pid) -> dict | None:
     return None
 
 
-def _compras_relatorio_planilha_linhas_fallback(p_ids: list[str]) -> list[dict]:
+def _relatorio_nome_hint_pid(hints: dict[str, str], pid) -> str:
+    """Busca nome em mapa vindo da listagem (chaves com e sem zeros à esquerda)."""
+    s = str(pid or "").strip()
+    if not s or not hints:
+        return ""
+    t = hints.get(s)
+    if t:
+        return str(t).strip()
+    if s.isdigit():
+        t = hints.get(str(int(s)))
+        if t:
+            return str(t).strip()
+    return ""
+
+
+def _compras_relatorio_planilha_linhas_fallback(
+    p_ids: list[str],
+    *,
+    nomes_hints: dict[str, str] | None = None,
+) -> list[dict]:
     """Planilha ainda imprimível se métricas ou Mongo quebrarem totalmente."""
+    hints = nomes_hints or {}
     out: list[dict] = []
     for raw in p_ids:
         pid = str(raw or "").strip()
         if not pid:
             continue
+        nm = _relatorio_nome_hint_pid(hints, pid) or "—"
         out.append(
             {
                 "produto_id": pid,
                 "codigo": pid[:80],
-                "nome": "—",
+                "nome": nm,
                 "qtd_ultimo_pedido": None,
                 "qtd_vendida_desde_ultima": None,
                 "media_venda_semana": 0,
@@ -4074,13 +4104,14 @@ def _compras_relatorio_fornecedor_resposta_degradada(
 
 
 def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
-    db, client, p_ids: list[str]
+    db, client, p_ids: list[str], *, nomes_hints: dict[str, str] | None = None
 ) -> list[dict]:
     """
     Métricas por produto para planilha (categoria/unidade): média semanal (56d) e, por linha,
     **última compra ERP** mais recente de qualquer fornecedor (Mongo, mesma fonte das «últimas compras»)
     e **vendas** em ``DtoVenda`` após essa data. Produto sem compra registrada na janela (~800 dias) mantém ``*``.
     """
+    hints = nomes_hints or {}
     now = datetime.now()
     t56 = now - timedelta(days=56)
     tot56, first_in56 = _vendas_qtd_por_produto_intervalo(db, p_ids, t56, now)
@@ -4111,6 +4142,7 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
             produtos_map[str(pid)] = px
 
     overlay_by_pid = _overlay_planilha_enriquecimento_por_pids(p_ids)
+    variant_to_canon: dict[str, str] = {}
     for pid in p_ids:
         p = _catalogo_pmap_resolve(pmap, pid)
         canon = str(p.get("Id") or p.get("_id") or pid) if p else str(pid)
@@ -4162,6 +4194,10 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
             nome = str(p.get("Nome") or "").strip() if p else ""
             if not nome:
                 nome = "—"
+            hn = _relatorio_nome_hint_pid(hints, pid)
+            if hn and (nome == "—" or not nome.strip()):
+                nome = hn
+
             if p:
                 gm_raw = _mongo_primeiro_texto(
                     p,
@@ -4236,7 +4272,7 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
                     {
                         "produto_id": sp,
                         "codigo": sp[:80],
-                        "nome": "—",
+                        "nome": _relatorio_nome_hint_pid(hints, sp) or "—",
                         "qtd_ultimo_pedido": None,
                         "qtd_vendida_desde_ultima": None,
                         "media_venda_semana": 0,
@@ -4253,13 +4289,22 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
     return rows_out
 
 
-def _compras_relatorio_rows_catalogo_sem_ult_doc(db, client, p_ids: list[str]) -> list[dict]:
+def _compras_relatorio_rows_catalogo_sem_ult_doc(
+    db,
+    client,
+    p_ids: list[str],
+    *,
+    nomes_hints: dict[str, str] | None = None,
+) -> list[dict]:
     """Monta linhas da planilha; em falha grave devolve uma lista mínima (ainda imprimível)."""
+    hints = nomes_hints or {}
     try:
-        return _compras_relatorio_rows_catalogo_sem_ult_doc_build(db, client, p_ids)
+        return _compras_relatorio_rows_catalogo_sem_ult_doc_build(
+            db, client, p_ids, nomes_hints=hints
+        )
     except Exception:
         logger.exception("_compras_relatorio_rows_catalogo_sem_ult_doc")
-        return _compras_relatorio_planilha_linhas_fallback(p_ids)
+        return _compras_relatorio_planilha_linhas_fallback(p_ids, nomes_hints=hints)
 
 
 @never_cache
@@ -4481,6 +4526,7 @@ def api_compras_relatorio_unidade(request):
         return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
 
     p_ids: list[str] = []
+    nomes_unidade: dict[str, str] = {}
     if isinstance(raw_ids, list) and raw_ids:
         seen: set[str] = set()
         for raw in raw_ids[:400]:
@@ -4490,7 +4536,7 @@ def api_compras_relatorio_unidade(request):
             seen.add(s)
             p_ids.append(s)
     if not p_ids:
-        p_ids = _lista_produto_ids_catalogo_por_unidade(db, client, unidade, limit=800)
+        p_ids, nomes_unidade = _lista_produto_ids_catalogo_por_unidade(db, client, unidade, limit=800)
     if not p_ids:
         return JsonResponse(
             {
@@ -4501,7 +4547,9 @@ def api_compras_relatorio_unidade(request):
         )
 
     try:
-        rows_out = _compras_relatorio_rows_catalogo_sem_ult_doc(db, client, p_ids)
+        rows_out = _compras_relatorio_rows_catalogo_sem_ult_doc(
+            db, client, p_ids, nomes_hints=nomes_unidade
+        )
     except Exception:
         logger.exception("api_compras_relatorio_unidade rows")
         return JsonResponse(
