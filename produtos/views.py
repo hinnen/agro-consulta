@@ -3519,7 +3519,133 @@ def _vendas_qtd_por_produto_intervalo(
                 first_dt[pid] = dt
     except Exception as exc:
         logger.warning("relatorio_compras DtoVendaProduto: %s", exc)
-    return tot, first_dt
+        return tot, first_dt
+
+
+def _resolve_canon_via_variant_map(variant_to_canon: dict[str, str], raw_pid) -> str | None:
+    s = str(raw_pid or "").strip()
+    if not s or s == "None":
+        return None
+    c = variant_to_canon.get(s)
+    if c:
+        return str(c)
+    if s.isdigit():
+        try:
+            n = int(s)
+            for k in (str(n), n):
+                c = variant_to_canon.get(str(k))
+                if c:
+                    return str(c)
+        except (TypeError, ValueError):
+            pass
+    if len(s) == 24 and all(c in "0123456789abcdefABCDEF" for c in s):
+        try:
+            oid = ObjectId(s)
+            c = variant_to_canon.get(str(oid))
+            if c:
+                return str(c)
+        except Exception:
+            pass
+    return None
+
+
+def _vendas_qtd_apos_ultima_compra_por_canon(
+    db,
+    ref_por_canon: dict[str, datetime],
+    variant_to_canon: dict[str, str],
+    *,
+    mongo_max_time_ms: int | None = 90_000,
+) -> dict[str, float]:
+    """
+    Para cada produto (id canônico) com data de última compra no ERP, soma ``DtoVendaProduto``
+    em vendas cuja data é estritamente posterior a essa referência (como no relatório por fornecedor).
+    """
+    tot: dict[str, float] = {}
+    if db is None or not ref_por_canon or not variant_to_canon:
+        return tot
+    dts: list[datetime] = []
+    ref_n: dict[str, datetime] = {}
+    for canon, raw_d in ref_por_canon.items():
+        if not isinstance(raw_d, datetime):
+            continue
+        d0 = _mongo_dt_utc_naive(raw_d) or raw_d
+        dts.append(d0)
+        ref_n[str(canon)] = d0
+    if not dts:
+        return tot
+    desde = min(dts)
+    ate = datetime.now()
+    if desde > ate:
+        return tot
+    q = {"Data": {"$gte": desde, "$lte": ate}, **_filtro_venda_ativa_mongo()}
+    try:
+        cur = db["DtoVenda"].find(q, {"Id": 1, "_id": 1, "Data": 1})
+        if mongo_max_time_ms is not None:
+            cur = cur.max_time_ms(int(mongo_max_time_ms))
+        vendas = list(cur)
+    except Exception as exc:
+        logger.warning("planilha_rel DtoVenda: %s", exc)
+        return tot
+    if not vendas:
+        return tot
+    vmap: dict[str, datetime] = {}
+    venda_ids_obj: list = []
+    venda_ids_str: list[str] = []
+    for v in vendas:
+        dt = v.get("Data")
+        if not isinstance(dt, datetime):
+            continue
+        for key in (str(v.get("Id")), str(v.get("_id"))):
+            if key and key != "None":
+                vmap[key] = dt
+        vid = str(v.get("Id") or v.get("_id"))
+        venda_ids_str.append(vid)
+        if len(vid) == 24:
+            try:
+                venda_ids_obj.append(ObjectId(vid))
+            except Exception:
+                pass
+    canon_values = list({str(c) for c in ref_n.keys() if str(c)})
+    query_itens = {
+        "$and": [
+            {"$or": [{"VendaID": {"$in": venda_ids_obj}}, {"VendaID": {"$in": venda_ids_str}}]},
+            {"ProdutoID": {"$in": _produto_ids_variants_mongo(canon_values)}},
+        ]
+    }
+    try:
+        cur_it = db["DtoVendaProduto"].find(
+            query_itens,
+            {"ProdutoID": 1, "Quantidade": 1, "quantidade": 1, "VendaID": 1},
+        )
+        if mongo_max_time_ms is not None:
+            cur_it = cur_it.max_time_ms(int(mongo_max_time_ms))
+        for item in cur_it:
+            raw_pid = item.get("ProdutoID")
+            if raw_pid is None:
+                continue
+            canon = _resolve_canon_via_variant_map(variant_to_canon, raw_pid)
+            if not canon:
+                continue
+            ref0 = ref_n.get(canon)
+            if ref0 is None:
+                continue
+            vid_raw = item.get("VendaID")
+            vid = str(vid_raw) if vid_raw is not None else ""
+            dt_sale = vmap.get(vid)
+            if dt_sale is None or not isinstance(dt_sale, datetime):
+                continue
+            ref_cut = ref0 + timedelta(seconds=1)
+            dt_n = _mongo_dt_utc_naive(dt_sale) or dt_sale
+            if dt_n < ref_cut:
+                continue
+            try:
+                qtd = float(item.get("Quantidade") or item.get("quantidade") or 0)
+            except (TypeError, ValueError):
+                qtd = 0.0
+            tot[canon] = tot.get(canon, 0.0) + qtd
+    except Exception as exc:
+        logger.warning("planilha_rel DtoVendaProduto: %s", exc)
+    return tot
 
 
 def _resolver_qtd_por_pid(mapa: dict[str, float], pid: str) -> float:
@@ -3769,8 +3895,9 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc(
     db, client, p_ids: list[str]
 ) -> list[dict]:
     """
-    Linhas métricas (vendas até 56d, média/semana) sem âncora de última compra por fornecedor.
-    Replica a lógica de ``api_compras_relatorio_fornecedor`` com último documento ausente (* nas colunas).
+    Métricas por produto para planilha (categoria/unidade): média semanal (56d) e, por linha,
+    **última compra ERP** mais recente de qualquer fornecedor (Mongo, mesma fonte das «últimas compras»)
+    e **vendas** em ``DtoVenda`` após essa data. Produto sem compra registrada na janela (~800 dias) mantém ``*``.
     """
     now = datetime.now()
     t56 = now - timedelta(days=56)
@@ -3827,6 +3954,41 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc(
         for k in _chaves_produto(p):
             pmap[k] = p
 
+    produtos_map: dict[str, dict] = {}
+    for pid in p_ids:
+        px = pmap.get(str(pid))
+        if px:
+            produtos_map[str(pid)] = px
+
+    ultimas = _ultimas_compras_por_produto_ids(db, p_ids, produtos_map, limit=1)
+
+    variant_to_canon: dict[str, str] = {}
+    ref_por_canon: dict[str, datetime] = {}
+    qtd_ult_linha: dict[str, float] = {}
+    for pid in p_ids:
+        p = pmap.get(pid)
+        canon = str(p.get("Id") or p.get("_id") or pid) if p else str(pid)
+        chs = _chaves_produto(p) if p else [str(pid)]
+        for k in chs:
+            variant_to_canon[str(k)] = str(canon)
+        lum = ultimas.get(str(pid), [])
+        if lum:
+            det = (lum[0] or {}).get("detalhe") or {}
+            iso = str(det.get("data") or "").strip()
+            ref_dt = None
+            try:
+                ref_dt = datetime.fromisoformat(iso[:19])
+            except (ValueError, TypeError):
+                ref_dt = None
+            if isinstance(ref_dt, datetime):
+                ref_por_canon[str(canon)] = ref_dt
+                try:
+                    qtd_ult_linha[str(canon)] = float(det.get("quantidade") or 0)
+                except (TypeError, ValueError):
+                    qtd_ult_linha[str(canon)] = 0.0
+
+    vendas_pos = _vendas_qtd_apos_ultima_compra_por_canon(db, ref_por_canon, variant_to_canon)
+
     rows_out: list[dict] = []
     for pid in p_ids:
         p = pmap.get(pid)
@@ -3843,8 +4005,14 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc(
         else:
             codigo = _fmt_relatorio_gm_display(str(canon))[:80]
 
+        cs = str(canon)
         qtd_ult: int | None = None
         qtd_pos: int | None = None
+        if cs in qtd_ult_linha:
+            qtd_ult = _arred_int_meio_para_cima(qtd_ult_linha[cs])
+        if cs in ref_por_canon:
+            qtd_pos = _arred_int_meio_para_cima(vendas_pos.get(cs, 0.0))
+
         t56p = _resolver_qtd_por_pid(tot56, canon)
         first_dt = _resolver_dt_mapa(first_in56, canon)
         if first_dt is None and p:

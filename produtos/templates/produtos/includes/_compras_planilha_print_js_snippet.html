@@ -282,7 +282,7 @@ function montarHtmlImpressaoPlanilha(j, opts) {
     <tbody>${rowsHtml}</tbody>
   </table>
   <footer class="print-foot">
-    <p class="foot-legend"><strong>*</strong>: sem número aplicável neste relatório por categoria/unidade (sem última NF por fornecedor aqui). <strong>—</strong>: média/indicador não calculado.</p>
+    <p class="foot-legend"><strong>*</strong>: sem compra recente deste produto no ERP na janela usada pelo sistema (cerca de 800 dias) — ou não há quantidade na última linha encontrada. <strong>—</strong>: média/indicador não calculado. A coluna «desde última compra» soma vendas após a data da última compra ERP encontrada para aquele produto.</p>
     <div class="foot-brand">
       <img src="${esc(logoAbs)}" alt="Agro Mais — Sua casa de ração com um toque a mais">
     </div>
