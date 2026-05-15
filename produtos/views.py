@@ -3913,41 +3913,45 @@ _CAT_PROJ_RELATORIO: dict[str, int] = {
 }
 
 
-def _mongo_or_clauses_produto_ids_catalogo(p_chunk: list[str]) -> list[dict]:
-    """Cláusulas $or para casar Id/Código/ObjectId de um lote de IDs de produto (cadastro)."""
-    ors: list[dict] = []
-    for pid in p_chunk:
-        ors.append({"Id": pid})
-        if pid.isdigit():
-            try:
-                n = int(pid)
-                ors.append({"Id": n})
-                ors.append({"Codigo": n})
-            except (TypeError, ValueError):
-                pass
-        if len(pid) == 24:
-            try:
-                oid = ObjectId(pid)
-                ors.append({"Id": oid})
-                ors.append({"_id": oid})
-            except Exception:
-                pass
-    return ors
-
-
 def _mongo_find_produtos_catalogo_relatorio_por_pids(col, p_ids: list[str]) -> list[dict]:
-    """Carrega cadastro em lotes para evitar ``$or`` muito grande e isolar falhas por lote."""
+    """Carrega cadastro em lotes com ``$in`` (mais robusto que centenas de cláusulas ``$or``)."""
     if not p_ids:
         return []
     merged: list[dict] = []
-    step = 50
+    step = 80
     for i in range(0, len(p_ids), step):
-        chunk = p_ids[i : i + step]
-        ors = _mongo_or_clauses_produto_ids_catalogo(chunk)
-        if not ors:
+        chunk = [str(x).strip() for x in p_ids[i : i + step] if str(x).strip()]
+        if not chunk:
             continue
+        variants = _produto_ids_variants_mongo(chunk)
+        if not variants:
+            continue
+        strs: list[str] = []
+        ints: list[int] = []
+        oids: list[ObjectId] = []
+        for v in variants:
+            if isinstance(v, ObjectId):
+                oids.append(v)
+            elif isinstance(v, int) and not isinstance(v, bool):
+                ints.append(v)
+            elif isinstance(v, str):
+                t = v.strip()
+                if t and t != "None":
+                    strs.append(t)
+        or_parts: list[dict] = []
+        if strs:
+            or_parts.append({"Id": {"$in": strs}})
+        if ints:
+            or_parts.append({"Id": {"$in": ints}})
+            or_parts.append({"Codigo": {"$in": ints}})
+        if oids:
+            or_parts.append({"_id": {"$in": oids}})
+            or_parts.append({"Id": {"$in": oids}})
+        if not or_parts:
+            continue
+        q: dict = {"$or": or_parts}
         try:
-            merged.extend(list(col.find({"$or": ors}, _CAT_PROJ_RELATORIO)))
+            merged.extend(list(col.find(q, _CAT_PROJ_RELATORIO)))
         except Exception as exc:
             logger.warning(
                 "mongo find catalogo relatorio chunk [%s,%s): %s", i, i + len(chunk), exc
@@ -3955,17 +3959,49 @@ def _mongo_find_produtos_catalogo_relatorio_por_pids(col, p_ids: list[str]) -> l
     return merged
 
 
+def _overlay_planilha_enriquecimento_por_pids(p_ids: list[str]) -> dict[str, dict]:
+    """Nome/códigos do overlay Agro quando o Mongo não devolve o documento (ou veio sem Nome)."""
+    out: dict[str, dict] = {}
+    if not p_ids:
+        return out
+    keys = [str(x).strip()[:64] for x in p_ids if str(x).strip()]
+    if not keys:
+        return out
+    try:
+        for row in ProdutoGestaoOverlayAgro.objects.filter(
+            produto_externo_id__in=keys[:950]
+        ).values("produto_externo_id", "nome", "codigo_nfe", "codigo_barras"):
+            pe = str(row.get("produto_externo_id") or "").strip()
+            if not pe:
+                continue
+            out[pe] = row
+            if pe.isdigit():
+                out[str(int(pe))] = row
+    except Exception as exc:
+        logger.warning("overlay planilha enrich: %s", exc)
+    return out
+
+
 def _catalogo_pmap_resolve(pmap: dict[str, dict], pid) -> dict | None:
-    """Resolve produto em ``pmap`` tolerando dígitos com zeros à esquerda."""
+    """Resolve produto em ``pmap`` (Id string, dígitos, ObjectId 24 hex)."""
     s = str(pid or "").strip()
     if not s:
         return None
-    got = pmap.get(s)
-    if got is not None:
-        return got
-    if s.isdigit():
-        n = str(int(s))
-        return pmap.get(n)
+    for cand in (s, str(int(s)) if s.isdigit() else ""):
+        if not cand:
+            continue
+        got = pmap.get(cand)
+        if got is not None:
+            return got
+    if len(s) == 24 and all(c in "0123456789abcdefABCDEF" for c in s):
+        try:
+            oid = ObjectId(s)
+            for cand in (s, str(oid)):
+                got = pmap.get(cand)
+                if got is not None:
+                    return got
+        except Exception:
+            pass
     return None
 
 
@@ -4074,7 +4110,7 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
         if px:
             produtos_map[str(pid)] = px
 
-    variant_to_canon: dict[str, str] = {}
+    overlay_by_pid = _overlay_planilha_enriquecimento_por_pids(p_ids)
     for pid in p_ids:
         p = _catalogo_pmap_resolve(pmap, pid)
         canon = str(p.get("Id") or p.get("_id") or pid) if p else str(pid)
@@ -4134,6 +4170,17 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
                 codigo = (_fmt_relatorio_gm_display(gm_raw) or _fmt_relatorio_gm_display(str(canon)))[:80]
             else:
                 codigo = _fmt_relatorio_gm_display(str(canon))[:80]
+
+            ovr = overlay_by_pid.get(str(pid).strip()) or {}
+            onome = str(ovr.get("nome") or "").strip()
+            if onome and (not nome or nome == "—"):
+                nome = onome
+            if not p and ovr:
+                for ck in ("codigo_nfe", "codigo_barras"):
+                    rawc = str(ovr.get(ck) or "").strip()
+                    if rawc:
+                        codigo = _fmt_relatorio_gm_display(rawc)[:80]
+                        break
 
             cs = str(canon)
             qtd_ult: int | None = None
@@ -4585,6 +4632,8 @@ def _api_compras_relatorio_fornecedor_impl(request):
             for k in _chaves_produto(p):
                 pmap[k] = p
 
+        overlay_by_pid = _overlay_planilha_enriquecimento_por_pids(p_ids)
+
         rows_out: list[dict] = []
         for pid in p_ids:
             try:
@@ -4602,6 +4651,17 @@ def _api_compras_relatorio_fornecedor_impl(request):
                     codigo = (_fmt_relatorio_gm_display(gm_raw) or _fmt_relatorio_gm_display(str(canon)))[:80]
                 else:
                     codigo = _fmt_relatorio_gm_display(str(canon))[:80]
+
+                ovr = overlay_by_pid.get(str(pid).strip()) or {}
+                onome = str(ovr.get("nome") or "").strip()
+                if onome and (not nome or nome == "—"):
+                    nome = onome
+                if not p and ovr:
+                    for ck in ("codigo_nfe", "codigo_barras"):
+                        rawc = str(ovr.get(ck) or "").strip()
+                        if rawc:
+                            codigo = _fmt_relatorio_gm_display(rawc)[:80]
+                            break
 
                 qtd_ult: int | None
                 if sem_doc:
