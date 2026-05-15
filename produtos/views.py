@@ -2052,25 +2052,20 @@ def _metricas_vendas_agregadas_por_produto(db, dias_media: int):
     vmap = {}
     for v in vendas:
         dt = v.get("Data")
-        for key in (str(v.get("Id")), str(v.get("_id"))):
-            if key and key != "None":
+        if not isinstance(dt, datetime):
+            continue
+        for fld in ("Id", "_id"):
+            for key in _dto_venda_join_str_keys(v.get(fld)):
                 vmap[key] = dt
-    venda_ids_obj = []
-    venda_ids_str = []
-    for v in vendas:
-        vid = str(v.get("Id") or v.get("_id"))
-        venda_ids_str.append(vid)
-        if len(vid) == 24:
-            try:
-                venda_ids_obj.append(ObjectId(vid))
-            except Exception:
-                pass
-    query_itens = {
-        "$or": [
-            {"VendaID": {"$in": venda_ids_obj}},
-            {"VendaID": {"$in": venda_ids_str}},
-        ]
-    }
+    venda_ids_obj, venda_ids_scalar = _dto_venda_venda_produto_in_lists(vendas)
+    vendas_or = []
+    if venda_ids_obj:
+        vendas_or.append({"VendaID": {"$in": venda_ids_obj}})
+    if venda_ids_scalar:
+        vendas_or.append({"VendaID": {"$in": venda_ids_scalar}})
+    if not vendas_or:
+        return {}, {}, {}, {}
+    query_itens = {"$or": vendas_or}
     media_tot = {}
     w0 = {}
     w1 = {}
@@ -2084,8 +2079,11 @@ def _metricas_vendas_agregadas_por_produto(db, dias_media: int):
         if not pid or pid == "None":
             continue
         vid_raw = item.get("VendaID")
-        vid = str(vid_raw) if vid_raw is not None else ""
-        dt = vmap.get(vid)
+        dt = None
+        for vk in _dto_venda_join_str_keys(vid_raw):
+            dt = vmap.get(vk)
+            if dt is not None:
+                break
         if dt is None or not isinstance(dt, datetime):
             continue
         try:
@@ -2705,6 +2703,144 @@ def _produto_ids_variants_mongo(p_ids: list[str]) -> list:
             except Exception:
                 pass
     return out
+
+
+def _dto_venda_join_str_keys(raw) -> list[str]:
+    """
+    Chaves string para emparelhar ``DtoVenda`` (Id/_id) com ``DtoVendaProduto.VendaID``.
+    No Mongo o VendaID às vezes é NumberInt/Decimal e na linha vira outro ``str`` (ex.: ``12345.0``).
+    """
+    if raw is None:
+        return []
+    keys: list[str] = []
+    seen: set[str] = set()
+
+    def push(s: str) -> None:
+        t = str(s).strip()
+        if t and t != "None" and t not in seen:
+            seen.add(t)
+            keys.append(t)
+
+    if isinstance(raw, ObjectId):
+        push(str(raw))
+        return keys
+    if isinstance(raw, bool):
+        return keys
+    if isinstance(raw, int):
+        push(str(raw))
+        return keys
+    if isinstance(raw, float):
+        if math.isfinite(raw) and abs(raw - round(raw)) < 1e-9:
+            push(str(int(round(raw))))
+        push(str(raw))
+        return keys
+    if isinstance(raw, Decimal):
+        try:
+            rf = float(raw)
+            if math.isfinite(rf) and abs(rf - round(rf)) < 1e-9:
+                push(str(int(round(rf))))
+        except Exception:
+            pass
+        push(str(raw).strip())
+        return keys
+
+    s0 = str(raw).strip()
+    if not s0 or s0 == "None":
+        return keys
+    push(s0)
+    try:
+        f = float(s0.replace(",", "."))
+        if math.isfinite(f) and abs(f - round(f)) < 1e-9:
+            push(str(int(round(f))))
+    except (TypeError, ValueError):
+        pass
+    if s0.isdigit():
+        try:
+            push(str(int(s0)))
+        except (TypeError, ValueError):
+            pass
+    return keys
+
+
+def _dto_venda_venda_produto_in_lists(vendas_headers: list) -> tuple[list[ObjectId], list]:
+    """
+    Para ``VendaID: {$in: ...}``: ``ObjectId`` num ramo; no outro, ``int`` e ``str`` numéricas.
+    O Mongo diferencia tipo na igualdade; antes só íamos com string e perdíamos linhas.
+    """
+    oids: list[ObjectId] = []
+    scalars: list = []
+    oseen: set[str] = set()
+    sseen: set[str] = set()
+
+    def add_oid(o: ObjectId) -> None:
+        s = str(o)
+        if s not in oseen:
+            oseen.add(s)
+            oids.append(o)
+
+    def add_scalar(x) -> None:
+        k = f"s:{x}" if isinstance(x, str) else f"o:{type(x).__name__}:{x!r}"
+        if k not in sseen:
+            sseen.add(k)
+            scalars.append(x)
+
+    def ingest(raw) -> None:
+        if raw is None:
+            return
+        if isinstance(raw, ObjectId):
+            add_oid(raw)
+            return
+        if isinstance(raw, bool):
+            return
+        if isinstance(raw, int):
+            add_scalar(raw)
+            add_scalar(str(raw))
+            return
+        if isinstance(raw, float):
+            if math.isfinite(raw) and abs(raw - round(raw)) < 1e-9:
+                ni = int(round(raw))
+                add_scalar(ni)
+                add_scalar(str(ni))
+            add_scalar(str(raw))
+            return
+        if isinstance(raw, Decimal):
+            try:
+                rf = float(raw)
+                if math.isfinite(rf) and abs(rf - round(rf)) < 1e-9:
+                    ni = int(round(rf))
+                    add_scalar(ni)
+                    add_scalar(str(ni))
+            except Exception:
+                pass
+            add_scalar(str(raw).strip())
+            return
+        s0 = str(raw).strip()
+        if not s0 or s0 == "None":
+            return
+        add_scalar(s0)
+        if s0.isdigit():
+            try:
+                add_scalar(int(s0))
+            except (TypeError, ValueError):
+                pass
+        else:
+            try:
+                f = float(s0.replace(",", "."))
+                if math.isfinite(f) and abs(f - round(f)) < 1e-9:
+                    ni = int(round(f))
+                    add_scalar(ni)
+            except (TypeError, ValueError):
+                pass
+        if len(s0) == 24 and all(c in "0123456789abcdefABCDEF" for c in s0):
+            try:
+                add_oid(ObjectId(s0))
+            except Exception:
+                pass
+
+    for v in vendas_headers:
+        ingest(v.get("Id"))
+        ingest(v.get("_id"))
+    return oids, scalars
 
 
 def _ultimas_compras_cutoff_dt() -> datetime:
@@ -3465,30 +3601,24 @@ def _vendas_qtd_por_produto_intervalo(
     if not vendas:
         return tot, first_dt
     vmap: dict[str, datetime] = {}
-    venda_ids_obj = []
-    venda_ids_str = []
     for v in vendas:
         dt = v.get("Data")
         if not isinstance(dt, datetime):
             continue
-        for key in (str(v.get("Id")), str(v.get("_id"))):
-            if key and key != "None":
+        for fld in ("Id", "_id"):
+            for key in _dto_venda_join_str_keys(v.get(fld)):
                 vmap[key] = dt
-        vid = str(v.get("Id") or v.get("_id"))
-        venda_ids_str.append(vid)
-        if len(vid) == 24:
-            try:
-                venda_ids_obj.append(ObjectId(vid))
-            except Exception:
-                pass
+    venda_ids_obj, venda_ids_scalar = _dto_venda_venda_produto_in_lists(vendas)
+    vendas_or: list = []
+    if venda_ids_obj:
+        vendas_or.append({"VendaID": {"$in": venda_ids_obj}})
+    if venda_ids_scalar:
+        vendas_or.append({"VendaID": {"$in": venda_ids_scalar}})
+    if not vendas_or:
+        return tot, first_dt
     query_itens = {
         "$and": [
-            {
-                "$or": [
-                    {"VendaID": {"$in": venda_ids_obj}},
-                    {"VendaID": {"$in": venda_ids_str}},
-                ]
-            },
+            {"$or": vendas_or},
             {"ProdutoID": {"$in": _produto_ids_variants_mongo(p_ids)}},
         ]
     }
@@ -3507,8 +3637,11 @@ def _vendas_qtd_por_produto_intervalo(
             if not pid or pid == "None":
                 continue
             vid_raw = item.get("VendaID")
-            vid = str(vid_raw) if vid_raw is not None else ""
-            dt = vmap.get(vid)
+            dt = None
+            for vk in _dto_venda_join_str_keys(vid_raw):
+                dt = vmap.get(vk)
+                if dt is not None:
+                    break
             if dt is None or not isinstance(dt, datetime):
                 continue
             try:
@@ -3632,26 +3765,25 @@ def _vendas_qtd_apos_ultima_compra_por_canon(
     if not vendas:
         return tot
     vmap: dict[str, datetime] = {}
-    venda_ids_obj: list = []
-    venda_ids_str: list[str] = []
     for v in vendas:
         dt = v.get("Data")
         if not isinstance(dt, datetime):
             continue
-        for key in (str(v.get("Id")), str(v.get("_id"))):
-            if key and key != "None":
+        for fld in ("Id", "_id"):
+            for key in _dto_venda_join_str_keys(v.get(fld)):
                 vmap[key] = dt
-        vid = str(v.get("Id") or v.get("_id"))
-        venda_ids_str.append(vid)
-        if len(vid) == 24:
-            try:
-                venda_ids_obj.append(ObjectId(vid))
-            except Exception:
-                pass
+    venda_ids_obj, venda_ids_scalar = _dto_venda_venda_produto_in_lists(vendas)
+    vendas_or = []
+    if venda_ids_obj:
+        vendas_or.append({"VendaID": {"$in": venda_ids_obj}})
+    if venda_ids_scalar:
+        vendas_or.append({"VendaID": {"$in": venda_ids_scalar}})
+    if not vendas_or:
+        return tot
     canon_values = list({str(c) for c in ref_n.keys() if str(c)})
     query_itens = {
         "$and": [
-            {"$or": [{"VendaID": {"$in": venda_ids_obj}}, {"VendaID": {"$in": venda_ids_str}}]},
+            {"$or": vendas_or},
             {"ProdutoID": {"$in": _produto_ids_variants_mongo(canon_values)}},
         ]
     }
@@ -3673,8 +3805,11 @@ def _vendas_qtd_apos_ultima_compra_por_canon(
             if ref0 is None:
                 continue
             vid_raw = item.get("VendaID")
-            vid = str(vid_raw) if vid_raw is not None else ""
-            dt_sale = vmap.get(vid)
+            dt_sale = None
+            for vk in _dto_venda_join_str_keys(vid_raw):
+                dt_sale = vmap.get(vk)
+                if dt_sale is not None:
+                    break
             if dt_sale is None or not isinstance(dt_sale, datetime):
                 continue
             ref_cut = ref0 + timedelta(seconds=1)
@@ -16025,22 +16160,15 @@ def _media_diaria_vendas_por_produto(db, dias=30):
         )
         if not vendas:
             return out
-        venda_ids_obj = []
-        venda_ids_str = []
-        for v in vendas:
-            vid = str(v.get("Id") or v.get("_id"))
-            venda_ids_str.append(vid)
-            if len(vid) == 24:
-                try:
-                    venda_ids_obj.append(ObjectId(vid))
-                except Exception:
-                    pass
-        query_itens = {
-            "$or": [
-                {"VendaID": {"$in": venda_ids_obj}},
-                {"VendaID": {"$in": venda_ids_str}},
-            ]
-        }
+        venda_ids_obj, venda_ids_scalar = _dto_venda_venda_produto_in_lists(vendas)
+        vendas_or = []
+        if venda_ids_obj:
+            vendas_or.append({"VendaID": {"$in": venda_ids_obj}})
+        if venda_ids_scalar:
+            vendas_or.append({"VendaID": {"$in": venda_ids_scalar}})
+        if not vendas_or:
+            return out
+        query_itens = {"$or": vendas_or}
         totais = {}
         for item in db["DtoVendaProduto"].find(query_itens):
             raw_pid = item.get("ProdutoID")
