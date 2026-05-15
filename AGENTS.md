@@ -45,6 +45,8 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 | `/ajuste-mobile/`                | `ajuste_mobile`                |                                               |
 | `/compras/`                      | `compras_view`                 | Pedido fornecedor, WhatsApp                   |
 | `/compras/relatorio-a4/`         | `compras_relatorio_a4`         | Relatório A4 por fornecedor (página dedicada; link direto, mobile) |
+| `/compras/relatorio-planilha-categoria/` | `compras_relatorio_planilha_categoria` | Lista por **categoria** · impressão A4 ou A6; sem coluna GM; «Contagem» e «Pedir» em branco |
+| `/compras/relatorio-planilha-unidade/`   | `compras_relatorio_planilha_unidade` | Lista por **unidade** · mesmo layout e opções de papel que a planilha por categoria |
 | `/entrada-nota/`                 | `entrada_nota`                 |                                               |
 | `/lancamentos/`                  | `lancamentos_financeiros`      | Contas a pagar/receber                        |
 | `/financeiro/resumo-gerencial/`  | `resumo_financeiro_gerencial`  |                                               |
@@ -106,7 +108,8 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 - Sugestão de compra em destaque no **card**; horizonte em dias **independente** do período da média (média em `<details>` “Métricas avançadas”).  
 - Opção **descontar ou não** estoque total **C+V** (localStorage).  
 - F5 / textos: **atualizar métricas**; não confundir com horizonte da sugestão.
-- **Relatório A4:** também em **`/compras/relatorio-a4/`** (`compras_relatorio_a4`) — mesma lógica do modal na tela Compras; layout pensado para **celular** (área segura, toques grandes, lista rolável). Na Compras há atalho **«Página»** ao lado do botão do modal.
+- **Relatório A4:** também em **`/compras/relatorio-a4/`** (`compras_relatorio_a4`) — mesma lógica do modal na tela Compras; layout pensado para **celular** (área segura, toques grandes, lista rolável). Na Compras entra pelo menu **«Folha Compras»** → **«Página só fornecedor»**.
+- **Planilha impressa por categoria / unidade:** **`/compras/relatorio-planilha-categoria/`** e **`/compras/relatorio-planilha-unidade/`** — escolha A4 ou A6; lista sem coluna código (GM); colunas **Contagem** e **Pedir** vazias; tipografia maior (~+20%) que o relatório por fornecedor. APIs `api/compras/relatorio-dim/`, `api/compras/relatorio-categoria/`, `api/compras/relatorio-unidade/`. Na tela Compras: menu **«Folha Compras»** no cabeçalho agrupa fornecedor (modal + página dedicada), categoria e unidade; **painel ancorado à esquerda** do botão, **rótulos dos itens alinhados à esquerda** (leitura contínua, telas compactas).
 
 **Entrada NF — pré-visualização XML (`entrada_nota.html`, botão Ler XML)**  
 

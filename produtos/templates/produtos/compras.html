@@ -114,8 +114,18 @@
       <div class="flex flex-wrap items-center gap-2 shrink-0">
         <div class="inline-flex items-center gap-1.5 shrink-0">
           <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-white border border-slate-200 text-slate-700 max-w-[7rem] truncate" title="Operador (modo descanso)"></span>
-          <button type="button" id="btn-abrir-modal-relatorio-compra" class="inline-flex items-center justify-center min-h-[40px] px-2.5 sm:px-3 rounded-xl border-2 border-violet-300 bg-violet-50 text-violet-900 text-[10px] sm:text-xs font-black uppercase tracking-wide shadow-sm hover:bg-violet-100 hover:border-violet-400 shrink-0" title="Relatório A4 por fornecedor">Relatório A4</button>
-          <a href="{% url 'compras_relatorio_a4' %}" class="inline-flex items-center justify-center min-h-[40px] px-2.5 rounded-xl border-2 border-violet-200 bg-white text-violet-800 text-[10px] font-black uppercase tracking-wide hover:bg-violet-50 shrink-0" title="Abrir só esta tela (link direto, celular)">Página</a>
+          <details id="folha-compras-menu" class="relative z-[116] group">
+            <summary class="list-none inline-flex items-center justify-center gap-1.5 min-h-[40px] px-2.5 sm:px-3 rounded-xl border-2 border-violet-400 bg-violet-600 text-white text-[10px] sm:text-xs font-black uppercase tracking-wide shadow-sm hover:bg-violet-700 hover:border-violet-700 cursor-pointer select-none shrink-0 [&::-webkit-details-marker]:hidden" title="Imprimir folhas de compra (fornecedor, categoria ou unidade)">
+              <span>Folha Compras</span>
+              <span class="text-[10px] opacity-90 group-open:rotate-180 transition-transform shrink-0" aria-hidden="true">▾</span>
+            </summary>
+            <div class="absolute left-0 top-full mt-1.5 min-w-full w-max max-w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl border-2 border-slate-200 bg-white p-2 shadow-xl flex flex-col gap-1.5" role="menu" aria-label="Tipos de folha de compras">
+              <button type="button" id="btn-abrir-modal-relatorio-compra" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-violet-300 bg-violet-50 text-violet-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-violet-100 hover:border-violet-400 text-left leading-snug" title="Escolher fornecedor e imprimir tabela A4">Por fornecedor</button>
+              <a href="{% url 'compras_relatorio_a4' %}" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-violet-200 bg-white text-violet-900 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-violet-50 text-left leading-snug folha-compras-menu-link" title="Abrir só esta tela (link direto, celular)">Página só fornecedor</a>
+              <a href="{% url 'compras_relatorio_planilha_categoria' %}" target="_blank" rel="noopener" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-emerald-100 text-left leading-snug folha-compras-menu-link" title="Lista por categoria; papel A4 ou A6; colunas Contagem e Pedir">Por categoria (A4 · A6)</a>
+              <a href="{% url 'compras_relatorio_planilha_unidade' %}" target="_blank" rel="noopener" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-sky-300 bg-sky-50 text-sky-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-sky-100 text-left leading-snug folha-compras-menu-link" title="Lista por unidade; papel A4 ou A6; colunas Contagem e Pedir">Por unidade (A4 · A6)</a>
+            </div>
+          </details>
         </div>
         <button type="button" id="btn-abrir-historico-compra" class="text-xs font-black uppercase bg-white shadow-sm px-3 py-2 rounded-xl border border-slate-200 text-orange-700 hover:border-orange-400 hover:bg-orange-50 transition-colors shrink-0" title="Cotações e pedidos salvos (F10)">
           Histórico
@@ -274,7 +284,7 @@
   <div id="modal-relatorio-compra-fornecedor" class="fixed inset-0 z-[114] hidden items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-relatorio-compra-titulo">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-[min(92vw,70rem)] max-w-[920px] h-[min(70vh,720px)] max-h-[88vh] flex flex-col min-h-0 overflow-hidden">
       <div class="shrink-0 flex items-start justify-between gap-2 px-4 py-3 border-b border-slate-100">
-        <h2 id="modal-relatorio-compra-titulo" class="text-base sm:text-lg font-black uppercase text-slate-800 tracking-tight">Relatório A4</h2>
+        <h2 id="modal-relatorio-compra-titulo" class="text-base sm:text-lg font-black uppercase text-slate-800 tracking-tight">Por fornecedor (A4)</h2>
         <div class="flex items-center gap-1 shrink-0">
           <details class="relative">
             <summary class="list-none inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-2 border-violet-200 bg-violet-50 text-violet-900 font-black text-sm hover:bg-violet-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda do relatório" title="Ajuda">?</summary>
@@ -3603,6 +3613,16 @@ document.getElementById('modal-busca-avancada-compra')?.addEventListener('click'
   if (e.target && e.target.id === 'modal-busca-avancada-compra') fecharBuscaAvancadaCompra();
 });
 document.getElementById('btn-abrir-modal-relatorio-compra')?.addEventListener('click', () => abrirModalRelatorioCompra());
+document.getElementById('folha-compras-menu')?.querySelectorAll('.folha-compras-menu-link').forEach((a) => {
+  a.addEventListener('click', () => fecharMenuFolhaCompras());
+});
+document.addEventListener('mousedown', (e) => {
+  const folha = document.getElementById('folha-compras-menu');
+  if (!folha || !folha.open) return;
+  const t = e.target;
+  if (t && folha.contains(t)) return;
+  fecharMenuFolhaCompras();
+});
 document.getElementById('btn-fechar-modal-relatorio-compra')?.addEventListener('click', () => fecharModalRelatorioCompra());
 document.getElementById('modal-relatorio-compra-fornecedor')?.addEventListener('click', (e) => {
   if (e.target && e.target.id === 'modal-relatorio-compra-fornecedor') fecharModalRelatorioCompra();
@@ -3695,7 +3715,12 @@ function comprasModalRelatorioCompraAberta() {
   return !!(m && m.classList.contains('flex'));
 }
 
+function fecharMenuFolhaCompras() {
+  document.getElementById('folha-compras-menu')?.removeAttribute('open');
+}
+
 function abrirModalRelatorioCompra() {
+  fecharMenuFolhaCompras();
   const m = document.getElementById('modal-relatorio-compra-fornecedor');
   if (!m) return;
   m.classList.remove('hidden');
@@ -3773,7 +3798,14 @@ document.addEventListener('keydown', (e) => {
       return;
     }
   }
-  if (e.key === 'Escape') return;
+  if (e.key === 'Escape') {
+    const folha = document.getElementById('folha-compras-menu');
+    if (folha && folha.open) {
+      e.preventDefault();
+      fecharMenuFolhaCompras();
+    }
+    return;
+  }
   if (e.key === 'F2') {
     e.preventDefault();
     document.getElementById('busca')?.focus();
