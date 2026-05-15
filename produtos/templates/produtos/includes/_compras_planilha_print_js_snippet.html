@@ -314,7 +314,7 @@ function planilhaImprimir() {
   (async () => {
     try {
       const csrftoken = compraPlanilhaGetCsrf();
-      const r = await fetch(PLANILHA_API_REL, {
+      const fetchOpts = {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -322,11 +322,30 @@ function planilhaImprimir() {
           'X-CSRFToken': csrftoken,
         },
         body: JSON.stringify(body),
-      });
-      const j = await r.json();
-      if (!j.ok) {
+      };
+      try {
+        if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+          fetchOpts.signal = AbortSignal.timeout(120000);
+        }
+      } catch (_) {}
+      const r = await fetch(PLANILHA_API_REL, fetchOpts);
+      const txt = await r.text();
+      let j;
+      try {
+        j = txt ? JSON.parse(txt) : {};
+      } catch (_) {
         compraFecharWinPlan(preWin);
-        window.alert(j.erro || 'Falha ao montar relatório.');
+        const snippet = txt.replace(/\s+/g, ' ').trim().slice(0, 260);
+        window.alert(
+          snippet
+            ? `Resposta inválida do servidor (HTTP ${r.status}). ${snippet}${snippet.length >= 260 ? '…' : ''}`
+            : `Resposta vazia ou inválida (HTTP ${r.status}).`,
+        );
+        return;
+      }
+      if (!r.ok || j.ok !== true) {
+        compraFecharWinPlan(preWin);
+        window.alert(j.erro || `Falha ao montar relatório (HTTP ${r.status}).`);
         return;
       }
       const tipoTitulo = PLANILHA_DIM === 'categoria' ? 'Categoria' : 'Unidade';
@@ -338,9 +357,15 @@ function planilhaImprimir() {
           window.alert('Não foi possível abrir a impressão.');
         }
       }
-    } catch (_) {
+    } catch (e) {
       compraFecharWinPlan(preWin);
-      window.alert('Falha de rede ao gerar relatório.');
+      const name = e && e.name ? String(e.name) : '';
+      const tip =
+        name === 'TimeoutError' || name === 'AbortError'
+          ? 'Tempo esgotado ao gerar o relatório (tente de novo ou menos produtos).'
+          : '';
+      const msg = e && e.message ? String(e.message) : '';
+      window.alert(tip || msg || 'Não foi possível contactar o servidor. Confira a conexão e tente de novo.');
     } finally {
       if (window.gmLoadingBar) window.gmLoadingBar.hide();
     }
