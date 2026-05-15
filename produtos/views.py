@@ -3531,6 +3531,15 @@ def _resolve_canon_via_variant_map(variant_to_canon: dict[str, str], raw_pid) ->
     c = variant_to_canon.get(s)
     if c:
         return str(c)
+    try:
+        f = float(s.replace(",", "."))
+        if math.isfinite(f) and abs(f - round(f)) < 1e-9:
+            n = int(round(f))
+            c = variant_to_canon.get(str(n))
+            if c:
+                return str(c)
+    except (TypeError, ValueError):
+        pass
     if s.isdigit():
         try:
             n = int(s)
@@ -3549,6 +3558,38 @@ def _resolve_canon_via_variant_map(variant_to_canon: dict[str, str], raw_pid) ->
         except Exception:
             pass
     return None
+
+
+def _rollup_vendas_tot_first_por_canon(
+    tot: dict[str, float],
+    first: dict[str, datetime],
+    variant_to_canon: dict[str, str],
+) -> tuple[dict[str, float], dict[str, datetime]]:
+    """
+    Soma quantidades de ``DtoVendaProduto`` (chaves = ``str(ProdutoID)`` em vários formatos)
+    no id canônico do cadastro, para bater com ``canon`` usado nas linhas do relatório.
+    """
+    tot_c: dict[str, float] = {}
+    fst_c: dict[str, datetime] = {}
+    for k in set(tot.keys()) | set(first.keys()):
+        canon = _resolve_canon_via_variant_map(variant_to_canon, k)
+        if not canon:
+            continue
+        if k in tot:
+            try:
+                qf = float(tot[k])
+            except (TypeError, ValueError):
+                qf = 0.0
+            if not math.isfinite(qf):
+                qf = 0.0
+            tot_c[canon] = tot_c.get(canon, 0.0) + qf
+        if k in first:
+            dt = first[k]
+            if isinstance(dt, datetime):
+                prev = fst_c.get(canon)
+                if prev is None or dt < prev:
+                    fst_c[canon] = dt
+    return tot_c, fst_c
 
 
 def _vendas_qtd_apos_ultima_compra_por_canon(
@@ -4149,6 +4190,12 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
         chs = _chaves_produto(p) if p else [str(pid)]
         for k in chs:
             variant_to_canon[str(k)] = str(canon)
+        for v in _produto_ids_variants_mongo([str(pid)]):
+            variant_to_canon.setdefault(str(v), str(canon))
+
+    tot56_canon, first56_canon = _rollup_vendas_tot_first_por_canon(
+        tot56, first_in56, variant_to_canon
+    )
 
     ultimas: dict[str, list[dict]] = {}
     ref_por_canon: dict[str, datetime] = {}
@@ -4226,13 +4273,15 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
             if cs in ref_por_canon:
                 qtd_pos = _arred_int_meio_para_cima(vendas_pos.get(cs, 0.0))
 
-            t56p = _resolver_qtd_por_pid(tot56, canon)
-            first_dt = _resolver_dt_mapa(first_in56, canon)
+            t56p = float(tot56_canon.get(cs, 0.0))
+            first_dt = first56_canon.get(cs)
             if first_dt is None and p:
                 for k in _chaves_produto(p):
-                    first_dt = _resolver_dt_mapa(first_in56, k)
-                    if first_dt is not None:
-                        break
+                    cc = _resolve_canon_via_variant_map(variant_to_canon, k)
+                    if cc:
+                        first_dt = first56_canon.get(str(cc))
+                        if first_dt is not None:
+                            break
             anchor = t56
             if isinstance(first_dt, datetime):
                 fd = _mongo_dt_utc_naive(first_dt) or first_dt
@@ -4682,6 +4731,23 @@ def _api_compras_relatorio_fornecedor_impl(request):
 
         overlay_by_pid = _overlay_planilha_enriquecimento_por_pids(p_ids)
 
+        variant_to_canon: dict[str, str] = {}
+        for pid0 in p_ids:
+            p0 = _catalogo_pmap_resolve(pmap, pid0)
+            canon0 = str(p0.get("Id") or p0.get("_id") or pid0) if p0 else str(pid0)
+            chs0 = _chaves_produto(p0) if p0 else [str(pid0)]
+            for k in chs0:
+                variant_to_canon[str(k)] = str(canon0)
+            for v in _produto_ids_variants_mongo([str(pid0)]):
+                variant_to_canon.setdefault(str(v), str(canon0))
+
+        tot56_canon, first56_canon = _rollup_vendas_tot_first_por_canon(
+            tot56, first_in56, variant_to_canon
+        )
+        tot_pos_canon, _fpos_canon_unused = _rollup_vendas_tot_first_por_canon(
+            tot_pos, _fpos, variant_to_canon
+        )
+
         rows_out: list[dict] = []
         for pid in p_ids:
             try:
@@ -4722,15 +4788,18 @@ def _api_compras_relatorio_fornecedor_impl(request):
                     qtd_ult = None
 
                 qtd_pos = None
+                cs_f = str(canon)
                 if not sem_doc:
-                    qtd_pos = _arred_int_meio_para_cima(_resolver_qtd_por_pid(tot_pos, str(canon)))
-                t56p = _resolver_qtd_por_pid(tot56, str(canon))
-                first_dt = _resolver_dt_mapa(first_in56, str(canon))
+                    qtd_pos = _arred_int_meio_para_cima(float(tot_pos_canon.get(cs_f, 0.0)))
+                t56p = float(tot56_canon.get(cs_f, 0.0))
+                first_dt = first56_canon.get(cs_f)
                 if first_dt is None and p:
                     for k in _chaves_produto(p):
-                        first_dt = _resolver_dt_mapa(first_in56, k)
-                        if first_dt is not None:
-                            break
+                        cc = _resolve_canon_via_variant_map(variant_to_canon, k)
+                        if cc:
+                            first_dt = first56_canon.get(str(cc))
+                            if first_dt is not None:
+                                break
                 anchor = t56
                 if isinstance(first_dt, datetime):
                     fd = _mongo_dt_utc_naive(first_dt) or first_dt
