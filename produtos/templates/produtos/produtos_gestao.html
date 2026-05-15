@@ -103,7 +103,7 @@
             <th class="px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Nome</th>
             <th class="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600 whitespace-nowrap">Código</th>
             <th class="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Categoria</th>
-            <th class="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600" title="Último nível preenchido entre subcategorias e categoria">Na lista</th>
+            <th class="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600" title="Último nível preenchido entre subcategorias e categoria">Subcategoria</th>
             <th class="px-2 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Marca</th>
             <th class="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">Tamanho</th>
             <th class="px-2 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600 whitespace-nowrap">Custo</th>
@@ -138,19 +138,21 @@
     </div>
     <div class="flex-1 overflow-y-auto p-4 space-y-3">
       <input type="hidden" id="ed-id" />
-      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Nome</label><input id="ed-nome" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
-      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Marca</label><input id="ed-marca" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
-      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Categoria</label><input id="ed-cat" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
+      <p class="text-xs font-bold text-slate-800"><span class="text-red-600 font-black">*</span> Somente os campos com asterisco são obrigatórios para salvar ou enviar ao ERP.</p>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Nome <span class="text-red-600 font-black">*</span></label><input id="ed-nome" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Marca <span class="text-red-600 font-black">*</span></label><input id="ed-marca" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Categoria <span class="text-red-600 font-black">*</span></label><input id="ed-cat" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Fornecedor (texto)</label><input id="ed-forn" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Unidade</label><input id="ed-un" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Código GM / NFe</label><input id="ed-codigo-nfe" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-mono font-bold" maxlength="64" autocomplete="off" /></div>
-      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Código de barras</label><input id="ed-cb" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-mono font-bold" maxlength="80" inputmode="numeric" autocomplete="off" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Código de barras <span class="text-red-600 font-black">*</span></label><input id="ed-cb" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-mono font-bold" maxlength="80" inputmode="numeric" autocomplete="off" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Subcategoria</label><input id="ed-sub" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" maxlength="200" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Subcategoria 2</label><input id="ed-sub2" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" maxlength="200" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Subcategoria 3</label><input id="ed-sub3" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" maxlength="200" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Subcategoria 4</label><input id="ed-sub4" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" maxlength="200" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Descrição</label><textarea id="ed-desc" rows="3" class="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold resize-y min-h-[5rem]"></textarea></div>
-      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Preço venda</label><input id="ed-preco" inputmode="decimal" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Custo unit. (R$) <span class="text-red-600 font-black">*</span></label><input id="ed-custo" inputmode="decimal" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
+      <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Preço venda <span class="text-red-600 font-black">*</span></label><input id="ed-preco" inputmode="decimal" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Status exibição</label>
         <select id="ed-ativo" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-bold">
           <option value="">Seguir ERP</option>
@@ -158,7 +160,7 @@
           <option value="0">Inativo</option>
         </select>
       </div>
-      <p class="text-xs text-slate-500 font-medium leading-snug"><strong>Salvar no Agro</strong> grava overlay local (PDV e buscas). <strong>Enviar ao ERP</strong> replica no ERP legado (API Produtos/Salvar). Campo em branco + salvar remove override daquele campo no Agro.</p>
+      <p class="text-xs text-slate-500 font-medium leading-snug"><strong>Salvar no Agro</strong> grava overlay local (PDV e buscas). <strong>Enviar ao ERP</strong> replica no ERP legado (API Produtos/Salvar). Nos demais campos, em branco + salvar remove override no Agro.</p>
       <div class="flex flex-wrap gap-2 pt-2">
         <button type="button" id="ed-salvar" class="flex-1 min-w-[9rem] min-h-[48px] rounded-xl bg-blue-600 text-white font-black uppercase border-2 border-blue-700 hover:bg-blue-700">Salvar no Agro</button>
         <button type="button" id="ed-sync-erp" class="flex-1 min-w-[9rem] min-h-[48px] rounded-xl bg-amber-600 text-white font-black uppercase border-2 border-amber-700 hover:bg-amber-700" title="Produtos/Salvar no ERP legado">Enviar ao ERP</button>
@@ -583,6 +585,7 @@
     document.getElementById('ed-sub3').value = p.subcategoria_3 || '';
     document.getElementById('ed-sub4').value = p.subcategoria_4 || '';
     document.getElementById('ed-desc').value = p.descricao || '';
+    document.getElementById('ed-custo').value = p.preco_custo != null ? String(p.preco_custo).replace('.', ',') : '';
     document.getElementById('ed-preco').value = p.preco_venda != null ? String(p.preco_venda).replace('.', ',') : '';
     if (p.ativo_exibicao === true) document.getElementById('ed-ativo').value = '1';
     else if (p.ativo_exibicao === false) document.getElementById('ed-ativo').value = '0';
@@ -616,7 +619,9 @@
       subcategoria_3: document.getElementById('ed-sub3').value,
       subcategoria_4: document.getElementById('ed-sub4').value,
       descricao: document.getElementById('ed-desc').value,
-      preco_venda: document.getElementById('ed-preco').value
+      preco_custo: document.getElementById('ed-custo').value,
+      preco_venda: document.getElementById('ed-preco').value,
+      validar_cadastro_minimo: true
     };
     if (av === '') body.ativo_exibicao = null;
     else body.ativo_exibicao = av === '1';
@@ -629,6 +634,42 @@
       if (!bErp || bErp.disabled) return;
     } else {
       if (!bSal || bSal.disabled) return;
+    }
+    function parseMoedaStrictGm(s) {
+      var t = String(s == null ? '' : s).trim();
+      if (!t) return null;
+      var t2 = t.replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+      var n = parseFloat(t2);
+      if (!isFinite(n) || n < 0) return null;
+      return n;
+    }
+    function gvEd(id) {
+      var el = document.getElementById(id);
+      return el ? String(el.value || '').trim() : '';
+    }
+    if (!gvEd('ed-nome')) {
+      showBan('Preencha o Nome (obrigatório).');
+      return;
+    }
+    if (!gvEd('ed-marca')) {
+      showBan('Preencha a Marca (obrigatório).');
+      return;
+    }
+    if (!gvEd('ed-cat')) {
+      showBan('Preencha a Categoria (obrigatório).');
+      return;
+    }
+    if (!gvEd('ed-cb')) {
+      showBan('Preencha o Código de barras (obrigatório).');
+      return;
+    }
+    if (parseMoedaStrictGm(gvEd('ed-custo')) === null) {
+      showBan('Preencha o Custo unit. (R$) com número ≥ 0 (obrigatório).');
+      return;
+    }
+    if (parseMoedaStrictGm(gvEd('ed-preco')) === null) {
+      showBan('Preencha o Preço venda com número ≥ 0 (obrigatório).');
+      return;
     }
     if (bSal) bSal.disabled = true;
     if (bErp) bErp.disabled = true;

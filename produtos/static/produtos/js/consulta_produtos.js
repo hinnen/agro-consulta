@@ -72,6 +72,7 @@ const PDV_CACHE_TTL_MS = 1000 * 60 * 60 * 8;
 let cacheClientesPDV = [];
 let frequenciaUso = JSON.parse(localStorage.getItem('freqProdutos') || '{}');
 let catalogoRapidoAtual = [];
+let pdvRapidoFiltroCategoria = null;
 
 /** Sugestões da busca principal: lista completa filtrada + paginação na UI */
 let sugestoesBuscaCompletas = [];
@@ -2535,7 +2536,8 @@ function buscarProdutos(q, modo = 'normal') {
     const termoBusca = normalizarBuscaLocal(termoBruto);
 
     const minChars = modo === 'scanner' ? 1 : 2;
-    if (!termoBusca || termoBusca.trim().length < minChars) {
+    const termoCurto = !termoBusca || termoBusca.trim().length < minChars;
+    if (termoCurto && !(pdvRapidoFiltroCategoria && pdvRapidoFiltroCategoria.rotulo)) {
         limparBuscaVisual();
         esconderStatusBusca();
         return;
@@ -2546,7 +2548,11 @@ function buscarProdutos(q, modo = 'normal') {
 
     debounceTimer = setTimeout(() => {
         if (baseProdutos.length > 0) {
-            executarBuscaLocal(termoBusca, modo);
+            if (termoCurto && pdvRapidoFiltroCategoria && pdvRapidoFiltroCategoria.rotulo) {
+                executarBuscaRapidaSoCategoria();
+            } else {
+                executarBuscaLocal(termoBusca, modo);
+            }
         } else if (window.AGRO_MANUAL_SYNC_ONLY) {
             mostrarStatusBusca('Sem catálogo local. Use o botão «Estoque» no topo antes de buscar.', 'orange');
             limparBuscaVisual();
@@ -2558,6 +2564,267 @@ function buscarProdutos(q, modo = 'normal') {
 
 function filtrarBuscaLocal(termo, modo) {
     return filtrarProdutosBuscaInteligente(baseProdutos, termo, modo);
+}
+
+/** Filtro ativo pelos cards «Busca rápida · categoria» (Saco vs Granel). */
+const PDV_LS_RAPIDO_CAT_SLOTS = 'agro_pdv_rapido_cat_slots_v1';
+const PDV_RAPIDO_CATEGORIAS_FIXAS = [
+    { rotulo: 'Ração Gato Castrado', pet: 'gato' },
+    { rotulo: 'Ração Gato Inteiro', pet: 'gato' },
+    { rotulo: 'Ração Gato Filhote', pet: 'gato' },
+    { rotulo: 'Ração Cachorro Adulto Raças Pequenas', pet: 'cachorro' },
+    { rotulo: 'Ração Cachorro Filhote Raças Pequenas', pet: 'cachorro' },
+    { rotulo: 'Ração Cachorro Filhote Raças Médias e Grandes', pet: 'cachorro' },
+    { rotulo: 'Ração Cachorro Adulto', pet: 'cachorro' },
+    { rotulo: 'Ração Cachorro Senior', pet: 'cachorro' },
+];
+
+const PDV_SVG_GATO =
+    '<svg xmlns="http://www.w3.org/2000/svg" class="shrink-0 opacity-95" width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke="#6d28d9" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" d="M8 5l1.2 2.2M16 5l-1.2 2.2M6.5 12.2c0-3.1 2.4-5.7 5.5-5.7S17.5 9 17.5 12.2v.8c0 2.6-2.1 4.5-4.7 4.5h-1.6c-2.6 0-4.7-1.9-4.7-4.5v-.8z"/><circle cx="10.3" cy="11.4" r="0.85" fill="#6d28d9"/><circle cx="13.7" cy="11.4" r="0.85" fill="#6d28d9"/><path stroke="#6d28d9" stroke-width="1.35" stroke-linecap="round" d="M10.2 14.3h3.6"/></svg>';
+const PDV_SVG_CACHORRO =
+    '<svg xmlns="http://www.w3.org/2000/svg" class="shrink-0 opacity-95" width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke="#c2410c" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" d="M5 10c1-3 3.5-5 6-5 1.2 0 2.3.4 3 1 .7-.6 1.8-1 3-1 2.5 0 5 2 6 5 .4 1.2.6 2.4.6 3.6 0 3-2.4 5.4-5.4 5.4H10.4C7.4 19 5 16.6 5 13.6c0-1.2.2-2.4.6-3.6z"/><ellipse cx="9.2" cy="11.5" rx="0.9" ry="1.05" fill="#c2410c"/><ellipse cx="14.8" cy="11.5" rx="0.9" ry="1.05" fill="#c2410c"/><path stroke="#c2410c" stroke-width="1.35" stroke-linecap="round" d="M10 14.5h4c.8 0 1.3.7 1 1.4-.3.8-1.1 1.3-2 1.3H11c-.9 0-1.7-.5-2-1.3-.3-.7.2-1.4 1-1.4z"/></svg>';
+
+function pdvBlobTextoCategoriaRapido(p) {
+    const catList =
+        p.categoria_listagem != null && String(p.categoria_listagem).trim()
+            ? String(p.categoria_listagem).trim()
+            : '';
+    const parts = [
+        p.nome,
+        p.marca,
+        p.categoria,
+        p.subcategoria,
+        p.subcategoria_2,
+        p.subcategoria_3,
+        p.subcategoria_4,
+        catList,
+        p.unidade,
+        p.Unidade,
+        p.sigla_unidade,
+        p.siglaUnidade,
+    ];
+    return normalizarBuscaLocal(parts.filter(Boolean).join(' '));
+}
+
+function pdvProdutoEhGranelHeuristica(p) {
+    const b = pdvBlobTextoCategoriaRapido(p);
+    return b.includes('granel') || b.includes('a granel');
+}
+
+function pdvProdutoMatchRotuloRapido(p, rotulo) {
+    const r = normalizarBuscaLocal(String(rotulo || '').trim());
+    if (!r) return false;
+    const blob = pdvBlobTextoCategoriaRapido(p);
+    if (blob.includes(r)) return true;
+    const words = r.split(/\s+/).filter((w) => w.length >= 3);
+    if (!words.length) return blob.includes(r);
+    return words.every((w) => blob.includes(w));
+}
+
+function pdvProdutoPassaFiltroRapidoAtivo(p) {
+    const f = pdvRapidoFiltroCategoria;
+    if (!f || !f.rotulo) return true;
+    if (!pdvProdutoMatchRotuloRapido(p, f.rotulo)) return false;
+    if (f.unidade === 'granel') return pdvProdutoEhGranelHeuristica(p);
+    return !pdvProdutoEhGranelHeuristica(p);
+}
+
+function pdvObterListaFiltradaRapidoCategoria() {
+    if (!pdvRapidoFiltroCategoria || !pdvRapidoFiltroCategoria.rotulo) return [];
+    return baseProdutos.filter((p) => pdvProdutoPassaFiltroRapidoAtivo(p));
+}
+
+function executarBuscaRapidaSoCategoria() {
+    const lista = pdvObterListaFiltradaRapidoCategoria();
+    const ordenados = ordenarSugestoesPdv([...lista], '');
+    const enr = ordenados.slice(0, BUSCA_SUG_LIM_MAX).map(enriquecerProdutoBusca);
+    processarResultadosBusca(enr, 'normal', false, { preservarOrdem: true });
+}
+
+function pdvRapidoRefreshListaSeAtivo() {
+    if (!pdvRapidoFiltroCategoria || !pdvRapidoFiltroCategoria.rotulo) return;
+    const bruto = inputBusca ? removerSufixoQuantidade(inputBusca.value) : '';
+    const t = normalizarBuscaLocal(bruto);
+    if (!t || t.length < 2) executarBuscaRapidaSoCategoria();
+    else buscarProdutos(inputBusca.value, 'normal');
+}
+
+function pdvRapidoOcultarGrid() {
+    const w = document.getElementById('pdv-rapidos-categorias-wrap');
+    if (w) w.classList.add('hidden');
+}
+
+function pdvRapidoMostrarGrid() {
+    const w = document.getElementById('pdv-rapidos-categorias-wrap');
+    if (w) w.classList.remove('hidden');
+}
+
+function pdvRapidoAtualizarBarraResumo() {
+    const bar = document.getElementById('pdv-rapidos-cat-bar');
+    const tx = document.getElementById('pdv-rapidos-cat-resumo');
+    if (!bar || !tx) return;
+    const f = pdvRapidoFiltroCategoria;
+    if (!f || !f.rotulo) {
+        bar.classList.add('hidden');
+        tx.textContent = '';
+        return;
+    }
+    const u = f.unidade === 'granel' ? 'Granel' : 'Saco';
+    tx.textContent = `Filtro: ${f.rotulo} · ${u}`;
+    bar.classList.remove('hidden');
+}
+
+function pdvRapidoLimparFiltro() {
+    pdvRapidoFiltroCategoria = null;
+    pdvRapidoMostrarGrid();
+    pdvRapidoAtualizarBarraResumo();
+}
+
+function pdvModalEscolhaUnidadeRapido(rotulo) {
+    return new Promise((resolve) => {
+        const root = document.getElementById('modal-pdv-unidade-rapida');
+        if (!root) {
+            resolve(null);
+            return;
+        }
+        const sub = document.getElementById('pdv-ur-sub');
+        const bSaco = document.getElementById('pdv-ur-saco');
+        const bGranel = document.getElementById('pdv-ur-granel');
+        const bCan = document.getElementById('pdv-ur-cancelar');
+        if (sub) sub.textContent = String(rotulo || '').trim();
+        let done = false;
+        const finish = (v) => {
+            if (done) return;
+            done = true;
+            root.classList.add('hidden');
+            root.classList.remove('flex');
+            document.body.classList.remove('modal-open');
+            root.onclick = null;
+            if (bSaco) bSaco.onclick = null;
+            if (bGranel) bGranel.onclick = null;
+            if (bCan) bCan.onclick = null;
+            resolve(v);
+        };
+        if (bSaco) bSaco.onclick = () => finish('saco');
+        if (bGranel) bGranel.onclick = () => finish('granel');
+        if (bCan) bCan.onclick = () => finish(null);
+        root.onclick = (ev) => {
+            if (ev.target === root) finish(null);
+        };
+        root.classList.remove('hidden');
+        root.classList.add('flex');
+        document.body.classList.add('modal-open');
+    });
+}
+
+function pdvLerSlotsUsuarioRapido() {
+    try {
+        const raw = localStorage.getItem(PDV_LS_RAPIDO_CAT_SLOTS);
+        const o = raw ? JSON.parse(raw) : null;
+        if (!o || typeof o !== 'object') return ['', '', '', ''];
+        const a = [0, 1, 2, 3].map((i) => String(o[String(i)] != null ? o[String(i)] : '').trim());
+        return a;
+    } catch (_) {
+        return ['', '', '', ''];
+    }
+}
+
+function pdvSalvarSlotUsuarioRapido(ix, rotulo) {
+    const cur = {};
+    pdvLerSlotsUsuarioRapido().forEach((v, j) => {
+        cur[String(j)] = j === ix ? String(rotulo || '').trim() : v;
+    });
+    try {
+        localStorage.setItem(PDV_LS_RAPIDO_CAT_SLOTS, JSON.stringify(cur));
+    } catch (_) {}
+}
+
+function pdvMontarHtmlGridCategoriasRapidas() {
+    const grid = document.getElementById('pdv-rapidos-categorias-grid');
+    if (!grid) return;
+    const slots = pdvLerSlotsUsuarioRapido();
+    const botoes = [];
+    PDV_RAPIDO_CATEGORIAS_FIXAS.forEach((it) => {
+        const ico = it.pet === 'cachorro' ? PDV_SVG_CACHORRO : PDV_SVG_GATO;
+        const petCls =
+            it.pet === 'cachorro'
+                ? 'from-orange-50/95 to-amber-50/80 border-orange-100 hover:border-orange-300'
+                : 'from-violet-50/95 to-fuchsia-50/70 border-violet-100 hover:border-violet-300';
+        botoes.push(
+            `<button type="button" class="pdv-rapido-cat-btn flex flex-col items-stretch gap-1 rounded-xl border-2 bg-gradient-to-br p-2 text-left min-h-[3.5rem] sm:min-h-[3.75rem] transition-colors ${petCls}" data-rotulo="${escapeHtml(it.rotulo)}">` +
+                `<span class="flex items-start justify-between gap-1">` +
+                `${ico}` +
+                `<span class="text-[9px] sm:text-[10px] font-black uppercase leading-tight text-slate-800 line-clamp-3">${escapeHtml(it.rotulo)}</span>` +
+                `</span></button>`
+        );
+    });
+    for (let s = 0; s < 4; s++) {
+        const r = slots[s] || '';
+        botoes.push(
+            `<button type="button" class="pdv-rapido-cat-btn flex flex-col items-stretch gap-1 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/80 p-2 text-left min-h-[3.5rem] sm:min-h-[3.75rem] hover:border-emerald-300 hover:bg-emerald-50/50 transition-colors" data-slot="${s}" data-rotulo="${r ? escapeHtml(r) : ''}">` +
+                `<span class="text-[8px] font-black uppercase text-slate-400">Slot ${s + 1}</span>` +
+                `<span class="pdv-rapido-slot-label text-[9px] sm:text-[10px] font-bold uppercase leading-tight text-slate-600 line-clamp-3">${r ? escapeHtml(r) : 'Duplo toque para nomear'}</span>` +
+                `</button>`
+        );
+    }
+    grid.innerHTML = botoes.join('');
+}
+
+function pdvInicializarCategoriasRapidasPdv() {
+    pdvMontarHtmlGridCategoriasRapidas();
+    const grid = document.getElementById('pdv-rapidos-categorias-grid');
+    const limp = document.getElementById('pdv-rapidos-cat-limpar');
+    const most = document.getElementById('pdv-rapidos-cat-mostrar-grid');
+    if (limp) {
+        limp.addEventListener('click', () => {
+            pdvRapidoLimparFiltro();
+            if (inputBusca) inputBusca.value = '';
+            limparBuscaVisual();
+            esconderStatusBusca();
+        });
+    }
+    if (most) {
+        most.addEventListener('click', () => {
+            pdvRapidoMostrarGrid();
+        });
+    }
+    if (!grid) return;
+    grid.addEventListener('dblclick', (e) => {
+        const b = e.target.closest('[data-slot]');
+        if (!b) return;
+        const ix = parseInt(b.getAttribute('data-slot'), 10);
+        if (!Number.isFinite(ix)) return;
+        const atual = pdvLerSlotsUsuarioRapido()[ix] || '';
+        const nv = window.prompt('Nome da categoria para este atalho (como aparecerá no cadastro):', atual);
+        if (nv === null) return;
+        pdvSalvarSlotUsuarioRapido(ix, nv.trim());
+        pdvMontarHtmlGridCategoriasRapidas();
+    });
+    grid.addEventListener('click', async (e) => {
+        const b = e.target.closest('.pdv-rapido-cat-btn');
+        if (!b) return;
+        let rotulo = (b.getAttribute('data-rotulo') || '').trim();
+        if (b.hasAttribute('data-slot')) {
+            if (!rotulo) {
+                const ix = parseInt(b.getAttribute('data-slot'), 10);
+                const nv = window.prompt('Defina o nome da categoria para este atalho:', '');
+                if (nv == null || !String(nv).trim()) return;
+                rotulo = String(nv).trim();
+                pdvSalvarSlotUsuarioRapido(ix, rotulo);
+                pdvMontarHtmlGridCategoriasRapidas();
+            }
+        }
+        if (!rotulo) return;
+        const un = await pdvModalEscolhaUnidadeRapido(rotulo);
+        if (!un) return;
+        pdvRapidoFiltroCategoria = { rotulo, unidade: un };
+        if (inputBusca) inputBusca.value = '';
+        pdvRapidoOcultarGrid();
+        pdvRapidoAtualizarBarraResumo();
+        if (baseProdutos.length) executarBuscaRapidaSoCategoria();
+        else mostrarStatusBusca('Carregue o catálogo (Estoque) para filtrar.', 'orange');
+        focarBuscaProduto();
+    });
 }
 
 function mediaParaOrdenacaoPdv(p) {
@@ -2841,6 +3108,9 @@ function executarBuscaLocal(termo, modo) {
     }
 
     let resultados = filtrarBuscaLocal(termo, modo);
+    if (pdvRapidoFiltroCategoria && pdvRapidoFiltroCategoria.rotulo) {
+        resultados = resultados.filter((p) => pdvProdutoPassaFiltroRapidoAtivo(p));
+    }
 
     if (modo === 'scanner') {
         const exato = resultados.find(p => {
@@ -3119,6 +3389,7 @@ inputBusca.addEventListener('keydown', function(e) {
             atualizarBannerSlotMaisVendidos();
             renderSlotsMaisVendidosPdv();
         }
+        if (typeof pdvRapidoLimparFiltro === 'function') pdvRapidoLimparFiltro();
         limparBuscaVisual();
         inputBusca.value = '';
         esconderStatusBusca();
@@ -3987,6 +4258,7 @@ function aplicarBasePdv(produtos, statusTxt) {
     }
     setTimeout(esconderStatusBusca, 2500);
     setTimeout(atualizarPrecosBotoesTopVendidos, 100);
+    if (typeof pdvRapidoRefreshListaSeAtivo === 'function') setTimeout(pdvRapidoRefreshListaSeAtivo, 0);
     return true;
 }
 
@@ -4332,6 +4604,10 @@ window.addEventListener('load', () => {
     pdvRefreshLucide();
 })();
 
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof pdvInicializarCategoriasRapidasPdv === 'function') pdvInicializarCategoriasRapidasPdv();
+});
+
 
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -4397,6 +4673,7 @@ window.removerItem = removerItem;
 window.abrirBuscaAvancada = abrirBuscaAvancada;
 window.fecharBuscaAvancada = fecharBuscaAvancada;
 window.aplicarBuscaAvancada = aplicarBuscaAvancada;
+window.pdvRapidoLimparFiltro = pdvRapidoLimparFiltro;
 window.preencherSelectBuscaAvancadaDimensao = preencherSelectBuscaAvancadaDimensao;
 window.abrirModalLembretes = abrirModalLembretes;
 window.fecharModalLembretes = fecharModalLembretes;

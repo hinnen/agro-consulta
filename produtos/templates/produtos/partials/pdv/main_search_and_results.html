@@ -54,6 +54,22 @@
                             <div id="produto-destaque" class="hidden"></div>
                             <div id="lista-similares" class="space-y-2"></div>
                         </div>
+                        <div id="pdv-rapidos-cat-bar" class="hidden shrink-0 border-t border-slate-200 bg-slate-50/95 px-2 py-1.5 flex flex-wrap items-center gap-2 justify-between">
+                            <p id="pdv-rapidos-cat-resumo" class="text-[11px] font-bold text-slate-700 min-w-0 flex-1 leading-snug"></p>
+                            <div class="flex flex-wrap gap-1.5 shrink-0">
+                                <button type="button" id="pdv-rapidos-cat-mostrar-grid" class="min-h-[40px] px-2.5 rounded-lg border-2 border-slate-200 bg-white text-[10px] font-black uppercase text-slate-600 hover:border-emerald-400 hover:text-emerald-800">Categorias</button>
+                                <button type="button" id="pdv-rapidos-cat-limpar" class="min-h-[40px] px-2.5 rounded-lg border-2 border-orange-200 bg-orange-50 text-[10px] font-black uppercase text-orange-900 hover:bg-orange-100">Limpar filtro</button>
+                            </div>
+                        </div>
+                        <div id="pdv-rapidos-categorias-wrap" class="shrink-0 border-t border-slate-200 bg-gradient-to-b from-slate-50 to-white">
+                            <div class="px-2 py-1 flex items-center justify-between gap-2">
+                                <span class="text-[10px] font-black uppercase tracking-wide text-slate-500">Busca rápida · categoria</span>
+                                <span class="text-[9px] font-semibold text-slate-400 hidden sm:inline">Slots vazios: duplo toque para nomear</span>
+                            </div>
+                            <div id="pdv-rapidos-categorias-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-1.5 px-2 pb-2 max-h-[42vh] sm:max-h-[36vh] overflow-y-auto hide-scroll">
+                                {# 8 fixas + 4 editáveis (preenchimento via JS / localStorage) #}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
