@@ -6579,20 +6579,36 @@
   function entradaNfeLinhaCompactaSincDdPos(busca, dd) {
     if (!busca || !dd || dd.classList.contains('hidden')) return;
     const pad = 10;
+    const gap = 4;
+    const capH = 352;
     const wrap = typeof busca.closest === 'function' ? busca.closest('#entrada-nfe-product-search-wrap') : null;
     const r = (wrap || busca).getBoundingClientRect();
     const below = busca.getBoundingClientRect();
     let left = Math.max(pad, r.left);
     let width = Math.max(240, Math.min(r.width, window.innerWidth - left - pad));
-    const maxH = Math.min(352, Math.max(120, window.innerHeight - below.bottom - 16));
+    const spaceBelow = window.innerHeight - below.bottom - pad;
+    const spaceAbove = below.top - pad;
+    /* Sentinela no rodapé: pouco espaço abaixo — abre para cima para caber várias sugestões. */
+    const preferAbove = spaceBelow < 180 && spaceAbove > spaceBelow + 24;
     dd.style.position = 'fixed';
     dd.style.left = `${left}px`;
-    dd.style.top = `${below.bottom + 4}px`;
     dd.style.width = `${width}px`;
     dd.style.maxWidth = `${window.innerWidth - 2 * pad}px`;
-    dd.style.maxHeight = `${maxH}px`;
     dd.style.zIndex = '230';
     dd.style.overflowY = 'auto';
+    if (preferAbove) {
+      const maxH = Math.min(capH, Math.max(120, spaceAbove - gap));
+      dd.style.top = 'auto';
+      dd.style.bottom = `${window.innerHeight - below.top + gap}px`;
+      dd.style.maxHeight = `${maxH}px`;
+      dd.classList.add('nfe-busca-dd--open-above');
+    } else {
+      const maxH = Math.min(capH, Math.max(120, spaceBelow - gap));
+      dd.style.top = `${below.bottom + gap}px`;
+      dd.style.bottom = 'auto';
+      dd.style.maxHeight = `${maxH}px`;
+      dd.classList.remove('nfe-busca-dd--open-above');
+    }
   }
 
   function entradaNfeLinhaCompactaFecharDd(tr) {
@@ -6605,6 +6621,7 @@
     const dd = tr && tr.querySelector && tr.querySelector('.nfe-busca-dd');
     if (!dd) return;
     dd.classList.add('hidden');
+    dd.classList.remove('nfe-busca-dd--open-above');
     dd.setAttribute('aria-hidden', 'true');
     dd.innerHTML = '';
     dd.removeAttribute('style');

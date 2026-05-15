@@ -28,7 +28,7 @@
       <div class="min-w-0">
         <p class="text-[10px] font-black uppercase tracking-widest text-emerald-800">SisVale · Compras</p>
         <h1 id="plan-titulo" class="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-900 leading-tight">{{ planilha_titulo }}</h1>
-        <p class="mt-1 text-sm font-semibold text-slate-600 leading-snug">Escolha o tamanho do papel e imprima uma folha para contagem física.</p>
+        <p class="mt-1 text-sm font-semibold text-slate-600 leading-snug">Escolha o tamanho do papel e uma opção na lista — sem precisar digitar.</p>
       </div>
       <div class="flex shrink-0 flex-col items-end gap-2">
         <a href="{% url 'compras_view' %}" class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-200 bg-white px-3 text-xs font-black uppercase text-slate-700 hover:border-orange-400 hover:text-orange-700">Voltar às Compras</a>
@@ -42,7 +42,7 @@
         <details class="relative">
           <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-900 font-black text-sm hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
           <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(22rem,calc(100vw-1.5rem))] max-h-[min(70dvh,26rem)] overflow-y-auto rounded-xl border border-emerald-200 bg-white p-3 text-xs font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
-            <p>Lista até <strong>800</strong> produtos <strong>ativos</strong> do Mongo cuja {% if planilha_dim == "categoria" %}categoria/grupo casa com o texto escolhido{% else %}unidade confere{% endif %}.</p>
+            <p>Lista até <strong>800</strong> produtos <strong>ativos</strong> para a {% if planilha_dim == "categoria" %}categoria{% else %}unidade{% endif %} que você <strong>selecionar na lista</strong>{% if planilha_dim == "unidade" %} (inclui valores do ERP e do Agro onde aplicável){% endif %}.</p>
             <p>Colunas «Contagem» e «Pedir» ficam <strong>em branco</strong> para anotar à mão. Não há coluna GM/código nesta folha.</p>
             <p><strong>A6</strong> imprime menor (útil para levar na loja); <strong>A4</strong> letras maiores. No telefone pode abrir-se um novo separador para imprimir (<strong>permite pop-ups</strong> se necessário).</p>
           </div>
@@ -61,17 +61,16 @@
           </select>
         </div>
 
-        <label class="block min-w-0">
-          <span class="sr-only">{{ planilha_label }}</span>
-          <div class="relative mt-0">
-            <input type="text" id="planilha-filtro" autocomplete="off" enterkeyhint="search"
-              placeholder="{{ planilha_placeholder }}"
-              class="w-full rounded-xl border-2 border-slate-200 px-3 py-3.5 text-base font-bold min-h-[52px] bg-white text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/25 outline-none touch-manipulation">
-            <ul id="planilha-dd" role="listbox" aria-label="Sugestões"
-              class="hidden absolute left-0 right-0 top-full z-20 mt-1 max-h-[min(52dvh,20rem)] overflow-y-auto rounded-xl border-2 border-emerald-100 bg-white shadow-lg text-base"
-              style="-webkit-overflow-scrolling: touch;"></ul>
-          </div>
-        </label>
+        <div>
+          <label for="planilha-filtro-select" class="block min-w-0">
+            <span class="text-[10px] font-black uppercase text-slate-600">{{ planilha_label }}</span>
+            <select id="planilha-filtro-select" required
+              class="mt-1 w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-3.5 text-base font-bold min-h-[52px] text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/25 outline-none touch-manipulation cursor-pointer disabled:opacity-60">
+              <option value="">{{ planilha_placeholder }}</option>
+            </select>
+          </label>
+          <p class="mt-1.5 text-xs font-semibold text-slate-500">A lista vem do catálogo ativo e costuma ser <strong class="text-slate-600">curta</strong> (poucas unidades ou categorias, como na operação de vocês). Se criar um valor novo agora e não aparecer, <strong class="text-slate-600">recarregue a página</strong> uma vez.</p>
+        </div>
 
         <button type="button" id="btn-planilha-imprimir" class="w-full rounded-xl border-2 border-emerald-600 bg-emerald-600 text-white font-black py-3.5 uppercase text-sm min-h-[52px] hover:bg-emerald-700 hover:border-emerald-700 touch-manipulation shadow-sm active:scale-[0.99]">
           Imprimir planilha
@@ -90,31 +89,8 @@
 
   {% include "produtos/includes/_compras_planilha_print_js_snippet.html" %}
 
-  document.getElementById('planilha-filtro').addEventListener('input', () => {
-    clearTimeout(planilhaDdTimer);
-    planilhaDdTimer = setTimeout(() => planilhaBuscarSugests(document.getElementById('planilha-filtro').value), 220);
-  });
-  document.getElementById('planilha-filtro').addEventListener('focus', () => planilhaBuscarSugests(document.getElementById('planilha-filtro').value));
   document.getElementById('btn-planilha-imprimir').addEventListener('click', planilhaImprimir);
-
-  document.addEventListener('mousedown', (e) => {
-    const dd = document.getElementById('planilha-dd');
-    const wrap = document.getElementById('planilha-filtro');
-    if (!dd || dd.classList.contains('hidden')) return;
-    const t = e.target;
-    if (t && (dd.contains(t) || (wrap && wrap.contains(t)))) return;
-    dd.classList.add('hidden');
-  });
-  document.addEventListener('touchstart', (e) => {
-    const dd = document.getElementById('planilha-dd');
-    const wrap = document.getElementById('planilha-filtro');
-    if (!dd || dd.classList.contains('hidden')) return;
-    const t = e.target;
-    if (t && (dd.contains(t) || (wrap && wrap.contains(t)))) return;
-    dd.classList.add('hidden');
-  }, { passive: true });
-
-  planilhaBuscarSugests('');
+  void planilhaPreencherSelect();
 })();
   </script>
 </body>

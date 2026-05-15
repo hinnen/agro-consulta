@@ -695,6 +695,36 @@
     });
   }
 
+  /** Mesma conjunção de palavras que o PDV (AND), aplicada na lista já retornada pela API. */
+  function cadastroErpFiltrarBuscaMultiPalavra(produtos, qRaw) {
+    var q0 = String(qRaw || '').trim();
+    if (!q0 || q0.indexOf(' ') === -1) return produtos || [];
+    if (typeof filtrarProdutosBuscaInteligente !== 'function' || typeof normalizarBuscaLocal !== 'function') {
+      return produtos || [];
+    }
+    var termoNorm = normalizarBuscaLocal(q0);
+    if (!termoNorm || String(termoNorm).trim().length < 2) return produtos || [];
+    var modo = /^\d{8,}$/.test(q0.replace(/\s/g, '')) ? 'scanner' : 'normal';
+    var pool = (produtos || []).map(function (r) {
+      return {
+        id: r.id,
+        nome: r.nome,
+        marca: r.marca,
+        codigo: r.codigo,
+        codigo_nfe: r.codigo_nfe,
+        codigo_barras: r.codigo_barras,
+        prateleira: r.prateleira,
+        busca_texto: r.busca_texto,
+        index_codigos: r.index_codigos
+      };
+    });
+    var fil = filtrarProdutosBuscaInteligente(pool, termoNorm, modo);
+    if (!fil || !fil.length) return produtos || [];
+    var keep = {};
+    fil.forEach(function (r) { keep[String(r.id)] = true; });
+    return (produtos || []).filter(function (r) { return keep[String(r.id)]; });
+  }
+
   function atualizarMeta(data, produtos) {
     if (!metaEl || !pagWrap || !prevEl || !nextEl || !buscaEl) return;
     var q = (buscaEl.value || '').trim();
@@ -734,6 +764,9 @@
           throw new Error((x.j && x.j.erro) || 'Falha ao carregar');
         }
         var produtos = x.j.produtos || [];
+        if (x.j.modo === 'busca') {
+          produtos = cadastroErpFiltrarBuscaMultiPalavra(produtos, (buscaEl && buscaEl.value) ? buscaEl.value : '');
+        }
         atualizarMeta(x.j, produtos);
         renderLista(produtos);
       })
