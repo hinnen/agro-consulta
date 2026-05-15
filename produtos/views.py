@@ -3660,6 +3660,27 @@ def _lista_produto_ids_catalogo_por_categoria(
     return out
 
 
+def _produto_overlay_ids_unidade_agro(termo: str) -> list[str]:
+    """
+    Produtos cuja «unidade» no overlay local coincide com o texto (PostgreSQL).
+    Mesma prioridade visual que ``_linha_gestao_produto_json`` (gestão).
+    """
+    t = str(termo or "").strip()
+    if not t:
+        return []
+    try:
+        return [
+            str(x).strip()
+            for x in ProdutoGestaoOverlayAgro.objects.filter(unidade__iexact=t[:20]).values_list(
+                "produto_externo_id", flat=True
+            )[:1600]
+            if x
+        ]
+    except Exception as exc:
+        logger.warning("relatorio overlay unidade: %s", exc)
+        return []
+
+
 def _lista_produto_ids_catalogo_por_unidade(
     db,
     client,
@@ -3668,36 +3689,79 @@ def _lista_produto_ids_catalogo_por_unidade(
     limit: int = 800,
     mongo_max_time_ms: int | None = 90_000,
 ) -> list[str]:
-    """Produtos ativos cuja unidade (Mongo) casa com o texto informado."""
+    """Produtos ativos cuja unidade (Mongo e/ou overlay Agro) casa com o texto informado."""
     col = db[client.col_p]
     u = str(unidade or "").strip()
     if len(u) < 1:
         return []
     esc = re.escape(u[:80])
     rex = {"$regex": esc, "$options": "i"}
-    q = {
-        "$and": [
-            {"CadastroInativo": {"$ne": True}},
-            {"$or": [{"Unidade": rex}, {"SiglaUnidade": rex}]},
-        ]
-    }
+    mongo_field_or = [
+        {"Unidade": rex},
+        {"SiglaUnidade": rex},
+        {"UnidadeEstoque": rex},
+        {"UnidadeMedidaEstoque": rex},
+        {"SiglaUnidadeEstoque": rex},
+    ]
+    q = {"$and": [{"CadastroInativo": {"$ne": True}}, {"$or": mongo_field_or}]}
+    lim = max(1, min(int(limit), 1200))
     try:
-        cur = col.find(q, {"Id": 1, "_id": 1, "Nome": 1}).limit(max(1, min(int(limit), 1200)))
+        cur = col.find(q, {"Id": 1, "_id": 1, "Nome": 1}).limit(lim)
         if mongo_max_time_ms is not None:
             cur = cur.max_time_ms(int(mongo_max_time_ms))
         docs = list(cur)
     except Exception as exc:
         logger.warning("relatorio_compras catalogo unidade: %s", exc)
         return []
+
+    def _pid_of(p_doc) -> str:
+        return str(p_doc.get("Id") or p_doc.get("_id") or "").strip()
+
+    encontrados: set[str] = set()
+    for p in docs:
+        pid = _pid_of(p)
+        if pid and pid != "None":
+            encontrados.add(pid)
+
+    overlay_ids = _produto_overlay_ids_unidade_agro(u)
+    faltantes = [x for x in overlay_ids if x and x not in encontrados][: lim + 400]
+    if faltantes:
+        mixed = _produto_ids_variants_mongo(faltantes)
+        if mixed:
+            try:
+                extra_q = {
+                    "$and": [
+                        {"CadastroInativo": {"$ne": True}},
+                        {"$or": [{"Id": {"$in": mixed}}, {"_id": {"$in": mixed}}]},
+                    ]
+                }
+                ex_cur = col.find(extra_q, {"Id": 1, "_id": 1, "Nome": 1}).limit(lim)
+                if mongo_max_time_ms is not None:
+                    ex_cur = ex_cur.max_time_ms(int(mongo_max_time_ms))
+                docs.extend(list(ex_cur))
+            except Exception as exc:
+                logger.warning("relatorio_compras catalogo unidade overlay: %s", exc)
+
+    # Dedup por produto antes de ordenar nomes (overlay + mongo podem repetir Id)
+    uniq: dict[str, dict] = {}
+    for p in docs:
+        pid = _pid_of(p)
+        if not pid or pid == "None":
+            continue
+        if pid not in uniq:
+            uniq[pid] = p
+    docs = list(uniq.values())
     docs.sort(key=lambda p: str(p.get("Nome") or "").strip().lower())
     out: list[str] = []
     seen: set[str] = set()
     for p in docs:
-        pid = str(p.get("Id") or p.get("_id") or "").strip()
+        pid = _pid_of(p)
         if not pid or pid == "None" or pid in seen:
             continue
         seen.add(pid)
         out.append(pid)
+        if len(out) >= lim:
+            break
     return out
 
 
@@ -3847,12 +3911,26 @@ def api_compras_relatorio_dim_sugestao(request):
         if tipo == "categoria":
             qfil = {"$or": [{"NomeCategoria": rex}, {"Categoria": rex}, {"Grupo": rex}]}
         elif tipo == "unidade":
-            qfil = {"$or": [{"Unidade": rex}, {"SiglaUnidade": rex}]}
+            qfil = {
+                "$or": [
+                    {"Unidade": rex},
+                    {"SiglaUnidade": rex},
+                    {"UnidadeEstoque": rex},
+                    {"UnidadeMedidaEstoque": rex},
+                    {"SiglaUnidadeEstoque": rex},
+                ]
+            }
     query = {"$and": [base, qfil]} if qfil else base
     proj = (
         {"NomeCategoria": 1, "Categoria": 1, "Grupo": 1}
         if tipo == "categoria"
-        else {"Unidade": 1, "SiglaUnidade": 1}
+        else {
+            "Unidade": 1,
+            "SiglaUnidade": 1,
+            "UnidadeEstoque": 1,
+            "UnidadeMedidaEstoque": 1,
+            "SiglaUnidadeEstoque": 1,
+        }
     )
     if tipo not in ("categoria", "unidade"):
         return JsonResponse({"ok": False, "itens": [], "erro": "tipo inválido (categoria|unidade)."}, status=400)
@@ -3878,7 +3956,13 @@ def api_compras_relatorio_dim_sugestao(request):
                     if len(out) >= lim:
                         break
             else:
-                for fld in ("Unidade", "SiglaUnidade"):
+                for fld in (
+                    "Unidade",
+                    "SiglaUnidade",
+                    "UnidadeEstoque",
+                    "UnidadeMedidaEstoque",
+                    "SiglaUnidadeEstoque",
+                ):
                     v = doc.get(fld)
                     if v is None:
                         continue
@@ -3894,6 +3978,21 @@ def api_compras_relatorio_dim_sugestao(request):
                         break
             if len(out) >= lim:
                 break
+        if tipo == "unidade":
+            oqs = ProdutoGestaoOverlayAgro.objects.exclude(unidade="")
+            if q:
+                oqs = oqs.filter(unidade__icontains=q[:120])
+            for uw in oqs.order_by("unidade").values_list("unidade", flat=True).distinct()[:240]:
+                s = str(uw or "").strip()
+                if not s:
+                    continue
+                k = s.lower()
+                if k in seen:
+                    continue
+                seen.add(k)
+                out.append(s)
+                if len(out) >= lim:
+                    break
     except Exception as exc:
         logger.warning("api_compras_relatorio_dim_sugestao: %s", exc)
         return JsonResponse({"ok": False, "itens": [], "erro": "Falha ao consultar."}, status=500)
