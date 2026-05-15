@@ -2677,6 +2677,17 @@ def _mongo_ids_para_query_in(ids_str: list[str]) -> list:
     return out
 
 
+# Chaves do cabeçalho ``DtoVenda`` que às vezes aparecem em ``DtoVendaProduto.VendaID`` (H2).
+_HEADER_KEYS_VENDA_JOIN: tuple[str, ...] = (
+    "Id",
+    "_id",
+    "NumeroVenda",
+    "Numero",
+    "CodigoVenda",
+    "Codigo",
+)
+
+
 def _produto_ids_variants_mongo(p_ids: list[str]) -> list:
     out = []
     seen = set()
@@ -2692,6 +2703,12 @@ def _produto_ids_variants_mongo(p_ids: list[str]) -> list:
                 if n not in seen:
                     seen.add(n)
                     out.append(n)
+                for width in (6, 8, 10, 12):
+                    if len(str(n)) <= width:
+                        ps = f"{n:0{width}d}"
+                        if ps not in seen:
+                            seen.add(ps)
+                            out.append(ps)
             except Exception:
                 pass
         if len(s) == 24 and all(c in "0123456789abcdefABCDEF" for c in s):
@@ -2838,9 +2855,148 @@ def _dto_venda_venda_produto_in_lists(vendas_headers: list) -> tuple[list[Object
                 pass
 
     for v in vendas_headers:
-        ingest(v.get("Id"))
-        ingest(v.get("_id"))
+        for hk in _HEADER_KEYS_VENDA_JOIN:
+            ingest(v.get(hk))
     return oids, scalars
+
+
+def _dto_venda_resolve_data_cabecalho(v: dict) -> datetime | None:
+    """Normaliza ``Data`` do cabeçalho (date BSON, ISO string, timestamp numérico) — H1."""
+    raw = v.get("Data")
+    if isinstance(raw, datetime):
+        return raw
+    if isinstance(raw, str):
+        s = raw.strip()
+        if not s:
+            return None
+        try:
+            if s.endswith("Z") and "T" in s:
+                return (
+                    datetime.fromisoformat(s.replace("Z", "+00:00"))
+                    .astimezone(timezone.utc)
+                    .replace(tzinfo=None)
+                )
+            if len(s) >= 19 and s[10] == " ":
+                s = s[:10] + "T" + s[11:]
+            return datetime.fromisoformat(s[:19])
+        except (ValueError, TypeError):
+            pass
+        for fmt in ("%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M", "%d/%m/%Y"):
+            try:
+                return datetime.strptime(s[:19], fmt) if len(s) >= len(fmt) else datetime.strptime(s, fmt)
+            except ValueError:
+                continue
+    if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+        try:
+            x = float(raw)
+            if not math.isfinite(x):
+                return None
+            if x > 1e12:
+                return datetime.utcfromtimestamp(x / 1000.0)
+            if x > 1e9:
+                return datetime.utcfromtimestamp(x)
+        except (OSError, ValueError, OverflowError):
+            pass
+    return None
+
+
+def _mongo_expr_dto_venda_data_intervalo(desde: datetime, ate: datetime) -> dict:
+    """
+    ``$expr`` para cabeçalhos cuja ``Data`` não é BSON date (ex.: string ISO) — H1.
+    Usado só quando o ``find`` por intervalo BSON retorna vazio.
+    """
+    return {
+        "$let": {
+            "vars": {
+                "dNorm": {
+                    "$switch": {
+                        "branches": [
+                            {"case": {"$eq": [{"$type": "$Data"}, "date"]}, "then": "$Data"},
+                            {
+                                "case": {"$eq": [{"$type": "$Data"}, "string"]},
+                                "then": {
+                                    "$dateFromString": {
+                                        "dateString": "$Data",
+                                        "onError": None,
+                                        "onNull": None,
+                                    }
+                                },
+                            },
+                        ],
+                        "default": None,
+                    }
+                }
+            },
+            "in": {
+                "$and": [
+                    {"$ne": ["$$dNorm", None]},
+                    {"$gte": ["$$dNorm", desde]},
+                    {"$lte": ["$$dNorm", ate]},
+                ]
+            },
+        }
+    }
+
+
+def _dto_venda_fetch_cabecalhos_intervalo(
+    db,
+    desde: datetime,
+    ate: datetime,
+    *,
+    mongo_max_time_ms: int | None = 90_000,
+) -> list[dict]:
+    """
+    Cabeçalhos ``DtoVenda`` no intervalo [desde, ate], com filtro de venda ativa.
+    Tenta ``find`` index-friendly; se vazio, agregação com ``$expr`` para ``Data`` string/numérica.
+    """
+    filtro = _filtro_venda_ativa_mongo()
+    proj = {
+        "Id": 1,
+        "_id": 1,
+        "Data": 1,
+        "NumeroVenda": 1,
+        "Numero": 1,
+        "CodigoVenda": 1,
+        "Codigo": 1,
+    }
+    vendas: list[dict] = []
+    try:
+        cur = db["DtoVenda"].find(
+            {"$and": [{"Data": {"$gte": desde, "$lte": ate}}, filtro]},
+            proj,
+        )
+        if mongo_max_time_ms is not None:
+            cur = cur.max_time_ms(int(mongo_max_time_ms))
+        vendas = list(cur)
+    except Exception as exc:
+        logger.warning("relatorio_compras DtoVenda find: %s", exc)
+        vendas = []
+    if vendas:
+        return vendas
+    try:
+        pipeline = [
+            {
+                "$match": {
+                    "$and": [
+                        filtro,
+                        {"$expr": _mongo_expr_dto_venda_data_intervalo(desde, ate)},
+                    ]
+                }
+            },
+            {"$project": proj},
+        ]
+        agg_kw: dict[str, Any] = {"allowDiskUse": True}
+        if mongo_max_time_ms is not None:
+            agg_kw["maxTimeMS"] = int(mongo_max_time_ms)
+        vendas = list(db["DtoVenda"].aggregate(pipeline, **agg_kw))
+        if vendas:
+            logger.info(
+                "relatorio_compras DtoVenda: find por Data BSON vazio; aggregate $expr retornou %s cabeçalhos",
+                len(vendas),
+            )
+    except Exception as exc:
+        logger.warning("relatorio_compras DtoVenda aggregate Data: %s", exc)
+    return vendas
 
 
 def _ultimas_compras_cutoff_dt() -> datetime:
@@ -3589,12 +3745,10 @@ def _vendas_qtd_por_produto_intervalo(
         return tot, first_dt
     if desde > ate:
         return tot, first_dt
-    q = {"Data": {"$gte": desde, "$lte": ate}, **_filtro_venda_ativa_mongo()}
     try:
-        cur = db["DtoVenda"].find(q, {"Id": 1, "_id": 1, "Data": 1})
-        if mongo_max_time_ms is not None:
-            cur = cur.max_time_ms(int(mongo_max_time_ms))
-        vendas = list(cur)
+        vendas = _dto_venda_fetch_cabecalhos_intervalo(
+            db, desde, ate, mongo_max_time_ms=mongo_max_time_ms
+        )
     except Exception as exc:
         logger.warning("relatorio_compras DtoVenda: %s", exc)
         return tot, first_dt
@@ -3602,11 +3756,11 @@ def _vendas_qtd_por_produto_intervalo(
         return tot, first_dt
     vmap: dict[str, datetime] = {}
     for v in vendas:
-        dt = v.get("Data")
-        if not isinstance(dt, datetime):
+        dt = _dto_venda_resolve_data_cabecalho(v)
+        if dt is None:
             continue
-        for fld in ("Id", "_id"):
-            for key in _dto_venda_join_str_keys(v.get(fld)):
+        for hk in _HEADER_KEYS_VENDA_JOIN:
+            for key in _dto_venda_join_str_keys(v.get(hk)):
                 vmap[key] = dt
     venda_ids_obj, venda_ids_scalar = _dto_venda_venda_produto_in_lists(vendas)
     vendas_or: list = []
@@ -3753,12 +3907,10 @@ def _vendas_qtd_apos_ultima_compra_por_canon(
     ate = datetime.now()
     if desde > ate:
         return tot
-    q = {"Data": {"$gte": desde, "$lte": ate}, **_filtro_venda_ativa_mongo()}
     try:
-        cur = db["DtoVenda"].find(q, {"Id": 1, "_id": 1, "Data": 1})
-        if mongo_max_time_ms is not None:
-            cur = cur.max_time_ms(int(mongo_max_time_ms))
-        vendas = list(cur)
+        vendas = _dto_venda_fetch_cabecalhos_intervalo(
+            db, desde, ate, mongo_max_time_ms=mongo_max_time_ms
+        )
     except Exception as exc:
         logger.warning("planilha_rel DtoVenda: %s", exc)
         return tot
@@ -3766,11 +3918,11 @@ def _vendas_qtd_apos_ultima_compra_por_canon(
         return tot
     vmap: dict[str, datetime] = {}
     for v in vendas:
-        dt = v.get("Data")
-        if not isinstance(dt, datetime):
+        dt = _dto_venda_resolve_data_cabecalho(v)
+        if dt is None:
             continue
-        for fld in ("Id", "_id"):
-            for key in _dto_venda_join_str_keys(v.get(fld)):
+        for hk in _HEADER_KEYS_VENDA_JOIN:
+            for key in _dto_venda_join_str_keys(v.get(hk)):
                 vmap[key] = dt
     venda_ids_obj, venda_ids_scalar = _dto_venda_venda_produto_in_lists(vendas)
     vendas_or = []
