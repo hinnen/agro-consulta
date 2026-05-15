@@ -747,14 +747,24 @@ def api_produtos_gestao_lista(request):
 
     try:
         if q_raw:
-            prods_raw = motor_de_busca_agro(
-                q_raw,
-                db,
-                client,
-                limit=120,
-                include_inactive=include_inactive,
-                projection=_GESTAO_LISTA_PROJ,
-            )
+            prods_raw: list = []
+            bal_g = _parse_etiqueta_balanca_ean13_br(q_raw)
+            if bal_g:
+                cod4_g, _ = bal_g
+                p_bal_g = _buscar_produto_por_codigo_interno_balanca(db, client, cod4_g)
+                if p_bal_g:
+                    prods_raw = _merge_produtos_overlay_codigo_consulta(
+                        q_raw, [p_bal_g], db, client
+                    )
+            if not prods_raw:
+                prods_raw = motor_busca_consulta_documentos(
+                    q_raw,
+                    db,
+                    client,
+                    limit=120,
+                    include_inactive=include_inactive,
+                    projection=_GESTAO_LISTA_PROJ,
+                )
             prods = [
                 _gestao_slim_doc_para_lista(p)
                 for p in prods_raw
@@ -3603,6 +3613,397 @@ def _lista_produto_ids_catalogo_por_fornecedor(
     return out
 
 
+def _lista_produto_ids_catalogo_por_categoria(
+    db,
+    client,
+    categoria: str,
+    *,
+    limit: int = 800,
+    mongo_max_time_ms: int | None = 90_000,
+) -> list[str]:
+    """Produtos ativos cuja categoria (Mongo) casa com o texto informado."""
+    col = db[client.col_p]
+    cat = str(categoria or "").strip()
+    if len(cat) < 1:
+        return []
+    esc = re.escape(cat[:200])
+    rex = {"$regex": esc, "$options": "i"}
+    q = {
+        "$and": [
+            {"CadastroInativo": {"$ne": True}},
+            {
+                "$or": [
+                    {"NomeCategoria": rex},
+                    {"Categoria": rex},
+                    {"Grupo": rex},
+                ]
+            },
+        ]
+    }
+    try:
+        cur = col.find(q, {"Id": 1, "_id": 1, "Nome": 1}).limit(max(1, min(int(limit), 1200)))
+        if mongo_max_time_ms is not None:
+            cur = cur.max_time_ms(int(mongo_max_time_ms))
+        docs = list(cur)
+    except Exception as exc:
+        logger.warning("relatorio_compras catalogo categoria: %s", exc)
+        return []
+    docs.sort(key=lambda p: str(p.get("Nome") or "").strip().lower())
+    out: list[str] = []
+    seen: set[str] = set()
+    for p in docs:
+        pid = str(p.get("Id") or p.get("_id") or "").strip()
+        if not pid or pid == "None" or pid in seen:
+            continue
+        seen.add(pid)
+        out.append(pid)
+    return out
+
+
+def _lista_produto_ids_catalogo_por_unidade(
+    db,
+    client,
+    unidade: str,
+    *,
+    limit: int = 800,
+    mongo_max_time_ms: int | None = 90_000,
+) -> list[str]:
+    """Produtos ativos cuja unidade (Mongo) casa com o texto informado."""
+    col = db[client.col_p]
+    u = str(unidade or "").strip()
+    if len(u) < 1:
+        return []
+    esc = re.escape(u[:80])
+    rex = {"$regex": esc, "$options": "i"}
+    q = {
+        "$and": [
+            {"CadastroInativo": {"$ne": True}},
+            {"$or": [{"Unidade": rex}, {"SiglaUnidade": rex}]},
+        ]
+    }
+    try:
+        cur = col.find(q, {"Id": 1, "_id": 1, "Nome": 1}).limit(max(1, min(int(limit), 1200)))
+        if mongo_max_time_ms is not None:
+            cur = cur.max_time_ms(int(mongo_max_time_ms))
+        docs = list(cur)
+    except Exception as exc:
+        logger.warning("relatorio_compras catalogo unidade: %s", exc)
+        return []
+    docs.sort(key=lambda p: str(p.get("Nome") or "").strip().lower())
+    out: list[str] = []
+    seen: set[str] = set()
+    for p in docs:
+        pid = str(p.get("Id") or p.get("_id") or "").strip()
+        if not pid or pid == "None" or pid in seen:
+            continue
+        seen.add(pid)
+        out.append(pid)
+    return out
+
+
+def _compras_relatorio_rows_catalogo_sem_ult_doc(
+    db, client, p_ids: list[str]
+) -> list[dict]:
+    """
+    Linhas métricas (vendas até 56d, média/semana) sem âncora de última compra por fornecedor.
+    Replica a lógica de ``api_compras_relatorio_fornecedor`` com último documento ausente (* nas colunas).
+    """
+    now = datetime.now()
+    t56 = now - timedelta(days=56)
+    tot56, first_in56 = _vendas_qtd_por_produto_intervalo(db, p_ids, t56, now)
+
+    col = db[client.col_p]
+    ors = []
+    for pid in p_ids:
+        ors.append({"Id": pid})
+        if pid.isdigit():
+            try:
+                n = int(pid)
+                ors.append({"Id": n})
+                ors.append({"Codigo": n})
+            except (TypeError, ValueError):
+                pass
+        if len(pid) == 24:
+            try:
+                oid = ObjectId(pid)
+                ors.append({"Id": oid})
+                ors.append({"_id": oid})
+            except Exception:
+                pass
+    prods = list(
+        col.find(
+            {"$or": ors},
+            {
+                "Id": 1,
+                "_id": 1,
+                "Nome": 1,
+                "Codigo": 1,
+                "CodigoNFe": 1,
+                "CodigoBarras": 1,
+                "Sku": 1,
+                "SKU": 1,
+                "CodigoInterno": 1,
+            },
+        )
+    )
+
+    def _chaves_produto(p) -> list[str]:
+        keys: list[str] = []
+        vid = p.get("Id")
+        if vid is not None:
+            keys.append(str(vid))
+        keys.append(str(p.get("_id")))
+        cod = p.get("Codigo")
+        if cod is not None and str(cod).strip() != "":
+            keys.append(str(cod))
+        return [k for k in keys if k and k != "None"]
+
+    pmap: dict[str, dict] = {}
+    for p in prods:
+        for k in _chaves_produto(p):
+            pmap[k] = p
+
+    rows_out: list[dict] = []
+    for pid in p_ids:
+        p = pmap.get(pid)
+        canon = str(p.get("Id") or p.get("_id") or pid) if p else pid
+        nome = str(p.get("Nome") or "").strip() if p else ""
+        if not nome:
+            nome = "—"
+        if p:
+            gm_raw = _mongo_primeiro_texto(
+                p,
+                ("CodigoNFe", "Sku", "SKU", "CodigoInterno", "Codigo", "CodigoBarras"),
+            )
+            codigo = (_fmt_relatorio_gm_display(gm_raw) or _fmt_relatorio_gm_display(str(canon)))[:80]
+        else:
+            codigo = _fmt_relatorio_gm_display(str(canon))[:80]
+
+        qtd_ult: int | None = None
+        qtd_pos: int | None = None
+        t56p = _resolver_qtd_por_pid(tot56, canon)
+        first_dt = _resolver_dt_mapa(first_in56, canon)
+        if first_dt is None and p:
+            for k in _chaves_produto(p):
+                first_dt = _resolver_dt_mapa(first_in56, k)
+                if first_dt is not None:
+                    break
+        anchor = t56
+        if isinstance(first_dt, datetime):
+            fd = _mongo_dt_utc_naive(first_dt) or first_dt
+            ad = _mongo_dt_utc_naive(anchor) or anchor
+            if fd > ad:
+                anchor = fd
+        now_n = _mongo_dt_utc_naive(now) or now
+        an_n = _mongo_dt_utc_naive(anchor) or anchor
+        try:
+            dias_hist = max(1.0, (now_n - an_n).total_seconds() / 86400.0)
+        except Exception:
+            dias_hist = 56.0
+        semanas_den = int(max(1, min(8, (dias_hist + 6.999999) // 7)))
+        media_sem = _arred_int_meio_para_cima((t56p / float(semanas_den)) if semanas_den else 0.0)
+        rows_out.append(
+            {
+                "produto_id": str(canon),
+                "codigo": codigo[:80],
+                "nome": nome[:500],
+                "qtd_ultimo_pedido": qtd_ult,
+                "qtd_vendida_desde_ultima": qtd_pos,
+                "media_venda_semana": media_sem,
+                "semanas_media": semanas_den,
+            }
+        )
+
+    rows_out.sort(
+        key=lambda r: (
+            0,
+            str(r.get("nome") or "").strip().lower(),
+        )
+    )
+    return rows_out
+
+
+@never_cache
+@require_GET
+def api_compras_relatorio_dim_sugestao(request):
+    """Sugestões de categoria ou unidade para relatórios (catálogo Mongo ativo)."""
+    tipo = (request.GET.get("tipo") or "").strip().lower()
+    q = (request.GET.get("q") or "").strip()
+    try:
+        lim = min(int(request.GET.get("limit") or 40), 80)
+    except ValueError:
+        lim = 40
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "itens": [], "erro": "Mongo indisponível."}, status=503)
+
+    col = db[client.col_p]
+    base = {"CadastroInativo": {"$ne": True}}
+    qfil = None
+    if q:
+        esc = re.escape(q[:120])
+        rex = {"$regex": esc, "$options": "i"}
+        if tipo == "categoria":
+            qfil = {"$or": [{"NomeCategoria": rex}, {"Categoria": rex}, {"Grupo": rex}]}
+        elif tipo == "unidade":
+            qfil = {"$or": [{"Unidade": rex}, {"SiglaUnidade": rex}]}
+    query = {"$and": [base, qfil]} if qfil else base
+    proj = (
+        {"NomeCategoria": 1, "Categoria": 1, "Grupo": 1}
+        if tipo == "categoria"
+        else {"Unidade": 1, "SiglaUnidade": 1}
+    )
+    if tipo not in ("categoria", "unidade"):
+        return JsonResponse({"ok": False, "itens": [], "erro": "tipo inválido (categoria|unidade)."}, status=400)
+
+    seen: set[str] = set()
+    out: list[str] = []
+    try:
+        cur = col.find(query, proj).limit(400)
+        for doc in cur:
+            if tipo == "categoria":
+                for fld in ("NomeCategoria", "Categoria", "Grupo"):
+                    v = doc.get(fld)
+                    if v is None:
+                        continue
+                    s = str(v).strip()
+                    if not s:
+                        continue
+                    k = s.lower()
+                    if k in seen:
+                        continue
+                    seen.add(k)
+                    out.append(s)
+                    if len(out) >= lim:
+                        break
+            else:
+                for fld in ("Unidade", "SiglaUnidade"):
+                    v = doc.get(fld)
+                    if v is None:
+                        continue
+                    s = str(v).strip()
+                    if not s:
+                        continue
+                    k = s.lower()
+                    if k in seen:
+                        continue
+                    seen.add(k)
+                    out.append(s)
+                    if len(out) >= lim:
+                        break
+            if len(out) >= lim:
+                break
+    except Exception as exc:
+        logger.warning("api_compras_relatorio_dim_sugestao: %s", exc)
+        return JsonResponse({"ok": False, "itens": [], "erro": "Falha ao consultar."}, status=500)
+
+    out.sort(key=lambda x: x.lower())
+    return JsonResponse({"ok": True, "itens": out[:lim]})
+
+
+@never_cache
+@require_POST
+def api_compras_relatorio_categoria(request):
+    """Relatório de compras filtrado por categoria (sem último documento por fornecedor)."""
+    try:
+        body = json.loads((request.body or b"").decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    categoria = str(body.get("categoria") or "").strip()
+    raw_ids = body.get("produto_ids")
+    if not categoria:
+        return JsonResponse({"ok": False, "erro": "Informe a categoria."}, status=400)
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
+
+    p_ids: list[str] = []
+    if isinstance(raw_ids, list) and raw_ids:
+        seen: set[str] = set()
+        for raw in raw_ids[:400]:
+            s = str(raw or "").strip()
+            if not s or s in seen:
+                continue
+            seen.add(s)
+            p_ids.append(s)
+    if not p_ids:
+        p_ids = _lista_produto_ids_catalogo_por_categoria(db, client, categoria, limit=800)
+    if not p_ids:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Nenhum produto encontrado nesta categoria no catálogo.",
+            },
+            status=400,
+        )
+
+    rows_out = _compras_relatorio_rows_catalogo_sem_ult_doc(db, client, p_ids)
+    return JsonResponse(
+        {
+            "ok": True,
+            "filtro_tipo": "categoria",
+            "filtro_rotulo": categoria[:240],
+            "total_produtos": len(rows_out),
+            "sem_ultimo_documento": True,
+            "ultimo_documento": {},
+            "linhas": rows_out,
+        }
+    )
+
+
+@never_cache
+@require_POST
+def api_compras_relatorio_unidade(request):
+    """Relatório de compras filtrado por unidade (sem último documento por fornecedor)."""
+    try:
+        body = json.loads((request.body or b"").decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    unidade = str(body.get("unidade") or "").strip()
+    raw_ids = body.get("produto_ids")
+    if not unidade:
+        return JsonResponse({"ok": False, "erro": "Informe a unidade."}, status=400)
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
+
+    p_ids: list[str] = []
+    if isinstance(raw_ids, list) and raw_ids:
+        seen: set[str] = set()
+        for raw in raw_ids[:400]:
+            s = str(raw or "").strip()
+            if not s or s in seen:
+                continue
+            seen.add(s)
+            p_ids.append(s)
+    if not p_ids:
+        p_ids = _lista_produto_ids_catalogo_por_unidade(db, client, unidade, limit=800)
+    if not p_ids:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Nenhum produto encontrado com esta unidade no catálogo.",
+            },
+            status=400,
+        )
+
+    rows_out = _compras_relatorio_rows_catalogo_sem_ult_doc(db, client, p_ids)
+    return JsonResponse(
+        {
+            "ok": True,
+            "filtro_tipo": "unidade",
+            "filtro_rotulo": unidade[:120],
+            "total_produtos": len(rows_out),
+            "sem_ultimo_documento": True,
+            "ultimo_documento": {},
+            "linhas": rows_out,
+        }
+    )
+
+
 @never_cache
 @require_POST
 def api_compras_relatorio_fornecedor(request):
@@ -5978,6 +6379,42 @@ def compras_relatorio_a4_view(request):
         request,
         "produtos/compras_relatorio_a4.html",
         {"erp_notas_entrada_list_url": erp_portal_notas_entrada_list_url()},
+    )
+
+
+@ensure_csrf_cookie
+def compras_relatorio_planilha_categoria_view(request):
+    """Relatório planilha (A4/A6) por categoria — imprimir lista com colunas manual."""
+    return render(
+        request,
+        "produtos/compras_relatorio_planilha.html",
+        {
+            "planilha_dim": "categoria",
+            "planilha_titulo": "Relatório planilha — categoria",
+            "planilha_label": "Categoria",
+            "planilha_placeholder": "Digite ou busque a categoria…",
+            "api_relatorio_url": reverse("api_compras_relatorio_categoria"),
+            "api_dim_sugestao_url": reverse("api_compras_relatorio_dim_sugestao"),
+            "campo_payload": "categoria",
+        },
+    )
+
+
+@ensure_csrf_cookie
+def compras_relatorio_planilha_unidade_view(request):
+    """Relatório planilha (A4/A6) por unidade — imprimir lista com colunas manual."""
+    return render(
+        request,
+        "produtos/compras_relatorio_planilha.html",
+        {
+            "planilha_dim": "unidade",
+            "planilha_titulo": "Relatório planilha — unidade",
+            "planilha_label": "Unidade",
+            "planilha_placeholder": "Ex.: Saco, UN, KG…",
+            "api_relatorio_url": reverse("api_compras_relatorio_unidade"),
+            "api_dim_sugestao_url": reverse("api_compras_relatorio_dim_sugestao"),
+            "campo_payload": "unidade",
+        },
     )
 
 
@@ -11061,6 +11498,49 @@ def _wizard_relevancia_texto_busca(row: dict, q_strip: str) -> float:
     return score
 
 
+def _merge_produtos_overlay_codigo_consulta(
+    q: str,
+    prods: list[dict],
+    db,
+    client_m,
+) -> list[dict]:
+    """Prefixa achados por código só no overlay Agro — mesmo merge que ``/api/buscar/?q=``."""
+    q = str(q or "").strip()
+    vistos = {str(p.get("Id") or p["_id"]) for p in (prods or [])}
+    extras = _mongo_produtos_por_overlay_codigo_busca(q, db, client_m, vistos)
+    if extras:
+        return list(extras) + list(prods)
+    return list(prods)
+
+
+def motor_busca_consulta_documentos(
+    q: str,
+    db,
+    client_m,
+    *,
+    limit: int = 80,
+    include_inactive: bool = False,
+    projection: dict[str, int] | None = None,
+) -> list[dict]:
+    """
+    Pipeline textual da Consulta / Orçamentos (sem etiqueta de balança): ``motor_de_busca_agro`` + overlay.
+    Telas de cadastro/gestão devem usar isto em vez de chamar o motor isolado.
+    """
+    q = str(q or "").strip()
+    if not q:
+        return []
+    lim = max(1, min(int(limit), 500))
+    prods = motor_de_busca_agro(
+        q,
+        db,
+        client_m,
+        limit=lim,
+        include_inactive=include_inactive,
+        projection=projection,
+    )
+    return _merge_produtos_overlay_codigo_consulta(q, prods, db, client_m)
+
+
 # --- APIs DE BUSCA ---
 @require_GET
 def api_buscar_produtos(request):
@@ -11106,16 +11586,15 @@ def api_buscar_produtos(request):
                 if p_escolhido:
                     pid_b = str(p_escolhido.get("Id") or p_escolhido.get("_id"))
                     preco_por_id[pid_b] = preco_etiqueta
-                    prods = [p_escolhido]
+                    prods = _merge_produtos_overlay_codigo_consulta(q, [p_escolhido], db, client)
                 else:
-                    prods = motor_de_busca_agro(q, db, client, limit=80)
+                    prods = motor_busca_consulta_documentos(
+                        q, db, client, limit=80, include_inactive=False, projection=None
+                    )
             else:
-                prods = motor_de_busca_agro(q, db, client, limit=80)
-        vistos_busca = {str(p.get("Id") or p["_id"]) for p in prods}
-        if not wizard_catalog and q:
-            extras_ov = _mongo_produtos_por_overlay_codigo_busca(q, db, client, vistos_busca)
-            if extras_ov:
-                prods = extras_ov + prods
+                prods = motor_busca_consulta_documentos(
+                    q, db, client, limit=80, include_inactive=False, projection=None
+                )
         p_ids = [str(p.get("Id") or p["_id"]) for p in prods]
 
         medias_map = {}
@@ -12678,7 +13157,7 @@ def _sort_cadastro_rows_inplace(rows: list[dict], sort_key: str, direction: int)
 def api_produtos_cadastro(request):
     """
     Lista / busca cadastro de produtos no Mongo (ERP), sem saldos nem médias.
-    - Com `q`: usa o mesmo motor de busca do PDV.
+    - Com `q`: usa ``motor_busca_consulta_documentos`` (igual Consulta / ``/api/buscar/``), com projeção slim.
     - Sem `q`: paginação alfabética por Nome (`pagina`, `por_pagina`).
     - `inativos=1`: inclui cadastros inativos.
     - `sort` / `dir`: ordenação (nome, marca, unidade, categoria, subcategoria, preco_custo, preco_venda; asc|desc).
@@ -12718,11 +13197,9 @@ def api_produtos_cadastro(request):
                 cod4_cad, _pc = bal_cad
                 p_bal_cad = _buscar_produto_por_codigo_interno_balanca(db, client, cod4_cad)
                 if p_bal_cad:
-                    prods = [p_bal_cad]
+                    prods = _merge_produtos_overlay_codigo_consulta(q_raw, [p_bal_cad], db, client)
             if not prods:
-                # Mesmos limites internos do PDV (`api_buscar_produtos`): caps baixos aqui
-                # cortavam candidatos antes do score (ex.: prefixo «GM0050» sem match exato em index_codigos).
-                prods = motor_de_busca_agro(
+                prods = motor_busca_consulta_documentos(
                     q_raw,
                     db,
                     client,
@@ -12730,10 +13207,6 @@ def api_produtos_cadastro(request):
                     include_inactive=inativos,
                     projection=_CADASTRO_LISTA_MONGO_PROJ,
                 )
-            vistos_cad = {str(p.get("Id") or p.get("_id")) for p in prods if p}
-            extras_cad = _mongo_produtos_por_overlay_codigo_busca(q_raw, db, client, vistos_cad)
-            if extras_cad:
-                prods = list(extras_cad) + list(prods)
             prods = prods[:lim_busca]
             rows = [_produto_mongo_para_cadastro_row(p) for p in prods]
             _ovs = _overlay_mapa_por_ids_chunked([str(r.get("id") or "") for r in rows])

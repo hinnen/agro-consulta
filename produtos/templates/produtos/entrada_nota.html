@@ -6301,9 +6301,13 @@
   }
 
   /**
-   * Busca alinhada à consulta/orçamentos: cache PDV (`agro_pdv_catalog_cache_v2`) + `filtrarProdutosBuscaInteligente`
-   * + ordenação por relevância + merge com `GET /api/buscar/?q=` (sem `compras=1`). Sanitiza `|`, `;`, vírgulas.
-   * Custo/margem na linha: `entradaNfeEnriquecerLinhaAposEscolherCatalogo`.
+   * Busca de produtos na NF-e: mesmo motor da Consulta / Orçamentos no servidor — `GET /api/buscar/?q=`
+   * (sem `wizard`; custo extra só em `entradaNfeBuscarLinhaComprasPorId` com `compras=1`).
+   * Entradas de UI que usam o mesmo pipeline (via `entradaNfeBuscarProdutosArr`):
+   * - Sentinela «BUSCA» (F2, sugestões, Enter);
+   * - Modal «BUSCAR PRODUTO» (MUDAR na linha).
+   * Opcional: cache PDV (`agro_pdv_catalog_cache_v2`) + `filtrarProdutosBuscaInteligente` + merge como no PDV.
+   * Sanitiza `|`, `;`, vírgulas. Custo/margem na linha: `entradaNfeEnriquecerLinhaAposEscolherCatalogo`.
    */
   const ENTRADA_NFE_PDV_CACHE_KEY = 'agro_pdv_catalog_cache_v2';
   let _entradaNfeCatLocal = null;
@@ -6425,6 +6429,19 @@
     return [...locaisMesclados, ...extrasOrd].slice(0, 80);
   }
 
+  /** Só o HTTP da Consulta / PDV: lista de produtos do Mongo + overlay (servidor). */
+  async function entradaNfeFetchProdutosMotorConsultaApi(termoBruto) {
+    const t = String(termoBruto || '').trim();
+    if (t.length < 2) return [];
+    const u = new URL(URL_BUSCA, window.location.origin);
+    u.searchParams.set('q', t);
+    const r = await fetch(u.toString(), { credentials: 'same-origin' });
+    if (!r.ok) return [];
+    const j = await r.json().catch(() => ({}));
+    if (j && j.erro) return [];
+    return Array.isArray(j.produtos) ? j.produtos : [];
+  }
+
   async function entradaNfeBuscarProdutosArr(termo) {
     const tBruto = entradaNfeSanitizeTermoBuscaPdvBruto(entradaNfeRemoverSufixoQuantidadeBusca(String(termo || '')));
     if (tBruto.length < 2) return [];
@@ -6446,15 +6463,8 @@
     let apiList = [];
     try {
       if (window.gmLoadingBar && !hadLocal) window.gmLoadingBar.show();
-      const u = new URL(URL_BUSCA, window.location.origin);
-      u.searchParams.set('q', tBruto);
-      const r = await fetch(u.toString(), { credentials: 'same-origin' });
+      apiList = await entradaNfeFetchProdutosMotorConsultaApi(tBruto);
       if (sid !== _entradaNfeBuscaSeq) return null;
-      if (r.ok) {
-        const j = await r.json();
-        if (sid !== _entradaNfeBuscaSeq) return null;
-        apiList = Array.isArray(j.produtos) ? j.produtos : [];
-      }
     } catch (_) {
       apiList = [];
     } finally {

@@ -138,7 +138,7 @@
     }
     if (q) {
       params.set('q', q);
-      params.set('limit', '64');
+      params.set('limit', '80');
     } else {
       params.set('pagina', String(pagina));
       params.set('por_pagina', String(porPagina));

@@ -1,0 +1,391 @@
+
+function compraPrintPreferirJanelaPlan() {
+  try {
+    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return true;
+  } catch (_) {}
+  if (typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent || '';
+    if (/Mobi|Android|iPhone|iPad|iPod|IEMobile|webOS|Silk/i.test(ua)) return true;
+  }
+  return false;
+}
+
+function compraFecharWinPlan(win) {
+  try {
+    if (win && !win.closed) win.close();
+  } catch (_) {}
+}
+
+function compraPrepararJanelaPrintPlan() {
+  if (!compraPrintPreferirJanelaPlan()) return null;
+  let w = null;
+  try {
+    w = window.open('', '_blank');
+  } catch (_) {
+    w = null;
+  }
+  if (!w || !w.document) return null;
+  try {
+    w.document.write(
+      '<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Relatório</title><style>html,body{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;background:#f1f5f9;color:#334155;padding:1.25rem;text-align:center}</style></head><body><p style="font-weight:800;font-size:1.05rem">A preparar relatório…</p></body></html>'
+    );
+    w.document.close();
+  } catch (_) {
+    compraFecharWinPlan(w);
+    return null;
+  }
+  return w;
+}
+
+function compraEntregarHtmlNaJanelaPlan(win, html) {
+  if (!win || win.closed) return false;
+  try {
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+  } catch (_) {
+    return false;
+  }
+  const run = () => {
+    try {
+      win.focus();
+      win.print();
+    } catch (_) {}
+  };
+  setTimeout(run, 350);
+  try {
+    win.addEventListener(
+      'afterprint',
+      () => {
+        try {
+          win.close();
+        } catch (_) {}
+      },
+      { once: true },
+    );
+  } catch (_) {}
+  return true;
+}
+
+function compraAbrirPrintHtmlPlanIframe(html) {
+  const ifr = document.createElement('iframe');
+  ifr.setAttribute(
+    'style',
+    'position:fixed;right:0;bottom:0;width:0;height:0;border:0;pointer-events:none;visibility:hidden',
+  );
+  ifr.setAttribute('title', 'Impressão');
+  document.body.appendChild(ifr);
+  const rm = () => {
+    try {
+      ifr.remove();
+    } catch (_) {}
+  };
+  let printed = false;
+  const run = () => {
+    if (printed) return;
+    printed = true;
+    try {
+      const iw = ifr.contentWindow;
+      if (iw) {
+        iw.focus();
+        iw.print();
+      }
+    } catch (_) {}
+    setTimeout(rm, 1600);
+  };
+  const schedule = () => requestAnimationFrame(() => requestAnimationFrame(run));
+  ifr.onload = () => schedule();
+  try {
+    ifr.srcdoc = html;
+  } catch (_) {
+    rm();
+    try {
+      const u = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+      ifr.onload = () => {
+        schedule();
+        setTimeout(() => {
+          try {
+            URL.revokeObjectURL(u);
+          } catch (_) {}
+        }, 120000);
+      };
+      ifr.removeAttribute('srcdoc');
+      ifr.src = u;
+    } catch (_) {
+      throw new Error('print_iframe');
+    }
+  }
+  setTimeout(() => {
+    if (!printed) schedule();
+  }, 900);
+}
+
+function planilhaFmtUlt(v) {
+  if (v === null || v === undefined) return '*';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '*';
+  return n.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+}
+
+function planilhaFmtInt(v) {
+  if (v === null || v === undefined) return '—';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '—';
+  return n.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+}
+
+function planilhaFmtDesdeUlt(v) {
+  if (v === null || v === undefined) return '*';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '*';
+  return n.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+}
+
+/**
+ * Folha maior ~20 % que o relatório fornecedor; sem col GM; colunas vazias Contagem/Pedir.
+ */
+function montarHtmlImpressaoPlanilha(j, opts) {
+  const tipo = opts.tipoTitulo || 'Categoria/Unidade';
+  const rotulo = String(j.filtro_rotulo || '').trim() || '(não informado)';
+  const agora = new Date().toLocaleString('pt-BR');
+  const pageSz = opts.pageSize === 'A6' ? 'A6' : 'A4';
+  const marginMm = pageSz === 'A6' ? '6mm 5mm 8mm' : '10mm 10mm 14mm';
+
+  let logoAbs = PLANILHA_URL_LOGO;
+  try {
+    logoAbs = new URL(PLANILHA_URL_LOGO, window.location.origin).href;
+  } catch (_) {}
+
+  const esc = (s) =>
+    String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+  const rowsHtml = (j.linhas || [])
+    .map(
+      (ln) => `
+<tr>
+        <td class="nome">${esc(ln.nome || '—')}</td>
+        <td class="num">${planilhaFmtUlt(ln.qtd_ultimo_pedido)}</td>
+        <td class="num">${planilhaFmtDesdeUlt(ln.qtd_vendida_desde_ultima)}</td>
+        <td class="num">${planilhaFmtInt(ln.media_venda_semana)}</td>
+        <td class="livre"></td>
+        <td class="livre"></td>
+      </tr>`,
+    )
+    .join('');
+
+  return `<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relatório planilha · ${pageSz}</title>
+  <style>
+    @page { size: ${pageSz}; margin: ${marginMm}; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 14.5pt;
+      line-height: 1.38;
+      color: #0f172a;
+      margin: 0;
+      background: #fff;
+    }
+    h1 {
+      font-size: 17.8pt;
+      margin: 0 0 8px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+    .sub { font-size: 11.9pt; color: #475569; margin-bottom: 11px; line-height: 1.45; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead { display: table-header-group; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    th, td {
+      border: 1px solid #94a3b8;
+      padding: 9px 7px;
+      vertical-align: top;
+    }
+    th {
+      background: linear-gradient(180deg, #e2e8f0 0%, #cbd5e1 100%);
+      font-size: 10.6pt;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      font-weight: 800;
+      color: #1e293b;
+    }
+    td { font-size: 12.6pt; }
+    td.nome { font-weight: 600; }
+    td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    td.livre {
+      min-width: 2.4rem;
+      height: 1.6rem;
+      background: #fff;
+    }
+    caption {
+      text-align: left;
+      font-weight: 800;
+      font-size: 11.6pt;
+      margin-bottom: 8px;
+      color: #334155;
+    }
+    .print-foot {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 2px solid #cbd5e1;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .foot-legend { font-size: 10.6pt; color: #334155; line-height: 1.35; margin: 0 0 12px; }
+    .foot-brand { display: flex; justify-content: center; align-items: flex-end; width: 100%; margin-top: 4px; }
+    .foot-brand img {
+      width: min(100%, ${pageSz === 'A6' ? '96mm' : '178mm'});
+      height: auto;
+      max-height: ${pageSz === 'A6' ? '22mm' : '44mm'};
+      object-fit: contain;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+  </style>
+</head>
+<body>
+  <h1>Relatório de compras — ${esc(tipo)}</h1>
+  <div class="sub"><strong>${esc(tipo)}:</strong> ${esc(rotulo)}<br>
+  <strong>Gerado em:</strong> ${esc(agora)}<br>
+  Até 800 produtos por ${esc(String(tipo).toLowerCase())}. Sem vínculo com último documento de compra por fornecedor neste relatório: há <strong>*</strong> onde o número não aplica. «Contagem» e «Pedir» ficam em branco para preencher à caneta.</div>
+  <table>
+    <caption>Lista · ${Number(j.total_produtos || (j.linhas || []).length || 0).toLocaleString('pt-BR')} produto(s) · papel ${pageSz}</caption>
+    <thead>
+      <tr>
+        <th>Produto</th>
+        <th>Qtd últ. pedido / compra</th>
+        <th>Qtd vendida desde últ. compra</th>
+        <th>Média vendas / semana</th>
+        <th>Contagem</th>
+        <th>Pedir</th>
+      </tr>
+    </thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>
+  <footer class="print-foot">
+    <p class="foot-legend"><strong>*</strong>: sem número aplicável neste relatório por categoria/unidade (sem última NF por fornecedor aqui). <strong>—</strong>: média/indicador não calculado. Tipografia maior (cerca de +20%) que o relatório só por fornecedor.</p>
+    <div class="foot-brand">
+      <img src="${esc(logoAbs)}" alt="Agro Mais — Sua casa de ração com um toque a mais">
+    </div>
+  </footer>
+</body>
+</html>`;
+}
+
+function planilhaImprimir() {
+  const inp = document.getElementById('planilha-filtro');
+  const val = String(inp?.value || '').trim();
+  if (!val) {
+    window.alert(document.getElementById('planilha-label')?.textContent.trim() === 'Categoria'
+      ? 'Informe ou escolha a categoria.'
+      : 'Informe ou escolha a unidade.');
+    inp?.focus();
+    return;
+  }
+  const pageSizeRaw = document.getElementById('planilha-tamanho-papel')?.value || 'A4';
+  const pageSize = pageSizeRaw.toUpperCase() === 'A6' ? 'A6' : 'A4';
+
+  const preWin = compraPrepararJanelaPrintPlan();
+  const body = {};
+  body[PLANILHA_CAMPO] = val;
+
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
+  (async () => {
+    try {
+      const csrftoken = compraPlanilhaGetCsrf();
+      const r = await fetch(PLANILHA_API_REL, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrftoken,
+        },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json();
+      if (!j.ok) {
+        compraFecharWinPlan(preWin);
+        window.alert(j.erro || 'Falha ao montar relatório.');
+        return;
+      }
+      const tipoTitulo = PLANILHA_DIM === 'categoria' ? 'Categoria' : 'Unidade';
+      const html = montarHtmlImpressaoPlanilha(j, { pageSize, tipoTitulo });
+      if (!compraEntregarHtmlNaJanelaPlan(preWin, html)) {
+        try {
+          compraAbrirPrintHtmlPlanIframe(html);
+        } catch (_) {
+          window.alert('Não foi possível abrir a impressão.');
+        }
+      }
+    } catch (_) {
+      compraFecharWinPlan(preWin);
+      window.alert('Falha de rede ao gerar relatório.');
+    } finally {
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
+    }
+  })();
+}
+
+function compraPlanilhaGetCsrf() {
+  const m = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (m && m.value) return m.value;
+  const c = document.cookie.match(/csrftoken=([^;]+)/);
+  return c ? decodeURIComponent(c[1].trim()) : '';
+}
+
+let planilhaDdTimer = null;
+
+async function planilhaBuscarSugests(q) {
+  const dd = document.getElementById('planilha-dd');
+  if (!dd) return;
+  dd.innerHTML = '';
+  const u = new URL(PLANILHA_API_DIM, window.location.origin);
+  u.searchParams.set('tipo', PLANILHA_DIM);
+  u.searchParams.set('limit', '40');
+  if (String(q || '').trim().length >= 1) {
+    u.searchParams.set('q', String(q).trim());
+  }
+  try {
+    const r = await fetch(u.toString(), { credentials: 'same-origin' });
+    const j = await r.json();
+    const arr = (j.itens || []).slice(0, 60);
+    if (!arr.length) {
+      dd.classList.add('hidden');
+      return;
+    }
+    arr.forEach((txt) => {
+      const li = document.createElement('li');
+      li.setAttribute('role', 'option');
+      li.className =
+        'px-3 py-3 sm:py-2 cursor-pointer active:bg-violet-100 hover:bg-violet-50 text-sm font-bold border-b border-violet-50 touch-manipulation min-h-[48px] flex items-center';
+      li.textContent = txt;
+      const go = (e) => {
+        e.preventDefault();
+        document.getElementById('planilha-filtro').value = txt;
+        dd.classList.add('hidden');
+      };
+      li.addEventListener('mousedown', go);
+      li.addEventListener('click', go);
+      dd.appendChild(li);
+    });
+    dd.classList.remove('hidden');
+  } catch (_) {
+    dd.classList.add('hidden');
+  }
+}

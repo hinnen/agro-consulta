@@ -24,9 +24,34 @@ urlpatterns = [
     path('compras/', views.compras_view, name='compras_view'),
     path('compras/relatorio-a4/', views.compras_relatorio_a4_view, name='compras_relatorio_a4'),
     path(
+        'compras/relatorio-planilha-categoria/',
+        views.compras_relatorio_planilha_categoria_view,
+        name='compras_relatorio_planilha_categoria',
+    ),
+    path(
+        'compras/relatorio-planilha-unidade/',
+        views.compras_relatorio_planilha_unidade_view,
+        name='compras_relatorio_planilha_unidade',
+    ),
+    path(
         'api/compras/relatorio-fornecedor/',
         views.api_compras_relatorio_fornecedor,
         name='api_compras_relatorio_fornecedor',
+    ),
+    path(
+        'api/compras/relatorio-dim/',
+        views.api_compras_relatorio_dim_sugestao,
+        name='api_compras_relatorio_dim_sugestao',
+    ),
+    path(
+        'api/compras/relatorio-categoria/',
+        views.api_compras_relatorio_categoria,
+        name='api_compras_relatorio_categoria',
+    ),
+    path(
+        'api/compras/relatorio-unidade/',
+        views.api_compras_relatorio_unidade,
+        name='api_compras_relatorio_unidade',
     ),
     path(
         'produtos/cadastro-erp/produto/<str:produto_id>/',
