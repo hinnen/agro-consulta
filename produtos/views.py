@@ -3960,34 +3960,49 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc(
         if px:
             produtos_map[str(pid)] = px
 
-    ultimas = _ultimas_compras_por_produto_ids(db, p_ids, produtos_map, limit=1)
-
     variant_to_canon: dict[str, str] = {}
-    ref_por_canon: dict[str, datetime] = {}
-    qtd_ult_linha: dict[str, float] = {}
     for pid in p_ids:
         p = pmap.get(pid)
         canon = str(p.get("Id") or p.get("_id") or pid) if p else str(pid)
         chs = _chaves_produto(p) if p else [str(pid)]
         for k in chs:
             variant_to_canon[str(k)] = str(canon)
-        lum = ultimas.get(str(pid), [])
-        if lum:
-            det = (lum[0] or {}).get("detalhe") or {}
-            iso = str(det.get("data") or "").strip()
-            ref_dt = None
-            try:
-                ref_dt = datetime.fromisoformat(iso[:19])
-            except (ValueError, TypeError):
-                ref_dt = None
-            if isinstance(ref_dt, datetime):
-                ref_por_canon[str(canon)] = ref_dt
-                try:
-                    qtd_ult_linha[str(canon)] = float(det.get("quantidade") or 0)
-                except (TypeError, ValueError):
-                    qtd_ult_linha[str(canon)] = 0.0
 
-    vendas_pos = _vendas_qtd_apos_ultima_compra_por_canon(db, ref_por_canon, variant_to_canon)
+    ultimas: dict[str, list[dict]] = {}
+    ref_por_canon: dict[str, datetime] = {}
+    qtd_ult_linha: dict[str, float] = {}
+    vendas_pos: dict[str, float] = {}
+    try:
+        ultimas = _ultimas_compras_por_produto_ids(
+            db,
+            p_ids,
+            produtos_map,
+            limit=1,
+            mongo_max_time_ms=120_000,
+        )
+        for pid in p_ids:
+            p = pmap.get(pid)
+            canon = str(p.get("Id") or p.get("_id") or pid) if p else str(pid)
+            lum = ultimas.get(str(pid), [])
+            if lum:
+                det = (lum[0] or {}).get("detalhe") or {}
+                iso = str(det.get("data") or "").strip()
+                ref_dt = None
+                try:
+                    ref_dt = datetime.fromisoformat(iso[:19])
+                except (ValueError, TypeError):
+                    ref_dt = None
+                if isinstance(ref_dt, datetime):
+                    ref_por_canon[str(canon)] = ref_dt
+                    try:
+                        qtd_ult_linha[str(canon)] = float(det.get("quantidade") or 0)
+                    except (TypeError, ValueError):
+                        qtd_ult_linha[str(canon)] = 0.0
+        vendas_pos = _vendas_qtd_apos_ultima_compra_por_canon(
+            db, ref_por_canon, variant_to_canon, mongo_max_time_ms=120_000
+        )
+    except Exception as exc:
+        logger.warning("_compras_relatorio_rows_catalogo_sem_ult_doc métricas ERP degradadas: %s", exc, exc_info=True)
 
     rows_out: list[dict] = []
     for pid in p_ids:
@@ -4235,7 +4250,14 @@ def api_compras_relatorio_categoria(request):
             status=400,
         )
 
-    rows_out = _compras_relatorio_rows_catalogo_sem_ult_doc(db, client, p_ids)
+    try:
+        rows_out = _compras_relatorio_rows_catalogo_sem_ult_doc(db, client, p_ids)
+    except Exception:
+        logger.exception("api_compras_relatorio_categoria rows")
+        return JsonResponse(
+            {"ok": False, "erro": "Falha ao montar o relatório. Tente de novo em instantes."},
+            status=500,
+        )
     return JsonResponse(
         {
             "ok": True,
@@ -4286,7 +4308,14 @@ def api_compras_relatorio_unidade(request):
             status=400,
         )
 
-    rows_out = _compras_relatorio_rows_catalogo_sem_ult_doc(db, client, p_ids)
+    try:
+        rows_out = _compras_relatorio_rows_catalogo_sem_ult_doc(db, client, p_ids)
+    except Exception:
+        logger.exception("api_compras_relatorio_unidade rows")
+        return JsonResponse(
+            {"ok": False, "erro": "Falha ao montar o relatório. Tente de novo em instantes."},
+            status=500,
+        )
     return JsonResponse(
         {
             "ok": True,
