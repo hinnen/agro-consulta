@@ -225,7 +225,7 @@ async function compraImprimirRelatorioA4() {
   const prePrintWin = compraPrepararJanelaPrintMovel();
   if (window.gmLoadingBar) window.gmLoadingBar.show();
   try {
-    const r = await fetch(URL_COMPRA_REL_FORN, {
+    const fetchOpts = {
       method: 'POST',
       credentials: 'same-origin',
       headers: {
@@ -236,11 +236,30 @@ async function compraImprimirRelatorioA4() {
         fornecedor_nome: fornNome,
         fornecedor_id: fornId,
       }),
-    });
-    const j = await r.json();
-    if (!j.ok) {
+    };
+    try {
+      if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+        fetchOpts.signal = AbortSignal.timeout(120000);
+      }
+    } catch (_) {}
+    const r = await fetch(URL_COMPRA_REL_FORN, fetchOpts);
+    const txt = await r.text();
+    let j;
+    try {
+      j = txt ? JSON.parse(txt) : {};
+    } catch (_) {
       compraFecharJanelaPrintOpcional(prePrintWin);
-      window.alert(j.erro || 'Falha ao montar relatório.');
+      const snippet = txt.replace(/\s+/g, ' ').trim().slice(0, 260);
+      window.alert(
+        snippet
+          ? `Resposta inválida do servidor (HTTP ${r.status}). ${snippet}${snippet.length >= 260 ? '…' : ''}`
+          : `Resposta vazia ou inválida (HTTP ${r.status}).`,
+      );
+      return;
+    }
+    if (!r.ok || j.ok !== true) {
+      compraFecharJanelaPrintOpcional(prePrintWin);
+      window.alert(j.erro || `Falha ao montar relatório (HTTP ${r.status}).`);
       return;
     }
     salvarFornecedorRecenteCompra(fornNome || fornId, fornId);
@@ -416,7 +435,13 @@ async function compraImprimirRelatorioA4() {
   } catch (err) {
     console.error(err);
     compraFecharJanelaPrintOpcional(prePrintWin);
-    window.alert('Falha de rede ao gerar relatório.');
+    const name = err && err.name ? String(err.name) : '';
+    const tip =
+      name === 'TimeoutError' || name === 'AbortError'
+        ? 'Tempo esgotado ao gerar o relatório (tente de novo ou um fornecedor com menos produtos).'
+        : '';
+    const msg = err && err.message ? String(err.message) : '';
+    window.alert(tip || msg || 'Não foi possível contactar o servidor. Confira a conexão e tente de novo.');
   } finally {
     if (window.gmLoadingBar) window.gmLoadingBar.hide();
   }

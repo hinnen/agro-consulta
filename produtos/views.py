@@ -3419,6 +3419,8 @@ def _arred_int_meio_para_cima(x: float | int | None) -> int:
         v = float(x)
     except (TypeError, ValueError):
         return 0
+    if math.isnan(v) or math.isinf(v):
+        return 0
     if v < 0:
         v = 0.0
     return int(math.floor(v + 0.5))
@@ -3649,19 +3651,26 @@ def _vendas_qtd_apos_ultima_compra_por_canon(
 
 
 def _resolver_qtd_por_pid(mapa: dict[str, float], pid: str) -> float:
+    def _flt(x) -> float:
+        try:
+            y = float(x)
+        except (TypeError, ValueError):
+            return 0.0
+        return 0.0 if math.isnan(y) or math.isinf(y) else y
+
     v = mapa.get(pid)
     if v is not None:
-        return float(v)
+        return _flt(v)
     if pid.isdigit():
         v = mapa.get(str(int(pid)))
         if v is not None:
-            return float(v)
+            return _flt(v)
     if len(pid) == 24:
         try:
             oid = ObjectId(pid)
             v = mapa.get(str(oid))
             if v is not None:
-                return float(v)
+                return _flt(v)
         except Exception:
             pass
     return 0.0
@@ -3891,21 +3900,23 @@ def _lista_produto_ids_catalogo_por_unidade(
     return out
 
 
-def _compras_relatorio_rows_catalogo_sem_ult_doc(
-    db, client, p_ids: list[str]
-) -> list[dict]:
-    """
-    Métricas por produto para planilha (categoria/unidade): média semanal (56d) e, por linha,
-    **última compra ERP** mais recente de qualquer fornecedor (Mongo, mesma fonte das «últimas compras»)
-    e **vendas** em ``DtoVenda`` após essa data. Produto sem compra registrada na janela (~800 dias) mantém ``*``.
-    """
-    now = datetime.now()
-    t56 = now - timedelta(days=56)
-    tot56, first_in56 = _vendas_qtd_por_produto_intervalo(db, p_ids, t56, now)
+_CAT_PROJ_RELATORIO: dict[str, int] = {
+    "Id": 1,
+    "_id": 1,
+    "Nome": 1,
+    "Codigo": 1,
+    "CodigoNFe": 1,
+    "CodigoBarras": 1,
+    "Sku": 1,
+    "SKU": 1,
+    "CodigoInterno": 1,
+}
 
-    col = db[client.col_p]
-    ors = []
-    for pid in p_ids:
+
+def _mongo_or_clauses_produto_ids_catalogo(p_chunk: list[str]) -> list[dict]:
+    """Cláusulas $or para casar Id/Código/ObjectId de um lote de IDs de produto (cadastro)."""
+    ors: list[dict] = []
+    for pid in p_chunk:
         ors.append({"Id": pid})
         if pid.isdigit():
             try:
@@ -3921,22 +3932,36 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc(
                 ors.append({"_id": oid})
             except Exception:
                 pass
-    prods = list(
-        col.find(
-            {"$or": ors},
-            {
-                "Id": 1,
-                "_id": 1,
-                "Nome": 1,
-                "Codigo": 1,
-                "CodigoNFe": 1,
-                "CodigoBarras": 1,
-                "Sku": 1,
-                "SKU": 1,
-                "CodigoInterno": 1,
-            },
-        )
-    )
+    return ors
+
+
+def _mongo_find_produtos_catalogo_relatorio_por_pids(col, p_ids: list[str]) -> list[dict]:
+    """Carrega cadastro em lotes para evitar único ``$or`` muito grande."""
+    if not p_ids:
+        return []
+    merged: list[dict] = []
+    step = 100
+    for i in range(0, len(p_ids), step):
+        chunk = p_ids[i : i + step]
+        ors = _mongo_or_clauses_produto_ids_catalogo(chunk)
+        merged.extend(col.find({"$or": ors}, _CAT_PROJ_RELATORIO))
+    return merged
+
+
+def _compras_relatorio_rows_catalogo_sem_ult_doc(
+    db, client, p_ids: list[str]
+) -> list[dict]:
+    """
+    Métricas por produto para planilha (categoria/unidade): média semanal (56d) e, por linha,
+    **última compra ERP** mais recente de qualquer fornecedor (Mongo, mesma fonte das «últimas compras»)
+    e **vendas** em ``DtoVenda`` após essa data. Produto sem compra registrada na janela (~800 dias) mantém ``*``.
+    """
+    now = datetime.now()
+    t56 = now - timedelta(days=56)
+    tot56, first_in56 = _vendas_qtd_por_produto_intervalo(db, p_ids, t56, now)
+
+    col = db[client.col_p]
+    prods = _mongo_find_produtos_catalogo_relatorio_por_pids(col, p_ids)
 
     def _chaves_produto(p) -> list[str]:
         keys: list[str] = []
@@ -4332,6 +4357,20 @@ def api_compras_relatorio_unidade(request):
 @never_cache
 @require_POST
 def api_compras_relatorio_fornecedor(request):
+    try:
+        return _api_compras_relatorio_fornecedor_impl(request)
+    except Exception:
+        logger.exception("api_compras_relatorio_fornecedor")
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Falha ao montar o relatório. Tente de novo em instantes.",
+            },
+            status=500,
+        )
+
+
+def _api_compras_relatorio_fornecedor_impl(request):
     """
     Dados para relatório de compras por fornecedor: último documento ERP, qtd na última compra,
     vendas desde essa compra, média semanal (até 8 semanas / 56 dias, denominador pela janela com vendas).
@@ -4405,39 +4444,7 @@ def api_compras_relatorio_fornecedor(request):
     )
 
     col = db[client.col_p]
-    ors = []
-    for pid in p_ids:
-        ors.append({"Id": pid})
-        if pid.isdigit():
-            try:
-                n = int(pid)
-                ors.append({"Id": n})
-                ors.append({"Codigo": n})
-            except (TypeError, ValueError):
-                pass
-        if len(pid) == 24:
-            try:
-                oid = ObjectId(pid)
-                ors.append({"Id": oid})
-                ors.append({"_id": oid})
-            except Exception:
-                pass
-    prods = list(
-        col.find(
-            {"$or": ors},
-            {
-                "Id": 1,
-                "_id": 1,
-                "Nome": 1,
-                "Codigo": 1,
-                "CodigoNFe": 1,
-                "CodigoBarras": 1,
-                "Sku": 1,
-                "SKU": 1,
-                "CodigoInterno": 1,
-            },
-        )
-    )
+    prods = _mongo_find_produtos_catalogo_relatorio_por_pids(col, p_ids)
 
     def _chaves_produto(p) -> list[str]:
         keys: list[str] = []
