@@ -4031,10 +4031,10 @@ def _lista_produto_ids_catalogo_por_fornecedor(
     *,
     limit: int = 800,
     mongo_max_time_ms: int | None = 90_000,
-) -> list[str]:
+) -> tuple[list[str], dict[str, str]]:
     """
     IDs de produtos ativos no catálogo Mongo cujo fornecedor (campos típicos do ERP) casa
-    com o nome e/ou id informados.
+    com o nome e/ou id informados. Retorna também ``nomes_por_id`` da listagem.
     """
     col = db[client.col_p]
     base: dict = {"CadastroInativo": {"$ne": True}}
@@ -4054,7 +4054,7 @@ def _lista_produto_ids_catalogo_por_fornecedor(
                 except (TypeError, ValueError):
                     pass
     if not ors:
-        return []
+        return [], {}
     q = {"$and": [base, {"$or": ors}]}
     try:
         cur = col.find(q, {"Id": 1, "_id": 1, "Nome": 1}).limit(max(1, min(int(limit), 1200)))
@@ -4063,17 +4063,23 @@ def _lista_produto_ids_catalogo_por_fornecedor(
         docs = list(cur)
     except Exception as exc:
         logger.warning("relatorio_compras catalogo fornecedor: %s", exc)
-        return []
+        return [], {}
     docs.sort(key=lambda p: str(p.get("Nome") or "").strip().lower())
     out: list[str] = []
+    nomes_out: dict[str, str] = {}
     seen: set[str] = set()
     for p in docs:
         pid = str(p.get("Id") or p.get("_id") or "").strip()
         if not pid or pid == "None" or pid in seen:
             continue
         seen.add(pid)
+        nm = str(p.get("Nome") or "").strip()
+        if nm:
+            nomes_out[pid] = nm
+            if pid.isdigit():
+                nomes_out[str(int(pid))] = nm
         out.append(pid)
-    return out
+    return out, nomes_out
 
 
 def _lista_produto_ids_catalogo_por_categoria(
@@ -4942,6 +4948,7 @@ def _api_compras_relatorio_fornecedor_impl(request):
         return JsonResponse({"ok": False, "erro": "Mongo indisponível."}, status=503)
 
     p_ids: list[str] = []
+    nomes_forn: dict[str, str] = {}
     try:
         local_ids: list[str] = []
         if isinstance(raw_ids, list) and raw_ids:
@@ -4953,7 +4960,7 @@ def _api_compras_relatorio_fornecedor_impl(request):
                 seen_l.add(s)
                 local_ids.append(s)
         if not local_ids:
-            local_ids = _lista_produto_ids_catalogo_por_fornecedor(
+            local_ids, nomes_forn = _lista_produto_ids_catalogo_por_fornecedor(
                 db, client, fornecedor_nome, fornecedor_id, limit=800
             )
         if not local_ids:
@@ -5043,6 +5050,9 @@ def _api_compras_relatorio_fornecedor_impl(request):
                 nome = str(p.get("Nome") or "").strip() if p else ""
                 if not nome:
                     nome = "—"
+                hn = _relatorio_nome_hint_pid(nomes_forn, pid)
+                if hn and (nome == "—" or not nome.strip()):
+                    nome = hn
                 chaves = _chaves_produto(p) if p else [canon]
                 if p:
                     gm_raw = _mongo_primeiro_texto(
@@ -5142,10 +5152,13 @@ def _api_compras_relatorio_fornecedor_impl(request):
         ne_list = erp_portal_notas_entrada_list_url()
         erp_portal = {"notas_entrada_list": ne_list} if ne_list else {}
 
+        rotulo_forn = (fornecedor_nome or fornecedor_id or "")[:200]
         return JsonResponse(
             {
                 "ok": True,
-                "fornecedor_nome": (fornecedor_nome or fornecedor_id or "")[:200],
+                "filtro_tipo": "fornecedor",
+                "filtro_rotulo": rotulo_forn,
+                "fornecedor_nome": rotulo_forn,
                 "fornecedor_id": fornecedor_id or "",
                 "total_produtos": len(rows_out),
                 "sem_ultimo_documento": sem_doc,
@@ -7321,12 +7334,8 @@ def sugestao_transferencia(request):
 
 @ensure_csrf_cookie
 def compras_relatorio_a4_view(request):
-    """Página dedicada ao relatório A4 por fornecedor (link direto; mobile)."""
-    return render(
-        request,
-        "produtos/compras_relatorio_a4.html",
-        {"erp_notas_entrada_list_url": erp_portal_notas_entrada_list_url()},
-    )
+    """Legado: redireciona para planilha por fornecedor (A4/A6, mesmo layout da unidade)."""
+    return redirect(reverse("compras_relatorio_planilha_fornecedor"))
 
 
 @ensure_csrf_cookie
@@ -7361,6 +7370,25 @@ def compras_relatorio_planilha_unidade_view(request):
             "api_relatorio_url": reverse("api_compras_relatorio_unidade"),
             "api_dim_sugestao_url": reverse("api_compras_relatorio_dim_sugestao"),
             "campo_payload": "unidade",
+        },
+    )
+
+
+@ensure_csrf_cookie
+def compras_relatorio_planilha_fornecedor_view(request):
+    """Relatório planilha (A4/A6) por fornecedor — mesmo layout da unidade; métricas do fornecedor."""
+    return render(
+        request,
+        "produtos/compras_relatorio_planilha.html",
+        {
+            "planilha_dim": "fornecedor",
+            "planilha_titulo": "Relatório planilha — fornecedor",
+            "planilha_label": "Fornecedor",
+            "planilha_placeholder": "Buscar fornecedor…",
+            "api_relatorio_url": reverse("api_compras_relatorio_fornecedor"),
+            "api_dim_sugestao_url": "",
+            "campo_payload": "fornecedor_nome",
+            "api_fornecedores_url": reverse("api_entrada_nota_fornecedores"),
         },
     )
 

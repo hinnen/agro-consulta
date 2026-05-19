@@ -1,3 +1,25 @@
+const LS_PLANILHA_OCR_MANIFEST = 'gmCompraPlanilhaOcrManifest_v1';
+
+function planilhaSalvarManifestOcr(j, opts) {
+  try {
+    const linhas = (j.linhas || []).map((ln, idx) => ({
+      idx: idx + 1,
+      produto_id: String(ln.produto_id || ''),
+      nome: String(ln.nome || '—'),
+    }));
+    localStorage.setItem(
+      LS_PLANILHA_OCR_MANIFEST,
+      JSON.stringify({
+        dim: opts.dim || PLANILHA_DIM,
+        rotulo: String(j.filtro_rotulo || j.fornecedor_nome || '').trim(),
+        fornecedor_id: opts.fornecedorId || '',
+        pageSize: opts.pageSize || 'A4',
+        linhas,
+        ts: Date.now(),
+      }),
+    );
+  } catch (_) {}
+}
 
 function compraPrintPreferirJanelaPlan() {
   try {
@@ -163,16 +185,22 @@ function montarHtmlImpressaoPlanilha(j, opts) {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
 
+  const legendaForn = opts.legendaFornecedor === true;
+  const legendaHtml = legendaForn
+    ? '<strong>*</strong> na coluna «últ. pedido»: sem linha deste fornecedor no último documento ou no histórico do período. <strong>0</strong>: já comprou deste fornecedor, mas não entrou no último doc. «Desde última compra» e «média/semana» conforme ERP (Mongo). Preencha só a coluna <strong>Pedir</strong> à mão; use a coluna <strong>#</strong> na foto para conferir a ordem.'
+    : '<strong>*</strong>: sem compra recente deste produto no ERP na janela usada pelo sistema (cerca de 800 dias) — ou não há quantidade na última linha encontrada. <strong>—</strong>: média/indicador não calculado. A coluna «desde última compra» soma vendas após a data da última compra ERP encontrada para aquele produto. Preencha a coluna <strong>Pedir</strong> à mão para o pedido.';
+
   const rowsHtml = (j.linhas || [])
     .map(
-      (ln) => `
+      (ln, i) => `
 <tr>
+        <td class="num idx">${i + 1}</td>
         <td class="nome">${esc(ln.nome || '—')}</td>
         <td class="num">${planilhaFmtUlt(ln.qtd_ultimo_pedido)}</td>
         <td class="num">${planilhaFmtDesdeUlt(ln.qtd_vendida_desde_ultima)}</td>
         <td class="num">${planilhaFmtInt(ln.media_venda_semana)}</td>
         <td class="livre"></td>
-        <td class="livre"></td>
+        <td class="livre pedir"></td>
       </tr>`,
     )
     .join('');
@@ -231,11 +259,25 @@ function montarHtmlImpressaoPlanilha(j, opts) {
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
     }
+    td.idx {
+      font-size: 12pt;
+      font-weight: 800;
+      text-align: center;
+      width: 2.2rem;
+      color: #475569;
+    }
     td.livre {
       min-width: 2.75rem;
       min-height: 1.85rem;
       height: 1.85rem;
       background: #fff;
+    }
+    td.livre.pedir {
+      min-width: 3.5rem;
+      border-left: 2px solid #64748b;
+    }
+    th.th-pedir {
+      border-left: 2px solid #64748b;
     }
     caption {
       text-align: left;
@@ -271,18 +313,19 @@ function montarHtmlImpressaoPlanilha(j, opts) {
     <caption>Lista · ${Number(j.total_produtos || (j.linhas || []).length || 0).toLocaleString('pt-BR')} produto(s) · papel ${pageSz}</caption>
     <thead>
       <tr>
+        <th>#</th>
         <th>Produto</th>
         <th>Qtd últ. pedido / compra</th>
         <th>Qtd vendida desde últ. compra</th>
         <th>Média vendas / semana</th>
         <th>Contagem</th>
-        <th>Pedir</th>
+        <th class="th-pedir">Pedir</th>
       </tr>
     </thead>
     <tbody>${rowsHtml}</tbody>
   </table>
   <footer class="print-foot">
-    <p class="foot-legend"><strong>*</strong>: sem compra recente deste produto no ERP na janela usada pelo sistema (cerca de 800 dias) — ou não há quantidade na última linha encontrada. <strong>—</strong>: média/indicador não calculado. A coluna «desde última compra» soma vendas após a data da última compra ERP encontrada para aquele produto.</p>
+    <p class="foot-legend">${legendaHtml}</p>
     <div class="foot-brand">
       <img src="${esc(logoAbs)}" alt="Agro Mais — Sua casa de ração com um toque a mais">
     </div>
@@ -292,23 +335,38 @@ function montarHtmlImpressaoPlanilha(j, opts) {
 }
 
 function planilhaImprimir() {
-  const sel = document.getElementById('planilha-filtro-select');
-  const val = String(sel?.value || '').trim();
-  if (!val) {
-    window.alert(
-      PLANILHA_DIM === 'categoria'
-        ? 'Selecione uma categoria na lista.'
-        : 'Selecione uma unidade na lista.',
-    );
-    sel?.focus();
-    return;
-  }
   const pageSizeRaw = document.getElementById('planilha-tamanho-papel')?.value || 'A4';
   const pageSize = pageSizeRaw.toUpperCase() === 'A6' ? 'A6' : 'A4';
 
+  let body = {};
+  let fornecedorId = '';
+  if (PLANILHA_DIM === 'fornecedor') {
+    const fn = document.getElementById('planilha-forn-nome');
+    const fid = document.getElementById('planilha-forn-id');
+    const fornNome = String(fn?.value || '').trim();
+    fornecedorId = String(fid?.value || '').trim();
+    if (!fornNome && !fornecedorId) {
+      window.alert('Selecione ou digite o fornecedor.');
+      fn?.focus();
+      return;
+    }
+    body = { fornecedor_nome: fornNome, fornecedor_id: fornecedorId };
+  } else {
+    const sel = document.getElementById('planilha-filtro-select');
+    const val = String(sel?.value || '').trim();
+    if (!val) {
+      window.alert(
+        PLANILHA_DIM === 'categoria'
+          ? 'Selecione uma categoria na lista.'
+          : 'Selecione uma unidade na lista.',
+      );
+      sel?.focus();
+      return;
+    }
+    body[PLANILHA_CAMPO] = val;
+  }
+
   const preWin = compraPrepararJanelaPrintPlan();
-  const body = {};
-  body[PLANILHA_CAMPO] = val;
 
   if (window.gmLoadingBar) window.gmLoadingBar.show();
   (async () => {
@@ -348,8 +406,15 @@ function planilhaImprimir() {
         window.alert(j.erro || `Falha ao montar relatório (HTTP ${r.status}).`);
         return;
       }
-      const tipoTitulo = PLANILHA_DIM === 'categoria' ? 'Categoria' : 'Unidade';
-      const html = montarHtmlImpressaoPlanilha(j, { pageSize, tipoTitulo });
+      if (!j.filtro_rotulo && j.fornecedor_nome) j.filtro_rotulo = j.fornecedor_nome;
+      const tipoTitulo =
+        PLANILHA_DIM === 'categoria' ? 'Categoria' : PLANILHA_DIM === 'fornecedor' ? 'Fornecedor' : 'Unidade';
+      const html = montarHtmlImpressaoPlanilha(j, {
+        pageSize,
+        tipoTitulo,
+        legendaFornecedor: PLANILHA_DIM === 'fornecedor',
+      });
+      planilhaSalvarManifestOcr(j, { dim: PLANILHA_DIM, pageSize, fornecedorId });
       if (!compraEntregarHtmlNaJanelaPlan(preWin, html)) {
         try {
           compraAbrirPrintHtmlPlanIframe(html);
@@ -436,4 +501,64 @@ async function planilhaPreencherSelect() {
   } finally {
     sel.disabled = false;
   }
+}
+
+let planilhaFornDdTimer = null;
+
+function planilhaFornDdSelecionar(nome, id) {
+  const fn = document.getElementById('planilha-forn-nome');
+  const fid = document.getElementById('planilha-forn-id');
+  const dd = document.getElementById('planilha-forn-dd');
+  if (fn) fn.value = nome || '';
+  if (fid) fid.value = id || '';
+  if (dd) dd.classList.add('hidden');
+}
+
+async function planilhaBuscarFornecedoresDd(q) {
+  const dd = document.getElementById('planilha-forn-dd');
+  if (!dd || !PLANILHA_API_FORN) return;
+  dd.innerHTML = '';
+  const qn = String(q || '').trim().toLowerCase();
+  try {
+    const u = new URL(PLANILHA_API_FORN, window.location.origin);
+    if (qn.length >= 2) u.searchParams.set('q', String(q || '').trim());
+    else u.searchParams.set('inicial', '1');
+    u.searchParams.set('limit', '40');
+    const r = await fetch(u.toString(), { credentials: 'same-origin' });
+    const j = await r.json();
+    (j.itens || []).forEach((it) => {
+      const li = document.createElement('li');
+      li.setAttribute('role', 'option');
+      li.className =
+        'px-3 py-3 cursor-pointer hover:bg-violet-50 text-sm font-semibold border-b border-slate-50 min-h-[44px] flex items-center';
+      li.textContent = `${it.nome || '—'}${it.documento ? ' · ' + it.documento : ''}`;
+      const go = (e) => {
+        e.preventDefault();
+        planilhaFornDdSelecionar(it.nome || '', it.id || '');
+      };
+      li.addEventListener('mousedown', go);
+      li.addEventListener('click', go);
+      dd.appendChild(li);
+    });
+  } catch (_) {}
+  dd.classList.toggle('hidden', dd.children.length === 0);
+}
+
+function planilhaInitFornecedorAutocomplete() {
+  const fn = document.getElementById('planilha-forn-nome');
+  const dd = document.getElementById('planilha-forn-dd');
+  if (!fn) return;
+  fn.addEventListener('input', () => {
+    clearTimeout(planilhaFornDdTimer);
+    planilhaFornDdTimer = setTimeout(() => planilhaBuscarFornecedoresDd(fn.value), 220);
+  });
+  fn.addEventListener('focus', () => {
+    clearTimeout(planilhaFornDdTimer);
+    planilhaFornDdTimer = setTimeout(() => planilhaBuscarFornecedoresDd(fn.value), 80);
+  });
+  document.addEventListener('click', (e) => {
+    if (!dd || dd.classList.contains('hidden')) return;
+    if (e.target === fn || dd.contains(e.target)) return;
+    dd.classList.add('hidden');
+  });
 }

@@ -1,0 +1,285 @@
+{# OCR gratuito (Tesseract.js no navegador) — coluna Pedir da planilha oficial. Requer manifest salvo ao imprimir. #}
+const LS_PLANILHA_OCR_MANIFEST_COMPRAS = 'gmCompraPlanilhaOcrManifest_v1';
+
+function compraPlanilhaLerManifest() {
+  try {
+    const raw = localStorage.getItem(LS_PLANILHA_OCR_MANIFEST_COMPRAS);
+    if (!raw) return null;
+    const m = JSON.parse(raw);
+    if (!m || !Array.isArray(m.linhas) || !m.linhas.length) return null;
+    return m;
+  } catch (_) {
+    return null;
+  }
+}
+
+function compraPlanilhaParseQtdOcr(txt) {
+  const s = String(txt || '')
+    .replace(/[^\d,.\s]/g, ' ')
+    .trim();
+  const m = s.match(/(\d{1,5})/);
+  if (!m) return 0;
+  const n = parseInt(m[1], 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+async function compraPlanilhaOcrCarregarTesseract() {
+  if (window.Tesseract) return window.Tesseract;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('tesseract_load'));
+    document.head.appendChild(s);
+  });
+  return window.Tesseract;
+}
+
+/**
+ * Lê quantidades na coluna «Pedir» (última coluna à direita), uma faixa por linha da planilha impressa.
+ */
+async function compraPlanilhaOcrExtrairQuantidades(file, manifest, onProgress) {
+  const Tesseract = await compraPlanilhaOcrCarregarTesseract();
+  const bmp = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bmp.width;
+  canvas.height = bmp.height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) throw new Error('canvas');
+  ctx.drawImage(bmp, 0, 0);
+  bmp.close();
+
+  const n = manifest.linhas.length;
+  const headerFrac = 0.24;
+  const footerFrac = 0.17;
+  const bodyTop = Math.floor(canvas.height * headerFrac);
+  const bodyH = Math.max(1, Math.floor(canvas.height * (1 - headerFrac - footerFrac)));
+  const rowH = bodyH / Math.max(1, n);
+  const x0 = Math.floor(canvas.width * 0.72);
+  const x1 = canvas.width;
+
+  const worker = await Tesseract.createWorker('eng', 1, {
+    logger: (m) => {
+      if (onProgress && m.status === 'recognizing text') {
+        onProgress(Math.round((m.progress || 0) * 100));
+      }
+    },
+  });
+  await worker.setParameters({
+    tessedit_char_whitelist: '0123456789',
+    tessedit_pageseg_mode: '7',
+  });
+
+  const out = [];
+  try {
+    for (let i = 0; i < n; i++) {
+      const y0 = Math.floor(bodyTop + i * rowH);
+      const y1 = Math.floor(bodyTop + (i + 1) * rowH);
+      const rh = Math.max(1, y1 - y0);
+      const patch = ctx.getImageData(x0, y0, x1 - x0, rh);
+      const pc = document.createElement('canvas');
+      pc.width = patch.width;
+      pc.height = patch.height;
+      const pctx = pc.getContext('2d');
+      pctx.putImageData(patch, 0, 0);
+      const { data } = await worker.recognize(pc);
+      const qtd = compraPlanilhaParseQtdOcr(data?.text);
+      const base = manifest.linhas[i] || {};
+      out.push({
+        idx: i + 1,
+        produto_id: String(base.produto_id || ''),
+        nome: String(base.nome || '—'),
+        qtd,
+        qtd_raw: String(data?.text || '').trim(),
+      });
+    }
+  } finally {
+    await worker.terminate();
+  }
+  return out;
+}
+
+function compraPlanilhaAplicarNoCarrinho(itens) {
+  if (typeof lista === 'undefined') {
+    window.alert('Lista de compras não disponível nesta página.');
+    return 0;
+  }
+  let added = 0;
+  (itens || []).forEach((row) => {
+    const qtd = Math.max(0, Number(row.qtd) || 0);
+    if (qtd <= 0) return;
+    const pid = String(row.produto_id || '').trim();
+    const nome = String(row.nome || '—').trim();
+    if (!pid) return;
+    const existente = lista.find((i) => String(i.id) === pid);
+    if (existente) {
+      existente.qtd = qtd;
+    } else {
+      lista.push({
+        id: pid,
+        nome,
+        precoFinal: 0,
+        qtd,
+        obs: 'planilha foto',
+      });
+    }
+    added += 1;
+  });
+  if (typeof atualizarCarrinho === 'function') atualizarCarrinho();
+  if (typeof setCarrinhoExpandido === 'function') setCarrinhoExpandido(true, { silentSave: true });
+  if (typeof agendarSalvarEstadoCompra === 'function') agendarSalvarEstadoCompra();
+  return added;
+}
+
+function compraPlanilhaOcrRenderConferencia(itens) {
+  const host = document.getElementById('planilha-ocr-conferencia-body');
+  if (!host) return;
+  const esc = (s) =>
+    String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;');
+  host.innerHTML = (itens || [])
+    .map(
+      (row, ix) => `
+    <tr data-ocr-ix="${ix}">
+      <td class="px-2 py-2 text-center font-black text-slate-600">${row.idx}</td>
+      <td class="px-2 py-2 text-sm font-semibold text-slate-800">${esc(row.nome)}</td>
+      <td class="px-2 py-2">
+        <input type="number" min="0" step="1" value="${Number(row.qtd) || 0}" data-ocr-qtd="${ix}"
+          class="w-full max-w-[5rem] rounded-lg border-2 border-slate-200 px-2 py-1.5 text-center font-black text-slate-900">
+      </td>
+    </tr>`,
+    )
+    .join('');
+}
+
+function compraPlanilhaOcrColetarConferencia() {
+  const host = document.getElementById('planilha-ocr-conferencia-body');
+  if (!host) return [];
+  const rows = host.querySelectorAll('tr[data-ocr-ix]');
+  const out = [];
+  rows.forEach((tr) => {
+    const ix = parseInt(tr.getAttribute('data-ocr-ix'), 10);
+    const inp = tr.querySelector('input[data-ocr-qtd]');
+    const manifest = window.__compraPlanilhaOcrUltimo || [];
+    const base = manifest[ix] || {};
+    out.push({
+      idx: base.idx || ix + 1,
+      produto_id: base.produto_id,
+      nome: base.nome,
+      qtd: Math.max(0, Number(inp?.value) || 0),
+    });
+  });
+  return out;
+}
+
+function compraPlanilhaOcrFecharModal() {
+  const m = document.getElementById('modal-planilha-ocr');
+  if (m) {
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+}
+
+function compraPlanilhaOcrAbrirModal() {
+  const manifest = compraPlanilhaLerManifest();
+  const info = document.getElementById('planilha-ocr-manifest-info');
+  const m = document.getElementById('modal-planilha-ocr');
+  if (!m) return;
+  if (!manifest) {
+    window.alert(
+      'Primeiro imprima uma planilha oficial (Folha Compras → fornecedor, unidade ou categoria). Depois preencha a coluna «Pedir» à mão e tire a foto.',
+    );
+    return;
+  }
+  const idade = Date.now() - Number(manifest.ts || 0);
+  const idadeTxt =
+    idade < 3600000
+      ? 'há poucos minutos'
+      : idade < 86400000
+        ? 'hoje'
+        : 'há mais de um dia — confira se a lista ainda é a mesma';
+  if (info) {
+    info.textContent = `${manifest.rotulo || '—'} · ${manifest.linhas.length} linhas · impresso ${idadeTxt}`;
+  }
+  document.getElementById('planilha-ocr-file')?.value && (document.getElementById('planilha-ocr-file').value = '');
+  document.getElementById('planilha-ocr-camera')?.value && (document.getElementById('planilha-ocr-camera').value = '');
+  const prev = document.getElementById('planilha-ocr-preview');
+  if (prev) {
+    prev.classList.add('hidden');
+    prev.removeAttribute('src');
+  }
+  document.getElementById('planilha-ocr-step-conferencia')?.classList.add('hidden');
+  document.getElementById('planilha-ocr-step-upload')?.classList.remove('hidden');
+  window.__compraPlanilhaOcrUltimo = null;
+  m.classList.remove('hidden');
+  m.classList.add('flex');
+}
+
+async function compraPlanilhaOcrProcessarArquivo(file) {
+  const manifest = compraPlanilhaLerManifest();
+  if (!manifest) {
+    window.alert('Imprima a planilha oficial antes de ler a foto.');
+    return;
+  }
+  const prev = document.getElementById('planilha-ocr-preview');
+  if (prev) {
+    prev.src = URL.createObjectURL(file);
+    prev.classList.remove('hidden');
+  }
+  const prog = document.getElementById('planilha-ocr-progress');
+  const btn = document.getElementById('btn-planilha-ocr-processar');
+  if (btn) btn.disabled = true;
+  if (prog) {
+    prog.classList.remove('hidden');
+    prog.textContent = 'A ler números… 0%';
+  }
+  try {
+    const itens = await compraPlanilhaOcrExtrairQuantidades(file, manifest, (pct) => {
+      if (prog) prog.textContent = `A ler números… ${pct}%`;
+    });
+    window.__compraPlanilhaOcrUltimo = itens;
+    compraPlanilhaOcrRenderConferencia(itens);
+    document.getElementById('planilha-ocr-step-upload')?.classList.add('hidden');
+    document.getElementById('planilha-ocr-step-conferencia')?.classList.remove('hidden');
+  } catch (e) {
+    console.error(e);
+    window.alert(
+      'Não foi possível ler a foto. Use foto nítida, folha oficial completa e coluna «Pedir» visível à direita.',
+    );
+  } finally {
+    if (btn) btn.disabled = false;
+    if (prog) prog.classList.add('hidden');
+  }
+}
+
+function compraPlanilhaOcrInitCompras() {
+  document.getElementById('btn-abrir-planilha-ocr')?.addEventListener('click', compraPlanilhaOcrAbrirModal);
+  document.getElementById('btn-planilha-ocr-fechar')?.addEventListener('click', compraPlanilhaOcrFecharModal);
+  document.getElementById('modal-planilha-ocr')?.addEventListener('click', (e) => {
+    if (e.target?.id === 'modal-planilha-ocr') compraPlanilhaOcrFecharModal();
+  });
+  document.getElementById('planilha-ocr-file')?.addEventListener('change', (e) => {
+    const f = e.target?.files?.[0];
+    if (f) compraPlanilhaOcrProcessarArquivo(f);
+  });
+  document.getElementById('planilha-ocr-camera')?.addEventListener('change', (e) => {
+    const f = e.target?.files?.[0];
+    if (f) compraPlanilhaOcrProcessarArquivo(f);
+  });
+  document.getElementById('btn-planilha-ocr-aplicar')?.addEventListener('click', () => {
+    const itens = compraPlanilhaOcrColetarConferencia();
+    const n = compraPlanilhaAplicarNoCarrinho(itens);
+    compraPlanilhaOcrFecharModal();
+    window.alert(
+      n > 0
+        ? `${n} produto(s) com quantidade foram colocados no carrinho. Confira preços e totais antes de enviar.`
+        : 'Nenhuma quantidade maior que zero para adicionar. Ajuste os números na tabela de conferência.',
+    );
+  });
+  document.getElementById('btn-planilha-ocr-voltar-foto')?.addEventListener('click', () => {
+    document.getElementById('planilha-ocr-step-conferencia')?.classList.add('hidden');
+    document.getElementById('planilha-ocr-step-upload')?.classList.remove('hidden');
+  });
+}

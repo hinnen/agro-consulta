@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="pt-br" class="h-full overflow-hidden">
 <head>
@@ -120,8 +120,8 @@
               <span class="text-[10px] opacity-90 group-open:rotate-180 transition-transform shrink-0" aria-hidden="true">▾</span>
             </summary>
             <div class="absolute left-0 top-full mt-1.5 min-w-full w-max max-w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl border-2 border-slate-200 bg-white p-2 shadow-xl flex flex-col gap-1.5" role="menu" aria-label="Tipos de folha de compras">
-              <button type="button" id="btn-abrir-modal-relatorio-compra" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-violet-300 bg-violet-50 text-violet-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-violet-100 hover:border-violet-400 text-left leading-snug" title="Escolher fornecedor e imprimir tabela A4">Por fornecedor</button>
-              <a href="{% url 'compras_relatorio_a4' %}" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-violet-200 bg-white text-violet-900 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-violet-50 text-left leading-snug folha-compras-menu-link" title="Abrir só esta tela (link direto, celular)">Página só fornecedor</a>
+              <a href="{% url 'compras_relatorio_planilha_fornecedor' %}" target="_blank" rel="noopener" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-violet-300 bg-violet-50 text-violet-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-violet-100 hover:border-violet-400 text-left leading-snug folha-compras-menu-link" title="Lista por fornecedor; A4 ou A6; colunas Contagem e Pedir">Por fornecedor (A4 · A6)</a>
+              <button type="button" id="btn-abrir-planilha-ocr" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-amber-400 bg-amber-50 text-amber-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-amber-100 text-left leading-snug" title="Foto da coluna Pedir da planilha oficial">Ler foto da planilha</button>
               <a href="{% url 'compras_relatorio_planilha_categoria' %}" target="_blank" rel="noopener" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-emerald-100 text-left leading-snug folha-compras-menu-link" title="Lista por categoria; papel A4 ou A6; colunas Contagem e Pedir">Por categoria (A4 · A6)</a>
               <a href="{% url 'compras_relatorio_planilha_unidade' %}" target="_blank" rel="noopener" class="w-full inline-flex items-center justify-start min-h-[48px] px-3 rounded-xl border-2 border-sky-300 bg-sky-50 text-sky-950 text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-sky-100 text-left leading-snug folha-compras-menu-link" title="Lista por unidade; papel A4 ou A6; colunas Contagem e Pedir">Por unidade (A4 · A6)</a>
             </div>
@@ -310,6 +310,8 @@
       </div>
     </div>
   </div>
+
+  {% include "produtos/includes/_compras_planilha_ocr_modal.html" %}
 
   <div id="modal-busca-avancada-compra" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[105] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-busca-av-compra-titulo">
     <div class="bg-white w-full max-w-[min(42rem,96vw)] rounded-2xl shadow-2xl border border-slate-200 max-h-[92vh] flex flex-col">
@@ -3919,6 +3921,9 @@ window.addEventListener('resize', () => setCarrinhoExpandido(compraCarrinhoExpan
   };
   guard(['#btn-aplicar-ca', '#btn-ca-limpar', '#btn-abrir-historico-compra'], 600);
 })();
+
+{% include "produtos/includes/_compras_planilha_ocr_js.html" %}
+compraPlanilhaOcrInitCompras();
 </script>
 {% include "produtos/_screensaver_pin.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
