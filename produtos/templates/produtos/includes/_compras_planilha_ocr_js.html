@@ -42,14 +42,17 @@ function compraPlanilhaParseQtdOcr(txt, opts = {}) {
   const s = String(txt || '')
     .replace(/[^\d,.\s]/g, ' ')
     .trim();
+  if (!s) return 0;
+  const umDig = s.match(/\b(\d)\b/);
+  if (umDig && s.replace(/\s/g, '').length <= 2) {
+    return parseInt(umDig[1], 10);
+  }
   const parts = s.match(/\d{1,5}/g);
   if (!parts || !parts.length) return 0;
-  let n = parseInt(parts[parts.length - 1], 10);
+  let n = parseInt(parts[0], 10);
   if (!Number.isFinite(n) || n < 0) return 0;
-  if (opts.maxQtd != null && n > opts.maxQtd) {
-    if (parts.length > 1) {
-      n = parseInt(parts[0], 10);
-    }
+  if (opts.maxQtd != null && n > opts.maxQtd && parts.length > 1) {
+    n = parseInt(parts[parts.length - 1], 10);
     if (n > opts.maxQtd) return 0;
   }
   return n;
@@ -124,17 +127,78 @@ async function compraPlanilhaOcrRecognizePatch(worker, ctx, x0, y0, w, h, mode, 
   return String(data?.text || '').trim();
 }
 
-/** Extrai sequência de quantidades de um bloco OCR (coluna inteira ou linha). */
-function compraPlanilhaExtrairQtdsDoTexto(txt, maxN) {
-  const s = String(txt || '');
-  const parts = s.match(/\d{1,4}/g);
-  if (!parts || !parts.length) return [];
-  const nums = parts.map((p) => parseInt(p, 10)).filter((n) => Number.isFinite(n) && n >= 0 && n <= 999);
-  if (maxN && nums.length > maxN) return nums.slice(0, maxN);
-  return nums;
+/** Faixas verticais de cada linha da tabela (grade impressa na foto). */
+function compraPlanilhaOcrDetectarFaixasTabela(ctx, cw, ch, nEsperado) {
+  const yScan0 = Math.floor(ch * 0.17);
+  const yScan1 = Math.floor(ch * 0.8);
+  const x0 = Math.floor(cw * 0.03);
+  const w = Math.floor(cw * 0.94);
+  const scanH = Math.max(1, yScan1 - yScan0);
+  const img = ctx.getImageData(x0, yScan0, w, scanH);
+  const strength = new Float32Array(scanH);
+  for (let y = 0; y < scanH; y++) {
+    let c = 0;
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const lum = (img.data[i] + img.data[i + 1] + img.data[i + 2]) / 3;
+      if (lum < 178) c++;
+    }
+    strength[y] = c / w;
+  }
+  const minStrength = 0.2;
+  const lines = [];
+  for (let y = 2; y < scanH - 2; y++) {
+    if (strength[y] >= minStrength && strength[y] >= strength[y - 1] && strength[y] >= strength[y + 1]) {
+      const absY = yScan0 + y;
+      if (!lines.length || absY - lines[lines.length - 1] > 5) lines.push(absY);
+    }
+  }
+  const bands = [];
+  for (let i = 0; i < lines.length - 1; i++) {
+    const y0 = lines[i] + 4;
+    const y1 = lines[i + 1] - 4;
+    if (y1 - y0 >= 12) bands.push({ y0, y1 });
+  }
+  if (bands.length >= nEsperado) {
+    let use = bands;
+    if (bands.length === nEsperado + 1) use = bands.slice(1);
+    else if (bands.length > nEsperado + 1) use = bands.slice(0, nEsperado);
+    return use.slice(0, nEsperado);
+  }
+  const top = lines[0] != null ? lines[0] + 4 : yScan0;
+  const bot = lines.length ? lines[lines.length - 1] - 4 : yScan1;
+  const altura = Math.max(1, bot - top);
+  const rh = altura / Math.max(1, nEsperado);
+  const fb = [];
+  for (let i = 0; i < nEsperado; i++) {
+    fb.push({
+      y0: Math.floor(top + i * rh + 5),
+      y1: Math.floor(top + (i + 1) * rh - 5),
+    });
+  }
+  return fb;
+}
+
+function compraPlanilhaOcrRazaoTintaPedir(ctx, x0, y0, w, h) {
+  const patch = ctx.getImageData(x0, y0, w, h);
+  const d = patch.data;
+  let ink = 0;
+  const total = Math.max(1, w * h);
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i];
+    const g = d[i + 1];
+    const b = d[i + 2];
+    const lum = (r + g + b) / 3;
+    const bluePen = b + 18 < r && b + 12 < g && lum < 200;
+    if (bluePen || lum < 115) ink++;
+  }
+  return ink / total;
 }
 
 async function compraPlanilhaOcrLerQtdPedir(worker, ctx, x0, y0, w, h) {
+  if (compraPlanilhaOcrRazaoTintaPedir(ctx, x0, y0, w, h) < 0.004) {
+    return { qtd: 0, raw: '' };
+  }
   const tries = [
     { mode: 'pedir', scale: 3 },
     { mode: 'pedir', scale: 2 },
@@ -184,15 +248,9 @@ async function compraPlanilhaOcrExtrairQuantidades(file, manifest, pageNum, onPr
   ctx.drawImage(bmp, 0, 0);
   bmp.close();
 
-  const headerFrac = pinfo.isFirstPage ? 0.24 : 0.11;
-  const footerFrac = pinfo.isLastPage ? 0.14 : 0.05;
-  const bodyTop = Math.floor(canvas.height * headerFrac);
-  const bodyH = Math.max(1, Math.floor(canvas.height * (1 - headerFrac - footerFrac)));
-  const rowH = bodyH / Math.max(1, n);
-  const rowPad = Math.max(2, Math.floor(rowH * 0.14));
-  const xPedir0 = Math.floor(canvas.width * 0.74);
-  const xIdx1 = Math.floor(canvas.width * 0.09);
-  const wPedir = Math.max(1, canvas.width - xPedir0);
+  const faixas = compraPlanilhaOcrDetectarFaixasTabela(ctx, canvas.width, canvas.height, n);
+  const xPedir0 = Math.floor(canvas.width * 0.845);
+  const wPedir = Math.max(8, Math.floor(canvas.width * 0.13));
 
   const worker = await Tesseract.createWorker('eng', 1, {
     logger: (m) => {
@@ -208,56 +266,25 @@ async function compraPlanilhaOcrExtrairQuantidades(file, manifest, pageNum, onPr
 
   const out = [];
   try {
-    await worker.setParameters({ tessedit_pageseg_mode: '6' });
-    const rawColuna = await compraPlanilhaOcrRecognizePatch(
-      worker,
-      ctx,
-      xPedir0,
-      bodyTop,
-      wPedir,
-      bodyH,
-      'pedir',
-      2,
-    );
-    const qtdsColuna = compraPlanilhaExtrairQtdsDoTexto(rawColuna, n + 2);
-    await worker.setParameters({ tessedit_pageseg_mode: '7' });
-
     for (let i = 0; i < n; i++) {
-      const y0 = Math.max(0, Math.floor(bodyTop + i * rowH) - rowPad);
-      const y1 = Math.min(canvas.height, Math.floor(bodyTop + (i + 1) * rowH) + rowPad);
+      const faixa = faixas[i] || { y0: 0, y1: 1 };
+      const margem = Math.max(2, Math.floor((faixa.y1 - faixa.y0) * 0.2));
+      const y0 = Math.max(0, faixa.y0 + margem);
+      const y1 = Math.min(canvas.height, faixa.y1 - margem);
       const rh = Math.max(1, y1 - y0);
 
-      const rawIdx = await compraPlanilhaOcrRecognizePatch(worker, ctx, 0, y0, xIdx1, rh, 'idx', 2);
-
-      let rowNum = compraPlanilhaParseQtdOcr(rawIdx, { maxQtd: manifest.linhas.length });
-      const fallbackNum = pinfo.start + i + 1;
-      if (rowNum < 1 || rowNum > manifest.linhas.length) rowNum = fallbackNum;
-
-      const temColuna = i < qtdsColuna.length;
-      let qtd = temColuna ? qtdsColuna[i] : 0;
-      let rawQtd = temColuna ? String(qtd) : '';
-      if (!temColuna) {
-        const linha = await compraPlanilhaOcrLerQtdPedir(worker, ctx, xPedir0, y0, wPedir, rh);
-        qtd = linha.qtd;
-        rawQtd = linha.raw || rawQtd;
-      } else if (qtd <= 0) {
-        const linha = await compraPlanilhaOcrLerQtdPedir(worker, ctx, xPedir0, y0, wPedir, rh);
-        if (linha.raw && /\d/.test(linha.raw)) {
-          qtd = linha.qtd;
-          rawQtd = linha.raw;
-        }
-      }
-
+      const rowNum = pinfo.start + i + 1;
+      const linha = await compraPlanilhaOcrLerQtdPedir(worker, ctx, xPedir0, y0, wPedir, rh);
+      const qtd = linha.qtd;
       const base = manifest.linhas[rowNum - 1] || linhasPag[i] || {};
-      const suspeito = qtd > 50 || (qtd > 0 && rowNum !== fallbackNum && Math.abs(rowNum - fallbackNum) > 2);
+      const suspeito = qtd > 50;
 
       out.push({
         idx: rowNum,
         produto_id: String(base.produto_id || ''),
         nome: String(base.nome || '—'),
         qtd,
-        qtd_raw: rawQtd,
-        idx_raw: rawIdx,
+        qtd_raw: linha.raw || '',
         suspeito,
         pagina: pinfo.page,
       });
