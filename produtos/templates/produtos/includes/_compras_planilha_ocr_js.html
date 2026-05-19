@@ -13,14 +13,56 @@ function compraPlanilhaLerManifest() {
   }
 }
 
-function compraPlanilhaParseQtdOcr(txt) {
+function compraPlanilhaLinhasPorPagina(manifest) {
+  const ps = String(manifest?.pageSize || 'A4').toUpperCase();
+  return ps === 'A6' ? 8 : 10;
+}
+
+/** Recorte da lista impressa correspondente a uma página da foto (1-based). */
+function compraPlanilhaPaginaInfo(manifest, pageNum) {
+  const perPage = compraPlanilhaLinhasPorPagina(manifest);
+  const n = manifest.linhas.length;
+  const totalPages = Math.max(1, Math.ceil(n / perPage));
+  const page = Math.max(1, Math.min(totalPages, Number(pageNum) || 1));
+  const start = (page - 1) * perPage;
+  const end = Math.min(n, start + perPage);
+  return {
+    page,
+    totalPages,
+    perPage,
+    start,
+    end,
+    slice: manifest.linhas.slice(start, end),
+    isFirstPage: page === 1,
+    isLastPage: page === totalPages,
+  };
+}
+
+function compraPlanilhaParseQtdOcr(txt, opts = {}) {
   const s = String(txt || '')
     .replace(/[^\d,.\s]/g, ' ')
     .trim();
-  const m = s.match(/(\d{1,5})/);
-  if (!m) return 0;
-  const n = parseInt(m[1], 10);
-  return Number.isFinite(n) && n > 0 ? n : 0;
+  const parts = s.match(/\d{1,5}/g);
+  if (!parts || !parts.length) return 0;
+  let n = parseInt(parts[parts.length - 1], 10);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  if (opts.maxQtd != null && n > opts.maxQtd) {
+    if (parts.length > 1) {
+      n = parseInt(parts[0], 10);
+    }
+    if (n > opts.maxQtd) return 0;
+  }
+  return n;
+}
+
+function compraPlanilhaOcrPreprocessPatch(imageData) {
+  const d = imageData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const g = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+    const v = g > 165 ? 255 : g < 95 ? 0 : g > 128 ? 255 : 0;
+    d[i] = d[i + 1] = d[i + 2] = v;
+  }
+  return imageData;
 }
 
 async function compraPlanilhaOcrCarregarTesseract() {
@@ -36,10 +78,27 @@ async function compraPlanilhaOcrCarregarTesseract() {
   return window.Tesseract;
 }
 
+async function compraPlanilhaOcrRecognizePatch(worker, ctx, x0, y0, w, h, preprocess) {
+  const patch = ctx.getImageData(x0, y0, w, h);
+  if (preprocess) compraPlanilhaOcrPreprocessPatch(patch);
+  const pc = document.createElement('canvas');
+  pc.width = patch.width;
+  pc.height = patch.height;
+  const pctx = pc.getContext('2d');
+  pctx.putImageData(patch, 0, 0);
+  const { data } = await worker.recognize(pc);
+  return String(data?.text || '').trim();
+}
+
 /**
- * Lê quantidades na coluna «Pedir» (última coluna à direita), uma faixa por linha da planilha impressa.
+ * Lê quantidades na coluna «Pedir» de UMA página impressa; alinha linhas pelo # quando possível.
  */
-async function compraPlanilhaOcrExtrairQuantidades(file, manifest, onProgress) {
+async function compraPlanilhaOcrExtrairQuantidades(file, manifest, pageNum, onProgress) {
+  const pinfo = compraPlanilhaPaginaInfo(manifest, pageNum);
+  const linhasPag = pinfo.slice;
+  const n = linhasPag.length;
+  if (!n) return [];
+
   const Tesseract = await compraPlanilhaOcrCarregarTesseract();
   const bmp = await createImageBitmap(file);
   const canvas = document.createElement('canvas');
@@ -50,14 +109,13 @@ async function compraPlanilhaOcrExtrairQuantidades(file, manifest, onProgress) {
   ctx.drawImage(bmp, 0, 0);
   bmp.close();
 
-  const n = manifest.linhas.length;
-  const headerFrac = 0.24;
-  const footerFrac = 0.17;
+  const headerFrac = pinfo.isFirstPage ? 0.26 : 0.11;
+  const footerFrac = pinfo.isLastPage ? 0.16 : 0.05;
   const bodyTop = Math.floor(canvas.height * headerFrac);
   const bodyH = Math.max(1, Math.floor(canvas.height * (1 - headerFrac - footerFrac)));
   const rowH = bodyH / Math.max(1, n);
-  const x0 = Math.floor(canvas.width * 0.72);
-  const x1 = canvas.width;
+  const xPedir0 = Math.floor(canvas.width * 0.76);
+  const xIdx1 = Math.floor(canvas.width * 0.09);
 
   const worker = await Tesseract.createWorker('eng', 1, {
     logger: (m) => {
@@ -77,27 +135,73 @@ async function compraPlanilhaOcrExtrairQuantidades(file, manifest, onProgress) {
       const y0 = Math.floor(bodyTop + i * rowH);
       const y1 = Math.floor(bodyTop + (i + 1) * rowH);
       const rh = Math.max(1, y1 - y0);
-      const patch = ctx.getImageData(x0, y0, x1 - x0, rh);
-      const pc = document.createElement('canvas');
-      pc.width = patch.width;
-      pc.height = patch.height;
-      const pctx = pc.getContext('2d');
-      pctx.putImageData(patch, 0, 0);
-      const { data } = await worker.recognize(pc);
-      const qtd = compraPlanilhaParseQtdOcr(data?.text);
-      const base = manifest.linhas[i] || {};
+      const wPedir = Math.max(1, canvas.width - xPedir0);
+
+      const rawIdx = await compraPlanilhaOcrRecognizePatch(
+        worker,
+        ctx,
+        0,
+        y0,
+        xIdx1,
+        rh,
+        true,
+      );
+      const rawQtd = await compraPlanilhaOcrRecognizePatch(
+        worker,
+        ctx,
+        xPedir0,
+        y0,
+        wPedir,
+        rh,
+        true,
+      );
+
+      let rowNum = compraPlanilhaParseQtdOcr(rawIdx, { maxQtd: manifest.linhas.length });
+      const fallbackNum = pinfo.start + i + 1;
+      if (rowNum < 1 || rowNum > manifest.linhas.length) rowNum = fallbackNum;
+
+      const qtd = compraPlanilhaParseQtdOcr(rawQtd, { maxQtd: 999 });
+      const base = manifest.linhas[rowNum - 1] || linhasPag[i] || {};
+      const suspeito = qtd > 50 || (qtd > 0 && rowNum !== fallbackNum && Math.abs(rowNum - fallbackNum) > 2);
+
       out.push({
-        idx: i + 1,
+        idx: rowNum,
         produto_id: String(base.produto_id || ''),
         nome: String(base.nome || '—'),
         qtd,
-        qtd_raw: String(data?.text || '').trim(),
+        qtd_raw: rawQtd,
+        idx_raw: rawIdx,
+        suspeito,
+        pagina: pinfo.page,
       });
     }
   } finally {
     await worker.terminate();
   }
   return out;
+}
+
+function compraPlanilhaOcrPreencherSelectPagina(manifest) {
+  const sel = document.getElementById('planilha-ocr-pagina');
+  const hint = document.getElementById('planilha-ocr-pagina-hint');
+  if (!sel || !manifest) return;
+  const pinfo = compraPlanilhaPaginaInfo(manifest, 1);
+  sel.innerHTML = '';
+  for (let p = 1; p <= pinfo.totalPages; p++) {
+    const pi = compraPlanilhaPaginaInfo(manifest, p);
+    const opt = document.createElement('option');
+    opt.value = String(p);
+    opt.textContent = `Página ${p} — itens #${pi.start + 1} a #${pi.end}`;
+    sel.appendChild(opt);
+  }
+  sel.value = '1';
+  if (hint) {
+    hint.textContent =
+      pinfo.totalPages > 1
+        ? `Esta lista tem ${pinfo.totalPages} páginas no A4. Tire uma foto de cada página e escolha o número correspondente.`
+        : 'Lista em uma página só — foto da folha inteira.';
+  }
+  sel.closest('label')?.classList.toggle('hidden', pinfo.totalPages <= 1);
 }
 
 function compraPlanilhaAplicarNoCarrinho(itens) {
@@ -127,7 +231,11 @@ function compraPlanilhaAplicarNoCarrinho(itens) {
     added += 1;
   });
   if (typeof atualizarCarrinho === 'function') atualizarCarrinho();
-  if (typeof setCarrinhoExpandido === 'function') setCarrinhoExpandido(true, { silentSave: true });
+  if (typeof compraEhDesktop === 'function' && compraEhDesktop()) {
+    if (typeof setCarrinhoExpandido === 'function') setCarrinhoExpandido(true, { silentSave: true });
+  } else if (typeof compraSetMobileTab === 'function') {
+    compraSetMobileTab('lista', { silentSave: true });
+  }
   if (typeof agendarSalvarEstadoCompra === 'function') agendarSalvarEstadoCompra();
   return added;
 }
@@ -142,12 +250,12 @@ function compraPlanilhaOcrRenderConferencia(itens) {
   host.innerHTML = (itens || [])
     .map(
       (row, ix) => `
-    <tr data-ocr-ix="${ix}">
+    <tr data-ocr-ix="${ix}" class="${row.suspeito ? 'bg-amber-50' : ''}">
       <td class="px-2 py-2 text-center font-black text-slate-600">${row.idx}</td>
-      <td class="px-2 py-2 text-sm font-semibold text-slate-800">${esc(row.nome)}</td>
+      <td class="px-2 py-2 text-sm font-semibold text-slate-800">${esc(row.nome)}${row.suspeito ? ' <span class="text-amber-700 text-[10px] font-black">(conferir)</span>' : ''}</td>
       <td class="px-2 py-2">
         <input type="number" min="0" step="1" value="${Number(row.qtd) || 0}" data-ocr-qtd="${ix}"
-          class="w-full max-w-[5rem] rounded-lg border-2 border-slate-200 px-2 py-1.5 text-center font-black text-slate-900">
+          class="w-full max-w-[5rem] rounded-lg border-2 ${row.suspeito ? 'border-amber-400' : 'border-slate-200'} px-2 py-1.5 text-center font-black text-slate-900">
       </td>
     </tr>`,
     )
@@ -193,6 +301,7 @@ function compraPlanilhaOcrAbrirModal() {
     );
     return;
   }
+  const pinfo = compraPlanilhaPaginaInfo(manifest, 1);
   const idade = Date.now() - Number(manifest.ts || 0);
   const idadeTxt =
     idade < 3600000
@@ -201,8 +310,9 @@ function compraPlanilhaOcrAbrirModal() {
         ? 'hoje'
         : 'há mais de um dia — confira se a lista ainda é a mesma';
   if (info) {
-    info.textContent = `${manifest.rotulo || '—'} · ${manifest.linhas.length} linhas · impresso ${idadeTxt}`;
+    info.textContent = `${manifest.rotulo || '—'} · ${manifest.linhas.length} itens · ${pinfo.totalPages} pág. · impresso ${idadeTxt}`;
   }
+  compraPlanilhaOcrPreencherSelectPagina(manifest);
   document.getElementById('planilha-ocr-file')?.value && (document.getElementById('planilha-ocr-file').value = '');
   document.getElementById('planilha-ocr-camera')?.value && (document.getElementById('planilha-ocr-camera').value = '');
   const prev = document.getElementById('planilha-ocr-preview');
@@ -223,6 +333,8 @@ async function compraPlanilhaOcrProcessarArquivo(file) {
     window.alert('Imprima a planilha oficial antes de ler a foto.');
     return;
   }
+  const pageNum = Number(document.getElementById('planilha-ocr-pagina')?.value) || 1;
+  const pinfo = compraPlanilhaPaginaInfo(manifest, pageNum);
   const prev = document.getElementById('planilha-ocr-preview');
   if (prev) {
     prev.src = URL.createObjectURL(file);
@@ -233,20 +345,28 @@ async function compraPlanilhaOcrProcessarArquivo(file) {
   if (btn) btn.disabled = true;
   if (prog) {
     prog.classList.remove('hidden');
-    prog.textContent = 'A ler números… 0%';
+    prog.textContent = `A ler página ${pinfo.page}… 0%`;
   }
   try {
-    const itens = await compraPlanilhaOcrExtrairQuantidades(file, manifest, (pct) => {
-      if (prog) prog.textContent = `A ler números… ${pct}%`;
+    const itens = await compraPlanilhaOcrExtrairQuantidades(file, manifest, pageNum, (pct) => {
+      if (prog) prog.textContent = `A ler página ${pinfo.page}… ${pct}%`;
     });
     window.__compraPlanilhaOcrUltimo = itens;
     compraPlanilhaOcrRenderConferencia(itens);
     document.getElementById('planilha-ocr-step-upload')?.classList.add('hidden');
     document.getElementById('planilha-ocr-step-conferencia')?.classList.remove('hidden');
+    const sus = itens.filter((r) => r.suspeito).length;
+    if (sus > 0) {
+      window.setTimeout(() => {
+        window.alert(
+          `${sus} linha(s) marcada(s) em amarelo — confira o número «Pedir» antes de colocar no carrinho.`,
+        );
+      }, 80);
+    }
   } catch (e) {
     console.error(e);
     window.alert(
-      'Não foi possível ler a foto. Use foto nítida, folha oficial completa e coluna «Pedir» visível à direita.',
+      'Não foi possível ler a foto. Use foto nítida, folha oficial e escolha a página correta (1/4, 2/4…).',
     );
   } finally {
     if (btn) btn.disabled = false;

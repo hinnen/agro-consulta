@@ -8,7 +8,14 @@
       <button type="button" id="btn-planilha-ocr-fechar" class="text-slate-500 hover:text-slate-900 font-black text-lg px-2" aria-label="Fechar">✕</button>
     </div>
     <div id="planilha-ocr-step-upload" class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
-      <p class="text-sm font-semibold text-slate-700 leading-snug">Use a <strong>folha oficial</strong> impressa pelo sistema (mesma ordem de linhas). Preencha só a coluna <strong>Pedir</strong> à mão. Foto nítida, folha inteira, coluna da direita visível.</p>
+      <p class="text-sm font-semibold text-slate-700 leading-snug">Use a <strong>folha oficial</strong> impressa pelo sistema. Preencha só a coluna <strong>Pedir</strong> à mão. Em listas com várias páginas, tire <strong>uma foto por página</strong> e escolha o número abaixo.</p>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-600">Página desta foto</span>
+        <select id="planilha-ocr-pagina" class="mt-1 w-full rounded-xl border-2 border-amber-300 bg-white px-3 py-2.5 text-sm font-black text-slate-900 min-h-[48px]">
+          <option value="1">Página 1</option>
+        </select>
+        <p id="planilha-ocr-pagina-hint" class="mt-1 text-[10px] font-semibold text-slate-500 leading-snug"></p>
+      </label>
       <label class="block">
         <span class="text-[10px] font-black uppercase text-slate-600">Anexar foto (Windows / arquivo)</span>
         <input type="file" id="planilha-ocr-file" accept="image/*" class="mt-1 w-full text-sm font-semibold">
