@@ -69,17 +69,18 @@ function compraPlanilhaOcrPreprocessIdx(imageData) {
   return imageData;
 }
 
+function compraPlanilhaOcrPixelTinta(r, g, b) {
+  const lum = (r + g + b) / 3;
+  if (b + 8 < r && b + 5 < g && lum < 215) return true;
+  if (lum < 135) return true;
+  return false;
+}
+
 /** Caneta azul à mão: realça traço azul/escuro (evita sumir no limiar cinza). */
 function compraPlanilhaOcrPreprocessPedir(imageData) {
   const d = imageData.data;
   for (let i = 0; i < d.length; i += 4) {
-    const r = d[i];
-    const g = d[i + 1];
-    const b = d[i + 2];
-    const lum = (r + g + b) / 3;
-    const bluePen = b + 18 < r && b + 12 < g && lum < 200;
-    const darkInk = lum < 120;
-    const ink = bluePen || darkInk;
+    const ink = compraPlanilhaOcrPixelTinta(d[i], d[i + 1], d[i + 2]);
     const v = ink ? 0 : 255;
     d[i] = d[i + 1] = d[i + 2] = v;
   }
@@ -163,44 +164,64 @@ function compraPlanilhaOcrDetectarTodasFaixas(ctx, cw, ch) {
 }
 
 function compraPlanilhaOcrFaixaCentro(faixa) {
-  const margem = Math.max(2, Math.floor((faixa.y1 - faixa.y0) * 0.28));
+  const margem = Math.max(2, Math.floor((faixa.y1 - faixa.y0) * 0.16));
   return {
     y0: faixa.y0 + margem,
     y1: faixa.y1 - margem,
   };
 }
 
-async function compraPlanilhaOcrLerNumeroLinha(worker, ctx, faixa, xIdx0, wIdx) {
-  const c = compraPlanilhaOcrFaixaCentro(faixa);
-  const rh = Math.max(1, c.y1 - c.y0);
-  const raw = await compraPlanilhaOcrRecognizePatch(worker, ctx, xIdx0, c.y0, wIdx, rh, 'idx', 3);
-  const num = compraPlanilhaParseQtdOcr(raw, { maxQtd: 999 });
-  return Number.isFinite(num) ? num : 0;
+/** Onde está mais “tinta” de caneta na faixa direita da tabela. */
+function compraPlanilhaOcrLocalizarColunaPedir(ctx, cw, ch) {
+  const bodyTop = Math.floor(ch * 0.2);
+  const bodyH = Math.floor(ch * 0.58);
+  let melhorX = Math.floor(cw * 0.8);
+  let melhorScore = 0;
+  for (let pct = 68; pct <= 90; pct += 2) {
+    const x0 = Math.floor((cw * pct) / 100);
+    const w = Math.max(12, Math.floor(cw * 0.14));
+    const score = compraPlanilhaOcrRazaoTintaPedir(ctx, x0, bodyTop, w, bodyH);
+    if (score > melhorScore) {
+      melhorScore = score;
+      melhorX = x0;
+    }
+  }
+  return {
+    x0: melhorX,
+    w: Math.max(12, Math.floor(cw * 0.14)),
+  };
 }
 
-/** Casa cada faixa ao número # impresso na linha (evita deslocar Pedir). */
-async function compraPlanilhaOcrMapearFaixasPorIndice(worker, ctx, bands, idxMin, idxMax, xIdx0, wIdx) {
-  const map = new Map();
-  for (const band of bands) {
-    const num = await compraPlanilhaOcrLerNumeroLinha(worker, ctx, band, xIdx0, wIdx);
-    if (num >= idxMin && num <= idxMax && !map.has(num)) {
-      map.set(num, band);
-    }
+/** Divisão uniforme quando a grade não aparece na foto. */
+function compraPlanilhaOcrFaixasUniformes(ch, nEsperado) {
+  const top = Math.floor(ch * 0.22);
+  const bot = Math.floor(ch * 0.76);
+  const rh = (bot - top) / Math.max(1, nEsperado);
+  const fb = [];
+  for (let i = 0; i < nEsperado; i++) {
+    fb.push({
+      y0: Math.floor(top + i * rh + 3),
+      y1: Math.floor(top + (i + 1) * rh - 3),
+    });
   }
-  if (map.has(idxMin)) return map;
+  return fb;
+}
 
+/** Quando o # impresso não é lido: usa as N faixas de dados (pula cabeçalho da tabela). */
+function compraPlanilhaOcrFaixasSequenciais(bands, nEsperado, ch) {
+  if (!bands.length && ch) return compraPlanilhaOcrFaixasUniformes(ch, nEsperado);
   const sorted = [...bands].sort((a, b) => a.y0 - b.y0);
-  for (let j = 0; j < sorted.length; j++) {
-    const num = await compraPlanilhaOcrLerNumeroLinha(worker, ctx, sorted[j], xIdx0, wIdx);
-    if (num === idxMin) {
-      const n = idxMax - idxMin + 1;
-      for (let k = 0; k < n && j + k < sorted.length; k++) {
-        map.set(idxMin + k, sorted[j + k]);
-      }
-      break;
-    }
-  }
-  return map;
+  if (!sorted.length || nEsperado < 1) return ch ? compraPlanilhaOcrFaixasUniformes(ch, nEsperado) : [];
+  if (sorted.length <= nEsperado) return sorted;
+  const skip = sorted.length - nEsperado;
+  const skipCount = Math.min(Math.max(skip >= 2 ? 2 : 1, skip), 3);
+  return sorted.slice(skipCount, skipCount + nEsperado);
+}
+
+function compraPlanilhaOcrFaixasParaPagina(bands, nEsperado, ch) {
+  const seq = compraPlanilhaOcrFaixasSequenciais(bands, nEsperado, ch);
+  if (seq.length >= nEsperado) return seq.slice(0, nEsperado);
+  return compraPlanilhaOcrFaixasUniformes(ch, nEsperado);
 }
 
 function compraPlanilhaOcrRazaoTintaPedir(ctx, x0, y0, w, h) {
@@ -209,14 +230,37 @@ function compraPlanilhaOcrRazaoTintaPedir(ctx, x0, y0, w, h) {
   let ink = 0;
   const total = Math.max(1, w * h);
   for (let i = 0; i < d.length; i += 4) {
-    const r = d[i];
-    const g = d[i + 1];
-    const b = d[i + 2];
-    const lum = (r + g + b) / 3;
-    const bluePen = b + 18 < r && b + 12 < g && lum < 200;
-    if (bluePen || lum < 115) ink++;
+    if (compraPlanilhaOcrPixelTinta(d[i], d[i + 1], d[i + 2])) ink++;
   }
   return ink / total;
+}
+
+/** Recorte apertado só onde há traço de caneta na célula Pedir. */
+function compraPlanilhaOcrManchaPedir(ctx, x0, y0, w, h) {
+  const patch = ctx.getImageData(x0, y0, w, h);
+  const d = patch.data;
+  let minX = w;
+  let minY = h;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (!compraPlanilhaOcrPixelTinta(d[i], d[i + 1], d[i + 2])) continue;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
+  if (maxX < 0) return null;
+  const pad = 4;
+  return {
+    x0: x0 + Math.max(0, minX - pad),
+    y0: y0 + Math.max(0, minY - pad),
+    w: Math.min(w, maxX - minX + 1 + pad * 2),
+    h: Math.min(h, maxY - minY + 1 + pad * 2),
+  };
 }
 
 function compraPlanilhaOcrVotarQtd(candidatos) {
@@ -239,22 +283,32 @@ function compraPlanilhaOcrVotarQtd(candidatos) {
 }
 
 async function compraPlanilhaOcrLerQtdPedir(worker, ctx, x0, y0, w, h) {
-  const ink = compraPlanilhaOcrRazaoTintaPedir(ctx, x0, y0, w, h);
-  if (ink < 0.0012) {
-    return { qtd: 0, raw: '' };
-  }
-  const xInset = Math.floor(w * 0.12);
-  const x1 = x0 + xInset;
-  const wInner = Math.max(4, w - xInset * 2);
+  const mancha = compraPlanilhaOcrManchaPedir(ctx, x0, y0, w, h);
+  if (!mancha) return { qtd: 0, raw: '' };
   const candidatos = [];
   const tries = [
-    { mode: 'pedir', scale: 4, psm: '10' },
+    { mode: null, scale: 4, psm: '8' },
+    { mode: 'pedir', scale: 4, psm: '8' },
     { mode: 'pedir', scale: 3, psm: '10' },
     { mode: 'pedir', scale: 3, psm: '7' },
-    { mode: 'pedir', scale: 2, psm: '7' },
   ];
   for (const t of tries) {
-    const pc = compraPlanilhaOcrPatchToCanvas(ctx, x1, y0, wInner, h, t.mode, t.scale);
+    let pc;
+    if (t.mode) {
+      pc = compraPlanilhaOcrPatchToCanvas(ctx, mancha.x0, mancha.y0, mancha.w, mancha.h, t.mode, t.scale);
+    } else {
+      const patch = ctx.getImageData(mancha.x0, mancha.y0, mancha.w, mancha.h);
+      pc = document.createElement('canvas');
+      pc.width = Math.max(1, Math.floor(patch.width * t.scale));
+      pc.height = Math.max(1, Math.floor(patch.height * t.scale));
+      const pctx = pc.getContext('2d');
+      pctx.imageSmoothingEnabled = false;
+      const tmp = document.createElement('canvas');
+      tmp.width = patch.width;
+      tmp.height = patch.height;
+      tmp.getContext('2d').putImageData(patch, 0, 0);
+      pctx.drawImage(tmp, 0, 0, pc.width, pc.height);
+    }
     await worker.setParameters({
       tessedit_char_whitelist: '0123456789',
       tessedit_pageseg_mode: t.psm,
@@ -288,12 +342,10 @@ async function compraPlanilhaOcrExtrairQuantidades(file, manifest, pageNum, onPr
   bmp.close();
 
   const todasFaixas = compraPlanilhaOcrDetectarTodasFaixas(ctx, canvas.width, canvas.height);
+  const faixas = compraPlanilhaOcrFaixasParaPagina(todasFaixas, n, canvas.height);
+  const colPedir = compraPlanilhaOcrLocalizarColunaPedir(ctx, canvas.width, canvas.height);
   const idxMin = pinfo.start + 1;
   const idxMax = pinfo.end;
-  const xIdx0 = Math.floor(canvas.width * 0.02);
-  const wIdx = Math.max(6, Math.floor(canvas.width * 0.075));
-  const xPedir0 = Math.floor(canvas.width * 0.875);
-  const wPedir = Math.max(8, Math.floor(canvas.width * 0.11));
 
   const worker = await Tesseract.createWorker('eng', 1, {
     logger: (m) => {
@@ -309,18 +361,9 @@ async function compraPlanilhaOcrExtrairQuantidades(file, manifest, pageNum, onPr
 
   const out = [];
   try {
-    const faixaPorIdx = await compraPlanilhaOcrMapearFaixasPorIndice(
-      worker,
-      ctx,
-      todasFaixas,
-      idxMin,
-      idxMax,
-      xIdx0,
-      wIdx,
-    );
-
-    for (let rowNum = idxMin; rowNum <= idxMax; rowNum++) {
-      const faixa = faixaPorIdx.get(rowNum);
+    for (let i = 0; i < n; i++) {
+      const rowNum = idxMin + i;
+      const faixa = faixas[i];
       let qtd = 0;
       let rawQtd = '';
       if (faixa) {
@@ -328,12 +371,19 @@ async function compraPlanilhaOcrExtrairQuantidades(file, manifest, pageNum, onPr
         const y0 = Math.max(0, c.y0);
         const y1 = Math.min(canvas.height, c.y1);
         const rh = Math.max(1, y1 - y0);
-        const linha = await compraPlanilhaOcrLerQtdPedir(worker, ctx, xPedir0, y0, wPedir, rh);
+        const linha = await compraPlanilhaOcrLerQtdPedir(
+          worker,
+          ctx,
+          colPedir.x0,
+          y0,
+          colPedir.w,
+          rh,
+        );
         qtd = linha.qtd;
         rawQtd = linha.raw || '';
       }
-      const base = manifest.linhas[rowNum - 1] || {};
-      const suspeito = qtd > 50 || !faixa;
+      const base = manifest.linhas[rowNum - 1] || linhasPag[i] || {};
+      const suspeito = qtd > 50;
 
       out.push({
         idx: rowNum,
