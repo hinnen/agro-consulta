@@ -4703,7 +4703,7 @@ def registrar_emprestimo_interno_agro(
     intervalo_dias: int,
     observacao: str = "",
 ) -> dict[str, Any]:
-    """Aporte de sócio: só registro AgroEmprestimo (não gera DtoLancamento / contas a pagar)."""
+    """Aporte de sócio: registro em AgroEmprestimo (cronograma). Títulos em contas a pagar nas devoluções via Consulta → Gerenciar."""
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
     mutuario_label = (mutuario_label or "").strip()
@@ -4838,6 +4838,143 @@ def _enriquecer_interno_campos_calculados(d: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _observacao_lancamento_emprestimo_interno_pagamento(
+    *,
+    ref: str,
+    meta_id: str,
+    pagamento_id: str,
+    extra: str = "",
+) -> str:
+    base = (
+        f"Emprestimo INT ref EMP-INT-{ref} pag {pagamento_id} meta {meta_id}."
+    ).strip()
+    extra = (extra or "").strip()
+    if extra:
+        return f"{base} {extra}"[:2000]
+    return base[:2000]
+
+
+def _criar_lancamento_mongo_emprestimo_interno_pagamento(
+    db,
+    *,
+    doc_emp: dict[str, Any],
+    pagamento_id: str,
+    valor: Decimal,
+    data_pagamento: date,
+    observacao: str,
+    usuario_label: str,
+) -> dict[str, Any]:
+    """
+    Espelha o pagamento/devolução ao sócio em ``DtoLancamento`` (contas a pagar), quitado na data informada.
+    """
+    mutuario = str(doc_emp.get("mutuario_label") or "").strip()
+    if not mutuario:
+        return {"ok": False, "erro": "Registro sem proprietário / sócio.", "lancamento_mongo_id": None}
+    empresa = str(doc_emp.get("empresa_nome") or "").strip()
+    if not empresa:
+        return {"ok": False, "erro": "Registro sem empresa.", "lancamento_mongo_id": None}
+    ref = str(doc_emp.get("ref") or "").strip()
+    meta_id = str(doc_emp.get("_id") or "")
+    ph = _banco_placeholder_para_select()
+    obs_linha = _observacao_lancamento_emprestimo_interno_pagamento(
+        ref=ref,
+        meta_id=meta_id,
+        pagamento_id=pagamento_id,
+        extra=observacao,
+    )
+    r = inserir_lancamentos_manual_lote(
+        db,
+        despesa=True,
+        empresa_nome=empresa,
+        empresa_id=str(doc_emp.get("empresa_id") or "").strip() or None,
+        pessoa_nome=mutuario,
+        pessoa_id=None,
+        data_competencia=data_pagamento,
+        data_vencimento=data_pagamento,
+        banco_nome=str(ph.get("nome") or "ADICIONAR CONTA"),
+        banco_id=str(ph.get("id") or "") or None,
+        forma_nome="",
+        forma_id=None,
+        grupo_nome=None,
+        grupo_id=None,
+        usuario_label=usuario_label,
+        linhas=[
+            {
+                "valor": float(valor),
+                "descricao": (
+                    f"Devolução empréstimo interno — {mutuario} ({pagamento_id})"
+                )[:500],
+                "plano_conta": emprestimo_plano_divida_resolvido(),
+                "plano_conta_id": None,
+                "observacao": obs_linha,
+            }
+        ],
+        marcar_quitado_pagar=True,
+    )
+    ids = list(r.get("ids") or [])
+    if not r.get("ok") or not ids:
+        err = ""
+        erros = r.get("erros") or []
+        if erros and isinstance(erros[0], dict):
+            err = str(erros[0].get("erro") or "")[:300]
+        return {
+            "ok": False,
+            "erro": err or "Falha ao gerar título em contas a pagar.",
+            "lancamento_mongo_id": None,
+            "inserir": r,
+        }
+    return {"ok": True, "lancamento_mongo_id": ids[0], "inserir": r}
+
+
+def _excluir_lancamento_mongo_emprestimo_interno_pagamento(
+    db,
+    *,
+    lancamento_mongo_id: str | None,
+    pagamento_id: str | None,
+    meta_id: str,
+) -> None:
+    """Remove título Agro vinculado ao pagamento interno (permite quitado; só marca EMP-INT)."""
+    if db is None:
+        return
+    col = db[COL_DTO_LANCAMENTO]
+    doc: dict[str, Any] | None = None
+    lid = (lancamento_mongo_id or "").strip()
+    if lid:
+        try:
+            doc = col.find_one({"_id": ObjectId(lid)})
+        except Exception:
+            doc = None
+    pid = (pagamento_id or "").strip()
+    mid = (meta_id or "").strip()
+    if doc is None and pid and mid:
+        try:
+            moid = ObjectId(mid)
+        except Exception:
+            moid = None
+        if moid is not None:
+            q: dict[str, Any] = {
+                "Despesa": True,
+                "Observacoes": {
+                    "$regex": re.escape(f"pag {pid}") + r".*meta\s+" + re.escape(str(moid)),
+                    "$options": "i",
+                },
+            }
+            doc = col.find_one(q, sort=[("LastUpdate", -1)])
+    if not doc:
+        return
+    obs = str(doc.get("Observacoes") or "")
+    if "EMP-INT-" not in obs and "Emprestimo INT" not in obs:
+        return
+    if _lancamento_tem_vinculo_erp(doc):
+        return
+    if not _lancamento_e_manual_agro(doc):
+        return
+    try:
+        col.delete_one({"_id": doc["_id"]})
+    except Exception:
+        logger.exception("_excluir_lancamento_mongo_emprestimo_interno_pagamento")
+
+
 def registrar_pagamento_emprestimo_interno_agro(
     db,
     *,
@@ -4847,7 +4984,10 @@ def registrar_pagamento_emprestimo_interno_agro(
     observacao: str,
     usuario_label: str,
 ) -> dict[str, Any]:
-    """Registra pagamento ou devolução ao sócio (parcial ou integral ao saldo). Só tipo interno."""
+    """
+    Registra pagamento ou devolução ao sócio (parcial ou integral ao saldo). Só tipo interno.
+    Gera também um título quitado em ``DtoLancamento`` (contas a pagar).
+    """
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
     meta_id = (meta_id or "").strip()
@@ -4883,21 +5023,54 @@ def registrar_pagamento_emprestimo_interno_agro(
             "erro": f"Valor acima do saldo devedor (máx. R$ {saldo}).",
         }
 
+    pagamento_id = secrets.token_hex(8)
+    doc_emp = dict(doc)
+    doc_emp["_id"] = str(oid)
+
+    r_lanc = _criar_lancamento_mongo_emprestimo_interno_pagamento(
+        db,
+        doc_emp=doc_emp,
+        pagamento_id=pagamento_id,
+        valor=valor,
+        data_pagamento=data_pagamento,
+        observacao=observacao,
+        usuario_label=usuario_label,
+    )
+    if not r_lanc.get("ok"):
+        return {
+            "ok": False,
+            "erro": r_lanc.get("erro") or "Falha ao gerar título em contas a pagar.",
+        }
+
+    lancamento_mongo_id = str(r_lanc.get("lancamento_mongo_id") or "").strip()
     now = timezone.now()
     pag: dict[str, Any] = {
-        "pagamento_id": secrets.token_hex(8),
+        "pagamento_id": pagamento_id,
         "valor": float(valor),
         "data_pagamento": data_pagamento.isoformat(),
         "observacao": (observacao or "").strip()[:2000],
         "created_at": now,
         "created_by": (usuario_label or "Agro")[:200],
+        "lancamento_mongo_id": lancamento_mongo_id,
     }
     try:
         r = col.update_one({"_id": oid}, {"$push": {"pagamentos": pag}, "$set": {"updated_at": now}})
         if r.matched_count == 0:
+            _excluir_lancamento_mongo_emprestimo_interno_pagamento(
+                db,
+                lancamento_mongo_id=lancamento_mongo_id,
+                pagamento_id=pagamento_id,
+                meta_id=str(oid),
+            )
             return {"ok": False, "erro": "Registro não atualizado."}
     except Exception as exc:
         logger.exception("registrar_pagamento_emprestimo_interno_agro")
+        _excluir_lancamento_mongo_emprestimo_interno_pagamento(
+            db,
+            lancamento_mongo_id=lancamento_mongo_id,
+            pagamento_id=pagamento_id,
+            meta_id=str(oid),
+        )
         return {"ok": False, "erro": str(exc)[:300]}
 
     doc2 = col.find_one({"_id": oid}) or {}
@@ -4906,6 +5079,7 @@ def registrar_pagamento_emprestimo_interno_agro(
     enr = _enriquecer_interno_campos_calculados(d2)
     return {
         "ok": True,
+        "lancamento_mongo_id": lancamento_mongo_id,
         "interno_total_pago": enr.get("interno_total_pago"),
         "interno_saldo_devedor": enr.get("interno_saldo_devedor"),
         "interno_quitado": enr.get("interno_quitado"),
@@ -4967,6 +5141,8 @@ def excluir_pagamento_emprestimo_interno_agro(
 
     removed = dict(pags[idx_remove])
     new_pags = [p for j, p in enumerate(pags) if j != idx_remove]
+    lanc_rem_id = str(removed.get("lancamento_mongo_id") or "").strip()
+    pag_rem_id = str(removed.get("pagamento_id") or "").strip()
 
     now = timezone.now()
     ca_raw = removed.get("created_at")
@@ -5000,6 +5176,13 @@ def excluir_pagamento_emprestimo_interno_agro(
     except Exception as exc:
         logger.exception("excluir_pagamento_emprestimo_interno_agro")
         return {"ok": False, "erro": str(exc)[:300]}
+
+    _excluir_lancamento_mongo_emprestimo_interno_pagamento(
+        db,
+        lancamento_mongo_id=lanc_rem_id or None,
+        pagamento_id=pag_rem_id or None,
+        meta_id=str(oid),
+    )
 
     doc2 = col.find_one({"_id": oid}) or {}
     d2 = dict(doc2)
