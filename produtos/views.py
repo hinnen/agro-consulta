@@ -8026,16 +8026,23 @@ def api_entrada_nota_auditoria_financeiro(request):
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
     filtro = (request.GET.get("filtro") or "concluida").strip()[:24]
     try:
-        lim = min(int(request.GET.get("limit") or 200), 500)
+        lim = min(int(request.GET.get("limit") or 120), 300)
     except ValueError:
-        lim = 200
+        lim = 120
     col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
-    out = auditar_entrada_nfe_financeiro_lote(
-        db,
-        col_pessoa=col_pessoa,
-        filtro_lista=filtro,
-        limit=lim,
-    )
+    try:
+        out = auditar_entrada_nfe_financeiro_lote(
+            db,
+            col_pessoa=col_pessoa,
+            filtro_lista=filtro,
+            limit=lim,
+        )
+    except Exception as exc:
+        logger.exception("api_entrada_nota_auditoria_financeiro")
+        return JsonResponse(
+            {"ok": False, "erro": f"Erro na auditoria: {str(exc)[:400]}"},
+            status=500,
+        )
     st = 200 if out.get("ok") else 503
     return JsonResponse(out, status=st)
 
