@@ -158,6 +158,10 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 
 - Botão **Cancelar** no extrato (`rh_funcionario_vale_cancelar`): `cancelado=True`, recalcula folhas abertas, tenta `sincronizar_valores_titulo_salario_mongo` na competência do vale. Alternativa: **Admin** Django em *Vales / adiantamentos*.
 
+**Empréstimo interno (sócio) — pagamento em contas a pagar**  
+
+- Cadastro do aporte continua só em `AgroEmprestimo`. Cada pagamento em **Consulta → Gerenciar** (`registrar_pagamento_emprestimo_interno_agro`) gera `DtoLancamento` quitado (plano dívida padrão, marca `EMP-INT` nas observações). Exclusão do pagamento remove o título vinculado. Na lista de Lançamentos use situação **Quitados** ou **Todos** (não aparece em **Em aberto**).
+
 ---
 
 ## 8. Manutenção deste arquivo

@@ -157,7 +157,6 @@
         valeSaldoView: document.getElementById('pdv-vale-saldo-view'),
         cashbackSaldoView: document.getElementById('pdv-cashback-saldo-view'),
         pixMpQr: document.getElementById('pdv-pix-mp-qr'),
-        cardMpQr: document.getElementById('pdv-card-mp-qr'),
         pixSicrediLink: document.getElementById('pdv-pix-sicredi-link'),
         cardSicrediLink: document.getElementById('pdv-card-sicredi-link'),
         pixSicobKey: document.getElementById('pdv-pix-sicob-key'),
@@ -918,9 +917,7 @@
 
     function erroValidacaoPagamento(state, computed) {
         var forma = String(state.pagamento.forma || '').trim();
-        if (forma) {
-            return 'Finalize este meio com Enter no valor (dinheiro ou “Valor nesta forma”) ou use Trocar forma.';
-        }
+        if (forma) return '';
         var arr = state.pagamento.lancamentos || [];
         if (!arr.length) return 'Escolha formas de pagamento até cobrir o total.';
         var total = totalNumberFromComputed(computed);
@@ -1065,7 +1062,7 @@
             produtos: 'Monte os itens e defina o cliente base da venda.',
             cliente: 'Atalhos nos botões · E edita dados do cliente.',
             entrega: 'Pop-up: pagamento na entrega ou na loja. Rodapé: Enviar entrega ou Ir para pagamento · F7. F1 volta.',
-            pagamento: 'Feche a venda e confirme o envio.'
+            pagamento: ''
         };
         dom.stepHint.textContent = hints[state.currentStep] || 'Siga o fluxo da venda.';
     }
@@ -1733,6 +1730,7 @@
 
         var cardGate = document.getElementById('pdv-card-machine-gate');
         var cardSteps = document.getElementById('pdv-card-steps-wrap');
+        var cardScrRow = document.getElementById('pdv-card-row-sicredi');
         if (cartao) {
             var cg = !hasMaquina;
             if (cardGate) {
@@ -1742,6 +1740,20 @@
             if (cardSteps) {
                 cardSteps.classList.toggle('hidden', cg);
                 cardSteps.classList.toggle('flex', !cg);
+            }
+            if (cardScrRow) {
+                var showCardSicredi = true;
+                if (hasMaquina) {
+                    var cMid = String(state.pagamento.maquinaId || '').trim();
+                    var cRede = '';
+                    getMaquininhasList(forma).forEach(function (it) {
+                        if (it.id === cMid) cRede = String(it.rede || '').toLowerCase();
+                    });
+                    showCardSicredi =
+                        cRede === 'sicredi' ||
+                        cMid.indexOf('sicredi') === 0;
+                }
+                cardScrRow.classList.toggle('hidden', !showCardSicredi);
             }
         } else {
             if (cardGate) {
@@ -1769,10 +1781,7 @@
 
         var mpPixHint =
             'QR Pix Mercado Pago aparece na maquininha — use o display do terminal ou “Ampliar QR” para orientar o cliente.';
-        var mpCardHint =
-            'Pagamento no cartão Mercado Pago é concluído na maquininha — não é necessário QR fixo nesta tela.';
         fillQrSlot(dom.pixMpQr, pagamentoUi.qrMercadoPagoUrl, mpPixHint);
-        fillQrSlot(dom.cardMpQr, pagamentoUi.qrMercadoPagoUrl, mpCardHint);
         wireSicrediLink(dom.pixSicrediLink, pagamentoUi.qrSicrediUrl);
         wireSicrediLink(dom.cardSicrediLink, pagamentoUi.qrSicrediUrl);
         if (dom.pixSicrediLink) {
@@ -3960,8 +3969,6 @@
 
         var btnQrPix = document.getElementById('pdv-pay-open-qr-pix');
         if (btnQrPix) btnQrPix.addEventListener('click', function () { openPayPopQr('Mercado Pago — Pix'); });
-        var btnQrCard = document.getElementById('pdv-pay-open-qr-card');
-        if (btnQrCard) btnQrCard.addEventListener('click', function () { openPayPopQr('Mercado Pago — Cartão'); });
         var btnDinResumo = document.getElementById('pdv-pay-open-dinheiro-resumo');
         if (btnDinResumo) btnDinResumo.addEventListener('click', openPayPopDinheiroResumo);
         var btnFiadoPop = document.getElementById('pdv-pay-open-fiado-pop');
