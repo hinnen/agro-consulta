@@ -457,6 +457,11 @@ urlpatterns = [
         name='api_entrada_nota_fornecedores',
     ),
     path(
+        'api/entrada-nota/auditoria-financeiro/',
+        views.api_entrada_nota_auditoria_financeiro,
+        name='api_entrada_nota_auditoria_financeiro',
+    ),
+    path(
         'api/entrada-nota/conferir-codigo/',
         views.api_entrada_nota_conferir_codigo,
         name='api_entrada_nota_conferir_codigo',

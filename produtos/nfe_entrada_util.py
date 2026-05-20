@@ -483,6 +483,266 @@ def _serialize_rascunho_leitura(doc: dict[str, Any]) -> dict[str, Any]:
     return entrada_nfe_enriquecer_doc_serializado(d)
 
 
+def _entrada_nfe_tipo_entrada_extra(extra: dict | None) -> str:
+    t = str((extra or {}).get("nfe_tipo_entrada") or "compras").strip().lower()
+    return "bonificacao" if t == "bonificacao" else "compras"
+
+
+def _titulos_mongo_por_ids_entrada_nfe(db, ids: list[str]) -> list[dict[str, Any]]:
+    from .mongo_financeiro_util import COL_DTO_LANCAMENTO
+
+    if db is None or not ids:
+        return []
+    col = db[COL_DTO_LANCAMENTO]
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw in ids[:80]:
+        rid = str(raw or "").strip()
+        if not rid or rid in seen:
+            continue
+        seen.add(rid)
+        proj = {"Cliente": 1, "ClienteID": 1, "Descricao": 1, "Observacao": 1, "Despesa": 1}
+        doc = None
+        try:
+            from bson import ObjectId
+            from bson.errors import InvalidId
+
+            doc = col.find_one({"_id": ObjectId(rid)}, proj)
+        except (InvalidId, Exception):
+            doc = None
+        if doc is None:
+            try:
+                doc = col.find_one({"Id": rid}, proj)
+            except Exception:
+                doc = None
+        if doc is None:
+            try:
+                doc = col.find_one({"Id": int(rid)}, proj)
+            except (TypeError, ValueError, Exception):
+                doc = None
+        if isinstance(doc, dict):
+            out.append(doc)
+    return out
+
+
+def _titulos_mongo_por_rastro_entrada_nfe(db, cab: dict) -> list[dict[str, Any]]:
+    """Busca títulos a pagar que cite a chave ou o número da NF (quando não há ``financeiro_ids``)."""
+    from .mongo_financeiro_util import COL_DTO_LANCAMENTO
+
+    if db is None or not isinstance(cab, dict):
+        return []
+    col = db[COL_DTO_LANCAMENTO]
+    ch = str(cab.get("chave") or "").strip()
+    nf = str(cab.get("numero") or "").strip()
+    ors: list[dict[str, Any]] = [{"Observacao": {"$regex": re.escape("Entrada NF-e Agro"), "$options": "i"}}]
+    if ch and len(ch) >= 12:
+        ors.append({"Observacao": {"$regex": re.escape(ch[-24:])}})
+    if nf and nf not in ("", "0", "000"):
+        ors.append({"Descricao": {"$regex": re.escape(nf), "$options": "i"}})
+        ors.append({"Observacao": {"$regex": re.escape(nf)}})
+    try:
+        cur = col.find(
+            {"$and": [{"Despesa": True}, {"$or": ors}]},
+            {"Cliente": 1, "ClienteID": 1, "Descricao": 1, "Observacao": 1, "Despesa": 1},
+        ).limit(15)
+        return [d for d in cur if isinstance(d, dict)]
+    except Exception as exc:
+        logger.warning("_titulos_mongo_por_rastro_entrada_nfe: %s", exc)
+        return []
+
+
+def auditar_financeiro_rascunho_entrada_nfe(
+    db,
+    doc: dict[str, Any],
+    *,
+    col_pessoa: str | None = None,
+) -> dict[str, Any]:
+    """
+    Verifica se a nota tem título(s) em DtoLancamento alinhado(s) ao fornecedor da nota.
+    **Concluída** (PIN etapa 6) não implica financeiro — use este relatório para conferir em lote.
+    """
+    cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+    extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    enriched = entrada_nfe_enriquecer_doc_serializado(dict(doc))
+    bucket = str(enriched.get("entrada_lista_bucket") or "")
+    tipo = _entrada_nfe_tipo_entrada_extra(extra)
+    fin_flag = entrada_nfe_extra_financeiro_ok(extra)
+    ids_raw = extra.get("financeiro_ids")
+    ids_list = [str(x).strip() for x in ids_raw if x] if isinstance(ids_raw, list) else []
+
+    emit_nome = str(cab.get("emit_nome") or "").strip()
+    emit_canon = emit_nome
+    if db and col_pessoa:
+        cab_can = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, dict(cab))
+        emit_canon = str(cab_can.get("emit_nome") or emit_nome).strip()
+
+    titulos_ids = _titulos_mongo_por_ids_entrada_nfe(db, ids_list) if fin_flag else []
+    titulos_rastro: list[dict[str, Any]] = []
+    if not titulos_ids:
+        titulos_rastro = _titulos_mongo_por_rastro_entrada_nfe(db, cab)
+    titulos = titulos_ids if titulos_ids else titulos_rastro
+
+    clientes_titulo = list(
+        dict.fromkeys(str(t.get("Cliente") or "").strip() for t in titulos if str(t.get("Cliente") or "").strip())
+    )
+    n_titulos = len(titulos)
+    n_ids_pedidos = len(ids_list)
+    n_ids_achados = len(titulos_ids)
+
+    cliente_ok = True
+    if n_titulos and emit_nome:
+        chaves_emit = {
+            k
+            for k in (
+                _entrada_nfe_chave_nome_fornecedor(emit_nome),
+                _entrada_nfe_chave_nome_fornecedor(emit_canon),
+            )
+            if k
+        }
+        cliente_ok = any(_entrada_nfe_chave_nome_fornecedor(c) in chaves_emit for c in clientes_titulo)
+
+    if tipo == "bonificacao":
+        situacao = "bonificacao"
+        detalhe = "Bonificação — não gera conta a pagar."
+    elif n_titulos and cliente_ok:
+        situacao = "ok"
+        if fin_flag and n_ids_achados >= max(1, min(n_ids_pedidos, n_titulos)):
+            detalhe = f"{n_titulos} título(s) no financeiro (vinculados pelo sistema)."
+        elif fin_flag:
+            detalhe = f"{n_titulos} título(s) encontrado(s); conferir IDs gravados na nota."
+        else:
+            detalhe = f"{n_titulos} título(s) localizado(s) por NF/chave (sem flag financeiro_lancado na nota)."
+    elif n_titulos and not cliente_ok:
+        situacao = "cliente_divergente"
+        detalhe = (
+            f"Título(s) existem, mas Cliente no Mongo ({', '.join(clientes_titulo[:2])}) "
+            f"não bate com «{emit_nome}». Pode não aparecer na busca de Lançamentos."
+        )
+    elif fin_flag and n_ids_pedidos and n_ids_achados == 0:
+        situacao = "titulo_sumido"
+        detalhe = "Nota marcada com financeiro, mas os IDs do título não existem mais no Mongo."
+    elif fin_flag and not n_ids_pedidos:
+        situacao = "flag_sem_id"
+        detalhe = "Nota marcada com financeiro lançado, mas sem IDs de título salvos."
+    elif bucket == "concluida" or _entrada_nfe_extra_finalizacao_ok(extra):
+        situacao = "sem_titulo"
+        detalhe = "Concluída (PIN) sem título a pagar encontrado — gere o financeiro ou confira se é bonificação."
+    elif bucket in ("financeiro", "finalizar"):
+        situacao = "pendente"
+        detalhe = "Ainda na fila financeiro/finalizar — título a pagar ainda não gerado."
+    else:
+        situacao = "sem_titulo"
+        detalhe = "Nenhum título a pagar vinculado a esta nota."
+
+    return {
+        "situacao": situacao,
+        "detalhe": detalhe[:500],
+        "financeiro_lancado": fin_flag,
+        "financeiro_ids_qtd": n_ids_pedidos,
+        "financeiro_ids_encontrados": n_ids_achados,
+        "titulos_qtd": n_titulos,
+        "cliente_ok": cliente_ok,
+        "emit_nome": emit_nome[:300],
+        "emit_nome_canonico": emit_canon[:300],
+        "clientes_titulo": clientes_titulo[:5],
+        "lista_bucket": bucket,
+        "tipo_entrada": tipo,
+    }
+
+
+def auditar_entrada_nfe_financeiro_lote(
+    db,
+    *,
+    col_pessoa: str | None = None,
+    filtro_lista: str | None = "concluida",
+    limit: int = 300,
+) -> dict[str, Any]:
+    """Auditoria em lote das notas salvas (Mongo)."""
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível", "itens": [], "resumo": {}}
+    lim = min(max(int(limit or 300), 1), 500)
+    try:
+        cur = (
+            db[COL_ENTRADA_RASCUNHO]
+            .find(
+                {"status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA}},
+                {
+                    "_id": 1,
+                    "status": 1,
+                    "cabecalho": 1,
+                    "modo": 1,
+                    "extra": 1,
+                    "criado_em": 1,
+                    "atualizado_em": 1,
+                    "linhas": 1,
+                },
+            )
+            .sort("atualizado_em", -1)
+            .limit(lim * 3)
+        )
+        docs = list(cur)
+    except Exception as exc:
+        logger.exception("auditar_entrada_nfe_financeiro_lote")
+        return {"ok": False, "erro": str(exc)[:400], "itens": [], "resumo": {}}
+
+    f = (filtro_lista or "todas").strip().lower()
+    alertas: list[dict[str, Any]] = []
+    resumo: dict[str, int] = {}
+    ok_count = 0
+
+    for raw in docs:
+        d = _serialize_rascunho_leitura(raw)
+        if f != "todas":
+            legacy = {
+                "abertas": "em_andamento",
+                "pendencias": "nota_aberta",
+                "prontas": "estoque",
+                "encerradas": "encerrada_legacy",
+                "descartadas": "descartada",
+            }
+            ff = legacy.get(f, f)
+            b = str(d.get("entrada_lista_bucket") or "")
+            if ff == "em_andamento":
+                if b not in ("nota_aberta", "estoque", "financeiro", "finalizar"):
+                    continue
+            elif ff != b:
+                continue
+        b = str(d.get("entrada_lista_bucket") or "")
+        aud = auditar_financeiro_rascunho_entrada_nfe(db, d, col_pessoa=col_pessoa)
+        sit = str(aud.get("situacao") or "")
+        resumo[sit] = resumo.get(sit, 0) + 1
+        if sit == "ok" or sit == "bonificacao":
+            ok_count += 1
+            continue
+        cab = d.get("cabecalho") if isinstance(d.get("cabecalho"), dict) else {}
+        alertas.append(
+            {
+                "id": str(d.get("_id") or ""),
+                "fornecedor": str(cab.get("emit_nome") or "—")[:200],
+                "nf": str(cab.get("numero") or "—")[:40],
+                "lista_bucket": b,
+                **aud,
+            }
+        )
+        if len(alertas) >= lim:
+            break
+
+    total_avaliado = sum(resumo.values())
+    return {
+        "ok": True,
+        "filtro": f,
+        "total_avaliado": total_avaliado,
+        "total_ok_ou_bonificacao": ok_count,
+        "total_alertas": len(alertas),
+        "resumo": resumo,
+        "alertas": alertas,
+        "nota": (
+            "Concluída = PIN gravado na etapa 6; não garante sozinha que «Salvar + a pagar» foi feito. "
+            "Alertas listam notas sem título no financeiro ou com nome de fornecedor diferente do título."
+        ),
+    }
+
+
 def listar_rascunhos_entrada(db, limit: int = 30, *, filtro: str | None = None) -> list[dict]:
     if db is None:
         return []

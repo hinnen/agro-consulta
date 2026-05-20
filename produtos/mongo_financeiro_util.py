@@ -3956,6 +3956,25 @@ def _bancos_lista_com_placeholder_inicio(bancos: list[dict]) -> list[dict]:
     return [ph, *bancos]
 
 
+def _lancamentos_nome_cliente_canonico(nome: str) -> str:
+    """Chave de deduplicação: ignora prefixo lixo (—, -) e caixa/espaços."""
+    s = str(nome or "").strip()
+    while s and s[0] in "—–-·•":
+        s = s.lstrip("—–-·• ").strip()
+    return " ".join(s.lower().split())
+
+
+def _lancamentos_nome_cliente_score(nome: str, rid: str, cnt: int) -> int:
+    """Prefere linha com ID, nome limpo (sem traço inicial) e mais títulos no histórico."""
+    n = str(nome or "").strip()
+    s = min(int(cnt or 0), 99)
+    if str(rid or "").strip():
+        s += 100
+    if n and n[0] not in "—–-·•":
+        s += 50
+    return s
+
+
 def _lancamentos_sugestoes_cliente_mongo(
     col,
     *,
@@ -4012,18 +4031,64 @@ def _lancamentos_sugestoes_cliente_mongo(
         pipe.append({"$sort": {"nl": -1}})
     else:
         pipe.append({"$sort": {"nl": 1}})
-    pipe.append({"$limit": lim})
+    pipe.append({"$limit": max(lim * 4, 40)})
 
-    out: list[dict[str, str]] = []
-    seen: set[str] = set()
+    buckets: dict[str, dict[str, Any]] = {}
+
+    def _maybe_store(key: str, candidate: dict[str, Any]) -> None:
+        prev = buckets.get(key)
+        if not prev or _lancamentos_nome_cliente_score(
+            candidate["nome"], candidate["id"], candidate["cnt"]
+        ) > _lancamentos_nome_cliente_score(prev["nome"], prev["id"], prev["cnt"]):
+            buckets[key] = candidate
+
     for r in col.aggregate(pipe):
         i = r.get("_id") or {}
         nome = str(i.get("n") or "").strip()
-        if not nome or nome.lower() in seen:
+        if not nome:
             continue
-        seen.add(nome.lower())
         rid = i.get("i")
-        out.append({"nome": nome, "id": str(rid) if rid is not None else ""})
+        rid_s = str(rid).strip() if rid is not None and str(rid).strip() else ""
+        row: dict[str, Any] = {
+            "nome": nome,
+            "id": rid_s,
+            "cnt": int(r.get("cnt") or 0),
+            "ult": r.get("ult"),
+        }
+        canon = _lancamentos_nome_cliente_canonico(nome)
+        if not canon:
+            continue
+        _maybe_store(canon, row)
+
+    ranked = list(buckets.values())
+    if ord_key in ("frequencia",):
+        ranked.sort(
+            key=lambda x: (
+                -int(x.get("cnt") or 0),
+                -_lancamentos_nome_cliente_score(x["nome"], x["id"], x["cnt"]),
+                x["nome"].lower(),
+            ),
+        )
+    elif ord_key in ("recente",):
+        ranked.sort(
+            key=lambda x: (str(x.get("ult") or ""), x["nome"].lower()),
+            reverse=True,
+        )
+    elif ord_key in ("nome_desc", "nome_za"):
+        ranked.sort(key=lambda x: x["nome"].lower(), reverse=True)
+    else:
+        ranked.sort(key=lambda x: x["nome"].lower())
+
+    out: list[dict[str, str]] = []
+    seen_canon: set[str] = set()
+    for row in ranked:
+        canon = _lancamentos_nome_cliente_canonico(row["nome"])
+        if canon in seen_canon:
+            continue
+        seen_canon.add(canon)
+        out.append({"nome": row["nome"], "id": row["id"]})
+        if len(out) >= lim:
+            break
     return out
 
 

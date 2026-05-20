@@ -192,6 +192,9 @@
     const API_CRIAR = "{% url 'api_lancamentos_criar_manual_lote' %}";
     const URL_LISTA_PAGAR = "{% url 'lancamentos_contas_pagar' %}";
     const URL_LISTA_RECEBER = "{% url 'lancamentos_contas_receber' %}";
+    let loteIdempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : ('lote-' + Date.now() + '-' + Math.random().toString(36).slice(2));
 
     /** Volta para a lista: «Todos» se quitado; venc. = menor/maior entre comp., venc. digitado e venc. efetivo; opcional ``q`` = _id Mongo. */
     function urlAposGravarLoteManual(tipo, quitado, dc, dv, dvRaw, idMongo) {
@@ -548,10 +551,14 @@
         recorrente_modo: recorrente ? recMod : 'sempre',
         recorrente_parcelas: recorrente && recMod === 'normal' ? recParcelas : 1,
         linhas,
+        idempotency_key: loteIdempotencyKey,
       };
 
       const btn = document.getElementById('btn-submit');
-      if (btn) btn.disabled = true;
+      if (btn) {
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+      }
       try {
         const r = await fetch(API_CRIAR, {
           method: 'POST',
@@ -564,7 +571,10 @@
         try {
           j = raw ? JSON.parse(raw) : {};
         } catch (_) {
-          alert('Resposta inválida do servidor (HTTP ' + r.status + '). Se a sessão expirou, faça login e tente de novo.');
+          const avisoDup = (r.status >= 500 || r.status === 0)
+            ? '\n\nO servidor pode ter gravado mesmo assim. Abra Lançamentos / contas a pagar e confira antes de clicar de novo (evita duplicar).'
+            : '';
+          alert('Resposta inválida do servidor (HTTP ' + r.status + '). Se a sessão expirou, faça login e tente de novo.' + avisoDup);
           return;
         }
         const ids = Array.isArray(j.ids) ? j.ids : [];
@@ -604,9 +614,12 @@
         alert('Lote gravado. IDs: ' + ids.join(', ') + dupLinha + erpLinha + dicaLista);
         window.location.href = urlAposGravarLoteManual(tipo, quitado, dc, dv, dvRaw, ids[0] || '');
       } catch (_) {
-        alert('Erro de rede.');
+        alert('Erro de rede.\n\nSe o botão ficou travado, confira em Lançamentos se o lote já foi gravado antes de tentar outra vez.');
       } finally {
-        if (btn) btn.disabled = false;
+        if (btn) {
+          btn.disabled = false;
+          btn.removeAttribute('aria-busy');
+        }
       }
     });
 

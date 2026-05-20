@@ -94,6 +94,7 @@ from .nfe_entrada_util import (
     rascunho_entrada_valido_para_aprovacao_wizard,
     release_rascunho_estoque_agro_claim,
     reverter_integracao_entrada_nota_para_reabertura,
+    auditar_entrada_nfe_financeiro_lote,
     normalizar_cabecalho_emit_fornecedor_entrada_nfe,
     salvar_rascunho_entrada,
 )
@@ -8015,6 +8016,32 @@ def api_entrada_nota_rascunhos(request):
 
 @login_required(login_url="/admin/login/")
 @require_GET
+def api_entrada_nota_auditoria_financeiro(request):
+    """
+    Auditoria em lote: verifica títulos em DtoLancamento vs. notas salvas.
+    **Concluída** na lista = PIN etapa 6; use ``filtro=concluida`` para revisar só as verdes.
+    """
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    filtro = (request.GET.get("filtro") or "concluida").strip()[:24]
+    try:
+        lim = min(int(request.GET.get("limit") or 200), 500)
+    except ValueError:
+        lim = 200
+    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
+    out = auditar_entrada_nfe_financeiro_lote(
+        db,
+        col_pessoa=col_pessoa,
+        filtro_lista=filtro,
+        limit=lim,
+    )
+    st = 200 if out.get("ok") else 503
+    return JsonResponse(out, status=st)
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
 def api_entrada_nota_rascunho_obter(request):
     oid = (request.GET.get("id") or "").strip()
     _, db = obter_conexao_mongo()
@@ -11782,6 +11809,19 @@ def api_lancamentos_interpretar_texto(request):
     return JsonResponse(r, status=st)
 
 
+_COL_AGRO_LOTE_MANUAL_IDEM = "AgroLoteManualIdempotencia"
+
+
+def _lancamentos_duplicidades_bloqueadas(erros: list) -> int:
+    n = 0
+    for e in erros or []:
+        if not isinstance(e, dict):
+            continue
+        if "duplicidade bloqueada" in str(e.get("erro") or e.get("mensagem") or "").lower():
+            n += 1
+    return n
+
+
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_lancamentos_criar_manual_lote(request):
@@ -11837,39 +11877,57 @@ def api_lancamentos_criar_manual_lote(request):
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
+    idem_key = str(payload.get("idempotency_key") or "").strip()[:80]
+    if idem_key:
+        try:
+            hit = db[_COL_AGRO_LOTE_MANUAL_IDEM].find_one({"_id": idem_key})
+            if hit and isinstance(hit.get("body"), dict):
+                st_cached = int(hit.get("http_status") or 200)
+                return JsonResponse(hit["body"], status=st_cached)
+        except Exception:
+            logger.exception("lote manual idempotency read")
+
     usuario = ""
     if request.user.is_authenticated:
         usuario = (
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
 
-    resultado = inserir_lancamentos_manual_lote(
-        db,
-        despesa=despesa,
-        empresa_nome=str(payload.get("empresa_nome") or "").strip(),
-        empresa_id=str(payload.get("empresa_id") or "").strip() or None,
-        pessoa_nome=str(payload.get("pessoa_nome") or "").strip(),
-        pessoa_id=str(payload.get("pessoa_id") or "").strip() or None,
-        data_competencia=dc,
-        data_vencimento=dv,
-        banco_nome=str(payload.get("banco_nome") or "").strip(),
-        banco_id=str(payload.get("banco_id") or "").strip() or None,
-        forma_nome=str(payload.get("forma_nome") or "").strip(),
-        forma_id=str(payload.get("forma_id") or "").strip() or None,
-        grupo_nome=str(payload.get("grupo_nome") or "").strip() or None,
-        grupo_id=str(payload.get("grupo_id") or "").strip() or None,
-        usuario_label=usuario,
-        linhas=linhas,
-        marcar_quitado_pagar=bool(quitado and despesa),
-        marcar_quitado_receber=bool(quitado and not despesa),
-        recorrente=bool(recorrente),
-        recorrente_modo=rec_mod,
-        recorrente_parcelas=rec_par,
-    )
+    try:
+        resultado = inserir_lancamentos_manual_lote(
+            db,
+            despesa=despesa,
+            empresa_nome=str(payload.get("empresa_nome") or "").strip(),
+            empresa_id=str(payload.get("empresa_id") or "").strip() or None,
+            pessoa_nome=str(payload.get("pessoa_nome") or "").strip(),
+            pessoa_id=str(payload.get("pessoa_id") or "").strip() or None,
+            data_competencia=dc,
+            data_vencimento=dv,
+            banco_nome=str(payload.get("banco_nome") or "").strip(),
+            banco_id=str(payload.get("banco_id") or "").strip() or None,
+            forma_nome=str(payload.get("forma_nome") or "").strip(),
+            forma_id=str(payload.get("forma_id") or "").strip() or None,
+            grupo_nome=str(payload.get("grupo_nome") or "").strip() or None,
+            grupo_id=str(payload.get("grupo_id") or "").strip() or None,
+            usuario_label=usuario,
+            linhas=linhas,
+            marcar_quitado_pagar=bool(quitado and despesa),
+            marcar_quitado_receber=bool(quitado and not despesa),
+            recorrente=bool(recorrente),
+            recorrente_modo=rec_mod,
+            recorrente_parcelas=rec_par,
+        )
+    except Exception as exc:
+        logger.exception("inserir_lancamentos_manual_lote")
+        return JsonResponse(
+            {"ok": False, "erro": f"Erro ao gravar o lote: {str(exc)[:300]}"},
+            status=500,
+        )
 
     ok = bool(resultado.get("ok"))
     ids = resultado.get("ids") or []
     erros = resultado.get("erros") or []
+    dup_bloq = _lancamentos_duplicidades_bloqueadas(erros)
     aviso_api_erp = None
     erp_lanc_ok = None
     path_lanc = (
@@ -11918,6 +11976,20 @@ def api_lancamentos_criar_manual_lote(request):
         out_lm["erp_lancamento_ok"] = erp_lanc_ok
     if aviso_api_erp:
         out_lm["aviso_api"] = aviso_api_erp
+    if idem_key and ids:
+        try:
+            db[_COL_AGRO_LOTE_MANUAL_IDEM].replace_one(
+                {"_id": idem_key},
+                {
+                    "_id": idem_key,
+                    "ts": timezone.now(),
+                    "body": out_lm,
+                    "http_status": st,
+                },
+                upsert=True,
+            )
+        except Exception:
+            logger.exception("lote manual idempotency write")
     return JsonResponse(out_lm, status=st)
 
 
