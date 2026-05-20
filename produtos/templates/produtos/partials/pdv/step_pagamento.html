@@ -198,7 +198,7 @@
           <div class="mt-2 max-h-[min(52vh,22rem)] space-y-3 overflow-y-auto border-t border-slate-100 pt-2 text-[11px] font-semibold leading-snug text-slate-700 sm:text-xs">
             <section>
               <p class="font-black text-slate-900">Mercado Pago — Balcão (Point)</p>
-              <p class="mt-1"><strong>Automático:</strong> só depois de confirmar a venda (F8 ou F9) o valor vai para a maquininha. <strong>Manual:</strong> você digita o valor no terminal.</p>
+              <p class="mt-1"><strong>Automático:</strong> só depois de confirmar a venda (Enter ou F9) o valor vai para a maquininha. <strong>Manual:</strong> você digita o valor no terminal.</p>
               <p class="mt-1">Na espera do Point: use <strong>Cancelar espera</strong> se precisar. Depois, em “Pagamentos já lançados”, <strong>Alterar</strong> (ex.: manual) ou <strong>Excluir</strong> e lance outra forma. Se o valor ficar aberto na máquina, cancele no próprio terminal.</p>
             </section>
             <section>
@@ -215,7 +215,7 @@
             </section>
             <section>
               <p class="font-black text-slate-900">Atalhos</p>
-              <p class="mt-1">F3 formas · 1–9 no painel · F8 / F9 confirmar · M máquina · T trocar forma no fluxo.</p>
+              <p class="mt-1">F3 formas · 1–9 no painel · Enter / F9 confirmar · M máquina · T trocar forma no fluxo.</p>
             </section>
           </div>
         </details>
@@ -259,7 +259,7 @@
         </label>
       </div>
       <div class="flex min-w-0 flex-col gap-1.5 lg:max-w-none">
-        <button type="button" id="pdv-confirm-sale-no-print" class="pdv-action-btn w-full border-2 border-emerald-500 bg-white px-3 py-2.5 text-xs font-black text-emerald-800 shadow-md hover:bg-emerald-50 sm:px-4 sm:py-3 sm:text-sm">Confirmar sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">F8</kbd></button>
+        <button type="button" id="pdv-confirm-sale-no-print" class="pdv-action-btn w-full border-2 border-emerald-500 bg-white px-3 py-2.5 text-xs font-black text-emerald-800 shadow-md hover:bg-emerald-50 sm:px-4 sm:py-3 sm:text-sm">Confirmar sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd></button>
         <button type="button" id="pdv-confirm-sale-print" class="pdv-action-btn w-full bg-emerald-600 px-3 py-2.5 text-xs font-black text-white shadow-lg shadow-emerald-600/25 sm:px-4 sm:py-3 sm:text-sm">Confirmar com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">F9</kbd></button>
       </div>
     </div>
@@ -303,7 +303,7 @@
     </div>
   </dialog>
 
-  <dialog id="pdv-pay-pop-dinheiro" class="pdv-pay-flow-pop z-[310] w-[min(96vw,420px)] shadow-2xl">
+  <dialog id="pdv-pay-pop-dinheiro" class="pdv-pay-flow-pop z-[310] w-[min(96vw,480px)] shadow-2xl">
     <div class="rounded-3xl bg-white p-5 sm:p-6">
       <p class="text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Dinheiro — visão ampliada</p>
       <div class="mt-4 grid gap-3">
@@ -311,10 +311,13 @@
           <div class="text-xs font-black uppercase text-slate-500">Restante a pagar</div>
           <div id="pdv-pay-pop-din-total" class="mt-1 text-3xl font-black tabular-nums text-slate-900 sm:text-4xl">R$ 0,00</div>
         </div>
-        <div class="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-4 text-center">
-          <div class="text-xs font-black uppercase text-emerald-800">Recebido</div>
-          <div id="pdv-pay-pop-din-recebido" class="mt-1 text-3xl font-black tabular-nums text-emerald-900 sm:text-4xl">—</div>
-        </div>
+        <label class="block rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-4 text-center">
+          <span class="flex flex-wrap items-center justify-center gap-2 text-xs font-black uppercase text-emerald-800">
+            <span>Valor recebido</span>
+            <kbd class="rounded border border-emerald-400 bg-white px-1.5 py-0.5 font-mono text-[9px]">Enter</kbd>
+          </span>
+          <input id="pdv-pay-pop-din-recebido" type="text" inputmode="decimal" class="pdv-input mt-2 w-full border-2 border-emerald-400 bg-white py-3 text-center text-3xl font-black tabular-nums text-emerald-900 sm:text-4xl" autocomplete="off" placeholder="0,00">
+        </label>
         <div class="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 text-center">
           <div class="text-xs font-black uppercase text-amber-900">Troco</div>
           <div id="pdv-pay-pop-din-troco" class="mt-1 text-3xl font-black tabular-nums text-amber-950 sm:text-4xl">—</div>

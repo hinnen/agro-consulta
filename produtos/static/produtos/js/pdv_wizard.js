@@ -15,7 +15,7 @@
     var mpBalcaoPickPending = null;
     /** Evita refocus na lista de máquinas quando o modo MP Balcão fechou após Automático/Manual (sucesso). */
     var mpBalcaoModoCloseAfterSuccess = false;
-    /** Trava duplo clique / F8+F9 repetido enquanto a confirmação de venda está em andamento. */
+    /** Trava duplo clique / Enter+F9 repetido enquanto a confirmação de venda está em andamento. */
     var isProcessingSale = false;
 
     var MP_POINT_WAIT_ABORT_MSG =
@@ -2467,7 +2467,7 @@
         if (!busy) {
             if (n) {
                 n.innerHTML =
-                    'Confirmar sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">F8</kbd>';
+                    'Confirmar sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd>';
             }
             if (p) {
                 p.innerHTML =
@@ -2696,13 +2696,95 @@
         } catch (err2) {}
     }
 
+    function refreshDinheiroPopTrocoDisplay(st, comp) {
+        var trocoEl = document.getElementById('pdv-pay-pop-din-troco');
+        if (!trocoEl) return;
+        var restDin = saldoRestantePagamento(st, comp);
+        var tr = String(st.pagamento.trocoCalculado || '').trim();
+        if (tr) {
+            trocoEl.textContent = formatMoney(State.toNumber(tr));
+            return;
+        }
+        var recN = State.toNumber(st.pagamento.valorRecebido);
+        if (recN > restDin + 0.009) trocoEl.textContent = formatMoney(recN - restDin);
+        else trocoEl.textContent = '—';
+    }
+
+    function syncDinheiroRecebidoValue(raw, syncPopInput) {
+        var val = raw == null ? '' : String(raw);
+        State.setPagamentoField('valorRecebido', val);
+        setInputValue(dom.paymentReceived, val);
+        var st = State.getState();
+        var comp = State.getComputed();
+        var recebido = State.toNumber(val);
+        var rest = saldoRestantePagamento(st, comp);
+        var trocoStr = '';
+        if (recebido > rest + 0.009) {
+            trocoStr = String((recebido - rest).toFixed(2)).replace('.', ',');
+        }
+        State.setPagamentoField('trocoCalculado', trocoStr);
+        setInputValue(dom.paymentChange, trocoStr);
+        refreshDinheiroPopTrocoDisplay(State.getState(), comp);
+        if (syncPopInput) {
+            var recInp = document.getElementById('pdv-pay-pop-din-recebido');
+            if (recInp) setInputValue(recInp, val);
+        }
+    }
+
+    function commitDinheiroRecebido(opts) {
+        opts = opts || {};
+        var st = State.getState();
+        if (st.currentStep !== 'pagamento' || st.pagamento.forma !== 'Dinheiro') return false;
+        var comp = State.getComputed();
+        var rest = saldoRestantePagamento(st, comp);
+        var raw = String(
+            opts.raw != null
+                ? opts.raw
+                : (dom.paymentReceived && dom.paymentReceived.value) || ''
+        ).trim();
+        var cur = raw ? State.toNumber(raw) : 0;
+        if (!raw || cur <= 0.009) {
+            if (rest <= 0.009) return false;
+            var fmt = String(rest.toFixed(2)).replace('.', ',');
+            syncDinheiroRecebidoValue(fmt, true);
+            return false;
+        }
+        var R = cur;
+        var T = Math.min(R, rest);
+        var err = erroCommitTranche(st, comp, T);
+        if (err) {
+            alert(err);
+            return false;
+        }
+        var trocoVal = R > rest + 0.009 ? R - rest : 0;
+        State.addPagamentoLancamento(
+            snapshotLancamentoFromState(st, T, {
+                valorRecebido: String(R.toFixed(2)).replace('.', ','),
+                trocoCalculado: trocoVal > 0.009 ? String(trocoVal.toFixed(2)).replace('.', ',') : ''
+            })
+        );
+        if (opts.closeDialog) {
+            var dlg = document.getElementById('pdv-pay-pop-dinheiro');
+            if (dlg && typeof dlg.close === 'function') {
+                try {
+                    dlg.close();
+                } catch (errClose) {}
+            }
+        }
+        afterCommitTrancheFlow();
+        return true;
+    }
+
     function focusFirstFlowFieldForForma(forma) {
         setTimeout(function () {
             var st = State.getState();
             var mid = String((st.pagamento && st.pagamento.maquinaId) || '').trim();
             var tr = document.getElementById('pdv-pay-valor-tranche');
-            if (forma === 'Dinheiro' && dom.paymentReceived) dom.paymentReceived.focus();
-            else if (forma === 'PIX') {
+            if (forma === 'Dinheiro') {
+                openPayPopDinheiroResumo({ autofocus: true });
+                return;
+            }
+            if (forma === 'PIX') {
                 if (!mid) {
                     var bp = document.getElementById('pdv-pay-open-maquinas-pix');
                     if (bp) bp.focus();
@@ -2797,7 +2879,10 @@
         var raw = String(inp.value || '').trim();
         var cur = raw ? State.toNumber(raw) : 0;
         if (!raw || cur <= 0.009) {
-            if (rest <= 0.009) return;
+            if (rest <= 0.009) {
+                if (dom.confirmSaleNoPrint && !dom.confirmSaleNoPrint.disabled) confirmSale(false);
+                return;
+            }
             var fmt = String(rest.toFixed(2)).replace('.', ',');
             inp.value = fmt;
             State.setPagamentoField('valorDestaForma', fmt);
@@ -2816,37 +2901,12 @@
         if (event.key !== 'Enter') return;
         var tag = (event.target && event.target.tagName) || '';
         if (tag === 'TEXTAREA') return;
-        if (!dom.paymentReceived || event.target !== dom.paymentReceived) return;
+        var popRec = document.getElementById('pdv-pay-pop-din-recebido');
+        var fromPop = popRec && event.target === popRec;
+        if (!fromPop && (!dom.paymentReceived || event.target !== dom.paymentReceived)) return;
         event.preventDefault();
-        var st = State.getState();
-        if (st.currentStep !== 'pagamento' || st.pagamento.forma !== 'Dinheiro') return;
-        var comp = State.getComputed();
-        var rest = saldoRestantePagamento(st, comp);
-        var raw = String(dom.paymentReceived.value || '').trim();
-        var cur = raw ? State.toNumber(raw) : 0;
-        if (!raw || cur <= 0.009) {
-            if (rest <= 0.009) return;
-            var fmt = String(rest.toFixed(2)).replace('.', ',');
-            dom.paymentReceived.value = fmt;
-            State.setPagamentoField('valorRecebido', fmt);
-            State.setPagamentoField('trocoCalculado', '');
-            return;
-        }
-        var R = cur;
-        var T = Math.min(R, rest);
-        var err = erroCommitTranche(st, comp, T);
-        if (err) {
-            alert(err);
-            return;
-        }
-        var trocoVal = R > rest + 0.009 ? R - rest : 0;
-        State.addPagamentoLancamento(
-            snapshotLancamentoFromState(st, T, {
-                valorRecebido: String(R.toFixed(2)).replace('.', ','),
-                trocoCalculado: trocoVal > 0.009 ? String(trocoVal.toFixed(2)).replace('.', ',') : ''
-            })
-        );
-        afterCommitTrancheFlow();
+        var raw = fromPop ? popRec.value : dom.paymentReceived.value;
+        commitDinheiroRecebido({ raw: raw, closeDialog: fromPop });
     }
 
     function focusParcelasThenTranche(event) {
@@ -2888,29 +2948,27 @@
         showPayFlowDialog(dlg);
     }
 
-    function openPayPopDinheiroResumo() {
+    function openPayPopDinheiroResumo(opts) {
+        opts = opts || {};
         var dlg = document.getElementById('pdv-pay-pop-dinheiro');
         if (!dlg) return;
         var st = State.getState();
         var comp = State.getComputed();
         var totalEl = document.getElementById('pdv-pay-pop-din-total');
-        var recEl = document.getElementById('pdv-pay-pop-din-recebido');
-        var trocoEl = document.getElementById('pdv-pay-pop-din-troco');
+        var recInp = document.getElementById('pdv-pay-pop-din-recebido');
         var restDin = saldoRestantePagamento(st, comp);
         if (totalEl) totalEl.textContent = formatMoney(restDin);
-        var recRaw = String(st.pagamento.valorRecebido || '').trim();
-        if (recEl) recEl.textContent = recRaw ? formatMoney(State.toNumber(recRaw)) : '—';
-        var tr = String(st.pagamento.trocoCalculado || '').trim();
-        if (trocoEl) {
-            if (tr) {
-                trocoEl.textContent = formatMoney(State.toNumber(tr));
-            } else {
-                var recN = State.toNumber(st.pagamento.valorRecebido);
-                if (recN > restDin + 0.009) trocoEl.textContent = formatMoney(recN - restDin);
-                else trocoEl.textContent = '—';
-            }
-        }
+        if (recInp) setInputValue(recInp, String(st.pagamento.valorRecebido || '').trim());
+        refreshDinheiroPopTrocoDisplay(st, comp);
         showPayFlowDialog(dlg);
+        if (opts.autofocus !== false && recInp) {
+            setTimeout(function () {
+                try {
+                    recInp.focus();
+                    if (recInp.select) recInp.select();
+                } catch (errFocus) {}
+            }, 60);
+        }
     }
 
     function openPayPopFiado() {
@@ -3881,16 +3939,7 @@
             [dom.paymentDiscount, function () { State.setPagamentoField('descontoGeral', State.toNumber(dom.paymentDiscount.value)); }],
             [dom.paymentShipping, function () { State.setPagamentoField('frete', State.toNumber(dom.paymentShipping.value)); }],
             [dom.paymentReceived, function () {
-                State.setPagamentoField('valorRecebido', dom.paymentReceived.value);
-                var state = State.getState();
-                var computed = State.getComputed();
-                var recebido = State.toNumber(dom.paymentReceived.value);
-                var rest = saldoRestantePagamento(state, computed);
-                if (recebido > rest + 0.009) {
-                    State.setPagamentoField('trocoCalculado', String((recebido - rest).toFixed(2)).replace('.', ','));
-                } else {
-                    State.setPagamentoField('trocoCalculado', '');
-                }
+                syncDinheiroRecebidoValue(dom.paymentReceived.value, true);
             }],
             [dom.paymentChange, function () { State.setPagamentoField('trocoCalculado', dom.paymentChange.value); }],
             [dom.paymentNote, function () { State.setPagamentoField('observacaoFinal', dom.paymentNote.value); }]
@@ -4016,6 +4065,13 @@
         }
 
         if (dom.paymentReceived) dom.paymentReceived.addEventListener('keydown', handlePaymentReceivedEnter);
+        var dinPopRec = document.getElementById('pdv-pay-pop-din-recebido');
+        if (dinPopRec) {
+            dinPopRec.addEventListener('input', function () {
+                syncDinheiroRecebidoValue(dinPopRec.value, false);
+            });
+            dinPopRec.addEventListener('keydown', handlePaymentReceivedEnter);
+        }
 
         if (dom.paymentLancamentosList) {
             dom.paymentLancamentosList.addEventListener('click', function (event) {
@@ -4457,7 +4513,14 @@
                     openPaymentFormaModal();
                     return;
                 }
-                if (event.code === 'F8') {
+                if (
+                    event.key === 'Enter' &&
+                    !event.ctrlKey &&
+                    !event.altKey &&
+                    !event.metaKey &&
+                    !event.shiftKey &&
+                    !inField
+                ) {
                     event.preventDefault();
                     if (dom.confirmSaleNoPrint && !dom.confirmSaleNoPrint.disabled) confirmSale(false);
                     return;
