@@ -917,9 +917,7 @@
 
     function erroValidacaoPagamento(state, computed) {
         var forma = String(state.pagamento.forma || '').trim();
-        if (forma) {
-            return 'Finalize este meio com Enter no valor (dinheiro ou “Valor nesta forma”) ou use Trocar forma.';
-        }
+        if (forma) return '';
         var arr = state.pagamento.lancamentos || [];
         if (!arr.length) return 'Escolha formas de pagamento até cobrir o total.';
         var total = totalNumberFromComputed(computed);
@@ -1064,7 +1062,7 @@
             produtos: 'Monte os itens e defina o cliente base da venda.',
             cliente: 'Atalhos nos botões · E edita dados do cliente.',
             entrega: 'Pop-up: pagamento na entrega ou na loja. Rodapé: Enviar entrega ou Ir para pagamento · F7. F1 volta.',
-            pagamento: 'Feche a venda e confirme o envio.'
+            pagamento: ''
         };
         dom.stepHint.textContent = hints[state.currentStep] || 'Siga o fluxo da venda.';
     }
