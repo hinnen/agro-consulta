@@ -854,6 +854,7 @@
         <div class="flex flex-wrap gap-1.5 shrink-0 items-center">
           <button type="button" id="btn-entrada-nfe-nova" class="min-h-[40px] px-3 py-2 rounded-xl bg-emerald-700 text-white text-[11px] font-black uppercase tracking-wide hover:bg-emerald-800 border border-emerald-800/40 shadow-sm">Nova</button>
           <button type="button" id="btn-refresh-rasc" class="min-h-[40px] px-3 py-2 rounded-xl border border-orange-200/90 bg-white text-[11px] font-black uppercase text-orange-900 hover:bg-orange-50/90">Atualizar</button>
+          <button type="button" id="btn-auditoria-fin" class="min-h-[40px] px-3 py-2 rounded-xl border-2 border-violet-300 bg-violet-50 text-[11px] font-black uppercase text-violet-950 hover:bg-violet-100" title="Confere no Mongo se as notas do filtro atual têm título em Lançamentos / contas a pagar.">Auditar financeiro</button>
           <button type="button" class="entrada-nfe-open-ajuda min-h-[40px] min-w-[40px] rounded-xl border border-slate-300/90 bg-white text-base font-black text-slate-600 hover:bg-orange-50/80 hover:border-orange-300" title="Ajuda">?</button>
         </div>
       </div>
@@ -865,7 +866,7 @@
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="financeiro" title="Estoque já feito; falta gerar a pagar (Salvar + a pagar), se for o caso.">Financeiro</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="finalizar" title="Estoque + financeiro ok; falta gravar a finalização com PIN (etapa 6 do assistente).">Finalizar</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="correcao_sistemica" title="Notas em andamento marcadas manualmente como CORREÇÃO SISTEMICA (aguardando ajuste no sistema).">Correção sistemica</button>
-        <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="concluida" title="PIN da etapa 6 gravado no Agro (finalização do assistente).">Concluída</button>
+        <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="concluida" title="PIN da etapa 6 gravado. Não garante sozinho «Salvar + a pagar» — use «Auditar financeiro».">Concluída</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="encerrada" title="Entradas antigas marcadas como encerradas (antes do fluxo só estoque + financeiro).">Encerr. legado</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="descartada" title="Marcada como descartada.">Descartada</button>
       </div>
@@ -1413,6 +1414,16 @@
     </div>
   </div>
 
+  <div id="modal-entrada-nfe-auditoria-fin" class="hidden fixed inset-0 z-[72] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-entrada-nfe-auditoria-titulo">
+    <div class="w-full max-w-2xl max-h-[min(88vh,40rem)] flex flex-col rounded-2xl border-2 border-violet-200 bg-white shadow-xl overflow-hidden">
+      <div class="shrink-0 px-4 py-3 border-b border-violet-100 bg-violet-50/80 flex items-center justify-between gap-2">
+        <h2 id="modal-entrada-nfe-auditoria-titulo" class="text-base font-black uppercase text-violet-950">Auditoria · financeiro</h2>
+        <button type="button" id="btn-fechar-auditoria-fin" class="min-h-[40px] min-w-[40px] rounded-xl border-2 border-slate-200 bg-white text-sm font-black text-slate-700 hover:bg-slate-50" aria-label="Fechar">×</button>
+      </div>
+      <div id="modal-entrada-nfe-auditoria-body" class="flex-1 min-h-0 overflow-y-auto p-4 text-sm text-slate-800 space-y-3"></div>
+    </div>
+  </div>
+
   <div id="modal-entrada-nfe-ajuda" class="hidden fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-entrada-nfe-ajuda-titulo">
     <div class="bg-white rounded-2xl shadow-2xl max-w-[min(36rem,96vw)] w-full max-h-[min(85vh,640px)] overflow-hidden flex flex-col border-2 border-slate-200">
       <div class="px-4 py-3 sm:px-5 border-b-2 border-slate-100 flex items-center justify-between gap-2 shrink-0 bg-slate-50/90">
@@ -1493,6 +1504,7 @@
   const URL_ESTOQUE_AGRO = "{% url 'api_entrada_nota_estoque_agro' %}";
   const URL_FORN = "{% url 'api_entrada_nota_fornecedores' %}";
   const URL_RASC = "{% url 'api_entrada_nota_rascunhos' %}";
+  const URL_AUDITORIA_FIN = "{% url 'api_entrada_nota_auditoria_financeiro' %}";
   const URL_DFE = "{% url 'api_entrada_nota_dist_dfe' %}";
   const URL_SUG = "{% url 'api_lancamentos_sugestoes' %}";
   const URL_BUSCA = "{% url 'api_buscar_mobile' %}";
@@ -8064,6 +8076,79 @@
   });
 
   document.getElementById('btn-refresh-rasc').addEventListener('click', carregarRascunhos);
+
+  async function entradaNfeAuditoriaFinanceiro() {
+    const modal = document.getElementById('modal-entrada-nfe-auditoria-fin');
+    const body = document.getElementById('modal-entrada-nfe-auditoria-body');
+    const btn = document.getElementById('btn-auditoria-fin');
+    if (!modal || !body) return;
+    modal.classList.remove('hidden');
+    body.innerHTML = '<p class="font-bold text-slate-600">Consultando Mongo…</p>';
+    if (btn) {
+      btn.disabled = true;
+      btn.setAttribute('aria-busy', 'true');
+    }
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    try {
+      const u = new URL(URL_AUDITORIA_FIN, window.location.origin);
+      u.searchParams.set('filtro', entradaNfeListaFiltro || 'concluida');
+      u.searchParams.set('limit', '250');
+      const r = await fetch(u.toString(), { credentials: 'same-origin' });
+      const j = await r.json();
+      if (!j.ok) {
+        body.innerHTML = `<p class="font-bold text-red-800">${entradaNfeFornEsc(j.erro || 'Falha na auditoria.')}</p>`;
+        return;
+      }
+      const resumo = j.resumo && typeof j.resumo === 'object' ? j.resumo : {};
+      const linhasResumo = Object.keys(resumo)
+        .sort()
+        .map((k) => `<li><strong>${entradaNfeFornEsc(k)}</strong>: ${resumo[k]}</li>`)
+        .join('');
+      const alertas = Array.isArray(j.alertas) ? j.alertas : [];
+      let html = `
+        <p class="text-xs text-slate-600 leading-relaxed">${entradaNfeFornEsc(j.nota || '')}</p>
+        <p class="font-black text-emerald-900">OK ou bonificação: ${Number(j.total_ok_ou_bonificacao || 0)} · Alertas: ${Number(j.total_alertas || 0)} (filtro: ${entradaNfeFornEsc(j.filtro || '')})</p>
+        <ul class="text-xs list-disc pl-5 space-y-0.5">${linhasResumo || '<li>—</li>'}</ul>`;
+      if (!alertas.length) {
+        html += '<p class="mt-3 font-black text-emerald-800">Nenhuma pendência neste filtro — títulos conferidos no financeiro Agro.</p>';
+      } else {
+        html += '<div class="mt-3 space-y-2 max-h-[50vh] overflow-y-auto">';
+        alertas.forEach((a) => {
+          const sit = String(a.situacao || '');
+          const cor = sit === 'cliente_divergente' ? 'border-amber-300 bg-amber-50' : 'border-red-200 bg-red-50';
+          html += `<article class="rounded-xl border-2 ${cor} px-3 py-2">
+            <div class="font-black text-slate-900">${entradaNfeFornEsc(a.fornecedor)} · NF ${entradaNfeFornEsc(a.nf)}</div>
+            <div class="text-[10px] font-black uppercase text-slate-600 mt-0.5">${entradaNfeFornEsc(sit)} · ${entradaNfeFornEsc(a.lista_bucket || '')}</div>
+            <p class="text-xs font-bold text-slate-800 mt-1 leading-snug">${entradaNfeFornEsc(a.detalhe || '')}</p>
+            <button type="button" class="mt-2 text-[10px] font-black uppercase text-blue-800 underline btn-aud-abrir" data-id="${entradaNfeFornEsc(a.id)}">Abrir nota</button>
+          </article>`;
+        });
+        html += '</div>';
+      }
+      body.innerHTML = html;
+      body.querySelectorAll('.btn-aud-abrir').forEach((el) => {
+        el.addEventListener('click', () => {
+          const id = el.getAttribute('data-id');
+          if (!id) return;
+          modal.classList.add('hidden');
+          void carregarRascunhoNaTela(id);
+        });
+      });
+    } catch (_) {
+      body.innerHTML = '<p class="font-bold text-red-800">Erro de rede na auditoria.</p>';
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.removeAttribute('aria-busy');
+      }
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
+    }
+  }
+
+  document.getElementById('btn-auditoria-fin')?.addEventListener('click', () => { void entradaNfeAuditoriaFinanceiro(); });
+  document.getElementById('btn-fechar-auditoria-fin')?.addEventListener('click', () => {
+    document.getElementById('modal-entrada-nfe-auditoria-fin')?.classList.add('hidden');
+  });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && elModalAjudaNfe && !elModalAjudaNfe.classList.contains('hidden')) {

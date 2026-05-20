@@ -94,6 +94,7 @@ from .nfe_entrada_util import (
     rascunho_entrada_valido_para_aprovacao_wizard,
     release_rascunho_estoque_agro_claim,
     reverter_integracao_entrada_nota_para_reabertura,
+    auditar_entrada_nfe_financeiro_lote,
     normalizar_cabecalho_emit_fornecedor_entrada_nfe,
     salvar_rascunho_entrada,
 )
@@ -8011,6 +8012,32 @@ def api_entrada_nota_rascunhos(request):
         lim = 25
     filtro = (request.GET.get("filtro") or "todas").strip()[:24]
     return JsonResponse({"itens": listar_rascunhos_entrada(db, limit=lim, filtro=filtro or None)})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_entrada_nota_auditoria_financeiro(request):
+    """
+    Auditoria em lote: verifica títulos em DtoLancamento vs. notas salvas.
+    **Concluída** na lista = PIN etapa 6; use ``filtro=concluida`` para revisar só as verdes.
+    """
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    filtro = (request.GET.get("filtro") or "concluida").strip()[:24]
+    try:
+        lim = min(int(request.GET.get("limit") or 200), 500)
+    except ValueError:
+        lim = 200
+    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
+    out = auditar_entrada_nfe_financeiro_lote(
+        db,
+        col_pessoa=col_pessoa,
+        filtro_lista=filtro,
+        limit=lim,
+    )
+    st = 200 if out.get("ok") else 503
+    return JsonResponse(out, status=st)
 
 
 @login_required(login_url="/admin/login/")
