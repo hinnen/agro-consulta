@@ -3395,12 +3395,6 @@ inputBusca.addEventListener('keydown', function(e) {
         esconderStatusBusca();
         quantidadeRapida = 1;
     }
-    else if (e.key === 'Backspace') {
-        if (!inputBusca.value.trim() && carrinho.length) {
-            e.preventDefault();
-            removerUltimoItem();
-        }
-    }
 });
 }
 
@@ -3659,6 +3653,23 @@ function renderizarClientes(clientes) {
 
     clienteResults.classList.remove('hidden');
 }
+
+/** Evita «voltar» do navegador/Electron com Backspace fora de campo (e não apaga item do carrinho). */
+document.addEventListener(
+    'keydown',
+    function (e) {
+        if (e.key !== 'Backspace' && e.code !== 'Backspace') return;
+        const t = e.target;
+        const tag = t && t.tagName;
+        const inField =
+            tag === 'INPUT' ||
+            tag === 'TEXTAREA' ||
+            tag === 'SELECT' ||
+            (t && t.isContentEditable);
+        if (!inField) e.preventDefault();
+    },
+    true
+);
 
 document.addEventListener('keydown', function(e) {
     if (document.body.classList.contains('sspin-locked')) return;
