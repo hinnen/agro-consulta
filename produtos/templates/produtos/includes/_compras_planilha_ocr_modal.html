@@ -1,0 +1,50 @@
+<div id="modal-planilha-ocr" class="fixed inset-0 z-[115] hidden items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-planilha-ocr-titulo">
+  <div class="bg-white rounded-2xl shadow-2xl border border-amber-200 w-[min(96vw,44rem)] max-h-[92vh] flex flex-col min-h-0 overflow-hidden">
+    <div class="shrink-0 flex items-start justify-between gap-2 px-4 py-3 border-b border-amber-100 bg-amber-50/80">
+      <div class="min-w-0">
+        <h2 id="modal-planilha-ocr-titulo" class="text-base sm:text-lg font-black uppercase text-slate-900">Ler foto da planilha</h2>
+        <p id="planilha-ocr-manifest-info" class="text-xs font-semibold text-slate-600 mt-1">—</p>
+      </div>
+      <button type="button" id="btn-planilha-ocr-fechar" class="text-slate-500 hover:text-slate-900 font-black text-lg px-2" aria-label="Fechar">✕</button>
+    </div>
+    <div id="planilha-ocr-step-upload" class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+      <p class="text-sm font-semibold text-slate-700 leading-snug">Use a <strong>folha oficial</strong> impressa pelo sistema. Preencha só a coluna <strong>Pedir</strong> à mão. Em listas com várias páginas, tire <strong>uma foto por página</strong> e escolha o número abaixo.</p>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-600">Página desta foto</span>
+        <select id="planilha-ocr-pagina" class="mt-1 w-full rounded-xl border-2 border-amber-300 bg-white px-3 py-2.5 text-sm font-black text-slate-900 min-h-[48px]">
+          <option value="1">Página 1</option>
+        </select>
+        <p id="planilha-ocr-pagina-hint" class="mt-1 text-[10px] font-semibold text-slate-500 leading-snug"></p>
+      </label>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-600">Anexar foto (Windows / arquivo)</span>
+        <input type="file" id="planilha-ocr-file" accept="image/*" class="mt-1 w-full text-sm font-semibold">
+      </label>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-600">Ou tirar foto (celular)</span>
+        <input type="file" id="planilha-ocr-camera" accept="image/*" capture="environment" class="mt-1 w-full text-sm font-semibold">
+      </label>
+      <img id="planilha-ocr-preview" alt="" class="hidden max-h-40 w-auto mx-auto rounded-lg border border-slate-200">
+      <p id="planilha-ocr-progress" class="hidden text-center text-sm font-bold text-amber-800">A ler…</p>
+    </div>
+    <div id="planilha-ocr-step-conferencia" class="hidden flex-1 min-h-0 flex flex-col">
+      <p class="px-4 pt-3 text-xs font-semibold text-slate-600 shrink-0">Confira cada quantidade antes de ir ao carrinho. Ajuste se a leitura errou.</p>
+      <div class="flex-1 min-h-0 overflow-y-auto px-4 py-2">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="text-[10px] font-black uppercase text-slate-500 border-b border-slate-200">
+              <th class="py-2 w-10">#</th>
+              <th class="py-2">Produto</th>
+              <th class="py-2 w-24 text-center">Pedir</th>
+            </tr>
+          </thead>
+          <tbody id="planilha-ocr-conferencia-body"></tbody>
+        </table>
+      </div>
+      <div class="shrink-0 flex flex-wrap gap-2 p-4 border-t border-slate-100">
+        <button type="button" id="btn-planilha-ocr-voltar-foto" class="flex-1 min-h-[48px] rounded-xl border-2 border-slate-200 bg-white font-black text-xs uppercase text-slate-700">Outra foto</button>
+        <button type="button" id="btn-planilha-ocr-aplicar" class="flex-[2] min-h-[48px] rounded-xl border-2 border-emerald-600 bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700">Colocar no carrinho</button>
+      </div>
+    </div>
+  </div>
+</div>

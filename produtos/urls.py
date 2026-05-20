@@ -34,6 +34,11 @@ urlpatterns = [
         name='compras_relatorio_planilha_unidade',
     ),
     path(
+        'compras/relatorio-planilha-fornecedor/',
+        views.compras_relatorio_planilha_fornecedor_view,
+        name='compras_relatorio_planilha_fornecedor',
+    ),
+    path(
         'api/compras/relatorio-fornecedor/',
         views.api_compras_relatorio_fornecedor,
         name='api_compras_relatorio_fornecedor',
