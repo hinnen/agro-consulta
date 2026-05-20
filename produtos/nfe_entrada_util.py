@@ -410,16 +410,20 @@ def salvar_rascunho_entrada(
     linhas: list[dict],
     xml_chave: str | None = None,
     extra: dict | None = None,
+    col_pessoa: str | None = None,
 ) -> dict[str, Any]:
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
+    cab_norm = cabecalho
+    if col_pessoa:
+        cab_norm = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, cabecalho)
     st = entrada_nfe_status_derivado_linhas(linhas)
     doc = {
         "criado_em": datetime.now(timezone.utc),
         "usuario": (usuario or "")[:200],
         "modo": (modo or "manual")[:40],
         "status": st,
-        "cabecalho": cabecalho,
+        "cabecalho": cab_norm,
         "linhas": linhas,
         "xml_chave": (xml_chave or "")[:44] or None,
         "extra": extra or {},
@@ -682,12 +686,16 @@ def atualizar_rascunho_entrada(
     linhas: list,
     xml_chave: str | None = None,
     extra: dict | None = None,
+    col_pessoa: str | None = None,
 ) -> dict[str, Any]:
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
+    cab_norm = cabecalho
+    if col_pessoa:
+        cab_norm = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, cabecalho)
     try:
         atual = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
         if not atual:
@@ -719,7 +727,7 @@ def atualizar_rascunho_entrada(
             "atualizado_em": datetime.now(timezone.utc),
             "usuario_ultima_alteracao": (usuario or "")[:200],
             "modo": (modo or "manual")[:40],
-            "cabecalho": cabecalho,
+            "cabecalho": cab_norm,
             "linhas": linhas,
             "xml_chave": (xml_chave or "")[:44] or None,
             "extra": merged_extra,
@@ -1070,6 +1078,221 @@ def obter_ult_nsu(db, cnpj: str) -> str:
     return "0"
 
 
+def _entrada_nfe_chave_nome_fornecedor(nome) -> str:
+    return " ".join(str(nome or "").strip().lower().split())
+
+
+def _entrada_nfe_chave_doc_fornecedor(documento: str) -> str:
+    d = re.sub(r"\D", "", str(documento or ""))
+    return d if len(d) >= 11 else ""
+
+
+def _entrada_nfe_chave_id_fornecedor(pid: str) -> str:
+    return str(pid or "").strip().lower()
+
+
+def _nome_exibicao_fornecedor_dto_pessoa(doc: dict) -> str:
+    """Nome que o ERP costuma exibir (fantasia antes de razão social)."""
+    if not isinstance(doc, dict):
+        return ""
+    for chave in (
+        "NomeFantasia",
+        "Fantasia",
+        "nomeFantasia",
+        "fantasia",
+        "Nome",
+        "nome",
+        "RazaoSocial",
+        "razaoSocial",
+        "Apelido",
+        "apelido",
+    ):
+        v = doc.get(chave)
+        if v is not None:
+            s = str(v).strip()
+            if len(s) >= 2:
+                return s[:300]
+    return ""
+
+
+def _documento_fornecedor_dto_pessoa(doc: dict) -> str:
+    if not isinstance(doc, dict):
+        return ""
+    for key in (
+        "CpfCnpj",
+        "CNPJ",
+        "Cnpj",
+        "CPF",
+        "Cpf",
+        "cpfCnpj",
+        "Documento",
+        "documento",
+        "InscricaoFederal",
+        "inscricaoFederal",
+    ):
+        raw = doc.get(key)
+        if raw is None:
+            continue
+        d = re.sub(r"\D", "", str(raw))[:18]
+        if len(d) >= 11:
+            return d
+    return ""
+
+
+def _id_fornecedor_dto_pessoa(doc: dict) -> str:
+    if not isinstance(doc, dict):
+        return ""
+    pid = str(doc.get("Id") or doc.get("id") or doc.get("ID") or "").strip()
+    if pid:
+        return pid
+    oid = doc.get("_id")
+    if oid is not None:
+        return str(oid).strip()
+    return ""
+
+
+def _mongo_filtro_id_pessoa_externo(pid_str: str) -> dict[str, Any]:
+    pid = str(pid_str or "").strip()
+    if not pid:
+        return {"_id": None}
+    ors: list[dict[str, Any]] = [{"Id": pid}, {"id": pid}, {"ID": pid}]
+    try:
+        ors.append({"Id": int(pid)})
+    except (TypeError, ValueError):
+        pass
+    try:
+        from bson import ObjectId
+
+        ors.append({"_id": ObjectId(pid)})
+    except Exception:
+        pass
+    return {"$or": ors}
+
+
+_PROJ_FORNECEDOR_ENTRADA_NFE = {
+    "Nome": 1,
+    "RazaoSocial": 1,
+    "NomeFantasia": 1,
+    "Fantasia": 1,
+    "CpfCnpj": 1,
+    "Id": 1,
+    "_id": 1,
+    "CNPJ": 1,
+    "Cnpj": 1,
+    "CPF": 1,
+    "Cpf": 1,
+}
+
+
+def _linha_fornecedor_entrada_nfe_de_doc_mongo(d: dict) -> dict[str, str] | None:
+    nome = _nome_exibicao_fornecedor_dto_pessoa(d)
+    if not nome:
+        return None
+    pid = _id_fornecedor_dto_pessoa(d)
+    if not pid:
+        return None
+    documento = _documento_fornecedor_dto_pessoa(d)
+    row: dict[str, str] = {
+        "id": pid,
+        "nome": nome[:300],
+        "documento": documento,
+        "origem": "mongo",
+    }
+    razao = str(d.get("RazaoSocial") or d.get("razaoSocial") or "").strip()
+    if (
+        razao
+        and _entrada_nfe_chave_nome_fornecedor(razao) != _entrada_nfe_chave_nome_fornecedor(nome)
+    ):
+        row["razao_social"] = razao[:300]
+    return row
+
+
+def _buscar_fornecedor_dto_pessoa_entrada_nfe(
+    db,
+    col_pessoa: str,
+    *,
+    pid: str = "",
+    cnpj: str = "",
+    nome: str = "",
+) -> dict | None:
+    if db is None or not col_pessoa:
+        return None
+    col = db[col_pessoa]
+    pid = str(pid or "").strip()
+    if pid and not pid.lower().startswith("local:"):
+        try:
+            doc = col.find_one(_mongo_filtro_id_pessoa_externo(pid), _PROJ_FORNECEDOR_ENTRADA_NFE)
+            if isinstance(doc, dict):
+                return doc
+        except Exception:
+            pass
+    digits = re.sub(r"\D", "", str(cnpj or ""))
+    if len(digits) >= 11:
+        try:
+            cond: dict[str, Any] = {
+                "$or": [
+                    {"CpfCnpj": {"$regex": re.escape(digits)}},
+                    {"CNPJ": {"$regex": re.escape(digits)}},
+                    {"Cnpj": {"$regex": re.escape(digits)}},
+                ]
+            }
+            doc = col.find_one(cond, _PROJ_FORNECEDOR_ENTRADA_NFE)
+            if isinstance(doc, dict):
+                return doc
+        except Exception:
+            pass
+    nome = str(nome or "").strip()
+    if len(nome) >= 2:
+        esc = re.escape(nome)
+        try:
+            cond = {
+                "$or": [
+                    {"NomeFantasia": {"$regex": f"^{esc}$", "$options": "i"}},
+                    {"Nome": {"$regex": f"^{esc}$", "$options": "i"}},
+                    {"RazaoSocial": {"$regex": f"^{esc}$", "$options": "i"}},
+                ]
+            }
+            doc = col.find_one(cond, _PROJ_FORNECEDOR_ENTRADA_NFE)
+            if isinstance(doc, dict):
+                return doc
+        except Exception:
+            pass
+    return None
+
+
+def normalizar_cabecalho_emit_fornecedor_entrada_nfe(
+    db,
+    col_pessoa: str,
+    cab: dict | None,
+) -> dict:
+    """
+    Alinha emitente ao cadastro Mongo (nome fantasia + Id do ERP) para títulos a pagar
+    baterem com Lançamentos / contas a pagar — evita razão social da NF sem vínculo.
+    """
+    if not isinstance(cab, dict):
+        return cab if cab is not None else {}
+    out = dict(cab)
+    doc = _buscar_fornecedor_dto_pessoa_entrada_nfe(
+        db,
+        col_pessoa,
+        pid=str(out.get("emit_fornecedor_id") or "").strip(),
+        cnpj=str(out.get("emit_cnpj") or "").strip(),
+        nome=str(out.get("emit_nome") or "").strip(),
+    )
+    if not doc:
+        return out
+    nome_can = _nome_exibicao_fornecedor_dto_pessoa(doc)
+    pid_can = _id_fornecedor_dto_pessoa(doc)
+    doc_cnpj = _documento_fornecedor_dto_pessoa(doc)
+    if nome_can:
+        out["emit_nome"] = nome_can[:300]
+    if pid_can:
+        out["emit_fornecedor_id"] = pid_can
+    if doc_cnpj:
+        out["emit_cnpj"] = doc_cnpj
+    return out
+
+
 def buscar_fornecedores_entrada_nfe(
     db,
     col_pessoa: str,
@@ -1081,6 +1304,7 @@ def buscar_fornecedores_entrada_nfe(
     """
     Pessoas no Mongo (DtoPessoa) por nome ou CNPJ/CPF.
     ``inicial=True`` sem ``q`` retorna até ``limit`` registros ordenados por nome (para abrir o datalist).
+    Nome exibido prioriza **fantasia** (como no ERP), não razão social.
     """
     out: list[dict[str, str]] = []
     if db is None or not col_pessoa:
@@ -1088,28 +1312,17 @@ def buscar_fornecedores_entrada_nfe(
     lim = min(max(int(limit or 50), 1), 100)
     q = (q or "").strip()
     col = db[col_pessoa]
-    proj = {
-        "Nome": 1,
-        "RazaoSocial": 1,
-        "NomeFantasia": 1,
-        "CpfCnpj": 1,
-        "Id": 1,
-        "_id": 1,
-        "CNPJ": 1,
-        "Cnpj": 1,
-        "CPF": 1,
-        "Cpf": 1,
-    }
+    proj = _PROJ_FORNECEDOR_ENTRADA_NFE
     try:
         if not q and inicial:
-            cur = col.find({}, proj).sort([("Nome", 1), ("RazaoSocial", 1)]).limit(lim)
+            cur = col.find({}, proj).sort([("NomeFantasia", 1), ("Nome", 1)]).limit(lim)
         elif q:
             esc = re.escape(q)
             cond: dict[str, Any] = {
                 "$or": [
+                    {"NomeFantasia": {"$regex": esc, "$options": "i"}},
                     {"Nome": {"$regex": esc, "$options": "i"}},
                     {"RazaoSocial": {"$regex": esc, "$options": "i"}},
-                    {"NomeFantasia": {"$regex": esc, "$options": "i"}},
                 ]
             }
             digits = re.sub(r"\D", "", q)
@@ -1117,39 +1330,19 @@ def buscar_fornecedores_entrada_nfe(
                 cond["$or"].append({"CpfCnpj": {"$regex": re.escape(digits)}})
                 cond["$or"].append({"CNPJ": {"$regex": re.escape(digits)}})
                 cond["$or"].append({"Cnpj": {"$regex": re.escape(digits)}})
-            cur = col.find(cond, proj).sort("Nome", 1).limit(lim)
+            cur = col.find(cond, proj).sort([("NomeFantasia", 1), ("Nome", 1)]).limit(lim)
         else:
             return out
         seen: set[str] = set()
         for d in cur:
-            nome = (
-                str(d.get("Nome") or "").strip()
-                or str(d.get("RazaoSocial") or "").strip()
-                or str(d.get("NomeFantasia") or "").strip()
-            )
-            if not nome:
+            row = _linha_fornecedor_entrada_nfe_de_doc_mongo(d)
+            if not row:
                 continue
-            doc_raw = (
-                d.get("CpfCnpj")
-                or d.get("CNPJ")
-                or d.get("Cnpj")
-                or d.get("CPF")
-                or d.get("Cpf")
-                or ""
-            )
-            documento = re.sub(r"\D", "", str(doc_raw))[:18]
-            pid = str(d.get("Id") or d.get("_id") or "").strip()
-            if not pid or pid in seen:
+            pid = row["id"]
+            if pid in seen:
                 continue
             seen.add(pid)
-            out.append(
-                {
-                    "id": pid,
-                    "nome": nome[:300],
-                    "documento": documento,
-                    "origem": "mongo",
-                }
-            )
+            out.append(row)
     except Exception as exc:
         logger.warning("buscar_fornecedores_entrada_nfe: %s", exc)
     return out

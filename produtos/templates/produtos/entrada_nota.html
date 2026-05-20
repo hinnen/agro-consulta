@@ -1429,6 +1429,7 @@
         <div class="border-l-4 border-orange-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Uso</p>
           <p>Conferir nota, buscar fornecedor e produtos cadastrados, ratear quantidade (ex.: 1 caixa = 10 un.), data de entrada, plano de contas da nota (DRE) e, na etapa financeira, gerar conta a pagar no Mongo (botão verde), como no <a href="{% url 'lancamentos_manual' %}" class="text-orange-700 underline font-black">lançamento manual</a>. O salvamento automático da nota <strong>não</strong> altera o estoque do ERP sozinho.</p>
+          <p><strong>Fornecedor:</strong> use o <strong>nome fantasia</strong> do cadastro (como no ERP). Se a NF ou o XML trouxer só a razão social, o sistema tenta alinhar ao fantasia e ao ID ao salvar e ao gerar o financeiro — assim o título aparece em <strong>Lançamentos / contas a pagar</strong>.</p>
           <p class="text-slate-600">Consulta DF-e na Receita exige certificado e dados da empresa no servidor.</p>
         </div>
         <div class="border-l-4 border-sky-200 pl-3 space-y-2">
@@ -4221,6 +4222,64 @@
       const d = n.dh_emi.replace(' ', 'T').slice(0, 16);
       document.getElementById('m-dh').value = d;
     }
+    void entradaNfeSincronizarFornecedorCadastro();
+  }
+
+  function entradaNfeFornEsc(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function entradaNfeFornItemHtml(it) {
+    const doc = it.documento ? String(it.documento).replace(/\D/g, '') : '';
+    const docFmt = doc.length === 14
+      ? doc.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+      : (doc.length === 11 ? doc.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4') : '');
+    const docLine = docFmt ? `<div class="text-[10px] font-bold text-slate-500 tabular-nums">${entradaNfeFornEsc(docFmt)}</div>` : '';
+    const raz = String(it.razao_social || '').trim();
+    const razLine = raz && entradaNfeFornEsc(raz).toLowerCase() !== entradaNfeFornEsc(it.nome).toLowerCase()
+      ? `<div class="text-[10px] font-bold text-slate-500 leading-snug">Razão: ${entradaNfeFornEsc(raz)}</div>`
+      : '';
+    const og = it.origem === 'agro' ? '<span class="text-[9px] font-black uppercase text-orange-800">cadastro Agro</span>' : '';
+    return `<div class="leading-snug"><div class="text-sm font-black text-slate-900">${entradaNfeFornEsc(it.nome)}</div>${razLine}${docLine}${og ? `<div class="mt-0.5">${og}</div>` : ''}</div>`;
+  }
+
+  /** XML/NF traz razão social; alinha nome fantasia + Id do ERP para o financeiro bater com Lançamentos. */
+  async function entradaNfeSincronizarFornecedorCadastro() {
+    const inp = document.getElementById('m-emit-nome');
+    const hid = document.getElementById('m-emit-forn-id');
+    const cnpjEl = document.getElementById('m-emit-cnpj');
+    if (!inp || !hid) return;
+    const nome = String(inp.value || '').trim();
+    const cnpj = String(cnpjEl?.value || '').trim();
+    if (!nome && !cnpj) return;
+    try {
+      const u = new URL(URL_FORN, window.location.origin);
+      u.searchParams.set('q', cnpj || nome);
+      u.searchParams.set('limit', '12');
+      const r = await fetch(u.toString(), { credentials: 'same-origin' });
+      const j = await r.json();
+      const itens = Array.isArray(j.itens) ? j.itens : [];
+      if (!itens.length) return;
+      const digits = cnpj.replace(/\D/g, '');
+      let pick = itens[0];
+      if (digits.length >= 11) {
+        const ex = itens.find((it) => String(it.documento || '').replace(/\D/g, '') === digits);
+        if (ex) pick = ex;
+      } else if (hid.value) {
+        const exId = itens.find((it) => String(it.id || '') === String(hid.value));
+        if (exId) pick = exId;
+      }
+      if (!pick) return;
+      inp.value = pick.nome || nome;
+      hid.value = pick.id || '';
+      if (pick.documento && cnpjEl) cnpjEl.value = pick.documento;
+      try {
+        entradaNfeFornecedorEtapaInvalidate();
+      } catch (_) {}
+    } catch (_) {}
   }
 
   function linhaFromItem(it) {
@@ -5442,10 +5501,8 @@
       fornDd.innerHTML = '';
       (cached.itens || []).forEach((it) => {
         const li = document.createElement('li');
-        const doc = it.documento ? ` · ${it.documento}` : '';
-        const og = it.origem ? ` [${it.origem}]` : '';
-        li.textContent = `${it.nome}${doc}${og}`;
-        li.className = 'px-3 py-2 cursor-pointer hover:bg-orange-50 text-sm font-medium border-b border-slate-50 last:border-0';
+        li.innerHTML = entradaNfeFornItemHtml(it);
+        li.className = 'px-3 py-2.5 cursor-pointer hover:bg-orange-50 border-b border-slate-100 last:border-0';
         li.addEventListener('mousedown', (e) => {
           e.preventDefault();
           fornInp.value = it.nome;
@@ -5479,10 +5536,8 @@
       fornDd.innerHTML = '';
       itens.forEach((it) => {
         const li = document.createElement('li');
-        const doc = it.documento ? ` · ${it.documento}` : '';
-        const og = it.origem ? ` [${it.origem}]` : '';
-        li.textContent = `${it.nome}${doc}${og}`;
-        li.className = 'px-3 py-2 cursor-pointer hover:bg-orange-50 text-sm font-medium border-b border-slate-50 last:border-0';
+        li.innerHTML = entradaNfeFornItemHtml(it);
+        li.className = 'px-3 py-2.5 cursor-pointer hover:bg-orange-50 border-b border-slate-100 last:border-0';
         li.addEventListener('mousedown', (e) => {
           e.preventDefault();
           fornInp.value = it.nome;
@@ -5514,7 +5569,14 @@
     if (!fornDd.children.length) carregarFornecedores('', true);
     else fornDd.classList.remove('hidden');
   });
-  fornInp.addEventListener('blur', () => { setTimeout(() => fornDd.classList.add('hidden'), 200); });
+  fornInp.addEventListener('blur', () => {
+    setTimeout(() => {
+      fornDd.classList.add('hidden');
+      if (!fornHid.value.trim() && fornInp.value.trim().length >= 2) {
+        void entradaNfeSincronizarFornecedorCadastro();
+      }
+    }, 220);
+  });
 
   function aplicarRascunhoNaGrade(rz) {
     entradaNfeRascunhoAplicandoGrade = true;

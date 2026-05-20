@@ -94,6 +94,7 @@ from .nfe_entrada_util import (
     rascunho_entrada_valido_para_aprovacao_wizard,
     release_rascunho_estoque_agro_claim,
     reverter_integracao_entrada_nota_para_reabertura,
+    normalizar_cabecalho_emit_fornecedor_entrada_nfe,
     salvar_rascunho_entrada,
 )
 from .agro_produto_fiscal_defaults import merge_fiscal_padrao_cadastro_manual_sp_sn
@@ -7975,6 +7976,7 @@ def api_entrada_nota_salvar(request):
     client, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
     r = salvar_rascunho_entrada(
         db,
         usuario=usuario,
@@ -7983,6 +7985,7 @@ def api_entrada_nota_salvar(request):
         linhas=linhas,
         xml_chave=xml_chave,
         extra=extra,
+        col_pessoa=col_pessoa,
     )
     if r.get("ok"):
         _entrada_nota_propagar_precos_e_invalidar_catalogo(
@@ -8067,6 +8070,7 @@ def api_entrada_nota_rascunho_atualizar(request):
     client, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
     try:
         _oid_chk = ObjectId(oid)
     except Exception:
@@ -8090,6 +8094,7 @@ def api_entrada_nota_rascunho_atualizar(request):
         linhas=linhas,
         xml_chave=xml_chave,
         extra=extra,
+        col_pessoa=col_pessoa,
     )
     if r.get("ok"):
         _entrada_nota_propagar_precos_e_invalidar_catalogo(
@@ -8672,6 +8677,7 @@ def api_entrada_nota_estoque_agro(request):
     client, db = obter_conexao_mongo()
     if db is None or client is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
     _entrada_nota_propagar_precos_e_invalidar_catalogo(
         client,
         db,
@@ -8698,6 +8704,7 @@ def api_entrada_nota_estoque_agro(request):
                 linhas=linhas,
                 xml_chave=xml_chave,
                 extra=extra,
+                col_pessoa=col_pessoa,
             )
         else:
             r_rasc = salvar_rascunho_entrada(
@@ -8708,6 +8715,7 @@ def api_entrada_nota_estoque_agro(request):
                 linhas=linhas,
                 xml_chave=xml_chave,
                 extra=extra,
+                col_pessoa=col_pessoa,
             )
         if not r_rasc.get("ok"):
             return JsonResponse({**r_rasc, "estoque": None}, status=400)
@@ -8814,7 +8822,55 @@ def api_entrada_nota_estoque_agro(request):
 
 def _entrada_nota_fornecedor_chave_nome(nome) -> str:
     """Uma entrada na lista por nome exibido (ignora origem): prioridade na ordem mongo → titulo → agro."""
-    return " ".join(str(nome or "").strip().lower().split())
+    from .nfe_entrada_util import _entrada_nfe_chave_nome_fornecedor
+
+    return _entrada_nfe_chave_nome_fornecedor(nome)
+
+
+def _entrada_nota_mesclar_itens_fornecedor(
+    mongo_rows: list[dict[str, str]],
+    extras: list[dict[str, str]],
+    agro_rows: list[dict[str, str]],
+    *,
+    lim: int,
+) -> list[dict[str, str]]:
+    """Uma linha por Id ou CNPJ; cadastro Mongo (fantasia) antes de nomes só de títulos antigos."""
+    from .nfe_entrada_util import (
+        _entrada_nfe_chave_doc_fornecedor,
+        _entrada_nfe_chave_id_fornecedor,
+    )
+
+    seen_nome: set[str] = set()
+    seen_id: set[str] = set()
+    seen_doc: set[str] = set()
+    merged: list[dict[str, str]] = []
+
+    def _pode_incluir(row: dict[str, str]) -> bool:
+        nk = _entrada_nota_fornecedor_chave_nome(row.get("nome"))
+        ik = _entrada_nfe_chave_id_fornecedor(row.get("id"))
+        dk = _entrada_nfe_chave_doc_fornecedor(row.get("documento"))
+        if not nk:
+            return False
+        if nk in seen_nome:
+            return False
+        if ik and ik in seen_id:
+            return False
+        if dk and dk in seen_doc:
+            return False
+        seen_nome.add(nk)
+        if ik:
+            seen_id.add(ik)
+        if dk:
+            seen_doc.add(dk)
+        return True
+
+    for row in mongo_rows:
+        if _pode_incluir(row):
+            merged.append(row)
+    for row in extras + agro_rows:
+        if _pode_incluir(row):
+            merged.append(row)
+    return merged[:lim]
 
 
 @login_required(login_url="/admin/login/")
@@ -8870,17 +8926,8 @@ def api_entrada_nota_fornecedores(request):
                 )
         except Exception:
             pass
-    seen_nome: set[str] = set()
-    merged: list[dict[str, str]] = []
-    for row in mongo_rows + extras + agro_rows:
-        nk = _entrada_nota_fornecedor_chave_nome(row.get("nome"))
-        if not nk:
-            continue
-        if nk in seen_nome:
-            continue
-        seen_nome.add(nk)
-        merged.append(row)
-    return JsonResponse({"itens": merged[:lim]})
+    merged = _entrada_nota_mesclar_itens_fornecedor(mongo_rows, extras, agro_rows, lim=lim)
+    return JsonResponse({"itens": merged})
 
 
 @login_required(login_url="/admin/login/")
@@ -9583,6 +9630,8 @@ def api_entrada_nota_financeiro(request):
     client, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
+    cab = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, cab)
 
     rid_up = str(payload.get("rascunho_id") or payload.get("id") or "").strip()
     if rid_up:
@@ -9626,6 +9675,7 @@ def api_entrada_nota_financeiro(request):
             linhas=linhas,
             xml_chave=xml_chave,
             extra=extra,
+            col_pessoa=col_pessoa,
         )
     else:
         if _entrada_nfe_tipo_entrada(extra) == "bonificacao":
@@ -9644,6 +9694,7 @@ def api_entrada_nota_financeiro(request):
             linhas=linhas,
             xml_chave=xml_chave,
             extra=extra,
+            col_pessoa=col_pessoa,
         )
     if not r_rasc.get("ok"):
         return JsonResponse(r_rasc, status=400)
