@@ -711,6 +711,29 @@
   if (!agroInAppShellDisponivel()) return;
 
   var USER_SLOTS = 3;
+  /** Após “Sair” do PDV Wizard: manter guia PDV ativa ao abrir o dashboard (`/`). */
+  var PIN_SIDEBAR_TAB_KEY = 'agro_pin_sidebar_tab';
+
+  function readAndClearPinSidebarTab() {
+    try {
+      var v = sessionStorage.getItem(PIN_SIDEBAR_TAB_KEY) || '';
+      if (v) sessionStorage.removeItem(PIN_SIDEBAR_TAB_KEY);
+      return v;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function applySidebarTabPin(pin) {
+    if (pin !== 'pdv' && pin !== 'dash') return;
+    setTabGlow(shell.pdvBtn, pin === 'pdv');
+    setTabGlow(shell.dashBtn, pin === 'dash');
+    for (var u = 0; u < USER_SLOTS; u++) {
+      var tbtn = shell.userSlots[u];
+      if (tbtn && tbtn.mainBtn) setTabGlow(tbtn.mainBtn, false);
+    }
+  }
+
   /** Total: 2 fixas (PDV + Dashboard) + 3 selecionadas = 5 */
   function pdvHref() {
     try {
@@ -1387,6 +1410,7 @@
     b.classList.add('agro-has-inapp-tabbar');
 
     var pathNow = (location.pathname || '').split('?')[0];
+    var pinTab = readAndClearPinSidebarTab();
 
     /** Se já está em aba fixa (PDV/Dashboard), mostra iframe fixo e esconde cópia duplicada do DOM inicial */
     if (pathLookLikePDV(pathNow)) {
@@ -1401,6 +1425,7 @@
         shell.wrapEl.innerHTML = '';
       } catch (_) {}
       showWhich('dash');
+      if (pinTab === 'pdv') applySidebarTabPin('pdv');
     } else {
       /** Primeira tela vira primeira das 3 abas opcionais; remove HTML duplicado após iframe carregar */
       occupyUserSlotWithUrl(location.href.split('#')[0], 0, true);
@@ -1413,6 +1438,14 @@
     mountShellEnsure();
     var u = urlStr ? String(urlStr).split('#')[0] : location.href.split('#')[0];
     occupyUserSlotWithUrl(u, undefined, false);
+  };
+
+  window.agroPinSidebarTab = function (tabId) {
+    try {
+      if (tabId === 'pdv' || tabId === 'dash') {
+        sessionStorage.setItem(PIN_SIDEBAR_TAB_KEY, tabId);
+      }
+    } catch (_) {}
   };
 
   window.addEventListener(

@@ -1932,6 +1932,22 @@
         dom.modalStart.classList.remove('flex');
     }
 
+    /** Nova venda: zera carrinho/cliente e reabre o pop-up inicial (consumidor / buscar cliente). */
+    function resetWizardParaNovaVenda() {
+        closePaymentFormaModal();
+        hideMpPointWaitBar();
+        if (dom.stepPagamentoRoot) {
+            dom.stepPagamentoRoot.querySelectorAll('dialog[open]').forEach(function (dlg) {
+                try {
+                    dlg.close();
+                } catch (errDlg) {}
+            });
+        }
+        State.reset(false);
+        State.setCurrentStep('produtos');
+        openStartModal();
+    }
+
     function openBudgetHistory() {
         var historico = [];
         try {
@@ -2540,8 +2556,7 @@
                 alert(result.entrega
                     ? 'Venda confirmada e entrega registrada com sucesso.'
                     : 'Venda confirmada com sucesso.');
-                State.reset(true);
-                State.setCurrentStep('produtos');
+                resetWizardParaNovaVenda();
             })
             .catch(function (err) {
                 if (printWin && !printWin.closed) {
@@ -2650,8 +2665,7 @@
                         ? 'Pagamento no Point confirmado, venda registrada e entrega lançada.'
                         : 'Pagamento no Point confirmado e venda registrada com sucesso.'
                 );
-                State.reset(true);
-                State.setCurrentStep('produtos');
+                resetWizardParaNovaVenda();
             })
             .catch(function (err) {
                 if (printWin && !printWin.closed) {
@@ -3514,8 +3528,7 @@
                             orcId +
                             '). O PDV voltou ao início para uma nova venda.'
                     );
-                    State.reset(true);
-                    State.setCurrentStep('produtos');
+                    resetWizardParaNovaVenda();
                 })
                 .catch(function (err) {
                     alert(err && err.message ? err.message : 'Não foi possível registrar no painel Entregas.');
@@ -4192,6 +4205,17 @@
         if (dom.confirmSalePrint) {
             dom.confirmSalePrint.addEventListener('click', function () {
                 confirmSale(true);
+            });
+        }
+        if (dom.voltarHome) {
+            dom.voltarHome.addEventListener('click', function () {
+                if (typeof window.agroPinSidebarTab === 'function') {
+                    window.agroPinSidebarTab('pdv');
+                } else {
+                    try {
+                        sessionStorage.setItem('agro_pin_sidebar_tab', 'pdv');
+                    } catch (errPin) {}
+                }
             });
         }
 
