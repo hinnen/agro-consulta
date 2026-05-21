@@ -6605,7 +6605,7 @@ def _dashboard_capri_context(request):
         fut["atual"] = ex.submit(_dashboard_worker, _dashboard_mongo_vendas_serie, data_ini, data_fim)
         fut["anterior"] = ex.submit(_dashboard_worker, _dashboard_mongo_vendas_serie, prev_ini, prev_fim)
         fut["alertas_validade"] = ex.submit(
-            _dashboard_worker, _contagem_alertas_validade_lotes_agro
+            _dashboard_worker, _contagem_validade_dashboard_lotes_agro
         )
         fut["vendas_hoje"] = ex.submit(_dashboard_worker, _dashboard_mongo_total_por_dia_vendas_agro, hoje)
         fut["vendas_ontem"] = ex.submit(_dashboard_worker, _dashboard_mongo_total_por_dia_vendas_agro, ontem)
@@ -6627,7 +6627,10 @@ def _dashboard_capri_context(request):
     anterior = blk["anterior"]
     vendas_hoje = blk["vendas_hoje"]
     vendas_ontem = blk["vendas_ontem"]
-    alertas_validade_n = int(blk["alertas_validade"] or 0)
+    validade_blk = blk["alertas_validade"] if isinstance(blk["alertas_validade"], dict) else {}
+    validade_vencidos_n = int(validade_blk.get("vencidos") or 0)
+    validade_vencendo_mes_n = int(validade_blk.get("vencendo_mes") or 0)
+    alertas_validade_n = validade_vencidos_n + validade_vencendo_mes_n
     novos_clientes_30, ref_clientes_media_90 = blk["novos_clientes"]
     total_entregas_pendentes = blk["entregas_pen"]
     entregas_serie_7d = blk["entregas_7d"]
@@ -6718,12 +6721,14 @@ def _dashboard_capri_context(request):
             "label": "Faturamento do Dia",
             "value": _format_moeda_br(Decimal(str(round(vendas_hoje, 2)))),
             "prefix": "R$",
+            "variant": "vendas_dia",
+            "qtd_vendas": qtd_vendas_hoje,
             "trend": f"{variacao_dia:+.1f}% vs ont.",
             "trend_short": f"{variacao_dia:+.1f}%",
             "trend_class": "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300" if variacao_dia >= 0 else "text-red-800 bg-red-200 ring-1 ring-red-300",
             "context_lines": [
-                f"Hoje: {_format_moeda_br(Decimal(str(round(vendas_hoje, 2))))} · variação {variacao_dia:+.1f}% vs ontem.",
-                f"Ontem: {_format_moeda_br(Decimal(str(round(vendas_ontem, 2))))}",
+                f"Hoje: {_format_moeda_br(Decimal(str(round(vendas_hoje, 2))))} · {qtd_vendas_hoje} venda(s) (espelho ERP no Mongo, DtoVenda; senão PDV local).",
+                f"Variação {variacao_dia:+.1f}% vs ontem ({_format_moeda_br(Decimal(str(round(vendas_ontem, 2))))}).",
                 f"Média 7d (últ. dias do filtro): {_format_moeda_br(Decimal(str(round(media_fat_7d, 2))))}/dia",
                 f"Período filtrado: {periodo_label}.",
             ],
@@ -6752,17 +6757,16 @@ def _dashboard_capri_context(request):
         },
         {
             "label": "Perda Validade",
-            "value": str(alertas_validade_n),
+            "value": str(validade_vencidos_n),
             "prefix": "",
-            "trend": "Itens p/ atenção",
-            "trend_short": "alert.",
-            "trend_class": "text-rose-800 bg-rose-200 ring-1 ring-rose-300",
+            "variant": "validade_duplo",
+            "vencidos": validade_vencidos_n,
+            "vencendo_mes": validade_vencendo_mes_n,
             "context_lines": [
-                "Conta produtos (cadastro Agro) com lote ainda com saldo e validade vencida ou no mês atual.",
-                "Use para expor no balcão e baixar no relatório de validade (vencimento em loja).",
-                "Clique no número para abrir o relatório.",
+                f"Vencidos: {validade_vencidos_n} produto(s) com lote e saldo > 0 e validade já passou.",
+                f"Vencem neste mês: {validade_vencendo_mes_n} produto(s) com validade entre hoje e o fim do mês civil.",
+                "Clique no cartão para abrir o relatório de validade (baixa e conferência em loja).",
             ],
-            "variant": "validade",
         },
         {
             "label": "Novos Clientes",
@@ -18651,24 +18655,30 @@ def _bounds_mes_atual(hoje: date) -> tuple[date, date]:
     return a, b
 
 
-def _contagem_alertas_validade_lotes_agro() -> int:
+def _contagem_validade_dashboard_lotes_agro() -> dict[str, int]:
     """
-    Produtos distintos (overlay) com lote Agro com saldo > 0 e
-    (validade já passou OU validade no mês civil atual).
-    Mesma regra do cartão na home «atalhos».
+    Produtos distintos (overlay) com lote Agro e saldo > 0, em dois grupos:
+    vencidos (data < hoje) e vencendo no mês civil atual (hoje <= data <= fim do mês).
     """
     hoje = timezone.localdate()
     inicio_mes, fim_mes = _bounds_mes_atual(hoje)
-    return (
-        EstoqueLote.objects.filter(quantidade_atual__gt=0)
-        .filter(
-            Q(data_validade__lt=hoje)
-            | Q(data_validade__gte=inicio_mes, data_validade__lte=fim_mes)
-        )
+    base = EstoqueLote.objects.filter(quantidade_atual__gt=0)
+    vencidos = (
+        base.filter(data_validade__lt=hoje).values("overlay_id").distinct().count()
+    )
+    vencendo_mes = (
+        base.filter(data_validade__gte=hoje, data_validade__lte=fim_mes)
         .values("overlay_id")
         .distinct()
         .count()
     )
+    return {"vencidos": int(vencidos), "vencendo_mes": int(vencendo_mes)}
+
+
+def _contagem_alertas_validade_lotes_agro() -> int:
+    """Soma vencidos + vencendo no mês (home atalhos e totais legados)."""
+    c = _contagem_validade_dashboard_lotes_agro()
+    return c["vencidos"] + c["vencendo_mes"]
 
 
 def _bounds_proximo_mes(hoje: date) -> tuple[date, date]:
