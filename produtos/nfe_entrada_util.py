@@ -325,7 +325,31 @@ def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
             "q_com": 0.0,
             "v_un_com": 0.0,
             "v_prod": 0.0,
+            "lote_numero": "",
+            "lote_fabricacao": "",
+            "lote_validade": "",
+            "lote_xml": False,
         }
+        for child in det:
+            if _localname(child.tag) != "rastro":
+                continue
+            rastro: dict[str, str] = {}
+            for rc in child:
+                rl = _localname(rc.tag)
+                rt = _text(rc)
+                if rl == "nLote":
+                    rastro["n_lote"] = rt[:60]
+                elif rl == "dFab":
+                    rastro["d_fab"] = rt[:10]
+                elif rl == "dVal":
+                    rastro["d_val"] = rt[:10]
+            if rastro:
+                item["lote_numero"] = str(rastro.get("n_lote") or "")[:60]
+                item["lote_fabricacao"] = str(rastro.get("d_fab") or "")[:10]
+                item["lote_validade"] = str(rastro.get("d_val") or "")[:10]
+                item["lote_xml"] = bool(
+                    item["lote_numero"] or item["lote_fabricacao"] or item["lote_validade"]
+                )
         for child in prod:
             ln = _localname(child.tag)
             t = _text(child)

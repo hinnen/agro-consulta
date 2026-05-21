@@ -279,7 +279,8 @@
     }
     #entrada-nfe-wizard-pages .nfe-wiz-page { min-height: min(70vh, 42rem); }
     /* Etapa 6: não forçar altura mínima — evita faixa vazia sob a prévia. */
-    #nfe-wiz-page-6.nfe-wiz-page {
+    #nfe-wiz-page-6.nfe-wiz-page,
+    #nfe-wiz-page-7.nfe-wiz-page {
       min-height: 0 !important;
     }
     /* Etapa 6 · lista: espaço claro entre um produto e outro */
@@ -910,14 +911,17 @@
               <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="3" title="Código de barras / vínculo">
                 <span class="nfe-wiz-num">3</span><span class="nfe-wiz-name">Código de barras</span>
               </button>
-              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="4" title="Estoque Agro">
-                <span class="nfe-wiz-num">4</span><span class="nfe-wiz-name">Estoque</span>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="4" title="Lote e validade (opcional)">
+                <span class="nfe-wiz-num">4</span><span class="nfe-wiz-name">Lote e validade</span>
               </button>
-              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="5" title="Financeiro">
-                <span class="nfe-wiz-num">5</span><span class="nfe-wiz-name">Financeiro</span>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="5" title="Estoque Agro">
+                <span class="nfe-wiz-num">5</span><span class="nfe-wiz-name">Estoque</span>
               </button>
-              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="6" title="Finalizar (PIN e custo)">
-                <span class="nfe-wiz-num">6</span><span class="nfe-wiz-name">Finalizar</span>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="6" title="Financeiro">
+                <span class="nfe-wiz-num">6</span><span class="nfe-wiz-name">Financeiro</span>
+              </button>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="7" title="Finalizar (PIN e custo)">
+                <span class="nfe-wiz-num">7</span><span class="nfe-wiz-name">Finalizar</span>
               </button>
             </div>
           </div>
@@ -1109,11 +1113,61 @@
       </div>
       </div>
 
-      <div id="nfe-wiz-page-4" data-nfe-wiz-page="4" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
+      <div id="nfe-wiz-page-4" data-nfe-wiz-page="4" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3">
+      <div id="nfe-wiz-a2c" class="rounded-xl border-2 border-teal-300/90 bg-gradient-to-br from-teal-50/95 via-white to-emerald-50/40 p-3 sm:p-4 space-y-3 scroll-mt-24">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <h2 class="text-sm font-black uppercase text-teal-950 tracking-tight">4 · Lote e validade <span class="text-[10px] font-bold text-teal-800 normal-case">(opcional)</span></h2>
+          <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-teal-400 bg-white text-sm font-black text-teal-900 hover:bg-teal-50" data-help-w="4lote" title="Ajuda">?</button>
+        </div>
+        <p class="text-[10px] font-semibold text-teal-950/90 leading-snug">Preencha quando o produto exigir rastreio. Notas com XML podem trazer lote e datas já na lista — confira ou ajuste.</p>
+        <label class="inline-flex flex-wrap items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-teal-300 bg-white cursor-pointer min-h-[44px] w-full sm:w-auto">
+          <input type="checkbox" id="nfe-lote-pular-todos" class="h-5 w-5 accent-teal-600 shrink-0">
+          <span class="text-xs font-black uppercase text-teal-950">Pular lote e validade em todos os itens</span>
+        </label>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          <div class="lg:col-span-5 space-y-1 min-w-0">
+            <label class="block"><span class="sr-only">Selecionar linha</span>
+              <div id="nfe-lote-linha-list" class="mt-1 w-full rounded-xl border-2 border-teal-200 bg-white p-1 space-y-1" role="listbox" aria-label="Produtos da nota para lote e validade"></div>
+            </label>
+            <p id="nfe-lote-linha-hint" class="text-[10px] font-bold text-teal-950/90 leading-snug" hidden></p>
+          </div>
+          <div class="lg:col-span-7 space-y-3 min-w-0">
+            <p id="nfe-lote-xml-badge" class="hidden text-[10px] font-black uppercase text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1.5">Dados vindos do XML nesta linha</p>
+            <label class="block"><span class="text-[10px] font-black uppercase text-teal-950">Nº lote</span>
+              <input type="text" id="nfe-lote-num" autocomplete="off" maxlength="60" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-teal-200 px-3 text-sm font-bold bg-white" placeholder="Opcional">
+            </label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label class="block"><span class="text-[10px] font-black uppercase text-teal-950">Fabricação</span>
+                <input type="date" id="nfe-lote-fab" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-teal-200 px-3 text-sm font-bold bg-white">
+              </label>
+              <label class="block"><span class="text-[10px] font-black uppercase text-teal-950">Validade</span>
+                <input type="date" id="nfe-lote-val" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-teal-200 px-3 text-sm font-bold bg-white">
+              </label>
+            </div>
+            <label class="inline-flex flex-wrap items-center gap-2 px-2 py-2 rounded-xl border-2 border-teal-200 bg-white cursor-pointer shrink-0 min-h-[44px] w-full">
+              <input type="checkbox" id="nfe-lote-ignorar-linha" class="h-5 w-5 accent-teal-600 shrink-0">
+              <span class="text-xs font-bold text-teal-950 leading-snug">Sem lote/validade neste item</span>
+            </label>
+            <div class="flex flex-wrap gap-2 pt-1">
+              <button type="button" id="nfe-lote-aplicar" class="flex-1 min-w-[11rem] min-h-[52px] px-5 rounded-xl bg-teal-700 text-white text-sm font-black uppercase border-2 border-teal-900 shadow-sm hover:bg-teal-800">Aplicar na linha</button>
+            </div>
+            <div class="flex flex-wrap justify-end pt-2 border-t border-teal-200 mt-2">
+              <button type="button" id="nfe-btn-confirmar-lote"
+                class="min-h-[48px] px-4 rounded-xl border-2 border-emerald-700 bg-emerald-600 text-white text-[11px] sm:text-xs font-black uppercase tracking-wide hover:bg-emerald-700 disabled:opacity-40 disabled:pointer-events-none shrink-0 shadow-sm">
+                Confirmar lote e continuar
+              </button>
+            </div>
+          </div>
+        </div>
+        <p id="nfe-lote-msg" class="text-sm font-bold text-slate-700 min-h-[1.25rem]" role="status"></p>
+      </div>
+      </div>
+
+      <div id="nfe-wiz-page-5" data-nfe-wiz-page="5" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
       <div class="rounded-xl border-2 border-slate-200 bg-white p-3 sm:p-4 space-y-3 shadow-sm">
         <div class="flex flex-wrap items-start justify-between gap-2">
-          <h3 class="text-sm font-black uppercase text-slate-900 tracking-tight">4 · Empresa e depósito (estoque)</h3>
-          <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-slate-300 bg-white text-sm font-black text-slate-800 shrink-0 hover:bg-slate-50" data-help-w="4" title="Ajuda" aria-label="Ajuda: Escolha onde a entrada vai contar no Agro antes de registrar.">?</button>
+          <h3 class="text-sm font-black uppercase text-slate-900 tracking-tight">5 · Empresa e depósito (estoque)</h3>
+          <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-slate-300 bg-white text-sm font-black text-slate-800 shrink-0 hover:bg-slate-50" data-help-w="5" title="Ajuda" aria-label="Ajuda: Escolha onde a entrada vai contar no Agro antes de registrar.">?</button>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <label class="block"><span class="text-xs font-black uppercase text-slate-600">Empresa (estoque) *</span>
@@ -1137,7 +1191,7 @@
       <div id="nfe-wiz-a3" class="rounded-xl border-2 border-blue-200 bg-blue-50/80 px-3 py-3">
         <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
           <h3 class="text-sm font-black uppercase text-blue-950">Registrar no estoque Agro</h3>
-          <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-blue-400 bg-white text-sm font-black text-blue-950 shrink-0 hover:bg-blue-50" data-help-w="4b" title="Ajuda" aria-label="Ajuda: Com empresa e depósito conferidos acima, use o botão para gravar a nota e atualizar o estoque num passo só.">?</button>
+          <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-blue-400 bg-white text-sm font-black text-blue-950 shrink-0 hover:bg-blue-50" data-help-w="5b" title="Ajuda" aria-label="Ajuda: Com empresa e depósito conferidos acima, use o botão para gravar a nota e atualizar o estoque num passo só.">?</button>
         </div>
         <button type="button" id="btn-estoque-agro" class="min-h-[52px] px-8 py-3.5 rounded-xl bg-blue-700 text-white font-black text-sm sm:text-base uppercase hover:bg-blue-800 shadow-md border-2 border-blue-900 w-full sm:w-auto">
           Registrar entrada no estoque Agro
@@ -1145,12 +1199,12 @@
       </div>
       </div>
 
-      <div id="nfe-wiz-page-5" data-nfe-wiz-page="5" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
+      <div id="nfe-wiz-page-6" data-nfe-wiz-page="6" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
       <p id="nfe-fin-bonif-banner" class="hidden rounded-xl border-2 border-amber-400 bg-amber-100 px-3 py-2 text-xs font-black text-amber-950 leading-snug" role="status">
-        Bonificação: esta entrada não gera contas a pagar. Use a etapa 4 para registrar o estoque; a etapa 5 pode ser ignorada.
+        Bonificação: esta entrada não gera contas a pagar. Use a etapa 5 para registrar o estoque; a etapa 6 pode ser ignorada.
       </p>
       <div id="nfe-wiz-a4" class="rounded-xl border-2 border-emerald-300 bg-emerald-50/50 px-3 py-3 shadow-sm">
-        <h3 class="text-sm font-black uppercase text-emerald-950 mb-2">5 · Financeiro <span class="text-[10px] font-bold text-emerald-800/90 normal-case">(opcional)</span></h3>
+        <h3 class="text-sm font-black uppercase text-emerald-950 mb-2">6 · Financeiro <span class="text-[10px] font-bold text-emerald-800/90 normal-case">(opcional)</span></h3>
         <div class="space-y-3 text-xs sm:text-sm font-semibold text-emerald-950">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label class="block"><span class="text-xs font-black uppercase text-slate-700">Empresa *</span>
@@ -1253,15 +1307,15 @@
       </div>
       </div>
 
-      <div id="nfe-wiz-page-6" data-nfe-wiz-page="6" class="nfe-wiz-page hidden flex flex-col gap-2 rounded-2xl border-2 border-slate-200 bg-gradient-to-b from-slate-50 to-white p-2.5 sm:p-3 overflow-y-auto min-h-0">
+      <div id="nfe-wiz-page-7" data-nfe-wiz-page="7" class="nfe-wiz-page hidden flex flex-col gap-2 rounded-2xl border-2 border-slate-200 bg-gradient-to-b from-slate-50 to-white p-2.5 sm:p-3 overflow-y-auto min-h-0">
         <div id="nfe-wiz-custo-wrap" class="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div class="shrink-0 flex flex-wrap items-start justify-between gap-2 px-2.5 py-1.5 sm:px-3 border-b border-slate-100 bg-gradient-to-r from-emerald-50/90 via-white to-white">
             <div class="min-w-0">
-              <p class="text-[9px] font-black uppercase tracking-wide text-slate-500 leading-none">6 · Finalizar</p>
+              <p class="text-[9px] font-black uppercase tracking-wide text-slate-500 leading-none">7 · Finalizar</p>
               <h3 class="text-[11px] sm:text-xs font-black uppercase tracking-wide text-slate-900 mt-0.5">Custo no catálogo · média C+V</h3>
               <p id="nfe-wiz-custo-count" class="mt-0.5 text-[10px] font-bold text-slate-500 tabular-nums hidden" aria-live="polite"></p>
             </div>
-            <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-slate-300 bg-white text-sm font-black text-slate-800 hover:bg-slate-50 shrink-0" data-help-w="6" title="Ajuda da etapa 6" aria-label="Ajuda da etapa 6">?</button>
+            <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-slate-300 bg-white text-sm font-black text-slate-800 hover:bg-slate-50 shrink-0" data-help-w="7" title="Ajuda da etapa 7" aria-label="Ajuda da etapa 7">?</button>
           </div>
           <p id="nfe-wiz-custo-hint" class="shrink-0 mx-2.5 sm:mx-3 mt-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-800 leading-snug nfe-wiz-custo-hint--hidden" role="status"></p>
           <div id="nfe-wiz-custo-list" class="pdv-wizard-scroll min-h-0 max-h-[min(58vh,28rem)] overflow-y-auto overflow-x-auto px-2 sm:px-3 pb-2 pt-1 flex flex-col gap-2"></div>
@@ -2178,6 +2232,10 @@
       entradaNfeFornecedorEtapaConfirmada = false;
       entradaNfeProdutosEtapaConfirmada = false;
       entradaNfeCodigosEtapaConfirmada = false;
+      entradaNfeLoteEtapaConfirmada = false;
+      entradaNfeLotePularTodos = false;
+      entradaNfeLoteLinhaIdx = 0;
+      Object.keys(entradaNfeLoteDraftPorLinha).forEach((k) => delete entradaNfeLoteDraftPorLinha[k]);
       entradaNfeRascunhoStatusUltimo = '';
       entradaNfeRascunhoMetaTs = { criado_em: '', atualizado_em: '' };
       entradaNfeAtualizarUiBotaoEstoqueAgro(null);
@@ -2222,8 +2280,16 @@
 
   /** Etapa 3 · Código de barras: confirmação explícita (persistida em Mongo ``wizard_etapa3_confirmada_em``). */
   let entradaNfeCodigosEtapaConfirmada = false;
+  /** Etapa 4 · Lote e validade (``wizard_etapa4_lote_confirmada_em`` / ``wizard_lote_pular_em``). */
+  let entradaNfeLoteEtapaConfirmada = false;
+  let entradaNfeLotePularTodos = false;
+  let entradaNfeLoteLinhaIdx = 0;
+  const entradaNfeLoteDraftPorLinha = {};
   const ENTRADA_NFE_BTN_COD_CONFIRM_PADRAO = 'Confirmar códigos e continuar';
   const ENTRADA_NFE_BTN_COD_CONFIRM_OK = 'Códigos confirmados';
+  const ENTRADA_NFE_WIZ_TOTAL = 7;
+  const ENTRADA_NFE_BTN_LOTE_CONFIRM_PADRAO = 'Confirmar lote e continuar';
+  const ENTRADA_NFE_BTN_LOTE_CONFIRM_OK = 'Lote confirmado';
 
   /** ``status`` do último rascunho carregado (ex.: ``estoque_aplicado`` trava etapa 4). */
   let entradaNfeRascunhoStatusUltimo = '';
@@ -2269,6 +2335,7 @@
     if (entradaNfeFornecedorEtapaConfirmada) return true;
     if (entradaNfeProdutosEtapaConfirmada) return true;
     if (entradaNfeCodigosEtapaConfirmada) return true;
+    if (entradaNfeLoteEtapaConfirmada || entradaNfeLotePularTodos) return true;
     if (String(entradaNfeRascunhoStatusUltimo || '').trim().toLowerCase() === 'estoque_aplicado') return true;
     if (entradaNfeFinanceiroJaLancadoCliente()) return true;
     return false;
@@ -2429,11 +2496,13 @@
     entradaNfeFornecedorEtapaConfirmada = false;
     entradaNfeProdutosEtapaConfirmada = false;
     entradaNfeCodigosEtapaConfirmada = false;
+    entradaNfeLoteEtapaConfirmada = false;
     entradaNfeExtraUltimo = {
       ...(entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {}),
       wizard_etapa1_confirmada_em: '',
       wizard_etapa2_confirmada_em: '',
       wizard_etapa3_confirmada_em: '',
+      wizard_etapa4_lote_confirmada_em: '',
     };
     // Evita POST pesado imediato ao alterar etapa 1; o autosave consolidado persiste o patch.
     entradaNfeAgendarAutosaveRascunho();
@@ -2509,7 +2578,26 @@
     btn.classList.remove('opacity-80');
     btn.classList.toggle('opacity-50', !dOk);
     btn.classList.toggle('cursor-not-allowed', !dOk);
-    btn.title = dOk ? 'Avança para a etapa 4 · Estoque.' : 'Conclua o código de barras em todas as linhas antes de confirmar.';
+    btn.title = dOk ? 'Avança para a etapa 4 · Lote e validade.' : 'Conclua o código de barras em todas as linhas antes de confirmar.';
+  }
+
+  function entradaNfeAtualizarUiBotaoConfirmarLote() {
+    const btn = document.getElementById('nfe-btn-confirmar-lote');
+    const cbTodos = document.getElementById('nfe-lote-pular-todos');
+    if (cbTodos) cbTodos.checked = !!entradaNfeLotePularTodos;
+    if (!btn) return;
+    const dOk = entradaNfeWizardValidarEtapaDetalhe(4, { ignorarConfirmacaoLote: true }).ok;
+    if (entradaNfeLoteEtapaConfirmada) {
+      btn.disabled = true;
+      btn.textContent = ENTRADA_NFE_BTN_LOTE_CONFIRM_OK;
+      btn.classList.add('opacity-80', 'cursor-not-allowed');
+      btn.title = 'Altere lote/validade para editar de novo.';
+      return;
+    }
+    btn.disabled = !dOk;
+    btn.textContent = ENTRADA_NFE_BTN_LOTE_CONFIRM_PADRAO;
+    btn.classList.remove('opacity-80');
+    btn.title = dOk ? 'Avança para a etapa 5 · Estoque.' : 'Conclua ou dispense lote/validade em todas as linhas.';
   }
 
   function entradaNfeCodigosConferenciaAlterada() {
@@ -2525,6 +2613,7 @@
     };
     entradaNfeWizardPersistExtraPatchFireForget({ wizard_etapa3_confirmada_em: '' });
     entradaNfeAtualizarUiBotaoConfirmarCodigos();
+    entradaNfeAtualizarUiBotaoConfirmarLote();
     if (entradaNfeWizardStep > 3) {
       showMsg('Conferência de código alterada: confirme a etapa 3 de novo antes das próximas etapas.', false);
       entradaNfeWizardApplyStepUi(3);
@@ -2546,16 +2635,19 @@
     }
     entradaNfeProdutosEtapaConfirmada = false;
     entradaNfeCodigosEtapaConfirmada = false;
+    entradaNfeLoteEtapaConfirmada = false;
     const ex0 = entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? { ...entradaNfeExtraUltimo } : {};
     delete ex0.entrada_custo_escolhas;
     entradaNfeExtraUltimo = {
       ...ex0,
       wizard_etapa2_confirmada_em: '',
       wizard_etapa3_confirmada_em: '',
+      wizard_etapa4_lote_confirmada_em: '',
     };
     entradaNfeWizardPersistExtraPatchFireForget({
       wizard_etapa2_confirmada_em: '',
       wizard_etapa3_confirmada_em: '',
+      wizard_etapa4_lote_confirmada_em: '',
       entrada_custo_escolhas: {},
     });
     entradaNfeAtualizarUiBotaoConfirmarProdutos();
@@ -2614,6 +2706,31 @@
     } catch (_) {}
   }
 
+  async function entradaNfeConfirmarLoteEtapa() {
+    const d = entradaNfeWizardValidarEtapaDetalhe(4, { ignorarConfirmacaoLote: true });
+    if (!d.ok) {
+      showMsg(d.erro || 'Revise lote e validade em todas as linhas.', false);
+      entradaNfeAtualizarUiBotaoConfirmarLote();
+      return;
+    }
+    const iso = new Date().toISOString();
+    entradaNfeLoteEtapaConfirmada = true;
+    entradaNfeExtraUltimo = {
+      ...(entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {}),
+      wizard_etapa4_lote_confirmada_em: iso,
+    };
+    entradaNfeAtualizarUiBotaoConfirmarLote();
+    await entradaNfeWizardPersistExtraPatch({
+      wizard_etapa4_lote_confirmada_em: iso,
+      wizard_lote_pular_em: entradaNfeLotePularTodos ? iso : '',
+    });
+    entradaNfeWizardSetStep(5);
+    entradaNfeWizardAgendarAtualizarCores();
+    try {
+      entradaNfeAplicarCongelamentoEditorUi();
+    } catch (_) {}
+  }
+
   /**
    * Validação por etapa: verde no chip só quando tudo obrigatório daquela etapa está ok
    * (não depende de em qual tela o usuário está).
@@ -2621,12 +2738,14 @@
    * @param {boolean} [opt.ignorarConfirmacaoFornecedor] — só etapa 1: não exige botão «Confirmar fornecedor».
    * @param {boolean} [opt.ignorarConfirmacaoProdutos] — só etapa 2: não exige botão «Confirmar produtos».
    * @param {boolean} [opt.ignorarConfirmacaoCodigos] — só etapa 3: não exige botão «Confirmar códigos».
+   * @param {boolean} [opt.ignorarConfirmacaoLote] — só etapa 4: não exige botão «Confirmar lote».
    */
   function entradaNfeWizardValidarEtapaDetalhe(st, opt) {
     const ignFornConf = !!(opt && opt.ignorarConfirmacaoFornecedor);
     const ignProdConf = !!(opt && opt.ignorarConfirmacaoProdutos);
     const ignCodConf = !!(opt && opt.ignorarConfirmacaoCodigos);
-    const s = Math.min(6, Math.max(1, Math.floor(Number(st)) || 1));
+    const ignLoteConf = !!(opt && opt.ignorarConfirmacaoLote);
+    const s = Math.min(ENTRADA_NFE_WIZ_TOTAL, Math.max(1, Math.floor(Number(st)) || 1));
     const cab = coletarCabecalho();
     const linhas = coletarLinhas();
     if (s === 1) {
@@ -2697,27 +2816,50 @@
       return { ok: true, irPara: 3, erro: '' };
     }
     if (s === 4) {
-      const empId = String(document.getElementById('m-empresa-faturada')?.value || '').trim();
-      if (!empId) {
-        return { ok: false, irPara: 4, erro: 'Selecione a empresa (estoque) na etapa 4 · Estoque.' };
+      if (entradaNfeLotePularTodos) {
+        return { ok: true, irPara: 4, erro: '' };
       }
-      const dep = String(document.getElementById('m-deposito-entrada')?.value || '').trim();
-      if (!['centro', 'vila'].includes(dep)) {
-        return { ok: false, irPara: 4, erro: 'Selecione o depósito na etapa 4 · Estoque.' };
+      for (let i = 0; i < linhas.length; i++) {
+        const stL = String(linhas[i].lote_conf || 'pendente');
+        if (!['ok', 'dispensado'].includes(stL)) {
+          return {
+            ok: false,
+            irPara: 4,
+            erro: `Linha ${i + 1}: pendente de lote/validade (etapa 4 · Lote e validade).`,
+          };
+        }
       }
-      const stE = String(entradaNfeRascunhoStatusUltimo || '').trim().toLowerCase();
-      if (stE !== 'estoque_aplicado' && stE !== 'encerrada') {
+      if (!ignLoteConf && !entradaNfeLoteEtapaConfirmada) {
         return {
           ok: false,
           irPara: 4,
-          erro: 'Registre a entrada no estoque Agro com o botão azul desta etapa e aguarde a confirmação antes de avançar.',
+          erro: 'Confira lote e validade e use «Confirmar lote e continuar» na etapa 4.',
         };
       }
       return { ok: true, irPara: 4, erro: '' };
     }
     if (s === 5) {
+      const empId = String(document.getElementById('m-empresa-faturada')?.value || '').trim();
+      if (!empId) {
+        return { ok: false, irPara: 5, erro: 'Selecione a empresa (estoque) na etapa 5 · Estoque.' };
+      }
+      const dep = String(document.getElementById('m-deposito-entrada')?.value || '').trim();
+      if (!['centro', 'vila'].includes(dep)) {
+        return { ok: false, irPara: 5, erro: 'Selecione o depósito na etapa 5 · Estoque.' };
+      }
+      const stE = String(entradaNfeRascunhoStatusUltimo || '').trim().toLowerCase();
+      if (stE !== 'estoque_aplicado' && stE !== 'encerrada') {
+        return {
+          ok: false,
+          irPara: 5,
+          erro: 'Registre a entrada no estoque Agro com o botão azul desta etapa e aguarde a confirmação antes de avançar.',
+        };
+      }
+      return { ok: true, irPara: 5, erro: '' };
+    }
+    if (s === 6) {
       if (entradaNfeBonificacaoAtiva()) {
-        return { ok: true, irPara: 5, erro: '' };
+        return { ok: true, irPara: 6, erro: '' };
       }
       const finE = document.getElementById('fin-empresa-nome')?.value?.trim() || '';
       const finDc = document.getElementById('fin-dc')?.value || '';
@@ -2729,17 +2871,17 @@
         if (!finE || !finDc || !finDv || !finForma || !finBanco) {
           return {
             ok: false,
-            irPara: 5,
-            erro: 'Financeiro iniciado: preencha empresa, competência, 1º vencimento, forma e banco (etapa 5 · Financeiro).',
+            irPara: 6,
+            erro: 'Financeiro iniciado: preencha empresa, competência, 1º vencimento, forma e banco (etapa 6 · Financeiro).',
           };
         }
         entradaNfeAtualizarPreviewParcelas();
         const pmCol = entradaNfeColetarParcelasManualFinanceiro(finDc);
         if (pmCol.erro) {
-          return { ok: false, irPara: 5, erro: pmCol.erro };
+          return { ok: false, irPara: 6, erro: pmCol.erro };
         }
         if (!pmCol.parcelas.length) {
-          return { ok: false, irPara: 5, erro: 'Monte a prévia de parcelas na etapa 5 · Financeiro.' };
+          return { ok: false, irPara: 6, erro: 'Monte a prévia de parcelas na etapa 6 · Financeiro.' };
         }
         const gradeCents = entradaNfeTotalGradeCentavosUnificado();
         const alvoPagarCents = gradeCents + entradaNfeFinImpostoExtraCentavos();
@@ -2752,37 +2894,37 @@
         if (Math.abs(sumComb - alvoPagarCents) > 2) {
           return {
             ok: false,
-            irPara: 5,
-            erro: 'A soma das parcelas precisa fechar com o total a pagar (nota + impostos fora da NF, se houver) na etapa 5 · Financeiro.',
+            irPara: 6,
+            erro: 'A soma das parcelas precisa fechar com o total a pagar (nota + impostos fora da NF, se houver) na etapa 6 · Financeiro.',
           };
         }
         const somaNfCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(Number(p.valor) * 100), 0));
         if (Math.abs(somaNfCent - gradeCents) > 2) {
           return {
             ok: false,
-            irPara: 5,
-            erro: 'Parcelas inconsistentes com o total da nota (etapa 5 · Financeiro). Use Recalcular.',
+            irPara: 6,
+            erro: 'Parcelas inconsistentes com o total da nota (etapa 6 · Financeiro). Use Recalcular.',
           };
         }
       }
       if (!entradaNfeRascunhoEditId) {
         return {
           ok: false,
-          irPara: 5,
-          erro: 'Aguarde a entrada gravar no Agro (automático) ou abra a etapa 5 · Financeiro antes de finalizar.',
-        };
-      }
-      return { ok: true, irPara: 5, erro: '' };
-    }
-    if (s === 6) {
-      if (!entradaNfeWizardConferenciaRegistrada) {
-        return {
-          ok: false,
           irPara: 6,
-          erro: 'Registre a finalização com o PIN (etapa 6 · Finalizar).',
+          erro: 'Aguarde a entrada gravar no Agro (automático) ou abra a etapa 6 · Financeiro antes de finalizar.',
         };
       }
       return { ok: true, irPara: 6, erro: '' };
+    }
+    if (s === 7) {
+      if (!entradaNfeWizardConferenciaRegistrada) {
+        return {
+          ok: false,
+          irPara: 7,
+          erro: 'Registre a finalização com o PIN (etapa 7 · Finalizar).',
+        };
+      }
+      return { ok: true, irPara: 7, erro: '' };
     }
     return { ok: false, irPara: 1, erro: '' };
   }
@@ -2792,7 +2934,7 @@
   }
 
   function entradaNfeWizardAtualizarCoresNav(stepAtual) {
-    const step = Math.min(6, Math.max(1, Math.floor(Number(stepAtual)) || 1));
+    const step = Math.min(ENTRADA_NFE_WIZ_TOTAL, Math.max(1, Math.floor(Number(stepAtual)) || 1));
     document.querySelectorAll('#entrada-nfe-wizard-nav [data-nfe-w-go]').forEach((btn) => {
       const v = Number(btn.getAttribute('data-nfe-w-go'));
       const completo = entradaNfeWizardValidarEtapa(v).ok;
@@ -2806,7 +2948,7 @@
   }
 
   function entradaNfeWizardApplyStepUi(s) {
-    const step = Math.min(6, Math.max(1, Math.floor(Number(s)) || 1));
+    const step = Math.min(ENTRADA_NFE_WIZ_TOTAL, Math.max(1, Math.floor(Number(s)) || 1));
     entradaNfeWizardStep = step;
     entradaNfeWizardAtualizarCoresNav(step);
     document.querySelectorAll('[data-nfe-wiz-page]').forEach((pane) => {
@@ -2823,7 +2965,7 @@
       btnP.classList.toggle('pointer-events-none', step <= 1);
     }
     if (btnN) {
-      const last = step >= 6;
+      const last = step >= ENTRADA_NFE_WIZ_TOTAL;
       btnN.disabled = last;
       btnN.setAttribute('aria-hidden', last ? 'true' : 'false');
       btnN.classList.toggle('hidden', last);
@@ -2843,20 +2985,30 @@
         });
       });
     }
-    if (step === 5) {
+    if (step === 4) {
+      entradaNfeLoteRebuildSelect();
+      entradaNfeLoteAplicarDraftLinhaAtual();
+      requestAnimationFrame(() => {
+        entradaNfeLoteRebuildSelect();
+        entradaNfeLoteAplicarDraftLinhaAtual();
+      });
+      entradaNfeAtualizarUiBotaoConfirmarLote();
+    }
+    if (step === 6) {
       queueMicrotask(() => {
         entradaNfeAtualizarRodapeParcelas();
       });
     }
     const bonB = document.getElementById('nfe-fin-bonif-banner');
-    if (bonB) bonB.classList.toggle('hidden', step !== 5 || !entradaNfeBonificacaoAtiva());
-    if (step === 6) {
+    if (bonB) bonB.classList.toggle('hidden', step !== 6 || !entradaNfeBonificacaoAtiva());
+    if (step === 7) {
       entradaNfeRecapRefresh();
       entradaNfeAtualizarUiBotaoWizardFinalizar();
     }
     entradaNfeAtualizarUiBotaoConfirmarFornecedor();
     entradaNfeAtualizarUiBotaoConfirmarProdutos();
     entradaNfeAtualizarUiBotaoConfirmarCodigos();
+    entradaNfeAtualizarUiBotaoConfirmarLote();
     try {
       entradaNfeAplicarTravasEtapasWizardUi();
       entradaNfeAplicarCongelamentoEditorUi();
@@ -2867,8 +3019,8 @@
   }
 
   function entradaNfeWizardSetStep(n) {
-    const s = Math.min(6, Math.max(1, Math.floor(Number(n)) || 1));
-    if (s === 6) {
+    const s = Math.min(ENTRADA_NFE_WIZ_TOTAL, Math.max(1, Math.floor(Number(n)) || 1));
+    if (s === ENTRADA_NFE_WIZ_TOTAL) {
       const v = entradaNfeWizardValidarPassosAnteriores();
       if (!v.ok) {
         showMsg(v.erro, false);
@@ -2885,7 +3037,7 @@
         elOk.textContent = '';
         elOk.classList.remove('text-emerald-800');
       }
-    } else if (s >= 2 && s <= 5) {
+    } else if (s >= 2 && s <= 6) {
       for (let st = 1; st < s; st++) {
         const d = entradaNfeWizardValidarEtapaDetalhe(st);
         if (!d.ok) {
@@ -3873,6 +4025,239 @@
     entradaNfeBipModalVinculoAbrir(rows, codMain, codAux);
   }
 
+  function entradaNfeLoteDataParaInput(iso) {
+    const s = String(iso || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+    return '';
+  }
+
+  function entradaNfeLoteEstadoLinha(tr) {
+    const v = String(tr?.dataset?.loteConf || '').trim();
+    if (v === 'ok' || v === 'dispensado') return v;
+    return 'pendente';
+  }
+
+  function entradaNfeLoteRotuloBadge(est) {
+    if (est === 'ok') return 'Ok';
+    if (est === 'dispensado') return 'Opc.';
+    return 'Pend.';
+  }
+
+  function entradaNfeLoteClassesBtnLinha(est, selecionada) {
+    const base = 'w-full text-left rounded-lg border-2 px-2 py-2 text-sm font-bold min-h-[44px] flex items-center gap-2 transition-shadow shrink-0';
+    let paleta;
+    if (est === 'ok') paleta = 'bg-emerald-100 border-emerald-400 text-emerald-950';
+    else if (est === 'dispensado') paleta = 'bg-amber-100 border-amber-300 text-amber-950';
+    else paleta = 'bg-slate-100 border-slate-300 text-slate-900';
+    const sel = selecionada ? ' ring-2 ring-offset-1 ring-teal-500 shadow-sm' : '';
+    return `${base} ${paleta}${sel}`;
+  }
+
+  function entradaNfeLoteAplicarDadosLinha(tr, d) {
+    if (!tr || !d || typeof d !== 'object') return;
+    const num = entradaNfeStrCampo(d.lote_numero);
+    const fab = entradaNfeLoteDataParaInput(d.lote_fabricacao);
+    const val = entradaNfeLoteDataParaInput(d.lote_validade);
+    const has = !!(num || fab || val);
+    let st = String(d.lote_conf || '').trim();
+    if (!st && has) st = 'ok';
+    if (!st && d.lote_xml) st = 'ok';
+    if (st === 'ok' || st === 'dispensado') {
+      tr.dataset.loteConf = st;
+    } else {
+      delete tr.dataset.loteConf;
+    }
+    if (num) tr.dataset.loteNumero = num.slice(0, 60);
+    else delete tr.dataset.loteNumero;
+    if (fab) tr.dataset.loteFab = fab;
+    else delete tr.dataset.loteFab;
+    if (val) tr.dataset.loteVal = val;
+    else delete tr.dataset.loteVal;
+    if (d.lote_xml) tr.dataset.loteXml = '1';
+    else delete tr.dataset.loteXml;
+  }
+
+  function entradaNfeLoteSalvarDraftAtual() {
+    entradaNfeLoteDraftPorLinha[String(entradaNfeLoteLinhaIdx)] = {
+      num: document.getElementById('nfe-lote-num')?.value || '',
+      fab: document.getElementById('nfe-lote-fab')?.value || '',
+      val: document.getElementById('nfe-lote-val')?.value || '',
+      ignorar: !!document.getElementById('nfe-lote-ignorar-linha')?.checked,
+    };
+  }
+
+  function entradaNfeLoteAplicarDraftIx(ix) {
+    const d = entradaNfeLoteDraftPorLinha[String(ix)] || {};
+    const num = document.getElementById('nfe-lote-num');
+    const fab = document.getElementById('nfe-lote-fab');
+    const val = document.getElementById('nfe-lote-val');
+    const ig = document.getElementById('nfe-lote-ignorar-linha');
+    if (num) num.value = d.num || '';
+    if (fab) fab.value = d.fab || '';
+    if (val) val.value = d.val || '';
+    if (ig) ig.checked = !!d.ignorar;
+    const rows = entradaNfeBipLinhasConferencia();
+    const tr = rows[ix];
+    const badge = document.getElementById('nfe-lote-xml-badge');
+    if (badge) badge.classList.toggle('hidden', !(tr && tr.dataset.loteXml === '1'));
+  }
+
+  function entradaNfeLoteAplicarDraftLinhaAtual() {
+    entradaNfeLoteAplicarDraftIx(entradaNfeLoteLinhaIdx);
+  }
+
+  function entradaNfeLoteSelecionarLinha(ix) {
+    const rows = entradaNfeBipLinhasConferencia();
+    if (!rows.length) return;
+    entradaNfeLoteSalvarDraftAtual();
+    entradaNfeLoteLinhaIdx = Math.min(Math.max(0, ix), rows.length - 1);
+    const tr = rows[entradaNfeLoteLinhaIdx];
+    if (tr) {
+      const d = {
+        lote_numero: tr.dataset.loteNumero,
+        lote_fabricacao: tr.dataset.loteFab,
+        lote_validade: tr.dataset.loteVal,
+        lote_xml: tr.dataset.loteXml === '1',
+        lote_conf: entradaNfeLoteEstadoLinha(tr),
+      };
+      entradaNfeLoteAplicarDadosLinha(tr, d);
+      entradaNfeLoteDraftPorLinha[String(entradaNfeLoteLinhaIdx)] = {
+        num: tr.dataset.loteNumero || '',
+        fab: tr.dataset.loteFab || '',
+        val: tr.dataset.loteVal || '',
+        ignorar: entradaNfeLoteEstadoLinha(tr) === 'dispensado',
+      };
+    }
+    entradaNfeLoteAplicarDraftLinhaAtual();
+    entradaNfeLoteRebuildSelect();
+  }
+
+  function entradaNfeLoteRebuildSelect() {
+    const box = document.getElementById('nfe-lote-linha-list');
+    if (!box) return;
+    const rows = entradaNfeBipLinhasConferencia();
+    if (!rows.length) entradaNfeLoteLinhaIdx = 0;
+    else if (entradaNfeLoteLinhaIdx >= rows.length) entradaNfeLoteLinhaIdx = rows.length - 1;
+    box.innerHTML = '';
+    rows.forEach((tr, i) => {
+      const est = entradaNfeLoteEstadoLinha(tr);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('role', 'option');
+      btn.setAttribute('aria-selected', i === entradaNfeLoteLinhaIdx ? 'true' : 'false');
+      const desc = (tr.querySelector('.in-desc')?.value || '').trim().slice(0, 76);
+      const xmlTag = tr.dataset.loteXml === '1' ? ' · XML' : '';
+      btn.className = entradaNfeLoteClassesBtnLinha(est, i === entradaNfeLoteLinhaIdx);
+      btn.innerHTML = `<span class="tabular-nums font-black shrink-0 w-7">${i + 1}.</span><span class="min-w-0 flex-1 break-words leading-snug">${desc || '(sem descrição)'}${xmlTag}</span><span class="text-[10px] font-black uppercase shrink-0 opacity-90">${entradaNfeLoteRotuloBadge(est)}</span>`;
+      btn.addEventListener('click', () => entradaNfeLoteSelecionarLinha(i));
+      box.appendChild(btn);
+    });
+  }
+
+  function entradaNfeLoteAplicarNaLinhaAtual() {
+    const msg = document.getElementById('nfe-lote-msg');
+    if (msg) {
+      msg.textContent = '';
+      msg.classList.remove('text-emerald-800', 'text-amber-800', 'text-red-700');
+    }
+    entradaNfeLoteSalvarDraftAtual();
+    const rows = entradaNfeBipLinhasConferencia();
+    if (!rows.length) {
+      if (msg) msg.textContent = 'Adicione linhas na grade primeiro.';
+      return;
+    }
+    const ix = Math.min(Math.max(0, entradaNfeLoteLinhaIdx), rows.length - 1);
+    const tr = rows[ix];
+    const ign = document.getElementById('nfe-lote-ignorar-linha')?.checked;
+    const num = document.getElementById('nfe-lote-num')?.value?.trim() || '';
+    const fab = document.getElementById('nfe-lote-fab')?.value?.trim() || '';
+    const val = document.getElementById('nfe-lote-val')?.value?.trim() || '';
+    if (ign) {
+      tr.dataset.loteConf = 'dispensado';
+      delete tr.dataset.loteNumero;
+      delete tr.dataset.loteFab;
+      delete tr.dataset.loteVal;
+    } else if (num || fab || val) {
+      tr.dataset.loteConf = 'ok';
+      if (num) tr.dataset.loteNumero = num.slice(0, 60);
+      else delete tr.dataset.loteNumero;
+      if (fab) tr.dataset.loteFab = fab;
+      else delete tr.dataset.loteFab;
+      if (val) tr.dataset.loteVal = val;
+      else delete tr.dataset.loteVal;
+    } else {
+      if (msg) msg.textContent = 'Informe lote ou data, marque «sem lote» ou use «pular todos».';
+      return;
+    }
+    entradaNfeLoteDraftPorLinha[String(ix)] = { num, fab, val, ignorar: !!ign };
+    entradaNfeLoteRebuildSelect();
+    entradaNfeLoteConferenciaAlterada();
+    if (msg) {
+      msg.textContent = ign ? 'Item marcado sem lote/validade.' : 'Lote/validade aplicados na linha.';
+      msg.classList.add('text-emerald-800');
+    }
+    if (!entradaNfeRascunhoAplicandoGrade) entradaNfeAgendarAutosaveRascunho();
+  }
+
+  function entradaNfeLotePularTodosAplicar(ativo) {
+    entradaNfeLotePularTodos = !!ativo;
+    const rows = entradaNfeBipLinhasConferencia();
+    rows.forEach((tr) => {
+      if (entradaNfeLotePularTodos) tr.dataset.loteConf = 'dispensado';
+      else if (entradaNfeLoteEstadoLinha(tr) === 'dispensado') delete tr.dataset.loteConf;
+    });
+    entradaNfeLoteEtapaConfirmada = false;
+    entradaNfeExtraUltimo = {
+      ...(entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {}),
+      wizard_etapa4_lote_confirmada_em: '',
+      wizard_lote_pular_em: entradaNfeLotePularTodos ? new Date().toISOString() : '',
+    };
+    entradaNfeWizardPersistExtraPatchFireForget({
+      wizard_etapa4_lote_confirmada_em: '',
+      wizard_lote_pular_em: entradaNfeLotePularTodos ? entradaNfeExtraUltimo.wizard_lote_pular_em : '',
+    });
+    entradaNfeLoteRebuildSelect();
+    entradaNfeAtualizarUiBotaoConfirmarLote();
+    entradaNfeWizardAgendarAtualizarCores();
+    if (!entradaNfeRascunhoAplicandoGrade) entradaNfeAgendarAutosaveRascunho();
+  }
+
+  function entradaNfeLoteConferenciaAlterada() {
+    if (entradaNfeRascunhoAplicandoGrade) return;
+    if (!entradaNfeLoteEtapaConfirmada) {
+      entradaNfeAtualizarUiBotaoConfirmarLote();
+      return;
+    }
+    entradaNfeLoteEtapaConfirmada = false;
+    entradaNfeExtraUltimo = {
+      ...(entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {}),
+      wizard_etapa4_lote_confirmada_em: '',
+    };
+    entradaNfeWizardPersistExtraPatchFireForget({ wizard_etapa4_lote_confirmada_em: '' });
+    entradaNfeAtualizarUiBotaoConfirmarLote();
+    if (entradaNfeWizardStep > 4) {
+      showMsg('Lote/validade alterados: confirme a etapa 4 de novo.', false);
+      entradaNfeWizardApplyStepUi(4);
+    }
+    entradaNfeWizardAgendarAtualizarCores();
+    try {
+      entradaNfeAplicarCongelamentoEditorUi();
+    } catch (_) {}
+  }
+
+  (function entradaNfeLoteAttachTbObserver() {
+    const tb = document.getElementById('tbody-itens');
+    if (!tb || typeof MutationObserver === 'undefined') return;
+    let moT = null;
+    const mo = new MutationObserver(() => {
+      clearTimeout(moT);
+      moT = setTimeout(() => entradaNfeLoteRebuildSelect(), 0);
+    });
+    mo.observe(tb, { childList: true });
+  })();
+
   async function entradaNfeAprovarWizardPin() {
     const elMsg = document.getElementById('nfe-wiz-aprov-msg');
     if (elMsg) {
@@ -4031,6 +4416,17 @@
   document.getElementById('nfe-btn-confirmar-fornecedor')?.addEventListener('click', () => { entradaNfeConfirmarFornecedorEtapa(); });
   document.getElementById('nfe-btn-confirmar-produtos')?.addEventListener('click', () => { entradaNfeConfirmarProdutosEtapa(); });
   document.getElementById('nfe-btn-confirmar-codigos')?.addEventListener('click', () => { entradaNfeConfirmarCodigosEtapa(); });
+  document.getElementById('nfe-btn-confirmar-lote')?.addEventListener('click', () => { void entradaNfeConfirmarLoteEtapa(); });
+  document.getElementById('nfe-lote-aplicar')?.addEventListener('click', () => { entradaNfeLoteAplicarNaLinhaAtual(); });
+  document.getElementById('nfe-lote-pular-todos')?.addEventListener('change', (e) => {
+    entradaNfeLotePularTodosAplicar(!!e.target.checked);
+  });
+  ['input', 'change'].forEach((ev) => {
+    document.getElementById('nfe-lote-num')?.addEventListener(ev, () => entradaNfeLoteSalvarDraftAtual());
+    document.getElementById('nfe-lote-fab')?.addEventListener(ev, () => entradaNfeLoteSalvarDraftAtual());
+    document.getElementById('nfe-lote-val')?.addEventListener(ev, () => entradaNfeLoteSalvarDraftAtual());
+    document.getElementById('nfe-lote-ignorar-linha')?.addEventListener(ev, () => entradaNfeLoteSalvarDraftAtual());
+  });
   document.getElementById('nfe-bip-verificar')?.addEventListener('click', () => { entradaNfeBipVerificar(); });
   document.getElementById('nfe-bip-cod')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -4090,6 +4486,15 @@
           'Use “Abrir Compras” para comparar pedido x recebimento quando necessário.',
         ],
       },
+      '4lote': {
+        titulo: 'Ajuda rápida · Lote e validade',
+        resumo: 'Opcional. Use quando precisar registrar rastreio por item.',
+        itens: [
+          'Notas com XML podem trazer lote e datas — aparecem na linha com indicação XML.',
+          '«Pular lote e validade em todos os itens» dispensa a etapa inteira.',
+          'Por linha: preencha e «Aplicar na linha», ou marque «Sem lote/validade neste item».',
+        ],
+      },
       '3': {
         titulo: 'Ajuda rápida · Código de barras',
         resumo: 'Bipe no campo principal; o sistema tenta casar automaticamente.',
@@ -4100,17 +4505,17 @@
           '“Sem código na embalagem” dispensa apenas a linha selecionada.',
         ],
       },
-      '4': {
+      '5': {
         titulo: 'Ajuda rápida · Empresa e depósito',
         resumo: 'Escolha onde a entrada vai contar no Agro antes de registrar.',
         itens: [],
       },
-      '4b': {
+      '5b': {
         titulo: 'Ajuda rápida · Registrar no estoque Agro',
         resumo: 'Com empresa e depósito conferidos acima, use o botão para gravar a nota e atualizar o estoque num passo só.',
         itens: [],
       },
-      '6': {
+      '7': {
         titulo: 'Ajuda rápida · Finalizar',
         resumo: 'PIN (mesma senha rápida do estoque) e escolha do custo que vai para o catálogo.',
         itens: [
@@ -4313,6 +4718,11 @@
       nome_catalogo: entradaNfeStrCampo(it.nome_catalogo),
       match_tipo: entradaNfeStrCampo(it.match_tipo),
       catalogo_via: entradaNfeStrCampo(it.catalogo_via),
+      lote_numero: entradaNfeStrCampo(it.lote_numero),
+      lote_fabricacao: entradaNfeLoteDataParaInput(it.lote_fabricacao),
+      lote_validade: entradaNfeLoteDataParaInput(it.lote_validade),
+      lote_xml: !!(it.lote_xml),
+      lote_conf: (it.lote_numero || it.lote_fabricacao || it.lote_validade || it.lote_xml) ? 'ok' : '',
       compact: false,
     };
   }
@@ -4823,13 +5233,13 @@
     return { parcelas };
   }
 
-  /** Etapas 1–5 válidas antes do PIN (etapa 6 · Finalizar). */
+  /** Etapas 1–6 válidas antes do PIN (etapa 7 · Finalizar). */
   function entradaNfeWizardValidarPassosAnteriores() {
-    for (let st = 1; st <= 5; st++) {
+    for (let st = 1; st <= 6; st++) {
       const d = entradaNfeWizardValidarEtapaDetalhe(st);
       if (!d.ok) return d;
     }
-    return { ok: true, irPara: 6, erro: '' };
+    return { ok: true, irPara: ENTRADA_NFE_WIZ_TOTAL, erro: '' };
   }
 
   function entradaNfeAgendarPreviewParcelas() {
@@ -5210,6 +5620,7 @@
     const bc = String(d.bip_conf != null ? d.bip_conf : '').trim();
     if (bc === 'ok' || bc === 'similar' || bc === 'divergente' || bc === 'dispensado') tr.dataset.bipConf = bc;
     else delete tr.dataset.bipConf;
+    entradaNfeLoteAplicarDadosLinha(tr, d);
     if (Array.isArray(d.bip_similar_codigos) && d.bip_similar_codigos.length) {
       tr.dataset.bipSimilarCodigos = JSON.stringify(
         d.bip_similar_codigos.map((x) => String(x || '').trim()).filter(Boolean).slice(0, 20)
@@ -5337,6 +5748,7 @@
     else entradaNfeEnsureTrailingCompactRow();
     atualizarPainelTotalNfe();
     entradaNfeBipRebuildSelect();
+    entradaNfeLoteRebuildSelect();
     if (!entradaNfeRascunhoAplicandoGrade) entradaNfeProdutosEtapaInvalidate();
   }
 
@@ -5378,6 +5790,11 @@
           }
         })(),
         preservar_custo_nf: tr.dataset.nfeCustNfPreservado === '1',
+        lote_numero: String(tr.dataset.loteNumero || '').trim(),
+        lote_fabricacao: String(tr.dataset.loteFab || '').trim(),
+        lote_validade: String(tr.dataset.loteVal || '').trim(),
+        lote_xml: tr.dataset.loteXml === '1',
+        lote_conf: entradaNfeLoteEstadoLinha(tr),
       });
     });
     return linhas;
@@ -5644,6 +6061,11 @@
           bip_conf: row.bip_conf,
           bip_similar_codigos: row.bip_similar_codigos,
           preservar_custo_nf: !!row.preservar_custo_nf,
+          lote_numero: row.lote_numero || '',
+          lote_fabricacao: row.lote_fabricacao || '',
+          lote_validade: row.lote_validade || '',
+          lote_xml: !!row.lote_xml,
+          lote_conf: row.lote_conf || '',
         });
       });
       atualizarPainelTotalNfe();
@@ -5664,9 +6086,19 @@
         || !!(exW.wizard_etapa2_confirmada_em && String(exW.wizard_etapa2_confirmada_em).trim());
       entradaNfeCodigosEtapaConfirmada = legadoFluxoAvancado
         || !!(exW.wizard_etapa3_confirmada_em && String(exW.wizard_etapa3_confirmada_em).trim());
+      entradaNfeLotePularTodos = !!(exW.wizard_lote_pular_em && String(exW.wizard_lote_pular_em).trim());
+      entradaNfeLoteEtapaConfirmada = legadoFluxoAvancado
+        || entradaNfeLotePularTodos
+        || !!(exW.wizard_etapa4_lote_confirmada_em && String(exW.wizard_etapa4_lote_confirmada_em).trim());
       entradaNfeAtualizarUiBotaoConfirmarFornecedor();
       entradaNfeAtualizarUiBotaoConfirmarProdutos();
       entradaNfeAtualizarUiBotaoConfirmarCodigos();
+      entradaNfeAtualizarUiBotaoConfirmarLote();
+      if (entradaNfeLotePularTodos) {
+        entradaNfeBipLinhasConferencia().forEach((tr) => {
+          tr.dataset.loteConf = 'dispensado';
+        });
+      }
       entradaNfeRascunhoMetaTs = {
         criado_em: rz.criado_em != null && String(rz.criado_em).trim() !== '' ? String(rz.criado_em) : '',
         atualizado_em: rz.atualizado_em != null && String(rz.atualizado_em).trim() !== '' ? String(rz.atualizado_em) : '',
@@ -5894,6 +6326,16 @@
     if (pre.bip_conf) out.bip_conf = pre.bip_conf;
     if (Array.isArray(pre.bip_similar_codigos) && pre.bip_similar_codigos.length) {
       out.bip_similar_codigos = [...pre.bip_similar_codigos];
+    }
+    for (const k of ['lote_numero', 'lote_fabricacao', 'lote_validade', 'lote_conf', 'lote_xml']) {
+      const pv = pre[k];
+      const xv = xml && xml[k];
+      if (xv != null && String(xv).trim() !== '') out[k] = xv;
+      else if (pv != null && String(pv).trim() !== '') out[k] = pv;
+    }
+    if (xml && (xml.lote_numero || xml.lote_fabricacao || xml.lote_validade)) {
+      out.lote_xml = true;
+      if (!out.lote_conf) out.lote_conf = 'ok';
     }
     /* Sempre manter dados fiscais da NF (XML), nunca o custo exibido na pré-linha / catálogo. */
     out.x_prod = entradaNfeStrCampo(xml && xml.x_prod != null ? xml.x_prod : out.x_prod);
@@ -7597,11 +8039,11 @@
     const empSel = document.getElementById('m-empresa-faturada');
     const empNome = empSel.options[empSel.selectedIndex]?.text || '';
     if (!empSel.value) {
-      showMsg('Selecione a empresa faturada na etapa 4 · Estoque.', false);
+      showMsg('Selecione a empresa faturada na etapa 5 · Estoque.', false);
       return;
     }
     if (!depVal || !['centro', 'vila'].includes(depVal)) {
-      showMsg('Selecione o depósito na etapa 4 · Estoque (obrigatório — confira o aviso ao escolher).', false);
+      showMsg('Selecione o depósito na etapa 5 · Estoque (obrigatório — confira o aviso ao escolher).', false);
       return;
     }
     const depLbl = Array.from(document.getElementById('m-deposito-entrada').options).find((o) => o.value === depVal);

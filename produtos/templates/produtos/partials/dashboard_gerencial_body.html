@@ -1,6 +1,6 @@
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3 mb-3">
   {% for kpi in kpis %}
-  <div class="glass-card kpi-card {% if kpi.variant == 'entregas' %}kpi-warn{% elif kpi.variant == 'validade' %}ring-1 ring-red-200/80{% endif %} p-2.5 sm:p-3 group relative overflow-visible">
+  <div class="glass-card kpi-card {% if kpi.variant == 'entregas' %}kpi-warn{% elif kpi.variant == 'validade_duplo' and kpi.vencidos > 0 %}ring-2 ring-red-400/90{% endif %} p-2.5 sm:p-3 group relative overflow-visible">
     <div class="flex justify-between items-start mb-1.5 gap-1.5">
       <div class="flex items-start gap-1 min-w-0">
         <span class="text-[11px] font-black text-slate-600 uppercase tracking-tight leading-tight">
@@ -29,7 +29,7 @@
         </details>
         {% endif %}
       </div>
-      {% if kpi.variant != "ticket_duplo" %}
+      {% if kpi.variant != "ticket_duplo" and kpi.variant != "validade_duplo" %}
       <span class="relative inline-flex shrink-0 group">
         <span class="{{ kpi.trend_class }} text-[9px] sm:text-[10px] font-bold px-1 py-0.5 rounded-md leading-tight max-w-[95px] whitespace-nowrap overflow-hidden text-ellipsis cursor-help">
           {{ kpi.trend_short|default:kpi.trend }}
@@ -71,13 +71,26 @@
         <div class="text-[1.15rem] sm:text-[1.25rem] font-black text-slate-900 tabular-nums leading-none text-right">{{ kpi.value_dia }}</div>
       </div>
     </div>
-    {% elif kpi.variant == "validade" %}
-    <a href="{{ relatorios_validade_url }}" class="block cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg -m-1 p-1 hover:bg-red-50/60">
-      <div class="flex items-baseline gap-2 flex-wrap">
-        <div class="text-[1.9rem] sm:text-[2rem] font-black text-red-700 tabular-nums leading-none">{{ kpi.value }}</div>
-        <span class="text-[10px] font-bold text-red-600/90 uppercase tracking-wide">alert.</span>
+    {% elif kpi.variant == "validade_duplo" %}
+    <a href="{{ relatorios_validade_url }}" class="block cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 rounded-lg -m-1 p-1 hover:opacity-95">
+      <div class="grid grid-cols-2 gap-2">
+        <div class="rounded-lg border-2 p-2 min-h-[3.25rem] flex flex-col justify-center {% if kpi.vencidos > 0 %}border-red-500 bg-red-50 shadow-sm shadow-red-200/60{% else %}border-slate-200 bg-slate-50/80{% endif %}">
+          <span class="text-[9px] font-black uppercase tracking-wide {% if kpi.vencidos > 0 %}text-red-800{% else %}text-slate-500{% endif %}">Vencidos</span>
+          <span class="mt-0.5 text-[1.35rem] sm:text-[1.5rem] font-black tabular-nums leading-none {% if kpi.vencidos > 0 %}text-red-700{% else %}text-slate-400{% endif %}">{{ kpi.vencidos }}</span>
+        </div>
+        <div class="rounded-lg border border-sky-200 bg-sky-50/70 p-2 min-h-[3.25rem] flex flex-col justify-center">
+          <span class="text-[9px] font-bold uppercase tracking-wide text-sky-800/80">Vencem no mês</span>
+          <span class="mt-0.5 text-[1.1rem] sm:text-[1.2rem] font-bold tabular-nums leading-none text-sky-700">{{ kpi.vencendo_mes }}</span>
+        </div>
       </div>
     </a>
+    {% elif kpi.variant == "vendas_dia" %}
+    <div>
+      <div class="font-black text-slate-900 tabular-nums leading-none" style="font-size: clamp(1.15rem, 1.5vw + 0.35rem, 1.95rem);">{% if kpi.prefix %}<span class="text-slate-500">{{ kpi.prefix }}</span> {% endif %}{{ kpi.value }}</div>
+      <p class="mt-1.5 text-[11px] sm:text-xs font-bold text-slate-600 tabular-nums leading-tight">
+        {{ kpi.qtd_vendas|default:0 }} venda{{ kpi.qtd_vendas|default:0|pluralize }}
+      </p>
+    </div>
     {% else %}
     <div class="font-black text-slate-900 tabular-nums leading-none" style="font-size: clamp(1.15rem, 1.5vw + 0.35rem, 1.95rem);">{% if kpi.prefix %}<span class="text-slate-500">{{ kpi.prefix }}</span> {% endif %}{{ kpi.value }}</div>
     {% endif %}
