@@ -145,6 +145,12 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 
 - Backend hoje: principalmente `vencimento_asc` / `vencimento_desc` / `fluxo_desc` em `mongo_financeiro_util.py`. Ordenar **todas** as colunas no servidor exige estender o aggregate; sort só no cliente **não** substitui paginação global.
 
+**Dashboard gerencial — gastos por plano de conta**
+
+- Gráfico empilhado **dia a dia** (ou mês a mês no filtro Ano), estilo Performance, com despesas por **plano de conta** (top 6 + «Outros»).
+- Filtro de data no card: **Competência**, **Vencimento** ou **Pagamento** (`GET gasto_data_por=`; padrão vencimento). Agregação em `dashboard_despesas_plano_serie_mongo` (`mongo_financeiro_util.py`); mesma exclusão de planos patrimoniais do DRE.
+- Ranking horizontal ao lado: total por plano no período. Link para contas a pagar.
+
 **Lançamentos — busca na lista (filtros)**  
 
 - Texto longo da busca no modal Filtros em **«?»** (`<details>`); canônico em `produtos/templates/produtos/includes/lancamentos_help_agents.html`, espelho em **AGENTS.md §10**. Busca por **valor** (vírgula decimal / R$) alinhada a bruto, pago e saldo em aberto no Mongo (`mongo_financeiro_util.py`).

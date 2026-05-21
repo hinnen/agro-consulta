@@ -123,6 +123,7 @@ from .mongo_financeiro_util import (
     contas_pagar_buscar_pagina,
     contas_pagar_montar_query_mongo,
     dre_resumo_simples_mongo,
+    dashboard_despesas_plano_serie_mongo,
     excluir_lancamento_mongo_agro,
     financeiro_projecao_fluxo_diario,
     inserir_lancamentos_manual_lote,
@@ -5719,6 +5720,29 @@ def _dashboard_prev_periodo(data_ini, data_fim):
     return prev_ini, prev_fim
 
 
+def _dashboard_gasto_data_por_from_request(request) -> tuple[str, str]:
+    """Retorna (chave, rótulo) para filtro de data dos gastos no dashboard."""
+    raw = (_dashboard_query_param(request, "gasto_data_por") or "vencimento").strip().lower()
+    if raw in ("competencia", "competência"):
+        return "competencia", "Competência"
+    if raw == "pagamento":
+        return "pagamento", "Pagamento"
+    return "vencimento", "Vencimento"
+
+
+def _dashboard_gastos_plano_worker(data_ini, data_fim, gasto_por: str, periodo_key: str):
+    _client, db = obter_conexao_mongo()
+    bucket = "mes" if periodo_key == "ano" else "dia"
+    return dashboard_despesas_plano_serie_mongo(
+        db,
+        data_de=data_ini,
+        data_ate=data_fim,
+        por=gasto_por,
+        top_n=6,
+        bucket=bucket,
+    )
+
+
 def _dashboard_float(value):
     try:
         return float(value or 0)
@@ -6594,6 +6618,7 @@ def _dashboard_capri_financeiro(hoje: date, ontem: date) -> dict:
 
 def _dashboard_capri_context(request):
     data_ini, data_fim, periodo_label, periodo_key = _dashboard_periodo_from_request(request)
+    gasto_por, gasto_por_label = _dashboard_gasto_data_por_from_request(request)
     prev_ini, prev_fim = _dashboard_prev_periodo(data_ini, data_fim)
     hoje = timezone.localdate()
     ontem = hoje - timedelta(days=1)
@@ -6617,6 +6642,14 @@ def _dashboard_capri_context(request):
         fut["rank_vend"] = ex.submit(_dashboard_worker, _dashboard_ranking_vendedores_capri, data_ini, data_fim)
         fut["top_cli_mes_ant"] = ex.submit(_dashboard_worker, _dashboard_top_clientes_mes_anterior_capri, hoje)
         fut["finance"] = ex.submit(_dashboard_worker, _dashboard_capri_financeiro, hoje, ontem)
+        fut["gastos_plano"] = ex.submit(
+            _dashboard_worker,
+            _dashboard_gastos_plano_worker,
+            data_ini,
+            data_fim,
+            gasto_por,
+            periodo_key,
+        )
         if periodo_key != "ano":
             fut["serie_compare"] = ex.submit(
                 _dashboard_worker, _dashboard_serie_meta_c_vendas, data_ini, data_fim
@@ -6811,6 +6844,27 @@ def _dashboard_capri_context(request):
     total_receber_atraso = fin["total_receber_atraso"]
     total_pagar_atraso = fin["total_pagar_atraso"]
 
+    gastos_blk = blk.get("gastos_plano") if isinstance(blk.get("gastos_plano"), dict) else {}
+    gastos_series_json = json.dumps(
+        [
+            {"name": (s.get("plano") or "")[:48], "data": s.get("data") or []}
+            for s in (gastos_blk.get("series") or [])
+        ],
+        ensure_ascii=False,
+    )
+    gastos_planos_chart_json = json.dumps(
+        {
+            "labels": [
+                (x.get("plano") or "")[:48] for x in (gastos_blk.get("totais_plano") or [])
+            ],
+            "values": [
+                round(_dashboard_float(x.get("total")), 2)
+                for x in (gastos_blk.get("totais_plano") or [])
+            ],
+        },
+        ensure_ascii=False,
+    )
+
     return {
         "periodo_label": periodo_label,
         "periodo_key": periodo_key,
@@ -6834,6 +6888,16 @@ def _dashboard_capri_context(request):
             },
             ensure_ascii=False,
         ),
+        "gasto_data_por": gasto_por,
+        "gasto_data_por_label": gasto_por_label,
+        "gastos_plano_labels_json": json.dumps(gastos_blk.get("labels") or [], ensure_ascii=False),
+        "gastos_plano_series_json": gastos_series_json,
+        "gastos_plano_chart_json": gastos_planos_chart_json,
+        "gastos_plano_total_periodo": _format_moeda_br(
+            Decimal(str(round(_dashboard_float(gastos_blk.get("total_periodo")), 2)))
+        ),
+        "gastos_plano_ok": bool(gastos_blk.get("ok")),
+        "gastos_plano_erro": (gastos_blk.get("erro") or "")[:180],
         "contas_receber": contas_receber,
         "contas_pagar": contas_pagar,
         "total_receber_atraso": total_receber_atraso,
