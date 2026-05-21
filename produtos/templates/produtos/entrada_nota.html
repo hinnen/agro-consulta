@@ -8092,11 +8092,18 @@
     try {
       const u = new URL(URL_AUDITORIA_FIN, window.location.origin);
       u.searchParams.set('filtro', entradaNfeListaFiltro || 'concluida');
-      u.searchParams.set('limit', '250');
+      u.searchParams.set('limit', '120');
       const r = await fetch(u.toString(), { credentials: 'same-origin' });
-      const j = await r.json();
-      if (!j.ok) {
-        body.innerHTML = `<p class="font-bold text-red-800">${entradaNfeFornEsc(j.erro || 'Falha na auditoria.')}</p>`;
+      const raw = await r.text();
+      let j = {};
+      try {
+        j = raw ? JSON.parse(raw) : {};
+      } catch (_) {
+        body.innerHTML = `<p class="font-bold text-red-800">Resposta inválida do servidor (HTTP ${r.status}). Tente de novo com filtro mais estreito (ex.: Concluída ou Financeiro).</p>`;
+        return;
+      }
+      if (!r.ok || !j.ok) {
+        body.innerHTML = `<p class="font-bold text-red-800">${entradaNfeFornEsc(j.erro || ('Falha na auditoria (HTTP ' + r.status + ').'))}</p>`;
         return;
       }
       const resumo = j.resumo && typeof j.resumo === 'object' ? j.resumo : {};
@@ -8134,8 +8141,9 @@
           void carregarRascunhoNaTela(id);
         });
       });
-    } catch (_) {
-      body.innerHTML = '<p class="font-bold text-red-800">Erro de rede na auditoria.</p>';
+    } catch (err) {
+      const det = err && err.message ? String(err.message) : '';
+      body.innerHTML = `<p class="font-bold text-red-800">Erro de rede na auditoria.${det ? ' ' + entradaNfeFornEsc(det) : ''} Use um filtro menor (Concluída / Financeiro) e tente de novo.</p>`;
     } finally {
       if (btn) {
         btn.disabled = false;

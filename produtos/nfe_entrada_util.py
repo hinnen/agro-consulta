@@ -661,37 +661,44 @@ def auditar_entrada_nfe_financeiro_lote(
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível", "itens": [], "resumo": {}}
     lim = min(max(int(limit or 300), 1), 500)
+    f = (filtro_lista or "todas").strip().lower()
+    proj_aud = {
+        "_id": 1,
+        "status": 1,
+        "cabecalho": 1,
+        "modo": 1,
+        "extra": 1,
+        "criado_em": 1,
+        "atualizado_em": 1,
+    }
+    scan_cap = min(lim * 4, 800) if f != "todas" else min(lim * 2, 400)
     try:
         cur = (
             db[COL_ENTRADA_RASCUNHO]
-            .find(
-                {"status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA}},
-                {
-                    "_id": 1,
-                    "status": 1,
-                    "cabecalho": 1,
-                    "modo": 1,
-                    "extra": 1,
-                    "criado_em": 1,
-                    "atualizado_em": 1,
-                    "linhas": 1,
-                },
-            )
+            .find({"status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA}}, proj_aud)
             .sort("atualizado_em", -1)
-            .limit(lim * 3)
+            .limit(scan_cap)
         )
         docs = list(cur)
     except Exception as exc:
         logger.exception("auditar_entrada_nfe_financeiro_lote")
         return {"ok": False, "erro": str(exc)[:400], "itens": [], "resumo": {}}
 
-    f = (filtro_lista or "todas").strip().lower()
     alertas: list[dict[str, Any]] = []
     resumo: dict[str, int] = {}
     ok_count = 0
+    avaliados = 0
+    erros_item = 0
 
     for raw in docs:
-        d = _serialize_rascunho_leitura(raw)
+        if avaliados >= lim:
+            break
+        try:
+            d = _serialize_rascunho_leitura(raw)
+        except Exception as exc:
+            erros_item += 1
+            logger.warning("auditoria entrada nfe serialize: %s", exc)
+            continue
         if f != "todas":
             legacy = {
                 "abertas": "em_andamento",
@@ -707,11 +714,20 @@ def auditar_entrada_nfe_financeiro_lote(
                     continue
             elif ff != b:
                 continue
+        avaliados += 1
         b = str(d.get("entrada_lista_bucket") or "")
-        aud = auditar_financeiro_rascunho_entrada_nfe(db, d, col_pessoa=col_pessoa)
+        try:
+            aud = auditar_financeiro_rascunho_entrada_nfe(db, d, col_pessoa=col_pessoa)
+        except Exception as exc:
+            erros_item += 1
+            logger.warning("auditoria entrada nfe item %s: %s", d.get("_id"), exc)
+            aud = {
+                "situacao": "erro_auditoria",
+                "detalhe": f"Falha ao conferir esta nota: {str(exc)[:200]}",
+            }
         sit = str(aud.get("situacao") or "")
         resumo[sit] = resumo.get(sit, 0) + 1
-        if sit == "ok" or sit == "bonificacao":
+        if sit in ("ok", "bonificacao"):
             ok_count += 1
             continue
         cab = d.get("cabecalho") if isinstance(d.get("cabecalho"), dict) else {}
@@ -721,17 +737,25 @@ def auditar_entrada_nfe_financeiro_lote(
                 "fornecedor": str(cab.get("emit_nome") or "—")[:200],
                 "nf": str(cab.get("numero") or "—")[:40],
                 "lista_bucket": b,
-                **aud,
+                "situacao": sit,
+                "detalhe": str(aud.get("detalhe") or "")[:500],
+                "financeiro_lancado": bool(aud.get("financeiro_lancado")),
+                "titulos_qtd": int(aud.get("titulos_qtd") or 0),
+                "cliente_ok": bool(aud.get("cliente_ok")),
             }
         )
         if len(alertas) >= lim:
             break
 
     total_avaliado = sum(resumo.values())
+    nota_extra = ""
+    if erros_item:
+        nota_extra = f" {erros_item} nota(s) com erro interno na conferência."
     return {
         "ok": True,
         "filtro": f,
         "total_avaliado": total_avaliado,
+        "erros_auditoria": erros_item,
         "total_ok_ou_bonificacao": ok_count,
         "total_alertas": len(alertas),
         "resumo": resumo,
@@ -739,6 +763,7 @@ def auditar_entrada_nfe_financeiro_lote(
         "nota": (
             "Concluída = PIN gravado na etapa 6; não garante sozinha que «Salvar + a pagar» foi feito. "
             "Alertas listam notas sem título no financeiro ou com nome de fornecedor diferente do título."
+            + nota_extra
         ),
     }
 
