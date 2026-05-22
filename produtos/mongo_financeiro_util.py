@@ -3579,20 +3579,33 @@ def dre_resumo_simples_mongo(
     }
 
 
-def dashboard_despesas_plano_serie_mongo(
+_DASH_GASTOS_PLANO_EXCLUIR_RX = (
+    re.compile(r"pagamento\s+de\s+emprest", re.IGNORECASE),
+    re.compile(r"juros\s+de\s+emprest", re.IGNORECASE),
+)
+
+
+def _dashboard_plano_excluido_gastos_chart(nome: str) -> bool:
+    """Oculta planos de empréstimo no gráfico de gastos do dashboard."""
+    n = unicodedata.normalize("NFKD", str(nome or ""))
+    n = "".join(c for c in n if not unicodedata.combining(c))
+    for rx in _DASH_GASTOS_PLANO_EXCLUIR_RX:
+        if rx.search(n):
+            return True
+    return False
+
+
+def dashboard_despesas_plano_totais_mongo(
     db,
     *,
     data_de: date,
     data_ate: date,
     por: str = "vencimento",
-    top_n: int = 6,
-    bucket: str = "dia",
 ) -> dict[str, Any]:
     """
-    Série de despesas por plano de conta para o dashboard gerencial.
+    Totais de despesas por plano de conta no período (dashboard gerencial).
 
-    ``por``: competencia | vencimento | pagamento (campo de data no filtro).
-    ``bucket``: dia (YYYY-MM-DD) ou mes (YYYY-MM) no eixo do gráfico.
+    ``por``: competencia | vencimento | pagamento.
     Valor: bruto (Saida), exceto em pagamento (ValorPago no período).
     """
     vazio = {
@@ -3600,10 +3613,6 @@ def dashboard_despesas_plano_serie_mongo(
         "erro": "Mongo indisponível",
         "campo_data": "",
         "campo_data_label": "",
-        "buckets": [],
-        "labels": [],
-        "top_planos": [],
-        "series": [],
         "totais_plano": [],
         "total_periodo": 0.0,
     }
@@ -3619,9 +3628,6 @@ def dashboard_despesas_plano_serie_mongo(
     else:
         campo = "DataVencimento"
         campo_label = "Vencimento"
-    modo_bucket = (bucket or "dia").strip().lower()
-    fmt = "%Y-%m" if modo_bucket == "mes" else "%Y-%m-%d"
-    top_n = max(3, min(int(top_n or 6), 12))
 
     tz = timezone.get_current_timezone()
     ini = timezone.make_aware(datetime.combine(data_de, dtime.min), tz)
@@ -3649,25 +3655,23 @@ def dashboard_despesas_plano_serie_mongo(
     col = db[COL_DTO_LANCAMENTO]
     try:
         dedup_id = getattr(settings, "DRE_DEDUP_LANCAMENTO_ID", True)
-        bucket_expr = {"$dateToString": {"format": fmt, "date": "$" + campo}}
         if dedup_id:
             pipe = [
                 {"$match": match0},
-                {"$addFields": {"vl_dash": soma_expr, "bk_dash": bucket_expr}},
+                {"$addFields": {"vl_dash": soma_expr}},
                 {"$addFields": {"dk_dash": _mongo_expr_dre_dedup_key()}},
                 {
                     "$group": {
                         "_id": {
                             "dk": "$dk_dash",
                             "plano": {"$ifNull": ["$PlanoDeConta", ""]},
-                            "bk": "$bk_dash",
                         },
                         "soma": {"$max": "$vl_dash"},
                     }
                 },
                 {
                     "$group": {
-                        "_id": {"plano": "$_id.plano", "bk": "$_id.bk"},
+                        "_id": "$_id.plano",
                         "soma": {"$sum": "$soma"},
                     }
                 },
@@ -3675,109 +3679,58 @@ def dashboard_despesas_plano_serie_mongo(
         else:
             pipe = [
                 {"$match": match0},
-                {"$addFields": {"vl_dash": soma_expr, "bk_dash": bucket_expr}},
                 {
                     "$group": {
-                        "_id": {
-                            "plano": {"$ifNull": ["$PlanoDeConta", ""]},
-                            "bk": "$bk_dash",
-                        },
-                        "soma": {"$sum": "$vl_dash"},
+                        "_id": {"$ifNull": ["$PlanoDeConta", ""]},
+                        "soma": {"$sum": soma_expr},
                     }
                 },
             ]
         agg = list(col.aggregate(pipe))
     except Exception as exc:
-        logger.exception("dashboard_despesas_plano_serie_mongo: %s", exc)
+        logger.exception("dashboard_despesas_plano_totais_mongo: %s", exc)
         out = dict(vazio)
         out["erro"] = str(exc)[:300]
         return out
 
-    celula: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     totais: dict[str, float] = defaultdict(float)
     for r in agg:
-        pid = r.get("_id") or {}
-        nome = _sanitizar_nome_plano_dre(str(pid.get("plano") or "").strip()) or "(sem plano)"
-        bk = str(pid.get("bk") or "").strip()
-        if not bk:
+        nome = _sanitizar_nome_plano_dre(str(r.get("_id") or "").strip()) or "(sem plano)"
+        if _dashboard_plano_excluido_gastos_chart(nome):
             continue
         val = float(_dec(r.get("soma")).quantize(Decimal("0.01")))
         if val <= 0:
             continue
-        celula[bk][nome] += val
         totais[nome] += val
 
-    if modo_bucket == "mes":
-        buckets: list[str] = []
-        cur = data_de.replace(day=1)
-        while cur <= data_fim:
-            buckets.append(cur.strftime("%Y-%m"))
-            if cur.month == 12:
-                cur = date(cur.year + 1, 1, 1)
-            else:
-                cur = date(cur.year, cur.month + 1, 1)
-    else:
-        dias = (data_ate - data_de).days + 1
-        buckets = [(data_de + timedelta(days=i)).isoformat() for i in range(dias)]
-
     ranking = sorted(totais.items(), key=lambda x: x[1], reverse=True)
-    top_nomes = [n for n, _ in ranking[:top_n]]
-    tem_outros = len(ranking) > top_n
-    planos_ordem = list(top_nomes)
-    if tem_outros:
-        planos_ordem.append("Outros")
-
-    series: list[dict[str, Any]] = []
-    for nome in planos_ordem:
-        linha: list[float] = []
-        for bk in buckets:
-            if nome == "Outros":
-                s = sum(
-                    celula[bk].get(p, 0.0)
-                    for p in celula[bk]
-                    if p not in top_nomes
-                )
-            else:
-                s = celula[bk].get(nome, 0.0)
-            linha.append(round(s, 2))
-        series.append({"plano": nome, "data": linha})
-
-    labels: list[str] = []
-    _wk = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"]
-    for bk in buckets:
-        if modo_bucket == "mes":
-            try:
-                y, m = bk.split("-", 1)
-                labels.append(f"{int(m):02d}/{y[-2:]}")
-            except Exception:
-                labels.append(bk)
-        else:
-            try:
-                d = date.fromisoformat(bk)
-                labels.append(d.strftime("%d/%m") + "\n" + _wk[d.weekday()])
-            except Exception:
-                labels.append(bk)
-
-    totais_plano: list[dict[str, Any]] = []
-    for nome, tot in ranking[: max(top_n, 12)]:
-        totais_plano.append({"plano": nome, "total": round(tot, 2)})
-    if tem_outros:
-        outros_val = sum(v for n, v in ranking[top_n:])
-        totais_plano.append({"plano": "Outros", "total": round(outros_val, 2)})
-
+    totais_plano = [
+        {"plano": nome, "total": round(tot, 2)} for nome, tot in ranking
+    ]
     total_periodo = round(sum(totais.values()), 2)
     return {
         "ok": True,
         "erro": None,
         "campo_data": campo,
         "campo_data_label": campo_label,
-        "buckets": buckets,
-        "labels": labels,
-        "top_planos": planos_ordem,
-        "series": series,
         "totais_plano": totais_plano,
         "total_periodo": total_periodo,
     }
+
+
+def dashboard_despesas_plano_serie_mongo(
+    db,
+    *,
+    data_de: date,
+    data_ate: date,
+    por: str = "vencimento",
+    top_n: int = 6,
+    bucket: str = "dia",
+) -> dict[str, Any]:
+    """Alias legado: delega para totais por plano (sem série diária)."""
+    return dashboard_despesas_plano_totais_mongo(
+        db, data_de=data_de, data_ate=data_ate, por=por
+    )
 
 
 # Campos usuais do DtoLancamento (WL / Venda ERP) enviados ao POST de integração — evita payload gigante.

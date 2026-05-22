@@ -147,9 +147,9 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 
 **Dashboard gerencial — gastos por plano de conta**
 
-- Gráfico empilhado **dia a dia** (ou mês a mês no filtro Ano), estilo Performance, com despesas por **plano de conta** (top 6 + «Outros»).
-- Filtro de data no card: **Competência**, **Vencimento** ou **Pagamento** (`GET gasto_data_por=`; padrão vencimento). Agregação em `dashboard_despesas_plano_serie_mongo` (`mongo_financeiro_util.py`); mesma exclusão de planos patrimoniais do DRE.
-- Ranking horizontal ao lado: total por plano no período. Link para contas a pagar.
+- Um gráfico de **barras verticais**: cada coluna = plano de conta (total no período do filtro de cima).
+- Filtro **Competência / Vencimento / Pagamento** troca só o gráfico (cache JSON dos 3 modos no load; sem reload da página).
+- Excluídos do gráfico: **Pagamento de Empréstimos** e **Juros de Empréstimos** (+ planos patrimoniais do DRE). Agregação: `dashboard_despesas_plano_totais_mongo`.
 
 **Lançamentos — busca na lista (filtros)**  
 
