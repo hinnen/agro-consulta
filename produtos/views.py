@@ -5735,6 +5735,11 @@ def _dashboard_prev_periodo(data_ini, data_fim):
     return prev_ini, prev_fim
 
 
+def _dashboard_gastos_plano_ativo() -> bool:
+    """Gráfico «Gastos por plano» no dashboard gerencial (desligado por padrão)."""
+    return bool(getattr(settings, "AGRO_DASHBOARD_GASTOS_PLANO", False))
+
+
 def _dashboard_gasto_data_por_from_request(request) -> tuple[str, str]:
     """Retorna (chave, rótulo) para filtro de data dos gastos no dashboard."""
     raw = (_dashboard_query_param(request, "gasto_data_por") or "vencimento").strip().lower()
@@ -5747,13 +5752,21 @@ def _dashboard_gasto_data_por_from_request(request) -> tuple[str, str]:
 
 def _dashboard_gastos_plano_pack(blk: dict) -> dict:
     totais = blk.get("totais_plano") or []
-    total = round(_dashboard_float(blk.get("total_periodo")), 2)
+    labels: list[str] = []
+    values: list[float] = []
+    for x in totais:
+        val = round(_dashboard_float(x.get("total")), 2)
+        if val <= 0.009:
+            continue
+        labels.append((x.get("plano") or "")[:56])
+        values.append(val)
+    total = round(sum(values), 2)
     return {
         "ok": bool(blk.get("ok")),
         "erro": (blk.get("erro") or "")[:180],
         "label": blk.get("campo_data_label") or "",
-        "labels": [(x.get("plano") or "")[:56] for x in totais],
-        "values": [round(_dashboard_float(x.get("total")), 2) for x in totais],
+        "labels": labels,
+        "values": values,
         "total": total,
         "total_fmt": _format_moeda_br(Decimal(str(total))),
     }
@@ -6669,12 +6682,13 @@ def _dashboard_capri_context(request):
         fut["rank_vend"] = ex.submit(_dashboard_worker, _dashboard_ranking_vendedores_capri, data_ini, data_fim)
         fut["top_cli_mes_ant"] = ex.submit(_dashboard_worker, _dashboard_top_clientes_mes_anterior_capri, hoje)
         fut["finance"] = ex.submit(_dashboard_worker, _dashboard_capri_financeiro, hoje, ontem)
-        fut["gastos_plano_cache"] = ex.submit(
-            _dashboard_worker,
-            _dashboard_gastos_plano_cache_worker,
-            data_ini,
-            data_fim,
-        )
+        if _dashboard_gastos_plano_ativo():
+            fut["gastos_plano_cache"] = ex.submit(
+                _dashboard_worker,
+                _dashboard_gastos_plano_cache_worker,
+                data_ini,
+                data_fim,
+            )
         if periodo_key != "ano":
             fut["serie_compare"] = ex.submit(
                 _dashboard_worker, _dashboard_serie_meta_c_vendas, data_ini, data_fim
@@ -6869,7 +6883,12 @@ def _dashboard_capri_context(request):
     total_receber_atraso = fin["total_receber_atraso"]
     total_pagar_atraso = fin["total_pagar_atraso"]
 
-    gastos_cache = blk.get("gastos_plano_cache") if isinstance(blk.get("gastos_plano_cache"), dict) else {}
+    gastos_plano_ativo = _dashboard_gastos_plano_ativo()
+    gastos_cache = (
+        blk.get("gastos_plano_cache")
+        if gastos_plano_ativo and isinstance(blk.get("gastos_plano_cache"), dict)
+        else {}
+    )
     gasto_pack = gastos_cache.get(gasto_por) or _dashboard_gastos_plano_pack({})
 
     return {
@@ -6895,6 +6914,7 @@ def _dashboard_capri_context(request):
             },
             ensure_ascii=False,
         ),
+        "dashboard_gastos_plano_ativo": gastos_plano_ativo,
         "gasto_data_por": gasto_por,
         "gasto_data_por_label": gasto_por_label,
         "gastos_plano_cache_json": json.dumps(gastos_cache, ensure_ascii=False),
