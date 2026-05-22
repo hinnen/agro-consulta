@@ -145,10 +145,11 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 
 - Backend hoje: principalmente `vencimento_asc` / `vencimento_desc` / `fluxo_desc` em `mongo_financeiro_util.py`. Ordenar **todas** as colunas no servidor exige estender o aggregate; sort só no cliente **não** substitui paginação global.
 
-**Dashboard gerencial — gastos por plano de conta**
+**Dashboard gerencial — gastos por plano de conta** (oculto por padrão; `AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env` para exibir)
 
 - Um gráfico de **barras verticais**: cada coluna = plano de conta (total no período do filtro de cima).
 - Filtro **Competência / Vencimento / Pagamento** troca só o gráfico (cache JSON dos 3 modos no load; sem reload da página).
+- Com mais de 10 planos: paginação discreta (**‹ ›** e **N/M** ao lado do gráfico).
 - Excluídos do gráfico: **Pagamento de Empréstimos** e **Juros de Empréstimos** (+ planos patrimoniais do DRE). Agregação: `dashboard_despesas_plano_totais_mongo`.
 
 **Lançamentos — busca na lista (filtros)**  
