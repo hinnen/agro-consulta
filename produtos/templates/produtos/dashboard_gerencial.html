@@ -635,19 +635,8 @@ document.addEventListener("keydown", function (e) {
         qs.delete("data_ini");
         qs.delete("data_fim");
       }
-      if (!qs.get("gasto_data_por")) qs.set("gasto_data_por", "vencimento");
       return qs.toString();
     }
-
-    window.dashGastoDataPorCarregar = function (por) {
-      var qs = new URLSearchParams(window.location.search || "");
-      qs.set("gasto_data_por", por || "vencimento");
-      if (!qs.get("periodo")) qs.set("periodo", "mes_ate_hoje");
-      var qstr = qs.toString();
-      var url = "{% url 'dashboard_gerencial_conteudo' %}?" + qstr;
-      htmx.ajax("GET", url, { target: "#dashboard-body", swap: "innerHTML" });
-      window.history.replaceState({}, "", "?" + qstr);
-    };
 
     function dashPeriodoHighlight(periodo) {
       document.querySelectorAll(".period-btn").forEach(function (b) {
