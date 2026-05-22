@@ -140,7 +140,7 @@
             <div class="absolute left-0 z-30 mt-1 w-[min(24rem,88vw)] max-h-[55vh] overflow-y-auto rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
               <p><span class="text-orange-800 font-extrabold">Barras</span> — cada coluna é um <strong>plano de conta</strong> no período do filtro de cima (total no intervalo).</p>
               <p><span class="text-slate-800 font-extrabold">Data</span> — Competência, Vencimento ou Pagamento (troca instantânea, sem recarregar a página).</p>
-              <p><span class="text-slate-500 font-semibold">Excluídos: Pagamento de Empréstimos e Juros de Empréstimos. Valor bruto (Saída), exceto em Pagamento (pago). Mesma exclusão de planos patrimoniais do DRE.</p>
+              <p><span class="text-slate-500 font-semibold">Excluídos: Pagamento de Empréstimos e Juros de Empréstimos; planos com valor zero não aparecem. Altura das barras é proporcional (mín. 30% da maior) para leitura — o valor em R$ está no toque e no rótulo da barra.</p>
               {% if not gastos_plano_ok and gastos_plano_erro %}
               <p class="text-red-700 font-bold">Mongo: {{ gastos_plano_erro }}</p>
               {% endif %}
@@ -636,10 +636,39 @@
       return cache[por] || cache.vencimento || { labels: [], values: [], total_fmt: "0,00", label: "" };
     }
 
+    var GASTO_ALTURA_MIN_RATIO = 0.3;
+
+    function dashGastoSeriesVisual(labels, values) {
+      var pairs = [];
+      var i;
+      for (i = 0; i < (labels || []).length; i++) {
+        var real = Number((values || [])[i] || 0);
+        if (real > 0.009) pairs.push({ label: labels[i], real: real });
+      }
+      if (!pairs.length) {
+        return { labels: [], display: [], real: [] };
+      }
+      var max = pairs[0].real;
+      for (i = 1; i < pairs.length; i++) {
+        if (pairs[i].real > max) max = pairs[i].real;
+      }
+      var minR = GASTO_ALTURA_MIN_RATIO;
+      var display = pairs.map(function (p) {
+        return minR * max + (1 - minR) * p.real;
+      });
+      return {
+        labels: pairs.map(function (p) { return p.label; }),
+        display: display,
+        real: pairs.map(function (p) { return p.real; }),
+      };
+    }
+
     function dashGastoAplicarModo(por, opts) {
       var pack = dashGastoPack(por || "vencimento");
-      var labels = pack.labels || [];
-      var values = pack.values || [];
+      var vis = dashGastoSeriesVisual(pack.labels || [], pack.values || []);
+      var labels = vis.labels;
+      var values = vis.display;
+      window.__dashGastoValoresReais = vis.real;
       dashGastoHighlightBtn(por);
       if (gastoDataLabelEl) gastoDataLabelEl.textContent = pack.label || por;
       if (gastoTotalBadge) gastoTotalBadge.textContent = "Total: R$ " + (pack.total_fmt || "0,00");
@@ -688,7 +717,16 @@
             borderRadiusApplication: "end",
           },
         },
-        dataLabels: { enabled: false },
+        dataLabels: {
+          enabled: true,
+          offsetY: -6,
+          style: { fontSize: "9px", fontWeight: 700, colors: ["#334155"] },
+          formatter: function (_v, opts) {
+            var reals = window.__dashGastoValoresReais || [];
+            var i = opts.dataPointIndex;
+            return "R$ " + Number(reals[i] || 0).toFixed(2);
+          },
+        },
         stroke: { width: 0 },
         legend: { show: false },
         grid: { borderColor: "#e2e8f0", strokeDashArray: 4 },
@@ -701,11 +739,17 @@
             maxHeight: 120,
           },
         },
-        yaxis: { labels: { style: { colors: "#475569" } } },
+        yaxis: {
+          labels: { show: false },
+          axisBorder: { show: false },
+          axisTicks: { show: false },
+        },
         tooltip: Object.assign({}, dashTooltip, {
           y: {
-            formatter: function (v) {
-              return "R$ " + Number(v || 0).toFixed(2);
+            formatter: function (_v, opts) {
+              var reals = window.__dashGastoValoresReais || [];
+              var i = (opts && opts.dataPointIndex !== undefined) ? opts.dataPointIndex : 0;
+              return "R$ " + Number(reals[i] || 0).toFixed(2);
             },
           },
         }),

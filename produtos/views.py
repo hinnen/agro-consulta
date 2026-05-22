@@ -5747,13 +5747,21 @@ def _dashboard_gasto_data_por_from_request(request) -> tuple[str, str]:
 
 def _dashboard_gastos_plano_pack(blk: dict) -> dict:
     totais = blk.get("totais_plano") or []
-    total = round(_dashboard_float(blk.get("total_periodo")), 2)
+    labels: list[str] = []
+    values: list[float] = []
+    for x in totais:
+        val = round(_dashboard_float(x.get("total")), 2)
+        if val <= 0.009:
+            continue
+        labels.append((x.get("plano") or "")[:56])
+        values.append(val)
+    total = round(sum(values), 2)
     return {
         "ok": bool(blk.get("ok")),
         "erro": (blk.get("erro") or "")[:180],
         "label": blk.get("campo_data_label") or "",
-        "labels": [(x.get("plano") or "")[:56] for x in totais],
-        "values": [round(_dashboard_float(x.get("total")), 2) for x in totais],
+        "labels": labels,
+        "values": values,
         "total": total,
         "total_fmt": _format_moeda_br(Decimal(str(total))),
     }
