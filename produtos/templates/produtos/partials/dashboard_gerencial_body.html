@@ -128,6 +128,46 @@
   </div>
 </div>
 
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-3 mb-4">
+  <div class="xl:col-span-8 glass-card p-4 sm:p-5">
+    <div class="flex flex-wrap justify-between items-start gap-2 mb-3">
+      <div class="min-w-0">
+        <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide flex items-center gap-1.5 flex-wrap">
+          <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse shrink-0"></span>
+          <span>Gastos (R$) · {{ periodo_label }} · {% if periodo_key == "ano" %}mês a mês{% else %}dia a dia{% endif %} · {{ gasto_data_por_label }}</span>
+          <details class="relative inline-block text-left">
+            <summary class="flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border-2 border-slate-300 bg-slate-100 text-[11px] font-black text-slate-600 shadow-sm hover:border-orange-400 hover:bg-orange-50 hover:text-orange-900 [&::-webkit-details-marker]:hidden" title="O que significa este gráfico?">?</summary>
+            <div class="absolute left-0 z-30 mt-1 w-[min(24rem,88vw)] max-h-[55vh] overflow-y-auto rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
+              <p><span class="text-orange-800 font-extrabold">Barras empilhadas</span> — despesas por <strong>plano de conta</strong> em cada dia (ou mês, no filtro Ano) do período de cima.</p>
+              <p><span class="text-slate-800 font-extrabold">Data</span> — use os botões abaixo: <strong>Competência</strong>, <strong>Vencimento</strong> ou <strong>Pagamento</strong> (só títulos com pagamento no intervalo).</p>
+              <p><span class="text-slate-500 font-semibold">Valor: bruto do título (Saída), exceto em Pagamento (soma pago). Planos de balanço/patrimônio são excluídos (mesma regra do DRE).</p>
+              {% if not gastos_plano_ok and gastos_plano_erro %}
+              <p class="text-red-700 font-bold">Mongo: {{ gastos_plano_erro }}</p>
+              {% endif %}
+            </div>
+          </details>
+        </h3>
+        <div class="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Filtrar gastos por data">
+          <button type="button" class="gasto-data-btn px-2 py-1 text-[9px] sm:text-[10px] font-black uppercase rounded-lg border {% if gasto_data_por == 'competencia' %}period-active border-transparent{% else %}period-inactive{% endif %}" data-gasto-por="competencia">Competência</button>
+          <button type="button" class="gasto-data-btn px-2 py-1 text-[9px] sm:text-[10px] font-black uppercase rounded-lg border {% if gasto_data_por == 'vencimento' %}period-active border-transparent{% else %}period-inactive{% endif %}" data-gasto-por="vencimento">Vencimento</button>
+          <button type="button" class="gasto-data-btn px-2 py-1 text-[9px] sm:text-[10px] font-black uppercase rounded-lg border {% if gasto_data_por == 'pagamento' %}period-active border-transparent{% else %}period-inactive{% endif %}" data-gasto-por="pagamento">Pagamento</button>
+        </div>
+      </div>
+      <span class="text-[11px] font-black text-orange-800 bg-orange-100 border border-orange-200 rounded-md px-2 py-1 shrink-0">
+        Total: R$ {{ gastos_plano_total_periodo }}
+      </span>
+    </div>
+    <div id="gastos-plano-chart" class="dash-chart-host w-full"></div>
+  </div>
+  <div class="xl:col-span-4 glass-card p-4 sm:p-5">
+    <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide mb-3">Gastos por plano · {{ gasto_data_por_label }}</h3>
+    <div id="gastos-plano-ranking-chart" class="dash-chart-host w-full"></div>
+    <p class="mt-2 text-center">
+      <a href="{{ lancamentos_pagar_url }}" class="text-[10px] font-black uppercase text-orange-700 hover:underline">Abrir contas a pagar</a>
+    </p>
+  </div>
+</div>
+
 <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 mb-4">
   <div class="glass-card p-4 sm:p-5">
     <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
@@ -255,6 +295,8 @@
   (function () {
     if (window.__dashMainChart) window.__dashMainChart.destroy();
     if (window.__dashStoreChart) window.__dashStoreChart.destroy();
+    if (window.__dashGastoChart) window.__dashGastoChart.destroy();
+    if (window.__dashGastoRankingChart) window.__dashGastoRankingChart.destroy();
     (window.__dashSparks || []).forEach(function (s) { try { s.destroy(); } catch (e) {} });
     window.__dashSparks = [];
 
@@ -578,6 +620,106 @@
       });
       window.__dashStoreChart.render();
     }
+
+    var gastosLabels = {{ gastos_plano_labels_json|safe }};
+    var gastosSeries = {{ gastos_plano_series_json|safe }};
+    var gastosRanking = {{ gastos_plano_chart_json|safe }};
+    var gastoChartColors = ["#00BFFF", "#f59e0b", "#10b981", "#6366f1", "#ea580c", "#ec4899", "#64748b"];
+    var gastoEl = document.querySelector("#gastos-plano-chart");
+    var gastoH = dashChartHeight("#gastos-plano-chart");
+    if (gastoEl && gastosSeries && gastosSeries.length) {
+      window.__dashGastoChart = new ApexCharts(gastoEl, {
+        series: gastosSeries,
+        chart: {
+          type: "bar",
+          stacked: true,
+          height: gastoH,
+          toolbar: { show: false },
+          background: "transparent",
+        },
+        colors: gastoChartColors,
+        plotOptions: {
+          bar: {
+            borderRadius: 3,
+            columnWidth: dashAno ? "58%" : "62%",
+            borderRadiusApplication: "end",
+          },
+        },
+        dataLabels: { enabled: false },
+        stroke: { width: 0 },
+        legend: {
+          show: true,
+          position: "bottom",
+          fontSize: "11px",
+          fontWeight: 700,
+          labels: { colors: "#475569" },
+        },
+        grid: { borderColor: "#e2e8f0", strokeDashArray: 4 },
+        xaxis: {
+          categories: gastosLabels,
+          labels: { style: { colors: "#475569" }, maxHeight: 50 },
+        },
+        yaxis: { labels: { style: { colors: "#475569" } } },
+        tooltip: Object.assign({}, dashTooltip, {
+          shared: true,
+          intersect: false,
+          y: {
+            formatter: function (v) {
+              return "R$ " + Number(v || 0).toFixed(2);
+            },
+          },
+        }),
+        theme: { mode: "light" },
+      });
+      window.__dashGastoChart.render();
+    } else if (gastoEl) {
+      gastoEl.innerHTML =
+        '<p class="text-xs font-semibold text-slate-500 text-center py-8">Sem despesas no período para este filtro de data.</p>';
+    }
+
+    var gastoRankEl = document.querySelector("#gastos-plano-ranking-chart");
+    var gastoRankH = dashChartHeight("#gastos-plano-ranking-chart");
+    var rankLabels = (gastosRanking && gastosRanking.labels) || [];
+    var rankVals = (gastosRanking && gastosRanking.values) || [];
+    if (gastoRankEl && rankLabels.length) {
+      window.__dashGastoRankingChart = new ApexCharts(gastoRankEl, {
+        series: [{ name: "Gasto", data: rankVals }],
+        chart: { type: "bar", height: gastoRankH, toolbar: { show: false }, background: "transparent" },
+        plotOptions: { bar: { horizontal: true, borderRadius: 8, distributed: true, barHeight: "65%" } },
+        colors: gastoChartColors,
+        dataLabels: {
+          enabled: true,
+          style: { colors: ["#334155"], fontSize: "10px" },
+          formatter: function (v) {
+            return "R$ " + Number(v || 0).toFixed(2);
+          },
+        },
+        xaxis: { categories: rankLabels, labels: { style: { colors: "#475569" } } },
+        yaxis: { labels: { style: { colors: "#334155", fontSize: "10px" } } },
+        legend: { show: false },
+        grid: { borderColor: "#e2e8f0", strokeDashArray: 4 },
+        tooltip: Object.assign({}, dashTooltip, {
+          y: {
+            formatter: function (v) {
+              return "R$ " + Number(v || 0).toFixed(2);
+            },
+          },
+        }),
+        theme: { mode: "light" },
+      });
+      window.__dashGastoRankingChart.render();
+    } else if (gastoRankEl) {
+      gastoRankEl.innerHTML =
+        '<p class="text-xs font-semibold text-slate-500 text-center py-8">Sem planos com valor no período.</p>';
+    }
+
+    document.querySelectorAll(".gasto-data-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (typeof window.dashGastoDataPorCarregar === "function") {
+          window.dashGastoDataPorCarregar(btn.dataset.gastoPor || "vencimento");
+        }
+      });
+    });
 
     if (window.lucide) window.lucide.createIcons();
   })();

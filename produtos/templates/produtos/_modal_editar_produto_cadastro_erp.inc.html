@@ -214,37 +214,36 @@
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Código Sistema</span>
           <input type="text" id="edit-codigo" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
         </label>
-        <label class="block">
+        <div class="flex flex-col">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Código de Barras <abbr class="text-red-600 no-underline cursor-help" title="Obrigatório">*</abbr></span>
-          <input type="text" id="edit-cb" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" inputmode="numeric" />
-        </label>
+          <div class="flex gap-1">
+            <input type="text" id="edit-cb" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" inputmode="numeric" />
+            <button type="button" id="btn-gerar-cb-loja" class="w-12 min-h-[50px] shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black leading-tight px-1 border-0 cursor-pointer" title="Gerar código de barras da loja (230 + sequência)">230</button>
+          </div>
+        </div>
         <label class="block sm:col-span-2 md:col-span-3">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">EAN na NF (embalagem / caixa)</span>
           <input type="text" id="edit-ean-embalagem-nf" maxlength="22" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" inputmode="numeric" placeholder="Opcional — quando a nota traz outro EAN que o da unidade" />
-          <span class="text-xs font-semibold text-slate-500 mt-1 block leading-snug">Gravado só no Agro. Entra na busca do «Ler XML» da entrada de NF-e para casar no mesmo SKU.</span>
         </label>
         <label class="block">
           <span class="text-base font-black text-slate-600 mb-1 block tracking-tight">Código Interno ( gm )</span>
           <input type="text" id="edit-cod-nfe" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" />
         </label>
-        <p id="edit-codigo-auto-hint" class="hidden sm:col-span-2 md:col-span-3 text-xs font-semibold text-slate-600 leading-snug px-0.5">
-          Novo no SisVale: deixe «Código sistema» e «Código interno (GM)» em branco para gerar sequência automática (4 dígitos a partir de 6000 · GM + mesmo número · pula ocupados).
-        </p>
         <label class="block">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">NCM</span>
-          <input type="text" id="edit-ncm" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Ex.: 23099020 (padrão Agro só no cadastro manual)" />
+          <input type="text" id="edit-ncm" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" value="23099020" />
         </label>
         <label class="block">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">Origem Mercadoria</span>
-          <input type="text" id="edit-origem" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Ex: 0" />
+          <input type="text" id="edit-origem" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" value="0" />
         </label>
         <label class="block">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">CFOP Padrão</span>
-          <input type="text" id="edit-cfop" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Ex: 5102" />
+          <input type="text" id="edit-cfop" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" value="5102" />
         </label>
         <label class="block">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">CSOSN</span>
-          <input type="text" id="edit-csosn" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Ex: 102" />
+          <input type="text" id="edit-csosn" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" value="102" />
         </label>
         <label class="block">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">CEST</span>
@@ -252,7 +251,7 @@
         </label>
         <label class="block sm:col-span-2">
           <span class="text-base font-black uppercase text-slate-600 mb-1 block">CST PIS/COFINS</span>
-          <input type="text" id="edit-pis-cofins" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Ex: 49" />
+          <input type="text" id="edit-pis-cofins" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-mono font-bold bg-white focus:border-emerald-500 outline-none" value="49" />
         </label>
       </div>
 
@@ -1355,8 +1354,28 @@
         ? 'Novo produto · <span class="text-emerald-600">SisVale</span>'
         : 'Editar Produto · <span class="text-emerald-600">SisVale</span>';
     }
-    var hintCodSeq = document.getElementById('edit-codigo-auto-hint');
-    if (hintCodSeq) hintCodSeq.classList.toggle('hidden', !isNovoProd);
+    var fiscalPadrao = {
+      ncm: '23099020',
+      origem_mercadoria: '0',
+      cfop_padrao: '5102',
+      csosn: '102',
+      cst_pis_cofins: '49'
+    };
+    if (isNovoProd) {
+      Object.keys(fiscalPadrao).forEach(function (k) {
+        var elId = k === 'ncm' ? 'edit-ncm'
+          : k === 'origem_mercadoria' ? 'edit-origem'
+          : k === 'cfop_padrao' ? 'edit-cfop'
+          : k === 'csosn' ? 'edit-csosn'
+          : k === 'cst_pis_cofins' ? 'edit-pis-cofins'
+          : '';
+        if (!elId) return;
+        var cur = produto[k];
+        if (cur == null || String(cur).trim() === '') {
+          produto[k] = fiscalPadrao[k];
+        }
+      });
+    }
     modalEdit._snapshot = {
       id: produto.id,
       eh_kit: !!produto.eh_kit,
@@ -1663,7 +1682,8 @@
         cest: gv('edit-cest'),
         cfop: gv('edit-cfop'),
         csosn: gv('edit-csosn'),
-        origem: gv('edit-origem')
+        origem: gv('edit-origem'),
+        cst_pis_cofins: gv('edit-pis-cofins')
       },
       kit: {
         baixa_componentes: chkComp ? !!chkComp.checked : false,
@@ -1922,6 +1942,39 @@
       appendDatalistOption('dl-subcats-agro', v);
     });
   });
+  bindClick('btn-gerar-cb-loja', function () {
+    var cfgCb = window.AgroCadastroErpLista || {};
+    var urlCb = cfgCb.URL_PROXIMO_CB_LOJA || '';
+    if (!urlCb) {
+      if (typeof alert !== 'undefined') alert('Geração de código de barras indisponível.');
+      return;
+    }
+    var btnCb = document.getElementById('btn-gerar-cb-loja');
+    if (btnCb) {
+      btnCb.disabled = true;
+      btnCb.classList.add('opacity-60');
+    }
+    fetch(urlCb, { credentials: 'same-origin' })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        if (!j || !j.ok || !j.codigo_barras) {
+          throw new Error((j && j.erro) || 'Não foi possível gerar o código de barras.');
+        }
+        setVal('edit-cb', String(j.codigo_barras));
+        var cbEl = document.getElementById('edit-cb');
+        if (cbEl) try { cbEl.focus(); cbEl.select(); } catch (eCb) { /* ignore */ }
+      })
+      .catch(function (e) {
+        if (typeof alert !== 'undefined') alert(e.message || 'Erro ao gerar código de barras.');
+      })
+      .finally(function () {
+        if (btnCb) {
+          btnCb.disabled = false;
+          btnCb.classList.remove('opacity-60');
+        }
+      });
+  });
+
   bindClick('btn-var-marca-nova', function () {
     abrirMiniAgro('Nova marca (variação)', function (v) {
       if (!v) return;

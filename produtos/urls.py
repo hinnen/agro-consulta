@@ -209,6 +209,11 @@ urlpatterns = [
         name='api_produtos_cadastro_detalhe',
     ),
     path(
+        'api/produtos/cadastro/proximo-cb-loja/',
+        views.api_produtos_cadastro_proximo_cb_loja,
+        name='api_produtos_cadastro_proximo_cb_loja',
+    ),
+    path(
         'api/produtos/cadastro/somente-agro/excluir/',
         views.api_produtos_somente_agro_excluir,
         name='api_produtos_somente_agro_excluir',
