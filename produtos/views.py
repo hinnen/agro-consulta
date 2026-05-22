@@ -98,7 +98,11 @@ from .nfe_entrada_util import (
     normalizar_cabecalho_emit_fornecedor_entrada_nfe,
     salvar_rascunho_entrada,
 )
-from .agro_produto_fiscal_defaults import merge_fiscal_padrao_cadastro_manual_sp_sn
+from .agro_codigo_barras_loja_util import mongo_alocar_proximo_codigo_barras_loja
+from .agro_produto_fiscal_defaults import (
+    fiscal_padrao_ui_cadastro,
+    merge_fiscal_padrao_cadastro_manual_sp_sn,
+)
 from .mongo_index_codigos import (
     CAMPOS_CODIGO_RAIZ_MONGO,
     CAMPOS_NCM_FISCAL,
@@ -1612,7 +1616,14 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     f_prev = dict(ex.get("fiscal") or {}) if isinstance(ex.get("fiscal"), dict) else {}
     if "fiscal" in payload and isinstance(payload.get("fiscal"), dict):
         f_in = payload["fiscal"]
-        for k, mx in (("ncm", 14), ("cest", 10), ("cfop", 7), ("csosn", 7), ("origem", 4)):
+        for k, mx in (
+            ("ncm", 14),
+            ("cest", 10),
+            ("cfop", 7),
+            ("csosn", 7),
+            ("origem", 4),
+            ("cst_pis_cofins", 8),
+        ):
             if k in f_in:
                 f_prev[k] = str(f_in.get(k) or "").strip()[:mx]
     somente_agro_overlay = bool(
@@ -1626,6 +1637,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             "cfop": mf["cfop"][:7],
             "csosn": mf["csosn"][:7],
             "origem": mf["origem"][:4],
+            "cst_pis_cofins": mf.get("cst_pis_cofins", "")[:8],
         }
     elif "fiscal" in payload and isinstance(payload.get("fiscal"), dict):
         ex["fiscal"] = f_prev
@@ -1703,6 +1715,9 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         ori_f = str(mff.get("origem") or "").strip()
         if ori_f:
             set_fiscal["OrigemMercadoria"] = ori_f[:8]
+        cst_f = str(mff.get("cst_pis_cofins") or "").strip()
+        if cst_f:
+            set_fiscal["CstPisCofins"] = cst_f[:10]
         if set_fiscal:
             try:
                 db[client.col_p].update_one(
@@ -13224,6 +13239,7 @@ def _merge_fiscal_overlay_sobre_row_cadastro(row: dict, ov: ProdutoGestaoOverlay
         ("cfop", "cfop_padrao", 10),
         ("csosn", "csosn", 10),
         ("origem", "origem_mercadoria", 8),
+        ("cst_pis_cofins", "cst_pis_cofins", 8),
     )
     for json_k, row_k, mx in mapping:
         v = str(fis.get(json_k) or "").strip()
@@ -14058,12 +14074,34 @@ def api_produtos_cadastro_detalhe(request, produto_id: str):
         }
         detalhe = _montar_produto_cadastro_detalhe(db, client, stub)
         detalhe["cadastro_somente_agro"] = True
+        pad = fiscal_padrao_ui_cadastro()
+        for row_k, pad_k in (
+            ("ncm", "ncm"),
+            ("cfop_padrao", "cfop"),
+            ("csosn", "csosn"),
+            ("origem_mercadoria", "origem"),
+            ("cst_pis_cofins", "cst_pis_cofins"),
+        ):
+            if not str(detalhe.get(row_k) or "").strip():
+                detalhe[row_k] = pad[pad_k]
         return JsonResponse({"ok": True, "produto": detalhe})
     p = _produto_mongo_por_id_externo(db, client, pid)
     if not p:
         return JsonResponse({"ok": False, "erro": "Produto não encontrado"}, status=404)
     detalhe = _montar_produto_cadastro_detalhe(db, client, p)
     return JsonResponse({"ok": True, "produto": detalhe})
+
+
+@require_GET
+def api_produtos_cadastro_proximo_cb_loja(request):
+    """Próximo código de barras interno 230 + 10 dígitos (embalagem loja / bipar no caixa)."""
+    client, db = obter_conexao_mongo()
+    if db is None or client is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    err, cb = mongo_alocar_proximo_codigo_barras_loja(db, client.col_p)
+    if err is not None:
+        return err
+    return JsonResponse({"ok": True, "codigo_barras": cb})
 
 
 @login_required(login_url="/admin/login/")
@@ -15152,6 +15190,9 @@ def _try_criar_produto_mongo_somente_agro(request, payload: dict) -> tuple[JsonR
         "CSOSN": csosn,
         "OrigemMercadoria": origem,
     }
+    cst_pc = str(fiscal_m.get("cst_pis_cofins") or "").strip()[:10]
+    if cst_pc:
+        doc["CstPisCofins"] = cst_pc
     if cest:
         doc["CEST"] = cest
 

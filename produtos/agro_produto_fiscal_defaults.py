@@ -19,7 +19,13 @@ _DEFAULTS_SP_SN_CONSUMIDOR: dict[str, str] = {
     "cfop": "5102",
     "csosn": "102",
     "origem": "0",
+    "cst_pis_cofins": "49",
 }
+
+
+def fiscal_padrao_ui_cadastro() -> dict[str, str]:
+    """Valores exibidos no modal de cadastro (novo produto / campos vazios)."""
+    return dict(_DEFAULTS_SP_SN_CONSUMIDOR)
 
 
 def normalizar_ncm_somente_digitos(ncm_raw: Any) -> str:
@@ -41,6 +47,9 @@ def merge_fiscal_padrao_cadastro_manual_sp_sn(fiscal: dict[str, Any] | None) -> 
         if k == "ncm":
             digits = normalizar_ncm_somente_digitos(usr)
             out[k] = digits if digits else defv
+        elif k == "cst_pis_cofins":
+            digits_cst = re.sub(r"\D", "", usr)
+            out[k] = digits_cst[:4] if digits_cst else defv
         elif usr:
             out[k] = usr
         else:
