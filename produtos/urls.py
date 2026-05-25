@@ -93,6 +93,11 @@ urlpatterns = [
     ),
     path('dashboard/gerencial/', views.dashboard_gerencial_view, name='dashboard_gerencial'),
     path(
+        'interno/preview-gastos-bi/',
+        views.dashboard_interno_preview_view,
+        name='dashboard_interno_preview',
+    ),
+    path(
         'lancamentos/dre/',
         views.lancamentos_dre_view,
         name='lancamentos_dre',
@@ -373,6 +378,16 @@ urlpatterns = [
         'api/dashboard/gerencial/sincronizar/',
         views.dashboard_gerencial_sincronizar,
         name='dashboard_gerencial_sincronizar',
+    ),
+    path(
+        'api/interno/preview-gastos-bi/conteudo/',
+        views.dashboard_interno_preview_conteudo,
+        name='dashboard_interno_preview_conteudo',
+    ),
+    path(
+        'api/interno/preview-gastos-bi/sincronizar/',
+        views.dashboard_interno_preview_sincronizar,
+        name='dashboard_interno_preview_sincronizar',
     ),
     path(
         'api/lancamentos/contas-pagar/',

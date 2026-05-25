@@ -467,6 +467,13 @@
       </div>
     {% endif %}
 
+    {% if dashboard_interno_preview %}
+      <div class="mb-3 rounded-xl border-2 border-violet-400 bg-violet-50 px-4 py-3 text-xs font-bold text-violet-950">
+        <span class="uppercase tracking-wide">Prévia interna</span> — gráfico <strong>Gastos por plano</strong> ligado só nesta URL. Não aparece no menu nem para usuários da loja.
+        <span class="block mt-1 font-semibold text-violet-800/90 normal-case">Salve este endereço; outros logins recebem página não encontrada.</span>
+      </div>
+    {% endif %}
+
     <div id="dashboard-body">
       {% include "produtos/partials/dashboard_gerencial_body.html" %}
     </div>
@@ -656,7 +663,7 @@ document.addEventListener("keydown", function (e) {
 
     function carregarPeriodo(periodo, opts) {
       var qstr = dashPeriodoQueryString(periodo, opts);
-      var url = "{% url 'dashboard_gerencial_conteudo' %}?" + qstr;
+      var url = "{% url dashboard_conteudo_url_name %}?" + qstr;
       htmx.ajax("GET", url, { target: "#dashboard-body", swap: "innerHTML" });
       window.history.replaceState({}, "", "?" + qstr);
       dashPeriodoHighlight(periodo);
@@ -666,7 +673,7 @@ document.addEventListener("keydown", function (e) {
       var raw = window.location.search || "";
       var q = raw.charAt(0) === "?" ? raw.slice(1) : raw;
       if (!q) q = "periodo=mes_ate_hoje";
-      var url = "{% url 'dashboard_gerencial_conteudo' %}?" + q;
+      var url = "{% url dashboard_conteudo_url_name %}?" + q;
       htmx.ajax("GET", url, { target: "#dashboard-body", swap: "innerHTML" });
       try {
         var p = new URLSearchParams(q);
@@ -812,7 +819,7 @@ document.addEventListener("keydown", function (e) {
           body += "&data_ini=" + encodeURIComponent(params.get("data_ini") || "");
           body += "&data_fim=" + encodeURIComponent(params.get("data_fim") || "");
         }
-        fetch("{% url 'dashboard_gerencial_sincronizar' %}", {
+        fetch("{% url dashboard_sync_url_name %}", {
           method: "POST",
           headers: { "X-CSRFToken": readCookie("csrftoken"), "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
           body: body

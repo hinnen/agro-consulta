@@ -25,7 +25,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Prefetch, Q, Sum
 from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.core.cache import cache
 from django.templatetags.static import static
@@ -5740,6 +5740,44 @@ def _dashboard_gastos_plano_ativo() -> bool:
     return bool(getattr(settings, "AGRO_DASHBOARD_GASTOS_PLANO", False))
 
 
+def _dashboard_interno_preview_permitido(user) -> bool:
+    """Prévia do BI com gastos por plano: superuser ou lista em AGRO_DASHBOARD_PREVIEW_USERNAMES."""
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "is_superuser", False):
+        return True
+    allow = (getattr(settings, "AGRO_DASHBOARD_PREVIEW_USERNAMES", "") or "").strip()
+    if not allow:
+        return False
+    un = (user.get_username() if hasattr(user, "get_username") else "") or ""
+    nomes = {x.strip().lower() for x in allow.split(",") if x.strip()}
+    return un.strip().lower() in nomes
+
+
+def _dashboard_interno_preview_required(view_func):
+    """Login + prévia restrita; demais usuários recebem 404 (sem link no menu)."""
+
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return login_required(login_url="/admin/login/")(view_func)(
+                request, *args, **kwargs
+            )
+        if not _dashboard_interno_preview_permitido(request.user):
+            raise Http404()
+        return view_func(request, *args, **kwargs)
+
+    return wrapper
+
+
+def _dashboard_interno_preview_context(request):
+    ctx = _dashboard_capri_context(request, force_gastos_plano=True)
+    ctx["dashboard_interno_preview"] = True
+    ctx["dashboard_conteudo_url_name"] = "dashboard_interno_preview_conteudo"
+    ctx["dashboard_sync_url_name"] = "dashboard_interno_preview_sincronizar"
+    return ctx
+
+
 def _dashboard_gasto_data_por_from_request(request) -> tuple[str, str]:
     """Retorna (chave, rótulo) para filtro de data dos gastos no dashboard."""
     raw = (_dashboard_query_param(request, "gasto_data_por") or "vencimento").strip().lower()
@@ -6656,7 +6694,7 @@ def _dashboard_capri_financeiro(hoje: date, ontem: date) -> dict:
     }
 
 
-def _dashboard_capri_context(request):
+def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None):
     data_ini, data_fim, periodo_label, periodo_key = _dashboard_periodo_from_request(request)
     gasto_por, gasto_por_label = _dashboard_gasto_data_por_from_request(request)
     prev_ini, prev_fim = _dashboard_prev_periodo(data_ini, data_fim)
@@ -6682,7 +6720,12 @@ def _dashboard_capri_context(request):
         fut["rank_vend"] = ex.submit(_dashboard_worker, _dashboard_ranking_vendedores_capri, data_ini, data_fim)
         fut["top_cli_mes_ant"] = ex.submit(_dashboard_worker, _dashboard_top_clientes_mes_anterior_capri, hoje)
         fut["finance"] = ex.submit(_dashboard_worker, _dashboard_capri_financeiro, hoje, ontem)
-        if _dashboard_gastos_plano_ativo():
+        gastos_plano_ligado = (
+            bool(force_gastos_plano)
+            if force_gastos_plano is not None
+            else _dashboard_gastos_plano_ativo()
+        )
+        if gastos_plano_ligado:
             fut["gastos_plano_cache"] = ex.submit(
                 _dashboard_worker,
                 _dashboard_gastos_plano_cache_worker,
@@ -6883,7 +6926,11 @@ def _dashboard_capri_context(request):
     total_receber_atraso = fin["total_receber_atraso"]
     total_pagar_atraso = fin["total_pagar_atraso"]
 
-    gastos_plano_ativo = _dashboard_gastos_plano_ativo()
+    gastos_plano_ativo = (
+        bool(force_gastos_plano)
+        if force_gastos_plano is not None
+        else _dashboard_gastos_plano_ativo()
+    )
     gastos_cache = (
         blk.get("gastos_plano_cache")
         if gastos_plano_ativo and isinstance(blk.get("gastos_plano_cache"), dict)
@@ -6915,6 +6962,9 @@ def _dashboard_capri_context(request):
             ensure_ascii=False,
         ),
         "dashboard_gastos_plano_ativo": gastos_plano_ativo,
+        "dashboard_interno_preview": False,
+        "dashboard_conteudo_url_name": "dashboard_gerencial_conteudo",
+        "dashboard_sync_url_name": "dashboard_gerencial_sincronizar",
         "gasto_data_por": gasto_por,
         "gasto_data_por_label": gasto_por_label,
         "gastos_plano_cache_json": json.dumps(gastos_cache, ensure_ascii=False),
@@ -7020,6 +7070,43 @@ def dashboard_gerencial_conteudo(request):
         "produtos/partials/dashboard_gerencial_body.html",
         _dashboard_capri_context(request),
     )
+
+
+@ensure_csrf_cookie
+@_dashboard_interno_preview_required
+def dashboard_interno_preview_view(request):
+    """Prévia do dashboard com gráfico gastos por plano — URL oculta, sem link no menu."""
+    if request.method == "HEAD":
+        return HttpResponse(status=200)
+    sync_status = None
+    if request.GET.get("sync") == "1":
+        di, df, _lbl, _k = _dashboard_periodo_from_request(request)
+        sync_status = _dashboard_sync_vendas_erp_para_mongo(di, df)
+    return render(
+        request,
+        "produtos/dashboard_gerencial.html",
+        {**_dashboard_interno_preview_context(request), "sync_status": sync_status},
+    )
+
+
+@never_cache
+@_dashboard_interno_preview_required
+@require_GET
+def dashboard_interno_preview_conteudo(request):
+    return render(
+        request,
+        "produtos/partials/dashboard_gerencial_body.html",
+        _dashboard_interno_preview_context(request),
+    )
+
+
+@require_POST
+@_dashboard_interno_preview_required
+def dashboard_interno_preview_sincronizar(request):
+    di, df, _lbl, _k = _dashboard_periodo_from_request(request)
+    out = _dashboard_sync_vendas_erp_para_mongo(di, df)
+    status = 200 if out.get("ok") else 502
+    return JsonResponse(out, status=status)
 
 
 @never_cache
