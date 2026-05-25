@@ -491,20 +491,28 @@
     body.entrada-nfe--editor { overflow: hidden; }
     body.entrada-nfe--editor #entrada-nfe-header-principal { display: none; }
     body.entrada-nfe--editor #entrada-nfe-main-lista { display: none; }
-    .in-qtd:focus, .in-un-emb:focus, .in-q-est:focus, .in-preco-pacote:focus:not(:disabled) {
-      outline: 2px solid rgb(16 185 129 / 0.55);
-      outline-offset: 1px;
-    }
-    /* Destaque só no V. unit (coluna verde); demais campos monetários sem halo extra */
-    .in-vun:focus {
-      outline: 2px solid rgb(16 185 129 / 0.55);
-      outline-offset: 1px;
-    }
-    .in-pvenda:focus, .in-margem:focus {
+    .in-qtd:focus, .in-un-emb:focus, .in-vun:focus, .in-pvenda:focus, .in-margem:focus,
+    .in-preco-pacote:focus:not(:disabled), .in-q-est:focus:not(:disabled) {
       outline: 2px solid rgb(148 163 184 / 0.45);
       outline-offset: 1px;
     }
-    /* Faixas de cor na margem % (entrada NF). */
+    /* Qtd NF e P. venda: negrito e ~15% maior (clamp evita quebrar a grade). */
+    .in-qtd.nfe-num-destaque,
+    .in-pvenda.nfe-num-destaque {
+      font-size: clamp(1.05rem, 1.12em, 1.2rem);
+      line-height: 1.2;
+    }
+    /* V. unit em modo embalagem (Un/emb &gt; 1): menor e só leitura. */
+    .in-vun.nfe-vun-secundario {
+      font-size: 0.8125rem;
+      line-height: 1.15;
+      cursor: default;
+    }
+    .in-vun.nfe-num-destaque {
+      font-size: clamp(1.05rem, 1.12em, 1.2rem);
+      line-height: 1.2;
+    }
+    /* Faixas de cor na margem %: 35–75 verde; 76–90 amarelo; 91–108 laranja; ≥109 ou &lt;35 vermelho. */
     .in-margem.nfe-margem--crit {
       background-color: rgb(254 226 226);
       border-color: rgb(248 113 113);
@@ -515,15 +523,15 @@
       border-color: rgb(234 179 8);
       color: rgb(113 63 18);
     }
+    .in-margem.nfe-margem--orange {
+      background-color: rgb(255 237 213);
+      border-color: rgb(251 146 60);
+      color: rgb(124 45 18);
+    }
     .in-margem.nfe-margem--ok {
       background-color: rgb(220 252 231);
       border-color: rgb(74 222 128);
       color: rgb(6 78 59);
-    }
-    .in-margem.nfe-margem--high {
-      background-color: rgb(219 234 254);
-      border-color: rgb(96 165 250);
-      color: rgb(30 64 175);
     }
     /* Sugestões: mesmo layout flex do PDV wizard (thumb + texto + preço à direita). */
     ul.nfe-busca-dd {
@@ -1043,8 +1051,8 @@
               <th class="text-left align-bottom px-2 py-2" title="EAN ou código de barras">EAN</th>
               <th class="text-center align-bottom px-1 py-2" title="Mudar ou escolher produto do Agro nesta linha">Cat.</th>
               <th class="text-center align-bottom px-1 py-2" title="Quantidade declarada na nota fiscal">Qtd NF</th>
-              <th class="text-right align-bottom px-2 py-2" title="Unidades por embalagem conforme NF">Un/emb</th>
-              <th class="text-right align-bottom px-2 py-2" title="Quantidade a lançar no estoque Agro">Qtd est.</th>
+              <th class="text-right align-bottom px-2 py-2" title="Unidades por embalagem na NF; com valor 1 aparece «—» (editável); acima de 1, moldura azul">Un/emb</th>
+              <th class="text-right align-bottom px-2 py-2" title="Só aparece quando Un/emb é maior que 1; valor = Qtd NF × Un/emb (automático)">Qtd est.</th>
               <th class="text-right align-bottom px-2 py-2" title="Custo de uma embalagem (editável quando Un/emb maior que 1). Ao sair do campo: calcula o V. unit dividindo pelo Un/emb.">R$ pacote</th>
               <th class="text-right align-bottom px-2 py-2" title="Custo unitário na NF. Com Un/emb maior que 1, use R$ pacote para informar o valor da embalagem (ex.: 14,00); ou edite aqui o custo por unidade — o pacote é atualizado (× Un/emb).">V. unit</th>
               <th class="text-right align-bottom px-2 py-2" title="Margem % sobre o custo (cadastro Agro; editável)">Margem %</th>
@@ -1366,6 +1374,29 @@
       </div>
     </div>
   </div>
+
+    <div id="modal-nfe-margem-crit" class="hidden fixed inset-0 z-[68] flex items-end sm:items-center justify-center p-4 bg-slate-900/55" role="dialog" aria-modal="true" aria-labelledby="modal-nfe-margem-crit-titulo">
+      <div class="w-full max-w-[min(32rem,96vw)] rounded-2xl border-[3px] border-red-300 bg-white shadow-2xl overflow-hidden flex flex-col">
+        <div class="px-5 py-4 bg-gradient-to-r from-red-50 to-orange-50 border-b-2 border-red-200 shrink-0">
+          <p class="text-[10px] font-black uppercase tracking-wide text-red-800">Atenção na etapa produtos</p>
+          <h3 id="modal-nfe-margem-crit-titulo" class="mt-1 text-lg sm:text-xl font-black text-red-950 leading-tight">Margem % fora da faixa verde</h3>
+          <p id="modal-nfe-margem-crit-texto" class="mt-2 text-sm font-semibold text-red-900/90 leading-snug">
+            Há itens com margem abaixo de 35% ou acima de 108% (destaque vermelho). Revise o preço de venda e o custo, ou continue mesmo assim.
+          </p>
+        </div>
+        <ul id="modal-nfe-margem-crit-lista" class="mx-4 my-3 max-h-[min(40vh,16rem)] overflow-y-auto flex flex-col gap-2 pdv-wizard-scroll"></ul>
+        <div class="px-4 pb-4 pt-1 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 shrink-0">
+          <button type="button" id="modal-nfe-margem-crit-voltar"
+            class="min-h-[52px] flex-1 rounded-xl border-2 border-slate-400 bg-white px-4 text-sm font-black uppercase text-slate-800 hover:bg-slate-50 shadow-sm">
+            Voltar e revisar
+          </button>
+          <button type="button" id="modal-nfe-margem-crit-continuar"
+            class="min-h-[52px] flex-1 rounded-xl border-2 border-orange-700 bg-orange-600 px-4 text-sm font-black uppercase text-white hover:bg-orange-700 shadow-sm">
+            Continuar mesmo assim
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div id="modal-prod" class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-prod-titulo">
       <div class="bg-white rounded-2xl shadow-2xl max-w-[min(42rem,96vw)] w-full p-5 sm:p-6 border-2 border-slate-200 max-h-[85vh] overflow-hidden flex flex-col">
@@ -1743,15 +1774,91 @@
     entradaNfeDefinirInputMoedaBr2(inp, n);
   }
 
+  /** Não sobrescrever o valor do input enquanto o usuário está digitando nele. */
+  function entradaNfeLinhaPodeReescreverInput(tr, inp) {
+    if (!inp) return false;
+    if (document.activeElement === inp) return false;
+    if (tr && tr.dataset.nfeUnEmbEditando === '1' && inp.classList.contains('in-un-emb')) return false;
+    return true;
+  }
+
+  function entradaNfeLinhaMarcarCampoEditando(tr, inp) {
+    if (!tr || !inp) return;
+    tr.dataset.nfeLinhaEditando = '1';
+    const cls = Array.from(inp.classList).find((c) => c.startsWith('in-'));
+    if (cls) tr.dataset.nfeLinhaEditandoCampo = cls;
+  }
+
+  function entradaNfeLinhaDesmarcarCampoEditando(tr) {
+    if (!tr) return;
+    delete tr.dataset.nfeLinhaEditando;
+    delete tr.dataset.nfeLinhaEditandoCampo;
+  }
+
+  function entradaNfeLinhaDefinirVunitSePermitido(tr, vunEl, n) {
+    if (!vunEl) return;
+    if (n != null && Number.isFinite(Number(n)) && Number(n) >= 0) {
+      tr.dataset.nfeVunPreciso = String(n);
+    }
+    if (entradaNfeLinhaPodeReescreverInput(tr, vunEl)) {
+      entradaNfeDefinirInputMoedaBr2(vunEl, n != null && Number.isFinite(Number(n)) ? n : 0);
+    }
+  }
+
+  /** Un/emb efetivo (campo vazio / «—» = 1; senão valor digitado ou dataset). */
+  function entradaNfeLinhaUnEmbCalculo(tr) {
+    if (!tr) return 1;
+    const el = tr.querySelector('.in-un-emb');
+    if (!el) return 1;
+    const raw = String(el.value ?? '').trim().replace(',', '.');
+    if (raw) {
+      const x = Number(raw);
+      if (Number.isFinite(x) && x > 0) return x;
+    }
+    const ds = Number(String(el.dataset.nfeUnEmbValor || '').replace(',', '.'));
+    if (Number.isFinite(ds) && ds > 0) return ds;
+    return 1;
+  }
+
+  const NFE_UN_EMB_INPUT_BASE =
+    'in-un-emb w-full min-w-0 min-h-[44px] rounded-lg border-2 px-2 py-2 text-center text-xs sm:text-sm font-black tabular-nums tracking-tight shadow-inner';
+  const NFE_UN_EMB_INPUT_ATIVO = NFE_UN_EMB_INPUT_BASE + ' border-sky-500 bg-white text-slate-900';
+  const NFE_UN_EMB_INPUT_PADRAO = NFE_UN_EMB_INPUT_BASE + ' border-slate-200 bg-slate-50 text-slate-400';
+
+  /** Un/emb = 1: «—» (editável); &gt; 1: moldura azul como Qtd est. / R$ pacote. Não reformatar enquanto o campo está em foco. */
+  function entradaNfeLinhaAtualizarUnEmbTd(tr) {
+    if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
+    const el = tr.querySelector('.in-un-emb');
+    if (!el) return;
+    if (!entradaNfeLinhaPodeReescreverInput(tr, el)) return;
+    const un = entradaNfeLinhaUnEmbCalculo(tr);
+    el.dataset.nfeUnEmbValor = String(un);
+    el.disabled = false;
+    const fmt = un.toFixed(4).replace(/\.?0+$/, '');
+    if (un > 1) {
+      el.className = NFE_UN_EMB_INPUT_ATIVO;
+      el.value = fmt;
+      el.placeholder = '';
+      el.title =
+        'Unidades por embalagem na NF (maior que 1). O V. unit atual passa para R$ pacote; unitário = pacote ÷ Un/emb.';
+    } else {
+      el.className = NFE_UN_EMB_INPUT_PADRAO;
+      el.value = '';
+      el.placeholder = '—';
+      el.title =
+        '1 unidade por embalagem. Clique para caixa/pacote (ex.: 3) — o custo da linha vai para R$ pacote.';
+    }
+  }
+
   /** Qtd estoque na linha — mesmo parser em toda grade / financeiro (evita NaN com vírgula). */
   function entradaNfeLinhaQtyEstoqueCalculo(tr) {
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return 0;
     const el = tr.querySelector('.in-q-est');
-    if (!el) return 0;
-    const raw = String(el.value ?? '').trim().replace(/\s/g, '');
-    if (!raw) return 0;
-    const x = entradaNfeParseDecimalApi(raw);
-    return x != null && Number.isFinite(x) && x >= 0 ? x : 0;
+    const ds = el && entradaNfeParseDecimalApi(el.dataset.nfeQestValor || '');
+    if (ds != null && Number.isFinite(ds) && ds >= 0) return ds;
+    const qnf = Number(tr.querySelector('.in-qtd')?.value) || 0;
+    const un = entradaNfeLinhaUnEmbCalculo(tr);
+    return qnf * un;
   }
 
   /** Total da linha (Qtd est. × V. unit), só exibição. */
@@ -1776,8 +1883,8 @@
   function entradaNfeLinhaAtualizarPrecoPacoteTd(tr) {
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
     const el = tr.querySelector('.in-preco-pacote');
-    if (!el) return;
-    const un = Number(String(tr.querySelector('.in-un-emb')?.value ?? '').replace(',', '.')) || 1;
+    if (!el || !entradaNfeLinhaPodeReescreverInput(tr, el)) return;
+    const un = entradaNfeLinhaUnEmbCalculo(tr);
     if (!(un > 1)) {
       el.disabled = true;
       el.value = '';
@@ -1790,7 +1897,7 @@
     let pac = entradaNfeParseDecimalApi(tr.dataset.nfeCustoEmbalagem || '');
     if (pac == null || !Number.isFinite(pac) || pac <= 0) {
       const v = entradaNfeLinhaValorUnitarioCalculo(tr);
-      if (v != null && Number.isFinite(v) && v >= 0) pac = v * un;
+      if (v != null && Number.isFinite(v) && v >= 0) pac = v;
     }
     el.title =
       pac != null && Number.isFinite(pac) && pac > 0
@@ -1799,29 +1906,87 @@
     entradaNfeDefinirInputMoedaBr2(el, pac != null && Number.isFinite(pac) && pac > 0 ? pac : 0);
   }
 
+  const NFE_VUN_INPUT_BASE =
+    'in-vun w-full min-w-0 min-h-[44px] rounded-lg border-2 px-2 py-2 text-center tabular-nums tracking-tight shadow-inner';
+  const NFE_VUN_INPUT_DESTAQUE = NFE_VUN_INPUT_BASE + ' nfe-num-destaque border-slate-300 bg-white font-black text-slate-900';
+  const NFE_VUN_INPUT_SECUNDARIO =
+    NFE_VUN_INPUT_BASE + ' nfe-vun-secundario border-slate-200 bg-slate-50 font-semibold text-slate-600';
+
+  /** Un/emb &gt; 1: V. unit menor e somente leitura; Un/emb = 1: destaque e editável. */
+  function entradaNfeLinhaAtualizarVunitTd(tr) {
+    if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
+    const vunEl = tr.querySelector('.in-vun');
+    if (!vunEl) return;
+    const un = entradaNfeLinhaUnEmbCalculo(tr);
+    if (un > 1) {
+      vunEl.readOnly = true;
+      vunEl.tabIndex = -1;
+      vunEl.className = NFE_VUN_INPUT_SECUNDARIO;
+      vunEl.title = 'Calculado (R$ pacote ÷ Un/emb). Para editar o custo unitário, use R$ pacote ou volte Un/emb para 1.';
+    } else {
+      vunEl.readOnly = false;
+      vunEl.removeAttribute('tabindex');
+      vunEl.className = NFE_VUN_INPUT_DESTAQUE;
+      vunEl.title = 'Custo por unidade na NF. Com Un/emb maior que 1, informe o valor em R$ pacote.';
+    }
+  }
+
+  /** Recalcula custos da linha (chamar no blur dos campos de valor / Un/emb). */
+  function entradaNfeLinhaSyncEmbalagemInstant(tr, opts) {
+    if (!tr) return;
+    const o = opts && typeof opts === 'object' ? opts : {};
+    entradaNfeLinhaRatearCustoPorEmbalagem(tr, o);
+    entradaNfeLinhaAtualizarUnEmbTd(tr);
+    atualizarQtdEstoqueRow(tr);
+    entradaNfeLinhaAtualizarTotalProduto(tr);
+    entradaNfeLinhaRecalcMargemDisplay(tr);
+    entradaNfeLinhaApplyMargemCor(tr);
+  }
+
+  /** Só total da linha + painel (enquanto digita Qtd NF, etc.). */
+  function entradaNfeLinhaAtualizarTotaisLeve(tr) {
+    if (!tr) return;
+    atualizarQtdEstoqueRow(tr);
+    const q = entradaNfeLinhaQtyEstoqueCalculo(tr);
+    const v = entradaNfeLinhaValorUnitarioCalculo(tr);
+    const el = tr.querySelector('.nfe-total-linha');
+    if (el) el.textContent = entradaNfeFmtMoedaBr2(q * v);
+  }
+
   /**
-   * Rateia custo unitário quando a linha está em embalagem (>1 un/emb).
-   * Ex.: R$ pacote 14 com 135 un/emb => V.unit = 14/135.
+   * Rateia custo quando Un/emb &gt; 1: R$ pacote ÷ Un/emb = V. unit.
+   * Ao passar de Un/emb 1 para &gt;1, o V. unit atual vira R$ pacote (sem multiplicar).
    */
   function entradaNfeLinhaRatearCustoPorEmbalagem(tr, opts) {
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
     const o = opts && typeof opts === 'object' ? opts : {};
     const fromPacoteInput = !!o.fromPacoteInput;
     const fromUnitInput = !!o.fromUnitInput;
+    const fromUnEmbChange = !!o.fromUnEmbChange;
     const vunEl = tr.querySelector('.in-vun');
     const unEl = tr.querySelector('.in-un-emb');
     if (!vunEl || !unEl) return;
 
-    const un = Number(String(unEl.value || '').replace(',', '.')) || 1;
+    try {
+    const prevUn = Number(String(tr.dataset.nfeUnEmbPrev || '1').replace(',', '.')) || 1;
+    const un = entradaNfeLinhaUnEmbCalculo(tr);
     if (!(un > 0)) return;
+
+    if (fromUnEmbChange && prevUn <= 1 && un > 1) {
+      const custoPacote = entradaNfeLinhaValorUnitarioCalculo(tr);
+      if (custoPacote != null && Number.isFinite(custoPacote) && custoPacote >= 0) {
+        tr.dataset.nfeCustoEmbalagem = String(custoPacote);
+      }
+    }
 
     if (fromUnitInput && un > 1) {
       const unit = entradaNfeParseDecimalApi(vunEl.value);
       if (unit != null && Number.isFinite(unit) && unit >= 0) {
         tr.dataset.nfeVunPreciso = String(unit);
         tr.dataset.nfeCustoEmbalagem = String(unit * un);
-        entradaNfeDefinirInputMoedaBr2(vunEl, unit);
+        entradaNfeLinhaDefinirVunitSePermitido(tr, vunEl, unit);
       }
+      tr.dataset.nfeUnEmbPrev = String(un);
       entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
       entradaNfeLinhaRecalcMargemDisplay(tr);
       return;
@@ -1833,8 +1998,9 @@
       if (!(pac != null && Number.isFinite(pac) && pac > 0)) {
         delete tr.dataset.nfeCustoEmbalagem;
         delete tr.dataset.nfeVunPreciso;
-        entradaNfeDefinirInputMoedaBr2(vunEl, 0);
+        entradaNfeLinhaDefinirVunitSePermitido(tr, vunEl, 0);
         entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
+        tr.dataset.nfeUnEmbPrev = String(un);
         entradaNfeLinhaRecalcMargemDisplay(tr);
         return;
       }
@@ -1848,18 +2014,17 @@
         const unit = entradaNfeParseDecimalApi(vunEl.value);
         if (unit != null && Number.isFinite(unit) && unit >= 0) {
           tr.dataset.nfeVunPreciso = String(unit);
-          entradaNfeDefinirInputMoedaBr2(vunEl, unit);
+          entradaNfeLinhaDefinirVunitSePermitido(tr, vunEl, unit);
         }
       } else if (embWas != null && Number.isFinite(embWas) && embWas > 0) {
-        tr.dataset.nfeVunPreciso = String(embWas);
-        entradaNfeDefinirInputMoedaBr2(vunEl, embWas);
+        entradaNfeLinhaDefinirVunitSePermitido(tr, vunEl, embWas);
       } else {
         const unit = entradaNfeParseDecimalApi(vunEl.value);
         if (unit != null && Number.isFinite(unit) && unit >= 0) {
-          tr.dataset.nfeVunPreciso = String(unit);
-          entradaNfeDefinirInputMoedaBr2(vunEl, unit);
+          entradaNfeLinhaDefinirVunitSePermitido(tr, vunEl, unit);
         }
       }
+      tr.dataset.nfeUnEmbPrev = String(un);
       entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
       entradaNfeLinhaRecalcMargemDisplay(tr);
       return;
@@ -1870,9 +2035,10 @@
       const u =
         entradaNfeParseDecimalApi(tr.dataset.nfeVunPreciso || '') ?? entradaNfeParseDecimalApi(vunEl.value);
       if (u != null && Number.isFinite(u) && u >= 0 && un > 0) {
-        custoEmb = u * un;
+        custoEmb = fromUnitInput ? u * un : u;
         tr.dataset.nfeCustoEmbalagem = String(custoEmb);
       } else {
+        tr.dataset.nfeUnEmbPrev = String(un);
         entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
         entradaNfeLinhaRecalcMargemDisplay(tr);
         return;
@@ -1881,25 +2047,30 @@
 
     const unit = custoEmb / un;
     if (Number.isFinite(unit) && unit >= 0) {
-      tr.dataset.nfeVunPreciso = String(unit);
-      entradaNfeDefinirInputMoedaBr2(vunEl, unit);
+      entradaNfeLinhaDefinirVunitSePermitido(tr, vunEl, unit);
     }
+    tr.dataset.nfeUnEmbPrev = String(un);
     entradaNfeLinhaAtualizarPrecoPacoteTd(tr);
     entradaNfeLinhaRecalcMargemDisplay(tr);
+    } finally {
+      entradaNfeLinhaAtualizarVunitTd(tr);
+    }
   }
 
-  /** Abaixo de 25% ou negativa: vermelho; 25–34%: amarelo; 35–70%: verde; acima de 70%: azul. */
+  /** Margem %: 35–75 verde; 76–90 amarelo; 91–108 laranja; ≥109 ou &lt;35 vermelho. */
   function entradaNfeLinhaApplyMargemCor(tr) {
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
     const mEl = tr.querySelector('.in-margem');
     if (!mEl) return;
-    ['nfe-margem--crit', 'nfe-margem--warn', 'nfe-margem--ok', 'nfe-margem--high'].forEach((c) => mEl.classList.remove(c));
+    ['nfe-margem--crit', 'nfe-margem--warn', 'nfe-margem--orange', 'nfe-margem--ok'].forEach((c) =>
+      mEl.classList.remove(c)
+    );
     const mInt = entradaNfeParseMargemInt(mEl.value);
     if (mInt == null) return;
-    if (mInt < 25) mEl.classList.add('nfe-margem--crit');
-    else if (mInt < 35) mEl.classList.add('nfe-margem--warn');
-    else if (mInt <= 70) mEl.classList.add('nfe-margem--ok');
-    else mEl.classList.add('nfe-margem--high');
+    if (mInt >= 35 && mInt <= 75) mEl.classList.add('nfe-margem--ok');
+    else if (mInt >= 76 && mInt <= 90) mEl.classList.add('nfe-margem--warn');
+    else if (mInt >= 91 && mInt <= 108) mEl.classList.add('nfe-margem--orange');
+    else mEl.classList.add('nfe-margem--crit');
   }
 
   const ENTRADA_NFE_LINHA_PADRAO = {
@@ -2662,12 +2833,106 @@
     } catch (_) {}
   }
 
+  function entradaNfeColetarLinhasMargemVermelha() {
+    const out = [];
+    document.querySelectorAll('#tbody-itens tr').forEach((tr) => {
+      if (tr.dataset.nfeLinhaModo === 'compact') return;
+      const mEl = tr.querySelector('.in-margem');
+      if (!mEl || !mEl.classList.contains('nfe-margem--crit')) return;
+      const desc = String(tr.querySelector('.in-desc')?.value || '').trim();
+      const margem = String(mEl.value ?? '').trim();
+      if (!desc && margem === '') return;
+      out.push({
+        tr,
+        desc: desc || '(sem descrição)',
+        margem: margem !== '' ? margem : '—',
+      });
+    });
+    return out;
+  }
+
+  let _nfeMargemCritModalResolve = null;
+
+  function entradaNfeInitModalMargemCrit() {
+    const modal = document.getElementById('modal-nfe-margem-crit');
+    const lista = document.getElementById('modal-nfe-margem-crit-lista');
+    const btnVoltar = document.getElementById('modal-nfe-margem-crit-voltar');
+    const btnContinuar = document.getElementById('modal-nfe-margem-crit-continuar');
+    if (!modal || !lista || !btnVoltar || !btnContinuar) return;
+
+    function fechar(continuar) {
+      modal.classList.add('hidden');
+      const res = _nfeMargemCritModalResolve;
+      _nfeMargemCritModalResolve = null;
+      if (typeof res === 'function') res(!!continuar);
+    }
+
+    btnVoltar.addEventListener('click', () => {
+      const linhas = entradaNfeColetarLinhasMargemVermelha();
+      const tr0 = linhas[0] && linhas[0].tr;
+      fechar(false);
+      if (tr0 && tr0.isConnected) {
+        try {
+          tr0.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          const m = tr0.querySelector('.in-margem');
+          if (m && !m.readOnly) m.focus();
+        } catch (_) {}
+      }
+    });
+    btnContinuar.addEventListener('click', () => fechar(true));
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || modal.classList.contains('hidden')) return;
+      e.preventDefault();
+      btnVoltar.click();
+    });
+  }
+
+  function entradaNfeAbrirModalMargemCrit(linhas) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('modal-nfe-margem-crit');
+      const lista = document.getElementById('modal-nfe-margem-crit-lista');
+      const texto = document.getElementById('modal-nfe-margem-crit-texto');
+      if (!modal || !lista) {
+        resolve(true);
+        return;
+      }
+      lista.innerHTML = '';
+      linhas.forEach((x) => {
+        const li = document.createElement('li');
+        li.className =
+          'rounded-xl border-2 border-red-200 bg-red-50/90 px-3 py-2.5 text-sm font-bold text-red-950 leading-snug';
+        const nome = document.createElement('span');
+        nome.className = 'block text-[13px] font-black uppercase tracking-tight text-red-950';
+        nome.textContent = x.desc;
+        const mg = document.createElement('span');
+        mg.className = 'mt-0.5 block tabular-nums text-base font-black text-red-800';
+        mg.textContent = 'Margem ' + x.margem + (String(x.margem).includes('%') ? '' : '%');
+        li.appendChild(nome);
+        li.appendChild(mg);
+        lista.appendChild(li);
+      });
+      if (texto) {
+        const n = linhas.length;
+        texto.textContent =
+          (n === 1 ? '1 item está' : n + ' itens estão') +
+          ' com margem abaixo de 35% ou acima de 108% (vermelho). Revise P. venda e custo, ou continue mesmo assim.';
+      }
+      _nfeMargemCritModalResolve = resolve;
+      modal.classList.remove('hidden');
+    });
+  }
+
   async function entradaNfeConfirmarProdutosEtapa() {
     const d = entradaNfeWizardValidarEtapaDetalhe(2, { ignorarConfirmacaoProdutos: true });
     if (!d.ok) {
       showMsg(d.erro || 'Revise a grade de produtos.', false);
       entradaNfeAtualizarUiBotaoConfirmarProdutos();
       return;
+    }
+    const margensVermelhas = entradaNfeColetarLinhasMargemVermelha();
+    if (margensVermelhas.length) {
+      const seguir = await entradaNfeAbrirModalMargemCrit(margensVermelhas);
+      if (!seguir) return;
     }
     const iso = new Date().toISOString();
     entradaNfeProdutosEtapaConfirmada = true;
@@ -4414,7 +4679,10 @@
   });
   document.getElementById('btn-prod-novo-popup')?.addEventListener('click', () => abrirCadastroProdutoNovoPopup());
   document.getElementById('nfe-btn-confirmar-fornecedor')?.addEventListener('click', () => { entradaNfeConfirmarFornecedorEtapa(); });
-  document.getElementById('nfe-btn-confirmar-produtos')?.addEventListener('click', () => { entradaNfeConfirmarProdutosEtapa(); });
+  entradaNfeInitModalMargemCrit();
+  document.getElementById('nfe-btn-confirmar-produtos')?.addEventListener('click', () => {
+    void entradaNfeConfirmarProdutosEtapa();
+  });
   document.getElementById('nfe-btn-confirmar-codigos')?.addEventListener('click', () => { entradaNfeConfirmarCodigosEtapa(); });
   document.getElementById('nfe-btn-confirmar-lote')?.addEventListener('click', () => { void entradaNfeConfirmarLoteEtapa(); });
   document.getElementById('nfe-lote-aplicar')?.addEventListener('click', () => { entradaNfeLoteAplicarNaLinhaAtual(); });
@@ -5359,13 +5627,34 @@
     entradaNfeAtualizarUiBotaoConfirmarCodigos();
   }
 
-  function atualizarQtdEstoqueRow(tr) {
-    const qnf = Number(tr.querySelector('.in-qtd').value) || 0;
-    const un = Number(tr.querySelector('.in-un-emb').value) || 1;
+  /** Exibe Qtd est. só quando Un/emb &gt; 1 (como R$ pacote); moldura azul; somente leitura. */
+  function entradaNfeLinhaAtualizarQtdEstTd(tr) {
+    if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
     const el = tr.querySelector('.in-q-est');
-    if (!el.dataset.manual) {
-      el.value = (qnf * un).toFixed(4).replace(/\.?0+$/, '');
+    if (!el) return;
+    const qnf = Number(tr.querySelector('.in-qtd')?.value) || 0;
+    const un = entradaNfeLinhaUnEmbCalculo(tr);
+    const qest = qnf * un;
+    const mostrar = un > 1;
+    el.readOnly = true;
+    el.tabIndex = mostrar ? 0 : -1;
+    const fmt = qest.toFixed(4).replace(/\.?0+$/, '');
+    if (mostrar) {
+      el.disabled = false;
+      el.value = fmt;
+      el.placeholder = '';
+      el.title = 'Quantidade para o estoque (Qtd NF × Un/emb) — calculada automaticamente.';
+    } else {
+      el.disabled = true;
+      el.value = '';
+      el.placeholder = '—';
+      el.title = 'Só exibido quando Un/emb é maior que 1; com Un/emb = 1 o estoque segue a Qtd NF.';
     }
+    el.dataset.nfeQestValor = String(qest);
+  }
+
+  function atualizarQtdEstoqueRow(tr) {
+    entradaNfeLinhaAtualizarQtdEstTd(tr);
   }
 
   let trProdAlvo = null;
@@ -5530,22 +5819,28 @@
       <td class="px-1 py-1.5 text-center align-middle"><button type="button" class="btn-pick-prod inline-flex items-center justify-center min-h-[40px] min-w-[4.25rem] px-2.5 py-2 text-xs font-black uppercase text-white bg-blue-600 border-2 border-blue-800 rounded-lg shadow-sm hover:bg-blue-700 active:bg-blue-800 shrink-0" title="Trocar o produto do Agro vinculado a esta linha (mesma busca do catálogo).">Mudar</button><input type="hidden" class="in-prod-id" value=""></td>
       <td class="px-1 py-1 align-middle">
         <input type="number" step="any" min="0"
-          class="in-qtd w-full min-w-0 rounded-lg border-2 border-amber-600 bg-white px-2 py-2 text-center text-base font-black tabular-nums text-amber-950 shadow-inner"
+          class="in-qtd nfe-num-destaque w-full min-w-0 rounded-lg border-2 border-slate-300 bg-white px-2 py-2 text-center font-black tabular-nums text-slate-900 shadow-inner"
           title="Quantidade na NF (digite o número)">
       </td>
-      <td class="px-2 py-1"><input type="number" step="0.0001" min="0.0001" class="in-un-emb w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="1" title="Unidades por embalagem NF"></td>
-      <td class="px-2 py-1"><input type="number" step="0.0001" class="in-q-est w-full rounded border border-slate-200 px-1 py-1 text-xs text-right" value="" title="Qtd p/ estoque (editar para sobrescrever)"></td>
+      <td class="px-1 py-1 align-middle">
+        <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
+          class="in-un-emb w-full min-w-0 min-h-[44px] rounded-lg border-2 border-slate-200 bg-slate-50 px-2 py-2 text-center text-sm sm:text-base font-black tabular-nums tracking-tight text-slate-400 shadow-inner"
+          value="" placeholder="—" title="Unidades por embalagem na NF">
+      </td>
+      <td class="px-1 py-1 align-middle">
+        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" readonly tabindex="-1"
+          class="in-q-est w-full min-w-0 min-h-[44px] rounded-lg border-2 border-sky-500 bg-white px-2 py-2 text-center text-xs sm:text-sm font-black text-slate-900 tabular-nums tracking-tight disabled:pointer-events-none disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 shadow-inner"
+          title="Quantidade para estoque quando Un/emb é maior que 1">
+      </td>
       <td class="px-1 py-1 align-middle">
         <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
           class="in-preco-pacote w-full min-w-0 min-h-[44px] rounded-lg border-2 border-sky-500 bg-white px-2 py-2 text-center text-xs sm:text-sm font-black text-slate-900 tabular-nums tracking-tight disabled:pointer-events-none disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 shadow-inner"
-          title="Quando Un/emb maior que 1: valor de uma embalagem (ex. 14,00). Ao sair, calcula o V. unit.">
+          title="Custo da embalagem na NF. Ao mudar Un/emb de 1 para mais, o V. unit vira este valor; o unitário = R$ pacote ÷ Un/emb.">
       </td>
       <td class="px-1 py-1 align-middle">
-        <div class="rounded-xl border-[3px] border-emerald-500 bg-gradient-to-b from-emerald-50 to-white px-1.5 py-1.5 shadow-md ring-1 ring-emerald-400/70 min-h-[44px] min-w-0 flex items-center">
-          <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
-            class="in-vun w-full min-w-0 rounded-lg bg-white px-2 py-2 text-center text-base font-black text-emerald-950 tabular-nums tracking-tight border-0 shadow-none ring-0 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
-            title="Custo por unidade. Com várias unidades por embalagem, pode usar R$ pacote ou editar aqui (o pacote acompanha).">
-        </div>
+        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+          class="in-vun nfe-num-destaque w-full min-w-0 min-h-[44px] rounded-lg border-2 border-slate-300 bg-white px-2 py-2 text-center font-black text-slate-900 tabular-nums tracking-tight shadow-inner"
+          title="Custo por unidade na NF. Com Un/emb maior que 1, informe o valor em R$ pacote.">
       </td>
       <td class="px-2 py-1 align-middle">
         <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
@@ -5554,7 +5849,7 @@
       </td>
       <td class="px-2 py-1 align-middle">
         <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
-          class="in-pvenda w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-base font-semibold text-slate-900 tabular-nums tracking-tight"
+          class="in-pvenda nfe-num-destaque w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center font-black text-slate-900 tabular-nums tracking-tight"
           title="Preço de venda — só você altera; a margem % recalcula quando o custo da NF muda.">
       </td>
       <td class="px-2 py-1 align-middle text-right">
@@ -5578,7 +5873,13 @@
       });
     }
     tr.querySelector('.in-qtd').value = d.q_com;
-    tr.querySelector('.in-un-emb').value = d.un_por_embalagem != null ? d.un_por_embalagem : 1;
+    const unEmbInicial = Number(d.un_por_embalagem != null ? d.un_por_embalagem : 1) || 1;
+    const unEmbInp = tr.querySelector('.in-un-emb');
+    if (unEmbInp) {
+      unEmbInp.dataset.nfeUnEmbValor = String(unEmbInicial);
+      unEmbInp.dataset.nfeUnEmbPrev = String(unEmbInicial);
+    }
+    entradaNfeLinhaAtualizarUnEmbTd(tr);
     const vunPrecisoInicial = entradaNfeParseDecimalApi(d.v_un_com);
     if (vunPrecisoInicial != null && Number.isFinite(vunPrecisoInicial) && vunPrecisoInicial >= 0) {
       // Mantém precisão de cálculo após recarregar: visual segue 2 casas, cálculo usa dataset.
@@ -5586,7 +5887,6 @@
     } else {
       delete tr.dataset.nfeVunPreciso;
     }
-    const unEmbInicial = Number(d.un_por_embalagem != null ? d.un_por_embalagem : 1) || 1;
     if (unEmbInicial > 1 && vunPrecisoInicial != null && Number.isFinite(vunPrecisoInicial) && vunPrecisoInicial >= 0) {
       tr.dataset.nfeCustoEmbalagem = String(vunPrecisoInicial * unEmbInicial);
     } else {
@@ -5599,14 +5899,7 @@
     entradaNfeLinhaRecalcMargemDisplay(tr);
     tr.querySelector('.in-cfop').value = d.cfop;
     tr.querySelector('.in-prod-id').value = d.produto_id || '';
-    const qe = tr.querySelector('.in-q-est');
-    if (d.q_estoque != null && d.q_estoque !== '' && !Number.isNaN(Number(d.q_estoque))) {
-      qe.value = d.q_estoque;
-      qe.dataset.manual = '1';
-    } else {
-      qe.dataset.manual = '';
-      atualizarQtdEstoqueRow(tr);
-    }
+    atualizarQtdEstoqueRow(tr);
     const bc = String(d.bip_conf != null ? d.bip_conf : '').trim();
     if (bc === 'ok' || bc === 'similar' || bc === 'divergente' || bc === 'dispensado') tr.dataset.bipConf = bc;
     else delete tr.dataset.bipConf;
@@ -5622,53 +5915,117 @@
     if (viaCat === 'scan' || viaCat === 'modal' || viaCat === 'lookup') tr.dataset.nfeCatVia = viaCat;
     else delete tr.dataset.nfeCatVia;
     entradaNfeLinhaApplyCatalogoUi(tr);
+    entradaNfeLinhaRatearCustoPorEmbalagem(tr);
+    entradaNfeLinhaAtualizarVunitTd(tr);
     entradaNfeLinhaAtualizarTotalProduto(tr);
     entradaNfeLinhaApplyMargemCor(tr);
-    ['input', 'change'].forEach((ev) => {
-      tr.querySelector('.in-qtd').addEventListener(ev, () => {
-        delete qe.dataset.manual;
-        atualizarQtdEstoqueRow(tr);
-        entradaNfeLinhaAtualizarTotalProduto(tr);
-      });
-      tr.querySelector('.in-un-emb').addEventListener(ev, () => {
-        delete qe.dataset.manual;
-        atualizarQtdEstoqueRow(tr);
-        entradaNfeLinhaRatearCustoPorEmbalagem(tr);
-        entradaNfeLinhaAtualizarTotalProduto(tr);
-      });
+    tr.querySelector('.in-qtd')?.addEventListener('input', () => {
+      entradaNfeLinhaAtualizarTotaisLeve(tr);
     });
-    qe.addEventListener('input', () => { qe.dataset.manual = '1'; });
-    tr.querySelector('.in-preco-pacote')?.addEventListener('blur', () => {
-      const pe = tr.querySelector('.in-preco-pacote');
-      if (!pe || pe.disabled) return;
-      entradaNfeLinhaNormalizarMoedaBlur(pe);
-      entradaNfeLinhaRatearCustoPorEmbalagem(tr, { fromPacoteInput: true });
+    tr.querySelector('.in-qtd')?.addEventListener('blur', () => {
+      entradaNfeLinhaAtualizarTotalProduto(tr);
       atualizarPainelTotalNfe();
     });
-    tr.querySelector('.in-vun')?.addEventListener('input', () => {
-      tr.dataset.nfeVunDirty = '1';
-    });
-    tr.querySelector('.in-vun')?.addEventListener('blur', () => {
-      entradaNfeLinhaNormalizarMoedaBlur(tr.querySelector('.in-vun'));
-      entradaNfeLinhaRatearCustoPorEmbalagem(tr, { fromUnitInput: tr.dataset.nfeVunDirty === '1' });
-      delete tr.dataset.nfeVunDirty;
-      atualizarPainelTotalNfe();
-    });
-    tr.querySelector('.in-pvenda')?.addEventListener('blur', () => {
-      entradaNfeLinhaNormalizarMoedaBlur(tr.querySelector('.in-pvenda'));
-      entradaNfeLinhaRecalcMargemDisplay(tr);
-      void entradaNfeLinhaPersistirMargemAgro(tr);
-    });
-    tr.querySelector('.in-margem')?.addEventListener('input', () => {
-      entradaNfeLinhaApplyMargemCor(tr);
-    });
-    tr.querySelector('.in-margem')?.addEventListener('blur', () => {
-      const el = tr.querySelector('.in-margem');
-      const mi = entradaNfeParseMargemInt(el?.value);
-      if (mi != null && el) el.value = String(mi);
-      entradaNfeLinhaApplyMargemCor(tr);
-      void entradaNfeLinhaPersistirMargemAgro(tr, { usarMargemDigitada: true });
-    });
+
+    const uelUn = tr.querySelector('.in-un-emb');
+    if (uelUn) {
+      uelUn.addEventListener('focus', () => {
+        tr.dataset.nfeUnEmbEditando = '1';
+        entradaNfeLinhaMarcarCampoEditando(tr, uelUn);
+        uelUn.className = NFE_UN_EMB_INPUT_ATIVO;
+        uelUn.placeholder = '';
+      });
+      uelUn.addEventListener('input', () => {
+        const raw = String(uelUn.value ?? '').trim().replace(',', '.');
+        if (raw) {
+          const x = Number(raw);
+          if (Number.isFinite(x) && x > 0) uelUn.dataset.nfeUnEmbValor = String(x);
+        }
+        entradaNfeLinhaAtualizarTotaisLeve(tr);
+      });
+      uelUn.addEventListener('blur', () => {
+        delete tr.dataset.nfeUnEmbEditando;
+        entradaNfeLinhaDesmarcarCampoEditando(tr);
+        const raw = String(uelUn.value ?? '').trim().replace(',', '.');
+        let un = Number(raw);
+        if (!raw || !Number.isFinite(un) || un <= 0) un = 1;
+        uelUn.dataset.nfeUnEmbValor = String(un);
+        entradaNfeLinhaAtualizarUnEmbTd(tr);
+        entradaNfeLinhaSyncEmbalagemInstant(tr, { fromUnEmbChange: true });
+        atualizarPainelTotalNfe();
+      });
+    }
+
+    const pePac = tr.querySelector('.in-preco-pacote');
+    if (pePac) {
+      pePac.addEventListener('focus', () => entradaNfeLinhaMarcarCampoEditando(tr, pePac));
+      pePac.addEventListener('input', () => {
+        if (pePac.disabled) return;
+        const pac = entradaNfeParseDecimalApi(pePac.value);
+        if (pac != null && Number.isFinite(pac) && pac > 0) {
+          tr.dataset.nfeCustoEmbalagem = String(pac);
+        }
+        entradaNfeLinhaAtualizarTotaisLeve(tr);
+      });
+      pePac.addEventListener('blur', () => {
+        entradaNfeLinhaDesmarcarCampoEditando(tr);
+        if (pePac.disabled) return;
+        entradaNfeLinhaNormalizarMoedaBlur(pePac);
+        entradaNfeLinhaSyncEmbalagemInstant(tr, { fromPacoteInput: true });
+        atualizarPainelTotalNfe();
+      });
+    }
+
+    const vunInp = tr.querySelector('.in-vun');
+    if (vunInp) {
+      vunInp.addEventListener('focus', () => {
+        if (vunInp.readOnly) return;
+        entradaNfeLinhaMarcarCampoEditando(tr, vunInp);
+      });
+      vunInp.addEventListener('input', () => {
+        if (vunInp.readOnly) return;
+        const u = entradaNfeParseDecimalApi(vunInp.value);
+        if (u != null && Number.isFinite(u) && u >= 0) tr.dataset.nfeVunPreciso = String(u);
+        entradaNfeLinhaAtualizarTotaisLeve(tr);
+      });
+      vunInp.addEventListener('blur', () => {
+        entradaNfeLinhaDesmarcarCampoEditando(tr);
+        if (vunInp.readOnly) return;
+        entradaNfeLinhaNormalizarMoedaBlur(vunInp);
+        entradaNfeLinhaSyncEmbalagemInstant(tr, { fromUnitInput: true });
+        atualizarPainelTotalNfe();
+      });
+    }
+
+    const pvInp = tr.querySelector('.in-pvenda');
+    if (pvInp) {
+      pvInp.addEventListener('focus', () => entradaNfeLinhaMarcarCampoEditando(tr, pvInp));
+      pvInp.addEventListener('input', () => {
+        entradaNfeLinhaRecalcMargemDisplay(tr);
+        entradaNfeLinhaApplyMargemCor(tr);
+      });
+      pvInp.addEventListener('blur', () => {
+        entradaNfeLinhaDesmarcarCampoEditando(tr);
+        entradaNfeLinhaNormalizarMoedaBlur(pvInp);
+        entradaNfeLinhaRecalcMargemDisplay(tr);
+        entradaNfeLinhaApplyMargemCor(tr);
+        void entradaNfeLinhaPersistirMargemAgro(tr);
+        atualizarPainelTotalNfe();
+      });
+    }
+
+    const mInp = tr.querySelector('.in-margem');
+    if (mInp) {
+      mInp.addEventListener('focus', () => entradaNfeLinhaMarcarCampoEditando(tr, mInp));
+      mInp.addEventListener('input', () => entradaNfeLinhaApplyMargemCor(tr));
+      mInp.addEventListener('blur', () => {
+        entradaNfeLinhaDesmarcarCampoEditando(tr);
+        const mi = entradaNfeParseMargemInt(mInp.value);
+        if (mi != null) mInp.value = String(mi);
+        entradaNfeLinhaApplyMargemCor(tr);
+        void entradaNfeLinhaPersistirMargemAgro(tr, { usarMargemDigitada: true });
+      });
+    }
     tr.querySelector('.btn-pick-prod').addEventListener('click', () => {
       trProdAlvo = tr;
       modProdHlIdx = -1;
@@ -5755,7 +6112,7 @@
         c_prod: tr.querySelector('.in-cprod').value.trim(),
         ean: tr.querySelector('.in-ean').value.trim(),
         q_com: qtd,
-        un_por_embalagem: Number(tr.querySelector('.in-un-emb').value) || 1,
+        un_por_embalagem: entradaNfeLinhaUnEmbCalculo(tr),
         q_estoque: entradaNfeLinhaQtyEstoqueCalculo(tr),
         v_un_com: (() => {
           const x = entradaNfeLinhaValorUnitarioCalculo(tr);
@@ -7512,16 +7869,6 @@
   document.getElementById('tbody-itens').addEventListener('input', (e) => {
     const t = e.target;
     if (t && !t.classList.contains('in-linha-busca-rapida')) entradaNfeProdutosEtapaInvalidate();
-    if (t && (t.classList.contains('in-qtd') || t.classList.contains('in-vun'))) atualizarPainelTotalNfe();
-    if (
-      t &&
-      (t.classList.contains('in-vun') ||
-        t.classList.contains('in-preco-pacote') ||
-        t.classList.contains('in-pvenda'))
-    ) {
-      const trM = t.closest('tr');
-      if (trM) entradaNfeLinhaRecalcMargemDisplay(trM);
-    }
     if (t && t.classList.contains('in-desc')) {
       const tr = t.closest('tr');
       if (tr) entradaNfeLinhaApplyCatalogoUi(tr);
@@ -7538,26 +7885,7 @@
   document.getElementById('tbody-itens').addEventListener('change', (e) => {
     const t = e.target;
     if (t && !t.classList.contains('in-linha-busca-rapida')) entradaNfeProdutosEtapaInvalidate();
-    if (t && (t.classList.contains('in-qtd') || t.classList.contains('in-vun'))) atualizarPainelTotalNfe();
-    if (
-      t &&
-      (t.classList.contains('in-vun') ||
-        t.classList.contains('in-preco-pacote') ||
-        t.classList.contains('in-pvenda'))
-    ) {
-      const trM = t.closest('tr');
-      if (trM) entradaNfeLinhaRecalcMargemDisplay(trM);
-    }
     entradaNfeAgendarAutosaveRascunho();
-  });
-  document.getElementById('tbody-itens').addEventListener('focusin', (e) => {
-    const t = e.target;
-    if (!t || !t.matches('.in-qtd, .in-preco-pacote, .in-vun, .in-margem, .in-pvenda, .in-un-emb, .in-q-est')) return;
-    requestAnimationFrame(() => {
-      try {
-        t.select();
-      } catch (_) {}
-    });
   });
   document.getElementById('tbody-itens').addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-edit-prod-erp');
@@ -7574,7 +7902,7 @@
       const qt = e.target;
       if (qt && qt.classList.contains('in-qtd')) {
         const trQ = qt.closest('tr');
-        const unFocus = Number(String(trQ?.querySelector('.in-un-emb')?.value ?? '').replace(',', '.')) || 1;
+        const unFocus = entradaNfeLinhaUnEmbCalculo(trQ);
         const pacFocus = unFocus > 1 ? trQ?.querySelector('.in-preco-pacote') : null;
         const nextEl = pacFocus && !pacFocus.disabled ? pacFocus : trQ?.querySelector('.in-vun');
         if (nextEl) {
@@ -7586,8 +7914,23 @@
           return;
         }
       }
+      if (qt && qt.classList.contains('in-preco-pacote')) {
+        const trP = qt.closest('tr');
+        const vun = trP?.querySelector('.in-vun');
+        const nextEl =
+          vun && !vun.readOnly ? vun : trP?.querySelector('.in-margem');
+        if (nextEl) {
+          e.preventDefault();
+          try {
+            nextEl.focus();
+            nextEl.select();
+          } catch (_) {}
+          return;
+        }
+      }
       if (qt && qt.classList.contains('in-vun')) {
         const trV = qt.closest('tr');
+        if (qt.readOnly) return;
         const mEl = trV && trV.querySelector('.in-margem');
         if (mEl) {
           e.preventDefault();
