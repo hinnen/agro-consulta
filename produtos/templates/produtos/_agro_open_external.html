@@ -961,6 +961,8 @@
     userWraps: [],
     userSlots: [null, null, null],
     activeWhich: null,
+    /** 'pdv' | 'dash' — guia fixa destacada até o usuário clicar PDV ou Dashboard */
+    pinnedTabGlow: null,
     presetBackdrop: null,
     presetPanel: null,
   };
@@ -985,11 +987,15 @@
       if (S && S.paneEl) S.paneEl.classList.toggle('agro-inapp-pane-active', which === 'u' + u);
     }
 
-    setTabGlow(shell.pdvBtn, which === 'pdv');
-    setTabGlow(shell.dashBtn, which === 'dash');
-    for (u = 0; u < USER_SLOTS; u++) {
-      var tbtn = shell.userSlots[u];
-      if (tbtn && tbtn.mainBtn) setTabGlow(tbtn.mainBtn, which === 'u' + u);
+    if (shell.pinnedTabGlow === 'pdv' || shell.pinnedTabGlow === 'dash') {
+      applySidebarTabPin(shell.pinnedTabGlow);
+    } else {
+      setTabGlow(shell.pdvBtn, which === 'pdv');
+      setTabGlow(shell.dashBtn, which === 'dash');
+      for (u = 0; u < USER_SLOTS; u++) {
+        var tbtn = shell.userSlots[u];
+        if (tbtn && tbtn.mainBtn) setTabGlow(tbtn.mainBtn, which === 'u' + u);
+      }
     }
 
     document.body.classList.toggle('agro-inapp-show-primary', which === 'prim');
@@ -1117,14 +1123,12 @@
 
   function wirePdvTabLabelSync() {
     function pull() {
-      var lab = resolveTabLabel(shell.pdvIframe, pdvHref());
-      shell.pdvBtn.textContent = lab;
-      shell.pdvBtn.title = lab;
+      shell.pdvBtn.textContent = 'PDV';
+      shell.pdvBtn.title = 'Ponto de venda';
     }
     shell.pdvIframe.addEventListener('load', pull);
     setTimeout(pull, 450);
     setTimeout(pull, 1200);
-    setInterval(pull, 3200);
   }
 
   function pathnameNorm(p) {
@@ -1342,6 +1346,7 @@
     shell.pdvBtn.textContent = 'PDV';
     shell.pdvBtn.title = 'Ponto de venda';
     shell.pdvBtn.onclick = function () {
+      shell.pinnedTabGlow = null;
       showWhich('pdv');
     };
 
@@ -1351,6 +1356,7 @@
     shell.dashBtn.textContent = 'Dashboard';
     shell.dashBtn.title = 'Dashboard gerencial';
     shell.dashBtn.onclick = function () {
+      shell.pinnedTabGlow = null;
       showWhich('dash');
     };
 
@@ -1411,6 +1417,15 @@
 
     var pathNow = (location.pathname || '').split('?')[0];
     var pinTab = readAndClearPinSidebarTab();
+    try {
+      var spPin = new URLSearchParams(location.search || '');
+      var qPin = String(spPin.get('pin_tab') || '').toLowerCase();
+      if (qPin === 'pdv' || qPin === 'dash') pinTab = qPin;
+      if (qPin === 'pdv' || qPin === 'dash') {
+        var cleanUrl = location.pathname + location.hash;
+        history.replaceState(null, '', cleanUrl);
+      }
+    } catch (_) {}
 
     /** Se já está em aba fixa (PDV/Dashboard), mostra iframe fixo e esconde cópia duplicada do DOM inicial */
     if (pathLookLikePDV(pathNow)) {
@@ -1424,8 +1439,8 @@
       try {
         shell.wrapEl.innerHTML = '';
       } catch (_) {}
+      if (pinTab === 'pdv' || pinTab === 'dash') shell.pinnedTabGlow = pinTab;
       showWhich('dash');
-      if (pinTab === 'pdv') applySidebarTabPin('pdv');
     } else {
       /** Primeira tela vira primeira das 3 abas opcionais; remove HTML duplicado após iframe carregar */
       occupyUserSlotWithUrl(location.href.split('#')[0], 0, true);
@@ -1441,11 +1456,20 @@
   };
 
   window.agroPinSidebarTab = function (tabId) {
+    if (tabId !== 'pdv' && tabId !== 'dash') return;
     try {
-      if (tabId === 'pdv' || tabId === 'dash') {
-        sessionStorage.setItem(PIN_SIDEBAR_TAB_KEY, tabId);
-      }
+      sessionStorage.setItem(PIN_SIDEBAR_TAB_KEY, tabId);
     } catch (_) {}
+    if (shell.bar && document.body.contains(shell.bar)) {
+      shell.pinnedTabGlow = tabId;
+      if (pathLookLikeDashboard((location.pathname || '').split('?')[0])) {
+        showWhich('dash');
+      } else if (pathLookLikePDV((location.pathname || '').split('?')[0])) {
+        showWhich('pdv');
+      } else {
+        applySidebarTabPin(tabId);
+      }
+    }
   };
 
   window.addEventListener(

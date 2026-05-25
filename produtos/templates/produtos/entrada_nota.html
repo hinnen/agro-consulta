@@ -5403,7 +5403,7 @@
     }
   }
 
-  /** Atualiza a coluna margem % a partir de V. unit e P. venda na linha (sem gravar no Mongo). P. venda fixo; custo recalcula só a margem. */
+  /** Atualiza margem % a partir de V. unit e P. venda (P. venda não é alterado automaticamente). */
   function entradaNfeLinhaRecalcMargemDisplay(tr) {
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
     const mEl = tr.querySelector('.in-margem');
@@ -5423,7 +5423,7 @@
     if (!tr || tr.dataset.nfeLinhaModo === 'compact') return;
     if (!entradaNfeGradeProdutosPodeEditar()) return;
     const o = opts && typeof opts === 'object' ? opts : {};
-    const recalcPvDeMargem = !!o.recalcPvDeMargem;
+    const usarMargemDigitada = !!o.usarMargemDigitada;
     const pid = String(tr.querySelector('.in-prod-id')?.value || '').trim();
     if (!entradaNfeProdutoIdErpValido(pid)) return;
     const mInp = tr.querySelector('.in-margem');
@@ -5431,14 +5431,12 @@
     const vunInp = tr.querySelector('.in-vun');
     if (!mInp || !pvInp || !vunInp) return;
     const mInt = entradaNfeParseMargemInt(mInp.value);
-    const vu = entradaNfeParseDecimalApi(vunInp.value) ?? 0;
-    if (recalcPvDeMargem && vu > 0 && mInt != null) {
-      const pvMark = vu * (1 + mInt / 100);
-      entradaNfeDefinirInputMoedaBr2(pvInp, pvMark);
-    }
+    const vu = entradaNfeLinhaValorUnitarioCalculo(tr);
     const pv = entradaNfeParseDecimalApi(pvInp.value) ?? 0;
     let mApi = null;
-    if (vu > 0 && pv >= 0) {
+    if (usarMargemDigitada && mInt != null) {
+      mApi = mInt;
+    } else if (vu > 0 && pv >= 0) {
       mApi = ((pv / vu) - 1) * 100;
     } else if (mInt != null) {
       mApi = mInt;
@@ -5552,12 +5550,12 @@
       <td class="px-2 py-1 align-middle">
         <input type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
           class="in-margem w-full min-w-[3rem] rounded-lg border-2 border-slate-200 bg-white px-2 py-2 text-center text-sm font-semibold text-slate-900 tabular-nums"
-          aria-label="Margem inteira sobre o custo (%). Ao sair do campo: grava no cadastro e recalcula P. venda.">
+          aria-label="Margem inteira sobre o custo (%). Atualiza sozinha quando o custo ou o P. venda mudam; ao sair, grava no cadastro.">
       </td>
       <td class="px-2 py-1 align-middle">
         <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
           class="in-pvenda w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-base font-semibold text-slate-900 tabular-nums tracking-tight"
-          title="Preço de venda (referência), formato 0,00">
+          title="Preço de venda — só você altera; a margem % recalcula quando o custo da NF muda.">
       </td>
       <td class="px-2 py-1 align-middle text-right">
         <span class="nfe-total-linha block tabular-nums text-sm font-black text-slate-900 whitespace-nowrap" title="Qtd est. × V. unit">0,00</span>
@@ -5595,18 +5593,10 @@
       delete tr.dataset.nfeCustoEmbalagem;
     }
     entradaNfeDefinirInputMoedaBr2(tr.querySelector('.in-vun'), Number(d.v_un_com != null ? d.v_un_com : 0));
-    const mEl0 = tr.querySelector('.in-margem');
-    if (mEl0) {
-      if (d.margem_percentual != null && d.margem_percentual !== '' && !Number.isNaN(Number(d.margem_percentual))) {
-        entradaNfeDefinirInputMargemInt(mEl0, Number(d.margem_percentual));
-      } else {
-        mEl0.value = '';
-      }
-    }
     entradaNfeDefinirInputMoedaBr2(tr.querySelector('.in-pvenda'), Number(d.preco_venda != null ? d.preco_venda : 0));
-    if (mEl0 && (d.margem_percentual == null || d.margem_percentual === '')) {
-      entradaNfeLinhaRecalcMargemDisplay(tr);
-    }
+    const mEl0 = tr.querySelector('.in-margem');
+    if (mEl0) mEl0.value = '';
+    entradaNfeLinhaRecalcMargemDisplay(tr);
     tr.querySelector('.in-cfop').value = d.cfop;
     tr.querySelector('.in-prod-id').value = d.produto_id || '';
     const qe = tr.querySelector('.in-q-est');
@@ -5677,7 +5667,7 @@
       const mi = entradaNfeParseMargemInt(el?.value);
       if (mi != null && el) el.value = String(mi);
       entradaNfeLinhaApplyMargemCor(tr);
-      void entradaNfeLinhaPersistirMargemAgro(tr, { recalcPvDeMargem: true });
+      void entradaNfeLinhaPersistirMargemAgro(tr, { usarMargemDigitada: true });
     });
     tr.querySelector('.btn-pick-prod').addEventListener('click', () => {
       trProdAlvo = tr;
@@ -7029,12 +7019,7 @@
         const custo = entradaNfeValorCustoProduto(det);
         if (custo != null && custo >= 0) entradaNfeDefinirInputMoedaBr2(vunInp, custo);
       }
-      const mEl = tr.querySelector('.in-margem');
-      if (mEl && det) {
-        const mm = entradaNfeParseDecimalApi(det.margem_percentual);
-        if (mm != null && Number.isFinite(mm)) entradaNfeDefinirInputMargemInt(mEl, mm);
-        else entradaNfeLinhaRecalcMargemDisplay(tr);
-      }
+      entradaNfeLinhaRecalcMargemDisplay(tr);
       entradaNfeLinhaApplyMargemCor(tr);
       atualizarPainelTotalNfe();
       entradaNfeAgendarAutosaveRascunho();
@@ -7045,16 +7030,13 @@
     if (!tr || !p) return;
     const vunInp = tr.querySelector('.in-vun');
     const pvInp = tr.querySelector('.in-pvenda');
-    const mEl = tr.querySelector('.in-margem');
     const custoLista = entradaNfeValorCustoProduto(p);
     if (vunInp && custoLista != null && tr.dataset.nfeCustNfPreservado !== '1') {
       entradaNfeDefinirInputMoedaBr2(vunInp, custoLista);
     }
     const pv = entradaNfeParseDecimalApi(p.preco_venda);
     if (pvInp && pv != null && pv >= 0) entradaNfeDefinirInputMoedaBr2(pvInp, pv);
-    const mm = entradaNfeParseDecimalApi(p.margem_percentual);
-    if (mEl && mm != null && Number.isFinite(mm)) entradaNfeDefinirInputMargemInt(mEl, mm);
-    else entradaNfeLinhaRecalcMargemDisplay(tr);
+    entradaNfeLinhaRecalcMargemDisplay(tr);
     entradaNfeLinhaApplyMargemCor(tr);
   }
 
@@ -7531,7 +7513,12 @@
     const t = e.target;
     if (t && !t.classList.contains('in-linha-busca-rapida')) entradaNfeProdutosEtapaInvalidate();
     if (t && (t.classList.contains('in-qtd') || t.classList.contains('in-vun'))) atualizarPainelTotalNfe();
-    if (t && (t.classList.contains('in-vun') || t.classList.contains('in-pvenda'))) {
+    if (
+      t &&
+      (t.classList.contains('in-vun') ||
+        t.classList.contains('in-preco-pacote') ||
+        t.classList.contains('in-pvenda'))
+    ) {
       const trM = t.closest('tr');
       if (trM) entradaNfeLinhaRecalcMargemDisplay(trM);
     }
@@ -7552,7 +7539,12 @@
     const t = e.target;
     if (t && !t.classList.contains('in-linha-busca-rapida')) entradaNfeProdutosEtapaInvalidate();
     if (t && (t.classList.contains('in-qtd') || t.classList.contains('in-vun'))) atualizarPainelTotalNfe();
-    if (t && (t.classList.contains('in-vun') || t.classList.contains('in-pvenda'))) {
+    if (
+      t &&
+      (t.classList.contains('in-vun') ||
+        t.classList.contains('in-preco-pacote') ||
+        t.classList.contains('in-pvenda'))
+    ) {
       const trM = t.closest('tr');
       if (trM) entradaNfeLinhaRecalcMargemDisplay(trM);
     }

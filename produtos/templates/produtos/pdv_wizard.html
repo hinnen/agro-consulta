@@ -153,7 +153,7 @@
             {% if caixa_aberto %}
             <a href="{% url 'caixa_painel' %}" class="pdv-action-btn border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] text-emerald-900">Caixa #{{ caixa_aberto.pk }}</a>
             {% endif %}
-            <a id="pdv-wizard-voltar-home" href="{% url 'home' %}" class="pdv-action-btn border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700" title="Sair do wizard">Sair</a>
+            <a id="pdv-wizard-voltar-home" href="{% url 'home' %}?pin_tab=pdv" class="pdv-action-btn border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700" title="Sair do wizard — volta ao dashboard com guia PDV fixa">Sair</a>
             <a href="{% url 'consulta_produtos' %}?orcamentos=1" class="pdv-action-btn border border-sky-200 bg-sky-50 px-2 py-1 text-[10px] text-sky-900 no-underline hover:bg-sky-100" title="Orçamentos salvos neste aparelho">Orç. salvos</a>
             <button type="button" id="pdv-open-budget-history" class="pdv-action-btn border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700" title="Histórico de orçamentos · F6">Orçamento <kbd class="pointer-events-none ml-0.5 hidden rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[8px] sm:inline">F6</kbd></button>
             <button type="button" id="pdv-pin-btn" class="pdv-action-btn border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">PIN</button>
