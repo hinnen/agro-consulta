@@ -231,6 +231,7 @@
     CADASTRO_ERP_MODO: "{{ cadastro_erp_modo|default:'lista'|escapejs }}",
     CADASTRO_ERP_PID: "{{ cadastro_erp_produto_id|default:''|escapejs }}",
     API: "{% url 'api_produtos_cadastro' %}",
+    URL_BUSCAR_PDV: "{% url 'api_buscar_mobile' %}",
     API_DETALHE_TMPL: "{% url 'api_produtos_cadastro_detalhe' produto_id='x' %}",
     URL_PROXIMO_CB_LOJA: "{% url 'api_produtos_cadastro_proximo_cb_loja' %}",
     URL_CAD_ERP_PROD_TMPL: "{% url 'produtos_cadastro_erp_produto' produto_id='__AGRO_PH__' %}",

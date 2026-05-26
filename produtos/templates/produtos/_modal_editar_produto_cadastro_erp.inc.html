@@ -547,6 +547,10 @@
 
     </div>
 
+    <div id="cadastro-modal-status" class="hidden px-4 sm:px-6 py-3 border-t shrink-0 bg-emerald-50 border-emerald-200" role="status" aria-live="polite">
+      <p id="cadastro-modal-status-text" class="text-sm sm:text-base font-bold text-emerald-900 leading-snug"></p>
+    </div>
+
     <div class="px-4 sm:px-6 py-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 shrink-0 sm:justify-between">
       <button type="button" id="btn-excluir-somente-agro" class="hidden min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-red-600 text-white border-2 border-red-800 hover:bg-red-700 shadow-sm transition-colors order-last sm:order-first"
         title="Remove só cadastros criados no SisVale; não use em produtos espelhados do ERP.">Excluir (só SisVale)</button>
@@ -706,7 +710,51 @@
   });
 
   function fecharModal() {
+    limparStatusModalSalvo();
     modalEdit.classList.add('hidden');
+  }
+
+  var modalStatusEl = document.getElementById('cadastro-modal-status');
+  var modalStatusTxt = document.getElementById('cadastro-modal-status-text');
+  var modalStatusTimer = null;
+
+  function limparStatusModalSalvo() {
+    if (modalStatusTimer) {
+      clearTimeout(modalStatusTimer);
+      modalStatusTimer = null;
+    }
+    if (modalStatusEl) modalStatusEl.classList.add('hidden');
+  }
+
+  function mostrarStatusModalSalvo(msg, tipo) {
+    if (!modalStatusEl || !modalStatusTxt) return;
+    limparStatusModalSalvo();
+    var t = tipo || 'ok';
+    modalStatusEl.classList.remove(
+      'bg-emerald-50', 'border-emerald-200',
+      'bg-amber-50', 'border-amber-200',
+      'bg-red-50', 'border-red-200'
+    );
+    modalStatusTxt.classList.remove('text-emerald-900', 'text-amber-900', 'text-red-800');
+    if (t === 'erro') {
+      modalStatusEl.classList.add('bg-red-50', 'border-red-200');
+      modalStatusTxt.classList.add('text-red-800');
+    } else if (t === 'aviso') {
+      modalStatusEl.classList.add('bg-amber-50', 'border-amber-200');
+      modalStatusTxt.classList.add('text-amber-900');
+    } else {
+      modalStatusEl.classList.add('bg-emerald-50', 'border-emerald-200');
+      modalStatusTxt.classList.add('text-emerald-900');
+    }
+    modalStatusTxt.textContent = String(msg || '').replace(/\s+/g, ' ').trim();
+    modalStatusEl.classList.remove('hidden');
+    try {
+      modalStatusEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    } catch (eScroll) { /* ignore */ }
+    modalStatusTimer = setTimeout(function () {
+      if (modalStatusEl) modalStatusEl.classList.add('hidden');
+      modalStatusTimer = null;
+    }, t === 'erro' ? 12000 : 8000);
   }
 
   function bindClick(id, fn) {
@@ -1346,6 +1394,7 @@
 
   function preencherForm(produto) {
     produto = produto || {};
+    limparStatusModalSalvo();
     modalEdit.setAttribute('data-produto-id', String(produto.id || ''));
     var isNovoProd = String(produto.id || '').trim().toLowerCase() === '__novo__';
     var titModal = document.getElementById('cadastro-modal-titulo');
@@ -1742,16 +1791,27 @@
         msgSalvo = eraNovo ? 'Criado no Agro e enviado ao ERP legado.' : 'Salvo no Agro e replicado no ERP legado.';
       } else {
         msgSalvo = eraNovo ? 'Produto criado no Agro.' : 'Salvo no Agro.';
-        if (j.somente_agro) msgSalvo += '\n\nPendente de envio ao ERP — use «Enviar pendentes ao ERP» na lista do cadastro.';
+        if (j.somente_agro) {
+          msgSalvo += ' Pendente de envio ao ERP — use «Enviar pendentes ao ERP» na lista do cadastro.';
+        }
       }
-      if (j.aviso && String(j.aviso).trim()) msgSalvo += '\n\n' + String(j.aviso).trim();
-      if (typeof alert !== 'undefined') alert(msgSalvo);
+      if (j.aviso && String(j.aviso).trim()) msgSalvo += ' ' + String(j.aviso).trim();
+      var tipoStatus = 'ok';
+      if (syncErp && j.erp_sync_ok === false) tipoStatus = 'aviso';
+      else if (j.somente_agro) tipoStatus = 'aviso';
+      mostrarStatusModalSalvo(msgSalvo, tipoStatus);
+      if (eraNovo && j.produto && j.produto.id) {
+        modalEdit.setAttribute('data-produto-id', String(j.produto.id));
+        var titNovo = document.getElementById('cadastro-modal-titulo');
+        if (titNovo) {
+          titNovo.innerHTML = 'Editar Produto · <span class="text-emerald-600">SisVale</span>';
+        }
+      }
       if (typeof window.agroCadastroErpRefreshPendentesBadge === 'function') {
         try { window.agroCadastroErpRefreshPendentesBadge(); } catch (ePb) { /* ignore */ }
       }
-      fecharModal();
     }).catch(function (e) {
-      if (typeof alert !== 'undefined') alert(e.message || 'Erro ao salvar');
+      mostrarStatusModalSalvo(e.message || 'Erro ao salvar', 'erro');
     }).finally(function () {
       if (btnSalvar) {
         btnSalvar.disabled = false;
