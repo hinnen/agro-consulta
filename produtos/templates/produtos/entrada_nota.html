@@ -4667,15 +4667,24 @@
   });
   document.getElementById('nfe-wiz-prev')?.addEventListener('click', () => entradaNfeWizardSetStep(entradaNfeWizardStep - 1));
   document.getElementById('nfe-wiz-next')?.addEventListener('click', () => {
-    const cur = entradaNfeWizardStep;
-    if (cur < 6) {
-      const dCur = entradaNfeWizardValidarEtapaDetalhe(cur);
-      if (!dCur.ok) {
-        showMsg(dCur.erro, false);
-        return;
+    void (async () => {
+      const cur = entradaNfeWizardStep;
+      if (cur === 1 && !entradaNfeFornecedorEtapaConfirmada) {
+        const dCampos = entradaNfeWizardValidarEtapaDetalhe(1, { ignorarConfirmacaoFornecedor: true });
+        if (dCampos.ok) {
+          await entradaNfeConfirmarFornecedorEtapa();
+          return;
+        }
       }
-    }
-    entradaNfeWizardSetStep(cur + 1);
+      if (cur < 6) {
+        const dCur = entradaNfeWizardValidarEtapaDetalhe(cur);
+        if (!dCur.ok) {
+          showMsg(dCur.erro, false);
+          return;
+        }
+      }
+      entradaNfeWizardSetStep(cur + 1);
+    })();
   });
   document.getElementById('btn-prod-novo-popup')?.addEventListener('click', () => abrirCadastroProdutoNovoPopup());
   document.getElementById('nfe-btn-confirmar-fornecedor')?.addEventListener('click', () => { entradaNfeConfirmarFornecedorEtapa(); });

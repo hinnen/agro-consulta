@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Etiquetas de Preço 4x4</title>
+    <style>
+        @page {
+            size: 40mm 40mm;
+            margin: 0;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial Black', Arial, sans-serif;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .etiqueta {
+            position: relative;
+            width: 40mm;
+            height: 40mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            page-break-after: always;
+            overflow: hidden;
+        }
+        .etiqueta:last-child {
+            page-break-after: auto;
+        }
+        .codigo {
+            position: absolute;
+            top: 1mm;
+            left: 1mm;
+            font-family: Arial, sans-serif;
+            font-size: 5pt;
+            font-weight: 700;
+            line-height: 1;
+            color: #333;
+            letter-spacing: 0;
+        }
+        .preco {
+            font-size: 32pt;
+            font-weight: bold;
+            letter-spacing: -1px;
+            text-align: center;
+            line-height: 1;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="etiqueta"><span class="codigo">GM0065-1</span><div class="preco">5,80</div></div>
+    <div class="etiqueta"><span class="codigo">GM0066-1</span><div class="preco">9,50</div></div>
+    <div class="etiqueta"><span class="codigo">GM0060-1</span><div class="preco">6,30</div></div>
+    <div class="etiqueta"><span class="codigo">GM0061-1</span><div class="preco">7,40</div></div>
+    <div class="etiqueta"><span class="codigo">GM0011-1</span><div class="preco">10,00</div></div>
+    <div class="etiqueta"><span class="codigo">GM0012-1</span><div class="preco">12,50</div></div>
+    <div class="etiqueta"><span class="codigo">GM0013-1</span><div class="preco">12,50</div></div>
+    <div class="etiqueta"><span class="codigo">GM0062-1</span><div class="preco">7,40</div></div>
+    <div class="etiqueta"><span class="codigo">GM0027-1</span><div class="preco">20,90</div></div>
+    <div class="etiqueta"><span class="codigo">GM0042-1</span><div class="preco">22,00</div></div>
+    <div class="etiqueta"><span class="codigo">GM0059-1</span><div class="preco">13,50</div></div>
+    <div class="etiqueta"><span class="codigo">GM0070-1</span><div class="preco">17,30</div></div>
+    <div class="etiqueta"><span class="codigo">GM0041-1</span><div class="preco">16,60</div></div>
+    <div class="etiqueta"><span class="codigo">GM0020-1</span><div class="preco">10,00</div></div>
+    <div class="etiqueta"><span class="codigo">GM0024-1</span><div class="preco">13,70</div></div>
+    <div class="etiqueta"><span class="codigo">GM0054-1</span><div class="preco">9,50</div></div>
+    <div class="etiqueta"><span class="codigo">GM0033-1</span><div class="preco">14,30</div></div>
+    <div class="etiqueta"><span class="codigo">GM0010-1</span><div class="preco">9,40</div></div>
+    <div class="etiqueta"><span class="codigo">GM0055-1</span><div class="preco">11,40</div></div>
+    <div class="etiqueta"><span class="codigo">GM0043-1</span><div class="preco">18,40</div></div>
+    <div class="etiqueta"><span class="codigo">GM0028-1</span><div class="preco">13,70</div></div>
+    <div class="etiqueta"><span class="codigo">GM0056-1</span><div class="preco">8,30</div></div>
+    <div class="etiqueta"><span class="codigo">GM0036-1</span><div class="preco">14,70</div></div>
+    <div class="etiqueta"><span class="codigo">GM0029-1</span><div class="preco">14,20</div></div>
+    <div class="etiqueta"><span class="codigo">GM0064-1</span><div class="preco">13,40</div></div>
+    <div class="etiqueta"><span class="codigo">GM0053-1</span><div class="preco">9,50</div></div>
+    <div class="etiqueta"><span class="codigo">GM0058-1</span><div class="preco">13,20</div></div>
+    <div class="etiqueta"><span class="codigo">GM0057-1</span><div class="preco">12,60</div></div>
+    <div class="etiqueta"><span class="codigo">GM0034-1</span><div class="preco">15,30</div></div>
+    <div class="etiqueta"><span class="codigo">GM0026-1</span><div class="preco">15,30</div></div>
+    <div class="etiqueta"><span class="codigo">GM0040-1</span><div class="preco">15,80</div></div>
+    <div class="etiqueta"><span class="codigo">GM0030-1</span><div class="preco">10,80</div></div>
+    <div class="etiqueta"><span class="codigo">GM0021-1</span><div class="preco">11,60</div></div>
+    <div class="etiqueta"><span class="codigo">GM0050-1</span><div class="preco">8,40</div></div>
+    <div class="etiqueta"><span class="codigo">GM0052-1</span><div class="preco">8,40</div></div>
+    <div class="etiqueta"><span class="codigo">GM0051-1</span><div class="preco">8,40</div></div>
+    <div class="etiqueta"><span class="codigo">GM0031-1</span><div class="preco">12,60</div></div>
+    <div class="etiqueta"><span class="codigo">GM0025-1</span><div class="preco">14,70</div></div>
+    <div class="etiqueta"><span class="codigo">GM0067-1</span><div class="preco">12,60</div></div>
+    <div class="etiqueta"><span class="codigo">GM0072-1</span><div class="preco">16,80</div></div>
+    <div class="etiqueta"><span class="codigo">GM0003-1</span><div class="preco">16,70</div></div>
+    <div class="etiqueta"><span class="codigo">GM0008-1</span><div class="preco">17,80</div></div>
+    <div class="etiqueta"><span class="codigo">GM0017-1</span><div class="preco">16,80</div></div>
+    <div class="etiqueta"><span class="codigo">GM0007-1</span><div class="preco">12,60</div></div>
+    <div class="etiqueta"><span class="codigo">GM0001-1</span><div class="preco">12,60</div></div>
+    <div class="etiqueta"><span class="codigo">GM0023-1</span><div class="preco">12,60</div></div>
+    <div class="etiqueta"><span class="codigo">GM0035-1</span><div class="preco">15,80</div></div>
+    <div class="etiqueta"><span class="codigo">GM0005-1</span><div class="preco">18,40</div></div>
+    <div class="etiqueta"><span class="codigo">GM0006-1</span><div class="preco">18,90</div></div>
+    <div class="etiqueta"><span class="codigo">GM0014-1</span><div class="preco">11,50</div></div>
+    <div class="etiqueta"><span class="codigo">GM0004-1</span><div class="preco">18,40</div></div>
+    <div class="etiqueta"><span class="codigo">GM0015-1</span><div class="preco">17,90</div></div>
+    <div class="etiqueta"><span class="codigo">GM0022-1</span><div class="preco">12,50</div></div>
+    <div class="etiqueta"><span class="codigo">GM0002-1</span><div class="preco">12,60</div></div>
+
+</body>
+</html>

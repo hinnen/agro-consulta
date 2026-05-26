@@ -12230,6 +12230,38 @@ def ajuste_mobile_view(request):
 
 
 # --- MOTOR DE BUSCA ÚNICO ---
+def _mongo_busca_codigo_misto_rapido(
+    col,
+    base_filter: dict,
+    termo_original: str,
+    termo_limpo: str,
+    limit: int,
+    projection: dict[str, int] | None,
+) -> list:
+    """GM / código misto sem ``$expr`` + ``$replaceAll`` (collscan de minutos em catálogos grandes)."""
+    lim = max(1, int(limit))
+    or_mix: list[dict] = []
+    to_strip = str(termo_original or "").strip()
+    if to_strip:
+        rx_lit = _regex_exato_ci(to_strip)
+        for fld in ("CodigoNFe", "Codigo", "CodigoInterno", "Referencia", "Sku", "SKU"):
+            or_mix.append({fld: rx_lit})
+    tl_norm = str(termo_limpo or "").lower()
+    if tl_norm:
+        alvos_ix = {tl_norm, re.sub(r"[-\s]", "", tl_norm)}
+        for al in alvos_ix:
+            if not al:
+                continue
+            cur = col.find({**base_filter, INDEX_CODIGOS_CAMPO: al}, projection)
+            hit = list(cur.limit(lim))
+            if hit:
+                return hit
+    if or_mix:
+        cur = col.find({**base_filter, "$or": or_mix}, projection)
+        return list(cur.limit(lim))
+    return []
+
+
 def motor_de_busca_agro(
     termo_original,
     db,
@@ -12279,6 +12311,7 @@ def motor_de_busca_agro(
     if len(palavras) >= 2:
         lim_s3b = 0
     base_filter = {} if include_inactive else {"CadastroInativo": {"$ne": True}}
+    busca_so_codigo = _termo_parece_codigo(termo_original) and " " not in str(termo_original).strip()
 
     candidatos = []
     vistos = set()
@@ -12329,68 +12362,46 @@ def motor_de_busca_agro(
             except Exception:
                 logger.warning("motor_de_busca_agro: fallback barras legado", exc_info=True)
 
-        # 1c) Código misto (ex.: GM0022-10): campos raiz — cobre espelho sem ``index_codigos`` atualizado
+        # 1c) Código misto (ex.: GM0022-10) — regex ancorado + ``index_codigos`` normalizado (sem ``$expr``).
         if any(ch.isalpha() for ch in termo_limpo) and any(ch.isdigit() for ch in termo_limpo):
-            or_mix: list[dict] = []
-            esc0 = re.escape(termo_original.strip())
-            if esc0:
-                rx_lit = re.compile(rf"^{esc0}$", re.IGNORECASE)
-                or_mix.extend(
-                    [
-                        {"CodigoNFe": {"$regex": rx_lit}},
-                        {"Codigo": {"$regex": rx_lit}},
-                        {"CodigoInterno": {"$regex": rx_lit}},
-                    ]
-                )
-            tl_norm = termo_limpo.lower()
-            or_mix.extend(
-                [
-                    {
-                        "$expr": {
-                            "$eq": [
-                                {
-                                    "$replaceAll": {
-                                        "input": {
-                                            "$replaceAll": {
-                                                "input": {"$toLower": {"$ifNull": ["$CodigoNFe", ""]}},
-                                                "find": " ",
-                                                "replacement": "",
-                                            }
-                                        },
-                                        "find": "-",
-                                        "replacement": "",
-                                    }
-                                },
-                                tl_norm,
-                            ]
-                        }
-                    },
-                    {
-                        "$expr": {
-                            "$eq": [
-                                {
-                                    "$replaceAll": {
-                                        "input": {
-                                            "$replaceAll": {
-                                                "input": {"$toLower": {"$ifNull": ["$Codigo", ""]}},
-                                                "find": " ",
-                                                "replacement": "",
-                                            }
-                                        },
-                                        "find": "-",
-                                        "replacement": "",
-                                    }
-                                },
-                                tl_norm,
-                            ]
-                        }
-                    },
-                ]
-            )
             try:
-                adicionar(find_prod({**base_filter, "$or": or_mix}, max(limit, 14)))
+                adicionar(
+                    _mongo_busca_codigo_misto_rapido(
+                        col_pd,
+                        base_filter,
+                        termo_original,
+                        termo_limpo,
+                        max(limit, 14),
+                        projection,
+                    )
+                )
             except Exception:
                 logger.warning("motor_de_busca_agro: fallback codigo raiz misto", exc_info=True)
+
+    # Termo único de código: não rodar regex em Nome/BuscaTexto (collscan); só ranquear achados do passo 1.
+    if busca_so_codigo:
+        if not candidatos:
+            return []
+        termo_limpo_lower = termo_limpo.lower()
+
+        def score_cod(p):
+            s = 0
+            if termo_limpo_lower and produto_termo_bate_campos_principais(p, termo_limpo):
+                s += 6000
+            if termo_limpo_lower:
+                idx = p.get(INDEX_CODIGOS_CAMPO)
+                if isinstance(idx, list):
+                    for x in idx:
+                        xs = str(x).lower()
+                        if xs == termo_limpo_lower:
+                            s += 5000
+                            break
+                        if xs.startswith(termo_limpo_lower):
+                            s += 1750
+            return s
+
+        candidatos.sort(key=lambda p: (-score_cod(p), str(p.get("Nome") or "").lower()))
+        return candidatos[:limit]
 
     # 2) Busca por palavras com expansão
     condicoes_and = []
@@ -12810,6 +12821,9 @@ def motor_busca_consulta_documentos(
     limit: int = 80,
     include_inactive: bool = False,
     projection: dict[str, int] | None = None,
+    regex_stage2_cap: int | None = None,
+    regex_stage3_cap: int | None = None,
+    regex_stage3b_cap: int | None = None,
 ) -> list[dict]:
     """
     Pipeline textual da Consulta / Orçamentos (sem etiqueta de balança): ``motor_de_busca_agro`` + overlay.
@@ -12826,6 +12840,9 @@ def motor_busca_consulta_documentos(
         limit=lim,
         include_inactive=include_inactive,
         projection=projection,
+        regex_stage2_cap=regex_stage2_cap,
+        regex_stage3_cap=regex_stage3_cap,
+        regex_stage3b_cap=regex_stage3b_cap,
     )
     return _merge_produtos_overlay_codigo_consulta(q, prods, db, client_m)
 
@@ -14518,6 +14535,9 @@ def api_produtos_cadastro(request):
                     limit=lim_busca,
                     include_inactive=inativos,
                     projection=_CADASTRO_LISTA_MONGO_PROJ,
+                    regex_stage2_cap=80,
+                    regex_stage3_cap=80,
+                    regex_stage3b_cap=0,
                 )
             prods = prods[:lim_busca]
             rows = [_produto_mongo_para_cadastro_row(p) for p in prods]
