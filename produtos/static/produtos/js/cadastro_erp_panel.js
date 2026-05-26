@@ -9,6 +9,7 @@
   var CADASTRO_ERP_MODO = C.CADASTRO_ERP_MODO || 'lista';
   var CADASTRO_ERP_PID = C.CADASTRO_ERP_PID || '';
   var API = C.API || '';
+  var URL_BUSCAR_PDV = C.URL_BUSCAR_PDV || '/api/buscar/';
   var API_DETALHE_TMPL = C.API_DETALHE_TMPL || '';
   var URL_CAD_ERP_PROD_TMPL = C.URL_CAD_ERP_PROD_TMPL || '';
   var URL_OVERLAY_SALVAR = C.URL_OVERLAY_SALVAR || '';
@@ -730,6 +731,18 @@
     return (produtos || []).filter(function (r) { return keep[String(r.id)]; });
   }
 
+  function cadastroModoBuscaPdv(qRaw) {
+    var onlyDig = String(qRaw || '').replace(/\s/g, '');
+    if (/^\d{8,}$/.test(onlyDig) || pareceCodigoBusca(qRaw)) return 'scanner';
+    return 'normal';
+  }
+
+  function cadastroLimiteBuscaPdv() {
+    return (typeof window.BUSCA_PDV_LIM_MAX === 'number' && window.BUSCA_PDV_LIM_MAX > 0)
+      ? window.BUSCA_PDV_LIM_MAX
+      : 60;
+  }
+
   function atualizarMeta(data, produtos) {
     if (!metaEl || !pagWrap || !prevEl || !nextEl || !buscaEl) return;
     var q = (buscaEl.value || '').trim();
@@ -765,27 +778,35 @@
     return _cadastroCatLocal;
   }
 
-  function cadastroPdvParaLinhaLista(p) {
+  function cadastroPdvParaLinhaLista(p, catalog) {
+    var id = String(p.id || '');
+    var loc = null;
+    if (Array.isArray(catalog) && id) {
+      for (var i = 0; i < catalog.length; i++) {
+        if (String(catalog[i].id) === id) { loc = catalog[i]; break; }
+      }
+    }
+    var src = loc ? Object.assign({}, loc, p) : p;
     return {
-      id: p.id,
-      nome: p.nome,
-      marca: p.marca,
-      codigo: p.codigo,
-      codigo_nfe: p.codigo_nfe || p.codigo,
-      codigo_barras: p.codigo_barras,
-      preco_venda: p.preco_venda,
-      preco_custo: p.preco_custo,
-      categoria: p.categoria,
-      subcategoria: p.subcategoria,
-      categoria_listagem: p.categoria_listagem,
-      prateleira: p.prateleira,
-      fornecedor: p.fornecedor,
-      imagem: p.imagem,
-      inativo: !!p.inativo,
-      unidade: p.unidade,
-      descricao: p.descricao,
-      busca_texto: p.busca_texto,
-      index_codigos: p.index_codigos
+      id: src.id,
+      nome: src.nome,
+      marca: src.marca,
+      codigo: src.codigo,
+      codigo_nfe: src.codigo_nfe || src.codigo,
+      codigo_barras: src.codigo_barras,
+      preco_venda: src.preco_venda,
+      preco_custo: src.preco_custo,
+      categoria: src.categoria,
+      subcategoria: src.subcategoria,
+      categoria_listagem: src.categoria_listagem,
+      prateleira: src.prateleira,
+      fornecedor: src.fornecedor,
+      imagem: src.imagem,
+      inativo: !!src.inativo,
+      unidade: src.unidade,
+      descricao: src.descricao,
+      busca_texto: src.busca_texto,
+      index_codigos: src.index_codigos
     };
   }
 
@@ -795,43 +816,30 @@
     return arr.filter(function (p) { return !p.inativo; });
   }
 
-  function cadastroBuscarLocal(qRaw) {
+  /** Pipeline idêntico ao PDV: filtrar → ordenar por relevância (catálogo local). */
+  function cadastroBuscarLocalComoPdv(qRaw) {
     var q = String(qRaw || '').trim();
     if (!q) return [];
     if (q.length === 1 && !pareceCodigoBusca(q)) return [];
-    var base = cadastroCatalogoPdvCacheArray();
-    if (!base.length || typeof filtrarProdutosBuscaInteligente !== 'function' || typeof normalizarBuscaLocal !== 'function') {
+    var catalog = cadastroCatalogoPdvCacheArray();
+    if (!catalog.length || typeof filtrarProdutosBuscaInteligente !== 'function' || typeof normalizarBuscaLocal !== 'function') {
       return [];
     }
     var termoNorm = normalizarBuscaLocal(q);
     if (!termoNorm || String(termoNorm).trim().length < 2) {
       if (!pareceCodigoBusca(q)) return [];
     }
-    var onlyDig = q.replace(/\s/g, '');
-    var modo = (/^\d{8,}$/.test(onlyDig) || pareceCodigoBusca(q)) ? 'scanner' : 'normal';
-    var fil = filtrarProdutosBuscaInteligente(base, termoNorm, modo);
+    var modo = cadastroModoBuscaPdv(q);
+    var fil = filtrarProdutosBuscaInteligente(catalog, termoNorm, modo);
     fil = cadastroFiltrarAtivosLocal(fil);
-    return fil.slice(0, 80).map(cadastroPdvParaLinhaLista);
+    if (typeof ordenarSugestoesPdv === 'function') {
+      fil = ordenarSugestoesPdv(fil, termoNorm, catalog);
+    }
+    return fil.slice(0, cadastroLimiteBuscaPdv());
   }
 
-  function cadastroMesclarLocalComApi(locais, apiRows) {
-    var map = {};
-    (locais || []).forEach(function (p) { map[String(p.id)] = p; });
-    var ordemIds = (locais || []).map(function (p) { return String(p.id); });
-    var idsLocal = {};
-    ordemIds.forEach(function (id) { idsLocal[id] = true; });
-    var apiById = {};
-    (apiRows || []).forEach(function (r) { apiById[String(r.id)] = r; });
-    var out = ordemIds.map(function (id) {
-      var base = map[id];
-      var api = apiById[id];
-      return api ? Object.assign({}, base, api) : base;
-    }).filter(Boolean);
-    (apiRows || []).forEach(function (r) {
-      var id = String(r.id);
-      if (!idsLocal[id]) out.push(r);
-    });
-    return out.slice(0, 80);
+  function cadastroFinalizarLinhasBusca(pdvRows, catalog) {
+    return (pdvRows || []).map(function (p) { return cadastroPdvParaLinhaLista(p, catalog); });
   }
 
   function cadastroAplicarOrdenacaoCliente(rows) {
@@ -860,7 +868,7 @@
     return copia;
   }
 
-  function carregarBuscaApi(qRaw, gen, sig, localBaseline) {
+  function carregarListaPaginada(gen, sig) {
     var pLista = fetch(urlFetch(), { credentials: 'same-origin', signal: sig })
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
     return Promise.all([pLista, fetchPendentesBadgePromise(sig ? { signal: sig } : undefined)])
@@ -871,15 +879,37 @@
           throw new Error((x.j && x.j.erro) || 'Falha ao carregar');
         }
         var produtos = x.j.produtos || [];
-        if (x.j.modo === 'busca') {
-          produtos = cadastroErpFiltrarBuscaMultiPalavra(produtos, qRaw);
-          if (localBaseline && localBaseline.length) {
-            produtos = cadastroMesclarLocalComApi(localBaseline, produtos);
-            produtos = cadastroErpFiltrarBuscaMultiPalavra(produtos, qRaw);
-          }
-        }
         produtos = cadastroAplicarOrdenacaoCliente(produtos);
         atualizarMeta(x.j, produtos);
+        renderLista(produtos);
+      });
+  }
+
+  function carregarBuscaApi(qRaw, gen, sig, localBaselinePdv) {
+    var catalog = cadastroCatalogoPdvCacheArray();
+    var termoNorm = (typeof normalizarBuscaLocal === 'function') ? normalizarBuscaLocal(qRaw) : String(qRaw || '').toLowerCase();
+    var urlBusca = URL_BUSCAR_PDV + '?q=' + encodeURIComponent(qRaw);
+    var pLista = fetch(urlBusca, { credentials: 'same-origin', signal: sig })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
+    return Promise.all([pLista, fetchPendentesBadgePromise(sig ? { signal: sig } : undefined)])
+      .then(function (pair) {
+        var x = pair[0];
+        if (gen !== carregarGen) return;
+        if (!x.j || x.j.erro) {
+          throw new Error((x.j && x.j.erro) || 'Falha ao buscar');
+        }
+        var apiRows = Array.isArray(x.j.produtos) ? x.j.produtos : [];
+        var pdvRows = localBaselinePdv && localBaselinePdv.length ? localBaselinePdv : [];
+        if (typeof mesclarBuscaPdvLocalComApi === 'function') {
+          pdvRows = mesclarBuscaPdvLocalComApi(termoNorm, pdvRows, apiRows, catalog, cadastroLimiteBuscaPdv());
+        } else if (apiRows.length) {
+          pdvRows = apiRows.slice(0, cadastroLimiteBuscaPdv());
+        }
+        var produtos = cadastroFinalizarLinhasBusca(pdvRows, catalog);
+        if (ordenacaoAtual.campo) {
+          produtos = cadastroAplicarOrdenacaoCliente(produtos);
+        }
+        atualizarMeta({ modo: 'busca' }, produtos);
         renderLista(produtos);
       });
   }
@@ -899,13 +929,16 @@
 
     if (qBusca) {
       clearTimeout(buscaMergeTimer);
-      var locais = cadastroBuscarLocal(qBusca);
-      locais = cadastroErpFiltrarBuscaMultiPalavra(locais, qBusca);
-      locais = cadastroAplicarOrdenacaoCliente(locais);
-      var hadLocal = locais.length > 0;
+      var catalog = cadastroCatalogoPdvCacheArray();
+      var locaisPdv = cadastroBuscarLocalComoPdv(qBusca);
+      var linhasLocais = cadastroFinalizarLinhasBusca(locaisPdv, catalog);
+      if (ordenacaoAtual.campo) {
+        linhasLocais = cadastroAplicarOrdenacaoCliente(linhasLocais);
+      }
+      var hadLocal = linhasLocais.length > 0;
       if (hadLocal) {
-        atualizarMeta({ modo: 'busca' }, locais);
-        renderLista(locais);
+        atualizarMeta({ modo: 'busca' }, linhasLocais);
+        renderLista(linhasLocais);
         setLoading(false);
       } else {
         setLoading(true);
@@ -914,7 +947,7 @@
       var delayApi = hadLocal ? 0 : (pareceCodigoBusca(qBusca) ? 100 : 220);
       buscaMergeTimer = setTimeout(function () {
         if (mergeSeq !== buscaMergeSeq || g !== carregarGen) return;
-        carregarBuscaApi(qBusca, g, sig, hadLocal ? locais : null)
+        carregarBuscaApi(qBusca, g, sig, locaisPdv)
           .catch(function (err) {
             if (err && err.name === 'AbortError') return;
             if (g !== carregarGen) return;
@@ -941,7 +974,7 @@
     }
 
     setLoading(true);
-    carregarBuscaApi('', g, sig)
+    carregarListaPaginada(g, sig)
       .catch(function (err) {
         if (err && err.name === 'AbortError') return;
         if (g !== carregarGen) return;
@@ -992,7 +1025,8 @@
       }
       return;
     }
-    var ms = pareceCodigoBusca(q) ? 100 : 320;
+    var temCache = cadastroCatalogoPdvCacheArray().length > 0;
+    var ms = pareceCodigoBusca(q) ? 0 : (temCache ? 0 : 320);
     debounceTimer = setTimeout(function () {
       var q2 = (buscaEl.value || '').trim();
       if (q2.length === 1 && !pareceCodigoBusca(q2)) return;

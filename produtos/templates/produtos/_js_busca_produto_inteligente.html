@@ -240,9 +240,114 @@
         return resultados;
     }
 
+    /** Mesma ordenação da Consulta / Orçamentos (relevância → média 30d → freq → nome). */
+    function montarBuscaTextoRapido(p) {
+        const partes = [
+            p.nome,
+            p.marca,
+            p.codigo_nfe,
+            p.codigo_barras,
+            p.codigo,
+            p.prateleira,
+            p.referencia,
+            p.sku,
+            p.codigo_fornecedor,
+            p.codigo_interno,
+        ].filter(Boolean);
+        if (Array.isArray(p.index_codigos)) {
+            p.index_codigos.slice(0, 120).forEach((c) => {
+                if (c != null && String(c).trim() !== '') partes.push(String(c));
+            });
+        }
+        return normalizarBuscaLocal(partes.join(' '));
+    }
+
+    function blobTextoBuscaRelevancia(p) {
+        if (p && p.busca_texto) return normalizarBuscaLocal(String(p.busca_texto));
+        return montarBuscaTextoRapido(p);
+    }
+
+    function relevanciaTextoBuscaPdv(p, termoNorm) {
+        if (!termoNorm || typeof termoNorm !== 'string') return 0;
+        const t = termoNorm.trim();
+        if (!t) return 0;
+        if (Array.isArray(p.index_codigos) && p.index_codigos.some((x) => normalizarBuscaLocal(String(x ?? '')) === t)) {
+            return 2000000;
+        }
+        const nome = normalizarBuscaLocal(String(p.nome || ''));
+        const blob = blobTextoBuscaRelevancia(p);
+        if (nome.includes(t)) return 1000000;
+        if (blob.includes(t)) return 500000;
+        const palavras = t.split(/\s+/).filter((w) => w.length >= 2);
+        let s = 0;
+        for (const w of palavras) {
+            if (nome.includes(w)) s += 50000;
+            else if (blob.includes(w)) s += 5000;
+        }
+        return s;
+    }
+
+    function mediaParaOrdenacaoProduto(p, catalogRef) {
+        const id = String(p && p.id != null ? p.id : '');
+        if (Array.isArray(catalogRef) && id) {
+            const loc = catalogRef.find((x) => String(x.id) === id);
+            if (loc && loc.media_venda_diaria_30d != null && loc.media_venda_diaria_30d !== '') {
+                return Number(loc.media_venda_diaria_30d || 0);
+            }
+        }
+        return Number(p && p.media_venda_diaria_30d != null ? p.media_venda_diaria_30d : 0);
+    }
+
+    function ordenarSugestoesPdv(lista, termoBuscaNorm, catalogRef) {
+        const termoTrim = termoBuscaNorm != null ? String(termoBuscaNorm).trim() : '';
+        let freq = {};
+        try {
+            freq = JSON.parse(localStorage.getItem('freqProdutos') || '{}');
+        } catch (_) { /* ignore */ }
+        return (Array.isArray(lista) ? lista : []).slice().sort((a, b) => {
+            if (termoTrim) {
+                const rA = relevanciaTextoBuscaPdv(a, termoTrim);
+                const rB = relevanciaTextoBuscaPdv(b, termoTrim);
+                if (rA !== rB) return rB - rA;
+            }
+            const mA = mediaParaOrdenacaoProduto(a, catalogRef);
+            const mB = mediaParaOrdenacaoProduto(b, catalogRef);
+            if (mA !== mB) return mB - mA;
+            const freqA = freq[a.id] || 0;
+            const freqB = freq[b.id] || 0;
+            if (freqA !== freqB) return freqB - freqA;
+            return String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR');
+        });
+    }
+
+    function mesclarBuscaPdvLocalComApi(termoNorm, locaisOrdenados, apiProdutos, catalogRef, limite) {
+        const lim = limite != null ? Math.max(1, Number(limite)) : 60;
+        const map = new Map();
+        (locaisOrdenados || []).forEach((p) => map.set(String(p.id), p));
+        const ordemLocalIds = (locaisOrdenados || []).map((p) => String(p.id));
+        const idsLocal = new Set(ordemLocalIds);
+        const apiById = new Map();
+        (apiProdutos || []).forEach((raw) => {
+            const id = String(raw.id);
+            apiById.set(id, raw);
+            if (!map.has(id)) map.set(id, raw);
+        });
+        const locaisMesclados = ordemLocalIds.map((id) => {
+            const base = map.get(id);
+            const apiRow = apiById.get(id);
+            return apiRow ? { ...base, ...apiRow } : base;
+        }).filter(Boolean);
+        const extrasBrutos = (apiProdutos || []).filter((raw) => !idsLocal.has(String(raw.id)));
+        const extrasOrd = ordenarSugestoesPdv(extrasBrutos, termoNorm, catalogRef);
+        return [...locaisMesclados, ...extrasOrd].slice(0, lim);
+    }
+
     window.normalizarBuscaLocal = normalizarBuscaLocal;
     window.filtrarProdutosBuscaInteligente = filtrarProdutosBuscaInteligente;
     window.casaCodigoNumericoNoProduto = casaCodigoNumericoNoProduto;
     window.buildBuscaProdutoIndex = buildBuscaProdutoIndex;
+    window.ordenarSugestoesPdv = ordenarSugestoesPdv;
+    window.mesclarBuscaPdvLocalComApi = mesclarBuscaPdvLocalComApi;
+    window.BUSCA_PDV_LIM_MAX = 60;
 })();
 </script>
