@@ -185,7 +185,7 @@
     var clientSearchSeq = 0;
     var AUTOCOMPLETE_LIMIT = 8;
     var MAX_LOCAL_RESULTS = 48;
-    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v4';
+    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v5';
     var wizardProductCatalog = [];
     var catalogReady = false;
     var catalogLoadPromise = null;
@@ -338,6 +338,7 @@
         var qd = onlyDigits(qt);
         var seen = {};
         var hits = [];
+        var eanOnly = qd.length >= 8;
         wizardProductCatalog.forEach(function (p) {
             var ean = String(p.codigo_barras || '').trim();
             var nfe = String(p.codigo_nfe || '').trim();
@@ -345,7 +346,8 @@
             var match = false;
             if (qt && (ean === qt || nfe === qt || cod === qt)) match = true;
             else if (qd.length >= 6 && onlyDigits(ean) && onlyDigits(ean) === qd) match = true;
-            else if (matchQueryAgainstIndexCodigos(qt, qd, p)) match = true;
+            else if (qd.length >= 6 && onlyDigits(nfe) && onlyDigits(nfe) === qd) match = true;
+            else if (!eanOnly && matchQueryAgainstIndexCodigos(qt, qd, p)) match = true;
             if (match) {
                 var id = String(p.id || '');
                 if (id && !seen[id]) {
@@ -414,15 +416,18 @@
         if (!allowLocalQuery(q)) {
             return { list: [], message: 'Digite ao menos 2 letras ou 6+ dígitos do código.' };
         }
-        var qDigitsOnly = onlyDigits(q);
-        // EAN longo (8+ dígitos): servidor usa o mesmo motor do PDV (catálogo local pode não ter o item).
-        if (qDigitsOnly.length >= 8) {
-            return { list: [], message: '', barcodeHit: null };
-        }
         var barcodeMode = mode === 'barcode';
         if (barcodeMode) {
-            var one = findUniqueBarcodeMatch(q);
-            if (one) return { list: [], barcodeHit: one, message: '' };
+            var oneBc = findUniqueBarcodeMatch(q);
+            if (oneBc) return { list: [], barcodeHit: oneBc, message: '' };
+        }
+        var qDigitsOnly = onlyDigits(q);
+        // EAN 8+ dígitos: busca no servidor (catálogo local pode não ter o item).
+        if (qDigitsOnly.length >= 8 && !barcodeMode) {
+            return { list: [], message: '', barcodeHit: null };
+        }
+        if (qDigitsOnly.length >= 8 && barcodeMode) {
+            return { list: [], message: '', barcodeHit: null };
         }
         var scored = wizardProductCatalog
             .map(function (p) {
@@ -450,8 +455,18 @@
                 return res.json();
             })
             .then(function (data) {
-                return Array.isArray(data.produtos) ? data.produtos : [];
+                return {
+                    produtos: Array.isArray(data.produtos) ? data.produtos : [],
+                    exactBarcode: !!data.exact_barcode_match,
+                };
             });
+    }
+
+    function tryAutoAddBarcodeHit(product, message) {
+        if (!product) return false;
+        State.addItem(product, 1);
+        resetProductSearchUi(message || 'Item adicionado pela leitura do código.');
+        return true;
     }
 
     function whatsappHrefLoose(raw) {
@@ -2330,6 +2345,10 @@
                 }
                 var localList = r.list || [];
                 var skuCode = looksLikeSkuCode(query);
+                if (mode === 'barcode' && localList.length === 1) {
+                    tryAutoAddBarcodeHit(localList[0]);
+                    return Promise.resolve();
+                }
                 if (localList.length && !skuCode) {
                     renderProductResults(localList);
                     dom.productSearchFeedback.textContent =
@@ -2353,8 +2372,14 @@
                         ? 'Buscando variantes do código…'
                         : 'Buscando no servidor…';
                 }
-                return fetchWizardServerSearch(query).then(function (remote) {
-                    return { remote: remote, localList: localList, skuCode: skuCode };
+                return fetchWizardServerSearch(query).then(function (srv) {
+                    return {
+                        remote: srv.produtos,
+                        exactBarcode: srv.exactBarcode,
+                        localList: localList,
+                        skuCode: skuCode,
+                        mode: mode,
+                    };
                 });
             })
             .then(function (payload) {
@@ -2362,6 +2387,14 @@
                 if (!payload || !Array.isArray(payload.remote)) return;
                 var remote = payload.remote;
                 var merged = mergeProductsById(payload.localList || [], remote);
+                if (payload.mode === 'barcode' && merged.length === 1) {
+                    tryAutoAddBarcodeHit(merged[0]);
+                    return;
+                }
+                if (payload.mode === 'barcode' && payload.exactBarcode && merged.length >= 1) {
+                    tryAutoAddBarcodeHit(merged[0]);
+                    return;
+                }
                 if (merged.length) {
                     renderProductResults(merged);
                     if (payload.skuCode && remote.length) {
@@ -3989,6 +4022,13 @@
                 renderProductResults(lastProducts);
             } else if (event.key === 'Enter') {
                 event.preventDefault();
+                clearTimeout(barcodeTimer);
+                clearTimeout(searchTimer);
+                var qEnter = String(dom.productSearch.value || '').trim();
+                if (/^\d{8,}$/.test(qEnter)) {
+                    runProductSearch(qEnter, 'barcode');
+                    return;
+                }
                 var target = lastProducts[Math.max(productSelectionIndex, 0)];
                 if (target) {
                     State.addItem(target, 1);
@@ -3996,7 +4036,7 @@
                     renderProductResults([]);
                     dom.productSearchFeedback.textContent = 'Item adicionado à venda.';
                 } else {
-                    runProductSearch(dom.productSearch.value, 'manual');
+                    runProductSearch(qEnter, 'manual');
                 }
             } else if (event.key === '+' || event.key === '=' || event.code === 'NumpadAdd') {
                 event.preventDefault();
@@ -4008,16 +4048,24 @@
         });
 
         dom.productSearch.addEventListener('input', function () {
-            var value = dom.productSearch.value;
+            var value = String(dom.productSearch.value || '');
+            var trimmed = value.trim();
             var now = Date.now();
             var delta = now - lastInputAt;
             lastInputAt = now;
             clearTimeout(searchTimer);
             clearTimeout(barcodeTimer);
-            if (/^\d{6,}$/.test(String(value).trim()) && delta < 35) {
+            if (/^\d{8,}$/.test(trimmed)) {
+                var waitMs = trimmed.length >= 13 ? 12 : 40;
                 barcodeTimer = setTimeout(function () {
-                    runProductSearch(value, 'barcode');
-                }, 60);
+                    runProductSearch(trimmed, 'barcode');
+                }, waitMs);
+                return;
+            }
+            if (/^\d{6,7}$/.test(trimmed) && delta < 40) {
+                barcodeTimer = setTimeout(function () {
+                    runProductSearch(trimmed, 'barcode');
+                }, 35);
                 return;
             }
             searchTimer = setTimeout(function () {
