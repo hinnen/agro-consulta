@@ -94,6 +94,11 @@
         step1Advance: document.getElementById('pdv-step1-advance'),
         step1Payment: document.getElementById('pdv-step1-payment'),
         step1BudgetVerMais: document.getElementById('pdv-step1-budget-ver-mais'),
+        step1EntregasBtn: document.getElementById('pdv-step1-entregas-btn'),
+        step1EntregasCount: document.getElementById('pdv-step1-entregas-count'),
+        entregasPendentesModal: document.getElementById('pdv-entregas-pendentes-modal'),
+        entregasPendentesList: document.getElementById('pdv-entregas-pendentes-list'),
+        entregasPendentesClose: document.getElementById('pdv-entregas-pendentes-close'),
         openBudgetHistory: document.getElementById('pdv-open-budget-history'),
         modalStart: document.getElementById('pdv-cliente-start-modal'),
         startSearchClient: document.getElementById('pdv-start-search-client'),
@@ -193,6 +198,12 @@
     var catalogReady = false;
     var catalogLoadPromise = null;
     var prevStepCache = '';
+    var entregasPendentesPollTimer = null;
+    var entregasPendentesCache = { total: 0, itens: [] };
+
+    function entregaPendenteApiUrl(template, pk) {
+        return String(template || '').replace('__pk__', String(pk));
+    }
 
     function escapeHtml(value) {
         var div = document.createElement('div');
@@ -1488,6 +1499,188 @@
                 })
                 .join('') +
             '</ul>';
+    }
+
+    function applyEntregasPendentesButton() {
+        var btn = dom.step1EntregasBtn;
+        var badge = dom.step1EntregasCount;
+        if (!btn) return;
+        var n = entregasPendentesCache.total || 0;
+        if (n <= 0) {
+            btn.hidden = true;
+            btn.className =
+                'mt-0 w-full rounded-xl border border-slate-200/90 bg-slate-100/80 px-2.5 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 shadow-sm transition hover:bg-slate-100';
+            if (badge) badge.classList.add('hidden');
+            return;
+        }
+        btn.hidden = false;
+        btn.className =
+            'mt-0 w-full rounded-xl border-2 border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-2.5 py-2.5 text-[11px] font-black uppercase tracking-wide text-white shadow-lg shadow-orange-600/30 ring-2 ring-orange-300/50 transition hover:from-orange-600 hover:to-amber-600';
+        if (badge) {
+            badge.textContent = String(n);
+            badge.classList.remove('hidden');
+        }
+    }
+
+    function renderEntregasPendentesList() {
+        var el = dom.entregasPendentesList;
+        if (!el) return;
+        var itens = entregasPendentesCache.itens || [];
+        if (!itens.length) {
+            el.innerHTML =
+                '<p class="py-6 text-center text-sm font-semibold text-slate-500">Nenhuma entrega pendente.</p>';
+            return;
+        }
+        el.innerHTML = itens
+            .map(function (row) {
+                var id = row.id;
+                var nome = escapeHtml(row.cliente_nome || '—');
+                var total = escapeHtml(row.total_texto || '—');
+                var forma = escapeHtml(row.forma_pagamento || '');
+                var cod = escapeHtml(row.retomar_codigo || '');
+                return (
+                    '<article class="mb-2 rounded-xl border-2 border-orange-200 bg-orange-50/40 p-3">' +
+                    '<div class="font-black text-slate-900">' +
+                    nome +
+                    '</div>' +
+                    '<div class="mt-1 text-xs font-bold text-slate-600">' +
+                    total +
+                    (forma ? ' · ' + forma : '') +
+                    '</div>' +
+                    (cod ? '<div class="mt-0.5 text-[10px] font-mono text-slate-500">' + cod + '</div>' : '') +
+                    '<div class="mt-3 flex flex-wrap gap-2">' +
+                    '<button type="button" class="pdv-entrega-retomar rounded-lg bg-emerald-600 px-3 py-2 text-[10px] font-black uppercase text-white" data-entrega-id="' +
+                    id +
+                    '">Retomar pagamento</button>' +
+                    '<button type="button" class="pdv-entrega-cancelar rounded-lg border-2 border-red-300 bg-white px-3 py-2 text-[10px] font-black uppercase text-red-800" data-entrega-id="' +
+                    id +
+                    '">Cancelar</button>' +
+                    '</div>' +
+                    '</article>'
+                );
+            })
+            .join('');
+        el.querySelectorAll('.pdv-entrega-retomar').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var pk = btn.getAttribute('data-entrega-id');
+                if (pk) retomarEntregaPendente(pk);
+            });
+        });
+        el.querySelectorAll('.pdv-entrega-cancelar').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var pk = btn.getAttribute('data-entrega-id');
+                if (pk) cancelarEntregaPendente(pk);
+            });
+        });
+    }
+
+    function openEntregasPendentesModal() {
+        refreshEntregasPendentesUi(false).then(function () {
+            if (!dom.entregasPendentesModal) return;
+            renderEntregasPendentesList();
+            if (typeof dom.entregasPendentesModal.showModal === 'function') {
+                dom.entregasPendentesModal.showModal();
+            } else {
+                dom.entregasPendentesModal.setAttribute('open', 'open');
+            }
+        });
+    }
+
+    function closeEntregasPendentesModal() {
+        if (!dom.entregasPendentesModal) return;
+        if (typeof dom.entregasPendentesModal.close === 'function') {
+            dom.entregasPendentesModal.close();
+        } else {
+            dom.entregasPendentesModal.removeAttribute('open');
+        }
+    }
+
+    function refreshEntregasPendentesUi(silent) {
+        var url = urls.apiPdvEntregasPendentes;
+        if (!url) return Promise.resolve();
+        return jsonGet(url)
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.ok) return;
+                entregasPendentesCache.total = res.data.total || 0;
+                entregasPendentesCache.itens = res.data.itens || [];
+                applyEntregasPendentesButton();
+                if (
+                    !silent &&
+                    dom.entregasPendentesModal &&
+                    dom.entregasPendentesModal.open
+                ) {
+                    renderEntregasPendentesList();
+                }
+            })
+            .catch(function () {});
+    }
+
+    function retomarEntregaPendente(pk) {
+        var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteDetalhe, pk);
+        if (!url) return;
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        jsonGet(url)
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.ok || !res.data.entrega) {
+                    throw new Error(
+                        (res.data && (res.data.erro || res.data.mensagem)) ||
+                            'Não foi possível carregar a entrega.'
+                    );
+                }
+                var ent = res.data.entrega;
+                var snap = ent.pdv_wizard_state;
+                if (!snap || typeof snap !== 'object') {
+                    throw new Error('Estado da venda não encontrado para retomar.');
+                }
+                closeEntregasPendentesModal();
+                closeStartModal();
+                State.hydrateFromEntregaPendente(snap, { id: ent.id });
+                alert(
+                    'Venda retomada. Confira o pagamento e finalize a venda (entrega #' +
+                        ent.id +
+                        ').'
+                );
+            })
+            .catch(function (err) {
+                alert(err && err.message ? err.message : 'Falha ao retomar entrega.');
+            })
+            .finally(function () {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            });
+    }
+
+    function cancelarEntregaPendente(pk) {
+        var motivo = window.prompt('Motivo do cancelamento (opcional):', 'Cancelado no PDV');
+        if (motivo === null) return;
+        var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteCancelar, pk);
+        if (!url) return;
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        jsonPost(url, { motivo: motivo || 'Cancelado no PDV' })
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.ok) {
+                    throw new Error(
+                        (res.data && (res.data.erro || res.data.mensagem)) ||
+                            'Não foi possível cancelar.'
+                    );
+                }
+                return refreshEntregasPendentesUi(false);
+            })
+            .then(function () {
+                renderEntregasPendentesList();
+                if (!(entregasPendentesCache.total || 0)) closeEntregasPendentesModal();
+            })
+            .catch(function (err) {
+                alert(err && err.message ? err.message : 'Falha ao cancelar entrega.');
+            })
+            .finally(function () {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            });
+    }
+
+    function finalizarEntregaPendenteAposVenda(pendenteId, vendaId) {
+        var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteFinalizar, pendenteId);
+        if (!url) return Promise.resolve({ ok: true, data: { ok: true } });
+        return jsonPost(url, { venda_id: vendaId != null ? vendaId : null });
     }
 
     function productAutocompleteHtml(produto, index) {
@@ -2838,6 +3031,7 @@
         }
         jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
         resetWizardParaNovaVenda();
+        refreshEntregasPendentesUi(true);
         if (printFail) {
             showSaleDoneFeedback(
                 'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
@@ -2898,6 +3092,22 @@
                     );
                 }
                 var erpPendente = !!erpRes.data.erp_pendente;
+                var vendaId = erpRes.data && erpRes.data.venda_id;
+                var pendenteId =
+                    state.entrega && state.entrega.pedidoEntregaPendenteId
+                        ? state.entrega.pedidoEntregaPendenteId
+                        : null;
+                if (pendenteId) {
+                    return finalizarEntregaPendenteAposVenda(pendenteId, vendaId).then(function (finRes) {
+                        if (!finRes.ok || !finRes.data || !finRes.data.ok) {
+                            throw new Error(
+                                (finRes.data && (finRes.data.erro || finRes.data.mensagem)) ||
+                                    'Venda salva, mas falhou ao encerrar pendência da entrega.'
+                            );
+                        }
+                        finalizeConfirmedSale(withPrint, printWin, { erpPendente: erpPendente, entregaOk: true });
+                    });
+                }
                 if (state.entrega.ativa) {
                     var entPayload = buildEntregaPayload(state, computed);
                     if (erpPendente) {
@@ -2997,6 +3207,22 @@
                 }
                 var st = State.getState();
                 var comp = State.getComputed();
+                var pendenteId =
+                    st.entrega && st.entrega.pedidoEntregaPendenteId
+                        ? st.entrega.pedidoEntregaPendenteId
+                        : null;
+                var vendaId = finRes.data && finRes.data.venda_id;
+                if (pendenteId) {
+                    return finalizarEntregaPendenteAposVenda(pendenteId, vendaId).then(function (finEntRes) {
+                        if (!finEntRes.ok || !finEntRes.data || !finEntRes.data.ok) {
+                            throw new Error(
+                                (finEntRes.data && (finEntRes.data.erro || finEntRes.data.mensagem)) ||
+                                    'Venda salva, mas falhou ao encerrar pendência da entrega.'
+                            );
+                        }
+                        return { entrega: finEntRes.data, erp: finRes.data };
+                    });
+                }
                 if (!st.entrega.ativa) return { entrega: null, erp: finRes.data };
                 return jsonPost(urls.apiEntregaRegistrar, buildEntregaPayload(st, comp)).then(function (entRes) {
                     if (!entRes.ok || !entRes.data.ok) {
@@ -3933,11 +4159,19 @@
             wizardImprimirPacoteEntrega(orcId, opt);
             var state2 = State.getState();
             var computed2 = State.getComputed();
+            var snapshot = State.exportWizardStateSnapshot
+                ? State.exportWizardStateSnapshot()
+                : null;
             var body = buildEntregaPayload(state2, computed2, {
                 orc_local_id: orcId,
                 retomar_codigo: 'GMORC' + String(orcId),
                 obsExtra: obsFluxoEntregaResumo(state2)
             });
+            body.aguarda_pagamento_pdv = true;
+            body.pdv_wizard_state = snapshot || {};
+            if (bootstrap.caixa && bootstrap.caixa.id) {
+                body.sessao_caixa_id = bootstrap.caixa.id;
+            }
             if (window.gmLoadingBar) window.gmLoadingBar.show();
             jsonPost(urls.apiEntregaRegistrar || '', body)
                 .then(function (res) {
@@ -3945,11 +4179,10 @@
                         throw new Error((res.data && (res.data.erro || res.data.mensagem)) || 'Falha ao registrar no painel Entregas.');
                     }
                     alert(
-                        'Entrega registrada no painel (retomada GMORC' +
-                            orcId +
-                            '). O PDV voltou ao início para uma nova venda.'
+                        'Entrega enviada. Quando o entregador voltar, use o botão ENTREGAS nesta tela para registrar o pagamento.'
                     );
                     resetWizardParaNovaVenda();
+                    return refreshEntregasPendentesUi(true);
                 })
                 .catch(function (err) {
                     alert(err && err.message ? err.message : 'Não foi possível registrar no painel Entregas.');
@@ -4349,6 +4582,17 @@
 
         if (dom.openBudgetHistory) dom.openBudgetHistory.addEventListener('click', openBudgetHistory);
         if (dom.step1BudgetVerMais) dom.step1BudgetVerMais.addEventListener('click', openBudgetHistory);
+        if (dom.step1EntregasBtn) {
+            dom.step1EntregasBtn.addEventListener('click', openEntregasPendentesModal);
+        }
+        if (dom.entregasPendentesClose) {
+            dom.entregasPendentesClose.addEventListener('click', closeEntregasPendentesModal);
+        }
+        if (dom.entregasPendentesModal) {
+            dom.entregasPendentesModal.addEventListener('click', function (ev) {
+                if (ev.target === dom.entregasPendentesModal) closeEntregasPendentesModal();
+            });
+        }
         dom.budgetHistoryClose.addEventListener('click', closeBudgetHistory);
         dom.budgetHistoryModal.addEventListener('click', function (event) {
             if (event.target === dom.budgetHistoryModal) closeBudgetHistory();
@@ -5181,6 +5425,12 @@
 
     State.subscribe(renderAll);
     bindEvents();
+
+    refreshEntregasPendentesUi(true);
+    if (entregasPendentesPollTimer) clearInterval(entregasPendentesPollTimer);
+    entregasPendentesPollTimer = setInterval(function () {
+        refreshEntregasPendentesUi(true);
+    }, 45000);
 
     loadWizardCatalog()
         .then(function () {

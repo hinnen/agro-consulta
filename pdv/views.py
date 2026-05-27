@@ -89,6 +89,16 @@ def pdv_home(request):
                 "apiPdvMpPointFinalizar": reverse("api_pdv_mp_point_finalizar"),
                 "apiPdvMpPointAbandon": reverse("api_pdv_mp_point_abandon"),
                 "apiEntregaRegistrar": reverse("api_entrega_registrar"),
+                "apiPdvEntregasPendentes": reverse("api_pdv_entregas_pendentes"),
+                "apiPdvEntregaPendenteDetalhe": reverse("api_pdv_entrega_pendente_detalhe", args=[0]).replace(
+                    "/0/", "/__pk__/"
+                ),
+                "apiPdvEntregaPendenteFinalizar": reverse("api_pdv_entrega_pendente_finalizar", args=[0]).replace(
+                    "/0/", "/__pk__/"
+                ),
+                "apiPdvEntregaPendenteCancelar": reverse("api_pdv_entrega_pendente_cancelar", args=[0]).replace(
+                    "/0/", "/__pk__/"
+                ),
                 "apiLoginMobile": reverse("api_login_mobile"),
                 "pdvCheckout": reverse("pdv_checkout"),
                 "pdvWizardHome": reverse("pdv_home"),

@@ -16,6 +16,26 @@ urlpatterns = [
     path('entregas/api/listar/', views.api_entregas_listar, name='api_entregas_listar'),
     path('entregas/api/atualizar/', views.api_entrega_atualizar, name='api_entrega_atualizar'),
     path(
+        'api/pdv/entregas-pendentes/',
+        views.api_pdv_entregas_pendentes,
+        name='api_pdv_entregas_pendentes',
+    ),
+    path(
+        'api/pdv/entrega-pendente/<int:pk>/',
+        views.api_pdv_entrega_pendente_detalhe,
+        name='api_pdv_entrega_pendente_detalhe',
+    ),
+    path(
+        'api/pdv/entrega-pendente/<int:pk>/finalizar/',
+        views.api_pdv_entrega_pendente_finalizar,
+        name='api_pdv_entrega_pendente_finalizar',
+    ),
+    path(
+        'api/pdv/entrega-pendente/<int:pk>/cancelar/',
+        views.api_pdv_entrega_pendente_cancelar,
+        name='api_pdv_entrega_pendente_cancelar',
+    ),
+    path(
         'entregas/api/ordenar-rota/',
         views.api_entregas_ordenar_rota,
         name='api_entregas_ordenar_rota',

@@ -110,9 +110,37 @@
             Ver mais <kbd class="pointer-events-none ml-1 rounded border border-slate-200 px-1 font-mono text-[8px] text-slate-500">F6</kbd>
           </button>
         </div>
+        <button
+          type="button"
+          id="pdv-step1-entregas-btn"
+          class="mt-0 w-full rounded-xl border border-slate-200/90 bg-slate-100/80 px-2.5 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 shadow-sm transition hover:bg-slate-100"
+          title="Entregas aguardando pagamento no PDV"
+          hidden
+        >
+          <span class="flex items-center justify-center gap-2">
+            <span>Entregas</span>
+            <span id="pdv-step1-entregas-count" class="hidden min-w-[1.35rem] rounded-full bg-orange-500 px-1.5 py-0.5 text-[9px] font-black text-white tabular-nums">0</span>
+          </span>
+        </button>
       </div>
     </aside>
   </div>
+
+  <dialog id="pdv-entregas-pendentes-modal" class="max-h-[min(92vh,640px)] w-[min(96vw,560px)] rounded-2xl border-2 border-orange-300 bg-white p-0 shadow-2xl backdrop:bg-slate-950/65">
+    <div class="flex max-h-[min(92vh,640px)] flex-col">
+      <div class="flex items-center justify-between gap-2 border-b border-orange-100 bg-orange-50 px-3 py-2.5">
+        <div>
+          <p class="text-[10px] font-black uppercase tracking-wide text-orange-800">Pagamento na entrega</p>
+          <h3 class="text-base font-black text-slate-900">Entregas pendentes no PDV</h3>
+        </div>
+        <button type="button" id="pdv-entregas-pendentes-close" class="rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase text-slate-700">Fechar</button>
+      </div>
+      <p class="shrink-0 border-b border-slate-100 px-3 py-2 text-[11px] font-semibold leading-snug text-slate-600">
+        Retome a venda para registrar o pagamento após o entregador voltar. Cancelar remove a pendência do PDV.
+      </p>
+      <div id="pdv-entregas-pendentes-list" class="pdv-wizard-scroll min-h-0 flex-1 overflow-y-auto px-3 py-2 text-sm"></div>
+    </div>
+  </dialog>
 
   <dialog id="pdv-product-photo-pop" class="max-h-[min(92vh,560px)] w-[min(96vw,520px)] rounded-2xl border-2 border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-slate-950/65">
     <form method="dialog" class="flex max-h-[min(92vh,560px)] flex-col">

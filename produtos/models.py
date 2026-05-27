@@ -460,6 +460,31 @@ class PedidoEntrega(models.Model):
         verbose_name="Precisa de troco",
         help_text="Somente para Dinheiro: True = levar troco, False = sem troco.",
     )
+    aguarda_pagamento_pdv = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="Aguarda pagamento no PDV",
+        help_text="Venda do PDV pendente até fechar pagamento após a entrega.",
+    )
+    pdv_wizard_state = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Snapshot do wizard PDV para retomar no pagamento.",
+    )
+    sessao_caixa = models.ForeignKey(
+        "SessaoCaixa",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="entregas_pdv_pendentes",
+    )
+    venda_agro = models.ForeignKey(
+        "VendaAgro",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pedido_entrega_origem",
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
