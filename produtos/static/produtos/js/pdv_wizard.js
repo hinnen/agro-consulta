@@ -96,6 +96,8 @@
         step1BudgetVerMais: document.getElementById('pdv-step1-budget-ver-mais'),
         step1EntregasBtn: document.getElementById('pdv-step1-entregas-btn'),
         step1EntregasCount: document.getElementById('pdv-step1-entregas-count'),
+        topbarEntregasBtn: document.getElementById('pdv-topbar-entregas-btn'),
+        topbarEntregasCount: document.getElementById('pdv-topbar-entregas-count'),
         entregasPendentesModal: document.getElementById('pdv-entregas-pendentes-modal'),
         entregasPendentesList: document.getElementById('pdv-entregas-pendentes-list'),
         entregasPendentesClose: document.getElementById('pdv-entregas-pendentes-close'),
@@ -1502,23 +1504,40 @@
     }
 
     function applyEntregasPendentesButton() {
-        var btn = dom.step1EntregasBtn;
-        var badge = dom.step1EntregasCount;
-        if (!btn) return;
         var n = entregasPendentesCache.total || 0;
-        if (n <= 0) {
-            btn.hidden = true;
-            btn.className =
-                'mt-0 w-full rounded-xl border border-slate-200/90 bg-slate-100/80 px-2.5 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 shadow-sm transition hover:bg-slate-100';
-            if (badge) badge.classList.add('hidden');
-            return;
-        }
-        btn.hidden = false;
-        btn.className =
+        var apiOk = !!String(urls.apiPdvEntregasPendentes || '').trim();
+        var discreteSide =
+            'mt-0 w-full rounded-xl border border-slate-200/90 bg-slate-100/80 px-2.5 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 shadow-sm transition hover:bg-slate-100';
+        var alertSide =
             'mt-0 w-full rounded-xl border-2 border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-2.5 py-2.5 text-[11px] font-black uppercase tracking-wide text-white shadow-lg shadow-orange-600/30 ring-2 ring-orange-300/50 transition hover:from-orange-600 hover:to-amber-600';
-        if (badge) {
-            badge.textContent = String(n);
-            badge.classList.remove('hidden');
+        var discreteTop =
+            'pdv-action-btn relative border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-600 hover:bg-slate-100';
+        var alertTop =
+            'pdv-action-btn relative border-2 border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-2 py-1 text-[10px] text-white shadow-md ring-2 ring-orange-300/40 hover:from-orange-600 hover:to-amber-600';
+
+        if (dom.step1EntregasBtn) {
+            dom.step1EntregasBtn.hidden = !apiOk;
+            dom.step1EntregasBtn.className = n > 0 ? alertSide : discreteSide;
+        }
+        if (dom.step1EntregasCount) {
+            if (n > 0) {
+                dom.step1EntregasCount.textContent = String(n);
+                dom.step1EntregasCount.classList.remove('hidden');
+            } else {
+                dom.step1EntregasCount.classList.add('hidden');
+            }
+        }
+        if (dom.topbarEntregasBtn) {
+            dom.topbarEntregasBtn.hidden = !apiOk;
+            dom.topbarEntregasBtn.className = n > 0 ? alertTop : discreteTop;
+        }
+        if (dom.topbarEntregasCount) {
+            if (n > 0) {
+                dom.topbarEntregasCount.textContent = String(n);
+                dom.topbarEntregasCount.classList.remove('hidden');
+            } else {
+                dom.topbarEntregasCount.classList.add('hidden');
+            }
         }
     }
 
@@ -1528,7 +1547,8 @@
         var itens = entregasPendentesCache.itens || [];
         if (!itens.length) {
             el.innerHTML =
-                '<p class="py-6 text-center text-sm font-semibold text-slate-500">Nenhuma entrega pendente.</p>';
+                '<p class="py-6 text-center text-sm font-semibold leading-snug text-slate-600">Nenhuma venda pendente de pagamento no PDV.</p>' +
+                '<p class="px-2 pb-4 text-center text-xs font-semibold leading-snug text-slate-500">Só entram aqui entregas enviadas pelo PDV com <strong>pagamento na entrega</strong> (etapa Entrega → Enviar entrega), após o deploy desta versão. Entregas antigas do painel <em>/entregas/</em> não aparecem.</p>';
             return;
         }
         el.innerHTML = itens
@@ -4584,6 +4604,9 @@
         if (dom.step1BudgetVerMais) dom.step1BudgetVerMais.addEventListener('click', openBudgetHistory);
         if (dom.step1EntregasBtn) {
             dom.step1EntregasBtn.addEventListener('click', openEntregasPendentesModal);
+        }
+        if (dom.topbarEntregasBtn) {
+            dom.topbarEntregasBtn.addEventListener('click', openEntregasPendentesModal);
         }
         if (dom.entregasPendentesClose) {
             dom.entregasPendentesClose.addEventListener('click', closeEntregasPendentesModal);

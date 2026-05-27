@@ -141,5 +141,6 @@ def pdv_home(request):
             },
         },
         "pdv_reabrir_from_consulta": pdv_reabrir_from_consulta,
+        "agro_pdv_assets_v": getattr(settings, "AGRO_PDV_ASSETS_V", "") or "",
     }
     return render(request, "produtos/pdv_wizard.html", ctx)

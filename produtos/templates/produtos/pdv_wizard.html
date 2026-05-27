@@ -154,6 +154,10 @@
           <div class="flex flex-nowrap items-center gap-1.5 shrink-0 pl-1">
             <a href="{% url 'caixa_painel' %}" class="pdv-action-btn border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] text-emerald-900 no-underline hover:bg-emerald-100/80" title="Painel do caixa — abrir, fechar, saldos e movimentos">{% if caixa_aberto %}Caixa {{ caixa_aberto.pk }}{% else %}Caixa{% endif %}</a>
             <a href="{% url 'vendas_lista' %}" class="pdv-action-btn border border-slate-200 bg-slate-100 px-2 py-1 text-[10px] text-slate-800 no-underline hover:bg-slate-200/80" title="Consultar vendas — filtro por período e exportar CSV">Consultar vendas</a>
+            <button type="button" id="pdv-topbar-entregas-btn" class="pdv-action-btn relative border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-600 hover:bg-slate-100" title="Entregas aguardando pagamento no PDV (cobrar na entrega)">
+              Entregas
+              <span id="pdv-topbar-entregas-count" class="hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-orange-500 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
+            </button>
             <a id="pdv-wizard-voltar-home" href="{% url 'home' %}?pin_tab=pdv" class="pdv-action-btn border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700" title="Sair do wizard — volta ao dashboard com guia PDV fixa">Sair</a>
             <a href="{% url 'consulta_produtos' %}?orcamentos=1" class="pdv-action-btn border border-sky-200 bg-sky-50 px-2 py-1 text-[10px] text-sky-900 no-underline hover:bg-sky-100" title="Orçamentos salvos neste aparelho">Orç. salvos</a>
             <button type="button" id="pdv-open-budget-history" class="pdv-action-btn border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700" title="Histórico de orçamentos · F6">Orçamento <kbd class="pointer-events-none ml-0.5 hidden rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[8px] sm:inline">F6</kbd></button>
@@ -448,7 +452,7 @@
   window.pdvWizardAbrirAjuda = pdvWizardAbrirAjuda;
 })();
 </script>
-<script src="{% static 'produtos/js/pdv_state.js' %}"></script>
-<script src="{% static 'produtos/js/pdv_wizard.js' %}"></script>
+<script src="{% static 'produtos/js/pdv_state.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 {% include "produtos/_screensaver_pin.html" %}
 {% endblock %}
