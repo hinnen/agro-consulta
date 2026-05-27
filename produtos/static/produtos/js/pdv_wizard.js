@@ -150,6 +150,9 @@
         paymentFormaModal: document.getElementById('pdv-payment-forma-modal'),
         paymentFormaModalBackdrop: document.getElementById('pdv-payment-forma-modal-backdrop'),
         paymentFormaModalClose: document.getElementById('pdv-payment-forma-modal-close'),
+        btnConfirmDiscount: document.getElementById('pdv-confirm-discount'),
+        btnFormaGotoDesconto: document.getElementById('pdv-payment-forma-goto-desconto'),
+        btnPopConfirmDiscount: document.getElementById('pdv-pay-pop-confirm-discount'),
         btnOpenPaymentForma: document.getElementById('pdv-open-payment-forma'),
         btnTrocarPaymentForma: document.getElementById('pdv-trocar-payment-forma'),
         paymentFormaLabel: document.getElementById('pdv-payment-forma-label'),
@@ -185,7 +188,7 @@
     var clientSearchSeq = 0;
     var AUTOCOMPLETE_LIMIT = 8;
     var MAX_LOCAL_RESULTS = 48;
-    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v4';
+    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v5';
     var wizardProductCatalog = [];
     var catalogReady = false;
     var catalogLoadPromise = null;
@@ -295,6 +298,27 @@
         return /^[a-zA-Z]{1,6}[\w.\-]*\d/i.test(s);
     }
 
+    function productMatchesSkuPrefix(p, ql) {
+        if (!p || !ql || ql.length < 2) return false;
+        var cod = stripAccents(String(p.codigo || '').trim().toLowerCase());
+        var nfe = stripAccents(String(p.codigo_nfe || '').trim().toLowerCase());
+        if ((cod && cod.indexOf(ql) === 0) || (nfe && nfe.indexOf(ql) === 0)) return true;
+        if (!Array.isArray(p.index_codigos)) return false;
+        for (var i = 0; i < p.index_codigos.length; i++) {
+            var xs = String(p.index_codigos[i] == null ? '' : p.index_codigos[i]).trim().toLowerCase();
+            if (xs && xs.indexOf(ql) === 0) return true;
+        }
+        return false;
+    }
+
+    function countCatalogSkuPrefix(ql) {
+        var n = 0;
+        wizardProductCatalog.forEach(function (p) {
+            if (productMatchesSkuPrefix(p, ql)) n++;
+        });
+        return n;
+    }
+
     function mergeProductsById(primary, extra) {
         var seen = {};
         var out = [];
@@ -317,6 +341,7 @@
         var qd = onlyDigits(qt);
         var seen = {};
         var hits = [];
+        var eanOnly = qd.length >= 8;
         wizardProductCatalog.forEach(function (p) {
             var ean = String(p.codigo_barras || '').trim();
             var nfe = String(p.codigo_nfe || '').trim();
@@ -324,7 +349,8 @@
             var match = false;
             if (qt && (ean === qt || nfe === qt || cod === qt)) match = true;
             else if (qd.length >= 6 && onlyDigits(ean) && onlyDigits(ean) === qd) match = true;
-            else if (matchQueryAgainstIndexCodigos(qt, qd, p)) match = true;
+            else if (qd.length >= 6 && onlyDigits(nfe) && onlyDigits(nfe) === qd) match = true;
+            else if (!eanOnly && matchQueryAgainstIndexCodigos(qt, qd, p)) match = true;
             if (match) {
                 var id = String(p.id || '');
                 if (id && !seen[id]) {
@@ -393,15 +419,18 @@
         if (!allowLocalQuery(q)) {
             return { list: [], message: 'Digite ao menos 2 letras ou 6+ dígitos do código.' };
         }
-        var qDigitsOnly = onlyDigits(q);
-        // EAN longo (8+ dígitos): servidor usa o mesmo motor do PDV (catálogo local pode não ter o item).
-        if (qDigitsOnly.length >= 8) {
-            return { list: [], message: '', barcodeHit: null };
-        }
         var barcodeMode = mode === 'barcode';
         if (barcodeMode) {
-            var one = findUniqueBarcodeMatch(q);
-            if (one) return { list: [], barcodeHit: one, message: '' };
+            var oneBc = findUniqueBarcodeMatch(q);
+            if (oneBc) return { list: [], barcodeHit: oneBc, message: '' };
+        }
+        var qDigitsOnly = onlyDigits(q);
+        // EAN 8+ dígitos: busca no servidor (catálogo local pode não ter o item).
+        if (qDigitsOnly.length >= 8 && !barcodeMode) {
+            return { list: [], message: '', barcodeHit: null };
+        }
+        if (qDigitsOnly.length >= 8 && barcodeMode) {
+            return { list: [], message: '', barcodeHit: null };
         }
         var scored = wizardProductCatalog
             .map(function (p) {
@@ -429,8 +458,18 @@
                 return res.json();
             })
             .then(function (data) {
-                return Array.isArray(data.produtos) ? data.produtos : [];
+                return {
+                    produtos: Array.isArray(data.produtos) ? data.produtos : [],
+                    exactBarcode: !!data.exact_barcode_match,
+                };
             });
+    }
+
+    function tryAutoAddBarcodeHit(product, message) {
+        if (!product) return false;
+        State.addItem(product, 1);
+        resetProductSearchUi(message || 'Item adicionado pela leitura do código.');
+        return true;
     }
 
     function whatsappHrefLoose(raw) {
@@ -1052,6 +1091,33 @@
         if (!el) return;
         var next = value == null ? '' : String(value);
         if (el.value !== next) el.value = next;
+    }
+
+    function setInputValueUnlessFocused(el, value) {
+        if (!el) return;
+        if (document.activeElement === el) return;
+        setInputValue(el, value);
+    }
+
+    function moneyFieldDisplay(value) {
+        return State.formatMoneyInputDisplay ? State.formatMoneyInputDisplay(value) : String(value == null ? '' : value);
+    }
+
+    function bindMoneyInputField(el, onStore) {
+        if (!el || typeof onStore !== 'function') return;
+        el.addEventListener('input', function () {
+            var next = State.sanitizeMoneyInputTyping
+                ? State.sanitizeMoneyInputTyping(el.value)
+                : el.value;
+            if (next !== el.value) el.value = next;
+            onStore(next);
+        });
+        el.addEventListener('blur', function () {
+            var n = State.toNumber(el.value);
+            var fmt = n > 0.009 ? moneyFieldDisplay(n) : '';
+            if (fmt !== el.value) el.value = fmt;
+            onStore(fmt);
+        });
     }
 
     function setSelectValue(el, value, fallback) {
@@ -1725,7 +1791,7 @@
         if (!el) return;
         var st = State.getState();
         if (entregaTaxaModoEfetivo(st) !== 'sim') return;
-        State.setPagamentoField('frete', State.toNumber(el.value));
+        State.setPagamentoField('frete', el.value);
     }
 
     function renderEntregaTaxaCard(state) {
@@ -1770,12 +1836,14 @@
     function renderPagamento(state, computed) {
         var forma = state.pagamento.forma || '';
         setSelectValue(dom.paymentMethod, forma, '');
-        setInputValue(dom.paymentDiscount, state.pagamento.descontoGeral ? String(state.pagamento.descontoGeral).replace('.', ',') : '');
-        setInputValue(dom.paymentShipping, state.pagamento.frete ? String(state.pagamento.frete).replace('.', ',') : '');
-        setInputValue(dom.paymentReceived, state.pagamento.valorRecebido);
+        setInputValueUnlessFocused(dom.paymentDiscount, moneyFieldDisplay(state.pagamento.descontoGeral));
+        setInputValueUnlessFocused(dom.paymentShipping, moneyFieldDisplay(state.pagamento.frete));
+        setInputValueUnlessFocused(dom.paymentReceived, moneyFieldDisplay(state.pagamento.valorRecebido));
         setInputValue(dom.paymentChange, state.pagamento.trocoCalculado);
         setInputValue(dom.paymentNote, state.pagamento.observacaoFinal);
-        if (dom.paymentValorForma) setInputValue(dom.paymentValorForma, state.pagamento.valorDestaForma);
+        if (dom.paymentValorForma) {
+            setInputValueUnlessFocused(dom.paymentValorForma, moneyFieldDisplay(state.pagamento.valorDestaForma));
+        }
         if (dom.paymentParcelasCredito) {
             setInputValue(dom.paymentParcelasCredito, String(state.pagamento.creditoParcelas || 2));
         }
@@ -2309,17 +2377,41 @@
                 }
                 var localList = r.list || [];
                 var skuCode = looksLikeSkuCode(query);
+                if (mode === 'barcode' && localList.length === 1) {
+                    tryAutoAddBarcodeHit(localList[0]);
+                    return Promise.resolve();
+                }
                 if (localList.length && !skuCode) {
                     renderProductResults(localList);
                     dom.productSearchFeedback.textContent =
                         'Cache local (' + wizardProductCatalog.length + ' produtos).';
                     return Promise.resolve();
                 }
-                dom.productSearchFeedback.textContent = skuCode
-                    ? 'Buscando variantes do código…'
-                    : 'Buscando no servidor…';
-                return fetchWizardServerSearch(query).then(function (remote) {
-                    return { remote: remote, localList: localList, skuCode: skuCode };
+                if (skuCode && localList.length) {
+                    var ql = String(query).trim().toLowerCase();
+                    var prefixNoCache = countCatalogSkuPrefix(ql);
+                    if (prefixNoCache > 0 && prefixNoCache === localList.length) {
+                        renderProductResults(localList);
+                        dom.productSearchFeedback.textContent =
+                            'Cache local (' + wizardProductCatalog.length + ' produtos).';
+                        return Promise.resolve();
+                    }
+                    renderProductResults(localList);
+                    dom.productSearchFeedback.textContent =
+                        'Cache local · conferindo variantes no servidor…';
+                } else {
+                    dom.productSearchFeedback.textContent = skuCode
+                        ? 'Buscando variantes do código…'
+                        : 'Buscando no servidor…';
+                }
+                return fetchWizardServerSearch(query).then(function (srv) {
+                    return {
+                        remote: srv.produtos,
+                        exactBarcode: srv.exactBarcode,
+                        localList: localList,
+                        skuCode: skuCode,
+                        mode: mode,
+                    };
                 });
             })
             .then(function (payload) {
@@ -2327,6 +2419,14 @@
                 if (!payload || !Array.isArray(payload.remote)) return;
                 var remote = payload.remote;
                 var merged = mergeProductsById(payload.localList || [], remote);
+                if (payload.mode === 'barcode' && merged.length === 1) {
+                    tryAutoAddBarcodeHit(merged[0]);
+                    return;
+                }
+                if (payload.mode === 'barcode' && payload.exactBarcode && merged.length >= 1) {
+                    tryAutoAddBarcodeHit(merged[0]);
+                    return;
+                }
                 if (merged.length) {
                     renderProductResults(merged);
                     if (payload.skuCode && remote.length) {
@@ -2974,6 +3074,61 @@
         try {
             document.body.style.overflow = '';
         } catch (err2) {}
+    }
+
+    function commitDiscountField() {
+        if (!dom.paymentDiscount) return;
+        var raw = dom.paymentDiscount.value;
+        if (State.sanitizeMoneyInputTyping) raw = State.sanitizeMoneyInputTyping(raw);
+        var n = State.toNumber(raw);
+        var fmt = n > 0.009 ? moneyFieldDisplay(n) : '';
+        State.setPagamentoField('descontoGeral', fmt);
+        setInputValue(dom.paymentDiscount, fmt);
+    }
+
+    function focusDiscountField() {
+        closePaymentFormaModal();
+        var dlgDin = document.getElementById('pdv-pay-pop-dinheiro');
+        if (dlgDin && dlgDin.open && typeof dlgDin.close === 'function') {
+            try {
+                dlgDin.close();
+            } catch (errDin) {}
+        }
+        var footer = document.getElementById('pdv-pay-footer');
+        if (footer) {
+            try {
+                footer.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            } catch (errScroll) {}
+        }
+        setTimeout(function () {
+            if (dom.paymentDiscount) {
+                dom.paymentDiscount.focus();
+                try {
+                    dom.paymentDiscount.select();
+                } catch (errSel) {}
+            }
+        }, 100);
+    }
+
+    function confirmDiscountAndOpenFormas() {
+        commitDiscountField();
+        var dlgDin = document.getElementById('pdv-pay-pop-dinheiro');
+        if (dlgDin && dlgDin.open && typeof dlgDin.close === 'function') {
+            try {
+                dlgDin.close();
+            } catch (errClose) {}
+        }
+        closePaymentFormaModal();
+        var comp = State.getComputed();
+        if (dom.paymentFeedback) {
+            dom.paymentFeedback.textContent =
+                comp.desconto > 0.009
+                    ? 'Desconto ' +
+                      formatMoney(comp.desconto) +
+                      ' aplicado. Escolha a forma de pagamento (F3).'
+                    : 'Escolha a forma de pagamento (F3).';
+        }
+        openPaymentFormaModal();
     }
 
     function refreshDinheiroPopTrocoDisplay(st, comp) {
@@ -3954,6 +4109,13 @@
                 renderProductResults(lastProducts);
             } else if (event.key === 'Enter') {
                 event.preventDefault();
+                clearTimeout(barcodeTimer);
+                clearTimeout(searchTimer);
+                var qEnter = String(dom.productSearch.value || '').trim();
+                if (/^\d{8,}$/.test(qEnter)) {
+                    runProductSearch(qEnter, 'barcode');
+                    return;
+                }
                 var target = lastProducts[Math.max(productSelectionIndex, 0)];
                 if (target) {
                     State.addItem(target, 1);
@@ -3961,7 +4123,7 @@
                     renderProductResults([]);
                     dom.productSearchFeedback.textContent = 'Item adicionado à venda.';
                 } else {
-                    runProductSearch(dom.productSearch.value, 'manual');
+                    runProductSearch(qEnter, 'manual');
                 }
             } else if (event.key === '+' || event.key === '=' || event.code === 'NumpadAdd') {
                 event.preventDefault();
@@ -3973,16 +4135,24 @@
         });
 
         dom.productSearch.addEventListener('input', function () {
-            var value = dom.productSearch.value;
+            var value = String(dom.productSearch.value || '');
+            var trimmed = value.trim();
             var now = Date.now();
             var delta = now - lastInputAt;
             lastInputAt = now;
             clearTimeout(searchTimer);
             clearTimeout(barcodeTimer);
-            if (/^\d{6,}$/.test(String(value).trim()) && delta < 35) {
+            if (/^\d{8,}$/.test(trimmed)) {
+                var waitMs = trimmed.length >= 13 ? 12 : 40;
                 barcodeTimer = setTimeout(function () {
-                    runProductSearch(value, 'barcode');
-                }, 60);
+                    runProductSearch(trimmed, 'barcode');
+                }, waitMs);
+                return;
+            }
+            if (/^\d{6,7}$/.test(trimmed) && delta < 40) {
+                barcodeTimer = setTimeout(function () {
+                    runProductSearch(trimmed, 'barcode');
+                }, 35);
                 return;
             }
             searchTimer = setTimeout(function () {
@@ -4315,17 +4485,33 @@
             ],
             [dom.entregaTroco, function () { State.setEntregaField('troco', dom.entregaTroco.value); }],
             [dom.entregaObservacao, function () { State.setEntregaField('observacao', dom.entregaObservacao.value); }],
-            [dom.paymentDiscount, function () { State.setPagamentoField('descontoGeral', State.toNumber(dom.paymentDiscount.value)); }],
-            [dom.paymentShipping, function () { State.setPagamentoField('frete', State.toNumber(dom.paymentShipping.value)); }],
-            [dom.paymentReceived, function () {
-                syncDinheiroRecebidoValue(dom.paymentReceived.value, true);
-            }],
-            [dom.paymentChange, function () { State.setPagamentoField('trocoCalculado', dom.paymentChange.value); }],
-            [dom.paymentNote, function () { State.setPagamentoField('observacaoFinal', dom.paymentNote.value); }]
+            [dom.paymentNote, function () { State.setPagamentoField('observacaoFinal', dom.paymentNote.value); }],
+            [dom.paymentChange, function () { State.setPagamentoField('trocoCalculado', dom.paymentChange.value); }]
         ].forEach(function (entry) {
             if (entry[0]) entry[0].addEventListener('input', entry[1]);
             if (entry[0] && entry[0].tagName === 'SELECT') entry[0].addEventListener('change', entry[1]);
         });
+
+        bindMoneyInputField(dom.paymentDiscount, function (raw) {
+            State.setPagamentoField('descontoGeral', raw);
+        });
+        bindMoneyInputField(dom.paymentShipping, function (raw) {
+            State.setPagamentoField('frete', raw);
+        });
+        bindMoneyInputField(dom.paymentValorForma, function (raw) {
+            State.setPagamentoField('valorDestaForma', raw);
+        });
+        if (dom.paymentReceived) {
+            bindMoneyInputField(dom.paymentReceived, function (raw) {
+                syncDinheiroRecebidoValue(raw, true);
+            });
+        }
+        var dinPopRecBind = document.getElementById('pdv-pay-pop-din-recebido');
+        if (dinPopRecBind) {
+            bindMoneyInputField(dinPopRecBind, function (raw) {
+                syncDinheiroRecebidoValue(raw, false);
+            });
+        }
 
         if (dom.paymentMethod) {
             dom.paymentMethod.addEventListener('change', function () {
@@ -4345,6 +4531,22 @@
         if (dom.btnTrocarPaymentForma) {
             dom.btnTrocarPaymentForma.addEventListener('click', openPaymentFormaModal);
         }
+        if (dom.btnConfirmDiscount) {
+            dom.btnConfirmDiscount.addEventListener('click', confirmDiscountAndOpenFormas);
+        }
+        if (dom.btnFormaGotoDesconto) {
+            dom.btnFormaGotoDesconto.addEventListener('click', focusDiscountField);
+        }
+        if (dom.btnPopConfirmDiscount) {
+            dom.btnPopConfirmDiscount.addEventListener('click', confirmDiscountAndOpenFormas);
+        }
+        if (dom.paymentDiscount) {
+            dom.paymentDiscount.addEventListener('keydown', function (ev) {
+                if (ev.key !== 'Enter') return;
+                ev.preventDefault();
+                confirmDiscountAndOpenFormas();
+            });
+        }
         if (dom.paymentFormaModalClose) {
             dom.paymentFormaModalClose.addEventListener('click', closePaymentFormaModal);
         }
@@ -4358,9 +4560,6 @@
         });
 
         if (dom.paymentValorForma) {
-            dom.paymentValorForma.addEventListener('input', function () {
-                State.setPagamentoField('valorDestaForma', dom.paymentValorForma.value);
-            });
             dom.paymentValorForma.addEventListener('keydown', handleValorTrancheEnter);
         }
 
@@ -4445,12 +4644,7 @@
 
         if (dom.paymentReceived) dom.paymentReceived.addEventListener('keydown', handlePaymentReceivedEnter);
         var dinPopRec = document.getElementById('pdv-pay-pop-din-recebido');
-        if (dinPopRec) {
-            dinPopRec.addEventListener('input', function () {
-                syncDinheiroRecebidoValue(dinPopRec.value, false);
-            });
-            dinPopRec.addEventListener('keydown', handlePaymentReceivedEnter);
-        }
+        if (dinPopRec) dinPopRec.addEventListener('keydown', handlePaymentReceivedEnter);
 
         if (dom.paymentLancamentosList) {
             dom.paymentLancamentosList.addEventListener('click', function (event) {

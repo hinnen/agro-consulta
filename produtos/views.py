@@ -13333,12 +13333,12 @@ def _wizard_catalog_mongo_limit() -> int:
     Teto de produtos para GET /api/buscar/?wizard=1&wizard_catalog=1 (catálogo local do assistente).
     Antes: limit(25000) carregava Mongo + estoque + overlays num único request → RAM e tempo
     gigantes (worker SIGKILL / 502 no Render com 1 worker).
-    Variável: AGRO_WIZARD_CATALOG_MAX (padrão 2600; plano 512 MB). Teto duro 8000 mesmo se o env for maior.
+    Variável: AGRO_WIZARD_CATALOG_MAX (padrão 5000). Teto duro 8000 mesmo se o env for maior.
     """
     try:
-        n = int(str(config("AGRO_WIZARD_CATALOG_MAX", default="2600")).strip() or "2600")
+        n = int(str(config("AGRO_WIZARD_CATALOG_MAX", default="5000")).strip() or "5000")
     except (TypeError, ValueError):
-        n = 2600
+        n = 5000
     return max(400, min(n, 8000))
 
 
@@ -13792,6 +13792,16 @@ def api_buscar_produtos(request):
             )
 
         exact = bool(preco_por_id) and len(res) == 1 and not wizard_catalog
+        if (
+            wizard_mode
+            and not wizard_catalog
+            and len(res) == 1
+            and q
+            and not exact
+        ):
+            q_strip = str(q).strip()
+            if _wizard_json_row_bate_query_exata(res[0], q_strip):
+                exact = True
         return JsonResponse({"produtos": res, "exact_barcode_match": exact})
     except Exception as e:
         return JsonResponse({"erro": str(e)}, status=500)

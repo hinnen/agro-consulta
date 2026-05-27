@@ -63,7 +63,7 @@
               <span class="font-bold normal-case text-amber-900">restante: <span id="pdv-payment-valor-restante">R$ 0,00</span></span>
               <span class="font-bold normal-case text-amber-900">total: <span id="pdv-payment-valor-total-ref">R$ 0,00</span></span>
             </span>
-            <input id="pdv-pay-valor-tranche" type="text" class="pdv-input text-lg font-black" placeholder="Restante ou valor parcial" autocomplete="off">
+            <input id="pdv-pay-valor-tranche" type="text" inputmode="decimal" class="pdv-input text-lg font-black tabular-nums" placeholder="Ex.: 10,50" autocomplete="off">
           </label>
         </div>
 
@@ -76,7 +76,7 @@
           <div class="grid gap-3 sm:grid-cols-2">
             <label class="block">
               <span class="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-wide text-slate-600"><span>Valor recebido</span><kbd class="rounded border border-slate-300 bg-white px-1.5 py-0.5 font-mono text-[9px]">Enter</kbd></span>
-              <input id="pdv-payment-received" type="text" class="pdv-input text-lg" placeholder="0,00" autocomplete="off">
+              <input id="pdv-payment-received" type="text" inputmode="decimal" class="pdv-input text-lg tabular-nums" placeholder="Ex.: 100,00" autocomplete="off">
             </label>
             <label class="block">
               <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-600">Troco</span>
@@ -244,13 +244,16 @@
     <div class="grid gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,20rem)] lg:items-end lg:gap-3">
       <div class="min-w-0 space-y-1">
         <div class="grid gap-1.5 sm:grid-cols-2 sm:gap-2">
-          <label class="block">
+          <div class="block">
             <span class="mb-0.5 block text-[10px] font-black uppercase tracking-wide text-slate-500 sm:text-[11px]">Desconto geral</span>
-            <input id="pdv-payment-discount" type="text" class="pdv-input py-1.5 text-sm sm:py-2" placeholder="0,00">
-          </label>
+            <div class="flex gap-1.5">
+              <input id="pdv-payment-discount" type="text" inputmode="decimal" class="pdv-input min-w-0 flex-1 py-1.5 text-sm tabular-nums sm:py-2" placeholder="Ex.: 5,00" autocomplete="off">
+              <button type="button" id="pdv-confirm-discount" class="pdv-action-btn shrink-0 rounded-xl border-2 border-orange-400 bg-orange-50 px-2.5 py-1.5 text-[10px] font-black uppercase leading-tight text-orange-950 hover:bg-orange-100 sm:px-3 sm:py-2 sm:text-[11px]" title="Aplica o desconto e abre as formas de pagamento">Confirmar</button>
+            </div>
+          </div>
           <label class="block">
             <span class="mb-0.5 block text-[10px] font-black uppercase tracking-wide text-slate-500 sm:text-[11px]">Frete</span>
-            <input id="pdv-payment-shipping" type="text" class="pdv-input py-1.5 text-sm sm:py-2" placeholder="0,00">
+            <input id="pdv-payment-shipping" type="text" inputmode="decimal" class="pdv-input py-1.5 text-sm tabular-nums sm:py-2" placeholder="Ex.: 10,00" autocomplete="off">
           </label>
         </div>
         <label class="block">
@@ -322,6 +325,7 @@
           <div class="text-xs font-black uppercase text-amber-900">Troco</div>
           <div id="pdv-pay-pop-din-troco" class="mt-1 text-3xl font-black tabular-nums text-amber-950 sm:text-4xl">—</div>
         </div>
+        <button type="button" id="pdv-pay-pop-confirm-discount" class="pdv-action-btn w-full rounded-2xl border-2 border-orange-400 bg-orange-50 py-2.5 text-xs font-black uppercase text-orange-950 shadow-sm hover:bg-orange-100 sm:text-sm" title="Confirma o desconto geral e volta às formas de pagamento">Confirmar desconto · formas</button>
       </div>
       <form method="dialog" class="mt-5"><button type="submit" class="pdv-action-btn w-full bg-slate-900 py-3.5 text-sm text-white">Fechar</button></form>
     </div>
@@ -435,6 +439,9 @@
             </button>
           </div>
         </div>
+        <button type="button" id="pdv-payment-forma-goto-desconto" class="pdv-action-btn mt-1 w-full rounded-2xl border-2 border-dashed border-orange-400/80 bg-gradient-to-r from-orange-500 to-amber-600 px-4 py-3.5 text-sm font-black uppercase tracking-wide text-white shadow-lg shadow-orange-900/30 transition hover:brightness-[1.03] active:scale-[0.99] sm:py-4 sm:text-base" title="Ir ao campo Desconto geral no rodapé">
+          Desconto — editar valor
+        </button>
       </div>
     </div>
   </div>

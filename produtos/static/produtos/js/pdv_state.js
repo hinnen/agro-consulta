@@ -320,6 +320,37 @@
         return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
+    /** Valor monetário em campo de texto (aceita vírgula; preserva digitação em andamento). */
+    function formatMoneyInputDisplay(value) {
+        if (value == null || value === '') return '';
+        if (typeof value === 'string') {
+            var t = value.trim();
+            if (!t) return '';
+            if (/,(\d{0,2})?$/.test(t)) return t;
+            if (t.indexOf(',') < 0 && /\.\d{0,2}$/.test(t)) return t;
+        }
+        var n = toNumber(value);
+        if (!n) return typeof value === 'string' ? String(value).trim() : '';
+        return formatPriceDisplay(n);
+    }
+
+    function sanitizeMoneyInputTyping(raw) {
+        var s = String(raw == null ? '' : raw).replace(/[^\d,.]/g, '');
+        var iComma = s.indexOf(',');
+        if (iComma >= 0) {
+            var head = s.slice(0, iComma + 1).replace(/\./g, '');
+            var tail = s.slice(iComma + 1).replace(/[,.]/g, '').slice(0, 2);
+            return head + tail;
+        }
+        var iDot = s.lastIndexOf('.');
+        if (iDot >= 0 && s.length - iDot - 1 <= 2) {
+            var h = s.slice(0, iDot).replace(/\./g, '');
+            var t = s.slice(iDot + 1).replace(/[,.]/g, '').slice(0, 2);
+            return h + '.' + t;
+        }
+        return s.replace(/\./g, '');
+    }
+
     function updateItemPrice(itemId, nextPrice) {
         var p = normalizePrice(nextPrice, null);
         if (!p) return;
@@ -634,6 +665,8 @@
         updateItemQuantity: updateItemQuantity,
         updateItemPrice: updateItemPrice,
         normalizePrice: normalizePrice,
+        formatMoneyInputDisplay: formatMoneyInputDisplay,
+        sanitizeMoneyInputTyping: sanitizeMoneyInputTyping,
         formatPriceDisplay: formatPriceDisplay,
         removeItem: removeItem,
         clearItems: clearItems,
