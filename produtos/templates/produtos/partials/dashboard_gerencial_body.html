@@ -104,11 +104,14 @@
       <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide flex items-center gap-1.5 flex-wrap">
         <span class="w-2 h-2 rounded-full bg-[#00BFFF] animate-pulse shrink-0"></span>
         <span>Performance (R$) · {{ periodo_label }} · {% if periodo_key == "ano" %}mês a mês{% else %}dia a dia{% endif %}</span>
+        {% if dashboard_vendas_fonte == "pdv" %}
+        <span class="text-[9px] font-bold uppercase tracking-wide text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md px-1.5 py-0.5" title="Faturamento do gráfico e por unidade: só vendas registradas no PDV">Fonte: PDV</span>
+        {% endif %}
         {% if periodo_key != "ano" %}
         <details class="relative inline-block text-left">
           <summary class="flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border-2 border-slate-300 bg-slate-100 text-[11px] font-black text-slate-600 shadow-sm hover:border-sky-400 hover:bg-sky-50 hover:text-sky-900 [&::-webkit-details-marker]:hidden" title="O que significa este gráfico?">?</summary>
           <div class="absolute left-0 z-30 mt-1 w-[min(22rem,88vw)] max-h-[55vh] overflow-y-auto rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
-            <p><span class="text-sky-800 font-extrabold">Barras</span> — faturamento de cada <strong>dia</strong> no período que você selecionou (filtro de cima). Em baixo: data e dia da semana.</p>
+            <p><span class="text-sky-800 font-extrabold">Barras</span> — faturamento de cada <strong>dia</strong> no período que você selecionou (filtro de cima). Em baixo: data e dia da semana.{% if dashboard_vendas_fonte == "pdv" %} <strong>Fonte atual: só PDV</strong> (VendaAgro), para não somar com orçamentos que viram outro pedido no ERP antigo.{% endif %}</p>
             <p><span class="text-emerald-800 font-extrabold">Cores</span> — compara o dia com a <strong>meta (C)</strong>. Abaixo da meta: vermelho → laranja → amarelo. Acima da meta: tons de azul. Cinza: sem base de meta.</p>
             <p class="text-slate-500 font-semibold">No toque, o lembrete traz ainda o ticket e o desempenho frente à meta, para conferência rápida no balcão.</p>
           </div>
@@ -123,7 +126,12 @@
   </div>
 
   <div class="xl:col-span-4 glass-card p-4 sm:p-5">
-    <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide mb-3">Faturamento por Unidade</h3>
+    <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide mb-3 flex flex-wrap items-center gap-2">
+      <span>Faturamento por Unidade</span>
+      {% if dashboard_vendas_fonte == "pdv" %}
+      <span class="text-[9px] font-bold uppercase text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md px-1.5 py-0.5">PDV</span>
+      {% endif %}
+    </h3>
     <div id="stores-chart" class="dash-chart-host w-full"></div>
   </div>
 </div>

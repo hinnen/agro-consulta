@@ -96,6 +96,8 @@
         step1BudgetVerMais: document.getElementById('pdv-step1-budget-ver-mais'),
         step1EntregasBtn: document.getElementById('pdv-step1-entregas-btn'),
         step1EntregasCount: document.getElementById('pdv-step1-entregas-count'),
+        topbarEntregasBtn: document.getElementById('pdv-topbar-entregas-btn'),
+        topbarEntregasCount: document.getElementById('pdv-topbar-entregas-count'),
         entregasPendentesModal: document.getElementById('pdv-entregas-pendentes-modal'),
         entregasPendentesList: document.getElementById('pdv-entregas-pendentes-list'),
         entregasPendentesClose: document.getElementById('pdv-entregas-pendentes-close'),
@@ -200,6 +202,8 @@
     var prevStepCache = '';
     var entregasPendentesPollTimer = null;
     var entregasPendentesCache = { total: 0, itens: [] };
+    var creditoFiadoCliente = null;
+    var creditoFiadoClienteId = '';
 
     function entregaPendenteApiUrl(template, pk) {
         return String(template || '').replace('__pk__', String(pk));
@@ -718,10 +722,22 @@
             if (par < 2) return 'Informe 2 ou mais parcelas.';
         }
         if (forma === 'Fiado') {
+            if (!clientePodeFiado(state)) {
+                return 'Fiado exige cliente cadastrado (não use consumidor final).';
+            }
             var fp = parseInt(state.pagamento.fiadoParcelas, 10) || 0;
             var fd = parseInt(state.pagamento.fiadoDiasVencimento, 10) || 0;
-            if (fp < 1) return 'Fiado: parcelas inválidas.';
+            if (fp < 1 || fp > 6) return 'Fiado: use de 1 a 6 parcelas.';
             if (fd < 1) return 'Fiado: prazo em dias inválido.';
+            var vFiado = State.toNumber(state.pagamento.valorDestaForma);
+            if (!(vFiado > 0.009)) vFiado = T - sumValorLancamentos(state);
+            if (creditoFiadoCliente && creditoFiadoCliente.excede) {
+                return (
+                    'Fiado acima do limite. Disponível ' +
+                    (creditoFiadoCliente.disponivel_texto || '') +
+                    '.'
+                );
+            }
         }
         if (forma === 'Vale crédito') {
             var sv = Number(pagamentoUi.saldoValeCredito || 0);
@@ -1032,6 +1048,125 @@
     }
 
     /** Uma linha em ``pagamentos`` por lançamento (Pedidos/Salvar). */
+    function buildFiadoCronograma(valor, numParcelas, diasPrimeira) {
+        var n = Math.min(6, Math.max(1, parseInt(numParcelas, 10) || 1));
+        var diasBase = Math.max(1, parseInt(diasPrimeira, 10) || 30);
+        var total = Math.round((State.toNumber(valor) + Number.EPSILON) * 100) / 100;
+        if (!(total > 0.009)) return [];
+        var base = Math.round(((total / n) + Number.EPSILON) * 100) / 100;
+        var out = [];
+        var acum = 0;
+        var ref = new Date();
+        for (var i = 0; i < n; i++) {
+            var parcelaVal = i === n - 1 ? Math.round((total - acum + Number.EPSILON) * 100) / 100 : base;
+            acum += parcelaVal;
+            var dias = diasBase * (i + 1);
+            var venc = new Date(ref.getTime());
+            venc.setDate(venc.getDate() + dias);
+            out.push({
+                parcela: i + 1,
+                dias: dias,
+                vencimento: venc.toISOString().slice(0, 10),
+                valor: parcelaVal
+            });
+        }
+        return out;
+    }
+
+    function clientePodeFiado(state) {
+        if (!state || state.clienteMode === 'consumidor_final') return false;
+        var c = state.cliente;
+        if (!c || !String(c.nome || '').trim()) return false;
+        if (/consumidor\s+n[aã]o\s+identificado/i.test(String(c.nome || ''))) return false;
+        if (c.cliente_agro_pk != null && String(c.cliente_agro_pk).trim() !== '') return true;
+        var id = String(c.id || '').trim();
+        if (!id) return false;
+        if (/^erp-doc:/i.test(id)) return false;
+        return true;
+    }
+
+    function clienteFiadoQueryKey(state) {
+        var c = state.cliente || {};
+        var pk = c.cliente_agro_pk != null ? String(c.cliente_agro_pk) : '';
+        var id = String(c.id || '').trim();
+        return pk ? 'pk:' + pk : 'id:' + id;
+    }
+
+    function renderProductFiadoBalance(state) {
+        if (!dom.productFiadoBalance) return;
+        var cf = creditoFiadoCliente;
+        var cidKey = clienteFiadoQueryKey(state);
+        if (cf && creditoFiadoClienteId === cidKey) {
+            dom.productFiadoBalance.textContent = cf.disponivel_texto || formatMoney(cf.disponivel || 0);
+            dom.productFiadoBalance.title =
+                'Limite ' +
+                (cf.limite_texto || '') +
+                ' · usado ' +
+                (cf.usado_texto || '') +
+                (cf.limite_padrao ? ' (limite padrão até ajustar no ERP)' : '');
+        } else {
+            dom.productFiadoBalance.textContent = clientePodeFiado(state) ? '…' : 'R$ 0,00';
+            dom.productFiadoBalance.title = clientePodeFiado(state)
+                ? 'Carregando limite de fiado…'
+                : 'Selecione um cliente cadastrado';
+        }
+    }
+
+    function refreshCreditoFiadoCliente(valorFiadoPendente, opts) {
+        opts = opts || {};
+        var url = urls.apiPdvClienteCreditoFiado;
+        if (!url) return Promise.resolve();
+        var state = State.getState();
+        if (!clientePodeFiado(state)) {
+            creditoFiadoCliente = null;
+            creditoFiadoClienteId = '';
+            return Promise.resolve();
+        }
+        var c = state.cliente;
+        var cidKey = clienteFiadoQueryKey(state);
+        if (!opts.force && creditoFiadoClienteId === cidKey) {
+            return Promise.resolve();
+        }
+        creditoFiadoClienteId = cidKey;
+        creditoFiadoCliente = null;
+        var q = url + (url.indexOf('?') >= 0 ? '&' : '?');
+        if (c.cliente_agro_pk != null) {
+            q += 'cliente_agro_pk=' + encodeURIComponent(String(c.cliente_agro_pk));
+            if (String(c.id || '').trim()) {
+                q += '&cliente_id=' + encodeURIComponent(String(c.id).trim());
+            }
+        } else {
+            q += 'cliente_id=' + encodeURIComponent(String(c.id || '').trim());
+        }
+        if (valorFiadoPendente != null && State.toNumber(valorFiadoPendente) > 0.009) {
+            q += '&valor_fiado=' + encodeURIComponent(String(valorFiadoPendente).replace('.', ','));
+        }
+        return jsonGet(q)
+            .then(function (res) {
+                if (clienteFiadoQueryKey(State.getState()) !== cidKey) {
+                    return;
+                }
+                if (res.ok && res.data && res.data.ok !== false) {
+                    creditoFiadoCliente = res.data;
+                } else {
+                    creditoFiadoCliente = null;
+                }
+            })
+            .catch(function () {
+                if (clienteFiadoQueryKey(State.getState()) === cidKey) {
+                    creditoFiadoCliente = null;
+                }
+            });
+    }
+
+    function valorFiadoNosLancamentos(state) {
+        var sum = 0;
+        (state.pagamento.lancamentos || []).forEach(function (L) {
+            if (String(L.forma || '') === 'Fiado') sum += State.toNumber(L.valor);
+        });
+        return sum;
+    }
+
     function pagamentosDetalheParaErp(state) {
         var arr = state.pagamento.lancamentos || [];
         if (!arr.length) return null;
@@ -1042,11 +1177,19 @@
             var v = State.toNumber(L.valor);
             if (!fn && !(v > 0.0001)) continue;
             if (!fn) fn = 'Não informado';
-            out.push({
+            var row = {
                 formaPagamento: fn.slice(0, 200),
                 valorPagamento: Math.round((v + Number.EPSILON) * 100) / 100,
-                quitar: true
-            });
+                quitar: fn !== 'Fiado'
+            };
+            if (fn === 'Fiado') {
+                var fp = Math.min(6, Math.max(1, parseInt(L.fiadoParcelas, 10) || 1));
+                var fd = Math.max(1, parseInt(L.fiadoDiasVencimento, 10) || 30);
+                row.fiadoParcelas = fp;
+                row.fiadoDiasVencimento = fd;
+                row.fiadoCronograma = buildFiadoCronograma(v, fp, fd);
+            }
+            out.push(row);
         }
         return out.length ? out : null;
     }
@@ -1346,7 +1489,7 @@
         dom.productSubtotalItems.textContent = lineCount + (lineCount === 1 ? ' item' : ' itens');
         if (dom.productCreditBalance) dom.productCreditBalance.textContent = 'R$ 0,00';
         if (dom.productCashbackBalance) dom.productCashbackBalance.textContent = 'R$ 0,00';
-        if (dom.productFiadoBalance) dom.productFiadoBalance.textContent = 'R$ 0,00';
+        renderProductFiadoBalance(state);
         if (!state.itens.length) {
             dom.productCartList.innerHTML =
                 '<div class="pdv-cart-empty rounded-2xl border border-dashed border-orange-200 bg-orange-50/40 px-4 py-8 text-center text-sm font-bold text-slate-500">Nenhum item ainda — busque acima.</div>';
@@ -1462,6 +1605,16 @@
         }
         updateSearchAwaitingPulse();
         renderRecentBudgetsSnippet();
+        var cidKeyNow = clienteFiadoQueryKey(state);
+        if (clientePodeFiado(state) && cidKeyNow && cidKeyNow !== creditoFiadoClienteId) {
+            refreshCreditoFiadoCliente(valorFiadoNosLancamentos(state), { force: true }).then(function () {
+                renderProductFiadoBalance(State.getState());
+            });
+        } else if (!clientePodeFiado(state) && creditoFiadoClienteId) {
+            creditoFiadoCliente = null;
+            creditoFiadoClienteId = '';
+            renderProductFiadoBalance(state);
+        }
     }
 
     function renderRecentBudgetsSnippet() {
@@ -1502,23 +1655,40 @@
     }
 
     function applyEntregasPendentesButton() {
-        var btn = dom.step1EntregasBtn;
-        var badge = dom.step1EntregasCount;
-        if (!btn) return;
         var n = entregasPendentesCache.total || 0;
-        if (n <= 0) {
-            btn.hidden = true;
-            btn.className =
-                'mt-0 w-full rounded-xl border border-slate-200/90 bg-slate-100/80 px-2.5 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 shadow-sm transition hover:bg-slate-100';
-            if (badge) badge.classList.add('hidden');
-            return;
-        }
-        btn.hidden = false;
-        btn.className =
+        var apiOk = !!String(urls.apiPdvEntregasPendentes || '').trim();
+        var discreteSide =
+            'mt-0 w-full rounded-xl border border-slate-200/90 bg-slate-100/80 px-2.5 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 shadow-sm transition hover:bg-slate-100';
+        var alertSide =
             'mt-0 w-full rounded-xl border-2 border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-2.5 py-2.5 text-[11px] font-black uppercase tracking-wide text-white shadow-lg shadow-orange-600/30 ring-2 ring-orange-300/50 transition hover:from-orange-600 hover:to-amber-600';
-        if (badge) {
-            badge.textContent = String(n);
-            badge.classList.remove('hidden');
+        var discreteTop =
+            'pdv-action-btn relative border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-600 hover:bg-slate-100';
+        var alertTop =
+            'pdv-action-btn relative border-2 border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-2 py-1 text-[10px] text-white shadow-md ring-2 ring-orange-300/40 hover:from-orange-600 hover:to-amber-600';
+
+        if (dom.step1EntregasBtn) {
+            dom.step1EntregasBtn.hidden = !apiOk;
+            dom.step1EntregasBtn.className = n > 0 ? alertSide : discreteSide;
+        }
+        if (dom.step1EntregasCount) {
+            if (n > 0) {
+                dom.step1EntregasCount.textContent = String(n);
+                dom.step1EntregasCount.classList.remove('hidden');
+            } else {
+                dom.step1EntregasCount.classList.add('hidden');
+            }
+        }
+        if (dom.topbarEntregasBtn) {
+            dom.topbarEntregasBtn.hidden = !apiOk;
+            dom.topbarEntregasBtn.className = n > 0 ? alertTop : discreteTop;
+        }
+        if (dom.topbarEntregasCount) {
+            if (n > 0) {
+                dom.topbarEntregasCount.textContent = String(n);
+                dom.topbarEntregasCount.classList.remove('hidden');
+            } else {
+                dom.topbarEntregasCount.classList.add('hidden');
+            }
         }
     }
 
@@ -1528,7 +1698,7 @@
         var itens = entregasPendentesCache.itens || [];
         if (!itens.length) {
             el.innerHTML =
-                '<p class="py-6 text-center text-sm font-semibold text-slate-500">Nenhuma entrega pendente.</p>';
+                '<p class="py-8 text-center text-sm font-bold text-slate-500">Nenhuma pendência agora.</p>';
             return;
         }
         el.innerHTML = itens
@@ -1635,14 +1805,16 @@
                 closeEntregasPendentesModal();
                 closeStartModal();
                 State.hydrateFromEntregaPendente(snap, { id: ent.id });
-                alert(
-                    'Venda retomada. Confira o pagamento e finalize a venda (entrega #' +
-                        ent.id +
-                        ').'
+                showSaleDoneFeedback(
+                    'Venda retomada (entrega #' + ent.id + '). Registre o pagamento e confirme a venda.',
+                    'info'
                 );
             })
             .catch(function (err) {
-                alert(err && err.message ? err.message : 'Falha ao retomar entrega.');
+                showSaleDoneFeedback(
+                    err && err.message ? err.message : 'Falha ao retomar entrega.',
+                    'warn'
+                );
             })
             .finally(function () {
                 if (window.gmLoadingBar) window.gmLoadingBar.hide();
@@ -2816,7 +2988,10 @@
         };
         var pag = pagamentosDetalheParaErp(state);
         if (pag && pag.length) payload.pagamentos = pag;
-        if (cliente.id && !/^local:/i.test(cliente.id) && !/^erp-doc:/i.test(cliente.id)) {
+        if (cliente.cliente_agro_pk != null) {
+            payload.cliente_agro_pk = cliente.cliente_agro_pk;
+        }
+        if (cliente.id && !/^erp-doc:/i.test(cliente.id)) {
             payload.cliente_id = cliente.id;
         }
         if (cliente.documento) payload.cliente_documento = cliente.documento;
@@ -3010,6 +3185,13 @@
 
     function saleDoneMessage(opts) {
         opts = opts || {};
+        if (opts.fiadoAguardaErp) {
+            return (
+                'Venda fiado registrada (#' +
+                (opts.vendaId || '—') +
+                '). Envie ao ERP em Vendas → Fiado pendente ERP.'
+            );
+        }
         if (opts.erpPendente) {
             return opts.entregaOk
                 ? 'Venda e entrega registradas — ERP em segundo plano.'
@@ -3092,7 +3274,15 @@
                     );
                 }
                 var erpPendente = !!erpRes.data.erp_pendente;
+                var fiadoAguardaErp = !!erpRes.data.fiado_aguarda_erp;
                 var vendaId = erpRes.data && erpRes.data.venda_id;
+                if (fiadoAguardaErp) {
+                    finalizeConfirmedSale(withPrint, printWin, {
+                        fiadoAguardaErp: true,
+                        vendaId: vendaId
+                    });
+                    return;
+                }
                 var pendenteId =
                     state.entrega && state.entrega.pedidoEntregaPendenteId
                         ? state.entrega.pedidoEntregaPendenteId
@@ -4178,10 +4368,11 @@
                     if (!res.ok || !res.data || !res.data.ok) {
                         throw new Error((res.data && (res.data.erro || res.data.mensagem)) || 'Falha ao registrar no painel Entregas.');
                     }
-                    alert(
-                        'Entrega enviada. Quando o entregador voltar, use o botão ENTREGAS nesta tela para registrar o pagamento.'
-                    );
                     resetWizardParaNovaVenda();
+                    showSaleDoneFeedback(
+                        'Entrega enviada. Quando o entregador voltar, use Entregas para registrar o pagamento.',
+                        'success'
+                    );
                     return refreshEntregasPendentesUi(true);
                 })
                 .catch(function (err) {
@@ -4308,6 +4499,7 @@
                 event.preventDefault();
                 if (clientListSelectIdx >= 0 && clientListSelectIdx < clientes.length) {
                     State.setCliente(clientes[clientListSelectIdx], 'cliente');
+                    refreshCreditoFiadoCliente(null, { force: true });
                     closeQuickClientPicker();
                 }
             }
@@ -4325,6 +4517,7 @@
             var cliente = clientes.find(function (item) { return String(item.id) === String(id); });
             if (!cliente) return;
             State.setCliente(cliente, 'cliente');
+            refreshCreditoFiadoCliente(null, { force: true });
             closeQuickClientPicker();
         });
 
@@ -4585,6 +4778,9 @@
         if (dom.step1EntregasBtn) {
             dom.step1EntregasBtn.addEventListener('click', openEntregasPendentesModal);
         }
+        if (dom.topbarEntregasBtn) {
+            dom.topbarEntregasBtn.addEventListener('click', openEntregasPendentesModal);
+        }
         if (dom.entregasPendentesClose) {
             dom.entregasPendentesClose.addEventListener('click', closeEntregasPendentesModal);
         }
@@ -4818,7 +5014,13 @@
         if (dom.fiadoParcelasInput) {
             dom.fiadoParcelasInput.addEventListener('input', function () {
                 var n = parseInt(dom.fiadoParcelasInput.value, 10);
+                if (Number.isFinite(n) && n > 6) n = 6;
                 State.setPagamentoField('fiadoParcelas', Number.isFinite(n) && n >= 1 ? n : 1);
+                refreshCreditoFiadoCliente(valorFiadoNosLancamentos(State.getState()), { force: true }).then(
+                    function () {
+                        renderProductFiadoBalance(State.getState());
+                    }
+                );
             });
         }
         if (dom.fiadoDiasInput) {

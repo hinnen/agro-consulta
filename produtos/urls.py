@@ -16,6 +16,11 @@ urlpatterns = [
     path('entregas/api/listar/', views.api_entregas_listar, name='api_entregas_listar'),
     path('entregas/api/atualizar/', views.api_entrega_atualizar, name='api_entrega_atualizar'),
     path(
+        'api/pdv/cliente-credito-fiado/',
+        views.api_pdv_cliente_credito_fiado,
+        name='api_pdv_cliente_credito_fiado',
+    ),
+    path(
         'api/pdv/entregas-pendentes/',
         views.api_pdv_entregas_pendentes,
         name='api_pdv_entregas_pendentes',
@@ -167,6 +172,16 @@ urlpatterns = [
     path('vendas/exportar-csv/', views.vendas_exportar_csv, name='vendas_exportar_csv'),
     path('vendas/', views.vendas_lista, name='vendas_lista'),
     path('vendas-hoje/', views.vendas_hoje_redirect, name='vendas_hoje'),
+    path(
+        'venda/<int:pk>/erp-envio/',
+        views.api_venda_agro_erp_envio_info,
+        name='api_venda_agro_erp_envio_info',
+    ),
+    path(
+        'venda/<int:pk>/reverter-erp/',
+        views.api_venda_agro_reverter_erp,
+        name='api_venda_agro_reverter_erp',
+    ),
     path(
         'venda/<int:pk>/reenviar-erp/',
         views.api_venda_agro_reenviar_erp,

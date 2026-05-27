@@ -89,7 +89,12 @@ def pdv_home(request):
                 "apiPdvMpPointFinalizar": reverse("api_pdv_mp_point_finalizar"),
                 "apiPdvMpPointAbandon": reverse("api_pdv_mp_point_abandon"),
                 "apiEntregaRegistrar": reverse("api_entrega_registrar"),
+                "apiPdvClienteCreditoFiado": reverse("api_pdv_cliente_credito_fiado"),
                 "apiPdvEntregasPendentes": reverse("api_pdv_entregas_pendentes"),
+                "apiVendaReenviarErp": reverse("api_venda_agro_reenviar_erp", args=[0]).replace(
+                    "/0/", "/__pk__/"
+                ),
+                "vendasLista": reverse("vendas_lista"),
                 "apiPdvEntregaPendenteDetalhe": reverse("api_pdv_entrega_pendente_detalhe", args=[0]).replace(
                     "/0/", "/__pk__/"
                 ),
@@ -141,5 +146,6 @@ def pdv_home(request):
             },
         },
         "pdv_reabrir_from_consulta": pdv_reabrir_from_consulta,
+        "agro_pdv_assets_v": getattr(settings, "AGRO_PDV_ASSETS_V", "") or "",
     }
     return render(request, "produtos/pdv_wizard.html", ctx)

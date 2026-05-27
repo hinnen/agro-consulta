@@ -272,6 +272,11 @@ class VendaAgro(models.Model):
         blank=True,
         help_text="Parcelas por forma [{forma, valor}] quando a venda tem mais de um pagamento.",
     )
+    fiado_cronograma_json = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Parcelas do fiado [{parcela, dias, vencimento, valor}] para envio manual ao ERP.",
+    )
     erp_sync_status = models.CharField(
         max_length=24,
         choices=ErpSyncStatus.choices,
@@ -283,6 +288,11 @@ class VendaAgro(models.Model):
     enviado_erp = models.BooleanField(default=False)
     erp_http_status = models.PositiveIntegerField(null=True, blank=True)
     erp_resposta = models.JSONField(null=True, blank=True)
+    erp_envio_log_json = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Histórico de tentativas/reversões de envio manual ao ERP [{ts, acao, ok, ...}].",
+    )
     usuario_registro = models.CharField(max_length=150, blank=True, default="")
     sessao_caixa = models.ForeignKey(
         SessaoCaixa,
@@ -335,6 +345,18 @@ class VendaAgro(models.Model):
     @property
     def devolvida(self) -> bool:
         return self.devolvida_em is not None
+
+    def tem_fiado(self) -> bool:
+        from produtos.fiado_credito_util import venda_local_tem_fiado
+
+        return venda_local_tem_fiado(self)
+
+    def fiado_aguarda_envio_erp(self) -> bool:
+        return (
+            self.tem_fiado()
+            and (self.erp_sync_status or "") == self.ErpSyncStatus.PENDENTE
+            and not self.enviado_erp
+        )
 
 
 class PdvMercadoPagoPointOrder(models.Model):
