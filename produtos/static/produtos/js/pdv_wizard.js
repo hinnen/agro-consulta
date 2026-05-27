@@ -150,6 +150,9 @@
         paymentFormaModal: document.getElementById('pdv-payment-forma-modal'),
         paymentFormaModalBackdrop: document.getElementById('pdv-payment-forma-modal-backdrop'),
         paymentFormaModalClose: document.getElementById('pdv-payment-forma-modal-close'),
+        btnConfirmDiscount: document.getElementById('pdv-confirm-discount'),
+        btnFormaGotoDesconto: document.getElementById('pdv-payment-forma-goto-desconto'),
+        btnPopConfirmDiscount: document.getElementById('pdv-pay-pop-confirm-discount'),
         btnOpenPaymentForma: document.getElementById('pdv-open-payment-forma'),
         btnTrocarPaymentForma: document.getElementById('pdv-trocar-payment-forma'),
         paymentFormaLabel: document.getElementById('pdv-payment-forma-label'),
@@ -1090,6 +1093,33 @@
         if (el.value !== next) el.value = next;
     }
 
+    function setInputValueUnlessFocused(el, value) {
+        if (!el) return;
+        if (document.activeElement === el) return;
+        setInputValue(el, value);
+    }
+
+    function moneyFieldDisplay(value) {
+        return State.formatMoneyInputDisplay ? State.formatMoneyInputDisplay(value) : String(value == null ? '' : value);
+    }
+
+    function bindMoneyInputField(el, onStore) {
+        if (!el || typeof onStore !== 'function') return;
+        el.addEventListener('input', function () {
+            var next = State.sanitizeMoneyInputTyping
+                ? State.sanitizeMoneyInputTyping(el.value)
+                : el.value;
+            if (next !== el.value) el.value = next;
+            onStore(next);
+        });
+        el.addEventListener('blur', function () {
+            var n = State.toNumber(el.value);
+            var fmt = n > 0.009 ? moneyFieldDisplay(n) : '';
+            if (fmt !== el.value) el.value = fmt;
+            onStore(fmt);
+        });
+    }
+
     function setSelectValue(el, value, fallback) {
         if (!el) return;
         var next = value == null || value === '' ? (fallback || '') : String(value);
@@ -1761,7 +1791,7 @@
         if (!el) return;
         var st = State.getState();
         if (entregaTaxaModoEfetivo(st) !== 'sim') return;
-        State.setPagamentoField('frete', State.toNumber(el.value));
+        State.setPagamentoField('frete', el.value);
     }
 
     function renderEntregaTaxaCard(state) {
@@ -1806,12 +1836,14 @@
     function renderPagamento(state, computed) {
         var forma = state.pagamento.forma || '';
         setSelectValue(dom.paymentMethod, forma, '');
-        setInputValue(dom.paymentDiscount, state.pagamento.descontoGeral ? String(state.pagamento.descontoGeral).replace('.', ',') : '');
-        setInputValue(dom.paymentShipping, state.pagamento.frete ? String(state.pagamento.frete).replace('.', ',') : '');
-        setInputValue(dom.paymentReceived, state.pagamento.valorRecebido);
+        setInputValueUnlessFocused(dom.paymentDiscount, moneyFieldDisplay(state.pagamento.descontoGeral));
+        setInputValueUnlessFocused(dom.paymentShipping, moneyFieldDisplay(state.pagamento.frete));
+        setInputValueUnlessFocused(dom.paymentReceived, moneyFieldDisplay(state.pagamento.valorRecebido));
         setInputValue(dom.paymentChange, state.pagamento.trocoCalculado);
         setInputValue(dom.paymentNote, state.pagamento.observacaoFinal);
-        if (dom.paymentValorForma) setInputValue(dom.paymentValorForma, state.pagamento.valorDestaForma);
+        if (dom.paymentValorForma) {
+            setInputValueUnlessFocused(dom.paymentValorForma, moneyFieldDisplay(state.pagamento.valorDestaForma));
+        }
         if (dom.paymentParcelasCredito) {
             setInputValue(dom.paymentParcelasCredito, String(state.pagamento.creditoParcelas || 2));
         }
@@ -3042,6 +3074,61 @@
         try {
             document.body.style.overflow = '';
         } catch (err2) {}
+    }
+
+    function commitDiscountField() {
+        if (!dom.paymentDiscount) return;
+        var raw = dom.paymentDiscount.value;
+        if (State.sanitizeMoneyInputTyping) raw = State.sanitizeMoneyInputTyping(raw);
+        var n = State.toNumber(raw);
+        var fmt = n > 0.009 ? moneyFieldDisplay(n) : '';
+        State.setPagamentoField('descontoGeral', fmt);
+        setInputValue(dom.paymentDiscount, fmt);
+    }
+
+    function focusDiscountField() {
+        closePaymentFormaModal();
+        var dlgDin = document.getElementById('pdv-pay-pop-dinheiro');
+        if (dlgDin && dlgDin.open && typeof dlgDin.close === 'function') {
+            try {
+                dlgDin.close();
+            } catch (errDin) {}
+        }
+        var footer = document.getElementById('pdv-pay-footer');
+        if (footer) {
+            try {
+                footer.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            } catch (errScroll) {}
+        }
+        setTimeout(function () {
+            if (dom.paymentDiscount) {
+                dom.paymentDiscount.focus();
+                try {
+                    dom.paymentDiscount.select();
+                } catch (errSel) {}
+            }
+        }, 100);
+    }
+
+    function confirmDiscountAndOpenFormas() {
+        commitDiscountField();
+        var dlgDin = document.getElementById('pdv-pay-pop-dinheiro');
+        if (dlgDin && dlgDin.open && typeof dlgDin.close === 'function') {
+            try {
+                dlgDin.close();
+            } catch (errClose) {}
+        }
+        closePaymentFormaModal();
+        var comp = State.getComputed();
+        if (dom.paymentFeedback) {
+            dom.paymentFeedback.textContent =
+                comp.desconto > 0.009
+                    ? 'Desconto ' +
+                      formatMoney(comp.desconto) +
+                      ' aplicado. Escolha a forma de pagamento (F3).'
+                    : 'Escolha a forma de pagamento (F3).';
+        }
+        openPaymentFormaModal();
     }
 
     function refreshDinheiroPopTrocoDisplay(st, comp) {
@@ -4398,17 +4485,33 @@
             ],
             [dom.entregaTroco, function () { State.setEntregaField('troco', dom.entregaTroco.value); }],
             [dom.entregaObservacao, function () { State.setEntregaField('observacao', dom.entregaObservacao.value); }],
-            [dom.paymentDiscount, function () { State.setPagamentoField('descontoGeral', State.toNumber(dom.paymentDiscount.value)); }],
-            [dom.paymentShipping, function () { State.setPagamentoField('frete', State.toNumber(dom.paymentShipping.value)); }],
-            [dom.paymentReceived, function () {
-                syncDinheiroRecebidoValue(dom.paymentReceived.value, true);
-            }],
-            [dom.paymentChange, function () { State.setPagamentoField('trocoCalculado', dom.paymentChange.value); }],
-            [dom.paymentNote, function () { State.setPagamentoField('observacaoFinal', dom.paymentNote.value); }]
+            [dom.paymentNote, function () { State.setPagamentoField('observacaoFinal', dom.paymentNote.value); }],
+            [dom.paymentChange, function () { State.setPagamentoField('trocoCalculado', dom.paymentChange.value); }]
         ].forEach(function (entry) {
             if (entry[0]) entry[0].addEventListener('input', entry[1]);
             if (entry[0] && entry[0].tagName === 'SELECT') entry[0].addEventListener('change', entry[1]);
         });
+
+        bindMoneyInputField(dom.paymentDiscount, function (raw) {
+            State.setPagamentoField('descontoGeral', raw);
+        });
+        bindMoneyInputField(dom.paymentShipping, function (raw) {
+            State.setPagamentoField('frete', raw);
+        });
+        bindMoneyInputField(dom.paymentValorForma, function (raw) {
+            State.setPagamentoField('valorDestaForma', raw);
+        });
+        if (dom.paymentReceived) {
+            bindMoneyInputField(dom.paymentReceived, function (raw) {
+                syncDinheiroRecebidoValue(raw, true);
+            });
+        }
+        var dinPopRecBind = document.getElementById('pdv-pay-pop-din-recebido');
+        if (dinPopRecBind) {
+            bindMoneyInputField(dinPopRecBind, function (raw) {
+                syncDinheiroRecebidoValue(raw, false);
+            });
+        }
 
         if (dom.paymentMethod) {
             dom.paymentMethod.addEventListener('change', function () {
@@ -4428,6 +4531,22 @@
         if (dom.btnTrocarPaymentForma) {
             dom.btnTrocarPaymentForma.addEventListener('click', openPaymentFormaModal);
         }
+        if (dom.btnConfirmDiscount) {
+            dom.btnConfirmDiscount.addEventListener('click', confirmDiscountAndOpenFormas);
+        }
+        if (dom.btnFormaGotoDesconto) {
+            dom.btnFormaGotoDesconto.addEventListener('click', focusDiscountField);
+        }
+        if (dom.btnPopConfirmDiscount) {
+            dom.btnPopConfirmDiscount.addEventListener('click', confirmDiscountAndOpenFormas);
+        }
+        if (dom.paymentDiscount) {
+            dom.paymentDiscount.addEventListener('keydown', function (ev) {
+                if (ev.key !== 'Enter') return;
+                ev.preventDefault();
+                confirmDiscountAndOpenFormas();
+            });
+        }
         if (dom.paymentFormaModalClose) {
             dom.paymentFormaModalClose.addEventListener('click', closePaymentFormaModal);
         }
@@ -4441,9 +4560,6 @@
         });
 
         if (dom.paymentValorForma) {
-            dom.paymentValorForma.addEventListener('input', function () {
-                State.setPagamentoField('valorDestaForma', dom.paymentValorForma.value);
-            });
             dom.paymentValorForma.addEventListener('keydown', handleValorTrancheEnter);
         }
 
@@ -4528,12 +4644,7 @@
 
         if (dom.paymentReceived) dom.paymentReceived.addEventListener('keydown', handlePaymentReceivedEnter);
         var dinPopRec = document.getElementById('pdv-pay-pop-din-recebido');
-        if (dinPopRec) {
-            dinPopRec.addEventListener('input', function () {
-                syncDinheiroRecebidoValue(dinPopRec.value, false);
-            });
-            dinPopRec.addEventListener('keydown', handlePaymentReceivedEnter);
-        }
+        if (dinPopRec) dinPopRec.addEventListener('keydown', handlePaymentReceivedEnter);
 
         if (dom.paymentLancamentosList) {
             dom.paymentLancamentosList.addEventListener('click', function (event) {
