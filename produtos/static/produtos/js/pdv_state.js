@@ -10,13 +10,53 @@
         return JSON.parse(JSON.stringify(obj));
     }
 
+    var QTD_MIN = 0.001;
+    var QTD_DECIMALS = 3;
+
     function toNumber(value) {
         if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
         var txt = String(value == null ? '' : value).trim();
         if (!txt) return 0;
-        txt = txt.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
+        if (txt.indexOf(',') >= 0) {
+            txt = txt.replace(/\./g, '').replace(',', '.');
+        }
+        txt = txt.replace(/[^\d.-]/g, '');
         var num = parseFloat(txt);
         return Number.isFinite(num) ? num : 0;
+    }
+
+    function roundQty(value) {
+        var n = toNumber(value);
+        if (!n) return 0;
+        var factor = Math.pow(10, QTD_DECIMALS);
+        return Math.round(n * factor) / factor;
+    }
+
+    function normalizeQty(value, fallback) {
+        var n = roundQty(value);
+        if (n < QTD_MIN) {
+            if (fallback != null) return normalizeQty(fallback, null);
+            return 0;
+        }
+        return n;
+    }
+
+    function formatQtyDisplay(value) {
+        var n = roundQty(value);
+        if (!n) return '0';
+        if (Math.abs(n - Math.round(n)) < 1 / Math.pow(10, QTD_DECIMALS)) {
+            return String(Math.round(n));
+        }
+        var s = n.toFixed(QTD_DECIMALS).replace(/\.?0+$/, '');
+        return s.replace('.', ',');
+    }
+
+    function qtyStepFor(currentQty) {
+        var q = roundQty(currentQty);
+        if (q >= 1 && Math.abs(q - Math.round(q)) < 1 / Math.pow(10, QTD_DECIMALS)) {
+            return 1;
+        }
+        return 1 / Math.pow(10, QTD_DECIMALS);
     }
 
     function sanitizeCliente(raw) {
@@ -229,10 +269,10 @@
 
     function addItem(produto, quantidade) {
         if (!produto || !produto.id) return;
-        var qtd = Math.max(1, toNumber(quantidade || 1));
+        var qtd = normalizeQty(quantidade || 1, 1);
         var existing = state.itens.find(function (item) { return String(item.id) === String(produto.id); });
         if (existing) {
-            existing.qtd = toNumber(existing.qtd) + qtd;
+            existing.qtd = normalizeQty(toNumber(existing.qtd) + qtd, qtd);
         } else {
             state.itens.push({
                 id: String(produto.id),
@@ -251,9 +291,41 @@
     }
 
     function updateItemQuantity(itemId, nextQty) {
+        var q = normalizeQty(nextQty, null);
+        if (!q) {
+            removeItem(itemId);
+            return;
+        }
         state.itens = state.itens.map(function (item) {
             if (String(item.id) !== String(itemId)) return item;
-            return Object.assign({}, item, { qtd: Math.max(1, toNumber(nextQty || 1)) });
+            return Object.assign({}, item, { qtd: q });
+        });
+        notify();
+    }
+
+    var PRECO_MIN = 0.01;
+
+    function normalizePrice(value, fallback) {
+        var n = Math.round(toNumber(value) * 100) / 100;
+        if (n < PRECO_MIN) {
+            if (fallback != null) return normalizePrice(fallback, null);
+            return 0;
+        }
+        return n;
+    }
+
+    function formatPriceDisplay(value) {
+        var n = normalizePrice(value, null);
+        if (!n) return '';
+        return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function updateItemPrice(itemId, nextPrice) {
+        var p = normalizePrice(nextPrice, null);
+        if (!p) return;
+        state.itens = state.itens.map(function (item) {
+            if (String(item.id) !== String(itemId)) return item;
+            return Object.assign({}, item, { preco: p });
         });
         notify();
     }
@@ -314,7 +386,7 @@
                 id: String(item.id || ''),
                 nome: String(item.nome || ''),
                 preco: toNumber(item.preco || 0),
-                qtd: Math.max(1, toNumber(item.qtd || 1)),
+                qtd: normalizeQty(item.qtd || 1, 1),
                 codigo: cod,
                 codigoGm: gm || cod,
                 imagem: '',
@@ -364,7 +436,7 @@
                 id: String((i && i.id) || ''),
                 nome: String((i && i.nome) || ''),
                 preco: toNumber(i && i.preco),
-                qtd: Math.max(1, toNumber(i && i.qtd)),
+                qtd: normalizeQty(i && i.qtd, 1),
                 codigo: cod,
                 codigoGm: cod || '—',
                 imagem: '',
@@ -560,6 +632,9 @@
         getLastClient: getLastClient,
         addItem: addItem,
         updateItemQuantity: updateItemQuantity,
+        updateItemPrice: updateItemPrice,
+        normalizePrice: normalizePrice,
+        formatPriceDisplay: formatPriceDisplay,
         removeItem: removeItem,
         clearItems: clearItems,
         setEntregaField: setEntregaField,
@@ -574,6 +649,11 @@
         addPagamentoLancamento: addPagamentoLancamento,
         removePagamentoLancamentoAt: removePagamentoLancamentoAt,
         beginEditPagamentoLancamento: beginEditPagamentoLancamento,
-        resetPagamentoTranche: resetPagamentoTranche
+        resetPagamentoTranche: resetPagamentoTranche,
+        roundQty: roundQty,
+        normalizeQty: normalizeQty,
+        formatQtyDisplay: formatQtyDisplay,
+        qtyStepFor: qtyStepFor,
+        QTD_MIN: QTD_MIN
     };
 })();

@@ -29,6 +29,13 @@
             this.cancelRequested = false;
         }
     };
+    /** Rascunho da quantidade enquanto o operador digita (evita perder foco a cada tecla). */
+    var qtyEditDraft = { id: null, raw: '' };
+    var qtyInputRestore = { id: null, selStart: null, selEnd: null };
+    var qtySkipCommitOnce = false;
+    var priceEditDraft = { id: null, raw: '' };
+    var priceInputRestore = { id: null, selStart: null, selEnd: null };
+    var priceSkipCommitOnce = false;
 
     function showMpPointWaitBar() {
         var bar = document.getElementById('pdv-mp-point-wait-bar');
@@ -178,7 +185,7 @@
     var clientSearchSeq = 0;
     var AUTOCOMPLETE_LIMIT = 8;
     var MAX_LOCAL_RESULTS = 48;
-    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v2';
+    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v3';
     var wizardProductCatalog = [];
     var catalogReady = false;
     var catalogLoadPromise = null;
@@ -308,6 +315,7 @@
         if (!q) return 0;
         var nome = stripAccents(p.nome || '');
         var marca = stripAccents(p.marca || '');
+        var buscaTxt = stripAccents(p.busca_texto || '');
         var nfe = stripAccents(String(p.codigo_nfe || ''));
         var cod = stripAccents(String(p.codigo || ''));
         var ean = stripAccents(String(p.codigo_barras || '').replace(/\s/g, ''));
@@ -329,6 +337,7 @@
         else if (ean && q && ean.indexOf(q) !== -1) score += 420;
 
         if (nome.indexOf(q) !== -1) score += 200;
+        if (buscaTxt && buscaTxt.indexOf(q) !== -1) score += 220;
 
         var tokens = q.split(/\s+/).filter(function (t) { return t.length > 0; });
         if (tokens.length > 1) {
@@ -359,7 +368,7 @@
             return { list: [], message: 'Digite ao menos 2 letras ou 6+ dígitos do código.' };
         }
         var qDigitsOnly = onlyDigits(q);
-        // Catálogo wizard não traz index_codigos completo (payload). EAN/similar longo: servidor usa o mesmo motor do PDV.
+        // EAN longo (8+ dígitos): servidor usa o mesmo motor do PDV (catálogo local pode não ter o item).
         if (qDigitsOnly.length >= 8) {
             return { list: [], message: '', barcodeHit: null };
         }
@@ -407,6 +416,72 @@
 
     function formatMoney(value) {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
+    }
+
+    function formatQty(value) {
+        return State.formatQtyDisplay ? State.formatQtyDisplay(value) : String(value == null ? '' : value);
+    }
+
+    function formatPriceEdit(value) {
+        return State.formatPriceDisplay ? State.formatPriceDisplay(value) : formatMoney(value).replace(/^R\$\s*/, '').trim();
+    }
+
+    function lineSubtotal(item) {
+        return State.toNumber(item.qtd) * State.toNumber(item.preco);
+    }
+
+    function applyQtyDelta(itemId, direction) {
+        var current = State.getState().itens.find(function (item) {
+            return String(item.id) === String(itemId);
+        });
+        if (!current) return;
+        qtyEditDraft = { id: null, raw: '' };
+        var step = State.qtyStepFor ? State.qtyStepFor(current.qtd) : 1;
+        var nextQty = State.toNumber(current.qtd) + direction * step;
+        if (nextQty < (State.QTD_MIN || 0.001)) {
+            State.removeItem(itemId);
+        } else {
+            State.updateItemQuantity(itemId, nextQty);
+        }
+    }
+
+    function commitQtyInput(input) {
+        if (!input) return;
+        var id = input.getAttribute('data-item-qty-input');
+        if (!id) return;
+        var parsed = State.normalizeQty ? State.normalizeQty(input.value, null) : State.toNumber(input.value);
+        qtyEditDraft = { id: null, raw: '' };
+        qtyInputRestore = { id: null, selStart: null, selEnd: null };
+        if (!parsed) {
+            State.removeItem(id);
+            return;
+        }
+        var current = State.getState().itens.find(function (item) {
+            return String(item.id) === String(id);
+        });
+        if (current && Math.abs(State.toNumber(current.qtd) - parsed) < 0.0000001) return;
+        State.updateItemQuantity(id, parsed);
+    }
+
+    function commitPriceInput(input) {
+        if (!input) return;
+        var id = input.getAttribute('data-item-price-input');
+        if (!id) return;
+        var parsed = State.normalizePrice ? State.normalizePrice(input.value, null) : State.toNumber(input.value);
+        priceEditDraft = { id: null, raw: '' };
+        priceInputRestore = { id: null, selStart: null, selEnd: null };
+        if (!parsed) {
+            var current = State.getState().itens.find(function (item) {
+                return String(item.id) === String(id);
+            });
+            if (current) input.value = formatPriceEdit(current.preco);
+            return;
+        }
+        var cur = State.getState().itens.find(function (item) {
+            return String(item.id) === String(id);
+        });
+        if (cur && Math.abs(State.toNumber(cur.preco) - parsed) < 0.0000001) return;
+        State.updateItemPrice(id, parsed);
     }
 
     function compactText(value, fallback) {
@@ -1073,7 +1148,7 @@
         dom.summaryMode.textContent = state.clienteMode === 'consumidor_final'
             ? 'Consumidor final'
             : compactText((state.cliente && (state.cliente.documento || state.cliente.telefone)) || '', 'Cliente selecionado');
-        dom.summaryItems.textContent = String(computed.itemCount);
+        dom.summaryItems.textContent = formatQty(computed.itemCount);
         if (dom.summarySubtotal) dom.summarySubtotal.textContent = formatMoney(computed.subtotal);
         if (dom.summaryDiscount) dom.summaryDiscount.textContent = formatMoney(computed.desconto);
         if (dom.summaryShipping) dom.summaryShipping.textContent = formatMoney(computed.frete);
@@ -1146,13 +1221,7 @@
         var arr = st.itens || [];
         if (!arr.length) return;
         var last = arr[arr.length - 1];
-        var id = last.id;
-        var nextQty = State.toNumber(last.qtd) + delta;
-        if (nextQty <= 0) {
-            State.removeItem(id);
-        } else {
-            State.updateItemQuantity(id, nextQty);
-        }
+        applyQtyDelta(last.id, delta > 0 ? 1 : -1);
     }
 
     function renderQuickClient(state) {
@@ -1170,7 +1239,8 @@
     function renderProducts(state, computed) {
         dom.productStepCount.textContent = String(state.itens.length);
         dom.productSubtotal.textContent = formatMoney(computed.subtotal);
-        dom.productSubtotalItems.textContent = computed.itemCount + (computed.itemCount === 1 ? ' item' : ' itens');
+        var lineCount = state.itens.length;
+        dom.productSubtotalItems.textContent = lineCount + (lineCount === 1 ? ' item' : ' itens');
         if (dom.productCreditBalance) dom.productCreditBalance.textContent = 'R$ 0,00';
         if (dom.productCashbackBalance) dom.productCashbackBalance.textContent = 'R$ 0,00';
         if (dom.productFiadoBalance) dom.productFiadoBalance.textContent = 'R$ 0,00';
@@ -1180,6 +1250,17 @@
         } else {
             dom.productCartList.innerHTML = state.itens.map(function (item) {
                 var imgUrl = String(item.imagem || assets.placeholderProduto || '').trim();
+                var itemId = String(item.id);
+                var qtyVal =
+                    qtyEditDraft.id === itemId
+                        ? qtyEditDraft.raw
+                        : formatQty(item.qtd);
+                var priceVal =
+                    priceEditDraft.id === itemId
+                        ? priceEditDraft.raw
+                        : formatPriceEdit(item.preco);
+                var qtyN = State.toNumber(item.qtd);
+                var showLineTotal = Math.abs(qtyN - 1) > 0.0001;
                 return (
                     '' +
                     '<div class="pdv-cart-row flex flex-nowrap items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-2 py-2 shadow-sm sm:gap-2.5 sm:px-2.5">' +
@@ -1201,25 +1282,80 @@
                     '</span>' +
                     '    <div class="inline-flex shrink-0 items-center overflow-hidden rounded-xl border-2 border-slate-300 bg-slate-50 shadow-inner">' +
                     '      <button type="button" class="flex min-h-[2.85rem] min-w-[2.85rem] items-center justify-center text-xl font-black leading-none text-slate-800 active:bg-slate-200 sm:min-h-[3rem] sm:min-w-[3rem] sm:text-2xl" data-item-qty="' +
-                    escapeHtml(item.id) +
+                    escapeHtml(itemId) +
                     '" data-item-delta="-1" title="Menos">−</button>' +
-                    '      <span class="min-w-[2.25rem] px-1.5 text-center text-base font-black tabular-nums text-slate-900">' +
-                    escapeHtml(item.qtd) +
-                    '</span>' +
+                    '      <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Quantidade" title="Toque para digitar (ex.: 0,350 kg)" class="pdv-cart-qty-input min-h-[2.85rem] w-[3.35rem] border-0 bg-white px-1 text-center text-base font-black tabular-nums text-slate-900 outline-none ring-emerald-400 focus:bg-emerald-50/40 focus:ring-2 sm:min-h-[3rem] sm:w-[3.6rem] sm:text-lg" data-item-qty-input="' +
+                    escapeHtml(itemId) +
+                    '" value="' +
+                    escapeHtml(qtyVal) +
+                    '">' +
                     '      <button type="button" class="flex min-h-[2.85rem] min-w-[2.85rem] items-center justify-center text-xl font-black leading-none text-slate-800 active:bg-slate-200 sm:min-h-[3rem] sm:min-w-[3rem] sm:text-2xl" data-item-qty="' +
-                    escapeHtml(item.id) +
+                    escapeHtml(itemId) +
                     '" data-item-delta="1" title="Mais">+</button>' +
                     '    </div>' +
-                    '    <span class="w-[4.5rem] shrink-0 text-right text-[12px] font-black tabular-nums text-emerald-700 sm:w-[4.85rem]">' +
-                    formatMoney(item.qtd * item.preco) +
-                    '</span>' +
+                    '    <div class="flex shrink-0 flex-col items-end gap-0.5">' +
+                    '      <span class="text-[9px] font-black uppercase text-slate-400 leading-none">Unit.</span>' +
+                    '      <div class="inline-flex items-center overflow-hidden rounded-xl border-2 border-emerald-300 bg-emerald-50/50 shadow-inner">' +
+                    '        <span class="pl-2 text-[11px] font-black text-emerald-800">R$</span>' +
+                    '        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Preço unitário" title="Toque para alterar o preço deste item" class="pdv-cart-price-input min-h-[2.85rem] w-[4.5rem] border-0 bg-transparent px-1 text-right text-base font-black tabular-nums text-emerald-800 outline-none ring-emerald-400 focus:bg-white focus:ring-2 sm:min-h-[3rem] sm:w-[5rem] sm:text-lg" data-item-price-input="' +
+                    escapeHtml(itemId) +
+                    '" value="' +
+                    escapeHtml(priceVal) +
+                    '">' +
+                    '      </div>' +
+                    (showLineTotal
+                        ? '      <span class="text-[10px] font-bold tabular-nums text-slate-500">= ' +
+                          escapeHtml(formatMoney(lineSubtotal(item))) +
+                          '</span>'
+                        : '') +
+                    '    </div>' +
                     '    <button type="button" class="shrink-0 rounded-lg px-1 py-1 text-[9px] font-black uppercase text-red-700 underline decoration-red-300 sm:text-[10px]" data-remove-item="' +
-                    escapeHtml(item.id) +
+                    escapeHtml(itemId) +
                     '">Remover</button>' +
                     '  </div>' +
                     '</div>'
                 );
             }).join('');
+            if (qtyInputRestore.id) {
+                var restoreInputs = dom.productCartList.querySelectorAll('[data-item-qty-input]');
+                var restoreInput = null;
+                for (var ri = 0; ri < restoreInputs.length; ri++) {
+                    if (restoreInputs[ri].getAttribute('data-item-qty-input') === qtyInputRestore.id) {
+                        restoreInput = restoreInputs[ri];
+                        break;
+                    }
+                }
+                if (restoreInput) {
+                    restoreInput.focus();
+                    try {
+                        restoreInput.setSelectionRange(qtyInputRestore.selStart, qtyInputRestore.selEnd);
+                    } catch (errSel) {
+                        restoreInput.select();
+                    }
+                } else {
+                    qtyInputRestore = { id: null, selStart: null, selEnd: null };
+                }
+            }
+            if (priceInputRestore.id) {
+                var restorePriceInputs = dom.productCartList.querySelectorAll('[data-item-price-input]');
+                var restorePriceInput = null;
+                for (var pi = 0; pi < restorePriceInputs.length; pi++) {
+                    if (restorePriceInputs[pi].getAttribute('data-item-price-input') === priceInputRestore.id) {
+                        restorePriceInput = restorePriceInputs[pi];
+                        break;
+                    }
+                }
+                if (restorePriceInput) {
+                    restorePriceInput.focus();
+                    try {
+                        restorePriceInput.setSelectionRange(priceInputRestore.selStart, priceInputRestore.selEnd);
+                    } catch (errSelP) {
+                        restorePriceInput.select();
+                    }
+                } else {
+                    priceInputRestore = { id: null, selStart: null, selEnd: null };
+                }
+            }
         }
         updateSearchAwaitingPulse();
         renderRecentBudgetsSnippet();
@@ -2430,9 +2566,9 @@
                 .map(function (item) {
                     return (
                         '<tr><td>' +
-                        escapeHtml(item.qtd + '× ' + item.nome) +
+                        escapeHtml(formatQty(item.qtd) + '× ' + item.nome) +
                         '</td><td style="text-align:right">' +
-                        escapeHtml(formatMoney(item.qtd * item.preco)) +
+                        escapeHtml(formatMoney(lineSubtotal(item))) +
                         '</td></tr>'
                     );
                 })
@@ -2493,6 +2629,78 @@
         }
     }
 
+    function showSaleDoneFeedback(msg, tone) {
+        tone = tone || 'success';
+        var host = document.getElementById('pdv-sale-toast');
+        if (!host) {
+            host = document.createElement('div');
+            host.id = 'pdv-sale-toast';
+            host.setAttribute('role', 'status');
+            host.setAttribute('aria-live', 'polite');
+            host.className =
+                'pointer-events-none fixed bottom-4 right-4 z-[220] w-[min(22rem,calc(100vw-2rem))] transition-all duration-300 ease-out opacity-0 translate-y-3';
+            document.body.appendChild(host);
+        }
+        var palette =
+            tone === 'warn'
+                ? 'border-amber-300 bg-amber-50 text-amber-950 shadow-amber-200/50'
+                : tone === 'info'
+                  ? 'border-sky-300 bg-sky-50 text-sky-950 shadow-sky-200/50'
+                  : 'border-emerald-300 bg-emerald-50 text-emerald-950 shadow-emerald-200/50';
+        var icon =
+            tone === 'warn' ? '⚠' : tone === 'info' ? '↻' : '✓';
+        host.innerHTML =
+            '<div class="flex items-start gap-3 rounded-2xl border-2 px-4 py-3 shadow-xl ' +
+            palette +
+            '">' +
+            '<span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/80 text-base font-black" aria-hidden="true">' +
+            icon +
+            '</span>' +
+            '<p class="text-sm font-bold leading-snug pt-1">' +
+            escapeHtml(msg || 'Venda confirmada.') +
+            '</p></div>';
+        host.classList.remove('opacity-0', 'translate-y-3');
+        host.classList.add('opacity-100', 'translate-y-0');
+        if (showSaleDoneFeedback._timer) clearTimeout(showSaleDoneFeedback._timer);
+        showSaleDoneFeedback._timer = setTimeout(function () {
+            host.classList.add('opacity-0', 'translate-y-3');
+            host.classList.remove('opacity-100', 'translate-y-0');
+        }, 5200);
+    }
+
+    function saleDoneMessage(opts) {
+        opts = opts || {};
+        if (opts.erpPendente) {
+            return opts.entregaOk
+                ? 'Venda e entrega registradas — ERP em segundo plano.'
+                : 'Venda registrada — ERP em segundo plano.';
+        }
+        if (opts.entregaOk) return 'Venda confirmada e entrega registrada com sucesso.';
+        return 'Venda confirmada com sucesso.';
+    }
+
+    function finalizeConfirmedSale(withPrint, printWin, opts) {
+        opts = opts || {};
+        var printFail = false;
+        if (withPrint && printWin && !printWin.closed) {
+            var stP = State.getState();
+            var compP = State.getComputed();
+            if (!printSaleReceiptWindow(printWin, stP, compP)) {
+                printFail = true;
+            }
+        }
+        jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+        resetWizardParaNovaVenda();
+        if (printFail) {
+            showSaleDoneFeedback(
+                'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
+                'warn'
+            );
+        } else {
+            showSaleDoneFeedback(saleDoneMessage(opts), opts.erpPendente ? 'info' : 'success');
+        }
+    }
+
     function confirmSale(withPrint) {
         if (isProcessingSale) return;
         var state = State.getState();
@@ -2537,26 +2745,30 @@
                 return jsonPost(urls.apiEnviarPedidoErp, buildErpPayload(state, computed));
             })
             .then(function (erpRes) {
-                if (!erpRes.ok || !erpRes.data.ok) throw new Error((erpRes.data && (erpRes.data.erro || erpRes.data.mensagem)) || 'Falha ao confirmar venda.');
-                if (!state.entrega.ativa) return { entrega: null, erp: erpRes.data };
-                return jsonPost(urls.apiEntregaRegistrar, buildEntregaPayload(state, computed)).then(function (entRes) {
-                    if (!entRes.ok || !entRes.data.ok) throw new Error((entRes.data && (entRes.data.erro || entRes.data.mensagem)) || 'Venda salva, mas falhou ao registrar entrega.');
-                    return { entrega: entRes.data, erp: erpRes.data };
-                });
-            })
-            .then(function (result) {
-                if (withPrint && printWin && !printWin.closed) {
-                    var stP = State.getState();
-                    var compP = State.getComputed();
-                    if (!printSaleReceiptWindow(printWin, stP, compP)) {
-                        alert('O cupom foi confirmado no sistema, mas a impressão falhou. Tente reimprimir pela lista de vendas, se disponível.');
-                    }
+                if (!erpRes.ok || !erpRes.data.ok) {
+                    throw new Error(
+                        (erpRes.data && (erpRes.data.erro || erpRes.data.mensagem)) || 'Falha ao confirmar venda.'
+                    );
                 }
-                jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
-                alert(result.entrega
-                    ? 'Venda confirmada e entrega registrada com sucesso.'
-                    : 'Venda confirmada com sucesso.');
-                resetWizardParaNovaVenda();
+                var erpPendente = !!erpRes.data.erp_pendente;
+                if (state.entrega.ativa) {
+                    var entPayload = buildEntregaPayload(state, computed);
+                    if (erpPendente) {
+                        jsonPost(urls.apiEntregaRegistrar, entPayload).catch(function () {});
+                        finalizeConfirmedSale(withPrint, printWin, { erpPendente: true, entregaOk: true });
+                        return;
+                    }
+                    return jsonPost(urls.apiEntregaRegistrar, entPayload).then(function (entRes) {
+                        if (!entRes.ok || !entRes.data.ok) {
+                            throw new Error(
+                                (entRes.data && (entRes.data.erro || entRes.data.mensagem)) ||
+                                    'Venda salva, mas falhou ao registrar entrega.'
+                            );
+                        }
+                        finalizeConfirmedSale(withPrint, printWin, { entregaOk: true });
+                    });
+                }
+                finalizeConfirmedSale(withPrint, printWin, { erpPendente: erpPendente });
             })
             .catch(function (err) {
                 if (printWin && !printWin.closed) {
@@ -2650,22 +2862,29 @@
                 });
             })
             .then(function (result) {
+                var printFail = false;
                 if (withPrint && printWin && !printWin.closed) {
                     var stP = State.getState();
                     var compP = State.getComputed();
                     if (!printSaleReceiptWindow(printWin, stP, compP)) {
-                        alert(
-                            'Venda confirmada, mas a impressão do cupom falhou. Tente reimprimir pela lista de vendas, se disponível.'
-                        );
+                        printFail = true;
                     }
                 }
                 jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
-                alert(
-                    result.entrega
-                        ? 'Pagamento no Point confirmado, venda registrada e entrega lançada.'
-                        : 'Pagamento no Point confirmado e venda registrada com sucesso.'
-                );
                 resetWizardParaNovaVenda();
+                if (printFail) {
+                    showSaleDoneFeedback(
+                        'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
+                        'warn'
+                    );
+                } else {
+                    showSaleDoneFeedback(
+                        result.entrega
+                            ? 'Pagamento no Point confirmado, venda registrada e entrega lançada.'
+                            : 'Pagamento no Point confirmado e venda registrada com sucesso.',
+                        'success'
+                    );
+                }
             })
             .catch(function (err) {
                 if (printWin && !printWin.closed) {
@@ -3765,15 +3984,115 @@
             var qtyBtn = event.target.closest('[data-item-qty]');
             if (qtyBtn) {
                 var id = qtyBtn.getAttribute('data-item-qty');
-                var current = State.getState().itens.find(function (item) { return String(item.id) === String(id); });
-                if (!current) return;
-                var nextQty = current.qtd + parseInt(qtyBtn.getAttribute('data-item-delta') || '0', 10);
-                if (nextQty <= 0) {
-                    State.removeItem(id);
-                } else {
-                    State.updateItemQuantity(id, nextQty);
-                }
+                var delta = parseInt(qtyBtn.getAttribute('data-item-delta') || '0', 10);
+                applyQtyDelta(id, delta > 0 ? 1 : -1);
             }
+        });
+
+        dom.productCartList.addEventListener('focusin', function (event) {
+            var priceInput = event.target.closest('[data-item-price-input]');
+            if (priceInput) {
+                priceEditDraft = { id: priceInput.getAttribute('data-item-price-input'), raw: priceInput.value };
+                setTimeout(function () {
+                    try {
+                        priceInput.select();
+                    } catch (errSelP) {}
+                }, 0);
+                return;
+            }
+            var input = event.target.closest('[data-item-qty-input]');
+            if (!input) return;
+            qtyEditDraft = { id: input.getAttribute('data-item-qty-input'), raw: input.value };
+            setTimeout(function () {
+                try {
+                    input.select();
+                } catch (errSel) {}
+            }, 0);
+        });
+
+        dom.productCartList.addEventListener('input', function (event) {
+            var priceInput = event.target.closest('[data-item-price-input]');
+            if (priceInput) {
+                var pid = priceInput.getAttribute('data-item-price-input');
+                priceEditDraft = { id: pid, raw: priceInput.value };
+                priceInputRestore = {
+                    id: pid,
+                    selStart: priceInput.selectionStart,
+                    selEnd: priceInput.selectionEnd
+                };
+                return;
+            }
+            var input = event.target.closest('[data-item-qty-input]');
+            if (!input) return;
+            var id = input.getAttribute('data-item-qty-input');
+            qtyEditDraft = { id: id, raw: input.value };
+            qtyInputRestore = {
+                id: id,
+                selStart: input.selectionStart,
+                selEnd: input.selectionEnd
+            };
+        });
+
+        dom.productCartList.addEventListener('keydown', function (event) {
+            var priceInput = event.target.closest('[data-item-price-input]');
+            if (priceInput) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    commitPriceInput(priceInput);
+                    priceInput.blur();
+                    if (dom.productSearch) dom.productSearch.focus();
+                } else if (event.key === 'Escape') {
+                    event.preventDefault();
+                    var escPId = priceInput.getAttribute('data-item-price-input');
+                    var escPItem = State.getState().itens.find(function (item) {
+                        return String(item.id) === String(escPId);
+                    });
+                    if (escPItem) priceInput.value = formatPriceEdit(escPItem.preco);
+                    priceEditDraft = { id: null, raw: '' };
+                    priceInputRestore = { id: null, selStart: null, selEnd: null };
+                    priceSkipCommitOnce = true;
+                    priceInput.blur();
+                }
+                return;
+            }
+            var input = event.target.closest('[data-item-qty-input]');
+            if (!input) return;
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                commitQtyInput(input);
+                input.blur();
+                if (dom.productSearch) dom.productSearch.focus();
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                var escId = input.getAttribute('data-item-qty-input');
+                var escItem = State.getState().itens.find(function (item) {
+                    return String(item.id) === String(escId);
+                });
+                if (escItem) input.value = formatQty(escItem.qtd);
+                qtyEditDraft = { id: null, raw: '' };
+                qtyInputRestore = { id: null, selStart: null, selEnd: null };
+                qtySkipCommitOnce = true;
+                input.blur();
+            }
+        });
+
+        dom.productCartList.addEventListener('focusout', function (event) {
+            var priceInput = event.target.closest('[data-item-price-input]');
+            if (priceInput) {
+                if (priceSkipCommitOnce) {
+                    priceSkipCommitOnce = false;
+                    return;
+                }
+                commitPriceInput(priceInput);
+                return;
+            }
+            var input = event.target.closest('[data-item-qty-input]');
+            if (!input) return;
+            if (qtySkipCommitOnce) {
+                qtySkipCommitOnce = false;
+                return;
+            }
+            commitQtyInput(input);
         });
 
         dom.clearItems.addEventListener('click', function () {

@@ -1,4 +1,4 @@
-{% load static %}
+{% load static agro_exibir %}
 <!DOCTYPE html>
 <html lang="pt-br" class="h-full overflow-hidden">
 <head>
@@ -9,23 +9,31 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   {% include "produtos/_agro_consulta_ui.html" %}
-  <style>body { font-family: 'Inter', sans-serif; }</style>
+  <style>
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100dvh;
+      max-height: 100dvh;
+    }
+    .vendas-shell { width: 100%; max-width: min(96rem, 100%); margin-left: auto; margin-right: auto; }
+  </style>
 </head>
-<body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+<body class="bg-slate-50 overflow-hidden text-slate-800 flex flex-col">
 {% include "produtos/_gm_loading_bar.html" %}
-  <header class="border-b border-slate-200 bg-white shadow-sm">
-    <div class="max-w-5xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="vendas-shell px-3 sm:px-5 py-2 sm:py-2.5 flex flex-wrap items-center justify-between gap-2">
       <div class="flex items-center gap-3 min-w-0">
-        <div class="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
-          <span class="text-base font-black"><span class="text-emerald-600">G</span><span class="text-orange-500">M</span></span>
+        <div class="h-9 w-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
+          <span class="text-sm font-black"><span class="text-emerald-600">G</span><span class="text-orange-500">M</span></span>
         </div>
-        <div>
-          <h1 class="text-lg font-black uppercase tracking-tight text-slate-900">Vendas</h1>
-          <p class="text-xs font-bold text-slate-500">{{ periodo_label }} · {{ data_ini|date:"d/m/Y" }} — {{ data_fim|date:"d/m/Y" }}</p>
+        <div class="min-w-0">
+          <h1 class="text-[clamp(1.1rem,0.8vw+1rem,1.5rem)] font-black uppercase tracking-tight text-slate-900 leading-tight">Vendas</h1>
+          <p class="text-xs sm:text-sm font-bold text-slate-500 truncate">{{ periodo_label }} · {{ data_ini|date:"d/m/Y" }} — {{ data_fim|date:"d/m/Y" }}</p>
         </div>
       </div>
       <div class="flex flex-wrap gap-2 shrink-0">
-        <a href="{% url 'vendas_exportar_csv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="text-xs font-black uppercase px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+        <a href="{% url 'vendas_exportar_csv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
           Exportar CSV
         </a>
         {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-900 shadow-sm hover:bg-emerald-100 transition-colors shrink-0" %}
@@ -33,73 +41,91 @@
     </div>
   </header>
 
-  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6 flex-1 min-h-0 overflow-y-auto">
+  <main class="vendas-shell flex-1 min-h-0 flex flex-col px-3 sm:px-5 py-2 sm:py-3 gap-2 sm:gap-3 overflow-hidden">
     {% if messages %}
-    <ul class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900 space-y-1">
+    <ul class="shrink-0 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-900 space-y-1">
       {% for m in messages %}<li>{{ m }}</li>{% endfor %}
     </ul>
     {% endif %}
 
-    <form method="get" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3" id="form-vendas-filtro" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
-      <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Período rápido · <span class="text-slate-500 normal-case font-bold">/ foca “De”</span></p>
-      <div class="flex flex-wrap gap-2">
-        <a href="?preset=hoje" class="px-3 py-2 rounded-xl text-xs font-black uppercase border {% if preset_ativo == 'hoje' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Hoje</a>
-        <a href="?preset=7d" class="px-3 py-2 rounded-xl text-xs font-black uppercase border {% if not preset_ativo or preset_ativo == '7d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">7 dias</a>
-        <a href="?preset=30d" class="px-3 py-2 rounded-xl text-xs font-black uppercase border {% if preset_ativo == '30d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">30 dias</a>
-      </div>
-      <div class="flex flex-wrap items-end gap-3 pt-2 border-t border-slate-100">
-        <div>
-          <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="id-de">De</label>
-          <input type="date" name="de" id="id-de" value="{{ data_ini|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold">
+    <div class="shrink-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-2 sm:gap-3 items-stretch">
+      <form method="get" class="rounded-2xl border border-slate-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3 shadow-sm flex flex-col gap-2" id="form-vendas-filtro" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Período rápido · <span class="text-slate-500 normal-case font-bold">/ foca “De”</span></p>
+          <div class="flex flex-wrap gap-1.5">
+            <a href="?preset=hoje" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == 'hoje' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Hoje</a>
+            <a href="?preset=7d" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == '7d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">7 dias</a>
+            <a href="?preset=30d" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == '30d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">30 dias</a>
+          </div>
         </div>
-        <div>
-          <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="id-ate">Até</label>
-          <input type="date" name="ate" id="id-ate" value="{{ data_fim|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold">
+        <div class="flex flex-wrap items-end gap-2 sm:gap-3 pt-2 border-t border-slate-100">
+          <div>
+            <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5" for="id-de">De</label>
+            <input type="date" name="de" id="id-de" value="{{ data_ini|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold min-h-[42px]">
+          </div>
+          <div>
+            <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5" for="id-ate">Até</label>
+            <input type="date" name="ate" id="id-ate" value="{{ data_fim|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold min-h-[42px]">
+          </div>
+          <button type="submit" class="min-h-[42px] px-5 py-2 rounded-xl bg-slate-900 text-white text-xs font-black uppercase">Aplicar</button>
+          <p class="w-full xl:w-auto xl:ml-auto text-[10px] text-slate-400 self-center">CSV usa o mesmo período da URL.</p>
         </div>
-        <button type="submit" class="px-5 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-black uppercase">Aplicar</button>
-      </div>
-      <p class="text-[10px] text-slate-400">O CSV usa o mesmo período (inclui filtros da URL após aplicar).</p>
-    </form>
+      </form>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Vendas</p>
-        <p class="text-2xl font-black text-slate-900 tabular-nums">{{ quantidade_vendas }}</p>
-      </div>
-      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:col-span-2">
-        <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Total no período</p>
-        <p class="text-2xl font-black text-emerald-600 tabular-nums">R$ {{ total_periodo }}</p>
+      <div class="grid grid-cols-2 gap-2 sm:gap-3 xl:min-w-[18rem]">
+        <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm flex flex-col justify-center">
+          <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Vendas</p>
+          <p class="text-[clamp(1.35rem,1vw+1rem,2rem)] font-black text-slate-900 tabular-nums leading-none mt-1">{{ quantidade_vendas }}</p>
+        </div>
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 shadow-sm flex flex-col justify-center">
+          <p class="text-[10px] font-black uppercase text-emerald-800/70 tracking-wide">Total no período</p>
+          <p class="text-[clamp(1.35rem,1vw+1rem,2rem)] font-black text-emerald-700 tabular-nums leading-none mt-1">R$ {{ total_periodo }}</p>
+        </div>
       </div>
     </div>
 
     {% if vendas %}
-    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="bg-slate-50 border-b border-slate-200 text-left text-[10px] font-black uppercase tracking-wide text-slate-500">
-              <th class="px-4 py-3">Ver</th>
-              <th class="px-4 py-3">Data</th>
-              <th class="px-4 py-3">Cliente</th>
-              <th class="px-4 py-3">Pagamento</th>
-              <th class="px-4 py-3 text-right">Total</th>
-              <th class="px-4 py-3">Caixa</th>
-              <th class="px-4 py-3">ERP</th>
-              <th class="px-4 py-3">Usuário</th>
+    <div class="flex-1 min-h-0 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+      <div class="flex-1 min-h-0 overflow-auto overscroll-contain">
+        <table class="w-full text-sm min-w-[52rem]">
+          <thead class="sticky top-0 z-10">
+            <tr class="bg-slate-50 border-b border-slate-200 text-left text-[10px] font-black uppercase tracking-wide text-slate-500 shadow-[0_1px_0_0_rgba(226,232,240,1)]">
+              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">#</th>
+              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap min-w-[13.5rem]">Ações</th>
+              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">Data</th>
+              <th class="px-3 sm:px-4 py-2.5">Cliente</th>
+              <th class="px-3 sm:px-4 py-2.5">Pagamento</th>
+              <th class="px-3 sm:px-4 py-2.5 text-right whitespace-nowrap">Total</th>
+              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">Caixa</th>
+              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">ERP</th>
+              <th class="px-3 sm:px-4 py-2.5">Usuário</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 font-semibold text-slate-700">
             {% for v in vendas %}
             <tr class="hover:bg-slate-50/80">
-              <td class="px-4 py-3">
-                <a href="{% url 'venda_agro_detalhe' v.id %}" class="text-emerald-700 hover:text-emerald-900 font-black text-xs uppercase underline decoration-emerald-200 underline-offset-2">#{{ v.id }}</a>
+              <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
+                <span class="font-black text-slate-900 tabular-nums">#{{ v.id }}</span>
+                {% if v.devolvida_em %}
+                <span class="mt-1 block w-fit px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-rose-100 text-rose-800">Devolvida</span>
+                {% endif %}
               </td>
-              <td class="px-4 py-3 tabular-nums whitespace-nowrap text-xs">{{ v.criado_em|date:"d/m/Y H:i" }}</td>
-              <td class="px-4 py-3 max-w-[180px] truncate" title="{{ v.cliente_nome }}">{{ v.cliente_nome }}</td>
-              <td class="px-4 py-3 text-xs">{{ v.forma_pagamento|default:"—" }}</td>
-              <td class="px-4 py-3 text-right tabular-nums font-black text-slate-900">R$ {{ v.total }}</td>
-              <td class="px-4 py-3 text-xs text-slate-500">{% if v.sessao_caixa_id %}#{{ v.sessao_caixa_id }}{% else %}—{% endif %}</td>
-              <td class="px-4 py-3">
+              <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
+                <div class="flex flex-nowrap items-center gap-1.5">
+                  <a href="{% url 'venda_agro_detalhe' v.id %}" class="inline-flex items-center justify-center min-h-[44px] min-w-[4.5rem] px-3 rounded-xl border-2 border-slate-200 bg-white text-[11px] font-black uppercase text-slate-800 hover:border-emerald-400 hover:bg-emerald-50">Ver</a>
+                  {% if not v.devolvida_em %}
+                  <a href="{% url 'venda_agro_detalhe' v.id %}?devolver=1" class="inline-flex items-center justify-center min-h-[44px] min-w-[5.5rem] px-3 rounded-xl border-2 border-rose-400 bg-rose-600 text-[11px] font-black uppercase text-white shadow-sm hover:bg-rose-700" title="Estorno: repõe estoque e registra saída no caixa aberto">Devolver</a>
+                  {% else %}
+                  <span class="inline-flex items-center min-h-[44px] px-3 text-[10px] font-bold text-slate-400">—</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="px-3 sm:px-4 py-2.5 tabular-nums whitespace-nowrap text-xs">{{ v.criado_em|date:"d/m/Y H:i" }}</td>
+              <td class="px-3 sm:px-4 py-2.5 max-w-[12rem] xl:max-w-[16rem] truncate" title="{{ v.cliente_nome }}">{{ v.cliente_nome }}</td>
+              <td class="px-3 sm:px-4 py-2.5 text-xs max-w-[10rem] xl:max-w-none truncate" title="{{ v.forma_pagamento|default:'—' }}">{{ v.forma_pagamento|default:"—" }}</td>
+              <td class="px-3 sm:px-4 py-2.5 text-right tabular-nums font-black text-slate-900 whitespace-nowrap">R$ {{ v.total|moeda_br }}</td>
+              <td class="px-3 sm:px-4 py-2.5 text-xs text-slate-500 whitespace-nowrap">{% if v.sessao_caixa_id %}#{{ v.sessao_caixa_id }}{% else %}—{% endif %}</td>
+              <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
                 {% with s=v.erp_sync_efetivo %}
                 {% if s == 'aceito' %}
                 <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">ERP ok</span>
@@ -110,7 +136,7 @@
                 {% endif %}
                 {% endwith %}
               </td>
-              <td class="px-4 py-3 text-xs text-slate-500 truncate max-w-[100px]" title="{{ v.usuario_registro }}">{{ v.usuario_registro|default:"—" }}</td>
+              <td class="px-3 sm:px-4 py-2.5 text-xs text-slate-500 truncate max-w-[6rem] xl:max-w-[8rem]" title="{{ v.usuario_registro }}">{{ v.usuario_registro|default:"—" }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -118,11 +144,12 @@
       </div>
     </div>
     {% else %}
-    <div class="rounded-2xl border border-dashed border-slate-200 bg-white/80 py-16 text-center">
-      <p class="font-bold text-slate-500">Nenhuma venda neste período.</p>
+    <div class="flex-1 min-h-0 rounded-2xl border border-dashed border-slate-200 bg-white/80 flex items-center justify-center">
+      <p class="font-bold text-slate-500 text-base sm:text-lg">Nenhuma venda neste período.</p>
     </div>
     {% endif %}
   </main>
+
   <script>
     document.addEventListener('keydown', function (e) {
       if (e.key !== '/') return;

@@ -203,6 +203,11 @@ class SessaoCaixa(models.Model):
         max_digits=12, decimal_places=2, null=True, blank=True
     )
     observacao_fechamento = models.CharField(max_length=500, blank=True, default="")
+    conferencia_fechamento = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Conferência por forma: {forma: {esperado, contado, diferenca}}.",
+    )
 
     class Meta:
         ordering = ["-aberto_em"]
@@ -214,10 +219,45 @@ class SessaoCaixa(models.Model):
         return f"Caixa #{self.pk} — {dt}"
 
 
+class MovimentoCaixa(models.Model):
+    """Reforço ou retirada manual no turno, por forma de pagamento."""
+
+    class Tipo(models.TextChoices):
+        REFORCO = "reforco", "Reforço"
+        RETIRADA = "retirada", "Retirada"
+
+    sessao_caixa = models.ForeignKey(
+        SessaoCaixa,
+        on_delete=models.CASCADE,
+        related_name="movimentos",
+    )
+    tipo = models.CharField(max_length=12, choices=Tipo.choices, db_index=True)
+    forma_pagamento = models.CharField(max_length=80)
+    valor = models.DecimalField(max_digits=12, decimal_places=2)
+    observacao = models.CharField(max_length=500, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="movimentos_caixa",
+    )
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Movimento de caixa"
+        verbose_name_plural = "Movimentos de caixa"
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} {self.forma_pagamento} R$ {self.valor}"
+
+
 class VendaAgro(models.Model):
     """Venda registrada pelo PDV Agro (fonte local); orçamento pode ser espelhado no ERP."""
 
     class ErpSyncStatus(models.TextChoices):
+        PENDENTE = "pendente", "Aguardando ERP"
         ACEITO = "aceito", "Aceito no ERP"
         RECUSADO_ERP = "recusado_erp", "Recusado pelo ERP"
         FALHA_COMUNICACAO = "falha_comunicacao", "Falha na comunicação"
@@ -227,6 +267,11 @@ class VendaAgro(models.Model):
     cliente_documento = models.CharField(max_length=20, blank=True, default="")
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     forma_pagamento = models.CharField(max_length=80, blank=True, default="")
+    pagamentos_json = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Parcelas por forma [{forma, valor}] quando a venda tem mais de um pagamento.",
+    )
     erp_sync_status = models.CharField(
         max_length=24,
         choices=ErpSyncStatus.choices,
@@ -252,6 +297,24 @@ class VendaAgro(models.Model):
         db_index=True,
         help_text="Se True, já foi registrada baixa de estoque na camada Agro (AjusteRapidoEstoque) para esta venda.",
     )
+    devolvida_em = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Quando preenchido, a venda foi devolvida (estoque e saída no caixa).",
+    )
+    devolucao_motivo = models.TextField(blank=True, default="")
+    devolucao_pagamentos_json = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Formas e valores devolvidos ao cliente [{forma, valor}].",
+    )
+    devolucao_movimento_caixa_ids = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="IDs de MovimentoCaixa (retirada) gerados na devolução.",
+    )
+    devolucao_usuario = models.CharField(max_length=150, blank=True, default="")
 
     class Meta:
         ordering = ["-criado_em"]
@@ -268,6 +331,10 @@ class VendaAgro(models.Model):
         if s:
             return s
         return self.ErpSyncStatus.ACEITO if self.enviado_erp else self.ErpSyncStatus.FALHA_COMUNICACAO
+
+    @property
+    def devolvida(self) -> bool:
+        return self.devolvida_em is not None
 
 
 class PdvMercadoPagoPointOrder(models.Model):

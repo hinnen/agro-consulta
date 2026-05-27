@@ -2,6 +2,7 @@ import copy
 import csv
 import os
 import secrets
+import threading
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
@@ -46,6 +47,21 @@ from estoque.models import (
     PedidoTransferencia,
 )
 from .forms import ClienteAgroForm
+from .caixa_util import (
+    FORMAS_PAGAMENTO_CAIXA,
+    _dec,
+    linhas_resumo_caixa,
+    linhas_conferencia_fechar,
+    linhas_conferencia_agregada,
+    normalizar_forma_pagamento_caixa,
+    pagamentos_json_de_payload,
+    parse_valor_moeda_br,
+    pagamentos_lista_de_venda,
+    normalizar_pagamentos_devolucao,
+    pagamentos_por_forma_venda,
+    registrar_retirada_turno_caixa,
+    resumo_esperado_por_forma,
+)
 from .models import (
     ClienteAgro,
     ItemVendaAgro,
@@ -57,6 +73,7 @@ from .models import (
     ProdutoGrupoAgro,
     ProdutoGrupoVarianteAgro,
     ProdutoMarcaVariacaoAgro,
+    MovimentoCaixa,
     SessaoCaixa,
     VendaAgro,
     sync_overlay_validade_resumo_de_lotes,
@@ -1662,6 +1679,8 @@ def _api_produtos_gestao_overlay_salvar_core(request):
                 "sim",
                 "s",
             )
+    else:
+        ex.setdefault("permite_venda_estoque_negativo", True)
     if "extra_validade" in payload:
         v = str(payload.get("extra_validade") or "").strip()[:16]
         if v:
@@ -5336,7 +5355,7 @@ def _parse_data_iso(s):
         return None
 
 
-def _periodo_vendas_from_request(request):
+def _periodo_vendas_from_request(request, *, default_preset="7d"):
     hoje = timezone.localdate()
     preset = (request.GET.get("preset") or "").strip().lower()
     de_str = request.GET.get("de")
@@ -5365,9 +5384,18 @@ def _periodo_vendas_from_request(request):
         di = df
         label = f"Dia {df.strftime('%d/%m/%Y')}"
     else:
-        di = hoje - timedelta(days=6)
-        df = hoje
-        label = "Últimos 7 dias"
+        dp = (default_preset or "7d").strip().lower()
+        if dp == "hoje":
+            di = df = hoje
+            label = "Hoje"
+        elif dp == "30d":
+            di = hoje - timedelta(days=29)
+            df = hoje
+            label = "Últimos 30 dias"
+        else:
+            di = hoje - timedelta(days=6)
+            df = hoje
+            label = "Últimos 7 dias"
     return di, df, label
 
 
@@ -7169,6 +7197,7 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
         if draft and draft.get("itens"):
             ctx["pdv_reabrir_data"] = draft
     ctx["caixa_aberto"] = _obter_sessao_caixa_aberta(request)
+    ctx["qtd_caixas_abertos"] = SessaoCaixa.objects.filter(fechado_em__isnull=True).count()
     ctx["pdv_entrega_whatsapp"] = getattr(settings, "PDV_ENTREGA_WHATSAPP", "") or ""
     ctx["lancamentos_dre_ativo"] = getattr(settings, "LANCAMENTOS_DRE_ATIVO", False)
     ctx["pdv_root_url"] = pdv_root_url
@@ -7224,7 +7253,7 @@ def vendas_hoje_redirect(request):
 
 @login_required(login_url="/admin/login/")
 def vendas_lista(request):
-    di, df, label = _periodo_vendas_from_request(request)
+    di, df, label = _periodo_vendas_from_request(request, default_preset="hoje")
     qs = (
         VendaAgro.objects.filter(criado_em__date__gte=di, criado_em__date__lte=df)
         .select_related("sessao_caixa")
@@ -7232,6 +7261,9 @@ def vendas_lista(request):
     )
     agg = qs.aggregate(soma=Sum("total"), n=Count("id"))
     soma = agg["soma"] if agg["soma"] is not None else Decimal("0")
+    preset_get = (request.GET.get("preset") or "").strip().lower()
+    tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
+    preset_ativo = preset_get or ("" if tem_datas_custom else "hoje")
     return render(
         request,
         "produtos/vendas_lista.html",
@@ -7242,14 +7274,14 @@ def vendas_lista(request):
             "vendas": qs,
             "total_periodo": soma.quantize(Decimal("0.01")),
             "quantidade_vendas": agg["n"] or 0,
-            "preset_ativo": (request.GET.get("preset") or "").strip().lower(),
+            "preset_ativo": preset_ativo,
         },
     )
 
 
 @login_required(login_url="/admin/login/")
 def vendas_exportar_csv(request):
-    di, df, _label = _periodo_vendas_from_request(request)
+    di, df, _label = _periodo_vendas_from_request(request, default_preset="hoje")
     qs = (
         VendaAgro.objects.filter(criado_em__date__gte=di, criado_em__date__lte=df)
         .select_related("sessao_caixa")
@@ -7383,38 +7415,184 @@ def clientes_sincronizar(request):
 
 @login_required(login_url="/admin/login/")
 def caixa_painel(request):
+    from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
+
+    from rh.utils import resolver_empresa_por_nome_fantasia
+
     aberto = _obter_sessao_caixa_aberta(request)
-    ctx = {"sessao_aberta": aberto}
+    empresa_padrao = getattr(settings, "AGRO_SAIDA_CAIXA_EMPRESA_PADRAO", "") or "Agro Mais Centro"
+    emp = resolver_empresa_por_nome_fantasia(empresa_padrao)
+    ctx = {
+        "sessao_aberta": aberto,
+        "formas_pagamento_caixa": list(FORMAS_PAGAMENTO_CAIXA),
+        "planos_json": json.dumps(SAIDA_CAIXA_PLANOS, ensure_ascii=False),
+        "empresa_padrao": empresa_padrao,
+        "empresa_padrao_id": emp.pk if emp else "",
+        "qtd_caixas_abertos": SessaoCaixa.objects.filter(fechado_em__isnull=True).count(),
+    }
     if aberto:
+        aberto = (
+            SessaoCaixa.objects.prefetch_related("vendas", "movimentos")
+            .filter(pk=aberto.pk, fechado_em__isnull=True)
+            .first()
+        ) or aberto
         vendas = VendaAgro.objects.filter(sessao_caixa=aberto)
         ctx["qtd_vendas_sessao"] = vendas.count()
         s = vendas.aggregate(soma=Sum("total"))["soma"]
         ctx["total_vendas_sessao"] = (
             s.quantize(Decimal("0.01")) if s is not None else Decimal("0")
         )
+        linhas = linhas_resumo_caixa(aberto)
+        ctx["linhas_resumo_caixa"] = [
+            {
+                "forma": L["forma"],
+                "esperado": str(L["esperado"]),
+                "vendas": str(L["vendas"]),
+                "reforcos": str(L["reforcos"]),
+                "retiradas": str(L["retiradas"]),
+                "abertura_dinheiro": str(L["abertura_dinheiro"]),
+            }
+            for L in linhas
+        ]
+        esp_din = Decimal("0")
+        for L in linhas:
+            if L["forma"] == "Dinheiro":
+                esp_din = L["esperado"]
+                break
+        ctx["esperado_dinheiro_sessao"] = str(esp_din.quantize(Decimal("0.01")))
+        ctx["movimentos_caixa"] = list(
+            aberto.movimentos.select_related("usuario").all()[:25]
+        )
+        dia_ref = timezone.localdate(aberto.aberto_em)
+        orfas_qs = VendaAgro.objects.filter(
+            sessao_caixa__isnull=True, criado_em__date=dia_ref
+        ).order_by("-criado_em")
+        ctx["vendas_orfas"] = orfas_qs[:50]
+        ctx["qtd_vendas_orfas"] = orfas_qs.count()
+        agg_orf = orfas_qs.aggregate(s=Sum("total"))["s"]
+        ctx["total_vendas_orfas"] = (
+            agg_orf.quantize(Decimal("0.01")) if agg_orf is not None else Decimal("0")
+        )
+    painel_raw = (request.GET.get("painel") or "menu").strip().lower()
+    paineis_ok = {"menu", "saldo", "reforco", "retirada"}
+    painel = painel_raw if painel_raw in paineis_ok else "menu"
+    if painel in ("saldo", "reforco") and not aberto:
+        painel = "menu"
+    ctx["painel"] = painel
     return render(request, "produtos/caixa_painel.html", ctx)
 
 
 @login_required(login_url="/admin/login/")
-@ensure_csrf_cookie
-def caixa_saida_view(request):
-    """Formulário dedicado: saída rápida no caixa (plano de conta + quem levou)."""
-    from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
+def caixa_relatorio(request):
+    from produtos.caixa_relatorio_util import montar_relatorio_caixa
 
-    from rh.utils import resolver_empresa_por_nome_fantasia
-
-    empresa_padrao = getattr(settings, "AGRO_SAIDA_CAIXA_EMPRESA_PADRAO", "") or "Agro Mais Centro"
-    emp = resolver_empresa_por_nome_fantasia(empresa_padrao)
-    empresa_padrao_id = emp.pk if emp else ""
+    di, df, label = _periodo_vendas_from_request(request, default_preset="hoje")
+    filtro_sessao = None
+    raw_sess = (request.GET.get("sessao") or "").strip()
+    if raw_sess.isdigit():
+        filtro_sessao = int(raw_sess)
+    rel = montar_relatorio_caixa(di, df, sessao_id=filtro_sessao)
+    preset_get = (request.GET.get("preset") or "").strip().lower()
+    tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
+    preset_ativo = preset_get or ("" if tem_datas_custom else "hoje")
     return render(
         request,
-        "produtos/caixa_saida.html",
+        "produtos/caixa_relatorio.html",
         {
-            "planos_json": json.dumps(SAIDA_CAIXA_PLANOS, ensure_ascii=False),
-            "empresa_padrao": empresa_padrao,
-            "empresa_padrao_id": empresa_padrao_id,
+            "data_ini": di,
+            "data_fim": df,
+            "periodo_label": label,
+            "preset_ativo": preset_ativo,
+            "filtro_sessao": filtro_sessao,
+            "secoes": rel["secoes"],
+            "tot_entrada": rel["tot_entrada"],
+            "tot_saida": rel["tot_saida"],
+            "saldo": rel["saldo"],
+            "sessoes_opts": rel["sessoes_opts"],
         },
     )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_caixa_movimento(request):
+    """Reforço ou retirada manual no caixa aberto (por forma de pagamento)."""
+    sessao = _obter_sessao_caixa_aberta(request)
+    if not sessao:
+        return JsonResponse({"ok": False, "erro": "Nenhum caixa aberto neste navegador."}, status=400)
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    tipo = str(data.get("tipo") or "").strip().lower()
+    if tipo not in (MovimentoCaixa.Tipo.REFORCO, MovimentoCaixa.Tipo.RETIRADA):
+        return JsonResponse({"ok": False, "erro": "Tipo inválido (reforco ou retirada)."}, status=400)
+    forma = normalizar_forma_pagamento_caixa(str(data.get("forma_pagamento") or ""))
+    valor = parse_valor_moeda_br(data.get("valor"))
+    if valor is None or valor <= 0:
+        return JsonResponse({"ok": False, "erro": "Informe um valor maior que zero."}, status=400)
+    obs = str(data.get("observacao") or "").strip()[:500]
+    mov = MovimentoCaixa.objects.create(
+        sessao_caixa=sessao,
+        tipo=tipo,
+        forma_pagamento=forma,
+        valor=valor,
+        observacao=obs,
+        usuario=request.user if request.user.is_authenticated else None,
+    )
+    return JsonResponse(
+        {
+            "ok": True,
+            "movimento_id": mov.pk,
+            "tipo": mov.tipo,
+            "forma_pagamento": mov.forma_pagamento,
+            "valor": str(mov.valor),
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_caixa_vincular_vendas(request):
+    """Associa vendas sem sessão ao caixa aberto (ex.: vendas antes da abertura)."""
+    sessao = _obter_sessao_caixa_aberta(request)
+    if not sessao:
+        return JsonResponse({"ok": False, "erro": "Nenhum caixa aberto neste navegador."}, status=400)
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    todas_hoje = bool(data.get("todas_do_dia"))
+    ids_raw = data.get("venda_ids") or []
+    if not isinstance(ids_raw, list):
+        ids_raw = []
+    ids = []
+    for x in ids_raw[:200]:
+        try:
+            ids.append(int(x))
+        except (TypeError, ValueError):
+            continue
+    qs = VendaAgro.objects.filter(sessao_caixa__isnull=True)
+    if todas_hoje:
+        dia_ref = timezone.localdate(sessao.aberto_em)
+        qs = qs.filter(criado_em__date=dia_ref)
+    elif ids:
+        qs = qs.filter(pk__in=ids)
+    else:
+        return JsonResponse(
+            {"ok": False, "erro": "Informe venda_ids ou todas_do_dia=true."},
+            status=400,
+        )
+    vinculadas = qs.update(sessao_caixa=sessao)
+    return JsonResponse({"ok": True, "vinculadas": vinculadas})
+
+
+@login_required(login_url="/admin/login/")
+def caixa_saida_view(request):
+    """Legado: saída unificada no painel do caixa."""
+    from django.http import HttpResponseRedirect
+
+    return HttpResponseRedirect(reverse("caixa_painel") + "#retirada")
 
 
 @login_required(login_url="/admin/login/")
@@ -7442,36 +7620,170 @@ def caixa_abrir(request):
 
 @login_required(login_url="/admin/login/")
 def caixa_fechar(request):
-    sessao = _obter_sessao_caixa_aberta(request)
-    if not sessao:
-        messages.info(request, "Nenhum caixa aberto neste navegador.")
+    sessoes_qs = (
+        SessaoCaixa.objects.filter(fechado_em__isnull=True)
+        .select_related("usuario")
+        .prefetch_related("vendas", "movimentos")
+        .order_by("aberto_em")
+    )
+    sessoes = list(sessoes_qs)
+    if not sessoes:
+        messages.info(request, "Nenhum caixa aberto no sistema.")
         return redirect("caixa_painel")
-    vendas = VendaAgro.objects.filter(sessao_caixa=sessao)
-    qtd = vendas.count()
-    tot = vendas.aggregate(s=Sum("total"))["s"] or Decimal("0")
-    tot = tot.quantize(Decimal("0.01"))
-    if request.method == "POST":
-        raw = (request.POST.get("valor_fechamento") or "").replace(",", ".").strip()
+
+    def _fmt_linhas(linhas):
+        return [
+            {
+                "forma": L["forma"],
+                "esperado": str(L["esperado"]),
+                "vendas": str(L["vendas"]),
+                "reforcos": str(L["reforcos"]),
+                "retiradas": str(L["retiradas"]),
+                "abertura_dinheiro": str(L["abertura_dinheiro"]),
+            }
+            for L in linhas
+        ]
+
+    def _usuario_sessao(s):
+        if not s.usuario_id:
+            return "—"
+        u = s.usuario
+        return (u.get_full_name() or "").strip() or u.get_username() or f"#{u.pk}"
+
+    def _conferencia_de_post(linhas, post):
+        conferencia: dict = {}
+        cont_din = None
+        for i, L in enumerate(linhas):
+            fn = (post.get(f"forma_{i}") or L["forma"]).strip()
+            raw_cont = (post.get(f"contado_{i}") or "").strip()
+            esp = L["esperado"] if isinstance(L["esperado"], Decimal) else Decimal(str(L["esperado"]))
+            cont = parse_valor_moeda_br(raw_cont) if raw_cont else None
+            row = {
+                "esperado": str(esp.quantize(Decimal("0.01"))),
+                "contado": str(cont.quantize(Decimal("0.01"))) if cont is not None else "",
+            }
+            if cont is not None:
+                row["diferenca"] = str((cont - esp).quantize(Decimal("0.01")))
+            conferencia[fn] = row
+            if fn == "Dinheiro" and cont is not None:
+                cont_din = cont
+        return conferencia, cont_din
+
+    def _limpar_sessao_browser(request, pk):
         try:
-            vf = Decimal(raw) if raw else None
-        except Exception:
-            vf = None
+            if int(request.session.get("pdv_sessao_caixa_id") or 0) == int(pk):
+                request.session.pop("pdv_sessao_caixa_id", None)
+        except (TypeError, ValueError):
+            pass
+
+    linhas_todos_raw = linhas_conferencia_agregada(sessoes, todas_formas=True)
+    cards = []
+    for s in sessoes:
+        vendas = s.vendas.all()
+        qtd = len(vendas)
+        tot = sum((_dec(v.total) for v in vendas), Decimal("0")).quantize(Decimal("0.01"))
+        linhas_sess = linhas_conferencia_fechar(s)
+        esp_din = Decimal("0")
+        for L in linhas_sess:
+            if L["forma"] == "Dinheiro":
+                esp_din = _dec(L["esperado"])
+                break
+        cards.append(
+            {
+                "sessao": s,
+                "usuario": _usuario_sessao(s),
+                "qtd_vendas": qtd,
+                "total_vendas": str(tot),
+                "esperado_dinheiro": str(esp_din.quantize(Decimal("0.01"))),
+                "linhas": _fmt_linhas(linhas_sess),
+            }
+        )
+
+    if request.method == "POST":
+        acao = (request.POST.get("acao") or "fechar_todos").strip()
+        if acao == "fechar_um":
+            try:
+                sid = int(request.POST.get("sessao_id") or 0)
+            except (TypeError, ValueError):
+                sid = 0
+            sessao = next((s for s in sessoes if s.pk == sid), None)
+            if not sessao:
+                messages.error(request, "Caixa não encontrado ou já fechado.")
+                return redirect("caixa_fechar")
+            linhas = linhas_conferencia_fechar(sessao)
+            conferencia, cont_din = _conferencia_de_post(linhas, request.POST)
+            obs = (request.POST.get("observacao_fechamento") or "").strip()[:500]
+            sessao.fechado_em = timezone.now()
+            sessao.conferencia_fechamento = conferencia
+            sessao.observacao_fechamento = obs
+            if cont_din is not None:
+                sessao.valor_fechamento = cont_din.quantize(Decimal("0.01"))
+            sessao.save()
+            _limpar_sessao_browser(request, sessao.pk)
+            messages.success(request, f"Caixa #{sessao.pk} fechado.")
+            return redirect("caixa_fechar")
+        # Fechar todos (padrão operacional)
+        linhas = linhas_todos_raw
+        conferencia_lote, cont_din_lote = _conferencia_de_post(linhas, request.POST)
         obs = (request.POST.get("observacao_fechamento") or "").strip()[:500]
-        sessao.fechado_em = timezone.now()
-        if vf is not None:
-            sessao.valor_fechamento = vf.quantize(Decimal("0.01"))
-        sessao.observacao_fechamento = obs
-        sessao.save()
-        request.session.pop("pdv_sessao_caixa_id", None)
-        messages.success(request, f"Caixa #{sessao.pk} fechado.")
+        agora = timezone.now()
+        n = 0
+        for sessao in sessoes:
+            ind = linhas_conferencia_fechar(sessao)
+            conf_ind = {}
+            for L in ind:
+                fn = L["forma"]
+                conf_ind[fn] = {
+                    "esperado": str(L["esperado"].quantize(Decimal("0.01"))),
+                    "contado": "",
+                }
+            conf_ind["_lote"] = conferencia_lote
+            sessao.fechado_em = agora
+            sessao.conferencia_fechamento = conf_ind
+            sessao.observacao_fechamento = obs
+            if cont_din_lote is not None:
+                sessao.valor_fechamento = cont_din_lote.quantize(Decimal("0.01"))
+            sessao.save()
+            _limpar_sessao_browser(request, sessao.pk)
+            n += 1
+        messages.success(request, f"{n} caixa(s) fechado(s) de uma vez.")
         return redirect("caixa_painel")
+
+    tot_esperado_din = Decimal("0")
+    for L in linhas_todos_raw:
+        if L["forma"] == "Dinheiro":
+            tot_esperado_din = L["esperado"]
+            break
+
+    all_linhas = _fmt_linhas(linhas_todos_raw)
+    linhas_com_movimento = []
+    linhas_sem_movimento = []
+    for i, L in enumerate(all_linhas):
+        row = dict(L)
+        row["idx"] = i
+        tem = False
+        for k in ("esperado", "vendas", "reforcos", "retiradas", "abertura_dinheiro"):
+            try:
+                if Decimal(str(L[k])) != 0:
+                    tem = True
+                    break
+            except Exception:
+                pass
+        if tem:
+            linhas_com_movimento.append(row)
+        else:
+            linhas_sem_movimento.append(row)
+
     return render(
         request,
         "produtos/caixa_fechar.html",
         {
-            "sessao": sessao,
-            "qtd_vendas": qtd,
-            "total_vendas": tot,
+            "sessoes_abertas": cards,
+            "qtd_caixas": len(sessoes),
+            "linhas_com_movimento": linhas_com_movimento,
+            "linhas_sem_movimento": linhas_sem_movimento,
+            "tot_esperado_dinheiro": str(tot_esperado_din),
+            "sessao_local": _obter_sessao_caixa_aberta(request),
         },
     )
 
@@ -7492,7 +7804,152 @@ def venda_agro_detalhe(request, pk):
     return render(
         request,
         "produtos/venda_agro_detalhe.html",
-        {"v": v, "erp_resposta_text": erp_txt},
+        {
+            "v": v,
+            "erp_resposta_text": erp_txt,
+            "pagamentos_devolucao_default": pagamentos_lista_de_venda(v),
+            "formas_pagamento_caixa": list(FORMAS_PAGAMENTO_CAIXA),
+        },
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_venda_agro_devolver(request, pk):
+    """Devolução total da venda: repõe estoque Agro e registra retirada(s) no caixa aberto."""
+    venda = get_object_or_404(
+        VendaAgro.objects.select_related("sessao_caixa").prefetch_related("itens"),
+        pk=pk,
+    )
+    if venda.devolvida_em:
+        return JsonResponse({"ok": False, "erro": "Esta venda já foi devolvida."}, status=400)
+
+    sessao = _obter_sessao_caixa_aberta(request)
+    if not sessao:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Abra o caixa neste navegador para registrar a saída do valor devolvido ao cliente.",
+            },
+            status=400,
+        )
+
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+
+    motivo = str(payload.get("motivo") or "").strip()[:500]
+    raw_pag = payload.get("pagamentos")
+    if raw_pag is None:
+        raw_pag = pagamentos_lista_de_venda(venda)
+    pagamentos, err_pag = normalizar_pagamentos_devolucao(
+        raw_pag, total_venda=venda.total
+    )
+    if err_pag:
+        return JsonResponse({"ok": False, "erro": err_pag}, status=400)
+
+    user_label = ""
+    if request.user.is_authenticated:
+        user_label = (
+            (request.user.get_full_name() or "").strip()
+            or request.user.get_username()
+            or str(request.user.pk)
+        )
+
+    avisos: list[str] = []
+    movimento_ids: list[int] = []
+    estoque_ok = True
+
+    with transaction.atomic():
+        if venda.estoque_baixa_agro_aplicada:
+            try:
+                cm, dbe = obter_conexao_mongo()
+            except Exception as exc:
+                cm, dbe = None, None
+                logger.exception("devolucao venda mongo: %s", exc)
+            if cm is not None and dbe is not None:
+                dep_v = getattr(settings, "PDV_VENDA_ESTOQUE_DEPOSITO", "centro") or "centro"
+                if dep_v not in ("centro", "vila"):
+                    dep_v = "centro"
+                r_est = aplicar_estorno_estoque_venda_agro(
+                    db=dbe,
+                    client_m=cm,
+                    venda=venda,
+                    deposito=dep_v,
+                    usuario_label=user_label,
+                    usuario_django=request.user if request.user.is_authenticated else None,
+                )
+                if r_est.get("erros"):
+                    estoque_ok = False
+                    msgs = "; ".join(
+                        str(e.get("erro") or e)[:120] for e in r_est["erros"][:3]
+                    )
+                    return JsonResponse(
+                        {
+                            "ok": False,
+                            "erro": "Falha ao repor estoque: " + (msgs or "erro desconhecido"),
+                        },
+                        status=400,
+                    )
+                if r_est.get("avisos"):
+                    for av in r_est["avisos"]:
+                        avisos.append(str(av.get("msg") or av))
+                if r_est.get("aplicados"):
+                    _invalidar_caches_apos_ajuste_pin()
+            else:
+                avisos.append("Mongo indisponível — estoque não foi reposto na camada Agro.")
+                estoque_ok = False
+        else:
+            avisos.append("Venda sem baixa automática de estoque — nada a repor no Agro.")
+
+        obs_base = f"Devolução venda #{venda.pk}"
+        if motivo:
+            obs_base += f" — {motivo}"
+        for row in pagamentos or []:
+            fn = normalizar_forma_pagamento_caixa(str(row.get("forma") or ""))
+            val = parse_valor_moeda_br(row.get("valor"))
+            if val is None or val <= 0:
+                continue
+            mov = MovimentoCaixa.objects.create(
+                sessao_caixa=sessao,
+                tipo=MovimentoCaixa.Tipo.RETIRADA,
+                forma_pagamento=fn,
+                valor=val,
+                observacao=obs_base[:500],
+                usuario=request.user if request.user.is_authenticated else None,
+            )
+            movimento_ids.append(mov.pk)
+
+        if not movimento_ids:
+            return JsonResponse(
+                {"ok": False, "erro": "Nenhuma retirada de caixa foi registrada."},
+                status=400,
+            )
+
+        venda.devolvida_em = timezone.now()
+        venda.devolucao_motivo = motivo
+        venda.devolucao_pagamentos_json = pagamentos
+        venda.devolucao_movimento_caixa_ids = movimento_ids
+        venda.devolucao_usuario = user_label[:150]
+        venda.save(
+            update_fields=[
+                "devolvida_em",
+                "devolucao_motivo",
+                "devolucao_pagamentos_json",
+                "devolucao_movimento_caixa_ids",
+                "devolucao_usuario",
+            ]
+        )
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "mensagem": "Devolução registrada. Estoque reposto e valor saiu do caixa aberto.",
+            "movimento_ids": movimento_ids,
+            "estoque_reposto": bool(venda.estoque_baixa_agro_aplicada and estoque_ok),
+            "avisos": avisos,
+        }
     )
 
 
@@ -8841,6 +9298,140 @@ def aplicar_baixa_estoque_venda_agro(
         "avisos": []
         if aplicados
         else ([{"msg": "Nenhum item com produto de catálogo para baixar."}]),
+    }
+
+
+def aplicar_estorno_estoque_venda_agro(
+    *,
+    db,
+    client_m,
+    venda: VendaAgro,
+    deposito: str,
+    usuario_label: str,
+    usuario_django=None,
+) -> dict:
+    """Entrada de estoque na camada Agro (estorno da baixa da venda)."""
+    dep_sess = (deposito or "centro").strip().lower()
+    if dep_sess not in ("centro", "vila"):
+        dep_sess = "centro"
+    user = (usuario_label or "PDV")[:80]
+    aplicados: list[dict] = []
+    erros: list[dict] = []
+
+    def _uma_entrada(
+        pid_loc: str,
+        qtd_loc: Decimal,
+        nome_ref: str,
+        codigo_interno_ln: str,
+        dep_loc: str,
+    ) -> None:
+        dep_l = (dep_loc or "centro").strip().lower()
+        if dep_l not in ("centro", "vila"):
+            dep_l = "centro"
+        empresa, loja = _empresa_loja_padrao_agro_estoque(dep_l)
+        saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid_loc, dep_l)
+        saldo_antes = _saldo_final_agro_com_pin(pid_loc, dep_l, saldo_erp)
+        saldo_depois = (saldo_antes + qtd_loc).quantize(Decimal("0.001"))
+        try:
+            AjusteRapidoEstoque.objects.create(
+                empresa=empresa,
+                loja=loja,
+                produto_externo_id=pid_loc[:100],
+                codigo_interno=str(codigo_interno_ln or "")[:100],
+                nome_produto=(
+                    f"{(nome_ref or '')[:120]} · Devolução venda #{venda.pk} Agro ({user})"
+                )[:255],
+                deposito=dep_l,
+                saldo_erp_referencia=saldo_erp,
+                saldo_informado=saldo_depois,
+                origem=OrigemAjusteEstoque.DEVOLUCAO_VENDA_PDV,
+                usuario=usuario_django if usuario_django is not None else None,
+            )
+            aplicados.append(
+                {
+                    "produto_id": pid_loc,
+                    "deposito": dep_l,
+                    "quantidade": float(qtd_loc),
+                    "saldo_agro_antes": float(saldo_antes),
+                    "saldo_agro_depois": float(saldo_depois),
+                }
+            )
+        except Exception as exc:
+            logger.exception(
+                "aplicar_estorno_estoque_venda_agro venda=%s produto=%s", venda.pk, pid_loc
+            )
+            erros.append({"produto_id": pid_loc, "erro": str(exc)[:300]})
+
+    for it in venda.itens.all():
+        pid = str(it.produto_id_externo or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            continue
+        try:
+            qtd = Decimal(str(it.quantidade))
+        except Exception:
+            erros.append({"produto_id": pid, "erro": "Quantidade inválida."})
+            continue
+        if qtd <= 0:
+            continue
+
+        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
+        ex = (ov.cadastro_extras if ov and isinstance(ov.cadastro_extras, dict) else {}) or {}
+        kit_cfg = ex.get("kit") if isinstance(ex.get("kit"), dict) else {}
+        baixa_cmp = bool(kit_cfg.get("baixa_componentes"))
+        dep_kit = _deposito_baixa_kit_componente(kit_cfg, dep_sess)
+
+        p_doc = _produto_mongo_por_id_externo(db, client_m, pid) if db is not None else None
+        comp = _extrair_composicao_produto_mongo(p_doc or {}) if p_doc else []
+
+        if baixa_cmp and comp:
+            for c in comp:
+                child_pid = str(c.get("produto_id") or "").strip()
+                if not child_pid:
+                    continue
+                qraw = c.get("quantidade") or c.get("Qtd") or 1
+                try:
+                    fq = Decimal(str(qraw).replace(",", ".").strip() or "1")
+                except Exception:
+                    fq = Decimal(1)
+                if fq <= 0:
+                    fq = Decimal(1)
+                q_need = (fq * qtd).quantize(Decimal("0.001"))
+                nome_c = str(c.get("nome") or "").strip() or child_pid
+                cod_c = str(c.get("codigo") or "").strip()
+                dep_linha = dep_kit
+                cdep = str(c.get("deposito") or "").strip().lower()
+                if cdep in ("centro", "vila"):
+                    dep_linha = cdep
+                elif cdep == "1":
+                    dep_linha = "centro"
+                elif cdep == "2":
+                    dep_linha = "vila"
+                elif cdep == "3":
+                    dep_linha = "centro"
+                _uma_entrada(child_pid, q_need, nome_c, cod_c, dep_linha)
+        else:
+            _uma_entrada(
+                pid,
+                qtd,
+                str(it.descricao or ""),
+                str(it.codigo or ""),
+                dep_sess,
+            )
+
+    if not aplicados and not erros:
+        return {
+            "ok": True,
+            "aplicados": [],
+            "erros": [],
+            "avisos": [{"msg": "Nenhum item de catálogo para repor estoque."}],
+            "pulou_estoque": True,
+        }
+    return {
+        "ok": len(erros) == 0 and len(aplicados) > 0,
+        "aplicados": aplicados,
+        "erros": erros,
+        "avisos": [],
+        "pulou_estoque": False,
     }
 
 
@@ -11222,6 +11813,40 @@ def api_lancamentos_excluir(request):
     return JsonResponse({"ok": True})
 
 
+def _anexar_retirada_turno_caixa_saida(
+    request,
+    out: dict,
+    *,
+    valor,
+    forma_nome: str,
+    plano_id_req: str,
+    plan_map: dict,
+    plano: str,
+    motivo: str,
+    desc_linha: str,
+) -> None:
+    """Se houver caixa aberto, registra retirada no turno após saída financeira."""
+    try:
+        obs_parts: list[str] = []
+        if plano_id_req and plano_id_req in plan_map:
+            obs_parts.append(str(plan_map[plano_id_req].get("label") or plano))
+        elif plano:
+            obs_parts.append(plano)
+        if motivo:
+            obs_parts.append(motivo)
+        obs = " · ".join(obs_parts).strip() or desc_linha
+        mov = registrar_retirada_turno_caixa(
+            request,
+            valor=Decimal(str(valor)),
+            forma_nome=forma_nome,
+            observacao=obs[:500],
+        )
+        if mov:
+            out["movimento_caixa_id"] = mov.pk
+    except Exception:
+        logger.exception("Caixa: retirada no turno após saída financeira")
+
+
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_lancamentos_saida_caixa(request):
@@ -11358,6 +11983,18 @@ def api_lancamentos_saida_caixa(request):
             }
             if not alt.get("ok"):
                 out["erro"] = alt.get("erro") or "Não foi possível registrar o vale."
+            if out.get("ids"):
+                _anexar_retirada_turno_caixa_saida(
+                    request,
+                    out,
+                    valor=valor,
+                    forma_nome=forma_nome,
+                    plano_id_req=plano_id_req,
+                    plan_map=plan_map,
+                    plano=plano,
+                    motivo=motivo,
+                    desc_linha=desc_linha,
+                )
             return JsonResponse(out, status=st)
         return JsonResponse(
             {
@@ -11455,6 +12092,18 @@ def api_lancamentos_saida_caixa(request):
             )
         except Exception:
             logger.exception("RH: vale automático pós-saída caixa")
+    if ids:
+        _anexar_retirada_turno_caixa_saida(
+            request,
+            out,
+            valor=valor,
+            forma_nome=forma_nome,
+            plano_id_req=plano_id_req,
+            plan_map=plan_map,
+            plano=plano,
+            motivo=motivo,
+            desc_linha=desc_linha,
+        )
     return JsonResponse(out, status=st)
 
 
@@ -12333,8 +12982,8 @@ def motor_de_busca_agro(
     if termo_limpo and _termo_parece_codigo(termo_original):
         query_cod_exato = {**base_filter, INDEX_CODIGOS_CAMPO: termo_ix}
         exatos = find_prod(query_cod_exato, max(limit, 10))
-        if exatos:
-            return merge_busca_codigo_prioridade_principal(exatos, [], termo_limpo, limit)
+        # Não encerrar só no código raiz (ex.: gm0003): incluir variantes gm0003-1, gm0003-10 no prefixo.
+        adicionar(exatos)
 
         query_cod_prefixo = {
             **base_filter,
@@ -12645,6 +13294,8 @@ _WIZARD_CATALOG_MONGO_PROJECTION = {
     "Nome": 1,
     "Marca": 1,
     "CadastroInativo": 1,
+    INDEX_CODIGOS_CAMPO: 1,
+    "BuscaTexto": 1,
     "Codigo": 1,
     "CodigoNFe": 1,
     "ValorVenda": 1,
@@ -13020,11 +13671,27 @@ def api_buscar_produtos(request):
 
             _ix_raw = p.get(INDEX_CODIGOS_CAMPO)
             if wizard_catalog:
-                _ix_out: list[str] = []
+                _ix_out = (
+                    [str(x) for x in _ix_raw[:64] if x is not None and str(x).strip()]
+                    if isinstance(_ix_raw, list)
+                    else []
+                )
             elif isinstance(_ix_raw, list):
                 _ix_out = [str(x) for x in _ix_raw[:260]]
             else:
                 _ix_out = []
+            _busca_wiz_parts = [
+                p.get("Nome"),
+                p.get("Marca"),
+                codigo_nfe,
+                codigo,
+                codigo_barras,
+                p.get("NomeCategoria"),
+                p.get("Categoria"),
+            ]
+            if wizard_catalog:
+                _busca_wiz_parts.extend(_ix_out)
+                _busca_wiz_parts.append(str(p.get("BuscaTexto") or ""))
             row = {
                 "id": pid,
                 "nome": p.get("Nome"),
@@ -13033,6 +13700,11 @@ def api_buscar_produtos(request):
                 "codigo_nfe": codigo_nfe,
                 "codigo_barras": codigo_barras,
                 "index_codigos": _ix_out,
+                "busca_texto": normalizar(
+                    " ".join(str(x) for x in _busca_wiz_parts if x)
+                )
+                if wizard_catalog
+                else "",
                 "preco_venda": round(_float_api_json(pv), 2),
                 "imagem": _formatar_url_imagem(_extrair_imagem_produto(p, {}, pid)),
                 "saldo_centro": round(_float_api_json(saldo_centro), 2),
@@ -13097,7 +13769,8 @@ def api_buscar_produtos(request):
                     str(r.get("nome") or "").lower(),
                 )
             )
-            res = res[:24]
+            lim_wiz = 48 if _termo_parece_codigo(q_wiz_strip) else 24
+            res = res[:lim_wiz]
         else:
             res.sort(
                 key=lambda r: (
@@ -13719,6 +14392,12 @@ def _resolver_similares_produto_mongo(db, client_m, p: dict, limite: int = 40) -
     return out_sim
 
 
+def _permite_venda_estoque_negativo_detalhe(p: dict) -> bool:
+    from produtos.cadastro_estoque_negativo_util import mongo_permite_venda_estoque_negativo_de_doc
+
+    return mongo_permite_venda_estoque_negativo_de_doc(p)
+
+
 def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
     """Enriquece o JSON de cadastro com campos usados na tela ERP (leitura Mongo)."""
     row = _produto_mongo_para_cadastro_row(p)
@@ -13810,16 +14489,7 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
         "estoque_maximo": _mongo_primeiro_float(
             p, ("EstoqueMaximo", "MaximoEstoque", "EstoqueMax", "QuantidadeMaximaEstoque")
         ),
-        "permite_venda_estoque_negativo": _b(
-            (
-                "PermitirEstoqueNegativo",
-                "VendaComEstoqueNegativo",
-                "PermiteVendaSemEstoque",
-                "EstoqueNegativo",
-                "PermiteVendaEstoqueNegativo",
-                "NaoEmitirAlertasPermitirVendaEstoqueNegativo",
-            )
-        ),
+        "permite_venda_estoque_negativo": _permite_venda_estoque_negativo_detalhe(p),
         "nao_emitir_alertas_estoque": _b(
             (
                 "NaoEmitirAlertaEstoque",
@@ -16020,6 +16690,9 @@ def _persistir_venda_agro(
             if enviado_erp_com_sucesso
             else VendaAgro.ErpSyncStatus.FALHA_COMUNICACAO
         )
+    pagamentos_json = pagamentos_json_de_payload(data)
+    if not pagamentos_json and total > 0:
+        pagamentos_json = [{"forma": forma or "Outro", "valor": float(total.quantize(Decimal("0.01")))}]
 
     with transaction.atomic():
         v = VendaAgro.objects.create(
@@ -16028,6 +16701,7 @@ def _persistir_venda_agro(
             cliente_documento=re.sub(r"\D", "", doc)[:20],
             total=total.quantize(Decimal("0.01")),
             forma_pagamento=forma,
+            pagamentos_json=pagamentos_json or None,
             erp_sync_status=sync_st,
             enviado_erp=bool(enviado_erp_com_sucesso),
             erp_http_status=st,
@@ -16508,6 +17182,52 @@ def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
     }
 
 
+def _enviar_venda_erp_background_worker(venda_id: int, data: dict):
+    """Thread: conclui Pedidos/Salvar e atualiza ``VendaAgro`` (não bloqueia o PDV)."""
+    from django.db import close_old_connections
+
+    payload = copy.deepcopy(data)
+    close_old_connections()
+    try:
+        client_m, db = obter_conexao_mongo()
+        err, out = _fluxo_enviar_pedido_erp_interno(None, payload, client_m=client_m, db=db)
+        v = VendaAgro.objects.get(pk=venda_id)
+        if err is not None or not out:
+            if v.erp_sync_status == VendaAgro.ErpSyncStatus.PENDENTE:
+                v.erp_sync_status = VendaAgro.ErpSyncStatus.FALHA_COMUNICACAO
+                v.save(update_fields=["erp_sync_status"])
+            return
+        _atualizar_venda_agro_resposta_erp(v, out["status"], out["res"], out["erp_sync"])
+        if not out.get("sucesso_erp"):
+            logger.warning(
+                "Venda %s: envio ERP assíncrono não aceito — %s",
+                venda_id,
+                (out.get("msg_erro_ui") or "")[:500],
+            )
+    except VendaAgro.DoesNotExist:
+        logger.error("Venda %s não encontrada para envio ERP assíncrono.", venda_id)
+    except Exception:
+        logger.exception("Falha no envio ERP assíncrono da venda %s.", venda_id)
+        try:
+            v = VendaAgro.objects.get(pk=venda_id)
+            if v.erp_sync_status == VendaAgro.ErpSyncStatus.PENDENTE:
+                v.erp_sync_status = VendaAgro.ErpSyncStatus.FALHA_COMUNICACAO
+                v.save(update_fields=["erp_sync_status"])
+        except Exception:
+            pass
+    finally:
+        close_old_connections()
+
+
+def _disparar_envio_erp_venda_background(venda_id: int, data: dict):
+    threading.Thread(
+        target=_enviar_venda_erp_background_worker,
+        args=(venda_id, data),
+        daemon=True,
+        name=f"erp-venda-{venda_id}",
+    ).start()
+
+
 @require_POST
 def api_enviar_pedido_erp(request):
     try:
@@ -16518,6 +17238,35 @@ def api_enviar_pedido_erp(request):
     data.pop("idempotency_key", None)
     try:
         client_m, db = obter_conexao_mongo()
+        if getattr(settings, "PDV_ERP_ENVIO_ASSINCRONO", True):
+            err_early, _linhas, _valor_final = _pdv_pedido_linhas_e_valor_final(
+                data, client_m=client_m, db=db
+            )
+            if err_early is not None:
+                return err_early
+            raw_itens = data.get("itens", [])
+            if not isinstance(raw_itens, list):
+                raw_itens = []
+            venda_local = _persistir_venda_agro(
+                request,
+                data,
+                raw_itens,
+                None,
+                None,
+                False,
+                erp_sync_status=VendaAgro.ErpSyncStatus.PENDENTE,
+            )
+            vid = venda_local.pk if venda_local else None
+            if vid:
+                _disparar_envio_erp_venda_background(vid, data)
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "venda_id": vid,
+                    "erp_pendente": True,
+                    "mensagem": "Venda registrada. Envio ao ERP em segundo plano.",
+                }
+            )
         err, out = _fluxo_enviar_pedido_erp_interno(
             request, data, client_m=client_m, db=db
         )
