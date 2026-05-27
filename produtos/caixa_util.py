@@ -278,6 +278,73 @@ def linhas_conferencia_agregada(sessoes, *, todas_formas: bool = False) -> list[
     return out
 
 
+def obter_sessao_caixa_aberta_request(request):
+    """Sessão de caixa gravada no cookie de sessão do navegador."""
+    from produtos.models import SessaoCaixa
+
+    sid = request.session.get("pdv_sessao_caixa_id")
+    if not sid:
+        return None
+    try:
+        return SessaoCaixa.objects.get(pk=int(sid), fechado_em__isnull=True)
+    except Exception:
+        request.session.pop("pdv_sessao_caixa_id", None)
+        return None
+
+
+def adotar_sessao_caixa_unica_aberta(request):
+    """
+    Quando há um único caixa aberto (ou um do usuário logado), associa ao navegador.
+    Evita vendas «sem caixa» quando o turno está aberto mas o cookie de sessão não foi setado.
+    """
+    from produtos.models import SessaoCaixa
+
+    atual = obter_sessao_caixa_aberta_request(request)
+    if atual:
+        return atual
+    qs = SessaoCaixa.objects.filter(fechado_em__isnull=True).order_by("-aberto_em")
+    usuario = getattr(request, "user", None)
+    if usuario is not None and getattr(usuario, "is_authenticated", False):
+        su = qs.filter(usuario=usuario).first()
+        if su:
+            request.session["pdv_sessao_caixa_id"] = su.pk
+            request.session.modified = True
+            return su
+    if qs.count() == 1:
+        s = qs.first()
+        if s:
+            request.session["pdv_sessao_caixa_id"] = s.pk
+            request.session.modified = True
+            return s
+    return None
+
+
+def resolver_sessao_caixa_para_venda(request, data: dict | None = None):
+    """
+    Vincula venda ao caixa: sessão do navegador → id enviado pelo PDV → único caixa aberto.
+    """
+    from produtos.models import SessaoCaixa
+
+    sessao = obter_sessao_caixa_aberta_request(request)
+    if sessao:
+        return sessao
+    raw_id = None
+    if isinstance(data, dict):
+        raw_id = data.get("sessao_caixa_id") or data.get("sessaoCaixaId")
+    if raw_id is not None and str(raw_id).strip() != "":
+        try:
+            sid = int(raw_id)
+        except (TypeError, ValueError):
+            sid = 0
+        if sid > 0:
+            sessao = SessaoCaixa.objects.filter(pk=sid, fechado_em__isnull=True).first()
+            if sessao:
+                request.session["pdv_sessao_caixa_id"] = sessao.pk
+                request.session.modified = True
+                return sessao
+    return adotar_sessao_caixa_unica_aberta(request)
+
+
 def registrar_retirada_turno_caixa(request, *, valor, forma_nome: str, observacao: str = ""):
     """Após saída financeira (plano de conta), registra retirada na sessão aberta."""
     from produtos.models import MovimentoCaixa, SessaoCaixa

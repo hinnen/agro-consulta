@@ -9,7 +9,7 @@ from typing import Any
 
 from django.utils import timezone
 
-from produtos.caixa_util import pagamentos_por_forma_venda
+from produtos.caixa_util import FORMAS_PAGAMENTO_CAIXA, normalizar_forma_pagamento_caixa, pagamentos_por_forma_venda
 from produtos.models import MovimentoCaixa, SessaoCaixa, VendaAgro
 
 
@@ -43,8 +43,12 @@ def montar_relatorio_caixa(
     df: date,
     *,
     sessao_id: int | None = None,
+    forma_pagamento: str | None = None,
 ) -> dict[str, Any]:
     ini, fim = _dt_range(di, df)
+    filtro_forma = ""
+    if forma_pagamento and str(forma_pagamento).strip():
+        filtro_forma = normalizar_forma_pagamento_caixa(str(forma_pagamento).strip())
 
     def _sessao_ok(sid) -> bool:
         if sessao_id is None:
@@ -53,6 +57,12 @@ def montar_relatorio_caixa(
             return int(sid) == int(sessao_id)
         except (TypeError, ValueError):
             return False
+
+    def _forma_ok(forma_linha: str) -> bool:
+        if not filtro_forma:
+            return True
+        fn = normalizar_forma_pagamento_caixa(str(forma_linha or "").strip())
+        return fn == filtro_forma
 
     linha_id = 0
 
@@ -97,7 +107,7 @@ def montar_relatorio_caixa(
         if not _sessao_ok(s.pk):
             continue
         fundo = _dec(s.valor_abertura)
-        if fundo > 0:
+        if fundo > 0 and _forma_ok("Dinheiro"):
             buckets["aberturas"].append(
                 _row(
                     "aberturas",
@@ -127,7 +137,7 @@ def montar_relatorio_caixa(
         if not pag:
             pag = {"Outro": _dec(v.total)}
         for fn, val in pag.items():
-            if val <= 0:
+            if val <= 0 or not _forma_ok(fn):
                 continue
             buckets["vendas"].append(
                 _row(
@@ -158,21 +168,22 @@ def montar_relatorio_caixa(
                 if not isinstance(row, dict):
                     continue
                 val = _dec(row.get("valor"))
-                if val <= 0:
+                fn_dev = str(row.get("forma") or "")
+                if val <= 0 or not _forma_ok(fn_dev):
                     continue
                 buckets["devolucoes"].append(
                     _row(
                         "devolucoes",
                         quando=v.devolvida_em,
                         descricao=f"Devolução venda #{v.pk} · {(v.cliente_nome or '')[:35]}",
-                        forma=str(row.get("forma") or ""),
+                        forma=fn_dev,
                         valor=val,
                         sinal="-",
                         sessao_pk=sid,
                         ref=f"dev:{v.pk}",
                     )
                 )
-        else:
+        elif not filtro_forma:
             buckets["devolucoes"].append(
                 _row(
                     "devolucoes",
@@ -197,7 +208,7 @@ def montar_relatorio_caixa(
         val = _dec(m.valor)
         if val <= 0:
             continue
-        if m.tipo == MovimentoCaixa.Tipo.REFORCO:
+        if m.tipo == MovimentoCaixa.Tipo.REFORCO and _forma_ok(m.forma_pagamento):
             buckets["reforcos"].append(
                 _row(
                     "reforcos",
@@ -213,7 +224,7 @@ def montar_relatorio_caixa(
         elif m.tipo == MovimentoCaixa.Tipo.RETIRADA:
             if _eh_devolucao_mov(obs):
                 continue
-            if _eh_frete_mov(obs):
+            if _eh_frete_mov(obs) and _forma_ok(m.forma_pagamento):
                 buckets["fretes"].append(
                     _row(
                         "fretes",
@@ -226,7 +237,7 @@ def montar_relatorio_caixa(
                         ref=f"mov:{m.pk}",
                     )
                 )
-            else:
+            elif _forma_ok(m.forma_pagamento):
                 buckets["retiradas"].append(
                     _row(
                         "retiradas",

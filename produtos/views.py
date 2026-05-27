@@ -61,6 +61,9 @@ from .caixa_util import (
     pagamentos_por_forma_venda,
     registrar_retirada_turno_caixa,
     resumo_esperado_por_forma,
+    obter_sessao_caixa_aberta_request,
+    adotar_sessao_caixa_unica_aberta,
+    resolver_sessao_caixa_para_venda,
 )
 from .models import (
     ClienteAgro,
@@ -5400,14 +5403,7 @@ def _periodo_vendas_from_request(request, *, default_preset="7d"):
 
 
 def _obter_sessao_caixa_aberta(request):
-    sid = request.session.get("pdv_sessao_caixa_id")
-    if not sid:
-        return None
-    try:
-        return SessaoCaixa.objects.get(pk=int(sid), fechado_em__isnull=True)
-    except (SessaoCaixa.DoesNotExist, ValueError, TypeError):
-        request.session.pop("pdv_sessao_caixa_id", None)
-        return None
+    return obter_sessao_caixa_aberta_request(request)
 
 
 def _format_moeda_br(val: Decimal) -> str:
@@ -7419,7 +7415,7 @@ def caixa_painel(request):
 
     from rh.utils import resolver_empresa_por_nome_fantasia
 
-    aberto = _obter_sessao_caixa_aberta(request)
+    aberto = _obter_sessao_caixa_aberta(request) or adotar_sessao_caixa_unica_aberta(request)
     empresa_padrao = getattr(settings, "AGRO_SAIDA_CAIXA_EMPRESA_PADRAO", "") or "Agro Mais Centro"
     emp = resolver_empresa_por_nome_fantasia(empresa_padrao)
     ctx = {
@@ -7491,7 +7487,10 @@ def caixa_relatorio(request):
     raw_sess = (request.GET.get("sessao") or "").strip()
     if raw_sess.isdigit():
         filtro_sessao = int(raw_sess)
-    rel = montar_relatorio_caixa(di, df, sessao_id=filtro_sessao)
+    filtro_forma = (request.GET.get("forma") or "").strip()
+    rel = montar_relatorio_caixa(
+        di, df, sessao_id=filtro_sessao, forma_pagamento=filtro_forma or None
+    )
     preset_get = (request.GET.get("preset") or "").strip().lower()
     tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
     preset_ativo = preset_get or ("" if tem_datas_custom else "hoje")
@@ -7504,6 +7503,8 @@ def caixa_relatorio(request):
             "periodo_label": label,
             "preset_ativo": preset_ativo,
             "filtro_sessao": filtro_sessao,
+            "filtro_forma": filtro_forma,
+            "formas_pagamento_caixa": list(FORMAS_PAGAMENTO_CAIXA),
             "secoes": rel["secoes"],
             "tot_entrada": rel["tot_entrada"],
             "tot_saida": rel["tot_saida"],
@@ -13676,6 +13677,17 @@ def api_buscar_produtos(request):
                     if isinstance(_ix_raw, list)
                     else []
                 )
+                _ix_seen = {str(x).strip().lower() for x in _ix_out}
+                for _c_extra in (codigo, codigo_nfe, codigo_barras):
+                    _cx = str(_c_extra or "").strip()
+                    if not _cx:
+                        continue
+                    _cxl = _cx.lower()
+                    if _cxl not in _ix_seen:
+                        _ix_seen.add(_cxl)
+                        _ix_out.append(_cxl)
+                        if len(_ix_out) >= 64:
+                            break
             elif isinstance(_ix_raw, list):
                 _ix_out = [str(x) for x in _ix_raw[:260]]
             else:
@@ -16682,7 +16694,7 @@ def _persistir_venda_agro(
 
     resp_json = _erp_resposta_para_json(erp_resposta_raw)
     st = erp_http_status if erp_http_status is not None and erp_http_status > 0 else None
-    sessao = _obter_sessao_caixa_aberta(request)
+    sessao = resolver_sessao_caixa_para_venda(request, data)
     sync_st = (erp_sync_status or "").strip()
     if not sync_st:
         sync_st = (

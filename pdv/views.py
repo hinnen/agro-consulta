@@ -4,7 +4,7 @@ from django.templatetags.static import static
 from django.urls import reverse
 
 from produtos.entrega_bairros_data import BAIRROS_JACUPI_RURAIS, BAIRROS_JACUPI_URBANOS
-from produtos.views import _obter_sessao_caixa_aberta
+from produtos.caixa_util import adotar_sessao_caixa_unica_aberta, obter_sessao_caixa_aberta_request
 
 _DEFAULT_MAQUININHAS_CARTAO_PDV = [
     {"id": "mp_balcao", "nome": "Mercado Pago — Balcão", "rede": "mp"},
@@ -50,7 +50,7 @@ def _safe_float_ptbr(val, default=0.0):
 
 
 def pdv_home(request):
-    caixa_aberto = _obter_sessao_caixa_aberta(request)
+    caixa_aberto = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(request)
     pdv_reabrir_from_consulta = None
     if request.GET.get("reabrir") == "1":
         chk = request.session.get("pdv_checkout")
