@@ -103,7 +103,8 @@
                 taxaEntregaRespondida: false,
                 taxaEntregaModo: '',
                 localPagamento: '',
-                meioNaEntrega: ''
+                meioNaEntrega: '',
+                pedidoEntregaPendenteId: null
             },
             pagamento: {
                 forma: '',
@@ -527,6 +528,7 @@
         state.entrega.taxaEntregaModo = '';
         state.entrega.localPagamento = '';
         state.entrega.meioNaEntrega = '';
+        state.entrega.pedidoEntregaPendenteId = null;
         var fp = String(draft.forma_pagamento || '').trim();
         var allowed = [
             '',
@@ -645,6 +647,52 @@
         notify();
     }
 
+    function exportWizardStateSnapshot() {
+        var s = getState();
+        return {
+            currentStep: s.currentStep,
+            clienteMode: s.clienteMode,
+            cliente: s.cliente ? deepClone(s.cliente) : null,
+            itens: (s.itens || []).map(function (item) {
+                return deepClone(item);
+            }),
+            entrega: deepClone(s.entrega || defaultState().entrega),
+            pagamento: deepClone(s.pagamento || defaultState().pagamento),
+            venda: deepClone(s.venda || defaultState().venda)
+        };
+    }
+
+    function hydrateFromEntregaPendente(snapshot, meta) {
+        meta = meta || {};
+        var def = defaultState();
+        var snap = snapshot && typeof snapshot === 'object' ? snapshot : {};
+        state.clienteMode = snap.clienteMode || def.clienteMode;
+        state.cliente = snap.cliente ? sanitizeCliente(snap.cliente) : null;
+        state.itens = Array.isArray(snap.itens)
+            ? snap.itens.map(function (item) {
+                  return Object.assign({}, item);
+              })
+            : [];
+        state.entrega = Object.assign({}, def.entrega, snap.entrega || {});
+        state.pagamento = Object.assign({}, def.pagamento, snap.pagamento || {});
+        if (!Array.isArray(state.pagamento.lancamentos)) state.pagamento.lancamentos = [];
+        state.venda = Object.assign({}, def.venda, snap.venda || {});
+        state.entrega.pedidoEntregaPendenteId = meta.id != null ? meta.id : null;
+        if (state.entrega.ativa) {
+            state.entrega.localPagamento = 'loja';
+            state.entrega.meioNaEntrega = '';
+        }
+        state.pagamento.forma = '';
+        state.pagamento.lancamentos = [];
+        state.pagamento.valorRecebido = '';
+        state.pagamento.trocoCalculado = '';
+        state.pagamento.valorDestaForma = '';
+        state.pagamento.clientRequestId = '';
+        state.currentStep = 'pagamento';
+        notify();
+        return true;
+    }
+
     window.AgroPdvState = {
         subscribe: function (listener) {
             if (typeof listener !== 'function') return function () {};
@@ -677,6 +725,8 @@
         setVendaField: setVendaField,
         hydrateFromBudget: hydrateFromBudget,
         hydrateFromSessionDraft: hydrateFromSessionDraft,
+        hydrateFromEntregaPendente: hydrateFromEntregaPendente,
+        exportWizardStateSnapshot: exportWizardStateSnapshot,
         reset: reset,
         toNumber: toNumber,
         addPagamentoLancamento: addPagamentoLancamento,

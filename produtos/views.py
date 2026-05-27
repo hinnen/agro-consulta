@@ -65,6 +65,14 @@ from .caixa_util import (
     adotar_sessao_caixa_unica_aberta,
     resolver_sessao_caixa_para_venda,
 )
+from .entrega_pdv_pendente_util import (
+    cancelar_entrega_pendente_pdv,
+    listar_entregas_bloqueando_fechamento_caixa,
+    listar_entregas_pendentes_pdv,
+    marcar_entrega_pendente_fechada,
+    resolver_sessao_caixa_entrega_pdv,
+    serializar_entrega_pendente_pdv,
+)
 from .models import (
     ClienteAgro,
     ItemVendaAgro,
@@ -7700,7 +7708,17 @@ def caixa_fechar(request):
             }
         )
 
+    entregas_pendentes_fechar = listar_entregas_bloqueando_fechamento_caixa()
+    fechar_bloqueado = len(entregas_pendentes_fechar) > 0
+
     if request.method == "POST":
+        if fechar_bloqueado:
+            messages.error(
+                request,
+                "Existem entregas com pagamento na entrega ainda sem venda fechada no PDV. "
+                "Finalize ou cancele em Entregas no PDV antes de fechar o caixa.",
+            )
+            return redirect("caixa_fechar")
         acao = (request.POST.get("acao") or "fechar_todos").strip()
         if acao == "fechar_um":
             try:
@@ -7785,6 +7803,9 @@ def caixa_fechar(request):
             "linhas_sem_movimento": linhas_sem_movimento,
             "tot_esperado_dinheiro": str(tot_esperado_din),
             "sessao_local": _obter_sessao_caixa_aberta(request),
+            "entregas_pendentes_fechar": entregas_pendentes_fechar,
+            "fechar_bloqueado": fechar_bloqueado,
+            "pdv_url": reverse("pdv_home"),
         },
     )
 
@@ -19423,6 +19444,25 @@ def api_entrega_registrar(request):
 
     cli_obj = _cliente_agro_de_body(body)
 
+    aguarda_pdv = bool(body.get("aguarda_pagamento_pdv"))
+    pdv_state = body.get("pdv_wizard_state")
+    if not isinstance(pdv_state, dict):
+        pdv_state = {}
+    sessao_cx = resolver_sessao_caixa_entrega_pdv(request, body)
+
+    extra_pdv = {}
+    if aguarda_pdv:
+        extra_pdv = {
+            "aguarda_pagamento_pdv": True,
+            "pdv_wizard_state": pdv_state if isinstance(pdv_state, dict) else {},
+            "sessao_caixa": sessao_cx,
+        }
+    elif body.get("aguarda_pagamento_pdv") is False:
+        extra_pdv = {
+            "aguarda_pagamento_pdv": False,
+            "pdv_wizard_state": {},
+        }
+
     if orc_id is not None:
         existente = PedidoEntrega.objects.filter(orc_local_id=orc_id).first()
         if existente:
@@ -19430,6 +19470,8 @@ def api_entrega_registrar(request):
                 setattr(existente, k, v)
             if cli_obj is not None:
                 existente.cliente_agro = cli_obj
+            for k, v in extra_pdv.items():
+                setattr(existente, k, v)
             existente.save()
             obj = existente
         else:
@@ -19438,15 +19480,78 @@ def api_entrega_registrar(request):
                 status=PedidoEntrega.Status.PENDENTE,
                 cliente_agro=cli_obj,
                 **campos,
+                **extra_pdv,
             )
     else:
         obj = PedidoEntrega.objects.create(
             status=PedidoEntrega.Status.PENDENTE,
             cliente_agro=cli_obj,
             **campos,
+            **extra_pdv,
         )
 
-    return JsonResponse({"ok": True, "id": obj.pk})
+    return JsonResponse({"ok": True, "id": obj.pk, "aguarda_pagamento_pdv": bool(obj.aguarda_pagamento_pdv)})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_pdv_entregas_pendentes(request):
+    sessao = resolver_sessao_caixa_entrega_pdv(request)
+    sid = sessao.pk if sessao else None
+    itens = listar_entregas_pendentes_pdv(sessao_caixa_id=sid)
+    return JsonResponse(
+        {
+            "ok": True,
+            "total": len(itens),
+            "itens": itens,
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_pdv_entrega_pendente_detalhe(request, pk):
+    ent = PedidoEntrega.objects.filter(pk=pk, aguarda_pagamento_pdv=True).first()
+    if not ent:
+        return JsonResponse({"ok": False, "erro": "Entrega pendente não encontrada."}, status=404)
+    return JsonResponse(
+        {
+            "ok": True,
+            "entrega": serializar_entrega_pendente_pdv(ent, incluir_estado=True),
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_pdv_entrega_pendente_finalizar(request, pk):
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        body = {}
+    venda_id = body.get("venda_id")
+    try:
+        venda_id = int(venda_id) if venda_id is not None else None
+    except (TypeError, ValueError):
+        venda_id = None
+    ent = marcar_entrega_pendente_fechada(pk, venda_agro_id=venda_id)
+    if not ent:
+        return JsonResponse({"ok": False, "erro": "Entrega pendente não encontrada."}, status=404)
+    return JsonResponse({"ok": True, "id": ent.pk, "venda_id": ent.venda_agro_id})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_pdv_entrega_pendente_cancelar(request, pk):
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        body = {}
+    motivo = str(body.get("motivo") or "Cancelado no PDV").strip()
+    ent = cancelar_entrega_pendente_pdv(pk, motivo=motivo)
+    if not ent:
+        return JsonResponse({"ok": False, "erro": "Entrega pendente não encontrada."}, status=404)
+    return JsonResponse({"ok": True, "id": ent.pk})
 
 
 @require_GET
