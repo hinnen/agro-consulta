@@ -2303,17 +2303,11 @@
       return;
     }
     const st = String(rz.status != null ? rz.status : '').trim().toLowerCase();
-    if (st === 'estoque_aplicado') {
+    if (entradaNfeEstoqueJaRegistrado(rz)) {
       btn.disabled = true;
-      btn.textContent = 'Estoque já registrado';
+      btn.textContent = st === 'encerrada' ? 'Nota encerrada' : 'Estoque já registrado';
       btn.classList.add('opacity-90', 'cursor-not-allowed');
       btn.removeAttribute('aria-busy');
-      return;
-    }
-    if (st === 'encerrada') {
-      btn.disabled = true;
-      btn.textContent = 'Nota encerrada';
-      btn.classList.add('opacity-90', 'cursor-not-allowed');
       return;
     }
     if (st === 'descartada') {
@@ -2491,6 +2485,20 @@
     if (e2 && e3 && (e4 || lotePul)) return true;
     if (e1 && e2 && e3) return true;
     return false;
+  }
+
+  /** Estoque Agro já registrado (status Mongo, carimbo ou nota concluída/PIN). */
+  function entradaNfeEstoqueJaRegistrado(rzOpt) {
+    const rz = rzOpt && typeof rzOpt === 'object' ? rzOpt : null;
+    const st = String(
+      rz && rz.status != null ? rz.status : entradaNfeRascunhoStatusUltimo || '',
+    ).trim().toLowerCase();
+    if (st === 'estoque_aplicado' || st === 'encerrada') return true;
+    const ex = rz && rz.extra && typeof rz.extra === 'object'
+      ? rz.extra
+      : (entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {});
+    if (String(ex.estoque_aplicado_em || '').trim()) return true;
+    return entradaNfeWizardFluxoLegadoOuConcluido(ex, st, entradaNfeRascunhoBucketUltimo);
   }
 
   /** Reaplica confirmações das etapas 1–4 em notas já avançadas (ex.: concluída sem timestamps). */
@@ -3175,8 +3183,7 @@
       if (!['centro', 'vila'].includes(dep)) {
         return { ok: false, irPara: 5, erro: 'Selecione o depósito na etapa 5 · Estoque.' };
       }
-      const stE = String(entradaNfeRascunhoStatusUltimo || '').trim().toLowerCase();
-      if (stE !== 'estoque_aplicado' && stE !== 'encerrada') {
+      if (!entradaNfeEstoqueJaRegistrado()) {
         return {
           ok: false,
           irPara: 5,
