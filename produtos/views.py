@@ -13676,6 +13676,17 @@ def api_buscar_produtos(request):
                     if isinstance(_ix_raw, list)
                     else []
                 )
+                _ix_seen = {str(x).strip().lower() for x in _ix_out}
+                for _c_extra in (codigo, codigo_nfe, codigo_barras):
+                    _cx = str(_c_extra or "").strip()
+                    if not _cx:
+                        continue
+                    _cxl = _cx.lower()
+                    if _cxl not in _ix_seen:
+                        _ix_seen.add(_cxl)
+                        _ix_out.append(_cxl)
+                        if len(_ix_out) >= 64:
+                            break
             elif isinstance(_ix_raw, list):
                 _ix_out = [str(x) for x in _ix_raw[:260]]
             else:

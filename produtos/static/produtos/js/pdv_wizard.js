@@ -185,7 +185,7 @@
     var clientSearchSeq = 0;
     var AUTOCOMPLETE_LIMIT = 8;
     var MAX_LOCAL_RESULTS = 48;
-    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v3';
+    var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v4';
     var wizardProductCatalog = [];
     var catalogReady = false;
     var catalogLoadPromise = null;
@@ -276,13 +276,39 @@
     function matchQueryAgainstIndexCodigos(qt, qd, p) {
         if (!Array.isArray(p.index_codigos) || !p.index_codigos.length) return false;
         var ql = String(qt || '').trim().toLowerCase();
+        if (!ql) return false;
         for (var i = 0; i < p.index_codigos.length; i++) {
             var x = String(p.index_codigos[i] == null ? '' : p.index_codigos[i]).trim();
             if (!x) continue;
-            if (x.toLowerCase() === ql) return true;
+            var xl = x.toLowerCase();
+            if (xl === ql) return true;
+            if (ql.length >= 3 && xl.indexOf(ql) === 0) return true;
             if (qd.length >= 6 && onlyDigits(x) === qd) return true;
         }
         return false;
+    }
+
+    function looksLikeSkuCode(q) {
+        var s = String(q || '').trim();
+        if (!s || /\s/.test(s)) return false;
+        if (/^\d{6,}$/.test(onlyDigits(s))) return true;
+        return /^[a-zA-Z]{1,6}[\w.\-]*\d/i.test(s);
+    }
+
+    function mergeProductsById(primary, extra) {
+        var seen = {};
+        var out = [];
+        function addList(arr) {
+            (arr || []).forEach(function (p) {
+                var id = String(p.id || '');
+                if (!id || seen[id]) return;
+                seen[id] = true;
+                out.push(p);
+            });
+        }
+        addList(primary);
+        addList(extra);
+        return out;
     }
 
     function findUniqueBarcodeMatch(q) {
@@ -2281,22 +2307,39 @@
                     resetProductSearchUi('Item adicionado pela leitura do código.');
                     return Promise.resolve();
                 }
-                if (r.list.length) {
-                    renderProductResults(r.list);
+                var localList = r.list || [];
+                var skuCode = looksLikeSkuCode(query);
+                if (localList.length && !skuCode) {
+                    renderProductResults(localList);
                     dom.productSearchFeedback.textContent =
                         'Cache local (' + wizardProductCatalog.length + ' produtos).';
                     return Promise.resolve();
                 }
-                dom.productSearchFeedback.textContent = 'Buscando no servidor…';
-                return fetchWizardServerSearch(query);
+                dom.productSearchFeedback.textContent = skuCode
+                    ? 'Buscando variantes do código…'
+                    : 'Buscando no servidor…';
+                return fetchWizardServerSearch(query).then(function (remote) {
+                    return { remote: remote, localList: localList, skuCode: skuCode };
+                });
             })
-            .then(function (remote) {
+            .then(function (payload) {
                 if (seq !== filterSeq) return;
-                if (!Array.isArray(remote)) return;
-                if (remote.length) {
-                    renderProductResults(remote);
-                    dom.productSearchFeedback.textContent =
-                        remote.length + ' encontrado(s) no servidor (fora do cache).';
+                if (!payload || !Array.isArray(payload.remote)) return;
+                var remote = payload.remote;
+                var merged = mergeProductsById(payload.localList || [], remote);
+                if (merged.length) {
+                    renderProductResults(merged);
+                    if (payload.skuCode && remote.length) {
+                        dom.productSearchFeedback.textContent =
+                            merged.length +
+                            ' encontrado(s) (cache + servidor, variantes de código).';
+                    } else if (remote.length && !(payload.localList || []).length) {
+                        dom.productSearchFeedback.textContent =
+                            remote.length + ' encontrado(s) no servidor (fora do cache).';
+                    } else {
+                        dom.productSearchFeedback.textContent =
+                            'Cache local (' + wizardProductCatalog.length + ' produtos).';
+                    }
                 } else {
                     renderProductResults([]);
                     dom.productSearchFeedback.textContent =
