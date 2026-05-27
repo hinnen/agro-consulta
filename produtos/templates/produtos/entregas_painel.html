@@ -65,6 +65,7 @@
       </select>
       <span id="meta-lista" class="text-[10px] font-black text-slate-500 uppercase ml-auto"></span>
     </div>
+    <p id="entregas-load-erro" class="hidden shrink-0 rounded-xl border-2 border-rose-300 bg-rose-50 px-3 py-2 text-xs font-bold leading-snug text-rose-950" role="alert"></p>
 
     <div class="flex-1 min-h-0 rounded-xl border-2 border-slate-200 bg-white shadow-sm overflow-auto">
       <table class="w-full min-w-[1180px] text-left text-sm">
@@ -1603,33 +1604,77 @@
     m.classList.remove('hidden');
   }
 
+  function mostrarErroCarregarEntregas(msg) {
+    var el = document.getElementById('entregas-load-erro');
+    var tb = document.getElementById('tbody-ent');
+    var empty = document.getElementById('empty-ent');
+    if (tb) tb.innerHTML = '';
+    if (empty) empty.classList.add('hidden');
+    cacheEntregas = [];
+    if (document.getElementById('meta-lista')) {
+      document.getElementById('meta-lista').textContent = 'Erro ao carregar';
+    }
+    if (el) {
+      el.textContent = msg || 'Erro ao carregar entregas.';
+      el.classList.remove('hidden');
+    }
+  }
+
+  function limparErroCarregarEntregas() {
+    var el = document.getElementById('entregas-load-erro');
+    if (el) {
+      el.textContent = '';
+      el.classList.add('hidden');
+    }
+  }
+
   function carregar() {
     var st = statusFiltroLista();
     var url = URL_LISTAR + (st ? '?status=' + encodeURIComponent(st) : '');
     if (window.gmLoadingBar) window.gmLoadingBar.show();
-    return fetch(url).then(function (r) { return r.json(); }).then(function (d) {
-      window.__statusOpcoes = d.status_opcoes || [];
-      popularFiltroStatus(d.status_opcoes || []);
+    return fetch(url, { credentials: 'same-origin' })
+      .then(function (r) {
+        return r.text().then(function (text) {
+          var d;
+          try {
+            d = JSON.parse(text);
+          } catch (errJson) {
+            throw new Error('Resposta inválida do servidor (não é JSON).');
+          }
+          if (!r.ok || d.ok === false) {
+            throw new Error(d.erro || ('HTTP ' + r.status));
+          }
+          return d;
+        });
+      })
+      .then(function (d) {
+        limparErroCarregarEntregas();
+        window.__statusOpcoes = d.status_opcoes || [];
+        popularFiltroStatus(d.status_opcoes || []);
 
-      cacheEntregas = d.entregas || [];
-      var tb = document.getElementById('tbody-ent');
-      var empty = document.getElementById('empty-ent');
-      tb.innerHTML = '';
-      document.getElementById('meta-lista').textContent = cacheEntregas.length + ' registro(s)';
-      if (!cacheEntregas.length) {
-        empty.classList.remove('hidden');
-        return;
-      }
-      empty.classList.add('hidden');
-      cacheEntregas.forEach(function (e) {
-        tb.appendChild(renderLinha(e));
+        cacheEntregas = d.entregas || [];
+        var tb = document.getElementById('tbody-ent');
+        var empty = document.getElementById('empty-ent');
+        tb.innerHTML = '';
+        document.getElementById('meta-lista').textContent = cacheEntregas.length + ' registro(s)';
+        if (!cacheEntregas.length) {
+          empty.classList.remove('hidden');
+          return;
+        }
+        empty.classList.add('hidden');
+        cacheEntregas.forEach(function (e) {
+          tb.appendChild(renderLinha(e));
+        });
+        syncChkTodos();
+      })
+      .catch(function (err) {
+        mostrarErroCarregarEntregas(
+          err && err.message ? err.message : 'Erro ao carregar entregas.'
+        );
+      })
+      .finally(function () {
+        if (window.gmLoadingBar) window.gmLoadingBar.hide();
       });
-      syncChkTodos();
-    }).catch(function () {
-      alert('Erro ao carregar entregas.');
-    }).finally(function () {
-      if (window.gmLoadingBar) window.gmLoadingBar.hide();
-    });
   }
 
   function entregaById(id) {

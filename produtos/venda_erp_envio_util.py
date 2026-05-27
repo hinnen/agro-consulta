@@ -11,6 +11,11 @@ from django.utils import timezone
 from produtos.models import VendaAgro
 
 
+def erp_envio_usuario_label(request) -> str:
+    """Rótulo do operador para logs de envio ERP (uso em views)."""
+    return _usuario_label(request)
+
+
 def _usuario_label(request) -> str:
     u = getattr(request, "user", None)
     if u is not None and getattr(u, "is_authenticated", False):
@@ -71,7 +76,7 @@ def erp_envio_logs_ordenados(venda: VendaAgro) -> list[dict]:
 def status_erp_ui(venda: VendaAgro) -> dict[str, str]:
     if venda.devolvida_em:
         return {"codigo": "devolvida", "label": "Devolvida", "cor": "rose"}
-    if venda.fiado_aguarda_envio_erp:
+    if venda.fiado_aguarda_envio_erp():
         return {"codigo": "aguarda", "label": "Aguardando envio ERP", "cor": "orange"}
     st = venda.erp_sync_efetivo
     if st == VendaAgro.ErpSyncStatus.ACEITO or venda.enviado_erp:
@@ -90,7 +95,7 @@ def pode_enviar_venda_fiado_erp(venda: VendaAgro) -> tuple[bool, str]:
         return False, "Venda devolvida — não pode enviar ao ERP."
     if not venda.tem_fiado():
         return False, "Só vendas com pagamento Fiado usam envio manual ao ERP."
-    if venda.fiado_aguarda_envio_erp:
+    if venda.fiado_aguarda_envio_erp():
         return True, ""
     st = venda.erp_sync_efetivo
     if st in (VendaAgro.ErpSyncStatus.RECUSADO_ERP, VendaAgro.ErpSyncStatus.FALHA_COMUNICACAO):
@@ -105,7 +110,7 @@ def pode_reverter_envio_erp(venda: VendaAgro) -> tuple[bool, str]:
         return False, "Venda devolvida."
     if not venda.tem_fiado():
         return False, "Somente vendas fiado."
-    if venda.fiado_aguarda_envio_erp:
+    if venda.fiado_aguarda_envio_erp():
         return False, "Ainda não foi enviada ao ERP."
     if venda.enviado_erp or venda.erp_sync_efetivo == VendaAgro.ErpSyncStatus.ACEITO:
         return True, ""
@@ -205,7 +210,7 @@ def serializar_venda_erp_painel(venda: VendaAgro) -> dict[str, Any]:
         "total": float(venda.total),
         "forma_pagamento": venda.forma_pagamento,
         "tem_fiado": venda.tem_fiado(),
-        "fiado_aguarda_envio_erp": venda.fiado_aguarda_envio_erp,
+        "fiado_aguarda_envio_erp": bool(venda.fiado_aguarda_envio_erp()),
         "status_erp": st,
         "pode_enviar_erp": pode_env,
         "msg_enviar_erp": msg_env,
