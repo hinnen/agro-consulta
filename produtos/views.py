@@ -65,6 +65,12 @@ from .caixa_util import (
     adotar_sessao_caixa_unica_aberta,
     resolver_sessao_caixa_para_venda,
 )
+from .fiado_credito_util import (
+    pagamentos_json_com_metadados_de_payload,
+    resumo_credito_fiado_cliente,
+    valor_fiado_no_payload,
+    venda_payload_tem_fiado,
+)
 from .entrega_pdv_pendente_util import (
     cancelar_entrega_pendente_pdv,
     listar_entregas_bloqueando_fechamento_caixa,
@@ -6010,6 +6016,73 @@ def _dashboard_serie_meta_c_vendas(data_ini: date, data_fim: date) -> list[float
     return out
 
 
+def _dashboard_vendas_fonte_modo() -> str:
+    """``erp`` (DtoVenda) ou ``pdv`` (VendaAgro local). Ver ``AGRO_DASHBOARD_VENDAS_FONTE``."""
+    v = (getattr(settings, "AGRO_DASHBOARD_VENDAS_FONTE", "erp") or "erp").strip().lower()
+    if v in ("pdv", "local", "agro", "sqlite", "vendaagro"):
+        return "pdv"
+    return "erp"
+
+
+def _dashboard_vendas_fonte_pdv() -> bool:
+    return _dashboard_vendas_fonte_modo() == "pdv"
+
+
+def _dashboard_vendas_qs_pdv_periodo(data_ini: date, data_fim: date):
+    """Vendas PDV no intervalo (exclui devoluções)."""
+    return VendaAgro.objects.filter(
+        criado_em__date__gte=data_ini,
+        criado_em__date__lte=data_fim,
+        devolvida_em__isnull=True,
+    )
+
+
+def _dashboard_vendas_serie_pdv(data_ini: date, data_fim: date) -> dict:
+    """Série diária e faturamento por unidade só a partir do PDV (``VendaAgro``)."""
+    ck = f"dash:mvs:v4:pdv:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    cached = cache.get(ck)
+    if isinstance(cached, dict) and cached.get("_t") == "mvs":
+        return {k: v for k, v in cached.items() if k != "_t"}
+
+    por_dia: dict[str, float] = {}
+    qtd_por_dia: dict[str, int] = {}
+    total = 0.0
+    for row in (
+        _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim)
+        .values("criado_em__date")
+        .annotate(soma=Sum("total"), n=Count("id"))
+    ):
+        d = row.get("criado_em__date")
+        if not d:
+            continue
+        v = _dashboard_float(row.get("soma"))
+        chave = d.isoformat()
+        por_dia[chave] = round(v, 2)
+        qtd_por_dia[chave] = int(row.get("n") or 0)
+        total += v
+
+    dep = (getattr(settings, "PDV_VENDA_ESTOQUE_DEPOSITO", "centro") or "centro").strip().lower()
+    if dep == "vila":
+        loja_acc = [0.0, round(total, 2)]
+    else:
+        loja_acc = [round(total, 2), 0.0]
+
+    out = {
+        "ok": True,
+        "erro": "",
+        "total": round(total, 2),
+        "por_dia": por_dia,
+        "qtd_por_dia": qtd_por_dia,
+        "vendas_por_loja": [
+            {"loja": "Centro", "total": loja_acc[0], "color": "#00BFFF"},
+            {"loja": "Vila Elias", "total": loja_acc[1], "color": "#64748b"},
+        ],
+        "fonte": "pdv",
+    }
+    cache.set(ck, {**out, "_t": "mvs"}, timeout=120)
+    return out
+
+
 def _dashboard_acum_venda_por_loja(client, doc: dict, valor: float, loja_acc: list[float]) -> None:
     """``loja_acc`` = [Centro, Vila Elias] (mutável), mesma regra que o gráfico por unidade."""
     if client is None or not doc:
@@ -6030,8 +6103,11 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
     Agregação por dia em DtoVenda (com fallbacks). Na mesma leitura acumula faturamento
     Centro × Vila quando possível (evita um segundo ``find`` no dashboard).
     Cache curto evita repetir a mesma varredura (metas C, ticket mês ant., etc.).
+    Com ``AGRO_DASHBOARD_VENDAS_FONTE=pdv``, usa só ``VendaAgro`` (sem espelho ERP).
     """
-    ck = f"dash:mvs:v3:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    if _dashboard_vendas_fonte_pdv():
+        return _dashboard_vendas_serie_pdv(data_ini, data_fim)
+    ck = f"dash:mvs:v6:erp:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and cached.get("_t") == "mvs":
         return {k: v for k, v in cached.items() if k != "_t"}
@@ -6044,10 +6120,8 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
     total = 0.0
     qtd_por_dia = {}
     loja_acc = [0.0, 0.0]
-    total_apos_dto = 0.0
-    serie_so_sqlite = False
     try:
-        # Fonte principal: DtoVenda (espelho ERP), priorizando DataFaturamento.
+        # Só DtoVenda faturado (sem orçamento). Sem fallback PDV — evita card/gráfico antes do fechamento ERP.
         q = {
             "$and": [
                 _filtro_venda_ativa_mongo(),
@@ -6076,68 +6150,19 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
             if not isinstance(dt, datetime):
                 continue
             chave = dt.date().isoformat()
+            if chave < data_ini.isoformat() or chave > data_fim.isoformat():
+                continue
             v = _dashboard_doc_total(doc)
             por_dia[chave] = por_dia.get(chave, 0.0) + v
             qtd_por_dia[chave] = qtd_por_dia.get(chave, 0) + 1
             total += v
             _dashboard_acum_venda_por_loja(client, doc, v, loja_acc)
-
-        total_apos_dto = total
-
-        # Fallback: coleção consolidada local quando DtoVenda não trouxer dados.
-        if total <= 0:
-            vendas_agro = client.obter_vendas_agro_periodo(dt_ini, dt_fim)
-            for doc in vendas_agro:
-                dt = doc.get("data")
-                if not isinstance(dt, datetime):
-                    continue
-                chave = dt.date().isoformat()
-                v = _dashboard_float(doc.get("valor_total"))
-                por_dia[chave] = por_dia.get(chave, 0.0) + v
-                qtd_por_dia[chave] = qtd_por_dia.get(chave, 0) + 1
-                total += v
-                raw = doc if isinstance(doc, dict) else {}
-                if isinstance(doc.get("raw"), dict):
-                    raw = doc.get("raw") or {}
-                _dashboard_acum_venda_por_loja(client, raw, v, loja_acc)
     except Exception as exc:
-        logger.warning("dashboard_gerencial mongo serie: %s", exc, exc_info=True)
+        logger.warning("dashboard_mongo_vendas_serie: %s", exc, exc_info=True)
         return {"ok": False, "erro": "Falha ao consultar Mongo", "total": 0.0, "por_dia": {}, "qtd_por_dia": {}}
-    # Fallback local: se ERP/Mongo não trouxer valores no período, usa VendaAgro (SQLite/Postgres local).
-    if total <= 0:
-        rows = (
-            VendaAgro.objects.filter(criado_em__date__gte=data_ini, criado_em__date__lte=data_fim)
-            .values("criado_em__date")
-            .annotate(soma=Sum("total"), n=Count("id"))
-        )
-        por_dia = {}
-        qtd_por_dia = {}
-        total = 0.0
-        for row in rows:
-            d = row.get("criado_em__date")
-            if not d:
-                continue
-            v = _dashboard_float(row.get("soma"))
-            por_dia[d.isoformat()] = round(v, 2)
-            qtd_por_dia[d.isoformat()] = int(row.get("n") or 0)
-            total += v
-        serie_so_sqlite = total > 0
 
     vendas_por_loja: list | None = None
-    if serie_so_sqlite:
-        vendas_por_loja = None
-    elif total > 0:
-        if total_apos_dto > 0 and (loja_acc[0] + loja_acc[1]) <= 0:
-            try:
-                vendas = client.obter_vendas_agro_periodo(dt_ini, dt_fim)
-                for vdoc in vendas:
-                    raw = vdoc if isinstance(vdoc, dict) else {}
-                    if isinstance(vdoc.get("raw"), dict):
-                        raw = vdoc.get("raw") or {}
-                    tv = _dashboard_float(vdoc.get("valor_total"))
-                    _dashboard_acum_venda_por_loja(client, raw, tv, loja_acc)
-            except Exception:
-                pass
+    if total > 0:
         vendas_por_loja = [
             {"loja": "Centro", "total": round(loja_acc[0], 2), "color": "#00BFFF"},
             {"loja": "Vila Elias", "total": round(loja_acc[1], 2), "color": "#64748b"},
@@ -6237,11 +6262,16 @@ def _dashboard_top_produtos_capri(data_ini, data_fim, limite=8):
     Ordem na abertura (rápido → lento): Mongo (espelho) → PDV local (SQLite) → opcional ERP v3 HTTP
     (``AGRO_DASHBOARD_ERP_V3_REPORTS``; só se ainda não houver linhas).
     """
-    ck = f"dash:tp:v1:{data_ini}:{data_fim}:{limite}"
+    ck = f"dash:tp:v2:{_dashboard_vendas_fonte_modo()}:{data_ini}:{data_fim}:{limite}"
     hit = cache.get(ck)
     if isinstance(hit, list):
         return hit
     out: list[dict] = []
+    if _dashboard_vendas_fonte_pdv():
+        out = _dashboard_top_produtos_sqlite(data_ini, data_fim, limite=limite)
+        if out:
+            cache.set(ck, out, timeout=180)
+        return out
     if getattr(settings, "AGRO_DASHBOARD_MONGO_RANKING_FALLBACK", False):
         client, db = obter_conexao_mongo()
         if client is not None and db is not None:
@@ -6274,11 +6304,16 @@ def _dashboard_ranking_vendedores_capri(data_ini, data_fim, limite=8):
     """
     Mesma ordem que top produtos: Mongo → SQLite → ERP v3 (opcional, no fim).
     """
-    ck = f"dash:rv:v1:{data_ini}:{data_fim}:{limite}"
+    ck = f"dash:rv:v2:{_dashboard_vendas_fonte_modo()}:{data_ini}:{data_fim}:{limite}"
     hit = cache.get(ck)
     if isinstance(hit, list):
         return hit
     out: list[dict] = []
+    if _dashboard_vendas_fonte_pdv():
+        out = _dashboard_ranking_vendedores_sqlite(data_ini, data_fim, limite=limite)
+        if out:
+            cache.set(ck, out, timeout=180)
+        return out
     if getattr(settings, "AGRO_DASHBOARD_MONGO_RANKING_FALLBACK", False):
         client, db = obter_conexao_mongo()
         if client is not None and db is not None:
@@ -6458,7 +6493,11 @@ def _dashboard_entregas_criadas_por_dia_ultimos(n_dias: int = 7) -> list[int]:
 
 
 def _dashboard_vendas_por_loja(data_ini, data_fim):
-    """Faturamento Centro × Vila Elias — mesma janela e fonte principal que o gráfico diário (DtoVenda)."""
+    """Faturamento Centro × Vila Elias — mesma janela e fonte que o gráfico diário (ERP ou PDV)."""
+    if _dashboard_vendas_fonte_pdv():
+        vpl = _dashboard_vendas_serie_pdv(data_ini, data_fim).get("vendas_por_loja")
+        if isinstance(vpl, list) and len(vpl) >= 2:
+            return vpl
     out = [
         {"loja": "Centro", "total": 0.0, "color": "#00BFFF"},
         {"loja": "Vila Elias", "total": 0.0, "color": "#64748b"},
@@ -6498,15 +6537,6 @@ def _dashboard_vendas_por_loja(data_ini, data_fim):
             if not isinstance(_dashboard_doc_data_venda(doc), datetime):
                 continue
             _dashboard_acum_venda_por_loja(client, doc, _dashboard_doc_total(doc), loja_acc)
-
-        if loja_acc[0] + loja_acc[1] <= 0:
-            vendas = client.obter_vendas_agro_periodo(dt_ini, dt_fim)
-            for v in vendas:
-                raw = v if isinstance(v, dict) else {}
-                if isinstance(v.get("raw"), dict):
-                    raw = v.get("raw") or {}
-                total = _dashboard_float(v.get("valor_total"))
-                _dashboard_acum_venda_por_loja(client, raw, total, loja_acc)
     except Exception as exc:
         logger.warning("dashboard_gerencial vendas_por_loja: %s", exc, exc_info=True)
 
@@ -6558,23 +6588,15 @@ def _dashboard_contexto_dinamico(request):
 
 
 def _dashboard_mongo_total_por_dia_vendas_agro(alvo: date) -> float:
-    """Soma de vendas do dia com prioridade no espelho ERP (DtoVenda)."""
-    client, db = obter_conexao_mongo()
-    if db is None or client is None:
-        return 0.0
-    ini_dt = datetime.combine(alvo, dtime.min)
-    fim_dt = datetime.combine(alvo, dtime.max)
-    total = _dashboard_mongo_vendas_serie(alvo, alvo).get("total", 0.0)
-    if total > 0:
-        return total
-    try:
-        vendas = client.obter_vendas_agro_periodo(ini_dt, fim_dt)
-        if vendas:
-            return sum(_dashboard_float(v.get("valor_total")) for v in vendas)
-    except Exception:
-        pass
-    agg = VendaAgro.objects.filter(criado_em__date=alvo).aggregate(soma=Sum("total"))
-    return _dashboard_float(agg.get("soma"))
+    """
+    Soma do dia no BI. Modo ``erp`` (padrão): só espelho DtoVenda faturado — sem PDV local,
+    para não antecipar venda que ainda é orçamento no ERP. Modo ``pdv``: só VendaAgro.
+    """
+    if _dashboard_vendas_fonte_pdv():
+        return _dashboard_float(
+            _dashboard_vendas_qs_pdv_periodo(alvo, alvo).aggregate(soma=Sum("total")).get("soma")
+        )
+    return _dashboard_float(_dashboard_mongo_vendas_serie(alvo, alvo).get("total", 0.0))
 
 
 def _dashboard_sync_vendas_erp_para_mongo(data_ini: date, data_fim: date):
@@ -6742,7 +6764,6 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         fut["alertas_validade"] = ex.submit(
             _dashboard_worker, _contagem_validade_dashboard_lotes_agro
         )
-        fut["vendas_hoje"] = ex.submit(_dashboard_worker, _dashboard_mongo_total_por_dia_vendas_agro, hoje)
         fut["vendas_ontem"] = ex.submit(_dashboard_worker, _dashboard_mongo_total_por_dia_vendas_agro, ontem)
         fut["novos_clientes"] = ex.submit(_dashboard_worker, _dashboard_capri_novos_clientes_counts, hoje)
         fut["entregas_pen"] = ex.submit(_dashboard_worker, _dashboard_entregas_pendentes_count)
@@ -6772,8 +6793,9 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
 
     atual = blk["atual"]
     anterior = blk["anterior"]
-    vendas_hoje = blk["vendas_hoje"]
     vendas_ontem = blk["vendas_ontem"]
+    # Mesma série do gráfico (sem PDV escondido no fallback).
+    vendas_hoje = round(_dashboard_float((atual.get("por_dia") or {}).get(hoje.isoformat())), 2)
     validade_blk = blk["alertas_validade"] if isinstance(blk["alertas_validade"], dict) else {}
     validade_vencidos_n = int(validade_blk.get("vencidos") or 0)
     validade_vencendo_mes_n = int(validade_blk.get("vencendo_mes") or 0)
@@ -6812,8 +6834,8 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
 
     qtd_total_periodo = sum(int(v or 0) for v in (atual.get("qtd_por_dia") or {}).values())
     total_ticket = _dashboard_float(atual.get("total"))
-    if qtd_total_periodo <= 0:
-        ticket_qs = VendaAgro.objects.filter(criado_em__date__gte=data_ini, criado_em__date__lte=data_fim)
+    if qtd_total_periodo <= 0 and _dashboard_vendas_fonte_pdv():
+        ticket_qs = _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim)
         ticket_agg = ticket_qs.aggregate(total=Sum("total"), n=Count("id"))
         total_ticket = _dashboard_float(ticket_agg.get("total"))
         qtd_total_periodo = int(ticket_agg.get("n") or 0)
@@ -6845,10 +6867,9 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         tkt_trend = "Sem ref. mês"
         tkt_trend_short = "S/ ref."
         tkt_trend_class = "text-slate-600 bg-slate-100 ring-1 ring-slate-300"
-    serie_hoje = _dashboard_mongo_vendas_serie(hoje, hoje)
-    qtd_vendas_hoje = int((serie_hoje.get("qtd_por_dia") or {}).get(hoje.isoformat()) or 0)
-    if qtd_vendas_hoje <= 0:
-        qtd_vendas_hoje = VendaAgro.objects.filter(criado_em__date=hoje).count()
+    qtd_vendas_hoje = int((atual.get("qtd_por_dia") or {}).get(hoje.isoformat()) or 0)
+    if qtd_vendas_hoje <= 0 and _dashboard_vendas_fonte_pdv():
+        qtd_vendas_hoje = _dashboard_vendas_qs_pdv_periodo(hoje, hoje).count()
     ticket_hoje = (vendas_hoje / qtd_vendas_hoje) if qtd_vendas_hoje > 0 else 0.0
     if ticket_medio_mes_civil_anterior > 0 and ticket_hoje > 0:
         tkt_hoje_var = ((ticket_hoje / ticket_medio_mes_civil_anterior) - 1) * 100
@@ -6874,7 +6895,14 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             "trend_short": f"{variacao_dia:+.1f}%",
             "trend_class": "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300" if variacao_dia >= 0 else "text-red-800 bg-red-200 ring-1 ring-red-300",
             "context_lines": [
-                f"Hoje: {_format_moeda_br(Decimal(str(round(vendas_hoje, 2))))} · {qtd_vendas_hoje} venda(s) (espelho ERP no Mongo, DtoVenda; senão PDV local).",
+                (
+                    f"Hoje: {_format_moeda_br(Decimal(str(round(vendas_hoje, 2))))} · {qtd_vendas_hoje} venda(s) "
+                    + (
+                        "(somente PDV local — VendaAgro)."
+                        if _dashboard_vendas_fonte_pdv()
+                        else "(só ERP faturado no Mongo; orçamento do PDV não entra até fechar lá)."
+                    )
+                ),
                 f"Variação {variacao_dia:+.1f}% vs ontem ({_format_moeda_br(Decimal(str(round(vendas_ontem, 2))))}).",
                 f"Média 7d (últ. dias do filtro): {_format_moeda_br(Decimal(str(round(media_fat_7d, 2))))}/dia",
                 f"Período filtrado: {periodo_label}.",
@@ -7016,6 +7044,12 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         "relatorios_validade_url": reverse("relatorios_validade"),
         "total_entregas_pendentes": total_entregas_pendentes,
         "ultima_sinc_estoque": _dashboard_estoque_sync_label(),
+        "dashboard_vendas_fonte": _dashboard_vendas_fonte_modo(),
+        "dashboard_vendas_fonte_label": (
+            "PDV local (VendaAgro)"
+            if _dashboard_vendas_fonte_pdv()
+            else "ERP faturado (Mongo)"
+        ),
         "mongo_ok": atual["ok"] and anterior["ok"],
         "mongo_erro": (atual.get("erro") or anterior.get("erro") or "")[:180],
         "periodo_cal_ini": data_ini.isoformat(),
@@ -7256,6 +7290,42 @@ def vendas_hoje_redirect(request):
 
 
 @login_required(login_url="/admin/login/")
+@require_GET
+def api_pdv_cliente_credito_fiado(request):
+    from .fiado_credito_util import cliente_ref_valida_para_fiado, resumo_credito_fiado_cliente
+
+    cid = str(request.GET.get("cliente_id") or request.GET.get("cliente_id_erp") or "").strip()
+    agro_pk_raw = request.GET.get("cliente_agro_pk")
+    agro_pk = None
+    if agro_pk_raw is not None and str(agro_pk_raw).strip() != "":
+        try:
+            agro_pk = int(agro_pk_raw)
+        except (TypeError, ValueError):
+            agro_pk = None
+    if not cliente_ref_valida_para_fiado(cid, cliente_agro_pk=agro_pk):
+        return JsonResponse(
+            {
+                "ok": True,
+                "permite_fiado": False,
+                "mensagem": "Selecione um cliente cadastrado para consultar limite de fiado.",
+            }
+        )
+    try:
+        valor_novo = Decimal(str(request.GET.get("valor_fiado") or "0").replace(",", "."))
+    except Exception:
+        valor_novo = Decimal("0")
+    client_m, db = obter_conexao_mongo()
+    cred = resumo_credito_fiado_cliente(
+        cid,
+        cliente_agro_pk=agro_pk,
+        valor_nova_venda_fiado=valor_novo if valor_novo > 0 else None,
+        db=db,
+        client_m=client_m,
+    )
+    return JsonResponse(cred)
+
+
+@login_required(login_url="/admin/login/")
 def vendas_lista(request):
     di, df, label = _periodo_vendas_from_request(request, default_preset="hoje")
     qs = (
@@ -7263,6 +7333,18 @@ def vendas_lista(request):
         .select_related("sessao_caixa")
         .order_by("-criado_em")
     )
+    filtro_fiado = (request.GET.get("fiado") or "").strip().lower()
+    filtro_fiado_q = Q(forma_pagamento__icontains="fiado") | Q(pagamentos_json__icontains="Fiado")
+    if filtro_fiado == "1" or filtro_fiado == "sim":
+        qs = qs.filter(filtro_fiado_q)
+    filtro_erp = (request.GET.get("erp_fiado") or "").strip().lower()
+    if filtro_erp == "pendente":
+        qs = qs.filter(
+            erp_sync_status=VendaAgro.ErpSyncStatus.PENDENTE,
+            enviado_erp=False,
+        ).filter(filtro_fiado_q)
+    elif filtro_erp == "enviado":
+        qs = qs.filter(enviado_erp=True).filter(filtro_fiado_q)
     agg = qs.aggregate(soma=Sum("total"), n=Count("id"))
     soma = agg["soma"] if agg["soma"] is not None else Decimal("0")
     preset_get = (request.GET.get("preset") or "").strip().lower()
@@ -7279,6 +7361,8 @@ def vendas_lista(request):
             "total_periodo": soma.quantize(Decimal("0.01")),
             "quantidade_vendas": agg["n"] or 0,
             "preset_ativo": preset_ativo,
+            "filtro_fiado": filtro_fiado,
+            "filtro_erp_fiado": filtro_erp,
         },
     )
 
@@ -7823,12 +7907,19 @@ def venda_agro_detalhe(request, pk):
             erp_txt = json.dumps(v.erp_resposta, ensure_ascii=False, indent=2)
         except Exception:
             erp_txt = str(v.erp_resposta)
+    erp_painel = serializar_venda_erp_painel(v)
     return render(
         request,
         "produtos/venda_agro_detalhe.html",
         {
             "v": v,
             "erp_resposta_text": erp_txt,
+            "erp_painel": erp_painel,
+            "erp_logs_json": json.dumps(
+                erp_painel.get("logs") or [],
+                ensure_ascii=False,
+                indent=2,
+            ),
             "pagamentos_devolucao_default": pagamentos_lista_de_venda(v),
             "formas_pagamento_caixa": list(FORMAS_PAGAMENTO_CAIXA),
         },
@@ -16696,7 +16787,15 @@ def _persistir_venda_agro(
 
     cliente = (data.get("cliente") or "").strip() or "CONSUMIDOR NÃO IDENTIFICADO..."
     cid = str(data.get("cliente_id") or data.get("ClienteID") or "").strip()
-    if not _cliente_id_e_valido_para_erp(cid):
+    agro_pk_raw = data.get("cliente_agro_pk")
+    if agro_pk_raw is not None and str(agro_pk_raw).strip() != "":
+        try:
+            agro_pk = int(agro_pk_raw)
+            if not _cliente_id_e_valido_para_erp(cid):
+                cid = f"agro:{agro_pk}"[:32]
+        except (TypeError, ValueError):
+            pass
+    if not _cliente_id_e_valido_para_erp(cid) and not str(cid).lower().startswith("agro:"):
         cid = ""
     doc = str(data.get("cliente_documento") or data.get("CpfCnpj") or "").strip()
     forma = _forma_pagamento_rotulo_sem_valor_moeda(
@@ -16733,9 +16832,17 @@ def _persistir_venda_agro(
             if enviado_erp_com_sucesso
             else VendaAgro.ErpSyncStatus.FALHA_COMUNICACAO
         )
-    pagamentos_json = pagamentos_json_de_payload(data)
+    pagamentos_json = pagamentos_json_com_metadados_de_payload(data)
     if not pagamentos_json and total > 0:
         pagamentos_json = [{"forma": forma or "Outro", "valor": float(total.quantize(Decimal("0.01")))}]
+    fiado_cron: list = []
+    if isinstance(pagamentos_json, list):
+        for row in pagamentos_json:
+            if not isinstance(row, dict):
+                continue
+            if str(row.get("forma") or "") == "Fiado" and isinstance(row.get("fiado_cronograma"), list):
+                fiado_cron = row.get("fiado_cronograma") or []
+                break
 
     with transaction.atomic():
         v = VendaAgro.objects.create(
@@ -16745,6 +16852,7 @@ def _persistir_venda_agro(
             total=total.quantize(Decimal("0.01")),
             forma_pagamento=forma,
             pagamentos_json=pagamentos_json or None,
+            fiado_cronograma_json=fiado_cron,
             erp_sync_status=sync_st,
             enviado_erp=bool(enviado_erp_com_sucesso),
             erp_http_status=st,
@@ -17281,6 +17389,78 @@ def api_enviar_pedido_erp(request):
     data.pop("idempotency_key", None)
     try:
         client_m, db = obter_conexao_mongo()
+        if venda_payload_tem_fiado(data):
+            err_early, _linhas, _valor_final = _pdv_pedido_linhas_e_valor_final(
+                data, client_m=client_m, db=db
+            )
+            if err_early is not None:
+                return err_early
+            from .fiado_credito_util import cliente_ref_valida_para_fiado
+
+            cid = str(data.get("cliente_id") or data.get("ClienteID") or "").strip()
+            agro_pk_raw = data.get("cliente_agro_pk")
+            agro_pk = None
+            if agro_pk_raw is not None and str(agro_pk_raw).strip() != "":
+                try:
+                    agro_pk = int(agro_pk_raw)
+                except (TypeError, ValueError):
+                    agro_pk = None
+            if not cliente_ref_valida_para_fiado(
+                cid,
+                cliente_agro_pk=agro_pk,
+                cliente_nome=str(data.get("cliente") or ""),
+            ):
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "erro": "Fiado exige cliente cadastrado (não use consumidor final).",
+                    },
+                    status=400,
+                )
+            valor_fiado = valor_fiado_no_payload(data)
+            cred = resumo_credito_fiado_cliente(
+                cid,
+                cliente_agro_pk=agro_pk,
+                valor_nova_venda_fiado=valor_fiado,
+                db=db,
+                client_m=client_m,
+            )
+            if cred.get("excede"):
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "erro": (
+                            f"Fiado acima do limite. Disponível {cred.get('disponivel_texto', '')} "
+                            f"· esta venda fiado R$ {valor_fiado:.2f}".replace(".", ",")
+                        ),
+                    },
+                    status=400,
+                )
+            raw_itens = data.get("itens", [])
+            if not isinstance(raw_itens, list):
+                raw_itens = []
+            venda_local = _persistir_venda_agro(
+                request,
+                data,
+                raw_itens,
+                None,
+                None,
+                False,
+                erp_sync_status=VendaAgro.ErpSyncStatus.PENDENTE,
+            )
+            vid = venda_local.pk if venda_local else None
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "venda_id": vid,
+                    "fiado_aguarda_erp": True,
+                    "erp_pendente": False,
+                    "mensagem": (
+                        "Venda fiado registrada no Agro. Envie ao ERP manualmente em Vendas → Fiado pendente ERP."
+                    ),
+                    "credito": cred,
+                }
+            )
         if getattr(settings, "PDV_ERP_ENVIO_ASSINCRONO", True):
             err_early, _linhas, _valor_final = _pdv_pedido_linhas_e_valor_final(
                 data, client_m=client_m, db=db
@@ -17358,74 +17538,178 @@ def api_enviar_pedido_erp(request):
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
 
 
+def _resposta_json_envio_erp_venda(request, v: VendaAgro, out: dict) -> JsonResponse:
+    """Atualiza venda, grava log e monta JSON para a UI."""
+    usuario = erp_envio_usuario_label(request)
+    msg_erro_ui = out.get("msg_erro_ui") or ""
+    http_st = out.get("status")
+    erp_sync = out.get("erp_sync") or ""
+    res_raw = out.get("res")
+
+    if out.get("ok") and out.get("recusa_erp"):
+        _atualizar_venda_agro_resposta_erp(v, http_st, res_raw, erp_sync)
+        append_erp_envio_log(
+            v,
+            acao="envio_recusado",
+            ok=False,
+            status=erp_sync,
+            http_status=http_st,
+            mensagem=msg_erro_ui or "ERP recusou o pedido.",
+            usuario=usuario,
+            erp_resposta=res_raw,
+        )
+        v.save(update_fields=["erp_envio_log_json"])
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": msg_erro_ui or _json_legivel(res_raw),
+                "http_status": http_st,
+                "venda_id": v.pk,
+                "painel": serializar_venda_erp_painel(v),
+                "log_ultimo": (v.erp_envio_log_json or [])[-1] if v.erp_envio_log_json else None,
+            },
+            status=502,
+        )
+
+    if out.get("ok"):
+        _atualizar_venda_agro_resposta_erp(v, http_st, res_raw, erp_sync)
+        append_erp_envio_log(
+            v,
+            acao="envio_sucesso",
+            ok=True,
+            status=erp_sync,
+            http_status=http_st,
+            mensagem="Pedido aceito pelo ERP.",
+            usuario=usuario,
+            erp_resposta=res_raw,
+        )
+        v.save(update_fields=["erp_envio_log_json"])
+        return JsonResponse(
+            {
+                "ok": True,
+                "mensagem": _json_legivel(res_raw) or "Enviado ao ERP com sucesso.",
+                "venda_id": v.pk,
+                "painel": serializar_venda_erp_painel(v),
+            }
+        )
+
+    _atualizar_venda_agro_resposta_erp(v, http_st, res_raw, erp_sync)
+    append_erp_envio_log(
+        v,
+        acao="envio_falha",
+        ok=False,
+        status=erp_sync,
+        http_status=http_st,
+        mensagem=msg_erro_ui or "Falha de comunicação com o ERP.",
+        usuario=usuario,
+        erp_resposta=res_raw,
+    )
+    v.save(update_fields=["erp_envio_log_json"])
+    return JsonResponse(
+        {
+            "ok": False,
+            "erro": msg_erro_ui or _json_legivel(res_raw),
+            "http_status": http_st,
+            "venda_id": v.pk,
+            "painel": serializar_venda_erp_painel(v),
+            "log_ultimo": (v.erp_envio_log_json or [])[-1] if v.erp_envio_log_json else None,
+        },
+        status=502 if http_st and http_st != 0 else 500,
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_venda_agro_erp_envio_info(request, pk):
+    """Dados para modal de confirmação / histórico de envio ERP (fiado)."""
+    v = get_object_or_404(
+        VendaAgro.objects.prefetch_related("itens"),
+        pk=pk,
+    )
+    return JsonResponse({"ok": True, "painel": serializar_venda_erp_painel(v)})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_venda_agro_reverter_erp(request, pk):
+    """Reverte status local de envio ERP (não cancela pedido no ERP)."""
+    try:
+        body = json.loads(request.body.decode("utf-8")) if request.body else {}
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        body = {}
+    if not body.get("confirmar"):
+        return JsonResponse(
+            {"ok": False, "erro": "Marque a confirmação para reverter o envio."},
+            status=400,
+        )
+    v = get_object_or_404(VendaAgro.objects.prefetch_related("itens"), pk=pk)
+    try:
+        reverter_envio_erp_local(
+            v,
+            request=request,
+            motivo=str(body.get("motivo") or "").strip(),
+        )
+    except ValueError as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+    return JsonResponse(
+        {
+            "ok": True,
+            "mensagem": "Envio revertido no Agro. O pedido no ERP não foi cancelado automaticamente.",
+            "painel": serializar_venda_erp_painel(v),
+        }
+    )
+
+
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_venda_agro_reenviar_erp(request, pk):
-    """Repete Pedidos/Salvar para uma venda já gravada (ex.: após falha ou recusa do ERP)."""
+    """Envio manual fiado → ERP (Pedidos/Salvar) com confirmação e histórico."""
+    try:
+        body = json.loads(request.body.decode("utf-8")) if request.body else {}
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        body = {}
+    if not body.get("confirmar"):
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Confirme o envio marcando a caixa de confirmação.",
+                "requer_confirmacao": True,
+            },
+            status=400,
+        )
     try:
         v = get_object_or_404(
             VendaAgro.objects.prefetch_related("itens"),
             pk=pk,
         )
+        pode, msg = pode_enviar_venda_fiado_erp(v)
+        if not pode:
+            return JsonResponse({"ok": False, "erro": msg}, status=400)
         if not v.itens.exists():
             return JsonResponse(
-                {"ok": False, "erro": "Venda sem itens para reenviar."},
+                {"ok": False, "erro": "Venda sem itens para enviar."},
                 status=400,
             )
-        data = {
-            "cliente": v.cliente_nome,
-            "cliente_id": v.cliente_id_erp,
-            "cliente_documento": v.cliente_documento,
-            "forma_pagamento": v.forma_pagamento,
-            "itens": [
-                {
-                    "id": it.produto_id_externo,
-                    "nome": it.descricao,
-                    "qtd": float(it.quantidade),
-                    "preco": float(it.valor_unitario),
-                    "codigo": it.codigo,
-                }
-                for it in v.itens.all()
-            ],
-        }
+        usuario = erp_envio_usuario_label(request)
+        append_erp_envio_log(
+            v,
+            acao="envio_tentativa",
+            ok=True,
+            status="",
+            mensagem="Operador confirmou envio manual ao ERP.",
+            usuario=usuario,
+        )
+        v.save(update_fields=["erp_envio_log_json"])
+        data = venda_payload_de_venda_agro(v)
         client_m, db = obter_conexao_mongo()
         err, out = _fluxo_enviar_pedido_erp_interno(
             request, data, client_m=client_m, db=db
         )
         if err is not None:
             return err
-        _atualizar_venda_agro_resposta_erp(
-            v, out["status"], out["res"], out["erp_sync"]
-        )
-        msg_erro_ui = out["msg_erro_ui"]
-        if out["ok"] and out["recusa_erp"]:
-            return JsonResponse(
-                {
-                    "ok": False,
-                    "erro": msg_erro_ui,
-                    "http_status": out["status"],
-                    "venda_id": v.pk,
-                },
-                status=502,
-            )
-        if out["ok"]:
-            return JsonResponse(
-                {
-                    "ok": True,
-                    "mensagem": _json_legivel(out["res"]),
-                    "venda_id": v.pk,
-                }
-            )
-        return JsonResponse(
-            {
-                "ok": False,
-                "erro": msg_erro_ui or _json_legivel(out["res"]),
-                "http_status": out["status"],
-                "venda_id": v.pk,
-            },
-            status=502 if out["status"] and out["status"] != 0 else 500,
-        )
+        return _resposta_json_envio_erp_venda(request, v, out)
     except Exception as e:
+        logger.exception("api_venda_agro_reenviar_erp venda=%s", pk)
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
 
 
@@ -19561,13 +19845,14 @@ def api_entregas_listar(request):
         lim = min(max(int(request.GET.get("lim") or 200), 1), 500)
     except (TypeError, ValueError):
         lim = 200
-    qs = PedidoEntrega.objects.all().order_by("-criado_em")
+    qs = PedidoEntrega.objects.select_related("venda_agro").order_by("-criado_em")
     if st:
         qs = qs.filter(status=st)
     qs = qs[:lim]
     status_vals = {c.value for c in PedidoEntrega.Status}
     rows = []
     for e in qs:
+        pag = serializar_pagamento_entrega(e)
         rows.append(
             {
                 "id": e.pk,
@@ -19590,6 +19875,8 @@ def api_entregas_listar(request):
                 "observacoes": e.observacoes,
                 "forma_pagamento": e.forma_pagamento or "",
                 "troco_precisa": e.troco_precisa,
+                "aguarda_pagamento_pdv": bool(e.aguarda_pagamento_pdv),
+                "pagamento_pdv": pag,
                 "criado_em": e.criado_em.isoformat(),
             }
         )

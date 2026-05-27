@@ -1413,6 +1413,20 @@
       '</td>' +
       '<td class="p-1.5 align-middle"><select class="ent-status w-full min-w-[6.5rem] text-xs font-black border-2 border-slate-200 rounded-lg px-1.5 py-1.5 bg-white focus:border-emerald-500 outline-none">' + opts + '</select></td>' +
       '<td class="p-1.5 align-middle min-w-[118px]">' +
+        (function () {
+          var pag = e.pagamento_pdv || {};
+          var cls = pag.classe || 'bg-slate-100 text-slate-700';
+          var h = '<div class="mb-1.5 rounded-lg border border-slate-200/80 px-1.5 py-1 bg-white/90">' +
+            '<span class="inline-flex px-2 py-0.5 rounded-md text-[10px] font-black uppercase ' + esc(cls) + '">' + esc(pag.label || '—') + '</span>';
+          if (pag.erp_label) {
+            h += '<div class="text-[9px] font-bold text-slate-600 mt-0.5 leading-tight">' + esc(pag.erp_label) + '</div>';
+          }
+          if (pag.venda_agro_id) {
+            h += '<div class="text-[9px] font-mono text-slate-500 mt-0.5">Venda #' + esc(pag.venda_agro_id) + '</div>';
+          }
+          return h + '</div>';
+        })() +
+        '<label class="text-[9px] font-black uppercase text-slate-500 block mb-0.5">Forma na rota</label>' +
         '<select class="ent-forma w-full text-xs font-bold border-2 border-slate-200 rounded-lg px-1.5 py-1.5 bg-white">' +
         optsFormaHtml(String(e.forma_pagamento || '')) +
         '</select>' +

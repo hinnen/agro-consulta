@@ -112,6 +112,12 @@ AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON = (
     config("AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON", default="") or ""
 ).strip()
 
+# BI — ``erp`` (padrão): gráfico, card Vendas e total por unidade só com DtoVenda faturado (sem orçamento).
+# ``pdv`` = mostra VendaAgro antes de fechar no ERP (só se quiser ver venda do dia no gráfico).
+AGRO_DASHBOARD_VENDAS_FONTE = (
+    config("AGRO_DASHBOARD_VENDAS_FONTE", default="erp") or "erp"
+).strip().lower()
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -424,6 +430,8 @@ PDV_ERP_ENVIO_ASSINCRONO = config("PDV_ERP_ENVIO_ASSINCRONO", default=True, cast
 PDV_VENDA_ESTOQUE_DEPOSITO = config("PDV_VENDA_ESTOQUE_DEPOSITO", default="centro").strip().lower() or "centro"
 PDV_WIZARD_SALDO_VALE_CREDITO = config("PDV_WIZARD_SALDO_VALE_CREDITO", default="0").strip()
 PDV_WIZARD_SALDO_CASHBACK = config("PDV_WIZARD_SALDO_CASHBACK", default="0").strip()
+# Limite de fiado quando o ERP/Mongo não informar limite por cliente
+AGRO_FIADO_LIMITE_PADRAO = config("AGRO_FIADO_LIMITE_PADRAO", default="5000").strip()
 # WhatsApp após impressão de cupom de transferência (Vila Elias). Vazio = usa PDV_ENTREGA_WHATSAPP.
 TRANSFERENCIA_WHATSAPP = config('TRANSFERENCIA_WHATSAPP', default='').strip()
 # Token para endpoint HTTP do cron de alertas (sem shell). Mantenha forte e secreto.

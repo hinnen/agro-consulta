@@ -126,18 +126,28 @@
   </div>
 
   <dialog id="pdv-entregas-pendentes-modal" class="max-h-[min(92vh,640px)] w-[min(96vw,560px)] rounded-2xl border-2 border-orange-300 bg-white p-0 shadow-2xl backdrop:bg-slate-950/65">
+    <style>
+      #pdv-entregas-pendentes-modal details.pdv-entregas-help summary::-webkit-details-marker { display: none; }
+    </style>
     <div class="flex max-h-[min(92vh,640px)] flex-col">
       <div class="flex items-center justify-between gap-2 border-b border-orange-100 bg-orange-50 px-3 py-2.5">
-        <div>
+        <div class="min-w-0 flex-1">
           <p class="text-[10px] font-black uppercase tracking-wide text-orange-800">Pagamento na entrega</p>
-          <h3 class="text-base font-black text-slate-900">Entregas pendentes no PDV</h3>
+          <h3 class="text-base font-black text-slate-900">Entregas pendentes</h3>
         </div>
-        <button type="button" id="pdv-entregas-pendentes-close" class="rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase text-slate-700">Fechar</button>
+        <div class="flex shrink-0 items-center gap-1.5">
+          <details class="pdv-entregas-help relative">
+            <summary class="cursor-pointer list-none flex h-9 w-9 items-center justify-center rounded-xl border-2 border-orange-300 bg-white text-sm font-black text-orange-900 shadow-sm hover:bg-orange-50 select-none" title="Ajuda — entregas pendentes">?</summary>
+            <div class="absolute right-0 z-20 mt-1 w-[min(92vw,22rem)] rounded-xl border-2 border-orange-300 bg-white px-3 py-2.5 text-xs font-semibold leading-snug text-slate-700 shadow-xl">
+              <p>Retome a venda para registrar o pagamento depois que o entregador voltar.</p>
+              <p class="mt-2"><strong>Cancelar</strong> remove a pendência do PDV (não apaga o registro no painel Entregas).</p>
+              <p class="mt-2">Só aparecem entregas enviadas pelo PDV com <strong>pagamento na entrega</strong> (etapa Entrega → Enviar entrega). Entregas antigas só do painel <em>/entregas/</em> não entram nesta lista.</p>
+            </div>
+          </details>
+          <button type="button" id="pdv-entregas-pendentes-close" class="rounded-xl border-2 border-slate-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase text-slate-700">Fechar</button>
+        </div>
       </div>
-      <p class="shrink-0 border-b border-slate-100 px-3 py-2 text-[11px] font-semibold leading-snug text-slate-600">
-        Retome a venda para registrar o pagamento após o entregador voltar. Cancelar remove a pendência do PDV.
-      </p>
-      <div id="pdv-entregas-pendentes-list" class="pdv-wizard-scroll min-h-0 flex-1 overflow-y-auto px-3 py-2 text-sm"></div>
+      <div id="pdv-entregas-pendentes-list" class="pdv-wizard-scroll min-h-0 flex-1 overflow-y-auto px-3 py-3 text-sm"></div>
     </div>
   </dialog>
 

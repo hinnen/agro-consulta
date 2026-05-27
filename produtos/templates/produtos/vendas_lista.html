@@ -56,6 +56,8 @@
             <a href="?preset=hoje" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == 'hoje' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Hoje</a>
             <a href="?preset=7d" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == '7d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">7 dias</a>
             <a href="?preset=30d" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == '30d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">30 dias</a>
+            <a href="?fiado=1&amp;erp_fiado=pendente" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_erp_fiado == 'pendente' %}border-orange-500 bg-orange-50 text-orange-900{% else %}border-orange-200 text-orange-800 hover:bg-orange-50{% endif %}" title="Vendas fiado ainda não enviadas ao ERP">Fiado · pendente ERP</a>
+            <a href="?fiado=1" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_fiado and filtro_erp_fiado != 'pendente' %}border-sky-500 bg-sky-50 text-sky-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Só fiado</a>
           </div>
         </div>
         <div class="flex flex-wrap items-end gap-2 sm:gap-3 pt-2 border-t border-slate-100">
@@ -118,6 +120,15 @@
                   {% else %}
                   <span class="inline-flex items-center min-h-[44px] px-3 text-[10px] font-bold text-slate-400">—</span>
                   {% endif %}
+                  {% if v.tem_fiado and not v.devolvida_em %}
+                  {% if v.fiado_aguarda_envio_erp or v.erp_sync_efetivo == 'recusado_erp' or v.erp_sync_efetivo == 'falha_comunicacao' %}
+                  <button type="button" class="js-venda-enviar-erp inline-flex items-center justify-center min-h-[44px] min-w-[6.5rem] px-3 rounded-xl border-2 border-orange-400 bg-orange-500 text-[11px] font-black uppercase text-white shadow-sm hover:bg-orange-600" data-venda-id="{{ v.id }}" title="Enviar manualmente ao ERP">{% if v.fiado_aguarda_envio_erp %}Enviar ERP{% else %}Tentar ERP{% endif %}</button>
+                  {% endif %}
+                  {% if v.enviado_erp and not v.fiado_aguarda_envio_erp %}
+                  <button type="button" class="js-venda-reverter-erp inline-flex items-center justify-center min-h-[44px] px-3 rounded-xl border-2 border-slate-300 bg-white text-[10px] font-black uppercase text-slate-800 hover:bg-slate-50" data-venda-id="{{ v.id }}" title="Volta status local para pendente (não cancela no ERP)">Reverter</button>
+                  {% endif %}
+                  <button type="button" class="js-venda-erp-hist inline-flex items-center justify-center min-h-[44px] px-2.5 rounded-xl border border-slate-200 bg-slate-50 text-[10px] font-black uppercase text-slate-700 hover:bg-white" data-venda-id="{{ v.id }}" title="Histórico de envios ao ERP">Hist.</button>
+                  {% endif %}
                 </div>
               </td>
               <td class="px-3 sm:px-4 py-2.5 tabular-nums whitespace-nowrap text-xs">{{ v.criado_em|date:"d/m/Y H:i" }}</td>
@@ -127,8 +138,10 @@
               <td class="px-3 sm:px-4 py-2.5 text-xs text-slate-500 whitespace-nowrap">{% if v.sessao_caixa_id %}#{{ v.sessao_caixa_id }}{% else %}—{% endif %}</td>
               <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
                 {% with s=v.erp_sync_efetivo %}
-                {% if s == 'aceito' %}
-                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">ERP ok</span>
+                {% if v.fiado_aguarda_envio_erp %}
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-orange-100 text-orange-900" title="Fiado: aguardando envio manual ao ERP">Aguard. ERP</span>
+                {% elif s == 'aceito' %}
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">{% if v.tem_fiado %}Enviado ERP{% else %}ERP ok{% endif %}</span>
                 {% elif s == 'recusado_erp' %}
                 <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-rose-100 text-rose-900" title="O ERP respondeu com erro de validação ou negócio.">ERP recusou</span>
                 {% else %}
@@ -150,6 +163,39 @@
     {% endif %}
   </main>
 
+  <div id="modal-erp-envio" class="fixed inset-0 z-[80] hidden items-center justify-center p-3 bg-slate-900/60" role="dialog" aria-modal="true">
+    <div class="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-slate-200 bg-white shadow-2xl p-4 sm:p-5">
+      <h2 class="text-lg font-black text-slate-900" id="modal-erp-titulo">Envio ao ERP</h2>
+      <p class="text-xs font-bold text-slate-600 mt-1" id="modal-erp-sub"></p>
+      <div class="mt-3 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-bold text-orange-950">
+        Confira cliente e valor antes de enviar. O ERP não é alterado ao reverter — só o status no Agro.
+      </div>
+      <dl class="mt-3 grid grid-cols-2 gap-2 text-xs font-bold text-slate-700">
+        <dt class="text-slate-500">Cliente</dt><dd id="modal-erp-cliente" class="text-slate-900 col-span-1"></dd>
+        <dt class="text-slate-500">Total</dt><dd id="modal-erp-total" class="text-slate-900 font-black tabular-nums"></dd>
+        <dt class="text-slate-500">Pagamento</dt><dd id="modal-erp-forma" class="text-slate-900"></dd>
+        <dt class="text-slate-500">Status</dt><dd id="modal-erp-status" class="text-slate-900"></dd>
+      </dl>
+      <label class="mt-4 flex items-start gap-2 cursor-pointer">
+        <input type="checkbox" id="modal-erp-confirmar" class="mt-1 w-5 h-5 accent-orange-600 rounded">
+        <span class="text-sm font-bold text-slate-800">Confirmo que conferi os dados e desejo enviar ao ERP.</span>
+      </label>
+      <details class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+        <summary class="text-xs font-black uppercase text-slate-700 cursor-pointer">Histórico de envios</summary>
+        <ul id="modal-erp-logs" class="mt-2 space-y-2 text-[11px] font-semibold text-slate-700 max-h-40 overflow-y-auto"></ul>
+      </details>
+      <pre id="modal-erp-log-copia" class="mt-2 hidden text-[10px] font-mono bg-slate-900 text-slate-100 p-2 rounded-lg max-h-32 overflow-auto whitespace-pre-wrap"></pre>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button type="button" id="modal-erp-btn-copiar" class="min-h-[44px] px-3 rounded-xl border border-slate-300 bg-white text-[10px] font-black uppercase text-slate-800">Copiar log</button>
+        <button type="button" id="modal-erp-btn-reverter" class="hidden min-h-[44px] px-3 rounded-xl border-2 border-slate-400 bg-slate-100 text-[10px] font-black uppercase text-slate-900">Reverter envio</button>
+        <span class="flex-1"></span>
+        <button type="button" id="modal-erp-btn-fechar" class="min-h-[44px] px-4 rounded-xl border border-slate-200 text-xs font-black uppercase text-slate-600">Fechar</button>
+        <button type="button" id="modal-erp-btn-enviar" class="min-h-[44px] px-4 rounded-xl border-2 border-orange-500 bg-orange-500 text-xs font-black uppercase text-white hover:bg-orange-600">Enviar ao ERP</button>
+      </div>
+      <p id="modal-erp-msg" class="mt-2 text-sm font-bold hidden"></p>
+    </div>
+  </div>
+
   <script>
     document.addEventListener('keydown', function (e) {
       if (e.key !== '/') return;
@@ -158,6 +204,173 @@
       e.preventDefault();
       document.getElementById('id-de')?.focus();
     });
+    (function () {
+      function csrf() {
+        var m = document.cookie.match(/csrftoken=([^;]+)/);
+        return m ? decodeURIComponent(m[1]) : '';
+      }
+      var modal = document.getElementById('modal-erp-envio');
+      var vendaIdAtual = null;
+      var painelAtual = null;
+      var modo = 'enviar';
+
+      function fmtMoeda(n) {
+        return 'R$ ' + Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      function escHtml(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+      function renderLogs(logs) {
+        var ul = document.getElementById('modal-erp-logs');
+        ul.innerHTML = '';
+        if (!logs || !logs.length) {
+          ul.innerHTML = '<li class="text-slate-500">Nenhum registro ainda.</li>';
+          return;
+        }
+        logs.forEach(function (lg) {
+          var li = document.createElement('li');
+          var ok = lg.ok ? '✓' : '✗';
+          var ts = (lg.ts || '').replace('T', ' ').slice(0, 19);
+          li.innerHTML = '<span class="font-black">' + ok + ' ' + escHtml(lg.acao) + '</span> · ' + escHtml(ts) +
+            (lg.usuario ? ' · ' + escHtml(lg.usuario) : '') +
+            '<div class="text-slate-600">' + escHtml(lg.mensagem || '') + '</div>';
+          ul.appendChild(li);
+        });
+        var pre = document.getElementById('modal-erp-log-copia');
+        pre.textContent = JSON.stringify(logs, null, 2);
+        pre.classList.add('hidden');
+      }
+      function abrirModal(id, m) {
+        vendaIdAtual = id;
+        modo = m || 'enviar';
+        document.getElementById('modal-erp-confirmar').checked = false;
+        document.getElementById('modal-erp-msg').classList.add('hidden');
+        document.getElementById('modal-erp-btn-enviar').classList.toggle('hidden', modo === 'hist');
+        document.getElementById('modal-erp-titulo').textContent = modo === 'hist' ? 'Histórico ERP · venda #' + id : 'Enviar ao ERP · venda #' + id;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        fetch('/venda/' + id + '/erp-envio/', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (!d.ok || !d.painel) throw new Error('Não foi possível carregar os dados.');
+            painelAtual = d.painel;
+            document.getElementById('modal-erp-cliente').textContent = d.painel.cliente_nome || '—';
+            document.getElementById('modal-erp-total').textContent = fmtMoeda(d.painel.total);
+            document.getElementById('modal-erp-forma').textContent = d.painel.forma_pagamento || '—';
+            document.getElementById('modal-erp-status').textContent = (d.painel.status_erp && d.painel.status_erp.label) || '—';
+            renderLogs(d.painel.logs || []);
+            var btnRev = document.getElementById('modal-erp-btn-reverter');
+            btnRev.classList.toggle('hidden', !d.painel.pode_reverter_erp);
+            var podeEnv = d.painel.pode_enviar_erp;
+            document.getElementById('modal-erp-btn-enviar').disabled = !podeEnv;
+            if (!podeEnv && modo === 'enviar') {
+              var msg = document.getElementById('modal-erp-msg');
+              msg.textContent = d.painel.msg_enviar_erp || 'Envio não disponível.';
+              msg.className = 'mt-2 text-sm font-bold text-amber-800';
+              msg.classList.remove('hidden');
+            }
+          })
+          .catch(function (err) {
+            alert(err.message || 'Erro ao carregar.');
+            fecharModal();
+          })
+          .finally(function () { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
+      }
+      function fecharModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        vendaIdAtual = null;
+      }
+      document.getElementById('modal-erp-btn-fechar').onclick = fecharModal;
+      modal.addEventListener('click', function (e) { if (e.target === modal) fecharModal(); });
+      document.getElementById('modal-erp-btn-copiar').onclick = function () {
+        var pre = document.getElementById('modal-erp-log-copia');
+        pre.classList.remove('hidden');
+        var txt = pre.textContent || '';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(function () { alert('Log copiado.'); });
+        } else {
+          alert('Selecione e copie o texto do log abaixo.');
+        }
+      };
+      document.getElementById('modal-erp-btn-enviar').onclick = function () {
+        if (!vendaIdAtual) return;
+        if (!document.getElementById('modal-erp-confirmar').checked) {
+          alert('Marque a confirmação antes de enviar.');
+          return;
+        }
+        var btn = document.getElementById('modal-erp-btn-enviar');
+        btn.disabled = true;
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        fetch('/venda/' + vendaIdAtual + '/reenviar-erp/', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrf(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirmar: true }),
+          credentials: 'same-origin'
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+          .then(function (res) {
+            var msgEl = document.getElementById('modal-erp-msg');
+            msgEl.classList.remove('hidden');
+            if (res.data && res.data.painel) {
+              painelAtual = res.data.painel;
+              renderLogs(res.data.painel.logs || []);
+            }
+            if (res.ok && res.data.ok) {
+              msgEl.textContent = res.data.mensagem || 'Enviado com sucesso.';
+              msgEl.className = 'mt-2 text-sm font-bold text-emerald-800';
+              setTimeout(function () { window.location.reload(); }, 1200);
+              return;
+            }
+            var det = (res.data && res.data.log_ultimo) ? '\n\nDetalhe: ' + JSON.stringify(res.data.log_ultimo) : '';
+            msgEl.textContent = ((res.data && res.data.erro) || 'Falha no envio.') + det;
+            msgEl.className = 'mt-2 text-sm font-bold text-rose-800';
+          })
+          .catch(function () {
+            alert('Falha de rede.');
+          })
+          .finally(function () {
+            btn.disabled = false;
+            if (window.gmLoadingBar) window.gmLoadingBar.hide();
+          });
+      };
+      document.getElementById('modal-erp-btn-reverter').onclick = function () {
+        if (!vendaIdAtual) return;
+        if (!window.confirm('Reverter o envio no Agro? O pedido no ERP não será cancelado automaticamente.')) return;
+        fetch('/venda/' + vendaIdAtual + '/reverter-erp/', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrf(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ confirmar: true }),
+          credentials: 'same-origin'
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (!d.ok) throw new Error(d.erro || 'Falha ao reverter.');
+            alert(d.mensagem || 'Revertido.');
+            window.location.reload();
+          })
+          .catch(function (err) { alert(err.message || 'Erro.'); });
+      };
+      document.querySelectorAll('.js-venda-enviar-erp').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-venda-id');
+          if (id) abrirModal(id, 'enviar');
+        });
+      });
+      document.querySelectorAll('.js-venda-erp-hist').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-venda-id');
+          if (id) abrirModal(id, 'hist');
+        });
+      });
+      document.querySelectorAll('.js-venda-reverter-erp').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-venda-id');
+          if (id) abrirModal(id, 'hist');
+        });
+      });
+    })();
   </script>
 {% include "produtos/_atalho_voltar_pdv.html" %}
 </body>

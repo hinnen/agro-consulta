@@ -89,7 +89,12 @@ def pdv_home(request):
                 "apiPdvMpPointFinalizar": reverse("api_pdv_mp_point_finalizar"),
                 "apiPdvMpPointAbandon": reverse("api_pdv_mp_point_abandon"),
                 "apiEntregaRegistrar": reverse("api_entrega_registrar"),
+                "apiPdvClienteCreditoFiado": reverse("api_pdv_cliente_credito_fiado"),
                 "apiPdvEntregasPendentes": reverse("api_pdv_entregas_pendentes"),
+                "apiVendaReenviarErp": reverse("api_venda_agro_reenviar_erp", args=[0]).replace(
+                    "/0/", "/__pk__/"
+                ),
+                "vendasLista": reverse("vendas_lista"),
                 "apiPdvEntregaPendenteDetalhe": reverse("api_pdv_entrega_pendente_detalhe", args=[0]).replace(
                     "/0/", "/__pk__/"
                 ),

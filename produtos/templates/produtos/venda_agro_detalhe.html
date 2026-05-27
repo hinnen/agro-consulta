@@ -64,7 +64,14 @@
 
         <button type="button" id="btn-devolver-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-rose-500 bg-rose-600 text-white shadow-md hover:bg-rose-700 ring-2 ring-rose-200">↩ Devolver venda</button>
 
-        <button type="button" id="btn-reenviar-erp" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100">Reenviar ERP</button>
+        {% if erp_painel.tem_fiado %}
+        {% if erp_painel.pode_enviar_erp %}
+        <button type="button" id="btn-erp-envio-manual" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-orange-400 bg-orange-500 text-white hover:bg-orange-600">Enviar ERP</button>
+        {% endif %}
+        {% if erp_painel.pode_reverter_erp %}
+        <button type="button" id="btn-erp-reverter" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50">Reverter ERP</button>
+        {% endif %}
+        {% endif %}
 
         {% endif %}
 
@@ -113,6 +120,30 @@
     {% endif %}
 
 
+
+    {% if erp_painel.tem_fiado %}
+    <div class="shrink-0 rounded-2xl border border-orange-200 bg-orange-50/50 p-4 sm:p-5">
+      <h2 class="text-sm font-black uppercase text-orange-950">Envio fiado ao ERP</h2>
+      <p class="text-xs font-bold text-orange-900 mt-1">Histórico local (reverter não cancela pedido no ERP).</p>
+      <details class="mt-2 rounded-xl border border-orange-200 bg-white px-3 py-2">
+        <summary class="text-xs font-black uppercase text-slate-700 cursor-pointer">Histórico · copiar para suporte</summary>
+        <ul class="mt-2 space-y-2 text-[11px] font-semibold text-slate-700 max-h-48 overflow-y-auto">
+          {% for lg in erp_painel.logs %}
+          <li>
+            <span class="font-black">{% if lg.ok %}✓{% else %}✗{% endif %} {{ lg.acao }}</span>
+            · {{ lg.ts|slice:":19"|default:"" }}
+            {% if lg.usuario %}· {{ lg.usuario }}{% endif %}
+            <div class="text-slate-600">{{ lg.mensagem }}</div>
+          </li>
+          {% empty %}
+          <li class="text-slate-500">Nenhum envio registrado.</li>
+          {% endfor %}
+        </ul>
+        <pre id="erp-log-json" class="mt-2 text-[10px] font-mono bg-slate-900 text-slate-100 p-2 rounded-lg max-h-32 overflow-auto">{{ erp_logs_json }}</pre>
+        <button type="button" id="btn-copiar-erp-log" class="mt-2 min-h-[40px] px-3 rounded-lg border border-slate-300 bg-white text-[10px] font-black uppercase">Copiar log JSON</button>
+      </details>
+    </div>
+    {% endif %}
 
     <div class="shrink-0 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
 
@@ -165,6 +196,10 @@
             {% endif %}
 
             {% endwith %}
+
+            {% if erp_painel.tem_fiado and erp_painel.fiado_aguarda_envio_erp %}
+            <p class="text-[10px] font-bold text-orange-800 mt-1">Aguardando envio manual</p>
+            {% endif %}
 
           </div>
 
@@ -358,15 +393,17 @@
 
 
 
-  var btnErp = document.getElementById('btn-reenviar-erp');
+  var btnErpEnv = document.getElementById('btn-erp-envio-manual');
 
-  if (btnErp) {
+  if (btnErpEnv) {
 
-    btnErp.addEventListener('click', function () {
+    btnErpEnv.addEventListener('click', function () {
 
-      if (!confirm('Repetir envio desta venda para o ERP?')) return;
+      if (!confirm('Conferiu cliente e valor? Enviar venda #{{ v.pk }} ao ERP?')) return;
 
-      btnErp.disabled = true;
+      if (!confirm('Última confirmação: enviar agora ao ERP?')) return;
+
+      btnErpEnv.disabled = true;
 
       fetch('{% url "api_venda_agro_reenviar_erp" v.pk %}', {
 
@@ -374,7 +411,9 @@
 
         credentials: 'same-origin',
 
-        headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Accept': 'application/json' },
+        headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json', 'Accept': 'application/json' },
+
+        body: JSON.stringify({ confirmar: true }),
 
       })
 
@@ -382,15 +421,77 @@
 
         .then(function (x) {
 
-          if (x.j && x.j.ok) { alert(x.j.mensagem || 'OK'); location.reload(); return; }
+          if (x.j && x.j.ok) { alert(x.j.mensagem || 'Enviado ao ERP.'); location.reload(); return; }
 
-          alert((x.j && (x.j.erro || x.j.mensagem)) || 'Falha.');
+          var det = (x.j && x.j.log_ultimo) ? '\n\nLog: ' + JSON.stringify(x.j.log_ultimo) : '';
+
+          alert(((x.j && (x.j.erro || x.j.mensagem)) || 'Falha.') + det);
 
         })
 
         .catch(function () { alert('Falha de rede.'); })
 
-        .finally(function () { btnErp.disabled = false; });
+        .finally(function () { btnErpEnv.disabled = false; });
+
+    });
+
+  }
+
+  var btnErpRev = document.getElementById('btn-erp-reverter');
+
+  if (btnErpRev) {
+
+    btnErpRev.addEventListener('click', function () {
+
+      if (!confirm('Reverter envio no Agro? O ERP não será cancelado automaticamente.')) return;
+
+      fetch('{% url "api_venda_agro_reverter_erp" v.pk %}', {
+
+        method: 'POST',
+
+        credentials: 'same-origin',
+
+        headers: { 'X-CSRFToken': getCookie('csrftoken'), 'Content-Type': 'application/json' },
+
+        body: JSON.stringify({ confirmar: true }),
+
+      })
+
+        .then(function (r) { return r.json(); })
+
+        .then(function (j) {
+
+          if (j.ok) { alert(j.mensagem || 'Revertido.'); location.reload(); return; }
+
+          alert(j.erro || 'Falha ao reverter.');
+
+        })
+
+        .catch(function () { alert('Falha de rede.'); });
+
+    });
+
+  }
+
+  var btnCopLog = document.getElementById('btn-copiar-erp-log');
+
+  if (btnCopLog) {
+
+    btnCopLog.addEventListener('click', function () {
+
+      var pre = document.getElementById('erp-log-json');
+
+      var txt = pre ? pre.textContent : '[]';
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+
+        navigator.clipboard.writeText(txt).then(function () { alert('Log copiado.'); });
+
+      } else {
+
+        alert('Copie o texto do bloco JSON abaixo.');
+
+      }
 
     });
 
