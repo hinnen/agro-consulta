@@ -71,6 +71,15 @@ from .fiado_credito_util import (
     valor_fiado_no_payload,
     venda_payload_tem_fiado,
 )
+from .entrega_pagamento_util import serializar_pagamento_entrega
+from .venda_erp_envio_util import (
+    append_erp_envio_log,
+    erp_envio_usuario_label,
+    pode_enviar_venda_fiado_erp,
+    reverter_envio_erp_local,
+    serializar_venda_erp_painel,
+    venda_payload_de_venda_agro,
+)
 from .entrega_pdv_pendente_util import (
     cancelar_entrega_pendente_pdv,
     listar_entregas_bloqueando_fechamento_caixa,
@@ -19845,42 +19854,66 @@ def api_entregas_listar(request):
         lim = min(max(int(request.GET.get("lim") or 200), 1), 500)
     except (TypeError, ValueError):
         lim = 200
-    qs = PedidoEntrega.objects.select_related("venda_agro").order_by("-criado_em")
-    if st:
-        qs = qs.filter(status=st)
-    qs = qs[:lim]
     status_vals = {c.value for c in PedidoEntrega.Status}
-    rows = []
-    for e in qs:
-        pag = serializar_pagamento_entrega(e)
-        rows.append(
-            {
-                "id": e.pk,
-                "status": e.status,
-                "cliente_agro_id": e.cliente_agro_id,
-                "cliente_nome": e.cliente_nome,
-                "telefone": e.telefone,
-                "endereco_linha": e.endereco_linha,
-                "plus_code": e.plus_code,
-                "referencia_rural": e.referencia_rural,
-                "maps_url_manual": e.maps_url_manual or "",
-                "itens_json": e.itens_json,
-                "total_texto": e.total_texto,
-                "orc_local_id": e.orc_local_id,
-                "retomar_codigo": e.retomar_codigo,
-                "operador": e.operador,
-                "hora_prevista": e.hora_prevista.isoformat() if e.hora_prevista else None,
-                "hora_saida": e.hora_saida.isoformat() if e.hora_saida else None,
-                "hora_entrega": e.hora_entrega.isoformat() if e.hora_entrega else None,
-                "observacoes": e.observacoes,
-                "forma_pagamento": e.forma_pagamento or "",
-                "troco_precisa": e.troco_precisa,
-                "aguarda_pagamento_pdv": bool(e.aguarda_pagamento_pdv),
-                "pagamento_pdv": pag,
-                "criado_em": e.criado_em.isoformat(),
-            }
+    try:
+        qs = PedidoEntrega.objects.select_related("venda_agro").order_by("-criado_em")
+        if st:
+            qs = qs.filter(status=st)
+        qs = qs[:lim]
+        rows = []
+        for e in qs:
+            try:
+                pag = serializar_pagamento_entrega(e)
+            except Exception:
+                logger.exception("serializar_pagamento_entrega id=%s", e.pk)
+                pag = {
+                    "pago": None,
+                    "label": "—",
+                    "erp_label": "",
+                    "classe": "bg-slate-100 text-slate-700",
+                    "venda_agro_id": getattr(e, "venda_agro_id", None),
+                }
+            rows.append(
+                {
+                    "id": e.pk,
+                    "status": e.status,
+                    "cliente_agro_id": e.cliente_agro_id,
+                    "cliente_nome": e.cliente_nome,
+                    "telefone": e.telefone,
+                    "endereco_linha": e.endereco_linha,
+                    "plus_code": e.plus_code,
+                    "referencia_rural": e.referencia_rural,
+                    "maps_url_manual": e.maps_url_manual or "",
+                    "itens_json": e.itens_json,
+                    "total_texto": e.total_texto,
+                    "orc_local_id": e.orc_local_id,
+                    "retomar_codigo": e.retomar_codigo,
+                    "operador": e.operador,
+                    "hora_prevista": e.hora_prevista.isoformat() if e.hora_prevista else None,
+                    "hora_saida": e.hora_saida.isoformat() if e.hora_saida else None,
+                    "hora_entrega": e.hora_entrega.isoformat() if e.hora_entrega else None,
+                    "observacoes": e.observacoes,
+                    "forma_pagamento": e.forma_pagamento or "",
+                    "troco_precisa": e.troco_precisa,
+                    "aguarda_pagamento_pdv": bool(getattr(e, "aguarda_pagamento_pdv", False)),
+                    "pagamento_pdv": pag,
+                    "criado_em": e.criado_em.isoformat(),
+                }
+            )
+        return JsonResponse({"ok": True, "entregas": rows, "status_opcoes": sorted(status_vals)})
+    except Exception as ex:
+        logger.exception("api_entregas_listar")
+        msg = str(ex) or "Falha ao listar entregas."
+        low = msg.lower()
+        if "aguarda_pagamento_pdv" in low or "does not exist" in low or "no such column" in low:
+            msg = (
+                "Banco desatualizado: rode python manage.py migrate produtos "
+                "(migration 0026 — entrega pendente no PDV)."
+            )
+        return JsonResponse(
+            {"ok": False, "erro": msg, "entregas": [], "status_opcoes": sorted(status_vals)},
+            status=500,
         )
-    return JsonResponse({"entregas": rows, "status_opcoes": sorted(status_vals)})
 
 
 @require_POST
