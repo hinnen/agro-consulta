@@ -748,7 +748,7 @@ def rh_importar_vales(request):
 def api_rh_caixa_quem_leva(request):
     """
     Lista perfis RH ativos (com ClienteAgro) para o campo «Quem está levando» no caixa.
-    Não exige permissão de gestão RH — apenas login (mesmo público da API de saída).
+    Por padrão traz todos os ativos; ?filtrar_empresa=1 restringe à empresa informada.
     """
     from django.conf import settings
 
@@ -765,40 +765,59 @@ def api_rh_caixa_quem_leva(request):
         nome_emp = (request.GET.get("empresa_nome") or "").strip() or (
             getattr(settings, "AGRO_SAIDA_CAIXA_EMPRESA_PADRAO", "") or ""
         ).strip()
-        emp = resolver_empresa_por_nome_fantasia(nome_emp)
-    if emp is None:
-        return JsonResponse(
-            {
-                "ok": False,
-                "erro": "Empresa não informada ou não encontrada no cadastro base.",
-                "pessoas": [],
-            },
-            status=400,
-        )
-    qs = (
-        Funcionario.objects.filter(empresa=emp, ativo=True)
-        .select_related("cliente_agro")
-        .order_by("nome_cache", "apelido_interno", "id")
+        if nome_emp:
+            emp = resolver_empresa_por_nome_fantasia(nome_emp)
+
+    filtrar_empresa = str(request.GET.get("filtrar_empresa") or "").strip().lower() in (
+        "1",
+        "true",
+        "sim",
+        "yes",
     )
+
+    qs = (
+        Funcionario.objects.filter(ativo=True, cliente_agro__ativo=True)
+        .select_related("cliente_agro", "empresa")
+        .order_by("empresa__nome_fantasia", "nome_cache", "apelido_interno", "id")
+    )
+    if filtrar_empresa:
+        if emp is None:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Empresa não informada ou não encontrada no cadastro base.",
+                    "pessoas": [],
+                },
+                status=400,
+            )
+        qs = qs.filter(empresa=emp)
+
+    rows = list(qs[:500])
+    empresas_distintas = {f.empresa_id for f in rows}
+    multi_empresa = len(empresas_distintas) > 1
+
     pessoas = []
-    for f in qs[:500]:
+    for f in rows:
         label = f.nome_exibicao
         ap = (f.apelido_interno or "").strip()
         if ap:
             label = f"{label} ({ap})"
+        if multi_empresa and f.empresa_id:
+            label = f"{label} · {(f.empresa.nome_fantasia or '').strip()}"
         pessoas.append(
             {
                 "cliente_agro_id": f.cliente_agro_id,
                 "perfil_rh_id": f.pk,
                 "label": label,
                 "cargo": (f.cargo or "").strip(),
+                "empresa_id": f.empresa_id,
             }
         )
     return JsonResponse(
         {
             "ok": True,
-            "empresa_id": emp.pk,
-            "empresa_nome": emp.nome_fantasia,
+            "empresa_id": emp.pk if emp else None,
+            "empresa_nome": (emp.nome_fantasia if emp else "") or "",
             "pessoas": pessoas,
         }
     )

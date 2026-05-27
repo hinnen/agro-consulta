@@ -130,29 +130,30 @@
 <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-1 py-1 sm:px-1.5 sm:py-1.5">
     <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
       <header class="shrink-0 border-b border-slate-200 bg-white/95 px-2.5 py-1.5 sm:px-3">
-        <div class="pdv-wizard-scroll flex flex-nowrap items-center gap-1.5 overflow-x-auto" id="pdv-topbar-compact">
-          <div class="shrink-0 whitespace-nowrap text-sm font-black tracking-tight text-slate-900">
-            <span class="text-[9px] uppercase tracking-[0.22em] text-orange-600">PDV</span>
-            <span class="ml-1">Wizard</span>
+        <div class="flex flex-nowrap items-center gap-1.5 min-w-0" id="pdv-topbar-compact">
+          <div class="pdv-wizard-scroll flex flex-nowrap items-center gap-1.5 overflow-x-auto min-w-0 flex-1">
+            <div class="shrink-0 whitespace-nowrap text-sm font-black tracking-tight text-slate-900">
+              <span class="text-[9px] uppercase tracking-[0.22em] text-orange-600">PDV</span>
+              <span class="ml-1">Wizard</span>
+            </div>
+            <div class="flex flex-nowrap items-center gap-1" id="pdv-stepper">
+              <button type="button" class="pdv-step-nav shrink-0 rounded-xl border border-slate-200 px-2 py-1 text-left" data-step-nav="produtos" title="Ir para etapa 1 · Alt+1">
+                <span class="flex items-center gap-1 whitespace-nowrap text-[11px] font-black text-slate-900"><kbd class="pointer-events-none rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[9px] text-slate-600">1</kbd><span>Produtos</span></span>
+              </button>
+              <button type="button" class="pdv-step-nav shrink-0 rounded-xl border border-slate-200 px-2 py-1 text-left" data-step-nav="cliente" title="Ir para etapa 2 · Alt+2">
+                <span class="flex items-center gap-1 whitespace-nowrap text-[11px] font-black text-slate-900"><kbd class="pointer-events-none rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[9px] text-slate-600">2</kbd><span>Cliente</span></span>
+              </button>
+              <button type="button" class="pdv-step-nav shrink-0 rounded-xl border border-slate-200 px-2 py-1 text-left" data-step-nav="entrega" title="Ir para etapa 3 · Alt+3">
+                <span class="flex items-center gap-1 whitespace-nowrap text-[11px] font-black text-slate-900"><kbd class="pointer-events-none rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[9px] text-slate-600">3</kbd><span>Entrega</span></span>
+              </button>
+              <button type="button" class="pdv-step-nav shrink-0 rounded-xl border border-slate-200 px-2 py-1 text-left" data-step-nav="pagamento" title="Ir para etapa 4 · Alt+4">
+                <span class="flex items-center gap-1 whitespace-nowrap text-[11px] font-black text-slate-900"><kbd class="pointer-events-none rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[9px] text-slate-600">4</kbd><span>Pagamento</span></span>
+              </button>
+            </div>
           </div>
-          <div class="flex flex-nowrap items-center gap-1" id="pdv-stepper">
-            <button type="button" class="pdv-step-nav shrink-0 rounded-xl border border-slate-200 px-2 py-1 text-left" data-step-nav="produtos" title="Ir para etapa 1 · Alt+1">
-              <span class="flex items-center gap-1 whitespace-nowrap text-[11px] font-black text-slate-900"><kbd class="pointer-events-none rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[9px] text-slate-600">1</kbd><span>Produtos</span></span>
-            </button>
-            <button type="button" class="pdv-step-nav shrink-0 rounded-xl border border-slate-200 px-2 py-1 text-left" data-step-nav="cliente" title="Ir para etapa 2 · Alt+2">
-              <span class="flex items-center gap-1 whitespace-nowrap text-[11px] font-black text-slate-900"><kbd class="pointer-events-none rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[9px] text-slate-600">2</kbd><span>Cliente</span></span>
-            </button>
-            <button type="button" class="pdv-step-nav shrink-0 rounded-xl border border-slate-200 px-2 py-1 text-left" data-step-nav="entrega" title="Ir para etapa 3 · Alt+3">
-              <span class="flex items-center gap-1 whitespace-nowrap text-[11px] font-black text-slate-900"><kbd class="pointer-events-none rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[9px] text-slate-600">3</kbd><span>Entrega</span></span>
-            </button>
-            <button type="button" class="pdv-step-nav shrink-0 rounded-xl border border-slate-200 px-2 py-1 text-left" data-step-nav="pagamento" title="Ir para etapa 4 · Alt+4">
-              <span class="flex items-center gap-1 whitespace-nowrap text-[11px] font-black text-slate-900"><kbd class="pointer-events-none rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[9px] text-slate-600">4</kbd><span>Pagamento</span></span>
-            </button>
-          </div>
-          <div class="ml-auto flex flex-nowrap items-center gap-1.5">
-            {% if caixa_aberto %}
-            <a href="{% url 'caixa_painel' %}" class="pdv-action-btn border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] text-emerald-900">Caixa #{{ caixa_aberto.pk }}</a>
-            {% endif %}
+          <div class="flex flex-nowrap items-center gap-1.5 shrink-0 pl-1">
+            <a href="{% url 'caixa_painel' %}" class="pdv-action-btn border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] text-emerald-900 no-underline hover:bg-emerald-100/80" title="Painel do caixa — abrir, fechar, saldos e movimentos">{% if caixa_aberto %}Caixa {{ caixa_aberto.pk }}{% else %}Caixa{% endif %}</a>
+            <a href="{% url 'vendas_lista' %}" class="pdv-action-btn border border-slate-200 bg-slate-100 px-2 py-1 text-[10px] text-slate-800 no-underline hover:bg-slate-200/80" title="Consultar vendas — filtro por período e exportar CSV">Consultar vendas</a>
             <a id="pdv-wizard-voltar-home" href="{% url 'home' %}?pin_tab=pdv" class="pdv-action-btn border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700" title="Sair do wizard — volta ao dashboard com guia PDV fixa">Sair</a>
             <a href="{% url 'consulta_produtos' %}?orcamentos=1" class="pdv-action-btn border border-sky-200 bg-sky-50 px-2 py-1 text-[10px] text-sky-900 no-underline hover:bg-sky-100" title="Orçamentos salvos neste aparelho">Orç. salvos</a>
             <button type="button" id="pdv-open-budget-history" class="pdv-action-btn border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700" title="Histórico de orçamentos · F6">Orçamento <kbd class="pointer-events-none ml-0.5 hidden rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[8px] sm:inline">F6</kbd></button>

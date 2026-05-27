@@ -1537,29 +1537,70 @@ def _mongo_expr_string_parece_objectid_mongo(s_trim: dict[str, Any]) -> dict[str
     }
 
 
+def _lancamento_data_campo_dia_mongo(campo: str, valor: Any) -> dict[str, Any]:
+    """Filtro por dia civil (alinha à assinatura usada na deduplicação da lista)."""
+    d: date | None = None
+    if isinstance(valor, datetime):
+        if valor.replace(tzinfo=None) <= _SENTINEL:
+            d = None
+        else:
+            d = valor.date()
+    elif isinstance(valor, date):
+        d = valor
+    if d is None:
+        return {campo: {"$in": [None, _SENTINEL]}}
+    start = datetime(d.year, d.month, d.day)
+    end = datetime(d.year, d.month, d.day, 23, 59, 59, 999000)
+    return {campo: {"$gte": start, "$lte": end}}
+
+
+def _lancamento_montar_query_assinatura_loose(
+    doc: dict[str, Any],
+    *,
+    exclude_oid: ObjectId | None = None,
+) -> dict[str, Any]:
+    """Assinatura funcional para achar o mesmo título (ERP + cópia Agro / resync)."""
+    desp = bool(doc.get("Despesa"))
+    bruto_key = round(float((doc.get("Saida") if desp else doc.get("Entrada")) or 0), 2)
+    pago_key = round(float(doc.get("ValorPago") or 0), 2)
+    rec_key = round(float(doc.get("Recebido") or 0), 2)
+    q: dict[str, Any] = {
+        "Despesa": desp,
+        "Empresa": doc.get("Empresa") or "",
+        "Cliente": doc.get("Cliente") or "",
+        "PlanoDeConta": doc.get("PlanoDeConta") or "",
+        "FormaPagamento": doc.get("FormaPagamento") or "",
+        "NumeroParcela": int(doc.get("NumeroParcela") or 0),
+        "Saida" if desp else "Entrada": bruto_key,
+        "ValorPago": pago_key,
+        "Recebido": rec_key,
+    }
+    q.update(_lancamento_data_campo_dia_mongo("DataVencimento", doc.get("DataVencimento")))
+    q.update(_lancamento_data_campo_dia_mongo("DataPagamento", doc.get("DataPagamento")))
+    if exclude_oid is not None:
+        q["_id"] = {"$ne": exclude_oid}
+    return q
+
+
 def _lancamentos_mongo_stages_dedup_por_titulo_erp(
     sort_spec: list[tuple[str, int]],
     *,
     pre_stages: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """
-    Um documento por título no ERP: evita linhas repetidas quando o Mongo recebeu o mesmo
-    DtoLancamento duas vezes (ex.: resync).
+    Um documento por título na lista: evita linhas repetidas quando o Mongo tem o mesmo
+    pagamento duas vezes (resync do ERP **ou** cópia gerada no Agro — ex. Entrada NF-e — sem o
+    mesmo ``Id`` do SisVale).
 
     Inclusões pelo **lote manual Agro** (marca em ``Observacoes`` / ``ModificadoPor``) usam sempre
-    a chave ``O|_id`` — senão herdam ``Id`` do modelo clonado e somem na grade após o ``$group``.
+    a chave ``O|_id`` — cada linha do lote deve aparecer.
 
-    Demais documentos — ordem da chave:
-    1) ``Id`` não vazio e não parecendo ObjectId Mongo → dedup por título ERP;
-    2) ``LancamentoID`` + parcela;
-    3) ``NumeroLancamento`` + parcela (SisVale às vezes só preenche o número);
-    4) assinatura estável (favorecido, valor bruto, venc., plano, doc., parcela, pag., forma)
-       quando não há chave ERP — evita dupla inserção sem Id/LancamentoID/Número;
-    5) senão ``_id`` BSON (último recurso).
+    Demais documentos: assinatura **funcional** (empresa, favorecido, valor bruto, vencimento,
+    plano, forma, parcela, quitação) — **sem** descrição nem número de documento, que costumam
+    divergir entre ERP e Agro. Em empate, fica o vínculo ERP (``Id`` válido) ou o ``LastUpdate``
+    mais recente.
     """
     id_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$Id", ""]}}}}
-    lid_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$LancamentoID", ""]}}}}
-    nl_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$NumeroLancamento", ""]}}}}
     parc = {"$toString": {"$ifNull": ["$NumeroParcela", 0]}}
     id_erp_valido = {
         "$and": [
@@ -1567,13 +1608,10 @@ def _lancamentos_mongo_stages_dedup_por_titulo_erp(
             {"$not": [_mongo_expr_string_parece_objectid_mongo(id_trim)]},
         ]
     }
-    key_id = {"$concat": ["ID|", id_trim, "|P|", parc]}
-    key_lid = {"$concat": ["L|", lid_trim, "|P|", parc]}
-    key_nl = {"$concat": ["NL|", nl_trim, "|P|", parc]}
     key_oid = {"$concat": ["O|", {"$toString": "$_id"}]}
+    emp_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$Empresa", ""]}}}}
     cli_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$Cliente", ""]}}}}
     plano_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$PlanoDeConta", ""]}}}}
-    doc_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$NumeroDocumento", ""]}}}}
     forma_trim = {"$trim": {"input": {"$toString": {"$ifNull": ["$FormaPagamento", ""]}}}}
     bruto_dedup = {
         "$round": [
@@ -1613,16 +1651,11 @@ def _lancamentos_mongo_stages_dedup_por_titulo_erp(
             "np",
         ]
     }
-    desc_sig = {
-        "$substrCP": [
-            {"$trim": {"input": {"$toString": {"$ifNull": ["$Descricao", ""]}}}},
-            0,
-            200,
-        ]
-    }
-    key_sig = {
+    key_sig_loose = {
         "$concat": [
             "SIG|",
+            emp_trim,
+            "|",
             {"$toString": "$Despesa"},
             "|",
             cli_trim,
@@ -1633,34 +1666,11 @@ def _lancamentos_mongo_stages_dedup_por_titulo_erp(
             "|",
             plano_trim,
             "|",
-            doc_trim,
-            "|",
             forma_trim,
             "|",
             parc,
             "|",
             dstr_pag_sig,
-            "|",
-            desc_sig,
-        ]
-    }
-    dup_key_erp = {
-        "$cond": [
-            id_erp_valido,
-            key_id,
-            {
-                "$cond": [
-                    {"$gt": [{"$strLenCP": lid_trim}, 0]},
-                    key_lid,
-                    {
-                        "$cond": [
-                            {"$gt": [{"$strLenCP": nl_trim}, 0]},
-                            key_nl,
-                            key_sig,
-                        ]
-                    },
-                ]
-            },
         ]
     }
     obs_dedup = {"$trim": {"input": {"$toString": {"$ifNull": ["$Observacoes", ""]}}}}
@@ -1674,7 +1684,7 @@ def _lancamentos_mongo_stages_dedup_por_titulo_erp(
             {"$gte": [{"$indexOfBytes": [mod_lo, "manual em lote agro"]}, 0]},
         ]
     }
-    dup_key = {"$cond": [agro_lote_manual, key_oid, dup_key_erp]}
+    dup_key = {"$cond": [agro_lote_manual, key_oid, key_sig_loose]}
     return [
         *(pre_stages or []),
         {
@@ -1688,9 +1698,10 @@ def _lancamentos_mongo_stages_dedup_por_titulo_erp(
                         {"$ifNull": ["$DataModificacao", _SENTINEL]},
                     ]
                 },
+                "_gmTemIdErp": {"$cond": [id_erp_valido, 1, 0]},
             }
         },
-        {"$sort": {"_dupKey": 1, "_gmDedupOrd": -1, "_id": -1}},
+        {"$sort": {"_dupKey": 1, "_gmTemIdErp": -1, "_gmDedupOrd": -1, "_id": -1}},
         {"$group": {"_id": "$_dupKey", "_dedup": {"$first": "$$ROOT"}}},
         {"$replaceRoot": {"newRoot": "$_dedup"}},
         {"$sort": dict(sort_spec)},
@@ -1938,6 +1949,7 @@ def lancamentos_buscar_pagina(
         for d in page_docs:
             d.pop("_dupKey", None)
             d.pop("_gmDedupOrd", None)
+            d.pop("_gmTemIdErp", None)
             linhas.append(lancamento_para_api(d, despesa))
         return linhas, total, totais
     except Exception as exc:
@@ -4392,31 +4404,28 @@ def _lancamento_sem_vinculo_erp_filter() -> dict[str, Any]:
 
 def _buscar_lancamento_duplicado_sem_vinculo_erp(col, doc: dict[str, Any]) -> dict[str, Any] | None:
     """
-    Proteção de idempotência para inserts Agro: evita inserir novo título quando já existe outro
-    sem vínculo ERP com mesma assinatura funcional (fornecedor + vencimento + valor + contexto).
+    Proteção de idempotência para inserts Agro: evita novo título quando já existe equivalente
+    (inclui cópia sincronizada do ERP com ``Id`` — mesma regra da lista).
     """
-    desp = bool(doc.get("Despesa"))
-    bruto_key = round(float((doc.get("Saida") if desp else doc.get("Entrada")) or 0), 2)
-    pago_key = round(float(doc.get("ValorPago") or 0), 2)
-    rec_key = round(float(doc.get("Recebido") or 0), 2)
-    q: dict[str, Any] = {
-        **_lancamento_sem_vinculo_erp_filter(),
-        "Despesa": desp,
-        "Empresa": doc.get("Empresa") or "",
-        "Cliente": doc.get("Cliente") or "",
-        "PlanoDeConta": doc.get("PlanoDeConta") or "",
-        "FormaPagamento": doc.get("FormaPagamento") or "",
-        "DataVencimento": doc.get("DataVencimento"),
-        "DataPagamento": doc.get("DataPagamento"),
-        "Descricao": doc.get("Descricao") or "",
-        "Saida" if desp else "Entrada": bruto_key,
-        "ValorPago": pago_key,
-        "Recebido": rec_key,
-    }
+    exclude_oid = None
     oid = doc.get("_id")
     if oid:
-        q["_id"] = {"$ne": oid}
-    return col.find_one(q, {"_id": 1, "NumeroParcela": 1, "LastUpdate": 1})
+        try:
+            exclude_oid = oid if isinstance(oid, ObjectId) else ObjectId(str(oid))
+        except Exception:
+            exclude_oid = None
+    q = _lancamento_montar_query_assinatura_loose(doc, exclude_oid=exclude_oid)
+    cands = list(
+        col.find(q, {"_id": 1, "NumeroParcela": 1, "LastUpdate": 1, "Id": 1, "LancamentoID": 1})
+        .sort([("LastUpdate", -1), ("_id", -1)])
+        .limit(8)
+    )
+    if not cands:
+        return None
+    for c in cands:
+        if _lancamento_tem_vinculo_erp(c):
+            return c
+    return cands[0]
 
 
 def inserir_lancamentos_manual_lote(

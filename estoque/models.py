@@ -22,6 +22,7 @@ class OrigemAjusteEstoque(models.TextChoices):
     AJUSTE_PIN = "ajuste_pin", "Ajuste PIN / modal"
     ENTRADA_NF_AGRO = "entrada_nf_agro", "Entrada NF (Agro)"
     BAIXA_VENDA_PDV = "baixa_venda_pdv", "Baixa venda PDV"
+    DEVOLUCAO_VENDA_PDV = "devolucao_venda_pdv", "Devolução venda PDV"
     TRANSFERENCIA_UI = "transferencia_ui", "Transferência / tela"
     PLANILHA = "planilha", "Importação planilha"
     VENCIMENTO_EM_LOJA = "vencimento_em_loja", "Vencimento em Loja"

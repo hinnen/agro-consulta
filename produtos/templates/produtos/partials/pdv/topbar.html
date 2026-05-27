@@ -12,15 +12,19 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="flex-1 flex items-center justify-end {% if pdv_dedicado %}gap-0.5 sm:gap-1 overflow-x-auto hide-scroll whitespace-nowrap{% else %}flex-wrap gap-1.5 sm:gap-2{% endif %} min-w-0">
+                <div class="flex-1 flex items-center justify-end min-w-0 {% if pdv_dedicado %}gap-0.5 sm:gap-1 flex-nowrap{% else %}flex-wrap gap-1.5 sm:gap-2{% endif %}">
                     {% if pdv_consulta_only %}
+                    <div class="flex flex-nowrap items-center gap-0.5 sm:gap-1 shrink-0">
                     <a href="{% url 'home' %}" class="inline-flex items-center justify-center min-h-[40px] px-2.5 py-1.5 rounded-xl border-2 border-slate-200 bg-white text-[10px] font-black uppercase text-slate-700 hover:bg-slate-50 hover:border-emerald-400 shrink-0" title="Resumo e indicadores (tela inicial)">Início</a>
                     <a href="{% url 'consulta_produtos' %}?orcamentos=1" class="inline-flex items-center justify-center min-h-[40px] px-2.5 py-1.5 rounded-xl border-2 border-sky-200 bg-sky-50 text-[10px] font-black uppercase text-sky-900 hover:bg-sky-100 shrink-0" title="Orçamentos salvos neste aparelho">Orç. salvos</a>
                     <a href="{% url 'pdv_home' %}" class="inline-flex items-center justify-center min-h-[40px] px-2.5 py-1.5 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-[10px] font-black uppercase text-emerald-900 hover:bg-emerald-100 shrink-0" title="PDV principal (venda)">PDV</a>
+                    </div>
                     {% endif %}
-                    {% if caixa_aberto %}
-                    <a href="{% url 'caixa_painel' %}" class="{% if pdv_dedicado %}hidden lg:inline-flex{% else %}hidden sm:inline-flex{% endif %} items-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-200 hover:bg-emerald-200/80 shrink-0" title="Caixa aberto — ver painel">Caixa #{{ caixa_aberto.pk }}</a>
-                    {% endif %}
+                    <div class="flex flex-nowrap items-center {% if pdv_dedicado %}gap-0.5 sm:gap-1{% else %}flex-wrap gap-1.5 sm:gap-2{% endif %} shrink-0">
+                    <a href="{% url 'caixa_painel' %}" class="inline-flex items-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-200 hover:bg-emerald-200/80 shrink-0 no-underline" title="Painel do caixa">{% if caixa_aberto %}Caixa {{ caixa_aberto.pk }}{% else %}Caixa{% endif %}</a>
+                    <a href="{% url 'vendas_lista' %}" class="inline-flex items-center px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-800 border border-slate-200 hover:bg-slate-200/80 shrink-0" title="Consultar vendas — filtro por período e exportar CSV">Consultar vendas</a>
+                    </div>
+                    <div class="flex flex-nowrap items-center {% if pdv_dedicado %}gap-0.5 sm:gap-1 overflow-x-auto hide-scroll whitespace-nowrap min-w-0{% else %}flex-wrap gap-1.5 sm:gap-2{% endif %} shrink-0">
                     <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-700 border border-slate-200 shrink-0 max-w-[7rem] truncate" title="Operador (modo descanso)"></span>
                     {% include "produtos/_barra_estoque_global.html" with barra_estoque_btn_title="Atualiza catálogo no servidor, clientes e saldos Centro/Vila (um toque)." %}
                     <button type="button" id="btn-pdv-sair-usuario-pin" class="inline-flex items-center justify-center {% if pdv_dedicado %}px-1.5 py-0.5 min-h-[30px] min-w-[52px]{% else %}px-2.5 py-1.5{% endif %} rounded-lg text-[10px] font-black uppercase border border-slate-300 text-slate-700 bg-white hover:bg-slate-100 shrink-0" title="Encerra o usuário neste aparelho e abre a tela de PIN" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">
@@ -34,5 +38,6 @@
                         <span class="text-base leading-none" aria-hidden="true">⏰</span>
                         <span class="{% if pdv_dedicado %}hidden lg:inline{% else %}hidden sm:inline{% endif %}">Lembretes</span>
                     </button>
+                    </div>
                 </div>
             </header>

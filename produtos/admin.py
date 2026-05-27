@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import (
     ClienteAgro,
     ItemVendaAgro,
+    MovimentoCaixa,
     OpcaoBaixaFinanceiroExtra,
     Produto,
     SessaoCaixa,
@@ -65,7 +66,19 @@ class SessaoCaixaAdmin(admin.ModelAdmin):
         "valor_fechamento",
     )
     list_filter = ("fechado_em",)
-    readonly_fields = ("aberto_em",)
+    readonly_fields = ("aberto_em", "conferencia_fechamento")
+
+
+class MovimentoCaixaInline(admin.TabularInline):
+    model = MovimentoCaixa
+    extra = 0
+    readonly_fields = ("tipo", "forma_pagamento", "valor", "observacao", "criado_em", "usuario")
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+SessaoCaixaAdmin.inlines = [MovimentoCaixaInline]
 
 
 @admin.register(VendaAgro)

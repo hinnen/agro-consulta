@@ -418,6 +418,8 @@ VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_OBJETO_RETORNO_BUSCA = config(
 )
 # Ao gravar venda no PDV: baixa quantidades no estoque visto pelo Agro (AjusteRapidoEstoque + saldo ERP Mongo).
 PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA = config("PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA", default=True, cast=bool)
+# PDV Wizard: grava venda + baixa estoque na hora; Pedidos/Salvar no ERP roda em thread (libera a tela).
+PDV_ERP_ENVIO_ASSINCRONO = config("PDV_ERP_ENVIO_ASSINCRONO", default=True, cast=bool)
 # Depósito da baixa: centro | vila (mesma convenção do PIN / entrada NF).
 PDV_VENDA_ESTOQUE_DEPOSITO = config("PDV_VENDA_ESTOQUE_DEPOSITO", default="centro").strip().lower() or "centro"
 PDV_WIZARD_SALDO_VALE_CREDITO = config("PDV_WIZARD_SALDO_VALE_CREDITO", default="0").strip()

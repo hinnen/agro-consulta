@@ -103,6 +103,7 @@ def pdv_home(request):
             "search": {
                 "mode": "wizard",
             },
+            "erpEnvioAssincrono": bool(getattr(settings, "PDV_ERP_ENVIO_ASSINCRONO", True)),
             "assets": {
                 "placeholderProduto": static("img/agro-mais-logo-buscador.png"),
             },

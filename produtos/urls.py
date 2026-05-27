@@ -152,6 +152,11 @@ urlpatterns = [
         views.api_venda_agro_reenviar_erp,
         name='api_venda_agro_reenviar_erp',
     ),
+    path(
+        'venda/<int:pk>/devolver/',
+        views.api_venda_agro_devolver,
+        name='api_venda_agro_devolver',
+    ),
     path('venda/<int:pk>/', views.venda_agro_detalhe, name='venda_agro_detalhe'),
     path('clientes/', views.clientes_lista, name='clientes_lista'),
     path('clientes/sincronizar/', views.clientes_sincronizar, name='clientes_sincronizar'),
@@ -162,6 +167,9 @@ urlpatterns = [
     path('caixa/saida/', views.caixa_saida_view, name='caixa_saida'),
     path('caixa/abrir/', views.caixa_abrir, name='caixa_abrir'),
     path('caixa/fechar/', views.caixa_fechar, name='caixa_fechar'),
+    path('caixa/relatorio/', views.caixa_relatorio, name='caixa_relatorio'),
+    path('api/caixa/movimento/', views.api_caixa_movimento, name='api_caixa_movimento'),
+    path('api/caixa/vincular-vendas/', views.api_caixa_vincular_vendas, name='api_caixa_vincular_vendas'),
 
     # --- APIs ---
     path('api/login-mobile/', views.api_login_mobile, name='api_login_mobile'),
