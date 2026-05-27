@@ -2408,6 +2408,7 @@
       entradaNfeLoteLinhaIdx = 0;
       Object.keys(entradaNfeLoteDraftPorLinha).forEach((k) => delete entradaNfeLoteDraftPorLinha[k]);
       entradaNfeRascunhoStatusUltimo = '';
+      entradaNfeRascunhoBucketUltimo = '';
       entradaNfeRascunhoMetaTs = { criado_em: '', atualizado_em: '' };
       entradaNfeAtualizarUiBotaoEstoqueAgro(null);
       entradaNfeAtualizarUiBotaoFinanceiro(null);
@@ -2464,6 +2465,65 @@
 
   /** ``status`` do último rascunho carregado (ex.: ``estoque_aplicado`` trava etapa 4). */
   let entradaNfeRascunhoStatusUltimo = '';
+  /** Bucket da lista (``concluida``, ``estoque``, …) do rascunho aberto. */
+  let entradaNfeRascunhoBucketUltimo = '';
+
+  /**
+   * Nota já passou do fluxo inicial (estoque/financeiro/PIN ou timestamps antigos).
+   * Não exige de novo os botões «Confirmar …» ao só revisitar o assistente.
+   */
+  function entradaNfeWizardFluxoLegadoOuConcluido(exIn, stIn, bkIn) {
+    const ex = exIn && typeof exIn === 'object'
+      ? exIn
+      : (entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {});
+    const st = String(stIn != null ? stIn : entradaNfeRascunhoStatusUltimo || '').trim().toLowerCase();
+    const bk = String(bkIn != null ? bkIn : entradaNfeRascunhoBucketUltimo || '').trim().toLowerCase();
+    if (String(ex.aprovacao_wizard_em || '').trim()) return true;
+    if (ex.financeiro_lancado) return true;
+    if (st === 'estoque_aplicado' || st === 'encerrada') return true;
+    if (bk === 'concluida' || bk === 'encerrada') return true;
+    const e1 = String(ex.wizard_etapa1_confirmada_em || '').trim();
+    const e2 = String(ex.wizard_etapa2_confirmada_em || '').trim();
+    const e3 = String(ex.wizard_etapa3_confirmada_em || '').trim();
+    const e4 = String(ex.wizard_etapa4_lote_confirmada_em || '').trim();
+    const lotePul = String(ex.wizard_lote_pular_em || '').trim();
+    if (e2 && e3 && (e4 || lotePul)) return true;
+    if (e1 && e2 && e3) return true;
+    return false;
+  }
+
+  /** Reaplica confirmações das etapas 1–4 em notas já avançadas (ex.: concluída sem timestamps). */
+  function entradaNfeWizardSincronizarConfirmacoesLegado() {
+    if (!entradaNfeWizardFluxoLegadoOuConcluido()) return;
+    const ex0 = entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? { ...entradaNfeExtraUltimo } : {};
+    const iso = new Date().toISOString();
+    const patch = {};
+    if (!entradaNfeFornecedorEtapaConfirmada && entradaNfeWizardValidarEtapaDetalhe(1, { ignorarConfirmacaoFornecedor: true }).ok) {
+      entradaNfeFornecedorEtapaConfirmada = true;
+      if (!String(ex0.wizard_etapa1_confirmada_em || '').trim()) patch.wizard_etapa1_confirmada_em = iso;
+    }
+    if (!entradaNfeProdutosEtapaConfirmada && entradaNfeWizardValidarEtapaDetalhe(2, { ignorarConfirmacaoProdutos: true }).ok) {
+      entradaNfeProdutosEtapaConfirmada = true;
+      if (!String(ex0.wizard_etapa2_confirmada_em || '').trim()) patch.wizard_etapa2_confirmada_em = iso;
+    }
+    if (!entradaNfeCodigosEtapaConfirmada && entradaNfeWizardValidarEtapaDetalhe(3, { ignorarConfirmacaoCodigos: true }).ok) {
+      entradaNfeCodigosEtapaConfirmada = true;
+      if (!String(ex0.wizard_etapa3_confirmada_em || '').trim()) patch.wizard_etapa3_confirmada_em = iso;
+    }
+    if (!entradaNfeLoteEtapaConfirmada && !entradaNfeLotePularTodos
+      && entradaNfeWizardValidarEtapaDetalhe(4, { ignorarConfirmacaoLote: true }).ok) {
+      entradaNfeLoteEtapaConfirmada = true;
+      if (!String(ex0.wizard_etapa4_lote_confirmada_em || '').trim()) patch.wizard_etapa4_lote_confirmada_em = iso;
+    }
+    if (Object.keys(patch).length) {
+      entradaNfeExtraUltimo = { ...ex0, ...patch };
+      entradaNfeWizardPersistExtraPatchFireForget(patch);
+    }
+    entradaNfeAtualizarUiBotaoConfirmarFornecedor();
+    entradaNfeAtualizarUiBotaoConfirmarProdutos();
+    entradaNfeAtualizarUiBotaoConfirmarCodigos();
+    entradaNfeAtualizarUiBotaoConfirmarLote();
+  }
 
   /** Conferência final (PIN) registrada nesta sessão ou já vinda do rascunho (`aprovacao_wizard_em`). */
   let entradaNfeWizardConferenciaRegistrada = false;
@@ -2659,6 +2719,7 @@
 
   function entradaNfeFornecedorEtapaInvalidate() {
     if (entradaNfeRascunhoAplicandoGrade) return;
+    if (entradaNfeEditorCongeladoAtivo() || entradaNfeWizardFluxoLegadoOuConcluido()) return;
     const tinha = entradaNfeFornecedorEtapaConfirmada;
     if (!tinha && !entradaNfeProdutosEtapaConfirmada && !entradaNfeCodigosEtapaConfirmada) {
       entradaNfeAtualizarUiBotaoConfirmarFornecedor();
@@ -2797,6 +2858,7 @@
 
   function entradaNfeProdutosEtapaInvalidate() {
     if (entradaNfeRascunhoAplicandoGrade) return;
+    if (entradaNfeEditorCongeladoAtivo() || entradaNfeWizardFluxoLegadoOuConcluido()) return;
     const tinha2 = entradaNfeProdutosEtapaConfirmada;
     const tinha3 = entradaNfeCodigosEtapaConfirmada;
     if (!tinha2 && !tinha3) {
@@ -2930,7 +2992,7 @@
       return;
     }
     const margensVermelhas = entradaNfeColetarLinhasMargemVermelha();
-    if (margensVermelhas.length) {
+    if (margensVermelhas.length && !entradaNfeWizardFluxoLegadoOuConcluido()) {
       const seguir = await entradaNfeAbrirModalMargemCrit(margensVermelhas);
       if (!seguir) return;
     }
@@ -3026,7 +3088,7 @@
       if (!String(cab.plano_conta || '').trim()) {
         return { ok: false, irPara: 1, erro: 'Defina o plano de contas da nota (etapa 1 · Fornecedor).' };
       }
-      if (!ignFornConf && !entradaNfeFornecedorEtapaConfirmada) {
+      if (!ignFornConf && !entradaNfeFornecedorEtapaConfirmada && !entradaNfeWizardFluxoLegadoOuConcluido()) {
         return {
           ok: false,
           irPara: 1,
@@ -3051,7 +3113,7 @@
           return { ok: false, irPara: 2, erro: `Linha ${i + 1}: escolha o produto do catálogo (botão Mudar ou busca na linha) na etapa 2 · Produtos.` };
         }
       }
-      if (!ignProdConf && !entradaNfeProdutosEtapaConfirmada) {
+      if (!ignProdConf && !entradaNfeProdutosEtapaConfirmada && !entradaNfeWizardFluxoLegadoOuConcluido()) {
         return {
           ok: false,
           irPara: 2,
@@ -3071,7 +3133,7 @@
           };
         }
       }
-      if (!ignCodConf && !entradaNfeCodigosEtapaConfirmada) {
+      if (!ignCodConf && !entradaNfeCodigosEtapaConfirmada && !entradaNfeWizardFluxoLegadoOuConcluido()) {
         return {
           ok: false,
           irPara: 3,
@@ -3094,7 +3156,7 @@
           };
         }
       }
-      if (!ignLoteConf && !entradaNfeLoteEtapaConfirmada) {
+      if (!ignLoteConf && !entradaNfeLoteEtapaConfirmada && !entradaNfeWizardFluxoLegadoOuConcluido()) {
         return {
           ok: false,
           irPara: 4,
@@ -3284,6 +3346,7 @@
   }
 
   function entradaNfeWizardSetStep(n) {
+    entradaNfeWizardSincronizarConfirmacoesLegado();
     const s = Math.min(ENTRADA_NFE_WIZ_TOTAL, Math.max(1, Math.floor(Number(n)) || 1));
     if (s === ENTRADA_NFE_WIZ_TOTAL) {
       const v = entradaNfeWizardValidarPassosAnteriores();
@@ -4666,25 +4729,55 @@
     });
   });
   document.getElementById('nfe-wiz-prev')?.addEventListener('click', () => entradaNfeWizardSetStep(entradaNfeWizardStep - 1));
+  async function entradaNfeWizardProximoComAutoConfirmacao() {
+    entradaNfeWizardSincronizarConfirmacoesLegado();
+    const cur = entradaNfeWizardStep;
+    const autoConfirm = [
+      {
+        step: 1,
+        ok: () => entradaNfeFornecedorEtapaConfirmada,
+        opt: { ignorarConfirmacaoFornecedor: true },
+        fn: () => entradaNfeConfirmarFornecedorEtapa(),
+      },
+      {
+        step: 2,
+        ok: () => entradaNfeProdutosEtapaConfirmada,
+        opt: { ignorarConfirmacaoProdutos: true },
+        fn: () => entradaNfeConfirmarProdutosEtapa(),
+      },
+      {
+        step: 3,
+        ok: () => entradaNfeCodigosEtapaConfirmada,
+        opt: { ignorarConfirmacaoCodigos: true },
+        fn: () => entradaNfeConfirmarCodigosEtapa(),
+      },
+      {
+        step: 4,
+        ok: () => entradaNfeLoteEtapaConfirmada || entradaNfeLotePularTodos,
+        opt: { ignorarConfirmacaoLote: true },
+        fn: () => entradaNfeConfirmarLoteEtapa(),
+      },
+    ];
+    const ac = autoConfirm.find((x) => x.step === cur);
+    if (ac && !ac.ok()) {
+      const dCampos = entradaNfeWizardValidarEtapaDetalhe(cur, ac.opt);
+      if (dCampos.ok) {
+        await ac.fn();
+        return;
+      }
+    }
+    if (cur < 6) {
+      const dCur = entradaNfeWizardValidarEtapaDetalhe(cur);
+      if (!dCur.ok) {
+        showMsg(dCur.erro, false);
+        return;
+      }
+    }
+    entradaNfeWizardSetStep(cur + 1);
+  }
+
   document.getElementById('nfe-wiz-next')?.addEventListener('click', () => {
-    void (async () => {
-      const cur = entradaNfeWizardStep;
-      if (cur === 1 && !entradaNfeFornecedorEtapaConfirmada) {
-        const dCampos = entradaNfeWizardValidarEtapaDetalhe(1, { ignorarConfirmacaoFornecedor: true });
-        if (dCampos.ok) {
-          await entradaNfeConfirmarFornecedorEtapa();
-          return;
-        }
-      }
-      if (cur < 6) {
-        const dCur = entradaNfeWizardValidarEtapaDetalhe(cur);
-        if (!dCur.ok) {
-          showMsg(dCur.erro, false);
-          return;
-        }
-      }
-      entradaNfeWizardSetStep(cur + 1);
-    })();
+    void entradaNfeWizardProximoComAutoConfirmacao();
   });
   document.getElementById('btn-prod-novo-popup')?.addEventListener('click', () => abrirCadastroProdutoNovoPopup());
   document.getElementById('nfe-btn-confirmar-fornecedor')?.addEventListener('click', () => { entradaNfeConfirmarFornecedorEtapa(); });
@@ -6432,10 +6525,12 @@
       entradaNfeAtualizarUiBotaoWizardFinalizar();
       const exW = rz.extra && typeof rz.extra === 'object' ? rz.extra : {};
       entradaNfeRascunhoStatusUltimo = String(rz.status != null ? rz.status : '').trim().toLowerCase();
-      const pinCarimbado = !!(exW.aprovacao_wizard_em && String(exW.aprovacao_wizard_em).trim());
-      const legadoFluxoAvancado = pinCarimbado
-        || entradaNfeRascunhoStatusUltimo === 'estoque_aplicado'
-        || !!(exW.financeiro_lancado);
+      entradaNfeRascunhoBucketUltimo = String(rz.entrada_lista_bucket || '').trim().toLowerCase();
+      const legadoFluxoAvancado = entradaNfeWizardFluxoLegadoOuConcluido(
+        exW,
+        entradaNfeRascunhoStatusUltimo,
+        entradaNfeRascunhoBucketUltimo,
+      );
       entradaNfeFornecedorEtapaConfirmada = legadoFluxoAvancado
         || !!(exW.wizard_etapa1_confirmada_em && String(exW.wizard_etapa1_confirmada_em).trim());
       entradaNfeProdutosEtapaConfirmada = legadoFluxoAvancado
@@ -6446,6 +6541,7 @@
       entradaNfeLoteEtapaConfirmada = legadoFluxoAvancado
         || entradaNfeLotePularTodos
         || !!(exW.wizard_etapa4_lote_confirmada_em && String(exW.wizard_etapa4_lote_confirmada_em).trim());
+      entradaNfeWizardSincronizarConfirmacoesLegado();
       entradaNfeAtualizarUiBotaoConfirmarFornecedor();
       entradaNfeAtualizarUiBotaoConfirmarProdutos();
       entradaNfeAtualizarUiBotaoConfirmarCodigos();
