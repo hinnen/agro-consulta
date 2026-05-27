@@ -295,6 +295,27 @@
         return /^[a-zA-Z]{1,6}[\w.\-]*\d/i.test(s);
     }
 
+    function productMatchesSkuPrefix(p, ql) {
+        if (!p || !ql || ql.length < 2) return false;
+        var cod = stripAccents(String(p.codigo || '').trim().toLowerCase());
+        var nfe = stripAccents(String(p.codigo_nfe || '').trim().toLowerCase());
+        if ((cod && cod.indexOf(ql) === 0) || (nfe && nfe.indexOf(ql) === 0)) return true;
+        if (!Array.isArray(p.index_codigos)) return false;
+        for (var i = 0; i < p.index_codigos.length; i++) {
+            var xs = String(p.index_codigos[i] == null ? '' : p.index_codigos[i]).trim().toLowerCase();
+            if (xs && xs.indexOf(ql) === 0) return true;
+        }
+        return false;
+    }
+
+    function countCatalogSkuPrefix(ql) {
+        var n = 0;
+        wizardProductCatalog.forEach(function (p) {
+            if (productMatchesSkuPrefix(p, ql)) n++;
+        });
+        return n;
+    }
+
     function mergeProductsById(primary, extra) {
         var seen = {};
         var out = [];
@@ -2315,9 +2336,23 @@
                         'Cache local (' + wizardProductCatalog.length + ' produtos).';
                     return Promise.resolve();
                 }
-                dom.productSearchFeedback.textContent = skuCode
-                    ? 'Buscando variantes do código…'
-                    : 'Buscando no servidor…';
+                if (skuCode && localList.length) {
+                    var ql = String(query).trim().toLowerCase();
+                    var prefixNoCache = countCatalogSkuPrefix(ql);
+                    if (prefixNoCache > 0 && prefixNoCache === localList.length) {
+                        renderProductResults(localList);
+                        dom.productSearchFeedback.textContent =
+                            'Cache local (' + wizardProductCatalog.length + ' produtos).';
+                        return Promise.resolve();
+                    }
+                    renderProductResults(localList);
+                    dom.productSearchFeedback.textContent =
+                        'Cache local · conferindo variantes no servidor…';
+                } else {
+                    dom.productSearchFeedback.textContent = skuCode
+                        ? 'Buscando variantes do código…'
+                        : 'Buscando no servidor…';
+                }
                 return fetchWizardServerSearch(query).then(function (remote) {
                     return { remote: remote, localList: localList, skuCode: skuCode };
                 });
