@@ -7487,7 +7487,10 @@ def caixa_relatorio(request):
     raw_sess = (request.GET.get("sessao") or "").strip()
     if raw_sess.isdigit():
         filtro_sessao = int(raw_sess)
-    rel = montar_relatorio_caixa(di, df, sessao_id=filtro_sessao)
+    filtro_forma = (request.GET.get("forma") or "").strip()
+    rel = montar_relatorio_caixa(
+        di, df, sessao_id=filtro_sessao, forma_pagamento=filtro_forma or None
+    )
     preset_get = (request.GET.get("preset") or "").strip().lower()
     tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
     preset_ativo = preset_get or ("" if tem_datas_custom else "hoje")
@@ -7500,6 +7503,8 @@ def caixa_relatorio(request):
             "periodo_label": label,
             "preset_ativo": preset_ativo,
             "filtro_sessao": filtro_sessao,
+            "filtro_forma": filtro_forma,
+            "formas_pagamento_caixa": list(FORMAS_PAGAMENTO_CAIXA),
             "secoes": rel["secoes"],
             "tot_entrada": rel["tot_entrada"],
             "tot_saida": rel["tot_saida"],
