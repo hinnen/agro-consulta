@@ -613,17 +613,41 @@ def auditar_financeiro_rascunho_entrada_nfe(
     n_ids_pedidos = len(ids_list)
     n_ids_achados = len(titulos_ids)
 
+    emit_id = str(cab.get("emit_fornecedor_id") or "").strip()
     cliente_ok = True
     if n_titulos and emit_nome:
-        chaves_emit = {
-            k
-            for k in (
-                _entrada_nfe_chave_nome_fornecedor(emit_nome),
-                _entrada_nfe_chave_nome_fornecedor(emit_canon),
-            )
-            if k
-        }
-        cliente_ok = any(_entrada_nfe_chave_nome_fornecedor(c) in chaves_emit for c in clientes_titulo)
+        labels_emit = [x for x in (emit_nome, emit_canon) if str(x or "").strip()]
+        cliente_ok = False
+        for c in clientes_titulo:
+            if any(_entrada_nfe_nomes_fornecedor_batem(lbl, c) for lbl in labels_emit):
+                cliente_ok = True
+                break
+        if not cliente_ok and emit_id:
+            for t in titulos:
+                tid = str(t.get("ClienteID") or t.get("ClienteId") or "").strip()
+                if tid and tid == emit_id:
+                    cliente_ok = True
+                    break
+        if not cliente_ok and db is not None and col_pessoa:
+            for c in clientes_titulo:
+                doc_p = _buscar_fornecedor_dto_pessoa_entrada_nfe(
+                    db, col_pessoa, pid=emit_id, nome=c, cnpj=str(cab.get("emit_cnpj") or "")
+                )
+                if doc_p:
+                    fant = _nome_exibicao_fornecedor_dto_pessoa(doc_p)
+                    razao = str(doc_p.get("RazaoSocial") or doc_p.get("razaoSocial") or "").strip()
+                    for lbl in labels_emit:
+                        if _entrada_nfe_nomes_fornecedor_batem(lbl, c):
+                            cliente_ok = True
+                            break
+                        if fant and _entrada_nfe_nomes_fornecedor_batem(lbl, fant):
+                            cliente_ok = True
+                            break
+                        if razao and _entrada_nfe_nomes_fornecedor_batem(lbl, razao):
+                            cliente_ok = True
+                            break
+                if cliente_ok:
+                    break
 
     if tipo == "bonificacao":
         situacao = "bonificacao"
@@ -1389,6 +1413,48 @@ def obter_ult_nsu(db, cnpj: str) -> str:
 
 def _entrada_nfe_chave_nome_fornecedor(nome) -> str:
     return " ".join(str(nome or "").strip().lower().split())
+
+
+def _entrada_nfe_tokens_nome_fornecedor(nome: str) -> set[str]:
+    """Palavras significativas para casar fantasia (Sn - X) com razão social."""
+    s = re.sub(r"[^a-z0-9]+", " ", str(nome or "").lower())
+    stop = {
+        "ltda",
+        "ltd",
+        "sa",
+        "me",
+        "epp",
+        "comercio",
+        "comércio",
+        "distribuidora",
+        "distribuicao",
+        "alimentos",
+        "produtos",
+        "industria",
+        "indústria",
+        "de",
+        "da",
+        "do",
+        "das",
+        "dos",
+        "e",
+        "sn",
+        "cn",
+    }
+    return {t for t in s.split() if len(t) >= 4 and t not in stop}
+
+
+def _entrada_nfe_nomes_fornecedor_batem(nome_a: str, nome_b: str) -> bool:
+    """Fantasia vs razão social do mesmo cadastro (ex.: Sn - Europet / EUROPET DISTRIBUIDORA)."""
+    ka = _entrada_nfe_chave_nome_fornecedor(nome_a)
+    kb = _entrada_nfe_chave_nome_fornecedor(nome_b)
+    if not ka or not kb:
+        return False
+    if ka == kb or ka in kb or kb in ka:
+        return True
+    ta = _entrada_nfe_tokens_nome_fornecedor(nome_a)
+    tb = _entrada_nfe_tokens_nome_fornecedor(nome_b)
+    return bool(ta and tb and (ta & tb))
 
 
 def _entrada_nfe_chave_doc_fornecedor(documento: str) -> str:
