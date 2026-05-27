@@ -2529,6 +2529,10 @@
         if (cliente.documento) payload.cliente_documento = cliente.documento;
         var idem = String((state.pagamento && state.pagamento.clientRequestId) || '').trim();
         if (idem) payload.client_request_id = idem;
+        var cx = bootstrap.caixa || {};
+        if (cx.id != null && String(cx.id).trim() !== '') {
+            payload.sessao_caixa_id = parseInt(cx.id, 10) || cx.id;
+        }
         return payload;
     }
 

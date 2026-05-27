@@ -61,6 +61,9 @@ from .caixa_util import (
     pagamentos_por_forma_venda,
     registrar_retirada_turno_caixa,
     resumo_esperado_por_forma,
+    obter_sessao_caixa_aberta_request,
+    adotar_sessao_caixa_unica_aberta,
+    resolver_sessao_caixa_para_venda,
 )
 from .models import (
     ClienteAgro,
@@ -5400,14 +5403,7 @@ def _periodo_vendas_from_request(request, *, default_preset="7d"):
 
 
 def _obter_sessao_caixa_aberta(request):
-    sid = request.session.get("pdv_sessao_caixa_id")
-    if not sid:
-        return None
-    try:
-        return SessaoCaixa.objects.get(pk=int(sid), fechado_em__isnull=True)
-    except (SessaoCaixa.DoesNotExist, ValueError, TypeError):
-        request.session.pop("pdv_sessao_caixa_id", None)
-        return None
+    return obter_sessao_caixa_aberta_request(request)
 
 
 def _format_moeda_br(val: Decimal) -> str:
@@ -7419,7 +7415,7 @@ def caixa_painel(request):
 
     from rh.utils import resolver_empresa_por_nome_fantasia
 
-    aberto = _obter_sessao_caixa_aberta(request)
+    aberto = _obter_sessao_caixa_aberta(request) or adotar_sessao_caixa_unica_aberta(request)
     empresa_padrao = getattr(settings, "AGRO_SAIDA_CAIXA_EMPRESA_PADRAO", "") or "Agro Mais Centro"
     emp = resolver_empresa_por_nome_fantasia(empresa_padrao)
     ctx = {
@@ -16693,7 +16689,7 @@ def _persistir_venda_agro(
 
     resp_json = _erp_resposta_para_json(erp_resposta_raw)
     st = erp_http_status if erp_http_status is not None and erp_http_status > 0 else None
-    sessao = _obter_sessao_caixa_aberta(request)
+    sessao = resolver_sessao_caixa_para_venda(request, data)
     sync_st = (erp_sync_status or "").strip()
     if not sync_st:
         sync_st = (
