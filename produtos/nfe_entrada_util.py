@@ -596,7 +596,7 @@ def auditar_financeiro_rascunho_entrada_nfe(
 
     emit_nome = str(cab.get("emit_nome") or "").strip()
     emit_canon = emit_nome
-    if db and col_pessoa:
+    if db is not None and col_pessoa:
         cab_can = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, dict(cab))
         emit_canon = str(cab_can.get("emit_nome") or emit_nome).strip()
 
