@@ -1,3 +1,4 @@
+from bson import ObjectId
 from pymongo import MongoClient
 from decouple import config
 from datetime import datetime
@@ -141,6 +142,58 @@ class VendaERPMongoClient:
             col.create_index([("data", -1)])
         except Exception:
             pass
+        return {"inseridos": inseridos, "atualizados": atualizados, "ignorados": ignorados}
+
+    @staticmethod
+    def _filtro_id_pedido_erp(venda_id) -> dict:
+        s = str(venda_id or "").strip()
+        if not s:
+            return {}
+        parts: list[dict] = [{"Id": s}, {"ID": s}]
+        try:
+            parts.append({"_id": ObjectId(s)})
+        except Exception:
+            pass
+        return {"$or": parts}
+
+    def upsert_pedidos_erp_em_dto_venda(self, rows: list[dict]):
+        """Grava pedidos da API no espelho ``DtoVenda`` (coleção lida pelo BI)."""
+        col = self.db["DtoVenda"]
+        inseridos = 0
+        atualizados = 0
+        ignorados = 0
+        for row in rows or []:
+            if not isinstance(row, dict):
+                ignorados += 1
+                continue
+            vid = row.get("ID") or row.get("Id") or row.get("_id")
+            filtro = self._filtro_id_pedido_erp(vid)
+            if not filtro:
+                ignorados += 1
+                continue
+            payload = dict(row)
+            for k in (
+                "Data",
+                "DataFaturamento",
+                "DataAprovacaoPedido",
+                "DataEnvio",
+                "DataPostagem",
+            ):
+                if k not in payload:
+                    continue
+                dt = self._parse_dt(payload.get(k))
+                if dt is not None:
+                    payload[k] = dt
+            if not str(payload.get("Status") or "").strip():
+                payload["Status"] = "Pedido Faturado"
+            payload["Id"] = str(vid)
+            r = col.update_one(filtro, {"$set": payload}, upsert=True)
+            if r.upserted_id is not None:
+                inseridos += 1
+            elif r.modified_count > 0:
+                atualizados += 1
+            else:
+                ignorados += 1
         return {"inseridos": inseridos, "atualizados": atualizados, "ignorados": ignorados}
 
     def obter_vendas_agro_periodo(self, dt_ini: datetime, dt_fim: datetime):

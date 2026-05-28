@@ -446,9 +446,13 @@ def _q_dto_venda_janela_grafico(data_ini: date, data_fim: date) -> dict:
 
 
 def _doc_data_venda_espelho(doc: dict) -> datetime | None:
-    for campo in ("DataFaturamento", "Data", "data", "CriadoEm", "criado_em"):
-        dt = doc.get(campo)
-        if isinstance(dt, datetime):
+    from integracoes.venda_erp_mongo import VendaERPMongoClient
+
+    parse = VendaERPMongoClient._parse_dt
+    for campo in ("Data", "data", "DataFaturamento", "CriadoEm", "criado_em"):
+        val = doc.get(campo)
+        dt = val if isinstance(val, datetime) else parse(val)
+        if isinstance(dt, datetime) and dt.year >= 1980:
             return dt
     return None
 
