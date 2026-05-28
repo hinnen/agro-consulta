@@ -513,7 +513,9 @@ def rotulo_usuario_registro_venda(request, data: dict | None = None) -> str:
         nome = (u.get_full_name() or u.first_name or "").strip()
         if nome:
             return nome[:150]
-        return str(u.get_username() if hasattr(u, "get_username") else u.pk)[:150]
+        un = (u.get_username() if hasattr(u, "get_username") else str(u.pk)).strip()
+        if un and un.lower() not in ("admin", "administrator", "root"):
+            return un[:150]
     return ""
 
 

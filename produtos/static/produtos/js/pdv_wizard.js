@@ -3044,7 +3044,7 @@
         };
         var pagDraft = pagamentosDetalheParaErp(state);
         if (pagDraft && pagDraft.length) draft.pagamentos = pagDraft;
-        return draft;
+        return injetarOperadorNoPayload(draft);
     }
 
     function operadorPdvAtual() {
@@ -3061,8 +3061,21 @@
 
     function injetarOperadorNoPayload(payload) {
         var op = operadorPdvAtual();
-        if (op) payload.operador_pdv = op;
+        if (op) {
+            payload.operador_pdv = op;
+            payload.operador = op;
+        }
         return payload;
+    }
+
+    function sincronizarOperadorPdvNoState() {
+        var op = '';
+        try {
+            op = (localStorage.getItem('gm_sspin_operador') || '').trim();
+        } catch (e0) {
+            op = '';
+        }
+        if (op) State.setPagamentoField('operadorPdv', op);
     }
 
     function buildErpPayload(state, computed) {
@@ -5737,6 +5750,11 @@
 
     State.subscribe(renderAll);
     bindEvents();
+    sincronizarOperadorPdvNoState();
+    window.addEventListener('gm-sspin-operador', function (ev) {
+        var nome = ev && ev.detail && ev.detail.nome ? String(ev.detail.nome).trim() : '';
+        if (nome) State.setPagamentoField('operadorPdv', nome);
+    });
 
     refreshEntregasPendentesUi(true);
     if (entregasPendentesPollTimer) clearInterval(entregasPendentesPollTimer);

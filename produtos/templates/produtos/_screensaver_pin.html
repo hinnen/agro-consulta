@@ -101,10 +101,25 @@
     } catch (e) {}
   }
 
+  function syncOperadorServidor(nome) {
+    nome = (nome || '').trim();
+    if (!nome) return;
+    try {
+      var c = document.cookie.match(/csrftoken=([^;]+)/);
+      fetch('{% url "api_pdv_registrar_operador" %}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': c ? c[1] : '' },
+        body: JSON.stringify({ operador: nome })
+      }).catch(function () {});
+    } catch (eSync) {}
+  }
+
   function setOperador(nome) {
     try {
       localStorage.setItem(LS_OPERADOR, nome);
     } catch (e) {}
+    syncOperadorServidor(nome);
     window.dispatchEvent(new CustomEvent('gm-sspin-operador', { detail: { nome: nome } }));
     refreshOperadorChip();
   }
@@ -114,6 +129,7 @@
     try {
       localStorage.removeItem(LS_OPERADOR);
     } catch (e) {}
+    syncOperadorServidor('');
     selectedName = '';
     window.dispatchEvent(new CustomEvent('gm-sspin-operador', { detail: { nome: '' } }));
     refreshOperadorChip();
@@ -402,6 +418,13 @@
 
   function initSspin() {
     refreshOperadorChip();
+    var n = '';
+    try {
+      n = (localStorage.getItem(LS_OPERADOR) || '').trim();
+    } catch (eInit) {
+      n = '';
+    }
+    if (n) syncOperadorServidor(n);
     bumpIdle();
   }
   if (document.readyState === 'loading') {

@@ -15733,6 +15733,24 @@ def api_login_mobile(request):
     return JsonResponse({"ok": True, "operador": operador})
 
 
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_pdv_registrar_operador(request):
+    """Grava na sessão o operador do PDV (modo descanso / chip na topbar)."""
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        data = {}
+    op = str(data.get("operador") or data.get("operador_pdv") or "").strip()
+    if not op:
+        request.session.pop("pdv_operador_nome", None)
+        request.session.modified = True
+        return JsonResponse({"ok": True, "operador": ""})
+    request.session["pdv_operador_nome"] = op[:120]
+    request.session.modified = True
+    return JsonResponse({"ok": True, "operador": op[:120]})
+
+
 @require_POST
 def api_ajustar_estoque(request):
     pin = request.POST.get("pin")
