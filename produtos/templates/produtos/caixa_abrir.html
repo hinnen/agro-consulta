@@ -8,32 +8,49 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   {% include "produtos/_agro_consulta_ui.html" %}
-  <style>body { font-family: 'Inter', sans-serif; }</style>
+  <style>body { font-family: 'Inter', sans-serif; min-height: 100dvh; max-height: 100dvh; }</style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
 {% include "produtos/_gm_loading_bar.html" %}
-  <header class="border-b border-slate-200 bg-white shadow-sm">
-    <div class="max-w-lg mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-2">
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="max-w-lg mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-2">
       <h1 class="text-lg font-black uppercase text-slate-900">Abrir caixa</h1>
       <div class="flex flex-wrap items-center gap-2">
-      <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">Painel</a>
-      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 shrink-0" %}
+        <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">Painel</a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 shrink-0" %}
       </div>
     </div>
   </header>
-  <main class="max-w-lg mx-auto px-4 py-6 flex-1 min-h-0 overflow-y-auto">
+  <main class="max-w-lg mx-auto px-4 py-4 flex-1 min-h-0 overflow-y-auto w-full">
+    {% if sugestao_fechamento %}
+    <section class="mb-4 rounded-2xl border-2 border-sky-400 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm">
+      <p class="text-[10px] font-black uppercase text-sky-800">Sugestão do último fechamento</p>
+      <p class="mt-1 text-sm font-bold text-sky-950 leading-snug">
+        Caixa <strong>#{{ sugestao_fechamento.sessao_pk }}</strong>
+        fechado em <strong>{{ sugestao_fechamento.fechado_em|date:"d/m/Y H:i" }}</strong>
+        {% if sugestao_fechamento.usuario %}· {{ sugestao_fechamento.usuario }}{% endif %}
+      </p>
+      <p class="mt-2 text-[clamp(1.35rem,1vw+1rem,1.75rem)] font-black text-sky-700 tabular-nums leading-none">
+        Dinheiro contado: R$ {{ sugestao_fechamento.dinheiro_contado_br }}
+      </p>
+      <p class="mt-2 text-xs font-semibold text-sky-900/80">
+        O campo abaixo já vem com esse valor — confira na gaveta e ajuste se precisar antes de confirmar.
+      </p>
+    </section>
+    {% endif %}
+
     <form method="post" class="space-y-4 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
       {% csrf_token %}
       <div>
         <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="valor_abertura">Valor em gaveta (fundo de troco)</label>
-        <input type="text" name="valor_abertura" id="valor_abertura" value="0" inputmode="decimal" class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-black text-lg" placeholder="0,00">
+        <input type="text" name="valor_abertura" id="valor_abertura" value="{% if sugestao_fechamento %}{{ sugestao_fechamento.dinheiro_contado_br }}{% else %}0{% endif %}" inputmode="decimal" class="w-full rounded-xl border-2 border-emerald-300 bg-emerald-50/40 px-4 py-3 font-black text-[clamp(1.25rem,1vw+1rem,1.6rem)] tabular-nums" placeholder="0,00" autocomplete="off">
       </div>
       <div>
         <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="observacao_abertura">Observação (opcional)</label>
         <textarea name="observacao_abertura" id="observacao_abertura" rows="2" class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm"></textarea>
       </div>
-      <p class="text-[10px] text-slate-400 leading-snug">As vendas enviadas ao ERP com este navegador ficam vinculadas a esta sessão enquanto o caixa estiver aberto.</p>
-      <button type="submit" class="w-full py-3.5 rounded-xl bg-emerald-600 text-white font-black uppercase">Confirmar abertura</button>
+      <p class="text-[10px] text-slate-400 leading-snug">As vendas deste navegador ficam vinculadas a esta sessão enquanto o caixa estiver aberto.</p>
+      <button type="submit" class="w-full min-h-[56px] py-3.5 rounded-xl bg-emerald-600 text-white font-black uppercase text-sm hover:bg-emerald-700 shadow-md">Confirmar abertura</button>
     </form>
   </main>
 {% include "produtos/_atalho_voltar_pdv.html" %}

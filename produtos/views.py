@@ -65,6 +65,7 @@ from .caixa_util import (
     sessao_caixa_e_do_browser,
     id_sessao_caixa_browser,
     rotulo_usuario_registro_venda,
+    ultimo_fechamento_sugestao_abertura,
     normalizar_forma_pagamento_caixa,
     pagamentos_json_de_payload,
     parse_valor_moeda_br,
@@ -7721,6 +7722,65 @@ def caixa_relatorio(request):
 
 
 @login_required(login_url="/admin/login/")
+def caixa_relatorio_conferencias(request):
+    from produtos.caixa_relatorio_util import montar_relatorio_conferencias_caixa
+
+    di, df, label = _periodo_vendas_from_request(request, default_preset="7d")
+    filtro_sessao = None
+    raw_sess = (request.GET.get("sessao") or "").strip()
+    if raw_sess.isdigit():
+        filtro_sessao = int(raw_sess)
+    somente_diff = (request.GET.get("somente_diff") or "").strip().lower() in (
+        "1",
+        "true",
+        "sim",
+        "on",
+    )
+    rel = montar_relatorio_conferencias_caixa(
+        di,
+        df,
+        sessao_id=filtro_sessao,
+        somente_com_diferenca=somente_diff,
+    )
+    preset_get = (request.GET.get("preset") or "").strip().lower()
+    tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
+    preset_ativo = preset_get or ("" if tem_datas_custom else "7d")
+
+    def _url_conf(**extra):
+        q = request.GET.copy()
+        for k, v in extra.items():
+            if v is None:
+                q.pop(k, None)
+            else:
+                q[k] = str(v)
+        return reverse("caixa_relatorio_conferencias") + ("?" + q.urlencode() if q else "")
+
+    return render(
+        request,
+        "produtos/caixa_relatorio_conferencias.html",
+        {
+            "data_ini": di,
+            "data_fim": df,
+            "periodo_label": label,
+            "preset_ativo": preset_ativo,
+            "filtro_sessao": filtro_sessao,
+            "somente_diff": somente_diff,
+            "url_toggle_diff": _url_conf(
+                somente_diff=None if somente_diff else "1"
+            ),
+            "sessoes": rel["sessoes"],
+            "totais_forma": rel["totais_forma"],
+            "qtd_fechamentos": rel["qtd_fechamentos"],
+            "qtd_com_diferenca": rel["qtd_com_diferenca"],
+            "tot_esperado": rel["tot_esperado"],
+            "tot_contado": rel["tot_contado"],
+            "tot_diferenca": rel["tot_diferenca"],
+            "sessoes_opts": rel["sessoes_opts"],
+        },
+    )
+
+
+@login_required(login_url="/admin/login/")
 @require_POST
 def api_caixa_assumir_sessao(request):
     """Vincula este navegador a um turno de caixa (outro operador exige PIN)."""
@@ -7872,7 +7932,12 @@ def caixa_abrir(request):
         request.session["pdv_sessao_caixa_id"] = s.pk
         messages.success(request, f"Caixa #{s.pk} aberto. Valor de abertura: R$ {s.valor_abertura}")
         return redirect("home")
-    return render(request, "produtos/caixa_abrir.html")
+    sugestao = ultimo_fechamento_sugestao_abertura()
+    return render(
+        request,
+        "produtos/caixa_abrir.html",
+        {"sugestao_fechamento": sugestao},
+    )
 
 
 @login_required(login_url="/admin/login/")
