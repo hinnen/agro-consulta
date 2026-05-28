@@ -1,0 +1,87 @@
+{# Modal PIN para gerenciar caixa de outro turno / operador (PerfilUsuario.senha_rapida) #}
+<div id="modal-caixa-pin" class="hidden fixed inset-0 z-[20050] flex items-center justify-center p-4 bg-slate-900/60" role="dialog" aria-modal="true" aria-labelledby="modal-caixa-pin-titulo">
+  <div class="w-full max-w-md rounded-2xl border-2 border-emerald-400 bg-white shadow-2xl p-5 sm:p-6">
+    <h2 id="modal-caixa-pin-titulo" class="text-lg font-black uppercase text-slate-900 leading-tight">PIN do operador</h2>
+    <p id="modal-caixa-pin-texto" class="mt-2 text-sm font-semibold text-slate-600">Confirme com seu PIN para gerenciar este caixa.</p>
+    <label class="block mt-4">
+      <span class="text-[11px] font-black uppercase text-slate-500">PIN</span>
+      <input type="password" id="modal-caixa-pin-input" inputmode="numeric" autocomplete="one-time-code" class="mt-1.5 w-full min-h-[52px] rounded-xl border-2 border-slate-300 px-4 text-xl font-black tracking-widest text-center focus:border-emerald-500 outline-none" placeholder="••••">
+    </label>
+    <p id="modal-caixa-pin-erro" class="hidden mt-2 text-sm font-bold text-red-700"></p>
+    <div class="mt-4 flex gap-2">
+      <button type="button" id="modal-caixa-pin-cancelar" class="flex-1 min-h-[48px] rounded-xl border-2 border-slate-200 bg-slate-100 text-slate-800 font-black uppercase text-xs hover:bg-slate-200">Cancelar</button>
+      <button type="button" id="modal-caixa-pin-confirmar" class="flex-1 min-h-[48px] rounded-xl bg-emerald-600 text-white font-black uppercase text-xs hover:bg-emerald-700 shadow-md">Confirmar</button>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var modal = document.getElementById('modal-caixa-pin');
+  var inp = document.getElementById('modal-caixa-pin-input');
+  var titulo = document.getElementById('modal-caixa-pin-titulo');
+  var texto = document.getElementById('modal-caixa-pin-texto');
+  var erro = document.getElementById('modal-caixa-pin-erro');
+  var btnOk = document.getElementById('modal-caixa-pin-confirmar');
+  var btnCancel = document.getElementById('modal-caixa-pin-cancelar');
+  if (!modal || !inp) return;
+
+  var _resolve = null;
+  var _reject = null;
+
+  function csrf() {
+    var c = document.cookie.match(/csrftoken=([^;]+)/);
+    return c ? c[1] : '';
+  }
+
+  function fecharModal() {
+    modal.classList.add('hidden');
+    inp.value = '';
+    if (erro) { erro.classList.add('hidden'); erro.textContent = ''; }
+  }
+
+  window.agroCaixaPedirPin = function (opts) {
+    opts = opts || {};
+    if (titulo) titulo.textContent = opts.titulo || 'PIN do operador';
+    if (texto) texto.textContent = opts.texto || 'Confirme com seu PIN para gerenciar este caixa.';
+    modal.classList.remove('hidden');
+    inp.focus();
+    return new Promise(function (resolve, reject) {
+      _resolve = resolve;
+      _reject = reject;
+    });
+  };
+
+  window.agroCaixaAssumirSessao = function (sessaoId, pin) {
+    return fetch('{% url "api_caixa_assumir_sessao" %}', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify({ sessao_caixa_id: sessaoId, pin: pin || '' })
+    }).then(function (r) {
+      return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+    });
+  };
+
+  btnCancel.addEventListener('click', function () {
+    fecharModal();
+    if (_reject) _reject(new Error('cancelado'));
+    _resolve = _reject = null;
+  });
+
+  btnOk.addEventListener('click', function () {
+    var pin = (inp.value || '').trim();
+    if (!pin) {
+      if (erro) { erro.textContent = 'Informe o PIN.'; erro.classList.remove('hidden'); }
+      return;
+    }
+    fecharModal();
+    if (_resolve) _resolve(pin);
+    _resolve = _reject = null;
+  });
+
+  inp.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); btnOk.click(); }
+    if (e.key === 'Escape') { e.preventDefault(); btnCancel.click(); }
+  });
+})();
+</script>

@@ -278,6 +278,53 @@ def linhas_conferencia_agregada(sessoes, *, todas_formas: bool = False) -> list[
     return out
 
 
+def usuario_label_sessao_caixa(sessao) -> str:
+    if not getattr(sessao, "usuario_id", None):
+        return "—"
+    u = sessao.usuario
+    return (u.get_full_name() or "").strip() or u.get_username() or f"#{u.pk}"
+
+
+def fmt_linhas_caixa_template(linhas) -> list[dict[str, str]]:
+    return [
+        {
+            "forma": L["forma"],
+            "esperado": str(L["esperado"]),
+            "vendas": str(L["vendas"]),
+            "reforcos": str(L["reforcos"]),
+            "retiradas": str(L["retiradas"]),
+            "abertura_dinheiro": str(L["abertura_dinheiro"]),
+        }
+        for L in linhas
+    ]
+
+
+def montar_cards_caixas_abertos(sessoes) -> list[dict[str, Any]]:
+    """Resumo por sessão aberta (painel «todos» e fechamento individual)."""
+    cards: list[dict[str, Any]] = []
+    for s in sessoes:
+        vendas = s.vendas.all()
+        qtd = len(vendas)
+        tot = sum((_dec(v.total) for v in vendas), Decimal("0")).quantize(Decimal("0.01"))
+        linhas_sess = linhas_conferencia_fechar(s)
+        esp_din = Decimal("0")
+        for L in linhas_sess:
+            if L["forma"] == "Dinheiro":
+                esp_din = _dec(L["esperado"])
+                break
+        cards.append(
+            {
+                "sessao": s,
+                "usuario": usuario_label_sessao_caixa(s),
+                "qtd_vendas": qtd,
+                "total_vendas": str(tot),
+                "esperado_dinheiro": str(esp_din.quantize(Decimal("0.01"))),
+                "linhas": fmt_linhas_caixa_template(linhas_sess),
+            }
+        )
+    return cards
+
+
 def obter_sessao_caixa_aberta_request(request):
     """Sessão de caixa gravada no cookie de sessão do navegador."""
     from produtos.models import SessaoCaixa
@@ -320,6 +367,156 @@ def adotar_sessao_caixa_unica_aberta(request):
 
 
 MSG_CAIXA_FECHADO_VENDA = "Abra o caixa antes de registrar vendas."
+MSG_CAIXA_PIN_ALHEIO = "Informe seu PIN para gerenciar outro caixa."
+
+
+def validar_pin_operador(pin: str) -> tuple[bool, str]:
+    """PIN de operador (``PerfilUsuario.senha_rapida``), mesmo critério do estoque / empréstimo."""
+    from base.models import PerfilUsuario
+
+    pin = (pin or "").strip()
+    if not pin:
+        return False, "Informe o PIN."
+    if pin == "1234":
+        return False, "Senha padrão (1234) bloqueada. Troque seu PIN."
+    if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+        return False, "PIN incorreto."
+    return True, ""
+
+
+def rotulo_operador_pin(pin: str) -> str:
+    from base.models import PerfilUsuario
+
+    pin = (pin or "").strip()
+    if not pin or pin == "1234":
+        return ""
+    perfil = (
+        PerfilUsuario.objects.filter(senha_rapida=pin)
+        .select_related("user")
+        .first()
+    )
+    if not perfil:
+        return ""
+    u = perfil.user
+    return (u.get_full_name() or u.first_name or u.username or perfil.codigo_vendedor or "").strip()
+
+
+def usuario_django_de_pin(pin: str):
+    from base.models import PerfilUsuario
+
+    pin = (pin or "").strip()
+    if not pin:
+        return None
+    perfil = PerfilUsuario.objects.filter(senha_rapida=pin).select_related("user").first()
+    return perfil.user if perfil else None
+
+
+def id_sessao_caixa_browser(request) -> int:
+    try:
+        return int(request.session.get("pdv_sessao_caixa_id") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def sessao_caixa_e_do_browser(request, sessao) -> bool:
+    if not sessao:
+        return False
+    return int(sessao.pk) == id_sessao_caixa_browser(request)
+
+
+def obter_sessao_caixa_aberta_por_id(sessao_id) -> Any | None:
+    from produtos.models import SessaoCaixa
+
+    try:
+        sid = int(sessao_id)
+    except (TypeError, ValueError):
+        return None
+    if sid <= 0:
+        return None
+    return SessaoCaixa.objects.filter(pk=sid, fechado_em__isnull=True).first()
+
+
+def vincular_sessao_caixa_browser(request, sessao) -> None:
+    request.session["pdv_sessao_caixa_id"] = int(sessao.pk)
+    request.session.modified = True
+
+
+def resolver_sessao_caixa_operacao(
+    request, data: dict | None = None, *, permitir_adotar_unico: bool = True
+) -> tuple[Any | None, str | None, int]:
+    """
+  Sessão para movimentos no caixa: turno deste navegador ou outro turno aberto com PIN.
+  Retorna (sessao, mensagem_erro, status_http).
+    """
+    data = data if isinstance(data, dict) else {}
+    pin = str(data.get("pin") or "").strip()
+    raw_sid = data.get("sessao_caixa_id") or data.get("sessaoCaixaId")
+
+    local = obter_sessao_caixa_aberta_request(request)
+    sid = 0
+    if raw_sid is not None and str(raw_sid).strip() != "":
+        try:
+            sid = int(raw_sid)
+        except (TypeError, ValueError):
+            sid = 0
+
+    if sid > 0:
+        alvo = obter_sessao_caixa_aberta_por_id(sid)
+        if not alvo:
+            return None, "Caixa não encontrado ou já fechado.", 400
+        if local and int(local.pk) == sid:
+            return local, None, 200
+        ok, err = validar_pin_operador(pin)
+        if not ok:
+            return None, err or MSG_CAIXA_PIN_ALHEIO, 403
+        return alvo, None, 200
+
+    if local:
+        return local, None, 200
+    if permitir_adotar_unico:
+        adotado = adotar_sessao_caixa_unica_aberta(request)
+        if adotado:
+            return adotado, None, 200
+    return None, "Nenhum caixa aberto neste navegador.", 400
+
+
+def exigir_pin_gerir_caixa(request, sessao, pin: str) -> tuple[bool, str]:
+    """Exige PIN quando a sessão não é a vinculada a este navegador."""
+    if sessao_caixa_e_do_browser(request, sessao):
+        return True, ""
+    return validar_pin_operador(pin)
+
+
+def rotulo_usuario_registro_venda(request, data: dict | None = None) -> str:
+    """
+    Rótulo do vendedor/operador na venda Agro: operador do PDV (descanso/PIN),
+    não o login Django (ex.: admin).
+    """
+    data = data if isinstance(data, dict) else {}
+    for key in ("operador_pdv", "operador", "operador_nome", "vendedor"):
+        val = str(data.get(key) or "").strip()
+        if val:
+            return val[:150]
+    pin = str(data.get("pin") or data.get("pin_operador") or "").strip()
+    if pin:
+        rot = rotulo_operador_pin(pin)
+        if rot:
+            return rot[:150]
+    try:
+        sess_op = str(request.session.get("pdv_operador_nome") or "").strip()
+    except Exception:
+        sess_op = ""
+    if sess_op:
+        return sess_op[:150]
+    u = getattr(request, "user", None)
+    if u is not None and getattr(u, "is_authenticated", False):
+        nome = (u.get_full_name() or u.first_name or "").strip()
+        if nome:
+            return nome[:150]
+        un = (u.get_username() if hasattr(u, "get_username") else str(u.pk)).strip()
+        if un and un.lower() not in ("admin", "administrator", "root"):
+            return un[:150]
+    return ""
 
 
 class SessaoCaixaObrigatoriaError(Exception):

@@ -53,6 +53,18 @@ from .caixa_util import (
     linhas_resumo_caixa,
     linhas_conferencia_fechar,
     linhas_conferencia_agregada,
+    montar_cards_caixas_abertos,
+    fmt_linhas_caixa_template,
+    validar_pin_operador,
+    rotulo_operador_pin,
+    usuario_django_de_pin,
+    resolver_sessao_caixa_operacao,
+    exigir_pin_gerir_caixa,
+    vincular_sessao_caixa_browser,
+    obter_sessao_caixa_aberta_por_id,
+    sessao_caixa_e_do_browser,
+    id_sessao_caixa_browser,
+    rotulo_usuario_registro_venda,
     normalizar_forma_pagamento_caixa,
     pagamentos_json_de_payload,
     parse_valor_moeda_br,
@@ -7597,6 +7609,7 @@ def caixa_painel(request):
         "empresa_padrao": empresa_padrao,
         "empresa_padrao_id": emp.pk if emp else "",
         "qtd_caixas_abertos": SessaoCaixa.objects.filter(fechado_em__isnull=True).count(),
+        "caixa_gerido_operador": (request.session.get("pdv_caixa_gerido_operador") or "").strip(),
     }
     if aberto:
         aberto = (
@@ -7642,10 +7655,31 @@ def caixa_painel(request):
             agg_orf.quantize(Decimal("0.01")) if agg_orf is not None else Decimal("0")
         )
     painel_raw = (request.GET.get("painel") or "menu").strip().lower()
-    paineis_ok = {"menu", "saldo", "reforco", "retirada"}
+    paineis_ok = {"menu", "saldo", "reforco", "retirada", "todos"}
     painel = painel_raw if painel_raw in paineis_ok else "menu"
     if painel in ("saldo", "reforco") and not aberto:
         painel = "menu"
+    if painel == "todos":
+        sessoes_todos = list(
+            SessaoCaixa.objects.filter(fechado_em__isnull=True)
+            .select_related("usuario")
+            .prefetch_related("vendas", "movimentos")
+            .order_by("aberto_em")
+        )
+        if not sessoes_todos:
+            messages.info(request, "Nenhum caixa aberto no sistema.")
+            painel = "menu"
+        else:
+            ctx["sessoes_abertas"] = montar_cards_caixas_abertos(sessoes_todos)
+            ctx["sessao_local"] = _obter_sessao_caixa_aberta(request)
+            linhas_agg = linhas_conferencia_agregada(sessoes_todos, todas_formas=False)
+            ctx["linhas_todos_caixas"] = fmt_linhas_caixa_template(linhas_agg)
+            tot_din = Decimal("0")
+            for L in linhas_agg:
+                if L["forma"] == "Dinheiro":
+                    tot_din = _dec(L["esperado"])
+                    break
+            ctx["tot_esperado_dinheiro_todos"] = str(tot_din.quantize(Decimal("0.01")))
     ctx["painel"] = painel
     return render(request, "produtos/caixa_painel.html", ctx)
 
@@ -7688,15 +7722,54 @@ def caixa_relatorio(request):
 
 @login_required(login_url="/admin/login/")
 @require_POST
-def api_caixa_movimento(request):
-    """Reforço ou retirada manual no caixa aberto (por forma de pagamento)."""
-    sessao = _obter_sessao_caixa_aberta(request)
-    if not sessao:
-        return JsonResponse({"ok": False, "erro": "Nenhum caixa aberto neste navegador."}, status=400)
+def api_caixa_assumir_sessao(request):
+    """Vincula este navegador a um turno de caixa (outro operador exige PIN)."""
     try:
         data = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    try:
+        sid = int(data.get("sessao_caixa_id") or data.get("sessaoCaixaId") or 0)
+    except (TypeError, ValueError):
+        sid = 0
+    if sid <= 0:
+        return JsonResponse({"ok": False, "erro": "sessao_caixa_id inválido."}, status=400)
+    pin = str(data.get("pin") or "").strip()
+    alvo = obter_sessao_caixa_aberta_por_id(sid)
+    if not alvo:
+        return JsonResponse({"ok": False, "erro": "Caixa não encontrado ou já fechado."}, status=400)
+    if not sessao_caixa_e_do_browser(request, alvo):
+        ok_pin, err_pin = validar_pin_operador(pin)
+        if not ok_pin:
+            return JsonResponse({"ok": False, "erro": err_pin}, status=403)
+    vincular_sessao_caixa_browser(request, alvo)
+    operador = rotulo_operador_pin(pin) if pin else ""
+    if not operador and request.user.is_authenticated:
+        operador = (request.user.get_full_name() or request.user.get_username() or "").strip()
+    if operador:
+        request.session["pdv_caixa_gerido_operador"] = operador[:120]
+        request.session.modified = True
+    return JsonResponse(
+        {
+            "ok": True,
+            "sessao_caixa_id": alvo.pk,
+            "operador": operador,
+            "mensagem": f"Caixa #{alvo.pk} sob seu controle neste navegador.",
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_caixa_movimento(request):
+    """Reforço ou retirada manual no caixa aberto (por forma de pagamento)."""
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    sessao, err, st = resolver_sessao_caixa_operacao(request, data)
+    if not sessao:
+        return JsonResponse({"ok": False, "erro": err or "Caixa indisponível."}, status=st or 400)
     tipo = str(data.get("tipo") or "").strip().lower()
     if tipo not in (MovimentoCaixa.Tipo.REFORCO, MovimentoCaixa.Tipo.RETIRADA):
         return JsonResponse({"ok": False, "erro": "Tipo inválido (reforco ou retirada)."}, status=400)
@@ -7705,13 +7778,24 @@ def api_caixa_movimento(request):
     if valor is None or valor <= 0:
         return JsonResponse({"ok": False, "erro": "Informe um valor maior que zero."}, status=400)
     obs = str(data.get("observacao") or "").strip()[:500]
+    pin = str(data.get("pin") or "").strip()
+    if pin and not sessao_caixa_e_do_browser(request, sessao):
+        rot = rotulo_operador_pin(pin)
+        if rot:
+            pref = f"[PIN {rot}] "
+            obs = (pref + obs)[:500]
+    user_mov = request.user if request.user.is_authenticated else None
+    if pin:
+        u_pin = usuario_django_de_pin(pin)
+        if u_pin is not None:
+            user_mov = u_pin
     mov = MovimentoCaixa.objects.create(
         sessao_caixa=sessao,
         tipo=tipo,
         forma_pagamento=forma,
         valor=valor,
         observacao=obs,
-        usuario=request.user if request.user.is_authenticated else None,
+        usuario=user_mov,
     )
     return JsonResponse(
         {
@@ -7728,13 +7812,13 @@ def api_caixa_movimento(request):
 @require_POST
 def api_caixa_vincular_vendas(request):
     """Associa vendas sem sessão ao caixa aberto (ex.: vendas antes da abertura)."""
-    sessao = _obter_sessao_caixa_aberta(request)
-    if not sessao:
-        return JsonResponse({"ok": False, "erro": "Nenhum caixa aberto neste navegador."}, status=400)
     try:
         data = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    sessao, err, st = resolver_sessao_caixa_operacao(request, data)
+    if not sessao:
+        return JsonResponse({"ok": False, "erro": err or "Caixa indisponível."}, status=st or 400)
     todas_hoje = bool(data.get("todas_do_dia"))
     ids_raw = data.get("venda_ids") or []
     if not isinstance(ids_raw, list):
@@ -7804,25 +7888,6 @@ def caixa_fechar(request):
         messages.info(request, "Nenhum caixa aberto no sistema.")
         return redirect("caixa_painel")
 
-    def _fmt_linhas(linhas):
-        return [
-            {
-                "forma": L["forma"],
-                "esperado": str(L["esperado"]),
-                "vendas": str(L["vendas"]),
-                "reforcos": str(L["reforcos"]),
-                "retiradas": str(L["retiradas"]),
-                "abertura_dinheiro": str(L["abertura_dinheiro"]),
-            }
-            for L in linhas
-        ]
-
-    def _usuario_sessao(s):
-        if not s.usuario_id:
-            return "—"
-        u = s.usuario
-        return (u.get_full_name() or "").strip() or u.get_username() or f"#{u.pk}"
-
     def _conferencia_de_post(linhas, post):
         conferencia: dict = {}
         cont_din = None
@@ -7850,27 +7915,7 @@ def caixa_fechar(request):
             pass
 
     linhas_todos_raw = linhas_conferencia_agregada(sessoes, todas_formas=True)
-    cards = []
-    for s in sessoes:
-        vendas = s.vendas.all()
-        qtd = len(vendas)
-        tot = sum((_dec(v.total) for v in vendas), Decimal("0")).quantize(Decimal("0.01"))
-        linhas_sess = linhas_conferencia_fechar(s)
-        esp_din = Decimal("0")
-        for L in linhas_sess:
-            if L["forma"] == "Dinheiro":
-                esp_din = _dec(L["esperado"])
-                break
-        cards.append(
-            {
-                "sessao": s,
-                "usuario": _usuario_sessao(s),
-                "qtd_vendas": qtd,
-                "total_vendas": str(tot),
-                "esperado_dinheiro": str(esp_din.quantize(Decimal("0.01"))),
-                "linhas": _fmt_linhas(linhas_sess),
-            }
-        )
+    cards = montar_cards_caixas_abertos(sessoes)
 
     entregas_pendentes_fechar = listar_entregas_bloqueando_fechamento_caixa()
     fechar_bloqueado = len(entregas_pendentes_fechar) > 0
@@ -7893,9 +7938,17 @@ def caixa_fechar(request):
             if not sessao:
                 messages.error(request, "Caixa não encontrado ou já fechado.")
                 return redirect("caixa_fechar")
+            pin_f = (request.POST.get("pin") or "").strip()
+            ok_pin, err_pin = exigir_pin_gerir_caixa(request, sessao, pin_f)
+            if not ok_pin:
+                messages.error(request, err_pin)
+                return redirect("caixa_fechar")
             linhas = linhas_conferencia_fechar(sessao)
-            conferencia, cont_din = _conferencia_de_post(linhas, request.POST)
             obs = (request.POST.get("observacao_fechamento") or "").strip()[:500]
+            rot = rotulo_operador_pin(pin_f) if pin_f else ""
+            if rot and not sessao_caixa_e_do_browser(request, sessao):
+                obs = (f"[Fechado por PIN {rot}] " + obs)[:500]
+            conferencia, cont_din = _conferencia_de_post(linhas, request.POST)
             sessao.fechado_em = timezone.now()
             sessao.conferencia_fechamento = conferencia
             sessao.observacao_fechamento = obs
@@ -7906,9 +7959,21 @@ def caixa_fechar(request):
             messages.success(request, f"Caixa #{sessao.pk} fechado.")
             return redirect("caixa_fechar")
         # Fechar todos (padrão operacional)
+        pin_f = (request.POST.get("pin") or "").strip()
+        precisa_pin_lote = len(sessoes) > 1 or any(
+            not sessao_caixa_e_do_browser(request, s) for s in sessoes
+        )
+        if precisa_pin_lote:
+            ok_pin, err_pin = validar_pin_operador(pin_f)
+            if not ok_pin:
+                messages.error(request, err_pin)
+                return redirect("caixa_fechar")
         linhas = linhas_todos_raw
         conferencia_lote, cont_din_lote = _conferencia_de_post(linhas, request.POST)
         obs = (request.POST.get("observacao_fechamento") or "").strip()[:500]
+        rot = rotulo_operador_pin(pin_f) if pin_f else ""
+        if rot and precisa_pin_lote:
+            obs = (f"[Fechado por PIN {rot}] " + obs)[:500]
         agora = timezone.now()
         n = 0
         for sessao in sessoes:
@@ -7938,7 +8003,7 @@ def caixa_fechar(request):
             tot_esperado_din = L["esperado"]
             break
 
-    all_linhas = _fmt_linhas(linhas_todos_raw)
+    all_linhas = fmt_linhas_caixa_template(linhas_todos_raw)
     linhas_com_movimento = []
     linhas_sem_movimento = []
     for i, L in enumerate(all_linhas):
@@ -12695,14 +12760,7 @@ def api_emprestimos_interno_pagamento(request):
 
 
 def _emprestimos_interno_validar_pin(pin: str) -> tuple[bool, str]:
-    pin = (pin or "").strip()
-    if not pin:
-        return False, "Informe o PIN."
-    if pin == "1234":
-        return False, "Senha padrão (1234) bloqueada. Troque seu PIN."
-    if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
-        return False, "PIN incorreto."
-    return True, ""
+    return validar_pin_operador(pin)
 
 
 @login_required(login_url="/admin/login/")
@@ -15663,10 +15721,34 @@ def api_produtos_grupo_excluir(request, pk: int):
 # --- APIs DE ESTOQUE E PEDIDO ---
 @require_POST
 def api_login_mobile(request):
-    if PerfilUsuario.objects.filter(senha_rapida=request.POST.get("pin")).exists():
-        request.session["mobile_auth"] = True
-        return JsonResponse({"ok": True})
-    return JsonResponse({"ok": False}, status=403)
+    pin = str(request.POST.get("pin") or "").strip()
+    ok_pin, err_pin = validar_pin_operador(pin)
+    if not ok_pin:
+        return JsonResponse({"ok": False, "erro": err_pin}, status=403)
+    request.session["mobile_auth"] = True
+    operador = rotulo_operador_pin(pin)
+    if operador:
+        request.session["pdv_operador_nome"] = operador[:120]
+        request.session.modified = True
+    return JsonResponse({"ok": True, "operador": operador})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_pdv_registrar_operador(request):
+    """Grava na sessão o operador do PDV (modo descanso / chip na topbar)."""
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        data = {}
+    op = str(data.get("operador") or data.get("operador_pdv") or "").strip()
+    if not op:
+        request.session.pop("pdv_operador_nome", None)
+        request.session.modified = True
+        return JsonResponse({"ok": True, "operador": ""})
+    request.session["pdv_operador_nome"] = op[:120]
+    request.session.modified = True
+    return JsonResponse({"ok": True, "operador": op[:120]})
 
 
 @require_POST
@@ -16860,10 +16942,7 @@ def _persistir_venda_agro(
     """
     Grava venda + itens no banco local (sempre que houve tentativa com itens válidos ao ERP).
     """
-    user_label = ""
-    u = getattr(request, "user", None)
-    if u is not None and getattr(u, "is_authenticated", False):
-        user_label = str(u.get_username() if hasattr(u, "get_username") else u.pk)[:150]
+    user_label = rotulo_usuario_registro_venda(request, data)
 
     cliente = (data.get("cliente") or "").strip() or "CONSUMIDOR NÃO IDENTIFICADO..."
     cid = str(data.get("cliente_id") or data.get("ClienteID") or "").strip()

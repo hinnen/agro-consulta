@@ -3044,7 +3044,38 @@
         };
         var pagDraft = pagamentosDetalheParaErp(state);
         if (pagDraft && pagDraft.length) draft.pagamentos = pagDraft;
-        return draft;
+        return injetarOperadorNoPayload(draft);
+    }
+
+    function operadorPdvAtual() {
+        var st = State.getState();
+        if (st && st.pagamento && st.pagamento.operadorPdv) {
+            return String(st.pagamento.operadorPdv).trim();
+        }
+        try {
+            return (localStorage.getItem('gm_sspin_operador') || '').trim();
+        } catch (e0) {
+            return '';
+        }
+    }
+
+    function injetarOperadorNoPayload(payload) {
+        var op = operadorPdvAtual();
+        if (op) {
+            payload.operador_pdv = op;
+            payload.operador = op;
+        }
+        return payload;
+    }
+
+    function sincronizarOperadorPdvNoState() {
+        var op = '';
+        try {
+            op = (localStorage.getItem('gm_sspin_operador') || '').trim();
+        } catch (e0) {
+            op = '';
+        }
+        if (op) State.setPagamentoField('operadorPdv', op);
     }
 
     function buildErpPayload(state, computed) {
@@ -3069,7 +3100,7 @@
         if (cx.id != null && String(cx.id).trim() !== '') {
             payload.sessao_caixa_id = parseInt(cx.id, 10) || cx.id;
         }
-        return payload;
+        return injetarOperadorNoPayload(payload);
     }
 
     function buildEntregaPayload(state, computed, extras) {
@@ -3100,7 +3131,7 @@
             itens: payloadItens(state),
             total_texto: formatMoney(computed.total),
             retomar_codigo: extras.retomar_codigo != null ? String(extras.retomar_codigo) : '',
-            operador: '',
+            operador: operadorPdvAtual(),
             hora_prevista: state.entrega.horario || '',
             forma_pagamento: formaPagamentoResumoUi(state, computed),
             troco_precisa: (function () {
@@ -3967,8 +3998,10 @@
             .then(function (r) {
                 if (r.ok) {
                     State.setPagamentoField('outroPinVerificado', true);
+                    var op = (r.data && r.data.operador) ? String(r.data.operador).trim() : '';
+                    if (op) State.setPagamentoField('operadorPdv', op);
                 } else {
-                    alert('PIN inválido.');
+                    alert((r.data && r.data.erro) || 'PIN inválido.');
                 }
             })
             .catch(function () {
@@ -5717,6 +5750,11 @@
 
     State.subscribe(renderAll);
     bindEvents();
+    sincronizarOperadorPdvNoState();
+    window.addEventListener('gm-sspin-operador', function (ev) {
+        var nome = ev && ev.detail && ev.detail.nome ? String(ev.detail.nome).trim() : '';
+        if (nome) State.setPagamentoField('operadorPdv', nome);
+    });
 
     refreshEntregasPendentesUi(true);
     if (entregasPendentesPollTimer) clearInterval(entregasPendentesPollTimer);
