@@ -9,7 +9,13 @@ from typing import Any
 
 from django.utils import timezone
 
-from produtos.caixa_util import FORMAS_PAGAMENTO_CAIXA, normalizar_forma_pagamento_caixa, pagamentos_por_forma_venda
+from produtos.caixa_util import (
+    FORMAS_PAGAMENTO_CAIXA,
+    extrair_linhas_conferencia_sessao,
+    normalizar_forma_pagamento_caixa,
+    pagamentos_por_forma_venda,
+    usuario_label_sessao_caixa,
+)
 from produtos.models import MovimentoCaixa, SessaoCaixa, VendaAgro
 
 
@@ -303,5 +309,133 @@ def montar_relatorio_caixa(
         "tot_entrada_num": float(tot_entrada),
         "tot_saida_num": float(tot_saida),
         "saldo_num": float(saldo),
+        "sessoes_opts": sessoes_opts,
+    }
+
+
+def montar_relatorio_conferencias_caixa(
+    di: date,
+    df: date,
+    *,
+    sessao_id: int | None = None,
+    somente_com_diferenca: bool = False,
+) -> dict[str, Any]:
+    """Lista fechamentos com esperado × contado × diferença por forma (e totais)."""
+    ini, fim = _dt_range(di, df)
+    qs = SessaoCaixa.objects.filter(
+        fechado_em__isnull=False, fechado_em__gte=ini, fechado_em__lte=fim
+    ).select_related("usuario")
+    if sessao_id is not None:
+        qs = qs.filter(pk=sessao_id)
+    qs = qs.order_by("-fechado_em")
+
+    sessoes_rows: list[dict[str, Any]] = []
+    agg: dict[str, dict[str, Decimal]] = {}
+
+    def _agg_add(forma: str, esp: Decimal, cont: Decimal | None, dif: Decimal | None) -> None:
+        if forma not in agg:
+            agg[forma] = {
+                "esperado": Decimal("0"),
+                "contado": Decimal("0"),
+                "diferenca": Decimal("0"),
+                "qtd_contado": 0,
+            }
+        row = agg[forma]
+        row["esperado"] += esp
+        if cont is not None:
+            row["contado"] += cont
+            row["qtd_contado"] += 1
+        if dif is not None:
+            row["diferenca"] += dif
+
+    qtd_com_diff = 0
+    for s in qs:
+        linhas_raw = extrair_linhas_conferencia_sessao(s)
+        linhas_fmt: list[dict[str, Any]] = []
+        sess_diff = False
+        for L in linhas_raw:
+            dif = L.get("diferenca")
+            if dif is not None and abs(_dec(dif)) >= Decimal("0.01"):
+                sess_diff = True
+            cont = L.get("contado")
+            _agg_add(
+                L["forma"],
+                _dec(L.get("esperado")),
+                cont if cont is not None else None,
+                dif if dif is not None else None,
+            )
+            if somente_com_diferenca and (dif is None or abs(_dec(dif)) < Decimal("0.01")):
+                continue
+            linhas_fmt.append(
+                {
+                    "forma": L["forma"],
+                    "esperado": L["esperado_str"],
+                    "contado": L["contado_str"] or "—",
+                    "diferenca": L["diferenca_str"] or "—",
+                    "tem_diff": dif is not None and abs(_dec(dif)) >= Decimal("0.01"),
+                    "diff_positivo": dif is not None and _dec(dif) > 0,
+                    "diff_negativo": dif is not None and _dec(dif) < 0,
+                }
+            )
+        if somente_com_diferenca and not linhas_fmt:
+            continue
+        if sess_diff:
+            qtd_com_diff += 1
+        obs = (s.observacao_fechamento or "").strip()
+        sessoes_rows.append(
+            {
+                "pk": s.pk,
+                "fechado_em": s.fechado_em,
+                "aberto_em": s.aberto_em,
+                "usuario": usuario_label_sessao_caixa(s),
+                "valor_fechamento": str(_dec(s.valor_fechamento))
+                if s.valor_fechamento is not None
+                else "",
+                "observacao": obs[:200],
+                "linhas": linhas_fmt,
+                "tem_diferenca": sess_diff,
+            }
+        )
+
+    totais_forma: list[dict[str, Any]] = []
+    tot_esp = tot_cont = tot_dif = Decimal("0")
+    ordem = [f for f in FORMAS_PAGAMENTO_CAIXA if f in agg]
+    ordem.extend(sorted(set(agg.keys()) - set(ordem)))
+    for fn in ordem:
+        row = agg[fn]
+        esp = _dec(row["esperado"]).quantize(Decimal("0.01"))
+        cont = _dec(row["contado"]).quantize(Decimal("0.01"))
+        dif = _dec(row["diferenca"]).quantize(Decimal("0.01"))
+        if esp == 0 and cont == 0 and dif == 0:
+            continue
+        tot_esp += esp
+        tot_cont += cont
+        tot_dif += dif
+        totais_forma.append(
+            {
+                "forma": fn,
+                "esperado": str(esp),
+                "contado": str(cont),
+                "diferenca": str(dif),
+                "tem_diff": abs(dif) >= Decimal("0.01"),
+                "diff_positivo": dif > 0,
+                "diff_negativo": dif < 0,
+            }
+        )
+
+    sessoes_opts = list(
+        SessaoCaixa.objects.filter(fechado_em__date__lte=df)
+        .order_by("-fechado_em")[:80]
+        .values("pk", "aberto_em", "fechado_em")
+    )
+
+    return {
+        "sessoes": sessoes_rows,
+        "totais_forma": totais_forma,
+        "qtd_fechamentos": len(sessoes_rows),
+        "qtd_com_diferenca": qtd_com_diff,
+        "tot_esperado": str(tot_esp.quantize(Decimal("0.01"))),
+        "tot_contado": str(tot_cont.quantize(Decimal("0.01"))),
+        "tot_diferenca": str(tot_dif.quantize(Decimal("0.01"))),
         "sessoes_opts": sessoes_opts,
     }

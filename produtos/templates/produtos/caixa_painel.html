@@ -136,9 +136,13 @@
           <span class="cx-sub">Registrar despesa (financeiro)</span>
         </a>
         {% endif %}
-        <a href="{% url 'caixa_relatorio' %}" class="caixa-menu-btn border-sky-400 bg-sky-100 text-sky-950 {% if not sessao_aberta and not qtd_caixas_abertos %}sm:col-span-2{% endif %}">
+        <a href="{% url 'caixa_relatorio' %}" class="caixa-menu-btn border-sky-400 bg-sky-100 text-sky-950">
           <span class="cx-title">Relatório de caixa</span>
           <span class="cx-sub">Movimentos por categoria e filtro por data</span>
+        </a>
+        <a href="{% url 'caixa_relatorio_conferencias' %}?preset=7d" class="caixa-menu-btn border-amber-400 bg-amber-50 text-amber-950 {% if not sessao_aberta and not qtd_caixas_abertos %}sm:col-span-2{% endif %}">
+          <span class="cx-title">Conferências · diferenças</span>
+          <span class="cx-sub">Esperado × contado por forma e por fechamento</span>
         </a>
       </div>
 

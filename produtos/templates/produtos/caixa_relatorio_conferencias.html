@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>Conferências de caixa | SisVale</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(14px, 0.28vw + 13px, 17px);
+      min-height: 100dvh;
+      max-height: 100dvh;
+    }
+    .cx-shell { width: 100%; max-width: min(96rem, 100%); margin: 0 auto; }
+    details.cx-sess summary::-webkit-details-marker { display: none; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden">
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="cx-shell px-3 sm:px-5 py-2 flex flex-wrap justify-between items-center gap-2">
+      <div class="min-w-0">
+        <h1 class="text-[clamp(1rem,0.7vw+0.9rem,1.35rem)] font-black uppercase text-slate-900 leading-tight">Conferências · diferenças</h1>
+        <p class="text-xs font-bold text-slate-500 truncate">{{ periodo_label }}{% if filtro_sessao %} · Caixa #{{ filtro_sessao }}{% endif %}{% if somente_diff %} · só com diferença{% endif %}</p>
+      </div>
+      <div class="flex flex-wrap gap-1.5 shrink-0">
+        <a href="{% url 'caixa_relatorio' %}?{{ request.GET.urlencode }}" class="inline-flex items-center min-h-[40px] px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-black uppercase text-slate-700">Movimentos</a>
+        <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[40px] px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-black uppercase text-slate-700">Painel</a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center min-h-[40px] px-2.5 py-1 rounded-lg border-2 border-emerald-200 bg-white text-[10px] font-black uppercase text-emerald-800 shrink-0" %}
+      </div>
+    </div>
+  </header>
+
+  <main class="cx-shell flex-1 min-h-0 flex flex-col px-3 sm:px-5 py-2 gap-2 overflow-hidden">
+    <form method="get" class="shrink-0 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm flex flex-wrap items-end gap-2">
+      <div class="flex flex-wrap gap-1 items-center">
+        <a href="?preset=hoje{% if filtro_sessao %}&sessao={{ filtro_sessao }}{% endif %}{% if somente_diff %}&somente_diff=1{% endif %}" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border {% if preset_ativo == 'hoje' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600{% endif %}">Hoje</a>
+        <a href="?preset=7d{% if filtro_sessao %}&sessao={{ filtro_sessao }}{% endif %}{% if somente_diff %}&somente_diff=1{% endif %}" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border {% if preset_ativo == '7d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600{% endif %}">7d</a>
+        <a href="?preset=30d{% if filtro_sessao %}&sessao={{ filtro_sessao }}{% endif %}{% if somente_diff %}&somente_diff=1{% endif %}" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase border {% if preset_ativo == '30d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600{% endif %}">30d</a>
+      </div>
+      <div>
+        <label class="text-[10px] font-black uppercase text-slate-500 block" for="id-de">De</label>
+        <input type="date" name="de" id="id-de" value="{{ data_ini|date:'Y-m-d' }}" class="mt-0.5 rounded-lg border-2 border-slate-200 px-2 py-1 text-sm font-bold min-h-[38px]">
+      </div>
+      <div>
+        <label class="text-[10px] font-black uppercase text-slate-500 block" for="id-ate">Até</label>
+        <input type="date" name="ate" id="id-ate" value="{{ data_fim|date:'Y-m-d' }}" class="mt-0.5 rounded-lg border-2 border-slate-200 px-2 py-1 text-sm font-bold min-h-[38px]">
+      </div>
+      <div>
+        <label class="text-[10px] font-black uppercase text-slate-500 block" for="id-sessao">Caixa</label>
+        <select name="sessao" id="id-sessao" class="mt-0.5 rounded-lg border-2 border-slate-200 px-2 py-1 text-sm font-bold min-h-[38px] min-w-[7rem]">
+          <option value="">Todos</option>
+          {% for s in sessoes_opts %}
+          <option value="{{ s.pk }}" {% if filtro_sessao == s.pk %}selected{% endif %}>#{{ s.pk }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <a href="{{ url_toggle_diff }}" class="min-h-[38px] inline-flex items-center px-3 rounded-lg border-2 text-[10px] font-black uppercase {% if somente_diff %}border-amber-500 bg-amber-100 text-amber-950{% else %}border-slate-200 bg-slate-50 text-slate-700{% endif %}">{% if somente_diff %}Só diferença ✓{% else %}Só diferença{% endif %}</a>
+      <button type="submit" class="min-h-[38px] px-3 rounded-lg bg-slate-900 text-white text-[10px] font-black uppercase">Aplicar</button>
+    </form>
+
+    <div class="shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-2">
+      <div class="rounded-xl border border-slate-200 bg-white px-3 py-2">
+        <p class="text-[10px] font-black uppercase text-slate-500">Fechamentos</p>
+        <p class="text-xl font-black text-slate-900 tabular-nums">{{ qtd_fechamentos }}</p>
+        <p class="text-[10px] font-bold text-amber-800">{{ qtd_com_diferenca }} com diferença</p>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-white px-3 py-2">
+        <p class="text-[10px] font-black uppercase text-slate-500">Σ esperado</p>
+        <p class="text-lg font-black text-slate-800 tabular-nums">R$ {{ tot_esperado }}</p>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-white px-3 py-2">
+        <p class="text-[10px] font-black uppercase text-slate-500">Σ contado</p>
+        <p class="text-lg font-black text-slate-800 tabular-nums">R$ {{ tot_contado }}</p>
+      </div>
+      <div class="rounded-xl border-2 border-slate-400 bg-slate-900 px-3 py-2">
+        <p class="text-[10px] font-black uppercase text-slate-300">Σ diferença</p>
+        <p class="text-lg font-black text-white tabular-nums">R$ {{ tot_diferenca }}</p>
+      </div>
+    </div>
+
+    {% if totais_forma %}
+    <section class="shrink-0 rounded-xl border border-sky-200 bg-white overflow-hidden shadow-sm max-h-[22vh] flex flex-col">
+      <h2 class="text-[10px] font-black uppercase text-sky-900 px-3 py-1.5 border-b border-sky-100 bg-sky-50">Totais por forma no período</h2>
+      <div class="overflow-auto min-h-0 flex-1">
+        <table class="w-full text-sm font-bold min-w-[28rem]">
+          <thead class="sticky top-0 bg-sky-50 text-[10px] uppercase text-slate-500">
+            <tr>
+              <th class="text-left px-3 py-1.5">Forma</th>
+              <th class="text-right px-2 py-1.5">Esperado</th>
+              <th class="text-right px-2 py-1.5">Contado</th>
+              <th class="text-right px-3 py-1.5">Diferença</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-50">
+            {% for t in totais_forma %}
+            <tr class="{% if t.tem_diff %}bg-amber-50/80{% endif %}">
+              <td class="px-3 py-2 text-slate-900">{{ t.forma }}</td>
+              <td class="px-2 py-2 text-right tabular-nums">R$ {{ t.esperado }}</td>
+              <td class="px-2 py-2 text-right tabular-nums">R$ {{ t.contado }}</td>
+              <td class="px-3 py-2 text-right tabular-nums font-black {% if t.diff_positivo %}text-sky-800{% elif t.diff_negativo %}text-red-700{% else %}text-emerald-700{% endif %}">R$ {{ t.diferenca }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endif %}
+
+    <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-2 pb-2">
+      {% for s in sessoes %}
+      <details class="cx-sess rounded-xl border {% if s.tem_diferenca %}border-amber-400 bg-amber-50/30{% else %}border-slate-200 bg-white{% endif %} shadow-sm overflow-hidden" open>
+        <summary class="cursor-pointer list-none px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 hover:bg-white/60 select-none">
+          <div class="min-w-0">
+            <span class="text-sm font-black text-slate-900">Caixa #{{ s.pk }}</span>
+            <span class="text-xs font-bold text-slate-600 ml-2">{{ s.fechado_em|date:"d/m/Y H:i" }}</span>
+            {% if s.usuario %}<span class="text-[10px] font-bold text-slate-500 block sm:inline sm:ml-2">{{ s.usuario }}</span>{% endif %}
+          </div>
+          {% if s.valor_fechamento %}
+          <span class="text-xs font-black text-emerald-800 tabular-nums shrink-0">Dinheiro cont. R$ {{ s.valor_fechamento }}</span>
+          {% endif %}
+        </summary>
+        <div class="border-t border-slate-100 overflow-x-auto">
+          <table class="w-full text-sm font-bold min-w-[32rem]">
+            <thead>
+              <tr class="text-[10px] uppercase text-slate-400 bg-slate-50">
+                <th class="text-left px-3 py-1.5">Forma</th>
+                <th class="text-right px-2 py-1.5">Esperado</th>
+                <th class="text-right px-2 py-1.5">Contado</th>
+                <th class="text-right px-3 py-1.5">Diferença</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-50">
+              {% for L in s.linhas %}
+              <tr class="{% if L.tem_diff %}bg-amber-50{% endif %}">
+                <td class="px-3 py-2">{{ L.forma }}</td>
+                <td class="px-2 py-2 text-right tabular-nums">{% if L.esperado %}R$ {{ L.esperado }}{% else %}—{% endif %}</td>
+                <td class="px-2 py-2 text-right tabular-nums">{% if L.contado != '—' %}R$ {{ L.contado }}{% else %}—{% endif %}</td>
+                <td class="px-3 py-2 text-right tabular-nums font-black {% if L.diff_positivo %}text-sky-800{% elif L.diff_negativo %}text-red-700{% else %}text-emerald-700{% endif %}">{% if L.diferenca != '—' %}R$ {{ L.diferenca }}{% else %}—{% endif %}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="px-3 py-3 text-slate-400 text-xs">Sem conferência registrada.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if s.observacao %}
+        <p class="px-3 py-2 text-xs font-semibold text-slate-600 border-t border-slate-100">{{ s.observacao }}</p>
+        {% endif %}
+      </details>
+      {% empty %}
+      <p class="text-center py-10 text-sm font-bold text-slate-500">Nenhum fechamento no período{% if somente_diff %} com diferença{% endif %}.</p>
+      {% endfor %}
+    </div>
+  </main>
+{% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>

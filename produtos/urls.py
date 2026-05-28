@@ -203,6 +203,11 @@ urlpatterns = [
     path('caixa/abrir/', views.caixa_abrir, name='caixa_abrir'),
     path('caixa/fechar/', views.caixa_fechar, name='caixa_fechar'),
     path('caixa/relatorio/', views.caixa_relatorio, name='caixa_relatorio'),
+    path(
+        'caixa/relatorio-conferencias/',
+        views.caixa_relatorio_conferencias,
+        name='caixa_relatorio_conferencias',
+    ),
     path('api/caixa/assumir-sessao/', views.api_caixa_assumir_sessao, name='api_caixa_assumir_sessao'),
     path('api/caixa/movimento/', views.api_caixa_movimento, name='api_caixa_movimento'),
     path('api/caixa/vincular-vendas/', views.api_caixa_vincular_vendas, name='api_caixa_vincular_vendas'),

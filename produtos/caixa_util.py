@@ -585,6 +585,89 @@ def registrar_retirada_turno_caixa(request, *, valor, forma_nome: str, observaca
     )
 
 
+def extrair_linhas_conferencia_sessao(sessao) -> list[dict[str, Any]]:
+    """Esperado / contado / diferença por forma a partir do JSON de fechamento."""
+    conf = getattr(sessao, "conferencia_fechamento", None)
+    if not isinstance(conf, dict):
+        conf = {}
+    lote = conf.get("_lote")
+    src: dict = lote if isinstance(lote, dict) else conf
+    linhas: list[dict[str, Any]] = []
+    for fn, row in src.items():
+        if not isinstance(row, dict) or str(fn).startswith("_"):
+            continue
+        forma = str(fn).strip() or "Outro"
+        esp = _dec(row.get("esperado"))
+        raw_cont = str(row.get("contado") or "").strip()
+        cont = _dec(raw_cont) if raw_cont else None
+        raw_diff = str(row.get("diferenca") or "").strip()
+        if raw_diff:
+            dif = _dec(raw_diff)
+        elif cont is not None:
+            dif = (cont - esp).quantize(Decimal("0.01"))
+        else:
+            dif = None
+        if esp == 0 and cont is None and dif is None:
+            continue
+        linhas.append(
+            {
+                "forma": forma,
+                "esperado": esp,
+                "contado": cont,
+                "diferenca": dif,
+                "esperado_str": str(esp.quantize(Decimal("0.01"))),
+                "contado_str": str(cont.quantize(Decimal("0.01"))) if cont is not None else "",
+                "diferenca_str": str(dif.quantize(Decimal("0.01"))) if dif is not None else "",
+            }
+        )
+    if not linhas and getattr(sessao, "valor_fechamento", None) is not None:
+        vf = _dec(sessao.valor_fechamento)
+        linhas.append(
+            {
+                "forma": "Dinheiro",
+                "esperado": Decimal("0"),
+                "contado": vf,
+                "diferenca": None,
+                "esperado_str": "",
+                "contado_str": str(vf.quantize(Decimal("0.01"))),
+                "diferenca_str": "",
+            }
+        )
+    return linhas
+
+
+def ultimo_fechamento_sugestao_abertura() -> dict[str, Any] | None:
+    """Último caixa fechado: dinheiro contado na gaveta (sugestão de fundo na próxima abertura)."""
+    from produtos.models import SessaoCaixa
+
+    s = (
+        SessaoCaixa.objects.filter(fechado_em__isnull=False)
+        .select_related("usuario")
+        .order_by("-fechado_em")
+        .first()
+    )
+    if not s:
+        return None
+    dinheiro: Decimal | None = None
+    if s.valor_fechamento is not None:
+        dinheiro = _dec(s.valor_fechamento)
+    if dinheiro is None:
+        for L in extrair_linhas_conferencia_sessao(s):
+            if L["forma"] == "Dinheiro" and L.get("contado") is not None:
+                dinheiro = L["contado"]
+                break
+    if dinheiro is None:
+        return None
+    dinheiro = dinheiro.quantize(Decimal("0.01"))
+    return {
+        "sessao_pk": s.pk,
+        "fechado_em": s.fechado_em,
+        "usuario": usuario_label_sessao_caixa(s),
+        "dinheiro_contado": str(dinheiro),
+        "dinheiro_contado_br": format_moeda_br(dinheiro),
+    }
+
+
 def format_moeda_br(val) -> str:
     """Valor monetário para tela: 1.234,56 (sem prefixo R$)."""
     if val is None:
