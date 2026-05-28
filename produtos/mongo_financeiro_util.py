@@ -444,6 +444,102 @@ def candidatos_texto_plano_para_api_pedido(
     return out[:24]
 
 
+def _nome_plano_de_texto_config(texto: str) -> str:
+    """Extrai o rótulo após código hierárquico (ex.: ``1.1.1 — Vendas Pdv`` → ``Vendas Pdv``)."""
+    t = (texto or "").strip()
+    if not t:
+        return ""
+    parts = re.split(r"\s*[—–−-]\s*", t, maxsplit=1)
+    if len(parts) >= 2 and parts[1].strip():
+        return parts[1].strip()
+    return t
+
+
+def _colecoes_plano_mestre_mongo(db) -> tuple[str, ...]:
+    fixas = (
+        COL_DTO_PLANO_CONTA,
+        "DtoPlanoConta",
+        "DtoPlanoContaItem",
+        "PlanoDeConta",
+    )
+    extras: list[str] = []
+    try:
+        for nome in db.list_collection_names():
+            low = nome.lower()
+            if "plano" in low and "cont" in low and nome not in fixas:
+                extras.append(nome)
+        extras.sort()
+    except Exception:
+        pass
+    return (*fixas, *extras)
+
+
+def _buscar_doc_plano_mestre_por_nome(col, nome: str) -> dict[str, Any] | None:
+    n = (nome or "").strip()
+    if not n or col is None:
+        return None
+    esc = re.escape(n)
+    queries = (
+        {"Nome": {"$regex": f"^{esc}$", "$options": "i"}},
+        {"PlanoDeConta": {"$regex": f"^{esc}$", "$options": "i"}},
+        {"Nome": {"$regex": esc, "$options": "i"}},
+        {"PlanoDeConta": {"$regex": esc, "$options": "i"}},
+    )
+    for flt in queries:
+        try:
+            doc = col.find_one(flt)
+            if doc:
+                return doc
+        except Exception:
+            continue
+    return None
+
+
+def buscar_plano_conta_mestre_por_nome_mongo(db, nome: str) -> tuple[str, str]:
+    """Localiza plano no cadastro Mongo (``DtoPlanoDeConta``) pelo nome exibido no ERP."""
+    n = (nome or "").strip()
+    if db is None or not n:
+        return "", ""
+    for col_name in _colecoes_plano_mestre_mongo(db):
+        try:
+            col = db[col_name]
+        except Exception:
+            continue
+        doc = _buscar_doc_plano_mestre_por_nome(col, n)
+        if doc:
+            txt = _texto_plano_mestre_para_pedido_erp(doc)
+            pid = _financeiro_id_para_string(doc.get("_id")) or _financeiro_id_para_string(
+                doc.get("PlanoDeContaID")
+            )
+            if txt or pid:
+                return txt or n, pid or ""
+    return "", ""
+
+
+def candidatos_texto_plano_de_config(db, *, texto_config: str) -> list[str]:
+    """Variantes de texto quando não há ``PlanoDeContaID`` resolvido."""
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def add(s: str) -> None:
+        t = (s or "").strip()
+        if not t or t in seen or len(t) > 500:
+            return
+        seen.add(t)
+        out.append(t)
+
+    add(texto_config)
+    nome = _nome_plano_de_texto_config(texto_config)
+    add(nome)
+    if db is not None and nome:
+        pn, pid = buscar_plano_conta_mestre_por_nome_mongo(db, nome)
+        if pn:
+            add(pn)
+        if pid:
+            out.extend(candidatos_texto_plano_para_api_pedido(db, plano_id=pid, texto_ja_resolvido=pn or nome))
+    return out[:24]
+
+
 def buscar_plano_conta_mestre_por_id_mongo(db, plano_id: str) -> tuple[str, str]:
     """
     Alguns planos existem só na coleção de cadastro (``_id`` = PlanoDeContaID), sem lançamento ainda.
@@ -457,6 +553,18 @@ def buscar_plano_conta_mestre_por_id_mongo(db, plano_id: str) -> tuple[str, str]
     if nome or rid:
         return nome, rid
     return "", ""
+
+
+def _enriquecer_plano_pelo_cadastro_mestre(db, texto: str, plano_id: str) -> tuple[str, str]:
+    """Prefer texto do cadastro (``DtoPlanoDeConta``) quando há ID — evita só ``Vendas Pdv`` sem hierarquia."""
+    pid = (plano_id or "").strip()
+    t = (texto or "").strip()
+    if db is None or not pid:
+        return t, pid
+    pn_m, pid_m = buscar_plano_conta_mestre_por_id_mongo(db, pid)
+    if pn_m:
+        return pn_m, pid_m or pid
+    return t, pid
 
 
 def resolver_plano_conta_para_pedido_erp(
@@ -485,9 +593,22 @@ def resolver_plano_conta_para_pedido_erp(
         if pid_m and not pn_m and texto:
             return texto, pid_m
 
+    for nome_busca in (texto, _nome_plano_de_texto_config(texto)):
+        if not nome_busca:
+            continue
+        pn_m, pid_m = buscar_plano_conta_mestre_por_nome_mongo(db, nome_busca)
+        if pid_m and pn_m:
+            return pn_m, pid_m
+
     try:
         col = db[COL_DTO_LANCAMENTO]
     except Exception:
+        for nome_busca in (texto, _nome_plano_de_texto_config(texto)):
+            if not nome_busca:
+                continue
+            pn_m, pid_m = buscar_plano_conta_mestre_por_nome_mongo(db, nome_busca)
+            if pid_m and pn_m:
+                return pn_m, pid_m
         return texto, id_hint
 
     proj = {"PlanoDeConta": 1, "PlanoDeContaID": 1}
@@ -526,9 +647,9 @@ def resolver_plano_conta_para_pedido_erp(
         if doc:
             pn, pid = _from_doc(doc)
             if pn and pid:
-                return pn, pid
+                return _enriquecer_plano_pelo_cadastro_mestre(db, pn, pid)
             if pid:
-                return (texto or pn), pid
+                return _enriquecer_plano_pelo_cadastro_mestre(db, texto or pn, pid)
 
     if texto:
         doc = col.find_one({**fe, "PlanoDeConta": texto}, proj)
@@ -536,7 +657,7 @@ def resolver_plano_conta_para_pedido_erp(
             doc = col.find_one({"PlanoDeConta": texto}, proj)
         pn, pid = _from_doc(doc)
         if pid:
-            return pn or texto, pid
+            return _enriquecer_plano_pelo_cadastro_mestre(db, pn or texto, pid)
 
         def _dash_variants(s: str) -> list[str]:
             parts = re.split(r"\s*[—–−-]\s*", s, maxsplit=1)
@@ -556,7 +677,7 @@ def resolver_plano_conta_para_pedido_erp(
                 doc = col.find_one({"PlanoDeConta": cand}, proj)
             pn, pid = _from_doc(doc)
             if pid:
-                return pn or cand, pid
+                return _enriquecer_plano_pelo_cadastro_mestre(db, pn or cand, pid)
 
         cod = _parse_codigo_hierarquia_plano(texto)
         if cod:
@@ -571,9 +692,34 @@ def resolver_plano_conta_para_pedido_erp(
                     )
                 pn, pid = _from_doc(doc)
                 if pid:
-                    return pn, pid
+                    return _enriquecer_plano_pelo_cadastro_mestre(db, pn, pid)
             except Exception:
                 logger.debug("resolver_plano_conta_para_pedido_erp: regex falhou", exc_info=True)
+
+    for nome_busca in (
+        texto,
+        _nome_plano_de_texto_config(texto),
+    ):
+        if not nome_busca:
+            continue
+        pn_m, pid_m = buscar_plano_conta_mestre_por_nome_mongo(db, nome_busca)
+        if pid_m and pn_m:
+            return pn_m, pid_m
+        if pid_m:
+            return (texto or pn_m), pid_m
+        try:
+            esc = re.escape(nome_busca)
+            doc = col.find_one(
+                {**fe, "PlanoDeConta": {"$regex": esc, "$options": "i"}},
+                proj,
+            )
+            if not doc and fe:
+                doc = col.find_one({"PlanoDeConta": {"$regex": esc, "$options": "i"}}, proj)
+            pn, pid = _from_doc(doc)
+            if pid:
+                return _enriquecer_plano_pelo_cadastro_mestre(db, pn or nome_busca, pid)
+        except Exception:
+            logger.debug("resolver_plano_conta_para_pedido_erp: nome no DtoLancamento", exc_info=True)
 
     return texto, id_hint
 

@@ -66,6 +66,9 @@ from .caixa_util import (
     id_sessao_caixa_browser,
     rotulo_usuario_registro_venda,
     ultimo_fechamento_sugestao_abertura,
+    obter_caixa_pai_aberto,
+    qtd_caixas_abertos,
+    usuario_label_sessao_caixa,
     normalizar_forma_pagamento_caixa,
     pagamentos_json_de_payload,
     parse_valor_moeda_br,
@@ -209,9 +212,12 @@ from .mongo_financeiro_util import (
     registrar_titulo_juros_apos_baixa_contas_pagar,
     montar_payload_erp_baixa,
     montar_payload_erp_lancamentos_novos,
+    buscar_plano_conta_mestre_por_nome_mongo,
+    candidatos_texto_plano_de_config,
     candidatos_texto_plano_para_api_pedido,
     documento_plano_mestre_por_id_mongo,
     resolver_plano_conta_para_pedido_erp,
+    _nome_plano_de_texto_config,
 )
 
 
@@ -606,6 +612,9 @@ def _linha_gestao_produto_json(
         s3 = str(ov.subcategoria_3 or "").strip()
         s4 = str(ov.subcategoria_4 or "").strip()
     categoria_listagem = _categoria_ultima_listagem(cat, subcat, s2, s3, s4)
+    from produtos.cashback_venda_util import cashback_percentual_de_overlay
+
+    cb_pct = float(cashback_percentual_de_overlay(ov))
     return {
         "id": pid,
         "nome": nome,
@@ -636,6 +645,7 @@ def _linha_gestao_produto_json(
         "estoque_max_centro": emax_c,
         "estoque_min_vila": emin_v,
         "estoque_max_vila": emax_v,
+        "cashback_percentual": cb_pct,
     }
 
 
@@ -672,6 +682,9 @@ def _aplicar_produto_gestao_overlay_em_dict(
             if "cadastro_inativo" in row:
                 row["cadastro_inativo"] = bool(row["inativo"])
         row["ativo_exibicao"] = ov.ativo_exibicao
+    from produtos.cashback_venda_util import cashback_percentual_de_overlay
+
+    row["cashback_percentual"] = float(cashback_percentual_de_overlay(ov))
     _overlay_subcategorias_para_row(row, ov)
     return row
 
@@ -1598,6 +1611,21 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         if key in payload:
             d = _dec_opt(key)
             setattr(ov, fld, d)
+    if "cashback_percentual" in payload:
+        cbp = payload.get("cashback_percentual")
+        if cbp is None or str(cbp).strip() == "":
+            ov.cashback_percentual = None
+        else:
+            try:
+                pct = Decimal(str(cbp).replace(",", ".").strip()).quantize(Decimal("0.01"))
+            except Exception:
+                return JsonResponse({"ok": False, "erro": "Cashback % inválido"}, status=400)
+            if pct < 0 or pct > 100:
+                return JsonResponse(
+                    {"ok": False, "erro": "Cashback % deve estar entre 0 e 100"},
+                    status=400,
+                )
+            ov.cashback_percentual = pct
     ov.usuario = request.user if request.user.is_authenticated else ov.usuario
 
     client, db = obter_conexao_mongo()
@@ -2021,7 +2049,7 @@ def api_produtos_gestao_erp_sincronizar_pendentes(request):
 
 
 # Lista de clientes PDV (ClienteAgro) — cache curto; invalida em sync e em save/delete (signals).
-API_LIST_CUSTOMERS_CACHE_KEY = "api_list_customers_v1"
+API_LIST_CUSTOMERS_CACHE_KEY = "api_list_customers_v2"
 API_LIST_CUSTOMERS_TTL = 45
 
 # Catálogo PDV: um snapshot por dia civil (TIME_ZONE) + invalidação manual. Estoque ao vivo via /api/pdv/saldos/.
@@ -7415,6 +7443,27 @@ def api_pdv_cliente_credito_fiado(request):
         db=db,
         client_m=client_m,
     )
+    cli = None
+    if agro_pk:
+        cli = ClienteAgro.objects.filter(pk=agro_pk).first()
+    elif cid:
+        cli = ClienteAgro.objects.filter(externo_id=cid).first()
+    if cli is not None:
+        cred["saldo_vale_credito"] = float(cli.saldo_vale_credito or 0)
+        cred["saldo_cashback"] = float(cli.saldo_cashback or 0)
+        limite_local = Decimal(str(cli.limite_fiado_local or 0))
+        if limite_local > 0:
+            usado = Decimal(str(cred.get("usado", 0) or 0))
+            novo = valor_novo if valor_novo > 0 else Decimal("0")
+            disponivel = (limite_local - usado).quantize(Decimal("0.01"))
+            apos = (disponivel - novo).quantize(Decimal("0.01"))
+            cred["limite"] = float(limite_local)
+            cred["limite_texto"] = f"R$ {limite_local:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            cred["disponivel"] = float(disponivel)
+            cred["disponivel_texto"] = f"R$ {disponivel:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            cred["apos_venda"] = float(apos)
+            cred["excede"] = bool(novo > 0 and apos < -Decimal("0.009"))
+            cred["limite_padrao"] = False
     return JsonResponse(cred)
 
 
@@ -7513,6 +7562,37 @@ def vendas_exportar_csv(request):
 
 @login_required(login_url="/admin/login/")
 def clientes_lista(request):
+    from .services_clientes_sync import (
+        CLIENTES_SYNC_LOCK_KEY,
+        CLIENTES_SYNC_RESULT_KEY,
+    )
+
+    sync_result = cache.get(CLIENTES_SYNC_RESULT_KEY)
+    if sync_result:
+        cache.delete(CLIENTES_SYNC_RESULT_KEY)
+        if sync_result.get("ok"):
+            messages.success(
+                request,
+                (
+                    f"Sincronização concluída: {sync_result.get('criados', 0)} novos, "
+                    f"{sync_result.get('atualizados', 0)} atualizados, "
+                    f"{sync_result.get('ignorados_editados_local', 0)} preservados "
+                    "(ajustados no Agro). "
+                    f"Fontes: Mongo {sync_result.get('linhas_mongo', 0)} linhas, "
+                    f"ERP {sync_result.get('linhas_erp', 0)} linhas."
+                    + (
+                        f" {sync_result.get('erros', 0)} linha(s) com erro."
+                        if sync_result.get("erros")
+                        else ""
+                    )
+                ),
+            )
+        else:
+            messages.error(
+                request,
+                f"Sincronização falhou: {sync_result.get('erro', 'erro desconhecido')}",
+            )
+
     q = (request.GET.get("q") or "").strip()
     qs = ClienteAgro.objects.all()
     if q:
@@ -7531,7 +7611,11 @@ def clientes_lista(request):
     return render(
         request,
         "produtos/clientes_lista.html",
-        {"clientes": qs, "busca": q},
+        {
+            "clientes": qs,
+            "busca": q,
+            "clientes_sync_em_andamento": bool(cache.get(CLIENTES_SYNC_LOCK_KEY)),
+        },
     )
 
 
@@ -7574,23 +7658,58 @@ def cliente_editar(request, pk):
 @require_POST
 def clientes_sincronizar(request):
     """Importa clientes de Mongo + API ERP para ClienteAgro; não grava no ERP."""
-    from .services_clientes_sync import sincronizar_clientes_fontes_para_agro
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    from django.conf import settings
+
+    from .services_clientes_sync import (
+        CLIENTES_SYNC_LOCK_KEY,
+        CLIENTES_SYNC_RESULT_KEY,
+    )
+
+    if cache.get(CLIENTES_SYNC_LOCK_KEY):
+        messages.warning(
+            request,
+            "Sincronização já em andamento. Aguarde cerca de 1–2 minutos e atualize a página (F5).",
+        )
+        return redirect("clientes_lista")
+
+    manage_py = Path(settings.BASE_DIR) / "manage.py"
+    cmd = [
+        sys.executable,
+        str(manage_py),
+        "sincronizar_clientes_agro",
+        "--gravar-resultado-web",
+    ]
+    popen_kw: dict = {
+        "cwd": str(settings.BASE_DIR),
+        "env": os.environ.copy(),
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+    }
+    if sys.platform == "win32":
+        popen_kw["creationflags"] = (
+            subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
+        )
+    else:
+        popen_kw["start_new_session"] = True
 
     try:
-        r = sincronizar_clientes_fontes_para_agro()
-    except Exception as exc:
-        logger.exception("clientes_sincronizar")
-        messages.error(request, f"Sincronização falhou: {exc}")
+        subprocess.Popen(cmd, **popen_kw)
+    except OSError as exc:
+        logger.exception("clientes_sincronizar: subprocess")
+        messages.error(request, f"Não foi possível iniciar a sincronização: {exc}")
         return redirect("clientes_lista")
+
+    cache.set(CLIENTES_SYNC_LOCK_KEY, True, timeout=900)
+    cache.delete(CLIENTES_SYNC_RESULT_KEY)
     messages.success(
         request,
-        (
-            f"Sincronizado: {r['criados']} novos, {r['atualizados']} atualizados, "
-            f"{r['ignorados_editados_local']} preservados (editados no Agro). "
-            f"Fontes: Mongo {r['linhas_mongo']} linhas, ERP {r['linhas_erp']} linhas."
-        ),
+        "Sincronização iniciada (Mongo + ERP). Em 1–2 minutos, atualize a página (F5) para ver o resultado.",
     )
-    cache.delete(API_LIST_CUSTOMERS_CACHE_KEY)
     return redirect("clientes_lista")
 
 
@@ -7917,7 +8036,44 @@ def caixa_abrir(request):
     if _obter_sessao_caixa_aberta(request):
         messages.warning(request, "Já existe um caixa aberto neste navegador. Feche-o antes de abrir outro.")
         return redirect("caixa_painel")
+    caixa_pai = obter_caixa_pai_aberto()
     if request.method == "POST":
+        acao = (request.POST.get("acao") or "abrir_proprio").strip().lower()
+        if acao == "vincular_pai":
+            sid_raw = request.POST.get("sessao_pai_id") or ""
+            try:
+                sid = int(sid_raw)
+            except (TypeError, ValueError):
+                sid = 0
+            alvo = caixa_pai
+            if sid > 0 and (not alvo or int(alvo.pk) != sid):
+                alvo = SessaoCaixa.objects.filter(pk=sid, fechado_em__isnull=True).first()
+            if not alvo:
+                messages.error(request, "Caixa pai não está mais aberto. Atualize a tela.")
+                return redirect("caixa_abrir")
+            pin = (request.POST.get("pin_vincular") or "").strip()
+            ok_pin, err_pin = validar_pin_operador(pin)
+            if not ok_pin:
+                messages.error(request, err_pin)
+                return redirect("caixa_abrir")
+            request.session["pdv_sessao_caixa_id"] = alvo.pk
+            op = rotulo_operador_pin(pin)
+            if op:
+                request.session["pdv_caixa_gerido_operador"] = op[:120]
+            request.session.modified = True
+            messages.success(
+                request,
+                f"Este computador foi vinculado ao Caixa #{alvo.pk}.",
+            )
+            return redirect("home")
+
+        if qtd_caixas_abertos() >= 3:
+            messages.error(
+                request,
+                "Limite de 3 caixas abertos atingido. Entre em um caixa já aberto ou feche um turno.",
+            )
+            return redirect("caixa_abrir")
+
         raw = (request.POST.get("valor_abertura") or "0").replace(",", ".").strip()
         try:
             va = Decimal(raw)
@@ -7936,7 +8092,13 @@ def caixa_abrir(request):
     return render(
         request,
         "produtos/caixa_abrir.html",
-        {"sugestao_fechamento": sugestao},
+        {
+            "sugestao_fechamento": sugestao,
+            "caixa_pai_aberto": caixa_pai,
+            "caixa_pai_usuario": usuario_label_sessao_caixa(caixa_pai) if caixa_pai else "",
+            "qtd_caixas_abertos": qtd_caixas_abertos(),
+            "max_caixas_abertos": 3,
+        },
     )
 
 
@@ -17127,6 +17289,22 @@ def _persistir_venda_agro(
                     "Venda %s: Mongo indisponível — baixa estoque Agro não aplicada.",
                     v.pk,
                 )
+
+        from produtos.cashback_venda_util import aplicar_movimento_cashback_venda
+        from produtos.fiado_credito_util import resolver_cliente_fiado
+
+        agro_pk_cb = None
+        if agro_pk_raw is not None and str(agro_pk_raw).strip() != "":
+            try:
+                agro_pk_cb = int(agro_pk_raw)
+            except (TypeError, ValueError):
+                agro_pk_cb = None
+        _erp_cb, _pk_cb, cli_cb = resolver_cliente_fiado(cid, cliente_agro_pk=agro_pk_cb)
+        aplicar_movimento_cashback_venda(data, raw_itens, cliente_agro=cli_cb)
+        try:
+            cache.delete(API_LIST_CUSTOMERS_CACHE_KEY)
+        except Exception:
+            pass
     return v
 
 
@@ -17342,6 +17520,19 @@ def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
     doc_plano_mestre = None
     if db is not None and plano_id:
         doc_plano_mestre = documento_plano_mestre_por_id_mongo(db, plano_id)
+    if doc_plano_mestre is None and db is not None:
+        for nome_ref in (plano_txt, plano_txt_cfg, _nome_plano_de_texto_config(plano_txt_cfg)):
+            if not nome_ref:
+                continue
+            pn_ref, pid_ref = buscar_plano_conta_mestre_por_nome_mongo(db, nome_ref)
+            if pid_ref:
+                if not plano_id:
+                    plano_id = pid_ref
+                if not plano_txt and pn_ref:
+                    plano_txt = pn_ref
+                doc_plano_mestre = documento_plano_mestre_por_id_mongo(db, pid_ref)
+                if doc_plano_mestre:
+                    break
     usou_embutido = False
     if getattr(settings, "VENDA_ERP_PEDIDOS_SALVAR_PLANO_USO_EMBUTIDO", True):
         pv_emb = _pedido_payload_variante_plano_aninhado_dto(
@@ -17477,12 +17668,16 @@ def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
         and ok
         and recusa_erp
         and _mensagem_pedido_erp_indica_erro_localizar_plano(flat_erp)
-        and plano_id
         and db is not None
     ):
-        cands = candidatos_texto_plano_para_api_pedido(
-            db, plano_id=plano_id, texto_ja_resolvido=plano_txt or ""
-        )
+        if plano_id:
+            cands = candidatos_texto_plano_para_api_pedido(
+                db, plano_id=plano_id, texto_ja_resolvido=plano_txt or ""
+            )
+        else:
+            cands = candidatos_texto_plano_de_config(
+                db, texto_config=plano_txt_cfg or plano_txt or ""
+            )
         for cand in cands:
             if not cand:
                 continue
@@ -17603,6 +17798,25 @@ def _disparar_envio_erp_venda_background(venda_id: int, data: dict):
     ).start()
 
 
+def _validar_cashback_venda_json(data: dict, raw_itens: list):
+    from produtos.cashback_venda_util import validar_cashback_payload
+    from produtos.fiado_credito_util import resolver_cliente_fiado
+
+    agro_pk = None
+    raw_pk = data.get("cliente_agro_pk")
+    if raw_pk is not None and str(raw_pk).strip() != "":
+        try:
+            agro_pk = int(raw_pk)
+        except (TypeError, ValueError):
+            agro_pk = None
+    cid = str(data.get("cliente_id") or data.get("ClienteID") or "").strip()
+    _erp_id, _pk, cli = resolver_cliente_fiado(cid, cliente_agro_pk=agro_pk)
+    ok, msg, info = validar_cashback_payload(data, raw_itens, cliente_agro=cli)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": msg, "cashback": info}, status=400)
+    return None
+
+
 @require_POST
 def api_enviar_pedido_erp(request):
     try:
@@ -17611,6 +17825,12 @@ def api_enviar_pedido_erp(request):
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
     data.pop("client_request_id", None)
     data.pop("idempotency_key", None)
+    raw_itens_cb = data.get("itens", [])
+    if not isinstance(raw_itens_cb, list):
+        raw_itens_cb = []
+    err_cashback = _validar_cashback_venda_json(data, raw_itens_cb)
+    if err_cashback is not None:
+        return err_cashback
     try:
         client_m, db = obter_conexao_mongo()
         if venda_payload_tem_fiado(data):
@@ -19414,6 +19634,9 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
         "referencia_rural": (getattr(c, "referencia_rural", None) or "").strip(),
         "maps_url_manual": (getattr(c, "maps_url_manual", None) or "").strip(),
         "cliente_agro_pk": c.pk,
+        "saldo_vale_credito": float(c.saldo_vale_credito or 0),
+        "saldo_cashback": float(c.saldo_cashback or 0),
+        "limite_fiado_local": float(c.limite_fiado_local or 0),
     }
 
 
