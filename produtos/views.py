@@ -5889,7 +5889,16 @@ def _dashboard_ticket_medio_intervalo(data_ini: date, data_fim: date) -> float:
 
 
 def _dashboard_doc_total(doc):
-    for campo in ("ValorTotal", "ValorLiquido", "Total", "Valor", "total", "ValorFinal"):
+    for campo in (
+        "ValorFinal",
+        "ValorTotalComAcrescimos",
+        "ValorTotalSemAcrescimos",
+        "ValorTotal",
+        "ValorLiquido",
+        "Total",
+        "Valor",
+        "total",
+    ):
         v = doc.get(campo)
         if v is not None:
             f = _dashboard_float(v)
@@ -5898,12 +5907,36 @@ def _dashboard_doc_total(doc):
     return 0.0
 
 
+def _dashboard_parse_dt_erp(val):
+    from integracoes.venda_erp_mongo import VendaERPMongoClient
+
+    if isinstance(val, datetime):
+        dt = val
+    else:
+        dt = VendaERPMongoClient._parse_dt(val)
+    if not isinstance(dt, datetime) or dt.year < 1980:
+        return None
+    return dt
+
+
 def _dashboard_doc_data_venda(doc: dict):
-    """Data da venda com prioridade para faturamento no espelho ERP."""
+    """Data/hora para filtros Mongo (faturamento ou pedido)."""
     for campo in ("DataFaturamento", "Data", "data", "CriadoEm", "criado_em"):
-        dt = doc.get(campo)
-        if isinstance(dt, datetime):
+        dt = _dashboard_parse_dt_erp(doc.get(campo))
+        if dt is not None:
             return dt
+    return None
+
+
+def _dashboard_doc_dia_venda(doc: dict) -> date | None:
+    """
+    Dia comercial no gráfico/card — alinha ao ERP (vendas do dia 27 = ``Data`` do pedido).
+    Fechamento após meia-noite grava ``DataFaturamento`` no dia seguinte; não usar só isso no bucket.
+    """
+    for campo in ("Data", "data", "DataFaturamento", "CriadoEm", "criado_em"):
+        dt = _dashboard_parse_dt_erp(doc.get(campo))
+        if dt is not None:
+            return dt.date()
     return None
 
 
@@ -6116,7 +6149,7 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
     """
     if _dashboard_vendas_fonte_pdv():
         return _dashboard_vendas_serie_pdv(data_ini, data_fim)
-    ck = f"dash:mvs:v6:erp:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    ck = f"dash:mvs:v7:erp:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and cached.get("_t") == "mvs":
         return {k: v for k, v in cached.items() if k != "_t"}
@@ -6147,6 +6180,8 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
             "Data": 1,
             "ValorTotal": 1,
             "ValorLiquido": 1,
+            "ValorTotalComAcrescimos": 1,
+            "ValorTotalSemAcrescimos": 1,
             "Total": 1,
             "Valor": 1,
             "ValorFinal": 1,
@@ -6155,12 +6190,10 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
             "Empresa": 1,
         }
         for doc in db["DtoVenda"].find(q, proj):
-            dt = _dashboard_doc_data_venda(doc)
-            if not isinstance(dt, datetime):
+            dia = _dashboard_doc_dia_venda(doc)
+            if dia is None or dia < data_ini or dia > data_fim:
                 continue
-            chave = dt.date().isoformat()
-            if chave < data_ini.isoformat() or chave > data_fim.isoformat():
-                continue
+            chave = dia.isoformat()
             v = _dashboard_doc_total(doc)
             por_dia[chave] = por_dia.get(chave, 0.0) + v
             qtd_por_dia[chave] = qtd_por_dia.get(chave, 0) + 1
@@ -6608,13 +6641,40 @@ def _dashboard_mongo_total_por_dia_vendas_agro(alvo: date) -> float:
     return _dashboard_float(_dashboard_mongo_vendas_serie(alvo, alvo).get("total", 0.0))
 
 
+def _dashboard_invalidar_cache_vendas_serie(data_ini: date, data_fim: date) -> None:
+    for ver in ("v6", "v7"):
+        cache.delete(f"dash:mvs:{ver}:erp:{data_ini.isoformat()}:{data_fim.isoformat()}")
+    hoje = timezone.localdate()
+    cache.delete(f"dash:mvs:v7:erp:{hoje.isoformat()}:{hoje.isoformat()}")
+
+
+def _dashboard_pedido_erp_faturado(row: dict) -> bool:
+    if not isinstance(row, dict):
+        return False
+    if row.get("Cancelada") is True:
+        return False
+    st = str(row.get("Status") or "").strip().lower()
+    if st and ("cancel" in st or "orçamento" in st or "orcamento" in st):
+        return False
+    if row.get("Finalizado") is True or row.get("Lancado") is True:
+        return True
+    if st and "fatur" in st:
+        return True
+    df = _dashboard_parse_dt_erp(row.get("DataFaturamento"))
+    return df is not None
+
+
 def _dashboard_sync_vendas_erp_para_mongo(data_ini: date, data_fim: date):
+    """
+    Atualiza espelho auxiliar ``vendas_agro`` e ``DtoVenda`` a partir da API de pedidos.
+    A API costuma ignorar filtro de data — filtramos no servidor pelo dia do pedido.
+  """
     api = VendaERPAPIClient()
     mongo = VendaERPMongoClient()
-    acumulado = []
+    acumulado: list[dict] = []
     skip = 0
     page_size = 200
-    max_paginas = 20
+    max_paginas = 40
     paginas_lidas = 0
     dt_ini = datetime.combine(data_ini, dtime.min)
     dt_fim = datetime.combine(data_fim, dtime.max)
@@ -6630,6 +6690,8 @@ def _dashboard_sync_vendas_erp_para_mongo(data_ini: date, data_fim: date):
         paginas_lidas += 1
         skip += len(rows)
         for row in rows:
+            if not _dashboard_pedido_erp_faturado(row):
+                continue
             doc = mongo.normalizar_pedido_para_vendas_agro(row)
             if not doc:
                 continue
@@ -6639,8 +6701,17 @@ def _dashboard_sync_vendas_erp_para_mongo(data_ini: date, data_fim: date):
         if len(rows) < page_size:
             break
 
-    out = mongo.upsert_vendas_agro(acumulado)
-    return {"ok": True, **out, "linhas_erp": len(acumulado), "paginas_lidas": paginas_lidas}
+    out_agro = mongo.upsert_vendas_agro(acumulado)
+    out_dto = mongo.upsert_pedidos_erp_em_dto_venda(acumulado)
+    _dashboard_invalidar_cache_vendas_serie(data_ini, data_fim)
+    return {
+        "ok": True,
+        **out_agro,
+        "dto_inseridos": out_dto.get("inseridos", 0),
+        "dto_atualizados": out_dto.get("atualizados", 0),
+        "linhas_erp": len(acumulado),
+        "paginas_lidas": paginas_lidas,
+    }
 
 
 def _dashboard_estoque_sync_label() -> str:

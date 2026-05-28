@@ -319,6 +319,24 @@ def adotar_sessao_caixa_unica_aberta(request):
     return None
 
 
+MSG_CAIXA_FECHADO_VENDA = "Abra o caixa antes de registrar vendas."
+
+
+class SessaoCaixaObrigatoriaError(Exception):
+    """Nenhuma SessaoCaixa aberta para vincular à venda."""
+
+    def __init__(self, mensagem: str | None = None):
+        super().__init__(mensagem or MSG_CAIXA_FECHADO_VENDA)
+
+
+def exigir_sessao_caixa_para_venda(request, data: dict | None = None):
+    """Exige turno de caixa aberto; levanta SessaoCaixaObrigatoriaError se não houver."""
+    sessao = resolver_sessao_caixa_para_venda(request, data)
+    if not sessao:
+        raise SessaoCaixaObrigatoriaError()
+    return sessao
+
+
 def resolver_sessao_caixa_para_venda(request, data: dict | None = None):
     """
     Vincula venda ao caixa: sessão do navegador → id enviado pelo PDV → único caixa aberto.
