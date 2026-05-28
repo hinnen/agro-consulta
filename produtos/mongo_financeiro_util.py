@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 _SENTINEL = datetime(1, 1, 1, 0, 0)
 COL_DTO_LANCAMENTO = "DtoLancamento"
+COL_DTO_VENDA = "DtoVenda"
 # Cadastro de plano (Mongo shell: db.DtoPlanoDeConta.find().sort({ _id: -1 }).limit(10))
 COL_DTO_PLANO_CONTA = "DtoPlanoDeConta"
 COL_AGRO_EMPRESTIMO = "AgroEmprestimo"
@@ -314,8 +315,8 @@ def _pedido_erp_oid_24(val: str) -> ObjectId | None:
 
 def _texto_plano_mestre_para_pedido_erp(doc: dict[str, Any]) -> str:
     """
-    DTO de plano no WL costuma ter ``Hierarquia`` (ex.: 1.1.3) e ``Nome`` (ex.: Vendas SisVale).
-    O texto enviado ao Pedidos/Salvar costuma ser ``{Hierarquia} — {Nome}`` (travessão), como no financeiro.
+    Texto longo para financeiro/lançamentos (ex.: ``1.1.1 — Vendas Pdv``).
+    Para Pedidos/Salvar use ``_texto_plano_para_pedidos_salvar_erp`` (só o Nome, como ``DtoVenda``).
     """
     pc = str(doc.get("PlanoDeConta") or "").strip()
     if pc:
@@ -332,6 +333,27 @@ def _texto_plano_mestre_para_pedido_erp(doc: dict[str, Any]) -> str:
         v = doc.get(key)
         if v is not None and str(v).strip():
             return str(v).strip()
+    return ""
+
+
+def _texto_plano_para_pedidos_salvar_erp(doc: dict[str, Any] | None) -> str:
+    """
+    Pedidos/Salvar: igual orçamento/pedido no espelho ``DtoVenda`` — ``PlanoDeConta`` = **Nome** (ex.: Vendas Pdv).
+    O código 1.1.1 aparece só na UI do ERP depois; não vai no POST.
+    """
+    if not doc:
+        return ""
+    nome = str(doc.get("Nome") or "").strip()
+    if nome:
+        return nome
+    pc = str(doc.get("PlanoDeConta") or "").strip()
+    if pc and not re.match(r"^\d+(?:\.\d+)+", pc):
+        return pc
+    if pc:
+        parts = re.split(r"\s*[—–−-]\s*", pc, maxsplit=1)
+        if len(parts) >= 2 and parts[1].strip():
+            return parts[1].strip()
+        return pc
     return ""
 
 
@@ -413,21 +435,15 @@ def candidatos_texto_plano_para_api_pedido(
         else None
     )
     if doc:
-        add(_texto_plano_mestre_para_pedido_erp(doc))
-        nome = str(doc.get("Nome") or "").strip()
-        hier = str(doc.get("Hierarquia") or "").strip()
+        nome = _texto_plano_para_pedidos_salvar_erp(doc)
         add(nome)
-        add(hier)
-        if nome:
-            add(re.sub(r"\s+", " ", nome).strip())
+        add(_texto_plano_mestre_para_pedido_erp(doc))
+        hier = str(doc.get("Hierarquia") or "").strip()
         if hier and nome:
             add(f"{hier} — {nome}")
             add(f"{hier} - {nome}")
             add(f"{hier} – {nome}")
             add(f"{hier} {nome}")
-        full = _texto_plano_mestre_para_pedido_erp(doc)
-        if full:
-            add(re.sub(r"\s+", " ", full).strip())
     pid = (plano_id or "").strip()
     if db is not None and pid:
         try:
@@ -507,12 +523,47 @@ def buscar_plano_conta_mestre_por_nome_mongo(db, nome: str) -> tuple[str, str]:
             continue
         doc = _buscar_doc_plano_mestre_por_nome(col, n)
         if doc:
-            txt = _texto_plano_mestre_para_pedido_erp(doc)
+            txt = _texto_plano_para_pedidos_salvar_erp(doc)
             pid = _financeiro_id_para_string(doc.get("_id")) or _financeiro_id_para_string(
                 doc.get("PlanoDeContaID")
             )
             if txt or pid:
                 return txt or n, pid or ""
+    return "", ""
+
+
+def _plano_de_dto_venda_espelho(
+    db,
+    texto: str,
+    *,
+    empresa_id: str | None = None,
+) -> tuple[str, str]:
+    """Copia par (PlanoDeConta, PlanoDeContaID) de um pedido/orçamento que já funcionou no ERP."""
+    t = (texto or "").strip()
+    if db is None or not t:
+        return "", ""
+    try:
+        col = db[COL_DTO_VENDA]
+    except Exception:
+        return "", ""
+    fe = _pedido_erp_filtro_empresa(empresa_id)
+    proj = {"PlanoDeConta": 1, "PlanoDeContaID": 1}
+    candidatos = []
+    for cand in (t, _nome_plano_de_texto_config(t)):
+        if cand and cand not in candidatos:
+            candidatos.append(cand)
+    for cand in candidatos:
+        for flt in ({**fe, "PlanoDeConta": cand}, {"PlanoDeConta": cand}):
+            try:
+                doc = col.find_one(flt, proj, sort=[("_id", -1)])
+            except Exception:
+                doc = None
+            if not doc:
+                continue
+            pn = str(doc.get("PlanoDeConta") or "").strip()
+            pid = _financeiro_id_para_string(doc.get("PlanoDeContaID"))
+            if pn and pid:
+                return pn, pid
     return "", ""
 
 
@@ -548,7 +599,7 @@ def buscar_plano_conta_mestre_por_id_mongo(db, plano_id: str) -> tuple[str, str]
     doc = documento_plano_mestre_por_id_mongo(db, plano_id)
     if not doc:
         return "", ""
-    nome = _texto_plano_mestre_para_pedido_erp(doc)
+    nome = _texto_plano_para_pedidos_salvar_erp(doc)
     rid = _financeiro_id_para_string(doc.get("_id")) or (plano_id or "").strip()
     if nome or rid:
         return nome, rid
@@ -556,7 +607,7 @@ def buscar_plano_conta_mestre_por_id_mongo(db, plano_id: str) -> tuple[str, str]
 
 
 def _enriquecer_plano_pelo_cadastro_mestre(db, texto: str, plano_id: str) -> tuple[str, str]:
-    """Prefer texto do cadastro (``DtoPlanoDeConta``) quando há ID — evita só ``Vendas Pdv`` sem hierarquia."""
+    """Alinha texto ao espelho DtoVenda (Nome do plano, ex.: Vendas Pdv)."""
     pid = (plano_id or "").strip()
     t = (texto or "").strip()
     if db is None or not pid:
@@ -575,9 +626,7 @@ def resolver_plano_conta_para_pedido_erp(
     empresa_id: str | None = None,
 ) -> tuple[str, str]:
     """
-    Usa exemplos em ``DtoLancamento`` para obter o texto canônico e ``PlanoDeContaID``.
-    O Pedidos/Salvar do Venda ERP costuma validar o plano por ID; o literal precisa bater com o cadastro.
-    ``empresa_id`` restringe lançamentos à mesma empresa do depósito do pedido (quando informado).
+    Resolve plano para Pedidos/Salvar igual orçamento/pedido (``DtoVenda``: Nome + PlanoDeContaID).
     """
     texto = (texto_config or "").strip()
     id_hint = (str(id_config).strip() if id_config else "") or ""
@@ -592,6 +641,10 @@ def resolver_plano_conta_para_pedido_erp(
             return pn_m, pid_m
         if pid_m and not pn_m and texto:
             return texto, pid_m
+
+    pn_v, pid_v = _plano_de_dto_venda_espelho(db, texto, empresa_id=empresa_id)
+    if pn_v and pid_v:
+        return pn_v, pid_v
 
     for nome_busca in (texto, _nome_plano_de_texto_config(texto)):
         if not nome_busca:
