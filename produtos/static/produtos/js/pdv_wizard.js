@@ -12,6 +12,74 @@
     var urls = bootstrap.urls || {};
     var assets = bootstrap.assets || {};
     var pagamentoUi = bootstrap.pagamentoUi || {};
+    var MSG_CAIXA_FECHADO_VENDA = 'Abra o caixa antes de registrar vendas.';
+
+    function caixaAbertoParaVenda() {
+        var cx = bootstrap.caixa || {};
+        return !!(cx.aberto && cx.id);
+    }
+
+    function atualizarUiAvisoCaixa() {
+        var aviso = document.getElementById('pdv-caixa-fechado-aviso');
+        var link = document.getElementById('pdv-topbar-caixa-link');
+        var aberto = caixaAbertoParaVenda();
+        if (aviso) {
+            if (aberto) {
+                aviso.classList.add('hidden');
+                aviso.setAttribute('aria-hidden', 'true');
+            } else {
+                aviso.classList.remove('hidden');
+                aviso.setAttribute('aria-hidden', 'false');
+            }
+        }
+        if (link) {
+            if (aberto) {
+                link.textContent = 'Caixa ' + bootstrap.caixa.id;
+                link.classList.remove('border-amber-400', 'bg-amber-100', 'text-amber-950', 'border-2', 'hover:bg-amber-200/80');
+                link.classList.add('border', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-900', 'hover:bg-emerald-100/80');
+                link.title = 'Painel do caixa — turno aberto';
+            } else {
+                link.textContent = 'Caixa fechado';
+                link.classList.remove('border-emerald-200', 'bg-emerald-50', 'text-emerald-900', 'hover:bg-emerald-100/80');
+                link.classList.add('border-2', 'border-amber-400', 'bg-amber-100', 'text-amber-950', 'hover:bg-amber-200/80');
+                link.title = 'Caixa fechado — abra o turno para vender';
+            }
+        }
+    }
+
+    function refreshCaixaBootstrap() {
+        var home = String(urls.pdvWizardHome || '').trim();
+        if (!home) return Promise.resolve(caixaAbertoParaVenda());
+        return fetch(home, { credentials: 'same-origin', headers: { Accept: 'text/html' } })
+            .then(function (r) {
+                return r.ok ? r.text() : '';
+            })
+            .then(function (html) {
+                if (!html) return false;
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+                var el = doc.getElementById('agro-pdv-wizard-bootstrap');
+                if (!el) return false;
+                var data = JSON.parse(el.textContent || '{}');
+                if (data && data.caixa) {
+                    bootstrap.caixa = data.caixa;
+                    atualizarUiAvisoCaixa();
+                }
+                return caixaAbertoParaVenda();
+            })
+            .catch(function () {
+                return caixaAbertoParaVenda();
+            });
+    }
+
+    function ensureCaixaAbertoParaVenda() {
+        if (caixaAbertoParaVenda()) return Promise.resolve(true);
+        return refreshCaixaBootstrap().then(function (ok) {
+            if (!ok) {
+                alert(MSG_CAIXA_FECHADO_VENDA);
+            }
+            return ok;
+        });
+    }
     var mpBalcaoPickPending = null;
     /** Evita refocus na lista de máquinas quando o modo MP Balcão fechou após Automático/Manual (sucesso). */
     var mpBalcaoModoCloseAfterSuccess = false;
@@ -3233,6 +3301,16 @@
             alert(validation);
             return;
         }
+        ensureCaixaAbertoParaVenda().then(function (caixaOk) {
+            if (!caixaOk) return;
+            confirmSaleProsseguir(withPrint);
+        });
+    }
+
+    function confirmSaleProsseguir(withPrint) {
+        if (isProcessingSale) return;
+        var state = State.getState();
+        var computed = State.getComputed();
         (function setSaleClientRequestId() {
             var uuid =
                 typeof crypto !== 'undefined' && crypto.randomUUID
@@ -3350,6 +3428,17 @@
             alert('O envio automático ao Point só vale para pagamento único no “Mercado Pago — Balcão” cobrindo o total da venda.');
             return;
         }
+        ensureCaixaAbertoParaVenda().then(function (caixaOk) {
+            if (!caixaOk) return;
+            confirmSaleMercadoPagoPointProsseguir(withPrint);
+        });
+    }
+
+    function confirmSaleMercadoPagoPointProsseguir(withPrint) {
+        withPrint = !!withPrint;
+        if (isProcessingSale) return;
+        var state = State.getState();
+        var computed = State.getComputed();
         isProcessingSale = true;
         setConfirmButtonsBusy(true);
         var printWin = null;
@@ -5226,6 +5315,7 @@
         }
 
         initEntregaToolbarOnce();
+        atualizarUiAvisoCaixa();
 
         document.querySelectorAll('input[name="pdv-entrega-taxa-modo"]').forEach(function (radio) {
             radio.addEventListener('change', function () {

@@ -21,6 +21,7 @@ from .mercado_pago_point import (
     mp_point_order_indica_pago,
 )
 from .models import PdvMercadoPagoPointOrder
+from .caixa_util import SessaoCaixaObrigatoriaError, exigir_sessao_caixa_para_venda
 from .views import (
     _fluxo_enviar_pedido_erp_interno,
     _json_legivel,
@@ -283,15 +284,27 @@ def api_pdv_mp_point_finalizar(request):
                 pe = {"erro": str(err)}
             return JsonResponse({"ok": False, **pe}, status=err.status_code)
 
-        venda_local = _persistir_venda_agro(
-            request,
-            erp_data,
-            out["raw_itens"],
-            out["status"],
-            out["res"],
-            out["sucesso_erp"],
-            erp_sync_status=out["erp_sync"],
-        )
+        try:
+            exigir_sessao_caixa_para_venda(request, erp_data)
+        except SessaoCaixaObrigatoriaError as e:
+            row.status = PdvMercadoPagoPointOrder.Status.FAILED
+            row.save(update_fields=["status", "atualizado_em"])
+            return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+
+        try:
+            venda_local = _persistir_venda_agro(
+                request,
+                erp_data,
+                out["raw_itens"],
+                out["status"],
+                out["res"],
+                out["sucesso_erp"],
+                erp_sync_status=out["erp_sync"],
+            )
+        except SessaoCaixaObrigatoriaError as e:
+            row.status = PdvMercadoPagoPointOrder.Status.FAILED
+            row.save(update_fields=["status", "atualizado_em"])
+            return JsonResponse({"ok": False, "erro": str(e)}, status=400)
         vid = venda_local.pk if venda_local else None
         msg_erro_ui = out["msg_erro_ui"]
 
