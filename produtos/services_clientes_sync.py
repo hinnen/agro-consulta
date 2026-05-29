@@ -5,10 +5,14 @@ import re
 from typing import Any
 
 from django.conf import settings
+from django.db import IntegrityError
 
 from .models import ClienteAgro
 
 logger = logging.getLogger(__name__)
+
+CLIENTES_SYNC_LOCK_KEY = "agro_clientes_sync_lock"
+CLIENTES_SYNC_RESULT_KEY = "agro_clientes_sync_result"
 
 
 def _doc_para_campo_cpf(doc: str) -> str:
@@ -41,6 +45,7 @@ def sincronizar_clientes_fontes_para_agro(
     atualizados = 0
     ignorados_editados = 0
     pulados = 0
+    erros = 0
 
     fontes: list[tuple[str, list[dict[str, Any]]]] = []
 
@@ -118,44 +123,57 @@ def sincronizar_clientes_fontes_para_agro(
                 cli.endereco = endereco_val
                 cli.origem_import = origem
                 cli.ativo = True
-                cli.save(
-                    update_fields=[
-                        "nome",
-                        "cpf",
-                        "whatsapp",
-                        "cep",
-                        "uf",
-                        "cidade",
-                        "bairro",
-                        "logradouro",
-                        "numero",
-                        "complemento",
-                        "endereco",
-                        "origem_import",
-                        "ativo",
-                        "atualizado_em",
-                    ]
-                )
-                atualizados += 1
+                try:
+                    cli.save(
+                        update_fields=[
+                            "nome",
+                            "cpf",
+                            "whatsapp",
+                            "cep",
+                            "uf",
+                            "cidade",
+                            "bairro",
+                            "logradouro",
+                            "numero",
+                            "complemento",
+                            "endereco",
+                            "origem_import",
+                            "ativo",
+                            "atualizado_em",
+                        ]
+                    )
+                    atualizados += 1
+                except Exception:
+                    erros += 1
+                    logger.exception("sync clientes update externo_id=%s", eid[:40])
             else:
-                ClienteAgro.objects.create(
-                    externo_id=eid,
-                    nome=nome[:200],
-                    cpf=cpf_val,
-                    whatsapp=wa,
-                    cep=cep_val,
-                    uf=uf_val,
-                    cidade=cidade_val,
-                    bairro=bairro_val,
-                    logradouro=logr_val,
-                    numero=num_val,
-                    complemento=comp_val,
-                    endereco=endereco_val,
-                    ativo=True,
-                    origem_import=origem,
-                    editado_local=False,
-                )
-                criados += 1
+                try:
+                    ClienteAgro.objects.create(
+                        externo_id=eid,
+                        nome=nome[:200],
+                        cpf=cpf_val,
+                        whatsapp=wa,
+                        cep=cep_val,
+                        uf=uf_val,
+                        cidade=cidade_val,
+                        bairro=bairro_val,
+                        logradouro=logr_val,
+                        numero=num_val,
+                        complemento=comp_val,
+                        endereco=endereco_val,
+                        ativo=True,
+                        origem_import=origem,
+                        editado_local=False,
+                    )
+                    criados += 1
+                except IntegrityError:
+                    erros += 1
+                    logger.warning(
+                        "sync clientes: externo_id duplicado ou conflito (%s)", eid[:40]
+                    )
+                except Exception:
+                    erros += 1
+                    logger.exception("sync clientes create externo_id=%s", eid[:40])
 
     out = {
         "ok": True,
@@ -163,6 +181,7 @@ def sincronizar_clientes_fontes_para_agro(
         "atualizados": atualizados,
         "ignorados_editados_local": ignorados_editados,
         "pulados_sem_id_ou_nome": pulados,
+        "erros": erros,
         "linhas_mongo": len(res_mongo),
         "linhas_erp": len(res_erp),
         "unicos_importados": len(seen_ids),

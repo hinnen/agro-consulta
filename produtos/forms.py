@@ -10,6 +10,9 @@ class ClienteAgroForm(forms.ModelForm):
             "nome",
             "whatsapp",
             "cpf",
+            "saldo_cashback",
+            "saldo_vale_credito",
+            "limite_fiado_local",
             "cep",
             "uf",
             "cidade",
@@ -36,6 +39,27 @@ class ClienteAgroForm(forms.ModelForm):
                 attrs={
                     "class": "w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-slate-800",
                     "placeholder": "CPF",
+                }
+            ),
+            "saldo_cashback": forms.NumberInput(
+                attrs={
+                    "class": "w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-slate-800",
+                    "step": "0.01",
+                    "min": "0",
+                }
+            ),
+            "saldo_vale_credito": forms.NumberInput(
+                attrs={
+                    "class": "w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-slate-800",
+                    "step": "0.01",
+                    "min": "0",
+                }
+            ),
+            "limite_fiado_local": forms.NumberInput(
+                attrs={
+                    "class": "w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-slate-800",
+                    "step": "0.01",
+                    "min": "0",
                 }
             ),
             "cep": forms.TextInput(

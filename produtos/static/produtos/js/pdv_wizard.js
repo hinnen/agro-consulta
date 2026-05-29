@@ -700,6 +700,43 @@
         return bootstrap.clientePadraoNome || 'CONSUMIDOR NÃO IDENTIFICADO...';
     }
 
+    function clienteComSaldoAgro(state) {
+        return (
+            state &&
+            state.clienteMode !== 'consumidor_final' &&
+            state.cliente &&
+            state.cliente.cliente_agro_pk != null
+        );
+    }
+
+    function saldoValeAtual(state) {
+        if (clienteComSaldoAgro(state)) {
+            if (
+                creditoFiadoCliente &&
+                clienteFiadoQueryKey(state) === creditoFiadoClienteId &&
+                creditoFiadoCliente.saldo_vale_credito != null
+            ) {
+                return State.toNumber(creditoFiadoCliente.saldo_vale_credito);
+            }
+            return State.toNumber(state.cliente.saldo_vale_credito);
+        }
+        return State.toNumber(pagamentoUi.saldoValeCredito || 0);
+    }
+
+    function saldoCashbackAtual(state) {
+        if (clienteComSaldoAgro(state)) {
+            if (
+                creditoFiadoCliente &&
+                clienteFiadoQueryKey(state) === creditoFiadoClienteId &&
+                creditoFiadoCliente.saldo_cashback != null
+            ) {
+                return State.toNumber(creditoFiadoCliente.saldo_cashback);
+            }
+            return State.toNumber(state.cliente.saldo_cashback);
+        }
+        return State.toNumber(pagamentoUi.saldoCashback || 0);
+    }
+
     function whatsappHrefCliente(telefone) {
         var d = String(telefone || '').replace(/\D/g, '');
         if (d.length < 10) return '';
@@ -808,12 +845,12 @@
             }
         }
         if (forma === 'Vale crédito') {
-            var sv = Number(pagamentoUi.saldoValeCredito || 0);
+            var sv = saldoValeAtual(state);
             if (sv <= 0) return 'Sem saldo de vale crédito configurado.';
             if (T > sv + 0.009) return 'Valor acima do saldo do vale.';
         }
         if (forma === 'Cashback') {
-            var sc = Number(pagamentoUi.saldoCashback || 0);
+            var sc = saldoCashbackAtual(state);
             if (sc <= 0) return 'Sem saldo de cashback configurado.';
             if (T > sc + 0.009) return 'Valor acima do saldo de cashback.';
         }
@@ -1555,8 +1592,8 @@
         dom.productSubtotal.textContent = formatMoney(computed.subtotal);
         var lineCount = state.itens.length;
         dom.productSubtotalItems.textContent = lineCount + (lineCount === 1 ? ' item' : ' itens');
-        if (dom.productCreditBalance) dom.productCreditBalance.textContent = 'R$ 0,00';
-        if (dom.productCashbackBalance) dom.productCashbackBalance.textContent = 'R$ 0,00';
+        if (dom.productCreditBalance) dom.productCreditBalance.textContent = formatMoney(saldoValeAtual(state));
+        if (dom.productCashbackBalance) dom.productCashbackBalance.textContent = formatMoney(saldoCashbackAtual(state));
         renderProductFiadoBalance(state);
         if (!state.itens.length) {
             dom.productCartList.innerHTML =
@@ -2293,8 +2330,8 @@
                 fdR +
                 ' dias</strong> <span class="text-orange-700/80">(editar abaixo)</span>';
         }
-        if (dom.valeSaldoView) dom.valeSaldoView.textContent = formatMoney(pagamentoUi.saldoValeCredito || 0);
-        if (dom.cashbackSaldoView) dom.cashbackSaldoView.textContent = formatMoney(pagamentoUi.saldoCashback || 0);
+        if (dom.valeSaldoView) dom.valeSaldoView.textContent = formatMoney(saldoValeAtual(state));
+        if (dom.cashbackSaldoView) dom.cashbackSaldoView.textContent = formatMoney(saldoCashbackAtual(state));
         if (dom.outroPinMsg) {
             dom.outroPinMsg.textContent = state.pagamento.outroPinVerificado
                 ? 'PIN ok — descreva o pagamento.'
@@ -3094,6 +3131,10 @@
             payload.cliente_id = cliente.id;
         }
         if (cliente.documento) payload.cliente_documento = cliente.documento;
+        var comp = computed || State.getComputed();
+        if (comp && comp.desconto > 0.009) {
+            payload.desconto_geral = comp.desconto;
+        }
         var idem = String((state.pagamento && state.pagamento.clientRequestId) || '').trim();
         if (idem) payload.client_request_id = idem;
         var cx = bootstrap.caixa || {};
@@ -3802,10 +3843,10 @@
             outroPinVerificado: forma === 'Outro' ? !!st.pagamento.outroPinVerificado : false
         };
         if (forma === 'Vale crédito') {
-            var sv = Math.min(Number(pagamentoUi.saldoValeCredito || 0), rest);
+            var sv = Math.min(saldoValeAtual(st), rest);
             patch.valorDestaForma = sv > 0 ? String(sv.toFixed(2)).replace('.', ',') : '';
         } else if (forma === 'Cashback') {
-            var scb = Math.min(Number(pagamentoUi.saldoCashback || 0), rest);
+            var scb = Math.min(saldoCashbackAtual(st), rest);
             patch.valorDestaForma = scb > 0 ? String(scb.toFixed(2)).replace('.', ',') : '';
         } else if (forma === 'Fiado') {
             patch.valorDestaForma = rest > 0 ? String(rest.toFixed(2)).replace('.', ',') : '';
@@ -5173,7 +5214,7 @@
             btnValePop.addEventListener('click', function () {
                 openPayPopSaldo(
                     'Vale crédito',
-                    formatMoney(pagamentoUi.saldoValeCredito || 0),
+                    formatMoney(saldoValeAtual(State.getState())),
                     'O valor usado na venda não pode passar deste saldo.'
                 );
             });
@@ -5183,7 +5224,7 @@
             btnCbPop.addEventListener('click', function () {
                 openPayPopSaldo(
                     'Cashback',
-                    formatMoney(pagamentoUi.saldoCashback || 0),
+                    formatMoney(saldoCashbackAtual(State.getState())),
                     'O valor usado na venda não pode passar deste saldo.'
                 );
             });

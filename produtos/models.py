@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -48,6 +49,14 @@ class Produto(models.Model):
     unidade = models.CharField(max_length=20, default='UN')
     custo = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     preco_venda = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    cashback_percentual = models.DecimalField(
+        "Cashback (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=1,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Percentual de cashback gerado na venda deste produto.",
+    )
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
@@ -132,6 +141,25 @@ class ClienteAgro(models.Model):
         default=False,
         verbose_name="Editado no Agro",
         help_text="Se verdadeiro, sincronização não sobrescreve dados do cliente (incl. endereço).",
+    )
+    saldo_cashback = models.DecimalField(
+        "Saldo cashback",
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+    )
+    saldo_vale_credito = models.DecimalField(
+        "Saldo vale crédito",
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+    )
+    limite_fiado_local = models.DecimalField(
+        "Limite fiado (local)",
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Quando maior que zero, substitui o limite vindo do ERP/Mongo para este cliente.",
     )
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
@@ -729,6 +757,15 @@ class ProdutoGestaoOverlayAgro(models.Model):
         null=True,
         blank=True,
         verbose_name="Preço de venda (override)",
+    )
+    cashback_percentual = models.DecimalField(
+        "Cashback (%)",
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Vazio = usar padrão do sistema (ex.: 1%). Zero desliga cashback na venda.",
     )
     ativo_exibicao = models.BooleanField(
         null=True,
