@@ -144,6 +144,14 @@
         quickClientPicker: document.getElementById('pdv-quick-client-picker'),
         quickClientPickerClose: document.getElementById('pdv-quick-client-picker-close'),
         quickClientChange: document.getElementById('pdv-quick-client-change'),
+        wizardCliRapidoModal: document.getElementById('pdv-wizard-cli-rapido-modal'),
+        wizardCliRapidoPanel: document.querySelector('[data-pdv-wizard-cli-rapido-panel]'),
+        wizardCliRapidoNome: document.getElementById('pdv-wizard-cli-rapido-nome'),
+        wizardCliRapidoWhatsapp: document.getElementById('pdv-wizard-cli-rapido-whatsapp'),
+        wizardCliRapidoErro: document.getElementById('pdv-wizard-cli-rapido-erro'),
+        wizardCliRapidoSalvar: document.getElementById('pdv-wizard-cli-rapido-salvar'),
+        wizardCliRapidoCancelar: document.getElementById('pdv-wizard-cli-rapido-cancelar'),
+        wizardCliRapidoFechar: document.getElementById('pdv-wizard-cli-rapido-fechar'),
         clientPurchaseHistory: document.getElementById('pdv-client-purchase-history'),
         productSearch: document.getElementById('pdv-product-search'),
         productSearchFeedback: document.getElementById('pdv-product-search-feedback'),
@@ -261,6 +269,7 @@
     var productSelectionIndex = -1;
     var clientListSelectIdx = -1;
     var clientSearchSeq = 0;
+    var lastClientSearchQuery = '';
     var AUTOCOMPLETE_LIMIT = 8;
     var MAX_LOCAL_RESULTS = 48;
     var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v5';
@@ -2790,6 +2799,164 @@
         focusProductSearch();
     }
 
+    function isPhoneLikeClientSearchTerm(term) {
+        var t = String(term || '').trim();
+        if (!t) return false;
+        var digits = t.replace(/\D/g, '');
+        var compact = t.replace(/\s/g, '');
+        if (digits.length >= 8 && compact.length && digits.length >= compact.length * 0.65) {
+            return true;
+        }
+        return /^\d[\d\s().+-]*$/.test(t);
+    }
+
+    function clearWizardQuickClientCadastroForm() {
+        var ids = [
+            'pdv-wizard-cli-rapido-nome',
+            'pdv-wizard-cli-rapido-whatsapp',
+            'pdv-wizard-cli-rapido-logradouro',
+            'pdv-wizard-cli-rapido-numero',
+            'pdv-wizard-cli-rapido-bairro',
+            'pdv-wizard-cli-rapido-cidade',
+            'pdv-wizard-cli-rapido-uf',
+            'pdv-wizard-cli-rapido-cep'
+        ];
+        ids.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        if (dom.wizardCliRapidoErro) {
+            dom.wizardCliRapidoErro.textContent = '';
+            dom.wizardCliRapidoErro.classList.add('hidden');
+        }
+    }
+
+    function closeWizardQuickClientCadastro() {
+        if (!dom.wizardCliRapidoModal) return;
+        dom.wizardCliRapidoModal.classList.add('hidden');
+        dom.wizardCliRapidoModal.classList.remove('flex');
+        clearWizardQuickClientCadastroForm();
+    }
+
+    function openWizardQuickClientCadastro(prefillNome) {
+        if (!dom.wizardCliRapidoModal) return;
+        clearWizardQuickClientCadastroForm();
+        var nome = String(prefillNome || '').trim();
+        if (!nome && lastClientSearchQuery && !isPhoneLikeClientSearchTerm(lastClientSearchQuery)) {
+            nome = lastClientSearchQuery.trim();
+        }
+        if (nome && dom.wizardCliRapidoNome) dom.wizardCliRapidoNome.value = nome;
+        if (
+            lastClientSearchQuery &&
+            isPhoneLikeClientSearchTerm(lastClientSearchQuery) &&
+            dom.wizardCliRapidoWhatsapp
+        ) {
+            dom.wizardCliRapidoWhatsapp.value = lastClientSearchQuery.trim();
+        }
+        dom.wizardCliRapidoModal.classList.remove('hidden');
+        dom.wizardCliRapidoModal.classList.add('flex');
+        setTimeout(function () {
+            if (dom.wizardCliRapidoNome && dom.wizardCliRapidoNome.value) {
+                dom.wizardCliRapidoWhatsapp.focus();
+            } else if (dom.wizardCliRapidoNome) {
+                dom.wizardCliRapidoNome.focus();
+            }
+        }, 80);
+    }
+
+    function saveWizardQuickClientCadastro() {
+        var url = urls.apiPdvClienteRapido;
+        if (!url) {
+            alert('Cadastro rápido indisponível (URL).');
+            return;
+        }
+        var nome = dom.wizardCliRapidoNome
+            ? String(dom.wizardCliRapidoNome.value || '').trim()
+            : '';
+        var wa = dom.wizardCliRapidoWhatsapp
+            ? String(dom.wizardCliRapidoWhatsapp.value || '').trim()
+            : '';
+        if (dom.wizardCliRapidoErro) {
+            dom.wizardCliRapidoErro.textContent = '';
+            dom.wizardCliRapidoErro.classList.add('hidden');
+        }
+        if (nome.length < 2) {
+            if (dom.wizardCliRapidoErro) {
+                dom.wizardCliRapidoErro.textContent = 'Informe o nome do cliente (mínimo 2 caracteres).';
+                dom.wizardCliRapidoErro.classList.remove('hidden');
+            } else {
+                alert('Informe o nome do cliente.');
+            }
+            if (dom.wizardCliRapidoNome) dom.wizardCliRapidoNome.focus();
+            return;
+        }
+        var waDigits = wa.replace(/\D/g, '');
+        if (waDigits.length < 10) {
+            var msgTel = 'Informe o telefone ou WhatsApp com DDD (mínimo 10 dígitos).';
+            if (dom.wizardCliRapidoErro) {
+                dom.wizardCliRapidoErro.textContent = msgTel;
+                dom.wizardCliRapidoErro.classList.remove('hidden');
+            } else {
+                alert(msgTel);
+            }
+            if (dom.wizardCliRapidoWhatsapp) dom.wizardCliRapidoWhatsapp.focus();
+            return;
+        }
+        function gv(id) {
+            var el = document.getElementById(id);
+            return el ? String(el.value || '').trim() : '';
+        }
+        var btn = dom.wizardCliRapidoSalvar;
+        var prevLabel = btn ? btn.textContent : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Salvando…';
+        }
+        jsonPost(url, {
+            nome: nome,
+            whatsapp: wa,
+            logradouro: gv('pdv-wizard-cli-rapido-logradouro'),
+            numero: gv('pdv-wizard-cli-rapido-numero'),
+            bairro: gv('pdv-wizard-cli-rapido-bairro'),
+            cidade: gv('pdv-wizard-cli-rapido-cidade'),
+            uf: gv('pdv-wizard-cli-rapido-uf'),
+            cep: gv('pdv-wizard-cli-rapido-cep')
+        })
+            .then(function (res) {
+                if (res.ok && res.data && res.data.ok && res.data.cliente) {
+                    State.setCliente(res.data.cliente, 'cliente');
+                    closeWizardQuickClientCadastro();
+                    closeQuickClientPicker();
+                    refreshCreditoFiadoCliente(null, { force: true });
+                    return;
+                }
+                var err =
+                    (res.data && res.data.erro) ||
+                    'Não foi possível salvar o cliente.';
+                if (dom.wizardCliRapidoErro) {
+                    dom.wizardCliRapidoErro.textContent = err;
+                    dom.wizardCliRapidoErro.classList.remove('hidden');
+                } else {
+                    alert(err);
+                }
+            })
+            .catch(function () {
+                var msg = 'Erro de rede ao cadastrar cliente.';
+                if (dom.wizardCliRapidoErro) {
+                    dom.wizardCliRapidoErro.textContent = msg;
+                    dom.wizardCliRapidoErro.classList.remove('hidden');
+                } else {
+                    alert(msg);
+                }
+            })
+            .finally(function () {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = prevLabel || 'Salvar cliente';
+                }
+            });
+    }
+
     function highlightClientListRow() {
         if (!dom.quickClientResults) return;
         var rows = dom.quickClientResults.querySelectorAll('[data-client-list-idx]');
@@ -2926,6 +3093,7 @@
 
     function runClientSearch(term) {
         var query = String(term || '').trim();
+        lastClientSearchQuery = query;
         if (query.length < 2) {
             dom.quickClientResults.innerHTML = '';
             dom.quickClientResults.classList.add('hidden');
@@ -2941,7 +3109,10 @@
                 var clientes = data.clientes || [];
                 if (!clientes.length) {
                     dom.quickClientResults.innerHTML =
-                        '<div class="px-3 py-3 text-sm font-bold text-slate-400">Nenhum cliente encontrado.</div>';
+                        '<div class="px-3 py-4 text-center">' +
+                        '<p class="text-sm font-bold text-slate-500">Nenhum cliente encontrado.</p>' +
+                        '<button type="button" data-wizard-cadastrar-cliente class="mt-3 w-full rounded-xl bg-emerald-600 py-3 text-sm font-black uppercase text-white shadow-md hover:bg-emerald-700">Cadastrar cliente</button>' +
+                        '</div>';
                     dom.quickClientResults.classList.remove('hidden');
                     delete dom.quickClientResults._clientes;
                     clientListSelectIdx = -1;
@@ -4637,6 +4808,39 @@
             dom.quickClientPickerClose.addEventListener('click', closeQuickClientPicker);
         }
 
+        if (dom.wizardCliRapidoSalvar) {
+            dom.wizardCliRapidoSalvar.addEventListener('click', saveWizardQuickClientCadastro);
+        }
+        if (dom.wizardCliRapidoCancelar) {
+            dom.wizardCliRapidoCancelar.addEventListener('click', closeWizardQuickClientCadastro);
+        }
+        if (dom.wizardCliRapidoFechar) {
+            dom.wizardCliRapidoFechar.addEventListener('click', closeWizardQuickClientCadastro);
+        }
+        if (dom.wizardCliRapidoModal) {
+            dom.wizardCliRapidoModal.addEventListener('click', function (event) {
+                if (event.target === dom.wizardCliRapidoModal) {
+                    closeWizardQuickClientCadastro();
+                }
+            });
+        }
+        if (dom.wizardCliRapidoNome) {
+            dom.wizardCliRapidoNome.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    if (dom.wizardCliRapidoWhatsapp) dom.wizardCliRapidoWhatsapp.focus();
+                }
+            });
+        }
+        if (dom.wizardCliRapidoWhatsapp) {
+            dom.wizardCliRapidoWhatsapp.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    saveWizardQuickClientCadastro();
+                }
+            });
+        }
+
         dom.quickClientSearch.addEventListener('input', function () {
             clearTimeout(searchClientTimer);
             searchClientTimer = setTimeout(function () {
@@ -4669,6 +4873,10 @@
         });
 
         dom.quickClientResults.addEventListener('click', function (event) {
+            if (event.target.closest('[data-wizard-cadastrar-cliente]')) {
+                openWizardQuickClientCadastro();
+                return;
+            }
             var btn = event.target.closest('[data-select-client]');
             if (!btn) return;
             var idxAttr = btn.getAttribute('data-client-list-idx');

@@ -26,6 +26,72 @@ def _usuario_label(request) -> str:
     return ""
 
 
+def detalhe_resposta_pedido_erp(res) -> str:
+    """Corpo/chaves extras da resposta ERP para o campo ``detalhe`` do log (além da mensagem curta)."""
+    parts: list[str] = []
+
+    def add(chunk: str) -> None:
+        t = str(chunk or "").strip()
+        if t and t not in parts:
+            parts.append(t)
+
+    if isinstance(res, dict):
+        if res.get("_body"):
+            add(str(res["_body"])[:800])
+        if res.get("_erro"):
+            add(str(res["_erro"])[:400])
+        for key in (
+            "detalhes",
+            "Detalhes",
+            "detalhe",
+            "Detail",
+            "details",
+            "Details",
+            "stackTrace",
+            "StackTrace",
+            "innerException",
+            "InnerException",
+            "ExceptionMessage",
+            "exceptionMessage",
+        ):
+            v = res.get(key)
+            if v is not None and str(v).strip():
+                add(f"{key}: {str(v)[:500]}")
+        texto = res.get("texto") or res.get("Texto")
+        if isinstance(texto, str) and texto.strip().startswith("{"):
+            try:
+                inner = json.loads(texto)
+            except Exception:
+                inner = None
+            if isinstance(inner, dict):
+                for k in ("Message", "message", "ExceptionMessage", "detail", "Detalhes"):
+                    if inner.get(k):
+                        add(str(inner[k])[:500])
+        if not parts:
+            skip = {
+                "mensagem",
+                "Mensagem",
+                "message",
+                "Message",
+                "texto",
+                "Texto",
+                "_http_status",
+            }
+            extra = {
+                k: v
+                for k, v in res.items()
+                if k not in skip and v not in (None, "")
+            }
+            if extra:
+                try:
+                    add(json.dumps(extra, ensure_ascii=False, default=str)[:900])
+                except Exception:
+                    add(str(extra)[:900])
+    elif isinstance(res, str) and len(res.strip()) > 120:
+        add(res.strip()[:900])
+    return " | ".join(parts)[:1000]
+
+
 def _resumo_erp(resposta_raw) -> str:
     if resposta_raw is None:
         return ""
@@ -157,7 +223,9 @@ def reverter_envio_erp_local(venda: VendaAgro, *, request, motivo: str = "") -> 
 
 
 def venda_payload_de_venda_agro(venda: VendaAgro) -> dict:
-    from produtos.fiado_credito_util import cliente_agro_pk_de_ref
+    import re
+
+    from produtos.fiado_credito_util import cliente_agro_pk_de_ref, resolver_cliente_fiado
 
     pagamentos_erp = []
     pj = venda.pagamentos_json if isinstance(venda.pagamentos_json, list) else []
@@ -176,12 +244,18 @@ def venda_payload_de_venda_agro(venda: VendaAgro) -> dict:
             if isinstance(cron, list) and cron:
                 item["fiadoCronograma"] = cron
         pagamentos_erp.append(item)
-    cid = (venda.cliente_id_erp or "").strip()
-    agro_pk = cliente_agro_pk_de_ref(cid)
+    cid_ref = (venda.cliente_id_erp or "").strip()
+    agro_pk = cliente_agro_pk_de_ref(cid_ref)
+    erp_id, agro_pk_res, cli = resolver_cliente_fiado(cid_ref, cliente_agro_pk=agro_pk)
+    agro_pk = agro_pk_res or agro_pk
+    cid = erp_id if erp_id else cid_ref
+    doc = (venda.cliente_documento or "").strip()
+    if not doc and cli and (cli.cpf or "").strip():
+        doc = re.sub(r"\D", "", cli.cpf)[:20]
     data = {
         "cliente": venda.cliente_nome,
         "cliente_id": cid,
-        "cliente_documento": venda.cliente_documento,
+        "cliente_documento": doc,
         "forma_pagamento": venda.forma_pagamento,
         "pagamentos": pagamentos_erp or None,
         "itens": [

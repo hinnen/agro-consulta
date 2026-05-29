@@ -276,19 +276,36 @@ class VendaERPAPIClient:
         }
         try:
             res = requests.post(url, json=payload, headers=headers, timeout=30)
-            texto = (res.text or "")[:4000]
-            print(f"--- Pedidos/Salvar --- HTTP {res.status_code} --- {texto[:500]}")
-            if 200 <= res.status_code < 300:
+            sc = int(res.status_code)
+            raw_text = (res.text or res.reason or "")[:4000]
+            print(f"--- Pedidos/Salvar --- HTTP {sc} --- {raw_text[:500]}")
+            if 200 <= sc < 300:
                 try:
-                    return True, res.status_code, res.json()
+                    return True, sc, res.json()
                 except Exception:
-                    return True, res.status_code, texto or "OK"
+                    return True, sc, raw_text or "OK"
+            parsed: object | None = None
             try:
-                return False, res.status_code, res.json()
+                parsed = res.json()
             except Exception:
-                return False, res.status_code, texto or res.reason
+                parsed = None
+            payload_err = _erp_enriquecer_resposta_erro_http(sc, parsed, raw_text)
+            preview = raw_text.replace("\n", " ").strip()[:800]
+            if not preview and isinstance(payload_err, dict):
+                try:
+                    preview = json.dumps(payload_err, ensure_ascii=False)[:800]
+                except Exception:
+                    preview = repr(payload_err)[:800]
+            logger.warning(
+                "Pedidos/Salvar falhou HTTP %s url=%s preview=%s",
+                sc,
+                url,
+                preview,
+            )
+            return False, sc, payload_err
         except Exception as e:
-            return False, 0, str(e)
+            logger.warning("Pedidos/Salvar erro de rede/timeout: %s", e)
+            return False, 0, {"_http_status": 0, "_erro": str(e)}
 
     def buscar_produtos(self, termo):
         """Busca produtos na API do VendaERP"""

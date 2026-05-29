@@ -90,6 +90,7 @@ from .fiado_credito_util import (
 from .entrega_pagamento_util import serializar_pagamento_entrega
 from .venda_erp_envio_util import (
     append_erp_envio_log,
+    detalhe_resposta_pedido_erp,
     erp_envio_usuario_label,
     pode_enviar_venda_fiado_erp,
     reverter_envio_erp_local,
@@ -5367,6 +5368,8 @@ def _forma_pagamento_rotulo_sem_valor_moeda(s: str) -> str:
 
 def _normalizar_linhas_pagamento_pedido(raw_list) -> list[dict]:
     """Lista de parcelas para Pedidos/Salvar (camelCase). Usado no payload e no rascunho checkout."""
+    from produtos.caixa_util import normalizar_forma_pagamento_caixa
+
     if not isinstance(raw_list, list) or not raw_list:
         return []
     out: list[dict] = []
@@ -5386,20 +5389,41 @@ def _normalizar_linhas_pagamento_pedido(raw_list) -> list[dict]:
             vp = 0.0
         vp = round(vp, 2)
         fn = _forma_pagamento_rotulo_sem_valor_moeda(fn)
+        fn_norm = normalizar_forma_pagamento_caixa(fn)
         if not fn and vp <= 0:
             continue
         if not fn:
             fn = "Não informado"
+        is_fiado = fn_norm == "Fiado"
         item: dict = {
             "formaPagamento": fn,
             "valorPagamento": vp,
-            "quitar": bool(row.get("quitar", True)),
+            "quitar": bool(row.get("quitar", not is_fiado)),
         }
         desc = str(
             row.get("descricaoPagamento") or row.get("descricao_pagamento") or ""
         ).strip()[:300]
         if desc:
             item["descricaoPagamento"] = desc
+        if is_fiado:
+            np = row.get("fiadoParcelas", row.get("fiado_parcelas"))
+            if np is not None:
+                try:
+                    item["fiadoParcelas"] = int(np)
+                except (TypeError, ValueError):
+                    pass
+            nd = row.get(
+                "fiadoDiasVencimento",
+                row.get("fiado_dias_vencimento", row.get("fiado_dias_primeiro")),
+            )
+            if nd is not None:
+                try:
+                    item["fiadoDiasVencimento"] = int(nd)
+                except (TypeError, ValueError):
+                    pass
+            cron = row.get("fiadoCronograma", row.get("fiado_cronograma"))
+            if isinstance(cron, list) and cron:
+                item["fiadoCronograma"] = cron
         out.append(item)
     return out
 
@@ -7562,10 +7586,23 @@ def vendas_exportar_csv(request):
 
 @login_required(login_url="/admin/login/")
 def clientes_lista(request):
+    from .clientes_sync_web_state import (
+        consumir_mensagem_conclusao,
+        sync_em_andamento,
+    )
     from .services_clientes_sync import (
         CLIENTES_SYNC_LOCK_KEY,
         CLIENTES_SYNC_RESULT_KEY,
     )
+
+    conclusao_arquivo = consumir_mensagem_conclusao()
+    if conclusao_arquivo:
+        kind, texto = conclusao_arquivo
+        if kind == "success":
+            messages.success(request, texto)
+        else:
+            messages.error(request, texto)
+        cache.delete(CLIENTES_SYNC_LOCK_KEY)
 
     sync_result = cache.get(CLIENTES_SYNC_RESULT_KEY)
     if sync_result:
@@ -7614,7 +7651,8 @@ def clientes_lista(request):
         {
             "clientes": qs,
             "busca": q,
-            "clientes_sync_em_andamento": bool(cache.get(CLIENTES_SYNC_LOCK_KEY)),
+            "clientes_sync_em_andamento": sync_em_andamento()
+            or bool(cache.get(CLIENTES_SYNC_LOCK_KEY)),
         },
     )
 
@@ -7665,6 +7703,7 @@ def clientes_sincronizar(request):
 
     from django.conf import settings
 
+    from .clientes_sync_web_state import mark_running
     from .services_clientes_sync import (
         CLIENTES_SYNC_LOCK_KEY,
         CLIENTES_SYNC_RESULT_KEY,
@@ -7704,6 +7743,7 @@ def clientes_sincronizar(request):
         messages.error(request, f"Não foi possível iniciar a sincronização: {exc}")
         return redirect("clientes_lista")
 
+    mark_running()
     cache.set(CLIENTES_SYNC_LOCK_KEY, True, timeout=900)
     cache.delete(CLIENTES_SYNC_RESULT_KEY)
     messages.success(
@@ -16584,6 +16624,8 @@ def _texto_heuristico_resposta_pedido_erp(res) -> str:
             return
         if isinstance(node, dict):
             for key in (
+                "_body",
+                "_erro",
                 "texto",
                 "Texto",
                 "mensagem",
@@ -17507,9 +17549,22 @@ def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
         payload["empresaID"] = emp_id
 
     cid = str(data.get("cliente_id") or data.get("ClienteID") or "").strip()
-    if _cliente_id_e_valido_para_erp(cid):
-        payload["clienteID"] = cid
+    agro_pk_raw = data.get("cliente_agro_pk")
+    agro_pk = None
+    if agro_pk_raw is not None and str(agro_pk_raw).strip() != "":
+        try:
+            agro_pk = int(agro_pk_raw)
+        except (TypeError, ValueError):
+            agro_pk = None
+    from produtos.fiado_credito_util import resolver_cliente_fiado
+
+    erp_cid, _agro_pk_res, cli_fiado = resolver_cliente_fiado(cid, cliente_agro_pk=agro_pk)
+    cid_erp_payload = erp_cid if _cliente_id_e_valido_para_erp(erp_cid) else cid
+    if _cliente_id_e_valido_para_erp(cid_erp_payload):
+        payload["clienteID"] = cid_erp_payload
     doc_raw = str(data.get("cliente_documento") or data.get("CpfCnpj") or "").strip()
+    if not doc_raw and cli_fiado and (cli_fiado.cpf or "").strip():
+        doc_raw = cli_fiado.cpf
     doc_digits = re.sub(r"\D", "", doc_raw)
     if len(doc_digits) >= 11:
         payload["cpfCnpj"] = doc_digits
@@ -17728,6 +17783,15 @@ def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
                     break
 
     if ok and not recusa_erp and _mensagem_pedido_erp_indica_erro_plano_contas(flat_erp):
+        recusa_erp = True
+
+    if (
+        not ok
+        and not recusa_erp
+        and status
+        and 400 <= int(status) < 500
+        and (flat_erp.strip() or isinstance(res, dict))
+    ):
         recusa_erp = True
 
     if recusa_erp:
@@ -17989,8 +18053,9 @@ def _resposta_json_envio_erp_venda(request, v: VendaAgro, out: dict) -> JsonResp
     http_st = out.get("status")
     erp_sync = out.get("erp_sync") or ""
     res_raw = out.get("res")
+    detalhe = detalhe_resposta_pedido_erp(res_raw)
 
-    if out.get("ok") and out.get("recusa_erp"):
+    if out.get("recusa_erp"):
         _atualizar_venda_agro_resposta_erp(v, http_st, res_raw, erp_sync)
         append_erp_envio_log(
             v,
@@ -18000,6 +18065,7 @@ def _resposta_json_envio_erp_venda(request, v: VendaAgro, out: dict) -> JsonResp
             http_status=http_st,
             mensagem=msg_erro_ui or "ERP recusou o pedido.",
             usuario=usuario,
+            detalhe=detalhe,
             erp_resposta=res_raw,
         )
         v.save(update_fields=["erp_envio_log_json"])
@@ -18012,7 +18078,7 @@ def _resposta_json_envio_erp_venda(request, v: VendaAgro, out: dict) -> JsonResp
                 "painel": serializar_venda_erp_painel(v),
                 "log_ultimo": (v.erp_envio_log_json or [])[-1] if v.erp_envio_log_json else None,
             },
-            status=502,
+            status=502 if http_st and http_st != 0 else 400,
         )
 
     if out.get("ok"):
@@ -18046,6 +18112,7 @@ def _resposta_json_envio_erp_venda(request, v: VendaAgro, out: dict) -> JsonResp
         http_status=http_st,
         mensagem=msg_erro_ui or "Falha de comunicação com o ERP.",
         usuario=usuario,
+        detalhe=detalhe,
         erp_resposta=res_raw,
     )
     v.save(update_fields=["erp_envio_log_json"])
@@ -18145,6 +18212,38 @@ def api_venda_agro_reenviar_erp(request, pk):
         )
         v.save(update_fields=["erp_envio_log_json"])
         data = venda_payload_de_venda_agro(v)
+        from produtos.fiado_credito_util import resolver_cliente_fiado
+
+        erp_cid, agro_pk_chk, _cli_chk = resolver_cliente_fiado(
+            v.cliente_id_erp,
+            cliente_agro_pk=data.get("cliente_agro_pk"),
+        )
+        if v.tem_fiado() and not _cliente_id_e_valido_para_erp(erp_cid):
+            msg_cli = (
+                "Cliente fiado sem ID vinculado ao ERP. "
+                "Abra o cadastro do cliente no Agro e confira o campo «ID externo (Mongo/ERP)» "
+                "ou sincronize clientes antes de enviar."
+            )
+            append_erp_envio_log(
+                v,
+                acao="envio_falha",
+                ok=False,
+                status=VendaAgro.ErpSyncStatus.RECUSADO_ERP,
+                mensagem=msg_cli,
+                usuario=usuario,
+                detalhe=f"cliente_id_erp={v.cliente_id_erp!r} agro_pk={agro_pk_chk}",
+            )
+            v.erp_sync_status = VendaAgro.ErpSyncStatus.RECUSADO_ERP
+            v.save(update_fields=["erp_sync_status", "erp_envio_log_json"])
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": msg_cli,
+                    "venda_id": v.pk,
+                    "painel": serializar_venda_erp_painel(v),
+                },
+                status=400,
+            )
         client_m, db = obter_conexao_mongo()
         err, out = _fluxo_enviar_pedido_erp_interno(
             request, data, client_m=client_m, db=db
@@ -19795,6 +19894,7 @@ def _pdv_resumo_endereco_cliente_rapido(data: dict) -> str:
     return ", ".join(parts)[:500]
 
 
+@login_required(login_url="/admin/login/")
 @require_POST
 def api_pdv_cliente_rapido(request):
     """Cadastro rápido de ClienteAgro a partir do PDV (popup no carrinho)."""
@@ -19810,6 +19910,14 @@ def api_pdv_cliente_rapido(request):
         )
     wa_raw = (data.get("whatsapp") or data.get("telefone") or "").strip()
     wa_digits = re.sub(r"\D", "", wa_raw)
+    if len(wa_digits) < 10:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Informe o telefone ou WhatsApp com DDD (mínimo 10 dígitos).",
+            },
+            status=400,
+        )
     if len(wa_digits) > 20:
         wa_digits = wa_digits[-20:]
     resumo_end = _pdv_resumo_endereco_cliente_rapido(data)
