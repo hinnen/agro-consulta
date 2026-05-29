@@ -496,7 +496,8 @@
       const dc = (inputComp.value || '').trim();
       const dvRaw = (inputVen.value || '').trim();
       const quitado = cbQ.checked;
-      const dv = quitado ? dc : dvRaw;
+      // Lançar quitado não deve sobrescrever o vencimento com a competência.
+      const dv = dvRaw || dc;
       const empresa_nome = document.getElementById('empresa-nome').value.trim();
       const empresa_id = document.getElementById('empresa-id').value.trim();
       const pessoa_nome = document.getElementById('pessoa-nome').value.trim();
