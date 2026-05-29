@@ -26,6 +26,11 @@
     </div>
   </header>
   <main class="max-w-3xl mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
+    {% if clientes_sync_em_andamento %}
+    <p class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-900">
+      Sincronizando clientes do ERP/Mongo… aguarde 1–2 min e pressione <kbd class="px-1 rounded bg-white border border-sky-300">F5</kbd>.
+    </p>
+    {% endif %}
     {% if messages %}
     <ul class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900 space-y-1">
       {% for m in messages %}<li>{{ m }}</li>{% endfor %}
@@ -53,6 +58,9 @@
           {% if c.endereco %}
           <p class="text-[11px] text-slate-500 font-medium mt-1 leading-snug break-words">{{ c.endereco }}</p>
           {% endif %}
+          <p class="text-[11px] text-slate-600 font-bold mt-1">
+            Vale: R$ {{ c.saldo_vale_credito|floatformat:2 }} · Cashback: R$ {{ c.saldo_cashback|floatformat:2 }} · Limite fiado local: R$ {{ c.limite_fiado_local|floatformat:2 }}
+          </p>
         </div>
         <a href="{% url 'cliente_editar' c.pk %}" class="text-xs font-black uppercase text-sky-600 hover:underline">Editar</a>
       </div>

@@ -374,15 +374,15 @@ VENDA_ERP_PEDIDO_STATUS_SISTEMA = _VENDA_ERP_PEDIDO_STATUS_SISTEMA_RAW or "Pedid
 # Pedidos/Salvar: plano de contas (texto como no ERP, ex.: código hierárquico + nome).
 _VENDA_ERP_PEDIDO_PLANO_CONTA_RAW = config(
     "VENDA_ERP_PEDIDO_PLANO_CONTA",
-    default="1.1.3 — Vendas SisVale",
+    default="Vendas Pdv",
 ).strip()
 VENDA_ERP_PEDIDO_PLANO_CONTA = (
-    _VENDA_ERP_PEDIDO_PLANO_CONTA_RAW or "1.1.3 — Vendas SisVale"
+    _VENDA_ERP_PEDIDO_PLANO_CONTA_RAW or "Vendas Pdv"
 )
-# Opcional: PlanoDeContaID (string Mongo) quando o ERP não resolve só pelo texto.
+# Opcional: PlanoDeContaID (string Mongo). Vazio = resolve pelo texto/nome no Mongo.
 VENDA_ERP_PEDIDO_PLANO_CONTA_ID = config(
     "VENDA_ERP_PEDIDO_PLANO_CONTA_ID",
-    default="69d2e2d35c5d14cb68c6acef",
+    default="",
 ).strip()
 # True = primeira tentativa Pedidos/Salvar já em PascalCase (StatusSistema, Items, …).
 VENDA_ERP_PEDIDOS_SALVAR_JSON_PASCAL = config(
@@ -430,6 +430,8 @@ PDV_ERP_ENVIO_ASSINCRONO = config("PDV_ERP_ENVIO_ASSINCRONO", default=True, cast
 PDV_VENDA_ESTOQUE_DEPOSITO = config("PDV_VENDA_ESTOQUE_DEPOSITO", default="centro").strip().lower() or "centro"
 PDV_WIZARD_SALDO_VALE_CREDITO = config("PDV_WIZARD_SALDO_VALE_CREDITO", default="0").strip()
 PDV_WIZARD_SALDO_CASHBACK = config("PDV_WIZARD_SALDO_CASHBACK", default="0").strip()
+# Percentual de cashback gerado na venda quando o produto não tem % no overlay (padrão 1%).
+AGRO_CASHBACK_PERCENTUAL_PADRAO = config("AGRO_CASHBACK_PERCENTUAL_PADRAO", default="1").strip()
 # Limite de fiado quando o ERP/Mongo não informar limite por cliente
 AGRO_FIADO_LIMITE_PADRAO = config("AGRO_FIADO_LIMITE_PADRAO", default="5000").strip()
 # WhatsApp após impressão de cupom de transferência (Vila Elias). Vazio = usa PDV_ENTREGA_WHATSAPP.

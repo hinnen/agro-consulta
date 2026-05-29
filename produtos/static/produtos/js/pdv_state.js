@@ -76,7 +76,10 @@
             plus_code: String(raw.plus_code || '').trim(),
             referencia_rural: String(raw.referencia_rural || '').trim(),
             maps_url_manual: String(raw.maps_url_manual || '').trim(),
-            cliente_agro_pk: raw.cliente_agro_pk != null ? raw.cliente_agro_pk : null
+            cliente_agro_pk: raw.cliente_agro_pk != null ? raw.cliente_agro_pk : null,
+            saldo_vale_credito: toNumber(raw.saldo_vale_credito),
+            saldo_cashback: toNumber(raw.saldo_cashback),
+            limite_fiado_local: toNumber(raw.limite_fiado_local)
         };
     }
 
@@ -255,7 +258,10 @@
             plus_code: '',
             referencia_rural: '',
             maps_url_manual: '',
-            cliente_agro_pk: null
+            cliente_agro_pk: null,
+            saldo_vale_credito: 0,
+            saldo_cashback: 0,
+            limite_fiado_local: 0
         };
         notify();
     }

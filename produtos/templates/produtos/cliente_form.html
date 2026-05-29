@@ -46,6 +46,23 @@
           {% if form.cpf.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.cpf.errors.0 }}</p>{% endif %}
         </div>
       </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div>
+          <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.saldo_vale_credito.id_for_label }}">{{ form.saldo_vale_credito.label }}</label>
+          {{ form.saldo_vale_credito }}
+          {% if form.saldo_vale_credito.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.saldo_vale_credito.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.saldo_cashback.id_for_label }}">{{ form.saldo_cashback.label }}</label>
+          {{ form.saldo_cashback }}
+          {% if form.saldo_cashback.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.saldo_cashback.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.limite_fiado_local.id_for_label }}">{{ form.limite_fiado_local.label }}</label>
+          {{ form.limite_fiado_local }}
+          {% if form.limite_fiado_local.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.limite_fiado_local.errors.0 }}</p>{% endif %}
+        </div>
+      </div>
 
       <div class="border-t border-slate-100 pt-4">
         <h2 class="text-xs font-black uppercase text-slate-400 tracking-wider mb-3">Endereço</h2>

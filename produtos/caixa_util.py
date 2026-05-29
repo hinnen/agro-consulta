@@ -441,6 +441,26 @@ def vincular_sessao_caixa_browser(request, sessao) -> None:
     request.session.modified = True
 
 
+def qtd_caixas_abertos() -> int:
+    from produtos.models import SessaoCaixa
+
+    return SessaoCaixa.objects.filter(fechado_em__isnull=True).count()
+
+
+def obter_caixa_pai_aberto():
+    """
+    Caixa pai operacional da loja: primeiro turno aberto do dia/fluxo atual.
+    """
+    from produtos.models import SessaoCaixa
+
+    return (
+        SessaoCaixa.objects.filter(fechado_em__isnull=True)
+        .select_related("usuario")
+        .order_by("aberto_em")
+        .first()
+    )
+
+
 def resolver_sessao_caixa_operacao(
     request, data: dict | None = None, *, permitir_adotar_unico: bool = True
 ) -> tuple[Any | None, str | None, int]:

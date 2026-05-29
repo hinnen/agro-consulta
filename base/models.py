@@ -101,7 +101,7 @@ class IntegracaoERP(models.Model):
         "Plano de contas (pedido ERP)",
         max_length=300,
         blank=True,
-        help_text="Texto do plano em Pedidos/Salvar (ex.: 1.1.3 — Vendas SisVale). Vazio = usa VENDA_ERP_PEDIDO_PLANO_CONTA (settings/.env).",
+        help_text="Texto do plano em Pedidos/Salvar (ex.: Vendas Pdv ou 1.1.1 — Vendas Pdv). Vazio = usa VENDA_ERP_PEDIDO_PLANO_CONTA (settings/.env).",
     )
     pedido_plano_conta_id = models.CharField(
         "ID plano de contas (pedido ERP)",
