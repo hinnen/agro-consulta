@@ -141,9 +141,11 @@
         quickClientMeta: document.getElementById('pdv-quick-client-meta'),
         quickClientSearch: document.getElementById('pdv-quick-client-search'),
         quickClientResults: document.getElementById('pdv-quick-client-results'),
+        quickClientModal: document.getElementById('pdv-quick-client-modal'),
         quickClientPicker: document.getElementById('pdv-quick-client-picker'),
         quickClientPickerHint: document.getElementById('pdv-quick-client-picker-hint'),
-        quickClientPickerClose: document.getElementById('pdv-quick-client-picker-close'),
+        quickClientModalFechar: document.getElementById('pdv-quick-client-modal-fechar'),
+        quickClientCadastrar: document.getElementById('pdv-quick-client-cadastrar'),
         step1ClientBar: document.getElementById('pdv-step1-client-bar'),
         quickClientChange: document.getElementById('pdv-quick-client-change'),
         wizardCliRapidoModal: document.getElementById('pdv-wizard-cli-rapido-modal'),
@@ -2632,6 +2634,7 @@
         if (!dom.modalStart) return;
         dom.modalStart.classList.remove('hidden');
         dom.modalStart.classList.add('flex');
+        pdvEnsureModalOpenBody();
         setTimeout(function () {
             if (dom.startConsumidorFinal) dom.startConsumidorFinal.focus();
         }, 50);
@@ -2641,6 +2644,7 @@
         if (!dom.modalStart) return;
         dom.modalStart.classList.add('hidden');
         dom.modalStart.classList.remove('flex');
+        pdvTryRemoveModalOpenBody();
     }
 
     /** Nova venda: zera carrinho/cliente e reabre o pop-up inicial (consumidor / buscar cliente). */
@@ -2693,6 +2697,13 @@
         } catch (eM) {}
     }
 
+    function isQuickClientModalOpen() {
+        return !!(
+            dom.quickClientModal &&
+            !dom.quickClientModal.classList.contains('hidden')
+        );
+    }
+
     function pdvTryRemoveModalOpenBody() {
         var md1 = document.getElementById('modal-pdv-entrega-fluxo-1');
         var md2 = document.getElementById('modal-pdv-entrega-fluxo-2');
@@ -2702,8 +2713,14 @@
         var f1 = md1 && !md1.classList.contains('hidden');
         var f2 = md2 && !md2.classList.contains('hidden');
         var f3 = md3 && !md3.classList.contains('hidden');
+        var cliOpen = isQuickClientModalOpen();
+        var startOpen = dom.modalStart && !dom.modalStart.classList.contains('hidden');
+        var cadOpen =
+            dom.wizardCliRapidoModal && !dom.wizardCliRapidoModal.classList.contains('hidden');
         try {
-            if (!f1 && !f2 && !f3 && !meiOpen) document.body.classList.remove('modal-open');
+            if (!f1 && !f2 && !f3 && !meiOpen && !cliOpen && !startOpen && !cadOpen) {
+                document.body.classList.remove('modal-open');
+            }
         } catch (eM2) {}
     }
 
@@ -2786,16 +2803,21 @@
     }
 
     function setQuickClientPickerHighlight(on) {
-        if (dom.quickClientPicker) {
-            dom.quickClientPicker.classList.toggle('pdv-client-picker-active', !!on);
+        if (dom.quickClientModal) {
+            dom.quickClientModal.classList.toggle('pdv-client-modal-open', !!on);
         }
         if (dom.quickClientSearch) {
             dom.quickClientSearch.classList.toggle('pdv-client-search-hot', !!on);
             if (!on) dom.quickClientSearch.classList.remove('pdv-client-search-typed');
         }
-        if (dom.step1ClientBar) {
-            dom.step1ClientBar.classList.toggle('pdv-client-bar-awaiting', !!on);
-        }
+    }
+
+    function resetQuickClientResultsIdle() {
+        if (!dom.quickClientResults) return;
+        dom.quickClientResults.innerHTML =
+            '<p class="px-4 py-6 text-center text-sm font-bold text-slate-500">Digite pelo menos 2 letras para buscar.</p>';
+        delete dom.quickClientResults._clientes;
+        clientListSelectIdx = -1;
     }
 
     function focusQuickClientSearchField() {
@@ -2811,24 +2833,26 @@
     }
 
     function openQuickClientPicker() {
-        if (!dom.quickClientPicker) return;
+        if (!dom.quickClientModal || !dom.quickClientSearch) return;
         clientListSelectIdx = -1;
-        dom.quickClientPicker.classList.remove('hidden');
+        dom.quickClientSearch.value = '';
+        resetQuickClientResultsIdle();
+        dom.quickClientModal.classList.remove('hidden');
+        dom.quickClientModal.classList.add('flex');
+        pdvEnsureModalOpenBody();
         setQuickClientPickerHighlight(true);
-        try {
-            dom.quickClientPicker.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        } catch (e) { /* ignore */ }
         window.setTimeout(focusQuickClientSearchField, 40);
         window.setTimeout(focusQuickClientSearchField, 180);
     }
 
     function closeQuickClientPicker() {
-        if (!dom.quickClientPicker) return;
-        dom.quickClientPicker.classList.add('hidden');
+        if (!dom.quickClientModal) return;
+        dom.quickClientModal.classList.add('hidden');
+        dom.quickClientModal.classList.remove('flex');
         setQuickClientPickerHighlight(false);
-        if (dom.quickClientResults) dom.quickClientResults.classList.add('hidden');
-        dom.quickClientSearch.value = '';
+        if (dom.quickClientSearch) dom.quickClientSearch.value = '';
         clientListSelectIdx = -1;
+        pdvTryRemoveModalOpenBody();
         focusProductSearch();
     }
 
@@ -2869,6 +2893,10 @@
         dom.wizardCliRapidoModal.classList.add('hidden');
         dom.wizardCliRapidoModal.classList.remove('flex');
         clearWizardQuickClientCadastroForm();
+        pdvTryRemoveModalOpenBody();
+        if (isQuickClientModalOpen()) {
+            window.setTimeout(focusQuickClientSearchField, 60);
+        }
     }
 
     function openWizardQuickClientCadastro(prefillNome) {
@@ -2888,6 +2916,7 @@
         }
         dom.wizardCliRapidoModal.classList.remove('hidden');
         dom.wizardCliRapidoModal.classList.add('flex');
+        pdvEnsureModalOpenBody();
         setTimeout(function () {
             if (dom.wizardCliRapidoNome && dom.wizardCliRapidoNome.value) {
                 dom.wizardCliRapidoWhatsapp.focus();
@@ -3128,10 +3157,7 @@
         var query = String(term || '').trim();
         lastClientSearchQuery = query;
         if (query.length < 2) {
-            dom.quickClientResults.innerHTML = '';
-            dom.quickClientResults.classList.add('hidden');
-            delete dom.quickClientResults._clientes;
-            clientListSelectIdx = -1;
+            resetQuickClientResultsIdle();
             return;
         }
         var seq = ++clientSearchSeq;
@@ -3142,10 +3168,7 @@
                 var clientes = data.clientes || [];
                 if (!clientes.length) {
                     dom.quickClientResults.innerHTML =
-                        '<div class="px-3 py-4 text-center">' +
-                        '<p class="text-sm font-bold text-slate-500">Nenhum cliente encontrado.</p>' +
-                        '<button type="button" data-wizard-cadastrar-cliente class="mt-3 w-full rounded-xl bg-emerald-600 py-3 text-sm font-black uppercase text-white shadow-md hover:bg-emerald-700">Cadastrar cliente</button>' +
-                        '</div>';
+                        '<p class="px-4 py-6 text-center text-sm font-bold text-slate-500">Nenhum cliente encontrado para este termo.</p>';
                     dom.quickClientResults.classList.remove('hidden');
                     delete dom.quickClientResults._clientes;
                     clientListSelectIdx = -1;
@@ -4908,8 +4931,18 @@
             });
         }
 
-        if (dom.quickClientPickerClose) {
-            dom.quickClientPickerClose.addEventListener('click', closeQuickClientPicker);
+        if (dom.quickClientModalFechar) {
+            dom.quickClientModalFechar.addEventListener('click', closeQuickClientPicker);
+        }
+        if (dom.quickClientModal) {
+            dom.quickClientModal.addEventListener('click', function (event) {
+                if (event.target === dom.quickClientModal) closeQuickClientPicker();
+            });
+        }
+        if (dom.quickClientCadastrar) {
+            dom.quickClientCadastrar.addEventListener('click', function () {
+                openWizardQuickClientCadastro();
+            });
         }
 
         if (dom.wizardCliRapidoSalvar) {
@@ -5855,12 +5888,20 @@
                     closeClienteEditModal();
                     return;
                 }
+                if (
+                    dom.wizardCliRapidoModal &&
+                    !dom.wizardCliRapidoModal.classList.contains('hidden')
+                ) {
+                    event.preventDefault();
+                    closeWizardQuickClientCadastro();
+                    return;
+                }
                 if (dom.budgetHistoryModal && !dom.budgetHistoryModal.classList.contains('hidden')) {
                     event.preventDefault();
                     closeBudgetHistory();
                     return;
                 }
-                if (dom.quickClientPicker && !dom.quickClientPicker.classList.contains('hidden')) {
+                if (isQuickClientModalOpen()) {
                     event.preventDefault();
                     closeQuickClientPicker();
                     return;
@@ -5894,7 +5935,7 @@
                 !isPaymentFormaModalOpen() &&
                 !startModalOpen
             ) {
-                var pickerOpen = dom.quickClientPicker && !dom.quickClientPicker.classList.contains('hidden');
+                var pickerOpen = isQuickClientModalOpen();
                 if (event.code === 'F2' && !event.altKey && !event.ctrlKey && !event.metaKey) {
                     event.preventDefault();
                     focusProductSearch();

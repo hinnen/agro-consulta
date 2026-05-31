@@ -25,25 +25,7 @@
     </button>
   </div>
 
-  <div id="pdv-quick-client-picker" class="relative z-[200] mx-0 hidden rounded-[1.25rem] border-2 border-slate-200 bg-white p-3 shadow-lg" role="region" aria-label="Buscar cliente">
-    <p id="pdv-quick-client-picker-hint" class="mb-2 hidden rounded-xl border-2 border-sky-500 bg-sky-600 px-3 py-2 text-center text-[clamp(0.85rem,0.4vw+0.8rem,1.05rem)] font-black uppercase tracking-wide text-white shadow-sm" aria-live="polite">
-      Digite aqui — nome, documento ou telefone
-    </p>
-    <div class="relative">
-      <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
-        <label id="pdv-quick-client-search-label" class="mb-1 block text-[11px] font-black uppercase tracking-wide text-sky-800 md:sr-only" for="pdv-quick-client-search">Buscar cliente</label>
-        <input id="pdv-quick-client-search" type="text" class="pdv-input pdv-client-search-input" placeholder="Nome, documento ou telefone" autocomplete="off" aria-labelledby="pdv-quick-client-search-label pdv-quick-client-picker-hint" title="Campo ativo — digite para buscar · ↑↓ Enter · Esc fecha">
-        <button type="button" id="pdv-quick-client-picker-close" class="pdv-action-btn border-2 border-slate-300 bg-white px-3 py-2.5 text-[11px] text-slate-700 min-h-[3.35rem]" title="Fechar · Esc">Fechar</button>
-      </div>
-      <p id="pdv-quick-client-meta" class="sr-only">Resultados da busca de cliente.</p>
-      <div
-        id="pdv-quick-client-results"
-        class="absolute left-0 right-0 top-full z-[210] mt-1 hidden max-h-[min(50vh,20rem)] overflow-y-auto rounded-2xl border-2 border-slate-200 bg-white p-1 shadow-[0_20px_50px_rgba(15,23,42,0.2)]"
-        role="listbox"
-        aria-label="Clientes encontrados"
-      ></div>
-    </div>
-  </div>
+  <p id="pdv-quick-client-meta" class="sr-only">Resultados da busca de cliente.</p>
 
   <div id="pdv-step1-layout" class="grid min-h-0 flex-1 gap-1.5 xl:grid-cols-[minmax(0,1fr)_18rem]">
     <div class="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[1.15rem] border border-slate-200 bg-white shadow-sm">
