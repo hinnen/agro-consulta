@@ -390,31 +390,47 @@ def adotar_sessao_caixa_unica_aberta(request):
     """
     Quando há um único caixa aberto (ou um do usuário logado), associa ao navegador.
     Evita vendas «sem caixa» quando o turno está aberto mas o cookie de sessão não foi setado.
+    Nunca mistura Caixa Teste com Gaveta/Notebook: adoção respeita o ponto do navegador ou só
+    um turno aberto no sistema.
     """
     from produtos.models import SessaoCaixa
 
     atual = obter_sessao_caixa_aberta_request(request)
     if atual:
         return atual
+    ponto_nav = ponto_operacao_browser(request)
     qs = SessaoCaixa.objects.filter(fechado_em__isnull=True).order_by("-aberto_em")
+    if ponto_nav == PONTO_CAIXA_TESTE:
+        qs = qs.filter(ponto_caixa=PONTO_CAIXA_TESTE)
+    elif ponto_nav in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_NOTEBOOK):
+        qs = qs.filter(ponto_caixa=PONTO_CAIXA_GAVETA)
+    else:
+        qs_op = qs.filter(ponto_caixa=PONTO_CAIXA_GAVETA)
+        qs_te = qs.filter(ponto_caixa=PONTO_CAIXA_TESTE)
+        if qs_op.count() == 1 and qs_te.count() == 0:
+            qs = qs_op
+        elif qs_te.count() == 1 and qs_op.count() == 0:
+            qs = qs_te
+        elif qs.count() != 1:
+            return None
     usuario = getattr(request, "user", None)
     if usuario is not None and getattr(usuario, "is_authenticated", False):
         su = qs.filter(usuario=usuario).first()
         if su:
-            definir_ponto_operacao_browser(
-                request,
-                getattr(su, "ponto_caixa", PONTO_CAIXA_GAVETA),
-                su.pk,
-            )
+            ponto = getattr(su, "ponto_caixa", PONTO_CAIXA_GAVETA)
+            if ponto_nav == PONTO_CAIXA_NOTEBOOK and sessao_caixa_e_operacional(su):
+                definir_ponto_operacao_browser(request, PONTO_CAIXA_NOTEBOOK, su.pk)
+            else:
+                definir_ponto_operacao_browser(request, ponto, su.pk)
             return su
     if qs.count() == 1:
         s = qs.first()
         if s:
-            definir_ponto_operacao_browser(
-                request,
-                getattr(s, "ponto_caixa", PONTO_CAIXA_GAVETA),
-                s.pk,
-            )
+            ponto = getattr(s, "ponto_caixa", PONTO_CAIXA_GAVETA)
+            if ponto_nav == PONTO_CAIXA_NOTEBOOK and sessao_caixa_e_operacional(s):
+                definir_ponto_operacao_browser(request, PONTO_CAIXA_NOTEBOOK, s.pk)
+            else:
+                definir_ponto_operacao_browser(request, ponto, s.pk)
             return s
     return None
 
@@ -554,6 +570,39 @@ def obter_caixa_teste_aberto():
         .order_by("aberto_em")
         .first()
     )
+
+
+def sessao_caixa_e_operacional(sessao) -> bool:
+    """Turno da loja (gaveta; notebook usa o PK da gaveta no navegador)."""
+    return normalizar_ponto_caixa(getattr(sessao, "ponto_caixa", None)) != PONTO_CAIXA_TESTE
+
+
+def sessao_caixa_e_teste(sessao) -> bool:
+    return normalizar_ponto_caixa(getattr(sessao, "ponto_caixa", None)) == PONTO_CAIXA_TESTE
+
+
+def filtrar_sessoes_operacional(sessoes) -> list:
+    return [s for s in sessoes if sessao_caixa_e_operacional(s)]
+
+
+def filtrar_sessoes_teste(sessoes) -> list:
+    return [s for s in sessoes if sessao_caixa_e_teste(s)]
+
+
+def qtd_caixas_operacional_abertos() -> int:
+    from produtos.models import SessaoCaixa
+
+    return SessaoCaixa.objects.filter(
+        fechado_em__isnull=True, ponto_caixa=PONTO_CAIXA_GAVETA
+    ).count()
+
+
+def qtd_caixas_teste_abertos() -> int:
+    from produtos.models import SessaoCaixa
+
+    return SessaoCaixa.objects.filter(
+        fechado_em__isnull=True, ponto_caixa=PONTO_CAIXA_TESTE
+    ).count()
 
 
 def obter_caixa_pai_aberto():
@@ -794,12 +843,15 @@ def extrair_linhas_conferencia_sessao(sessao) -> list[dict[str, Any]]:
     return linhas
 
 
-def ultimo_fechamento_sugestao_abertura() -> dict[str, Any] | None:
-    """Último caixa fechado: dinheiro contado na gaveta (sugestão de fundo na próxima abertura)."""
+def ultimo_fechamento_sugestao_abertura(
+    *, ponto: str | None = PONTO_CAIXA_GAVETA
+) -> dict[str, Any] | None:
+    """Último caixa fechado do ponto: dinheiro contado (sugestão de fundo na próxima abertura)."""
     from produtos.models import SessaoCaixa
 
+    p = normalizar_ponto_caixa(ponto)
     s = (
-        SessaoCaixa.objects.filter(fechado_em__isnull=False)
+        SessaoCaixa.objects.filter(fechado_em__isnull=False, ponto_caixa=p)
         .select_related("usuario")
         .order_by("-fechado_em")
         .first()

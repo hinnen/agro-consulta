@@ -60,7 +60,10 @@
     <div class="caixa-shell px-3 sm:px-5 py-2 sm:py-2.5 flex flex-wrap justify-between items-center gap-2">
       <div>
         <h1 class="text-[clamp(1.15rem,0.9vw+1rem,1.6rem)] font-black uppercase text-slate-900 leading-tight">Fechar caixa</h1>
-        <p class="text-sm font-bold text-slate-500">{{ qtd_caixas }} caixa(s) aberto(s)</p>
+        <p class="text-sm font-bold text-slate-500">
+          Loja: {{ qtd_caixas_operacional }} aberto(s)
+          {% if qtd_caixas_teste %} · Teste: {{ qtd_caixas_teste }} (fechar à direita){% endif %}
+        </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">Painel</a>
@@ -88,7 +91,16 @@
       <a href="{{ pdv_url }}" class="mt-3 inline-flex min-h-[44px] items-center rounded-xl border-2 border-orange-400 bg-orange-500 px-4 text-xs font-black uppercase text-white hover:bg-orange-600">Abrir PDV · Entregas</a>
     </div>
     {% endif %}
-    <form method="post" id="form-fechar-todos" class="min-h-0 flex flex-col rounded-2xl border-2 {% if fechar_bloqueado %}border-slate-300 opacity-60 pointer-events-none{% else %}border-emerald-500{% endif %} bg-white shadow-md overflow-hidden" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();"{% if fechar_bloqueado %} aria-disabled="true"{% endif %}{% if qtd_caixas > 1 or not sessao_local %} data-caixa-precisa-pin="1"{% endif %}>
+    {% if not tem_caixa_operacional %}
+    <div class="min-h-0 flex flex-col rounded-2xl border-2 border-violet-300 bg-violet-50/40 p-4 sm:p-5 shadow-sm">
+      <p class="text-sm font-black uppercase text-violet-900">Sem caixa da loja aberto</p>
+      <p class="mt-2 text-sm font-semibold text-violet-950/90">
+        O fechamento em lote é só para <strong>Gaveta</strong> (notebooks no mesmo turno).
+        {% if qtd_caixas_teste %}Use <strong>Fechar só este</strong> no painel lateral para o Caixa Teste.{% endif %}
+      </p>
+    </div>
+    {% else %}
+    <form method="post" id="form-fechar-todos" class="min-h-0 flex flex-col rounded-2xl border-2 {% if fechar_bloqueado %}border-slate-300 opacity-60 pointer-events-none{% else %}border-emerald-500{% endif %} bg-white shadow-md overflow-hidden" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();"{% if fechar_bloqueado %} aria-disabled="true"{% endif %}{% if qtd_caixas_operacional > 1 or not sessao_local %} data-caixa-precisa-pin="1"{% endif %}>
       {% csrf_token %}
       <input type="hidden" name="acao" value="fechar_todos">
       <input type="hidden" name="pin" value="" class="caixa-pin-hidden">
@@ -97,7 +109,7 @@
         <div class="min-w-0 flex-1">
           <p class="text-[11px] sm:text-xs font-black uppercase tracking-wide text-emerald-100">Fechamento do turno — principal</p>
           <h2 class="text-[clamp(1rem,0.6vw+0.95rem,1.35rem)] font-black leading-snug">Conferência por forma de pagamento</h2>
-          <p class="text-xs sm:text-sm font-semibold text-emerald-50/95 hidden sm:block">Soma de todos os caixas abertos.</p>
+          <p class="text-xs sm:text-sm font-semibold text-emerald-50/95 hidden sm:block">Soma da gaveta (notebooks no mesmo turno). Teste não entra aqui.</p>
         </div>
         <details class="cf-help shrink-0 rounded-xl border-2 border-emerald-400/60 bg-emerald-700/40 text-left">
           <summary class="cursor-pointer list-none flex items-center gap-2 px-2.5 py-2 min-h-[44px] text-xs font-black uppercase hover:bg-emerald-700/50 select-none" title="Como conferir">
@@ -105,7 +117,7 @@
             <span class="hidden sm:inline">Ajuda</span>
           </summary>
           <div class="absolute z-30 mt-1 right-3 sm:right-5 max-w-md rounded-xl border-2 border-emerald-500 bg-emerald-800 px-4 py-3 text-sm font-semibold leading-relaxed text-emerald-50 shadow-xl">
-            <p>Some tudo que está nos <strong>{{ qtd_caixas }}</strong> caixa(s) aberto(s), conte na gaveta e nas maquininhas e informe o <strong>total por forma</strong>.</p>
+            <p>Some o turno da <strong>loja</strong> ({{ qtd_caixas_operacional }} caixa gaveta{% if qtd_caixas_operacional > 1 %}s{% endif %}), conte na gaveta e nas maquininhas e informe o <strong>total por forma</strong>. Caixa Teste é fechado à parte.</p>
             <p class="mt-2 text-emerald-100/90">Em <strong>Dinheiro</strong>, o esperado inclui fundo de abertura + vendas + reforços − retiradas.</p>
           </div>
         </details>
@@ -205,21 +217,22 @@
             <textarea name="observacao_fechamento" rows="1" class="mt-1 w-full min-h-[44px] max-h-[4.5rem] rounded-xl border-2 border-slate-200 px-3 py-2 font-bold text-sm focus:border-emerald-500 outline-none resize-none"></textarea>
           </label>
           <button type="submit" class="w-full min-h-[54px] py-2.5 rounded-xl bg-emerald-600 text-white font-black uppercase text-sm sm:text-base tracking-wide hover:bg-emerald-700 shadow-lg">
-            Confirmar fechamento de {{ qtd_caixas }} caixa(s)
+            Confirmar fechamento da loja ({{ qtd_caixas_operacional }})
           </button>
         </div>
         </div>
       </div>
     </form>
+    {% endif %}
 
     <aside class="min-h-0 flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden max-h-[36vh] lg:max-h-none lg:flex-1{% if fechar_bloqueado %} opacity-50 pointer-events-none{% endif %}">
       <div class="shrink-0 px-3 sm:px-4 py-2.5 border-b border-slate-100 bg-slate-50/80">
         <h2 class="text-sm sm:text-base font-black uppercase text-slate-700">Caixas individuais</h2>
-        <p class="text-xs font-semibold text-slate-500">{{ qtd_caixas }} aberto(s) · fechar um separado</p>
+        <p class="text-xs font-semibold text-slate-500">{{ qtd_caixas }} aberto(s) · loja e teste separados</p>
       </div>
       <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 sm:px-4 py-2 space-y-2">
           {% for card in sessoes_abertas %}
-          <details class="rounded-xl border {% if sessao_local and sessao_local.pk == card.sessao.pk %}border-emerald-300 bg-emerald-50/30{% else %}border-slate-200 bg-slate-50/50{% endif %} overflow-hidden">
+          <details class="rounded-xl border {% if card.ponto_caixa == 'teste' %}border-violet-300 bg-violet-50/30{% elif sessao_local and sessao_local.pk == card.sessao.pk %}border-emerald-300 bg-emerald-50/30{% else %}border-slate-200 bg-slate-50/50{% endif %} overflow-hidden">
             <summary class="cursor-pointer list-none px-3 py-2 flex flex-wrap items-center justify-between gap-1 hover:bg-white/60 select-none">
               <div class="min-w-0">
                 <span class="text-sm font-black text-slate-900">{{ card.ponto_label|default:"Caixa" }} #{{ card.sessao.pk }}</span>
@@ -525,6 +538,9 @@
   var popupTitle = document.getElementById('cf-popup-title');
   var popupFechar = document.getElementById('cf-popup-fechar');
   var conferenciaEstadoUrl = '{{ api_conferencia_estado_url|escapejs }}';
+  if (conferenciaEstadoUrl) {
+    conferenciaEstadoUrl += (conferenciaEstadoUrl.indexOf('?') >= 0 ? '&' : '?') + 'escopo=operacional';
+  }
   var popupRefreshOnClose = false;
   var conferenciaRefreshTimer = null;
 
