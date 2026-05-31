@@ -8,7 +8,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   {% include "produtos/_agro_consulta_ui.html" %}
-  <style>body { font-family: 'Inter', sans-serif; min-height: 100dvh; max-height: 100dvh; }</style>
+  <style>
+    body { font-family: 'Inter', sans-serif; min-height: 100dvh; max-height: 100dvh; }
+    .caixa-ponto-card { transition: border-color .15s ease, box-shadow .15s ease, background .15s ease; }
+    .caixa-ponto-card.is-selected { box-shadow: 0 12px 32px rgba(16, 185, 129, 0.22); }
+    .caixa-ponto-panel[hidden] { display: none !important; }
+  </style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
 {% include "produtos/_gm_loading_bar.html" %}
@@ -21,47 +26,44 @@
       </div>
     </div>
   </header>
-  <main class="max-w-lg mx-auto px-4 py-4 flex-1 min-h-0 overflow-y-auto w-full">
-    {% if caixa_pai_aberto %}
-    <section class="mb-4 rounded-2xl border-2 border-emerald-400 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm">
-      <div class="flex items-start justify-between gap-2">
-        <div>
-          <p class="text-[10px] font-black uppercase text-emerald-800">Padrão da loja</p>
-          <p class="mt-1 text-sm font-bold text-emerald-950 leading-snug">
-            Vincular este computador ao <strong>Caixa #{{ caixa_pai_aberto.pk }}</strong>.
-          </p>
-          <p class="text-xs font-semibold text-emerald-900/80 mt-1">
-            Aberto em {{ caixa_pai_aberto.aberto_em|date:"d/m/Y H:i" }} · {{ caixa_pai_usuario }}
-          </p>
-          <p class="text-[11px] font-bold text-emerald-900/80 mt-1">Caixas abertos agora: {{ qtd_caixas_abertos }}/{{ max_caixas_abertos }}</p>
-        </div>
-        <details class="shrink-0 rounded-xl border border-emerald-300 bg-white">
-          <summary class="cursor-pointer list-none px-2.5 py-2 text-[10px] font-black uppercase text-emerald-900 select-none">?</summary>
-          <div class="px-3 pb-3 text-xs font-semibold text-slate-700 max-w-xs">
-            <p>Operação da loja com vários PCs:</p>
-            <p class="mt-1">- Padrão: entrar no caixa pai.</p>
-            <p>- Opcional: abrir caixa próprio.</p>
-            <p>- Fechar o caixa pai encerra ele para todos os PCs vinculados.</p>
-          </div>
-        </details>
-      </div>
-      <form method="post" class="mt-3 space-y-2" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
-        {% csrf_token %}
-        <input type="hidden" name="acao" value="vincular_pai">
-        <input type="hidden" name="sessao_pai_id" value="{{ caixa_pai_aberto.pk }}">
-        <label class="block">
-          <span class="text-[10px] font-black uppercase text-slate-600">PIN para vincular</span>
-          <input type="password" name="pin_vincular" inputmode="numeric" autocomplete="one-time-code" required class="mt-1 w-full min-h-[46px] rounded-xl border-2 border-emerald-300 bg-white px-3 text-base font-black tracking-widest" placeholder="••••">
+  <main class="max-w-lg mx-auto px-4 py-4 flex-1 min-h-0 overflow-y-auto w-full space-y-4">
+    <section class="rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-sm">
+      <p class="text-[10px] font-black uppercase text-slate-500">Passo 1 — escolha o caixa</p>
+      <p class="mt-1 text-sm font-bold text-slate-800 leading-snug">
+        A <strong>gaveta</strong> é o caixa principal da loja e precisa abrir primeiro. O <strong>notebook</strong> entra no mesmo turno da gaveta.
+      </p>
+      <p class="mt-1 text-[11px] font-bold text-slate-500">Caixas abertos agora: {{ qtd_caixas_abertos }}/{{ max_caixas_abertos }}</p>
+
+      <div class="mt-3 grid gap-2" role="radiogroup" aria-label="Tipo de caixa">
+        <label class="caixa-ponto-card block rounded-2xl border-2 px-3 py-3 cursor-pointer {% if pode_abrir_gaveta %}border-emerald-300 bg-emerald-50/50 hover:border-emerald-500{% else %}border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed{% endif %}">
+          <input type="radio" name="ponto_caixa_ui" value="gaveta" class="sr-only" {% if pode_abrir_gaveta %}checked{% endif %} {% if not pode_abrir_gaveta %}disabled{% endif %}>
+          <span class="block text-base font-black text-slate-900">Caixa Gaveta</span>
+          <span class="block text-xs font-semibold text-slate-600 mt-0.5">Principal · fundo de troco na gaveta</span>
+          {% if gaveta_aberta %}
+          <span class="mt-1 block text-[11px] font-black uppercase text-emerald-800">Aberto · #{{ gaveta_aberta.pk }} · {{ gaveta_usuario }}</span>
+          {% endif %}
         </label>
-        <button type="submit" class="w-full min-h-[50px] rounded-xl bg-emerald-600 text-white font-black uppercase text-sm hover:bg-emerald-700 shadow-md">
-          Entrar no Caixa #{{ caixa_pai_aberto.pk }} (padrão)
-        </button>
-      </form>
+        <label class="caixa-ponto-card block rounded-2xl border-2 px-3 py-3 cursor-pointer {% if pode_abrir_notebook %}border-sky-300 bg-sky-50/50 hover:border-sky-500{% else %}border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed{% endif %}">
+          <input type="radio" name="ponto_caixa_ui" value="notebook" class="sr-only" {% if not pode_abrir_gaveta and pode_abrir_notebook %}checked{% endif %} {% if not pode_abrir_notebook %}disabled{% endif %}>
+          <span class="block text-base font-black text-slate-900">Caixa Notebook</span>
+          <span class="block text-xs font-semibold text-slate-600 mt-0.5">Vincula a este PC ao turno da gaveta (PIN)</span>
+          {% if not pode_abrir_notebook %}
+          <span class="mt-1 block text-[11px] font-black uppercase text-amber-800">Abra a gaveta antes</span>
+          {% endif %}
+        </label>
+        <label class="caixa-ponto-card block rounded-2xl border-2 px-3 py-3 cursor-pointer {% if pode_abrir_teste %}border-violet-300 bg-violet-50/50 hover:border-violet-500{% else %}border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed{% endif %}">
+          <input type="radio" name="ponto_caixa_ui" value="teste" class="sr-only" {% if not pode_abrir_gaveta and not pode_abrir_notebook and pode_abrir_teste %}checked{% endif %} {% if not pode_abrir_teste %}disabled{% endif %}>
+          <span class="block text-base font-black text-slate-900">Caixa Teste</span>
+          <span class="block text-xs font-semibold text-slate-600 mt-0.5">Turno separado para treino / homologação</span>
+          {% if teste_aberto %}
+          <span class="mt-1 block text-[11px] font-black uppercase text-violet-800">Teste aberto · #{{ teste_aberto.pk }}</span>
+          {% endif %}
+        </label>
+      </div>
     </section>
-    {% endif %}
 
     {% if sugestao_fechamento %}
-    <section class="mb-4 rounded-2xl border-2 border-sky-400 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm">
+    <section class="rounded-2xl border-2 border-sky-400 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm caixa-ponto-panel" data-ponto-panel="gaveta teste">
       <p class="text-[10px] font-black uppercase text-sky-800">Sugestão do último fechamento</p>
       <p class="mt-1 text-sm font-bold text-sky-950 leading-snug">
         Caixa <strong>#{{ sugestao_fechamento.sessao_pk }}</strong>
@@ -72,14 +74,32 @@
         Dinheiro contado: R$ {{ sugestao_fechamento.dinheiro_contado_br }}
       </p>
       <p class="mt-2 text-xs font-semibold text-sky-900/80">
-        O campo abaixo já vem com esse valor — confira na gaveta e ajuste se precisar antes de confirmar.
+        O campo de abertura já vem com esse valor — confira na gaveta e ajuste se precisar.
       </p>
     </section>
     {% endif %}
 
-    <form method="post" class="space-y-4 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
+    <form method="post" id="form-caixa-notebook" class="caixa-ponto-panel space-y-3 rounded-2xl border-2 border-sky-400 bg-gradient-to-br from-sky-50 to-white p-4 shadow-sm" data-ponto-panel="notebook"{% if not pode_abrir_notebook %} hidden{% endif %} onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
       {% csrf_token %}
-      <input type="hidden" name="acao" value="abrir_proprio">
+      <input type="hidden" name="ponto_caixa" value="notebook">
+      <p class="text-[10px] font-black uppercase text-sky-800">Passo 2 — notebook</p>
+      <p class="text-sm font-bold text-sky-950 leading-snug">
+        Este computador usará o turno da <strong>Gaveta #{{ gaveta_aberta.pk }}</strong>
+        {% if gaveta_usuario %}· {{ gaveta_usuario }}{% endif %}.
+      </p>
+      <label class="block">
+        <span class="text-[10px] font-black uppercase text-slate-600">PIN para vincular</span>
+        <input type="password" name="pin_vincular" inputmode="numeric" autocomplete="one-time-code" required class="mt-1 w-full min-h-[50px] rounded-xl border-2 border-sky-400 bg-white px-3 text-base font-black tracking-widest" placeholder="••••">
+      </label>
+      <button type="submit" class="w-full min-h-[54px] rounded-xl bg-sky-600 text-white font-black uppercase text-sm hover:bg-sky-700 shadow-md">
+        Entrar no Caixa Notebook (gaveta #{{ gaveta_aberta.pk }})
+      </button>
+    </form>
+
+    <form method="post" id="form-caixa-abertura" class="caixa-ponto-panel space-y-4 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm" data-ponto-panel="gaveta teste" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
+      {% csrf_token %}
+      <input type="hidden" name="ponto_caixa" id="ponto_caixa_post" value="{% if pode_abrir_gaveta %}gaveta{% elif pode_abrir_teste %}teste{% else %}gaveta{% endif %}">
+      <p class="text-[10px] font-black uppercase text-slate-500" id="caixa-abertura-titulo">Passo 2 — abrir gaveta</p>
       <div>
         <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="valor_abertura">Valor em gaveta (fundo de troco)</label>
         <input type="text" name="valor_abertura" id="valor_abertura" value="{% if sugestao_fechamento %}{{ sugestao_fechamento.dinheiro_contado_br }}{% else %}0{% endif %}" inputmode="decimal" class="w-full rounded-xl border-2 border-emerald-300 bg-emerald-50/40 px-4 py-3 font-black text-[clamp(1.25rem,1vw+1rem,1.6rem)] tabular-nums" placeholder="0,00" autocomplete="off">
@@ -88,11 +108,65 @@
         <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="observacao_abertura">Observação (opcional)</label>
         <textarea name="observacao_abertura" id="observacao_abertura" rows="2" class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm"></textarea>
       </div>
-      <p class="text-[10px] text-slate-400 leading-snug">As vendas deste navegador ficam vinculadas a esta sessão enquanto o caixa estiver aberto.</p>
-      <button type="submit" class="w-full min-h-[56px] py-3.5 rounded-xl bg-emerald-600 text-white font-black uppercase text-sm hover:bg-emerald-700 shadow-md">Abrir caixa próprio neste computador</button>
+      <p class="text-[10px] text-slate-400 leading-snug" id="caixa-abertura-ajuda">As vendas deste navegador ficam neste turno enquanto o caixa estiver aberto.</p>
+      <button type="submit" id="btn-caixa-abrir" class="w-full min-h-[56px] py-3.5 rounded-xl bg-emerald-600 text-white font-black uppercase text-sm hover:bg-emerald-700 shadow-md">
+        Abrir Caixa Gaveta
+      </button>
     </form>
   </main>
 {% include "produtos/_atalho_voltar_pdv.html" %}
 {% include "produtos/_agro_double_submit_guard.html" %}
+<script>
+(function () {
+  var radios = document.querySelectorAll('input[name="ponto_caixa_ui"]');
+  var postPonto = document.getElementById('ponto_caixa_post');
+  var panels = document.querySelectorAll('[data-ponto-panel]');
+  var formAbrir = document.getElementById('form-caixa-abertura');
+  var formNotebook = document.getElementById('form-caixa-notebook');
+  var titulo = document.getElementById('caixa-abertura-titulo');
+  var btnAbrir = document.getElementById('btn-caixa-abrir');
+  var ajuda = document.getElementById('caixa-abertura-ajuda');
+  var cards = document.querySelectorAll('.caixa-ponto-card');
+
+  function pontoAtivo() {
+    var r = document.querySelector('input[name="ponto_caixa_ui"]:checked');
+    return r ? r.value : 'gaveta';
+  }
+
+  function syncUi() {
+    var p = pontoAtivo();
+    if (postPonto) postPonto.value = p;
+    cards.forEach(function (card) {
+      var inp = card.querySelector('input[type="radio"]');
+      card.classList.toggle('is-selected', !!(inp && inp.checked));
+      if (inp && inp.checked) {
+        card.classList.add('border-emerald-500', 'bg-emerald-50');
+      } else if (inp && !inp.disabled) {
+        card.classList.remove('border-emerald-500', 'bg-emerald-50');
+      }
+    });
+    panels.forEach(function (el) {
+      var allowed = (el.getAttribute('data-ponto-panel') || '').split(/\s+/);
+      el.hidden = allowed.indexOf(p) < 0;
+    });
+    if (formAbrir) formAbrir.hidden = p === 'notebook';
+    if (formNotebook) formNotebook.hidden = p !== 'notebook';
+    if (p === 'teste') {
+      if (titulo) titulo.textContent = 'Passo 2 — abrir teste';
+      if (btnAbrir) btnAbrir.textContent = 'Abrir Caixa Teste';
+      if (ajuda) ajuda.textContent = 'Turno de teste separado da operação da loja.';
+    } else if (p === 'gaveta') {
+      if (titulo) titulo.textContent = 'Passo 2 — abrir gaveta';
+      if (btnAbrir) btnAbrir.textContent = 'Abrir Caixa Gaveta';
+      if (ajuda) ajuda.textContent = 'Caixa principal da loja — abra antes dos notebooks.';
+    }
+  }
+
+  radios.forEach(function (r) {
+    r.addEventListener('change', syncUi);
+  });
+  syncUi();
+})();
+</script>
 </body>
 </html>

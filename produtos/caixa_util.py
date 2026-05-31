@@ -360,6 +360,8 @@ def montar_cards_caixas_abertos(sessoes) -> list[dict[str, Any]]:
         cards.append(
             {
                 "sessao": s,
+                "ponto_caixa": getattr(s, "ponto_caixa", PONTO_CAIXA_GAVETA),
+                "ponto_label": rotulo_ponto_caixa(getattr(s, "ponto_caixa", PONTO_CAIXA_GAVETA)),
                 "usuario": usuario_label_sessao_caixa(s),
                 "qtd_vendas": qtd,
                 "total_vendas": str(tot),
@@ -399,14 +401,20 @@ def adotar_sessao_caixa_unica_aberta(request):
     if usuario is not None and getattr(usuario, "is_authenticated", False):
         su = qs.filter(usuario=usuario).first()
         if su:
-            request.session["pdv_sessao_caixa_id"] = su.pk
-            request.session.modified = True
+            definir_ponto_operacao_browser(
+                request,
+                getattr(su, "ponto_caixa", PONTO_CAIXA_GAVETA),
+                su.pk,
+            )
             return su
     if qs.count() == 1:
         s = qs.first()
         if s:
-            request.session["pdv_sessao_caixa_id"] = s.pk
-            request.session.modified = True
+            definir_ponto_operacao_browser(
+                request,
+                getattr(s, "ponto_caixa", PONTO_CAIXA_GAVETA),
+                s.pk,
+            )
             return s
     return None
 
@@ -481,9 +489,9 @@ def obter_sessao_caixa_aberta_por_id(sessao_id) -> Any | None:
     return SessaoCaixa.objects.filter(pk=sid, fechado_em__isnull=True).first()
 
 
-def vincular_sessao_caixa_browser(request, sessao) -> None:
-    request.session["pdv_sessao_caixa_id"] = int(sessao.pk)
-    request.session.modified = True
+def vincular_sessao_caixa_browser(request, sessao, *, ponto: str | None = None) -> None:
+    p = normalizar_ponto_caixa(ponto or getattr(sessao, "ponto_caixa", PONTO_CAIXA_GAVETA))
+    definir_ponto_operacao_browser(request, p, int(sessao.pk))
 
 
 def qtd_caixas_abertos() -> int:
@@ -492,18 +500,103 @@ def qtd_caixas_abertos() -> int:
     return SessaoCaixa.objects.filter(fechado_em__isnull=True).count()
 
 
-def obter_caixa_pai_aberto():
-    """
-    Caixa pai operacional da loja: primeiro turno aberto do dia/fluxo atual.
-    """
+PONTO_CAIXA_GAVETA = "gaveta"
+PONTO_CAIXA_NOTEBOOK = "notebook"
+PONTO_CAIXA_TESTE = "teste"
+
+PONTOS_CAIXA_ABERTURA: tuple[tuple[str, str], ...] = (
+    (PONTO_CAIXA_GAVETA, "Caixa Gaveta"),
+    (PONTO_CAIXA_NOTEBOOK, "Caixa Notebook"),
+    (PONTO_CAIXA_TESTE, "Caixa Teste"),
+)
+
+SESSION_PONTO_OPERACAO_KEY = "pdv_ponto_operacao"
+
+
+def normalizar_ponto_caixa(valor: str | None) -> str:
+    v = (valor or "").strip().lower()
+    if v in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_NOTEBOOK, PONTO_CAIXA_TESTE):
+        return v
+    return PONTO_CAIXA_GAVETA
+
+
+def rotulo_ponto_caixa(ponto: str | None) -> str:
+    for cod, rot in PONTOS_CAIXA_ABERTURA:
+        if cod == (ponto or "").strip().lower():
+            return rot
+    return "Caixa"
+
+
+def obter_caixa_gaveta_aberto():
+    """Turno principal da loja (gaveta), obrigatório antes do notebook."""
     from produtos.models import SessaoCaixa
 
     return (
-        SessaoCaixa.objects.filter(fechado_em__isnull=True)
+        SessaoCaixa.objects.filter(
+            fechado_em__isnull=True,
+            ponto_caixa=PONTO_CAIXA_GAVETA,
+        )
         .select_related("usuario")
         .order_by("aberto_em")
         .first()
     )
+
+
+def obter_caixa_teste_aberto():
+    from produtos.models import SessaoCaixa
+
+    return (
+        SessaoCaixa.objects.filter(
+            fechado_em__isnull=True,
+            ponto_caixa=PONTO_CAIXA_TESTE,
+        )
+        .select_related("usuario")
+        .order_by("aberto_em")
+        .first()
+    )
+
+
+def obter_caixa_pai_aberto():
+    """Caixa principal operacional (Caixa Gaveta aberto)."""
+    return obter_caixa_gaveta_aberto()
+
+
+def ponto_operacao_browser(request) -> str:
+    try:
+        return normalizar_ponto_caixa(request.session.get(SESSION_PONTO_OPERACAO_KEY))
+    except Exception:
+        return PONTO_CAIXA_GAVETA
+
+
+def definir_ponto_operacao_browser(request, ponto: str, sessao_id: int | None = None) -> None:
+    request.session[SESSION_PONTO_OPERACAO_KEY] = normalizar_ponto_caixa(ponto)
+    if sessao_id:
+        request.session["pdv_sessao_caixa_id"] = int(sessao_id)
+    request.session.modified = True
+
+
+def limpar_ponto_operacao_browser(request) -> None:
+    if SESSION_PONTO_OPERACAO_KEY in request.session:
+        del request.session[SESSION_PONTO_OPERACAO_KEY]
+        request.session.modified = True
+
+
+def rotulo_caixa_browser(request, sessao=None) -> str:
+    from produtos.models import SessaoCaixa
+
+    if sessao is None:
+        sessao = obter_sessao_caixa_aberta_request(request)
+    if not sessao:
+        return "Caixa fechado"
+    ponto_nav = ponto_operacao_browser(request)
+    if ponto_nav == PONTO_CAIXA_NOTEBOOK:
+        gaveta = sessao
+        if isinstance(sessao, SessaoCaixa) and sessao.ponto_caixa != PONTO_CAIXA_GAVETA:
+            gaveta = obter_caixa_gaveta_aberto() or sessao
+        pk = getattr(gaveta, "pk", sessao.pk)
+        return f"Caixa Notebook · Gaveta #{pk}"
+    rotulo = rotulo_ponto_caixa(getattr(sessao, "ponto_caixa", None) or ponto_nav)
+    return f"{rotulo} #{sessao.pk}"
 
 
 def resolver_sessao_caixa_operacao(

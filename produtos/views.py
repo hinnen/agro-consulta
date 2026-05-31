@@ -68,6 +68,17 @@ from .caixa_util import (
     rotulo_usuario_registro_venda,
     ultimo_fechamento_sugestao_abertura,
     obter_caixa_pai_aberto,
+    obter_caixa_gaveta_aberto,
+    obter_caixa_teste_aberto,
+    normalizar_ponto_caixa,
+    rotulo_ponto_caixa,
+    rotulo_caixa_browser,
+    definir_ponto_operacao_browser,
+    limpar_ponto_operacao_browser,
+    PONTO_CAIXA_GAVETA,
+    PONTO_CAIXA_NOTEBOOK,
+    PONTO_CAIXA_TESTE,
+    PONTOS_CAIXA_ABERTURA,
     qtd_caixas_abertos,
     usuario_label_sessao_caixa,
     normalizar_forma_pagamento_caixa,
@@ -7381,7 +7392,9 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
         draft = request.session.get("pdv_checkout")
         if draft and draft.get("itens"):
             ctx["pdv_reabrir_data"] = draft
-    ctx["caixa_aberto"] = _obter_sessao_caixa_aberta(request)
+    sessao_caixa = _obter_sessao_caixa_aberta(request)
+    ctx["caixa_aberto"] = sessao_caixa
+    ctx["caixa_rotulo"] = rotulo_caixa_browser(request, sessao_caixa) if sessao_caixa else "Caixa fechado"
     ctx["qtd_caixas_abertos"] = SessaoCaixa.objects.filter(fechado_em__isnull=True).count()
     ctx["pdv_entrega_whatsapp"] = getattr(settings, "PDV_ENTREGA_WHATSAPP", "") or ""
     ctx["lancamentos_dre_ativo"] = getattr(settings, "LANCAMENTOS_DRE_ATIVO", False)
@@ -7765,7 +7778,7 @@ CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY = "caixa_conferencia_rascunho"
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_caixa_conferencia_rascunho(request):
-    """Rascunho da conferência de fechamento (por forma), guardado na sessão Django."""
+    """Valores contados no fechamento (por forma), autosave na sessão Django."""
     raw = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
     rascunho = raw if isinstance(raw, dict) else {}
     return JsonResponse({"ok": True, "rascunho": rascunho})
@@ -7837,6 +7850,7 @@ def caixa_painel(request):
     emp = resolver_empresa_por_nome_fantasia(empresa_padrao)
     ctx = {
         "sessao_aberta": aberto,
+        "caixa_rotulo": rotulo_caixa_browser(request, aberto) if aberto else "Caixa fechado",
         "formas_pagamento_caixa": list(FORMAS_PAGAMENTO_CAIXA),
         "planos_json": json.dumps(SAIDA_CAIXA_PLANOS, ensure_ascii=False),
         "empresa_padrao": empresa_padrao,
@@ -8152,34 +8166,32 @@ def caixa_abrir(request):
     if _obter_sessao_caixa_aberta(request):
         messages.warning(request, "Já existe um caixa aberto neste navegador. Feche-o antes de abrir outro.")
         return redirect("caixa_painel")
-    caixa_pai = obter_caixa_pai_aberto()
+    gaveta_aberta = obter_caixa_gaveta_aberto()
+    teste_aberto = obter_caixa_teste_aberto()
     if request.method == "POST":
-        acao = (request.POST.get("acao") or "abrir_proprio").strip().lower()
-        if acao == "vincular_pai":
-            sid_raw = request.POST.get("sessao_pai_id") or ""
-            try:
-                sid = int(sid_raw)
-            except (TypeError, ValueError):
-                sid = 0
-            alvo = caixa_pai
-            if sid > 0 and (not alvo or int(alvo.pk) != sid):
-                alvo = SessaoCaixa.objects.filter(pk=sid, fechado_em__isnull=True).first()
-            if not alvo:
-                messages.error(request, "Caixa pai não está mais aberto. Atualize a tela.")
+        ponto = normalizar_ponto_caixa(request.POST.get("ponto_caixa"))
+
+        if ponto == PONTO_CAIXA_NOTEBOOK:
+            gaveta = gaveta_aberta or obter_caixa_gaveta_aberto()
+            if not gaveta:
+                messages.error(
+                    request,
+                    "Abra o Caixa Gaveta primeiro. O notebook usa o mesmo turno da gaveta.",
+                )
                 return redirect("caixa_abrir")
             pin = (request.POST.get("pin_vincular") or "").strip()
             ok_pin, err_pin = validar_pin_operador(pin)
             if not ok_pin:
                 messages.error(request, err_pin)
                 return redirect("caixa_abrir")
-            request.session["pdv_sessao_caixa_id"] = alvo.pk
+            definir_ponto_operacao_browser(request, PONTO_CAIXA_NOTEBOOK, gaveta.pk)
             op = rotulo_operador_pin(pin)
             if op:
                 request.session["pdv_caixa_gerido_operador"] = op[:120]
-            request.session.modified = True
+                request.session.modified = True
             messages.success(
                 request,
-                f"Este computador foi vinculado ao Caixa #{alvo.pk}.",
+                f"Caixa Notebook vinculado à Gaveta #{gaveta.pk}.",
             )
             return redirect("home")
 
@@ -8189,6 +8201,15 @@ def caixa_abrir(request):
                 "Limite de 3 caixas abertos atingido. Entre em um caixa já aberto ou feche um turno.",
             )
             return redirect("caixa_abrir")
+
+        if ponto == PONTO_CAIXA_GAVETA:
+            if gaveta_aberta or obter_caixa_gaveta_aberto():
+                messages.error(request, "O Caixa Gaveta já está aberto. Use o Notebook para outro computador.")
+                return redirect("caixa_abrir")
+        elif ponto == PONTO_CAIXA_TESTE:
+            if teste_aberto or obter_caixa_teste_aberto():
+                messages.error(request, "O Caixa Teste já está aberto.")
+                return redirect("caixa_abrir")
 
         raw = (request.POST.get("valor_abertura") or "0").replace(",", ".").strip()
         try:
@@ -8200,20 +8221,33 @@ def caixa_abrir(request):
             usuario=request.user,
             valor_abertura=va.quantize(Decimal("0.01")),
             observacao_abertura=obs,
+            ponto_caixa=ponto,
         )
-        request.session["pdv_sessao_caixa_id"] = s.pk
-        messages.success(request, f"Caixa #{s.pk} aberto. Valor de abertura: R$ {s.valor_abertura}")
+        definir_ponto_operacao_browser(request, ponto, s.pk)
+        rotulo = rotulo_ponto_caixa(ponto)
+        messages.success(
+            request,
+            f"{rotulo} #{s.pk} aberto. Valor de abertura: R$ {s.valor_abertura}",
+        )
         return redirect("home")
+
     sugestao = ultimo_fechamento_sugestao_abertura()
+    gaveta_aberta = obter_caixa_gaveta_aberto()
+    teste_aberto = obter_caixa_teste_aberto()
     return render(
         request,
         "produtos/caixa_abrir.html",
         {
             "sugestao_fechamento": sugestao,
-            "caixa_pai_aberto": caixa_pai,
-            "caixa_pai_usuario": usuario_label_sessao_caixa(caixa_pai) if caixa_pai else "",
+            "gaveta_aberta": gaveta_aberta,
+            "gaveta_usuario": usuario_label_sessao_caixa(gaveta_aberta) if gaveta_aberta else "",
+            "teste_aberto": teste_aberto,
+            "pode_abrir_gaveta": not gaveta_aberta,
+            "pode_abrir_notebook": bool(gaveta_aberta),
+            "pode_abrir_teste": not teste_aberto,
             "qtd_caixas_abertos": qtd_caixas_abertos(),
             "max_caixas_abertos": 3,
+            "pontos_caixa": PONTOS_CAIXA_ABERTURA,
         },
     )
 
@@ -8255,6 +8289,7 @@ def caixa_fechar(request):
         try:
             if int(request.session.get("pdv_sessao_caixa_id") or 0) == int(pk):
                 request.session.pop("pdv_sessao_caixa_id", None)
+                limpar_ponto_operacao_browser(request)
         except (TypeError, ValueError):
             pass
 

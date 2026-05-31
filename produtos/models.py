@@ -216,6 +216,11 @@ class ClienteAgro(models.Model):
 class SessaoCaixa(models.Model):
     """Turno de caixa: abertura com fundo de troco; vendas podem ser vinculadas até o fechamento."""
 
+    class PontoCaixa(models.TextChoices):
+        GAVETA = "gaveta", "Caixa Gaveta"
+        NOTEBOOK = "notebook", "Caixa Notebook"
+        TESTE = "teste", "Caixa Teste"
+
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -236,6 +241,21 @@ class SessaoCaixa(models.Model):
         blank=True,
         help_text="Conferência por forma: {forma: {esperado, contado, diferenca}}.",
     )
+    ponto_caixa = models.CharField(
+        max_length=16,
+        choices=PontoCaixa.choices,
+        default=PontoCaixa.GAVETA,
+        db_index=True,
+        help_text="Ponto físico do turno: gaveta (principal), notebook (satélite) ou teste.",
+    )
+    sessao_principal = models.ForeignKey(
+        "self",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="pontos_vinculados",
+        help_text="Turno principal (Caixa Gaveta) quando este registro for satélite.",
+    )
 
     class Meta:
         ordering = ["-aberto_em"]
@@ -244,7 +264,8 @@ class SessaoCaixa(models.Model):
 
     def __str__(self):
         dt = self.aberto_em.strftime("%d/%m/%Y %H:%M") if self.aberto_em else ""
-        return f"Caixa #{self.pk} — {dt}"
+        rotulo = self.get_ponto_caixa_display()
+        return f"{rotulo} #{self.pk} — {dt}"
 
 
 class MovimentoCaixa(models.Model):
