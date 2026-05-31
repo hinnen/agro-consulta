@@ -8317,7 +8317,7 @@ def caixa_fechar(request):
             if not ok_pin:
                 messages.error(request, err_pin)
                 return redirect("caixa_fechar")
-        linhas = linhas_todos_raw
+        linhas = linhas_conferencia_agregada(sessoes, todas_formas=True)
         conferencia_lote, cont_din_lote = _conferencia_de_post(linhas, request.POST)
         obs = (request.POST.get("observacao_fechamento") or "").strip()[:500]
         rot = rotulo_operador_pin(pin_f) if pin_f else ""
