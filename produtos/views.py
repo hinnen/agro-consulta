@@ -7753,6 +7753,43 @@ def clientes_sincronizar(request):
     return redirect("clientes_lista")
 
 
+def _caixa_request_embed(request) -> bool:
+    return (request.GET.get("embed") or "").strip().lower() in ("1", "true", "sim", "yes")
+
+
+CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY = "caixa_conferencia_rascunho"
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_caixa_conferencia_rascunho(request):
+    """Rascunho da conferência de fechamento (por forma), guardado na sessão Django."""
+    raw = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
+    rascunho = raw if isinstance(raw, dict) else {}
+    return JsonResponse({"ok": True, "rascunho": rascunho})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_caixa_conferencia_rascunho_salvar(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    raw = payload.get("rascunho")
+    if not isinstance(raw, dict):
+        return JsonResponse({"ok": False, "erro": "Campo rascunho inválido."}, status=400)
+    clean: dict[str, str] = {}
+    for k, v in list(raw.items())[:24]:
+        fn = str(k or "").strip()[:80]
+        if not fn:
+            continue
+        clean[fn] = str(v or "").strip()[:32]
+    request.session[CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY] = clean
+    request.session.modified = True
+    return JsonResponse({"ok": True, "salvo_em": timezone.now().isoformat()})
+
+
 @login_required(login_url="/admin/login/")
 def caixa_painel(request):
     from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
@@ -7841,6 +7878,7 @@ def caixa_painel(request):
                     break
             ctx["tot_esperado_dinheiro_todos"] = str(tot_din.quantize(Decimal("0.01")))
     ctx["painel"] = painel
+    ctx["caixa_embed"] = _caixa_request_embed(request)
     return render(request, "produtos/caixa_painel.html", ctx)
 
 
@@ -7876,6 +7914,7 @@ def caixa_relatorio(request):
             "tot_saida": rel["tot_saida"],
             "saldo": rel["saldo"],
             "sessoes_opts": rel["sessoes_opts"],
+            "caixa_embed": _caixa_request_embed(request),
         },
     )
 
@@ -7935,6 +7974,7 @@ def caixa_relatorio_conferencias(request):
             "tot_contado": rel["tot_contado"],
             "tot_diferenca": rel["tot_diferenca"],
             "sessoes_opts": rel["sessoes_opts"],
+            "caixa_embed": _caixa_request_embed(request),
         },
     )
 
@@ -8181,6 +8221,11 @@ def caixa_fechar(request):
         except (TypeError, ValueError):
             pass
 
+    def _limpar_rascunho_conferencia(req):
+        if CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY in req.session:
+            del req.session[CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY]
+            req.session.modified = True
+
     linhas_todos_raw = linhas_conferencia_agregada(sessoes, todas_formas=True)
     cards = montar_cards_caixas_abertos(sessoes)
 
@@ -8223,6 +8268,7 @@ def caixa_fechar(request):
                 sessao.valor_fechamento = cont_din.quantize(Decimal("0.01"))
             sessao.save()
             _limpar_sessao_browser(request, sessao.pk)
+            _limpar_rascunho_conferencia(request)
             messages.success(request, f"Caixa #{sessao.pk} fechado.")
             return redirect("caixa_fechar")
         # Fechar todos (padrão operacional)
@@ -8261,6 +8307,7 @@ def caixa_fechar(request):
             sessao.save()
             _limpar_sessao_browser(request, sessao.pk)
             n += 1
+        _limpar_rascunho_conferencia(request)
         messages.success(request, f"{n} caixa(s) fechado(s) de uma vez.")
         return redirect("caixa_painel")
 
@@ -8289,6 +8336,10 @@ def caixa_fechar(request):
         else:
             linhas_sem_movimento.append(row)
 
+    rasc = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
+    if not isinstance(rasc, dict):
+        rasc = {}
+
     return render(
         request,
         "produtos/caixa_fechar.html",
@@ -8302,6 +8353,13 @@ def caixa_fechar(request):
             "entregas_pendentes_fechar": entregas_pendentes_fechar,
             "fechar_bloqueado": fechar_bloqueado,
             "pdv_url": reverse("pdv_home"),
+            "rascunho_json": json.dumps(rasc, ensure_ascii=False),
+            "api_rascunho_salvar_url": reverse("api_caixa_conferencia_rascunho_salvar"),
+            "caixa_popup_retirada": reverse("caixa_painel") + "?painel=retirada&embed=1",
+            "caixa_popup_reforco": reverse("caixa_painel") + "?painel=reforco&embed=1",
+            "caixa_popup_relatorio": reverse("caixa_relatorio") + "?preset=hoje&embed=1",
+            "caixa_popup_conferencias": reverse("caixa_relatorio_conferencias")
+            + "?preset=7d&embed=1",
         },
     )
 
@@ -8320,11 +8378,15 @@ def venda_agro_detalhe(request, pk):
         except Exception:
             erp_txt = str(v.erp_resposta)
     erp_painel = serializar_venda_erp_painel(v)
+    from produtos.venda_cupom_util import serializar_venda_cupom_80mm
+
+    cupom_80mm = serializar_venda_cupom_80mm(v, segunda_via=True) if v.itens.exists() else None
     return render(
         request,
         "produtos/venda_agro_detalhe.html",
         {
             "v": v,
+            "cupom_80mm": cupom_80mm,
             "erp_resposta_text": erp_txt,
             "erp_painel": erp_painel,
             "erp_logs_json": json.dumps(
@@ -12376,7 +12438,7 @@ def _anexar_retirada_turno_caixa_saida(
 @require_POST
 def api_lancamentos_saida_caixa(request):
     """Registra uma despesa rápida (saída de caixa) com plano de conta — grava como lançamento manual de 1 linha."""
-    from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
+    from produtos.saida_caixa_planos import PLANO_DEPOSITO_ID, SAIDA_CAIXA_PLANOS
 
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
@@ -12393,6 +12455,7 @@ def api_lancamentos_saida_caixa(request):
     plano_id_req = str(payload.get("plano_id") or "").strip()
     plan_map = {p["id"]: p for p in SAIDA_CAIXA_PLANOS}
     is_outros = False
+    is_deposito = plano_id_req == PLANO_DEPOSITO_ID
     if plano_id_req:
         if plano_id_req not in plan_map:
             return JsonResponse({"ok": False, "erro": "Plano de conta inválido."}, status=400)
@@ -12407,7 +12470,7 @@ def api_lancamentos_saida_caixa(request):
     motivo = str(payload.get("motivo") or "").strip()[:200]
     pessoa_id_final = str(payload.get("pessoa_id") or "").strip() or None
     pessoa_nome = ""
-    if plano_id_req:
+    if plano_id_req and not is_deposito:
         if is_outros:
             if len(motivo) < 15:
                 return JsonResponse(
@@ -12460,6 +12523,43 @@ def api_lancamentos_saida_caixa(request):
     forma_nome = str(payload.get("forma_nome") or "").strip()
     if not banco_nome or not forma_nome:
         return JsonResponse({"ok": False, "erro": "Informe conta/banco e forma de pagamento."}, status=400)
+
+    if is_deposito:
+        bn_up = banco_nome.upper()
+        if bn_up.startswith("CAIXA") or bn_up in ("CAIXA 1", "CAIXA1"):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "No depósito, escolha a conta bancária de destino (não o caixa físico da loja).",
+                },
+                status=400,
+            )
+        desc_dep = f"Depósito → {banco_nome}"[:500]
+        if motivo:
+            desc_dep = f"{desc_dep} · {motivo}"[:500]
+        mov_dep = registrar_retirada_turno_caixa(
+            request,
+            valor=Decimal(str(valor)),
+            forma_nome=forma_nome,
+            observacao=desc_dep,
+        )
+        if not mov_dep:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Abra o caixa neste navegador para registrar o depósito no turno.",
+                },
+                status=400,
+            )
+        return JsonResponse(
+            {
+                "ok": True,
+                "deposito": True,
+                "ids": [],
+                "erros": [],
+                "movimento_caixa_id": mov_dep.pk,
+            }
+        )
 
     _, db = obter_conexao_mongo()
     if db is None:
@@ -12561,6 +12661,7 @@ def api_lancamentos_saida_caixa(request):
         grupo_id=str(payload.get("grupo_id") or "").strip() or None,
         usuario_label=usuario,
         linhas=linhas,
+        marcar_quitado_pagar=True,
     )
 
     ok = bool(resultado.get("ok"))
@@ -18126,6 +18227,31 @@ def _resposta_json_envio_erp_venda(request, v: VendaAgro, out: dict) -> JsonResp
             "log_ultimo": (v.erp_envio_log_json or [])[-1] if v.erp_envio_log_json else None,
         },
         status=502 if http_st and http_st != 0 else 500,
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_venda_agro_cupom(request, pk):
+    """JSON do cupom térmico 80mm para reimpressão."""
+    from produtos.venda_cupom_util import serializar_venda_cupom_80mm
+
+    v = get_object_or_404(
+        VendaAgro.objects.prefetch_related("itens"),
+        pk=pk,
+    )
+    if not v.itens.exists():
+        return JsonResponse(
+            {"ok": False, "erro": "Esta venda não possui itens para imprimir."},
+            status=400,
+        )
+    raw_sv = (request.GET.get("segunda_via") or "1").strip().lower()
+    segunda_via = raw_sv not in ("0", "false", "no", "off")
+    return JsonResponse(
+        {
+            "ok": True,
+            "cupom": serializar_venda_cupom_80mm(v, segunda_via=segunda_via),
+        }
     )
 
 

@@ -60,6 +60,10 @@
 
         <a href="{% url 'vendas_lista' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-orange-300">Lista</a>
 
+        {% if cupom_80mm %}
+        <button type="button" id="btn-imprimir-cupom-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-sky-500 bg-sky-600 text-white shadow-md hover:bg-sky-700" title="Cupom térmico 80mm (2ª via)">Imprimir cupom</button>
+        {% endif %}
+
         {% if not v.devolvida %}
 
         <button type="button" id="btn-devolver-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-rose-500 bg-rose-600 text-white shadow-md hover:bg-rose-700 ring-2 ring-rose-200">↩ Devolver venda</button>
@@ -747,6 +751,26 @@
 })();
 
 </script>
+
+{% if cupom_80mm %}
+{{ cupom_80mm|json_script:"venda-cupom-80mm-data" }}
+<script src="{% static 'produtos/js/venda_cupom_80mm.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script>
+(function () {
+  var btn = document.getElementById('btn-imprimir-cupom-venda');
+  var el = document.getElementById('venda-cupom-80mm-data');
+  if (!btn || !el || typeof agroImprimirCupomVenda80mm !== 'function') return;
+  btn.addEventListener('click', function () {
+    try {
+      var cupom = JSON.parse(el.textContent || '{}');
+      agroImprimirCupomVenda80mm(cupom);
+    } catch (err) {
+      alert('Não foi possível imprimir o cupom.');
+    }
+  });
+})();
+</script>
+{% endif %}
 
 </body>
 

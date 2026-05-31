@@ -2,7 +2,7 @@
 <div class="caixa-painel-full caixa-saida-panel flex flex-col flex-1 min-h-0 w-full max-w-none rounded-2xl border-2 border-orange-200 bg-gradient-to-br from-white to-orange-50/40 shadow-sm overflow-hidden">
   <div class="shrink-0 px-4 sm:px-5 lg:px-6 pt-4 sm:pt-5 pb-2 border-b border-orange-100/80">
     <h2 class="text-base sm:text-lg font-black uppercase text-orange-900">Retirada / saída</h2>
-    <p class="mt-1 text-xs sm:text-sm font-semibold text-orange-900/75 leading-snug">Grava no financeiro (plano de conta) e, com caixa aberto, desconta do turno.</p>
+    <p id="cx-legenda-painel" class="mt-1 text-xs sm:text-sm font-semibold text-orange-900/75 leading-snug">Grava no financeiro (plano de conta) e, com caixa aberto, desconta do turno.</p>
   </div>
 
   <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-5 lg:px-6 py-3 sm:py-4 space-y-4">
@@ -28,9 +28,10 @@
           class="mt-1.5 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-orange-500 outline-none">
       </label>
       <p id="hint-outros" class="hidden text-xs font-bold text-amber-800">No plano <strong>Outros</strong>, o motivo é obrigatório (mínimo 15 caracteres).</p>
+      <p id="hint-deposito" class="hidden text-xs font-bold text-sky-900 leading-snug">Transferência do caixa para o banco — <strong>não gera lançamento</strong> em Contas a pagar. Escolha a <strong>conta de destino</strong> em forma de pagamento.</p>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+    <div id="wrap-quem-saida" class="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
       <label class="block">
         <span class="text-[11px] font-black uppercase text-slate-500">Quem está levando *</span>
         <select id="cx-quem" class="mt-1.5 w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-orange-500 outline-none">
@@ -133,25 +134,62 @@
   }
   var selPlano = document.getElementById('cx-plano');
   if (!selPlano) return;
+  var btnSalvar = document.getElementById('cx-salvar');
+  var wrapQuem = document.getElementById('wrap-quem-saida');
   PLANOS.forEach(function (p) {
     var o = document.createElement('option');
     o.value = p.id;
     o.textContent = p.label;
     o.dataset.outros = p.outros ? '1' : '';
+    o.dataset.somenteCaixa = p.somente_caixa ? '1' : '';
     selPlano.appendChild(o);
   });
-  function atualizarMotivoObrigatorio() {
+  function planoEhDeposito() {
+    var opt = selPlano.options[selPlano.selectedIndex];
+    return opt && opt.dataset && opt.dataset.somenteCaixa === '1';
+  }
+  function preferirBancoDestinoDeposito() {
+    var bs = document.getElementById('cx-banco');
+    if (!bs) return;
+    for (var i = 1; i < bs.options.length; i++) {
+      var t = (bs.options[i].textContent || '').toUpperCase();
+      if (t.indexOf('CAIXA') < 0) {
+        bs.selectedIndex = i;
+        atualizarResumoPagamento();
+        return;
+      }
+    }
+  }
+  function atualizarUiPlano() {
+    var dep = planoEhDeposito();
     var opt = selPlano.options[selPlano.selectedIndex];
     var outros = opt && opt.dataset && opt.dataset.outros === '1';
-    var hint = document.getElementById('hint-outros');
+    var hintOutros = document.getElementById('hint-outros');
+    var hintDep = document.getElementById('hint-deposito');
     var opc = document.getElementById('motivo-opc');
-    if (outros) {
-      hint.classList.remove('hidden');
+    var leg = document.getElementById('cx-legenda-painel');
+    if (wrapQuem) wrapQuem.classList.toggle('hidden', dep);
+    if (hintDep) hintDep.classList.toggle('hidden', !dep);
+    if (hintOutros) hintOutros.classList.toggle('hidden', !outros || dep);
+    if (leg) {
+      leg.textContent = dep
+        ? 'Só desconta do turno do caixa (dinheiro). Não entra em Lançamentos — é depósito no banco.'
+        : 'Grava no financeiro (plano de conta) e, com caixa aberto, desconta do turno.';
+    }
+    if (btnSalvar) btnSalvar.textContent = dep ? 'Registrar depósito' : 'Registrar retirada';
+    if (outros && !dep) {
       opc.textContent = '(obrigatório · min. 15 caracteres)';
     } else {
-      hint.classList.add('hidden');
       opc.textContent = '(opcional)';
     }
+    if (dep) {
+      var gav = document.getElementById('cx-gaveta-pagamento');
+      if (gav) gav.open = true;
+      preferirBancoDestinoDeposito();
+    }
+  }
+  function atualizarMotivoObrigatorio() {
+    atualizarUiPlano();
   }
   selPlano.addEventListener('change', atualizarMotivoObrigatorio);
   var selQuem = document.getElementById('cx-quem');
@@ -231,8 +269,9 @@
     var motivo = (document.getElementById('cx-motivo').value || '').trim();
     var opt = selPlano.options[selPlano.selectedIndex];
     var isOutros = opt && opt.dataset && opt.dataset.outros === '1';
+    var isDeposito = planoEhDeposito();
     if (!planoId || Number.isNaN(valor) || valor <= 0) { alert('Informe valor e plano.'); return; }
-    if (isOutros && motivo.length < 15) { alert('Motivo obrigatório (min. 15 caracteres).'); return; }
+    if (isOutros && !isDeposito && motivo.length < 15) { alert('Motivo obrigatório (min. 15 caracteres).'); return; }
     var quemRaw = (selQuem.value || '').trim();
     var isOutroQuem = quemRaw === '__OUTRO__';
     var quemLevaTexto = '';
@@ -242,7 +281,7 @@
       quemOutro = (document.getElementById('cx-quem-outro').value || '').trim();
       if (quemOutro.length < 2) { alert('Informe o nome.'); return; }
       quemLevaTexto = 'OUTRO';
-    } else {
+    } else if (!isDeposito) {
       if (!quemRaw) { alert('Selecione quem está levando.'); return; }
       clienteAgroId = parseInt(quemRaw, 10);
       quemLevaTexto = selQuem.options[selQuem.selectedIndex].textContent.trim();
@@ -284,9 +323,9 @@
         body: JSON.stringify(body)
       });
       var out = await r.json();
-      if (out.ids && out.ids.length) {
+      if (out.ok && (out.deposito || out.movimento_caixa_id || (out.ids && out.ids.length))) {
         if (CAIXA_EMBED) location.reload();
-        else alert('Saída registrada.');
+        else alert(out.deposito ? 'Depósito registrado no caixa.' : 'Saída registrada.');
       } else {
         alert(out.erro || 'Não gravou.');
       }

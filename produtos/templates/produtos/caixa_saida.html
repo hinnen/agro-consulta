@@ -50,8 +50,10 @@
             class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-emerald-500 outline-none">
         </label>
         <p id="hint-outros" class="hidden text-[10px] font-bold text-amber-800">No plano <strong>Outros</strong>, o motivo é obrigatório (mínimo 15 caracteres).</p>
+        <p id="hint-deposito" class="hidden text-[10px] font-bold text-sky-900">Depósito caixa → banco: <strong>não gera lançamento</strong>. Escolha a conta de destino em «Outros dados».</p>
       </div>
 
+      <div id="wrap-quem-saida">
       <label class="block">
         <span class="text-[10px] font-black uppercase text-slate-500">Quem está levando o dinheiro *</span>
         <select id="cx-quem" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-emerald-500 outline-none">
@@ -65,6 +67,7 @@
           <input type="text" id="cx-quem-outro" maxlength="200" placeholder="Nome completo"
             class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-semibold focus:border-emerald-500 outline-none">
         </label>
+      </div>
       </div>
 
       <button type="button" id="cx-salvar" class="w-full py-3 rounded-xl bg-emerald-600 text-white font-black uppercase text-sm tracking-wide hover:bg-emerald-700 shadow-md">
@@ -133,20 +136,41 @@
     }
 
     const selPlano = document.getElementById('cx-plano');
+    const btnSalvar = document.getElementById('cx-salvar');
+    const wrapQuemSaida = document.getElementById('wrap-quem-saida');
     PLANOS.forEach((p) => {
       const o = document.createElement('option');
       o.value = p.id;
       o.textContent = p.label;
       o.dataset.outros = p.outros ? '1' : '';
+      o.dataset.somenteCaixa = p.somente_caixa ? '1' : '';
       selPlano.appendChild(o);
     });
+
+    function planoEhDeposito() {
+      const opt = selPlano.options[selPlano.selectedIndex];
+      return opt && opt.dataset && opt.dataset.somenteCaixa === '1';
+    }
+    function preferirBancoDestinoDeposito() {
+      const bs = document.getElementById('cx-banco');
+      if (!bs) return;
+      for (let i = 1; i < bs.options.length; i++) {
+        const t = (bs.options[i].textContent || '').toUpperCase();
+        if (!t.includes('CAIXA')) { bs.selectedIndex = i; return; }
+      }
+    }
 
     function atualizarMotivoObrigatorio() {
       const opt = selPlano.options[selPlano.selectedIndex];
       const outros = opt && opt.dataset && opt.dataset.outros === '1';
+      const dep = planoEhDeposito();
       const hint = document.getElementById('hint-outros');
+      const hintDep = document.getElementById('hint-deposito');
       const opc = document.getElementById('motivo-opc');
-      if (outros) {
+      if (wrapQuemSaida) wrapQuemSaida.classList.toggle('hidden', dep);
+      if (hintDep) hintDep.classList.toggle('hidden', !dep);
+      if (btnSalvar) btnSalvar.textContent = dep ? 'Registrar depósito' : 'Registrar saída';
+      if (outros && !dep) {
         hint.classList.remove('hidden');
         opc.textContent = '(obrigatório · min. 15 caracteres)';
         opc.classList.remove('text-slate-400');
@@ -157,6 +181,7 @@
         opc.classList.add('text-slate-400');
         opc.classList.remove('text-amber-800');
       }
+      if (dep) preferirBancoDestinoDeposito();
     }
     selPlano.addEventListener('change', atualizarMotivoObrigatorio);
 
@@ -262,12 +287,13 @@
       const motivo = (document.getElementById('cx-motivo').value || '').trim();
       const opt = selPlano.options[selPlano.selectedIndex];
       const isOutros = opt && opt.dataset && opt.dataset.outros === '1';
+      const isDeposito = planoEhDeposito();
 
       if (!planoId || Number.isNaN(valor) || valor <= 0) {
         alert('Informe valor e plano de contas.');
         return;
       }
-      if (isOutros && motivo.length < 15) {
+      if (isOutros && !isDeposito && motivo.length < 15) {
         alert('No plano Outros, o motivo é obrigatório (mínimo 15 caracteres).');
         return;
       }
@@ -277,14 +303,14 @@
       let quemLevaTexto = '';
       let quemOutro = '';
       let clienteAgroId = undefined;
-      if (isOutroQuem) {
+      if (isOutroQuem && !isDeposito) {
         quemOutro = (document.getElementById('cx-quem-outro').value || '').trim();
         if (quemOutro.length < 2) {
           alert('Informe o nome da pessoa.');
           return;
         }
         quemLevaTexto = 'OUTRO';
-      } else {
+      } else if (!isDeposito) {
         if (!quemRaw) {
           alert('Selecione quem está levando o dinheiro.');
           return;
@@ -351,10 +377,10 @@
           body: JSON.stringify(body),
         });
         const out = await r.json();
-        if (out.ids && out.ids.length) {
-          let m = 'Saída registrada no Agro.';
-          if (out.erp_lancamento_ok === true) m += '\nERP: lançamento aceito.';
-          else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
+        if (out.ok && (out.deposito || out.movimento_caixa_id || (out.ids && out.ids.length))) {
+          let m = out.deposito ? 'Depósito registrado no caixa (sem lançamento financeiro).' : 'Saída registrada no Agro.';
+          if (!out.deposito && out.erp_lancamento_ok === true) m += '\nERP: lançamento aceito.';
+          else if (!out.deposito && out.aviso_api) m += '\nERP: ' + out.aviso_api;
           alert(m);
           document.getElementById('cx-valor').value = '';
           document.getElementById('cx-motivo').value = '';
