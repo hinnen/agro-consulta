@@ -113,8 +113,8 @@
 
       <div class="flex-1 min-h-0 flex flex-col xl:flex-row overflow-hidden">
         <nav class="shrink-0 xl:w-[11.5rem] border-b xl:border-b-0 xl:border-r border-slate-100 bg-slate-50/80 px-2 py-2 xl:py-3 flex flex-row xl:flex-col flex-wrap gap-1.5 xl:gap-2" aria-label="Consultas rápidas">
-          <button type="button" class="cf-toolbar-btn cf-popup-open border-orange-300 bg-orange-50 text-orange-950 hover:bg-orange-100" data-url="{{ caixa_popup_retirada }}" data-title="Retirada / saída">Retirada / saída</button>
-          <button type="button" class="cf-toolbar-btn cf-popup-open border-emerald-400 bg-emerald-50 text-emerald-950 hover:bg-emerald-100" data-url="{{ caixa_popup_reforco }}" data-title="Reforço manual">Reforço manual</button>
+          <button type="button" class="cf-toolbar-btn cf-popup-open border-orange-300 bg-orange-50 text-orange-950 hover:bg-orange-100" data-url="{{ caixa_popup_retirada }}" data-title="Retirada / saída" data-cf-refresh="1">Retirada / saída</button>
+          <button type="button" class="cf-toolbar-btn cf-popup-open border-emerald-400 bg-emerald-50 text-emerald-950 hover:bg-emerald-100" data-url="{{ caixa_popup_reforco }}" data-title="Reforço manual" data-cf-refresh="1">Reforço manual</button>
           <button type="button" class="cf-toolbar-btn cf-popup-open border-slate-300 bg-white text-slate-800 hover:bg-slate-50" data-url="{{ caixa_popup_relatorio }}" data-title="Relatório de caixa">Relatório de caixa</button>
           <button type="button" class="cf-toolbar-btn cf-popup-open border-amber-400 bg-amber-50 text-amber-950 hover:bg-amber-100" data-url="{{ caixa_popup_conferencias }}" data-title="Conferências · diferenças">Conferências · diferenças</button>
         </nav>
@@ -139,7 +139,7 @@
               </div>
               <div class="md:text-right">
                 <span class="md:hidden text-[11px] font-black uppercase text-slate-500">Esperado</span>
-                <span class="text-lg sm:text-xl font-black tabular-nums text-emerald-700">R$ {{ L.esperado }}</span>
+                <span class="cf-esperado-val text-lg sm:text-xl font-black tabular-nums text-emerald-700" data-forma="{{ L.forma }}">R$ {{ L.esperado }}</span>
               </div>
               <label class="block min-w-0">
                 <span class="md:hidden text-[11px] font-black uppercase text-slate-600">Contado</span>
@@ -152,13 +152,11 @@
               </label>
               <details class="cf-mini-help relative justify-self-end self-center">
                 <summary class="cursor-pointer list-none inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-200 bg-white text-sm font-black text-slate-600 hover:border-emerald-400 hover:text-emerald-800 select-none" title="Detalhe">?</summary>
-                <div class="absolute z-20 top-full mt-1 right-0 w-[min(17rem,calc(100vw-2rem))] rounded-xl border-2 border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-700 shadow-lg">
-                  <p>Vendas R$ {{ L.vendas }}</p>
-                  <p class="mt-1">+ Reforços R$ {{ L.reforcos }}</p>
-                  <p class="mt-1">− Retiradas R$ {{ L.retiradas }}</p>
-                  {% if L.forma == "Dinheiro" and L.abertura_dinheiro != "0.00" %}
-                  <p class="mt-1">Fundo abertura R$ {{ L.abertura_dinheiro }}</p>
-                  {% endif %}
+                <div class="cf-detalhe absolute z-20 top-full mt-1 right-0 w-[min(17rem,calc(100vw-2rem))] rounded-xl border-2 border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-700 shadow-lg" data-forma="{{ L.forma }}">
+                  <p class="cf-det-vendas">Vendas R$ {{ L.vendas }}</p>
+                  <p class="cf-det-reforcos mt-1">+ Reforços R$ {{ L.reforcos }}</p>
+                  <p class="cf-det-retiradas mt-1">− Retiradas R$ {{ L.retiradas }}</p>
+                  <p class="cf-det-abertura mt-1{% if L.forma != 'Dinheiro' or L.abertura_dinheiro == '0.00' %} hidden{% endif %}">Fundo abertura R$ {{ L.abertura_dinheiro }}</p>
                 </div>
               </details>
             </div>
@@ -185,7 +183,7 @@
                   <span class="block text-sm font-black text-slate-800">{{ L.forma }}</span>
                 </div>
                 <div class="md:text-right">
-                  <span class="text-base font-black tabular-nums text-slate-500">R$ {{ L.esperado }}</span>
+                  <span class="cf-esperado-val text-base font-black tabular-nums text-slate-500" data-forma="{{ L.forma }}">R$ {{ L.esperado }}</span>
                 </div>
                 <label class="block min-w-0">
                   <span class="md:hidden text-[10px] font-black uppercase text-slate-500">Contado</span>
@@ -198,8 +196,8 @@
                 </label>
                 <details class="cf-mini-help relative justify-self-end">
                   <summary class="cursor-pointer list-none inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-black text-slate-500 select-none">?</summary>
-                  <div class="absolute z-10 mt-1 right-0 w-44 rounded-lg border border-slate-200 bg-white p-2 text-[11px] font-bold text-slate-600 shadow-md">
-                    <p>Vendas R$ {{ L.vendas }} · +Ref. R$ {{ L.reforcos }} · −Ret. R$ {{ L.retiradas }}</p>
+                  <div class="cf-detalhe absolute z-10 mt-1 right-0 w-44 rounded-lg border border-slate-200 bg-white p-2 text-[11px] font-bold text-slate-600 shadow-md" data-forma="{{ L.forma }}">
+                    <p class="cf-det-resumo">Vendas R$ {{ L.vendas }} · +Ref. R$ {{ L.reforcos }} · −Ret. R$ {{ L.retiradas }}</p>
                   </div>
                 </details>
               </div>
@@ -240,7 +238,7 @@
               </div>
               <span class="text-[11px] font-black tabular-nums shrink-0 text-right leading-tight">
                 {% if card.esperado_dinheiro != "0.00" %}
-                <span class="block text-emerald-700">Esp. R$ {{ card.esperado_dinheiro }}</span>
+                <span class="cf-card-esp-din block text-emerald-700" data-sessao-id="{{ card.sessao.pk }}">Esp. R$ {{ card.esperado_dinheiro }}</span>
                 {% endif %}
                 {% if card.qtd_vendas %}
                 <span class="block {% if card.esperado_dinheiro != '0.00' %}text-slate-600 font-bold{% else %}text-emerald-700{% endif %}">Vnd. R$ {{ card.total_vendas }}</span>
@@ -264,7 +262,7 @@
                     {% for L in card.linhas %}
                     <tr class="border-b border-slate-50">
                       <td class="py-1 pr-2 text-slate-800">{{ L.forma }}</td>
-                      <td class="py-1 text-right tabular-nums text-emerald-700">R$ {{ L.esperado }}</td>
+                      <td class="py-1 text-right tabular-nums text-emerald-700"><span class="cf-card-linha-esp" data-sessao-id="{{ card.sessao.pk }}" data-forma="{{ L.forma }}">R$ {{ L.esperado }}</span></td>
                       <td class="py-1 text-right tabular-nums text-slate-600">R$ {{ L.vendas }}</td>
                     </tr>
                     {% endfor %}
@@ -403,46 +401,102 @@
     inp.addEventListener('change', upd);
   });
 
+  var RASCUNHO_LS_KEY = 'agro_caixa_conferencia_rascunho_v1';
   var rascunhoMap = {};
   try {
     var elData = document.getElementById('cf-rascunho-data');
     if (elData && elData.textContent) rascunhoMap = JSON.parse(elData.textContent) || {};
   } catch (e) { rascunhoMap = {}; }
-  document.querySelectorAll('.caixa-rascunho').forEach(function (inp) {
-    var fn = (inp.getAttribute('data-forma') || '').trim();
-    if (fn && rascunhoMap[fn] != null) inp.value = String(rascunhoMap[fn]);
-  });
+  try {
+    var lsRaw = localStorage.getItem(RASCUNHO_LS_KEY);
+    if (lsRaw) {
+      var lsMap = JSON.parse(lsRaw) || {};
+      Object.keys(lsMap).forEach(function (fn) {
+        if (rascunhoMap[fn] == null || rascunhoMap[fn] === '') rascunhoMap[fn] = lsMap[fn];
+      });
+    }
+  } catch (e2) { /* ignore */ }
+  function aplicarRascunhoNosCampos(map) {
+    document.querySelectorAll('.caixa-rascunho').forEach(function (inp) {
+      var fn = (inp.getAttribute('data-forma') || '').trim();
+      if (fn && map[fn] != null && map[fn] !== '') inp.value = String(map[fn]);
+    });
+  }
+  aplicarRascunhoNosCampos(rascunhoMap);
+  var rascunhoServidorVazio = true;
+  try {
+    var el0 = document.getElementById('cf-rascunho-data');
+    var parsed0 = el0 && el0.textContent ? JSON.parse(el0.textContent) : {};
+    rascunhoServidorVazio = !parsed0 || !Object.keys(parsed0).length;
+  } catch (e0) { rascunhoServidorVazio = true; }
+  if (rascunhoServidorVazio && Object.keys(rascunhoMap).length) {
+    window.setTimeout(salvarRascunho, 700);
+  }
   function coletarRascunho() {
     var out = {};
     document.querySelectorAll('.caixa-rascunho').forEach(function (inp) {
       var fn = (inp.getAttribute('data-forma') || '').trim();
       if (!fn) return;
-      out[fn] = String(inp.value || '').trim();
+      var txt = String(inp.value || '').trim();
+      if (txt) out[fn] = txt;
     });
     return out;
   }
   function csrfToken() {
+    var inp = document.querySelector('#form-fechar-todos input[name="csrfmiddlewaretoken"]');
+    if (inp && inp.value) return inp.value;
+    inp = document.querySelector('input[name="csrfmiddlewaretoken"]');
+    if (inp && inp.value) return inp.value;
     var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
-    return m ? decodeURIComponent(m[1]) : '';
+    return m ? decodeURIComponent(m[1].trim()) : '';
+  }
+  function gravarRascunhoLocal(map) {
+    try { localStorage.setItem(RASCUNHO_LS_KEY, JSON.stringify(map || {})); } catch (e) { /* ignore */ }
+  }
+  function limparRascunhoLocal() {
+    try { localStorage.removeItem(RASCUNHO_LS_KEY); } catch (e) { /* ignore */ }
   }
   var saveTimer = null;
   var saveUrl = '{{ api_rascunho_salvar_url|escapejs }}';
   var statusEl = document.getElementById('cf-rascunho-status');
+  function mostrarStatusRascunho(msg, ok) {
+    if (!statusEl) return;
+    statusEl.textContent = msg;
+    statusEl.classList.remove('hidden', 'text-emerald-700', 'text-red-700');
+    statusEl.classList.add(ok ? 'text-emerald-700' : 'text-red-700');
+    clearTimeout(statusEl._hideT);
+    statusEl._hideT = setTimeout(function () { statusEl.classList.add('hidden'); }, ok ? 2200 : 4500);
+  }
   function salvarRascunho() {
+    var payload = coletarRascunho();
+    gravarRascunhoLocal(payload);
+    var token = csrfToken();
+    if (!token) {
+      mostrarStatusRascunho('Rascunho só neste aparelho (sem sessão). Recarregue a página.', false);
+      return;
+    }
     fetch(saveUrl, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
-      body: JSON.stringify({ rascunho: coletarRascunho() })
-    }).then(function (r) { return r.json(); }).then(function (data) {
-      if (!data || !data.ok) return;
-      if (statusEl) {
-        statusEl.textContent = 'Rascunho salvo';
-        statusEl.classList.remove('hidden');
-        clearTimeout(statusEl._hideT);
-        statusEl._hideT = setTimeout(function () { statusEl.classList.add('hidden'); }, 2200);
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
+      body: JSON.stringify({ rascunho: payload })
+    }).then(function (r) {
+      return r.json().then(function (data) {
+        return { httpOk: r.ok, data: data };
+      }).catch(function () {
+        return { httpOk: false, data: null };
+      });
+    }).then(function (res) {
+      if (res.httpOk && res.data && res.data.ok) {
+        if (res.data.rascunho) gravarRascunhoLocal(res.data.rascunho);
+        mostrarStatusRascunho('Rascunho salvo', true);
+        return;
       }
-    }).catch(function () {});
+      var err = (res.data && res.data.erro) || (res.httpOk ? 'Não foi possível salvar.' : 'Falha de rede ou sessão.');
+      mostrarStatusRascunho(err + ' Cópia local mantida.', false);
+    }).catch(function () {
+      mostrarStatusRascunho('Sem conexão — rascunho guardado só neste aparelho.', false);
+    });
   }
   function agendarSalvar() {
     clearTimeout(saveTimer);
@@ -452,13 +506,97 @@
     inp.addEventListener('input', agendarSalvar);
     inp.addEventListener('change', agendarSalvar);
   });
+  document.querySelectorAll('form.form-fechar-um, #form-fechar-todos').forEach(function (form) {
+    form.addEventListener('submit', limparRascunhoLocal);
+  });
 
   var popup = document.getElementById('cf-popup');
   var popupFrame = document.getElementById('cf-popup-frame');
   var popupTitle = document.getElementById('cf-popup-title');
   var popupFechar = document.getElementById('cf-popup-fechar');
-  function abrirPopup(url, titulo) {
+  var conferenciaEstadoUrl = '{{ api_conferencia_estado_url|escapejs }}';
+  var popupRefreshOnClose = false;
+  var conferenciaRefreshTimer = null;
+
+  function fmtMoedaExibir(v) {
+    var n = parseBr(v);
+    if (n === null) return String(v || '');
+    return fmtBr(n);
+  }
+
+  function aplicarLinhaConferencia(L) {
+    var forma = String(L.forma || '').trim();
+    if (!forma) return;
+    document.querySelectorAll('.cf-esperado-val[data-forma="' + forma + '"]').forEach(function (el) {
+      el.textContent = 'R$ ' + fmtMoedaExibir(L.esperado);
+    });
+    document.querySelectorAll('.caixa-contado[data-forma="' + forma + '"]').forEach(function (inp) {
+      inp.setAttribute('data-esperado', L.esperado);
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    document.querySelectorAll('.cf-detalhe[data-forma="' + forma + '"]').forEach(function (box) {
+      var v = box.querySelector('.cf-det-vendas');
+      var r = box.querySelector('.cf-det-reforcos');
+      var t = box.querySelector('.cf-det-retiradas');
+      var a = box.querySelector('.cf-det-abertura');
+      var rs = box.querySelector('.cf-det-resumo');
+      if (v) v.textContent = 'Vendas R$ ' + fmtMoedaExibir(L.vendas);
+      if (r) r.textContent = '+ Reforços R$ ' + fmtMoedaExibir(L.reforcos);
+      if (t) t.textContent = '− Retiradas R$ ' + fmtMoedaExibir(L.retiradas);
+      if (a) {
+        var ab = String(L.abertura_dinheiro || '0');
+        var temAb = forma === 'Dinheiro' && parseBr(ab) !== 0;
+        a.textContent = 'Fundo abertura R$ ' + fmtMoedaExibir(ab);
+        a.classList.toggle('hidden', !temAb);
+      }
+      if (rs) rs.textContent = 'Vendas R$ ' + fmtMoedaExibir(L.vendas) + ' · +Ref. R$ ' + fmtMoedaExibir(L.reforcos) + ' · −Ret. R$ ' + fmtMoedaExibir(L.retiradas);
+    });
+  }
+
+  function aplicarCardsConferencia(cards) {
+    (cards || []).forEach(function (card) {
+      var sid = String(card.sessao_id || '');
+      document.querySelectorAll('.cf-card-esp-din[data-sessao-id="' + sid + '"]').forEach(function (el) {
+        var esp = String(card.esperado_dinheiro || '0');
+        if (parseBr(esp) !== 0 || card.qtd_vendas) {
+          el.textContent = 'Esp. R$ ' + fmtMoedaExibir(esp);
+          el.classList.remove('hidden');
+        }
+      });
+      (card.linhas || []).forEach(function (L) {
+        document.querySelectorAll('.cf-card-linha-esp[data-sessao-id="' + sid + '"][data-forma="' + L.forma + '"]').forEach(function (el) {
+          el.textContent = 'R$ ' + fmtMoedaExibir(L.esperado);
+        });
+      });
+    });
+  }
+
+  function atualizarConferenciaCaixa() {
+    if (!conferenciaEstadoUrl) return Promise.resolve();
+    return fetch(conferenciaEstadoUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) return;
+        (data.linhas || []).forEach(aplicarLinhaConferencia);
+        aplicarCardsConferencia(data.cards);
+        if (statusEl) {
+          statusEl.textContent = 'Valores esperados atualizados';
+          statusEl.classList.remove('hidden');
+          clearTimeout(statusEl._hideT);
+          statusEl._hideT = setTimeout(function () { statusEl.classList.add('hidden'); }, 2200);
+        }
+      })
+      .catch(function () {});
+  }
+
+  function agendarAtualizarConferencia() {
+    clearTimeout(conferenciaRefreshTimer);
+    conferenciaRefreshTimer = setTimeout(atualizarConferenciaCaixa, 120);
+  }
+
+  function abrirPopup(url, titulo, refreshOnClose) {
     if (!popup || !popupFrame) return;
+    popupRefreshOnClose = !!refreshOnClose;
     if (popupTitle) popupTitle.textContent = titulo || '';
     popupFrame.src = url;
     popupFrame.title = titulo || 'Caixa';
@@ -467,13 +605,20 @@
   }
   function fecharPopup() {
     if (!popup) return;
+    var refresh = popupRefreshOnClose;
     popup.classList.add('hidden');
     if (popupFrame) popupFrame.src = 'about:blank';
     document.body.classList.remove('overflow-hidden');
+    popupRefreshOnClose = false;
+    if (refresh) agendarAtualizarConferencia();
   }
   document.querySelectorAll('.cf-popup-open').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      abrirPopup(btn.getAttribute('data-url') || '', btn.getAttribute('data-title') || '');
+      abrirPopup(
+        btn.getAttribute('data-url') || '',
+        btn.getAttribute('data-title') || '',
+        btn.getAttribute('data-cf-refresh') === '1'
+      );
     });
   });
   if (popupFechar) popupFechar.addEventListener('click', fecharPopup);
@@ -484,6 +629,10 @@
   }
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && popup && !popup.classList.contains('hidden')) fecharPopup();
+  });
+  window.addEventListener('message', function (e) {
+    if (e.origin !== window.location.origin) return;
+    if (e.data && e.data.type === 'agro-caixa-fechar-atualizar') agendarAtualizarConferencia();
   });
 })();
 </script>

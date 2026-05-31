@@ -2791,6 +2791,7 @@
         }
         if (dom.quickClientSearch) {
             dom.quickClientSearch.classList.toggle('pdv-client-search-hot', !!on);
+            if (!on) dom.quickClientSearch.classList.remove('pdv-client-search-typed');
         }
         if (dom.step1ClientBar) {
             dom.step1ClientBar.classList.toggle('pdv-client-bar-awaiting', !!on);
@@ -4945,6 +4946,11 @@
         }
 
         dom.quickClientSearch.addEventListener('input', function () {
+            if ((dom.quickClientSearch.value || '').trim()) {
+                dom.quickClientSearch.classList.add('pdv-client-search-typed');
+            } else {
+                dom.quickClientSearch.classList.remove('pdv-client-search-typed');
+            }
             clearTimeout(searchClientTimer);
             searchClientTimer = setTimeout(function () {
                 runClientSearch(dom.quickClientSearch.value);

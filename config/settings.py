@@ -434,6 +434,10 @@ PDV_WIZARD_SALDO_CASHBACK = config("PDV_WIZARD_SALDO_CASHBACK", default="0").str
 AGRO_CASHBACK_PERCENTUAL_PADRAO = config("AGRO_CASHBACK_PERCENTUAL_PADRAO", default="1").strip()
 # Limite de fiado quando o ERP/Mongo não informar limite por cliente
 AGRO_FIADO_LIMITE_PADRAO = config("AGRO_FIADO_LIMITE_PADRAO", default="5000").strip()
+# Forma de pagamento no ERP (Pedidos/Salvar) quando a venda no PDV é Fiado.
+VENDA_ERP_FORMA_PAGAMENTO_FIADO = config(
+    "VENDA_ERP_FORMA_PAGAMENTO_FIADO", default="Crédito Loja"
+).strip() or "Crédito Loja"
 # WhatsApp após impressão de cupom de transferência (Vila Elias). Vazio = usa PDV_ENTREGA_WHATSAPP.
 TRANSFERENCIA_WHATSAPP = config('TRANSFERENCIA_WHATSAPP', default='').strip()
 # Token para endpoint HTTP do cron de alertas (sem shell). Mantenha forte e secreto.

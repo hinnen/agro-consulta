@@ -434,6 +434,14 @@
 {% if sessao_aberta %}
 <script>
 (function () {
+  var CAIXA_EMBED_PAINEL = {% if caixa_embed %}true{% else %}false{% endif %};
+  function notifyParentFecharAtualizar() {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'agro-caixa-fechar-atualizar' }, window.location.origin);
+      }
+    } catch (_) {}
+  }
   var flash = document.getElementById('caixa-flash');
   function showFlash(msg, ok) {
     if (!flash) return;
@@ -466,8 +474,15 @@
       e.preventDefault();
       if (window.gmLoadingBar) window.gmLoadingBar.show();
       postMov('reforco', formRef).then(function (res) {
-        if (res.ok && res.data.ok) location.href = '{% url "caixa_painel" %}?painel=saldo';
-        else showFlash((res.data && res.data.erro) || 'Falha ao registrar.', false);
+        if (res.ok && res.data.ok) {
+          if (CAIXA_EMBED_PAINEL) {
+            notifyParentFecharAtualizar();
+            formRef.reset();
+            showFlash('Reforço registrado.', true);
+          } else {
+            location.href = '{% url "caixa_painel" %}?painel=saldo';
+          }
+        } else showFlash((res.data && res.data.erro) || 'Falha ao registrar.', false);
       }).catch(function () { showFlash('Falha de rede.', false); })
         .finally(function () { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
     });

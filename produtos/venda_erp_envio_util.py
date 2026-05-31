@@ -225,7 +225,13 @@ def reverter_envio_erp_local(venda: VendaAgro, *, request, motivo: str = "") -> 
 def venda_payload_de_venda_agro(venda: VendaAgro) -> dict:
     import re
 
-    from produtos.fiado_credito_util import cliente_agro_pk_de_ref, resolver_cliente_fiado
+    from produtos.caixa_util import normalizar_forma_pagamento_caixa
+    from produtos.fiado_credito_util import (
+        cliente_agro_pk_de_ref,
+        forma_pagamento_texto_envio_erp,
+        forma_pagamento_resumo_envio_erp,
+        resolver_cliente_fiado,
+    )
 
     pagamentos_erp = []
     pj = venda.pagamentos_json if isinstance(venda.pagamentos_json, list) else []
@@ -234,8 +240,14 @@ def venda_payload_de_venda_agro(venda: VendaAgro) -> dict:
             continue
         fn = str(row.get("forma") or "")
         vp = float(row.get("valor") or 0)
-        item = {"formaPagamento": fn, "valorPagamento": vp, "quitar": fn != "Fiado"}
-        if fn == "Fiado":
+        fn_norm = normalizar_forma_pagamento_caixa(fn)
+        fn_erp = forma_pagamento_texto_envio_erp(fn)
+        item = {
+            "formaPagamento": fn_erp,
+            "valorPagamento": vp,
+            "quitar": fn_norm != "Fiado",
+        }
+        if fn_norm == "Fiado":
             if row.get("fiado_parcelas"):
                 item["fiadoParcelas"] = row.get("fiado_parcelas")
             if row.get("fiado_dias_primeiro"):
@@ -256,7 +268,7 @@ def venda_payload_de_venda_agro(venda: VendaAgro) -> dict:
         "cliente": venda.cliente_nome,
         "cliente_id": cid,
         "cliente_documento": doc,
-        "forma_pagamento": venda.forma_pagamento,
+        "forma_pagamento": forma_pagamento_resumo_envio_erp(venda.forma_pagamento or ""),
         "pagamentos": pagamentos_erp or None,
         "itens": [
             {

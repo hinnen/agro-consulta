@@ -224,6 +224,11 @@ urlpatterns = [
         views.api_caixa_conferencia_rascunho_salvar,
         name='api_caixa_conferencia_rascunho_salvar',
     ),
+    path(
+        'api/caixa/conferencia-estado/',
+        views.api_caixa_conferencia_estado,
+        name='api_caixa_conferencia_estado',
+    ),
     path('api/caixa/movimento/', views.api_caixa_movimento, name='api_caixa_movimento'),
     path('api/caixa/vincular-vendas/', views.api_caixa_vincular_vendas, name='api_caixa_vincular_vendas'),
 

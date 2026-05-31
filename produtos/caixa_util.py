@@ -299,6 +299,51 @@ def fmt_linhas_caixa_template(linhas) -> list[dict[str, str]]:
     ]
 
 
+def linha_conferencia_tem_movimento(linha: dict) -> bool:
+    for k in ("esperado", "vendas", "reforcos", "retiradas", "abertura_dinheiro"):
+        try:
+            if _dec(linha[k]) != 0:
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def serializar_estado_conferencia_fechar(sessoes) -> dict[str, Any]:
+    """JSON para tela Fechar caixa (valores esperados após reforço/retirada)."""
+    linhas_todos_raw = linhas_conferencia_agregada(sessoes, todas_formas=True)
+    tot_esperado_din = Decimal("0")
+    for L in linhas_todos_raw:
+        if L["forma"] == "Dinheiro":
+            tot_esperado_din = _dec(L["esperado"])
+            break
+    all_linhas = fmt_linhas_caixa_template(linhas_todos_raw)
+    linhas: list[dict[str, Any]] = []
+    for i, L in enumerate(all_linhas):
+        row = dict(L)
+        row["idx"] = i
+        row["com_movimento"] = linha_conferencia_tem_movimento(L)
+        linhas.append(row)
+    cards: list[dict[str, Any]] = []
+    for c in montar_cards_caixas_abertos(sessoes):
+        cards.append(
+            {
+                "sessao_id": c["sessao"].pk,
+                "usuario": c["usuario"],
+                "qtd_vendas": c["qtd_vendas"],
+                "total_vendas": c["total_vendas"],
+                "esperado_dinheiro": c["esperado_dinheiro"],
+                "linhas": c["linhas"],
+            }
+        )
+    return {
+        "qtd_caixas": len(sessoes),
+        "tot_esperado_dinheiro": str(tot_esperado_din.quantize(Decimal("0.01"))),
+        "linhas": linhas,
+        "cards": cards,
+    }
+
+
 def montar_cards_caixas_abertos(sessoes) -> list[dict[str, Any]]:
     """Resumo por sessão aberta (painel «todos» e fechamento individual)."""
     cards: list[dict[str, Any]] = []

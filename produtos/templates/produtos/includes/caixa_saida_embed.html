@@ -103,6 +103,13 @@
   var API_SAIDA = "{% url 'api_lancamentos_saida_caixa' %}";
   var API_QUEM_LEVA = "{% url 'api_rh_caixa_quem_leva' %}";
   var CAIXA_EMBED = true;
+  function notifyParentFecharAtualizar() {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'agro-caixa-fechar-atualizar' }, window.location.origin);
+      }
+    } catch (_) {}
+  }
   var PLANOS = JSON.parse(document.getElementById('planos-saida-json').textContent || '[]');
   function getCookie(name) {
     var m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
@@ -324,8 +331,13 @@
       });
       var out = await r.json();
       if (out.ok && (out.deposito || out.movimento_caixa_id || (out.ids && out.ids.length))) {
-        if (CAIXA_EMBED) location.reload();
-        else alert(out.deposito ? 'Depósito registrado no caixa.' : 'Saída registrada.');
+        if (CAIXA_EMBED) {
+          notifyParentFecharAtualizar();
+          document.getElementById('cx-valor').value = '';
+          document.getElementById('cx-motivo').value = '';
+        } else {
+          alert(out.deposito ? 'Depósito registrado no caixa.' : 'Saída registrada.');
+        }
       } else {
         alert(out.erro || 'Não gravou.');
       }

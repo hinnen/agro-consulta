@@ -14,6 +14,46 @@ from django.db.models import Q
 from produtos.caixa_util import normalizar_forma_pagamento_caixa
 from produtos.models import ClienteAgro, VendaAgro
 
+
+def forma_pagamento_erp_fiado_label() -> str:
+    """Nome da forma no ERP para vendas fiado do PDV (padrão: Crédito Loja)."""
+    raw = getattr(settings, "VENDA_ERP_FORMA_PAGAMENTO_FIADO", None)
+    if raw is None:
+        try:
+            from decouple import config as dec_config
+
+            raw = dec_config("VENDA_ERP_FORMA_PAGAMENTO_FIADO", default="Crédito Loja")
+        except Exception:
+            raw = "Crédito Loja"
+    txt = str(raw or "").strip()
+    return txt or "Crédito Loja"
+
+
+def forma_pagamento_texto_envio_erp(fn: str) -> str:
+    """No Agro a forma é «Fiado»; no Pedidos/Salvar do ERP deve ir como Crédito Loja."""
+    fn = str(fn or "").strip()
+    if not fn:
+        return ""
+    if normalizar_forma_pagamento_caixa(fn) == "Fiado":
+        return forma_pagamento_erp_fiado_label()
+    return fn
+
+
+def forma_pagamento_resumo_envio_erp(resumo: str) -> str:
+    """Aplica ``forma_pagamento_texto_envio_erp`` em resumos «Forma A + Forma B»."""
+    base = str(resumo or "").strip()
+    if not base:
+        return ""
+    parts = [p.strip() for p in re.split(r"\s+\+\s+", base) if p.strip()]
+    if len(parts) <= 1:
+        return forma_pagamento_texto_envio_erp(base)
+    out: list[str] = []
+    for p in parts:
+        t = forma_pagamento_texto_envio_erp(p)
+        if t and t not in out:
+            out.append(t)
+    return " + ".join(out)[:200]
+
 _LIMITE_DOC_KEYS = (
     "LimiteCredito",
     "LimiteFiado",
