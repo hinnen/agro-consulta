@@ -5370,6 +5370,7 @@ def _forma_pagamento_rotulo_sem_valor_moeda(s: str) -> str:
 def _normalizar_linhas_pagamento_pedido(raw_list) -> list[dict]:
     """Lista de parcelas para Pedidos/Salvar (camelCase). Usado no payload e no rascunho checkout."""
     from produtos.caixa_util import normalizar_forma_pagamento_caixa
+    from produtos.fiado_credito_util import forma_pagamento_texto_envio_erp
 
     if not isinstance(raw_list, list) or not raw_list:
         return []
@@ -5397,7 +5398,7 @@ def _normalizar_linhas_pagamento_pedido(raw_list) -> list[dict]:
             fn = "Não informado"
         is_fiado = fn_norm == "Fiado"
         item: dict = {
-            "formaPagamento": fn,
+            "formaPagamento": forma_pagamento_texto_envio_erp(fn),
             "valorPagamento": vp,
             "quitar": bool(row.get("quitar", not is_fiado)),
         }
@@ -17614,8 +17615,12 @@ def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
             getattr(settings, "VENDA_ERP_PEDIDO_STATUS_SISTEMA", "") or "Pedido"
         ).strip() or "Pedido"
 
-    fp_txt = _forma_pagamento_rotulo_sem_valor_moeda(
-        str(data.get("forma_pagamento") or data.get("formaPagamento") or "")
+    from produtos.fiado_credito_util import forma_pagamento_resumo_envio_erp
+
+    fp_txt = forma_pagamento_resumo_envio_erp(
+        _forma_pagamento_rotulo_sem_valor_moeda(
+            str(data.get("forma_pagamento") or data.get("formaPagamento") or "")
+        )
     ).strip()[:200]
     fp_id = str(
         data.get("forma_pagamento_id")
