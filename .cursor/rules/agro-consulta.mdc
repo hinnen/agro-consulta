@@ -16,6 +16,7 @@ Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**.
 - Paleta emerald / orange / slate; hierarquia forte.
 - Onde couber: busca local rápida + sync em background; barra de estoque com manual + última atualização + standby.
 - **Voltar ao PDV (F1)** quando existir; ao voltar, **preservar contexto** (draft, filtros, lista).
+- **Caixa (painel / abrir / fechar):** layout **16:9**, shell larga `.caixa-shell` + `100dvh` — não usar coluna estreita tipo `max-w-lg` (ver `AGENTS.md` §5).
 
 ## Como trabalhar
 
