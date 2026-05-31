@@ -55,6 +55,7 @@ from .caixa_util import (
     linhas_conferencia_agregada,
     montar_cards_caixas_abertos,
     fmt_linhas_caixa_template,
+    serializar_estado_conferencia_fechar,
     validar_pin_operador,
     rotulo_operador_pin,
     usuario_django_de_pin,
@@ -7779,15 +7780,49 @@ def api_caixa_conferencia_rascunho_salvar(request):
     raw = payload.get("rascunho")
     if not isinstance(raw, dict):
         return JsonResponse({"ok": False, "erro": "Campo rascunho inválido."}, status=400)
-    clean: dict[str, str] = {}
+    prev = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
+    base = prev if isinstance(prev, dict) else {}
+    clean: dict[str, str] = dict(base)
     for k, v in list(raw.items())[:24]:
         fn = str(k or "").strip()[:80]
         if not fn:
             continue
-        clean[fn] = str(v or "").strip()[:32]
+        txt = str(v or "").strip()[:32]
+        if txt:
+            clean[fn] = txt
+        else:
+            clean.pop(fn, None)
     request.session[CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY] = clean
-    request.session.modified = True
-    return JsonResponse({"ok": True, "salvo_em": timezone.now().isoformat()})
+    try:
+        request.session.save()
+    except Exception:
+        request.session.modified = True
+    return JsonResponse({"ok": True, "salvo_em": timezone.now().isoformat(), "rascunho": clean})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_caixa_conferencia_estado(request):
+    """Valores esperados da conferência (atualizar após reforço/retirada sem recarregar a página)."""
+    sessoes_qs = (
+        SessaoCaixa.objects.filter(fechado_em__isnull=True)
+        .select_related("usuario")
+        .prefetch_related("vendas", "movimentos")
+        .order_by("aberto_em")
+    )
+    sessoes = list(sessoes_qs)
+    if not sessoes:
+        return JsonResponse(
+            {
+                "ok": True,
+                "qtd_caixas": 0,
+                "tot_esperado_dinheiro": "0.00",
+                "linhas": [],
+                "cards": [],
+            }
+        )
+    estado = serializar_estado_conferencia_fechar(sessoes)
+    return JsonResponse({"ok": True, **estado})
 
 
 @login_required(login_url="/admin/login/")
@@ -8183,6 +8218,7 @@ def caixa_abrir(request):
 
 
 @login_required(login_url="/admin/login/")
+@ensure_csrf_cookie
 def caixa_fechar(request):
     sessoes_qs = (
         SessaoCaixa.objects.filter(fechado_em__isnull=True)
@@ -8226,7 +8262,6 @@ def caixa_fechar(request):
             del req.session[CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY]
             req.session.modified = True
 
-    linhas_todos_raw = linhas_conferencia_agregada(sessoes, todas_formas=True)
     cards = montar_cards_caixas_abertos(sessoes)
 
     entregas_pendentes_fechar = listar_entregas_bloqueando_fechamento_caixa()
@@ -8311,30 +8346,16 @@ def caixa_fechar(request):
         messages.success(request, f"{n} caixa(s) fechado(s) de uma vez.")
         return redirect("caixa_painel")
 
-    tot_esperado_din = Decimal("0")
-    for L in linhas_todos_raw:
-        if L["forma"] == "Dinheiro":
-            tot_esperado_din = L["esperado"]
-            break
-
-    all_linhas = fmt_linhas_caixa_template(linhas_todos_raw)
+    estado_conf = serializar_estado_conferencia_fechar(sessoes)
+    tot_esperado_din = Decimal(str(estado_conf.get("tot_esperado_dinheiro") or "0"))
     linhas_com_movimento = []
     linhas_sem_movimento = []
-    for i, L in enumerate(all_linhas):
-        row = dict(L)
-        row["idx"] = i
-        tem = False
-        for k in ("esperado", "vendas", "reforcos", "retiradas", "abertura_dinheiro"):
-            try:
-                if Decimal(str(L[k])) != 0:
-                    tem = True
-                    break
-            except Exception:
-                pass
-        if tem:
-            linhas_com_movimento.append(row)
+    for row in estado_conf.get("linhas") or []:
+        r = {k: v for k, v in row.items() if k != "com_movimento"}
+        if row.get("com_movimento"):
+            linhas_com_movimento.append(r)
         else:
-            linhas_sem_movimento.append(row)
+            linhas_sem_movimento.append(r)
 
     rasc = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
     if not isinstance(rasc, dict):
@@ -8355,6 +8376,7 @@ def caixa_fechar(request):
             "pdv_url": reverse("pdv_home"),
             "rascunho_json": json.dumps(rasc, ensure_ascii=False),
             "api_rascunho_salvar_url": reverse("api_caixa_conferencia_rascunho_salvar"),
+            "api_conferencia_estado_url": reverse("api_caixa_conferencia_estado"),
             "caixa_popup_retirada": reverse("caixa_painel") + "?painel=retirada&embed=1",
             "caixa_popup_reforco": reverse("caixa_painel") + "?painel=reforco&embed=1",
             "caixa_popup_relatorio": reverse("caixa_relatorio") + "?preset=hoje&embed=1",
