@@ -14,9 +14,10 @@
     .caixa-shell { width: 100%; max-width: min(96rem, 100%); margin: 0 auto; }
     details.cr-sec summary::-webkit-details-marker { display: none; }
   </style>
+  {% include "produtos/includes/caixa_embed_mode.html" %}
 </head>
-<body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden">
-  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+<body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden{% if caixa_embed %} caixa-embed-mode{% endif %}">
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0{% if caixa_embed %} hidden{% endif %}">
     <div class="caixa-shell px-3 sm:px-5 py-2.5 flex flex-wrap justify-between items-center gap-2">
       <div>
         <h1 class="text-[clamp(1.1rem,0.9vw+1rem,1.5rem)] font-black uppercase text-slate-900">Relatório de caixa</h1>
@@ -120,6 +121,6 @@
       {% endfor %}
     </div>
   </main>
-{% include "produtos/_atalho_voltar_pdv.html" %}
+{% if not caixa_embed %}{% include "produtos/_atalho_voltar_pdv.html" %}{% endif %}
 </body>
 </html>

@@ -44,6 +44,11 @@ def _eh_frete_mov(obs: str) -> bool:
     return "frete" in (obs or "").lower()
 
 
+def _eh_deposito_mov(obs: str) -> bool:
+    o = (obs or "").strip().lower()
+    return o.startswith("depósito") or o.startswith("deposito")
+
+
 def montar_relatorio_caixa(
     di: date,
     df: date,
@@ -105,6 +110,7 @@ def montar_relatorio_caixa(
         "devolucoes": [],
         "reforcos": [],
         "retiradas": [],
+        "depositos": [],
         "fretes": [],
     }
 
@@ -230,7 +236,20 @@ def montar_relatorio_caixa(
         elif m.tipo == MovimentoCaixa.Tipo.RETIRADA:
             if _eh_devolucao_mov(obs):
                 continue
-            if _eh_frete_mov(obs) and _forma_ok(m.forma_pagamento):
+            if _eh_deposito_mov(obs) and _forma_ok(m.forma_pagamento):
+                buckets["depositos"].append(
+                    _row(
+                        "depositos",
+                        quando=m.criado_em,
+                        descricao=obs[:120] or "Depósito caixa → banco",
+                        forma=m.forma_pagamento,
+                        valor=val,
+                        sinal="-",
+                        sessao_pk=m.sessao_caixa_id,
+                        ref=f"mov:{m.pk}",
+                    )
+                )
+            elif _eh_frete_mov(obs) and _forma_ok(m.forma_pagamento):
                 buckets["fretes"].append(
                     _row(
                         "fretes",
@@ -262,6 +281,7 @@ def montar_relatorio_caixa(
         ("vendas", "Vendas", "+", "emerald"),
         ("devolucoes", "Devoluções", "-", "rose"),
         ("reforcos", "Reforços", "+", "sky"),
+        ("depositos", "Depósitos (caixa → banco)", "-", "sky"),
         ("retiradas", "Retiradas e despesas", "-", "orange"),
         ("fretes", "Fretes e entregas", "-", "amber"),
     ]

@@ -1,7 +1,15 @@
 # Planos permitidos na tela "Saída no caixa" (/caixa/saida/) — texto do plano como no ERP/Mongo.
 # id estável para lógica (ex.: outros); label é o que aparece no select.
 
+PLANO_DEPOSITO_ID = "deposito"
+
 SAIDA_CAIXA_PLANOS = [
+    {
+        "id": PLANO_DEPOSITO_ID,
+        "label": "Depósito (caixa → banco)",
+        "plano": "",
+        "somente_caixa": True,
+    },
     {"id": "adiant_vale", "label": "Adiantamento de Salário (Vale)", "plano": "2.1.1.1.1 — Adiantamento de Salário ( Vale )"},
     {"id": "alimentacao", "label": "Alimentação", "plano": "2.1.1.5 — Alimentação"},
     {"id": "brindes", "label": "Brindes e ações festivas", "plano": "2.3.4 — Brindes e ações festivas"},

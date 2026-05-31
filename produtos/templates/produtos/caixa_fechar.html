@@ -20,15 +20,36 @@
     .cf-list-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; align-items: center; }
     @media (min-width: 768px) {
       .cf-list-row {
-        grid-template-columns: minmax(7rem, 1fr) minmax(6rem, 0.75fr) minmax(9rem, 1.25fr) auto;
-        gap: 0.75rem 1rem;
+        grid-template-columns: minmax(6rem, 0.85fr) minmax(5.5rem, 0.65fr) minmax(7.5rem, 1fr) minmax(7.5rem, 1fr) auto;
+        gap: 0.65rem 0.75rem;
+      }
+      .cf-list-head {
+        grid-template-columns: minmax(6rem, 0.85fr) minmax(5.5rem, 0.65fr) minmax(7.5rem, 1fr) minmax(7.5rem, 1fr) auto;
       }
     }
     @media (min-width: 1280px) {
-      .cf-list-row {
-        grid-template-columns: minmax(8rem, 1.05fr) minmax(6.5rem, 0.8fr) minmax(10rem, 1.35fr) auto;
+      .cf-list-row, .cf-list-head {
+        grid-template-columns: minmax(7rem, 0.9fr) minmax(6rem, 0.7fr) minmax(8.5rem, 1.05fr) minmax(8.5rem, 1.05fr) auto;
       }
     }
+    .cf-toolbar-btn {
+      display: flex; align-items: center; justify-content: flex-start; gap: 0.5rem;
+      width: 100%; min-height: 48px; padding: 0.65rem 0.85rem;
+      border-radius: 0.85rem; border: 2px solid; font-size: 0.7rem; font-weight: 900;
+      text-transform: uppercase; letter-spacing: 0.03em; text-align: left; line-height: 1.2;
+    }
+    .cf-modal-overlay {
+      position: fixed; inset: 0; z-index: 120; display: flex; align-items: center; justify-content: center;
+      padding: 2vh 10vw; background: rgba(15, 23, 42, 0.55);
+    }
+    .cf-modal-overlay.hidden { display: none !important; }
+    .cf-modal-panel {
+      width: 80vw; max-width: 80rem; height: min(88dvh, 92vh);
+      display: flex; flex-direction: column; border-radius: 1rem;
+      border: 2px solid #10b981; background: #fff; box-shadow: 0 25px 50px rgba(15, 23, 42, 0.25);
+      overflow: hidden;
+    }
+    .cf-modal-panel iframe { flex: 1 1 auto; min-height: 0; width: 100%; border: 0; }
     details.cf-help summary::-webkit-details-marker,
     details.cf-mini-help summary::-webkit-details-marker { display: none; }
   </style>
@@ -90,13 +111,22 @@
         </details>
       </div>
 
-      <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
+      <div class="flex-1 min-h-0 flex flex-col xl:flex-row overflow-hidden">
+        <nav class="shrink-0 xl:w-[11.5rem] border-b xl:border-b-0 xl:border-r border-slate-100 bg-slate-50/80 px-2 py-2 xl:py-3 flex flex-row xl:flex-col flex-wrap gap-1.5 xl:gap-2" aria-label="Consultas rápidas">
+          <button type="button" class="cf-toolbar-btn cf-popup-open border-orange-300 bg-orange-50 text-orange-950 hover:bg-orange-100" data-url="{{ caixa_popup_retirada }}" data-title="Retirada / saída">Retirada / saída</button>
+          <button type="button" class="cf-toolbar-btn cf-popup-open border-emerald-400 bg-emerald-50 text-emerald-950 hover:bg-emerald-100" data-url="{{ caixa_popup_reforco }}" data-title="Reforço manual">Reforço manual</button>
+          <button type="button" class="cf-toolbar-btn cf-popup-open border-slate-300 bg-white text-slate-800 hover:bg-slate-50" data-url="{{ caixa_popup_relatorio }}" data-title="Relatório de caixa">Relatório de caixa</button>
+          <button type="button" class="cf-toolbar-btn cf-popup-open border-amber-400 bg-amber-50 text-amber-950 hover:bg-amber-100" data-url="{{ caixa_popup_conferencias }}" data-title="Conferências · diferenças">Conferências · diferenças</button>
+        </nav>
+        <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
         <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 sm:px-4 py-2 sm:py-3 space-y-2">
+          <p id="cf-rascunho-status" class="hidden text-[11px] font-black uppercase text-emerald-700" role="status"></p>
           {% if linhas_com_movimento %}
-          <div class="hidden md:grid grid-cols-[minmax(8rem,1.05fr)_minmax(6.5rem,0.8fr)_minmax(10rem,1.35fr)_auto] gap-4 px-2 pb-1 text-[11px] font-black uppercase text-slate-400 border-b border-slate-100 sticky top-0 bg-white z-10">
+          <div class="cf-list-head hidden md:grid gap-3 px-2 pb-1 text-[11px] font-black uppercase text-slate-400 border-b border-slate-100 sticky top-0 bg-white z-10">
             <span>Forma</span>
             <span class="text-right">Esperado</span>
             <span>Contado</span>
+            <span>Rascunho</span>
             <span class="w-10" aria-hidden="true">&nbsp;</span>
           </div>
           <div class="space-y-1.5">
@@ -115,6 +145,10 @@
                 <span class="md:hidden text-[11px] font-black uppercase text-slate-600">Contado</span>
                 <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado mt-0.5 md:mt-0 w-full min-h-[50px] rounded-xl border-2 border-slate-300 bg-white px-3 text-[clamp(1.1rem,0.45vw+1rem,1.35rem)] font-black tabular-nums focus:border-emerald-500 outline-none" placeholder="0,00" autocomplete="off">
                 <p class="caixa-diff mt-0.5 text-xs font-bold hidden"></p>
+              </label>
+              <label class="block min-w-0">
+                <span class="md:hidden text-[11px] font-black uppercase text-violet-700">Rascunho</span>
+                <input type="text" inputmode="decimal" data-forma="{{ L.forma }}" class="caixa-rascunho mt-0.5 md:mt-0 w-full min-h-[50px] rounded-xl border-2 border-violet-200 bg-violet-50/40 px-3 text-[clamp(1rem,0.4vw+0.95rem,1.25rem)] font-black tabular-nums focus:border-violet-400 outline-none" placeholder="Rascunho" autocomplete="off" title="Contagem provisória — salva automaticamente">
               </label>
               <details class="cf-mini-help relative justify-self-end self-center">
                 <summary class="cursor-pointer list-none inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-200 bg-white text-sm font-black text-slate-600 hover:border-emerald-400 hover:text-emerald-800 select-none" title="Detalhe">?</summary>
@@ -154,8 +188,13 @@
                   <span class="text-base font-black tabular-nums text-slate-500">R$ {{ L.esperado }}</span>
                 </div>
                 <label class="block min-w-0">
+                  <span class="md:hidden text-[10px] font-black uppercase text-slate-500">Contado</span>
                   <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado w-full min-h-[44px] rounded-lg border-2 border-slate-200 bg-white px-3 text-base font-black tabular-nums" placeholder="0,00" autocomplete="off">
                   <p class="caixa-diff mt-0.5 text-xs font-bold hidden"></p>
+                </label>
+                <label class="block min-w-0">
+                  <span class="md:hidden text-[10px] font-black uppercase text-violet-700">Rascunho</span>
+                  <input type="text" inputmode="decimal" data-forma="{{ L.forma }}" class="caixa-rascunho w-full min-h-[44px] rounded-lg border-2 border-violet-200 bg-violet-50/40 px-3 text-base font-black tabular-nums" placeholder="Rascunho" autocomplete="off">
                 </label>
                 <details class="cf-mini-help relative justify-self-end">
                   <summary class="cursor-pointer list-none inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-black text-slate-500 select-none">?</summary>
@@ -178,6 +217,7 @@
           <button type="submit" class="w-full min-h-[54px] py-2.5 rounded-xl bg-emerald-600 text-white font-black uppercase text-sm sm:text-base tracking-wide hover:bg-emerald-700 shadow-lg">
             Confirmar fechamento de {{ qtd_caixas }} caixa(s)
           </button>
+        </div>
         </div>
       </div>
     </form>
@@ -267,6 +307,16 @@
 
 {% include "produtos/_atalho_voltar_pdv.html" %}
 {% include "produtos/includes/caixa_pin_modal.html" %}
+<div id="cf-popup" class="cf-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="cf-popup-title">
+  <div class="cf-modal-panel">
+    <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 sm:px-4 py-2 bg-slate-50">
+      <h3 id="cf-popup-title" class="text-sm sm:text-base font-black uppercase text-slate-900 truncate min-w-0"></h3>
+      <button type="button" id="cf-popup-fechar" class="shrink-0 min-h-[44px] px-4 rounded-xl border-2 border-slate-300 bg-white text-xs font-black uppercase text-slate-800 hover:bg-slate-100">Fechar · Esc</button>
+    </div>
+    <iframe id="cf-popup-frame" class="flex-1 min-h-0" title="Consulta de caixa"></iframe>
+  </div>
+</div>
+<script id="cf-rascunho-data" type="application/json">{{ rascunho_json }}</script>
 {% include "produtos/_agro_double_submit_guard.html" %}
 <script>
 (function () {
@@ -351,6 +401,89 @@
     }
     inp.addEventListener('input', upd);
     inp.addEventListener('change', upd);
+  });
+
+  var rascunhoMap = {};
+  try {
+    var elData = document.getElementById('cf-rascunho-data');
+    if (elData && elData.textContent) rascunhoMap = JSON.parse(elData.textContent) || {};
+  } catch (e) { rascunhoMap = {}; }
+  document.querySelectorAll('.caixa-rascunho').forEach(function (inp) {
+    var fn = (inp.getAttribute('data-forma') || '').trim();
+    if (fn && rascunhoMap[fn] != null) inp.value = String(rascunhoMap[fn]);
+  });
+  function coletarRascunho() {
+    var out = {};
+    document.querySelectorAll('.caixa-rascunho').forEach(function (inp) {
+      var fn = (inp.getAttribute('data-forma') || '').trim();
+      if (!fn) return;
+      out[fn] = String(inp.value || '').trim();
+    });
+    return out;
+  }
+  function csrfToken() {
+    var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  var saveTimer = null;
+  var saveUrl = '{{ api_rascunho_salvar_url|escapejs }}';
+  var statusEl = document.getElementById('cf-rascunho-status');
+  function salvarRascunho() {
+    fetch(saveUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+      body: JSON.stringify({ rascunho: coletarRascunho() })
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data || !data.ok) return;
+      if (statusEl) {
+        statusEl.textContent = 'Rascunho salvo';
+        statusEl.classList.remove('hidden');
+        clearTimeout(statusEl._hideT);
+        statusEl._hideT = setTimeout(function () { statusEl.classList.add('hidden'); }, 2200);
+      }
+    }).catch(function () {});
+  }
+  function agendarSalvar() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(salvarRascunho, 500);
+  }
+  document.querySelectorAll('.caixa-rascunho').forEach(function (inp) {
+    inp.addEventListener('input', agendarSalvar);
+    inp.addEventListener('change', agendarSalvar);
+  });
+
+  var popup = document.getElementById('cf-popup');
+  var popupFrame = document.getElementById('cf-popup-frame');
+  var popupTitle = document.getElementById('cf-popup-title');
+  var popupFechar = document.getElementById('cf-popup-fechar');
+  function abrirPopup(url, titulo) {
+    if (!popup || !popupFrame) return;
+    if (popupTitle) popupTitle.textContent = titulo || '';
+    popupFrame.src = url;
+    popupFrame.title = titulo || 'Caixa';
+    popup.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+  }
+  function fecharPopup() {
+    if (!popup) return;
+    popup.classList.add('hidden');
+    if (popupFrame) popupFrame.src = 'about:blank';
+    document.body.classList.remove('overflow-hidden');
+  }
+  document.querySelectorAll('.cf-popup-open').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      abrirPopup(btn.getAttribute('data-url') || '', btn.getAttribute('data-title') || '');
+    });
+  });
+  if (popupFechar) popupFechar.addEventListener('click', fecharPopup);
+  if (popup) {
+    popup.addEventListener('click', function (e) {
+      if (e.target === popup) fecharPopup();
+    });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && popup && !popup.classList.contains('hidden')) fecharPopup();
   });
 })();
 </script>

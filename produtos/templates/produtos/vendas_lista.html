@@ -115,6 +115,7 @@
               <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
                 <div class="flex flex-nowrap items-center gap-1.5">
                   <a href="{% url 'venda_agro_detalhe' v.id %}" class="inline-flex items-center justify-center min-h-[44px] min-w-[4.5rem] px-3 rounded-xl border-2 border-slate-200 bg-white text-[11px] font-black uppercase text-slate-800 hover:border-emerald-400 hover:bg-emerald-50">Ver</a>
+                  <button type="button" class="js-venda-imprimir-cupom inline-flex items-center justify-center min-h-[44px] min-w-[5.5rem] px-3 rounded-xl border-2 border-sky-400 bg-sky-600 text-[11px] font-black uppercase text-white shadow-sm hover:bg-sky-700" data-venda-id="{{ v.id }}" title="Reimprimir cupom 80mm (2ª via)">Imprimir</button>
                   {% if not v.devolvida_em %}
                   <a href="{% url 'venda_agro_detalhe' v.id %}?devolver=1" class="inline-flex items-center justify-center min-h-[44px] min-w-[5.5rem] px-3 rounded-xl border-2 border-rose-400 bg-rose-600 text-[11px] font-black uppercase text-white shadow-sm hover:bg-rose-700" title="Estorno: repõe estoque e registra saída no caixa aberto">Devolver</a>
                   {% else %}
@@ -370,8 +371,18 @@
           if (id) abrirModal(id, 'hist');
         });
       });
+      document.querySelectorAll('.js-venda-imprimir-cupom').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-venda-id');
+          if (!id || typeof agroCarregarEImprimirCupomVenda !== 'function') return;
+          agroCarregarEImprimirCupomVenda(id).catch(function (err) {
+            alert(err && err.message ? err.message : 'Não foi possível imprimir o cupom.');
+          });
+        });
+      });
     })();
   </script>
+  <script src="{% static 'produtos/js/venda_cupom_80mm.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 {% include "produtos/_atalho_voltar_pdv.html" %}
 </body>
 </html>

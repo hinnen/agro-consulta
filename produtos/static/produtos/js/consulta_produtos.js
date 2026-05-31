@@ -1887,6 +1887,12 @@ async function pdvSalvarClienteRapidoPdv() {
         if (nomeEl) nomeEl.focus();
         return;
     }
+    const waDigits = wa.replace(/\D/g, '');
+    if (waDigits.length < 10) {
+        alert('Informe o telefone ou WhatsApp com DDD (mínimo 10 dígitos).');
+        if (waEl) waEl.focus();
+        return;
+    }
     const url = AGRO_PDV_URLS.apiPdvClienteRapido;
     if (!url) {
         return alert('Cadastro rápido indisponível (URL).');

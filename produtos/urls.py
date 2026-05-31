@@ -173,6 +173,11 @@ urlpatterns = [
     path('vendas/', views.vendas_lista, name='vendas_lista'),
     path('vendas-hoje/', views.vendas_hoje_redirect, name='vendas_hoje'),
     path(
+        'venda/<int:pk>/cupom/',
+        views.api_venda_agro_cupom,
+        name='api_venda_agro_cupom',
+    ),
+    path(
         'venda/<int:pk>/erp-envio/',
         views.api_venda_agro_erp_envio_info,
         name='api_venda_agro_erp_envio_info',
@@ -209,6 +214,16 @@ urlpatterns = [
         name='caixa_relatorio_conferencias',
     ),
     path('api/caixa/assumir-sessao/', views.api_caixa_assumir_sessao, name='api_caixa_assumir_sessao'),
+    path(
+        'api/caixa/conferencia-rascunho/',
+        views.api_caixa_conferencia_rascunho,
+        name='api_caixa_conferencia_rascunho',
+    ),
+    path(
+        'api/caixa/conferencia-rascunho/salvar/',
+        views.api_caixa_conferencia_rascunho_salvar,
+        name='api_caixa_conferencia_rascunho_salvar',
+    ),
     path('api/caixa/movimento/', views.api_caixa_movimento, name='api_caixa_movimento'),
     path('api/caixa/vincular-vendas/', views.api_caixa_vincular_vendas, name='api_caixa_vincular_vendas'),
 

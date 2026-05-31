@@ -90,6 +90,7 @@ from .fiado_credito_util import (
 from .entrega_pagamento_util import serializar_pagamento_entrega
 from .venda_erp_envio_util import (
     append_erp_envio_log,
+    detalhe_resposta_pedido_erp,
     erp_envio_usuario_label,
     pode_enviar_venda_fiado_erp,
     reverter_envio_erp_local,
@@ -5367,6 +5368,8 @@ def _forma_pagamento_rotulo_sem_valor_moeda(s: str) -> str:
 
 def _normalizar_linhas_pagamento_pedido(raw_list) -> list[dict]:
     """Lista de parcelas para Pedidos/Salvar (camelCase). Usado no payload e no rascunho checkout."""
+    from produtos.caixa_util import normalizar_forma_pagamento_caixa
+
     if not isinstance(raw_list, list) or not raw_list:
         return []
     out: list[dict] = []
@@ -5386,20 +5389,41 @@ def _normalizar_linhas_pagamento_pedido(raw_list) -> list[dict]:
             vp = 0.0
         vp = round(vp, 2)
         fn = _forma_pagamento_rotulo_sem_valor_moeda(fn)
+        fn_norm = normalizar_forma_pagamento_caixa(fn)
         if not fn and vp <= 0:
             continue
         if not fn:
             fn = "Não informado"
+        is_fiado = fn_norm == "Fiado"
         item: dict = {
             "formaPagamento": fn,
             "valorPagamento": vp,
-            "quitar": bool(row.get("quitar", True)),
+            "quitar": bool(row.get("quitar", not is_fiado)),
         }
         desc = str(
             row.get("descricaoPagamento") or row.get("descricao_pagamento") or ""
         ).strip()[:300]
         if desc:
             item["descricaoPagamento"] = desc
+        if is_fiado:
+            np = row.get("fiadoParcelas", row.get("fiado_parcelas"))
+            if np is not None:
+                try:
+                    item["fiadoParcelas"] = int(np)
+                except (TypeError, ValueError):
+                    pass
+            nd = row.get(
+                "fiadoDiasVencimento",
+                row.get("fiado_dias_vencimento", row.get("fiado_dias_primeiro")),
+            )
+            if nd is not None:
+                try:
+                    item["fiadoDiasVencimento"] = int(nd)
+                except (TypeError, ValueError):
+                    pass
+            cron = row.get("fiadoCronograma", row.get("fiado_cronograma"))
+            if isinstance(cron, list) and cron:
+                item["fiadoCronograma"] = cron
         out.append(item)
     return out
 
@@ -7562,10 +7586,23 @@ def vendas_exportar_csv(request):
 
 @login_required(login_url="/admin/login/")
 def clientes_lista(request):
+    from .clientes_sync_web_state import (
+        consumir_mensagem_conclusao,
+        sync_em_andamento,
+    )
     from .services_clientes_sync import (
         CLIENTES_SYNC_LOCK_KEY,
         CLIENTES_SYNC_RESULT_KEY,
     )
+
+    conclusao_arquivo = consumir_mensagem_conclusao()
+    if conclusao_arquivo:
+        kind, texto = conclusao_arquivo
+        if kind == "success":
+            messages.success(request, texto)
+        else:
+            messages.error(request, texto)
+        cache.delete(CLIENTES_SYNC_LOCK_KEY)
 
     sync_result = cache.get(CLIENTES_SYNC_RESULT_KEY)
     if sync_result:
@@ -7614,7 +7651,8 @@ def clientes_lista(request):
         {
             "clientes": qs,
             "busca": q,
-            "clientes_sync_em_andamento": bool(cache.get(CLIENTES_SYNC_LOCK_KEY)),
+            "clientes_sync_em_andamento": sync_em_andamento()
+            or bool(cache.get(CLIENTES_SYNC_LOCK_KEY)),
         },
     )
 
@@ -7665,6 +7703,7 @@ def clientes_sincronizar(request):
 
     from django.conf import settings
 
+    from .clientes_sync_web_state import mark_running
     from .services_clientes_sync import (
         CLIENTES_SYNC_LOCK_KEY,
         CLIENTES_SYNC_RESULT_KEY,
@@ -7704,6 +7743,7 @@ def clientes_sincronizar(request):
         messages.error(request, f"Não foi possível iniciar a sincronização: {exc}")
         return redirect("clientes_lista")
 
+    mark_running()
     cache.set(CLIENTES_SYNC_LOCK_KEY, True, timeout=900)
     cache.delete(CLIENTES_SYNC_RESULT_KEY)
     messages.success(
@@ -7711,6 +7751,43 @@ def clientes_sincronizar(request):
         "Sincronização iniciada (Mongo + ERP). Em 1–2 minutos, atualize a página (F5) para ver o resultado.",
     )
     return redirect("clientes_lista")
+
+
+def _caixa_request_embed(request) -> bool:
+    return (request.GET.get("embed") or "").strip().lower() in ("1", "true", "sim", "yes")
+
+
+CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY = "caixa_conferencia_rascunho"
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_caixa_conferencia_rascunho(request):
+    """Rascunho da conferência de fechamento (por forma), guardado na sessão Django."""
+    raw = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
+    rascunho = raw if isinstance(raw, dict) else {}
+    return JsonResponse({"ok": True, "rascunho": rascunho})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_caixa_conferencia_rascunho_salvar(request):
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    raw = payload.get("rascunho")
+    if not isinstance(raw, dict):
+        return JsonResponse({"ok": False, "erro": "Campo rascunho inválido."}, status=400)
+    clean: dict[str, str] = {}
+    for k, v in list(raw.items())[:24]:
+        fn = str(k or "").strip()[:80]
+        if not fn:
+            continue
+        clean[fn] = str(v or "").strip()[:32]
+    request.session[CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY] = clean
+    request.session.modified = True
+    return JsonResponse({"ok": True, "salvo_em": timezone.now().isoformat()})
 
 
 @login_required(login_url="/admin/login/")
@@ -7801,6 +7878,7 @@ def caixa_painel(request):
                     break
             ctx["tot_esperado_dinheiro_todos"] = str(tot_din.quantize(Decimal("0.01")))
     ctx["painel"] = painel
+    ctx["caixa_embed"] = _caixa_request_embed(request)
     return render(request, "produtos/caixa_painel.html", ctx)
 
 
@@ -7836,6 +7914,7 @@ def caixa_relatorio(request):
             "tot_saida": rel["tot_saida"],
             "saldo": rel["saldo"],
             "sessoes_opts": rel["sessoes_opts"],
+            "caixa_embed": _caixa_request_embed(request),
         },
     )
 
@@ -7895,6 +7974,7 @@ def caixa_relatorio_conferencias(request):
             "tot_contado": rel["tot_contado"],
             "tot_diferenca": rel["tot_diferenca"],
             "sessoes_opts": rel["sessoes_opts"],
+            "caixa_embed": _caixa_request_embed(request),
         },
     )
 
@@ -8141,6 +8221,11 @@ def caixa_fechar(request):
         except (TypeError, ValueError):
             pass
 
+    def _limpar_rascunho_conferencia(req):
+        if CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY in req.session:
+            del req.session[CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY]
+            req.session.modified = True
+
     linhas_todos_raw = linhas_conferencia_agregada(sessoes, todas_formas=True)
     cards = montar_cards_caixas_abertos(sessoes)
 
@@ -8183,6 +8268,7 @@ def caixa_fechar(request):
                 sessao.valor_fechamento = cont_din.quantize(Decimal("0.01"))
             sessao.save()
             _limpar_sessao_browser(request, sessao.pk)
+            _limpar_rascunho_conferencia(request)
             messages.success(request, f"Caixa #{sessao.pk} fechado.")
             return redirect("caixa_fechar")
         # Fechar todos (padrão operacional)
@@ -8221,6 +8307,7 @@ def caixa_fechar(request):
             sessao.save()
             _limpar_sessao_browser(request, sessao.pk)
             n += 1
+        _limpar_rascunho_conferencia(request)
         messages.success(request, f"{n} caixa(s) fechado(s) de uma vez.")
         return redirect("caixa_painel")
 
@@ -8249,6 +8336,10 @@ def caixa_fechar(request):
         else:
             linhas_sem_movimento.append(row)
 
+    rasc = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
+    if not isinstance(rasc, dict):
+        rasc = {}
+
     return render(
         request,
         "produtos/caixa_fechar.html",
@@ -8262,6 +8353,13 @@ def caixa_fechar(request):
             "entregas_pendentes_fechar": entregas_pendentes_fechar,
             "fechar_bloqueado": fechar_bloqueado,
             "pdv_url": reverse("pdv_home"),
+            "rascunho_json": json.dumps(rasc, ensure_ascii=False),
+            "api_rascunho_salvar_url": reverse("api_caixa_conferencia_rascunho_salvar"),
+            "caixa_popup_retirada": reverse("caixa_painel") + "?painel=retirada&embed=1",
+            "caixa_popup_reforco": reverse("caixa_painel") + "?painel=reforco&embed=1",
+            "caixa_popup_relatorio": reverse("caixa_relatorio") + "?preset=hoje&embed=1",
+            "caixa_popup_conferencias": reverse("caixa_relatorio_conferencias")
+            + "?preset=7d&embed=1",
         },
     )
 
@@ -8280,11 +8378,15 @@ def venda_agro_detalhe(request, pk):
         except Exception:
             erp_txt = str(v.erp_resposta)
     erp_painel = serializar_venda_erp_painel(v)
+    from produtos.venda_cupom_util import serializar_venda_cupom_80mm
+
+    cupom_80mm = serializar_venda_cupom_80mm(v, segunda_via=True) if v.itens.exists() else None
     return render(
         request,
         "produtos/venda_agro_detalhe.html",
         {
             "v": v,
+            "cupom_80mm": cupom_80mm,
             "erp_resposta_text": erp_txt,
             "erp_painel": erp_painel,
             "erp_logs_json": json.dumps(
@@ -12336,7 +12438,7 @@ def _anexar_retirada_turno_caixa_saida(
 @require_POST
 def api_lancamentos_saida_caixa(request):
     """Registra uma despesa rápida (saída de caixa) com plano de conta — grava como lançamento manual de 1 linha."""
-    from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
+    from produtos.saida_caixa_planos import PLANO_DEPOSITO_ID, SAIDA_CAIXA_PLANOS
 
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
@@ -12353,6 +12455,7 @@ def api_lancamentos_saida_caixa(request):
     plano_id_req = str(payload.get("plano_id") or "").strip()
     plan_map = {p["id"]: p for p in SAIDA_CAIXA_PLANOS}
     is_outros = False
+    is_deposito = plano_id_req == PLANO_DEPOSITO_ID
     if plano_id_req:
         if plano_id_req not in plan_map:
             return JsonResponse({"ok": False, "erro": "Plano de conta inválido."}, status=400)
@@ -12367,7 +12470,7 @@ def api_lancamentos_saida_caixa(request):
     motivo = str(payload.get("motivo") or "").strip()[:200]
     pessoa_id_final = str(payload.get("pessoa_id") or "").strip() or None
     pessoa_nome = ""
-    if plano_id_req:
+    if plano_id_req and not is_deposito:
         if is_outros:
             if len(motivo) < 15:
                 return JsonResponse(
@@ -12420,6 +12523,43 @@ def api_lancamentos_saida_caixa(request):
     forma_nome = str(payload.get("forma_nome") or "").strip()
     if not banco_nome or not forma_nome:
         return JsonResponse({"ok": False, "erro": "Informe conta/banco e forma de pagamento."}, status=400)
+
+    if is_deposito:
+        bn_up = banco_nome.upper()
+        if bn_up.startswith("CAIXA") or bn_up in ("CAIXA 1", "CAIXA1"):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "No depósito, escolha a conta bancária de destino (não o caixa físico da loja).",
+                },
+                status=400,
+            )
+        desc_dep = f"Depósito → {banco_nome}"[:500]
+        if motivo:
+            desc_dep = f"{desc_dep} · {motivo}"[:500]
+        mov_dep = registrar_retirada_turno_caixa(
+            request,
+            valor=Decimal(str(valor)),
+            forma_nome=forma_nome,
+            observacao=desc_dep,
+        )
+        if not mov_dep:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Abra o caixa neste navegador para registrar o depósito no turno.",
+                },
+                status=400,
+            )
+        return JsonResponse(
+            {
+                "ok": True,
+                "deposito": True,
+                "ids": [],
+                "erros": [],
+                "movimento_caixa_id": mov_dep.pk,
+            }
+        )
 
     _, db = obter_conexao_mongo()
     if db is None:
@@ -12521,6 +12661,7 @@ def api_lancamentos_saida_caixa(request):
         grupo_id=str(payload.get("grupo_id") or "").strip() or None,
         usuario_label=usuario,
         linhas=linhas,
+        marcar_quitado_pagar=True,
     )
 
     ok = bool(resultado.get("ok"))
@@ -16584,6 +16725,8 @@ def _texto_heuristico_resposta_pedido_erp(res) -> str:
             return
         if isinstance(node, dict):
             for key in (
+                "_body",
+                "_erro",
                 "texto",
                 "Texto",
                 "mensagem",
@@ -17507,9 +17650,22 @@ def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
         payload["empresaID"] = emp_id
 
     cid = str(data.get("cliente_id") or data.get("ClienteID") or "").strip()
-    if _cliente_id_e_valido_para_erp(cid):
-        payload["clienteID"] = cid
+    agro_pk_raw = data.get("cliente_agro_pk")
+    agro_pk = None
+    if agro_pk_raw is not None and str(agro_pk_raw).strip() != "":
+        try:
+            agro_pk = int(agro_pk_raw)
+        except (TypeError, ValueError):
+            agro_pk = None
+    from produtos.fiado_credito_util import resolver_cliente_fiado
+
+    erp_cid, _agro_pk_res, cli_fiado = resolver_cliente_fiado(cid, cliente_agro_pk=agro_pk)
+    cid_erp_payload = erp_cid if _cliente_id_e_valido_para_erp(erp_cid) else cid
+    if _cliente_id_e_valido_para_erp(cid_erp_payload):
+        payload["clienteID"] = cid_erp_payload
     doc_raw = str(data.get("cliente_documento") or data.get("CpfCnpj") or "").strip()
+    if not doc_raw and cli_fiado and (cli_fiado.cpf or "").strip():
+        doc_raw = cli_fiado.cpf
     doc_digits = re.sub(r"\D", "", doc_raw)
     if len(doc_digits) >= 11:
         payload["cpfCnpj"] = doc_digits
@@ -17728,6 +17884,15 @@ def _fluxo_enviar_pedido_erp_interno(request, data: dict, *, client_m, db):
                     break
 
     if ok and not recusa_erp and _mensagem_pedido_erp_indica_erro_plano_contas(flat_erp):
+        recusa_erp = True
+
+    if (
+        not ok
+        and not recusa_erp
+        and status
+        and 400 <= int(status) < 500
+        and (flat_erp.strip() or isinstance(res, dict))
+    ):
         recusa_erp = True
 
     if recusa_erp:
@@ -17989,8 +18154,9 @@ def _resposta_json_envio_erp_venda(request, v: VendaAgro, out: dict) -> JsonResp
     http_st = out.get("status")
     erp_sync = out.get("erp_sync") or ""
     res_raw = out.get("res")
+    detalhe = detalhe_resposta_pedido_erp(res_raw)
 
-    if out.get("ok") and out.get("recusa_erp"):
+    if out.get("recusa_erp"):
         _atualizar_venda_agro_resposta_erp(v, http_st, res_raw, erp_sync)
         append_erp_envio_log(
             v,
@@ -18000,6 +18166,7 @@ def _resposta_json_envio_erp_venda(request, v: VendaAgro, out: dict) -> JsonResp
             http_status=http_st,
             mensagem=msg_erro_ui or "ERP recusou o pedido.",
             usuario=usuario,
+            detalhe=detalhe,
             erp_resposta=res_raw,
         )
         v.save(update_fields=["erp_envio_log_json"])
@@ -18012,7 +18179,7 @@ def _resposta_json_envio_erp_venda(request, v: VendaAgro, out: dict) -> JsonResp
                 "painel": serializar_venda_erp_painel(v),
                 "log_ultimo": (v.erp_envio_log_json or [])[-1] if v.erp_envio_log_json else None,
             },
-            status=502,
+            status=502 if http_st and http_st != 0 else 400,
         )
 
     if out.get("ok"):
@@ -18046,6 +18213,7 @@ def _resposta_json_envio_erp_venda(request, v: VendaAgro, out: dict) -> JsonResp
         http_status=http_st,
         mensagem=msg_erro_ui or "Falha de comunicação com o ERP.",
         usuario=usuario,
+        detalhe=detalhe,
         erp_resposta=res_raw,
     )
     v.save(update_fields=["erp_envio_log_json"])
@@ -18059,6 +18227,31 @@ def _resposta_json_envio_erp_venda(request, v: VendaAgro, out: dict) -> JsonResp
             "log_ultimo": (v.erp_envio_log_json or [])[-1] if v.erp_envio_log_json else None,
         },
         status=502 if http_st and http_st != 0 else 500,
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_venda_agro_cupom(request, pk):
+    """JSON do cupom térmico 80mm para reimpressão."""
+    from produtos.venda_cupom_util import serializar_venda_cupom_80mm
+
+    v = get_object_or_404(
+        VendaAgro.objects.prefetch_related("itens"),
+        pk=pk,
+    )
+    if not v.itens.exists():
+        return JsonResponse(
+            {"ok": False, "erro": "Esta venda não possui itens para imprimir."},
+            status=400,
+        )
+    raw_sv = (request.GET.get("segunda_via") or "1").strip().lower()
+    segunda_via = raw_sv not in ("0", "false", "no", "off")
+    return JsonResponse(
+        {
+            "ok": True,
+            "cupom": serializar_venda_cupom_80mm(v, segunda_via=segunda_via),
+        }
     )
 
 
@@ -18145,6 +18338,38 @@ def api_venda_agro_reenviar_erp(request, pk):
         )
         v.save(update_fields=["erp_envio_log_json"])
         data = venda_payload_de_venda_agro(v)
+        from produtos.fiado_credito_util import resolver_cliente_fiado
+
+        erp_cid, agro_pk_chk, _cli_chk = resolver_cliente_fiado(
+            v.cliente_id_erp,
+            cliente_agro_pk=data.get("cliente_agro_pk"),
+        )
+        if v.tem_fiado() and not _cliente_id_e_valido_para_erp(erp_cid):
+            msg_cli = (
+                "Cliente fiado sem ID vinculado ao ERP. "
+                "Abra o cadastro do cliente no Agro e confira o campo «ID externo (Mongo/ERP)» "
+                "ou sincronize clientes antes de enviar."
+            )
+            append_erp_envio_log(
+                v,
+                acao="envio_falha",
+                ok=False,
+                status=VendaAgro.ErpSyncStatus.RECUSADO_ERP,
+                mensagem=msg_cli,
+                usuario=usuario,
+                detalhe=f"cliente_id_erp={v.cliente_id_erp!r} agro_pk={agro_pk_chk}",
+            )
+            v.erp_sync_status = VendaAgro.ErpSyncStatus.RECUSADO_ERP
+            v.save(update_fields=["erp_sync_status", "erp_envio_log_json"])
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": msg_cli,
+                    "venda_id": v.pk,
+                    "painel": serializar_venda_erp_painel(v),
+                },
+                status=400,
+            )
         client_m, db = obter_conexao_mongo()
         err, out = _fluxo_enviar_pedido_erp_interno(
             request, data, client_m=client_m, db=db
@@ -19795,6 +20020,7 @@ def _pdv_resumo_endereco_cliente_rapido(data: dict) -> str:
     return ", ".join(parts)[:500]
 
 
+@login_required(login_url="/admin/login/")
 @require_POST
 def api_pdv_cliente_rapido(request):
     """Cadastro rápido de ClienteAgro a partir do PDV (popup no carrinho)."""
@@ -19810,6 +20036,14 @@ def api_pdv_cliente_rapido(request):
         )
     wa_raw = (data.get("whatsapp") or data.get("telefone") or "").strip()
     wa_digits = re.sub(r"\D", "", wa_raw)
+    if len(wa_digits) < 10:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Informe o telefone ou WhatsApp com DDD (mínimo 10 dígitos).",
+            },
+            status=400,
+        )
     if len(wa_digits) > 20:
         wa_digits = wa_digits[-20:]
     resumo_end = _pdv_resumo_endereco_cliente_rapido(data)

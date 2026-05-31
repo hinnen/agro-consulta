@@ -37,6 +37,47 @@
     0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.2); border-color: rgba(245, 158, 11, 0.45); }
     50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.55); }
   }
+  #pdv-quick-client-picker.pdv-client-picker-active {
+    border-width: 3px;
+    border-color: #0284c7;
+    background: linear-gradient(180deg, #e0f2fe 0%, #fff 42%);
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.22), 0 18px 40px rgba(2, 132, 199, 0.18);
+  }
+  #pdv-quick-client-picker.pdv-client-picker-active #pdv-quick-client-picker-hint {
+    display: block !important;
+  }
+  #pdv-step1-client-bar.pdv-client-bar-awaiting {
+    border-color: #0284c7;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+  }
+  #pdv-quick-client-search.pdv-client-search-hot,
+  #pdv-quick-client-picker.pdv-client-picker-active #pdv-quick-client-search {
+    min-height: 3.35rem;
+    padding: 0.85rem 1rem;
+    font-size: clamp(1.05rem, 0.5vw + 1rem, 1.35rem);
+    font-weight: 900;
+    border-width: 3px;
+    border-color: #0284c7;
+    background: #fff;
+    caret-color: #0369a1;
+    animation: pdv-client-search-pulse 1.6s ease-in-out infinite;
+  }
+  #pdv-quick-client-search.pdv-client-search-hot:focus,
+  #pdv-quick-client-picker.pdv-client-picker-active #pdv-quick-client-search:focus {
+    border-color: #0369a1;
+    box-shadow: 0 0 0 5px rgba(14, 165, 233, 0.35);
+    animation: none;
+  }
+  @keyframes pdv-client-search-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.45);
+      border-color: #0ea5e9;
+    }
+    50% {
+      box-shadow: 0 0 0 8px rgba(14, 165, 233, 0.12);
+      border-color: #0369a1;
+    }
+  }
   #pdv-product-photo-pop::backdrop { background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); }
   #pdv-step-pagamento-root .pdv-pay-flow-pop { padding: 0; border: none; border-radius: 1.5rem; max-height: 92vh; }
   #pdv-step-pagamento-root .pdv-pay-flow-pop::backdrop { background: rgba(15, 23, 42, 0.78); backdrop-filter: blur(5px); }
@@ -356,6 +397,61 @@
     </div>
   </div>
 </div>
+
+<div id="pdv-wizard-cli-rapido-modal" class="fixed inset-0 z-[128] hidden items-center justify-center bg-slate-900/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="pdv-wizard-cli-rapido-titulo">
+  <div class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" data-pdv-wizard-cli-rapido-panel>
+    <div class="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+      <h2 id="pdv-wizard-cli-rapido-titulo" class="text-base font-black uppercase text-slate-900">Novo cliente</h2>
+      <button type="button" id="pdv-wizard-cli-rapido-fechar" class="px-2 text-lg font-bold leading-none text-slate-400 hover:text-slate-700" aria-label="Fechar">×</button>
+    </div>
+    <div class="space-y-3 p-4">
+      <p class="text-xs font-bold leading-snug text-slate-600">Cadastra no Agro e já seleciona na venda.</p>
+      <div>
+        <label for="pdv-wizard-cli-rapido-nome" class="mb-1 block text-[10px] font-black uppercase text-slate-500">Nome <span class="text-red-600">*</span></label>
+        <input id="pdv-wizard-cli-rapido-nome" type="text" autocomplete="name" class="pdv-input text-sm" placeholder="Nome completo ou fantasia">
+      </div>
+      <div>
+        <label for="pdv-wizard-cli-rapido-whatsapp" class="mb-1 block text-[10px] font-black uppercase text-slate-500">Telefone / WhatsApp <span class="text-red-600">*</span></label>
+        <input id="pdv-wizard-cli-rapido-whatsapp" type="tel" inputmode="tel" autocomplete="tel" class="pdv-input text-sm" placeholder="DDD + número">
+      </div>
+      <details class="rounded-xl border-2 border-slate-200 bg-slate-50/80 px-3 py-2">
+        <summary class="cursor-pointer select-none text-[11px] font-black uppercase tracking-wide text-slate-700">Endereço (opcional)</summary>
+        <div class="mt-3 grid gap-2.5 sm:grid-cols-2">
+          <div class="sm:col-span-2">
+            <label for="pdv-wizard-cli-rapido-logradouro" class="mb-0.5 block text-[9px] font-black uppercase text-slate-500">Logradouro</label>
+            <input id="pdv-wizard-cli-rapido-logradouro" type="text" autocomplete="street-address" class="pdv-input py-2 text-sm">
+          </div>
+          <div>
+            <label for="pdv-wizard-cli-rapido-numero" class="mb-0.5 block text-[9px] font-black uppercase text-slate-500">Número</label>
+            <input id="pdv-wizard-cli-rapido-numero" type="text" class="pdv-input py-2 text-sm">
+          </div>
+          <div>
+            <label for="pdv-wizard-cli-rapido-bairro" class="mb-0.5 block text-[9px] font-black uppercase text-slate-500">Bairro</label>
+            <input id="pdv-wizard-cli-rapido-bairro" type="text" class="pdv-input py-2 text-sm">
+          </div>
+          <div>
+            <label for="pdv-wizard-cli-rapido-cidade" class="mb-0.5 block text-[9px] font-black uppercase text-slate-500">Cidade</label>
+            <input id="pdv-wizard-cli-rapido-cidade" type="text" class="pdv-input py-2 text-sm">
+          </div>
+          <div>
+            <label for="pdv-wizard-cli-rapido-uf" class="mb-0.5 block text-[9px] font-black uppercase text-slate-500">UF</label>
+            <input id="pdv-wizard-cli-rapido-uf" type="text" maxlength="2" class="pdv-input py-2 text-sm uppercase">
+          </div>
+          <div>
+            <label for="pdv-wizard-cli-rapido-cep" class="mb-0.5 block text-[9px] font-black uppercase text-slate-500">CEP</label>
+            <input id="pdv-wizard-cli-rapido-cep" type="text" class="pdv-input py-2 text-sm">
+          </div>
+        </div>
+      </details>
+      <p id="pdv-wizard-cli-rapido-erro" class="hidden text-sm font-bold text-red-600" role="alert"></p>
+      <div class="flex gap-2 pt-1">
+        <button type="button" id="pdv-wizard-cli-rapido-cancelar" class="pdv-action-btn flex-1 border-2 border-slate-200 bg-white py-3 text-sm text-slate-600 hover:bg-slate-50">Cancelar</button>
+        <button type="button" id="pdv-wizard-cli-rapido-salvar" class="pdv-action-btn flex-1 bg-emerald-600 py-3 text-sm text-white shadow-md hover:bg-emerald-700">Salvar cliente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 <script>
 (function () {
@@ -461,6 +557,7 @@
   window.pdvWizardAbrirAjuda = pdvWizardAbrirAjuda;
 })();
 </script>
+<script src="{% static 'produtos/js/venda_cupom_80mm.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_state.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 {% include "produtos/_screensaver_pin.html" %}

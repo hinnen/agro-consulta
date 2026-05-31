@@ -142,8 +142,18 @@
         quickClientSearch: document.getElementById('pdv-quick-client-search'),
         quickClientResults: document.getElementById('pdv-quick-client-results'),
         quickClientPicker: document.getElementById('pdv-quick-client-picker'),
+        quickClientPickerHint: document.getElementById('pdv-quick-client-picker-hint'),
         quickClientPickerClose: document.getElementById('pdv-quick-client-picker-close'),
+        step1ClientBar: document.getElementById('pdv-step1-client-bar'),
         quickClientChange: document.getElementById('pdv-quick-client-change'),
+        wizardCliRapidoModal: document.getElementById('pdv-wizard-cli-rapido-modal'),
+        wizardCliRapidoPanel: document.querySelector('[data-pdv-wizard-cli-rapido-panel]'),
+        wizardCliRapidoNome: document.getElementById('pdv-wizard-cli-rapido-nome'),
+        wizardCliRapidoWhatsapp: document.getElementById('pdv-wizard-cli-rapido-whatsapp'),
+        wizardCliRapidoErro: document.getElementById('pdv-wizard-cli-rapido-erro'),
+        wizardCliRapidoSalvar: document.getElementById('pdv-wizard-cli-rapido-salvar'),
+        wizardCliRapidoCancelar: document.getElementById('pdv-wizard-cli-rapido-cancelar'),
+        wizardCliRapidoFechar: document.getElementById('pdv-wizard-cli-rapido-fechar'),
         clientPurchaseHistory: document.getElementById('pdv-client-purchase-history'),
         productSearch: document.getElementById('pdv-product-search'),
         productSearchFeedback: document.getElementById('pdv-product-search-feedback'),
@@ -261,6 +271,7 @@
     var productSelectionIndex = -1;
     var clientListSelectIdx = -1;
     var clientSearchSeq = 0;
+    var lastClientSearchQuery = '';
     var AUTOCOMPLETE_LIMIT = 8;
     var MAX_LOCAL_RESULTS = 48;
     var CATALOG_STORAGE_KEY = 'agro_pdv_wizard_catalog_v5';
@@ -2774,20 +2785,208 @@
         pdvEnsureModalOpenBody();
     }
 
+    function setQuickClientPickerHighlight(on) {
+        if (dom.quickClientPicker) {
+            dom.quickClientPicker.classList.toggle('pdv-client-picker-active', !!on);
+        }
+        if (dom.quickClientSearch) {
+            dom.quickClientSearch.classList.toggle('pdv-client-search-hot', !!on);
+        }
+        if (dom.step1ClientBar) {
+            dom.step1ClientBar.classList.toggle('pdv-client-bar-awaiting', !!on);
+        }
+    }
+
+    function focusQuickClientSearchField() {
+        if (!dom.quickClientSearch) return;
+        try {
+            dom.quickClientSearch.focus({ preventScroll: true });
+        } catch (e) {
+            dom.quickClientSearch.focus();
+        }
+        try {
+            dom.quickClientSearch.select();
+        } catch (e2) { /* ignore */ }
+    }
+
     function openQuickClientPicker() {
         if (!dom.quickClientPicker) return;
         clientListSelectIdx = -1;
         dom.quickClientPicker.classList.remove('hidden');
-        dom.quickClientSearch.focus();
+        setQuickClientPickerHighlight(true);
+        try {
+            dom.quickClientPicker.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        } catch (e) { /* ignore */ }
+        window.setTimeout(focusQuickClientSearchField, 40);
+        window.setTimeout(focusQuickClientSearchField, 180);
     }
 
     function closeQuickClientPicker() {
         if (!dom.quickClientPicker) return;
         dom.quickClientPicker.classList.add('hidden');
+        setQuickClientPickerHighlight(false);
         if (dom.quickClientResults) dom.quickClientResults.classList.add('hidden');
         dom.quickClientSearch.value = '';
         clientListSelectIdx = -1;
         focusProductSearch();
+    }
+
+    function isPhoneLikeClientSearchTerm(term) {
+        var t = String(term || '').trim();
+        if (!t) return false;
+        var digits = t.replace(/\D/g, '');
+        var compact = t.replace(/\s/g, '');
+        if (digits.length >= 8 && compact.length && digits.length >= compact.length * 0.65) {
+            return true;
+        }
+        return /^\d[\d\s().+-]*$/.test(t);
+    }
+
+    function clearWizardQuickClientCadastroForm() {
+        var ids = [
+            'pdv-wizard-cli-rapido-nome',
+            'pdv-wizard-cli-rapido-whatsapp',
+            'pdv-wizard-cli-rapido-logradouro',
+            'pdv-wizard-cli-rapido-numero',
+            'pdv-wizard-cli-rapido-bairro',
+            'pdv-wizard-cli-rapido-cidade',
+            'pdv-wizard-cli-rapido-uf',
+            'pdv-wizard-cli-rapido-cep'
+        ];
+        ids.forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        if (dom.wizardCliRapidoErro) {
+            dom.wizardCliRapidoErro.textContent = '';
+            dom.wizardCliRapidoErro.classList.add('hidden');
+        }
+    }
+
+    function closeWizardQuickClientCadastro() {
+        if (!dom.wizardCliRapidoModal) return;
+        dom.wizardCliRapidoModal.classList.add('hidden');
+        dom.wizardCliRapidoModal.classList.remove('flex');
+        clearWizardQuickClientCadastroForm();
+    }
+
+    function openWizardQuickClientCadastro(prefillNome) {
+        if (!dom.wizardCliRapidoModal) return;
+        clearWizardQuickClientCadastroForm();
+        var nome = String(prefillNome || '').trim();
+        if (!nome && lastClientSearchQuery && !isPhoneLikeClientSearchTerm(lastClientSearchQuery)) {
+            nome = lastClientSearchQuery.trim();
+        }
+        if (nome && dom.wizardCliRapidoNome) dom.wizardCliRapidoNome.value = nome;
+        if (
+            lastClientSearchQuery &&
+            isPhoneLikeClientSearchTerm(lastClientSearchQuery) &&
+            dom.wizardCliRapidoWhatsapp
+        ) {
+            dom.wizardCliRapidoWhatsapp.value = lastClientSearchQuery.trim();
+        }
+        dom.wizardCliRapidoModal.classList.remove('hidden');
+        dom.wizardCliRapidoModal.classList.add('flex');
+        setTimeout(function () {
+            if (dom.wizardCliRapidoNome && dom.wizardCliRapidoNome.value) {
+                dom.wizardCliRapidoWhatsapp.focus();
+            } else if (dom.wizardCliRapidoNome) {
+                dom.wizardCliRapidoNome.focus();
+            }
+        }, 80);
+    }
+
+    function saveWizardQuickClientCadastro() {
+        var url = urls.apiPdvClienteRapido;
+        if (!url) {
+            alert('Cadastro rápido indisponível (URL).');
+            return;
+        }
+        var nome = dom.wizardCliRapidoNome
+            ? String(dom.wizardCliRapidoNome.value || '').trim()
+            : '';
+        var wa = dom.wizardCliRapidoWhatsapp
+            ? String(dom.wizardCliRapidoWhatsapp.value || '').trim()
+            : '';
+        if (dom.wizardCliRapidoErro) {
+            dom.wizardCliRapidoErro.textContent = '';
+            dom.wizardCliRapidoErro.classList.add('hidden');
+        }
+        if (nome.length < 2) {
+            if (dom.wizardCliRapidoErro) {
+                dom.wizardCliRapidoErro.textContent = 'Informe o nome do cliente (mínimo 2 caracteres).';
+                dom.wizardCliRapidoErro.classList.remove('hidden');
+            } else {
+                alert('Informe o nome do cliente.');
+            }
+            if (dom.wizardCliRapidoNome) dom.wizardCliRapidoNome.focus();
+            return;
+        }
+        var waDigits = wa.replace(/\D/g, '');
+        if (waDigits.length < 10) {
+            var msgTel = 'Informe o telefone ou WhatsApp com DDD (mínimo 10 dígitos).';
+            if (dom.wizardCliRapidoErro) {
+                dom.wizardCliRapidoErro.textContent = msgTel;
+                dom.wizardCliRapidoErro.classList.remove('hidden');
+            } else {
+                alert(msgTel);
+            }
+            if (dom.wizardCliRapidoWhatsapp) dom.wizardCliRapidoWhatsapp.focus();
+            return;
+        }
+        function gv(id) {
+            var el = document.getElementById(id);
+            return el ? String(el.value || '').trim() : '';
+        }
+        var btn = dom.wizardCliRapidoSalvar;
+        var prevLabel = btn ? btn.textContent : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Salvando…';
+        }
+        jsonPost(url, {
+            nome: nome,
+            whatsapp: wa,
+            logradouro: gv('pdv-wizard-cli-rapido-logradouro'),
+            numero: gv('pdv-wizard-cli-rapido-numero'),
+            bairro: gv('pdv-wizard-cli-rapido-bairro'),
+            cidade: gv('pdv-wizard-cli-rapido-cidade'),
+            uf: gv('pdv-wizard-cli-rapido-uf'),
+            cep: gv('pdv-wizard-cli-rapido-cep')
+        })
+            .then(function (res) {
+                if (res.ok && res.data && res.data.ok && res.data.cliente) {
+                    State.setCliente(res.data.cliente, 'cliente');
+                    closeWizardQuickClientCadastro();
+                    closeQuickClientPicker();
+                    refreshCreditoFiadoCliente(null, { force: true });
+                    return;
+                }
+                var err =
+                    (res.data && res.data.erro) ||
+                    'Não foi possível salvar o cliente.';
+                if (dom.wizardCliRapidoErro) {
+                    dom.wizardCliRapidoErro.textContent = err;
+                    dom.wizardCliRapidoErro.classList.remove('hidden');
+                } else {
+                    alert(err);
+                }
+            })
+            .catch(function () {
+                var msg = 'Erro de rede ao cadastrar cliente.';
+                if (dom.wizardCliRapidoErro) {
+                    dom.wizardCliRapidoErro.textContent = msg;
+                    dom.wizardCliRapidoErro.classList.remove('hidden');
+                } else {
+                    alert(msg);
+                }
+            })
+            .finally(function () {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = prevLabel || 'Salvar cliente';
+                }
+            });
     }
 
     function highlightClientListRow() {
@@ -2926,6 +3125,7 @@
 
     function runClientSearch(term) {
         var query = String(term || '').trim();
+        lastClientSearchQuery = query;
         if (query.length < 2) {
             dom.quickClientResults.innerHTML = '';
             dom.quickClientResults.classList.add('hidden');
@@ -2941,7 +3141,10 @@
                 var clientes = data.clientes || [];
                 if (!clientes.length) {
                     dom.quickClientResults.innerHTML =
-                        '<div class="px-3 py-3 text-sm font-bold text-slate-400">Nenhum cliente encontrado.</div>';
+                        '<div class="px-3 py-4 text-center">' +
+                        '<p class="text-sm font-bold text-slate-500">Nenhum cliente encontrado.</p>' +
+                        '<button type="button" data-wizard-cadastrar-cliente class="mt-3 w-full rounded-xl bg-emerald-600 py-3 text-sm font-black uppercase text-white shadow-md hover:bg-emerald-700">Cadastrar cliente</button>' +
+                        '</div>';
                     dom.quickClientResults.classList.remove('hidden');
                     delete dom.quickClientResults._clientes;
                     clientListSelectIdx = -1;
@@ -3190,55 +3393,99 @@
         return out;
     }
 
+    function buildCupomPayloadFromWizard(state, computed, extras) {
+        extras = extras || {};
+        var agora = new Date();
+        var dt =
+            extras.criado_em ||
+            agora.toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        var itens = (state.itens || []).map(function (item) {
+            return {
+                nome: item.nome,
+                qtd: State.toNumber(item.qtd),
+                preco: State.toNumber(item.preco),
+                subtotal: lineSubtotal(item)
+            };
+        });
+        return {
+            venda_id: extras.venda_id || null,
+            criado_em: dt,
+            segunda_via: !!extras.segunda_via,
+            cliente_nome: currentClientName(state),
+            forma_pagamento: formaPagamentoResumoUi(state, computed),
+            total: computed.total,
+            total_texto: formatMoney(computed.total),
+            operador: operadorPdvAtual(),
+            caixa_id: (bootstrap.caixa && bootstrap.caixa.id) || null,
+            devolvida: false,
+            itens: itens
+        };
+    }
+
     function buildSaleReceiptHtml(state, computed) {
+        if (typeof window.agroBuildCupomVenda80mmHtml === 'function') {
+            return window.agroBuildCupomVenda80mmHtml(
+                buildCupomPayloadFromWizard(state, computed, { segunda_via: false })
+            );
+        }
         var formaTxt = formaPagamentoResumoUi(state, computed);
-        var obs = String((state.pagamento && state.pagamento.observacaoFinal) || '').trim();
-        var extraLinhas = '';
-        if (computed.desconto > 0.009) {
-            extraLinhas +=
-                '<div class="line">Desconto: ' + escapeHtml(formatMoney(computed.desconto)) + '</div>';
-        }
-        if (computed.frete > 0.009) {
-            extraLinhas += '<div class="line">Frete: ' + escapeHtml(formatMoney(computed.frete)) + '</div>';
-        }
+        var dt = new Date().toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
         return (
             '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cupom — PDV</title><style>' +
-            'body{font-family:system-ui,Segoe UI,Arial,sans-serif;padding:18px;color:#111827;max-width:440px;margin:0 auto}' +
-            'h1{font-size:18px;margin:0 0 6px;font-weight:900}' +
-            '.sub{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px}' +
-            '.line{font-size:12px;margin:6px 0}' +
-            'table{width:100%;border-collapse:collapse;margin-top:10px}' +
-            'td{padding:5px 0;border-bottom:1px dashed #cbd5e1;font-size:12px}' +
-            '.tot{font-weight:900;font-size:20px;margin-top:14px;padding-top:10px;border-top:2px solid #94a3b8}' +
+            '@page{margin:0;size:80mm auto}body{font-family:system-ui,sans-serif;padding:4mm;max-width:72mm;margin:0 auto;font-size:11px}' +
             '</style></head><body>' +
-            '<h1>SisVale</h1>' +
-            '<div class="sub">Cupom de venda</div>' +
-            '<div class="line"><strong>Cliente:</strong> ' + escapeHtml(currentClientName(state)) + '</div>' +
-            '<div class="line"><strong>Pagamento:</strong> ' + escapeHtml(formaTxt || '—') + '</div>' +
-            (obs ? '<div class="line"><strong>Obs.:</strong> ' + escapeHtml(obs) + '</div>' : '') +
-            '<table><tbody>' +
+            '<div style="text-align:center;font-weight:900">SISVALE</div>' +
+            '<div style="font-size:10px;text-align:center">Cupom de venda (não fiscal)</div>' +
+            '<div style="font-weight:800;margin:4px 0">Data: ' +
+            escapeHtml(dt) +
+            '</div>' +
+            '<div><strong>Cliente:</strong> ' +
+            escapeHtml(currentClientName(state)) +
+            '</div>' +
+            '<div><strong>Pagamento:</strong> ' +
+            escapeHtml(formaTxt || '—') +
+            '</div>' +
             (state.itens || [])
                 .map(function (item) {
                     return (
-                        '<tr><td>' +
+                        '<div>' +
                         escapeHtml(formatQty(item.qtd) + '× ' + item.nome) +
-                        '</td><td style="text-align:right">' +
+                        ' — ' +
                         escapeHtml(formatMoney(lineSubtotal(item))) +
-                        '</td></tr>'
+                        '</div>'
                     );
                 })
                 .join('') +
-            '</tbody></table>' +
-            '<div class="line" style="margin-top:10px;font-size:11px;color:#64748b">Subtotal: ' +
-            escapeHtml(formatMoney(computed.subtotal)) +
-            '</div>' +
-            extraLinhas +
-            '<div class="tot">Total: ' + escapeHtml(formatMoney(computed.total)) + '</div>' +
-            '</body></html>'
+            '<div style="font-weight:900;margin-top:8px;border-top:2px solid #000;padding-top:4px">Total: ' +
+            escapeHtml(formatMoney(computed.total)) +
+            '</div></body></html>'
         );
     }
 
-    function printSaleReceiptWindow(win, state, computed) {
+    function printSaleReceiptWindow(win, state, computed, extras) {
+        extras = extras || {};
+        var payload = buildCupomPayloadFromWizard(state, computed, extras);
+        if (typeof window.agroImprimirCupomVenda80mm === 'function') {
+            window.agroImprimirCupomVenda80mm(payload);
+            if (win && !win.closed) {
+                try {
+                    win.close();
+                } catch (errC) {}
+            }
+            return true;
+        }
         if (!win || win.closed) return false;
         try {
             win.document.open();
@@ -3341,27 +3588,50 @@
         return 'Venda confirmada com sucesso.';
     }
 
+    function imprimirCupomAposVenda(withPrint, printWin, vendaId) {
+        var stP = State.getState();
+        var compP = State.getComputed();
+        if (!withPrint) return Promise.resolve(false);
+        if (vendaId && typeof agroCarregarEImprimirCupomVenda === 'function') {
+            return agroCarregarEImprimirCupomVenda(vendaId, { segunda_via: false })
+                .then(function () {
+                    if (printWin && !printWin.closed) {
+                        try {
+                            printWin.close();
+                        } catch (errC) {}
+                    }
+                    return false;
+                })
+                .catch(function () {
+                    return !printSaleReceiptWindow(printWin, stP, compP, {
+                        venda_id: vendaId,
+                        segunda_via: false
+                    });
+                });
+        }
+        return Promise.resolve(
+            !printSaleReceiptWindow(printWin, stP, compP, {
+                venda_id: vendaId || null,
+                segunda_via: false
+            })
+        );
+    }
+
     function finalizeConfirmedSale(withPrint, printWin, opts) {
         opts = opts || {};
-        var printFail = false;
-        if (withPrint && printWin && !printWin.closed) {
-            var stP = State.getState();
-            var compP = State.getComputed();
-            if (!printSaleReceiptWindow(printWin, stP, compP)) {
-                printFail = true;
+        imprimirCupomAposVenda(withPrint, printWin, opts.vendaId).then(function (printFail) {
+            jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+            resetWizardParaNovaVenda();
+            refreshEntregasPendentesUi(true);
+            if (printFail) {
+                showSaleDoneFeedback(
+                    'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
+                    'warn'
+                );
+            } else {
+                showSaleDoneFeedback(saleDoneMessage(opts), opts.erpPendente ? 'info' : 'success');
             }
-        }
-        jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
-        resetWizardParaNovaVenda();
-        refreshEntregasPendentesUi(true);
-        if (printFail) {
-            showSaleDoneFeedback(
-                'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
-                'warn'
-            );
-        } else {
-            showSaleDoneFeedback(saleDoneMessage(opts), opts.erpPendente ? 'info' : 'success');
-        }
+        });
     }
 
     function confirmSale(withPrint) {
@@ -3445,14 +3715,22 @@
                                     'Venda salva, mas falhou ao encerrar pendência da entrega.'
                             );
                         }
-                        finalizeConfirmedSale(withPrint, printWin, { erpPendente: erpPendente, entregaOk: true });
+                        finalizeConfirmedSale(withPrint, printWin, {
+                            erpPendente: erpPendente,
+                            entregaOk: true,
+                            vendaId: vendaId
+                        });
                     });
                 }
                 if (state.entrega.ativa) {
                     var entPayload = buildEntregaPayload(state, computed);
                     if (erpPendente) {
                         jsonPost(urls.apiEntregaRegistrar, entPayload).catch(function () {});
-                        finalizeConfirmedSale(withPrint, printWin, { erpPendente: true, entregaOk: true });
+                        finalizeConfirmedSale(withPrint, printWin, {
+                            erpPendente: true,
+                            entregaOk: true,
+                            vendaId: vendaId
+                        });
                         return;
                     }
                     return jsonPost(urls.apiEntregaRegistrar, entPayload).then(function (entRes) {
@@ -3462,10 +3740,10 @@
                                     'Venda salva, mas falhou ao registrar entrega.'
                             );
                         }
-                        finalizeConfirmedSale(withPrint, printWin, { entregaOk: true });
+                        finalizeConfirmedSale(withPrint, printWin, { entregaOk: true, vendaId: vendaId });
                     });
                 }
-                finalizeConfirmedSale(withPrint, printWin, { erpPendente: erpPendente });
+                finalizeConfirmedSale(withPrint, printWin, { erpPendente: erpPendente, vendaId: vendaId });
             })
             .catch(function (err) {
                 if (printWin && !printWin.closed) {
@@ -3586,29 +3864,25 @@
                 });
             })
             .then(function (result) {
-                var printFail = false;
-                if (withPrint && printWin && !printWin.closed) {
-                    var stP = State.getState();
-                    var compP = State.getComputed();
-                    if (!printSaleReceiptWindow(printWin, stP, compP)) {
-                        printFail = true;
+                var vIdMp =
+                    result.erp && result.erp.venda_id != null ? result.erp.venda_id : null;
+                return imprimirCupomAposVenda(withPrint, printWin, vIdMp).then(function (printFail) {
+                    jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
+                    resetWizardParaNovaVenda();
+                    if (printFail) {
+                        showSaleDoneFeedback(
+                            'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
+                            'warn'
+                        );
+                    } else {
+                        showSaleDoneFeedback(
+                            result.entrega
+                                ? 'Pagamento no Point confirmado, venda registrada e entrega lançada.'
+                                : 'Pagamento no Point confirmado e venda registrada com sucesso.',
+                            'success'
+                        );
                     }
-                }
-                jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
-                resetWizardParaNovaVenda();
-                if (printFail) {
-                    showSaleDoneFeedback(
-                        'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
-                        'warn'
-                    );
-                } else {
-                    showSaleDoneFeedback(
-                        result.entrega
-                            ? 'Pagamento no Point confirmado, venda registrada e entrega lançada.'
-                            : 'Pagamento no Point confirmado e venda registrada com sucesso.',
-                        'success'
-                    );
-                }
+                });
             })
             .catch(function (err) {
                 if (printWin && !printWin.closed) {
@@ -4637,6 +4911,39 @@
             dom.quickClientPickerClose.addEventListener('click', closeQuickClientPicker);
         }
 
+        if (dom.wizardCliRapidoSalvar) {
+            dom.wizardCliRapidoSalvar.addEventListener('click', saveWizardQuickClientCadastro);
+        }
+        if (dom.wizardCliRapidoCancelar) {
+            dom.wizardCliRapidoCancelar.addEventListener('click', closeWizardQuickClientCadastro);
+        }
+        if (dom.wizardCliRapidoFechar) {
+            dom.wizardCliRapidoFechar.addEventListener('click', closeWizardQuickClientCadastro);
+        }
+        if (dom.wizardCliRapidoModal) {
+            dom.wizardCliRapidoModal.addEventListener('click', function (event) {
+                if (event.target === dom.wizardCliRapidoModal) {
+                    closeWizardQuickClientCadastro();
+                }
+            });
+        }
+        if (dom.wizardCliRapidoNome) {
+            dom.wizardCliRapidoNome.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    if (dom.wizardCliRapidoWhatsapp) dom.wizardCliRapidoWhatsapp.focus();
+                }
+            });
+        }
+        if (dom.wizardCliRapidoWhatsapp) {
+            dom.wizardCliRapidoWhatsapp.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    saveWizardQuickClientCadastro();
+                }
+            });
+        }
+
         dom.quickClientSearch.addEventListener('input', function () {
             clearTimeout(searchClientTimer);
             searchClientTimer = setTimeout(function () {
@@ -4669,6 +4976,10 @@
         });
 
         dom.quickClientResults.addEventListener('click', function (event) {
+            if (event.target.closest('[data-wizard-cadastrar-cliente]')) {
+                openWizardQuickClientCadastro();
+                return;
+            }
             var btn = event.target.closest('[data-select-client]');
             if (!btn) return;
             var idxAttr = btn.getAttribute('data-client-list-idx');
