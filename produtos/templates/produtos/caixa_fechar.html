@@ -20,16 +20,16 @@
     .cf-list-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; align-items: center; }
     @media (min-width: 768px) {
       .cf-list-row {
-        grid-template-columns: minmax(6rem, 0.85fr) minmax(5.5rem, 0.65fr) minmax(7.5rem, 1fr) minmax(7.5rem, 1fr) auto;
+        grid-template-columns: minmax(6rem, 0.85fr) minmax(5.5rem, 0.65fr) minmax(9rem, 1.25fr) auto;
         gap: 0.65rem 0.75rem;
       }
       .cf-list-head {
-        grid-template-columns: minmax(6rem, 0.85fr) minmax(5.5rem, 0.65fr) minmax(7.5rem, 1fr) minmax(7.5rem, 1fr) auto;
+        grid-template-columns: minmax(6rem, 0.85fr) minmax(5.5rem, 0.65fr) minmax(9rem, 1.25fr) auto;
       }
     }
     @media (min-width: 1280px) {
       .cf-list-row, .cf-list-head {
-        grid-template-columns: minmax(7rem, 0.9fr) minmax(6rem, 0.7fr) minmax(8.5rem, 1.05fr) minmax(8.5rem, 1.05fr) auto;
+        grid-template-columns: minmax(7rem, 0.9fr) minmax(6rem, 0.7fr) minmax(10rem, 1.35fr) auto;
       }
     }
     .cf-toolbar-btn {
@@ -120,13 +120,13 @@
         </nav>
         <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
         <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 sm:px-4 py-2 sm:py-3 space-y-2">
-          <p id="cf-rascunho-status" class="hidden text-[11px] font-black uppercase text-emerald-700" role="status"></p>
+          <p id="cf-contagem-status" class="hidden text-[11px] font-black uppercase text-emerald-700" role="status" aria-live="polite"></p>
+          <p class="text-[11px] font-bold text-slate-500">Os valores em <strong>Contado</strong> são guardados automaticamente neste aparelho e no servidor.</p>
           {% if linhas_com_movimento %}
           <div class="cf-list-head hidden md:grid gap-3 px-2 pb-1 text-[11px] font-black uppercase text-slate-400 border-b border-slate-100 sticky top-0 bg-white z-10">
             <span>Forma</span>
             <span class="text-right">Esperado</span>
             <span>Contado</span>
-            <span>Rascunho</span>
             <span class="w-10" aria-hidden="true">&nbsp;</span>
           </div>
           <div class="space-y-1.5">
@@ -143,12 +143,8 @@
               </div>
               <label class="block min-w-0">
                 <span class="md:hidden text-[11px] font-black uppercase text-slate-600">Contado</span>
-                <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado mt-0.5 md:mt-0 w-full min-h-[50px] rounded-xl border-2 border-slate-300 bg-white px-3 text-[clamp(1.1rem,0.45vw+1rem,1.35rem)] font-black tabular-nums focus:border-emerald-500 outline-none" placeholder="0,00" autocomplete="off">
+                <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado mt-0.5 md:mt-0 w-full min-h-[50px] rounded-xl border-2 border-slate-300 bg-white px-3 text-[clamp(1.1rem,0.45vw+1rem,1.35rem)] font-black tabular-nums focus:border-emerald-500 outline-none" placeholder="0,00" autocomplete="off" title="Valor contado — salvo automaticamente se sair da tela">
                 <p class="caixa-diff mt-0.5 text-xs font-bold hidden"></p>
-              </label>
-              <label class="block min-w-0">
-                <span class="md:hidden text-[11px] font-black uppercase text-violet-700">Rascunho</span>
-                <input type="text" inputmode="decimal" data-forma="{{ L.forma }}" class="caixa-rascunho mt-0.5 md:mt-0 w-full min-h-[50px] rounded-xl border-2 border-violet-200 bg-violet-50/40 px-3 text-[clamp(1rem,0.4vw+0.95rem,1.25rem)] font-black tabular-nums focus:border-violet-400 outline-none" placeholder="Rascunho" autocomplete="off" title="Contagem provisória — salva automaticamente">
               </label>
               <details class="cf-mini-help relative justify-self-end self-center">
                 <summary class="cursor-pointer list-none inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-200 bg-white text-sm font-black text-slate-600 hover:border-emerald-400 hover:text-emerald-800 select-none" title="Detalhe">?</summary>
@@ -187,12 +183,8 @@
                 </div>
                 <label class="block min-w-0">
                   <span class="md:hidden text-[10px] font-black uppercase text-slate-500">Contado</span>
-                  <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado w-full min-h-[44px] rounded-lg border-2 border-slate-200 bg-white px-3 text-base font-black tabular-nums" placeholder="0,00" autocomplete="off">
+                  <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado w-full min-h-[44px] rounded-lg border-2 border-slate-200 bg-white px-3 text-base font-black tabular-nums" placeholder="0,00" autocomplete="off" title="Valor contado — salvo automaticamente">
                   <p class="caixa-diff mt-0.5 text-xs font-bold hidden"></p>
-                </label>
-                <label class="block min-w-0">
-                  <span class="md:hidden text-[10px] font-black uppercase text-violet-700">Rascunho</span>
-                  <input type="text" inputmode="decimal" data-forma="{{ L.forma }}" class="caixa-rascunho w-full min-h-[44px] rounded-lg border-2 border-violet-200 bg-violet-50/40 px-3 text-base font-black tabular-nums" placeholder="Rascunho" autocomplete="off">
                 </label>
                 <details class="cf-mini-help relative justify-self-end">
                   <summary class="cursor-pointer list-none inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-black text-slate-500 select-none">?</summary>
@@ -230,7 +222,7 @@
           <details class="rounded-xl border {% if sessao_local and sessao_local.pk == card.sessao.pk %}border-emerald-300 bg-emerald-50/30{% else %}border-slate-200 bg-slate-50/50{% endif %} overflow-hidden">
             <summary class="cursor-pointer list-none px-3 py-2 flex flex-wrap items-center justify-between gap-1 hover:bg-white/60 select-none">
               <div class="min-w-0">
-                <span class="text-sm font-black text-slate-900">Caixa {{ card.sessao.pk }}</span>
+                <span class="text-sm font-black text-slate-900">{{ card.ponto_label|default:"Caixa" }} #{{ card.sessao.pk }}</span>
                 {% if sessao_local and sessao_local.pk == card.sessao.pk %}
                 <span class="ml-1 text-[10px] font-black uppercase bg-emerald-200 text-emerald-900 px-1.5 py-0.5 rounded">Aqui</span>
                 {% endif %}
@@ -286,7 +278,7 @@
                   <input type="hidden" name="forma_{{ forloop.counter0 }}" value="{{ L.forma }}">
                   <label class="block">
                     <span class="text-[10px] font-black uppercase text-slate-500">{{ L.forma }} · R$ {{ L.esperado }}</span>
-                    <input type="text" name="contado_{{ forloop.counter0 }}" inputmode="decimal" data-esperado="{{ L.esperado }}" class="caixa-contado mt-0.5 w-full min-h-[44px] rounded-lg border-2 border-slate-200 bg-white px-2.5 text-base font-black tabular-nums" placeholder="Contado" autocomplete="off">
+                    <input type="text" name="contado_{{ forloop.counter0 }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado mt-0.5 w-full min-h-[44px] rounded-lg border-2 border-slate-200 bg-white px-2.5 text-base font-black tabular-nums" placeholder="Contado" autocomplete="off" title="Salvo automaticamente">
                     <p class="caixa-diff mt-0.5 text-[10px] font-bold hidden"></p>
                   </label>
                   {% empty %}
@@ -314,7 +306,7 @@
     <iframe id="cf-popup-frame" class="flex-1 min-h-0" title="Consulta de caixa"></iframe>
   </div>
 </div>
-<script id="cf-rascunho-data" type="application/json">{{ rascunho_json }}</script>
+<script id="cf-contagem-salva-data" type="application/json">{{ rascunho_json }}</script>
 {% include "produtos/_agro_double_submit_guard.html" %}
 <script>
 (function () {
@@ -401,44 +393,53 @@
     inp.addEventListener('change', upd);
   });
 
-  var RASCUNHO_LS_KEY = 'agro_caixa_conferencia_rascunho_v1';
-  var rascunhoMap = {};
+  var CONTAGEM_LS_KEY = 'agro_caixa_conferencia_contagem_v1';
+  var CONTAGEM_LS_KEY_LEGADO = 'agro_caixa_conferencia_rascunho_v1';
+  var contagemMap = {};
   try {
-    var elData = document.getElementById('cf-rascunho-data');
-    if (elData && elData.textContent) rascunhoMap = JSON.parse(elData.textContent) || {};
-  } catch (e) { rascunhoMap = {}; }
-  try {
-    var lsRaw = localStorage.getItem(RASCUNHO_LS_KEY);
-    if (lsRaw) {
+    var elData = document.getElementById('cf-contagem-salva-data');
+    if (elData && elData.textContent) contagemMap = JSON.parse(elData.textContent) || {};
+  } catch (e) { contagemMap = {}; }
+  function mesclarContagemLocal(map) {
+    try {
+      var lsRaw = localStorage.getItem(CONTAGEM_LS_KEY) || localStorage.getItem(CONTAGEM_LS_KEY_LEGADO);
+      if (!lsRaw) return;
       var lsMap = JSON.parse(lsRaw) || {};
       Object.keys(lsMap).forEach(function (fn) {
-        if (rascunhoMap[fn] == null || rascunhoMap[fn] === '') rascunhoMap[fn] = lsMap[fn];
+        if (map[fn] == null || map[fn] === '') map[fn] = lsMap[fn];
       });
-    }
-  } catch (e2) { /* ignore */ }
-  function aplicarRascunhoNosCampos(map) {
-    document.querySelectorAll('.caixa-rascunho').forEach(function (inp) {
+    } catch (e2) { /* ignore */ }
+  }
+  mesclarContagemLocal(contagemMap);
+  function aplicarContagemNosCampos(map) {
+    document.querySelectorAll('.caixa-contado[data-forma]').forEach(function (inp) {
       var fn = (inp.getAttribute('data-forma') || '').trim();
-      if (fn && map[fn] != null && map[fn] !== '') inp.value = String(map[fn]);
+      if (fn && map[fn] != null && map[fn] !== '') {
+        inp.value = String(map[fn]);
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+      }
     });
   }
-  aplicarRascunhoNosCampos(rascunhoMap);
-  var rascunhoServidorVazio = true;
+  aplicarContagemNosCampos(contagemMap);
+  var contagemServidorVazia = true;
   try {
-    var el0 = document.getElementById('cf-rascunho-data');
+    var el0 = document.getElementById('cf-contagem-salva-data');
     var parsed0 = el0 && el0.textContent ? JSON.parse(el0.textContent) : {};
-    rascunhoServidorVazio = !parsed0 || !Object.keys(parsed0).length;
-  } catch (e0) { rascunhoServidorVazio = true; }
-  if (rascunhoServidorVazio && Object.keys(rascunhoMap).length) {
-    window.setTimeout(salvarRascunho, 700);
+    contagemServidorVazia = !parsed0 || !Object.keys(parsed0).length;
+  } catch (e0) { contagemServidorVazia = true; }
+  if (contagemServidorVazia && Object.keys(contagemMap).length) {
+    window.setTimeout(salvarContagem, 700);
   }
-  function coletarRascunho() {
+  function coletarContagem() {
     var out = {};
-    document.querySelectorAll('.caixa-rascunho').forEach(function (inp) {
+    var root = document.getElementById('form-fechar-todos');
+    var nodes = root
+      ? root.querySelectorAll('.caixa-contado[data-forma]')
+      : document.querySelectorAll('.caixa-contado[data-forma]');
+    nodes.forEach(function (inp) {
       var fn = (inp.getAttribute('data-forma') || '').trim();
       if (!fn) return;
-      var txt = String(inp.value || '').trim();
-      if (txt) out[fn] = txt;
+      out[fn] = String(inp.value || '').trim();
     });
     return out;
   }
@@ -450,16 +451,22 @@
     var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
     return m ? decodeURIComponent(m[1].trim()) : '';
   }
-  function gravarRascunhoLocal(map) {
-    try { localStorage.setItem(RASCUNHO_LS_KEY, JSON.stringify(map || {})); } catch (e) { /* ignore */ }
+  function gravarContagemLocal(map) {
+    try {
+      localStorage.setItem(CONTAGEM_LS_KEY, JSON.stringify(map || {}));
+      localStorage.removeItem(CONTAGEM_LS_KEY_LEGADO);
+    } catch (e) { /* ignore */ }
   }
-  function limparRascunhoLocal() {
-    try { localStorage.removeItem(RASCUNHO_LS_KEY); } catch (e) { /* ignore */ }
+  function limparContagemLocal() {
+    try {
+      localStorage.removeItem(CONTAGEM_LS_KEY);
+      localStorage.removeItem(CONTAGEM_LS_KEY_LEGADO);
+    } catch (e) { /* ignore */ }
   }
   var saveTimer = null;
   var saveUrl = '{{ api_rascunho_salvar_url|escapejs }}';
-  var statusEl = document.getElementById('cf-rascunho-status');
-  function mostrarStatusRascunho(msg, ok) {
+  var statusEl = document.getElementById('cf-contagem-status');
+  function mostrarStatusContagem(msg, ok) {
     if (!statusEl) return;
     statusEl.textContent = msg;
     statusEl.classList.remove('hidden', 'text-emerald-700', 'text-red-700');
@@ -467,12 +474,12 @@
     clearTimeout(statusEl._hideT);
     statusEl._hideT = setTimeout(function () { statusEl.classList.add('hidden'); }, ok ? 2200 : 4500);
   }
-  function salvarRascunho() {
-    var payload = coletarRascunho();
-    gravarRascunhoLocal(payload);
+  function salvarContagem() {
+    var payload = coletarContagem();
+    gravarContagemLocal(payload);
     var token = csrfToken();
     if (!token) {
-      mostrarStatusRascunho('Rascunho só neste aparelho (sem sessão). Recarregue a página.', false);
+      mostrarStatusContagem('Contagem só neste aparelho (sem sessão). Recarregue a página.', false);
       return;
     }
     fetch(saveUrl, {
@@ -488,26 +495,29 @@
       });
     }).then(function (res) {
       if (res.httpOk && res.data && res.data.ok) {
-        if (res.data.rascunho) gravarRascunhoLocal(res.data.rascunho);
-        mostrarStatusRascunho('Rascunho salvo', true);
+        if (res.data.rascunho) gravarContagemLocal(res.data.rascunho);
+        mostrarStatusContagem('Contagem salva', true);
         return;
       }
       var err = (res.data && res.data.erro) || (res.httpOk ? 'Não foi possível salvar.' : 'Falha de rede ou sessão.');
-      mostrarStatusRascunho(err + ' Cópia local mantida.', false);
+      mostrarStatusContagem(err + ' Cópia local mantida.', false);
     }).catch(function () {
-      mostrarStatusRascunho('Sem conexão — rascunho guardado só neste aparelho.', false);
+      mostrarStatusContagem('Sem conexão — contagem guardada só neste aparelho.', false);
     });
   }
-  function agendarSalvar() {
+  function agendarSalvarContagem() {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(salvarRascunho, 500);
+    saveTimer = setTimeout(salvarContagem, 500);
   }
-  document.querySelectorAll('.caixa-rascunho').forEach(function (inp) {
-    inp.addEventListener('input', agendarSalvar);
-    inp.addEventListener('change', agendarSalvar);
+  document.querySelectorAll('.caixa-contado[data-forma]').forEach(function (inp) {
+    inp.addEventListener('input', agendarSalvarContagem);
+    inp.addEventListener('change', agendarSalvarContagem);
   });
   document.querySelectorAll('form.form-fechar-um, #form-fechar-todos').forEach(function (form) {
-    form.addEventListener('submit', limparRascunhoLocal);
+    form.addEventListener('submit', limparContagemLocal);
+  });
+  window.addEventListener('pagehide', function () {
+    gravarContagemLocal(coletarContagem());
   });
 
   var popup = document.getElementById('cf-popup');

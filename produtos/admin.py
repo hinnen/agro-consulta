@@ -59,13 +59,14 @@ class ClienteAgroAdmin(admin.ModelAdmin):
 class SessaoCaixaAdmin(admin.ModelAdmin):
     list_display = (
         "id",
+        "ponto_caixa",
         "usuario",
         "aberto_em",
         "valor_abertura",
         "fechado_em",
         "valor_fechamento",
     )
-    list_filter = ("fechado_em",)
+    list_filter = ("fechado_em", "ponto_caixa")
     readonly_fields = ("aberto_em", "conferencia_fechamento")
 
 

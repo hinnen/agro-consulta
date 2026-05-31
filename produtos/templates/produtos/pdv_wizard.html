@@ -229,7 +229,7 @@
             </div>
           </div>
           <div class="flex flex-nowrap items-center gap-1.5 shrink-0 pl-1">
-            <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn px-2 py-1 text-[10px] no-underline {% if caixa_aberto %}border border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100/80{% else %}border-2 border-amber-400 bg-amber-100 text-amber-950 hover:bg-amber-200/80{% endif %}" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}Caixa {{ caixa_aberto.pk }}{% else %}Caixa fechado{% endif %}</a>
+            <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn px-2 py-1 text-[10px] no-underline {% if caixa_aberto %}border border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100/80{% else %}border-2 border-amber-400 bg-amber-100 text-amber-950 hover:bg-amber-200/80{% endif %}" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
             <a href="{% url 'vendas_lista' %}" class="pdv-action-btn border border-slate-200 bg-slate-100 px-2 py-1 text-[10px] text-slate-800 no-underline hover:bg-slate-200/80" title="Consultar vendas — filtro por período e exportar CSV">Consultar vendas</a>
             <button type="button" id="pdv-topbar-entregas-btn" class="pdv-action-btn relative border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-600 hover:bg-slate-100" title="Entregas aguardando pagamento no PDV (cobrar na entrega)">
               Entregas
