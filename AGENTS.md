@@ -89,6 +89,7 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 - **“Voltar ao PDV (F1)”** visível nas telas possíveis.
 - Ao voltar ao PDV: **preservar contexto** (draft, filtros, lista, scroll).
 - **Home administrativa (launcher):** sem **rolagem da página** (`overflow: hidden` no viewport, `100dvh` / `min-h-0` com flex); **tipografia e espaçamentos fluidos** (`clamp` com `vw` + `rem` na shell) e **colunas da grade por largura útil** (`container-type: inline-size` + `@container`), para o layout **acompanhar o zoom** sem empilhar cards; em **zoom muito alto**, se necessário há **rolagem só na área da grade** (sem sobreposição).
+- **Caixa (painel, abrir, fechar, relatório):** pensado para monitor **16:9** — shell larga (`.caixa-shell`, até ~96rem), **`100dvh`** com `overflow: hidden` no body, conteúdo em **grade horizontal** (não coluna estreita `max-w-lg`); fechamento em lote à esquerda + caixas individuais à direita (`caixa_fechar.html`). Referência: `caixa_painel.html`, `caixa_fechar.html`.
 
 ---
 
