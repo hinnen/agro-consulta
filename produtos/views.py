@@ -80,6 +80,10 @@ from .caixa_util import (
     PONTO_CAIXA_TESTE,
     PONTOS_CAIXA_ABERTURA,
     qtd_caixas_abertos,
+    qtd_caixas_operacional_abertos,
+    qtd_caixas_teste_abertos,
+    filtrar_sessoes_operacional,
+    filtrar_sessoes_teste,
     usuario_label_sessao_caixa,
     normalizar_forma_pagamento_caixa,
     pagamentos_json_de_payload,
@@ -7835,7 +7839,24 @@ def api_caixa_conferencia_estado(request):
                 "cards": [],
             }
         )
-    estado = serializar_estado_conferencia_fechar(sessoes)
+    escopo = (request.GET.get("escopo") or "operacional").strip().lower()
+    if escopo == "teste":
+        alvo = filtrar_sessoes_teste(sessoes)
+    elif escopo == "todos":
+        alvo = sessoes
+    else:
+        alvo = filtrar_sessoes_operacional(sessoes)
+    if not alvo:
+        return JsonResponse(
+            {
+                "ok": True,
+                "qtd_caixas": 0,
+                "tot_esperado_dinheiro": "0.00",
+                "linhas": [],
+                "cards": [],
+            }
+        )
+    estado = serializar_estado_conferencia_fechar(alvo)
     return JsonResponse({"ok": True, **estado})
 
 
@@ -7919,7 +7940,10 @@ def caixa_painel(request):
         else:
             ctx["sessoes_abertas"] = montar_cards_caixas_abertos(sessoes_todos)
             ctx["sessao_local"] = _obter_sessao_caixa_aberta(request)
-            linhas_agg = linhas_conferencia_agregada(sessoes_todos, todas_formas=False)
+            sessoes_op = filtrar_sessoes_operacional(sessoes_todos)
+            linhas_agg = linhas_conferencia_agregada(
+                sessoes_op or [], todas_formas=False
+            )
             ctx["linhas_todos_caixas"] = fmt_linhas_caixa_template(linhas_agg)
             tot_din = Decimal("0")
             for L in linhas_agg:
@@ -8195,16 +8219,12 @@ def caixa_abrir(request):
             )
             return redirect("home")
 
-        if qtd_caixas_abertos() >= 3:
-            messages.error(
-                request,
-                "Limite de 3 caixas abertos atingido. Entre em um caixa já aberto ou feche um turno.",
-            )
-            return redirect("caixa_abrir")
-
         if ponto == PONTO_CAIXA_GAVETA:
             if gaveta_aberta or obter_caixa_gaveta_aberto():
-                messages.error(request, "O Caixa Gaveta já está aberto. Use o Notebook para outro computador.")
+                messages.error(
+                    request,
+                    "O Caixa Gaveta já está aberto. Use o Notebook para outro computador.",
+                )
                 return redirect("caixa_abrir")
         elif ponto == PONTO_CAIXA_TESTE:
             if teste_aberto or obter_caixa_teste_aberto():
@@ -8231,22 +8251,21 @@ def caixa_abrir(request):
         )
         return redirect("home")
 
-    sugestao = ultimo_fechamento_sugestao_abertura()
     gaveta_aberta = obter_caixa_gaveta_aberto()
     teste_aberto = obter_caixa_teste_aberto()
     return render(
         request,
         "produtos/caixa_abrir.html",
         {
-            "sugestao_fechamento": sugestao,
+            "sugestao_fechamento": ultimo_fechamento_sugestao_abertura(ponto=PONTO_CAIXA_GAVETA),
             "gaveta_aberta": gaveta_aberta,
             "gaveta_usuario": usuario_label_sessao_caixa(gaveta_aberta) if gaveta_aberta else "",
             "teste_aberto": teste_aberto,
             "pode_abrir_gaveta": not gaveta_aberta,
             "pode_abrir_notebook": bool(gaveta_aberta),
             "pode_abrir_teste": not teste_aberto,
-            "qtd_caixas_abertos": qtd_caixas_abertos(),
-            "max_caixas_abertos": 3,
+            "qtd_caixas_operacional": qtd_caixas_operacional_abertos(),
+            "qtd_caixas_teste": qtd_caixas_teste_abertos(),
             "pontos_caixa": PONTOS_CAIXA_ABERTURA,
         },
     )
@@ -8298,6 +8317,8 @@ def caixa_fechar(request):
             del req.session[CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY]
             req.session.modified = True
 
+    sessoes_operacional = filtrar_sessoes_operacional(sessoes)
+    sessoes_teste = filtrar_sessoes_teste(sessoes)
     cards = montar_cards_caixas_abertos(sessoes)
 
     entregas_pendentes_fechar = listar_entregas_bloqueando_fechamento_caixa()
@@ -8342,17 +8363,23 @@ def caixa_fechar(request):
             _limpar_rascunho_conferencia(request)
             messages.success(request, f"Caixa #{sessao.pk} fechado.")
             return redirect("caixa_fechar")
-        # Fechar todos (padrão operacional)
+        # Fechar todos — só turno operacional (gaveta; notebooks no mesmo PK)
+        if not sessoes_operacional:
+            messages.error(
+                request,
+                "Nenhum caixa operacional aberto. Feche o Caixa Teste pelo bloco lateral, se for o caso.",
+            )
+            return redirect("caixa_fechar")
         pin_f = (request.POST.get("pin") or "").strip()
-        precisa_pin_lote = len(sessoes) > 1 or any(
-            not sessao_caixa_e_do_browser(request, s) for s in sessoes
+        precisa_pin_lote = len(sessoes_operacional) > 1 or any(
+            not sessao_caixa_e_do_browser(request, s) for s in sessoes_operacional
         )
         if precisa_pin_lote:
             ok_pin, err_pin = validar_pin_operador(pin_f)
             if not ok_pin:
                 messages.error(request, err_pin)
                 return redirect("caixa_fechar")
-        linhas = linhas_conferencia_agregada(sessoes, todas_formas=True)
+        linhas = linhas_conferencia_agregada(sessoes_operacional, todas_formas=True)
         conferencia_lote, cont_din_lote = _conferencia_de_post(linhas, request.POST)
         obs = (request.POST.get("observacao_fechamento") or "").strip()[:500]
         rot = rotulo_operador_pin(pin_f) if pin_f else ""
@@ -8360,7 +8387,7 @@ def caixa_fechar(request):
             obs = (f"[Fechado por PIN {rot}] " + obs)[:500]
         agora = timezone.now()
         n = 0
-        for sessao in sessoes:
+        for sessao in sessoes_operacional:
             ind = linhas_conferencia_fechar(sessao)
             conf_ind = {}
             for L in ind:
@@ -8379,10 +8406,12 @@ def caixa_fechar(request):
             _limpar_sessao_browser(request, sessao.pk)
             n += 1
         _limpar_rascunho_conferencia(request)
-        messages.success(request, f"{n} caixa(s) fechado(s) de uma vez.")
+        messages.success(request, f"{n} caixa operacional fechado(s) de uma vez.")
         return redirect("caixa_painel")
 
-    estado_conf = serializar_estado_conferencia_fechar(sessoes)
+    estado_conf = serializar_estado_conferencia_fechar(
+        sessoes_operacional if sessoes_operacional else []
+    )
     tot_esperado_din = Decimal(str(estado_conf.get("tot_esperado_dinheiro") or "0"))
     linhas_com_movimento = []
     linhas_sem_movimento = []
@@ -8402,7 +8431,12 @@ def caixa_fechar(request):
         "produtos/caixa_fechar.html",
         {
             "sessoes_abertas": cards,
+            "sessoes_operacional": sessoes_operacional,
+            "sessoes_teste": sessoes_teste,
             "qtd_caixas": len(sessoes),
+            "qtd_caixas_operacional": len(sessoes_operacional),
+            "qtd_caixas_teste": len(sessoes_teste),
+            "tem_caixa_operacional": bool(sessoes_operacional),
             "linhas_com_movimento": linhas_com_movimento,
             "linhas_sem_movimento": linhas_sem_movimento,
             "tot_esperado_dinheiro": str(tot_esperado_din),

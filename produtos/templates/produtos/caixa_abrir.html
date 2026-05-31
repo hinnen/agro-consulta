@@ -50,9 +50,15 @@
       <div class="shrink-0 px-4 py-3 border-b border-slate-100 bg-slate-50/80">
         <p class="text-[10px] font-black uppercase text-slate-500">Passo 1 — escolha o caixa</p>
         <p class="mt-1 text-sm font-bold text-slate-800 leading-snug">
-          A <strong>gaveta</strong> abre primeiro (principal). O <strong>notebook</strong> usa o mesmo turno da gaveta.
+          <strong>Gaveta</strong> e <strong>notebook</strong> são o mesmo turno da loja (gaveta abre primeiro).
+          O <strong>Caixa Teste</strong> é isolado — sem vínculo com gaveta ou notebook.
         </p>
-        <p class="mt-1 text-[11px] font-bold text-slate-500">Caixas abertos agora: {{ qtd_caixas_abertos }}/{{ max_caixas_abertos }}</p>
+        <p class="mt-1 text-[11px] font-bold text-slate-500">
+          Abertos: loja {% if qtd_caixas_operacional %}sim{% else %}não{% endif %}
+          {% if gaveta_aberta %} · Gaveta #{{ gaveta_aberta.pk }}{% endif %}
+          · teste {% if qtd_caixas_teste %}sim{% else %}não{% endif %}
+          {% if teste_aberto %} · Teste #{{ teste_aberto.pk }}{% endif %}
+        </p>
       </div>
       <div class="flex-1 min-h-0 p-3 sm:p-4">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 h-full" role="radiogroup" aria-label="Tipo de caixa">
@@ -75,7 +81,7 @@
           <label class="caixa-ponto-card flex flex-col justify-center rounded-2xl border-2 px-3 py-3 cursor-pointer {% if pode_abrir_teste %}border-violet-300 bg-violet-50/50 hover:border-violet-500{% else %}border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed{% endif %}">
             <input type="radio" name="ponto_caixa_ui" value="teste" class="sr-only" {% if not pode_abrir_gaveta and not pode_abrir_notebook and pode_abrir_teste %}checked{% endif %} {% if not pode_abrir_teste %}disabled{% endif %}>
             <span class="block text-[clamp(1rem,0.5vw+0.9rem,1.2rem)] font-black text-slate-900">Caixa Teste</span>
-            <span class="block text-xs font-semibold text-slate-600 mt-1">Turno separado · treino</span>
+            <span class="block text-xs font-semibold text-slate-600 mt-1">Isolado · não soma com a loja</span>
             {% if teste_aberto %}
             <span class="mt-2 block text-[11px] font-black uppercase text-violet-800">Aberto · #{{ teste_aberto.pk }}</span>
             {% endif %}

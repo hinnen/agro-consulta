@@ -136,6 +136,12 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 - **Valor bruto** em fonte maior; quitação parcial → **bruto + linha Saldo**.  
 - Tabela “Anotações e conferência” mais larga.
 
+**Caixa — Gaveta / Notebook / Teste**  
+
+- **Gaveta** = turno principal da loja; **Notebook** não cria sessão — vincula o navegador ao PK da gaveta (`pdv_ponto_operacao=notebook`).  
+- **Teste** = sessão isolada (`ponto_caixa=teste`): não entra no fechamento em lote nem na soma do painel «todos» operacional; fechar pelo bloco lateral em **Fechar caixa**. Gaveta e teste podem ficar abertos ao mesmo tempo.  
+- Abertura: `caixa_abrir` · util: `produtos/caixa_util.py` (`filtrar_sessoes_operacional`, `adotar_sessao_caixa_unica_aberta`).
+
 **Electron**  
 
 - Build usa `**electron/main.js`** + `**electron/preload.js`**.  
