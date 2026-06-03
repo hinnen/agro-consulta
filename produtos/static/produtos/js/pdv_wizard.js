@@ -3466,17 +3466,34 @@
                 subtotal: lineSubtotal(item)
             };
         });
+        var formaTxt = formaPagamentoResumoUi(state, computed);
+        var fiadoDias = parseInt(state.pagamento.fiadoDiasVencimento, 10) || 30;
+        var ehFiado =
+            /fiado/i.test(formaTxt || '') ||
+            ((state.pagamento.lancamentos || []).some(function (L) {
+                return String(L.forma || '').toLowerCase() === 'fiado';
+            }));
+        var vencDt = new Date(agora.getTime());
+        vencDt.setDate(vencDt.getDate() + fiadoDias);
+        var vencStr = vencDt.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
         return {
             venda_id: extras.venda_id || null,
             criado_em: dt,
             segunda_via: !!extras.segunda_via,
             cliente_nome: currentClientName(state),
-            forma_pagamento: formaPagamentoResumoUi(state, computed),
+            forma_pagamento: formaTxt,
             total: computed.total,
             total_texto: formatMoney(computed.total),
             operador: operadorPdvAtual(),
             caixa_id: (bootstrap.caixa && bootstrap.caixa.id) || null,
             devolvida: false,
+            eh_fiado: ehFiado,
+            fiado_dias: fiadoDias,
+            vencimento: ehFiado ? vencStr : '',
             itens: itens
         };
     }
