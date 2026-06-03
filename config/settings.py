@@ -112,10 +112,10 @@ AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON = (
     config("AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON", default="") or ""
 ).strip()
 
-# BI — ``hibrido`` (padrão): VendaAgro no dia da venda + DtoVenda só se não tiver par no PDV (evita FIADO em dobro).
-# ``erp`` = só espelho Mongo faturado; ``pdv`` = só VendaAgro local.
+# BI — ``pdv`` (padrão): só VendaAgro (vendas confirmadas no SistVale). Faturar o pedido no ERP (cupom) não entra de novo.
+# ``hibrido`` = PDV + DtoVenda sem par; ``erp`` = só espelho Mongo (legado).
 AGRO_DASHBOARD_VENDAS_FONTE = (
-    config("AGRO_DASHBOARD_VENDAS_FONTE", default="hibrido") or "hibrido"
+    config("AGRO_DASHBOARD_VENDAS_FONTE", default="pdv") or "pdv"
 ).strip().lower()
 
 # Application definition

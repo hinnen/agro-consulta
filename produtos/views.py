@@ -6430,7 +6430,7 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
     Centro × Vila quando possível (evita um segundo ``find`` no dashboard).
     Cache curto evita repetir a mesma varredura (metas C, ticket mês ant., etc.).
     Com ``AGRO_DASHBOARD_VENDAS_FONTE=pdv``, usa só ``VendaAgro`` (sem espelho ERP).
-    ``hibrido`` (padrão): VendaAgro no dia da venda + DtoVenda sem par no PDV.
+    ``pdv`` (padrão): só VendaAgro. ``hibrido``: PDV + DtoVenda sem par no PDV.
     """
     if _dashboard_vendas_fonte_pdv():
         return _dashboard_vendas_serie_pdv(data_ini, data_fim)
