@@ -135,6 +135,7 @@ from .models import (
     MovimentoCaixa,
     SessaoCaixa,
     VendaAgro,
+    compor_endereco_resumo_cliente,
     sync_overlay_validade_resumo_de_lotes,
 )
 from integracoes.texto import eh_granel, expandir_tokens, montar_busca_texto, normalizar, tokens
@@ -20266,6 +20267,16 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
     else:
         pid = f"local:{c.pk}"
     end = (c.endereco or "").strip()
+    if not end:
+        end = compor_endereco_resumo_cliente(
+            cep=c.cep,
+            uf=c.uf,
+            cidade=c.cidade,
+            bairro=c.bairro,
+            logradouro=c.logradouro,
+            numero=c.numero,
+            complemento=c.complemento,
+        )
     return {
         "id": pid,
         "nome": c.nome,

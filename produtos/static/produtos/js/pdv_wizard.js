@@ -652,10 +652,11 @@
 
     function buildLinhaEnderecoEntrega(state) {
         var e = state.entrega || {};
-        var log = String(e.logradouro || '').trim();
-        var num = String(e.numero || '').trim();
-        var bai = String(e.bairro || '').trim();
-        var pc = String(e.plusCode || '').trim();
+        var c = state.cliente || {};
+        var log = String(e.logradouro || c.logradouro || '').trim();
+        var num = String(e.numero || c.numero || '').trim();
+        var bai = String(e.bairro || c.bairro || '').trim();
+        var pc = String(e.plusCode || c.plus_code || '').trim();
         var parts = [];
         if (log || num) {
             var ln = [log, num].filter(Boolean).join(', ');
@@ -664,17 +665,44 @@
         if (bai) parts.push(bai);
         if (pc) parts.push('Plus ' + pc);
         if (parts.length) return parts.join(' — ') + ' — Jacupiranga/SP';
-        return compactText(e.endereco || '', '');
+        return compactText(e.endereco || composeClienteEnderecoLinha(c) || c.endereco || '', '');
     }
 
     function composeEndereco(state) {
         var structured = buildLinhaEnderecoEntrega(state);
         var parts = [];
-        var enderecoBase = structured || compactText(state.entrega.endereco || (state.cliente && state.cliente.endereco), '');
+        var enderecoBase =
+            structured ||
+            composeClienteEnderecoLinha(state.cliente) ||
+            compactText(
+                (state.entrega && state.entrega.endereco) ||
+                    (state.cliente && state.cliente.endereco),
+                ''
+            );
         if (enderecoBase) parts.push(enderecoBase);
         if (state.entrega.complemento) parts.push(state.entrega.complemento);
         if (state.entrega.referencia) parts.push('Ref.: ' + state.entrega.referencia);
         return parts.join(' • ');
+    }
+
+    function syncEntregaEnderecoFromCliente(st) {
+        st = st || State.getState();
+        var c = st.cliente || {};
+        var e0 = st.entrega || {};
+        var patch = {
+            logradouro: String(e0.logradouro || c.logradouro || '').trim(),
+            numero: String(e0.numero || c.numero || '').trim(),
+            bairro: String(e0.bairro || c.bairro || '').trim(),
+            plusCode: String(e0.plusCode || c.plus_code || '').trim()
+        };
+        var line = buildLinhaEnderecoEntrega({ entrega: patch, cliente: c });
+        State.setEntregaPatch({
+            logradouro: patch.logradouro,
+            numero: patch.numero,
+            bairro: patch.bairro,
+            plusCode: patch.plusCode,
+            endereco: line
+        });
     }
 
     function composeClienteEnderecoLinha(c) {
@@ -2987,6 +3015,7 @@
             .then(function (res) {
                 if (res.ok && res.data && res.data.ok && res.data.cliente) {
                     State.setCliente(res.data.cliente, 'cliente');
+                    syncEntregaEnderecoFromCliente();
                     closeWizardQuickClientCadastro();
                     closeQuickClientPicker();
                     refreshCreditoFiadoCliente(null, { force: true });
@@ -4633,10 +4662,22 @@
         h += '<div style="font-size:10px;">' + escapeHtml(dh) + '</div>';
         h += '<div style="border-top:1px dashed #000;margin:6px 0;"></div>';
         h += '<div style="font-weight:bold;margin-bottom:4px;">' + escapeHtml(e.cliente_nome) + '</div>';
+        if (e.telefone) {
+            h += '<div style="font-size:10px;margin-bottom:3px;">Tel ' + escapeHtml(e.telefone) + '</div>';
+        }
+        if (e.endereco_linha) {
+            h +=
+                '<div style="font-size:10px;line-height:1.35;word-break:break-word;margin-bottom:4px;">' +
+                escapeHtml(e.endereco_linha) +
+                '</div>';
+        }
         h += lines;
         h += '<div style="border-top:2px solid #000;margin:8px 0 4px;padding-top:4px;font-weight:900;font-size:13px;display:flex;justify-content:space-between;">';
         h += '<span>TOTAL</span><span>' + escapeHtml(String(e.total_texto || '—')) + '</span></div>';
-        h += '<div style="text-align:center;font-size:9px;margin-top:8px;">Obrigado — apresente na retirada</div>';
+        h +=
+            '<div style="text-align:center;font-size:9px;margin-top:8px;">Obrigado — ' +
+            (e.endereco_linha ? 'confira o endereço na entrega' : 'apresente na retirada') +
+            '</div>';
         h += '<div style="text-align:center;font-size:8px;margin-top:4px;word-break:break-all;">Retomar: ' + escapeHtml(bc) + '</div>';
         h += '</div>';
         return h;
@@ -5008,6 +5049,7 @@
                 event.preventDefault();
                 if (clientListSelectIdx >= 0 && clientListSelectIdx < clientes.length) {
                     State.setCliente(clientes[clientListSelectIdx], 'cliente');
+                    syncEntregaEnderecoFromCliente();
                     refreshCreditoFiadoCliente(null, { force: true });
                     closeQuickClientPicker();
                 }
@@ -5030,6 +5072,7 @@
             var cliente = clientes.find(function (item) { return String(item.id) === String(id); });
             if (!cliente) return;
             State.setCliente(cliente, 'cliente');
+            syncEntregaEnderecoFromCliente();
             refreshCreditoFiadoCliente(null, { force: true });
             closeQuickClientPicker();
         });
@@ -5361,6 +5404,7 @@
             });
             c.endereco = composeClienteEnderecoLinha(c);
             State.setCliente(c, state.clienteMode === 'consumidor_final' ? 'consumidor_final' : 'cliente');
+            syncEntregaEnderecoFromCliente(State.getState());
         }
 
         [dom.clienteLogradouro, dom.clienteNumero, dom.clientePluscode].forEach(function (el) {
