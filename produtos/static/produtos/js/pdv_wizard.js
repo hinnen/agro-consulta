@@ -3499,48 +3499,12 @@
     }
 
     function buildSaleReceiptHtml(state, computed) {
+        var payload = buildCupomPayloadFromWizard(state, computed, { segunda_via: false });
         if (typeof window.agroBuildCupomVenda80mmHtml === 'function') {
-            return window.agroBuildCupomVenda80mmHtml(
-                buildCupomPayloadFromWizard(state, computed, { segunda_via: false })
-            );
+            return window.agroBuildCupomVenda80mmHtml(payload);
         }
-        var formaTxt = formaPagamentoResumoUi(state, computed);
-        var dt = new Date().toLocaleString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
         return (
-            '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cupom — PDV</title><style>' +
-            '@page{margin:0;size:80mm auto}body{font-family:system-ui,sans-serif;padding:4mm;max-width:72mm;margin:0 auto;font-size:11px}' +
-            '</style></head><body>' +
-            '<div style="text-align:center;font-weight:900">SISVALE</div>' +
-            '<div style="font-size:10px;text-align:center">Cupom de venda (não fiscal)</div>' +
-            '<div style="font-weight:800;margin:4px 0">Data: ' +
-            escapeHtml(dt) +
-            '</div>' +
-            '<div><strong>Cliente:</strong> ' +
-            escapeHtml(currentClientName(state)) +
-            '</div>' +
-            '<div><strong>Pagamento:</strong> ' +
-            escapeHtml(formaTxt || '—') +
-            '</div>' +
-            (state.itens || [])
-                .map(function (item) {
-                    return (
-                        '<div>' +
-                        escapeHtml(formatQty(item.qtd) + '× ' + item.nome) +
-                        ' — ' +
-                        escapeHtml(formatMoney(lineSubtotal(item))) +
-                        '</div>'
-                    );
-                })
-                .join('') +
-            '<div style="font-weight:900;margin-top:8px;border-top:2px solid #000;padding-top:4px">Total: ' +
-            escapeHtml(formatMoney(computed.total)) +
-            '</div></body></html>'
+            '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cupom</title></head><body><p>Recarregue a página (F5) — módulo de cupom não carregou.</p></body></html>'
         );
     }
 

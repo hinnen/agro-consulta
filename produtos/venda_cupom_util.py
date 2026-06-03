@@ -128,9 +128,8 @@ def serializar_venda_cupom_80mm(venda, *, segunda_via: bool = False) -> dict[str
         "caixa_id": getattr(venda, "sessao_caixa_id", None),
         "devolvida": bool(getattr(venda, "devolvida_em", None)),
         "eh_fiado": eh_fiado,
+        "fiado_dias": fiado_dias if eh_fiado else None,
+        "vencimento": _vencimento_fiado_cupom(venda) if eh_fiado else "",
         "itens": itens,
     }
-    if eh_fiado:
-        out["fiado_dias"] = fiado_dias
-        out["vencimento"] = _vencimento_fiado_cupom(venda)
     return out

@@ -104,6 +104,8 @@
         h += '<div class="titulo-loja">' + escHtml(CUPOM_TITULO_LOJA) + '</div>';
         if (fiado) {
             h += '<div style="text-align:center;font-size:10px;font-weight:800;margin:3px 0 2px;letter-spacing:.06em;">COMPROVANTE FIADO</div>';
+        } else {
+            h += '<div style="text-align:center;font-size:10px;font-weight:800;margin:3px 0 2px;letter-spacing:.04em;">COMPROVANTE DE VENDA</div>';
         }
         if (c.criado_em) {
             h += '<div style="font-size:10px;font-weight:800;margin-top:4px;">Data: ' + escHtml(c.criado_em) + '</div>';
