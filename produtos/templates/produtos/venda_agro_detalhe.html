@@ -754,6 +754,7 @@
 
 {% if cupom_80mm %}
 {{ cupom_80mm|json_script:"venda-cupom-80mm-data" }}
+<script>window.AGRO_CUPOM_LOGO_URL = "{% static 'produtos/img/logo_termica.png' %}";</script>
 <script src="{% static 'produtos/js/venda_cupom_80mm.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script>
 (function () {

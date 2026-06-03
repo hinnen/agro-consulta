@@ -5731,6 +5731,146 @@ def lancamentos_planos_distintos_no_filtro(
     return out
 
 
+def lancamentos_contas_pagar_totais_diarios(
+    db,
+    *,
+    vencimento_de: date,
+    vencimento_ate: date,
+) -> dict[str, float]:
+    """
+    Saldo em aberto (a pagar) por dia de vencimento, chave ``YYYY-MM-DD``.
+    Usa deduplicação ERP igual à lista de lançamentos.
+    """
+    if db is None:
+        return {}
+    q = lancamentos_montar_query_mongo(
+        despesa=True,
+        status="abertos",
+        vencimento_de=vencimento_de,
+        vencimento_ate=vencimento_ate,
+    )
+    sort_dedup = _lancamentos_sort_spec_list("vencimento_asc", True)
+    pipe: list[dict[str, Any]] = [
+        {"$match": q},
+        *_lancamentos_mongo_stages_dedup_por_titulo_erp(sort_dedup),
+        {"$project": {"DataVencimento": 1, "Saida": 1, "ValorPago": 1, "Pago": 1}},
+    ]
+    out: dict[str, float] = {}
+    try:
+        rows = db[COL_DTO_LANCAMENTO].aggregate(
+            pipe, maxTimeMS=120_000, allowDiskUse=True
+        )
+        for doc in rows:
+            dkey = _data_vencimento_local_doc(doc)
+            if dkey is None or dkey < vencimento_de or dkey > vencimento_ate:
+                continue
+            r = float(_restante_a_pagar(doc))
+            if r <= 0.02:
+                continue
+            k = dkey.isoformat()
+            out[k] = out.get(k, 0.0) + r
+    except Exception as exc:
+        logger.exception("lancamentos_contas_pagar_totais_diarios: %s", exc)
+        return {}
+    return {k: round(v, 2) for k, v in out.items()}
+
+
+def financeiro_calendario_contas_pagar_dias(
+    db,
+    *,
+    grid_ini: date,
+    grid_fim: date,
+    dias_media_vendas: int = 30,
+) -> dict[str, Any]:
+    """
+    Grade mensal: por dia — contas a pagar (vencimento), previsão de vendas,
+    vendas reais (dias passados e hoje, fonte BI) e saldo do dia + acumulado auxiliar.
+    """
+    from .mongo_vendas_util import faturamento_dia_vendas_agro
+
+    if db is None:
+        return {"erro": "Mongo indisponível", "dias": {}, "meta": {}}
+
+    if grid_ini > grid_fim:
+        grid_ini, grid_fim = grid_fim, grid_ini
+
+    hoje = timezone.localdate()
+    dias_media_vendas = max(1, min(int(dias_media_vendas or 30), 365))
+    pagar_map = lancamentos_contas_pagar_totais_diarios(
+        db, vencimento_de=grid_ini, vencimento_ate=grid_fim
+    )
+
+    meta_hist_cache: dict[tuple[date, date], dict] = {}
+
+    def _por_dia_meta_hist(fp: date, lp: date) -> dict:
+        key = (fp, lp)
+        if key not in meta_hist_cache:
+            from produtos.views import _dashboard_vendas_serie_meta_historico
+
+            meta_hist_cache[key] = (
+                _dashboard_vendas_serie_meta_historico(fp, lp).get("por_dia") or {}
+            )
+        return meta_hist_cache[key]
+
+    def previsao_vendas_dia(d: date) -> float:
+        from produtos.views import (
+            _dashboard_bounds_mes_anterior_para_dia,
+            _dashboard_vendas_meta_c_para_dia,
+        )
+
+        fp1, lp1 = _dashboard_bounds_mes_anterior_para_dia(d)
+        fp2, lp2 = _dashboard_bounds_mes_anterior_para_dia(fp1)
+        val = _dashboard_vendas_meta_c_para_dia(
+            d, _por_dia_meta_hist(fp1, lp1), _por_dia_meta_hist(fp2, lp2)
+        )
+        return round(float(val), 2)
+
+    dias_out: dict[str, dict[str, Any]] = {}
+    cum = Decimal("0")
+    d = grid_ini
+    while d <= grid_fim:
+        k = d.isoformat()
+        pagar = float(pagar_map.get(k, 0.0))
+        prev = previsao_vendas_dia(d)
+        passado = d < hoje
+        vendas: float | None = None
+        if d <= hoje:
+            vendas = round(float(faturamento_dia_vendas_agro(d)), 2)
+            ent = Decimal(str(vendas))
+        else:
+            ent = Decimal(str(prev))
+        liquido = float((ent - Decimal(str(pagar))).quantize(Decimal("0.01")))
+        cum += Decimal(str(liquido))
+        dias_out[k] = {
+            "pagar": round(pagar, 2),
+            "previsao_vendas": prev,
+            "vendas": vendas,
+            "liquido_dia": liquido,
+            "saldo_acumulado": round(float(cum), 2),
+            "passado": passado,
+            "hoje": d == hoje,
+        }
+        d += timedelta(days=1)
+
+    totais_legacy = {k: v["pagar"] for k, v in dias_out.items()}
+    return {
+        "dias": dias_out,
+        "totais": totais_legacy,
+        "meta": {
+            "hoje": hoje.isoformat(),
+            "grid_ini": grid_ini.isoformat(),
+            "grid_fim": grid_fim.isoformat(),
+            "dias_media_vendas": dias_media_vendas,
+            "previsao_fonte": "dashboard_meta_c",
+            "vendas_fonte": "dashboard_gerencial",
+            "aviso_saldo": (
+                "Saldo do dia = vendas (ou previsão) menos contas a pagar naquele vencimento. "
+                "Passe o mouse no saldo para ver o acumulado na grade visível."
+            ),
+        },
+    }
+
+
 def financeiro_projecao_fluxo_diario(
     db,
     *,

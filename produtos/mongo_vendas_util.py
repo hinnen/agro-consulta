@@ -319,6 +319,55 @@ def obter_valor_total_vendas_periodo_mongo(db, data_de: date, data_ate: date) ->
     return _total_vendas_de_documentos_mongo(db, vendas)
 
 
+def faturamento_dia_vendas_agro(alvo: date | None = None) -> Decimal:
+    """
+    Faturamento do dia civil alinhado ao gráfico do dashboard gerencial
+    (``AGRO_DASHBOARD_VENDAS_FONTE``: PDV, ERP ou híbrido).
+    """
+    alvo = alvo or timezone.localdate()
+    from produtos.views import _dashboard_float, _dashboard_mongo_vendas_serie
+
+    ser = _dashboard_mongo_vendas_serie(alvo, alvo)
+    por_dia = ser.get("por_dia") or {}
+    chave = alvo.isoformat()
+    if chave in por_dia:
+        val = _dashboard_float(por_dia[chave])
+    else:
+        val = _dashboard_float(ser.get("total"))
+    return Decimal(str(val)).quantize(Decimal("0.01"))
+
+
+def previsao_vendas_dia_dashboard_agro(alvo: date) -> Decimal:
+    """
+    Previsão diária = meta C do dashboard (média dos dois meses anteriores
+    no mesmo weekday/ocorrência), mesma regra do tooltip «Média base».
+    """
+    from produtos.views import (
+        _dashboard_bounds_mes_anterior_para_dia,
+        _dashboard_vendas_meta_c_para_dia,
+        _dashboard_vendas_serie_meta_historico,
+    )
+
+    fp1, lp1 = _dashboard_bounds_mes_anterior_para_dia(alvo)
+    fp2, lp2 = _dashboard_bounds_mes_anterior_para_dia(fp1)
+    m1 = _dashboard_vendas_serie_meta_historico(fp1, lp1).get("por_dia") or {}
+    m2 = _dashboard_vendas_serie_meta_historico(fp2, lp2).get("por_dia") or {}
+    val = _dashboard_vendas_meta_c_para_dia(alvo, m1, m2)
+    return Decimal(str(val)).quantize(Decimal("0.01"))
+
+
+def media_vendas_diaria_ultimos_n_dias_agro(n: int = 30) -> Decimal:
+    """Média diária com a mesma fonte de vendas do BI gerencial."""
+    if n < 1:
+        return Decimal("0")
+    n = min(int(n), 365)
+    hoje = timezone.localdate()
+    total = Decimal("0")
+    for k in range(n):
+        total += faturamento_dia_vendas_agro(hoje - timedelta(days=k))
+    return (total / Decimal(n)).quantize(Decimal("0.01"))
+
+
 def media_vendas_diaria_ultimos_n_dias(db, n: int = 30) -> Decimal:
     """
     Média diária = soma do faturamento de cada um dos últimos n dias corridos (incluindo hoje) ÷ n.

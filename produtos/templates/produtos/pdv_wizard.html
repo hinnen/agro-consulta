@@ -614,6 +614,14 @@
   window.pdvWizardAbrirAjuda = pdvWizardAbrirAjuda;
 })();
 </script>
+<script>
+(function () {
+  try {
+    var b = JSON.parse(document.getElementById('agro-pdv-wizard-bootstrap').textContent || '{}');
+    if (b.assets && b.assets.cupomLogoUrl) window.AGRO_CUPOM_LOGO_URL = b.assets.cupomLogoUrl;
+  } catch (e) {}
+})();
+</script>
 <script src="{% static 'produtos/js/venda_cupom_80mm.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_state.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
