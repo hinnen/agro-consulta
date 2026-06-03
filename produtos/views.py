@@ -6133,7 +6133,7 @@ def _dashboard_serie_meta_c_vendas(data_ini: date, data_fim: date) -> list[float
         fp2, lp2 = _dashboard_bounds_mes_anterior_para_dia(fp1)
         for key in ((fp1, lp1), (fp2, lp2)):
             if key not in cache:
-                ser = _dashboard_mongo_vendas_serie(key[0], key[1])
+                ser = _dashboard_vendas_serie_meta_historico(key[0], key[1])
                 cache[key] = ser.get("por_dia") or {}
         out.append(
             _dashboard_vendas_meta_c_para_dia(d, cache[(fp1, lp1)], cache[(fp2, lp2)])
@@ -6141,9 +6141,20 @@ def _dashboard_serie_meta_c_vendas(data_ini: date, data_fim: date) -> list[float
     return out
 
 
+def _dashboard_vendas_serie_meta_historico(data_ini: date, data_fim: date) -> dict:
+    """
+    Base histórica (M-1 / M-2) para meta C.
+    Com vendas do gráfico só no PDV, meses antigos quase não têm VendaAgro — usa DtoVenda ERP
+    só como referência de weekday, sem somar de novo no total do dia.
+    """
+    if _dashboard_vendas_fonte_pdv():
+        return _dashboard_vendas_serie_erp_mongo(data_ini, data_fim)
+    return _dashboard_mongo_vendas_serie(data_ini, data_fim)
+
+
 def _dashboard_vendas_fonte_modo() -> str:
     """``hibrido``, ``erp`` (DtoVenda) ou ``pdv`` (VendaAgro). Ver ``AGRO_DASHBOARD_VENDAS_FONTE``."""
-    v = (getattr(settings, "AGRO_DASHBOARD_VENDAS_FONTE", "hibrido") or "hibrido").strip().lower()
+    v = (getattr(settings, "AGRO_DASHBOARD_VENDAS_FONTE", "pdv") or "pdv").strip().lower()
     if v in ("pdv", "local", "sqlite", "vendaagro"):
         return "pdv"
     if v in ("erp", "mongo", "dto"):
@@ -6437,6 +6448,11 @@ def _dashboard_mongo_vendas_serie(data_ini, data_fim):
         return _dashboard_vendas_serie_pdv(data_ini, data_fim)
     if _dashboard_vendas_fonte_hibrido():
         return _dashboard_mongo_vendas_serie_hibrido(data_ini, data_fim)
+    return _dashboard_vendas_serie_erp_mongo(data_ini, data_fim)
+
+
+def _dashboard_vendas_serie_erp_mongo(data_ini, data_fim):
+    """Série diária só DtoVenda faturado (Mongo espelho ERP)."""
     ck = f"dash:mvs:v7:erp:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and cached.get("_t") == "mvs":
