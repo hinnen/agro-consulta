@@ -1,0 +1,764 @@
+{% extends 'layouts/base_admin.html' %}
+{% load static %}
+
+{% block admin_title %}SisVale | Contas a pagar (teste){% endblock %}
+{% block admin_header_title %}Contas a pagar — layout teste{% endblock %}
+{% block admin_header_meta %}
+  <p class="mt-1 text-sm font-semibold text-slate-600">Pagar e baixa parcial aqui · edição avançada na <a href="{% url 'lancamentos_contas_pagar' %}" class="font-black text-emerald-700 underline">tela clássica</a></p>
+{% endblock %}
+
+{% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col{% endblock %}
+{% block admin_header_inner_class %}w-full max-w-none px-4 sm:px-6 lg:px-8 py-3 sm:py-4{% endblock %}
+{% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-0 py-0 sm:px-0 sm:py-0 overflow-hidden{% endblock %}
+
+{% block head_extra %}
+  {% include "produtos/_agro_consulta_ui.html" %}
+{% endblock %}
+
+{% block admin_header_actions %}
+  <a href="{% url 'lancamentos_contas_pagar' %}" data-prefetch class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-4 text-xs font-black uppercase text-slate-800 hover:border-amber-400">Clássico</a>
+  <a href="{% url 'lancamentos_manual' %}" data-prefetch class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-emerald-600 bg-emerald-600 px-4 text-xs font-black uppercase text-white hover:bg-emerald-700">Manual</a>
+  {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-4 text-xs font-black uppercase text-slate-700 hover:border-amber-400" %}
+{% endblock %}
+
+{% block admin_content %}
+{% include "produtos/_gm_loading_bar.html" %}
+
+<style>
+  :root {
+    --cor-fundo: #f8f9fa;
+    --cor-primaria: #059669;
+    --cor-primaria-hover: #047857;
+    --cor-texto-principal: #212529;
+    --cor-texto-secundario: #6c757d;
+    --cor-borda: #e9ecef;
+    --cor-card: #ffffff;
+    --raio-borda: 12px;
+    --sombra-suave: 0 4px 12px rgba(0,0,0,0.05);
+    --transicao: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .sv-container {
+    padding: 16px 20px 24px;
+    max-width: 100%;
+    background-color: var(--cor-fundo);
+    min-height: min(80vh, calc(100dvh - 8rem));
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .sv-title { font-size: clamp(1.35rem, 2vw + 0.5rem, 2rem); font-weight: 700; color: var(--cor-texto-principal); margin: 0; }
+  .sv-sub { font-size: 0.95rem; color: var(--cor-texto-secundario); margin-top: 4px; }
+  .sv-action-bar { display: flex; gap: 16px; margin-top: 20px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+  .sv-search-wrapper { position: relative; flex-grow: 1; max-width: 600px; min-width: min(100%, 280px); }
+  .sv-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; color: var(--cor-texto-secundario); pointer-events: none; }
+  .sv-input-large {
+    width: 100%; height: 56px; padding: 0 16px 0 48px; font-size: 1.1rem;
+    border: 2px solid transparent; border-radius: var(--raio-borda);
+    background-color: var(--cor-card); box-shadow: var(--sombra-suave); transition: var(--transicao);
+  }
+  .sv-input-large:focus { outline: none; border-color: var(--cor-primaria); box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.15); }
+  .sv-btn {
+    height: 56px; padding: 0 24px; font-size: 1.05rem; font-weight: 600; border-radius: var(--raio-borda);
+    border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    gap: 8px; transition: var(--transicao); box-shadow: var(--sombra-suave); text-decoration: none;
+  }
+  .sv-btn-primary { background-color: var(--cor-primaria); color: white; }
+  .sv-btn-primary:hover { background-color: var(--cor-primaria-hover); }
+  .sv-btn-secondary { background-color: var(--cor-card); color: var(--cor-texto-principal); border: 1px solid var(--cor-borda); }
+  .sv-btn-secondary:hover { background-color: #f1f3f5; }
+  .sv-filters-panel {
+    background-color: var(--cor-card); border-radius: var(--raio-borda); padding: 24px;
+    margin-bottom: 24px; box-shadow: var(--sombra-suave); display: none; opacity: 0;
+    transform: translateY(-10px); transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .sv-filters-panel.show { display: block; opacity: 1; transform: translateY(0); }
+  .sv-form-group label { display: block; font-weight: 600; color: var(--cor-texto-secundario); margin-bottom: 8px; font-size: 1rem; }
+  .sv-totais {
+    display: flex; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 16px; font-size: 1rem; font-weight: 600; color: var(--cor-texto-secundario);
+  }
+  .sv-totais strong { color: var(--cor-texto-principal); }
+  .sv-list-container { background: var(--cor-card); border-radius: var(--raio-borda); box-shadow: var(--sombra-suave); overflow: hidden; }
+  .sv-list-header {
+    display: grid; grid-template-columns: 150px 2fr 1fr 150px 100px;
+    padding: 16px 24px; background-color: #f8f9fa; border-bottom: 2px solid var(--cor-borda);
+    font-weight: 700; color: var(--cor-texto-secundario); font-size: 1.05rem;
+  }
+  .sv-list-item { border-bottom: 1px solid var(--cor-borda); transition: var(--transicao); }
+  .sv-list-item:last-child { border-bottom: none; }
+  .sv-list-row {
+    display: grid; grid-template-columns: 150px 2fr 1fr 150px 100px;
+    padding: 18px 24px; align-items: center; cursor: pointer; font-size: 1.1rem; color: var(--cor-texto-principal);
+  }
+  .sv-list-row:hover { background-color: #f0fdf4; }
+  .sv-col-vencimento { font-weight: 600; }
+  .sv-col-valor { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+  .sv-col-valor.negativo { color: #d32f2f; }
+  .sv-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.95rem; font-weight: 600; display: inline-flex; }
+  .sv-badge-aberto { background-color: #fff3cd; color: #856404; }
+  .sv-badge-pago { background-color: #d4edda; color: #155724; }
+  .sv-badge-atrasado { background-color: #f8d7da; color: #721c24; }
+  .sv-details-area { max-height: 0; overflow: hidden; background-color: #fafbfc; transition: max-height 0.4s ease-out; padding: 0 24px; }
+  .sv-list-item.expanded .sv-details-area { max-height: 520px; padding: 24px; border-top: 1px dashed var(--cor-borda); }
+  .sv-details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 24px; }
+  .sv-detail-box p { margin: 0; font-size: 1.05rem; line-height: 1.45; }
+  .sv-detail-box p strong { color: var(--cor-texto-secundario); display: block; font-size: 0.95rem; margin-bottom: 4px; }
+  .sv-details-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; border-top: 1px solid var(--cor-borda); padding-top: 16px; }
+  .sv-btn-action { height: 44px; padding: 0 20px; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; border: none; text-decoration: none; display: inline-flex; align-items: center; }
+  .sv-btn-pay { background-color: #2e7d32; color: white; }
+  .sv-btn-edit { background-color: #e0e0e0; color: #333; }
+  .sv-btn-delete { background-color: #ffebee; color: #c62828; }
+  .sv-expand-icon { transition: transform 0.3s ease; color: var(--cor-texto-secundario); font-size: 1.2rem; text-align: right; }
+  .sv-list-item.expanded .sv-expand-icon { transform: rotate(180deg); }
+  .sv-empty, .sv-erro { padding: 32px 24px; text-align: center; font-size: 1.15rem; color: var(--cor-texto-secundario); }
+  .sv-erro { color: #b91c1c; font-weight: 600; }
+  .sv-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 24px; border-top: 1px solid var(--cor-borda); background: #fafbfc; }
+  @media (max-width: 992px) {
+    .sv-list-header { display: none; }
+    .sv-list-row { grid-template-columns: 1fr auto; gap: 12px; position: relative; }
+    .sv-col-vencimento { font-size: 0.95rem; color: var(--cor-texto-secundario); }
+    .sv-col-descricao { grid-column: 1 / -1; font-weight: 700; font-size: 1.15rem; }
+    .sv-col-valor { font-size: 1.25rem; }
+    .sv-col-status { text-align: right; }
+    .sv-expand-icon { position: absolute; right: 24px; top: 20px; }
+  }
+  .sv-modal {
+    position: fixed; inset: 0; z-index: 200; display: none;
+    align-items: flex-end; justify-content: center; padding: 16px;
+    background: rgba(15, 23, 42, 0.45);
+  }
+  .sv-modal.show { display: flex; }
+  @media (min-width: 640px) { .sv-modal { align-items: center; } }
+  .sv-modal-card {
+    width: 100%; max-width: 40rem; max-height: 90vh; overflow-y: auto;
+    background: var(--cor-card); border-radius: var(--raio-borda);
+    padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  }
+  .sv-modal-card h2 { margin: 0 0 8px; font-size: 1.35rem; font-weight: 700; }
+  .sv-modal-card label span { display: block; font-weight: 600; color: var(--cor-texto-secundario); margin-bottom: 6px; font-size: 0.95rem; }
+  .sv-modal-card select, .sv-modal-card input[type="date"], .sv-modal-card input[type="text"] {
+    width: 100%; min-height: 48px; font-size: 1.05rem; border-radius: 10px;
+    border: 2px solid var(--cor-borda); padding: 8px 12px; margin-top: 4px;
+  }
+  .sv-modal-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--cor-borda); }
+  .sv-bxp-row { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--cor-borda); border-radius: 10px; background: #fafbfc; margin-bottom: 10px; }
+  @media (min-width: 640px) { .sv-bxp-row { grid-template-columns: 1fr 1fr 1fr auto; align-items: end; } }
+</style>
+
+<div class="sv-container">
+  <h1 class="sv-title">Contas a Pagar</h1>
+  <p class="sv-sub" id="sv-resumo-lista">Carregando…</p>
+
+  <div class="sv-action-bar">
+    <div class="sv-search-wrapper">
+      <span class="sv-search-icon" aria-hidden="true">🔍</span>
+      <input type="search" id="sv-busca" class="sv-input-large" placeholder="Buscar fornecedor, descrição, valor…" autocomplete="off">
+    </div>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <button type="button" class="sv-btn sv-btn-secondary" id="sv-btn-filtros" aria-expanded="false" aria-controls="painelFiltros">
+        <span aria-hidden="true">⚙️</span> Filtros
+      </button>
+      <a href="{% url 'lancamentos_manual' %}" class="sv-btn sv-btn-primary" data-prefetch>
+        <span aria-hidden="true">➕</span> Novo (manual)
+      </a>
+    </div>
+  </div>
+
+  <div class="sv-filters-panel" id="painelFiltros" role="region" aria-label="Filtros avançados">
+    <div class="sv-details-grid">
+      <div class="sv-form-group">
+        <label for="sv-venc-de">Vencimento inicial</label>
+        <input type="date" id="sv-venc-de" class="sv-input-large" style="height: 48px; padding-left: 16px;">
+      </div>
+      <div class="sv-form-group">
+        <label for="sv-venc-ate">Vencimento final</label>
+        <input type="date" id="sv-venc-ate" class="sv-input-large" style="height: 48px; padding-left: 16px;">
+      </div>
+      <div class="sv-form-group">
+        <label for="sv-status">Situação</label>
+        <select id="sv-status" class="sv-input-large" style="height: 48px; padding-left: 16px;">
+          <option value="abertos" selected>Em aberto</option>
+          <option value="quitados">Quitados</option>
+          <option value="todos">Todos</option>
+        </select>
+      </div>
+      <div class="sv-form-group">
+        <label for="sv-ps">Por página</label>
+        <select id="sv-ps" class="sv-input-large" style="height: 48px; padding-left: 16px;">
+          <option value="30">30</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+    </div>
+    <div style="text-align: right; margin-top: 16px;">
+      <button type="button" class="sv-btn-action sv-btn-edit" id="sv-limpar-filtros">Limpar</button>
+      <button type="button" class="sv-btn-action sv-btn-pay" id="sv-aplicar-filtros" style="margin-left: 8px;">Aplicar</button>
+    </div>
+  </div>
+
+  <div class="sv-totais" id="sv-totais" hidden></div>
+
+  <div class="sv-list-container">
+    <div class="sv-list-header" aria-hidden="true">
+      <div>Vencimento</div>
+      <div>Descrição</div>
+      <div style="text-align: right;">Valor</div>
+      <div>Status</div>
+      <div style="text-align: right;">Detalhes</div>
+    </div>
+    <div id="sv-lista-corpo">
+      <div class="sv-empty">Carregando lançamentos…</div>
+    </div>
+    <div class="sv-pager" id="sv-pager" hidden>
+      <span id="sv-pager-info"></span>
+      <button type="button" class="sv-btn-action sv-btn-edit" id="sv-pager-mais">Carregar mais</button>
+    </div>
+  </div>
+</div>
+
+<div id="sv-modal-baixa" class="sv-modal" role="dialog" aria-modal="true" aria-labelledby="sv-modal-baixa-titulo">
+  <div class="sv-modal-card">
+    <h2 id="sv-modal-baixa-titulo">Confirmar pagamento</h2>
+    <p id="sv-modal-baixa-resumo" class="sv-sub"></p>
+    <label><span>Data do pagamento</span><input type="date" id="sv-bx-data"></label>
+    <label style="display:block;margin-top:14px;"><span>Forma de pagamento</span><select id="sv-bx-forma"></select></label>
+    <label style="display:block;margin-top:14px;"><span>Conta / banco</span><select id="sv-bx-banco"></select></label>
+    <label style="display:block;margin-top:14px;" id="sv-bx-juros-wrap">
+      <span>Juros nesta quitação (opcional, R$)</span>
+      <input type="text" id="sv-bx-juros" placeholder="0,00" inputmode="decimal">
+    </label>
+    <div class="sv-modal-actions">
+      <button type="button" class="sv-btn-action sv-btn-edit" id="sv-bx-cancel">Cancelar</button>
+      <button type="button" class="sv-btn-action sv-btn-pay" id="sv-bx-ok">Confirmar pagamento</button>
+    </div>
+  </div>
+</div>
+
+<div id="sv-modal-parcial" class="sv-modal" role="dialog" aria-modal="true" aria-labelledby="sv-modal-parcial-titulo">
+  <div class="sv-modal-card" style="max-width: 52rem;">
+    <h2 id="sv-modal-parcial-titulo">Pagamento parcial</h2>
+    <p id="sv-modal-parcial-resumo" class="sv-sub"></p>
+    <label><span>Data do movimento</span><input type="date" id="sv-bxp-data"></label>
+    <div style="margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-weight:600;color:var(--cor-texto-secundario);">Parcelas (valor + forma + banco)</span>
+        <button type="button" class="sv-btn-action sv-btn-edit" id="sv-bxp-add">+ Linha</button>
+      </div>
+      <div id="sv-bxp-linhas"></div>
+    </div>
+    <div class="sv-modal-actions">
+      <button type="button" class="sv-btn-action sv-btn-edit" id="sv-bxp-cancel">Cancelar</button>
+      <button type="button" class="sv-btn-action sv-btn-pay" id="sv-bxp-ok">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const API_LISTA = "{% url 'api_lancamentos_lista' %}";
+  const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
+  const API_BAIXA = "{% url 'api_lancamentos_baixa' %}";
+  const API_BAIXA_PARCIAL = "{% url 'api_lancamentos_baixa_parcial' %}";
+  const URL_CLASSICO = "{% url 'lancamentos_contas_pagar' %}";
+
+  let page = 1;
+  let total = 0;
+  let carregando = false;
+  let buscaTimer = null;
+  const rowsAcum = [];
+  let bxIdsAtual = [];
+  let bxpIdAtual = null;
+  let bxpSaldoMax = 0;
+
+  const elCorpo = document.getElementById('sv-lista-corpo');
+  const elResumo = document.getElementById('sv-resumo-lista');
+  const elTotais = document.getElementById('sv-totais');
+  const elPager = document.getElementById('sv-pager');
+  const elPagerInfo = document.getElementById('sv-pager-info');
+  const elBtnMais = document.getElementById('sv-pager-mais');
+
+  function hojeYmd() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function parseYmd(iso) {
+    if (!iso) return null;
+    const s = String(iso).slice(0, 10);
+    const d = new Date(s + 'T12:00:00');
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  function fmtData(iso) {
+    const d = parseYmd(iso);
+    if (!d) return '—';
+    const hoje = hojeYmd();
+    const ymd = iso.slice(0, 10);
+    if (ymd === hoje) return 'Hoje';
+    return d.toLocaleDateString('pt-BR');
+  }
+
+  function brl(n) {
+    const v = Number(n) || 0;
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function esc(s) {
+    const t = document.createElement('div');
+    t.textContent = s == null ? '' : String(s);
+    return t.innerHTML;
+  }
+
+  function statusBadge(row) {
+    if (row.pago) return '<span class="sv-badge sv-badge-pago">Pago</span>';
+    const v = parseYmd(row.data_vencimento);
+    const h = parseYmd(hojeYmd() + 'T12:00:00');
+    if (v && h && v < h) return '<span class="sv-badge sv-badge-atrasado">Vencido</span>';
+    return '<span class="sv-badge sv-badge-aberto">Em aberto</span>';
+  }
+
+  function getCookie(name) {
+    const m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return m ? decodeURIComponent(m[2]) : '';
+  }
+
+  function parseValorPt(s) {
+    const t = String(s || '').trim().replace(/\s/g, '');
+    if (!t) return NaN;
+    return parseFloat(t.replace(/\./g, '').replace(',', '.'));
+  }
+
+  function urlClassico(id) {
+    const u = new URL(URL_CLASSICO, window.location.origin);
+    if (id) u.searchParams.set('mongo_id', id);
+    return u.pathname + u.search;
+  }
+
+  function getRow(id) {
+    return rowsAcum.find((r) => String(r.id) === String(id));
+  }
+
+  function fecharModal(id) {
+    document.getElementById(id).classList.remove('show');
+  }
+
+  function abrirModal(id) {
+    document.getElementById(id).classList.add('show');
+  }
+
+  async function carregarOpcoesBaixa() {
+    const fs = document.getElementById('sv-bx-forma');
+    const bs = document.getElementById('sv-bx-banco');
+    fs.innerHTML = '<option value="">— Selecione —</option>';
+    bs.innerHTML = '<option value="">— Selecione —</option>';
+    try {
+      const r = await fetch(API_OPCOES + '?modo=erp&apenas_cadastro_erp=1', { credentials: 'same-origin' });
+      const d = await r.json();
+      (d.formas || []).forEach((x) => {
+        const o = document.createElement('option');
+        const nome = String(x.nome || '');
+        o.value = `${String(x.id || '')}|||${nome}`;
+        o.textContent = x.origem === 'manual' ? `${nome} · lista pessoal` : nome;
+        fs.appendChild(o);
+      });
+      (d.bancos || []).forEach((x) => {
+        const o = document.createElement('option');
+        const nome = String(x.nome || '');
+        o.value = `${String(x.id || '')}|||${nome}`;
+        o.textContent = x.origem === 'manual' ? `${nome} · lista pessoal` : nome;
+        bs.appendChild(o);
+      });
+    } catch (_) {}
+  }
+
+  function parseOptSplit(val) {
+    const i = val.indexOf('|||');
+    if (i < 0) return { id: null, nome: '' };
+    return { id: val.slice(0, i) || null, nome: val.slice(i + 3).trim() };
+  }
+
+  function bxpHtmlOpts() {
+    const fs = document.getElementById('sv-bx-forma');
+    const bs = document.getElementById('sv-bx-banco');
+    return {
+      htmlF: fs ? fs.innerHTML : '<option value="">—</option>',
+      htmlB: bs ? bs.innerHTML : '<option value="">—</option>',
+    };
+  }
+
+  function bxpAddLinha(valorDefault) {
+    const { htmlF, htmlB } = bxpHtmlOpts();
+    const wrap = document.createElement('div');
+    wrap.className = 'sv-bxp-row';
+    const v0 = valorDefault != null && valorDefault !== '' ? String(valorDefault) : '';
+    wrap.innerHTML = `
+      <div><label><span>Valor R$</span><input type="text" class="sv-bxp-val sv-input-large" style="height:48px;padding-left:12px;" value="${esc(v0)}"></label></div>
+      <div><label><span>Forma</span><select class="sv-bxp-forma" style="min-height:48px;">${htmlF}</select></label></div>
+      <div><label><span>Banco</span><select class="sv-bxp-banco" style="min-height:48px;">${htmlB}</select></label></div>
+      <div><button type="button" class="sv-btn-action sv-btn-delete sv-bxp-rm" title="Remover">✕</button></div>`;
+    document.getElementById('sv-bxp-linhas').appendChild(wrap);
+    wrap.querySelector('.sv-bxp-rm').addEventListener('click', () => {
+      if (document.querySelectorAll('#sv-bxp-linhas .sv-bxp-row').length <= 1) return;
+      wrap.remove();
+    });
+  }
+
+  async function abrirBaixaTotal(id) {
+    const row = getRow(id);
+    if (!row || row.pago) return;
+    bxIdsAtual = [id];
+    const saldo = Number(row.restante) || 0;
+    document.getElementById('sv-modal-baixa-resumo').textContent =
+      `${row.cliente || row.descricao || 'Título'} · Saldo ${brl(saldo)}`;
+    document.getElementById('sv-bx-data').value = hojeYmd();
+    document.getElementById('sv-bx-juros').value = '';
+    await carregarOpcoesBaixa();
+    abrirModal('sv-modal-baixa');
+  }
+
+  async function abrirBaixaParcial(id) {
+    const row = getRow(id);
+    if (!row || row.pago) return;
+    bxpIdAtual = id;
+    bxpSaldoMax = Number(row.restante) || 0;
+    document.getElementById('sv-modal-parcial-resumo').textContent =
+      `${row.cliente || row.descricao || 'Título'} · Saldo em aberto ${brl(bxpSaldoMax)}`;
+    document.getElementById('sv-bxp-data').value = hojeYmd();
+    document.getElementById('sv-bxp-linhas').innerHTML = '';
+    await carregarOpcoesBaixa();
+    bxpAddLinha(bxpSaldoMax.toFixed(2).replace('.', ','));
+    abrirModal('sv-modal-parcial');
+  }
+
+  function montarParams(resetPage) {
+    if (resetPage) page = 1;
+    const p = new URLSearchParams();
+    p.set('tipo', 'pagar');
+    p.set('status', document.getElementById('sv-status').value || 'abertos');
+    p.set('page', String(page));
+    p.set('page_size', document.getElementById('sv-ps').value || '50');
+    p.set('ordenacao', 'vencimento_asc');
+    const q = (document.getElementById('sv-busca').value || '').trim();
+    if (q) p.set('q', q);
+    const de = document.getElementById('sv-venc-de').value;
+    const ate = document.getElementById('sv-venc-ate').value;
+    if (de) p.set('venc_de', de);
+    if (ate) p.set('venc_ate', ate);
+    return p;
+  }
+
+  function atualizarTotais(t) {
+    if (!t) { elTotais.hidden = true; return; }
+    elTotais.hidden = false;
+    elTotais.innerHTML = [
+      `<span>Qtd: <strong>${t.quantidade ?? 0}</strong></span>`,
+      `<span>Bruto: <strong>${brl(t.bruto)}</strong></span>`,
+      `<span>Pago: <strong>${brl(t.movimentado ?? t.pago)}</strong></span>`,
+      `<span>A pagar: <strong>${brl(t.a_pagar ?? t.saldo_aberto)}</strong></span>`,
+    ].join('');
+  }
+
+  function renderItem(row) {
+    const desc = (row.descricao || row.cliente || '—').trim();
+    const titulo = desc.length > 80 ? desc.slice(0, 78) + '…' : desc;
+    const saldo = Number(row.restante) || 0;
+    const valorTxt = row.pago ? brl(row.valor_bruto) : brl(saldo > 0 ? saldo : row.valor_bruto);
+    const acoes = [];
+    if (!row.pago) {
+      acoes.push(`<button type="button" class="sv-btn-action sv-btn-pay sv-btn-baixa-total" data-id="${esc(row.id)}">Pagar</button>`);
+      acoes.push(`<button type="button" class="sv-btn-action sv-btn-edit sv-btn-baixa-parcial" data-id="${esc(row.id)}">Parcial</button>`);
+    }
+    if (row.pode_editar !== false) {
+      acoes.push(`<a class="sv-btn-action sv-btn-edit" href="${esc(urlClassico(row.id))}" data-prefetch onclick="event.stopPropagation();">Editar</a>`);
+    }
+    if (row.pode_excluir) {
+      acoes.push(`<a class="sv-btn-action sv-btn-delete" href="${esc(urlClassico(row.id))}" data-prefetch onclick="event.stopPropagation();">Excluir</a>`);
+    } else {
+      acoes.push(`<span class="sv-btn-action sv-btn-edit" style="opacity:0.5;cursor:not-allowed" title="Use a tela clássica">Excluir</span>`);
+    }
+    return `
+      <div class="sv-list-item" data-id="${esc(row.id)}" role="button" tabindex="0" aria-expanded="false">
+        <div class="sv-list-row">
+          <div class="sv-col-vencimento">${esc(fmtData(row.data_vencimento))}</div>
+          <div class="sv-col-descricao">${esc(titulo)}</div>
+          <div class="sv-col-valor negativo">${esc(valorTxt)}</div>
+          <div class="sv-col-status">${statusBadge(row)}</div>
+          <div class="sv-expand-icon" aria-hidden="true">▼</div>
+        </div>
+        <div class="sv-details-area">
+          <div class="sv-details-grid">
+            <div class="sv-detail-box"><p><strong>Fornecedor / favorecido</strong>${esc(row.cliente || '—')}</p></div>
+            <div class="sv-detail-box"><p><strong>Plano de contas</strong>${esc(row.plano_conta || '—')}${row.grupo ? ' · ' + esc(row.grupo) : ''}</p></div>
+            <div class="sv-detail-box"><p><strong>Documento</strong>${esc(row.numero_documento || '—')}</p></div>
+            <div class="sv-detail-box"><p><strong>Forma / banco</strong>${esc(row.forma_pagamento || '—')} · ${esc(row.banco || '—')}</p></div>
+            <div class="sv-detail-box"><p><strong>Competência</strong>${esc(fmtData(row.data_competencia))}</p></div>
+            <div class="sv-detail-box"><p><strong>${row.pago ? 'Pagamento' : 'Bruto / pago / saldo'}</strong>${esc(brl(row.valor_bruto))} · ${esc(brl(row.valor_movimentado))} · ${esc(brl(row.restante))}</p></div>
+            ${row.data_pagamento ? `<div class="sv-detail-box"><p><strong>Data pagamento</strong>${esc(fmtData(row.data_pagamento))}</p></div>` : ''}
+            ${row.observacoes ? `<div class="sv-detail-box"><p><strong>Observações</strong>${esc(row.observacoes)}</p></div>` : ''}
+          </div>
+          <div class="sv-details-actions">${acoes.join('')}</div>
+        </div>
+      </div>`;
+  }
+
+  function bindRows() {
+    elCorpo.querySelectorAll('.sv-list-item').forEach((item) => {
+      if (item.dataset.bound) return;
+      item.dataset.bound = '1';
+      const toggle = () => {
+        const open = item.classList.toggle('expanded');
+        item.setAttribute('aria-expanded', open ? 'true' : 'false');
+      };
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.sv-details-actions')) return;
+        toggle();
+      });
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+    });
+  }
+
+  if (!elCorpo.dataset.delegation) {
+    elCorpo.dataset.delegation = '1';
+    elCorpo.addEventListener('click', (e) => {
+      const bt = e.target.closest('.sv-btn-baixa-total');
+      if (bt) { e.stopPropagation(); abrirBaixaTotal(bt.dataset.id); return; }
+      const bp = e.target.closest('.sv-btn-baixa-parcial');
+      if (bp) { e.stopPropagation(); abrirBaixaParcial(bp.dataset.id); }
+    });
+  }
+
+  function renderLista(acrescentar, novasLinhas) {
+    if (!rowsAcum.length) {
+      elCorpo.innerHTML = '<div class="sv-empty">Nenhum lançamento com estes filtros.</div>';
+      elPager.hidden = true;
+      return;
+    }
+    const bloco = (acrescentar && novasLinhas ? novasLinhas : rowsAcum).map(renderItem).join('');
+    if (acrescentar && novasLinhas) {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = bloco;
+      while (wrap.firstChild) elCorpo.appendChild(wrap.firstChild);
+    } else {
+      elCorpo.innerHTML = bloco;
+    }
+    bindRows();
+    elPager.hidden = false;
+    elPagerInfo.textContent = `${rowsAcum.length} de ${total} · página ${page}`;
+    elBtnMais.disabled = rowsAcum.length >= total;
+    elBtnMais.hidden = rowsAcum.length >= total;
+  }
+
+  async function carregar(acrescentar) {
+    if (carregando) return;
+    carregando = true;
+    if (!acrescentar) {
+      rowsAcum.length = 0;
+      elCorpo.innerHTML = '<div class="sv-empty">Carregando…</div>';
+      if (window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
+    }
+    try {
+      const r = await fetch(API_LISTA + '?' + montarParams(!acrescentar).toString(), {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.erro || 'Falha ao carregar');
+      if (data.erro_deep_link) {
+        elCorpo.innerHTML = `<div class="sv-erro">${esc(data.erro_deep_link)}</div>`;
+        elResumo.textContent = data.erro_deep_link;
+        return;
+      }
+      total = Number(data.total) || 0;
+      const linhas = Array.isArray(data.lancamentos) ? data.lancamentos : [];
+      rowsAcum.push(...linhas);
+      atualizarTotais(data.totais);
+      const st = document.getElementById('sv-status');
+      const stTxt = st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : '';
+      elResumo.textContent = `${total} título(s) · ${stTxt}`;
+      renderLista(acrescentar, linhas);
+    } catch (err) {
+      elCorpo.innerHTML = `<div class="sv-erro">${esc(err.message || 'Erro de rede')}</div>`;
+      elResumo.textContent = 'Erro ao carregar';
+    } finally {
+      carregando = false;
+      if (window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
+    }
+  }
+
+  function toggleFiltros() {
+    const painel = document.getElementById('painelFiltros');
+    const btn = document.getElementById('sv-btn-filtros');
+    const open = painel.classList.toggle('show');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function limparFiltros() {
+    document.getElementById('sv-venc-de').value = '';
+    document.getElementById('sv-venc-ate').value = '';
+    document.getElementById('sv-status').value = 'abertos';
+    document.getElementById('sv-ps').value = '50';
+    document.getElementById('sv-busca').value = '';
+    page = 1;
+    carregar(false);
+  }
+
+  document.getElementById('sv-bx-cancel').addEventListener('click', () => fecharModal('sv-modal-baixa'));
+  document.getElementById('sv-bxp-cancel').addEventListener('click', () => fecharModal('sv-modal-parcial'));
+  document.getElementById('sv-bxp-add').addEventListener('click', () => bxpAddLinha(''));
+  document.querySelectorAll('.sv-modal').forEach((m) => {
+    m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('show'); });
+  });
+
+  document.getElementById('sv-bx-ok').addEventListener('click', async () => {
+    const f = parseOptSplit(document.getElementById('sv-bx-forma').value);
+    const b = parseOptSplit(document.getElementById('sv-bx-banco').value);
+    if (!f.nome || !b.nome) {
+      alert('Selecione forma de pagamento e conta/banco.');
+      return;
+    }
+    const body = {
+      ids: bxIdsAtual,
+      tipo: 'pagar',
+      data_movimento: document.getElementById('sv-bx-data').value,
+      forma_pagamento: f.nome,
+      forma_pagamento_id: f.id,
+      banco: b.nome,
+      banco_id: b.id,
+    };
+    const jt = (document.getElementById('sv-bx-juros').value || '').trim();
+    if (jt) {
+      const jn = parseValorPt(jt);
+      if (!Number.isNaN(jn) && jn > 0) body.valor_juros = jn.toFixed(2);
+    }
+    const btn = document.getElementById('sv-bx-ok');
+    btn.disabled = true;
+    try {
+      const r = await fetch(API_BAIXA, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify(body),
+      });
+      const out = await r.json();
+      if (out.erros && out.erros.length) {
+        alert('Alguns títulos não foram baixados:\n' + out.erros.map((e) => `${e.id}: ${e.erro}`).join('\n'));
+      }
+      if (out.atualizados && out.atualizados.length) {
+        let m = `Pagamento registrado: ${out.atualizados.length} título(s).`;
+        if (out.erp_baixa_ok === true) m += '\nERP: ok.';
+        else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
+        if (out.aviso_juros) m += '\nJuros: ' + out.aviso_juros;
+        alert(m);
+        fecharModal('sv-modal-baixa');
+        page = 1;
+        carregar(false);
+      } else if (!out.erros || !out.erros.length) {
+        alert(out.erro || 'Não foi possível baixar.');
+      }
+    } catch (_) {
+      alert('Erro de rede.');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('sv-bxp-ok').addEventListener('click', async () => {
+    if (!bxpIdAtual) return;
+    const parcelas = [];
+    let soma = 0;
+    document.querySelectorAll('#sv-bxp-linhas .sv-bxp-row').forEach((row) => {
+      const v = parseValorPt(row.querySelector('.sv-bxp-val').value);
+      const ff = parseOptSplit(row.querySelector('.sv-bxp-forma').value);
+      const bb = parseOptSplit(row.querySelector('.sv-bxp-banco').value);
+      if (!Number.isNaN(v) && v > 0 && ff.nome && bb.nome) {
+        soma += v;
+        parcelas.push({
+          valor: v,
+          forma_pagamento: ff.nome,
+          forma_pagamento_id: ff.id,
+          banco: bb.nome,
+          banco_id: bb.id,
+        });
+      }
+    });
+    if (!parcelas.length) {
+      alert('Informe ao menos uma parcela (valor, forma e banco).');
+      return;
+    }
+    if (soma > bxpSaldoMax + 0.02) {
+      alert(`A soma (${brl(soma)}) não pode passar do saldo (${brl(bxpSaldoMax)}).`);
+      return;
+    }
+    const btn = document.getElementById('sv-bxp-ok');
+    btn.disabled = true;
+    try {
+      const r = await fetch(API_BAIXA_PARCIAL, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({
+          lancamento_id: bxpIdAtual,
+          tipo: 'pagar',
+          data_movimento: document.getElementById('sv-bxp-data').value,
+          parcelas,
+        }),
+      });
+      const out = await r.json();
+      if (!out.ok) {
+        alert(out.erro || 'Falha na baixa parcial.');
+        return;
+      }
+      let m = out.quitado ? 'Título quitado.' : 'Parcela registrada — ainda há saldo.';
+      if (out.erp_baixa_ok === true) m += '\nERP: ok.';
+      else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
+      alert(m);
+      fecharModal('sv-modal-parcial');
+      page = 1;
+      carregar(false);
+    } catch (_) {
+      alert('Erro de rede.');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('sv-btn-filtros').addEventListener('click', toggleFiltros);
+  document.getElementById('sv-aplicar-filtros').addEventListener('click', () => { page = 1; carregar(false); });
+  document.getElementById('sv-limpar-filtros').addEventListener('click', limparFiltros);
+  document.getElementById('sv-busca').addEventListener('input', () => {
+    clearTimeout(buscaTimer);
+    buscaTimer = setTimeout(() => { page = 1; carregar(false); }, 400);
+  });
+  document.getElementById('sv-ps').addEventListener('change', () => { page = 1; carregar(false); });
+  elBtnMais.addEventListener('click', () => {
+    if (rowsAcum.length >= total) return;
+    page += 1;
+    carregar(true);
+  });
+
+  const params = new URLSearchParams(window.location.search);
+  const mid = params.get('mongo_id');
+  if (mid) {
+    document.getElementById('sv-status').value = 'todos';
+    fetch(API_LISTA + '?tipo=pagar&status=todos&mongo_id=' + encodeURIComponent(mid), { credentials: 'same-origin' })
+      .then((r) => r.json())
+      .then((data) => {
+        rowsAcum.length = 0;
+        if (data.lancamentos && data.lancamentos.length) {
+          rowsAcum.push(...data.lancamentos);
+          total = data.total || rowsAcum.length;
+          atualizarTotais(data.totais);
+          renderLista(false, rowsAcum);
+          const first = elCorpo.querySelector('.sv-list-item');
+          if (first) { first.classList.add('expanded'); first.setAttribute('aria-expanded', 'true'); }
+        } else {
+          elCorpo.innerHTML = '<div class="sv-erro">Título não encontrado.</div>';
+        }
+      })
+      .catch(() => carregar(false));
+  } else {
+    carregar(false);
+  }
+})();
+</script>
+{% endblock %}

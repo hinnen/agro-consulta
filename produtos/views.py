@@ -9397,6 +9397,13 @@ def lancamentos_contas_pagar_view(request):
 
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
+def lancamentos_contas_pagar_teste_view(request):
+    """Layout experimental de contas a pagar (lista simplificada + mesma API Mongo)."""
+    return render(request, "produtos/lancamentos_contas_pagar_teste.html")
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
 def lancamentos_contas_receber_view(request):
     """Lista de contas a receber (filtros, export, baixa)."""
     return render(

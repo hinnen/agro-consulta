@@ -133,6 +133,11 @@ urlpatterns = [
         name='lancamentos_contas_pagar',
     ),
     path(
+        'lancamentos/contas-pagar/teste/',
+        views.lancamentos_contas_pagar_teste_view,
+        name='lancamentos_contas_pagar_teste',
+    ),
+    path(
         'lancamentos/contas-receber/',
         views.lancamentos_contas_receber_view,
         name='lancamentos_contas_receber',
