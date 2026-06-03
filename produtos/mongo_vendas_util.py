@@ -425,6 +425,62 @@ def fatores_vendas_por_calendario(db, dias_lookback: int = 84) -> dict[str, Any]
     return out
 
 
+def _data_faturamento_erp_valida(val) -> bool:
+    """Curva ABC / Pedidos faturados: ignora ``0001-01-01`` (ainda não faturado no ERP)."""
+    return isinstance(val, datetime) and val.year >= 1980
+
+
+def _q_dto_venda_faturado_periodo(data_ini: date, data_fim: date) -> dict:
+    """DtoVenda com ``DataFaturamento`` real dentro do período (relatório operacional PDV)."""
+    dt_ini = datetime.combine(data_ini, dtime.min)
+    dt_fim = datetime.combine(data_fim, dtime.max)
+    dt_min_valid = datetime(1980, 1, 1)
+    lim_inf = dt_ini if dt_ini > dt_min_valid else dt_min_valid
+    return {
+        "$and": [
+            _filtro_venda_ativa_mongo(),
+            {"DataFaturamento": {"$gte": lim_inf, "$lte": dt_fim}},
+        ]
+    }
+
+
+def _coletar_vendas_dto_faturadas_periodo(
+    db, data_ini: date, data_fim: date
+) -> tuple[list[dict] | None, list[dict] | None]:
+    """Vendas faturadas no mês (só ``DataFaturamento`` válida), alinhado à Curva ABC."""
+    try:
+        q = _q_dto_venda_faturado_periodo(data_ini, data_fim)
+        proj = {
+            "Id": 1,
+            "_id": 1,
+            "DataFaturamento": 1,
+            "Data": 1,
+            "ValorTotal": 1,
+            "ValorLiquido": 1,
+            "Total": 1,
+            "Valor": 1,
+            "total": 1,
+            "ValorFinal": 1,
+            "ClienteNome": 1,
+            "NomeCliente": 1,
+            "cliente": 1,
+            "Cliente": 1,
+            "RazaoSocial": 1,
+            "NomeFantasia": 1,
+            "PessoaNome": 1,
+            "ClienteID": 1,
+            "ClienteId": 1,
+            "PessoaID": 1,
+            "ClienteFornecedorID": 1,
+            "IdClienteFornecedor": 1,
+        }
+        vendas = list(db["DtoVenda"].find(q, proj).max_time_ms(120_000))
+    except Exception as exc:
+        logger.exception("coletar_vendas_dto_faturadas_periodo: %s", exc)
+        return None, None
+    return vendas, vendas
+
+
 def _q_dto_venda_janela_grafico(data_ini: date, data_fim: date) -> dict:
     """
     Mesmo filtro de DtoVenda que o gráfico do dashboard (DataFaturamento ou Data na janela).
@@ -465,13 +521,40 @@ def _float_seguro(v) -> float:
 
 
 def _doc_total_venda_espelho(doc: dict) -> float:
-    for campo in ("ValorTotal", "ValorLiquido", "Total", "Valor", "total", "ValorFinal"):
+    for campo in (
+        "ValorFinal",
+        "ValorTotalComAcrescimos",
+        "ValorTotalSemAcrescimos",
+        "ValorTotal",
+        "ValorLiquido",
+        "Total",
+        "Valor",
+        "total",
+    ):
         v = doc.get(campo)
         if v is not None:
             f = _float_seguro(v)
             if f > 0:
                 return f
     return 0.0
+
+
+def _nome_cliente_excluir_top_ranking(nome: str) -> bool:
+    """Consumidor avulso / vazio fora do ranking quando ``incluir_consumidor=False``."""
+    n = (nome or "").strip().lower()
+    if not n:
+        return True
+    if "consumidor" in n and "identific" in n:
+        return True
+    if n in ("cliente não identificado", "cliente nao identificado", "_sem_cliente_"):
+        return True
+    return False
+
+
+def _doc_dia_comercial_venda(doc: dict) -> date | None:
+    """Dia comercial da venda (prioriza ``Data`` do pedido, como no gráfico do BI)."""
+    dt = _doc_data_venda_espelho(doc)
+    return dt.date() if isinstance(dt, datetime) else None
 
 
 def _nome_cliente_dto_venda(doc: dict) -> str:
@@ -510,27 +593,42 @@ def _cliente_grupo_key_dto_venda(doc: dict) -> str:
     return "nome:_sem_cliente_"
 
 
+def _nome_vendedor_erp_e_rotulo_generico(nome: str) -> bool:
+    """Rótulo fixo do Pedidos/Salvar (ex. Gm Agro Mais) não é operador do PDV."""
+    n = (nome or "").strip().lower()
+    if not n:
+        return True
+    if "gm agro" in n and "mais" in n:
+        return True
+    if n.startswith("agro mais"):
+        return True
+    if n in ("venda direta", "venda erp", "sistema", "erp"):
+        return True
+    return False
+
+
 def _nome_vendedor_dto_venda(doc: dict) -> str:
+    # Operador/atendente antes de «Vendedor» (no ERP costuma ser rótulo da loja).
     for chave in (
+        "Operador",
+        "Atendente",
+        "LancamentoUsuario",
+        "Funcionario",
         "VendedorNome",
         "NomeVendedor",
-        "Vendedor",
-        "vendedor",
         "UsuarioNome",
         "NomeUsuario",
         "Usuario",
         "usuario",
         "UserName",
         "userName",
-        "Atendente",
-        "Funcionario",
-        "Operador",
-        "LancamentoUsuario",
+        "Vendedor",
+        "vendedor",
     ):
         v = doc.get(chave)
         if v is not None:
             s = str(v).strip()
-            if s and s.lower() not in ("none", "null", "0"):
+            if s and s.lower() not in ("none", "null", "0") and not _nome_vendedor_erp_e_rotulo_generico(s):
                 return s[:120]
     for chave in ("VendedorID", "UsuarioID", "FuncionarioID"):
         v = doc.get(chave)
@@ -621,7 +719,8 @@ def _coletar_vendas_dto_capri(
         return [], []
     filtrado: list[dict] = []
     for v in vendas:
-        if _doc_data_venda_espelho(v) is None:
+        dia = _doc_dia_comercial_venda(v)
+        if dia is None or dia < data_ini or dia > data_fim:
             continue
         filtrado.append(v)
     return filtrado, vendas
@@ -780,16 +879,23 @@ def dashboard_ranking_vendedores_mongo(
 
 
 def dashboard_top_clientes_mongo(
-    client: Any, db, data_ini: date, data_fim: date, *, limite: int = 8
+    client: Any,
+    db,
+    data_ini: date,
+    data_fim: date,
+    *,
+    limite: int = 8,
+    incluir_consumidor: bool = False,
 ) -> list[dict] | None:
     """
-    Top clientes por faturamento (DtoVenda), mesma janela e totais que o ranking de vendedores.
+    Top clientes por faturamento (DtoVenda faturado no período).
+    Alinha à Curva ABC / ReportOperacoesPDV: só ``DataFaturamento`` válida no mês civil.
     Retorna apenas ``nome`` e ``total`` (ordenado).
     """
     if db is None or client is None:
         return None
-    limite = max(1, min(int(limite or 8), 30))
-    filtrado, _ = _coletar_vendas_dto_capri(db, data_ini, data_fim)
+    limite = max(1, min(int(limite or 8), 50))
+    filtrado, _ = _coletar_vendas_dto_faturadas_periodo(db, data_ini, data_fim)
     if filtrado is None:
         return None
     if not filtrado:
@@ -825,7 +931,9 @@ def dashboard_top_clientes_mongo(
     ac: dict[str, tuple[float, str]] = {}
     for v in filtrado:
         gkey = _cliente_grupo_key_dto_venda(v)
-        nome = _nome_cliente_dto_venda(v).strip() or "Cliente não identificado"
+        nome = _nome_cliente_dto_venda(v).strip() or "Consumidor não identificado"
+        if not incluir_consumidor and _nome_cliente_excluir_top_ranking(nome):
+            continue
         t = _faturamento_venda_cached(v)
         tot, nome_prev = ac.get(gkey, (0.0, nome))
         escolha = nome_prev if len(nome_prev) >= len(nome) else nome

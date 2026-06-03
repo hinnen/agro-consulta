@@ -112,10 +112,10 @@ AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON = (
     config("AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON", default="") or ""
 ).strip()
 
-# BI — ``erp`` (padrão): gráfico, card Vendas e total por unidade só com DtoVenda faturado (sem orçamento).
-# ``pdv`` = mostra VendaAgro antes de fechar no ERP (só se quiser ver venda do dia no gráfico).
+# BI — ``hibrido`` (padrão): VendaAgro no dia da venda + DtoVenda só se não tiver par no PDV (evita FIADO em dobro).
+# ``erp`` = só espelho Mongo faturado; ``pdv`` = só VendaAgro local.
 AGRO_DASHBOARD_VENDAS_FONTE = (
-    config("AGRO_DASHBOARD_VENDAS_FONTE", default="erp") or "erp"
+    config("AGRO_DASHBOARD_VENDAS_FONTE", default="hibrido") or "hibrido"
 ).strip().lower()
 
 # Application definition
