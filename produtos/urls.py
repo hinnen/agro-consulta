@@ -133,6 +133,16 @@ urlpatterns = [
         name='lancamentos_contas_pagar',
     ),
     path(
+        'lancamentos/contas-pagar/teste/',
+        views.lancamentos_contas_pagar_teste_view,
+        name='lancamentos_contas_pagar_teste',
+    ),
+    path(
+        'lancamentos/contas-pagar/calendario/',
+        views.lancamentos_contas_pagar_calendario_view,
+        name='lancamentos_contas_pagar_calendario',
+    ),
+    path(
         'lancamentos/contas-receber/',
         views.lancamentos_contas_receber_view,
         name='lancamentos_contas_receber',
@@ -428,6 +438,11 @@ urlpatterns = [
         'api/lancamentos/atalhos-filtro/',
         views.api_lancamentos_atalhos_filtro,
         name='api_lancamentos_atalhos_filtro',
+    ),
+    path(
+        'api/lancamentos/contas-pagar/calendario/',
+        views.api_lancamentos_contas_pagar_calendario,
+        name='api_lancamentos_contas_pagar_calendario',
     ),
     path(
         'api/lancamentos/fluxo-calendario/',

@@ -1,0 +1,443 @@
+{% extends 'layouts/base_admin.html' %}
+{% load static %}
+
+{% block admin_title %}SisVale | Contas a pagar — calendário{% endblock %}
+{% block admin_header_title %}Contas a pagar — calendário{% endblock %}
+{% block admin_header_meta %}{% endblock %}
+
+{% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col overflow-hidden{% endblock %}
+{% block admin_header_inner_class %}w-full max-w-none px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5{% endblock %}
+{% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-0 py-0 overflow-hidden{% endblock %}
+
+{% block head_extra %}
+  {% include "produtos/_agro_consulta_ui.html" %}
+{% endblock %}
+
+{% block admin_header_actions %}
+  <div class="flex flex-wrap items-center justify-end gap-2">
+    <h2 class="sv-cal-month-top" id="currentMonthYear">—</h2>
+    <button type="button" class="sv-cal-btn-top" id="sv-cal-prev" title="Mês anterior">◀</button>
+    <button type="button" class="sv-cal-btn-top sv-cal-btn-top-accent" id="sv-cal-hoje" title="Ir para o mês atual">Hoje</button>
+    <button type="button" class="sv-cal-btn-top" id="sv-cal-next" title="Próximo mês">▶</button>
+    <span class="hidden sm:inline-block w-px h-8 bg-slate-300 mx-0.5" aria-hidden="true"></span>
+    <a href="{% url 'lancamentos_contas_pagar' %}" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-800 hover:border-amber-400">Clássico</a>
+    <a href="{% url 'lancamentos_contas_pagar_teste' %}" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-violet-500 bg-violet-600 px-3 text-xs font-black uppercase text-white hover:bg-violet-700">Lista</a>
+    {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-700 hover:border-amber-400" %}
+  </div>
+{% endblock %}
+
+{% block admin_content %}
+{% include "produtos/_gm_loading_bar.html" %}
+
+<style>
+  :root {
+    --sv-bg: #f8f9fa;
+    --sv-card: #ffffff;
+    --sv-text: #212529;
+    --sv-muted: #6c757d;
+    --sv-primary: #059669;
+    --sv-primary-light: rgba(5, 150, 105, 0.12);
+    --sv-danger: #d32f2f;
+    --sv-border: #cbd5e1;
+    --sv-border-strong: #94a3b8;
+    --sv-radius: 10px;
+  }
+  .sv-cal-month-top {
+    margin: 0; padding: 0 4px;
+    font-size: clamp(1.05rem, 1.2vw + 0.6rem, 1.35rem);
+    font-weight: 800; color: var(--sv-text); white-space: nowrap;
+  }
+  .sv-cal-btn-top {
+    min-height: 40px; min-width: 40px; padding: 0 12px;
+    font-size: 0.95rem; font-weight: 800;
+    border-radius: 10px; border: 2px solid var(--sv-border-strong);
+    background: var(--sv-card); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .sv-cal-btn-top:hover { background: #f1f5f9; border-color: var(--sv-primary); }
+  .sv-cal-btn-top-accent { border-color: #059669; color: #047857; background: #ecfdf5; }
+  .sv-cal-btn-top-accent:hover { background: #d1fae5; }
+  .sv-cal-container {
+    padding: 8px 12px 12px;
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: var(--sv-bg);
+    min-height: min(94dvh, calc(100dvh - 5.5rem));
+    display: flex;
+    flex-direction: column;
+  }
+  .sv-cal-wrapper {
+    background: var(--sv-card); border-radius: var(--sv-radius);
+    border: 2px solid var(--sv-border-strong);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06); flex: 1; min-height: 0;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .sv-cal-days-header {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    background: #f1f5f9; border-bottom: 2px solid var(--sv-border-strong);
+    text-align: center; font-weight: 800; font-size: 0.85rem; color: #475569;
+    padding: 8px 0;
+  }
+  .sv-cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    grid-auto-rows: minmax(148px, 1fr); flex: 1; min-height: 0;
+  }
+  .sv-cal-cell {
+    border-right: 2px solid var(--sv-border);
+    border-bottom: 2px solid var(--sv-border);
+    padding: 6px 8px 8px; display: flex; flex-direction: column; gap: 4px;
+    cursor: pointer; user-select: none; transition: background 0.15s, box-shadow 0.15s;
+    min-height: 148px; position: relative;
+  }
+  .sv-cal-cell:nth-child(7n) { border-right: none; }
+  .sv-cal-cell:hover { background-color: #f0fdf4; }
+  .sv-cal-cell-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 4px; margin-bottom: 2px; }
+  .sv-cal-num {
+    font-size: clamp(1.45rem, 2.2vw + 0.5rem, 2.1rem);
+    font-weight: 900; color: var(--sv-text); line-height: 1;
+    min-width: 2rem; text-align: left;
+  }
+  .sv-cal-hoje-badge {
+    font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em;
+    color: #047857; background: #d1fae5; border: 1px solid #6ee7b7; border-radius: 999px; padding: 2px 6px;
+  }
+  .sv-cal-cell.is-today {
+    background: linear-gradient(180deg, #ecfdf5 0%, #ffffff 55%);
+    box-shadow: inset 0 0 0 3px #059669;
+    z-index: 1;
+  }
+  .sv-cal-cell.is-today .sv-cal-num { color: #047857; }
+  .sv-cal-cell.out-of-month { background-color: #f8fafc; }
+  .sv-cal-cell.out-of-month .sv-cal-num { color: #94a3b8; font-weight: 800; }
+  .sv-cal-cell.out-of-month.is-today { background: linear-gradient(180deg, #ecfdf5 0%, #f8fafc 55%); }
+  .sv-cal-metrics { display: flex; flex-direction: column; gap: 4px; margin-top: auto; flex: 1; justify-content: flex-end; }
+  .sv-cal-m {
+    border-radius: 6px; padding: 4px 6px; font-variant-numeric: tabular-nums;
+    display: flex; flex-direction: column; align-items: stretch; justify-content: center;
+    gap: 1px; line-height: 1.15; text-align: left;
+  }
+  .sv-cal-m-lbl {
+    font-size: clamp(0.58rem, 0.55vw + 0.42rem, 0.68rem);
+    font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em;
+    line-height: 1.1; opacity: 0.9;
+  }
+  .sv-cal-m-val { font-weight: 800; width: 100%; word-break: break-word; text-align: right; }
+  .sv-cal-m.zero .sv-cal-m-val { font-weight: 600; opacity: 0.5; }
+  .sv-cal-m.zero .sv-cal-m-lbl { opacity: 0.65; }
+  .sv-cal-m-pagar {
+    background: #fee2e2; color: #991b1b; border: 2px solid #f87171;
+    padding: 6px 8px;
+  }
+  .sv-cal-m-pagar .sv-cal-m-val { font-size: clamp(0.88rem, 1.1vw + 0.4rem, 1.05rem); font-weight: 900; }
+  .sv-cal-m-prev { background: #eff6ff; color: #1e40af; border: 1px solid #93c5fd; }
+  .sv-cal-m-prev .sv-cal-m-val { font-size: 0.82rem; font-weight: 700; }
+  .sv-cal-m-vendas { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
+  .sv-cal-m-vendas .sv-cal-m-val { font-size: 0.82rem; font-weight: 700; }
+  .sv-cal-m-saldo { background: #f8fafc; color: #334155; border: 1px solid #cbd5e1; cursor: help; }
+  .sv-cal-m-saldo.neg .sv-cal-m-val { color: #b91c1c; }
+  .sv-cal-m-saldo.pos .sv-cal-m-val { color: #047857; }
+  .sv-cal-m-saldo .sv-cal-m-val { font-size: 0.84rem; font-weight: 800; }
+  .sv-cal-cell.selected-start, .sv-cal-cell.selected-end {
+    background-color: var(--sv-primary) !important; color: white !important;
+    box-shadow: inset 0 0 0 3px #065f46;
+  }
+  .sv-cal-cell.selected-start .sv-cal-num, .sv-cal-cell.selected-end .sv-cal-num { color: white; }
+  .sv-cal-cell.selected-start .sv-cal-hoje-badge,
+  .sv-cal-cell.selected-end .sv-cal-hoje-badge { background: rgba(255,255,255,0.2); color: white; border-color: rgba(255,255,255,0.35); }
+  .sv-cal-cell.selected-start .sv-cal-m,
+  .sv-cal-cell.selected-end .sv-cal-m {
+    background: rgba(0,0,0,0.12) !important; color: white !important; border-color: rgba(255,255,255,0.25) !important;
+  }
+  .sv-cal-cell.selected-start .sv-cal-m-val,
+  .sv-cal-cell.selected-end .sv-cal-m-val { color: white !important; opacity: 1 !important; }
+  .sv-cal-cell.selected-start .sv-cal-m-lbl,
+  .sv-cal-cell.selected-end .sv-cal-m-lbl { color: white !important; opacity: 0.92 !important; }
+  .sv-cal-cell.in-range { background-color: var(--sv-primary-light); }
+  .sv-cal-erro {
+    margin-bottom: 12px; padding: 12px 16px; border-radius: var(--sv-radius);
+    border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; font-weight: 600; display: none;
+  }
+  @media (max-width: 768px) {
+    .sv-cal-grid { grid-auto-rows: minmax(132px, auto); }
+    .sv-cal-cell { min-height: 132px; }
+    .sv-cal-m-pagar .sv-cal-m-val { font-size: 0.82rem; }
+    .sv-cal-m-val { font-size: 0.75rem; }
+    .sv-cal-m-lbl { font-size: 0.56rem; }
+    .sv-cal-num { font-size: 1.35rem; }
+  }
+</style>
+
+<div class="sv-cal-container">
+  <div id="sv-cal-erro" class="sv-cal-erro" role="alert"></div>
+
+  <div class="sv-cal-wrapper">
+    <div class="sv-cal-days-header" aria-hidden="true">
+      <div>Domingo</div><div>Segunda</div><div>Terça</div><div>Quarta</div>
+      <div>Quinta</div><div>Sexta</div><div>Sábado</div>
+    </div>
+    <div class="sv-cal-grid" id="calendarGrid"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const API = "{% url 'api_lancamentos_contas_pagar_calendario' %}";
+  const LIST_URL = "{% url 'lancamentos_contas_pagar_teste' %}";
+
+  const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  let currentDate = new Date();
+  currentDate.setDate(1);
+  currentDate.setHours(12, 0, 0, 0);
+
+  let rangeStart = null;
+  let rangeEnd = null;
+  let clickTimer = null;
+  let dailyData = {};
+  let hojeYmd = '';
+  let refreshTimer = null;
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function ymdFromParts(y, m, d) { return `${y}-${pad2(m + 1)}-${pad2(d)}`; }
+  function ymdFromDate(d) { return ymdFromParts(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function brl(n) {
+    return (Number(n) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+  function brlCurta(n) {
+    const v = Number(n) || 0;
+    if (Math.abs(v) >= 100000) {
+      return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+    }
+    return brl(v);
+  }
+
+  function metricVal(cls, val, label, tip, zeroOk) {
+    const z = !val && zeroOk !== false;
+    const lbl = label || tip || '';
+    const dica = tip || label || lbl;
+    return `<div class="sv-cal-m ${cls}${z ? ' zero' : ''}" title="${esc(dica)}" aria-label="${esc(lbl + ': ' + brlCurta(val))}"><span class="sv-cal-m-lbl">${esc(lbl)}</span><span class="sv-cal-m-val">${esc(brlCurta(val))}</span></div>`;
+  }
+
+  function montarMetricas(dateString, row) {
+    const r = row || {};
+    const pagar = Number(r.pagar) || 0;
+    const prev = Number(r.previsao_vendas) || 0;
+    const vendas = r.vendas != null ? Number(r.vendas) || 0 : null;
+    const saldoDia = Number(r.liquido_dia) || 0;
+    const saldoAcum = Number(r.saldo_acumulado) || 0;
+    let html = metricVal('sv-cal-m-pagar', pagar, 'A pagar', 'Contas a pagar com vencimento neste dia', true);
+    if (vendas != null) {
+      const tipVendas = (dateString === hojeYmd || r.hoje)
+        ? 'Vendas de hoje (atualiza automaticamente)'
+        : 'Vendas realizadas no dia';
+      html += metricVal('sv-cal-m-vendas', vendas, 'Vendas', tipVendas, true);
+    }
+    html += metricVal('sv-cal-m-prev', prev, 'Previsão', 'Previsão de vendas do dia', true);
+    const saldoCls = saldoDia < -0.01 ? ' neg' : (saldoDia > 0.01 ? ' pos' : '');
+    const tipSaldo = `Saldo do dia · Acumulado na grade: ${brl(saldoAcum)}`;
+    html += `<div class="sv-cal-m sv-cal-m-saldo${saldoCls}" title="${esc(tipSaldo)}" aria-label="${esc('Saldo: ' + brlCurta(saldoDia))}"><span class="sv-cal-m-lbl">Saldo</span><span class="sv-cal-m-val">${esc(brlCurta(saldoDia))}</span></div>`;
+    return html;
+  }
+
+  function esc(s) {
+    const t = document.createElement('div');
+    t.textContent = s == null ? '' : String(s);
+    return t.innerHTML;
+  }
+
+  function showErro(msg) {
+    const el = document.getElementById('sv-cal-erro');
+    if (!msg) { el.style.display = 'none'; el.textContent = ''; return; }
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  async function carregarTotais(silent) {
+    const y = currentDate.getFullYear();
+    const m = currentDate.getMonth() + 1;
+    if (!silent && window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
+    showErro('');
+    try {
+      const r = await fetch(`${API}?ano=${y}&mes=${m}`, { credentials: 'same-origin', cache: 'no-store' });
+      const j = await r.json();
+      if (!r.ok || j.erro) throw new Error(j.erro || 'Falha ao carregar totais');
+      dailyData = j.dias || {};
+      hojeYmd = (j.meta && j.meta.hoje) ? j.meta.hoje.slice(0, 10) : ymdFromDate(new Date());
+      if (silent) atualizarCelulasMetricas();
+    } catch (e) {
+      if (!silent) {
+        dailyData = {};
+        showErro(e.message || 'Erro ao carregar totais do mês.');
+      }
+    } finally {
+      if (!silent && window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
+    }
+  }
+
+  function atualizarCelulasMetricas() {
+    document.querySelectorAll('.sv-cal-cell[data-date]').forEach((cell) => {
+      const ds = cell.dataset.date;
+      const metrics = cell.querySelector('.sv-cal-metrics');
+      if (metrics) metrics.innerHTML = montarMetricas(ds, dailyData[ds]);
+    });
+  }
+
+  function mesVisivelIncluiHoje() {
+    const y = currentDate.getFullYear();
+    const m = currentDate.getMonth();
+    const h = new Date();
+    return h.getFullYear() === y && h.getMonth() === m;
+  }
+
+  function agendarRefreshHoje() {
+    if (refreshTimer) clearInterval(refreshTimer);
+    refreshTimer = null;
+    if (!mesVisivelIncluiHoje()) return;
+    refreshTimer = setInterval(() => {
+      if (document.hidden) return;
+      carregarTotais(true);
+    }, 90000);
+  }
+
+  function renderCalendar() {
+    const grid = document.getElementById('calendarGrid');
+    const headerTitle = document.getElementById('currentMonthYear');
+    grid.innerHTML = '';
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    headerTitle.textContent = `${monthNames[month]} ${year}`;
+
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const prevLastDay = new Date(year, month, 0).getDate();
+
+    for (let x = firstDayIndex; x > 0; x--) {
+      const day = prevLastDay - x + 1;
+      const pm = month === 0 ? 11 : month - 1;
+      const py = month === 0 ? year - 1 : year;
+      createCell(day, pm, py, true, grid);
+    }
+    for (let i = 1; i <= lastDay; i++) {
+      createCell(i, month, year, false, grid);
+    }
+    const totalCells = grid.children.length;
+    const remainingCells = (totalCells <= 35 ? 35 : 42) - totalCells;
+    for (let j = 1; j <= remainingCells; j++) {
+      const nm = month === 11 ? 0 : month + 1;
+      const ny = month === 11 ? year + 1 : year;
+      createCell(j, nm, ny, true, grid);
+    }
+    highlightRange();
+  }
+
+  function createCell(day, month, year, isOutOfMonth, grid) {
+    const cell = document.createElement('div');
+    const dateString = ymdFromParts(year, month, day);
+    const isToday = dateString === hojeYmd;
+    cell.className = 'sv-cal-cell' + (isOutOfMonth ? ' out-of-month' : '') + (isToday ? ' is-today' : '');
+    cell.dataset.date = dateString;
+
+    const head = document.createElement('div');
+    head.className = 'sv-cal-cell-head';
+    const numDiv = document.createElement('div');
+    numDiv.className = 'sv-cal-num';
+    numDiv.textContent = String(day);
+    head.appendChild(numDiv);
+    if (isToday) {
+      const badge = document.createElement('span');
+      badge.className = 'sv-cal-hoje-badge';
+      badge.textContent = 'Hoje';
+      head.appendChild(badge);
+    }
+    cell.appendChild(head);
+
+    const metrics = document.createElement('div');
+    metrics.className = 'sv-cal-metrics';
+    metrics.innerHTML = montarMetricas(dateString, dailyData[dateString]);
+    cell.appendChild(metrics);
+
+    cell.addEventListener('click', () => handleCellClick(dateString));
+    cell.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      handleCellDblClick(dateString);
+    });
+    grid.appendChild(cell);
+  }
+
+  function handleCellClick(dateStr) {
+    clearTimeout(clickTimer);
+    clickTimer = setTimeout(() => {
+      if (!rangeStart || (rangeStart && rangeEnd)) {
+        rangeStart = dateStr;
+        rangeEnd = null;
+      } else if (rangeStart && !rangeEnd) {
+        if (dateStr < rangeStart) {
+          rangeEnd = rangeStart;
+          rangeStart = dateStr;
+        } else {
+          rangeEnd = dateStr;
+        }
+        redirectWithFilters(rangeStart, rangeEnd);
+      }
+      highlightRange();
+    }, 280);
+  }
+
+  function handleCellDblClick(dateStr) {
+    clearTimeout(clickTimer);
+    rangeStart = dateStr;
+    rangeEnd = dateStr;
+    highlightRange();
+    redirectWithFilters(dateStr, dateStr);
+  }
+
+  function highlightRange() {
+    document.querySelectorAll('.sv-cal-cell').forEach((cell) => {
+      const ds = cell.dataset.date;
+      cell.classList.remove('selected-start', 'selected-end', 'in-range');
+      if (!rangeStart) return;
+      if (ds === rangeStart) cell.classList.add('selected-start');
+      if (rangeEnd && ds === rangeEnd) cell.classList.add('selected-end');
+      if (rangeEnd && ds > rangeStart && ds < rangeEnd) cell.classList.add('in-range');
+    });
+  }
+
+  function redirectWithFilters(deYmd, ateYmd) {
+    const u = new URL(LIST_URL, window.location.origin);
+    u.searchParams.set('venc_de', deYmd);
+    u.searchParams.set('venc_ate', ateYmd);
+    window.location.href = u.pathname + u.search;
+  }
+
+  async function changeMonth(direction) {
+    currentDate.setMonth(currentDate.getMonth() + direction);
+    rangeStart = null;
+    rangeEnd = null;
+    await carregarTotais(false);
+    renderCalendar();
+    agendarRefreshHoje();
+  }
+
+  async function goToToday() {
+    currentDate = new Date();
+    currentDate.setDate(1);
+    currentDate.setHours(12, 0, 0, 0);
+    rangeStart = null;
+    rangeEnd = null;
+    await carregarTotais(false);
+    renderCalendar();
+    agendarRefreshHoje();
+  }
+
+  document.getElementById('sv-cal-prev').addEventListener('click', () => changeMonth(-1));
+  document.getElementById('sv-cal-next').addEventListener('click', () => changeMonth(1));
+  document.getElementById('sv-cal-hoje').addEventListener('click', () => goToToday());
+
+  (async function init() {
+    await carregarTotais(false);
+    renderCalendar();
+    agendarRefreshHoje();
+  })();
+})();
+</script>
+{% endblock %}

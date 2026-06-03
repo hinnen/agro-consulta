@@ -3466,64 +3466,45 @@
                 subtotal: lineSubtotal(item)
             };
         });
+        var formaTxt = formaPagamentoResumoUi(state, computed);
+        var fiadoDias = parseInt(state.pagamento.fiadoDiasVencimento, 10) || 30;
+        var ehFiado =
+            /fiado/i.test(formaTxt || '') ||
+            ((state.pagamento.lancamentos || []).some(function (L) {
+                return String(L.forma || '').toLowerCase() === 'fiado';
+            }));
+        var vencDt = new Date(agora.getTime());
+        vencDt.setDate(vencDt.getDate() + fiadoDias);
+        var vencStr = vencDt.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
         return {
             venda_id: extras.venda_id || null,
             criado_em: dt,
             segunda_via: !!extras.segunda_via,
             cliente_nome: currentClientName(state),
-            forma_pagamento: formaPagamentoResumoUi(state, computed),
+            forma_pagamento: formaTxt,
             total: computed.total,
             total_texto: formatMoney(computed.total),
             operador: operadorPdvAtual(),
             caixa_id: (bootstrap.caixa && bootstrap.caixa.id) || null,
             devolvida: false,
+            eh_fiado: ehFiado,
+            fiado_dias: fiadoDias,
+            vencimento: ehFiado ? vencStr : '',
             itens: itens
         };
     }
 
     function buildSaleReceiptHtml(state, computed) {
+        var payload = buildCupomPayloadFromWizard(state, computed, { segunda_via: false });
         if (typeof window.agroBuildCupomVenda80mmHtml === 'function') {
-            return window.agroBuildCupomVenda80mmHtml(
-                buildCupomPayloadFromWizard(state, computed, { segunda_via: false })
-            );
+            return window.agroBuildCupomVenda80mmHtml(payload);
         }
-        var formaTxt = formaPagamentoResumoUi(state, computed);
-        var dt = new Date().toLocaleString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
         return (
-            '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cupom — PDV</title><style>' +
-            '@page{margin:0;size:80mm auto}body{font-family:system-ui,sans-serif;padding:4mm;max-width:72mm;margin:0 auto;font-size:11px}' +
-            '</style></head><body>' +
-            '<div style="text-align:center;font-weight:900">SISVALE</div>' +
-            '<div style="font-size:10px;text-align:center">Cupom de venda (não fiscal)</div>' +
-            '<div style="font-weight:800;margin:4px 0">Data: ' +
-            escapeHtml(dt) +
-            '</div>' +
-            '<div><strong>Cliente:</strong> ' +
-            escapeHtml(currentClientName(state)) +
-            '</div>' +
-            '<div><strong>Pagamento:</strong> ' +
-            escapeHtml(formaTxt || '—') +
-            '</div>' +
-            (state.itens || [])
-                .map(function (item) {
-                    return (
-                        '<div>' +
-                        escapeHtml(formatQty(item.qtd) + '× ' + item.nome) +
-                        ' — ' +
-                        escapeHtml(formatMoney(lineSubtotal(item))) +
-                        '</div>'
-                    );
-                })
-                .join('') +
-            '<div style="font-weight:900;margin-top:8px;border-top:2px solid #000;padding-top:4px">Total: ' +
-            escapeHtml(formatMoney(computed.total)) +
-            '</div></body></html>'
+            '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Cupom</title></head><body><p>Recarregue a página (F5) — módulo de cupom não carregou.</p></body></html>'
         );
     }
 
@@ -4568,14 +4549,41 @@
         };
     }
 
+    function wizardPrintNomeClienteHtml(nome) {
+        if (typeof window.agroCupomNomeClienteHtml === 'function') {
+            return window.agroCupomNomeClienteHtml(nome);
+        }
+        return (
+            '<div class="nome-cliente" style="font-weight:900;font-size:32px;line-height:1.15;word-break:break-word;overflow-wrap:break-word;text-align:center;white-space:pre-wrap;margin:8px 0 6px;letter-spacing:-0.01em;">' +
+            escapeHtml(nome || '—') +
+            '</div>'
+        );
+    }
+
+    function wizardPrintPgCorteHtml() {
+        if (typeof window.agroCupomPgCorteHtml === 'function') {
+            return window.agroCupomPgCorteHtml();
+        }
+        return '<div class="pg-avanco-corte" aria-hidden="true">&nbsp;</div>';
+    }
+
+    function wizardPrintRodapeSistvaleHtml() {
+        if (typeof window.agroCupomRodapeSistvaleHtml === 'function') {
+            return window.agroCupomRodapeSistvaleHtml();
+        }
+        return (
+            '<div class="rodape-sistvale" style="text-align:center;font-size:11px;font-weight:900;letter-spacing:.16em;margin-top:10px;padding:5px 4px 4px;background:#000;color:#fff;">SISTVALE</div>'
+        );
+    }
+
     /** Igual htmlPagSeparacao do painel Entregas. */
     function wizardPrintHtmlSeparacao(e) {
         var items = Array.isArray(e.itens_json) ? e.itens_json : [];
         var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
         var h = '<div class="pg">';
-        h += '<div style="text-align:center;font-weight:900;font-size:14px;letter-spacing:0.04em;">SEPARAÇÃO</div>';
+        h += '<div style="text-align:center;font-weight:900;font-size:15px;letter-spacing:0.04em;">SEPARAÇÃO</div>';
         h += '<div style="font-size:9px;margin:6px 0 8px;color:#333;">' + escapeHtml(dh) + '</div>';
-        h += '<div style="font-weight:bold;font-size:12px;line-height:1.25;">' + escapeHtml(e.cliente_nome) + '</div>';
+        h += wizardPrintNomeClienteHtml(e.cliente_nome);
         if (e.telefone) h += '<div style="margin-top:3px;">Tel ' + escapeHtml(e.telefone) + '</div>';
         if (e.plus_code) h += '<div style="margin-top:2px;">Plus ' + escapeHtml(e.plus_code) + '</div>';
         if (e.endereco_linha) h += '<div style="margin-top:2px;line-height:1.3;">' + escapeHtml(e.endereco_linha) + '</div>';
@@ -4598,9 +4606,19 @@
             if (it.prateleira) h += '<div style="font-size:10px;margin-top:2px;"><b>Prat.</b> ' + escapeHtml(String(it.prateleira)) + '</div>';
             h += '</div>';
         });
+        if (e.total_texto) {
+            h +=
+                '<div style="border-top:3px solid #000;margin:12px 0 6px;padding-top:6px;font-weight:900;display:flex;justify-content:space-between;align-items:baseline;gap:4px;">' +
+                '<span style="font-size:20px;">TOTAL</span>' +
+                '<span style="font-size:34px;letter-spacing:-0.03em;">' +
+                escapeHtml(String(e.total_texto)) +
+                '</span></div>';
+        }
         h += '<div style="margin-top:12px;text-align:center;">';
         h += '<svg id="barc-orc" xmlns="http://www.w3.org/2000/svg"></svg>';
         h += '<div style="font-size:9px;margin-top:6px;">Bipe no PDV para retomar o orçamento</div></div>';
+        h += wizardPrintRodapeSistvaleHtml();
+        h += wizardPrintPgCorteHtml();
         h += '</div>';
         return h;
     }
@@ -4621,65 +4639,87 @@
         var entItems = '';
         items.forEach(function (it) {
             entItems +=
-                '<div style="margin-top:6px;line-height:1.3;">' +
+                '<div style="margin-top:6px;line-height:1.35;font-size:14px;font-weight:800;">' +
                 escapeHtml(String(it.qtd != null ? it.qtd : '') + '× ' + String(it.nome || '')) +
                 '</div>';
         });
         var h = '<div class="pg">';
-        h += '<div style="text-align:center;font-weight:900;font-size:13px;">ENTREGA</div>';
+        h += '<div style="text-align:center;font-weight:900;font-size:14px;">ENTREGA</div>';
         h += '<div style="font-size:26px;font-weight:900;text-align:center;line-height:1;margin:10px 0 8px;letter-spacing:-0.02em;">' + escapeHtml(primeiro) + '</div>';
         h += '<div style="font-size:10px;">' + escapeHtml(dh) + '</div>';
-        h += '<div style="margin-top:8px;line-height:1.3;"><b>Cliente</b> ' + escapeHtml(nomeCli) + '</div>';
-        h += '<div style="border-top:1px dashed #000;margin:8px 0;"></div>';
+        h += wizardPrintNomeClienteHtml(nomeCli);
+        if (e.telefone) {
+            h += '<div style="font-size:12px;font-weight:800;margin-top:4px;">Tel ' + escapeHtml(e.telefone) + '</div>';
+        }
+        if (e.total_texto) {
+            h += '<div style="border-top:3px solid #000;margin:10px 0 8px;"></div>';
+            h +=
+                '<div style="font-weight:900;display:flex;justify-content:space-between;align-items:baseline;gap:4px;">' +
+                '<span style="font-size:20px;">TOTAL</span>' +
+                '<span style="font-size:34px;letter-spacing:-0.03em;">' +
+                escapeHtml(String(e.total_texto)) +
+                '</span></div>';
+        }
+        h += '<div style="border-top:1px dashed #000;margin:10px 0 8px;"></div>';
         h += entItems;
-        h += '<div style="margin-top:8px;"><b>Endereço</b></div>';
-        h += '<div style="font-size:10px;word-break:break-word;line-height:1.35;">' + escapeHtml(end || '—') + '</div>';
+        h += '<div style="margin-top:10px;font-size:13px;font-weight:900;">Endereço</div>';
+        h += '<div style="font-size:18px;font-weight:900;word-break:break-word;line-height:1.32;margin-top:4px;">' + escapeHtml(end || '—') + '</div>';
         h += qrImg;
+        h += wizardPrintRodapeSistvaleHtml();
+        h += wizardPrintPgCorteHtml();
         h += '</div>';
         return h;
     }
 
-    /** Igual htmlPagCupom do painel Entregas (marca SisVale + linha de agradecimento). */
+    /** Cupom do pacote entrega/orçamento — via do cliente (3ª folha), cabeçalho igual cupom de venda. */
     function wizardPrintHtmlCupom(e) {
-        var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
         var items = Array.isArray(e.itens_json) ? e.itens_json : [];
-        var lines = '';
-        items.forEach(function (it) {
+        var mapped = items.map(function (it) {
             var q = Number(it.qtd != null ? it.qtd : 0);
             var preco = Number(it.preco != null ? it.preco : 0);
-            var sub = isFinite(q) && isFinite(preco) ? q * preco : NaN;
-            var subTxt = isFinite(sub) ? wizardPrintMoedaCupom(sub) : '—';
-            lines +=
-                '<div style="display:flex;justify-content:space-between;gap:4px;margin:3px 0;font-size:10px;">' +
-                '<span style="flex:1;">' +
-                escapeHtml(String(it.qtd != null ? it.qtd : '') + '× ' + String(it.nome || '').slice(0, 36)) +
-                '</span><span style="white-space:nowrap;">' + escapeHtml(subTxt) + '</span></div>';
+            return {
+                nome: String(it.nome || ''),
+                qtd: q,
+                preco: preco,
+                subtotal: isFinite(q) && isFinite(preco) ? q * preco : 0
+            };
         });
         var bc = wizardPrintCodigoBarrasEntrega(e);
-        var h = '<div class="pg">';
-        h += '<div style="text-align:center;font-weight:900;font-size:14px;">SISVALE</div>';
-        h += '<div style="text-align:center;font-size:10px;margin:2px 0;">Orçamento (não fiscal)</div>';
-        h += '<div style="font-size:10px;">' + escapeHtml(dh) + '</div>';
-        h += '<div style="border-top:1px dashed #000;margin:6px 0;"></div>';
-        h += '<div style="font-weight:bold;margin-bottom:4px;">' + escapeHtml(e.cliente_nome) + '</div>';
-        if (e.telefone) {
-            h += '<div style="font-size:10px;margin-bottom:3px;">Tel ' + escapeHtml(e.telefone) + '</div>';
+        var rodapeExtra =
+            'Retomar: ' +
+            escapeHtml(bc) +
+            '<br><span style="font-size:8px;">Bipe no PDV para retomar o orçamento</span>';
+        var cab =
+            typeof window.agroCupomCabecalhoHtml === 'function'
+                ? window.agroCupomCabecalhoHtml()
+                : typeof window.agroCupomLogoHtml === 'function'
+                  ? window.agroCupomLogoHtml()
+                  : '';
+        if (typeof window.agroCupomInnerHtml === 'function') {
+            var ehFiadoCup = /fiado/i.test(String(e.forma_pagamento || ''));
+            return window.agroCupomInnerHtml({
+                criado_em: String(e.criado_em || '').replace('T', ' ').slice(0, 19),
+                cliente_nome: e.cliente_nome,
+                telefone: e.telefone || '',
+                endereco_linha: e.endereco_linha || '',
+                forma_pagamento: e.forma_pagamento,
+                total_texto: String(e.total_texto || '—'),
+                itens: mapped,
+                subtitulo: ehFiadoCup ? 'COMPROVANTE FIADO' : 'ORÇAMENTO / ENTREGA',
+                via_rotulo: 'VIA DO CLIENTE',
+                eh_fiado: ehFiadoCup,
+                fiado_dias: 30,
+                com_assinatura: false,
+                mostrar_cabecalho: true,
+                endereco_grande: false,
+                rodape_extra: rodapeExtra
+            });
         }
-        if (e.endereco_linha) {
-            h +=
-                '<div style="font-size:10px;line-height:1.35;word-break:break-word;margin-bottom:4px;">' +
-                escapeHtml(e.endereco_linha) +
-                '</div>';
-        }
-        h += lines;
-        h += '<div style="border-top:2px solid #000;margin:8px 0 4px;padding-top:4px;font-weight:900;font-size:13px;display:flex;justify-content:space-between;">';
-        h += '<span>TOTAL</span><span>' + escapeHtml(String(e.total_texto || '—')) + '</span></div>';
-        h +=
-            '<div style="text-align:center;font-size:9px;margin-top:8px;">Obrigado — ' +
-            (e.endereco_linha ? 'confira o endereço na entrega' : 'apresente na retirada') +
-            '</div>';
-        h += '<div style="text-align:center;font-size:8px;margin-top:4px;word-break:break-all;">Retomar: ' + escapeHtml(bc) + '</div>';
-        h += '</div>';
+        var dh = String(e.criado_em || '').replace('T', ' ').slice(0, 19);
+        var h = '<div class="pg">' + cab;
+        h += '<div style="text-align:center;font-weight:900;font-size:10px;margin:4px 0;">ORÇAMENTO / ENTREGA · VIA DO CLIENTE</div>';
+        h += wizardPrintNomeClienteHtml(e.cliente_nome);
+        h += '<div>' + escapeHtml(dh) + ' · ' + escapeHtml(String(e.total_texto || '')) + '</div></div>';
         return h;
     }
 
@@ -4699,14 +4739,31 @@
         if (opt.cup) parts.push(wizardPrintHtmlCupom(e));
         if (!parts.length) return;
         var barcodeVal = wizardPrintCodigoBarrasEntrega(e);
+        var packStyles =
+            typeof window.agroCupomStyles === 'function'
+                ? window.agroCupomStyles()
+                : '@page{margin:0;size:80mm auto}html,body{margin:0;padding:0;width:80mm}body{font-family:system-ui,sans-serif}.pg{width:80mm;margin:0 auto;padding:0;page-break-inside:avoid;break-inside:avoid-page;overflow:visible;box-sizing:border-box}.pg + .pg{page-break-before:always;break-before:page}.pg-avanco-corte{display:block;height:14mm;min-height:14mm;line-height:14mm;font-size:1px;color:transparent;overflow:hidden}.cupom-cabecalho,.cupom-logo{width:100%}.cupom-logo img{width:100%;max-width:100%;height:auto;display:block;margin:0}.cupom-zap{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;font-size:16px;font-weight:900}.nome-cliente{font-weight:900;font-size:32px;line-height:1.15;word-break:break-word;overflow-wrap:break-word;text-align:center;white-space:pre-wrap;margin:8px 0 6px;letter-spacing:-0.01em}.rodape-sistvale{text-align:center;font-size:11px;font-weight:900;letter-spacing:.16em;margin-top:10px;padding:5px 4px 4px;background:#000;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}';
+
+        var pages = [];
+        if (opt.sep) pages.push({ html: wizardPrintHtmlSeparacao(e), barcodeVal: barcodeVal });
+        if (opt.ent) pages.push({ html: wizardPrintHtmlEntregador(e) });
+        if (opt.cup) pages.push({ html: wizardPrintHtmlCupom(e) });
+
+        if (typeof window.agroCupomImprimirPaginasSequencial === 'function') {
+            window.agroCupomImprimirPaginasSequencial(pages, {
+                iframeId: 'agro-print-iframe-entregas-pdv',
+                title: 'Entrega PDV',
+                styles: packStyles,
+                gapMs: 550,
+                readyDelay: 120
+            });
+            return;
+        }
+
         var inner = parts.join('');
         var docHtml =
             '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Entrega PDV</title><style>' +
-            '@page{margin:0;size:80mm 200mm}' +
-            'html,body{margin:0;padding:0}' +
-            'body{font-family:system-ui,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
-            '.pg{width:72mm;margin:0 auto;padding:4mm 3mm;font-size:11px;line-height:1.35;box-sizing:border-box;page-break-after:always;break-after:page}' +
-            '.pg:last-child{page-break-after:auto;break-after:auto}' +
+            packStyles +
             '</style></head><body>' +
             inner +
             '</body></html>';
@@ -4743,12 +4800,17 @@
                     });
                 }
             } catch (eBr) {}
-            setTimeout(function () {
+            var doPrint = function () {
                 try {
                     iframe.contentWindow.focus();
                     iframe.contentWindow.print();
                 } catch (ePr) {}
-            }, 100);
+            };
+            if (typeof window.agroCupomWhenImagesReady === 'function') {
+                window.agroCupomWhenImagesReady(idoc, doPrint, 120);
+            } else {
+                setTimeout(doPrint, 280);
+            }
         };
         var old = idoc.querySelector('script[data-agro-jsbarcode-pdv]');
         if (old) old.remove();

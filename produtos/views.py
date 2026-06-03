@@ -224,6 +224,8 @@ from .mongo_financeiro_util import (
     lancamentos_montar_query_mongo,
     dashboard_gerencial_linhas_financeiras,
     lancamentos_planos_distintos_no_filtro,
+    lancamentos_contas_pagar_totais_diarios,
+    financeiro_calendario_contas_pagar_dias,
     lancamentos_sugestoes_campo,
     listar_formas_e_bancos_distintos,
     lancamentos_plano_impostos_taxas_variaveis_resolvido,
@@ -7774,6 +7776,7 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
         },
         "assets": {
             "placeholderProduto": static("img/agro-mais-logo-buscador.png"),
+            "cupomLogoUrl": static("produtos/img/logo_termica.png"),
         },
     }
     ctx["pdv_consulta_only"] = rota_nome == "consulta_produtos"
@@ -9397,6 +9400,20 @@ def lancamentos_contas_pagar_view(request):
 
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
+def lancamentos_contas_pagar_teste_view(request):
+    """Layout experimental de contas a pagar (lista simplificada + mesma API Mongo)."""
+    return render(request, "produtos/lancamentos_contas_pagar_teste.html")
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def lancamentos_contas_pagar_calendario_view(request):
+    """Calendário mensal: total a pagar por vencimento → abre layout teste filtrado."""
+    return render(request, "produtos/lancamentos_contas_pagar_calendario.html")
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
 def lancamentos_contas_receber_view(request):
     """Lista de contas a receber (filtros, export, baixa)."""
     return render(
@@ -9430,6 +9447,56 @@ def api_lancamentos_lista(request):
 def lancamentos_fluxo_calendario_view(request):
     """Calendário analítico: projeção de fluxo (vendas médias + vencimentos)."""
     return render(request, "produtos/lancamentos_fluxo_calendario.html")
+
+
+@never_cache
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_contas_pagar_calendario(request):
+    """Totais diários a pagar (em aberto) para grade do calendário mensal."""
+    _, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"erro": "Mongo indisponível", "totais": {}}, status=503)
+    hoje = timezone.localdate()
+    try:
+        ano = int(request.GET.get("ano") or hoje.year)
+    except (TypeError, ValueError):
+        ano = hoje.year
+    try:
+        mes = int(request.GET.get("mes") or hoje.month)
+    except (TypeError, ValueError):
+        mes = hoje.month
+    mes = max(1, min(mes, 12))
+    if ano < 1980 or ano > 2100:
+        ano = hoje.year
+    import calendar as cal_mod
+
+    ultimo = cal_mod.monthrange(ano, mes)[1]
+    mes_ini = date(ano, mes, 1)
+    mes_fim = date(ano, mes, ultimo)
+    # Grade 6×7: inclui dias adjacentes visíveis no calendário
+    grid_ini = mes_ini - timedelta(days=(mes_ini.weekday() + 1) % 7)
+    grid_fim = mes_fim + timedelta(days=(6 - ((mes_fim.weekday() + 1) % 7)) % 7)
+    try:
+        dias_m = int(request.GET.get("dias_media") or 30)
+    except (TypeError, ValueError):
+        dias_m = 30
+    out = financeiro_calendario_contas_pagar_dias(
+        db, grid_ini=grid_ini, grid_fim=grid_fim, dias_media_vendas=dias_m
+    )
+    if out.get("erro"):
+        return JsonResponse({"erro": out["erro"], "totais": {}, "dias": {}}, status=503)
+    return JsonResponse(
+        {
+            "ano": ano,
+            "mes": mes,
+            "grid_ini": grid_ini.isoformat(),
+            "grid_fim": grid_fim.isoformat(),
+            "totais": out.get("totais") or {},
+            "dias": out.get("dias") or {},
+            "meta": out.get("meta") or {},
+        }
+    )
 
 
 @never_cache

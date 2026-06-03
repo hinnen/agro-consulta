@@ -1,0 +1,1221 @@
+{% extends 'layouts/base_admin.html' %}
+{% load static %}
+
+{% block admin_title %}SisVale | Contas a pagar (teste){% endblock %}
+{% block admin_header_title %}Contas a pagar — layout teste{% endblock %}
+{% block admin_header_meta %}{% endblock %}
+
+{% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col overflow-hidden{% endblock %}
+{% block admin_header_inner_class %}w-full max-w-none px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5{% endblock %}
+{% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-0 py-0 sm:px-0 sm:py-0 overflow-hidden{% endblock %}
+
+{% block head_extra %}
+  {% include "produtos/_agro_consulta_ui.html" %}
+{% endblock %}
+
+{% block admin_header_actions %}
+  <div class="flex flex-wrap items-center justify-end gap-2">
+    <a href="{% url 'lancamentos_contas_pagar_calendario' %}" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-sky-500 bg-sky-600 px-3 text-xs font-black uppercase text-white hover:bg-sky-700">Calendário</a>
+    <a href="{% url 'lancamentos_contas_pagar' %}" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-800 hover:border-amber-400">Clássico</a>
+    <a href="{% url 'lancamentos_manual' %}" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-emerald-600 bg-emerald-600 px-3 text-xs font-black uppercase text-white hover:bg-emerald-700">Manual</a>
+    {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-700 hover:border-amber-400" %}
+  </div>
+{% endblock %}
+
+{% block admin_content %}
+{% include "produtos/_gm_loading_bar.html" %}
+
+<style>
+  :root {
+    --cor-fundo: #f8f9fa;
+    --cor-primaria: #059669;
+    --cor-primaria-hover: #047857;
+    --cor-texto-principal: #212529;
+    --cor-texto-secundario: #6c757d;
+    --cor-borda: #e9ecef;
+    --cor-card: #ffffff;
+    --raio-borda: 12px;
+    --sombra-suave: 0 4px 12px rgba(0,0,0,0.05);
+    --transicao: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .sv-container {
+    padding: 8px 12px 12px;
+    max-width: 100%;
+    background-color: var(--cor-fundo);
+    min-height: min(94dvh, calc(100dvh - 5.5rem));
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .sv-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .sv-toolbar-grow { flex: 1 1 280px; min-width: min(100%, 240px); }
+  .sv-toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .sv-sub { font-size: 0.88rem; color: var(--cor-texto-secundario); margin: 0; }
+  .sv-action-bar { display: flex; gap: 10px; margin: 0; flex-wrap: wrap; align-items: center; }
+  .sv-search-wrapper { position: relative; flex-grow: 1; max-width: 600px; min-width: min(100%, 280px); }
+  .sv-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 1.2rem; color: var(--cor-texto-secundario); pointer-events: none; }
+  .sv-input-large {
+    width: 100%; height: 48px; padding: 0 16px 0 44px; font-size: 1.05rem;
+    border: 2px solid transparent; border-radius: var(--raio-borda);
+    background-color: var(--cor-card); box-shadow: var(--sombra-suave); transition: var(--transicao);
+  }
+  .sv-input-large:focus { outline: none; border-color: var(--cor-primaria); box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.15); }
+  .sv-btn {
+    height: 48px; padding: 0 18px; font-size: 0.98rem; font-weight: 700; border-radius: var(--raio-borda);
+    border: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    gap: 8px; transition: var(--transicao); box-shadow: var(--sombra-suave); text-decoration: none;
+  }
+  .sv-btn-primary { background-color: var(--cor-primaria); color: white; }
+  .sv-btn-primary:hover { background-color: var(--cor-primaria-hover); }
+  .sv-btn-secondary { background-color: var(--cor-card); color: var(--cor-texto-principal); border: 1px solid var(--cor-borda); }
+  .sv-btn-secondary:hover { background-color: #f1f3f5; }
+  .sv-btn-cal { background-color: #0284c7; color: #fff; }
+  .sv-btn-cal:hover { background-color: #0369a1; }
+  .sv-filters-panel {
+    background-color: var(--cor-card); border-radius: var(--raio-borda); padding: 24px;
+    margin-bottom: 24px; box-shadow: var(--sombra-suave); display: none; opacity: 0;
+    transform: translateY(-10px); transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .sv-filters-panel.show { display: block; opacity: 1; transform: translateY(0); }
+  .sv-form-group label { display: block; font-weight: 600; color: var(--cor-texto-secundario); margin-bottom: 8px; font-size: 1rem; }
+  .sv-totais {
+    display: flex; flex-wrap: wrap; gap: 10px 16px; margin: 0; font-size: 0.9rem; font-weight: 600; color: var(--cor-texto-secundario);
+  }
+  .sv-sel-bar {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 12px 16px max(12px, env(safe-area-inset-bottom, 0px));
+    border-radius: var(--raio-borda); border: 2px solid #86efac;
+    background: linear-gradient(90deg, #ecfdf5, #f0fdf4); font-weight: 700; color: #065f46;
+  }
+  .sv-sel-bar:not([hidden]) {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 160;
+    margin: 0; border-radius: 0; border-left: none; border-right: none; border-bottom: none;
+    box-shadow: 0 -6px 28px rgba(15, 23, 42, 0.14);
+  }
+  .sv-sel-bar[hidden] { display: none !important; }
+  .sv-sel-bar-info { font-size: 1rem; line-height: 1.3; }
+  .sv-sel-bar-info strong, #sv-sel-soma {
+    font-size: clamp(1.15rem, 1.2vw + 0.65rem, 1.45rem); font-weight: 900;
+    font-variant-numeric: tabular-nums;
+  }
+  .sv-container.sv-has-sel-bar { padding-bottom: 76px; }
+  .sv-sel-bar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sv-btn-sel-pay {
+    min-height: 44px; padding: 0 18px; border: none; border-radius: 10px;
+    background: #15803d; color: #fff; font-weight: 800; font-size: 0.9rem; text-transform: uppercase; cursor: pointer;
+  }
+  .sv-btn-sel-pay:disabled { opacity: 0.45; cursor: not-allowed; }
+  .sv-list-container { background: var(--cor-card); border-radius: var(--raio-borda); box-shadow: var(--sombra-suave); overflow: hidden; border: 2px solid #cbd5e1; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .sv-list-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+  .sv-list-cols {
+    display: grid;
+    grid-template-columns: 42px minmax(88px, 108px) minmax(0, 1fr) minmax(118px, 148px) minmax(96px, 118px) minmax(92px, 108px) 36px;
+    align-items: center; gap: 8px 10px;
+  }
+  .sv-list-header {
+    padding: 10px 14px; background-color: #f1f5f9; border-bottom: 2px solid #94a3b8;
+    font-weight: 800; color: #475569; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .sv-list-header > div:nth-child(4),
+  .sv-list-header > div:nth-child(6) { text-align: right; }
+  .sv-list-header > div:nth-child(5) { text-align: center; }
+  .sv-list-item { border-bottom: 2px solid #e2e8f0; transition: var(--transicao); }
+  .sv-list-item:last-child { border-bottom: none; }
+  .sv-list-row {
+    padding: 10px 14px; cursor: pointer; font-size: 1rem; color: var(--cor-texto-principal);
+  }
+  .sv-list-row:hover { background-color: #f0fdf4; }
+  .sv-col-chk { display: flex; align-items: center; justify-content: center; }
+  .sv-col-chk input { width: 22px; height: 22px; accent-color: var(--cor-primaria); cursor: pointer; }
+  .sv-col-vencimento { font-weight: 700; font-size: 0.95rem; white-space: nowrap; }
+  .sv-col-descricao { font-weight: 600; font-size: 0.98rem; line-height: 1.3; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .sv-col-valor {
+    font-weight: 900; text-align: right; font-variant-numeric: tabular-nums;
+    font-size: clamp(1.05rem, 1.15vw + 0.55rem, 1.38rem); line-height: 1.15;
+  }
+  .sv-col-valor.negativo { color: #b91c1c; }
+  .sv-col-status { display: flex; justify-content: center; }
+  .sv-col-pagar { display: flex; justify-content: flex-end; }
+  .sv-btn-pagar-row {
+    min-height: 44px; min-width: 92px; padding: 0 12px; border: none; border-radius: 10px;
+    background: #15803d; color: #fff; font-weight: 800; font-size: 0.82rem; letter-spacing: 0.03em;
+    text-transform: uppercase; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
+  .sv-btn-pagar-row:hover { background: #166534; }
+  .sv-btn-pagar-row:disabled { opacity: 0.35; cursor: default; }
+  .sv-expand-icon { transition: transform 0.3s ease; color: var(--cor-texto-secundario); font-size: 1rem; text-align: center; }
+  .sv-list-item.expanded .sv-expand-icon { transform: rotate(180deg); }
+  .sv-badge { padding: 5px 10px; border-radius: 16px; font-size: 0.78rem; font-weight: 700; display: inline-flex; white-space: nowrap; }
+  .sv-badge-aberto { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+  .sv-badge-pago { background-color: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+  .sv-badge-atrasado { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+  .sv-details-area { max-height: 0; overflow: hidden; background-color: #fafbfc; transition: max-height 0.4s ease-out; padding: 0 14px; }
+  .sv-list-item.expanded .sv-details-area { max-height: 520px; padding: 16px 14px; border-top: 1px dashed var(--cor-borda); }
+  .sv-details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px; }
+  .sv-detail-box p { margin: 0; font-size: 0.98rem; line-height: 1.4; }
+  .sv-detail-box p strong { color: var(--cor-texto-secundario); display: block; font-size: 0.85rem; margin-bottom: 4px; }
+  .sv-details-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--cor-borda); padding-top: 14px; }
+  .sv-btn-action { min-height: 44px; padding: 0 16px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; border: none; text-decoration: none; display: inline-flex; align-items: center; }
+  .sv-btn-pay { background-color: #15803d; color: white; }
+  .sv-btn-edit { background-color: #e2e8f0; color: #334155; }
+  .sv-btn-delete { background-color: #fee2e2; color: #b91c1c; }
+  .sv-btn-aplicar {
+    min-height: 52px; padding: 0 28px; margin-left: 10px;
+    font-size: 1.05rem; font-weight: 800; letter-spacing: 0.02em;
+    border: none; border-radius: 10px; cursor: pointer;
+    background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+    color: #fff; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.28);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .sv-btn-aplicar:hover { background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%); }
+  .sv-totais strong { color: var(--cor-texto-principal); }
+  .sv-meta-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+  .sv-empty, .sv-erro { padding: 32px 24px; text-align: center; font-size: 1.15rem; color: var(--cor-texto-secundario); }
+  .sv-erro { color: #b91c1c; font-weight: 600; }
+  .sv-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 24px; border-top: 1px solid var(--cor-borda); background: #fafbfc; }
+  .sv-prefiltros { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+  .sv-pref-btn {
+    min-height: 40px; padding: 0 14px; border-radius: 999px; border: 2px solid var(--cor-borda);
+    background: var(--cor-card); color: var(--cor-texto-principal); font-size: 0.95rem; font-weight: 700;
+    cursor: pointer; transition: var(--transicao); box-shadow: var(--sombra-suave);
+  }
+  .sv-pref-btn:hover { border-color: var(--cor-primaria); background: #f0fdf4; }
+  .sv-pref-btn.is-active {
+    border-color: var(--cor-primaria); background: var(--cor-primaria); color: #fff;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
+  }
+  .sv-plano-mini-btn {
+    min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--cor-borda);
+    background: #fff; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; cursor: pointer;
+  }
+  .sv-plano-mini-btn:hover { background: #f1f3f5; border-color: var(--cor-primaria); }
+  .sv-planos-block { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--cor-borda); }
+  .sv-planos-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; margin-bottom: 10px; }
+  .sv-planos-title { font-weight: 700; font-size: 1rem; color: var(--cor-texto-principal); margin: 0 0 4px; }
+  .sv-planos-hint { font-size: 0.85rem; color: var(--cor-texto-secundario); margin: 0; max-width: 42rem; line-height: 1.35; }
+  .sv-plano-chks {
+    display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start;
+    min-height: 2.5rem; max-height: min(36vh, 280px); overflow-y: auto;
+    padding: 10px; border-radius: 10px; border: 1px solid var(--cor-borda); background: #fafbfc;
+  }
+  .sv-plano-chk-label {
+    display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px;
+    border: 1px solid var(--cor-borda); background: #fff; font-size: 0.9rem; font-weight: 600;
+    cursor: pointer; max-width: min(100%, 320px);
+  }
+  .sv-plano-chk-label:hover { border-color: var(--cor-primaria); background: #f0fdf4; }
+  .sv-plano-chk-label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sv-plano-chk-label input { width: 18px; height: 18px; accent-color: var(--cor-primaria); flex-shrink: 0; }
+  @media (max-width: 992px) {
+    .sv-list-header { display: none; }
+    .sv-list-row.sv-list-cols {
+      display: grid; grid-template-columns: 36px 1fr auto; gap: 8px 10px; align-items: center;
+    }
+    .sv-col-vencimento { grid-column: 2; font-size: 0.88rem; color: var(--cor-texto-secundario); }
+    .sv-col-descricao { grid-column: 2 / -1; font-weight: 700; font-size: 1.05rem; white-space: normal; }
+    .sv-col-valor { grid-column: 3; grid-row: 1; font-size: 1.2rem; }
+    .sv-col-status { grid-column: 2; justify-content: flex-start; }
+    .sv-col-pagar { grid-column: 3; grid-row: 2; }
+    .sv-expand-icon { grid-column: 3; grid-row: 1; align-self: start; }
+  }
+  .sv-modal {
+    position: fixed; inset: 0; z-index: 200; display: none;
+    align-items: flex-end; justify-content: center; padding: 16px;
+    background: rgba(15, 23, 42, 0.45);
+  }
+  .sv-modal.show { display: flex; }
+  @media (min-width: 640px) { .sv-modal { align-items: center; } }
+  .sv-modal-card {
+    width: 100%; max-width: 40rem; max-height: 90vh; overflow-y: auto;
+    background: var(--cor-card); border-radius: var(--raio-borda);
+    padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  }
+  .sv-modal-card h2 { margin: 0 0 8px; font-size: 1.35rem; font-weight: 700; }
+  .sv-modal-card label span { display: block; font-weight: 600; color: var(--cor-texto-secundario); margin-bottom: 6px; font-size: 0.95rem; }
+  .sv-modal-card select, .sv-modal-card input[type="date"], .sv-modal-card input[type="text"] {
+    width: 100%; min-height: 48px; font-size: 1.05rem; border-radius: 10px;
+    border: 2px solid var(--cor-borda); padding: 8px 12px; margin-top: 4px;
+  }
+  .sv-modal-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--cor-borda); }
+  .sv-bxp-row { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--cor-borda); border-radius: 10px; background: #fafbfc; margin-bottom: 10px; }
+  @media (min-width: 640px) { .sv-bxp-row { grid-template-columns: 1fr 1fr 1fr auto; align-items: end; } }
+</style>
+
+<div class="sv-container">
+  <div class="sv-prefiltros" id="sv-prefiltros" role="toolbar" aria-label="Atalhos de vencimento">
+    <button type="button" class="sv-pref-btn" data-pref="hoje">Hoje</button>
+    <button type="button" class="sv-pref-btn" data-pref="hoje_sexta">Hoje até sexta-feira</button>
+    <button type="button" class="sv-pref-btn" data-pref="sab_hoje">Sábado até hoje</button>
+    <button type="button" class="sv-pref-btn" data-pref="sab_seg">Sábado até segunda</button>
+  </div>
+
+  <div class="sv-toolbar">
+    <div class="sv-search-wrapper sv-toolbar-grow">
+      <span class="sv-search-icon" aria-hidden="true">🔍</span>
+      <input type="search" id="sv-busca" class="sv-input-large" placeholder="Buscar fornecedor, descrição, valor…" autocomplete="off">
+    </div>
+    <div class="sv-toolbar-actions">
+      <a href="{% url 'lancamentos_contas_pagar_calendario' %}" data-prefetch class="sv-btn sv-btn-cal" title="Calendário mensal por vencimento">
+        <span aria-hidden="true">📅</span> Calendário
+      </a>
+      <button type="button" class="sv-btn sv-btn-secondary" id="sv-btn-filtros" aria-expanded="false" aria-controls="painelFiltros">
+        <span aria-hidden="true">⚙️</span> Filtros
+      </button>
+      <a href="{% url 'lancamentos_manual' %}" class="sv-btn sv-btn-primary" data-prefetch>
+        <span aria-hidden="true">➕</span> Novo
+      </a>
+    </div>
+  </div>
+
+  <div class="sv-filters-panel" id="painelFiltros" role="region" aria-label="Filtros avançados">
+    <div class="sv-details-grid">
+      <div class="sv-form-group">
+        <label for="sv-venc-de">Vencimento inicial</label>
+        <input type="date" id="sv-venc-de" class="sv-input-large" style="height: 48px; padding-left: 16px;">
+      </div>
+      <div class="sv-form-group">
+        <label for="sv-venc-ate">Vencimento final</label>
+        <input type="date" id="sv-venc-ate" class="sv-input-large" style="height: 48px; padding-left: 16px;">
+      </div>
+      <div class="sv-form-group">
+        <label for="sv-status">Situação</label>
+        <select id="sv-status" class="sv-input-large" style="height: 48px; padding-left: 16px;">
+          <option value="abertos" selected>Em aberto</option>
+          <option value="quitados">Quitados</option>
+          <option value="todos">Todos</option>
+        </select>
+      </div>
+      <div class="sv-form-group">
+        <label for="sv-ps">Por página</label>
+        <select id="sv-ps" class="sv-input-large" style="height: 48px; padding-left: 16px;">
+          <option value="30">30</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+    </div>
+    <div class="sv-planos-block" aria-label="Planos de contas">
+      <div class="sv-planos-head">
+        <div>
+          <p class="sv-planos-title">Planos de contas</p>
+          <p class="sv-planos-hint">Marcados aparecem na lista. Desmarque os que não quer ver (mesmos filtros de vencimento e situação acima).</p>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <button type="button" class="sv-plano-mini-btn" id="sv-plano-todos">Marcar todos</button>
+          <button type="button" class="sv-plano-mini-btn" id="sv-plano-nenhum">Desmarcar todos</button>
+        </div>
+      </div>
+      <div id="sv-plano-chks" class="sv-plano-chks">
+        <span style="font-size:0.9rem;color:var(--cor-texto-secundario);">Carregando planos…</span>
+      </div>
+    </div>
+    <div style="text-align: right; margin-top: 16px;">
+      <button type="button" class="sv-btn-action sv-btn-edit" id="sv-limpar-filtros">Limpar</button>
+      <button type="button" class="sv-btn-aplicar" id="sv-aplicar-filtros">Aplicar</button>
+    </div>
+  </div>
+
+  <div class="sv-meta-row">
+    <p class="sv-sub" id="sv-resumo-lista">Carregando…</p>
+    <div class="sv-totais" id="sv-totais" hidden></div>
+  </div>
+
+  <div class="sv-sel-bar" id="sv-sel-bar" hidden>
+    <span class="sv-sel-bar-info"><span id="sv-sel-count">0</span> selecionado(s) · Soma: <strong id="sv-sel-soma">R$ 0,00</strong></span>
+    <div class="sv-sel-bar-actions">
+      <button type="button" class="sv-btn-sel-pay" id="sv-sel-pagar">Pagar selecionados</button>
+      <button type="button" class="sv-btn-action sv-btn-edit" id="sv-sel-clear">Limpar</button>
+    </div>
+  </div>
+
+  <div class="sv-list-container">
+    <div class="sv-list-header sv-list-cols" aria-hidden="true">
+      <div class="sv-col-chk"><input type="checkbox" id="sv-chk-all" title="Selecionar todos em aberto" aria-label="Selecionar todos"></div>
+      <div>Vencimento</div>
+      <div>Fornecedor</div>
+      <div>Valor</div>
+      <div>Status</div>
+      <div>Pagar</div>
+      <div></div>
+    </div>
+    <div class="sv-list-scroll" id="sv-lista-corpo">
+      <div class="sv-empty">Carregando lançamentos…</div>
+    </div>
+    <div class="sv-pager" id="sv-pager" hidden>
+      <span id="sv-pager-info"></span>
+      <button type="button" class="sv-btn-action sv-btn-edit" id="sv-pager-mais">Carregar mais</button>
+    </div>
+  </div>
+</div>
+
+<div id="sv-modal-baixa" class="sv-modal" role="dialog" aria-modal="true" aria-labelledby="sv-modal-baixa-titulo">
+  <div class="sv-modal-card">
+    <h2 id="sv-modal-baixa-titulo">Confirmar pagamento</h2>
+    <p id="sv-modal-baixa-resumo" class="sv-sub"></p>
+    <label><span>Data do pagamento</span><input type="date" id="sv-bx-data"></label>
+    <label style="display:block;margin-top:14px;"><span>Forma de pagamento</span><select id="sv-bx-forma"></select></label>
+    <label style="display:block;margin-top:14px;"><span>Conta / banco</span><select id="sv-bx-banco"></select></label>
+    <label style="display:block;margin-top:14px;" id="sv-bx-juros-wrap">
+      <span>Juros nesta quitação (opcional, R$)</span>
+      <input type="text" id="sv-bx-juros" placeholder="0,00" inputmode="decimal">
+    </label>
+    <div class="sv-modal-actions">
+      <button type="button" class="sv-btn-action sv-btn-edit" id="sv-bx-cancel">Cancelar</button>
+      <button type="button" class="sv-btn-action sv-btn-pay" id="sv-bx-ok">Confirmar pagamento</button>
+    </div>
+  </div>
+</div>
+
+<div id="sv-modal-parcial" class="sv-modal" role="dialog" aria-modal="true" aria-labelledby="sv-modal-parcial-titulo">
+  <div class="sv-modal-card" style="max-width: 52rem;">
+    <h2 id="sv-modal-parcial-titulo">Pagamento parcial</h2>
+    <p id="sv-modal-parcial-resumo" class="sv-sub"></p>
+    <label><span>Data do movimento</span><input type="date" id="sv-bxp-data"></label>
+    <div style="margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-weight:600;color:var(--cor-texto-secundario);">Parcelas (valor + forma + banco)</span>
+        <button type="button" class="sv-btn-action sv-btn-edit" id="sv-bxp-add">+ Linha</button>
+      </div>
+      <div id="sv-bxp-linhas"></div>
+    </div>
+    <div class="sv-modal-actions">
+      <button type="button" class="sv-btn-action sv-btn-edit" id="sv-bxp-cancel">Cancelar</button>
+      <button type="button" class="sv-btn-action sv-btn-pay" id="sv-bxp-ok">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const API_LISTA = "{% url 'api_lancamentos_lista' %}";
+  const API_PLANOS = "{% url 'api_lancamentos_planos_distintos' %}";
+  const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
+  const API_BAIXA = "{% url 'api_lancamentos_baixa' %}";
+  const API_BAIXA_PARCIAL = "{% url 'api_lancamentos_baixa_parcial' %}";
+  const URL_CLASSICO = "{% url 'lancamentos_contas_pagar' %}";
+  const LS_EXCL_PLANOS = 'gm_fin_planos_excl_v1';
+  const SEM_PLANO_KEY = '__SEM_PLANO__';
+  const TIPO_CONTAS = 'pagar';
+
+  let page = 1;
+  let total = 0;
+  let carregando = false;
+  let buscaTimer = null;
+  const rowsAcum = [];
+  let bxIdsAtual = [];
+  let bxpIdAtual = null;
+  let bxpSaldoMax = 0;
+  const selecionados = new Map();
+
+  const elCorpo = document.getElementById('sv-lista-corpo');
+  const elResumo = document.getElementById('sv-resumo-lista');
+  const elTotais = document.getElementById('sv-totais');
+  const elPager = document.getElementById('sv-pager');
+  const elPagerInfo = document.getElementById('sv-pager-info');
+  const elBtnMais = document.getElementById('sv-pager-mais');
+
+  function hojeYmd() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function isoAddDays(ymd, delta) {
+    const d = new Date(ymd + 'T12:00:00');
+    if (Number.isNaN(d.getTime())) return ymd;
+    d.setDate(d.getDate() + delta);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function dowLocal(ymd) {
+    return new Date(ymd + 'T12:00:00').getDay();
+  }
+
+  function sextaDestaSemana(ymd) {
+    const dow = dowLocal(ymd);
+    let add = 5 - dow;
+    if (add < 0) add += 7;
+    return isoAddDays(ymd, add);
+  }
+
+  function sabadoPassado(ymd) {
+    const dow = dowLocal(ymd);
+    const back = dow === 6 ? 0 : dow + 1;
+    return isoAddDays(ymd, -back);
+  }
+
+  function proximoSabado(ymd) {
+    const dow = dowLocal(ymd);
+    const add = dow === 6 ? 7 : 6 - dow;
+    return isoAddDays(ymd, add);
+  }
+
+  function segundaAposSabado(sabYmd) {
+    return isoAddDays(sabYmd, 2);
+  }
+
+  let prefiltroAtivo = '';
+
+  function marcarPrefiltro(id) {
+    prefiltroAtivo = id || '';
+    document.querySelectorAll('#sv-prefiltros .sv-pref-btn').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.pref === prefiltroAtivo);
+    });
+  }
+
+  function aplicarPrefiltro(tipo) {
+    const hoje = hojeYmd();
+    let de = '';
+    let ate = '';
+    if (tipo === 'hoje') {
+      de = hoje;
+      ate = hoje;
+    } else if (tipo === 'hoje_sexta') {
+      de = hoje;
+      ate = sextaDestaSemana(hoje);
+    } else if (tipo === 'sab_hoje') {
+      de = sabadoPassado(hoje);
+      ate = hoje;
+    } else if (tipo === 'sab_seg') {
+      const sab = proximoSabado(hoje);
+      de = sab;
+      ate = segundaAposSabado(sab);
+    } else {
+      return;
+    }
+    document.getElementById('sv-venc-de').value = de;
+    document.getElementById('sv-venc-ate').value = ate;
+    document.getElementById('sv-status').value = 'abertos';
+    marcarPrefiltro(tipo);
+    page = 1;
+    carregarPlanos().then(() => carregar(false));
+  }
+
+  function fmtDataCurta(ymd) {
+    const d = parseYmd(ymd);
+    return d ? d.toLocaleDateString('pt-BR') : ymd;
+  }
+
+  function parseYmd(iso) {
+    if (!iso) return null;
+    const s = String(iso).slice(0, 10);
+    const d = new Date(s + 'T12:00:00');
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  function fmtData(iso) {
+    const d = parseYmd(iso);
+    if (!d) return '—';
+    const hoje = hojeYmd();
+    const ymd = iso.slice(0, 10);
+    if (ymd === hoje) return 'Hoje';
+    return d.toLocaleDateString('pt-BR');
+  }
+
+  function brl(n) {
+    const v = Number(n) || 0;
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function esc(s) {
+    const t = document.createElement('div');
+    t.textContent = s == null ? '' : String(s);
+    return t.innerHTML;
+  }
+
+  function statusBadge(row) {
+    if (row.pago) return '<span class="sv-badge sv-badge-pago">Pago</span>';
+    const v = parseYmd(row.data_vencimento);
+    const h = parseYmd(hojeYmd() + 'T12:00:00');
+    if (v && h && v < h) return '<span class="sv-badge sv-badge-atrasado">Vencido</span>';
+    return '<span class="sv-badge sv-badge-aberto">Em aberto</span>';
+  }
+
+  function getCookie(name) {
+    const m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return m ? decodeURIComponent(m[2]) : '';
+  }
+
+  function parseValorPt(s) {
+    const t = String(s || '').trim().replace(/\s/g, '');
+    if (!t) return NaN;
+    return parseFloat(t.replace(/\./g, '').replace(',', '.'));
+  }
+
+  function urlClassico(id) {
+    const u = new URL(URL_CLASSICO, window.location.origin);
+    if (id) u.searchParams.set('mongo_id', id);
+    return u.pathname + u.search;
+  }
+
+  function getRow(id) {
+    return rowsAcum.find((r) => String(r.id) === String(id));
+  }
+
+  function refreshSelBar() {
+    const bar = document.getElementById('sv-sel-bar');
+    const shell = document.querySelector('.sv-container');
+    if (!bar) return;
+    let soma = 0;
+    selecionados.forEach((v) => { soma += Number(v) || 0; });
+    const n = selecionados.size;
+    if (n === 0) {
+      bar.hidden = true;
+      shell?.classList.remove('sv-has-sel-bar');
+      return;
+    }
+    bar.hidden = false;
+    shell?.classList.add('sv-has-sel-bar');
+    document.getElementById('sv-sel-count').textContent = String(n);
+    document.getElementById('sv-sel-soma').textContent = brl(soma);
+    document.getElementById('sv-sel-pagar').disabled = n === 0;
+  }
+
+  function limparSelecao() {
+    selecionados.clear();
+    refreshSelBar();
+    elCorpo.querySelectorAll('.sv-row-chk').forEach((c) => { c.checked = false; });
+    const all = document.getElementById('sv-chk-all');
+    if (all) {
+      all.checked = false;
+      all.indeterminate = false;
+    }
+  }
+
+  function toggleSel(id, checked) {
+    const row = getRow(id);
+    if (!row || row.pago) return;
+    const key = String(id);
+    if (checked) selecionados.set(key, Number(row.restante) || 0);
+    else selecionados.delete(key);
+    refreshSelBar();
+    updateChkAllState();
+  }
+
+  function updateChkAllState() {
+    const all = document.getElementById('sv-chk-all');
+    if (!all) return;
+    const abertos = rowsAcum.filter((r) => !r.pago);
+    if (!abertos.length) {
+      all.checked = false;
+      all.indeterminate = false;
+      return;
+    }
+    const selCount = abertos.filter((r) => selecionados.has(String(r.id))).length;
+    all.checked = selCount === abertos.length;
+    all.indeterminate = selCount > 0 && selCount < abertos.length;
+  }
+
+  function syncChkVisiveis() {
+    elCorpo.querySelectorAll('.sv-row-chk').forEach((c) => {
+      c.checked = selecionados.has(String(c.dataset.id));
+    });
+    updateChkAllState();
+  }
+
+  function fecharModal(id) {
+    document.getElementById(id).classList.remove('show');
+  }
+
+  function abrirModal(id) {
+    document.getElementById(id).classList.add('show');
+  }
+
+  async function carregarOpcoesBaixa() {
+    const fs = document.getElementById('sv-bx-forma');
+    const bs = document.getElementById('sv-bx-banco');
+    fs.innerHTML = '<option value="">— Selecione —</option>';
+    bs.innerHTML = '<option value="">— Selecione —</option>';
+    try {
+      const r = await fetch(API_OPCOES + '?modo=erp&apenas_cadastro_erp=1', { credentials: 'same-origin' });
+      const d = await r.json();
+      (d.formas || []).forEach((x) => {
+        const o = document.createElement('option');
+        const nome = String(x.nome || '');
+        o.value = `${String(x.id || '')}|||${nome}`;
+        o.textContent = x.origem === 'manual' ? `${nome} · lista pessoal` : nome;
+        fs.appendChild(o);
+      });
+      (d.bancos || []).forEach((x) => {
+        const o = document.createElement('option');
+        const nome = String(x.nome || '');
+        o.value = `${String(x.id || '')}|||${nome}`;
+        o.textContent = x.origem === 'manual' ? `${nome} · lista pessoal` : nome;
+        bs.appendChild(o);
+      });
+    } catch (_) {}
+  }
+
+  function parseOptSplit(val) {
+    const i = val.indexOf('|||');
+    if (i < 0) return { id: null, nome: '' };
+    return { id: val.slice(0, i) || null, nome: val.slice(i + 3).trim() };
+  }
+
+  function bxpHtmlOpts() {
+    const fs = document.getElementById('sv-bx-forma');
+    const bs = document.getElementById('sv-bx-banco');
+    return {
+      htmlF: fs ? fs.innerHTML : '<option value="">—</option>',
+      htmlB: bs ? bs.innerHTML : '<option value="">—</option>',
+    };
+  }
+
+  function bxpAddLinha(valorDefault) {
+    const { htmlF, htmlB } = bxpHtmlOpts();
+    const wrap = document.createElement('div');
+    wrap.className = 'sv-bxp-row';
+    const v0 = valorDefault != null && valorDefault !== '' ? String(valorDefault) : '';
+    wrap.innerHTML = `
+      <div><label><span>Valor R$</span><input type="text" class="sv-bxp-val sv-input-large" style="height:48px;padding-left:12px;" value="${esc(v0)}"></label></div>
+      <div><label><span>Forma</span><select class="sv-bxp-forma" style="min-height:48px;">${htmlF}</select></label></div>
+      <div><label><span>Banco</span><select class="sv-bxp-banco" style="min-height:48px;">${htmlB}</select></label></div>
+      <div><button type="button" class="sv-btn-action sv-btn-delete sv-bxp-rm" title="Remover">✕</button></div>`;
+    document.getElementById('sv-bxp-linhas').appendChild(wrap);
+    wrap.querySelector('.sv-bxp-rm').addEventListener('click', () => {
+      if (document.querySelectorAll('#sv-bxp-linhas .sv-bxp-row').length <= 1) return;
+      wrap.remove();
+    });
+  }
+
+  async function abrirBaixaTotal(id) {
+    await abrirBaixaIds([id]);
+  }
+
+  async function abrirBaixaIds(ids) {
+    bxIdsAtual = (ids || []).map(String).filter((id) => {
+      const row = getRow(id);
+      return row && !row.pago;
+    });
+    if (!bxIdsAtual.length) return;
+    let soma = 0;
+    bxIdsAtual.forEach((id) => { soma += Number(getRow(id).restante) || 0; });
+    const jurosWrap = document.getElementById('sv-bx-juros-wrap');
+    if (jurosWrap) jurosWrap.hidden = bxIdsAtual.length > 1;
+    if (bxIdsAtual.length === 1) {
+      const row = getRow(bxIdsAtual[0]);
+      document.getElementById('sv-modal-baixa-resumo').textContent =
+        `${row.cliente || row.descricao || 'Título'} · Saldo ${brl(soma)}`;
+    } else {
+      document.getElementById('sv-modal-baixa-resumo').textContent =
+        `${bxIdsAtual.length} título(s) selecionado(s) · Total saldo ${brl(soma)}`;
+    }
+    document.getElementById('sv-bx-data').value = hojeYmd();
+    document.getElementById('sv-bx-juros').value = '';
+    await carregarOpcoesBaixa();
+    abrirModal('sv-modal-baixa');
+  }
+
+  async function abrirBaixaParcial(id) {
+    const row = getRow(id);
+    if (!row || row.pago) return;
+    bxpIdAtual = id;
+    bxpSaldoMax = Number(row.restante) || 0;
+    document.getElementById('sv-modal-parcial-resumo').textContent =
+      `${row.cliente || row.descricao || 'Título'} · Saldo em aberto ${brl(bxpSaldoMax)}`;
+    document.getElementById('sv-bxp-data').value = hojeYmd();
+    document.getElementById('sv-bxp-linhas').innerHTML = '';
+    await carregarOpcoesBaixa();
+    bxpAddLinha(bxpSaldoMax.toFixed(2).replace('.', ','));
+    abrirModal('sv-modal-parcial');
+  }
+
+  function montarParamsBaseLista() {
+    const p = new URLSearchParams();
+    p.set('tipo', TIPO_CONTAS);
+    p.set('status', document.getElementById('sv-status').value || 'abertos');
+    p.set('ordenacao', 'vencimento_asc');
+    const q = (document.getElementById('sv-busca').value || '').trim();
+    if (q) p.set('q', q);
+    const de = document.getElementById('sv-venc-de').value;
+    const ate = document.getElementById('sv-venc-ate').value;
+    if (de) p.set('venc_de', de);
+    if (ate) p.set('venc_ate', ate);
+    return p;
+  }
+
+  function loadExclMap() {
+    try {
+      const x = JSON.parse(localStorage.getItem(LS_EXCL_PLANOS) || '{}');
+      return x && typeof x === 'object' ? x : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function getExcludedSet() {
+    const m = loadExclMap();
+    const arr = m[TIPO_CONTAS];
+    return new Set(Array.isArray(arr) ? arr : []);
+  }
+
+  function saveExcludedSet(set) {
+    const m = loadExclMap();
+    m[TIPO_CONTAS] = Array.from(set);
+    localStorage.setItem(LS_EXCL_PLANOS, JSON.stringify(m));
+  }
+
+  async function carregarPlanos() {
+    const cont = document.getElementById('sv-plano-chks');
+    if (!cont) return;
+    cont.innerHTML = '<span style="font-size:0.9rem;color:var(--cor-texto-secundario);">Carregando planos…</span>';
+    try {
+      const p = montarParamsBaseLista();
+      const r = await fetch(`${API_PLANOS}?${p}`, { credentials: 'same-origin', cache: 'no-store' });
+      const data = await r.json();
+      cont.innerHTML = '';
+      const excl = getExcludedSet();
+      (data.planos || []).forEach((item) => {
+        const nome = item.nome || '';
+        const key = nome === '(sem plano)' ? SEM_PLANO_KEY : nome;
+        const wrap = document.createElement('label');
+        wrap.className = 'sv-plano-chk-label';
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.checked = !excl.has(key);
+        chk.dataset.planoKey = key;
+        chk.addEventListener('change', () => {
+          const ex2 = getExcludedSet();
+          if (chk.checked) ex2.delete(key);
+          else ex2.add(key);
+          saveExcludedSet(ex2);
+          page = 1;
+          carregar(false);
+        });
+        wrap.appendChild(chk);
+        const span = document.createElement('span');
+        span.title = nome;
+        span.textContent = nome || '—';
+        wrap.appendChild(span);
+        cont.appendChild(wrap);
+      });
+      if (!(data.planos || []).length) {
+        cont.innerHTML = '<span style="font-size:0.9rem;color:var(--cor-texto-secundario);">Nenhum plano distinto no filtro atual.</span>';
+      }
+    } catch (_) {
+      cont.innerHTML = '<span style="font-size:0.9rem;color:#b91c1c;font-weight:600;">Erro ao carregar planos.</span>';
+    }
+  }
+
+  function montarParams(resetPage) {
+    if (resetPage) page = 1;
+    const p = montarParamsBaseLista();
+    p.set('page', String(page));
+    p.set('page_size', document.getElementById('sv-ps').value || '50');
+    getExcludedSet().forEach((nome) => {
+      p.append('excluir_plano', nome);
+    });
+    return p;
+  }
+
+  function atualizarTotais(t) {
+    if (!t) { elTotais.hidden = true; return; }
+    elTotais.hidden = false;
+    elTotais.innerHTML = [
+      `<span>Qtd: <strong>${t.quantidade ?? 0}</strong></span>`,
+      `<span>Bruto: <strong>${brl(t.bruto)}</strong></span>`,
+      `<span>Pago: <strong>${brl(t.movimentado ?? t.pago)}</strong></span>`,
+      `<span>A pagar: <strong>${brl(t.a_pagar ?? t.saldo_aberto)}</strong></span>`,
+    ].join('');
+  }
+
+  function renderItem(row) {
+    const fornecedor = (row.cliente || '').trim();
+    const nomeLista = fornecedor || '—';
+    const titulo = nomeLista.length > 80 ? nomeLista.slice(0, 78) + '…' : nomeLista;
+    const desc = (row.descricao || '').trim();
+    const saldo = Number(row.restante) || 0;
+    const valorTxt = row.pago ? brl(row.valor_bruto) : brl(saldo > 0 ? saldo : row.valor_bruto);
+    const idStr = String(row.id);
+    const canPay = !row.pago;
+    const acoes = [];
+    if (canPay) {
+      acoes.push(`<button type="button" class="sv-btn-action sv-btn-pay sv-btn-baixa-total" data-id="${esc(row.id)}">Pagar</button>`);
+      acoes.push(`<button type="button" class="sv-btn-action sv-btn-edit sv-btn-baixa-parcial" data-id="${esc(row.id)}">Parcial</button>`);
+    }
+    if (row.pode_editar !== false) {
+      acoes.push(`<a class="sv-btn-action sv-btn-edit" href="${esc(urlClassico(row.id))}" data-prefetch onclick="event.stopPropagation();">Editar</a>`);
+    }
+    if (row.pode_excluir) {
+      acoes.push(`<a class="sv-btn-action sv-btn-delete" href="${esc(urlClassico(row.id))}" data-prefetch onclick="event.stopPropagation();">Excluir</a>`);
+    } else {
+      acoes.push(`<span class="sv-btn-action sv-btn-edit" style="opacity:0.5;cursor:not-allowed" title="Use a tela clássica">Excluir</span>`);
+    }
+    return `
+      <div class="sv-list-item" data-id="${esc(row.id)}" role="button" tabindex="0" aria-expanded="false">
+        <div class="sv-list-row sv-list-cols">
+          <div class="sv-col-chk">
+            ${canPay ? `<input type="checkbox" class="sv-row-chk" data-id="${esc(row.id)}" ${selecionados.has(idStr) ? 'checked' : ''} aria-label="Selecionar ${esc(titulo)}">` : ''}
+          </div>
+          <div class="sv-col-vencimento">${esc(fmtData(row.data_vencimento))}</div>
+          <div class="sv-col-descricao" title="${esc(fornecedor || desc || titulo)}">${esc(titulo)}</div>
+          <div class="sv-col-valor negativo">${esc(valorTxt)}</div>
+          <div class="sv-col-status">${statusBadge(row)}</div>
+          <div class="sv-col-pagar">
+            ${canPay
+              ? `<button type="button" class="sv-btn-pagar-row sv-btn-baixa-total" data-id="${esc(row.id)}">Pagar</button>`
+              : '<button type="button" class="sv-btn-pagar-row" disabled tabindex="-1">Pago</button>'}
+          </div>
+          <div class="sv-expand-icon" aria-hidden="true">▼</div>
+        </div>
+        <div class="sv-details-area">
+          <div class="sv-details-grid">
+            <div class="sv-detail-box"><p><strong>Fornecedor / favorecido</strong>${esc(row.cliente || '—')}</p></div>
+            ${desc ? `<div class="sv-detail-box"><p><strong>Descrição</strong>${esc(desc)}</p></div>` : ''}
+            <div class="sv-detail-box"><p><strong>Plano de contas</strong>${esc(row.plano_conta || '—')}${row.grupo ? ' · ' + esc(row.grupo) : ''}</p></div>
+            <div class="sv-detail-box"><p><strong>Documento</strong>${esc(row.numero_documento || '—')}</p></div>
+            <div class="sv-detail-box"><p><strong>Forma / banco</strong>${esc(row.forma_pagamento || '—')} · ${esc(row.banco || '—')}</p></div>
+            <div class="sv-detail-box"><p><strong>Competência</strong>${esc(fmtData(row.data_competencia))}</p></div>
+            <div class="sv-detail-box"><p><strong>${row.pago ? 'Pagamento' : 'Bruto / pago / saldo'}</strong>${esc(brl(row.valor_bruto))} · ${esc(brl(row.valor_movimentado))} · ${esc(brl(row.restante))}</p></div>
+            ${row.data_pagamento ? `<div class="sv-detail-box"><p><strong>Data pagamento</strong>${esc(fmtData(row.data_pagamento))}</p></div>` : ''}
+            ${row.observacoes ? `<div class="sv-detail-box"><p><strong>Observações</strong>${esc(row.observacoes)}</p></div>` : ''}
+          </div>
+          <div class="sv-details-actions">${acoes.join('')}</div>
+        </div>
+      </div>`;
+  }
+
+  function bindRows() {
+    elCorpo.querySelectorAll('.sv-list-item').forEach((item) => {
+      if (item.dataset.bound) return;
+      item.dataset.bound = '1';
+      const toggle = () => {
+        const open = item.classList.toggle('expanded');
+        item.setAttribute('aria-expanded', open ? 'true' : 'false');
+      };
+      item.addEventListener('click', (e) => {
+        if (e.target.closest('.sv-details-actions')) return;
+        if (e.target.closest('.sv-col-chk')) return;
+        if (e.target.closest('.sv-btn-pagar-row')) return;
+        toggle();
+      });
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+    });
+  }
+
+  if (!elCorpo.dataset.delegation) {
+    elCorpo.dataset.delegation = '1';
+    elCorpo.addEventListener('click', (e) => {
+      const bt = e.target.closest('.sv-btn-baixa-total');
+      if (bt) { e.stopPropagation(); abrirBaixaTotal(bt.dataset.id); return; }
+      const bp = e.target.closest('.sv-btn-baixa-parcial');
+      if (bp) { e.stopPropagation(); abrirBaixaParcial(bp.dataset.id); }
+    });
+    elCorpo.addEventListener('change', (e) => {
+      const chk = e.target.closest('.sv-row-chk');
+      if (chk) {
+        e.stopPropagation();
+        toggleSel(chk.dataset.id, chk.checked);
+      }
+    });
+  }
+
+  document.getElementById('sv-chk-all')?.addEventListener('change', (e) => {
+    const on = e.target.checked;
+    rowsAcum.forEach((r) => {
+      if (r.pago) return;
+      const key = String(r.id);
+      if (on) selecionados.set(key, Number(r.restante) || 0);
+      else selecionados.delete(key);
+    });
+    syncChkVisiveis();
+    refreshSelBar();
+  });
+
+  document.getElementById('sv-sel-pagar')?.addEventListener('click', () => {
+    abrirBaixaIds(Array.from(selecionados.keys()));
+  });
+  document.getElementById('sv-sel-clear')?.addEventListener('click', limparSelecao);
+
+  function renderLista(acrescentar, novasLinhas) {
+    if (!rowsAcum.length) {
+      elCorpo.innerHTML = '<div class="sv-empty">Nenhum lançamento com estes filtros.</div>';
+      elPager.hidden = true;
+      return;
+    }
+    const bloco = (acrescentar && novasLinhas ? novasLinhas : rowsAcum).map(renderItem).join('');
+    if (acrescentar && novasLinhas) {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = bloco;
+      while (wrap.firstChild) elCorpo.appendChild(wrap.firstChild);
+    } else {
+      elCorpo.innerHTML = bloco;
+    }
+    bindRows();
+    syncChkVisiveis();
+    elPager.hidden = false;
+    elPagerInfo.textContent = `${rowsAcum.length} de ${total} · página ${page}`;
+    elBtnMais.disabled = rowsAcum.length >= total;
+    elBtnMais.hidden = rowsAcum.length >= total;
+  }
+
+  async function carregar(acrescentar) {
+    if (carregando) return;
+    carregando = true;
+    if (!acrescentar) {
+      rowsAcum.length = 0;
+      limparSelecao();
+      elCorpo.innerHTML = '<div class="sv-empty">Carregando…</div>';
+      if (window.gmLoadingBar && window.gmLoadingBar.show) window.gmLoadingBar.show();
+    }
+    try {
+      const r = await fetch(API_LISTA + '?' + montarParams(!acrescentar).toString(), {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.erro || 'Falha ao carregar');
+      if (data.erro_deep_link) {
+        elCorpo.innerHTML = `<div class="sv-erro">${esc(data.erro_deep_link)}</div>`;
+        elResumo.textContent = data.erro_deep_link;
+        return;
+      }
+      total = Number(data.total) || 0;
+      const linhas = Array.isArray(data.lancamentos) ? data.lancamentos : [];
+      rowsAcum.push(...linhas);
+      atualizarTotais(data.totais);
+      const st = document.getElementById('sv-status');
+      const stTxt = st.options[st.selectedIndex] ? st.options[st.selectedIndex].text : '';
+      const de = document.getElementById('sv-venc-de').value;
+      const ate = document.getElementById('sv-venc-ate').value;
+      let extra = '';
+      if (de || ate) {
+        extra = ` · venc. ${de && ate && de === ate ? fmtDataCurta(de) : `${de ? fmtDataCurta(de) : '…'} — ${ate ? fmtDataCurta(ate) : '…'}`}`;
+      }
+      elResumo.textContent = `${total} título(s) · ${stTxt}${extra}`;
+      renderLista(acrescentar, linhas);
+    } catch (err) {
+      elCorpo.innerHTML = `<div class="sv-erro">${esc(err.message || 'Erro de rede')}</div>`;
+      elResumo.textContent = 'Erro ao carregar';
+    } finally {
+      carregando = false;
+      if (window.gmLoadingBar && window.gmLoadingBar.hide) window.gmLoadingBar.hide();
+    }
+  }
+
+  function toggleFiltros() {
+    const painel = document.getElementById('painelFiltros');
+    const btn = document.getElementById('sv-btn-filtros');
+    const open = painel.classList.toggle('show');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function fecharFiltros() {
+    const painel = document.getElementById('painelFiltros');
+    const btn = document.getElementById('sv-btn-filtros');
+    if (!painel || !btn) return;
+    painel.classList.remove('show');
+    btn.setAttribute('aria-expanded', 'false');
+  }
+
+  function limparFiltros() {
+    document.getElementById('sv-venc-de').value = '';
+    document.getElementById('sv-venc-ate').value = '';
+    document.getElementById('sv-status').value = 'abertos';
+    document.getElementById('sv-ps').value = '50';
+    document.getElementById('sv-busca').value = '';
+    marcarPrefiltro('');
+    page = 1;
+    carregar(false);
+  }
+
+  document.getElementById('sv-bx-cancel').addEventListener('click', () => fecharModal('sv-modal-baixa'));
+  document.getElementById('sv-bxp-cancel').addEventListener('click', () => fecharModal('sv-modal-parcial'));
+  document.getElementById('sv-bxp-add').addEventListener('click', () => bxpAddLinha(''));
+  document.querySelectorAll('.sv-modal').forEach((m) => {
+    m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('show'); });
+  });
+
+  document.getElementById('sv-bx-ok').addEventListener('click', async () => {
+    const f = parseOptSplit(document.getElementById('sv-bx-forma').value);
+    const b = parseOptSplit(document.getElementById('sv-bx-banco').value);
+    if (!f.nome || !b.nome) {
+      alert('Selecione forma de pagamento e conta/banco.');
+      return;
+    }
+    const body = {
+      ids: bxIdsAtual,
+      tipo: 'pagar',
+      data_movimento: document.getElementById('sv-bx-data').value,
+      forma_pagamento: f.nome,
+      forma_pagamento_id: f.id,
+      banco: b.nome,
+      banco_id: b.id,
+    };
+    const jt = (document.getElementById('sv-bx-juros').value || '').trim();
+    if (jt) {
+      const jn = parseValorPt(jt);
+      if (!Number.isNaN(jn) && jn > 0) body.valor_juros = jn.toFixed(2);
+    }
+    const btn = document.getElementById('sv-bx-ok');
+    btn.disabled = true;
+    try {
+      const r = await fetch(API_BAIXA, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify(body),
+      });
+      const out = await r.json();
+      if (out.erros && out.erros.length) {
+        alert('Alguns títulos não foram baixados:\n' + out.erros.map((e) => `${e.id}: ${e.erro}`).join('\n'));
+      }
+      if (out.atualizados && out.atualizados.length) {
+        let m = `Pagamento registrado: ${out.atualizados.length} título(s).`;
+        if (out.erp_baixa_ok === true) m += '\nERP: ok.';
+        else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
+        if (out.aviso_juros) m += '\nJuros: ' + out.aviso_juros;
+        alert(m);
+        fecharModal('sv-modal-baixa');
+        limparSelecao();
+        page = 1;
+        carregar(false);
+      } else if (!out.erros || !out.erros.length) {
+        alert(out.erro || 'Não foi possível baixar.');
+      }
+    } catch (_) {
+      alert('Erro de rede.');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('sv-bxp-ok').addEventListener('click', async () => {
+    if (!bxpIdAtual) return;
+    const parcelas = [];
+    let soma = 0;
+    document.querySelectorAll('#sv-bxp-linhas .sv-bxp-row').forEach((row) => {
+      const v = parseValorPt(row.querySelector('.sv-bxp-val').value);
+      const ff = parseOptSplit(row.querySelector('.sv-bxp-forma').value);
+      const bb = parseOptSplit(row.querySelector('.sv-bxp-banco').value);
+      if (!Number.isNaN(v) && v > 0 && ff.nome && bb.nome) {
+        soma += v;
+        parcelas.push({
+          valor: v,
+          forma_pagamento: ff.nome,
+          forma_pagamento_id: ff.id,
+          banco: bb.nome,
+          banco_id: bb.id,
+        });
+      }
+    });
+    if (!parcelas.length) {
+      alert('Informe ao menos uma parcela (valor, forma e banco).');
+      return;
+    }
+    if (soma > bxpSaldoMax + 0.02) {
+      alert(`A soma (${brl(soma)}) não pode passar do saldo (${brl(bxpSaldoMax)}).`);
+      return;
+    }
+    const btn = document.getElementById('sv-bxp-ok');
+    btn.disabled = true;
+    try {
+      const r = await fetch(API_BAIXA_PARCIAL, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({
+          lancamento_id: bxpIdAtual,
+          tipo: 'pagar',
+          data_movimento: document.getElementById('sv-bxp-data').value,
+          parcelas,
+        }),
+      });
+      const out = await r.json();
+      if (!out.ok) {
+        alert(out.erro || 'Falha na baixa parcial.');
+        return;
+      }
+      let m = out.quitado ? 'Título quitado.' : 'Parcela registrada — ainda há saldo.';
+      if (out.erp_baixa_ok === true) m += '\nERP: ok.';
+      else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
+      alert(m);
+      fecharModal('sv-modal-parcial');
+      page = 1;
+      carregar(false);
+    } catch (_) {
+      alert('Erro de rede.');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('sv-btn-filtros').addEventListener('click', toggleFiltros);
+  document.getElementById('sv-aplicar-filtros').addEventListener('click', () => {
+    marcarPrefiltro('');
+    page = 1;
+    fecharFiltros();
+    carregarPlanos().then(() => carregar(false));
+  });
+  document.getElementById('sv-limpar-filtros').addEventListener('click', limparFiltros);
+  document.getElementById('sv-plano-todos').addEventListener('click', () => {
+    saveExcludedSet(new Set());
+    carregarPlanos().then(() => { page = 1; carregar(false); });
+  });
+  document.getElementById('sv-plano-nenhum').addEventListener('click', () => {
+    const keys = new Set();
+    document.querySelectorAll('#sv-plano-chks input[type=checkbox][data-plano-key]').forEach((el) => {
+      keys.add(el.dataset.planoKey);
+    });
+    saveExcludedSet(keys);
+    carregarPlanos().then(() => { page = 1; carregar(false); });
+  });
+  document.querySelectorAll('#sv-prefiltros .sv-pref-btn').forEach((btn) => {
+    btn.addEventListener('click', () => aplicarPrefiltro(btn.dataset.pref || ''));
+  });
+  ['sv-venc-de', 'sv-venc-ate'].forEach((id) => {
+    document.getElementById(id)?.addEventListener('change', () => marcarPrefiltro(''));
+  });
+  document.getElementById('sv-busca').addEventListener('input', () => {
+    clearTimeout(buscaTimer);
+    buscaTimer = setTimeout(() => {
+      marcarPrefiltro('');
+      page = 1;
+      carregarPlanos().then(() => carregar(false));
+    }, 400);
+  });
+  document.getElementById('sv-ps').addEventListener('change', () => { page = 1; carregar(false); });
+  document.getElementById('sv-status').addEventListener('change', () => {
+    page = 1;
+    carregarPlanos().then(() => carregar(false));
+  });
+  elBtnMais.addEventListener('click', () => {
+    if (rowsAcum.length >= total) return;
+    page += 1;
+    carregar(true);
+  });
+
+  const params = new URLSearchParams(window.location.search);
+  const mid = params.get('mongo_id');
+  const urlVencDe = params.get('venc_de') || params.get('data_inicial');
+  const urlVencAte = params.get('venc_ate') || params.get('data_final');
+  if (urlVencDe) document.getElementById('sv-venc-de').value = urlVencDe.slice(0, 10);
+  if (urlVencAte) document.getElementById('sv-venc-ate').value = urlVencAte.slice(0, 10);
+  if (urlVencDe || urlVencAte) {
+    document.getElementById('sv-status').value = 'abertos';
+    fecharFiltros();
+  }
+  if (mid) {
+    document.getElementById('sv-status').value = 'todos';
+    fetch(API_LISTA + '?tipo=pagar&status=todos&mongo_id=' + encodeURIComponent(mid), { credentials: 'same-origin' })
+      .then((r) => r.json())
+      .then((data) => {
+        rowsAcum.length = 0;
+        if (data.lancamentos && data.lancamentos.length) {
+          rowsAcum.push(...data.lancamentos);
+          total = data.total || rowsAcum.length;
+          atualizarTotais(data.totais);
+          renderLista(false, rowsAcum);
+          const first = elCorpo.querySelector('.sv-list-item');
+          if (first) { first.classList.add('expanded'); first.setAttribute('aria-expanded', 'true'); }
+        } else {
+          elCorpo.innerHTML = '<div class="sv-erro">Título não encontrado.</div>';
+        }
+      })
+      .catch(() => carregarPlanos().then(() => carregar(false)));
+  } else {
+    carregarPlanos().then(() => carregar(false));
+  }
+})();
+</script>
+{% endblock %}
