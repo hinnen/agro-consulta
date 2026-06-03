@@ -1107,10 +1107,14 @@
     h += '<div style="font-size:10px;">' + esc(dh) + '</div>';
     h += '<div style="border-top:1px dashed #000;margin:6px 0;"></div>';
     h += '<div style="font-weight:bold;margin-bottom:4px;">' + esc(e.cliente_nome) + '</div>';
+    if (e.telefone) h += '<div style="font-size:10px;margin-bottom:3px;">Tel ' + esc(e.telefone) + '</div>';
+    if (e.endereco_linha) {
+      h += '<div style="font-size:10px;line-height:1.35;word-break:break-word;margin-bottom:4px;">' + esc(e.endereco_linha) + '</div>';
+    }
     h += lines;
     h += '<div style="border-top:2px solid #000;margin:8px 0 4px;padding-top:4px;font-weight:900;font-size:13px;display:flex;justify-content:space-between;">';
     h += '<span>TOTAL</span><span>' + esc(String(e.total_texto || '—')) + '</span></div>';
-    h += '<div style="text-align:center;font-size:9px;margin-top:8px;">Obrigado — apresente na retirada</div>';
+    h += '<div style="text-align:center;font-size:9px;margin-top:8px;">Obrigado — ' + (e.endereco_linha ? 'confira o endereço na entrega' : 'apresente na retirada') + '</div>';
     h += '<div style="text-align:center;font-size:8px;margin-top:4px;word-break:break-all;">Retomar: ' + esc(bc) + '</div>';
     h += '</div>';
     return h;
