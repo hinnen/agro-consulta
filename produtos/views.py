@@ -6565,24 +6565,29 @@ def _dashboard_top_produtos_sqlite(data_ini, data_fim, limite=8):
 
 
 def _dashboard_ranking_vendedores_sqlite(data_ini, data_fim, limite=8):
-    """Ranking por faturamento (PDV local): campo ``usuario_registro`` da venda."""
+    """Ranking por operador do PDV (PIN / ``usuario_registro``), igual à lista Consulta → Vendas."""
+    from produtos.mongo_vendas_util import _nome_vendedor_erp_e_rotulo_generico
+
     rows = (
-        VendaAgro.objects.filter(criado_em__date__gte=data_ini, criado_em__date__lte=data_fim)
+        _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim)
         .values("usuario_registro")
         .annotate(total=Sum("total"), n_vendas=Count("id"))
-        .order_by("-total")[:limite]
+        .order_by("-total")
     )
     out = []
     for row in rows:
         raw = (row.get("usuario_registro") or "").strip()
-        nome = raw if raw else "Não informado"
+        if not raw or _nome_vendedor_erp_e_rotulo_generico(raw):
+            continue
         out.append(
             {
-                "nome": nome[:120],
+                "nome": raw[:120],
                 "total": round(_dashboard_float(row.get("total")), 2),
                 "n_vendas": int(row.get("n_vendas") or 0),
             }
         )
+        if len(out) >= limite:
+            break
     return out
 
 
@@ -6631,17 +6636,16 @@ def _dashboard_top_produtos_capri(data_ini, data_fim, limite=8):
 
 def _dashboard_ranking_vendedores_capri(data_ini, data_fim, limite=8):
     """
-    Mesma ordem que top produtos: Mongo → SQLite → ERP v3 (opcional, no fim).
+    Operador = PIN do PDV (``usuario_registro``). Mongo/ERP só se não houver venda local no período.
     """
-    ck = f"dash:rv:v2:{_dashboard_vendas_fonte_modo()}:{data_ini}:{data_fim}:{limite}"
+    ck = f"dash:rv:v3:operador:{data_ini.isoformat()}:{data_fim.isoformat()}:{limite}"
     hit = cache.get(ck)
     if isinstance(hit, list):
         return hit
     out: list[dict] = []
-    if _dashboard_vendas_fonte_pdv() or _dashboard_vendas_fonte_hibrido():
-        out = _dashboard_ranking_vendedores_sqlite(data_ini, data_fim, limite=limite)
-        if out:
-            cache.set(ck, out, timeout=180)
+    out = _dashboard_ranking_vendedores_sqlite(data_ini, data_fim, limite=limite)
+    if out:
+        cache.set(ck, out, timeout=180)
         return out
     if getattr(settings, "AGRO_DASHBOARD_MONGO_RANKING_FALLBACK", False):
         client, db = obter_conexao_mongo()
@@ -6654,8 +6658,6 @@ def _dashboard_ranking_vendedores_capri(data_ini, data_fim, limite=8):
                     out = rows
             except Exception:
                 logger.exception("dashboard_ranking_vendedores_capri: mongo")
-    if not out:
-        out = _dashboard_ranking_vendedores_sqlite(data_ini, data_fim, limite=limite)
     if not out and getattr(settings, "AGRO_DASHBOARD_ERP_V3_REPORTS", False):
         try:
             api = VendaERPAPIClient()
@@ -6671,10 +6673,13 @@ def _dashboard_ranking_vendedores_capri(data_ini, data_fim, limite=8):
     return out
 
 
+_DASHBOARD_TOP_CLIENTES_MES_ANT_LIMITE = 20
+
+
 def _dashboard_top_clientes_manual_json() -> list[dict] | None:
     """
     Override opcional (Curva ABC no ERP): JSON no env ``AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON``.
-    Formato: [{"nome":"...","total":123.45}, ...] até 8 linhas (ordem preservada).
+    Formato: [{"nome":"...","total":123.45}, ...] até 20 linhas (ordem preservada).
     """
     raw = (getattr(settings, "AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON", "") or "").strip()
     if not raw:
@@ -6687,7 +6692,7 @@ def _dashboard_top_clientes_manual_json() -> list[dict] | None:
     if not isinstance(data, list):
         return None
     out: list[dict] = []
-    for row in data[:8]:
+    for row in data[:_DASHBOARD_TOP_CLIENTES_MES_ANT_LIMITE]:
         if not isinstance(row, dict):
             continue
         nome = str(row.get("nome") or row.get("Nome") or "").strip()
@@ -6702,10 +6707,18 @@ def _dashboard_top_clientes_manual_json() -> list[dict] | None:
     return out or None
 
 
-def _dashboard_top_clientes_sqlite(data_ini, data_fim, limite=8):
+def _dashboard_top_clientes_sqlite(
+    data_ini, data_fim, limite=8, *, incluir_consumidor: bool = False
+):
     """Top clientes PDV local no mês civil: nome preenchido ou só ``cliente_id_erp``."""
+    from produtos.mongo_vendas_util import _nome_cliente_excluir_top_ranking
+
     acc: dict[str, float] = {}
-    qs_base = VendaAgro.objects.filter(criado_em__date__gte=data_ini, criado_em__date__lte=data_fim)
+    qs_base = VendaAgro.objects.filter(
+        criado_em__date__gte=data_ini,
+        criado_em__date__lte=data_fim,
+        devolvida_em__isnull=True,
+    )
     for row in (
         qs_base.exclude(cliente_nome__exact="")
         .values("cliente_nome")
@@ -6714,7 +6727,17 @@ def _dashboard_top_clientes_sqlite(data_ini, data_fim, limite=8):
         nm = (row.get("cliente_nome") or "").strip()
         if not nm:
             continue
+        if not incluir_consumidor and _nome_cliente_excluir_top_ranking(nm):
+            continue
         acc[nm] = acc.get(nm, 0.0) + _dashboard_float(row.get("total"))
+    if incluir_consumidor:
+        avulso = (
+            qs_base.filter(cliente_nome__exact="", cliente_id_erp__exact="")
+            .aggregate(total=Sum("total"))
+        )
+        t_av = _dashboard_float(avulso.get("total"))
+        if t_av > 0:
+            acc["Consumidor não identificado"] = acc.get("Consumidor não identificado", 0.0) + t_av
     for row in (
         qs_base.filter(cliente_nome__exact="")
         .exclude(cliente_id_erp__exact="")
@@ -6730,15 +6753,100 @@ def _dashboard_top_clientes_sqlite(data_ini, data_fim, limite=8):
     return [{"nome": k[:200], "total": round(v, 2)} for k, v in ranked]
 
 
+def _dashboard_top_clientes_hibrido(data_ini: date, data_fim: date, limite: int = 8) -> list[dict]:
+    """
+    PDV (dia da venda) + DtoVenda sem par no Agro — mesma regra do gráfico; sem consumidor avulso.
+    """
+    from produtos.mongo_vendas_util import (
+        _nome_cliente_dto_venda,
+        _nome_cliente_excluir_top_ranking,
+    )
+
+    limite = max(1, min(int(limite or 8), 30))
+    acc: dict[str, float] = {}
+
+    for row in (
+        _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim)
+        .exclude(cliente_nome__exact="")
+        .values("cliente_nome")
+        .annotate(total=Sum("total"))
+    ):
+        nm = (row.get("cliente_nome") or "").strip()
+        if not nm or _nome_cliente_excluir_top_ranking(nm):
+            continue
+        acc[nm] = acc.get(nm, 0.0) + _dashboard_float(row.get("total"))
+
+    vinculados = _dashboard_ids_erp_vinculados_venda_agro(data_ini, data_fim)
+    chaves_fiado_pdv = _dashboard_chaves_fiado_venda_agro(data_ini, data_fim)
+    _mdb, db = obter_conexao_mongo()
+    if db is not None:
+        dt_ini = datetime.combine(data_ini, dtime.min)
+        dt_fim = datetime.combine(data_fim, dtime.max)
+        q = {
+            "$and": [
+                _filtro_venda_ativa_mongo(),
+                {
+                    "$or": [
+                        {"DataFaturamento": {"$gte": dt_ini, "$lte": dt_fim}},
+                        {"Data": {"$gte": dt_ini, "$lte": dt_fim}},
+                    ]
+                },
+            ]
+        }
+        proj = {
+            "Id": 1,
+            "ID": 1,
+            "Data": 1,
+            "DataFaturamento": 1,
+            "ValorFinal": 1,
+            "ValorTotal": 1,
+            "ValorLiquido": 1,
+            "ValorTotalComAcrescimos": 1,
+            "ValorTotalSemAcrescimos": 1,
+            "Total": 1,
+            "Valor": 1,
+            "ClienteNome": 1,
+            "NomeCliente": 1,
+            "cliente": 1,
+            "Cliente": 1,
+            "ClienteID": 1,
+            "PessoaID": 1,
+            "FormaPagamento": 1,
+        }
+        try:
+            for doc in db["DtoVenda"].find(q, proj):
+                if _dashboard_chaves_pedido_dto_venda(doc) & vinculados:
+                    continue
+                if _dashboard_dto_ja_contado_no_pdv_fiado(doc, chaves_fiado_pdv):
+                    continue
+                dia = _dashboard_doc_dia_venda(doc)
+                if dia is None or dia < data_ini or dia > data_fim:
+                    continue
+                nome = _nome_cliente_dto_venda(doc).strip()
+                if _nome_cliente_excluir_top_ranking(nome):
+                    continue
+                v = _dashboard_doc_total(doc)
+                if v <= 0:
+                    continue
+                acc[nome] = acc.get(nome, 0.0) + v
+        except Exception as exc:
+            logger.warning("top_clientes_hibrido mongo: %s", exc, exc_info=True)
+
+    ranked = sorted(acc.items(), key=lambda kv: kv[1], reverse=True)[:limite]
+    return [{"nome": k[:200], "total": round(v, 2)} for k, v in ranked]
+
+
 def _dashboard_top_clientes_mes_anterior_capri(hoje: date) -> dict:
     """
-    Top 8 do mês civil anterior a ``hoje`` (independente do filtro de período do gráfico).
-    Ordem: JSON manual (env) → Mongo DtoVenda (se ``AGRO_DASHBOARD_MONGO_RANKING_FALLBACK``) → SQLite PDV.
+    Top 20 do mês civil anterior a ``hoje`` (independente do filtro de período do gráfico).
+    Alinha à Curva ABC / ReportOperacoesPDV: ``DtoVenda`` com ``DataFaturamento`` válida no mês (sem PDV nem pedido em aberto).
+    Ordem: JSON manual (env) → Mongo → PDV local se espelho vazio.
     """
+    limite = _DASHBOARD_TOP_CLIENTES_MES_ANT_LIMITE
     mes_ini, mes_fim = _dashboard_bounds_mes_anterior_para_dia(hoje)
     raw_manual = (getattr(settings, "AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON", "") or "").strip()
-    ck_suffix = hashlib.sha256(raw_manual.encode("utf-8")).hexdigest()[:12] if raw_manual else "auto"
-    ck = f"dash:tcma:v2:{mes_ini.isoformat()}:{mes_fim.isoformat()}:{ck_suffix}"
+    ck_suffix = hashlib.sha256(raw_manual.encode("utf-8")).hexdigest()[:12] if raw_manual else "fat20"
+    ck = f"dash:tcma:v6:{mes_ini.isoformat()}:{mes_fim.isoformat()}:{ck_suffix}"
     hit = cache.get(ck)
     if isinstance(hit, dict) and hit.get("_t") == "tcma":
         return hit["payload"]
@@ -6751,26 +6859,28 @@ def _dashboard_top_clientes_mes_anterior_capri(hoje: date) -> dict:
             "mes_ini": mes_ini,
             "mes_fim": mes_fim,
             "fonte": "manual",
-            "itens": manual[:8],
+            "itens": manual[:limite],
         }
         cache.set(ck, {"_t": "tcma", "payload": payload}, timeout=3600)
         return payload
 
     out: list[dict] = []
     fonte = ""
-    # Este card usa só o mês civil anterior (janela fixa + cache); tenta Mongo sempre que houver espelho,
-    # independente de ``AGRO_DASHBOARD_MONGO_RANKING_FALLBACK`` (flag vale para rankings do período filtrado).
     client, db = obter_conexao_mongo()
     if client is not None and db is not None:
         try:
-            rows = dashboard_top_clientes_mongo(client, db, mes_ini, mes_fim, limite=8)
+            rows = dashboard_top_clientes_mongo(
+                client, db, mes_ini, mes_fim, limite=limite, incluir_consumidor=True
+            )
             if rows:
                 out = rows
                 fonte = "mongo"
         except Exception:
             logger.exception("top_clientes_mes_anterior: mongo")
     if not out:
-        out = _dashboard_top_clientes_sqlite(mes_ini, mes_fim, limite=8)
+        out = _dashboard_top_clientes_sqlite(
+            mes_ini, mes_fim, limite=limite, incluir_consumidor=True
+        )
         fonte = "pdv" if out else ""
 
     payload = {

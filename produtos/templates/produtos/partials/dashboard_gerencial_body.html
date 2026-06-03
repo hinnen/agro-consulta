@@ -242,7 +242,8 @@
       <details class="relative inline-block text-left">
         <summary class="flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border-2 border-slate-300 bg-slate-100 text-[11px] font-black text-slate-600 shadow-sm hover:border-orange-400 hover:bg-orange-50 hover:text-orange-900 [&::-webkit-details-marker]:hidden" title="Ajuda">?</summary>
         <div class="absolute left-0 z-30 mt-1 max-w-[20rem] rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
-          <p>Na abertura: primeiro <strong>Mongo</strong> (espelho ERP), depois <strong>PDV local</strong>. Relatório HTTP v3 do ERP só se <code class="text-[9px]">AGRO_DASHBOARD_ERP_V3_REPORTS=true</code> e ainda faltar dado (é mais lento).</p>
+          <p>Usa o <strong>operador do PDV</strong> (PIN validado na venda — mesma coluna «Operador» em Consulta → Vendas). O campo «Vendedor» do ERP (ex. Gm Agro Mais) não entra aqui.</p>
+          <p class="text-slate-500">Só sem vendas no PDV no período: tenta espelho Mongo ou relatório v3.</p>
           <p class="text-slate-500">Cache ~3 min por período. Token/URL: <code class="text-[9px]">VENDA_ERP_API_URL</code>.</p>
         </div>
       </details>
@@ -268,18 +269,19 @@
     <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
       <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide flex items-center gap-2 flex-wrap">
         <span class="w-2 h-2 rounded-full bg-[#00BFFF] shrink-0"></span>
-        <span>Top 8 clientes · mês ant. ({{ top_clientes_mes_anterior_label }})</span>
+        <span>Top 20 clientes · mês ant. ({{ top_clientes_mes_anterior_label }})</span>
         <details class="relative inline-block text-left">
           <summary class="flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border-2 border-slate-300 bg-slate-100 text-[11px] font-black text-slate-600 shadow-sm hover:border-sky-400 hover:bg-sky-50 hover:text-sky-900 [&::-webkit-details-marker]:hidden" title="Ajuda">?</summary>
           <div class="absolute right-0 xl:right-auto xl:left-0 z-30 mt-1 w-[min(24rem,92vw)] rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
             <p>Ranking do <strong>mês civil imediatamente anterior</strong> a hoje (não acompanha o filtro de período do gráfico).</p>
-            <p><strong>Fonte:</strong> {% if top_clientes_mes_anterior_fonte == "manual" %}lista fixa no servidor (<code class="text-[9px]">AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON</code>){% elif top_clientes_mes_anterior_fonte == "mongo" %}espelho ERP no Mongo (<code class="text-[9px]">DtoVenda</code>){% elif top_clientes_mes_anterior_fonte == "pdv" %}vendas no PDV local{% else %}nenhuma fonte com dados no período{% endif %}.</p>
+            <p><strong>Fonte:</strong> {% if top_clientes_mes_anterior_fonte == "manual" %}lista fixa no servidor (<code class="text-[9px]">AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON</code>){% elif top_clientes_mes_anterior_fonte == "mongo" %}ERP faturado no mês (<code class="text-[9px]">DtoVenda</code> com data de faturamento válida — como Curva ABC / planilha PDV){% elif top_clientes_mes_anterior_fonte == "pdv" %}vendas no PDV local (sem espelho){% else %}nenhuma fonte com dados no período{% endif %}.</p>
+            <p class="text-slate-500">Pedidos ainda não faturados no ERP (data 01/01/0001) não entram. Inclui «Consumidor não identificado» como na planilha PDV.</p>
             <p>Curva ABC no ERP: <a class="text-sky-700 font-bold underline" href="https://sisvale.vendaerp.com.br/v3/CurvaABCClientes/Report" target="_blank" rel="noopener noreferrer">sisvale…/CurvaABCClientes/Report</a>. Sem dados aqui: preencha o JSON no <code class="text-[9px]">.env</code> até o espelho refletir as vendas.</p>
           </div>
         </details>
       </h3>
     </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2 max-h-[min(40vh,280px)] min-h-[4.5rem] overflow-y-auto custom-scrollbar pr-1">
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2 max-h-[min(52vh,420px)] min-h-[4.5rem] overflow-y-auto custom-scrollbar pr-1">
       {% for c in top_clientes_mes_anterior %}
       <div class="flex items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:border-emerald-400/35 hover:bg-emerald-50 transition-all">
         <div class="flex items-center gap-2 overflow-hidden min-w-0">
