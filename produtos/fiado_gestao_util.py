@@ -8,11 +8,13 @@ from decimal import Decimal
 from typing import Any
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q, Sum
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from produtos.caixa_util import normalizar_forma_pagamento_caixa, obter_sessao_caixa_aberta_request
 from produtos.fiado_credito_util import (
+    fiado_limite_padrao,
     montar_cronograma_fiado,
     resolver_cliente_fiado,
     valor_fiado_usado_cliente_vendas,
@@ -510,21 +512,45 @@ def definir_limite_fiado_cliente(
     return cli
 
 
-def resumo_gestao_fiado() -> dict[str, Any]:
-    abertos = FiadoTituloAgro.objects.exclude(
+def _qs_titulos_abertos():
+    return FiadoTituloAgro.objects.exclude(
         situacao__in=(
             FiadoTituloAgro.Situacao.QUITADO,
             FiadoTituloAgro.Situacao.CANCELADO,
         )
     )
-    total_saldo = Decimal("0")
-    for t in abertos.only("valor_bruto", "valor_pago"):
-        total_saldo += t.saldo_aberto
-    clientes_com_saldo = len(listar_clientes_fiado(apenas_com_saldo=True))
+
+
+def resumo_from_clientes_fiado(clientes: list[dict[str, Any]]) -> dict[str, Any]:
+    total = Decimal("0")
+    titulos = 0
+    for c in clientes:
+        total += Decimal(str(c.get("saldo_aberto") or 0))
+        titulos += int(c.get("titulos_abertos") or 0)
     return {
-        "titulos_abertos": abertos.count(),
-        "clientes_com_saldo": clientes_com_saldo,
-        "total_saldo_aberto": float(total_saldo.quantize(Decimal("0.01"))),
+        "titulos_abertos": titulos,
+        "clientes_com_saldo": len(clientes),
+        "total_saldo_aberto": float(total.quantize(Decimal("0.01"))),
+    }
+
+
+def resumo_gestao_fiado() -> dict[str, Any]:
+    qs = _qs_titulos_abertos()
+    agg = qs.aggregate(
+        titulos_abertos=Count("pk"),
+        total_bruto=Coalesce(Sum("valor_bruto"), Decimal("0")),
+        total_pago=Coalesce(Sum("valor_pago"), Decimal("0")),
+    )
+    total_saldo = (agg["total_bruto"] - agg["total_pago"]).quantize(Decimal("0.01"))
+    if total_saldo < 0:
+        total_saldo = Decimal("0")
+    chaves: set[str] = set()
+    for agro_id, cod, nome in qs.values_list("cliente_agro_id", "cliente_codigo", "cliente_nome"):
+        chaves.add(str(agro_id or cod or nome))
+    return {
+        "titulos_abertos": int(agg["titulos_abertos"] or 0),
+        "clientes_com_saldo": len(chaves),
+        "total_saldo_aberto": float(total_saldo),
     }
 
 
@@ -551,7 +577,20 @@ def listar_clientes_fiado(
 
     grupos: dict[str, dict] = {}
     hoje = date.today()
-    for t in qs.select_related("cliente_agro").order_by("cliente_nome", "vencimento"):
+    qs = qs.select_related("cliente_agro").only(
+        "pk",
+        "cliente_agro_id",
+        "cliente_nome",
+        "cliente_codigo",
+        "valor_bruto",
+        "valor_pago",
+        "vencimento",
+        "situacao",
+        "cliente_agro__externo_id",
+        "cliente_agro__limite_fiado_local",
+    )
+    lim_padrao = fiado_limite_padrao()
+    for t in qs.order_by("cliente_nome", "vencimento"):
         key = str(t.cliente_agro_id or t.cliente_codigo or t.cliente_nome)
         if key not in grupos:
             cli = t.cliente_agro
@@ -588,15 +627,15 @@ def listar_clientes_fiado(
 
     out: list[dict] = []
     for g in grupos.values():
-        pk = g.get("cliente_agro_pk")
-        from produtos.fiado_credito_util import resumo_credito_fiado_cliente
-
-        cred = resumo_credito_fiado_cliente("", cliente_agro_pk=pk) if pk else {}
-        g["saldo_aberto"] = float(g["saldo_aberto"].quantize(Decimal("0.01")))
+        saldo_dec = g["saldo_aberto"].quantize(Decimal("0.01"))
+        lim_local = Decimal(str(g.get("limite_fiado_local") or 0))
+        limite = lim_local if lim_local > 0 else lim_padrao
+        disponivel = max(limite - saldo_dec, Decimal("0")).quantize(Decimal("0.01"))
+        g["saldo_aberto"] = float(saldo_dec)
         g["valor_bruto"] = float(g["valor_bruto"].quantize(Decimal("0.01")))
         g["valor_pago"] = float(g["valor_pago"].quantize(Decimal("0.01")))
-        g["limite"] = cred.get("limite", 0)
-        g["disponivel"] = cred.get("disponivel", 0)
+        g["limite"] = float(limite)
+        g["disponivel"] = float(disponivel)
         venc = g.pop("vencimento_mais_antigo", None)
         g["vencimento_mais_antigo"] = venc.isoformat() if venc else ""
         g["vencimento_mais_antigo_texto"] = venc.strftime("%d/%m/%Y") if venc else "—"
@@ -625,7 +664,23 @@ def listar_titulos(
     busca: str = "",
     limit: int = 200,
 ) -> list[dict[str, Any]]:
-    qs = FiadoTituloAgro.objects.select_related("cliente_agro", "venda_agro").all()
+    qs = FiadoTituloAgro.objects.only(
+        "pk",
+        "cliente_agro_id",
+        "cliente_nome",
+        "cliente_codigo",
+        "numero_documento",
+        "parcela_num",
+        "parcela_total",
+        "vencimento",
+        "valor_bruto",
+        "valor_pago",
+        "situacao",
+        "origem",
+        "descricao",
+        "venda_agro_id",
+        "atualizado_em",
+    ).all()
     sit = (situacao or "abertos").strip().lower()
     if sit == "abertos":
         qs = qs.exclude(

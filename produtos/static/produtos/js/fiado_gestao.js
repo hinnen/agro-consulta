@@ -287,27 +287,41 @@
       el.cliModalMeta.textContent = (cli.codigo ? 'Cód. ' + cli.codigo + ' · ' : '') + (cli.titulos || 0) + ' título(s)';
     }
     try {
-      if (window.gmLoadingBar) window.gmLoadingBar.show();
       const j = await fetchJson(urls.titulos + '?' + titulosQueryParams(cli));
       renderTitulos(j.titulos || []);
       const saldo = saldoTitulos(j.titulos);
       if (el.cliModalSaldo) el.cliModalSaldo.textContent = fmtMoeda(saldo);
       clienteModal.saldo = saldo;
     } catch (e) {
-      alert(e.message || String(e));
-    } finally {
-      if (window.gmLoadingBar) window.gmLoadingBar.hide();
+      if (el.tbodyTitulos) {
+        el.tbodyTitulos.innerHTML =
+          '<tr><td colspan="9" class="px-4 py-8 text-center text-sm font-bold text-red-700">' +
+          esc(e.message || String(e)) +
+          '</td></tr>';
+      }
     }
   }
 
   function abrirModalCliente(cli) {
     if (!el.modalCliente) return;
-    carregarTitulosCliente(cli).then(function () {
-      if (el.modalCliente.showModal) {
-        el.modalCliente.showModal();
-        setModalBodyLock(true);
-      }
-    });
+    clienteModal = cli;
+    if (el.cliModalNome) el.cliModalNome.textContent = cli.nome || '—';
+    if (el.cliModalMeta) {
+      el.cliModalMeta.textContent =
+        (cli.codigo ? 'Cód. ' + cli.codigo + ' · ' : '') + (cli.titulos || 0) + ' título(s)';
+    }
+    if (el.cliModalSaldo) el.cliModalSaldo.textContent = fmtMoeda(cli.saldo || 0);
+    if (el.tbodyTitulos) {
+      el.tbodyTitulos.innerHTML =
+        '<tr><td colspan="9" class="px-4 py-10 text-center text-sm font-bold text-slate-500">Carregando lançamentos…</td></tr>';
+    }
+    selecionados.clear();
+    atualizarSelecaoUi();
+    if (el.modalCliente.showModal) {
+      el.modalCliente.showModal();
+      setModalBodyLock(true);
+    }
+    carregarTitulosCliente(cli);
   }
 
   async function recarregar() {
@@ -315,10 +329,8 @@
     const qs = new URLSearchParams({ q: q, apenas_saldo: '1' });
     try {
       if (window.gmLoadingBar) window.gmLoadingBar.show();
-      const [cli, res] = await Promise.all([
-        fetchJson(urls.clientes + '?' + qs.toString()),
-        fetchJson(urls.resumo),
-      ]);
+      const cli = await fetchJson(urls.clientes + '?' + qs.toString());
+      const res = cli.resumo || {};
       renderClientes(cli.clientes || []);
       atualizarKpis(res);
       atualizarEmptyBanner(res);
