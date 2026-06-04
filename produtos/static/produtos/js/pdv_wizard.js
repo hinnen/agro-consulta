@@ -180,7 +180,6 @@
         step1EntregasCount: document.getElementById('pdv-step1-entregas-count'),
         topbarEntregasBtn: document.getElementById('pdv-topbar-entregas-btn'),
         topbarEntregasCount: document.getElementById('pdv-topbar-entregas-count'),
-        topbarFiadoCount: document.getElementById('pdv-topbar-fiado-count'),
         entregasPendentesModal: document.getElementById('pdv-entregas-pendentes-modal'),
         entregasPendentesList: document.getElementById('pdv-entregas-pendentes-list'),
         entregasPendentesClose: document.getElementById('pdv-entregas-pendentes-close'),
@@ -871,9 +870,8 @@
             if (par < 2) return 'Informe 2 ou mais parcelas.';
         }
         if (forma === 'Fiado') {
-            if (!clientePodeFiado(state)) {
-                return 'Fiado exige cliente cadastrado (não use consumidor final).';
-            }
+            var msgFi = validarFiadoPermitido(state);
+            if (msgFi) return msgFi;
             var fp = parseInt(state.pagamento.fiadoParcelas, 10) || 0;
             var fd = parseInt(state.pagamento.fiadoDiasVencimento, 10) || 0;
             if (fp < 1 || fp > 6) return 'Fiado: use de 1 a 6 parcelas.';
@@ -1256,14 +1254,35 @@
         window.location.href = buildFiadoGestaoUrl(State.getState());
     }
 
+    function mensagemBloqueioFiadoPendencia() {
+        if (!creditoFiadoCliente || !creditoFiadoCliente.tem_pendencia) return '';
+        return (
+            creditoFiadoCliente.bloqueado_motivo ||
+            'Cliente com fiado em aberto (' +
+                (creditoFiadoCliente.usado_texto || formatMoney(creditoFiadoCliente.usado || 0)) +
+                '). Quite o saldo antes de nova venda fiado.'
+        );
+    }
+
+    function validarFiadoPermitido(state) {
+        if (!clientePodeFiado(state)) {
+            return 'Fiado exige cliente cadastrado (não use consumidor final).';
+        }
+        var pend = mensagemBloqueioFiadoPendencia();
+        if (pend) return pend;
+        return '';
+    }
+
     function renderProductFiadoBalance(state) {
         if (!dom.productFiadoBalance) return;
         var cf = creditoFiadoCliente;
         var cidKey = clienteFiadoQueryKey(state);
         if (cf && creditoFiadoClienteId === cidKey) {
             dom.productFiadoBalance.textContent = cf.usado_texto || formatMoney(cf.usado || 0);
-            var tip = 'Saldo fiado em aberto · clique para gerir';
-            if (cf.disponivel_texto) {
+            var tip = cf.tem_pendencia
+                ? mensagemBloqueioFiadoPendencia() + ' · clique para gerir'
+                : 'Saldo fiado em aberto · clique para gerir';
+            if (!cf.tem_pendencia && cf.disponivel_texto) {
                 tip += ' · disponível p/ nova venda ' + cf.disponivel_texto;
             }
             dom.productFiadoBalance.title = tip;
@@ -1389,6 +1408,20 @@
             return 'Falta ' + formatMoney(total - sum) + '. Escolha outra forma.';
         }
         if (sum > total + 0.009) return 'Soma dos pagamentos passou do total. Ajuste os lançamentos.';
+        var temFiado = arr.some(function (L) {
+            return String(L.forma || '') === 'Fiado';
+        });
+        if (temFiado) {
+            var msgFi = validarFiadoPermitido(state);
+            if (msgFi) return msgFi;
+            if (creditoFiadoCliente && creditoFiadoCliente.excede) {
+                return (
+                    'Fiado acima do limite. Disponível ' +
+                    (creditoFiadoCliente.disponivel_texto || '') +
+                    '.'
+                );
+            }
+        }
         return '';
     }
 
@@ -1934,23 +1967,6 @@
         }
     }
 
-    function refreshFiadoPendentesUi() {
-        var url = urls.apiFiadoResumo;
-        if (!url || !dom.topbarFiadoCount) return Promise.resolve();
-        return jsonGet(url)
-            .then(function (res) {
-                if (!res.ok || !res.data || !res.data.ok) return;
-                var n = parseInt(res.data.titulos_abertos, 10) || 0;
-                if (n > 0) {
-                    dom.topbarFiadoCount.textContent = String(n);
-                    dom.topbarFiadoCount.classList.remove('hidden');
-                } else {
-                    dom.topbarFiadoCount.classList.add('hidden');
-                }
-            })
-            .catch(function () {});
-    }
-
     function refreshEntregasPendentesUi(silent) {
         var url = urls.apiPdvEntregasPendentes;
         if (!url) return Promise.resolve();
@@ -2438,6 +2454,14 @@
             btn.classList.toggle('ring-offset-2', on);
             btn.classList.toggle('ring-offset-slate-900', on);
             btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+            if (v === 'Fiado') {
+                var bloqFi = validarFiadoPermitido(state);
+                btn.disabled = !!bloqFi;
+                btn.classList.toggle('opacity-40', !!bloqFi);
+                btn.classList.toggle('cursor-not-allowed', !!bloqFi);
+                if (bloqFi) btn.title = bloqFi;
+                else btn.removeAttribute('title');
+            }
         });
 
         var show = function (id, yes) {
@@ -4197,6 +4221,11 @@
             var scb = Math.min(saldoCashbackAtual(st), rest);
             patch.valorDestaForma = scb > 0 ? String(scb.toFixed(2)).replace('.', ',') : '';
         } else if (forma === 'Fiado') {
+            var msgFiado = validarFiadoPermitido(st);
+            if (msgFiado) {
+                showSaleDoneFeedback(msgFiado, 'error');
+                return;
+            }
             patch.valorDestaForma = rest > 0 ? String(rest.toFixed(2)).replace('.', ',') : '';
         } else {
             patch.valorDestaForma = '';
@@ -6311,11 +6340,9 @@
     });
 
     refreshEntregasPendentesUi(true);
-    refreshFiadoPendentesUi();
     if (entregasPendentesPollTimer) clearInterval(entregasPendentesPollTimer);
     entregasPendentesPollTimer = setInterval(function () {
         refreshEntregasPendentesUi(true);
-        refreshFiadoPendentesUi();
     }, 45000);
 
     loadWizardCatalog()

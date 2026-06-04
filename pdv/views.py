@@ -117,7 +117,6 @@ def pdv_home(request):
                 "entregasPainel": reverse("entregas_painel"),
                 "caixaPainel": reverse("caixa_painel"),
                 "fiadoGestao": reverse("fiado_gestao"),
-                "apiFiadoResumo": reverse("api_fiado_resumo"),
             },
             "search": {
                 "mode": "wizard",

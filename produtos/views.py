@@ -18549,6 +18549,15 @@ def api_enviar_pedido_erp(request):
                 db=db,
                 client_m=client_m,
             )
+            if cred.get("bloqueado_nova_venda"):
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "erro": cred.get("bloqueado_motivo")
+                        or "Cliente com fiado em aberto. Quite o saldo antes de nova venda fiado.",
+                    },
+                    status=400,
+                )
             if cred.get("excede"):
                 return JsonResponse(
                     {
