@@ -8967,6 +8967,9 @@ def api_venda_agro_devolver(request, pk):
                 "devolucao_usuario",
             ]
         )
+        from produtos.fiado_gestao_util import cancelar_titulos_venda
+
+        cancelar_titulos_venda(venda, usuario=user_label, motivo=motivo or "Devolução venda")
 
     return JsonResponse(
         {
@@ -17947,6 +17950,11 @@ def _persistir_venda_agro(
                 agro_pk_cb = None
         _erp_cb, _pk_cb, cli_cb = resolver_cliente_fiado(cid, cliente_agro_pk=agro_pk_cb)
         aplicar_movimento_cashback_venda(data, raw_itens, cliente_agro=cli_cb)
+        from produtos.fiado_credito_util import venda_local_tem_fiado
+        from produtos.fiado_gestao_util import criar_titulos_de_venda
+
+        if venda_local_tem_fiado(v):
+            criar_titulos_de_venda(v, usuario=user_label)
         try:
             cache.delete(API_LIST_CUSTOMERS_CACHE_KEY)
         except Exception:

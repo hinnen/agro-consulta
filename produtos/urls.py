@@ -3,6 +3,7 @@ from django.urls import include, path
 from financeiro.views import dashboard_financeiro_completo
 
 from . import views, views_mp_point
+from . import fiado_gestao_views as fiado_views
 
 urlpatterns = [
     # --- PÁGINAS ---
@@ -181,6 +182,16 @@ urlpatterns = [
     path('pdv/checkout/', views.pdv_checkout, name='pdv_checkout'),
     path('vendas/exportar-csv/', views.vendas_exportar_csv, name='vendas_exportar_csv'),
     path('vendas/', views.vendas_lista, name='vendas_lista'),
+    path('fiado/', fiado_views.fiado_gestao, name='fiado_gestao'),
+    path('api/fiado/resumo/', fiado_views.api_fiado_resumo, name='api_fiado_resumo'),
+    path('api/fiado/clientes/', fiado_views.api_fiado_clientes, name='api_fiado_clientes'),
+    path('api/fiado/titulos/', fiado_views.api_fiado_titulos, name='api_fiado_titulos'),
+    path('api/fiado/cliente-credito/', fiado_views.api_fiado_cliente_credito, name='api_fiado_cliente_credito'),
+    path('api/fiado/buscar-cliente/', fiado_views.api_fiado_buscar_cliente, name='api_fiado_buscar_cliente'),
+    path('api/fiado/baixa/', fiado_views.api_fiado_baixa, name='api_fiado_baixa'),
+    path('api/fiado/baixa-cliente/', fiado_views.api_fiado_baixa_cliente, name='api_fiado_baixa_cliente'),
+    path('api/fiado/limite/', fiado_views.api_fiado_limite, name='api_fiado_limite'),
+    path('api/fiado/backup/', fiado_views.api_fiado_backup_export, name='api_fiado_backup_export'),
     path('vendas-hoje/', views.vendas_hoje_redirect, name='vendas_hoje'),
     path(
         'venda/<int:pk>/cupom/',

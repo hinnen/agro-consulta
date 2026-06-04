@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>Crédito Loja · Fiado | GM Agro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(15px, 0.32vw + 14px, 18px);
+      min-height: 100dvh;
+      max-height: 100dvh;
+    }
+    .fiado-shell { width: 100%; max-width: min(110rem, 100%); margin: 0 auto; }
+    .fiado-kpi { font-size: clamp(1.35rem, 1vw + 1rem, 2rem); }
+    .fiado-cli-table th, .fiado-cli-table td { padding: 0.55rem 0.65rem; vertical-align: middle; }
+    .fiado-cli-table tbody tr:hover { background: rgb(255 247 237); }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="fiado-shell px-3 sm:px-5 py-2 sm:py-2.5 flex flex-wrap justify-between items-center gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="h-9 w-9 rounded-xl bg-orange-100 border border-orange-200 flex items-center justify-center shrink-0">
+          <span class="text-sm font-black text-orange-700">F</span>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-[clamp(1.1rem,0.8vw+1rem,1.55rem)] font-black uppercase text-slate-900 leading-tight">Crédito Loja · Fiado</h1>
+          <p class="text-[11px] font-bold text-slate-500 truncate">Clientes com saldo · baixa integrada ao caixa</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        {% if not caixa_aberto %}
+        <span class="text-[10px] font-black uppercase px-2 py-1 rounded-lg border-2 border-amber-400 bg-amber-50 text-amber-950">Caixa fechado — baixa sem movimento no turno</span>
+        {% endif %}
+        <a href="{% url 'api_fiado_backup_export' %}" class="inline-flex items-center min-h-[44px] px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-xs font-black uppercase text-slate-700 hover:bg-slate-50">Backup JSON</a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-4 py-2 rounded-xl border-2 border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 shadow-sm shrink-0" %}
+      </div>
+    </div>
+  </header>
+
+  <main class="fiado-shell flex-1 min-h-0 flex flex-col px-3 sm:px-5 py-2 sm:py-3 gap-2 overflow-hidden">
+    <div class="grid grid-cols-2 gap-2 shrink-0">
+      <div class="rounded-2xl border-2 border-orange-200 bg-white px-4 py-3 shadow-sm">
+        <p class="text-[10px] font-black uppercase text-orange-700 tracking-wide">Total em aberto</p>
+        <p id="fiado-kpi-total" class="fiado-kpi font-black text-slate-900 tabular-nums">R$ {{ resumo.total_saldo_aberto|floatformat:2 }}</p>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <p class="text-[10px] font-black uppercase text-slate-500 tracking-wide">Clientes com saldo</p>
+        <p id="fiado-kpi-clientes" class="fiado-kpi font-black text-slate-900 tabular-nums">{{ resumo.clientes_com_saldo }}</p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-2 shrink-0 items-center">
+      <input type="search" id="fiado-busca" placeholder="Buscar cliente ou código…" class="flex-1 min-w-[12rem] rounded-xl border-2 border-slate-200 px-4 py-2.5 font-bold text-sm min-h-[44px]" autocomplete="off">
+      <button type="button" id="fiado-btn-limite-avulso" class="min-h-[44px] px-4 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-emerald-900 text-xs font-black uppercase">Limite cliente</button>
+      <button type="button" id="fiado-btn-atualizar" class="min-h-[44px] px-4 rounded-xl bg-slate-900 text-white text-xs font-black uppercase">Atualizar</button>
+    </div>
+
+    <div class="flex-1 min-h-0 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+      <div class="flex-1 min-h-0 overflow-auto">
+        <table class="fiado-cli-table w-full text-left text-sm min-w-[52rem]">
+          <thead class="sticky top-0 bg-slate-100 text-[10px] font-black uppercase text-slate-600 z-10">
+            <tr>
+              <th>Cliente</th>
+              <th>Cód.</th>
+              <th class="text-center">Títulos</th>
+              <th>Venc. + antigo</th>
+              <th class="text-right">Valor</th>
+              <th class="text-right">Pago</th>
+              <th class="text-right">Saldo</th>
+              <th>Situação</th>
+              <th class="text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="fiado-tbody-clientes"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <dialog id="fiado-modal-baixa" class="rounded-2xl border-2 border-slate-200 p-0 w-[min(28rem,96vw)] shadow-2xl backdrop:bg-slate-900/40">
+    <form id="fiado-form-baixa" method="dialog" class="p-5 space-y-4">
+      <h2 class="text-lg font-black uppercase text-slate-900">Baixa de fiado</h2>
+      <p id="fiado-baixa-resumo" class="text-sm font-bold text-slate-600"></p>
+      <p class="text-[11px] font-semibold text-slate-500">O valor quita os títulos mais antigos primeiro. Com caixa aberto, entra como reforço no turno.</p>
+      <label class="block text-[10px] font-black uppercase text-slate-500">
+        Valor recebido (R$)
+        <input type="text" id="fiado-baixa-valor" inputmode="decimal" required class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-black text-lg min-h-[48px]">
+      </label>
+      <label class="block text-[10px] font-black uppercase text-slate-500">
+        Forma de pagamento
+        <select id="fiado-baixa-forma" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm min-h-[48px]">
+          <option value="Dinheiro">Dinheiro</option>
+          <option value="Pix">Pix</option>
+          <option value="Cartão Débito">Cartão Débito</option>
+          <option value="Cartão Crédito">Cartão Crédito</option>
+          <option value="Transferência">Transferência</option>
+        </select>
+      </label>
+      <label class="block text-[10px] font-black uppercase text-slate-500">
+        Observação (opcional)
+        <input type="text" id="fiado-baixa-obs" maxlength="200" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-2 font-semibold text-sm min-h-[44px]">
+      </label>
+      <div class="flex gap-2 justify-end pt-2">
+        <button type="button" id="fiado-baixa-cancelar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 font-black text-xs uppercase">Cancelar</button>
+        <button type="submit" id="fiado-baixa-confirmar" class="min-h-[48px] px-5 rounded-xl bg-orange-600 text-white font-black text-xs uppercase hover:bg-orange-700">Confirmar baixa</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="fiado-modal-limite" class="rounded-2xl border-2 border-slate-200 p-0 w-[min(28rem,96vw)] shadow-2xl backdrop:bg-slate-900/40">
+    <form id="fiado-form-limite-avulso" class="p-5 space-y-4">
+      <h2 class="text-lg font-black uppercase text-slate-900">Limite fiado</h2>
+      <input type="search" id="fiado-limite-busca" placeholder="Digite nome do cliente…" class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm min-h-[48px]">
+      <div id="fiado-limite-resultados" class="max-h-40 overflow-y-auto divide-y divide-slate-100 rounded-xl border border-slate-100"></div>
+      <label class="block text-[10px] font-black uppercase text-slate-500">
+        Limite (R$)
+        <input type="text" id="fiado-limite-avulso-valor" inputmode="decimal" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-black text-lg min-h-[48px]">
+      </label>
+      <div class="flex gap-2 justify-end">
+        <button type="button" id="fiado-limite-fechar" class="min-h-[44px] px-4 rounded-xl border-2 border-slate-200 font-black text-xs uppercase">Fechar</button>
+        <button type="submit" class="min-h-[44px] px-5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    window.AGRO_FIADO = {
+      caixaAberto: {{ caixa_aberto|yesno:"true,false" }},
+      clientePrePk: {% if cliente_pre_pk %}{{ cliente_pre_pk }}{% else %}null{% endif %},
+      urls: {
+        clientes: "{% url 'api_fiado_clientes' %}",
+        baixaCliente: "{% url 'api_fiado_baixa_cliente' %}",
+        limite: "{% url 'api_fiado_limite' %}",
+        buscarCliente: "{% url 'api_fiado_buscar_cliente' %}",
+        resumo: "{% url 'api_fiado_resumo' %}",
+      },
+    };
+  </script>
+  {% load static %}
+  <script src="{% static 'produtos/js/fiado_gestao.js' %}"></script>
+  {% include "produtos/_atalho_voltar_pdv.html" %}
+</body>
+</html>

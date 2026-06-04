@@ -169,6 +169,8 @@
         productCreditBalance: document.getElementById('pdv-product-credit-balance'),
         productCashbackBalance: document.getElementById('pdv-product-cashback-balance'),
         productFiadoBalance: document.getElementById('pdv-product-fiado-balance'),
+        fiadoGestaoOpen: document.getElementById('pdv-fiado-gestao-open'),
+        topbarFiadoLink: document.getElementById('pdv-topbar-fiado-link'),
         productStepCount: document.getElementById('pdv-product-step-count'),
         clearItems: document.getElementById('pdv-clear-items'),
         step1Advance: document.getElementById('pdv-step1-advance'),
@@ -178,6 +180,7 @@
         step1EntregasCount: document.getElementById('pdv-step1-entregas-count'),
         topbarEntregasBtn: document.getElementById('pdv-topbar-entregas-btn'),
         topbarEntregasCount: document.getElementById('pdv-topbar-entregas-count'),
+        topbarFiadoCount: document.getElementById('pdv-topbar-fiado-count'),
         entregasPendentesModal: document.getElementById('pdv-entregas-pendentes-modal'),
         entregasPendentesList: document.getElementById('pdv-entregas-pendentes-list'),
         entregasPendentesClose: document.getElementById('pdv-entregas-pendentes-close'),
@@ -1238,23 +1241,43 @@
         return pk ? 'pk:' + pk : 'id:' + id;
     }
 
+    function buildFiadoGestaoUrl(state) {
+        var base = urls.fiadoGestao || '/fiado/';
+        var sep = base.indexOf('?') >= 0 ? '&' : '?';
+        var u = base + sep + 'from=pdv';
+        var st = state || State.getState();
+        if (st && st.cliente && st.cliente.cliente_agro_pk != null) {
+            u += '&cliente=' + encodeURIComponent(String(st.cliente.cliente_agro_pk));
+        }
+        return u;
+    }
+
+    function openFiadoGestao() {
+        window.location.href = buildFiadoGestaoUrl(State.getState());
+    }
+
     function renderProductFiadoBalance(state) {
         if (!dom.productFiadoBalance) return;
         var cf = creditoFiadoCliente;
         var cidKey = clienteFiadoQueryKey(state);
         if (cf && creditoFiadoClienteId === cidKey) {
-            dom.productFiadoBalance.textContent = cf.disponivel_texto || formatMoney(cf.disponivel || 0);
-            dom.productFiadoBalance.title =
-                'Limite ' +
-                (cf.limite_texto || '') +
-                ' · usado ' +
-                (cf.usado_texto || '') +
-                (cf.limite_padrao ? ' (limite padrão até ajustar no ERP)' : '');
+            dom.productFiadoBalance.textContent = cf.usado_texto || formatMoney(cf.usado || 0);
+            var tip = 'Saldo fiado em aberto · clique para gerir';
+            if (cf.disponivel_texto) {
+                tip += ' · disponível p/ nova venda ' + cf.disponivel_texto;
+            }
+            dom.productFiadoBalance.title = tip;
         } else {
             dom.productFiadoBalance.textContent = clientePodeFiado(state) ? '…' : 'R$ 0,00';
             dom.productFiadoBalance.title = clientePodeFiado(state)
-                ? 'Carregando limite de fiado…'
+                ? 'Carregando saldo fiado…'
                 : 'Selecione um cliente cadastrado';
+        }
+        if (dom.fiadoGestaoOpen) {
+            dom.fiadoGestaoOpen.title = dom.productFiadoBalance.title;
+        }
+        if (dom.topbarFiadoLink) {
+            dom.topbarFiadoLink.href = buildFiadoGestaoUrl(state);
         }
     }
 
@@ -1909,6 +1932,23 @@
         } else {
             dom.entregasPendentesModal.removeAttribute('open');
         }
+    }
+
+    function refreshFiadoPendentesUi() {
+        var url = urls.apiFiadoResumo;
+        if (!url || !dom.topbarFiadoCount) return Promise.resolve();
+        return jsonGet(url)
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.ok) return;
+                var n = parseInt(res.data.titulos_abertos, 10) || 0;
+                if (n > 0) {
+                    dom.topbarFiadoCount.textContent = String(n);
+                    dom.topbarFiadoCount.classList.remove('hidden');
+                } else {
+                    dom.topbarFiadoCount.classList.add('hidden');
+                }
+            })
+            .catch(function () {});
     }
 
     function refreshEntregasPendentesUi(silent) {
@@ -5399,6 +5439,15 @@
         if (dom.topbarEntregasBtn) {
             dom.topbarEntregasBtn.addEventListener('click', openEntregasPendentesModal);
         }
+        if (dom.fiadoGestaoOpen) {
+            dom.fiadoGestaoOpen.addEventListener('click', openFiadoGestao);
+        }
+        if (dom.topbarFiadoLink) {
+            dom.topbarFiadoLink.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                openFiadoGestao();
+            });
+        }
         if (dom.entregasPendentesClose) {
             dom.entregasPendentesClose.addEventListener('click', closeEntregasPendentesModal);
         }
@@ -6262,9 +6311,11 @@
     });
 
     refreshEntregasPendentesUi(true);
+    refreshFiadoPendentesUi();
     if (entregasPendentesPollTimer) clearInterval(entregasPendentesPollTimer);
     entregasPendentesPollTimer = setInterval(function () {
         refreshEntregasPendentesUi(true);
+        refreshFiadoPendentesUi();
     }, 45000);
 
     loadWizardCatalog()

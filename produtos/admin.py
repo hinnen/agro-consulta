@@ -2,6 +2,9 @@ from django.contrib import admin
 
 from .models import (
     ClienteAgro,
+    FiadoBaixaAgro,
+    FiadoEventoAgro,
+    FiadoTituloAgro,
     ItemVendaAgro,
     MovimentoCaixa,
     OpcaoBaixaFinanceiroExtra,
@@ -116,6 +119,95 @@ class VendaAgroAdmin(admin.ModelAdmin):
     inlines = [ItemVendaAgroInline]
 
     def has_add_permission(self, request):
+        return False
+
+
+@admin.register(FiadoTituloAgro)
+class FiadoTituloAgroAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "cliente_nome",
+        "cliente_codigo",
+        "numero_documento",
+        "vencimento",
+        "valor_bruto",
+        "valor_pago",
+        "situacao",
+        "origem",
+        "venda_agro",
+    )
+    list_filter = ("situacao", "origem", "vencimento")
+    search_fields = ("cliente_nome", "cliente_codigo", "numero_documento", "chave_unica")
+    readonly_fields = (
+        "chave_unica",
+        "cliente_agro",
+        "venda_agro",
+        "cliente_nome",
+        "cliente_codigo",
+        "numero_documento",
+        "parcela_num",
+        "parcela_total",
+        "vencimento",
+        "valor_bruto",
+        "valor_pago",
+        "situacao",
+        "origem",
+        "descricao",
+        "dados_snapshot_json",
+        "criado_em",
+        "atualizado_em",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(FiadoBaixaAgro)
+class FiadoBaixaAgroAdmin(admin.ModelAdmin):
+    list_display = ("id", "titulo", "valor", "forma_pagamento", "usuario", "criado_em")
+    list_filter = ("forma_pagamento",)
+    readonly_fields = (
+        "titulo",
+        "valor",
+        "forma_pagamento",
+        "sessao_caixa",
+        "movimento_caixa",
+        "usuario",
+        "observacao",
+        "criado_em",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(FiadoEventoAgro)
+class FiadoEventoAgroAdmin(admin.ModelAdmin):
+    list_display = ("id", "tipo", "cliente_agro", "titulo", "usuario", "criado_em")
+    list_filter = ("tipo",)
+    readonly_fields = (
+        "tipo",
+        "cliente_agro",
+        "titulo",
+        "baixa",
+        "payload_json",
+        "usuario",
+        "criado_em",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
         return False
 
 
