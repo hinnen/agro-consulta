@@ -521,6 +521,61 @@ def _qs_titulos_abertos():
     )
 
 
+def _chave_grupo_fiado_cliente(
+    *,
+    cliente_agro_id: int | None,
+    cliente_nome: str,
+    cliente_codigo: str = "",
+) -> str:
+    """Uma linha na grade = um cliente (Agro ou nome normalizado), não um código ERP por título."""
+    if cliente_agro_id:
+        return f"agro:{cliente_agro_id}"
+    from produtos.fiado_import_util import _norm_nome_fiado_match
+
+    nm = _norm_nome_fiado_match(cliente_nome or "")
+    if nm:
+        return f"nome:{nm}"
+    cod = str(cliente_codigo or "").strip()
+    return f"cod:{cod}" if cod else "sem-cliente"
+
+
+def _q_titulos_cliente_gestao(
+    *,
+    cliente_agro_pk: int | None = None,
+    cliente_nome: str = "",
+    cliente_codigo: str = "",
+) -> Q:
+    """Filtro para títulos do cliente na gestão (popup / baixa), sem repetir por código ERP."""
+    if cliente_agro_pk:
+        return Q(cliente_agro_id=cliente_agro_pk)
+    nome = (cliente_nome or "").strip()
+    cod = (cliente_codigo or "").strip()
+    if cod:
+        q = Q(cliente_codigo=cod)
+        if nome:
+            q &= Q(cliente_nome__iexact=nome)
+        return q
+    if not nome:
+        return Q()
+    from produtos.fiado_import_util import _norm_nome_fiado_match
+
+    key = _norm_nome_fiado_match(nome)
+    nomes = (
+        FiadoTituloAgro.objects.exclude(
+            situacao__in=(
+                FiadoTituloAgro.Situacao.QUITADO,
+                FiadoTituloAgro.Situacao.CANCELADO,
+            )
+        )
+        .values_list("cliente_nome", flat=True)
+        .distinct()
+    )
+    matching = [n for n in nomes if n and _norm_nome_fiado_match(n) == key]
+    if matching:
+        return Q(cliente_nome__in=matching)
+    return Q(cliente_nome__iexact=nome)
+
+
 def resumo_from_clientes_fiado(clientes: list[dict[str, Any]]) -> dict[str, Any]:
     total = Decimal("0")
     titulos = 0
@@ -545,8 +600,8 @@ def resumo_gestao_fiado() -> dict[str, Any]:
     if total_saldo < 0:
         total_saldo = Decimal("0")
     chaves: set[str] = set()
-    for agro_id, cod, nome in qs.values_list("cliente_agro_id", "cliente_codigo", "cliente_nome"):
-        chaves.add(str(agro_id or cod or nome))
+    for agro_id, nome, cod in qs.values_list("cliente_agro_id", "cliente_nome", "cliente_codigo"):
+        chaves.add(_chave_grupo_fiado_cliente(cliente_agro_id=agro_id, cliente_nome=nome or "", cliente_codigo=cod or ""))
     return {
         "titulos_abertos": int(agg["titulos_abertos"] or 0),
         "clientes_com_saldo": len(chaves),
@@ -591,13 +646,17 @@ def listar_clientes_fiado(
     )
     lim_padrao = fiado_limite_padrao()
     for t in qs.order_by("cliente_nome", "vencimento"):
-        key = str(t.cliente_agro_id or t.cliente_codigo or t.cliente_nome)
+        key = _chave_grupo_fiado_cliente(
+            cliente_agro_id=t.cliente_agro_id,
+            cliente_nome=t.cliente_nome or "",
+            cliente_codigo=t.cliente_codigo or "",
+        )
         if key not in grupos:
             cli = t.cliente_agro
             grupos[key] = {
                 "cliente_agro_pk": t.cliente_agro_id,
                 "cliente_nome": t.cliente_nome,
-                "cliente_codigo": t.cliente_codigo or (cli.externo_id if cli else ""),
+                "cliente_codigo": (cli.externo_id if cli and (cli.externo_id or "").strip() else ""),
                 "saldo_aberto": Decimal("0"),
                 "valor_bruto": Decimal("0"),
                 "valor_pago": Decimal("0"),
@@ -607,6 +666,16 @@ def listar_clientes_fiado(
                 "vencimento_mais_antigo": None,
                 "limite_fiado_local": float(cli.limite_fiado_local or 0) if cli else 0.0,
             }
+        else:
+            g0 = grupos[key]
+            if t.cliente_agro_id and not g0["cliente_agro_pk"]:
+                cli = t.cliente_agro
+                g0["cliente_agro_pk"] = t.cliente_agro_id
+                if cli and (cli.externo_id or "").strip():
+                    g0["cliente_codigo"] = str(cli.externo_id).strip()
+                g0["limite_fiado_local"] = float(cli.limite_fiado_local or 0) if cli else g0["limite_fiado_local"]
+            elif len((t.cliente_nome or "")) > len(g0.get("cliente_nome") or ""):
+                g0["cliente_nome"] = t.cliente_nome
         if t.situacao not in (
             FiadoTituloAgro.Situacao.QUITADO,
             FiadoTituloAgro.Situacao.CANCELADO,
@@ -699,12 +768,13 @@ def listar_titulos(
         ).filter(vencimento__lt=hoje)
     elif sit and sit != "todos":
         qs = qs.filter(situacao=sit)
-    if cliente_agro_pk:
-        qs = qs.filter(cliente_agro_id=cliente_agro_pk)
-    elif (cliente_nome or "").strip():
-        qs = qs.filter(cliente_nome__iexact=(cliente_nome or "").strip())
-        if (cliente_codigo or "").strip():
-            qs = qs.filter(cliente_codigo=str(cliente_codigo).strip())
+    filtros_cli = _q_titulos_cliente_gestao(
+        cliente_agro_pk=cliente_agro_pk,
+        cliente_nome=cliente_nome,
+        cliente_codigo=cliente_codigo,
+    )
+    if filtros_cli:
+        qs = qs.filter(filtros_cli)
     qtxt = (busca or "").strip()
     if qtxt:
         qs = qs.filter(
