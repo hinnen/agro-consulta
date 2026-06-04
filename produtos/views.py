@@ -7859,41 +7859,6 @@ def api_pdv_cliente_credito_fiado(request):
             cred["excede"] = bool(novo > 0 and apos < -Decimal("0.009"))
             cred["limite_padrao"] = False
 
-    from produtos.fiado_credito_util import resolver_cliente_fiado
-    from produtos.fiado_gestao_util import listar_titulos
-
-    erp_res, agro_res, cli_res = resolver_cliente_fiado(cid, cliente_agro_pk=agro_pk)
-    pk_tit = agro_res or agro_pk
-    nome_tit = (cli_res.nome if cli_res else "") or ""
-    cod_tit = ""
-    if cli_res and (cli_res.externo_id or "").strip():
-        cod_tit = str(cli_res.externo_id).strip()
-    elif cid.isdigit():
-        cod_tit = cid
-    elif erp_res:
-        cod_tit = erp_res
-    nome_req = str(request.GET.get("cliente_nome") or "").strip()
-    if nome_req:
-        nome_tit = nome_req
-    if nome_tit:
-        pk_tit = None
-    titulos_venc = listar_titulos(
-        cliente_agro_pk=pk_tit,
-        cliente_nome=nome_tit,
-        cliente_codigo=cod_tit if not nome_tit else "",
-        situacao="vencidos",
-        limit=40,
-    )
-    total_venc = sum(
-        (Decimal(str(t.get("saldo_aberto") or 0)) for t in titulos_venc),
-        Decimal("0"),
-    ).quantize(Decimal("0.01"))
-    cred["tem_vencido"] = bool(titulos_venc)
-    cred["titulos_vencidos"] = titulos_venc
-    cred["total_vencido"] = float(total_venc)
-    cred["total_vencido_texto"] = (
-        f"R$ {total_venc:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    )
     return JsonResponse(cred)
 
 
@@ -8356,6 +8321,8 @@ def caixa_relatorio(request):
     rel = montar_relatorio_caixa(
         di, df, sessao_id=filtro_sessao, forma_pagamento=filtro_forma or None
     )
+    from produtos.caixa_relatorio_util import rotulo_filtro_sessao_caixa
+
     preset_get = (request.GET.get("preset") or "").strip().lower()
     tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
     preset_ativo = preset_get or ("" if tem_datas_custom else "hoje")
@@ -8368,6 +8335,9 @@ def caixa_relatorio(request):
             "periodo_label": label,
             "preset_ativo": preset_ativo,
             "filtro_sessao": filtro_sessao,
+            "filtro_sessao_rotulo": rotulo_filtro_sessao_caixa(
+                rel["sessoes_opts"], filtro_sessao
+            ),
             "filtro_forma": filtro_forma,
             "formas_pagamento_caixa": list(FORMAS_PAGAMENTO_CAIXA),
             "secoes": rel["secoes"],
@@ -8401,6 +8371,8 @@ def caixa_relatorio_conferencias(request):
         sessao_id=filtro_sessao,
         somente_com_diferenca=somente_diff,
     )
+    from produtos.caixa_relatorio_util import rotulo_filtro_sessao_caixa
+
     preset_get = (request.GET.get("preset") or "").strip().lower()
     tem_datas_custom = bool(request.GET.get("de") or request.GET.get("ate"))
     preset_ativo = preset_get or ("" if tem_datas_custom else "7d")
@@ -8423,6 +8395,9 @@ def caixa_relatorio_conferencias(request):
             "periodo_label": label,
             "preset_ativo": preset_ativo,
             "filtro_sessao": filtro_sessao,
+            "filtro_sessao_rotulo": rotulo_filtro_sessao_caixa(
+                rel["sessoes_opts"], filtro_sessao
+            ),
             "somente_diff": somente_diff,
             "url_toggle_diff": _url_conf(
                 somente_diff=None if somente_diff else "1"
@@ -18582,9 +18557,15 @@ def api_enviar_pedido_erp(request):
                     status=400,
                 )
             valor_fiado = valor_fiado_no_payload(data)
+            nome_fiado = ""
+            if agro_pk:
+                _cli_f = ClienteAgro.objects.filter(pk=agro_pk).only("nome").first()
+                if _cli_f:
+                    nome_fiado = (_cli_f.nome or "").strip()
             cred = resumo_credito_fiado_cliente(
                 cid,
                 cliente_agro_pk=agro_pk,
+                cliente_nome=nome_fiado,
                 valor_nova_venda_fiado=valor_fiado,
                 db=db,
                 client_m=client_m,

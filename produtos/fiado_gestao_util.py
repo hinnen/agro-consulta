@@ -41,6 +41,42 @@ def _dec(val) -> Decimal:
         return Decimal("0")
 
 
+def _q_fiado_tem_escopo(filtros: Q) -> bool:
+    """Q() vazio no Django casa com todos os registros — não é escopo de cliente."""
+    return bool(getattr(filtros, "children", None))
+
+
+def titulo_fiado_vencido(t: FiadoTituloAgro, *, hoje: date | None = None) -> bool:
+    ref = hoje or date.today()
+    if t.situacao in (
+        FiadoTituloAgro.Situacao.QUITADO,
+        FiadoTituloAgro.Situacao.CANCELADO,
+    ):
+        return False
+    return bool(t.vencimento and t.vencimento < ref and t.saldo_aberto > Decimal("0.009"))
+
+
+def vencidos_fiado_cliente(
+    *,
+    cliente_agro_pk: int | None = None,
+    cliente_nome: str = "",
+    cliente_codigo: str = "",
+    limit: int = 40,
+) -> tuple[list[dict[str, Any]], Decimal]:
+    titulos = listar_titulos(
+        cliente_agro_pk=cliente_agro_pk,
+        cliente_nome=cliente_nome,
+        cliente_codigo=cliente_codigo,
+        situacao="vencidos",
+        limit=limit,
+    )
+    total = sum(
+        (Decimal(str(t.get("saldo_aberto") or 0)) for t in titulos),
+        Decimal("0"),
+    ).quantize(Decimal("0.01"))
+    return titulos, total
+
+
 def _usuario_de_request(request) -> str:
     if not request or not getattr(request, "user", None):
         return ""
@@ -56,6 +92,9 @@ def _usuario_de_request(request) -> str:
 
 def titulo_para_dict(t: FiadoTituloAgro) -> dict[str, Any]:
     saldo = t.saldo_aberto
+    vencido = titulo_fiado_vencido(t)
+    situacao_resumo = "vencido" if vencido else t.situacao
+    situacao_label = "Vencido" if vencido else t.get_situacao_display()
     return {
         "id": t.pk,
         "cliente_agro_pk": t.cliente_agro_id,
@@ -70,7 +109,9 @@ def titulo_para_dict(t: FiadoTituloAgro) -> dict[str, Any]:
         "valor_pago": float(t.valor_pago),
         "saldo_aberto": float(saldo),
         "situacao": t.situacao,
-        "situacao_label": t.get_situacao_display(),
+        "situacao_resumo": situacao_resumo,
+        "situacao_label": situacao_label,
+        "vencido": vencido,
         "origem": t.origem,
         "descricao": t.descricao,
         "venda_agro_id": t.venda_agro_id,
@@ -138,7 +179,7 @@ def cliente_tem_ledger_fiado(
     cliente_agro_pk: int | None = None,
 ) -> bool:
     filtros = _filtro_titulos_cliente(cliente_id_erp, cliente_agro_pk=cliente_agro_pk)
-    if not filtros:
+    if not _q_fiado_tem_escopo(filtros):
         return FiadoTituloAgro.objects.exists()
     return FiadoTituloAgro.objects.filter(filtros).exists()
 
@@ -165,7 +206,7 @@ def valor_fiado_usado_cliente(
             cliente_agro_pk=agro_pk,
             cliente_codigo=cod,
         )
-    if filtros and FiadoTituloAgro.objects.filter(filtros).exists():
+    if _q_fiado_tem_escopo(filtros) and FiadoTituloAgro.objects.filter(filtros).exists():
         qs = FiadoTituloAgro.objects.filter(filtros).exclude(
             situacao__in=(
                 FiadoTituloAgro.Situacao.QUITADO,
@@ -696,7 +737,7 @@ def listar_clientes_fiado(
             g["titulos_abertos"] += 1
             if t.situacao == FiadoTituloAgro.Situacao.PARCIAL:
                 g["tem_parcial"] = True
-            if t.vencimento and t.vencimento < hoje:
+            if titulo_fiado_vencido(t, hoje=hoje):
                 g["tem_vencido"] = True
             if t.vencimento and (
                 g["vencimento_mais_antigo"] is None or t.vencimento < g["vencimento_mais_antigo"]
@@ -731,7 +772,7 @@ def listar_clientes_fiado(
         g["vencimento_mais_antigo_texto"] = venc.strftime("%d/%m/%Y") if venc else "—"
         if g.get("tem_vencido"):
             g["situacao_resumo"] = "vencido"
-            g["situacao_label"] = "Com vencido"
+            g["situacao_label"] = "Vencido"
         elif g.get("tem_parcial"):
             g["situacao_resumo"] = "parcial"
             g["situacao_label"] = "Parcial"

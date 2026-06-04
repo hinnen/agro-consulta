@@ -1294,12 +1294,14 @@
     }
 
     function mensagemBloqueioFiadoPendencia() {
-        if (!creditoFiadoCliente || !creditoFiadoCliente.tem_pendencia) return '';
+        if (!creditoFiadoCliente) return '';
+        if (!creditoFiadoCliente.tem_vencido && !creditoFiadoCliente.bloqueado_nova_venda) return '';
         return (
             creditoFiadoCliente.bloqueado_motivo ||
-            'Cliente com fiado em aberto (' +
-                (creditoFiadoCliente.usado_texto || formatMoney(creditoFiadoCliente.usado || 0)) +
-                '). Quite o saldo antes de nova venda fiado.'
+            'Cliente com fiado vencido (' +
+                (creditoFiadoCliente.total_vencido_texto ||
+                    formatMoney(creditoFiadoCliente.total_vencido || 0)) +
+                '). Quite os vencidos antes de nova venda fiado.'
         );
     }
 
@@ -1317,12 +1319,16 @@
         var cf = creditoFiadoCliente;
         var cidKey = clienteFiadoQueryKey(state);
         if (cf && creditoFiadoClienteId === cidKey) {
-            dom.productFiadoBalance.textContent = cf.usado_texto || formatMoney(cf.usado || 0);
-            var tip = cf.tem_pendencia
-                ? mensagemBloqueioFiadoPendencia() + ' · clique para gerir'
-                : 'Saldo fiado em aberto · clique para gerir';
-            if (!cf.tem_pendencia && cf.disponivel_texto) {
-                tip += ' · disponível p/ nova venda ' + cf.disponivel_texto;
+            var saldoDevedor = State.toNumber(cf.usado);
+            if (!isFinite(saldoDevedor) || saldoDevedor < 0) saldoDevedor = 0;
+            dom.productFiadoBalance.textContent = formatMoney(saldoDevedor);
+            var tip = 'Saldo devedor (fiado em aberto) · clique para gerir';
+            if (cf.tem_vencido || cf.bloqueado_nova_venda) {
+                tip = mensagemBloqueioFiadoPendencia() + ' · clique para gerir';
+            } else if (saldoDevedor > 0.009) {
+                tip = 'Saldo fiado em aberto · clique para gerir';
+            } else {
+                tip = 'Sem saldo fiado em aberto';
             }
             dom.productFiadoBalance.title = tip;
         } else {

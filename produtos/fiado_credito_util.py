@@ -425,12 +425,25 @@ def resumo_credito_fiado_cliente(
     novo = _dec(valor_nova_venda_fiado) if valor_nova_venda_fiado is not None else Decimal("0")
     apos = (disponivel - novo).quantize(Decimal("0.01"))
     tem_pendencia = usado > Decimal("0.009")
-    bloqueado_nova_venda = tem_pendencia
+
+    from produtos.fiado_gestao_util import vencidos_fiado_cliente
+
+    cod_cli = erp_id or (
+        str(cliente_id_erp).strip() if str(cliente_id_erp or "").strip().isdigit() else ""
+    )
+    titulos_venc, total_venc = vencidos_fiado_cliente(
+        cliente_agro_pk=agro_pk if not nome_cli else None,
+        cliente_nome=nome_cli,
+        cliente_codigo=cod_cli if not nome_cli else "",
+        limit=40,
+    )
+    tem_vencido = bool(titulos_venc) and total_venc > Decimal("0.009")
+    bloqueado_nova_venda = tem_vencido
     bloqueado_motivo = ""
-    if bloqueado_nova_venda:
+    if tem_vencido:
         bloqueado_motivo = (
-            f"Cliente com fiado em aberto ({f'R$ {usado:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')}). "
-            "Quite o saldo antes de nova venda fiado."
+            f"Cliente com fiado vencido ({f'R$ {total_venc:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')}). "
+            "Quite os títulos vencidos antes de nova venda fiado."
         )
     return {
         "ok": True,
@@ -445,6 +458,12 @@ def resumo_credito_fiado_cliente(
         "limite_padrao": padrao,
         "permite_fiado": bool(erp_id or agro_pk),
         "tem_pendencia": tem_pendencia,
+        "tem_vencido": tem_vencido,
+        "titulos_vencidos": titulos_venc,
+        "total_vencido": float(total_venc),
+        "total_vencido_texto": f"R$ {total_venc:,.2f}".replace(",", "X")
+        .replace(".", ",")
+        .replace("X", "."),
         "bloqueado_nova_venda": bloqueado_nova_venda,
         "bloqueado_motivo": bloqueado_motivo,
         "apos_venda": float(apos),

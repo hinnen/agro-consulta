@@ -153,6 +153,7 @@
   }
 
   function situacaoTituloClass(s) {
+    if (s === 'vencido') return 'text-red-700 bg-red-50';
     if (s === 'parcial') return 'text-amber-800 bg-amber-50';
     if (s === 'quitado') return 'text-slate-600 bg-slate-100';
     if (s === 'cancelado') return 'text-slate-500 bg-slate-50';
@@ -262,16 +263,23 @@
     }
     el.tbodyTitulos.innerHTML = titulosCache.map(function (t) {
       const parcela = t.parcela_total > 1 ? (t.parcela_num + '/' + t.parcela_total) : '—';
+      const sit = t.situacao_resumo || t.situacao || '';
+      const rowCls =
+        sit === 'vencido' || t.vencido ? ' fiado-tit-vencido' : '';
       return (
-        '<tr class="border-t border-slate-100" data-id="' + t.id + '">' +
+        '<tr class="border-t border-slate-100' + rowCls + '" data-id="' + t.id + '">' +
         '<td><input type="checkbox" class="fiado-tit-chk rounded border-slate-300" data-id="' + t.id + '" aria-label="Selecionar"></td>' +
         '<td class="font-bold text-slate-900 max-w-[10rem] truncate" title="' + esc(t.numero_documento) + '">' + esc(t.numero_documento || '—') + '</td>' +
         '<td class="tabular-nums font-semibold">' + parcela + '</td>' +
-        '<td class="font-bold whitespace-nowrap">' + esc(t.vencimento_texto || '—') + '</td>' +
+        '<td class="font-bold whitespace-nowrap' +
+        (sit === 'vencido' || t.vencido ? ' fiado-tit-venc-data' : '') +
+        '">' +
+        esc(t.vencimento_texto || '—') +
+        '</td>' +
         '<td class="text-right tabular-nums">' + fmtMoeda(t.valor_bruto) + '</td>' +
         '<td class="text-right tabular-nums text-slate-600">' + fmtMoeda(t.valor_pago) + '</td>' +
         '<td class="text-right tabular-nums font-black text-orange-800">' + fmtMoeda(t.saldo_aberto) + '</td>' +
-        '<td><span class="inline-block rounded-lg px-2 py-0.5 text-[10px] font-black uppercase ' + situacaoTituloClass(t.situacao) + '">' + esc(t.situacao_label) + '</span></td>' +
+        '<td><span class="inline-block rounded-lg px-2 py-0.5 text-[10px] font-black uppercase ' + situacaoTituloClass(sit) + '">' + esc(t.situacao_label || '—') + '</span></td>' +
         '<td class="text-right whitespace-nowrap">' +
         '<button type="button" class="fiado-btn-baixa-tit min-h-[38px] px-2.5 rounded-xl bg-orange-600 text-white text-[10px] font-black uppercase" data-id="' + t.id + '" data-saldo="' + t.saldo_aberto + '" data-doc="' + esc(t.numero_documento || '') + '">Baixa</button> ' +
         '<button type="button" class="fiado-btn-editar-tit min-h-[38px] px-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-[10px] font-black uppercase" data-id="' + t.id + '">Editar</button>' +
