@@ -7827,15 +7827,12 @@ def api_pdv_cliente_credito_fiado(request):
         valor_novo = Decimal(str(request.GET.get("valor_fiado") or "0").replace(",", "."))
     except Exception:
         valor_novo = Decimal("0")
-    client_m, db = obter_conexao_mongo()
     nome_cred = str(request.GET.get("cliente_nome") or "").strip()
     cred = resumo_credito_fiado_cliente(
         cid,
         cliente_agro_pk=agro_pk,
         cliente_nome=nome_cred,
         valor_nova_venda_fiado=valor_novo if valor_novo > 0 else None,
-        db=db,
-        client_m=client_m,
     )
     cli = None
     if agro_pk:
@@ -18557,18 +18554,16 @@ def api_enviar_pedido_erp(request):
                     status=400,
                 )
             valor_fiado = valor_fiado_no_payload(data)
-            nome_fiado = ""
+            nome_fiado = str(data.get("cliente") or data.get("cliente_nome") or "").strip()
             if agro_pk:
                 _cli_f = ClienteAgro.objects.filter(pk=agro_pk).only("nome").first()
-                if _cli_f:
+                if _cli_f and not nome_fiado:
                     nome_fiado = (_cli_f.nome or "").strip()
             cred = resumo_credito_fiado_cliente(
                 cid,
                 cliente_agro_pk=agro_pk,
                 cliente_nome=nome_fiado,
                 valor_nova_venda_fiado=valor_fiado,
-                db=db,
-                client_m=client_m,
             )
             if cred.get("bloqueado_nova_venda"):
                 return JsonResponse(

@@ -97,10 +97,11 @@ def _ler_linhas(path: Path) -> tuple[list[str], list[dict[str, Any]]]:
 
 
 def _norm_nome_fiado_match(s: str) -> str:
-    """Chave de casamento: ignora prefixo numérico, parênteses e sufixo « a » solto."""
+    """Chave de casamento: ignora prefixo numérico, parênteses, emoji e sufixo « a » solto."""
     t = _norm_nome_match_key(s)
+    t = re.sub(r"^[^A-Z0-9ÁÉÍÓÚÃÕÇ\s]+", "", t)
     t = re.sub(r"\([^)]*\)", " ", t)
-    t = re.sub(r"\s+[A-ZÁÉÍÓÚ]$", "", t)
+    t = re.sub(r"\s+[A-ZÁÉÍÓÚÃÕÇ]$", "", t)
     t = re.sub(r"\s+", " ", t).strip()
     return t
 

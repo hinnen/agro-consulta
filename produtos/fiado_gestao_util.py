@@ -17,7 +17,6 @@ from produtos.fiado_credito_util import (
     fiado_limite_padrao,
     montar_cronograma_fiado,
     resolver_cliente_fiado,
-    valor_fiado_usado_cliente_vendas,
     valor_fiado_venda_local,
     venda_local_tem_fiado,
 )
@@ -39,6 +38,44 @@ def _dec(val) -> Decimal:
         return Decimal(str(val).replace(",", ".")).quantize(Decimal("0.01"))
     except Exception:
         return Decimal("0")
+
+
+def nome_para_consulta_fiado(
+    cliente_nome: str = "",
+    *,
+    cliente_id_erp: str = "",
+    cliente_agro_pk: int | None = None,
+) -> str:
+    """
+    Nome usado na consulta de títulos (mesma chave da grade / gestão fiado).
+    Une cadastro PDV, ClienteAgro e nomes já gravados nos títulos.
+    """
+    from produtos.fiado_import_util import _norm_nome_fiado_match
+
+    _, _, cli = resolver_cliente_fiado(cliente_id_erp, cliente_agro_pk=cliente_agro_pk)
+    brutos: list[str] = []
+    if (cliente_nome or "").strip():
+        brutos.append(str(cliente_nome).strip())
+    if cli and (cli.nome or "").strip():
+        brutos.append(str(cli.nome).strip())
+    if not brutos:
+        return ""
+    chaves = {_norm_nome_fiado_match(n) for n in brutos}
+    chave = chaves.pop() if len(chaves) == 1 else _norm_nome_fiado_match(brutos[0])
+    nomes_tit = (
+        FiadoTituloAgro.objects.exclude(
+            situacao__in=(
+                FiadoTituloAgro.Situacao.QUITADO,
+                FiadoTituloAgro.Situacao.CANCELADO,
+            )
+        )
+        .values_list("cliente_nome", flat=True)
+        .distinct()
+    )
+    matching = [n for n in nomes_tit if n and _norm_nome_fiado_match(n) == chave]
+    if matching:
+        return max(matching, key=lambda x: (len(x), x))
+    return brutos[0]
 
 
 def _q_fiado_tem_escopo(filtros: Q) -> bool:
@@ -194,34 +231,40 @@ def valor_fiado_usado_cliente(
     """
     Saldo de fiado em aberto: soma títulos quando existir ledger; senão vendas legadas.
     """
-    erp_id, agro_pk, cli = resolver_cliente_fiado(cliente_id_erp, cliente_agro_pk=cliente_agro_pk)
-    nome = (cliente_nome or "").strip() or ((cli.nome or "").strip() if cli else "")
-    cod = (erp_id or "").strip()
-    if not cod:
-        cod = str(cliente_id_erp or "").strip() if str(cliente_id_erp or "").strip().isdigit() else ""
+    nome = nome_para_consulta_fiado(
+        cliente_nome,
+        cliente_id_erp=cliente_id_erp,
+        cliente_agro_pk=cliente_agro_pk,
+    )
     if nome:
         filtros = _q_titulos_cliente_gestao(cliente_nome=nome)
     else:
+        erp_id, agro_pk, _cli = resolver_cliente_fiado(
+            cliente_id_erp, cliente_agro_pk=cliente_agro_pk
+        )
+        cod = (erp_id or "").strip()
+        if not cod:
+            cod = (
+                str(cliente_id_erp or "").strip()
+                if str(cliente_id_erp or "").strip().isdigit()
+                else ""
+            )
         filtros = _q_titulos_cliente_gestao(
             cliente_agro_pk=agro_pk,
             cliente_codigo=cod,
         )
-    if _q_fiado_tem_escopo(filtros) and FiadoTituloAgro.objects.filter(filtros).exists():
-        qs = FiadoTituloAgro.objects.filter(filtros).exclude(
-            situacao__in=(
-                FiadoTituloAgro.Situacao.QUITADO,
-                FiadoTituloAgro.Situacao.CANCELADO,
-            )
+    if not _q_fiado_tem_escopo(filtros):
+        return Decimal("0")
+    qs = FiadoTituloAgro.objects.filter(filtros).exclude(
+        situacao__in=(
+            FiadoTituloAgro.Situacao.QUITADO,
+            FiadoTituloAgro.Situacao.CANCELADO,
         )
-        total = Decimal("0")
-        for t in qs.only("valor_bruto", "valor_pago", "situacao"):
-            total += t.saldo_aberto
-        return total.quantize(Decimal("0.01"))
-    return valor_fiado_usado_cliente_vendas(
-        cliente_id_erp,
-        cliente_agro_pk=cliente_agro_pk,
-        excluir_venda_id=excluir_venda_id,
     )
+    total = Decimal("0")
+    for t in qs.only("valor_bruto", "valor_pago", "situacao"):
+        total += t.saldo_aberto
+    return total.quantize(Decimal("0.01"))
 
 
 def _parse_vencimento(row: dict, fallback: date) -> date:
