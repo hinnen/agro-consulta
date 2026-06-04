@@ -10,6 +10,7 @@ from pathlib import Path
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
 from produtos.caixa_util import obter_sessao_caixa_aberta_request, parse_valor_moeda_br
@@ -364,6 +365,8 @@ def api_fiado_importar_planilha(request):
         return JsonResponse({"ok": True, **r, "resumo": resumo_gestao_fiado()})
     except ValueError as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+    except Exception as exc:
+        return JsonResponse({"ok": False, "erro": str(exc) or "Erro ao importar."}, status=500)
     finally:
         try:
             if "tmp_path" in locals() and tmp_path.exists():

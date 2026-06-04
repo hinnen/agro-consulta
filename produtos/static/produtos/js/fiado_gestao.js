@@ -70,6 +70,8 @@
   }
 
   function csrfToken() {
+    const meta = document.querySelector('meta[name="csrfmiddlewaretoken"]');
+    if (meta && meta.getAttribute('content')) return meta.getAttribute('content');
     const m = document.cookie.match(/csrftoken=([^;]+)/);
     return m ? decodeURIComponent(m[1]) : '';
   }
@@ -134,7 +136,10 @@
     const r = await fetch(url, opts);
     const j = await r.json().catch(function () { return {}; });
     if (!r.ok || j.ok === false) {
-      throw new Error(j.erro || j.mensagem || 'Falha na requisição.');
+      let msg = j.erro || j.mensagem || '';
+      if (!msg && r.status === 403) msg = 'Sessão expirada ou CSRF inválido — recarregue a página (F5) e tente de novo.';
+      if (!msg) msg = 'Falha na requisição (HTTP ' + r.status + ').';
+      throw new Error(msg);
     }
     return j;
   }
