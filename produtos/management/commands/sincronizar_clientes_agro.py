@@ -1,7 +1,12 @@
 from django.core.cache import cache
 from django.core.management.base import BaseCommand
 
-from produtos.clientes_sync_web_state import mark_done, mark_failed, mark_running
+from produtos.clientes_sync_web_state import (
+    marcar_clientes_sync_erp_finalizado,
+    mark_done,
+    mark_failed,
+    mark_running,
+)
 from produtos.services_clientes_sync import (
     CLIENTES_SYNC_LOCK_KEY,
     CLIENTES_SYNC_RESULT_KEY,
@@ -32,6 +37,8 @@ class Command(BaseCommand):
             r = sincronizar_clientes_fontes_para_agro()
             if web:
                 mark_done(r)
+                if r.get("ok"):
+                    marcar_clientes_sync_erp_finalizado()
                 cache.set(CLIENTES_SYNC_RESULT_KEY, r, timeout=600)
                 cache.delete(API_LIST_CUSTOMERS_CACHE_KEY)
             self.stdout.write(self.style.SUCCESS(str(r)))
