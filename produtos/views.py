@@ -7828,9 +7828,11 @@ def api_pdv_cliente_credito_fiado(request):
     except Exception:
         valor_novo = Decimal("0")
     client_m, db = obter_conexao_mongo()
+    nome_cred = str(request.GET.get("cliente_nome") or "").strip()
     cred = resumo_credito_fiado_cliente(
         cid,
         cliente_agro_pk=agro_pk,
+        cliente_nome=nome_cred,
         valor_nova_venda_fiado=valor_novo if valor_novo > 0 else None,
         db=db,
         client_m=client_m,
@@ -7870,15 +7872,22 @@ def api_pdv_cliente_credito_fiado(request):
         cod_tit = cid
     elif erp_res:
         cod_tit = erp_res
+    nome_req = str(request.GET.get("cliente_nome") or "").strip()
+    if nome_req:
+        nome_tit = nome_req
+    if nome_tit:
+        pk_tit = None
     titulos_venc = listar_titulos(
         cliente_agro_pk=pk_tit,
-        cliente_nome=nome_tit if not pk_tit else "",
-        cliente_codigo=cod_tit if not pk_tit else "",
+        cliente_nome=nome_tit,
+        cliente_codigo=cod_tit if not nome_tit else "",
         situacao="vencidos",
         limit=40,
     )
-    total_venc = sum(Decimal(str(t.get("saldo_aberto") or 0)) for t in titulos_venc)
-    total_venc = total_venc.quantize(Decimal("0.01"))
+    total_venc = sum(
+        (Decimal(str(t.get("saldo_aberto") or 0)) for t in titulos_venc),
+        Decimal("0"),
+    ).quantize(Decimal("0.01"))
     cred["tem_vencido"] = bool(titulos_venc)
     cred["titulos_vencidos"] = titulos_venc
     cred["total_vencido"] = float(total_venc)

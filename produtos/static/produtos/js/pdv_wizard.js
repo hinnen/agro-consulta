@@ -1,7 +1,9 @@
 (function () {
     'use strict';
 
-    var bootstrapEl = document.getElementById('agro-pdv-wizard-bootstrap');
+    var bootstrapEl =
+        document.getElementById('agro-pdv-wizard-bootstrap') ||
+        document.getElementById('agro-pdv-bootstrap');
     var bootstrap = {};
     try {
         bootstrap = bootstrapEl ? JSON.parse(bootstrapEl.textContent || '{}') : {};
@@ -1414,11 +1416,12 @@
         }
         var c = state.cliente;
         var cidKey = clienteFiadoQueryKey(state);
-        if (!opts.force && creditoFiadoClienteId === cidKey) {
+        if (!opts.force && creditoFiadoClienteId === cidKey && creditoFiadoCliente) {
             return Promise.resolve();
         }
         creditoFiadoClienteId = cidKey;
         creditoFiadoCliente = null;
+        renderProductFiadoBalance(state);
         var q = url + (url.indexOf('?') >= 0 ? '&' : '?');
         if (c.cliente_agro_pk != null) {
             q += 'cliente_agro_pk=' + encodeURIComponent(String(c.cliente_agro_pk));
@@ -1427,6 +1430,9 @@
             }
         } else {
             q += 'cliente_id=' + encodeURIComponent(String(c.id || '').trim());
+        }
+        if (String(c.nome || '').trim()) {
+            q += '&cliente_nome=' + encodeURIComponent(String(c.nome).trim());
         }
         if (valorFiadoPendente != null && State.toNumber(valorFiadoPendente) > 0.009) {
             q += '&valor_fiado=' + encodeURIComponent(String(valorFiadoPendente).replace('.', ','));
@@ -1914,9 +1920,13 @@
         updateSearchAwaitingPulse();
         renderRecentBudgetsSnippet();
         var cidKeyNow = clienteFiadoQueryKey(state);
-        if (clientePodeFiado(state) && cidKeyNow && cidKeyNow !== creditoFiadoClienteId) {
+        if (
+            clientePodeFiado(state) &&
+            cidKeyNow &&
+            (cidKeyNow !== creditoFiadoClienteId || !creditoFiadoCliente)
+        ) {
             refreshCreditoFiadoCliente(valorFiadoNosLancamentos(state), {
-                force: true,
+                force: !creditoFiadoCliente,
                 showVencidosAlert: true,
             });
         } else if (!clientePodeFiado(state) && creditoFiadoClienteId) {

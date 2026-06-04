@@ -147,12 +147,24 @@ def valor_fiado_usado_cliente(
     cliente_id_erp: str = "",
     *,
     cliente_agro_pk: int | None = None,
+    cliente_nome: str = "",
     excluir_venda_id: int | None = None,
 ) -> Decimal:
     """
     Saldo de fiado em aberto: soma títulos quando existir ledger; senão vendas legadas.
     """
-    filtros = _filtro_titulos_cliente(cliente_id_erp, cliente_agro_pk=cliente_agro_pk)
+    erp_id, agro_pk, cli = resolver_cliente_fiado(cliente_id_erp, cliente_agro_pk=cliente_agro_pk)
+    nome = (cliente_nome or "").strip() or ((cli.nome or "").strip() if cli else "")
+    cod = (erp_id or "").strip()
+    if not cod:
+        cod = str(cliente_id_erp or "").strip() if str(cliente_id_erp or "").strip().isdigit() else ""
+    if nome:
+        filtros = _q_titulos_cliente_gestao(cliente_nome=nome)
+    else:
+        filtros = _q_titulos_cliente_gestao(
+            cliente_agro_pk=agro_pk,
+            cliente_codigo=cod,
+        )
     if filtros and FiadoTituloAgro.objects.filter(filtros).exists():
         qs = FiadoTituloAgro.objects.filter(filtros).exclude(
             situacao__in=(
