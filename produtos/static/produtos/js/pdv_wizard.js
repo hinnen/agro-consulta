@@ -1254,11 +1254,41 @@
         if (st && st.cliente && st.cliente.cliente_agro_pk != null) {
             u += '&cliente=' + encodeURIComponent(String(st.cliente.cliente_agro_pk));
         }
-        return u;
+        try {
+            return new URL(u, window.location.origin).href;
+        } catch (eUrl) {
+            return u;
+        }
+    }
+
+    /** Abre em aba do SisVale (shell lateral) quando o PDV está em iframe; senão navega na mesma janela. */
+    function navegarAgroInApp(href) {
+        var url = String(href || '').trim();
+        if (!url) return;
+        try {
+            if (!/^https?:\/\//i.test(url)) {
+                url = new URL(url, window.location.origin).href;
+            }
+        } catch (eAbs) {
+            return;
+        }
+        try {
+            if (window.top && window.top !== window) {
+                window.top.postMessage({ type: 'agro-open-inapp-tab', href: url }, window.location.origin);
+                return;
+            }
+        } catch (ePm) {}
+        try {
+            if (window.top && window.top !== window && typeof window.top.__agroInAppAddTab === 'function') {
+                window.top.__agroInAppAddTab(url);
+                return;
+            }
+        } catch (eTab) {}
+        window.location.href = url;
     }
 
     function openFiadoGestao() {
-        window.location.href = buildFiadoGestaoUrl(State.getState());
+        navegarAgroInApp(buildFiadoGestaoUrl(State.getState()));
     }
 
     function mensagemBloqueioFiadoPendencia() {
@@ -1351,6 +1381,7 @@
         }
         if (dom.fiadoVencidosGestao) {
             dom.fiadoVencidosGestao.href = buildFiadoGestaoUrl(st);
+            dom.fiadoVencidosGestao.title = 'Abrir gestão fiado (nova aba no menu lateral)';
         }
         dom.fiadoVencidosModal.classList.remove('hidden');
         dom.fiadoVencidosModal.classList.add('flex');
@@ -5549,6 +5580,12 @@
         }
         if (dom.topbarFiadoLink) {
             dom.topbarFiadoLink.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                openFiadoGestao();
+            });
+        }
+        if (dom.fiadoVencidosGestao) {
+            dom.fiadoVencidosGestao.addEventListener('click', function (ev) {
                 ev.preventDefault();
                 openFiadoGestao();
             });
