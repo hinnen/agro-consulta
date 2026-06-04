@@ -7772,6 +7772,8 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
             "apiTodosProdutosLocal": reverse("api_todos_produtos_local"),
             "apiEnviarPedidoErp": reverse("api_enviar_pedido_erp"),
             "apiPdvClienteRapido": reverse("api_pdv_cliente_rapido"),
+            "apiPdvClienteCreditoFiado": reverse("api_pdv_cliente_credito_fiado"),
+            "fiadoGestao": reverse("fiado_gestao"),
             "pdvRootUrl": pdv_root_url,
         },
         "assets": {
