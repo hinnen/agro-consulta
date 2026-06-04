@@ -192,7 +192,7 @@
     clientesCache = clientes || [];
     if (!el.tbody) return;
     if (!clientesCache.length) {
-      el.tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-10 text-center text-sm font-bold text-slate-500">Nenhum cliente com saldo em aberto.</td></tr>';
+      el.tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-10 text-center text-sm font-bold text-slate-500">Nenhum cliente com saldo em aberto.</td></tr>';
       return;
     }
     el.tbody.innerHTML = clientesCache.map(function (c) {
@@ -200,8 +200,7 @@
       const destaque = CFG.clientePrePk && pk === CFG.clientePrePk ? ' ring-2 ring-inset ring-orange-300 bg-orange-50' : '';
       return (
         '<tr class="fiado-cli-row border-t border-slate-100' + destaque + '" data-pk="' + esc(pk || '') + '" data-nome="' + esc(c.cliente_nome) + '" data-codigo="' + esc(c.cliente_codigo || '') + '" data-saldo="' + c.saldo_aberto + '" data-titulos="' + (c.titulos_abertos || 0) + '">' +
-        '<td class="font-black text-slate-900 max-w-[14rem] truncate" title="' + esc(c.cliente_nome) + '">' + esc(c.cliente_nome) + '</td>' +
-        '<td class="text-xs font-bold text-slate-500 tabular-nums">' + esc(c.cliente_codigo || '—') + '</td>' +
+        '<td class="font-black text-slate-900 max-w-[16rem] truncate" title="' + esc(c.cliente_nome) + '">' + esc(c.cliente_nome) + '</td>' +
         '<td class="text-center font-bold tabular-nums">' + (c.titulos_abertos || 0) + '</td>' +
         '<td class="font-bold whitespace-nowrap">' + esc(c.vencimento_mais_antigo_texto || '—') + '</td>' +
         '<td class="text-right tabular-nums font-semibold">' + fmtMoeda(c.valor_bruto) + '</td>' +
@@ -218,9 +217,12 @@
 
   function titulosQueryParams(cli) {
     const qs = new URLSearchParams({ situacao: 'abertos', limit: '500' });
-    if (cli.pk) qs.set('cliente_agro_pk', String(cli.pk));
-    else {
-      qs.set('cliente_nome', cli.nome || '');
+    const nome = String(cli.nome || '').trim();
+    if (nome) {
+      qs.set('cliente_nome', nome);
+    } else if (cli.pk) {
+      qs.set('cliente_agro_pk', String(cli.pk));
+    } else {
       if (cli.codigo) qs.set('cliente_codigo', cli.codigo);
     }
     return qs.toString();
@@ -262,7 +264,7 @@
       const parcela = t.parcela_total > 1 ? (t.parcela_num + '/' + t.parcela_total) : '—';
       return (
         '<tr class="border-t border-slate-100" data-id="' + t.id + '">' +
-        '<td><input type="checkbox" class="fiado-tit-chk h-4 w-4 rounded border-slate-300" data-id="' + t.id + '" aria-label="Selecionar"></td>' +
+        '<td><input type="checkbox" class="fiado-tit-chk rounded border-slate-300" data-id="' + t.id + '" aria-label="Selecionar"></td>' +
         '<td class="font-bold text-slate-900 max-w-[10rem] truncate" title="' + esc(t.numero_documento) + '">' + esc(t.numero_documento || '—') + '</td>' +
         '<td class="tabular-nums font-semibold">' + parcela + '</td>' +
         '<td class="font-bold whitespace-nowrap">' + esc(t.vencimento_texto || '—') + '</td>' +

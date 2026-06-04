@@ -291,6 +291,7 @@ def valor_fiado_usado_cliente(
     cliente_id_erp: str = "",
     *,
     cliente_agro_pk: int | None = None,
+    cliente_nome: str = "",
     excluir_venda_id: int | None = None,
 ) -> Decimal:
     try:
@@ -299,6 +300,7 @@ def valor_fiado_usado_cliente(
         return _usado_titulos(
             cliente_id_erp,
             cliente_agro_pk=cliente_agro_pk,
+            cliente_nome=cliente_nome,
             excluir_venda_id=excluir_venda_id,
         )
     except Exception:
@@ -394,6 +396,7 @@ def resumo_credito_fiado_cliente(
     cliente_id_erp: str = "",
     *,
     cliente_agro_pk: int | None = None,
+    cliente_nome: str = "",
     valor_nova_venda_fiado: Decimal | None = None,
     excluir_venda_id: int | None = None,
     db=None,
@@ -411,9 +414,11 @@ def resumo_credito_fiado_cliente(
     if limite_local > 0:
         limite = limite_local
         padrao = False
+    nome_cli = (cliente_nome or "").strip() or ((cli.nome or "").strip() if cli else "")
     usado = valor_fiado_usado_cliente(
         cliente_id_erp,
         cliente_agro_pk=agro_pk,
+        cliente_nome=nome_cli,
         excluir_venda_id=excluir_venda_id,
     )
     disponivel = (limite - usado).quantize(Decimal("0.01"))
