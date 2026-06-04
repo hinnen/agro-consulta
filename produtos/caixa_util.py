@@ -8,6 +8,8 @@ from collections import defaultdict
 from decimal import Decimal
 from typing import Any
 
+from django.utils import timezone
+
 FORMAS_PAGAMENTO_CAIXA: tuple[str, ...] = (
     "Dinheiro",
     "PIX",
@@ -541,6 +543,46 @@ def rotulo_ponto_caixa(ponto: str | None) -> str:
         if cod == (ponto or "").strip().lower():
             return rot
     return "Caixa"
+
+
+def rotulo_sessao_caixa(sessao, *, com_turno: bool = True) -> str:
+    """
+    Rótulo legível da sessão: ponto fixo (Gaveta / Teste) + id do turno.
+    O número (#11, #12…) é a abertura/fechamento daquele dia, não outro caixa físico.
+    """
+    if isinstance(sessao, dict):
+        ponto = sessao.get("ponto_caixa")
+        pk = sessao.get("pk")
+    else:
+        ponto = getattr(sessao, "ponto_caixa", PONTO_CAIXA_GAVETA)
+        pk = getattr(sessao, "pk", None)
+    rot = rotulo_ponto_caixa(ponto)
+    if com_turno and pk is not None:
+        return f"{rot} · turno #{pk}"
+    return rot
+
+
+def quando_sessao_caixa_local(dt) -> str:
+    if not dt:
+        return ""
+    try:
+        return timezone.localtime(dt).strftime("%d/%m/%Y %H:%M")
+    except Exception:
+        return ""
+
+
+def formatar_opcao_sessao_caixa(row: dict) -> str:
+    """Texto do filtro «Caixa» em relatórios (ponto + data + turno)."""
+    rot = rotulo_ponto_caixa(row.get("ponto_caixa"))
+    pk = row.get("pk")
+    when = row.get("fechado_em") or row.get("aberto_em")
+    txt = quando_sessao_caixa_local(when)
+    partes = [rot]
+    if txt:
+        partes.append(txt)
+    if pk is not None:
+        partes.append(f"#{pk}")
+    return " · ".join(partes)
 
 
 def obter_caixa_gaveta_aberto():

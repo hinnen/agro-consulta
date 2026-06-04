@@ -12,8 +12,11 @@ from django.utils import timezone
 from produtos.caixa_util import (
     FORMAS_PAGAMENTO_CAIXA,
     extrair_linhas_conferencia_sessao,
+    formatar_opcao_sessao_caixa,
     normalizar_forma_pagamento_caixa,
     pagamentos_por_forma_venda,
+    rotulo_ponto_caixa,
+    rotulo_sessao_caixa,
     usuario_label_sessao_caixa,
 )
 from produtos.models import MovimentoCaixa, SessaoCaixa, VendaAgro
@@ -33,6 +36,31 @@ def _dt_range(di: date, df: date) -> tuple[datetime, datetime]:
     ini = timezone.make_aware(datetime.combine(di, time.min), tz)
     fim = timezone.make_aware(datetime.combine(df, time.max), tz)
     return ini, fim
+
+
+def rotulo_filtro_sessao_caixa(
+    sessoes_opts: list[dict[str, Any]], sessao_id: int | None
+) -> str:
+    if sessao_id is None:
+        return ""
+    for row in sessoes_opts:
+        try:
+            if int(row.get("pk")) == int(sessao_id):
+                return str(row.get("rotulo_opcao") or "").strip()
+        except (TypeError, ValueError):
+            continue
+    return f"turno #{sessao_id}"
+
+
+def _sessoes_opts_enriquecidas(df: date, *, limite: int = 80) -> list[dict[str, Any]]:
+    rows = list(
+        SessaoCaixa.objects.filter(fechado_em__date__lte=df)
+        .order_by("-fechado_em")[:limite]
+        .values("pk", "aberto_em", "fechado_em", "ponto_caixa")
+    )
+    for row in rows:
+        row["rotulo_opcao"] = formatar_opcao_sessao_caixa(row)
+    return rows
 
 
 def _eh_devolucao_mov(obs: str) -> bool:
@@ -315,11 +343,7 @@ def montar_relatorio_caixa(
 
     saldo = (tot_entrada - tot_saida).quantize(Decimal("0.01"))
 
-    sessoes_opts = list(
-        SessaoCaixa.objects.filter(aberto_em__date__lte=df)
-        .order_by("-aberto_em")[:80]
-        .values("pk", "aberto_em", "fechado_em")
-    )
+    sessoes_opts = _sessoes_opts_enriquecidas(df)
 
     return {
         "secoes": secoes,
@@ -405,6 +429,9 @@ def montar_relatorio_conferencias_caixa(
         sessoes_rows.append(
             {
                 "pk": s.pk,
+                "ponto_caixa": getattr(s, "ponto_caixa", "gaveta"),
+                "ponto_label": rotulo_ponto_caixa(getattr(s, "ponto_caixa", "gaveta")),
+                "rotulo": rotulo_sessao_caixa(s),
                 "fechado_em": s.fechado_em,
                 "aberto_em": s.aberto_em,
                 "usuario": usuario_label_sessao_caixa(s),
@@ -443,11 +470,7 @@ def montar_relatorio_conferencias_caixa(
             }
         )
 
-    sessoes_opts = list(
-        SessaoCaixa.objects.filter(fechado_em__date__lte=df)
-        .order_by("-fechado_em")[:80]
-        .values("pk", "aberto_em", "fechado_em")
-    )
+    sessoes_opts = _sessoes_opts_enriquecidas(df)
 
     return {
         "sessoes": sessoes_rows,

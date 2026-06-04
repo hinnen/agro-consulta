@@ -26,7 +26,8 @@
     <div class="cx-shell px-3 sm:px-5 py-2 flex flex-wrap justify-between items-center gap-2">
       <div class="min-w-0">
         <h1 class="text-[clamp(1rem,0.7vw+0.9rem,1.35rem)] font-black uppercase text-slate-900 leading-tight">Conferências · diferenças</h1>
-        <p class="text-xs font-bold text-slate-500 truncate">{{ periodo_label }}{% if filtro_sessao %} · Caixa #{{ filtro_sessao }}{% endif %}{% if somente_diff %} · só com diferença{% endif %}</p>
+        <p class="text-xs font-bold text-slate-500 truncate">{{ periodo_label }}{% if filtro_sessao_rotulo %} · {{ filtro_sessao_rotulo }}{% elif filtro_sessao %} · turno #{{ filtro_sessao }}{% endif %}{% if somente_diff %} · só com diferença{% endif %}</p>
+        <p class="text-[10px] font-semibold text-slate-400 hidden sm:block">O número do turno (#11, #12…) muda a cada abertura/fechamento; o ponto (Gaveta, Teste) é o caixa físico.</p>
       </div>
       <div class="flex flex-wrap gap-1.5 shrink-0">
         <a href="{% url 'caixa_relatorio' %}?{{ request.GET.urlencode }}" class="inline-flex items-center min-h-[40px] px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-black uppercase text-slate-700">Movimentos</a>
@@ -56,7 +57,7 @@
         <select name="sessao" id="id-sessao" class="mt-0.5 rounded-lg border-2 border-slate-200 px-2 py-1 text-sm font-bold min-h-[38px] min-w-[7rem]">
           <option value="">Todos</option>
           {% for s in sessoes_opts %}
-          <option value="{{ s.pk }}" {% if filtro_sessao == s.pk %}selected{% endif %}>#{{ s.pk }}</option>
+          <option value="{{ s.pk }}" {% if filtro_sessao == s.pk %}selected{% endif %}>{{ s.rotulo_opcao }}</option>
           {% endfor %}
         </select>
       </div>
@@ -117,7 +118,7 @@
       <details class="cx-sess rounded-xl border {% if s.tem_diferenca %}border-amber-400 bg-amber-50/30{% else %}border-slate-200 bg-white{% endif %} shadow-sm overflow-hidden" open>
         <summary class="cursor-pointer list-none px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 hover:bg-white/60 select-none">
           <div class="min-w-0">
-            <span class="text-sm font-black text-slate-900">Caixa #{{ s.pk }}</span>
+            <span class="text-sm font-black text-slate-900">{{ s.rotulo }}</span>
             <span class="text-xs font-bold text-slate-600 ml-2">{{ s.fechado_em|date:"d/m/Y H:i" }}</span>
             {% if s.usuario %}<span class="text-[10px] font-bold text-slate-500 block sm:inline sm:ml-2">{{ s.usuario }}</span>{% endif %}
           </div>
