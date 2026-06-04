@@ -25,6 +25,7 @@ from produtos.fiado_gestao_util import (
     export_backup_fiado,
     listar_clientes_fiado,
     listar_titulos,
+    resumo_from_clientes_fiado,
     resumo_gestao_fiado,
     titulo_para_dict,
 )
@@ -66,10 +67,12 @@ def api_fiado_resumo(request):
 def api_fiado_clientes(request):
     busca = (request.GET.get("q") or request.GET.get("busca") or "").strip()
     apenas = (request.GET.get("apenas_saldo") or "1").strip() != "0"
+    clientes = listar_clientes_fiado(busca=busca, apenas_com_saldo=apenas)
     return JsonResponse(
         {
             "ok": True,
-            "clientes": listar_clientes_fiado(busca=busca, apenas_com_saldo=apenas),
+            "clientes": clientes,
+            "resumo": resumo_from_clientes_fiado(clientes) if apenas else resumo_gestao_fiado(),
         }
     )
 
