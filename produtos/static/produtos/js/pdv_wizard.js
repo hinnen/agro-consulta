@@ -171,6 +171,12 @@
         productFiadoBalance: document.getElementById('pdv-product-fiado-balance'),
         fiadoGestaoOpen: document.getElementById('pdv-fiado-gestao-open'),
         topbarFiadoLink: document.getElementById('pdv-topbar-fiado-link'),
+        fiadoVencidosModal: document.getElementById('pdv-fiado-vencidos-modal'),
+        fiadoVencidosCliente: document.getElementById('pdv-fiado-vencidos-cliente'),
+        fiadoVencidosTotal: document.getElementById('pdv-fiado-vencidos-total'),
+        fiadoVencidosTbody: document.getElementById('pdv-fiado-vencidos-tbody'),
+        fiadoVencidosGestao: document.getElementById('pdv-fiado-vencidos-gestao'),
+        fiadoVencidosFechar: document.getElementById('pdv-fiado-vencidos-fechar'),
         productStepCount: document.getElementById('pdv-product-step-count'),
         clearItems: document.getElementById('pdv-clear-items'),
         step1Advance: document.getElementById('pdv-step1-advance'),
@@ -287,6 +293,7 @@
     var entregasPendentesCache = { total: 0, itens: [] };
     var creditoFiadoCliente = null;
     var creditoFiadoClienteId = '';
+    var fiadoVencidosAlertShownKey = '';
 
     function entregaPendenteApiUrl(template, pk) {
         return String(template || '').replace('__pk__', String(pk));
@@ -1300,6 +1307,69 @@
         }
     }
 
+    function closeFiadoVencidosModal() {
+        if (!dom.fiadoVencidosModal) return;
+        dom.fiadoVencidosModal.classList.add('hidden');
+        dom.fiadoVencidosModal.classList.remove('flex');
+        try {
+            document.body.style.overflow = '';
+        } catch (errFv) {}
+    }
+
+    function openFiadoVencidosModal(state) {
+        if (!dom.fiadoVencidosModal || !creditoFiadoCliente || !creditoFiadoCliente.tem_vencido) return;
+        var st = state || State.getState();
+        var titulos = creditoFiadoCliente.titulos_vencidos || [];
+        if (!titulos.length) return;
+        if (dom.fiadoVencidosCliente) {
+            dom.fiadoVencidosCliente.textContent = (st.cliente && st.cliente.nome) || 'Cliente';
+        }
+        if (dom.fiadoVencidosTotal) {
+            dom.fiadoVencidosTotal.textContent =
+                creditoFiadoCliente.total_vencido_texto ||
+                formatMoney(creditoFiadoCliente.total_vencido || 0);
+        }
+        if (dom.fiadoVencidosTbody) {
+            dom.fiadoVencidosTbody.innerHTML = titulos
+                .map(function (t) {
+                    return (
+                        '<tr class="border-t border-red-100">' +
+                        '<td class="py-2 pr-2 font-bold max-w-[10rem] truncate" title="' +
+                        escapeHtml(t.numero_documento || '') +
+                        '">' +
+                        escapeHtml(t.numero_documento || '—') +
+                        '</td>' +
+                        '<td class="py-2 pr-2 font-black text-red-800 whitespace-nowrap">' +
+                        escapeHtml(t.vencimento_texto || '—') +
+                        '</td>' +
+                        '<td class="py-2 text-right font-black tabular-nums text-red-900">' +
+                        escapeHtml(formatMoney(t.saldo_aberto || 0)) +
+                        '</td></tr>'
+                    );
+                })
+                .join('');
+        }
+        if (dom.fiadoVencidosGestao) {
+            dom.fiadoVencidosGestao.href = buildFiadoGestaoUrl(st);
+        }
+        dom.fiadoVencidosModal.classList.remove('hidden');
+        dom.fiadoVencidosModal.classList.add('flex');
+        try {
+            document.body.style.overflow = 'hidden';
+        } catch (errFv2) {}
+        if (dom.fiadoVencidosFechar) dom.fiadoVencidosFechar.focus();
+    }
+
+    function maybeShowFiadoVencidosAlert(state, opts) {
+        opts = opts || {};
+        if (!opts.showVencidosAlert) return;
+        var key = clienteFiadoQueryKey(state);
+        if (!key || key === fiadoVencidosAlertShownKey) return;
+        if (!creditoFiadoCliente || !creditoFiadoCliente.tem_vencido) return;
+        fiadoVencidosAlertShownKey = key;
+        openFiadoVencidosModal(state);
+    }
+
     function refreshCreditoFiadoCliente(valorFiadoPendente, opts) {
         opts = opts || {};
         var url = urls.apiPdvClienteCreditoFiado;
@@ -1308,6 +1378,7 @@
         if (!clientePodeFiado(state)) {
             creditoFiadoCliente = null;
             creditoFiadoClienteId = '';
+            fiadoVencidosAlertShownKey = '';
             return Promise.resolve();
         }
         var c = state.cliente;
@@ -1339,11 +1410,15 @@
                 } else {
                     creditoFiadoCliente = null;
                 }
+                maybeShowFiadoVencidosAlert(State.getState(), opts);
             })
             .catch(function () {
                 if (clienteFiadoQueryKey(State.getState()) === cidKey) {
                     creditoFiadoCliente = null;
                 }
+            })
+            .then(function () {
+                renderProductFiadoBalance(State.getState());
             });
     }
 
@@ -1809,8 +1884,9 @@
         renderRecentBudgetsSnippet();
         var cidKeyNow = clienteFiadoQueryKey(state);
         if (clientePodeFiado(state) && cidKeyNow && cidKeyNow !== creditoFiadoClienteId) {
-            refreshCreditoFiadoCliente(valorFiadoNosLancamentos(state), { force: true }).then(function () {
-                renderProductFiadoBalance(State.getState());
+            refreshCreditoFiadoCliente(valorFiadoNosLancamentos(state), {
+                force: true,
+                showVencidosAlert: true,
             });
         } else if (!clientePodeFiado(state) && creditoFiadoClienteId) {
             creditoFiadoCliente = null;
@@ -3082,7 +3158,7 @@
                     syncEntregaEnderecoFromCliente();
                     closeWizardQuickClientCadastro();
                     closeQuickClientPicker();
-                    refreshCreditoFiadoCliente(null, { force: true });
+                    refreshCreditoFiadoCliente(null, { force: true, showVencidosAlert: true });
                     return;
                 }
                 var err =
@@ -5181,7 +5257,7 @@
                 if (clientListSelectIdx >= 0 && clientListSelectIdx < clientes.length) {
                     State.setCliente(clientes[clientListSelectIdx], 'cliente');
                     syncEntregaEnderecoFromCliente();
-                    refreshCreditoFiadoCliente(null, { force: true });
+                    refreshCreditoFiadoCliente(null, { force: true, showVencidosAlert: true });
                     closeQuickClientPicker();
                 }
             }
@@ -5204,7 +5280,7 @@
             if (!cliente) return;
             State.setCliente(cliente, 'cliente');
             syncEntregaEnderecoFromCliente();
-            refreshCreditoFiadoCliente(null, { force: true });
+            refreshCreditoFiadoCliente(null, { force: true, showVencidosAlert: true });
             closeQuickClientPicker();
         });
 
@@ -5475,6 +5551,14 @@
             dom.topbarFiadoLink.addEventListener('click', function (ev) {
                 ev.preventDefault();
                 openFiadoGestao();
+            });
+        }
+        if (dom.fiadoVencidosFechar) {
+            dom.fiadoVencidosFechar.addEventListener('click', closeFiadoVencidosModal);
+        }
+        if (dom.fiadoVencidosModal) {
+            dom.fiadoVencidosModal.addEventListener('click', function (ev) {
+                if (ev.target === dom.fiadoVencidosModal) closeFiadoVencidosModal();
             });
         }
         if (dom.entregasPendentesClose) {

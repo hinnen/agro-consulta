@@ -45,6 +45,11 @@
     limiteAvulsoValor: document.getElementById('fiado-limite-avulso-valor'),
     formLimiteAvulso: document.getElementById('fiado-form-limite-avulso'),
     limiteFechar: document.getElementById('fiado-limite-fechar'),
+    emptyBanner: document.getElementById('fiado-empty-banner'),
+    formImportar: document.getElementById('fiado-form-importar'),
+    importArquivo: document.getElementById('fiado-import-arquivo'),
+    btnImportar: document.getElementById('fiado-btn-importar'),
+    importMsg: document.getElementById('fiado-import-msg'),
   };
 
   let baixaCtx = null;
@@ -153,6 +158,19 @@
     if (!resumo) return;
     if (el.kpiTotal) el.kpiTotal.textContent = fmtMoeda(resumo.total_saldo_aberto);
     if (el.kpiClientes) el.kpiClientes.textContent = String(resumo.clientes_com_saldo || 0);
+  }
+
+  function atualizarEmptyBanner(resumo) {
+    if (!el.emptyBanner || !resumo) return;
+    const vazio = (resumo.titulos_abertos || 0) === 0;
+    el.emptyBanner.classList.toggle('hidden', !vazio);
+  }
+
+  function mostrarImportMsg(texto, ok) {
+    if (!el.importMsg) return;
+    el.importMsg.textContent = texto || '';
+    el.importMsg.classList.remove('hidden', 'text-emerald-900', 'text-red-800');
+    el.importMsg.classList.add(ok ? 'text-emerald-900' : 'text-red-800');
   }
 
   function clienteFromRow(c) {
@@ -298,6 +316,7 @@
       ]);
       renderClientes(cli.clientes || []);
       atualizarKpis(res);
+      atualizarEmptyBanner(res);
       if (clienteModal && el.modalCliente && el.modalCliente.open) {
         const atual = (cli.clientes || []).find(function (c) {
           if (clienteModal.pk && c.cliente_agro_pk === clienteModal.pk) return true;
@@ -616,6 +635,43 @@
     el.editarCancelar.addEventListener('click', function () { el.modalEditar.close(); });
   }
   if (el.btnAtualizar) el.btnAtualizar.addEventListener('click', recarregar);
+
+  if (el.formImportar && urls.importar) {
+    el.formImportar.addEventListener('submit', async function (ev) {
+      ev.preventDefault();
+      const arquivo = el.importArquivo && el.importArquivo.files && el.importArquivo.files[0];
+      if (!arquivo) {
+        mostrarImportMsg('Selecione um arquivo CSV ou XLSX.', false);
+        return;
+      }
+      const fd = new FormData();
+      fd.append('arquivo', arquivo);
+      if (el.btnImportar) el.btnImportar.disabled = true;
+      mostrarImportMsg('Importando…', true);
+      try {
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        const j = await fetchJson(urls.importar, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrfToken() },
+          body: fd,
+        });
+        const partes = [];
+        if (j.criados != null) partes.push(j.criados + ' novo(s)');
+        if (j.atualizados != null && j.atualizados > 0) partes.push(j.atualizados + ' atualizado(s)');
+        if (j.resumo && j.resumo.total_saldo_aberto != null) {
+          partes.push('saldo ' + fmtMoeda(j.resumo.total_saldo_aberto));
+        }
+        mostrarImportMsg('Importação concluída: ' + (partes.join(' · ') || 'ok'), true);
+        if (el.formImportar) el.formImportar.reset();
+        await recarregar();
+      } catch (e) {
+        mostrarImportMsg(e.message || String(e), false);
+      } finally {
+        if (el.btnImportar) el.btnImportar.disabled = false;
+        if (window.gmLoadingBar) window.gmLoadingBar.hide();
+      }
+    });
+  }
   if (el.busca) {
     el.busca.addEventListener('input', function () {
       clearTimeout(debounceTimer);

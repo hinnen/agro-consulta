@@ -193,6 +193,7 @@ urlpatterns = [
     path('api/fiado/baixa-cliente/', fiado_views.api_fiado_baixa_cliente, name='api_fiado_baixa_cliente'),
     path('api/fiado/titulo-editar/', fiado_views.api_fiado_titulo_editar, name='api_fiado_titulo_editar'),
     path('api/fiado/limite/', fiado_views.api_fiado_limite, name='api_fiado_limite'),
+    path('api/fiado/importar/', fiado_views.api_fiado_importar_planilha, name='api_fiado_importar_planilha'),
     path('api/fiado/backup/', fiado_views.api_fiado_backup_export, name='api_fiado_backup_export'),
     path('vendas-hoje/', views.vendas_hoje_redirect, name='vendas_hoje'),
     path(

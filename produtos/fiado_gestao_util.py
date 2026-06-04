@@ -634,6 +634,14 @@ def listar_titulos(
                 FiadoTituloAgro.Situacao.CANCELADO,
             )
         )
+    elif sit == "vencidos":
+        hoje = date.today()
+        qs = qs.exclude(
+            situacao__in=(
+                FiadoTituloAgro.Situacao.QUITADO,
+                FiadoTituloAgro.Situacao.CANCELADO,
+            )
+        ).filter(vencimento__lt=hoje)
     elif sit and sit != "todos":
         qs = qs.filter(situacao=sit)
     if cliente_agro_pk:

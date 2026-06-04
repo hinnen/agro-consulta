@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from decimal import Decimal
+from pathlib import Path
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
@@ -46,6 +48,8 @@ def fiado_gestao(request):
             "sessao_caixa_id": sessao.pk if sessao else None,
             "from_pdv": (request.GET.get("from") or "").strip() == "pdv",
             "cliente_pre_pk": cliente_pre_pk,
+            "ledger_vazio": (resumo.get("titulos_abertos") or 0) == 0,
+            "pode_importar": bool(getattr(request.user, "is_staff", False)),
         },
     )
 
@@ -332,6 +336,40 @@ def api_fiado_baixa_selecionados(request):
         return JsonResponse({"ok": True, **r, "resumo": resumo_gestao_fiado()})
     except ValueError as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_fiado_importar_planilha(request):
+    if not getattr(request.user, "is_staff", False):
+        return JsonResponse({"ok": False, "erro": "Sem permissão para importar."}, status=403)
+    upload = request.FILES.get("arquivo")
+    if not upload:
+        return JsonResponse({"ok": False, "erro": "Envie um arquivo CSV ou XLSX."}, status=400)
+    nome = (upload.name or "").lower()
+    if not nome.endswith((".csv", ".xlsx", ".xls")):
+        return JsonResponse({"ok": False, "erro": "Use arquivo .csv ou .xlsx."}, status=400)
+    suf = Path(nome).suffix or ".xlsx"
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suf) as tmp:
+            for chunk in upload.chunks():
+                tmp.write(chunk)
+            tmp_path = Path(tmp.name)
+        from produtos.fiado_import_util import aplicar_importacao_fiados
+
+        r = aplicar_importacao_fiados(
+            tmp_path,
+            usuario=_usuario_de_request(request),
+        )
+        return JsonResponse({"ok": True, **r, "resumo": resumo_gestao_fiado()})
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+    finally:
+        try:
+            if "tmp_path" in locals() and tmp_path.exists():
+                tmp_path.unlink()
+        except Exception:
+            pass
 
 
 @login_required(login_url="/admin/login/")
