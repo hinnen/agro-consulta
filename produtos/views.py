@@ -7955,7 +7955,9 @@ def vendas_exportar_csv(request):
 @login_required(login_url="/admin/login/")
 def clientes_lista(request):
     from .clientes_sync_web_state import (
+        clientes_sync_erp_disponivel,
         consumir_mensagem_conclusao,
+        marcar_clientes_sync_erp_finalizado,
         sync_em_andamento,
     )
     from .services_clientes_sync import (
@@ -7976,22 +7978,19 @@ def clientes_lista(request):
     if sync_result:
         cache.delete(CLIENTES_SYNC_RESULT_KEY)
         if sync_result.get("ok"):
-            messages.success(
-                request,
-                (
-                    f"Sincronização concluída: {sync_result.get('criados', 0)} novos, "
-                    f"{sync_result.get('atualizados', 0)} atualizados, "
-                    f"{sync_result.get('ignorados_editados_local', 0)} preservados "
-                    "(ajustados no Agro). "
-                    f"Fontes: Mongo {sync_result.get('linhas_mongo', 0)} linhas, "
-                    f"ERP {sync_result.get('linhas_erp', 0)} linhas."
-                    + (
-                        f" {sync_result.get('erros', 0)} linha(s) com erro."
-                        if sync_result.get("erros")
-                        else ""
-                    )
-                ),
+            marcar_clientes_sync_erp_finalizado()
+            msg = (
+                f"Última importação do ERP concluída: {sync_result.get('criados', 0)} novos, "
+                f"{sync_result.get('atualizados', 0)} atualizados, "
+                f"{sync_result.get('ignorados_editados_local', 0)} preservados "
+                "(ajustados no Agro)."
             )
+            if sync_result.get("erros"):
+                msg += f" {sync_result.get('erros', 0)} linha(s) com erro."
+            msg += (
+                " A partir de agora os clientes são só do Agro — o botão de importação foi removido."
+            )
+            messages.success(request, msg)
         else:
             messages.error(
                 request,
@@ -8021,6 +8020,7 @@ def clientes_lista(request):
             "busca": q,
             "clientes_sync_em_andamento": sync_em_andamento()
             or bool(cache.get(CLIENTES_SYNC_LOCK_KEY)),
+            "clientes_sync_erp_disponivel": clientes_sync_erp_disponivel(),
         },
     )
 
@@ -8063,7 +8063,7 @@ def cliente_editar(request, pk):
 @login_required(login_url="/admin/login/")
 @require_POST
 def clientes_sincronizar(request):
-    """Importa clientes de Mongo + API ERP para ClienteAgro; não grava no ERP."""
+    """Última importação de clientes do Mongo + API ERP para ClienteAgro (uso único)."""
     import os
     import subprocess
     import sys
@@ -8071,11 +8071,18 @@ def clientes_sincronizar(request):
 
     from django.conf import settings
 
-    from .clientes_sync_web_state import mark_running
+    from .clientes_sync_web_state import clientes_sync_erp_disponivel, mark_running
     from .services_clientes_sync import (
         CLIENTES_SYNC_LOCK_KEY,
         CLIENTES_SYNC_RESULT_KEY,
     )
+
+    if not clientes_sync_erp_disponivel():
+        messages.info(
+            request,
+            "A importação do ERP já foi concluída. Cadastre e edite clientes só no Agro.",
+        )
+        return redirect("clientes_lista")
 
     if cache.get(CLIENTES_SYNC_LOCK_KEY):
         messages.warning(
@@ -8116,7 +8123,8 @@ def clientes_sincronizar(request):
     cache.delete(CLIENTES_SYNC_RESULT_KEY)
     messages.success(
         request,
-        "Sincronização iniciada (Mongo + ERP). Em 1–2 minutos, atualize a página (F5) para ver o resultado.",
+        "Última importação do ERP iniciada. Em 1–2 minutos, atualize a página (F5). "
+        "Após concluir, o botão some — daí em diante só cadastro no Agro.",
     )
     return redirect("clientes_lista")
 

@@ -16,19 +16,26 @@
     <div class="max-w-3xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
       <h1 class="text-lg font-black uppercase text-slate-900">Clientes (Agro)</h1>
       <div class="flex flex-wrap gap-2 items-center">
-        <form method="post" action="{% url 'clientes_sincronizar' %}" class="inline" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
+        {% if clientes_sync_erp_disponivel %}
+        <form method="post" action="{% url 'clientes_sincronizar' %}" class="inline" onsubmit="return confirm('Esta é a última importação do ERP/Mongo. Depois de concluir, o botão será removido. Continuar?') && (window.gmLoadingBar && window.gmLoadingBar.show(), true);">
           {% csrf_token %}
-          <button type="submit" class="text-xs font-black uppercase px-4 py-2.5 rounded-xl bg-sky-600 text-white hover:bg-sky-700" title="Lê Mongo (DtoPessoa) e API Pessoas do ERP; alterações no Agro não voltam ao ERP.">Sincronizar ERP / Mongo</button>
+          <button type="submit" class="text-xs font-black uppercase px-4 py-2.5 rounded-xl bg-sky-600 text-white hover:bg-sky-700" title="Última vez: lê Mongo e API ERP. Alterações no Agro não voltam ao ERP.">Última importação ERP</button>
         </form>
+        {% endif %}
         <a href="{% url 'cliente_novo' %}" class="text-xs font-black uppercase px-4 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">Novo</a>
         {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-800 shadow-sm hover:border-emerald-500 hover:text-emerald-900 hover:bg-emerald-50/80 transition-colors shrink-0" %}
       </div>
     </div>
   </header>
   <main class="max-w-3xl mx-auto px-4 py-6 space-y-4 flex-1 min-h-0 overflow-y-auto">
+    {% if clientes_sync_erp_disponivel and not clientes_sync_em_andamento %}
+    <p class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-950 leading-snug">
+      Use <strong>Última importação ERP</strong> uma vez para trazer clientes do sistema antigo. Depois disso, cadastro e edição ficam só no Agro.
+    </p>
+    {% endif %}
     {% if clientes_sync_em_andamento %}
     <p class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-900">
-      Sincronizando clientes do ERP/Mongo… aguarde 1–2 min e pressione <kbd class="px-1 rounded bg-white border border-sky-300">F5</kbd>.
+      Importando clientes do ERP/Mongo… aguarde 1–2 min e pressione <kbd class="px-1 rounded bg-white border border-sky-300">F5</kbd>.
     </p>
     {% endif %}
     {% if messages %}

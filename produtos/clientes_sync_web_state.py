@@ -8,14 +8,49 @@ from pathlib import Path
 from typing import Any
 
 from django.conf import settings
+from django.core.cache import cache
 
 _MAX_RUNNING_SEC = 600
+_CLIENTES_SYNC_ERP_FINALIZADO_CACHE_KEY = "clientes_sync_erp_finalizado"
+
+
+def _var_dir() -> Path:
+    base = Path(settings.BASE_DIR) / "var"
+    base.mkdir(exist_ok=True)
+    return base
 
 
 def _path() -> Path:
-    base = Path(settings.BASE_DIR) / "var"
-    base.mkdir(exist_ok=True)
-    return base / "clientes_sync_web.json"
+    return _var_dir() / "clientes_sync_web.json"
+
+
+def _path_erp_finalizado() -> Path:
+    return _var_dir() / "clientes_sync_erp_finalizado.json"
+
+
+def clientes_sync_erp_disponivel() -> bool:
+    """Sync manual ERP/Mongo na tela Clientes — só até a última puxada concluir."""
+    if not getattr(settings, "AGRO_CLIENTES_SYNC_ERP_HABILITADO", True):
+        return False
+    if cache.get(_CLIENTES_SYNC_ERP_FINALIZADO_CACHE_KEY):
+        return False
+    fp = _path_erp_finalizado()
+    if not fp.is_file():
+        return True
+    try:
+        data = json.loads(fp.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return True
+    if data.get("finalizado"):
+        cache.set(_CLIENTES_SYNC_ERP_FINALIZADO_CACHE_KEY, True, timeout=None)
+        return False
+    return True
+
+
+def marcar_clientes_sync_erp_finalizado() -> None:
+    payload = {"finalizado": True, "finished": time.time()}
+    _path_erp_finalizado().write_text(json.dumps(payload), encoding="utf-8")
+    cache.set(_CLIENTES_SYNC_ERP_FINALIZADO_CACHE_KEY, True, timeout=None)
 
 
 def mark_running() -> None:
@@ -78,15 +113,17 @@ def consumir_mensagem_conclusao() -> tuple[str, str] | None:
     if status == "done":
         r = st.get("result") or {}
         clear_state()
+        if r.get("ok"):
+            marcar_clientes_sync_erp_finalizado()
         msg = (
-            f"Sincronização concluída: {r.get('criados', 0)} novos, "
+            f"Última importação do ERP concluída: {r.get('criados', 0)} novos, "
             f"{r.get('atualizados', 0)} atualizados, "
-            f"{r.get('ignorados_editados_local', 0)} preservados (ajustados no Agro). "
-            f"Fontes: Mongo {r.get('linhas_mongo', 0)} linhas, "
-            f"ERP {r.get('linhas_erp', 0)} linhas."
+            f"{r.get('ignorados_editados_local', 0)} preservados (ajustados no Agro)."
         )
         if r.get("erros"):
             msg += f" {r.get('erros')} linha(s) com erro."
+        if r.get("ok"):
+            msg += " A partir de agora os clientes são só do Agro — o botão de importação foi removido."
         return ("success", msg)
     if status == "failed":
         clear_state()

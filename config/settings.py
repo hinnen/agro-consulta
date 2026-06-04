@@ -288,6 +288,11 @@ AGRO_PDV_SALDOS_CACHE_SECONDS = int(
     config('AGRO_PDV_SALDOS_CACHE_SECONDS', default='5' if REDIS_URL else '0')
 )
 
+# Botão «Última importação ERP» na tela Clientes — false desliga sem precisar da flag de conclusão.
+AGRO_CLIENTES_SYNC_ERP_HABILITADO = config(
+    'AGRO_CLIENTES_SYNC_ERP_HABILITADO', default=True, cast=bool
+)
+
 CONSULTA_CACHE_TTL = 20
 # Configurações da API Venda ERP
 # Contrato OpenAPI (substitua o subdomínio pelo da sua instância WL, o mesmo host de VENDA_ERP_API_BASE_URL quando for o caso):
