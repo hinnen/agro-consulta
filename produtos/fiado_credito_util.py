@@ -260,12 +260,13 @@ def venda_local_tem_fiado(venda: VendaAgro) -> bool:
     return valor_fiado_venda_local(venda) > 0
 
 
-def valor_fiado_usado_cliente(
+def valor_fiado_usado_cliente_vendas(
     cliente_id_erp: str = "",
     *,
     cliente_agro_pk: int | None = None,
     excluir_venda_id: int | None = None,
 ) -> Decimal:
+    """Saldo fiado pela soma de vendas (legado, antes do ledger de títulos)."""
     erp_id, agro_pk, _cli = resolver_cliente_fiado(cliente_id_erp, cliente_agro_pk=cliente_agro_pk)
     filtros = Q()
     if erp_id:
@@ -284,6 +285,28 @@ def valor_fiado_usado_cliente(
             continue
         total += valor_fiado_venda_local(v)
     return total.quantize(Decimal("0.01"))
+
+
+def valor_fiado_usado_cliente(
+    cliente_id_erp: str = "",
+    *,
+    cliente_agro_pk: int | None = None,
+    excluir_venda_id: int | None = None,
+) -> Decimal:
+    try:
+        from produtos.fiado_gestao_util import valor_fiado_usado_cliente as _usado_titulos
+
+        return _usado_titulos(
+            cliente_id_erp,
+            cliente_agro_pk=cliente_agro_pk,
+            excluir_venda_id=excluir_venda_id,
+        )
+    except Exception:
+        return valor_fiado_usado_cliente_vendas(
+            cliente_id_erp,
+            cliente_agro_pk=cliente_agro_pk,
+            excluir_venda_id=excluir_venda_id,
+        )
 
 
 def montar_cronograma_fiado(
@@ -376,12 +399,18 @@ def resumo_credito_fiado_cliente(
     db=None,
     client_m=None,
 ) -> dict[str, Any]:
-    erp_id, agro_pk, _cli = resolver_cliente_fiado(cliente_id_erp, cliente_agro_pk=cliente_agro_pk)
+    erp_id, agro_pk, cli = resolver_cliente_fiado(cliente_id_erp, cliente_agro_pk=cliente_agro_pk)
     limite, padrao = (
         buscar_limite_credito_mongo(erp_id, db=db, client_m=client_m)
         if erp_id
         else (fiado_limite_padrao(), True)
     )
+    if cli is None and agro_pk:
+        cli = ClienteAgro.objects.filter(pk=agro_pk).first()
+    limite_local = _dec(cli.limite_fiado_local) if cli else Decimal("0")
+    if limite_local > 0:
+        limite = limite_local
+        padrao = False
     usado = valor_fiado_usado_cliente(
         cliente_id_erp,
         cliente_agro_pk=agro_pk,

@@ -116,6 +116,8 @@ def pdv_home(request):
                 "clienteEditarPattern": reverse("cliente_editar", args=[0]).replace("/0/editar/", "/__pk__/editar/"),
                 "entregasPainel": reverse("entregas_painel"),
                 "caixaPainel": reverse("caixa_painel"),
+                "fiadoGestao": reverse("fiado_gestao"),
+                "apiFiadoResumo": reverse("api_fiado_resumo"),
             },
             "search": {
                 "mode": "wizard",

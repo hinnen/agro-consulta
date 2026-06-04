@@ -408,6 +408,170 @@ class VendaAgro(models.Model):
         )
 
 
+class FiadoTituloAgro(models.Model):
+    """Título de crédito loja (fiado) — parcela ou venda PDV / importação ERP."""
+
+    class Situacao(models.TextChoices):
+        ABERTO = "aberto", "Em aberto"
+        PARCIAL = "parcial", "Pago parcialmente"
+        QUITADO = "quitado", "Quitado"
+        CANCELADO = "cancelado", "Cancelado"
+
+    class Origem(models.TextChoices):
+        PDV = "pdv", "PDV"
+        IMPORTACAO = "importacao", "Importação"
+
+    chave_unica = models.CharField(
+        max_length=120,
+        unique=True,
+        db_index=True,
+        help_text="Chave idempotente (pdv:… ou import:…) para evitar duplicata.",
+    )
+    cliente_agro = models.ForeignKey(
+        ClienteAgro,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="fiado_titulos",
+    )
+    venda_agro = models.ForeignKey(
+        VendaAgro,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fiado_titulos",
+    )
+    cliente_nome = models.CharField(max_length=300)
+    cliente_codigo = models.CharField(
+        max_length=32,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Código ERP / planilha quando existir.",
+    )
+    numero_documento = models.CharField(max_length=80, blank=True, default="")
+    parcela_num = models.PositiveSmallIntegerField(default=1)
+    parcela_total = models.PositiveSmallIntegerField(default=1)
+    vencimento = models.DateField(db_index=True)
+    valor_bruto = models.DecimalField(max_digits=12, decimal_places=2)
+    valor_pago = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    situacao = models.CharField(
+        max_length=12,
+        choices=Situacao.choices,
+        default=Situacao.ABERTO,
+        db_index=True,
+    )
+    origem = models.CharField(
+        max_length=16,
+        choices=Origem.choices,
+        default=Origem.PDV,
+        db_index=True,
+    )
+    descricao = models.CharField(max_length=500, blank=True, default="")
+    dados_snapshot_json = models.JSONField(default=dict, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["vencimento", "pk"]
+        verbose_name = "Título fiado"
+        verbose_name_plural = "Títulos fiado"
+
+    def __str__(self):
+        return f"{self.cliente_nome[:30]} · {self.numero_documento or self.pk} · R$ {self.valor_bruto}"
+
+    @property
+    def saldo_aberto(self):
+        from decimal import Decimal
+
+        return max(
+            Decimal("0"),
+            (self.valor_bruto - self.valor_pago).quantize(Decimal("0.01")),
+        )
+
+
+class FiadoBaixaAgro(models.Model):
+    """Pagamento (baixa total ou parcial) de título fiado."""
+
+    titulo = models.ForeignKey(
+        FiadoTituloAgro,
+        on_delete=models.PROTECT,
+        related_name="baixas",
+    )
+    valor = models.DecimalField(max_digits=12, decimal_places=2)
+    forma_pagamento = models.CharField(max_length=80)
+    sessao_caixa = models.ForeignKey(
+        SessaoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fiado_baixas",
+    )
+    movimento_caixa = models.ForeignKey(
+        MovimentoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fiado_baixas",
+    )
+    usuario = models.CharField(max_length=150, blank=True, default="")
+    observacao = models.CharField(max_length=500, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Baixa fiado"
+        verbose_name_plural = "Baixas fiado"
+
+    def __str__(self):
+        return f"Baixa R$ {self.valor} — título #{self.titulo_id}"
+
+
+class FiadoEventoAgro(models.Model):
+    """Log append-only (backup/auditoria) de alterações no fiado."""
+
+    class Tipo(models.TextChoices):
+        TITULO_CRIADO = "titulo_criado", "Título criado"
+        BAIXA = "baixa", "Baixa"
+        LIMITE = "limite", "Limite alterado"
+        CANCELAMENTO = "cancelamento", "Cancelamento"
+        IMPORT = "import", "Importação"
+
+    tipo = models.CharField(max_length=24, choices=Tipo.choices, db_index=True)
+    cliente_agro = models.ForeignKey(
+        ClienteAgro,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fiado_eventos",
+    )
+    titulo = models.ForeignKey(
+        FiadoTituloAgro,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="eventos",
+    )
+    baixa = models.ForeignKey(
+        FiadoBaixaAgro,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="eventos",
+    )
+    payload_json = models.JSONField(default=dict, blank=True)
+    usuario = models.CharField(max_length=150, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Evento fiado"
+        verbose_name_plural = "Eventos fiado"
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} · {self.criado_em:%d/%m/%Y %H:%M}"
+
+
 class PdvMercadoPagoPointOrder(models.Model):
     """Pedido Point criado a partir do PDV; após pagamento no terminal, dispara Pedidos/Salvar."""
 
