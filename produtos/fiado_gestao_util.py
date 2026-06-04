@@ -527,14 +527,14 @@ def _chave_grupo_fiado_cliente(
     cliente_nome: str,
     cliente_codigo: str = "",
 ) -> str:
-    """Uma linha na grade = um cliente (Agro ou nome normalizado), não um código ERP por título."""
-    if cliente_agro_id:
-        return f"agro:{cliente_agro_id}"
+    """Uma linha na grade = uma pessoa (nome normalizado), mesmo com vários ClienteAgro/ERP."""
     from produtos.fiado_import_util import _norm_nome_fiado_match
 
     nm = _norm_nome_fiado_match(cliente_nome or "")
     if nm:
         return f"nome:{nm}"
+    if cliente_agro_id:
+        return f"agro:{cliente_agro_id}"
     cod = str(cliente_codigo or "").strip()
     return f"cod:{cod}" if cod else "sem-cliente"
 
@@ -546,34 +546,31 @@ def _q_titulos_cliente_gestao(
     cliente_codigo: str = "",
 ) -> Q:
     """Filtro para títulos do cliente na gestão (popup / baixa), sem repetir por código ERP."""
-    if cliente_agro_pk:
-        return Q(cliente_agro_id=cliente_agro_pk)
     nome = (cliente_nome or "").strip()
     cod = (cliente_codigo or "").strip()
-    if cod:
-        q = Q(cliente_codigo=cod)
-        if nome:
-            q &= Q(cliente_nome__iexact=nome)
-        return q
-    if not nome:
-        return Q()
-    from produtos.fiado_import_util import _norm_nome_fiado_match
+    if nome:
+        from produtos.fiado_import_util import _norm_nome_fiado_match
 
-    key = _norm_nome_fiado_match(nome)
-    nomes = (
-        FiadoTituloAgro.objects.exclude(
-            situacao__in=(
-                FiadoTituloAgro.Situacao.QUITADO,
-                FiadoTituloAgro.Situacao.CANCELADO,
+        key = _norm_nome_fiado_match(nome)
+        nomes = (
+            FiadoTituloAgro.objects.exclude(
+                situacao__in=(
+                    FiadoTituloAgro.Situacao.QUITADO,
+                    FiadoTituloAgro.Situacao.CANCELADO,
+                )
             )
+            .values_list("cliente_nome", flat=True)
+            .distinct()
         )
-        .values_list("cliente_nome", flat=True)
-        .distinct()
-    )
-    matching = [n for n in nomes if n and _norm_nome_fiado_match(n) == key]
-    if matching:
-        return Q(cliente_nome__in=matching)
-    return Q(cliente_nome__iexact=nome)
+        matching = [n for n in nomes if n and _norm_nome_fiado_match(n) == key]
+        if matching:
+            return Q(cliente_nome__in=matching)
+        return Q(cliente_nome__iexact=nome)
+    if cliente_agro_pk:
+        return Q(cliente_agro_id=cliente_agro_pk)
+    if cod:
+        return Q(cliente_codigo=cod)
+    return Q()
 
 
 def resumo_from_clientes_fiado(clientes: list[dict[str, Any]]) -> dict[str, Any]:
@@ -696,6 +693,18 @@ def listar_clientes_fiado(
 
     out: list[dict] = []
     for g in grupos.values():
+        pks = g.pop("cliente_agro_pks", set()) or set()
+        if len(pks) == 1:
+            pk_u = next(iter(pks))
+            g["cliente_agro_pk"] = pk_u
+            if not g.get("cliente_codigo"):
+                cli_u = ClienteAgro.objects.filter(pk=pk_u).only("externo_id").first()
+                if cli_u and (cli_u.externo_id or "").strip():
+                    g["cliente_codigo"] = str(cli_u.externo_id).strip()
+        else:
+            g["cliente_agro_pk"] = None
+            if len(pks) > 1:
+                g["cliente_codigo"] = ""
         saldo_dec = g["saldo_aberto"].quantize(Decimal("0.01"))
         lim_local = Decimal(str(g.get("limite_fiado_local") or 0))
         limite = lim_local if lim_local > 0 else lim_padrao
