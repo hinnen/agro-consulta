@@ -419,6 +419,14 @@ def resumo_credito_fiado_cliente(
     disponivel = (limite - usado).quantize(Decimal("0.01"))
     novo = _dec(valor_nova_venda_fiado) if valor_nova_venda_fiado is not None else Decimal("0")
     apos = (disponivel - novo).quantize(Decimal("0.01"))
+    tem_pendencia = usado > Decimal("0.009")
+    bloqueado_nova_venda = tem_pendencia
+    bloqueado_motivo = ""
+    if bloqueado_nova_venda:
+        bloqueado_motivo = (
+            f"Cliente com fiado em aberto ({f'R$ {usado:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')}). "
+            "Quite o saldo antes de nova venda fiado."
+        )
     return {
         "ok": True,
         "cliente_id": erp_id or (f"agro:{agro_pk}" if agro_pk else ""),
@@ -431,6 +439,9 @@ def resumo_credito_fiado_cliente(
         "disponivel_texto": f"R$ {disponivel:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
         "limite_padrao": padrao,
         "permite_fiado": bool(erp_id or agro_pk),
+        "tem_pendencia": tem_pendencia,
+        "bloqueado_nova_venda": bloqueado_nova_venda,
+        "bloqueado_motivo": bloqueado_motivo,
         "apos_venda": float(apos),
         "excede": bool(novo > 0 and apos < -Decimal("0.009")),
     }

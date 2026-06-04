@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from decimal import Decimal
+from pathlib import Path
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
@@ -16,10 +18,14 @@ from produtos.fiado_gestao_util import (
     _usuario_de_request,
     baixar_cliente_fiado,
     baixar_titulo,
+    baixar_titulos_selecionados,
     definir_limite_fiado_cliente,
+    editar_titulo_fiado,
     export_backup_fiado,
     listar_clientes_fiado,
+    listar_titulos,
     resumo_gestao_fiado,
+    titulo_para_dict,
 )
 from produtos.models import ClienteAgro, FiadoTituloAgro
 from produtos.views import obter_conexao_mongo
@@ -42,6 +48,8 @@ def fiado_gestao(request):
             "sessao_caixa_id": sessao.pk if sessao else None,
             "from_pdv": (request.GET.get("from") or "").strip() == "pdv",
             "cliente_pre_pk": cliente_pre_pk,
+            "ledger_vazio": (resumo.get("titulos_abertos") or 0) == 0,
+            "pode_importar": bool(getattr(request.user, "is_staff", False)),
         },
     )
 
@@ -75,6 +83,8 @@ def api_fiado_titulos(request):
             cliente_pk = int(pk_raw)
         except (TypeError, ValueError):
             cliente_pk = None
+    cliente_nome = (request.GET.get("cliente_nome") or "").strip()
+    cliente_codigo = (request.GET.get("cliente_codigo") or "").strip()
     situacao = (request.GET.get("situacao") or "abertos").strip()
     busca = (request.GET.get("q") or "").strip()
     try:
@@ -83,6 +93,8 @@ def api_fiado_titulos(request):
         limit = 200
     titulos = listar_titulos(
         cliente_agro_pk=cliente_pk,
+        cliente_nome=cliente_nome,
+        cliente_codigo=cliente_codigo,
         situacao=situacao,
         busca=busca,
         limit=limit,
@@ -162,8 +174,6 @@ def api_fiado_baixa(request):
             usuario=_usuario_de_request(request),
         )
         titulo = FiadoTituloAgro.objects.get(pk=titulo_id)
-        from produtos.fiado_gestao_util import titulo_para_dict
-
         return JsonResponse(
             {
                 "ok": True,
@@ -258,6 +268,108 @@ def api_fiado_baixa_cliente(request):
         return JsonResponse({"ok": True, **r, "resumo": resumo_gestao_fiado()})
     except ValueError as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_fiado_titulo_editar(request):
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    try:
+        titulo_id = int(data.get("titulo_id"))
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "titulo_id inválido."}, status=400)
+    try:
+        titulo = editar_titulo_fiado(
+            titulo_id,
+            vencimento=data.get("vencimento"),
+            valor_bruto=parse_valor_moeda_br(data.get("valor_bruto"))
+            if data.get("valor_bruto") is not None
+            else None,
+            numero_documento=data.get("numero_documento"),
+            descricao=data.get("descricao"),
+            usuario=_usuario_de_request(request),
+        )
+        return JsonResponse(
+            {
+                "ok": True,
+                "titulo": titulo_para_dict(titulo),
+                "resumo": resumo_gestao_fiado(),
+            }
+        )
+    except FiadoTituloAgro.DoesNotExist:
+        return JsonResponse({"ok": False, "erro": "Título não encontrado."}, status=404)
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_fiado_baixa_selecionados(request):
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    raw_ids = data.get("titulo_ids") or data.get("titulos") or []
+    if not isinstance(raw_ids, list):
+        return JsonResponse({"ok": False, "erro": "Informe titulo_ids como lista."}, status=400)
+    valor_raw = data.get("valor")
+    valor = parse_valor_moeda_br(valor_raw) if valor_raw not in (None, "") else None
+    forma = str(data.get("forma_pagamento") or data.get("forma") or "Dinheiro").strip()
+    obs = str(data.get("observacao") or "").strip()
+    registrar_caixa = data.get("registrar_caixa", True) is not False
+    sessao = obter_sessao_caixa_aberta_request(request)
+    if registrar_caixa and not sessao:
+        registrar_caixa = False
+    try:
+        r = baixar_titulos_selecionados(
+            raw_ids,
+            forma,
+            valor=valor,
+            request=request,
+            observacao=obs,
+            registrar_caixa=registrar_caixa,
+            usuario=_usuario_de_request(request),
+        )
+        return JsonResponse({"ok": True, **r, "resumo": resumo_gestao_fiado()})
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_fiado_importar_planilha(request):
+    if not getattr(request.user, "is_staff", False):
+        return JsonResponse({"ok": False, "erro": "Sem permissão para importar."}, status=403)
+    upload = request.FILES.get("arquivo")
+    if not upload:
+        return JsonResponse({"ok": False, "erro": "Envie um arquivo CSV ou XLSX."}, status=400)
+    nome = (upload.name or "").lower()
+    if not nome.endswith((".csv", ".xlsx", ".xls")):
+        return JsonResponse({"ok": False, "erro": "Use arquivo .csv ou .xlsx."}, status=400)
+    suf = Path(nome).suffix or ".xlsx"
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suf) as tmp:
+            for chunk in upload.chunks():
+                tmp.write(chunk)
+            tmp_path = Path(tmp.name)
+        from produtos.fiado_import_util import aplicar_importacao_fiados
+
+        r = aplicar_importacao_fiados(
+            tmp_path,
+            usuario=_usuario_de_request(request),
+        )
+        return JsonResponse({"ok": True, **r, "resumo": resumo_gestao_fiado()})
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+    finally:
+        try:
+            if "tmp_path" in locals() and tmp_path.exists():
+                tmp_path.unlink()
+        except Exception:
+            pass
 
 
 @login_required(login_url="/admin/login/")

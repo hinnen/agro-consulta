@@ -231,10 +231,7 @@
           <div class="flex flex-nowrap items-center gap-1.5 shrink-0 pl-1">
             <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn px-2 py-1 text-[10px] no-underline {% if caixa_aberto %}border border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100/80{% else %}border-2 border-amber-400 bg-amber-100 text-amber-950 hover:bg-amber-200/80{% endif %}" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
             <a href="{% url 'vendas_lista' %}" class="pdv-action-btn border border-slate-200 bg-slate-100 px-2 py-1 text-[10px] text-slate-800 no-underline hover:bg-slate-200/80" title="Consultar vendas — filtro por período e exportar CSV">Consultar vendas</a>
-            <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn relative border border-orange-300 bg-orange-50 px-2 py-1 text-[10px] font-black text-orange-950 no-underline hover:bg-orange-100" title="Gestão crédito loja — saldos em aberto e baixa">
-              Fiado
-              <span id="pdv-topbar-fiado-count" class="hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-orange-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
-            </a>
+            <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn border border-orange-300 bg-orange-50 px-2 py-1 text-[10px] font-black text-orange-950 no-underline hover:bg-orange-100" title="Gestão crédito loja — saldos em aberto e baixa">Fiado</a>
             <button type="button" id="pdv-topbar-entregas-btn" class="pdv-action-btn relative border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-600 hover:bg-slate-100" title="Entregas aguardando pagamento no PDV (cobrar na entrega)">
               Entregas
               <span id="pdv-topbar-entregas-count" class="hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-orange-500 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
@@ -443,6 +440,36 @@
     <div class="min-h-0 flex-1 overflow-y-auto p-4">
       <ul id="modal-pdv-wizard-ajuda-lista" class="list-disc space-y-2 pl-5 text-sm font-semibold leading-snug text-slate-700"></ul>
     </div>
+  </div>
+</div>
+
+<div id="pdv-fiado-vencidos-modal" class="fixed inset-0 z-[136] hidden items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-fiado-vencidos-titulo">
+  <div class="flex max-h-[min(88dvh,40rem)] w-full max-w-[min(42rem,96vw)] flex-col overflow-hidden rounded-2xl border-[3px] border-red-300 bg-white shadow-2xl" onclick="event.stopPropagation();">
+    <header class="shrink-0 border-b-2 border-red-200 bg-gradient-to-r from-red-50 to-orange-50 px-4 py-3 sm:px-5">
+      <p class="text-[10px] font-black uppercase tracking-wide text-red-800">Aviso · crédito loja</p>
+      <h2 id="pdv-fiado-vencidos-titulo" class="text-[clamp(1.05rem,0.6vw+0.95rem,1.4rem)] font-black leading-tight text-red-950">Fiado vencido — lembre o cliente</h2>
+      <p id="pdv-fiado-vencidos-cliente" class="mt-1 text-sm font-bold text-slate-700 truncate">—</p>
+    </header>
+    <div class="shrink-0 border-b border-red-100 bg-red-50/80 px-4 py-2.5 sm:px-5">
+      <p class="text-[10px] font-black uppercase text-red-800">Total vencido</p>
+      <p id="pdv-fiado-vencidos-total" class="text-[clamp(1.35rem,0.8vw+1rem,1.85rem)] font-black tabular-nums text-red-900">R$ 0,00</p>
+    </div>
+    <div class="min-h-0 flex-1 overflow-y-auto px-3 py-2 sm:px-4">
+      <table class="w-full min-w-[20rem] text-left text-sm">
+        <thead class="sticky top-0 bg-white text-[10px] font-black uppercase text-slate-600 shadow-[0_1px_0_rgb(226_232_240)]">
+          <tr>
+            <th class="py-2 pr-2">Documento</th>
+            <th class="py-2 pr-2 whitespace-nowrap">Vencimento</th>
+            <th class="py-2 text-right">Saldo</th>
+          </tr>
+        </thead>
+        <tbody id="pdv-fiado-vencidos-tbody" class="text-slate-800"></tbody>
+      </table>
+    </div>
+    <footer class="shrink-0 flex flex-wrap gap-2 border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
+      <a id="pdv-fiado-vencidos-gestao" href="{% url 'fiado_gestao' %}?from=pdv" class="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl border-2 border-orange-300 bg-orange-50 px-4 text-xs font-black uppercase text-orange-950 no-underline hover:bg-orange-100 sm:flex-none">Abrir gestão fiado</a>
+      <button type="button" id="pdv-fiado-vencidos-fechar" class="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-slate-900 px-5 text-xs font-black uppercase text-white hover:bg-slate-800 sm:flex-none">Entendi · continuar venda</button>
+    </footer>
   </div>
 </div>
 

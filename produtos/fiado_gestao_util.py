@@ -619,6 +619,8 @@ def listar_clientes_fiado(
 def listar_titulos(
     *,
     cliente_agro_pk: int | None = None,
+    cliente_nome: str = "",
+    cliente_codigo: str = "",
     situacao: str = "abertos",
     busca: str = "",
     limit: int = 200,
@@ -632,10 +634,22 @@ def listar_titulos(
                 FiadoTituloAgro.Situacao.CANCELADO,
             )
         )
+    elif sit == "vencidos":
+        hoje = date.today()
+        qs = qs.exclude(
+            situacao__in=(
+                FiadoTituloAgro.Situacao.QUITADO,
+                FiadoTituloAgro.Situacao.CANCELADO,
+            )
+        ).filter(vencimento__lt=hoje)
     elif sit and sit != "todos":
         qs = qs.filter(situacao=sit)
     if cliente_agro_pk:
         qs = qs.filter(cliente_agro_id=cliente_agro_pk)
+    elif (cliente_nome or "").strip():
+        qs = qs.filter(cliente_nome__iexact=(cliente_nome or "").strip())
+        if (cliente_codigo or "").strip():
+            qs = qs.filter(cliente_codigo=str(cliente_codigo).strip())
     qtxt = (busca or "").strip()
     if qtxt:
         qs = qs.filter(
@@ -646,6 +660,168 @@ def listar_titulos(
         )
     qs = qs.order_by("vencimento", "cliente_nome")[: max(1, min(limit, 500))]
     return [titulo_para_dict(t) for t in qs]
+
+
+def editar_titulo_fiado(
+    titulo_id: int,
+    *,
+    vencimento: date | str | None = None,
+    valor_bruto: Decimal | float | None = None,
+    numero_documento: str | None = None,
+    descricao: str | None = None,
+    usuario: str = "",
+) -> FiadoTituloAgro:
+    with transaction.atomic():
+        titulo = FiadoTituloAgro.objects.select_for_update().get(pk=titulo_id)
+        if titulo.situacao in (
+            FiadoTituloAgro.Situacao.QUITADO,
+            FiadoTituloAgro.Situacao.CANCELADO,
+        ):
+            raise ValueError("Não é possível editar título quitado ou cancelado.")
+        snap_antes = titulo_snapshot(titulo)
+        alterou = False
+
+        if vencimento is not None:
+            if isinstance(vencimento, str):
+                vencimento = _parse_vencimento({"vencimento": vencimento}, titulo.vencimento)
+            if vencimento != titulo.vencimento:
+                titulo.vencimento = vencimento
+                alterou = True
+
+        if valor_bruto is not None:
+            novo = _dec(valor_bruto)
+            if novo < titulo.valor_pago:
+                raise ValueError(
+                    f"Valor não pode ser menor que o já pago (R$ {titulo.valor_pago:.2f})."
+                )
+            if novo != titulo.valor_bruto:
+                titulo.valor_bruto = novo
+                alterou = True
+
+        if numero_documento is not None:
+            doc = str(numero_documento or "").strip()[:80]
+            if doc != titulo.numero_documento:
+                titulo.numero_documento = doc
+                alterou = True
+
+        if descricao is not None:
+            desc = str(descricao or "").strip()[:500]
+            if desc != titulo.descricao:
+                titulo.descricao = desc
+                alterou = True
+
+        if not alterou:
+            return titulo
+
+        _atualizar_situacao_titulo(titulo)
+        titulo.save(
+            update_fields=[
+                "vencimento",
+                "valor_bruto",
+                "numero_documento",
+                "descricao",
+                "situacao",
+                "atualizado_em",
+            ]
+        )
+        registrar_evento_fiado(
+            "titulo_editado",
+            cliente_agro=titulo.cliente_agro,
+            titulo=titulo,
+            payload={"antes": snap_antes, "depois": titulo_snapshot(titulo)},
+            usuario=usuario,
+        )
+        return titulo
+
+
+def baixar_titulos_selecionados(
+    titulo_ids: list[int],
+    forma_pagamento: str,
+    *,
+    valor: Decimal | float | None = None,
+    request=None,
+    observacao: str = "",
+    registrar_caixa: bool = True,
+    usuario: str = "",
+) -> dict[str, Any]:
+    ids = [int(x) for x in titulo_ids if x]
+    if not ids:
+        raise ValueError("Selecione ao menos um título.")
+    titulos = list(
+        FiadoTituloAgro.objects.filter(pk__in=ids)
+        .exclude(
+            situacao__in=(
+                FiadoTituloAgro.Situacao.QUITADO,
+                FiadoTituloAgro.Situacao.CANCELADO,
+            )
+        )
+        .order_by("vencimento", "pk")
+    )
+    if not titulos:
+        raise ValueError("Nenhum título em aberto na seleção.")
+    if len(titulos) != len(set(ids)):
+        raise ValueError("Um ou mais títulos não estão disponíveis para baixa.")
+
+    saldo_sel = sum(t.saldo_aberto for t in titulos)
+    v_total = _dec(valor) if valor is not None else saldo_sel
+    if v_total <= 0:
+        raise ValueError("Informe um valor maior que zero.")
+    if v_total > saldo_sel + Decimal("0.009"):
+        raise ValueError(f"Valor maior que o saldo selecionado (R$ {saldo_sel:.2f}).")
+
+    nome_cli = titulos[0].cliente_nome
+    baixas_ids: list[int] = []
+    mov = None
+    with transaction.atomic():
+        sessao = None
+        if registrar_caixa and request is not None:
+            sessao = obter_sessao_caixa_aberta_request(request)
+            if sessao is None:
+                raise ValueError("Abra o caixa neste navegador para registrar o recebimento.")
+            forma = normalizar_forma_pagamento_caixa(forma_pagamento or "Dinheiro")
+            obs_caixa = f"Baixa fiado ({len(titulos)} tít.) — {nome_cli[:30]}"
+            if observacao:
+                obs_caixa = f"{obs_caixa} — {observacao}"[:500]
+            user_mov = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
+            mov = MovimentoCaixa.objects.create(
+                sessao_caixa=sessao,
+                tipo=MovimentoCaixa.Tipo.REFORCO,
+                forma_pagamento=forma,
+                valor=v_total,
+                observacao=obs_caixa,
+                usuario=user_mov,
+            )
+
+        restante = v_total
+        for titulo in titulos:
+            if restante <= Decimal("0"):
+                break
+            parcela = min(restante, titulo.saldo_aberto)
+            if parcela <= Decimal("0"):
+                continue
+            baixa = baixar_titulo(
+                titulo.pk,
+                parcela,
+                forma_pagamento,
+                request=request,
+                observacao=observacao,
+                registrar_caixa=False,
+                sessao_caixa=sessao,
+                usuario=usuario,
+            )
+            if mov:
+                baixa.movimento_caixa = mov
+                baixa.sessao_caixa = sessao
+                baixa.save(update_fields=["movimento_caixa", "sessao_caixa"])
+            baixas_ids.append(baixa.pk)
+            restante = (restante - parcela).quantize(Decimal("0.01"))
+
+    return {
+        "valor_aplicado": float(v_total.quantize(Decimal("0.01"))),
+        "baixas_ids": baixas_ids,
+        "titulos_afetados": len(baixas_ids),
+        "movimento_caixa_id": mov.pk if mov else None,
+    }
 
 
 def export_backup_fiado() -> dict[str, Any]:
