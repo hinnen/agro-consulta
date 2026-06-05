@@ -12088,7 +12088,13 @@ def api_entrada_nota_financeiro(request):
     if r_rasc.get("ok") and ids and db is not None:
         rid_fin = str(r_rasc.get("id") or "").strip()
         if rid_fin:
-            mf = marcar_rascunho_financeiro_lancado(db, rid_fin, ids=ids, usuario=usuario)
+            mf = marcar_rascunho_financeiro_lancado(
+                db,
+                rid_fin,
+                ids=ids,
+                usuario=usuario,
+                lote=resultado.get("lote"),
+            )
             if not mf.get("ok"):
                 out["aviso_financeiro_rascunho"] = mf.get("erro")
     st = 200 if ok and not erros and not aviso_impostos else (207 if ids else 400)

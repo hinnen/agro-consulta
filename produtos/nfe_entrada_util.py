@@ -1279,6 +1279,7 @@ def marcar_rascunho_financeiro_lancado(
     *,
     ids: list[str],
     usuario: str = "",
+    lote: str | None = None,
 ) -> dict[str, Any]:
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
@@ -1291,17 +1292,19 @@ def marcar_rascunho_financeiro_lancado(
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
         fin_ids_lim = [str(x) for x in (ids or [])][:80]
+        sets: dict[str, Any] = {
+            "atualizado_em": agora,
+            "usuario_ultima_alteracao": (usuario or "")[:200],
+            "extra.financeiro_lancado": True,
+            "extra.financeiro_ids": fin_ids_lim,
+            "extra.financeiro_lancado_em": agora.isoformat(),
+        }
+        lote_s = str(lote or "").strip().upper()
+        if lote_s:
+            sets["extra.financeiro_lote"] = lote_s[:32]
         db[COL_ENTRADA_RASCUNHO].update_one(
             {"_id": _id},
-            {
-                "$set": {
-                    "atualizado_em": agora,
-                    "usuario_ultima_alteracao": (usuario or "")[:200],
-                    "extra.financeiro_lancado": True,
-                    "extra.financeiro_ids": fin_ids_lim,
-                    "extra.financeiro_lancado_em": agora.isoformat(),
-                }
-            },
+            {"$set": sets},
         )
         return {"ok": True, "id": str(_id)}
     except Exception as exc:
@@ -1309,9 +1312,27 @@ def marcar_rascunho_financeiro_lancado(
         return {"ok": False, "erro": str(exc)[:500]}
 
 
+_LOTE_AGRO_CODIGO_RE = re.compile(r"AG[0-9A-F]{8}", re.I)
+_LOTE_AGRO_NUMDOC_RE = re.compile(r"^(AG[0-9A-F]{8})(?:-\d{2}(?:-p\d+)?)?$", re.I)
+
+
+def _extrair_lote_agro_lancamento(linha: dict[str, Any]) -> str:
+    """Código do lote manual Agro (ex.: ``AG2C0C39E7`` em ``AG2C0C39E7-01`` ou observações)."""
+    nd = str(linha.get("numero_documento") or "").strip()
+    m = _LOTE_AGRO_NUMDOC_RE.match(nd)
+    if m:
+        return m.group(1).upper()
+    texto = " ".join(
+        str(linha.get(k) or "")
+        for k in ("observacoes", "descricao", "numero_documento")
+    )
+    m2 = _LOTE_AGRO_CODIGO_RE.search(texto)
+    return m2.group(0).upper() if m2 else ""
+
+
 def _extrair_nf_numero_lancamento(linha: dict[str, Any]) -> str:
     nd = str(linha.get("numero_documento") or "").strip()
-    if nd and nd not in ("0", "000"):
+    if nd and nd not in ("0", "000") and not _LOTE_AGRO_NUMDOC_RE.match(nd):
         return nd
     desc = str(linha.get("descricao") or "")
     m = re.match(r"^NF\s+(\S+)", desc, re.I)
@@ -1320,10 +1341,106 @@ def _extrair_nf_numero_lancamento(linha: dict[str, Any]) -> str:
     return ""
 
 
+def _ids_titulos_mongo_por_lote_agro(db, lote: str) -> list[str]:
+    from .mongo_financeiro_util import COL_DTO_LANCAMENTO
+
+    if db is None or not lote:
+        return []
+    lote = str(lote).strip().upper()
+    if not _LOTE_AGRO_CODIGO_RE.fullmatch(lote):
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    try:
+        rx = re.compile(rf"^{re.escape(lote)}-", re.I)
+        cur = db[COL_DTO_LANCAMENTO].find(
+            {"NumeroDocumento": rx},
+            {"_id": 1},
+        ).limit(80)
+        for doc in cur:
+            sid = str(doc.get("_id", ""))
+            if sid and sid not in seen:
+                seen.add(sid)
+                out.append(sid)
+    except Exception as exc:
+        logger.warning("_ids_titulos_mongo_por_lote_agro: %s", exc)
+    return out
+
+
+def _rascunho_entrada_por_ids_financeiro(
+    db, titulo_ids: list[str]
+) -> str | None:
+    if db is None or not titulo_ids:
+        return None
+    try:
+        doc = db[COL_ENTRADA_RASCUNHO].find_one(
+            {
+                "extra.financeiro_ids": {"$in": titulo_ids},
+                "status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA},
+            },
+            {"_id": 1},
+            sort=[("atualizado_em", -1)],
+        )
+        if doc:
+            return str(doc.get("_id", ""))
+    except Exception as exc:
+        logger.warning("_rascunho_entrada_por_ids_financeiro: %s", exc)
+    return None
+
+
+def _rascunho_entrada_por_lote_agro(
+    db, lote: str, *, cliente: str = ""
+) -> str | None:
+    if db is None or not lote:
+        return None
+    lote = str(lote).strip().upper()
+    try:
+        doc = db[COL_ENTRADA_RASCUNHO].find_one(
+            {
+                "extra.financeiro_lote": lote,
+                "status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA},
+            },
+            {"_id": 1},
+            sort=[("atualizado_em", -1)],
+        )
+        if doc:
+            return str(doc.get("_id", ""))
+    except Exception as exc:
+        logger.warning("_rascunho_entrada_por_lote_agro financeiro_lote: %s", exc)
+
+    sibling_ids = _ids_titulos_mongo_por_lote_agro(db, lote)
+    rid = _rascunho_entrada_por_ids_financeiro(db, sibling_ids)
+    if rid:
+        return rid
+
+    cliente = (cliente or "").strip()
+    if not cliente:
+        return None
+    try:
+        cur = db[COL_ENTRADA_RASCUNHO].find(
+            {
+                "status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA},
+                "extra.financeiro_lancado": True,
+            },
+            {"cabecalho": 1, "_id": 1, "atualizado_em": 1},
+        ).sort("atualizado_em", -1).limit(250)
+        matches: list[str] = []
+        for rz in cur:
+            cab = rz.get("cabecalho") if isinstance(rz.get("cabecalho"), dict) else {}
+            emit = str(cab.get("emit_nome") or "").strip()
+            if emit and _entrada_nfe_nomes_fornecedor_batem(emit, cliente):
+                matches.append(str(rz.get("_id", "")))
+        if len(matches) == 1:
+            return matches[0]
+    except Exception as exc:
+        logger.warning("_rascunho_entrada_por_lote_agro fornecedor: %s", exc)
+    return None
+
+
 def map_lancamentos_entrada_nfe_rascunho_ids(
     db, linhas: list[dict[str, Any]]
 ) -> dict[str, str]:
-    """Mapeia ID do título Mongo → ID do rascunho Entrada NF-e (``extra.financeiro_ids`` ou NF)."""
+    """Mapeia ID do título Mongo → ID do rascunho Entrada NF-e (``financeiro_ids``, NF ou lote Agro)."""
     if db is None or not linhas:
         return {}
     ids = [str(x.get("id") or "").strip() for x in linhas if x.get("id")]
@@ -1380,6 +1497,27 @@ def map_lancamentos_entrada_nfe_rascunho_ids(
                         out[lid] = rid
         except Exception as exc:
             logger.warning("map_lancamentos_entrada_nfe_rascunho_ids fallback nf: %s", exc)
+
+    missing_lote = [ln for ln in linhas if str(ln.get("id") or "") not in out]
+    lote_por_lanc: dict[str, list[str]] = {}
+    lote_cliente: dict[str, str] = {}
+    for ln in missing_lote:
+        lid = str(ln.get("id") or "")
+        lt = _extrair_lote_agro_lancamento(ln)
+        if not lt or not lid:
+            continue
+        lote_por_lanc.setdefault(lt, []).append(lid)
+        if lt not in lote_cliente:
+            lote_cliente[lt] = str(ln.get("cliente") or "").strip()
+    for lote, lanc_ids in lote_por_lanc.items():
+        rid = _rascunho_entrada_por_lote_agro(
+            db, lote, cliente=lote_cliente.get(lote) or ""
+        )
+        if not rid:
+            continue
+        for lid in lanc_ids:
+            if lid not in out:
+                out[lid] = rid
     return out
 
 
