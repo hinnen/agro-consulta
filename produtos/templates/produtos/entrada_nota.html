@@ -820,11 +820,12 @@
       color: rgb(148 163 184);
     }
   </style>
+  {% include "produtos/includes/entrada_nfe_embed_mode.html" %}
   <script>
     window.GM_LOADING_BAR_SHOW_DELAY_MS = 80;
   </script>
 </head>
-<body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
+<body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col{% if entrada_embed %} entrada-nfe-embed entrada-nfe-embed--{{ entrada_embed }}{% endif %}">
 {% include "produtos/_gm_loading_bar.html" %}
 
   <header id="entrada-nfe-header-principal" class="gm-bar border-b border-slate-200/80 shrink-0">
@@ -840,7 +841,7 @@
           <button type="button" id="btn-entrada-nfe-ajuda" class="entrada-nfe-open-ajuda min-h-[44px] min-w-[44px] rounded-xl border-2 border-slate-300 bg-white text-xl font-black leading-none text-slate-700 hover:bg-orange-50 hover:border-orange-400 shrink-0" title="Ajuda" aria-haspopup="dialog" aria-controls="modal-entrada-nfe-ajuda">?</button>
         </div>
       </div>
-      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-orange-400 shrink-0" %}
+      {% include "produtos/_pdv_voltar_link.html" with link_class="entrada-nfe-embed-hide inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase bg-white shadow-sm px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-orange-400 shrink-0" %}
     </div>
   </header>
 
@@ -886,12 +887,12 @@
   <div id="entrada-nfe-view-editor" class="fixed inset-0 z-[50] hidden flex-col bg-slate-50">
     <div class="shrink-0 gm-bar border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-2 px-3 py-2">
       <div class="flex flex-wrap items-center gap-2 min-w-0">
-        <button type="button" id="btn-entrada-nfe-voltar-lista" class="min-h-[40px] px-2.5 rounded-lg border border-slate-300 bg-white text-[11px] font-black uppercase text-slate-800 hover:bg-slate-50">← Lista</button>
+        <button type="button" id="btn-entrada-nfe-voltar-lista" class="min-h-[44px] px-3 rounded-lg border-2 border-slate-400 bg-white text-[11px] font-black uppercase text-slate-900 hover:bg-slate-50">{% if entrada_embed == 'lancamentos' %}Fechar · lançamentos{% else %}← Lista{% endif %}</button>
         <span class="text-[11px] font-black uppercase text-slate-600 tracking-wide">Nota NF-e</span>
         <button type="button" class="entrada-nfe-open-ajuda min-h-[38px] min-w-[38px] rounded-lg border border-slate-300 bg-white text-base font-black text-slate-700 hover:bg-orange-50" title="Ajuda">?</button>
         <span id="entrada-nfe-autosave-hint" class="hidden sm:inline-block text-[10px] font-bold text-slate-500 truncate max-w-[10rem]" title="Último salvamento automático no Agro"></span>
       </div>
-      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[40px] text-[11px] font-black uppercase bg-white shadow-sm px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:border-orange-400 shrink-0" %}
+      {% include "produtos/_pdv_voltar_link.html" with link_class="entrada-nfe-embed-hide inline-flex items-center justify-center gap-1.5 min-h-[40px] text-[11px] font-black uppercase bg-white shadow-sm px-3 py-2 rounded-lg border border-slate-200 text-slate-600 hover:border-orange-400 shrink-0" %}
     </div>
     <div id="entrada-nfe-editor-scroll" class="flex-1 min-h-0 overflow-y-auto">
       <div class="max-w-[1400px] mx-auto px-3 sm:px-4 py-2 space-y-2">
@@ -2434,6 +2435,28 @@
 
   const elEditorNfe = document.getElementById('entrada-nfe-view-editor');
   const elEditorScroll = document.getElementById('entrada-nfe-editor-scroll');
+  const ENTRADA_NFE_EMBED = '{{ entrada_embed|default:""|escapejs }}';
+  const entradaNfeEmbedMode = ENTRADA_NFE_EMBED || (() => {
+    try {
+      return (new URLSearchParams(location.search).get('embed') || '').trim().toLowerCase();
+    } catch (_) {
+      return '';
+    }
+  })();
+  const entradaNfeEmbedLancamentos = entradaNfeEmbedMode === 'lancamentos';
+
+  function entradaNfeFecharEmbedLancamentos(refresh) {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(
+          { type: 'agro-entrada-nfe-fechar', refresh: !!refresh },
+          location.origin,
+        );
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
 
   let entradaNfeWizardStep = 1;
   /** Etapa 1 · Fornecedor + plano (persistido em Mongo ``wizard_etapa1_confirmada_em``). */
@@ -4959,6 +4982,9 @@
   }
 
   function entradaNfeFecharEditor() {
+    if (entradaNfeEmbedLancamentos && entradaNfeFecharEmbedLancamentos(false)) {
+      return;
+    }
     document.body.classList.remove('entrada-nfe--editor');
     if (elEditorNfe) {
       elEditorNfe.classList.add('hidden');
@@ -4985,6 +5011,15 @@
     btn.addEventListener('click', abrirModalAjudaEntradaNfe);
   });
   document.getElementById('btn-entrada-nfe-voltar-lista')?.addEventListener('click', () => entradaNfeFecharEditor());
+  if (entradaNfeEmbedLancamentos) {
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const tg = e.target && e.target.tagName ? e.target.tagName.toUpperCase() : '';
+      if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT') return;
+      e.preventDefault();
+      entradaNfeFecharEmbedLancamentos(false);
+    });
+  }
   document.getElementById('modal-entrada-nfe-ajuda-fechar')?.addEventListener('click', fecharModalAjudaEntradaNfe);
   elModalAjudaNfe?.addEventListener('click', (e) => {
     if (e.target === elModalAjudaNfe) fecharModalAjudaEntradaNfe();
@@ -9245,6 +9280,6 @@
   });
 })();
   </script>
-{% include "produtos/_atalho_voltar_pdv.html" %}
+{% if not entrada_embed %}{% include "produtos/_atalho_voltar_pdv.html" %}{% endif %}
 </body>
 </html>

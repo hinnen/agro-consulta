@@ -8134,6 +8134,15 @@ def _caixa_request_embed(request) -> bool:
     return (request.GET.get("embed") or "").strip().lower() in ("1", "true", "sim", "yes")
 
 
+def _entrada_nfe_request_embed(request) -> str:
+    raw = (request.GET.get("embed") or "").strip().lower()
+    if raw in ("lancamentos", "contas_pagar", "cp"):
+        return "lancamentos"
+    if raw in ("1", "true", "sim", "yes"):
+        return "1"
+    return ""
+
+
 CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY = "caixa_conferencia_rascunho"
 
 
@@ -9667,7 +9676,10 @@ def entrada_nota_view(request):
     return render(
         request,
         "produtos/entrada_nota.html",
-        {"empresas_entrada_nfe": empresas_entrada_nfe},
+        {
+            "empresas_entrada_nfe": empresas_entrada_nfe,
+            "entrada_embed": _entrada_nfe_request_embed(request),
+        },
     )
 
 
