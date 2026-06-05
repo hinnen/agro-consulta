@@ -1,0 +1,17 @@
+{% if entrada_embed %}
+<style>
+  body.entrada-nfe-embed #entrada-nfe-header-principal { display: none !important; }
+  body.entrada-nfe-embed .entrada-nfe-embed-hide { display: none !important; }
+  body.entrada-nfe-embed #entrada-nfe-main-lista { display: none !important; }
+  body.entrada-nfe-embed #entrada-nfe-view-editor {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex !important;
+  }
+  body.entrada-nfe-embed #entrada-nfe-view-editor.hidden {
+    display: none !important;
+  }
+  body.entrada-nfe-embed #msg-global { top: 0.5rem; }
+</style>
+{% endif %}

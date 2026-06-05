@@ -141,8 +141,43 @@
     background: #fff; color: #0369a1; font-weight: 800; font-size: 0.72rem; letter-spacing: 0.04em;
     text-transform: uppercase; cursor: pointer; text-decoration: none;
     display: inline-flex; align-items: center; justify-content: center;
+    font-family: inherit;
   }
   .sv-btn-nfe-row:hover { background: #e0f2fe; border-color: #0369a1; color: #0c4a6e; }
+  body.sv-nfe-overlay-open { overflow: hidden; }
+  .sv-nfe-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    display: flex; align-items: center; justify-content: center;
+    padding: max(0.5rem, 1vh) max(0.5rem, 1vw);
+  }
+  .sv-nfe-overlay.hidden { display: none !important; }
+  .sv-nfe-overlay-backdrop {
+    position: absolute; inset: 0; background: rgba(15, 23, 42, 0.58);
+  }
+  .sv-nfe-overlay-panel {
+    position: relative; z-index: 1;
+    width: min(95vw, 96rem);
+    height: min(92dvh, calc(100dvh - 1rem));
+    display: flex; flex-direction: column;
+    background: #fff; border-radius: 16px;
+    border: 3px solid #334155;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
+    overflow: hidden;
+  }
+  .sv-nfe-overlay-bar {
+    flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 10px 14px; border-bottom: 2px solid #e2e8f0; background: #f8fafc;
+  }
+  .sv-nfe-overlay-title {
+    font-weight: 900; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: #0f172a;
+  }
+  .sv-nfe-overlay-fechar {
+    min-height: 44px; padding: 0 14px; border: 2px solid #475569; border-radius: 10px;
+    background: #fff; color: #0f172a; font-weight: 800; font-size: 0.78rem;
+    text-transform: uppercase; cursor: pointer; font-family: inherit;
+  }
+  .sv-nfe-overlay-fechar:hover { background: #f1f5f9; border-color: #334155; }
+  .sv-nfe-overlay-iframe { flex: 1; min-height: 0; width: 100%; border: 0; background: #f8fafc; }
   .sv-btn-pagar-row {
     min-height: 44px; min-width: 92px; padding: 0 12px; border: none; border-radius: 10px;
     background: #15803d; color: #fff; font-weight: 800; font-size: 0.82rem; letter-spacing: 0.03em;
@@ -394,6 +429,17 @@
   </div>
 </div>
 
+<div id="sv-nfe-overlay" class="sv-nfe-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="sv-nfe-overlay-titulo">
+  <div class="sv-nfe-overlay-backdrop" aria-hidden="true"></div>
+  <div class="sv-nfe-overlay-panel">
+    <div class="sv-nfe-overlay-bar">
+      <span id="sv-nfe-overlay-titulo" class="sv-nfe-overlay-title">Entrada NF-e</span>
+      <button type="button" id="sv-nfe-overlay-fechar" class="sv-nfe-overlay-fechar">Fechar · voltar à lista</button>
+    </div>
+    <iframe id="sv-nfe-overlay-iframe" class="sv-nfe-overlay-iframe" title="Entrada NF-e"></iframe>
+  </div>
+</div>
+
 <script>
 (function () {
   const API_LISTA = "{% url 'api_lancamentos_lista' %}";
@@ -563,10 +609,50 @@
     return '';
   }
 
+  function urlEntradaNfeEmbed(row) {
+    const base = urlEntradaNfe(row);
+    if (!base) return '';
+    try {
+      const u = new URL(base, window.location.origin);
+      u.searchParams.set('embed', 'lancamentos');
+      return u.pathname + u.search;
+    } catch (_) {
+      const sep = base.includes('?') ? '&' : '?';
+      return `${base}${sep}embed=lancamentos`;
+    }
+  }
+
+  let nfeOverlayAberto = false;
+
+  function abrirEntradaNfeOverlay(path) {
+    const overlay = document.getElementById('sv-nfe-overlay');
+    const iframe = document.getElementById('sv-nfe-overlay-iframe');
+    if (!overlay || !iframe || !path) return;
+    iframe.src = path;
+    overlay.classList.remove('hidden');
+    nfeOverlayAberto = true;
+    document.body.classList.add('sv-nfe-overlay-open');
+    document.getElementById('sv-nfe-overlay-fechar')?.focus();
+  }
+
+  function fecharEntradaNfeOverlay(refresh) {
+    const overlay = document.getElementById('sv-nfe-overlay');
+    const iframe = document.getElementById('sv-nfe-overlay-iframe');
+    if (!overlay) return;
+    overlay.classList.add('hidden');
+    nfeOverlayAberto = false;
+    document.body.classList.remove('sv-nfe-overlay-open');
+    if (iframe) iframe.src = 'about:blank';
+    if (refresh) {
+      page = 1;
+      carregar(false);
+    }
+  }
+
   function renderColNfe(row) {
-    const u = urlEntradaNfe(row);
+    const u = urlEntradaNfeEmbed(row);
     if (!u) return '<div class="sv-col-nfe"></div>';
-    return `<div class="sv-col-nfe"><a href="${esc(u)}" data-prefetch class="sv-btn-nfe-row" title="Abrir a nota fiscal deste boleto na etapa Produtos" onclick="event.stopPropagation();">NF</a></div>`;
+    return `<div class="sv-col-nfe"><button type="button" class="sv-btn-nfe-row" data-nfe-url="${esc(u)}" title="Abrir a nota fiscal deste boleto na etapa Produtos">NF</button></div>`;
   }
 
   function getRow(id) {
@@ -850,9 +936,9 @@
     const idStr = String(row.id);
     const canPay = !row.pago;
     const acoes = [];
-    const urlNf = urlEntradaNfe(row);
+    const urlNf = urlEntradaNfeEmbed(row);
     if (urlNf) {
-      acoes.push(`<a class="sv-btn-action sv-btn-nfe-row" href="${esc(urlNf)}" data-prefetch onclick="event.stopPropagation();" title="Abrir nota na etapa Produtos">Ver NF</a>`);
+      acoes.push(`<button type="button" class="sv-btn-action sv-btn-nfe-row" data-nfe-url="${esc(urlNf)}" title="Abrir nota na etapa Produtos">Ver NF</button>`);
     }
     if (canPay) {
       acoes.push(`<button type="button" class="sv-btn-action sv-btn-pay sv-btn-baixa-total" data-id="${esc(row.id)}">Pagar</button>`);
@@ -925,6 +1011,13 @@
   if (!elCorpo.dataset.delegation) {
     elCorpo.dataset.delegation = '1';
     elCorpo.addEventListener('click', (e) => {
+      const nfeBtn = e.target.closest('.sv-btn-nfe-row');
+      if (nfeBtn && nfeBtn.dataset.nfeUrl) {
+        e.preventDefault();
+        e.stopPropagation();
+        abrirEntradaNfeOverlay(nfeBtn.dataset.nfeUrl);
+        return;
+      }
       const bt = e.target.closest('.sv-btn-baixa-total');
       if (bt) { e.stopPropagation(); abrirBaixaTotal(bt.dataset.id); return; }
       const bp = e.target.closest('.sv-btn-baixa-parcial');
@@ -1212,6 +1305,20 @@
     if (rowsAcum.length >= total) return;
     page += 1;
     carregar(true);
+  });
+
+  document.getElementById('sv-nfe-overlay-fechar')?.addEventListener('click', () => fecharEntradaNfeOverlay(false));
+  window.addEventListener('message', (ev) => {
+    if (!ev || ev.origin !== window.location.origin) return;
+    const d = ev.data || {};
+    if (d.type === 'agro-entrada-nfe-fechar') {
+      fecharEntradaNfeOverlay(!!d.refresh);
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (!nfeOverlayAberto || e.key !== 'Escape') return;
+    e.preventDefault();
+    fecharEntradaNfeOverlay(false);
   });
 
   const params = new URLSearchParams(window.location.search);
