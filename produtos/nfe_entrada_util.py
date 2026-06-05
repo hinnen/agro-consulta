@@ -1309,6 +1309,95 @@ def marcar_rascunho_financeiro_lancado(
         return {"ok": False, "erro": str(exc)[:500]}
 
 
+def _extrair_nf_numero_lancamento(linha: dict[str, Any]) -> str:
+    nd = str(linha.get("numero_documento") or "").strip()
+    if nd and nd not in ("0", "000"):
+        return nd
+    desc = str(linha.get("descricao") or "")
+    m = re.match(r"^NF\s+(\S+)", desc, re.I)
+    if m:
+        return m.group(1).strip("—- ").split()[0]
+    return ""
+
+
+def map_lancamentos_entrada_nfe_rascunho_ids(
+    db, linhas: list[dict[str, Any]]
+) -> dict[str, str]:
+    """Mapeia ID do título Mongo → ID do rascunho Entrada NF-e (``extra.financeiro_ids`` ou NF)."""
+    if db is None or not linhas:
+        return {}
+    ids = [str(x.get("id") or "").strip() for x in linhas if x.get("id")]
+    ids = [x for x in ids if x]
+    if not ids:
+        return {}
+    out: dict[str, str] = {}
+    try:
+        cur = db[COL_ENTRADA_RASCUNHO].find(
+            {
+                "extra.financeiro_ids": {"$in": ids},
+                "status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA},
+            },
+            {"extra.financeiro_ids": 1},
+        ).limit(250)
+        for doc in cur:
+            rid = str(doc.get("_id", ""))
+            extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+            fin_list = extra.get("financeiro_ids") if isinstance(extra, dict) else []
+            if not isinstance(fin_list, list):
+                continue
+            for lid in fin_list:
+                sid = str(lid or "").strip()
+                if sid and sid in ids and sid not in out:
+                    out[sid] = rid
+    except Exception as exc:
+        logger.warning("map_lancamentos_entrada_nfe_rascunho_ids: %s", exc)
+
+    missing = [ln for ln in linhas if str(ln.get("id") or "") not in out]
+    nf_por_lanc: dict[str, list[str]] = {}
+    for ln in missing:
+        lid = str(ln.get("id") or "")
+        nf = _extrair_nf_numero_lancamento(ln)
+        if nf and lid:
+            nf_por_lanc.setdefault(nf, []).append(lid)
+    if nf_por_lanc:
+        try:
+            ors = [{"cabecalho.numero": nf} for nf in nf_por_lanc]
+            cur2 = db[COL_ENTRADA_RASCUNHO].find(
+                {
+                    "$and": [
+                        {"$or": ors},
+                        {"status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA}},
+                    ]
+                },
+                {"cabecalho.numero": 1},
+            ).limit(120)
+            for doc in cur2:
+                rid = str(doc.get("_id", ""))
+                cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+                nf = str(cab.get("numero") or "").strip()
+                for lid in nf_por_lanc.get(nf, []):
+                    if lid not in out:
+                        out[lid] = rid
+        except Exception as exc:
+            logger.warning("map_lancamentos_entrada_nfe_rascunho_ids fallback nf: %s", exc)
+    return out
+
+
+def enriquecer_lancamentos_entrada_nfe_rascunho(
+    db, linhas: list[dict[str, Any]]
+) -> None:
+    """Preenche ``entrada_nfe_rascunho_id`` e ``entrada_nfe_url`` nas linhas da API."""
+    if not linhas:
+        return
+    mp = map_lancamentos_entrada_nfe_rascunho_ids(db, linhas)
+    for ln in linhas:
+        lid = str(ln.get("id") or "")
+        rid = mp.get(lid)
+        if rid:
+            ln["entrada_nfe_rascunho_id"] = rid
+            ln["entrada_nfe_url"] = f"/entrada-nota/?rascunho={rid}&passo=2"
+
+
 def pipeline_acao_rascunho_entrada(
     db,
     oid: str,

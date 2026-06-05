@@ -6620,6 +6620,14 @@
     }
   }
 
+  async function carregarRascunhoNaTelaDeepLink(id, passo) {
+    await carregarRascunhoNaTela(id);
+    const p = Math.min(ENTRADA_NFE_WIZ_TOTAL, Math.max(1, Math.floor(Number(passo)) || 2));
+    try {
+      entradaNfeWizardSetStep(p);
+    } catch (_) {}
+  }
+
   async function excluirRascunhoMongo(id) {
     const pin = entradaNfeSolicitarPinLista(
       'EXCLUIR permanentemente esta entrada no Agro. Não dá para desfazer.',
@@ -9130,6 +9138,11 @@
     try {
       storedRid = sessionStorage.getItem(ENTRADA_NFE_SS_RASC_ID) || '';
     } catch (_) {}
+    const upsInit = new URLSearchParams(location.search);
+    const ridUrl = (upsInit.get('rascunho') || upsInit.get('id') || '').trim();
+    let passoUrl = parseInt(upsInit.get('passo') || upsInit.get('wizard') || '2', 10);
+    if (!Number.isFinite(passoUrl) || passoUrl < 1) passoUrl = 2;
+    passoUrl = Math.min(ENTRADA_NFE_WIZ_TOTAL, passoUrl);
     const finalizeEntradaNfeInit = () => {
       carregarRascunhos();
       atualizarPainelTotalNfe();
@@ -9140,6 +9153,14 @@
       entradaNfeAtualizarUiBotaoConfirmarCodigos();
       entradaNfeAplicarCongelamentoEditorUi();
     };
+    if (/^[a-f0-9]{24}$/i.test(ridUrl)) {
+      try {
+        sessionStorage.removeItem(ENTRADA_NFE_SS_RASC_ID);
+      } catch (_) {}
+      setEntradaNfeRascunhoEdit(null);
+      void carregarRascunhoNaTelaDeepLink(ridUrl, passoUrl).finally(finalizeEntradaNfeInit);
+      return;
+    }
     if (rawOc) {
       try {
         entradaNfeAbrirEditor();
