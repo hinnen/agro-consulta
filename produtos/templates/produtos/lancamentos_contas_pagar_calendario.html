@@ -9,9 +9,7 @@
 {% block admin_header_inner_class %}w-full max-w-none px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5{% endblock %}
 {% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-0 py-0 overflow-hidden{% endblock %}
 
-{% block head_extra %}
-  {% include "produtos/_agro_consulta_ui.html" %}
-{% endblock %}
+{% block head_extra %}{% endblock %}
 
 {% block admin_header_actions %}
   <div class="flex flex-wrap items-center justify-end gap-2">
@@ -21,7 +19,7 @@
     <button type="button" class="sv-cal-btn-top" id="sv-cal-next" title="Próximo mês">▶</button>
     <span class="hidden sm:inline-block w-px h-8 bg-slate-300 mx-0.5" aria-hidden="true"></span>
     <a href="{% url 'lancamentos_contas_pagar' %}" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-800 hover:border-amber-400">Clássico</a>
-    <a href="{% url 'lancamentos_contas_pagar_teste' %}" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-violet-500 bg-violet-600 px-3 text-xs font-black uppercase text-white hover:bg-violet-700">Lista</a>
+    <a href="/lancamentos/contas-pagar/teste/" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-violet-500 bg-violet-600 px-3 text-xs font-black uppercase text-white hover:bg-violet-700">Lista</a>
     {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-700 hover:border-amber-400" %}
   </div>
 {% endblock %}
@@ -181,8 +179,8 @@
 
 <script>
 (function () {
-  const API = "{% url 'api_lancamentos_contas_pagar_calendario' %}";
-  const LIST_URL = "{% url 'lancamentos_contas_pagar_teste' %}";
+  const API = "/api/lancamentos/contas-pagar/calendario/";
+  const LIST_URL = "/lancamentos/contas-pagar/teste/";
 
   const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   let currentDate = new Date();

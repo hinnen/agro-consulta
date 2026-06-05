@@ -172,6 +172,7 @@ from .nfe_entrada_util import (
     release_rascunho_estoque_agro_claim,
     reverter_integracao_entrada_nota_para_reabertura,
     auditar_entrada_nfe_financeiro_lote,
+    enriquecer_lancamentos_entrada_nfe_rascunho,
     normalizar_cabecalho_emit_fornecedor_entrada_nfe,
     salvar_rascunho_entrada,
 )
@@ -9280,6 +9281,8 @@ def _api_lancamentos_lista_core(request, despesa: bool):
                 }
             )
         linha = lancamento_para_api(doc0, desp_doc)
+        if desp_doc:
+            enriquecer_lancamentos_entrada_nfe_rascunho(db, [linha])
         qb = round(float(linha.get("valor_bruto") or 0), 2)
         mv = round(float(linha.get("valor_movimentado") or 0), 2)
         rs = round(float(linha.get("restante") or 0), 2)
@@ -9342,6 +9345,8 @@ def _api_lancamentos_lista_core(request, despesa: bool):
         page_size=page_size,
         ordenacao=ordenacao,
     )
+    if despesa and linhas:
+        enriquecer_lancamentos_entrada_nfe_rascunho(db, linhas)
 
     tot_out = {
         "quantidade": totais["quantidade"],

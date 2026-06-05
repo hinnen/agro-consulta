@@ -9,13 +9,11 @@
 {% block admin_header_inner_class %}w-full max-w-none px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5{% endblock %}
 {% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-0 py-0 sm:px-0 sm:py-0 overflow-hidden{% endblock %}
 
-{% block head_extra %}
-  {% include "produtos/_agro_consulta_ui.html" %}
-{% endblock %}
+{% block head_extra %}{% endblock %}
 
 {% block admin_header_actions %}
   <div class="flex flex-wrap items-center justify-end gap-2">
-    <a href="{% url 'lancamentos_contas_pagar_calendario' %}" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-sky-500 bg-sky-600 px-3 text-xs font-black uppercase text-white hover:bg-sky-700">Calendário</a>
+    <a href="/lancamentos/contas-pagar/calendario/" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-sky-500 bg-sky-600 px-3 text-xs font-black uppercase text-white hover:bg-sky-700">Calendário</a>
     <a href="{% url 'lancamentos_contas_pagar' %}" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-800 hover:border-amber-400">Clássico</a>
     <a href="{% url 'lancamentos_manual' %}" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-emerald-600 bg-emerald-600 px-3 text-xs font-black uppercase text-white hover:bg-emerald-700">Manual</a>
     {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-700 hover:border-amber-400" %}
@@ -108,7 +106,7 @@
   .sv-list-scroll { flex: 1; min-height: 0; overflow-y: auto; }
   .sv-list-cols {
     display: grid;
-    grid-template-columns: 42px minmax(88px, 108px) minmax(0, 1fr) minmax(118px, 148px) minmax(96px, 118px) minmax(92px, 108px) 36px;
+    grid-template-columns: 42px minmax(88px, 108px) minmax(0, 1fr) minmax(118px, 148px) minmax(96px, 118px) minmax(52px, 64px) minmax(92px, 108px) 36px;
     align-items: center; gap: 8px 10px;
   }
   .sv-list-header {
@@ -116,8 +114,10 @@
     font-weight: 800; color: #475569; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em;
   }
   .sv-list-header > div:nth-child(4),
-  .sv-list-header > div:nth-child(6) { text-align: right; }
-  .sv-list-header > div:nth-child(5) { text-align: center; }
+  .sv-list-header > div:nth-child(6),
+  .sv-list-header > div:nth-child(7) { text-align: right; }
+  .sv-list-header > div:nth-child(5),
+  .sv-list-header > div:nth-child(6) { text-align: center; }
   .sv-list-item { border-bottom: 2px solid #e2e8f0; transition: var(--transicao); }
   .sv-list-item:last-child { border-bottom: none; }
   .sv-list-row {
@@ -134,7 +134,15 @@
   }
   .sv-col-valor.negativo { color: #b91c1c; }
   .sv-col-status { display: flex; justify-content: center; }
+  .sv-col-nfe { display: flex; justify-content: center; }
   .sv-col-pagar { display: flex; justify-content: flex-end; }
+  .sv-btn-nfe-row {
+    min-height: 44px; min-width: 52px; padding: 0 8px; border: 2px solid #0284c7; border-radius: 10px;
+    background: #fff; color: #0369a1; font-weight: 800; font-size: 0.72rem; letter-spacing: 0.04em;
+    text-transform: uppercase; cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .sv-btn-nfe-row:hover { background: #e0f2fe; border-color: #0369a1; color: #0c4a6e; }
   .sv-btn-pagar-row {
     min-height: 44px; min-width: 92px; padding: 0 12px; border: none; border-radius: 10px;
     background: #15803d; color: #fff; font-weight: 800; font-size: 0.82rem; letter-spacing: 0.03em;
@@ -214,6 +222,7 @@
     .sv-col-descricao { grid-column: 2 / -1; font-weight: 700; font-size: 1.05rem; white-space: normal; }
     .sv-col-valor { grid-column: 3; grid-row: 1; font-size: 1.2rem; }
     .sv-col-status { grid-column: 2; justify-content: flex-start; }
+    .sv-col-nfe { display: none; }
     .sv-col-pagar { grid-column: 3; grid-row: 2; }
     .sv-expand-icon { grid-column: 3; grid-row: 1; align-self: start; }
   }
@@ -254,7 +263,7 @@
       <input type="search" id="sv-busca" class="sv-input-large" placeholder="Buscar fornecedor, descrição, valor…" autocomplete="off">
     </div>
     <div class="sv-toolbar-actions">
-      <a href="{% url 'lancamentos_contas_pagar_calendario' %}" data-prefetch class="sv-btn sv-btn-cal" title="Calendário mensal por vencimento">
+      <a href="/lancamentos/contas-pagar/calendario/" data-prefetch class="sv-btn sv-btn-cal" title="Calendário mensal por vencimento">
         <span aria-hidden="true">📅</span> Calendário
       </a>
       <button type="button" class="sv-btn sv-btn-secondary" id="sv-btn-filtros" aria-expanded="false" aria-controls="painelFiltros">
@@ -334,6 +343,7 @@
       <div>Fornecedor</div>
       <div>Valor</div>
       <div>Status</div>
+      <div>NF</div>
       <div>Pagar</div>
       <div></div>
     </div>
@@ -544,6 +554,19 @@
     const u = new URL(URL_CLASSICO, window.location.origin);
     if (id) u.searchParams.set('mongo_id', id);
     return u.pathname + u.search;
+  }
+
+  function urlEntradaNfe(row) {
+    if (row.entrada_nfe_url) return row.entrada_nfe_url;
+    const rid = row.entrada_nfe_rascunho_id;
+    if (rid) return `/entrada-nota/?rascunho=${encodeURIComponent(rid)}&passo=2`;
+    return '';
+  }
+
+  function renderColNfe(row) {
+    const u = urlEntradaNfe(row);
+    if (!u) return '<div class="sv-col-nfe"></div>';
+    return `<div class="sv-col-nfe"><a href="${esc(u)}" data-prefetch class="sv-btn-nfe-row" title="Abrir a nota fiscal deste boleto na etapa Produtos" onclick="event.stopPropagation();">NF</a></div>`;
   }
 
   function getRow(id) {
@@ -827,6 +850,10 @@
     const idStr = String(row.id);
     const canPay = !row.pago;
     const acoes = [];
+    const urlNf = urlEntradaNfe(row);
+    if (urlNf) {
+      acoes.push(`<a class="sv-btn-action sv-btn-nfe-row" href="${esc(urlNf)}" data-prefetch onclick="event.stopPropagation();" title="Abrir nota na etapa Produtos">Ver NF</a>`);
+    }
     if (canPay) {
       acoes.push(`<button type="button" class="sv-btn-action sv-btn-pay sv-btn-baixa-total" data-id="${esc(row.id)}">Pagar</button>`);
       acoes.push(`<button type="button" class="sv-btn-action sv-btn-edit sv-btn-baixa-parcial" data-id="${esc(row.id)}">Parcial</button>`);
@@ -849,6 +876,7 @@
           <div class="sv-col-descricao" title="${esc(fornecedor || desc || titulo)}">${esc(titulo)}</div>
           <div class="sv-col-valor negativo">${esc(valorTxt)}</div>
           <div class="sv-col-status">${statusBadge(row)}</div>
+          ${renderColNfe(row)}
           <div class="sv-col-pagar">
             ${canPay
               ? `<button type="button" class="sv-btn-pagar-row sv-btn-baixa-total" data-id="${esc(row.id)}">Pagar</button>`
@@ -885,6 +913,7 @@
         if (e.target.closest('.sv-details-actions')) return;
         if (e.target.closest('.sv-col-chk')) return;
         if (e.target.closest('.sv-btn-pagar-row')) return;
+        if (e.target.closest('.sv-btn-nfe-row')) return;
         toggle();
       });
       item.addEventListener('keydown', (e) => {
