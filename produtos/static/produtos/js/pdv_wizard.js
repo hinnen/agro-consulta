@@ -403,14 +403,41 @@
         return false;
     }
 
-    function pickProductForQuery(list, query) {
+    function productRowLookupCode(produto) {
+        if (!produto) return '';
+        return String(
+            produto.codigo_nfe || produto.codigo || produto.codigo_barras || ''
+        ).trim();
+    }
+
+    function findProductInListById(list, produto) {
+        var pid = resolveProdutoId(produto);
+        if (!pid) return null;
         var norm = normalizeWizardCatalogList(list);
-        if (!norm.length) return null;
         var i;
         for (i = 0; i < norm.length; i++) {
-            if (productMatchesQueryExact(norm[i], query)) return norm[i];
+            if (resolveProdutoId(norm[i]) === pid) return norm[i];
         }
-        return norm[0];
+        return null;
+    }
+
+    function pickProductForQuery(list, query, opts) {
+        opts = opts || {};
+        var norm = normalizeWizardCatalogList(list);
+        if (!norm.length) return null;
+        if (opts.preferProduto) {
+            var byId = findProductInListById(norm, opts.preferProduto);
+            if (byId) return byId;
+        }
+        var ql = String(query || '').trim();
+        var i;
+        if (ql) {
+            for (i = 0; i < norm.length; i++) {
+                if (productMatchesQueryExact(norm[i], ql)) return norm[i];
+            }
+        }
+        if (norm.length === 1) return norm[0];
+        return null;
     }
 
     function mergeProductRowForAdd(local, remote) {
@@ -437,10 +464,12 @@
     function tryAddProductFromSearch(produto, opts) {
         opts = opts || {};
         var qty = opts.qty != null ? opts.qty : 1;
+        var explicitPick = !!opts.explicitPick;
+        var rowCode = productRowLookupCode(produto);
         var queryHint = String(
             opts.query != null ? opts.query : (dom.productSearch && dom.productSearch.value) || ''
         ).trim();
-        var forceServer = !!opts.forceServer || looksLikeSkuCode(queryHint);
+        var forceServer = !!opts.forceServer || (!explicitPick && looksLikeSkuCode(queryHint));
 
         function finishOk(msg) {
             resetProductSearchUi(msg || opts.okMsg || 'Item adicionado à venda.');
@@ -457,16 +486,18 @@
             return false;
         }
 
-        if (!forceServer && tryAdd(produto)) {
+        if (tryAdd(produto)) {
             return Promise.resolve(finishOk());
         }
 
-        var code = queryHint;
-        if (!code) {
-            code = String(
-                (produto && (produto.codigo_nfe || produto.codigo || produto.codigo_barras)) || ''
-            ).trim();
+        if (!forceServer && !explicitPick && !resolveProdutoId(produto)) {
+            return Promise.resolve(
+                failMsg('Não foi possível adicionar — produto sem ID no cache. Atualize a página (F5).')
+            );
         }
+
+        var code = explicitPick && rowCode ? rowCode : queryHint;
+        if (!code) code = rowCode;
         if (!code) {
             return Promise.resolve(
                 failMsg('Não foi possível adicionar — produto sem ID no cache. Atualize a página (F5).')
@@ -478,10 +509,19 @@
         }
 
         return fetchWizardServerSearch(code).then(function (srv) {
-            var picked = pickProductForQuery(srv.produtos, code);
-            var merged = mergeProductRowForAdd(produto, picked);
+            var picked = pickProductForQuery(srv.produtos, code, { preferProduto: produto });
+            if (explicitPick && produto && picked) {
+                var locId = resolveProdutoId(produto);
+                var pickId = resolveProdutoId(picked);
+                if (locId && pickId && locId !== pickId) {
+                    picked = findProductInListById(srv.produtos, produto)
+                        || pickProductForQuery(srv.produtos, rowCode, { preferProduto: produto });
+                }
+            }
+            var merged = picked ? mergeProductRowForAdd(produto, picked) : produto;
             if (tryAdd(merged)) return finishOk();
             if (picked && picked !== merged && tryAdd(picked)) return finishOk();
+            if (explicitPick && tryAdd(produto)) return finishOk();
             return failMsg(
                 'Não foi possível adicionar este produto. Pressione F5 e busque de novo.'
             );
@@ -5518,7 +5558,10 @@
                 }
                 var target = lastProducts[Math.max(productSelectionIndex, 0)];
                 if (target) {
-                    tryAddProductFromSearch(target, { query: qEnter });
+                    tryAddProductFromSearch(target, {
+                        query: productRowLookupCode(target) || qEnter,
+                        explicitPick: true,
+                    });
                 } else {
                     runProductSearch(qEnter, 'manual');
                 }
@@ -5567,7 +5610,9 @@
                 var idx = parseInt(btn.getAttribute('data-autocomplete-index') || '-1', 10);
                 if (idx < 0 || idx >= lastProducts.length) return;
                 tryAddProductFromSearch(lastProducts[idx], {
-                    query: dom.productSearch ? dom.productSearch.value : '',
+                    query: productRowLookupCode(lastProducts[idx])
+                        || (dom.productSearch ? dom.productSearch.value : ''),
+                    explicitPick: true,
                 });
             });
             dom.productAutocomplete.addEventListener('click', function (event) {
