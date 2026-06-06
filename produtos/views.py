@@ -14795,7 +14795,9 @@ def api_buscar_produtos(request):
 
         res = []
         for p in prods:
-            pid = str(p.get("Id") or p["_id"])
+            pid = str(p.get("Id") or p.get("_id") or "").strip()
+            if not pid or pid.lower() == "none":
+                continue
 
             saldo_centro_erp = _float_api_json(estoque_map.get(pid, {}).get("centro", 0.0))
             saldo_vila_erp = _float_api_json(estoque_map.get(pid, {}).get("vila", 0.0))

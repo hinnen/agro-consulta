@@ -274,15 +274,30 @@
         }
     }
 
+    function resolveProdutoId(produto) {
+        if (!produto || typeof produto !== 'object') return '';
+        var raw = produto.id != null && produto.id !== ''
+            ? produto.id
+            : (produto.Id != null && produto.Id !== ''
+                ? produto.Id
+                : (produto.produto_id != null && produto.produto_id !== ''
+                    ? produto.produto_id
+                    : (produto.produto_externo_id != null ? produto.produto_externo_id : '')));
+        var id = String(raw == null ? '' : raw).trim();
+        if (!id || id === 'undefined' || id === 'null') return '';
+        return id;
+    }
+
     function addItem(produto, quantidade) {
-        if (!produto || !produto.id) return;
+        var pid = resolveProdutoId(produto);
+        if (!pid) return false;
         var qtd = normalizeQty(quantidade || 1, 1);
-        var existing = state.itens.find(function (item) { return String(item.id) === String(produto.id); });
+        var existing = state.itens.find(function (item) { return String(item.id) === pid; });
         if (existing) {
             existing.qtd = normalizeQty(toNumber(existing.qtd) + qtd, qtd);
         } else {
             state.itens.push({
-                id: String(produto.id),
+                id: pid,
                 nome: String(produto.nome || ''),
                 preco: toNumber(produto.preco_venda || produto.preco || 0),
                 qtd: qtd,
@@ -295,6 +310,7 @@
             });
         }
         notify();
+        return true;
     }
 
     function updateItemQuantity(itemId, nextQty) {
@@ -715,6 +731,7 @@
         setCliente: setCliente,
         setConsumidorFinal: setConsumidorFinal,
         getLastClient: getLastClient,
+        resolveProdutoId: resolveProdutoId,
         addItem: addItem,
         updateItemQuantity: updateItemQuantity,
         updateItemPrice: updateItemPrice,
