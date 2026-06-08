@@ -1094,3 +1094,98 @@ class ProdutoMarcaVariacaoAgro(models.Model):
 
     def __str__(self):
         return f"{self.produto_externo_id} · {self.marca}"
+
+
+class PromocaoAgro(models.Model):
+    """Promoção configurada no Agro (PDV, venda direta, catálogo)."""
+
+    class Tipo(models.TextChoices):
+        LEVE_PAGUE = "leve_pague", "Leve X, pague Y"
+        ACIMA_UNIDADES = "acima_unidades", "Acima de X unidades, pague Y"
+        VALOR_DIRETO = "valor_direto", "Valor direto"
+
+    nome = models.CharField("Nome", max_length=200)
+    tipo = models.CharField("Tipo", max_length=20, choices=Tipo.choices, db_index=True)
+    qtd_x = models.DecimalField(
+        "Quantidade X",
+        max_digits=12,
+        decimal_places=3,
+        null=True,
+        blank=True,
+        help_text="Unidades para Leve X ou limiar Acima de X.",
+    )
+    preco_y = models.DecimalField(
+        "Preço Y (por unidade)",
+        max_digits=12,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        help_text="Preço promocional por unidade quando o critério for atendido.",
+    )
+    data_inicio = models.DateField("Início")
+    data_fim = models.DateField("Fim", null=True, blank=True)
+    permanente = models.BooleanField(
+        "Válida permanentemente",
+        default=False,
+        help_text="Sem data de encerramento; vale a partir do início enquanto estiver ativa.",
+    )
+    telas = models.JSONField(
+        "Telas",
+        default=list,
+        blank=True,
+        help_text='Ex.: ["pdv", "venda_direta", "catalogo"]',
+    )
+    empresas = models.JSONField(
+        "Empresas",
+        default=list,
+        blank=True,
+        help_text='Ex.: ["centro", "vila"]',
+    )
+    ativo = models.BooleanField("Ativa", default=True, db_index=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Promoção"
+        verbose_name_plural = "Promoções"
+        ordering = ["-data_inicio", "-pk"]
+
+    def __str__(self):
+        return self.nome[:80]
+
+
+class PromocaoProdutoAgro(models.Model):
+    """Produto vinculado a uma promoção."""
+
+    promocao = models.ForeignKey(
+        PromocaoAgro,
+        on_delete=models.CASCADE,
+        related_name="produtos",
+    )
+    produto_externo_id = models.CharField(max_length=64, db_index=True)
+    codigo = models.CharField(max_length=80, blank=True, default="")
+    nome_produto = models.CharField(max_length=300, blank=True, default="")
+    preco_padrao = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    preco_promocional = models.DecimalField(
+        "Preço promocional (valor direto)",
+        max_digits=12,
+        decimal_places=4,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        verbose_name = "Produto da promoção"
+        verbose_name_plural = "Produtos da promoção"
+        ordering = ["codigo", "nome_produto"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["promocao", "produto_externo_id"],
+                name="uniq_promocao_produto_externo",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.codigo or self.produto_externo_id} · {self.nome_produto[:40]}"

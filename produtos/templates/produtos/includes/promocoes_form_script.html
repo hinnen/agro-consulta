@@ -1,0 +1,637 @@
+{# Script inline: evita depender de collectstatic #}
+<script>
+(function () {
+    'use strict';
+
+    var cfg = window.PROMO_FORM_CONFIG || {};
+    cfg.apiSalvar = cfg.apiSalvar || '/api/promocoes/salvar/';
+    cfg.apiBuscar = cfg.apiBuscar || '/api/promocoes/buscar-produto/';
+    var LIMITE_EXIBIR = 12;
+
+    var elData = document.getElementById('promo-initial-data');
+    var state = { produtos: [] };
+    if (elData && elData.textContent) {
+        try {
+            state = JSON.parse(elData.textContent);
+            if (typeof state === 'string') state = JSON.parse(state);
+        } catch (e) {
+            console.error('promo-initial-data inválido', e);
+            state = { produtos: [] };
+        }
+    }
+    if (!Array.isArray(state.produtos)) state.produtos = [];
+
+    var dom = {
+        nome: document.getElementById('promo-nome'),
+        tipo: document.getElementById('promo-tipo'),
+        qtdX: document.getElementById('promo-qtd-x'),
+        precoY: document.getElementById('promo-preco-y'),
+        inicio: document.getElementById('promo-inicio'),
+        fim: document.getElementById('promo-fim'),
+        ativo: document.getElementById('promo-ativo'),
+        permanente: document.getElementById('promo-permanente'),
+        wrapQtdX: document.getElementById('wrap-qtd-x'),
+        wrapPrecoY: document.getElementById('wrap-preco-y'),
+        labelQtdX: document.getElementById('label-qtd-x'),
+        colPrecoPromo: document.getElementById('col-preco-promo'),
+        busca: document.getElementById('promo-busca-produto'),
+        resultados: document.getElementById('promo-resultados-busca'),
+        lista: document.getElementById('promo-produtos-lista'),
+        msg: document.getElementById('promo-msg'),
+        contador: document.getElementById('promo-produtos-contador'),
+        status: document.getElementById('promo-busca-status'),
+        etapa1: document.getElementById('promo-etapa-1'),
+        etapa2: document.getElementById('promo-etapa-2'),
+        headerKicker: document.getElementById('promo-header-kicker'),
+        pill1: document.getElementById('promo-pill-1'),
+        pill2: document.getElementById('promo-pill-2'),
+        resumo: document.getElementById('promo-resumo-etapa1'),
+    };
+
+    var sugestoesCache = [];
+    var sugestoesVisiveis = [];
+    var ultimaBusca = '';
+    var totalEncontrados = 0;
+    var buscando = false;
+    var selIdx = -1;
+    var etapaAtual = 1;
+
+    function fmtMoney(n) {
+        return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function parseMoney(s) {
+        if (s == null || s === '') return null;
+        var t = String(s).trim().replace(/R\$\s?/g, '');
+        if (t.indexOf(',') >= 0) t = t.replace(/\./g, '').replace(',', '.');
+        var n = parseFloat(t);
+        return isFinite(n) ? n : null;
+    }
+
+    function showMsg(text, ok) {
+        if (!dom.msg) return;
+        dom.msg.textContent = text;
+        dom.msg.style.display = 'block';
+        dom.msg.classList.remove('hidden', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-900', 'border-red-200', 'bg-red-50', 'text-red-900');
+        dom.msg.classList.add(ok ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900');
+    }
+
+    function setStatus(text) {
+        if (dom.status) dom.status.innerHTML = text || '';
+    }
+
+    function normalizarProdutoApi(p) {
+        if (!p || typeof p !== 'object') return null;
+        var pid = String(p.produto_externo_id || p.id || p.Id || '').trim();
+        if (!pid || pid.toLowerCase() === 'none') return null;
+        return {
+            produto_externo_id: pid,
+            codigo: String(p.codigo_nfe || p.codigo || '').trim(),
+            nome_produto: String(p.nome_produto || p.nome || p.Nome || '').trim(),
+            preco_padrao: Number(p.preco_padrao != null ? p.preco_padrao : p.preco_venda != null ? p.preco_venda : 0),
+        };
+    }
+
+    function tipoLabel(tipo) {
+        var map = { leve_pague: 'Leve X, pague Y', acima_unidades: 'Acima de X unidades', valor_direto: 'Valor direto' };
+        return map[tipo] || tipo;
+    }
+
+    function atualizarResumoEtapa1() {
+        if (!dom.resumo) return;
+        var nome = dom.nome ? dom.nome.value.trim() : '';
+        var t = tipoAtual();
+        var parts = [nome || 'Sem nome', tipoLabel(t)];
+        if (t !== 'valor_direto' && dom.qtdX && dom.qtdX.value.trim()) parts.push('X=' + dom.qtdX.value.trim());
+        if (t !== 'valor_direto' && dom.precoY && dom.precoY.value.trim()) parts.push('R$ ' + dom.precoY.value.trim());
+        dom.resumo.textContent = parts.join(' · ');
+    }
+
+    function validarEtapa1() {
+        var nome = dom.nome ? dom.nome.value.trim() : '';
+        if (!nome) {
+            showMsg('Informe o nome da promoção.', false);
+            if (dom.nome) dom.nome.focus();
+            return false;
+        }
+        var empresas = document.querySelectorAll('.promo-empresa-cb:checked');
+        if (!empresas.length) {
+            showMsg('Marque ao menos uma empresa.', false);
+            return false;
+        }
+        var t = tipoAtual();
+        if (t !== 'valor_direto') {
+            if (!dom.qtdX || !parseMoney(dom.qtdX.value)) {
+                showMsg('Informe a quantidade (Leve X ou acima de X).', false);
+                if (dom.qtdX) dom.qtdX.focus();
+                return false;
+            }
+            if (!dom.precoY || parseMoney(dom.precoY.value) == null) {
+                showMsg('Informe o preço por unidade (R$).', false);
+                if (dom.precoY) dom.precoY.focus();
+                return false;
+            }
+        }
+        var perm = dom.permanente && dom.permanente.checked;
+        if (!perm && dom.fim && !dom.fim.value) {
+            showMsg('Informe a data fim ou marque «Válida permanentemente».', false);
+            return false;
+        }
+        return true;
+    }
+
+    function irParaEtapa(n) {
+        n = n === 2 ? 2 : 1;
+        etapaAtual = n;
+        if (dom.etapa1) dom.etapa1.hidden = n !== 1;
+        if (dom.etapa2) dom.etapa2.hidden = n !== 2;
+        if (dom.headerKicker) {
+            dom.headerKicker.textContent = n === 1 ? 'Etapa 1 de 2 · Configuração' : 'Etapa 2 de 2 · Produtos';
+        }
+        if (dom.pill1) {
+            dom.pill1.classList.toggle('is-current', n === 1);
+            dom.pill1.classList.toggle('is-done', n === 2);
+            dom.pill1.classList.toggle('text-slate-500', n === 2);
+        }
+        if (dom.pill2) {
+            dom.pill2.classList.toggle('is-current', n === 2);
+            dom.pill2.classList.toggle('text-slate-500', n !== 2);
+        }
+        if (n === 2) {
+            atualizarResumoEtapa1();
+            syncTipoUi();
+            setTimeout(focoBusca, 80);
+        } else if (dom.nome) {
+            dom.nome.focus();
+        }
+        if (dom.msg) dom.msg.style.display = 'none';
+    }
+
+    function continuarParaProdutos() {
+        if (!validarEtapa1()) return;
+        irParaEtapa(2);
+    }
+
+    function tipoAtual() {
+        return dom.tipo ? dom.tipo.value : 'leve_pague';
+    }
+
+    function syncTipoUi() {
+        var valorDireto = tipoAtual() === 'valor_direto';
+        if (dom.wrapQtdX) dom.wrapQtdX.style.display = valorDireto ? 'none' : '';
+        if (dom.wrapPrecoY) dom.wrapPrecoY.style.display = valorDireto ? 'none' : '';
+        if (dom.labelQtdX) {
+            dom.labelQtdX.textContent = tipoAtual() === 'acima_unidades' ? 'Acima de X unidades' : 'Leve X unidades';
+        }
+        if (dom.colPrecoPromo) {
+            dom.colPrecoPromo.textContent = valorDireto ? 'Informe preço promo' : 'Preço promo: critério';
+        }
+        renderListaProdutos();
+    }
+
+    function syncPermanenteUi() {
+        var perm = dom.permanente && dom.permanente.checked;
+        if (dom.fim) {
+            dom.fim.disabled = !!perm;
+            dom.fim.style.opacity = perm ? '0.45' : '1';
+        }
+    }
+
+    function hydrateForm() {
+        if (dom.nome) dom.nome.value = state.nome || '';
+        if (dom.tipo) dom.tipo.value = state.tipo || 'leve_pague';
+        if (dom.qtdX && state.qtd_x != null) dom.qtdX.value = String(state.qtd_x).replace('.', ',');
+        if (dom.precoY && state.preco_y != null) dom.precoY.value = String(state.preco_y).replace('.', ',');
+        if (dom.inicio) dom.inicio.value = state.data_inicio || '';
+        if (dom.fim) dom.fim.value = state.data_fim || '';
+        if (dom.permanente) dom.permanente.checked = !!state.permanente;
+        if (dom.ativo) dom.ativo.checked = state.ativo !== false;
+        document.querySelectorAll('.promo-empresa-cb').forEach(function (cb) {
+            cb.checked = (state.empresas || ['centro']).indexOf(cb.value) >= 0;
+        });
+        syncPermanenteUi();
+        syncTipoUi();
+    }
+
+    function produtoJaNaLista(pid) {
+        return state.produtos.some(function (x) {
+            return String(x.produto_externo_id) === String(pid);
+        });
+    }
+
+    function rankProduto(p, q) {
+        var ql = q.toLowerCase();
+        var cod = String(p.codigo || '').toLowerCase();
+        var nom = String(p.nome_produto || '').toLowerCase();
+        if (cod === ql) return 0;
+        if (cod.indexOf(ql) === 0) return 1;
+        if (nom.indexOf(ql) === 0) return 2;
+        if (cod.indexOf(ql) >= 0) return 3;
+        return 4;
+    }
+
+    function ordenarSugestoes(items, q) {
+        return items.slice().sort(function (a, b) {
+            var ra = rankProduto(a, q);
+            var rb = rankProduto(b, q);
+            if (ra !== rb) return ra - rb;
+            return String(a.nome_produto || '').localeCompare(String(b.nome_produto || ''), 'pt-BR');
+        });
+    }
+
+    function focoBusca() {
+        if (dom.busca) {
+            dom.busca.focus();
+            dom.busca.select();
+        }
+    }
+
+    function marcarSelecao() {
+        if (!dom.resultados) return;
+        dom.resultados.querySelectorAll('.promo-res-row').forEach(function (el, i) {
+            el.classList.toggle('is-active', i === selIdx);
+        });
+        if (selIdx >= 0) {
+            var ativo = dom.resultados.querySelectorAll('.promo-res-row')[selIdx];
+            if (ativo && ativo.scrollIntoView) ativo.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    function rowResultadoHtml(p, idx, ja) {
+        return (
+            '<button type="button" data-idx="' + idx + '" data-pid="' + String(p.produto_externo_id) + '" ' +
+            'class="promo-res-row promo-prod-row w-full text-left border-b border-slate-100 last:border-0 ' +
+            (ja ? 'bg-slate-50 opacity-55 cursor-not-allowed' : 'bg-white hover:bg-emerald-50 cursor-pointer') + '">' +
+            '<p class="text-sm font-black text-slate-800 tabular-nums">' + (p.codigo || '—') + '</p>' +
+            '<p class="text-base font-bold text-slate-900 leading-snug">' + (p.nome_produto || '') + '</p>' +
+            '<p class="promo-col-preco text-sm font-black text-slate-700 tabular-nums">' + fmtMoney(p.preco_padrao) + '</p>' +
+            '<span class="promo-col-acao inline-flex min-h-[44px] items-center justify-center rounded-lg px-3 text-xs font-black uppercase ' +
+            (ja ? 'bg-slate-200 text-slate-500' : 'bg-emerald-600 text-white') + '">' +
+            (ja ? 'Na promoção' : '+ Add') + '</span></button>'
+        );
+    }
+
+    function renderResultadosBusca() {
+        if (!dom.resultados) return;
+        if (!ultimaBusca) {
+            dom.resultados.innerHTML = '<p class="px-4 py-8 text-center text-sm font-semibold text-slate-400">Nenhuma busca ainda.</p>';
+            selIdx = -1;
+            return;
+        }
+        if (!sugestoesVisiveis.length) {
+            dom.resultados.innerHTML =
+                '<div class="px-4 py-10 text-center">' +
+                '<p class="text-base font-black text-red-700">Nada para «' + ultimaBusca + '»</p>' +
+                '<p class="text-sm font-semibold text-slate-500 mt-2">Tente código GM ou mais letras do nome.</p></div>';
+            selIdx = -1;
+            return;
+        }
+
+        var extra = totalEncontrados > sugestoesVisiveis.length
+            ? ' · mostrando ' + sugestoesVisiveis.length + ' de ' + totalEncontrados + ' — refine a busca'
+            : '';
+        var html =
+            '<div class="px-3 py-2 bg-amber-50 border-b border-amber-100 text-xs font-black text-amber-950">' +
+            sugestoesVisiveis.length + ' item(ns)' + extra + ' · ↑↓ + Enter</div>';
+
+        sugestoesVisiveis.forEach(function (p, idx) {
+            html += rowResultadoHtml(p, idx, produtoJaNaLista(p.produto_externo_id));
+        });
+        dom.resultados.innerHTML = html;
+
+        dom.resultados.querySelectorAll('.promo-res-row').forEach(function (btn) {
+            var idx = parseInt(btn.getAttribute('data-idx'), 10);
+            var pid = btn.getAttribute('data-pid');
+            var p = sugestoesVisiveis[idx];
+            if (!p || produtoJaNaLista(pid)) return;
+            btn.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                selIdx = idx;
+                incluirProduto(p);
+            });
+        });
+        marcarSelecao();
+    }
+
+    function atualizarContador() {
+        var n = state.produtos.length;
+        if (dom.contador) {
+            dom.contador.textContent = n + ' na promoção';
+            dom.contador.classList.toggle('bg-emerald-600', n > 0);
+            dom.contador.classList.toggle('text-white', n > 0);
+            dom.contador.classList.toggle('bg-emerald-100', n === 0);
+            dom.contador.classList.toggle('text-emerald-900', n === 0);
+        }
+    }
+
+    function renderListaProdutos() {
+        if (!dom.lista) return;
+        var valorDireto = tipoAtual() === 'valor_direto';
+        var n = state.produtos.length;
+        atualizarContador();
+
+        if (!n) {
+            dom.lista.innerHTML = '<p class="px-4 py-8 text-center text-sm font-semibold text-slate-400">Adicione produtos pela busca ao lado.</p>';
+            renderResultadosBusca();
+            return;
+        }
+
+        var html = '';
+        state.produtos.forEach(function (p, idx) {
+            var precoPromoCell = valorDireto
+                ? '<input type="text" inputmode="decimal" data-idx="' + idx + '" aria-label="Preço promocional" ' +
+                  'class="promo-preco-prod w-full rounded-lg border-2 border-emerald-300 px-3 py-2 font-black text-base min-h-[48px]" value="' +
+                  (p.preco_promocional != null ? String(p.preco_promocional).replace('.', ',') : '') + '">'
+                : '<span class="text-sm font-bold text-slate-500">Pelo critério</span>';
+            html +=
+                '<div class="promo-prod-row border-b border-slate-100 last:border-0 bg-white">' +
+                '<p class="text-sm font-black text-slate-800">' + (p.codigo || '—') + '</p>' +
+                '<p class="text-base font-bold text-slate-900 leading-snug">' + (p.nome_produto || '') + '</p>' +
+                '<p class="promo-col-preco text-sm font-black text-slate-700 tabular-nums">' + fmtMoney(p.preco_padrao) + '</p>' +
+                '<div class="promo-col-acao flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">' +
+                precoPromoCell +
+                '<button type="button" data-rm="' + idx + '" class="shrink-0 min-h-[48px] px-4 rounded-lg border-2 border-red-200 bg-red-50 text-red-800 text-xs font-black uppercase hover:bg-red-100">Remover</button>' +
+                '</div></div>';
+        });
+        dom.lista.innerHTML = html;
+
+        dom.lista.querySelectorAll('[data-rm]').forEach(function (btn) {
+            btn.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                state.produtos.splice(parseInt(btn.getAttribute('data-rm'), 10), 1);
+                renderListaProdutos();
+                showMsg('Produto removido.', true);
+            });
+        });
+        dom.lista.querySelectorAll('.promo-preco-prod').forEach(function (inp) {
+            inp.addEventListener('change', function () {
+                var i = parseInt(inp.getAttribute('data-idx'), 10);
+                if (state.produtos[i]) state.produtos[i].preco_promocional = parseMoney(inp.value);
+            });
+        });
+        renderResultadosBusca();
+    }
+
+    function buscarProdutos(opts) {
+        opts = opts || {};
+        var q = dom.busca ? dom.busca.value.trim() : '';
+        if (q.length < 2) {
+            setStatus('Digite ao menos <strong>2 caracteres</strong>.');
+            if (!opts.silent) showMsg('Digite ao menos 2 caracteres.', false);
+            return Promise.resolve([]);
+        }
+        if (buscando) return Promise.resolve(sugestoesVisiveis.slice());
+
+        buscando = true;
+        ultimaBusca = q;
+        selIdx = -1;
+        setStatus('Buscando…');
+        if (dom.resultados) {
+            dom.resultados.innerHTML = '<p class="px-4 py-10 text-center text-base font-bold text-slate-500">Buscando…</p>';
+        }
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+
+        return fetch(cfg.apiBuscar + '?q=' + encodeURIComponent(q), {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+        })
+            .then(function (r) {
+                return r.text().then(function (txt) {
+                    var data = {};
+                    try { data = JSON.parse(txt); } catch (e) {
+                        throw new Error('Resposta inválida (login expirou?).');
+                    }
+                    if (!r.ok) throw new Error((data && data.erro) || 'HTTP ' + r.status);
+                    return data;
+                });
+            })
+            .then(function (d) {
+                var items = [];
+                (d.produtos || []).forEach(function (p) {
+                    var n = normalizarProdutoApi(p);
+                    if (n) items.push(n);
+                });
+                items = ordenarSugestoes(items, q);
+                sugestoesCache = items;
+                totalEncontrados = items.length;
+                sugestoesVisiveis = items.slice(0, LIMITE_EXIBIR);
+                selIdx = sugestoesVisiveis.length ? 0 : -1;
+                renderListaProdutos();
+
+                if (!items.length) {
+                    setStatus('Nenhum produto para «' + q + '».');
+                } else if (items.length === 1 && !produtoJaNaLista(items[0].produto_externo_id)) {
+                    setStatus('1 produto — <strong>Enter</strong> adiciona.');
+                } else if (items.length > LIMITE_EXIBIR) {
+                    setStatus('«' + q + '»: <strong>' + items.length + '</strong> no total · refine ou use ↑↓ + Enter.');
+                } else {
+                    setStatus('«' + q + '»: <strong>' + items.length + '</strong> — clique ou Enter na linha.');
+                }
+                return sugestoesVisiveis;
+            })
+            .catch(function (err) {
+                sugestoesCache = [];
+                sugestoesVisiveis = [];
+                totalEncontrados = 0;
+                renderListaProdutos();
+                setStatus('Erro na busca.');
+                showMsg(err && err.message ? err.message : 'Falha ao buscar.', false);
+                return [];
+            })
+            .finally(function () {
+                buscando = false;
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            });
+    }
+
+    function incluirProduto(p) {
+        if (!p) return false;
+        var pid = String(p.produto_externo_id || '').trim();
+        if (!pid) {
+            showMsg('Produto sem ID no ERP.', false);
+            return false;
+        }
+        if (produtoJaNaLista(pid)) {
+            showMsg('Já está na promoção: ' + (p.codigo || pid), false);
+            return false;
+        }
+        state.produtos.push({
+            produto_externo_id: pid,
+            codigo: String(p.codigo || ''),
+            nome_produto: String(p.nome_produto || ''),
+            preco_padrao: Number(p.preco_padrao || 0),
+            preco_promocional: tipoAtual() === 'valor_direto' ? Number(p.preco_padrao || 0) : null,
+        });
+        renderListaProdutos();
+        showMsg('Adicionado: ' + (p.codigo || pid), true);
+        setStatus('Adicionado <strong>' + (p.codigo || pid) + '</strong>. Próximo item…');
+        if (dom.busca) dom.busca.value = '';
+        ultimaBusca = '';
+        sugestoesCache = [];
+        sugestoesVisiveis = [];
+        selIdx = -1;
+        renderResultadosBusca();
+        focoBusca();
+        return true;
+    }
+
+    function confirmarBuscaOuAdicionar() {
+        var q = dom.busca ? dom.busca.value.trim() : '';
+        if (ultimaBusca === q && sugestoesVisiveis.length) {
+            if (selIdx >= 0 && sugestoesVisiveis[selIdx] && !produtoJaNaLista(sugestoesVisiveis[selIdx].produto_externo_id)) {
+                incluirProduto(sugestoesVisiveis[selIdx]);
+                return;
+            }
+            var disponiveis = sugestoesVisiveis.filter(function (p) {
+                return !produtoJaNaLista(p.produto_externo_id);
+            });
+            if (disponiveis.length === 1) {
+                incluirProduto(disponiveis[0]);
+                return;
+            }
+            showMsg('Use ↑↓ e Enter, ou clique na linha.', false);
+            return;
+        }
+        buscarProdutos().then(function (items) {
+            var disp = items.filter(function (p) { return !produtoJaNaLista(p.produto_externo_id); });
+            if (disp.length === 1) incluirProduto(disp[0]);
+        });
+    }
+
+    function moverSelecao(delta) {
+        if (!sugestoesVisiveis.length) return;
+        var max = sugestoesVisiveis.length - 1;
+        if (selIdx < 0) selIdx = 0;
+        else selIdx = Math.max(0, Math.min(max, selIdx + delta));
+        marcarSelecao();
+    }
+
+    function coletarPayload() {
+        var empresas = [];
+        document.querySelectorAll('.promo-empresa-cb:checked').forEach(function (cb) { empresas.push(cb.value); });
+        var permanente = dom.permanente ? dom.permanente.checked : false;
+        return {
+            id: state.id || null,
+            nome: dom.nome ? dom.nome.value.trim() : '',
+            tipo: tipoAtual(),
+            qtd_x: dom.qtdX ? dom.qtdX.value.trim() : null,
+            preco_y: dom.precoY ? dom.precoY.value.trim() : null,
+            data_inicio: dom.inicio ? dom.inicio.value : '',
+            data_fim: permanente ? '' : dom.fim ? dom.fim.value : '',
+            permanente: permanente,
+            telas: [],
+            empresas: empresas,
+            ativo: dom.ativo ? dom.ativo.checked : true,
+            produtos: state.produtos.map(function (p) {
+                return {
+                    produto_externo_id: p.produto_externo_id,
+                    codigo: p.codigo,
+                    nome_produto: p.nome_produto,
+                    preco_padrao: p.preco_padrao,
+                    preco_promocional: p.preco_promocional,
+                };
+            }),
+        };
+    }
+
+    function salvar() {
+        if (etapaAtual === 1 && !validarEtapa1()) return;
+        if (!state.produtos.length) {
+            showMsg('Adicione ao menos um produto na etapa 2.', false);
+            irParaEtapa(2);
+            return;
+        }
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        fetch(cfg.apiSalvar, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRFToken': cfg.csrfToken || '',
+            },
+            body: JSON.stringify(coletarPayload()),
+        })
+            .then(function (r) {
+                return r.text().then(function (txt) {
+                    var data = {};
+                    try { data = JSON.parse(txt); } catch (e) { throw new Error('Resposta inválida ao salvar.'); }
+                    return { ok: r.ok, data: data };
+                });
+            })
+            .then(function (res) {
+                if (!res.ok || !res.data.ok) {
+                    showMsg((res.data && res.data.erro) || 'Não foi possível salvar.', false);
+                    return;
+                }
+                showMsg('Promoção salva.', true);
+                if (res.data.redirect) window.location.assign(res.data.redirect);
+            })
+            .catch(function (err) {
+                showMsg(err && err.message ? err.message : 'Erro ao salvar.', false);
+            })
+            .finally(function () {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            });
+    }
+
+    function bindClick(id, fn) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('click', function (ev) {
+            ev.preventDefault();
+            fn();
+        });
+    }
+
+    if (!dom.busca || !dom.lista || !dom.resultados) {
+        showMsg('Erro ao iniciar. Recarregue (Ctrl+F5).', false);
+    } else {
+        if (dom.tipo) dom.tipo.addEventListener('change', syncTipoUi);
+        if (dom.permanente) dom.permanente.addEventListener('change', syncPermanenteUi);
+        bindClick('promo-btn-buscar', function () { buscarProdutos(); });
+        bindClick('promo-btn-salvar', salvar);
+        bindClick('promo-btn-continuar', continuarParaProdutos);
+        bindClick('promo-btn-voltar-etapa', function () { irParaEtapa(1); });
+
+        dom.busca.setAttribute('autocomplete', 'off');
+        dom.busca.addEventListener('keydown', function (e) {
+            if (etapaAtual !== 2) return;
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmarBuscaOuAdicionar();
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                moverSelecao(1);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                moverSelecao(-1);
+            } else if (e.key === 'Escape') {
+                dom.busca.value = '';
+                ultimaBusca = '';
+                sugestoesVisiveis = [];
+                selIdx = -1;
+                setStatus('Busca limpa.');
+                renderResultadosBusca();
+            }
+        });
+    }
+
+    window.PromocaoForm = {
+        state: state,
+        buscar: buscarProdutos,
+        adicionar: incluirProduto,
+        render: renderListaProdutos,
+        irParaEtapa: irParaEtapa,
+        etapa: function () { return etapaAtual; },
+    };
+
+    hydrateForm();
+    renderListaProdutos();
+    if (state.produtos && state.produtos.length > 0) {
+        irParaEtapa(2);
+    } else {
+        irParaEtapa(1);
+    }
+})();
+</script>

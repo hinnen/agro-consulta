@@ -288,18 +288,30 @@
         return id;
     }
 
+    function aplicarPromocaoNoItem(item) {
+        if (typeof window.AgroPdvPromocoes !== 'undefined' && window.AgroPdvPromocoes.aplicarNoItem) {
+            if (item.preco_padrao == null) item.preco_padrao = toNumber(item.preco);
+            return window.AgroPdvPromocoes.aplicarNoItem(item);
+        }
+        return item;
+    }
+
     function addItem(produto, quantidade) {
         var pid = resolveProdutoId(produto);
         if (!pid) return false;
         var qtd = normalizeQty(quantidade || 1, 1);
+        var precoPadrao = toNumber(produto.preco_padrao != null ? produto.preco_padrao : (produto.preco_venda || produto.preco || 0));
         var existing = state.itens.find(function (item) { return String(item.id) === pid; });
         if (existing) {
             existing.qtd = normalizeQty(toNumber(existing.qtd) + qtd, qtd);
+            if (existing.preco_padrao == null) existing.preco_padrao = precoPadrao;
+            aplicarPromocaoNoItem(existing);
         } else {
-            state.itens.push({
+            var novo = {
                 id: pid,
                 nome: String(produto.nome || ''),
-                preco: toNumber(produto.preco_venda || produto.preco || 0),
+                preco: precoPadrao,
+                preco_padrao: precoPadrao,
                 qtd: qtd,
                 codigo: String(produto.codigo || produto.codigo_nfe || produto.codigo_barras || ''),
                 codigoGm: String(produto.codigo_nfe || produto.codigo || produto.codigo_barras || '').trim(),
@@ -307,7 +319,9 @@
                 marca: String(produto.marca || ''),
                 desconto: 0,
                 observacao: ''
-            });
+            };
+            aplicarPromocaoNoItem(novo);
+            state.itens.push(novo);
         }
         notify();
         return true;
@@ -321,7 +335,9 @@
         }
         state.itens = state.itens.map(function (item) {
             if (String(item.id) !== String(itemId)) return item;
-            return Object.assign({}, item, { qtd: q });
+            var next = Object.assign({}, item, { qtd: q });
+            if (next.preco_padrao == null) next.preco_padrao = toNumber(next.preco);
+            return aplicarPromocaoNoItem(next);
         });
         notify();
     }

@@ -5595,6 +5595,14 @@ def _home_admin_navegacao():
             "pin_protected": True,
         },
         {
+            "title": "Promoções",
+            "href": reverse("promocoes_lista"),
+            "icon": "badge-percent",
+            "shortcut": "P",
+            "shortcut_key": "p",
+            "pin_protected": True,
+        },
+        {
             "title": "Relatórios",
             "href": reverse("relatorios_hub"),
             "icon": "line-chart",
@@ -7775,6 +7783,7 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
             "apiPdvClienteRapido": reverse("api_pdv_cliente_rapido"),
             "apiPdvClienteCreditoFiado": reverse("api_pdv_cliente_credito_fiado"),
             "fiadoGestao": reverse("fiado_gestao"),
+            "apiPromocoesAtivasPdv": reverse("api_promocoes_ativas_pdv"),
             "pdvRootUrl": pdv_root_url,
         },
         "assets": {
@@ -14938,6 +14947,19 @@ def api_buscar_produtos(request):
                 if m_lm is not None:
                     row["margem_percentual"] = m_lm
             res.append(row)
+
+        if wizard_mode and not compras:
+            try:
+                from .promocoes_util import aplicar_promocao_em_produto_dict, buscar_promocoes_pdv_ativas
+
+                _promo_map = buscar_promocoes_pdv_ativas(empresa="centro", tela="pdv")
+                if _promo_map:
+                    res = [
+                        aplicar_promocao_em_produto_dict(r, _promo_map, quantidade=1)
+                        for r in res
+                    ]
+            except Exception:
+                pass
 
         if wizard_catalog:
             res.sort(key=lambda r: str(r.get("nome") or "").lower())
