@@ -2,7 +2,7 @@ from django.urls import include, path
 
 from financeiro.views import dashboard_financeiro_completo
 
-from . import views, views_mp_point
+from . import promocoes_views, views, views_mp_point
 from . import fiado_gestao_views as fiado_views
 
 urlpatterns = [
@@ -48,6 +48,12 @@ urlpatterns = [
     ),
     path('ajuste-mobile/', views.ajuste_mobile_view, name='ajuste_mobile'), # <-- A rota que faltava
     path('compras/', views.compras_view, name='compras_view'),
+    path('promocoes/', promocoes_views.promocoes_lista_view, name='promocoes_lista'),
+    path('promocoes/nova/', promocoes_views.promocoes_nova_view, name='promocoes_nova'),
+    path('promocoes/<int:pk>/editar/', promocoes_views.promocoes_editar_view, name='promocoes_editar'),
+    path('api/promocoes/salvar/', promocoes_views.api_promocoes_salvar, name='api_promocoes_salvar'),
+    path('api/promocoes/buscar-produto/', promocoes_views.api_promocoes_buscar_produto, name='api_promocoes_buscar_produto'),
+    path('api/promocoes/ativas-pdv/', promocoes_views.api_promocoes_ativas_pdv, name='api_promocoes_ativas_pdv'),
     path('compras/relatorio-a4/', views.compras_relatorio_a4_view, name='compras_relatorio_a4'),
     path(
         'compras/relatorio-planilha-categoria/',

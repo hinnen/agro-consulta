@@ -6692,6 +6692,11 @@
         refreshEntregasPendentesUi(true);
     }, 45000);
 
+    if (window.AgroPdvPromocoes && urls.apiPromocoesAtivasPdv) {
+        window.AgroPdvPromocoes.setApiUrl(urls.apiPromocoesAtivasPdv);
+        window.AgroPdvPromocoes.carregar({ empresa: 'centro' });
+    }
+
     loadWizardCatalog()
         .then(function () {
             if (dom.productSearchFeedback) {

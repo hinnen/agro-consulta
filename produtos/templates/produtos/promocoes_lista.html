@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>Promoções | SisVale</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(15px, 0.35vw + 14px, 18px);
+      min-height: 100dvh;
+      max-height: 100dvh;
+    }
+    .caixa-shell { width: 100%; max-width: min(96rem, 100%); margin-left: auto; margin-right: auto; }
+    main.caixa-shell { flex: 1 1 auto; min-height: 0; width: 100%; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="caixa-shell px-3 sm:px-5 py-2 sm:py-2.5 flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">Comercial</p>
+        <h1 class="text-[clamp(1.15rem,0.9vw+1rem,1.6rem)] font-black uppercase text-slate-900">Promoções</h1>
+      </div>
+      <div class="flex flex-wrap gap-2 items-center shrink-0">
+        <a href="{% url 'promocoes_nova' %}" class="text-xs font-black uppercase px-4 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 min-h-[44px] inline-flex items-center">+ Novo</a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-800 shadow-sm hover:border-emerald-500 hover:text-emerald-900 hover:bg-emerald-50/80 transition-colors shrink-0" %}
+      </div>
+    </div>
+  </header>
+  <main class="caixa-shell flex-1 min-h-0 flex flex-col px-3 sm:px-5 py-2 sm:py-3 gap-3 overflow-hidden">
+    <form method="get" class="flex gap-2 shrink-0" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
+      <input type="text" name="q" value="{{ busca }}" placeholder="Buscar por nome…" class="flex-1 rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm min-h-[48px]">
+      <button type="submit" class="px-5 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase min-h-[48px]">Buscar</button>
+    </form>
+    <div class="flex-1 min-h-0 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+      <div class="hidden sm:grid sm:grid-cols-[1.2fr_1fr_0.7fr_0.7fr_0.8fr_0.6fr] gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200 shrink-0 text-[10px] font-black uppercase tracking-wide text-slate-500">
+        <span>Nome</span>
+        <span>Tipo</span>
+        <span>Início</span>
+        <span>Fim</span>
+        <span>Empresas</span>
+        <span class="text-right">Ações</span>
+      </div>
+      <div class="flex-1 min-h-0 overflow-y-auto">
+        {% for row in promocoes %}
+        <div class="px-4 py-4 border-b border-slate-100 last:border-0 flex flex-wrap sm:grid sm:grid-cols-[1.2fr_1fr_0.7fr_0.7fr_0.8fr_0.6fr] gap-2 sm:items-center">
+          <div class="min-w-0">
+            <p class="font-black text-slate-900 text-sm leading-snug">{{ row.obj.nome }}</p>
+            <p class="text-[11px] text-slate-500 font-bold mt-0.5">{{ row.qtd_produtos }} produto(s){% if not row.obj.ativo %} · <span class="text-amber-700">Inativa</span>{% endif %}</p>
+          </div>
+          <p class="text-xs font-bold text-slate-700">{{ row.tipo_label }}</p>
+          <p class="text-xs font-bold text-slate-600 tabular-nums">{{ row.obj.data_inicio|date:"d/m/Y" }}</p>
+          <p class="text-xs font-bold text-emerald-800 tabular-nums">{{ row.fim_label }}</p>
+          <p class="text-[11px] font-semibold text-slate-500 leading-snug">{{ row.empresas_label }}</p>
+          <div class="sm:text-right">
+            <a href="{% url 'promocoes_editar' row.obj.pk %}" class="inline-flex min-h-[44px] items-center text-xs font-black uppercase text-sky-700 hover:underline">Editar</a>
+          </div>
+        </div>
+        {% empty %}
+        <p class="px-4 py-14 text-center text-slate-500 font-bold text-sm">Nenhuma promoção cadastrada.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </main>
+</body>
+</html>

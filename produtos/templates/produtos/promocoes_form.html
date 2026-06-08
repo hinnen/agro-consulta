@@ -1,0 +1,194 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>{{ titulo }} | Promoções</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(15px, 0.35vw + 14px, 18px);
+      min-height: 100dvh;
+      max-height: 100dvh;
+    }
+    .caixa-shell { width: 100%; max-width: min(96rem, 100%); margin-left: auto; margin-right: auto; }
+    main.caixa-shell { flex: 1 1 auto; min-height: 0; width: 100%; }
+    .promo-step[hidden] { display: none !important; }
+    .promo-prod-row {
+      display: grid;
+      grid-template-columns: minmax(5.5rem, 0.75fr) minmax(0, 1.5fr) minmax(5rem, 0.65fr) auto;
+      gap: 0.5rem 0.75rem;
+      align-items: center;
+      min-height: 3.25rem;
+      padding: 0.65rem 0.85rem;
+    }
+    @media (max-width: 900px) {
+      .promo-prod-row { grid-template-columns: minmax(0, 1fr) auto; }
+      .promo-prod-row .promo-col-preco,
+      .promo-prod-row .promo-col-acao { grid-column: 1 / -1; }
+    }
+    .promo-res-row.is-active { outline: 3px solid #10b981; outline-offset: -3px; background: #ecfdf5 !important; }
+    .promo-step-pill.is-done { background: #d1fae5; border-color: #10b981; color: #065f46; }
+    .promo-step-pill.is-current { background: #fff7ed; border-color: #f59e0b; color: #92400e; box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25); }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="caixa-shell px-3 sm:px-5 py-2 sm:py-2.5 flex flex-wrap justify-between items-center gap-2">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="min-w-0">
+          <p id="promo-header-kicker" class="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600">Etapa 1 de 2 · Configuração</p>
+          <h1 class="text-[clamp(1.1rem,0.8vw+1rem,1.5rem)] font-black uppercase text-slate-900 truncate">{{ titulo }}</h1>
+          <p class="text-[11px] font-bold text-slate-500 hidden sm:block">Monitor 16:9 · use a largura da tela</p>
+        </div>
+        <nav class="hidden sm:flex items-center gap-2 shrink-0" aria-label="Etapas">
+          <span id="promo-pill-1" class="promo-step-pill is-current inline-flex items-center rounded-full border-2 border-slate-200 px-3 py-1 text-[11px] font-black uppercase">1 · Dados</span>
+          <span class="text-slate-300 font-black">›</span>
+          <span id="promo-pill-2" class="promo-step-pill inline-flex items-center rounded-full border-2 border-slate-200 px-3 py-1 text-[11px] font-black uppercase text-slate-500">2 · Produtos</span>
+        </nav>
+      </div>
+      <div class="flex flex-wrap gap-2 items-center shrink-0">
+        <a href="{% url 'promocoes_lista' %}" class="text-xs font-black uppercase px-4 py-2 rounded-xl border-2 border-slate-200 bg-white hover:bg-slate-50 min-h-[44px] inline-flex items-center">Lista</a>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-800 shadow-sm hover:border-emerald-500 hover:text-emerald-900 hover:bg-emerald-50/80 transition-colors shrink-0" %}
+      </div>
+    </div>
+  </header>
+
+  <main class="caixa-shell flex-1 min-h-0 flex flex-col px-3 sm:px-5 py-2 sm:py-3 gap-2 overflow-hidden">
+    <p id="promo-msg" class="hidden shrink-0 rounded-xl border px-4 py-2 text-sm font-bold"></p>
+
+    {# —— Etapa 1: configuração (grade horizontal 16:9) —— #}
+    <section id="promo-etapa-1" class="promo-step flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
+      <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-3 overflow-hidden">
+        <article class="min-h-0 flex flex-col rounded-2xl border-2 border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div class="shrink-0 px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+            <p class="text-[10px] font-black uppercase text-orange-700">Passo 1 · regra</p>
+            <p class="text-sm font-black text-slate-900">Como funciona o desconto</p>
+          </div>
+          <div class="flex-1 min-h-0 p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 content-start overflow-y-auto">
+            <label class="block sm:col-span-2">
+              <span class="text-xs font-black uppercase text-slate-600">Nome</span>
+              <input id="promo-nome" type="text" autofocus class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-base min-h-[52px]" placeholder="PROMOÇÃO 4 POR 15,00">
+            </label>
+            <label class="block sm:col-span-2">
+              <span class="text-xs font-black uppercase text-slate-600">Tipo</span>
+              <select id="promo-tipo" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-base min-h-[52px] bg-white">
+                {% for t in tipos_opcoes %}
+                <option value="{{ t.id }}">{{ t.label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="block" id="wrap-qtd-x">
+              <span class="text-xs font-black uppercase text-slate-600" id="label-qtd-x">Leve X unidades</span>
+              <input id="promo-qtd-x" type="text" inputmode="decimal" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-base min-h-[52px]" placeholder="4">
+            </label>
+            <label class="block" id="wrap-preco-y">
+              <span class="text-xs font-black uppercase text-slate-600">Pague por unidade (R$)</span>
+              <input id="promo-preco-y" type="text" inputmode="decimal" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-base min-h-[52px]" placeholder="3,75">
+            </label>
+          </div>
+        </article>
+
+        <article class="min-h-0 flex flex-col rounded-2xl border-2 border-emerald-200 bg-white shadow-sm overflow-hidden">
+          <div class="shrink-0 px-4 py-2.5 border-b border-emerald-100 bg-emerald-50/80">
+            <p class="text-[10px] font-black uppercase text-emerald-800">Passo 1 · vigência</p>
+            <p class="text-sm font-black text-emerald-950">Quando e onde vale</p>
+          </div>
+          <div class="flex-1 min-h-0 p-4 sm:p-5 flex flex-col gap-4 overflow-y-auto">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label class="block">
+                <span class="text-xs font-black uppercase text-slate-600">Início da promoção</span>
+                <input id="promo-inicio" type="date" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-base min-h-[52px]">
+              </label>
+              <div class="block" id="wrap-fim">
+                <span class="text-xs font-black uppercase text-slate-600">Fim da promoção</span>
+                <input id="promo-fim" type="date" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-base min-h-[52px]">
+              </div>
+            </div>
+            <label class="inline-flex items-center gap-3 min-h-[48px] cursor-pointer rounded-xl border-2 border-slate-200 px-4 py-3 bg-slate-50">
+              <input type="checkbox" id="promo-permanente" class="w-5 h-5">
+              <span class="text-sm font-black text-slate-800">Válida permanentemente</span>
+            </label>
+            <div>
+              <p class="text-xs font-black uppercase text-slate-600 mb-2">Ativar para empresas</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="promo-empresas">
+                {% for e in empresas_opcoes %}
+                <label class="inline-flex items-center gap-3 rounded-xl border-2 border-slate-200 px-4 py-3 bg-white cursor-pointer min-h-[52px]">
+                  <input type="checkbox" class="promo-empresa-cb w-5 h-5" value="{{ e.id }}">
+                  <span class="text-sm font-black">{{ e.label }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+            <label class="inline-flex items-center gap-3 min-h-[48px] rounded-xl border-2 border-emerald-200 px-4 py-3 bg-emerald-50/50">
+              <input type="checkbox" id="promo-ativo" class="w-5 h-5" checked>
+              <span class="text-sm font-black text-emerald-950">Promoção ativa</span>
+            </label>
+          </div>
+        </article>
+      </div>
+      <div class="shrink-0 flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <p class="text-sm font-bold text-slate-600">Próximo passo: buscar e incluir produtos na promoção.</p>
+        <button type="button" id="promo-btn-continuar" class="px-8 py-3.5 rounded-xl bg-emerald-600 text-white text-sm font-black uppercase min-h-[52px] hover:bg-emerald-700 shadow-sm shrink-0">Continuar — escolher produtos →</button>
+      </div>
+    </section>
+
+    {# —— Etapa 2: produtos —— #}
+    <section id="promo-etapa-2" class="promo-step flex-1 min-h-0 flex flex-col overflow-hidden" hidden>
+      <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 mb-2">
+        <p id="promo-resumo-etapa1" class="text-sm font-bold text-slate-700 min-w-0 truncate"></p>
+        <span id="promo-produtos-contador" class="inline-flex items-center rounded-full bg-emerald-100 text-emerald-900 px-3 py-1.5 text-xs font-black tabular-nums shrink-0">0 na promoção</span>
+      </div>
+
+      <div class="shrink-0 flex gap-2 mb-2">
+        <input id="promo-busca-produto" type="text" autocomplete="off" autocorrect="off" spellcheck="false"
+          class="flex-1 min-w-0 rounded-xl border-2 border-slate-300 px-4 py-3 font-bold text-base min-h-[52px] focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+          placeholder="Código GM, nome ou barras…">
+        <button type="button" id="promo-btn-buscar" class="shrink-0 px-5 py-3 rounded-xl bg-amber-500 text-slate-900 text-sm font-black uppercase min-h-[52px] hover:bg-amber-400">Buscar</button>
+      </div>
+      <p id="promo-busca-status" class="text-sm font-bold text-slate-600 shrink-0 mb-2">Enter ou Buscar · ↑↓ + Enter adiciona</p>
+
+      <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-3 overflow-hidden">
+        <div class="min-h-0 flex flex-col rounded-2xl border-2 border-amber-200 bg-white overflow-hidden shadow-sm">
+          <div class="shrink-0 px-4 py-2.5 border-b border-amber-200 bg-amber-100 text-xs font-black uppercase text-amber-950">Passo 2 · buscar produto</div>
+          <div id="promo-resultados-busca" class="flex-1 min-h-0 overflow-y-auto bg-white">
+            <p class="px-4 py-10 text-center text-sm font-semibold text-slate-400">Nenhuma busca ainda.</p>
+          </div>
+        </div>
+        <div class="min-h-0 flex flex-col rounded-2xl border-2 border-emerald-300 bg-white overflow-hidden shadow-sm">
+          <div class="shrink-0 px-4 py-2.5 border-b border-emerald-200 bg-emerald-100 text-xs font-black uppercase text-emerald-950 flex justify-between gap-2">
+            <span>Passo 2 · na promoção</span>
+            <span id="col-preco-promo" class="normal-case font-bold text-emerald-800">Pelo critério</span>
+          </div>
+          <div id="promo-produtos-lista" class="flex-1 min-h-0 overflow-y-auto bg-white">
+            <p class="px-4 py-10 text-center text-sm font-semibold text-slate-400">Adicione produtos pela busca ao lado.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="shrink-0 flex flex-wrap gap-3 justify-between items-center rounded-2xl border-2 border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <button type="button" id="promo-btn-voltar-etapa" class="px-5 py-3.5 rounded-xl border-2 border-slate-200 bg-white text-sm font-black uppercase min-h-[52px] hover:bg-slate-50">← Voltar — configuração</button>
+        <button type="button" id="promo-btn-salvar" class="px-8 py-3.5 rounded-xl bg-emerald-600 text-white text-sm font-black uppercase min-h-[52px] hover:bg-emerald-700 shadow-sm">Salvar promoção</button>
+      </div>
+    </section>
+  </main>
+
+  {{ promocao_initial|json_script:"promo-initial-data" }}
+  <script>
+    window.PROMO_FORM_CONFIG = {
+      apiSalvar: "{{ api_salvar_url|escapejs }}",
+      apiBuscar: "{{ api_buscar_produto_url|escapejs }}",
+      listaUrl: "{{ lista_url|escapejs }}",
+      csrfToken: "{{ csrf_token|escapejs }}"
+    };
+  </script>
+  {% include "produtos/includes/promocoes_form_script.html" %}
+</body>
+</html>

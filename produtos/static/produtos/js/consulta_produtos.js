@@ -20,6 +20,22 @@
         window.AGRO_PDV_BOOTSTRAP = BOOTSTRAP;
     } catch (e) {}
 
+    if (window.AgroPdvPromocoes && AGRO_PDV_URLS.apiPromocoesAtivasPdv) {
+        window.AgroPdvPromocoes.setApiUrl(AGRO_PDV_URLS.apiPromocoesAtivasPdv);
+        window.AgroPdvPromocoes.carregar({ empresa: 'centro' });
+    }
+
+    function aplicarPromocaoCarrinhoItem(item) {
+        if (!item || !window.AgroPdvPromocoes || !window.AgroPdvPromocoes.aplicarNoItem) return item;
+        if (item.preco_padrao == null) item.preco_padrao = Number(item.preco || 0);
+        return window.AgroPdvPromocoes.aplicarNoItem(item);
+    }
+
+    function recalcularPromocoesCarrinho() {
+        if (!carrinho.length) return;
+        carrinho.forEach(aplicarPromocaoCarrinhoItem);
+    }
+
 
 let carrinho = [];
 /** Evita duplo disparo ao salvar orçamento (atalhos / cliques repetidos). */
@@ -1291,21 +1307,26 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
     const cg = opcoes.codigo_gm != null ? String(opcoes.codigo_gm).trim() : '';
     const pr = opcoes.prateleira != null ? String(opcoes.prateleira).trim() : '';
     const aud = opcoes.auditoria_codigo_bip != null ? String(opcoes.auditoria_codigo_bip).trim() : '';
+    const precoPadrao = Number(preco || 0);
     if (item) {
         item.qtd += qtd;
+        if (item.preco_padrao == null) item.preco_padrao = precoPadrao;
         if (cg && !item.codigo_gm) item.codigo_gm = cg;
         if (pr && !item.prateleira) item.prateleira = pr;
         if (aud && !item.auditoria_codigo_bip) item.auditoria_codigo_bip = aud;
+        aplicarPromocaoCarrinhoItem(item);
     } else {
         const linha = {
             id: idNorm,
             nome,
-            preco: Number(preco || 0),
+            preco: precoPadrao,
+            preco_padrao: precoPadrao,
             qtd: qtd,
             codigo_gm: cg,
             prateleira: pr,
         };
         if (aud) linha.auditoria_codigo_bip = aud;
+        aplicarPromocaoCarrinhoItem(linha);
         carrinho.push(linha);
     }
 
@@ -1363,6 +1384,8 @@ function alterarQtdItem(index, delta) {
     if (item.qtd < 1) {
         carrinho.splice(index, 1);
         tocarSom('erro');
+    } else {
+        aplicarPromocaoCarrinhoItem(item);
     }
     atualizarCarrinho();
     if (item && item.qtd >= 1) tocarSom('add');
@@ -1376,6 +1399,7 @@ function definirQtdItem(index, val) {
         tocarSom('erro');
     } else {
         carrinho[index].qtd = n;
+        aplicarPromocaoCarrinhoItem(carrinho[index]);
     }
     atualizarCarrinho();
 }

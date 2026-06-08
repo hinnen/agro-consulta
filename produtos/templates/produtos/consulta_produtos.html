@@ -476,6 +476,7 @@
 {{ pdv_bootstrap|json_script:"agro-pdv-bootstrap" }}
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 {% include "produtos/_js_busca_produto_inteligente.html" %}
+<script src="{% static 'produtos/js/pdv_promocoes.js' %}{% if agro_pdv_assets_v %}?v={{ agro_pdv_assets_v }}{% endif %}"></script>
 <script src="{% static 'produtos/js/consulta_produtos.js' %}{% if agro_pdv_assets_v %}?v={{ agro_pdv_assets_v }}{% endif %}"></script>
 <script>
 (function () {
