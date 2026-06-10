@@ -128,6 +128,7 @@ from .models import (
     OpcaoBaixaFinanceiroExtra,
     PedidoEntrega,
     EstoqueLote,
+    Produto,
     ProdutoGestaoOverlayAgro,
     ProdutoGrupoAgro,
     ProdutoGrupoVarianteAgro,
@@ -295,6 +296,14 @@ def obter_conexao_mongo():
     except Exception:
         _cached_mongo_client = None
         return None, None
+
+
+@require_GET
+def api_agro_fonte_status(request):
+    """Debug: flags de desvinculação ERP (sem segredos)."""
+    from produtos.agro_fonte_config import agro_fonte_status_dict
+
+    return JsonResponse({"ok": True, **agro_fonte_status_dict()})
 
 
 # --- AUXILIARES GERAIS ---
@@ -9766,7 +9775,12 @@ def api_entrada_nota_parse_xml(request):
         )
     client, db = obter_conexao_mongo()
     if db is not None and client is not None:
-        parsed["itens"] = casar_produtos_mongo(db, client.col_p, parsed.get("itens") or [])
+        parsed["itens"] = casar_produtos_mongo(
+            db,
+            client.col_p,
+            parsed.get("itens") or [],
+            emit_cnpj=str(parsed.get("emit_cnpj") or ""),
+        )
     return JsonResponse({"ok": True, "nota": parsed})
 
 
@@ -9810,6 +9824,7 @@ def api_entrada_nota_salvar(request):
             linhas,
             usuario,
             user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+            emit_cnpj=str(cab.get("emit_cnpj") or ""),
         )
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
@@ -9952,6 +9967,7 @@ def api_entrada_nota_rascunho_atualizar(request):
             linhas,
             usuario,
             user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+            emit_cnpj=str(cab.get("emit_cnpj") or ""),
         )
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
@@ -9993,12 +10009,15 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
     usuario: str = "",
     *,
     user_pk: int | None = None,
+    emit_cnpj: str = "",
 ) -> None:
     """P. venda da grade → Mongo + overlay; invalida cache do catálogo PDV quando houver alteração."""
     if not linhas or db is None or client is None:
         return
     try:
-        persistir_vinculos_c_prod_entrada_nfe_linhas(db, client.col_p, linhas)
+        persistir_vinculos_c_prod_entrada_nfe_linhas(
+            db, client.col_p, linhas, emit_cnpj=emit_cnpj
+        )
     except Exception:
         logger.warning("_entrada_nota_propagar: vinculos cProd NF", exc_info=True)
     pr = propagar_precos_venda_catalogo_entrada_nota(db, client, linhas, _usuario_label=usuario)
@@ -10671,6 +10690,7 @@ def api_entrada_nota_estoque_agro(request):
         linhas,
         usuario,
         user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+        emit_cnpj=str(cab.get("emit_cnpj") or ""),
     )
 
     r_rasc: dict | None = None
@@ -11691,6 +11711,7 @@ def api_entrada_nota_financeiro(request):
         linhas,
         usuario,
         user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+        emit_cnpj=str(cab.get("emit_cnpj") or ""),
     )
 
     def _d_fin(key: str):
@@ -12204,7 +12225,12 @@ def api_entrada_nota_dist_dfe(request):
         p = parse_nfe_xml_bytes(xml_txt.encode("utf-8"))
         if p.get("ok"):
             if db is not None and client is not None:
-                p["itens"] = casar_produtos_mongo(db, client.col_p, p.get("itens") or [])
+                p["itens"] = casar_produtos_mongo(
+                    db,
+                    client.col_p,
+                    p.get("itens") or [],
+                    emit_cnpj=str(p.get("emit_cnpj") or ""),
+                )
             previews.append(
                 {
                     "chave": p.get("chave"),
@@ -16090,12 +16116,45 @@ def api_produtos_cadastro_compras_historico(request):
 @require_GET
 def api_produtos_cadastro_detalhe(request, produto_id: str):
     """Detalhe completo do cadastro (Mongo / ERP) para a tela de consulta — sem saldos."""
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
     pid = str(produto_id or "").strip()
     if not pid:
         return JsonResponse({"ok": False, "erro": "Id inválido"}, status=400)
+
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos import catalogo_agro as cat_agro
+
+    if pid.lower() in ("__novo__", "novo", "_novo"):
+        if agro_catalogo_usa_postgres():
+            stub = cat_agro.produto_model_para_detalhe(
+                Produto(
+                    nome="",
+                    codigo_interno="__novo__",
+                    cadastro_somente_agro=True,
+                )
+            )
+            stub["id"] = "__novo__"
+            pad = fiscal_padrao_ui_cadastro()
+            for row_k, pad_k in (
+                ("ncm", "ncm"),
+                ("cfop_padrao", "cfop"),
+                ("csosn", "csosn"),
+                ("origem_mercadoria", "origem"),
+                ("cst_pis_cofins", "cst_pis_cofins"),
+            ):
+                if not str(stub.get(row_k) or "").strip():
+                    stub[row_k] = pad[pad_k]
+            return JsonResponse({"ok": True, "produto": stub, "fonte": "agro_pg"})
+    elif agro_catalogo_usa_postgres():
+        p_mod = cat_agro.obter_produto_model(pid)
+        if p_mod is None:
+            return JsonResponse({"ok": False, "erro": "Produto não encontrado"}, status=404)
+        return JsonResponse(
+            {"ok": True, "produto": cat_agro.produto_model_para_detalhe(p_mod), "fonte": "agro_pg"}
+        )
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
     if pid.lower() in ("__novo__", "novo", "_novo"):
         stub = {
             "Id": "__novo__",
@@ -16419,10 +16478,6 @@ def api_produtos_cadastro(request):
     - `inativos=1`: inclui cadastros inativos.
     - `sort` / `dir`: ordenação (nome, marca, unidade, categoria, subcategoria, preco_custo, preco_venda; asc|desc).
     """
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível", "produtos": []}, status=503)
-
     inativos = request.GET.get("inativos") in ("1", "true", "yes")
     q_raw = str(request.GET.get("q") or "").strip()
 
@@ -16445,6 +16500,56 @@ def api_produtos_cadastro(request):
     pagina = max(1, pagina)
 
     sort_key, sort_direction = _parse_sort_cadastro_request(request)
+
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos import catalogo_agro as cat_agro
+
+    if agro_catalogo_usa_postgres():
+        try:
+            if q_raw:
+                rows = cat_agro.buscar(q_raw, limit=lim_busca, inativos=inativos)
+                _sort_cadastro_rows_inplace(rows, sort_key, sort_direction)
+                return JsonResponse(
+                    {
+                        "ok": True,
+                        "modo": "busca",
+                        "fonte": "agro_pg",
+                        "q": q_raw,
+                        "produtos": rows,
+                        "total_retornado": len(rows),
+                        "sort": sort_key,
+                        "dir": "desc" if sort_direction < 0 else "asc",
+                    }
+                )
+            rows, total = cat_agro.listar_paginado(
+                pagina=pagina,
+                por_pagina=por_pagina,
+                sort_key=sort_key,
+                sort_direction=sort_direction,
+                inativos=inativos,
+            )
+            has_more = pagina * por_pagina < total
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "modo": "lista",
+                    "fonte": "agro_pg",
+                    "pagina": pagina,
+                    "por_pagina": por_pagina,
+                    "has_more": has_more,
+                    "total": total,
+                    "produtos": rows,
+                    "sort": sort_key,
+                    "dir": "desc" if sort_direction < 0 else "asc",
+                }
+            )
+        except Exception as e:
+            logger.warning("api_produtos_cadastro agro_pg falhou: %s", e, exc_info=True)
+            return JsonResponse({"ok": False, "erro": str(e), "produtos": []}, status=500)
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível", "produtos": []}, status=503)
 
     try:
         if q_raw:
