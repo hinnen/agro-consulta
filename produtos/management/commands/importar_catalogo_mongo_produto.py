@@ -43,16 +43,29 @@ def executar_importar_catalogo_mongo_produto(
     limit = max(0, int(limit or 0))
     skip = max(0, int(skip or 0))
 
-    cur = db[client.col_p].find({}, {"_id": 0}).skip(skip)
+    col = client.col_p
+    try:
+        total_mongo = int(db[col].estimated_document_count())
+    except Exception:
+        try:
+            total_mongo = int(db[col].count_documents({}))
+        except Exception:
+            total_mongo = -1
+
+    cur = db[col].find({}).skip(skip)
     if limit:
         cur = cur.limit(limit)
 
-    criados = atualizados = erros = 0
+    criados = atualizados = erros = ignorados_sem_id = 0
 
     for doc in cur:
         try:
-            pid = _txt(doc.get("Id") or doc.get("_id"), 64)
+            raw_id = doc.get("Id")
+            if raw_id is None or str(raw_id).strip() == "":
+                raw_id = doc.get("_id")
+            pid = _txt(raw_id, 64)
             if not pid:
+                ignorados_sem_id += 1
                 continue
             codigo = _txt(doc.get("CodigoNFe") or doc.get("Codigo") or pid, 50) or pid[:50]
             cb = _txt(_extrair_codigo_barras(doc), 50) or None
@@ -102,11 +115,19 @@ def executar_importar_catalogo_mongo_produto(
         except Exception:
             erros += 1
 
+    try:
+        total_pg = int(Produto.objects.count())
+    except Exception:
+        total_pg = -1
+
     return {
         "ok": True,
         "criados": criados,
         "atualizados": atualizados,
         "erros": erros,
+        "ignorados_sem_id": ignorados_sem_id,
+        "total_mongo": total_mongo,
+        "total_pg": total_pg,
         "dry_run": dry_run,
         "limit": limit,
         "skip": skip,
