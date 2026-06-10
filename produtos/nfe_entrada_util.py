@@ -425,6 +425,69 @@ def casar_produtos_mongo(db, col_p: str, itens: list[dict]) -> list[dict]:
     return itens
 
 
+def persistir_vinculos_c_prod_entrada_nfe_linhas(
+    db,
+    col_p: str,
+    linhas: list[dict],
+) -> int:
+    """
+    Grava cProd da NF no overlay Agro para o próximo parse XML casar automaticamente.
+    Chamado ao salvar rascunho / concluir entrada (não depende só do JS lembrar na hora).
+    """
+    if not linhas:
+        return 0
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    from .mongo_index_codigos import (
+        aplicar_index_codigos_no_mongo,
+        normalizar_c_prod_nf_entrada,
+        overlay_cadastro_extras_adicionar_c_prod_nf,
+    )
+
+    pids_novos: set[str] = set()
+    n = 0
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            continue
+        cprod = str(ln.get("c_prod") or "").strip()
+        if not normalizar_c_prod_nf_entrada(cprod):
+            continue
+        ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
+            produto_externo_id=pid[:64],
+            defaults={},
+        )
+        ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
+        if overlay_cadastro_extras_adicionar_c_prod_nf(ex, cprod):
+            ov.cadastro_extras = ex
+            ov.save(update_fields=["cadastro_extras", "atualizado_em"])
+            pids_novos.add(pid[:64])
+            n += 1
+    if db is not None and col_p and pids_novos:
+        from bson import ObjectId
+
+        col = db[col_p]
+        for pid in pids_novos:
+            try:
+                ors: list[dict] = [{"Id": pid}]
+                try:
+                    ors.append({"Id": int(pid)})
+                except (TypeError, ValueError):
+                    pass
+                try:
+                    ors.append({"_id": ObjectId(pid)})
+                except Exception:
+                    pass
+                doc = col.find_one({"$or": ors})
+                if isinstance(doc, dict) and doc.get("_id"):
+                    aplicar_index_codigos_no_mongo(db, col_p, doc, produto_externo_id=pid)
+            except Exception as exc:
+                logger.warning("persistir_vinculos_c_prod: index %s %s", pid, exc)
+    return n
+
+
 def salvar_rascunho_entrada(
     db,
     *,
