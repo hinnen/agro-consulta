@@ -6018,6 +6018,9 @@
       <td class="px-1 py-1"><button type="button" class="btn-del text-red-600 font-black text-lg leading-none px-1" title="Remover">×</button></td>`;
     tr.querySelector('.in-desc').value = d.x_prod;
     tr.querySelector('.in-cprod').value = d.c_prod;
+    const cprodOrig = entradaNfeStrCampo(d.c_prod);
+    if (cprodOrig.length >= 2) tr.dataset.nfeCprodOrig = cprodOrig;
+    else delete tr.dataset.nfeCprodOrig;
     const eanInp = tr.querySelector('.in-ean');
     if (eanInp) eanInp.value = d.ean;
     const digOrig = entradaNfeCatalogOnlyDigits(d.ean).slice(0, 20);
@@ -7154,6 +7157,13 @@
     aplicarCabecalho(ctx.nota);
     tbodyClear();
     rows.forEach((row) => addLinhaRow(row));
+    rows.forEach((row) => {
+      const pid = String(row.produto_id || '').trim();
+      const cp = String(row.c_prod || '').trim();
+      if (pid && cp.length >= 2 && !pid.toLowerCase().startsWith('local:')) {
+        void entradaNfeLembrarCProdAposPick({ id: pid }, cp, '');
+      }
+    });
     const inp = ctx.fileInput;
     entradaNfeXmlMergeFechar();
     if (inp) inp.value = '';
@@ -7831,6 +7841,35 @@
    * Grava no Agro o EAN lido na linha da NF (embalagem) quando difere do código de barras
    * unitário do produto — usado após «Mudar» / busca para o próximo «Ler XML» casar sozinho.
    */
+  /**
+   * Grava cProd do fornecedor (XML) no overlay para o próximo «Ler XML» casar automaticamente.
+   */
+  async function entradaNfeLembrarCProdAposPick(p, cProdNfLinha, pidAnterior) {
+    try {
+      const pid = String(p && p.id != null ? p.id : '').trim();
+      if (!pid || pid.toLowerCase().startsWith('local:')) return;
+      const cProd = String(cProdNfLinha || '').trim().slice(0, 60);
+      if (cProd.length < 2) return;
+      const catCod = String((p && (p.codigo_nfe || p.codigo)) || '').trim();
+      if (catCod && cProd.toLowerCase() === catCod.toLowerCase()) return;
+      const tok = getCookie('csrftoken');
+      if (!tok) return;
+      const oldId = String(pidAnterior || '').trim();
+      const body = { produto_id: pid, c_prod_nf: cProd };
+      if (oldId && oldId !== pid && !oldId.toLowerCase().startsWith('local:')) {
+        body.c_prod_nf_desvincular_de = oldId;
+      }
+      const r = await fetch(URL_OVERLAY_SALVAR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) return;
+    } catch (_) {}
+  }
+
   async function entradaNfeLembrarEanEmbalagemAposPick(p, eanNfLinha, pidAnterior) {
     try {
       const pid = String(p && p.id != null ? p.id : '').trim();
@@ -7864,6 +7903,9 @@
     const eanNfLinha =
       entradaNfeCatalogOnlyDigits(tr.dataset.nfeEanOrig || '').slice(0, 20) ||
       entradaNfeCatalogOnlyDigits(tr.querySelector('.in-ean')?.value || '').slice(0, 20);
+    const cProdNfLinha =
+      String(tr.dataset.nfeCprodOrig || '').trim() ||
+      String(tr.querySelector('.in-cprod')?.value || '').trim();
     const pidAnterior = String(tr.querySelector('.in-prod-id')?.value || '').trim();
     if (tr.dataset.nfeLinhaModo === 'compact') {
       entradaNfeLinhaMontarDetalhe(tr, { ...ENTRADA_NFE_LINHA_PADRAO });
@@ -7876,7 +7918,9 @@
     entradaNfeSyncEditProdBtn(tr);
     tr.dataset.nfeNomeCatalogo = nome.slice(0, 500).trim();
     tr.dataset.nfeMatchTipo = '';
-    if (p.codigo_nfe || p.codigo) tr.querySelector('.in-cprod').value = String(p.codigo_nfe || p.codigo || '').trim();
+    if (!tr.dataset.nfeCprodOrig && (p.codigo_nfe || p.codigo)) {
+      tr.querySelector('.in-cprod').value = String(p.codigo_nfe || p.codigo || '').trim();
+    }
     if (p.codigo_barras) tr.querySelector('.in-ean').value = String(p.codigo_barras).replace(/\D/g, '').slice(0, 14);
     const elDesc = tr.querySelector('.in-desc');
     if (!entradaNfeStrCampo(elDesc.value)) elDesc.value = nome;
@@ -7916,6 +7960,7 @@
     entradaNfeAgendarAutosaveRascunho();
     entradaNfeProdutosEtapaInvalidate();
     void entradaNfeLembrarEanEmbalagemAposPick(p, eanNfLinha, pidAnterior);
+    void entradaNfeLembrarCProdAposPick(p, cProdNfLinha, pidAnterior);
   }
 
   let modProdHlIdx = -1;

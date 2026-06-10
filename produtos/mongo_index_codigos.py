@@ -23,6 +23,12 @@ _CAD_EXTRAS_EAN_EMBALAGEM_KEYS = ("entrada_nfe_ean_embalagem", "ean_embalagem_nf
 _MIN_EAN_EMBALAGEM_NF = 8
 _MAX_EAN_EMBALAGEM_NF = 20
 
+# cProd do fornecedor na NF-e (ex.: R0151) — distinto do código GM no catálogo.
+_CAD_EXTRAS_C_PROD_NF_KEYS = ("entrada_nfe_c_prods", "entrada_nfe_c_prod")
+_MIN_C_PROD_NF_ALNUM = 2
+_MAX_C_PROD_NF = 60
+_MAX_C_PRODS_NF_LIST = 24
+
 _MAX_VALORES = 450
 _MAX_LEN_STR = 96
 
@@ -255,6 +261,71 @@ def projection_documento_para_rebuild_index() -> dict:
     return {k: 1 for k in chaves}
 
 
+def normalizar_c_prod_nf_entrada(raw: Any) -> str | None:
+    """Chave alfanumérica para ``index_codigos`` (ex.: R0151 → r0151)."""
+    s = str(raw or "").strip()[:_MAX_C_PROD_NF]
+    al = somente_alnum(s).lower()
+    if len(al) < _MIN_C_PROD_NF_ALNUM:
+        return None
+    return al
+
+
+def _c_prods_nf_de_cadastro_extras(cadastro_extras: dict | None) -> list[str]:
+    """cProd da NF gravados no overlay para auto-casamento no próximo «Ler XML»."""
+    if not isinstance(cadastro_extras, dict):
+        return []
+    raw: Any = None
+    for k in _CAD_EXTRAS_C_PROD_NF_KEYS:
+        if k in cadastro_extras:
+            raw = cadastro_extras.get(k)
+            break
+    if raw is None:
+        return []
+    partes: list[str]
+    if isinstance(raw, list):
+        partes = [str(x) for x in raw]
+    else:
+        partes = [str(raw)]
+    out: list[str] = []
+    seen: set[str] = set()
+    for s in partes:
+        al = normalizar_c_prod_nf_entrada(s)
+        if al and al not in seen:
+            seen.add(al)
+            out.append(al)
+    return out
+
+
+def overlay_cadastro_extras_adicionar_c_prod_nf(ex: dict, raw: str) -> str | None:
+    """Acrescenta cProd ao ``cadastro_extras``; retorna chave normalizada se incluiu."""
+    al = normalizar_c_prod_nf_entrada(raw)
+    if not al:
+        return None
+    atual = _c_prods_nf_de_cadastro_extras(ex)
+    if al in atual:
+        return None
+    atual.append(al)
+    ex["entrada_nfe_c_prods"] = atual[-_MAX_C_PRODS_NF_LIST:]
+    ex.pop("entrada_nfe_c_prod", None)
+    return al
+
+
+def overlay_cadastro_extras_remover_c_prod_nf(ex: dict, raw: str) -> bool:
+    al = normalizar_c_prod_nf_entrada(raw)
+    if not al:
+        return False
+    atual = _c_prods_nf_de_cadastro_extras(ex)
+    if al not in atual:
+        return False
+    atual = [x for x in atual if x != al]
+    if atual:
+        ex["entrada_nfe_c_prods"] = atual
+    else:
+        ex.pop("entrada_nfe_c_prods", None)
+    ex.pop("entrada_nfe_c_prod", None)
+    return True
+
+
 def _eans_embalagem_nf_de_cadastro_extras(cadastro_extras: dict | None) -> list[str]:
     """Códigos extras só-dígitos (EAN da caixa / nota) gravados no overlay ``cadastro_extras``."""
     if not isinstance(cadastro_extras, dict):
@@ -301,6 +372,7 @@ def coletar_extras_agro_para_busca(produto_externo_id: str) -> list[str]:
             if s:
                 out.append(s)
         out.extend(_eans_embalagem_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
+        out.extend(_c_prods_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
     for row in ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=pid[:64]).only(
         "codigo_barras",
         "codigo_fornecedor",
@@ -335,6 +407,8 @@ def mapa_extras_agro_por_produto_externo_id() -> dict[str, list[str]]:
                 out[pid].append(s)
         for d in _eans_embalagem_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
             out[pid].append(d)
+        for c in _c_prods_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
+            out[pid].append(c)
     for row in ProdutoMarcaVariacaoAgro.objects.all().only(
         "produto_externo_id",
         "codigo_barras",

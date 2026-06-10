@@ -167,6 +167,7 @@ from .nfe_entrada_util import (
     obter_ult_nsu,
     parse_nfe_xml_bytes,
     pipeline_acao_rascunho_entrada,
+    persistir_vinculos_c_prod_entrada_nfe_linhas,
     propagar_precos_venda_catalogo_entrada_nota,
     rascunho_entrada_valido_para_aprovacao_wizard,
     release_rascunho_estoque_agro_claim,
@@ -187,6 +188,9 @@ from .mongo_index_codigos import (
     INDEX_CODIGOS_CAMPO,
     aplicar_index_codigos_no_mongo,
     merge_busca_codigo_prioridade_principal,
+    normalizar_c_prod_nf_entrada,
+    overlay_cadastro_extras_adicionar_c_prod_nf,
+    overlay_cadastro_extras_remover_c_prod_nf,
     produto_termo_bate_campos_principais,
     produto_termo_bate_somente_codigo_barras,
     somente_alnum,
@@ -1800,6 +1804,18 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             dig_ean_embalagem_payload = dig_nf
         elif not raw_nf:
             ex.pop("entrada_nfe_ean_embalagem", None)
+    desvincular_cprod_de_pid = str(payload.get("c_prod_nf_desvincular_de") or "").strip()[:64]
+    c_prod_nf_payload: str | None = None
+    if "c_prod_nf" in payload:
+        raw_cp = str(payload.get("c_prod_nf") or "").strip()
+        if not raw_cp:
+            ex.pop("entrada_nfe_c_prods", None)
+            ex.pop("entrada_nfe_c_prod", None)
+        else:
+            al_cp = normalizar_c_prod_nf_entrada(raw_cp)
+            if al_cp:
+                c_prod_nf_payload = al_cp
+                overlay_cadastro_extras_adicionar_c_prod_nf(ex, raw_cp)
     ov.cadastro_extras = ex
 
     if db is not None and client is not None and somente_agro_overlay and isinstance(ex.get("fiscal"), dict):
@@ -1923,6 +1939,31 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         except Exception:
             logger.warning(
                 "api_produtos_gestao_overlay_salvar: desvincular ean embalagem NF",
+                exc_info=True,
+            )
+    if (
+        c_prod_nf_payload
+        and desvincular_cprod_de_pid
+        and desvincular_cprod_de_pid != pid[:64]
+        and not desvincular_cprod_de_pid.lower().startswith("local:")
+    ):
+        try:
+            ov_old = ProdutoGestaoOverlayAgro.objects.filter(
+                produto_externo_id=desvincular_cprod_de_pid[:64]
+            ).first()
+            if ov_old:
+                ex_o = dict(ov_old.cadastro_extras) if isinstance(ov_old.cadastro_extras, dict) else {}
+                if overlay_cadastro_extras_remover_c_prod_nf(ex_o, c_prod_nf_payload):
+                    ov_old.cadastro_extras = ex_o
+                    ov_old.save(update_fields=["cadastro_extras", "atualizado_em"])
+            doc_old = _produto_mongo_por_id_externo(db, client, desvincular_cprod_de_pid)
+            if isinstance(doc_old, dict) and doc_old.get("_id"):
+                aplicar_index_codigos_no_mongo(
+                    db, client.col_p, doc_old, produto_externo_id=desvincular_cprod_de_pid
+                )
+        except Exception:
+            logger.warning(
+                "api_produtos_gestao_overlay_salvar: desvincular cProd NF",
                 exc_info=True,
             )
     saldos = _mapa_saldos_finais_por_produtos(db, client, [pid])
@@ -9956,6 +9997,10 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
     """P. venda da grade → Mongo + overlay; invalida cache do catálogo PDV quando houver alteração."""
     if not linhas or db is None or client is None:
         return
+    try:
+        persistir_vinculos_c_prod_entrada_nfe_linhas(db, client.col_p, linhas)
+    except Exception:
+        logger.warning("_entrada_nota_propagar: vinculos cProd NF", exc_info=True)
     pr = propagar_precos_venda_catalogo_entrada_nota(db, client, linhas, _usuario_label=usuario)
     if (pr.get("atualizados_mongo") or 0) > 0 or (pr.get("atualizados_overlay") or 0) > 0:
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
