@@ -19609,6 +19609,39 @@ def api_cron_enviar_alerta_vendas_dia(request):
     return JsonResponse(out, status=st)
 
 
+@require_GET
+def api_cron_importar_catalogo_mongo(request):
+    """
+    Importa DtoProduto → Produto (PG) via HTTP — para staging sem Shell (plano free).
+    Exige ALERTA_VENDAS_CRON_TOKEN e AGRO_ERP_PEDIDOS_DRY_RUN=true (não roda na loja).
+    """
+    if not getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False):
+        return JsonResponse(
+            {"ok": False, "erro": "Bloqueado: só com AGRO_ERP_PEDIDOS_DRY_RUN=true (staging)."},
+            status=403,
+        )
+    if not _token_cron_alerta_valido(request):
+        return JsonResponse({"ok": False, "erro": "Não autorizado."}, status=403)
+
+    try:
+        lim = int(str(request.GET.get("limit") or "0").strip() or "0")
+    except ValueError:
+        lim = 0
+    try:
+        skip = int(str(request.GET.get("skip") or "0").strip() or "0")
+    except ValueError:
+        skip = 0
+    dry = str(request.GET.get("dry_run") or "").strip().lower() in ("1", "true", "yes")
+
+    from produtos.management.commands.importar_catalogo_mongo_produto import (
+        executar_importar_catalogo_mongo_produto,
+    )
+
+    out = executar_importar_catalogo_mongo_produto(limit=lim, skip=skip, dry_run=dry)
+    st = 200 if out.get("ok") else 503
+    return JsonResponse(out, status=st)
+
+
 @never_cache
 @require_GET
 def api_pdv_saldos_compacto(request):
