@@ -20921,14 +20921,13 @@ def api_pdv_cliente_editar(request, pk):
             status=400,
         )
     wa_digits, wa_err = _pdv_whatsapp_digits_pdv(
-        data.get("whatsapp") or data.get("telefone") or cli.whatsapp or "",
-        obrigatorio=False,
+        data.get("whatsapp") or data.get("telefone") or "",
+        obrigatorio=True,
     )
     if wa_err:
         return JsonResponse({"ok": False, "erro": wa_err}, status=400)
     cli.nome = nome[:200]
     cli.whatsapp = wa_digits
-    cli.cpf = (data.get("cpf") or data.get("documento") or cli.cpf or "").strip()[:14]
     _pdv_aplicar_endereco_clienteagro(cli, data)
     cli.editado_local = True
     try:
