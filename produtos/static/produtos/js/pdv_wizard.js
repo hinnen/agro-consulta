@@ -148,6 +148,24 @@
         quickClientPickerHint: document.getElementById('pdv-quick-client-picker-hint'),
         quickClientModalFechar: document.getElementById('pdv-quick-client-modal-fechar'),
         quickClientCadastrar: document.getElementById('pdv-quick-client-cadastrar'),
+        quickClientEditOverlay: document.getElementById('pdv-quick-client-edit-overlay'),
+        quickClientEditTitle: document.getElementById('pdv-quick-client-edit-title'),
+        quickClientEditNome: document.getElementById('pdv-quick-client-edit-nome'),
+        quickClientEditWhatsapp: document.getElementById('pdv-quick-client-edit-whatsapp'),
+        quickClientEditCpf: document.getElementById('pdv-quick-client-edit-cpf'),
+        quickClientEditLogradouro: document.getElementById('pdv-quick-client-edit-logradouro'),
+        quickClientEditNumero: document.getElementById('pdv-quick-client-edit-numero'),
+        quickClientEditBairro: document.getElementById('pdv-quick-client-edit-bairro'),
+        quickClientEditCidade: document.getElementById('pdv-quick-client-edit-cidade'),
+        quickClientEditUf: document.getElementById('pdv-quick-client-edit-uf'),
+        quickClientEditCep: document.getElementById('pdv-quick-client-edit-cep'),
+        quickClientEditComplemento: document.getElementById('pdv-quick-client-edit-complemento'),
+        quickClientEditPluscode: document.getElementById('pdv-quick-client-edit-pluscode'),
+        quickClientEditReferencia: document.getElementById('pdv-quick-client-edit-referencia'),
+        quickClientEditErro: document.getElementById('pdv-quick-client-edit-erro'),
+        quickClientEditSalvar: document.getElementById('pdv-quick-client-edit-salvar'),
+        quickClientEditCancelar: document.getElementById('pdv-quick-client-edit-cancelar'),
+        quickClientEditFechar: document.getElementById('pdv-quick-client-edit-fechar'),
         step1ClientBar: document.getElementById('pdv-step1-client-bar'),
         quickClientChange: document.getElementById('pdv-quick-client-change'),
         wizardCliRapidoModal: document.getElementById('pdv-wizard-cli-rapido-modal'),
@@ -282,6 +300,8 @@
     var lastInputAt = 0;
     var productSelectionIndex = -1;
     var clientListSelectIdx = -1;
+    var quickClientEditPk = null;
+    var quickClientEditListIdx = -1;
     var clientSearchSeq = 0;
     var lastClientSearchQuery = '';
     var AUTOCOMPLETE_LIMIT = 8;
@@ -463,6 +483,8 @@
 
     function tryAddProductFromSearch(produto, opts) {
         opts = opts || {};
+        invalidatePendingProductSearch();
+        if (opts.explicitPick) hideProductAutocomplete();
         var qty = opts.qty != null ? opts.qty : 1;
         var explicitPick = !!opts.explicitPick;
         var rowCode = productRowLookupCode(produto);
@@ -767,6 +789,7 @@
 
     function tryAutoAddBarcodeHit(product, message) {
         if (!product) return false;
+        invalidatePendingProductSearch();
         var q = dom.productSearch ? String(dom.productSearch.value || '').trim() : '';
         if (State.addItem(product, 1)) {
             resetProductSearchUi(message || 'Item adicionado pela leitura do código.');
@@ -2419,6 +2442,23 @@
         );
     }
 
+    function invalidatePendingProductSearch() {
+        clearTimeout(searchTimer);
+        searchTimer = null;
+        clearTimeout(barcodeTimer);
+        barcodeTimer = null;
+        filterSeq += 1;
+    }
+
+    function hideProductAutocomplete() {
+        productSelectionIndex = -1;
+        lastProducts = [];
+        if (dom.productAutocomplete) {
+            dom.productAutocomplete.innerHTML = '';
+            dom.productAutocomplete.classList.add('hidden');
+        }
+    }
+
     function renderProductResults(produtos) {
         lastProducts = normalizeWizardCatalogList(produtos);
         if (lastProducts.length) {
@@ -3264,6 +3304,7 @@
 
     function closeQuickClientPicker() {
         if (!dom.quickClientModal) return;
+        closeQuickClientEditOverlay();
         dom.quickClientModal.classList.add('hidden');
         dom.quickClientModal.classList.remove('flex');
         setQuickClientPickerHighlight(false);
@@ -3439,15 +3480,16 @@
 
     function highlightClientListRow() {
         if (!dom.quickClientResults) return;
-        var rows = dom.quickClientResults.querySelectorAll('[data-client-list-idx]');
+        var rows = dom.quickClientResults.querySelectorAll('[data-client-row-idx]');
         for (var i = 0; i < rows.length; i++) {
             var el = rows[i];
-            var idx = parseInt(el.getAttribute('data-client-list-idx') || '-1', 10);
+            var idx = parseInt(el.getAttribute('data-client-row-idx') || '-1', 10);
             var on = idx === clientListSelectIdx;
             el.classList.toggle('ring-2', on);
             el.classList.toggle('ring-emerald-400', on);
             el.classList.toggle('bg-emerald-50', on);
-            el.setAttribute('aria-selected', on ? 'true' : 'false');
+            var btn = el.querySelector('[data-select-client]');
+            if (btn) btn.setAttribute('aria-selected', on ? 'true' : 'false');
             if (on) {
                 try {
                     el.scrollIntoView({ block: 'nearest' });
@@ -3456,10 +3498,268 @@
         }
     }
 
+    function clientSearchResultRowHtml(cliente, idx) {
+        var pk = cliente && cliente.cliente_agro_pk;
+        var canEdit = pk != null && pk !== '';
+        var meta =
+            (cliente && (cliente.documento || cliente.telefone || cliente.endereco)) ||
+            'Sem dados extras';
+        return (
+            '' +
+            '<div class="flex items-stretch gap-1.5 rounded-xl p-0.5" role="presentation" data-client-row-idx="' +
+            idx +
+            '">' +
+            '<button type="button" role="option" class="min-w-0 flex-1 rounded-lg px-3 py-3 text-left hover:bg-emerald-50/80 focus:outline-none" ' +
+            'data-select-client="' +
+            escapeHtml(cliente.id) +
+            '" data-client-list-idx="' +
+            idx +
+            '" aria-selected="false">' +
+            '  <span class="block text-sm font-black text-slate-900">' +
+            escapeHtml(cliente.nome || '') +
+            '</span>' +
+            '  <span class="mt-1 block truncate text-[11px] font-bold text-slate-500">' +
+            escapeHtml(meta) +
+            '</span>' +
+            '</button>' +
+            (canEdit
+                ? '<button type="button" class="shrink-0 self-center rounded-xl border-2 border-sky-300 bg-sky-50 px-3 py-2.5 text-[10px] font-black uppercase tracking-wide text-sky-900 hover:bg-sky-100" ' +
+                  'data-edit-client="' +
+                  escapeHtml(String(pk)) +
+                  '" data-client-list-idx="' +
+                  idx +
+                  '" title="Editar cadastro do cliente">Editar</button>'
+                : '') +
+            '</div>'
+        );
+    }
+
+    function renderClientSearchResults(clientes) {
+        if (!dom.quickClientResults) return;
+        dom.quickClientResults._clientes = clientes;
+        if (!clientes.length) {
+            dom.quickClientResults.innerHTML =
+                '<p class="px-4 py-6 text-center text-sm font-bold text-slate-500">Nenhum cliente encontrado para este termo.</p>';
+            clientListSelectIdx = -1;
+            return;
+        }
+        if (clientListSelectIdx < 0 || clientListSelectIdx >= clientes.length) {
+            clientListSelectIdx = 0;
+        }
+        dom.quickClientResults.innerHTML = clientes
+            .map(function (cliente, idx) {
+                return clientSearchResultRowHtml(cliente, idx);
+            })
+            .join('');
+        highlightClientListRow();
+    }
+
+    function isQuickClientEditOpen() {
+        return !!(
+            dom.quickClientEditOverlay &&
+            dom.quickClientEditOverlay.classList.contains('flex')
+        );
+    }
+
+    function clearQuickClientEditForm() {
+        quickClientEditPk = null;
+        quickClientEditListIdx = -1;
+        [
+            dom.quickClientEditNome,
+            dom.quickClientEditWhatsapp,
+            dom.quickClientEditCpf,
+            dom.quickClientEditLogradouro,
+            dom.quickClientEditNumero,
+            dom.quickClientEditBairro,
+            dom.quickClientEditCidade,
+            dom.quickClientEditUf,
+            dom.quickClientEditCep,
+            dom.quickClientEditComplemento,
+            dom.quickClientEditPluscode,
+            dom.quickClientEditReferencia,
+        ].forEach(function (el) {
+            if (el) el.value = '';
+        });
+        if (dom.quickClientEditErro) {
+            dom.quickClientEditErro.textContent = '';
+            dom.quickClientEditErro.classList.add('hidden');
+        }
+    }
+
+    function fillQuickClientEditForm(cliente) {
+        if (!cliente) return;
+        if (dom.quickClientEditNome) dom.quickClientEditNome.value = String(cliente.nome || '');
+        if (dom.quickClientEditWhatsapp) {
+            dom.quickClientEditWhatsapp.value = String(cliente.telefone || '');
+        }
+        if (dom.quickClientEditCpf) {
+            var doc = String(cliente.cpf || cliente.documento || '').trim();
+            dom.quickClientEditCpf.value = doc === '—' ? '' : doc;
+        }
+        if (dom.quickClientEditLogradouro) {
+            dom.quickClientEditLogradouro.value = String(cliente.logradouro || '');
+        }
+        if (dom.quickClientEditNumero) dom.quickClientEditNumero.value = String(cliente.numero || '');
+        if (dom.quickClientEditBairro) dom.quickClientEditBairro.value = String(cliente.bairro || '');
+        if (dom.quickClientEditCidade) dom.quickClientEditCidade.value = String(cliente.cidade || '');
+        if (dom.quickClientEditUf) dom.quickClientEditUf.value = String(cliente.uf || '');
+        if (dom.quickClientEditCep) dom.quickClientEditCep.value = String(cliente.cep || '');
+        if (dom.quickClientEditComplemento) {
+            dom.quickClientEditComplemento.value = String(cliente.complemento || '');
+        }
+        if (dom.quickClientEditPluscode) {
+            dom.quickClientEditPluscode.value = String(cliente.plus_code || '');
+        }
+        if (dom.quickClientEditReferencia) {
+            dom.quickClientEditReferencia.value = String(cliente.referencia_rural || '');
+        }
+        if (dom.quickClientEditTitle) {
+            dom.quickClientEditTitle.textContent = String(cliente.nome || 'Cliente');
+        }
+    }
+
+    function openQuickClientEditOverlay(cliente, listIdx) {
+        if (!dom.quickClientEditOverlay || !cliente || !cliente.cliente_agro_pk) return;
+        quickClientEditPk = cliente.cliente_agro_pk;
+        quickClientEditListIdx = listIdx != null ? listIdx : -1;
+        if (dom.quickClientEditErro) {
+            dom.quickClientEditErro.textContent = '';
+            dom.quickClientEditErro.classList.add('hidden');
+        }
+        fillQuickClientEditForm(cliente);
+        dom.quickClientEditOverlay.classList.remove('hidden');
+        dom.quickClientEditOverlay.classList.add('flex');
+        window.setTimeout(function () {
+            if (dom.quickClientEditNome) dom.quickClientEditNome.focus();
+        }, 60);
+    }
+
+    function closeQuickClientEditOverlay() {
+        if (!dom.quickClientEditOverlay) return;
+        dom.quickClientEditOverlay.classList.add('hidden');
+        dom.quickClientEditOverlay.classList.remove('flex');
+        clearQuickClientEditForm();
+        window.setTimeout(focusQuickClientSearchField, 40);
+    }
+
+    function patchClienteInSearchResults(updated) {
+        if (!updated || !dom.quickClientResults) return;
+        var clientes = dom.quickClientResults._clientes || [];
+        var pk = updated.cliente_agro_pk;
+        var idx = -1;
+        var i;
+        for (i = 0; i < clientes.length; i++) {
+            if (String(clientes[i].cliente_agro_pk) === String(pk)) {
+                idx = i;
+                break;
+            }
+        }
+        if (idx < 0 && quickClientEditListIdx >= 0) idx = quickClientEditListIdx;
+        if (idx >= 0) {
+            clientes[idx] = Object.assign({}, clientes[idx], updated);
+            renderClientSearchResults(clientes);
+        }
+        var st = State.getState();
+        if (st.cliente && String(st.cliente.id) === String(updated.id)) {
+            State.setCliente(updated, st.clienteMode === 'consumidor_final' ? 'consumidor_final' : 'cliente');
+            syncEntregaEnderecoFromCliente();
+        }
+    }
+
+    function saveQuickClientEditOverlay() {
+        var pattern = urls.apiPdvClienteEditarPattern;
+        if (!pattern || !quickClientEditPk) {
+            alert('Edição indisponível (URL).');
+            return;
+        }
+        var nome = dom.quickClientEditNome
+            ? String(dom.quickClientEditNome.value || '').trim()
+            : '';
+        if (dom.quickClientEditErro) {
+            dom.quickClientEditErro.textContent = '';
+            dom.quickClientEditErro.classList.add('hidden');
+        }
+        if (nome.length < 2) {
+            if (dom.quickClientEditErro) {
+                dom.quickClientEditErro.textContent =
+                    'Informe o nome do cliente (mínimo 2 caracteres).';
+                dom.quickClientEditErro.classList.remove('hidden');
+            }
+            if (dom.quickClientEditNome) dom.quickClientEditNome.focus();
+            return;
+        }
+        var wa = dom.quickClientEditWhatsapp
+            ? String(dom.quickClientEditWhatsapp.value || '').trim()
+            : '';
+        var waDigits = wa.replace(/\D/g, '');
+        if (wa && waDigits.length > 0 && waDigits.length < 10) {
+            if (dom.quickClientEditErro) {
+                dom.quickClientEditErro.textContent =
+                    'Telefone ou WhatsApp inválido (mínimo 10 dígitos).';
+                dom.quickClientEditErro.classList.remove('hidden');
+            }
+            if (dom.quickClientEditWhatsapp) dom.quickClientEditWhatsapp.focus();
+            return;
+        }
+        var url = pattern.replace('__pk__', String(quickClientEditPk));
+        var payload = {
+            nome: nome,
+            whatsapp: wa,
+            cpf: dom.quickClientEditCpf ? dom.quickClientEditCpf.value : '',
+            logradouro: dom.quickClientEditLogradouro ? dom.quickClientEditLogradouro.value : '',
+            numero: dom.quickClientEditNumero ? dom.quickClientEditNumero.value : '',
+            bairro: dom.quickClientEditBairro ? dom.quickClientEditBairro.value : '',
+            cidade: dom.quickClientEditCidade ? dom.quickClientEditCidade.value : '',
+            uf: dom.quickClientEditUf ? dom.quickClientEditUf.value : '',
+            cep: dom.quickClientEditCep ? dom.quickClientEditCep.value : '',
+            complemento: dom.quickClientEditComplemento ? dom.quickClientEditComplemento.value : '',
+            plus_code: dom.quickClientEditPluscode ? dom.quickClientEditPluscode.value : '',
+            referencia_rural: dom.quickClientEditReferencia ? dom.quickClientEditReferencia.value : '',
+        };
+        var btn = dom.quickClientEditSalvar;
+        var prevLabel = btn ? btn.textContent : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Salvando…';
+        }
+        jsonPost(url, payload)
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.ok) {
+                    var err =
+                        (res.data && (res.data.erro || res.data.error)) ||
+                        'Não foi possível salvar o cliente.';
+                    if (dom.quickClientEditErro) {
+                        dom.quickClientEditErro.textContent = err;
+                        dom.quickClientEditErro.classList.remove('hidden');
+                    } else {
+                        alert(err);
+                    }
+                    return;
+                }
+                patchClienteInSearchResults(res.data.cliente);
+                closeQuickClientEditOverlay();
+            })
+            .catch(function () {
+                var msg = 'Erro de rede ao salvar cliente.';
+                if (dom.quickClientEditErro) {
+                    dom.quickClientEditErro.textContent = msg;
+                    dom.quickClientEditErro.classList.remove('hidden');
+                } else {
+                    alert(msg);
+                }
+            })
+            .finally(function () {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = prevLabel || 'Salvar';
+                }
+            });
+    }
+
     function resetProductSearchUi(message) {
+        invalidatePendingProductSearch();
         dom.productSearch.value = '';
-        productSelectionIndex = -1;
-        renderProductResults([]);
+        hideProductAutocomplete();
         dom.productSearchMeta.textContent = 'Aguardando busca';
         dom.productSearchFeedback.textContent = message || 'Digite para filtrar o catálogo local.';
         focusProductSearch();
@@ -3586,34 +3886,8 @@
             .then(function (data) {
                 if (seq !== clientSearchSeq) return;
                 var clientes = data.clientes || [];
-                if (!clientes.length) {
-                    dom.quickClientResults.innerHTML =
-                        '<p class="px-4 py-6 text-center text-sm font-bold text-slate-500">Nenhum cliente encontrado para este termo.</p>';
-                    dom.quickClientResults.classList.remove('hidden');
-                    delete dom.quickClientResults._clientes;
-                    clientListSelectIdx = -1;
-                    return;
-                }
-                dom.quickClientResults.innerHTML = clientes.map(function (cliente, idx) {
-                    return '' +
-                        '<button type="button" role="option" class="block w-full rounded-xl px-3 py-3 text-left hover:bg-emerald-50/80 focus:outline-none" ' +
-                        'data-select-client="' +
-                        escapeHtml(cliente.id) +
-                        '" data-client-list-idx="' +
-                        idx +
-                        '" aria-selected="false">' +
-                        '  <span class="block text-sm font-black text-slate-900">' +
-                        escapeHtml(cliente.nome) +
-                        '</span>' +
-                        '  <span class="mt-1 block text-[11px] font-bold text-slate-500">' +
-                        escapeHtml(cliente.documento || cliente.telefone || cliente.endereco || 'Sem dados extras') +
-                        '</span>' +
-                        '</button>';
-                }).join('');
+                renderClientSearchResults(clientes);
                 dom.quickClientResults.classList.remove('hidden');
-                dom.quickClientResults._clientes = clientes;
-                clientListSelectIdx = 0;
-                highlightClientListRow();
             })
             .catch(function () {
                 if (seq !== clientSearchSeq) return;
@@ -5443,6 +5717,20 @@
                 openWizardQuickClientCadastro();
             });
         }
+        if (dom.quickClientEditSalvar) {
+            dom.quickClientEditSalvar.addEventListener('click', saveQuickClientEditOverlay);
+        }
+        if (dom.quickClientEditCancelar) {
+            dom.quickClientEditCancelar.addEventListener('click', closeQuickClientEditOverlay);
+        }
+        if (dom.quickClientEditFechar) {
+            dom.quickClientEditFechar.addEventListener('click', closeQuickClientEditOverlay);
+        }
+        if (dom.quickClientEditOverlay) {
+            dom.quickClientEditOverlay.addEventListener('click', function (event) {
+                event.stopPropagation();
+            });
+        }
 
         if (dom.wizardCliRapidoSalvar) {
             dom.wizardCliRapidoSalvar.addEventListener('click', saveWizardQuickClientCadastro);
@@ -5517,6 +5805,16 @@
         dom.quickClientResults.addEventListener('click', function (event) {
             if (event.target.closest('[data-wizard-cadastrar-cliente]')) {
                 openWizardQuickClientCadastro();
+                return;
+            }
+            var editBtn = event.target.closest('[data-edit-client]');
+            if (editBtn) {
+                event.preventDefault();
+                event.stopPropagation();
+                var editIdx = parseInt(editBtn.getAttribute('data-client-list-idx') || '-1', 10);
+                var clientesEdit = dom.quickClientResults._clientes || [];
+                var clienteEdit = editIdx >= 0 ? clientesEdit[editIdx] : null;
+                if (clienteEdit) openQuickClientEditOverlay(clienteEdit, editIdx);
                 return;
             }
             var btn = event.target.closest('[data-select-client]');
@@ -6425,6 +6723,11 @@
                 ) {
                     event.preventDefault();
                     closeWizardQuickClientCadastro();
+                    return;
+                }
+                if (isQuickClientEditOpen()) {
+                    event.preventDefault();
+                    closeQuickClientEditOverlay();
                     return;
                 }
                 if (dom.budgetHistoryModal && !dom.budgetHistoryModal.classList.contains('hidden')) {

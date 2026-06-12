@@ -161,6 +161,7 @@ from .nfe_entrada_util import (
     claim_rascunho_para_estoque_agro,
     excluir_rascunho_entrada,
     gravar_ult_nsu,
+    entrada_nfe_busca_params_from_request,
     listar_rascunhos_entrada,
     marcar_rascunho_estoque_aplicado,
     marcar_rascunho_financeiro_lancado,
@@ -9841,7 +9842,10 @@ def api_entrada_nota_rascunhos(request):
     except ValueError:
         lim = 25
     filtro = (request.GET.get("filtro") or "todas").strip()[:24]
-    return JsonResponse({"itens": listar_rascunhos_entrada(db, limit=lim, filtro=filtro or None)})
+    busca = entrada_nfe_busca_params_from_request(request)
+    return JsonResponse(
+        {"itens": listar_rascunhos_entrada(db, limit=lim, filtro=filtro or None, busca=busca)}
+    )
 
 
 @login_required(login_url="/admin/login/")
@@ -20635,6 +20639,7 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
         "id": pid,
         "nome": c.nome,
         "documento": (c.cpf or "").strip() or "—",
+        "cpf": (c.cpf or "").strip(),
         "telefone": (c.whatsapp or "").strip(),
         "endereco": end,
         "logradouro": (c.logradouro or "").strip(),
@@ -20643,6 +20648,7 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
         "cidade": (c.cidade or "").strip(),
         "uf": (c.uf or "").strip(),
         "cep": (c.cep or "").strip(),
+        "complemento": (c.complemento or "").strip(),
         "plus_code": (getattr(c, "plus_code", None) or "").strip(),
         "referencia_rural": (getattr(c, "referencia_rural", None) or "").strip(),
         "maps_url_manual": (getattr(c, "maps_url_manual", None) or "").strip(),
@@ -20857,6 +20863,80 @@ def api_pdv_cliente_rapido(request):
         logger.exception("api_pdv_cliente_rapido")
         return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=400)
     return JsonResponse({"ok": True, "cliente": _linha_clienteagro_pdv(c)})
+
+
+def _pdv_whatsapp_digits_pdv(wa_raw: str, *, obrigatorio: bool = False):
+    wa_raw = (wa_raw or "").strip()
+    wa_digits = re.sub(r"\D", "", wa_raw)
+    if not wa_digits:
+        if obrigatorio:
+            return "", "Informe o telefone ou WhatsApp com DDD (mínimo 10 dígitos)."
+        return "", None
+    if len(wa_digits) < 10:
+        return "", "Telefone ou WhatsApp inválido (mínimo 10 dígitos)."
+    if len(wa_digits) > 20:
+        wa_digits = wa_digits[-20:]
+    return wa_digits[:20], None
+
+
+def _pdv_aplicar_endereco_clienteagro(c: ClienteAgro, data: dict) -> None:
+    c.cep = (data.get("cep") or "").strip()[:12]
+    c.uf = (data.get("uf") or "").strip()[:2].upper()
+    c.cidade = (data.get("cidade") or "").strip()[:120]
+    c.bairro = (data.get("bairro") or "").strip()[:120]
+    c.logradouro = (data.get("logradouro") or "").strip()[:300]
+    c.numero = (data.get("numero") or "").strip()[:30]
+    c.complemento = (data.get("complemento") or "").strip()[:200]
+    c.plus_code = (data.get("plus_code") or "").strip()[:120]
+    c.referencia_rural = (data.get("referencia_rural") or "").strip()[:300]
+    c.maps_url_manual = (data.get("maps_url_manual") or "").strip()[:600]
+    endereco_manual = (data.get("endereco") or "").strip()[:500]
+    if endereco_manual:
+        c.endereco = endereco_manual
+    elif c._tem_campos_endereco_estruturados():
+        c.endereco = compor_endereco_resumo_cliente(
+            c.cep,
+            c.uf,
+            c.cidade,
+            c.bairro,
+            c.logradouro,
+            c.numero,
+            c.complemento,
+        )[:500]
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_pdv_cliente_editar(request, pk):
+    """Edição resumida de ClienteAgro a partir do pop-up de busca no PDV."""
+    cli = get_object_or_404(ClienteAgro, pk=pk)
+    try:
+        data = json.loads(request.body or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    nome = (data.get("nome") or cli.nome or "").strip()
+    if len(nome) < 2:
+        return JsonResponse(
+            {"ok": False, "erro": "Informe o nome do cliente (mínimo 2 caracteres)."},
+            status=400,
+        )
+    wa_digits, wa_err = _pdv_whatsapp_digits_pdv(
+        data.get("whatsapp") or data.get("telefone") or cli.whatsapp or "",
+        obrigatorio=False,
+    )
+    if wa_err:
+        return JsonResponse({"ok": False, "erro": wa_err}, status=400)
+    cli.nome = nome[:200]
+    cli.whatsapp = wa_digits
+    cli.cpf = (data.get("cpf") or data.get("documento") or cli.cpf or "").strip()[:14]
+    _pdv_aplicar_endereco_clienteagro(cli, data)
+    cli.editado_local = True
+    try:
+        cli.save()
+    except Exception as e:
+        logger.exception("api_pdv_cliente_editar pk=%s", pk)
+        return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=400)
+    return JsonResponse({"ok": True, "cliente": _linha_clienteagro_pdv(cli)})
 
 
 @require_GET

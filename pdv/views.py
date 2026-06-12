@@ -81,6 +81,9 @@ def pdv_home(request):
                 "apiBuscarProdutos": reverse("api_buscar_mobile"),
                 "apiBuscarClientes": reverse("api_buscar_clientes"),
                 "apiPdvClienteRapido": reverse("api_pdv_cliente_rapido"),
+                "apiPdvClienteEditarPattern": reverse("api_pdv_cliente_editar", args=[0]).replace(
+                    "/0/", "/__pk__/"
+                ),
                 "apiListCustomers": reverse("api_list_customers"),
                 "apiPdvSalvarCheckoutDraft": reverse("api_pdv_salvar_checkout_draft"),
                 "apiPdvLimparCheckoutDraft": reverse("api_pdv_limpar_checkout_draft"),

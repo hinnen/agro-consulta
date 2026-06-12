@@ -38,6 +38,10 @@
     .forn-dd { max-height: 260px; overflow-y: auto; z-index: 45; }
     .filtro-nfe-chip { border-width: 1px; border-color: rgb(226 232 240); background: white; color: rgb(71 85 105); }
     .filtro-nfe-chip.filtro-nfe-chip-on { border-color: rgb(249 115 22); background: rgb(255 247 237); color: rgb(124 45 18); }
+    #entrada-nfe-busca-q {
+      font-size: clamp(0.95rem, 1.35vw, 1.05rem);
+      font-weight: 700;
+    }
     /* Lista NF-e (tela principal): menos ruído, metadados alinhados, ações compactas */
     .nfe-lista-row {
       display: grid;
@@ -868,6 +872,17 @@
           <button type="button" class="entrada-nfe-open-ajuda min-h-[40px] min-w-[40px] rounded-xl border border-slate-300/90 bg-white text-base font-black text-slate-600 hover:bg-orange-50/80 hover:border-orange-300" title="Ajuda">?</button>
         </div>
       </div>
+      <div class="px-2 sm:px-3 py-2 flex flex-wrap items-stretch sm:items-center gap-2 border-b border-slate-100 bg-white shrink-0" id="entrada-nfe-busca-wrap">
+        <label class="flex-1 min-w-[10rem] min-h-[44px]">
+          <span class="sr-only">Buscar nota</span>
+          <input type="search" id="entrada-nfe-busca-q" enterkeyhint="search" autocomplete="off" placeholder="Buscar NF, fornecedor, produto, código, valor…" class="w-full h-full min-h-[44px] px-3 py-2 rounded-xl border-2 border-slate-200 bg-slate-50/80 text-slate-900 placeholder:text-slate-400 focus:border-orange-400 focus:bg-white focus:outline-none">
+        </label>
+        <button type="button" id="btn-entrada-nfe-busca-filtros" class="min-h-[44px] px-3 sm:px-4 rounded-xl border-2 border-orange-300 bg-orange-50 text-[11px] font-black uppercase text-orange-950 hover:bg-orange-100 shrink-0 inline-flex items-center gap-1.5" aria-haspopup="dialog" aria-controls="modal-entrada-nfe-lista-filtros">
+          Filtros
+          <span id="entrada-nfe-busca-filtros-badge" class="hidden min-w-[1.25rem] h-5 px-1 rounded-full bg-orange-600 text-white text-[10px] font-black leading-5 text-center" aria-hidden="true"></span>
+        </button>
+        <button type="button" id="btn-entrada-nfe-busca-limpar" class="hidden min-h-[44px] px-3 rounded-xl border border-slate-200 bg-white text-[11px] font-black uppercase text-slate-600 hover:bg-slate-50 shrink-0">Limpar</button>
+      </div>
       <div class="px-2 sm:px-3 py-1.5 flex flex-wrap gap-1 border-b border-slate-100 bg-slate-50/60 shrink-0" id="entrada-nfe-filtros-wrap" role="toolbar" aria-label="Fila da nota (cada nota aparece em um estágio)">
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="todas" title="Todas as notas salvas.">Todas</button>
         <button type="button" class="filtro-nfe-chip filtro-nfe-chip-on min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="em_andamento" title="Nota aberta, estoque, financeiro ou finalização PIN (ainda em trabalho).">Em andamento</button>
@@ -1502,6 +1517,57 @@
     </div>
   </div>
 
+  <div id="modal-entrada-nfe-lista-filtros" class="hidden fixed inset-0 z-[71] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-entrada-nfe-lista-filtros-titulo">
+    <div class="w-full max-w-lg max-h-[min(88vh,36rem)] flex flex-col rounded-2xl border-2 border-orange-200 bg-white shadow-xl overflow-hidden">
+      <div class="shrink-0 px-4 py-3 border-b border-orange-100 bg-orange-50/80 flex items-center justify-between gap-2">
+        <h2 id="modal-entrada-nfe-lista-filtros-titulo" class="text-base font-black uppercase text-orange-950">Busca avançada</h2>
+        <button type="button" id="btn-fechar-modal-entrada-nfe-lista-filtros" class="min-h-[40px] min-w-[40px] rounded-xl border-2 border-slate-200 bg-white text-sm font-black text-slate-700 hover:bg-slate-50" aria-label="Fechar">×</button>
+      </div>
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 text-sm">
+        <p class="text-[11px] font-semibold text-slate-600 leading-snug">Combine com a busca rápida acima. Texto ignora maiúsculas e acentos; valor aceita vírgula ou R$.</p>
+        <label class="block"><span class="text-[11px] font-black uppercase text-slate-600">Nº da NF</span>
+          <input type="text" id="entrada-nfe-filtro-numero_nf" class="mt-1 w-full min-h-[44px] px-3 rounded-xl border-2 border-slate-200 font-bold" autocomplete="off"></label>
+        <label class="block"><span class="text-[11px] font-black uppercase text-slate-600">Fornecedor</span>
+          <input type="text" id="entrada-nfe-filtro-fornecedor" class="mt-1 w-full min-h-[44px] px-3 rounded-xl border-2 border-slate-200 font-bold" autocomplete="off"></label>
+        <label class="block"><span class="text-[11px] font-black uppercase text-slate-600">Produto (nome na nota ou catálogo)</span>
+          <input type="text" id="entrada-nfe-filtro-produto" class="mt-1 w-full min-h-[44px] px-3 rounded-xl border-2 border-slate-200 font-bold" autocomplete="off"></label>
+        <label class="block"><span class="text-[11px] font-black uppercase text-slate-600">Código / barras / GM</span>
+          <input type="text" id="entrada-nfe-filtro-codigo" class="mt-1 w-full min-h-[44px] px-3 rounded-xl border-2 border-slate-200 font-bold" autocomplete="off"></label>
+        <label class="block"><span class="text-[11px] font-black uppercase text-slate-600">Valor total da nota</span>
+          <input type="text" id="entrada-nfe-filtro-valor" inputmode="decimal" class="mt-1 w-full min-h-[44px] px-3 rounded-xl border-2 border-slate-200 font-bold" placeholder="Ex.: 1250,50" autocomplete="off"></label>
+        <label class="block"><span class="text-[11px] font-black uppercase text-slate-600">Forma de pagamento</span>
+          <input type="text" id="entrada-nfe-filtro-forma" class="mt-1 w-full min-h-[44px] px-3 rounded-xl border-2 border-slate-200 font-bold" autocomplete="off"></label>
+        <label class="block"><span class="text-[11px] font-black uppercase text-slate-600">Banco / conta</span>
+          <input type="text" id="entrada-nfe-filtro-banco" class="mt-1 w-full min-h-[44px] px-3 rounded-xl border-2 border-slate-200 font-bold" autocomplete="off"></label>
+        <label class="block"><span class="text-[11px] font-black uppercase text-slate-600">Chave NF-e</span>
+          <input type="text" id="entrada-nfe-filtro-chave" class="mt-1 w-full min-h-[44px] px-3 rounded-xl border-2 border-slate-200 font-bold font-mono text-xs" autocomplete="off"></label>
+        <label class="block"><span class="text-[11px] font-black uppercase text-slate-600">Tipo de entrada</span>
+          <select id="entrada-nfe-filtro-tipo_entrada" class="mt-1 w-full min-h-[44px] px-3 rounded-xl border-2 border-slate-200 font-bold bg-white">
+            <option value="">Qualquer</option>
+            <option value="compras">Compras (com título)</option>
+            <option value="bonificacao">Bonificação (sem título)</option>
+          </select></label>
+        <label class="block"><span class="text-[11px] font-black uppercase text-slate-600">Financeiro</span>
+          <select id="entrada-nfe-filtro-financeiro" class="mt-1 w-full min-h-[44px] px-3 rounded-xl border-2 border-slate-200 font-bold bg-white">
+            <option value="">Qualquer</option>
+            <option value="lancado">Título já lançado</option>
+            <option value="pendente">Falta lançar a pagar</option>
+            <option value="bonificacao">Bonificação (sem financeiro)</option>
+          </select></label>
+        <label class="block"><span class="text-[11px] font-black uppercase text-slate-600">Correção sistemica</span>
+          <select id="entrada-nfe-filtro-correcao" class="mt-1 w-full min-h-[44px] px-3 rounded-xl border-2 border-slate-200 font-bold bg-white">
+            <option value="">Qualquer</option>
+            <option value="sim">Marcada</option>
+            <option value="nao">Não marcada</option>
+          </select></label>
+      </div>
+      <div class="shrink-0 flex flex-wrap gap-2 justify-end border-t border-slate-100 px-4 py-3 bg-slate-50/80">
+        <button type="button" id="btn-entrada-nfe-filtros-limpar-modal" class="min-h-[44px] px-4 rounded-xl border border-slate-200 bg-white text-[11px] font-black uppercase text-slate-700">Limpar filtros</button>
+        <button type="button" id="btn-entrada-nfe-filtros-aplicar" class="min-h-[44px] px-5 rounded-xl bg-emerald-700 text-white text-[11px] font-black uppercase border border-emerald-800 hover:bg-emerald-800">Aplicar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="modal-entrada-nfe-auditoria-fin" class="hidden fixed inset-0 z-[72] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-entrada-nfe-auditoria-titulo">
     <div class="w-full max-w-2xl max-h-[min(88vh,40rem)] flex flex-col rounded-2xl border-2 border-violet-200 bg-white shadow-xl overflow-hidden">
       <div class="shrink-0 px-4 py-3 border-b border-violet-100 bg-violet-50/80 flex items-center justify-between gap-2">
@@ -2104,6 +2170,87 @@
   let entradaNfeAutosaveDirty = false;
   let entradaNfeAutosaveLastSig = '';
   let entradaNfeListaFiltro = 'em_andamento';
+  /** Filtros estruturados do modal «Busca avançada» (lista de notas). */
+  let entradaNfeListaBuscaFiltros = {};
+  let entradaNfeListaBuscaDebounce = null;
+
+  const ENTRADA_NFE_LISTA_FILTRO_KEYS = [
+    'numero_nf', 'fornecedor', 'produto', 'codigo', 'valor', 'forma', 'banco', 'chave',
+    'tipo_entrada', 'financeiro', 'correcao',
+  ];
+
+  function entradaNfeListaBuscaAtiva() {
+    const q = String(document.getElementById('entrada-nfe-busca-q')?.value || '').trim();
+    if (q) return true;
+    return ENTRADA_NFE_LISTA_FILTRO_KEYS.some((k) => String(entradaNfeListaBuscaFiltros[k] || '').trim());
+  }
+
+  function entradaNfeListaBuscaContarFiltrosModal() {
+    return ENTRADA_NFE_LISTA_FILTRO_KEYS.filter((k) => String(entradaNfeListaBuscaFiltros[k] || '').trim()).length;
+  }
+
+  function entradaNfeListaBuscaAppendParams(url) {
+    const q = String(document.getElementById('entrada-nfe-busca-q')?.value || '').trim();
+    if (q) url.searchParams.set('q', q);
+    ENTRADA_NFE_LISTA_FILTRO_KEYS.forEach((k) => {
+      const v = String(entradaNfeListaBuscaFiltros[k] || '').trim();
+      if (v) url.searchParams.set(k, v);
+    });
+  }
+
+  function entradaNfeListaBuscaSyncUi() {
+    const ativa = entradaNfeListaBuscaAtiva();
+    const btnLimpar = document.getElementById('btn-entrada-nfe-busca-limpar');
+    const badge = document.getElementById('entrada-nfe-busca-filtros-badge');
+    const n = entradaNfeListaBuscaContarFiltrosModal();
+    if (btnLimpar) btnLimpar.classList.toggle('hidden', !ativa);
+    if (badge) {
+      if (n > 0) {
+        badge.textContent = String(n);
+        badge.classList.remove('hidden');
+      } else {
+        badge.textContent = '';
+        badge.classList.add('hidden');
+      }
+    }
+  }
+
+  function entradaNfeListaBuscaLerModalParaObj() {
+    const out = {};
+    ENTRADA_NFE_LISTA_FILTRO_KEYS.forEach((k) => {
+      const el = document.getElementById(`entrada-nfe-filtro-${k}`);
+      const v = el ? String(el.value || '').trim() : '';
+      if (v) out[k] = v;
+    });
+    return out;
+  }
+
+  function entradaNfeListaBuscaPreencherModal() {
+    ENTRADA_NFE_LISTA_FILTRO_KEYS.forEach((k) => {
+      const el = document.getElementById(`entrada-nfe-filtro-${k}`);
+      if (el) el.value = String(entradaNfeListaBuscaFiltros[k] || '');
+    });
+  }
+
+  function entradaNfeListaBuscaLimparTudo(recarregar) {
+    entradaNfeListaBuscaFiltros = {};
+    const inp = document.getElementById('entrada-nfe-busca-q');
+    if (inp) inp.value = '';
+    entradaNfeListaBuscaPreencherModal();
+    entradaNfeListaBuscaSyncUi();
+    if (recarregar !== false) carregarRascunhos();
+  }
+
+  function entradaNfeAbrirModalListaFiltros() {
+    entradaNfeListaBuscaPreencherModal();
+    document.getElementById('modal-entrada-nfe-lista-filtros')?.classList.remove('hidden');
+    document.getElementById('entrada-nfe-filtro-numero_nf')?.focus();
+  }
+
+  function entradaNfeFecharModalListaFiltros() {
+    document.getElementById('modal-entrada-nfe-lista-filtros')?.classList.add('hidden');
+    document.getElementById('btn-entrada-nfe-busca-filtros')?.focus();
+  }
   /** Índice da linha ativa na conferência por código (passo 3). */
   let entradaNfeBipLinhaIdx = 0;
   /** Rascunho local por índice de linha: código bipado / ignorar ao trocar de linha. */
@@ -2808,8 +2955,7 @@
     };
     entradaNfeAtualizarUiBotaoConfirmarFornecedor();
     await entradaNfeWizardPersistExtraPatch({ wizard_etapa1_confirmada_em: iso });
-    entradaNfeWizardSetStep(2);
-    entradaNfeWizardAgendarAtualizarCores();
+    entradaNfeWizardAvancarAposConfirmarEtapa(1);
     try {
       entradaNfeAplicarCongelamentoEditorUi();
     } catch (_) {}
@@ -3046,8 +3192,7 @@
     };
     entradaNfeAtualizarUiBotaoConfirmarProdutos();
     await entradaNfeWizardPersistExtraPatch({ wizard_etapa2_confirmada_em: iso });
-    entradaNfeWizardSetStep(3);
-    entradaNfeWizardAgendarAtualizarCores();
+    entradaNfeWizardAvancarAposConfirmarEtapa(2);
     try {
       entradaNfeAplicarCongelamentoEditorUi();
     } catch (_) {}
@@ -3068,8 +3213,7 @@
     };
     entradaNfeAtualizarUiBotaoConfirmarCodigos();
     await entradaNfeWizardPersistExtraPatch({ wizard_etapa3_confirmada_em: iso });
-    entradaNfeWizardSetStep(4);
-    entradaNfeWizardAgendarAtualizarCores();
+    entradaNfeWizardAvancarAposConfirmarEtapa(3);
     try {
       entradaNfeAplicarCongelamentoEditorUi();
     } catch (_) {}
@@ -3093,8 +3237,7 @@
       wizard_etapa4_lote_confirmada_em: iso,
       wizard_lote_pular_em: entradaNfeLotePularTodos ? iso : '',
     });
-    entradaNfeWizardSetStep(5);
-    entradaNfeWizardAgendarAtualizarCores();
+    entradaNfeWizardAvancarAposConfirmarEtapa(4);
     try {
       entradaNfeAplicarCongelamentoEditorUi();
     } catch (_) {}
@@ -3386,6 +3529,14 @@
     try {
       entradaNfeAtualizarBarraContextoNota();
     } catch (_) {}
+  }
+
+  /** Após «Confirmar … e continuar»: vai à próxima etapa sem revalidar o caminho (já validado no botão). */
+  function entradaNfeWizardAvancarAposConfirmarEtapa(etapaConcluida) {
+    const cur = Math.min(ENTRADA_NFE_WIZ_TOTAL, Math.max(1, Math.floor(Number(etapaConcluida)) || 1));
+    const prox = Math.min(ENTRADA_NFE_WIZ_TOTAL, cur + 1);
+    entradaNfeWizardApplyStepUi(prox);
+    entradaNfeWizardAgendarAtualizarCores();
   }
 
   function entradaNfeWizardSetStep(n) {
@@ -4288,6 +4439,7 @@
           msgEl.textContent = `${i + 1}º item vinculado como similar/opcional.`;
           msgEl.classList.add('text-amber-800');
         }
+        entradaNfeBipAvancarSeEtapaCompleta();
         entradaNfeBipFocusCod();
       };
       trPick.addEventListener('click', aplicar);
@@ -4318,6 +4470,18 @@
     });
     mo.observe(tb, { childList: true });
   })();
+
+  function entradaNfeBipAvancarSeEtapaCompleta() {
+    if (entradaNfeCodigosEtapaConfirmada || entradaNfeRascunhoAplicandoGrade) return;
+    const d = entradaNfeWizardValidarEtapaDetalhe(3, { ignorarConfirmacaoCodigos: true });
+    if (d.ok) void entradaNfeConfirmarCodigosEtapa();
+  }
+
+  function entradaNfeLoteAvancarSeEtapaCompleta() {
+    if (entradaNfeLoteEtapaConfirmada || entradaNfeRascunhoAplicandoGrade) return;
+    const d = entradaNfeWizardValidarEtapaDetalhe(4, { ignorarConfirmacaoLote: true });
+    if (d.ok) void entradaNfeConfirmarLoteEtapa();
+  }
 
   async function entradaNfeBipVerificar() {
     const msg = document.getElementById('nfe-bip-msg');
@@ -4363,6 +4527,7 @@
         msg.textContent = 'Sem código na embalagem — linha marcada como dispensada.';
         msg.classList.add('text-amber-800');
       }
+      entradaNfeBipAvancarSeEtapaCompleta();
       entradaNfeBipFocusCod();
       return;
     }
@@ -4386,6 +4551,7 @@
           : `Confirmado na linha ${match.ix + 1}${det}.`;
         msg.classList.add('text-emerald-800');
       }
+      entradaNfeBipAvancarSeEtapaCompleta();
       entradaNfeBipFocusCod();
       return;
     }
@@ -4569,6 +4735,7 @@
       msg.textContent = ign ? 'Item marcado sem lote/validade.' : 'Lote/validade aplicados na linha.';
       msg.classList.add('text-emerald-800');
     }
+    entradaNfeLoteAvancarSeEtapaCompleta();
     if (!entradaNfeRascunhoAplicandoGrade) entradaNfeAgendarAutosaveRascunho();
   }
 
@@ -4592,6 +4759,7 @@
     entradaNfeLoteRebuildSelect();
     entradaNfeAtualizarUiBotaoConfirmarLote();
     entradaNfeWizardAgendarAtualizarCores();
+    if (entradaNfeLotePularTodos) entradaNfeLoteAvancarSeEtapaCompleta();
     if (!entradaNfeRascunhoAplicandoGrade) entradaNfeAgendarAutosaveRascunho();
   }
 
@@ -4809,26 +4977,26 @@
         return;
       }
     }
-    if (cur < 6) {
+    if (cur < ENTRADA_NFE_WIZ_TOTAL) {
       const dCur = entradaNfeWizardValidarEtapaDetalhe(cur);
       if (!dCur.ok) {
         showMsg(dCur.erro, false);
         return;
       }
+      entradaNfeWizardAvancarAposConfirmarEtapa(cur);
     }
-    entradaNfeWizardSetStep(cur + 1);
   }
 
   document.getElementById('nfe-wiz-next')?.addEventListener('click', () => {
     void entradaNfeWizardProximoComAutoConfirmacao();
   });
   document.getElementById('btn-prod-novo-popup')?.addEventListener('click', () => abrirCadastroProdutoNovoPopup());
-  document.getElementById('nfe-btn-confirmar-fornecedor')?.addEventListener('click', () => { entradaNfeConfirmarFornecedorEtapa(); });
+  document.getElementById('nfe-btn-confirmar-fornecedor')?.addEventListener('click', () => { void entradaNfeConfirmarFornecedorEtapa(); });
   entradaNfeInitModalMargemCrit();
   document.getElementById('nfe-btn-confirmar-produtos')?.addEventListener('click', () => {
     void entradaNfeConfirmarProdutosEtapa();
   });
-  document.getElementById('nfe-btn-confirmar-codigos')?.addEventListener('click', () => { entradaNfeConfirmarCodigosEtapa(); });
+  document.getElementById('nfe-btn-confirmar-codigos')?.addEventListener('click', () => { void entradaNfeConfirmarCodigosEtapa(); });
   document.getElementById('nfe-btn-confirmar-lote')?.addEventListener('click', () => { void entradaNfeConfirmarLoteEtapa(); });
   document.getElementById('nfe-lote-aplicar')?.addEventListener('click', () => { entradaNfeLoteAplicarNaLinhaAtual(); });
   document.getElementById('nfe-lote-pular-todos')?.addEventListener('change', (e) => {
@@ -5131,6 +5299,7 @@
     return {
       x_prod: entradaNfeStrCampo(it.x_prod),
       c_prod: entradaNfeStrCampo(it.c_prod),
+      c_prod_fornecedor: entradaNfeStrCampo(it.c_prod_fornecedor),
       ean: entradaNfeStrCampo(it.ean),
       q_com: qnf,
       un_por_embalagem: un,
@@ -5424,13 +5593,6 @@
     if (Array.isArray(pp) && pp.length) {
       const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
       if (rows.length === pp.length) {
-        const totalCentsFv = entradaNfeTotalGradeCentavosUnificado() + entradaNfeFinImpostoExtraCentavos();
-        let sumPpCent = 0;
-        for (const pr of pp) {
-          const vr = entradaNfeParseDecimalApi(pr && pr.valor);
-          if (vr != null && vr > 0) sumPpCent += Math.round(vr * 100);
-        }
-        const valoresSalvosBatendoTotal = Math.abs(sumPpCent - totalCentsFv) <= 5;
         pp.forEach((p, i) => {
           const tr = rows[i];
           if (!tr) return;
@@ -5440,13 +5602,11 @@
           if (dv && p.data_vencimento && /^\d{4}-\d{2}-\d{2}$/.test(String(p.data_vencimento))) {
             dv.value = String(p.data_vencimento).slice(0, 10);
           }
-          if (
-            valoresSalvosBatendoTotal
-            && vl != null
-            && p.valor != null
-            && Number.isFinite(Number(p.valor))
-          ) {
-            vl.value = String(Number(p.valor));
+          if (vl != null && p.valor != null) {
+            const vr = entradaNfeParseDecimalApi(p.valor);
+            if (vr != null && Number.isFinite(vr) && vr > 0) {
+              vl.value = String(vr).replace('.', ',');
+            }
           }
           if (bl && p.boleto_codigo_barras != null) {
             bl.value = String(p.boleto_codigo_barras);
@@ -5467,13 +5627,10 @@
 
   let finParcPreviewT = null;
   let _finParcForcarPadrao = false;
-  /** Evita loop ao auto-redistribuir parcelas quando a soma diverge muito da grade. */
-  let _entradaNfeRodapeRecoalescendoParcelas = false;
 
   function entradaNfeAtualizarRodapeParcelas(totalCentsPinned) {
     const warnEl = document.getElementById('fin-parcelas-sum-warn');
     const totalEl = document.getElementById('fin-parcelas-preview-total');
-    const dvOk = !!(document.getElementById('fin-dv')?.value || '').trim();
     const pin = Number(totalCentsPinned);
     const gradeCents = Number.isFinite(pin) && pin >= 0
       ? Math.round(pin)
@@ -5482,29 +5639,11 @@
     const targetPagarCents = gradeCents + impCents;
     const totalNota = gradeCents / 100;
     const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
-    let sumCent = 0;
     const soma = rows.reduce((acc, tr) => {
       const x = entradaNfeParseDecimalApi(tr.querySelector('.fin-parc-val')?.value);
       const xv = x != null && Number.isFinite(x) && x >= 0 ? x : 0;
-      sumCent += Math.round(xv * 100);
       return acc + xv;
     }, 0);
-    if (
-      !_entradaNfeRodapeRecoalescendoParcelas
-      && dvOk
-      && rows.length > 0
-      && targetPagarCents > 0
-      && Math.abs(sumCent - targetPagarCents) > 300
-    ) {
-      _entradaNfeRodapeRecoalescendoParcelas = true;
-      _finParcForcarPadrao = true;
-      try {
-        entradaNfeAtualizarPreviewParcelas();
-      } finally {
-        _entradaNfeRodapeRecoalescendoParcelas = false;
-      }
-      return;
-    }
     if (totalEl) totalEl.textContent = totalNota.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const rowImp = document.getElementById('fin-parcelas-imp-hint-row');
     const totalRef = document.getElementById('fin-parcelas-preview-total-ref');
@@ -5584,12 +5723,10 @@
     if (!_finParcForcarPadrao && prevRows.length === nParc) {
       const prevDates = prevRows.map((tr) => (tr.querySelector('.fin-parc-dv')?.value || '').trim());
       dates = prevDates.map((d, i) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? d : datesDefault[i]));
-      const prevVals = prevRows.map((tr) => {
+      vals = prevRows.map((tr, i) => {
         const x = entradaNfeParseDecimalApi(tr.querySelector('.fin-parc-val')?.value);
-        return x != null && Number.isFinite(x) ? x : 0;
+        return x != null && Number.isFinite(x) && x > 0 ? x : valsDefault[i];
       });
-      const sump = Math.round(prevVals.reduce((a, b) => a + b, 0) * 100);
-      if (Math.abs(sump - totalPagarCents) <= 5) vals = prevVals;
     }
     _finParcForcarPadrao = false;
 
@@ -5604,7 +5741,7 @@
       tr.innerHTML = `
         <td class="px-2 py-1 font-black text-slate-600 align-middle">${i + 1}</td>
         <td class="px-1 py-1 align-middle"><input type="date" class="fin-parc-dv w-full min-h-[40px] rounded-lg border-2 border-slate-200 px-1 text-xs font-bold bg-white" value="${venc}"></td>
-        <td class="px-1 py-1 align-middle"><input type="number" step="0.01" min="0.01" class="fin-parc-val w-full min-h-[40px] rounded-lg border-2 border-slate-200 px-1 text-xs font-black text-right tabular-nums bg-white" value="${vdisp}"></td>
+        <td class="px-1 py-1 align-middle"><input type="text" inputmode="decimal" autocomplete="off" class="fin-parc-val w-full min-h-[40px] rounded-lg border-2 border-slate-200 px-1 text-xs font-black text-right tabular-nums bg-white" value="${vdisp}" title="Valor desta parcela — edite à mão; use Recalcular para dividir igual de novo"></td>
         <td class="px-1 py-1 align-middle"><input type="text" inputmode="numeric" autocomplete="off" maxlength="60" class="fin-parc-boleto w-full min-h-[40px] rounded-lg border-2 border-slate-200 px-1 text-[11px] font-mono font-bold bg-white" placeholder="Linha / barras" value="${entradaNfeEscAttrValor(bolRaw)}" title="Opcional: linha digitável ou código de barras para pagar sem o papel"></td>`;
       tbodyEl.appendChild(tr);
     });
@@ -6018,7 +6155,7 @@
       <td class="px-1 py-1"><button type="button" class="btn-del text-red-600 font-black text-lg leading-none px-1" title="Remover">×</button></td>`;
     tr.querySelector('.in-desc').value = d.x_prod;
     tr.querySelector('.in-cprod').value = d.c_prod;
-    const cprodOrig = entradaNfeStrCampo(d.c_prod);
+    const cprodOrig = entradaNfeStrCampo(d.c_prod_fornecedor || d.c_prod);
     if (cprodOrig.length >= 2) tr.dataset.nfeCprodOrig = cprodOrig;
     else delete tr.dataset.nfeCprodOrig;
     const eanInp = tr.querySelector('.in-ean');
@@ -6270,6 +6407,7 @@
       linhas.push({
         x_prod: desc,
         c_prod: tr.querySelector('.in-cprod').value.trim(),
+        c_prod_fornecedor: String(tr.dataset.nfeCprodOrig || '').trim(),
         ean: tr.querySelector('.in-ean').value.trim(),
         q_com: qtd,
         un_por_embalagem: entradaNfeLinhaUnEmbCalculo(tr),
@@ -8538,6 +8676,7 @@
           if (j.aviso_api) t += ' ' + j.aviso_api;
           if (j.aviso_impostos) t += ' Atenção (impostos fora da NF): ' + j.aviso_impostos;
           showMsg(t, !j.aviso_api && !j.aviso_impostos);
+          entradaNfeWizardAvancarAposConfirmarEtapa(6);
         } else if (nIds && !fin.ok) {
           const er = (fin.erros || []).map((x) => (x.linha ? 'L' + x.linha + ': ' : '') + (x.erro || '')).join(' · ');
           showMsg('Entrada salva. Lançamento parcial: ' + (er || 'ver detalhes') + '. IDs: ' + fin.ids.join(', ') + '.', false);
@@ -8644,6 +8783,8 @@
         carregarRascunhos();
         entradaNfeRascunhoStatusUltimo = 'estoque_aplicado';
         entradaNfeAtualizarUiBotaoEstoqueAgro({ status: 'estoque_aplicado' });
+        entradaNfeWizardApplyStepUi(entradaNfeBonificacaoAtiva() ? 7 : 6);
+        entradaNfeWizardAgendarAtualizarCores();
         try {
           entradaNfeAplicarTravasEtapasWizardUi();
           entradaNfeAplicarCongelamentoEditorUi();
@@ -8842,13 +8983,17 @@
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
       const u = new URL(URL_RASC, window.location.origin);
-      u.searchParams.set('limit', '40');
+      u.searchParams.set('limit', entradaNfeListaBuscaAtiva() ? '60' : '40');
       u.searchParams.set('filtro', entradaNfeListaFiltro);
+      entradaNfeListaBuscaAppendParams(u);
       const r = await fetch(u.toString(), { credentials: 'same-origin' });
       const j = await r.json();
       const itens = j.itens || [];
       if (!itens.length) {
-        box.innerHTML = '<p class="text-slate-400 font-semibold px-1">Nenhuma nota neste filtro.</p>';
+        const msg = entradaNfeListaBuscaAtiva()
+          ? 'Nenhuma nota encontrada com essa busca.'
+          : 'Nenhuma nota neste filtro.';
+        box.innerHTML = `<p class="text-slate-400 font-semibold px-1">${msg}</p>`;
         return;
       }
       box.innerHTML = '';
@@ -9047,6 +9192,37 @@
     carregarRascunhos();
   });
 
+  document.getElementById('entrada-nfe-busca-q')?.addEventListener('input', () => {
+    entradaNfeListaBuscaSyncUi();
+    if (entradaNfeListaBuscaDebounce) clearTimeout(entradaNfeListaBuscaDebounce);
+    entradaNfeListaBuscaDebounce = setTimeout(() => carregarRascunhos(), 380);
+  });
+  document.getElementById('entrada-nfe-busca-q')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (entradaNfeListaBuscaDebounce) clearTimeout(entradaNfeListaBuscaDebounce);
+      carregarRascunhos();
+    }
+  });
+  document.getElementById('btn-entrada-nfe-busca-filtros')?.addEventListener('click', entradaNfeAbrirModalListaFiltros);
+  document.getElementById('btn-entrada-nfe-busca-limpar')?.addEventListener('click', () => entradaNfeListaBuscaLimparTudo(true));
+  document.getElementById('btn-fechar-modal-entrada-nfe-lista-filtros')?.addEventListener('click', entradaNfeFecharModalListaFiltros);
+  document.getElementById('btn-entrada-nfe-filtros-limpar-modal')?.addEventListener('click', () => {
+    ENTRADA_NFE_LISTA_FILTRO_KEYS.forEach((k) => {
+      const el = document.getElementById(`entrada-nfe-filtro-${k}`);
+      if (el) el.value = '';
+    });
+  });
+  document.getElementById('btn-entrada-nfe-filtros-aplicar')?.addEventListener('click', () => {
+    entradaNfeListaBuscaFiltros = entradaNfeListaBuscaLerModalParaObj();
+    entradaNfeListaBuscaSyncUi();
+    entradaNfeFecharModalListaFiltros();
+    carregarRascunhos();
+  });
+  document.getElementById('modal-entrada-nfe-lista-filtros')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) entradaNfeFecharModalListaFiltros();
+  });
+
   document.getElementById('btn-entrada-nfe-nova').addEventListener('click', () => {
     entradaNfeAbrirEditor();
     entradaNfeExtraUltimo = null;
@@ -9149,6 +9325,12 @@
   });
 
   document.addEventListener('keydown', (e) => {
+    const modalListaFiltros = document.getElementById('modal-entrada-nfe-lista-filtros');
+    if (e.key === 'Escape' && modalListaFiltros && !modalListaFiltros.classList.contains('hidden')) {
+      e.preventDefault();
+      entradaNfeFecharModalListaFiltros();
+      return;
+    }
     if (e.key === 'Escape' && elModalAjudaNfe && !elModalAjudaNfe.classList.contains('hidden')) {
       e.preventDefault();
       fecharModalAjudaEntradaNfe();
