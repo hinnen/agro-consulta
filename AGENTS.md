@@ -13,6 +13,19 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 - **Hospedagem típica:** Render (health em `/healthz`), Gunicorn — ver `Procfile`, `render.yaml`.
 - **Desktop:** Electron em `electron/main.js` + `electron/preload.js` (empacotado por `electron-builder`; ver `package.json`).
 
+### 1.1 TESTE vs PRODUÇÃO (obrigatório para o assistente)
+
+Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
+
+| Ambiente | Branch | Render |
+| -------- | ------ | ------ |
+| **TESTE** | `feat/desvincula-erp` | `agro-consulta-teste` |
+| **PRODUÇÃO** | `main` | `agro-consulta` |
+
+- **Entregas do Cursor:** commit e push **somente** em `feat/desvincula-erp` (TESTE).
+- **Produção:** merge/PR para `main` **apenas** quando o usuário pedir explicitamente (ex.: «pode ir para produção», «merge na main»).
+- Push na branch de teste **não** altera produção; produção só redeploya quando `main` muda.
+
 ---
 
 ## 2. Apps Django no repositório

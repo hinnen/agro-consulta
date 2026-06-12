@@ -26,6 +26,12 @@ Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**.
 - Preferir **um patch coeso** por entrega.
 - Código existente: citar com formato ` ```startLine:endLine:path` ` quando mostrar trechos.
 
+## TESTE vs PRODUÇÃO
+
+- **TESTE:** branch `feat/desvincula-erp` → Render `agro-consulta-teste`. Todo commit/push do assistente vai aqui.
+- **PRODUÇÃO:** branch `main` → Render `agro-consulta`. Só merge/PR para `main` quando o usuário pedir explicitamente.
+- Nunca commitar direto em `main` nem abrir PR para produção sem confirmação. Ver `docs/DEPLOY-AMBIENTES.md` e AGENTS.md §1.1.
+
 ## Onde está o quê (rápido)
 
 - Rotas web principais: `produtos/urls.py`; raiz Django: `config/urls.py`.
