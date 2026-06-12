@@ -266,6 +266,7 @@ urlpatterns = [
     path('api/login-mobile/', views.api_login_mobile, name='api_login_mobile'),
     path('api/pdv/operador/', views.api_pdv_registrar_operador, name='api_pdv_registrar_operador'),
     path('api/produtos/cadastro/', views.api_produtos_cadastro, name='api_produtos_cadastro'),
+    path('api/agro/fonte-status/', views.api_agro_fonte_status, name='api_agro_fonte_status'),
     path('api/produtos/gestao/lista/', views.api_produtos_gestao_lista, name='api_produtos_gestao_lista'),
     path('api/produtos/gestao/facetas/', views.api_produtos_gestao_facetas, name='api_produtos_gestao_facetas'),
     path(
@@ -508,11 +509,21 @@ urlpatterns = [
     path('api/pdv/invalidar-catalogo/', views.api_pdv_invalidar_cache_catalogo, name='api_pdv_invalidar_catalogo'),
     path('api/cron/enviar-alerta-vendas-dia/', views.api_cron_enviar_alerta_vendas_dia, name='api_cron_enviar_alerta_vendas_dia'),
     path('api/cron/estoque-mongo-ping/', views.api_cron_estoque_mongo_ping, name='api_cron_estoque_mongo_ping'),
+    path(
+        'api/cron/importar-catalogo-mongo/',
+        views.api_cron_importar_catalogo_mongo,
+        name='api_cron_importar_catalogo_mongo',
+    ),
     path('api/autocomplete/', views.api_autocomplete_produtos, name='api_autocomplete_produtos'),
     path('api/buscar-clientes/', views.api_buscar_clientes, name='api_buscar_clientes'),
     path('api/listar-clientes/', views.api_list_customers, name='api_list_customers'),
     path('api/enviar-pedido-erp/', views.api_enviar_pedido_erp, name='api_enviar_pedido_erp'),
     path('api/pdv/cliente-rapido/', views.api_pdv_cliente_rapido, name='api_pdv_cliente_rapido'),
+    path(
+        'api/pdv/cliente/<int:pk>/editar/',
+        views.api_pdv_cliente_editar,
+        name='api_pdv_cliente_editar',
+    ),
     path('api/pdv/checkout-draft/', views.api_pdv_salvar_checkout_draft, name='api_pdv_salvar_checkout_draft'),
     path('api/pdv/checkout-draft/clear/', views.api_pdv_limpar_checkout_draft, name='api_pdv_limpar_checkout_draft'),
     path(

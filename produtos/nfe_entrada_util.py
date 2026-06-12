@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 NS_NFE = "http://www.portalfiscal.inf.br/nfe"
 COL_ENTRADA_RASCUNHO = "AgroEntradaNotaRascunho"
+COL_ENTRADA_VINCULO = "AgroEntradaNfeVinculo"
 COL_DFE_CURSOR = "AgroNFeDistribuicaoCursor"
 
 # Fluxo na tela Entrada NF-e (persistido em ``status``; exibição pode corrigir inconsistências).
@@ -400,8 +401,160 @@ def decodificar_doc_zip_base64(b64: str) -> str | None:
         return None
 
 
-def casar_produtos_mongo(db, col_p: str, itens: list[dict]) -> list[dict]:
-    """Enriquece itens com produto_id / nome_catalogo quando encontra por EAN ou código (incl. similares ERP)."""
+def normalizar_x_prod_entrada_nfe(x_prod: Any) -> str:
+    """Chave de descrição NF para vínculo histórico (mesmo item em notas diferentes)."""
+    from .mongo_index_codigos import somente_alnum
+
+    return somente_alnum(str(x_prod or "")).lower()[:48]
+
+
+def c_prod_parece_codigo_interno_agro(c_prod: Any) -> bool:
+    """Ignora GM… / EAN salvo como «código» em notas antigas."""
+    from .mongo_index_codigos import normalizar_c_prod_nf_entrada
+
+    cp = normalizar_c_prod_nf_entrada(c_prod)
+    if not cp:
+        return True
+    if cp.startswith("gm"):
+        return True
+    if cp.isdigit() and 7 <= len(cp) <= 14:
+        return True
+    return False
+
+
+def codigo_fornecedor_linha_entrada_nfe(ln: dict) -> str:
+    cf = str(ln.get("c_prod_fornecedor") or "").strip()
+    if cf and not c_prod_parece_codigo_interno_agro(cf):
+        return cf
+    cp = str(ln.get("c_prod") or "").strip()
+    if cp and not c_prod_parece_codigo_interno_agro(cp):
+        return cp
+    return ""
+
+
+def _emit_cnpj_entrada_norm(emit_cnpj: Any) -> str:
+    return re.sub(r"\D", "", str(emit_cnpj or ""))[:14]
+
+
+def _upsert_vinculo_entrada_nfe(
+    db,
+    *,
+    tipo: str,
+    chave: str,
+    produto_id: str,
+    nome_catalogo: str,
+    emit_cnpj: str = "",
+) -> bool:
+    if db is None or not chave or not produto_id:
+        return False
+    cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
+    try:
+        db[COL_ENTRADA_VINCULO].update_one(
+            {"tipo": tipo, "chave": chave, "emit_cnpj": cnpj},
+            {
+                "$set": {
+                    "produto_id": produto_id[:64],
+                    "nome_catalogo": str(nome_catalogo or "")[:300],
+                    "atualizado_em": datetime.now(timezone.utc),
+                }
+            },
+            upsert=True,
+        )
+        return True
+    except Exception as exc:
+        logger.warning("_upsert_vinculo_entrada_nfe %s/%s: %s", tipo, chave, exc)
+        return False
+
+
+def _buscar_vinculo_entrada_nfe(db, *, tipo: str, chave: str, emit_cnpj: str = "") -> dict | None:
+    if db is None or not chave:
+        return None
+    cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
+    try:
+        if cnpj:
+            doc = db[COL_ENTRADA_VINCULO].find_one({"tipo": tipo, "chave": chave, "emit_cnpj": cnpj})
+            if doc:
+                return doc
+        return db[COL_ENTRADA_VINCULO].find_one({"tipo": tipo, "chave": chave, "emit_cnpj": ""})
+    except Exception as exc:
+        logger.warning("_buscar_vinculo_entrada_nfe: %s", exc)
+        return None
+
+
+def _produto_mongo_por_pid_entrada(db, col_p: str, pid: str) -> dict | None:
+    from bson import ObjectId
+
+    from .mongo_index_codigos import INDEX_CODIGOS_CAMPO
+
+    pid = str(pid or "").strip()
+    if not pid or db is None:
+        return None
+    ors: list[dict] = [{"Id": pid}]
+    try:
+        ors.append({"Id": int(pid)})
+    except (TypeError, ValueError):
+        pass
+    try:
+        ors.append({"_id": ObjectId(pid)})
+    except Exception:
+        pass
+    try:
+        doc = db[col_p].find_one(
+            {"$or": ors},
+            {"Id": 1, "_id": 1, "Nome": 1, INDEX_CODIGOS_CAMPO: 1},
+        )
+    except Exception:
+        return None
+    return doc if isinstance(doc, dict) and doc.get("_id") else None
+
+
+def resolver_vinculo_historico_entrada_nfe(
+    db,
+    col_p: str,
+    *,
+    c_prod: str,
+    x_prod: str,
+    emit_cnpj: str = "",
+) -> tuple[dict | None, str | None]:
+    """Fallback: vínculos gravados em notas anteriores (cProd fornecedor ou descrição + CNPJ)."""
+    if db is None:
+        return None, None
+    from .mongo_index_codigos import normalizar_c_prod_nf_entrada
+
+    cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
+    cp = normalizar_c_prod_nf_entrada(c_prod)
+    if cp:
+        for doc_v in (
+            _buscar_vinculo_entrada_nfe(db, tipo="c_prod", chave=cp, emit_cnpj=cnpj),
+            _buscar_vinculo_entrada_nfe(db, tipo="c_prod", chave=cp, emit_cnpj=""),
+        ):
+            if doc_v:
+                pid = str(doc_v.get("produto_id") or "").strip()
+                doc = _produto_mongo_por_pid_entrada(db, col_p, pid)
+                if doc:
+                    return doc, "vinculo_c_prod"
+    xp = normalizar_x_prod_entrada_nfe(x_prod)
+    if xp:
+        for doc_v in (
+            _buscar_vinculo_entrada_nfe(db, tipo="x_prod", chave=xp, emit_cnpj=cnpj),
+            _buscar_vinculo_entrada_nfe(db, tipo="x_prod", chave=xp, emit_cnpj=""),
+        ):
+            if doc_v:
+                pid = str(doc_v.get("produto_id") or "").strip()
+                doc = _produto_mongo_por_pid_entrada(db, col_p, pid)
+                if doc:
+                    return doc, "vinculo_desc"
+    return None, None
+
+
+def casar_produtos_mongo(
+    db,
+    col_p: str,
+    itens: list[dict],
+    *,
+    emit_cnpj: str = "",
+) -> list[dict]:
+    """Enriquece itens com produto_id / nome_catalogo quando encontra por EAN, código ou histórico."""
     if db is None or not itens:
         return itens
     for it in itens:
@@ -414,6 +567,14 @@ def casar_produtos_mongo(db, col_p: str, itens: list[dict]) -> list[dict]:
         mtipo = None
         try:
             doc, mtipo = encontrar_produto_casar_entrada_nfe(db, col_p, ean=ean, c_prod=cprod)
+            if not doc:
+                doc, mtipo = resolver_vinculo_historico_entrada_nfe(
+                    db,
+                    col_p,
+                    c_prod=cprod,
+                    x_prod=str(it.get("x_prod") or ""),
+                    emit_cnpj=emit_cnpj,
+                )
         except Exception as exc:
             logger.warning("casar_produtos_mongo: %s", exc)
             continue
@@ -429,10 +590,11 @@ def persistir_vinculos_c_prod_entrada_nfe_linhas(
     db,
     col_p: str,
     linhas: list[dict],
+    *,
+    emit_cnpj: str = "",
 ) -> int:
     """
-    Grava cProd da NF no overlay Agro para o próximo parse XML casar automaticamente.
-    Chamado ao salvar rascunho / concluir entrada (não depende só do JS lembrar na hora).
+    Grava vínculos cProd/descrição da NF (overlay + coleção histórica) para o próximo parse XML.
     """
     if not linhas:
         return 0
@@ -444,6 +606,7 @@ def persistir_vinculos_c_prod_entrada_nfe_linhas(
         overlay_cadastro_extras_adicionar_c_prod_nf,
     )
 
+    cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
     pids_novos: set[str] = set()
     n = 0
     for ln in linhas:
@@ -452,36 +615,43 @@ def persistir_vinculos_c_prod_entrada_nfe_linhas(
         pid = str(ln.get("produto_id") or "").strip()
         if not pid or pid.lower().startswith("local:"):
             continue
-        cprod = str(ln.get("c_prod") or "").strip()
-        if not normalizar_c_prod_nf_entrada(cprod):
-            continue
-        ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
-            produto_externo_id=pid[:64],
-            defaults={},
-        )
-        ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
-        if overlay_cadastro_extras_adicionar_c_prod_nf(ex, cprod):
-            ov.cadastro_extras = ex
-            ov.save(update_fields=["cadastro_extras", "atualizado_em"])
-            pids_novos.add(pid[:64])
+        nome = str(ln.get("nome_catalogo") or "").strip()
+        cforn = codigo_fornecedor_linha_entrada_nfe(ln)
+        cp_norm = normalizar_c_prod_nf_entrada(cforn)
+        if cp_norm:
+            if _upsert_vinculo_entrada_nfe(
+                db,
+                tipo="c_prod",
+                chave=cp_norm,
+                produto_id=pid,
+                nome_catalogo=nome,
+                emit_cnpj=cnpj,
+            ):
+                n += 1
+            ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
+                produto_externo_id=pid[:64],
+                defaults={},
+            )
+            ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
+            if overlay_cadastro_extras_adicionar_c_prod_nf(ex, cforn):
+                ov.cadastro_extras = ex
+                ov.save(update_fields=["cadastro_extras", "atualizado_em"])
+                pids_novos.add(pid[:64])
+        xp = normalizar_x_prod_entrada_nfe(ln.get("x_prod"))
+        if xp and _upsert_vinculo_entrada_nfe(
+            db,
+            tipo="x_prod",
+            chave=xp,
+            produto_id=pid,
+            nome_catalogo=nome,
+            emit_cnpj=cnpj,
+        ):
             n += 1
     if db is not None and col_p and pids_novos:
-        from bson import ObjectId
-
-        col = db[col_p]
         for pid in pids_novos:
             try:
-                ors: list[dict] = [{"Id": pid}]
-                try:
-                    ors.append({"Id": int(pid)})
-                except (TypeError, ValueError):
-                    pass
-                try:
-                    ors.append({"_id": ObjectId(pid)})
-                except Exception:
-                    pass
-                doc = col.find_one({"$or": ors})
-                if isinstance(doc, dict) and doc.get("_id"):
+                doc = _produto_mongo_por_pid_entrada(db, col_p, pid)
+                if doc:
                     aplicar_index_codigos_no_mongo(db, col_p, doc, produto_externo_id=pid)
             except Exception as exc:
                 logger.warning("persistir_vinculos_c_prod: index %s %s", pid, exc)
@@ -879,35 +1049,319 @@ def auditar_entrada_nfe_financeiro_lote(
     }
 
 
-def listar_rascunhos_entrada(db, limit: int = 30, *, filtro: str | None = None) -> list[dict]:
+def _entrada_nfe_norm_busca_txt(s: Any) -> str:
+    import unicodedata
+
+    t = str(s or "").strip().lower()
+    if not t:
+        return ""
+    t = unicodedata.normalize("NFKD", t)
+    return "".join(c for c in t if not unicodedata.combining(c))
+
+
+def _entrada_nfe_parse_valor_busca(raw: str) -> float | None:
+    s = str(raw or "").strip()
+    if not s:
+        return None
+    s = s.replace("R$", "").replace(" ", "").strip()
+    if "," in s and "." in s:
+        s = s.replace(".", "").replace(",", ".")
+    else:
+        s = s.replace(",", ".")
+    try:
+        v = float(s)
+        return v if v >= 0 and v < 1e12 else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _entrada_nfe_total_linhas_reais(linhas: list) -> float:
+    total = 0.0
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            continue
+        try:
+            q = float(ln.get("q_estoque") if ln.get("q_estoque") is not None else ln.get("q_com") or 0)
+        except (TypeError, ValueError):
+            q = 0.0
+        try:
+            vu = float(ln.get("v_un_com") or 0)
+        except (TypeError, ValueError):
+            vu = 0.0
+        if vu <= 0:
+            try:
+                vp = float(ln.get("v_prod") or 0)
+                if vp > 0 and q > 0:
+                    vu = vp / q
+            except (TypeError, ValueError):
+                pass
+        if q > 0 and vu > 0:
+            total += q * vu
+    return round(total, 2)
+
+
+def _entrada_nfe_montar_haystack_rascunho(doc: dict) -> str:
+    """Texto único para busca livre (substring, sem acento, minúsculas)."""
+    parts: list[str] = []
+    cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+    extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    fin = extra.get("financeiro_ui") if isinstance(extra.get("financeiro_ui"), dict) else {}
+    for k in (
+        "emit_nome",
+        "emit_cnpj",
+        "numero",
+        "serie",
+        "chave",
+        "plano_conta",
+        "plano_conta_id",
+        "empresa_faturada_id",
+        "deposito_entrada",
+    ):
+        parts.append(str(cab.get(k) or ""))
+    parts.append(str(doc.get("modo") or ""))
+    parts.append(str(doc.get("xml_chave") or ""))
+    parts.append(str(extra.get("nfe_tipo_entrada") or ""))
+    parts.append(str(extra.get("origem") or ""))
+    for k in ("forma_nome", "banco_nome", "empresa_nome", "grupo_nome"):
+        parts.append(str(fin.get(k) or ""))
+    ids = extra.get("financeiro_ids")
+    if isinstance(ids, list):
+        parts.extend(str(x) for x in ids[:24])
+    linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
+    for ln in linhas:
+        if not isinstance(ln, dict):
+            continue
+        for k in (
+            "x_prod",
+            "c_prod",
+            "ean",
+            "nome_catalogo",
+            "produto_id",
+            "cfop",
+            "catalogo_via",
+            "bip_conf",
+            "lote_numero",
+        ):
+            parts.append(str(ln.get(k) or ""))
+        sim = ln.get("bip_similar_codigos")
+        if isinstance(sim, list):
+            parts.extend(str(x) for x in sim[:16])
+    total = _entrada_nfe_total_linhas_reais(linhas)
+    if total > 0:
+        parts.append(f"{total:.2f}")
+        parts.append(f"{total:.2f}".replace(".", ","))
+    if extra.get("financeiro_lancado"):
+        parts.append("financeiro lancado")
+    if _entrada_nfe_tipo_entrada_extra(extra) == "bonificacao":
+        parts.append("bonificacao sem titulo")
+    return _entrada_nfe_norm_busca_txt(" ".join(parts))
+
+
+def _entrada_nfe_linha_campo_contem(ln: dict, needle: str, campos: tuple[str, ...]) -> bool:
+    n = _entrada_nfe_norm_busca_txt(needle)
+    if not n:
+        return True
+    for k in campos:
+        if n in _entrada_nfe_norm_busca_txt(ln.get(k)):
+            return True
+    sim = ln.get("bip_similar_codigos")
+    if isinstance(sim, list):
+        for x in sim:
+            if n in _entrada_nfe_norm_busca_txt(x):
+                return True
+    return False
+
+
+def _entrada_nfe_rascunho_passa_busca(doc: dict, busca: dict | None) -> bool:
+    if not busca:
+        return True
+    hay = _entrada_nfe_montar_haystack_rascunho(doc)
+    cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+    extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    fin = extra.get("financeiro_ui") if isinstance(extra.get("financeiro_ui"), dict) else {}
+    linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
+
+    q = str(busca.get("q") or "").strip()
+    if q:
+        tokens = [t for t in _entrada_nfe_norm_busca_txt(q).split() if t]
+        vq = _entrada_nfe_parse_valor_busca(q)
+        total = _entrada_nfe_total_linhas_reais(linhas)
+        for tok in tokens:
+            if tok in hay:
+                continue
+            dig = re.sub(r"\D", "", tok)
+            if dig and len(dig) >= 3 and dig in re.sub(r"\D", "", hay):
+                continue
+            if vq is not None and abs(total - vq) <= 0.05:
+                continue
+            return False
+
+    def _txt_contem(val: Any, needle: str) -> bool:
+        n = _entrada_nfe_norm_busca_txt(needle)
+        if not n:
+            return True
+        return n in _entrada_nfe_norm_busca_txt(val)
+
+    nf = str(busca.get("numero_nf") or "").strip()
+    if nf and not _txt_contem(cab.get("numero"), nf):
+        return False
+
+    forn = str(busca.get("fornecedor") or "").strip()
+    if forn and not _txt_contem(cab.get("emit_nome"), forn):
+        return False
+
+    ch = str(busca.get("chave") or "").strip()
+    if ch:
+        ch_full = str(cab.get("chave") or doc.get("xml_chave") or "")
+        if not _txt_contem(ch_full, ch) and ch not in re.sub(r"\D", "", ch_full):
+            return False
+
+    prod = str(busca.get("produto") or "").strip()
+    if prod:
+        ok = any(
+            _entrada_nfe_linha_campo_contem(ln, prod, ("x_prod", "nome_catalogo"))
+            for ln in linhas
+            if isinstance(ln, dict)
+        )
+        if not ok:
+            return False
+
+    cod = str(busca.get("codigo") or "").strip()
+    if cod:
+        cod_n = _entrada_nfe_norm_busca_txt(cod)
+        cod_d = re.sub(r"\D", "", cod)
+        ok = False
+        for ln in linhas:
+            if not isinstance(ln, dict):
+                continue
+            if _entrada_nfe_linha_campo_contem(ln, cod, ("c_prod", "ean", "produto_id")):
+                ok = True
+                break
+            if cod_d and len(cod_d) >= 3:
+                for k in ("c_prod", "ean", "produto_id"):
+                    if cod_d in re.sub(r"\D", "", str(ln.get(k) or "")):
+                        ok = True
+                        break
+            if ok:
+                break
+        if not ok and cod_n not in hay:
+            return False
+
+    val = str(busca.get("valor") or "").strip()
+    if val:
+        vr = _entrada_nfe_parse_valor_busca(val)
+        if vr is None:
+            return False
+        total = _entrada_nfe_total_linhas_reais(linhas)
+        if abs(total - vr) > 0.05:
+            return False
+
+    forma = str(busca.get("forma") or "").strip()
+    if forma and not _txt_contem(fin.get("forma_nome"), forma):
+        return False
+
+    banco = str(busca.get("banco") or "").strip()
+    if banco and not _txt_contem(fin.get("banco_nome"), banco):
+        return False
+
+    tipo = str(busca.get("tipo_entrada") or "").strip().lower()
+    if tipo in ("compras", "bonificacao"):
+        if _entrada_nfe_tipo_entrada_extra(extra) != tipo:
+            return False
+
+    fin_f = str(busca.get("financeiro") or "").strip().lower()
+    fin_ok = entrada_nfe_extra_financeiro_ok(extra)
+    if fin_f == "lancado" and not fin_ok:
+        return False
+    if fin_f == "pendente" and fin_ok:
+        return False
+    if fin_f == "bonificacao" and _entrada_nfe_tipo_entrada_extra(extra) != "bonificacao":
+        return False
+
+    corr = str(busca.get("correcao") or "").strip().lower()
+    if corr in ("sim", "nao"):
+        tem = _entrada_nfe_extra_correcao_sistemica(extra)
+        if corr == "sim" and not tem:
+            return False
+        if corr == "nao" and tem:
+            return False
+
+    return True
+
+
+def entrada_nfe_busca_params_from_request(request) -> dict[str, str]:
+    """Parâmetros GET da busca na lista de notas (campo livre + filtros do modal)."""
+    out: dict[str, str] = {}
+    q = (request.GET.get("q") or "").strip()[:200]
+    if q:
+        out["q"] = q
+    for key, mx in (
+        ("numero_nf", 40),
+        ("fornecedor", 120),
+        ("produto", 120),
+        ("codigo", 80),
+        ("forma", 80),
+        ("banco", 80),
+        ("chave", 52),
+        ("valor", 24),
+    ):
+        v = (request.GET.get(key) or "").strip()[:mx]
+        if v:
+            out[key] = v
+    tipo = (request.GET.get("tipo_entrada") or "").strip().lower()[:20]
+    if tipo in ("compras", "bonificacao"):
+        out["tipo_entrada"] = tipo
+    fin = (request.GET.get("financeiro") or "").strip().lower()[:20]
+    if fin in ("lancado", "pendente", "bonificacao"):
+        out["financeiro"] = fin
+    corr = (request.GET.get("correcao") or "").strip().lower()[:8]
+    if corr in ("sim", "nao"):
+        out["correcao"] = corr
+    return out
+
+
+def listar_rascunhos_entrada(
+    db,
+    limit: int = 30,
+    *,
+    filtro: str | None = None,
+    busca: dict | None = None,
+) -> list[dict]:
     if db is None:
         return []
     try:
         lim = min(max(limit, 1), 100)
+        busca = busca if isinstance(busca, dict) else {}
+        busca_ativa = any(str(busca.get(k) or "").strip() for k in busca)
+        scan_lim = min(500, max(lim * 4, 120)) if busca_ativa else lim
+        proj: dict[str, Any] = {
+            "_id": 1,
+            "status": 1,
+            "cabecalho": 1,
+            "modo": 1,
+            "extra": 1,
+            "xml_chave": 1,
+            "criado_em": 1,
+            "atualizado_em": 1,
+            "estoque_aplicado_em": 1,
+            "linhas_count": {"$cond": [{"$isArray": "$linhas"}, {"$size": "$linhas"}, 0]},
+        }
+        if busca_ativa:
+            proj["linhas"] = {"$slice": ["$linhas", 150]}
         cur = db[COL_ENTRADA_RASCUNHO].aggregate(
             [
                 {"$sort": {"criado_em": -1}},
-                {"$limit": lim},
-                {
-                    "$project": {
-                        "_id": 1,
-                        "status": 1,
-                        "cabecalho": 1,
-                        "modo": 1,
-                        "extra": 1,
-                        "criado_em": 1,
-                        "atualizado_em": 1,
-                        "estoque_aplicado_em": 1,
-                        "linhas_count": {
-                            "$cond": [{"$isArray": "$linhas"}, {"$size": "$linhas"}, 0]
-                        },
-                    }
-                },
+                {"$limit": scan_lim},
+                {"$project": proj},
             ]
         )
         out = []
         for d in cur:
+            if busca_ativa and not _entrada_nfe_rascunho_passa_busca(d, busca):
+                continue
             out.append(_serialize_rascunho_leitura(d))
+            if len(out) >= lim:
+                break
         f = (filtro or "todas").strip().lower()
         if f == "todas":
             return out

@@ -305,7 +305,7 @@
         if (existing) {
             existing.qtd = normalizeQty(toNumber(existing.qtd) + qtd, qtd);
             if (existing.preco_padrao == null) existing.preco_padrao = precoPadrao;
-            aplicarPromocaoNoItem(existing);
+            if (!existing.preco_manual) aplicarPromocaoNoItem(existing);
         } else {
             var novo = {
                 id: pid,
@@ -337,6 +337,7 @@
             if (String(item.id) !== String(itemId)) return item;
             var next = Object.assign({}, item, { qtd: q });
             if (next.preco_padrao == null) next.preco_padrao = toNumber(next.preco);
+            if (next.preco_manual) return next;
             return aplicarPromocaoNoItem(next);
         });
         notify();
@@ -395,7 +396,7 @@
         if (!p) return;
         state.itens = state.itens.map(function (item) {
             if (String(item.id) !== String(itemId)) return item;
-            return Object.assign({}, item, { preco: p });
+            return Object.assign({}, item, { preco: p, preco_manual: true });
         });
         notify();
     }

@@ -51,6 +51,10 @@
 
     function aplicarNoItem(item) {
         if (!item) return item;
+        if (item.preco_manual) {
+            item.promocao = getPromo(item.id);
+            return item;
+        }
         var padrao = toNum(item.preco_padrao != null ? item.preco_padrao : item.preco, 0);
         if (!item.preco_padrao) item.preco_padrao = padrao;
         var promo = getPromo(item.id);

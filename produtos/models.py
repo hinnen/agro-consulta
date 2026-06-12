@@ -43,9 +43,34 @@ class Produto(models.Model):
     )
     codigo_interno = models.CharField(max_length=50)
     codigo_barras = models.CharField(max_length=50, blank=True, null=True)
-    nome = models.CharField(max_length=200)
-    categoria = models.CharField(max_length=100, blank=True, null=True)
-    marca = models.CharField(max_length=100, blank=True, null=True)
+    codigo_nfe = models.CharField(max_length=64, blank=True, default="")
+    produto_externo_id = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        db_index=True,
+        unique=True,
+        verbose_name="ID legado Mongo/ERP",
+    )
+    erp_produto_id = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="ID decimal/nativo para Pedidos/Salvar no ERP legado.",
+    )
+    nome = models.CharField(max_length=300)
+    categoria = models.CharField(max_length=200, blank=True, null=True)
+    marca = models.CharField(max_length=120, blank=True, null=True)
+    fornecedor_texto = models.CharField(max_length=300, blank=True, default="")
+    subcategoria = models.CharField(max_length=200, blank=True, default="")
+    subcategoria_2 = models.CharField(max_length=200, blank=True, default="")
+    subcategoria_3 = models.CharField(max_length=200, blank=True, default="")
+    subcategoria_4 = models.CharField(max_length=200, blank=True, default="")
+    descricao = models.TextField(blank=True, default="")
+    ncm = models.CharField(max_length=16, blank=True, default="")
+    cadastro_inativo = models.BooleanField(default=False)
+    cadastro_somente_agro = models.BooleanField(default=False)
     unidade = models.CharField(max_length=20, default='UN')
     custo = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     preco_venda = models.DecimalField(max_digits=10, decimal_places=2, default=0)

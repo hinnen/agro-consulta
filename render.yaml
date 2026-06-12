@@ -17,6 +17,12 @@ services:
     # cache Django fica compartilhado e o PDV pode usar snapshot curto de /api/pdv/saldos/.
     # Para fechar o painel e exigir login: defina AGRO_PUBLIC_DASHBOARD=false no Environment.
 
+  # Homolog desvinculação ERP (opcional — criar manualmente no painel Render):
+  # - type: web
+  #   name: agro-consulta-staging
+  #   branch: feat/desvincula-erp
+  #   env: DATABASE_URL (Postgres NOVO), AGRO_ERP_PEDIDOS_DRY_RUN=true, AGRO_FONTE_CATALOGO=legacy
+
   - type: cron
     name: agro-estoque-mongo-ping
     runtime: python

@@ -293,6 +293,14 @@ AGRO_CLIENTES_SYNC_ERP_HABILITADO = config(
     'AGRO_CLIENTES_SYNC_ERP_HABILITADO', default=True, cast=bool
 )
 
+# Desvinculação ERP — default legacy (produção inalterada). Staging: ver .env.example
+AGRO_FONTE_CATALOGO = (config('AGRO_FONTE_CATALOGO', default='legacy') or 'legacy').strip().lower()
+AGRO_FONTE_ESTOQUE = (config('AGRO_FONTE_ESTOQUE', default='legacy') or 'legacy').strip().lower()
+AGRO_FONTE_FINANCEIRO = (
+    config('AGRO_FONTE_FINANCEIRO', default='legacy') or 'legacy'
+).strip().lower()
+AGRO_ERP_PEDIDOS_DRY_RUN = config('AGRO_ERP_PEDIDOS_DRY_RUN', default=False, cast=bool)
+
 CONSULTA_CACHE_TTL = 20
 # Configurações da API Venda ERP
 # Contrato OpenAPI (substitua o subdomínio pelo da sua instância WL, o mesmo host de VENDA_ERP_API_BASE_URL quando for o caso):

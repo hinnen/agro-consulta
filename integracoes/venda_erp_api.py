@@ -257,6 +257,24 @@ class VendaERPAPIClient:
             return False
 
     def salvar_operacao_pdv(self, payload):
+        try:
+            from django.conf import settings as dj_settings
+
+            if getattr(dj_settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False):
+                logger.info(
+                    "Pedidos/Salvar DRY-RUN — POST não enviado (itens=%s)",
+                    len((payload or {}).get("items") or []),
+                )
+                return True, 200, {
+                    "texto": json.dumps(
+                        {"dry_run": True, "ok": True, "mensagem": "Pedido não enviado (AGRO_ERP_PEDIDOS_DRY_RUN)."},
+                        ensure_ascii=False,
+                    ),
+                    "_dry_run": True,
+                }
+        except Exception:
+            pass
+
         if not self.token:
             return (
                 False,

@@ -128,6 +128,7 @@ from .models import (
     OpcaoBaixaFinanceiroExtra,
     PedidoEntrega,
     EstoqueLote,
+    Produto,
     ProdutoGestaoOverlayAgro,
     ProdutoGrupoAgro,
     ProdutoGrupoVarianteAgro,
@@ -160,6 +161,7 @@ from .nfe_entrada_util import (
     claim_rascunho_para_estoque_agro,
     excluir_rascunho_entrada,
     gravar_ult_nsu,
+    entrada_nfe_busca_params_from_request,
     listar_rascunhos_entrada,
     marcar_rascunho_estoque_aplicado,
     marcar_rascunho_financeiro_lancado,
@@ -295,6 +297,14 @@ def obter_conexao_mongo():
     except Exception:
         _cached_mongo_client = None
         return None, None
+
+
+@require_GET
+def api_agro_fonte_status(request):
+    """Debug: flags de desvinculação ERP (sem segredos)."""
+    from produtos.agro_fonte_config import agro_fonte_status_dict
+
+    return JsonResponse({"ok": True, **agro_fonte_status_dict()})
 
 
 # --- AUXILIARES GERAIS ---
@@ -9766,7 +9776,12 @@ def api_entrada_nota_parse_xml(request):
         )
     client, db = obter_conexao_mongo()
     if db is not None and client is not None:
-        parsed["itens"] = casar_produtos_mongo(db, client.col_p, parsed.get("itens") or [])
+        parsed["itens"] = casar_produtos_mongo(
+            db,
+            client.col_p,
+            parsed.get("itens") or [],
+            emit_cnpj=str(parsed.get("emit_cnpj") or ""),
+        )
     return JsonResponse({"ok": True, "nota": parsed})
 
 
@@ -9810,6 +9825,7 @@ def api_entrada_nota_salvar(request):
             linhas,
             usuario,
             user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+            emit_cnpj=str(cab.get("emit_cnpj") or ""),
         )
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
@@ -9826,7 +9842,10 @@ def api_entrada_nota_rascunhos(request):
     except ValueError:
         lim = 25
     filtro = (request.GET.get("filtro") or "todas").strip()[:24]
-    return JsonResponse({"itens": listar_rascunhos_entrada(db, limit=lim, filtro=filtro or None)})
+    busca = entrada_nfe_busca_params_from_request(request)
+    return JsonResponse(
+        {"itens": listar_rascunhos_entrada(db, limit=lim, filtro=filtro or None, busca=busca)}
+    )
 
 
 @login_required(login_url="/admin/login/")
@@ -9952,6 +9971,7 @@ def api_entrada_nota_rascunho_atualizar(request):
             linhas,
             usuario,
             user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+            emit_cnpj=str(cab.get("emit_cnpj") or ""),
         )
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
@@ -9993,12 +10013,15 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
     usuario: str = "",
     *,
     user_pk: int | None = None,
+    emit_cnpj: str = "",
 ) -> None:
     """P. venda da grade → Mongo + overlay; invalida cache do catálogo PDV quando houver alteração."""
     if not linhas or db is None or client is None:
         return
     try:
-        persistir_vinculos_c_prod_entrada_nfe_linhas(db, client.col_p, linhas)
+        persistir_vinculos_c_prod_entrada_nfe_linhas(
+            db, client.col_p, linhas, emit_cnpj=emit_cnpj
+        )
     except Exception:
         logger.warning("_entrada_nota_propagar: vinculos cProd NF", exc_info=True)
     pr = propagar_precos_venda_catalogo_entrada_nota(db, client, linhas, _usuario_label=usuario)
@@ -10671,6 +10694,7 @@ def api_entrada_nota_estoque_agro(request):
         linhas,
         usuario,
         user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+        emit_cnpj=str(cab.get("emit_cnpj") or ""),
     )
 
     r_rasc: dict | None = None
@@ -11691,6 +11715,7 @@ def api_entrada_nota_financeiro(request):
         linhas,
         usuario,
         user_pk=int(request.user.pk) if request.user.is_authenticated else None,
+        emit_cnpj=str(cab.get("emit_cnpj") or ""),
     )
 
     def _d_fin(key: str):
@@ -12204,7 +12229,12 @@ def api_entrada_nota_dist_dfe(request):
         p = parse_nfe_xml_bytes(xml_txt.encode("utf-8"))
         if p.get("ok"):
             if db is not None and client is not None:
-                p["itens"] = casar_produtos_mongo(db, client.col_p, p.get("itens") or [])
+                p["itens"] = casar_produtos_mongo(
+                    db,
+                    client.col_p,
+                    p.get("itens") or [],
+                    emit_cnpj=str(p.get("emit_cnpj") or ""),
+                )
             previews.append(
                 {
                     "chave": p.get("chave"),
@@ -16090,12 +16120,45 @@ def api_produtos_cadastro_compras_historico(request):
 @require_GET
 def api_produtos_cadastro_detalhe(request, produto_id: str):
     """Detalhe completo do cadastro (Mongo / ERP) para a tela de consulta — sem saldos."""
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
     pid = str(produto_id or "").strip()
     if not pid:
         return JsonResponse({"ok": False, "erro": "Id inválido"}, status=400)
+
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos import catalogo_agro as cat_agro
+
+    if pid.lower() in ("__novo__", "novo", "_novo"):
+        if agro_catalogo_usa_postgres():
+            stub = cat_agro.produto_model_para_detalhe(
+                Produto(
+                    nome="",
+                    codigo_interno="__novo__",
+                    cadastro_somente_agro=True,
+                )
+            )
+            stub["id"] = "__novo__"
+            pad = fiscal_padrao_ui_cadastro()
+            for row_k, pad_k in (
+                ("ncm", "ncm"),
+                ("cfop_padrao", "cfop"),
+                ("csosn", "csosn"),
+                ("origem_mercadoria", "origem"),
+                ("cst_pis_cofins", "cst_pis_cofins"),
+            ):
+                if not str(stub.get(row_k) or "").strip():
+                    stub[row_k] = pad[pad_k]
+            return JsonResponse({"ok": True, "produto": stub, "fonte": "agro_pg"})
+    elif agro_catalogo_usa_postgres():
+        p_mod = cat_agro.obter_produto_model(pid)
+        if p_mod is None:
+            return JsonResponse({"ok": False, "erro": "Produto não encontrado"}, status=404)
+        return JsonResponse(
+            {"ok": True, "produto": cat_agro.produto_model_para_detalhe(p_mod), "fonte": "agro_pg"}
+        )
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
     if pid.lower() in ("__novo__", "novo", "_novo"):
         stub = {
             "Id": "__novo__",
@@ -16419,10 +16482,6 @@ def api_produtos_cadastro(request):
     - `inativos=1`: inclui cadastros inativos.
     - `sort` / `dir`: ordenação (nome, marca, unidade, categoria, subcategoria, preco_custo, preco_venda; asc|desc).
     """
-    client, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível", "produtos": []}, status=503)
-
     inativos = request.GET.get("inativos") in ("1", "true", "yes")
     q_raw = str(request.GET.get("q") or "").strip()
 
@@ -16445,6 +16504,56 @@ def api_produtos_cadastro(request):
     pagina = max(1, pagina)
 
     sort_key, sort_direction = _parse_sort_cadastro_request(request)
+
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos import catalogo_agro as cat_agro
+
+    if agro_catalogo_usa_postgres():
+        try:
+            if q_raw:
+                rows = cat_agro.buscar(q_raw, limit=lim_busca, inativos=inativos)
+                _sort_cadastro_rows_inplace(rows, sort_key, sort_direction)
+                return JsonResponse(
+                    {
+                        "ok": True,
+                        "modo": "busca",
+                        "fonte": "agro_pg",
+                        "q": q_raw,
+                        "produtos": rows,
+                        "total_retornado": len(rows),
+                        "sort": sort_key,
+                        "dir": "desc" if sort_direction < 0 else "asc",
+                    }
+                )
+            rows, total = cat_agro.listar_paginado(
+                pagina=pagina,
+                por_pagina=por_pagina,
+                sort_key=sort_key,
+                sort_direction=sort_direction,
+                inativos=inativos,
+            )
+            has_more = pagina * por_pagina < total
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "modo": "lista",
+                    "fonte": "agro_pg",
+                    "pagina": pagina,
+                    "por_pagina": por_pagina,
+                    "has_more": has_more,
+                    "total": total,
+                    "produtos": rows,
+                    "sort": sort_key,
+                    "dir": "desc" if sort_direction < 0 else "asc",
+                }
+            )
+        except Exception as e:
+            logger.warning("api_produtos_cadastro agro_pg falhou: %s", e, exc_info=True)
+            return JsonResponse({"ok": False, "erro": str(e), "produtos": []}, status=500)
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return JsonResponse({"ok": False, "erro": "Mongo indisponível", "produtos": []}, status=503)
 
     try:
         if q_raw:
@@ -19504,6 +19613,39 @@ def api_cron_enviar_alerta_vendas_dia(request):
     return JsonResponse(out, status=st)
 
 
+@require_GET
+def api_cron_importar_catalogo_mongo(request):
+    """
+    Importa DtoProduto → Produto (PG) via HTTP — para staging sem Shell (plano free).
+    Exige ALERTA_VENDAS_CRON_TOKEN e AGRO_ERP_PEDIDOS_DRY_RUN=true (não roda na loja).
+    """
+    if not getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False):
+        return JsonResponse(
+            {"ok": False, "erro": "Bloqueado: só com AGRO_ERP_PEDIDOS_DRY_RUN=true (staging)."},
+            status=403,
+        )
+    if not _token_cron_alerta_valido(request):
+        return JsonResponse({"ok": False, "erro": "Não autorizado."}, status=403)
+
+    try:
+        lim = int(str(request.GET.get("limit") or "0").strip() or "0")
+    except ValueError:
+        lim = 0
+    try:
+        skip = int(str(request.GET.get("skip") or "0").strip() or "0")
+    except ValueError:
+        skip = 0
+    dry = str(request.GET.get("dry_run") or "").strip().lower() in ("1", "true", "yes")
+
+    from produtos.management.commands.importar_catalogo_mongo_produto import (
+        executar_importar_catalogo_mongo_produto,
+    )
+
+    out = executar_importar_catalogo_mongo_produto(limit=lim, skip=skip, dry_run=dry)
+    st = 200 if out.get("ok") else 503
+    return JsonResponse(out, status=st)
+
+
 @never_cache
 @require_GET
 def api_pdv_saldos_compacto(request):
@@ -20497,6 +20639,7 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
         "id": pid,
         "nome": c.nome,
         "documento": (c.cpf or "").strip() or "—",
+        "cpf": (c.cpf or "").strip(),
         "telefone": (c.whatsapp or "").strip(),
         "endereco": end,
         "logradouro": (c.logradouro or "").strip(),
@@ -20505,6 +20648,7 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
         "cidade": (c.cidade or "").strip(),
         "uf": (c.uf or "").strip(),
         "cep": (c.cep or "").strip(),
+        "complemento": (c.complemento or "").strip(),
         "plus_code": (getattr(c, "plus_code", None) or "").strip(),
         "referencia_rural": (getattr(c, "referencia_rural", None) or "").strip(),
         "maps_url_manual": (getattr(c, "maps_url_manual", None) or "").strip(),
@@ -20719,6 +20863,80 @@ def api_pdv_cliente_rapido(request):
         logger.exception("api_pdv_cliente_rapido")
         return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=400)
     return JsonResponse({"ok": True, "cliente": _linha_clienteagro_pdv(c)})
+
+
+def _pdv_whatsapp_digits_pdv(wa_raw: str, *, obrigatorio: bool = False):
+    wa_raw = (wa_raw or "").strip()
+    wa_digits = re.sub(r"\D", "", wa_raw)
+    if not wa_digits:
+        if obrigatorio:
+            return "", "Informe o telefone ou WhatsApp com DDD (mínimo 10 dígitos)."
+        return "", None
+    if len(wa_digits) < 10:
+        return "", "Telefone ou WhatsApp inválido (mínimo 10 dígitos)."
+    if len(wa_digits) > 20:
+        wa_digits = wa_digits[-20:]
+    return wa_digits[:20], None
+
+
+def _pdv_aplicar_endereco_clienteagro(c: ClienteAgro, data: dict) -> None:
+    c.cep = (data.get("cep") or "").strip()[:12]
+    c.uf = (data.get("uf") or "").strip()[:2].upper()
+    c.cidade = (data.get("cidade") or "").strip()[:120]
+    c.bairro = (data.get("bairro") or "").strip()[:120]
+    c.logradouro = (data.get("logradouro") or "").strip()[:300]
+    c.numero = (data.get("numero") or "").strip()[:30]
+    c.complemento = (data.get("complemento") or "").strip()[:200]
+    c.plus_code = (data.get("plus_code") or "").strip()[:120]
+    c.referencia_rural = (data.get("referencia_rural") or "").strip()[:300]
+    c.maps_url_manual = (data.get("maps_url_manual") or "").strip()[:600]
+    endereco_manual = (data.get("endereco") or "").strip()[:500]
+    if endereco_manual:
+        c.endereco = endereco_manual
+    elif c._tem_campos_endereco_estruturados():
+        c.endereco = compor_endereco_resumo_cliente(
+            c.cep,
+            c.uf,
+            c.cidade,
+            c.bairro,
+            c.logradouro,
+            c.numero,
+            c.complemento,
+        )[:500]
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_pdv_cliente_editar(request, pk):
+    """Edição resumida de ClienteAgro a partir do pop-up de busca no PDV."""
+    cli = get_object_or_404(ClienteAgro, pk=pk)
+    try:
+        data = json.loads(request.body or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    nome = (data.get("nome") or cli.nome or "").strip()
+    if len(nome) < 2:
+        return JsonResponse(
+            {"ok": False, "erro": "Informe o nome do cliente (mínimo 2 caracteres)."},
+            status=400,
+        )
+    wa_digits, wa_err = _pdv_whatsapp_digits_pdv(
+        data.get("whatsapp") or data.get("telefone") or cli.whatsapp or "",
+        obrigatorio=False,
+    )
+    if wa_err:
+        return JsonResponse({"ok": False, "erro": wa_err}, status=400)
+    cli.nome = nome[:200]
+    cli.whatsapp = wa_digits
+    cli.cpf = (data.get("cpf") or data.get("documento") or cli.cpf or "").strip()[:14]
+    _pdv_aplicar_endereco_clienteagro(cli, data)
+    cli.editado_local = True
+    try:
+        cli.save()
+    except Exception as e:
+        logger.exception("api_pdv_cliente_editar pk=%s", pk)
+        return JsonResponse({"ok": False, "erro": str(e)[:500]}, status=400)
+    return JsonResponse({"ok": True, "cliente": _linha_clienteagro_pdv(cli)})
 
 
 @require_GET
