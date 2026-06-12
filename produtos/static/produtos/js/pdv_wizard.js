@@ -152,7 +152,6 @@
         quickClientEditTitle: document.getElementById('pdv-quick-client-edit-title'),
         quickClientEditNome: document.getElementById('pdv-quick-client-edit-nome'),
         quickClientEditWhatsapp: document.getElementById('pdv-quick-client-edit-whatsapp'),
-        quickClientEditCpf: document.getElementById('pdv-quick-client-edit-cpf'),
         quickClientEditLogradouro: document.getElementById('pdv-quick-client-edit-logradouro'),
         quickClientEditNumero: document.getElementById('pdv-quick-client-edit-numero'),
         quickClientEditBairro: document.getElementById('pdv-quick-client-edit-bairro'),
@@ -3501,29 +3500,31 @@
     function clientSearchResultRowHtml(cliente, idx) {
         var pk = cliente && cliente.cliente_agro_pk;
         var canEdit = pk != null && pk !== '';
-        var meta =
-            (cliente && (cliente.documento || cliente.telefone || cliente.endereco)) ||
-            'Sem dados extras';
+        var metaTel = cliente && String(cliente.telefone || '').trim();
+        var metaEnd = cliente && String(cliente.endereco || '').trim();
+        var meta = metaTel
+            ? metaTel + (metaEnd ? ' · ' + metaEnd : '')
+            : metaEnd || 'Sem telefone cadastrado';
         return (
             '' +
-            '<div class="flex items-stretch gap-1.5 rounded-xl p-0.5" role="presentation" data-client-row-idx="' +
+            '<div class="flex items-stretch gap-2 rounded-xl p-1" role="presentation" data-client-row-idx="' +
             idx +
             '">' +
-            '<button type="button" role="option" class="min-w-0 flex-1 rounded-lg px-3 py-3 text-left hover:bg-emerald-50/80 focus:outline-none" ' +
+            '<button type="button" role="option" class="min-w-0 flex-1 rounded-lg px-3 py-3.5 text-left hover:bg-emerald-50/80 focus:outline-none sm:px-4 sm:py-4" ' +
             'data-select-client="' +
             escapeHtml(cliente.id) +
             '" data-client-list-idx="' +
             idx +
             '" aria-selected="false">' +
-            '  <span class="block text-sm font-black text-slate-900">' +
+            '  <span class="pdv-client-result-name block font-black text-slate-900">' +
             escapeHtml(cliente.nome || '') +
             '</span>' +
-            '  <span class="mt-1 block truncate text-[11px] font-bold text-slate-500">' +
+            '  <span class="pdv-client-result-meta mt-1 block truncate font-bold text-slate-500">' +
             escapeHtml(meta) +
             '</span>' +
             '</button>' +
             (canEdit
-                ? '<button type="button" class="shrink-0 self-center rounded-xl border-2 border-sky-300 bg-sky-50 px-3 py-2.5 text-[10px] font-black uppercase tracking-wide text-sky-900 hover:bg-sky-100" ' +
+                ? '<button type="button" class="shrink-0 self-center rounded-xl border-2 border-sky-300 bg-sky-50 px-4 py-3 text-[clamp(0.75rem,0.35vw+0.65rem,0.95rem)] font-black uppercase tracking-wide text-sky-900 hover:bg-sky-100 min-h-[3rem]" ' +
                   'data-edit-client="' +
                   escapeHtml(String(pk)) +
                   '" data-client-list-idx="' +
@@ -3567,7 +3568,6 @@
         [
             dom.quickClientEditNome,
             dom.quickClientEditWhatsapp,
-            dom.quickClientEditCpf,
             dom.quickClientEditLogradouro,
             dom.quickClientEditNumero,
             dom.quickClientEditBairro,
@@ -3591,10 +3591,6 @@
         if (dom.quickClientEditNome) dom.quickClientEditNome.value = String(cliente.nome || '');
         if (dom.quickClientEditWhatsapp) {
             dom.quickClientEditWhatsapp.value = String(cliente.telefone || '');
-        }
-        if (dom.quickClientEditCpf) {
-            var doc = String(cliente.cpf || cliente.documento || '').trim();
-            dom.quickClientEditCpf.value = doc === '—' ? '' : doc;
         }
         if (dom.quickClientEditLogradouro) {
             dom.quickClientEditLogradouro.value = String(cliente.logradouro || '');
@@ -3630,7 +3626,7 @@
         dom.quickClientEditOverlay.classList.remove('hidden');
         dom.quickClientEditOverlay.classList.add('flex');
         window.setTimeout(function () {
-            if (dom.quickClientEditNome) dom.quickClientEditNome.focus();
+            if (dom.quickClientEditWhatsapp) dom.quickClientEditWhatsapp.focus();
         }, 60);
     }
 
@@ -3692,10 +3688,10 @@
             ? String(dom.quickClientEditWhatsapp.value || '').trim()
             : '';
         var waDigits = wa.replace(/\D/g, '');
-        if (wa && waDigits.length > 0 && waDigits.length < 10) {
+        if (waDigits.length < 10) {
             if (dom.quickClientEditErro) {
                 dom.quickClientEditErro.textContent =
-                    'Telefone ou WhatsApp inválido (mínimo 10 dígitos).';
+                    'Informe o WhatsApp com DDD (mínimo 10 dígitos).';
                 dom.quickClientEditErro.classList.remove('hidden');
             }
             if (dom.quickClientEditWhatsapp) dom.quickClientEditWhatsapp.focus();
@@ -3705,7 +3701,6 @@
         var payload = {
             nome: nome,
             whatsapp: wa,
-            cpf: dom.quickClientEditCpf ? dom.quickClientEditCpf.value : '',
             logradouro: dom.quickClientEditLogradouro ? dom.quickClientEditLogradouro.value : '',
             numero: dom.quickClientEditNumero ? dom.quickClientEditNumero.value : '',
             bairro: dom.quickClientEditBairro ? dom.quickClientEditBairro.value : '',
@@ -5709,7 +5704,12 @@
         }
         if (dom.quickClientModal) {
             dom.quickClientModal.addEventListener('click', function (event) {
-                if (event.target === dom.quickClientModal) closeQuickClientPicker();
+                if (event.target !== dom.quickClientModal) return;
+                if (isQuickClientEditOpen()) {
+                    closeQuickClientEditOverlay();
+                    return;
+                }
+                closeQuickClientPicker();
             });
         }
         if (dom.quickClientCadastrar) {
@@ -5728,7 +5728,7 @@
         }
         if (dom.quickClientEditOverlay) {
             dom.quickClientEditOverlay.addEventListener('click', function (event) {
-                event.stopPropagation();
+                if (event.target === dom.quickClientEditOverlay) closeQuickClientEditOverlay();
             });
         }
 
