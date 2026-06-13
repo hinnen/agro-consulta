@@ -116,24 +116,12 @@
     max-height: 98vh;
   }
   #pdv-step1-client-bar #pdv-quick-client-hit {
-    flex: 0 1 auto;
-    width: min(26vw, 17rem);
-    max-width: 100%;
+    flex: 1 1 auto;
+    min-width: 11rem;
+    width: auto;
+    max-width: min(48vw, 30rem);
   }
-  #pdv-step1-client-bar #pdv-quick-client-name {
-    font-size: clamp(0.78rem, 0.35vw + 0.72rem, 0.92rem);
-  }
-  #pdv-step1-client-bar .pdv-step1-client-edit-btn {
-    min-height: 2.1rem;
-    padding: 0.35rem 0.65rem;
-    font-size: 10px;
-    font-weight: 900;
-    text-transform: uppercase;
-    border-radius: 0.65rem;
-    border-width: 2px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
-  }
-  #pdv-step1-client-bar .pdv-step1-client-edit-btn:disabled {
+  #pdv-step1-client-bar #pdv-quick-client-edit-step1:disabled {
     cursor: not-allowed;
     opacity: 0.45;
   }
