@@ -215,10 +215,10 @@
   </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 mb-4">
-  <div class="glass-card p-4 sm:p-5 min-h-0">
-    <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide mb-3">Produtos Mais Vendidos</h3>
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2 max-h-[min(40vh,280px)] overflow-y-auto custom-scrollbar pr-1">
+<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 mb-4 xl:items-stretch">
+  <div class="glass-card p-4 sm:p-5 min-h-0 flex flex-col h-full">
+    <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide mb-3 shrink-0">Produtos Mais Vendidos</h3>
+    <div class="flex-1 min-h-0 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2 overflow-y-auto custom-scrollbar pr-1">
       {% for prod in top_produtos %}
       <div class="flex items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:border-emerald-400/35 hover:bg-emerald-50 transition-all">
         <div class="flex items-center gap-2 overflow-hidden min-w-0">
@@ -235,8 +235,8 @@
       {% endfor %}
     </div>
   </div>
-  <div class="glass-card p-4 sm:p-5 min-h-0">
-    <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide mb-3 flex items-center gap-1.5 flex-wrap">
+  <div class="glass-card p-4 sm:p-5 min-h-0 flex flex-col h-full">
+    <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide mb-3 flex items-center gap-1.5 flex-wrap shrink-0">
       <span class="w-2 h-2 rounded-full bg-orange-500 shrink-0"></span>
       <span>Vendas por Vendedor</span>
       <details class="relative inline-block text-left">
@@ -248,7 +248,7 @@
         </div>
       </details>
     </h3>
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2 max-h-[min(40vh,280px)] overflow-y-auto custom-scrollbar pr-1">
+    <div class="flex-1 min-h-0 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2 overflow-y-auto custom-scrollbar pr-1">
       {% for v in ranking_vendedores %}
       <div class="flex items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:border-orange-300/50 hover:bg-orange-50/40 transition-all">
         <div class="flex items-center gap-2 overflow-hidden min-w-0">
@@ -265,8 +265,8 @@
       {% endfor %}
     </div>
   </div>
-  <div class="glass-card p-4 sm:p-5 min-h-0 lg:col-span-2 xl:col-span-1">
-    <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+  <div class="glass-card p-4 sm:p-5 min-h-0 flex flex-col h-full lg:col-span-2 xl:col-span-1">
+    <div class="flex flex-wrap justify-between items-center gap-2 mb-3 shrink-0">
       <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide flex items-center gap-2 flex-wrap">
         <span class="w-2 h-2 rounded-full bg-[#00BFFF] shrink-0"></span>
         <span>Top 20 clientes · mês ant. ({{ top_clientes_mes_anterior_label }})</span>
@@ -281,7 +281,7 @@
         </details>
       </h3>
     </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2 max-h-[min(52vh,420px)] min-h-[4.5rem] overflow-y-auto custom-scrollbar pr-1">
+    <div class="flex-1 min-h-0 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2 overflow-y-auto custom-scrollbar pr-1">
       {% for c in top_clientes_mes_anterior %}
       <div class="flex items-center justify-between gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200 hover:border-emerald-400/35 hover:bg-emerald-50 transition-all">
         <div class="flex items-center gap-2 overflow-hidden min-w-0">
