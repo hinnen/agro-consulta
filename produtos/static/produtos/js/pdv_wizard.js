@@ -2084,7 +2084,7 @@
                 var showLineTotal = Math.abs(qtyN - 1) > 0.0001;
                 return (
                     '' +
-                    '<div class="pdv-cart-row flex flex-nowrap items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-2 py-2 shadow-sm sm:gap-2.5 sm:px-2.5">' +
+                    '<div class="pdv-cart-row rounded-xl border-2 border-slate-200 bg-white px-2 py-2 shadow-sm sm:px-2.5">' +
                     '  <span class="relative h-12 w-12 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border-2 border-slate-200 bg-slate-50 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" data-pdv-photo-zoom="' +
                     escapeHtml(imgUrl) +
                     '" tabindex="0" role="button" title="Ampliar foto (Enter)">' +
@@ -2092,45 +2092,44 @@
                     escapeHtml(imgUrl) +
                     '" alt="" class="pointer-events-none h-full w-full object-cover">' +
                     '  </span>' +
-                    '  <div class="pdv-cart-line min-w-0 flex-1 overflow-hidden">' +
+                    '  <div class="pdv-cart-line overflow-hidden">' +
                     '    <span class="block truncate text-[12px] font-black leading-tight text-slate-900 sm:text-[13px]">' +
                     escapeHtml(item.nome) +
                     '</span>' +
                     '  </div>' +
-                    '  <div class="flex shrink-0 flex-nowrap items-center gap-2 sm:gap-2.5">' +
-                    '    <span class="w-[4.5rem] shrink-0 text-right font-mono text-[10px] font-bold leading-tight text-slate-500 tabular-nums sm:w-[4.75rem]" title="Código GM">' +
+                    '  <div class="pdv-cart-row-tools">' +
+                    '    <span class="pdv-cart-gm" title="Código GM">' +
                     escapeHtml(cartCodigoGm(item)) +
                     '</span>' +
-                    '    <div class="inline-flex shrink-0 items-center overflow-hidden rounded-xl border-2 border-slate-300 bg-slate-50 shadow-inner">' +
-                    '      <button type="button" class="flex min-h-[2.85rem] min-w-[2.85rem] items-center justify-center text-xl font-black leading-none text-slate-800 active:bg-slate-200 sm:min-h-[3rem] sm:min-w-[3rem] sm:text-2xl" data-item-qty="' +
+                    '    <div class="pdv-cart-qty-wrap">' +
+                    '      <button type="button" data-item-qty="' +
                     escapeHtml(itemId) +
                     '" data-item-delta="-1" title="Menos">−</button>' +
-                    '      <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Quantidade" title="Toque para digitar (ex.: 0,350 kg)" class="pdv-cart-qty-input min-h-[2.85rem] w-[3.35rem] border-0 bg-white px-1 text-center text-base font-black tabular-nums text-slate-900 outline-none ring-emerald-400 focus:bg-emerald-50/40 focus:ring-2 sm:min-h-[3rem] sm:w-[3.6rem] sm:text-lg" data-item-qty-input="' +
+                    '      <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Quantidade" title="Toque para digitar (ex.: 0,350 kg)" class="pdv-cart-qty-input" data-item-qty-input="' +
                     escapeHtml(itemId) +
                     '" value="' +
                     escapeHtml(qtyVal) +
                     '">' +
-                    '      <button type="button" class="flex min-h-[2.85rem] min-w-[2.85rem] items-center justify-center text-xl font-black leading-none text-slate-800 active:bg-slate-200 sm:min-h-[3rem] sm:min-w-[3rem] sm:text-2xl" data-item-qty="' +
+                    '      <button type="button" data-item-qty="' +
                     escapeHtml(itemId) +
                     '" data-item-delta="1" title="Mais">+</button>' +
                     '    </div>' +
-                    '    <div class="flex shrink-0 flex-col items-end gap-0.5">' +
-                    '      <span class="text-[9px] font-black uppercase text-slate-400 leading-none">Unit.</span>' +
-                    '      <div class="inline-flex items-center overflow-hidden rounded-xl border-2 border-emerald-300 bg-emerald-50/50 shadow-inner">' +
-                    '        <span class="pl-2 text-[11px] font-black text-emerald-800">R$</span>' +
-                    '        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Preço unitário" title="Toque para alterar o preço deste item" class="pdv-cart-price-input min-h-[2.85rem] w-[4.5rem] border-0 bg-transparent px-1 text-right text-base font-black tabular-nums text-emerald-800 outline-none ring-emerald-400 focus:bg-white focus:ring-2 sm:min-h-[3rem] sm:w-[5rem] sm:text-lg" data-item-price-input="' +
+                    '    <div class="pdv-cart-price-wrap">' +
+                    '      <div class="pdv-cart-price-box">' +
+                    '        <span class="pdv-cart-price-prefix" aria-hidden="true">R$</span>' +
+                    '        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Preço unitário" title="Toque para alterar o preço deste item" class="pdv-cart-price-input" data-item-price-input="' +
                     escapeHtml(itemId) +
                     '" value="' +
                     escapeHtml(priceVal) +
                     '">' +
                     '      </div>' +
                     (showLineTotal
-                        ? '      <span class="text-[10px] font-bold tabular-nums text-slate-500">= ' +
+                        ? '      <span class="pdv-cart-line-total">= ' +
                           escapeHtml(formatMoney(lineSubtotal(item))) +
                           '</span>'
                         : '') +
                     '    </div>' +
-                    '    <button type="button" class="shrink-0 rounded-lg px-1 py-1 text-[9px] font-black uppercase text-red-700 underline decoration-red-300 sm:text-[10px]" data-remove-item="' +
+                    '    <button type="button" class="pdv-cart-remove" data-remove-item="' +
                     escapeHtml(itemId) +
                     '">Remover</button>' +
                     '  </div>' +
