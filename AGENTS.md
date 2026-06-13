@@ -19,12 +19,12 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 
 | Ambiente | Branch | Render |
 | -------- | ------ | ------ |
-| **TESTE** | `feat/desvincula-erp` | `agro-consulta-teste` |
-| **PRODUÇÃO** | `main` | `agro-consulta` |
+| **TESTE** | `teste` | `agro-consulta-teste` |
+| **PRODUÇÃO** | `producao` | `agro-consulta` |
 
-- **Entregas do Cursor:** commit e push **somente** em `feat/desvincula-erp` (TESTE).
-- **Produção:** merge/PR para `main` **apenas** quando o usuário pedir explicitamente (ex.: «pode ir para produção», «merge na main»).
-- Push na branch de teste **não** altera produção; produção só redeploya quando `main` muda.
+- **Entregas do Cursor:** commit e push **somente** em `teste`.
+- **Produção:** merge/PR `teste` → `producao` **apenas** quando o usuário pedir explicitamente.
+- Push em `teste` **não** altera produção. Ver **`docs/DEPLOY-AMBIENTES.md`**.
 
 ---
 

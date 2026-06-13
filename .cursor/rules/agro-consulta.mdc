@@ -28,9 +28,9 @@ Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**.
 
 ## TESTE vs PRODUÇÃO
 
-- **TESTE:** branch `feat/desvincula-erp` → Render `agro-consulta-teste`. Todo commit/push do assistente vai aqui.
-- **PRODUÇÃO:** branch `main` → Render `agro-consulta`. Só merge/PR para `main` quando o usuário pedir explicitamente.
-- Nunca commitar direto em `main` nem abrir PR para produção sem confirmação. Ver `docs/DEPLOY-AMBIENTES.md` e AGENTS.md §1.1.
+- **TESTE:** branch `teste` → Render `agro-consulta-teste`. Todo commit/push do assistente vai aqui.
+- **PRODUÇÃO:** branch `producao` → Render `agro-consulta`. Só merge/PR `teste` → `producao` quando o usuário pedir.
+- Nunca commitar direto em `producao`/`main`. Ver `docs/DEPLOY-AMBIENTES.md` e AGENTS.md §1.1.
 
 ## Onde está o quê (rápido)
 
