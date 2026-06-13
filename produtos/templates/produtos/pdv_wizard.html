@@ -477,12 +477,18 @@
   #pdv-step1-client-bar .pdv-step1-client-badge {
     border-radius: 0.45rem;
     padding: 0.2rem 0.55rem;
-    font-size: 10px;
+    font-size: 11.5px;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #fff;
     background: #ea580c;
+  }
+  #pdv-step1-client-bar #pdv-quick-client-name {
+    font-size: 16.1px !important;
+    font-weight: 900;
+    line-height: 1.25;
+    color: #0f172a;
   }
   #pdv-step1-client-bar .pdv-step1-client-edit-btn {
     display: inline-flex;
@@ -905,10 +911,13 @@
   }
   .pdv-wiz-topbar-stepper-wrap {
     display: flex;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     flex-wrap: nowrap;
-    align-items: center;
+    align-items: stretch;
+    align-self: stretch;
     gap: 0.45rem;
+    width: max-content;
+    max-width: 100%;
     min-width: 0;
     padding: 0.35rem 0.45rem;
     border: 2px solid #bae6fd;
@@ -918,6 +927,9 @@
   }
   .pdv-wiz-topbar-brand {
     flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    align-self: stretch;
     border-radius: 0.5rem;
     padding: 0.35rem 0.6rem;
     background: #ea580c;
@@ -926,11 +938,14 @@
   }
   .pdv-wiz-stepper {
     display: flex;
+    flex: 0 0 auto;
     flex-wrap: nowrap;
     align-items: stretch;
+    align-self: stretch;
     gap: 0;
+    width: max-content;
     min-width: 0;
-    padding: 0.05rem 0;
+    padding: 0.05rem 0.35rem 0.05rem 0;
   }
   .pdv-wiz-stepper .pdv-step-nav {
     position: relative;
@@ -969,21 +984,31 @@
     transition: max-width 0.16s ease, opacity 0.14s ease, margin 0.16s ease;
   }
   .pdv-wiz-stepper .pdv-step-nav.pdv-step-nav-retracted {
-    max-width: 2.35rem;
-    min-width: 2.35rem;
-    padding-left: 0.38rem;
-    padding-right: 0.38rem;
+    max-width: 2.5rem;
+    min-width: 2.5rem;
+    justify-content: center;
+    gap: 0;
+    padding-left: 0.32rem;
+    padding-right: 0.32rem;
     opacity: 0.78;
     box-shadow: -3px 0 8px rgba(15, 23, 42, 0.07);
   }
   .pdv-wiz-stepper .pdv-step-nav.pdv-step-nav-retracted .pdv-step-label {
-    max-width: 0;
+    display: none !important;
+    width: 0 !important;
+    max-width: 0 !important;
+    overflow: hidden;
     opacity: 0;
-    margin-left: 0;
+    margin: 0;
+    padding: 0;
+  }
+  .pdv-wiz-stepper .pdv-step-nav.pdv-step-nav-retracted .pdv-wiz-stepper-num {
+    flex-shrink: 0;
+    margin: 0 auto;
   }
   .pdv-wiz-stepper .pdv-step-nav.pdv-step-nav-retracted:hover:not(:disabled) {
-    max-width: 3.1rem;
-    min-width: 2.75rem;
+    max-width: 2.85rem;
+    min-width: 2.85rem;
     opacity: 0.94;
     z-index: 18 !important;
   }
@@ -1382,9 +1407,13 @@
     #pdv-topbar-compact .pdv-wiz-topbar-btn { padding: .3rem .5rem !important; min-height: 2.15rem !important; }
     #pdv-stepper .pdv-step-nav { padding: .3rem .45rem !important; min-height: 2.15rem !important; }
     #pdv-stepper .pdv-step-nav.pdv-step-nav-retracted {
-      max-width: 2.05rem !important;
-      min-width: 2.05rem !important;
+      max-width: 2.15rem !important;
+      min-width: 2.15rem !important;
       margin-left: -0.7rem !important;
+    }
+    #pdv-stepper .pdv-step-nav.pdv-step-nav-retracted:hover:not(:disabled) {
+      max-width: 2.5rem !important;
+      min-width: 2.5rem !important;
     }
     #pdv-stepper .pdv-step-nav.pdv-step-badge-active {
       min-width: 5.75rem !important;
