@@ -2453,7 +2453,7 @@
     function productAutocompleteHeaderHtml() {
         return (
             '<div class="pdv-ac-head" aria-hidden="true">' +
-            '<span></span><span>Produto</span><span>GM</span><span>Marca</span><span>Preço</span>' +
+            '<span></span><span>Produto</span><span></span><span>GM</span><span>Marca</span><span>Preço</span>' +
             '</div>'
         );
     }
@@ -2483,6 +2483,7 @@
             '  <span class="pdv-ac-nome">' +
             escapeHtml(produto.nome || '') +
             '</span>' +
+            '  <span class="pdv-ac-spacer" aria-hidden="true"></span>' +
             '  <span class="pdv-ac-gm">' +
             escapeHtml(gm) +
             '</span>' +
