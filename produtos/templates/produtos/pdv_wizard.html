@@ -123,6 +123,103 @@
     min-width: 0;
     max-width: none;
   }
+  #pdv-step1-client-bar .pdv-step1-client-etapa {
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+  }
+  #pdv-step1-client-bar .pdv-step1-client-help {
+    min-height: 38px;
+    min-width: 38px;
+    border-radius: 0.75rem;
+    border-width: 2px;
+    background: #fff;
+    font-size: 0.875rem;
+    font-weight: 900;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  #pdv-step1-client-bar .pdv-step1-client-hit {
+    border-width: 2px;
+    background: #fff;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  #pdv-step1-client-bar .pdv-step1-client-badge {
+    border-radius: 0.375rem;
+    padding: 0.125rem 0.5rem;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #fff;
+  }
+  #pdv-step1-client-bar[data-client-theme="violet"] {
+    border-color: rgba(167, 139, 250, 0.85);
+    background: linear-gradient(to right, #f5f3ff, #fff);
+    box-shadow: 0 0 0 2px rgba(221, 214, 254, 0.65);
+  }
+  #pdv-step1-client-bar[data-client-theme="violet"] .pdv-step1-client-etapa { color: #5b21b6; }
+  #pdv-step1-client-bar[data-client-theme="violet"] .pdv-step1-client-help { border-color: #a78bfa; color: #4c1d95; }
+  #pdv-step1-client-bar[data-client-theme="violet"] .pdv-step1-client-help:hover { background: #f5f3ff; }
+  #pdv-step1-client-bar[data-client-theme="violet"] .pdv-step1-client-hit { border-color: rgba(196, 181, 253, 0.85); }
+  #pdv-step1-client-bar[data-client-theme="violet"] .pdv-step1-client-hit:hover { border-color: #8b5cf6; background: rgba(245, 243, 255, 0.65); }
+  #pdv-step1-client-bar[data-client-theme="violet"] .pdv-step1-client-badge { background: #7c3aed; }
+  #pdv-step1-client-bar[data-client-theme="teal"] {
+    border-color: rgba(45, 212, 191, 0.85);
+    background: linear-gradient(to right, #f0fdfa, #fff);
+    box-shadow: 0 0 0 2px rgba(153, 246, 228, 0.65);
+  }
+  #pdv-step1-client-bar[data-client-theme="teal"] .pdv-step1-client-etapa { color: #115e59; }
+  #pdv-step1-client-bar[data-client-theme="teal"] .pdv-step1-client-help { border-color: #2dd4bf; color: #134e4a; }
+  #pdv-step1-client-bar[data-client-theme="teal"] .pdv-step1-client-help:hover { background: #f0fdfa; }
+  #pdv-step1-client-bar[data-client-theme="teal"] .pdv-step1-client-hit { border-color: rgba(94, 234, 212, 0.9); }
+  #pdv-step1-client-bar[data-client-theme="teal"] .pdv-step1-client-hit:hover { border-color: #14b8a6; background: rgba(240, 253, 250, 0.75); }
+  #pdv-step1-client-bar[data-client-theme="teal"] .pdv-step1-client-badge { background: #0d9488; }
+  #pdv-step1-client-bar[data-client-theme="slate"] {
+    border-color: rgba(251, 146, 60, 0.9);
+    background: linear-gradient(to right, #f8fafc, #fff);
+    box-shadow: 0 0 0 2px rgba(254, 215, 170, 0.55);
+  }
+  #pdv-step1-client-bar[data-client-theme="slate"] .pdv-step1-client-etapa { color: #475569; }
+  #pdv-step1-client-bar[data-client-theme="slate"] .pdv-step1-client-help { border-color: #cbd5e1; color: #334155; }
+  #pdv-step1-client-bar[data-client-theme="slate"] .pdv-step1-client-help:hover { background: #f8fafc; }
+  #pdv-step1-client-bar[data-client-theme="slate"] .pdv-step1-client-hit { border-color: #cbd5e1; }
+  #pdv-step1-client-bar[data-client-theme="slate"] .pdv-step1-client-hit:hover { border-color: #fb923c; background: #fff7ed; }
+  #pdv-step1-client-bar[data-client-theme="slate"] .pdv-step1-client-badge { background: #ea580c; }
+  #pdv-step1-client-bar[data-client-theme="rose"] {
+    border-color: rgba(251, 113, 133, 0.85);
+    background: linear-gradient(to right, #fff1f2, #fff);
+    box-shadow: 0 0 0 2px rgba(254, 205, 211, 0.65);
+  }
+  #pdv-step1-client-bar[data-client-theme="rose"] .pdv-step1-client-etapa { color: #9f1239; }
+  #pdv-step1-client-bar[data-client-theme="rose"] .pdv-step1-client-help { border-color: #fb7185; color: #881337; }
+  #pdv-step1-client-bar[data-client-theme="rose"] .pdv-step1-client-help:hover { background: #fff1f2; }
+  #pdv-step1-client-bar[data-client-theme="rose"] .pdv-step1-client-hit { border-color: rgba(253, 164, 175, 0.9); }
+  #pdv-step1-client-bar[data-client-theme="rose"] .pdv-step1-client-hit:hover { border-color: #f43f5e; background: rgba(255, 241, 242, 0.75); }
+  #pdv-step1-client-bar[data-client-theme="rose"] .pdv-step1-client-badge { background: #e11d48; }
+  #pdv-step1-client-theme-test {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  #pdv-step1-client-theme-test .pdv-client-theme-pick {
+    min-height: 1.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.5rem;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #334155;
+  }
+  #pdv-step1-client-theme-test .pdv-client-theme-pick[aria-pressed="true"] {
+    border-color: #0f172a;
+    background: #f1f5f9;
+    color: #0f172a;
+  }
   #pdv-step1-client-bar .pdv-step1-client-action-btn {
     font-family: 'Inter', system-ui, sans-serif !important;
     font-size: 0.9375rem !important;
@@ -934,5 +1031,42 @@
 <script src="{% static 'produtos/js/pdv_promocoes.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_state.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script>
+(function () {
+  var THEMES = { violet: 1, teal: 1, slate: 1, rose: 1 };
+  var STORAGE_KEY = 'agro_pdv_cliente_cor';
+  var bar = document.getElementById('pdv-step1-client-bar');
+  var picker = document.getElementById('pdv-step1-client-theme-test');
+  if (!bar) return;
+
+  function applyTheme(theme) {
+    if (!THEMES[theme]) theme = 'violet';
+    bar.setAttribute('data-client-theme', theme);
+    try { localStorage.setItem(STORAGE_KEY, theme); } catch (e) {}
+    if (picker) {
+      picker.querySelectorAll('[data-client-theme-pick]').forEach(function (btn) {
+        var on = btn.getAttribute('data-client-theme-pick') === theme;
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+  }
+
+  var qsTheme = '';
+  try {
+    qsTheme = new URLSearchParams(window.location.search).get('cliente_cor') || '';
+  } catch (e2) {}
+  var stored = '';
+  try { stored = localStorage.getItem(STORAGE_KEY) || ''; } catch (e3) {}
+  applyTheme(THEMES[qsTheme] ? qsTheme : (THEMES[stored] ? stored : 'violet'));
+
+  if (picker) {
+    picker.addEventListener('click', function (ev) {
+      var btn = ev.target.closest('[data-client-theme-pick]');
+      if (!btn) return;
+      applyTheme(btn.getAttribute('data-client-theme-pick'));
+    });
+  }
+})();
+</script>
 {% include "produtos/_screensaver_pin.html" %}
 {% endblock %}
