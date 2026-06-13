@@ -1,19 +1,20 @@
-# Deploy — só duas branches
+# Deploy — leia só isto
 
-| Branch | Render | URL |
-|--------|--------|-----|
-| **`teste`** | agro-consulta-staging | staging.onrender.com |
-| **`producao`** | Sistvale - Produção | www.sistvale.com.br |
+## Duas branches, dois sites
 
-- Push **`teste`** → deploy só no **staging**.
-- Merge **`teste` → `producao`** → deploy só na **produção**.
-- **`main` / principal** — ignore; não use para deploy.
+| Você manda código para… | Atualiza… |
+| ----------------------- | --------- |
+| **`teste`** | staging (agro-consulta-staging) |
+| **`producao`** | loja (Sistvale - Produção) |
 
-## Render (Settings → Branch, uma vez)
+## O que fazer no dia a dia
 
-1. **agro-consulta-staging** → branch **`teste`**
-2. **Sistvale - Produção** → branch **`producao`** (trocar de `main`)
+1. **Cursor / você testando** → push na branch **`teste`** → testa no staging.
+2. **Gostou?** → no GitHub: **Pull request `teste` → `producao`** → Merge.  
+   (Não use **`principal`** / `main` para deploy.)
 
-## Produção (quando aprovar o teste)
+## Erro de conflito no GitHub?
 
-GitHub: PR **`teste` → `producao`** → Merge.
+Feche o PR para `principal`. Só abra PR **`teste` → `producao`**.
+
+Se pedir ajuda ao Cursor: **«pode ir para produção»**.
