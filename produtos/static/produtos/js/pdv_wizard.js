@@ -2718,6 +2718,58 @@
         return txt;
     }
 
+    /** Só aceita bairro da lista interna; fora dela → vazio (ex.: retorno do Plus Code). */
+    function bairroListaJacupiOuVazio(txt) {
+        txt = String(txt || '').trim();
+        if (!txt) return '';
+        var nt = normalizarBuscaBairro(txt);
+        var all = todosBairrosJacupiOrdem();
+        for (var i = 0; i < all.length; i++) {
+            if (normalizarBuscaBairro(all[i]) === nt) return all[i];
+        }
+        return '';
+    }
+
+    function quickClientEditMissingInputs() {
+        return [
+            dom.quickClientEditNome,
+            dom.quickClientEditWhatsapp,
+            dom.quickClientEditLogradouro,
+            dom.quickClientEditNumero,
+            dom.quickClientEditBairro,
+            dom.quickClientEditCidade,
+            dom.quickClientEditUf,
+            dom.quickClientEditCep,
+        ];
+    }
+
+    function clearQuickClientEditMissingHighlights() {
+        if (!dom.quickClientEditOverlay) return;
+        dom.quickClientEditOverlay.querySelectorAll('.pdv-client-edit-missing').forEach(function (node) {
+            node.classList.remove('pdv-client-edit-missing');
+        });
+    }
+
+    function refreshQuickClientEditMissingHighlights() {
+        if (!dom.quickClientEditOverlay || dom.quickClientEditOverlay.classList.contains('hidden')) return;
+        quickClientEditMissingInputs().forEach(function (el) {
+            if (!el) return;
+            var wrap = el.closest('.pdv-client-edit-field');
+            if (!wrap) return;
+            wrap.classList.toggle('pdv-client-edit-missing', !String(el.value || '').trim());
+        });
+    }
+
+    function initQuickClientEditMissingListenersOnce() {
+        if (!dom.quickClientEditOverlay || dom.quickClientEditOverlay.dataset.missingBound === '1') return;
+        dom.quickClientEditOverlay.dataset.missingBound = '1';
+        quickClientEditMissingInputs().forEach(function (el) {
+            if (!el) return;
+            el.addEventListener('input', refreshQuickClientEditMissingHighlights);
+            el.addEventListener('change', refreshQuickClientEditMissingHighlights);
+        });
+    }
+
     function fecharQuickClientEditBairroDd() {
         var dd = document.getElementById('pdv-quick-client-edit-bairro-dd');
         var inp = dom.quickClientEditBairro;
@@ -2812,6 +2864,7 @@
             if (li) {
                 inp.value = li.getAttribute('data-bairro') || '';
                 fecharQuickClientEditBairroDd();
+                refreshQuickClientEditMissingHighlights();
             }
         });
         if (toggle) {
@@ -2860,14 +2913,15 @@
         setIf(dom.quickClientEditLogradouro, endereco.logradouro);
         setIf(dom.quickClientEditNumero, endereco.numero);
         if (dom.quickClientEditBairro && endereco.bairro) {
-            var bai = canonicalBairroJacupiSePossivel(endereco.bairro) || endereco.bairro;
-            if (overwrite || !String(dom.quickClientEditBairro.value || '').trim()) {
+            var bai = bairroListaJacupiOuVazio(endereco.bairro);
+            if (bai && (overwrite || !String(dom.quickClientEditBairro.value || '').trim())) {
                 dom.quickClientEditBairro.value = bai;
             }
         }
         setIf(dom.quickClientEditCidade, endereco.cidade);
         setIf(dom.quickClientEditUf, endereco.uf);
         setIf(dom.quickClientEditCep, endereco.cep);
+        refreshQuickClientEditMissingHighlights();
     }
 
     function scheduleQuickClientPlusGeocode(force) {
@@ -3826,6 +3880,7 @@
             dom.quickClientEditErro.textContent = '';
             dom.quickClientEditErro.classList.add('hidden');
         }
+        clearQuickClientEditMissingHighlights();
     }
 
     function fillQuickClientEditForm(cliente) {
@@ -3857,6 +3912,7 @@
             dom.quickClientEditTitle.textContent = String(cliente.nome || 'Cliente');
             dom.quickClientEditTitle.setAttribute('title', String(cliente.nome || ''));
         }
+        refreshQuickClientEditMissingHighlights();
     }
 
     function openQuickClientEditOverlay(cliente, listIdx) {
@@ -3871,6 +3927,7 @@
         quickClientEditBairroRuralExpandido = false;
         quickClientGeocodeLastQ = String(cliente.plus_code || '').trim();
         initQuickClientEditBairroComboboxOnce();
+        initQuickClientEditMissingListenersOnce();
         dom.quickClientEditOverlay.classList.remove('hidden');
         dom.quickClientEditOverlay.classList.add('flex');
         window.setTimeout(function () {
