@@ -37,13 +37,9 @@
         if (link) {
             if (aberto) {
                 link.textContent = 'Caixa ' + bootstrap.caixa.id;
-                link.classList.remove('border-amber-400', 'bg-amber-100', 'text-amber-950', 'border-2', 'hover:bg-amber-200/80');
-                link.classList.add('border', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-900', 'hover:bg-emerald-100/80');
                 link.title = 'Painel do caixa — turno aberto';
             } else {
                 link.textContent = 'Caixa fechado';
-                link.classList.remove('border-emerald-200', 'bg-emerald-50', 'text-emerald-900', 'hover:bg-emerald-100/80');
-                link.classList.add('border-2', 'border-amber-400', 'bg-amber-100', 'text-amber-950', 'hover:bg-amber-200/80');
                 link.title = 'Caixa fechado — abra o turno para vender';
             }
         }
@@ -830,6 +826,19 @@
         return State.toNumber(item.qtd) * State.toNumber(item.preco);
     }
 
+    function restorePriceInputDisplay(input) {
+        if (!input) return;
+        var id = input.getAttribute('data-item-price-input');
+        if (!id) return;
+        var item = State.getState().itens.find(function (it) {
+            return String(it.id) === String(id);
+        });
+        if (!item) return;
+        input.value = formatPriceEdit(lineSubtotal(item));
+        input.setAttribute('aria-label', 'Total da linha');
+        input.title = 'Toque para alterar o preço unitário';
+    }
+
     function applyQtyDelta(itemId, direction) {
         var current = State.getState().itens.find(function (item) {
             return String(item.id) === String(itemId);
@@ -871,16 +880,16 @@
         priceEditDraft = { id: null, raw: '' };
         priceInputRestore = { id: null, selStart: null, selEnd: null };
         if (!parsed) {
-            var current = State.getState().itens.find(function (item) {
-                return String(item.id) === String(id);
-            });
-            if (current) input.value = formatPriceEdit(current.preco);
+            restorePriceInputDisplay(input);
             return;
         }
         var cur = State.getState().itens.find(function (item) {
             return String(item.id) === String(id);
         });
-        if (cur && Math.abs(State.toNumber(cur.preco) - parsed) < 0.0000001) return;
+        if (cur && Math.abs(State.toNumber(cur.preco) - parsed) < 0.0000001) {
+            restorePriceInputDisplay(input);
+            return;
+        }
         State.updateItemPrice(id, parsed);
     }
 
@@ -1851,11 +1860,25 @@
             var step = btn.getAttribute('data-step-nav');
             var idx = flowIndex(flow, step);
             var currentIdx = flowIndex(flow, state.currentStep);
-            btn.classList.remove('pdv-step-badge-active', 'pdv-step-badge-done', 'border-emerald-200', 'bg-emerald-50');
+            btn.classList.remove(
+                'pdv-step-badge-active',
+                'pdv-step-badge-done',
+                'pdv-step-nav-retracted',
+                'border-emerald-200',
+                'bg-emerald-50'
+            );
+            btn.removeAttribute('aria-current');
+            btn.style.zIndex = '';
             if (idx === currentIdx) {
                 btn.classList.add('pdv-step-badge-active');
-            } else if (idx > -1 && idx < currentIdx) {
-                btn.classList.add('pdv-step-badge-done', 'border-emerald-200');
+                btn.setAttribute('aria-current', 'step');
+                btn.style.zIndex = '20';
+            } else if (idx > -1) {
+                btn.classList.add('pdv-step-nav-retracted');
+                if (idx < currentIdx) {
+                    btn.classList.add('pdv-step-badge-done', 'border-emerald-200');
+                }
+                btn.style.zIndex = String(idx < currentIdx ? idx + 1 : 12 - idx);
             }
             btn.disabled = idx === -1;
         });
@@ -2234,9 +2257,9 @@
         var alertSide =
             'mt-0 w-full rounded-xl border-2 border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-2.5 py-2.5 text-[11px] font-black uppercase tracking-wide text-white shadow-lg shadow-orange-600/30 ring-2 ring-orange-300/50 transition hover:from-orange-600 hover:to-amber-600';
         var discreteTop =
-            'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--orange relative';
+            'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
         var alertTop =
-            'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--orange pdv-wiz-topbar-btn--alert relative';
+            'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate pdv-wiz-topbar-btn--alert relative';
 
         if (dom.step1EntregasBtn) {
             dom.step1EntregasBtn.hidden = !apiOk;
@@ -6383,11 +6406,7 @@
                     if (dom.productSearch) dom.productSearch.focus();
                 } else if (event.key === 'Escape') {
                     event.preventDefault();
-                    var escPId = priceInput.getAttribute('data-item-price-input');
-                    var escPItem = State.getState().itens.find(function (item) {
-                        return String(item.id) === String(escPId);
-                    });
-                    if (escPItem) priceInput.value = formatPriceEdit(escPItem.preco);
+                    restorePriceInputDisplay(priceInput);
                     priceEditDraft = { id: null, raw: '' };
                     priceInputRestore = { id: null, selStart: null, selEnd: null };
                     priceSkipCommitOnce = true;

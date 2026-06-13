@@ -841,7 +841,7 @@
     white-space: nowrap;
   }
   #pdv-topbar-compact .pdv-wiz-topbar-btn span,
-  #pdv-topbar-compact .pdv-step-nav span {
+  #pdv-topbar-compact .pdv-step-nav .pdv-step-label {
     font-size: inherit !important;
     font-weight: inherit !important;
     line-height: inherit !important;
@@ -862,14 +862,38 @@
     font-weight: 700 !important;
     line-height: 1.1 !important;
   }
-  #pdv-topbar-compact .pdv-wiz-topbar-btn--alert {
-    border-color: #fb923c !important;
-    background: linear-gradient(to right, #f97316, #fbbf24) !important;
-    color: #fff !important;
-    box-shadow: 0 2px 10px rgba(234, 88, 12, 0.32);
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn,
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--emerald,
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--amber,
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--orange,
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--sky,
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--slate {
+    border-color: #cbd5e1 !important;
+    background: #fff !important;
+    color: #475569 !important;
   }
-  #pdv-topbar-compact .pdv-wiz-topbar-btn--alert:hover {
-    background: linear-gradient(to right, #ea580c, #f59e0b) !important;
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn:hover,
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--emerald:hover,
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--amber:hover,
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--orange:hover,
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--sky:hover,
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--slate:hover {
+    background: #f8fafc !important;
+    color: #334155 !important;
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--alert {
+    border-color: #64748b !important;
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06) !important;
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--alert:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+  }
+  #pdv-topbar-compact .pdv-topbar-entregas-count {
+    background: #475569 !important;
+    color: #fff !important;
   }
   .pdv-wiz-topbar-row {
     display: flex;
@@ -903,23 +927,80 @@
   .pdv-wiz-stepper {
     display: flex;
     flex-wrap: nowrap;
-    align-items: center;
-    gap: 0.3rem;
+    align-items: stretch;
+    gap: 0;
     min-width: 0;
+    padding: 0.05rem 0;
   }
   .pdv-wiz-stepper .pdv-step-nav {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
     min-height: 2.35rem;
-    padding: 0.35rem 0.6rem;
+    margin-left: -0.85rem;
+    padding: 0.35rem 0.65rem;
     border: 2px solid #cbd5e1;
     border-radius: 0.7rem;
     background: #fff;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     white-space: nowrap;
     color: #0f172a;
-    transition: border-color 0.12s ease, background 0.12s ease;
+    overflow: hidden;
+    flex: 0 0 auto;
+    transition:
+      max-width 0.18s ease,
+      min-width 0.18s ease,
+      margin 0.18s ease,
+      opacity 0.18s ease,
+      border-color 0.12s ease,
+      background 0.12s ease,
+      box-shadow 0.18s ease;
+  }
+  .pdv-wiz-stepper .pdv-step-nav:first-child {
+    margin-left: 0;
+  }
+  .pdv-wiz-stepper .pdv-step-label {
+    display: inline-block;
+    max-width: 7.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+    transition: max-width 0.16s ease, opacity 0.14s ease, margin 0.16s ease;
+  }
+  .pdv-wiz-stepper .pdv-step-nav.pdv-step-nav-retracted {
+    max-width: 2.35rem;
+    min-width: 2.35rem;
+    padding-left: 0.38rem;
+    padding-right: 0.38rem;
+    opacity: 0.78;
+    box-shadow: -3px 0 8px rgba(15, 23, 42, 0.07);
+  }
+  .pdv-wiz-stepper .pdv-step-nav.pdv-step-nav-retracted .pdv-step-label {
+    max-width: 0;
+    opacity: 0;
+    margin-left: 0;
+  }
+  .pdv-wiz-stepper .pdv-step-nav.pdv-step-nav-retracted:hover:not(:disabled) {
+    max-width: 3.1rem;
+    min-width: 2.75rem;
+    opacity: 0.94;
+    z-index: 18 !important;
+  }
+  .pdv-wiz-stepper .pdv-step-nav.pdv-step-badge-active {
+    max-width: 12rem;
+    min-width: 6.75rem;
+    margin-left: -0.6rem;
+    opacity: 1 !important;
+    z-index: 20 !important;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.28);
+  }
+  .pdv-wiz-stepper .pdv-step-nav.pdv-step-badge-active:first-child {
+    margin-left: 0;
+  }
+  .pdv-wiz-stepper .pdv-step-nav.pdv-step-badge-active .pdv-step-label {
+    max-width: 7.5rem;
+    opacity: 1;
   }
   .pdv-wiz-stepper .pdv-step-nav:hover:not(:disabled) {
     border-color: #94a3b8;
@@ -964,6 +1045,11 @@
     border-color: #6ee7b7 !important;
     background: #ecfdf5 !important;
     color: #047857 !important;
+  }
+  .pdv-wiz-stepper .pdv-step-nav.pdv-step-badge-active:hover:not(:disabled) {
+    border-color: #059669 !important;
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    color: #fff !important;
   }
   .pdv-wiz-topbar-actions {
     display: flex;
@@ -1294,7 +1380,16 @@
     #pdv-topbar-compact { gap: .35rem; }
     #pdv-topbar-compact { --pdv-topbar-fs: 0.8125rem; }
     #pdv-topbar-compact .pdv-wiz-topbar-btn { padding: .3rem .5rem !important; min-height: 2.15rem !important; }
-    #pdv-stepper .pdv-step-nav { padding: .3rem .5rem !important; min-height: 2.15rem !important; }
+    #pdv-stepper .pdv-step-nav { padding: .3rem .45rem !important; min-height: 2.15rem !important; }
+    #pdv-stepper .pdv-step-nav.pdv-step-nav-retracted {
+      max-width: 2.05rem !important;
+      min-width: 2.05rem !important;
+      margin-left: -0.7rem !important;
+    }
+    #pdv-stepper .pdv-step-nav.pdv-step-badge-active {
+      min-width: 5.75rem !important;
+      max-width: 9.5rem !important;
+    }
     #pdv-stepper .pdv-wiz-stepper-num { min-width: 1.25rem; }
     #pdv-step1-layout { grid-template-columns: minmax(0, 1fr) 13.25rem !important; gap: .35rem; }
     #pdv-step1-client-bar { padding: .4rem .6rem !important; }
@@ -1368,30 +1463,30 @@
             <div class="pdv-wiz-topbar-stepper-wrap pdv-wizard-scroll">
               <span class="pdv-wiz-topbar-brand">PDV</span>
               <nav class="pdv-wiz-stepper" id="pdv-stepper" aria-label="Etapas da venda">
-                <button type="button" class="pdv-step-nav shrink-0 text-left" data-step-nav="produtos" title="Ir para etapa 1 · Alt+1">
-                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--sky">1</kbd><span>Produtos</span>
+                <button type="button" class="pdv-step-nav pdv-step-badge-active text-left" data-step-nav="produtos" title="Ir para etapa 1 · Alt+1" aria-current="step">
+                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--sky">1</kbd><span class="pdv-step-label">Produtos</span>
                 </button>
-                <button type="button" class="pdv-step-nav shrink-0 text-left" data-step-nav="cliente" title="Ir para etapa 2 · Alt+2">
-                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--orange">2</kbd><span>Cliente</span>
+                <button type="button" class="pdv-step-nav pdv-step-nav-retracted text-left" data-step-nav="cliente" title="Ir para etapa 2 · Alt+2">
+                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--orange">2</kbd><span class="pdv-step-label">Cliente</span>
                 </button>
-                <button type="button" class="pdv-step-nav shrink-0 text-left" data-step-nav="entrega" title="Ir para etapa 3 · Alt+3">
-                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--amber">3</kbd><span>Entrega</span>
+                <button type="button" class="pdv-step-nav pdv-step-nav-retracted text-left" data-step-nav="entrega" title="Ir para etapa 3 · Alt+3">
+                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--amber">3</kbd><span class="pdv-step-label">Entrega</span>
                 </button>
-                <button type="button" class="pdv-step-nav shrink-0 text-left" data-step-nav="pagamento" title="Ir para etapa 4 · Alt+4">
-                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--green">4</kbd><span>Pagamento</span>
+                <button type="button" class="pdv-step-nav pdv-step-nav-retracted text-left" data-step-nav="pagamento" title="Ir para etapa 4 · Alt+4">
+                  <kbd class="pdv-wiz-stepper-num pdv-wiz-stepper-num--green">4</kbd><span class="pdv-step-label">Pagamento</span>
                 </button>
               </nav>
             </div>
             <div class="pdv-wiz-topbar-actions pdv-wizard-scroll">
-              <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn no-underline {% if caixa_aberto %}pdv-wiz-topbar-btn--emerald{% else %}pdv-wiz-topbar-btn--amber{% endif %}" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
+              <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
               <a href="{% url 'vendas_lista' %}" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="Consultar vendas — filtro por período e exportar CSV">Consultar vendas</a>
-              <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--orange no-underline" title="Gestão crédito loja — saldos em aberto e baixa">Fiado</a>
-              <button type="button" id="pdv-topbar-entregas-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--orange relative" title="Entregas aguardando pagamento no PDV (cobrar na entrega)">
+              <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="Gestão crédito loja — saldos em aberto e baixa">Fiado</a>
+              <button type="button" id="pdv-topbar-entregas-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative" title="Entregas aguardando pagamento no PDV (cobrar na entrega)">
                 Entregas
-                <span id="pdv-topbar-entregas-count" class="hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-orange-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
+                <span id="pdv-topbar-entregas-count" class="pdv-topbar-entregas-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
               </button>
               <a id="pdv-wizard-voltar-home" href="{% url 'home' %}?pin_tab=pdv" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" title="Sair do wizard — volta ao dashboard com guia PDV fixa">Sair</a>
-              <a href="{% url 'consulta_produtos' %}?orcamentos=1" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--sky no-underline" title="Orçamentos salvos neste aparelho">Orç. salvos</a>
+              <a href="{% url 'consulta_produtos' %}?orcamentos=1" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="Orçamentos salvos neste aparelho">Orç. salvos</a>
               <button type="button" id="pdv-open-budget-history" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" title="Histórico de orçamentos · F6">Orçamento <kbd class="pointer-events-none ml-0.5 hidden rounded border border-slate-200 bg-slate-50 px-1 font-mono text-[8px] sm:inline">F6</kbd></button>
               <button type="button" id="pdv-pin-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">PIN</button>
             </div>
