@@ -167,6 +167,7 @@
         quickClientEditFechar: document.getElementById('pdv-quick-client-edit-fechar'),
         step1ClientBar: document.getElementById('pdv-step1-client-bar'),
         quickClientChange: document.getElementById('pdv-quick-client-change'),
+        quickClientEditStep1: document.getElementById('pdv-quick-client-edit-step1'),
         wizardCliRapidoModal: document.getElementById('pdv-wizard-cli-rapido-modal'),
         wizardCliRapidoPanel: document.querySelector('[data-pdv-wizard-cli-rapido-panel]'),
         wizardCliRapidoNome: document.getElementById('pdv-wizard-cli-rapido-nome'),
@@ -2019,6 +2020,13 @@
 
     function renderQuickClient(state) {
         if (dom.quickClientName) dom.quickClientName.textContent = currentClientName(state);
+        if (dom.quickClientEditStep1) {
+            var podeEditar =
+                state.clienteMode !== 'consumidor_final' &&
+                state.cliente &&
+                state.cliente.cliente_agro_pk != null;
+            dom.quickClientEditStep1.disabled = !podeEditar;
+        }
         if (!dom.quickClientMeta) return;
         if (state.clienteMode === 'consumidor_final') {
             dom.quickClientMeta.textContent = 'Consumidor final definido para venda rápida.';
@@ -3935,12 +3943,27 @@
         }, 60);
     }
 
+    function openStep1QuickClientEdit() {
+        var state = State.getState();
+        if (state.clienteMode === 'consumidor_final' || !state.cliente) {
+            alert('Selecione um cliente cadastrado para editar.');
+            return;
+        }
+        if (!state.cliente.cliente_agro_pk) {
+            alert('Este cliente não pode ser editado aqui (sem cadastro local).');
+            return;
+        }
+        openQuickClientEditOverlay(state.cliente, -1);
+    }
+
     function closeQuickClientEditOverlay() {
         if (!dom.quickClientEditOverlay) return;
+        var pickerOpen =
+            dom.quickClientModal && !dom.quickClientModal.classList.contains('hidden');
         dom.quickClientEditOverlay.classList.add('hidden');
         dom.quickClientEditOverlay.classList.remove('flex');
         clearQuickClientEditForm();
-        window.setTimeout(focusQuickClientSearchField, 40);
+        if (pickerOpen) window.setTimeout(focusQuickClientSearchField, 40);
     }
 
     function patchClienteInSearchResults(updated) {
@@ -5990,6 +6013,11 @@
         dom.quickClientChange.addEventListener('click', function () {
             openQuickClientPicker();
         });
+        if (dom.quickClientEditStep1) {
+            dom.quickClientEditStep1.addEventListener('click', function () {
+                openStep1QuickClientEdit();
+            });
+        }
 
         function openQuickClientPickerFromHit() {
             openQuickClientPicker();
