@@ -38,7 +38,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 15px;
+    font-size: 17.25px;
     font-weight: 900;
     line-height: 1.2;
     color: #0f172a;
@@ -60,14 +60,14 @@
     min-height: 3rem;
     padding: 0 0.4rem;
     border-radius: 0.75rem;
-    border: 2px solid #bae6fd;
-    background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 2px solid #cbd5e1;
+    background: #fff;
     text-align: center;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 16px;
     font-weight: 900;
     line-height: 1.1;
-    color: #0369a1;
+    color: #0f172a;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.02em;
     overflow: hidden;
@@ -117,10 +117,8 @@
   .pdv-cart-price-wrap {
     display: flex;
     flex-shrink: 0;
-    flex-direction: column;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 0.12rem;
+    align-items: center;
+    justify-content: flex-end;
     min-width: 6.25rem;
   }
   .pdv-cart-price-box {
@@ -157,14 +155,6 @@
   .pdv-cart-price-input:focus {
     background: #fff;
     box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.35);
-  }
-  .pdv-cart-line-total {
-    font-size: 12px;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    line-height: 1;
-    color: #475569;
-    white-space: nowrap;
   }
   .pdv-cart-remove {
     flex-shrink: 0;
@@ -833,13 +823,14 @@
   }
   /* --- Topbar PDV (padrão etapa 1) --- */
   .pdv-wiz-topbar {
-    --pdv-topbar-fs: 11px;
-    --pdv-topbar-lh: 1.15;
+    --pdv-topbar-fs: 0.9375rem;
+    --pdv-topbar-lh: 1.2;
     padding: 0.4rem 0.5rem;
     border-bottom: 2px solid #e2e8f0;
     background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
   }
   #pdv-topbar-compact .pdv-wiz-topbar-btn,
+  #pdv-topbar-compact #pdv-topbar-entregas-btn,
   #pdv-topbar-compact .pdv-wiz-stepper .pdv-step-nav {
     font-family: 'Inter', system-ui, sans-serif !important;
     font-size: var(--pdv-topbar-fs) !important;
@@ -848,6 +839,14 @@
     letter-spacing: 0.03em;
     text-transform: uppercase;
     white-space: nowrap;
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-btn span,
+  #pdv-topbar-compact .pdv-step-nav span {
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    line-height: inherit !important;
+    letter-spacing: inherit !important;
+    text-transform: inherit !important;
   }
   #pdv-topbar-compact .pdv-wiz-topbar-brand {
     font-family: 'Inter', system-ui, sans-serif !important;
@@ -859,9 +858,18 @@
     white-space: nowrap;
   }
   #pdv-topbar-compact .pdv-wiz-topbar-btn kbd {
-    font-size: calc(var(--pdv-topbar-fs) - 2px) !important;
+    font-size: calc(var(--pdv-topbar-fs) - 0.125rem) !important;
     font-weight: 700 !important;
     line-height: 1.1 !important;
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-btn--alert {
+    border-color: #fb923c !important;
+    background: linear-gradient(to right, #f97316, #fbbf24) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 10px rgba(234, 88, 12, 0.32);
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-btn--alert:hover {
+    background: linear-gradient(to right, #ea580c, #f59e0b) !important;
   }
   .pdv-wiz-topbar-row {
     display: flex;
@@ -931,7 +939,7 @@
     border-radius: 0.4rem;
     border: 2px solid;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: calc(var(--pdv-topbar-fs, 11px) - 1px);
+    font-size: calc(var(--pdv-topbar-fs, 0.9375rem) * 0.88);
     font-weight: 900;
     line-height: 1;
     text-transform: none;
@@ -1284,7 +1292,7 @@
   @media (max-width: 1400px) and (max-height: 800px) {
     .pdv-action-btn { min-height: 34px; border-radius: .8rem; }
     #pdv-topbar-compact { gap: .35rem; }
-    #pdv-topbar-compact { --pdv-topbar-fs: 10px; }
+    #pdv-topbar-compact { --pdv-topbar-fs: 0.8125rem; }
     #pdv-topbar-compact .pdv-wiz-topbar-btn { padding: .3rem .5rem !important; min-height: 2.15rem !important; }
     #pdv-stepper .pdv-step-nav { padding: .3rem .5rem !important; min-height: 2.15rem !important; }
     #pdv-stepper .pdv-wiz-stepper-num { min-width: 1.25rem; }
@@ -1307,7 +1315,7 @@
     #pdv-product-autocomplete .pdv-ac-preco-box { min-height: 2.35rem !important; font-size: 1.1rem !important; }
     #pdv-product-cart-list { padding: .35rem .45rem !important; }
     .pdv-cart-row { column-gap: .35rem !important; }
-    .pdv-cart-nome { font-size: 14px !important; }
+    .pdv-cart-nome { font-size: 16.1px !important; }
     .pdv-cart-gm {
       min-height: 2.85rem !important;
       font-size: 15px !important;

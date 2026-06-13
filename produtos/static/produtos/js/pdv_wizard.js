@@ -2076,12 +2076,10 @@
                     qtyEditDraft.id === itemId
                         ? qtyEditDraft.raw
                         : formatQty(item.qtd);
-                var priceVal =
-                    priceEditDraft.id === itemId
-                        ? priceEditDraft.raw
-                        : formatPriceEdit(item.preco);
-                var qtyN = State.toNumber(item.qtd);
-                var showLineTotal = Math.abs(qtyN - 1) > 0.0001;
+                var isEditingPrice = priceEditDraft.id === itemId;
+                var priceVal = isEditingPrice
+                    ? priceEditDraft.raw
+                    : formatPriceEdit(lineSubtotal(item));
                 return (
                     '' +
                     '<div class="pdv-cart-row rounded-xl border-2 border-slate-200 bg-white px-2 py-2 shadow-sm sm:px-2.5">' +
@@ -2117,17 +2115,12 @@
                     '    <div class="pdv-cart-price-wrap">' +
                     '      <div class="pdv-cart-price-box">' +
                     '        <span class="pdv-cart-price-prefix" aria-hidden="true">R$</span>' +
-                    '        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Preço unitário" title="Toque para alterar o preço deste item" class="pdv-cart-price-input" data-item-price-input="' +
+                    '        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Total da linha" title="Toque para alterar o preço unitário" class="pdv-cart-price-input" data-item-price-input="' +
                     escapeHtml(itemId) +
                     '" value="' +
                     escapeHtml(priceVal) +
                     '">' +
                     '      </div>' +
-                    (showLineTotal
-                        ? '      <span class="pdv-cart-line-total">= ' +
-                          escapeHtml(formatMoney(lineSubtotal(item))) +
-                          '</span>'
-                        : '') +
                     '    </div>' +
                     '    <button type="button" class="pdv-cart-remove" data-remove-item="' +
                     escapeHtml(itemId) +
@@ -2241,9 +2234,9 @@
         var alertSide =
             'mt-0 w-full rounded-xl border-2 border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-2.5 py-2.5 text-[11px] font-black uppercase tracking-wide text-white shadow-lg shadow-orange-600/30 ring-2 ring-orange-300/50 transition hover:from-orange-600 hover:to-amber-600';
         var discreteTop =
-            'pdv-action-btn relative border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-600 hover:bg-slate-100';
+            'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--orange relative';
         var alertTop =
-            'pdv-action-btn relative border-2 border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-2 py-1 text-[10px] text-white shadow-md ring-2 ring-orange-300/40 hover:from-orange-600 hover:to-amber-600';
+            'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--orange pdv-wiz-topbar-btn--alert relative';
 
         if (dom.step1EntregasBtn) {
             dom.step1EntregasBtn.hidden = !apiOk;
@@ -6331,7 +6324,15 @@
         dom.productCartList.addEventListener('focusin', function (event) {
             var priceInput = event.target.closest('[data-item-price-input]');
             if (priceInput) {
-                priceEditDraft = { id: priceInput.getAttribute('data-item-price-input'), raw: priceInput.value };
+                var pid = priceInput.getAttribute('data-item-price-input');
+                var pItem = State.getState().itens.find(function (item) {
+                    return String(item.id) === String(pid);
+                });
+                var unitRaw = pItem ? formatPriceEdit(pItem.preco) : priceInput.value;
+                priceInput.value = unitRaw;
+                priceInput.setAttribute('aria-label', 'Preço unitário');
+                priceInput.title = 'Altere o preço unitário deste item';
+                priceEditDraft = { id: pid, raw: unitRaw };
                 setTimeout(function () {
                     try {
                         priceInput.select();
