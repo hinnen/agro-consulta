@@ -108,12 +108,12 @@
     max-width: 98vw;
     max-height: 98vh;
   }
-  /* Pop-up edição: quase tela cheia */
+  /* Pop-up edição: largura útil, altura conforme conteúdo */
   .pdv-client-edit-panel {
-    width: 98vw;
-    height: 94vh;
+    width: min(98vw, 1080px);
+    height: auto;
+    max-height: 96vh;
     max-width: 98vw;
-    max-height: 98vh;
   }
   #pdv-quick-client-picker .pdv-client-results-table {
     table-layout: fixed;
@@ -192,57 +192,64 @@
     font-size: clamp(1.35rem, 0.7vw + 1.15rem, 1.85rem);
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-label {
-    font-size: clamp(0.9rem, 0.45vw + 0.8rem, 1.1rem);
-    margin-bottom: 0.35rem;
+    font-size: clamp(0.95rem, 0.5vw + 0.85rem, 1.15rem);
+    margin-bottom: 0.25rem;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-input {
-    min-height: 3.75rem;
-    padding: 0.75rem 1rem;
-    font-size: clamp(1.2rem, 0.55vw + 1.05rem, 1.55rem);
+    min-height: 4.25rem;
+    padding: 0.85rem 1rem;
+    font-size: clamp(1.35rem, 0.65vw + 1.15rem, 1.75rem);
     font-weight: 800;
+    width: 100%;
+    box-sizing: border-box;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-section-title {
-    font-size: clamp(1rem, 0.45vw + 0.9rem, 1.2rem);
-    margin-bottom: 0.5rem;
+    font-size: clamp(1.05rem, 0.5vw + 0.95rem, 1.25rem);
+    margin: 0 0 0.35rem;
+    grid-column: 1 / -1;
+  }
+  #pdv-quick-client-edit-overlay .pdv-client-edit-body {
+    flex: 0 1 auto;
+    overflow-y: auto;
+    max-height: calc(96vh - 7.5rem);
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-form {
     display: grid;
-    gap: 0.65rem 0.85rem;
+    gap: 0.55rem 0.75rem;
+    grid-template-columns: 1fr;
+    width: 100%;
   }
-  #pdv-quick-client-edit-overlay .pdv-client-edit-row-2 {
-    display: grid;
-    gap: 0.65rem 0.85rem;
-    grid-template-columns: 1fr 1fr;
-  }
-  #pdv-quick-client-edit-overlay .pdv-client-edit-addr {
-    border: 2px solid #e2e8f0;
-    border-radius: 0.75rem;
-    background: #f8fafc;
-    padding: 0.65rem 0.75rem;
-  }
-  #pdv-quick-client-edit-overlay .pdv-client-edit-addr-grid {
-    display: grid;
-    gap: 0.65rem 0.85rem;
-    grid-template-columns: 1fr 1fr;
-  }
-  #pdv-quick-client-edit-overlay .pdv-client-edit-addr-log {
-    grid-column: 1 / -1;
-  }
-  #pdv-quick-client-edit-overlay .pdv-client-edit-addr-comp,
-  #pdv-quick-client-edit-overlay .pdv-client-edit-addr-ref {
-    grid-column: 1 / -1;
-  }
-  @media (min-width: 640px) {
-    #pdv-quick-client-edit-overlay .pdv-client-edit-addr-grid {
-      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.4fr) 4.5rem 7rem;
+  @media (min-width: 720px) {
+    #pdv-quick-client-edit-overlay .pdv-client-edit-form {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
     }
-    #pdv-quick-client-edit-overlay .pdv-client-edit-addr-comp { grid-column: 1 / 3; }
-    #pdv-quick-client-edit-overlay .pdv-client-edit-addr-ref { grid-column: 3 / -1; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-nome { grid-column: 1 / 4; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-ref { grid-column: 4 / 7; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-wa { grid-column: 1 / 3; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-plus { grid-column: 3 / 7; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-log { grid-column: 1 / 7; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-num { grid-column: 1 / 2; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-bai { grid-column: 2 / 3; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-cid { grid-column: 3 / 5; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-uf { grid-column: 5 / 6; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-cep { grid-column: 6 / 7; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-comp { grid-column: 1 / 7; }
+  }
+  @media (max-width: 719px) {
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-ref,
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-plus,
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-comp {
+      grid-column: 1 / -1;
+    }
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-footer-btn {
-    min-height: 4rem;
-    font-size: clamp(1.05rem, 0.5vw + 0.95rem, 1.3rem);
+    min-height: 4.25rem;
+    font-size: clamp(1.15rem, 0.55vw + 1rem, 1.4rem);
     font-weight: 900;
+  }
+  #pdv-quick-client-edit-overlay .pdv-client-edit-field {
+    display: block;
+    min-width: 0;
   }
   #pdv-product-photo-pop::backdrop { background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); }
   #pdv-step-pagamento-root .pdv-pay-flow-pop { padding: 0; border: none; border-radius: 1.5rem; max-height: 92vh; }
@@ -438,60 +445,54 @@
         </div>
         <button type="button" id="pdv-quick-client-edit-fechar" class="inline-flex min-h-[3.5rem] min-w-[3.5rem] shrink-0 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-[clamp(1.75rem,0.9vw+1.4rem,2.25rem)] font-black leading-none text-slate-700 hover:border-red-300 hover:bg-red-50" title="Fechar · Esc" aria-label="Fechar edição">×</button>
       </header>
-      <div class="pdv-wizard-scroll min-h-0 flex-1 overflow-y-auto px-3 py-2.5 sm:px-4 sm:py-3">
+      <div class="pdv-wizard-scroll pdv-client-edit-body px-3 py-2 sm:px-4 sm:py-2.5">
         <div class="pdv-client-edit-form">
-          <label class="block">
+          <label class="pdv-client-edit-field pdv-client-edit-f-nome">
             <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Nome <span class="text-red-600">*</span></span>
             <input id="pdv-quick-client-edit-nome" type="text" autocomplete="name" class="pdv-input pdv-client-edit-input w-full">
           </label>
-          <div class="pdv-client-edit-row-2">
-            <label class="block min-w-0">
-              <span class="pdv-client-edit-label block font-black uppercase text-slate-500">WhatsApp / telefone <span class="text-red-600">*</span></span>
-              <input id="pdv-quick-client-edit-whatsapp" type="tel" inputmode="tel" autocomplete="tel" class="pdv-input pdv-client-edit-input w-full" placeholder="DDD + número">
-            </label>
-            <label class="block min-w-0">
-              <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Plus Code (Maps)</span>
-              <input id="pdv-quick-client-edit-pluscode" type="text" class="pdv-input pdv-client-edit-input w-full" placeholder="Ex.: 8X5R+7M9">
-            </label>
-          </div>
-          <div class="pdv-client-edit-addr">
-            <p class="pdv-client-edit-section-title font-black uppercase tracking-wide text-slate-600">Endereço</p>
-            <div class="pdv-client-edit-addr-grid">
-              <label class="block pdv-client-edit-addr-log">
-                <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Logradouro</span>
-                <input id="pdv-quick-client-edit-logradouro" type="text" autocomplete="street-address" class="pdv-input pdv-client-edit-input w-full">
-              </label>
-              <label class="block">
-                <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Número</span>
-                <input id="pdv-quick-client-edit-numero" type="text" class="pdv-input pdv-client-edit-input w-full">
-              </label>
-              <label class="block">
-                <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Bairro</span>
-                <input id="pdv-quick-client-edit-bairro" type="text" class="pdv-input pdv-client-edit-input w-full">
-              </label>
-              <label class="block">
-                <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Cidade</span>
-                <input id="pdv-quick-client-edit-cidade" type="text" class="pdv-input pdv-client-edit-input w-full">
-              </label>
-              <label class="block">
-                <span class="pdv-client-edit-label block font-black uppercase text-slate-500">UF</span>
-                <input id="pdv-quick-client-edit-uf" type="text" maxlength="2" class="pdv-input pdv-client-edit-input w-full uppercase">
-              </label>
-              <label class="block">
-                <span class="pdv-client-edit-label block font-black uppercase text-slate-500">CEP</span>
-                <input id="pdv-quick-client-edit-cep" type="text" class="pdv-input pdv-client-edit-input w-full">
-              </label>
-              <label class="block pdv-client-edit-addr-comp">
-                <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Complemento</span>
-                <input id="pdv-quick-client-edit-complemento" type="text" class="pdv-input pdv-client-edit-input w-full">
-              </label>
-              <label class="block pdv-client-edit-addr-ref">
-                <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Referência entrega</span>
-                <input id="pdv-quick-client-edit-referencia" type="text" class="pdv-input pdv-client-edit-input w-full" placeholder="Porteira, km, cor…">
-              </label>
-            </div>
-          </div>
-          <p id="pdv-quick-client-edit-erro" class="hidden text-[clamp(1rem,0.45vw+0.9rem,1.2rem)] font-bold text-red-600" role="alert"></p>
+          <label class="pdv-client-edit-field pdv-client-edit-f-ref">
+            <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Referência entrega</span>
+            <input id="pdv-quick-client-edit-referencia" type="text" class="pdv-input pdv-client-edit-input w-full" placeholder="Porteira, km, cor…">
+          </label>
+          <label class="pdv-client-edit-field pdv-client-edit-f-wa">
+            <span class="pdv-client-edit-label block font-black uppercase text-slate-500">WhatsApp / telefone <span class="text-red-600">*</span></span>
+            <input id="pdv-quick-client-edit-whatsapp" type="tel" inputmode="tel" autocomplete="tel" class="pdv-input pdv-client-edit-input w-full" placeholder="DDD + número">
+          </label>
+          <label class="pdv-client-edit-field pdv-client-edit-f-plus">
+            <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Plus Code (Maps)</span>
+            <input id="pdv-quick-client-edit-pluscode" type="text" class="pdv-input pdv-client-edit-input w-full" placeholder="Ex.: 8X5R+7M9">
+          </label>
+          <p class="pdv-client-edit-section-title font-black uppercase tracking-wide text-slate-600">Endereço</p>
+          <label class="pdv-client-edit-field pdv-client-edit-f-log">
+            <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Logradouro</span>
+            <input id="pdv-quick-client-edit-logradouro" type="text" autocomplete="street-address" class="pdv-input pdv-client-edit-input w-full">
+          </label>
+          <label class="pdv-client-edit-field pdv-client-edit-f-num">
+            <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Número</span>
+            <input id="pdv-quick-client-edit-numero" type="text" class="pdv-input pdv-client-edit-input w-full">
+          </label>
+          <label class="pdv-client-edit-field pdv-client-edit-f-bai">
+            <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Bairro</span>
+            <input id="pdv-quick-client-edit-bairro" type="text" class="pdv-input pdv-client-edit-input w-full">
+          </label>
+          <label class="pdv-client-edit-field pdv-client-edit-f-cid">
+            <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Cidade</span>
+            <input id="pdv-quick-client-edit-cidade" type="text" class="pdv-input pdv-client-edit-input w-full">
+          </label>
+          <label class="pdv-client-edit-field pdv-client-edit-f-uf">
+            <span class="pdv-client-edit-label block font-black uppercase text-slate-500">UF</span>
+            <input id="pdv-quick-client-edit-uf" type="text" maxlength="2" class="pdv-input pdv-client-edit-input w-full uppercase">
+          </label>
+          <label class="pdv-client-edit-field pdv-client-edit-f-cep">
+            <span class="pdv-client-edit-label block font-black uppercase text-slate-500">CEP</span>
+            <input id="pdv-quick-client-edit-cep" type="text" class="pdv-input pdv-client-edit-input w-full">
+          </label>
+          <label class="pdv-client-edit-field pdv-client-edit-f-comp">
+            <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Complemento</span>
+            <input id="pdv-quick-client-edit-complemento" type="text" class="pdv-input pdv-client-edit-input w-full">
+          </label>
+          <p id="pdv-quick-client-edit-erro" class="hidden text-[clamp(1rem,0.45vw+0.9rem,1.2rem)] font-bold text-red-600" role="alert" style="grid-column:1/-1"></p>
         </div>
       </div>
       <footer class="flex shrink-0 gap-2 border-t-2 border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
