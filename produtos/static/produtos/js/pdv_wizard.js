@@ -2093,7 +2093,7 @@
                     '" alt="" class="pointer-events-none h-full w-full object-cover">' +
                     '  </span>' +
                     '  <div class="pdv-cart-line overflow-hidden">' +
-                    '    <span class="block truncate text-[12px] font-black leading-tight text-slate-900 sm:text-[13px]">' +
+                    '    <span class="pdv-cart-nome">' +
                     escapeHtml(item.nome) +
                     '</span>' +
                     '  </div>' +

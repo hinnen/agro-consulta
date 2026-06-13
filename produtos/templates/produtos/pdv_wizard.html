@@ -30,28 +30,50 @@
     row-gap: 0.35rem;
   }
   .pdv-cart-row .pdv-cart-line {
-    line-height: 1.2;
+    line-height: 1.25;
     min-width: 0;
   }
+  .pdv-cart-nome {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: 900;
+    line-height: 1.2;
+    color: #0f172a;
+  }
   .pdv-cart-row-tools {
-    display: flex;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: 7rem auto auto auto;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: end;
     gap: 0.45rem;
     min-width: 0;
   }
   .pdv-cart-gm {
-    width: 5.25rem;
-    flex-shrink: 0;
-    text-align: right;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    width: 100%;
+    min-height: 3rem;
+    padding: 0 0.4rem;
+    border-radius: 0.75rem;
+    border: 2px solid #bae6fd;
+    background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
+    text-align: center;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 900;
-    line-height: 1.2;
-    color: #334155;
+    line-height: 1.1;
+    color: #0369a1;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.02em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
   }
   .pdv-cart-qty-wrap {
     display: inline-flex;
@@ -82,7 +104,7 @@
     background: #fff;
     padding: 0 0.2rem;
     text-align: center;
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     font-weight: 900;
     font-variant-numeric: tabular-nums;
     color: #0f172a;
@@ -113,7 +135,7 @@
   }
   .pdv-cart-price-prefix {
     padding-left: 0.5rem;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 900;
     line-height: 1;
     color: #047857;
@@ -126,7 +148,7 @@
     background: transparent;
     padding: 0 0.4rem 0 0.15rem;
     text-align: right;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     font-weight: 900;
     font-variant-numeric: tabular-nums;
     color: #047857;
@@ -164,21 +186,21 @@
   #pdv-product-autocomplete .pdv-ac-head,
   #pdv-product-autocomplete .pdv-ac-row {
     display: grid;
-    grid-template-columns: 2.75rem minmax(0, 1.55fr) 5.25rem minmax(4.5rem, 1fr) 5.75rem;
+    grid-template-columns: 3rem minmax(0, 1.55fr) 6.25rem minmax(5rem, 1fr) 6.5rem;
     align-items: center;
-    column-gap: 0.45rem;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    column-gap: 0.5rem;
+    padding-left: 0.55rem;
+    padding-right: 0.55rem;
   }
   #pdv-product-autocomplete .pdv-ac-head {
     position: sticky;
     top: 0;
     z-index: 2;
-    padding-top: 0.45rem;
-    padding-bottom: 0.45rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
     border-bottom: 2px solid #bae6fd;
     background: linear-gradient(180deg, #e0f2fe 0%, #f0f9ff 100%);
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 900;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -190,8 +212,8 @@
     border: 0;
     border-bottom: 1px solid #e0f2fe;
     background: rgba(255, 255, 255, 0.72);
-    padding-top: 0.42rem;
-    padding-bottom: 0.42rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
     text-align: left;
     cursor: pointer;
     transition: background 0.1s ease;
@@ -205,8 +227,8 @@
   #pdv-product-autocomplete .pdv-ac-thumb {
     position: relative;
     display: block;
-    width: 2.75rem;
-    height: 2.75rem;
+    width: 3rem;
+    height: 3rem;
     overflow: hidden;
     border-radius: 0.55rem;
     border: 2px solid #bae6fd;
@@ -224,20 +246,28 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 900;
     line-height: 1.2;
     color: #0f172a;
   }
   #pdv-product-autocomplete .pdv-ac-gm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.65rem;
+    padding: 0 0.35rem;
+    border-radius: 0.65rem;
+    border: 2px solid #bae6fd;
+    background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 900;
-    color: #334155;
+    color: #0369a1;
     font-variant-numeric: tabular-nums;
   }
   #pdv-product-autocomplete .pdv-ac-marca {
@@ -245,7 +275,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 800;
     color: #64748b;
     text-transform: uppercase;
@@ -259,12 +289,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: flex-end;
-    min-height: 2.35rem;
-    padding: 0 0.45rem;
+    min-height: 2.65rem;
+    padding: 0 0.5rem;
     border-radius: 0.65rem;
     border: 2px solid #6ee7b7;
     background: #ecfdf5;
-    font-size: 1.05rem;
+    font-size: 1.2rem;
     font-weight: 900;
     font-variant-numeric: tabular-nums;
     color: #047857;
@@ -786,9 +816,35 @@
   }
   /* --- Topbar PDV (padrão etapa 1) --- */
   .pdv-wiz-topbar {
+    --pdv-topbar-fs: 11px;
+    --pdv-topbar-lh: 1.15;
     padding: 0.4rem 0.5rem;
     border-bottom: 2px solid #e2e8f0;
     background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-btn,
+  #pdv-topbar-compact .pdv-wiz-stepper .pdv-step-nav {
+    font-family: 'Inter', system-ui, sans-serif !important;
+    font-size: var(--pdv-topbar-fs) !important;
+    font-weight: 900 !important;
+    line-height: var(--pdv-topbar-lh) !important;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-brand {
+    font-family: 'Inter', system-ui, sans-serif !important;
+    font-size: var(--pdv-topbar-fs) !important;
+    font-weight: 900 !important;
+    line-height: var(--pdv-topbar-lh) !important;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-btn kbd {
+    font-size: calc(var(--pdv-topbar-fs) - 2px) !important;
+    font-weight: 700 !important;
+    line-height: 1.1 !important;
   }
   .pdv-wiz-topbar-row {
     display: flex;
@@ -814,13 +870,10 @@
   .pdv-wiz-topbar-brand {
     flex-shrink: 0;
     border-radius: 0.5rem;
-    padding: 0.3rem 0.55rem;
+    padding: 0.35rem 0.6rem;
     background: #ea580c;
     color: #fff;
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+    letter-spacing: 0.12em;
   }
   .pdv-wiz-stepper {
     display: flex;
@@ -833,15 +886,13 @@
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    min-height: 2.1rem;
-    padding: 0.3rem 0.55rem;
+    min-height: 2.35rem;
+    padding: 0.35rem 0.6rem;
     border: 2px solid #cbd5e1;
     border-radius: 0.7rem;
     background: #fff;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     white-space: nowrap;
-    font-size: 11px;
-    font-weight: 900;
     color: #0f172a;
     transition: border-color 0.12s ease, background 0.12s ease;
   }
@@ -858,14 +909,16 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 1.35rem;
-    padding: 0.1rem 0.35rem;
+    min-width: 1.4rem;
+    padding: 0.12rem 0.35rem;
     border-radius: 0.4rem;
     border: 2px solid;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 9px;
+    font-size: calc(var(--pdv-topbar-fs, 11px) - 1px);
     font-weight: 900;
     line-height: 1;
+    text-transform: none;
+    letter-spacing: 0;
   }
   .pdv-wiz-stepper-num--sky { border-color: #7dd3fc; background: #f0f9ff; color: #0369a1; }
   .pdv-wiz-stepper-num--orange { border-color: #fdba74; background: #fff7ed; color: #c2410c; }
@@ -900,12 +953,10 @@
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   }
   .pdv-wiz-topbar-btn {
-    min-height: 2.1rem !important;
-    padding: 0.3rem 0.55rem !important;
+    min-height: 2.35rem !important;
+    padding: 0.35rem 0.6rem !important;
     border-width: 2px !important;
     border-radius: 0.65rem !important;
-    font-size: 10px !important;
-    line-height: 1.1 !important;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   }
   .pdv-wiz-topbar-btn--emerald {
@@ -1216,9 +1267,10 @@
   @media (max-width: 1400px) and (max-height: 800px) {
     .pdv-action-btn { min-height: 34px; border-radius: .8rem; }
     #pdv-topbar-compact { gap: .35rem; }
-    #pdv-topbar-compact .pdv-wiz-topbar-btn { padding: .25rem .45rem !important; font-size: 9px !important; min-height: 1.95rem !important; }
-    #pdv-stepper .pdv-step-nav { padding: .25rem .45rem !important; min-height: 1.95rem !important; font-size: 10px !important; }
-    #pdv-stepper .pdv-wiz-stepper-num { min-width: 1.15rem; font-size: 8px; }
+    #pdv-topbar-compact { --pdv-topbar-fs: 10px; }
+    #pdv-topbar-compact .pdv-wiz-topbar-btn { padding: .3rem .5rem !important; min-height: 2.15rem !important; }
+    #pdv-stepper .pdv-step-nav { padding: .3rem .5rem !important; min-height: 2.15rem !important; }
+    #pdv-stepper .pdv-wiz-stepper-num { min-width: 1.25rem; }
     #pdv-step1-layout { grid-template-columns: minmax(0, 1fr) 13.25rem !important; gap: .35rem; }
     #pdv-step1-client-bar { padding: .4rem .6rem !important; }
     #pdv-step1-search-wrap { padding: .45rem .6rem !important; }
@@ -1227,18 +1279,22 @@
     #pdv-product-autocomplete { max-height: 16rem !important; }
     #pdv-product-autocomplete .pdv-ac-head,
     #pdv-product-autocomplete .pdv-ac-row {
-      grid-template-columns: 2.35rem minmax(0, 1fr) 4.25rem minmax(3.25rem, 0.85fr) 4.85rem !important;
-      column-gap: 0.3rem !important;
-      padding-left: 0.35rem !important;
-      padding-right: 0.35rem !important;
+      grid-template-columns: 2.65rem minmax(0, 1fr) 5.5rem minmax(4rem, 0.85fr) 5.75rem !important;
+      column-gap: 0.35rem !important;
+      padding-left: 0.4rem !important;
+      padding-right: 0.4rem !important;
     }
-    #pdv-product-autocomplete .pdv-ac-nome { font-size: 12px !important; }
-    #pdv-product-autocomplete .pdv-ac-gm { font-size: 11px !important; }
-    #pdv-product-autocomplete .pdv-ac-marca { font-size: 10px !important; }
-    #pdv-product-autocomplete .pdv-ac-preco-box { min-height: 2.1rem !important; font-size: 0.95rem !important; }
+    #pdv-product-autocomplete .pdv-ac-nome { font-size: 14px !important; }
+    #pdv-product-autocomplete .pdv-ac-gm { min-height: 2.35rem !important; font-size: 13px !important; }
+    #pdv-product-autocomplete .pdv-ac-marca { font-size: 12px !important; }
+    #pdv-product-autocomplete .pdv-ac-preco-box { min-height: 2.35rem !important; font-size: 1.1rem !important; }
     #pdv-product-cart-list { padding: .35rem .45rem !important; }
     .pdv-cart-row { column-gap: .35rem !important; }
-    .pdv-cart-gm { font-size: 12px !important; width: 4.75rem !important; }
+    .pdv-cart-nome { font-size: 14px !important; }
+    .pdv-cart-gm {
+      min-height: 2.85rem !important;
+      font-size: 15px !important;
+    }
     .pdv-cart-row {
       grid-template-columns: 2.75rem minmax(0, 1fr);
       row-gap: 0.4rem;
@@ -1246,14 +1302,14 @@
     .pdv-cart-row > span:first-child { width: 2.75rem; height: 2.75rem; }
     .pdv-cart-row-tools {
       grid-column: 1 / -1;
-      justify-content: flex-end;
-      flex-wrap: wrap;
+      grid-template-columns: 6.25rem auto auto auto;
+      justify-content: end;
       row-gap: 0.35rem;
     }
     .pdv-cart-qty-wrap button { min-width: 2.35rem; min-height: 2.35rem; font-size: 1.1rem; }
     .pdv-cart-qty-input { width: 2.85rem; min-height: 2.35rem; font-size: .85rem; }
     .pdv-cart-price-box { height: 2.75rem; }
-    .pdv-cart-price-input { width: 4.5rem; font-size: 1.05rem; }
+    .pdv-cart-price-input { width: 4.75rem; font-size: 1.15rem; }
     .pdv-cart-price-wrap { min-width: 5.75rem; }
     .pdv-cart-empty { padding-top: 1rem !important; padding-bottom: 1rem !important; }
     #pdv-step1-side .pdv-step1-subtotal-value { font-size: 1.75rem !important; }
