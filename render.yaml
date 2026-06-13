@@ -5,23 +5,27 @@
 # Cron de ping Mongo: roda em processo separado (não atende usuários do PDV). Anexe ao
 # serviço cron o mesmo Environment Group do web (Mongo, DATABASE_URL, DJANGO_SETTINGS_MODULE, etc.).
 services:
+  # PRODUÇÃO — branch `producao` (no GitHub aparece com esse nome).
   - type: web
     name: agro-consulta
+    branch: producao
     runtime: python
     buildCommand: pip install -r requirements.txt && python manage.py migrate --noinput && python manage.py collectstatic --noinput
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --preload --timeout 180 --graceful-timeout 45 --no-control-socket --access-logfile - --error-logfile -
-    # Preferir /healthz (resposta mínima). No painel Render, confira se o health check não aponta para ``/``.
     healthCheckPath: /healthz
-    # Produção com domínio próprio: defina AGRO_CANONICAL_ORIGIN=https://www.example.com.br (redirect 301 do host ``onrender.com`` do serviço). Previews de PR não redirecionam.
-    # Redis (opcional): crie um Redis no Render, anexe ao mesmo env do web — injeta REDIS_URL;
-    # cache Django fica compartilhado e o PDV pode usar snapshot curto de /api/pdv/saldos/.
-    # Para fechar o painel e exigir login: defina AGRO_PUBLIC_DASHBOARD=false no Environment.
+    # Produção com domínio próprio: AGRO_CANONICAL_ORIGIN=https://www.example.com.br
+    # Redis (opcional): REDIS_URL no mesmo env do web.
+    # Painel fechado: AGRO_PUBLIC_DASHBOARD=false
 
-  # Homolog desvinculação ERP (opcional — criar manualmente no painel Render):
-  # - type: web
-  #   name: agro-consulta-staging
-  #   branch: feat/desvincula-erp
-  #   env: DATABASE_URL (Postgres NOVO), AGRO_ERP_PEDIDOS_DRY_RUN=true, AGRO_FONTE_CATALOGO=legacy
+  # TESTE — commits do Cursor na branch `teste`.
+  - type: web
+    name: agro-consulta-teste
+    branch: teste
+    runtime: python
+    buildCommand: pip install -r requirements.txt && python manage.py migrate --noinput && python manage.py collectstatic --noinput
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --preload --timeout 180 --graceful-timeout 45 --no-control-socket --access-logfile - --error-logfile -
+    healthCheckPath: /healthz
+    # Ex.: AGRO_ERP_PEDIDOS_DRY_RUN=true, AGRO_FONTE_CATALOGO=legacy (homolog desvinculação ERP)
 
   - type: cron
     name: agro-estoque-mongo-ping

@@ -105,27 +105,43 @@
       animation: none !important;
     }
   }
-  /* Pop-up busca cliente: 16×9, até 75% da tela */
+  /* Pop-up busca cliente: 16×9, até 90% da tela */
   .pdv-client-picker-16x9 {
-    width: min(75vw, calc(75vh * 16 / 9));
-    height: min(75vh, calc(75vw * 9 / 16));
-    max-width: 96vw;
-    max-height: 96vh;
+    width: min(90vw, calc(90vh * 16 / 9));
+    height: min(90vh, calc(90vw * 9 / 16));
+    max-width: 98vw;
+    max-height: 98vh;
   }
-  /* Pop-up edição: 16×9, até 60% da tela */
+  /* Pop-up edição: 16×9, até 85% da tela */
   .pdv-client-edit-panel {
-    width: min(60vw, calc(60vh * 16 / 9));
-    height: min(60vh, calc(60vw * 9 / 16));
-    max-width: 96vw;
-    max-height: 96vh;
+    width: min(85vw, calc(85vh * 16 / 9));
+    height: min(85vh, calc(85vw * 9 / 16));
+    max-width: 98vw;
+    max-height: 98vh;
+  }
+  #pdv-quick-client-picker-hint {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   #pdv-quick-client-picker .pdv-client-result-name {
     font-size: clamp(1.05rem, 0.55vw + 0.95rem, 1.45rem);
     line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   #pdv-quick-client-picker .pdv-client-result-meta {
     font-size: clamp(0.95rem, 0.4vw + 0.85rem, 1.2rem);
     line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #pdv-quick-client-edit-overlay #pdv-quick-client-edit-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-label {
     font-size: clamp(0.75rem, 0.35vw + 0.65rem, 0.95rem);
@@ -330,9 +346,9 @@
   <div id="pdv-quick-client-edit-overlay" class="fixed inset-0 z-[136] hidden items-center justify-center bg-slate-950/55 p-1 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-client-edit-title">
     <div class="pdv-client-edit-panel flex flex-col overflow-hidden rounded-2xl border-[3px] border-emerald-500 bg-white shadow-2xl" role="document">
       <header class="flex shrink-0 items-center justify-between gap-3 border-b-2 border-emerald-100 bg-emerald-50 px-5 py-4">
-        <div class="min-w-0">
+        <div class="min-w-0 flex-1">
           <p class="text-[clamp(0.7rem,0.35vw+0.65rem,0.9rem)] font-black uppercase tracking-[0.18em] text-emerald-800">Editar cadastro</p>
-          <h3 id="pdv-quick-client-edit-title" class="truncate text-[clamp(1.15rem,0.55vw+1rem,1.55rem)] font-black text-slate-900">Cliente</h3>
+          <h3 id="pdv-quick-client-edit-title" class="min-w-0 truncate text-[clamp(1.15rem,0.55vw+1rem,1.55rem)] font-black text-slate-900">Cliente</h3>
         </div>
         <button type="button" id="pdv-quick-client-edit-fechar" class="inline-flex min-h-[3.25rem] min-w-[3.25rem] shrink-0 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-[clamp(1.5rem,0.8vw+1.2rem,2rem)] font-black leading-none text-slate-700 hover:border-red-300 hover:bg-red-50" title="Fechar · Esc" aria-label="Fechar edição">×</button>
       </header>

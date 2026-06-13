@@ -3500,6 +3500,7 @@
     function clientSearchResultRowHtml(cliente, idx) {
         var pk = cliente && cliente.cliente_agro_pk;
         var canEdit = pk != null && pk !== '';
+        var nomeFull = String(cliente.nome || '');
         var metaTel = cliente && String(cliente.telefone || '').trim();
         var metaEnd = cliente && String(cliente.endereco || '').trim();
         var meta = metaTel
@@ -3507,19 +3508,21 @@
             : metaEnd || 'Sem telefone cadastrado';
         return (
             '' +
-            '<div class="flex items-stretch gap-2 rounded-xl p-1" role="presentation" data-client-row-idx="' +
+            '<div class="flex min-w-0 items-stretch gap-2 rounded-xl p-1" role="presentation" data-client-row-idx="' +
             idx +
             '">' +
-            '<button type="button" role="option" class="min-w-0 flex-1 rounded-lg px-3 py-3.5 text-left hover:bg-emerald-50/80 focus:outline-none sm:px-4 sm:py-4" ' +
+            '<button type="button" role="option" class="pdv-client-result-btn min-w-0 flex-1 overflow-hidden rounded-lg px-3 py-3.5 text-left hover:bg-emerald-50/80 focus:outline-none sm:px-4 sm:py-4" ' +
             'data-select-client="' +
             escapeHtml(cliente.id) +
             '" data-client-list-idx="' +
             idx +
-            '" aria-selected="false">' +
+            '" aria-selected="false" title="' +
+            escapeHtml(nomeFull) +
+            '">' +
             '  <span class="pdv-client-result-name block font-black text-slate-900">' +
-            escapeHtml(cliente.nome || '') +
+            escapeHtml(nomeFull) +
             '</span>' +
-            '  <span class="pdv-client-result-meta mt-1 block truncate font-bold text-slate-500">' +
+            '  <span class="pdv-client-result-meta mt-1 block font-bold text-slate-500">' +
             escapeHtml(meta) +
             '</span>' +
             '</button>' +
@@ -3611,6 +3614,7 @@
         }
         if (dom.quickClientEditTitle) {
             dom.quickClientEditTitle.textContent = String(cliente.nome || 'Cliente');
+            dom.quickClientEditTitle.setAttribute('title', String(cliente.nome || ''));
         }
     }
 
