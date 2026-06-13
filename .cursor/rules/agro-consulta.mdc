@@ -28,9 +28,9 @@ Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**.
 
 ## TESTE vs PRODUÇÃO
 
-- **TESTE:** branch `teste` → Render `agro-consulta-teste`. Todo commit/push do assistente vai aqui.
-- **PRODUÇÃO:** branch `producao` → Render `agro-consulta`. Só merge/PR `teste` → `producao` quando o usuário pedir.
-- Nunca commitar direto em `producao`/`main`. Ver `docs/DEPLOY-AMBIENTES.md` e AGENTS.md §1.1.
+- **TESTE:** branch `teste` → Render staging. Commits do assistente vão aqui.
+- **PRODUÇÃO:** branch `producao` → Render produção. Só merge `teste`→`producao` quando o usuário pedir.
+- Ignorar `main`/principal para deploy. Ver `docs/DEPLOY-AMBIENTES.md`.
 
 ## Onde está o quê (rápido)
 

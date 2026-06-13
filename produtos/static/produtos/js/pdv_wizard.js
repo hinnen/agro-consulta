@@ -3484,11 +3484,8 @@
             var el = rows[i];
             var idx = parseInt(el.getAttribute('data-client-row-idx') || '-1', 10);
             var on = idx === clientListSelectIdx;
-            el.classList.toggle('ring-2', on);
-            el.classList.toggle('ring-emerald-400', on);
-            el.classList.toggle('bg-emerald-50', on);
-            var btn = el.querySelector('[data-select-client]');
-            if (btn) btn.setAttribute('aria-selected', on ? 'true' : 'false');
+            el.classList.toggle('pdv-client-row-selected', on);
+            el.setAttribute('aria-selected', on ? 'true' : 'false');
             if (on) {
                 try {
                     el.scrollIntoView({ block: 'nearest' });
@@ -3509,51 +3506,46 @@
             : '<span class="pdv-client-maps-falta">Maps Falta</span>';
         return (
             '' +
-            '<div class="flex min-w-0 items-stretch gap-2 rounded-xl p-1" role="presentation" data-client-row-idx="' +
+            '<tr class="pdv-client-results-data-row" role="option" data-client-row-idx="' +
             idx +
-            '">' +
-            '<button type="button" role="option" class="pdv-client-result-btn min-w-0 flex-1 overflow-hidden rounded-lg px-2 py-3 text-left hover:bg-emerald-50/80 focus:outline-none sm:px-3 sm:py-3.5" ' +
-            'data-select-client="' +
+            '" data-select-client="' +
             escapeHtml(cliente.id) +
             '" data-client-list-idx="' +
             idx +
             '" aria-selected="false" title="' +
             escapeHtml(nomeFull) +
             '">' +
-            '  <span class="pdv-client-results-grid">' +
-            '    <span class="pdv-client-result-name font-black text-slate-900">' +
+            '<td class="pdv-client-cell-name"><span class="pdv-client-result-name">' +
             escapeHtml(nomeFull) +
-            '</span>' +
-            '    <span class="pdv-client-result-tel">' +
+            '</span></td>' +
+            '<td class="pdv-client-cell-tel"><span class="pdv-client-result-tel">' +
             escapeHtml(telLabel) +
-            '</span>' +
-            '    <span>' +
+            '</span></td>' +
+            '<td class="pdv-client-cell-maps">' +
             mapsHtml +
-            '</span>' +
-            '  </span>' +
-            '</button>' +
+            '</td>' +
+            '<td class="pdv-client-cell-edit">' +
             (canEdit
-                ? '<button type="button" class="shrink-0 self-center rounded-xl border-2 border-sky-300 bg-sky-50 px-4 py-3 text-[clamp(0.75rem,0.35vw+0.65rem,0.95rem)] font-black uppercase tracking-wide text-sky-900 hover:bg-sky-100 min-h-[3rem]" ' +
+                ? '<button type="button" class="rounded-xl border-2 border-sky-300 bg-sky-50 px-3 py-2 text-[clamp(0.75rem,0.35vw+0.65rem,0.95rem)] font-black uppercase tracking-wide text-sky-900 hover:bg-sky-100 min-h-[2.75rem]" ' +
                   'data-edit-client="' +
                   escapeHtml(String(pk)) +
                   '" data-client-list-idx="' +
                   idx +
                   '" title="Editar cadastro do cliente">Editar</button>'
                 : '') +
-            '</div>'
+            '</td>' +
+            '</tr>'
         );
     }
 
     function clientSearchResultsHeaderHtml() {
         return (
-            '<div class="pdv-client-results-head flex min-w-0 items-center gap-2 px-1" aria-hidden="true">' +
-            '<div class="pdv-client-results-grid min-w-0 flex-1 px-2 sm:px-3">' +
-            '<span>Nome</span>' +
-            '<span>Telefone</span>' +
-            '<span>Maps</span>' +
-            '</div>' +
-            '<span class="shrink-0 px-4 text-transparent select-none min-h-[3rem] min-w-[5.5rem] sm:min-w-[6rem]" aria-hidden="true">Editar</span>' +
-            '</div>'
+            '<thead><tr>' +
+            '<th scope="col">Nome</th>' +
+            '<th scope="col">Telefone</th>' +
+            '<th scope="col">Maps</th>' +
+            '<th scope="col"><span class="sr-only">Ações</span></th>' +
+            '</tr></thead><tbody>'
         );
     }
 
@@ -3570,12 +3562,14 @@
             clientListSelectIdx = 0;
         }
         dom.quickClientResults.innerHTML =
+            '<table class="pdv-client-results-table">' +
             clientSearchResultsHeaderHtml() +
             clientes
             .map(function (cliente, idx) {
                 return clientSearchResultRowHtml(cliente, idx);
             })
-            .join('');
+            .join('') +
+            '</tbody></table>';
         highlightClientListRow();
     }
 
