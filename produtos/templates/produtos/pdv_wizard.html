@@ -1,7 +1,7 @@
 {% extends "layouts/base_pdv.html" %}
 {% load static %}
 
-{% block pdv_title %}SisVale | PDV Wizard{% endblock %}
+{% block pdv_title %}SisVale | PDV{% endblock %}
 {% block body_class %}bg-slate-100 text-slate-900 h-screen overflow-hidden{% endblock %}
 {% block main_class %}h-full min-h-0 overflow-hidden{% endblock %}
 {% block pdv_shell_class %}flex h-full min-h-0 flex-col bg-slate-100{% endblock %}
@@ -14,18 +14,19 @@
   .pdv-wizard-scroll::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.55); border-radius: 999px; }
   .pdv-step-panel[hidden] { display: none !important; }
   .pdv-step-badge-active { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 10px 28px rgba(16, 185, 129, 0.22); }
-  .pdv-step-badge-done { background: #ecfdf5; color: #047857; border-color: rgba(16, 185, 129, 0.22); }
+  .pdv-step-badge-done { background: #d1fae5; color: #065f46; border-color: #059669; border-width: 2px; }
   .pdv-product-card:hover { border-color: rgba(16, 185, 129, 0.35); box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08); }
   .pdv-summary-sticky { top: 0.5rem; }
-  .pdv-input { width: 100%; border-radius: 1rem; border: 2px solid #e2e8f0; background: #fff; padding: 0.72rem 0.9rem; font-size: 0.95rem; font-weight: 700; color: #0f172a; outline: none; transition: border-color .15s ease, box-shadow .15s ease; }
-  .pdv-input:focus { border-color: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.14); }
-  .pdv-soft-card { border: 1px solid #e2e8f0; background: linear-gradient(180deg, #fff, #f8fafc); }
+  .pdv-input { width: 100%; border-radius: 1rem; border: 2px solid #94a3b8; background: #fff; padding: 0.72rem 0.9rem; font-size: 0.95rem; font-weight: 700; color: #020617; outline: none; transition: border-color .15s ease, box-shadow .15s ease; }
+  .pdv-input::placeholder { color: #475569; opacity: 1; }
+  .pdv-input:focus { border-color: #059669; box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.22); }
+  .pdv-soft-card { border: 1px solid #cbd5e1; background: linear-gradient(180deg, #fff, #f8fafc); }
   .pdv-action-btn { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 40px; border-radius: .95rem; font-weight: 900; text-transform: uppercase; letter-spacing: .03em; transition: transform .12s ease, background .12s ease, border-color .12s ease; }
   .pdv-action-btn:active { transform: translateY(1px); }
   .pdv-cart-row { flex-wrap: nowrap; align-items: center; }
   .pdv-cart-row .pdv-cart-line { line-height: 1.2; }
   .pdv-product-results-grid { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-  .pdv-product-results-empty { display: flex; min-height: 12rem; align-items: center; justify-content: center; border: 1px dashed #cbd5e1; border-radius: 1.25rem; background: linear-gradient(180deg, #fff, #f8fafc); color: #64748b; font-size: .9rem; font-weight: 700; text-align: center; padding: 1rem; }
+  .pdv-product-results-empty { display: flex; min-height: 12rem; align-items: center; justify-content: center; border: 2px dashed #94a3b8; border-radius: 1.25rem; background: linear-gradient(180deg, #fff, #f8fafc); color: #334155; font-size: .9rem; font-weight: 700; text-align: center; padding: 1rem; }
   #pdv-step1-side .pdv-step1-side-card { min-width: 0; }
   #pdv-step1-side .pdv-side-money { white-space: nowrap; }
   #pdv-product-search-wrap.pdv-search-awaiting #pdv-product-search {
@@ -355,6 +356,116 @@
     min-height: 4.25rem;
   }
   #pdv-pack-entrega-print { display: none !important; }
+  /* Contraste — leitura em telas de loja */
+  #pdv-wizard-shell .text-slate-400 { color: #64748b !important; }
+  #pdv-wizard-shell .text-slate-500 { color: #475569 !important; }
+  #pdv-wizard-shell .text-slate-600 { color: #334155 !important; }
+  #pdv-wizard-shell .border-slate-200 { border-color: #cbd5e1 !important; }
+  #pdv-wizard-shell .border-slate-100 { border-color: #e2e8f0 !important; }
+  #pdv-topbar-compact .pdv-step-nav {
+    border-width: 2px;
+    border-color: #94a3b8;
+    background: #fff;
+  }
+  #pdv-topbar-compact .pdv-step-nav:not(.pdv-step-badge-active):not(.pdv-step-badge-done):hover {
+    border-color: #64748b;
+    background: #f8fafc;
+  }
+  #pdv-topbar-compact .pdv-step-nav kbd {
+    border-color: #94a3b8 !important;
+    background: #f1f5f9 !important;
+    color: #1e293b !important;
+  }
+  #pdv-topbar-compact .pdv-action-btn {
+    border-width: 2px;
+  }
+  #pdv-topbar-compact #pdv-topbar-entregas-btn {
+    border-color: #94a3b8 !important;
+    color: #1e293b !important;
+    background: #fff !important;
+  }
+  #pdv-step1-client-bar {
+    border-color: #0284c7 !important;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.22);
+  }
+  #pdv-step1-client-bar #pdv-quick-client-hit {
+    border-color: #0369a1 !important;
+  }
+  #pdv-step1-client-bar .text-sky-700,
+  #pdv-step1-client-bar .text-sky-800 {
+    color: #0c4a6e !important;
+  }
+  #pdv-step1-search-wrap {
+    border-color: #d97706 !important;
+    background: linear-gradient(180deg, #fffbeb 0%, #fff 28%) !important;
+  }
+  #pdv-step1-search-wrap #pdv-product-search {
+    border-color: #b45309 !important;
+    background: #fff !important;
+    color: #020617;
+  }
+  #pdv-step1-search-wrap #pdv-product-search::placeholder {
+    color: #57534e;
+    opacity: 1;
+  }
+  #pdv-step1-search-wrap #pdv-product-search + span {
+    border-color: #b45309 !important;
+    background: #fef3c7 !important;
+    color: #78350f !important;
+  }
+  #pdv-step1-cart-wrap {
+    border-color: #ea580c !important;
+    background: linear-gradient(180deg, #fff7ed 0%, #fff 24%) !important;
+  }
+  #pdv-step1-cart-wrap #pdv-product-cart-list {
+    border-color: #c2410c !important;
+  }
+  #pdv-step1-cart-wrap .pdv-cart-empty {
+    border-color: #fb923c !important;
+    color: #57534e !important;
+    background: #fff7ed !important;
+  }
+  #pdv-step1-cart-wrap .pdv-cart-row {
+    border-color: #94a3b8 !important;
+  }
+  #pdv-step1-side .text-slate-300 {
+    color: #e2e8f0 !important;
+  }
+  #pdv-step1-side .text-orange-200 {
+    color: #fed7aa !important;
+  }
+  #pdv-step1-budget-snippet-wrap .text-slate-500,
+  #pdv-step1-budget-snippet-wrap .text-slate-600 {
+    color: #334155 !important;
+  }
+  #pdv-step1-entregas-btn {
+    border-color: #94a3b8 !important;
+    color: #1e293b !important;
+    background: #f8fafc !important;
+  }
+  #pdv-product-autocomplete .text-slate-500 {
+    color: #334155 !important;
+  }
+  #pdv-quick-client-picker .pdv-client-results-table th {
+    border-bottom-color: #94a3b8;
+    background: #f1f5f9;
+    color: #334155;
+  }
+  #pdv-quick-client-picker .pdv-client-results-data-row {
+    border-bottom-color: #cbd5e1;
+  }
+  #pdv-caixa-fechado-aviso {
+    background: #fef3c7 !important;
+    border-bottom-color: #b45309 !important;
+    color: #451a03 !important;
+  }
+  #pdv-caixa-fechado-aviso .text-xs,
+  #pdv-caixa-fechado-aviso .text-sm {
+    color: inherit;
+  }
+  #pdv-caixa-fechado-aviso span.font-bold {
+    color: #78350f !important;
+  }
   @media print {
     body.print-pdv-entrega-pack > *:not(#pdv-pack-entrega-print) { display: none !important; }
     body.print-pdv-entrega-pack #pdv-pack-entrega-print {
@@ -407,9 +518,9 @@
 {{ pdv_reabrir_from_consulta|json_script:"pdv-wizard-reabrir-draft" }}
 {% endif %}
 
-<div class="flex min-h-0 flex-1 flex-col overflow-hidden px-1 py-1 sm:px-1.5 sm:py-1.5">
-    <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-      <header class="shrink-0 border-b border-slate-200 bg-white/95">
+<div id="pdv-wizard-shell" class="flex min-h-0 flex-1 flex-col overflow-hidden px-1 py-1 sm:px-1.5 sm:py-1.5">
+    <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] border-2 border-slate-300 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+      <header class="shrink-0 border-b-2 border-slate-300 bg-white">
         {% if not caixa_aberto %}
         <div id="pdv-caixa-fechado-aviso" class="flex flex-wrap items-center justify-center gap-2 px-2 py-2 sm:px-3 bg-amber-50 border-b-2 border-amber-400 text-amber-950" role="alert">
           <span class="text-sm sm:text-base font-black uppercase tracking-wide">Caixa fechado</span>
@@ -422,8 +533,7 @@
         <div class="flex flex-nowrap items-center gap-1.5 min-w-0 px-2.5 py-1.5 sm:px-3" id="pdv-topbar-compact">
           <div class="pdv-wizard-scroll flex flex-nowrap items-center gap-1.5 overflow-x-auto min-w-0 flex-1">
             <div class="shrink-0 whitespace-nowrap text-sm font-black tracking-tight text-slate-900">
-              <span class="text-[9px] uppercase tracking-[0.22em] text-orange-600">PDV</span>
-              <span class="ml-1">Wizard</span>
+              <span class="text-[9px] uppercase tracking-[0.22em] text-orange-700">PDV</span>
             </div>
             <div class="flex flex-nowrap items-center gap-1" id="pdv-stepper">
               <button type="button" class="pdv-step-nav shrink-0 rounded-xl border border-slate-200 px-2 py-1 text-left" data-step-nav="produtos" title="Ir para etapa 1 · Alt+1">
