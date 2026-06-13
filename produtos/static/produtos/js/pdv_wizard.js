@@ -2434,40 +2434,48 @@
         return jsonPost(url, { venda_id: vendaId != null ? vendaId : null });
     }
 
+    function productAutocompleteHeaderHtml() {
+        return (
+            '<div class="pdv-ac-head" aria-hidden="true">' +
+            '<span></span><span>Produto</span><span>GM</span><span>Marca</span><span>Preço</span>' +
+            '</div>'
+        );
+    }
+
     function productAutocompleteHtml(produto, index) {
         var selected = index === productSelectionIndex;
         var gm = displayCodigoGm(produto);
-        var marca = String(produto.marca || '').trim();
-        var sub = marca ? gm + ' · ' + marca : gm;
+        var marca = String(produto.marca || '').trim() || '—';
         var imgUrl = String(produto.imagem || assets.placeholderProduto || '').trim();
         var pid = resolveProdutoId(produto);
         return (
             '' +
-            '<button type="button" class="flex w-full items-stretch gap-2 rounded-xl px-2 py-2 text-left ' +
-            (selected ? 'bg-emerald-50 ring-2 ring-emerald-200' : 'hover:bg-emerald-50') +
+            '<button type="button" class="pdv-ac-row ' +
+            (selected ? 'pdv-ac-row-selected' : '') +
             '" data-add-product="' +
             escapeHtml(pid) +
             '" data-autocomplete-index="' +
             index +
             '">' +
-            '  <span class="relative h-11 w-11 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border border-slate-200 bg-slate-50 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" data-pdv-photo-zoom="' +
+            '  <span class="pdv-ac-thumb" data-pdv-photo-zoom="' +
             escapeHtml(imgUrl) +
             '" tabindex="-1" role="presentation" title="Ampliar foto">' +
             '    <img src="' +
             escapeHtml(imgUrl) +
-            '" alt="" class="pointer-events-none h-full w-full object-cover">' +
+            '" alt="">' +
             '  </span>' +
-            '  <span class="flex min-w-0 flex-1 flex-col justify-center gap-0.5 overflow-hidden">' +
-            '    <span class="truncate text-sm font-black text-slate-900">' +
+            '  <span class="pdv-ac-nome">' +
             escapeHtml(produto.nome || '') +
             '</span>' +
-            '    <span class="truncate text-[10px] font-bold text-slate-500">' +
-            escapeHtml(sub) +
+            '  <span class="pdv-ac-gm">' +
+            escapeHtml(gm) +
             '</span>' +
-            '  </span>' +
-            '  <span class="shrink-0 self-center text-sm font-black text-emerald-700">' +
-            formatMoney(produto.preco_venda || 0) +
+            '  <span class="pdv-ac-marca">' +
+            escapeHtml(marca) +
             '</span>' +
+            '  <span class="pdv-ac-preco"><span class="pdv-ac-preco-box">' +
+            escapeHtml(formatMoney(produto.preco_venda || 0)) +
+            '</span></span>' +
             '</button>'
         );
     }
@@ -2500,9 +2508,11 @@
         }
         if (dom.productAutocomplete) {
             if (lastProducts.length) {
-                dom.productAutocomplete.innerHTML = lastProducts.slice(0, AUTOCOMPLETE_LIMIT).map(function (produto, index) {
-                    return productAutocompleteHtml(produto, index);
-                }).join('');
+                dom.productAutocomplete.innerHTML =
+                    productAutocompleteHeaderHtml() +
+                    lastProducts.slice(0, AUTOCOMPLETE_LIMIT).map(function (produto, index) {
+                        return productAutocompleteHtml(produto, index);
+                    }).join('');
                 dom.productAutocomplete.classList.remove('hidden');
             } else {
                 dom.productAutocomplete.innerHTML = '';
