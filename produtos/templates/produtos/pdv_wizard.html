@@ -448,6 +448,216 @@
     color: #64748b;
     max-width: 16rem;
   }
+  /* --- PDV wizard: padrão compartilhado (etapas 2–4, alinhado à etapa 1) --- */
+  .pdv-wiz-step-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border-radius: 1rem;
+    border: 2px solid;
+    padding: 0.5rem 0.625rem;
+    box-shadow: none;
+  }
+  .pdv-wiz-step-bar .pdv-wiz-step-etapa {
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: #475569;
+  }
+  .pdv-wiz-step-bar .pdv-wiz-step-title {
+    font-size: 1.125rem;
+    font-weight: 900;
+    color: #0f172a;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+  .pdv-wiz-step-bar .pdv-wiz-help {
+    min-height: 38px;
+    min-width: 38px;
+    border-radius: 0.75rem;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    color: #475569;
+    font-size: 0.875rem;
+    font-weight: 900;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  .pdv-wiz-step-bar .pdv-wiz-help:hover { background: #f8fafc; }
+  .pdv-wiz-step-bar--orange {
+    border-color: #fdba74;
+    background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+  }
+  .pdv-wiz-step-bar--sky {
+    border-color: #7dd3fc;
+    background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
+  }
+  .pdv-wiz-step-bar--green {
+    border-color: #6ee7b7;
+    background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+  }
+  .pdv-wiz-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border: 2px solid #bae6fd;
+    border-radius: 1.15rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  }
+  .pdv-wiz-panel--orange { border-color: #fdba74; }
+  .pdv-wiz-panel--green { border-color: #6ee7b7; }
+  .pdv-wiz-block {
+    padding: 0.65rem 0.75rem 0.75rem;
+  }
+  .pdv-wiz-block--sky {
+    background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-bottom: 2px solid #bae6fd;
+  }
+  .pdv-wiz-block--green {
+    background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 100%);
+  }
+  .pdv-wiz-block--orange {
+    background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+    border-bottom: 2px solid #fdba74;
+  }
+  .pdv-wiz-block--amber {
+    background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+    border-bottom: 2px solid #fcd34d;
+  }
+  .pdv-wiz-block--slate {
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .pdv-wiz-block:last-child { border-bottom: none; }
+  .pdv-step1-block-head,
+  .pdv-wiz-block-head {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+  }
+  .pdv-step1-head-icon,
+  .pdv-wiz-head-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.55rem;
+    flex-shrink: 0;
+  }
+  .pdv-step1-head-icon svg,
+  .pdv-wiz-head-icon svg { width: 1.15rem; height: 1.15rem; }
+  .pdv-step1-block-title,
+  .pdv-wiz-block-title {
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+  }
+  .pdv-wiz-block-title--sky { color: #0369a1; }
+  .pdv-wiz-block-title--green { color: #047857; }
+  .pdv-wiz-block-title--orange { color: #c2410c; }
+  .pdv-wiz-block-title--amber { color: #b45309; }
+  .pdv-wiz-block-title--slate { color: #334155; }
+  .pdv-wiz-head-icon--user { background: #0284c7; color: #fff; }
+  .pdv-wiz-head-icon--truck { background: #ea580c; color: #fff; }
+  .pdv-wiz-head-icon--route { background: #6366f1; color: #fff; }
+  .pdv-wiz-head-icon--payment { background: #059669; color: #fff; }
+  .pdv-wiz-head-icon--note { background: #64748b; color: #fff; }
+  .pdv-wiz-head-icon--address { background: #0284c7; color: #fff; }
+  .pdv-wiz-head-icon--review { background: #059669; color: #fff; }
+  .pdv-wiz-inner-card {
+    border: 2px solid #e2e8f0;
+    border-radius: 0.85rem;
+    background: #fff;
+    padding: 0.75rem;
+  }
+  .pdv-wiz-inner-card--dashed {
+    border-style: dashed;
+    background: rgba(255, 255, 255, 0.88);
+  }
+  .pdv-wiz-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2.25rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.65rem;
+    border: 2px solid;
+    background: #fff;
+    font-size: 0.8125rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  .pdv-wiz-action-btn--orange {
+    border-color: #fb923c;
+    color: #c2410c;
+  }
+  .pdv-wiz-action-btn--orange:hover { background: #fff7ed; }
+  .pdv-wiz-action-btn--slate {
+    border-color: #cbd5e1;
+    color: #475569;
+  }
+  .pdv-wiz-action-btn--slate:hover { background: #f8fafc; }
+  .pdv-wiz-choice {
+    display: flex;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 0.85rem;
+    border: 2px solid;
+    padding: 0.75rem 1rem;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    transition: border-color 0.12s ease;
+  }
+  .pdv-wiz-choice--green {
+    border-color: #6ee7b7;
+  }
+  .pdv-wiz-choice--green:hover { border-color: #34d399; }
+  .pdv-wiz-choice--orange {
+    border-color: #fdba74;
+  }
+  .pdv-wiz-choice--orange:hover { border-color: #fb923c; }
+  .pdv-wiz-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .pdv-wiz-toolbar label {
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #475569;
+  }
+  #pdv-step-pagamento-root > .pdv-wiz-step-bar { flex-shrink: 0; }
+  #pdv-step-pagamento-root .pdv-pay-left-col.pdv-wiz-panel { border-color: #6ee7b7; }
+  #pdv-step-pagamento-root .pdv-pay-right-panel.pdv-wiz-panel { border-color: #6ee7b7; }
+  #pdv-step-pagamento-root #pdv-payment-forma-atual-wrap {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 2px solid #e2e8f0;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  }
+  #pdv-step-pagamento-root #pdv-pay-footer {
+    border-top-color: #6ee7b7;
+    background: linear-gradient(180deg, #fff 0%, #ecfdf5 100%);
+  }
+  #pdv-step-pagamento-root .pdv-pay-right-panel .pdv-wiz-block-head { position: relative; }
+  #pdv-step-pagamento-root .pdv-pay-right-panel details > div {
+    right: 0;
+    left: auto;
+  }
+  #pdv-step-pagamento-root .pdv-pay-right-scroll {
+    background: linear-gradient(180deg, rgba(236, 253, 245, 0.65) 0%, #fff 45%);
+  }
   #pdv-step1-client-bar .pdv-step1-client-action-btn {
     font-family: 'Inter', system-ui, sans-serif !important;
     font-size: 0.9375rem !important;
