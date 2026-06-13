@@ -20635,6 +20635,10 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
             numero=c.numero,
             complemento=c.complemento,
         )
+    plus = (getattr(c, "plus_code", None) or "").strip()
+    maps_manual = (getattr(c, "maps_url_manual", None) or "").strip()
+    if not plus and maps_manual and not maps_manual.lower().startswith(("http://", "https://")):
+        plus = maps_manual[:120]
     return {
         "id": pid,
         "nome": c.nome,
@@ -20649,9 +20653,9 @@ def _linha_clienteagro_pdv(c: ClienteAgro) -> dict:
         "uf": (c.uf or "").strip(),
         "cep": (c.cep or "").strip(),
         "complemento": (c.complemento or "").strip(),
-        "plus_code": (getattr(c, "plus_code", None) or "").strip(),
+        "plus_code": plus,
         "referencia_rural": (getattr(c, "referencia_rural", None) or "").strip(),
-        "maps_url_manual": (getattr(c, "maps_url_manual", None) or "").strip(),
+        "maps_url_manual": maps_manual if maps_manual.lower().startswith(("http://", "https://")) else "",
         "cliente_agro_pk": c.pk,
         "saldo_vale_credito": float(c.saldo_vale_credito or 0),
         "saldo_cashback": float(c.saldo_cashback or 0),
@@ -21185,12 +21189,28 @@ def _sincronizar_clienteagro_desde_modal_entrega(ent: PedidoEntrega, body: dict)
         cli.uf = str(body.get("cli_uf") or "").strip().upper()[:2]
     if body.get("cli_cep") is not None:
         cli.cep = str(body.get("cli_cep") or "").strip()[:12]
-    if body.get("plus_code") is not None:
-        cli.plus_code = str(body.get("plus_code") or "")[:120].strip()
-    if body.get("maps_url_manual") is not None:
-        cli.maps_url_manual = str(body.get("maps_url_manual") or "")[:600].strip()
+    plus_raw = str(body.get("plus_code") or "")[:120].strip()
+    maps_raw = str(body.get("maps_url_manual") or "")[:600].strip()
+    if body.get("plus_code") is not None or body.get("maps_url_manual") is not None:
+        if plus_raw:
+            cli.plus_code = plus_raw
+        elif maps_raw and not maps_raw.lower().startswith(("http://", "https://")):
+            cli.plus_code = maps_raw[:120]
+        else:
+            cli.plus_code = ""
+        cli.maps_url_manual = maps_raw if maps_raw.lower().startswith(("http://", "https://")) else ""
     if body.get("referencia_rural") is not None:
         cli.referencia_rural = str(body.get("referencia_rural") or "")[:300].strip()
+    if cli._tem_campos_endereco_estruturados():
+        cli.endereco = compor_endereco_resumo_cliente(
+            cli.cep,
+            cli.uf,
+            cli.cidade,
+            cli.bairro,
+            cli.logradouro,
+            cli.numero,
+            cli.complemento,
+        )[:500]
     cli.editado_local = True
     cli.save()
     ent_updated = False

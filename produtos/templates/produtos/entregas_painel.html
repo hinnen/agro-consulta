@@ -450,6 +450,7 @@
       id: entrega.id,
       plus_code: dpol.plus_code,
       maps_url_manual: dpol.maps_url_manual,
+      telefone: String(entrega.telefone || '').trim(),
       sincronizar_cliente: true,
       cliente_agro_id: entrega.cliente_agro_id != null && entrega.cliente_agro_id !== '' ? entrega.cliente_agro_id : null,
     };
@@ -483,11 +484,8 @@
     if (/^https?:\/\//i.test(val)) return { plus_code: '', maps_url_manual: val.slice(0, 600) };
     var p = plusCodeEstritoParaStatus(val);
     if (!p) return { plus_code: '', maps_url_manual: val.slice(0, 600) };
-    if (isPlusCodeCurtoPuro(p)) {
-      // Curto válido depende da localidade; mantém texto completo no campo Maps.
-      return { plus_code: '', maps_url_manual: val.slice(0, 600) };
-    }
-    return { plus_code: p, maps_url_manual: '' };
+    // Plus válido (curto com cidade ou global): texto completo em plus_code (cadastro/PDV leem este campo).
+    return { plus_code: val.slice(0, 120), maps_url_manual: '' };
   }
 
   function valorExibirPlusOuLink(e) {
@@ -2156,6 +2154,10 @@
         EDLOC_UF_PADRAO,
       cli_cep: cliCep,
     };
+    if (caid != null && caid !== '' || telDig.length >= 8) {
+      payload.sincronizar_cliente = true;
+      payload.cliente_agro_id = caid != null && caid !== '' ? caid : null;
+    }
     postAtualizar(payload).then(function (j) {
       if (j.ok) {
         fecharModalEditLocal();
