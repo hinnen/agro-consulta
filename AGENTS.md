@@ -19,12 +19,12 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 
 | Ambiente | Branch | Render |
 | -------- | ------ | ------ |
-| **TESTE** | `teste` | `agro-consulta-teste` |
-| **PRODUÇÃO** | `producao` | `agro-consulta` |
+| **TESTE** | `teste` | agro-consulta-staging |
+| **PRODUÇÃO** | `producao` | Sistvale - Produção |
 
-- **Entregas do Cursor:** commit e push **somente** em `teste`.
-- **Produção:** merge/PR `teste` → `producao` **apenas** quando o usuário pedir explicitamente.
-- Push em `teste` **não** altera produção. Ver **`docs/DEPLOY-AMBIENTES.md`**.
+- Cursor: commit/push **só** em `teste`.
+- Produção: merge `teste` → `producao` **só** quando o usuário pedir.
+- **`main` não entra no deploy.** Ver `docs/DEPLOY-AMBIENTES.md`.
 
 ---
 
