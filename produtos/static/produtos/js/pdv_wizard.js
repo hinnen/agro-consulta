@@ -301,6 +301,10 @@
     var clientListSelectIdx = -1;
     var quickClientEditPk = null;
     var quickClientEditListIdx = -1;
+    var quickClientEditBairroRuralExpandido = false;
+    var quickClientGeocodeTimer = null;
+    var quickClientGeocodeSeq = 0;
+    var quickClientGeocodeLastQ = '';
     var clientSearchSeq = 0;
     var lastClientSearchQuery = '';
     var AUTOCOMPLETE_LIMIT = 8;
@@ -2680,6 +2684,280 @@
         fill(dom.clienteBairro);
     }
 
+    function normalizarBuscaBairro(s) {
+        return String(s || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function todosBairrosJacupiOrdem() {
+        var urban = bairrosEntrega.urbanos || [];
+        var rural = bairrosEntrega.rurais || [];
+        return urban.concat(rural);
+    }
+
+    function filtrarBairrosJacupiPorTexto(arr, q) {
+        var nq = normalizarBuscaBairro(q);
+        if (!nq) return arr.slice();
+        return arr.filter(function (nome) {
+            return normalizarBuscaBairro(nome).indexOf(nq) >= 0;
+        });
+    }
+
+    function canonicalBairroJacupiSePossivel(txt) {
+        txt = String(txt || '').trim();
+        if (!txt) return '';
+        var nt = normalizarBuscaBairro(txt);
+        var all = todosBairrosJacupiOrdem();
+        for (var i = 0; i < all.length; i++) {
+            if (normalizarBuscaBairro(all[i]) === nt) return all[i];
+        }
+        return txt;
+    }
+
+    /** Só aceita bairro da lista interna; fora dela → vazio (ex.: retorno do Plus Code). */
+    function bairroListaJacupiOuVazio(txt) {
+        txt = String(txt || '').trim();
+        if (!txt) return '';
+        var nt = normalizarBuscaBairro(txt);
+        var all = todosBairrosJacupiOrdem();
+        for (var i = 0; i < all.length; i++) {
+            if (normalizarBuscaBairro(all[i]) === nt) return all[i];
+        }
+        return '';
+    }
+
+    function quickClientEditMissingInputs() {
+        return [
+            dom.quickClientEditNome,
+            dom.quickClientEditWhatsapp,
+            dom.quickClientEditLogradouro,
+            dom.quickClientEditNumero,
+            dom.quickClientEditBairro,
+            dom.quickClientEditCidade,
+            dom.quickClientEditUf,
+            dom.quickClientEditCep,
+        ];
+    }
+
+    function clearQuickClientEditMissingHighlights() {
+        if (!dom.quickClientEditOverlay) return;
+        dom.quickClientEditOverlay.querySelectorAll('.pdv-client-edit-missing').forEach(function (node) {
+            node.classList.remove('pdv-client-edit-missing');
+        });
+    }
+
+    function refreshQuickClientEditMissingHighlights() {
+        if (!dom.quickClientEditOverlay || dom.quickClientEditOverlay.classList.contains('hidden')) return;
+        quickClientEditMissingInputs().forEach(function (el) {
+            if (!el) return;
+            var wrap = el.closest('.pdv-client-edit-field');
+            if (!wrap) return;
+            wrap.classList.toggle('pdv-client-edit-missing', !String(el.value || '').trim());
+        });
+    }
+
+    function initQuickClientEditMissingListenersOnce() {
+        if (!dom.quickClientEditOverlay || dom.quickClientEditOverlay.dataset.missingBound === '1') return;
+        dom.quickClientEditOverlay.dataset.missingBound = '1';
+        quickClientEditMissingInputs().forEach(function (el) {
+            if (!el) return;
+            el.addEventListener('input', refreshQuickClientEditMissingHighlights);
+            el.addEventListener('change', refreshQuickClientEditMissingHighlights);
+        });
+    }
+
+    function fecharQuickClientEditBairroDd() {
+        var dd = document.getElementById('pdv-quick-client-edit-bairro-dd');
+        var inp = dom.quickClientEditBairro;
+        if (dd) {
+            dd.classList.add('hidden');
+            dd.innerHTML = '';
+        }
+        if (inp) inp.setAttribute('aria-expanded', 'false');
+    }
+
+    function renderQuickClientEditBairroDd() {
+        var dd = document.getElementById('pdv-quick-client-edit-bairro-dd');
+        var inp = dom.quickClientEditBairro;
+        if (!dd || !inp) return;
+        var urban = bairrosEntrega.urbanos || [];
+        var rural = bairrosEntrega.rurais || [];
+        var q = inp.value;
+        var nq = normalizarBuscaBairro(q);
+        var fu;
+        var fr;
+        if (nq) {
+            fu = filtrarBairrosJacupiPorTexto(urban, q);
+            fr = filtrarBairrosJacupiPorTexto(rural, q);
+        } else {
+            fu = urban.slice();
+            fr = quickClientEditBairroRuralExpandido ? rural.slice() : [];
+        }
+        var showVerMais = !nq && !quickClientEditBairroRuralExpandido && rural.length;
+        var showingRuraisBloco = fr.length && (nq || quickClientEditBairroRuralExpandido);
+        var h = '';
+        function row(nome) {
+            h +=
+                '<li role="option" data-bairro="' +
+                escapeHtml(nome) +
+                '" class="cursor-pointer border-b border-slate-50 text-slate-800 hover:bg-emerald-50 last:border-b-0">' +
+                escapeHtml(nome) +
+                '</li>';
+        }
+        fu.forEach(row);
+        if (showVerMais) {
+            h +=
+                '<li role="button" data-qc-bairro-ver-mais="1" class="cursor-pointer border-t border-slate-200 px-3 py-2 text-center text-[clamp(0.75rem,0.35vw+0.7rem,0.95rem)] font-black uppercase tracking-wide text-orange-600 hover:bg-orange-50">Ver mais (rurais)</li>';
+        }
+        if (showingRuraisBloco) {
+            h +=
+                '<li class="pointer-events-none border-t border-slate-200 bg-slate-50 px-3 py-1 text-[clamp(0.65rem,0.3vw+0.6rem,0.85rem)] font-black uppercase text-slate-400">Rurais</li>';
+            fr.forEach(row);
+        }
+        if (nq && !fu.length && !fr.length) {
+            h =
+                '<li class="pointer-events-none px-3 py-2 italic text-slate-500">Nenhum na lista — pode salvar o texto digitado</li>';
+        }
+        dd.innerHTML = h;
+    }
+
+    function abrirQuickClientEditBairroDd() {
+        var dd = document.getElementById('pdv-quick-client-edit-bairro-dd');
+        var inp = dom.quickClientEditBairro;
+        if (!dd || !inp) return;
+        renderQuickClientEditBairroDd();
+        dd.classList.remove('hidden');
+        inp.setAttribute('aria-expanded', 'true');
+    }
+
+    function toggleQuickClientEditBairroDd() {
+        var dd = document.getElementById('pdv-quick-client-edit-bairro-dd');
+        if (!dd) return;
+        if (dd.classList.contains('hidden')) abrirQuickClientEditBairroDd();
+        else fecharQuickClientEditBairroDd();
+    }
+
+    function initQuickClientEditBairroComboboxOnce() {
+        var wrap = document.querySelector('.pdv-quick-client-edit-bairro-wrap');
+        if (!wrap || wrap.dataset.agroBairroComboBound) return;
+        wrap.dataset.agroBairroComboBound = '1';
+        var inp = dom.quickClientEditBairro;
+        var dd = document.getElementById('pdv-quick-client-edit-bairro-dd');
+        var toggle = document.getElementById('pdv-quick-client-edit-bairro-toggle');
+        if (!inp || !dd) return;
+
+        dd.addEventListener('mousedown', function (ev) {
+            ev.preventDefault();
+        });
+        dd.addEventListener('click', function (ev) {
+            var vm = ev.target.closest('[data-qc-bairro-ver-mais]');
+            if (vm) {
+                quickClientEditBairroRuralExpandido = true;
+                renderQuickClientEditBairroDd();
+                return;
+            }
+            var li = ev.target.closest('[data-bairro]');
+            if (li) {
+                inp.value = li.getAttribute('data-bairro') || '';
+                fecharQuickClientEditBairroDd();
+                refreshQuickClientEditMissingHighlights();
+            }
+        });
+        if (toggle) {
+            toggle.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                toggleQuickClientEditBairroDd();
+            });
+        }
+        inp.addEventListener('focus', function () {
+            abrirQuickClientEditBairroDd();
+        });
+        inp.addEventListener('input', function () {
+            quickClientEditBairroRuralExpandido = !!normalizarBuscaBairro(inp.value);
+            abrirQuickClientEditBairroDd();
+        });
+        inp.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Escape') {
+                fecharQuickClientEditBairroDd();
+                return;
+            }
+            if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+                ev.preventDefault();
+                abrirQuickClientEditBairroDd();
+            }
+        });
+        inp.addEventListener('blur', function () {
+            window.setTimeout(function () {
+                var active = document.activeElement;
+                if (active === toggle || (dd && dd.contains(active))) return;
+                fecharQuickClientEditBairroDd();
+                var canon = canonicalBairroJacupiSePossivel(inp.value);
+                if (canon !== inp.value) inp.value = canon;
+            }, 120);
+        });
+        document.addEventListener('click', function (ev) {
+            if (!wrap.contains(ev.target)) fecharQuickClientEditBairroDd();
+        });
+    }
+
+    function applyQuickClientGeocodeEndereco(endereco, overwrite) {
+        endereco = endereco || {};
+        function setIf(el, val) {
+            if (!el || !val) return;
+            if (overwrite || !String(el.value || '').trim()) el.value = val;
+        }
+        setIf(dom.quickClientEditLogradouro, endereco.logradouro);
+        setIf(dom.quickClientEditNumero, endereco.numero);
+        if (dom.quickClientEditBairro && endereco.bairro) {
+            var bai = bairroListaJacupiOuVazio(endereco.bairro);
+            if (bai && (overwrite || !String(dom.quickClientEditBairro.value || '').trim())) {
+                dom.quickClientEditBairro.value = bai;
+            }
+        }
+        setIf(dom.quickClientEditCidade, endereco.cidade);
+        setIf(dom.quickClientEditUf, endereco.uf);
+        setIf(dom.quickClientEditCep, endereco.cep);
+        refreshQuickClientEditMissingHighlights();
+    }
+
+    function scheduleQuickClientPlusGeocode(force) {
+        if (!dom.quickClientEditPluscode) return;
+        var q = String(dom.quickClientEditPluscode.value || '').trim();
+        if (q.length < 4) return;
+        if (!force && q === quickClientGeocodeLastQ) return;
+        clearTimeout(quickClientGeocodeTimer);
+        quickClientGeocodeTimer = setTimeout(function () {
+            runQuickClientPlusGeocode(q);
+        }, force ? 0 : 650);
+    }
+
+    function runQuickClientPlusGeocode(q) {
+        var apiUrl = urls.apiPdvGeocodePlus;
+        if (!apiUrl) return;
+        q = String(q || '').trim();
+        if (q.length < 4) return;
+        quickClientGeocodeLastQ = q;
+        var seq = ++quickClientGeocodeSeq;
+        var sep = apiUrl.indexOf('?') >= 0 ? '&' : '?';
+        fetch(apiUrl + sep + 'q=' + encodeURIComponent(q), {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+        })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (data) {
+                if (seq !== quickClientGeocodeSeq) return;
+                if (!data || !data.ok || !data.endereco) return;
+                applyQuickClientGeocodeEndereco(data.endereco, false);
+            })
+            .catch(function () {});
+    }
+
     function enderecoEntregaMinimoOk(state) {
         var e = state.entrega || {};
         if (String(e.logradouro || '').trim() && String(e.bairro || '').trim()) return true;
@@ -3602,6 +3880,7 @@
             dom.quickClientEditErro.textContent = '';
             dom.quickClientEditErro.classList.add('hidden');
         }
+        clearQuickClientEditMissingHighlights();
     }
 
     function fillQuickClientEditForm(cliente) {
@@ -3614,7 +3893,9 @@
             dom.quickClientEditLogradouro.value = String(cliente.logradouro || '');
         }
         if (dom.quickClientEditNumero) dom.quickClientEditNumero.value = String(cliente.numero || '');
-        if (dom.quickClientEditBairro) dom.quickClientEditBairro.value = String(cliente.bairro || '');
+        if (dom.quickClientEditBairro) {
+            dom.quickClientEditBairro.value = canonicalBairroJacupiSePossivel(cliente.bairro || '');
+        }
         if (dom.quickClientEditCidade) dom.quickClientEditCidade.value = String(cliente.cidade || '');
         if (dom.quickClientEditUf) dom.quickClientEditUf.value = String(cliente.uf || '');
         if (dom.quickClientEditCep) dom.quickClientEditCep.value = String(cliente.cep || '');
@@ -3631,6 +3912,7 @@
             dom.quickClientEditTitle.textContent = String(cliente.nome || 'Cliente');
             dom.quickClientEditTitle.setAttribute('title', String(cliente.nome || ''));
         }
+        refreshQuickClientEditMissingHighlights();
     }
 
     function openQuickClientEditOverlay(cliente, listIdx) {
@@ -3642,6 +3924,10 @@
             dom.quickClientEditErro.classList.add('hidden');
         }
         fillQuickClientEditForm(cliente);
+        quickClientEditBairroRuralExpandido = false;
+        quickClientGeocodeLastQ = String(cliente.plus_code || '').trim();
+        initQuickClientEditBairroComboboxOnce();
+        initQuickClientEditMissingListenersOnce();
         dom.quickClientEditOverlay.classList.remove('hidden');
         dom.quickClientEditOverlay.classList.add('flex');
         window.setTimeout(function () {
@@ -5748,6 +6034,20 @@
         if (dom.quickClientEditOverlay) {
             dom.quickClientEditOverlay.addEventListener('click', function (event) {
                 if (event.target === dom.quickClientEditOverlay) closeQuickClientEditOverlay();
+            });
+        }
+        if (dom.quickClientEditPluscode) {
+            dom.quickClientEditPluscode.addEventListener('input', function () {
+                scheduleQuickClientPlusGeocode(false);
+            });
+            dom.quickClientEditPluscode.addEventListener('blur', function () {
+                scheduleQuickClientPlusGeocode(true);
+            });
+            dom.quickClientEditPluscode.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    scheduleQuickClientPlusGeocode(true);
+                }
             });
         }
 

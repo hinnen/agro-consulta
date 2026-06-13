@@ -20910,6 +20910,18 @@ def _pdv_aplicar_endereco_clienteagro(c: ClienteAgro, data: dict) -> None:
 
 
 @login_required(login_url="/admin/login/")
+@require_GET
+def api_pdv_geocode_plus(request):
+    """Geocodifica Plus Code / Maps e devolve endereço estruturado para o PDV."""
+    from produtos.rota_entregas_geo import endereco_from_plus_ou_maps
+
+    q = (request.GET.get("q") or "").strip()
+    if len(q) < 4:
+        return JsonResponse({"ok": False, "erro": "Informe o Plus Code ou endereço."})
+    return JsonResponse(endereco_from_plus_ou_maps(q))
+
+
+@login_required(login_url="/admin/login/")
 @require_POST
 def api_pdv_cliente_editar(request, pk):
     """Edição resumida de ClienteAgro a partir do pop-up de busca no PDV."""

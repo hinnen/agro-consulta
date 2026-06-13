@@ -22,7 +22,11 @@ from django.core.cache import cache
 from openlocationcode import openlocationcode as olc
 
 NOMINATIM_SEARCH = "https://nominatim.openstreetmap.org/search"
+NOMINATIM_REVERSE = "https://nominatim.openstreetmap.org/reverse"
 GOOGLE_DISTANCE_MATRIX_URL = "https://maps.googleapis.com/maps/api/distancematrix/json"
+GOOGLE_GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json"
+# Referência para Plus Code curto (centro Jacupiranga/SP).
+_JACUPIRANGA_REF_LL = (-24.6923, -47.9948)
 # Plus Codes (OLC) no texto — captura código completo (587HCX4J+8R) ou curto (CX4J+8R).
 _PLUS_CODE_IN_TEXT_RE = re.compile(
     r"(?:\d{2,8})?[2-9CFGHJMPQRVWX]{2,8}\+[2-9CFGHJMPQRVWX]{2,3}",
@@ -195,6 +199,250 @@ def resolve_parada_latlng(
     if ll:
         return ll, "geocode"
     return None, err or "falha geocode"
+
+
+def _pick_address_field(addr: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        val = addr.get(key)
+        if val and str(val).strip():
+            return str(val).strip()
+    return ""
+
+
+def _endereco_dict_vazio() -> dict[str, str]:
+    return {
+        "logradouro": "",
+        "numero": "",
+        "bairro": "",
+        "cidade": "",
+        "uf": "",
+        "cep": "",
+    }
+
+
+def _norm_loc(s: str) -> str:
+    t = normalize_q(s).lower()
+    t = (
+        t.replace("á", "a")
+        .replace("à", "a")
+        .replace("â", "a")
+        .replace("ã", "a")
+        .replace("é", "e")
+        .replace("ê", "e")
+        .replace("í", "i")
+        .replace("ó", "o")
+        .replace("ô", "o")
+        .replace("õ", "o")
+        .replace("ú", "u")
+        .replace("ç", "c")
+    )
+    return t
+
+
+def _bairro_igual_cidade(bairro: str, cidade: str) -> bool:
+    b = _norm_loc(bairro)
+    c = _norm_loc(cidade)
+    if not b or not c:
+        return False
+    return b == c or b in c or c in b
+
+
+def _parse_nominatim_reverse(data: dict[str, Any]) -> dict[str, str]:
+    out = _endereco_dict_vazio()
+    addr = data.get("address") or {}
+    uf = _pick_address_field(addr, "ISO3166-2-lvl4")
+    if uf and "-" in uf:
+        uf = uf.split("-", 1)[-1]
+    elif uf:
+        uf = ""
+    out["logradouro"] = _pick_address_field(
+        addr, "road", "pedestrian", "footway", "residential", "path", "cycleway"
+    )
+    out["numero"] = _pick_address_field(addr, "house_number")
+    out["cidade"] = _pick_address_field(
+        addr, "city", "town", "municipality", "village", "county"
+    )
+    out["bairro"] = _pick_address_field(
+        addr, "neighbourhood", "quarter", "hamlet", "city_district", "suburb"
+    )
+    if _bairro_igual_cidade(out["bairro"], out["cidade"]):
+        out["bairro"] = _pick_address_field(addr, "neighbourhood", "quarter", "hamlet")
+    out["uf"] = uf[:2].upper()
+    out["cep"] = _pick_address_field(addr, "postcode")
+    return out
+
+
+def nominatim_reverse_geocode(lat: float, lon: float) -> dict[str, str]:
+    ck = "nom_rev_" + hashlib.sha256(f"{lat:.6f},{lon:.6f}".encode()).hexdigest()[:40]
+    cached = cache.get(ck)
+    if isinstance(cached, dict) and "logradouro" in cached:
+        return dict(cached)
+
+    _throttle_nominatim()
+    try:
+        r = requests.get(
+            NOMINATIM_REVERSE,
+            params={"lat": lat, "lon": lon, "format": "json", "addressdetails": 1},
+            headers={"User-Agent": USER_AGENT, "Accept-Language": "pt-BR,pt,en"},
+            timeout=18,
+        )
+        if r.status_code != 200:
+            return _endereco_dict_vazio()
+        data = r.json()
+        if not isinstance(data, dict):
+            return _endereco_dict_vazio()
+        parsed = _parse_nominatim_reverse(data)
+        cache.set(ck, parsed, 86400)
+        return parsed
+    except Exception:
+        return _endereco_dict_vazio()
+
+
+def _google_component(components: list[dict[str, Any]], type_name: str, *, short: bool = False) -> str:
+    for comp in components:
+        if type_name in (comp.get("types") or []):
+            key = "short_name" if short else "long_name"
+            val = comp.get(key)
+            if val and str(val).strip():
+                return str(val).strip()
+    return ""
+
+
+def google_reverse_geocode(lat: float, lon: float) -> dict[str, str]:
+    api_key = _google_maps_api_key()
+    if not api_key:
+        return _endereco_dict_vazio()
+    ck = "g_rev2_" + hashlib.sha256(f"{lat:.6f},{lon:.6f}".encode()).hexdigest()[:40]
+    cached = cache.get(ck)
+    if isinstance(cached, dict) and "logradouro" in cached:
+        return dict(cached)
+    try:
+        r = requests.get(
+            GOOGLE_GEOCODE_URL,
+            params={
+                "latlng": f"{lat},{lon}",
+                "key": api_key,
+                "language": "pt-BR",
+            },
+            timeout=15,
+        )
+        if r.status_code != 200:
+            return _endereco_dict_vazio()
+        data = r.json()
+        if data.get("status") != "OK" or not data.get("results"):
+            cache.set(ck, _endereco_dict_vazio(), 300)
+            return _endereco_dict_vazio()
+        out = _endereco_dict_vazio()
+        bairro_cands: list[str] = []
+        for res in data.get("results") or []:
+            comps = res.get("address_components") or []
+            for type_name in (
+                "neighborhood",
+                "sublocality_level_2",
+                "sublocality_level_1",
+                "sublocality",
+            ):
+                val = _google_component(comps, type_name)
+                if val and val not in bairro_cands:
+                    bairro_cands.append(val)
+            if not out["logradouro"]:
+                out["logradouro"] = _google_component(comps, "route") or _google_component(
+                    comps, "street_address"
+                )
+            if not out["numero"]:
+                out["numero"] = _google_component(comps, "street_number")
+            if not out["cidade"]:
+                out["cidade"] = _google_component(
+                    comps, "administrative_area_level_2"
+                ) or _google_component(comps, "locality")
+            if not out["uf"]:
+                out["uf"] = _google_component(comps, "administrative_area_level_1", short=True)
+            if not out["cep"]:
+                out["cep"] = _google_component(comps, "postal_code")
+        cidade_norm = _norm_loc(out["cidade"])
+        for cand in bairro_cands:
+            if _norm_loc(cand) != cidade_norm:
+                out["bairro"] = cand
+                break
+        cache.set(ck, out, 86400)
+        return out
+    except Exception:
+        return _endereco_dict_vazio()
+
+
+def _inferir_bairro_jacupiranga(out: dict[str, str], lat: float, lon: float) -> str:
+    from produtos.entrega_bairros_data import (
+        BAIRROS_JACUPI_URBANOS,
+        JACUPIRANGA_CENTRO_REF_LL,
+        JACUPIRANGA_LOGRADOUROS_CENTRO,
+    )
+
+    log = _norm_loc(out.get("logradouro") or "")
+    for trecho in JACUPIRANGA_LOGRADOUROS_CENTRO:
+        if trecho in log:
+            return "Centro"
+    if log and haversine_km((lat, lon), JACUPIRANGA_CENTRO_REF_LL) <= 2.5:
+        return "Centro"
+    for nome in BAIRROS_JACUPI_URBANOS:
+        if _norm_loc(nome) in log:
+            return nome
+    return ""
+
+
+def _bairro_na_lista_jacupi(nome: str) -> str:
+    from produtos.entrega_bairros_data import BAIRROS_JACUPI_RURAIS, BAIRROS_JACUPI_URBANOS
+
+    alvo = _norm_loc(nome)
+    if not alvo:
+        return ""
+    for item in BAIRROS_JACUPI_URBANOS + BAIRROS_JACUPI_RURAIS:
+        if _norm_loc(item) == alvo:
+            return item
+    return ""
+
+
+def _ajustar_endereco_pos_geocode(out: dict[str, str], lat: float, lon: float) -> dict[str, str]:
+    from produtos.entrega_bairros_data import JACUPIRANGA_CEP_PADRAO
+
+    merged = dict(out or _endereco_dict_vazio())
+    if _bairro_igual_cidade(merged.get("bairro", ""), merged.get("cidade", "")):
+        merged["bairro"] = ""
+    if _norm_loc(merged.get("cidade")) == "jacupiranga":
+        if not str(merged.get("cep") or "").strip():
+            merged["cep"] = JACUPIRANGA_CEP_PADRAO
+        if not str(merged.get("bairro") or "").strip():
+            inferido = _inferir_bairro_jacupiranga(merged, lat, lon)
+            if inferido:
+                merged["bairro"] = inferido
+    if merged.get("bairro"):
+        merged["bairro"] = _bairro_na_lista_jacupi(merged["bairro"])
+    return merged
+
+
+def reverse_geocode_endereco(lat: float, lon: float) -> dict[str, str]:
+    google = google_reverse_geocode(lat, lon)
+    if any(str(v or "").strip() for v in google.values()):
+        return _ajustar_endereco_pos_geocode(google, lat, lon)
+    nominatim = nominatim_reverse_geocode(lat, lon)
+    return _ajustar_endereco_pos_geocode(nominatim, lat, lon)
+
+
+def endereco_from_plus_ou_maps(texto: str) -> dict[str, Any]:
+    """Resolve Plus Code / Maps / endereço e devolve campos estruturados."""
+    nq = normalize_q(texto)
+    if not nq:
+        return {"ok": False, "erro": "Informe o Plus Code ou endereço."}
+    ll, fonte = resolve_parada_latlng(nq, nq, _JACUPIRANGA_REF_LL)
+    if not ll:
+        return {"ok": False, "erro": fonte or "Não foi possível localizar o Plus Code."}
+    endereco = reverse_geocode_endereco(ll[0], ll[1])
+    return {
+        "ok": True,
+        "fonte": fonte,
+        "lat": ll[0],
+        "lng": ll[1],
+        "endereco": endereco,
+    }
 
 
 def _google_maps_api_key() -> str:

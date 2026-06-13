@@ -84,6 +84,7 @@ def pdv_home(request):
                 "apiPdvClienteEditarPattern": reverse("api_pdv_cliente_editar", args=[0]).replace(
                     "/0/", "/__pk__/"
                 ),
+                "apiPdvGeocodePlus": reverse("api_pdv_geocode_plus"),
                 "apiListCustomers": reverse("api_list_customers"),
                 "apiPdvSalvarCheckoutDraft": reverse("api_pdv_salvar_checkout_draft"),
                 "apiPdvLimparCheckoutDraft": reverse("api_pdv_limpar_checkout_draft"),

@@ -108,12 +108,12 @@
     max-width: 98vw;
     max-height: 98vh;
   }
-  /* Pop-up edição: largura útil, altura conforme conteúdo */
+  /* Pop-up edição: 90% × 90% da tela (sobre busca 95% × 90%) */
   .pdv-client-edit-panel {
-    width: min(98vw, 1080px);
-    height: auto;
-    max-height: 96vh;
+    width: 90vw;
+    height: 90vh;
     max-width: 98vw;
+    max-height: 98vh;
   }
   #pdv-quick-client-picker .pdv-client-results-table {
     table-layout: fixed;
@@ -196,12 +196,38 @@
     margin-bottom: 0.25rem;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-input {
-    min-height: 4.25rem;
-    padding: 0.85rem 1rem;
-    font-size: clamp(1.35rem, 0.65vw + 1.15rem, 1.75rem);
+    min-height: 4.75rem;
+    padding: 0.9rem 1.05rem;
+    font-size: clamp(1.55rem, 0.75vw + 1.35rem, 2rem);
     font-weight: 800;
     width: 100%;
     box-sizing: border-box;
+  }
+  #pdv-quick-client-edit-overlay .pdv-quick-client-edit-bairro-wrap .pdv-client-edit-input {
+    padding-right: 3.25rem;
+  }
+  #pdv-quick-client-edit-overlay .pdv-quick-client-edit-bairro-toggle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    min-width: 3rem;
+    padding: 0 0.75rem;
+    font-size: clamp(1.35rem, 0.65vw + 1.15rem, 1.75rem);
+    line-height: 1;
+    color: #64748b;
+  }
+  #pdv-quick-client-edit-overlay .pdv-quick-client-edit-bairro-toggle:hover {
+    color: #0f172a;
+  }
+  #pdv-quick-client-edit-overlay .pdv-quick-client-edit-bairro-dd {
+    z-index: 50;
+    max-height: min(16rem, 38vh);
+  }
+  #pdv-quick-client-edit-overlay .pdv-quick-client-edit-bairro-dd li {
+    font-size: clamp(1.15rem, 0.55vw + 1rem, 1.45rem);
+    font-weight: 700;
+    padding: 0.7rem 0.9rem;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-section-title {
     font-size: clamp(1.05rem, 0.5vw + 0.95rem, 1.25rem);
@@ -209,9 +235,9 @@
     grid-column: 1 / -1;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-body {
-    flex: 0 1 auto;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
-    max-height: calc(96vh - 7.5rem);
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-form {
     display: grid;
@@ -250,6 +276,14 @@
   #pdv-quick-client-edit-overlay .pdv-client-edit-field {
     display: block;
     min-width: 0;
+  }
+  #pdv-quick-client-edit-overlay .pdv-client-edit-field.pdv-client-edit-missing .pdv-client-edit-input {
+    border-color: #f59e0b !important;
+    background-color: #fffbeb;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.38);
+  }
+  #pdv-quick-client-edit-overlay .pdv-client-edit-field.pdv-client-edit-missing .pdv-client-edit-label {
+    color: #b45309;
   }
   #pdv-product-photo-pop::backdrop { background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); }
   #pdv-step-pagamento-root .pdv-pay-flow-pop { padding: 0; border: none; border-radius: 1.5rem; max-height: 92vh; }
@@ -474,7 +508,11 @@
           </label>
           <label class="pdv-client-edit-field pdv-client-edit-f-bai">
             <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Bairro</span>
-            <input id="pdv-quick-client-edit-bairro" type="text" class="pdv-input pdv-client-edit-input w-full">
+            <div class="relative pdv-quick-client-edit-bairro-wrap mt-0.5">
+              <input id="pdv-quick-client-edit-bairro" type="text" class="pdv-input pdv-client-edit-input w-full" maxlength="120" placeholder="Digite ou abra a lista" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="pdv-quick-client-edit-bairro-dd" aria-autocomplete="list">
+              <button type="button" id="pdv-quick-client-edit-bairro-toggle" class="pdv-quick-client-edit-bairro-toggle" title="Abrir lista de bairros" aria-label="Abrir lista de bairros">▾</button>
+              <ul id="pdv-quick-client-edit-bairro-dd" class="pdv-quick-client-edit-bairro-dd hidden absolute left-0 right-0 top-full mt-0.5 overflow-y-auto rounded-xl border-2 border-slate-200 bg-white shadow-lg" role="listbox" aria-label="Bairros"></ul>
+            </div>
           </label>
           <label class="pdv-client-edit-field pdv-client-edit-f-cid">
             <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Cidade</span>
