@@ -1873,12 +1873,12 @@
                 btn.classList.add('pdv-step-badge-active');
                 btn.setAttribute('aria-current', 'step');
                 btn.style.zIndex = '20';
-            } else if (idx > -1) {
+            } else {
                 btn.classList.add('pdv-step-nav-retracted');
-                if (idx < currentIdx) {
+                if (idx > -1 && idx < currentIdx) {
                     btn.classList.add('pdv-step-badge-done', 'border-emerald-200');
                 }
-                btn.style.zIndex = String(idx < currentIdx ? idx + 1 : 12 - idx);
+                btn.style.zIndex = String(idx > -1 ? (idx < currentIdx ? idx + 1 : 12 - idx) : 3);
             }
             btn.disabled = idx === -1;
         });
@@ -2453,7 +2453,7 @@
     function productAutocompleteHeaderHtml() {
         return (
             '<div class="pdv-ac-head" aria-hidden="true">' +
-            '<span></span><span>Produto</span><span></span><span>GM</span><span>Marca</span><span>Preço</span>' +
+            '<span></span><span>Produto</span><span>GM</span><span>Marca</span><span>Preço</span>' +
             '</div>'
         );
     }
@@ -2483,7 +2483,6 @@
             '  <span class="pdv-ac-nome">' +
             escapeHtml(produto.nome || '') +
             '</span>' +
-            '  <span class="pdv-ac-spacer" aria-hidden="true"></span>' +
             '  <span class="pdv-ac-gm">' +
             escapeHtml(gm) +
             '</span>' +

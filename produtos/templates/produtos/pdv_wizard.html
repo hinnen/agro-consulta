@@ -176,9 +176,9 @@
   #pdv-product-autocomplete .pdv-ac-head,
   #pdv-product-autocomplete .pdv-ac-row {
     display: grid;
-    grid-template-columns: 3rem auto 1fr 6rem 5rem 6.5rem;
+    grid-template-columns: 3rem minmax(0, 1fr) 6.75rem 5.75rem 7rem;
     align-items: center;
-    column-gap: 0.35rem;
+    column-gap: 0.45rem;
     padding-left: 0.55rem;
     padding-right: 0.55rem;
   }
@@ -196,7 +196,11 @@
     text-transform: uppercase;
     color: #0369a1;
   }
-  #pdv-product-autocomplete .pdv-ac-head span:nth-child(6) { text-align: right; }
+  #pdv-product-autocomplete .pdv-ac-head span:nth-child(5) { text-align: right; }
+  #pdv-product-autocomplete .pdv-ac-head span:nth-child(3),
+  #pdv-product-autocomplete .pdv-ac-head span:nth-child(4) {
+    padding-left: 0.15rem;
+  }
   #pdv-product-autocomplete .pdv-ac-row {
     width: 100%;
     border: 0;
@@ -232,29 +236,27 @@
     pointer-events: none;
   }
   #pdv-product-autocomplete .pdv-ac-nome {
-    max-width: min(22rem, 52vw);
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow: visible;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
     font-size: 21.6px;
     font-weight: 900;
-    line-height: 1.2;
+    line-height: 1.25;
     color: #0f172a;
   }
-  #pdv-product-autocomplete .pdv-ac-spacer {
-    min-width: 0;
-  }
   #pdv-product-autocomplete .pdv-ac-gm {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    width: 100%;
     min-height: 2.65rem;
     padding: 0 0.35rem;
     border-radius: 0.65rem;
     border: 2px solid #cbd5e1;
     background: #fff;
-    min-width: 0;
+    box-sizing: border-box;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -263,7 +265,6 @@
     font-weight: 900;
     color: #0f172a;
     font-variant-numeric: tabular-nums;
-    justify-self: end;
   }
   #pdv-product-autocomplete .pdv-ac-marca {
     min-width: 0;
@@ -275,7 +276,6 @@
     color: #64748b;
     text-transform: uppercase;
     letter-spacing: 0.02em;
-    justify-self: end;
   }
   #pdv-product-autocomplete .pdv-ac-preco {
     justify-self: end;
@@ -912,19 +912,20 @@
     flex-wrap: nowrap;
     align-items: stretch;
     gap: 0.45rem;
+    width: 100%;
     min-width: 0;
-    overflow-x: auto;
   }
   .pdv-wiz-topbar-stepper-wrap {
     display: flex;
-    flex: 0 0 auto;
+    flex: 0 1 auto;
     flex-wrap: nowrap;
     align-items: stretch;
     align-self: stretch;
     gap: 0.45rem;
     width: max-content;
-    max-width: 100%;
+    max-width: calc(100% - 0.5rem);
     min-width: 0;
+    overflow-x: auto;
     padding: 0.35rem 0.45rem;
     border: 2px solid #bae6fd;
     border-radius: 0.95rem;
@@ -989,6 +990,7 @@
     vertical-align: middle;
     transition: max-width 0.16s ease, opacity 0.14s ease, margin 0.16s ease;
   }
+  .pdv-wiz-stepper .pdv-step-nav:not(.pdv-step-badge-active),
   .pdv-wiz-stepper .pdv-step-nav.pdv-step-nav-retracted {
     max-width: 2.5rem;
     min-width: 2.5rem;
@@ -998,7 +1000,9 @@
     padding-right: 0.32rem;
     opacity: 0.78;
     box-shadow: -3px 0 8px rgba(15, 23, 42, 0.07);
+    overflow: hidden;
   }
+  .pdv-wiz-stepper .pdv-step-nav:not(.pdv-step-badge-active) .pdv-step-label,
   .pdv-wiz-stepper .pdv-step-nav.pdv-step-nav-retracted .pdv-step-label {
     display: none !important;
     width: 0 !important;
@@ -1008,15 +1012,21 @@
     margin: 0;
     padding: 0;
   }
+  .pdv-wiz-stepper .pdv-step-nav:not(.pdv-step-badge-active) .pdv-wiz-stepper-num,
   .pdv-wiz-stepper .pdv-step-nav.pdv-step-nav-retracted .pdv-wiz-stepper-num {
     flex-shrink: 0;
     margin: 0 auto;
   }
+  .pdv-wiz-stepper .pdv-step-nav:not(.pdv-step-badge-active):hover:not(:disabled),
   .pdv-wiz-stepper .pdv-step-nav.pdv-step-nav-retracted:hover:not(:disabled) {
     max-width: 2.85rem;
     min-width: 2.85rem;
     opacity: 0.94;
     z-index: 18 !important;
+  }
+  .pdv-wiz-stepper .pdv-step-nav:not(.pdv-step-badge-active):disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
   .pdv-wiz-stepper .pdv-step-nav.pdv-step-badge-active {
     max-width: 12rem;
@@ -1084,10 +1094,14 @@
   }
   .pdv-wiz-topbar-actions {
     display: flex;
+    flex: 0 0 auto;
     flex-shrink: 0;
     flex-wrap: nowrap;
     align-items: center;
     gap: 0.35rem;
+    margin-left: auto;
+    max-width: 100%;
+    overflow-x: auto;
     padding: 0.3rem 0.4rem;
     border: 2px solid #e2e8f0;
     border-radius: 0.95rem;
@@ -1434,12 +1448,12 @@
     #pdv-product-autocomplete { max-height: 16rem !important; }
     #pdv-product-autocomplete .pdv-ac-head,
     #pdv-product-autocomplete .pdv-ac-row {
-      grid-template-columns: 2.65rem auto 1fr 5.5rem 4.5rem 5.75rem !important;
-      column-gap: 0.3rem !important;
+      grid-template-columns: 2.65rem minmax(0, 1fr) 6rem 5rem 6.25rem !important;
+      column-gap: 0.35rem !important;
       padding-left: 0.4rem !important;
       padding-right: 0.4rem !important;
     }
-    #pdv-product-autocomplete .pdv-ac-nome { font-size: 20.16px !important; max-width: min(18rem, 48vw) !important; }
+    #pdv-product-autocomplete .pdv-ac-nome { font-size: 20.16px !important; }
     #pdv-product-autocomplete .pdv-ac-gm { min-height: 2.35rem !important; font-size: 13px !important; }
     #pdv-product-autocomplete .pdv-ac-marca { font-size: 12px !important; }
     #pdv-product-autocomplete .pdv-ac-preco-box { min-height: 2.35rem !important; font-size: 1.1rem !important; }
