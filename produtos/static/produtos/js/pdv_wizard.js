@@ -2018,13 +2018,27 @@
         applyQtyDelta(last.id, delta > 0 ? 1 : -1);
     }
 
+    function clienteAgroPkFromCliente(cliente) {
+        if (!cliente) return null;
+        if (cliente.cliente_agro_pk != null && cliente.cliente_agro_pk !== '') {
+            var n = Number(cliente.cliente_agro_pk);
+            return Number.isFinite(n) ? n : null;
+        }
+        var s = String(cliente.id || '');
+        if (s.indexOf('local:') === 0) {
+            var pk = parseInt(s.slice(6), 10);
+            return Number.isFinite(pk) ? pk : null;
+        }
+        return null;
+    }
+
     function renderQuickClient(state) {
         if (dom.quickClientName) dom.quickClientName.textContent = currentClientName(state);
         if (dom.quickClientEditStep1) {
             var podeEditar =
                 state.clienteMode !== 'consumidor_final' &&
                 state.cliente &&
-                state.cliente.cliente_agro_pk != null;
+                clienteAgroPkFromCliente(state.cliente) != null;
             dom.quickClientEditStep1.disabled = !podeEditar;
         }
         if (!dom.quickClientMeta) return;
@@ -3924,14 +3938,15 @@
     }
 
     function openQuickClientEditOverlay(cliente, listIdx) {
-        if (!dom.quickClientEditOverlay || !cliente || !cliente.cliente_agro_pk) return;
-        quickClientEditPk = cliente.cliente_agro_pk;
+        var pk = clienteAgroPkFromCliente(cliente);
+        if (!dom.quickClientEditOverlay || !cliente || !pk) return;
+        quickClientEditPk = pk;
         quickClientEditListIdx = listIdx != null ? listIdx : -1;
         if (dom.quickClientEditErro) {
             dom.quickClientEditErro.textContent = '';
             dom.quickClientEditErro.classList.add('hidden');
         }
-        fillQuickClientEditForm(cliente);
+        fillQuickClientEditForm(Object.assign({}, cliente, { cliente_agro_pk: pk }));
         quickClientEditBairroRuralExpandido = false;
         quickClientGeocodeLastQ = String(cliente.plus_code || '').trim();
         initQuickClientEditBairroComboboxOnce();
@@ -3949,11 +3964,12 @@
             alert('Selecione um cliente cadastrado para editar.');
             return;
         }
-        if (!state.cliente.cliente_agro_pk) {
+        var pk = clienteAgroPkFromCliente(state.cliente);
+        if (!pk) {
             alert('Este cliente não pode ser editado aqui (sem cadastro local).');
             return;
         }
-        openQuickClientEditOverlay(state.cliente, -1);
+        openQuickClientEditOverlay(Object.assign({}, state.cliente, { cliente_agro_pk: pk }), -1);
     }
 
     function closeQuickClientEditOverlay() {
