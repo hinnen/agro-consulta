@@ -3501,17 +3501,18 @@
         var pk = cliente && cliente.cliente_agro_pk;
         var canEdit = pk != null && pk !== '';
         var nomeFull = String(cliente.nome || '');
-        var metaTel = cliente && String(cliente.telefone || '').trim();
-        var metaEnd = cliente && String(cliente.endereco || '').trim();
-        var meta = metaTel
-            ? metaTel + (metaEnd ? ' · ' + metaEnd : '')
-            : metaEnd || 'Sem telefone cadastrado';
+        var tel = cliente && String(cliente.telefone || '').trim();
+        var telLabel = tel || 'Sem telefone';
+        var plusCode = cliente && String(cliente.plus_code || '').trim();
+        var mapsHtml = plusCode
+            ? '<span class="pdv-client-maps-ok">Maps ok</span>'
+            : '<span class="pdv-client-maps-falta">Maps Falta</span>';
         return (
             '' +
             '<div class="flex min-w-0 items-stretch gap-2 rounded-xl p-1" role="presentation" data-client-row-idx="' +
             idx +
             '">' +
-            '<button type="button" role="option" class="pdv-client-result-btn min-w-0 flex-1 overflow-hidden rounded-lg px-3 py-3.5 text-left hover:bg-emerald-50/80 focus:outline-none sm:px-4 sm:py-4" ' +
+            '<button type="button" role="option" class="pdv-client-result-btn min-w-0 flex-1 overflow-hidden rounded-lg px-2 py-3 text-left hover:bg-emerald-50/80 focus:outline-none sm:px-3 sm:py-3.5" ' +
             'data-select-client="' +
             escapeHtml(cliente.id) +
             '" data-client-list-idx="' +
@@ -3519,12 +3520,17 @@
             '" aria-selected="false" title="' +
             escapeHtml(nomeFull) +
             '">' +
-            '  <span class="pdv-client-result-name block font-black text-slate-900">' +
+            '  <span class="pdv-client-results-grid">' +
+            '    <span class="pdv-client-result-name font-black text-slate-900">' +
             escapeHtml(nomeFull) +
             '</span>' +
-            '  <span class="pdv-client-result-meta mt-1 block font-bold text-slate-500">' +
-            escapeHtml(meta) +
+            '    <span class="pdv-client-result-tel">' +
+            escapeHtml(telLabel) +
             '</span>' +
+            '    <span>' +
+            mapsHtml +
+            '</span>' +
+            '  </span>' +
             '</button>' +
             (canEdit
                 ? '<button type="button" class="shrink-0 self-center rounded-xl border-2 border-sky-300 bg-sky-50 px-4 py-3 text-[clamp(0.75rem,0.35vw+0.65rem,0.95rem)] font-black uppercase tracking-wide text-sky-900 hover:bg-sky-100 min-h-[3rem]" ' +
@@ -3534,6 +3540,19 @@
                   idx +
                   '" title="Editar cadastro do cliente">Editar</button>'
                 : '') +
+            '</div>'
+        );
+    }
+
+    function clientSearchResultsHeaderHtml() {
+        return (
+            '<div class="pdv-client-results-head flex min-w-0 items-center gap-2 px-1" aria-hidden="true">' +
+            '<div class="pdv-client-results-grid min-w-0 flex-1 px-2 sm:px-3">' +
+            '<span>Nome</span>' +
+            '<span>Telefone</span>' +
+            '<span>Maps</span>' +
+            '</div>' +
+            '<span class="shrink-0 px-4 text-transparent select-none min-h-[3rem] min-w-[5.5rem] sm:min-w-[6rem]" aria-hidden="true">Editar</span>' +
             '</div>'
         );
     }
@@ -3550,7 +3569,9 @@
         if (clientListSelectIdx < 0 || clientListSelectIdx >= clientes.length) {
             clientListSelectIdx = 0;
         }
-        dom.quickClientResults.innerHTML = clientes
+        dom.quickClientResults.innerHTML =
+            clientSearchResultsHeaderHtml() +
+            clientes
             .map(function (cliente, idx) {
                 return clientSearchResultRowHtml(cliente, idx);
             })

@@ -105,17 +105,17 @@
       animation: none !important;
     }
   }
-  /* Pop-up busca cliente: 16×9, até 90% da tela */
+  /* Pop-up busca cliente: 95% × 90% da tela */
   .pdv-client-picker-16x9 {
-    width: min(90vw, calc(90vh * 16 / 9));
-    height: min(90vh, calc(90vw * 9 / 16));
+    width: 95vw;
+    height: 90vh;
     max-width: 98vw;
     max-height: 98vh;
   }
-  /* Pop-up edição: 16×9, até 85% da tela */
+  /* Pop-up edição: 95% × 90% da tela */
   .pdv-client-edit-panel {
-    width: min(85vw, calc(85vh * 16 / 9));
-    height: min(85vh, calc(85vw * 9 / 16));
+    width: 95vw;
+    height: 90vh;
     max-width: 98vw;
     max-height: 98vh;
   }
@@ -130,13 +130,56 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: left;
   }
-  #pdv-quick-client-picker .pdv-client-result-meta {
+  #pdv-quick-client-picker .pdv-client-result-tel {
     font-size: clamp(0.95rem, 0.4vw + 0.85rem, 1.2rem);
     line-height: 1.3;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: left;
+    font-weight: 700;
+    color: #475569;
+  }
+  #pdv-quick-client-picker .pdv-client-results-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(7rem, 11rem) minmax(5.5rem, 7rem);
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+  }
+  #pdv-quick-client-picker .pdv-client-results-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    border-bottom: 2px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 0.5rem 0.75rem;
+    font-size: clamp(0.7rem, 0.35vw + 0.65rem, 0.85rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    text-align: left;
+  }
+  #pdv-quick-client-picker .pdv-client-maps-ok {
+    display: inline-block;
+    font-size: clamp(0.8rem, 0.35vw + 0.72rem, 1rem);
+    font-weight: 900;
+    color: #047857;
+    text-align: left;
+    white-space: nowrap;
+  }
+  #pdv-quick-client-picker .pdv-client-maps-falta {
+    display: inline-block;
+    font-size: clamp(0.8rem, 0.35vw + 0.72rem, 1rem);
+    font-weight: 900;
+    color: #dc2626;
+    text-align: left;
+    white-space: nowrap;
+  }
+  #pdv-quick-client-picker .pdv-client-result-btn .pdv-client-results-grid {
+    width: 100%;
   }
   #pdv-quick-client-edit-overlay #pdv-quick-client-edit-title {
     white-space: nowrap;
