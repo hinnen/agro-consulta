@@ -70,46 +70,68 @@
 
     <aside id="pdv-step1-side" class="min-h-0 min-w-0 xl:sticky xl:top-0">
       <div class="grid gap-1.5">
-        <div class="pdv-step1-side-card rounded-[1.15rem] border border-slate-900/90 bg-slate-950 px-2.5 py-2.5 text-white shadow-sm">
-          <div class="flex min-w-0 items-center justify-between gap-2 text-[12px] font-black uppercase tracking-wide text-slate-300">
-            <span class="min-w-0 truncate">Vale crédito</span>
-            <span id="pdv-product-credit-balance" class="pdv-side-money shrink-0 tabular-nums text-[13px]">R$ 0,00</span>
-          </div>
-          <div class="mt-2 flex min-w-0 items-center justify-between gap-2 text-[12px] font-black uppercase tracking-wide text-slate-300">
-            <span class="min-w-0 truncate">Cashback</span>
-            <span id="pdv-product-cashback-balance" class="pdv-side-money shrink-0 tabular-nums text-[13px]">R$ 0,00</span>
-          </div>
-          <button type="button" id="pdv-fiado-gestao-open" class="mt-2 flex w-full min-w-0 items-center justify-between gap-2 rounded-lg px-1 py-0.5 text-left text-[12px] font-black uppercase tracking-wide text-slate-300 transition hover:bg-white/10 hover:text-orange-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400" title="Saldo fiado em aberto — clique para gerir">
-            <span class="min-w-0 truncate">Fiado · em aberto</span>
-            <span id="pdv-product-fiado-balance" class="pdv-side-money shrink-0 tabular-nums text-[13px] text-orange-200">R$ 0,00</span>
-          </button>
-        </div>
-        <div class="pdv-step1-side-card flex min-h-0 flex-col rounded-[1.15rem] border-2 border-orange-400/60 bg-gradient-to-b from-slate-900 via-slate-950 to-black px-2.5 pb-3 pt-2.5 text-white shadow-xl shadow-orange-950/30">
-          <div class="flex min-w-0 items-center justify-between gap-2 text-[11px] font-black uppercase tracking-wide text-orange-100/90">
-            <span>Subtotal</span>
-            <span id="pdv-product-subtotal-items" class="shrink-0 whitespace-nowrap tabular-nums">0 itens</span>
-          </div>
-          <div id="pdv-product-subtotal" class="mt-2 text-[2rem] font-black leading-none tracking-tight text-white sm:text-[2.2rem]">R$ 0,00</div>
-          <div class="mt-auto flex flex-1 flex-col justify-end gap-2.5 pt-4">
-            <button type="button" id="pdv-step1-payment" class="pdv-action-btn w-full rounded-2xl bg-gradient-to-r from-orange-500 via-orange-500 to-amber-500 px-3 py-3.5 text-[13px] text-white shadow-lg shadow-orange-600/40 ring-2 ring-orange-300/50" title="Ir para pagamento · F7">
-              Ir para pagamento <kbd class="pointer-events-none ml-1 rounded bg-black/25 px-1.5 py-0.5 font-mono text-[10px]">F7</kbd>
-            </button>
-            <button type="button" id="pdv-step1-advance" class="pdv-action-btn w-full rounded-2xl border-2 border-white/30 bg-white/10 px-3 py-2.5 text-[11px] text-white hover:bg-white/15" title="Continuar · F3">
-              Continuar <kbd class="pointer-events-none ml-1 rounded bg-black/30 px-1.5 py-0.5 font-mono text-[9px]">F3</kbd>
-            </button>
+        <div class="pdv-wiz-panel overflow-hidden">
+          <div class="pdv-wiz-block pdv-wiz-block--sky">
+            <div class="pdv-wiz-block-head">
+              <span class="pdv-wiz-head-icon pdv-wiz-head-icon--payment" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 9m18 0V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v3" /></svg>
+              </span>
+              <h3 class="pdv-wiz-block-title pdv-wiz-block-title--sky">Saldos</h3>
+            </div>
+            <div class="pdv-wiz-inner-card mt-2 space-y-2.5 py-2">
+              <div class="pdv-step1-side-saldos-row">
+                <span class="min-w-0 truncate">Vale crédito</span>
+                <span id="pdv-product-credit-balance" class="pdv-side-money shrink-0 tabular-nums">R$ 0,00</span>
+              </div>
+              <div class="pdv-step1-side-saldos-row">
+                <span class="min-w-0 truncate">Cashback</span>
+                <span id="pdv-product-cashback-balance" class="pdv-side-money shrink-0 tabular-nums">R$ 0,00</span>
+              </div>
+              <button type="button" id="pdv-fiado-gestao-open" class="pdv-step1-side-saldos-row w-full rounded-lg px-1 py-1 text-left transition hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400" title="Saldo fiado em aberto — clique para gerir">
+                <span class="min-w-0 truncate">Fiado · em aberto</span>
+                <span id="pdv-product-fiado-balance" class="pdv-side-money shrink-0 tabular-nums text-orange-700">R$ 0,00</span>
+              </button>
+            </div>
           </div>
         </div>
-        <div id="pdv-step1-budget-snippet-wrap" class="min-w-0 rounded-[1rem] border border-slate-200/80 bg-slate-50/90 px-2 py-2 shadow-sm">
-          <p class="text-[9px] font-black uppercase tracking-wide text-slate-500">Orçamentos recentes</p>
-          <div id="pdv-step1-budget-snippet" class="mt-1.5 min-w-0 text-[10px] leading-snug text-slate-500"></div>
-          <button type="button" id="pdv-step1-budget-ver-mais" class="mt-2 w-full rounded-lg border border-slate-200 bg-white py-1.5 text-[9px] font-black uppercase text-slate-600 hover:bg-slate-50" title="Ver todos · F6">
-            Ver mais <kbd class="pointer-events-none ml-1 rounded border border-slate-200 px-1 font-mono text-[8px] text-slate-500">F6</kbd>
-          </button>
+        <div class="pdv-wiz-panel pdv-wiz-panel--orange overflow-hidden">
+          <div class="pdv-wiz-block pdv-wiz-block--orange flex min-h-0 flex-col border-b-0">
+            <div class="pdv-wiz-block-head">
+              <span class="pdv-wiz-head-icon pdv-wiz-head-icon--cart" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm12 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" /></svg>
+              </span>
+              <h3 class="pdv-wiz-block-title pdv-wiz-block-title--orange">Subtotal</h3>
+              <span id="pdv-product-subtotal-items" class="pdv-step1-side-meta ml-auto shrink-0 whitespace-nowrap tabular-nums">0 itens</span>
+            </div>
+            <div id="pdv-product-subtotal" class="pdv-step1-subtotal-value mt-1.5">R$ 0,00</div>
+            <div class="mt-auto flex flex-col gap-2 pt-3">
+              <button type="button" id="pdv-step1-payment" class="pdv-action-btn w-full rounded-xl border-2 border-orange-500 bg-gradient-to-r from-orange-500 to-amber-500 px-3 py-3 text-[13px] text-white shadow-md shadow-orange-500/25" title="Ir para pagamento · F7">
+                Ir para pagamento <kbd class="pointer-events-none ml-1 rounded bg-black/20 px-1.5 py-0.5 font-mono text-[10px]">F7</kbd>
+              </button>
+              <button type="button" id="pdv-step1-advance" class="pdv-action-btn w-full rounded-xl border-2 border-orange-400 bg-white px-3 py-2.5 text-[11px] text-orange-950 hover:bg-orange-50" title="Continuar · F3">
+                Continuar <kbd class="pointer-events-none ml-1 rounded border border-orange-200 bg-orange-50 px-1.5 py-0.5 font-mono text-[9px]">F3</kbd>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="pdv-wiz-panel overflow-hidden">
+          <div class="pdv-wiz-block pdv-wiz-block--slate border-b-0">
+            <div class="pdv-wiz-block-head">
+              <span class="pdv-wiz-head-icon pdv-wiz-head-icon--note" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+              </span>
+              <h3 class="pdv-wiz-block-title pdv-wiz-block-title--slate">Orçamentos</h3>
+            </div>
+            <div id="pdv-step1-budget-snippet" class="pdv-wiz-inner-card pdv-wiz-inner-card--dashed mt-2 min-w-0 py-2 text-[11px] leading-snug text-slate-600"></div>
+            <button type="button" id="pdv-step1-budget-ver-mais" class="mt-2 w-full rounded-xl border-2 border-slate-300 bg-white py-2 text-[10px] font-black uppercase text-slate-700 hover:bg-slate-50" title="Ver todos · F6">
+              Ver mais <kbd class="pointer-events-none ml-1 rounded border border-slate-200 px-1 font-mono text-[8px] text-slate-500">F6</kbd>
+            </button>
+          </div>
         </div>
         <button
           type="button"
           id="pdv-step1-entregas-btn"
-          class="mt-0 w-full rounded-xl border border-slate-200/90 bg-slate-100/80 px-2.5 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 shadow-sm transition hover:bg-slate-100"
+          class="w-full rounded-xl border-2 border-orange-300 bg-gradient-to-r from-orange-50 to-amber-50 px-2.5 py-2.5 text-[10px] font-black uppercase tracking-wide text-orange-950 shadow-sm transition hover:from-orange-100 hover:to-amber-100"
           title="Entregas com pagamento na entrega ainda sem venda fechada no PDV"
         >
           <span class="flex items-center justify-center gap-2">
