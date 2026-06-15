@@ -91,6 +91,24 @@ def normalizar_forma_pagamento_caixa(raw: str) -> str:
     return base[:80] if base else "Outro"
 
 
+def _forma_e_valor_pagamento_row(row: dict) -> tuple[str, Decimal] | None:
+    """Lê forma e valor de uma linha de pagamentos_json (PDV ou venda salva)."""
+    if not isinstance(row, dict):
+        return None
+    fn = normalizar_forma_pagamento_caixa(
+        str(
+            row.get("formaPagamento")
+            or row.get("forma_pagamento")
+            or row.get("forma")
+            or ""
+        )
+    )
+    vp = _dec(row.get("valorPagamento", row.get("valor_pagamento", row.get("valor"))))
+    if vp <= 0:
+        return None
+    return fn, vp
+
+
 def pagamentos_json_de_payload(data: dict | None) -> list[dict]:
     """Extrai lista {forma, valor} a partir do payload do PDV / pedido ERP."""
     if not data or not isinstance(data, dict):
@@ -123,10 +141,11 @@ def pagamentos_por_forma_venda(venda) -> dict[str, Decimal]:
     pj = getattr(venda, "pagamentos_json", None)
     if isinstance(pj, list) and pj:
         for row in pj:
-            if not isinstance(row, dict):
+            parsed = _forma_e_valor_pagamento_row(row)
+            if not parsed:
                 continue
-            fn = normalizar_forma_pagamento_caixa(str(row.get("forma") or ""))
-            totais[fn] += _dec(row.get("valor"))
+            fn, vp = parsed
+            totais[fn] += vp
         if totais:
             return dict(totais)
     forma_txt = str(getattr(venda, "forma_pagamento", "") or "").strip()
@@ -1047,37 +1066,48 @@ def normalizar_pagamentos_devolucao(
 
 def listar_fiado_vendas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
     """Vendas fiado do turno (uma linha por pedido) para conferência no fechamento."""
-    from produtos.fiado_credito_util import valor_fiado_venda_local
-    from produtos.models import FiadoTituloAgro
+    from produtos.fiado_credito_util import valor_fiado_venda_local, venda_local_tem_fiado
+    from produtos.fiado_gestao_util import criar_titulos_de_venda
+    from produtos.models import FiadoTituloAgro, VendaAgro
 
     ids = [int(s.pk) for s in sessoes if getattr(s, "pk", None)]
     if not ids:
         return []
-    titulos = (
-        FiadoTituloAgro.objects.filter(
-            venda_agro__sessao_caixa_id__in=ids,
-            origem=FiadoTituloAgro.Origem.PDV,
-        )
-        .select_related("venda_agro")
-        .order_by("criado_em", "pk")
-    )
-    vistos: set[int] = set()
+    vendas_qs = VendaAgro.objects.filter(
+        sessao_caixa_id__in=ids,
+        devolvida_em__isnull=True,
+    ).order_by("criado_em", "pk")
     out: list[dict[str, Any]] = []
-    for titulo in titulos:
-        venda = titulo.venda_agro
-        if not venda or venda.pk in vistos:
+    vistos: set[int] = set()
+    for venda in vendas_qs:
+        if not venda_local_tem_fiado(venda):
             continue
         valor = valor_fiado_venda_local(venda)
-        if valor <= 0:
+        if valor <= 0 or venda.pk in vistos:
             continue
+        try:
+            criar_titulos_de_venda(venda)
+        except Exception:
+            pass
         vistos.add(venda.pk)
-        nome = (titulo.cliente_nome or getattr(venda, "cliente_nome", "") or "").strip() or "Cliente"
-        vtxt = str(valor.quantize(Decimal("0.01")))
+        titulo = (
+            FiadoTituloAgro.objects.filter(
+                venda_agro=venda,
+                origem=FiadoTituloAgro.Origem.PDV,
+            )
+            .order_by("pk")
+            .first()
+        )
+        nome = (
+            (titulo.cliente_nome if titulo else "")
+            or getattr(venda, "cliente_nome", "")
+            or ""
+        ).strip() or "Cliente"
         out.append(
             {
                 "id": venda.pk,
                 "cliente_nome": nome,
-                "valor": vtxt,
+                "valor": str(valor.quantize(Decimal("0.01"))),
             }
         )
     return out
@@ -1085,13 +1115,17 @@ def listar_fiado_vendas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
 
 def listar_fiado_baixas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
     """Baixas de fiado recebidas no turno — conferir retirada da nota da caixa de fiados."""
+    from django.db.models import Q
+
     from produtos.models import FiadoBaixaAgro
 
     ids = [int(s.pk) for s in sessoes if getattr(s, "pk", None)]
     if not ids:
         return []
     baixas = (
-        FiadoBaixaAgro.objects.filter(sessao_caixa_id__in=ids)
+        FiadoBaixaAgro.objects.filter(
+            Q(sessao_caixa_id__in=ids) | Q(movimento_caixa__sessao_caixa_id__in=ids)
+        )
         .select_related("titulo")
         .order_by("criado_em", "pk")
     )

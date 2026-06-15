@@ -12,7 +12,11 @@ from django.db.models import Count, Q, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
-from produtos.caixa_util import normalizar_forma_pagamento_caixa, obter_sessao_caixa_aberta_request
+from produtos.caixa_util import (
+    adotar_sessao_caixa_unica_aberta,
+    normalizar_forma_pagamento_caixa,
+    obter_sessao_caixa_aberta_request,
+)
 from produtos.fiado_credito_util import (
     fiado_limite_padrao,
     montar_cronograma_fiado,
@@ -432,7 +436,9 @@ def baixar_titulo(
         mov = None
         if registrar_caixa:
             if sessao is None and request is not None:
-                sessao = obter_sessao_caixa_aberta_request(request)
+                sessao = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(
+                    request
+                )
             if sessao is None:
                 raise ValueError("Abra o caixa neste navegador para registrar o recebimento.")
             obs_caixa = f"Baixa fiado título #{titulo.pk} — {titulo.cliente_nome[:40]}"
@@ -532,7 +538,9 @@ def baixar_cliente_fiado(
     with transaction.atomic():
         sessao = None
         if registrar_caixa and request is not None:
-            sessao = obter_sessao_caixa_aberta_request(request)
+            sessao = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(
+                request
+            )
             if sessao is None:
                 raise ValueError("Abra o caixa neste navegador para registrar o recebimento.")
             forma = normalizar_forma_pagamento_caixa(forma_pagamento or "Dinheiro")
@@ -1005,7 +1013,9 @@ def baixar_titulos_selecionados(
     with transaction.atomic():
         sessao = None
         if registrar_caixa and request is not None:
-            sessao = obter_sessao_caixa_aberta_request(request)
+            sessao = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(
+                request
+            )
             if sessao is None:
                 raise ValueError("Abra o caixa neste navegador para registrar o recebimento.")
             forma = normalizar_forma_pagamento_caixa(forma_pagamento or "Dinheiro")

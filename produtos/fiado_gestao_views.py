@@ -13,7 +13,11 @@ from django.shortcuts import render
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
-from produtos.caixa_util import obter_sessao_caixa_aberta_request, parse_valor_moeda_br
+from produtos.caixa_util import (
+    adotar_sessao_caixa_unica_aberta,
+    obter_sessao_caixa_aberta_request,
+    parse_valor_moeda_br,
+)
 from produtos.fiado_credito_util import resumo_credito_fiado_cliente
 from produtos.fiado_gestao_util import (
     _usuario_de_request,
@@ -31,6 +35,10 @@ from produtos.fiado_gestao_util import (
 )
 from produtos.models import ClienteAgro, FiadoTituloAgro
 from produtos.views import obter_conexao_mongo
+
+
+def _sessao_caixa_para_fiado(request):
+    return obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(request)
 
 
 @login_required(login_url="/admin/login/")
@@ -164,9 +172,12 @@ def api_fiado_baixa(request):
     forma = str(data.get("forma_pagamento") or data.get("forma") or "Dinheiro").strip()
     obs = str(data.get("observacao") or "").strip()
     registrar_caixa = data.get("registrar_caixa", True) is not False
-    sessao = obter_sessao_caixa_aberta_request(request)
+    sessao = _sessao_caixa_para_fiado(request)
     if registrar_caixa and not sessao:
-        registrar_caixa = False
+        return JsonResponse(
+            {"ok": False, "erro": "Abra o caixa antes de registrar o recebimento do fiado."},
+            status=400,
+        )
     try:
         baixa = baixar_titulo(
             titulo_id,
@@ -175,6 +186,7 @@ def api_fiado_baixa(request):
             request=request,
             observacao=obs,
             registrar_caixa=registrar_caixa,
+            sessao_caixa=sessao,
             usuario=_usuario_de_request(request),
         )
         titulo = FiadoTituloAgro.objects.get(pk=titulo_id)
@@ -254,9 +266,12 @@ def api_fiado_baixa_cliente(request):
     cliente_nome = str(data.get("cliente_nome") or "").strip()
     cliente_codigo = str(data.get("cliente_codigo") or "").strip()
     registrar_caixa = data.get("registrar_caixa", True) is not False
-    sessao = obter_sessao_caixa_aberta_request(request)
+    sessao = _sessao_caixa_para_fiado(request)
     if registrar_caixa and not sessao:
-        registrar_caixa = False
+        return JsonResponse(
+            {"ok": False, "erro": "Abra o caixa antes de registrar o recebimento do fiado."},
+            status=400,
+        )
     try:
         r = baixar_cliente_fiado(
             valor,
@@ -324,9 +339,12 @@ def api_fiado_baixa_selecionados(request):
     forma = str(data.get("forma_pagamento") or data.get("forma") or "Dinheiro").strip()
     obs = str(data.get("observacao") or "").strip()
     registrar_caixa = data.get("registrar_caixa", True) is not False
-    sessao = obter_sessao_caixa_aberta_request(request)
+    sessao = _sessao_caixa_para_fiado(request)
     if registrar_caixa and not sessao:
-        registrar_caixa = False
+        return JsonResponse(
+            {"ok": False, "erro": "Abra o caixa antes de registrar o recebimento do fiado."},
+            status=400,
+        )
     try:
         r = baixar_titulos_selecionados(
             raw_ids,
