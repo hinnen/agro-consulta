@@ -43,6 +43,16 @@ def agro_financeiro_usa_postgres() -> bool:
     return agro_fonte_financeiro() == _FONTE_FINANCEIRO_AGRO
 
 
+def agro_financeiro_erp_sync_habilitado() -> bool:
+    """Envio Agro → ERP (lançamento/baixa via API). Desligado = só Mongo."""
+    return bool(getattr(settings, "AGRO_FINANCEIRO_ERP_SYNC_HABILITADO", False))
+
+
+def agro_financeiro_mongo_congelado() -> bool:
+    """Após ``congelar_lancamentos_financeiro_agro``: títulos marcados como fonte Agro."""
+    return bool(getattr(settings, "AGRO_FINANCEIRO_MONGO_CONGELADO", False))
+
+
 def agro_erp_pedidos_dry_run() -> bool:
     return bool(getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False))
 
@@ -56,4 +66,6 @@ def agro_fonte_status_dict() -> dict:
         "catalogo_postgres": agro_catalogo_usa_postgres(),
         "estoque_ledger": agro_estoque_usa_ledger(),
         "financeiro_postgres": agro_financeiro_usa_postgres(),
+        "financeiro_erp_sync": agro_financeiro_erp_sync_habilitado(),
+        "financeiro_mongo_congelado": agro_financeiro_mongo_congelado(),
     }
