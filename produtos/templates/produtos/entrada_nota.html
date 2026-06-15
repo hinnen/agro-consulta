@@ -2345,6 +2345,12 @@
   }
 
   /** ISO-8601 do Mongo → texto legível (pt-BR). */
+  function entradaNfeFormatarMoedaBr(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n <= 0) return '—';
+    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
   function entradaNfeFormatarDataBr(iso) {
     if (iso == null || iso === '') return '—';
     const d = Date.parse(String(iso).trim());
@@ -9337,6 +9343,7 @@
         const origemTitulo = ch ? `${modo} — chave NFe ${ch}` : '';
         metaWrap.appendChild(entradaNfeListaMetaItem('Origem', origemExibir, origemTitulo));
         metaWrap.appendChild(entradaNfeListaMetaItem('NF', cab.numero != null && cab.numero !== '' ? String(cab.numero) : '—'));
+        metaWrap.appendChild(entradaNfeListaMetaItem('Total', entradaNfeFormatarMoedaBr(it.entrada_valor_total)));
         metaWrap.appendChild(entradaNfeListaMetaItem('Linhas', String(nLin)));
         metaWrap.appendChild(entradaNfeListaMetaItem('Criado', cr));
         metaWrap.appendChild(entradaNfeListaMetaItem('Atualizado', at || '—'));
