@@ -52,6 +52,43 @@
     .cf-modal-panel iframe { flex: 1 1 auto; min-height: 0; width: 100%; border: 0; }
     details.cf-help summary::-webkit-details-marker,
     details.cf-mini-help summary::-webkit-details-marker { display: none; }
+    .cf-cedulas-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+    @media (min-width: 640px) {
+      .cf-cedulas-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (min-width: 1024px) {
+      .cf-cedulas-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    .cf-cedula-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.35rem 0.5rem;
+      align-items: center;
+      padding: 0.45rem 0.55rem;
+      border-radius: 0.65rem;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+    }
+    .cf-cedula-item .cf-cedula-sub { grid-column: 1 / -1; font-size: 0.7rem; font-weight: 800; color: #047857; }
+    .cf-fiado-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 0.65rem 0.75rem;
+      align-items: center;
+      padding: 0.65rem 0.75rem;
+      border-radius: 0.75rem;
+      border: 2px solid #fdba74;
+      background: #fff7ed;
+    }
+    .cf-fiado-row input[type="checkbox"] {
+      width: 1.35rem;
+      height: 1.35rem;
+      accent-color: #ea580c;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 flex flex-col overflow-hidden">
@@ -155,6 +192,21 @@
               </div>
               <label class="block min-w-0">
                 <span class="md:hidden text-[11px] font-black uppercase text-slate-600">Contado</span>
+                {% if L.forma == 'Dinheiro' %}
+                <div id="cf-cedulas-wrap" class="mb-2 rounded-xl border-2 border-emerald-300 bg-white p-2 sm:p-2.5">
+                  <p class="text-[10px] sm:text-[11px] font-black uppercase text-emerald-800 mb-1.5">Cédulas e moedas (quantidade)</p>
+                  <div class="cf-cedulas-grid">
+                    {% for d in denominacoes_cedulas %}
+                    <div class="cf-cedula-item">
+                      <span class="text-xs font-black text-slate-700">{{ d.label }}</span>
+                      <input type="number" min="0" step="1" inputmode="numeric" class="cf-cedula-qty w-full min-h-[40px] rounded-lg border-2 border-slate-200 bg-slate-50 px-2 text-base font-black tabular-nums text-center" data-valor="{{ d.valor }}" placeholder="0" autocomplete="off" title="Quantidade de {{ d.label }}">
+                      <span class="cf-cedula-sub tabular-nums">R$ 0,00</span>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  <p class="mt-2 text-xs font-bold text-slate-600">Soma das cédulas: <span id="cf-cedulas-total" class="font-black text-emerald-800 tabular-nums">R$ 0,00</span></p>
+                </div>
+                {% endif %}
                 <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado mt-0.5 md:mt-0 w-full min-h-[50px] rounded-xl border-2 border-slate-300 bg-white px-3 text-[clamp(1.1rem,0.45vw+1rem,1.35rem)] font-black tabular-nums focus:border-emerald-500 outline-none" placeholder="0,00" autocomplete="off" title="Valor contado — salvo automaticamente se sair da tela">
                 <p class="caixa-diff mt-0.5 text-xs font-bold hidden"></p>
               </label>
@@ -210,6 +262,45 @@
           </details>
           {% endif %}
         </div>
+
+        {% if fiado_vendas_turno or fiado_baixas_turno %}
+        <div class="shrink-0 border-t border-orange-200 bg-orange-50/50 px-3 sm:px-4 py-2 sm:py-3 space-y-3">
+          {% if fiado_vendas_turno %}
+          <section aria-labelledby="cf-fiado-vendas-titulo">
+            <h3 id="cf-fiado-vendas-titulo" class="text-xs sm:text-sm font-black uppercase text-orange-900">Fiado — notas assinadas e guardadas</h3>
+            <p class="mt-0.5 text-[11px] font-semibold text-orange-950/80">Marque cada venda fiado do turno antes de fechar.</p>
+            <ul class="mt-2 space-y-1.5">
+              {% for item in fiado_vendas_turno %}
+              <li>
+                <label class="cf-fiado-row cursor-pointer">
+                  <input type="checkbox" name="fiado_assinado_{{ item.id }}" value="1" class="cf-fiado-check-assinado shrink-0" required>
+                  <span class="min-w-0 text-sm font-black text-slate-900 leading-tight">{{ item.cliente_nome }}</span>
+                  <span class="text-sm font-black tabular-nums text-orange-800 shrink-0">R$ {{ item.valor }}</span>
+                </label>
+              </li>
+              {% endfor %}
+            </ul>
+          </section>
+          {% endif %}
+          {% if fiado_baixas_turno %}
+          <section aria-labelledby="cf-fiado-baixas-titulo" class="{% if fiado_vendas_turno %}pt-2 border-t border-orange-200{% endif %}">
+            <h3 id="cf-fiado-baixas-titulo" class="text-xs sm:text-sm font-black uppercase text-orange-900">Fiado — notas pagas retiradas da caixa</h3>
+            <p class="mt-0.5 text-[11px] font-semibold text-orange-950/80">Pagamentos de fiado feitos no sistema neste turno.</p>
+            <ul class="mt-2 space-y-1.5">
+              {% for item in fiado_baixas_turno %}
+              <li>
+                <label class="cf-fiado-row cursor-pointer">
+                  <input type="checkbox" name="fiado_retirado_{{ item.id }}" value="1" class="cf-fiado-check-retirado shrink-0" required>
+                  <span class="min-w-0 text-sm font-black text-slate-900 leading-tight">{{ item.cliente_nome }}</span>
+                  <span class="text-sm font-black tabular-nums text-orange-800 shrink-0">R$ {{ item.valor }}</span>
+                </label>
+              </li>
+              {% endfor %}
+            </ul>
+          </section>
+          {% endif %}
+        </div>
+        {% endif %}
 
         <div class="shrink-0 border-t border-slate-100 px-3 sm:px-4 py-2 sm:py-3 space-y-2 bg-white">
           <label class="block">
@@ -320,6 +411,7 @@
   </div>
 </div>
 <script id="cf-contagem-salva-data" type="application/json">{{ rascunho_json }}</script>
+<script id="cf-cedulas-salva-data" type="application/json">{{ cedulas_json }}</script>
 {% include "produtos/_agro_double_submit_guard.html" %}
 <script>
 (function () {
@@ -408,11 +500,17 @@
 
   var CONTAGEM_LS_KEY = 'agro_caixa_conferencia_contagem_v1';
   var CONTAGEM_LS_KEY_LEGADO = 'agro_caixa_conferencia_rascunho_v1';
+  var CEDULAS_LS_KEY = 'agro_caixa_conferencia_cedulas_v1';
   var contagemMap = {};
+  var cedulasMap = {};
   try {
     var elData = document.getElementById('cf-contagem-salva-data');
     if (elData && elData.textContent) contagemMap = JSON.parse(elData.textContent) || {};
   } catch (e) { contagemMap = {}; }
+  try {
+    var elCed = document.getElementById('cf-cedulas-salva-data');
+    if (elCed && elCed.textContent) cedulasMap = JSON.parse(elCed.textContent) || {};
+  } catch (e2) { cedulasMap = {}; }
   function mesclarContagemLocal(map) {
     try {
       var lsRaw = localStorage.getItem(CONTAGEM_LS_KEY) || localStorage.getItem(CONTAGEM_LS_KEY_LEGADO);
@@ -421,9 +519,20 @@
       Object.keys(lsMap).forEach(function (fn) {
         if (map[fn] == null || map[fn] === '') map[fn] = lsMap[fn];
       });
-    } catch (e2) { /* ignore */ }
+    } catch (e3) { /* ignore */ }
+  }
+  function mesclarCedulasLocal(map) {
+    try {
+      var lsRaw = localStorage.getItem(CEDULAS_LS_KEY);
+      if (!lsRaw) return;
+      var lsMap = JSON.parse(lsRaw) || {};
+      Object.keys(lsMap).forEach(function (k) {
+        if (map[k] == null || map[k] === '') map[k] = lsMap[k];
+      });
+    } catch (e4) { /* ignore */ }
   }
   mesclarContagemLocal(contagemMap);
+  mesclarCedulasLocal(cedulasMap);
   function aplicarContagemNosCampos(map) {
     document.querySelectorAll('.caixa-contado[data-forma]').forEach(function (inp) {
       var fn = (inp.getAttribute('data-forma') || '').trim();
@@ -434,6 +543,62 @@
     });
   }
   aplicarContagemNosCampos(contagemMap);
+
+  var dinheiroInp = document.querySelector('.caixa-contado[data-forma="Dinheiro"]');
+  var cedulasTotalEl = document.getElementById('cf-cedulas-total');
+  var cedulaQtyNodes = document.querySelectorAll('.cf-cedula-qty');
+  function aplicarCedulasNosCampos(map) {
+    cedulaQtyNodes.forEach(function (inp) {
+      var k = String(inp.getAttribute('data-valor') || '').trim();
+      if (k && map[k] != null && map[k] !== '') inp.value = String(map[k]);
+    });
+    if (cedulaQtyNodes.length) recalcularCedulas(Object.keys(map || {}).length > 0);
+  }
+  function recalcularCedulas(updateDinheiro) {
+    var total = 0;
+    var anyQty = false;
+    cedulaQtyNodes.forEach(function (inp) {
+      var denom = parseFloat(String(inp.getAttribute('data-valor') || '0').replace(',', '.'));
+      var qtd = parseInt(inp.value, 10);
+      if (!Number.isFinite(qtd) || qtd < 0) qtd = 0;
+      if (qtd > 0) anyQty = true;
+      var sub = (Number.isFinite(denom) ? denom : 0) * qtd;
+      total += sub;
+      var subEl = inp.closest('.cf-cedula-item');
+      if (subEl) {
+        var s = subEl.querySelector('.cf-cedula-sub');
+        if (s) s.textContent = 'R$ ' + fmtBr(Math.round(sub * 100) / 100);
+      }
+    });
+    total = Math.round(total * 100) / 100;
+    if (cedulasTotalEl) cedulasTotalEl.textContent = 'R$ ' + fmtBr(total);
+    if (dinheiroInp && updateDinheiro) {
+      dinheiroInp.value = anyQty ? fmtBr(total) : '';
+      dinheiroInp.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+  function coletarCedulas() {
+    var out = {};
+    cedulaQtyNodes.forEach(function (inp) {
+      var k = String(inp.getAttribute('data-valor') || '').trim();
+      if (!k) return;
+      var q = String(inp.value || '').trim();
+      if (q) out[k] = q;
+    });
+    return out;
+  }
+  aplicarCedulasNosCampos(cedulasMap);
+  cedulaQtyNodes.forEach(function (inp) {
+    inp.addEventListener('input', function () {
+      recalcularCedulas(true);
+      agendarSalvarContagem();
+    });
+    inp.addEventListener('change', function () {
+      recalcularCedulas(true);
+      agendarSalvarContagem();
+    });
+  });
+
   var contagemServidorVazia = true;
   try {
     var el0 = document.getElementById('cf-contagem-salva-data');
@@ -470,10 +635,16 @@
       localStorage.removeItem(CONTAGEM_LS_KEY_LEGADO);
     } catch (e) { /* ignore */ }
   }
+  function gravarCedulasLocal(map) {
+    try {
+      localStorage.setItem(CEDULAS_LS_KEY, JSON.stringify(map || {}));
+    } catch (e) { /* ignore */ }
+  }
   function limparContagemLocal() {
     try {
       localStorage.removeItem(CONTAGEM_LS_KEY);
       localStorage.removeItem(CONTAGEM_LS_KEY_LEGADO);
+      localStorage.removeItem(CEDULAS_LS_KEY);
     } catch (e) { /* ignore */ }
   }
   var saveTimer = null;
@@ -489,7 +660,9 @@
   }
   function salvarContagem() {
     var payload = coletarContagem();
+    var cedulasPayload = coletarCedulas();
     gravarContagemLocal(payload);
+    gravarCedulasLocal(cedulasPayload);
     var token = csrfToken();
     if (!token) {
       mostrarStatusContagem('Contagem só neste aparelho (sem sessão). Recarregue a página.', false);
@@ -499,7 +672,7 @@
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
-      body: JSON.stringify({ rascunho: payload })
+      body: JSON.stringify({ rascunho: payload, cedulas: cedulasPayload })
     }).then(function (r) {
       return r.json().then(function (data) {
         return { httpOk: r.ok, data: data };
@@ -509,6 +682,7 @@
     }).then(function (res) {
       if (res.httpOk && res.data && res.data.ok) {
         if (res.data.rascunho) gravarContagemLocal(res.data.rascunho);
+        if (res.data.cedulas) gravarCedulasLocal(res.data.cedulas);
         mostrarStatusContagem('Contagem salva', true);
         return;
       }
@@ -527,10 +701,27 @@
     inp.addEventListener('change', agendarSalvarContagem);
   });
   document.querySelectorAll('form.form-fechar-um, #form-fechar-todos').forEach(function (form) {
-    form.addEventListener('submit', limparContagemLocal);
+    form.addEventListener('submit', function (e) {
+      if (form.id === 'form-fechar-todos') {
+        var faltando = [];
+        form.querySelectorAll('.cf-fiado-check-assinado:not(:checked), .cf-fiado-check-retirado:not(:checked)').forEach(function (cb) {
+          var row = cb.closest('.cf-fiado-row');
+          var nome = row ? (row.querySelector('span.font-black') || {}).textContent : '';
+          if (nome) faltando.push(nome.trim());
+        });
+        if (faltando.length) {
+          e.preventDefault();
+          if (window.gmLoadingBar) window.gmLoadingBar.hide();
+          alert('Marque todas as conferências de fiado antes de fechar o caixa.');
+          return;
+        }
+      }
+      limparContagemLocal();
+    });
   });
   window.addEventListener('pagehide', function () {
     gravarContagemLocal(coletarContagem());
+    gravarCedulasLocal(coletarCedulas());
   });
 
   var popup = document.getElementById('cf-popup');

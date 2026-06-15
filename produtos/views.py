@@ -84,6 +84,10 @@ from .caixa_util import (
     qtd_caixas_teste_abertos,
     filtrar_sessoes_operacional,
     filtrar_sessoes_teste,
+    CEDULAS_DENOMINACOES_CAIXA,
+    listar_fiado_vendas_conferencia_caixa,
+    listar_fiado_baixas_conferencia_caixa,
+    validar_conferencia_fiado_caixa,
     usuario_label_sessao_caixa,
     normalizar_forma_pagamento_caixa,
     pagamentos_json_de_payload,
@@ -162,6 +166,7 @@ from .nfe_entrada_util import (
     excluir_rascunho_entrada,
     gravar_ult_nsu,
     entrada_nfe_busca_params_from_request,
+    listar_empresas_financeiro_entrada_nfe,
     listar_rascunhos_entrada,
     marcar_rascunho_estoque_aplicado,
     marcar_rascunho_financeiro_lancado,
@@ -8204,6 +8209,37 @@ def _entrada_nfe_request_embed(request) -> str:
 
 
 CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY = "caixa_conferencia_rascunho"
+CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY = "caixa_conferencia_cedulas"
+CAIXA_CONFERENCIA_TURNO_SESSION_KEY = "caixa_conferencia_turno"
+
+
+def _limpar_rascunho_conferencia_caixa(req):
+    changed = False
+    for key in (
+        CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY,
+        CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY,
+        CAIXA_CONFERENCIA_TURNO_SESSION_KEY,
+    ):
+        if key in req.session:
+            del req.session[key]
+            changed = True
+    if changed:
+        req.session.modified = True
+
+
+def _turno_sessoes_operacional_key(sessoes) -> str:
+    pks = sorted(int(s.pk) for s in sessoes if getattr(s, "pk", None))
+    return ",".join(str(pk) for pk in pks)
+
+
+def _sincronizar_turno_conferencia_caixa(req, sessoes_operacional):
+    turno_atual = _turno_sessoes_operacional_key(sessoes_operacional)
+    turno_salvo = str(req.session.get(CAIXA_CONFERENCIA_TURNO_SESSION_KEY) or "")
+    if turno_salvo and turno_atual and turno_salvo != turno_atual:
+        _limpar_rascunho_conferencia_caixa(req)
+    if turno_atual:
+        req.session[CAIXA_CONFERENCIA_TURNO_SESSION_KEY] = turno_atual
+        req.session.modified = True
 
 
 @login_required(login_url="/admin/login/")
@@ -8212,7 +8248,9 @@ def api_caixa_conferencia_rascunho(request):
     """Valores contados no fechamento (por forma), autosave na sessão Django."""
     raw = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
     rascunho = raw if isinstance(raw, dict) else {}
-    return JsonResponse({"ok": True, "rascunho": rascunho})
+    raw_ced = request.session.get(CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY) or {}
+    cedulas = raw_ced if isinstance(raw_ced, dict) else {}
+    return JsonResponse({"ok": True, "rascunho": rascunho, "cedulas": cedulas})
 
 
 @login_required(login_url="/admin/login/")
@@ -8238,11 +8276,35 @@ def api_caixa_conferencia_rascunho_salvar(request):
         else:
             clean.pop(fn, None)
     request.session[CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY] = clean
+    cedulas_resp: dict[str, str] = {}
+    raw_ced = payload.get("cedulas")
+    if isinstance(raw_ced, dict):
+        prev_ced = request.session.get(CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY) or {}
+        base_ced = prev_ced if isinstance(prev_ced, dict) else {}
+        clean_ced: dict[str, str] = dict(base_ced)
+        for k, v in list(raw_ced.items())[:24]:
+            kk = str(k or "").strip()[:16]
+            if not kk:
+                continue
+            txt_c = str(v or "").strip()[:12]
+            if txt_c:
+                clean_ced[kk] = txt_c
+            else:
+                clean_ced.pop(kk, None)
+        request.session[CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY] = clean_ced
+        cedulas_resp = clean_ced
     try:
         request.session.save()
     except Exception:
         request.session.modified = True
-    return JsonResponse({"ok": True, "salvo_em": timezone.now().isoformat(), "rascunho": clean})
+    return JsonResponse(
+        {
+            "ok": True,
+            "salvo_em": timezone.now().isoformat(),
+            "rascunho": clean,
+            "cedulas": cedulas_resp,
+        }
+    )
 
 
 @login_required(login_url="/admin/login/")
@@ -8681,6 +8743,8 @@ def caixa_abrir(request):
             ponto_caixa=ponto,
         )
         definir_ponto_operacao_browser(request, ponto, s.pk)
+        if ponto == PONTO_CAIXA_GAVETA:
+            _limpar_rascunho_conferencia_caixa(request)
         rotulo = rotulo_ponto_caixa(ponto)
         messages.success(
             request,
@@ -8750,9 +8814,7 @@ def caixa_fechar(request):
             pass
 
     def _limpar_rascunho_conferencia(req):
-        if CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY in req.session:
-            del req.session[CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY]
-            req.session.modified = True
+        _limpar_rascunho_conferencia_caixa(req)
 
     sessoes_operacional = filtrar_sessoes_operacional(sessoes)
     sessoes_teste = filtrar_sessoes_teste(sessoes)
@@ -8817,6 +8879,12 @@ def caixa_fechar(request):
                 messages.error(request, err_pin)
                 return redirect("caixa_fechar")
         linhas = linhas_conferencia_agregada(sessoes_operacional, todas_formas=True)
+        fiado_vendas = listar_fiado_vendas_conferencia_caixa(sessoes_operacional)
+        fiado_baixas = listar_fiado_baixas_conferencia_caixa(sessoes_operacional)
+        err_fiado = validar_conferencia_fiado_caixa(request.POST, fiado_vendas, fiado_baixas)
+        if err_fiado:
+            messages.error(request, err_fiado)
+            return redirect("caixa_fechar")
         conferencia_lote, cont_din_lote = _conferencia_de_post(linhas, request.POST)
         obs = (request.POST.get("observacao_fechamento") or "").strip()[:500]
         rot = rotulo_operador_pin(pin_f) if pin_f else ""
@@ -8846,6 +8914,8 @@ def caixa_fechar(request):
         messages.success(request, f"{n} caixa operacional fechado(s) de uma vez.")
         return redirect("caixa_painel")
 
+    _sincronizar_turno_conferencia_caixa(request, sessoes_operacional)
+
     estado_conf = serializar_estado_conferencia_fechar(
         sessoes_operacional if sessoes_operacional else []
     )
@@ -8862,6 +8932,10 @@ def caixa_fechar(request):
     rasc = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
     if not isinstance(rasc, dict):
         rasc = {}
+    raw_ced = request.session.get(CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY) or {}
+    cedulas_rasc = raw_ced if isinstance(raw_ced, dict) else {}
+    fiado_vendas_turno = listar_fiado_vendas_conferencia_caixa(sessoes_operacional)
+    fiado_baixas_turno = listar_fiado_baixas_conferencia_caixa(sessoes_operacional)
 
     return render(
         request,
@@ -8882,6 +8956,10 @@ def caixa_fechar(request):
             "fechar_bloqueado": fechar_bloqueado,
             "pdv_url": reverse("pdv_home"),
             "rascunho_json": json.dumps(rasc, ensure_ascii=False),
+            "cedulas_json": json.dumps(cedulas_rasc, ensure_ascii=False),
+            "denominacoes_cedulas": CEDULAS_DENOMINACOES_CAIXA,
+            "fiado_vendas_turno": fiado_vendas_turno,
+            "fiado_baixas_turno": fiado_baixas_turno,
             "api_rascunho_salvar_url": reverse("api_caixa_conferencia_rascunho_salvar"),
             "api_conferencia_estado_url": reverse("api_caixa_conferencia_estado"),
             "caixa_popup_retirada": reverse("caixa_painel") + "?painel=retirada&embed=1",
@@ -9733,11 +9811,14 @@ def entrada_nota_view(request):
         {"id": e.pk, "nome": e.nome_fantasia}
         for e in Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
     ]
+    _client, _db = obter_conexao_mongo()
+    empresas_fin_entrada_nfe = listar_empresas_financeiro_entrada_nfe(_db)
     return render(
         request,
         "produtos/entrada_nota.html",
         {
             "empresas_entrada_nfe": empresas_entrada_nfe,
+            "empresas_fin_entrada_nfe": empresas_fin_entrada_nfe,
             "entrada_embed": _entrada_nfe_request_embed(request),
         },
     )

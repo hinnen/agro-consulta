@@ -575,7 +575,7 @@
             'PIX',
             'Cartão de débito',
             'Cartão de crédito',
-            'Crédito parcelado',
+            'Cartão de crédito parcelado',
             'Fiado',
             'Vale crédito',
             'Cashback',

@@ -1111,7 +1111,7 @@
         if (requiresMaquina(forma) && !String(state.pagamento.maquinaId || '').trim()) {
             return 'Selecione a máquina (Pix ou cartão).';
         }
-        if (forma === 'Crédito parcelado') {
+        if (forma === 'Cartão de crédito parcelado') {
             var par = parseInt(state.pagamento.creditoParcelas, 10) || 0;
             if (par < 2) return 'Informe 2 ou mais parcelas.';
         }
@@ -1161,7 +1161,7 @@
             maquinaNome: state.pagamento.maquinaNome || '',
             mpBalcaoModo: mpModo,
             cobrarNoPointMp: mid === 'mp_balcao' && mpModo === 'point',
-            creditoParcelas: forma === 'Crédito parcelado' ? parseInt(state.pagamento.creditoParcelas, 10) || 2 : null,
+            creditoParcelas: forma === 'Cartão de crédito parcelado' ? parseInt(state.pagamento.creditoParcelas, 10) || 2 : null,
             fiadoParcelas: forma === 'Fiado' ? parseInt(state.pagamento.fiadoParcelas, 10) || 1 : null,
             fiadoDiasVencimento: forma === 'Fiado' ? parseInt(state.pagamento.fiadoDiasVencimento, 10) || 30 : null,
             valorRecebido: dinheiroExtra.valorRecebido || '',
@@ -1213,7 +1213,7 @@
             forma === 'PIX' ||
             forma === 'Cartão de débito' ||
             forma === 'Cartão de crédito' ||
-            forma === 'Crédito parcelado'
+            forma === 'Cartão de crédito parcelado'
         );
     }
 
@@ -1392,7 +1392,7 @@
                         .map(function (L) {
                             var bits = [(L.forma || '') + ' ' + formatMoney(L.valor)];
                             if (L.maquinaNome) bits.push(L.maquinaNome);
-                            if (L.forma === 'Crédito parcelado' && L.creditoParcelas) bits.push(L.creditoParcelas + 'x');
+                            if (L.forma === 'Cartão de crédito parcelado' && L.creditoParcelas) bits.push(L.creditoParcelas + 'x');
                             return bits.join(' · ');
                         })
                         .join(' | ')
@@ -1409,7 +1409,7 @@
         if (!L) return '';
         var f = L.forma || '';
         var line = f + ' ' + formatMoney(L.valor);
-        if (f === 'Crédito parcelado' && L.creditoParcelas) line += ' ' + L.creditoParcelas + 'x';
+        if (f === 'Cartão de crédito parcelado' && L.creditoParcelas) line += ' ' + L.creditoParcelas + 'x';
         if (L.maquinaNome) line += ' [' + L.maquinaNome + ']';
         if (L.trocoCalculado) line += ' (troco ' + formatMoney(State.toNumber(L.trocoCalculado)) + ')';
         return line;
@@ -1421,7 +1421,7 @@
         var f = String(L.forma || '').trim();
         if (!f) return '';
         var bits = [f];
-        if (f === 'Crédito parcelado' && L.creditoParcelas) bits.push(String(L.creditoParcelas).trim() + 'x');
+        if (f === 'Cartão de crédito parcelado' && L.creditoParcelas) bits.push(String(L.creditoParcelas).trim() + 'x');
         if (L.maquinaNome) bits.push(String(L.maquinaNome).trim());
         return bits.join(' ');
     }
@@ -2253,9 +2253,9 @@
         var n = entregasPendentesCache.total || 0;
         var apiOk = !!String(urls.apiPdvEntregasPendentes || '').trim();
         var discreteSide =
-            'mt-0 w-full rounded-xl border border-slate-200/90 bg-slate-100/80 px-2.5 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 shadow-sm transition hover:bg-slate-100';
+            'mt-0 w-full rounded-xl border-2 border-sky-300 bg-gradient-to-r from-sky-50 to-cyan-50 px-2.5 py-2.5 text-[10px] font-black uppercase tracking-wide text-sky-950 shadow-sm transition hover:from-sky-100 hover:to-cyan-100';
         var alertSide =
-            'mt-0 w-full rounded-xl border-2 border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-2.5 py-2.5 text-[11px] font-black uppercase tracking-wide text-white shadow-lg shadow-orange-600/30 ring-2 ring-orange-300/50 transition hover:from-orange-600 hover:to-amber-600';
+            'mt-0 w-full rounded-xl border-2 border-sky-500 bg-gradient-to-r from-sky-600 to-cyan-600 px-2.5 py-2.5 text-[11px] font-black uppercase tracking-wide text-white shadow-lg shadow-sky-600/30 ring-2 ring-sky-300/50 transition hover:from-sky-700 hover:to-cyan-700';
         var discreteTop =
             'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
         var alertTop =
@@ -3176,7 +3176,7 @@
         show('pdv-flow-dinheiro', forma === 'Dinheiro');
         show('pdv-flow-pix', forma === 'PIX');
         var cartao =
-            forma === 'Cartão de débito' || forma === 'Cartão de crédito' || forma === 'Crédito parcelado';
+            forma === 'Cartão de débito' || forma === 'Cartão de crédito' || forma === 'Cartão de crédito parcelado';
         show('pdv-flow-cartao', cartao);
 
         var pixGate = document.getElementById('pdv-pix-machine-gate');
@@ -3266,7 +3266,7 @@
             }
         }
 
-        if (dom.flowParcelasPanel) dom.flowParcelasPanel.classList.toggle('hidden', forma !== 'Crédito parcelado');
+        if (dom.flowParcelasPanel) dom.flowParcelasPanel.classList.toggle('hidden', forma !== 'Cartão de crédito parcelado');
         show('pdv-flow-fiado', forma === 'Fiado');
         show('pdv-flow-vale', forma === 'Vale crédito');
         show('pdv-flow-cashback', forma === 'Cashback');
@@ -3319,7 +3319,7 @@
                           if (midL === 'mp_balcao') {
                               sub.push(pointAuto ? 'Point' : 'Manual');
                           }
-                          if (L.forma === 'Crédito parcelado' && L.creditoParcelas) {
+                          if (L.forma === 'Cartão de crédito parcelado' && L.creditoParcelas) {
                               sub.push(String(L.creditoParcelas).trim() + 'x');
                           }
                           if (L.forma === 'Dinheiro' && L.trocoCalculado) {
@@ -5149,14 +5149,14 @@
             } else if (
                 forma === 'Cartão de débito' ||
                 forma === 'Cartão de crédito' ||
-                forma === 'Crédito parcelado'
+                forma === 'Cartão de crédito parcelado'
             ) {
                 if (!mid) {
                     var bc = document.getElementById('pdv-pay-open-maquinas-card');
                     if (bc) bc.focus();
                     return;
                 }
-                if (forma === 'Crédito parcelado' && dom.paymentParcelasCredito) dom.paymentParcelasCredito.focus();
+                if (forma === 'Cartão de crédito parcelado' && dom.paymentParcelasCredito) dom.paymentParcelasCredito.focus();
                 else if (tr) tr.focus();
             } else if (forma === 'Outro' && dom.outroValidarPin) dom.outroValidarPin.focus();
             else if (tr) tr.focus();
@@ -5216,7 +5216,7 @@
             Digit2: 'PIX',
             Digit3: 'Cartão de débito',
             Digit4: 'Cartão de crédito',
-            Digit5: 'Crédito parcelado',
+            Digit5: 'Cartão de crédito parcelado',
             Digit6: 'Fiado',
             Digit7: 'Vale crédito',
             Digit8: 'Cashback',

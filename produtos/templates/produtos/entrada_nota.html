@@ -1232,13 +1232,17 @@
         <div class="space-y-3 text-xs sm:text-sm font-semibold text-emerald-950">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label class="block"><span class="text-xs font-black uppercase text-slate-700">Empresa (loja) *</span>
-              <span class="block text-[10px] font-bold text-slate-600 normal-case mt-0.5">Loja no título (ex.: Agro Mais Centro). O <strong>fornecedor</strong> vem da etapa 1.</span>
+              <span class="block text-[10px] font-bold text-slate-600 normal-case mt-0.5">Loja no título em Lançamentos. O <strong>fornecedor</strong> vem da etapa 1.</span>
               <p id="fin-fornecedor-titulo-hint" class="mt-1 text-xs font-bold text-emerald-900"></p>
-              <div class="relative sug-wrap mt-1" data-sug-campo="empresa">
-                <input type="text" id="fin-empresa-nome" autocomplete="off" class="w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold" placeholder="Buscar empresa da loja…" title="Campo Empresa do título em Lançamentos. Fornecedor = etapa 1.">
-                <input type="hidden" id="fin-empresa-id" value="">
-                <ul class="sug-dd hidden absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-200 rounded-xl shadow-lg"></ul>
-              </div></label>
+              <select id="fin-empresa-loja" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-black bg-white" title="Centro ou Vila — mesma loja do depósito da etapa 5.">
+                <option value="">— Selecione a loja —</option>
+                {% for e in empresas_fin_entrada_nfe %}
+                <option value="{{ e.deposito }}" data-nome="{{ e.nome }}" data-id="{{ e.id }}">{{ e.label }}</option>
+                {% endfor %}
+              </select>
+              <input type="hidden" id="fin-empresa-nome" value="">
+              <input type="hidden" id="fin-empresa-id" value="">
+            </label>
             <label class="block"><span class="text-xs font-black uppercase text-slate-700">Competência *</span>
               <input type="date" id="fin-dc" class="mt-1 w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-black"></label>
             <label class="block"><span class="text-xs font-black uppercase text-slate-700">1º vencimento *</span>
@@ -2850,6 +2854,9 @@
       sel.value = v;
       entradaNfeDepositoUltimoConfirmado = v;
       queueMicrotask(() => { entradaNfeDepositoConfirmSupresso = false; });
+      try {
+        entradaNfeFinEmpresaSyncFromDeposito();
+      } catch (_) {}
     } else {
       sel.value = v;
       entradaNfeDepositoUltimoConfirmado = v;
@@ -2872,6 +2879,60 @@
       return;
     }
     entradaNfeDepositoUltimoConfirmado = v;
+    try {
+      entradaNfeFinEmpresaSyncFromDeposito();
+    } catch (_) {}
+  });
+
+  function entradaNfeFinEmpresaSyncFromSelect() {
+    const sel = document.getElementById('fin-empresa-loja');
+    const hn = document.getElementById('fin-empresa-nome');
+    const hi = document.getElementById('fin-empresa-id');
+    if (!sel || !hn || !hi) return;
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt || !opt.value) {
+      hn.value = '';
+      hi.value = '';
+      return;
+    }
+    hn.value = String(opt.getAttribute('data-nome') || opt.textContent || '').trim();
+    hi.value = String(opt.getAttribute('data-id') || '').trim();
+  }
+
+  /** Alinha loja do financeiro ao depósito da etapa 5 (Centro / Vila). */
+  function entradaNfeFinEmpresaSyncFromDeposito() {
+    const dep = String(document.getElementById('m-deposito-entrada')?.value || '').trim();
+    const sel = document.getElementById('fin-empresa-loja');
+    if (!sel || !dep || !['centro', 'vila'].includes(dep)) return;
+    if (![...sel.options].some((o) => o.value === dep)) return;
+    sel.value = dep;
+    entradaNfeFinEmpresaSyncFromSelect();
+  }
+
+  function entradaNfeFinEmpresaRestaurar(nome, id, deposito) {
+    const sel = document.getElementById('fin-empresa-loja');
+    const hn = document.getElementById('fin-empresa-nome');
+    const hi = document.getElementById('fin-empresa-id');
+    if (!sel || !hn || !hi) return;
+    let dep = String(deposito || '').trim();
+    const nLow = String(nome || '').toLowerCase();
+    if (!dep && nLow) {
+      if (nLow.includes('vila')) dep = 'vila';
+      else if (nLow.includes('centro')) dep = 'centro';
+    }
+    if (dep && [...sel.options].some((o) => o.value === dep)) {
+      sel.value = dep;
+      entradaNfeFinEmpresaSyncFromSelect();
+    }
+    if (nome) hn.value = String(nome).trim();
+    if (id) hi.value = String(id).trim();
+  }
+
+  document.getElementById('fin-empresa-loja')?.addEventListener('change', () => {
+    entradaNfeFinEmpresaSyncFromSelect();
+    try {
+      entradaNfeWizardAgendarAtualizarCores();
+    } catch (_) {}
   });
 
   function entradaNfeWizardAgendarAtualizarCores() {
@@ -3372,7 +3433,8 @@
       if (entradaNfeBonificacaoAtiva()) {
         return { ok: true, irPara: 6, erro: '' };
       }
-      const finE = document.getElementById('fin-empresa-nome')?.value?.trim() || '';
+      const finE = document.getElementById('fin-empresa-loja')?.value?.trim()
+        || document.getElementById('fin-empresa-nome')?.value?.trim() || '';
       const finDc = document.getElementById('fin-dc')?.value || '';
       const finDv = document.getElementById('fin-dv')?.value || '';
       const finForma = document.getElementById('fin-forma-nome')?.value?.trim() || '';
@@ -5235,6 +5297,108 @@
     void entradaNfeSincronizarFornecedorCadastro();
   }
 
+  function entradaNfeDhEmiParaIsoData(dh) {
+    const s = String(dh || '').trim();
+    if (!s) return '';
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    return '';
+  }
+
+  /** Preenche etapa 6 · Financeiro a partir de ``duplicatas`` / ``pagamentos`` do XML. */
+  function entradaNfeAplicarFinanceiroDoXml(nota) {
+    if (!nota || typeof nota !== 'object') return false;
+    const dups = Array.isArray(nota.duplicatas) ? nota.duplicatas : [];
+    const pags = Array.isArray(nota.pagamentos) ? nota.pagamentos : [];
+    let aplicou = false;
+
+    const dcIso = entradaNfeDhEmiParaIsoData(nota.dh_emi);
+    if (dcIso) {
+      const elDc = document.getElementById('fin-dc');
+      if (elDc) {
+        elDc.value = dcIso;
+        aplicou = true;
+      }
+      const mde = document.getElementById('m-data-entrada');
+      if (mde && !String(mde.value || '').trim()) mde.value = dcIso;
+    }
+
+    let formaNome = String(nota.forma_pagamento_sugerida || '').trim();
+    if (!formaNome && pags.length) {
+      formaNome = String(pags[0].forma_sugerida || '').trim();
+      if (!formaNome && String(pags[0].t_pag || '') === '15') formaNome = 'Boleto bancário';
+    }
+    if (!formaNome && dups.length) formaNome = 'Boleto bancário';
+    if (formaNome) {
+      const ff = document.getElementById('fin-forma-nome');
+      if (ff && !String(ff.value || '').trim()) {
+        ff.value = formaNome;
+        aplicou = true;
+      }
+    }
+
+    let parcelas = dups
+      .map((d) => {
+        const dv = String(d.data_vencimento || '').slice(0, 10);
+        const v = Number(d.valor);
+        if (!dv || !/^\d{4}-\d{2}-\d{2}$/.test(dv) || !Number.isFinite(v) || v <= 0) return null;
+        return { data_vencimento: dv, valor: v };
+      })
+      .filter(Boolean);
+
+    if (!parcelas.length && pags.length) {
+      const somaPag = pags.reduce((acc, p) => {
+        const v = Number(p.v_pag);
+        return acc + (Number.isFinite(v) && v > 0 ? v : 0);
+      }, 0);
+      const vTotal = somaPag > 0 ? somaPag : Number(nota.valor_total);
+      let dv = '';
+      for (let i = 0; i < pags.length; i += 1) {
+        const d = String(pags[i].data_pagamento || '').slice(0, 10);
+        if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+          dv = d;
+          break;
+        }
+      }
+      if (!dv) dv = dcIso;
+      if (dv && Number.isFinite(vTotal) && vTotal > 0) {
+        parcelas = [{ data_vencimento: dv, valor: vTotal }];
+      }
+    }
+
+    if (!parcelas.length) return aplicou;
+
+    const finDv = document.getElementById('fin-dv');
+    const finNP = document.getElementById('fin-n-parc');
+    if (finDv) finDv.value = parcelas[0].data_vencimento;
+    if (finNP) finNP.value = String(Math.min(60, parcelas.length));
+
+    if (parcelas.length >= 2) {
+      const d0 = new Date(`${parcelas[0].data_vencimento}T12:00:00`);
+      const d1 = new Date(`${parcelas[1].data_vencimento}T12:00:00`);
+      const diffDays = Math.round((d1.getTime() - d0.getTime()) / 86400000);
+      if (diffDays > 0 && diffDays <= 366) entradaNfeDefinirIntervaloUIPorDias(diffDays);
+    }
+
+    entradaNfeFinParcelasIntervaloUiSync();
+    _finParcForcarPadrao = true;
+    entradaNfeAtualizarPreviewParcelas();
+
+    const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
+    if (rows.length === parcelas.length) {
+      parcelas.forEach((p, i) => {
+        const tr = rows[i];
+        if (!tr) return;
+        const dvEl = tr.querySelector('.fin-parc-dv');
+        const vlEl = tr.querySelector('.fin-parc-val');
+        if (dvEl) dvEl.value = p.data_vencimento;
+        if (vlEl) vlEl.value = String(p.valor).replace('.', ',');
+      });
+      entradaNfeAtualizarRodapeParcelas();
+      aplicou = true;
+    }
+    return aplicou;
+  }
+
   function entradaNfeFornEsc(s) {
     return String(s ?? '')
       .replace(/&/g, '&amp;')
@@ -5491,6 +5655,7 @@
 
   /** Snapshot do bloco financeiro para gravar em ``extra.financeiro_ui`` (Mongo). */
   function entradaNfeColetarFinanceiroParaExtra() {
+    entradaNfeFinEmpresaSyncFromSelect();
     const rows = [...document.querySelectorAll('#fin-parcelas-preview-tbody tr.fin-parc-row')];
     const parcelas_preview = rows.map((tr) => {
       const vRaw = entradaNfeParseDecimalApi(tr.querySelector('.fin-parc-val')?.value);
@@ -5554,10 +5719,16 @@
       entradaNfeFinParcelasIntervaloUiSync();
       const i0 = document.getElementById('fin-imposto-extra');
       if (i0) i0.value = '';
+      try {
+        entradaNfeFinEmpresaSyncFromDeposito();
+      } catch (_) {}
       return;
     }
-    if (fu.empresa_nome != null) document.getElementById('fin-empresa-nome').value = String(fu.empresa_nome);
-    if (fu.empresa_id != null) document.getElementById('fin-empresa-id').value = String(fu.empresa_id);
+    if (fu.empresa_nome != null || fu.empresa_id != null) {
+      entradaNfeFinEmpresaRestaurar(fu.empresa_nome, fu.empresa_id, '');
+    } else {
+      entradaNfeFinEmpresaSyncFromDeposito();
+    }
     if (fu.fin_dc) document.getElementById('fin-dc').value = String(fu.fin_dc).slice(0, 10);
     if (fu.fin_dv) document.getElementById('fin-dv').value = String(fu.fin_dv).slice(0, 10);
     if (fu.n_parcelas != null) {
@@ -6715,6 +6886,9 @@
       });
       atualizarPainelTotalNfe();
       entradaNfeAplicarFinanceiroExtra(rz.extra);
+      if (!document.getElementById('fin-empresa-loja')?.value && cab.deposito_entrada) {
+        entradaNfeFinEmpresaRestaurar('', '', cab.deposito_entrada);
+      }
       entradaNfeEnsureTrailingCompactRow();
       entradaNfeAtualizarUiBotaoEstoqueAgro(rz);
       entradaNfeAtualizarUiBotaoFinanceiro(rz);
@@ -7302,10 +7476,13 @@
         void entradaNfeLembrarCProdAposPick({ id: pid }, cp, '');
       }
     });
+    atualizarPainelTotalNfe();
+    const finXml = entradaNfeAplicarFinanceiroDoXml(ctx.nota);
     const inp = ctx.fileInput;
     entradaNfeXmlMergeFechar();
     if (inp) inp.value = '';
-    showMsg(`NF-e ${ctx.nota.numero || ''} aplicada na grade — ${rows.length} item(ns). Revise e salve.`, true);
+    const finHint = finXml ? ` · ${(ctx.nota.duplicatas || []).length || 1} parcela(s) do XML na etapa Financeiro` : '';
+    showMsg(`NF-e ${ctx.nota.numero || ''} aplicada na grade — ${rows.length} item(ns).${finHint} Revise e salve.`, true);
     document.querySelector('.tab-btn[data-tab="manual"]')?.click();
   }
 
@@ -8544,6 +8721,7 @@
       showMsg('Inclua ao menos uma linha com descrição ou quantidade.', false);
       return;
     }
+    entradaNfeFinEmpresaSyncFromSelect();
     const empresa = document.getElementById('fin-empresa-nome').value.trim();
     const planoPad = (cab.plano_conta || document.getElementById('m-plano-conta').value.trim());
     const planoPadId = (cab.plano_conta_id || document.getElementById('m-plano-conta-id').value.trim());
@@ -8943,7 +9121,10 @@
             tbodyClear();
             (n.itens || []).forEach((it) => addLinhaRow(linhaFromItem(it)));
             entradaNfeEnsureTrailingCompactRow();
-            showMsg('Nota carregada na grade (aba manual).', true);
+            atualizarPainelTotalNfe();
+            const finXml = entradaNfeAplicarFinanceiroDoXml(n);
+            const finHint = finXml ? ' Parcelas do XML preenchidas no Financeiro.' : '';
+            showMsg(`Nota carregada na grade (aba manual).${finHint}`, true);
             document.querySelector('.tab-btn[data-tab="manual"]').click();
           });
           prevBox.appendChild(div);
