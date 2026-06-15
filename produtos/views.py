@@ -182,7 +182,9 @@ from .nfe_entrada_util import (
     reverter_integracao_entrada_nota_para_reabertura,
     auditar_entrada_nfe_financeiro_lote,
     enriquecer_lancamentos_entrada_nfe_rascunho,
+    entrada_nfe_linhas_precos_catalogo_mudaram,
     normalizar_cabecalho_emit_fornecedor_entrada_nfe,
+    patch_rascunho_entrada_extra,
     salvar_rascunho_entrada,
 )
 from .agro_codigo_barras_loja_util import mongo_alocar_proximo_codigo_barras_loja
@@ -10006,14 +10008,10 @@ def api_entrada_nota_rascunho_atualizar(request):
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
     oid = str(payload.get("id") or "").strip()
     modo = str(payload.get("modo") or "manual").strip()[:40]
-    cab = payload.get("cabecalho") if isinstance(payload.get("cabecalho"), dict) else {}
-    linhas = payload.get("linhas")
+    somente_extra = payload.get("somente_extra") is True
+    extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
     if not oid:
         return JsonResponse({"ok": False, "erro": "Informe o id do rascunho."}, status=400)
-    if not isinstance(linhas, list) or not linhas:
-        return JsonResponse({"ok": False, "erro": "Inclua ao menos uma linha."}, status=400)
-    xml_chave = str(payload.get("xml_chave") or "").strip()[:44] or None
-    extra = payload.get("extra") if isinstance(payload.get("extra"), dict) else {}
     usuario = ""
     if request.user.is_authenticated:
         usuario = (
@@ -10022,12 +10020,13 @@ def api_entrada_nota_rascunho_atualizar(request):
     client, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
     try:
         _oid_chk = ObjectId(oid)
     except Exception:
         return JsonResponse({"ok": False, "erro": "ID inválido."}, status=400)
     doc_prev = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _oid_chk})
+    if not doc_prev:
+        return JsonResponse({"ok": False, "erro": "Rascunho não encontrado."}, status=404)
     ex_prev = doc_prev.get("extra") if isinstance(doc_prev.get("extra"), dict) else {}
     if str(ex_prev.get("aprovacao_wizard_em") or "").strip():
         return JsonResponse(
@@ -10037,6 +10036,17 @@ def api_entrada_nota_rascunho_atualizar(request):
             },
             status=403,
         )
+    if somente_extra:
+        r = patch_rascunho_entrada_extra(db, oid, usuario=usuario, extra=extra)
+        st = 200 if r.get("ok") else 400
+        return JsonResponse(r, status=st)
+    cab = payload.get("cabecalho") if isinstance(payload.get("cabecalho"), dict) else {}
+    linhas = payload.get("linhas")
+    if not isinstance(linhas, list) or not linhas:
+        return JsonResponse({"ok": False, "erro": "Inclua ao menos uma linha."}, status=400)
+    xml_chave = str(payload.get("xml_chave") or "").strip()[:44] or None
+    col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
+    linhas_prev = doc_prev.get("linhas") if isinstance(doc_prev.get("linhas"), list) else []
     r = atualizar_rascunho_entrada(
         db,
         oid,
@@ -10049,10 +10059,11 @@ def api_entrada_nota_rascunho_atualizar(request):
         col_pessoa=col_pessoa,
     )
     if r.get("ok"):
-        _entrada_nota_propagar_precos_e_invalidar_catalogo(
+        _entrada_nota_propagar_precos_se_mudou(
             client,
             db,
             linhas,
+            linhas_prev,
             usuario,
             user_pk=int(request.user.pk) if request.user.is_authenticated else None,
             emit_cnpj=str(cab.get("emit_cnpj") or ""),
@@ -10117,6 +10128,28 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
         batch = [str(x or "").strip() for x in (pr.get("produto_ids") or []) if str(x or "").strip()]
         if batch:
             _erp_produto_pendentes_extend_batch(uid, batch)
+
+
+def _entrada_nota_propagar_precos_se_mudou(
+    client,
+    db,
+    linhas_novas,
+    linhas_prev,
+    usuario: str = "",
+    *,
+    user_pk: int | None = None,
+    emit_cnpj: str = "",
+) -> None:
+    if not entrada_nfe_linhas_precos_catalogo_mudaram(linhas_prev, linhas_novas):
+        return
+    _entrada_nota_propagar_precos_e_invalidar_catalogo(
+        client,
+        db,
+        linhas_novas,
+        usuario,
+        user_pk=user_pk,
+        emit_cnpj=emit_cnpj,
+    )
 
 
 def _empresa_loja_padrao_agro_estoque(deposito: str) -> tuple[Empresa | None, Loja | None]:
@@ -10772,10 +10805,19 @@ def api_entrada_nota_estoque_agro(request):
     if db is None or client is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
     col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
-    _entrada_nota_propagar_precos_e_invalidar_catalogo(
+    linhas_prev_est: list = []
+    if rascunho_id_req:
+        try:
+            doc_est = db[COL_ENTRADA_RASCUNHO].find_one({"_id": ObjectId(rascunho_id_req)})
+            if isinstance(doc_est, dict):
+                linhas_prev_est = doc_est.get("linhas") if isinstance(doc_est.get("linhas"), list) else []
+        except Exception:
+            linhas_prev_est = []
+    _entrada_nota_propagar_precos_se_mudou(
         client,
         db,
         linhas,
+        linhas_prev_est,
         usuario,
         user_pk=int(request.user.pk) if request.user.is_authenticated else None,
         emit_cnpj=str(cab.get("emit_cnpj") or ""),
@@ -11793,10 +11835,14 @@ def api_entrada_nota_financeiro(request):
         )
     if not r_rasc.get("ok"):
         return JsonResponse(r_rasc, status=400)
-    _entrada_nota_propagar_precos_e_invalidar_catalogo(
+    linhas_prev_fin = []
+    if rid_up and isinstance(doc_nf, dict):
+        linhas_prev_fin = doc_nf.get("linhas") if isinstance(doc_nf.get("linhas"), list) else []
+    _entrada_nota_propagar_precos_se_mudou(
         client,
         db,
         linhas,
+        linhas_prev_fin,
         usuario,
         user_pk=int(request.user.pk) if request.user.is_authenticated else None,
         emit_cnpj=str(cab.get("emit_cnpj") or ""),
