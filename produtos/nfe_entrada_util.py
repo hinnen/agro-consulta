@@ -191,6 +191,18 @@ def entrada_nfe_enriquecer_doc_serializado(d: dict[str, Any]) -> dict[str, Any]:
     eff = entrada_nfe_status_efetivo(d)
     ui = entrada_nfe_status_ui_por_codigo(eff)
     extra = d.get("extra") if isinstance(d.get("extra"), dict) else {}
+    linhas = d.get("linhas") if isinstance(d.get("linhas"), list) else []
+    vt_agg = d.pop("_valor_total_nota", None)
+    if linhas:
+        vt = _entrada_nfe_total_linhas_reais(linhas)
+    elif vt_agg is not None:
+        try:
+            vt = round(float(vt_agg), 2)
+        except (TypeError, ValueError):
+            vt = 0.0
+    else:
+        vt = 0.0
+    d["entrada_valor_total"] = vt
     d["entrada_status_efetivo"] = eff
     d["entrada_status_label"] = ui["label"]
     d["entrada_financeiro_lancado"] = entrada_nfe_extra_financeiro_ok(extra)
@@ -1196,6 +1208,45 @@ def _entrada_nfe_parse_valor_busca(raw: str) -> float | None:
         return None
 
 
+def _mongo_expr_entrada_nfe_valor_total_linhas() -> dict[str, Any]:
+    """Soma q × v.un. das linhas no aggregate (lista sem projetar ``linhas`` inteiras)."""
+    return {
+        "$sum": {
+            "$map": {
+                "input": {"$cond": [{"$isArray": "$linhas"}, "$linhas", []]},
+                "as": "ln",
+                "in": {
+                    "$let": {
+                        "vars": {
+                            "q": {
+                                "$toDouble": {
+                                    "$ifNull": [
+                                        "$$ln.q_estoque",
+                                        {"$ifNull": ["$$ln.q_com", 0]},
+                                    ]
+                                }
+                            },
+                            "vu": {"$toDouble": {"$ifNull": ["$$ln.v_un_com", 0]}},
+                        },
+                        "in": {
+                            "$cond": [
+                                {
+                                    "$and": [
+                                        {"$gt": ["$$q", 0]},
+                                        {"$gt": ["$$vu", 0]},
+                                    ]
+                                },
+                                {"$multiply": ["$$q", "$$vu"]},
+                                0,
+                            ]
+                        },
+                    }
+                },
+            }
+        }
+    }
+
+
 def _entrada_nfe_total_linhas_reais(linhas: list) -> float:
     total = 0.0
     for ln in linhas:
@@ -1473,7 +1524,12 @@ def listar_rascunhos_entrada(
             [
                 {"$sort": {"criado_em": -1}},
                 {"$limit": scan_lim},
-                {"$project": proj},
+                {
+                    "$addFields": {
+                        "_valor_total_nota": _mongo_expr_entrada_nfe_valor_total_linhas(),
+                    }
+                },
+                {"$project": {**proj, "_valor_total_nota": 1}},
             ]
         )
         out = []
