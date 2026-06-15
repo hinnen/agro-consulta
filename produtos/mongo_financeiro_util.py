@@ -1,6 +1,7 @@
 """
-Agregações e operações financeiras a partir do Mongo (DtoLancamento), alinhadas ao ERP.
-Baixa via Mongo: o ERP pode resincronizar e sobrescrever — use API dedicada quando existir (ver VendaERPAPIClient).
+Agregações e operações financeiras a partir do Mongo (DtoLancamento).
+Com ``AGRO_FINANCEIRO_ERP_SYNC_HABILITADO=false``, o Agro é a fonte — não envia lançamento/baixa ao ERP.
+O espelho ERP→Mongo (WL) deve ser desligado no SisVale após ``congelar_lancamentos_financeiro_agro``.
 """
 from __future__ import annotations
 
@@ -63,6 +64,10 @@ AGRO_RECORRENTE_INTERVALO_MESES = "AgroRecorrenteIntervaloMeses"
 AGRO_RECORRENTE_SEMPRE = "AgroRecorrenteSempre"
 # Linha digitável / código de barras (somente Agro; não entra no recorte enviado ao ERP).
 AGRO_BOLETO_CODIGO_BARRAS = "AgroBoletoCodigoBarras"
+# Marca título como fonte de verdade no Agro (congelamento / desvinculação ERP).
+AGRO_FONTE_VERDADE = "AgroFonteVerdade"
+AGRO_CONGELADO_EM = "AgroCongeladoEm"
+COL_AGRO_FINANCEIRO_CONTROLE = "AgroFinanceiroControle"
 
 
 def normalizar_boleto_codigo_barras_mongo(raw: Any) -> str:
@@ -964,6 +969,7 @@ def criar_proximo_lancamento_recorrente_se_aplicavel(
     novo["LastUpdate"] = now
     novo["CriadoPor"] = user
     novo["ModificadoPor"] = f"{user} — recorrência Agro (após quitação)"[:200]
+    novo[AGRO_FONTE_VERDADE] = True
 
     base_nd = str(novo.get("NumeroDocumento") or "MAN")[:60]
     novo["NumeroDocumento"] = f"{base_nd}-R{secrets.token_hex(3).upper()}"[:80]
@@ -4811,6 +4817,7 @@ def inserir_lancamentos_manual_lote(
             doc["NumeroParcela"] = parcela_seq - 1
             doc["CriadoPor"] = user
             doc["ModificadoPor"] = f"{user} — inclusão manual em lote Agro"
+            doc[AGRO_FONTE_VERDADE] = True
             doc["ValorLiquido"] = 0.0
             doc["SaldoAtual"] = 0.0
 
@@ -6234,3 +6241,60 @@ def atualizar_lancamento_mongo_agro(
         upd["$unset"] = unset_doc
     col.update_one({"_id": oid}, upd)
     return {"ok": True, "id": str(oid)}
+
+
+def congelar_lancamentos_financeiro_agro(
+    db,
+    *,
+    usuario: str = "",
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """
+    Marca todos os ``DtoLancamento`` existentes com ``AgroFonteVerdade`` (snapshot lógico antes de
+    desligar a sincronização ERP). Não apaga nem altera valores — só carimbo de propriedade Agro.
+    """
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    col = db[COL_DTO_LANCAMENTO]
+    agora = timezone.now()
+    total = int(col.estimated_document_count())
+    ja_marcados = int(col.count_documents({AGRO_FONTE_VERDADE: True}))
+    a_marcar = int(col.count_documents({AGRO_FONTE_VERDADE: {"$ne": True}}))
+    out: dict[str, Any] = {
+        "ok": True,
+        "dry_run": dry_run,
+        "total_estimado": total,
+        "ja_marcados": ja_marcados,
+        "a_marcar": a_marcar,
+        "marcados_agora": 0,
+    }
+    if dry_run:
+        return out
+    patch = {
+        AGRO_FONTE_VERDADE: True,
+        AGRO_CONGELADO_EM: agora,
+        "ModificadoPor": (usuario or "Agro — congelar financeiro")[:200],
+        "LastUpdate": agora,
+    }
+    r = col.update_many({AGRO_FONTE_VERDADE: {"$ne": True}}, {"$set": patch})
+    out["marcados_agora"] = int(r.modified_count)
+    # Reforça data em quem já tinha a flag mas sem AgroCongeladoEm.
+    col.update_many(
+        {AGRO_FONTE_VERDADE: True, AGRO_CONGELADO_EM: {"$exists": False}},
+        {"$set": {AGRO_CONGELADO_EM: agora}},
+    )
+    ctrl = db[COL_AGRO_FINANCEIRO_CONTROLE]
+    ctrl.update_one(
+        {"_id": "financeiro_agro"},
+        {
+            "$set": {
+                "congelado_em": agora,
+                "total_titulos_estimado": total,
+                "marcados_total": int(col.count_documents({AGRO_FONTE_VERDADE: True})),
+                "usuario": (usuario or "")[:200],
+                "erp_sync_agro_desligado": True,
+            }
+        },
+        upsert=True,
+    )
+    return out

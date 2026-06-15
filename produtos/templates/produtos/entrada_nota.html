@@ -9258,7 +9258,8 @@
     try {
       const u = new URL(URL_AUDITORIA_FIN, window.location.origin);
       u.searchParams.set('filtro', entradaNfeListaFiltro || 'concluida');
-      u.searchParams.set('limit', '120');
+      u.searchParams.set('limit', entradaNfeListaBuscaAtiva() ? '60' : '80');
+      entradaNfeListaBuscaAppendParams(u);
       const r = await fetch(u.toString(), { credentials: 'same-origin' });
       const raw = await r.text();
       let j = {};
