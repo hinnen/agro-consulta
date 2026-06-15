@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="pt-br" class="h-full overflow-hidden">
-{% load static %}
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -76,8 +75,11 @@
     .cf-page .cf-cedula-label,
     .cf-page .cf-cedula-denom-num { line-height: var(--cf-lh-tight) !important; }
     .cf-page .cf-cedula-denom-stack span {
-      font-size: clamp(0.9rem, 0.55vw + 0.72rem, 1.08rem) !important;
-      line-height: 0.92 !important;
+      font-size: clamp(1.15rem, 0.85vw + 0.92rem, 1.55rem) !important;
+      line-height: 0.9 !important;
+    }
+    .cf-page .cf-cedula-denom-stack .cf-cedula-denom-sep {
+      font-size: clamp(0.85rem, 0.5vw + 0.7rem, 1.05rem) !important;
     }
     .cf-page .cf-cedula-sub-wrap .cf-cedula-sub {
       font-size: clamp(1.1rem, 0.72vw + 0.95rem, 1.6rem) !important;
@@ -277,7 +279,7 @@
       height: 100%;
       min-height: 6.5rem;
       display: grid;
-      grid-template-columns: 2.1rem minmax(0, 1fr) 1.15rem;
+      grid-template-columns: 2.55rem minmax(0, 1fr) 1.15rem;
       grid-template-rows: minmax(3.6rem, 1fr) auto;
       padding: 0;
       border-radius: 0.55rem;
@@ -309,18 +311,14 @@
     }
     .cf-cedula-denom-stack span {
       display: block;
-      font-size: clamp(0.9rem, 0.55vw + 0.72rem, 1.08rem);
+      font-size: clamp(1.15rem, 0.85vw + 0.92rem, 1.55rem);
       font-weight: 900;
       color: #1e293b;
-      line-height: 0.92;
+      line-height: 0.9;
     }
-    .cf-cedula-coin-img {
-      width: 1.85rem;
-      height: 1.85rem;
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      display: block;
+    .cf-cedula-denom-stack .cf-cedula-denom-sep {
+      font-size: clamp(0.85rem, 0.5vw + 0.7rem, 1.05rem);
+      font-weight: 800;
     }
     .cf-cedula-qty-cell {
       grid-column: 2;
@@ -739,15 +737,6 @@
                 {% for d in denominacoes_cedulas %}
                 <div class="cf-cedula-item" data-valor="{{ d.valor }}">
                   <div class="cf-cedula-denom" title="{{ d.label }}">
-                    {% if d.valor == "0.50" %}
-                    <img src="{% static 'produtos/img/moedas/moeda-050.svg' %}" alt="" class="cf-cedula-coin-img" width="30" height="30">
-                    {% elif d.valor == "0.25" %}
-                    <img src="{% static 'produtos/img/moedas/moeda-025.svg' %}" alt="" class="cf-cedula-coin-img" width="30" height="30">
-                    {% elif d.valor == "0.10" %}
-                    <img src="{% static 'produtos/img/moedas/moeda-010.svg' %}" alt="" class="cf-cedula-coin-img" width="30" height="30">
-                    {% elif d.valor == "0.05" %}
-                    <img src="{% static 'produtos/img/moedas/moeda-005.svg' %}" alt="" class="cf-cedula-coin-img" width="30" height="30">
-                    {% else %}
                     <div class="cf-cedula-denom-stack" aria-hidden="true">
                       {% if d.valor == "200" %}<span>2</span><span>0</span><span>0</span>
                       {% elif d.valor == "100" %}<span>1</span><span>0</span><span>0</span>
@@ -757,9 +746,12 @@
                       {% elif d.valor == "5" %}<span>5</span>
                       {% elif d.valor == "2" %}<span>2</span>
                       {% elif d.valor == "1" %}<span>1</span>
+                      {% elif d.valor == "0.50" %}<span>0</span><span class="cf-cedula-denom-sep">,</span><span>5</span><span>0</span>
+                      {% elif d.valor == "0.25" %}<span>0</span><span class="cf-cedula-denom-sep">,</span><span>2</span><span>5</span>
+                      {% elif d.valor == "0.10" %}<span>0</span><span class="cf-cedula-denom-sep">,</span><span>1</span><span>0</span>
+                      {% elif d.valor == "0.05" %}<span>0</span><span class="cf-cedula-denom-sep">,</span><span>0</span><span>5</span>
                       {% endif %}
                     </div>
-                    {% endif %}
                     <span class="sr-only">{{ d.label }}</span>
                   </div>
                   <div class="cf-cedula-qty-cell">

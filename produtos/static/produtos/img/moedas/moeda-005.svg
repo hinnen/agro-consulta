@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Moeda 5 centavos">
-  <circle cx="32" cy="32" r="30" fill="#9ca3af" stroke="#4b5563" stroke-width="3"/>
-  <circle cx="32" cy="32" r="22" fill="none" stroke="#d1d5db" stroke-width="2" opacity="0.85"/>
-  <text x="32" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-size="19" font-weight="700" fill="#111827">5</text>
-</svg>
