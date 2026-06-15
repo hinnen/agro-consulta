@@ -25,7 +25,7 @@
       --cf-fs-page: clamp(1.35rem, 0.6vw + 1.18rem, 1.65rem);
       --cf-fs-money: clamp(1.35rem, 0.5vw + 1.2rem, 1.75rem);
       --cf-fs-input: clamp(1.5rem, 0.65vw + 1.25rem, 2rem);
-      --cf-fs-cedula: clamp(1.65rem, 0.85vw + 1.35rem, 2.25rem);
+      --cf-fs-cedula: clamp(2rem, 1.35vw + 1.65rem, 3rem);
       --cf-input-h: clamp(3.15rem, 9vh, 3.85rem);
       --cf-lh-tight: 1.15;
       --cf-lh-body: 1.38;
@@ -72,8 +72,10 @@
       line-height: var(--cf-lh-tight) !important;
       min-height: var(--cf-input-h);
     }
-    .cf-page .cf-cedula-label {
-      font-size: var(--cf-fs-section) !important;
+    .cf-page .cf-cedula-label,
+    .cf-page .cf-cedula-denom-num { line-height: var(--cf-lh-tight) !important; }
+    .cf-page .cf-cedula-sub-wrap .cf-cedula-sub {
+      font-size: clamp(1.1rem, 0.72vw + 0.95rem, 1.6rem) !important;
       line-height: var(--cf-lh-tight) !important;
     }
     .cf-page .cf-contado-input,
@@ -248,43 +250,71 @@
     .cf-cedulas-grid {
       display: grid;
       width: 100%;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: clamp(0.45rem, 0.85vw, 0.65rem);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(0.5rem, 0.9vw, 0.7rem);
       flex: 1 1 auto;
       align-content: start;
     }
-    @container (min-width: 40rem) {
+    @container (min-width: 44rem) {
+      .cf-cedulas-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    @container (min-width: 58rem) {
       .cf-cedulas-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
     }
+    /* Card estilo paint: valor vertical | qtd grande + rótulo | total embaixo */
     .cf-cedula-item {
       width: 100%;
       min-width: 0;
+      min-height: clamp(6.75rem, 17vh, 9rem);
+      display: grid;
+      grid-template-columns: minmax(1.85rem, 0.38fr) minmax(0, 1fr) minmax(1.35rem, 0.28fr);
+      grid-template-rows: minmax(0, 1fr) auto;
+      padding: 0;
+      border-radius: 0.55rem;
+      border: 2px solid #94a3b8;
+      background: #fff;
+      overflow: hidden;
+      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
+    }
+    .cf-cedula-denom {
+      grid-row: 1 / -1;
+      grid-column: 1;
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
+      border-right: 2px solid #94a3b8;
+      padding: 0.2rem 0.1rem;
+    }
+    .cf-cedula-denom-num {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-size: clamp(0.95rem, 0.45vw + 0.82rem, 1.15rem);
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      color: #1e293b;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .cf-cedula-qty-cell {
+      grid-column: 2;
+      grid-row: 1;
+      display: flex;
       align-items: stretch;
       justify-content: stretch;
-      gap: 0.35rem;
-      padding: clamp(0.45rem, 0.8vw, 0.6rem);
-      border-radius: 0.6rem;
-      border: 2px solid #cbd5e1;
-      background: #f8fafc;
-      min-height: clamp(5.5rem, 14vh, 7rem);
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-    }
-    .cf-cedula-label {
-      font-weight: 900;
-      line-height: var(--cf-lh-tight);
-      text-align: center;
-      color: #0f172a;
-      font-size: var(--cf-fs-section);
+      min-height: 0;
+      border-bottom: 2px solid #e2e8f0;
+      border-right: 2px solid #e2e8f0;
+      background: #fafafa;
     }
     .cf-cedula-qty {
       width: 100%;
-      flex: 1 1 auto;
+      height: 100%;
+      min-height: clamp(3.25rem, 9vh, 4.25rem);
       box-sizing: border-box;
-      border-radius: 0.5rem;
-      border: 2px solid #e2e8f0;
-      background: #fff;
+      border: none;
+      border-radius: 0;
+      background: transparent;
       font-weight: 900;
       font-variant-numeric: tabular-nums;
       text-align: center;
@@ -293,15 +323,52 @@
     }
     .cf-cedula-qty:focus {
       outline: none;
-      border-color: #10b981;
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22);
+      background: #fff;
+      box-shadow: inset 0 0 0 3px rgba(16, 185, 129, 0.35);
+    }
+    .cf-cedula-qty-tag {
+      grid-column: 3;
+      grid-row: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.2rem 0.15rem;
+      font-size: clamp(0.62rem, 0.28vw + 0.55rem, 0.72rem);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #475569;
+      background: #f1f5f9;
+      border-bottom: 2px solid #e2e8f0;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      line-height: 1.1;
+      text-align: center;
+    }
+    .cf-cedula-sub-wrap {
+      grid-column: 2 / -1;
+      grid-row: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.2rem 0.35rem;
+      padding: 0.35rem 0.4rem;
+      background: linear-gradient(180deg, #ecfdf5, #d1fae5);
+      border-top: 1px solid #6ee7b7;
+      min-height: clamp(2.35rem, 6.5vh, 3rem);
+    }
+    .cf-cedula-sub-prefix {
+      font-size: clamp(0.75rem, 0.38vw + 0.65rem, 0.92rem);
+      font-weight: 900;
+      color: #047857;
+      flex-shrink: 0;
     }
     .cf-cedula-sub {
-      font-weight: 800;
+      font-weight: 900;
       font-variant-numeric: tabular-nums;
-      text-align: center;
-      color: #047857;
-      line-height: var(--cf-lh-body);
+      color: #065f46;
+      line-height: 1;
+      min-width: 0;
     }
     .cf-dinheiro-footer {
       display: grid;
@@ -638,9 +705,18 @@
               <div class="cf-cedulas-grid" aria-label="Quantidade por denominação">
                 {% for d in denominacoes_cedulas %}
                 <div class="cf-cedula-item" data-valor="{{ d.valor }}">
-                  <span class="cf-cedula-label">{{ d.label }}</span>
-                  <input type="number" min="0" step="1" inputmode="numeric" class="cf-cedula-qty" data-valor="{{ d.valor }}" placeholder="0" autocomplete="off" title="Quantidade de {{ d.label }}">
-                  <span class="cf-cedula-sub tabular-nums">R$ 0,00</span>
+                  <div class="cf-cedula-denom" title="{{ d.label }}">
+                    <span class="cf-cedula-denom-num" aria-hidden="true">{% if d.valor == "0.50" %}0,50{% elif d.valor == "0.25" %}0,25{% elif d.valor == "0.10" %}0,10{% elif d.valor == "0.05" %}0,05{% else %}{{ d.valor }}{% endif %}</span>
+                    <span class="sr-only">{{ d.label }}</span>
+                  </div>
+                  <div class="cf-cedula-qty-cell">
+                    <input type="number" min="0" step="1" inputmode="numeric" class="cf-cedula-qty" data-valor="{{ d.valor }}" placeholder="0" autocomplete="off" aria-label="Quantidade de {{ d.label }}" title="Quantidade de {{ d.label }}">
+                  </div>
+                  <span class="cf-cedula-qty-tag" aria-hidden="true">{% if d.valor == "0.50" or d.valor == "0.25" or d.valor == "0.10" or d.valor == "0.05" %}Moedas{% else %}Notas{% endif %}</span>
+                  <div class="cf-cedula-sub-wrap">
+                    <span class="cf-cedula-sub-prefix">R$</span>
+                    <span class="cf-cedula-sub tabular-nums">0,00</span>
+                  </div>
                 </div>
                 {% endfor %}
               </div>
@@ -1018,7 +1094,7 @@
       var subEl = inp.closest('.cf-cedula-item');
       if (subEl) {
         var s = subEl.querySelector('.cf-cedula-sub');
-        if (s) s.textContent = 'R$ ' + fmtBr(Math.round(sub * 100) / 100);
+        if (s) s.textContent = fmtBr(Math.round(sub * 100) / 100);
       }
     });
     total = Math.round(total * 100) / 100;
