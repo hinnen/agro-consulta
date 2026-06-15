@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-br" class="h-full overflow-hidden">
+{% load static %}
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,7 +26,7 @@
       --cf-fs-page: clamp(1.35rem, 0.6vw + 1.18rem, 1.65rem);
       --cf-fs-money: clamp(1.35rem, 0.5vw + 1.2rem, 1.75rem);
       --cf-fs-input: clamp(1.5rem, 0.65vw + 1.25rem, 2rem);
-      --cf-fs-cedula: clamp(2rem, 1.35vw + 1.65rem, 3rem);
+      --cf-fs-cedula: clamp(1.65rem, 1.1vw + 1.35rem, 2.35rem);
       --cf-input-h: clamp(3.15rem, 9vh, 3.85rem);
       --cf-lh-tight: 1.15;
       --cf-lh-body: 1.38;
@@ -74,6 +75,10 @@
     }
     .cf-page .cf-cedula-label,
     .cf-page .cf-cedula-denom-num { line-height: var(--cf-lh-tight) !important; }
+    .cf-page .cf-cedula-denom-stack span {
+      font-size: clamp(0.9rem, 0.55vw + 0.72rem, 1.08rem) !important;
+      line-height: 0.92 !important;
+    }
     .cf-page .cf-cedula-sub-wrap .cf-cedula-sub {
       font-size: clamp(1.1rem, 0.72vw + 0.95rem, 1.6rem) !important;
       line-height: var(--cf-lh-tight) !important;
@@ -239,6 +244,7 @@
       border-radius: 0.65rem;
       background: #fff;
       padding: 0.55rem 0.6rem;
+      overflow: hidden;
     }
     .cf-cedulas-title {
       font-weight: 900;
@@ -251,29 +257,34 @@
       display: grid;
       width: 100%;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: clamp(0.5rem, 0.9vw, 0.7rem);
-      flex: 1 1 auto;
+      grid-auto-rows: minmax(6.5rem, auto);
+      gap: 0.5rem;
+      flex: 0 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
       align-content: start;
     }
-    @container (min-width: 44rem) {
+    @container (min-width: 40rem) {
       .cf-cedulas-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
-    @container (min-width: 58rem) {
+    @container (min-width: 56rem) {
       .cf-cedulas-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
     }
-    /* Card estilo paint: valor vertical | qtd grande + rótulo | total embaixo */
     .cf-cedula-item {
       width: 100%;
       min-width: 0;
-      min-height: clamp(6.75rem, 17vh, 9rem);
+      height: 100%;
+      min-height: 6.5rem;
       display: grid;
-      grid-template-columns: minmax(1.85rem, 0.38fr) minmax(0, 1fr) minmax(1.35rem, 0.28fr);
-      grid-template-rows: minmax(0, 1fr) auto;
+      grid-template-columns: 2.1rem minmax(0, 1fr) 1.15rem;
+      grid-template-rows: minmax(3.6rem, 1fr) auto;
       padding: 0;
       border-radius: 0.55rem;
       border: 2px solid #94a3b8;
       background: #fff;
       overflow: hidden;
+      isolation: isolate;
       box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
     }
     .cf-cedula-denom {
@@ -284,17 +295,32 @@
       justify-content: center;
       background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
       border-right: 2px solid #94a3b8;
-      padding: 0.2rem 0.1rem;
+      padding: 0.15rem 0.1rem;
+      min-width: 0;
+      overflow: hidden;
     }
-    .cf-cedula-denom-num {
-      writing-mode: vertical-rl;
-      transform: rotate(180deg);
-      font-size: clamp(0.95rem, 0.45vw + 0.82rem, 1.15rem);
-      font-weight: 900;
-      letter-spacing: 0.06em;
-      color: #1e293b;
+    .cf-cedula-denom-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.02rem;
       line-height: 1;
-      white-space: nowrap;
+    }
+    .cf-cedula-denom-stack span {
+      display: block;
+      font-size: clamp(0.9rem, 0.55vw + 0.72rem, 1.08rem);
+      font-weight: 900;
+      color: #1e293b;
+      line-height: 0.92;
+    }
+    .cf-cedula-coin-img {
+      width: 1.85rem;
+      height: 1.85rem;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      display: block;
     }
     .cf-cedula-qty-cell {
       grid-column: 2;
@@ -310,7 +336,8 @@
     .cf-cedula-qty {
       width: 100%;
       height: 100%;
-      min-height: clamp(3.25rem, 9vh, 4.25rem);
+      min-height: 0;
+      max-height: 100%;
       box-sizing: border-box;
       border: none;
       border-radius: 0;
@@ -319,7 +346,7 @@
       font-variant-numeric: tabular-nums;
       text-align: center;
       color: #0f172a;
-      padding: 0.15rem;
+      padding: 0.1rem;
     }
     .cf-cedula-qty:focus {
       outline: none;
@@ -332,18 +359,20 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 0.2rem 0.15rem;
-      font-size: clamp(0.62rem, 0.28vw + 0.55rem, 0.72rem);
+      padding: 0.15rem 0.1rem;
+      font-size: 0.58rem;
       font-weight: 900;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
       color: #475569;
       background: #f1f5f9;
       border-bottom: 2px solid #e2e8f0;
       writing-mode: vertical-rl;
+      text-orientation: mixed;
       transform: rotate(180deg);
-      line-height: 1.1;
-      text-align: center;
+      line-height: 1;
+      overflow: hidden;
+      word-break: break-all;
     }
     .cf-cedula-sub-wrap {
       grid-column: 2 / -1;
@@ -371,6 +400,7 @@
       min-width: 0;
     }
     .cf-dinheiro-footer {
+      flex-shrink: 0;
       display: grid;
       grid-template-columns: minmax(0, 1fr);
       gap: 0.5rem;
@@ -378,6 +408,9 @@
       padding-top: 0.55rem;
       border-top: 2px solid #a7f3d0;
       align-items: end;
+      position: relative;
+      z-index: 2;
+      background: #ecfdf5;
     }
     @container (min-width: 36rem) {
       .cf-dinheiro-footer {
@@ -706,7 +739,27 @@
                 {% for d in denominacoes_cedulas %}
                 <div class="cf-cedula-item" data-valor="{{ d.valor }}">
                   <div class="cf-cedula-denom" title="{{ d.label }}">
-                    <span class="cf-cedula-denom-num" aria-hidden="true">{% if d.valor == "0.50" %}0,50{% elif d.valor == "0.25" %}0,25{% elif d.valor == "0.10" %}0,10{% elif d.valor == "0.05" %}0,05{% else %}{{ d.valor }}{% endif %}</span>
+                    {% if d.valor == "0.50" %}
+                    <img src="{% static 'produtos/img/moedas/moeda-050.svg' %}" alt="" class="cf-cedula-coin-img" width="30" height="30">
+                    {% elif d.valor == "0.25" %}
+                    <img src="{% static 'produtos/img/moedas/moeda-025.svg' %}" alt="" class="cf-cedula-coin-img" width="30" height="30">
+                    {% elif d.valor == "0.10" %}
+                    <img src="{% static 'produtos/img/moedas/moeda-010.svg' %}" alt="" class="cf-cedula-coin-img" width="30" height="30">
+                    {% elif d.valor == "0.05" %}
+                    <img src="{% static 'produtos/img/moedas/moeda-005.svg' %}" alt="" class="cf-cedula-coin-img" width="30" height="30">
+                    {% else %}
+                    <div class="cf-cedula-denom-stack" aria-hidden="true">
+                      {% if d.valor == "200" %}<span>2</span><span>0</span><span>0</span>
+                      {% elif d.valor == "100" %}<span>1</span><span>0</span><span>0</span>
+                      {% elif d.valor == "50" %}<span>5</span><span>0</span>
+                      {% elif d.valor == "20" %}<span>2</span><span>0</span>
+                      {% elif d.valor == "10" %}<span>1</span><span>0</span>
+                      {% elif d.valor == "5" %}<span>5</span>
+                      {% elif d.valor == "2" %}<span>2</span>
+                      {% elif d.valor == "1" %}<span>1</span>
+                      {% endif %}
+                    </div>
+                    {% endif %}
                     <span class="sr-only">{{ d.label }}</span>
                   </div>
                   <div class="cf-cedula-qty-cell">
