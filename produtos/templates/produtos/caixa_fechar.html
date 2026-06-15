@@ -182,103 +182,66 @@
     .cf-cedulas-rows {
       display: flex;
       flex-direction: column;
-      gap: clamp(0.45rem, 0.85vw, 0.6rem);
+      gap: clamp(0.4rem, 0.7vw, 0.55rem);
     }
     .cf-cedulas-row {
-      display: grid;
-      gap: clamp(0.4rem, 0.75vw, 0.55rem);
+      display: flex;
+      flex-wrap: wrap;
+      gap: clamp(0.4rem, 0.65vw, 0.5rem);
       align-items: stretch;
-    }
-    /* 3 linhas: 200–20 · 10–1 · 0,50–0,05 */
-    .cf-cedulas-row-high { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-    .cf-cedulas-row-mid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .cf-cedulas-row-coins { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    @container (max-width: 34rem) {
-      .cf-cedulas-row-high { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .cf-cedulas-row-mid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .cf-cedulas-row-coins { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      justify-content: flex-start;
     }
     .cf-cedula-item {
+      flex: 0 0 auto;
+      width: clamp(4.65rem, 8.2vw, 5.75rem);
+      max-width: 5.75rem;
       display: flex;
       flex-direction: column;
       align-items: stretch;
-      justify-content: space-between;
-      gap: 0.35rem;
-      padding: clamp(0.45rem, 0.9vw, 0.6rem) clamp(0.4rem, 0.7vw, 0.55rem);
-      border-radius: 0.6rem;
-      border: 2px solid rgba(15, 23, 42, 0.12);
+      gap: 0.28rem;
+      padding: 0.38rem 0.35rem 0.32rem;
+      border-radius: 0.55rem;
+      border: 2px solid #cbd5e1;
+      background: #fff;
       min-width: 0;
-      min-height: clamp(4.75rem, 11vh, 5.75rem);
-      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
     }
     .cf-cedula-label {
-      font-size: clamp(0.95rem, 0.55vw + 0.78rem, 1.2rem) !important;
+      font-size: clamp(0.8rem, 0.42vw + 0.68rem, 0.94rem) !important;
       font-weight: 900;
       line-height: 1.1;
       text-align: center;
-      letter-spacing: -0.01em;
+      color: #334155;
+      white-space: nowrap;
     }
     .cf-cedula-qty {
       width: 100%;
-      min-height: clamp(2.5rem, 7vh, 3.15rem);
-      border-radius: 0.5rem;
-      border: 2px solid rgba(15, 23, 42, 0.14);
-      background: rgba(255, 255, 255, 0.92);
-      font-size: clamp(1.15rem, 0.65vw + 0.95rem, 1.45rem) !important;
+      box-sizing: border-box;
+      min-height: clamp(2.85rem, 8vh, 3.4rem);
+      border-radius: 0.45rem;
+      border: 2px solid #e2e8f0;
+      background: #f8fafc;
+      font-size: clamp(1.35rem, 0.85vw + 1.05rem, 1.7rem) !important;
       font-weight: 900;
       font-variant-numeric: tabular-nums;
       text-align: center;
       color: #0f172a;
+      padding: 0.1rem 0.15rem;
     }
     .cf-cedula-qty:focus {
       outline: none;
       border-color: #10b981;
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22);
     }
     .cf-cedula-sub {
-      font-size: clamp(0.72rem, 0.35vw + 0.62rem, 0.86rem) !important;
+      font-size: clamp(0.62rem, 0.28vw + 0.54rem, 0.72rem) !important;
       font-weight: 800;
       font-variant-numeric: tabular-nums;
       text-align: center;
-      opacity: 0.92;
+      color: #047857;
+      line-height: 1.15;
     }
-    /* Cores inspiradas nas cédulas/moedas do Real */
-    .cf-cedula-item[data-valor="200"] { background: linear-gradient(165deg, #1a4080, #2d5aa8); border-color: #0f2d54; }
-    .cf-cedula-item[data-valor="200"] .cf-cedula-label,
-    .cf-cedula-item[data-valor="200"] .cf-cedula-sub { color: #fff; }
-    .cf-cedula-item[data-valor="100"] { background: linear-gradient(165deg, #3d8fc4, #5eb0e0); border-color: #2a6f9e; }
-    .cf-cedula-item[data-valor="100"] .cf-cedula-label,
-    .cf-cedula-item[data-valor="100"] .cf-cedula-sub { color: #0c2d44; }
-    .cf-cedula-item[data-valor="50"] { background: linear-gradient(165deg, #d4822a, #f0a040); border-color: #a85f18; }
-    .cf-cedula-item[data-valor="50"] .cf-cedula-label,
-    .cf-cedula-item[data-valor="50"] .cf-cedula-sub { color: #3d1f05; }
-    .cf-cedula-item[data-valor="20"] { background: linear-gradient(165deg, #e8c43a, #f5d76a); border-color: #b8941a; }
-    .cf-cedula-item[data-valor="20"] .cf-cedula-label,
-    .cf-cedula-item[data-valor="20"] .cf-cedula-sub { color: #3d3208; }
-    .cf-cedula-item[data-valor="10"] { background: linear-gradient(165deg, #b91c3c, #e03a5a); border-color: #7f1228; }
-    .cf-cedula-item[data-valor="10"] .cf-cedula-label,
-    .cf-cedula-item[data-valor="10"] .cf-cedula-sub { color: #fff; }
-    .cf-cedula-item[data-valor="5"] { background: linear-gradient(165deg, #5b2d8a, #7c4aad); border-color: #3d1d5c; }
-    .cf-cedula-item[data-valor="5"] .cf-cedula-label,
-    .cf-cedula-item[data-valor="5"] .cf-cedula-sub { color: #fff; }
-    .cf-cedula-item[data-valor="2"] { background: linear-gradient(165deg, #1e5f8f, #2d7ab0); border-color: #134066; }
-    .cf-cedula-item[data-valor="2"] .cf-cedula-label,
-    .cf-cedula-item[data-valor="2"] .cf-cedula-sub { color: #fff; }
-    .cf-cedula-item[data-valor="1"] { background: linear-gradient(165deg, #2d7a52, #3d9a68); border-color: #1a5236; }
-    .cf-cedula-item[data-valor="1"] .cf-cedula-label,
-    .cf-cedula-item[data-valor="1"] .cf-cedula-sub { color: #fff; }
-    .cf-cedula-item[data-valor="0.50"] { background: linear-gradient(165deg, #c9a227, #e0bc45); border-color: #8a7018; }
-    .cf-cedula-item[data-valor="0.50"] .cf-cedula-label,
-    .cf-cedula-item[data-valor="0.50"] .cf-cedula-sub { color: #2d2406; }
-    .cf-cedula-item[data-valor="0.25"] { background: linear-gradient(165deg, #9ca3af, #c4c9d1); border-color: #6b7280; }
-    .cf-cedula-item[data-valor="0.25"] .cf-cedula-label,
-    .cf-cedula-item[data-valor="0.25"] .cf-cedula-sub { color: #1e293b; }
-    .cf-cedula-item[data-valor="0.10"] { background: linear-gradient(165deg, #b8863a, #d4a45a); border-color: #7a5a22; }
-    .cf-cedula-item[data-valor="0.10"] .cf-cedula-label,
-    .cf-cedula-item[data-valor="0.10"] .cf-cedula-sub { color: #2d1f08; }
-    .cf-cedula-item[data-valor="0.05"] { background: linear-gradient(165deg, #8b9199, #adb3bc); border-color: #5c6370; }
-    .cf-cedula-item[data-valor="0.05"] .cf-cedula-label,
-    .cf-cedula-item[data-valor="0.05"] .cf-cedula-sub { color: #1e293b; }
     .cf-cedulas-sum {
       margin-top: 0.35rem;
       font-size: clamp(0.65rem, 0.2vw + 0.58rem, 0.75rem);
