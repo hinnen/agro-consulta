@@ -56,10 +56,7 @@
       align-items: stretch;
     }
     @container (min-width: 36rem) {
-      .cf-main { grid-template-columns: minmax(0, 1fr) minmax(13rem, 21%); }
-    }
-    @container (min-width: 64rem) {
-      .cf-main { grid-template-columns: minmax(0, 1fr) minmax(15rem, 18%); }
+      .cf-main { grid-template-columns: minmax(0, 1fr) auto; }
     }
     .cf-main-span { grid-column: 1 / -1; }
     .cf-form {
@@ -175,71 +172,113 @@
       padding: 0.45rem 0.5rem;
     }
     .cf-cedulas-title {
-      font-size: clamp(0.58rem, 0.24vw + 0.5rem, 0.68rem);
+      font-size: clamp(0.72rem, 0.28vw + 0.62rem, 0.82rem) !important;
       font-weight: 900;
       text-transform: uppercase;
       color: #065f46;
-      margin-bottom: 0.35rem;
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.03em;
     }
     .cf-cedulas-rows {
       display: flex;
       flex-direction: column;
-      gap: clamp(0.4rem, 0.75vw, 0.55rem);
+      gap: clamp(0.45rem, 0.85vw, 0.6rem);
     }
     .cf-cedulas-row {
       display: grid;
-      gap: clamp(0.35rem, 0.65vw, 0.5rem);
+      gap: clamp(0.4rem, 0.75vw, 0.55rem);
       align-items: stretch;
     }
-    /* Linha 1: R$ 200 … R$ 5 · linha 2: R$ 2 … R$ 0,05 */
-    .cf-cedulas-row-bills {
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-    }
-    .cf-cedulas-row-coins {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
-    @container (max-width: 40rem) {
-      .cf-cedulas-row-bills { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .cf-cedulas-row-coins { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    /* 3 linhas: 200–20 · 10–1 · 0,50–0,05 */
+    .cf-cedulas-row-high { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .cf-cedulas-row-mid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .cf-cedulas-row-coins { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    @container (max-width: 34rem) {
+      .cf-cedulas-row-high { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .cf-cedulas-row-mid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .cf-cedulas-row-coins { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     .cf-cedula-item {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(2.5rem, 3rem);
-      gap: 0.2rem 0.35rem;
-      align-items: center;
-      padding: 0.35rem 0.4rem;
-      border-radius: 0.5rem;
-      border: 1px solid #cbd5e1;
-      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 0.35rem;
+      padding: clamp(0.45rem, 0.9vw, 0.6rem) clamp(0.4rem, 0.7vw, 0.55rem);
+      border-radius: 0.6rem;
+      border: 2px solid rgba(15, 23, 42, 0.12);
       min-width: 0;
+      min-height: clamp(4.75rem, 11vh, 5.75rem);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
     }
     .cf-cedula-label {
-      font-size: clamp(0.7rem, 0.26vw + 0.6rem, 0.86rem);
+      font-size: clamp(0.95rem, 0.55vw + 0.78rem, 1.2rem) !important;
       font-weight: 900;
-      color: #334155;
       line-height: 1.1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      text-align: center;
+      letter-spacing: -0.01em;
     }
     .cf-cedula-qty {
       width: 100%;
-      min-height: clamp(2.15rem, 6vh, 2.65rem);
-      border-radius: 0.45rem;
-      border: 2px solid #e2e8f0;
-      background: #fff;
-      font-size: clamp(0.95rem, 0.3vw + 0.85rem, 1.1rem);
+      min-height: clamp(2.5rem, 7vh, 3.15rem);
+      border-radius: 0.5rem;
+      border: 2px solid rgba(15, 23, 42, 0.14);
+      background: rgba(255, 255, 255, 0.92);
+      font-size: clamp(1.15rem, 0.65vw + 0.95rem, 1.45rem) !important;
       font-weight: 900;
       font-variant-numeric: tabular-nums;
       text-align: center;
+      color: #0f172a;
+    }
+    .cf-cedula-qty:focus {
+      outline: none;
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
     }
     .cf-cedula-sub {
-      grid-column: 1 / -1;
-      font-size: clamp(0.6rem, 0.18vw + 0.52rem, 0.68rem);
+      font-size: clamp(0.72rem, 0.35vw + 0.62rem, 0.86rem) !important;
       font-weight: 800;
       font-variant-numeric: tabular-nums;
-      color: #047857;
+      text-align: center;
+      opacity: 0.92;
     }
+    /* Cores inspiradas nas cédulas/moedas do Real */
+    .cf-cedula-item[data-valor="200"] { background: linear-gradient(165deg, #1a4080, #2d5aa8); border-color: #0f2d54; }
+    .cf-cedula-item[data-valor="200"] .cf-cedula-label,
+    .cf-cedula-item[data-valor="200"] .cf-cedula-sub { color: #fff; }
+    .cf-cedula-item[data-valor="100"] { background: linear-gradient(165deg, #3d8fc4, #5eb0e0); border-color: #2a6f9e; }
+    .cf-cedula-item[data-valor="100"] .cf-cedula-label,
+    .cf-cedula-item[data-valor="100"] .cf-cedula-sub { color: #0c2d44; }
+    .cf-cedula-item[data-valor="50"] { background: linear-gradient(165deg, #d4822a, #f0a040); border-color: #a85f18; }
+    .cf-cedula-item[data-valor="50"] .cf-cedula-label,
+    .cf-cedula-item[data-valor="50"] .cf-cedula-sub { color: #3d1f05; }
+    .cf-cedula-item[data-valor="20"] { background: linear-gradient(165deg, #e8c43a, #f5d76a); border-color: #b8941a; }
+    .cf-cedula-item[data-valor="20"] .cf-cedula-label,
+    .cf-cedula-item[data-valor="20"] .cf-cedula-sub { color: #3d3208; }
+    .cf-cedula-item[data-valor="10"] { background: linear-gradient(165deg, #b91c3c, #e03a5a); border-color: #7f1228; }
+    .cf-cedula-item[data-valor="10"] .cf-cedula-label,
+    .cf-cedula-item[data-valor="10"] .cf-cedula-sub { color: #fff; }
+    .cf-cedula-item[data-valor="5"] { background: linear-gradient(165deg, #5b2d8a, #7c4aad); border-color: #3d1d5c; }
+    .cf-cedula-item[data-valor="5"] .cf-cedula-label,
+    .cf-cedula-item[data-valor="5"] .cf-cedula-sub { color: #fff; }
+    .cf-cedula-item[data-valor="2"] { background: linear-gradient(165deg, #1e5f8f, #2d7ab0); border-color: #134066; }
+    .cf-cedula-item[data-valor="2"] .cf-cedula-label,
+    .cf-cedula-item[data-valor="2"] .cf-cedula-sub { color: #fff; }
+    .cf-cedula-item[data-valor="1"] { background: linear-gradient(165deg, #2d7a52, #3d9a68); border-color: #1a5236; }
+    .cf-cedula-item[data-valor="1"] .cf-cedula-label,
+    .cf-cedula-item[data-valor="1"] .cf-cedula-sub { color: #fff; }
+    .cf-cedula-item[data-valor="0.50"] { background: linear-gradient(165deg, #c9a227, #e0bc45); border-color: #8a7018; }
+    .cf-cedula-item[data-valor="0.50"] .cf-cedula-label,
+    .cf-cedula-item[data-valor="0.50"] .cf-cedula-sub { color: #2d2406; }
+    .cf-cedula-item[data-valor="0.25"] { background: linear-gradient(165deg, #9ca3af, #c4c9d1); border-color: #6b7280; }
+    .cf-cedula-item[data-valor="0.25"] .cf-cedula-label,
+    .cf-cedula-item[data-valor="0.25"] .cf-cedula-sub { color: #1e293b; }
+    .cf-cedula-item[data-valor="0.10"] { background: linear-gradient(165deg, #b8863a, #d4a45a); border-color: #7a5a22; }
+    .cf-cedula-item[data-valor="0.10"] .cf-cedula-label,
+    .cf-cedula-item[data-valor="0.10"] .cf-cedula-sub { color: #2d1f08; }
+    .cf-cedula-item[data-valor="0.05"] { background: linear-gradient(165deg, #8b9199, #adb3bc); border-color: #5c6370; }
+    .cf-cedula-item[data-valor="0.05"] .cf-cedula-label,
+    .cf-cedula-item[data-valor="0.05"] .cf-cedula-sub { color: #1e293b; }
     .cf-cedulas-sum {
       margin-top: 0.35rem;
       font-size: clamp(0.65rem, 0.2vw + 0.58rem, 0.75rem);
@@ -321,17 +360,108 @@
         align-items: end;
       }
     }
+    .cf-aside-wrap {
+      min-height: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      border-radius: 0.85rem;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+      width: 100%;
+    }
+  @container (min-width: 36rem) {
+    .cf-aside-wrap {
+      width: 3rem;
+      min-width: 3rem;
+      max-width: 3rem;
+      transition: width 0.22s ease, min-width 0.22s ease, max-width 0.22s ease, box-shadow 0.22s ease;
+      z-index: 4;
+    }
+    .cf-aside-wrap:hover,
+    .cf-aside-wrap.is-open,
+    .cf-aside-wrap:focus-within {
+      width: min(18rem, 22vw);
+      min-width: min(18rem, 22vw);
+      max-width: min(18rem, 22vw);
+      box-shadow: -6px 0 20px rgba(15, 23, 42, 0.1);
+    }
+  }
+    .cf-aside-rail {
+      flex-shrink: 0;
+      width: 3rem;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 0.5rem 0.25rem;
+      background: linear-gradient(180deg, #f1f5f9, #e2e8f0);
+      border: none;
+      border-right: 1px solid #cbd5e1;
+      cursor: pointer;
+      user-select: none;
+      color: #334155;
+      font-family: inherit;
+    }
+  @container (min-width: 36rem) {
+    .cf-aside-rail { display: flex; }
+  }
+    .cf-aside-rail-icon {
+      font-size: 1.1rem;
+      font-weight: 900;
+      line-height: 1;
+      transition: transform 0.22s ease;
+    }
+    .cf-aside-wrap:hover .cf-aside-rail-icon,
+    .cf-aside-wrap.is-open .cf-aside-rail-icon { transform: rotate(180deg); }
+    .cf-aside-rail-label {
+      font-size: 0.62rem !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      line-height: 1.2;
+    }
+    .cf-aside-rail-badge {
+      font-size: 0.58rem !important;
+      font-weight: 900;
+      background: #059669;
+      color: #fff;
+      border-radius: 999px;
+      min-width: 1.25rem;
+      min-height: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 0.2rem;
+    }
     .cf-aside {
+      flex: 1 1 auto;
+      min-width: 0;
       min-height: 0;
       height: 100%;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      border-radius: 0.85rem;
-      border: 1px solid #e2e8f0;
-      background: #fff;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
     }
+  @container (min-width: 36rem) {
+    .cf-aside {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+    .cf-aside-wrap:hover .cf-aside,
+    .cf-aside-wrap.is-open .cf-aside,
+    .cf-aside-wrap:focus-within .cf-aside {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
     .cf-aside-scroll {
       flex: 1 1 auto;
       min-height: 0;
@@ -461,18 +591,27 @@
               <div id="cf-cedulas-wrap" class="cf-cedulas-wrap">
                 <p class="cf-cedulas-title">Cédulas e moedas (quantidade)</p>
                 <div class="cf-cedulas-rows">
-                  <div class="cf-cedulas-row cf-cedulas-row-bills" aria-label="Cédulas de R$ 200 a R$ 5">
-                  {% for d in denominacoes_cedulas|slice:":7" %}
-                  <div class="cf-cedula-item">
+                  <div class="cf-cedulas-row cf-cedulas-row-high" aria-label="Cédulas de R$ 200 a R$ 20">
+                  {% for d in denominacoes_cedulas|slice:":5" %}
+                  <div class="cf-cedula-item" data-valor="{{ d.valor }}">
                     <span class="cf-cedula-label">{{ d.label }}</span>
                     <input type="number" min="0" step="1" inputmode="numeric" class="cf-cedula-qty" data-valor="{{ d.valor }}" placeholder="0" autocomplete="off" title="Quantidade de {{ d.label }}">
                     <span class="cf-cedula-sub tabular-nums">R$ 0,00</span>
                   </div>
                   {% endfor %}
                   </div>
-                  <div class="cf-cedulas-row cf-cedulas-row-coins" aria-label="Cédulas e moedas de R$ 2 a R$ 0,05">
-                  {% for d in denominacoes_cedulas|slice:"7:" %}
-                  <div class="cf-cedula-item">
+                  <div class="cf-cedulas-row cf-cedulas-row-mid" aria-label="Cédulas de R$ 10 a R$ 1">
+                  {% for d in denominacoes_cedulas|slice:"5:8" %}
+                  <div class="cf-cedula-item" data-valor="{{ d.valor }}">
+                    <span class="cf-cedula-label">{{ d.label }}</span>
+                    <input type="number" min="0" step="1" inputmode="numeric" class="cf-cedula-qty" data-valor="{{ d.valor }}" placeholder="0" autocomplete="off" title="Quantidade de {{ d.label }}">
+                    <span class="cf-cedula-sub tabular-nums">R$ 0,00</span>
+                  </div>
+                  {% endfor %}
+                  </div>
+                  <div class="cf-cedulas-row cf-cedulas-row-coins" aria-label="Moedas de R$ 0,50 a R$ 0,05">
+                  {% for d in denominacoes_cedulas|slice:"8:" %}
+                  <div class="cf-cedula-item" data-valor="{{ d.valor }}">
                     <span class="cf-cedula-label">{{ d.label }}</span>
                     <input type="number" min="0" step="1" inputmode="numeric" class="cf-cedula-qty" data-valor="{{ d.valor }}" placeholder="0" autocomplete="off" title="Quantidade de {{ d.label }}">
                     <span class="cf-cedula-sub tabular-nums">R$ 0,00</span>
@@ -595,7 +734,13 @@
     </form>
     {% endif %}
 
-    <aside class="cf-aside{% if fechar_bloqueado %} opacity-50 pointer-events-none{% endif %}">
+    <div class="cf-aside-wrap{% if fechar_bloqueado %} opacity-50 pointer-events-none{% endif %}" id="cf-aside-wrap">
+      <button type="button" class="cf-aside-rail" id="cf-aside-rail" aria-expanded="false" aria-controls="cf-aside-panel" title="Passar o mouse ou tocar para ver caixas individuais">
+        <span class="cf-aside-rail-icon" aria-hidden="true">‹</span>
+        <span class="cf-aside-rail-label">Caixas</span>
+        <span class="cf-aside-rail-badge" aria-label="{{ qtd_caixas }} aberto(s)">{{ qtd_caixas }}</span>
+      </button>
+      <aside class="cf-aside" id="cf-aside-panel">
       <div class="shrink-0 px-3 py-2 border-b border-slate-100 bg-slate-50/80">
         <h2 class="text-sm font-black uppercase text-slate-700">Caixas individuais</h2>
         <p class="text-[11px] font-semibold text-slate-500">{{ qtd_caixas }} aberto(s) · loja e teste separados</p>
@@ -675,7 +820,8 @@
           </details>
           {% endfor %}
       </div>
-    </aside>
+      </aside>
+    </div>
   </main>
 
 {% include "produtos/_atalho_voltar_pdv.html" %}
@@ -1130,6 +1276,23 @@
     if (e.origin !== window.location.origin) return;
     if (e.data && e.data.type === 'agro-caixa-fechar-atualizar') agendarAtualizarConferencia();
   });
+
+  var asideWrap = document.getElementById('cf-aside-wrap');
+  var asideRail = document.getElementById('cf-aside-rail');
+  if (asideWrap && asideRail) {
+    asideRail.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = asideWrap.classList.toggle('is-open');
+      asideRail.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', function (e) {
+      if (!asideWrap.classList.contains('is-open')) return;
+      if (!asideWrap.contains(e.target)) {
+        asideWrap.classList.remove('is-open');
+        asideRail.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
 })();
 </script>
 </div>
