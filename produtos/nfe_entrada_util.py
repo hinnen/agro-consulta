@@ -1715,6 +1715,81 @@ def atualizar_rascunho_entrada(
         return {"ok": False, "erro": str(exc)[:500]}
 
 
+def _entrada_nfe_linha_propagacao_fingerprint(ln: dict) -> tuple:
+    if not isinstance(ln, dict):
+        return ()
+    try:
+        pv = round(float(ln.get("preco_venda") or 0), 2)
+    except (TypeError, ValueError):
+        pv = 0.0
+    return (
+        str(ln.get("produto_id") or "").strip(),
+        str(ln.get("c_prod") or "").strip(),
+        "".join(ch for ch in str(ln.get("ean") or "") if ch.isdigit()),
+        pv,
+    )
+
+
+def entrada_nfe_linhas_precos_catalogo_mudaram(prev: list | None, novas: list | None) -> bool:
+    """True se mudou algo que exige ``propagar_precos`` / vínculo cProd (ignora bip, lote, qtd, etc.)."""
+    a = prev if isinstance(prev, list) else []
+    b = novas if isinstance(novas, list) else []
+    if len(a) != len(b):
+        return True
+    for ln_a, ln_b in zip(a, b):
+        if _entrada_nfe_linha_propagacao_fingerprint(ln_a) != _entrada_nfe_linha_propagacao_fingerprint(ln_b):
+            return True
+    return False
+
+
+def patch_rascunho_entrada_extra(
+    db,
+    oid: str,
+    *,
+    usuario: str = "",
+    extra: dict | None = None,
+) -> dict[str, Any]:
+    """Atualiza só ``extra`` (wizard / financeiro em memória) sem regravar ``linhas`` nem propagar preços."""
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return {"ok": False, "erro": "ID inválido."}
+    try:
+        atual = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id})
+        if not atual:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        prev_ex = atual.get("extra") if isinstance(atual.get("extra"), dict) else {}
+        merged_extra = {**prev_ex, **(extra or {})}
+        fresh_mini = db[COL_ENTRADA_RASCUNHO].find_one({"_id": _id}, projection={"extra": 1}) or {}
+        fresh_ex = fresh_mini.get("extra") if isinstance(fresh_mini.get("extra"), dict) else {}
+        if entrada_nfe_extra_financeiro_ok(fresh_ex):
+            merged_extra["financeiro_lancado"] = True
+            if "financeiro_ids" in fresh_ex:
+                ids_f = fresh_ex["financeiro_ids"]
+                merged_extra["financeiro_ids"] = list(ids_f) if isinstance(ids_f, list) else ids_f
+            if "financeiro_lancado_em" in fresh_ex:
+                merged_extra["financeiro_lancado_em"] = fresh_ex["financeiro_lancado_em"]
+        else:
+            merged_extra.pop("financeiro_lancado", None)
+            merged_extra.pop("financeiro_ids", None)
+            merged_extra.pop("financeiro_lancado_em", None)
+        db[COL_ENTRADA_RASCUNHO].update_one(
+            {"_id": _id},
+            {
+                "$set": {
+                    "atualizado_em": datetime.now(timezone.utc),
+                    "usuario_ultima_alteracao": (usuario or "")[:200],
+                    "extra": merged_extra,
+                }
+            },
+        )
+        return {"ok": True, "id": str(_id)}
+    except Exception as exc:
+        logger.exception("patch_rascunho_entrada_extra")
+        return {"ok": False, "erro": str(exc)[:500]}
+
+
 def marcar_rascunho_estoque_aplicado(
     db,
     oid: str,
