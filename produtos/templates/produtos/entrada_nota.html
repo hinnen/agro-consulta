@@ -6551,11 +6551,6 @@
     const rid = entradaNfeRascunhoEditId;
     if (!rid) return;
     if (entradaNfeEditorCongeladoAtivo()) return;
-    if (entradaNfeTemLinhaCompactaDigitacaoPendente()) return;
-    const linhas = coletarLinhas();
-    if (!linhas.length) return;
-    const cab = coletarCabecalho();
-    const xmlChave = ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null);
     try {
       const r = await fetch(URL_RASC_ATUALIZAR, {
         method: 'POST',
@@ -6566,10 +6561,7 @@
         },
         body: JSON.stringify({
           id: rid,
-          modo: 'manual',
-          cabecalho: cab,
-          linhas,
-          xml_chave: xmlChave,
+          somente_extra: true,
           extra: entradaNfeExtraUltimo,
         }),
       });
