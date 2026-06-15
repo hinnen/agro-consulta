@@ -281,6 +281,19 @@
       color: rgb(124 45 18);
       box-shadow: 0 0 0 1px rgb(253 186 116 / 0.65), 0 2px 8px rgb(15 23 42 / 0.06);
     }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-btn--attention {
+      border-color: rgb(251 146 60);
+      background: rgb(255 247 237);
+      color: rgb(124 45 18);
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-btn--attention .nfe-wiz-name {
+      color: rgb(194 65 12);
+    }
+    #entrada-nfe-wizard-nav .nfe-wiz-nav-btn--on.nfe-wiz-nav-btn--attention {
+      border-color: rgb(234 88 12);
+      background: rgb(255 237 213);
+      box-shadow: 0 0 0 1px rgb(251 146 60 / 0.65), 0 2px 8px rgb(15 23 42 / 0.06);
+    }
     #entrada-nfe-wizard-pages .nfe-wiz-page { min-height: min(70vh, 42rem); }
     /* Etapa 6: não forçar altura mínima — evita faixa vazia sob a prévia. */
     #nfe-wiz-page-6.nfe-wiz-page,
@@ -1350,6 +1363,10 @@
           <p id="nfe-wiz-custo-hint" class="shrink-0 mx-2.5 sm:mx-3 mt-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-800 leading-snug nfe-wiz-custo-hint--hidden" role="status"></p>
           <div id="nfe-wiz-custo-list" class="pdv-wizard-scroll min-h-0 max-h-[min(58vh,28rem)] overflow-y-auto overflow-x-auto px-2 sm:px-3 pb-2 pt-1 flex flex-col gap-2"></div>
         </div>
+        <div id="nfe-wiz-fin-alerta" class="hidden shrink-0 rounded-xl border-2 border-orange-400 bg-orange-50 p-3 text-sm font-bold text-orange-950 leading-snug" role="alert">
+          <p class="text-[10px] font-black uppercase tracking-wide text-orange-800">Atenção — sem financeiro</p>
+          <p class="mt-1">Esta nota já foi finalizada com PIN, mas ainda não tem conta a pagar gerada. Volte à etapa 6 · Financeiro e use «Salvar + a pagar» (ou reabra a nota).</p>
+        </div>
         <div class="shrink-0 rounded-2xl border-2 border-slate-200 bg-white p-3 shadow-sm space-y-2.5">
           <label class="block max-w-sm">
             <span class="text-[10px] font-black uppercase text-slate-600 tracking-wide">PIN (senha rápida)</span>
@@ -2281,6 +2298,9 @@
     if (b === 'concluida') {
       return 'nfe-lista-chip-fila text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-950 border border-emerald-400 shrink-0 leading-tight';
     }
+    if (b === 'concluida_sem_fin') {
+      return 'nfe-lista-chip-fila text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-orange-100 text-orange-950 border border-orange-500 shrink-0 leading-tight';
+    }
     if (b === 'financeiro') {
       return 'nfe-lista-chip-fila text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-violet-100 text-violet-950 border border-violet-300 shrink-0 leading-tight';
     }
@@ -2484,6 +2504,42 @@
     return !!(ex && typeof ex === 'object' && ex.financeiro_lancado);
   }
 
+  function entradaNfeBonificacaoFromExtra(ex) {
+    return !!(ex && typeof ex === 'object' && String(ex.nfe_tipo_entrada || '').trim().toLowerCase() === 'bonificacao');
+  }
+
+  function entradaNfeConcluidaSemFinanceiro(it) {
+    if (!it || typeof it !== 'object') return false;
+    if (String(it.entrada_lista_bucket || '').trim().toLowerCase() !== 'concluida') return false;
+    const ex = it.extra && typeof it.extra === 'object' ? it.extra : {};
+    if (entradaNfeBonificacaoFromExtra(ex)) return false;
+    return !entradaNfeFinanceiroTituloJaGerado(it);
+  }
+
+  function entradaNfeFinanceiroTituloJaGeradoEditor() {
+    return entradaNfeFinanceiroTituloJaGerado({
+      extra: entradaNfeExtraUltimo,
+      entrada_financeiro_lancado: entradaNfeRascunhoFinanceiroLancadoUltimo,
+    });
+  }
+
+  /** PIN gravado mas conta a pagar ainda não gerada (exceto bonificação). */
+  function entradaNfeFinanceiroPendenteNoEditor() {
+    if (entradaNfeBonificacaoAtiva()) return false;
+    if (entradaNfeFinanceiroTituloJaGeradoEditor()) return false;
+    if (entradaNfeWizardConferenciaRegistrada) return true;
+    if (entradaNfeRascunhoBucketUltimo === 'concluida') return true;
+    return false;
+  }
+
+  function entradaNfeAtualizarAvisoFinanceiroPendente() {
+    const el = document.getElementById('nfe-wiz-fin-alerta');
+    if (el) el.classList.toggle('hidden', !entradaNfeFinanceiroPendenteNoEditor());
+    try {
+      entradaNfeWizardAtualizarCoresNav(entradaNfeWizardStep);
+    } catch (_) {}
+  }
+
   /** Alinha o botão da etapa 5 · Financeiro ao ``extra.financeiro_lancado`` / status (como o estoque na etapa 4). */
   function entradaNfeAtualizarUiBotaoFinanceiro(rz) {
     const btn = document.getElementById('btn-salvar-fin');
@@ -2557,6 +2613,7 @@
       Object.keys(entradaNfeLoteDraftPorLinha).forEach((k) => delete entradaNfeLoteDraftPorLinha[k]);
       entradaNfeRascunhoStatusUltimo = '';
       entradaNfeRascunhoBucketUltimo = '';
+      entradaNfeRascunhoFinanceiroLancadoUltimo = false;
       entradaNfeRascunhoMetaTs = { criado_em: '', atualizado_em: '' };
       entradaNfeAtualizarUiBotaoEstoqueAgro(null);
       entradaNfeAtualizarUiBotaoFinanceiro(null);
@@ -2711,6 +2768,7 @@
 
   /** Conferência final (PIN) registrada nesta sessão ou já vinda do rascunho (`aprovacao_wizard_em`). */
   let entradaNfeWizardConferenciaRegistrada = false;
+  let entradaNfeRascunhoFinanceiroLancadoUltimo = false;
   let entradaNfeWizardCoresTimer = null;
   /** Snapshot do `extra` Mongo do rascunho (ex.: pedido vindo da Compras). */
   let entradaNfeExtraUltimo = null;
@@ -3510,11 +3568,30 @@
     const step = Math.min(ENTRADA_NFE_WIZ_TOTAL, Math.max(1, Math.floor(Number(stepAtual)) || 1));
     document.querySelectorAll('#entrada-nfe-wizard-nav [data-nfe-w-go]').forEach((btn) => {
       const v = Number(btn.getAttribute('data-nfe-w-go'));
-      const completo = entradaNfeWizardValidarEtapa(v).ok;
+      let completo = entradaNfeWizardValidarEtapa(v).ok;
+      let atencao = false;
+      if (v === 6 && !entradaNfeBonificacaoAtiva() && !entradaNfeFinanceiroTituloJaGeradoEditor()) {
+        completo = false;
+        if (
+          entradaNfeWizardValidarEtapa(5).ok
+          || entradaNfeWizardConferenciaRegistrada
+          || entradaNfeRascunhoBucketUltimo === 'concluida'
+        ) {
+          atencao = true;
+        }
+      }
       const ativo = v === step;
-      btn.classList.toggle('nfe-wiz-nav-btn--complete', completo);
+      btn.classList.toggle('nfe-wiz-nav-btn--complete', completo && !atencao);
+      btn.classList.toggle('nfe-wiz-nav-btn--attention', atencao);
       btn.classList.toggle('nfe-wiz-nav-btn--on', ativo);
-      btn.classList.toggle('nfe-wiz-nav-btn--pending', !completo && !ativo);
+      btn.classList.toggle('nfe-wiz-nav-btn--pending', !completo && !ativo && !atencao);
+      if (v === 6) {
+        const nm = btn.querySelector('.nfe-wiz-name');
+        if (nm) nm.textContent = atencao ? 'Falta a pagar' : 'Financeiro';
+        btn.title = atencao
+          ? 'Financeiro — falta gerar conta a pagar (etapa 6)'
+          : 'Financeiro';
+      }
       if (ativo) btn.setAttribute('aria-current', 'step');
       else btn.removeAttribute('aria-current');
     });
@@ -3579,7 +3656,9 @@
     if (step === 7) {
       entradaNfeRecapRefresh();
       entradaNfeAtualizarUiBotaoWizardFinalizar();
+      entradaNfeAtualizarAvisoFinanceiroPendente();
     }
+    if (step === 6) entradaNfeAtualizarAvisoFinanceiroPendente();
     entradaNfeAtualizarUiBotaoConfirmarFornecedor();
     entradaNfeAtualizarUiBotaoConfirmarProdutos();
     entradaNfeAtualizarUiBotaoConfirmarCodigos();
@@ -4925,6 +5004,7 @@
         entradaNfeExtraUltimo = { aprovacao_wizard_em: new Date().toISOString() };
       }
       entradaNfeAtualizarUiBotaoWizardFinalizar();
+      entradaNfeAtualizarAvisoFinanceiroPendente();
       entradaNfeWizardAgendarAtualizarCores();
     } catch (_) {
       if (elMsg) elMsg.textContent = 'Erro de rede.';
@@ -6893,9 +6973,11 @@
       entradaNfeAtualizarUiBotaoEstoqueAgro(rz);
       entradaNfeAtualizarUiBotaoFinanceiro(rz);
       entradaNfeAtualizarUiBotaoWizardFinalizar();
+      entradaNfeAtualizarAvisoFinanceiroPendente();
       const exW = rz.extra && typeof rz.extra === 'object' ? rz.extra : {};
       entradaNfeRascunhoStatusUltimo = String(rz.status != null ? rz.status : '').trim().toLowerCase();
       entradaNfeRascunhoBucketUltimo = String(rz.entrada_lista_bucket || '').trim().toLowerCase();
+      entradaNfeRascunhoFinanceiroLancadoUltimo = rz.entrada_financeiro_lancado === true;
       const legadoFluxoAvancado = entradaNfeWizardFluxoLegadoOuConcluido(
         exW,
         entradaNfeRascunhoStatusUltimo,
@@ -8826,7 +8908,9 @@
         entradaNfeExtraUltimo = { ...exFin };
         if (nIds && fin.ok) {
           entradaNfeExtraUltimo = { ...entradaNfeExtraUltimo, financeiro_lancado: true };
+          entradaNfeRascunhoFinanceiroLancadoUltimo = true;
           entradaNfeAtualizarUiBotaoFinanceiro({ entrada_financeiro_lancado: true, status: '' });
+          entradaNfeAtualizarAvisoFinanceiroPendente();
           try {
             entradaNfeAplicarTravasEtapasWizardUi();
             entradaNfeAplicarCongelamentoEditorUi();
@@ -9220,6 +9304,11 @@
             fb.textContent = 'Pedido';
             fb.title =
               'Criado na tela Compras: aguarde a chegada da mercadoria. A entrada fiscal segue quando os produtos e a NF estiverem disponíveis.';
+          } else if (entradaNfeConcluidaSemFinanceiro(it)) {
+            fb.className = entradaNfeFilaChipClassLista('concluida_sem_fin');
+            fb.textContent = 'Concluída · sem financeiro';
+            fb.title =
+              'PIN gravado no Agro, mas falta gerar conta a pagar na etapa 6 · Financeiro.';
           } else {
             fb.className = entradaNfeFilaChipClassLista(bk);
             fb.textContent = bkLabel;
