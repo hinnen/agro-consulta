@@ -289,11 +289,36 @@
     }
 
     function aplicarPromocaoNoItem(item) {
+        if (!item || item.preco_manual) return item;
+        var forma = '';
+        if (typeof window.AgroPrecosFormaPagamento !== 'undefined') {
+            forma = window.AgroPrecosFormaPagamento.obterFormaDoState
+                ? window.AgroPrecosFormaPagamento.obterFormaDoState(state)
+                : window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual();
+            if (window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma) {
+                return window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma(item, forma);
+            }
+        }
         if (typeof window.AgroPdvPromocoes !== 'undefined' && window.AgroPdvPromocoes.aplicarNoItem) {
             if (item.preco_padrao == null) item.preco_padrao = toNumber(item.preco);
             return window.AgroPdvPromocoes.aplicarNoItem(item);
         }
         return item;
+    }
+
+    function recalcularPrecosFormaItens(forma) {
+        var fp = forma != null ? String(forma).trim() : '';
+        if (!fp && typeof window.AgroPrecosFormaPagamento !== 'undefined' && window.AgroPrecosFormaPagamento.obterFormaDoState) {
+            fp = window.AgroPrecosFormaPagamento.obterFormaDoState(state);
+        }
+        (state.itens || []).forEach(function (item) {
+            if (!item || item.preco_manual) return;
+            if (typeof window.AgroPrecosFormaPagamento !== 'undefined' && window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma) {
+                window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma(item, fp);
+            } else {
+                aplicarPromocaoNoItem(item);
+            }
+        });
     }
 
     function addItem(produto, quantidade) {
@@ -305,6 +330,9 @@
         if (existing) {
             existing.qtd = normalizeQty(toNumber(existing.qtd) + qtd, qtd);
             if (existing.preco_padrao == null) existing.preco_padrao = precoPadrao;
+            if (produto.precos_por_forma && typeof produto.precos_por_forma === 'object') {
+                existing.precos_por_forma = Object.assign({}, produto.precos_por_forma);
+            }
             if (!existing.preco_manual) aplicarPromocaoNoItem(existing);
         } else {
             var novo = {
@@ -320,6 +348,9 @@
                 desconto: 0,
                 observacao: ''
             };
+            if (produto.precos_por_forma && typeof produto.precos_por_forma === 'object') {
+                novo.precos_por_forma = Object.assign({}, produto.precos_por_forma);
+            }
             aplicarPromocaoNoItem(novo);
             state.itens.push(novo);
         }
@@ -430,15 +461,18 @@
         var defPg = defaultState().pagamento;
         if (!(field in defPg)) return;
         state.pagamento[field] = value;
+        if (field === 'forma') recalcularPrecosFormaItens(value);
         notify();
     }
 
     function setPagamentoPatch(patch) {
         if (!state.pagamento || !patch || typeof patch !== 'object') return;
         var defPg = defaultState().pagamento;
+        var formaMudou = Object.prototype.hasOwnProperty.call(patch, 'forma');
         Object.keys(patch).forEach(function (k) {
             if (k in defPg) state.pagamento[k] = patch[k];
         });
+        if (formaMudou) recalcularPrecosFormaItens(state.pagamento.forma);
         notify();
     }
 

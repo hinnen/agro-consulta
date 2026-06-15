@@ -101,6 +101,12 @@ from .caixa_util import (
     adotar_sessao_caixa_unica_aberta,
     resolver_sessao_caixa_para_venda,
 )
+from .precos_forma_pagamento_util import (
+    extrair_precos_por_forma_cadastro_extras,
+    extrair_precos_por_forma_overlay,
+    formas_pagamento_lista,
+    normalizar_precos_por_forma_payload,
+)
 from .fiado_credito_util import (
     pagamentos_json_com_metadados_de_payload,
     resumo_credito_fiado_cliente,
@@ -729,6 +735,11 @@ def _aplicar_produto_gestao_overlay_em_dict(
 
     row["cashback_percentual"] = float(cashback_percentual_de_overlay(ov))
     _overlay_subcategorias_para_row(row, ov)
+    ppf = extrair_precos_por_forma_overlay(ov)
+    if ppf:
+        row["precos_por_forma"] = ppf
+    elif "precos_por_forma" in row:
+        row.pop("precos_por_forma", None)
     return row
 
 
@@ -1791,6 +1802,12 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             )
     else:
         ex.setdefault("permite_venda_estoque_negativo", True)
+    if "precos_por_forma" in payload:
+        ppf = normalizar_precos_por_forma_payload(payload.get("precos_por_forma"))
+        if ppf:
+            ex["precos_por_forma"] = ppf
+        else:
+            ex.pop("precos_por_forma", None)
     if "extra_validade" in payload:
         v = str(payload.get("extra_validade") or "").strip()[:16]
         if v:
@@ -9243,6 +9260,7 @@ def _ctx_produtos_cadastro_erp(request):
     return {
         "pode_editar_overlay": getattr(request, "user", None) and request.user.is_authenticated,
         "login_overlay_next": request.get_full_path() or reverse("produtos_cadastro_erp"),
+        "formas_pagamento_caixa": formas_pagamento_lista(),
     }
 
 
@@ -15945,6 +15963,9 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
     )
     if ce_ov and "permite_venda_estoque_negativo" in ce_ov:
         row["permite_venda_estoque_negativo"] = bool(ce_ov.get("permite_venda_estoque_negativo"))
+    ppf_det = extrair_precos_por_forma_cadastro_extras(ce_ov or {})
+    if ppf_det:
+        row["precos_por_forma"] = ppf_det
     if ov_det and ov_det.estoque_min_centro is not None:
         row["estoque_minimo"] = float(ov_det.estoque_min_centro)
     if ov_det and ov_det.estoque_max_centro is not None:
