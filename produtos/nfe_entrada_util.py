@@ -979,7 +979,11 @@ def auditar_financeiro_rascunho_entrada_nfe(
     }
 
 
-def _auditoria_entrada_nfe_mongo_query(filtro_lista: str | None) -> dict[str, Any]:
+def _auditoria_entrada_nfe_mongo_query(
+    filtro_lista: str | None,
+    *,
+    foco_suspeitas: bool = False,
+) -> dict[str, Any]:
     """Pré-filtro Mongo para a auditoria (evita varrer toda a coleção)."""
     f = (filtro_lista or "todas").strip().lower()
     legacy = {
@@ -993,6 +997,11 @@ def _auditoria_entrada_nfe_mongo_query(filtro_lista: str | None) -> dict[str, An
     base: dict[str, Any] = {"status": {"$ne": ENTRADA_NFE_STATUS_DESCARTADA}}
     if ff == "concluida":
         base["extra.aprovacao_wizard_em"] = {"$exists": True, "$type": "string", "$regex": r"\S"}
+        if foco_suspeitas:
+            base["$or"] = [
+                {"extra.financeiro_lancado": {"$ne": True}},
+                {"extra.financeiro_lancado": {"$exists": False}},
+            ]
     elif ff == "encerrada" or ff == "encerrada_legacy":
         base["status"] = ENTRADA_NFE_STATUS_ENCERRADA
     elif ff == "descartada":
@@ -1031,6 +1040,7 @@ def auditar_entrada_nfe_financeiro_lote(
     f = (filtro_lista or "todas").strip().lower()
     busca = busca if isinstance(busca, dict) else {}
     busca_ativa = any(str(busca.get(k) or "").strip() for k in busca)
+    foco_suspeitas = f == "concluida" and not busca_ativa
     proj_aud = {
         "_id": 1,
         "status": 1,
@@ -1040,10 +1050,15 @@ def auditar_entrada_nfe_financeiro_lote(
         "criado_em": 1,
         "atualizado_em": 1,
     }
-    mongo_q = _auditoria_entrada_nfe_mongo_query(f)
-    scan_cap = min(lim * 3, 400) if f != "todas" else min(lim * 2, 300)
-    if busca_ativa:
+    mongo_q = _auditoria_entrada_nfe_mongo_query(f, foco_suspeitas=foco_suspeitas)
+    if foco_suspeitas:
+        scan_cap = min(max(lim * 2, 80), 200)
+    elif busca_ativa:
         scan_cap = min(max(lim * 6, 80), 500)
+    elif f != "todas":
+        scan_cap = min(lim * 3, 400)
+    else:
+        scan_cap = min(lim * 2, 300)
     try:
         cur = (
             db[COL_ENTRADA_RASCUNHO]
@@ -1065,7 +1080,7 @@ def auditar_entrada_nfe_financeiro_lote(
     pulados_busca = 0
 
     for raw in docs:
-        if avaliados >= lim and len(alertas) >= lim:
+        if len(alertas) >= lim:
             break
         try:
             d = _serialize_rascunho_leitura(raw)
@@ -1132,20 +1147,26 @@ def auditar_entrada_nfe_financeiro_lote(
         nota_extra = f" {erros_item} nota(s) com erro interno na conferência."
     if pulados_busca:
         nota_extra += f" {pulados_busca} nota(s) ignorada(s) pela busca."
+    nota_base = (
+        "Concluída = PIN gravado na etapa 6; não garante sozinha que «Salvar + a pagar» foi feito. "
+        "Alertas listam notas sem título no financeiro ou com nome de fornecedor diferente do título."
+    )
+    if foco_suspeitas:
+        nota_base += (
+            " Sem busca na lista: só notas Concluídas sem financeiro gravado "
+            "(as que costumam faltar título). Com busca por fornecedor ou NF, a auditoria fica mais ampla."
+        )
     return {
         "ok": True,
         "filtro": f,
+        "foco_suspeitas": foco_suspeitas,
         "total_avaliado": total_avaliado,
         "erros_auditoria": erros_item,
         "total_ok_ou_bonificacao": ok_count,
         "total_alertas": len(alertas),
         "resumo": resumo,
         "alertas": alertas,
-        "nota": (
-            "Concluída = PIN gravado na etapa 6; não garante sozinha que «Salvar + a pagar» foi feito. "
-            "Alertas listam notas sem título no financeiro ou com nome de fornecedor diferente do título."
-            + nota_extra
-        ),
+        "nota": nota_base + nota_extra,
     }
 
 
