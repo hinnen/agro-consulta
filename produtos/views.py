@@ -141,6 +141,7 @@ from .models import (
 )
 from integracoes.texto import eh_granel, expandir_tokens, montar_busca_texto, normalizar, tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
+from produtos.agro_fonte_config import agro_financeiro_erp_sync_habilitado
 from integracoes.venda_erp_api import (
     VendaERPAPIClient,
     erp_portal_notas_entrada_list_url,
@@ -9859,10 +9860,11 @@ def api_entrada_nota_auditoria_financeiro(request):
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
     filtro = (request.GET.get("filtro") or "concluida").strip()[:24]
+    busca = entrada_nfe_busca_params_from_request(request)
     try:
-        lim = min(int(request.GET.get("limit") or 120), 300)
+        lim = min(int(request.GET.get("limit") or 80), 200)
     except ValueError:
-        lim = 120
+        lim = 80
     col_pessoa = getattr(client, "col_c", None) or "DtoPessoa"
     try:
         out = auditar_entrada_nfe_financeiro_lote(
@@ -9870,6 +9872,7 @@ def api_entrada_nota_auditoria_financeiro(request):
             col_pessoa=col_pessoa,
             filtro_lista=filtro,
             limit=lim,
+            busca=busca,
         )
     except Exception as exc:
         logger.exception("api_entrada_nota_auditoria_financeiro")
@@ -12098,7 +12101,7 @@ def api_entrada_nota_financeiro(request):
         or getattr(settings, "VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", "")
         or ""
     ).strip()
-    if path_lanc and ids:
+    if agro_financeiro_erp_sync_habilitado() and path_lanc and ids:
         try:
             cli = VendaERPAPIClient()
             body_erp = montar_payload_erp_lancamentos_novos(db, ids, str(resultado.get("lote") or ""), True)
@@ -12121,7 +12124,7 @@ def api_entrada_nota_financeiro(request):
         or getattr(settings, "VENDA_ERP_API_FINANCEIRO_BAIXA_PATH", "")
         or ""
     ).strip()
-    if quitar_ao_salvar and ids and path_baixa:
+    if quitar_ao_salvar and ids and path_baixa and agro_financeiro_erp_sync_habilitado():
         try:
             cli_b = VendaERPAPIClient()
             dmov_fin = dv
@@ -12821,7 +12824,7 @@ def api_lancamentos_baixa(request):
         or getattr(settings, "VENDA_ERP_API_FINANCEIRO_BAIXA_PATH", "")
         or ""
     ).strip()
-    if path_baixa and resultado.get("atualizados"):
+    if agro_financeiro_erp_sync_habilitado() and path_baixa and resultado.get("atualizados"):
         try:
             cli = VendaERPAPIClient()
             body_erp = montar_payload_erp_baixa(
@@ -12944,7 +12947,7 @@ def api_lancamentos_baixa_parcial(request):
         or ""
     ).strip()
     # Sincroniza também baixa parcial (antes só quando quitado — o ERP não recebia parcelas).
-    if path_baixa and resultado.get("id"):
+    if agro_financeiro_erp_sync_habilitado() and path_baixa and resultado.get("id"):
         try:
             cli = VendaERPAPIClient()
             # Mesmo corpo base da baixa total (``titulos`` + ``ids`` + ``payload``), sem chaves extras no nível raiz.
@@ -13307,7 +13310,7 @@ def api_lancamentos_saida_caixa(request):
         or getattr(settings, "VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", "")
         or ""
     ).strip()
-    if path_lanc and ids:
+    if agro_financeiro_erp_sync_habilitado() and path_lanc and ids:
         try:
             cli = VendaERPAPIClient()
             body_erp = montar_payload_erp_lancamentos_novos(db, ids, str(resultado.get("lote") or ""), True)
@@ -13434,6 +13437,8 @@ def _parse_decimal_dinheiro_br(s) -> Decimal | None:
 
 def _emprestimo_tentar_erp_batches(db, resultado_ext: dict) -> tuple[bool | None, str]:
     """Envia cada lote (entrada + parcelas) ao ERP, se configurado."""
+    if not agro_financeiro_erp_sync_habilitado():
+        return None, ""
     path_lanc = (
         (config("VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", default="") or "")
         or getattr(settings, "VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", "")
@@ -14021,7 +14026,7 @@ def api_lancamentos_criar_manual_lote(request):
         or getattr(settings, "VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH", "")
         or ""
     ).strip()
-    if path_lanc and ids:
+    if agro_financeiro_erp_sync_habilitado() and path_lanc and ids:
         try:
             cli = VendaERPAPIClient()
             body_erp = montar_payload_erp_lancamentos_novos(db, ids, str(resultado.get("lote") or ""), despesa)

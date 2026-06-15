@@ -299,6 +299,14 @@ AGRO_FONTE_ESTOQUE = (config('AGRO_FONTE_ESTOQUE', default='legacy') or 'legacy'
 AGRO_FONTE_FINANCEIRO = (
     config('AGRO_FONTE_FINANCEIRO', default='legacy') or 'legacy'
 ).strip().lower()
+# Contas a pagar/receber: envio Agro → ERP (API Lancamentos/*). false = só grava no Mongo.
+AGRO_FINANCEIRO_ERP_SYNC_HABILITADO = config(
+    'AGRO_FINANCEIRO_ERP_SYNC_HABILITADO', default=False, cast=bool
+)
+# true após ``manage.py congelar_lancamentos_financeiro_agro`` (títulos marcados AgroFonteVerdade).
+AGRO_FINANCEIRO_MONGO_CONGELADO = config(
+    'AGRO_FINANCEIRO_MONGO_CONGELADO', default=False, cast=bool
+)
 AGRO_ERP_PEDIDOS_DRY_RUN = config('AGRO_ERP_PEDIDOS_DRY_RUN', default=False, cast=bool)
 
 CONSULTA_CACHE_TTL = 20
