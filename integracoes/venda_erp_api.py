@@ -602,6 +602,11 @@ class VendaERPAPIClient:
         Em **baixa parcial**, também são enviados ``parcelas_baixa``, ``pagamentos`` e ``pagamentos_relacionados``
         (linhas no estilo da aba *Pagamentos* do SisVale), para o servidor poder gravar movimentos filhos.
         """
+        from produtos.agro_fonte_config import agro_financeiro_erp_sync_habilitado
+
+        if not agro_financeiro_erp_sync_habilitado():
+            logger.info("financeiro_tentar_baixa_api ignorado (AGRO_FINANCEIRO_ERP_SYNC_HABILITADO=false)")
+            return False, "Sincronização financeira com ERP desligada (Agro é a fonte)."
         path = _env_or_setting_path("VENDA_ERP_API_FINANCEIRO_BAIXA_PATH")
         return self._financeiro_post(path, body, timeout=60)
 
@@ -610,6 +615,13 @@ class VendaERPAPIClient:
         POST opcional após lançamento manual no Agro. Configure ``VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH``
         (sufixo após ``/api/request/``). O corpo traz ``titulos`` com recorte do DtoLancamento gravado no Mongo.
         """
+        from produtos.agro_fonte_config import agro_financeiro_erp_sync_habilitado
+
+        if not agro_financeiro_erp_sync_habilitado():
+            logger.info(
+                "financeiro_tentar_lancamentos_api ignorado (AGRO_FINANCEIRO_ERP_SYNC_HABILITADO=false)"
+            )
+            return False, "Sincronização financeira com ERP desligada (Agro é a fonte)."
         path = _env_or_setting_path("VENDA_ERP_API_FINANCEIRO_LANCAMENTO_PATH")
         return self._financeiro_post(path, body, timeout=60)
 

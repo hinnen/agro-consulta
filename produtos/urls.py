@@ -524,6 +524,7 @@ urlpatterns = [
         views.api_pdv_cliente_editar,
         name='api_pdv_cliente_editar',
     ),
+    path('api/pdv/geocode-plus/', views.api_pdv_geocode_plus, name='api_pdv_geocode_plus'),
     path('api/pdv/checkout-draft/', views.api_pdv_salvar_checkout_draft, name='api_pdv_salvar_checkout_draft'),
     path('api/pdv/checkout-draft/clear/', views.api_pdv_limpar_checkout_draft, name='api_pdv_limpar_checkout_draft'),
     path(

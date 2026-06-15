@@ -37,13 +37,9 @@
         if (link) {
             if (aberto) {
                 link.textContent = 'Caixa ' + bootstrap.caixa.id;
-                link.classList.remove('border-amber-400', 'bg-amber-100', 'text-amber-950', 'border-2', 'hover:bg-amber-200/80');
-                link.classList.add('border', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-900', 'hover:bg-emerald-100/80');
                 link.title = 'Painel do caixa — turno aberto';
             } else {
                 link.textContent = 'Caixa fechado';
-                link.classList.remove('border-emerald-200', 'bg-emerald-50', 'text-emerald-900', 'hover:bg-emerald-100/80');
-                link.classList.add('border-2', 'border-amber-400', 'bg-amber-100', 'text-amber-950', 'hover:bg-amber-200/80');
                 link.title = 'Caixa fechado — abra o turno para vender';
             }
         }
@@ -167,6 +163,7 @@
         quickClientEditFechar: document.getElementById('pdv-quick-client-edit-fechar'),
         step1ClientBar: document.getElementById('pdv-step1-client-bar'),
         quickClientChange: document.getElementById('pdv-quick-client-change'),
+        quickClientEditStep1: document.getElementById('pdv-quick-client-edit-step1'),
         wizardCliRapidoModal: document.getElementById('pdv-wizard-cli-rapido-modal'),
         wizardCliRapidoPanel: document.querySelector('[data-pdv-wizard-cli-rapido-panel]'),
         wizardCliRapidoNome: document.getElementById('pdv-wizard-cli-rapido-nome'),
@@ -301,6 +298,10 @@
     var clientListSelectIdx = -1;
     var quickClientEditPk = null;
     var quickClientEditListIdx = -1;
+    var quickClientEditBairroRuralExpandido = false;
+    var quickClientGeocodeTimer = null;
+    var quickClientGeocodeSeq = 0;
+    var quickClientGeocodeLastQ = '';
     var clientSearchSeq = 0;
     var lastClientSearchQuery = '';
     var AUTOCOMPLETE_LIMIT = 8;
@@ -825,6 +826,19 @@
         return State.toNumber(item.qtd) * State.toNumber(item.preco);
     }
 
+    function restorePriceInputDisplay(input) {
+        if (!input) return;
+        var id = input.getAttribute('data-item-price-input');
+        if (!id) return;
+        var item = State.getState().itens.find(function (it) {
+            return String(it.id) === String(id);
+        });
+        if (!item) return;
+        input.value = formatPriceEdit(lineSubtotal(item));
+        input.setAttribute('aria-label', 'Total da linha');
+        input.title = 'Toque para alterar o preço unitário';
+    }
+
     function applyQtyDelta(itemId, direction) {
         var current = State.getState().itens.find(function (item) {
             return String(item.id) === String(itemId);
@@ -866,16 +880,16 @@
         priceEditDraft = { id: null, raw: '' };
         priceInputRestore = { id: null, selStart: null, selEnd: null };
         if (!parsed) {
-            var current = State.getState().itens.find(function (item) {
-                return String(item.id) === String(id);
-            });
-            if (current) input.value = formatPriceEdit(current.preco);
+            restorePriceInputDisplay(input);
             return;
         }
         var cur = State.getState().itens.find(function (item) {
             return String(item.id) === String(id);
         });
-        if (cur && Math.abs(State.toNumber(cur.preco) - parsed) < 0.0000001) return;
+        if (cur && Math.abs(State.toNumber(cur.preco) - parsed) < 0.0000001) {
+            restorePriceInputDisplay(input);
+            return;
+        }
         State.updateItemPrice(id, parsed);
     }
 
@@ -1846,11 +1860,25 @@
             var step = btn.getAttribute('data-step-nav');
             var idx = flowIndex(flow, step);
             var currentIdx = flowIndex(flow, state.currentStep);
-            btn.classList.remove('pdv-step-badge-active', 'pdv-step-badge-done', 'border-emerald-200', 'bg-emerald-50');
+            btn.classList.remove(
+                'pdv-step-badge-active',
+                'pdv-step-badge-done',
+                'pdv-step-nav-retracted',
+                'border-emerald-200',
+                'bg-emerald-50'
+            );
+            btn.removeAttribute('aria-current');
+            btn.style.zIndex = '';
             if (idx === currentIdx) {
                 btn.classList.add('pdv-step-badge-active');
-            } else if (idx > -1 && idx < currentIdx) {
-                btn.classList.add('pdv-step-badge-done', 'border-emerald-200');
+                btn.setAttribute('aria-current', 'step');
+                btn.style.zIndex = '20';
+            } else {
+                btn.classList.add('pdv-step-nav-retracted');
+                if (idx > -1 && idx < currentIdx) {
+                    btn.classList.add('pdv-step-badge-done', 'border-emerald-200');
+                }
+                btn.style.zIndex = String(idx > -1 ? (idx < currentIdx ? idx + 1 : 12 - idx) : 3);
             }
             btn.disabled = idx === -1;
         });
@@ -2013,8 +2041,29 @@
         applyQtyDelta(last.id, delta > 0 ? 1 : -1);
     }
 
+    function clienteAgroPkFromCliente(cliente) {
+        if (!cliente) return null;
+        if (cliente.cliente_agro_pk != null && cliente.cliente_agro_pk !== '') {
+            var n = Number(cliente.cliente_agro_pk);
+            return Number.isFinite(n) ? n : null;
+        }
+        var s = String(cliente.id || '');
+        if (s.indexOf('local:') === 0) {
+            var pk = parseInt(s.slice(6), 10);
+            return Number.isFinite(pk) ? pk : null;
+        }
+        return null;
+    }
+
     function renderQuickClient(state) {
         if (dom.quickClientName) dom.quickClientName.textContent = currentClientName(state);
+        if (dom.quickClientEditStep1) {
+            var podeEditar =
+                state.clienteMode !== 'consumidor_final' &&
+                state.cliente &&
+                clienteAgroPkFromCliente(state.cliente) != null;
+            dom.quickClientEditStep1.disabled = !podeEditar;
+        }
         if (!dom.quickClientMeta) return;
         if (state.clienteMode === 'consumidor_final') {
             dom.quickClientMeta.textContent = 'Consumidor final definido para venda rápida.';
@@ -2035,7 +2084,13 @@
         renderProductFiadoBalance(state);
         if (!state.itens.length) {
             dom.productCartList.innerHTML =
-                '<div class="pdv-cart-empty rounded-2xl border border-dashed border-orange-200 bg-orange-50/40 px-4 py-8 text-center text-sm font-bold text-slate-500">Nenhum item ainda — busque acima.</div>';
+                '<div class="pdv-cart-empty">' +
+                '  <span class="pdv-cart-empty-icon" aria-hidden="true">' +
+                '    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm12 0a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" /></svg>' +
+                '  </span>' +
+                '  <p class="pdv-cart-empty-title">Nenhum item ainda — busque acima.</p>' +
+                '  <p class="pdv-cart-empty-sub">Os produtos adicionados aparecerão aqui.</p>' +
+                '</div>';
         } else {
             dom.productCartList.innerHTML = state.itens.map(function (item) {
                 var imgUrl = String(item.imagem || assets.placeholderProduto || '').trim();
@@ -2044,15 +2099,13 @@
                     qtyEditDraft.id === itemId
                         ? qtyEditDraft.raw
                         : formatQty(item.qtd);
-                var priceVal =
-                    priceEditDraft.id === itemId
-                        ? priceEditDraft.raw
-                        : formatPriceEdit(item.preco);
-                var qtyN = State.toNumber(item.qtd);
-                var showLineTotal = Math.abs(qtyN - 1) > 0.0001;
+                var isEditingPrice = priceEditDraft.id === itemId;
+                var priceVal = isEditingPrice
+                    ? priceEditDraft.raw
+                    : formatPriceEdit(lineSubtotal(item));
                 return (
                     '' +
-                    '<div class="pdv-cart-row flex flex-nowrap items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-2 py-2 shadow-sm sm:gap-2.5 sm:px-2.5">' +
+                    '<div class="pdv-cart-row rounded-xl border-2 border-slate-200 bg-white px-2 py-2 shadow-sm sm:px-2.5">' +
                     '  <span class="relative h-12 w-12 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border-2 border-slate-200 bg-slate-50 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" data-pdv-photo-zoom="' +
                     escapeHtml(imgUrl) +
                     '" tabindex="0" role="button" title="Ampliar foto (Enter)">' +
@@ -2060,45 +2113,39 @@
                     escapeHtml(imgUrl) +
                     '" alt="" class="pointer-events-none h-full w-full object-cover">' +
                     '  </span>' +
-                    '  <div class="pdv-cart-line min-w-0 flex-1 overflow-hidden">' +
-                    '    <span class="block truncate text-[12px] font-black leading-tight text-slate-900 sm:text-[13px]">' +
+                    '  <div class="pdv-cart-line overflow-hidden">' +
+                    '    <span class="pdv-cart-nome">' +
                     escapeHtml(item.nome) +
                     '</span>' +
                     '  </div>' +
-                    '  <div class="flex shrink-0 flex-nowrap items-center gap-2 sm:gap-2.5">' +
-                    '    <span class="w-[4.5rem] shrink-0 text-right font-mono text-[10px] font-bold leading-tight text-slate-500 tabular-nums sm:w-[4.75rem]" title="Código GM">' +
+                    '  <div class="pdv-cart-row-tools">' +
+                    '    <span class="pdv-cart-gm" title="Código GM">' +
                     escapeHtml(cartCodigoGm(item)) +
                     '</span>' +
-                    '    <div class="inline-flex shrink-0 items-center overflow-hidden rounded-xl border-2 border-slate-300 bg-slate-50 shadow-inner">' +
-                    '      <button type="button" class="flex min-h-[2.85rem] min-w-[2.85rem] items-center justify-center text-xl font-black leading-none text-slate-800 active:bg-slate-200 sm:min-h-[3rem] sm:min-w-[3rem] sm:text-2xl" data-item-qty="' +
+                    '    <div class="pdv-cart-qty-wrap">' +
+                    '      <button type="button" data-item-qty="' +
                     escapeHtml(itemId) +
                     '" data-item-delta="-1" title="Menos">−</button>' +
-                    '      <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Quantidade" title="Toque para digitar (ex.: 0,350 kg)" class="pdv-cart-qty-input min-h-[2.85rem] w-[3.35rem] border-0 bg-white px-1 text-center text-base font-black tabular-nums text-slate-900 outline-none ring-emerald-400 focus:bg-emerald-50/40 focus:ring-2 sm:min-h-[3rem] sm:w-[3.6rem] sm:text-lg" data-item-qty-input="' +
+                    '      <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Quantidade" title="Toque para digitar (ex.: 0,350 kg)" class="pdv-cart-qty-input" data-item-qty-input="' +
                     escapeHtml(itemId) +
                     '" value="' +
                     escapeHtml(qtyVal) +
                     '">' +
-                    '      <button type="button" class="flex min-h-[2.85rem] min-w-[2.85rem] items-center justify-center text-xl font-black leading-none text-slate-800 active:bg-slate-200 sm:min-h-[3rem] sm:min-w-[3rem] sm:text-2xl" data-item-qty="' +
+                    '      <button type="button" data-item-qty="' +
                     escapeHtml(itemId) +
                     '" data-item-delta="1" title="Mais">+</button>' +
                     '    </div>' +
-                    '    <div class="flex shrink-0 flex-col items-end gap-0.5">' +
-                    '      <span class="text-[9px] font-black uppercase text-slate-400 leading-none">Unit.</span>' +
-                    '      <div class="inline-flex items-center overflow-hidden rounded-xl border-2 border-emerald-300 bg-emerald-50/50 shadow-inner">' +
-                    '        <span class="pl-2 text-[11px] font-black text-emerald-800">R$</span>' +
-                    '        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Preço unitário" title="Toque para alterar o preço deste item" class="pdv-cart-price-input min-h-[2.85rem] w-[4.5rem] border-0 bg-transparent px-1 text-right text-base font-black tabular-nums text-emerald-800 outline-none ring-emerald-400 focus:bg-white focus:ring-2 sm:min-h-[3rem] sm:w-[5rem] sm:text-lg" data-item-price-input="' +
+                    '    <div class="pdv-cart-price-wrap">' +
+                    '      <div class="pdv-cart-price-box">' +
+                    '        <span class="pdv-cart-price-prefix" aria-hidden="true">R$</span>' +
+                    '        <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Total da linha" title="Toque para alterar o preço unitário" class="pdv-cart-price-input" data-item-price-input="' +
                     escapeHtml(itemId) +
                     '" value="' +
                     escapeHtml(priceVal) +
                     '">' +
                     '      </div>' +
-                    (showLineTotal
-                        ? '      <span class="text-[10px] font-bold tabular-nums text-slate-500">= ' +
-                          escapeHtml(formatMoney(lineSubtotal(item))) +
-                          '</span>'
-                        : '') +
                     '    </div>' +
-                    '    <button type="button" class="shrink-0 rounded-lg px-1 py-1 text-[9px] font-black uppercase text-red-700 underline decoration-red-300 sm:text-[10px]" data-remove-item="' +
+                    '    <button type="button" class="pdv-cart-remove" data-remove-item="' +
                     escapeHtml(itemId) +
                     '">Remover</button>' +
                     '  </div>' +
@@ -2210,9 +2257,9 @@
         var alertSide =
             'mt-0 w-full rounded-xl border-2 border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-2.5 py-2.5 text-[11px] font-black uppercase tracking-wide text-white shadow-lg shadow-orange-600/30 ring-2 ring-orange-300/50 transition hover:from-orange-600 hover:to-amber-600';
         var discreteTop =
-            'pdv-action-btn relative border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-600 hover:bg-slate-100';
+            'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
         var alertTop =
-            'pdv-action-btn relative border-2 border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-2 py-1 text-[10px] text-white shadow-md ring-2 ring-orange-300/40 hover:from-orange-600 hover:to-amber-600';
+            'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate pdv-wiz-topbar-btn--alert relative';
 
         if (dom.step1EntregasBtn) {
             dom.step1EntregasBtn.hidden = !apiOk;
@@ -2403,40 +2450,48 @@
         return jsonPost(url, { venda_id: vendaId != null ? vendaId : null });
     }
 
+    function productAutocompleteHeaderHtml() {
+        return (
+            '<div class="pdv-ac-head" aria-hidden="true">' +
+            '<span></span><span>Produto</span><span>GM</span><span>Marca</span><span>Preço</span>' +
+            '</div>'
+        );
+    }
+
     function productAutocompleteHtml(produto, index) {
         var selected = index === productSelectionIndex;
         var gm = displayCodigoGm(produto);
-        var marca = String(produto.marca || '').trim();
-        var sub = marca ? gm + ' · ' + marca : gm;
+        var marca = String(produto.marca || '').trim() || '—';
         var imgUrl = String(produto.imagem || assets.placeholderProduto || '').trim();
         var pid = resolveProdutoId(produto);
         return (
             '' +
-            '<button type="button" class="flex w-full items-stretch gap-2 rounded-xl px-2 py-2 text-left ' +
-            (selected ? 'bg-emerald-50 ring-2 ring-emerald-200' : 'hover:bg-emerald-50') +
+            '<button type="button" class="pdv-ac-row ' +
+            (selected ? 'pdv-ac-row-selected' : '') +
             '" data-add-product="' +
             escapeHtml(pid) +
             '" data-autocomplete-index="' +
             index +
             '">' +
-            '  <span class="relative h-11 w-11 shrink-0 cursor-zoom-in overflow-hidden rounded-lg border border-slate-200 bg-slate-50 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400" data-pdv-photo-zoom="' +
+            '  <span class="pdv-ac-thumb" data-pdv-photo-zoom="' +
             escapeHtml(imgUrl) +
             '" tabindex="-1" role="presentation" title="Ampliar foto">' +
             '    <img src="' +
             escapeHtml(imgUrl) +
-            '" alt="" class="pointer-events-none h-full w-full object-cover">' +
+            '" alt="">' +
             '  </span>' +
-            '  <span class="flex min-w-0 flex-1 flex-col justify-center gap-0.5 overflow-hidden">' +
-            '    <span class="truncate text-sm font-black text-slate-900">' +
+            '  <span class="pdv-ac-nome">' +
             escapeHtml(produto.nome || '') +
             '</span>' +
-            '    <span class="truncate text-[10px] font-bold text-slate-500">' +
-            escapeHtml(sub) +
+            '  <span class="pdv-ac-gm">' +
+            escapeHtml(gm) +
             '</span>' +
-            '  </span>' +
-            '  <span class="shrink-0 self-center text-sm font-black text-emerald-700">' +
-            formatMoney(produto.preco_venda || 0) +
+            '  <span class="pdv-ac-marca">' +
+            escapeHtml(marca) +
             '</span>' +
+            '  <span class="pdv-ac-preco"><span class="pdv-ac-preco-box">' +
+            escapeHtml(formatMoney(produto.preco_venda || 0)) +
+            '</span></span>' +
             '</button>'
         );
     }
@@ -2469,9 +2524,11 @@
         }
         if (dom.productAutocomplete) {
             if (lastProducts.length) {
-                dom.productAutocomplete.innerHTML = lastProducts.slice(0, AUTOCOMPLETE_LIMIT).map(function (produto, index) {
-                    return productAutocompleteHtml(produto, index);
-                }).join('');
+                dom.productAutocomplete.innerHTML =
+                    productAutocompleteHeaderHtml() +
+                    lastProducts.slice(0, AUTOCOMPLETE_LIMIT).map(function (produto, index) {
+                        return productAutocompleteHtml(produto, index);
+                    }).join('');
                 dom.productAutocomplete.classList.remove('hidden');
             } else {
                 dom.productAutocomplete.innerHTML = '';
@@ -2678,6 +2735,280 @@
         }
         fill(dom.entregaBairro);
         fill(dom.clienteBairro);
+    }
+
+    function normalizarBuscaBairro(s) {
+        return String(s || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function todosBairrosJacupiOrdem() {
+        var urban = bairrosEntrega.urbanos || [];
+        var rural = bairrosEntrega.rurais || [];
+        return urban.concat(rural);
+    }
+
+    function filtrarBairrosJacupiPorTexto(arr, q) {
+        var nq = normalizarBuscaBairro(q);
+        if (!nq) return arr.slice();
+        return arr.filter(function (nome) {
+            return normalizarBuscaBairro(nome).indexOf(nq) >= 0;
+        });
+    }
+
+    function canonicalBairroJacupiSePossivel(txt) {
+        txt = String(txt || '').trim();
+        if (!txt) return '';
+        var nt = normalizarBuscaBairro(txt);
+        var all = todosBairrosJacupiOrdem();
+        for (var i = 0; i < all.length; i++) {
+            if (normalizarBuscaBairro(all[i]) === nt) return all[i];
+        }
+        return txt;
+    }
+
+    /** Só aceita bairro da lista interna; fora dela → vazio (ex.: retorno do Plus Code). */
+    function bairroListaJacupiOuVazio(txt) {
+        txt = String(txt || '').trim();
+        if (!txt) return '';
+        var nt = normalizarBuscaBairro(txt);
+        var all = todosBairrosJacupiOrdem();
+        for (var i = 0; i < all.length; i++) {
+            if (normalizarBuscaBairro(all[i]) === nt) return all[i];
+        }
+        return '';
+    }
+
+    function quickClientEditMissingInputs() {
+        return [
+            dom.quickClientEditNome,
+            dom.quickClientEditWhatsapp,
+            dom.quickClientEditLogradouro,
+            dom.quickClientEditNumero,
+            dom.quickClientEditBairro,
+            dom.quickClientEditCidade,
+            dom.quickClientEditUf,
+            dom.quickClientEditCep,
+        ];
+    }
+
+    function clearQuickClientEditMissingHighlights() {
+        if (!dom.quickClientEditOverlay) return;
+        dom.quickClientEditOverlay.querySelectorAll('.pdv-client-edit-missing').forEach(function (node) {
+            node.classList.remove('pdv-client-edit-missing');
+        });
+    }
+
+    function refreshQuickClientEditMissingHighlights() {
+        if (!dom.quickClientEditOverlay || dom.quickClientEditOverlay.classList.contains('hidden')) return;
+        quickClientEditMissingInputs().forEach(function (el) {
+            if (!el) return;
+            var wrap = el.closest('.pdv-client-edit-field');
+            if (!wrap) return;
+            wrap.classList.toggle('pdv-client-edit-missing', !String(el.value || '').trim());
+        });
+    }
+
+    function initQuickClientEditMissingListenersOnce() {
+        if (!dom.quickClientEditOverlay || dom.quickClientEditOverlay.dataset.missingBound === '1') return;
+        dom.quickClientEditOverlay.dataset.missingBound = '1';
+        quickClientEditMissingInputs().forEach(function (el) {
+            if (!el) return;
+            el.addEventListener('input', refreshQuickClientEditMissingHighlights);
+            el.addEventListener('change', refreshQuickClientEditMissingHighlights);
+        });
+    }
+
+    function fecharQuickClientEditBairroDd() {
+        var dd = document.getElementById('pdv-quick-client-edit-bairro-dd');
+        var inp = dom.quickClientEditBairro;
+        if (dd) {
+            dd.classList.add('hidden');
+            dd.innerHTML = '';
+        }
+        if (inp) inp.setAttribute('aria-expanded', 'false');
+    }
+
+    function renderQuickClientEditBairroDd() {
+        var dd = document.getElementById('pdv-quick-client-edit-bairro-dd');
+        var inp = dom.quickClientEditBairro;
+        if (!dd || !inp) return;
+        var urban = bairrosEntrega.urbanos || [];
+        var rural = bairrosEntrega.rurais || [];
+        var q = inp.value;
+        var nq = normalizarBuscaBairro(q);
+        var fu;
+        var fr;
+        if (nq) {
+            fu = filtrarBairrosJacupiPorTexto(urban, q);
+            fr = filtrarBairrosJacupiPorTexto(rural, q);
+        } else {
+            fu = urban.slice();
+            fr = quickClientEditBairroRuralExpandido ? rural.slice() : [];
+        }
+        var showVerMais = !nq && !quickClientEditBairroRuralExpandido && rural.length;
+        var showingRuraisBloco = fr.length && (nq || quickClientEditBairroRuralExpandido);
+        var h = '';
+        function row(nome) {
+            h +=
+                '<li role="option" data-bairro="' +
+                escapeHtml(nome) +
+                '" class="cursor-pointer border-b border-slate-50 text-slate-800 hover:bg-emerald-50 last:border-b-0">' +
+                escapeHtml(nome) +
+                '</li>';
+        }
+        fu.forEach(row);
+        if (showVerMais) {
+            h +=
+                '<li role="button" data-qc-bairro-ver-mais="1" class="cursor-pointer border-t border-slate-200 px-3 py-2 text-center text-[clamp(0.75rem,0.35vw+0.7rem,0.95rem)] font-black uppercase tracking-wide text-orange-600 hover:bg-orange-50">Ver mais (rurais)</li>';
+        }
+        if (showingRuraisBloco) {
+            h +=
+                '<li class="pointer-events-none border-t border-slate-200 bg-slate-50 px-3 py-1 text-[clamp(0.65rem,0.3vw+0.6rem,0.85rem)] font-black uppercase text-slate-400">Rurais</li>';
+            fr.forEach(row);
+        }
+        if (nq && !fu.length && !fr.length) {
+            h =
+                '<li class="pointer-events-none px-3 py-2 italic text-slate-500">Nenhum na lista — pode salvar o texto digitado</li>';
+        }
+        dd.innerHTML = h;
+    }
+
+    function abrirQuickClientEditBairroDd() {
+        var dd = document.getElementById('pdv-quick-client-edit-bairro-dd');
+        var inp = dom.quickClientEditBairro;
+        if (!dd || !inp) return;
+        renderQuickClientEditBairroDd();
+        dd.classList.remove('hidden');
+        inp.setAttribute('aria-expanded', 'true');
+    }
+
+    function toggleQuickClientEditBairroDd() {
+        var dd = document.getElementById('pdv-quick-client-edit-bairro-dd');
+        if (!dd) return;
+        if (dd.classList.contains('hidden')) abrirQuickClientEditBairroDd();
+        else fecharQuickClientEditBairroDd();
+    }
+
+    function initQuickClientEditBairroComboboxOnce() {
+        var wrap = document.querySelector('.pdv-quick-client-edit-bairro-wrap');
+        if (!wrap || wrap.dataset.agroBairroComboBound) return;
+        wrap.dataset.agroBairroComboBound = '1';
+        var inp = dom.quickClientEditBairro;
+        var dd = document.getElementById('pdv-quick-client-edit-bairro-dd');
+        var toggle = document.getElementById('pdv-quick-client-edit-bairro-toggle');
+        if (!inp || !dd) return;
+
+        dd.addEventListener('mousedown', function (ev) {
+            ev.preventDefault();
+        });
+        dd.addEventListener('click', function (ev) {
+            var vm = ev.target.closest('[data-qc-bairro-ver-mais]');
+            if (vm) {
+                quickClientEditBairroRuralExpandido = true;
+                renderQuickClientEditBairroDd();
+                return;
+            }
+            var li = ev.target.closest('[data-bairro]');
+            if (li) {
+                inp.value = li.getAttribute('data-bairro') || '';
+                fecharQuickClientEditBairroDd();
+                refreshQuickClientEditMissingHighlights();
+            }
+        });
+        if (toggle) {
+            toggle.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                toggleQuickClientEditBairroDd();
+            });
+        }
+        inp.addEventListener('focus', function () {
+            abrirQuickClientEditBairroDd();
+        });
+        inp.addEventListener('input', function () {
+            quickClientEditBairroRuralExpandido = !!normalizarBuscaBairro(inp.value);
+            abrirQuickClientEditBairroDd();
+        });
+        inp.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Escape') {
+                fecharQuickClientEditBairroDd();
+                return;
+            }
+            if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+                ev.preventDefault();
+                abrirQuickClientEditBairroDd();
+            }
+        });
+        inp.addEventListener('blur', function () {
+            window.setTimeout(function () {
+                var active = document.activeElement;
+                if (active === toggle || (dd && dd.contains(active))) return;
+                fecharQuickClientEditBairroDd();
+                var canon = canonicalBairroJacupiSePossivel(inp.value);
+                if (canon !== inp.value) inp.value = canon;
+            }, 120);
+        });
+        document.addEventListener('click', function (ev) {
+            if (!wrap.contains(ev.target)) fecharQuickClientEditBairroDd();
+        });
+    }
+
+    function applyQuickClientGeocodeEndereco(endereco, overwrite) {
+        endereco = endereco || {};
+        function setIf(el, val) {
+            if (!el || !val) return;
+            if (overwrite || !String(el.value || '').trim()) el.value = val;
+        }
+        setIf(dom.quickClientEditLogradouro, endereco.logradouro);
+        setIf(dom.quickClientEditNumero, endereco.numero);
+        if (dom.quickClientEditBairro && endereco.bairro) {
+            var bai = bairroListaJacupiOuVazio(endereco.bairro);
+            if (bai && (overwrite || !String(dom.quickClientEditBairro.value || '').trim())) {
+                dom.quickClientEditBairro.value = bai;
+            }
+        }
+        setIf(dom.quickClientEditCidade, endereco.cidade);
+        setIf(dom.quickClientEditUf, endereco.uf);
+        setIf(dom.quickClientEditCep, endereco.cep);
+        refreshQuickClientEditMissingHighlights();
+    }
+
+    function scheduleQuickClientPlusGeocode(force) {
+        if (!dom.quickClientEditPluscode) return;
+        var q = String(dom.quickClientEditPluscode.value || '').trim();
+        if (q.length < 4) return;
+        if (!force && q === quickClientGeocodeLastQ) return;
+        clearTimeout(quickClientGeocodeTimer);
+        quickClientGeocodeTimer = setTimeout(function () {
+            runQuickClientPlusGeocode(q);
+        }, force ? 0 : 650);
+    }
+
+    function runQuickClientPlusGeocode(q) {
+        var apiUrl = urls.apiPdvGeocodePlus;
+        if (!apiUrl) return;
+        q = String(q || '').trim();
+        if (q.length < 4) return;
+        quickClientGeocodeLastQ = q;
+        var seq = ++quickClientGeocodeSeq;
+        var sep = apiUrl.indexOf('?') >= 0 ? '&' : '?';
+        fetch(apiUrl + sep + 'q=' + encodeURIComponent(q), {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+        })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (data) {
+                if (seq !== quickClientGeocodeSeq) return;
+                if (!data || !data.ok || !data.endereco) return;
+                applyQuickClientGeocodeEndereco(data.endereco, false);
+            })
+            .catch(function () {});
     }
 
     function enderecoEntregaMinimoOk(state) {
@@ -3602,6 +3933,7 @@
             dom.quickClientEditErro.textContent = '';
             dom.quickClientEditErro.classList.add('hidden');
         }
+        clearQuickClientEditMissingHighlights();
     }
 
     function fillQuickClientEditForm(cliente) {
@@ -3614,7 +3946,9 @@
             dom.quickClientEditLogradouro.value = String(cliente.logradouro || '');
         }
         if (dom.quickClientEditNumero) dom.quickClientEditNumero.value = String(cliente.numero || '');
-        if (dom.quickClientEditBairro) dom.quickClientEditBairro.value = String(cliente.bairro || '');
+        if (dom.quickClientEditBairro) {
+            dom.quickClientEditBairro.value = canonicalBairroJacupiSePossivel(cliente.bairro || '');
+        }
         if (dom.quickClientEditCidade) dom.quickClientEditCidade.value = String(cliente.cidade || '');
         if (dom.quickClientEditUf) dom.quickClientEditUf.value = String(cliente.uf || '');
         if (dom.quickClientEditCep) dom.quickClientEditCep.value = String(cliente.cep || '');
@@ -3631,17 +3965,23 @@
             dom.quickClientEditTitle.textContent = String(cliente.nome || 'Cliente');
             dom.quickClientEditTitle.setAttribute('title', String(cliente.nome || ''));
         }
+        refreshQuickClientEditMissingHighlights();
     }
 
     function openQuickClientEditOverlay(cliente, listIdx) {
-        if (!dom.quickClientEditOverlay || !cliente || !cliente.cliente_agro_pk) return;
-        quickClientEditPk = cliente.cliente_agro_pk;
+        var pk = clienteAgroPkFromCliente(cliente);
+        if (!dom.quickClientEditOverlay || !cliente || !pk) return;
+        quickClientEditPk = pk;
         quickClientEditListIdx = listIdx != null ? listIdx : -1;
         if (dom.quickClientEditErro) {
             dom.quickClientEditErro.textContent = '';
             dom.quickClientEditErro.classList.add('hidden');
         }
-        fillQuickClientEditForm(cliente);
+        fillQuickClientEditForm(Object.assign({}, cliente, { cliente_agro_pk: pk }));
+        quickClientEditBairroRuralExpandido = false;
+        quickClientGeocodeLastQ = String(cliente.plus_code || '').trim();
+        initQuickClientEditBairroComboboxOnce();
+        initQuickClientEditMissingListenersOnce();
         dom.quickClientEditOverlay.classList.remove('hidden');
         dom.quickClientEditOverlay.classList.add('flex');
         window.setTimeout(function () {
@@ -3649,12 +3989,28 @@
         }, 60);
     }
 
+    function openStep1QuickClientEdit() {
+        var state = State.getState();
+        if (state.clienteMode === 'consumidor_final' || !state.cliente) {
+            alert('Selecione um cliente cadastrado para editar.');
+            return;
+        }
+        var pk = clienteAgroPkFromCliente(state.cliente);
+        if (!pk) {
+            alert('Este cliente não pode ser editado aqui (sem cadastro local).');
+            return;
+        }
+        openQuickClientEditOverlay(Object.assign({}, state.cliente, { cliente_agro_pk: pk }), -1);
+    }
+
     function closeQuickClientEditOverlay() {
         if (!dom.quickClientEditOverlay) return;
+        var pickerOpen =
+            dom.quickClientModal && !dom.quickClientModal.classList.contains('hidden');
         dom.quickClientEditOverlay.classList.add('hidden');
         dom.quickClientEditOverlay.classList.remove('flex');
         clearQuickClientEditForm();
-        window.setTimeout(focusQuickClientSearchField, 40);
+        if (pickerOpen) window.setTimeout(focusQuickClientSearchField, 40);
     }
 
     function patchClienteInSearchResults(updated) {
@@ -5704,6 +6060,11 @@
         dom.quickClientChange.addEventListener('click', function () {
             openQuickClientPicker();
         });
+        if (dom.quickClientEditStep1) {
+            dom.quickClientEditStep1.addEventListener('click', function () {
+                openStep1QuickClientEdit();
+            });
+        }
 
         function openQuickClientPickerFromHit() {
             openQuickClientPicker();
@@ -5748,6 +6109,20 @@
         if (dom.quickClientEditOverlay) {
             dom.quickClientEditOverlay.addEventListener('click', function (event) {
                 if (event.target === dom.quickClientEditOverlay) closeQuickClientEditOverlay();
+            });
+        }
+        if (dom.quickClientEditPluscode) {
+            dom.quickClientEditPluscode.addEventListener('input', function () {
+                scheduleQuickClientPlusGeocode(false);
+            });
+            dom.quickClientEditPluscode.addEventListener('blur', function () {
+                scheduleQuickClientPlusGeocode(true);
+            });
+            dom.quickClientEditPluscode.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    scheduleQuickClientPlusGeocode(true);
+                }
             });
         }
 
@@ -5972,7 +6347,15 @@
         dom.productCartList.addEventListener('focusin', function (event) {
             var priceInput = event.target.closest('[data-item-price-input]');
             if (priceInput) {
-                priceEditDraft = { id: priceInput.getAttribute('data-item-price-input'), raw: priceInput.value };
+                var pid = priceInput.getAttribute('data-item-price-input');
+                var pItem = State.getState().itens.find(function (item) {
+                    return String(item.id) === String(pid);
+                });
+                var unitRaw = pItem ? formatPriceEdit(pItem.preco) : priceInput.value;
+                priceInput.value = unitRaw;
+                priceInput.setAttribute('aria-label', 'Preço unitário');
+                priceInput.title = 'Altere o preço unitário deste item';
+                priceEditDraft = { id: pid, raw: unitRaw };
                 setTimeout(function () {
                     try {
                         priceInput.select();
@@ -6023,11 +6406,7 @@
                     if (dom.productSearch) dom.productSearch.focus();
                 } else if (event.key === 'Escape') {
                     event.preventDefault();
-                    var escPId = priceInput.getAttribute('data-item-price-input');
-                    var escPItem = State.getState().itens.find(function (item) {
-                        return String(item.id) === String(escPId);
-                    });
-                    if (escPItem) priceInput.value = formatPriceEdit(escPItem.preco);
+                    restorePriceInputDisplay(priceInput);
                     priceEditDraft = { id: null, raw: '' };
                     priceInputRestore = { id: null, selStart: null, selEnd: null };
                     priceSkipCommitOnce = true;

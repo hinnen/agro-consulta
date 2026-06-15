@@ -55,3 +55,22 @@ BAIRROS_JACUPI_RURAIS = [
     "Tábua",
     "Tarciso",
 ]
+
+# Padrões Jacupiranga — alinhados a `entregas_painel.html` (EDLOC_*).
+JACUPIRANGA_CEP_PADRAO = "11940-000"
+JACUPIRANGA_CENTRO_REF_LL = (-24.6939103, -48.0030368)
+# Trechos de logradouro no Centro (normalizar acento/caixa antes de comparar).
+JACUPIRANGA_LOGRADOUROS_CENTRO = (
+    "ademar de barros",
+    "adhemar de barros",
+    "rui barbosa",
+    "quatro de junho",
+    "7 de setembro",
+    "sete de setembro",
+    "sao paulo",
+    "nove de julho",
+    "jose bonifacio",
+    "joao pessoa",
+    "coronel jose gladiador",
+    "prefeito artur jose",
+)
