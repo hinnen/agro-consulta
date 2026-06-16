@@ -2259,7 +2259,7 @@
         var discreteTop =
             'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
         var alertTop =
-            'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate pdv-wiz-topbar-btn--alert relative';
+            'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate pdv-wiz-topbar-btn--entregas-pendente relative';
 
         if (dom.step1EntregasBtn) {
             dom.step1EntregasBtn.hidden = !apiOk;
