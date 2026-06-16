@@ -5,6 +5,7 @@
   var escapeHtml = U.escapeHtml;
   var fmtMoney = U.fmtMoney;
   var setLoading = U.setLoading;
+  var resetLoading = U.resetLoading;
   var C = window.AgroCadastroErpLista || {};
   var CADASTRO_ERP_MODO = C.CADASTRO_ERP_MODO || 'lista';
   var CADASTRO_ERP_PID = C.CADASTRO_ERP_PID || '';
@@ -117,7 +118,7 @@
     if (hintMongo) {
       erroEl.innerHTML =
         '<p class="font-bold">' + escapeHtml(msg) + '</p>' +
-        '<p class="mt-2 text-sm leading-snug">O espelho ERP precisa do Mongo configurado no servidor (<code class="text-xs bg-white/80 px-1 rounded">VENDA_ERP_MONGO_URL</code> e <code class="text-xs bg-white/80 px-1 rounded">VENDA_ERP_MONGO_DB</code> no arquivo <code class="text-xs">.env</code>). Copie os mesmos valores do ambiente onde o PDV já funciona.</p>' +
+        '<p class="mt-2 text-sm leading-snug">O catálogo precisa do Mongo configurado no servidor (<code class="text-xs bg-white/80 px-1 rounded">VENDA_ERP_MONGO_URL</code> e <code class="text-xs bg-white/80 px-1 rounded">VENDA_ERP_MONGO_DB</code> no arquivo <code class="text-xs">.env</code>). Copie os mesmos valores do ambiente onde o PDV já funciona.</p>' +
         '<button type="button" id="cadastro-erro-ir-grupos" class="mt-3 min-h-[44px] px-4 rounded-xl text-sm font-black uppercase bg-orange-500 hover:bg-orange-600 text-white border-2 border-orange-700">Abrir aba Grupos (funciona sem Mongo)</button>';
       erroEl.classList.remove('hidden');
       var b = document.getElementById('cadastro-erro-ir-grupos');
@@ -929,6 +930,7 @@
 
   function carregar() {
     if (!listaEl) return;
+    if (typeof resetLoading === 'function') resetLoading();
     var g = ++carregarGen;
     if (carregarAbort) {
       try {
@@ -970,7 +972,7 @@
             if (mongo) {
               mostrarErro(m, { hintMongo: true });
               if (listaEl) {
-                listaEl.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-600 font-semibold leading-relaxed">Lista do ERP indisponível sem Mongo. Use o botão «Estoque» no PDV para sincronizar o catálogo local ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</td></tr>';
+                listaEl.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-600 font-semibold leading-relaxed">Catálogo indisponível sem Mongo. Use o botão «Estoque» no PDV para sincronizar o catálogo local ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</td></tr>';
               }
             } else {
               mostrarErro(m);
@@ -979,7 +981,7 @@
             if (metaEl) metaEl.textContent = '—';
           })
           .finally(function () {
-            if (g === carregarGen) setLoading(false);
+            setLoading(false);
           });
       }, delayApi);
       if (hadLocal) fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
@@ -996,7 +998,7 @@
         if (mongo) {
           mostrarErro(m, { hintMongo: true });
           if (listaEl) {
-            listaEl.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-600 font-semibold leading-relaxed">Lista do ERP indisponível sem Mongo. Use o botão acima para ir à aba <strong>Grupos</strong> ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</td></tr>';
+            listaEl.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-600 font-semibold leading-relaxed">Catálogo indisponível sem Mongo. Use o botão acima para ir à aba <strong>Grupos</strong> ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</td></tr>';
           }
         } else {
           mostrarErro(m);
@@ -1005,7 +1007,7 @@
         if (metaEl) metaEl.textContent = '—';
       })
       .finally(function () {
-        if (g === carregarGen) setLoading(false);
+        setLoading(false);
       });
   }
 
@@ -1034,7 +1036,7 @@
       mostrarErro('');
       if (metaEl) metaEl.textContent = 'Mín. 2 letras ou código (6+ dígitos / GM…).';
       if (listaEl) {
-        listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no espelho ERP.</td></tr>';
+        listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
       }
       return;
     }
