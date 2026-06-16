@@ -6,6 +6,8 @@
  * versão antiga após deploy. (localStorage do PDV não é apagado por isso.)
  */
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 const { app, BrowserWindow, session, globalShortcut, shell, ipcMain } = require('electron');
 
 // Deve rodar antes de ready — desliga cache HTTP do Chromium neste app
@@ -62,8 +64,18 @@ ipcMain.handle('agro-list-printers', async (event) => {
 ipcMain.handle('agro-silent-print', async (_event, payload) => {
   const html = String(payload?.html || '');
   const deviceName = String(payload?.deviceName || '').trim();
-  const waitMs = Math.min(Math.max(Number(payload?.waitMs) || 450, 100), 8000);
+  const waitMs = Math.min(Math.max(Number(payload?.waitMs) || 900, 200), 12000);
+  const pageW = Number(payload?.pageWidthMicrons) || 40000;
+  const pageH = Number(payload?.pageHeightMicrons) || 40000;
   if (!html) return { ok: false, reason: 'empty_html' };
+
+  let tmpFile = '';
+  try {
+    tmpFile = path.join(os.tmpdir(), `agro-etq-${Date.now()}.html`);
+    fs.writeFileSync(tmpFile, html, 'utf8');
+  } catch (e) {
+    return { ok: false, reason: String(e && e.message) };
+  }
 
   return new Promise((resolve) => {
     const printWin = new BrowserWindow({
@@ -75,6 +87,9 @@ ipcMain.handle('agro-silent-print', async (_event, payload) => {
     });
 
     const finish = (ok, reason) => {
+      try {
+        if (tmpFile && fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+      } catch (_) {}
       if (!printWin.isDestroyed()) printWin.destroy();
       resolve({ ok, reason: reason || null });
     };
@@ -83,25 +98,24 @@ ipcMain.handle('agro-silent-print', async (_event, payload) => {
       finish(false, `${code}: ${desc}`);
     });
 
+    const doPrint = () => {
+      const opts = {
+        silent: true,
+        printBackground: true,
+        deviceName: deviceName || undefined,
+        margins: { marginType: 'none' },
+        pageSize: { width: pageW, height: pageH },
+      };
+      printWin.webContents.print(opts, (success, failureReason) => {
+        finish(success, failureReason);
+      });
+    };
+
     printWin.webContents.on('did-finish-load', () => {
-      setTimeout(() => {
-        printWin.webContents.print(
-          {
-            silent: true,
-            printBackground: true,
-            deviceName: deviceName || undefined,
-            margins: { marginType: 'none' },
-          },
-          (success, failureReason) => {
-            finish(success, failureReason);
-          }
-        );
-      }, waitMs);
+      setTimeout(doPrint, waitMs);
     });
 
-    printWin
-      .loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
-      .catch((e) => finish(false, String(e && e.message)));
+    printWin.loadFile(tmpFile).catch((e) => finish(false, String(e && e.message)));
   });
 });
 

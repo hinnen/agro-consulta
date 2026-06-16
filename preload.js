@@ -5,5 +5,6 @@ contextBridge.exposeInMainWorld('agroShell', {
   openExternal: (url) => ipcRenderer.invoke('agro-open-external', url),
   listPrinters: () => ipcRenderer.invoke('agro-list-printers'),
   silentPrint: (payload) => ipcRenderer.invoke('agro-silent-print', payload),
+  isElectron: true,
 });
 

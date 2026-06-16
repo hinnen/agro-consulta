@@ -111,7 +111,7 @@
             <th class="px-2 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600 whitespace-nowrap">Venda</th>
             <th class="px-2 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600 whitespace-nowrap">Estoque</th>
             <th class="px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-600">Status</th>
-            <th class="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600 w-40">Ações</th>
+            <th class="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-600 w-48">Ações</th>
           </tr>
         </thead>
         <tbody id="gm-list" class="divide-y divide-slate-100"></tbody>
@@ -173,6 +173,22 @@
     </div>
   </aside>
 
+  <div id="gm-etq-back" class="fixed inset-0 z-[100] hidden bg-slate-900/50" aria-hidden="true"></div>
+  <div id="gm-etq-modal" class="fixed left-1/2 top-1/2 z-[110] hidden w-[min(50vw,22rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl" role="dialog" aria-labelledby="gm-etq-titulo">
+    <h2 id="gm-etq-titulo" class="text-sm font-black uppercase text-slate-800">Imprimir etiqueta</h2>
+    <p id="gm-etq-nome" class="mt-2 text-base font-bold text-slate-900 leading-snug"></p>
+    <p id="gm-etq-gm" class="text-xs font-mono text-slate-500"></p>
+    <label class="mt-4 block">
+      <span class="mb-1 block text-[10px] font-black uppercase text-slate-500">Quantidade</span>
+      <input id="gm-etq-qtd" type="number" min="1" max="999" value="1" class="w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 text-xl font-black text-center" />
+    </label>
+    <div class="mt-4 flex gap-2">
+      <button type="button" id="gm-etq-imprimir" class="flex-1 min-h-[48px] rounded-xl bg-emerald-600 text-white font-black uppercase border-2 border-emerald-700 hover:bg-emerald-700">Imprimir</button>
+      <button type="button" id="gm-etq-cancelar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 font-black uppercase text-slate-600">Cancelar</button>
+    </div>
+    <p id="gm-etq-status" class="mt-2 text-xs font-semibold text-slate-500"></p>
+  </div>
+
   <details class="gm-fab-help group fixed bottom-5 right-5 z-[60]">
     <summary class="list-none cursor-pointer h-12 w-12 rounded-full bg-slate-800 text-white text-lg font-black shadow-lg border-2 border-slate-900 flex items-center justify-center hover:bg-slate-900 select-none" aria-label="Ajuda">?</summary>
     <div class="absolute bottom-14 right-0 w-[min(100vw-2rem,22rem)] rounded-2xl border border-slate-200 bg-white shadow-xl p-4 text-sm text-slate-700 leading-snug">
@@ -188,6 +204,7 @@
   </details>
 
   {% include "produtos/_atalho_voltar_pdv.html" %}
+  <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=2"></script>
   <script>
 (function () {
   var URL_LISTA = "{% url 'api_produtos_gestao_lista' %}";
@@ -288,6 +305,9 @@
     return p.toString();
   }
 
+  function icPrint() {
+    return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9V4h12v5M6 14h12v6H6v-6zm-2 5h16a2 2 0 002-2v-5a2 2 0 00-2-2H4a2 2 0 00-2 2v5a2 2 0 002 2z"/></svg>';
+  }
   function icPencil() {
     return '<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>';
   }
@@ -341,6 +361,7 @@
         '<td class="px-3 py-2 align-middle text-right whitespace-nowrap">' +
           '<div class="inline-flex items-center justify-end gap-1 flex-wrap">' +
             '<button type="button" data-act="edit" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-blue-500 hover:text-blue-700" title="Editar">' + icPencil() + '</button>' +
+            '<button type="button" data-act="etiqueta" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-400" title="Imprimir etiqueta">' + icPrint() + '</button>' +
             '<a href="' + urlVer + '" target="_blank" rel="noopener" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-blue-500 hover:text-blue-700" title="Ver cadastro ERP">' + icEye() + '</a>' +
             '<button type="button" data-act="ajuste" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-800 hover:border-blue-400" title="Ajustar estoque">' + icWrench() + '</button>' +
             '<button type="button" data-act="mm" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-blue-400" title="Mín / máx">' + icSliders() + '</button>' +
@@ -388,6 +409,8 @@
       carregar();
     });
     mainTr.querySelector('[data-act="edit"]').addEventListener('click', function () { abrirDrawer(p); });
+    var btnEtq = mainTr.querySelector('[data-act="etiqueta"]');
+    if (btnEtq) btnEtq.addEventListener('click', function () { abrirModalEtiqueta(p); });
     var ajR = findExp('aj');
     var mmR = findExp('mm');
     if (ajR) {
@@ -719,6 +742,63 @@
   if (impEl) {
     impEl.addEventListener('click', function () {
       showBan('Importação por CSV ainda não está disponível nesta tela.');
+    });
+  }
+
+  var etqProdAtual = null;
+  var etqBack = document.getElementById('gm-etq-back');
+  var etqModal = document.getElementById('gm-etq-modal');
+  var etqQtd = document.getElementById('gm-etq-qtd');
+  var etqStatus = document.getElementById('gm-etq-status');
+
+  function fecharModalEtiqueta() {
+    etqProdAtual = null;
+    if (etqBack) { etqBack.classList.add('hidden'); etqBack.setAttribute('aria-hidden', 'true'); }
+    if (etqModal) { etqModal.classList.add('hidden'); etqModal.setAttribute('aria-hidden', 'true'); }
+    if (etqStatus) etqStatus.textContent = '';
+  }
+
+  function abrirModalEtiqueta(p) {
+    if (!window.AgroEtiquetasCore) {
+      showBan('Módulo de etiquetas indisponível.');
+      return;
+    }
+    etqProdAtual = p;
+    document.getElementById('gm-etq-nome').textContent = p.nome || '—';
+    document.getElementById('gm-etq-gm').textContent = (p.codigo_gm || '—') + ' · R$ ' + (p.preco_venda != null ? Number(p.preco_venda).toFixed(2).replace('.', ',') : '0,00');
+    if (etqQtd) { etqQtd.value = '1'; etqQtd.focus(); etqQtd.select(); }
+    if (etqBack) { etqBack.classList.remove('hidden'); etqBack.setAttribute('aria-hidden', 'false'); }
+    if (etqModal) { etqModal.classList.remove('hidden'); etqModal.setAttribute('aria-hidden', 'false'); }
+  }
+
+  function imprimirEtiquetaGestao() {
+    if (!etqProdAtual || !window.AgroEtiquetasCore) return;
+    var qtd = parseInt(etqQtd && etqQtd.value, 10) || 1;
+    var item = window.AgroEtiquetasCore.produtoParaItem(etqProdAtual, qtd);
+    var st = window.AgroEtiquetasCore.loadStorage();
+    if (etqStatus) etqStatus.textContent = 'Enviando…';
+    window.AgroEtiquetasCore.imprimirItens([item], {
+      presetId: st.preset_ativo,
+      textoRodape: st.texto_rodape_global || window.AgroEtiquetasCore.getPresetAtivo(st).texto_rodape || ''
+    }).then(function (res) {
+      if (res && res.ok) {
+        fecharModalEtiqueta();
+      } else if (etqStatus) {
+        etqStatus.textContent = 'Falha: ' + (res && res.reason ? res.reason : 'erro');
+      }
+    });
+  }
+
+  if (document.getElementById('gm-etq-imprimir')) {
+    document.getElementById('gm-etq-imprimir').addEventListener('click', imprimirEtiquetaGestao);
+  }
+  if (document.getElementById('gm-etq-cancelar')) {
+    document.getElementById('gm-etq-cancelar').addEventListener('click', fecharModalEtiqueta);
+  }
+  if (etqBack) etqBack.addEventListener('click', fecharModalEtiqueta);
+  if (etqQtd) {
+    etqQtd.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); imprimirEtiquetaGestao(); }
     });
   }
 
