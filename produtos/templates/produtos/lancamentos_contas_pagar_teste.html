@@ -1201,6 +1201,7 @@
         if (e.target.closest('.sv-col-chk')) return;
         if (e.target.closest('.sv-btn-pagar-row')) return;
         if (e.target.closest('.sv-btn-nfe-row')) return;
+        if (e.target.closest('.sv-btn-log-row')) return;
         toggle();
       });
       item.addEventListener('keydown', (e) => {
@@ -1222,7 +1223,9 @@
       const bt = e.target.closest('.sv-btn-baixa-total');
       if (bt) { e.stopPropagation(); abrirBaixaTotal(bt.dataset.id); return; }
       const bp = e.target.closest('.sv-btn-baixa-parcial');
-      if (bp) { e.stopPropagation(); abrirBaixaParcial(bp.dataset.id); }
+      if (bp) { e.stopPropagation(); abrirBaixaParcial(bp.dataset.id); return; }
+      const lg = e.target.closest('.sv-btn-log-row');
+      if (lg) { e.stopPropagation(); abrirLog(lg.dataset.id); }
     });
     elCorpo.addEventListener('change', (e) => {
       const chk = e.target.closest('.sv-row-chk');
@@ -1250,6 +1253,55 @@
   });
   document.getElementById('sv-sel-clear')?.addEventListener('click', limparSelecao);
 
+  function renderLogBody(data) {
+    const res = data.resumo || {};
+    const evHtml = (data.eventos || []).map((ev) => `
+      <div class="sv-log-ev">
+        <div class="sv-log-ev-head">
+          <span class="sv-log-ev-tipo">${esc(ev.rotulo || ev.tipo || 'Evento')}</span>
+          ${ev.quando ? `<span class="sv-log-ev-quando">${esc(fmtDataHora(ev.quando))}</span>` : ''}
+        </div>
+        ${ev.usuario ? `<div class="sv-log-ev-user">${esc(ev.usuario)}</div>` : ''}
+        ${ev.detalhe ? `<div class="sv-log-ev-det">${esc(ev.detalhe)}</div>` : ''}
+      </div>
+    `).join('') || '<p class="sv-sub">Nenhum evento estruturado.</p>';
+    const camposJson = JSON.stringify(data.campos || {}, null, 2);
+    return `
+      <div class="sv-details-grid" style="margin-bottom:12px;">
+        <div class="sv-detail-box"><p><strong>ID Mongo</strong>${esc(data.id || '—')}</p></div>
+        <div class="sv-detail-box"><p><strong>Lançado por</strong>${esc(res.usuario_lancou || res.criado_por || '—')}</p></div>
+        <div class="sv-detail-box"><p><strong>Quitado por</strong>${esc(res.usuario_quitou || '—')}</p></div>
+        <div class="sv-detail-box"><p><strong>Horário (movimentação)</strong>${esc(fmtDataHora(res.horario_quitacao))}</p></div>
+      </div>
+      <h3 style="margin:0 0 8px;font-size:0.95rem;font-weight:800;color:#334155;text-transform:uppercase;">Linha do tempo</h3>
+      <div class="sv-log-eventos">${evHtml}</div>
+      <details class="sv-log-campos" open>
+        <summary>Todos os campos do Mongo (${Object.keys(data.campos || {}).length})</summary>
+        <pre>${esc(camposJson)}</pre>
+      </details>`;
+  }
+
+  async function abrirLog(id) {
+    if (!id) return;
+    const row = getRow(id);
+    document.getElementById('sv-modal-log-resumo').textContent =
+      row ? (row.cliente || row.descricao || id) : id;
+    document.getElementById('sv-modal-log-body').innerHTML = '<p class="sv-sub">Carregando log…</p>';
+    abrirModal('sv-modal-log');
+    try {
+      const r = await fetch(`${API_LOG}?id=${encodeURIComponent(id)}`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      const data = await r.json();
+      if (!r.ok || !data.ok) throw new Error(data.erro || 'Falha ao carregar log');
+      document.getElementById('sv-modal-log-body').innerHTML = renderLogBody(data);
+    } catch (err) {
+      document.getElementById('sv-modal-log-body').innerHTML =
+        `<p class="sv-erro">${esc(err.message || 'Erro ao carregar log')}</p>`;
+    }
+  }
+
   function renderLista(acrescentar, novasLinhas) {
     if (!rowsAcum.length) {
       elCorpo.innerHTML = '<div class="sv-empty">Nenhum lançamento com estes filtros.</div>';
@@ -1266,6 +1318,7 @@
     }
     bindRows();
     syncChkVisiveis();
+    applyGridCols();
     elPager.hidden = false;
     elPagerInfo.textContent = `${rowsAcum.length} de ${total} · página ${page}`;
     elBtnMais.disabled = rowsAcum.length >= total;
@@ -1341,6 +1394,19 @@
     page = 1;
     carregar(false);
   }
+
+  document.getElementById('sv-log-fechar')?.addEventListener('click', () => fecharModal('sv-modal-log'));
+  document.getElementById('sv-btn-cols')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleColsDropdown();
+  });
+  document.addEventListener('click', (e) => {
+    const wrap = document.querySelector('.sv-cols-wrap');
+    if (wrap && !wrap.contains(e.target)) toggleColsDropdown(false);
+  });
+
+  buildColDropdown();
+  applyGridCols();
 
   document.getElementById('sv-bx-cancel').addEventListener('click', () => fecharModal('sv-modal-baixa'));
   document.getElementById('sv-bxp-cancel').addEventListener('click', () => fecharModal('sv-modal-parcial'));
