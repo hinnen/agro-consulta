@@ -7,11 +7,15 @@
   }
 
   function csrf() {
-    var meta = document.querySelector('meta[name="csrf-token"]');
+    var lista = w.AgroCadastroErpLista;
+    if (lista && lista.CSRF_TOKEN) return lista.CSRF_TOKEN;
+    var meta = document.querySelector('meta[name="csrfmiddlewaretoken"]');
     if (meta && meta.getAttribute('content')) return meta.getAttribute('content');
+    var ck = document.cookie.match(/(?:^|; )csrftoken=([^;]*)/);
+    if (ck) return decodeURIComponent(ck[1]);
     var el = document.querySelector('[name=csrfmiddlewaretoken]');
     if (el && el.value) return el.value;
-    return getCookie('csrftoken');
+    return '';
   }
 
   function escapeHtml(s) {

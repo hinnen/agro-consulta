@@ -622,6 +622,21 @@
   if (!modalEdit) return;
 
   var U = window.AgroCadastroErpUtil;
+  function erroHttpPermissao(response, textoBruto) {
+    var st = response && response.status;
+    var raw = String(textoBruto || '');
+    if (st === 403 && /csrf/i.test(raw)) {
+      return 'Token de segurança expirou. Recarregue a página (F5) e salve de novo.';
+    }
+    if (st === 401) {
+      return 'Sessão expirada. Entre em /admin/login/, volte ao cadastro e tente de novo.';
+    }
+    if (st === 403) {
+      return 'Sem permissão para salvar. Confira se está logado e recarregue a página (F5).';
+    }
+    return 'Sem permissão para salvar. Entre no sistema (login), recarregue a página (F5) e tente de novo.';
+  }
+
   /** Servidor pode devolver HTML (login redirect 200, erro Django, nginx) — evita SyntaxError ao dar .json(). */
   function jsonOuErroHumano(response) {
     return response.text().then(function (text) {
@@ -1796,6 +1811,13 @@
     }
     body.validar_cadastro_minimo = true;
     var tok = U && U.csrf ? U.csrf() : '';
+    if (!tok) {
+      mostrarStatusModalSalvo(
+        'Token de segurança ausente. Recarregue a página (F5). Se persistir, saia e entre de novo em /admin/login/.',
+        'erro'
+      );
+      return;
+    }
     fetch(cfg.URL_OVERLAY_SALVAR, {
       method: 'POST',
       credentials: 'same-origin',
@@ -1803,9 +1825,9 @@
       body: JSON.stringify(body)
     }).then(function (r) {
       if (r.status === 403 || r.status === 401) {
-        throw new Error(
-          'Sem permissão para salvar. Entre no sistema (login), recarregue a página (F5) e tente de novo.'
-        );
+        return r.text().then(function (txt) {
+          throw new Error(erroHttpPermissao(r, txt));
+        });
       }
       return jsonOuErroHumano(r);
     }).then(function (j) {
@@ -1908,9 +1930,9 @@
       body: JSON.stringify({ produto_id: String(pid).trim() })
     }).then(function (r) {
       if (r.status === 403 || r.status === 401) {
-        throw new Error(
-          'Sem permissão para salvar. Entre no sistema (login), recarregue a página (F5) e tente de novo.'
-        );
+        return r.text().then(function (txt) {
+          throw new Error(erroHttpPermissao(r, txt));
+        });
       }
       return jsonOuErroHumano(r);
     }).then(function (j) {
