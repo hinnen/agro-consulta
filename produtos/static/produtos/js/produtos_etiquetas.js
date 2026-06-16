@@ -5,11 +5,16 @@
   if (!Core) return;
 
   var URL_BUSCAR = '/api/produtos/cadastro/';
+  var URL_HISTORICO = '/api/produtos/etiquetas/historico/';
+  var HISTORICO_DIAS = 30;
 
   var state = {
     fila: [],
     storage: null,
     buscaTimer: null,
+    buscaProdutos: [],
+    buscaSelIdx: -1,
+    buscaQuery: '',
   };
 
   function $(id) {
@@ -154,20 +159,95 @@
     });
   }
 
+  function limparBuscaVisual() {
+    state.buscaProdutos = [];
+    state.buscaSelIdx = -1;
+    state.buscaQuery = '';
+    var box = $('etq-busca-resultados');
+    if (box) {
+      box.innerHTML = '<p class="px-3 py-3 text-sm text-slate-500">Digite ao menos 2 caracteres.</p>';
+    }
+  }
+
+  function adicionarProdutoFila(prod, opts) {
+    opts = opts || {};
+    if (!prod) return false;
+    var qtdInp = $('etq-add-qtd');
+    var qtd = parseInt(qtdInp && qtdInp.value, 10) || 1;
+    var it = produtoParaFilaItem(prod);
+    it.qtd = qtd > 0 ? qtd : 1;
+    state.fila.push(it);
+    renderFila();
+    if (opts.limparBusca !== false) {
+      limparBuscaVisual();
+      var inp = $('etq-busca-input');
+      if (inp) {
+        inp.value = '';
+        inp.focus();
+      }
+    }
+    return true;
+  }
+
+  function highlightBuscaSelecao() {
+    var box = $('etq-busca-resultados');
+    if (!box) return;
+    var items = box.querySelectorAll('.etq-busca-item');
+    items.forEach(function (btn, i) {
+      var sel = i === state.buscaSelIdx;
+      btn.classList.toggle('etq-busca-item--sel', sel);
+      btn.setAttribute('aria-selected', sel ? 'true' : 'false');
+    });
+    if (state.buscaSelIdx >= 0 && items[state.buscaSelIdx]) {
+      items[state.buscaSelIdx].scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }
+
+  function moverSelecaoBusca(delta) {
+    var n = state.buscaProdutos.length;
+    if (!n) return;
+    if (state.buscaSelIdx < 0) {
+      state.buscaSelIdx = delta > 0 ? 0 : n - 1;
+    } else {
+      state.buscaSelIdx = Math.max(0, Math.min(n - 1, state.buscaSelIdx + delta));
+    }
+    highlightBuscaSelecao();
+  }
+
+  function tentarAdicionarBuscaEnter() {
+    var prods = state.buscaProdutos;
+    if (prods.length === 1) {
+      adicionarProdutoFila(prods[0]);
+      return true;
+    }
+    if (prods.length > 1) {
+      if (state.buscaSelIdx >= 0 && prods[state.buscaSelIdx]) {
+        adicionarProdutoFila(prods[state.buscaSelIdx]);
+        return true;
+      }
+      setStatus('Vários resultados — use ↑ ↓ ou clique no produto.', true);
+      return false;
+    }
+    return false;
+  }
+
   function renderBusca(produtos) {
     var box = $('etq-busca-resultados');
     if (!box) return;
-    if (!produtos || !produtos.length) {
+    state.buscaProdutos = (produtos || []).slice(0, 24);
+    state.buscaSelIdx = -1;
+    if (!state.buscaProdutos.length) {
       box.innerHTML = '<p class="px-3 py-3 text-sm text-slate-500">Nenhum produto.</p>';
       return;
     }
-    box.innerHTML = produtos
-      .slice(0, 24)
-      .map(function (p) {
+    box.innerHTML = state.buscaProdutos
+      .map(function (p, idx) {
         var gm = String(p.codigo_nfe || p.codigo_gm || p.codigo || '').trim();
         return (
-          '<button type="button" class="etq-busca-item flex w-full items-center justify-between gap-2 border-b border-slate-700/70 px-3 py-2 text-left hover:bg-slate-700/40" data-prod-id="' +
+          '<button type="button" role="option" aria-selected="false" class="etq-busca-item flex w-full items-center justify-between gap-2 border-b border-slate-700/70 px-3 py-2 text-left hover:bg-slate-700/40" data-prod-id="' +
           Core.esc(p.id) +
+          '" data-busca-idx="' +
+          idx +
           '">' +
           '<span class="min-w-0 flex-1 truncate text-sm font-bold text-white">' +
           Core.esc(p.nome || '—') +
@@ -186,40 +266,48 @@
     box.querySelectorAll('.etq-busca-item').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var id = btn.getAttribute('data-prod-id');
-        var prod = produtos.find(function (x) {
+        var prod = state.buscaProdutos.find(function (x) {
           return String(x.id) === String(id);
         });
         if (!prod) return;
-        var qtdInp = $('etq-add-qtd');
-        var qtd = parseInt(qtdInp && qtdInp.value, 10) || 1;
-        var it = produtoParaFilaItem(prod);
-        it.qtd = qtd > 0 ? qtd : 1;
-        state.fila.push(it);
-        renderFila();
+        adicionarProdutoFila(prod);
       });
     });
   }
 
-  function buscarProdutos(q) {
+  function buscarProdutos(q, opts) {
+    opts = opts || {};
     var box = $('etq-busca-resultados');
+    q = String(q || '').trim();
     if (!q || q.length < 2) {
-      if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-slate-500">Digite ao menos 2 caracteres.</p>';
-      return;
+      limparBuscaVisual();
+      return Promise.resolve([]);
     }
     if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-slate-400">…</p>';
-    fetch(URL_BUSCAR + '?q=' + encodeURIComponent(q) + '&limit=24', { credentials: 'same-origin' })
+    return fetch(URL_BUSCAR + '?q=' + encodeURIComponent(q) + '&limit=24', { credentials: 'same-origin' })
       .then(function (r) {
         return r.json();
       })
       .then(function (data) {
         if (!data || data.ok === false) {
+          state.buscaProdutos = [];
+          state.buscaSelIdx = -1;
           if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-red-400">Erro na busca.</p>';
-          return;
+          if (opts.onDone) opts.onDone([]);
+          return [];
         }
-        renderBusca((data && data.produtos) || []);
+        var prods = (data && data.produtos) || [];
+        state.buscaQuery = q;
+        renderBusca(prods);
+        if (opts.onDone) opts.onDone(state.buscaProdutos);
+        return state.buscaProdutos;
       })
       .catch(function () {
+        state.buscaProdutos = [];
+        state.buscaSelIdx = -1;
         if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-red-400">Erro na busca.</p>';
+        if (opts.onDone) opts.onDone([]);
+        return [];
       });
   }
 
@@ -249,9 +337,17 @@
       state.storage.texto_rodape_global ||
       getPresetAtivo().texto_rodape ||
       '';
-    Core.imprimirItens(state.fila, { presetId: presetId, textoRodape: textoRodape }).then(function (res) {
-      if (res && res.ok) setStatus('Enviado.');
-      else if (res && res.reason) setStatus('Falha: ' + res.reason, true);
+    Core.imprimirItens(state.fila, {
+      presetId: presetId,
+      textoRodape: textoRodape,
+      origem: 'fila',
+    }).then(function (res) {
+      if (res && res.ok) {
+        setStatus('Enviado.');
+        if ($('etq-hist-back') && !$('etq-hist-back').classList.contains('hidden')) {
+          carregarHistorico();
+        }
+      } else if (res && res.reason) setStatus('Falha: ' + res.reason, true);
     });
   }
 
@@ -342,6 +438,152 @@
     });
   }
 
+  function ensureHistModalOnBody() {
+    var m = $('etq-hist-back');
+    if (m && m.parentElement !== document.body) document.body.appendChild(m);
+  }
+
+  function fecharModalHistorico() {
+    var m = $('etq-hist-back');
+    if (!m) return;
+    m.classList.add('hidden');
+    m.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+  }
+
+  function renderHistoricoLista(rows, meta) {
+    var box = $('etq-hist-lista');
+    var metaEl = $('etq-hist-meta');
+    if (metaEl && meta) {
+      metaEl.textContent =
+        'Últimos ' +
+        (meta.dias || HISTORICO_DIAS) +
+        ' dias · ' +
+        (meta.total != null ? meta.total : rows.length) +
+        ' impressão(ões)';
+    }
+    if (!box) return;
+    if (!rows || !rows.length) {
+      box.innerHTML = '<p class="px-4 py-6 text-center text-sm text-slate-400">Nenhuma impressão no período.</p>';
+      return;
+    }
+    box.innerHTML = rows
+      .map(function (h) {
+        return (
+          '<div class="flex flex-wrap items-center gap-2 border-b border-slate-700/80 px-3 py-2.5 hover:bg-slate-800/50">' +
+          '<div class="min-w-0 flex-1">' +
+          '<div class="truncate text-sm font-bold text-white">' +
+          Core.esc(h.resumo_nomes || '—') +
+          '</div>' +
+          '<div class="mt-0.5 text-[11px] text-slate-400">' +
+          Core.esc(h.criado_em_br || '') +
+          (h.usuario ? ' · ' + Core.esc(h.usuario) : '') +
+          ' · ' +
+          Core.esc(h.preset_nome || 'Preset') +
+          ' · ' +
+          Core.esc(String(h.total_etiquetas || 0)) +
+          ' etiqueta(s)' +
+          '</div>' +
+          '</div>' +
+          '<button type="button" class="etq-hist-reimp shrink-0 inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-600 bg-emerald-700/40 px-3 text-xs font-black uppercase text-emerald-200 hover:bg-emerald-600/30" data-hist-id="' +
+          Core.esc(h.id) +
+          '">' +
+          '<i class="fas fa-print" aria-hidden="true"></i>Reimprimir</button>' +
+          '</div>'
+        );
+      })
+      .join('');
+
+    box.querySelectorAll('.etq-hist-reimp').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-hist-id');
+        if (id) reimprimirHistorico(id, btn);
+      });
+    });
+  }
+
+  function carregarHistorico() {
+    var box = $('etq-hist-lista');
+    if (box) box.innerHTML = '<p class="px-4 py-6 text-center text-sm text-slate-400">Carregando…</p>';
+    fetch(URL_HISTORICO + '?dias=' + HISTORICO_DIAS + '&limit=300', { credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok) {
+          if (box) box.innerHTML = '<p class="px-4 py-6 text-center text-sm text-red-400">Erro ao carregar histórico.</p>';
+          return;
+        }
+        renderHistoricoLista(data.historico || [], data);
+      })
+      .catch(function () {
+        if (box) box.innerHTML = '<p class="px-4 py-6 text-center text-sm text-red-400">Erro ao carregar histórico.</p>';
+      });
+  }
+
+  function reimprimirHistorico(id, btn) {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '…';
+    }
+    fetch(URL_HISTORICO + encodeURIComponent(id) + '/', { credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok || !data.job) {
+          setStatus('Não foi possível reimprimir.', true);
+          return;
+        }
+        var job = data.job;
+        var itens = (job.itens || []).map(function (it) {
+          return {
+            id: it.id,
+            nome: it.nome,
+            codigo_gm: it.codigo_gm,
+            codigo_barras: it.codigo_barras,
+            preco_venda: it.preco_venda,
+            qtd: it.qtd,
+          };
+        });
+        if (!itens.length) {
+          setStatus('Job sem itens.', true);
+          return;
+        }
+        return Core.imprimirItens(itens, {
+          presetId: job.preset_id || state.storage.preset_ativo,
+          textoRodape: job.texto_rodape || '',
+          origem: 'historico',
+        }).then(function (res) {
+          if (res && res.ok) {
+            setStatus('Reimpresso.');
+            carregarHistorico();
+          } else {
+            setStatus('Falha na reimpressão.', true);
+          }
+        });
+      })
+      .catch(function () {
+        setStatus('Erro na reimpressão.', true);
+      })
+      .finally(function () {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-print" aria-hidden="true"></i>Reimprimir';
+        }
+      });
+  }
+
+  function abrirModalHistorico() {
+    ensureHistModalOnBody();
+    var m = $('etq-hist-back');
+    if (!m) return;
+    m.classList.remove('hidden');
+    m.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    carregarHistorico();
+  }
+
   function ensureModalOnBody() {
     var m = $('etq-modal-back');
     if (m && m.parentElement !== document.body) document.body.appendChild(m);
@@ -375,9 +617,34 @@
         }, 280);
       });
       inpBusca.addEventListener('keydown', function (ev) {
+        var q = inpBusca.value.trim();
+        if (ev.key === 'ArrowDown') {
+          ev.preventDefault();
+          if (state.buscaProdutos.length) moverSelecaoBusca(1);
+          return;
+        }
+        if (ev.key === 'ArrowUp') {
+          ev.preventDefault();
+          if (state.buscaProdutos.length) moverSelecaoBusca(-1);
+          return;
+        }
         if (ev.key === 'Enter') {
           ev.preventDefault();
-          buscarProdutos(inpBusca.value.trim());
+          clearTimeout(state.buscaTimer);
+          if (q.length < 2) return;
+          if (state.buscaQuery === q && state.buscaProdutos.length) {
+            tentarAdicionarBuscaEnter();
+            return;
+          }
+          buscarProdutos(q, {
+            onDone: function (prods) {
+              if (prods.length === 1) {
+                adicionarProdutoFila(prods[0]);
+              } else if (prods.length > 1) {
+                setStatus('Vários resultados — use ↑ ↓ ou clique no produto.', true);
+              }
+            },
+          });
         }
       });
     }
@@ -393,10 +660,16 @@
     $('etq-btn-novo-preset') && $('etq-btn-novo-preset').addEventListener('click', criarNovoPreset);
     $('etq-btn-excluir-preset') && $('etq-btn-excluir-preset').addEventListener('click', excluirPresetAtual);
     $('etq-btn-preset') && $('etq-btn-preset').addEventListener('click', abrirModalPreset);
+    $('etq-btn-historico') && $('etq-btn-historico').addEventListener('click', abrirModalHistorico);
     $('etq-modal-fechar') && $('etq-modal-fechar').addEventListener('click', fecharModalPreset);
+    $('etq-hist-fechar') && $('etq-hist-fechar').addEventListener('click', fecharModalHistorico);
     $('etq-modal-back') &&
       $('etq-modal-back').addEventListener('click', function (ev) {
         if (ev.target === $('etq-modal-back')) fecharModalPreset();
+      });
+    $('etq-hist-back') &&
+      $('etq-hist-back').addEventListener('click', function (ev) {
+        if (ev.target === $('etq-hist-back')) fecharModalHistorico();
       });
 
     ['etq-preset-select', 'etq-fila-preset'].forEach(function (id) {
@@ -420,12 +693,16 @@
     }
 
     document.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Escape') fecharModalPreset();
+      if (ev.key === 'Escape') {
+        fecharModalHistorico();
+        fecharModalPreset();
+      }
     });
   }
 
   function init() {
     ensureModalOnBody();
+    ensureHistModalOnBody();
     reloadStorage();
     renderPresetSelect();
     renderPresetForm();

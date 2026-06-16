@@ -144,6 +144,7 @@ from .models import (
     ProdutoGrupoAgro,
     ProdutoGrupoVarianteAgro,
     ProdutoMarcaVariacaoAgro,
+    EtiquetaImpressaoHistoricoAgro,
     MovimentoCaixa,
     SessaoCaixa,
     VendaAgro,
@@ -9346,6 +9347,142 @@ def produtos_gestao_view(request):
 def produtos_etiquetas_view(request):
     """Impressão de etiquetas de preço (4×4 cm, térmica) a partir do cadastro de produtos."""
     return render(request, "produtos/produtos_etiquetas.html")
+
+
+def _etiquetas_historico_dias_param(request, default: int = 30) -> int:
+    try:
+        d = int(request.GET.get("dias") or default)
+    except (TypeError, ValueError):
+        d = default
+    return max(1, min(d, 90))
+
+
+def _etiquetas_normalizar_itens_json(raw) -> list[dict]:
+    if not isinstance(raw, list):
+        return []
+    out: list[dict] = []
+    for it in raw:
+        if not isinstance(it, dict):
+            continue
+        try:
+            qtd = int(it.get("qtd") or 1)
+        except (TypeError, ValueError):
+            qtd = 1
+        try:
+            preco = float(it.get("preco_venda") or 0)
+        except (TypeError, ValueError):
+            preco = 0.0
+        out.append(
+            {
+                "id": str(it.get("id") or "")[:64],
+                "nome": str(it.get("nome") or "")[:300],
+                "codigo_gm": str(it.get("codigo_gm") or "")[:80],
+                "codigo_barras": str(it.get("codigo_barras") or "")[:80],
+                "preco_venda": preco,
+                "qtd": max(1, min(qtd, 999)),
+            }
+        )
+        if len(out) >= 200:
+            break
+    return out
+
+
+def _etiquetas_resumo_nomes(itens: list[dict]) -> str:
+    nomes = [str(x.get("nome") or "").strip() for x in itens if str(x.get("nome") or "").strip()]
+    if not nomes:
+        return "—"
+    if len(nomes) == 1:
+        return nomes[0][:400]
+    extra = len(nomes) - 1
+    base = nomes[0][:280]
+    return f"{base} (+{extra} produto{'s' if extra != 1 else ''})"[:400]
+
+
+def _etiquetas_historico_row(h: EtiquetaImpressaoHistoricoAgro, *, incluir_itens: bool = False) -> dict:
+    row = {
+        "id": h.pk,
+        "criado_em": h.criado_em.isoformat() if h.criado_em else "",
+        "criado_em_br": h.criado_em.strftime("%d/%m/%Y %H:%M") if h.criado_em else "",
+        "usuario": h.usuario or "",
+        "origem": h.origem or "",
+        "preset_id": h.preset_id or "",
+        "preset_nome": h.preset_nome or "",
+        "texto_rodape": h.texto_rodape or "",
+        "total_etiquetas": int(h.total_etiquetas or 0),
+        "qtd_linhas": int(h.qtd_linhas or 0),
+        "resumo_nomes": h.resumo_nomes or "",
+    }
+    if incluir_itens:
+        row["itens"] = h.itens_json if isinstance(h.itens_json, list) else []
+    return row
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_etiquetas_historico_lista(request):
+    """Lista jobs de impressão de etiquetas (padrão: últimos 30 dias)."""
+    dias = _etiquetas_historico_dias_param(request, 30)
+    try:
+        lim = int(request.GET.get("limit") or 300)
+    except (TypeError, ValueError):
+        lim = 300
+    lim = max(1, min(lim, 500))
+    desde = timezone.now() - timedelta(days=dias)
+    qs = (
+        EtiquetaImpressaoHistoricoAgro.objects.filter(criado_em__gte=desde)
+        .order_by("-criado_em")[:lim]
+    )
+    rows = [_etiquetas_historico_row(h) for h in qs]
+    total = EtiquetaImpressaoHistoricoAgro.objects.filter(criado_em__gte=desde).count()
+    return JsonResponse(
+        {
+            "ok": True,
+            "dias": dias,
+            "total": total,
+            "mostrando": len(rows),
+            "historico": rows,
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_etiquetas_historico_detalhe(request, pk: int):
+    """Detalhe de um job (itens completos para reimpressão)."""
+    h = get_object_or_404(EtiquetaImpressaoHistoricoAgro, pk=pk)
+    return JsonResponse({"ok": True, "job": _etiquetas_historico_row(h, incluir_itens=True)})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_etiquetas_historico_salvar(request):
+    """Grava job após impressão bem-sucedida."""
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    itens = _etiquetas_normalizar_itens_json(body.get("itens"))
+    if not itens:
+        return JsonResponse({"ok": False, "erro": "Nenhum item."}, status=400)
+    total_etq = sum(int(x.get("qtd") or 1) for x in itens)
+    preset_id = str(body.get("preset_id") or "")[:64]
+    preset_nome = str(body.get("preset_nome") or "")[:120]
+    texto_rodape = str(body.get("texto_rodape") or "")[:120]
+    origem = str(body.get("origem") or "fila")[:32]
+    u = request.user
+    usuario = (u.get_username() if u and u.is_authenticated else "")[:150]
+    h = EtiquetaImpressaoHistoricoAgro.objects.create(
+        usuario=usuario,
+        origem=origem,
+        preset_id=preset_id,
+        preset_nome=preset_nome,
+        texto_rodape=texto_rodape,
+        total_etiquetas=total_etq,
+        qtd_linhas=len(itens),
+        resumo_nomes=_etiquetas_resumo_nomes(itens),
+        itens_json=itens,
+    )
+    return JsonResponse({"ok": True, "id": h.pk, "job": _etiquetas_historico_row(h)})
 
 
 def _lancamentos_parse_date_param(s):

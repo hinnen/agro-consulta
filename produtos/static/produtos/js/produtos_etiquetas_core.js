@@ -223,6 +223,45 @@
     return !!(global.agroShell && typeof global.agroShell.silentPrint === 'function');
   }
 
+  function registrarHistoricoBackend(opts, itens) {
+    opts = opts || {};
+    if (!itens || !itens.length) return;
+    try {
+      var data = loadStorage();
+      var preset = opts.preset
+        ? opts.preset
+        : opts.presetId
+          ? getPresetById(data.presets, opts.presetId) || getPresetAtivo(data)
+          : getPresetAtivo(data);
+      var csrf = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
+      var payload = {
+        origem: opts.origem || 'fila',
+        preset_id: preset.id || '',
+        preset_nome: preset.nome || '',
+        texto_rodape:
+          opts.textoRodape != null
+            ? String(opts.textoRodape)
+            : data.texto_rodape_global || preset.texto_rodape || '',
+        itens: itens.map(function (it) {
+          return {
+            id: it.id,
+            nome: it.nome,
+            codigo_gm: it.codigo_gm,
+            codigo_barras: it.codigo_barras,
+            preco_venda: it.preco_venda,
+            qtd: it.qtd,
+          };
+        }),
+      };
+      fetch('/api/produtos/etiquetas/historico/salvar/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+        body: JSON.stringify(payload),
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
   function imprimirItens(itens, opts) {
     opts = opts || {};
     if (!itens || !itens.length) {
@@ -243,13 +282,18 @@
     var h = Number(preset.altura_mm) || 40;
 
     if (podeSilentPrint()) {
-      return global.agroShell.silentPrint({
-        html: html,
-        deviceName: preset.impressora || '',
-        waitMs: 900,
-        pageWidthMicrons: Math.round(w * 1000),
-        pageHeightMicrons: Math.round(h * 1000),
-      });
+      return global.agroShell
+        .silentPrint({
+          html: html,
+          deviceName: preset.impressora || '',
+          waitMs: 900,
+          pageWidthMicrons: Math.round(w * 1000),
+          pageHeightMicrons: Math.round(h * 1000),
+        })
+        .then(function (res) {
+          if (res && res.ok) registrarHistoricoBackend(opts, itens);
+          return res;
+        });
     }
 
     return new Promise(function (resolve) {
@@ -271,6 +315,7 @@
         try {
           iframe.contentWindow.focus();
           iframe.contentWindow.print();
+          registrarHistoricoBackend(opts, itens);
           resolve({ ok: true, silent: false });
         } catch (e) {
           resolve({ ok: false, reason: String(e && e.message) });
