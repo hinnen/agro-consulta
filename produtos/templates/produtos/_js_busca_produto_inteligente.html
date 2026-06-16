@@ -289,8 +289,13 @@
 
     function mediaParaOrdenacaoProduto(p, catalogRef) {
         const id = String(p && p.id != null ? p.id : '');
-        if (Array.isArray(catalogRef) && id) {
-            const loc = catalogRef.find((x) => String(x.id) === id);
+        if (id && catalogRef) {
+            let loc = null;
+            if (typeof catalogRef.get === 'function') {
+                loc = catalogRef.get(id);
+            } else if (Array.isArray(catalogRef)) {
+                loc = catalogRef.find((x) => String(x.id) === id);
+            }
             if (loc && loc.media_venda_diaria_30d != null && loc.media_venda_diaria_30d !== '') {
                 return Number(loc.media_venda_diaria_30d || 0);
             }

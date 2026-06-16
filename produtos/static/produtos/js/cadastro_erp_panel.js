@@ -101,6 +101,7 @@
   var buscaMergeTimer = null;
   var PDV_CACHE_KEY = 'agro_pdv_catalog_cache_v2';
   var _cadastroCatLocal = null;
+  var _cadastroCatById = null;
   var _cadastroCatInited = false;
   var ultimos = [];
   var modoLista = true;
@@ -806,13 +807,18 @@
       descricao: produto.descricao,
       inativo: !!produto.inativo
     };
-    if (!_cadastroCatLocal) cadastroCatalogoPdvCacheArray();
+    cadastroCatalogoPdvCacheArray();
     if (!Array.isArray(_cadastroCatLocal)) return;
     var pid = String(produto.id);
+    var row = _cadastroCatById ? _cadastroCatById.get(pid) : null;
+    if (row) {
+      Object.assign(row, patch);
+      return;
+    }
     for (var i = 0; i < _cadastroCatLocal.length; i++) {
       if (String(_cadastroCatLocal[i].id) === pid) {
         Object.assign(_cadastroCatLocal[i], patch);
-        if (typeof buildBuscaProdutoIndex === 'function') buildBuscaProdutoIndex(_cadastroCatLocal);
+        if (_cadastroCatById) _cadastroCatById.set(pid, _cadastroCatLocal[i]);
         return;
       }
     }
@@ -823,27 +829,34 @@
     if (_cadastroCatInited) return _cadastroCatLocal || [];
     _cadastroCatInited = true;
     _cadastroCatLocal = [];
+    _cadastroCatById = new Map();
     try {
       var raw = localStorage.getItem(PDV_CACHE_KEY);
       if (!raw) return [];
       var p = JSON.parse(raw);
       if (p && Array.isArray(p.produtos) && p.produtos.length) {
         _cadastroCatLocal = p.produtos;
-        if (typeof buildBuscaProdutoIndex === 'function') buildBuscaProdutoIndex(_cadastroCatLocal);
+        _cadastroCatLocal.forEach(function (prod) {
+          if (prod && prod.id != null) _cadastroCatById.set(String(prod.id), prod);
+        });
       }
     } catch (e1) {
       _cadastroCatLocal = [];
+      _cadastroCatById = new Map();
     }
     return _cadastroCatLocal;
   }
 
-  function cadastroPdvParaLinhaLista(p, catalog) {
+  function cadastroCatalogoPdvById() {
+    cadastroCatalogoPdvCacheArray();
+    return _cadastroCatById || new Map();
+  }
+
+  function cadastroPdvParaLinhaLista(p, catalogById) {
     var id = String(p.id || '');
     var loc = null;
-    if (Array.isArray(catalog) && id) {
-      for (var i = 0; i < catalog.length; i++) {
-        if (String(catalog[i].id) === id) { loc = catalog[i]; break; }
-      }
+    if (catalogById && id && typeof catalogById.get === 'function') {
+      loc = catalogById.get(id) || null;
     }
     var src = loc ? Object.assign({}, loc, p) : p;
     return {
@@ -881,6 +894,7 @@
     if (!q) return [];
     if (q.length === 1 && !pareceCodigoBusca(q)) return [];
     var catalog = cadastroCatalogoPdvCacheArray();
+    var catalogById = cadastroCatalogoPdvById();
     if (!catalog.length || typeof filtrarProdutosBuscaInteligente !== 'function' || typeof normalizarBuscaLocal !== 'function') {
       return [];
     }
@@ -892,7 +906,7 @@
     var fil = filtrarProdutosBuscaInteligente(catalog, termoNorm, modo);
     fil = cadastroFiltrarAtivosLocal(fil);
     if (typeof ordenarSugestoesPdv === 'function') {
-      fil = ordenarSugestoesPdv(fil, termoNorm, catalog);
+      fil = ordenarSugestoesPdv(fil, termoNorm, catalogById);
     }
     return fil.slice(0, cadastroLimiteBuscaPdv());
   }
@@ -945,7 +959,7 @@
   }
 
   function carregarBuscaApi(qRaw, gen, sig, localBaselinePdv) {
-    var catalog = cadastroCatalogoPdvCacheArray();
+    var catalogById = cadastroCatalogoPdvById();
     var termoNorm = (typeof normalizarBuscaLocal === 'function') ? normalizarBuscaLocal(qRaw) : String(qRaw || '').toLowerCase();
     var urlBusca = URL_BUSCAR_PDV + '?q=' + encodeURIComponent(qRaw);
     var pLista = fetch(urlBusca, { credentials: 'same-origin', signal: sig })
@@ -960,11 +974,11 @@
         var apiRows = Array.isArray(x.j.produtos) ? x.j.produtos : [];
         var pdvRows = localBaselinePdv && localBaselinePdv.length ? localBaselinePdv : [];
         if (typeof mesclarBuscaPdvLocalComApi === 'function') {
-          pdvRows = mesclarBuscaPdvLocalComApi(termoNorm, pdvRows, apiRows, catalog, cadastroLimiteBuscaPdv());
+          pdvRows = mesclarBuscaPdvLocalComApi(termoNorm, pdvRows, apiRows, catalogById, cadastroLimiteBuscaPdv());
         } else if (apiRows.length) {
           pdvRows = apiRows.slice(0, cadastroLimiteBuscaPdv());
         }
-        var produtos = cadastroFinalizarLinhasBusca(pdvRows, catalog);
+        var produtos = cadastroFinalizarLinhasBusca(pdvRows, catalogById);
         if (ordenacaoAtual.campo) {
           produtos = cadastroAplicarOrdenacaoCliente(produtos);
         }
@@ -1086,7 +1100,7 @@
       return;
     }
     var temCache = cadastroCatalogoPdvCacheArray().length > 0;
-    var ms = pareceCodigoBusca(q) ? 0 : (temCache ? 0 : 320);
+    var ms = pareceCodigoBusca(q) ? 0 : (temCache ? 100 : 320);
     debounceTimer = setTimeout(function () {
       var q2 = (buscaEl.value || '').trim();
       if (q2.length === 1 && !pareceCodigoBusca(q2)) return;
@@ -1255,7 +1269,6 @@
   if (CADASTRO_ERP_MODO === 'detalhe' && CADASTRO_ERP_PID) {
     carregarDetalheProduto(CADASTRO_ERP_PID);
   } else {
-    cadastroCatalogoPdvCacheArray();
     carregar();
   }
 
