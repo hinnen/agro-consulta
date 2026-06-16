@@ -622,6 +622,22 @@
   if (!modalEdit) return;
 
   var U = window.AgroCadastroErpUtil;
+
+  function obterCsrfCadastro(cfg) {
+    cfg = cfg || window.AgroCadastroErpLista || {};
+    if (cfg.CSRF_TOKEN) return cfg.CSRF_TOKEN;
+    if (U && U.csrf) {
+      var t = U.csrf();
+      if (t) return t;
+    }
+    var meta = document.querySelector('meta[name="csrfmiddlewaretoken"]');
+    if (meta && meta.getAttribute('content')) return meta.getAttribute('content');
+    var ck = document.cookie.match(/(?:^|; )csrftoken=([^;]*)/);
+    if (ck) return decodeURIComponent(ck[1]);
+    var el = document.querySelector('[name=csrfmiddlewaretoken]');
+    return el && el.value ? el.value : '';
+  }
+
   function erroHttpPermissao(response, textoBruto) {
     var st = response && response.status;
     var raw = String(textoBruto || '');
@@ -836,7 +852,7 @@
       if (typeof alert !== 'undefined') alert('Indique a data de validade.');
       return;
     }
-    var tok = (U && U.csrf) ? U.csrf() : '';
+    var tok = obterCsrfCadastro(cfg);
     fetch(cfg.URL_LOTE_ADICIONAR, {
       method: 'POST',
       credentials: 'same-origin',
@@ -883,7 +899,7 @@
     if (!lid) return;
     var u = (cfg.URL_LOTE_REMOVER_TMPL || '').replace(/lote\/0\//, 'lote/' + lid + '/');
     if (!u) return;
-    var tok2 = (U && U.csrf) ? U.csrf() : '';
+    var tok2 = obterCsrfCadastro(cfg);
     fetch(u, { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRFToken': tok2 } })
       .then(function (r) { return jsonOuErroHumano(r); })
       .then(function (j) {
@@ -1810,7 +1826,7 @@
       body.precos_por_forma = window.agroCadastroObterPrecosPorFormaPayload();
     }
     body.validar_cadastro_minimo = true;
-    var tok = U && U.csrf ? U.csrf() : '';
+    var tok = obterCsrfCadastro(cfg);
     if (!tok) {
       mostrarStatusModalSalvo(
         'Token de segurança ausente. Recarregue a página (F5). Se persistir, saia e entre de novo em /admin/login/.',
@@ -1918,7 +1934,7 @@
       '\n\nIsto não pode ser desfeito. Não use em produtos espelhados do ERP.'
     )) return;
     var btn = document.getElementById('btn-excluir-somente-agro');
-    var tok = (U && U.csrf) ? U.csrf() : '';
+    var tok = obterCsrfCadastro(cfg);
     if (btn) {
       btn.disabled = true;
       btn.classList.add('opacity-60');
