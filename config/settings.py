@@ -303,6 +303,10 @@ AGRO_FONTE_FINANCEIRO = (
 AGRO_FINANCEIRO_ERP_SYNC_HABILITADO = config(
     'AGRO_FINANCEIRO_ERP_SYNC_HABILITADO', default=False, cast=bool
 )
+# Cadastro SisVale: envio/recebimento via API Produtos/Salvar. false = só Agro (overlay + espelho Mongo).
+AGRO_CADASTRO_PRODUTO_ERP_SYNC_HABILITADO = config(
+    'AGRO_CADASTRO_PRODUTO_ERP_SYNC_HABILITADO', default=False, cast=bool
+)
 # true após ``manage.py congelar_lancamentos_financeiro_agro`` (títulos marcados AgroFonteVerdade).
 AGRO_FINANCEIRO_MONGO_CONGELADO = config(
     'AGRO_FINANCEIRO_MONGO_CONGELADO', default=False, cast=bool

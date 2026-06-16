@@ -152,7 +152,10 @@ from .models import (
 )
 from integracoes.texto import eh_granel, expandir_tokens, montar_busca_texto, normalizar, tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
-from produtos.agro_fonte_config import agro_financeiro_erp_sync_habilitado
+from produtos.agro_fonte_config import (
+    agro_cadastro_produto_erp_sync_habilitado,
+    agro_financeiro_erp_sync_habilitado,
+)
 from integracoes.venda_erp_api import (
     VendaERPAPIClient,
     erp_portal_notas_entrada_list_url,
@@ -1070,6 +1073,8 @@ def api_produtos_gestao_overlay_salvar(request):
 
 def _payload_truthy_sincronizar_erp_legado(payload: dict) -> bool:
     """Se verdadeiro, após gravar overlay envia ``Produtos/Salvar`` ao ERP legado."""
+    if not agro_cadastro_produto_erp_sync_habilitado():
+        return False
     v = payload.get("sincronizar_erp")
     if v is None:
         return False
@@ -2050,7 +2055,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             resp["erp_resposta"] = erp_resp
     else:
         resp["somente_agro"] = True
-        if uid:
+        if uid and agro_cadastro_produto_erp_sync_habilitado():
             _erp_produto_pendentes_add(uid, pid)
 
     avisos_m = [m for m in (aviso_codigo_mongo, aviso_custo_mongo) if m]
@@ -2063,6 +2068,8 @@ def _api_produtos_gestao_overlay_salvar_core(request):
 @require_GET
 def api_produtos_gestao_erp_pendentes(request):
     """Lista ids de produtos com alteração local ainda não confirmada no ERP (fila por usuário)."""
+    if not agro_cadastro_produto_erp_sync_habilitado():
+        return JsonResponse({"ok": True, "ids": [], "n": 0, "erp_sync_desligado": True})
     uid = int(getattr(request.user, "pk", None) or 0)
     ids = _erp_produto_pendentes_list(uid)
     return JsonResponse({"ok": True, "ids": ids, "n": len(ids)})
@@ -2072,6 +2079,14 @@ def api_produtos_gestao_erp_pendentes(request):
 @require_POST
 def api_produtos_gestao_erp_sincronizar_pendentes(request):
     """Dispara ``Produtos/Salvar`` no ERP para até N itens pendentes (após «Salvar no Agro»)."""
+    if not agro_cadastro_produto_erp_sync_habilitado():
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Sincronização de produtos com o ERP está desligada no SisVale.",
+            },
+            status=403,
+        )
     uid = int(getattr(request.user, "pk", None) or 0)
     if not uid:
         return JsonResponse({"ok": False, "erro": "Sessão inválida."}, status=401)
@@ -9268,6 +9283,7 @@ def _ctx_produtos_cadastro_erp(request):
         "pode_editar_overlay": getattr(request, "user", None) and request.user.is_authenticated,
         "login_overlay_next": request.get_full_path() or reverse("produtos_cadastro_erp"),
         "formas_pagamento_caixa": formas_pagamento_lista(),
+        "cadastro_produto_erp_sync_habilitado": agro_cadastro_produto_erp_sync_habilitado(),
     }
 
 
@@ -9303,6 +9319,7 @@ def produtos_gestao_view(request):
         {
             "empresa_nome": getattr(emp, "nome_fantasia", None) or getattr(emp, "razao_social", None) or "",
             "usuario_label": (getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk))[:120],
+            "cadastro_produto_erp_sync_habilitado": agro_cadastro_produto_erp_sync_habilitado(),
         },
     )
 

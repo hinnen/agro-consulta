@@ -24,7 +24,7 @@
           <h1 class="text-base sm:text-lg font-black uppercase tracking-tight text-slate-800 leading-tight">
             <span class="text-emerald-600">Sis</span><span>Vale</span> · <span class="text-orange-500">Cadastro produtos</span>
           </h1>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Espelho ERP (Mongo) — sem saldo de estoque</p>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Cadastro SisVale — sem saldo de estoque{% if cadastro_produto_erp_sync_habilitado %} · sync ERP ativo{% endif %}</p>
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2 shrink-0">
@@ -95,12 +95,14 @@
           <option>Categoria</option>
         </select>
         <button type="button" id="cadastro-filtrar" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-xl font-semibold min-h-[44px]">Filtrar</button>
+        {% if cadastro_produto_erp_sync_habilitado %}
         <button type="button" id="cadastro-btn-erp-pendentes" class="hidden min-h-[44px] px-4 py-2 rounded-xl text-xs font-black uppercase bg-amber-600 hover:bg-amber-700 text-white border-2 border-amber-800 shadow-sm shrink-0" title="Envia ao ERP legado até 80 produtos pendentes desta sessão (uma rodada)">
           Enviar lote ao ERP <span id="cadastro-erp-pend-n" class="opacity-90 font-mono">(0)</span>
         </button>
         <button type="button" id="cadastro-btn-erp-forcar-todos" class="hidden min-h-[44px] px-4 py-2 rounded-xl text-xs font-black uppercase bg-teal-600 hover:bg-teal-700 text-white border-2 border-teal-800 shadow-sm shrink-0" title="Repete o envio em várias rodadas até a fila desta sessão esvaziar (máx. ~3200 itens por clique)">
           Enviar todos ao ERP (filas)
         </button>
+        {% endif %}
         <div class="relative ml-auto">
           <button type="button" id="btn-colunas" class="border border-slate-300 px-3 py-2 rounded-xl bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">☰ Colunas</button>
           <div id="menu-colunas" class="hidden absolute right-0 mt-2 z-30 w-56 bg-white border border-slate-200 rounded-xl shadow-lg p-3 space-y-2 text-sm text-slate-800">
@@ -200,8 +202,12 @@
           <p class="text-xs font-black uppercase text-slate-600 mb-2">Regras importantes</p>
           <ul class="list-disc pl-4 space-y-1 text-[13px]">
             <li>Esta tela não mostra saldo de estoque.</li>
-            <li>Alterações estruturais do produto continuam no ERP.</li>
-            <li>“Editar só no Agro” muda apenas overlay/local, sem escrever no ERP.</li>
+            <li>Alterações ficam no SisVale (overlay local + espelho Mongo) — PDV e buscas usam esses dados.</li>
+            {% if cadastro_produto_erp_sync_habilitado %}
+            <li>«Enviar ao ERP» replica no ERP legado quando você quiser (API Produtos/Salvar).</li>
+            {% else %}
+            <li>Sincronização com a API do ERP legado está <strong>desligada</strong> neste ambiente.</li>
+            {% endif %}
             <li>Validade e lote (no modal de edição) alimentam o relatório de vencimentos.</li>
           </ul>
         </div>
@@ -245,6 +251,7 @@
     URL_COMPRAS_HISTORICO: "{% url 'api_produtos_cadastro_compras_historico' %}",
     URL_FACETAS: "{% url 'api_produtos_gestao_facetas' %}",
     PODE_EDITAR_OVERLAY: {% if pode_editar_overlay %}true{% else %}false{% endif %},
+    CADASTRO_ERP_SYNC_HABILITADO: {% if cadastro_produto_erp_sync_habilitado %}true{% else %}false{% endif %},
     LOGIN_OVERLAY_HREF: "{% url 'admin:login' %}?next={{ login_overlay_next|urlencode }}",
     FORMAS_PAGAMENTO: (function () {
       try {

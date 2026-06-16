@@ -48,6 +48,11 @@ def agro_financeiro_erp_sync_habilitado() -> bool:
     return bool(getattr(settings, "AGRO_FINANCEIRO_ERP_SYNC_HABILITADO", False))
 
 
+def agro_cadastro_produto_erp_sync_habilitado() -> bool:
+    """Cadastro SisVale ↔ ERP legado (``Produtos/Salvar``). Desligado = só Agro/Mongo local."""
+    return bool(getattr(settings, "AGRO_CADASTRO_PRODUTO_ERP_SYNC_HABILITADO", False))
+
+
 def agro_financeiro_mongo_congelado() -> bool:
     """Após ``congelar_lancamentos_financeiro_agro``: títulos marcados como fonte Agro."""
     return bool(getattr(settings, "AGRO_FINANCEIRO_MONGO_CONGELADO", False))
@@ -67,5 +72,6 @@ def agro_fonte_status_dict() -> dict:
         "estoque_ledger": agro_estoque_usa_ledger(),
         "financeiro_postgres": agro_financeiro_usa_postgres(),
         "financeiro_erp_sync": agro_financeiro_erp_sync_habilitado(),
+        "cadastro_produto_erp_sync": agro_cadastro_produto_erp_sync_habilitado(),
         "financeiro_mongo_congelado": agro_financeiro_mongo_congelado(),
     }

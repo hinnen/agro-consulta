@@ -16,6 +16,7 @@
   var URL_ERP_PENDENTES = C.URL_ERP_PENDENTES || '';
   var URL_ERP_SYNC_PENDENTES = C.URL_ERP_SYNC_PENDENTES || '';
   var PODE_EDITAR_OVERLAY = !!C.PODE_EDITAR_OVERLAY;
+  var ERP_SYNC_HABILITADO = !!C.CADASTRO_ERP_SYNC_HABILITADO;
   var LOGIN_OVERLAY_HREF = C.LOGIN_OVERLAY_HREF || '';
   var btnErpPend = document.getElementById('cadastro-btn-erp-pendentes');
   var btnErpForcarTodos = document.getElementById('cadastro-btn-erp-forcar-todos');
@@ -39,7 +40,7 @@
 
   function fetchPendentesBadgePromise(opt) {
     var sig = opt && opt.signal;
-    if (!URL_ERP_PENDENTES || !lblErpPendN || !btnErpPend) return Promise.resolve();
+    if (!ERP_SYNC_HABILITADO || !URL_ERP_PENDENTES || !lblErpPendN || !btnErpPend) return Promise.resolve();
     if (!PODE_EDITAR_OVERLAY) return Promise.resolve();
     return fetch(URL_ERP_PENDENTES, { credentials: 'same-origin', signal: sig })
       .then(function (r) { return r.json().catch(function () { return {}; }); })
@@ -236,8 +237,12 @@
     return (
       '<div class="mt-6 rounded-2xl border-2 border-emerald-600 bg-emerald-50/90 p-4 sm:p-5 shadow-sm">' +
       '<h4 class="text-sm font-black uppercase text-emerald-950 tracking-wide mb-1">Editar cadastro · Agro</h4>' +
-      '<p class="text-xs font-bold text-slate-800 mt-1 mb-3"><span class="text-red-600 font-black">*</span> Somente os campos com asterisco são obrigatórios para salvar ou enviar ao ERP.</p>' +
-      '<p class="text-xs text-slate-700 mb-4 leading-snug"><strong>Salvar no Agro</strong> atualiza só o Agro (PDV e buscas). <strong>Enviar ao ERP</strong> replica no ERP legado quando você quiser. Nos demais campos, vazio + salvar remove o override; em «Exibir como», «Seguir ERP» remove o forçamento de ativo/inativo.</p>' +
+      '<p class="text-xs font-bold text-slate-800 mt-1 mb-3"><span class="text-red-600 font-black">*</span> Somente os campos com asterisco são obrigatórios para salvar.</p>' +
+      '<p class="text-xs text-slate-700 mb-4 leading-snug"><strong>Salvar no Agro</strong> grava no SisVale (PDV e buscas).' +
+      (ERP_SYNC_HABILITADO
+        ? ' <strong>Enviar ao ERP</strong> replica no ERP legado quando você quiser.'
+        : ' Sincronização com a API do ERP está desligada neste ambiente.') +
+      ' Nos demais campos, vazio + salvar remove o override; em «Exibir como», «Seguir catálogo» remove o forçamento de ativo/inativo.</p>' +
       '<div class="grid gap-3 sm:grid-cols-2">' +
       '<label class="block sm:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Nome <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-nome" class="' + ic + '" maxlength="300" value="' + escapeHtml(p.nome || '') + '" autocomplete="off" /></label>' +
@@ -267,7 +272,7 @@
       '<input type="text" id="cad-ov-preco" inputmode="decimal" class="' + ic + '" value="' + escapeHtml(pv) + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Exibir como</span>' +
       '<select id="cad-ov-ativo" class="' + ic + '">' +
-      '<option value=""' + (av === '' ? ' selected' : '') + '>Seguir ERP</option>' +
+      '<option value=""' + (av === '' ? ' selected' : '') + '>Seguir catálogo</option>' +
       '<option value="1"' + (av === '1' ? ' selected' : '') + '>Ativo</option>' +
       '<option value="0"' + (av === '0' ? ' selected' : '') + '>Inativo</option>' +
       '</select></label>' +
@@ -276,7 +281,9 @@
       '<textarea id="cad-ov-desc" rows="3" class="w-full rounded-xl border-2 border-emerald-400 px-3 py-2 text-sm font-semibold text-slate-900 bg-white">' + escapeHtml(p.descricao || '') + '</textarea></label>' +
       '<div class="mt-4 flex flex-wrap gap-2">' +
       '<button type="button" id="cadastro-overlay-salvar" class="min-h-[48px] px-5 rounded-xl bg-orange-500 text-white font-black uppercase text-sm border-2 border-orange-600 hover:bg-orange-600 shadow-sm">Salvar no Agro</button>' +
-      '<button type="button" id="cadastro-overlay-sync-erp" class="min-h-[48px] px-5 rounded-xl bg-amber-600 text-white font-black uppercase text-sm border-2 border-amber-700 hover:bg-amber-700 shadow-sm" title="Produtos/Salvar no ERP legado">Enviar ao ERP</button>' +
+      (ERP_SYNC_HABILITADO
+        ? '<button type="button" id="cadastro-overlay-sync-erp" class="min-h-[48px] px-5 rounded-xl bg-amber-600 text-white font-black uppercase text-sm border-2 border-amber-700 hover:bg-amber-700 shadow-sm" title="Produtos/Salvar no ERP legado">Enviar ao ERP</button>'
+        : '') +
       '</div>' +
       '<p id="cadastro-overlay-msg" class="mt-2 text-sm font-bold hidden" role="status"></p>' +
       '</div>'
@@ -290,7 +297,7 @@
     return (
       '<div class="mt-6 rounded-xl border-2 border-slate-200 bg-slate-100/80 p-4">' +
       '<p class="text-sm font-bold text-slate-800">Edição só no Agro (nome, preço, códigos…)</p>' +
-      '<p class="text-xs text-slate-600 mt-2 leading-snug">Entre com seu usuário do sistema para ver o formulário aqui. O cadastro mestre continua no ERP.</p>' +
+      '<p class="text-xs text-slate-600 mt-2 leading-snug">Entre com seu usuário do sistema para ver o formulário aqui.</p>' +
       '<a href="' + String(LOGIN_OVERLAY_HREF || '').replace(/"/g, '&quot;') + '" class="mt-3 inline-flex min-h-[44px] items-center px-4 rounded-xl bg-emerald-600 text-white font-black uppercase text-xs border-2 border-emerald-800 hover:bg-emerald-700">Entrar para editar</a>' +
       '</div>'
     );
@@ -332,7 +339,7 @@
     }
 
     function enviar(syncErp) {
-      syncErp = !!syncErp;
+      syncErp = !!syncErp && ERP_SYNC_HABILITADO;
       if (btn.disabled || (btnErp && btnErp.disabled)) return;
       var msg = document.getElementById('cadastro-overlay-msg');
       function showMsg(t, ok) {
@@ -410,8 +417,14 @@
       }).then(function (j) {
         if (!j.ok) throw new Error(j.erro || 'Falha ao salvar');
         if (syncErp) showMsg('Salvo no Agro e replicado no ERP legado.', true);
-        else if (j.somente_agro) showMsg('Salvo no Agro. Use «Enviar ao ERP» quando quiser replicar.', true);
-        else showMsg('Salvo no Agro.', true);
+        else if (j.somente_agro) {
+          showMsg(
+            ERP_SYNC_HABILITADO
+              ? 'Salvo no Agro. Use «Enviar ao ERP» quando quiser replicar.'
+              : 'Salvo no SisVale.',
+            true
+          );
+        } else showMsg('Salvo no Agro.', true);
         carregarDetalheProduto(String(p.id || ''));
       }).catch(function (e) {
         showMsg(e.message || 'Erro ao salvar', false);
@@ -428,7 +441,7 @@
     btn.onclick = function () {
       enviar(false);
     };
-    if (btnErp) {
+    if (btnErp && ERP_SYNC_HABILITADO) {
       btnErp.onclick = function () {
         enviar(true);
       };
@@ -1120,7 +1133,7 @@
     return msg;
   }
 
-  if (btnErpPend && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY) {
+  if (btnErpPend && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY && ERP_SYNC_HABILITADO) {
     btnErpPend.addEventListener('click', function () {
       if (!window.confirm('Enviar ao ERP legado um lote de até 80 produtos pendentes desta sessão?')) return;
       btnErpPend.disabled = true;
@@ -1139,7 +1152,7 @@
     });
   }
 
-  if (btnErpForcarTodos && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY) {
+  if (btnErpForcarTodos && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY && ERP_SYNC_HABILITADO) {
     btnErpForcarTodos.addEventListener('click', function () {
       if (!window.confirm(
         'Enviar ao ERP legado todos os produtos pendentes desta sessão, em várias rodadas (até ~3200 por clique), até a fila esvaziar ou ocorrer falha. Continuar?'

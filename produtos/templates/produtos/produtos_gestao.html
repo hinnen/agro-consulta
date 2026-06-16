@@ -138,7 +138,7 @@
     </div>
     <div class="flex-1 overflow-y-auto p-4 space-y-3">
       <input type="hidden" id="ed-id" />
-      <p class="text-xs font-bold text-slate-800"><span class="text-red-600 font-black">*</span> Somente os campos com asterisco são obrigatórios para salvar ou enviar ao ERP.</p>
+      <p class="text-xs font-bold text-slate-800"><span class="text-red-600 font-black">*</span> Somente os campos com asterisco são obrigatórios para salvar.</p>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Nome <span class="text-red-600 font-black">*</span></label><input id="ed-nome" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Marca <span class="text-red-600 font-black">*</span></label><input id="ed-marca" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Categoria <span class="text-red-600 font-black">*</span></label><input id="ed-cat" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-semibold" /></div>
@@ -156,15 +156,17 @@
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Cashback na venda (%)</label><input id="ed-cashback" inputmode="decimal" class="min-h-[44px] w-full rounded-xl border-2 border-rose-200 px-3 font-semibold" placeholder="1 — vazio = padrão do sistema" title="Percentual sobre o valor do item. 0 = sem cashback. Vazio = padrão (1%)." /></div>
       <div class="flex flex-col gap-1"><label class="text-[10px] font-black uppercase text-slate-500">Status exibição</label>
         <select id="ed-ativo" class="min-h-[44px] w-full rounded-xl border-2 border-slate-200 px-3 font-bold">
-          <option value="">Seguir ERP</option>
+          <option value="">Seguir catálogo</option>
           <option value="1">Ativo</option>
           <option value="0">Inativo</option>
         </select>
       </div>
-      <p class="text-xs text-slate-500 font-medium leading-snug"><strong>Salvar no Agro</strong> grava overlay local (PDV e buscas). <strong>Enviar ao ERP</strong> replica no ERP legado (API Produtos/Salvar). Nos demais campos, em branco + salvar remove override no Agro.</p>
+      <p class="text-xs text-slate-500 font-medium leading-snug"><strong>Salvar no Agro</strong> grava overlay local (PDV e buscas).{% if cadastro_produto_erp_sync_habilitado %} <strong>Enviar ao ERP</strong> replica no ERP legado (API Produtos/Salvar).{% else %} Sincronização com a API do ERP está desligada.{% endif %} Nos demais campos, em branco + salvar remove override no Agro.</p>
       <div class="flex flex-wrap gap-2 pt-2">
         <button type="button" id="ed-salvar" class="flex-1 min-w-[9rem] min-h-[48px] rounded-xl bg-blue-600 text-white font-black uppercase border-2 border-blue-700 hover:bg-blue-700">Salvar no Agro</button>
+        {% if cadastro_produto_erp_sync_habilitado %}
         <button type="button" id="ed-sync-erp" class="flex-1 min-w-[9rem] min-h-[48px] rounded-xl bg-amber-600 text-white font-black uppercase border-2 border-amber-700 hover:bg-amber-700" title="Produtos/Salvar no ERP legado">Enviar ao ERP</button>
+        {% endif %}
         <button type="button" id="ed-cancelar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 bg-white font-black uppercase text-slate-700">Cancelar</button>
       </div>
     </div>
@@ -178,7 +180,7 @@
         <li>Lista espelhada do ERP com saldos <strong>Centro</strong> e <strong>Vila Elias</strong> (camada Agro).</li>
         <li><strong>Filtrar</strong> aplica status, marca, categoria e fornecedor; a busca instantânea refaz a lista.</li>
         <li><strong>Estoque</strong> na tabela é o total C+V; use <strong>Ajustar</strong> para saldo absoluto por loja.</li>
-        <li><strong>Editar</strong> grava só no Agro; use <strong>Enviar ao ERP</strong> para replicar no ERP legado. <strong>Ver</strong> abre cadastro ERP em nova aba.</li>
+        <li><strong>Editar</strong> grava só no Agro (SisVale).{% if cadastro_produto_erp_sync_habilitado %} Use <strong>Enviar ao ERP</strong> para replicar no ERP legado.{% endif %} <strong>Ver</strong> abre cadastro em nova aba.</li>
         <li><kbd class="text-[10px] px-1 rounded border bg-slate-100 font-mono">F3</kbd> foca a busca.</li>
       </ul>
     </div>
@@ -191,6 +193,7 @@
   var URL_FAC = "{% url 'api_produtos_gestao_facetas' %}";
   var URL_AJ = "{% url 'api_produtos_gestao_ajuste_estoque' %}";
   var URL_OV = "{% url 'api_produtos_gestao_overlay_salvar' %}";
+  var ERP_SYNC_HABILITADO = {% if cadastro_produto_erp_sync_habilitado %}true{% else %}false{% endif %};
   var URL_CAD_ERP_PROD_TMPL = "{% url 'produtos_cadastro_erp_produto' produto_id='__AGRO_PH__' %}";
   function urlCadastroErpProduto(pid) {
     return URL_CAD_ERP_PROD_TMPL.replace('__AGRO_PH__', encodeURIComponent(String(pid)));
@@ -634,6 +637,7 @@
     return body;
   }
   function gmDrawerSalvar(syncErp) {
+    syncErp = !!syncErp && ERP_SYNC_HABILITADO;
     var bSal = document.getElementById('ed-salvar');
     var bErp = document.getElementById('ed-sync-erp');
     if (syncErp) {
@@ -690,7 +694,9 @@
       if (!j.ok) throw new Error(j.erro || 'erro');
       fecharDrawer();
       if (j.aviso && String(j.aviso).trim()) showBan(String(j.aviso).trim());
-      else if (!syncErp && j.somente_agro) showBan('Salvo no Agro. Use «Enviar ao ERP» para replicar no ERP legado.');
+      else if (!syncErp && j.somente_agro) {
+        showBan(ERP_SYNC_HABILITADO ? 'Salvo no Agro. Use «Enviar ao ERP» para replicar no ERP legado.' : 'Salvo no SisVale.');
+      }
       aplicarLinhaAtualizada(j.produto);
     }).catch(function (e) { showBan(e.message || 'Falha ao salvar'); })
     .finally(function () {
@@ -699,7 +705,10 @@
     });
   }
   document.getElementById('ed-salvar').addEventListener('click', function () { gmDrawerSalvar(false); });
-  document.getElementById('ed-sync-erp').addEventListener('click', function () { gmDrawerSalvar(true); });
+  var edSyncErp = document.getElementById('ed-sync-erp');
+  if (edSyncErp && ERP_SYNC_HABILITADO) {
+    edSyncErp.addEventListener('click', function () { gmDrawerSalvar(true); });
+  }
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'F3') { e.preventDefault(); qEl.focus(); qEl.select(); }
