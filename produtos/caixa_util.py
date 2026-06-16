@@ -23,18 +23,18 @@ FORMAS_PAGAMENTO_CAIXA: tuple[str, ...] = (
 )
 
 CEDULAS_DENOMINACOES_CAIXA: tuple[dict[str, str], ...] = (
-    {"valor": "200", "label": "R$ 200"},
-    {"valor": "100", "label": "R$ 100"},
-    {"valor": "50", "label": "R$ 50"},
-    {"valor": "20", "label": "R$ 20"},
-    {"valor": "10", "label": "R$ 10"},
-    {"valor": "5", "label": "R$ 5"},
-    {"valor": "2", "label": "R$ 2"},
-    {"valor": "1", "label": "R$ 1"},
-    {"valor": "0.50", "label": "R$ 0,50"},
-    {"valor": "0.25", "label": "R$ 0,25"},
-    {"valor": "0.10", "label": "R$ 0,10"},
-    {"valor": "0.05", "label": "R$ 0,05"},
+    {"valor": "200", "label": "R$ 200", "img": "produtos/img/cedulas/nota_200.png", "tipo": "nota"},
+    {"valor": "100", "label": "R$ 100", "img": "produtos/img/cedulas/nota_100.png", "tipo": "nota"},
+    {"valor": "50", "label": "R$ 50", "img": "produtos/img/cedulas/nota_50.png", "tipo": "nota"},
+    {"valor": "20", "label": "R$ 20", "img": "produtos/img/cedulas/nota_20.png", "tipo": "nota"},
+    {"valor": "10", "label": "R$ 10", "img": "produtos/img/cedulas/nota_10.png", "tipo": "nota"},
+    {"valor": "5", "label": "R$ 5", "img": "produtos/img/cedulas/nota_5.png", "tipo": "nota"},
+    {"valor": "2", "label": "R$ 2", "img": "produtos/img/cedulas/nota_2.png", "tipo": "nota"},
+    {"valor": "1", "label": "R$ 1", "img": "produtos/img/cedulas/moeda_1.png", "tipo": "moeda"},
+    {"valor": "0.50", "label": "R$ 0,50", "img": "produtos/img/cedulas/moeda_050.png", "tipo": "moeda"},
+    {"valor": "0.25", "label": "R$ 0,25", "img": "produtos/img/cedulas/moeda_025.png", "tipo": "moeda"},
+    {"valor": "0.10", "label": "R$ 0,10", "img": "produtos/img/cedulas/moeda_010.png", "tipo": "moeda"},
+    {"valor": "0.05", "label": "R$ 0,05", "img": "produtos/img/cedulas/moeda_005.png", "tipo": "moeda"},
 )
 
 _FORMA_ALIASES = {
