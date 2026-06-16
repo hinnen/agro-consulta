@@ -130,7 +130,7 @@
 
       <p class="text-sm font-bold text-slate-700 mb-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 leading-snug">
         <span class="text-red-600 font-black" title="Obrigatório">*</span>
-        <span>Somente os campos marcados com asterisco são obrigatórios para salvar no Agro ou enviar ao ERP.</span>
+        <span>Somente os campos marcados com asterisco são obrigatórios para salvar no SisVale{% if cadastro_produto_erp_sync_habilitado %} ou enviar ao ERP{% endif %}.</span>
       </p>
 
       <div id="tab-gerais" class="tab-content grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 font-['Inter']">
@@ -563,7 +563,9 @@
         title="Remove só cadastros criados no SisVale; não use em produtos espelhados do ERP.">Excluir (só SisVale)</button>
       <div class="flex flex-col sm:flex-row justify-end gap-3 flex-1 min-w-0">
         <button type="button" id="btn-cancelar-edit" class="min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">Cancelar</button>
-        <button type="button" id="btn-sync-erp-edit" class="hidden min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-amber-600 text-white border-2 border-amber-700 hover:bg-amber-700 shadow-sm transition-colors" title="Use «Enviar pendentes ao ERP» na lista do cadastro">Enviar ao ERP</button>
+        {% if cadastro_produto_erp_sync_habilitado %}
+        <button type="button" id="btn-sync-erp-edit" class="min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-amber-600 text-white border-2 border-amber-700 hover:bg-amber-700 shadow-sm transition-colors" title="Replica no ERP legado (API Produtos/Salvar)">Enviar ao ERP</button>
+        {% endif %}
         <button type="button" id="btn-salvar-edit" class="min-h-[52px] px-8 rounded-xl text-base font-black uppercase bg-emerald-600 text-white border-2 border-emerald-700 hover:bg-emerald-700 shadow-sm transition-colors">Salvar no Agro</button>
       </div>
     </div>
@@ -1800,7 +1802,11 @@
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
       body: JSON.stringify(body)
     }).then(function (r) {
-      if (r.status === 403 || r.status === 401) throw new Error('Sem permissão. Faça login.');
+      if (r.status === 403 || r.status === 401) {
+        throw new Error(
+          'Sem permissão para salvar. Entre no sistema (login), recarregue a página (F5) e tente de novo.'
+        );
+      }
       return jsonOuErroHumano(r);
     }).then(function (j) {
       if (!j.ok) {
@@ -1901,7 +1907,11 @@
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
       body: JSON.stringify({ produto_id: String(pid).trim() })
     }).then(function (r) {
-      if (r.status === 403 || r.status === 401) throw new Error('Sem permissão. Faça login.');
+      if (r.status === 403 || r.status === 401) {
+        throw new Error(
+          'Sem permissão para salvar. Entre no sistema (login), recarregue a página (F5) e tente de novo.'
+        );
+      }
       return jsonOuErroHumano(r);
     }).then(function (j) {
       if (!j.ok) throw new Error(j.erro || 'Falha ao excluir');
