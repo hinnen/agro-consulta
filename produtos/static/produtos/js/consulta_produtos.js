@@ -107,7 +107,13 @@ let tempoUltimaAdicao = 0;
 
 let baseProdutos = [];
 const PDV_CACHE_KEY = 'agro_pdv_catalog_cache_v2';
+const PDV_PATCH_QUEUE_KEY = 'agro_pdv_catalog_patch_queue_v1';
 const PDV_CACHE_TTL_MS = 1000 * 60 * 60 * 8;
+const PDV_FOCUS_DELTA_MIN_MS = 8000;
+let pdvCatalogoBootAt = 0;
+let pdvCatalogoLastFocusDeltaAt = 0;
+let pdvCatalogoFocusDeltaBusy = false;
+let pdvStoragePatchTimer = null;
 let cacheClientesPDV = [];
 let frequenciaUso = JSON.parse(localStorage.getItem('freqProdutos') || '{}');
 let catalogoRapidoAtual = [];
@@ -4355,15 +4361,93 @@ function salvarCacheCatalogoPdv(payload) {
     } catch (_) {}
 }
 
-/** Outra aba (cadastro) atualizou o cache — reaplica na memória sem nova rede. */
-window.addEventListener('storage', function (ev) {
-    if (ev.key !== PDV_CACHE_KEY || !ev.newValue || !baseProdutos.length) return;
+function aplicarPatchesProdutosPdv(patches) {
+    const rows = Array.isArray(patches) ? patches : [];
+    if (!rows.length || !baseProdutos.length) return false;
+    const map = new Map(baseProdutos.map((p) => [String(p.id), p]));
+    let touched = false;
+    rows.forEach((patch) => {
+        if (!patch || patch.id == null) return;
+        const pid = String(patch.id);
+        const prev = map.get(pid);
+        if (prev) {
+            map.set(pid, prepararProduto(Object.assign({}, prev, patch)));
+            touched = true;
+        }
+    });
+    if (!touched) return false;
+    baseProdutos = Array.from(map.values());
+    if (typeof buildBuscaProdutoIndex === 'function') buildBuscaProdutoIndex(baseProdutos);
+    preencherOpcoesFiltroCatalogo();
+    atualizarCatalogoRapido();
+    setTimeout(atualizarPrecosBotoesTopVendidos, 0);
+    if (typeof pdvRapidoRefreshListaSeAtivo === 'function') setTimeout(pdvRapidoRefreshListaSeAtivo, 0);
+    return true;
+}
+
+function agroPdvAplicarFilaPatchLocal(clearQueue) {
+    if (clearQueue === undefined) clearQueue = true;
+    if (!baseProdutos.length) return false;
+    let items = [];
     try {
-        const parsed = JSON.parse(ev.newValue);
-        if (!parsed || !Array.isArray(parsed.produtos) || !parsed.produtos.length) return;
-        aplicarBasePdv(parsed.produtos);
-        if (typeof pdvRapidoRefreshListaSeAtivo === 'function') pdvRapidoRefreshListaSeAtivo();
+        const raw = localStorage.getItem(PDV_PATCH_QUEUE_KEY);
+        if (raw) {
+            const q = JSON.parse(raw);
+            if (q && Array.isArray(q.items)) items = q.items;
+        }
     } catch (_) {}
+    if (!items.length) return false;
+    const patches = items.map((it) => (it && it.patch) ? it.patch : it).filter((p) => p && p.id != null);
+    if (!patches.length) return false;
+    const ok = aplicarPatchesProdutosPdv(patches);
+    if (ok && clearQueue) {
+        try {
+            localStorage.removeItem(PDV_PATCH_QUEUE_KEY);
+        } catch (_) {}
+    }
+    return ok;
+}
+
+function agroPdvCatalogoRefreshNoFoco() {
+    if (document.hidden || !baseProdutos.length) return;
+    if (pdvCatalogoBootAt && Date.now() - pdvCatalogoBootAt < 2500) return;
+
+    agroPdvAplicarFilaPatchLocal(true);
+
+    const now = Date.now();
+    if (now - pdvCatalogoLastFocusDeltaAt < PDV_FOCUS_DELTA_MIN_MS) return;
+    if (pdvCatalogoFocusDeltaBusy) return;
+    pdvCatalogoFocusDeltaBusy = true;
+    pdvCatalogoLastFocusDeltaAt = now;
+    sincronizarCatalogoPdvServidor(true, { silent: true }).finally(function () {
+        pdvCatalogoFocusDeltaBusy = false;
+    });
+}
+
+/** Outra aba (cadastro) gravou patch — aplica só os itens alterados, sem recarregar catálogo inteiro. */
+window.addEventListener('storage', function (ev) {
+    if (ev.key !== PDV_PATCH_QUEUE_KEY && ev.key !== PDV_CACHE_KEY) return;
+    if (!baseProdutos.length) return;
+    clearTimeout(pdvStoragePatchTimer);
+    pdvStoragePatchTimer = setTimeout(function () {
+        if (agroPdvAplicarFilaPatchLocal(true)) return;
+        if (ev.key !== PDV_CACHE_KEY) return;
+        try {
+            const raw = localStorage.getItem(PDV_CACHE_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (!parsed || !Array.isArray(parsed.produtos) || !parsed.produtos.length) return;
+            aplicarBasePdv(parsed.produtos);
+        } catch (_) {}
+    }, 40);
+});
+
+document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) agroPdvCatalogoRefreshNoFoco();
+});
+window.addEventListener('focus', agroPdvCatalogoRefreshNoFoco);
+window.addEventListener('pageshow', function (ev) {
+    if (ev.persisted) agroPdvCatalogoRefreshNoFoco();
 });
 
 function lerCacheCatalogoPdv() {
@@ -4413,7 +4497,9 @@ function aplicarDeltaCatalogoPdv(changed, removedIds) {
     }
 }
 
-function sincronizarCatalogoPdvServidor(jahAquecido) {
+function sincronizarCatalogoPdvServidor(jahAquecido, opts) {
+    opts = opts || {};
+    const silent = !!opts.silent;
     return new Promise(function (resolve) {
         function finish() {
             resolve();
@@ -4449,14 +4535,14 @@ function sincronizarCatalogoPdvServidor(jahAquecido) {
                         catalog_updated_at: d.catalog_updated_at || '',
                     };
                     salvarCacheCatalogoPdv(novo);
-                    mostrarStatusBusca(`Catálogo sincronizado (${baseProdutos.length})`, 'emerald');
+                    if (!silent) mostrarStatusBusca(`Catálogo sincronizado (${baseProdutos.length})`, 'emerald');
                     if (window.gmLoader) window.gmLoader.hide(180);
                     else if (window.gmLoadingBar) window.gmLoadingBar.hide();
                     finish();
                     return;
                 }
                 if (d && Array.isArray(d.produtos)) {
-                    aplicarBasePdv(d.produtos, `Base local pronta com ${d.produtos.length} itens`);
+                    aplicarBasePdv(d.produtos, silent ? '' : `Base local pronta com ${d.produtos.length} itens`);
                     salvarCacheCatalogoPdv(d);
                     if (window.gmLoader) window.gmLoader.hide(180);
                     else if (window.gmLoadingBar) window.gmLoadingBar.hide();
@@ -4579,6 +4665,7 @@ window.addEventListener('load', () => {
     renderSlotsMaisVendidosPdv();
     document.getElementById('pdv-mv-importar-ranking')?.addEventListener('click', importarRankingMongoParaSlotsMaisVendidos);
     atualizarCatalogoRapido();
+    pdvCatalogoBootAt = Date.now();
     carregarBaseLocal();
     carregarCacheClientes();
     verificarLembretes();
