@@ -2037,6 +2037,220 @@ def _lancamento_pode_excluir_agro(doc: dict, quitado: bool, valor_mov: float) ->
     return not _lancamento_tem_vinculo_erp(doc)
 
 
+def _rotulo_usuario_de_campo_mongo(raw: str) -> str:
+    """Extrai rótulo legível de ``CriadoPor`` / prefixo de ``ModificadoPor``."""
+    s = str(raw or "").strip()
+    if not s:
+        return ""
+    if " — " in s:
+        return s.split(" — ", 1)[0].strip()[:120]
+    if " - " in s:
+        return s.split(" - ", 1)[0].strip()[:120]
+    return s[:120]
+
+
+def _usuario_lancou_de_doc(doc: dict) -> str:
+    criado = str(doc.get("CriadoPor") or "").strip()
+    if criado:
+        return _rotulo_usuario_de_campo_mongo(criado)
+    mod = str(doc.get("ModificadoPor") or "")
+    if "inclusão manual" in mod.lower() or "lote manual" in str(doc.get("Observacoes") or "").lower():
+        return _rotulo_usuario_de_campo_mongo(mod)
+    return ""
+
+
+def _usuario_quitou_de_doc(doc: dict, quitado: bool, mov_r: float) -> str:
+    mod = str(doc.get("ModificadoPor") or "").strip()
+    if not mod:
+        return ""
+    mod_l = mod.lower()
+    if quitado:
+        return _rotulo_usuario_de_campo_mongo(mod)
+    if mov_r > 0.02 and ("baixa" in mod_l or "parcial" in mod_l):
+        return _rotulo_usuario_de_campo_mongo(mod)
+    return ""
+
+
+def _horario_auditoria_de_doc(doc: dict, quitado: bool, mov_r: float) -> str | None:
+    if not quitado and mov_r <= 0.02:
+        return None
+    for key in ("LastUpdate", "DataModificacao", "DataPagamento"):
+        v = doc.get(key)
+        if _dt_efetiva(v):
+            return _serializar_dt(v)
+    return None
+
+
+def _tipo_evento_modificado_por(mod: str, quitado: bool) -> tuple[str, str]:
+    ml = mod.lower()
+    if quitado and "baixa" in ml:
+        if "parcial" in ml:
+            return "baixa_parcial", "Baixa parcial (última operação)"
+        return "baixa_total", "Quitação total"
+    if "edição" in ml or "edicao" in ml:
+        return "edicao", "Edição do lançamento"
+    if "recorrência" in ml or "recorrencia" in ml:
+        return "recorrencia", "Recorrência"
+    if "inclusão manual" in ml or "inclusao manual" in ml:
+        return "inclusao", "Inclusão manual"
+    if "juros" in ml:
+        return "juros", "Juros na quitação"
+    return "modificacao", "Alteração registrada"
+
+
+def lancamento_montar_log_auditoria(doc: dict) -> dict[str, Any]:
+    """Linha do tempo + dump JSON-safe de todos os campos do DtoLancamento."""
+    despesa = bool(doc.get("Despesa"))
+    quitado = _lancamento_quitado_totalmente(doc)
+    if despesa:
+        mov_r = round(float(_dec(doc.get("ValorPago"))), 2)
+        bruto = float(_dec(doc.get("Saida")))
+        restante = float(_restante_a_pagar(doc))
+    else:
+        mov_r = round(
+            float(
+                _valor_realizado_receita_dec(
+                    _dec(doc.get("Entrada")),
+                    _dec(doc.get("Recebido")),
+                    _dec(doc.get("ValorPago")),
+                )
+            ),
+            2,
+        )
+        bruto = float(_dec(doc.get("Entrada")))
+        restante = float(_restante_a_receber(doc))
+
+    eventos: list[dict[str, Any]] = []
+    criado_raw = str(doc.get("CriadoPor") or "").strip()
+    if criado_raw:
+        eventos.append(
+            {
+                "tipo": "criacao",
+                "rotulo": "Lançamento criado",
+                "usuario": _rotulo_usuario_de_campo_mongo(criado_raw),
+                "detalhe": criado_raw,
+                "quando": None,
+            }
+        )
+
+    obs = str(doc.get("Observacoes") or "")
+    for parte in [p.strip() for p in obs.split(" | ") if p.strip()]:
+        if parte.startswith("Agro parc."):
+            eventos.append(
+                {
+                    "tipo": "baixa_parcial_obs",
+                    "rotulo": "Parcela registrada (observações)",
+                    "usuario": "",
+                    "detalhe": parte,
+                    "quando": None,
+                }
+            )
+        elif "Lote manual Agro" in parte or "Título lançado como quitado" in parte:
+            eventos.append(
+                {
+                    "tipo": "lote_manual",
+                    "rotulo": "Lote manual / quitação na inclusão",
+                    "usuario": "",
+                    "detalhe": parte,
+                    "quando": None,
+                }
+            )
+        else:
+            eventos.append(
+                {
+                    "tipo": "observacao",
+                    "rotulo": "Observação",
+                    "usuario": "",
+                    "detalhe": parte,
+                    "quando": None,
+                }
+            )
+
+    mod = str(doc.get("ModificadoPor") or "").strip()
+    lu = _serializar_dt(doc.get("LastUpdate")) if _dt_efetiva(doc.get("LastUpdate")) else None
+    dm = _serializar_dt(doc.get("DataModificacao")) if _dt_efetiva(doc.get("DataModificacao")) else None
+    if mod:
+        tipo_ev, rotulo_ev = _tipo_evento_modificado_por(mod, quitado)
+        eventos.append(
+            {
+                "tipo": tipo_ev,
+                "rotulo": rotulo_ev,
+                "usuario": _rotulo_usuario_de_campo_mongo(mod),
+                "detalhe": mod,
+                "quando": lu or dm,
+            }
+        )
+
+    if quitado:
+        dp = _serializar_dt(doc.get("DataPagamento")) if _dt_efetiva(doc.get("DataPagamento")) else None
+        eventos.append(
+            {
+                "tipo": "estado_quitado",
+                "rotulo": "Estado atual: quitado",
+                "usuario": _usuario_quitou_de_doc(doc, True, mov_r),
+                "detalhe": (
+                    f"Valor pago/recebido: {mov_r:.2f} · "
+                    f"Forma: {doc.get('FormaPagamento') or '—'} · "
+                    f"Banco: {doc.get('Banco') or '—'}"
+                ),
+                "quando": dp or lu or dm,
+            }
+        )
+    elif mov_r > 0.02:
+        eventos.append(
+            {
+                "tipo": "estado_parcial",
+                "rotulo": "Pagamento parcial em aberto",
+                "usuario": _usuario_quitou_de_doc(doc, False, mov_r),
+                "detalhe": f"Movimentado: {mov_r:.2f} · Saldo: {restante:.2f}",
+                "quando": lu or dm,
+            }
+        )
+
+    campos: dict[str, Any] = {}
+    for k in sorted(doc.keys(), key=lambda x: str(x)):
+        campos[str(k)] = _json_safe_erp_value(doc[k])
+
+    return {
+        "id": str(doc.get("_id", "")),
+        "eventos": eventos,
+        "campos": campos,
+        "resumo": {
+            "cliente": doc.get("Cliente") or "",
+            "descricao": (doc.get("Descricao") or "")[:300],
+            "pago": quitado,
+            "valor_bruto": round(bruto, 2),
+            "valor_movimentado": mov_r,
+            "restante": round(float(restante), 2),
+            "usuario_lancou": _usuario_lancou_de_doc(doc),
+            "usuario_quitou": _usuario_quitou_de_doc(doc, quitado, mov_r),
+            "horario_quitacao": _horario_auditoria_de_doc(doc, quitado, mov_r),
+            "data_pagamento": _serializar_dt(doc.get("DataPagamento"))
+            if _dt_efetiva(doc.get("DataPagamento"))
+            else None,
+            "last_update": lu,
+            "data_modificacao": dm,
+            "modificado_por": mod[:500],
+            "criado_por": criado_raw[:500],
+            "observacoes": obs[:2000],
+        },
+    }
+
+
+def lancamento_log_auditoria(db, lancamento_id: str) -> dict[str, Any]:
+    if db is None:
+        return {"ok": False, "erro": "Mongo indisponível"}
+    try:
+        oid = ObjectId(str(lancamento_id).strip())
+    except Exception:
+        return {"ok": False, "erro": "ID inválido"}
+    doc = db[COL_DTO_LANCAMENTO].find_one({"_id": oid})
+    if not doc:
+        return {"ok": False, "erro": "Lançamento não encontrado"}
+    payload = lancamento_montar_log_auditoria(doc)
+    return {"ok": True, **payload}
+
+
 def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
     dp = doc.get("DataPagamento")
     quitado = _lancamento_quitado_totalmente(doc)
@@ -2096,6 +2310,17 @@ def lancamento_para_api(doc: dict, despesa: bool) -> dict[str, Any]:
         "recorrencia_intervalo_meses": ri,
         "agro_recorrente_sempre": _doc_recorrente_sempre(doc),
         "boleto_codigo_barras": str(doc.get(AGRO_BOLETO_CODIGO_BARRAS) or "").strip()[:54],
+        "usuario_lancou": _usuario_lancou_de_doc(doc),
+        "usuario_quitou": _usuario_quitou_de_doc(doc, quitado, mov_r),
+        "horario_quitacao": _horario_auditoria_de_doc(doc, quitado, mov_r),
+        "modificado_por": str(doc.get("ModificadoPor") or "")[:200],
+        "criado_por": str(doc.get("CriadoPor") or "")[:200],
+        "last_update": _serializar_dt(doc.get("LastUpdate"))
+        if _dt_efetiva(doc.get("LastUpdate"))
+        else None,
+        "data_modificacao": _serializar_dt(doc.get("DataModificacao"))
+        if _dt_efetiva(doc.get("DataModificacao"))
+        else None,
     }
 
 

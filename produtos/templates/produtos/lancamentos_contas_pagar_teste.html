@@ -106,9 +106,49 @@
   .sv-list-scroll { flex: 1; min-height: 0; overflow-y: auto; }
   .sv-list-cols {
     display: grid;
-    grid-template-columns: 42px minmax(88px, 108px) minmax(0, 1fr) minmax(118px, 148px) minmax(96px, 118px) minmax(52px, 64px) minmax(92px, 108px) 36px;
     align-items: center; gap: 8px 10px;
   }
+  .sv-col-off { display: none !important; }
+  .sv-col-audit { font-size: 0.82rem; font-weight: 600; color: #475569; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sv-col-audit.hora { font-variant-numeric: tabular-nums; font-size: 0.78rem; }
+  .sv-cols-wrap { position: relative; }
+  .sv-cols-btn {
+    min-height: 40px; padding: 0 12px; border-radius: 10px; border: 2px solid #059669;
+    background: #fff; color: #065f46; font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .sv-cols-btn:hover { background: #ecfdf5; border-color: #d97706; }
+  .sv-cols-dd {
+    display: none; position: absolute; right: 0; top: calc(100% + 4px); z-index: 40;
+    width: 15rem; max-height: 18rem; overflow-y: auto;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 8px 24px rgba(15,23,42,0.12);
+    padding: 8px;
+  }
+  .sv-cols-dd.show { display: block; }
+  .sv-cols-dd label {
+    display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  }
+  .sv-cols-dd label:hover { background: #f8fafc; }
+  .sv-cols-dd input { accent-color: #d97706; width: 16px; height: 16px; flex-shrink: 0; }
+  .sv-btn-log { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
+  .sv-btn-log:hover { background: #c7d2fe; }
+  .sv-log-eventos { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+  .sv-log-ev {
+    border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; background: #f8fafc;
+  }
+  .sv-log-ev-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; margin-bottom: 6px; }
+  .sv-log-ev-tipo { font-weight: 800; font-size: 0.82rem; text-transform: uppercase; color: #0f172a; }
+  .sv-log-ev-quando { font-size: 0.78rem; font-weight: 700; color: #64748b; font-variant-numeric: tabular-nums; }
+  .sv-log-ev-user { font-size: 0.85rem; font-weight: 700; color: #059669; }
+  .sv-log-ev-det { font-size: 0.88rem; color: #334155; line-height: 1.4; word-break: break-word; }
+  .sv-log-campos { margin-top: 12px; }
+  .sv-log-campos summary { cursor: pointer; font-weight: 700; font-size: 0.9rem; color: #475569; padding: 8px 0; }
+  .sv-log-campos pre {
+    margin: 8px 0 0; padding: 12px; border-radius: 10px; background: #0f172a; color: #e2e8f0;
+    font-size: 0.72rem; line-height: 1.45; overflow: auto; max-height: min(40vh, 320px);
+  }
+  .sv-modal-card.sv-modal-log { max-width: min(52rem, 96vw); }
   .sv-list-header {
     padding: 10px 14px; background-color: #f1f5f9; border-bottom: 2px solid #94a3b8;
     font-weight: 800; color: #475569; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em;
@@ -360,7 +400,15 @@
 
   <div class="sv-meta-row">
     <p class="sv-sub" id="sv-resumo-lista">Carregando…</p>
-    <div class="sv-totais" id="sv-totais" hidden></div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
+      <div class="sv-totais" id="sv-totais" hidden></div>
+      <div class="sv-cols-wrap">
+        <button type="button" class="sv-cols-btn" id="sv-btn-cols" aria-expanded="false" aria-haspopup="true" aria-controls="sv-cols-dd" title="Colunas visíveis na lista">
+          <span aria-hidden="true">▦</span> Colunas <span aria-hidden="true">▾</span>
+        </button>
+        <div id="sv-cols-dd" class="sv-cols-dd" role="menu" aria-label="Colunas da lista"></div>
+      </div>
+    </div>
   </div>
 
   <div class="sv-sel-bar" id="sv-sel-bar" hidden>
@@ -372,15 +420,26 @@
   </div>
 
   <div class="sv-list-container">
-    <div class="sv-list-header sv-list-cols" aria-hidden="true">
-      <div class="sv-col-chk"><input type="checkbox" id="sv-chk-all" title="Selecionar todos em aberto" aria-label="Selecionar todos"></div>
-      <div>Vencimento</div>
-      <div>Fornecedor</div>
-      <div>Valor</div>
-      <div>Status</div>
-      <div>NF</div>
-      <div>Pagar</div>
-      <div></div>
+    <div class="sv-list-header sv-list-cols" id="sv-list-header-row" aria-hidden="true">
+      <div data-col-id="chk" class="sv-col-chk"><input type="checkbox" id="sv-chk-all" title="Selecionar todos em aberto" aria-label="Selecionar todos"></div>
+      <div data-col-id="venc">Vencimento</div>
+      <div data-col-id="forn">Fornecedor</div>
+      <div data-col-id="usr_lanc">Lançado por</div>
+      <div data-col-id="usr_quit">Quitado por</div>
+      <div data-col-id="hora">Horário</div>
+      <div data-col-id="fluxo">Fluxo</div>
+      <div data-col-id="forma">Forma pag.</div>
+      <div data-col-id="plano">Plano</div>
+      <div data-col-id="desc">Descrição</div>
+      <div data-col-id="banco">Banco</div>
+      <div data-col-id="bruto">Bruto</div>
+      <div data-col-id="mov">Pago</div>
+      <div data-col-id="saldo">Saldo</div>
+      <div data-col-id="valor">Valor</div>
+      <div data-col-id="status">Status</div>
+      <div data-col-id="nf">NF</div>
+      <div data-col-id="pagar">Pagar</div>
+      <div data-col-id="expand"></div>
     </div>
     <div class="sv-list-scroll" id="sv-lista-corpo">
       <div class="sv-empty">Carregando lançamentos…</div>
@@ -429,6 +488,17 @@
   </div>
 </div>
 
+<div id="sv-modal-log" class="sv-modal" role="dialog" aria-modal="true" aria-labelledby="sv-modal-log-titulo">
+  <div class="sv-modal-card sv-modal-log">
+    <h2 id="sv-modal-log-titulo">Log do lançamento</h2>
+    <p id="sv-modal-log-resumo" class="sv-sub"></p>
+    <div id="sv-modal-log-body"><p class="sv-sub">Carregando…</p></div>
+    <div class="sv-modal-actions">
+      <button type="button" class="sv-btn-action sv-btn-edit" id="sv-log-fechar">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <div id="sv-nfe-overlay" class="sv-nfe-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="sv-nfe-overlay-titulo">
   <div class="sv-nfe-overlay-backdrop" aria-hidden="true"></div>
   <div class="sv-nfe-overlay-panel">
@@ -443,14 +513,38 @@
 <script>
 (function () {
   const API_LISTA = "{% url 'api_lancamentos_lista' %}";
+  const API_LOG = "{% url 'api_lancamentos_log' %}";
   const API_PLANOS = "{% url 'api_lancamentos_planos_distintos' %}";
   const API_OPCOES = "{% url 'api_lancamentos_opcoes_baixa' %}";
   const API_BAIXA = "{% url 'api_lancamentos_baixa' %}";
   const API_BAIXA_PARCIAL = "{% url 'api_lancamentos_baixa_parcial' %}";
   const URL_CLASSICO = "{% url 'lancamentos_contas_pagar' %}";
   const LS_EXCL_PLANOS = 'gm_fin_planos_excl_v1';
+  const LS_COLS = 'gm_fin_sv_teste_cols_v1';
   const SEM_PLANO_KEY = '__SEM_PLANO__';
   const TIPO_CONTAS = 'pagar';
+
+  const COL_DEFS = [
+    { id: 'chk', label: 'Seleção', w: '42px', lock: true },
+    { id: 'venc', label: 'Vencimento', w: 'minmax(88px, 108px)' },
+    { id: 'forn', label: 'Fornecedor', w: 'minmax(120px, 1fr)' },
+    { id: 'usr_lanc', label: 'Lançado por', w: 'minmax(88px, 118px)' },
+    { id: 'usr_quit', label: 'Quitado por', w: 'minmax(88px, 118px)' },
+    { id: 'hora', label: 'Horário', w: 'minmax(118px, 138px)' },
+    { id: 'fluxo', label: 'Data fluxo', w: 'minmax(88px, 108px)', defOff: true },
+    { id: 'forma', label: 'Forma pagamento', w: 'minmax(90px, 120px)', defOff: true },
+    { id: 'plano', label: 'Plano / grupo', w: 'minmax(90px, 130px)', defOff: true },
+    { id: 'desc', label: 'Descrição', w: 'minmax(100px, 160px)', defOff: true },
+    { id: 'banco', label: 'Banco / conta', w: 'minmax(90px, 120px)', defOff: true },
+    { id: 'bruto', label: 'Bruto', w: 'minmax(96px, 118px)', defOff: true },
+    { id: 'mov', label: 'Pago', w: 'minmax(96px, 118px)', defOff: true },
+    { id: 'saldo', label: 'Saldo', w: 'minmax(96px, 118px)', defOff: true },
+    { id: 'valor', label: 'Valor (lista)', w: 'minmax(118px, 148px)' },
+    { id: 'status', label: 'Status', w: 'minmax(96px, 118px)' },
+    { id: 'nf', label: 'NF', w: 'minmax(52px, 64px)' },
+    { id: 'pagar', label: 'Pagar', w: 'minmax(92px, 108px)' },
+    { id: 'expand', label: '', w: '36px', lock: true },
+  ];
 
   let page = 1;
   let total = 0;
@@ -566,6 +660,94 @@
     return d.toLocaleDateString('pt-BR');
   }
 
+  function fmtDataHora(iso) {
+    if (!iso) return '—';
+    try {
+      const d = new Date(String(iso));
+      if (Number.isNaN(d.getTime())) return fmtData(iso);
+      return d.toLocaleString('pt-BR', {
+        day: '2-digit', month: '2-digit', year: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+      });
+    } catch (_) {
+      return fmtData(iso);
+    }
+  }
+
+  function defaultColsMap() {
+    const o = {};
+    COL_DEFS.forEach((c) => { o[c.id] = !c.defOff; });
+    return o;
+  }
+
+  function loadColsMap() {
+    try {
+      const raw = localStorage.getItem(LS_COLS);
+      if (!raw) return defaultColsMap();
+      return { ...defaultColsMap(), ...JSON.parse(raw) };
+    } catch (_) {
+      return defaultColsMap();
+    }
+  }
+
+  function saveColsMap(m) {
+    localStorage.setItem(LS_COLS, JSON.stringify(m));
+  }
+
+  function gridTemplateFromCols() {
+    const m = loadColsMap();
+    return COL_DEFS.filter((c) => c.lock || m[c.id] !== false).map((c) => c.w).join(' ');
+  }
+
+  function applyGridCols() {
+    const tpl = gridTemplateFromCols();
+    document.querySelectorAll('.sv-list-cols').forEach((el) => {
+      el.style.gridTemplateColumns = tpl;
+    });
+    const m = loadColsMap();
+    COL_DEFS.forEach((c) => {
+      if (c.lock) return;
+      const on = m[c.id] !== false;
+      document.querySelectorAll(`[data-col-id="${c.id}"]`).forEach((el) => {
+        el.classList.toggle('sv-col-off', !on);
+      });
+    });
+  }
+
+  function buildColDropdown() {
+    const el = document.getElementById('sv-cols-dd');
+    if (!el) return;
+    const m = loadColsMap();
+    el.innerHTML = COL_DEFS.filter((c) => !c.lock).map((c) => `
+      <label>
+        <input type="checkbox" class="sv-col-chk" data-col-id="${c.id}" ${m[c.id] !== false ? 'checked' : ''}>
+        <span>${esc(c.label)}</span>
+      </label>
+    `).join('');
+    el.querySelectorAll('.sv-col-chk').forEach((ch) => {
+      ch.addEventListener('change', () => {
+        const mm = loadColsMap();
+        mm[ch.dataset.colId] = ch.checked;
+        saveColsMap(mm);
+        applyGridCols();
+      });
+    });
+  }
+
+  function toggleColsDropdown(force) {
+    const dd = document.getElementById('sv-cols-dd');
+    const btn = document.getElementById('sv-btn-cols');
+    if (!dd || !btn) return;
+    const open = typeof force === 'boolean' ? force : !dd.classList.contains('show');
+    dd.classList.toggle('show', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function auditCell(id, text, extraClass) {
+    const t = (text || '').trim() || '—';
+    return `<div data-col-id="${id}" class="sv-col-audit ${extraClass || ''}" title="${esc(t)}">${esc(t)}</div>`;
+  }
+
   function brl(n) {
     const v = Number(n) || 0;
     return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -651,8 +833,8 @@
 
   function renderColNfe(row) {
     const u = urlEntradaNfeEmbed(row);
-    if (!u) return '<div class="sv-col-nfe"></div>';
-    return `<div class="sv-col-nfe"><button type="button" class="sv-btn-nfe-row" data-nfe-url="${esc(u)}" title="Abrir a nota fiscal deste boleto na etapa Produtos">NF</button></div>`;
+    if (!u) return '<div data-col-id="nf" class="sv-col-nfe"></div>';
+    return `<div data-col-id="nf" class="sv-col-nfe"><button type="button" class="sv-btn-nfe-row" data-nfe-url="${esc(u)}" title="Abrir a nota fiscal deste boleto na etapa Produtos">NF</button></div>`;
   }
 
   function getRow(id) {
@@ -937,6 +1119,7 @@
     const canPay = !row.pago;
     const acoes = [];
     const urlNf = urlEntradaNfeEmbed(row);
+    acoes.push(`<button type="button" class="sv-btn-action sv-btn-log sv-btn-log-row" data-id="${esc(row.id)}">Log</button>`);
     if (urlNf) {
       acoes.push(`<button type="button" class="sv-btn-action sv-btn-nfe-row" data-nfe-url="${esc(urlNf)}" title="Abrir nota na etapa Produtos">Ver NF</button>`);
     }
@@ -952,23 +1135,37 @@
     } else {
       acoes.push(`<span class="sv-btn-action sv-btn-edit" style="opacity:0.5;cursor:not-allowed" title="Use a tela clássica">Excluir</span>`);
     }
+    const horaTxt = fmtDataHora(row.horario_quitacao || row.last_update);
+    const usrLanc = row.usuario_lancou || row.criado_por || '';
+    const usrQuit = row.usuario_quitou || (row.pago ? row.modificado_por : '') || '';
     return `
       <div class="sv-list-item" data-id="${esc(row.id)}" role="button" tabindex="0" aria-expanded="false">
         <div class="sv-list-row sv-list-cols">
-          <div class="sv-col-chk">
+          <div data-col-id="chk" class="sv-col-chk">
             ${canPay ? `<input type="checkbox" class="sv-row-chk" data-id="${esc(row.id)}" ${selecionados.has(idStr) ? 'checked' : ''} aria-label="Selecionar ${esc(titulo)}">` : ''}
           </div>
-          <div class="sv-col-vencimento">${esc(fmtData(row.data_vencimento))}</div>
-          <div class="sv-col-descricao" title="${esc(fornecedor || desc || titulo)}">${esc(titulo)}</div>
-          <div class="sv-col-valor negativo">${esc(valorTxt)}</div>
-          <div class="sv-col-status">${statusBadge(row)}</div>
+          <div data-col-id="venc" class="sv-col-vencimento">${esc(fmtData(row.data_vencimento))}</div>
+          <div data-col-id="forn" class="sv-col-descricao" title="${esc(fornecedor || desc || titulo)}">${esc(titulo)}</div>
+          ${auditCell('usr_lanc', usrLanc)}
+          ${auditCell('usr_quit', usrQuit)}
+          ${auditCell('hora', horaTxt, 'hora')}
+          <div data-col-id="fluxo" class="sv-col-vencimento">${esc(fmtData(row.data_fluxo))}</div>
+          <div data-col-id="forma" class="sv-col-audit" title="${esc(row.forma_pagamento || '')}">${esc(row.forma_pagamento || '—')}</div>
+          <div data-col-id="plano" class="sv-col-audit" title="${esc((row.plano_conta || '') + (row.grupo ? ' · ' + row.grupo : ''))}">${esc(row.plano_conta || '—')}</div>
+          <div data-col-id="desc" class="sv-col-audit" title="${esc(desc)}">${esc(desc || '—')}</div>
+          <div data-col-id="banco" class="sv-col-audit" title="${esc(row.banco || '')}">${esc(row.banco || '—')}</div>
+          <div data-col-id="bruto" class="sv-col-valor negativo" style="font-size:0.95rem">${esc(brl(row.valor_bruto))}</div>
+          <div data-col-id="mov" class="sv-col-valor" style="font-size:0.95rem;color:#15803d">${esc(brl(row.valor_movimentado))}</div>
+          <div data-col-id="saldo" class="sv-col-valor negativo" style="font-size:0.95rem">${esc(brl(row.restante))}</div>
+          <div data-col-id="valor" class="sv-col-valor negativo">${esc(valorTxt)}</div>
+          <div data-col-id="status" class="sv-col-status">${statusBadge(row)}</div>
           ${renderColNfe(row)}
-          <div class="sv-col-pagar">
+          <div data-col-id="pagar" class="sv-col-pagar">
             ${canPay
               ? `<button type="button" class="sv-btn-pagar-row sv-btn-baixa-total" data-id="${esc(row.id)}">Pagar</button>`
               : '<button type="button" class="sv-btn-pagar-row" disabled tabindex="-1">Pago</button>'}
           </div>
-          <div class="sv-expand-icon" aria-hidden="true">▼</div>
+          <div data-col-id="expand" class="sv-expand-icon" aria-hidden="true">▼</div>
         </div>
         <div class="sv-details-area">
           <div class="sv-details-grid">
@@ -979,7 +1176,11 @@
             <div class="sv-detail-box"><p><strong>Forma / banco</strong>${esc(row.forma_pagamento || '—')} · ${esc(row.banco || '—')}</p></div>
             <div class="sv-detail-box"><p><strong>Competência</strong>${esc(fmtData(row.data_competencia))}</p></div>
             <div class="sv-detail-box"><p><strong>${row.pago ? 'Pagamento' : 'Bruto / pago / saldo'}</strong>${esc(brl(row.valor_bruto))} · ${esc(brl(row.valor_movimentado))} · ${esc(brl(row.restante))}</p></div>
+            ${row.usuario_lancou || row.criado_por ? `<div class="sv-detail-box"><p><strong>Lançado por</strong>${esc(row.usuario_lancou || row.criado_por)}</p></div>` : ''}
+            ${row.usuario_quitou ? `<div class="sv-detail-box"><p><strong>Quitado por</strong>${esc(row.usuario_quitou)}</p></div>` : ''}
+            ${row.horario_quitacao ? `<div class="sv-detail-box"><p><strong>Horário (última movimentação)</strong>${esc(fmtDataHora(row.horario_quitacao))}</p></div>` : ''}
             ${row.data_pagamento ? `<div class="sv-detail-box"><p><strong>Data pagamento</strong>${esc(fmtData(row.data_pagamento))}</p></div>` : ''}
+            ${row.modificado_por ? `<div class="sv-detail-box"><p><strong>Última alteração (Mongo)</strong>${esc(row.modificado_por)}</p></div>` : ''}
             ${row.observacoes ? `<div class="sv-detail-box"><p><strong>Observações</strong>${esc(row.observacoes)}</p></div>` : ''}
           </div>
           <div class="sv-details-actions">${acoes.join('')}</div>
