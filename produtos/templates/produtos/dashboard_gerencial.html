@@ -520,6 +520,52 @@
         }
         .dash-topbar-sync { flex-shrink: 0; justify-self: end; }
     }
+    @media (max-width: 1919px) {
+        .dash-topbar {
+            gap: 0.25rem;
+            padding: 0.35rem 0.4rem;
+            margin-bottom: 0.65rem;
+        }
+        .dash-topbar-brand .hidden.xl\\:flex > div:first-child {
+            display: none !important;
+        }
+        .dash-topbar-cta button {
+            padding: 0.35rem 0.5rem !important;
+            border-radius: 0.65rem;
+        }
+        .dash-topbar-cta button span {
+            font-size: 9px !important;
+        }
+        .dash-topbar-cta button small {
+            display: none !important;
+        }
+        .dash-topbar-cta button [data-lucide] {
+            width: 0.85rem !important;
+            height: 0.85rem !important;
+        }
+        .dash-topbar-periods .period-btn {
+            font-size: 7px !important;
+            padding: 0.3rem 0.35rem !important;
+        }
+        .dash-topbar-sync #btn-sync-dashboard {
+            padding: 0.35rem 0.5rem !important;
+            max-width: 8.75rem;
+        }
+        #sync-btn-title { font-size: 8px !important; }
+        #sync-btn-sub { font-size: 7px !important; line-height: 1.15; }
+        .sync-thermo-track,
+        #sync-thermo-text { display: none !important; }
+    }
+    @media (min-width: 1920px) and (min-height: 1200px) {
+        body.dash-bi-viewport #dashboard-body > .grid:nth-of-type(2) {
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+        body.dash-bi-viewport #dashboard-body > .grid:nth-of-type(2) .dash-chart-host {
+            min-height: clamp(240px, 34vh, 520px);
+            height: auto;
+        }
+    }
     .agro-scale-trigger--dash {
         border-color: rgba(255, 255, 255, 0.22);
         background: rgba(15, 23, 42, 0.55);
