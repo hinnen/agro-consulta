@@ -383,6 +383,7 @@
           </select>
           <button type="button" id="home-link-lembretes" class="inline-flex items-center gap-0.5 rounded-md border border-amber-400/50 bg-amber-950/40 px-2 py-1 text-[9px] font-black uppercase text-amber-100 hover:bg-amber-900/50 cursor-pointer">⏰ Lembretes</button>
           <button type="button" id="home-link-orcamentos" class="inline-flex items-center gap-0.5 rounded-md border border-orange-300 bg-orange-50 px-2 py-1 text-[9px] font-black uppercase text-orange-900 hover:bg-orange-100/90 cursor-pointer">Orçamentos salvos</button>
+          <button type="button" id="home-link-display-scale" class="inline-flex items-center gap-0.5 rounded-md border border-violet-300 bg-violet-50 px-2 py-1 text-[9px] font-black uppercase text-violet-900 hover:bg-violet-100/90 cursor-pointer" title="Ajustar tamanho de textos e botões neste computador">Tamanho da tela</button>
         </div>
       </div>
       <script src="{% static 'js/home_pdv_sync.js' %}"></script>
@@ -635,6 +636,14 @@
     function initHomePage() {
       initHomeIcons();
       bindHomeHubLayout();
+      var scaleBtn = document.getElementById('home-link-display-scale');
+      if (scaleBtn) {
+        scaleBtn.addEventListener('click', function () {
+          if (window.AgroDisplayScale && typeof window.AgroDisplayScale.open === 'function') {
+            window.AgroDisplayScale.open();
+          }
+        });
+      }
       requestAnimationFrame(function () {
         updateHomeHubLayout();
         setTimeout(updateHomeHubLayout, 120);

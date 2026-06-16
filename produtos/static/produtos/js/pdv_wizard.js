@@ -226,7 +226,7 @@
         clienteEditModal: document.getElementById('pdv-cliente-edit-modal'),
         clienteEditClose: document.getElementById('pdv-cliente-edit-close'),
         clienteZapWhatsapp: document.getElementById('pdv-step2-cliente-zap'),
-        entregaRadios: document.querySelectorAll('input[name="pdv-entrega-tipo"]'),
+        entregaMain: document.getElementById('pdv-entrega-main'),
         vendaObservacao: document.getElementById('pdv-venda-observacao'),
         entregaLogradouro: document.getElementById('pdv-entrega-logradouro'),
         entregaNumero: document.getElementById('pdv-entrega-numero'),
@@ -1785,10 +1785,10 @@
             if (!state.itens.length) return 'Adicione ao menos 1 item antes de continuar.';
             if (state.clienteMode === 'unset') return 'Defina o cliente ou consumidor final antes de continuar.';
         }
-        if (state.currentStep === 'cliente') {
-            if (!state.cliente || !state.cliente.nome) return 'Defina o cliente da venda.';
-        }
         if (state.currentStep === 'entrega') {
+            if (!String((state.entrega && state.entrega.modoRetiradaEntrega) || '').trim()) {
+                return 'Escolha retirada na loja ou entrega no pop-up.';
+            }
             if (!enderecoEntregaMinimoOk(state)) return 'Informe o endereço básico da entrega (logradouro e bairro ou endereço legível).';
         }
         if (state.currentStep === 'pagamento') {
@@ -1905,11 +1905,22 @@
             var kbdCtrl =
                 '<kbd class="pointer-events-none ml-1 hidden rounded border border-emerald-800/40 bg-emerald-700 px-1 font-mono text-[8px] text-white sm:inline">Ctrl+Enter</kbd>';
             if (state.currentStep === 'entrega') {
+                var modoRe = String((state.entrega && state.entrega.modoRetiradaEntrega) || '');
                 var lp = String((state.entrega && state.entrega.localPagamento) || '');
                 var meio = String((state.entrega && state.entrega.meioNaEntrega) || '');
                 var endOk = enderecoEntregaMinimoOk(state);
                 dom.btnNext.classList.remove('opacity-40');
-                if (!lp) {
+                if (!modoRe) {
+                    dom.btnNext.innerHTML = 'Retirada ou entrega' + kbdF7;
+                    dom.btnNext.disabled = true;
+                    dom.btnNext.classList.add('opacity-40');
+                    dom.btnNext.title = 'Use o pop-up ao entrar nesta etapa.';
+                } else if (modoRe === 'entrega' && !(state.entrega && state.entrega.detalhesEntregaRespondidos)) {
+                    dom.btnNext.innerHTML = 'Taxa e detalhes' + kbdF7;
+                    dom.btnNext.disabled = true;
+                    dom.btnNext.classList.add('opacity-40');
+                    dom.btnNext.title = 'Complete o pop-up de taxa, horário e troco.';
+                } else if (!lp) {
                     dom.btnNext.innerHTML = 'Escolha o local do pagamento' + kbdF7;
                     dom.btnNext.disabled = true;
                     dom.btnNext.classList.add('opacity-40');
@@ -1936,10 +1947,6 @@
                     dom.btnNext.disabled = false;
                     dom.btnNext.title = 'Próxima etapa · F7';
                 }
-            } else if (state.currentStep === 'cliente') {
-                dom.btnNext.innerHTML = nextLabel + kbdF7;
-                dom.btnNext.disabled = false;
-                dom.btnNext.title = next === 'pagamento' ? 'Ir para pagamento · F7' : 'Continuar · F7';
             } else {
                 dom.btnNext.innerHTML = nextLabel + kbdCtrl;
                 dom.btnNext.disabled = false;
@@ -1952,8 +1959,7 @@
 
         var hints = {
             produtos: 'Monte os itens e defina o cliente base da venda.',
-            cliente: 'Atalhos nos botões · E edita dados do cliente.',
-            entrega: 'Pop-up: pagamento na entrega ou na loja. Rodapé: Enviar entrega ou Ir para pagamento · F7. F1 volta.',
+            entrega: 'Pop-ups: retirada/entrega, taxa e pagamento. Rodapé: observações · F7 continua · F1 volta.',
             pagamento: ''
         };
         dom.stepHint.textContent = hints[state.currentStep] || 'Siga o fluxo da venda.';
@@ -1970,10 +1976,10 @@
         if (dom.summaryDiscount) dom.summaryDiscount.textContent = formatMoney(computed.desconto);
         if (dom.summaryShipping) dom.summaryShipping.textContent = formatMoney(computed.frete);
         dom.summaryTotal.textContent = formatMoney(computed.total);
-        dom.summaryDelivery.textContent = state.entrega.ativa ? 'Entrega' : 'Retirada';
+        dom.summaryDelivery.textContent =
+            state.entrega.modoRetiradaEntrega === 'entrega' || state.entrega.ativa ? 'Entrega' : 'Retirada';
         var currentStepLabel = ({
             produtos: 'Produtos',
-            cliente: 'Cliente',
             entrega: 'Entrega',
             pagamento: 'Pagamento'
         })[state.currentStep] || 'Produtos';
@@ -2580,9 +2586,6 @@
                 dom.clienteZapWhatsapp.classList.add('hidden');
             }
         }
-        dom.entregaRadios.forEach(function (radio) {
-            radio.checked = state.entrega.ativa ? radio.value === 'entrega' : radio.value === 'retirada';
-        });
     }
 
     function openClienteEditModal() {
@@ -3092,7 +3095,18 @@
         setInputValue(dom.entregaHorario, e.horario);
         setInputValue(dom.entregaTroco, e.troco);
         setInputValue(dom.entregaObservacao, e.observacao);
+        setInputValue(dom.vendaObservacao, state.venda.observacao);
+        var edHor = document.getElementById('pdv-ed-horario');
+        var edTro = document.getElementById('pdv-ed-troco');
+        setInputValue(edHor, e.horario);
+        setInputValue(edTro, e.troco);
         renderEntregaTaxaCard(state);
+        renderStep2(state);
+        if (dom.entregaMain) {
+            var modo = String(e.modoRetiradaEntrega || '');
+            var showMain = modo === 'entrega' && !!e.detalhesEntregaRespondidos;
+            showElement(dom.entregaMain, showMain, 'flex');
+        }
     }
 
     function renderPagamento(state, computed) {
@@ -3401,11 +3415,19 @@
                 openPaymentFormaModal();
             }
         }
-        if (state.currentStep === 'entrega' && wasStep !== 'entrega' && state.entrega.ativa) {
+        if (state.currentStep === 'entrega' && wasStep !== 'entrega') {
             setTimeout(function () {
                 var st2 = State.getState();
-                if (st2.currentStep !== 'entrega' || !st2.entrega.ativa) return;
-                if (!String(st2.entrega.localPagamento || '').trim()) {
+                if (st2.currentStep !== 'entrega') return;
+                if (!String(st2.entrega.modoRetiradaEntrega || '').trim()) {
+                    openRetiradaEntregaModal();
+                    return;
+                }
+                if (st2.entrega.modoRetiradaEntrega === 'entrega' && !st2.entrega.detalhesEntregaRespondidos) {
+                    openEntregaDetalhesModal();
+                    return;
+                }
+                if (st2.entrega.ativa && !String(st2.entrega.localPagamento || '').trim()) {
                     openEntregaFluxoModal1();
                 }
             }, 220);
@@ -3492,11 +3514,15 @@
     }
 
     function pdvTryRemoveModalOpenBody() {
+        var mdRe = document.getElementById('modal-pdv-retirada-entrega');
+        var mdEd = document.getElementById('modal-pdv-entrega-detalhes');
         var md1 = document.getElementById('modal-pdv-entrega-fluxo-1');
         var md2 = document.getElementById('modal-pdv-entrega-fluxo-2');
         var md3 = document.getElementById('modal-pdv-entrega-fluxo-3-troco');
         var mei = document.getElementById('modal-pdv-entrega-impressao');
         var meiOpen = mei && !mei.classList.contains('hidden');
+        var reOpen = mdRe && !mdRe.classList.contains('hidden');
+        var edOpen = mdEd && !mdEd.classList.contains('hidden');
         var f1 = md1 && !md1.classList.contains('hidden');
         var f2 = md2 && !md2.classList.contains('hidden');
         var f3 = md3 && !md3.classList.contains('hidden');
@@ -3505,10 +3531,117 @@
         var cadOpen =
             dom.wizardCliRapidoModal && !dom.wizardCliRapidoModal.classList.contains('hidden');
         try {
-            if (!f1 && !f2 && !f3 && !meiOpen && !cliOpen && !startOpen && !cadOpen) {
+            if (!reOpen && !edOpen && !f1 && !f2 && !f3 && !meiOpen && !cliOpen && !startOpen && !cadOpen) {
                 document.body.classList.remove('modal-open');
             }
         } catch (eM2) {}
+    }
+
+    function isRetiradaEntregaModalOpen() {
+        var r = document.getElementById('modal-pdv-retirada-entrega');
+        return !!(r && !r.classList.contains('hidden'));
+    }
+    function isEntregaDetalhesModalOpen() {
+        var r = document.getElementById('modal-pdv-entrega-detalhes');
+        return !!(r && !r.classList.contains('hidden'));
+    }
+    function closeRetiradaEntregaModal() {
+        var root = document.getElementById('modal-pdv-retirada-entrega');
+        if (root) {
+            root.classList.add('hidden');
+            root.classList.remove('flex');
+        }
+        pdvTryRemoveModalOpenBody();
+    }
+    function openRetiradaEntregaModal() {
+        var root = document.getElementById('modal-pdv-retirada-entrega');
+        if (!root) return;
+        root.classList.remove('hidden');
+        root.classList.add('flex');
+        pdvEnsureModalOpenBody();
+    }
+    function closeEntregaDetalhesModal() {
+        var root = document.getElementById('modal-pdv-entrega-detalhes');
+        if (root) {
+            root.classList.add('hidden');
+            root.classList.remove('flex');
+        }
+        pdvTryRemoveModalOpenBody();
+    }
+    function openEntregaDetalhesModal() {
+        renderEntregaTaxaCard(State.getState());
+        var st = State.getState();
+        var edHor = document.getElementById('pdv-ed-horario');
+        var edTro = document.getElementById('pdv-ed-troco');
+        setInputValue(edHor, (st.entrega && st.entrega.horario) || '');
+        setInputValue(edTro, (st.entrega && st.entrega.troco) || '');
+        var root = document.getElementById('modal-pdv-entrega-detalhes');
+        if (!root) return;
+        root.classList.remove('hidden');
+        root.classList.add('flex');
+        pdvEnsureModalOpenBody();
+    }
+    function resetEntregaModoAoVoltarProdutos() {
+        State.setEntregaPatch({
+            modoRetiradaEntrega: '',
+            detalhesEntregaRespondidos: false,
+            ativa: false,
+            localPagamento: '',
+            meioNaEntrega: '',
+            taxaEntregaRespondida: false,
+            taxaEntregaModo: '',
+            horario: '',
+            troco: ''
+        });
+        State.setPagamentoField('frete', 0);
+        closeRetiradaEntregaModal();
+        closeEntregaDetalhesModal();
+        closeEntregaFluxoModal1();
+        closeEntregaFluxoModal2();
+        closeEntregaFluxoModal3();
+    }
+    function escolherRetiradaEntrega(modo) {
+        if (modo === 'retirada') {
+            State.setEntregaPatch({
+                modoRetiradaEntrega: 'retirada',
+                ativa: false,
+                detalhesEntregaRespondidos: false,
+                localPagamento: '',
+                meioNaEntrega: ''
+            });
+            State.setPagamentoField('frete', 0);
+            closeRetiradaEntregaModal();
+            closeEntregaDetalhesModal();
+            State.setCurrentStep('pagamento');
+            return;
+        }
+        State.setEntregaPatch({ modoRetiradaEntrega: 'entrega', ativa: true });
+        closeRetiradaEntregaModal();
+        if (!State.getState().entrega.detalhesEntregaRespondidos) {
+            openEntregaDetalhesModal();
+        }
+    }
+    function confirmarEntregaDetalhesModal() {
+        var taxaChecked = document.querySelector('input[name="pdv-entrega-taxa-modo"]:checked');
+        if (!taxaChecked) {
+            alert('Escolha se cobra frete, decide depois ou não cobra.');
+            return;
+        }
+        commitEntregaTaxaModo(taxaChecked.value);
+        commitEntregaTaxaValorInput();
+        var h = document.getElementById('pdv-ed-horario');
+        var t = document.getElementById('pdv-ed-troco');
+        var hor = h ? h.value : '';
+        var tro = t ? String(t.value || '').trim() : '';
+        State.setEntregaPatch({
+            horario: hor,
+            troco: tro,
+            detalhesEntregaRespondidos: true
+        });
+        if (dom.entregaHorario) dom.entregaHorario.value = hor;
+        if (dom.entregaTroco) dom.entregaTroco.value = tro;
+        wizardSyncLembretesFromEntregaHorario();
+        closeEntregaDetalhesModal();
     }
 
     function isEntregaFluxo1Open() {
@@ -3524,7 +3657,13 @@
         return !!(r && !r.classList.contains('hidden'));
     }
     function isAnyEntregaFluxoModalOpen() {
-        return isEntregaFluxo1Open() || isEntregaFluxo2Open() || isEntregaFluxo3Open();
+        return (
+            isRetiradaEntregaModalOpen() ||
+            isEntregaDetalhesModalOpen() ||
+            isEntregaFluxo1Open() ||
+            isEntregaFluxo2Open() ||
+            isEntregaFluxo3Open()
+        );
     }
 
     function closeEntregaFluxoModal1() {
@@ -6027,6 +6166,9 @@
             var state = State.getState();
             var computed = State.getComputed();
             var target = prevStep(state, computed);
+            if (state.currentStep === 'entrega' && target === 'produtos') {
+                resetEntregaModoAoVoltarProdutos();
+            }
             if (target) State.setCurrentStep(target);
         });
 
@@ -6034,6 +6176,17 @@
             var state = State.getState();
             var computed = State.getComputed();
             if (state.currentStep === 'entrega') {
+                if (!String((state.entrega && state.entrega.modoRetiradaEntrega) || '').trim()) {
+                    openRetiradaEntregaModal();
+                    return;
+                }
+                if (
+                    state.entrega.modoRetiradaEntrega === 'entrega' &&
+                    !state.entrega.detalhesEntregaRespondidos
+                ) {
+                    openEntregaDetalhesModal();
+                    return;
+                }
                 var lp = String((state.entrega && state.entrega.localPagamento) || '');
                 if (!lp) {
                     openEntregaFluxoModal1();
@@ -6622,11 +6775,24 @@
             });
         }
 
-        dom.entregaRadios.forEach(function (radio) {
-            radio.addEventListener('change', function () {
-                State.setEntregaField('ativa', radio.value === 'entrega');
+        var btnReRetirada = document.getElementById('pdv-re-retirada');
+        if (btnReRetirada) btnReRetirada.addEventListener('click', function () { escolherRetiradaEntrega('retirada'); });
+        var btnReEntrega = document.getElementById('pdv-re-entrega');
+        if (btnReEntrega) btnReEntrega.addEventListener('click', function () { escolherRetiradaEntrega('entrega'); });
+        var mdRe = document.getElementById('modal-pdv-retirada-entrega');
+        if (mdRe) {
+            mdRe.addEventListener('click', function (ev) {
+                if (ev.target === mdRe) closeRetiradaEntregaModal();
             });
-        });
+        }
+        var btnEdOk = document.getElementById('pdv-ed-confirmar');
+        if (btnEdOk) btnEdOk.addEventListener('click', confirmarEntregaDetalhesModal);
+        var mdEd = document.getElementById('modal-pdv-entrega-detalhes');
+        if (mdEd) {
+            mdEd.addEventListener('click', function (ev) {
+                if (ev.target === mdEd) closeEntregaDetalhesModal();
+            });
+        }
 
         function commitEntregaCamposEndereco() {
             var st = State.getState();
@@ -7093,6 +7259,23 @@
                 }
             }
             if (event.key === 'Escape') {
+                if (isEntregaDetalhesModalOpen()) {
+                    event.preventDefault();
+                    closeEntregaDetalhesModal();
+                    State.setEntregaPatch({
+                        modoRetiradaEntrega: '',
+                        ativa: false,
+                        detalhesEntregaRespondidos: false
+                    });
+                    openRetiradaEntregaModal();
+                    return;
+                }
+                if (isRetiradaEntregaModalOpen()) {
+                    event.preventDefault();
+                    closeRetiradaEntregaModal();
+                    State.setCurrentStep('produtos');
+                    return;
+                }
                 if (isEntregaFluxo3Open()) {
                     event.preventDefault();
                     closeEntregaFluxoModal3();
@@ -7200,7 +7383,7 @@
                 return;
             }
             if (
-                stProdutos.currentStep === 'cliente' &&
+                stProdutos.currentStep === 'entrega' &&
                 !payFlowDialogOpen() &&
                 !isPaymentFormaModalOpen() &&
                 !startModalOpen &&
@@ -7213,35 +7396,14 @@
                     }
                     return;
                 }
-                var focoTipoEntrega =
-                    event.target &&
-                    event.target.closest &&
-                    event.target.closest('input[name="pdv-entrega-tipo"]');
-                if (!inField || focoTipoEntrega) {
-                    var d1 = event.code === 'Digit1' || event.code === 'Numpad1';
-                    var d2 = event.code === 'Digit2' || event.code === 'Numpad2';
-                    if (d1 || d2) {
+                if (!inField) {
+                    var d1e = event.code === 'Digit1' || event.code === 'Numpad1';
+                    var d2e = event.code === 'Digit2' || event.code === 'Numpad2';
+                    if (isRetiradaEntregaModalOpen() && (d1e || d2e)) {
                         event.preventDefault();
-                        State.setEntregaField('ativa', !!d2);
+                        escolherRetiradaEntrega(d2e ? 'entrega' : 'retirada');
                         return;
                     }
-                }
-            }
-            if (
-                stProdutos.currentStep === 'entrega' &&
-                !payFlowDialogOpen() &&
-                !isPaymentFormaModalOpen() &&
-                !startModalOpen &&
-                !isClienteEditModalOpen() &&
-                !isAnyEntregaFluxoModalOpen() &&
-                !modalEntregaImpOpen
-            ) {
-                if (event.code === 'F7' && !event.altKey && !event.ctrlKey && !event.metaKey) {
-                    event.preventDefault();
-                    if (dom.btnNext && dom.btnNext.style.display !== 'none' && !dom.btnNext.disabled) {
-                        dom.btnNext.click();
-                    }
-                    return;
                 }
             }
             if (event.altKey && event.code === 'ArrowLeft' && !event.ctrlKey && !event.metaKey && !inField) {
@@ -7260,7 +7422,7 @@
                 return;
             }
             if (event.altKey && !event.ctrlKey && !event.metaKey && !inField) {
-                var stepByDigit = { Digit1: 'produtos', Digit2: 'cliente', Digit3: 'entrega', Digit4: 'pagamento' };
+                var stepByDigit = { Digit1: 'produtos', Digit2: 'entrega', Digit3: 'pagamento' };
                 if (stepByDigit[event.code]) {
                     event.preventDefault();
                     tryNavigateToStep(stepByDigit[event.code]);
@@ -7269,7 +7431,7 @@
             }
             if (event.code === 'KeyE' && !event.altKey && !event.ctrlKey && !event.metaKey && !inField) {
                 var stE = State.getState();
-                if (stE.currentStep === 'cliente') {
+                if (stE.currentStep === 'entrega') {
                     event.preventDefault();
                     openClienteEditModal();
                     return;
