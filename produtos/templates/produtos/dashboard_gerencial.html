@@ -479,6 +479,31 @@
         min-height: 0;
         overflow-y: auto;
         overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    body.dash-bi-viewport #dashboard-body > .grid {
+        flex-shrink: 0;
+    }
+    body.dash-bi-viewport #dashboard-body > .grid:last-of-type {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+    @media (min-width: 1280px) {
+        .dash-topbar {
+            flex-wrap: nowrap !important;
+        }
+        .dash-topbar .flex.flex-wrap.items-center.justify-center {
+            flex: 1 1 0;
+            min-width: 0;
+            flex-wrap: nowrap !important;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: none;
+        }
+        .dash-topbar .flex.flex-wrap.items-center.justify-center::-webkit-scrollbar {
+            display: none;
+        }
     }
     .agro-scale-trigger--dash {
         border-color: rgba(255, 255, 255, 0.22);

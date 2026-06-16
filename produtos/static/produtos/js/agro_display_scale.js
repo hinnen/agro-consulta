@@ -11,8 +11,6 @@
   var STEP = 0.05;
   var DEFAULT = 1;
   var ROOT_ID = 'agro-display-scale-root';
-  var PROBE =
-    '.glass-card, .kpi-card, .dash-topbar, .main-container, #dashboard-body, button, .home-grid-card, .home-top-card-horizontal, input:not([type="hidden"]), select';
 
   var modalOpen = false;
   var draftScale = DEFAULT;
@@ -84,38 +82,76 @@
     return r.width > 0 && r.height > 0;
   }
 
+  function rectsOverlap(a, b, gap) {
+    gap = gap || 0;
+    return a.left < b.right - gap && a.right > b.left + gap && a.top < b.bottom - gap && a.bottom > b.top + gap;
+  }
+
+  function detectDashTopbarBreak() {
+    var topbar = document.querySelector('.dash-topbar');
+    if (!topbar || !isVisible(topbar)) return false;
+
+    var tr = topbar.getBoundingClientRect();
+    if (tr.height > 92) return true;
+
+    var blocks = topbar.querySelectorAll(':scope > div, :scope > button');
+    var blockRects = [];
+    for (var i = 0; i < blocks.length; i++) {
+      if (!isVisible(blocks[i])) continue;
+      blockRects.push(blocks[i].getBoundingClientRect());
+    }
+    for (var a = 0; a < blockRects.length; a++) {
+      for (var c = a + 1; c < blockRects.length; c++) {
+        if (Math.abs(blockRects[a].top - blockRects[c].top) < 22 && rectsOverlap(blockRects[a], blockRects[c], 4)) {
+          return true;
+        }
+      }
+    }
+
+    var buttons = topbar.querySelectorAll('button');
+    var br = [];
+    for (var j = 0; j < buttons.length; j++) {
+      if (!isVisible(buttons[j])) continue;
+      br.push(buttons[j].getBoundingClientRect());
+    }
+    for (var x = 0; x < br.length; x++) {
+      for (var y = x + 1; y < br.length; y++) {
+        if (Math.abs(br[x].top - br[y].top) < 18 && rectsOverlap(br[x], br[y], 2)) return true;
+      }
+    }
+
+    return false;
+  }
+
   function detectLayoutBreak() {
-    var pad = 4;
+    var pad = 6;
     var vw = window.innerWidth;
-    var vh = window.innerHeight;
     var doc = document.documentElement;
 
     if (doc.scrollWidth > vw + pad) return true;
     if (document.body && document.body.scrollWidth > vw + pad) return true;
 
-    var topbar = document.querySelector('.dash-topbar');
-    if (topbar && isVisible(topbar) && topbar.scrollHeight > topbar.clientHeight + 10) return true;
+    if (detectDashTopbarBreak()) return true;
 
-    var nodes = document.querySelectorAll(PROBE);
-    for (var i = 0; i < nodes.length; i++) {
-      var el = nodes[i];
+    var cards = document.querySelectorAll('.glass-card, .kpi-card');
+    for (var i = 0; i < cards.length; i++) {
+      var el = cards[i];
       if (!isVisible(el)) continue;
       if (el.closest && el.closest('#' + ROOT_ID)) continue;
-
       var st = window.getComputedStyle(el);
       var r = el.getBoundingClientRect();
+      if (r.top > window.innerHeight + 40 || r.bottom < -40) continue;
+      if (r.right > vw + pad) return true;
+      if (el.scrollWidth > el.clientWidth + 3 && (st.overflow === 'hidden' || st.overflowX === 'hidden')) return true;
+    }
 
-      if (r.right > vw + pad || r.left < -pad) {
-        if (r.width > 24 && r.height > 12) return true;
-      }
-      if (r.bottom > vh + pad && el.scrollHeight > el.clientHeight + 2) {
-        if (st.overflowY === 'hidden' || st.overflow === 'hidden') return true;
-      }
-
-      if (el.tagName === 'BUTTON' || el.classList.contains('glass-card') || el.classList.contains('kpi-card')) {
-        if (el.scrollWidth > el.clientWidth + 2) return true;
-        if ((st.overflow === 'hidden' || st.overflowX === 'hidden') && el.scrollWidth > el.clientWidth + 1) return true;
-        if ((st.overflow === 'hidden' || st.overflowY === 'hidden') && el.scrollHeight > el.clientHeight + 2) return true;
+    var topbar = document.querySelector('.dash-topbar');
+    if (topbar) {
+      var tbBtns = topbar.querySelectorAll('button');
+      for (var k = 0; k < tbBtns.length; k++) {
+        var btn = tbBtns[k];
+        if (!isVisible(btn)) continue;
+        if (btn.scrollWidth > btn.clientWidth + 3) return true;
       }
     }
 
@@ -214,7 +250,7 @@
     if (label) label.textContent = pctLabel(scale);
     if (cap) cap.textContent = 'Máximo seguro neste monitor: ' + pctLabel(safeMax);
 
-    var broken = scale > safeMax + 0.001 || detectLayoutBreak();
+    var broken = scale > safeMax + 0.001;
     if (warn) {
       warn.hidden = !broken;
     }
