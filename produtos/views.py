@@ -9761,6 +9761,35 @@ def resumo_financeiro_gerencial_view(request):
     )
 
 
+def _lancamentos_operador_label(
+    request,
+    payload: dict | None = None,
+    *,
+    obrigatorio: bool = True,
+) -> tuple[str | None, JsonResponse | None]:
+    """
+    Rótulo do operador (PIN / sessão PDV) para gravar em ModificadoPor / CriadoPor.
+    Com ``obrigatorio=True``, APIs de Lançamentos exigem PIN na entrada da tela.
+    """
+    op = rotulo_usuario_registro_venda(request, payload if isinstance(payload, dict) else None)
+    op = (op or "").strip()[:120]
+    if op:
+        return op, None
+    if obrigatorio:
+        return None, JsonResponse(
+            {
+                "ok": False,
+                "erro": "Identifique-se com PIN ao entrar em Lançamentos (atualize a página se necessário).",
+            },
+            status=403,
+        )
+    if request.user.is_authenticated:
+        return (
+            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
+        )[:120], None
+    return "Agro", None
+
+
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
 def lancamentos_financeiros_view(request):
@@ -13157,9 +13186,9 @@ def api_lancamentos_baixa(request):
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
-    usuario = ""
-    if request.user.is_authenticated:
-        usuario = (getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk))[:120]
+    usuario, err_resp = _lancamentos_operador_label(request, payload)
+    if err_resp:
+        return err_resp
 
     resultado = baixar_lancamentos_mongo(
         db,
@@ -13270,9 +13299,9 @@ def api_lancamentos_baixa_parcial(request):
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
-    usuario = ""
-    if request.user.is_authenticated:
-        usuario = (getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk))[:120]
+    usuario, err_resp = _lancamentos_operador_label(request, payload)
+    if err_resp:
+        return err_resp
 
     resultado = baixar_lancamento_parcial_mongo(
         db,
@@ -13347,9 +13376,9 @@ def api_lancamentos_alterar(request):
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
-    usuario = ""
-    if request.user.is_authenticated:
-        usuario = (getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk))[:120]
+    usuario, err_resp = _lancamentos_operador_label(request, payload)
+    if err_resp:
+        return err_resp
 
     r = atualizar_lancamento_mongo_agro(db, lid, patch, usuario)
     if not r.get("ok"):
@@ -13374,9 +13403,9 @@ def api_lancamentos_excluir(request):
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
-    usuario = ""
-    if request.user.is_authenticated:
-        usuario = (getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk))[:120]
+    usuario, err_resp = _lancamentos_operador_label(request, payload)
+    if err_resp:
+        return err_resp
 
     r = excluir_lancamento_mongo_agro(db, lid, usuario)
     if not r.get("ok"):
@@ -13555,11 +13584,7 @@ def api_lancamentos_saida_caixa(request):
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
-    usuario = ""
-    if request.user.is_authenticated:
-        usuario = (
-            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
-        )[:120]
+    usuario, _ = _lancamentos_operador_label(request, payload, obrigatorio=False)
 
     if plano_id_req:
         partes = []
@@ -14332,11 +14357,9 @@ def api_lancamentos_criar_manual_lote(request):
         except Exception:
             logger.exception("lote manual idempotency read")
 
-    usuario = ""
-    if request.user.is_authenticated:
-        usuario = (
-            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
-        )[:120]
+    usuario, err_resp = _lancamentos_operador_label(request, payload)
+    if err_resp:
+        return err_resp
 
     try:
         resultado = inserir_lancamentos_manual_lote(
@@ -14459,11 +14482,9 @@ def api_lancamentos_definir_recorrente(request):
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
-    usuario = ""
-    if request.user.is_authenticated:
-        usuario = (
-            getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
-        )[:120]
+    usuario, err_resp = _lancamentos_operador_label(request, payload)
+    if err_resp:
+        return err_resp
 
     r = definir_lancamento_recorrente_mongo(
         db,

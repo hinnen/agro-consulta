@@ -6,7 +6,7 @@
 
   var STORAGE_BASE = 'agro_display_scale_v1';
   var CONFIGURED_BASE = 'agro_display_scale_configured_v1';
-  var MIN = 0.75;
+  var MIN = 0.7;
   var MAX = 1.5;
   var STEP = 0.05;
   var DEFAULT = 1;
@@ -36,10 +36,14 @@
 
   function calibrationCeiling() {
     var os = estimateOsScale();
-    if (os >= 1.625) return 1;
-    if (os >= 1.375) return 1.05;
-    if (os >= 1.2) return 1.15;
-    return MAX;
+    var iw = global.innerWidth || 0;
+    var ceiling = MAX;
+    if (os >= 1.625) ceiling = 1;
+    else if (os >= 1.375) ceiling = 1.05;
+    else if (os >= 1.2) ceiling = 1.15;
+    if (iw > 0 && iw < 1200) ceiling = Math.min(ceiling, 0.95);
+    if (iw > 0 && iw < 1050) ceiling = Math.min(ceiling, 0.85);
+    return clamp(ceiling);
   }
 
   function profileSuffix() {
@@ -205,6 +209,18 @@
     return false;
   }
 
+  function detectPeriodButtonsWrap() {
+    var container = document.querySelector('.dash-topbar-periods');
+    if (!container || !isVisible(container)) return false;
+    var btns = container.querySelectorAll('.period-btn');
+    if (btns.length < 2) return false;
+    var firstTop = btns[0].getBoundingClientRect().top;
+    for (var i = 1; i < btns.length; i++) {
+      if (Math.abs(btns[i].getBoundingClientRect().top - firstTop) > 8) return true;
+    }
+    return false;
+  }
+
   function detectLayoutBreak() {
     var pad = 6;
     var vw = window.innerWidth;
@@ -214,6 +230,7 @@
     if (document.body && document.body.scrollWidth > vw + pad) return true;
 
     if (detectDashTopbarBreak()) return true;
+    if (detectPeriodButtonsWrap()) return true;
 
     var cards = document.querySelectorAll('.glass-card, .kpi-card');
     for (var i = 0; i < cards.length; i++) {

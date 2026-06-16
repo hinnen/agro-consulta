@@ -18,7 +18,7 @@
       var s = localStorage.getItem('agro_display_scale_v1' + suf);
       if (s == null) s = localStorage.getItem('agro_display_scale_v1');
       var n = parseFloat(s, 10);
-      if (!isFinite(n) || n < 0.75 || n > 1.5) return;
+      if (!isFinite(n) || n < 0.7 || n > 1.5) return;
       if (n === 1) return;
       var zs = String(Math.round(n * 1000) / 1000);
       document.documentElement.style.zoom = zs;
