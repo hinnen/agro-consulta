@@ -130,16 +130,34 @@
       background: #fff;
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
     }
-    .cf-form-head {
-      flex-shrink: 0;
-      background: #059669;
-      color: #fff;
-      padding: 0.45rem 0.65rem;
+    .cf-top-actions {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      justify-content: space-between;
-      gap: 0.45rem;
+      gap: 0.5rem;
+    }
+    .cf-help-top {
+      position: relative;
+    }
+    .cf-help-top summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .cf-help-top .cf-help-panel {
+      position: absolute;
+      z-index: 40;
+      top: calc(100% + 0.35rem);
+      right: 0;
+      width: min(22rem, calc(100vw - 2rem));
+      border-radius: 0.85rem;
+      border: 2px solid #64748b;
+      background: #fff;
+      padding: 0.85rem 1rem;
+      font-size: var(--cf-fs-meta);
+      font-weight: 700;
+      line-height: var(--cf-lh-body);
+      color: #1e293b;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
     }
     .cf-toolbar {
       flex-shrink: 0;
@@ -167,6 +185,30 @@
       text-align: center;
       line-height: var(--cf-lh-tight);
     }
+    .cf-toolbar-btn--retirada {
+      background: #fed7aa;
+      border-color: #c2410c;
+      color: #431407;
+    }
+    .cf-toolbar-btn--retirada:hover { background: #fdba74; }
+    .cf-toolbar-btn--reforco {
+      background: #a7f3d0;
+      border-color: #047857;
+      color: #064e3b;
+    }
+    .cf-toolbar-btn--reforco:hover { background: #6ee7b7; }
+    .cf-toolbar-btn--relatorio {
+      background: #e2e8f0;
+      border-color: #475569;
+      color: #0f172a;
+    }
+    .cf-toolbar-btn--relatorio:hover { background: #cbd5e1; }
+    .cf-toolbar-btn--conferencias {
+      background: #fde68a;
+      border-color: #b45309;
+      color: #451a03;
+    }
+    .cf-toolbar-btn--conferencias:hover { background: #fcd34d; }
     .cf-body {
       display: flex;
       flex-direction: column;
@@ -187,7 +229,7 @@
     .cf-conf-head,
     .cf-conf-row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.15fr) minmax(0, 0.8fr);
       align-items: stretch;
     }
     .cf-conf-head {
@@ -215,6 +257,7 @@
     }
     .cf-conf-col--contado {
       background: #eff6ff;
+      border-right: 3px solid #dc2626;
       padding: 0.7rem 0.9rem;
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -222,11 +265,40 @@
       align-items: center;
       min-height: 3.75rem;
     }
+    .cf-conf-col--variacao {
+      background: #f8fafc;
+      padding: 0.7rem 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 3.75rem;
+    }
+    .cf-conf-variacao {
+      font-size: clamp(0.95rem, 0.35vw + 0.88rem, 1.12rem) !important;
+      font-weight: 900;
+      line-height: 1.25;
+      margin: 0;
+      width: 100%;
+    }
+    .cf-conf-variacao.caixa-diff--vazio {
+      color: #94a3b8;
+    }
+    .cf-conf-variacao.caixa-diff--ok {
+      color: #047857;
+    }
+    .cf-conf-variacao.caixa-diff--sobra {
+      color: #0369a1;
+    }
+    .cf-conf-variacao.caixa-diff--falta {
+      color: #b91c1c;
+    }
     .cf-conf-row + .cf-conf-row {
       border-top: 1px solid #cbd5e1;
     }
     .cf-conf-head .cf-conf-col--esperado,
-    .cf-conf-head .cf-conf-col--contado {
+    .cf-conf-head .cf-conf-col--contado,
+    .cf-conf-head .cf-conf-col--variacao {
       min-height: auto;
       padding: 0.6rem 0.9rem;
       justify-content: center;
@@ -949,6 +1021,7 @@
     }
     .cf-cedulas-modal-ok:hover { background: #1e293b; }
     details.cf-help summary::-webkit-details-marker,
+    details.cf-help-top summary::-webkit-details-marker,
     details.cf-mini-help summary::-webkit-details-marker { display: none; }
     .sr-only {
       position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -968,9 +1041,19 @@
           {% if qtd_caixas_teste %} · Teste: {{ qtd_caixas_teste }} (fechar à direita){% endif %}
         </p>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <a href="{% url 'caixa_painel' %}" class="cf-t-btn inline-flex items-center min-h-[48px] px-4 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-50">Painel</a>
-        {% include "produtos/_pdv_voltar_link.html" with link_class="cf-t-btn inline-flex items-center justify-center gap-1.5 min-h-[48px] px-4 py-2 rounded-xl border-2 border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 shrink-0" %}
+      <div class="cf-top-actions">
+        <a href="{% url 'caixa_painel' %}" class="cf-t-btn inline-flex items-center min-h-[48px] px-4 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black uppercase hover:bg-slate-50">Painel</a>
+        <details class="cf-help cf-help-top shrink-0">
+          <summary class="cf-t-btn inline-flex items-center gap-2 min-h-[48px] px-3 py-2 rounded-xl border-2 border-slate-300 bg-white text-slate-800 font-black uppercase hover:bg-slate-50 select-none" title="Como conferir">
+            <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white text-base font-black">?</span>
+            <span class="hidden sm:inline">Ajuda</span>
+          </summary>
+          <div class="cf-help-panel">
+            <p>Some o turno da <strong>loja</strong> ({{ qtd_caixas_operacional }} caixa gaveta{% if qtd_caixas_operacional > 1 %}s{% endif %}), conte na gaveta e nas maquininhas e informe o <strong>total por forma</strong>. Caixa Teste é fechado à parte.</p>
+            <p class="mt-2 text-slate-600">Em <strong>Dinheiro</strong>, o esperado inclui fundo de abertura + vendas + reforços − retiradas.</p>
+          </div>
+        </details>
+        {% include "produtos/_pdv_voltar_link.html" with link_class="cf-t-btn inline-flex items-center justify-center gap-1.5 min-h-[48px] px-4 py-2 rounded-xl border-2 border-emerald-500 bg-white text-emerald-900 font-black uppercase hover:bg-emerald-50 shrink-0" %}
       </div>
     </div>
   </header>
@@ -1012,28 +1095,11 @@
       <input type="hidden" name="fiado_baixas_pulado" id="fiado-baixas-pulado" value="0">
       <input type="hidden" name="fiado_baixas_pulo_pin" id="fiado-baixas-pulo-pin" value="">
 
-      <div class="cf-form-head relative">
-        <div class="min-w-0 flex-1">
-          <p class="cf-t-label text-emerald-100">Fechamento do turno — principal</p>
-          <h2 class="cf-t-section leading-snug">Conferência por forma de pagamento</h2>
-        </div>
-        <details class="cf-help shrink-0 rounded-lg border-2 border-emerald-400/60 bg-emerald-700/40 text-left">
-          <summary class="cf-t-label cursor-pointer list-none flex items-center gap-2 px-2 py-1.5 min-h-[40px] hover:bg-emerald-700/50 select-none" title="Como conferir">
-            <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-emerald-800 text-base font-black">?</span>
-            <span class="hidden sm:inline">Ajuda</span>
-          </summary>
-          <div class="absolute z-30 mt-1 right-2 max-w-md rounded-xl border-2 border-emerald-500 bg-emerald-800 px-4 py-3 text-sm font-semibold leading-relaxed text-emerald-50 shadow-xl">
-            <p>Some o turno da <strong>loja</strong> ({{ qtd_caixas_operacional }} caixa gaveta{% if qtd_caixas_operacional > 1 %}s{% endif %}), conte na gaveta e nas maquininhas e informe o <strong>total por forma</strong>. Caixa Teste é fechado à parte.</p>
-            <p class="mt-2 text-emerald-100/90">Em <strong>Dinheiro</strong>, o esperado inclui fundo de abertura + vendas + reforços − retiradas.</p>
-          </div>
-        </details>
-      </div>
-
       <nav class="cf-toolbar" aria-label="Consultas rápidas">
-        <button type="button" class="cf-toolbar-btn cf-popup-open border-orange-300 bg-orange-50 text-orange-950 hover:bg-orange-100" data-url="{{ caixa_popup_retirada }}" data-title="Retirada / saída" data-cf-refresh="1">Retirada / saída</button>
-        <button type="button" class="cf-toolbar-btn cf-popup-open border-emerald-400 bg-emerald-50 text-emerald-950 hover:bg-emerald-100" data-url="{{ caixa_popup_reforco }}" data-title="Reforço manual" data-cf-refresh="1">Reforço manual</button>
-        <button type="button" class="cf-toolbar-btn cf-popup-open border-slate-300 bg-white text-slate-800 hover:bg-slate-50" data-url="{{ caixa_popup_relatorio }}" data-title="Relatório de caixa">Relatório de caixa</button>
-        <button type="button" class="cf-toolbar-btn cf-popup-open border-amber-400 bg-amber-50 text-amber-950 hover:bg-amber-100" data-url="{{ caixa_popup_conferencias }}" data-title="Conferências · diferenças">Conferências · diferenças</button>
+        <button type="button" class="cf-toolbar-btn cf-toolbar-btn--retirada cf-popup-open" data-url="{{ caixa_popup_retirada }}" data-title="Retirada / saída" data-cf-refresh="1">Retirada / saída</button>
+        <button type="button" class="cf-toolbar-btn cf-toolbar-btn--reforco cf-popup-open" data-url="{{ caixa_popup_reforco }}" data-title="Reforço manual" data-cf-refresh="1">Reforço manual</button>
+        <button type="button" class="cf-toolbar-btn cf-toolbar-btn--relatorio cf-popup-open" data-url="{{ caixa_popup_relatorio }}" data-title="Relatório de caixa">Relatório de caixa</button>
+        <button type="button" class="cf-toolbar-btn cf-toolbar-btn--conferencias cf-popup-open" data-url="{{ caixa_popup_conferencias }}" data-title="Conferências · diferenças">Conferências · diferenças</button>
       </nav>
 
       <div class="cf-body">
@@ -1048,6 +1114,9 @@
               <div class="cf-conf-col cf-conf-col--contado" role="columnheader">
                 <span class="cf-conf-head-label">Contado</span>
               </div>
+              <div class="cf-conf-col cf-conf-col--variacao" role="columnheader">
+                <span class="cf-conf-head-label">Variação</span>
+              </div>
             </div>
           {% for L in linhas_com_movimento %}
           <div class="cf-conf-row{% if L.forma == 'Dinheiro' %} cf-conf-row--dinheiro{% endif %}" role="row">
@@ -1060,17 +1129,15 @@
               {% if L.forma == 'Dinheiro' %}
               <div class="cf-conf-contado-field cf-contado-with-cedulas">
                 <div class="cf-contado-inline-wrap">
-                  <button type="button" id="cf-cedulas-abrir" class="cf-cedulas-open-btn--inline cf-t-label" aria-haspopup="dialog" aria-controls="cf-cedulas-modal" title="Abrir contagem de cédulas e moedas">Cédulas</button>
-                  <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input min-w-0 flex-1" placeholder="0,00" autocomplete="off" aria-label="Contado em dinheiro" title="Valor contado">
+                  <button type="button" id="cf-cedulas-abrir" class="cf-cedulas-open-btn--inline cf-t-label" aria-haspopup="dialog" aria-controls="cf-cedulas-modal" title="Abrir contagem de cédulas e moedas (opcional)">Cédulas</button>
+                  <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input min-w-0 flex-1" placeholder="0,00" autocomplete="off" aria-label="Contado em dinheiro" title="Informe o total contado">
                 </div>
-                <span id="cf-cedulas-resumo" class="cf-cedulas-open-resumo">Toque em Cédulas para informar quantidades</span>
-                <p class="caixa-diff cf-t-meta font-bold hidden"></p>
+                <span id="cf-cedulas-resumo" class="cf-cedulas-open-resumo">Opcional: contar por cédulas</span>
               </div>
               {% else %}
               <label class="cf-conf-contado-field min-w-0">
                 <span class="sr-only">Contado {{ L.forma }}</span>
                 <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input" placeholder="0,00" autocomplete="off" aria-label="Contado {{ L.forma }}" title="Valor contado">
-                <p class="caixa-diff cf-t-meta font-bold hidden"></p>
               </label>
               {% endif %}
               <details class="cf-mini-help relative justify-self-end self-start">
@@ -1084,6 +1151,9 @@
                   {% endif %}
                 </div>
               </details>
+            </div>
+            <div class="cf-conf-col cf-conf-col--variacao" role="cell">
+              <p class="caixa-diff cf-conf-variacao caixa-diff--vazio" aria-live="polite">—</p>
             </div>
           </div>
           {% endfor %}
@@ -1107,6 +1177,9 @@
                 <div class="cf-conf-col cf-conf-col--contado" role="columnheader">
                   <span class="cf-conf-head-label">Contado</span>
                 </div>
+                <div class="cf-conf-col cf-conf-col--variacao" role="columnheader">
+                  <span class="cf-conf-head-label">Variação</span>
+                </div>
               </div>
               {% for L in linhas_sem_movimento %}
               <div class="cf-conf-row" role="row">
@@ -1118,7 +1191,6 @@
                   <label class="cf-conf-contado-field min-w-0">
                     <span class="sr-only">Contado {{ L.forma }}</span>
                     <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input" placeholder="0,00" autocomplete="off" aria-label="Contado {{ L.forma }}">
-                    <p class="caixa-diff cf-t-meta font-bold hidden"></p>
                   </label>
                   <details class="cf-mini-help relative justify-self-end self-start">
                     <summary class="cursor-pointer list-none inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-xs font-black text-slate-500 select-none">?</summary>
@@ -1126,6 +1198,9 @@
                       <p class="cf-det-resumo">Vendas R$ {{ L.vendas }} · +Ref. R$ {{ L.reforcos }} · −Ret. R$ {{ L.retiradas }}</p>
                     </div>
                   </details>
+                </div>
+                <div class="cf-conf-col cf-conf-col--variacao" role="cell">
+                  <p class="caixa-diff cf-conf-variacao caixa-diff--vazio" aria-live="polite">—</p>
                 </div>
               </div>
               {% endfor %}
@@ -1363,28 +1438,37 @@
   function fmtBr(n) {
     return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
-  document.querySelectorAll('.caixa-contado').forEach(function (inp) {
-    function upd() {
-      var esp = parseBr(inp.getAttribute('data-esperado'));
-      var cont = parseBr(inp.value);
-      var el = inp.parentElement.querySelector('.caixa-diff');
-      if (!el || esp === null || cont === null) {
-        if (el) el.classList.add('hidden');
-        return;
-      }
-      var d = Math.round((cont - esp) * 100) / 100;
-      el.classList.remove('hidden');
-      if (Math.abs(d) < 0.009) {
-        el.textContent = '✓ Confere';
-        el.className = 'caixa-diff cf-t-meta mt-0.5 font-black text-emerald-700';
-      } else if (d > 0) {
-        el.textContent = 'Sobra R$ ' + fmtBr(d);
-        el.className = 'caixa-diff cf-t-meta mt-0.5 font-black text-sky-800';
-      } else {
-        el.textContent = 'Falta R$ ' + fmtBr(Math.abs(d));
-        el.className = 'caixa-diff cf-t-meta mt-0.5 font-black text-red-700';
-      }
+  function diffElForInput(inp) {
+    var row = inp.closest('.cf-conf-row');
+    if (row) return row.querySelector('.cf-conf-col--variacao .caixa-diff');
+    var wrap = inp.closest('label') || inp.parentElement;
+    return wrap ? wrap.querySelector('.caixa-diff') : null;
+  }
+  function atualizarVariacao(inp) {
+    var esp = parseBr(inp.getAttribute('data-esperado'));
+    var cont = parseBr(inp.value);
+    var el = diffElForInput(inp);
+    if (!el) return;
+    el.classList.remove('caixa-diff--vazio', 'caixa-diff--ok', 'caixa-diff--sobra', 'caixa-diff--falta', 'hidden');
+    if (esp === null || cont === null) {
+      el.textContent = '—';
+      el.classList.add('caixa-diff--vazio');
+      return;
     }
+    var d = Math.round((cont - esp) * 100) / 100;
+    if (Math.abs(d) < 0.009) {
+      el.textContent = '✓ Confere';
+      el.classList.add('caixa-diff--ok');
+    } else if (d > 0) {
+      el.textContent = 'Sobra R$ ' + fmtBr(d);
+      el.classList.add('caixa-diff--sobra');
+    } else {
+      el.textContent = 'Falta R$ ' + fmtBr(Math.abs(d));
+      el.classList.add('caixa-diff--falta');
+    }
+  }
+  document.querySelectorAll('.caixa-contado').forEach(function (inp) {
+    function upd() { atualizarVariacao(inp); }
     inp.addEventListener('input', upd);
     inp.addEventListener('change', upd);
   });
@@ -1436,15 +1520,43 @@
   aplicarContagemNosCampos(contagemMap);
 
   var dinheiroInp = document.querySelector('.caixa-contado[data-forma="Dinheiro"]');
+  var dinheiroDigitadoManual = false;
+  var skipDinheiroManualFlag = false;
   var cedulasTotalEl = document.getElementById('cf-cedulas-total');
   var cedulasResumoEl = document.getElementById('cf-cedulas-resumo');
   var cedulaQtyNodes = document.querySelectorAll('.cf-cedula-qty');
+  function cedulasTemQuantidade() {
+    for (var i = 0; i < cedulaQtyNodes.length; i++) {
+      var qtd = parseInt(cedulaQtyNodes[i].value, 10);
+      if (Number.isFinite(qtd) && qtd > 0) return true;
+    }
+    return false;
+  }
   function aplicarCedulasNosCampos(map) {
     cedulaQtyNodes.forEach(function (inp) {
       var k = String(inp.getAttribute('data-valor') || '').trim();
       if (k && map[k] != null && map[k] !== '') inp.value = String(map[k]);
     });
-    if (cedulaQtyNodes.length) recalcularCedulas(Object.keys(map || {}).length > 0);
+    recalcularCedulas(false);
+  }
+  function sincronizarDinheiroDasCedulas() {
+    if (!dinheiroInp) return;
+    var total = 0;
+    var anyQty = cedulasTemQuantidade();
+    cedulaQtyNodes.forEach(function (inp) {
+      var denom = parseFloat(String(inp.getAttribute('data-valor') || '0').replace(',', '.'));
+      var qtd = parseInt(inp.value, 10);
+      if (!Number.isFinite(qtd) || qtd < 0) qtd = 0;
+      total += (Number.isFinite(denom) ? denom : 0) * qtd;
+    });
+    total = Math.round(total * 100) / 100;
+    if (anyQty) {
+      dinheiroInp.value = fmtBr(total);
+      dinheiroDigitadoManual = false;
+    }
+    skipDinheiroManualFlag = true;
+    dinheiroInp.dispatchEvent(new Event('input', { bubbles: true }));
+    skipDinheiroManualFlag = false;
   }
   function recalcularCedulas(updateDinheiro) {
     var total = 0;
@@ -1466,12 +1578,15 @@
     if (cedulasTotalEl) cedulasTotalEl.textContent = 'R$ ' + fmtBr(total);
     if (cedulasResumoEl) {
       cedulasResumoEl.textContent = anyQty
-        ? ('Contado · R$ ' + fmtBr(total))
-        : 'Toque para informar quantidades';
+        ? ('Cédulas · R$ ' + fmtBr(total))
+        : 'Opcional: contar por cédulas';
     }
-    if (dinheiroInp && updateDinheiro) {
-      dinheiroInp.value = anyQty ? fmtBr(total) : '';
+    if (dinheiroInp && updateDinheiro && anyQty) {
+      dinheiroInp.value = fmtBr(total);
+      dinheiroDigitadoManual = false;
+      skipDinheiroManualFlag = true;
       dinheiroInp.dispatchEvent(new Event('input', { bubbles: true }));
+      skipDinheiroManualFlag = false;
     }
   }
   function coletarCedulas() {
@@ -1484,16 +1599,33 @@
     });
     return out;
   }
+  if (contagemMap.Dinheiro != null && String(contagemMap.Dinheiro).trim() !== '') {
+    dinheiroDigitadoManual = true;
+  }
   aplicarCedulasNosCampos(cedulasMap);
+  if (!dinheiroDigitadoManual && cedulasTemQuantidade()) {
+    sincronizarDinheiroDasCedulas();
+  }
+  if (dinheiroInp) {
+    dinheiroInp.addEventListener('input', function () {
+      if (!skipDinheiroManualFlag) dinheiroDigitadoManual = true;
+    });
+    dinheiroInp.addEventListener('change', function () {
+      if (!skipDinheiroManualFlag) dinheiroDigitadoManual = true;
+    });
+  }
   cedulaQtyNodes.forEach(function (inp) {
     inp.addEventListener('input', function () {
-      recalcularCedulas(true);
+      recalcularCedulas(false);
       agendarSalvarContagem();
     });
     inp.addEventListener('change', function () {
-      recalcularCedulas(true);
+      recalcularCedulas(false);
       agendarSalvarContagem();
     });
+  });
+  document.querySelectorAll('.caixa-contado').forEach(function (inp) {
+    atualizarVariacao(inp);
   });
 
   var cedulasModal = document.getElementById('cf-cedulas-modal');
@@ -1503,7 +1635,11 @@
   function fecharCedulasModal() {
     if (!cedulasModal) return;
     cedulasModal.classList.add('hidden');
-    recalcularCedulas(true);
+    if (cedulasTemQuantidade()) {
+      sincronizarDinheiroDasCedulas();
+    } else {
+      recalcularCedulas(false);
+    }
     agendarSalvarContagem();
     if (cedulasAbrir) cedulasAbrir.focus();
   }
