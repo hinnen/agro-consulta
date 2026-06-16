@@ -3490,7 +3490,11 @@
 
     function abrirFluxoPagamentoEntregaSePendente() {
         if (entregaFluxoPagamentoCompleto()) return false;
-        openEntregaDetalhesModal();
+        if (isEntregaDetalhesModalOpen()) {
+            syncEntregaDetalhesModalUi();
+        } else {
+            openEntregaDetalhesModal();
+        }
         return true;
     }
 
@@ -3577,7 +3581,10 @@
         entregaPlusGeocodeLastQ = String(e.plusCode || c.plus_code || '').trim();
         if (dom.entregaMain) {
             var modo = String(e.modoRetiradaEntrega || '');
-            var showMain = modo === 'entrega' && !!e.detalhesEntregaRespondidos;
+            var showMain =
+                modo === 'entrega' &&
+                !!e.detalhesEntregaRespondidos &&
+                entregaFluxoPagamentoCompleto(state);
             showElement(dom.entregaMain, showMain, 'flex');
             if (showMain && !entregaClienteSnapshot) {
                 entregaClienteSnapshot = clienteEntregaSnapshotFromState(state);
@@ -4040,9 +4047,11 @@
         syncEntregaDetalhesModalUi();
         var root = document.getElementById('modal-pdv-entrega-detalhes');
         if (!root) return;
-        root.classList.remove('hidden');
-        root.classList.add('flex');
-        pdvEnsureModalOpenBody();
+        if (root.classList.contains('hidden')) {
+            root.classList.remove('hidden');
+            root.classList.add('flex');
+            pdvEnsureModalOpenBody();
+        }
     }
     function resetEntregaModoAoVoltarProdutos() {
         State.setEntregaPatch({
