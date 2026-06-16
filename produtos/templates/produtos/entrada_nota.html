@@ -59,11 +59,20 @@
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     }
     @media (min-width: 768px) {
-      /* Subgrid: chip / conteúdo / ações alinham entre todas as linhas da lista. */
+      /* Subgrid: chip · fornecedor · 6 metadados · ações — mesma grade em todas as linhas. */
       .entrada-nfe-lista-rasc {
         display: grid;
-        grid-template-columns: 6.85rem minmax(0, 1fr) 13.25rem;
-        column-gap: 0.75rem;
+        grid-template-columns:
+          6.85rem
+          minmax(7.5rem, 1.2fr)
+          minmax(4.25rem, 1fr)
+          minmax(2.75rem, 0.55fr)
+          minmax(5.75rem, 1fr)
+          minmax(2.25rem, 0.42fr)
+          minmax(6.5rem, 0.95fr)
+          minmax(6.5rem, 0.95fr)
+          12.5rem;
+        column-gap: clamp(0.55rem, 1.1vw, 1.1rem);
         row-gap: 0.5rem;
         align-items: center;
       }
@@ -76,6 +85,18 @@
       }
       .nfe-lista-row {
         grid-template-columns: unset;
+      }
+      .nfe-lista-text,
+      .nfe-lista-meta {
+        display: contents;
+      }
+      .nfe-lista-fornecedor {
+        min-width: 0;
+        margin: 0;
+        padding-right: 0.15rem;
+      }
+      .nfe-lista-meta-item {
+        min-width: 0;
       }
     }
     .nfe-lista-chip-col {
@@ -104,7 +125,7 @@
       line-height: 1.25;
       letter-spacing: -0.02em;
     }
-    /* Metadados: larguras fixas iguais em todas as linhas (alinhamento vertical). */
+    /* Metadados: mobile empilhado; desktop entra no subgrid da lista (display:contents). */
     .nfe-lista-meta {
       display: grid;
       grid-template-columns: 5rem 3.25rem 7.25rem 2.75rem 8.25rem 8.25rem;
@@ -112,14 +133,8 @@
       row-gap: 0.15rem;
       margin-top: 0.3rem;
       align-items: start;
-      width: max-content;
+      width: 100%;
       max-width: 100%;
-    }
-    @media (max-width: 1100px) {
-      .nfe-lista-meta {
-        grid-template-columns: 4.5rem 3rem 6.75rem 2.5rem 7.5rem 7.5rem;
-        column-gap: 0.4rem;
-      }
     }
     @media (max-width: 767px) {
       .nfe-lista-meta {
