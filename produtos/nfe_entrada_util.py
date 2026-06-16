@@ -155,6 +155,13 @@ def _entrada_nfe_extra_correcao_sistemica(extra: Any) -> bool:
     return False
 
 
+def _entrada_nfe_extra_aviso_operacional(extra: Any) -> str:
+    """Texto livre visível na lista (aviso entre usuários da loja)."""
+    if not isinstance(extra, dict):
+        return ""
+    return str(extra.get("aviso_operacional") or "").strip()[:500]
+
+
 def entrada_nfe_fila_bucket_lista(d: dict[str, Any]) -> str:
     """
     Estágio exclusivo para filtros da lista (Entrada NF-e), alinhado ao fluxo:
@@ -208,6 +215,7 @@ def entrada_nfe_enriquecer_doc_serializado(d: dict[str, Any]) -> dict[str, Any]:
     d["entrada_financeiro_lancado"] = entrada_nfe_extra_financeiro_ok(extra)
     d["entrada_lista_bucket"] = entrada_nfe_fila_bucket_lista(d)
     d["entrada_correcao_sistemica"] = _entrada_nfe_extra_correcao_sistemica(extra)
+    d["entrada_aviso_operacional"] = _entrada_nfe_extra_aviso_operacional(extra)
     return d
 
 
@@ -2501,8 +2509,9 @@ def pipeline_acao_rascunho_entrada(
     acao: str,
     *,
     usuario: str = "",
+    texto: str = "",
 ) -> dict[str, Any]:
-    """descartar | reabrir | correcao_sistemica_on | correcao_sistemica_off.
+    """descartar | reabrir | correcao_sistemica_on | correcao_sistemica_off | aviso_operacional_salvar | aviso_operacional_limpar.
 
     ``encerrar`` está desativado: a lista trata **Concluída** só com estoque aplicado + financeiro.
     """
@@ -2566,6 +2575,43 @@ def pipeline_acao_rascunho_entrada(
                     },
                 )
             return {"ok": True, "id": str(_id), "correcao_sistemica": ac == "correcao_sistemica_on"}
+        elif ac in ("aviso_operacional_salvar", "aviso_operacional_limpar"):
+            if st == ENTRADA_NFE_STATUS_DESCARTADA:
+                return {"ok": False, "erro": "Nota descartada."}
+            if ac == "aviso_operacional_salvar":
+                txt = str(texto or "").strip()
+                if len(txt) < 1:
+                    return {"ok": False, "erro": "Digite o aviso para a nota."}
+                if len(txt) > 500:
+                    txt = txt[:500]
+                db[COL_ENTRADA_RASCUNHO].update_one(
+                    {"_id": _id},
+                    {
+                        "$set": {
+                            "extra.aviso_operacional": txt,
+                            "extra.aviso_operacional_em": agora.isoformat(),
+                            "extra.aviso_operacional_por": (usuario or "")[:200],
+                            "atualizado_em": agora,
+                            "usuario_ultima_alteracao": (usuario or "")[:200],
+                        }
+                    },
+                )
+                return {"ok": True, "id": str(_id), "aviso_operacional": txt}
+            db[COL_ENTRADA_RASCUNHO].update_one(
+                {"_id": _id},
+                {
+                    "$unset": {
+                        "extra.aviso_operacional": "",
+                        "extra.aviso_operacional_em": "",
+                        "extra.aviso_operacional_por": "",
+                    },
+                    "$set": {
+                        "atualizado_em": agora,
+                        "usuario_ultima_alteracao": (usuario or "")[:200],
+                    },
+                },
+            )
+            return {"ok": True, "id": str(_id), "aviso_operacional": ""}
         else:
             return {"ok": False, "erro": "Ação inválida."}
         db[COL_ENTRADA_RASCUNHO].update_one(

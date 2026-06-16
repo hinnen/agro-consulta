@@ -384,6 +384,75 @@
             min-height: 3.4rem;
         }
     }
+    .agro-ver-badge {
+        position: absolute;
+        top: 0;
+        right: 0;
+        font-size: 8px;
+        font-weight: 700;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        color: rgba(148, 163, 184, 0.75);
+        letter-spacing: 0.02em;
+        cursor: default;
+        line-height: 1;
+        padding: 1px 0;
+    }
+    .agro-ver-badge:hover,
+    .agro-ver-badge:focus-visible {
+        color: rgba(203, 213, 225, 0.95);
+        outline: none;
+    }
+    .agro-ver-tip {
+        display: none;
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        z-index: 50;
+        min-width: 11rem;
+        max-width: 18rem;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(15, 23, 42, 0.96);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        font-size: 9px;
+        font-weight: 600;
+        color: #e2e8f0;
+        text-align: left;
+        line-height: 1.45;
+        white-space: normal;
+    }
+    .agro-ver-badge:hover .agro-ver-tip,
+    .agro-ver-badge:focus-visible .agro-ver-tip {
+        display: block;
+    }
+    .agro-ver-tip dt {
+        font-size: 8px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #94a3b8;
+        margin-top: 6px;
+    }
+    .agro-ver-tip dt:first-child { margin-top: 0; }
+    .agro-ver-tip dd {
+        margin: 0;
+        font-family: ui-monospace, monospace;
+        font-size: 9px;
+        color: #f1f5f9;
+        word-break: break-all;
+    }
+    .agro-ver-tip ul {
+        margin: 2px 0 0;
+        padding: 0;
+        list-style: none;
+    }
+    .agro-ver-tip li {
+        font-family: ui-monospace, monospace;
+        font-size: 8px;
+        color: #cbd5e1;
+        padding: 1px 0;
+    }
 </style>
 {% endblock %}
 
@@ -391,13 +460,43 @@
 {% include "produtos/_gm_loading_bar.html" %}
 <div class="main-container">
     <div class="flex flex-wrap xl:flex-nowrap items-center justify-between gap-2 p-2 bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/5 mb-6 no-print">
-        <div class="flex items-center gap-3 px-2 border-r border-white/10 mr-1">
-            <div class="w-8 h-8 bg-[#00BFFF] rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(0,191,255,0.3)]">
+        <div class="flex items-center gap-3 px-2 border-r border-white/10 mr-1 relative">
+            <div class="w-8 h-8 bg-[#00BFFF] rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(0,191,255,0.3)] relative">
                 <i data-lucide="layout-dashboard" class="text-white w-4 h-4"></i>
+                <span class="xl:hidden agro-ver-badge" style="top:-4px;right:-10px;font-size:7px;" tabindex="0" aria-label="Versão {{ agro_build.version }}" title="v{{ agro_build.version }}{% if agro_build.commit %} · {{ agro_build.commit }}{% endif %}">v{{ agro_build.version }}</span>
             </div>
-            <div class="hidden xl:block">
+            <div class="hidden xl:block relative pr-10">
                 <h1 class="text-xs font-black text-white uppercase leading-none">Gestão Estratégica</h1>
                 <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">SisVale BI</p>
+                <span class="agro-ver-badge" tabindex="0" aria-label="Versão {{ agro_build.version }}">
+                    v{{ agro_build.version }}
+                    <span class="agro-ver-tip" role="tooltip">
+                        <dl>
+                            <dt>Versão</dt>
+                            <dd>{{ agro_build.version }}</dd>
+                            {% if agro_build.commit %}
+                            <dt>Commit em execução</dt>
+                            <dd title="{{ agro_build.commit_full }}">{{ agro_build.commit }}</dd>
+                            {% endif %}
+                            {% if agro_build.branch %}
+                            <dt>Branch</dt>
+                            <dd>{{ agro_build.branch }}</dd>
+                            {% endif %}
+                            {% if agro_build.built_at %}
+                            <dt>Último deploy registrado</dt>
+                            <dd>{{ agro_build.built_at }}</dd>
+                            {% endif %}
+                        </dl>
+                        {% if agro_build.version_commits %}
+                        <p class="mt-1.5 mb-0.5 text-[8px] font-black uppercase tracking-wide text-slate-400">Commits nesta versão</p>
+                        <ul>
+                            {% for row in agro_build.version_commits %}
+                            <li title="{{ row.commit_full }}">{% if row.recorded_at %}{{ row.recorded_at|slice:":10" }} · {% endif %}{{ row.commit }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </span>
+                </span>
             </div>
         </div>
 

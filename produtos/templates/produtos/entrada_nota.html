@@ -11,6 +11,46 @@
   {% include "produtos/_agro_consulta_ui.html" %}
   <style>
     body { font-family: 'Inter', sans-serif; }
+    html.entrada-nfe-lista-zoom,
+    html.entrada-nfe-lista-zoom body {
+      height: 100%;
+      max-height: 100dvh;
+      overflow: hidden;
+    }
+    .entrada-nfe-lista-page {
+      height: 100dvh;
+      max-height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .entrada-nfe-shell {
+      --en-wpx: 1280px;
+      --en-hpx: 720px;
+      width: 100%;
+      max-width: min(96rem, 100%);
+      margin-left: auto;
+      margin-right: auto;
+      container-type: inline-size;
+      container-name: entrada-nfe;
+    }
+    #entrada-nfe-main-lista.entrada-nfe-lista-shell {
+      flex: 1 1 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      font-size: clamp(0.78rem, calc(0.72rem + var(--en-wpx) * 0.0011), 0.96rem);
+    }
+    #entrada-nfe-header-principal .entrada-nfe-shell {
+      padding-left: clamp(0.65rem, calc(0.4rem + var(--en-wpx) * 0.004), 1.1rem);
+      padding-right: clamp(0.65rem, calc(0.4rem + var(--en-wpx) * 0.004), 1.1rem);
+      padding-top: clamp(0.45rem, calc(0.3rem + var(--en-hpx) * 0.006), 0.85rem);
+      padding-bottom: clamp(0.45rem, calc(0.3rem + var(--en-hpx) * 0.006), 0.85rem);
+    }
+    #entrada-nfe-header-principal h1 {
+      font-size: clamp(1rem, calc(0.82rem + var(--en-wpx) * 0.012), 1.35rem);
+    }
     /* Igual ao bloco PDV Wizard (`produtos/templates/produtos/pdv_wizard.html`). */
     .pdv-wizard-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
     .pdv-wizard-scroll::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.55); border-radius: 999px; }
@@ -57,6 +97,10 @@
       background: rgb(255 255 255);
       padding: 0.6rem 0.7rem;
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .nfe-lista-row--com-aviso {
+      border-color: rgb(251 191 36);
+      box-shadow: 0 0 0 1px rgb(251 191 36 / 0.35);
     }
     @media (min-width: 768px) {
       .nfe-lista-row {
@@ -110,8 +154,8 @@
         minmax(2.5rem, 0.62fr)
         minmax(5.5rem, 1fr)
         minmax(2rem, 0.38fr)
-        minmax(6.25rem, 1fr)
-        minmax(6.25rem, 1fr);
+        minmax(7.25rem, 1.05fr)
+        minmax(7.25rem, 1.05fr);
       column-gap: clamp(0.5rem, 1.25vw, 1.35rem);
       row-gap: 0.15rem;
       margin-top: 0.3rem;
@@ -260,6 +304,62 @@
     }
     .nfe-lista-act--warn:hover {
       background: rgb(254 249 195);
+    }
+    .nfe-lista-act--aviso {
+      min-width: 2.5rem;
+      width: 2.5rem;
+      padding: 0;
+      border-width: 2px;
+      border-color: rgb(251 191 36);
+      background: rgb(254 243 199);
+      color: rgb(161 98 7);
+      font-size: clamp(1rem, calc(0.85rem + var(--en-wpx) * 0.004), 1.2rem);
+      font-weight: 900;
+      line-height: 1;
+    }
+    .nfe-lista-act--aviso:hover {
+      background: rgb(253 230 138);
+      border-color: rgb(245 158 11);
+    }
+    .nfe-lista-act--aviso-on {
+      box-shadow: 0 0 0 2px rgb(245 158 11 / 0.45);
+      background: rgb(253 230 138);
+    }
+    .nfe-lista-aviso-banner {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.45rem;
+      padding: 0.45rem 0.6rem;
+      border-radius: 0.55rem;
+      border: 2px solid rgb(251 191 36);
+      background: linear-gradient(90deg, rgb(254 243 199) 0%, rgb(255 251 235) 100%);
+      color: rgb(120 53 15);
+      box-shadow: 0 1px 0 rgb(245 158 11 / 0.2);
+    }
+    .nfe-lista-aviso-banner__icon {
+      flex-shrink: 0;
+      width: 1.35rem;
+      height: 1.35rem;
+      border-radius: 0.35rem;
+      border: 2px solid rgb(245 158 11);
+      background: rgb(253 224 71);
+      color: rgb(120 53 15);
+      font-weight: 900;
+      font-size: 0.95rem;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nfe-lista-aviso-banner__texto {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: clamp(0.82rem, calc(0.76rem + var(--en-wpx) * 0.0014), 0.98rem);
+      font-weight: 800;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
     .nfe-lista-act--danger {
       border-color: rgb(254 202 202);
@@ -918,11 +1018,11 @@
     window.GM_LOADING_BAR_SHOW_DELAY_MS = 80;
   </script>
 </head>
-<body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col{% if entrada_embed %} entrada-nfe-embed entrada-nfe-embed--{{ entrada_embed }}{% endif %}">
+<body class="entrada-nfe-lista-page bg-slate-50 overflow-hidden text-slate-800 flex flex-col{% if entrada_embed %} entrada-nfe-embed entrada-nfe-embed--{{ entrada_embed }}{% endif %}">
 {% include "produtos/_gm_loading_bar.html" %}
 
   <header id="entrada-nfe-header-principal" class="gm-bar border-b border-slate-200/80 shrink-0">
-    <div class="max-w-[1400px] mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="entrada-nfe-shell flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3 min-w-0">
         <div class="h-11 w-11 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
           <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="" class="w-full h-full object-contain p-1">
@@ -940,7 +1040,7 @@
 
   <div id="msg-global" role="status" aria-live="polite" class="hidden fixed top-14 left-3 right-3 max-w-2xl mx-auto z-[55] rounded-xl border-2 px-3 py-2 text-sm font-bold flex flex-wrap items-center gap-2 shadow-lg pointer-events-none"></div>
 
-  <main id="entrada-nfe-main-lista" class="max-w-[1400px] mx-auto w-full px-3 sm:px-4 flex flex-col flex-1 min-h-0 overflow-hidden py-2">
+  <main id="entrada-nfe-main-lista" class="entrada-nfe-shell entrada-nfe-lista-shell w-full px-3 sm:px-4 flex flex-col flex-1 min-h-0 overflow-hidden py-2">
 
     <div class="hidden" aria-hidden="true">
       <span class="rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex bg-amber-100 text-amber-950 border-2 border-amber-400"></span>
@@ -1693,6 +1793,28 @@
       <div class="shrink-0 flex flex-wrap gap-2 justify-end border-t border-slate-100 px-4 py-3 bg-slate-50/80">
         <button type="button" id="btn-entrada-nfe-filtros-limpar-modal" class="min-h-[44px] px-4 rounded-xl border border-slate-200 bg-white text-[11px] font-black uppercase text-slate-700">Limpar filtros</button>
         <button type="button" id="btn-entrada-nfe-filtros-aplicar" class="min-h-[44px] px-5 rounded-xl bg-emerald-700 text-white text-[11px] font-black uppercase border border-emerald-800 hover:bg-emerald-800">Aplicar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-entrada-nfe-aviso" class="hidden fixed inset-0 z-[73] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-entrada-nfe-aviso-titulo">
+    <div class="w-full max-w-lg max-h-[min(88vh,32rem)] flex flex-col rounded-2xl border-2 border-amber-300 bg-white shadow-xl overflow-hidden">
+      <div class="shrink-0 px-4 py-3 border-b border-amber-100 bg-amber-50/90 flex items-center justify-between gap-2">
+        <h2 id="modal-entrada-nfe-aviso-titulo" class="text-base font-black uppercase text-amber-950">Aviso na nota</h2>
+        <button type="button" id="btn-fechar-modal-entrada-nfe-aviso" class="min-h-[40px] min-w-[40px] rounded-xl border-2 border-slate-200 bg-white text-sm font-black text-slate-700 hover:bg-slate-50" aria-label="Fechar">×</button>
+      </div>
+      <div class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 text-sm">
+        <p id="modal-entrada-nfe-aviso-sub" class="text-[11px] font-semibold text-slate-600 leading-snug">Todos os usuários verão este texto na lista da nota. Use para orientar quem está dando entrada (ex.: corrigir produto, conferir quantidade).</p>
+        <label class="block">
+          <span class="text-[11px] font-black uppercase text-slate-600">Seu aviso</span>
+          <textarea id="entrada-nfe-aviso-texto" rows="5" maxlength="500" class="mt-1 w-full min-h-[7rem] px-3 py-2.5 rounded-xl border-2 border-amber-200 bg-amber-50/40 font-bold text-slate-900 placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:outline-none" placeholder="Ex.: Conferir código de barras da linha 3 antes de registrar estoque."></textarea>
+        </label>
+        <p class="text-[10px] font-semibold text-slate-500">Até 500 caracteres.</p>
+      </div>
+      <div class="shrink-0 flex flex-wrap gap-2 justify-end border-t border-slate-100 px-4 py-3 bg-slate-50/80">
+        <button type="button" id="btn-entrada-nfe-aviso-limpar" class="min-h-[44px] px-4 rounded-xl border border-rose-200 bg-white text-[11px] font-black uppercase text-rose-800 hover:bg-rose-50">Remover aviso</button>
+        <button type="button" id="btn-fechar-modal-entrada-nfe-aviso-2" class="min-h-[44px] px-4 rounded-xl border border-slate-200 bg-white text-[11px] font-black uppercase text-slate-700">Cancelar</button>
+        <button type="button" id="btn-entrada-nfe-aviso-salvar" class="min-h-[44px] px-5 rounded-xl bg-amber-500 text-white text-[11px] font-black uppercase border border-amber-600 hover:bg-amber-600">Salvar aviso</button>
       </div>
     </div>
   </div>
@@ -2566,11 +2688,66 @@
         else if (acao === 'reabrir') msg = 'Nota reaberta.';
         else if (acao === 'correcao_sistemica_on') msg = 'Marcada como CORREÇÃO SISTEMICA.';
         else if (acao === 'correcao_sistemica_off') msg = 'Marca CORREÇÃO SISTEMICA removida.';
+        else if (acao === 'aviso_operacional_salvar') msg = 'Aviso salvo na nota.';
+        else if (acao === 'aviso_operacional_limpar') msg = 'Aviso removido.';
         showMsg(msg, true);
         carregarRascunhos();
       } else {
         const fallback = r.status === 403 ? 'PIN incorreto ou inválido.' : 'Não foi possível alterar o status.';
         showMsg(j.erro || fallback, false);
+      }
+    } catch (_) {
+      showMsg('Erro de rede.', false);
+    }
+  }
+
+  let entradaNfeAvisoModalRid = '';
+  let entradaNfeAvisoModalForn = '';
+
+  function entradaNfeFecharModalAviso() {
+    document.getElementById('modal-entrada-nfe-aviso')?.classList.add('hidden');
+    entradaNfeAvisoModalRid = '';
+    entradaNfeAvisoModalForn = '';
+  }
+
+  function entradaNfeAbrirModalAviso(rid, textoAtual, fornecedorNome) {
+    entradaNfeAvisoModalRid = String(rid || '');
+    entradaNfeAvisoModalForn = String(fornecedorNome || '').trim();
+    const sub = document.getElementById('modal-entrada-nfe-aviso-sub');
+    if (sub) {
+      sub.textContent = entradaNfeAvisoModalForn
+        ? `Nota: ${entradaNfeAvisoModalForn}. Todos os usuários verão este texto na lista.`
+        : 'Todos os usuários verão este texto na lista da nota. Use para orientar quem está dando entrada.';
+    }
+    const ta = document.getElementById('entrada-nfe-aviso-texto');
+    if (ta) ta.value = String(textoAtual || '');
+    document.getElementById('modal-entrada-nfe-aviso')?.classList.remove('hidden');
+    ta?.focus();
+  }
+
+  async function entradaNfeRascunhoAvisoOperacional(id, acao, texto) {
+    try {
+      const body = { id, acao };
+      if (texto !== undefined) body.texto = texto;
+      const r = await fetch(URL_RASC_ACAO, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json();
+      if (j.ok) {
+        let msg = 'Aviso atualizado.';
+        if (acao === 'aviso_operacional_salvar') msg = 'Aviso salvo na nota.';
+        else if (acao === 'aviso_operacional_limpar') msg = 'Aviso removido.';
+        showMsg(msg, true);
+        entradaNfeFecharModalAviso();
+        carregarRascunhos();
+      } else {
+        showMsg(j.erro || 'Não foi possível salvar o aviso.', false);
       }
     } catch (_) {
       showMsg('Erro de rede.', false);
@@ -9608,6 +9785,7 @@
             'Marcado pelo usuário: aguardando ajuste no sistema. A nota continua na mesma fila operacional até concluir o fluxo.';
           chipRow.appendChild(cx);
         }
+        const avisoTxt = String(it.entrada_aviso_operacional || exLista.aviso_operacional || '').trim();
         const textBlock = document.createElement('div');
         textBlock.className = 'nfe-lista-text min-w-0';
         const nomeForn = document.createElement('div');
@@ -9648,37 +9826,19 @@
             () => carregarRascunhoNaTela(rid),
           ),
         );
-        const exL = it.extra && typeof it.extra === 'object' ? it.extra : {};
-        const finalWiz = String(exL.aprovacao_wizard_em || '').trim();
-        if (eff !== 'descartada' && !finalWiz) {
-          if (it.entrada_correcao_sistemica) {
-            actions.appendChild(
-              mkBtn(
-                'Retirar',
-                'rose',
-                'Remover a marca de correção sistêmica desta nota',
-                () => {
-                  if (window.confirm('Remover a marca CORREÇÃO SISTEMICA desta nota?')) entradaNfeRascunhoAcao(rid, 'correcao_sistemica_off');
-                },
-              ),
-            );
-          } else {
-            actions.appendChild(
-              mkBtn(
-                'Correção',
-                'rose',
-                'Marcar como correção sistêmica: a nota continua na mesma fila até concluir o fluxo.',
-                () => {
-                  if (
-                    window.confirm(
-                      'Marcar como CORREÇÃO SISTEMICA? A nota continua em andamento na mesma fila (Nota aberta, Estoque, etc.) até concluir o fluxo.',
-                    )
-                  )
-                    entradaNfeRascunhoAcao(rid, 'correcao_sistemica_on');
-                },
-              ),
-            );
-          }
+        if (eff !== 'descartada' && eff !== 'encerrada') {
+          const btnAviso = document.createElement('button');
+          btnAviso.type = 'button';
+          btnAviso.className = `nfe-lista-act nfe-lista-act--aviso${avisoTxt ? ' nfe-lista-act--aviso-on' : ''}`;
+          btnAviso.title = avisoTxt
+            ? 'Editar aviso visível na lista para todos os usuários'
+            : 'Deixar um aviso na nota para todos os usuários verem';
+          btnAviso.setAttribute('aria-label', avisoTxt ? 'Editar aviso na nota' : 'Adicionar aviso na nota');
+          btnAviso.textContent = '!';
+          btnAviso.addEventListener('click', () => {
+            entradaNfeAbrirModalAviso(rid, avisoTxt, cab.emit_nome || '');
+          });
+          actions.appendChild(btnAviso);
         }
         if (eff !== 'descartada') {
           actions.appendChild(
@@ -9712,9 +9872,27 @@
             () => excluirRascunhoMongo(rid),
           ),
         );
+        if (avisoTxt) {
+          wrap.classList.add('nfe-lista-row--com-aviso');
+        }
         wrap.appendChild(chipRow);
         wrap.appendChild(textBlock);
         wrap.appendChild(actions);
+        if (avisoTxt) {
+          const avisoBanner = document.createElement('div');
+          avisoBanner.className = 'nfe-lista-aviso-banner';
+          avisoBanner.setAttribute('role', 'note');
+          const avisoIcon = document.createElement('span');
+          avisoIcon.className = 'nfe-lista-aviso-banner__icon';
+          avisoIcon.setAttribute('aria-hidden', 'true');
+          avisoIcon.textContent = '!';
+          const avisoMsg = document.createElement('div');
+          avisoMsg.className = 'nfe-lista-aviso-banner__texto';
+          avisoMsg.textContent = avisoTxt;
+          avisoBanner.appendChild(avisoIcon);
+          avisoBanner.appendChild(avisoMsg);
+          wrap.appendChild(avisoBanner);
+        }
         box.appendChild(wrap);
       });
     } catch (_) {
@@ -9726,6 +9904,7 @@
         btnRef.removeAttribute('aria-busy');
       }
       if (window.gmLoadingBar) window.gmLoadingBar.hide();
+      entradaNfeAgendarLayoutLista();
     }
   }
 
@@ -9874,7 +10053,65 @@
     document.getElementById('modal-entrada-nfe-auditoria-fin')?.classList.add('hidden');
   });
 
+  document.getElementById('btn-fechar-modal-entrada-nfe-aviso')?.addEventListener('click', entradaNfeFecharModalAviso);
+  document.getElementById('btn-fechar-modal-entrada-nfe-aviso-2')?.addEventListener('click', entradaNfeFecharModalAviso);
+  document.getElementById('btn-entrada-nfe-aviso-salvar')?.addEventListener('click', () => {
+    const rid = entradaNfeAvisoModalRid;
+    if (!rid) return;
+    const txt = String(document.getElementById('entrada-nfe-aviso-texto')?.value || '').trim();
+    if (!txt) {
+      showMsg('Digite o aviso antes de salvar.', false);
+      return;
+    }
+    void entradaNfeRascunhoAvisoOperacional(rid, 'aviso_operacional_salvar', txt);
+  });
+  document.getElementById('btn-entrada-nfe-aviso-limpar')?.addEventListener('click', () => {
+    const rid = entradaNfeAvisoModalRid;
+    if (!rid) return;
+    if (!window.confirm('Remover o aviso desta nota?')) return;
+    void entradaNfeRascunhoAvisoOperacional(rid, 'aviso_operacional_limpar');
+  });
+
+  let entradaNfeListaLayoutTimer = null;
+  function entradaNfeAtualizarLayoutLista() {
+    const main = document.getElementById('entrada-nfe-main-lista');
+    const header = document.getElementById('entrada-nfe-header-principal');
+    if (!main) return;
+    document.documentElement.classList.add('entrada-nfe-lista-zoom');
+    main.style.zoom = '';
+    if (header) header.style.zoom = '';
+    const w = main.clientWidth || window.innerWidth || 1280;
+    const hAvail = main.clientHeight || Math.max(320, window.innerHeight - (header?.offsetHeight || 0) - 8);
+    main.style.setProperty('--en-wpx', `${w}px`);
+    main.style.setProperty('--en-hpx', `${hAvail}px`);
+    if (header) {
+      header.style.setProperty('--en-wpx', `${w}px`);
+      header.style.setProperty('--en-hpx', `${hAvail}px`);
+    }
+    requestAnimationFrame(() => {
+      const need = main.scrollHeight;
+      if (need > hAvail + 28 && hAvail > 120) {
+        const z = Math.max(0.55, Math.min(1, hAvail / need));
+        const zs = String(Math.round(z * 1000) / 1000);
+        if (main.style.zoom !== zs) main.style.zoom = zs;
+      }
+    });
+  }
+  function entradaNfeAgendarLayoutLista() {
+    if (entradaNfeListaLayoutTimer) clearTimeout(entradaNfeListaLayoutTimer);
+    entradaNfeListaLayoutTimer = setTimeout(() => {
+      entradaNfeListaLayoutTimer = null;
+      entradaNfeAtualizarLayoutLista();
+    }, 40);
+  }
+
   document.addEventListener('keydown', (e) => {
+    const modalAviso = document.getElementById('modal-entrada-nfe-aviso');
+    if (e.key === 'Escape' && modalAviso && !modalAviso.classList.contains('hidden')) {
+      e.preventDefault();
+      entradaNfeFecharModalAviso();
+      return;
+    }
     const modalListaFiltros = document.getElementById('modal-entrada-nfe-lista-filtros');
     if (e.key === 'Escape' && modalListaFiltros && !modalListaFiltros.classList.contains('hidden')) {
       e.preventDefault();
@@ -9964,6 +10201,7 @@
       entradaNfeAtualizarUiBotaoConfirmarProdutos();
       entradaNfeAtualizarUiBotaoConfirmarCodigos();
       entradaNfeAplicarCongelamentoEditorUi();
+      entradaNfeAgendarLayoutLista();
     };
     if (/^[a-f0-9]{24}$/i.test(ridUrl)) {
       try {
@@ -10054,6 +10292,13 @@
       entradaNfeEnsureTrailingCompactRow();
       finalizeEntradaNfeInit();
     }
+    entradaNfeAtualizarLayoutLista();
+    window.addEventListener('resize', entradaNfeAgendarLayoutLista);
+    try {
+      const ro = new ResizeObserver(() => entradaNfeAgendarLayoutLista());
+      const mainEl = document.getElementById('entrada-nfe-main-lista');
+      if (mainEl) ro.observe(mainEl);
+    } catch (_) {}
   });
 })();
   </script>

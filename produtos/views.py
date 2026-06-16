@@ -10280,13 +10280,14 @@ def api_entrada_nota_rascunho_atualizar(request):
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_entrada_nota_rascunho_acao(request):
-    """Descartar, reabrir ou marcar/desmarcar correção sistêmica (extra no rascunho). Encerrar manual está desativado."""
+    """Descartar, reabrir, correção sistêmica ou aviso operacional na lista (extra no rascunho). Encerrar manual está desativado."""
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
     oid = str(payload.get("id") or "").strip()
     acao = str(payload.get("acao") or "").strip().lower()
+    texto = str(payload.get("texto") or "").strip()
     if not oid:
         return JsonResponse({"ok": False, "erro": "Informe o id do rascunho."}, status=400)
     if acao == "descartar":
@@ -10301,7 +10302,7 @@ def api_entrada_nota_rascunho_acao(request):
     _, db = obter_conexao_mongo()
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
-    r = pipeline_acao_rascunho_entrada(db, oid, acao, usuario=usuario)
+    r = pipeline_acao_rascunho_entrada(db, oid, acao, usuario=usuario, texto=texto)
     st = 200 if r.get("ok") else 400
     return JsonResponse(r, status=st)
 
