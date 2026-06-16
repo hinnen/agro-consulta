@@ -25,6 +25,8 @@ def agro_app_build(request):
         return {
             "agro_build": {
                 "version": "1.01",
+                "version_label": "1.01",
+                "build": 0,
                 "commit": "",
                 "commit_full": "",
                 "branch": "",

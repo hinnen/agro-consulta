@@ -460,6 +460,80 @@
         padding: 3px 0;
     }
     .dash-topbar { overflow: visible; }
+    /* KPI + barra de períodos: sem quebra de linha em telas apertadas */
+    .dash-kpi-grid > .kpi-card { min-width: 0; }
+    .dash-kpi-ticket-grid { display: flex; flex-direction: column; gap: 0.35rem; }
+    .dash-kpi-ticket-row {
+        display: grid;
+        grid-template-columns: minmax(2.25rem, auto) 1fr auto;
+        align-items: center;
+        gap: 0.25rem 0.35rem;
+    }
+    .dash-kpi-ticket-lbl {
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: #64748b;
+        white-space: nowrap;
+        line-height: 1.1;
+    }
+    .dash-kpi-ticket-val {
+        font-size: clamp(0.95rem, 1.2vw + 0.4rem, 1.2rem);
+        font-weight: 900;
+        color: #0f172a;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    .dash-kpi-ticket-badge {
+        justify-self: end;
+        max-width: 4.5rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .dash-kpi-validade-lbl {
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 0;
+        line-height: 1.1;
+        white-space: nowrap;
+    }
+    .dash-topbar-periods {
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex: 1 1 0;
+        min-width: 0;
+        max-width: 100%;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .dash-topbar-periods::-webkit-scrollbar { display: none; }
+    .dash-topbar-periods .period-btn {
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+    @media (min-width: 992px) {
+        .dash-topbar {
+            display: grid !important;
+            grid-template-columns: auto auto minmax(0, 1fr) auto;
+            align-items: center;
+            flex-wrap: nowrap !important;
+            gap: 0.35rem;
+        }
+        .dash-topbar-periods {
+            justify-self: stretch;
+        }
+    }
+    @media (min-width: 1280px) and (max-width: 1599px) {
+        .dash-kpi-grid > .kpi-card {
+            padding: 0.55rem 0.6rem;
+        }
+        .dash-kpi-validade-lbl { font-size: 7.5px; }
+    }
     .agro-scale-trigger--dash {
         border-color: rgba(255, 255, 255, 0.22);
         background: rgba(15, 23, 42, 0.55);
@@ -491,7 +565,7 @@
                     <h1 class="text-xs font-black text-white uppercase leading-none">Gestão Estratégica</h1>
                     <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">SisVale BI</p>
                 </div>
-                <button type="button" class="agro-ver-badge js-agro-ver-badge shrink-0" aria-label="Versão do sistema">v{{ agro_build.version }}</button>
+                <button type="button" class="agro-ver-badge js-agro-ver-badge shrink-0" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
                 <button
                     type="button"
                     id="dash-link-display-scale"
@@ -501,7 +575,7 @@
                 >Aa</button>
             </div>
             <div class="xl:hidden flex items-center gap-1.5 shrink-0">
-                <button type="button" class="agro-ver-badge js-agro-ver-badge" style="font-size:9px;" aria-label="Versão do sistema">v{{ agro_build.version }}</button>
+                <button type="button" class="agro-ver-badge js-agro-ver-badge" style="font-size:9px;" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
                 <button
                     type="button"
                     id="dash-link-display-scale-sm"
@@ -535,7 +609,7 @@
             </button>
         </div>
 
-        <div class="flex flex-wrap items-center justify-center gap-1 bg-black/20 p-1 rounded-xl border border-white/5 max-w-full">
+        <div class="dash-topbar-periods flex items-center justify-center gap-1 bg-black/20 p-1 rounded-xl border border-white/5 max-w-full min-w-0">
             <button type="button" title="Do dia 1 do mês civil até hoje" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'mes_ate_hoje' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="mes_ate_hoje">Mês até hoje</button>
             <button type="button" title="Mês civil completo (1º ao último dia)" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'mes_atual' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="mes_atual">Mês atual</button>
             <button type="button" title="Mês civil anterior completo" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'mes_anterior' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="mes_anterior">Mês ant.</button>
@@ -754,7 +828,10 @@ document.addEventListener("keydown", function (e) {
       }
       function popoverHtml() {
         var html = "";
-        html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Versão</span><span class="agro-ver-pop__val">v' + esc(info.version) + "</span></div>";
+        html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Versão</span><span class="agro-ver-pop__val">v' + esc(info.version_label || info.version) + "</span></div>";
+        if (info.build) {
+          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Build</span><span class="agro-ver-pop__val">' + esc(info.build) + "</span></div>";
+        }
         if (info.commit) {
           html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Commit</span><span class="agro-ver-pop__val mono">' + esc(info.commit) + "</span></div>";
         }
