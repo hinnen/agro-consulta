@@ -121,6 +121,7 @@ AGRO_DASHBOARD_VENDAS_FONTE = (
 # Application definition
 
 INSTALLED_APPS = [
+    'config.apps.ConfigConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

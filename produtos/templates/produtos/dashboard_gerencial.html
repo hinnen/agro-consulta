@@ -478,9 +478,9 @@
                     <h1 class="text-xs font-black text-white uppercase leading-none">Gestão Estratégica</h1>
                     <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">SisVale BI</p>
                 </div>
-                <button type="button" class="agro-ver-badge js-agro-ver-badge" aria-label="Versão do sistema">v{{ agro_build.version }}</button>
+                <button type="button" class="agro-ver-badge js-agro-ver-badge" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
             </div>
-            <button type="button" class="xl:hidden agro-ver-badge js-agro-ver-badge" style="font-size:9px;" aria-label="Versão do sistema">v{{ agro_build.version }}</button>
+            <button type="button" class="xl:hidden agro-ver-badge js-agro-ver-badge" style="font-size:9px;" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
         </div>
 
         <div class="flex items-center gap-2">
@@ -506,7 +506,7 @@
             </button>
         </div>
 
-        <div class="flex flex-wrap items-center justify-center gap-1 bg-black/20 p-1 rounded-xl border border-white/5 max-w-full">
+        <div class="dash-topbar-periods flex items-center justify-center gap-1 bg-black/20 p-1 rounded-xl border border-white/5 max-w-full min-w-0">
             <button type="button" title="Do dia 1 do mês civil até hoje" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'mes_ate_hoje' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="mes_ate_hoje">Mês até hoje</button>
             <button type="button" title="Mês civil completo (1º ao último dia)" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'mes_atual' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="mes_atual">Mês atual</button>
             <button type="button" title="Mês civil anterior completo" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'mes_anterior' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="mes_anterior">Mês ant.</button>
@@ -725,7 +725,10 @@ document.addEventListener("keydown", function (e) {
       }
       function popoverHtml() {
         var html = "";
-        html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Versão</span><span class="agro-ver-pop__val">v' + esc(info.version) + "</span></div>";
+        html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Versão</span><span class="agro-ver-pop__val">v' + esc(info.version_label || info.version) + "</span></div>";
+        if (info.build) {
+          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Build</span><span class="agro-ver-pop__val">' + esc(info.build) + "</span></div>";
+        }
         if (info.commit) {
           html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Commit</span><span class="agro-ver-pop__val mono">' + esc(info.commit) + "</span></div>";
         }

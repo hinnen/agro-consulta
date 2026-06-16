@@ -1,5 +1,8 @@
 """
-Versão exibida no BI + histórico de commits por release (``config/deploy_manifest.json``).
+Versão exibida no BI + carimbo de deploy (``config/build_stamp.json``).
+
+O stamp é atualizado no build (``record_deploy``) e na subida do worker (``sync_build_stamp``),
+para refletir cada deploy mesmo se o buildCommand do Render não rodar o script.
 """
 from __future__ import annotations
 
@@ -15,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 _BASE_DIR = Path(__file__).resolve().parent.parent
 _VERSION_FILE = _BASE_DIR / "VERSION"
+_STAMP_FILE = Path(__file__).resolve().parent / "build_stamp.json"
 _MANIFEST_FILE = Path(__file__).resolve().parent / "deploy_manifest.json"
-_CACHE: dict[str, Any] | None = None
 
 
 def read_app_version() -> str:
@@ -28,23 +31,15 @@ def read_app_version() -> str:
 
 
 def _git_rev(*, short: bool) -> str:
-    env_key = "RENDER_GIT_COMMIT" if short else "RENDER_GIT_COMMIT_FULL"
-    env = (os.environ.get(env_key) or os.environ.get("RENDER_GIT_COMMIT") or "").strip()
+    env = (os.environ.get("RENDER_GIT_COMMIT") or "").strip()
     if env:
         return env[:12] if short else env
-    flag = "--short=12" if short else ""
     try:
         cmd = ["git", "rev-parse"]
         if short:
             cmd.append("--short=12")
         cmd.append("HEAD")
-        r = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=3,
-            cwd=_BASE_DIR,
-        )
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=3, cwd=_BASE_DIR)
         if r.returncode == 0:
             s = (r.stdout or "").strip()
             if s:
@@ -73,111 +68,184 @@ def _git_branch() -> str:
     return ""
 
 
-def load_deploy_manifest() -> dict[str, Any]:
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def load_build_stamp() -> dict[str, Any]:
     try:
-        data = json.loads(_MANIFEST_FILE.read_text(encoding="utf-8"))
+        data = json.loads(_STAMP_FILE.read_text(encoding="utf-8"))
         if isinstance(data, dict):
             return data
     except (OSError, json.JSONDecodeError):
         pass
-    return {"builds": []}
+    return {}
 
 
-def commits_for_version(version: str, manifest: dict[str, Any] | None = None) -> list[dict[str, str]]:
-    """Deploys registrados para ``version`` (ordem cronológica)."""
-    m = manifest if manifest is not None else load_deploy_manifest()
-    out: list[dict[str, str]] = []
-    seen: set[str] = set()
-    for row in m.get("builds") or []:
-        if not isinstance(row, dict):
-            continue
-        if str(row.get("version") or "").strip() != version:
-            continue
-        commit = str(row.get("commit") or "").strip()
-        if not commit or commit in seen:
-            continue
-        seen.add(commit)
-        out.append(
+def _write_build_stamp(stamp: dict[str, Any]) -> None:
+    try:
+        _STAMP_FILE.write_text(
+            json.dumps(stamp, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        logger.warning("build_stamp: não foi possível gravar %s", _STAMP_FILE, exc_info=True)
+
+
+def sync_build_stamp(*, force: bool = False) -> dict[str, Any]:
+    """Grava carimbo quando a versão ou o commit mudou (startup / build)."""
+    version = read_app_version()
+    commit_full = _git_rev(short=False) or _git_rev(short=True)
+    commit_short = commit_full[:12] if commit_full else ""
+    branch = _git_branch()
+    now = _utc_now()
+
+    stamp = load_build_stamp()
+    prev_version = str(stamp.get("version") or "").strip()
+    prev_commit = str(stamp.get("commit") or "").strip()[:12]
+
+    if not force and prev_version == version and prev_commit == commit_short and commit_short:
+        return stamp
+
+    deploys: list[dict[str, str]] = []
+    if prev_version == version and isinstance(stamp.get("version_deploys"), list):
+        for row in stamp["version_deploys"]:
+            if isinstance(row, dict) and str(row.get("commit") or "").strip():
+                deploys.append(
+                    {
+                        "commit": str(row["commit"])[:12],
+                        "commit_full": str(row.get("commit_full") or row["commit"])[:64],
+                        "built_at": str(row.get("built_at") or "")[:32],
+                        "branch": str(row.get("branch") or "")[:80],
+                    }
+                )
+
+    if prev_version != version:
+        build_num = 1 if commit_short else 0
+        deploys = []
+    else:
+        try:
+            build_num = max(0, int(stamp.get("build") or 0))
+        except (TypeError, ValueError):
+            build_num = 0
+        if commit_short and commit_short != prev_commit:
+            build_num = max(1, build_num + 1)
+
+    if commit_short and not any(d.get("commit") == commit_short for d in deploys):
+        deploys.append(
             {
-                "commit": commit[:12],
-                "commit_full": str(row.get("commit_full") or commit)[:64],
-                "recorded_at": str(row.get("recorded_at") or "")[:32],
-                "branch": str(row.get("branch") or "")[:80],
+                "commit": commit_short,
+                "commit_full": commit_full[:64] if commit_full else commit_short,
+                "built_at": now,
+                "branch": branch,
             }
         )
-    return out
+    elif force and commit_short:
+        for row in deploys:
+            if row.get("commit") == commit_short:
+                row["built_at"] = now
+                break
+
+    new_stamp = {
+        "version": version,
+        "build": build_num,
+        "commit": commit_short,
+        "commit_full": commit_full[:64] if commit_full else commit_short,
+        "branch": branch,
+        "built_at": now,
+        "version_deploys": deploys[-50:],
+    }
+    _write_build_stamp(new_stamp)
+    return new_stamp
 
 
 def get_app_build_info() -> dict[str, Any]:
-    global _CACHE
-    if _CACHE is not None:
-        return dict(_CACHE)
-
+    stamp = load_build_stamp()
     version = read_app_version()
-    commit_short = _git_rev(short=True)
-    commit_full = _git_rev(short=False) or commit_short
-    manifest = load_deploy_manifest()
-    history = commits_for_version(version, manifest)
+    commit_short = _git_rev(short=True) or str(stamp.get("commit") or "")[:12]
+    commit_full = _git_rev(short=False) or str(stamp.get("commit_full") or commit_short)
+    branch = _git_branch() or str(stamp.get("branch") or "")
 
-    if commit_short and not any(h.get("commit") == commit_short for h in history):
-        history.append(
+    try:
+        build_num = int(stamp.get("build") or 0)
+    except (TypeError, ValueError):
+        build_num = 0
+
+    version_label = version
+    if build_num > 0:
+        version_label = f"{version}.{build_num}"
+
+    deploys = []
+    if isinstance(stamp.get("version_deploys"), list):
+        for row in stamp["version_deploys"]:
+            if isinstance(row, dict) and str(row.get("commit") or "").strip():
+                deploys.append(dict(row))
+
+    if commit_short and not any(d.get("commit") == commit_short for d in deploys):
+        deploys.append(
             {
                 "commit": commit_short,
                 "commit_full": commit_full,
-                "recorded_at": "",
-                "branch": _git_branch(),
+                "built_at": str(stamp.get("built_at") or ""),
+                "branch": branch,
             }
         )
 
-    latest = (manifest.get("builds") or [])[-1] if isinstance(manifest.get("builds"), list) else {}
-    built_at = ""
-    if isinstance(latest, dict):
-        built_at = str(latest.get("recorded_at") or "")[:32]
+    built_at = str(stamp.get("built_at") or "")
+    if commit_short and str(stamp.get("commit") or "")[:12] != commit_short:
+        built_at = ""
 
-    info = {
+    return {
         "version": version,
+        "version_label": version_label,
+        "build": build_num,
         "commit": commit_short,
         "commit_full": commit_full,
-        "branch": _git_branch(),
+        "branch": branch,
         "built_at": built_at,
-        "version_commits": history,
+        "version_commits": deploys[-20:],
     }
-    _CACHE = info
-    return dict(info)
 
 
 def record_deploy_build() -> dict[str, Any]:
-    """Chamado no build (Render) para acrescentar commit ao manifest da versão atual."""
-    version = read_app_version()
-    commit_full = _git_rev(short=False) or _git_rev(short=True)
-    if not commit_full:
+    """Build Render: sincroniza carimbo e mantém manifest legado."""
+    stamp = sync_build_stamp(force=True)
+    commit_short = str(stamp.get("commit") or "")
+    if not commit_short:
         return {"ok": False, "erro": "commit não detectado"}
 
-    commit_short = commit_full[:12]
-    manifest = load_deploy_manifest()
-    builds = list(manifest.get("builds") or [])
-    for row in builds:
-        if (
-            isinstance(row, dict)
-            and str(row.get("version") or "").strip() == version
-            and str(row.get("commit") or "").strip()[:12] == commit_short
-        ):
-            return {"ok": True, "skipped": True, "version": version, "commit": commit_short}
+    manifest = {"builds": []}
+    try:
+        manifest = json.loads(_MANIFEST_FILE.read_text(encoding="utf-8"))
+        if not isinstance(manifest, dict):
+            manifest = {"builds": []}
+    except (OSError, json.JSONDecodeError):
+        manifest = {"builds": []}
 
-    builds.append(
-        {
-            "version": version,
-            "commit": commit_short,
-            "commit_full": commit_full[:64],
-            "branch": _git_branch(),
-            "recorded_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        }
-    )
-    manifest["builds"] = builds[-200:]
-    _MANIFEST_FILE.write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    global _CACHE
-    _CACHE = None
-    return {"ok": True, "version": version, "commit": commit_short}
+    builds = list(manifest.get("builds") or [])
+    version = str(stamp.get("version") or read_app_version())
+    if not any(
+        isinstance(row, dict)
+        and str(row.get("version") or "").strip() == version
+        and str(row.get("commit") or "").strip()[:12] == commit_short[:12]
+        for row in builds
+    ):
+        builds.append(
+            {
+                "version": version,
+                "commit": commit_short[:12],
+                "commit_full": str(stamp.get("commit_full") or commit_short)[:64],
+                "branch": str(stamp.get("branch") or ""),
+                "recorded_at": str(stamp.get("built_at") or _utc_now()),
+            }
+        )
+        manifest["builds"] = builds[-200:]
+        try:
+            _MANIFEST_FILE.write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+        except OSError:
+            pass
+
+    return {"ok": True, "version": version, "commit": commit_short, "build": stamp.get("build")}

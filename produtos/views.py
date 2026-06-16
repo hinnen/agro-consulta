@@ -7731,6 +7731,7 @@ def estoque_sincronizacao_view(request):
 
 
 @ensure_csrf_cookie
+@never_cache
 @_dashboard_login_required
 def dashboard_gerencial_view(request):
     # A raiz ``/`` é esta view; probes (Render, uptime) usam HEAD e não precisam do BI completo.
