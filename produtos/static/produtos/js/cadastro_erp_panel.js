@@ -656,6 +656,7 @@
         '<td class="px-4 py-3 text-right cadastro-acoes">' +
         '<span class="inline-flex items-center justify-end gap-2 text-lg">' +
         '<button type="button" class="cadastro-btn-edit-modal inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer" title="Editar (modal)">✏️</button>' +
+        '<button type="button" class="cadastro-btn-etiqueta inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 cursor-pointer" title="Imprimir etiqueta">🖨️</button>' +
         '<span class="inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed select-none opacity-80" title="Exclusão somente no ERP">🗑️</span>' +
         '</span></td>';
       tbody.appendChild(tr);
@@ -667,6 +668,14 @@
           if (typeof window.abrirModalProduto === 'function') {
             window.abrirModalProduto(p);
           }
+        });
+      }
+      var btnEtq = tr.querySelector('.cadastro-btn-etiqueta');
+      if (btnEtq) {
+        btnEtq.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          abrirModalEtiquetaCadastro(p);
         });
       }
       tr.addEventListener('click', function (e) {
@@ -1225,6 +1234,103 @@
     btnNovoProd.addEventListener('click', function () {
       if (typeof window.abrirModalProduto === 'function') {
         window.abrirModalProduto({ id: '__novo__' });
+      }
+    });
+  }
+
+  var cadEtqProd = null;
+  var cadEtqBack = document.getElementById('cad-etq-back');
+  var cadEtqModal = document.getElementById('cad-etq-modal');
+  var cadEtqQtd = document.getElementById('cad-etq-qtd');
+  var cadEtqPreset = document.getElementById('cad-etq-preset');
+  var cadEtqStatus = document.getElementById('cad-etq-status');
+
+  function fecharModalEtiquetaCadastro() {
+    cadEtqProd = null;
+    if (cadEtqBack) {
+      cadEtqBack.classList.add('hidden');
+      cadEtqBack.setAttribute('aria-hidden', 'true');
+    }
+    if (cadEtqModal) {
+      cadEtqModal.classList.add('hidden');
+      cadEtqModal.setAttribute('aria-hidden', 'true');
+    }
+    if (cadEtqStatus) cadEtqStatus.textContent = '';
+    document.body.classList.remove('modal-open');
+  }
+
+  function abrirModalEtiquetaCadastro(p) {
+    var Core = window.AgroEtiquetasCore;
+    if (!Core) {
+      mostrarErro('Módulo de etiquetas indisponível.');
+      return;
+    }
+    cadEtqProd = p;
+    var nomeEl = document.getElementById('cad-etq-nome');
+    var gmEl = document.getElementById('cad-etq-gm');
+    if (nomeEl) nomeEl.textContent = p.nome || '—';
+    if (gmEl) {
+      var gm = String(p.codigo_nfe || p.codigo_gm || p.codigo || '—');
+      var pv = p.preco_venda != null && isFinite(Number(p.preco_venda))
+        ? Number(p.preco_venda).toFixed(2).replace('.', ',')
+        : '0,00';
+      gmEl.textContent = gm + ' · R$ ' + pv;
+    }
+    if (cadEtqPreset) Core.fillPresetSelect(cadEtqPreset);
+    if (cadEtqQtd) {
+      cadEtqQtd.value = '1';
+      setTimeout(function () {
+        cadEtqQtd.focus();
+        cadEtqQtd.select();
+      }, 40);
+    }
+    if (cadEtqBack) {
+      cadEtqBack.classList.remove('hidden');
+      cadEtqBack.setAttribute('aria-hidden', 'false');
+    }
+    if (cadEtqModal) {
+      cadEtqModal.classList.remove('hidden');
+      cadEtqModal.setAttribute('aria-hidden', 'false');
+    }
+    document.body.classList.add('modal-open');
+  }
+
+  function imprimirEtiquetaCadastro() {
+    var Core = window.AgroEtiquetasCore;
+    if (!cadEtqProd || !Core) return;
+    var qtd = parseInt(cadEtqQtd && cadEtqQtd.value, 10) || 1;
+    var presetId = cadEtqPreset && cadEtqPreset.value;
+    var st = Core.loadStorage();
+    if (presetId) {
+      st.preset_ativo = presetId;
+      Core.saveStorage(st);
+    }
+    var item = Core.produtoParaItem(cadEtqProd, qtd);
+    if (cadEtqStatus) cadEtqStatus.textContent = 'Enviando…';
+    Core.imprimirItens([item], {
+      presetId: presetId || st.preset_ativo,
+      textoRodape: st.texto_rodape_global || Core.getPresetAtivo(st).texto_rodape || ''
+    }).then(function (res) {
+      if (res && res.ok) {
+        fecharModalEtiquetaCadastro();
+        return;
+      }
+      if (cadEtqStatus) {
+        cadEtqStatus.textContent = 'Falha: ' + (res && res.reason ? res.reason : 'erro');
+      }
+    });
+  }
+
+  var cadEtqBtnImp = document.getElementById('cad-etq-imprimir');
+  if (cadEtqBtnImp) cadEtqBtnImp.addEventListener('click', imprimirEtiquetaCadastro);
+  var cadEtqBtnCan = document.getElementById('cad-etq-cancelar');
+  if (cadEtqBtnCan) cadEtqBtnCan.addEventListener('click', fecharModalEtiquetaCadastro);
+  if (cadEtqBack) cadEtqBack.addEventListener('click', fecharModalEtiquetaCadastro);
+  if (cadEtqQtd) {
+    cadEtqQtd.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        imprimirEtiquetaCadastro();
       }
     });
   }

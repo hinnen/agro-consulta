@@ -4,7 +4,7 @@
   var Core = window.AgroEtiquetasCore;
   if (!Core) return;
 
-  var URL_BUSCAR = '/api/buscar/';
+  var URL_BUSCAR = '/api/produtos/cadastro/';
 
   var state = {
     fila: [],
@@ -38,24 +38,26 @@
     return Core.getPresetAtivo(state.storage);
   }
 
+  function renderPresetOptions(selectEl, activeId) {
+    if (!selectEl || !state.storage) return;
+    selectEl.innerHTML = state.storage.presets
+      .map(function (p) {
+        return (
+          '<option value="' +
+          Core.esc(p.id) +
+          '"' +
+          (p.id === activeId ? ' selected' : '') +
+          '>' +
+          Core.esc(p.nome) +
+          '</option>'
+        );
+      })
+      .join('');
+  }
+
   function renderPresetSelect() {
-    ['etq-preset-select', 'etq-fila-preset'].forEach(function (id) {
-      var sel = $(id);
-      if (!sel) return;
-      sel.innerHTML = state.storage.presets
-        .map(function (p) {
-          return (
-            '<option value="' +
-            Core.esc(p.id) +
-            '"' +
-            (p.id === state.storage.preset_ativo ? ' selected' : '') +
-            '>' +
-            Core.esc(p.nome) +
-            '</option>'
-          );
-        })
-        .join('');
-    });
+    renderPresetOptions($('etq-preset-select'), state.storage.preset_ativo);
+    renderPresetOptions($('etq-fila-preset'), state.storage.preset_ativo);
   }
 
   function renderPresetForm() {
@@ -162,7 +164,7 @@
     box.innerHTML = produtos
       .slice(0, 24)
       .map(function (p) {
-        var gm = String(p.codigo_nfe || p.codigo || '').trim();
+        var gm = String(p.codigo_nfe || p.codigo_gm || p.codigo || '').trim();
         return (
           '<button type="button" class="etq-busca-item flex w-full items-center justify-between gap-2 border-b border-slate-700/70 px-3 py-2 text-left hover:bg-slate-700/40" data-prod-id="' +
           Core.esc(p.id) +
@@ -205,12 +207,16 @@
       return;
     }
     if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-slate-400">…</p>';
-    fetch(URL_BUSCAR + '?q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+    fetch(URL_BUSCAR + '?q=' + encodeURIComponent(q) + '&limit=24', { credentials: 'same-origin' })
       .then(function (r) {
         return r.json();
       })
       .then(function (data) {
-        renderBusca(data.produtos || []);
+        if (!data || data.ok === false) {
+          if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-red-400">Erro na busca.</p>';
+          return;
+        }
+        renderBusca((data && data.produtos) || []);
       })
       .catch(function () {
         if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-red-400">Erro na busca.</p>';
@@ -336,21 +342,27 @@
     });
   }
 
+  function ensureModalOnBody() {
+    var m = $('etq-modal-back');
+    if (m && m.parentElement !== document.body) document.body.appendChild(m);
+  }
+
   function abrirModalPreset() {
-    var m = $('etq-modal-preset');
-    if (m) {
-      m.classList.remove('hidden');
-      m.setAttribute('aria-hidden', 'false');
-      renderPresetForm();
-    }
+    ensureModalOnBody();
+    var m = $('etq-modal-back');
+    if (!m) return;
+    m.classList.remove('hidden');
+    m.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    renderPresetForm();
   }
 
   function fecharModalPreset() {
-    var m = $('etq-modal-preset');
-    if (m) {
-      m.classList.add('hidden');
-      m.setAttribute('aria-hidden', 'true');
-    }
+    var m = $('etq-modal-back');
+    if (!m) return;
+    m.classList.add('hidden');
+    m.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
   }
 
   function bindEvents() {
@@ -406,9 +418,14 @@
         persistStorage();
       });
     }
+
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') fecharModalPreset();
+    });
   }
 
   function init() {
+    ensureModalOnBody();
     reloadStorage();
     renderPresetSelect();
     renderPresetForm();

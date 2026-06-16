@@ -279,6 +279,27 @@
     });
   }
 
+  function fillPresetSelect(selectEl, activeId) {
+    if (!selectEl) return activeId || '';
+    var st = loadStorage();
+    var aid = activeId || st.preset_ativo || (st.presets[0] && st.presets[0].id) || '';
+    selectEl.innerHTML = st.presets
+      .map(function (p) {
+        return (
+          '<option value="' +
+          esc(p.id) +
+          '"' +
+          (p.id === aid ? ' selected' : '') +
+          '>' +
+          esc(p.nome) +
+          '</option>'
+        );
+      })
+      .join('');
+    selectEl.value = aid;
+    return aid;
+  }
+
   global.AgroEtiquetasCore = {
     LS_KEY: LS_KEY,
     DEFAULT_PRESET: DEFAULT_PRESET,
@@ -293,5 +314,6 @@
     montarHtmlImpressao: montarHtmlImpressao,
     imprimirItens: imprimirItens,
     podeSilentPrint: podeSilentPrint,
+    fillPresetSelect: fillPresetSelect,
   };
 })(typeof window !== 'undefined' ? window : this);
