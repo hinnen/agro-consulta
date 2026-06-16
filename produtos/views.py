@@ -1911,6 +1911,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
 
     aviso_codigo_mongo = None
     aviso_custo_mongo = None
+    aviso_preco_venda_mongo = None
     if db is not None:
         aviso_codigo_mongo = _mongo_sincronizar_codigo_sistema_espelho(
             db,
@@ -1934,6 +1935,22 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             except Exception as exc:
                 logger.warning("overlay salvar: sync PrecoCusto Mongo", exc_info=True)
                 aviso_custo_mongo = "Não foi possível gravar o custo no espelho Mongo."
+        # Preço de venda: overlay é a fonte no Agro; espelhar no Mongo evita «reverter» ao reabrir
+        # quando o overlay não for encontrado (ex.: id AGRO vs nativo após realinhamento ERP).
+        if "preco_venda" in payload and ov.preco_venda is not None:
+            try:
+                pvfloat = float(ov.preco_venda)
+                res_pv = db[client.col_p].update_one(
+                    _mongo_filtro_id_produto_externo(pid),
+                    {"$set": {"ValorVenda": pvfloat, "PrecoVenda": pvfloat}},
+                )
+                if not getattr(res_pv, "matched_count", 0):
+                    aviso_preco_venda_mongo = (
+                        "Preço de venda não atualizado: produto não encontrado no espelho Mongo."
+                    )
+            except Exception:
+                logger.warning("overlay salvar: sync ValorVenda Mongo", exc_info=True)
+                aviso_preco_venda_mongo = "Não foi possível gravar o preço de venda no espelho Mongo."
 
     with transaction.atomic():
         ov.save()
@@ -2058,7 +2075,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         if uid and agro_cadastro_produto_erp_sync_habilitado():
             _erp_produto_pendentes_add(uid, pid)
 
-    avisos_m = [m for m in (aviso_codigo_mongo, aviso_custo_mongo) if m]
+    avisos_m = [m for m in (aviso_codigo_mongo, aviso_custo_mongo, aviso_preco_venda_mongo) if m]
     if avisos_m:
         resp["aviso"] = "\n\n".join(avisos_m)
     return JsonResponse(resp)
