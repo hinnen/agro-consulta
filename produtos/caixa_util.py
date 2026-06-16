@@ -1142,7 +1142,7 @@ def listar_fiado_baixas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
         FiadoBaixaAgro.objects.filter(
             Q(sessao_caixa_id__in=ids) | Q(movimento_caixa__sessao_caixa_id__in=ids)
         )
-        .select_related("titulo")
+        .select_related("titulo", "sessao_caixa", "movimento_caixa__sessao_caixa")
         .order_by("criado_em", "pk")
     )
     out: list[dict[str, Any]] = []
@@ -1150,14 +1150,29 @@ def listar_fiado_baixas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
         nome = ""
         if baixa.titulo_id and baixa.titulo:
             nome = (baixa.titulo.cliente_nome or "").strip()
+        sessao = baixa.sessao_caixa
+        if not sessao and baixa.movimento_caixa_id and baixa.movimento_caixa:
+            sessao = baixa.movimento_caixa.sessao_caixa
         out.append(
             {
                 "id": baixa.pk,
                 "cliente_nome": nome or "Cliente",
                 "valor": str(_dec(baixa.valor)),
+                "sessao_label": rotulo_sessao_caixa(sessao) if sessao else "—",
+                "operacional": sessao_caixa_e_operacional(sessao) if sessao else True,
             }
         )
     return out
+
+
+def fiado_conferencia_operacional(
+    vendas: list[dict[str, Any]],
+    baixas: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Itens obrigatórios no fechamento da loja (exclui Caixa Teste)."""
+    v = [row for row in vendas if row.get("operacional", True)]
+    b = [row for row in baixas if row.get("operacional", True)]
+    return v, b
 
 
 def validar_conferencia_fiado_caixa(
@@ -1165,18 +1180,34 @@ def validar_conferencia_fiado_caixa(
     vendas_fiado: list[dict[str, Any]],
     baixas_fiado: list[dict[str, Any]],
 ) -> str | None:
-    for row in vendas_fiado:
-        key = f"fiado_assinado_{row['id']}"
-        if not (post.get(key) or "").strip():
-            return (
-                f"Marque que a nota fiado de {row['cliente_nome']} "
-                f"(R$ {row['valor']}) está assinada e guardada."
-            )
-    for row in baixas_fiado:
-        key = f"fiado_retirado_{row['id']}"
-        if not (post.get(key) or "").strip():
-            return (
-                f"Marque que a nota paga de {row['cliente_nome']} "
-                f"(R$ {row['valor']}) foi retirada da caixa de fiados."
-            )
+    pulou_vendas = (post.get("fiado_vendas_pulado") or "").strip() == "1"
+    pulou_baixas = (post.get("fiado_baixas_pulado") or "").strip() == "1"
+
+    if vendas_fiado and not pulou_vendas:
+        for row in vendas_fiado:
+            key = f"fiado_assinado_{row['id']}"
+            if not (post.get(key) or "").strip():
+                return (
+                    f"Marque que a nota fiado de {row['cliente_nome']} "
+                    f"(R$ {row['valor']}) está assinada e guardada."
+                )
+    elif vendas_fiado and pulou_vendas:
+        pin = (post.get("fiado_vendas_pulo_pin") or post.get("pin") or "").strip()
+        ok, err = validar_pin_operador(pin)
+        if not ok:
+            return err or "Informe PIN válido para pular a conferência de vendas fiado."
+
+    if baixas_fiado and not pulou_baixas:
+        for row in baixas_fiado:
+            key = f"fiado_retirado_{row['id']}"
+            if not (post.get(key) or "").strip():
+                return (
+                    f"Marque que a nota paga de {row['cliente_nome']} "
+                    f"(R$ {row['valor']}) foi retirada da caixa de fiados."
+                )
+    elif baixas_fiado and pulou_baixas:
+        pin = (post.get("fiado_baixas_pulo_pin") or post.get("pin") or "").strip()
+        ok, err = validar_pin_operador(pin)
+        if not ok:
+            return err or "Informe PIN válido para pular a conferência de pagamentos fiado."
     return None

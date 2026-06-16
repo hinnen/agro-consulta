@@ -87,6 +87,7 @@ from .caixa_util import (
     CEDULAS_DENOMINACOES_CAIXA,
     listar_fiado_vendas_conferencia_caixa,
     listar_fiado_baixas_conferencia_caixa,
+    fiado_conferencia_operacional,
     validar_conferencia_fiado_caixa,
     usuario_label_sessao_caixa,
     normalizar_forma_pagamento_caixa,
@@ -8954,8 +8955,10 @@ def caixa_fechar(request):
         rasc = {}
     raw_ced = request.session.get(CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY) or {}
     cedulas_rasc = raw_ced if isinstance(raw_ced, dict) else {}
-    fiado_vendas_turno = listar_fiado_vendas_conferencia_caixa(sessoes)
-    fiado_baixas_turno = listar_fiado_baixas_conferencia_caixa(sessoes)
+    fiado_vendas_conferencia, fiado_baixas_conferencia = fiado_conferencia_operacional(
+        listar_fiado_vendas_conferencia_caixa(sessoes_operacional),
+        listar_fiado_baixas_conferencia_caixa(sessoes_operacional),
+    )
 
     return render(
         request,
@@ -8978,8 +8981,8 @@ def caixa_fechar(request):
             "rascunho_json": json.dumps(rasc, ensure_ascii=False),
             "cedulas_json": json.dumps(cedulas_rasc, ensure_ascii=False),
             "denominacoes_cedulas": CEDULAS_DENOMINACOES_CAIXA,
-            "fiado_vendas_turno": fiado_vendas_turno,
-            "fiado_baixas_turno": fiado_baixas_turno,
+            "fiado_vendas_conferencia": fiado_vendas_conferencia,
+            "fiado_baixas_conferencia": fiado_baixas_conferencia,
             "api_rascunho_salvar_url": reverse("api_caixa_conferencia_rascunho_salvar"),
             "api_conferencia_estado_url": reverse("api_caixa_conferencia_estado"),
             "caixa_popup_retirada": reverse("caixa_painel") + "?painel=retirada&embed=1",

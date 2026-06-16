@@ -468,29 +468,66 @@
         gap: 0.45rem 0.65rem;
       }
     }
-    .cf-fiado-panel {
-      flex-shrink: 0;
-      border-top: 2px solid #fdba74;
-      background: #fff7ed;
-      padding: 0.45rem 0.55rem;
-      max-height: min(26vh, 12rem);
-      overflow-y: auto;
-    }
     .cf-fiado-row {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
-      gap: 0.5rem 0.6rem;
+      gap: 0.5rem 0.75rem;
       align-items: center;
-      padding: 0.5rem 0.6rem;
-      border-radius: 0.6rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: 0.65rem;
       border: 2px solid #fdba74;
       background: #fff;
     }
     .cf-fiado-row input[type="checkbox"] {
-      width: 1.2rem;
-      height: 1.2rem;
+      width: 1.35rem;
+      height: 1.35rem;
       accent-color: #ea580c;
     }
+    .cf-fiado-wizard-panel {
+      width: 90vw;
+      height: 90dvh;
+      max-width: none;
+      border-color: #ea580c;
+    }
+    .cf-fiado-wizard-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 0.75rem 1rem;
+      background: #fff7ed;
+    }
+    .cf-fiado-wizard-foot {
+      flex-shrink: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.65rem;
+      padding: 0.75rem 1rem;
+      border-top: 2px solid #fdba74;
+      background: #ffedd5;
+    }
+    .cf-fiado-wizard-btn {
+      min-height: var(--cf-input-h);
+      padding: 0.45rem 1.15rem;
+      border-radius: 0.65rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .cf-fiado-wizard-btn--pular {
+      border: 2px solid #c2410c;
+      background: #fff;
+      color: #9a3412;
+    }
+    .cf-fiado-wizard-btn--pular:hover { background: #fff7ed; }
+    .cf-fiado-wizard-btn--ok {
+      border: 2px solid #c2410c;
+      background: #ea580c;
+      color: #fff;
+    }
+    .cf-fiado-wizard-btn--ok:hover { background: #c2410c; }
     .cf-foot {
       flex-shrink: 0;
       border-top: 1px solid #f1f5f9;
@@ -619,6 +656,7 @@
       position: fixed; inset: 0; z-index: 120; display: flex; align-items: center; justify-content: center;
       padding: 2vh 4vw; background: rgba(15, 23, 42, 0.55);
     }
+    .cf-fiado-wizard { z-index: 125; }
     .cf-modal-overlay.hidden { display: none !important; }
     .cf-modal-panel {
       width: min(92vw, 80rem); height: min(88dvh, 92vh);
@@ -733,6 +771,10 @@
       {% csrf_token %}
       <input type="hidden" name="acao" value="fechar_todos">
       <input type="hidden" name="pin" value="" class="caixa-pin-hidden">
+      <input type="hidden" name="fiado_vendas_pulado" id="fiado-vendas-pulado" value="0">
+      <input type="hidden" name="fiado_vendas_pulo_pin" id="fiado-vendas-pulo-pin" value="">
+      <input type="hidden" name="fiado_baixas_pulado" id="fiado-baixas-pulado" value="0">
+      <input type="hidden" name="fiado_baixas_pulo_pin" id="fiado-baixas-pulo-pin" value="">
 
       <div class="cf-form-head relative">
         <div class="min-w-0 flex-1">
@@ -844,47 +886,69 @@
             </div>
           </details>
           {% endif %}
+        </div>
 
-          {% if fiado_vendas_turno or fiado_baixas_turno %}
-          <div class="cf-fiado-panel space-y-2">
-            {% if fiado_vendas_turno %}
-            <section aria-labelledby="cf-fiado-vendas-titulo">
-              <h3 id="cf-fiado-vendas-titulo" class="cf-t-label text-orange-900">Fiado — notas assinadas e guardadas</h3>
-              <ul class="mt-1.5 space-y-1">
-                {% for item in fiado_vendas_turno %}
+        {% if fiado_vendas_conferencia %}
+        <div id="cf-fiado-modal-vendas" class="cf-modal-overlay cf-fiado-wizard hidden" role="dialog" aria-modal="true" aria-labelledby="cf-fiado-vendas-title">
+          <div class="cf-modal-panel cf-fiado-wizard-panel">
+            <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-orange-300 px-3 sm:px-4 py-2.5 bg-orange-100">
+              <div class="min-w-0">
+                <p class="cf-t-label text-orange-800">Passo 1 de {% if fiado_baixas_conferencia %}2{% else %}1{% endif %} · Fiado</p>
+                <h3 id="cf-fiado-vendas-title" class="cf-t-section font-black uppercase text-orange-950 leading-snug">Vendas fiado — nota assinada na caixinha</h3>
+              </div>
+            </div>
+            <div class="cf-fiado-wizard-body">
+              <p class="cf-t-body font-bold text-orange-950 mb-3">Confira se cada nota assinada está guardada na caixinha de fiados antes de fechar o caixa.</p>
+              <ul class="space-y-2">
+                {% for item in fiado_vendas_conferencia %}
                 <li>
                   <label class="cf-fiado-row cursor-pointer">
-                    <input type="checkbox" name="fiado_assinado_{{ item.id }}" value="1" class="cf-fiado-check-assinado shrink-0"{% if item.operacional %} required{% endif %}>
-                    <span class="min-w-0 cf-t-forma text-slate-900 leading-tight">
-                      {{ item.cliente_nome }}
-                      {% if not item.operacional %}<span class="block cf-t-meta text-violet-800">{{ item.sessao_label }} · conferir no fechamento deste caixa</span>{% endif %}
-                    </span>
-                    <span class="cf-t-money tabular-nums text-orange-800 shrink-0">R$ {{ item.valor }}</span>
-                  </label>
-                </li>
-                {% endfor %}
-              </ul>
-            </section>
-            {% endif %}
-            {% if fiado_baixas_turno %}
-            <section aria-labelledby="cf-fiado-baixas-titulo" class="{% if fiado_vendas_turno %}pt-2 border-t border-orange-200{% endif %}">
-              <h3 id="cf-fiado-baixas-titulo" class="cf-t-label text-orange-900">Fiado — notas pagas retiradas da caixa</h3>
-              <ul class="mt-1.5 space-y-1">
-                {% for item in fiado_baixas_turno %}
-                <li>
-                  <label class="cf-fiado-row cursor-pointer">
-                    <input type="checkbox" name="fiado_retirado_{{ item.id }}" value="1" class="cf-fiado-check-retirado shrink-0" required>
+                    <input type="checkbox" name="fiado_assinado_{{ item.id }}" value="1" class="cf-fiado-check-assinado shrink-0">
                     <span class="min-w-0 cf-t-forma text-slate-900 leading-tight">{{ item.cliente_nome }}</span>
                     <span class="cf-t-money tabular-nums text-orange-800 shrink-0">R$ {{ item.valor }}</span>
                   </label>
                 </li>
                 {% endfor %}
               </ul>
-            </section>
-            {% endif %}
+            </div>
+            <div class="cf-fiado-wizard-foot">
+              <button type="button" id="cf-fiado-vendas-pular" class="cf-fiado-wizard-btn cf-fiado-wizard-btn--pular cf-t-label">Pular conferência</button>
+              <button type="button" id="cf-fiado-vendas-confirmar" class="cf-fiado-wizard-btn cf-fiado-wizard-btn--ok cf-t-label">Confirmar</button>
+            </div>
           </div>
-          {% endif %}
         </div>
+        {% endif %}
+
+        {% if fiado_baixas_conferencia %}
+        <div id="cf-fiado-modal-baixas" class="cf-modal-overlay cf-fiado-wizard hidden" role="dialog" aria-modal="true" aria-labelledby="cf-fiado-baixas-title">
+          <div class="cf-modal-panel cf-fiado-wizard-panel">
+            <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-orange-300 px-3 sm:px-4 py-2.5 bg-orange-100">
+              <div class="min-w-0">
+                <p class="cf-t-label text-orange-800">Passo {% if fiado_vendas_conferencia %}2{% else %}1{% endif %} de {% if fiado_vendas_conferencia %}2{% else %}1{% endif %} · Fiado</p>
+                <h3 id="cf-fiado-baixas-title" class="cf-t-section font-black uppercase text-orange-950 leading-snug">Pagamentos fiado — nota devolvida ao cliente</h3>
+              </div>
+            </div>
+            <div class="cf-fiado-wizard-body">
+              <p class="cf-t-body font-bold text-orange-950 mb-3">Confira se cada nota assinada foi retirada da caixinha e devolvida ao cliente após o pagamento.</p>
+              <ul class="space-y-2">
+                {% for item in fiado_baixas_conferencia %}
+                <li>
+                  <label class="cf-fiado-row cursor-pointer">
+                    <input type="checkbox" name="fiado_retirado_{{ item.id }}" value="1" class="cf-fiado-check-retirado shrink-0">
+                    <span class="min-w-0 cf-t-forma text-slate-900 leading-tight">{{ item.cliente_nome }}</span>
+                    <span class="cf-t-money tabular-nums text-orange-800 shrink-0">R$ {{ item.valor }}</span>
+                  </label>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+            <div class="cf-fiado-wizard-foot">
+              <button type="button" id="cf-fiado-baixas-pular" class="cf-fiado-wizard-btn cf-fiado-wizard-btn--pular cf-t-label">Pular conferência</button>
+              <button type="button" id="cf-fiado-baixas-confirmar" class="cf-fiado-wizard-btn cf-fiado-wizard-btn--ok cf-t-label">Confirmar</button>
+            </div>
+          </div>
+        </div>
+        {% endif %}
 
         <div class="cf-foot">
           <label class="block min-w-0">
@@ -1381,22 +1445,134 @@
   document.querySelectorAll('form.form-fechar-um, #form-fechar-todos').forEach(function (form) {
     form.addEventListener('submit', function (e) {
       if (form.id === 'form-fechar-todos') {
-        var faltando = [];
-        form.querySelectorAll('.cf-fiado-check-assinado:not(:checked), .cf-fiado-check-retirado:not(:checked)').forEach(function (cb) {
-          var row = cb.closest('.cf-fiado-row');
-          var nome = row ? (row.querySelector('span.font-black') || {}).textContent : '';
-          if (nome) faltando.push(nome.trim());
-        });
-        if (faltando.length) {
+        if (window.cfFiadoWizard && !window.cfFiadoWizard.completo()) {
           e.preventDefault();
           if (window.gmLoadingBar) window.gmLoadingBar.hide();
-          alert('Marque todas as conferências de fiado antes de fechar o caixa.');
+          alert('Conclua a conferência de fiado antes de fechar o caixa.');
+          window.cfFiadoWizard.reabrir();
           return;
         }
       }
       limparContagemLocal();
     });
   });
+
+  (function initFiadoWizard() {
+    var form = document.getElementById('form-fechar-todos');
+    var modalVendas = document.getElementById('cf-fiado-modal-vendas');
+    var modalBaixas = document.getElementById('cf-fiado-modal-baixas');
+    if (!form || form.classList.contains('pointer-events-none') || form.getAttribute('aria-disabled') === 'true') return;
+    var hasVendas = !!modalVendas;
+    var hasBaixas = !!modalBaixas;
+    var wizardOk = !hasVendas && !hasBaixas;
+    var puladoVendas = document.getElementById('fiado-vendas-pulado');
+    var puladoBaixas = document.getElementById('fiado-baixas-pulado');
+    var pinVendas = document.getElementById('fiado-vendas-pulo-pin');
+    var pinBaixas = document.getElementById('fiado-baixas-pulo-pin');
+
+    function abrir(el) {
+      if (!el) return;
+      el.classList.remove('hidden');
+    }
+    function fechar(el) {
+      if (!el) return;
+      el.classList.add('hidden');
+    }
+    function todosMarcados(sel) {
+      var boxes = form.querySelectorAll(sel);
+      if (!boxes.length) return true;
+      for (var i = 0; i < boxes.length; i++) {
+        if (!boxes[i].checked) return false;
+      }
+      return true;
+    }
+    function pedirPin(titulo, texto) {
+      if (!window.agroCaixaPedirPin) {
+        alert('PIN indisponível nesta tela.');
+        return Promise.resolve('');
+      }
+      return window.agroCaixaPedirPin({ titulo: titulo, texto: texto });
+    }
+    function aposVendas() {
+      fechar(modalVendas);
+      if (hasBaixas) abrir(modalBaixas);
+      else wizardOk = true;
+    }
+    function aposBaixas() {
+      fechar(modalBaixas);
+      wizardOk = true;
+    }
+    function iniciar() {
+      if (wizardOk) return;
+      if (hasVendas) abrir(modalVendas);
+      else if (hasBaixas) abrir(modalBaixas);
+    }
+
+    var btnConfV = document.getElementById('cf-fiado-vendas-confirmar');
+    var btnPulV = document.getElementById('cf-fiado-vendas-pular');
+    var btnConfB = document.getElementById('cf-fiado-baixas-confirmar');
+    var btnPulB = document.getElementById('cf-fiado-baixas-pular');
+
+    if (btnConfV) {
+      btnConfV.addEventListener('click', function () {
+        if (!todosMarcados('.cf-fiado-check-assinado')) {
+          alert('Marque todas as vendas fiado conferidas.');
+          return;
+        }
+        if (puladoVendas) puladoVendas.value = '0';
+        if (pinVendas) pinVendas.value = '';
+        aposVendas();
+      });
+    }
+    if (btnPulV) {
+      btnPulV.addEventListener('click', function () {
+        pedirPin('Pular conferência — vendas fiado', 'Informe o PIN do operador para pular a conferência de notas assinadas na caixinha.').then(function (pin) {
+          pin = String(pin || '').trim();
+          if (!pin) return;
+          if (puladoVendas) puladoVendas.value = '1';
+          if (pinVendas) pinVendas.value = pin;
+          form.querySelectorAll('.cf-fiado-check-assinado').forEach(function (cb) { cb.checked = false; });
+          aposVendas();
+        });
+      });
+    }
+    if (btnConfB) {
+      btnConfB.addEventListener('click', function () {
+        if (!todosMarcados('.cf-fiado-check-retirado')) {
+          alert('Marque todos os pagamentos fiado conferidos.');
+          return;
+        }
+        if (puladoBaixas) puladoBaixas.value = '0';
+        if (pinBaixas) pinBaixas.value = '';
+        aposBaixas();
+      });
+    }
+    if (btnPulB) {
+      btnPulB.addEventListener('click', function () {
+        pedirPin('Pular conferência — pagamentos fiado', 'Informe o PIN do operador para pular a conferência de notas devolvidas ao cliente.').then(function (pin) {
+          pin = String(pin || '').trim();
+          if (!pin) return;
+          if (puladoBaixas) puladoBaixas.value = '1';
+          if (pinBaixas) pinBaixas.value = pin;
+          form.querySelectorAll('.cf-fiado-check-retirado').forEach(function (cb) { cb.checked = false; });
+          aposBaixas();
+        });
+      });
+    }
+
+    [modalVendas, modalBaixas].forEach(function (modal) {
+      if (!modal) return;
+      modal.addEventListener('click', function (ev) {
+        if (ev.target === modal) ev.stopPropagation();
+      });
+    });
+
+    window.cfFiadoWizard = {
+      completo: function () { return wizardOk; },
+      reabrir: iniciar
+    };
+    iniciar();
+  })();
   window.addEventListener('pagehide', function () {
     gravarContagemLocal(coletarContagem());
     gravarCedulasLocal(coletarCedulas());
