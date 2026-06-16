@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <title>SisVale | Cadastro de produtos</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="csrfmiddlewaretoken" content="{{ csrf_token }}">
   {% include "produtos/_head_perf_mpa.html" %}
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
@@ -253,6 +253,7 @@
     URL_FACETAS: "{% url 'api_produtos_gestao_facetas' %}",
     PODE_EDITAR_OVERLAY: {% if pode_editar_overlay %}true{% else %}false{% endif %},
     CADASTRO_ERP_SYNC_HABILITADO: {% if cadastro_produto_erp_sync_habilitado %}true{% else %}false{% endif %},
+    CSRF_TOKEN: "{{ csrf_token|escapejs }}",
     LOGIN_OVERLAY_HREF: "{% url 'admin:login' %}?next={{ login_overlay_next|urlencode }}",
     FORMAS_PAGAMENTO: (function () {
       try {
