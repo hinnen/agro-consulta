@@ -1,15 +1,13 @@
 #!/usr/bin/env python
-"""Registra commit do deploy em config/deploy_manifest.json (Render buildCommand)."""
+"""Registra commit do deploy em config/deploy_manifest.json (Render buildCommand).
+
+Sem Django: evita conectar ao Postgres só para gravar o manifest no build.
+"""
 import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
-
-import django
-
-django.setup()
 
 from config.app_build_util import record_deploy_build
 
