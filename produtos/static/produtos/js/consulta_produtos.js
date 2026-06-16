@@ -26,9 +26,32 @@
     }
 
     function aplicarPromocaoCarrinhoItem(item) {
-        if (!item || !window.AgroPdvPromocoes || !window.AgroPdvPromocoes.aplicarNoItem) return item;
+        if (!item || item.preco_manual) return item;
         if (item.preco_padrao == null) item.preco_padrao = Number(item.preco || 0);
+        var forma = window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual
+            ? window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual()
+            : '';
+        if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma) {
+            return window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma(item, forma);
+        }
+        if (!window.AgroPdvPromocoes || !window.AgroPdvPromocoes.aplicarNoItem) return item;
         return window.AgroPdvPromocoes.aplicarNoItem(item);
+    }
+
+    function recalcularPrecosFormaCarrinho() {
+        if (!carrinho.length) return;
+        var forma = window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual
+            ? window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual()
+            : '';
+        carrinho.forEach(function (item) {
+            if (!item || item.preco_manual) return;
+            if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma) {
+                window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma(item, forma);
+            } else {
+                aplicarPromocaoCarrinhoItem(item);
+            }
+        });
+        if (typeof atualizarCarrinho === 'function') atualizarCarrinho();
     }
 
     function recalcularPromocoesCarrinho() {
@@ -1277,6 +1300,11 @@ function metaOpcoesFromProd(p) {
         codigo_gm: String(p.codigo_nfe || p.codigo_gm || p.codigo || '').trim(),
         prateleira: String(p.prateleira || '').trim(),
     };
+    if (p.precos_por_forma && typeof p.precos_por_forma === 'object') {
+        out.precos_por_forma = Object.assign({}, p.precos_por_forma);
+    } else if (p.cadastro_extras && p.cadastro_extras.precos_por_forma) {
+        out.precos_por_forma = Object.assign({}, p.cadastro_extras.precos_por_forma);
+    }
     if (p.auditoria_codigo_bip) {
         out.auditoria_codigo_bip = String(p.auditoria_codigo_bip).trim();
     }
@@ -1308,9 +1336,11 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
     const pr = opcoes.prateleira != null ? String(opcoes.prateleira).trim() : '';
     const aud = opcoes.auditoria_codigo_bip != null ? String(opcoes.auditoria_codigo_bip).trim() : '';
     const precoPadrao = Number(preco || 0);
+    const ppf = opcoes.precos_por_forma;
     if (item) {
         item.qtd += qtd;
         if (item.preco_padrao == null) item.preco_padrao = precoPadrao;
+        if (ppf && typeof ppf === 'object') item.precos_por_forma = Object.assign({}, ppf);
         if (cg && !item.codigo_gm) item.codigo_gm = cg;
         if (pr && !item.prateleira) item.prateleira = pr;
         if (aud && !item.auditoria_codigo_bip) item.auditoria_codigo_bip = aud;
@@ -1325,6 +1355,7 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
             codigo_gm: cg,
             prateleira: pr,
         };
+        if (ppf && typeof ppf === 'object') linha.precos_por_forma = Object.assign({}, ppf);
         if (aud) linha.auditoria_codigo_bip = aud;
         aplicarPromocaoCarrinhoItem(linha);
         carrinho.push(linha);
@@ -2046,7 +2077,8 @@ function recuperarOrcamento(id) {
         }
         const chkRec = document.getElementById('pdv-orcamento-entrega');
         if (chkRec) chkRec.checked = !!h.entrega;
-        atualizarCarrinho();
+        if (typeof window.recalcularPrecosFormaCarrinho === 'function') window.recalcularPrecosFormaCarrinho();
+        else atualizarCarrinho();
         fecharHistoricoLocal();
     }
 }
@@ -2084,7 +2116,8 @@ async function abrirOrcamentoComoVendaPdv(id) {
     }
     const chkRec = document.getElementById('pdv-orcamento-entrega');
     if (chkRec) chkRec.checked = !!h.entrega;
-    atualizarCarrinho();
+    if (typeof window.recalcularPrecosFormaCarrinho === 'function') window.recalcularPrecosFormaCarrinho();
+    else atualizarCarrinho();
     fecharHistoricoLocal();
     await irParaCheckout();
 }
@@ -2118,7 +2151,8 @@ function recuperarOrcamentoSilenciosoPorId(oid) {
     }
     const chkRec = document.getElementById('pdv-orcamento-entrega');
     if (chkRec) chkRec.checked = !!h.entrega;
-    atualizarCarrinho();
+    if (typeof window.recalcularPrecosFormaCarrinho === 'function') window.recalcularPrecosFormaCarrinho();
+    else atualizarCarrinho();
     mostrarBannerScanner('Orçamento recuperado — use FECHAR VENDA / F8 para abrir o PDV.');
     tocarSom('add');
     focarBuscaProduto();
@@ -4647,6 +4681,10 @@ window.addEventListener('load', () => {
 
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof pdvInicializarCategoriasRapidasPdv === 'function') pdvInicializarCategoriasRapidasPdv();
+    var fp = document.getElementById('forma-pagamento-pdv');
+    if (fp && typeof window.recalcularPrecosFormaCarrinho === 'function') {
+        fp.addEventListener('change', window.recalcularPrecosFormaCarrinho);
+    }
 });
 
 
@@ -4674,7 +4712,8 @@ document.addEventListener('DOMContentLoaded', function () {
         clienteSelecionado = (d.cliente_extra && typeof d.cliente_extra === 'object') ? d.cliente_extra : null;
         var fp = document.getElementById('forma-pagamento-pdv');
         if (fp && d.forma_pagamento) fp.value = d.forma_pagamento;
-        if (typeof atualizarCarrinho === 'function') atualizarCarrinho();
+        if (typeof window.recalcularPrecosFormaCarrinho === 'function') window.recalcularPrecosFormaCarrinho();
+        else atualizarCarrinho();
         if (history.replaceState) history.replaceState(null, '', AGRO_PDV_URLS.pdvRootUrl || window.location.pathname);
     } catch (x) { console.error(x); }
 });
@@ -4706,6 +4745,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 /** onclick="" nos templates — escopo do IIFE não é global */
 window.limparCarrinho = limparCarrinho;
+window.recalcularPrecosFormaCarrinho = recalcularPrecosFormaCarrinho;
 window.salvarOrcamentoManual = salvarOrcamentoManual;
 window.irParaCheckout = irParaCheckout;
 window.alterarQtdItem = alterarQtdItem;

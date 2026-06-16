@@ -15,16 +15,18 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 
 ### 1.1 TESTE vs PRODUÇÃO (obrigatório para o assistente)
 
-Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
+Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
-| Ambiente | Branch | Render |
-| -------- | ------ | ------ |
-| **TESTE** | `teste` | agro-consulta-staging |
-| **PRODUÇÃO** | `producao` | Sistvale - Produção |
+
+| Ambiente     | Branch     | Render                |
+| ------------ | ---------- | --------------------- |
+| **TESTE**    | `teste`    | agro-consulta-staging |
+| **PRODUÇÃO** | `producao` | Sistvale - Produção   |
+
 
 - Cursor: commit/push **só** em `teste`.
 - Produção: merge `teste` → `producao` **só** quando o usuário pedir.
-- **`main` não entra no deploy.** Ver `docs/DEPLOY-AMBIENTES.md`.
+- `**main` não entra no deploy.** Ver `docs/DEPLOY-AMBIENTES.md`.
 
 ---
 
@@ -48,32 +50,32 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 **Páginas (MPA / templates):**
 
 
-| Caminho                          | Nome (name)                    | Nota                                          |
-| -------------------------------- | ------------------------------ | --------------------------------------------- |
-| `/`                              | `home`                         | Dashboard gerencial (BI + launchpad); alias `/dashboard/gerencial/` (`dashboard_gerencial`) |
-| `/consulta/`                     | `consulta_produtos`            | PDV legado MPA (busca / orçamentos)           |
-| `/historico/`                    | `historico_ajustes`            |                                               |
-| `/transferencias/`               | `sugestao_transferencia`       |                                               |
-| `/entregas/`                     | `entregas_painel`              | APIs sob `/entregas/api/...`                  |
-| `/ajuste-mobile/`                | `ajuste_mobile`                |                                               |
-| `/compras/`                      | `compras_view`                 | Pedido fornecedor, WhatsApp                   |
-| `/compras/relatorio-a4/`         | `compras_relatorio_a4`         | Relatório A4 por fornecedor (página dedicada; link direto, mobile) |
+| Caminho                                  | Nome (name)                            | Nota                                                                                        |
+| ---------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `/`                                      | `home`                                 | Dashboard gerencial (BI + launchpad); alias `/dashboard/gerencial/` (`dashboard_gerencial`) |
+| `/consulta/`                             | `consulta_produtos`                    | PDV legado MPA (busca / orçamentos)                                                         |
+| `/historico/`                            | `historico_ajustes`                    |                                                                                             |
+| `/transferencias/`                       | `sugestao_transferencia`               |                                                                                             |
+| `/entregas/`                             | `entregas_painel`                      | APIs sob `/entregas/api/...`                                                                |
+| `/ajuste-mobile/`                        | `ajuste_mobile`                        |                                                                                             |
+| `/compras/`                              | `compras_view`                         | Pedido fornecedor, WhatsApp                                                                 |
+| `/compras/relatorio-a4/`                 | `compras_relatorio_a4`                 | Relatório A4 por fornecedor (página dedicada; link direto, mobile)                          |
 | `/compras/relatorio-planilha-categoria/` | `compras_relatorio_planilha_categoria` | Lista por **categoria** · impressão A4 ou A6; sem coluna GM; «Contagem» e «Pedir» em branco |
-| `/compras/relatorio-planilha-unidade/`   | `compras_relatorio_planilha_unidade` | Lista por **unidade** · mesmo layout e opções de papel que a planilha por categoria |
-| `/entrada-nota/`                 | `entrada_nota`                 |                                               |
-| `/lancamentos/`                  | `lancamentos_financeiros`      | Contas a pagar/receber                        |
-| `/financeiro/resumo-gerencial/`  | `resumo_financeiro_gerencial`  |                                               |
-| `/lancamentos/dre/`              | `lancamentos_dre`              |                                               |
-| `/lancamentos/contas-pagar/`     | `lancamentos_contas_pagar`     |                                               |
-| `/lancamentos/novo-manual/`      | `lancamentos_manual`           |                                               |
-| `/lancamentos/fluxo-calendario/` | `lancamentos_fluxo_calendario` |                                               |
-| `/estoque/sincronizacao/`        | `estoque_sincronizacao`        | Saúde leitura Mongo + divergência camada Agro |
-| `/pdv/checkout/`                 | `pdv_checkout`                 |                                               |
-| `/vendas/`                       | `vendas_lista`                 |                                               |
-| `/venda/<pk>/`                   | `venda_agro_detalhe`           |                                               |
-| `/clientes/` …                   | `clientes_`*, `cliente_*`      |                                               |
-| `/rh/`                           | `rh_painel`                    |                                               |
-| `/caixa/` …                      | `caixa_*`                      | Painel, saída, abrir, fechar                  |
+| `/compras/relatorio-planilha-unidade/`   | `compras_relatorio_planilha_unidade`   | Lista por **unidade** · mesmo layout e opções de papel que a planilha por categoria         |
+| `/entrada-nota/`                         | `entrada_nota`                         |                                                                                             |
+| `/lancamentos/`                          | `lancamentos_financeiros`              | Contas a pagar/receber                                                                      |
+| `/financeiro/resumo-gerencial/`          | `resumo_financeiro_gerencial`          |                                                                                             |
+| `/lancamentos/dre/`                      | `lancamentos_dre`                      |                                                                                             |
+| `/lancamentos/contas-pagar/`             | `lancamentos_contas_pagar`             |                                                                                             |
+| `/lancamentos/novo-manual/`              | `lancamentos_manual`                   |                                                                                             |
+| `/lancamentos/fluxo-calendario/`         | `lancamentos_fluxo_calendario`         |                                                                                             |
+| `/estoque/sincronizacao/`                | `estoque_sincronizacao`                | Saúde leitura Mongo + divergência camada Agro                                               |
+| `/pdv/checkout/`                         | `pdv_checkout`                         |                                                                                             |
+| `/vendas/`                               | `vendas_lista`                         |                                                                                             |
+| `/venda/<pk>/`                           | `venda_agro_detalhe`                   |                                                                                             |
+| `/clientes/` …                           | `clientes_`*, `cliente_*`              |                                                                                             |
+| `/rh/`                                   | `rh_painel`                            |                                                                                             |
+| `/caixa/` …                              | `caixa_*`                              | Painel, saída, abrir, fechar                                                                |
 
 
 **APIs (amostra; lista completa no arquivo):** `api/buscar/`, `api/lancamentos/`, export CSV/XLSX/PDF financeiro, `api/pdv/`*, `api/entrada-nota/*`, `api/ajustar/`, etc.
@@ -86,7 +88,7 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 - `**_agro_open_external.html`** — `agroAbrirUrlExterna`, uso de `window.agroShell.openExternal` no Electron; monkey-patch de `window.open` para WhatsApp/Maps/Waze/goo.gl.
 - `**_head_perf_mpa.html`** — performance MPA onde usado.
 - `**_gm_loading_bar.html`** — barra de loading em algumas telas.
-- `**produtos/templates/produtos/includes/lancamentos_help_agents.html**` — textos longos de ajuda em Lançamentos (filtros / busca na lista), espelhados na **§10**; na tela ficam em bloco **«?»** (`<details>`), no padrão do RH (`rh_help_agents.html`).
+- `**produtos/templates/produtos/includes/lancamentos_help_agents.html`** — textos longos de ajuda em Lançamentos (filtros / busca na lista), espelhados na **§10**; na tela ficam em bloco **«?»** (`<details>`), no padrão do RH (`rh_help_agents.html`).
 
 ---
 
@@ -102,7 +104,7 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 - **“Voltar ao PDV (F1)”** visível nas telas possíveis.
 - Ao voltar ao PDV: **preservar contexto** (draft, filtros, lista, scroll).
 - **Home administrativa (launcher):** sem **rolagem da página** (`overflow: hidden` no viewport, `100dvh` / `min-h-0` com flex); **tipografia e espaçamentos fluidos** (`clamp` com `vw` + `rem` na shell) e **colunas da grade por largura útil** (`container-type: inline-size` + `@container`), para o layout **acompanhar o zoom** sem empilhar cards; em **zoom muito alto**, se necessário há **rolagem só na área da grade** (sem sobreposição).
-- **Caixa (painel, abrir, fechar, relatório):** pensado para monitor **16:9** — shell larga (`.caixa-shell`, até ~96rem), **`100dvh`** com `overflow: hidden` no body, conteúdo em **grade horizontal** (não coluna estreita `max-w-lg`); fechamento em lote à esquerda + caixas individuais à direita (`caixa_fechar.html`). Referência: `caixa_painel.html`, `caixa_fechar.html`.
+- **Caixa (painel, abrir, fechar, relatório):** pensado para monitor **16:9** — shell larga (`.caixa-shell`, até ~96rem), `**100dvh`** com `overflow: hidden` no body, conteúdo em **grade horizontal** (não coluna estreita `max-w-lg`); fechamento em lote à esquerda + caixas individuais à direita (`caixa_fechar.html`). Referência: `caixa_painel.html`, `caixa_fechar.html`.
 
 ---
 
@@ -122,8 +124,8 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 - Sugestão de compra em destaque no **card**; horizonte em dias **independente** do período da média (média em `<details>` “Métricas avançadas”).  
 - Opção **descontar ou não** estoque total **C+V** (localStorage).  
 - F5 / textos: **atualizar métricas**; não confundir com horizonte da sugestão.
-- **Relatório A4:** também em **`/compras/relatorio-a4/`** (`compras_relatorio_a4`) — mesma lógica do modal na tela Compras; layout pensado para **celular** (área segura, toques grandes, lista rolável). Na Compras entra pelo menu **«Folha Compras»** → **«Página só fornecedor»**.
-- **Planilha impressa por categoria / unidade:** **`/compras/relatorio-planilha-categoria/`** e **`/compras/relatorio-planilha-unidade/`** — escolha A4 ou A6; lista sem coluna código (GM); colunas **Contagem** e **Pedir** vazias; **corpo da tabela** em tipografia grande (nome da 1ª coluna ~+20 % sobre a base anterior; demais colunas ~+35 % para leitura física). Quantidades «últ. pedido / compra» e «vendida desde última» calculadas por produto com **último evento de compra** no Mongo ERP (`_ultimas_compras_por_produto_ids`) + **DtoVenda** depois dessa data. Cabeçalho de impressão só com filtro e data gerada (legenda no rodapé). **Categoria e unidade: só seleção na lista** (sem digitar); `GET api/compras/relatorio-dim/?tipo=…&completa=1` monta options (scan Mongo maior + overlay). Filtro por **unidade** considera Mongo (`Unidade`, `SiglaUnidade`, campos de estoque) **e** a unidade salva no **overlay** PostgreSQL (como a coluna UNIDADE da gestão). APIs `api/compras/relatorio-dim/`, `api/compras/relatorio-categoria/`, `api/compras/relatorio-unidade/`. Na tela Compras: menu **«Folha Compras»** no cabeçalho agrupa fornecedor (modal + página dedicada), categoria e unidade; **painel ancorado à esquerda** do botão, **rótulos dos itens alinhados à esquerda** (leitura contínua, telas compactas).
+- **Relatório A4:** também em `**/compras/relatorio-a4/`** (`compras_relatorio_a4`) — mesma lógica do modal na tela Compras; layout pensado para **celular** (área segura, toques grandes, lista rolável). Na Compras entra pelo menu **«Folha Compras»** → **«Página só fornecedor»**.
+- **Planilha impressa por categoria / unidade:** `**/compras/relatorio-planilha-categoria/`** e `**/compras/relatorio-planilha-unidade/**` — escolha A4 ou A6; lista sem coluna código (GM); colunas **Contagem** e **Pedir** vazias; **corpo da tabela** em tipografia grande (nome da 1ª coluna ~+20 % sobre a base anterior; demais colunas ~+35 % para leitura física). Quantidades «últ. pedido / compra» e «vendida desde última» calculadas por produto com **último evento de compra** no Mongo ERP (`_ultimas_compras_por_produto_ids`) + **DtoVenda** depois dessa data. Cabeçalho de impressão só com filtro e data gerada (legenda no rodapé). **Categoria e unidade: só seleção na lista** (sem digitar); `GET api/compras/relatorio-dim/?tipo=…&completa=1` monta options (scan Mongo maior + overlay). Filtro por **unidade** considera Mongo (`Unidade`, `SiglaUnidade`, campos de estoque) **e** a unidade salva no **overlay** PostgreSQL (como a coluna UNIDADE da gestão). APIs `api/compras/relatorio-dim/`, `api/compras/relatorio-categoria/`, `api/compras/relatorio-unidade/`. Na tela Compras: menu **«Folha Compras»** no cabeçalho agrupa fornecedor (modal + página dedicada), categoria e unidade; **painel ancorado à esquerda** do botão, **rótulos dos itens alinhados à esquerda** (leitura contínua, telas compactas).
 
 **Entrada NF — assistente (7 passos)** 
 
@@ -138,9 +140,9 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 **Gestão / cadastro de produtos — lentidão após entrada NF (investigação aberta)**  
 
 - **Sintoma:** primeira abertura aceitável; depois de **entrada de nota** e voltar à **gestão de produtos**, carga muito longa (minutos em casos extremos). Usuário reportou persistência após otimizações iniciais.  
-- **Duas telas:** (1) **SisVale cadastro** `produtos_cadastro_erp.html` + `cadastro_erp_panel.js` → API **`api_produtos_cadastro`** em `produtos/views.py` (lista/busca Mongo **sem** saldo). (2) **Gestão operacional** `produtos_gestao.html` → **`api_produtos_gestao_lista`** (+ **`api_produtos_gestao_facetas`** no load). Não misturar as rotas ao depurar.  
-- **Já feito (código):** projeção slim em **`api_produtos_gestao_lista`** e em **`motor_de_busca_agro`** quando usado pela gestão; **`_CADASTRO_LISTA_MONGO_PROJ`** em **`api_produtos_cadastro`** (find + motor); após propagar preços da NF, fila «pendentes ERP» em **batch** (`_erp_produto_pendentes_extend_batch`); no painel ERP, **lista + badge pendentes** em paralelo (`cadastro_erp_panel.js`).  
-- **Se ainda estiver lento, próximo passo:** medir no browser/rede **qual URL** trava (`api_produtos_cadastro`, `api_produtos_gestao_facetas`, `api_produtos_gestao_erp_pendentes`, etc.); revisar **`api_produtos_gestao_facetas`** (vários `distinct` no Mongo); **`explain`** / índices em **`Nome`**, **`CadastroInativo`**, campos de **sort** do cadastro; pool **`obter_conexao_mongo`**; cache Redis.
+- **Duas telas:** (1) **SisVale cadastro** `produtos_cadastro_erp.html` + `cadastro_erp_panel.js` → API `**api_produtos_cadastro`** em `produtos/views.py` (lista/busca Mongo **sem** saldo). (2) **Gestão operacional** `produtos_gestao.html` → `**api_produtos_gestao_lista`** (+ `**api_produtos_gestao_facetas**` no load). Não misturar as rotas ao depurar.  
+- **Já feito (código):** projeção slim em `**api_produtos_gestao_lista`** e em `**motor_de_busca_agro**` quando usado pela gestão; `**_CADASTRO_LISTA_MONGO_PROJ**` em `**api_produtos_cadastro**` (find + motor); após propagar preços da NF, fila «pendentes ERP» em **batch** (`_erp_produto_pendentes_extend_batch`); no painel ERP, **lista + badge pendentes** em paralelo (`cadastro_erp_panel.js`).  
+- **Se ainda estiver lento, próximo passo:** medir no browser/rede **qual URL** trava (`api_produtos_cadastro`, `api_produtos_gestao_facetas`, `api_produtos_gestao_erp_pendentes`, etc.); revisar `**api_produtos_gestao_facetas`** (vários `distinct` no Mongo); `**explain**` / índices em `**Nome**`, `**CadastroInativo**`, campos de **sort** do cadastro; pool `**obter_conexao_mongo`**; cache Redis.
 
 **PDF financeiro (`produtos/lancamentos_financeiro_pdf.py`)**  
 
@@ -168,7 +170,6 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 **Dashboard gerencial — gastos por plano de conta** (oculto na home; `AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env` para todos verem)
 
 - **Prévia só admin:** `/interno/preview-gastos-bi/` (`dashboard_interno_preview`) — sem link no menu; 404 para quem não for superuser ou usuário listado em `AGRO_DASHBOARD_PREVIEW_USERNAMES` (vírgula no `.env`).
-
 - Um gráfico de **barras verticais**: cada coluna = plano de conta (total no período do filtro de cima).
 - Filtro **Competência / Vencimento / Pagamento** troca só o gráfico (cache JSON dos 3 modos no load; sem reload da página).
 - Com mais de 10 planos: paginação discreta (**‹ ›** e **N/M** ao lado do gráfico).
@@ -273,7 +274,7 @@ Textos longos nas telas **Fechamento de folha** e **Ficha do funcionário** fica
 
 ## 10. Ajuda em tela — Lançamentos / filtros (fonte para o `?`)
 
-Texto longo da **busca na lista** (modal Filtros em Contas a pagar / receber) fica no bloco **«?»** (`<details>`). O HTML canônico está em `**produtos/templates/produtos/includes/lancamentos_help_agents.html**` (slug `filtros_busca_lista`); esta seção espelha o conteúdo para humanos e para `@AGENTS.md`.
+Texto longo da **busca na lista** (modal Filtros em Contas a pagar / receber) fica no bloco **«?»** (`<details>`). O HTML canônico está em `**produtos/templates/produtos/includes/lancamentos_help_agents.html`** (slug `filtros_busca_lista`); esta seção espelha o conteúdo para humanos e para `@AGENTS.md`.
 
 ### 10.0 Busca na lista
 

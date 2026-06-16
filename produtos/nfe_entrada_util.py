@@ -217,6 +217,52 @@ def _localname(tag: str) -> str:
     return tag.split("}", 1)[-1] if "}" in tag else tag
 
 
+# Tabela tPag NF-e 4.0 (forma de pagamento) — rótulos para sugestão na etapa Financeiro.
+_NFE_TPAG_FORMA_SUGERIDA: dict[str, str] = {
+    "01": "Dinheiro",
+    "02": "Cheque",
+    "03": "Cartão de crédito",
+    "04": "Cartão de débito",
+    "05": "Crédito loja",
+    "10": "Vale alimentação",
+    "11": "Vale refeição",
+    "12": "Vale presente",
+    "13": "Vale combustível",
+    "15": "Boleto bancário",
+    "16": "Depósito bancário",
+    "17": "Pagamento instantâneo (PIX)",
+    "18": "Transferência bancária",
+    "19": "Programa fidelidade",
+    "90": "Sem pagamento",
+    "99": "Outros",
+}
+
+
+def _parse_data_xml_nfe(raw: Any) -> str:
+    """Normaliza dVenc / dPag do XML para ``YYYY-MM-DD``."""
+    s = str(raw or "").strip()
+    if not s:
+        return ""
+    if len(s) >= 10 and s[4] == "-" and s[7] == "-":
+        return s[:10]
+    m = re.match(r"^(\d{2})/(\d{2})/(\d{4})", s)
+    if m:
+        return f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
+    return ""
+
+
+def _normalizar_tpag_nfe(raw: Any) -> str:
+    t = re.sub(r"\D", "", str(raw or "").strip())
+    if not t:
+        return ""
+    return t.zfill(2)[:2] if len(t) <= 2 else t[:4]
+
+
+def _forma_sugerida_tpag_nfe(t_pag: str) -> str:
+    code = _normalizar_tpag_nfe(t_pag)
+    return _NFE_TPAG_FORMA_SUGERIDA.get(code, "")
+
+
 def _text(el: ET.Element | None) -> str:
     if el is None or el.text is None:
         return ""
@@ -235,10 +281,73 @@ def _findall_local(parent: ET.Element, name: str) -> list[ET.Element]:
     return [el for el in list(parent) if _localname(el.tag) == name]
 
 
+def listar_empresas_financeiro_entrada_nfe(db) -> list[dict[str, str]]:
+    """
+    Lojas canônicas para etapa Financeiro da entrada NF-e (uma opção por unidade).
+    Resolve ``Empresa`` / ``EmpresaID`` do Mongo (último lançamento compatível).
+    """
+    from .mongo_financeiro_util import COL_DTO_LANCAMENTO
+
+    specs: tuple[tuple[str, str, str, list[dict[str, Any]]], ...] = (
+        (
+            "centro",
+            "Agro Mais Centro",
+            "Agro Mais Centro",
+            [
+                {"Empresa": {"$regex": r"^Agro Mais Centro$", "$options": "i"}},
+                {
+                    "$and": [
+                        {"Empresa": {"$regex": "agro", "$options": "i"}},
+                        {"Empresa": {"$regex": "centro", "$options": "i"}},
+                        {"Empresa": {"$not": {"$regex": "vila", "$options": "i"}}},
+                    ]
+                },
+            ],
+        ),
+        (
+            "vila",
+            "Agro Mais Vila",
+            "Agro Mais Vila Elias",
+            [
+                {"Empresa": {"$regex": r"^Agro Mais Vila Elias$", "$options": "i"}},
+                {"Empresa": {"$regex": r"^Agro Mais Vila$", "$options": "i"}},
+                {
+                    "$and": [
+                        {"Empresa": {"$regex": "agro", "$options": "i"}},
+                        {"Empresa": {"$regex": "vila", "$options": "i"}},
+                    ]
+                },
+            ],
+        ),
+    )
+    out: list[dict[str, str]] = []
+    for dep, label, nome_padrao, match_ors in specs:
+        nome = nome_padrao
+        eid = ""
+        if db is not None:
+            try:
+                doc = db[COL_DTO_LANCAMENTO].find_one(
+                    {"$or": match_ors},
+                    sort=[("DataVencimento", -1)],
+                    projection={"Empresa": 1, "EmpresaID": 1},
+                )
+                if doc:
+                    eid = str(doc.get("EmpresaID") or "").strip()
+                    raw = str(doc.get("Empresa") or "").strip()
+                    if dep == "centro":
+                        nome = "Agro Mais Centro"
+                    elif raw:
+                        nome = raw
+            except Exception:
+                logger.debug("listar_empresas_financeiro_entrada_nfe dep=%s", dep, exc_info=True)
+        out.append({"deposito": dep, "label": label, "nome": nome, "id": eid})
+    return out
+
+
 def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
     """
-    Extrai cabeçalho e itens de NF-e 3.x/4.x (nfeProc ou NFe).
-    Retorna dict com chave, emitente, destinatário, itens (cProd, ean, descrição, qtd, v_unit, cfop, ncm).
+    Extrai cabeçalho, itens e cobrança (duplicatas / pag) de NF-e 3.x/4.x (nfeProc ou NFe).
+    Retorna dict com chave, emitente, itens, duplicatas (vencimento/valor), pagamentos (tPag).
     """
     out: dict[str, Any] = {
         "ok": False,
@@ -253,6 +362,10 @@ def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
         "dest_cpf": "",
         "dest_nome": "",
         "valor_total": 0.0,
+        "duplicatas": [],
+        "pagamentos": [],
+        "fatura": {},
+        "forma_pagamento_sugerida": "",
         "itens": [],
     }
     try:
@@ -315,6 +428,83 @@ def parse_nfe_xml_bytes(data: bytes) -> dict[str, Any]:
                         out["valor_total"] = float(Decimal(_text(child) or "0"))
                     except Exception:
                         out["valor_total"] = 0.0
+
+    cobr = _find1(inf, ["cobr"])
+    duplicatas: list[dict[str, Any]] = []
+    fatura: dict[str, Any] = {}
+    if cobr is not None:
+        fat_el = _find1(cobr, ["fat"])
+        if fat_el is not None:
+            for child in fat_el:
+                ln = _localname(child.tag)
+                if ln == "nFat":
+                    fatura["n_fat"] = _text(child)[:60]
+                elif ln == "vLiq":
+                    try:
+                        fatura["v_liq"] = float(Decimal(_text(child) or "0"))
+                    except Exception:
+                        pass
+        for child in cobr:
+            if _localname(child.tag) != "dup":
+                continue
+            dup_item: dict[str, Any] = {"n_dup": "", "data_vencimento": "", "valor": 0.0}
+            for dc in child:
+                ln = _localname(dc.tag)
+                t = _text(dc)
+                if ln == "nDup":
+                    dup_item["n_dup"] = t[:60]
+                elif ln == "dVenc":
+                    dup_item["data_vencimento"] = _parse_data_xml_nfe(t)
+                elif ln == "vDup":
+                    try:
+                        dup_item["valor"] = float(Decimal(t.replace(",", ".") or "0"))
+                    except Exception:
+                        dup_item["valor"] = 0.0
+            if dup_item["data_vencimento"] or float(dup_item.get("valor") or 0) > 0:
+                duplicatas.append(dup_item)
+    duplicatas.sort(key=lambda x: (str(x.get("data_vencimento") or "9999-12-31"), str(x.get("n_dup") or "")))
+    out["duplicatas"] = duplicatas
+    if fatura:
+        out["fatura"] = fatura
+
+    pagamentos: list[dict[str, Any]] = []
+    pag_el = _find1(inf, ["pag"])
+    if pag_el is not None:
+        for ch in pag_el:
+            if _localname(ch.tag) != "detPag":
+                continue
+            pg: dict[str, Any] = {
+                "t_pag": "",
+                "v_pag": 0.0,
+                "data_pagamento": "",
+                "forma_sugerida": "",
+            }
+            for pc in ch:
+                ln = _localname(pc.tag)
+                t = _text(pc)
+                if ln == "tPag":
+                    pg["t_pag"] = _normalizar_tpag_nfe(t)
+                    pg["forma_sugerida"] = _forma_sugerida_tpag_nfe(pg["t_pag"])
+                elif ln == "vPag":
+                    try:
+                        pg["v_pag"] = float(Decimal(t.replace(",", ".") or "0"))
+                    except Exception:
+                        pg["v_pag"] = 0.0
+                elif ln in ("dPag", "dVenc"):
+                    pg["data_pagamento"] = _parse_data_xml_nfe(t)
+            if pg["t_pag"] or float(pg.get("v_pag") or 0) > 0:
+                pagamentos.append(pg)
+    out["pagamentos"] = pagamentos
+
+    forma_sug = ""
+    for pg in pagamentos:
+        fs = str(pg.get("forma_sugerida") or "").strip()
+        if fs:
+            forma_sug = fs
+            break
+    if not forma_sug and duplicatas:
+        forma_sug = "Boleto bancário"
+    out["forma_pagamento_sugerida"] = forma_sug
 
     itens_out: list[dict[str, Any]] = []
     for det in inf.iter():

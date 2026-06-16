@@ -286,6 +286,13 @@
           </div>
         </label>
 
+        <div class="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <button type="button" id="btn-precos-forma-pagamento" class="min-h-[52px] flex-1 rounded-xl border-2 border-orange-300 bg-white hover:bg-orange-50 text-orange-900 font-black text-sm uppercase tracking-wide px-4 py-3 shadow-sm transition-colors flex items-center justify-center gap-2" title="Valores opcionais por forma de pagamento. Vazio usa o preço de venda final.">
+            <span>Preços por forma de pagamento</span>
+            <span id="badge-precos-forma-count" class="hidden min-w-[1.5rem] px-1.5 py-0.5 rounded-full bg-orange-500 text-white text-xs font-black leading-none"></span>
+          </button>
+        </div>
+
         <div class="tab-custos-footer grid grid-cols-1 md:grid-cols-3 w-full">
           <label class="info-card-compact rounded-xl bg-white border-2 border-blue-100">
             <span class="info-card-label text-blue-900 block text-left">Comissão (R$)</span>
@@ -567,6 +574,33 @@
   <datalist id="dl-forns-agro"></datalist>
   <datalist id="dl-cats-agro"></datalist>
   <datalist id="dl-subcats-agro"></datalist>
+
+  <div id="modal-precos-forma-pagamento" class="hidden fixed inset-0 z-[75] flex items-end sm:items-center justify-center p-2 sm:p-4 bg-slate-900/55" role="dialog" aria-modal="true" aria-labelledby="modal-precos-forma-titulo">
+    <div class="bg-white rounded-2xl border-2 border-orange-200 shadow-2xl w-full max-w-lg max-h-[min(90dvh,640px)] flex flex-col overflow-hidden">
+      <div class="shrink-0 px-4 py-3 border-b border-orange-100 bg-orange-50/80 flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h4 id="modal-precos-forma-titulo" class="text-base font-black uppercase text-orange-900 leading-tight">Preços por forma de pagamento</h4>
+          <p class="text-sm font-semibold text-slate-600 mt-1 leading-snug">Deixe em branco para usar o preço de venda final. Só formas preenchidas alteram o PDV.</p>
+        </div>
+        <button type="button" id="modal-precos-forma-fechar" class="shrink-0 w-10 h-10 rounded-xl border-2 border-slate-200 text-slate-600 font-black text-xl leading-none hover:bg-white" aria-label="Fechar">×</button>
+      </div>
+      <div class="flex-1 min-h-0 overflow-y-auto [scrollbar-width:thin]">
+        <table class="w-full text-base">
+          <thead class="sticky top-0 bg-slate-50 text-xs font-black uppercase text-slate-600">
+            <tr>
+              <th class="px-4 py-3 text-left">Forma de pagamento</th>
+              <th class="px-4 py-3 text-right w-[42%]">Valor (R$)</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-precos-forma-pagamento" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+      <div class="shrink-0 px-4 py-3 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
+        <button type="button" id="modal-precos-forma-limpar" class="min-h-[48px] px-4 rounded-xl text-sm font-black uppercase border-2 border-slate-200 text-slate-700 hover:bg-white">Limpar tudo</button>
+        <button type="button" id="modal-precos-forma-ok" class="min-h-[48px] px-5 rounded-xl text-sm font-black uppercase bg-orange-500 text-white border-2 border-orange-600 hover:bg-orange-600">Concluir</button>
+      </div>
+    </div>
+  </div>
 
   <div id="modal-mini-agro" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/50" role="dialog" aria-modal="true">
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-5">
@@ -1502,6 +1536,9 @@
     setPct2('edit-mva-pct', produto.mva_lucro_percentual);
     setVal('edit-venda', produto.preco_venda != null && produto.preco_venda !== ''
       ? fmtMoeda2(produto.preco_venda) : '');
+    if (typeof window.agroCadastroCarregarPrecosPorForma === 'function') {
+      window.agroCadastroCarregarPrecosPorForma(produto, ce);
+    }
 
     setVal('edit-est-min', produto.estoque_minimo != null && produto.estoque_minimo !== '' ? produto.estoque_minimo : '');
     setVal('edit-est-max', produto.estoque_maximo != null && produto.estoque_maximo !== '' ? produto.estoque_maximo : '');
@@ -1752,6 +1789,9 @@
     if (syncErp) body.sincronizar_erp = true;
     if (chkEx) body.ativo_exibicao = chkEx.checked;
     if (chkInativoErp) body.inativar_erp = !!chkInativoErp.checked;
+    if (typeof window.agroCadastroObterPrecosPorFormaPayload === 'function') {
+      body.precos_por_forma = window.agroCadastroObterPrecosPorFormaPayload();
+    }
     body.validar_cadastro_minimo = true;
     var tok = U && U.csrf ? U.csrf() : '';
     fetch(cfg.URL_OVERLAY_SALVAR, {
@@ -2070,5 +2110,127 @@
 
   wirePrecosListeners();
   wireAllFacetAutos();
+
+  (function wirePrecosFormaPagamentoModal() {
+    var sub = document.getElementById('modal-precos-forma-pagamento');
+    if (!sub) return;
+
+    modalEdit._precosPorForma = modalEdit._precosPorForma || {};
+
+    function formasLista() {
+      var cfg = window.AgroCadastroErpLista || {};
+      if (Array.isArray(cfg.FORMAS_PAGAMENTO) && cfg.FORMAS_PAGAMENTO.length) return cfg.FORMAS_PAGAMENTO;
+      return ['Dinheiro', 'PIX', 'Cartão de débito', 'Cartão de crédito', 'Cartão de crédito parcelado', 'Fiado', 'Vale crédito', 'Cashback', 'Outro'];
+    }
+
+    function atualizarBadgePrecosForma() {
+      var badge = document.getElementById('badge-precos-forma-count');
+      if (!badge) return;
+      var n = 0;
+      var map = modalEdit._precosPorForma || {};
+      Object.keys(map).forEach(function (k) {
+        var v = parseMoeda(map[k]);
+        if (v > 0) n += 1;
+      });
+      if (n > 0) {
+        badge.textContent = String(n);
+        badge.classList.remove('hidden');
+      } else {
+        badge.textContent = '';
+        badge.classList.add('hidden');
+      }
+    }
+
+    function renderPrecosFormaTabela() {
+      var tb = document.getElementById('tbody-precos-forma-pagamento');
+      if (!tb) return;
+      var map = modalEdit._precosPorForma || {};
+      tb.innerHTML = formasLista().map(function (forma) {
+        var val = map[forma];
+        var shown = val != null && val !== '' && parseMoeda(val) > 0 ? fmtMoeda2(parseMoeda(val)) : '';
+        return '<tr><td class="px-4 py-3 font-bold text-slate-800">' + esc(forma) + '</td>' +
+          '<td class="px-4 py-2 text-right"><input type="text" class="preco-forma-input w-full min-h-[46px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold text-right focus:border-orange-500 outline-none" data-forma="' + esc(forma) + '" value="' + esc(shown) + '" inputmode="decimal" placeholder="Padrão" autocomplete="off" spellcheck="false" /></td></tr>';
+      }).join('');
+      tb.querySelectorAll('.preco-forma-input').forEach(function (inp) {
+        inp.addEventListener('blur', function () {
+          var f = inp.getAttribute('data-forma') || '';
+          var raw = (inp.value || '').trim();
+          if (!raw) {
+            delete modalEdit._precosPorForma[f];
+            inp.value = '';
+            return;
+          }
+          var n = parseMoeda(raw);
+          if (n > 0) {
+            modalEdit._precosPorForma[f] = n;
+            inp.value = fmtMoeda2(n);
+          } else {
+            delete modalEdit._precosPorForma[f];
+            inp.value = '';
+          }
+        });
+      });
+    }
+
+    function abrirPrecosFormaModal() {
+      renderPrecosFormaTabela();
+      sub.classList.remove('hidden');
+      sub.classList.add('flex');
+    }
+
+    function fecharPrecosFormaModal() {
+      sub.querySelectorAll('.preco-forma-input').forEach(function (inp) {
+        var f = inp.getAttribute('data-forma') || '';
+        var raw = (inp.value || '').trim();
+        if (!raw) {
+          delete modalEdit._precosPorForma[f];
+          return;
+        }
+        var n = parseMoeda(raw);
+        if (n > 0) modalEdit._precosPorForma[f] = n;
+        else delete modalEdit._precosPorForma[f];
+      });
+      atualizarBadgePrecosForma();
+      sub.classList.add('hidden');
+      sub.classList.remove('flex');
+    }
+
+    var btnOpen = document.getElementById('btn-precos-forma-pagamento');
+    if (btnOpen) btnOpen.addEventListener('click', abrirPrecosFormaModal);
+    var btnClose = document.getElementById('modal-precos-forma-fechar');
+    if (btnClose) btnClose.addEventListener('click', fecharPrecosFormaModal);
+    var btnOk = document.getElementById('modal-precos-forma-ok');
+    if (btnOk) btnOk.addEventListener('click', fecharPrecosFormaModal);
+    var btnLimpar = document.getElementById('modal-precos-forma-limpar');
+    if (btnLimpar) btnLimpar.addEventListener('click', function () {
+      modalEdit._precosPorForma = {};
+      renderPrecosFormaTabela();
+      atualizarBadgePrecosForma();
+    });
+    sub.addEventListener('click', function (e) {
+      if (e.target === sub) fecharPrecosFormaModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && sub && !sub.classList.contains('hidden')) fecharPrecosFormaModal();
+    });
+
+    window.agroCadastroCarregarPrecosPorForma = function (produto, ce) {
+      var ppf = produto && produto.precos_por_forma;
+      if ((!ppf || typeof ppf !== 'object' || !Object.keys(ppf).length) && ce && ce.precos_por_forma) {
+        ppf = ce.precos_por_forma;
+      }
+      modalEdit._precosPorForma = ppf && typeof ppf === 'object' ? Object.assign({}, ppf) : {};
+      atualizarBadgePrecosForma();
+    };
+    window.agroCadastroObterPrecosPorFormaPayload = function () {
+      var out = {};
+      var map = modalEdit._precosPorForma || {};
+      Object.keys(map).forEach(function (k) {
+        var n = parseMoeda(map[k]);
+        if (n > 0) out[k] = n;
+      });
+      return out;
+    };
+  })();
 })();
 </script>

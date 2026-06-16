@@ -226,6 +226,7 @@
   {% include "produtos/_atalho_voltar_pdv.html" %}
   {% include "produtos/_agro_double_submit_guard.html" %}
   {% include "produtos/_js_busca_produto_inteligente.html" %}
+  {{ formas_pagamento_caixa|json_script:"agro-formas-pagamento-json" }}
   <script>
   window.AgroCadastroErpLista = {
     CADASTRO_ERP_MODO: "{{ cadastro_erp_modo|default:'lista'|escapejs }}",
@@ -244,7 +245,13 @@
     URL_COMPRAS_HISTORICO: "{% url 'api_produtos_cadastro_compras_historico' %}",
     URL_FACETAS: "{% url 'api_produtos_gestao_facetas' %}",
     PODE_EDITAR_OVERLAY: {% if pode_editar_overlay %}true{% else %}false{% endif %},
-    LOGIN_OVERLAY_HREF: "{% url 'admin:login' %}?next={{ login_overlay_next|urlencode }}"
+    LOGIN_OVERLAY_HREF: "{% url 'admin:login' %}?next={{ login_overlay_next|urlencode }}",
+    FORMAS_PAGAMENTO: (function () {
+      try {
+        var el = document.getElementById('agro-formas-pagamento-json');
+        return el ? JSON.parse(el.textContent || '[]') : [];
+      } catch (e) { return []; }
+    })()
   };
   window.AgroCadastroErpGrupos = {
     URL_GRUPOS: "{% url 'api_produtos_grupos_listar' %}",

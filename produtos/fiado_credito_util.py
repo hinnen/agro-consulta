@@ -247,11 +247,24 @@ def valor_fiado_venda_local(venda: VendaAgro) -> Decimal:
         for row in pj:
             if not isinstance(row, dict):
                 continue
-            if normalizar_forma_pagamento_caixa(str(row.get("forma") or "")) == "Fiado":
-                total += _dec(row.get("valor"))
+            fn = normalizar_forma_pagamento_caixa(
+                str(
+                    row.get("formaPagamento")
+                    or row.get("forma_pagamento")
+                    or row.get("forma")
+                    or ""
+                )
+            )
+            if fn != "Fiado":
+                continue
+            vp = _dec(row.get("valorPagamento", row.get("valor_pagamento", row.get("valor"))))
+            total += vp
         if total > 0:
             return total
-    if "fiado" in str(venda.forma_pagamento or "").lower():
+    fp = str(venda.forma_pagamento or "").strip()
+    if fp and normalizar_forma_pagamento_caixa(fp) == "Fiado":
+        return _dec(venda.total)
+    if "fiado" in fp.lower():
         return _dec(venda.total)
     return Decimal("0")
 

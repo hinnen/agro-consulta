@@ -15,11 +15,26 @@ FORMAS_PAGAMENTO_CAIXA: tuple[str, ...] = (
     "PIX",
     "Cartão de débito",
     "Cartão de crédito",
-    "Crédito parcelado",
+    "Cartão de crédito parcelado",
     "Fiado",
     "Vale crédito",
     "Cashback",
     "Outro",
+)
+
+CEDULAS_DENOMINACOES_CAIXA: tuple[dict[str, str], ...] = (
+    {"valor": "200", "label": "R$ 200", "img": "produtos/img/cedulas/nota_200.png", "tipo": "nota"},
+    {"valor": "100", "label": "R$ 100", "img": "produtos/img/cedulas/nota_100.png", "tipo": "nota"},
+    {"valor": "50", "label": "R$ 50", "img": "produtos/img/cedulas/nota_50.png", "tipo": "nota"},
+    {"valor": "20", "label": "R$ 20", "img": "produtos/img/cedulas/nota_20.png", "tipo": "nota"},
+    {"valor": "10", "label": "R$ 10", "img": "produtos/img/cedulas/nota_10.png", "tipo": "nota"},
+    {"valor": "5", "label": "R$ 5", "img": "produtos/img/cedulas/nota_5.png", "tipo": "nota"},
+    {"valor": "2", "label": "R$ 2", "img": "produtos/img/cedulas/nota_2.png", "tipo": "nota"},
+    {"valor": "1", "label": "R$ 1", "img": "produtos/img/cedulas/moeda_1.png", "tipo": "moeda"},
+    {"valor": "0.50", "label": "R$ 0,50", "img": "produtos/img/cedulas/moeda_050.png", "tipo": "moeda"},
+    {"valor": "0.25", "label": "R$ 0,25", "img": "produtos/img/cedulas/moeda_025.png", "tipo": "moeda"},
+    {"valor": "0.10", "label": "R$ 0,10", "img": "produtos/img/cedulas/moeda_010.png", "tipo": "moeda"},
+    {"valor": "0.05", "label": "R$ 0,05", "img": "produtos/img/cedulas/moeda_005.png", "tipo": "moeda"},
 )
 
 _FORMA_ALIASES = {
@@ -27,11 +42,21 @@ _FORMA_ALIASES = {
     "pix": "PIX",
     "cartao de debito": "Cartão de débito",
     "cartão de débito": "Cartão de débito",
+    "cartão débito": "Cartão de débito",
     "cartao de credito": "Cartão de crédito",
     "cartão de crédito": "Cartão de crédito",
-    "credito parcelado": "Crédito parcelado",
-    "crédito parcelado": "Crédito parcelado",
+    "cartão crédito": "Cartão de crédito",
+    "cartão credíto": "Cartão de crédito",
+    "cartao credito": "Cartão de crédito",
+    "cartao crédito": "Cartão de crédito",
+    "cartao credíto": "Cartão de crédito",
+    "credito parcelado": "Cartão de crédito parcelado",
+    "crédito parcelado": "Cartão de crédito parcelado",
+    "cartão de crédito parcelado": "Cartão de crédito parcelado",
+    "cartao de credito parcelado": "Cartão de crédito parcelado",
     "fiado": "Fiado",
+    "crédito loja": "Fiado",
+    "credito loja": "Fiado",
     "vale credito": "Vale crédito",
     "vale crédito": "Vale crédito",
     "cashback": "Cashback",
@@ -62,10 +87,35 @@ def normalizar_forma_pagamento_caixa(raw: str) -> str:
     key = base.lower()
     if key in _FORMA_ALIASES:
         return _FORMA_ALIASES[key]
+    try:
+        from produtos.fiado_credito_util import forma_pagamento_erp_fiado_label
+
+        if key == forma_pagamento_erp_fiado_label().lower():
+            return "Fiado"
+    except Exception:
+        pass
     for canon in FORMAS_PAGAMENTO_CAIXA:
         if canon.lower() == key or key.startswith(canon.lower()):
             return canon
     return base[:80] if base else "Outro"
+
+
+def _forma_e_valor_pagamento_row(row: dict) -> tuple[str, Decimal] | None:
+    """Lê forma e valor de uma linha de pagamentos_json (PDV ou venda salva)."""
+    if not isinstance(row, dict):
+        return None
+    fn = normalizar_forma_pagamento_caixa(
+        str(
+            row.get("formaPagamento")
+            or row.get("forma_pagamento")
+            or row.get("forma")
+            or ""
+        )
+    )
+    vp = _dec(row.get("valorPagamento", row.get("valor_pagamento", row.get("valor"))))
+    if vp <= 0:
+        return None
+    return fn, vp
 
 
 def pagamentos_json_de_payload(data: dict | None) -> list[dict]:
@@ -100,10 +150,11 @@ def pagamentos_por_forma_venda(venda) -> dict[str, Decimal]:
     pj = getattr(venda, "pagamentos_json", None)
     if isinstance(pj, list) and pj:
         for row in pj:
-            if not isinstance(row, dict):
+            parsed = _forma_e_valor_pagamento_row(row)
+            if not parsed:
                 continue
-            fn = normalizar_forma_pagamento_caixa(str(row.get("forma") or ""))
-            totais[fn] += _dec(row.get("valor"))
+            fn, vp = parsed
+            totais[fn] += vp
         if totais:
             return dict(totais)
     forma_txt = str(getattr(venda, "forma_pagamento", "") or "").strip()
@@ -1020,3 +1071,173 @@ def normalizar_pagamentos_devolucao(
         for fn, v in merged.items()
     ]
     return out, None
+
+
+def listar_fiado_vendas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
+    """Vendas fiado do turno (uma linha por pedido) para conferência no fechamento."""
+    from produtos.fiado_credito_util import valor_fiado_venda_local, venda_local_tem_fiado
+    from produtos.fiado_gestao_util import criar_titulos_de_venda
+    from produtos.models import FiadoTituloAgro, VendaAgro
+
+    ids = [int(s.pk) for s in sessoes if getattr(s, "pk", None)]
+    if not ids:
+        return []
+    vendas_qs = (
+        VendaAgro.objects.filter(
+            sessao_caixa_id__in=ids,
+            devolvida_em__isnull=True,
+        )
+        .select_related("sessao_caixa")
+        .order_by("criado_em", "pk")
+    )
+    out: list[dict[str, Any]] = []
+    vistos: set[int] = set()
+    for venda in vendas_qs:
+        if not venda_local_tem_fiado(venda):
+            continue
+        valor = valor_fiado_venda_local(venda)
+        if valor <= 0 or venda.pk in vistos:
+            continue
+        try:
+            criar_titulos_de_venda(venda)
+        except Exception:
+            pass
+        vistos.add(venda.pk)
+        titulo = (
+            FiadoTituloAgro.objects.filter(
+                venda_agro=venda,
+                origem=FiadoTituloAgro.Origem.PDV,
+            )
+            .order_by("pk")
+            .first()
+        )
+        nome = (
+            (titulo.cliente_nome if titulo else "")
+            or getattr(venda, "cliente_nome", "")
+            or ""
+        ).strip() or "Cliente"
+        sessao = getattr(venda, "sessao_caixa", None)
+        out.append(
+            {
+                "id": venda.pk,
+                "cliente_nome": nome,
+                "valor": str(valor.quantize(Decimal("0.01"))),
+                "sessao_label": rotulo_sessao_caixa(sessao) if sessao else "—",
+                "operacional": sessao_caixa_e_operacional(sessao) if sessao else True,
+            }
+        )
+    titulos = (
+        FiadoTituloAgro.objects.filter(
+            origem=FiadoTituloAgro.Origem.PDV,
+            venda_agro__sessao_caixa_id__in=ids,
+            venda_agro__devolvida_em__isnull=True,
+        )
+        .select_related("venda_agro", "venda_agro__sessao_caixa")
+        .order_by("criado_em", "pk")
+    )
+    for titulo in titulos:
+        venda = titulo.venda_agro
+        if not venda or venda.pk in vistos:
+            continue
+        valor = valor_fiado_venda_local(venda)
+        if valor <= 0:
+            valor = _dec(titulo.valor_bruto)
+        if valor <= 0:
+            continue
+        vistos.add(venda.pk)
+        sessao = getattr(venda, "sessao_caixa", None)
+        nome = (titulo.cliente_nome or venda.cliente_nome or "Cliente").strip() or "Cliente"
+        out.append(
+            {
+                "id": venda.pk,
+                "cliente_nome": nome,
+                "valor": str(valor.quantize(Decimal("0.01"))),
+                "sessao_label": rotulo_sessao_caixa(sessao) if sessao else "—",
+                "operacional": sessao_caixa_e_operacional(sessao) if sessao else True,
+            }
+        )
+    return out
+
+
+def listar_fiado_baixas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
+    """Baixas de fiado recebidas no turno — conferir retirada da nota da caixa de fiados."""
+    from django.db.models import Q
+
+    from produtos.models import FiadoBaixaAgro
+
+    ids = [int(s.pk) for s in sessoes if getattr(s, "pk", None)]
+    if not ids:
+        return []
+    baixas = (
+        FiadoBaixaAgro.objects.filter(
+            Q(sessao_caixa_id__in=ids) | Q(movimento_caixa__sessao_caixa_id__in=ids)
+        )
+        .select_related("titulo", "sessao_caixa", "movimento_caixa__sessao_caixa")
+        .order_by("criado_em", "pk")
+    )
+    out: list[dict[str, Any]] = []
+    for baixa in baixas:
+        nome = ""
+        if baixa.titulo_id and baixa.titulo:
+            nome = (baixa.titulo.cliente_nome or "").strip()
+        sessao = baixa.sessao_caixa
+        if not sessao and baixa.movimento_caixa_id and baixa.movimento_caixa:
+            sessao = baixa.movimento_caixa.sessao_caixa
+        out.append(
+            {
+                "id": baixa.pk,
+                "cliente_nome": nome or "Cliente",
+                "valor": str(_dec(baixa.valor)),
+                "sessao_label": rotulo_sessao_caixa(sessao) if sessao else "—",
+                "operacional": sessao_caixa_e_operacional(sessao) if sessao else True,
+            }
+        )
+    return out
+
+
+def fiado_conferencia_operacional(
+    vendas: list[dict[str, Any]],
+    baixas: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Itens obrigatórios no fechamento da loja (exclui Caixa Teste)."""
+    v = [row for row in vendas if row.get("operacional", True)]
+    b = [row for row in baixas if row.get("operacional", True)]
+    return v, b
+
+
+def validar_conferencia_fiado_caixa(
+    post,
+    vendas_fiado: list[dict[str, Any]],
+    baixas_fiado: list[dict[str, Any]],
+) -> str | None:
+    pulou_vendas = (post.get("fiado_vendas_pulado") or "").strip() == "1"
+    pulou_baixas = (post.get("fiado_baixas_pulado") or "").strip() == "1"
+
+    if vendas_fiado and not pulou_vendas:
+        for row in vendas_fiado:
+            key = f"fiado_assinado_{row['id']}"
+            if not (post.get(key) or "").strip():
+                return (
+                    f"Marque que a nota fiado de {row['cliente_nome']} "
+                    f"(R$ {row['valor']}) está assinada e guardada."
+                )
+    elif vendas_fiado and pulou_vendas:
+        pin = (post.get("fiado_vendas_pulo_pin") or post.get("pin") or "").strip()
+        ok, err = validar_pin_operador(pin)
+        if not ok:
+            return err or "Informe PIN válido para pular a conferência de vendas fiado."
+
+    if baixas_fiado and not pulou_baixas:
+        for row in baixas_fiado:
+            key = f"fiado_retirado_{row['id']}"
+            if not (post.get(key) or "").strip():
+                return (
+                    f"Marque que a nota paga de {row['cliente_nome']} "
+                    f"(R$ {row['valor']}) foi retirada da caixa de fiados."
+                )
+    elif baixas_fiado and pulou_baixas:
+        pin = (post.get("fiado_baixas_pulo_pin") or post.get("pin") or "").strip()
+        ok, err = validar_pin_operador(pin)
+        if not ok:
+            return err or "Informe PIN válido para pular a conferência de pagamentos fiado."
+    return None
