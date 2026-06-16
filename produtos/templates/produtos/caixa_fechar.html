@@ -255,23 +255,22 @@
     .cf-conf-col--contado {
       background: #eff6ff;
       border-right: 2px solid #94a3b8;
-      padding: 0.7rem 0.9rem;
-      display: grid;
-      grid-template-columns: 1fr minmax(9rem, 16rem) auto;
-      gap: 0.5rem 0.65rem;
+      padding: 0.7rem 2.6rem 0.7rem 0.9rem;
+      display: flex;
       align-items: center;
+      justify-content: center;
+      position: relative;
       min-height: 3.75rem;
     }
     .cf-conf-col--contado > .cf-conf-contado-field {
-      grid-column: 2;
-      grid-row: 1;
-      width: 100%;
-      justify-self: center;
+      width: min(100%, 16rem);
+      margin: 0 auto;
     }
     .cf-conf-col--contado > .cf-mini-help {
-      grid-column: 3;
-      grid-row: 1;
-      justify-self: start;
+      position: absolute;
+      right: 0.55rem;
+      top: 50%;
+      transform: translateY(-50%);
     }
     .cf-conf-col--variacao {
       background: #f8fafc;
@@ -297,12 +296,18 @@
     }
     .cf-conf-variacao.caixa-diff--ok {
       color: #047857;
+      font-size: var(--cf-fs-money) !important;
+      line-height: var(--cf-lh-tight) !important;
     }
     .cf-conf-variacao.caixa-diff--sobra {
       color: #0369a1;
+      font-size: var(--cf-fs-money) !important;
+      line-height: var(--cf-lh-tight) !important;
     }
     .cf-conf-variacao.caixa-diff--falta {
       color: #b91c1c;
+      font-size: var(--cf-fs-money) !important;
+      line-height: var(--cf-lh-tight) !important;
     }
     .cf-conf-row + .cf-conf-row {
       border-top: 1px solid #cbd5e1;
@@ -314,6 +319,13 @@
       padding: 0.6rem 0.9rem;
       justify-content: center;
       align-items: center;
+    }
+    .cf-conf-head .cf-conf-col--contado {
+      padding-right: 0.9rem;
+    }
+    .cf-conf-head .cf-conf-col--contado .cf-conf-head-label {
+      width: 100%;
+      text-align: center;
     }
     .cf-conf-row--dinheiro .cf-conf-col--contado {
       align-items: center;
@@ -1152,8 +1164,8 @@
               {% if L.forma == 'Dinheiro' %}
               <div class="cf-conf-contado-field cf-contado-with-cedulas">
                 <div class="cf-contado-inline-wrap">
-                  <button type="button" id="cf-cedulas-abrir" class="cf-cedulas-open-btn--inline cf-t-label" aria-haspopup="dialog" aria-controls="cf-cedulas-modal" title="Abrir contagem de cédulas e moedas (opcional)">Cédulas</button>
                   <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input min-w-0 flex-1" placeholder="0,00" autocomplete="off" aria-label="Contado em dinheiro" title="Informe o total contado">
+                  <button type="button" id="cf-cedulas-abrir" class="cf-cedulas-open-btn--inline cf-t-label" aria-haspopup="dialog" aria-controls="cf-cedulas-modal" title="Abrir contagem de cédulas e moedas (opcional)">Cédulas</button>
                 </div>
                 <span id="cf-cedulas-resumo" class="cf-cedulas-open-resumo">Opcional: contar por cédulas</span>
               </div>
