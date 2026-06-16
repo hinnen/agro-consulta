@@ -21175,18 +21175,12 @@ def api_pdv_cliente_rapido(request):
             {"ok": False, "erro": "Informe o nome do cliente (mínimo 2 caracteres)."},
             status=400,
         )
-    wa_raw = (data.get("whatsapp") or data.get("telefone") or "").strip()
-    wa_digits = re.sub(r"\D", "", wa_raw)
-    if len(wa_digits) < 10:
-        return JsonResponse(
-            {
-                "ok": False,
-                "erro": "Informe o telefone ou WhatsApp com DDD (mínimo 10 dígitos).",
-            },
-            status=400,
-        )
-    if len(wa_digits) > 20:
-        wa_digits = wa_digits[-20:]
+    wa_digits, wa_err = _pdv_whatsapp_digits_pdv(
+        data.get("whatsapp") or data.get("telefone") or "",
+        obrigatorio=True,
+    )
+    if wa_err:
+        return JsonResponse({"ok": False, "erro": wa_err}, status=400)
     resumo_end = _pdv_resumo_endereco_cliente_rapido(data)
     endereco_manual = (data.get("endereco") or "").strip()[:500]
     endereco_final = endereco_manual or resumo_end
@@ -21212,18 +21206,12 @@ def api_pdv_cliente_rapido(request):
     return JsonResponse({"ok": True, "cliente": _linha_clienteagro_pdv(c)})
 
 
-def _pdv_whatsapp_digits_pdv(wa_raw: str, *, obrigatorio: bool = False):
-    wa_raw = (wa_raw or "").strip()
-    wa_digits = re.sub(r"\D", "", wa_raw)
-    if not wa_digits:
-        if obrigatorio:
-            return "", "Informe o telefone ou WhatsApp com DDD (mínimo 10 dígitos)."
-        return "", None
-    if len(wa_digits) < 10:
-        return "", "Telefone ou WhatsApp inválido (mínimo 10 dígitos)."
-    if len(wa_digits) > 20:
-        wa_digits = wa_digits[-20:]
-    return wa_digits[:20], None
+def _pdv_whatsapp_digits_pdv(wa_raw: str, *, obrigatorio: bool = False, excluir_pk=None):
+    from produtos.cliente_whatsapp_util import validar_whatsapp_unico_cliente
+
+    return validar_whatsapp_unico_cliente(
+        wa_raw, excluir_pk=excluir_pk, obrigatorio=obrigatorio
+    )
 
 
 def _pdv_aplicar_endereco_clienteagro(c: ClienteAgro, data: dict) -> None:
@@ -21282,6 +21270,7 @@ def api_pdv_cliente_editar(request, pk):
     wa_digits, wa_err = _pdv_whatsapp_digits_pdv(
         data.get("whatsapp") or data.get("telefone") or "",
         obrigatorio=True,
+        excluir_pk=cli.pk,
     )
     if wa_err:
         return JsonResponse({"ok": False, "erro": wa_err}, status=400)

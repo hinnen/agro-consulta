@@ -215,7 +215,16 @@ class ClienteAgro(models.Model):
             )
         )
 
+    def clean(self):
+        from produtos.cliente_whatsapp_util import validar_whatsapp_modelo
+
+        super().clean()
+        validar_whatsapp_modelo(self)
+
     def save(self, *args, **kwargs):
+        from produtos.cliente_whatsapp_util import extrair_whatsapp_digits
+
+        self.whatsapp = extrair_whatsapp_digits(self.whatsapp)
         uf_kw = kwargs.get("update_fields")
         if self._tem_campos_endereco_estruturados():
             self.endereco = compor_endereco_resumo_cliente(
