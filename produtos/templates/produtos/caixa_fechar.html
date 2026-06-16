@@ -212,57 +212,43 @@
       color: #047857;
     }
     .cf-pay--dinheiro {
-      padding: 0.55rem 0.65rem 0.6rem;
-      flex: 0 0 auto;
+      padding: 0;
+    }
+    .cf-contado-inline-wrap {
       display: flex;
-      flex-direction: column;
+      align-items: stretch;
+      gap: 0.35rem;
+      min-width: 0;
     }
-    .cf-pay-top--dinheiro {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto auto;
-      align-items: center;
-      gap: 0.45rem 0.65rem;
-      margin-bottom: 0.45rem;
-    }
-    .cf-cedulas-open-btn {
+    .cf-cedulas-open-btn--inline {
+      flex-shrink: 0;
       display: inline-flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 0.12rem;
       min-height: var(--cf-input-h);
-      padding: 0.35rem 0.85rem;
-      border-radius: 0.65rem;
+      padding: 0 0.55rem;
+      border-radius: 0.55rem;
       border: 2px solid #059669;
       background: linear-gradient(180deg, #ecfdf5, #d1fae5);
       color: #065f46;
       font-weight: 900;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.02em;
       line-height: var(--cf-lh-tight);
-      text-align: center;
-      box-shadow: 0 1px 3px rgba(5, 150, 105, 0.15);
+      white-space: nowrap;
     }
-    .cf-cedulas-open-btn:hover { background: #d1fae5; }
-    .cf-cedulas-open-btn:focus-visible {
+    .cf-cedulas-open-btn--inline:hover { background: #d1fae5; }
+    .cf-cedulas-open-btn--inline:focus-visible {
       outline: none;
       box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.45);
     }
-    .cf-cedulas-open-resumo {
-      font-size: clamp(0.78rem, 0.35vw + 0.68rem, 0.92rem);
+    .cf-contado-with-cedulas .cf-cedulas-open-resumo {
+      display: block;
+      margin-top: 0.12rem;
+      font-size: clamp(0.72rem, 0.32vw + 0.62rem, 0.86rem);
       font-weight: 800;
-      text-transform: none;
-      letter-spacing: 0;
       color: #047857;
       font-variant-numeric: tabular-nums;
-    }
-    .cf-pay-top--dinheiro .cf-pay-esperado {
-      justify-self: end;
-      font-size: var(--cf-fs-money);
-      padding: 0.35rem 0.75rem;
-      border-radius: 0.55rem;
-      background: rgba(255, 255, 255, 0.75);
-      border: 2px solid #6ee7b7;
     }
     .cf-cedulas-wrap {
       flex: 1 1 auto;
@@ -430,11 +416,7 @@
       min-width: 0;
     }
     .cf-dinheiro-footer {
-      flex-shrink: 0;
-      margin-top: 0.15rem;
-      padding-top: 0.45rem;
-      border-top: 2px solid #a7f3d0;
-      background: #ecfdf5;
+      display: none;
     }
     .cf-cedulas-sum {
       font-weight: 800;
@@ -785,29 +767,27 @@
           <div class="cf-pay{% if L.forma == 'Dinheiro' %} cf-pay--dinheiro{% endif %}">
             <input type="hidden" name="forma_{{ L.idx }}" value="{{ L.forma }}">
             {% if L.forma == 'Dinheiro' %}
-            <div class="cf-pay-top cf-pay-top--dinheiro">
-              <span class="cf-pay-forma cf-t-section">{{ L.forma }}</span>
-              <button type="button" id="cf-cedulas-abrir" class="cf-cedulas-open-btn cf-t-label" aria-haspopup="dialog" aria-controls="cf-cedulas-modal">
-                <span>Contar cédulas e moedas</span>
-                <span id="cf-cedulas-resumo" class="cf-cedulas-open-resumo">Toque para informar quantidades</span>
-              </button>
-              <span class="cf-pay-esperado cf-t-money cf-esperado-val" data-forma="{{ L.forma }}">Esperado · R$ {{ L.esperado }}</span>
+            <div class="cf-pay-simple cf-pay-simple--dinheiro">
+              <span class="cf-pay-forma cf-t-forma">{{ L.forma }}</span>
+              <span class="cf-pay-esperado cf-t-money cf-esperado-val" data-forma="{{ L.forma }}">R$ {{ L.esperado }}</span>
+              <label class="min-w-0 cf-contado-with-cedulas">
+                <span class="cf-contado-label cf-t-label">Contado</span>
+                <div class="cf-contado-inline-wrap">
+                  <button type="button" id="cf-cedulas-abrir" class="cf-cedulas-open-btn--inline cf-t-label" aria-haspopup="dialog" aria-controls="cf-cedulas-modal" title="Abrir contagem de cédulas e moedas">Cédulas</button>
+                  <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input min-w-0 flex-1" placeholder="0,00" autocomplete="off" title="Valor contado — salvo automaticamente">
+                </div>
+                <span id="cf-cedulas-resumo" class="cf-cedulas-open-resumo">Toque em Cédulas para informar quantidades</span>
+                <p class="caixa-diff cf-t-meta font-bold hidden"></p>
+              </label>
               <details class="cf-mini-help relative justify-self-end">
-                <summary class="cursor-pointer list-none inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-200 bg-white cf-t-label text-slate-600 hover:border-emerald-400 select-none" title="Detalhe">?</summary>
-                <div class="cf-detalhe absolute z-20 top-full mt-1 right-0 w-[min(17rem,calc(100vw-2rem))] rounded-xl border-2 border-slate-200 bg-white p-2.5 cf-t-meta font-bold text-slate-700 shadow-lg" data-forma="{{ L.forma }}">
+                <summary class="cursor-pointer list-none inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-slate-200 bg-white text-sm font-black text-slate-600 hover:border-emerald-400 select-none" title="Detalhe">?</summary>
+                <div class="cf-detalhe absolute z-20 top-full mt-1 right-0 w-[min(17rem,calc(100vw-2rem))] rounded-xl border-2 border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-700 shadow-lg" data-forma="{{ L.forma }}">
                   <p class="cf-det-vendas">Vendas R$ {{ L.vendas }}</p>
                   <p class="cf-det-reforcos mt-1">+ Reforços R$ {{ L.reforcos }}</p>
                   <p class="cf-det-retiradas mt-1">− Retiradas R$ {{ L.retiradas }}</p>
                   <p class="cf-det-abertura mt-1{% if L.abertura_dinheiro == '0.00' %} hidden{% endif %}">Fundo abertura R$ {{ L.abertura_dinheiro }}</p>
                 </div>
               </details>
-            </div>
-            <div class="cf-dinheiro-footer">
-              <label class="cf-contado-box cf-contado-box--total">
-                <span class="cf-contado-label cf-t-label">Total contado na gaveta</span>
-                <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input" placeholder="0,00" autocomplete="off" title="Valor contado — salvo automaticamente">
-                <p class="caixa-diff cf-t-meta font-bold hidden"></p>
-              </label>
             </div>
             {% else %}
             <div class="cf-pay-simple">
@@ -864,44 +844,47 @@
             </div>
           </details>
           {% endif %}
-        </div>
 
-        {% if fiado_vendas_turno or fiado_baixas_turno %}
-        <div class="cf-fiado-panel space-y-2">
-          {% if fiado_vendas_turno %}
-          <section aria-labelledby="cf-fiado-vendas-titulo">
-            <h3 id="cf-fiado-vendas-titulo" class="cf-t-label text-orange-900">Fiado — notas assinadas e guardadas</h3>
-            <ul class="mt-1.5 space-y-1">
-              {% for item in fiado_vendas_turno %}
-              <li>
-                <label class="cf-fiado-row cursor-pointer">
-                  <input type="checkbox" name="fiado_assinado_{{ item.id }}" value="1" class="cf-fiado-check-assinado shrink-0" required>
-                  <span class="min-w-0 cf-t-forma text-slate-900 leading-tight">{{ item.cliente_nome }}</span>
-                  <span class="cf-t-money tabular-nums text-orange-800 shrink-0">R$ {{ item.valor }}</span>
-                </label>
-              </li>
-              {% endfor %}
-            </ul>
-          </section>
-          {% endif %}
-          {% if fiado_baixas_turno %}
-          <section aria-labelledby="cf-fiado-baixas-titulo" class="{% if fiado_vendas_turno %}pt-2 border-t border-orange-200{% endif %}">
-            <h3 id="cf-fiado-baixas-titulo" class="cf-t-label text-orange-900">Fiado — notas pagas retiradas da caixa</h3>
-            <ul class="mt-1.5 space-y-1">
-              {% for item in fiado_baixas_turno %}
-              <li>
-                <label class="cf-fiado-row cursor-pointer">
-                  <input type="checkbox" name="fiado_retirado_{{ item.id }}" value="1" class="cf-fiado-check-retirado shrink-0" required>
-                  <span class="min-w-0 cf-t-forma text-slate-900 leading-tight">{{ item.cliente_nome }}</span>
-                  <span class="cf-t-money tabular-nums text-orange-800 shrink-0">R$ {{ item.valor }}</span>
-                </label>
-              </li>
-              {% endfor %}
-            </ul>
-          </section>
+          {% if fiado_vendas_turno or fiado_baixas_turno %}
+          <div class="cf-fiado-panel space-y-2">
+            {% if fiado_vendas_turno %}
+            <section aria-labelledby="cf-fiado-vendas-titulo">
+              <h3 id="cf-fiado-vendas-titulo" class="cf-t-label text-orange-900">Fiado — notas assinadas e guardadas</h3>
+              <ul class="mt-1.5 space-y-1">
+                {% for item in fiado_vendas_turno %}
+                <li>
+                  <label class="cf-fiado-row cursor-pointer">
+                    <input type="checkbox" name="fiado_assinado_{{ item.id }}" value="1" class="cf-fiado-check-assinado shrink-0"{% if item.operacional %} required{% endif %}>
+                    <span class="min-w-0 cf-t-forma text-slate-900 leading-tight">
+                      {{ item.cliente_nome }}
+                      {% if not item.operacional %}<span class="block cf-t-meta text-violet-800">{{ item.sessao_label }} · conferir no fechamento deste caixa</span>{% endif %}
+                    </span>
+                    <span class="cf-t-money tabular-nums text-orange-800 shrink-0">R$ {{ item.valor }}</span>
+                  </label>
+                </li>
+                {% endfor %}
+              </ul>
+            </section>
+            {% endif %}
+            {% if fiado_baixas_turno %}
+            <section aria-labelledby="cf-fiado-baixas-titulo" class="{% if fiado_vendas_turno %}pt-2 border-t border-orange-200{% endif %}">
+              <h3 id="cf-fiado-baixas-titulo" class="cf-t-label text-orange-900">Fiado — notas pagas retiradas da caixa</h3>
+              <ul class="mt-1.5 space-y-1">
+                {% for item in fiado_baixas_turno %}
+                <li>
+                  <label class="cf-fiado-row cursor-pointer">
+                    <input type="checkbox" name="fiado_retirado_{{ item.id }}" value="1" class="cf-fiado-check-retirado shrink-0" required>
+                    <span class="min-w-0 cf-t-forma text-slate-900 leading-tight">{{ item.cliente_nome }}</span>
+                    <span class="cf-t-money tabular-nums text-orange-800 shrink-0">R$ {{ item.valor }}</span>
+                  </label>
+                </li>
+                {% endfor %}
+              </ul>
+            </section>
+            {% endif %}
+          </div>
           {% endif %}
         </div>
-        {% endif %}
 
         <div class="cf-foot">
           <label class="block min-w-0">

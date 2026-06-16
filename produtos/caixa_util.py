@@ -55,6 +55,8 @@ _FORMA_ALIASES = {
     "cartão de crédito parcelado": "Cartão de crédito parcelado",
     "cartao de credito parcelado": "Cartão de crédito parcelado",
     "fiado": "Fiado",
+    "crédito loja": "Fiado",
+    "credito loja": "Fiado",
     "vale credito": "Vale crédito",
     "vale crédito": "Vale crédito",
     "cashback": "Cashback",
@@ -85,6 +87,13 @@ def normalizar_forma_pagamento_caixa(raw: str) -> str:
     key = base.lower()
     if key in _FORMA_ALIASES:
         return _FORMA_ALIASES[key]
+    try:
+        from produtos.fiado_credito_util import forma_pagamento_erp_fiado_label
+
+        if key == forma_pagamento_erp_fiado_label().lower():
+            return "Fiado"
+    except Exception:
+        pass
     for canon in FORMAS_PAGAMENTO_CAIXA:
         if canon.lower() == key or key.startswith(canon.lower()):
             return canon
@@ -1073,10 +1082,14 @@ def listar_fiado_vendas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
     ids = [int(s.pk) for s in sessoes if getattr(s, "pk", None)]
     if not ids:
         return []
-    vendas_qs = VendaAgro.objects.filter(
-        sessao_caixa_id__in=ids,
-        devolvida_em__isnull=True,
-    ).order_by("criado_em", "pk")
+    vendas_qs = (
+        VendaAgro.objects.filter(
+            sessao_caixa_id__in=ids,
+            devolvida_em__isnull=True,
+        )
+        .select_related("sessao_caixa")
+        .order_by("criado_em", "pk")
+    )
     out: list[dict[str, Any]] = []
     vistos: set[int] = set()
     for venda in vendas_qs:
@@ -1103,11 +1116,14 @@ def listar_fiado_vendas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
             or getattr(venda, "cliente_nome", "")
             or ""
         ).strip() or "Cliente"
+        sessao = getattr(venda, "sessao_caixa", None)
         out.append(
             {
                 "id": venda.pk,
                 "cliente_nome": nome,
                 "valor": str(valor.quantize(Decimal("0.01"))),
+                "sessao_label": rotulo_sessao_caixa(sessao) if sessao else "—",
+                "operacional": sessao_caixa_e_operacional(sessao) if sessao else True,
             }
         )
     return out

@@ -8954,8 +8954,8 @@ def caixa_fechar(request):
         rasc = {}
     raw_ced = request.session.get(CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY) or {}
     cedulas_rasc = raw_ced if isinstance(raw_ced, dict) else {}
-    fiado_vendas_turno = listar_fiado_vendas_conferencia_caixa(sessoes_operacional)
-    fiado_baixas_turno = listar_fiado_baixas_conferencia_caixa(sessoes_operacional)
+    fiado_vendas_turno = listar_fiado_vendas_conferencia_caixa(sessoes)
+    fiado_baixas_turno = listar_fiado_baixas_conferencia_caixa(sessoes)
 
     return render(
         request,

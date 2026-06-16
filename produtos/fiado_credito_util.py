@@ -261,7 +261,10 @@ def valor_fiado_venda_local(venda: VendaAgro) -> Decimal:
             total += vp
         if total > 0:
             return total
-    if "fiado" in str(venda.forma_pagamento or "").lower():
+    fp = str(venda.forma_pagamento or "").strip()
+    if fp and normalizar_forma_pagamento_caixa(fp) == "Fiado":
+        return _dec(venda.total)
+    if "fiado" in fp.lower():
         return _dec(venda.total)
     return Decimal("0")
 
