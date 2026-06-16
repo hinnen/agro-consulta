@@ -1,6 +1,5 @@
 /**
- * Escala global da interface (zoom do documento) — uma vez por aparelho/navegador.
- * window.AgroDisplayScale.open() reabre o ajuste; localStorage persiste entre telas.
+ * Escala global (zoom no documento) — calibração automática: maior % sem quebrar layout.
  */
 (function (global) {
   'use strict';
@@ -12,8 +11,13 @@
   var STEP = 0.05;
   var DEFAULT = 1;
   var ROOT_ID = 'agro-display-scale-root';
+  var PROBE =
+    '.glass-card, .kpi-card, .dash-topbar, .main-container, #dashboard-body, button, .home-grid-card, .home-top-card-horizontal, input:not([type="hidden"]), select';
+
   var modalOpen = false;
   var draftScale = DEFAULT;
+  var maxSafeScale = MAX;
+  var calibrating = false;
 
   function clamp(n) {
     var v = Math.round(n / STEP) * STEP;
@@ -53,7 +57,7 @@
   }
 
   function save(scale) {
-    scale = clamp(scale);
+    scale = clamp(Math.min(scale, maxSafeScale));
     try {
       global.localStorage.setItem(STORAGE, String(scale));
       global.localStorage.setItem(CONFIGURED, '1');
@@ -66,6 +70,97 @@
     return Math.round(scale * 100) + '%';
   }
 
+  function afterLayout(fn) {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(fn);
+    });
+  }
+
+  function isVisible(el) {
+    if (!el || !el.getBoundingClientRect) return false;
+    var st = window.getComputedStyle(el);
+    if (st.display === 'none' || st.visibility === 'hidden' || st.opacity === '0') return false;
+    var r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  }
+
+  function detectLayoutBreak() {
+    var pad = 4;
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    var doc = document.documentElement;
+
+    if (doc.scrollWidth > vw + pad) return true;
+    if (document.body && document.body.scrollWidth > vw + pad) return true;
+
+    var topbar = document.querySelector('.dash-topbar');
+    if (topbar && isVisible(topbar) && topbar.scrollHeight > topbar.clientHeight + 10) return true;
+
+    var nodes = document.querySelectorAll(PROBE);
+    for (var i = 0; i < nodes.length; i++) {
+      var el = nodes[i];
+      if (!isVisible(el)) continue;
+      if (el.closest && el.closest('#' + ROOT_ID)) continue;
+
+      var st = window.getComputedStyle(el);
+      var r = el.getBoundingClientRect();
+
+      if (r.right > vw + pad || r.left < -pad) {
+        if (r.width > 24 && r.height > 12) return true;
+      }
+      if (r.bottom > vh + pad && el.scrollHeight > el.clientHeight + 2) {
+        if (st.overflowY === 'hidden' || st.overflow === 'hidden') return true;
+      }
+
+      if (el.tagName === 'BUTTON' || el.classList.contains('glass-card') || el.classList.contains('kpi-card')) {
+        if (el.scrollWidth > el.clientWidth + 2) return true;
+        if ((st.overflow === 'hidden' || st.overflowX === 'hidden') && el.scrollWidth > el.clientWidth + 1) return true;
+        if ((st.overflow === 'hidden' || st.overflowY === 'hidden') && el.scrollHeight > el.clientHeight + 2) return true;
+      }
+    }
+
+    return false;
+  }
+
+  function findMaxSafeScale(done) {
+    if (calibrating) return;
+    calibrating = true;
+    var saved = read();
+    var best = DEFAULT;
+    var scales = [];
+    var s;
+    for (s = MAX; s >= MIN - 0.001; s -= STEP) scales.push(clamp(s));
+
+    var idx = 0;
+
+    function finish() {
+      calibrating = false;
+      applyToRoot(saved);
+      maxSafeScale = Math.max(MIN, best);
+      done(maxSafeScale);
+    }
+
+    function tryNext() {
+      if (idx >= scales.length) {
+        finish();
+        return;
+      }
+      var scale = scales[idx++];
+      applyToRoot(scale);
+      afterLayout(function () {
+        if (!detectLayoutBreak()) {
+          best = scale;
+          finish();
+        } else {
+          tryNext();
+        }
+      });
+    }
+
+    applyToRoot(MIN);
+    afterLayout(tryNext);
+  }
+
   function ensureFab() {
     var fab = document.getElementById('agro-display-scale-fab');
     if (fab) return fab;
@@ -73,7 +168,7 @@
     fab.type = 'button';
     fab.id = 'agro-display-scale-fab';
     fab.className = 'agro-scale-trigger agro-scale-trigger--fab';
-    fab.title = 'Ajustar tamanho da tela (textos e botões)';
+    fab.title = 'Ajustar tamanho da tela';
     fab.setAttribute('aria-label', 'Ajustar tamanho da tela');
     fab.textContent = 'Aa';
     fab.setAttribute('hidden', '');
@@ -101,32 +196,37 @@
     document.body.classList.remove('agro-scale-modal-open');
     modalOpen = false;
     setFabVisible(true);
+    applyToRoot(read());
   }
 
-  function syncPreview(preview, scale) {
-    if (!preview) return;
-    if (scale === 1) {
-      preview.style.zoom = '';
-    } else {
-      preview.style.zoom = String(scale);
-    }
-  }
-
-  function syncControls(root, scale) {
+  function syncControls(root, scale, opts) {
+    opts = opts || {};
     var slider = root.querySelector('[data-agro-scale-slider]');
     var label = root.querySelector('[data-agro-scale-value]');
-    if (slider) slider.value = String(scale);
+    var cap = root.querySelector('[data-agro-scale-cap]');
+    var warn = root.querySelector('[data-agro-scale-warning]');
+    var safeMax = opts.maxSafe != null ? opts.maxSafe : maxSafeScale;
+
+    if (slider) {
+      slider.max = String(safeMax);
+      slider.value = String(scale);
+    }
     if (label) label.textContent = pctLabel(scale);
-    root.querySelectorAll('[data-agro-scale-preset]').forEach(function (btn) {
-      var p = parseFloat(btn.getAttribute('data-agro-scale-preset'), 10);
-      btn.classList.toggle('agro-scale-preset-active', Math.abs(p - scale) < 0.001);
-    });
+    if (cap) cap.textContent = 'Máximo seguro neste monitor: ' + pctLabel(safeMax);
+
+    var broken = scale > safeMax + 0.001 || detectLayoutBreak();
+    if (warn) {
+      warn.hidden = !broken;
+    }
+    var confirmBtn = root.querySelector('[data-agro-scale-confirm]');
+    if (confirmBtn) confirmBtn.disabled = broken;
   }
 
   function buildModal(opts) {
     opts = opts || {};
     var firstRun = !!opts.firstRun;
-    draftScale = read();
+    var autoScale = opts.autoScale != null ? clamp(opts.autoScale) : read();
+    draftScale = Math.min(autoScale, maxSafeScale);
 
     var root = document.createElement('div');
     root.id = ROOT_ID;
@@ -136,55 +236,44 @@
     root.setAttribute('aria-labelledby', 'agro-scale-title');
     root.innerHTML =
       '<div class="agro-scale-panel">' +
-      '  <h2 id="agro-scale-title" class="agro-scale-title">Ajustar tamanho da tela</h2>' +
+      '  <h2 id="agro-scale-title" class="agro-scale-title">Tamanho da tela</h2>' +
       '  <p class="agro-scale-lead">' +
       (firstRun
-        ? 'Configure <strong>uma vez neste computador</strong>. Textos e botões ficam no mesmo tamanho em todas as telas do sistema.'
-        : 'Altere o tamanho geral. Vale para PDV, caixa, lançamentos e demais telas neste navegador.') +
-      ' Para corrigir depois, use o botão <strong>Aa</strong> no canto superior da tela.' +
+        ? 'Calculamos o <strong>maior tamanho possível</strong> neste monitor sem cards encavalarem, textos saindo ou botões quebrando linha.'
+        : 'Use <strong>Recalcular</strong> se trocou de monitor. Você só pode <strong>diminuir</strong> a partir do ideal — aumentar além do limite quebra a grade.') +
+      ' Depois, o botão <strong>Aa</strong> reabre este ajuste.' +
       '</p>' +
-      '  <div class="agro-scale-preview-wrap">' +
-      '    <p class="agro-scale-preview-label">Prévia — ajuste até ficar confortável de ler</p>' +
-      '    <div class="agro-scale-preview" data-agro-scale-preview>' +
-      '      <p class="agro-scale-sample-kicker">PDV · exemplo</p>' +
-      '      <p class="agro-scale-sample-title">Consulta de produtos</p>' +
-      '      <input type="text" class="agro-scale-sample-input" value="Buscar produto…" readonly tabindex="-1" aria-hidden="true">' +
-      '      <div class="agro-scale-sample-row">' +
-      '        <button type="button" class="agro-scale-sample-btn agro-scale-sample-btn--ghost" tabindex="-1">Cancelar</button>' +
-      '        <button type="button" class="agro-scale-sample-btn agro-scale-sample-btn--primary" tabindex="-1">Confirmar venda</button>' +
-      '      </div>' +
-      '      <p class="agro-scale-sample-foot">Texto pequeno · R$ 128,50 · estoque 12 un.</p>' +
-      '    </div>' +
-      '  </div>' +
+      '  <p class="agro-scale-status" data-agro-scale-status>Tamanho ideal: <strong>' +
+      pctLabel(draftScale) +
+      '</strong></p>' +
+      '  <p class="agro-scale-cap" data-agro-scale-cap>Máximo seguro neste monitor: ' +
+      pctLabel(maxSafeScale) +
+      '</p>' +
+      '  <p class="agro-scale-warning" data-agro-scale-warning hidden>Acima do limite — cards ou botões podem quebrar. Diminua ou recalcule.</p>' +
       '  <div class="agro-scale-controls">' +
       '    <button type="button" class="agro-scale-step" data-agro-scale-minus aria-label="Diminuir">−</button>' +
       '    <input type="range" class="agro-scale-slider" data-agro-scale-slider min="' +
       MIN +
       '" max="' +
-      MAX +
+      maxSafeScale +
       '" step="' +
       STEP +
       '" value="' +
       draftScale +
-      '" aria-valuetext="' +
-      pctLabel(draftScale) +
       '">' +
       '    <button type="button" class="agro-scale-step" data-agro-scale-plus aria-label="Aumentar">+</button>' +
       '    <span class="agro-scale-value" data-agro-scale-value>' +
       pctLabel(draftScale) +
       '</span>' +
       '  </div>' +
-      '  <div class="agro-scale-presets">' +
-      '    <button type="button" class="agro-scale-preset" data-agro-scale-preset="0.9">90%</button>' +
-      '    <button type="button" class="agro-scale-preset" data-agro-scale-preset="1">Padrão</button>' +
-      '    <button type="button" class="agro-scale-preset" data-agro-scale-preset="1.15">Grande</button>' +
-      '    <button type="button" class="agro-scale-preset" data-agro-scale-preset="1.25">Maior</button>' +
-      '  </div>' +
-      '  <div class="agro-scale-actions">' +
+      '  <div class="agro-scale-actions agro-scale-actions--stack">' +
+      '    <button type="button" class="agro-scale-btn agro-scale-btn--muted" data-agro-scale-recalc>Recalcular ideal</button>' +
       (firstRun
-        ? '<button type="button" class="agro-scale-btn agro-scale-btn--muted" data-agro-scale-default>Usar padrão (100%)</button>'
+        ? ''
         : '<button type="button" class="agro-scale-btn agro-scale-btn--muted" data-agro-scale-cancel>Cancelar</button>') +
-      '    <button type="button" class="agro-scale-btn agro-scale-btn--primary" data-agro-scale-confirm>Confirmar</button>' +
+      '    <button type="button" class="agro-scale-btn agro-scale-btn--primary" data-agro-scale-confirm>Confirmar ' +
+      pctLabel(draftScale) +
+      '</button>' +
       '  </div>' +
       '</div>';
 
@@ -192,17 +281,31 @@
     document.body.classList.add('agro-scale-modal-open');
     modalOpen = true;
     setFabVisible(false);
-
-    var preview = root.querySelector('[data-agro-scale-preview]');
-    syncPreview(preview, draftScale);
+    applyToRoot(draftScale);
     syncControls(root, draftScale);
 
     function setDraft(scale) {
-      draftScale = clamp(scale);
-      syncPreview(preview, draftScale);
-      syncControls(root, draftScale);
-      var slider = root.querySelector('[data-agro-scale-slider]');
-      if (slider) slider.setAttribute('aria-valuetext', pctLabel(draftScale));
+      draftScale = clamp(Math.min(scale, maxSafeScale));
+      applyToRoot(draftScale);
+      afterLayout(function () {
+        syncControls(root, draftScale);
+        var confirmBtn = root.querySelector('[data-agro-scale-confirm]');
+        if (confirmBtn) confirmBtn.textContent = 'Confirmar ' + pctLabel(draftScale);
+        var status = root.querySelector('[data-agro-scale-status]');
+        if (status) status.innerHTML = 'Tamanho ideal: <strong>' + pctLabel(draftScale) + '</strong>';
+      });
+    }
+
+    function runRecalc() {
+      var panel = root.querySelector('.agro-scale-panel');
+      var recalcBtn = root.querySelector('[data-agro-scale-recalc]');
+      if (panel) panel.classList.add('agro-scale-panel--busy');
+      if (recalcBtn) recalcBtn.disabled = true;
+      findMaxSafeScale(function (best) {
+        if (panel) panel.classList.remove('agro-scale-panel--busy');
+        if (recalcBtn) recalcBtn.disabled = false;
+        setDraft(best);
+      });
     }
 
     root.querySelector('[data-agro-scale-minus]').addEventListener('click', function () {
@@ -214,45 +317,24 @@
     root.querySelector('[data-agro-scale-slider]').addEventListener('input', function (ev) {
       setDraft(parseFloat(ev.target.value, 10));
     });
-    root.querySelectorAll('[data-agro-scale-preset]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        setDraft(parseFloat(btn.getAttribute('data-agro-scale-preset'), 10));
-      });
-    });
+    root.querySelector('[data-agro-scale-recalc]').addEventListener('click', runRecalc);
 
     root.querySelector('[data-agro-scale-confirm]').addEventListener('click', function () {
       save(draftScale);
       closeModal();
     });
 
-    var defaultBtn = root.querySelector('[data-agro-scale-default]');
-    if (defaultBtn) {
-      defaultBtn.addEventListener('click', function () {
-        save(DEFAULT);
-        closeModal();
-      });
-    }
-
     var cancelBtn = root.querySelector('[data-agro-scale-cancel]');
     if (cancelBtn) {
-      cancelBtn.addEventListener('click', function () {
-        applyToRoot(read());
-        closeModal();
-      });
+      cancelBtn.addEventListener('click', closeModal);
     }
 
     if (!firstRun) {
       root.addEventListener('click', function (ev) {
-        if (ev.target === root) {
-          applyToRoot(read());
-          closeModal();
-        }
+        if (ev.target === root) closeModal();
       });
       root.addEventListener('keydown', function (ev) {
-        if (ev.key === 'Escape') {
-          applyToRoot(read());
-          closeModal();
-        }
+        if (ev.key === 'Escape') closeModal();
       });
     }
 
@@ -260,26 +342,42 @@
       ev.stopPropagation();
     });
 
-    var confirmBtn = root.querySelector('[data-agro-scale-confirm]');
-    if (confirmBtn) confirmBtn.focus();
+    root.querySelector('[data-agro-scale-confirm]').focus();
   }
 
   function open(opts) {
-    if (modalOpen) return;
-    buildModal(opts || {});
+    if (modalOpen || calibrating) return;
+    opts = opts || {};
+    if (opts.autoScale != null && opts.skipFind) {
+      maxSafeScale = clamp(opts.autoScale);
+      buildModal({ firstRun: !!opts.firstRun, autoScale: maxSafeScale });
+      return;
+    }
+    if (opts.skipAuto) {
+      maxSafeScale = MAX;
+      buildModal({ firstRun: false, autoScale: read() });
+      return;
+    }
+    findMaxSafeScale(function (best) {
+      buildModal({
+        firstRun: !!opts.firstRun,
+        autoScale: opts.autoScale != null ? opts.autoScale : best,
+      });
+    });
   }
 
   function bindTriggers() {
     document
       .querySelectorAll(
         '#agro-display-scale-fab, #home-link-display-scale, #dash-link-display-scale, #dash-link-display-scale-sm, [data-agro-display-scale-open]'
-      ).forEach(function (btn) {
-      if (btn.__agroScaleBound) return;
-      btn.__agroScaleBound = true;
-      btn.addEventListener('click', function () {
-        open();
+      )
+      .forEach(function (btn) {
+        if (btn.__agroScaleBound) return;
+        btn.__agroScaleBound = true;
+        btn.addEventListener('click', function () {
+          open({ firstRun: false });
+        });
       });
-    });
   }
 
   function boot() {
@@ -288,9 +386,11 @@
     setFabVisible(true);
     if (isConfigured()) {
       applyToRoot(read());
-    } else {
-      open({ firstRun: true });
+      return;
     }
+    findMaxSafeScale(function (best) {
+      open({ firstRun: true, autoScale: best, skipFind: true });
+    });
   }
 
   global.AgroDisplayScale = {
@@ -305,6 +405,8 @@
     apply: applyToRoot,
     save: save,
     open: open,
+    findMaxSafeScale: findMaxSafeScale,
+    detectLayoutBreak: detectLayoutBreak,
     applyEarly: function () {
       if (isConfigured()) applyToRoot(read());
     },

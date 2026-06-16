@@ -302,7 +302,7 @@ Cada loja/computador pode ter resolução e polegadas diferentes. Em vez de pedi
 - **JS:** `produtos/static/produtos/js/agro_display_scale.js` · API global `window.AgroDisplayScale`.
 - **Persistência:** `localStorage` — chaves `agro_display_scale_v1` (número 0,75–1,5) e `agro_display_scale_configured_v1` (`"1"` após confirmar).
 - **Aplicação:** `document.documentElement.style.zoom`, atributo `data-agro-scale`, variável CSS `--agro-display-scale`.
-- **1ª visita:** modal obrigatório “Ajustar tamanho da tela” (prévia PDV + slider + presets). **Reabrir:** **Aa** na barra do BI (ao lado de `v…`) · **Aa** na barra de `/atalhos/` · **Aa** fixo no canto superior direito nas demais telas.
+- **1ª visita:** calcula automaticamente o **maior zoom seguro** (testa a tela real — cards, botões, barra do BI) e abre modal só para **Confirmar**. **Reabrir:** **Aa** na barra do BI · **Aa** em `/atalhos/` · **Aa** no canto nas demais telas. Botão **Recalcular ideal** refaz a medição; o slider só permite ir **até** o máximo seguro (diminuir se quiser menor).
 
 ### 11.1 Regras para novas telas e refactors (assistência)
 
@@ -319,8 +319,8 @@ Ao pedir alteração de layout, o usuário pode escrever **`@AGENTS.md`** ou cit
 
 ### 11.2 Operacional (loja)
 
-- **Configurar:** abrir o sistema (BI em `/`) → modal na 1ª vez → Confirmar (ou “Usar padrão 100 %”).
-- **Corrigir:** tocar no **Aa** na barra do BI, no **Aa** de `/atalhos/` ou no **Aa** do canto da tela → ajustar → Confirmar.
+- **Configurar:** abrir o sistema (BI em `/`) → o sistema **calcula sozinho** o tamanho ideal → **Confirmar**.
+- **Corrigir / monitor novo:** **Aa** → **Recalcular ideal** (ou diminuir no slider) → **Confirmar**.
 - **Reset técnico (suporte):** no console do navegador, apagar `agro_display_scale_configured_v1` e recarregar.
 
 ### 11.3 Electron
