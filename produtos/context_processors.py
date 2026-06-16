@@ -24,7 +24,7 @@ def agro_app_build(request):
         logger.exception("agro_app_build: falha ao ler versão")
         return {
             "agro_build": {
-                "version": "1.0",
+                "version": "1.01",
                 "commit": "",
                 "commit_full": "",
                 "branch": "",
