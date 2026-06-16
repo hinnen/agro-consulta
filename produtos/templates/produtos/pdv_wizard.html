@@ -1783,8 +1783,8 @@
 </div>
 
 <div id="modal-pdv-entrega-detalhes" class="fixed inset-0 z-[126] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-ed-titulo">
-  <div class="w-full max-w-lg overflow-hidden rounded-[1.35rem] border-[3px] border-amber-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
-    <div class="border-b border-amber-100 bg-gradient-to-r from-amber-600 to-orange-600 px-5 py-5 sm:px-6 sm:py-6">
+  <div id="pdv-ed-shell" class="w-full max-w-lg overflow-hidden rounded-[1.35rem] border-[3px] border-amber-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
+    <div id="pdv-ed-header" class="border-b border-amber-100 bg-gradient-to-r from-amber-600 to-orange-600 px-5 py-5 sm:px-6 sm:py-6">
       <p id="pdv-ed-etapa" class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Entrega</p>
       <h2 id="pdv-ed-titulo" class="mt-2 text-xl font-black leading-tight text-white sm:text-2xl">Retirada ou entrega?</h2>
       <p id="pdv-ed-subtitulo" class="mt-2 text-sm font-semibold text-white/90">Escolha uma opção para continuar.</p>
@@ -1833,43 +1833,15 @@
     <div id="pdv-ed-confirmar-wrap" class="hidden border-t border-slate-100 bg-slate-50 px-4 py-3 sm:px-5">
       <button type="button" id="pdv-ed-confirmar" class="pdv-action-btn w-full rounded-xl bg-emerald-600 py-3 text-sm font-black uppercase text-white shadow-lg hover:bg-emerald-700">Confirmar</button>
     </div>
-  </div>
-</div>
-
-<div id="modal-pdv-entrega-fluxo-1" class="fixed inset-0 z-[127] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-ef1-titulo">
-  <div class="w-full max-w-lg overflow-hidden rounded-[1.35rem] border-[3px] border-emerald-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
-    <div class="border-b border-emerald-100 bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-5 sm:px-6 sm:py-6">
-      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Pagamento da entrega</p>
-      <h2 id="pdv-ef1-titulo" class="mt-2 text-xl font-black leading-tight text-white sm:text-2xl">Onde será o pagamento?</h2>
-      <p class="mt-2 text-sm font-semibold text-white/90">Escolha uma opção para continuar.</p>
-    </div>
-    <div class="flex flex-col gap-3 px-4 py-5 sm:px-6 sm:py-6">
+    <div id="pdv-ed-pagamento-local-panel" class="hidden flex flex-col gap-3 px-4 py-5 sm:px-6 sm:py-6">
       <button type="button" id="pdv-ef1-entrega" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-white shadow-lg hover:brightness-105 sm:min-h-[4rem] sm:text-lg">Pagamento na entrega</button>
       <button type="button" id="pdv-ef1-loja" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-emerald-300 bg-emerald-50 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-emerald-950 shadow-md hover:bg-emerald-100 sm:min-h-[4rem] sm:text-lg">Pagamento na loja</button>
     </div>
-  </div>
-</div>
-
-<div id="modal-pdv-entrega-fluxo-2" class="fixed inset-0 z-[128] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-ef2-titulo">
-  <div class="w-full max-w-lg overflow-hidden rounded-[1.35rem] border-[3px] border-orange-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
-    <div class="border-b border-orange-100 bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-5 sm:px-6 sm:py-6">
-      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Pagamento na entrega</p>
-      <h2 id="pdv-ef2-titulo" class="mt-2 text-xl font-black leading-tight text-white sm:text-2xl">Como o cliente vai pagar?</h2>
-    </div>
-    <div class="flex flex-col gap-3 px-4 py-5 sm:px-6 sm:py-6">
+    <div id="pdv-ed-meio-panel" class="hidden flex flex-col gap-3 px-4 py-5 sm:px-6 sm:py-6">
       <button type="button" id="pdv-ef2-dinheiro" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-slate-300 bg-slate-50 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-slate-900 shadow-md hover:bg-slate-100 sm:min-h-[4rem] sm:text-lg">Dinheiro</button>
       <button type="button" id="pdv-ef2-cartao" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-indigo-300 bg-indigo-50 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-indigo-950 shadow-md hover:bg-indigo-100 sm:min-h-[4rem] sm:text-lg">Cartão</button>
     </div>
-  </div>
-</div>
-
-<div id="modal-pdv-entrega-fluxo-3-troco" class="fixed inset-0 z-[129] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-ef3-titulo">
-  <div class="w-full max-w-md overflow-hidden rounded-[1.35rem] border-[3px] border-slate-300 bg-white shadow-2xl" onclick="event.stopPropagation()">
-    <div class="border-b border-slate-100 bg-slate-800 px-5 py-4 sm:px-6">
-      <h2 id="pdv-ef3-titulo" class="text-lg font-black text-white sm:text-xl">Troco para quanto?</h2>
-      <p class="mt-1 text-xs font-semibold text-slate-300">Informe o valor que o cliente vai pagar em dinheiro (para calcular o troco na entrega).</p>
-    </div>
-    <div class="space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+    <div id="pdv-ed-troco-panel" class="hidden space-y-4 px-4 py-5 sm:px-6 sm:py-6">
       <label class="block">
         <span class="mb-2 block text-[11px] font-black uppercase text-slate-600">Valor (troco)</span>
         <input type="text" id="pdv-ef3-troco-input" class="pdv-input text-lg font-bold" placeholder="Ex.: 100,00" inputmode="decimal" autocomplete="off">
