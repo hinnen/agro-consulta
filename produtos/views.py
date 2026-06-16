@@ -1961,8 +1961,10 @@ def _api_produtos_gestao_overlay_salvar_core(request):
                 ProdutoMarcaVariacaoAgro.objects.bulk_create(variacoes_novas)
 
     try:
+        cur_cat = cache.get(CATALOGO_PDV_CACHE_ENTRY_KEY)
+        if isinstance(cur_cat, dict) and cur_cat.get("version"):
+            cache.set(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY, cur_cat, timeout=86400 * 3)
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
-        cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
     except Exception:
         pass
 

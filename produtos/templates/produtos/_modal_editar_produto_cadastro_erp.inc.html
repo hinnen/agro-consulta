@@ -1894,6 +1894,14 @@
       if (typeof window.agroCadastroErpRefreshPendentesBadge === 'function') {
         try { window.agroCadastroErpRefreshPendentesBadge(); } catch (ePb) { /* ignore */ }
       }
+      if (j.produto) {
+        if (typeof window.agroPdvPatchCatalogoCache === 'function') {
+          window.agroPdvPatchCatalogoCache(j.produto);
+        }
+        if (typeof window.agroCadastroMergeProdutoCacheLocal === 'function') {
+          window.agroCadastroMergeProdutoCacheLocal(j.produto);
+        }
+      }
     }).catch(function (e) {
       mostrarStatusModalSalvo(e.message || 'Erro ao salvar', 'erro');
     }).finally(function () {

@@ -50,12 +50,71 @@
     }
   }
 
+  var PDV_CACHE_KEY = 'agro_pdv_catalog_cache_v2';
+
+  function gestaoProdutoParaPatchPdv(p) {
+    if (!p || p.id == null || p.id === '') return null;
+    var patch = {
+      id: String(p.id),
+      nome: p.nome,
+      marca: p.marca,
+      codigo_nfe: p.codigo_gm || p.codigo_nfe || p.codigo,
+      codigo_barras: p.codigo_barras,
+      preco_venda: p.preco_venda,
+      preco_custo: p.preco_custo,
+      categoria: p.categoria,
+      subcategoria: p.subcategoria,
+      fornecedor: p.fornecedor,
+      unidade: p.unidade,
+      descricao: p.descricao,
+      inativo: !!p.inativo
+    };
+    if (p.cashback_percentual != null && isFinite(Number(p.cashback_percentual))) {
+      patch.cashback_percentual = Number(p.cashback_percentual);
+    }
+    if (p.precos_por_forma && typeof p.precos_por_forma === 'object') {
+      patch.precos_por_forma = p.precos_por_forma;
+    }
+    return patch;
+  }
+
+  /** Atualiza um produto no cache local do PDV (localStorage) após save no cadastro. */
+  function patchPdvCatalogoCache(produto) {
+    var patch = gestaoProdutoParaPatchPdv(produto);
+    if (!patch) return false;
+    try {
+      var raw = localStorage.getItem(PDV_CACHE_KEY);
+      var cache = raw ? JSON.parse(raw) : null;
+      if (!cache || !Array.isArray(cache.produtos)) {
+        cache = { saved_at: Date.now(), catalog_version: '', catalog_updated_at: '', produtos: [] };
+      }
+      var pid = String(patch.id);
+      var found = false;
+      for (var i = 0; i < cache.produtos.length; i++) {
+        if (String(cache.produtos[i].id) === pid) {
+          cache.produtos[i] = Object.assign({}, cache.produtos[i], patch);
+          found = true;
+          break;
+        }
+      }
+      if (!found) cache.produtos.push(patch);
+      cache.saved_at = Date.now();
+      localStorage.setItem(PDV_CACHE_KEY, JSON.stringify(cache));
+      return true;
+    } catch (e1) {
+      return false;
+    }
+  }
+
+  w.agroPdvPatchCatalogoCache = patchPdvCatalogoCache;
+
   w.AgroCadastroErpUtil = {
     getCookie: getCookie,
     csrf: csrf,
     escapeHtml: escapeHtml,
     fmtMoney: fmtMoney,
     resetLoading: resetLoading,
-    setLoading: setLoading
+    setLoading: setLoading,
+    patchPdvCatalogoCache: patchPdvCatalogoCache
   };
 })(window);

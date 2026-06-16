@@ -426,6 +426,12 @@
             true
           );
         } else showMsg('Salvo no Agro.', true);
+        if (j.produto) {
+          if (typeof window.agroPdvPatchCatalogoCache === 'function') {
+            window.agroPdvPatchCatalogoCache(j.produto);
+          }
+          agroCadastroMergeProdutoCacheLocal(j.produto);
+        }
         carregarDetalheProduto(String(p.id || ''));
       }).catch(function (e) {
         showMsg(e.message || 'Erro ao salvar', false);
@@ -783,6 +789,36 @@
   }
 
   /** Catálogo local do PDV (mesmo cache da Consulta) — busca instantânea antes do Mongo. */
+  function agroCadastroMergeProdutoCacheLocal(produto) {
+    if (!produto || produto.id == null) return;
+    var patch = {
+      id: String(produto.id),
+      nome: produto.nome,
+      marca: produto.marca,
+      codigo_nfe: produto.codigo_gm || produto.codigo_nfe || produto.codigo,
+      codigo_barras: produto.codigo_barras,
+      preco_venda: produto.preco_venda,
+      preco_custo: produto.preco_custo,
+      categoria: produto.categoria,
+      subcategoria: produto.subcategoria,
+      fornecedor: produto.fornecedor,
+      unidade: produto.unidade,
+      descricao: produto.descricao,
+      inativo: !!produto.inativo
+    };
+    if (!_cadastroCatLocal) cadastroCatalogoPdvCacheArray();
+    if (!Array.isArray(_cadastroCatLocal)) return;
+    var pid = String(produto.id);
+    for (var i = 0; i < _cadastroCatLocal.length; i++) {
+      if (String(_cadastroCatLocal[i].id) === pid) {
+        Object.assign(_cadastroCatLocal[i], patch);
+        if (typeof buildBuscaProdutoIndex === 'function') buildBuscaProdutoIndex(_cadastroCatLocal);
+        return;
+      }
+    }
+  }
+  window.agroCadastroMergeProdutoCacheLocal = agroCadastroMergeProdutoCacheLocal;
+
   function cadastroCatalogoPdvCacheArray() {
     if (_cadastroCatInited) return _cadastroCatLocal || [];
     _cadastroCatInited = true;
