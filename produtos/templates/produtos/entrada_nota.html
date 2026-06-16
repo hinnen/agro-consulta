@@ -372,8 +372,8 @@
     }
     #entrada-nfe-wizard-pages .nfe-wiz-page { min-height: min(70vh, 42rem); }
     /* Etapa 6: não forçar altura mínima — evita faixa vazia sob a prévia. */
-    #nfe-wiz-page-6.nfe-wiz-page,
-    #nfe-wiz-page-7.nfe-wiz-page {
+    #nfe-wiz-page-7.nfe-wiz-page,
+    #nfe-wiz-page-8.nfe-wiz-page {
       min-height: 0 !important;
     }
     /* Etapa 6 · lista: espaço claro entre um produto e outro */
@@ -978,9 +978,9 @@
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="nota_aberta" title="Falta casar produto do catálogo na grade (botão Mudar ou linha de busca).">Nota aberta</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="estoque" title="Grade ok; falta registrar entrada no estoque Agro.">Estoque</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="financeiro" title="Estoque já feito; falta gerar a pagar (Salvar + a pagar), se for o caso.">Financeiro</button>
-        <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="finalizar" title="Estoque + financeiro ok; falta gravar a finalização com PIN (etapa 6 do assistente).">Finalizar</button>
+        <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="finalizar" title="Estoque + financeiro ok; falta gravar a finalização com PIN (etapa 8 do assistente).">Finalizar</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="correcao_sistemica" title="Notas em andamento marcadas manualmente como CORREÇÃO SISTEMICA (aguardando ajuste no sistema).">Correção sistemica</button>
-        <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="concluida" title="PIN da etapa 6 gravado. Não garante sozinho «Salvar + a pagar» — use «Auditar financeiro».">Concluída</button>
+        <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="concluida" title="PIN da etapa 8 gravado. Não garante sozinho «Salvar + a pagar» — use «Auditar financeiro».">Concluída</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="encerrada" title="Entradas antigas marcadas como encerradas (antes do fluxo só estoque + financeiro).">Encerr. legado</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="descartada" title="Marcada como descartada.">Descartada</button>
       </div>
@@ -1030,11 +1030,14 @@
               <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="5" title="Estoque Agro">
                 <span class="nfe-wiz-num">5</span><span class="nfe-wiz-name">Estoque</span>
               </button>
-              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="6" title="Financeiro">
-                <span class="nfe-wiz-num">6</span><span class="nfe-wiz-name">Financeiro</span>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="6" title="Etiquetas de preço (opcional)">
+                <span class="nfe-wiz-num">6</span><span class="nfe-wiz-name">Etiquetas</span>
               </button>
-              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="7" title="Finalizar (PIN e custo)">
-                <span class="nfe-wiz-num">7</span><span class="nfe-wiz-name">Finalizar</span>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="7" title="Financeiro">
+                <span class="nfe-wiz-num">7</span><span class="nfe-wiz-name">Financeiro</span>
+              </button>
+              <button type="button" class="entrada-nfe-wiz-nav-btn nfe-wiz-nav-btn" data-nfe-w-go="8" title="Finalizar (PIN e custo)">
+                <span class="nfe-wiz-num">8</span><span class="nfe-wiz-name">Finalizar</span>
               </button>
             </div>
           </div>
@@ -1312,12 +1315,41 @@
       </div>
       </div>
 
-      <div id="nfe-wiz-page-6" data-nfe-wiz-page="6" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
+      <div id="nfe-wiz-page-6" data-nfe-wiz-page="6" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto min-h-0">
+        <div class="rounded-xl border-2 border-orange-300 bg-orange-50/40 p-3 sm:p-4 shadow-sm space-y-3">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h3 class="text-sm font-black uppercase text-orange-950 tracking-tight">6 · Etiquetas de preço <span class="text-[10px] font-bold text-orange-800 normal-case">(opcional)</span></h3>
+              <p class="mt-1 text-xs font-semibold text-orange-950/90 leading-snug">Imprima etiquetas dos produtos desta nota. Pode pular — use «Continuar» ou «Próximo» sem imprimir.</p>
+            </div>
+            <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-orange-400 bg-white text-sm font-black text-orange-950 shrink-0 hover:bg-orange-50" data-help-w="6" title="Ajuda: etiquetas da entrada" aria-label="Ajuda etiquetas">?</button>
+          </div>
+          <div class="flex flex-wrap items-end gap-2">
+            <label class="min-w-[10rem] flex-1">
+              <span class="mb-0.5 block text-[10px] font-black uppercase text-slate-600">Preset</span>
+              <select id="nfe-etq-preset" class="w-full min-h-[44px] rounded-xl border-2 border-slate-200 bg-white px-2 text-sm font-bold text-slate-900"></select>
+            </label>
+            <button type="button" id="nfe-etq-btn-imprimir" class="min-h-[44px] px-5 rounded-xl border-2 border-emerald-700 bg-emerald-600 text-sm font-black uppercase text-white hover:bg-emerald-500">
+              Imprimir selecionadas
+            </button>
+          </div>
+          <div id="nfe-etq-lista" class="max-h-[min(48vh,22rem)] overflow-y-auto rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+            <p class="px-3 py-4 text-sm text-slate-500">Carregue produtos vinculados na nota…</p>
+          </div>
+          <div class="flex flex-wrap gap-2 pt-1">
+            <button type="button" id="nfe-etq-btn-continuar" class="min-h-[48px] flex-1 min-w-[12rem] px-5 rounded-xl border-2 border-slate-400 bg-white text-sm font-black uppercase text-slate-800 hover:border-emerald-600 hover:text-emerald-800">
+              Continuar sem imprimir
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="nfe-wiz-page-7" data-nfe-wiz-page="7" data-nfe-wiz-lock="1" class="nfe-wiz-page hidden flex flex-col gap-3 overflow-y-auto">
       <p id="nfe-fin-bonif-banner" class="hidden rounded-xl border-2 border-amber-400 bg-amber-100 px-3 py-2 text-xs font-black text-amber-950 leading-snug" role="status">
-        Bonificação: esta entrada não gera contas a pagar. Use a etapa 5 para registrar o estoque; a etapa 6 pode ser ignorada.
+        Bonificação: esta entrada não gera contas a pagar. Use a etapa 5 para registrar o estoque; a etapa 7 · Financeiro pode ser ignorada.
       </p>
       <div id="nfe-wiz-a4" class="rounded-xl border-2 border-emerald-300 bg-emerald-50/50 px-3 py-3 shadow-sm">
-        <h3 class="text-sm font-black uppercase text-emerald-950 mb-2">6 · Financeiro <span class="text-[10px] font-bold text-emerald-800/90 normal-case">(opcional)</span></h3>
+        <h3 class="text-sm font-black uppercase text-emerald-950 mb-2">7 · Financeiro <span class="text-[10px] font-bold text-emerald-800/90 normal-case">(opcional)</span></h3>
         <div class="space-y-3 text-xs sm:text-sm font-semibold text-emerald-950">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <label class="block"><span class="text-xs font-black uppercase text-slate-700">Empresa (loja) *</span>
@@ -1426,22 +1458,22 @@
       </div>
       </div>
 
-      <div id="nfe-wiz-page-7" data-nfe-wiz-page="7" class="nfe-wiz-page hidden flex flex-col gap-2 rounded-2xl border-2 border-slate-200 bg-gradient-to-b from-slate-50 to-white p-2.5 sm:p-3 overflow-y-auto min-h-0">
+      <div id="nfe-wiz-page-8" data-nfe-wiz-page="8" class="nfe-wiz-page hidden flex flex-col gap-2 rounded-2xl border-2 border-slate-200 bg-gradient-to-b from-slate-50 to-white p-2.5 sm:p-3 overflow-y-auto min-h-0">
         <div id="nfe-wiz-custo-wrap" class="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div class="shrink-0 flex flex-wrap items-start justify-between gap-2 px-2.5 py-1.5 sm:px-3 border-b border-slate-100 bg-gradient-to-r from-emerald-50/90 via-white to-white">
             <div class="min-w-0">
-              <p class="text-[9px] font-black uppercase tracking-wide text-slate-500 leading-none">7 · Finalizar</p>
+              <p class="text-[9px] font-black uppercase tracking-wide text-slate-500 leading-none">8 · Finalizar</p>
               <h3 class="text-[11px] sm:text-xs font-black uppercase tracking-wide text-slate-900 mt-0.5">Custo no catálogo · média C+V</h3>
               <p id="nfe-wiz-custo-count" class="mt-0.5 text-[10px] font-bold text-slate-500 tabular-nums hidden" aria-live="polite"></p>
             </div>
-            <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-slate-300 bg-white text-sm font-black text-slate-800 hover:bg-slate-50 shrink-0" data-help-w="7" title="Ajuda da etapa 7" aria-label="Ajuda da etapa 7">?</button>
+            <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-slate-300 bg-white text-sm font-black text-slate-800 hover:bg-slate-50 shrink-0" data-help-w="8" title="Ajuda da etapa 8" aria-label="Ajuda da etapa 8">?</button>
           </div>
           <p id="nfe-wiz-custo-hint" class="shrink-0 mx-2.5 sm:mx-3 mt-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-800 leading-snug nfe-wiz-custo-hint--hidden" role="status"></p>
           <div id="nfe-wiz-custo-list" class="pdv-wizard-scroll min-h-0 max-h-[min(58vh,28rem)] overflow-y-auto overflow-x-auto px-2 sm:px-3 pb-2 pt-1 flex flex-col gap-2"></div>
         </div>
         <div id="nfe-wiz-fin-alerta" class="hidden shrink-0 rounded-xl border-2 border-orange-400 bg-orange-50 p-3 text-sm font-bold text-orange-950 leading-snug" role="alert">
           <p class="text-[10px] font-black uppercase tracking-wide text-orange-800">Atenção — sem financeiro</p>
-          <p class="mt-1">Esta nota já foi finalizada com PIN, mas ainda não tem conta a pagar gerada. Volte à etapa 6 · Financeiro e use «Salvar + a pagar» (ou reabra a nota).</p>
+          <p class="mt-1">Esta nota já foi finalizada com PIN, mas ainda não tem conta a pagar gerada. Volte à etapa 7 · Financeiro e use «Salvar + a pagar» (ou reabra a nota).</p>
         </div>
         <div class="shrink-0 rounded-2xl border-2 border-slate-200 bg-white p-3 shadow-sm space-y-2.5">
           <label class="block max-w-sm">
@@ -1701,8 +1733,8 @@
             <li><strong>Nota aberta</strong> — falta produto do catálogo na linha (use <strong>Mudar</strong> ou a busca rápida).</li>
             <li><strong>Estoque</strong> — grade ok (produtos casados); falta registrar entrada no estoque Agro. Na lista aparece só o chip da <strong>fila</strong>, para não confundir com “pronta” de outro sentido.</li>
             <li><strong>Financeiro</strong> — estoque já feito; falta gerar a pagar, se você for usar essa etapa.</li>
-            <li><strong>Finalizar</strong> — estoque e financeiro ok; falta a etapa 6 do assistente (<strong>Gravar finalização</strong> com PIN e custo no catálogo).</li>
-            <li><strong>Concluída</strong> — finalização do assistente registrada (PIN etapa 6). Não confunda com só estoque + a pagar.</li>
+            <li><strong>Finalizar</strong> — estoque e financeiro ok; falta a etapa 8 do assistente (<strong>Gravar finalização</strong> com PIN e custo no catálogo).</li>
+            <li><strong>Concluída</strong> — finalização do assistente registrada (PIN etapa 8). Não confunda com só estoque + a pagar.</li>
             <li><strong>Encerrada (legado)</strong> — entradas antigas marcadas manualmente como encerradas; use <strong>Reabrir</strong> se precisar seguir o fluxo normal.</li>
             <li><strong>Descartada</strong> — você marcou como descartada.</li>
           </ul>
@@ -1733,7 +1765,7 @@
         </div>
         <div class="border-l-4 border-indigo-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Passo a passo (aba Manual)</p>
-          <p>Use <strong>Próximo</strong> / <strong>Anterior</strong> ou os botões no topo: cada passo aparece <strong>só um por vez</strong>. O chip fica <strong>verde</strong> só quando os obrigatórios daquele passo estão ok; <strong>Próximo</strong> só avança se o passo atual estiver válido. A etapa 6 · Finalizar (PIN) exige os passos anteriores completos. O PIN é o mesmo da <strong>senha rápida</strong> do usuário (estoque / empréstimo).</p>
+          <p>Use <strong>Próximo</strong> / <strong>Anterior</strong> ou os botões no topo: cada passo aparece <strong>só um por vez</strong>. O chip fica <strong>verde</strong> só quando os obrigatórios daquele passo estão ok; <strong>Próximo</strong> só avança se o passo atual estiver válido. A etapa 6 · Etiquetas é opcional. A etapa 8 · Finalizar (PIN) exige os passos anteriores completos. O PIN é o mesmo da <strong>senha rápida</strong> do usuário (estoque / empréstimo).</p>
         </div>
         <div class="text-[11px] sm:text-xs font-semibold text-slate-600 space-y-1 pt-2 border-t border-slate-100">
           <p class="font-black uppercase text-slate-500">Técnico</p>
@@ -1746,6 +1778,7 @@
 
   {{ csrf_token }}
   {% include "produtos/_js_busca_produto_inteligente.html" %}
+  <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=4"></script>
   <script>
 (function () {
   const URL_SEFAZ = "{% url 'api_entrada_nota_sefaz_status' %}";
@@ -2768,7 +2801,7 @@
   const entradaNfeLoteDraftPorLinha = {};
   const ENTRADA_NFE_BTN_COD_CONFIRM_PADRAO = 'Confirmar códigos e continuar';
   const ENTRADA_NFE_BTN_COD_CONFIRM_OK = 'Códigos confirmados';
-  const ENTRADA_NFE_WIZ_TOTAL = 7;
+  const ENTRADA_NFE_WIZ_TOTAL = 8;
   const ENTRADA_NFE_BTN_LOTE_CONFIRM_PADRAO = 'Confirmar lote e continuar';
   const ENTRADA_NFE_BTN_LOTE_CONFIRM_OK = 'Lote confirmado';
 
@@ -3570,8 +3603,11 @@
       return { ok: true, irPara: 5, erro: '' };
     }
     if (s === 6) {
+      return { ok: true, irPara: 6, erro: '' };
+    }
+    if (s === 7) {
       if (entradaNfeBonificacaoAtiva()) {
-        return { ok: true, irPara: 6, erro: '' };
+        return { ok: true, irPara: 7, erro: '' };
       }
       const finE = document.getElementById('fin-empresa-loja')?.value?.trim()
         || document.getElementById('fin-empresa-nome')?.value?.trim() || '';
@@ -3584,17 +3620,17 @@
         if (!finE || !finDc || !finDv || !finForma || !finBanco) {
           return {
             ok: false,
-            irPara: 6,
-            erro: 'Financeiro iniciado: preencha empresa, competência, 1º vencimento, forma e banco (etapa 6 · Financeiro).',
+            irPara: 7,
+            erro: 'Financeiro iniciado: preencha empresa, competência, 1º vencimento, forma e banco (etapa 7 · Financeiro).',
           };
         }
         entradaNfeAtualizarPreviewParcelas();
         const pmCol = entradaNfeColetarParcelasManualFinanceiro(finDc);
         if (pmCol.erro) {
-          return { ok: false, irPara: 6, erro: pmCol.erro };
+          return { ok: false, irPara: 7, erro: pmCol.erro };
         }
         if (!pmCol.parcelas.length) {
-          return { ok: false, irPara: 6, erro: 'Monte a prévia de parcelas na etapa 6 · Financeiro.' };
+          return { ok: false, irPara: 7, erro: 'Monte a prévia de parcelas na etapa 7 · Financeiro.' };
         }
         const gradeCents = entradaNfeTotalGradeCentavosUnificado();
         const alvoPagarCents = gradeCents + entradaNfeFinImpostoExtraCentavos();
@@ -3607,37 +3643,37 @@
         if (Math.abs(sumComb - alvoPagarCents) > 2) {
           return {
             ok: false,
-            irPara: 6,
-            erro: 'A soma das parcelas precisa fechar com o total a pagar (nota + impostos fora da NF, se houver) na etapa 6 · Financeiro.',
+            irPara: 7,
+            erro: 'A soma das parcelas precisa fechar com o total a pagar (nota + impostos fora da NF, se houver) na etapa 7 · Financeiro.',
           };
         }
         const somaNfCent = Math.round(pmCol.parcelas.reduce((a, p) => a + Math.round(Number(p.valor) * 100), 0));
         if (Math.abs(somaNfCent - gradeCents) > 2) {
           return {
             ok: false,
-            irPara: 6,
-            erro: 'Parcelas inconsistentes com o total da nota (etapa 6 · Financeiro). Use Recalcular.',
+            irPara: 7,
+            erro: 'Parcelas inconsistentes com o total da nota (etapa 7 · Financeiro). Use Recalcular.',
           };
         }
       }
       if (!entradaNfeRascunhoEditId) {
         return {
           ok: false,
-          irPara: 6,
-          erro: 'Aguarde a entrada gravar no Agro (automático) ou abra a etapa 6 · Financeiro antes de finalizar.',
-        };
-      }
-      return { ok: true, irPara: 6, erro: '' };
-    }
-    if (s === 7) {
-      if (!entradaNfeWizardConferenciaRegistrada) {
-        return {
-          ok: false,
           irPara: 7,
-          erro: 'Registre a finalização com o PIN (etapa 7 · Finalizar).',
+          erro: 'Aguarde a entrada gravar no Agro (automático) ou abra a etapa 7 · Financeiro antes de finalizar.',
         };
       }
       return { ok: true, irPara: 7, erro: '' };
+    }
+    if (s === 8) {
+      if (!entradaNfeWizardConferenciaRegistrada) {
+        return {
+          ok: false,
+          irPara: 8,
+          erro: 'Registre a finalização com o PIN (etapa 8 · Finalizar).',
+        };
+      }
+      return { ok: true, irPara: 8, erro: '' };
     }
     return { ok: false, irPara: 1, erro: '' };
   }
@@ -3652,7 +3688,7 @@
       const v = Number(btn.getAttribute('data-nfe-w-go'));
       let completo = entradaNfeWizardValidarEtapa(v).ok;
       let atencao = false;
-      if (v === 6 && !entradaNfeBonificacaoAtiva() && !entradaNfeFinanceiroTituloJaGeradoEditor()) {
+      if (v === 7 && !entradaNfeBonificacaoAtiva() && !entradaNfeFinanceiroTituloJaGeradoEditor()) {
         completo = false;
         if (
           entradaNfeWizardValidarEtapa(5).ok
@@ -3667,11 +3703,11 @@
       btn.classList.toggle('nfe-wiz-nav-btn--attention', atencao);
       btn.classList.toggle('nfe-wiz-nav-btn--on', ativo);
       btn.classList.toggle('nfe-wiz-nav-btn--pending', !completo && !ativo && !atencao);
-      if (v === 6) {
+      if (v === 7) {
         const nm = btn.querySelector('.nfe-wiz-name');
         if (nm) nm.textContent = atencao ? 'Falta a pagar' : 'Financeiro';
         btn.title = atencao
-          ? 'Financeiro — falta gerar conta a pagar (etapa 6)'
+          ? 'Financeiro — falta gerar conta a pagar (etapa 7)'
           : 'Financeiro';
       }
       if (ativo) btn.setAttribute('aria-current', 'step');
@@ -3727,6 +3763,9 @@
       entradaNfeAtualizarUiBotaoConfirmarLote();
     }
     if (step === 6) {
+      entradaNfeEtiquetasRenderLista();
+    }
+    if (step === 7) {
       entradaNfeAtualizarHintFornecedorFinanceiro();
       queueMicrotask(() => {
         entradaNfeAtualizarRodapeParcelas();
@@ -3734,13 +3773,13 @@
       });
     }
     const bonB = document.getElementById('nfe-fin-bonif-banner');
-    if (bonB) bonB.classList.toggle('hidden', step !== 6 || !entradaNfeBonificacaoAtiva());
-    if (step === 7) {
+    if (bonB) bonB.classList.toggle('hidden', step !== 7 || !entradaNfeBonificacaoAtiva());
+    if (step === 8) {
       entradaNfeRecapRefresh();
       entradaNfeAtualizarUiBotaoWizardFinalizar();
       entradaNfeAtualizarAvisoFinanceiroPendente();
     }
-    if (step === 6) entradaNfeAtualizarAvisoFinanceiroPendente();
+    if (step === 7) entradaNfeAtualizarAvisoFinanceiroPendente();
     entradaNfeAtualizarUiBotaoConfirmarFornecedor();
     entradaNfeAtualizarUiBotaoConfirmarProdutos();
     entradaNfeAtualizarUiBotaoConfirmarCodigos();
@@ -3782,7 +3821,7 @@
         elOk.textContent = '';
         elOk.classList.remove('text-emerald-800');
       }
-    } else if (s >= 2 && s <= 6) {
+    } else if (s >= 2 && s <= 7) {
       for (let st = 1; st < s; st++) {
         const d = entradaNfeWizardValidarEtapaDetalhe(st);
         if (!d.ok) {
@@ -5215,6 +5254,12 @@
     }
   }
 
+  document.getElementById('nfe-etq-btn-imprimir')?.addEventListener('click', () => {
+    void entradaNfeEtiquetasImprimirSelecionadas();
+  });
+  document.getElementById('nfe-etq-btn-continuar')?.addEventListener('click', () => {
+    entradaNfeEtiquetasContinuarSemImprimir();
+  });
   document.getElementById('nfe-wiz-next')?.addEventListener('click', () => {
     void entradaNfeWizardProximoComAutoConfirmacao();
   });
@@ -5324,7 +5369,17 @@
         resumo: 'Com empresa e depósito conferidos acima, use o botão para gravar a nota e atualizar o estoque num passo só.',
         itens: [],
       },
-      '7': {
+      '6': {
+        titulo: 'Ajuda rápida · Etiquetas de preço',
+        resumo: 'Opcional. Imprima etiquetas dos produtos vinculados nesta nota.',
+        itens: [
+          'Todos os itens com produto do catálogo aparecem na lista; desmarque os que não quiser.',
+          'Ajuste a quantidade de etiquetas por produto (padrão: qtd estoque da linha).',
+          'Escolha o preset de layout/impressora e use «Imprimir selecionadas».',
+          '«Continuar sem imprimir» ou «Próximo» pula esta etapa — ela fica verde mesmo sem imprimir.',
+        ],
+      },
+      '8': {
         titulo: 'Ajuda rápida · Finalizar',
         resumo: 'PIN (mesma senha rápida do estoque) e escolha do custo que vai para o catálogo.',
         itens: [
@@ -5470,7 +5525,7 @@
     return '';
   }
 
-  /** Preenche etapa 6 · Financeiro a partir de ``duplicatas`` / ``pagamentos`` do XML. */
+  /** Preenche etapa 7 · Financeiro a partir de ``duplicatas`` / ``pagamentos`` do XML. */
   function entradaNfeAplicarFinanceiroDoXml(nota) {
     if (!nota || typeof nota !== 'object') return false;
     const dups = Array.isArray(nota.duplicatas) ? nota.duplicatas : [];
@@ -6132,9 +6187,9 @@
     return { parcelas };
   }
 
-  /** Etapas 1–6 válidas antes do PIN (etapa 7 · Finalizar). */
+  /** Etapas 1–7 válidas antes do PIN (etapa 8 · Finalizar). */
   function entradaNfeWizardValidarPassosAnteriores() {
-    for (let st = 1; st <= 6; st++) {
+    for (let st = 1; st <= 7; st++) {
       const d = entradaNfeWizardValidarEtapaDetalhe(st);
       if (!d.ok) return d;
     }
@@ -6799,6 +6854,98 @@
     };
   }
 
+  function entradaNfeEtiquetasFmtPreco(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return '0,00';
+    return n.toFixed(2).replace('.', ',');
+  }
+
+  function entradaNfeEtiquetasRenderLista() {
+    const host = document.getElementById('nfe-etq-lista');
+    const selPreset = document.getElementById('nfe-etq-preset');
+    const Core = window.AgroEtiquetasCore;
+    if (!host) return;
+    if (Core && selPreset) Core.fillPresetSelect(selPreset);
+    const linhas = coletarLinhas().filter((l) => entradaNfeProdutoIdErpValido(l.produto_id));
+    if (!linhas.length) {
+      host.innerHTML = '<p class="px-3 py-4 text-sm text-slate-500">Nenhum produto vinculado ao catálogo nesta nota.</p>';
+      return;
+    }
+    host.innerHTML = linhas
+      .map((l, idx) => {
+        const nome = String(l.nome_catalogo || l.x_prod || '—').trim();
+        const gm = String(l.c_prod || '').trim();
+        const pv = entradaNfeEtiquetasFmtPreco(l.preco_venda);
+        const qtd = Math.max(1, Math.round(Number(l.q_estoque) || Number(l.q_com) || 1));
+        return (
+          `<div class="nfe-etq-row flex flex-wrap items-center gap-2 px-3 py-2 hover:bg-slate-50" data-etq-idx="${idx}">` +
+          `<label class="inline-flex items-center gap-2 shrink-0 cursor-pointer">` +
+          `<input type="checkbox" class="nfe-etq-sel h-5 w-5 rounded border-slate-300 accent-emerald-600" checked />` +
+          `<span class="sr-only">Selecionar ${nome}</span></label>` +
+          `<div class="min-w-0 flex-1"><div class="truncate text-sm font-bold text-slate-900">${nome}</div>` +
+          `<div class="text-[11px] font-mono text-slate-500">${gm} · R$ ${pv}</div></div>` +
+          `<label class="shrink-0 text-[10px] font-black uppercase text-slate-500">Qtd` +
+          `<input type="number" min="1" max="999" value="${qtd}" class="nfe-etq-qtd ml-1 w-16 min-h-[40px] rounded-lg border-2 border-slate-200 px-1 text-center text-sm font-black text-slate-900" />` +
+          `</label></div>`
+        );
+      })
+      .join('');
+    host.querySelectorAll('.nfe-etq-row').forEach((row, idx) => {
+      row.dataset.etqPid = String(linhas[idx].produto_id || '');
+      row.dataset.etqNome = String(linhas[idx].nome_catalogo || linhas[idx].x_prod || '');
+      row.dataset.etqGm = String(linhas[idx].c_prod || '');
+      row.dataset.etqEan = String(linhas[idx].ean || '');
+      row.dataset.etqPv = String(linhas[idx].preco_venda || 0);
+    });
+  }
+
+  function entradaNfeEtiquetasColetarItensSelecionados() {
+    const itens = [];
+    document.querySelectorAll('#nfe-etq-lista .nfe-etq-row').forEach((row) => {
+      const chk = row.querySelector('.nfe-etq-sel');
+      if (!chk || !chk.checked) return;
+      const qtd = parseInt(row.querySelector('.nfe-etq-qtd')?.value, 10) || 1;
+      itens.push({
+        id: row.dataset.etqPid || '',
+        nome: row.dataset.etqNome || '',
+        codigo_gm: row.dataset.etqGm || '',
+        codigo_barras: row.dataset.etqEan || '',
+        preco_venda: Number(row.dataset.etqPv) || 0,
+        qtd: qtd > 0 ? qtd : 1,
+      });
+    });
+    return itens;
+  }
+
+  async function entradaNfeEtiquetasImprimirSelecionadas() {
+    const Core = window.AgroEtiquetasCore;
+    if (!Core) {
+      showMsg('Módulo de etiquetas indisponível. Recarregue a página (F5).', false);
+      return;
+    }
+    const itens = entradaNfeEtiquetasColetarItensSelecionados();
+    if (!itens.length) {
+      showMsg('Marque ao menos um produto para imprimir.', false);
+      return;
+    }
+    const presetId = document.getElementById('nfe-etq-preset')?.value || '';
+    const st = Core.loadStorage();
+    const textoRodape = st.texto_rodape_global || Core.getPresetAtivo(st).texto_rodape || '';
+    const res = await Core.imprimirItens(itens, {
+      presetId: presetId || st.preset_ativo,
+      textoRodape,
+      origem: 'entrada_nfe',
+    });
+    if (res && res.ok) showMsg('Etiquetas enviadas à impressora.', true);
+    else showMsg('Falha ao imprimir etiquetas.', false);
+  }
+
+  function entradaNfeEtiquetasContinuarSemImprimir() {
+    const iso = new Date().toISOString();
+    entradaNfeWizardPersistExtraPatchFireForget({ wizard_etapa6_etiquetas_em: iso });
+    entradaNfeWizardAvancarAposConfirmarEtapa(6);
+  }
+
   async function entradaNfeWizardPersistExtraPatch(patch) {
     const p = patch && typeof patch === 'object' ? patch : {};
     entradaNfeExtraUltimo = entradaNfeAnexarFinanceiroAoExtra({
@@ -7125,7 +7272,7 @@
         nota_aberta: 'Fila: Nota aberta',
         estoque: 'Fila: Estoque',
         financeiro: 'Fila: Financeiro',
-        finalizar: 'Fila: Finalizar (PIN etapa 6)',
+        finalizar: 'Fila: Finalizar (PIN etapa 8)',
         concluida: 'Fila: Concluída',
         descartada: 'Fila: Descartada',
         encerrada: 'Fila: Encerrada (legado)',
@@ -8695,7 +8842,7 @@
 
   async function salvar(modo, extra) {
     if (entradaNfeEditorCongeladoAtivo()) {
-      showMsg('Nota finalizada: use «Reabrir nota» na etapa 6 para alterar.', false);
+      showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
       return;
     }
     clearTimeout(entradaNfeAutosaveTimer);
@@ -8919,7 +9066,7 @@
 
   async function salvarComFinanceiro(modo, extra) {
     if (entradaNfeEditorCongeladoAtivo()) {
-      showMsg('Nota finalizada: use «Reabrir nota» na etapa 6 para alterar.', false);
+      showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
       return;
     }
     clearTimeout(entradaNfeAutosaveTimer);
@@ -9098,7 +9245,7 @@
   btnEstoqueAgro.addEventListener('click', async () => {
     if (entradaNfeEstoqueAgroEmCurso || btnEstoqueAgro.disabled) return;
     if (entradaNfeEditorCongeladoAtivo()) {
-      showMsg('Nota finalizada: use «Reabrir nota» na etapa 6 para alterar.', false);
+      showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
       return;
     }
     if (entradaNfeTemLinhaCompactaDigitacaoPendente()) {
@@ -9222,7 +9369,7 @@
 
   document.getElementById('btn-parse-xml').addEventListener('click', async () => {
     if (entradaNfeEditorCongeladoAtivo()) {
-      showMsg('Nota finalizada: use «Reabrir nota» na etapa 6 para alterar.', false);
+      showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
       return;
     }
     const inp = document.getElementById('xml-file');
@@ -9293,7 +9440,7 @@
 
   document.getElementById('btn-dist-dfe').addEventListener('click', async () => {
     if (entradaNfeEditorCongeladoAtivo()) {
-      showMsg('Nota finalizada: use «Reabrir nota» na etapa 6 para alterar.', false);
+      showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
       return;
     }
     const ult = document.getElementById('sefaz-ult').value.trim();
@@ -9324,7 +9471,7 @@
             <button type="button" class="mt-2 text-[10px] font-black uppercase text-orange-700 btn-import-dfe" data-idx="${idx}">Carregar na grade</button>`;
           div.querySelector('.btn-import-dfe').addEventListener('click', () => {
             if (entradaNfeEditorCongeladoAtivo()) {
-              showMsg('Nota finalizada: use «Reabrir nota» na etapa 6 para alterar.', false);
+              showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
               return;
             }
             const n = j.previews[idx].nota;
@@ -9411,7 +9558,7 @@
           nota_aberta: 'Nota aberta',
           estoque: 'Estoque',
           financeiro: 'Financeiro',
-          finalizar: 'PIN etapa 6',
+          finalizar: 'PIN etapa 8',
           concluida: 'Concluída',
           descartada: 'Descartada',
           encerrada: 'Encerr. legado',
@@ -9420,7 +9567,7 @@
           nota_aberta: 'Fila: nota aberta — falta casar produtos na grade.',
           estoque: 'Fila: estoque — grade ok; falta registrar entrada no estoque Agro.',
           financeiro: 'Fila: financeiro — estoque ok; falta gerar a pagar, se for o caso.',
-          finalizar: 'Fila: finalizar — falta gravar finalização com PIN (etapa 6).',
+          finalizar: 'Fila: finalizar — falta gravar finalização com PIN (etapa 8).',
           concluida: 'Fila: concluída — PIN gravado no Agro.',
           descartada: 'Fila: descartada.',
           encerrada: 'Fila: encerrada (legado).',
@@ -9439,7 +9586,7 @@
             fb.className = entradaNfeFilaChipClassLista('concluida_sem_fin');
             fb.textContent = 'Concluída · sem financeiro';
             fb.title =
-              'PIN gravado no Agro, mas falta gerar conta a pagar na etapa 6 · Financeiro.';
+              'PIN gravado no Agro, mas falta gerar conta a pagar na etapa 7 · Financeiro.';
           } else {
             fb.className = entradaNfeFilaChipClassLista(bk);
             fb.textContent = bkLabel;
