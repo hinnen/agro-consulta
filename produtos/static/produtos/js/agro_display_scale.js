@@ -22,12 +22,32 @@
     return Math.max(MIN, Math.min(MAX, v));
   }
 
+  function estimateOsScale() {
+    try {
+      var iw = global.innerWidth || 0;
+      var sw = global.screen && global.screen.width ? global.screen.width : 0;
+      if (iw > 100 && sw > iw * 1.05) {
+        return Math.min(3, Math.max(1, sw / iw));
+      }
+    } catch (e) {}
+    var dpr = global.devicePixelRatio || 1;
+    return dpr > 0 ? dpr : 1;
+  }
+
+  function calibrationCeiling() {
+    var os = estimateOsScale();
+    if (os >= 1.625) return 1;
+    if (os >= 1.375) return 1.05;
+    if (os >= 1.2) return 1.15;
+    return MAX;
+  }
+
   function profileSuffix() {
     try {
-      var sw = global.screen && global.screen.width ? global.screen.width : 0;
-      var sh = global.screen && global.screen.height ? global.screen.height : 0;
-      var dpr = Math.round((global.devicePixelRatio || 1) * 100);
-      return '_' + sw + 'x' + sh + '_' + dpr;
+      var w = Math.round(global.innerWidth || 0);
+      var h = Math.round(global.innerHeight || 0);
+      var os = Math.round(estimateOsScale() * 100);
+      return '_' + w + 'x' + h + '_os' + os;
     } catch (e) {
       return '_default';
     }
@@ -43,13 +63,17 @@
 
   function displayProfileLabel() {
     try {
+      var w = Math.round(global.innerWidth || 0);
+      var h = Math.round(global.innerHeight || 0);
+      var os = Math.round(estimateOsScale() * 100);
       return (
-        (global.screen.width || '?') +
+        'Tela ' +
+        w +
         '×' +
-        (global.screen.height || '?') +
-        ' · escala Windows ' +
-        Math.round((global.devicePixelRatio || 1) * 100) +
-        '%'
+        h +
+        ' · Windows ~' +
+        os +
+        '% · Chrome em 100%'
       );
     } catch (e2) {
       return '';
@@ -139,7 +163,16 @@
     if (!topbar || !isVisible(topbar)) return false;
 
     var tr = topbar.getBoundingClientRect();
-    if (tr.height > 92) return true;
+    if (tr.height > 78) return true;
+
+    var periods = topbar.querySelector('.dash-topbar-periods');
+    var sync = topbar.querySelector('.dash-topbar-sync');
+    if (periods && sync && isVisible(periods) && isVisible(sync)) {
+      var pr = periods.getBoundingClientRect();
+      var sr = sync.getBoundingClientRect();
+      if (rectsOverlap(pr, sr, 6)) return true;
+      if (sr.left < pr.right - 2 && Math.abs(pr.top - sr.top) < 30) return true;
+    }
 
     var blocks = topbar.querySelectorAll(':scope > div, :scope > button');
     var blockRects = [];
@@ -210,9 +243,10 @@
     calibrating = true;
     var saved = read();
     var best = DEFAULT;
+    var ceiling = clamp(calibrationCeiling());
     var scales = [];
     var s;
-    for (s = MAX; s >= MIN - 0.001; s -= STEP) scales.push(clamp(s));
+    for (s = ceiling; s >= MIN - 0.001; s -= STEP) scales.push(clamp(s));
 
     var idx = 0;
 
@@ -317,13 +351,16 @@
     root.setAttribute('role', 'dialog');
     root.setAttribute('aria-modal', 'true');
     root.setAttribute('aria-labelledby', 'agro-scale-title');
+    var osPct = Math.round(estimateOsScale() * 100);
     root.innerHTML =
       '<div class="agro-scale-panel">' +
       '  <h2 id="agro-scale-title" class="agro-scale-title">Tamanho da tela</h2>' +
       '  <p class="agro-scale-lead">' +
       (firstRun
-        ? 'Calculamos o <strong>maior tamanho possível</strong> neste monitor sem cards encavalarem, textos saindo ou botões quebrando linha.'
-        : 'Use <strong>Recalcular</strong> se trocou de monitor. Você só pode <strong>diminuir</strong> a partir do ideal — aumentar além do limite quebra a grade.') +
+        ? 'Com <strong>Windows em ~' +
+          osPct +
+          '%</strong>, o ideal costuma ser <strong>100%</strong> (sem zoom extra). Calculamos o maior tamanho possível sem encavalar botões ou cards.'
+        : 'Use <strong>Recalcular</strong> se mudou monitor ou escala do Windows. Com Windows alto, não passe de <strong>100%</strong>.') +
       ' Depois, o botão <strong>Aa</strong> reabre este ajuste.' +
       '</p>' +
       '  <p class="agro-scale-status" data-agro-scale-status>Tamanho ideal: <strong>' +

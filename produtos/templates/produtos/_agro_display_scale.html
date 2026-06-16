@@ -2,10 +2,16 @@
 <script>
   (function () {
     try {
-      var sw = screen.width || 0;
-      var sh = screen.height || 0;
-      var dpr = Math.round((window.devicePixelRatio || 1) * 100);
-      var suf = '_' + sw + 'x' + sh + '_' + dpr;
+      function osScale() {
+        var iw = window.innerWidth || 0;
+        var sw = screen.width || 0;
+        if (iw > 100 && sw > iw * 1.05) return Math.round(Math.min(300, (sw / iw) * 100));
+        return Math.round((window.devicePixelRatio || 1) * 100);
+      }
+      function profSuffix() {
+        return '_' + Math.round(window.innerWidth || 0) + 'x' + Math.round(window.innerHeight || 0) + '_os' + osScale();
+      }
+      var suf = profSuffix();
       var ok = localStorage.getItem('agro_display_scale_configured_v1' + suf) === '1';
       if (!ok) ok = localStorage.getItem('agro_display_scale_configured_v1') === '1';
       if (!ok) return;
