@@ -385,119 +385,101 @@
         }
     }
     .agro-ver-badge {
-        position: absolute;
-        top: 0;
-        right: 0;
-        font-size: 8px;
-        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        font-size: 10px;
+        font-weight: 800;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        color: rgba(148, 163, 184, 0.75);
-        letter-spacing: 0.02em;
-        cursor: default;
+        color: rgba(148, 163, 184, 0.9);
+        letter-spacing: 0.03em;
+        cursor: help;
         line-height: 1;
-        padding: 1px 0;
+        padding: 2px 0;
+        border: 0;
+        background: transparent;
     }
     .agro-ver-badge:hover,
     .agro-ver-badge:focus-visible {
-        color: rgba(203, 213, 225, 0.95);
+        color: #e2e8f0;
         outline: none;
     }
-    .agro-ver-tip {
-        display: none;
-        position: absolute;
-        top: calc(100% + 6px);
-        right: 0;
-        z-index: 50;
-        min-width: 11rem;
-        max-width: 18rem;
-        padding: 8px 10px;
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(15, 23, 42, 0.96);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-        font-size: 9px;
+    .agro-ver-popover {
+        position: fixed;
+        z-index: 25000;
+        pointer-events: none;
+        min-width: 12rem;
+        max-width: 16rem;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #334155;
+        background: #0f172a;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+        font-size: 10px;
         font-weight: 600;
         color: #e2e8f0;
-        text-align: left;
         line-height: 1.45;
-        white-space: normal;
     }
-    .agro-ver-badge:hover .agro-ver-tip,
-    .agro-ver-badge:focus-visible .agro-ver-tip {
-        display: block;
+    .agro-ver-popover.hidden { display: none !important; }
+    .agro-ver-pop__row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: baseline;
+        margin-top: 5px;
     }
-    .agro-ver-tip dt {
-        font-size: 8px;
+    .agro-ver-pop__row:first-child { margin-top: 0; }
+    .agro-ver-pop__lbl {
+        font-size: 9px;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.05em;
         color: #94a3b8;
-        margin-top: 6px;
+        white-space: nowrap;
+        flex-shrink: 0;
     }
-    .agro-ver-tip dt:first-child { margin-top: 0; }
-    .agro-ver-tip dd {
-        margin: 0;
-        font-family: ui-monospace, monospace;
-        font-size: 9px;
-        color: #f1f5f9;
+    .agro-ver-pop__val {
+        text-align: right;
+        color: #f8fafc;
         word-break: break-all;
     }
-    .agro-ver-tip ul {
-        margin: 2px 0 0;
-        padding: 0;
+    .agro-ver-pop__val.mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 9px;
+    }
+    .agro-ver-pop__commits {
+        margin: 8px 0 0;
+        padding: 6px 0 0;
+        border-top: 1px solid #334155;
         list-style: none;
     }
-    .agro-ver-tip li {
+    .agro-ver-pop__commits li {
         font-family: ui-monospace, monospace;
-        font-size: 8px;
+        font-size: 9px;
         color: #cbd5e1;
-        padding: 1px 0;
+        padding: 2px 0;
     }
+    .dash-topbar { overflow: visible; }
 </style>
 {% endblock %}
 
 {% block admin_content %}
 {% include "produtos/_gm_loading_bar.html" %}
+{{ agro_build|json_script:"agro-build-data" }}
+<div id="agro-ver-popover" class="agro-ver-popover hidden" role="tooltip" aria-hidden="true"></div>
 <div class="main-container">
-    <div class="flex flex-wrap xl:flex-nowrap items-center justify-between gap-2 p-2 bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/5 mb-6 no-print">
-        <div class="flex items-center gap-3 px-2 border-r border-white/10 mr-1 relative">
-            <div class="w-8 h-8 bg-[#00BFFF] rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(0,191,255,0.3)] relative">
+    <div class="dash-topbar flex flex-wrap xl:flex-nowrap items-center justify-between gap-2 p-2 bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/5 mb-6 no-print">
+        <div class="flex items-center gap-3 px-2 border-r border-white/10 mr-1">
+            <div class="w-8 h-8 bg-[#00BFFF] rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(0,191,255,0.3)]">
                 <i data-lucide="layout-dashboard" class="text-white w-4 h-4"></i>
-                <span class="xl:hidden agro-ver-badge" style="top:-4px;right:-10px;font-size:7px;" tabindex="0" aria-label="Versão {{ agro_build.version }}" title="v{{ agro_build.version }}{% if agro_build.commit %} · {{ agro_build.commit }}{% endif %}">v{{ agro_build.version }}</span>
             </div>
-            <div class="hidden xl:block relative pr-10">
-                <h1 class="text-xs font-black text-white uppercase leading-none">Gestão Estratégica</h1>
-                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">SisVale BI</p>
-                <span class="agro-ver-badge" tabindex="0" aria-label="Versão {{ agro_build.version }}">
-                    v{{ agro_build.version }}
-                    <span class="agro-ver-tip" role="tooltip">
-                        <dl>
-                            <dt>Versão</dt>
-                            <dd>{{ agro_build.version }}</dd>
-                            {% if agro_build.commit %}
-                            <dt>Commit em execução</dt>
-                            <dd title="{{ agro_build.commit_full }}">{{ agro_build.commit }}</dd>
-                            {% endif %}
-                            {% if agro_build.branch %}
-                            <dt>Branch</dt>
-                            <dd>{{ agro_build.branch }}</dd>
-                            {% endif %}
-                            {% if agro_build.built_at %}
-                            <dt>Último deploy registrado</dt>
-                            <dd>{{ agro_build.built_at }}</dd>
-                            {% endif %}
-                        </dl>
-                        {% if agro_build.version_commits %}
-                        <p class="mt-1.5 mb-0.5 text-[8px] font-black uppercase tracking-wide text-slate-400">Commits nesta versão</p>
-                        <ul>
-                            {% for row in agro_build.version_commits %}
-                            <li title="{{ row.commit_full }}">{% if row.recorded_at %}{{ row.recorded_at|slice:":10" }} · {% endif %}{{ row.commit }}</li>
-                            {% endfor %}
-                        </ul>
-                        {% endif %}
-                    </span>
-                </span>
+            <div class="hidden xl:flex xl:items-baseline xl:gap-2">
+                <div>
+                    <h1 class="text-xs font-black text-white uppercase leading-none">Gestão Estratégica</h1>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">SisVale BI</p>
+                </div>
+                <button type="button" class="agro-ver-badge js-agro-ver-badge" aria-label="Versão do sistema">v{{ agro_build.version }}</button>
             </div>
+            <button type="button" class="xl:hidden agro-ver-badge js-agro-ver-badge" style="font-size:9px;" aria-label="Versão do sistema">v{{ agro_build.version }}</button>
         </div>
 
         <div class="flex items-center gap-2">
@@ -729,6 +711,72 @@ document.addEventListener("keydown", function (e) {
 });
 
     lucide.createIcons();
+
+    (function initAgroVersionPopover() {
+      var dataEl = document.getElementById("agro-build-data");
+      var pop = document.getElementById("agro-ver-popover");
+      var badges = document.querySelectorAll(".js-agro-ver-badge");
+      if (!dataEl || !pop || !badges.length) return;
+      var info;
+      try { info = JSON.parse(dataEl.textContent || "{}"); } catch (_) { return; }
+      function esc(s) {
+        return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      }
+      function popoverHtml() {
+        var html = "";
+        html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Versão</span><span class="agro-ver-pop__val">v' + esc(info.version) + "</span></div>";
+        if (info.commit) {
+          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Commit</span><span class="agro-ver-pop__val mono">' + esc(info.commit) + "</span></div>";
+        }
+        if (info.branch) {
+          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Branch</span><span class="agro-ver-pop__val">' + esc(info.branch) + "</span></div>";
+        }
+        if (info.built_at) {
+          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Deploy</span><span class="agro-ver-pop__val mono">' + esc(info.built_at) + "</span></div>";
+        }
+        var commits = Array.isArray(info.version_commits) ? info.version_commits : [];
+        if (commits.length) {
+          html += '<ul class="agro-ver-pop__commits">';
+          commits.forEach(function (row) {
+            var line = "";
+            if (row && row.recorded_at) line += esc(String(row.recorded_at).slice(0, 10)) + " · ";
+            line += esc(row && row.commit ? row.commit : "");
+            html += "<li>" + line + "</li>";
+          });
+          html += "</ul>";
+        }
+        return html;
+      }
+      function placePopover(anchor) {
+        pop.innerHTML = popoverHtml();
+        pop.classList.remove("hidden");
+        pop.setAttribute("aria-hidden", "false");
+        var r = anchor.getBoundingClientRect();
+        var margin = 8;
+        pop.style.left = "0px";
+        pop.style.top = "0px";
+        var pw = pop.offsetWidth;
+        var ph = pop.offsetHeight;
+        var left = Math.min(r.left, window.innerWidth - pw - margin);
+        left = Math.max(margin, left);
+        var top = r.bottom + 6;
+        if (top + ph > window.innerHeight - margin) top = Math.max(margin, r.top - ph - 6);
+        pop.style.left = left + "px";
+        pop.style.top = top + "px";
+      }
+      function hidePopover() {
+        pop.classList.add("hidden");
+        pop.setAttribute("aria-hidden", "true");
+      }
+      badges.forEach(function (badge) {
+        badge.addEventListener("mouseenter", function () { placePopover(badge); });
+        badge.addEventListener("focus", function () { placePopover(badge); });
+        badge.addEventListener("mouseleave", hidePopover);
+        badge.addEventListener("blur", hidePopover);
+      });
+      window.addEventListener("scroll", hidePopover, true);
+      window.addEventListener("resize", hidePopover);
+    })();
 
     function readCookie(name) {
       var value = "; " + document.cookie;
