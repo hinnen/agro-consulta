@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br" class="h-full overflow-hidden">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,10 +9,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   {% include "produtos/_agro_consulta_ui.html" %}
   <style>
-    html, body { height: 100%; margin: 0; }
+    html, body { min-height: 100%; margin: 0; }
     body {
       font-family: 'Inter', sans-serif;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
     /* —— Escala única (toda a tela Fechar caixa) —— */
     .cf-page {
@@ -32,11 +33,10 @@
       font-size: var(--cf-fs-base);
       line-height: var(--cf-lh-body);
       width: 100%;
-      height: 100dvh;
-      max-height: 100dvh;
+      min-height: 100dvh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow: visible;
       background: #f8fafc;
       color: #1e293b;
     }
@@ -106,8 +106,7 @@
       padding-inline: clamp(0.4rem, 1vw, 1rem);
     }
     .cf-main {
-      flex: 1 1 auto;
-      min-height: 0;
+      flex: 0 0 auto;
       width: 100%;
       max-width: 100%;
       margin: 0;
@@ -115,20 +114,18 @@
       display: grid;
       grid-template-columns: minmax(0, 1fr);
       gap: clamp(0.45rem, 0.9vw, 0.75rem);
-      align-items: stretch;
+      align-items: start;
     }
     @container (min-width: 36rem) {
       .cf-main { grid-template-columns: minmax(0, 1fr) auto; }
     }
     .cf-main-span { grid-column: 1 / -1; }
     .cf-form {
-      min-height: 0;
-      height: 100%;
       width: 100%;
       min-width: 0;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow: visible;
       border-radius: 0.85rem;
       background: #fff;
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
@@ -171,17 +168,11 @@
       line-height: var(--cf-lh-tight);
     }
     .cf-body {
-      flex: 1 1 auto;
-      min-height: 0;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow: visible;
     }
     .cf-scroll {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-y: auto;
-      overscroll-behavior: contain;
       padding: 0.45rem 0.55rem;
       display: flex;
       flex-direction: column;
@@ -544,8 +535,6 @@
       }
     }
     .cf-aside-wrap {
-      min-height: 0;
-      height: 100%;
       display: flex;
       flex-direction: row;
       align-items: stretch;
@@ -553,8 +542,9 @@
       border: 1px solid #e2e8f0;
       background: #fff;
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-      overflow: hidden;
+      overflow: visible;
       width: 100%;
+      align-self: start;
     }
   @container (min-width: 36rem) {
     .cf-aside-wrap {
@@ -626,11 +616,9 @@
     .cf-aside {
       flex: 1 1 auto;
       min-width: 0;
-      min-height: 0;
-      height: 100%;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow: visible;
     }
   @container (min-width: 36rem) {
     .cf-aside {
@@ -646,10 +634,6 @@
     }
   }
     .cf-aside-scroll {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow-y: auto;
-      overscroll-behavior: contain;
       padding: 0.4rem 0.5rem;
     }
     .cf-modal-overlay {
@@ -747,7 +731,7 @@
         Há {{ entregas_pendentes_fechar|length }} entrega(s) com <strong>pagamento na entrega</strong> ainda sem venda fechada no PDV.
         Finalize o pagamento em <strong>Entregas</strong> no PDV ou cancele a pendência.
       </p>
-      <ul class="mt-2 max-h-24 overflow-y-auto space-y-1 text-xs font-bold text-slate-800">
+      <ul class="mt-2 space-y-1 text-xs font-bold text-slate-800">
         {% for ent in entregas_pendentes_fechar %}
         <li class="rounded-lg border border-orange-200 bg-white px-2 py-1.5">
           {{ ent.cliente_nome|default:"—" }} · {{ ent.total_texto|default:"—" }}
@@ -803,7 +787,6 @@
       <div class="cf-body">
         <div class="cf-scroll">
           <p id="cf-contagem-status" class="cf-t-meta hidden font-black uppercase text-emerald-700" role="status" aria-live="polite"></p>
-          <p class="cf-t-meta text-slate-500">Os valores em <strong>Contado</strong> são guardados automaticamente neste aparelho e no servidor.</p>
           {% if linhas_com_movimento %}
           {% for L in linhas_com_movimento %}
           <div class="cf-pay{% if L.forma == 'Dinheiro' %} cf-pay--dinheiro{% endif %}">
@@ -865,7 +848,7 @@
             <summary class="cf-t-label cursor-pointer list-none px-3 py-2 flex items-center gap-2 hover:bg-slate-100 select-none text-slate-600">
               Formas sem movimento ({{ linhas_sem_movimento|length }})
             </summary>
-            <div class="px-2 pb-2 pt-1 space-y-1 border-t border-slate-200 bg-white max-h-[28vh] overflow-y-auto">
+            <div class="px-2 pb-2 pt-1 space-y-1 border-t border-slate-200 bg-white">
               {% for L in linhas_sem_movimento %}
               <div class="cf-pay-simple rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
                 <span class="cf-pay-forma cf-t-forma">{{ L.forma }}</span>
