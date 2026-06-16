@@ -52,7 +52,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 | Caminho                                  | Nome (name)                            | Nota                                                                                        |
 | ---------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `/`                                      | `home`                                 | Dashboard gerencial (BI + launchpad); alias `/dashboard/gerencial/` (`dashboard_gerencial`) |
+| `/`                                      | `home`                                 | **Tela inicial** — SisVale BI (dashboard gerencial); grade clássica em `/atalhos/` (`home_atalhos`) |
 | `/consulta/`                             | `consulta_produtos`                    | PDV legado MPA (busca / orçamentos)                                                         |
 | `/historico/`                            | `historico_ajustes`                    |                                                                                             |
 | `/transferencias/`                       | `sugestao_transferencia`               |                                                                                             |
@@ -201,7 +201,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 - Modal na **1ª abertura** em qualquer tela que inclua `_agro_consulta_ui.html`; fator salvo em `localStorage` (`agro_display_scale_v1`, `agro_display_scale_configured_v1`).
 - Escala aplicada no `<html>` (`zoom` + `data-agro-scale` + `--agro-display-scale`); vale para PDV, caixa, lançamentos, etc. no **mesmo navegador**.
-- Reabrir ajuste: botão **Aa** discreto no canto superior direito (todas as telas) e na **barra da home** (ao lado do relógio).
+- Reabrir ajuste: botão **Aa** discreto no canto superior direito (telas sem atalho próprio), na **barra do BI** (`/` — ao lado da versão) ou na **home de atalhos** (`/atalhos/` — ao relógio).
 - JS: `produtos/static/produtos/js/agro_display_scale.js` · include: `_agro_display_scale.html`.
 
 ---
@@ -297,11 +297,12 @@ Cada loja/computador pode ter resolução e polegadas diferentes. Em vez de pedi
 
 ### 11.0 O que é
 
+- **Tela inicial do sistema:** `/` — dashboard **SisVale BI** (`dashboard_gerencial.html`). A grade clássica de atalhos fica em `/atalhos/` (`home_atalhos`).
 - **Include:** `produtos/templates/produtos/_agro_display_scale.html` (puxado por `_agro_consulta_ui.html`).
 - **JS:** `produtos/static/produtos/js/agro_display_scale.js` · API global `window.AgroDisplayScale`.
 - **Persistência:** `localStorage` — chaves `agro_display_scale_v1` (número 0,75–1,5) e `agro_display_scale_configured_v1` (`"1"` após confirmar).
 - **Aplicação:** `document.documentElement.style.zoom`, atributo `data-agro-scale`, variável CSS `--agro-display-scale`.
-- **1ª visita:** modal obrigatório “Ajustar tamanho da tela” (prévia PDV + slider + presets). **Reabrir:** botão **Aa** fixo no canto superior direito (todas as telas) ou **Aa** na barra da home (canto superior, ao relógio).
+- **1ª visita:** modal obrigatório “Ajustar tamanho da tela” (prévia PDV + slider + presets). **Reabrir:** **Aa** na barra do BI (ao lado de `v…`) · **Aa** na barra de `/atalhos/` · **Aa** fixo no canto superior direito nas demais telas.
 
 ### 11.1 Regras para novas telas e refactors (assistência)
 
@@ -318,8 +319,8 @@ Ao pedir alteração de layout, o usuário pode escrever **`@AGENTS.md`** ou cit
 
 ### 11.2 Operacional (loja)
 
-- **Configurar:** abrir o sistema → modal na 1ª vez → Confirmar (ou “Usar padrão 100 %”).
-- **Corrigir:** tocar no **Aa** (canto da tela ou home) → ajustar → Confirmar.
+- **Configurar:** abrir o sistema (BI em `/`) → modal na 1ª vez → Confirmar (ou “Usar padrão 100 %”).
+- **Corrigir:** tocar no **Aa** na barra do BI, no **Aa** de `/atalhos/` ou no **Aa** do canto da tela → ajustar → Confirmar.
 - **Reset técnico (suporte):** no console do navegador, apagar `agro_display_scale_configured_v1` e recarregar.
 
 ### 11.3 Electron

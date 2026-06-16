@@ -83,7 +83,11 @@
 
   function setFabVisible(show) {
     var fab = ensureFab();
-    if (document.getElementById('home-link-display-scale')) {
+    if (
+      document.getElementById('home-link-display-scale') ||
+      document.getElementById('dash-link-display-scale') ||
+      document.getElementById('dash-link-display-scale-sm')
+    ) {
       fab.setAttribute('hidden', '');
       return;
     }
@@ -266,7 +270,10 @@
   }
 
   function bindTriggers() {
-    document.querySelectorAll('#agro-display-scale-fab, #home-link-display-scale, [data-agro-display-scale-open]').forEach(function (btn) {
+    document
+      .querySelectorAll(
+        '#agro-display-scale-fab, #home-link-display-scale, #dash-link-display-scale, #dash-link-display-scale-sm, [data-agro-display-scale-open]'
+      ).forEach(function (btn) {
       if (btn.__agroScaleBound) return;
       btn.__agroScaleBound = true;
       btn.addEventListener('click', function () {
