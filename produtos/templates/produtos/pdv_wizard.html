@@ -840,49 +840,12 @@
     min-width: 6rem;
     max-width: none;
   }
-  /* Pop-up 50% (taxa e detalhes) · 70% retirada/entrega — 16:9 em zoom 67–100% */
+  /* Pop-up entrega — largura alinhada ao fluxo de pagamento (max-w-lg) */
   .pdv-modal-panel-50 {
     width: min(50vw, calc(88vh * 16 / 9));
-    max-width: 96vw;
+    max-width: 32rem;
     max-height: min(88vh, calc(96vw * 9 / 16));
     overflow: auto;
-  }
-  .pdv-modal-panel-70 {
-    width: min(70vw, calc(88vh * 16 / 9));
-    max-width: 98vw;
-    max-height: min(88vh, calc(98vw * 9 / 16));
-    overflow: auto;
-    font-size: clamp(1.05rem, 0.5vw + 0.95rem, 1.4rem);
-  }
-  #modal-pdv-retirada-entrega .pdv-re-etapa {
-    font-size: 0.72em;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-  }
-  #modal-pdv-retirada-entrega .pdv-re-titulo {
-    font-size: 1.55em;
-    font-weight: 900;
-    line-height: 1.15;
-  }
-  #modal-pdv-retirada-entrega .pdv-re-opcao-titulo {
-    font-size: 1.08em;
-    font-weight: 900;
-    line-height: 1.25;
-  }
-  #modal-pdv-retirada-entrega .pdv-re-opcao-sub {
-    font-size: 0.82em;
-    font-weight: 600;
-    line-height: 1.35;
-    margin-top: 0.2em;
-  }
-  #modal-pdv-retirada-entrega .pdv-re-opcao kbd {
-    font-size: 0.62em;
-    padding: 0.12em 0.35em;
-  }
-  #modal-pdv-retirada-entrega .pdv-wiz-choice {
-    min-height: 4.5rem;
-    padding: 1rem 1.15rem;
   }
   .pdv-step-entrega-shell {
     container-type: inline-size;
@@ -1819,37 +1782,18 @@
   </div>
 </div>
 
-<div id="modal-pdv-retirada-entrega" class="fixed inset-0 z-[126] hidden items-center justify-center bg-slate-950/60 p-2 backdrop-blur-sm sm:p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-re-titulo">
-  <div class="pdv-modal-panel-70 overflow-hidden rounded-[1.35rem] border-[3px] border-orange-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
-    <div class="border-b border-orange-100 bg-gradient-to-r from-orange-600 to-amber-600 px-6 py-5 sm:px-8 sm:py-6">
-      <p class="pdv-re-etapa text-white/90">Etapa 2 · Entrega</p>
-      <h2 id="pdv-re-titulo" class="pdv-re-titulo mt-2 text-white">Retirada ou entrega?</h2>
+<div id="modal-pdv-entrega-detalhes" class="fixed inset-0 z-[126] hidden items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-ed-titulo">
+  <div class="w-full max-w-lg overflow-hidden rounded-[1.35rem] border-[3px] border-amber-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
+    <div class="border-b border-amber-100 bg-gradient-to-r from-amber-600 to-orange-600 px-5 py-5 sm:px-6 sm:py-6">
+      <p id="pdv-ed-etapa" class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Entrega</p>
+      <h2 id="pdv-ed-titulo" class="mt-2 text-xl font-black leading-tight text-white sm:text-2xl">Retirada ou entrega?</h2>
+      <p id="pdv-ed-subtitulo" class="mt-2 text-sm font-semibold text-white/90">Escolha uma opção para continuar.</p>
     </div>
-    <div class="grid gap-3 p-5 sm:gap-4 sm:p-7">
-      <button type="button" id="pdv-re-retirada" class="pdv-wiz-choice pdv-wiz-choice--green w-full text-left">
-        <span class="min-w-0">
-          <span class="pdv-re-opcao-titulo block text-emerald-950">Retirada na loja <kbd class="pointer-events-none ml-1 rounded border border-emerald-500/80 bg-white font-mono text-emerald-900">1</kbd></span>
-          <span class="pdv-re-opcao-sub block text-emerald-900/80">Vai direto ao pagamento.</span>
-        </span>
-      </button>
-      <button type="button" id="pdv-re-entrega" class="pdv-wiz-choice pdv-wiz-choice--orange w-full text-left">
-        <span class="min-w-0">
-          <span class="pdv-re-opcao-titulo block text-orange-950">Entrega <kbd class="pointer-events-none ml-1 rounded border border-orange-500/80 bg-white font-mono text-orange-900">2</kbd></span>
-          <span class="pdv-re-opcao-sub block text-orange-900/85">Preenche endereço e detalhes da entrega.</span>
-        </span>
-      </button>
+    <div id="pdv-ed-modo-panel" class="flex flex-col gap-3 px-4 py-5 sm:px-6 sm:py-6">
+      <button type="button" id="pdv-ed-retirada" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-emerald-300 bg-emerald-50 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-emerald-950 shadow-md hover:bg-emerald-100 sm:min-h-[4rem] sm:text-lg">Retirada na loja</button>
+      <button type="button" id="pdv-ed-entrega" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-orange-400 bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-4 text-left text-base font-black uppercase tracking-wide text-white shadow-lg hover:brightness-105 sm:min-h-[4rem] sm:text-lg">Entrega</button>
     </div>
-  </div>
-</div>
-
-<div id="modal-pdv-entrega-detalhes" class="fixed inset-0 z-[126] hidden items-center justify-center bg-slate-950/60 p-2 backdrop-blur-sm sm:p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-ed-titulo">
-  <div class="pdv-modal-panel-50 overflow-hidden rounded-[1.35rem] border-[3px] border-amber-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
-    <div class="border-b border-amber-100 bg-gradient-to-r from-amber-600 to-orange-600 px-5 py-4 sm:px-6 sm:py-5">
-      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Entrega</p>
-      <h2 id="pdv-ed-titulo" class="mt-1 text-[clamp(1.1rem,0.5vw+1rem,1.5rem)] font-black leading-tight text-white">Taxa, horário e troco</h2>
-      <p class="mt-1 text-xs font-semibold text-white/90">Confirme para seguir com o endereço.</p>
-    </div>
-    <div class="max-h-[min(60vh,28rem)] space-y-4 overflow-y-auto p-4 sm:p-5">
+    <div id="pdv-ed-detalhes-panel" class="hidden max-h-[min(60vh,28rem)] space-y-4 overflow-y-auto p-4 sm:p-5">
       <div>
         <p class="mb-2 text-[11px] font-black uppercase tracking-wide text-slate-600">Taxa de entrega</p>
         <div class="space-y-2">
@@ -1886,7 +1830,7 @@
         </label>
       </div>
     </div>
-    <div class="border-t border-slate-100 bg-slate-50 px-4 py-3 sm:px-5">
+    <div id="pdv-ed-confirmar-wrap" class="hidden border-t border-slate-100 bg-slate-50 px-4 py-3 sm:px-5">
       <button type="button" id="pdv-ed-confirmar" class="pdv-action-btn w-full rounded-xl bg-emerald-600 py-3 text-sm font-black uppercase text-white shadow-lg hover:bg-emerald-700">Confirmar</button>
     </div>
   </div>

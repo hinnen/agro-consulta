@@ -1919,33 +1919,28 @@
                 dom.btnNext.classList.remove('opacity-40');
                 if (!modoRe) {
                     dom.btnNext.innerHTML = 'Retirada ou entrega' + kbdF7;
-                    dom.btnNext.disabled = true;
-                    dom.btnNext.classList.add('opacity-40');
-                    dom.btnNext.title = 'Use o pop-up ao entrar nesta etapa.';
+                    dom.btnNext.disabled = false;
+                    dom.btnNext.title = 'Abre o pop-up da etapa · F7';
                 } else if (modoRe === 'entrega' && !(state.entrega && state.entrega.detalhesEntregaRespondidos)) {
                     dom.btnNext.innerHTML = 'Taxa e detalhes' + kbdF7;
                     dom.btnNext.disabled = false;
                     dom.btnNext.title = 'Abre o pop-up de taxa, horário e troco · F7';
-                } else if (!lp) {
-                    dom.btnNext.innerHTML = 'Pagamento na entrega ou loja' + kbdF7;
+                } else if (!entregaFluxoPagamentoCompleto(state)) {
+                    dom.btnNext.innerHTML = !lp
+                        ? 'Pagamento na entrega ou loja' + kbdF7
+                        : 'Dinheiro ou cartão' + kbdF7;
                     dom.btnNext.disabled = false;
-                    dom.btnNext.title = 'Abre o pop-up de pagamento na entrega ou na loja · F7';
+                    dom.btnNext.title = 'Abre o próximo pop-up da entrega · F7';
                 } else if (lp === 'loja') {
                     dom.btnNext.innerHTML = 'Ir para pagamento' + kbdF7;
                     dom.btnNext.disabled = !endOk;
                     if (!endOk) dom.btnNext.classList.add('opacity-40');
                     dom.btnNext.title = 'Imprime as vias e abre a etapa Pagamento · F7';
                 } else if (lp === 'entrega') {
-                    if (!meio) {
-                        dom.btnNext.innerHTML = 'Dinheiro ou cartão' + kbdF7;
-                        dom.btnNext.disabled = false;
-                        dom.btnNext.title = 'Abre o pop-up dinheiro ou cartão na entrega · F7';
-                    } else {
-                        dom.btnNext.innerHTML = 'Enviar entrega' + kbdF7;
-                        dom.btnNext.disabled = !endOk;
-                        if (!endOk) dom.btnNext.classList.add('opacity-40');
-                        dom.btnNext.title = 'Imprime, registra no painel Entregas e reinicia o PDV · F7';
-                    }
+                    dom.btnNext.innerHTML = 'Enviar entrega' + kbdF7;
+                    dom.btnNext.disabled = !endOk;
+                    if (!endOk) dom.btnNext.classList.add('opacity-40');
+                    dom.btnNext.title = 'Imprime, registra no painel Entregas e reinicia o PDV · F7';
                 } else {
                     dom.btnNext.innerHTML = nextLabel + kbdF7;
                     dom.btnNext.disabled = false;
@@ -2757,7 +2752,7 @@
         var state = State.getState();
         var computed = State.getComputed();
         if (!String((state.entrega && state.entrega.modoRetiradaEntrega) || '').trim()) {
-            openRetiradaEntregaModal();
+            openEntregaDetalhesModal();
             return;
         }
         if (
@@ -3368,6 +3363,68 @@
         entregaPendingAfterSaveCliente = null;
     }
 
+    function entregaFluxoPagamentoCompleto(state) {
+        state = state || State.getState();
+        var e = state.entrega || {};
+        if (String(e.modoRetiradaEntrega || '') !== 'entrega') return false;
+        if (!e.detalhesEntregaRespondidos) return false;
+        var lp = String(e.localPagamento || '').trim();
+        if (!lp) return false;
+        if (lp === 'loja') return true;
+        return lp === 'entrega' && !!String(e.meioNaEntrega || '').trim();
+    }
+
+    function syncEntregaDetalhesModalUi() {
+        var st = State.getState();
+        var e = st.entrega || {};
+        var modo = String(e.modoRetiradaEntrega || '');
+        var modoPanel = document.getElementById('pdv-ed-modo-panel');
+        var detPanel = document.getElementById('pdv-ed-detalhes-panel');
+        var confirmWrap = document.getElementById('pdv-ed-confirmar-wrap');
+        var titulo = document.getElementById('pdv-ed-titulo');
+        var subtitulo = document.getElementById('pdv-ed-subtitulo');
+        var etapa = document.getElementById('pdv-ed-etapa');
+        var escolherModo = !modo;
+        var mostrarDetalhes = modo === 'entrega' && !e.detalhesEntregaRespondidos;
+        if (modoPanel) modoPanel.classList.toggle('hidden', !escolherModo);
+        if (detPanel) detPanel.classList.toggle('hidden', !mostrarDetalhes);
+        if (confirmWrap) confirmWrap.classList.toggle('hidden', !mostrarDetalhes);
+        if (titulo) {
+            titulo.textContent = escolherModo
+                ? 'Retirada ou entrega?'
+                : 'Taxa, horário e troco';
+        }
+        if (subtitulo) {
+            subtitulo.textContent = escolherModo
+                ? 'Escolha uma opção para continuar.'
+                : 'Confirme para seguir com o endereço.';
+        }
+        if (etapa) {
+            etapa.textContent = escolherModo ? 'Etapa 2 · Entrega' : 'Entrega';
+        }
+    }
+
+    function focarPrimeiroCampoEnderecoEntrega() {
+        var alvo =
+            (dom.entregaLogradouro && !String(dom.entregaLogradouro.value || '').trim() && dom.entregaLogradouro) ||
+            (dom.entregaBairro && !String(dom.entregaBairro.value || '').trim() && dom.entregaBairro) ||
+            dom.entregaLogradouro ||
+            dom.entregaClienteNome;
+        if (!alvo) return;
+        setTimeout(function () {
+            try {
+                alvo.focus();
+            } catch (errF) {}
+        }, 120);
+    }
+
+    function aposConcluirFluxoPagamentoEntrega() {
+        if (!entregaFluxoPagamentoCompleto()) return;
+        if (!enderecoEntregaMinimoOkParaUi(State.getState())) {
+            focarPrimeiroCampoEnderecoEntrega();
+        }
+    }
+
     function abrirFluxoPagamentoEntregaSePendente() {
         var st = State.getState();
         var e = st.entrega || {};
@@ -3785,7 +3842,7 @@
                 var st2 = State.getState();
                 if (st2.currentStep !== 'entrega') return;
                 if (!String(st2.entrega.modoRetiradaEntrega || '').trim()) {
-                    openRetiradaEntregaModal();
+                    openEntregaDetalhesModal();
                     return;
                 }
                 if (st2.entrega.modoRetiradaEntrega === 'entrega' && !st2.entrega.detalhesEntregaRespondidos) {
@@ -3879,7 +3936,6 @@
     }
 
     function pdvTryRemoveModalOpenBody() {
-        var mdRe = document.getElementById('modal-pdv-retirada-entrega');
         var mdEd = document.getElementById('modal-pdv-entrega-detalhes');
         var mdEsc = document.getElementById('modal-pdv-entrega-salvar-cliente');
         var md1 = document.getElementById('modal-pdv-entrega-fluxo-1');
@@ -3887,7 +3943,6 @@
         var md3 = document.getElementById('modal-pdv-entrega-fluxo-3-troco');
         var mei = document.getElementById('modal-pdv-entrega-impressao');
         var meiOpen = mei && !mei.classList.contains('hidden');
-        var reOpen = mdRe && !mdRe.classList.contains('hidden');
         var edOpen = mdEd && !mdEd.classList.contains('hidden');
         var escOpen = mdEsc && !mdEsc.classList.contains('hidden');
         var f1 = md1 && !md1.classList.contains('hidden');
@@ -3898,34 +3953,26 @@
         var cadOpen =
             dom.wizardCliRapidoModal && !dom.wizardCliRapidoModal.classList.contains('hidden');
         try {
-            if (!reOpen && !edOpen && !escOpen && !f1 && !f2 && !f3 && !meiOpen && !cliOpen && !startOpen && !cadOpen) {
+            if (!edOpen && !escOpen && !f1 && !f2 && !f3 && !meiOpen && !cliOpen && !startOpen && !cadOpen) {
                 document.body.classList.remove('modal-open');
             }
         } catch (eM2) {}
     }
 
     function isRetiradaEntregaModalOpen() {
-        var r = document.getElementById('modal-pdv-retirada-entrega');
-        return !!(r && !r.classList.contains('hidden'));
+        if (!isEntregaDetalhesModalOpen()) return false;
+        var modoPanel = document.getElementById('pdv-ed-modo-panel');
+        return !!(modoPanel && !modoPanel.classList.contains('hidden'));
     }
     function isEntregaDetalhesModalOpen() {
         var r = document.getElementById('modal-pdv-entrega-detalhes');
         return !!(r && !r.classList.contains('hidden'));
     }
     function closeRetiradaEntregaModal() {
-        var root = document.getElementById('modal-pdv-retirada-entrega');
-        if (root) {
-            root.classList.add('hidden');
-            root.classList.remove('flex');
-        }
-        pdvTryRemoveModalOpenBody();
+        closeEntregaDetalhesModal();
     }
     function openRetiradaEntregaModal() {
-        var root = document.getElementById('modal-pdv-retirada-entrega');
-        if (!root) return;
-        root.classList.remove('hidden');
-        root.classList.add('flex');
-        pdvEnsureModalOpenBody();
+        openEntregaDetalhesModal();
     }
     function closeEntregaDetalhesModal() {
         var root = document.getElementById('modal-pdv-entrega-detalhes');
@@ -3942,6 +3989,7 @@
         var edTro = document.getElementById('pdv-ed-troco');
         setInputValue(edHor, (st.entrega && st.entrega.horario) || '');
         setInputValue(edTro, (st.entrega && st.entrega.troco) || '');
+        syncEntregaDetalhesModalUi();
         var root = document.getElementById('modal-pdv-entrega-detalhes');
         if (!root) return;
         root.classList.remove('hidden');
@@ -3987,11 +4035,11 @@
             return;
         }
         State.setEntregaPatch({ modoRetiradaEntrega: 'entrega', ativa: true });
-        closeRetiradaEntregaModal();
+        syncEntregaDetalhesModalUi();
+        renderEntregaTaxaCard(State.getState());
         var stEnt = State.getState().entrega || {};
-        if (!stEnt.detalhesEntregaRespondidos) {
-            openEntregaDetalhesModal();
-        } else if (!String(stEnt.localPagamento || '').trim()) {
+        if (stEnt.detalhesEntregaRespondidos && !String(stEnt.localPagamento || '').trim()) {
+            closeEntregaDetalhesModal();
             setTimeout(function () {
                 if (State.getState().currentStep === 'entrega') openEntregaFluxoModal1();
             }, 80);
@@ -7140,16 +7188,10 @@
             });
         }
 
-        var btnReRetirada = document.getElementById('pdv-re-retirada');
-        if (btnReRetirada) btnReRetirada.addEventListener('click', function () { escolherRetiradaEntrega('retirada'); });
-        var btnReEntrega = document.getElementById('pdv-re-entrega');
-        if (btnReEntrega) btnReEntrega.addEventListener('click', function () { escolherRetiradaEntrega('entrega'); });
-        var mdRe = document.getElementById('modal-pdv-retirada-entrega');
-        if (mdRe) {
-            mdRe.addEventListener('click', function (ev) {
-                if (ev.target === mdRe) closeRetiradaEntregaModal();
-            });
-        }
+        var btnEdRetirada = document.getElementById('pdv-ed-retirada');
+        if (btnEdRetirada) btnEdRetirada.addEventListener('click', function () { escolherRetiradaEntrega('retirada'); });
+        var btnEdEntrega = document.getElementById('pdv-ed-entrega');
+        if (btnEdEntrega) btnEdEntrega.addEventListener('click', function () { escolherRetiradaEntrega('entrega'); });
         var btnEdOk = document.getElementById('pdv-ed-confirmar');
         if (btnEdOk) btnEdOk.addEventListener('click', confirmarEntregaDetalhesModal);
         var mdEd = document.getElementById('modal-pdv-entrega-detalhes');
@@ -7598,6 +7640,7 @@
                 State.setEntregaPatch({ localPagamento: 'loja', meioNaEntrega: '' });
                 State.setEntregaField('maquininha', '');
                 closeEntregaFluxoModal1();
+                aposConcluirFluxoPagamentoEntrega();
             });
         }
         var btnEf2Din = document.getElementById('pdv-ef2-dinheiro');
@@ -7613,6 +7656,7 @@
                 State.setEntregaPatch({ localPagamento: 'entrega', meioNaEntrega: 'cartao' });
                 State.setEntregaField('maquininha', 'sim');
                 closeEntregaFluxoModal2();
+                aposConcluirFluxoPagamentoEntrega();
             });
         }
         var btnEf3Ok = document.getElementById('pdv-ef3-ok');
@@ -7626,7 +7670,9 @@
                 }
                 State.setEntregaPatch({ localPagamento: 'entrega', meioNaEntrega: 'dinheiro', troco: val });
                 State.setEntregaField('maquininha', 'nao');
+                if (dom.entregaTroco) dom.entregaTroco.value = val;
                 closeEntregaFluxoModal3();
+                aposConcluirFluxoPagamentoEntrega();
             });
         }
         var btnEf3Can = document.getElementById('pdv-ef3-cancelar');
@@ -7669,18 +7715,29 @@
                 }
                 if (isEntregaDetalhesModalOpen()) {
                     event.preventDefault();
+                    var detPanel = document.getElementById('pdv-ed-detalhes-panel');
+                    var inDetalhes = detPanel && !detPanel.classList.contains('hidden');
+                    if (inDetalhes) {
+                        State.setEntregaPatch({
+                            modoRetiradaEntrega: 'entrega',
+                            detalhesEntregaRespondidos: false,
+                            localPagamento: '',
+                            meioNaEntrega: ''
+                        });
+                        syncEntregaDetalhesModalUi();
+                        return;
+                    }
                     closeEntregaDetalhesModal();
                     State.setEntregaPatch({
                         modoRetiradaEntrega: '',
                         ativa: false,
                         detalhesEntregaRespondidos: false
                     });
-                    openRetiradaEntregaModal();
                     return;
                 }
                 if (isRetiradaEntregaModalOpen()) {
                     event.preventDefault();
-                    closeRetiradaEntregaModal();
+                    closeEntregaDetalhesModal();
                     State.setCurrentStep('produtos');
                     return;
                 }
