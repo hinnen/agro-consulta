@@ -9341,6 +9341,13 @@ def produtos_gestao_view(request):
     )
 
 
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def produtos_etiquetas_view(request):
+    """Impressão de etiquetas de preço (4×4 cm, térmica) a partir do cadastro de produtos."""
+    return render(request, "produtos/produtos_etiquetas.html")
+
+
 def _lancamentos_parse_date_param(s):
     if not s or not str(s).strip():
         return None

@@ -61,6 +61,70 @@ ipcMain.handle('agro-open-external', async (_event, url) => {
   }
 });
 
+ipcMain.handle('agro-list-printers', async (event) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return { ok: false, printers: [] };
+    const printers = await win.webContents.getPrintersAsync();
+    return {
+      ok: true,
+      printers: printers.map((p) => ({
+        name: p.name,
+        isDefault: Boolean(p.isDefault),
+        status: p.status,
+      })),
+    };
+  } catch (e) {
+    return { ok: false, printers: [], reason: String(e && e.message) };
+  }
+});
+
+ipcMain.handle('agro-silent-print', async (_event, payload) => {
+  const html = String(payload?.html || '');
+  const deviceName = String(payload?.deviceName || '').trim();
+  const waitMs = Math.min(Math.max(Number(payload?.waitMs) || 450, 100), 8000);
+  if (!html) return { ok: false, reason: 'empty_html' };
+
+  return new Promise((resolve) => {
+    const printWin = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+    });
+
+    const finish = (ok, reason) => {
+      if (!printWin.isDestroyed()) printWin.destroy();
+      resolve({ ok, reason: reason || null });
+    };
+
+    printWin.webContents.on('did-fail-load', (_e, code, desc) => {
+      finish(false, `${code}: ${desc}`);
+    });
+
+    printWin.webContents.on('did-finish-load', () => {
+      setTimeout(() => {
+        printWin.webContents.print(
+          {
+            silent: true,
+            printBackground: true,
+            deviceName: deviceName || undefined,
+            margins: { marginType: 'none' },
+          },
+          (success, failureReason) => {
+            finish(success, failureReason);
+          }
+        );
+      }, waitMs);
+    });
+
+    printWin
+      .loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+      .catch((e) => finish(false, String(e && e.message)));
+  });
+});
+
 app.whenReady().then(() => {
   createWindow();
 
