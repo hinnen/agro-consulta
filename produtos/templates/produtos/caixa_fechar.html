@@ -241,12 +241,12 @@
       text-transform: uppercase;
       letter-spacing: 0.08em;
       line-height: 1.1;
-      color: #b91c1c;
+      color: #334155;
       text-align: center;
     }
     .cf-conf-col--esperado {
       background: #ecfdf5;
-      border-right: 3px solid #dc2626;
+      border-right: 2px solid #94a3b8;
       padding: 0.7rem 0.9rem;
       display: flex;
       flex-wrap: wrap;
@@ -257,7 +257,7 @@
     }
     .cf-conf-col--contado {
       background: #eff6ff;
-      border-right: 3px solid #dc2626;
+      border-right: 2px solid #94a3b8;
       padding: 0.7rem 0.9rem;
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -398,7 +398,7 @@
       display: grid;
       width: 100%;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      grid-auto-rows: minmax(6.5rem, auto);
+      grid-auto-rows: minmax(10.5rem, auto);
       gap: 0.5rem;
       flex: 0 1 auto;
       min-height: 0;
@@ -412,14 +412,15 @@
     @container (min-width: 56rem) {
       .cf-cedulas-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
     }
+    /* Cartão: faixa da denominação (topo) · quantidade grande (meio) · subtotal (rodapé). */
     .cf-cedula-item {
       width: 100%;
       min-width: 0;
       height: 100%;
-      min-height: 6.5rem;
+      min-height: 10.5rem;
       display: grid;
-      grid-template-columns: 2.55rem minmax(0, 1fr) 1.15rem;
-      grid-template-rows: minmax(3.6rem, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr) 1.35rem;
+      grid-template-rows: auto minmax(4.25rem, 1fr) auto;
       padding: 0;
       border-radius: 0.55rem;
       border: 2px solid #94a3b8;
@@ -429,40 +430,42 @@
       box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08);
     }
     .cf-cedula-denom {
-      grid-row: 1 / -1;
-      grid-column: 1;
+      grid-column: 1 / -1;
+      grid-row: 1;
       display: flex;
       align-items: center;
       justify-content: center;
+      min-height: clamp(2.35rem, 7vh, 3.15rem);
       background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
-      border-right: 2px solid #94a3b8;
-      padding: 0.15rem 0.1rem;
+      border-right: none;
+      border-bottom: 2px solid #94a3b8;
+      padding: 0.2rem 0.35rem;
       min-width: 0;
       overflow: hidden;
     }
     .cf-cedula-denom-stack {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
       justify-content: center;
-      gap: 0.02rem;
+      gap: 0.06rem;
       line-height: 1;
     }
     .cf-cedula-denom-stack span {
       display: block;
-      font-size: clamp(1.15rem, 0.85vw + 0.92rem, 1.55rem);
+      font-size: clamp(1.35rem, 1vw + 1.05rem, 1.95rem);
       font-weight: 900;
       color: #1e293b;
-      line-height: 0.9;
+      line-height: 0.92;
     }
     .cf-cedula-qty-cell {
-      grid-column: 2;
-      grid-row: 1;
+      grid-column: 1;
+      grid-row: 2;
       display: flex;
       align-items: stretch;
       justify-content: stretch;
       min-height: 0;
-      border-bottom: 2px solid #e2e8f0;
+      border-bottom: none;
       border-right: 2px solid #e2e8f0;
       background: #fafafa;
     }
@@ -479,7 +482,8 @@
       font-variant-numeric: tabular-nums;
       text-align: center;
       color: #0f172a;
-      padding: 0.1rem;
+      padding: 0.15rem 0.2rem;
+      font-size: clamp(1.85rem, 3.2vh + 1rem, 3rem);
     }
     .cf-cedula-qty:focus {
       outline: none;
@@ -516,24 +520,25 @@
       border-bottom-color: #fbbf24;
     }
     .cf-cedula-sub-wrap {
-      grid-column: 2 / -1;
-      grid-row: 2;
+      grid-column: 1 / -1;
+      grid-row: 3;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 0.2rem 0.35rem;
-      padding: 0.35rem 0.4rem;
+      padding: 0.4rem 0.45rem;
       background: linear-gradient(180deg, #ecfdf5, #d1fae5);
       border-top: 1px solid #6ee7b7;
-      min-height: clamp(2.35rem, 6.5vh, 3rem);
+      min-height: clamp(2.5rem, 6.5vh, 3.15rem);
     }
     .cf-cedula-sub-prefix {
-      font-size: clamp(0.75rem, 0.38vw + 0.65rem, 0.92rem);
+      font-size: clamp(0.82rem, 0.4vw + 0.72rem, 1rem);
       font-weight: 900;
       color: #047857;
       flex-shrink: 0;
     }
     .cf-cedula-sub {
+      font-size: clamp(1.15rem, 1.1vh + 0.95rem, 1.75rem);
       font-weight: 900;
       font-variant-numeric: tabular-nums;
       color: #065f46;
@@ -959,31 +964,34 @@
     .cf-cedulas-modal .cf-cedula-item {
       min-height: 0;
       height: 100%;
-      grid-template-columns: clamp(2.75rem, 4vw, 3.5rem) minmax(0, 1fr) clamp(1.1rem, 1.8vw, 1.45rem);
-      grid-template-rows: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr) clamp(1.15rem, 1.6vw, 1.45rem);
+      grid-template-rows: auto minmax(0, 1fr) auto;
       border-width: 1px;
       border-radius: 0.65rem;
     }
+    .cf-cedulas-modal .cf-cedula-denom {
+      min-height: clamp(2.5rem, 9vh, 3.75rem);
+    }
     .cf-cedulas-modal .cf-cedula-denom-stack span {
-      font-size: clamp(1.2rem, 1.1vw + 0.95rem, 2rem) !important;
-      line-height: 0.88 !important;
+      font-size: clamp(1.45rem, 1.15vw + 1.05rem, 2.15rem) !important;
+      line-height: 0.9 !important;
     }
     .cf-cedulas-modal .cf-cedula-qty {
-      font-size: clamp(1.45rem, 2.2vh + 0.85rem, 2.45rem) !important;
-      min-height: 2.75rem;
+      font-size: clamp(2.1rem, 4.5vh + 1rem, 3.35rem) !important;
+      min-height: 3rem;
     }
     .cf-cedulas-modal .cf-cedula-qty-tag {
       font-size: clamp(0.58rem, 0.35vw + 0.5rem, 0.72rem) !important;
     }
     .cf-cedulas-modal .cf-cedula-sub-wrap {
-      min-height: clamp(2.35rem, 7vh, 3.25rem);
-      padding: 0.4rem 0.45rem;
+      min-height: clamp(2.6rem, 8vh, 3.5rem);
+      padding: 0.45rem 0.5rem;
     }
     .cf-cedulas-modal .cf-cedula-sub-prefix {
-      font-size: clamp(0.82rem, 0.45vw + 0.72rem, 1rem) !important;
+      font-size: clamp(0.9rem, 0.5vw + 0.78rem, 1.08rem) !important;
     }
     .cf-cedulas-modal .cf-cedula-sub {
-      font-size: clamp(1rem, 0.9vh + 0.82rem, 1.45rem) !important;
+      font-size: clamp(1.2rem, 1.2vh + 0.95rem, 1.85rem) !important;
     }
     .cf-cedulas-modal-foot {
       flex-shrink: 0;

@@ -43,6 +43,11 @@
       font-weight: 700;
     }
     /* Lista NF-e (tela principal): menos ruído, metadados alinhados, ações compactas */
+    .entrada-nfe-lista-rasc {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
     .nfe-lista-row {
       display: grid;
       gap: 0.5rem 0.75rem;
@@ -54,16 +59,35 @@
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     }
     @media (min-width: 768px) {
-      .nfe-lista-row {
-        /* Coluna 1: largura ao conteúdo para chips «Nota aberta» / «PIN etapa 6» em uma linha. */
-        grid-template-columns: max-content minmax(0, 1fr) auto;
+      /* Subgrid: chip / conteúdo / ações alinham entre todas as linhas da lista. */
+      .entrada-nfe-lista-rasc {
+        display: grid;
+        grid-template-columns: 6.85rem minmax(0, 1fr) 13.25rem;
+        column-gap: 0.75rem;
+        row-gap: 0.5rem;
         align-items: center;
+      }
+      .entrada-nfe-lista-rasc > .nfe-lista-row {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: subgrid;
+        align-items: center;
+        gap: 0;
+      }
+      .nfe-lista-row {
+        grid-template-columns: unset;
       }
     }
     .nfe-lista-chip-col {
+      width: 100%;
+      max-width: 6.85rem;
       min-width: 0;
-      width: max-content;
-      max-width: min(100%, 12rem);
+      align-self: start;
+    }
+    @media (min-width: 768px) {
+      .nfe-lista-chip-col {
+        align-self: center;
+      }
     }
     .nfe-lista-chip-fila {
       white-space: nowrap;
@@ -80,33 +104,21 @@
       line-height: 1.25;
       letter-spacing: -0.02em;
     }
-    /* Metadados: 6 colunas na mesma linha, repartem a largura útil do cartão. */
+    /* Metadados: larguras fixas iguais em todas as linhas (alinhamento vertical). */
     .nfe-lista-meta {
       display: grid;
-      grid-template-columns:
-        minmax(3.25rem, 1.15fr)
-        minmax(2.75rem, 0.75fr)
-        minmax(5.75rem, 1.15fr)
-        minmax(2.25rem, 0.45fr)
-        minmax(6.25rem, 1fr)
-        minmax(6.25rem, 1fr);
-      column-gap: clamp(0.35rem, 1.2vw, 0.85rem);
+      grid-template-columns: 5rem 3.25rem 7.25rem 2.75rem 8.25rem 8.25rem;
+      column-gap: 0.5rem;
       row-gap: 0.15rem;
       margin-top: 0.3rem;
       align-items: start;
-      width: 100%;
+      width: max-content;
       max-width: 100%;
     }
-    @media (max-width: 900px) {
+    @media (max-width: 1100px) {
       .nfe-lista-meta {
-        grid-template-columns:
-          minmax(3rem, 1fr)
-          minmax(2.5rem, 0.7fr)
-          minmax(5.25rem, 1fr)
-          minmax(2rem, 0.4fr)
-          minmax(5.5rem, 1fr)
-          minmax(5.5rem, 1fr);
-        column-gap: 0.35rem;
+        grid-template-columns: 4.5rem 3rem 6.75rem 2.5rem 7.5rem 7.5rem;
+        column-gap: 0.4rem;
       }
     }
     @media (max-width: 767px) {
@@ -176,6 +188,13 @@
       gap: 0.3rem;
       justify-content: flex-end;
       align-items: center;
+      width: 100%;
+    }
+    @media (min-width: 768px) {
+      .nfe-lista-actions {
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+      }
     }
     .nfe-lista-act {
       min-height: 2.5rem;
@@ -946,7 +965,7 @@
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="encerrada" title="Entradas antigas marcadas como encerradas (antes do fluxo só estoque + financeiro).">Encerr. legado</button>
         <button type="button" class="filtro-nfe-chip min-h-[32px] px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-black uppercase" data-filtro="descartada" title="Marcada como descartada.">Descartada</button>
       </div>
-      <div id="lista-rasc" class="flex-1 min-h-0 overflow-y-auto p-2 sm:p-3 space-y-2 text-sm font-semibold text-slate-700 bg-slate-50/30" role="status" aria-live="polite"></div>
+      <div id="lista-rasc" class="entrada-nfe-lista-rasc flex-1 min-h-0 overflow-y-auto p-2 sm:p-3 text-sm font-semibold text-slate-700 bg-slate-50/30" role="status" aria-live="polite"></div>
     </section>
   </main>
 
