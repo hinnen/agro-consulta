@@ -102,6 +102,21 @@ urlpatterns = [
     ),
     path('produtos/gestao/', views.produtos_gestao_view, name='produtos_gestao'),
     path('produtos/etiquetas/', views.produtos_etiquetas_view, name='produtos_etiquetas'),
+    path(
+        'api/produtos/etiquetas/historico/',
+        views.api_etiquetas_historico_lista,
+        name='api_etiquetas_historico_lista',
+    ),
+    path(
+        'api/produtos/etiquetas/historico/salvar/',
+        views.api_etiquetas_historico_salvar,
+        name='api_etiquetas_historico_salvar',
+    ),
+    path(
+        'api/produtos/etiquetas/historico/<int:pk>/',
+        views.api_etiquetas_historico_detalhe,
+        name='api_etiquetas_historico_detalhe',
+    ),
     path('relatorios/', views.relatorios_hub, name='relatorios_hub'),
     path('relatorios/validade/', views.relatorios_validade, name='relatorios_validade'),
     path(

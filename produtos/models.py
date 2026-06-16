@@ -1214,3 +1214,29 @@ class PromocaoProdutoAgro(models.Model):
 
     def __str__(self):
         return f"{self.codigo or self.produto_externo_id} · {self.nome_produto[:40]}"
+
+
+class EtiquetaImpressaoHistoricoAgro(models.Model):
+    """Registro de jobs de impressão de etiquetas de preço (reimpressão e auditoria)."""
+
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    usuario = models.CharField(max_length=150, blank=True, default="")
+    origem = models.CharField(max_length=32, blank=True, default="fila")
+    preset_id = models.CharField(max_length=64, blank=True, default="")
+    preset_nome = models.CharField(max_length=120, blank=True, default="")
+    texto_rodape = models.CharField(max_length=120, blank=True, default="")
+    total_etiquetas = models.PositiveIntegerField(default=0)
+    qtd_linhas = models.PositiveSmallIntegerField(default=0)
+    resumo_nomes = models.CharField(max_length=400, blank=True, default="")
+    itens_json = models.JSONField(default=list)
+
+    class Meta:
+        verbose_name = "Histórico impressão etiqueta"
+        verbose_name_plural = "Históricos impressão etiquetas"
+        ordering = ["-criado_em"]
+        indexes = [
+            models.Index(fields=["-criado_em"], name="etq_hist_criado_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.criado_em:%d/%m/%Y %H:%M} · {self.total_etiquetas} etq."
