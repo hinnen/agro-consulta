@@ -4306,10 +4306,14 @@ function carregarBaseLocal() {
     const warmed = hidratarCatalogoPdvDoCache();
     if (manual) {
         if (warmed) {
-            mostrarStatusBusca('Catálogo em cache (sem sync automático). Use o botão «Estoque» no topo.', 'emerald');
-            setTimeout(esconderStatusBusca, 4200);
+            sincronizarCatalogoPdvServidor(true).catch(function (err) {
+                if (typeof console !== 'undefined' && console.error) console.error(err);
+            });
         } else {
-            mostrarStatusBusca('Sem cache de produtos. Clique em «Estoque» no topo.', 'orange');
+            mostrarStatusBusca('Baixando catálogo…', 'orange');
+            sincronizarCatalogoPdvServidor(false).catch(function (err) {
+                if (typeof console !== 'undefined' && console.error) console.error(err);
+            });
         }
         return;
     }
@@ -4350,6 +4354,17 @@ function salvarCacheCatalogoPdv(payload) {
         );
     } catch (_) {}
 }
+
+/** Outra aba (cadastro) atualizou o cache — reaplica na memória sem nova rede. */
+window.addEventListener('storage', function (ev) {
+    if (ev.key !== PDV_CACHE_KEY || !ev.newValue || !baseProdutos.length) return;
+    try {
+        const parsed = JSON.parse(ev.newValue);
+        if (!parsed || !Array.isArray(parsed.produtos) || !parsed.produtos.length) return;
+        aplicarBasePdv(parsed.produtos);
+        if (typeof pdvRapidoRefreshListaSeAtivo === 'function') pdvRapidoRefreshListaSeAtivo();
+    } catch (_) {}
+});
 
 function lerCacheCatalogoPdv() {
     try {
