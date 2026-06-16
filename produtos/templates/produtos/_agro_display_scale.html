@@ -31,38 +31,6 @@
   body.agro-scale-modal-open {
     overflow: hidden !important;
   }
-  /* Zoom abaixo de 100% encolhe tudo mas deixa faixa vazia — expandir layout na mesma proporção */
-  html[data-agro-scale] body.dash-bi-viewport {
-    min-height: calc(100dvh / var(--agro-display-scale, 1));
-    height: calc(100dvh / var(--agro-display-scale, 1));
-    max-height: none;
-  }
-  html[data-agro-scale] body.dash-bi-viewport .main-container {
-    min-height: calc(100dvh / var(--agro-display-scale, 1));
-    height: calc(100dvh / var(--agro-display-scale, 1));
-    max-height: none;
-  }
-  html[data-agro-scale] body.dash-bi-viewport {
-    --dash-chart-h: clamp(220px, calc(32vh / var(--agro-display-scale, 1)), 480px);
-  }
-  html[data-agro-scale] body.dash-bi-viewport #dashboard-body {
-    flex: 1 1 0;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-  }
-  html[data-agro-scale] body.dash-bi-viewport #dashboard-body > .grid:nth-of-type(2) {
-    flex: 1 1 auto;
-    min-height: calc(22vh / var(--agro-display-scale, 1));
-  }
-  html[data-agro-scale] body.dash-bi-viewport #dashboard-body > .grid:nth-of-type(2) .dash-chart-host {
-    min-height: calc(26vh / var(--agro-display-scale, 1));
-    height: 100%;
-  }
-  html[data-agro-scale] body.dash-bi-viewport #dashboard-body .dash-chart-host--gastos {
-    height: clamp(260px, calc(38vh / var(--agro-display-scale, 1)), 520px);
-    min-height: clamp(260px, calc(38vh / var(--agro-display-scale, 1)), 520px);
-  }
   .agro-scale-overlay {
     position: fixed;
     inset: 0;

@@ -165,8 +165,10 @@
     var tr = topbar.getBoundingClientRect();
     if (tr.height > 78) return true;
 
-    var periods = topbar.querySelector('.dash-topbar-periods');
-    var sync = topbar.querySelector('.dash-topbar-sync');
+    var firstPeriod = topbar.querySelector('.period-btn');
+    var periods = firstPeriod ? firstPeriod.parentElement : null;
+    var syncBtn = topbar.querySelector('#btn-sync-dashboard');
+    var sync = syncBtn ? syncBtn.parentElement : null;
     if (periods && sync && isVisible(periods) && isVisible(sync)) {
       var pr = periods.getBoundingClientRect();
       var sr = sync.getBoundingClientRect();
