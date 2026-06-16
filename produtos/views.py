@@ -8955,6 +8955,8 @@ def caixa_fechar(request):
         rasc = {}
     raw_ced = request.session.get(CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY) or {}
     cedulas_rasc = raw_ced if isinstance(raw_ced, dict) else {}
+    fiado_vendas_wizard = listar_fiado_vendas_conferencia_caixa(sessoes)
+    fiado_baixas_wizard = listar_fiado_baixas_conferencia_caixa(sessoes)
     fiado_vendas_conferencia, fiado_baixas_conferencia = fiado_conferencia_operacional(
         listar_fiado_vendas_conferencia_caixa(sessoes_operacional),
         listar_fiado_baixas_conferencia_caixa(sessoes_operacional),
@@ -8981,6 +8983,8 @@ def caixa_fechar(request):
             "rascunho_json": json.dumps(rasc, ensure_ascii=False),
             "cedulas_json": json.dumps(cedulas_rasc, ensure_ascii=False),
             "denominacoes_cedulas": CEDULAS_DENOMINACOES_CAIXA,
+            "fiado_vendas_wizard": fiado_vendas_wizard,
+            "fiado_baixas_wizard": fiado_baixas_wizard,
             "fiado_vendas_conferencia": fiado_vendas_conferencia,
             "fiado_baixas_conferencia": fiado_baixas_conferencia,
             "api_rascunho_salvar_url": reverse("api_caixa_conferencia_rascunho_salvar"),

@@ -1126,6 +1126,36 @@ def listar_fiado_vendas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
                 "operacional": sessao_caixa_e_operacional(sessao) if sessao else True,
             }
         )
+    titulos = (
+        FiadoTituloAgro.objects.filter(
+            origem=FiadoTituloAgro.Origem.PDV,
+            venda_agro__sessao_caixa_id__in=ids,
+            venda_agro__devolvida_em__isnull=True,
+        )
+        .select_related("venda_agro", "venda_agro__sessao_caixa")
+        .order_by("criado_em", "pk")
+    )
+    for titulo in titulos:
+        venda = titulo.venda_agro
+        if not venda or venda.pk in vistos:
+            continue
+        valor = valor_fiado_venda_local(venda)
+        if valor <= 0:
+            valor = _dec(titulo.valor_bruto)
+        if valor <= 0:
+            continue
+        vistos.add(venda.pk)
+        sessao = getattr(venda, "sessao_caixa", None)
+        nome = (titulo.cliente_nome or venda.cliente_nome or "Cliente").strip() or "Cliente"
+        out.append(
+            {
+                "id": venda.pk,
+                "cliente_nome": nome,
+                "valor": str(valor.quantize(Decimal("0.01"))),
+                "sessao_label": rotulo_sessao_caixa(sessao) if sessao else "—",
+                "operacional": sessao_caixa_e_operacional(sessao) if sessao else True,
+            }
+        )
     return out
 
 

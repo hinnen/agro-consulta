@@ -656,7 +656,7 @@
       position: fixed; inset: 0; z-index: 120; display: flex; align-items: center; justify-content: center;
       padding: 2vh 4vw; background: rgba(15, 23, 42, 0.55);
     }
-    .cf-fiado-wizard { z-index: 125; }
+    .cf-fiado-wizard { z-index: 20040; }
     .cf-modal-overlay.hidden { display: none !important; }
     .cf-modal-panel {
       width: min(92vw, 80rem); height: min(88dvh, 92vh);
@@ -888,68 +888,6 @@
           {% endif %}
         </div>
 
-        {% if fiado_vendas_conferencia %}
-        <div id="cf-fiado-modal-vendas" class="cf-modal-overlay cf-fiado-wizard hidden" role="dialog" aria-modal="true" aria-labelledby="cf-fiado-vendas-title">
-          <div class="cf-modal-panel cf-fiado-wizard-panel">
-            <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-orange-300 px-3 sm:px-4 py-2.5 bg-orange-100">
-              <div class="min-w-0">
-                <p class="cf-t-label text-orange-800">Passo 1 de {% if fiado_baixas_conferencia %}2{% else %}1{% endif %} · Fiado</p>
-                <h3 id="cf-fiado-vendas-title" class="cf-t-section font-black uppercase text-orange-950 leading-snug">Vendas fiado — nota assinada na caixinha</h3>
-              </div>
-            </div>
-            <div class="cf-fiado-wizard-body">
-              <p class="cf-t-body font-bold text-orange-950 mb-3">Confira se cada nota assinada está guardada na caixinha de fiados antes de fechar o caixa.</p>
-              <ul class="space-y-2">
-                {% for item in fiado_vendas_conferencia %}
-                <li>
-                  <label class="cf-fiado-row cursor-pointer">
-                    <input type="checkbox" name="fiado_assinado_{{ item.id }}" value="1" class="cf-fiado-check-assinado shrink-0">
-                    <span class="min-w-0 cf-t-forma text-slate-900 leading-tight">{{ item.cliente_nome }}</span>
-                    <span class="cf-t-money tabular-nums text-orange-800 shrink-0">R$ {{ item.valor }}</span>
-                  </label>
-                </li>
-                {% endfor %}
-              </ul>
-            </div>
-            <div class="cf-fiado-wizard-foot">
-              <button type="button" id="cf-fiado-vendas-pular" class="cf-fiado-wizard-btn cf-fiado-wizard-btn--pular cf-t-label">Pular conferência</button>
-              <button type="button" id="cf-fiado-vendas-confirmar" class="cf-fiado-wizard-btn cf-fiado-wizard-btn--ok cf-t-label">Confirmar</button>
-            </div>
-          </div>
-        </div>
-        {% endif %}
-
-        {% if fiado_baixas_conferencia %}
-        <div id="cf-fiado-modal-baixas" class="cf-modal-overlay cf-fiado-wizard hidden" role="dialog" aria-modal="true" aria-labelledby="cf-fiado-baixas-title">
-          <div class="cf-modal-panel cf-fiado-wizard-panel">
-            <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-orange-300 px-3 sm:px-4 py-2.5 bg-orange-100">
-              <div class="min-w-0">
-                <p class="cf-t-label text-orange-800">Passo {% if fiado_vendas_conferencia %}2{% else %}1{% endif %} de {% if fiado_vendas_conferencia %}2{% else %}1{% endif %} · Fiado</p>
-                <h3 id="cf-fiado-baixas-title" class="cf-t-section font-black uppercase text-orange-950 leading-snug">Pagamentos fiado — nota devolvida ao cliente</h3>
-              </div>
-            </div>
-            <div class="cf-fiado-wizard-body">
-              <p class="cf-t-body font-bold text-orange-950 mb-3">Confira se cada nota assinada foi retirada da caixinha e devolvida ao cliente após o pagamento.</p>
-              <ul class="space-y-2">
-                {% for item in fiado_baixas_conferencia %}
-                <li>
-                  <label class="cf-fiado-row cursor-pointer">
-                    <input type="checkbox" name="fiado_retirado_{{ item.id }}" value="1" class="cf-fiado-check-retirado shrink-0">
-                    <span class="min-w-0 cf-t-forma text-slate-900 leading-tight">{{ item.cliente_nome }}</span>
-                    <span class="cf-t-money tabular-nums text-orange-800 shrink-0">R$ {{ item.valor }}</span>
-                  </label>
-                </li>
-                {% endfor %}
-              </ul>
-            </div>
-            <div class="cf-fiado-wizard-foot">
-              <button type="button" id="cf-fiado-baixas-pular" class="cf-fiado-wizard-btn cf-fiado-wizard-btn--pular cf-t-label">Pular conferência</button>
-              <button type="button" id="cf-fiado-baixas-confirmar" class="cf-fiado-wizard-btn cf-fiado-wizard-btn--ok cf-t-label">Confirmar</button>
-            </div>
-          </div>
-        </div>
-        {% endif %}
-
         <div class="cf-foot">
           <label class="block min-w-0">
             <span class="cf-t-label text-slate-600">Observação (todos os caixas)</span>
@@ -1055,6 +993,72 @@
 
 {% include "produtos/_atalho_voltar_pdv.html" %}
 {% include "produtos/includes/caixa_pin_modal.html" %}
+{% if tem_caixa_operacional and fiado_vendas_wizard %}
+<div id="cf-fiado-modal-vendas" class="cf-modal-overlay cf-fiado-wizard hidden" role="dialog" aria-modal="true" aria-labelledby="cf-fiado-vendas-title">
+  <div class="cf-modal-panel cf-fiado-wizard-panel">
+    <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-orange-300 px-3 sm:px-4 py-2.5 bg-orange-100">
+      <div class="min-w-0">
+        <p class="cf-t-label text-orange-800">Passo 1 de {% if fiado_baixas_wizard %}2{% else %}1{% endif %} · Fiado</p>
+        <h3 id="cf-fiado-vendas-title" class="cf-t-section font-black uppercase text-orange-950 leading-snug">Vendas fiado — nota assinada na caixinha</h3>
+      </div>
+    </div>
+    <div class="cf-fiado-wizard-body">
+      <p class="cf-t-body font-bold text-orange-950 mb-3">Confira se cada nota assinada está guardada na caixinha de fiados antes de fechar o caixa.</p>
+      <ul class="space-y-2">
+        {% for item in fiado_vendas_wizard %}
+        <li>
+          <label class="cf-fiado-row cursor-pointer">
+            <input form="form-fechar-todos" type="checkbox" name="fiado_assinado_{{ item.id }}" value="1" class="cf-fiado-check-assinado shrink-0"{% if item.operacional %} data-fiado-obrig="1"{% endif %}>
+            <span class="min-w-0 cf-t-forma text-slate-900 leading-tight">
+              {{ item.cliente_nome }}
+              {% if not item.operacional %}<span class="block cf-t-meta text-violet-800">{{ item.sessao_label }} · Caixa Teste</span>{% endif %}
+            </span>
+            <span class="cf-t-money tabular-nums text-orange-800 shrink-0">R$ {{ item.valor }}</span>
+          </label>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="cf-fiado-wizard-foot">
+      <button type="button" id="cf-fiado-vendas-pular" class="cf-fiado-wizard-btn cf-fiado-wizard-btn--pular cf-t-label">Pular conferência</button>
+      <button type="button" id="cf-fiado-vendas-confirmar" class="cf-fiado-wizard-btn cf-fiado-wizard-btn--ok cf-t-label">Confirmar</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% if tem_caixa_operacional and fiado_baixas_wizard %}
+<div id="cf-fiado-modal-baixas" class="cf-modal-overlay cf-fiado-wizard hidden" role="dialog" aria-modal="true" aria-labelledby="cf-fiado-baixas-title">
+  <div class="cf-modal-panel cf-fiado-wizard-panel">
+    <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-orange-300 px-3 sm:px-4 py-2.5 bg-orange-100">
+      <div class="min-w-0">
+        <p class="cf-t-label text-orange-800">Passo {% if fiado_vendas_wizard %}2{% else %}1{% endif %} de {% if fiado_vendas_wizard %}2{% else %}1{% endif %} · Fiado</p>
+        <h3 id="cf-fiado-baixas-title" class="cf-t-section font-black uppercase text-orange-950 leading-snug">Pagamentos fiado — nota devolvida ao cliente</h3>
+      </div>
+    </div>
+    <div class="cf-fiado-wizard-body">
+      <p class="cf-t-body font-bold text-orange-950 mb-3">Confira se cada nota assinada foi retirada da caixinha e devolvida ao cliente após o pagamento.</p>
+      <ul class="space-y-2">
+        {% for item in fiado_baixas_wizard %}
+        <li>
+          <label class="cf-fiado-row cursor-pointer">
+            <input form="form-fechar-todos" type="checkbox" name="fiado_retirado_{{ item.id }}" value="1" class="cf-fiado-check-retirado shrink-0"{% if item.operacional %} data-fiado-obrig="1"{% endif %}>
+            <span class="min-w-0 cf-t-forma text-slate-900 leading-tight">
+              {{ item.cliente_nome }}
+              {% if not item.operacional %}<span class="block cf-t-meta text-violet-800">{{ item.sessao_label }} · Caixa Teste</span>{% endif %}
+            </span>
+            <span class="cf-t-money tabular-nums text-orange-800 shrink-0">R$ {{ item.valor }}</span>
+          </label>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="cf-fiado-wizard-foot">
+      <button type="button" id="cf-fiado-baixas-pular" class="cf-fiado-wizard-btn cf-fiado-wizard-btn--pular cf-t-label">Pular conferência</button>
+      <button type="button" id="cf-fiado-baixas-confirmar" class="cf-fiado-wizard-btn cf-fiado-wizard-btn--ok cf-t-label">Confirmar</button>
+    </div>
+  </div>
+</div>
+{% endif %}
 <div id="cf-cedulas-modal" class="cf-modal-overlay cf-cedulas-modal hidden" role="dialog" aria-modal="true" aria-labelledby="cf-cedulas-modal-title">
   <div class="cf-modal-panel cf-cedulas-modal-panel">
     <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200 px-3 sm:px-4 py-2.5 bg-emerald-50">
@@ -1479,7 +1483,7 @@
       el.classList.add('hidden');
     }
     function todosMarcados(sel) {
-      var boxes = form.querySelectorAll(sel);
+      var boxes = document.querySelectorAll(sel);
       if (!boxes.length) return true;
       for (var i = 0; i < boxes.length; i++) {
         if (!boxes[i].checked) return false;
@@ -1531,7 +1535,7 @@
           if (!pin) return;
           if (puladoVendas) puladoVendas.value = '1';
           if (pinVendas) pinVendas.value = pin;
-          form.querySelectorAll('.cf-fiado-check-assinado').forEach(function (cb) { cb.checked = false; });
+          document.querySelectorAll('.cf-fiado-check-assinado').forEach(function (cb) { cb.checked = false; });
           aposVendas();
         });
       });
@@ -1554,7 +1558,7 @@
           if (!pin) return;
           if (puladoBaixas) puladoBaixas.value = '1';
           if (pinBaixas) pinBaixas.value = pin;
-          form.querySelectorAll('.cf-fiado-check-retirado').forEach(function (cb) { cb.checked = false; });
+          document.querySelectorAll('.cf-fiado-check-retirado').forEach(function (cb) { cb.checked = false; });
           aposBaixas();
         });
       });
