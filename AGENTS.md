@@ -319,8 +319,8 @@ Ao pedir alteração de layout, o usuário pode escrever **`@AGENTS.md`** ou cit
 
 ### 11.2 Operacional (loja)
 
-- **Configurar:** abrir o sistema (BI em `/`) → o sistema **calcula sozinho** o tamanho ideal → **Confirmar**.
-- **Corrigir / monitor novo:** **Aa** → **Recalcular ideal** (ou diminuir no slider) → **Confirmar**.
+- **Configurar:** abrir o sistema (BI em `/`) → o sistema **calcula sozinho** o tamanho ideal → **Confirmar**. **Cada computador** calibra uma vez (mesma resolução em 24" e 27" = **mesmo limite em pixels**; o 24" parece menor fisicamente).
+- **Corrigir / trocar de PC:** **Aa** → **Recalcular ideal** → **Confirmar**.
 - **Reset técnico (suporte):** no console do navegador, apagar `agro_display_scale_configured_v1` e recarregar.
 
 ### 11.3 Electron

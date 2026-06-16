@@ -2,9 +2,15 @@
 <script>
   (function () {
     try {
-      var ok = localStorage.getItem('agro_display_scale_configured_v1') === '1';
+      var sw = screen.width || 0;
+      var sh = screen.height || 0;
+      var dpr = Math.round((window.devicePixelRatio || 1) * 100);
+      var suf = '_' + sw + 'x' + sh + '_' + dpr;
+      var ok = localStorage.getItem('agro_display_scale_configured_v1' + suf) === '1';
+      if (!ok) ok = localStorage.getItem('agro_display_scale_configured_v1') === '1';
       if (!ok) return;
-      var s = localStorage.getItem('agro_display_scale_v1');
+      var s = localStorage.getItem('agro_display_scale_v1' + suf);
+      if (s == null) s = localStorage.getItem('agro_display_scale_v1');
       var n = parseFloat(s, 10);
       if (!isFinite(n) || n < 0.75 || n > 1.5) return;
       if (n === 1) return;
@@ -81,10 +87,16 @@
     color: #047857;
   }
   .agro-scale-cap {
-    margin: 0 0 0.75rem;
+    margin: 0 0 0.35rem;
     font-size: 0.82rem;
     font-weight: 700;
     color: #64748b;
+  }
+  .agro-scale-profile {
+    margin: 0 0 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #94a3b8;
   }
   .agro-scale-warning {
     margin: 0 0 0.75rem;

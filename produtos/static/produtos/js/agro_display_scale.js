@@ -4,8 +4,8 @@
 (function (global) {
   'use strict';
 
-  var STORAGE = 'agro_display_scale_v1';
-  var CONFIGURED = 'agro_display_scale_configured_v1';
+  var STORAGE_BASE = 'agro_display_scale_v1';
+  var CONFIGURED_BASE = 'agro_display_scale_configured_v1';
   var MIN = 0.75;
   var MAX = 1.5;
   var STEP = 0.05;
@@ -22,9 +22,55 @@
     return Math.max(MIN, Math.min(MAX, v));
   }
 
-  function read() {
+  function profileSuffix() {
     try {
-      var s = global.localStorage.getItem(STORAGE);
+      var sw = global.screen && global.screen.width ? global.screen.width : 0;
+      var sh = global.screen && global.screen.height ? global.screen.height : 0;
+      var dpr = Math.round((global.devicePixelRatio || 1) * 100);
+      return '_' + sw + 'x' + sh + '_' + dpr;
+    } catch (e) {
+      return '_default';
+    }
+  }
+
+  function storageKey() {
+    return STORAGE_BASE + profileSuffix();
+  }
+
+  function configuredKey() {
+    return CONFIGURED_BASE + profileSuffix();
+  }
+
+  function displayProfileLabel() {
+    try {
+      return (
+        (global.screen.width || '?') +
+        '×' +
+        (global.screen.height || '?') +
+        ' · escala Windows ' +
+        Math.round((global.devicePixelRatio || 1) * 100) +
+        '%'
+      );
+    } catch (e2) {
+      return '';
+    }
+  }
+
+  function migrateLegacyStorage() {
+    try {
+      if (global.localStorage.getItem(storageKey()) == null && global.localStorage.getItem(STORAGE_BASE) != null) {
+        global.localStorage.setItem(storageKey(), global.localStorage.getItem(STORAGE_BASE));
+      }
+      if (global.localStorage.getItem(configuredKey()) == null && global.localStorage.getItem(CONFIGURED_BASE) != null) {
+        global.localStorage.setItem(configuredKey(), global.localStorage.getItem(CONFIGURED_BASE));
+      }
+    } catch (e3) {}
+  }
+
+  function read() {
+    migrateLegacyStorage();
+    try {
+      var s = global.localStorage.getItem(storageKey());
       var n = parseFloat(s, 10);
       if (isFinite(n) && n >= MIN && n <= MAX) return n;
     } catch (e) {}
@@ -32,8 +78,9 @@
   }
 
   function isConfigured() {
+    migrateLegacyStorage();
     try {
-      return global.localStorage.getItem(CONFIGURED) === '1';
+      return global.localStorage.getItem(configuredKey()) === '1';
     } catch (e) {
       return false;
     }
@@ -57,8 +104,8 @@
   function save(scale) {
     scale = clamp(Math.min(scale, maxSafeScale));
     try {
-      global.localStorage.setItem(STORAGE, String(scale));
-      global.localStorage.setItem(CONFIGURED, '1');
+      global.localStorage.setItem(storageKey(), String(scale));
+      global.localStorage.setItem(configuredKey(), '1');
     } catch (e) {}
     applyToRoot(scale);
     return scale;
@@ -285,6 +332,9 @@
       '  <p class="agro-scale-cap" data-agro-scale-cap>Máximo seguro neste monitor: ' +
       pctLabel(maxSafeScale) +
       '</p>' +
+      '  <p class="agro-scale-profile" data-agro-scale-profile>Perfil: ' +
+      displayProfileLabel() +
+      '</p>' +
       '  <p class="agro-scale-warning" data-agro-scale-warning hidden>Acima do limite — cards ou botões podem quebrar. Diminua ou recalcule.</p>' +
       '  <div class="agro-scale-controls">' +
       '    <button type="button" class="agro-scale-step" data-agro-scale-minus aria-label="Diminuir">−</button>' +
@@ -430,8 +480,8 @@
   }
 
   global.AgroDisplayScale = {
-    STORAGE_KEY: STORAGE,
-    CONFIGURED_KEY: CONFIGURED,
+    STORAGE_KEY: storageKey,
+    CONFIGURED_KEY: configuredKey,
     MIN: MIN,
     MAX: MAX,
     STEP: STEP,
