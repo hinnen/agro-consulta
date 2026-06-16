@@ -1915,7 +1915,7 @@
                 var modoRe = String((state.entrega && state.entrega.modoRetiradaEntrega) || '');
                 var lp = String((state.entrega && state.entrega.localPagamento) || '');
                 var meio = String((state.entrega && state.entrega.meioNaEntrega) || '');
-                var endOk = enderecoEntregaMinimoOk(state);
+                var endOk = enderecoEntregaMinimoOkParaUi(state);
                 dom.btnNext.classList.remove('opacity-40');
                 if (!modoRe) {
                     dom.btnNext.innerHTML = 'Retirada ou entrega' + kbdF7;
@@ -1924,14 +1924,12 @@
                     dom.btnNext.title = 'Use o pop-up ao entrar nesta etapa.';
                 } else if (modoRe === 'entrega' && !(state.entrega && state.entrega.detalhesEntregaRespondidos)) {
                     dom.btnNext.innerHTML = 'Taxa e detalhes' + kbdF7;
-                    dom.btnNext.disabled = true;
-                    dom.btnNext.classList.add('opacity-40');
-                    dom.btnNext.title = 'Complete o pop-up de taxa, horário e troco.';
+                    dom.btnNext.disabled = false;
+                    dom.btnNext.title = 'Abre o pop-up de taxa, horário e troco · F7';
                 } else if (!lp) {
-                    dom.btnNext.innerHTML = 'Escolha o local do pagamento' + kbdF7;
-                    dom.btnNext.disabled = true;
-                    dom.btnNext.classList.add('opacity-40');
-                    dom.btnNext.title = 'Use o pop-up ao entrar nesta etapa (Pagamento na entrega ou na loja).';
+                    dom.btnNext.innerHTML = 'Pagamento na entrega ou loja' + kbdF7;
+                    dom.btnNext.disabled = false;
+                    dom.btnNext.title = 'Abre o pop-up de pagamento na entrega ou na loja · F7';
                 } else if (lp === 'loja') {
                     dom.btnNext.innerHTML = 'Ir para pagamento' + kbdF7;
                     dom.btnNext.disabled = !endOk;
@@ -1940,9 +1938,8 @@
                 } else if (lp === 'entrega') {
                     if (!meio) {
                         dom.btnNext.innerHTML = 'Dinheiro ou cartão' + kbdF7;
-                        dom.btnNext.disabled = true;
-                        dom.btnNext.classList.add('opacity-40');
-                        dom.btnNext.title = 'Complete o pop-up (dinheiro ou cartão na entrega).';
+                        dom.btnNext.disabled = false;
+                        dom.btnNext.title = 'Abre o pop-up dinheiro ou cartão na entrega · F7';
                     } else {
                         dom.btnNext.innerHTML = 'Enviar entrega' + kbdF7;
                         dom.btnNext.disabled = !endOk;
@@ -2742,12 +2739,9 @@
     }
 
     function tryProsseguirEntregaStep() {
+        if (abrirFluxoPagamentoEntregaSePendente()) return;
         var state = State.getState();
         var lp = String((state.entrega && state.entrega.localPagamento) || '');
-        if (!lp) {
-            openEntregaFluxoModal1();
-            return;
-        }
         if (lp === 'loja') {
             wizardIrParaPagamentoComImpressao();
             return;
@@ -2773,6 +2767,7 @@
             openEntregaDetalhesModal();
             return;
         }
+        if (abrirFluxoPagamentoEntregaSePendente()) return;
         var validation = canAdvance(state, computed);
         if (validation) {
             alert(validation);
@@ -3343,6 +3338,49 @@
         if (String(e.endereco || '').trim().length > 4) return true;
         var c = state.cliente || {};
         return String(c.endereco || '').trim().length > 4;
+    }
+
+    /** Lê endereço do DOM (sem gravar estado) para habilitar o botão ao digitar. */
+    function enderecoEntregaMinimoOkParaUi(state) {
+        state = state || State.getState();
+        var log = dom.entregaLogradouro ? String(dom.entregaLogradouro.value || '').trim() : '';
+        var bai = dom.entregaBairro ? String(dom.entregaBairro.value || '').trim() : '';
+        if (log && bai) return true;
+        var num = dom.entregaNumero ? String(dom.entregaNumero.value || '').trim() : '';
+        var pc = dom.entregaPluscode ? String(dom.entregaPluscode.value || '').trim() : '';
+        if (log || num || bai || pc) {
+            var linha = buildLinhaEnderecoEntrega({
+                entrega: { logradouro: log, numero: num, bairro: bai, plusCode: pc },
+                cliente: state.cliente || {}
+            });
+            if (String(linha || '').trim().length > 4) return true;
+        }
+        return enderecoEntregaMinimoOk(state);
+    }
+
+    function fecharModaisEntregaAntesImpressao() {
+        closeRetiradaEntregaModal();
+        closeEntregaDetalhesModal();
+        closeEntregaSalvarClienteModal();
+        closeEntregaFluxoModal1();
+        closeEntregaFluxoModal2();
+        closeEntregaFluxoModal3();
+        entregaPendingAfterSaveCliente = null;
+    }
+
+    function abrirFluxoPagamentoEntregaSePendente() {
+        var st = State.getState();
+        var e = st.entrega || {};
+        var lp = String(e.localPagamento || '').trim();
+        if (!lp) {
+            openEntregaFluxoModal1();
+            return true;
+        }
+        if (lp === 'entrega' && !String(e.meioNaEntrega || '').trim()) {
+            openEntregaFluxoModal2();
+            return true;
+        }
+        return false;
     }
 
     function entregaTaxaModoEfetivo(state) {
@@ -3950,8 +3988,13 @@
         }
         State.setEntregaPatch({ modoRetiradaEntrega: 'entrega', ativa: true });
         closeRetiradaEntregaModal();
-        if (!State.getState().entrega.detalhesEntregaRespondidos) {
+        var stEnt = State.getState().entrega || {};
+        if (!stEnt.detalhesEntregaRespondidos) {
             openEntregaDetalhesModal();
+        } else if (!String(stEnt.localPagamento || '').trim()) {
+            setTimeout(function () {
+                if (State.getState().currentStep === 'entrega') openEntregaFluxoModal1();
+            }, 80);
         }
     }
     function confirmarEntregaDetalhesModal() {
@@ -3976,6 +4019,11 @@
         wizardSyncLembretesFromEntregaHorario();
         entregaClienteSnapshot = null;
         closeEntregaDetalhesModal();
+        if (!String(State.getState().entrega.localPagamento || '').trim()) {
+            setTimeout(function () {
+                if (State.getState().currentStep === 'entrega') openEntregaFluxoModal1();
+            }, 80);
+        }
     }
 
     function isEntregaFluxo1Open() {
@@ -6411,6 +6459,7 @@
             alert('Adicione itens à venda antes de enviar a entrega.');
             return;
         }
+        commitEntregaCamposEndereco();
         if (!enderecoEntregaMinimoOk(state)) {
             alert('Preencha logradouro e bairro (ou endereço legível) para entrega.');
             return;
@@ -6418,9 +6467,10 @@
         var lp = String((state.entrega && state.entrega.localPagamento) || '');
         var meio = String((state.entrega && state.entrega.meioNaEntrega) || '');
         if (lp !== 'entrega' || !meio) {
-            alert('Defina pagamento na entrega e escolha dinheiro ou cartão no pop-up.');
+            abrirFluxoPagamentoEntregaSePendente();
             return;
         }
+        fecharModaisEntregaAntesImpressao();
         wizardModalEscolhaImpressaoEntrega().then(function (opt) {
             if (!opt) return;
             var orcId = Date.now();
@@ -6468,6 +6518,7 @@
             alert('Adicione itens à venda antes de continuar.');
             return;
         }
+        commitEntregaCamposEndereco();
         if (!enderecoEntregaMinimoOk(state)) {
             alert('Preencha logradouro e bairro (ou endereço legível) para entrega.');
             return;
@@ -6476,6 +6527,7 @@
             alert('Esta ação é para pagamento na loja. Escolha essa opção no pop-up da etapa Entrega.');
             return;
         }
+        fecharModaisEntregaAntesImpressao();
         wizardModalEscolhaImpressaoEntrega().then(function (opt) {
             if (!opt) return;
             var orcId = Date.now();
@@ -7110,7 +7162,10 @@
         [dom.entregaLogradouro, dom.entregaNumero, dom.entregaPluscode].forEach(function (el) {
             if (el) el.addEventListener('input', commitEntregaCamposEndereco);
         });
-        if (dom.entregaBairro) dom.entregaBairro.addEventListener('change', commitEntregaCamposEndereco);
+        if (dom.entregaBairro) {
+            dom.entregaBairro.addEventListener('change', commitEntregaCamposEndereco);
+            dom.entregaBairro.addEventListener('input', commitEntregaCamposEndereco);
+        }
         if (dom.entregaPluscode) {
             dom.entregaPluscode.addEventListener('input', function () {
                 commitEntregaCamposEndereco();
@@ -7744,8 +7799,9 @@
             ) {
                 if (event.code === 'F7' && !event.altKey && !event.ctrlKey && !event.metaKey) {
                     event.preventDefault();
-                    if (dom.btnNext && dom.btnNext.style.display !== 'none' && !dom.btnNext.disabled) {
-                        dom.btnNext.click();
+                    if (dom.btnNext && dom.btnNext.style.display !== 'none') {
+                        if (!dom.btnNext.disabled) dom.btnNext.click();
+                        else onEntregaBtnNext();
                     }
                     return;
                 }
