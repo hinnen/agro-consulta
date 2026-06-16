@@ -7,8 +7,11 @@
   }
 
   function csrf() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && meta.getAttribute('content')) return meta.getAttribute('content');
     var el = document.querySelector('[name=csrfmiddlewaretoken]');
-    return el ? el.value : getCookie('csrftoken');
+    if (el && el.value) return el.value;
+    return getCookie('csrftoken');
   }
 
   function escapeHtml(s) {

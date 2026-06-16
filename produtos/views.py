@@ -9306,6 +9306,7 @@ def _ctx_produtos_cadastro_erp(request):
 
 
 @ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
 def produtos_cadastro_erp_view(request):
     """Lista do cadastro espelho ERP; clique abre página dedicada de detalhe."""
     q = (request.GET.get("produto") or "").strip()
@@ -9318,6 +9319,7 @@ def produtos_cadastro_erp_view(request):
 
 
 @ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
 def produtos_cadastro_erp_produto_view(request, produto_id: str):
     """Detalhe de um produto do espelho ERP (tela cheia, sem lista ao lado)."""
     ctx = _ctx_produtos_cadastro_erp(request)
