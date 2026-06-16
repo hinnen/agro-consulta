@@ -28,6 +28,25 @@
 {% block pdv_content %}
 <div class="p-2 sm:p-4">
   <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <a href="{% url 'produtos_etiquetas' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-emerald-500/50 hover:bg-slate-700/50">
+      <div class="mb-4 flex items-center gap-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-500 transition-transform group-hover:scale-110">
+          <i class="fas fa-tags text-2xl" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-white">Etiquetas de preço</h3>
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-500">4×4 cm · térmica</span>
+        </div>
+      </div>
+      <p class="text-sm leading-relaxed text-slate-400">
+        Busque produtos no cadastro, monte a fila com quantidades e imprima direto na térmica (Electron).
+      </p>
+      <div class="mt-6 flex items-center text-sm font-bold text-emerald-500">
+        <span>ABRIR IMPRESSÃO</span>
+        <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i>
+      </div>
+    </a>
+
     <a href="{% url 'relatorios_validade' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-6 transition-all hover:border-orange-500/50 hover:bg-slate-700/50">
       <div class="mb-4 flex items-center gap-4">
         <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/20 text-orange-500 transition-transform group-hover:scale-110">

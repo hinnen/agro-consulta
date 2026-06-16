@@ -1651,10 +1651,10 @@
   });
 
   function salvarCadastroModalAgro(syncErp) {
-    syncErp = !!syncErp;
+    var cfg = window.AgroCadastroErpLista || {};
+    syncErp = !!syncErp && !!cfg.CADASTRO_ERP_SYNC_HABILITADO;
     var btnSalvar = document.getElementById('btn-salvar-edit');
     var btnSyncErp = document.getElementById('btn-sync-erp-edit');
-    var cfg = window.AgroCadastroErpLista || {};
     if (!cfg.URL_OVERLAY_SALVAR) return;
     if (!cfg.PODE_EDITAR_OVERLAY) {
       if (typeof alert !== 'undefined') alert('Entre no sistema para gravar alterações no Agro.');
@@ -1830,15 +1830,15 @@
       } else if (syncErp) {
         msgSalvo = eraNovo ? 'Criado no Agro e enviado ao ERP legado.' : 'Salvo no Agro e replicado no ERP legado.';
       } else {
-        msgSalvo = eraNovo ? 'Produto criado no Agro.' : 'Salvo no Agro.';
-        if (j.somente_agro) {
+        msgSalvo = eraNovo ? 'Produto criado no SisVale.' : 'Salvo no SisVale.';
+        if (j.somente_agro && cfg.CADASTRO_ERP_SYNC_HABILITADO) {
           msgSalvo += ' Pendente de envio ao ERP — use «Enviar pendentes ao ERP» na lista do cadastro.';
         }
       }
       if (j.aviso && String(j.aviso).trim()) msgSalvo += ' ' + String(j.aviso).trim();
       var tipoStatus = 'ok';
       if (syncErp && j.erp_sync_ok === false) tipoStatus = 'aviso';
-      else if (j.somente_agro) tipoStatus = 'aviso';
+      else if (j.somente_agro && cfg.CADASTRO_ERP_SYNC_HABILITADO) tipoStatus = 'aviso';
       mostrarStatusModalSalvo(msgSalvo, tipoStatus);
       if (eraNovo && j.produto && j.produto.id) {
         modalEdit.setAttribute('data-produto-id', String(j.produto.id));
@@ -1870,6 +1870,7 @@
     salvarCadastroModalAgro(false);
   });
   bindClick('btn-sync-erp-edit', function () {
+    if (!(window.AgroCadastroErpLista || {}).CADASTRO_ERP_SYNC_HABILITADO) return;
     salvarCadastroModalAgro(true);
   });
 

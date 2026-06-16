@@ -152,7 +152,10 @@ from .models import (
 )
 from integracoes.texto import eh_granel, expandir_tokens, montar_busca_texto, normalizar, tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
-from produtos.agro_fonte_config import agro_financeiro_erp_sync_habilitado
+from produtos.agro_fonte_config import (
+    agro_cadastro_produto_erp_sync_habilitado,
+    agro_financeiro_erp_sync_habilitado,
+)
 from integracoes.venda_erp_api import (
     VendaERPAPIClient,
     erp_portal_notas_entrada_list_url,
@@ -1070,6 +1073,8 @@ def api_produtos_gestao_overlay_salvar(request):
 
 def _payload_truthy_sincronizar_erp_legado(payload: dict) -> bool:
     """Se verdadeiro, após gravar overlay envia ``Produtos/Salvar`` ao ERP legado."""
+    if not agro_cadastro_produto_erp_sync_habilitado():
+        return False
     v = payload.get("sincronizar_erp")
     if v is None:
         return False
@@ -1906,6 +1911,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
 
     aviso_codigo_mongo = None
     aviso_custo_mongo = None
+    aviso_preco_venda_mongo = None
     if db is not None:
         aviso_codigo_mongo = _mongo_sincronizar_codigo_sistema_espelho(
             db,
@@ -1929,6 +1935,22 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             except Exception as exc:
                 logger.warning("overlay salvar: sync PrecoCusto Mongo", exc_info=True)
                 aviso_custo_mongo = "Não foi possível gravar o custo no espelho Mongo."
+        # Preço de venda: overlay é a fonte no Agro; espelhar no Mongo evita «reverter» ao reabrir
+        # quando o overlay não for encontrado (ex.: id AGRO vs nativo após realinhamento ERP).
+        if "preco_venda" in payload and ov.preco_venda is not None:
+            try:
+                pvfloat = float(ov.preco_venda)
+                res_pv = db[client.col_p].update_one(
+                    _mongo_filtro_id_produto_externo(pid),
+                    {"$set": {"ValorVenda": pvfloat, "PrecoVenda": pvfloat}},
+                )
+                if not getattr(res_pv, "matched_count", 0):
+                    aviso_preco_venda_mongo = (
+                        "Preço de venda não atualizado: produto não encontrado no espelho Mongo."
+                    )
+            except Exception:
+                logger.warning("overlay salvar: sync ValorVenda Mongo", exc_info=True)
+                aviso_preco_venda_mongo = "Não foi possível gravar o preço de venda no espelho Mongo."
 
     with transaction.atomic():
         ov.save()
@@ -2050,10 +2072,10 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             resp["erp_resposta"] = erp_resp
     else:
         resp["somente_agro"] = True
-        if uid:
+        if uid and agro_cadastro_produto_erp_sync_habilitado():
             _erp_produto_pendentes_add(uid, pid)
 
-    avisos_m = [m for m in (aviso_codigo_mongo, aviso_custo_mongo) if m]
+    avisos_m = [m for m in (aviso_codigo_mongo, aviso_custo_mongo, aviso_preco_venda_mongo) if m]
     if avisos_m:
         resp["aviso"] = "\n\n".join(avisos_m)
     return JsonResponse(resp)
@@ -2063,6 +2085,8 @@ def _api_produtos_gestao_overlay_salvar_core(request):
 @require_GET
 def api_produtos_gestao_erp_pendentes(request):
     """Lista ids de produtos com alteração local ainda não confirmada no ERP (fila por usuário)."""
+    if not agro_cadastro_produto_erp_sync_habilitado():
+        return JsonResponse({"ok": True, "ids": [], "n": 0, "erp_sync_desligado": True})
     uid = int(getattr(request.user, "pk", None) or 0)
     ids = _erp_produto_pendentes_list(uid)
     return JsonResponse({"ok": True, "ids": ids, "n": len(ids)})
@@ -2072,6 +2096,14 @@ def api_produtos_gestao_erp_pendentes(request):
 @require_POST
 def api_produtos_gestao_erp_sincronizar_pendentes(request):
     """Dispara ``Produtos/Salvar`` no ERP para até N itens pendentes (após «Salvar no Agro»)."""
+    if not agro_cadastro_produto_erp_sync_habilitado():
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Sincronização de produtos com o ERP está desligada no SisVale.",
+            },
+            status=403,
+        )
     uid = int(getattr(request.user, "pk", None) or 0)
     if not uid:
         return JsonResponse({"ok": False, "erro": "Sessão inválida."}, status=401)
@@ -9268,6 +9300,7 @@ def _ctx_produtos_cadastro_erp(request):
         "pode_editar_overlay": getattr(request, "user", None) and request.user.is_authenticated,
         "login_overlay_next": request.get_full_path() or reverse("produtos_cadastro_erp"),
         "formas_pagamento_caixa": formas_pagamento_lista(),
+        "cadastro_produto_erp_sync_habilitado": agro_cadastro_produto_erp_sync_habilitado(),
     }
 
 
@@ -9303,8 +9336,16 @@ def produtos_gestao_view(request):
         {
             "empresa_nome": getattr(emp, "nome_fantasia", None) or getattr(emp, "razao_social", None) or "",
             "usuario_label": (getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk))[:120],
+            "cadastro_produto_erp_sync_habilitado": agro_cadastro_produto_erp_sync_habilitado(),
         },
     )
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def produtos_etiquetas_view(request):
+    """Impressão de etiquetas de preço (4×4 cm, térmica) a partir do cadastro de produtos."""
+    return render(request, "produtos/produtos_etiquetas.html")
 
 
 def _lancamentos_parse_date_param(s):

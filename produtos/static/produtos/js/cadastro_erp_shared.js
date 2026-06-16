@@ -30,6 +30,12 @@
     });
   }
 
+  function resetLoading() {
+    if (w.gmLoadingBar && typeof w.gmLoadingBar.reset === 'function') {
+      w.gmLoadingBar.reset();
+    }
+  }
+
   function setLoading(on) {
     if (w.gmLoadingBar) {
       if (on) w.gmLoadingBar.show();
@@ -42,6 +48,7 @@
     csrf: csrf,
     escapeHtml: escapeHtml,
     fmtMoney: fmtMoney,
+    resetLoading: resetLoading,
     setLoading: setLoading
   };
 })(window);

@@ -5,6 +5,7 @@
   var escapeHtml = U.escapeHtml;
   var fmtMoney = U.fmtMoney;
   var setLoading = U.setLoading;
+  var resetLoading = U.resetLoading;
   var C = window.AgroCadastroErpLista || {};
   var CADASTRO_ERP_MODO = C.CADASTRO_ERP_MODO || 'lista';
   var CADASTRO_ERP_PID = C.CADASTRO_ERP_PID || '';
@@ -16,6 +17,7 @@
   var URL_ERP_PENDENTES = C.URL_ERP_PENDENTES || '';
   var URL_ERP_SYNC_PENDENTES = C.URL_ERP_SYNC_PENDENTES || '';
   var PODE_EDITAR_OVERLAY = !!C.PODE_EDITAR_OVERLAY;
+  var ERP_SYNC_HABILITADO = !!C.CADASTRO_ERP_SYNC_HABILITADO;
   var LOGIN_OVERLAY_HREF = C.LOGIN_OVERLAY_HREF || '';
   var btnErpPend = document.getElementById('cadastro-btn-erp-pendentes');
   var btnErpForcarTodos = document.getElementById('cadastro-btn-erp-forcar-todos');
@@ -39,7 +41,7 @@
 
   function fetchPendentesBadgePromise(opt) {
     var sig = opt && opt.signal;
-    if (!URL_ERP_PENDENTES || !lblErpPendN || !btnErpPend) return Promise.resolve();
+    if (!ERP_SYNC_HABILITADO || !URL_ERP_PENDENTES || !lblErpPendN || !btnErpPend) return Promise.resolve();
     if (!PODE_EDITAR_OVERLAY) return Promise.resolve();
     return fetch(URL_ERP_PENDENTES, { credentials: 'same-origin', signal: sig })
       .then(function (r) { return r.json().catch(function () { return {}; }); })
@@ -116,7 +118,7 @@
     if (hintMongo) {
       erroEl.innerHTML =
         '<p class="font-bold">' + escapeHtml(msg) + '</p>' +
-        '<p class="mt-2 text-sm leading-snug">O espelho ERP precisa do Mongo configurado no servidor (<code class="text-xs bg-white/80 px-1 rounded">VENDA_ERP_MONGO_URL</code> e <code class="text-xs bg-white/80 px-1 rounded">VENDA_ERP_MONGO_DB</code> no arquivo <code class="text-xs">.env</code>). Copie os mesmos valores do ambiente onde o PDV já funciona.</p>' +
+        '<p class="mt-2 text-sm leading-snug">O catálogo precisa do Mongo configurado no servidor (<code class="text-xs bg-white/80 px-1 rounded">VENDA_ERP_MONGO_URL</code> e <code class="text-xs bg-white/80 px-1 rounded">VENDA_ERP_MONGO_DB</code> no arquivo <code class="text-xs">.env</code>). Copie os mesmos valores do ambiente onde o PDV já funciona.</p>' +
         '<button type="button" id="cadastro-erro-ir-grupos" class="mt-3 min-h-[44px] px-4 rounded-xl text-sm font-black uppercase bg-orange-500 hover:bg-orange-600 text-white border-2 border-orange-700">Abrir aba Grupos (funciona sem Mongo)</button>';
       erroEl.classList.remove('hidden');
       var b = document.getElementById('cadastro-erro-ir-grupos');
@@ -236,8 +238,12 @@
     return (
       '<div class="mt-6 rounded-2xl border-2 border-emerald-600 bg-emerald-50/90 p-4 sm:p-5 shadow-sm">' +
       '<h4 class="text-sm font-black uppercase text-emerald-950 tracking-wide mb-1">Editar cadastro · Agro</h4>' +
-      '<p class="text-xs font-bold text-slate-800 mt-1 mb-3"><span class="text-red-600 font-black">*</span> Somente os campos com asterisco são obrigatórios para salvar ou enviar ao ERP.</p>' +
-      '<p class="text-xs text-slate-700 mb-4 leading-snug"><strong>Salvar no Agro</strong> atualiza só o Agro (PDV e buscas). <strong>Enviar ao ERP</strong> replica no ERP legado quando você quiser. Nos demais campos, vazio + salvar remove o override; em «Exibir como», «Seguir ERP» remove o forçamento de ativo/inativo.</p>' +
+      '<p class="text-xs font-bold text-slate-800 mt-1 mb-3"><span class="text-red-600 font-black">*</span> Somente os campos com asterisco são obrigatórios para salvar.</p>' +
+      '<p class="text-xs text-slate-700 mb-4 leading-snug"><strong>Salvar no Agro</strong> grava no SisVale (PDV e buscas).' +
+      (ERP_SYNC_HABILITADO
+        ? ' <strong>Enviar ao ERP</strong> replica no ERP legado quando você quiser.'
+        : ' Sincronização com a API do ERP está desligada neste ambiente.') +
+      ' Nos demais campos, vazio + salvar remove o override; em «Exibir como», «Seguir catálogo» remove o forçamento de ativo/inativo.</p>' +
       '<div class="grid gap-3 sm:grid-cols-2">' +
       '<label class="block sm:col-span-2"><span class="text-[10px] font-black uppercase text-slate-600">Nome <span class="text-red-600 font-black">*</span></span>' +
       '<input type="text" id="cad-ov-nome" class="' + ic + '" maxlength="300" value="' + escapeHtml(p.nome || '') + '" autocomplete="off" /></label>' +
@@ -267,7 +273,7 @@
       '<input type="text" id="cad-ov-preco" inputmode="decimal" class="' + ic + '" value="' + escapeHtml(pv) + '" autocomplete="off" /></label>' +
       '<label class="block"><span class="text-[10px] font-black uppercase text-slate-600">Exibir como</span>' +
       '<select id="cad-ov-ativo" class="' + ic + '">' +
-      '<option value=""' + (av === '' ? ' selected' : '') + '>Seguir ERP</option>' +
+      '<option value=""' + (av === '' ? ' selected' : '') + '>Seguir catálogo</option>' +
       '<option value="1"' + (av === '1' ? ' selected' : '') + '>Ativo</option>' +
       '<option value="0"' + (av === '0' ? ' selected' : '') + '>Inativo</option>' +
       '</select></label>' +
@@ -276,7 +282,9 @@
       '<textarea id="cad-ov-desc" rows="3" class="w-full rounded-xl border-2 border-emerald-400 px-3 py-2 text-sm font-semibold text-slate-900 bg-white">' + escapeHtml(p.descricao || '') + '</textarea></label>' +
       '<div class="mt-4 flex flex-wrap gap-2">' +
       '<button type="button" id="cadastro-overlay-salvar" class="min-h-[48px] px-5 rounded-xl bg-orange-500 text-white font-black uppercase text-sm border-2 border-orange-600 hover:bg-orange-600 shadow-sm">Salvar no Agro</button>' +
-      '<button type="button" id="cadastro-overlay-sync-erp" class="min-h-[48px] px-5 rounded-xl bg-amber-600 text-white font-black uppercase text-sm border-2 border-amber-700 hover:bg-amber-700 shadow-sm" title="Produtos/Salvar no ERP legado">Enviar ao ERP</button>' +
+      (ERP_SYNC_HABILITADO
+        ? '<button type="button" id="cadastro-overlay-sync-erp" class="min-h-[48px] px-5 rounded-xl bg-amber-600 text-white font-black uppercase text-sm border-2 border-amber-700 hover:bg-amber-700 shadow-sm" title="Produtos/Salvar no ERP legado">Enviar ao ERP</button>'
+        : '') +
       '</div>' +
       '<p id="cadastro-overlay-msg" class="mt-2 text-sm font-bold hidden" role="status"></p>' +
       '</div>'
@@ -290,7 +298,7 @@
     return (
       '<div class="mt-6 rounded-xl border-2 border-slate-200 bg-slate-100/80 p-4">' +
       '<p class="text-sm font-bold text-slate-800">Edição só no Agro (nome, preço, códigos…)</p>' +
-      '<p class="text-xs text-slate-600 mt-2 leading-snug">Entre com seu usuário do sistema para ver o formulário aqui. O cadastro mestre continua no ERP.</p>' +
+      '<p class="text-xs text-slate-600 mt-2 leading-snug">Entre com seu usuário do sistema para ver o formulário aqui.</p>' +
       '<a href="' + String(LOGIN_OVERLAY_HREF || '').replace(/"/g, '&quot;') + '" class="mt-3 inline-flex min-h-[44px] items-center px-4 rounded-xl bg-emerald-600 text-white font-black uppercase text-xs border-2 border-emerald-800 hover:bg-emerald-700">Entrar para editar</a>' +
       '</div>'
     );
@@ -332,7 +340,7 @@
     }
 
     function enviar(syncErp) {
-      syncErp = !!syncErp;
+      syncErp = !!syncErp && ERP_SYNC_HABILITADO;
       if (btn.disabled || (btnErp && btnErp.disabled)) return;
       var msg = document.getElementById('cadastro-overlay-msg');
       function showMsg(t, ok) {
@@ -410,8 +418,14 @@
       }).then(function (j) {
         if (!j.ok) throw new Error(j.erro || 'Falha ao salvar');
         if (syncErp) showMsg('Salvo no Agro e replicado no ERP legado.', true);
-        else if (j.somente_agro) showMsg('Salvo no Agro. Use «Enviar ao ERP» quando quiser replicar.', true);
-        else showMsg('Salvo no Agro.', true);
+        else if (j.somente_agro) {
+          showMsg(
+            ERP_SYNC_HABILITADO
+              ? 'Salvo no Agro. Use «Enviar ao ERP» quando quiser replicar.'
+              : 'Salvo no SisVale.',
+            true
+          );
+        } else showMsg('Salvo no Agro.', true);
         carregarDetalheProduto(String(p.id || ''));
       }).catch(function (e) {
         showMsg(e.message || 'Erro ao salvar', false);
@@ -428,7 +442,7 @@
     btn.onclick = function () {
       enviar(false);
     };
-    if (btnErp) {
+    if (btnErp && ERP_SYNC_HABILITADO) {
       btnErp.onclick = function () {
         enviar(true);
       };
@@ -642,6 +656,7 @@
         '<td class="px-4 py-3 text-right cadastro-acoes">' +
         '<span class="inline-flex items-center justify-end gap-2 text-lg">' +
         '<button type="button" class="cadastro-btn-edit-modal inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer" title="Editar (modal)">✏️</button>' +
+        '<button type="button" class="cadastro-btn-etiqueta inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 cursor-pointer" title="Imprimir etiqueta">🖨️</button>' +
         '<span class="inline-flex h-9 min-w-[2.25rem] items-center justify-center rounded-lg border border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed select-none opacity-80" title="Exclusão somente no ERP">🗑️</span>' +
         '</span></td>';
       tbody.appendChild(tr);
@@ -653,6 +668,14 @@
           if (typeof window.abrirModalProduto === 'function') {
             window.abrirModalProduto(p);
           }
+        });
+      }
+      var btnEtq = tr.querySelector('.cadastro-btn-etiqueta');
+      if (btnEtq) {
+        btnEtq.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          abrirModalEtiquetaCadastro(p);
         });
       }
       tr.addEventListener('click', function (e) {
@@ -916,6 +939,7 @@
 
   function carregar() {
     if (!listaEl) return;
+    if (typeof resetLoading === 'function') resetLoading();
     var g = ++carregarGen;
     if (carregarAbort) {
       try {
@@ -957,7 +981,7 @@
             if (mongo) {
               mostrarErro(m, { hintMongo: true });
               if (listaEl) {
-                listaEl.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-600 font-semibold leading-relaxed">Lista do ERP indisponível sem Mongo. Use o botão «Estoque» no PDV para sincronizar o catálogo local ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</td></tr>';
+                listaEl.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-600 font-semibold leading-relaxed">Catálogo indisponível sem Mongo. Use o botão «Estoque» no PDV para sincronizar o catálogo local ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</td></tr>';
               }
             } else {
               mostrarErro(m);
@@ -966,7 +990,7 @@
             if (metaEl) metaEl.textContent = '—';
           })
           .finally(function () {
-            if (g === carregarGen) setLoading(false);
+            setLoading(false);
           });
       }, delayApi);
       if (hadLocal) fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
@@ -983,7 +1007,7 @@
         if (mongo) {
           mostrarErro(m, { hintMongo: true });
           if (listaEl) {
-            listaEl.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-600 font-semibold leading-relaxed">Lista do ERP indisponível sem Mongo. Use o botão acima para ir à aba <strong>Grupos</strong> ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</td></tr>';
+            listaEl.innerHTML = '<tr><td colspan="8" class="p-8 text-center text-slate-600 font-semibold leading-relaxed">Catálogo indisponível sem Mongo. Use o botão acima para ir à aba <strong>Grupos</strong> ou configure o <code class="text-xs bg-slate-100 px-1 rounded">.env</code>.</td></tr>';
           }
         } else {
           mostrarErro(m);
@@ -992,7 +1016,7 @@
         if (metaEl) metaEl.textContent = '—';
       })
       .finally(function () {
-        if (g === carregarGen) setLoading(false);
+        setLoading(false);
       });
   }
 
@@ -1021,7 +1045,7 @@
       mostrarErro('');
       if (metaEl) metaEl.textContent = 'Mín. 2 letras ou código (6+ dígitos / GM…).';
       if (listaEl) {
-        listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no espelho ERP.</td></tr>';
+        listaEl.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-500 font-semibold">Continue digitando para buscar no catálogo.</td></tr>';
       }
       return;
     }
@@ -1120,7 +1144,7 @@
     return msg;
   }
 
-  if (btnErpPend && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY) {
+  if (btnErpPend && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY && ERP_SYNC_HABILITADO) {
     btnErpPend.addEventListener('click', function () {
       if (!window.confirm('Enviar ao ERP legado um lote de até 80 produtos pendentes desta sessão?')) return;
       btnErpPend.disabled = true;
@@ -1139,7 +1163,7 @@
     });
   }
 
-  if (btnErpForcarTodos && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY) {
+  if (btnErpForcarTodos && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY && ERP_SYNC_HABILITADO) {
     btnErpForcarTodos.addEventListener('click', function () {
       if (!window.confirm(
         'Enviar ao ERP legado todos os produtos pendentes desta sessão, em várias rodadas (até ~3200 por clique), até a fila esvaziar ou ocorrer falha. Continuar?'
@@ -1210,6 +1234,103 @@
     btnNovoProd.addEventListener('click', function () {
       if (typeof window.abrirModalProduto === 'function') {
         window.abrirModalProduto({ id: '__novo__' });
+      }
+    });
+  }
+
+  var cadEtqProd = null;
+  var cadEtqBack = document.getElementById('cad-etq-back');
+  var cadEtqModal = document.getElementById('cad-etq-modal');
+  var cadEtqQtd = document.getElementById('cad-etq-qtd');
+  var cadEtqPreset = document.getElementById('cad-etq-preset');
+  var cadEtqStatus = document.getElementById('cad-etq-status');
+
+  function fecharModalEtiquetaCadastro() {
+    cadEtqProd = null;
+    if (cadEtqBack) {
+      cadEtqBack.classList.add('hidden');
+      cadEtqBack.setAttribute('aria-hidden', 'true');
+    }
+    if (cadEtqModal) {
+      cadEtqModal.classList.add('hidden');
+      cadEtqModal.setAttribute('aria-hidden', 'true');
+    }
+    if (cadEtqStatus) cadEtqStatus.textContent = '';
+    document.body.classList.remove('modal-open');
+  }
+
+  function abrirModalEtiquetaCadastro(p) {
+    var Core = window.AgroEtiquetasCore;
+    if (!Core) {
+      mostrarErro('Módulo de etiquetas indisponível.');
+      return;
+    }
+    cadEtqProd = p;
+    var nomeEl = document.getElementById('cad-etq-nome');
+    var gmEl = document.getElementById('cad-etq-gm');
+    if (nomeEl) nomeEl.textContent = p.nome || '—';
+    if (gmEl) {
+      var gm = String(p.codigo_nfe || p.codigo_gm || p.codigo || '—');
+      var pv = p.preco_venda != null && isFinite(Number(p.preco_venda))
+        ? Number(p.preco_venda).toFixed(2).replace('.', ',')
+        : '0,00';
+      gmEl.textContent = gm + ' · R$ ' + pv;
+    }
+    if (cadEtqPreset) Core.fillPresetSelect(cadEtqPreset);
+    if (cadEtqQtd) {
+      cadEtqQtd.value = '1';
+      setTimeout(function () {
+        cadEtqQtd.focus();
+        cadEtqQtd.select();
+      }, 40);
+    }
+    if (cadEtqBack) {
+      cadEtqBack.classList.remove('hidden');
+      cadEtqBack.setAttribute('aria-hidden', 'false');
+    }
+    if (cadEtqModal) {
+      cadEtqModal.classList.remove('hidden');
+      cadEtqModal.setAttribute('aria-hidden', 'false');
+    }
+    document.body.classList.add('modal-open');
+  }
+
+  function imprimirEtiquetaCadastro() {
+    var Core = window.AgroEtiquetasCore;
+    if (!cadEtqProd || !Core) return;
+    var qtd = parseInt(cadEtqQtd && cadEtqQtd.value, 10) || 1;
+    var presetId = cadEtqPreset && cadEtqPreset.value;
+    var st = Core.loadStorage();
+    if (presetId) {
+      st.preset_ativo = presetId;
+      Core.saveStorage(st);
+    }
+    var item = Core.produtoParaItem(cadEtqProd, qtd);
+    if (cadEtqStatus) cadEtqStatus.textContent = 'Enviando…';
+    Core.imprimirItens([item], {
+      presetId: presetId || st.preset_ativo,
+      textoRodape: st.texto_rodape_global || Core.getPresetAtivo(st).texto_rodape || ''
+    }).then(function (res) {
+      if (res && res.ok) {
+        fecharModalEtiquetaCadastro();
+        return;
+      }
+      if (cadEtqStatus) {
+        cadEtqStatus.textContent = 'Falha: ' + (res && res.reason ? res.reason : 'erro');
+      }
+    });
+  }
+
+  var cadEtqBtnImp = document.getElementById('cad-etq-imprimir');
+  if (cadEtqBtnImp) cadEtqBtnImp.addEventListener('click', imprimirEtiquetaCadastro);
+  var cadEtqBtnCan = document.getElementById('cad-etq-cancelar');
+  if (cadEtqBtnCan) cadEtqBtnCan.addEventListener('click', fecharModalEtiquetaCadastro);
+  if (cadEtqBack) cadEtqBack.addEventListener('click', fecharModalEtiquetaCadastro);
+  if (cadEtqQtd) {
+    cadEtqQtd.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        imprimirEtiquetaCadastro();
       }
     });
   }
