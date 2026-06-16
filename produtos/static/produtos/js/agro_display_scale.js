@@ -66,11 +66,37 @@
     return Math.round(scale * 100) + '%';
   }
 
+  function ensureFab() {
+    var fab = document.getElementById('agro-display-scale-fab');
+    if (fab) return fab;
+    fab = document.createElement('button');
+    fab.type = 'button';
+    fab.id = 'agro-display-scale-fab';
+    fab.className = 'agro-scale-trigger agro-scale-trigger--fab';
+    fab.title = 'Ajustar tamanho da tela (textos e botões)';
+    fab.setAttribute('aria-label', 'Ajustar tamanho da tela');
+    fab.textContent = 'Aa';
+    fab.setAttribute('hidden', '');
+    document.body.appendChild(fab);
+    return fab;
+  }
+
+  function setFabVisible(show) {
+    var fab = ensureFab();
+    if (document.getElementById('home-link-display-scale')) {
+      fab.setAttribute('hidden', '');
+      return;
+    }
+    if (show) fab.removeAttribute('hidden');
+    else fab.setAttribute('hidden', '');
+  }
+
   function closeModal() {
     var root = document.getElementById(ROOT_ID);
     if (root) root.remove();
     document.body.classList.remove('agro-scale-modal-open');
     modalOpen = false;
+    setFabVisible(true);
   }
 
   function syncPreview(preview, scale) {
@@ -111,6 +137,7 @@
       (firstRun
         ? 'Configure <strong>uma vez neste computador</strong>. Textos e botões ficam no mesmo tamanho em todas as telas do sistema.'
         : 'Altere o tamanho geral. Vale para PDV, caixa, lançamentos e demais telas neste navegador.') +
+      ' Para corrigir depois, use o botão <strong>Aa</strong> no canto superior da tela.' +
       '</p>' +
       '  <div class="agro-scale-preview-wrap">' +
       '    <p class="agro-scale-preview-label">Prévia — ajuste até ficar confortável de ler</p>' +
@@ -160,6 +187,7 @@
     document.body.appendChild(root);
     document.body.classList.add('agro-scale-modal-open');
     modalOpen = true;
+    setFabVisible(false);
 
     var preview = root.querySelector('[data-agro-scale-preview]');
     syncPreview(preview, draftScale);
@@ -237,7 +265,20 @@
     buildModal(opts || {});
   }
 
+  function bindTriggers() {
+    document.querySelectorAll('#agro-display-scale-fab, #home-link-display-scale, [data-agro-display-scale-open]').forEach(function (btn) {
+      if (btn.__agroScaleBound) return;
+      btn.__agroScaleBound = true;
+      btn.addEventListener('click', function () {
+        open();
+      });
+    });
+  }
+
   function boot() {
+    ensureFab();
+    bindTriggers();
+    setFabVisible(true);
     if (isConfigured()) {
       applyToRoot(read());
     } else {

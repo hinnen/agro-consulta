@@ -84,7 +84,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 ## 4. Partials e UI compartilhada (templates)
 
-- `**produtos/templates/produtos/_agro_consulta_ui.html`** — tipografia/densidade GM Agro; inclui `**_agro_open_external.html`**.
+- `**produtos/templates/produtos/_agro_consulta_ui.html`** — tipografia/densidade GM Agro; inclui `**_agro_open_external.html`** e `**_agro_display_scale.html`** (escala global — §11).
 - `**_agro_open_external.html`** — `agroAbrirUrlExterna`, uso de `window.agroShell.openExternal` no Electron; monkey-patch de `window.open` para WhatsApp/Maps/Waze/goo.gl.
 - `**_head_perf_mpa.html`** — performance MPA onde usado.
 - `**_gm_loading_bar.html`** — barra de loading em algumas telas.
@@ -94,8 +94,9 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 ## 5. Padrão visual e UX (loja)
 
-- Telas **14" / 17" / 19"**: layout **compacto**, legível, sem depender de resolução alta. **APROVEITAR BEM A TELA,POR SER PEQUENA E SE TRATAR DE IDOSOS QUE IRÃO USAR É BEM DIFICIL DE ENXENGAR NATURAMENTE JÁ, ENTÃO PRECISA SER BEM APROVEITADA PARA MELHOR LEITURA.**
-- **Contraste e legibilidade** (incl. idosos): fonte clara e GRANDE , botões grandes, ações previsíveis, sem sustos visuais.
+- **Agro Display Scale (§11):** calibração **uma vez por computador/navegador** — modal na 1ª visita; depois escala global no `<html>` (75–150 %). **Não** usar zoom do Chrome (Ctrl +/-) como referência de layout.
+- Telas **14" / 17" / 19"**: layout **compacto**, legível. **APROVEITAR BEM A TELA** — operadores idosos; fonte clara, botões grandes, contraste alto.
+- **Contraste e legibilidade**: ações previsíveis, sem sustos visuais.
 - **Teclado e scanner** primeiro; mouse como apoio; **mínimo de cliques**.
 - Tela **limpa**; textos longos só em tooltip, modal “Ajuda” ou “?”.
 - Paleta **emerald / orange / slate**, cards simples, hierarquia forte.
@@ -103,7 +104,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 - **Barra de estoque** (PDV): atualização manual + horário da última atualização + automático em standby quando a tela tiver isso.
 - **“Voltar ao PDV (F1)”** visível nas telas possíveis.
 - Ao voltar ao PDV: **preservar contexto** (draft, filtros, lista, scroll).
-- **Home administrativa (launcher):** sem **rolagem da página** (`overflow: hidden` no viewport, `100dvh` / `min-h-0` com flex); **tipografia e espaçamentos fluidos** (`clamp` com `vw` + `rem` na shell) e **colunas da grade por largura útil** (`container-type: inline-size` + `@container`), para o layout **acompanhar o zoom** sem empilhar cards; em **zoom muito alto**, se necessário há **rolagem só na área da grade** (sem sobreposição).
+- **Home administrativa (launcher):** sem **rolagem da página** (`overflow: hidden` no viewport, `100dvh` / `min-h-0` com flex); tipografia fluida (`clamp` + `rem`); grade com `container-type: inline-size` + `@container`. O **ajuste fino de tamanho** para cada monitor fica no **Agro Display Scale**, não no zoom do navegador.
 - **Caixa (painel, abrir, fechar, relatório):** pensado para monitor **16:9** — shell larga (`.caixa-shell`, até ~96rem), `**100dvh`** com `overflow: hidden` no body, conteúdo em **grade horizontal** (não coluna estreita `max-w-lg`); fechamento em lote à esquerda + caixas individuais à direita (`caixa_fechar.html`). Referência: `caixa_painel.html`, `caixa_fechar.html`.
 
 ---
@@ -196,6 +197,13 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 - Cadastro do aporte continua só em `AgroEmprestimo`. Cada pagamento em **Consulta → Gerenciar** (`registrar_pagamento_emprestimo_interno_agro`) gera `DtoLancamento` quitado (plano dívida padrão, marca `EMP-INT` nas observações). Exclusão do pagamento remove o título vinculado. Na lista de Lançamentos use situação **Quitados** ou **Todos** (não aparece em **Em aberto**).
 
+**Agro Display Scale — tamanho da tela por aparelho (§11)**  
+
+- Modal na **1ª abertura** em qualquer tela que inclua `_agro_consulta_ui.html`; fator salvo em `localStorage` (`agro_display_scale_v1`, `agro_display_scale_configured_v1`).
+- Escala aplicada no `<html>` (`zoom` + `data-agro-scale` + `--agro-display-scale`); vale para PDV, caixa, lançamentos, etc. no **mesmo navegador**.
+- Reabrir ajuste: botão **Aa** discreto no canto superior direito (todas as telas) e na **barra da home** (ao lado do relógio).
+- JS: `produtos/static/produtos/js/agro_display_scale.js` · include: `_agro_display_scale.html`.
+
 ---
 
 ## 8. Manutenção deste arquivo
@@ -204,6 +212,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 - Atualizar **§3** se `produtos/urls.py` ganhar rotas importantes (ou referenciar “ver arquivo”).
 - Atualizar **§9** quando mudar textos de ajuda do RH em tela (manter alinhado a `rh/templates/rh/includes/rh_help_agents.html`).
 - Atualizar **§10** quando mudar textos de ajuda de **Lançamentos** em tela (manter alinhado a `produtos/templates/produtos/includes/lancamentos_help_agents.html`).
+- Atualizar **§11** quando mudar calibração de escala ou contrato de layout escalável.
 - Evitar duplicar **cada** template aqui — manter mapa enxuto.
 
 ---
@@ -282,4 +291,41 @@ Texto longo da **busca na lista** (modal Filtros em Contas a pagar / receber) fi
 
 ---
 
-*Última revisão estrutural: documento inicial + mapa de rotas a partir de `produtos/urls.py` e `config/urls.py`; §9 ajuda RH; §10 ajuda Lançamentos (filtros).*
+## 11. Agro Display Scale — tamanho da tela (monitores diferentes)
+
+Cada loja/computador pode ter resolução e polegadas diferentes. Em vez de pedir zoom manual no Chrome, o sistema guarda **um fator de escala por navegador** e aplica em **todas** as telas.
+
+### 11.0 O que é
+
+- **Include:** `produtos/templates/produtos/_agro_display_scale.html` (puxado por `_agro_consulta_ui.html`).
+- **JS:** `produtos/static/produtos/js/agro_display_scale.js` · API global `window.AgroDisplayScale`.
+- **Persistência:** `localStorage` — chaves `agro_display_scale_v1` (número 0,75–1,5) e `agro_display_scale_configured_v1` (`"1"` após confirmar).
+- **Aplicação:** `document.documentElement.style.zoom`, atributo `data-agro-scale`, variável CSS `--agro-display-scale`.
+- **1ª visita:** modal obrigatório “Ajustar tamanho da tela” (prévia PDV + slider + presets). **Reabrir:** botão **Aa** fixo no canto superior direito (todas as telas) ou **Aa** na barra da home (canto superior, ao relógio).
+
+### 11.1 Regras para novas telas e refactors (assistência)
+
+Ao pedir alteração de layout, o usuário pode escrever **`@AGENTS.md`** ou citar **“padrão Agro Display Scale”**. O assistente deve:
+
+1. Desenvolver em **escala 100 %** (referência de design) — **não** usar Ctrl +/- do Chrome para “arrumar”.
+2. Preferir **`rem`**, **`clamp()`**, **`%`**, **`min()`/`max()`** — evitar `font-size` / alturas críticas só em **`px` fixo**.
+3. **Não** adicionar `zoom` local por tela (escala é **global** no `<html>`).
+4. Botões e campos devem **crescer e encolher proporcionalmente** com o fator salvo (fontes, padding em `rem`, `min-height` em `rem`).
+5. Se precisar ler a escala no CSS: `calc(... * var(--agro-display-scale, 1))`.
+6. Telas legadas com `px` fixo podem ser migradas aos poucos; priorizar PDV, caixa e home.
+
+**Frase curta para o chat:** *“Layout no padrão Agro Display Scale (§11).”*
+
+### 11.2 Operacional (loja)
+
+- **Configurar:** abrir o sistema → modal na 1ª vez → Confirmar (ou “Usar padrão 100 %”).
+- **Corrigir:** tocar no **Aa** (canto da tela ou home) → ajustar → Confirmar.
+- **Reset técnico (suporte):** no console do navegador, apagar `agro_display_scale_configured_v1` e recarregar.
+
+### 11.3 Electron
+
+- Mesma lógica via `localStorage` do Chromium embutido; **não** depender de `setZoomFactor` do Electron em paralelo (conflita com o fator Agro).
+
+---
+
+*Última revisão estrutural: documento inicial + mapa de rotas a partir de `produtos/urls.py` e `config/urls.py`; §9 ajuda RH; §10 ajuda Lançamentos (filtros); §11 Agro Display Scale.*

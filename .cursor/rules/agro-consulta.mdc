@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Fonte completa
 
-Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**. Ajuda longa do **RH** (fechamento / ficha): **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_help_agents.html` (blocos «?» nas telas). **Lançamentos** (filtros / busca na lista): **§10** e `produtos/templates/produtos/includes/lancamentos_help_agents.html`. Para tarefas grandes ou pouco claras, o usuário pode anexar `@AGENTS.md`; não é obrigatório pedir leitura em todo chat se esta regra já estiver ativa.
+Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**. Ajuda longa do **RH** (fechamento / ficha): **§9** em `AGENTS.md` e `rh/templates/rh/includes/rh_help_agents.html` (blocos «?» nas telas). **Lançamentos** (filtros / busca na lista): **§10** e `produtos/templates/produtos/includes/lancamentos_help_agents.html`. **Tamanho da tela / monitores:** **§11** (`Agro Display Scale`). Para tarefas grandes ou pouco claras, o usuário pode anexar `@AGENTS.md`; não é obrigatório pedir leitura em todo chat se esta regra já estiver ativa.
 
 ## UX (resumo)
 
@@ -17,6 +17,7 @@ Detalhes, mapa de URLs, stack e changelog de decisões: **`AGENTS.md` na raiz**.
 - Onde couber: busca local rápida + sync em background; barra de estoque com manual + última atualização + standby.
 - **Voltar ao PDV (F1)** quando existir; ao voltar, **preservar contexto** (draft, filtros, lista).
 - **Caixa (painel / abrir / fechar):** layout **16:9**, shell larga `.caixa-shell` + `100dvh` — não usar coluna estreita tipo `max-w-lg` (ver `AGENTS.md` §5).
+- **Monitores / escala:** calibração global **Agro Display Scale** (§11) — layout em `rem`/`clamp`; não zoom do Chrome por tela.
 
 ## Como trabalhar
 
