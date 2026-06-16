@@ -840,12 +840,49 @@
     min-width: 6rem;
     max-width: none;
   }
-  /* Pop-up 50% largura (retirada/entrega, taxa e detalhes) — 16:9 em zoom 67–100% */
+  /* Pop-up 50% (taxa e detalhes) · 70% retirada/entrega — 16:9 em zoom 67–100% */
   .pdv-modal-panel-50 {
     width: min(50vw, calc(88vh * 16 / 9));
     max-width: 96vw;
     max-height: min(88vh, calc(96vw * 9 / 16));
     overflow: auto;
+  }
+  .pdv-modal-panel-70 {
+    width: min(70vw, calc(88vh * 16 / 9));
+    max-width: 98vw;
+    max-height: min(88vh, calc(98vw * 9 / 16));
+    overflow: auto;
+    font-size: clamp(1.05rem, 0.5vw + 0.95rem, 1.4rem);
+  }
+  #modal-pdv-retirada-entrega .pdv-re-etapa {
+    font-size: 0.72em;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+  }
+  #modal-pdv-retirada-entrega .pdv-re-titulo {
+    font-size: 1.55em;
+    font-weight: 900;
+    line-height: 1.15;
+  }
+  #modal-pdv-retirada-entrega .pdv-re-opcao-titulo {
+    font-size: 1.08em;
+    font-weight: 900;
+    line-height: 1.25;
+  }
+  #modal-pdv-retirada-entrega .pdv-re-opcao-sub {
+    font-size: 0.82em;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-top: 0.2em;
+  }
+  #modal-pdv-retirada-entrega .pdv-re-opcao kbd {
+    font-size: 0.62em;
+    padding: 0.12em 0.35em;
+  }
+  #modal-pdv-retirada-entrega .pdv-wiz-choice {
+    min-height: 4.5rem;
+    padding: 1rem 1.15rem;
   }
   .pdv-step-entrega-shell {
     container-type: inline-size;
@@ -1767,23 +1804,38 @@
   </div>
 </div>
 
-<div id="modal-pdv-retirada-entrega" class="fixed inset-0 z-[126] hidden items-center justify-center bg-slate-950/60 p-2 backdrop-blur-sm sm:p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-re-titulo">
-  <div class="pdv-modal-panel-50 overflow-hidden rounded-[1.35rem] border-[3px] border-orange-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
-    <div class="border-b border-orange-100 bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-4 sm:px-6 sm:py-5">
-      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Etapa 2 · Entrega</p>
-      <h2 id="pdv-re-titulo" class="mt-1 text-[clamp(1.1rem,0.5vw+1rem,1.5rem)] font-black leading-tight text-white">Retirada ou entrega?</h2>
+<div id="modal-pdv-entrega-salvar-cliente" class="fixed inset-0 z-[130] hidden items-center justify-center bg-slate-950/65 p-2 backdrop-blur-sm sm:p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-esc-titulo">
+  <div class="pdv-modal-panel-70 overflow-hidden rounded-[1.35rem] border-[3px] border-sky-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
+    <div class="border-b border-sky-100 bg-gradient-to-r from-sky-600 to-teal-600 px-6 py-5 sm:px-8 sm:py-6">
+      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Dados do cliente</p>
+      <h2 id="pdv-esc-titulo" class="mt-2 text-[clamp(1.15rem,0.55vw+1rem,1.65rem)] font-black leading-tight text-white">Salvar alterações no cadastro?</h2>
+      <p class="mt-2 text-sm font-semibold text-white/90">Você mudou nome, telefone ou endereço. Escolha se atualiza o cadastro do cliente ou usa só nesta entrega.</p>
     </div>
-    <div class="grid gap-2 p-4 sm:gap-3 sm:p-5">
-      <button type="button" id="pdv-re-retirada" class="pdv-wiz-choice pdv-wiz-choice--green min-h-[3.25rem] w-full text-left">
+    <div class="flex flex-col gap-3 p-5 sm:gap-4 sm:p-7">
+      <button type="button" id="pdv-esc-salvar-cadastro" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-emerald-400 bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 text-left text-base font-black uppercase tracking-wide text-white shadow-lg hover:brightness-105">Salvar no cadastro do cliente</button>
+      <button type="button" id="pdv-esc-so-entrega" class="pdv-action-btn min-h-[3.5rem] w-full rounded-2xl border-[3px] border-slate-300 bg-slate-50 px-4 py-3 text-left text-base font-black uppercase tracking-wide text-slate-800 shadow-md hover:bg-slate-100">Usar só nesta entrega</button>
+      <button type="button" id="pdv-esc-cancelar" class="pdv-action-btn w-full rounded-xl border-2 border-slate-200 py-3 text-sm font-black uppercase text-slate-600 hover:bg-slate-50">Voltar e revisar</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-pdv-retirada-entrega" class="fixed inset-0 z-[126] hidden items-center justify-center bg-slate-950/60 p-2 backdrop-blur-sm sm:p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-re-titulo">
+  <div class="pdv-modal-panel-70 overflow-hidden rounded-[1.35rem] border-[3px] border-orange-400 bg-white shadow-2xl" onclick="event.stopPropagation()">
+    <div class="border-b border-orange-100 bg-gradient-to-r from-orange-600 to-amber-600 px-6 py-5 sm:px-8 sm:py-6">
+      <p class="pdv-re-etapa text-white/90">Etapa 2 · Entrega</p>
+      <h2 id="pdv-re-titulo" class="pdv-re-titulo mt-2 text-white">Retirada ou entrega?</h2>
+    </div>
+    <div class="grid gap-3 p-5 sm:gap-4 sm:p-7">
+      <button type="button" id="pdv-re-retirada" class="pdv-wiz-choice pdv-wiz-choice--green w-full text-left">
         <span class="min-w-0">
-          <span class="block text-sm font-black text-emerald-950">Retirada na loja <kbd class="pointer-events-none ml-1 rounded border border-emerald-500/80 bg-white px-1.5 py-0.5 font-mono text-[9px]">1</kbd></span>
-          <span class="block text-[11px] font-semibold text-emerald-900/80">Vai direto ao pagamento.</span>
+          <span class="pdv-re-opcao-titulo block text-emerald-950">Retirada na loja <kbd class="pointer-events-none ml-1 rounded border border-emerald-500/80 bg-white font-mono text-emerald-900">1</kbd></span>
+          <span class="pdv-re-opcao-sub block text-emerald-900/80">Vai direto ao pagamento.</span>
         </span>
       </button>
-      <button type="button" id="pdv-re-entrega" class="pdv-wiz-choice pdv-wiz-choice--orange min-h-[3.25rem] w-full text-left">
+      <button type="button" id="pdv-re-entrega" class="pdv-wiz-choice pdv-wiz-choice--orange w-full text-left">
         <span class="min-w-0">
-          <span class="block text-sm font-black text-orange-950">Entrega <kbd class="pointer-events-none ml-1 rounded border border-orange-500/80 bg-white px-1.5 py-0.5 font-mono text-[9px]">2</kbd></span>
-          <span class="block text-[11px] font-semibold text-orange-900/85">Preenche endereço e detalhes da entrega.</span>
+          <span class="pdv-re-opcao-titulo block text-orange-950">Entrega <kbd class="pointer-events-none ml-1 rounded border border-orange-500/80 bg-white font-mono text-orange-900">2</kbd></span>
+          <span class="pdv-re-opcao-sub block text-orange-900/85">Preenche endereço e detalhes da entrega.</span>
         </span>
       </button>
     </div>
@@ -2038,7 +2090,8 @@
       itens: [
         'Ao entrar, o sistema pergunta retirada na loja ou entrega; na entrega abre outro pop-up com taxa, horário e troco.',
         'Partida e Maps ficam na faixa superior; escolha a loja de saída quando houver várias.',
-        'Nome e telefone do cliente aparecem ao lado do endereço; E abre edição rápida.',
+        'Nome e telefone editáveis ao lado do endereço; Plus Code preenche logradouro e bairro.',
+        'Ao continuar, se houver alteração no cadastro, pergunta se salva no cliente ou só nesta entrega.',
         'Preencha logradouro, número e bairro; observações da venda e da entrega ficam no rodapé.',
         'Ao continuar, outro assistente pergunta se o pagamento é na entrega ou na loja.',
         '“Reiniciar pagamento” zera só essa escolha de pagamento na entrega.',

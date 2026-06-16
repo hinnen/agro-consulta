@@ -217,6 +217,8 @@
         step2TelView: document.getElementById('pdv-step2-client-tel-view'),
         step2EndView: document.getElementById('pdv-step2-client-end-view'),
         step2OpenClienteEdit: document.getElementById('pdv-step2-open-cliente-edit'),
+        entregaClienteNome: document.getElementById('pdv-entrega-cliente-nome'),
+        entregaClienteTelefone: document.getElementById('pdv-entrega-cliente-telefone'),
         clienteTelefone: document.getElementById('pdv-cliente-telefone'),
         clienteLogradouro: document.getElementById('pdv-cliente-logradouro'),
         clienteNumero: document.getElementById('pdv-cliente-numero'),
@@ -302,6 +304,11 @@
     var quickClientGeocodeTimer = null;
     var quickClientGeocodeSeq = 0;
     var quickClientGeocodeLastQ = '';
+    var entregaPlusGeocodeTimer = null;
+    var entregaPlusGeocodeSeq = 0;
+    var entregaPlusGeocodeLastQ = '';
+    var entregaClienteSnapshot = null;
+    var entregaPendingAfterSaveCliente = null;
     var clientSearchSeq = 0;
     var lastClientSearchQuery = '';
     var AUTOCOMPLETE_LIMIT = 8;
@@ -1959,10 +1966,13 @@
 
         var hints = {
             produtos: 'Monte os itens e defina o cliente base da venda.',
-            entrega: 'Pop-ups: retirada/entrega, taxa e pagamento. Rodapé: observações · F7 continua · F1 volta.',
+            entrega: '',
             pagamento: ''
         };
-        dom.stepHint.textContent = hints[state.currentStep] || 'Siga o fluxo da venda.';
+        if (dom.stepHint) {
+            dom.stepHint.textContent = hints[state.currentStep] || '';
+            dom.stepHint.style.display = hints[state.currentStep] ? '' : 'none';
+        }
     }
 
     function renderSummary(state, computed) {
@@ -2551,6 +2561,319 @@
         updateSearchAwaitingPulse();
     }
 
+    function renderEntregaClienteCampos(state) {
+        var cl = state.cliente || {};
+        setInputValueUnlessFocused(dom.entregaClienteNome, currentClientName(state));
+        setInputValueUnlessFocused(dom.entregaClienteTelefone, cl.telefone || '');
+        if (dom.clienteZapWhatsapp) {
+            var tel = dom.entregaClienteTelefone
+                ? dom.entregaClienteTelefone.value
+                : cl.telefone;
+            var wz = whatsappHrefCliente(tel);
+            if (wz) {
+                dom.clienteZapWhatsapp.href = wz;
+                dom.clienteZapWhatsapp.classList.remove('hidden');
+            } else {
+                dom.clienteZapWhatsapp.href = '#';
+                dom.clienteZapWhatsapp.classList.add('hidden');
+            }
+        }
+    }
+
+    function clienteEntregaSnapshotFromState(state) {
+        state = state || State.getState();
+        var c = state.cliente || {};
+        var e = state.entrega || {};
+        return {
+            nome: String(c.nome || '').trim(),
+            telefone: String(c.telefone || '').trim(),
+            logradouro: String(e.logradouro || c.logradouro || '').trim(),
+            numero: String(e.numero || c.numero || '').trim(),
+            bairro: String(e.bairro || c.bairro || '').trim(),
+            plus_code: String(e.plusCode || c.plus_code || '').trim(),
+            complemento: String(e.complemento || '').trim(),
+            referencia: String(e.referencia || c.referencia_rural || '').trim()
+        };
+    }
+
+    function clienteEntregaDadosAlterados(state) {
+        if (!entregaClienteSnapshot) return false;
+        return (
+            JSON.stringify(clienteEntregaSnapshotFromState(state)) !==
+            JSON.stringify(entregaClienteSnapshot)
+        );
+    }
+
+    function commitEntregaClienteCamposFromDom() {
+        var st = State.getState();
+        if (!st.cliente) return;
+        var nome = dom.entregaClienteNome ? String(dom.entregaClienteNome.value || '').trim() : '';
+        var tel = dom.entregaClienteTelefone
+            ? String(dom.entregaClienteTelefone.value || '').trim()
+            : '';
+        var c = Object.assign({}, st.cliente);
+        if (nome) c.nome = nome;
+        if (tel || dom.entregaClienteTelefone) c.telefone = tel;
+        c.endereco = composeClienteEnderecoLinha(c) || c.endereco;
+        State.setCliente(c, st.clienteMode);
+    }
+
+    function aplicarEntregaEnderecoNoClienteMemoria() {
+        var st = State.getState();
+        if (!st.cliente) return;
+        var e = st.entrega || {};
+        var c = Object.assign({}, st.cliente);
+        if (e.logradouro) c.logradouro = e.logradouro;
+        if (e.numero) c.numero = e.numero;
+        if (e.bairro) c.bairro = e.bairro;
+        if (e.plusCode) c.plus_code = e.plusCode;
+        if (e.referencia) c.referencia_rural = e.referencia;
+        c.endereco = composeClienteEnderecoLinha(c) || buildLinhaEnderecoEntrega(st) || c.endereco;
+        State.setCliente(c, st.clienteMode);
+    }
+
+    function buildPayloadSalvarClienteEntrega(state) {
+        commitEntregaClienteCamposFromDom();
+        commitEntregaCamposEndereco();
+        state = state || State.getState();
+        aplicarEntregaEnderecoNoClienteMemoria();
+        state = State.getState();
+        var c = state.cliente || {};
+        var e = state.entrega || {};
+        return {
+            nome: String(c.nome || '').trim(),
+            whatsapp: String(c.telefone || '').trim(),
+            logradouro: String(e.logradouro || c.logradouro || '').trim(),
+            numero: String(e.numero || c.numero || '').trim(),
+            bairro: String(e.bairro || c.bairro || '').trim(),
+            cidade: String(c.cidade || '').trim(),
+            uf: String(c.uf || '').trim(),
+            cep: String(c.cep || '').trim(),
+            complemento: String(e.complemento || '').trim(),
+            plus_code: String(e.plusCode || c.plus_code || '').trim(),
+            referencia_rural: String(e.referencia || c.referencia_rural || '').trim()
+        };
+    }
+
+    function isEntregaSalvarClienteModalOpen() {
+        var r = document.getElementById('modal-pdv-entrega-salvar-cliente');
+        return !!(r && !r.classList.contains('hidden'));
+    }
+
+    function closeEntregaSalvarClienteModal() {
+        var root = document.getElementById('modal-pdv-entrega-salvar-cliente');
+        if (root) {
+            root.classList.add('hidden');
+            root.classList.remove('flex');
+        }
+        pdvTryRemoveModalOpenBody();
+    }
+
+    function openEntregaSalvarClienteModal() {
+        var root = document.getElementById('modal-pdv-entrega-salvar-cliente');
+        if (!root) {
+            if (entregaPendingAfterSaveCliente) entregaPendingAfterSaveCliente();
+            entregaPendingAfterSaveCliente = null;
+            return;
+        }
+        root.classList.remove('hidden');
+        root.classList.add('flex');
+        pdvEnsureModalOpenBody();
+    }
+
+    function finalizarEscolhaSalvarCliente(salvarNoCadastro) {
+        var continuar = entregaPendingAfterSaveCliente;
+        entregaPendingAfterSaveCliente = null;
+        if (!salvarNoCadastro) {
+            aplicarEntregaEnderecoNoClienteMemoria();
+            entregaClienteSnapshot = clienteEntregaSnapshotFromState(State.getState());
+            closeEntregaSalvarClienteModal();
+            if (continuar) continuar();
+            return;
+        }
+        var st = State.getState();
+        var pk = clienteAgroPkFromCliente(st.cliente);
+        var pattern = urls.apiPdvClienteEditarPattern;
+        if (!pk || !pattern) {
+            alert('Não foi possível salvar no cadastro (cliente sem vínculo local).');
+            closeEntregaSalvarClienteModal();
+            return;
+        }
+        var payload = buildPayloadSalvarClienteEntrega(st);
+        if (payload.nome.length < 2) {
+            alert('Informe o nome do cliente (mínimo 2 caracteres).');
+            return;
+        }
+        var waDigits = String(payload.whatsapp || '').replace(/\D/g, '');
+        if (waDigits.length < 10) {
+            alert('Informe o telefone com DDD (mínimo 10 dígitos).');
+            return;
+        }
+        var btn = document.getElementById('pdv-esc-salvar-cadastro');
+        var prev = btn ? btn.textContent : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Salvando…';
+        }
+        jsonPost(pattern.replace('__pk__', String(pk)), payload)
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.ok) {
+                    alert(
+                        (res.data && (res.data.erro || res.data.error)) ||
+                            'Não foi possível salvar o cliente.'
+                    );
+                    return;
+                }
+                patchClienteInSearchResults(res.data.cliente);
+                syncEntregaEnderecoFromCliente(State.getState());
+                entregaClienteSnapshot = clienteEntregaSnapshotFromState(State.getState());
+                closeEntregaSalvarClienteModal();
+                if (continuar) continuar();
+            })
+            .catch(function () {
+                alert('Erro de rede ao salvar o cliente.');
+            })
+            .finally(function () {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = prev || 'Salvar no cadastro do cliente';
+                }
+            });
+    }
+
+    function tryProsseguirEntregaStep() {
+        var state = State.getState();
+        var lp = String((state.entrega && state.entrega.localPagamento) || '');
+        if (!lp) {
+            openEntregaFluxoModal1();
+            return;
+        }
+        if (lp === 'loja') {
+            wizardIrParaPagamentoComImpressao();
+            return;
+        }
+        if (lp === 'entrega') {
+            wizardEnviarEntregaPainel();
+        }
+    }
+
+    function onEntregaBtnNext() {
+        commitEntregaClienteCamposFromDom();
+        commitEntregaCamposEndereco();
+        var state = State.getState();
+        var computed = State.getComputed();
+        if (!String((state.entrega && state.entrega.modoRetiradaEntrega) || '').trim()) {
+            openRetiradaEntregaModal();
+            return;
+        }
+        if (
+            state.entrega.modoRetiradaEntrega === 'entrega' &&
+            !state.entrega.detalhesEntregaRespondidos
+        ) {
+            openEntregaDetalhesModal();
+            return;
+        }
+        var validation = canAdvance(state, computed);
+        if (validation) {
+            alert(validation);
+            return;
+        }
+        if (clienteEntregaDadosAlterados(state) && clienteAgroPkFromCliente(state.cliente)) {
+            entregaPendingAfterSaveCliente = tryProsseguirEntregaStep;
+            openEntregaSalvarClienteModal();
+            return;
+        }
+        tryProsseguirEntregaStep();
+    }
+
+    function commitEntregaCamposEndereco() {
+        var st = State.getState();
+        var e0 = st.entrega || {};
+        var e = Object.assign({}, e0, {
+            logradouro: dom.entregaLogradouro ? dom.entregaLogradouro.value.trim() : '',
+            numero: dom.entregaNumero ? dom.entregaNumero.value.trim() : '',
+            bairro: dom.entregaBairro ? dom.entregaBairro.value : '',
+            plusCode: dom.entregaPluscode ? dom.entregaPluscode.value.trim() : ''
+        });
+        var line = buildLinhaEnderecoEntrega({ entrega: e, cliente: st.cliente });
+        State.setEntregaPatch({
+            logradouro: e.logradouro,
+            numero: e.numero,
+            bairro: e.bairro,
+            plusCode: e.plusCode,
+            endereco: line
+        });
+    }
+
+    function applyEntregaPlusGeocodeEndereco(endereco, overwrite) {
+        endereco = endereco || {};
+        function setIf(el, val) {
+            if (!el || val == null || val === '') return;
+            if (overwrite || !String(el.value || '').trim()) el.value = val;
+        }
+        setIf(dom.entregaLogradouro, endereco.logradouro);
+        setIf(dom.entregaNumero, endereco.numero);
+        if (dom.entregaBairro && endereco.bairro) {
+            var bai = bairroListaJacupiOuVazio(endereco.bairro);
+            if (bai && (overwrite || !String(dom.entregaBairro.value || '').trim())) {
+                dom.entregaBairro.value = bai;
+            }
+        }
+        commitEntregaCamposEndereco();
+        var st = State.getState();
+        if (!st.cliente) return;
+        var pc = dom.entregaPluscode ? String(dom.entregaPluscode.value || '').trim() : '';
+        var c = Object.assign({}, st.cliente);
+        if (endereco.logradouro && (overwrite || !String(c.logradouro || '').trim())) {
+            c.logradouro = endereco.logradouro;
+        }
+        if (endereco.numero && (overwrite || !String(c.numero || '').trim())) c.numero = endereco.numero;
+        if (endereco.bairro) {
+            var b2 = bairroListaJacupiOuVazio(endereco.bairro);
+            if (b2 && (overwrite || !String(c.bairro || '').trim())) c.bairro = b2;
+        }
+        if (endereco.cidade && (overwrite || !String(c.cidade || '').trim())) c.cidade = endereco.cidade;
+        if (endereco.uf && (overwrite || !String(c.uf || '').trim())) c.uf = endereco.uf;
+        if (endereco.cep && (overwrite || !String(c.cep || '').trim())) c.cep = endereco.cep;
+        if (pc) c.plus_code = pc;
+        c.endereco = composeClienteEnderecoLinha(c) || c.endereco;
+        State.setCliente(c, st.clienteMode);
+    }
+
+    function scheduleEntregaPlusGeocode(force) {
+        if (!dom.entregaPluscode) return;
+        var q = String(dom.entregaPluscode.value || '').trim();
+        if (q.length < 4) return;
+        if (!force && q === entregaPlusGeocodeLastQ) return;
+        clearTimeout(entregaPlusGeocodeTimer);
+        entregaPlusGeocodeTimer = setTimeout(function () {
+            runEntregaPlusGeocode(q);
+        }, force ? 0 : 650);
+    }
+
+    function runEntregaPlusGeocode(q) {
+        var apiUrl = urls.apiPdvGeocodePlus;
+        if (!apiUrl) return;
+        q = String(q || '').trim();
+        if (q.length < 4) return;
+        entregaPlusGeocodeLastQ = q;
+        var seq = ++entregaPlusGeocodeSeq;
+        var sep = apiUrl.indexOf('?') >= 0 ? '&' : '?';
+        fetch(apiUrl + sep + 'q=' + encodeURIComponent(q), {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' }
+        })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (data) {
+                if (seq !== entregaPlusGeocodeSeq) return;
+                if (!data || !data.ok || !data.endereco) return;
+                applyEntregaPlusGeocodeEndereco(data.endereco, false);
+            })
+            .catch(function () {});
+    }
+
     function renderStep2(state) {
         if (dom.step2ClientName) dom.step2ClientName.textContent = currentClientName(state);
         if (dom.step2ClientDoc) {
@@ -3101,11 +3424,15 @@
         setInputValue(edHor, e.horario);
         setInputValue(edTro, e.troco);
         renderEntregaTaxaCard(state);
-        renderStep2(state);
+        renderEntregaClienteCampos(state);
+        entregaPlusGeocodeLastQ = String(e.plusCode || c.plus_code || '').trim();
         if (dom.entregaMain) {
             var modo = String(e.modoRetiradaEntrega || '');
             var showMain = modo === 'entrega' && !!e.detalhesEntregaRespondidos;
             showElement(dom.entregaMain, showMain, 'flex');
+            if (showMain && !entregaClienteSnapshot) {
+                entregaClienteSnapshot = clienteEntregaSnapshotFromState(state);
+            }
         }
     }
 
@@ -3516,6 +3843,7 @@
     function pdvTryRemoveModalOpenBody() {
         var mdRe = document.getElementById('modal-pdv-retirada-entrega');
         var mdEd = document.getElementById('modal-pdv-entrega-detalhes');
+        var mdEsc = document.getElementById('modal-pdv-entrega-salvar-cliente');
         var md1 = document.getElementById('modal-pdv-entrega-fluxo-1');
         var md2 = document.getElementById('modal-pdv-entrega-fluxo-2');
         var md3 = document.getElementById('modal-pdv-entrega-fluxo-3-troco');
@@ -3523,6 +3851,7 @@
         var meiOpen = mei && !mei.classList.contains('hidden');
         var reOpen = mdRe && !mdRe.classList.contains('hidden');
         var edOpen = mdEd && !mdEd.classList.contains('hidden');
+        var escOpen = mdEsc && !mdEsc.classList.contains('hidden');
         var f1 = md1 && !md1.classList.contains('hidden');
         var f2 = md2 && !md2.classList.contains('hidden');
         var f3 = md3 && !md3.classList.contains('hidden');
@@ -3531,7 +3860,7 @@
         var cadOpen =
             dom.wizardCliRapidoModal && !dom.wizardCliRapidoModal.classList.contains('hidden');
         try {
-            if (!reOpen && !edOpen && !f1 && !f2 && !f3 && !meiOpen && !cliOpen && !startOpen && !cadOpen) {
+            if (!reOpen && !edOpen && !escOpen && !f1 && !f2 && !f3 && !meiOpen && !cliOpen && !startOpen && !cadOpen) {
                 document.body.classList.remove('modal-open');
             }
         } catch (eM2) {}
@@ -3599,6 +3928,10 @@
         closeEntregaFluxoModal1();
         closeEntregaFluxoModal2();
         closeEntregaFluxoModal3();
+        closeEntregaSalvarClienteModal();
+        entregaClienteSnapshot = null;
+        entregaPendingAfterSaveCliente = null;
+        entregaPlusGeocodeLastQ = '';
     }
     function escolherRetiradaEntrega(modo) {
         if (modo === 'retirada') {
@@ -3641,6 +3974,7 @@
         if (dom.entregaHorario) dom.entregaHorario.value = hor;
         if (dom.entregaTroco) dom.entregaTroco.value = tro;
         wizardSyncLembretesFromEntregaHorario();
+        entregaClienteSnapshot = null;
         closeEntregaDetalhesModal();
     }
 
@@ -3660,6 +3994,7 @@
         return (
             isRetiradaEntregaModalOpen() ||
             isEntregaDetalhesModalOpen() ||
+            isEntregaSalvarClienteModalOpen() ||
             isEntregaFluxo1Open() ||
             isEntregaFluxo2Open() ||
             isEntregaFluxo3Open()
@@ -6176,30 +6511,8 @@
             var state = State.getState();
             var computed = State.getComputed();
             if (state.currentStep === 'entrega') {
-                if (!String((state.entrega && state.entrega.modoRetiradaEntrega) || '').trim()) {
-                    openRetiradaEntregaModal();
-                    return;
-                }
-                if (
-                    state.entrega.modoRetiradaEntrega === 'entrega' &&
-                    !state.entrega.detalhesEntregaRespondidos
-                ) {
-                    openEntregaDetalhesModal();
-                    return;
-                }
-                var lp = String((state.entrega && state.entrega.localPagamento) || '');
-                if (!lp) {
-                    openEntregaFluxoModal1();
-                    return;
-                }
-                if (lp === 'loja') {
-                    wizardIrParaPagamentoComImpressao();
-                    return;
-                }
-                if (lp === 'entrega') {
-                    wizardEnviarEntregaPainel();
-                    return;
-                }
+                onEntregaBtnNext();
+                return;
             }
             var validation = canAdvance(state, computed);
             if (validation) {
@@ -6794,29 +7107,63 @@
             });
         }
 
-        function commitEntregaCamposEndereco() {
-            var st = State.getState();
-            var e0 = st.entrega || {};
-            var e = Object.assign({}, e0, {
-                logradouro: dom.entregaLogradouro ? dom.entregaLogradouro.value.trim() : '',
-                numero: dom.entregaNumero ? dom.entregaNumero.value.trim() : '',
-                bairro: dom.entregaBairro ? dom.entregaBairro.value : '',
-                plusCode: dom.entregaPluscode ? dom.entregaPluscode.value.trim() : ''
-            });
-            var line = buildLinhaEnderecoEntrega({ entrega: e, cliente: st.cliente });
-            State.setEntregaPatch({
-                logradouro: e.logradouro,
-                numero: e.numero,
-                bairro: e.bairro,
-                plusCode: e.plusCode,
-                endereco: line
-            });
-        }
-
         [dom.entregaLogradouro, dom.entregaNumero, dom.entregaPluscode].forEach(function (el) {
             if (el) el.addEventListener('input', commitEntregaCamposEndereco);
         });
         if (dom.entregaBairro) dom.entregaBairro.addEventListener('change', commitEntregaCamposEndereco);
+        if (dom.entregaPluscode) {
+            dom.entregaPluscode.addEventListener('input', function () {
+                commitEntregaCamposEndereco();
+                scheduleEntregaPlusGeocode(false);
+            });
+            dom.entregaPluscode.addEventListener('blur', function () {
+                scheduleEntregaPlusGeocode(true);
+            });
+            dom.entregaPluscode.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Enter') {
+                    ev.preventDefault();
+                    scheduleEntregaPlusGeocode(true);
+                }
+            });
+        }
+        if (dom.entregaClienteNome) {
+            dom.entregaClienteNome.addEventListener('input', commitEntregaClienteCamposFromDom);
+        }
+        if (dom.entregaClienteTelefone) {
+            dom.entregaClienteTelefone.addEventListener('input', function () {
+                commitEntregaClienteCamposFromDom();
+                renderEntregaClienteCampos(State.getState());
+            });
+        }
+
+        var btnEscSalvar = document.getElementById('pdv-esc-salvar-cadastro');
+        if (btnEscSalvar) {
+            btnEscSalvar.addEventListener('click', function () {
+                finalizarEscolhaSalvarCliente(true);
+            });
+        }
+        var btnEscSoEntrega = document.getElementById('pdv-esc-so-entrega');
+        if (btnEscSoEntrega) {
+            btnEscSoEntrega.addEventListener('click', function () {
+                finalizarEscolhaSalvarCliente(false);
+            });
+        }
+        var btnEscCancelar = document.getElementById('pdv-esc-cancelar');
+        if (btnEscCancelar) {
+            btnEscCancelar.addEventListener('click', function () {
+                entregaPendingAfterSaveCliente = null;
+                closeEntregaSalvarClienteModal();
+            });
+        }
+        var mdEscModal = document.getElementById('modal-pdv-entrega-salvar-cliente');
+        if (mdEscModal) {
+            mdEscModal.addEventListener('click', function (ev) {
+                if (ev.target === mdEscModal) {
+                    entregaPendingAfterSaveCliente = null;
+                    closeEntregaSalvarClienteModal();
+                }
+            });
+        }
 
         [
             [dom.vendaObservacao, function () { State.setVendaField('observacao', dom.vendaObservacao.value); }],
@@ -7259,6 +7606,12 @@
                 }
             }
             if (event.key === 'Escape') {
+                if (isEntregaSalvarClienteModalOpen()) {
+                    event.preventDefault();
+                    entregaPendingAfterSaveCliente = null;
+                    closeEntregaSalvarClienteModal();
+                    return;
+                }
                 if (isEntregaDetalhesModalOpen()) {
                     event.preventDefault();
                     closeEntregaDetalhesModal();
@@ -7431,9 +7784,9 @@
             }
             if (event.code === 'KeyE' && !event.altKey && !event.ctrlKey && !event.metaKey && !inField) {
                 var stE = State.getState();
-                if (stE.currentStep === 'entrega') {
+                if (stE.currentStep === 'entrega' && dom.entregaClienteNome) {
                     event.preventDefault();
-                    openClienteEditModal();
+                    dom.entregaClienteNome.focus();
                     return;
                 }
             }

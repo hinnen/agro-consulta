@@ -25,19 +25,18 @@
         </div>
 
         <div class="mt-2 grid gap-3 lg:grid-cols-[minmax(0,14rem)_minmax(0,1fr)]">
-          <div class="pdv-wiz-inner-card">
-            <p class="text-[10px] font-black uppercase tracking-wide text-slate-500">Cliente</p>
-            <div id="pdv-step2-client-name" class="mt-1 break-words text-lg font-black text-slate-900 sm:text-xl">—</div>
-            <div id="pdv-step2-client-doc" class="mt-0.5 text-xs font-bold text-slate-500">—</div>
-            <p class="mt-2 text-[10px] font-black uppercase tracking-wide text-slate-500">Telefone</p>
-            <div class="mt-1 flex flex-wrap items-center gap-2">
-              <a id="pdv-step2-cliente-zap" href="#" target="_blank" rel="noopener noreferrer" class="pdv-action-btn hidden shrink-0 rounded-xl border-2 border-green-600 bg-green-600 px-2 py-1 text-[10px] font-black uppercase text-white" title="WhatsApp">Zap</a>
-              <p id="pdv-step2-client-tel-view" class="min-w-0 flex-1 break-words text-sm font-bold text-slate-900">—</p>
-            </div>
-            <div class="mt-2 flex flex-wrap gap-2">
-              <button type="button" id="pdv-step2-open-cliente-edit" class="pdv-wiz-action-btn pdv-wiz-action-btn--orange pdv-action-btn text-[10px]" title="Editar telefone e endereço · E">Editar <kbd class="pointer-events-none ml-0.5 rounded border border-orange-300 bg-white px-1 font-mono text-[8px]">E</kbd></button>
-              <button type="button" id="pdv-cliente-advanced-edit" class="pdv-wiz-action-btn pdv-wiz-action-btn--slate pdv-action-btn text-[10px]">Cadastro</button>
-            </div>
+          <div class="pdv-wiz-inner-card space-y-2">
+            <label class="block">
+              <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Nome</span>
+              <input id="pdv-entrega-cliente-nome" type="text" class="pdv-input border-sky-200 bg-white text-base font-bold" placeholder="Nome do cliente" autocomplete="name">
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Telefone</span>
+              <div class="flex flex-wrap items-center gap-2">
+                <a id="pdv-step2-cliente-zap" href="#" target="_blank" rel="noopener noreferrer" class="pdv-action-btn hidden shrink-0 rounded-xl border-2 border-green-600 bg-green-600 px-2 py-1.5 text-[10px] font-black uppercase text-white" title="WhatsApp">Zap</a>
+                <input id="pdv-entrega-cliente-telefone" type="text" class="pdv-input min-w-0 flex-1 border-sky-200 bg-white" placeholder="Telefone / WhatsApp" autocomplete="tel">
+              </div>
+            </label>
           </div>
 
           <div class="space-y-3">
@@ -58,7 +57,7 @@
               </label>
               <label class="block sm:col-span-2">
                 <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Plus Code <span class="font-semibold normal-case text-slate-400">(opcional)</span></span>
-                <input id="pdv-entrega-pluscode" type="text" class="pdv-input border-sky-200 bg-white" placeholder="Ex.: XXXX+XX" autocomplete="off">
+                <input id="pdv-entrega-pluscode" type="text" class="pdv-input border-sky-200 bg-white" placeholder="Ex.: XXXX+XX" autocomplete="off" title="Preenche logradouro e bairro automaticamente">
               </label>
               <label class="block">
                 <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Complemento</span>
@@ -69,7 +68,6 @@
                 <input id="pdv-entrega-referencia" type="text" class="pdv-input border-sky-200 bg-white" placeholder="Referência curta">
               </label>
             </div>
-            <p class="text-[10px] font-bold leading-snug text-slate-500">Horário, troco e taxa de entrega são definidos no pop-up ao escolher <strong class="text-slate-700">Entrega</strong>.</p>
           </div>
         </div>
       </div>
