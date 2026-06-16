@@ -257,10 +257,21 @@
       border-right: 2px solid #94a3b8;
       padding: 0.7rem 0.9rem;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: 1fr minmax(9rem, 16rem) auto;
       gap: 0.5rem 0.65rem;
       align-items: center;
       min-height: 3.75rem;
+    }
+    .cf-conf-col--contado > .cf-conf-contado-field {
+      grid-column: 2;
+      grid-row: 1;
+      width: 100%;
+      justify-self: center;
+    }
+    .cf-conf-col--contado > .cf-mini-help {
+      grid-column: 3;
+      grid-row: 1;
+      justify-self: start;
     }
     .cf-conf-col--variacao {
       background: #f8fafc;
@@ -305,7 +316,7 @@
       align-items: center;
     }
     .cf-conf-row--dinheiro .cf-conf-col--contado {
-      align-items: start;
+      align-items: center;
     }
     .cf-conf-sem-mov {
       margin-top: 0.65rem;
@@ -374,6 +385,7 @@
       font-weight: 800;
       color: #047857;
       font-variant-numeric: tabular-nums;
+      text-align: center;
     }
     .cf-cedulas-wrap {
       flex: 1 1 auto;
@@ -586,6 +598,7 @@
       padding: 0 0.65rem;
       font-weight: 900;
       font-variant-numeric: tabular-nums;
+      text-align: center;
     }
     .cf-contado-input:focus { outline: none; border-color: #10b981; }
     .cf-conf-contado-field {
