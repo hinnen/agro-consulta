@@ -14,3 +14,22 @@ def home_launcher_nav(request):
         logger.exception("home_launcher_nav: falha ao montar menu do launcher")
         return {"home_launcher_nav_items": []}
 
+
+def agro_app_build(request):
+    try:
+        from config.app_build_util import get_app_build_info
+
+        return {"agro_build": get_app_build_info()}
+    except Exception:
+        logger.exception("agro_app_build: falha ao ler versão")
+        return {
+            "agro_build": {
+                "version": "1.0",
+                "commit": "",
+                "commit_full": "",
+                "branch": "",
+                "built_at": "",
+                "version_commits": [],
+            }
+        }
+

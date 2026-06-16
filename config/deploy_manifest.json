@@ -1,0 +1,11 @@
+{
+  "builds": [
+    {
+      "version": "1.0",
+      "commit": "5d9d868423bd",
+      "commit_full": "5d9d868423bdc5c7a248b4e5bcd7cbf83ee4a0e9",
+      "branch": "teste",
+      "recorded_at": "2026-06-16T19:38:46Z"
+    }
+  ]
+}
