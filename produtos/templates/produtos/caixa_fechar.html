@@ -178,20 +178,85 @@
       flex-direction: column;
       gap: 0.45rem;
     }
-    .cf-pay {
-      border: 2px solid #a7f3d0;
+    .cf-conf-table {
+      border: 2px solid #64748b;
       border-radius: 0.75rem;
-      background: #ecfdf5;
-      padding: 0.45rem 0.55rem;
+      overflow: hidden;
+      background: #fff;
     }
-    .cf-pay + .cf-pay { margin-top: 0.4rem; }
-    .cf-pay-top {
+    .cf-conf-head,
+    .cf-conf-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: stretch;
+    }
+    .cf-conf-head {
+      border-bottom: 2px solid #475569;
+    }
+    .cf-conf-head-label {
+      font-size: clamp(1.05rem, 0.45vw + 0.95rem, 1.28rem) !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      line-height: 1.1;
+      color: #b91c1c;
+      text-align: center;
+    }
+    .cf-conf-col--esperado {
+      background: #ecfdf5;
+      border-right: 3px solid #dc2626;
+      padding: 0.7rem 0.9rem;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      gap: 0.35rem 0.65rem;
-      margin-bottom: 0.35rem;
+      gap: 0.45rem 0.85rem;
+      min-height: 3.75rem;
+    }
+    .cf-conf-col--contado {
+      background: #eff6ff;
+      padding: 0.7rem 0.9rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 0.5rem 0.65rem;
+      align-items: center;
+      min-height: 3.75rem;
+    }
+    .cf-conf-row + .cf-conf-row {
+      border-top: 1px solid #cbd5e1;
+    }
+    .cf-conf-head .cf-conf-col--esperado,
+    .cf-conf-head .cf-conf-col--contado {
+      min-height: auto;
+      padding: 0.6rem 0.9rem;
+      justify-content: center;
+      align-items: center;
+    }
+    .cf-conf-row--dinheiro .cf-conf-col--contado {
+      align-items: start;
+    }
+    .cf-conf-sem-mov {
+      margin-top: 0.65rem;
+      border: 2px solid #cbd5e1;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+    .cf-conf-sem-mov > summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 0.65rem 0.9rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #475569;
+      background: #f1f5f9;
+    }
+    .cf-conf-sem-mov > summary::-webkit-details-marker { display: none; }
+    .cf-conf-table--sem-mov {
+      border: none;
+      border-radius: 0;
+      border-top: 1px solid #cbd5e1;
     }
     .cf-pay-forma {
       font-weight: 900;
@@ -201,9 +266,6 @@
       font-weight: 900;
       font-variant-numeric: tabular-nums;
       color: #047857;
-    }
-    .cf-pay--dinheiro {
-      padding: 0;
     }
     .cf-contado-inline-wrap {
       display: flex;
@@ -447,17 +509,11 @@
       font-variant-numeric: tabular-nums;
     }
     .cf-contado-input:focus { outline: none; border-color: #10b981; }
-    .cf-pay-simple {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 0.35rem;
-      align-items: center;
-    }
-    @container (min-width: 26rem) {
-      .cf-pay-simple {
-        grid-template-columns: minmax(6rem, 0.42fr) minmax(6.5rem, 0.38fr) minmax(8rem, 1fr) auto;
-        gap: 0.45rem 0.65rem;
-      }
+    .cf-conf-contado-field {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
     }
     .cf-fiado-wizard.cf-modal-overlay {
       padding: 0;
@@ -889,53 +945,54 @@
         <div class="cf-scroll">
           <p id="cf-contagem-status" class="cf-t-meta hidden font-black uppercase text-emerald-700" role="status" aria-live="polite"></p>
           {% if linhas_com_movimento %}
+          <div class="cf-conf-table" role="table" aria-label="Conferência por forma de pagamento">
+            <div class="cf-conf-head" role="row">
+              <div class="cf-conf-col cf-conf-col--esperado" role="columnheader">
+                <span class="cf-conf-head-label">Esperado</span>
+              </div>
+              <div class="cf-conf-col cf-conf-col--contado" role="columnheader">
+                <span class="cf-conf-head-label">Contado</span>
+              </div>
+            </div>
           {% for L in linhas_com_movimento %}
-          <div class="cf-pay{% if L.forma == 'Dinheiro' %} cf-pay--dinheiro{% endif %}">
+          <div class="cf-conf-row{% if L.forma == 'Dinheiro' %} cf-conf-row--dinheiro{% endif %}" role="row">
             <input type="hidden" name="forma_{{ L.idx }}" value="{{ L.forma }}">
-            {% if L.forma == 'Dinheiro' %}
-            <div class="cf-pay-simple cf-pay-simple--dinheiro">
+            <div class="cf-conf-col cf-conf-col--esperado" role="cell">
               <span class="cf-pay-forma cf-t-forma">{{ L.forma }}</span>
               <span class="cf-pay-esperado cf-t-money cf-esperado-val" data-forma="{{ L.forma }}">R$ {{ L.esperado }}</span>
-              <label class="min-w-0 cf-contado-with-cedulas">
-                <span class="cf-contado-label cf-t-label">Contado</span>
+            </div>
+            <div class="cf-conf-col cf-conf-col--contado" role="cell">
+              {% if L.forma == 'Dinheiro' %}
+              <div class="cf-conf-contado-field cf-contado-with-cedulas">
                 <div class="cf-contado-inline-wrap">
                   <button type="button" id="cf-cedulas-abrir" class="cf-cedulas-open-btn--inline cf-t-label" aria-haspopup="dialog" aria-controls="cf-cedulas-modal" title="Abrir contagem de cédulas e moedas">Cédulas</button>
-                  <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input min-w-0 flex-1" placeholder="0,00" autocomplete="off" title="Valor contado — salvo automaticamente">
+                  <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input min-w-0 flex-1" placeholder="0,00" autocomplete="off" aria-label="Contado em dinheiro" title="Valor contado">
                 </div>
                 <span id="cf-cedulas-resumo" class="cf-cedulas-open-resumo">Toque em Cédulas para informar quantidades</span>
                 <p class="caixa-diff cf-t-meta font-bold hidden"></p>
-              </label>
-              <details class="cf-mini-help relative justify-self-end">
-                <summary class="cursor-pointer list-none inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-slate-200 bg-white text-sm font-black text-slate-600 hover:border-emerald-400 select-none" title="Detalhe">?</summary>
-                <div class="cf-detalhe absolute z-20 top-full mt-1 right-0 w-[min(17rem,calc(100vw-2rem))] rounded-xl border-2 border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-700 shadow-lg" data-forma="{{ L.forma }}">
-                  <p class="cf-det-vendas">Vendas R$ {{ L.vendas }}</p>
-                  <p class="cf-det-reforcos mt-1">+ Reforços R$ {{ L.reforcos }}</p>
-                  <p class="cf-det-retiradas mt-1">− Retiradas R$ {{ L.retiradas }}</p>
-                  <p class="cf-det-abertura mt-1{% if L.abertura_dinheiro == '0.00' %} hidden{% endif %}">Fundo abertura R$ {{ L.abertura_dinheiro }}</p>
-                </div>
-              </details>
-            </div>
-            {% else %}
-            <div class="cf-pay-simple">
-              <span class="cf-pay-forma cf-t-forma">{{ L.forma }}</span>
-              <span class="cf-pay-esperado cf-t-money cf-esperado-val" data-forma="{{ L.forma }}">R$ {{ L.esperado }}</span>
-              <label class="min-w-0">
-                <span class="cf-contado-label cf-t-label">Contado</span>
-                <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input" placeholder="0,00" autocomplete="off" title="Valor contado — salvo automaticamente">
+              </div>
+              {% else %}
+              <label class="cf-conf-contado-field min-w-0">
+                <span class="sr-only">Contado {{ L.forma }}</span>
+                <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input" placeholder="0,00" autocomplete="off" aria-label="Contado {{ L.forma }}" title="Valor contado">
                 <p class="caixa-diff cf-t-meta font-bold hidden"></p>
               </label>
-              <details class="cf-mini-help relative justify-self-end">
-                <summary class="cursor-pointer list-none inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-slate-200 bg-white text-sm font-black text-slate-600 hover:border-emerald-400 select-none" title="Detalhe">?</summary>
+              {% endif %}
+              <details class="cf-mini-help relative justify-self-end self-start">
+                <summary class="cursor-pointer list-none inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-slate-300 bg-white text-sm font-black text-slate-600 hover:border-emerald-400 select-none" title="Detalhe">?</summary>
                 <div class="cf-detalhe absolute z-20 top-full mt-1 right-0 w-[min(17rem,calc(100vw-2rem))] rounded-xl border-2 border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-700 shadow-lg" data-forma="{{ L.forma }}">
                   <p class="cf-det-vendas">Vendas R$ {{ L.vendas }}</p>
                   <p class="cf-det-reforcos mt-1">+ Reforços R$ {{ L.reforcos }}</p>
                   <p class="cf-det-retiradas mt-1">− Retiradas R$ {{ L.retiradas }}</p>
+                  {% if L.forma == 'Dinheiro' %}
+                  <p class="cf-det-abertura mt-1{% if L.abertura_dinheiro == '0.00' %} hidden{% endif %}">Fundo abertura R$ {{ L.abertura_dinheiro }}</p>
+                  {% endif %}
                 </div>
               </details>
             </div>
-            {% endif %}
           </div>
           {% endfor %}
+          </div>
           {% else %}
           <p class="text-sm font-bold text-slate-500 py-4 text-center">Nenhuma forma com movimento — abra a gaveta abaixo se precisar.</p>
           {% endif %}
@@ -945,26 +1002,36 @@
           {% endfor %}
 
           {% if linhas_sem_movimento %}
-          <details class="rounded-lg border border-slate-200 bg-slate-50 overflow-hidden">
-            <summary class="cf-t-label cursor-pointer list-none px-3 py-2 flex items-center gap-2 hover:bg-slate-100 select-none text-slate-600">
-              Formas sem movimento ({{ linhas_sem_movimento|length }})
-            </summary>
-            <div class="px-2 pb-2 pt-1 space-y-1 border-t border-slate-200 bg-white">
+          <details class="cf-conf-sem-mov">
+            <summary>Formas sem movimento ({{ linhas_sem_movimento|length }})</summary>
+            <div class="cf-conf-table cf-conf-table--sem-mov" role="table" aria-label="Formas sem movimento">
+              <div class="cf-conf-head" role="row">
+                <div class="cf-conf-col cf-conf-col--esperado" role="columnheader">
+                  <span class="cf-conf-head-label">Esperado</span>
+                </div>
+                <div class="cf-conf-col cf-conf-col--contado" role="columnheader">
+                  <span class="cf-conf-head-label">Contado</span>
+                </div>
+              </div>
               {% for L in linhas_sem_movimento %}
-              <div class="cf-pay-simple rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
-                <span class="cf-pay-forma cf-t-forma">{{ L.forma }}</span>
-                <span class="cf-pay-esperado cf-t-money cf-esperado-val" data-forma="{{ L.forma }}">R$ {{ L.esperado }}</span>
-                <label class="min-w-0">
-                  <span class="cf-contado-label cf-t-label">Contado</span>
-                  <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input" placeholder="0,00" autocomplete="off">
-                  <p class="caixa-diff cf-t-meta font-bold hidden"></p>
-                </label>
-                <details class="cf-mini-help relative justify-self-end">
-                  <summary class="cursor-pointer list-none inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-black text-slate-500 select-none">?</summary>
-                  <div class="cf-detalhe absolute z-10 mt-1 right-0 w-44 rounded-lg border border-slate-200 bg-white p-2 text-[11px] font-bold text-slate-600 shadow-md" data-forma="{{ L.forma }}">
-                    <p class="cf-det-resumo">Vendas R$ {{ L.vendas }} · +Ref. R$ {{ L.reforcos }} · −Ret. R$ {{ L.retiradas }}</p>
-                  </div>
-                </details>
+              <div class="cf-conf-row" role="row">
+                <div class="cf-conf-col cf-conf-col--esperado" role="cell">
+                  <span class="cf-pay-forma cf-t-forma">{{ L.forma }}</span>
+                  <span class="cf-pay-esperado cf-t-money cf-esperado-val" data-forma="{{ L.forma }}">R$ {{ L.esperado }}</span>
+                </div>
+                <div class="cf-conf-col cf-conf-col--contado" role="cell">
+                  <label class="cf-conf-contado-field min-w-0">
+                    <span class="sr-only">Contado {{ L.forma }}</span>
+                    <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input" placeholder="0,00" autocomplete="off" aria-label="Contado {{ L.forma }}">
+                    <p class="caixa-diff cf-t-meta font-bold hidden"></p>
+                  </label>
+                  <details class="cf-mini-help relative justify-self-end self-start">
+                    <summary class="cursor-pointer list-none inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 bg-white text-xs font-black text-slate-500 select-none">?</summary>
+                    <div class="cf-detalhe absolute z-10 mt-1 right-0 w-44 rounded-lg border border-slate-200 bg-white p-2 text-[11px] font-bold text-slate-600 shadow-md" data-forma="{{ L.forma }}">
+                      <p class="cf-det-resumo">Vendas R$ {{ L.vendas }} · +Ref. R$ {{ L.reforcos }} · −Ret. R$ {{ L.retiradas }}</p>
+                    </div>
+                  </details>
+                </div>
               </div>
               {% endfor %}
             </div>
