@@ -282,11 +282,17 @@ def _estado_atual_produto(pid: str) -> dict | None:
     return _mapa_estado_atual_produtos([pid]).get(str(pid or "").strip()[:64])
 
 
-def _mapa_estado_atual_produtos(pids: list[str]) -> dict[str, dict]:
+def _mapa_estado_atual_produtos(
+    pids: list[str],
+    on_progress: None | Any = None,
+) -> dict[str, dict]:
     """Carrega estado atual (Mongo + overlay) em lote — evita N consultas na prévia."""
+    from bson import ObjectId
+
     from produtos.views import (
         _CADASTRO_LISTA_MONGO_PROJ,
         _aplicar_produto_gestao_overlay_em_dict,
+        _mongo_filtro_id_produto_externo,
         _overlay_mapa_por_ids_chunked,
         _produto_mongo_para_cadastro_row,
         _produto_mongo_por_id_externo,
@@ -302,22 +308,72 @@ def _mapa_estado_atual_produtos(pids: list[str]) -> dict[str, dict]:
         return {}
 
     doc_map: dict[str, dict] = {}
-    chunk_sz = 500
-    for i in range(0, len(uniq), chunk_sz):
-        chunk_pids = uniq[i : i + chunk_sz]
+    chunk_sz = 250
+    n_chunks = max(1, (len(uniq) + chunk_sz - 1) // chunk_sz)
+
+    def _registrar_doc(doc: dict, chunk_set: set[str]) -> None:
+        id_val = doc.get("Id")
+        if id_val is not None:
+            sid = str(id_val).strip()[:64]
+            if sid in chunk_set:
+                doc_map[sid] = doc
+                return
+        sid = str(doc.get("_id") or "").strip()[:64]
+        if sid in chunk_set:
+            doc_map[sid] = doc
+
+    for ci, start in enumerate(range(0, len(uniq), chunk_sz)):
+        if on_progress:
+            on_progress(8 + int(2 * ci / n_chunks), f"Catálogo Mongo… lote {ci + 1}/{n_chunks}")
+
+        chunk_pids = uniq[start : start + chunk_sz]
+        chunk_set = set(chunk_pids)
+        ors: list[dict] = [{"Id": {"$in": chunk_pids}}]
+        int_ids: list[int] = []
+        for p in chunk_pids:
+            try:
+                int_ids.append(int(p))
+            except (TypeError, ValueError):
+                pass
+        if int_ids:
+            ors.append({"Id": {"$in": int_ids}})
+        oids: list[ObjectId] = []
+        for p in chunk_pids:
+            try:
+                oids.append(ObjectId(p))
+            except Exception:
+                pass
+        if oids:
+            ors.append({"_id": {"$in": oids}})
+
         try:
-            for doc in db[client.col_p].find({"Id": {"$in": chunk_pids}}, _CADASTRO_LISTA_MONGO_PROJ):
-                pid = str(doc.get("Id") or doc.get("_id") or "").strip()[:64]
-                if pid:
-                    doc_map[pid] = doc
+            for doc in db[client.col_p].find({"$or": ors}, _CADASTRO_LISTA_MONGO_PROJ):
+                _registrar_doc(doc, chunk_set)
         except Exception:
             pass
 
-    for pid in uniq:
-        if pid not in doc_map:
-            doc = _produto_mongo_por_id_externo(db, client, pid)
-            if doc:
-                doc_map[pid] = doc
+    missing = [p for p in uniq if p not in doc_map]
+    if missing:
+        for mi in range(0, len(missing), 40):
+            sub = missing[mi : mi + 40]
+            sub_set = set(sub)
+            ors_fb: list[dict] = []
+            for pid in sub:
+                filt = _mongo_filtro_id_produto_externo(pid)
+                ors_fb.extend(filt.get("$or") or [filt])
+            try:
+                for doc in db[client.col_p].find({"$or": ors_fb}, _CADASTRO_LISTA_MONGO_PROJ):
+                    _registrar_doc(doc, sub_set)
+            except Exception:
+                for pid in sub:
+                    if pid in doc_map:
+                        continue
+                    doc = _produto_mongo_por_id_externo(db, client, pid)
+                    if doc:
+                        doc_map[pid] = doc
+
+    if on_progress:
+        on_progress(10, "Mesclando overlay Agro…")
 
     ovs = _overlay_mapa_por_ids_chunked(uniq)
     out: dict[str, dict] = {}
@@ -449,9 +505,9 @@ def preview_importacao_cadastro(
         pendentes.append({"linha": i, "id": pid, "patch": patch})
 
     if on_progress:
-        on_progress(8, f"Carregando catálogo ({len(pendentes)} linha(s) com alteração)…")
+        on_progress(8, f"Conferindo {len(pendentes)} linha(s) preenchida(s)…")
 
-    mapa = _mapa_estado_atual_produtos([p["id"] for p in pendentes])
+    mapa = _mapa_estado_atual_produtos([p["id"] for p in pendentes], on_progress=on_progress)
     total_pend = len(pendentes)
     step = max(1, total_pend // 40)
 

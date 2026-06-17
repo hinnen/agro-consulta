@@ -299,7 +299,7 @@
     <div class="px-5 py-4 border-b border-slate-200 bg-emerald-50/80 shrink-0">
       <h2 id="cadastro-import-titulo" class="text-lg font-black uppercase text-slate-900">Importar planilha Excel</h2>
       <p class="text-sm text-slate-600 mt-1">Não altere a coluna <strong>ID</strong>. Célula vazia = mantém o valor atual.</p>
-      <p id="cadastro-import-dica" class="text-sm font-semibold text-amber-800 mt-2">Escolha o arquivo — a prévia roda sozinha. Depois confirme.</p>
+      <p id="cadastro-import-dica" class="text-sm font-semibold text-amber-800 mt-2">Não altere a coluna ID. Célula vazia = mantém o valor. <strong>Apague as linhas que não editou</strong> — planilha exportada inteira demora (até 2500 linhas). Escolha o arquivo — a prévia roda sozinha.</p>
     </div>
     <div class="p-5 space-y-4 overflow-y-auto min-h-0 flex-1">
       <label class="block">
@@ -348,7 +348,7 @@
   </div>
 
   <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=3"></script>
-  <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=8"></script>
+  <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=9"></script>
   <script src="{% static 'produtos/js/cadastro_erp_grupos.js' %}?v=3"></script>
 
 </body>
