@@ -282,6 +282,21 @@ urlpatterns = [
     path('api/login-mobile/', views.api_login_mobile, name='api_login_mobile'),
     path('api/pdv/operador/', views.api_pdv_registrar_operador, name='api_pdv_registrar_operador'),
     path('api/produtos/cadastro/', views.api_produtos_cadastro, name='api_produtos_cadastro'),
+    path(
+        'api/produtos/cadastro/export-xlsx/',
+        views.api_produtos_cadastro_export_xlsx,
+        name='api_produtos_cadastro_export_xlsx',
+    ),
+    path(
+        'api/produtos/cadastro/import-preview/',
+        views.api_produtos_cadastro_import_preview,
+        name='api_produtos_cadastro_import_preview',
+    ),
+    path(
+        'api/produtos/cadastro/import-aplicar/',
+        views.api_produtos_cadastro_import_aplicar,
+        name='api_produtos_cadastro_import_aplicar',
+    ),
     path('api/agro/fonte-status/', views.api_agro_fonte_status, name='api_agro_fonte_status'),
     path('api/produtos/gestao/lista/', views.api_produtos_gestao_lista, name='api_produtos_gestao_lista'),
     path('api/produtos/gestao/facetas/', views.api_produtos_gestao_facetas, name='api_produtos_gestao_facetas'),

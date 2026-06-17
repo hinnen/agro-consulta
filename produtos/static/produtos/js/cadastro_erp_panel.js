@@ -1418,4 +1418,136 @@
   } else {
     initCadEtqModalUi();
   }
+
+  /** Excel export / import (fase 1) — só na lista. */
+  (function initCadastroPlanilha() {
+    if (CADASTRO_ERP_MODO === 'detalhe') return;
+    var btnExp = document.getElementById('cadastro-btn-export-xlsx');
+    var btnImp = document.getElementById('cadastro-btn-import-xlsx');
+    var modal = document.getElementById('cadastro-import-modal');
+    var back = document.getElementById('cadastro-import-back');
+    if (!btnExp && !btnImp) return;
+
+    function csrfTok() {
+      return (U && U.csrf) ? U.csrf() : '';
+    }
+
+    function abrirImport() {
+      if (!modal || !back) return;
+      modal.classList.remove('hidden');
+      back.classList.remove('hidden');
+    }
+    function fecharImport() {
+      if (!modal || !back) return;
+      modal.classList.add('hidden');
+      back.classList.add('hidden');
+    }
+
+    if (btnExp && C.URL_EXPORT_XLSX) {
+      btnExp.addEventListener('click', function () {
+        var incInativos = ativosEl && !ativosEl.checked ? '1' : '';
+        var u = C.URL_EXPORT_XLSX + (incInativos ? '?inativos=1' : '');
+        window.location.href = u;
+      });
+    }
+
+    var inpArq = document.getElementById('cadastro-import-arquivo');
+    var elResumo = document.getElementById('cadastro-import-resumo');
+    var elErros = document.getElementById('cadastro-import-erros');
+    var elPrev = document.getElementById('cadastro-import-preview');
+    var btnPrev = document.getElementById('cadastro-import-previa');
+    var btnApl = document.getElementById('cadastro-import-aplicar');
+    var btnFec = document.getElementById('cadastro-import-fechar');
+    var ultimaPreviaOk = false;
+
+    function limparImportUi() {
+      ultimaPreviaOk = false;
+      if (btnApl) btnApl.disabled = true;
+      if (elResumo) { elResumo.classList.add('hidden'); elResumo.textContent = ''; }
+      if (elErros) { elErros.classList.add('hidden'); elErros.innerHTML = ''; }
+      if (elPrev) { elPrev.classList.add('hidden'); elPrev.innerHTML = ''; }
+    }
+
+    function renderPrevia(j) {
+      if (elResumo) {
+        elResumo.textContent = j.n_alteracoes + ' alteração(ões) · ' + j.n_ignoradas + ' ignorada(s) · ' + j.n_erros + ' erro(s)';
+        elResumo.classList.remove('hidden');
+      }
+      if (elErros && j.erros && j.erros.length) {
+        elErros.innerHTML = j.erros.slice(0, 40).map(function (e) {
+          return '<div>L' + (e.linha || '?') + ' · ' + escapeHtml(String(e.id || '')) + ': ' + escapeHtml(String(e.erro || '')) + '</div>';
+        }).join('');
+        elErros.classList.remove('hidden');
+      }
+      if (elPrev && j.alteracoes && j.alteracoes.length) {
+        var html = '<table class="w-full text-left"><thead class="bg-slate-50"><tr><th class="p-2">Linha</th><th class="p-2">Nome</th><th class="p-2">Campos</th></tr></thead><tbody>';
+        j.alteracoes.slice(0, 80).forEach(function (a) {
+          var campos = (a.campos || []).map(function (c) {
+            return escapeHtml(String(c.campo || '')) + ': ' + escapeHtml(String(c.de)) + ' → ' + escapeHtml(String(c.para));
+          }).join('; ');
+          html += '<tr class="border-t border-slate-100"><td class="p-2 font-mono">' + a.linha + '</td><td class="p-2">' + escapeHtml(String(a.nome || '')) + '</td><td class="p-2 text-slate-600">' + campos + '</td></tr>';
+        });
+        html += '</tbody></table>';
+        elPrev.innerHTML = html;
+        elPrev.classList.remove('hidden');
+      }
+      ultimaPreviaOk = j.n_alteracoes > 0 && (!j.n_erros || j.n_alteracoes > 0);
+      if (btnApl) btnApl.disabled = !(j.n_alteracoes > 0);
+    }
+
+    function enviarPlanilha(url, onOk) {
+      if (!inpArq || !inpArq.files || !inpArq.files[0]) {
+        if (typeof alert !== 'undefined') alert('Selecione um arquivo .xlsx ou .csv.');
+        return;
+      }
+      var fd = new FormData();
+      fd.append('arquivo', inpArq.files[0]);
+      if (btnPrev) btnPrev.disabled = true;
+      if (btnApl) btnApl.disabled = true;
+      setLoading(true);
+      fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrfTok() },
+        body: fd
+      }).then(function (r) {
+        return r.json().then(function (j) { return { ok: r.ok, j: j }; });
+      }).then(function (x) {
+        if (!x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha na importação');
+        if (typeof onOk === 'function') onOk(x.j);
+      }).catch(function (e) {
+        if (typeof alert !== 'undefined') alert(e.message || 'Erro');
+      }).finally(function () {
+        setLoading(false);
+        if (btnPrev) btnPrev.disabled = false;
+        if (btnApl) btnApl.disabled = !ultimaPreviaOk;
+      });
+    }
+
+    if (btnImp) btnImp.addEventListener('click', function () {
+      limparImportUi();
+      abrirImport();
+    });
+    if (btnFec) btnFec.addEventListener('click', fecharImport);
+    if (back) back.addEventListener('click', fecharImport);
+    if (btnPrev && C.URL_IMPORT_PREVIEW) {
+      btnPrev.addEventListener('click', function () {
+        limparImportUi();
+        enviarPlanilha(C.URL_IMPORT_PREVIEW, renderPrevia);
+      });
+    }
+    if (btnApl && C.URL_IMPORT_APLICAR) {
+      btnApl.addEventListener('click', function () {
+        if (!ultimaPreviaOk) return;
+        if (!window.confirm('Gravar ' + (elResumo ? elResumo.textContent : 'as alterações') + ' no SisVale?')) return;
+        enviarPlanilha(C.URL_IMPORT_APLICAR, function (j) {
+          fecharImport();
+          if (typeof alert !== 'undefined') {
+            alert('Importação concluída: ' + (j.gravados || 0) + ' produto(s) atualizado(s).');
+          }
+          if (typeof carregar === 'function') carregar();
+        });
+      });
+    }
+  })();
 })();
