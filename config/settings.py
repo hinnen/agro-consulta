@@ -315,6 +315,8 @@ AGRO_FINANCEIRO_MONGO_CONGELADO = config(
     'AGRO_FINANCEIRO_MONGO_CONGELADO', default=False, cast=bool
 )
 AGRO_ERP_PEDIDOS_DRY_RUN = config('AGRO_ERP_PEDIDOS_DRY_RUN', default=False, cast=bool)
+# Staging: true = lê Mongo (espelho ERP) mas não grava preço/financeiro/etc. no Mongo compartilhado.
+AGRO_STAGING_READONLY = config('AGRO_STAGING_READONLY', default=False, cast=bool)
 
 CONSULTA_CACHE_TTL = 20
 # Configurações da API Venda ERP

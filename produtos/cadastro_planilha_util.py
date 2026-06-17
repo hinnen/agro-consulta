@@ -950,7 +950,10 @@ def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
         mongo_set["ValorVenda"] = pvfloat
         mongo_set["PrecoVenda"] = pvfloat
     if mongo_set and db is not None:
-        db[client.col_p].update_one(_mongo_filtro_id_produto_externo(pid), {"$set": mongo_set})
+        from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+
+        if not agro_mongo_escrita_bloqueada():
+            db[client.col_p].update_one(_mongo_filtro_id_produto_externo(pid), {"$set": mongo_set})
 
 
 def aplicar_importacao_cadastro(

@@ -1692,6 +1692,9 @@ def _api_produtos_gestao_overlay_salvar_core(request):
 
     client, db = obter_conexao_mongo()
     p_doc = _produto_mongo_por_id_externo(db, client, pid) if db is not None else None
+    from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+
+    mongo_grava = db is not None and not agro_mongo_escrita_bloqueada()
 
     variacoes_novas: list[ProdutoMarcaVariacaoAgro] | None = None
     if "variacoes" in payload:
@@ -1884,7 +1887,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         cst_f = str(mff.get("cst_pis_cofins") or "").strip()
         if cst_f:
             set_fiscal["CstPisCofins"] = cst_f[:10]
-        if set_fiscal:
+        if set_fiscal and mongo_grava:
             try:
                 db[client.col_p].update_one(
                     _mongo_filtro_id_produto_externo(pid),
@@ -1914,7 +1917,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     aviso_codigo_mongo = None
     aviso_custo_mongo = None
     aviso_preco_venda_mongo = None
-    if db is not None:
+    if mongo_grava:
         aviso_codigo_mongo = _mongo_sincronizar_codigo_sistema_espelho(
             db,
             client.col_p,

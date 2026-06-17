@@ -21,6 +21,18 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
+_MSG_MONGO_STAGING = "Ambiente de teste: gravação no Mongo bloqueada (somente leitura)."
+
+
+def _erro_mongo_staging_readonly(**extra: Any) -> dict[str, Any] | None:
+    from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+
+    if agro_mongo_escrita_bloqueada():
+        out: dict[str, Any] = {"ok": False, "erro": _MSG_MONGO_STAGING}
+        out.update(extra)
+        return out
+    return None
+
 _SENTINEL = datetime(1, 1, 1, 0, 0)
 COL_DTO_LANCAMENTO = "DtoLancamento"
 COL_DTO_VENDA = "DtoVenda"
@@ -4895,6 +4907,9 @@ def inserir_lancamentos_manual_lote(
     """
     if db is None:
         return {"ok": False, "ids": [], "erros": [{"erro": "Mongo indisponível"}]}
+    err_st = _erro_mongo_staging_readonly(ids=[], erros=[{"erro": _MSG_MONGO_STAGING}])
+    if err_st:
+        return err_st
     empresa_nome = (empresa_nome or "").strip()
     pessoa_nome = (pessoa_nome or "").strip()
     banco_nome = (banco_nome or "").strip()
@@ -6335,6 +6350,9 @@ def excluir_lancamento_mongo_agro(db, lancamento_id: str, usuario_label: str) ->
     """Remove título no Mongo apenas quando permitido (manual Agro ou sem vínculo ERP, sem pagamento)."""
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
+    err_st = _erro_mongo_staging_readonly()
+    if err_st:
+        return err_st
     col = db[COL_DTO_LANCAMENTO]
     try:
         oid = ObjectId(str(lancamento_id).strip())
@@ -6376,6 +6394,9 @@ def atualizar_lancamento_mongo_agro(
     """Atualiza campos cadastrais de um título em aberto (Mongo)."""
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível"}
+    err_st = _erro_mongo_staging_readonly()
+    if err_st:
+        return err_st
     col = db[COL_DTO_LANCAMENTO]
     try:
         oid = ObjectId(str(lancamento_id).strip())

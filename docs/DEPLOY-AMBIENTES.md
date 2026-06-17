@@ -18,3 +18,17 @@
 Feche o PR para `principal`. Só abra PR **`teste` → `producao`**.
 
 Se pedir ajuda ao Cursor: **«pode ir para produção»**.
+
+## Staging não pode alterar a loja (Mongo compartilhado)
+
+No serviço **agro-consulta-staging** (Render → Environment):
+
+| Variável | Valor |
+| -------- | ----- |
+| `AGRO_STAGING_READONLY` | `true` |
+| `AGRO_ERP_PEDIDOS_DRY_RUN` | `true` |
+| `DATABASE_URL` | Postgres **só do staging** (diferente da loja) |
+
+Com isso o teste **lê** catálogo/preços do Mongo (espelho ERP) e **não grava** preço nem financeiro no Mongo. Vendas e overlay ficam no Postgres do staging.
+
+Produção: **`AGRO_STAGING_READONLY=false`** (ou omita).

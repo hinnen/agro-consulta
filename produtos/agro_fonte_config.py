@@ -62,12 +62,22 @@ def agro_erp_pedidos_dry_run() -> bool:
     return bool(getattr(settings, "AGRO_ERP_PEDIDOS_DRY_RUN", False))
 
 
+def agro_staging_readonly() -> bool:
+    from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
+
+    return agro_mongo_escrita_bloqueada()
+
+
 def agro_fonte_status_dict() -> dict:
+    from produtos.agro_mongo_guard import agro_mongo_guard_status
+
     return {
         "catalogo": agro_fonte_catalogo(),
         "estoque": agro_fonte_estoque(),
         "financeiro": agro_fonte_financeiro(),
         "erp_pedidos_dry_run": agro_erp_pedidos_dry_run(),
+        "staging_readonly": agro_staging_readonly(),
+        **agro_mongo_guard_status(),
         "catalogo_postgres": agro_catalogo_usa_postgres(),
         "estoque_ledger": agro_estoque_usa_ledger(),
         "financeiro_postgres": agro_financeiro_usa_postgres(),
