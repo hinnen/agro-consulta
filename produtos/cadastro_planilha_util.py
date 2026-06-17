@@ -1,0 +1,552 @@
+"""Exportação / importação Excel do cadastro de produtos (fase 1 — overlay Agro)."""
+
+from __future__ import annotations
+
+import re
+import unicodedata
+from decimal import Decimal, InvalidOperation
+from io import BytesIO
+from pathlib import Path
+from typing import Any
+
+from django.core.cache import cache
+from django.db import transaction
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
+from openpyxl.utils import get_column_letter
+
+from produtos.models import ProdutoGestaoOverlayAgro
+
+EXPORT_MAX_ROWS = 15000
+IMPORT_MAX_ROWS = 2500
+
+COL_ID = "id"
+COL_CODIGO_GM = "codigo_gm"
+COL_NOME = "nome"
+COL_MARCA = "marca"
+COL_CATEGORIA = "categoria"
+COL_SUBCATEGORIA = "subcategoria"
+COL_CODIGO_BARRAS = "codigo_barras"
+COL_PRECO_CUSTO = "preco_custo"
+COL_PRECO_VENDA = "preco_venda"
+
+EXPORT_HEADERS: list[tuple[str, str]] = [
+    ("ID", COL_ID),
+    ("Código GM", COL_CODIGO_GM),
+    ("Nome", COL_NOME),
+    ("Marca", COL_MARCA),
+    ("Categoria", COL_CATEGORIA),
+    ("Subcategoria", COL_SUBCATEGORIA),
+    ("Código barras", COL_CODIGO_BARRAS),
+    ("Preço custo", COL_PRECO_CUSTO),
+    ("Preço venda", COL_PRECO_VENDA),
+]
+
+IMPORT_KEYS = {
+    COL_NOME,
+    COL_MARCA,
+    COL_CATEGORIA,
+    COL_SUBCATEGORIA,
+    COL_CODIGO_BARRAS,
+    COL_PRECO_CUSTO,
+    COL_PRECO_VENDA,
+}
+
+
+def _norm_header(h: str) -> str:
+    s = unicodedata.normalize("NFD", str(h or ""))
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+    s = s.lower().strip()
+    s = re.sub(r"\s+", " ", s)
+    return s
+
+
+def _map_headers(headers: list[str]) -> dict[str, str | None]:
+    norm = {_norm_header(h): h for h in headers if str(h or "").strip()}
+    aliases: dict[str, tuple[str, ...]] = {
+        COL_ID: ("id", "produto id", "produto_id", "codigo produto"),
+        COL_CODIGO_GM: ("codigo gm", "codigo_gm", "codigo nfe", "codigo erp", "gm"),
+        COL_NOME: ("nome", "produto", "descricao produto"),
+        COL_MARCA: ("marca",),
+        COL_CATEGORIA: ("categoria", "grupo"),
+        COL_SUBCATEGORIA: ("subcategoria", "sub categoria", "subgrupo"),
+        COL_CODIGO_BARRAS: ("codigo barras", "codigo de barras", "ean", "barras", "cb"),
+        COL_PRECO_CUSTO: ("preco custo", "preço custo", "custo", "custo unitario", "custo unitário"),
+        COL_PRECO_VENDA: ("preco venda", "preço venda", "venda", "preco de venda", "preço de venda"),
+    }
+    out: dict[str, str | None] = {}
+    for key, keys in aliases.items():
+        out[key] = None
+        for k in keys:
+            if k in norm:
+                out[key] = norm[k]
+                break
+    return out
+
+
+def _cel_str(val) -> str:
+    if val is None:
+        return ""
+    if isinstance(val, float) and val == int(val):
+        return str(int(val))
+    s = str(val).strip()
+    if s.endswith(".0") and s[:-2].isdigit():
+        return s[:-2]
+    return s
+
+
+def _cel_opt_str(val) -> str | None:
+    if val is None:
+        return None
+    s = _cel_str(val)
+    return s if s else None
+
+
+def _parse_decimal_br(val) -> Decimal | None:
+    if val is None:
+        return None
+    if isinstance(val, (int, float)):
+        return Decimal(str(val))
+    s = str(val).strip()
+    if not s:
+        return None
+    s = s.replace("R$", "").replace(" ", "").strip()
+    if "," in s and "." in s:
+        s = s.replace(".", "").replace(",", ".")
+    else:
+        s = s.replace(",", ".")
+    try:
+        return Decimal(s)
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def _ler_planilha(path: Path) -> tuple[list[str], list[dict[str, Any]]]:
+    suf = path.suffix.lower()
+    if suf == ".csv":
+        import csv
+
+        for enc in ("utf-8-sig", "latin-1", "cp1252"):
+            try:
+                with path.open("r", encoding=enc, newline="") as f:
+                    reader = csv.DictReader(f, delimiter=";")
+                    if reader.fieldnames and len(reader.fieldnames) == 1:
+                        f.seek(0)
+                        reader = csv.DictReader(f, delimiter=",")
+                    headers = list(reader.fieldnames or [])
+                    rows = [dict(r) for r in reader]
+                    return headers, rows
+            except UnicodeDecodeError:
+                continue
+        raise ValueError("Não foi possível ler o CSV (encoding).")
+    if suf in (".xlsx", ".xls"):
+        from openpyxl import load_workbook
+
+        wb = load_workbook(path, read_only=True, data_only=True)
+        ws = wb.active
+        it = ws.iter_rows(values_only=True)
+        headers = [str(c or "").strip() for c in next(it, [])]
+        rows = []
+        for row in it:
+            if not any(row):
+                continue
+            d: dict[str, Any] = {}
+            for i, h in enumerate(headers):
+                if h:
+                    d[h] = row[i] if i < len(row) else None
+            rows.append(d)
+        wb.close()
+        return headers, rows
+    raise ValueError("Use arquivo .csv ou .xlsx.")
+
+
+def coletar_linhas_export_cadastro(*, inativos: bool = False) -> tuple[list[dict], bool]:
+    """Retorna linhas mescladas (Mongo/Agro + overlay) para exportação."""
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos.views import (
+        _CADASTRO_LISTA_MONGO_PROJ,
+        _aplicar_produto_gestao_overlay_em_dict,
+        _overlay_mapa_por_ids_chunked,
+        _produto_mongo_para_cadastro_row,
+        obter_conexao_mongo,
+    )
+
+    rows: list[dict] = []
+    truncado = False
+
+    if agro_catalogo_usa_postgres():
+        from produtos import catalogo_agro
+
+        pagina = 1
+        por_pagina = 500
+        while len(rows) < EXPORT_MAX_ROWS:
+            chunk, total = catalogo_agro.listar_paginado(
+                pagina=pagina,
+                por_pagina=por_pagina,
+                sort_key="nome",
+                sort_direction=1,
+                inativos=inativos,
+            )
+            if not chunk:
+                break
+            pids = [str(r.get("id") or "") for r in chunk]
+            ovs = _overlay_mapa_por_ids_chunked(pids)
+            for r in chunk:
+                _aplicar_produto_gestao_overlay_em_dict(r, ovs.get(str(r.get("id") or "")))
+                rows.append(r)
+            if pagina * por_pagina >= total:
+                break
+            pagina += 1
+        truncado = len(rows) >= EXPORT_MAX_ROWS
+        return rows[:EXPORT_MAX_ROWS], truncado
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        raise ValueError("Mongo indisponível — não foi possível exportar o catálogo.")
+
+    filtro = {} if inativos else {"CadastroInativo": {"$ne": True}}
+    cur = (
+        db[client.col_p]
+        .find(filtro, _CADASTRO_LISTA_MONGO_PROJ)
+        .sort("Nome", 1)
+        .limit(EXPORT_MAX_ROWS + 1)
+    )
+    chunk = list(cur)
+    truncado = len(chunk) > EXPORT_MAX_ROWS
+    chunk = chunk[:EXPORT_MAX_ROWS]
+    rows = [_produto_mongo_para_cadastro_row(p) for p in chunk]
+    ovs = _overlay_mapa_por_ids_chunked([str(r.get("id") or "") for r in rows])
+    for r in rows:
+        _aplicar_produto_gestao_overlay_em_dict(r, ovs.get(str(r.get("id") or "")))
+    return rows, truncado
+
+
+def linha_export_planilha(row: dict) -> dict[str, Any]:
+    return {
+        COL_ID: str(row.get("id") or ""),
+        COL_CODIGO_GM: str(row.get("codigo_nfe") or row.get("codigo") or ""),
+        COL_NOME: str(row.get("nome") or ""),
+        COL_MARCA: str(row.get("marca") or ""),
+        COL_CATEGORIA: str(row.get("categoria") or ""),
+        COL_SUBCATEGORIA: str(row.get("subcategoria") or ""),
+        COL_CODIGO_BARRAS: str(row.get("codigo_barras") or ""),
+        COL_PRECO_CUSTO: float(row.get("preco_custo") or 0),
+        COL_PRECO_VENDA: float(row.get("preco_venda") or 0),
+    }
+
+
+def montar_xlsx_cadastro(rows: list[dict]) -> bytes:
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Cadastro"
+    hdr_fill = PatternFill("solid", fgColor="DCFCE7")
+    hdr_font = Font(bold=True, color="14532D")
+    for col, (label, _) in enumerate(EXPORT_HEADERS, start=1):
+        c = ws.cell(row=1, column=col, value=label)
+        c.font = hdr_font
+        c.fill = hdr_fill
+    for ri, src in enumerate(rows, start=2):
+        line = linha_export_planilha(src)
+        for col, (_, key) in enumerate(EXPORT_HEADERS, start=1):
+            val = line.get(key)
+            cell = ws.cell(row=ri, column=col, value=val)
+            if key in (COL_ID, COL_CODIGO_GM, COL_CODIGO_BARRAS):
+                cell.number_format = "@"
+            elif key in (COL_PRECO_CUSTO, COL_PRECO_VENDA):
+                cell.number_format = "#,##0.00"
+    for col in range(1, len(EXPORT_HEADERS) + 1):
+        ws.column_dimensions[get_column_letter(col)].width = 16
+    ws.column_dimensions["A"].width = 14
+    ws.column_dimensions["C"].width = 42
+    buf = BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def _estado_atual_produto(pid: str) -> dict | None:
+    from produtos.views import (
+        _aplicar_produto_gestao_overlay_em_dict,
+        _overlay_mapa_por_ids_chunked,
+        _produto_mongo_para_cadastro_row,
+        _produto_mongo_por_id_externo,
+        obter_conexao_mongo,
+    )
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        return None
+    doc = _produto_mongo_por_id_externo(db, client, pid)
+    if not doc:
+        return None
+    row = _produto_mongo_para_cadastro_row(doc)
+    ov = _overlay_mapa_por_ids_chunked([pid]).get(pid)
+    _aplicar_produto_gestao_overlay_em_dict(row, ov)
+    return row
+
+
+def _patch_da_linha(raw: dict, colmap: dict[str, str | None]) -> dict[str, Any]:
+    patch: dict[str, Any] = {}
+
+    def txt(key: str, mx: int) -> None:
+        hdr = colmap.get(key)
+        if not hdr or hdr not in raw:
+            return
+        v = _cel_opt_str(raw.get(hdr))
+        if v is not None:
+            patch[key] = v[:mx]
+
+    def dec(key: str) -> None:
+        hdr = colmap.get(key)
+        if not hdr or hdr not in raw:
+            return
+        v = raw.get(hdr)
+        if v is None or (isinstance(v, str) and not str(v).strip()):
+            return
+        d = _parse_decimal_br(v)
+        if d is None:
+            patch[f"__erro_{key}"] = f"Valor inválido em «{hdr}»."
+        else:
+            patch[key] = d
+
+    txt(COL_NOME, 300)
+    txt(COL_MARCA, 120)
+    txt(COL_CATEGORIA, 200)
+    txt(COL_SUBCATEGORIA, 200)
+    txt(COL_CODIGO_BARRAS, 80)
+    dec(COL_PRECO_CUSTO)
+    dec(COL_PRECO_VENDA)
+    return patch
+
+
+def _merged_row(atual: dict, patch: dict) -> dict:
+    out = dict(atual)
+    for k, v in patch.items():
+        if k.startswith("__"):
+            continue
+        if k in (COL_PRECO_CUSTO, COL_PRECO_VENDA):
+            out[k] = float(v)
+        else:
+            out[k] = v
+    return out
+
+
+def _validar_merged(row: dict) -> str | None:
+    if not str(row.get("nome") or "").strip():
+        return "Nome obrigatório."
+    if not str(row.get("marca") or "").strip():
+        return "Marca obrigatória."
+    if not str(row.get("categoria") or "").strip():
+        return "Categoria obrigatória."
+    if not str(row.get("codigo_barras") or "").strip():
+        return "Código de barras obrigatório."
+    try:
+        Decimal(str(row.get("preco_venda") or ""))
+    except Exception:
+        return "Preço de venda inválido."
+    try:
+        Decimal(str(row.get("preco_custo") or ""))
+    except Exception:
+        return "Preço de custo inválido."
+    return None
+
+
+def _tem_alteracao(atual: dict, patch: dict) -> bool:
+    for k in IMPORT_KEYS:
+        if k not in patch:
+            continue
+        if k in (COL_PRECO_CUSTO, COL_PRECO_VENDA):
+            if round(float(atual.get(k) or 0), 2) != round(float(patch[k]), 2):
+                return True
+        elif str(atual.get(k) or "").strip() != str(patch[k] or "").strip():
+            return True
+    return False
+
+
+def preview_importacao_cadastro(path: Path) -> dict[str, Any]:
+    headers, rows_raw = _ler_planilha(path)
+    colmap = _map_headers(headers)
+    if not colmap.get(COL_ID):
+        raise ValueError("Coluna «ID» não encontrada na planilha.")
+
+    vistos: set[str] = set()
+    alteracoes: list[dict] = []
+    ignoradas: list[dict] = []
+    erros: list[dict] = []
+
+    for i, raw in enumerate(rows_raw[:IMPORT_MAX_ROWS], start=2):
+        hdr_id = colmap[COL_ID]
+        pid = _cel_str(raw.get(hdr_id or ""))[:64]
+        if not pid:
+            continue
+        if pid in vistos:
+            erros.append({"linha": i, "id": pid, "erro": "ID duplicado na planilha."})
+            continue
+        vistos.add(pid)
+
+        patch = _patch_da_linha(raw, colmap)
+        err_fields = [v for k, v in patch.items() if k.startswith("__erro_")]
+        if err_fields:
+            erros.append({"linha": i, "id": pid, "erro": err_fields[0]})
+            continue
+        if not any(k in patch for k in IMPORT_KEYS):
+            ignoradas.append({"linha": i, "id": pid, "motivo": "Nenhum campo alterado (células vazias)."})
+            continue
+
+        atual = _estado_atual_produto(pid)
+        if not atual:
+            erros.append({"linha": i, "id": pid, "erro": "Produto não encontrado no catálogo."})
+            continue
+        if not _tem_alteracao(atual, patch):
+            ignoradas.append({"linha": i, "id": pid, "motivo": "Valores iguais ao cadastro atual."})
+            continue
+
+        merged = _merged_row(atual, patch)
+        vmsg = _validar_merged(merged)
+        if vmsg:
+            erros.append({"linha": i, "id": pid, "erro": vmsg})
+            continue
+
+        campos = []
+        for k in IMPORT_KEYS:
+            if k not in patch:
+                continue
+            campos.append(
+                {
+                    "campo": k,
+                    "de": atual.get(k),
+                    "para": patch[k],
+                }
+            )
+        alteracoes.append(
+            {
+                "linha": i,
+                "id": pid,
+                "nome": merged.get("nome") or atual.get("nome") or "",
+                "campos": campos,
+            }
+        )
+
+    if len(rows_raw) > IMPORT_MAX_ROWS:
+        erros.append(
+            {
+                "linha": None,
+                "id": "",
+                "erro": f"Planilha truncada: só as primeiras {IMPORT_MAX_ROWS} linhas foram analisadas.",
+            }
+        )
+
+    return {
+        "total_linhas": len(rows_raw),
+        "alteracoes": alteracoes[:500],
+        "n_alteracoes": len(alteracoes),
+        "ignoradas": ignoradas[:80],
+        "n_ignoradas": len(ignoradas),
+        "erros": erros[:120],
+        "n_erros": len(erros),
+    }
+
+
+def _invalidar_cache_catalogo_pdv() -> None:
+    from produtos.views import CATALOGO_PDV_CACHE_ENTRY_KEY, CATALOGO_PDV_CACHE_PREV_ENTRY_KEY
+
+    try:
+        cur_cat = cache.get(CATALOGO_PDV_CACHE_ENTRY_KEY)
+        if isinstance(cur_cat, dict) and cur_cat.get("version"):
+            cache.set(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY, cur_cat, timeout=86400 * 3)
+        cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+    except Exception:
+        pass
+
+
+def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
+    from produtos.views import _mongo_filtro_id_produto_externo
+
+    ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
+        produto_externo_id=pid[:64],
+        defaults={"usuario": user if user and user.is_authenticated else None},
+    )
+    if COL_NOME in patch:
+        ov.nome = str(patch[COL_NOME] or "")[:300]
+    if COL_MARCA in patch:
+        ov.marca = str(patch[COL_MARCA] or "")[:120]
+    if COL_CATEGORIA in patch:
+        ov.categoria = str(patch[COL_CATEGORIA] or "")[:200]
+    if COL_SUBCATEGORIA in patch:
+        ov.subcategoria = str(patch[COL_SUBCATEGORIA] or "")[:200]
+    if COL_CODIGO_BARRAS in patch:
+        ov.codigo_barras = str(patch[COL_CODIGO_BARRAS] or "")[:80]
+    if COL_PRECO_VENDA in patch:
+        ov.preco_venda = patch[COL_PRECO_VENDA]
+    ov.save()
+
+    mongo_set: dict[str, float] = {}
+    if COL_PRECO_CUSTO in patch:
+        cfloat = float(patch[COL_PRECO_CUSTO])
+        mongo_set["PrecoCusto"] = cfloat
+        mongo_set["ValorCusto"] = cfloat
+    if COL_PRECO_VENDA in patch:
+        pvfloat = float(patch[COL_PRECO_VENDA])
+        mongo_set["ValorVenda"] = pvfloat
+        mongo_set["PrecoVenda"] = pvfloat
+    if mongo_set and db is not None:
+        db[client.col_p].update_one(_mongo_filtro_id_produto_externo(pid), {"$set": mongo_set})
+
+
+def aplicar_importacao_cadastro(path: Path, user) -> dict[str, Any]:
+    prev = preview_importacao_cadastro(path)
+    if prev["n_erros"] and not prev["n_alteracoes"]:
+        raise ValueError("Nenhuma alteração válida — corrija os erros da prévia.")
+
+    from produtos.views import obter_conexao_mongo
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        raise ValueError("Mongo indisponível.")
+
+    headers, rows_raw = _ler_planilha(path)
+    colmap = _map_headers(headers)
+    hdr_id = colmap.get(COL_ID)
+    if not hdr_id:
+        raise ValueError("Coluna «ID» não encontrada.")
+
+    ok = 0
+    falhas: list[dict] = []
+    vistos: set[str] = set()
+
+    for i, raw in enumerate(rows_raw[:IMPORT_MAX_ROWS], start=2):
+        pid = _cel_str(raw.get(hdr_id or ""))[:64]
+        if not pid or pid in vistos:
+            continue
+        vistos.add(pid)
+        patch = _patch_da_linha(raw, colmap)
+        if patch.get("__erro_preco_custo") or patch.get("__erro_preco_venda"):
+            continue
+        if not any(k in patch for k in IMPORT_KEYS):
+            continue
+        atual = _estado_atual_produto(pid)
+        if not atual or not _tem_alteracao(atual, patch):
+            continue
+        merged = _merged_row(atual, patch)
+        vmsg = _validar_merged(merged)
+        if vmsg:
+            falhas.append({"linha": i, "id": pid, "erro": vmsg})
+            continue
+        try:
+            with transaction.atomic():
+                _gravar_patch_produto(db, client, pid, patch, user)
+            ok += 1
+        except Exception as exc:
+            falhas.append({"linha": i, "id": pid, "erro": str(exc) or "Falha ao gravar."})
+
+    if ok:
+        _invalidar_cache_catalogo_pdv()
+
+    return {
+        "gravados": ok,
+        "falhas": falhas[:80],
+        "n_falhas": len(falhas),
+        "preview": {
+            "n_alteracoes": prev["n_alteracoes"],
+            "n_erros": prev["n_erros"],
+        },
+    }

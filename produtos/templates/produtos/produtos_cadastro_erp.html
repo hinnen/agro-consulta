@@ -96,6 +96,8 @@
           <option>Categoria</option>
         </select>
         <button type="button" id="cadastro-filtrar" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-xl font-semibold min-h-[44px]">Filtrar</button>
+        <button type="button" id="cadastro-btn-export-xlsx" class="min-h-[44px] px-4 py-2 rounded-xl text-xs font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white border-2 border-emerald-800 shadow-sm shrink-0" title="Baixar catálogo em Excel">Excel ↓</button>
+        <button type="button" id="cadastro-btn-import-xlsx" class="min-h-[44px] px-4 py-2 rounded-xl text-xs font-black uppercase bg-white hover:bg-emerald-50 text-emerald-900 border-2 border-emerald-500 shadow-sm shrink-0" title="Importar alterações da planilha">Excel ↑</button>
         {% if cadastro_produto_erp_sync_habilitado %}
         <button type="button" id="cadastro-btn-erp-pendentes" class="hidden min-h-[44px] px-4 py-2 rounded-xl text-xs font-black uppercase bg-amber-600 hover:bg-amber-700 text-white border-2 border-amber-800 shadow-sm shrink-0" title="Envia ao ERP legado até 80 produtos pendentes desta sessão (uma rodada)">
           Enviar lote ao ERP <span id="cadastro-erp-pend-n" class="opacity-90 font-mono">(0)</span>
@@ -251,6 +253,9 @@
     URL_LOTE_REMOVER_TMPL: "{% url 'api_overlay_lote_remover' lote_id=0 %}",
     URL_COMPRAS_HISTORICO: "{% url 'api_produtos_cadastro_compras_historico' %}",
     URL_FACETAS: "{% url 'api_produtos_gestao_facetas' %}",
+    URL_EXPORT_XLSX: "{% url 'api_produtos_cadastro_export_xlsx' %}",
+    URL_IMPORT_PREVIEW: "{% url 'api_produtos_cadastro_import_preview' %}",
+    URL_IMPORT_APLICAR: "{% url 'api_produtos_cadastro_import_aplicar' %}",
     PODE_EDITAR_OVERLAY: {% if pode_editar_overlay %}true{% else %}false{% endif %},
     CADASTRO_ERP_SYNC_HABILITADO: {% if cadastro_produto_erp_sync_habilitado %}true{% else %}false{% endif %},
     CSRF_TOKEN: "{{ csrf_token|escapejs }}",
@@ -288,6 +293,28 @@
 
   {% include "produtos/_modal_editar_produto_cadastro_erp.inc.html" %}
 
+  <div id="cadastro-import-back" class="fixed inset-0 z-[180] hidden bg-slate-900/55" aria-hidden="true"></div>
+  <div id="cadastro-import-modal" class="fixed left-1/2 top-1/2 z-[190] hidden w-[min(96vw,42rem)] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-emerald-600 bg-white shadow-2xl flex flex-col overflow-hidden" role="dialog" aria-labelledby="cadastro-import-titulo">
+    <div class="px-5 py-4 border-b border-slate-200 bg-emerald-50/80 shrink-0">
+      <h2 id="cadastro-import-titulo" class="text-lg font-black uppercase text-slate-900">Importar planilha Excel</h2>
+      <p class="text-sm text-slate-600 mt-1">Não altere a coluna <strong>ID</strong>. Célula vazia = mantém o valor atual.</p>
+    </div>
+    <div class="p-5 space-y-4 overflow-y-auto min-h-0 flex-1">
+      <label class="block">
+        <span class="text-xs font-black uppercase text-slate-500">Arquivo .xlsx ou .csv</span>
+        <input type="file" id="cadastro-import-arquivo" accept=".xlsx,.xls,.csv" class="mt-1 block w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 text-sm font-semibold" />
+      </label>
+      <div id="cadastro-import-resumo" class="hidden text-sm font-semibold text-slate-700"></div>
+      <div id="cadastro-import-erros" class="hidden text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3 max-h-32 overflow-y-auto"></div>
+      <div id="cadastro-import-preview" class="hidden border border-slate-200 rounded-xl overflow-hidden max-h-52 overflow-y-auto text-xs"></div>
+    </div>
+    <div class="px-5 py-4 border-t border-slate-200 bg-slate-50 flex flex-wrap gap-2 shrink-0">
+      <button type="button" id="cadastro-import-previa" class="min-h-[48px] px-5 rounded-xl bg-slate-700 text-white font-black uppercase text-sm">Ver prévia</button>
+      <button type="button" id="cadastro-import-aplicar" class="min-h-[48px] px-5 rounded-xl bg-emerald-600 text-white font-black uppercase text-sm border-2 border-emerald-800 disabled:opacity-40" disabled>Confirmar importação</button>
+      <button type="button" id="cadastro-import-fechar" class="min-h-[48px] px-5 rounded-xl border-2 border-slate-200 font-black uppercase text-sm text-slate-600 ml-auto">Fechar</button>
+    </div>
+  </div>
+
   <div id="cad-etq-back" class="fixed inset-0 z-[200] hidden bg-slate-900/55" aria-hidden="true"></div>
   <div id="cad-etq-modal" class="fixed left-1/2 top-1/2 z-[210] hidden w-[min(58vw,28rem)] max-w-[95vw] -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-emerald-600 bg-white p-6 shadow-2xl" role="dialog" aria-labelledby="cad-etq-titulo">
     <h2 id="cad-etq-titulo" class="text-base font-black uppercase text-slate-900">Imprimir etiqueta</h2>
@@ -309,7 +336,7 @@
   </div>
 
   <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=3"></script>
-  <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=4"></script>
+  <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=5"></script>
   <script src="{% static 'produtos/js/cadastro_erp_grupos.js' %}?v=3"></script>
 
 </body>

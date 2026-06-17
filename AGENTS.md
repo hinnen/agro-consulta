@@ -144,6 +144,10 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 - **Já feito (código):** projeção slim em `**api_produtos_gestao_lista`** e em `**motor_de_busca_agro**` quando usado pela gestão; `**_CADASTRO_LISTA_MONGO_PROJ**` em `**api_produtos_cadastro**` (find + motor); após propagar preços da NF, fila «pendentes ERP» em **batch** (`_erp_produto_pendentes_extend_batch`); no painel ERP, **lista + badge pendentes** em paralelo (`cadastro_erp_panel.js`).  
 - **Se ainda estiver lento, próximo passo:** medir no browser/rede **qual URL** trava (`api_produtos_cadastro`, `api_produtos_gestao_facetas`, `api_produtos_gestao_erp_pendentes`, etc.); revisar `**api_produtos_gestao_facetas`** (vários `distinct` no Mongo); `**explain**` / índices em `**Nome**`, `**CadastroInativo**`, campos de **sort** do cadastro; pool `**obter_conexao_mongo`**; cache Redis.
 
+**Cadastro ERP — planilha Excel (fase 1)** 
+
+- Tela `**/produtos/cadastro-erp/`** (lista): botões **Excel ↓** / **Excel ↑**. Export: `GET **/api/produtos/cadastro/export-xlsx/**` (até 15k itens; `?inativos=1` inclui inativos). Import: `POST **/api/produtos/cadastro/import-preview/**` (prévia) e `POST **/api/produtos/cadastro/import-aplicar/**` — grava **overlay Agro** + preços no **Mongo**; **célula vazia não altera**; chave = coluna **ID** (não editar). Colunas: Nome, Marca, Categoria, Subcategoria, Código barras, Preço custo, Preço venda (+ Código GM só leitura). Lógica: `produtos/cadastro_planilha_util.py`. Não envia ao ERP legado automaticamente.
+
 **PDF financeiro (`produtos/lancamentos_financeiro_pdf.py`)**  
 
 - Removidos blocos “OBSERVAÇÃO” / “ENTROU ALGUM DINHEIRO…”.  

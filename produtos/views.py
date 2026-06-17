@@ -16972,6 +16972,91 @@ def api_produtos_cadastro(request):
         return JsonResponse({"ok": False, "erro": str(e), "produtos": []}, status=500)
 
 
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_produtos_cadastro_export_xlsx(request):
+    """Exporta catálogo (Mongo + overlay) para Excel — edição em lote fase 1."""
+    from produtos.cadastro_planilha_util import coletar_linhas_export_cadastro, montar_xlsx_cadastro
+
+    inativos = request.GET.get("inativos") in ("1", "true", "yes")
+    try:
+        rows, truncado = coletar_linhas_export_cadastro(inativos=inativos)
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=503)
+    blob = montar_xlsx_cadastro(rows)
+    nome = f"Cadastro_Produtos_{timezone.localdate().strftime('%Y%m%d')}.xlsx"
+    resp = HttpResponse(
+        blob,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    resp["Content-Disposition"] = f'attachment; filename="{nome}"'
+    if truncado:
+        resp["X-Agro-Export-Truncado"] = "1"
+    return resp
+
+
+def _cadastro_planilha_tmp_upload(upload):
+    import tempfile
+    from pathlib import Path
+
+    nome = (upload.name or "").lower()
+    if not nome.endswith((".csv", ".xlsx", ".xls")):
+        raise ValueError("Use arquivo .csv ou .xlsx.")
+    suf = Path(nome).suffix or ".xlsx"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suf) as tmp:
+        for chunk in upload.chunks():
+            tmp.write(chunk)
+        return Path(tmp.name)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_produtos_cadastro_import_preview(request):
+    """Prévia da importação Excel — não grava."""
+    from produtos.cadastro_planilha_util import preview_importacao_cadastro
+
+    upload = request.FILES.get("arquivo")
+    if not upload:
+        return JsonResponse({"ok": False, "erro": "Envie um arquivo CSV ou XLSX."}, status=400)
+    tmp_path = None
+    try:
+        tmp_path = _cadastro_planilha_tmp_upload(upload)
+        prev = preview_importacao_cadastro(tmp_path)
+        return JsonResponse({"ok": True, **prev})
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+    finally:
+        if tmp_path is not None:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_produtos_cadastro_import_aplicar(request):
+    """Aplica importação Excel no overlay Agro (+ preços no Mongo)."""
+    from produtos.cadastro_planilha_util import aplicar_importacao_cadastro
+
+    upload = request.FILES.get("arquivo")
+    if not upload:
+        return JsonResponse({"ok": False, "erro": "Envie um arquivo CSV ou XLSX."}, status=400)
+    tmp_path = None
+    try:
+        tmp_path = _cadastro_planilha_tmp_upload(upload)
+        r = aplicar_importacao_cadastro(tmp_path, request.user)
+        return JsonResponse({"ok": True, **r})
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+    finally:
+        if tmp_path is not None:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+
 def _grupo_agro_para_json(g: ProdutoGrupoAgro) -> dict:
     vars_ = [
         {
