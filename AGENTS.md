@@ -147,7 +147,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 **Cadastro ERP — planilha Excel (fase 1)** 
 
-- Tela `**/produtos/cadastro-erp/`** (lista): botões **Excel ↓** / **Excel ↑**. Export: `GET **/api/produtos/cadastro/export-xlsx/**` (até 15k itens; `?inativos=1` inclui inativos). Import: `POST **/api/produtos/cadastro/import-preview/**` (prévia) e `POST **/api/produtos/cadastro/import-aplicar/**` — grava **overlay Agro** + preços no **Mongo**; **célula vazia não altera**; chave = coluna **ID** (não editar). Colunas: Nome, Marca, Categoria, Subcategoria, Código barras, Preço custo, Preço venda (+ Código GM só leitura). Lógica: `produtos/cadastro_planilha_util.py`. Não envia ao ERP legado automaticamente.
+- Tela `**/produtos/cadastro-erp/`** (lista): botões **Excel ↓** / **Excel ↑** / **Histórico**. Export: modal escolhe colunas e categorias; painel **~80 % da viewport** (`cadastro-export-modal-panel`). `GET **/api/produtos/cadastro/export-xlsx/**` (`cols`, `categorias`, `inativos`). Import assíncrono com barra de progresso; **Histórico** + **Desfazer** (`CadastroPlanilhaImportHistoricoAgro`). Grava **overlay Agro** + preços no **Mongo**; **célula vazia não altera**; **ID** e **Código GM** bloqueados no Excel. Layout lista: **§11** (`cadastro-erp-layout` em `produtos_cadastro_erp.html`) — referência 1366×720, 1440×900, 2560×1440 via **Agro Display Scale** (Chrome app), não zoom Ctrl+/-. Lógica: `produtos/cadastro_planilha_util.py`.
 
 **PDF financeiro (`produtos/lancamentos_financeiro_pdf.py`)**  
 
