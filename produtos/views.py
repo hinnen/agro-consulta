@@ -17215,18 +17215,102 @@ def api_produtos_cadastro_import_preview_status(request):
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_produtos_cadastro_import_aplicar(request):
-    """Aplica importação Excel no overlay Agro (+ preços no Mongo)."""
+    """Aplica importação Excel no overlay Agro (+ preços no Mongo) — assíncrona."""
+    import secrets
+    import threading
+
     from produtos.cadastro_planilha_util import aplicar_importacao_cadastro
 
     upload = request.FILES.get("arquivo")
     if not upload:
         return JsonResponse({"ok": False, "erro": "Envie um arquivo CSV ou XLSX."}, status=400)
+    sync = request.GET.get("sync") in ("1", "true", "yes")
     tmp_path = None
     try:
         tmp_path = _cadastro_planilha_tmp_upload(upload)
         nome = (request.POST.get("nome_arquivo") or upload.name or "")[:255]
-        r = aplicar_importacao_cadastro(tmp_path, request.user, nome_arquivo=nome)
-        return JsonResponse({"ok": True, **r})
+        if sync:
+            try:
+                r = aplicar_importacao_cadastro(tmp_path, request.user, nome_arquivo=nome)
+                return JsonResponse({"ok": True, **r})
+            except ValueError as exc:
+                return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+        job_id = secrets.token_hex(12)
+        path_for_thread = tmp_path
+        user = request.user
+        tmp_path = None
+
+        def work() -> None:
+            total_linhas = 0
+
+            def on_progress(pct: int, phase: str) -> None:
+                nonlocal total_linhas
+                if phase.startswith("total:"):
+                    try:
+                        total_linhas = int(phase.split(":", 1)[1])
+                    except (TypeError, ValueError):
+                        pass
+                    return
+                _cadastro_import_job_set(
+                    job_id,
+                    {
+                        "pct": min(99, max(0, int(pct))),
+                        "phase": phase,
+                        "total_linhas": total_linhas,
+                        "done": False,
+                        "kind": "apply",
+                    },
+                )
+
+            try:
+                result = aplicar_importacao_cadastro(
+                    path_for_thread,
+                    user,
+                    nome_arquivo=nome,
+                    on_progress=on_progress,
+                )
+                total_linhas = int(result.get("n_alteracoes") or total_linhas)
+                _cadastro_import_job_set(
+                    job_id,
+                    {
+                        "pct": 100,
+                        "phase": "Concluído",
+                        "total_linhas": total_linhas,
+                        "done": True,
+                        "ok": True,
+                        "kind": "apply",
+                        "result": result,
+                    },
+                )
+            except Exception as exc:
+                _cadastro_import_job_set(
+                    job_id,
+                    {
+                        "pct": 100,
+                        "done": True,
+                        "ok": False,
+                        "kind": "apply",
+                        "erro": str(exc) or "Falha ao gravar importação.",
+                    },
+                )
+            finally:
+                try:
+                    path_for_thread.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+        _cadastro_import_job_set(
+            job_id,
+            {
+                "pct": 0,
+                "phase": "Iniciando gravação…",
+                "total_linhas": 0,
+                "done": False,
+                "kind": "apply",
+            },
+        )
+        threading.Thread(target=work, daemon=True).start()
+        return JsonResponse({"ok": True, "job_id": job_id, "async": True})
     except ValueError as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
     finally:

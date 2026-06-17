@@ -1683,6 +1683,38 @@
       }
     }
 
+    function pollImportJob(jobId, onOk, onFail) {
+      if (!C.URL_IMPORT_PREVIEW_STATUS) {
+        if (typeof onFail === 'function') onFail(new Error('Importação indisponível — atualize a página (Ctrl+F5).'));
+        return;
+      }
+      fetch(C.URL_IMPORT_PREVIEW_STATUS + '?job=' + encodeURIComponent(jobId), {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+      }).then(parseHttpJson).then(function (x) {
+        var j = x.j || {};
+        if (!x.ok || !j.ok) throw new Error((j && j.erro) || 'Falha na importação');
+        if (j.done) {
+          setProgress(100, 'Concluído', '');
+          setTimeout(hideProgress, 400);
+          if (typeof onOk === 'function') onOk(j.result || j);
+          return;
+        }
+        var srvPct = j.pct || 0;
+        var uiPct = 15 + Math.round(srvPct * 0.82);
+        var det = '';
+        if (j.total_linhas) det = j.total_linhas + ' linha(s) na planilha';
+        if (j.phase) det = j.phase;
+        setProgress(uiPct, j.phase || 'Gravando alterações…', det);
+        pollTimer = setTimeout(function () {
+          pollImportJob(jobId, onOk, onFail);
+        }, 400);
+      }).catch(function (e) {
+        hideProgress();
+        if (typeof onFail === 'function') onFail(e);
+      });
+    }
+
     function pollPreviaStatus(jobId, totalLinhas, onOk, onFail) {
       if (!C.URL_IMPORT_PREVIEW_STATUS) {
         if (typeof onFail === 'function') onFail(new Error('Prévia indisponível — atualize a página (Ctrl+F5).'));
@@ -1802,6 +1834,92 @@
       xhr.send(fd);
     }
 
+    function enviarPlanilhaAplicar(onOk, onFail) {
+      if (!inpArq || !inpArq.files || !inpArq.files[0]) {
+        var msg = 'Selecione um arquivo .xlsx ou .csv.';
+        if (typeof alert !== 'undefined') alert(msg);
+        if (typeof onFail === 'function') onFail(new Error(msg));
+        return;
+      }
+      if (!C.URL_IMPORT_APLICAR) {
+        if (typeof onFail === 'function') onFail(new Error('Gravação indisponível.'));
+        return;
+      }
+      cancelPoll();
+      var fd = new FormData();
+      var file = inpArq.files[0];
+      fd.append('arquivo', file);
+      fd.append('nome_arquivo', file.name || '');
+      if (btnPrev) btnPrev.disabled = true;
+      if (btnApl) btnApl.disabled = true;
+      setLoading(true);
+      setProgress(0, 'Enviando planilha…', file.name || '');
+
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', C.URL_IMPORT_APLICAR, true);
+      xhr.setRequestHeader('X-CSRFToken', csrfTok());
+      xhr.setRequestHeader('Accept', 'application/json');
+
+      xhr.upload.onprogress = function (ev) {
+        if (!ev.lengthComputable) return;
+        var upPct = Math.round((ev.loaded / ev.total) * 12);
+        setProgress(upPct, 'Enviando planilha…', file.name || '');
+      };
+
+      xhr.onload = function () {
+        var j = null;
+        try {
+          j = parseXhrJson(xhr);
+        } catch (e) {
+          hideProgress();
+          setLoading(false);
+          if (btnPrev) btnPrev.disabled = false;
+          if (btnApl) btnApl.disabled = !ultimaPreviaOk;
+          if (typeof onFail === 'function') onFail(e);
+          return;
+        }
+        if (xhr.status < 200 || xhr.status >= 300 || !j || !j.ok) {
+          hideProgress();
+          setLoading(false);
+          if (btnPrev) btnPrev.disabled = false;
+          if (btnApl) btnApl.disabled = !ultimaPreviaOk;
+          if (typeof onFail === 'function') onFail(new Error((j && j.erro) || 'Falha ao gravar'));
+          return;
+        }
+        if (j.job_id) {
+          setProgress(15, 'Gravando alterações…', 'Aguarde…');
+          pollImportJob(j.job_id, function (result) {
+            setLoading(false);
+            if (btnPrev) btnPrev.disabled = false;
+            if (typeof onOk === 'function') onOk(result);
+          }, function (e) {
+            setLoading(false);
+            if (btnPrev) btnPrev.disabled = false;
+            if (btnApl) btnApl.disabled = !ultimaPreviaOk;
+            if (typeof onFail === 'function') onFail(e);
+          });
+          return;
+        }
+        setProgress(100, 'Concluído', '');
+        setTimeout(hideProgress, 400);
+        setLoading(false);
+        if (btnPrev) btnPrev.disabled = false;
+        if (typeof onOk === 'function') onOk(j);
+      };
+
+      xhr.onerror = function () {
+        hideProgress();
+        setLoading(false);
+        if (btnPrev) btnPrev.disabled = false;
+        if (btnApl) btnApl.disabled = !ultimaPreviaOk;
+        if (typeof onFail === 'function') {
+          onFail(new Error('Conexão caiu ao gravar — apague linhas não editadas e tente de novo.'));
+        }
+      };
+
+      xhr.send(fd);
+    }
+
     function enviarPlanilha(url, onOk) {
       if (!inpArq || !inpArq.files || !inpArq.files[0]) {
         if (typeof alert !== 'undefined') alert('Selecione um arquivo .xlsx ou .csv.');
@@ -1813,33 +1931,16 @@
         });
         return;
       }
-      var fd = new FormData();
-      fd.append('arquivo', inpArq.files[0]);
-      if (url === C.URL_IMPORT_APLICAR && inpArq.files[0].name) {
-        fd.append('nome_arquivo', inpArq.files[0].name);
+      if (url === C.URL_IMPORT_APLICAR) {
+        enviarPlanilhaAplicar(onOk, function (e) {
+          var msg = e.message || 'Erro';
+          if (msg === 'Failed to fetch') {
+            msg = 'Servidor demorou demais — apague linhas não editadas ou aguarde a barra de progresso.';
+          }
+          if (typeof alert !== 'undefined') alert(msg);
+        });
+        return;
       }
-      if (btnPrev) btnPrev.disabled = true;
-      if (btnApl) btnApl.disabled = true;
-      setLoading(true);
-      setProgress(0, 'Gravando alterações…', '');
-      fetch(url, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'X-CSRFToken': csrfTok(), 'Accept': 'application/json' },
-        body: fd
-      }).then(parseHttpJson).then(function (x) {
-        if (!x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha na importação');
-        setProgress(100, 'Concluído', '');
-        setTimeout(hideProgress, 400);
-        if (typeof onOk === 'function') onOk(x.j);
-      }).catch(function (e) {
-        hideProgress();
-        if (typeof alert !== 'undefined') alert(e.message || 'Erro');
-      }).finally(function () {
-        setLoading(false);
-        if (btnPrev) btnPrev.disabled = false;
-        if (btnApl) btnApl.disabled = !ultimaPreviaOk;
-      });
     }
 
     if (btnImp) btnImp.addEventListener('click', function () {
