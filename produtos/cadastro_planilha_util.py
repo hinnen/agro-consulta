@@ -15,7 +15,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-from produtos.models import ProdutoGestaoOverlayAgro
+from produtos.models import CadastroPlanilhaImportHistoricoAgro, ProdutoGestaoOverlayAgro
 
 EXPORT_MAX_ROWS = 15000
 IMPORT_MAX_ROWS = 2500
@@ -90,6 +90,17 @@ IMPORT_KEYS = {
     COL_PRECO_CUSTO,
     COL_PRECO_VENDA,
 }
+
+OVERLAY_IMPORT_KEYS = (
+    COL_NOME,
+    COL_MARCA,
+    COL_CATEGORIA,
+    COL_SUBCATEGORIA,
+    COL_CODIGO_BARRAS,
+    COL_PRECO_VENDA,
+)
+
+HISTORICO_IMPORT_LISTA_LIMITE = 30
 
 
 def _norm_header(h: str) -> str:
@@ -638,6 +649,189 @@ def preview_importacao_cadastro(
     }
 
 
+def _snapshot_antes_import(db, client, pid: str, patch: dict, nome: str = "") -> dict:
+    """Estado overlay + Mongo antes de gravar — usado para desfazer."""
+    from produtos.views import _produto_mongo_por_id_externo
+
+    pid = str(pid or "").strip()[:64]
+    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
+    overlay: dict[str, Any] = {}
+    for k in OVERLAY_IMPORT_KEYS:
+        if k == COL_PRECO_VENDA:
+            val = ov.preco_venda if ov else None
+            overlay[k] = str(val) if val is not None else None
+        else:
+            overlay[k] = (getattr(ov, k, "") or "") if ov else ""
+
+    mongo: dict[str, Any] = {}
+    if db is not None:
+        doc = _produto_mongo_por_id_externo(db, client, pid)
+        if doc:
+            for mk in ("PrecoCusto", "ValorCusto", "ValorVenda", "PrecoVenda"):
+                if mk in doc and doc[mk] is not None:
+                    mongo[mk] = float(doc[mk])
+
+    campos = [k for k in IMPORT_KEYS if k in patch]
+    para: dict[str, Any] = {}
+    for k in campos:
+        v = patch[k]
+        if k in (COL_PRECO_CUSTO, COL_PRECO_VENDA):
+            para[k] = float(v)
+        else:
+            para[k] = v
+
+    return {
+        "id": pid,
+        "nome": str(nome or "")[:300],
+        "campos_alterados": campos,
+        "overlay_existia": ov is not None,
+        "overlay": overlay,
+        "mongo": mongo,
+        "para": para,
+    }
+
+
+def _overlay_import_esta_vazio(ov: ProdutoGestaoOverlayAgro) -> bool:
+    for k in OVERLAY_IMPORT_KEYS:
+        if k == COL_PRECO_VENDA:
+            if ov.preco_venda is not None:
+                return False
+        elif str(getattr(ov, k, "") or "").strip():
+            return False
+    return True
+
+
+def _reverter_item_import(item: dict, db, client, user) -> None:
+    from produtos.views import _mongo_filtro_id_produto_externo
+
+    pid = str(item.get("id") or "").strip()[:64]
+    if not pid:
+        return
+    patch_keys = list(item.get("campos_alterados") or item.get("para", {}).keys())
+    overlay_antes = item.get("overlay") or {}
+    overlay_existia = bool(item.get("overlay_existia"))
+
+    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
+
+    if overlay_existia:
+        if not ov:
+            ov = ProdutoGestaoOverlayAgro.objects.create(
+                produto_externo_id=pid,
+                usuario=user if user and user.is_authenticated else None,
+            )
+        for k in patch_keys:
+            if k not in OVERLAY_IMPORT_KEYS:
+                continue
+            v = overlay_antes.get(k)
+            if k == COL_PRECO_VENDA:
+                ov.preco_venda = Decimal(str(v)) if v is not None else None
+            else:
+                setattr(ov, k, str(v or "")[:300 if k == COL_NOME else 200 if k == COL_CATEGORIA else 120])
+        ov.save()
+    elif ov:
+        for k in patch_keys:
+            if k not in OVERLAY_IMPORT_KEYS:
+                continue
+            if k == COL_PRECO_VENDA:
+                ov.preco_venda = None
+            else:
+                mx = 300 if k == COL_NOME else 80 if k == COL_CODIGO_BARRAS else 200 if k in (COL_CATEGORIA, COL_SUBCATEGORIA) else 120
+                setattr(ov, k, "")
+        if _overlay_import_esta_vazio(ov):
+            ov.delete()
+        else:
+            ov.save()
+
+    mongo_antes = item.get("mongo") or {}
+    if db is not None and mongo_antes:
+        mongo_set: dict[str, float] = {}
+        if COL_PRECO_CUSTO in patch_keys:
+            for mk in ("PrecoCusto", "ValorCusto"):
+                if mk in mongo_antes:
+                    mongo_set[mk] = float(mongo_antes[mk])
+        if COL_PRECO_VENDA in patch_keys:
+            for mk in ("ValorVenda", "PrecoVenda"):
+                if mk in mongo_antes:
+                    mongo_set[mk] = float(mongo_antes[mk])
+        if mongo_set:
+            db[client.col_p].update_one(_mongo_filtro_id_produto_externo(pid), {"$set": mongo_set})
+
+
+def _historico_import_resumo_item(item: dict) -> dict:
+    campos = item.get("campos_alterados") or []
+    detalhes = []
+    para = item.get("para") or {}
+    de_map = item.get("de_merged") or item.get("overlay") or {}
+    for k in campos[:6]:
+        detalhes.append({"campo": k, "de": de_map.get(k), "para": para.get(k)})
+    return {
+        "id": item.get("id"),
+        "nome": item.get("nome") or "",
+        "campos": campos,
+        "detalhes": detalhes,
+    }
+
+
+def listar_historico_import_cadastro(*, limite: int = HISTORICO_IMPORT_LISTA_LIMITE) -> list[dict]:
+    out: list[dict] = []
+    qs = CadastroPlanilhaImportHistoricoAgro.objects.select_related("usuario", "revertido_por").order_by(
+        "-criado_em"
+    )[:limite]
+    for h in qs:
+        items = (h.backup or {}).get("items") or []
+        out.append(
+            {
+                "id": h.pk,
+                "criado_em": h.criado_em.isoformat() if h.criado_em else "",
+                "usuario": (h.usuario.get_username() if h.usuario else "") or "",
+                "nome_arquivo": h.nome_arquivo or "",
+                "n_produtos": h.n_produtos,
+                "n_campos": h.n_campos,
+                "status": h.status,
+                "pode_reverter": h.status == CadastroPlanilhaImportHistoricoAgro.Status.APLICADO,
+                "revertido_em": h.revertido_em.isoformat() if h.revertido_em else "",
+                "revertido_por": (h.revertido_por.get_username() if h.revertido_por else "") or "",
+                "resumo": [_historico_import_resumo_item(it) for it in items[:12]],
+            }
+        )
+    return out
+
+
+def reverter_importacao_cadastro(historico_id: int, user) -> dict[str, Any]:
+    from django.utils import timezone
+
+    hist = CadastroPlanilhaImportHistoricoAgro.objects.filter(pk=historico_id).first()
+    if not hist:
+        raise ValueError("Histórico não encontrado.")
+    if hist.status != CadastroPlanilhaImportHistoricoAgro.Status.APLICADO:
+        raise ValueError("Esta importação já foi desfeita.")
+
+    items = (hist.backup or {}).get("items") or []
+    if not items:
+        raise ValueError("Backup vazio — não é possível desfazer.")
+
+    from produtos.views import obter_conexao_mongo
+
+    client, db = obter_conexao_mongo()
+    if db is None:
+        raise ValueError("Mongo indisponível.")
+
+    with transaction.atomic():
+        for item in items:
+            _reverter_item_import(item, db, client, user)
+        hist.status = CadastroPlanilhaImportHistoricoAgro.Status.REVERTIDO
+        hist.revertido_em = timezone.now()
+        hist.revertido_por = user if user and user.is_authenticated else None
+        hist.save(update_fields=["status", "revertido_em", "revertido_por"])
+
+    _invalidar_cache_catalogo_pdv()
+    return {
+        "historico_id": hist.pk,
+        "revertidos": len(items),
+        "status": hist.status,
+    }
+
+
 def _invalidar_cache_catalogo_pdv() -> None:
     from produtos.views import CATALOGO_PDV_CACHE_ENTRY_KEY, CATALOGO_PDV_CACHE_PREV_ENTRY_KEY
 
@@ -684,7 +878,12 @@ def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
         db[client.col_p].update_one(_mongo_filtro_id_produto_externo(pid), {"$set": mongo_set})
 
 
-def aplicar_importacao_cadastro(path: Path, user) -> dict[str, Any]:
+def aplicar_importacao_cadastro(
+    path: Path,
+    user,
+    *,
+    nome_arquivo: str = "",
+) -> dict[str, Any]:
     prev = preview_importacao_cadastro(path)
     if prev["n_erros"] and not prev["n_alteracoes"]:
         raise ValueError("Nenhuma alteração válida — corrija os erros da prévia.")
@@ -705,6 +904,7 @@ def aplicar_importacao_cadastro(path: Path, user) -> dict[str, Any]:
     falhas: list[dict] = []
     vistos: set[str] = set()
     fila: list[dict] = []
+    backups: list[dict] = []
 
     for i, raw in enumerate(rows_raw[:IMPORT_MAX_ROWS], start=2):
         pid = _cel_str(raw.get(hdr_id or ""))[:64]
@@ -719,6 +919,7 @@ def aplicar_importacao_cadastro(path: Path, user) -> dict[str, Any]:
         fila.append({"linha": i, "id": pid, "patch": patch})
 
     mapa = _mapa_estado_atual_produtos([f["id"] for f in fila])
+    n_campos_total = 0
     for item in fila:
         pid = item["id"]
         patch = item["patch"]
@@ -731,12 +932,35 @@ def aplicar_importacao_cadastro(path: Path, user) -> dict[str, Any]:
         if vmsg:
             falhas.append({"linha": i, "id": pid, "erro": vmsg})
             continue
+        snap = _snapshot_antes_import(
+            db,
+            client,
+            pid,
+            patch,
+            nome=str(atual.get("nome") or ""),
+        )
+        snap["de_merged"] = {
+            k: atual.get(k) for k in snap.get("campos_alterados") or [] if k in patch
+        }
         try:
             with transaction.atomic():
                 _gravar_patch_produto(db, client, pid, patch, user)
+            backups.append(snap)
+            n_campos_total += len(snap.get("campos_alterados") or [])
             ok += 1
         except Exception as exc:
             falhas.append({"linha": i, "id": pid, "erro": str(exc) or "Falha ao gravar."})
+
+    historico_id = None
+    if backups:
+        hist = CadastroPlanilhaImportHistoricoAgro.objects.create(
+            usuario=user if user and user.is_authenticated else None,
+            nome_arquivo=str(nome_arquivo or "")[:255],
+            n_produtos=len(backups),
+            n_campos=n_campos_total,
+            backup={"items": backups},
+        )
+        historico_id = hist.pk
 
     if ok:
         _invalidar_cache_catalogo_pdv()
@@ -745,6 +969,7 @@ def aplicar_importacao_cadastro(path: Path, user) -> dict[str, Any]:
         "gravados": ok,
         "falhas": falhas[:80],
         "n_falhas": len(falhas),
+        "historico_id": historico_id,
         "preview": {
             "n_alteracoes": prev["n_alteracoes"],
             "n_erros": prev["n_erros"],

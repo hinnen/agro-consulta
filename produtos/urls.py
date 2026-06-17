@@ -2,7 +2,7 @@ from django.urls import include, path
 
 from financeiro.views import dashboard_financeiro_completo
 
-from . import promocoes_views, views, views_mp_point
+from . import promocoes_views, views, views_mp_point, views_nfce
 from . import fiado_gestao_views as fiado_views
 
 urlpatterns = [
@@ -224,6 +224,18 @@ urlpatterns = [
         name='api_venda_agro_cupom',
     ),
     path(
+        'venda/<int:pk>/nfce/cupom/',
+        views_nfce.api_venda_agro_nfce_cupom,
+        name='api_venda_agro_nfce_cupom',
+    ),
+    path(
+        'venda/<int:pk>/nfce/emitir/',
+        views_nfce.api_venda_agro_nfce_emitir,
+        name='api_venda_agro_nfce_emitir',
+    ),
+    path('api/nfce/status/', views_nfce.api_nfce_status, name='api_nfce_status'),
+    path('api/nfce/export-xml/', views_nfce.api_nfce_export_xml_zip, name='api_nfce_export_xml_zip'),
+    path(
         'venda/<int:pk>/erp-envio/',
         views.api_venda_agro_erp_envio_info,
         name='api_venda_agro_erp_envio_info',
@@ -301,6 +313,16 @@ urlpatterns = [
         'api/produtos/cadastro/import-aplicar/',
         views.api_produtos_cadastro_import_aplicar,
         name='api_produtos_cadastro_import_aplicar',
+    ),
+    path(
+        'api/produtos/cadastro/import-historico/',
+        views.api_produtos_cadastro_import_historico,
+        name='api_produtos_cadastro_import_historico',
+    ),
+    path(
+        'api/produtos/cadastro/import-reverter/',
+        views.api_produtos_cadastro_import_reverter,
+        name='api_produtos_cadastro_import_reverter',
     ),
     path('api/agro/fonte-status/', views.api_agro_fonte_status, name='api_agro_fonte_status'),
     path('api/produtos/gestao/lista/', views.api_produtos_gestao_lista, name='api_produtos_gestao_lista'),

@@ -1813,6 +1813,9 @@
       }
       var fd = new FormData();
       fd.append('arquivo', inpArq.files[0]);
+      if (url === C.URL_IMPORT_APLICAR && inpArq.files[0].name) {
+        fd.append('nome_arquivo', inpArq.files[0].name);
+      }
       if (btnPrev) btnPrev.disabled = true;
       if (btnApl) btnApl.disabled = true;
       setLoading(true);
@@ -1870,7 +1873,9 @@
           enviarPlanilha(C.URL_IMPORT_APLICAR, function (j) {
             fecharImport();
             if (typeof alert !== 'undefined') {
-              alert('Importação concluída: ' + (j.gravados || 0) + ' produto(s) atualizado(s).');
+              var msg = 'Importação concluída: ' + (j.gravados || 0) + ' produto(s) atualizado(s).';
+              if (j.historico_id) msg += ' Backup salvo — use «Histórico» para desfazer se precisar.';
+              alert(msg);
             }
             if (typeof carregar === 'function') carregar();
           });
@@ -1885,5 +1890,114 @@
         });
       });
     }
+
+    var btnHist = document.getElementById('cadastro-btn-import-historico');
+    var modalHist = document.getElementById('cadastro-hist-modal');
+    var backHist = document.getElementById('cadastro-hist-back');
+    var elHistLista = document.getElementById('cadastro-hist-lista');
+    var btnHistFec = document.getElementById('cadastro-hist-fechar');
+    var rotuloCampoImport = {
+      nome: 'Nome',
+      marca: 'Marca',
+      categoria: 'Categoria',
+      subcategoria: 'Subcategoria',
+      codigo_barras: 'Código barras',
+      preco_custo: 'Preço custo',
+      preco_venda: 'Preço venda'
+    };
+
+    function fmtDataIso(iso) {
+      if (!iso) return '—';
+      try {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return iso;
+        return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      } catch (e) { return iso; }
+    }
+
+    function abrirHistorico() {
+      if (!modalHist || !backHist) return;
+      modalHist.classList.remove('hidden');
+      backHist.classList.remove('hidden');
+      carregarHistoricoImport();
+    }
+    function fecharHistorico() {
+      if (!modalHist || !backHist) return;
+      modalHist.classList.add('hidden');
+      backHist.classList.add('hidden');
+    }
+
+    function carregarHistoricoImport() {
+      if (!elHistLista || !C.URL_IMPORT_HISTORICO) return;
+      elHistLista.innerHTML = '<p class="text-slate-500 font-semibold">Carregando…</p>';
+      fetch(C.URL_IMPORT_HISTORICO, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        .then(parseHttpJson)
+        .then(function (x) {
+          var lista = (x.j && x.j.historico) ? x.j.historico : [];
+          renderHistoricoImport(lista);
+        })
+        .catch(function () {
+          elHistLista.innerHTML = '<p class="text-red-700 font-semibold">Não foi possível carregar o histórico.</p>';
+        });
+    }
+
+    function renderHistoricoImport(lista) {
+      if (!elHistLista) return;
+      if (!lista || !lista.length) {
+        elHistLista.innerHTML = '<p class="text-slate-600 font-semibold">Nenhuma importação registrada ainda.</p>';
+        return;
+      }
+      elHistLista.innerHTML = lista.map(function (h) {
+        var statusCls = h.status === 'revertido' ? 'text-slate-500' : 'text-emerald-800';
+        var statusTxt = h.status === 'revertido' ? 'Desfeita' : 'Aplicada';
+        var arq = h.nome_arquivo ? (' · ' + escapeHtml(h.nome_arquivo)) : '';
+        var resumoHtml = '';
+        (h.resumo || []).slice(0, 5).forEach(function (r) {
+          var linhas = (r.detalhes || []).map(function (d) {
+            var rot = rotuloCampoImport[d.campo] || d.campo;
+            return escapeHtml(rot) + ': ' + escapeHtml(String(d.de)) + ' → ' + escapeHtml(String(d.para));
+          }).join('; ');
+          resumoHtml += '<div class="text-xs text-slate-600 mt-1 pl-2 border-l-2 border-slate-200">' +
+            escapeHtml(String(r.nome || r.id || '')) + (linhas ? ' — ' + linhas : '') + '</div>';
+        });
+        var btnRev = h.pode_reverter
+          ? '<button type="button" class="cadastro-hist-reverter min-h-[44px] px-4 rounded-xl bg-amber-600 text-white font-black uppercase text-xs border-2 border-amber-800" data-id="' + h.id + '">Desfazer</button>'
+          : '<span class="text-xs font-semibold text-slate-400">Desfeita em ' + escapeHtml(fmtDataIso(h.revertido_em)) + '</span>';
+        return '<article class="rounded-xl border-2 border-slate-200 p-4 bg-white">' +
+          '<div class="flex flex-wrap items-start justify-between gap-2">' +
+          '<div><p class="font-black text-slate-900">' + escapeHtml(fmtDataIso(h.criado_em)) + arq + '</p>' +
+          '<p class="text-xs font-semibold ' + statusCls + '">' + statusTxt + ' · ' + (h.n_produtos || 0) + ' produto(s) · ' + (h.usuario || '—') + '</p></div>' +
+          btnRev + '</div>' + resumoHtml + '</article>';
+      }).join('');
+
+      elHistLista.querySelectorAll('.cadastro-hist-reverter').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var hid = btn.getAttribute('data-id');
+          if (!hid || !C.URL_IMPORT_REVERTER) return;
+          if (!window.confirm('Desfazer esta importação? Os produtos voltam aos valores anteriores.')) return;
+          btn.disabled = true;
+          fetch(C.URL_IMPORT_REVERTER, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfTok(), 'Accept': 'application/json' },
+            body: JSON.stringify({ historico_id: parseInt(hid, 10) })
+          }).then(parseHttpJson).then(function (x) {
+            if (!x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha ao desfazer');
+            if (typeof alert !== 'undefined') {
+              alert('Importação desfeita: ' + (x.j.revertidos || 0) + ' produto(s) restaurado(s).');
+            }
+            if (typeof carregar === 'function') carregar();
+            carregarHistoricoImport();
+          }).catch(function (e) {
+            btn.disabled = false;
+            if (typeof alert !== 'undefined') alert(e.message || 'Erro ao desfazer');
+          });
+        });
+      });
+    }
+
+    if (btnHist) btnHist.addEventListener('click', abrirHistorico);
+    if (btnHistFec) btnHistFec.addEventListener('click', fecharHistorico);
+    if (backHist) backHist.addEventListener('click', fecharHistorico);
   })();
 })();
