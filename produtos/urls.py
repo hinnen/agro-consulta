@@ -2,7 +2,7 @@ from django.urls import include, path
 
 from financeiro.views import dashboard_financeiro_completo
 
-from . import promocoes_views, views, views_mp_point, views_nfce
+from . import promocoes_views, views, views_mp_point
 from . import fiado_gestao_views as fiado_views
 
 urlpatterns = [
@@ -223,18 +223,6 @@ urlpatterns = [
         views.api_venda_agro_cupom,
         name='api_venda_agro_cupom',
     ),
-    path(
-        'venda/<int:pk>/nfce/cupom/',
-        views_nfce.api_venda_agro_nfce_cupom,
-        name='api_venda_agro_nfce_cupom',
-    ),
-    path(
-        'venda/<int:pk>/nfce/emitir/',
-        views_nfce.api_venda_agro_nfce_emitir,
-        name='api_venda_agro_nfce_emitir',
-    ),
-    path('api/nfce/status/', views_nfce.api_nfce_status, name='api_nfce_status'),
-    path('api/nfce/export-xml/', views_nfce.api_nfce_export_xml_zip, name='api_nfce_export_xml_zip'),
     path(
         'venda/<int:pk>/erp-envio/',
         views.api_venda_agro_erp_envio_info,

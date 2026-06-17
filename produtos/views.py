@@ -7877,12 +7877,17 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
         u_pdv = (request.user.get_full_name() or "").strip() or (
             request.user.get_username() if hasattr(request.user, "get_username") else ""
         )
-    from produtos.nfce_config_util import nfce_config_resumo
+    try:
+        from produtos.nfce_config_util import nfce_config_resumo
+
+        nfce_boot = nfce_config_resumo()
+    except Exception:
+        nfce_boot = {"ativo": False}
 
     ctx["pdv_bootstrap"] = {
         "csrfToken": request.META.get("CSRF_COOKIE", "") or "",
         "usuarioSalvamento": u_pdv,
-        "nfce": nfce_config_resumo(),
+        "nfce": nfce_boot,
         "urls": {
             "apiPdvSalvarCheckoutDraft": reverse("api_pdv_salvar_checkout_draft"),
             "pdvCheckout": reverse("pdv_checkout"),
@@ -19367,11 +19372,14 @@ def _validar_cashback_venda_json(data: dict, raw_itens: list):
 @require_POST
 def api_enviar_pedido_erp(request):
     def _resposta_venda(data, venda, **payload):
-        from produtos.views_nfce import tentar_emitir_nfce_pos_venda
+        try:
+            from produtos.views_nfce import tentar_emitir_nfce_pos_venda
 
-        nfce = tentar_emitir_nfce_pos_venda(venda, data)
-        if nfce is not None:
-            payload["nfce"] = nfce
+            nfce = tentar_emitir_nfce_pos_venda(venda, data)
+            if nfce is not None:
+                payload["nfce"] = nfce
+        except Exception:
+            pass
         return JsonResponse(payload)
 
     try:
@@ -19637,8 +19645,6 @@ def _resposta_json_envio_erp_venda(request, v: VendaAgro, out: dict) -> JsonResp
 @require_GET
 def api_venda_agro_cupom(request, pk):
     """JSON do cupom térmico 80mm para reimpressão (NFC-e se autorizada, senão cupom interno)."""
-    from produtos.models import NfceDocumentoAgro
-    from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
     from produtos.venda_cupom_util import serializar_venda_cupom_80mm
 
     v = get_object_or_404(
@@ -19652,14 +19658,20 @@ def api_venda_agro_cupom(request, pk):
         )
     raw_sv = (request.GET.get("segunda_via") or "1").strip().lower()
     segunda_via = raw_sv not in ("0", "false", "no", "off")
-    nfce = getattr(v, "nfce", None)
-    if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
-        return JsonResponse(
-            {
-                "ok": True,
-                "cupom": serializar_nfce_cupom_80mm(v, nfce, segunda_via=segunda_via),
-            }
-        )
+    try:
+        from produtos.models import NfceDocumentoAgro
+        from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
+
+        nfce = getattr(v, "nfce", None)
+        if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "cupom": serializar_nfce_cupom_80mm(v, nfce, segunda_via=segunda_via),
+                }
+            )
+    except Exception:
+        pass
     return JsonResponse(
         {
             "ok": True,
