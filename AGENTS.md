@@ -146,7 +146,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 **Cadastro ERP — planilha Excel (fase 1)** 
 
-- Tela `**/produtos/cadastro-erp/`** (lista): botões **Excel ↓** / **Excel ↑** / **Histórico**. Export: modal escolhe colunas e categorias; painel **~80 % da viewport** (`cadastro-export-modal-panel`). `GET **/api/produtos/cadastro/export-xlsx/**` (`cols`, `categorias`, `inativos`). Import assíncrono com barra de progresso; **Histórico** + **Desfazer** (`CadastroPlanilhaImportHistoricoAgro`). Grava **overlay Agro** + preços no **Mongo**; **célula vazia não altera**; **ID** e **Código GM** bloqueados no Excel. Layout lista: **§11** (`cadastro-erp-layout` em `produtos_cadastro_erp.html`) — referência 1366×720, 1440×900, 2560×1440 via **Agro Display Scale** (Chrome app), não zoom Ctrl+/-. Lógica: `produtos/cadastro_planilha_util.py`.
+- Tela `**/produtos/cadastro-erp/`** (lista): botões **Excel ↓** / **Excel ↑** / **Histórico**. Export: modal escolhe colunas e categorias; painel **~80 % da viewport** (`cadastro-export-modal-panel`). `GET **/api/produtos/cadastro/export-xlsx/**` (`cols`, `categorias`, `inativos`). Import assíncrono com barra de progresso; **Histórico** + **Desfazer** (`CadastroPlanilhaImportHistoricoAgro`). Grava **overlay Agro** + preços no **Mongo**; **célula vazia não altera**; coluna **ID** oculta e travada no Excel; **Código GM** editável na planilha (overlay `codigo_nfe`). Layout lista: **§11** (`cadastro-erp-layout` em `produtos_cadastro_erp.html`) — referência 1366×720, 1440×900, 2560×1440 via **Agro Display Scale** (Chrome app), não zoom Ctrl+/-. Lógica: `produtos/cadastro_planilha_util.py`.
 
 **PDF financeiro (`produtos/lancamentos_financeiro_pdf.py`)**  
 
