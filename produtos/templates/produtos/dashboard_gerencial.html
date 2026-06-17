@@ -49,6 +49,40 @@
     }
     .kpi-card { border-color: #7dd3fc; }
     .kpi-card.kpi-warn { border-color: #fcd34d; }
+    .kpi-card.kpi-validade-alerta {
+        border-color: #f87171;
+        background: linear-gradient(165deg, #fef2f2 0%, #fff 48%);
+        box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.45), 0 4px 16px rgba(239, 68, 68, 0.14);
+        animation: kpi-validade-pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes kpi-validade-pulse {
+        0%, 100% {
+            box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.45), 0 4px 14px rgba(239, 68, 68, 0.12);
+        }
+        50% {
+            box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.65), 0 8px 22px rgba(239, 68, 68, 0.22);
+        }
+    }
+    .kpi-validade-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        margin-top: 0.45rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 0.5rem;
+        border: 1px solid #fca5a5;
+        background: #fee2e2;
+        color: #991b1b;
+        font-size: 9px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        animation: kpi-validade-cta-blink 1.8s ease-in-out infinite;
+    }
+    @keyframes kpi-validade-cta-blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.72; }
+    }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
     .custom-scrollbar::-webkit-scrollbar-thumb {
         background: linear-gradient(180deg, var(--capri), rgba(16, 185, 129, 0.6));
