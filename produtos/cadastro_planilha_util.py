@@ -279,7 +279,13 @@ def montar_xlsx_cadastro(rows: list[dict]) -> bytes:
 
 
 def _estado_atual_produto(pid: str) -> dict | None:
+    return _mapa_estado_atual_produtos([pid]).get(str(pid or "").strip()[:64])
+
+
+def _mapa_estado_atual_produtos(pids: list[str]) -> dict[str, dict]:
+    """Carrega estado atual (Mongo + overlay) em lote — evita N consultas na prévia."""
     from produtos.views import (
+        _CADASTRO_LISTA_MONGO_PROJ,
         _aplicar_produto_gestao_overlay_em_dict,
         _overlay_mapa_por_ids_chunked,
         _produto_mongo_para_cadastro_row,
@@ -287,16 +293,42 @@ def _estado_atual_produto(pid: str) -> dict | None:
         obter_conexao_mongo,
     )
 
+    uniq = list(dict.fromkeys(str(p or "").strip()[:64] for p in pids if str(p or "").strip()))
+    if not uniq:
+        return {}
+
     client, db = obter_conexao_mongo()
     if db is None:
-        return None
-    doc = _produto_mongo_por_id_externo(db, client, pid)
-    if not doc:
-        return None
-    row = _produto_mongo_para_cadastro_row(doc)
-    ov = _overlay_mapa_por_ids_chunked([pid]).get(pid)
-    _aplicar_produto_gestao_overlay_em_dict(row, ov)
-    return row
+        return {}
+
+    doc_map: dict[str, dict] = {}
+    chunk_sz = 500
+    for i in range(0, len(uniq), chunk_sz):
+        chunk_pids = uniq[i : i + chunk_sz]
+        try:
+            for doc in db[client.col_p].find({"Id": {"$in": chunk_pids}}, _CADASTRO_LISTA_MONGO_PROJ):
+                pid = str(doc.get("Id") or doc.get("_id") or "").strip()[:64]
+                if pid:
+                    doc_map[pid] = doc
+        except Exception:
+            pass
+
+    for pid in uniq:
+        if pid not in doc_map:
+            doc = _produto_mongo_por_id_externo(db, client, pid)
+            if doc:
+                doc_map[pid] = doc
+
+    ovs = _overlay_mapa_por_ids_chunked(uniq)
+    out: dict[str, dict] = {}
+    for pid in uniq:
+        doc = doc_map.get(pid)
+        if not doc:
+            continue
+        row = _produto_mongo_para_cadastro_row(doc)
+        _aplicar_produto_gestao_overlay_em_dict(row, ovs.get(pid))
+        out[pid] = row
+    return out
 
 
 def _patch_da_linha(raw: dict, colmap: dict[str, str | None]) -> dict[str, Any]:
@@ -377,19 +409,27 @@ def _tem_alteracao(atual: dict, patch: dict) -> bool:
     return False
 
 
-def preview_importacao_cadastro(path: Path) -> dict[str, Any]:
+def preview_importacao_cadastro(
+    path: Path,
+    on_progress: None | Any = None,
+) -> dict[str, Any]:
     headers, rows_raw = _ler_planilha(path)
+    if on_progress:
+        on_progress(0, f"total:{len(rows_raw)}")
+        on_progress(2, f"Planilha com {len(rows_raw)} linha(s) — lendo…")
     colmap = _map_headers(headers)
     if not colmap.get(COL_ID):
         raise ValueError("Coluna «ID» não encontrada na planilha.")
 
+    hdr_id = colmap[COL_ID]
+    rows_slice = rows_raw[:IMPORT_MAX_ROWS]
     vistos: set[str] = set()
     alteracoes: list[dict] = []
     ignoradas: list[dict] = []
     erros: list[dict] = []
+    pendentes: list[dict] = []
 
-    for i, raw in enumerate(rows_raw[:IMPORT_MAX_ROWS], start=2):
-        hdr_id = colmap[COL_ID]
+    for i, raw in enumerate(rows_slice, start=2):
         pid = _cel_str(raw.get(hdr_id or ""))[:64]
         if not pid:
             continue
@@ -406,8 +446,25 @@ def preview_importacao_cadastro(path: Path) -> dict[str, Any]:
         if not any(k in patch for k in IMPORT_KEYS):
             ignoradas.append({"linha": i, "id": pid, "motivo": "Nenhum campo alterado (células vazias)."})
             continue
+        pendentes.append({"linha": i, "id": pid, "patch": patch})
 
-        atual = _estado_atual_produto(pid)
+    if on_progress:
+        on_progress(8, f"Carregando catálogo ({len(pendentes)} linha(s) com alteração)…")
+
+    mapa = _mapa_estado_atual_produtos([p["id"] for p in pendentes])
+    total_pend = len(pendentes)
+    step = max(1, total_pend // 40)
+
+    for idx, item in enumerate(pendentes):
+        pid = item["id"]
+        patch = item["patch"]
+        i = item["linha"]
+
+        if on_progress and (idx == 0 or idx % step == 0 or idx == total_pend - 1):
+            pct = 10 + int(85 * idx / max(1, total_pend))
+            on_progress(pct, f"Analisando linha {i}… ({idx + 1}/{total_pend})")
+
+        atual = mapa.get(pid)
         if not atual:
             erros.append({"linha": i, "id": pid, "erro": "Produto não encontrado no catálogo."})
             continue
@@ -440,6 +497,9 @@ def preview_importacao_cadastro(path: Path) -> dict[str, Any]:
                 "campos": campos,
             }
         )
+
+    if on_progress:
+        on_progress(100, "Concluído")
 
     if len(rows_raw) > IMPORT_MAX_ROWS:
         erros.append(
@@ -527,6 +587,7 @@ def aplicar_importacao_cadastro(path: Path, user) -> dict[str, Any]:
     ok = 0
     falhas: list[dict] = []
     vistos: set[str] = set()
+    fila: list[dict] = []
 
     for i, raw in enumerate(rows_raw[:IMPORT_MAX_ROWS], start=2):
         pid = _cel_str(raw.get(hdr_id or ""))[:64]
@@ -538,7 +599,14 @@ def aplicar_importacao_cadastro(path: Path, user) -> dict[str, Any]:
             continue
         if not any(k in patch for k in IMPORT_KEYS):
             continue
-        atual = _estado_atual_produto(pid)
+        fila.append({"linha": i, "id": pid, "patch": patch})
+
+    mapa = _mapa_estado_atual_produtos([f["id"] for f in fila])
+    for item in fila:
+        pid = item["id"]
+        patch = item["patch"]
+        i = item["linha"]
+        atual = mapa.get(pid)
         if not atual or not _tem_alteracao(atual, patch):
             continue
         merged = _merged_row(atual, patch)
