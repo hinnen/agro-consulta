@@ -7878,9 +7878,12 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
         u_pdv = (request.user.get_full_name() or "").strip() or (
             request.user.get_username() if hasattr(request.user, "get_username") else ""
         )
+    from produtos.nfce_config_util import nfce_config_resumo
+
     ctx["pdv_bootstrap"] = {
         "csrfToken": request.META.get("CSRF_COOKIE", "") or "",
         "usuarioSalvamento": u_pdv,
+        "nfce": nfce_config_resumo(),
         "urls": {
             "apiPdvSalvarCheckoutDraft": reverse("api_pdv_salvar_checkout_draft"),
             "pdvCheckout": reverse("pdv_checkout"),
@@ -17015,14 +17018,21 @@ def api_produtos_cadastro(request):
 @require_GET
 def api_produtos_cadastro_export_xlsx(request):
     """Exporta catálogo (Mongo + overlay) para Excel — edição em lote fase 1."""
-    from produtos.cadastro_planilha_util import coletar_linhas_export_cadastro, montar_xlsx_cadastro
+    from produtos.cadastro_planilha_util import (
+        coletar_linhas_export_cadastro,
+        montar_xlsx_cadastro,
+        normalizar_categorias_export,
+        normalizar_colunas_export,
+    )
 
     inativos = request.GET.get("inativos") in ("1", "true", "yes")
+    colunas = normalizar_colunas_export(request.GET.get("cols"))
+    categorias = normalizar_categorias_export(request.GET.get("categorias"))
     try:
-        rows, truncado = coletar_linhas_export_cadastro(inativos=inativos)
+        rows, truncado = coletar_linhas_export_cadastro(inativos=inativos, categorias=categorias)
     except ValueError as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=503)
-    blob = montar_xlsx_cadastro(rows)
+    blob = montar_xlsx_cadastro(rows, colunas=colunas)
     nome = f"Cadastro_Produtos_{timezone.localdate().strftime('%Y%m%d')}.xlsx"
     resp = HttpResponse(
         blob,
@@ -18685,7 +18695,16 @@ def _persistir_venda_agro(
             pass
     if not _cliente_id_e_valido_para_erp(cid) and not str(cid).lower().startswith("agro:"):
         cid = ""
-    doc = str(data.get("cliente_documento") or data.get("CpfCnpj") or "").strip()
+    doc = re.sub(
+        r"\D",
+        "",
+        str(
+            data.get("nfce_cpf")
+            or data.get("cliente_documento")
+            or data.get("CpfCnpj")
+            or ""
+        ).strip(),
+    )[:20]
     forma = _forma_pagamento_rotulo_sem_valor_moeda(
         str(data.get("forma_pagamento") or data.get("formaPagamento") or "")
     ).strip()[:80]
@@ -19352,6 +19371,14 @@ def _validar_cashback_venda_json(data: dict, raw_itens: list):
 
 @require_POST
 def api_enviar_pedido_erp(request):
+    def _resposta_venda(data, venda, **payload):
+        from produtos.views_nfce import tentar_emitir_nfce_pos_venda
+
+        nfce = tentar_emitir_nfce_pos_venda(venda, data)
+        if nfce is not None:
+            payload["nfce"] = nfce
+        return JsonResponse(payload)
+
     try:
         data = json.loads(request.body)
     except Exception:
@@ -19439,17 +19466,17 @@ def api_enviar_pedido_erp(request):
                 erp_sync_status=VendaAgro.ErpSyncStatus.PENDENTE,
             )
             vid = venda_local.pk if venda_local else None
-            return JsonResponse(
-                {
-                    "ok": True,
-                    "venda_id": vid,
-                    "fiado_aguarda_erp": True,
-                    "erp_pendente": False,
-                    "mensagem": (
-                        "Venda fiado registrada no Agro. Envie ao ERP manualmente em Vendas → Fiado pendente ERP."
-                    ),
-                    "credito": cred,
-                }
+            return _resposta_venda(
+                data,
+                venda_local,
+                ok=True,
+                venda_id=vid,
+                fiado_aguarda_erp=True,
+                erp_pendente=False,
+                mensagem=(
+                    "Venda fiado registrada no Agro. Envie ao ERP manualmente em Vendas → Fiado pendente ERP."
+                ),
+                credito=cred,
             )
         if getattr(settings, "PDV_ERP_ENVIO_ASSINCRONO", True):
             err_early, _linhas, _valor_final = _pdv_pedido_linhas_e_valor_final(
@@ -19472,13 +19499,13 @@ def api_enviar_pedido_erp(request):
             vid = venda_local.pk if venda_local else None
             if vid:
                 _disparar_envio_erp_venda_background(vid, data)
-            return JsonResponse(
-                {
-                    "ok": True,
-                    "venda_id": vid,
-                    "erp_pendente": True,
-                    "mensagem": "Venda registrada. Envio ao ERP em segundo plano.",
-                }
+            return _resposta_venda(
+                data,
+                venda_local,
+                ok=True,
+                venda_id=vid,
+                erp_pendente=True,
+                mensagem="Venda registrada. Envio ao ERP em segundo plano.",
             )
         err, out = _fluxo_enviar_pedido_erp_interno(
             request, data, client_m=client_m, db=db
@@ -19508,12 +19535,12 @@ def api_enviar_pedido_erp(request):
                 status=502,
             )
         if out["ok"]:
-            return JsonResponse(
-                {
-                    "ok": True,
-                    "mensagem": _json_legivel(out["res"]),
-                    "venda_id": vid,
-                }
+            return _resposta_venda(
+                data,
+                venda_local,
+                ok=True,
+                mensagem=_json_legivel(out["res"]),
+                venda_id=vid,
             )
         return JsonResponse(
             {
@@ -19614,7 +19641,9 @@ def _resposta_json_envio_erp_venda(request, v: VendaAgro, out: dict) -> JsonResp
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_venda_agro_cupom(request, pk):
-    """JSON do cupom térmico 80mm para reimpressão."""
+    """JSON do cupom térmico 80mm para reimpressão (NFC-e se autorizada, senão cupom interno)."""
+    from produtos.models import NfceDocumentoAgro
+    from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
     from produtos.venda_cupom_util import serializar_venda_cupom_80mm
 
     v = get_object_or_404(
@@ -19628,6 +19657,14 @@ def api_venda_agro_cupom(request, pk):
         )
     raw_sv = (request.GET.get("segunda_via") or "1").strip().lower()
     segunda_via = raw_sv not in ("0", "false", "no", "off")
+    nfce = getattr(v, "nfce", None)
+    if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
+        return JsonResponse(
+            {
+                "ok": True,
+                "cupom": serializar_nfce_cupom_80mm(v, nfce, segunda_via=segunda_via),
+            }
+        )
     return JsonResponse(
         {
             "ok": True,
