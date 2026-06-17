@@ -42,6 +42,45 @@ EXPORT_HEADERS: list[tuple[str, str]] = [
     ("Preço venda", COL_PRECO_VENDA),
 ]
 
+# Colunas travadas no Excel (identificação — não editar na planilha).
+EXPORT_COLS_BLOQUEADAS = frozenset({COL_ID, COL_CODIGO_GM})
+
+EXPORT_COL_KEYS = [key for _, key in EXPORT_HEADERS]
+
+def normalizar_colunas_export(raw: str | None) -> list[str]:
+    """Colunas pedidas na exportação — ID sempre incluído."""
+    if not raw or not str(raw).strip():
+        return list(EXPORT_COL_KEYS)
+    pedidas = [x.strip() for x in str(raw).split(",") if x.strip()]
+    out: list[str] = []
+    for k in pedidas:
+        if k in EXPORT_COL_KEYS and k not in out:
+            out.append(k)
+    if COL_ID not in out:
+        out.insert(0, COL_ID)
+    return out or list(EXPORT_COL_KEYS)
+
+
+def normalizar_categorias_export(raw: str | None) -> list[str]:
+    if not raw or not str(raw).strip():
+        return []
+    return list(dict.fromkeys(x.strip() for x in str(raw).split("|") if x.strip()))[:80]
+
+
+def _filtrar_rows_categorias(rows: list[dict], categorias: list[str]) -> list[dict]:
+    if not categorias:
+        return rows
+    alvo = {c.strip().lower() for c in categorias if c.strip()}
+    if not alvo:
+        return rows
+    return [r for r in rows if str(r.get("categoria") or "").strip().lower() in alvo]
+
+
+def headers_export(colunas: list[str] | None = None) -> list[tuple[str, str]]:
+    cols = colunas or list(EXPORT_COL_KEYS)
+    return [(label, key) for label, key in EXPORT_HEADERS if key in cols]
+
+
 IMPORT_KEYS = {
     COL_NOME,
     COL_MARCA,
@@ -172,7 +211,11 @@ def _ler_planilha(path: Path) -> tuple[list[str], list[dict[str, Any]]]:
     raise ValueError("Use arquivo .csv ou .xlsx.")
 
 
-def coletar_linhas_export_cadastro(*, inativos: bool = False) -> tuple[list[dict], bool]:
+def coletar_linhas_export_cadastro(
+    *,
+    inativos: bool = False,
+    categorias: list[str] | None = None,
+) -> tuple[list[dict], bool]:
     """Retorna linhas mescladas (Mongo/Agro + overlay) para exportação."""
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
     from produtos.views import (
@@ -210,7 +253,8 @@ def coletar_linhas_export_cadastro(*, inativos: bool = False) -> tuple[list[dict
                 break
             pagina += 1
         truncado = len(rows) >= EXPORT_MAX_ROWS
-        return rows[:EXPORT_MAX_ROWS], truncado
+        rows = _filtrar_rows_categorias(rows[:EXPORT_MAX_ROWS], categorias or [])
+        return rows, truncado
 
     client, db = obter_conexao_mongo()
     if db is None:
@@ -230,6 +274,7 @@ def coletar_linhas_export_cadastro(*, inativos: bool = False) -> tuple[list[dict
     ovs = _overlay_mapa_por_ids_chunked([str(r.get("id") or "") for r in rows])
     for r in rows:
         _aplicar_produto_gestao_overlay_em_dict(r, ovs.get(str(r.get("id") or "")))
+    rows = _filtrar_rows_categorias(rows, categorias or [])
     return rows, truncado
 
 
@@ -247,19 +292,24 @@ def linha_export_planilha(row: dict) -> dict[str, Any]:
     }
 
 
-def montar_xlsx_cadastro(rows: list[dict]) -> bytes:
+def montar_xlsx_cadastro(rows: list[dict], colunas: list[str] | None = None) -> bytes:
+    from openpyxl.styles import Protection
+
+    hdrs = headers_export(colunas)
     wb = Workbook()
     ws = wb.active
     ws.title = "Cadastro"
     hdr_fill = PatternFill("solid", fgColor="DCFCE7")
     hdr_font = Font(bold=True, color="14532D")
-    for col, (label, _) in enumerate(EXPORT_HEADERS, start=1):
+    lock_fill = PatternFill("solid", fgColor="F1F5F9")
+    for col, (label, key) in enumerate(hdrs, start=1):
         c = ws.cell(row=1, column=col, value=label)
         c.font = hdr_font
         c.fill = hdr_fill
+        c.protection = Protection(locked=key in EXPORT_COLS_BLOQUEADAS)
     for ri, src in enumerate(rows, start=2):
         line = linha_export_planilha(src)
-        for col, (_, key) in enumerate(EXPORT_HEADERS, start=1):
+        for col, (_, key) in enumerate(hdrs, start=1):
             val = line.get(key)
             cell = ws.cell(row=ri, column=col)
             if key in (COL_ID, COL_CODIGO_GM, COL_CODIGO_BARRAS):
@@ -269,10 +319,21 @@ def montar_xlsx_cadastro(rows: list[dict]) -> bytes:
                 cell.value = val
                 if key in (COL_PRECO_CUSTO, COL_PRECO_VENDA):
                     cell.number_format = "#,##0.00"
-    for col in range(1, len(EXPORT_HEADERS) + 1):
+            bloqueada = key in EXPORT_COLS_BLOQUEADAS
+            cell.protection = Protection(locked=bloqueada)
+            if bloqueada:
+                cell.fill = lock_fill
+    for col in range(1, len(hdrs) + 1):
         ws.column_dimensions[get_column_letter(col)].width = 16
-    ws.column_dimensions["A"].width = 14
-    ws.column_dimensions["C"].width = 42
+    if hdrs and hdrs[0][1] == COL_ID:
+        ws.column_dimensions["A"].width = 14
+    nome_col = next(
+        (get_column_letter(i + 1) for i, (_, key) in enumerate(hdrs) if key == COL_NOME),
+        None,
+    )
+    if nome_col:
+        ws.column_dimensions[nome_col].width = 42
+    ws.protection.sheet = True
     buf = BytesIO()
     wb.save(buf)
     return buf.getvalue()
