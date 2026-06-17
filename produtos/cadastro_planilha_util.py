@@ -42,8 +42,9 @@ EXPORT_HEADERS: list[tuple[str, str]] = [
     ("Preço venda", COL_PRECO_VENDA),
 ]
 
-# Colunas travadas no Excel (identificação — não editar na planilha).
-EXPORT_COLS_BLOQUEADAS = frozenset({COL_ID, COL_CODIGO_GM})
+# Colunas travadas no Excel (só ID — coluna oculta na planilha).
+EXPORT_COLS_BLOQUEADAS = frozenset({COL_ID})
+EXPORT_COLS_OCULTAS = frozenset({COL_ID})
 
 EXPORT_COL_KEYS = [key for _, key in EXPORT_HEADERS]
 
@@ -82,6 +83,7 @@ def headers_export(colunas: list[str] | None = None) -> list[tuple[str, str]]:
 
 
 IMPORT_KEYS = {
+    COL_CODIGO_GM,
     COL_NOME,
     COL_MARCA,
     COL_CATEGORIA,
@@ -92,6 +94,7 @@ IMPORT_KEYS = {
 }
 
 OVERLAY_IMPORT_KEYS = (
+    COL_CODIGO_GM,
     COL_NOME,
     COL_MARCA,
     COL_CATEGORIA,
@@ -101,6 +104,18 @@ OVERLAY_IMPORT_KEYS = (
 )
 
 HISTORICO_IMPORT_LISTA_LIMITE = 30
+
+
+def _overlay_model_field(key: str) -> str:
+    return "codigo_nfe" if key == COL_CODIGO_GM else key
+
+
+def _valor_atual_campo_import(atual: dict, key: str):
+    if key in (COL_PRECO_CUSTO, COL_PRECO_VENDA):
+        return atual.get(key)
+    if key == COL_CODIGO_GM:
+        return str(atual.get("codigo_gm") or atual.get("codigo_nfe") or "").strip()
+    return str(atual.get(key) or "").strip()
 
 
 def _norm_header(h: str) -> str:
@@ -335,9 +350,12 @@ def montar_xlsx_cadastro(rows: list[dict], colunas: list[str] | None = None) -> 
             if bloqueada:
                 cell.fill = lock_fill
     for col in range(1, len(hdrs) + 1):
-        ws.column_dimensions[get_column_letter(col)].width = 16
-    if hdrs and hdrs[0][1] == COL_ID:
-        ws.column_dimensions["A"].width = 14
+        letter = get_column_letter(col)
+        ws.column_dimensions[letter].width = 16
+        key = hdrs[col - 1][1]
+        if key in EXPORT_COLS_OCULTAS:
+            ws.column_dimensions[letter].hidden = True
+            ws.column_dimensions[letter].width = 2
     nome_col = next(
         (get_column_letter(i + 1) for i, (_, key) in enumerate(hdrs) if key == COL_NOME),
         None,
@@ -483,6 +501,7 @@ def _patch_da_linha(raw: dict, colmap: dict[str, str | None]) -> dict[str, Any]:
         else:
             patch[key] = d
 
+    txt(COL_CODIGO_GM, 64)
     txt(COL_NOME, 300)
     txt(COL_MARCA, 120)
     txt(COL_CATEGORIA, 200)
@@ -500,6 +519,9 @@ def _merged_row(atual: dict, patch: dict) -> dict:
             continue
         if k in (COL_PRECO_CUSTO, COL_PRECO_VENDA):
             out[k] = float(v)
+        elif k == COL_CODIGO_GM:
+            out["codigo_gm"] = v
+            out["codigo_nfe"] = v
         else:
             out[k] = v
     return out
@@ -532,7 +554,7 @@ def _tem_alteracao(atual: dict, patch: dict) -> bool:
         if k in (COL_PRECO_CUSTO, COL_PRECO_VENDA):
             if round(float(atual.get(k) or 0), 2) != round(float(patch[k]), 2):
                 return True
-        elif str(atual.get(k) or "").strip() != str(patch[k] or "").strip():
+        elif _valor_atual_campo_import(atual, k) != str(patch[k] or "").strip():
             return True
     return False
 
@@ -661,7 +683,8 @@ def _snapshot_antes_import(db, client, pid: str, patch: dict, nome: str = "") ->
             val = ov.preco_venda if ov else None
             overlay[k] = str(val) if val is not None else None
         else:
-            overlay[k] = (getattr(ov, k, "") or "") if ov else ""
+            fld = _overlay_model_field(k)
+            overlay[k] = (getattr(ov, fld, "") or "") if ov else ""
 
     mongo: dict[str, Any] = {}
     if db is not None:
@@ -696,7 +719,7 @@ def _overlay_import_esta_vazio(ov: ProdutoGestaoOverlayAgro) -> bool:
         if k == COL_PRECO_VENDA:
             if ov.preco_venda is not None:
                 return False
-        elif str(getattr(ov, k, "") or "").strip():
+        elif str(getattr(ov, _overlay_model_field(k), "") or "").strip():
             return False
     return True
 
@@ -726,7 +749,19 @@ def _reverter_item_import(item: dict, db, client, user) -> None:
             if k == COL_PRECO_VENDA:
                 ov.preco_venda = Decimal(str(v)) if v is not None else None
             else:
-                setattr(ov, k, str(v or "")[:300 if k == COL_NOME else 200 if k == COL_CATEGORIA else 120])
+                fld = _overlay_model_field(k)
+                mx = (
+                    300
+                    if k == COL_NOME
+                    else 64
+                    if k == COL_CODIGO_GM
+                    else 80
+                    if k == COL_CODIGO_BARRAS
+                    else 200
+                    if k in (COL_CATEGORIA, COL_SUBCATEGORIA)
+                    else 120
+                )
+                setattr(ov, fld, str(v or "")[:mx])
         ov.save()
     elif ov:
         for k in patch_keys:
@@ -735,8 +770,19 @@ def _reverter_item_import(item: dict, db, client, user) -> None:
             if k == COL_PRECO_VENDA:
                 ov.preco_venda = None
             else:
-                mx = 300 if k == COL_NOME else 80 if k == COL_CODIGO_BARRAS else 200 if k in (COL_CATEGORIA, COL_SUBCATEGORIA) else 120
-                setattr(ov, k, "")
+                fld = _overlay_model_field(k)
+                mx = (
+                    300
+                    if k == COL_NOME
+                    else 64
+                    if k == COL_CODIGO_GM
+                    else 80
+                    if k == COL_CODIGO_BARRAS
+                    else 200
+                    if k in (COL_CATEGORIA, COL_SUBCATEGORIA)
+                    else 120
+                )
+                setattr(ov, fld, "")
         if _overlay_import_esta_vazio(ov):
             ov.delete()
         else:
@@ -851,6 +897,8 @@ def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
         produto_externo_id=pid[:64],
         defaults={"usuario": user if user and user.is_authenticated else None},
     )
+    if COL_CODIGO_GM in patch:
+        ov.codigo_nfe = str(patch[COL_CODIGO_GM] or "")[:64]
     if COL_NOME in patch:
         ov.nome = str(patch[COL_NOME] or "")[:300]
     if COL_MARCA in patch:

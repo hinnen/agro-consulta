@@ -1454,8 +1454,8 @@
       var btnExpFec = document.getElementById('cadastro-export-fechar');
       var exportCatsCache = null;
       var exportColsDef = [
-        { key: 'id', label: 'ID', fixa: true, bloqueada: true },
-        { key: 'codigo_gm', label: 'Código GM', bloqueada: true },
+        { key: 'id', label: 'ID', fixa: true, bloqueada: true, oculta: true },
+        { key: 'codigo_gm', label: 'Código GM' },
         { key: 'nome', label: 'Nome' },
         { key: 'marca', label: 'Marca' },
         { key: 'categoria', label: 'Categoria' },
@@ -1482,7 +1482,9 @@
         if (!elCols) return;
         elCols.innerHTML = exportColsDef.map(function (c) {
           var chk = c.fixa ? ' checked disabled' : ' checked';
-          var hint = c.bloqueada ? ' <span class="text-[10px] font-black uppercase text-slate-400">(bloqueada no Excel)</span>' : '';
+          var hint = c.oculta
+            ? ' <span class="text-[10px] font-black uppercase text-slate-400">(oculta no Excel)</span>'
+            : (c.bloqueada ? ' <span class="text-[10px] font-black uppercase text-slate-400">(bloqueada no Excel)</span>' : '');
           return '<label class="flex items-center gap-2 min-h-[40px] px-2 rounded-lg hover:bg-slate-50">' +
             '<input type="checkbox" class="cadastro-export-col-cb w-5 h-5" data-key="' + escapeHtml(c.key) + '"' + chk + ' />' +
             '<span>' + escapeHtml(c.label) + hint + '</span></label>';
