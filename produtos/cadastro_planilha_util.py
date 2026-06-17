@@ -179,6 +179,24 @@ def _cel_opt_str(val) -> str | None:
     return s if s else None
 
 
+def _id_produto_planilha_valido(pid: str) -> bool:
+    """ID exportado: ObjectId Mongo (24 hex) ou Id numérico ERP."""
+    s = str(pid or "").strip()
+    if not s or len(s) > 64:
+        return False
+    low = s.lower()
+    if re.fullmatch(r"[0-9a-f]{24}", low):
+        return True
+    return bool(s.isdigit() and 1 <= len(s) <= 12)
+
+
+def _id_planilha_resumo(pid: str, max_len: int = 28) -> str:
+    s = str(pid or "").strip()
+    if len(s) <= max_len:
+        return s
+    return s[: max_len - 1] + "…"
+
+
 def _parse_decimal_br(val) -> Decimal | None:
     if val is None:
         return None
@@ -583,6 +601,15 @@ def preview_importacao_cadastro(
         pid = _cel_str(raw.get(hdr_id or ""))[:64]
         if not pid:
             continue
+        if not _id_produto_planilha_valido(pid):
+            erros.append(
+                {
+                    "linha": i,
+                    "id": _id_planilha_resumo(pid),
+                    "erro": "ID inválido (texto ou coluna errada). Apague a linha ou restaure o ID da exportação.",
+                }
+            )
+            continue
         if pid in vistos:
             erros.append({"linha": i, "id": pid, "erro": "ID duplicado na planilha."})
             continue
@@ -931,11 +958,8 @@ def aplicar_importacao_cadastro(
     user,
     *,
     nome_arquivo: str = "",
+    on_progress: None | Any = None,
 ) -> dict[str, Any]:
-    prev = preview_importacao_cadastro(path)
-    if prev["n_erros"] and not prev["n_alteracoes"]:
-        raise ValueError("Nenhuma alteração válida — corrija os erros da prévia.")
-
     from produtos.views import obter_conexao_mongo
 
     client, db = obter_conexao_mongo()
@@ -948,15 +972,15 @@ def aplicar_importacao_cadastro(
     if not hdr_id:
         raise ValueError("Coluna «ID» não encontrada.")
 
-    ok = 0
-    falhas: list[dict] = []
-    vistos: set[str] = set()
-    fila: list[dict] = []
-    backups: list[dict] = []
+    if on_progress:
+        on_progress(2, f"total:{len(rows_raw)}")
+        on_progress(4, f"Lendo {len(rows_raw)} linha(s)…")
 
+    candidatos: list[dict] = []
+    vistos: set[str] = set()
     for i, raw in enumerate(rows_raw[:IMPORT_MAX_ROWS], start=2):
         pid = _cel_str(raw.get(hdr_id or ""))[:64]
-        if not pid or pid in vistos:
+        if not pid or not _id_produto_planilha_valido(pid) or pid in vistos:
             continue
         vistos.add(pid)
         patch = _patch_da_linha(raw, colmap)
@@ -964,11 +988,15 @@ def aplicar_importacao_cadastro(
             continue
         if not any(k in patch for k in IMPORT_KEYS):
             continue
-        fila.append({"linha": i, "id": pid, "patch": patch})
+        candidatos.append({"linha": i, "id": pid, "patch": patch})
 
-    mapa = _mapa_estado_atual_produtos([f["id"] for f in fila])
-    n_campos_total = 0
-    for item in fila:
+    if on_progress:
+        on_progress(8, f"Conferindo {len(candidatos)} linha(s) com dados…")
+
+    mapa = _mapa_estado_atual_produtos([c["id"] for c in candidatos], on_progress=on_progress)
+
+    fila: list[dict] = []
+    for item in candidatos:
         pid = item["id"]
         patch = item["patch"]
         i = item["linha"]
@@ -978,8 +1006,30 @@ def aplicar_importacao_cadastro(
         merged = _merged_row(atual, patch)
         vmsg = _validar_merged(merged)
         if vmsg:
-            falhas.append({"linha": i, "id": pid, "erro": vmsg})
             continue
+        fila.append({"linha": i, "id": pid, "patch": patch, "atual": atual})
+
+    if not fila:
+        raise ValueError("Nenhuma alteração válida para gravar — confira a prévia.")
+
+    if on_progress:
+        on_progress(92, f"Gravando {len(fila)} produto(s)…")
+
+    ok = 0
+    falhas: list[dict] = []
+    backups: list[dict] = []
+    n_campos_total = 0
+    total_fila = len(fila)
+
+    for idx, item in enumerate(fila):
+        pid = item["id"]
+        patch = item["patch"]
+        i = item["linha"]
+        atual = item["atual"]
+        if on_progress and (idx == 0 or idx == total_fila - 1 or idx % max(1, total_fila // 20) == 0):
+            pct = 92 + int(7 * idx / max(1, total_fila))
+            on_progress(pct, f"Gravando produto {idx + 1}/{total_fila}…")
+
         snap = _snapshot_antes_import(
             db,
             client,
@@ -1013,13 +1063,13 @@ def aplicar_importacao_cadastro(
     if ok:
         _invalidar_cache_catalogo_pdv()
 
+    if on_progress:
+        on_progress(100, "Concluído")
+
     return {
         "gravados": ok,
         "falhas": falhas[:80],
         "n_falhas": len(falhas),
         "historico_id": historico_id,
-        "preview": {
-            "n_alteracoes": prev["n_alteracoes"],
-            "n_erros": prev["n_erros"],
-        },
+        "n_alteracoes": len(fila),
     }
