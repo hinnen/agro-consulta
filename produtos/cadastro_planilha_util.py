@@ -87,10 +87,22 @@ def _map_headers(headers: list[str]) -> dict[str, str | None]:
 def _cel_str(val) -> str:
     if val is None:
         return ""
-    if isinstance(val, float) and val == int(val):
-        return str(int(val))
+    if isinstance(val, bool):
+        return "1" if val else "0"
+    if isinstance(val, int):
+        return str(val)
+    if isinstance(val, float):
+        if val == int(val) or abs(val - round(val)) < 1e-9:
+            return str(int(round(val)))
+        s = str(val).strip()
+        if "e" in s.lower():
+            try:
+                return str(int(Decimal(s)))
+            except Exception:
+                pass
+        return s
     s = str(val).strip()
-    if s.endswith(".0") and s[:-2].isdigit():
+    if s.endswith(".0") and s[:-2].replace("-", "").isdigit():
         return s[:-2]
     return s
 
@@ -249,11 +261,14 @@ def montar_xlsx_cadastro(rows: list[dict]) -> bytes:
         line = linha_export_planilha(src)
         for col, (_, key) in enumerate(EXPORT_HEADERS, start=1):
             val = line.get(key)
-            cell = ws.cell(row=ri, column=col, value=val)
+            cell = ws.cell(row=ri, column=col)
             if key in (COL_ID, COL_CODIGO_GM, COL_CODIGO_BARRAS):
+                cell.value = str(val) if val is not None else ""
                 cell.number_format = "@"
-            elif key in (COL_PRECO_CUSTO, COL_PRECO_VENDA):
-                cell.number_format = "#,##0.00"
+            else:
+                cell.value = val
+                if key in (COL_PRECO_CUSTO, COL_PRECO_VENDA):
+                    cell.number_format = "#,##0.00"
     for col in range(1, len(EXPORT_HEADERS) + 1):
         ws.column_dimensions[get_column_letter(col)].width = 16
     ws.column_dimensions["A"].width = 14

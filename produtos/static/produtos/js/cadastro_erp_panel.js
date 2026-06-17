@@ -1470,7 +1470,12 @@
 
     function renderPrevia(j) {
       if (elResumo) {
-        elResumo.textContent = j.n_alteracoes + ' alteração(ões) · ' + j.n_ignoradas + ' ignorada(s) · ' + j.n_erros + ' erro(s)';
+        elResumo.className = 'text-sm font-semibold ' + (j.n_alteracoes > 0 ? 'text-emerald-800' : 'text-amber-800');
+        if (j.n_alteracoes > 0) {
+          elResumo.textContent = j.n_alteracoes + ' alteração(ões) · ' + j.n_ignoradas + ' ignorada(s) · ' + j.n_erros + ' erro(s) — pode confirmar abaixo.';
+        } else {
+          elResumo.textContent = 'Nenhuma alteração detectada (' + j.n_ignoradas + ' ignorada(s), ' + j.n_erros + ' erro(s)). Edite alguma célula (vazio não altera) ou clique «Ver prévia» de novo após corrigir.';
+        }
         elResumo.classList.remove('hidden');
       }
       if (elErros && j.erros && j.erros.length) {
@@ -1530,22 +1535,45 @@
     });
     if (btnFec) btnFec.addEventListener('click', fecharImport);
     if (back) back.addEventListener('click', fecharImport);
+    function rodarPrevia() {
+      if (!inpArq || !inpArq.files || !inpArq.files[0]) {
+        if (typeof alert !== 'undefined') alert('Selecione um arquivo .xlsx ou .csv.');
+        return;
+      }
+      enviarPlanilha(C.URL_IMPORT_PREVIEW, renderPrevia);
+    }
+
+    if (inpArq) {
+      inpArq.addEventListener('change', function () {
+        limparImportUi();
+        if (inpArq.files && inpArq.files[0]) rodarPrevia();
+      });
+    }
     if (btnPrev && C.URL_IMPORT_PREVIEW) {
       btnPrev.addEventListener('click', function () {
         limparImportUi();
-        enviarPlanilha(C.URL_IMPORT_PREVIEW, renderPrevia);
+        rodarPrevia();
       });
     }
     if (btnApl && C.URL_IMPORT_APLICAR) {
       btnApl.addEventListener('click', function () {
-        if (!ultimaPreviaOk) return;
-        if (!window.confirm('Gravar ' + (elResumo ? elResumo.textContent : 'as alterações') + ' no SisVale?')) return;
-        enviarPlanilha(C.URL_IMPORT_APLICAR, function (j) {
-          fecharImport();
-          if (typeof alert !== 'undefined') {
-            alert('Importação concluída: ' + (j.gravados || 0) + ' produto(s) atualizado(s).');
-          }
-          if (typeof carregar === 'function') carregar();
+        function confirmarGravacao() {
+          if (!window.confirm('Gravar alterações da planilha no SisVale?')) return;
+          enviarPlanilha(C.URL_IMPORT_APLICAR, function (j) {
+            fecharImport();
+            if (typeof alert !== 'undefined') {
+              alert('Importação concluída: ' + (j.gravados || 0) + ' produto(s) atualizado(s).');
+            }
+            if (typeof carregar === 'function') carregar();
+          });
+        }
+        if (ultimaPreviaOk) {
+          confirmarGravacao();
+          return;
+        }
+        enviarPlanilha(C.URL_IMPORT_PREVIEW, function (j) {
+          renderPrevia(j);
+          if (j.n_alteracoes > 0) confirmarGravacao();
         });
       });
     }
