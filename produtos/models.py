@@ -433,6 +433,56 @@ class VendaAgro(models.Model):
         )
 
 
+class NfceNumeracaoAgro(models.Model):
+    """Controle sequencial de numeração NFC-e (série única por instalação)."""
+
+    serie = models.PositiveSmallIntegerField(default=1)
+    proximo_numero = models.PositiveIntegerField(default=1)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Numeração NFC-e"
+        verbose_name_plural = "Numerações NFC-e"
+
+    def __str__(self):
+        return f"Série {self.serie} — próximo nº {self.proximo_numero}"
+
+
+class NfceDocumentoAgro(models.Model):
+    """NFC-e (modelo 65) emitida pelo PDV Agro — XML autorizado para arquivo mensal."""
+
+    class Status(models.TextChoices):
+        AUTORIZADA = "autorizada", "Autorizada"
+        REJEITADA = "rejeitada", "Rejeitada"
+        ERRO = "erro", "Erro técnico"
+
+    venda = models.OneToOneField(
+        VendaAgro,
+        on_delete=models.CASCADE,
+        related_name="nfce",
+    )
+    status = models.CharField(max_length=16, choices=Status.choices, db_index=True)
+    chave = models.CharField(max_length=44, blank=True, default="", db_index=True)
+    numero = models.PositiveIntegerField(default=0)
+    serie = models.PositiveSmallIntegerField(default=1)
+    protocolo = models.CharField(max_length=20, blank=True, default="")
+    dest_cpf = models.CharField(max_length=11, blank=True, default="")
+    consumidor_sem_identificacao = models.BooleanField(default=False)
+    xml_autorizado = models.TextField(blank=True, default="")
+    qr_code_url = models.TextField(blank=True, default="")
+    mensagem_sefaz = models.TextField(blank=True, default="")
+    tp_amb = models.PositiveSmallIntegerField(default=2, help_text="1 produção · 2 homologação")
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "NFC-e Agro"
+        verbose_name_plural = "NFC-e Agro"
+
+    def __str__(self):
+        return f"NFC-e {self.chave or self.pk} — venda #{self.venda_id}"
+
+
 class FiadoTituloAgro(models.Model):
     """Título de crédito loja (fiado) — parcela ou venda PDV / importação ERP."""
 
@@ -1240,3 +1290,49 @@ class EtiquetaImpressaoHistoricoAgro(models.Model):
 
     def __str__(self):
         return f"{self.criado_em:%d/%m/%Y %H:%M} · {self.total_etiquetas} etq."
+
+
+class CadastroPlanilhaImportHistoricoAgro(models.Model):
+    """Backup e histórico de importações Excel do cadastro (permite desfazer)."""
+
+    class Status(models.TextChoices):
+        APLICADO = "aplicado", "Aplicado"
+        REVERTIDO = "revertido", "Revertido"
+
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="cadastro_planilha_imports",
+    )
+    nome_arquivo = models.CharField(max_length=255, blank=True, default="")
+    n_produtos = models.PositiveIntegerField(default=0)
+    n_campos = models.PositiveIntegerField(default=0)
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.APLICADO,
+        db_index=True,
+    )
+    backup = models.JSONField(default=dict, help_text="Snapshot antes de aplicar (por produto).")
+    revertido_em = models.DateTimeField(null=True, blank=True)
+    revertido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="cadastro_planilha_reversoes",
+    )
+
+    class Meta:
+        verbose_name = "Histórico importação planilha cadastro"
+        verbose_name_plural = "Históricos importação planilha cadastro"
+        ordering = ["-criado_em"]
+        indexes = [
+            models.Index(fields=["-criado_em"], name="cad_plan_imp_criado_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.criado_em:%d/%m/%Y %H:%M} · {self.n_produtos} prod. · {self.status}"

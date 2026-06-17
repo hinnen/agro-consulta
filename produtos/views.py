@@ -17219,7 +17219,8 @@ def api_produtos_cadastro_import_aplicar(request):
     tmp_path = None
     try:
         tmp_path = _cadastro_planilha_tmp_upload(upload)
-        r = aplicar_importacao_cadastro(tmp_path, request.user)
+        nome = (request.POST.get("nome_arquivo") or upload.name or "")[:255]
+        r = aplicar_importacao_cadastro(tmp_path, request.user, nome_arquivo=nome)
         return JsonResponse({"ok": True, **r})
     except ValueError as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
@@ -17229,6 +17230,39 @@ def api_produtos_cadastro_import_aplicar(request):
                 tmp_path.unlink(missing_ok=True)
             except Exception:
                 pass
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_produtos_cadastro_import_historico(request):
+    """Lista importações Excel recentes (com opção de desfazer)."""
+    from produtos.cadastro_planilha_util import listar_historico_import_cadastro
+
+    return JsonResponse({"ok": True, "historico": listar_historico_import_cadastro()})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_produtos_cadastro_import_reverter(request):
+    """Desfaz uma importação Excel usando o backup salvo."""
+    import json
+
+    from produtos.cadastro_planilha_util import reverter_importacao_cadastro
+
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        body = {}
+    hid = body.get("historico_id") or request.POST.get("historico_id")
+    try:
+        hid_int = int(hid)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Informe o ID do histórico."}, status=400)
+    try:
+        r = reverter_importacao_cadastro(hid_int, request.user)
+        return JsonResponse({"ok": True, **r})
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
 
 
 def _grupo_agro_para_json(g: ProdutoGrupoAgro) -> dict:
