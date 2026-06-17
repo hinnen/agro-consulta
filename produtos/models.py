@@ -1299,7 +1299,7 @@ class CadastroPlanilhaImportHistoricoAgro(models.Model):
         APLICADO = "aplicado", "Aplicado"
         REVERTIDO = "revertido", "Revertido"
 
-    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

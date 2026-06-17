@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("produtos", "0037_nfce_documento_agro"),
+        ("produtos", "0036_etiqueta_impressao_historico"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
             name="CadastroPlanilhaImportHistoricoAgro",
             fields=[
                 ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                ("criado_em", models.DateTimeField(auto_now_add=True, db_index=True)),
+                ("criado_em", models.DateTimeField(auto_now_add=True)),
                 ("nome_arquivo", models.CharField(blank=True, default="", max_length=255)),
                 ("n_produtos", models.PositiveIntegerField(default=0)),
                 ("n_campos", models.PositiveIntegerField(default=0)),
