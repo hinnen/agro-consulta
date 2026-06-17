@@ -587,7 +587,7 @@
 {% block admin_content %}
 {% include "produtos/_gm_loading_bar.html" %}
 {{ agro_build|json_script:"agro-build-data" }}
-<div id="agro-ver-popover" class="agro-ver-popover hidden" role="tooltip" aria-hidden="true"></div>
+<div id="agro-ver-popover" class="agro-ver-popover hidden" role="tooltip" aria-hidden="true" translate="no"></div>
 <div class="main-container">
     <div class="dash-topbar flex flex-wrap xl:flex-nowrap items-center justify-between gap-2 p-2 bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/5 mb-6 no-print">
         <div class="flex items-center gap-3 px-2 border-r border-white/10 mr-1 min-w-0">
@@ -864,19 +864,20 @@ document.addEventListener("keydown", function (e) {
         var html = "";
         html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Versão</span><span class="agro-ver-pop__val">v' + esc(info.version_label || info.version) + "</span></div>";
         if (info.build) {
-          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Build</span><span class="agro-ver-pop__val">' + esc(info.build) + "</span></div>";
+          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Atualização</span><span class="agro-ver-pop__val">' + esc(info.build) + "</span></div>";
         }
         if (info.commit) {
-          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Commit</span><span class="agro-ver-pop__val mono">' + esc(info.commit) + "</span></div>";
+          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Revisão git</span><span class="agro-ver-pop__val mono">' + esc(info.commit) + "</span></div>";
         }
         if (info.branch) {
-          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Branch</span><span class="agro-ver-pop__val">' + esc(info.branch) + "</span></div>";
+          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Ambiente</span><span class="agro-ver-pop__val">' + esc(info.branch) + "</span></div>";
         }
         if (info.built_at) {
-          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Deploy</span><span class="agro-ver-pop__val mono">' + esc(info.built_at) + "</span></div>";
+          html += '<div class="agro-ver-pop__row"><span class="agro-ver-pop__lbl">Publicado</span><span class="agro-ver-pop__val mono">' + esc(info.built_at) + "</span></div>";
         }
         var commits = Array.isArray(info.version_commits) ? info.version_commits : [];
         if (commits.length) {
+          html += '<p class="mt-2 mb-1 text-[9px] font-black uppercase tracking-wide text-slate-400">Histórico desta versão</p>';
           html += '<ul class="agro-ver-pop__commits">';
           commits.forEach(function (row) {
             var line = "";
@@ -892,6 +893,7 @@ document.addEventListener("keydown", function (e) {
         pop.innerHTML = popoverHtml();
         pop.classList.remove("hidden");
         pop.setAttribute("aria-hidden", "false");
+        pop.setAttribute("translate", "no");
         var r = anchor.getBoundingClientRect();
         var margin = 8;
         pop.style.left = "0px";

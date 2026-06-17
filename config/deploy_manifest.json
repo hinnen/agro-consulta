@@ -13,6 +13,13 @@
       "commit_full": "2cda17abd56568d6d556e2a30eecca0e5e13a362",
       "branch": "teste",
       "recorded_at": "2026-06-16T19:43:54Z"
+    },
+    {
+      "version": "1.01",
+      "commit": "660cccbbf348",
+      "commit_full": "660cccbbf348c800e7db77aeafb794f86d37177b",
+      "branch": "teste",
+      "recorded_at": "2026-06-17T21:21:25Z"
     }
   ]
 }
